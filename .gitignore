@@ -1,0 +1,6 @@
+build/
+project/.godot/
+project/bin/
+*.o
+*.so
+__pycache__/
