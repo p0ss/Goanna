@@ -85,13 +85,30 @@ Sizing, by what happens to those ~57k lines:
   payoff is real — dappled canopy light, sky-lit shadow sides, contact
   shadow, colour bounce, atmospheric depth, on untouched Mineclonia
   geometry. Reproducible from `~/Documents/Code/Godot/luanti_e0a/`.
-- **E0b — the pipe (the founding estimate).** GDExtension embedding
-  Luanti's network client, `Map`/`MapBlock`/`NodeDefManager` and
-  `LocalPlayer`; connect to a real server; receive mapblocks; mesh them —
-  naive cube faces first, `content_mapblock` ported second — into per-block
-  `RenderingServer` instances; walk around with Luanti's own movement
-  physics. No GUI, entities or sound. If it walks and feels right, the
-  sizing above holds.
+- **E0b — the pipe (the founding estimate). Stages 1–2 done 2026-08-15,
+  about three hours from empty repo.** What exists: `luanti_core`, a static
+  library of ~50 Luanti source files (network layer, settings/log/porting,
+  serialization, node/item definitions, MapBlock/Map, inventory/metadata,
+  the SRP auth stack, vendored mini-gmp/sha256/jsoncpp) compiled with
+  server-build semantics — no Irrlicht render/GUI/scene types, header-only
+  math kept — linked into the GDExtension with `--no-undefined`; one shim
+  file for two functions that live in a server-only translation unit.
+  `GoannaSession` speaks the real handshake (INIT → HELLO → SRP/FIRST_SRP →
+  AUTH_ACCEPT → INIT2 → NODEDEF/ITEMDEF/ANNOUNCE_MEDIA → CLIENT_READY →
+  BLOCKDATA with GOTBLOCKS acks and periodic PLAYERPOS) on its own thread.
+  Against a devtest server: connected, registered, authenticated and pulled
+  ~340 mapblocks within a second; the server logs an ordinary "joins game".
+  A naive culled-cube mesher turns blocks into one `MeshInstance3D` each,
+  vertex-coloured by node type; a fly camera feeds its pose back so the
+  server streams around it. Rendered with SDFGI/SSAO/shadows/fog: see
+  `docs/e0b_first_light.png`. Remaining for E0b proper: media fetch (real
+  textures), port `content_mapblock` (all drawtypes), `LocalPlayer` physics
+  (walking, not flying), `RenderingServer` instances instead of nodes.
+  Findings so far: the tangle in `src/client` is avoidable — the pieces
+  below `Client` separate cleanly, so the transplant is "build Goanna's
+  client on Luanti's real network/world layer", not "trim `Client`";
+  threading is unproblematic (session thread + Godot main thread with two
+  mutexes). The sizing above holds or is pessimistic.
 
 ## Environment (as of 2026-08-15)
 

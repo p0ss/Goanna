@@ -72,6 +72,7 @@ public:
 
     // Snapshot of block positions received since the last call (consumed).
     std::vector<v3s16> takeNewBlocks();
+    void requeueBlock(v3s16 pos); // caller holds mapLock()
     // Access to a received block; nullptr if unknown. Caller holds mapLock().
     MapBlock *getBlock(v3s16 pos);
     std::mutex &mapLock() { return m_map_mutex; }

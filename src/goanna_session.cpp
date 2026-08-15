@@ -108,6 +108,10 @@ std::vector<v3s16> GoannaSession::takeNewBlocks() {
     return out;
 }
 
+void GoannaSession::requeueBlock(v3s16 pos) {
+    m_new_blocks.push_back(pos);
+}
+
 MapBlock *GoannaSession::getBlock(v3s16 pos) {
     auto it = m_blocks.find(pos);
     return it == m_blocks.end() ? nullptr : it->second.get();

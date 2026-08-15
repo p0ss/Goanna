@@ -1,9 +1,16 @@
 #include "goanna_client.h"
 
+#include <godot_cpp/classes/array_mesh.hpp>
+#include <godot_cpp/classes/mesh.hpp>
 #include <godot_cpp/core/class_db.hpp>
+#include <godot_cpp/variant/packed_color_array.hpp>
+#include <godot_cpp/variant/packed_int32_array.hpp>
+#include <godot_cpp/variant/packed_vector3_array.hpp>
 #include <godot_cpp/variant/vector3.hpp>
 
+#include "goanna_mesher.h"
 #include "goanna_session.h"
+#include "mapblock.h"
 #include "version.h"
 
 using namespace godot;
@@ -47,15 +54,96 @@ Dictionary GoannaClient::status() const {
     d["item_defs"] = (int)s.item_defs;
     d["media_announced"] = (int)s.media_announced;
     d["blocks_received"] = (int)s.blocks_received;
-    d["player_pos"] = Vector3(s.player_pos.X, s.player_pos.Y, s.player_pos.Z);
+    d["blocks_meshed"] = (int)m_block_nodes.size();
+    d["player_pos"] = Vector3(s.player_pos.X, s.player_pos.Y, -s.player_pos.Z);
     d["time_of_day"] = s.time_of_day;
     return d;
 }
 
-int GoannaClient::pending_block_count() {
+Vector3 GoannaClient::server_player_position() const {
+    if (!m_session)
+        return Vector3();
+    SessionStats s = m_session->stats();
+    return Vector3(s.player_pos.X, s.player_pos.Y, -s.player_pos.Z);
+}
+
+void GoannaClient::set_player_pose(const Vector3 &pos, float pitch_deg, float yaw_deg) {
+    if (!m_session)
+        return;
+    m_session->setPlayerPose(v3f(pos.x, pos.y, -pos.z), pitch_deg, yaw_deg);
+}
+
+void GoannaClient::ensureMaterial() {
+    if (m_material.is_valid())
+        return;
+    m_material.instantiate();
+    m_material->set_flag(BaseMaterial3D::FLAG_ALBEDO_FROM_VERTEX_COLOR, true);
+    m_material->set_roughness(1.0f);
+    m_material->set_cull_mode(BaseMaterial3D::CULL_BACK);
+}
+
+int GoannaClient::poll_blocks(int max_blocks) {
     if (!m_session)
         return 0;
-    return (int)m_session->takeNewBlocks().size();
+    ensureMaterial();
+    std::vector<v3s16> fresh = m_session->takeNewBlocks();
+    int done = 0;
+    std::lock_guard<std::mutex> lk(m_session->mapLock());
+    for (const v3s16 &bp : fresh) {
+        if (done >= max_blocks) {
+            // put back what we could not process this frame
+            m_session->requeueBlock(bp);
+            continue;
+        }
+        MapBlock *block = m_session->getBlock(bp);
+        if (!block)
+            continue;
+        MeshData md = meshBlock(*m_session, block);
+        MeshInstance3D *mi = nullptr;
+        auto it = m_block_nodes.find(bp);
+        if (it != m_block_nodes.end()) {
+            mi = it->second;
+        }
+        if (md.empty()) {
+            if (mi) {
+                mi->queue_free();
+                m_block_nodes.erase(bp);
+            }
+            ++done;
+            continue;
+        }
+        PackedVector3Array verts, norms;
+        PackedColorArray cols;
+        PackedInt32Array idx;
+        size_t nv = md.positions.size() / 3;
+        verts.resize(nv); norms.resize(nv); cols.resize(nv);
+        for (size_t i = 0; i < nv; ++i) {
+            verts[i] = Vector3(md.positions[i*3], md.positions[i*3+1], md.positions[i*3+2]);
+            norms[i] = Vector3(md.normals[i*3], md.normals[i*3+1], md.normals[i*3+2]);
+            cols[i] = Color(md.colors[i*4], md.colors[i*4+1], md.colors[i*4+2], md.colors[i*4+3]);
+        }
+        idx.resize(md.indices.size());
+        for (size_t i = 0; i < md.indices.size(); ++i)
+            idx[i] = md.indices[i];
+        Array arrays;
+        arrays.resize(Mesh::ARRAY_MAX);
+        arrays[Mesh::ARRAY_VERTEX] = verts;
+        arrays[Mesh::ARRAY_NORMAL] = norms;
+        arrays[Mesh::ARRAY_COLOR] = cols;
+        arrays[Mesh::ARRAY_INDEX] = idx;
+        Ref<ArrayMesh> mesh;
+        mesh.instantiate();
+        mesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays);
+        mesh->surface_set_material(0, m_material);
+        if (!mi) {
+            mi = memnew(MeshInstance3D);
+            add_child(mi);
+            m_block_nodes[bp] = mi;
+        }
+        mi->set_mesh(mesh);
+        ++done;
+    }
+    return done;
 }
 
 void GoannaClient::_bind_methods() {
@@ -65,7 +153,11 @@ void GoannaClient::_bind_methods() {
             &GoannaClient::connect_to);
     ClassDB::bind_method(D_METHOD("disconnect_from_server"), &GoannaClient::disconnect_from_server);
     ClassDB::bind_method(D_METHOD("status"), &GoannaClient::status);
-    ClassDB::bind_method(D_METHOD("pending_block_count"), &GoannaClient::pending_block_count);
+    ClassDB::bind_method(D_METHOD("poll_blocks", "max_blocks"), &GoannaClient::poll_blocks);
+    ClassDB::bind_method(D_METHOD("block_mesh_count"), &GoannaClient::block_mesh_count);
+    ClassDB::bind_method(D_METHOD("set_player_pose", "pos", "pitch_deg", "yaw_deg"),
+            &GoannaClient::set_player_pose);
+    ClassDB::bind_method(D_METHOD("server_player_position"), &GoannaClient::server_player_position);
 }
 
 } // namespace goanna
