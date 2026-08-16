@@ -376,6 +376,7 @@ the console line tells you whether it is progressing.
 connect if the server allows it, and uses SRP to log in afterwards. If the
 name already exists with a different password, pick another `GOANNA_NAME`.
 
-**Everything is a flat grey or missing.** Most drawtypes are not implemented
-yet. Nodes that are not simple cubes or plants will be absent or wrong. This
-is expected at this stage and is the next piece of work.
+**A surface is blank, white or missing.** Goanna supports Luanti's drawtypes
+and array-texture grouping, but an unusual texture modifier, material or model
+can still expose a conversion bug. Run with `GOANNA_DEBUG_CONTENT=1` and report
+the node name, game and relevant log lines.

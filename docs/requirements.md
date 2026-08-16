@@ -28,7 +28,8 @@ These numbers come from one machine, so treat them as a single data point
 rather than a matrix. Anyone who runs Goanna on different hardware and
 reports back is doing the project a real favour.
 
-Measured on 16 August 2026: NVIDIA RTX 3090, AMD Ryzen 7 7800X3D, at
+The first measurement was taken on 16 August 2026: NVIDIA RTX 3090, AMD Ryzen
+7 7800X3D, at
 1600x900, connected to a local Mineclonia server, with about 1300 mapblocks
 received and 685 meshed.
 
@@ -39,16 +40,27 @@ received and 685 meshed.
 | System memory | 694 MB | 757 MB |
 | Processor | 84 % of one core | 99 % |
 
-Two caveats, both of which mean a shipped build should do better. The build
-measured was `template_debug` with `RelWithDebInfo`, so Godot's debug checks
-were on and the code was not fully optimised. And no frame rate was captured,
-so "62 % of an RTX 3090" says the renderer is working hard but does not yet
-say at what frame rate.
+That was before frame-time telemetry and renderer batching landed. The later
+runs below are not a controlled benchmark suite, but they identify the
+bottleneck and show the scale of the improvement.
 
-That figure is still the headline. Sixty-two per cent of a high end card, at
-a modest resolution, is a lot, and it is what SDFGI, SSAO, SSIL, volumetric
-fog and real shadows cost. Turning those off would change the numbers
-completely, and would also remove the reason Goanna exists.
+| Mineclonia run | Draw calls | Frame rate |
+| --- | ---: | ---: |
+| Before array textures and surface merging, 541 block meshes | 9,197 | about 167 fps |
+| After array textures and surface merging, 730 block meshes | 4,957 | 215 to 232 fps |
+| View range 20, full detail | 4,858 | 118 fps |
+| View range 20, coarse LOD beyond 6 mapblocks | 2,824 | 262 fps |
+
+In ordinary terms, array textures, merged surfaces and distant level of detail
+moved the same class of scene from roughly 100 fps towards 300 fps. Draw calls,
+not triangle count or mesh generation time, were the limiting factor. The
+client now also bounds resident mapblocks and reports frame-time, queue,
+draw-call, object and video-memory telemetry with `GOANNA_PERF=1`.
+
+The measurements still use `template_debug` with `RelWithDebInfo`, so Godot's
+debug checks are active. They come from one unusually powerful machine and
+should not be read as a minimum-GPU result. SDFGI, SSAO, SSIL, volumetric fog
+and real shadows remain deliberately expensive.
 
 ## Will it run on a Raspberry Pi 5?
 
@@ -85,7 +97,7 @@ committed to from the start.
 ## What would move the needle
 
 If you want Goanna to run on weaker hardware, the useful work is not a
-fallback renderer. It is making the expensive features optional at run time
-so a player can trade quality for frame rate: SDFGI off, shadow distance
-down, SSIL off, fog simplified. None of that exists yet. There is currently
-no settings screen at all.
+fallback renderer. The settings screen now exposes view distance and the
+distance at which coarse LOD begins. The next useful controls would let a
+player trade quality for frame rate inside Godot's expensive pipeline: SDFGI
+off, shadow distance down, SSIL off and fog simplified.

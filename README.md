@@ -46,12 +46,13 @@ own menus, and move items between slots. You can fight a mob and pick up
 what it drops. Players and mobs have their real models and animations, and
 chests and furnaces open when you click them.
 
-What is missing is the long tail: some dropped items on the ground are placeholder
-boxes, sound, particles, and a hundred small things a game notices before you
-do. Crafting through the inventory grid doesn't work for all things.
+What is missing is the long tail: some dropped items on the ground are
+placeholder boxes, animated node textures do not advance yet, particle
+coverage is not complete, and a hundred small things a game notices before
+you do. Crafting through the inventory grid does not work for all things.
 
-So: worth a look, not yet worth moving into. The Luanti
-client remains the one that works, and will always be the reference implementation
+So: worth a look, not yet worth moving into. The Luanti client remains the
+one that works, and will always be the reference implementation.
 
 **If you want to follow along**, the pictures in [docs/](docs/) get updated
 as things land, and `PLAN.md` says where it is heading.
@@ -101,7 +102,7 @@ troubleshooting list are in **[docs/building.md](docs/building.md)**.
 
 ## What works, and what does not
 
-As at August 2026 its an alph
+As at August 2026, it is an alpha.
 
 **Works.** Connecting and logging in to ordinary servers. The world itself:
 terrain, plants, water, glass and every other node shape, built by Luanti's
@@ -121,6 +122,12 @@ collecting its drops, and falling to your death all work, at the server's own
 timings. In first person, your held item, its swing and your own body are
 drawn too, with an option to hide the body.
 
+Server-driven and local sounds play, including positional sounds, footsteps,
+digging and placing. One-shot particles and server particle spawners are also
+drawn, which brings weather such as rain and snow into the world. Particle
+support is new and has not yet been tested against the full range of effects
+games can define.
+
 Then the parts that are Goanna's own rather than Luanti's: a water shader
 with vertex waves and refraction, waving leaves and plants, distance fog and
 an underwater tint, chamfered edges on solid nodes, surface relief derived
@@ -130,8 +137,10 @@ and each takes effect immediately. The sun follows Luanti's own path, so
 low light at either end of the day is genuinely warm and directional rather
 than a filter.
 
-**Does not work.** Dropped items lying on the ground, still placeholder
-boxes. Sound. Particles. Windows and macOS.
+**Does not work.** Some dropped items lying on the ground are still
+placeholder boxes. Animated node textures remain on their first frame. Some
+particle behaviours and the batched particle packet are not implemented.
+Windows and macOS have not been play-tested.
 
 Node lighting has landed, so caves are dark and a torch matters underground,
 but its balance against daylight is still being tuned and open ground is
@@ -209,17 +218,17 @@ Goanna does not fork Luanti and there is no patch queue against the engine.
 
 `PLAN.md` has the full plan. The short version is a compatibility ladder:
 
-1. A plain game and devtest: nodes, movement, basic interaction. **In
-   progress.**
-2. minetest_game, the classic baseline.
+1. A plain game and devtest: nodes, movement, basic interaction.
+   **Substantially working.**
+2. minetest_game, the classic baseline. **Substantially working.**
 3. Mineclonia and VoxeLibre: models, the full formspec corner case zoo,
-   particles, attachments. This is the bar for being usable by the
-   community, and the games people actually play.
+   particles, attachments. **In progress.** This is the bar for being usable
+   by the community, and the games people actually play.
 4. Server sent client side modding, mirroring upstream when it lands.
 
-The largest single pieces of work between here and rung 3 are sound, which
-does not exist at all, particles, and the long tail of the formspec element
-zoo that a game like Mineclonia leans on.
+The largest pieces of work between here and rung 3 are animated node
+textures, the untested tail of particle behaviour, camera packets, and the
+long tail of the formspec element zoo that a game like Mineclonia leans on.
 
 ## Contributing
 

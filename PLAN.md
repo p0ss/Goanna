@@ -143,9 +143,22 @@ Sizing, by what happens to those ~57k lines:
   connection menu; licence headers and the transplant inventory brought
   into order. Three sessions worked the tree at once this afternoon, which
   is where the discipline in `CONTRIBUTING.md` and `docs/transplanting.md`
-  earned its keep. Remaining for E0b proper: node light, entity meshes and
-  animation, formspec rendering, `RenderingServer` instances instead of
-  nodes.
+  earned its keep. At that point the remaining E0b work was node light,
+  entity meshes and animation, formspec rendering, and a cheaper rendering
+  path.
+  **Stage 6 (2026-08-16 to 17): residency, performance and particles.**
+  Mapblock residency is bounded around the player and evictions are reported
+  to the server with `DELETEDBLOCKS`; frame-time and renderer telemetry made
+  the real cost visible. Luanti's array-texture grouping is now carried into
+  Godot `Texture2DArray` resources, and buffers sharing a material are merged.
+  Distant blocks can be rebuilt as coarse flat-coloured cells with one shared
+  material. At view range 20, the measured Mineclonia scene moved from 4,858
+  draw calls and 118 fps to 2,824 draw calls and 262 fps with LOD beyond six
+  mapblocks. `SPAWN_PARTICLE`, `ADD_PARTICLESPAWNER` and
+  `DELETE_PARTICLESPAWNER` now feed Godot GPU particles; rain and snow exposed
+  and fixed player-relative anchoring and size conversion. Particle behaviour
+  still needs broader coverage testing, and animated node textures do not yet
+  advance beyond their first frame.
   Findings so far: the tangle in `src/client` is avoidable. The pieces
   below `Client` separate cleanly, so the transplant is "build Goanna's
   client on Luanti's real network/world layer", not "trim `Client`";
