@@ -123,6 +123,8 @@ void *GoannaTexture::lock(video::E_TEXTURE_LOCK_MODE, u32, u32, video::E_TEXTURE
     return m_image ? m_image->getData() : nullptr;
 }
 
+Ref<Image> goanna_image_to_godot(video::IImage *src);
+
 GoannaTexture::GoannaTexture(const std::string &name, const std::vector<video::IImage *> &images,
         const std::vector<std::string> &layer_names, u32 id)
     : video::ITexture(name.c_str(), video::ETT_2D_ARRAY), m_id(id),
@@ -141,7 +143,7 @@ GoannaTexture::GoannaTexture(const std::string &name, const std::vector<video::I
     }
 }
 
-static Ref<Image> goanna_image_to_godot(video::IImage *src) {
+Ref<Image> goanna_image_to_godot(video::IImage *src) {
     const u32 w = src->getDimension().Width, h = src->getDimension().Height;
     PackedByteArray data;
     data.resize(w * h * 4);
@@ -174,6 +176,58 @@ Ref<Texture2DArray> GoannaTexture::godotArray() {
     if (tex->create_from_images(imgs) == OK)
         m_godot_array = tex;
     return m_godot_array;
+}
+
+Ref<Texture2DArray> GoannaTexture::godotArraySuffixed(GoannaTextureSource &src, const char *suffix) {
+    std::string key(suffix);
+    auto miss = m_suffixed_missing.find(key);
+    if (miss != m_suffixed_missing.end() && miss->second)
+        return Ref<Texture2DArray>();
+    auto have = m_godot_suffixed.find(key);
+    if (have != m_godot_suffixed.end())
+        return have->second;
+    // Layer indices must line up with the base array, so every layer needs an
+    // image; but a pack covering only some textures is the normal case, so a
+    // missing companion becomes a neutral layer (flat normal, fully rough,
+    // no emission) rather than abandoning the whole bunch. Only if nothing at
+    // all is authored is the companion reported as absent.
+    const bool is_normal = key == "_n";
+    TypedArray<Image> imgs;
+    bool any = false;
+    for (const std::string &base : m_layer_names) {
+        size_t dotpos = base.rfind('.');
+        std::string name = (dotpos == std::string::npos ? base : base.substr(0, dotpos)) + suffix +
+                (dotpos == std::string::npos ? std::string() : base.substr(dotpos));
+        Ref<Image> img;
+        if (src.isKnownSourceImage(name)) {
+            GoannaTexture *gt = dynamic_cast<GoannaTexture *>(src.getTexture(name));
+            if (gt && gt->image() && gt->image()->getDimension() == Size) {
+                img = goanna_image_to_godot(gt->image());
+                if (img.is_valid())
+                    any = true;
+            }
+        }
+        if (img.is_null()) {
+            img = Image::create_empty(Size.Width, Size.Height, false, Image::FORMAT_RGBA8);
+            // flat tangent normal with full ambient light, or a rough
+            // dielectric with no emission
+            img->fill(is_normal ? Color(0.5f, 0.5f, 1.0f, 0.0f) : Color(0.0f, 0.04f, 0.0f, 1.0f));
+        }
+        img->generate_mipmaps();
+        imgs.push_back(img);
+    }
+    if (!any) {
+        m_suffixed_missing[key] = true;
+        return Ref<Texture2DArray>();
+    }
+    Ref<Texture2DArray> tex;
+    tex.instantiate();
+    if (tex->create_from_images(imgs) == OK) {
+        m_godot_suffixed[key] = tex;
+        return tex;
+    }
+    m_suffixed_missing[key] = true;
+    return Ref<Texture2DArray>();
 }
 
 Ref<ImageTexture> GoannaTexture::godotTexture() {

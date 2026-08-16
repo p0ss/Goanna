@@ -28,6 +28,8 @@
 
 namespace goanna {
 
+class GoannaTextureSource;
+
 class GoannaTexture final : public video::ITexture {
 public:
     GoannaTexture(const std::string &name, video::IImage *image, u32 id);
@@ -51,6 +53,10 @@ public:
     // shader, an animated or cracked tile) can fall back to a single layer.
     bool isArray() const { return !m_layers.empty(); }
     godot::Ref<godot::Texture2DArray> godotArray();
+    // LabPBR companion arrays: the same layers with a "_n" (normal, AO,
+    // height) or "_s" (smoothness, F0, porosity, emission) suffix, built only
+    // if a pack supplies one for every layer. Null when it does not.
+    godot::Ref<godot::Texture2DArray> godotArraySuffixed(GoannaTextureSource &src, const char *suffix);
     const std::vector<std::string> &layerNames() const { return m_layer_names; }
     // Tangent-space normal map derived from the diffuse luminance ("auto
     // bump"): dark texels read as recessed, light as raised. Cached per
@@ -65,6 +71,8 @@ private:
     std::vector<video::IImage *> m_layers; // owned (ref); empty unless an array
     std::vector<std::string> m_layer_names;
     godot::Ref<godot::Texture2DArray> m_godot_array;
+    std::map<std::string, godot::Ref<godot::Texture2DArray>> m_godot_suffixed;
+    std::map<std::string, bool> m_suffixed_missing;
     godot::Ref<godot::ImageTexture> m_godot;
     godot::Ref<godot::ImageTexture> m_normal;
     float m_normal_strength = -1.0f;

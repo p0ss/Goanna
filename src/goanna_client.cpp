@@ -936,6 +936,20 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
             sm->set_shader(m_sh_array);
             sm->set_shader_parameter("albedo_array", arr);
             sm->set_shader_parameter("scissor", agt->hasAlpha());
+            // Authored PBR from the server's own media, if a pack ships it:
+            // this is what a resource pack buys over inferring relief from
+            // the diffuse texture, and it needs no protocol change at all.
+            Ref<Texture2DArray> nrm = agt->godotArraySuffixed(*m_session->tsrc(), "_n");
+            Ref<Texture2DArray> spc = agt->godotArraySuffixed(*m_session->tsrc(), "_s");
+            sm->set_shader_parameter("has_normal", nrm.is_valid());
+            sm->set_shader_parameter("has_spec", spc.is_valid());
+            if (nrm.is_valid())
+                sm->set_shader_parameter("normal_array", nrm);
+            if (spc.is_valid())
+                sm->set_shader_parameter("spec_array", spc);
+            if (getenv("GOANNA_DEBUG_PBR"))
+                UtilityFunctions::print("pbr array id=", key.texture_id,
+                        " normal=", nrm.is_valid(), " spec=", spc.is_valid());
             m_materials[key.hash()] = sm;
             return sm;
         }
