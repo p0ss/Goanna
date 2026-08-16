@@ -1802,6 +1802,7 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("set_lod_distance", "blocks"), &GoannaClient::set_lod_distance);
     ClassDB::bind_method(D_METHOD("lod_distance"), &GoannaClient::lod_distance);
     ClassDB::bind_method(D_METHOD("set_lod_cell", "nodes"), &GoannaClient::set_lod_cell);
+    ClassDB::bind_method(D_METHOD("lod_cell"), &GoannaClient::lod_cell);
     ClassDB::bind_method(D_METHOD("update_lod", "around", "max_rebuild"), &GoannaClient::update_lod);
     ClassDB::bind_method(D_METHOD("set_view_range", "blocks"), &GoannaClient::set_view_range);
     ClassDB::bind_method(D_METHOD("view_range"), &GoannaClient::view_range);

@@ -198,6 +198,7 @@ public:
     void set_lod_distance(int blocks);
     int lod_distance() const { return m_lod_distance; }
     void set_lod_cell(int nodes);
+    int lod_cell() const { return m_lod_cell; }
     int update_lod(const godot::Vector3 &around, int max_rebuild);
     void set_view_range(int blocks);
     int view_range() const;

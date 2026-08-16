@@ -15,6 +15,11 @@ to each target texture's own size, into a mod's textures directory. Serve them
 by dropping that mod in a world's worldmods.
 
 Nothing here is Goanna-specific: the output is a plain LabPBR pack.
+
+Check the licence of any pack before redistributing what this produces. The
+output is derived from the pack's own maps, so its terms follow: some packs
+that look permissive are not, and a few carry restrictions on redistribution
+that a converted copy inherits.
 """
 
 import argparse
