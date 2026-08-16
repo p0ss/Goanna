@@ -82,12 +82,16 @@ set(LUANTI_CORE_SRCS
 list(TRANSFORM LUANTI_CORE_SRCS PREPEND "${LUANTI_SRC}/")
 
 # Irrlicht CPU-only image support (no driver, no GL)
-set(IRR_CPU_SRCS CImage.cpp CColorConverter.cpp os.cpp SkinnedMesh.cpp WeightBuffer.cpp HWBuffer.cpp)
+# CPU-only Irrlicht sources: images, skinned meshes and the model loaders
+# (B3D, X, OBJ, glTF) plus the mesh manipulator and in-memory files.
+set(IRR_CPU_SRCS CImage.cpp CColorConverter.cpp os.cpp SkinnedMesh.cpp WeightBuffer.cpp HWBuffer.cpp
+    CB3DMeshFileLoader.cpp CXMeshFileLoader.cpp COBJMeshFileLoader.cpp CGLTFMeshFileLoader.cpp
+    CMeshManipulator.cpp CMemoryFile.cpp)
 list(TRANSFORM IRR_CPU_SRCS PREPEND "${LUANTI_DIR}/irr/src/")
 
 add_library(luanti_core STATIC ${LUANTI_CORE_SRCS} ${IRR_CPU_SRCS})
 target_include_directories(luanti_core PUBLIC
-    "${LUANTI_SRC}" "${LUANTI_DIR}/irr/include" "${LUANTI_DIR}/irr/src" "${LUANTI_GEN}" "${ZSTD_INCLUDE_DIR}")
+    "${LUANTI_SRC}" "${LUANTI_DIR}/irr/include" "${LUANTI_DIR}/irr/src" "${LUANTI_DIR}/lib/tiniergltf" "${LUANTI_GEN}" "${ZSTD_INCLUDE_DIR}")
 target_compile_definitions(luanti_core PUBLIC USE_CMAKE_CONFIG_H MT_BUILDTARGET=1)
 target_compile_options(luanti_core PRIVATE -fvisibility=hidden -Wno-deprecated-declarations)
 target_link_libraries(luanti_core PUBLIC gmp sha256 jsoncpp ZLIB::ZLIB "${ZSTD_STATIC_LIB}" pthread)

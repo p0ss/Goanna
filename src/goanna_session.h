@@ -28,6 +28,7 @@
 #include "goanna_textures.h"
 #include "goanna_sky.h"
 #include "goanna_active_object.h"
+#include "goanna_models.h"
 #include "hud_element.h"
 #include "inventory.h"
 #include "util/pointedthing.h"
@@ -95,6 +96,8 @@ public:
     // Highest light_source (0..14) among nodes using this texture id, or 0.
     u8 emissiveLevel(u32 texture_id) const;
     Client *meshClient() { return m_mesh_client.get(); }
+    // Models loaded from media (main thread only).
+    ModelCache &models() { return *m_models; }
     void stop();
 
     SessionStats stats() const;
@@ -128,6 +131,9 @@ public:
     // Chat lines received since the last call (consumed).
     std::vector<ChatLine> takeChat();
     void sendChat(const std::wstring &message);
+    // Client -> server: a raw inventory action string (Client::inventoryAction),
+    // e.g. "Move 1 current_player main 3 current_player main 5".
+    void sendInventoryAction(const std::string &action);
     // HUD elements as the server defines them (id -> element). Caller holds hudLock().
     std::map<u32, HudElement> &hudElements() { return m_hud; }
     std::mutex &hudLock() { return m_hud_mutex; }
@@ -303,6 +309,7 @@ private:
     std::vector<std::pair<std::string, std::string>> m_shown_formspecs;
     std::unique_ptr<GoannaTextureSource> m_tsrc;
     GoannaShaderSource m_shsrc;
+    std::unique_ptr<ModelCache> m_models;
     std::unique_ptr<Client> m_mesh_client;
     std::map<u32, u8> m_emissive_by_texture;
     std::atomic<bool> m_content_ready{false};

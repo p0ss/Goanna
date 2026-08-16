@@ -255,23 +255,38 @@ func _walktest_keys() -> Dictionary:
 func _shots(dir: String) -> void:
 	fly_mode = true
 	var base := cam.position
-	var ents: Array = client.entity_positions()
-	if ents.size() > 0 and OS.get_environment("GOANNA_AIM_ENTITY") != "":
-		var target: Vector3 = ents[0]
-		var views_e := [["e_entity", target + Vector3(3, 1.5, 4), target + Vector3(0, 0.8, 0)],
-			["e_entity_far", target + Vector3(-8, 4, 8), target]]
-		for v in views_e:
-			cam.position = v[1]
-			cam.look_at(v[2], Vector3.UP)
-			for i in 30:
-				client.poll_blocks(64)
-				client.sync_entities(get_process_delta_time())
-				await get_tree().process_frame
-			await RenderingServer.frame_post_draw
-			var img := get_viewport().get_texture().get_image()
-			var path: String = dir.path_join(v[0] + ".png")
-			img.save_png(path)
-			print("saved ", path)
+	if OS.get_environment("GOANNA_AIM_ENTITY") != "":
+		# GOANNA_AIM_ENTITY=n (the first n visible entities) or a name
+		# substring; close and far views, two frames apart so animation shows.
+		var sel := OS.get_environment("GOANNA_AIM_ENTITY")
+		var picked: Array = []
+		for e in client.entity_list():
+			if sel.is_valid_int():
+				if picked.size() < int(sel):
+					picked.append(e)
+			elif String(e["name"]).contains(sel) or String(e["mesh"]).contains(sel):
+				picked.append(e)
+		for k in picked.size():
+			var e: Dictionary = picked[k]
+			var target: Vector3 = e["position"]
+			print("aiming at ", e)
+			var views_e := [["e%d_entity" % k, target + Vector3(1.5, 1.2, 4.0), target + Vector3(0, 0.8, 0)],
+				["e%d_entity_far" % k, target + Vector3(-6, 3, 8), target]]
+			for v in views_e:
+				cam.position = v[1]
+				cam.look_at(v[2], Vector3.UP)
+				pitch = cam.rotation_degrees.x
+				yaw = cam.rotation_degrees.y
+				for suffix in ["", "_b"]:
+					for i in 30:
+						client.poll_blocks(64)
+						client.sync_entities(get_process_delta_time())
+						await get_tree().process_frame
+					await RenderingServer.frame_post_draw
+					var img := get_viewport().get_texture().get_image()
+					var path: String = dir.path_join(v[0] + suffix + ".png")
+					img.save_png(path)
+					print("saved ", path, " frame ", client.entity_list().filter(func(x): return x["id"] == e["id"]))
 		return
 	var views := [
 		["a_spawn", base + Vector3(0, 6, 14), base + Vector3(0, 0, -20)],

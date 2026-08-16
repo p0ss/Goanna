@@ -3,14 +3,19 @@
 
 #include "goanna_entities.h"
 
+#include <set>
+
 #include <godot_cpp/classes/box_mesh.hpp>
 #include <godot_cpp/classes/capsule_mesh.hpp>
 #include <godot_cpp/classes/image_texture.hpp>
 #include <godot_cpp/classes/quad_mesh.hpp>
+#include <godot_cpp/classes/skin.hpp>
 
 #include "goanna_active_object.h"
 #include "goanna_session.h"
 #include "goanna_textures.h"
+#include <IMeshManipulator.h>
+#include "client/mesh.h"
 #include "constants.h"
 
 using namespace godot;
@@ -52,11 +57,85 @@ Ref<StandardMaterial3D> EntityRenderer::materialForTexture(GoannaSession &sessio
     return mat;
 }
 
+std::shared_ptr<GodotModel> EntityRenderer::modelFor(GoannaSession &session, const std::string &name) {
+    auto it = m_models.find(name);
+    if (it != m_models.end())
+        return it->second;
+    std::shared_ptr<GodotModel> model;
+    // GenericCAO::addToScene: shared (cached) mesh, normals recalculated if
+    // the file has none.
+    if (scene::IAnimatedMesh *mesh = session.models().getMesh(name, true)) {
+        if (!checkMeshNormals(mesh))
+            session.models().manipulator()->recalculateNormals(mesh, true, false);
+        model = buildGodotModel(mesh);
+        mesh->drop();
+    }
+    m_models[name] = model;
+    return model;
+}
+
+// OBJECTVISUAL_MESH: the model under a node scaled from mesh units (BS) by
+// visual_size; skinned models get a Skeleton3D with identity binds whose
+// bone poses are the skin matrices, so Godot does the skinning.
+bool EntityRenderer::buildMeshVisual(GoannaSession &session, GoannaActiveObject &obj, EntityNode &en) {
+    const ObjectProperties &p = obj.props();
+    std::shared_ptr<GodotModel> model = modelFor(session, p.mesh);
+    if (!model)
+        return false;
+    Node3D *holder = memnew(Node3D);
+    holder->set_scale(Vector3(p.visual_size.X, p.visual_size.Y, p.visual_size.Z) / BS);
+    MeshInstance3D *mi = memnew(MeshInstance3D);
+    mi->set_mesh(model->mesh);
+    for (int i = 0; i < (int)model->texture_slots.size(); ++i) {
+        u32 slot = model->texture_slots[i];
+        std::string tex;
+        if (slot < p.textures.size())
+            tex = p.textures[slot];
+        if (tex.empty())
+            continue; // upstream: empty string means leave the material alone
+        tex += obj.textureModifier();
+        mi->set_surface_override_material(i, materialForTexture(session, tex, p.use_texture_alpha, !p.backface_culling));
+    }
+    en.animator.reset();
+    en.skeleton = nullptr;
+    if (model->animated) {
+        Skeleton3D *sk = memnew(Skeleton3D);
+        const auto &joints = model->skinned->getAllJoints();
+        std::set<std::string> used;
+        for (int i = 0; i < model->bone_count; ++i) {
+            // Godot wants unique bone names; models may repeat them (and the
+            // extra rigid-attachment bones have none). Lookups use indices.
+            std::string name = (i < model->joint_count && joints[i]->Name) ? *joints[i]->Name : "";
+            if (name.empty() || used.count(name))
+                name += "#" + std::to_string(i);
+            used.insert(name);
+            sk->add_bone(String::utf8(name.c_str()));
+        }
+        Ref<Skin> skin;
+        skin.instantiate();
+        for (int i = 0; i < model->bone_count; ++i)
+            skin->add_bind(i, Transform3D());
+        mi->set_skin(skin);
+        sk->add_child(mi);
+        mi->set_skeleton_path(NodePath(".."));
+        holder->add_child(sk);
+        en.skeleton = sk;
+        en.animator = std::make_unique<ModelAnimator>(model);
+        en.anim_version = 0; // apply the animation state on the next sync
+    } else {
+        holder->add_child(mi);
+    }
+    en.visual = holder;
+    return true;
+}
+
 void EntityRenderer::rebuildVisual(GoannaSession &session, GoannaActiveObject &obj, EntityNode &en) {
     if (en.visual) {
         en.visual->queue_free();
         en.visual = nullptr;
     }
+    en.skeleton = nullptr;
+    en.animator.reset();
     const ObjectProperties &p = obj.props();
     std::string tex0 = p.textures.empty() ? "" : p.textures[0];
     if (!obj.textureModifier().empty() && !tex0.empty())
@@ -95,12 +174,15 @@ void EntityRenderer::rebuildVisual(GoannaSession &session, GoannaActiveObject &o
         break;
     }
     case OBJECTVISUAL_MESH:
+        if (buildMeshVisual(session, obj, en))
+            break;
+        [[fallthrough]];
     case OBJECTVISUAL_ITEM:
     case OBJECTVISUAL_WIELDITEM:
     case OBJECTVISUAL_NODE:
     default: {
-        // Placeholder until model loading is transplanted: a capsule sized by
-        // the collision box, tinted with the first texture.
+        // Placeholder for item/node visuals (and models that failed to load):
+        // a capsule sized by the collision box, tinted with the first texture.
         MeshInstance3D *mi = memnew(MeshInstance3D);
         Ref<CapsuleMesh> cm;
         cm.instantiate();
@@ -148,6 +230,28 @@ Array EntityRenderer::positions() const {
     return a;
 }
 
+Array EntityRenderer::list(GoannaSession &session) const {
+    Array a;
+    auto &objects = session.objects();
+    for (auto &kv : m_nodes) {
+        if (!kv.second.root || !kv.second.root->is_visible())
+            continue;
+        auto oit = objects.find(kv.first);
+        if (oit == objects.end())
+            continue;
+        const GoannaActiveObject &obj = *oit->second;
+        Dictionary d;
+        d["id"] = (int)kv.first;
+        d["name"] = String::utf8(obj.name().c_str());
+        d["position"] = kv.second.root->get_position();
+        d["visual"] = (int)obj.props().visual;
+        d["mesh"] = String::utf8(obj.props().mesh.c_str());
+        d["frame"] = kv.second.animator ? kv.second.animator->frame() : -1.0f;
+        a.push_back(d);
+    }
+    return a;
+}
+
 void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camera_pos) {
     auto &objects = session.objects();
     // remove gone
@@ -192,6 +296,35 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
         en.root->set_position(gp);
         // Luanti yaw: rotation.Y degrees; mirrored z flips the sense of yaw
         en.root->set_rotation_degrees(Vector3(rot.X, -rot.Y, -rot.Z));
+        // attached at a bone: follow the parent's joint from its last step
+        if (obj.attachmentParent() != 0 && !obj.attachmentBone().empty()) {
+            auto pit = m_nodes.find(obj.attachmentParent());
+            auto pobj = objects.find(obj.attachmentParent());
+            Transform3D bone_xf;
+            if (pit != m_nodes.end() && pobj != objects.end() && pit->second.animator &&
+                    pit->second.animator->jointGlobal(obj.attachmentBone(), bone_xf)) {
+                const ObjectProperties &pp = pobj->second->props();
+                Transform3D scale_xf;
+                scale_xf.basis.scale(Vector3(pp.visual_size.X, pp.visual_size.Y, pp.visual_size.Z) / BS);
+                v3f ap = obj.attachmentPosition(), ar = obj.attachmentRotation();
+                Transform3D attach_xf(Basis::from_euler(Vector3(Math::deg_to_rad(ar.X), Math::deg_to_rad(-ar.Y),
+                        Math::deg_to_rad(-ar.Z))), Vector3(ap.X, ap.Y, -ap.Z));
+                Transform3D xf = pit->second.root->get_transform() * scale_xf * bone_xf * attach_xf;
+                en.root->set_transform(Transform3D(xf.basis.orthonormalized(), xf.origin));
+            }
+        }
+        // skeletal animation: GenericCAO::updateAnimation, then a step
+        if (en.animator) {
+            if (en.anim_version != obj.animVersion()) {
+                v2f range = obj.animRange();
+                en.animator->setFrameLoop(range.X, range.Y);
+                en.animator->setAnimationSpeed(obj.animSpeed());
+                en.animator->setTransitionTime(obj.animBlend());
+                en.animator->setLoopMode(obj.animLoop());
+                en.anim_version = obj.animVersion();
+            }
+            en.animator->step(dt, obj.boneOverridesMut(), en.skeleton);
+        }
         // sprite frame animation
         const ObjectProperties &p = obj.props();
         if ((p.visual == OBJECTVISUAL_SPRITE || p.visual == OBJECTVISUAL_UPRIGHT_SPRITE) && en.visual) {

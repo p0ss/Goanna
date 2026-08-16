@@ -120,7 +120,9 @@ GoannaSession::GoannaSession() {
     m_map = std::make_unique<GoannaMap>(this);
     m_inventory = std::make_unique<Inventory>(m_itemdef);
     m_tsrc = std::make_unique<GoannaTextureSource>();
-    m_mesh_client = std::make_unique<Client>(m_tsrc.get(), &m_shsrc, m_nodedef);
+    m_models = std::make_unique<ModelCache>(
+            [this](const std::string &name, std::string &out) { return getMedia(name, out); });
+    m_mesh_client = std::make_unique<Client>(m_tsrc.get(), &m_shsrc, m_nodedef, m_models.get());
 }
 
 GoannaSession::~GoannaSession() {
@@ -257,6 +259,14 @@ void GoannaSession::sendChat(const std::wstring &message) {
         return;
     NetworkPacket pkt(TOSERVER_CHAT_MESSAGE, 2 + message.size() * sizeof(u16));
     pkt << message;
+    send(pkt);
+}
+
+void GoannaSession::sendInventoryAction(const std::string &action) {
+    if (!m_con)
+        return;
+    NetworkPacket pkt(TOSERVER_INVENTORY_ACTION, action.size());
+    pkt.putRawString(action.c_str(), action.size());
     send(pkt);
 }
 

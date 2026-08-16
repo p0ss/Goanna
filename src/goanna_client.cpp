@@ -261,6 +261,15 @@ void GoannaClient::send_inventory_fields(const String &formname, const Dictionar
     m_session->sendInventoryFields(formname.utf8().get_data(), f);
 }
 
+int GoannaClient::wield_index() const {
+    return m_session ? m_session->wieldIndex() : 0;
+}
+
+void GoannaClient::inventory_action(const String &action) {
+    if (m_session)
+        m_session->sendInventoryAction(action.utf8().get_data());
+}
+
 void GoannaClient::set_wield_index(int index) {
     if (!m_session)
         return;
@@ -575,6 +584,13 @@ void GoannaClient::sync_entities(double dt) {
     m_entities->sync(*m_session, (float)dt, Vector3());
 }
 
+Array GoannaClient::entity_list() {
+    if (!m_session || !m_entities)
+        return Array();
+    std::lock_guard<std::mutex> lk(m_session->mapLock());
+    return m_entities->list(*m_session);
+}
+
 void GoannaClient::update_lights(const Vector3 &around, int max_lights) {
     std::vector<const NodeLight *> all;
     for (auto &kv : m_block_lights)
@@ -743,9 +759,12 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("take_shown_formspecs"), &GoannaClient::take_shown_formspecs);
     ClassDB::bind_method(D_METHOD("send_inventory_fields", "formname", "fields"), &GoannaClient::send_inventory_fields);
     ClassDB::bind_method(D_METHOD("set_wield_index", "index"), &GoannaClient::set_wield_index);
+    ClassDB::bind_method(D_METHOD("wield_index"), &GoannaClient::wield_index);
+    ClassDB::bind_method(D_METHOD("inventory_action", "action"), &GoannaClient::inventory_action);
     ClassDB::bind_method(D_METHOD("step_interact", "dt", "dig", "place", "place_pressed"), &GoannaClient::step_interact);
     ClassDB::bind_method(D_METHOD("entity_count"), &GoannaClient::entity_count);
     ClassDB::bind_method(D_METHOD("entity_positions"), &GoannaClient::entity_positions);
+    ClassDB::bind_method(D_METHOD("entity_list"), &GoannaClient::entity_list);
     ClassDB::bind_method(D_METHOD("set_time_of_day_override", "tod"), &GoannaClient::set_time_of_day_override);
 }
 

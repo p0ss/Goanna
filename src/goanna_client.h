@@ -60,11 +60,15 @@ public:
     // {type: "nothing"|"node"|"object", node, above, object_id, progress}.
     godot::Dictionary step_interact(double dt, bool dig, bool place, bool place_pressed);
     void set_wield_index(int index);
+    int wield_index() const;
+    // Raw Luanti inventory action string, e.g. "Move 1 current_player main 3 current_player main 5".
+    void inventory_action(const godot::String &action);
 
     // Step and draw active objects (players, mobs, items).
     void sync_entities(double dt);
     int entity_count() const { return m_entities ? m_entities->count() : 0; }
     godot::Array entity_positions() const { return m_entities ? m_entities->positions() : godot::Array(); }
+    godot::Array entity_list();
 
     // Point lights for light-emitting nodes: keeps up to max_lights OmniLight3Ds
     // on the nearest bright nodes to `around` (Godot space, nodes).

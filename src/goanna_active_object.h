@@ -93,6 +93,9 @@ public:
     v3f attachmentRotation() const { return m_attachment_rotation; }
     bool attachmentForceVisible() const { return m_force_visible; }
     const std::map<std::string, BoneOverride> &boneOverrides() const { return m_bone_override; }
+    // The renderer advances dtime_passed and drops finished identity
+    // overrides, as GenericCAO's animate callback does.
+    std::map<std::string, BoneOverride> &boneOverridesMut() { return m_bone_override; }
     // Bumped whenever something the visual depends on changed (properties,
     // textures, texture modifier, sprite, mesh).
     uint32_t visualVersion() const { return m_visual_version; }

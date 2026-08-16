@@ -17,6 +17,7 @@ add_library(goanna SHARED
     src/goanna_client.cpp
     src/goanna_session.cpp
     src/goanna_mesher.cpp
+    src/goanna_models.cpp
     src/goanna_textures.cpp
     src/goanna_sky.cpp
     src/goanna_active_object.cpp

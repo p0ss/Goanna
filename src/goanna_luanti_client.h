@@ -17,14 +17,17 @@ class ITextureSource;
 class IShaderSource;
 class NodeDefManager;
 namespace scene {
-class IMesh;
+class IAnimatedMesh;
 class IMeshManipulator;
+}
+namespace goanna {
+class ModelCache;
 }
 
 class Client {
 public:
-    Client(ITextureSource *tsrc, IShaderSource *shsrc, const NodeDefManager *ndef)
-        : m_tsrc(tsrc), m_shsrc(shsrc), m_ndef(ndef) {}
+    Client(ITextureSource *tsrc, IShaderSource *shsrc, const NodeDefManager *ndef, goanna::ModelCache *models)
+        : m_tsrc(tsrc), m_shsrc(shsrc), m_ndef(ndef), m_models(models) {}
 
     ITextureSource *tsrc() { return m_tsrc; }
     ITextureSource *getTextureSource() { return m_tsrc; }
@@ -32,9 +35,10 @@ public:
     const NodeDefManager *ndef() { return m_ndef; }
     const NodeDefManager *getNodeDefManager() { return m_ndef; }
 
-    // Mesh nodes (NDT_MESH): model loading is not transplanted yet.
-    scene::IMesh *getMesh(const std::string &filename, bool cache = false) { return nullptr; }
-    scene::IMeshManipulator *getMeshManipulator() { return nullptr; }
+    // Models from media through Goanna's ModelCache (Client::getMesh
+    // semantics: grabbed for the caller; uncached ones are freshly read).
+    scene::IAnimatedMesh *getMesh(const std::string &filename, bool cache = false);
+    scene::IMeshManipulator *getMeshManipulator();
 
     void showUpdateProgressTexture(void *args, float progress) {}
 
@@ -42,4 +46,5 @@ private:
     ITextureSource *m_tsrc;
     IShaderSource *m_shsrc;
     const NodeDefManager *m_ndef;
+    goanna::ModelCache *m_models;
 };
