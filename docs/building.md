@@ -96,6 +96,8 @@ cmake -S . -B build -G Ninja \
   -DZSTD_INCLUDE_DIR=/path/to/include
 ```
 
+or, if both live under one prefix, `-DZSTD_ROOT=/that/prefix`.
+
 ### A note on the build target
 
 `CMakeLists.txt` forces godot-cpp's `template_debug` target, and hardcodes

@@ -91,8 +91,8 @@ reviewer will read.
 | --- | --- | --- | --- |
 | `src/transplant/collision.h`, `.cpp` | `src/collision.{h,cpp}` | Signatures take `Environment*` | `Map*` instead of `Environment*`; object collision stubbed; fixed profiler names |
 | `src/transplant/localplayer.h`, `.cpp` | `src/client/localplayer.{h,cpp}` | Depends on `Client`, the client active object and the event manager | No `Client`, no CAO, no event manager; `Map*` instead of `Environment*`; privileges as plain flags; the legacy `old_move` path dropped |
-| `src/transplant/client/mapblock_mesh.cpp` | `src/client/mapblock_mesh.cpp` | Uses the Irrlicht video driver | No hardware mapping hint, no debug draw, no minimap blocks; transparent buffers keep their indices; otherwise verbatim |
-| `src/transplant/client/content_mapblock.cpp` | `src/client/content_mapblock.cpp` | Reaches `Client` | Compiles against Goanna's `Client` stand-in |
+| `src/transplant/client/mapblock_mesh.cpp` | `src/client/mapblock_mesh.cpp` | Uses the Irrlicht video driver | No hardware mapping hint, no minimap blocks; `PartialMeshBuffer::draw()` is a no-op; defines `g_goanna_no_light`, which makes `encode_light()` return opaque white and so disables the baked vertex lighting; transparent buffers keep their indices; otherwise verbatim |
+| `src/transplant/client/content_mapblock.cpp` | `src/client/content_mapblock.cpp` | Reaches `Client` | Compiles against Goanna's `Client` stand-in; `applyFacesShading` calls are skipped while `g_goanna_no_light` is set |
 | `src/transplant/client/node_visuals.cpp` | `src/client/node_visuals.cpp` | Uses the video driver for array textures | Array textures unsupported; mesh manipulation and mesh loading via the `Client` stand-in |
 | `src/transplant/client/imagesource.cpp` | `src/client/imagesource.cpp` | Creates images through the video driver | Image creation and decoding go through `goanna_image_hooks.h`; otherwise verbatim |
 | `src/luanti_shims.cpp` | `src/inventorymanager.cpp` | The whole file drags in the server environment and scripting | Two functions copied verbatim, nothing else |
