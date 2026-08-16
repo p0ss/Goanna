@@ -132,15 +132,18 @@ func _process(delta: float) -> void:
 		cam.position += dir.normalized() * sp * delta if dir.length() > 0 else Vector3.ZERO
 		cam.rotation_degrees = Vector3(pitch, yaw, 0)
 	client.poll_blocks(24)
+	client.update_lights(cam.position, 48)
 	if t - last_print >= 1.0:
 		last_print = t
+		if OS.get_environment("GOANNA_DUMPSKY") != "" and int(t) == 3:
+			print("SKY ", JSON.stringify(client.sky_state()))
 		var extra := ""
 		if placed and not fly_mode:
 			var r: Dictionary = client.step_player(0.0, {}, pitch, yaw)
 			extra = " | player %s ground=%s speed=%s g=%s free=%s climb=%s" % [str(r.get("pos", Vector3())), str(r.get("on_ground", false)), str(r.get("speed", Vector3())), str(r.get("gravity", 0)), str(r.get("free_move", false)), str(r.get("climbing", false))]
-		print("[%5.1fs] %s | %s | media %d/%d | blocks recv %d meshed %d | mats %d%s" % [
+		print("[%5.1fs] %s | %s | media %d/%d | blocks recv %d meshed %d | mats %d | lights %d%s" % [
 			t, s.get("state"), s.get("message"), s.get("media_received", 0), s.get("media_announced", 0),
-			s.get("blocks_received", 0), s.get("blocks_meshed", 0), s.get("materials", 0), extra])
+			s.get("blocks_received", 0), s.get("blocks_meshed", 0), s.get("materials", 0), s.get("node_lights", 0), extra])
 	var shot := OS.get_environment("GOANNA_SHOT")
 	if shot != "" and OS.get_environment("GOANNA_TOGGLETEST") != "":
 		# walking mode, standing still, looking straight ahead: pillar appears 4 nodes in front
@@ -190,9 +193,32 @@ func _shots(dir: String) -> void:
 		["b_high", base + Vector3(30, 40, 30), base],
 		["c_low", base + Vector3(-12, 2, 8), base + Vector3(20, -2, -20)],
 	]
+	# GOANNA_VIEW="name:x,y,z:pitch,yaw[;name:...]" replaces the fixed views.
+	# Positions are relative to the spawn eye position, or absolute with a
+	# leading "@"; angles in degrees.
+	var custom := OS.get_environment("GOANNA_VIEW")
+	if custom != "":
+		views = []
+		for spec in custom.split(";", false):
+			var parts := spec.split(":")
+			var pos_str: String = parts[1]
+			var origin := base
+			if pos_str.begins_with("@"):
+				pos_str = pos_str.substr(1)
+				origin = Vector3.ZERO
+			var p := pos_str.split(",")
+			var a := parts[2].split(",")
+			views.append([parts[0], origin + Vector3(float(p[0]), float(p[1]), float(p[2])),
+				Vector2(float(a[0]), float(a[1]))])
 	for v in views:
 		cam.position = v[1]
-		cam.look_at(v[2], Vector3.UP)
+		if v[2] is Vector2:
+			pitch = v[2].x
+			yaw = v[2].y
+		else:
+			cam.look_at(v[2], Vector3.UP)
+			pitch = cam.rotation_degrees.x
+			yaw = cam.rotation_degrees.y
 		client.set_player_pose(cam.position, 0, 0)
 		for i in 40:
 			client.poll_blocks(64)
@@ -217,10 +243,13 @@ func _apply_sky() -> void:
 	var sky: Dictionary = st["sky"]
 	var elev: float = sun_dir.y  # 1 = overhead, <0 below horizon
 	# --- sun and moon lights ---
+	# At the zenith the direction is parallel to UP, so pick another up vector.
 	if sun_dir.length() > 0.001:
-		sun.transform = Transform3D(Basis.looking_at(-sun_dir, Vector3.UP), Vector3.ZERO)
+		var up := Vector3.UP if absf(sun_dir.y) < 0.999 else Vector3.FORWARD
+		sun.transform = Transform3D(Basis.looking_at(-sun_dir, up), Vector3.ZERO)
 	if moon_dir.length() > 0.001:
-		moon.transform = Transform3D(Basis.looking_at(-moon_dir, Vector3.UP), Vector3.ZERO)
+		var up := Vector3.UP if absf(moon_dir.y) < 0.999 else Vector3.FORWARD
+		moon.transform = Transform3D(Basis.looking_at(-moon_dir, up), Vector3.ZERO)
 	var day: float = smoothstep(-0.02, 0.18, elev)
 	var warm: float = 1.0 - smoothstep(0.0, 0.32, elev)
 	sun.light_color = Color(1.0, 0.98, 0.94).lerp(Color(1.0, 0.62, 0.32), warm)
@@ -262,13 +291,19 @@ func _apply_sky() -> void:
 		e.fog_density = 0.0004
 	# --- ambient / grade from day-night ratio and server lighting ---
 	var ratio: float = st["day_night_ratio"]
-	e.ambient_light_energy = lerp(0.25, 1.15, ratio)
-	e.background_energy_multiplier = lerp(0.35, 1.25, ratio)
+	e.ambient_light_energy = lerp(0.18, 1.0, ratio)
+	e.background_energy_multiplier = lerp(0.25, 1.15, ratio)
 	var lighting: Dictionary = st["lighting"]
 	e.adjustment_saturation = clamp(float(lighting["saturation"]), 0.0, 2.0)
-	e.tonemap_exposure = clamp(1.05 + float(lighting["exposure_correction"]) * 0.5, 0.3, 3.0)
+	e.tonemap_exposure = clamp(1.0 + float(lighting["exposure_correction"]) * 0.25, 0.3, 3.0)
 	e.glow_intensity = clamp(0.3 + float(lighting["bloom_intensity"]) * 2.0, 0.0, 2.0)
+	# Luanti's volumetric_light_strength is god-ray strength (0..1), not fog
+	# density: thin volume, scattering scaled by the strength.
 	var vol: float = lighting["volumetric_light_strength"]
 	e.volumetric_fog_enabled = vol > 0.0
 	if vol > 0.0:
-		e.volumetric_fog_density = 0.002 + 0.02 * vol
+		e.volumetric_fog_density = 0.00025 + 0.0006 * vol
+		e.volumetric_fog_emission_energy = 0.0
+		e.volumetric_fog_anisotropy = 0.7
+		e.volumetric_fog_albedo = Color(0.9, 0.93, 1.0)
+		e.volumetric_fog_length = 96.0

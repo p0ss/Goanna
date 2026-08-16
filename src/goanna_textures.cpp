@@ -288,7 +288,7 @@ GoannaShaderSource::GoannaShaderSource() {
     Entry e;
     e.info.name = "default";
     e.info.base_material = video::EMT_SOLID;
-    e.info.material = video::EMT_SOLID;
+    e.info.material = (video::E_MATERIAL_TYPE)MATERIAL_ID_BASE;
     m_shaders.push_back(e);
 }
 
@@ -311,11 +311,11 @@ u32 GoannaShaderSource::getShader(const std::string &name, const ShaderConstants
     Entry e;
     e.info.name = name;
     e.info.base_material = base_mat;
-    e.info.material = base_mat;
     e.info.input_constants = input_const;
     e.material_type = (MaterialType)mt;
+    u32 id = (u32)m_shaders.size();
+    e.info.material = (video::E_MATERIAL_TYPE)(MATERIAL_ID_BASE + id);
     m_shaders.push_back(e);
-    u32 id = (u32)m_shaders.size() - 1;
     m_keys[key] = id;
     return id;
 }

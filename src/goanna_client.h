@@ -4,11 +4,15 @@
 #include <memory>
 
 #include <godot_cpp/classes/mesh_instance3d.hpp>
+#include <godot_cpp/classes/omni_light3d.hpp>
+#include <godot_cpp/classes/shader.hpp>
 #include <godot_cpp/classes/node3d.hpp>
 #include <godot_cpp/classes/standard_material3d.hpp>
 #include <godot_cpp/variant/dictionary.hpp>
 
 #include "irrlichttypes_bloated.h"
+
+class MapBlock;
 
 namespace goanna {
 
@@ -47,6 +51,10 @@ public:
     // keys: {up,down,left,right,jump,sneak,aux1}; pitch/yaw in Godot degrees
     // (pitch positive = looking up). Returns {eye_pos, pos, pitch, yaw,
     // on_ground, in_liquid} in Godot space (nodes).
+    // Point lights for light-emitting nodes: keeps up to max_lights OmniLight3Ds
+    // on the nearest bright nodes to `around` (Godot space, nodes).
+    void update_lights(const godot::Vector3 &around, int max_lights);
+
     // Sky/sun/fog/lighting state from the server, in Godot terms (see goanna_sky.h).
     godot::Dictionary sky_state() const;
     void set_time_of_day_override(float tod);
@@ -58,11 +66,17 @@ protected:
 
 private:
     godot::Ref<godot::Material> materialFor(const struct MaterialKey &key);
+    void harvestLights(v3s16 bp, MapBlock *block);
 
     std::unique_ptr<GoannaSession> m_session;
     std::map<v3s16, godot::MeshInstance3D *> m_block_nodes;
-    std::map<uint64_t, godot::Ref<godot::StandardMaterial3D>> m_materials;
-    godot::Ref<godot::StandardMaterial3D> m_fallback;
+    std::map<uint64_t, godot::Ref<godot::Material>> m_materials;
+    godot::Ref<godot::Shader> m_sh_water, m_sh_leaves, m_sh_plants, m_sh_glass;
+    bool m_shaders_loaded = false;
+
+    struct NodeLight { godot::Vector3 pos; float level; godot::Color color; };
+    std::map<v3s16, std::vector<NodeLight>> m_block_lights;
+    std::vector<godot::OmniLight3D *> m_light_pool;
 };
 
 } // namespace goanna

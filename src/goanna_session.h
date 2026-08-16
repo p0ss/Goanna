@@ -85,6 +85,8 @@ public:
     bool prepareContentIfReady();
     GoannaTextureSource *tsrc() { return m_tsrc.get(); }
     GoannaShaderSource &shsrc() { return m_shsrc; }
+    // Highest light_source (0..14) among nodes using this texture id, or 0.
+    u8 emissiveLevel(u32 texture_id) const;
     Client *meshClient() { return m_mesh_client.get(); }
     void stop();
 
@@ -201,6 +203,7 @@ private:
     std::unique_ptr<GoannaTextureSource> m_tsrc;
     GoannaShaderSource m_shsrc;
     std::unique_ptr<Client> m_mesh_client;
+    std::map<u32, u8> m_emissive_by_texture;
     std::atomic<bool> m_content_ready{false};
     std::atomic<bool> m_send_ready{false};
     bool m_server_move_pending = false;

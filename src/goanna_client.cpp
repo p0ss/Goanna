@@ -16,20 +16,27 @@
 #include "transplant/localplayer.h"
 #include "client/mapblock_mesh.h"
 #include "client/tile.h"
+#include "client/node_visuals.h"
+#include "nodedef.h"
 #include <SMesh.h>
 #include <CMeshBuffer.h>
 #include <SMaterial.h>
 #include <godot_cpp/classes/project_settings.hpp>
+#include <godot_cpp/classes/resource_loader.hpp>
+#include <godot_cpp/classes/shader_material.hpp>
+#include <godot_cpp/variant/utility_functions.hpp>
+#include <cstdlib>
+#include <algorithm>
 #include <set>
 #include <godot_cpp/variant/packed_vector2_array.hpp>
 
 namespace goanna {
 struct MaterialKey {
     u32 texture_id = 0;
-    int base_material = 0;   // video::E_MATERIAL_TYPE
+    u32 shader_id = 0;       // Goanna shader source id (carries Luanti's material type)
     bool backface_culling = true;
     uint64_t hash() const {
-        return ((uint64_t)texture_id << 16) | ((uint64_t)(base_material & 0xff) << 1) | (backface_culling ? 1 : 0);
+        return ((uint64_t)texture_id << 24) | ((uint64_t)(shader_id & 0xffff) << 1) | (backface_culling ? 1 : 0);
     }
 };
 }
@@ -83,6 +90,10 @@ Dictionary GoannaClient::status() const {
     d["blocks_meshed"] = (int)m_block_nodes.size();
     d["media_received"] = (int)s.media_received;
     d["materials"] = m_materials.size();
+    int n_lights = 0;
+    for (auto &kv : m_block_lights)
+        n_lights += (int)kv.second.size();
+    d["node_lights"] = n_lights;
     d["player_pos"] = Vector3(s.player_pos.X, s.player_pos.Y, -s.player_pos.Z);
     d["time_of_day"] = s.time_of_day;
     return d;
@@ -238,7 +249,58 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
     auto it = m_materials.find(key.hash());
     if (it != m_materials.end())
         return it->second;
+    if (!m_shaders_loaded) {
+        m_shaders_loaded = true;
+        ResourceLoader *rl = ResourceLoader::get_singleton();
+        m_sh_water = rl->load("res://shaders/water.gdshader");
+        m_sh_leaves = rl->load("res://shaders/waving_leaves.gdshader");
+        m_sh_plants = rl->load("res://shaders/waving_plants.gdshader");
+        m_sh_glass = rl->load("res://shaders/glass.gdshader");
+    }
     GoannaTexture *gt = m_session->tsrc()->goannaTexture(key.texture_id);
+    Ref<ImageTexture> tex = gt ? gt->godotTexture() : Ref<ImageTexture>();
+    MaterialType mtype = m_session->shsrc().materialType(key.shader_id);
+    video::E_MATERIAL_TYPE base = m_session->shsrc().baseMaterial(key.shader_id);
+    u8 emissive = m_session->emissiveLevel(key.texture_id);
+    if (getenv("GOANNA_DEBUG_MATERIALS")) {
+        UtilityFunctions::print("goanna material: tex=", key.texture_id, " '",
+                String(m_session->tsrc()->getTextureName(key.texture_id).c_str()),
+                "' shader=", key.shader_id, " mtype=", (int)mtype, " base=", (int)base,
+                " emissive=", (int)emissive, " cull=", key.backface_culling);
+    }
+
+    // --- shader variants by Luanti material type ---
+    Ref<Shader> sh;
+    switch (mtype) {
+    case TILE_MATERIAL_LIQUID_TRANSPARENT:
+    case TILE_MATERIAL_WAVING_LIQUID_TRANSPARENT:
+    case TILE_MATERIAL_WAVING_LIQUID_BASIC:
+        sh = m_sh_water; break;
+    case TILE_MATERIAL_WAVING_LEAVES:
+        sh = m_sh_leaves; break;
+    case TILE_MATERIAL_WAVING_PLANTS:
+        sh = m_sh_plants; break;
+    case TILE_MATERIAL_ALPHA:
+    case TILE_MATERIAL_PLAIN_ALPHA:
+        sh = m_sh_glass; break;
+    default:
+        break;
+    }
+    if (sh.is_valid() && tex.is_valid() && emissive == 0) {
+        Ref<ShaderMaterial> sm;
+        sm.instantiate();
+        sm->set_shader(sh);
+        sm->set_shader_parameter("albedo_tex", tex);
+        bool waving = (mtype == TILE_MATERIAL_WAVING_LIQUID_TRANSPARENT ||
+                mtype == TILE_MATERIAL_WAVING_LIQUID_BASIC || mtype == TILE_MATERIAL_WAVING_LEAVES ||
+                mtype == TILE_MATERIAL_WAVING_PLANTS);
+        if (sh == m_sh_water || sh == m_sh_leaves || sh == m_sh_plants)
+            sm->set_shader_parameter("waving", waving);
+        m_materials[key.hash()] = sm;
+        return sm;
+    }
+
+    // --- standard material ---
     Ref<StandardMaterial3D> mat;
     mat.instantiate();
     mat->set_roughness(1.0f);
@@ -246,22 +308,99 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
     mat->set_flag(BaseMaterial3D::FLAG_ALBEDO_FROM_VERTEX_COLOR, true);
     mat->set_texture_filter(BaseMaterial3D::TEXTURE_FILTER_NEAREST_WITH_MIPMAPS);
     mat->set_cull_mode(key.backface_culling ? BaseMaterial3D::CULL_BACK : BaseMaterial3D::CULL_DISABLED);
-    if (gt) {
-        Ref<ImageTexture> tex = gt->godotTexture();
-        if (tex.is_valid())
-            mat->set_texture(BaseMaterial3D::TEXTURE_ALBEDO, tex);
-        if (key.base_material == video::EMT_TRANSPARENT_ALPHA_CHANNEL) {
+    if (tex.is_valid()) {
+        mat->set_texture(BaseMaterial3D::TEXTURE_ALBEDO, tex);
+        if (base == video::EMT_TRANSPARENT_ALPHA_CHANNEL) {
             mat->set_transparency(BaseMaterial3D::TRANSPARENCY_ALPHA);
             mat->set_depth_draw_mode(BaseMaterial3D::DEPTH_DRAW_ALWAYS);
-        } else if (key.base_material == video::EMT_TRANSPARENT_ALPHA_CHANNEL_REF || gt->hasAlpha()) {
+        } else if (base == video::EMT_TRANSPARENT_ALPHA_CHANNEL_REF || (gt && gt->hasAlpha())) {
             mat->set_transparency(BaseMaterial3D::TRANSPARENCY_ALPHA_SCISSOR);
             mat->set_alpha_scissor_threshold(0.5f);
+        }
+        if (mtype == TILE_MATERIAL_LIQUID_OPAQUE || mtype == TILE_MATERIAL_WAVING_LIQUID_OPAQUE)
+            mat->set_roughness(0.35f); // lava-like
+        if (emissive > 0) {
+            // light-emitting node: glow with its own texture; SDFGI picks this up
+            mat->set_feature(BaseMaterial3D::FEATURE_EMISSION, true);
+            mat->set_texture(BaseMaterial3D::TEXTURE_EMISSION, tex);
+            mat->set_emission(Color(1, 1, 1));
+            mat->set_emission_energy_multiplier(0.6f + 2.4f * (emissive / 14.0f));
         }
     } else {
         mat->set_albedo(Color(0.9, 0.4, 0.9));
     }
     m_materials[key.hash()] = mat;
     return mat;
+}
+
+void GoannaClient::harvestLights(v3s16 bp, MapBlock *block) {
+    std::vector<NodeLight> lights;
+    const NodeDefManager *ndef = m_session->nodeDefs();
+    for (int z = 0; z < MAP_BLOCKSIZE; ++z)
+    for (int y = 0; y < MAP_BLOCKSIZE; ++y)
+    for (int x = 0; x < MAP_BLOCKSIZE; ++x) {
+        MapNode n = block->getNodeNoCheck(x, y, z);
+        const ContentFeatures &f = ndef->get(n);
+        if (f.light_source < 6)
+            continue;
+        NodeLight l;
+        l.pos = Vector3(bp.X * MAP_BLOCKSIZE + x, bp.Y * MAP_BLOCKSIZE + y, -(bp.Z * MAP_BLOCKSIZE + z));
+        l.level = f.light_source / 14.0f;
+        // colour from the node's first tile (torch textures average to warm orange)
+        video::SColor c(255, 255, 220, 160);
+        if (f.visuals && f.visuals->tiles[0].layers[0].texture_id) {
+            std::string tname = m_session->tsrc()->getTextureName(f.visuals->tiles[0].layers[0].texture_id);
+            if (!tname.empty())
+                c = m_session->tsrc()->getTextureAverageColor(tname);
+        }
+        // brighten: an average of a mostly-dark torch texture is dim
+        Color col(c.getRed() / 255.0f, c.getGreen() / 255.0f, c.getBlue() / 255.0f);
+        float m = std::max(col.r, std::max(col.g, col.b));
+        if (m > 0.05f) col = col / m;
+        l.color = col.lerp(Color(1, 0.85, 0.6), 0.3f);
+        if (getenv("GOANNA_DEBUG_LIGHTS"))
+            UtilityFunctions::print("goanna light: ", String(f.name.c_str()), " at ", l.pos,
+                    " level ", (int)f.light_source, " colour ", l.color);
+        lights.push_back(l);
+    }
+    if (lights.empty())
+        m_block_lights.erase(bp);
+    else
+        m_block_lights[bp] = std::move(lights);
+}
+
+void GoannaClient::update_lights(const Vector3 &around, int max_lights) {
+    std::vector<const NodeLight *> all;
+    for (auto &kv : m_block_lights)
+        for (auto &l : kv.second)
+            if (l.pos.distance_squared_to(around) < 64.0f * 64.0f)
+                all.push_back(&l);
+    std::sort(all.begin(), all.end(), [&](const NodeLight *a, const NodeLight *b) {
+        return a->pos.distance_squared_to(around) < b->pos.distance_squared_to(around);
+    });
+    if ((int)all.size() > max_lights)
+        all.resize(max_lights);
+    while ((int)m_light_pool.size() < max_lights) {
+        OmniLight3D *ol = memnew(OmniLight3D);
+        ol->set_shadow(false);
+        ol->set_visible(false);
+        add_child(ol);
+        m_light_pool.push_back(ol);
+    }
+    for (size_t i = 0; i < m_light_pool.size(); ++i) {
+        OmniLight3D *ol = m_light_pool[i];
+        if (i < all.size()) {
+            const NodeLight *l = all[i];
+            ol->set_position(l->pos + Vector3(0.5f, 0.5f, -0.5f) * 0.0f);
+            ol->set_color(l->color);
+            ol->set_param(Light3D::PARAM_RANGE, 4.0f + 10.0f * l->level);
+            ol->set_param(Light3D::PARAM_ENERGY, 1.5f + 4.0f * l->level);
+            ol->set_param(Light3D::PARAM_ATTENUATION, 1.5f);
+            ol->set_visible(true);
+        } else {
+            ol->set_visible(false);
+        }
+    }
 }
 
 int GoannaClient::poll_blocks(int max_blocks) {
@@ -288,6 +427,7 @@ int GoannaClient::poll_blocks(int max_blocks) {
         if (!block)
             continue;
         std::unique_ptr<MapBlockMesh> bm = meshBlock(*m_session, block);
+        harvestLights(bp, block);
         MeshInstance3D *mi = nullptr;
         auto it = m_block_nodes.find(bp);
         if (it != m_block_nodes.end())
@@ -341,7 +481,8 @@ int GoannaClient::poll_blocks(int max_blocks) {
                 MaterialKey key;
                 GoannaTexture *gt = dynamic_cast<GoannaTexture *>(m.getTexture(0));
                 key.texture_id = gt ? gt->id() : 0;
-                key.base_material = (int)m.MaterialType;
+                key.shader_id = GoannaShaderSource::isShaderMaterial(m.MaterialType)
+                        ? GoannaShaderSource::shaderIdFromMaterial(m.MaterialType) : 0;
                 key.backface_culling = m.BackfaceCulling;
                 mesh->surface_set_material(si++, materialFor(key));
             }
@@ -380,6 +521,7 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("server_player_position"), &GoannaClient::server_player_position);
     ClassDB::bind_method(D_METHOD("step_player", "dt", "keys", "pitch_deg", "yaw_deg"), &GoannaClient::step_player);
     ClassDB::bind_method(D_METHOD("sky_state"), &GoannaClient::sky_state);
+    ClassDB::bind_method(D_METHOD("update_lights", "around", "max_lights"), &GoannaClient::update_lights);
     ClassDB::bind_method(D_METHOD("set_time_of_day_override", "tod"), &GoannaClient::set_time_of_day_override);
 }
 

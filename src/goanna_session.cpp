@@ -450,6 +450,11 @@ void GoannaSession::sendGotBlocks(const std::vector<v3s16> &blocks) {
     }
 }
 
+u8 GoannaSession::emissiveLevel(u32 texture_id) const {
+    auto it = m_emissive_by_texture.find(texture_id);
+    return it == m_emissive_by_texture.end() ? 0 : it->second;
+}
+
 bool GoannaSession::getMedia(const std::string &name, std::string &out) const {
     std::lock_guard<std::mutex> lk(m_media_mutex);
     auto it = m_media.find(name);
@@ -509,6 +514,37 @@ bool GoannaSession::prepareContentIfReady() {
         m_nodedef->setNodeRegistrationStatus(true);
         m_nodedef->runNodeResolveCallbacks();
         NodeVisuals::fillNodeVisuals(m_nodedef, m_mesh_client.get(), nullptr);
+        // Which textures belong to light-emitting nodes (emissive materials).
+        // Materials are keyed by texture, and a texture can be shared between
+        // a glowing node and a plain one (games register hidden light-emitting
+        // variants of stone, dirt and so on), so a texture counts as emissive
+        // only if every node that shows it emits light: the minimum, not the
+        // maximum. Torches, glowstone and lava textures survive that test.
+        std::map<u32, u8> min_light;
+        for (content_t id = 0; id < 65535; ++id) {
+            const ContentFeatures &f = m_nodedef->get(id);
+            if (f.name.empty() || f.name == "unknown" || !f.visuals)
+                continue;
+            auto note = [&](u32 tid) {
+                if (!tid)
+                    return;
+                auto it = min_light.find(tid);
+                if (it == min_light.end())
+                    min_light[tid] = f.light_source;
+                else
+                    it->second = std::min(it->second, f.light_source);
+            };
+            for (int i = 0; i < 6; ++i)
+                for (int l = 0; l < MAX_TILE_LAYERS; ++l)
+                    note(f.visuals->tiles[i].layers[l].texture_id);
+            for (int i = 0; i < CF_SPECIAL_COUNT; ++i)
+                for (int l = 0; l < MAX_TILE_LAYERS; ++l)
+                    note(f.visuals->special_tiles[i].layers[l].texture_id);
+        }
+        m_emissive_by_texture.clear();
+        for (auto &kv : min_light)
+            if (kv.second > 0)
+                m_emissive_by_texture[kv.first] = kv.second;
     }
     actionstream << "goanna: content prepared: " << n_img << " images, node visuals filled" << std::endl;
     m_send_ready = true; // session thread sends CLIENT_READY

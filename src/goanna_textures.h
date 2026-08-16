@@ -97,6 +97,12 @@ public:
     // What Goanna's material builder wants to know about a shader id.
     MaterialType materialType(u32 id) const;
     video::E_MATERIAL_TYPE baseMaterial(u32 id) const;
+    // Luanti stores the driver's material id for a shader in ShaderInfo::material,
+    // which the mesher copies into each buffer's SMaterial.MaterialType. Goanna
+    // encodes the shader id there so the Godot side can recover it.
+    static constexpr u32 MATERIAL_ID_BASE = 1000;
+    static bool isShaderMaterial(video::E_MATERIAL_TYPE m) { return (u32)m >= MATERIAL_ID_BASE; }
+    static u32 shaderIdFromMaterial(video::E_MATERIAL_TYPE m) { return (u32)m - MATERIAL_ID_BASE; }
 
 private:
     struct Entry {
