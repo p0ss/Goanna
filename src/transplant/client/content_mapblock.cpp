@@ -450,7 +450,7 @@ void MapblockMeshGenerator::drawAutoLightedCuboid(aabb3f box,
 // two inset faces by a 45-degree chamfer quad; three-way corners are capped.
 // mode: 1 = horizontal edges only, 2 = vertical only, 3 = both.
 static void drawBeveledSolid(MeshCollector *collector, v3f origin,
-		const TileSpec tiles[6], u8 faces, int mode, u16 diag_open)
+		const TileSpec tiles[6], u8 faces, int mode, u16 diag_open, u32 cap_mask)
 {
 	const float h = 0.5f * BS;
 	float b = g_goanna_bevel * BS;
@@ -544,7 +544,8 @@ static void drawBeveledSolid(MeshCollector *collector, v3f origin,
 	// Edge chamfers (12 unique edges as face pairs).
 	static const int EDGES[12][2] = {
 		{0,2},{0,3},{0,4},{0,5},{1,2},{1,3},{1,4},{1,5},{2,4},{2,5},{3,4},{3,5}};
-	for (auto &e : EDGES) {
+	for (int ei = 0; ei < 12; ++ei) {
+		const auto &e = EDGES[ei];
 		int f = e[0], nf = e[1];
 		if (!beveled(f, nf))
 			continue;
@@ -565,10 +566,46 @@ static void drawBeveledSolid(MeshCollector *collector, v3f origin,
 		v3f cross = (pts[1]-pts[0]).crossProduct(pts[3]-pts[0]);
 		if (cross.dotProduct(nrm) < 0) { std::swap(pts[1], pts[3]); }
 		emit(tiles[f], pts, 4, nrm);
+		// End caps: close the chamfer prism where the edge does not continue.
+		// Recessed a hair so a cap coplanar with an exposed end face (which is
+		// drawn as a full square) does not z-fight it.
+		for (int sn = 0; sn < 2; ++sn) {
+			if (!((cap_mask >> (ei * 2 + sn)) & 1))
+				continue;
+			const float eps = 0.02f * b;
+			float ww = (sn ? wlim : -wlim) - (sn ? eps : -eps);
+			v3f a = onF(ww), bb = onNF(ww), cc(0, 0, 0);
+			setax(cc, fd.pa, fd.ps * h);
+			setax(cc, nd.pa, nd.ps * h);
+			setax(cc, w, ww);
+			v3f cn(0, 0, 0);
+			setax(cn, w, sn ? -1.0f : 1.0f);
+			v3f cap[3] = {a, bb, cc};
+			v3f cr = (cap[1] - cap[0]).crossProduct(cap[2] - cap[0]);
+			if (cr.dotProduct(cn) < 0)
+				std::swap(cap[1], cap[2]);
+			emit(tiles[f], cap, 3, cn);
+		}
 	}
 
-	// Corners are closed by the full-length chamfers interpenetrating; a
-	// separate cap was mis-oriented and read as a dark facet.
+	// Convex corners where all three edges are bevelled get a diagonal cap.
+	for (int sx = -1; sx <= 1; sx += 2)
+	for (int sy = -1; sy <= 1; sy += 2)
+	for (int sz = -1; sz <= 1; sz += 2) {
+		int fx = sx > 0 ? 2 : 3, fy = sy > 0 ? 0 : 1, fz = sz > 0 ? 4 : 5;
+		if (!(beveled(fx, fy) && beveled(fy, fz) && beveled(fx, fz)))
+			continue;
+		v3f px(sx * h, sy * (h - b), sz * (h - b));
+		v3f py(sx * (h - b), sy * h, sz * (h - b));
+		v3f pz(sx * (h - b), sy * (h - b), sz * h);
+		v3f nrm = v3f((float)sx, (float)sy, (float)sz);
+		nrm.normalize();
+		v3f pts[3] = {px, py, pz};
+		v3f cr = (pts[1] - pts[0]).crossProduct(pts[2] - pts[0]);
+		if (cr.dotProduct(nrm) < 0)
+			std::swap(pts[1], pts[2]);
+		emit(tiles[fy], pts, 3, nrm);
+	}
 }
 
 void MapblockMeshGenerator::drawSolidNode()
@@ -641,16 +678,44 @@ void MapblockMeshGenerator::drawSolidNode()
 				{1,1,0},{-1,1,0},{0,1,1},{0,1,-1},
 				{1,-1,0},{-1,-1,0},{0,-1,1},{0,-1,-1},
 				{1,0,1},{1,0,-1},{-1,0,1},{-1,0,-1}};
-			u16 diag_open = 0;
-			for (int e = 0; e < 12; ++e) {
-				MapNode dn = data->m_vmanip.getNodeNoEx(blockpos_nodes + cur_node.p + edge_diag[e]);
+			static const int edge_faces[12][2] = {
+				{0,2},{0,3},{0,4},{0,5},{1,2},{1,3},{1,4},{1,5},{2,4},{2,5},{3,4},{3,5}};
+			auto solid_at = [&](v3s16 rel) {
+				MapNode dn = data->m_vmanip.getNodeNoEx(blockpos_nodes + cur_node.p + rel);
 				content_t dc = dn.getContent();
-				bool open = dc == CONTENT_AIR || dc == CONTENT_IGNORE ||
-						nodedef->get(dn).visuals->solidness != 2;
-				if (open)
+				return dc != CONTENT_AIR && dc != CONTENT_IGNORE &&
+						nodedef->get(dn).visuals->solidness == 2;
+			};
+			u16 diag_open = 0;
+			for (int e = 0; e < 12; ++e)
+				if (!solid_at(edge_diag[e]))
 					diag_open |= 1 << e;
+			// A chamfer is an open prism; where the edge does not continue into
+			// the neighbouring node along the edge axis, its end must be capped
+			// or it reads as a hole (e.g. the base of a bevelled tree trunk).
+			// The edge continues when that neighbour is the same content with
+			// the same two faces exposed and its edge diagonal open.
+			u32 cap_mask = 0;
+			for (int e = 0; e < 12; ++e) {
+				int fa = edge_faces[e][0], fb = edge_faces[e][1];
+				int axa = fa < 2 ? 1 : (fa < 4 ? 0 : 2);
+				int axb = fb < 2 ? 1 : (fb < 4 ? 0 : 2);
+				int wa = 3 - axa - axb;
+				for (int sn = 0; sn < 2; ++sn) {
+					v3s16 wv(0, 0, 0);
+					if (wa == 0) wv.X = sn ? 1 : -1;
+					else if (wa == 1) wv.Y = sn ? 1 : -1;
+					else wv.Z = sn ? 1 : -1;
+					MapNode en = data->m_vmanip.getNodeNoEx(blockpos_nodes + cur_node.p + wv);
+					bool continued = en.getContent() == n1 &&
+							!solid_at(wv + tile_dirs[fa]) &&
+							!solid_at(wv + tile_dirs[fb]) &&
+							!solid_at(wv + edge_diag[e]);
+					if (!continued)
+						cap_mask |= 1u << (e * 2 + sn);
+				}
 			}
-			drawBeveledSolid(collector, cur_node.origin, tiles, faces, mode, diag_open);
+			drawBeveledSolid(collector, cur_node.origin, tiles, faces, mode, diag_open, cap_mask);
 			return;
 		}
 	}
