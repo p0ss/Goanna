@@ -83,6 +83,13 @@ the scripting layer. It is documented as copied, at the top of the file.
 
 ## Inventory of transplanted files
 
+Two rows below are marked **Misplaced**. They are files that grew into tier 2
+transplants while carrying a Goanna name in `src/`. Listing them here is the
+minimum; moving them under `src/transplant/` is the correct fix, and until
+that happens a reviewer diffing against upstream has to be told where to
+look. Do not let this pattern spread: if a file crosses into mostly upstream
+code, it moves.
+
 Every tier 2 file, what it came from, and why it could not be compiled from
 the submodule. Keep this table current. It is the first thing an upstream
 reviewer will read.
@@ -96,6 +103,8 @@ reviewer will read.
 | `src/transplant/client/node_visuals.cpp` | `src/client/node_visuals.cpp` | Uses the video driver for array textures | Array textures unsupported; mesh manipulation and mesh loading via the `Client` stand-in |
 | `src/transplant/client/imagesource.cpp` | `src/client/imagesource.cpp` | Creates images through the video driver | Image creation and decoding go through `goanna_image_hooks.h`; otherwise verbatim |
 | `src/luanti_shims.cpp` | `src/inventorymanager.cpp` | The whole file drags in the server environment and scripting | Two functions copied verbatim, nothing else |
+| `src/goanna_active_object.h`, `.cpp` | `src/client/content_cao.{h,cpp}` | `GenericCAO` is built around Irrlicht scene nodes | No scene nodes; state snapshot for the Godot side instead; movement calls the transplanted collision code rather than `ClientEnvironment`. **Misplaced:** roughly two thirds of the `.cpp` is upstream, so it is a tier 2 transplant and belongs under `src/transplant/` |
+| `src/goanna_sky.cpp` | `src/client/sky.cpp` | Sky rendering is Irrlicht; only the maths is wanted | The wicked time of day and sky body position functions only, each marked at its definition. Also credits numzero |
 
 ## Tracking upstream
 
