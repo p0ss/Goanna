@@ -285,7 +285,18 @@ func _process(delta: float) -> void:
 		get_tree().quit()
 
 func _walktest_keys() -> Dictionary:
-	var hold_w := t > 4.0 and t < 9.0
+	# Hold W from 4 to 7s, then release. With GOANNA_WALKRELEASE=1, report how
+	# far the player drifts in the 3s after release (should be ~0).
+	var hold_w := t > 4.0 and t < 7.0
+	if OS.get_environment("GOANNA_WALKRELEASE") != "":
+		if absf(t - 7.0) < get_process_delta_time() * 0.6:
+			_walk_release_pos = client.server_player_position()
+		if t > 10.0 and not _walk_release_done:
+			_walk_release_done = true
+			var drift := (client.server_player_position() - _walk_release_pos).length()
+			print("walkrelease: drifted %.2f nodes in 3s after releasing W" % drift)
+			client.disconnect_from_server()
+			get_tree().quit()
 	return {"up": hold_w, "down": false, "left": false, "right": false,
 		"jump": t > 6.0 and t < 6.3, "sneak": false, "aux1": false}
 
@@ -318,6 +329,8 @@ func _main_list() -> Array:
 # privilege on the test server. Godot z is mirrored relative to Luanti.
 var test_teleported := 0.0
 var _anim_reported := false
+var _walk_release_pos := Vector3.ZERO
+var _walk_release_done := false
 func _teleport_near(target: Vector3) -> bool:
 	if test_teleported > 0.0:
 		return t - test_teleported > 2.0

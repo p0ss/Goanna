@@ -511,6 +511,13 @@ Dictionary GoannaClient::step_player(double dt, const Dictionary &keys, float pi
     c.aux1 = keys.get("aux1", false);
     c.pitch = -pitch_deg;
     c.yaw = yaw_deg;
+    // Upstream seeds these from the joystick each frame (0 with no stick), then
+    // setMovementFromKeys() only overrides them while a direction key is held,
+    // leaving them untouched otherwise. Goanna has no joystick and reuses the
+    // persistent control, so without this reset the last movement_speed sticks
+    // and the player keeps walking after the key is released.
+    c.movement_speed = 0.0f;
+    c.movement_direction = 0.0f;
     c.setMovementFromKeys();
 
     if (dt > 0.1) dt = 0.1;
