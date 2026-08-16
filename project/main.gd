@@ -103,9 +103,9 @@ func _process(delta: float) -> void:
 	client.poll_blocks(24)
 	if t - last_print >= 1.0:
 		last_print = t
-		print("[%5.1fs] %s | %s | blocks recv %d meshed %d | cam %s" % [
-			t, s.get("state"), s.get("message"), s.get("blocks_received", 0),
-			s.get("blocks_meshed", 0), str(cam.position)])
+		print("[%5.1fs] %s | %s | media %d/%d | blocks recv %d meshed %d | mats %d | cam %s" % [
+			t, s.get("state"), s.get("message"), s.get("media_received", 0), s.get("media_announced", 0),
+			s.get("blocks_received", 0), s.get("blocks_meshed", 0), s.get("materials", 0), str(cam.position)])
 	var shot := OS.get_environment("GOANNA_SHOT")
 	if shot != "" and not shots_done and t > 8.0:
 		shots_done = true

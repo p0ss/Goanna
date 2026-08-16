@@ -18,6 +18,7 @@
 #include "serialization.h"
 #include "settings.h"
 #include "util/auth.h"
+#include "util/base64.h"
 #include "util/serialize.h"
 #include "util/srp.h"
 #include "util/string.h"
@@ -185,6 +186,15 @@ void GoannaSession::threadMain() {
                                 << std::dec << ": " << e.what() << std::endl;
                 }
             }
+            if (m_media_announced && !m_media_done && !m_ready_sent) {
+                float waited = std::chrono::duration<float>(
+                        std::chrono::steady_clock::now() - m_media_announce_time).count();
+                if (waited > 30.0f) {
+                    warningstream << "goanna: media incomplete after 30 s; proceeding" << std::endl;
+                    m_media_done = true;
+                    maybeReady();
+                }
+            }
             SessionState st;
             {
                 std::lock_guard<std::mutex> lk(m_stats_mutex);
@@ -319,8 +329,34 @@ void GoannaSession::sendGotBlocks(const std::vector<v3s16> &blocks) {
     }
 }
 
+bool GoannaSession::getMedia(const std::string &name, std::string &out) const {
+    std::lock_guard<std::mutex> lk(m_media_mutex);
+    auto it = m_media.find(name);
+    if (it == m_media.end())
+        return false;
+    out = it->second;
+    return true;
+}
+
+bool GoannaSession::mediaComplete() const {
+    return m_media_done;
+}
+
+void GoannaSession::requestMedia(const std::vector<std::string> &names) {
+    // TOSERVER_REQUEST_MEDIA: u16 count, then names. Chunk to keep packets sane.
+    const size_t CHUNK = 500;
+    for (size_t i = 0; i < names.size(); i += CHUNK) {
+        size_t n = std::min(CHUNK, names.size() - i);
+        NetworkPacket pkt(TOSERVER_REQUEST_MEDIA, 2);
+        pkt << (u16)n;
+        for (size_t k = 0; k < n; ++k)
+            pkt << names[i + k];
+        send(pkt);
+    }
+}
+
 void GoannaSession::maybeReady() {
-    if (!m_ready_sent && m_nodedef_received && m_itemdef_received && m_media_announced) {
+    if (!m_ready_sent && m_nodedef_received && m_itemdef_received && m_media_announced && m_media_done) {
         m_nodedef->updateAliases(m_itemdef);
         m_nodedef->setNodeRegistrationStatus(true);
         m_nodedef->runNodeResolveCallbacks();
@@ -339,6 +375,7 @@ void GoannaSession::handle(NetworkPacket &pkt) {
     case TOCLIENT_NODEDEF: onNodeDef(pkt); break;
     case TOCLIENT_ITEMDEF: onItemDef(pkt); break;
     case TOCLIENT_ANNOUNCE_MEDIA: onAnnounceMedia(pkt); break;
+    case TOCLIENT_MEDIA: onMedia(pkt); break;
     case TOCLIENT_BLOCKDATA: onBlockData(pkt); break;
     case TOCLIENT_MOVE_PLAYER: onMovePlayer(pkt); break;
     case TOCLIENT_TIME_OF_DAY: onTimeOfDay(pkt); break;
@@ -479,18 +516,76 @@ void GoannaSession::onItemDef(NetworkPacket &pkt) {
 }
 
 void GoannaSession::onAnnounceMedia(NetworkPacket &pkt) {
-    u16 num_files;
-    pkt >> num_files;
+    u16 proto = stats().proto_ver;
+    std::vector<std::string> names;
+    {
+        std::lock_guard<std::mutex> lk(m_media_mutex);
+        if (proto >= 48) {
+            std::istringstream iss(pkt.readLongString(), std::ios::binary);
+            std::stringstream ss(std::ios::in | std::ios::out | std::ios::binary);
+            decompressZstd(iss, ss);
+            names = deserializeString16Array(ss);
+            for (auto &name : names)
+                m_media_wanted[name] = pkt.readRawString(20);
+        } else {
+            u16 num_files;
+            pkt >> num_files;
+            for (u16 i = 0; i < num_files; i++) {
+                std::string name, sha1_base64;
+                pkt >> name >> sha1_base64;
+                m_media_wanted[name] = base64_decode(sha1_base64);
+                names.push_back(name);
+            }
+        }
+    }
+    // Remote media servers are ignored; everything comes over the connection.
     {
         std::lock_guard<std::mutex> lk(m_stats_mutex);
-        m_stats.media_announced = num_files;
+        m_stats.media_announced = names.size();
     }
-    // Media itself is not fetched yet (stage 2). We still need to have
-    // "received" it from the server's point of view only in that we may send
-    // CLIENT_READY whenever we like.
     m_media_announced = true;
-    infostream << "goanna: media announced: " << num_files << " files" << std::endl;
+    m_media_announce_time = std::chrono::steady_clock::now();
+    infostream << "goanna: media announced: " << names.size() << " files; requesting all" << std::endl;
+    if (names.empty()) {
+        m_media_done = true;
+    } else {
+        requestMedia(names);
+    }
     maybeReady();
+}
+
+void GoannaSession::onMedia(NetworkPacket &pkt) {
+    u16 num_bunches, bunch_i;
+    u32 num_files;
+    pkt >> num_bunches >> bunch_i >> num_files;
+    u16 proto = stats().proto_ver;
+    size_t have = 0, want = 0;
+    {
+        std::lock_guard<std::mutex> lk(m_media_mutex);
+        for (u32 i = 0; i < num_files; i++) {
+            std::string name, data;
+            pkt >> name;
+            data = pkt.readLongString();
+            if (proto >= 48) {
+                std::istringstream iss(data, std::ios::binary);
+                std::ostringstream oss(std::ios::binary);
+                decompressZstd(iss, oss);
+                data = oss.str();
+            }
+            m_media[name] = std::move(data);
+        }
+        have = m_media.size();
+        want = m_media_wanted.size();
+    }
+    {
+        std::lock_guard<std::mutex> lk(m_stats_mutex);
+        m_stats.media_received = have;
+    }
+    if (have >= want && want > 0) {
+        m_media_done = true;
+        infostream << "goanna: all media received (" << have << " files)" << std::endl;
+        maybeReady();
+    }
 }
 
 void GoannaSession::onBlockData(NetworkPacket &pkt) {

@@ -17,6 +17,7 @@ add_library(goanna SHARED
     src/goanna_client.cpp
     src/goanna_session.cpp
     src/goanna_mesher.cpp
+    src/goanna_materials.cpp
     src/luanti_shims.cpp
 )
 target_include_directories(goanna PRIVATE src)

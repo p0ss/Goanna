@@ -6,6 +6,7 @@
 // them for Goanna's Godot side to mesh and draw.
 
 #include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <map>
 #include <memory>
@@ -51,6 +52,7 @@ struct SessionStats {
     size_t node_defs = 0;
     size_t item_defs = 0;
     size_t media_announced = 0;
+    size_t media_received = 0;
     size_t blocks_received = 0;
     v3f player_pos = v3f(0, 0, 0);
     float player_pitch = 0, player_yaw = 0;
@@ -80,6 +82,11 @@ public:
 
     // Player pose as the client will report it to the server (position in nodes).
     void setPlayerPose(v3f pos_nodes, float pitch_deg, float yaw_deg);
+
+    // Media (textures, models, sounds) received from the server, by name.
+    // Returns nullptr if unknown/not yet received. Thread-safe copy.
+    bool getMedia(const std::string &name, std::string &out) const;
+    bool mediaComplete() const;
 
     // --- IGameDef ---
     IItemDefManager *getItemDefManager() override;
@@ -120,6 +127,8 @@ private:
     void onNodeDef(NetworkPacket &pkt);
     void onItemDef(NetworkPacket &pkt);
     void onAnnounceMedia(NetworkPacket &pkt);
+    void onMedia(NetworkPacket &pkt);
+    void requestMedia(const std::vector<std::string> &names);
     void onBlockData(NetworkPacket &pkt);
     void onMovePlayer(NetworkPacket &pkt);
     void onTimeOfDay(NetworkPacket &pkt);
@@ -147,7 +156,13 @@ private:
     AuthMechanism m_chosen_auth = AUTH_MECHANISM_NONE;
     SRPUser *m_srp = nullptr;
     bool m_nodedef_received = false, m_itemdef_received = false, m_media_announced = false;
+    bool m_media_done = false;
     bool m_ready_sent = false;
+    std::chrono::steady_clock::time_point m_media_announce_time;
+
+    mutable std::mutex m_media_mutex;
+    std::map<std::string, std::string> m_media_wanted; // name -> sha1 raw
+    std::map<std::string, std::string> m_media;        // name -> bytes
 
     std::mutex m_pose_mutex;
     v3f m_pose_pos = v3f(0, 0, 0);
