@@ -73,6 +73,8 @@ void GoannaClient::set_bevel(float width) {
     }
 }
 
+float GoannaClient::bevel() const { return g_goanna_bevel; }
+
 void GoannaClient::set_auto_bump(float strength) {
     if (strength < 0.0f)
         strength = 0.0f;
@@ -428,6 +430,18 @@ Dictionary GoannaClient::step_interact(double dt, bool dig, bool place, bool pla
             ? std::min(1.0f, st.dig_time / st.dig_time_complete) : 0.0f;
     d["crack_level"] = st.crack_level;
     return d;
+}
+
+bool GoannaClient::is_underwater(const Vector3 &eye) {
+    if (!m_session)
+        return false;
+    std::lock_guard<std::mutex> lk(m_session->mapLock());
+    // Godot (x, y, -z) nodes -> Luanti node coordinates.
+    v3s16 p((s16)std::floor(eye.x + 0.5f), (s16)std::floor(eye.y + 0.5f), (s16)std::floor(-eye.z + 0.5f));
+    MapNode n = m_session->map().getNode(p);
+    if (n.getContent() == CONTENT_IGNORE)
+        return false;
+    return m_session->nodeDefs()->get(n).isLiquid();
 }
 
 void GoannaClient::set_time_of_day_override(float tod) {
@@ -837,25 +851,34 @@ void GoannaClient::ensureMoteMaterials() {
         pm->set_emission_shape(PPM::EMISSION_SHAPE_SPHERE);
         m_mote_proc[k] = pm;
     }
-    // leaves: drift down and tumble
-    m_mote_proc[0]->set_gravity(Vector3(0, -0.5f, 0));
-    m_mote_proc[0]->set_emission_sphere_radius(0.5f);
-    m_mote_proc[0]->set_direction(Vector3(0, -1, 0));
+    // leaves: sparse petals drifting on a soft wind (maple-petal look), not
+    // falling like rain. Weak gravity, a sideways bias, turbulence for the
+    // wander, and a wide emission volume so they spread over several blocks.
+    m_mote_proc[0]->set_gravity(Vector3(0.05f, -0.12f, 0.03f));
+    m_mote_proc[0]->set_emission_sphere_radius(1.6f);
+    m_mote_proc[0]->set_direction(Vector3(0.4f, -0.4f, 0.2f));
+    m_mote_proc[0]->set_spread(70.0f);
     m_mote_proc[0]->set_param_min(PPM::PARAM_INITIAL_LINEAR_VELOCITY, 0.05f);
-    m_mote_proc[0]->set_param_max(PPM::PARAM_INITIAL_LINEAR_VELOCITY, 0.35f);
-    m_mote_proc[0]->set_param_min(PPM::PARAM_ANGULAR_VELOCITY, -120);
-    m_mote_proc[0]->set_param_max(PPM::PARAM_ANGULAR_VELOCITY, 120);
+    m_mote_proc[0]->set_param_max(PPM::PARAM_INITIAL_LINEAR_VELOCITY, 0.2f);
+    m_mote_proc[0]->set_param_min(PPM::PARAM_ANGULAR_VELOCITY, -90);
+    m_mote_proc[0]->set_param_max(PPM::PARAM_ANGULAR_VELOCITY, 90);
     m_mote_proc[0]->set_param_min(PPM::PARAM_SCALE, 0.5f);
-    m_mote_proc[0]->set_param_max(PPM::PARAM_SCALE, 1.0f);
-    m_mote_proc[0]->set_param_min(PPM::PARAM_DAMPING, 0.1f);
-    m_mote_proc[0]->set_param_max(PPM::PARAM_DAMPING, 0.4f);
+    m_mote_proc[0]->set_param_max(PPM::PARAM_SCALE, 0.9f);
+    m_mote_proc[0]->set_param_min(PPM::PARAM_DAMPING, 0.05f);
+    m_mote_proc[0]->set_param_max(PPM::PARAM_DAMPING, 0.2f);
+    m_mote_proc[0]->set_turbulence_enabled(true);
+    m_mote_proc[0]->set_turbulence_noise_strength(0.35f);
+    m_mote_proc[0]->set_turbulence_noise_scale(1.2f);
     // flora: slow pollen, barely rising
-    m_mote_proc[1]->set_gravity(Vector3(0, 0.04f, 0));
-    m_mote_proc[1]->set_emission_sphere_radius(0.4f);
-    m_mote_proc[1]->set_param_min(PPM::PARAM_INITIAL_LINEAR_VELOCITY, 0.03f);
-    m_mote_proc[1]->set_param_max(PPM::PARAM_INITIAL_LINEAR_VELOCITY, 0.18f);
+    m_mote_proc[1]->set_gravity(Vector3(0, 0.02f, 0));
+    m_mote_proc[1]->set_emission_sphere_radius(0.8f);
+    m_mote_proc[1]->set_spread(60.0f);
+    m_mote_proc[1]->set_param_min(PPM::PARAM_INITIAL_LINEAR_VELOCITY, 0.02f);
+    m_mote_proc[1]->set_param_max(PPM::PARAM_INITIAL_LINEAR_VELOCITY, 0.1f);
     m_mote_proc[1]->set_param_min(PPM::PARAM_SCALE, 0.25f);
     m_mote_proc[1]->set_param_max(PPM::PARAM_SCALE, 0.5f);
+    m_mote_proc[1]->set_turbulence_enabled(true);
+    m_mote_proc[1]->set_turbulence_noise_strength(0.25f);
     // sand/gravel: dust kicked up, settles quickly
     m_mote_proc[2]->set_gravity(Vector3(0, -1.4f, 0));
     m_mote_proc[2]->set_emission_sphere_radius(0.35f);
@@ -901,8 +924,8 @@ void GoannaClient::update_motes(const Vector3 &around, int max_emitters) {
             UtilityFunctions::print("motes: candidates ", (int)all.size(), " active ", want,
                     " (blocks ", (int)m_block_motes.size(), ")");
     }
-    static const int base_amount[3] = {10, 8, 6};
-    static const float lifetime[3] = {5.0f, 6.0f, 1.6f};
+    static const int base_amount[3] = {3, 3, 5};
+    static const float lifetime[3] = {9.0f, 8.0f, 1.6f};
     while ((int)m_mote_pool.size() < max_emitters) {
         MoteEmitter e;
         e.node = memnew(GPUParticles3D);
@@ -969,6 +992,16 @@ int GoannaClient::poll_blocks(int max_blocks) {
     }
     int done = 0;
     std::lock_guard<std::mutex> lk(m_session->mapLock());
+    // Mesh nearest-first so a backlog does not leave the block right ahead of
+    // the player unmeshed (visible pop-in) while distant ones mesh in arrival
+    // order.
+    if (LocalPlayer *pl = m_session->player()) {
+        v3f pp = pl->getPosition() * (1.0f / BS);
+        v3f pb(pp.X / MAP_BLOCKSIZE, pp.Y / MAP_BLOCKSIZE, pp.Z / MAP_BLOCKSIZE);
+        std::sort(fresh.begin(), fresh.end(), [&](const v3s16 &a, const v3s16 &b) {
+            return v3f::from(a).getDistanceFromSQ(pb) < v3f::from(b).getDistanceFromSQ(pb);
+        });
+    }
     for (const v3s16 &bp : fresh) {
         if (done >= max_blocks) {
             m_session->requeueBlock(bp);
@@ -1094,7 +1127,9 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("entity_positions"), &GoannaClient::entity_positions);
     ClassDB::bind_method(D_METHOD("entity_list"), &GoannaClient::entity_list);
     ClassDB::bind_method(D_METHOD("set_time_of_day_override", "tod"), &GoannaClient::set_time_of_day_override);
+    ClassDB::bind_method(D_METHOD("is_underwater", "eye"), &GoannaClient::is_underwater);
     ClassDB::bind_method(D_METHOD("set_bevel", "width"), &GoannaClient::set_bevel);
+    ClassDB::bind_method(D_METHOD("bevel"), &GoannaClient::bevel);
     ClassDB::bind_method(D_METHOD("set_auto_bump", "strength"), &GoannaClient::set_auto_bump);
     ClassDB::bind_method(D_METHOD("auto_bump"), &GoannaClient::auto_bump);
 }

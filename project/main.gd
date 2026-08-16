@@ -29,6 +29,8 @@ var mob_target_id := -1
 var mob_last_pos := Vector3.ZERO
 var inv_before := {}
 var fall_reported := false
+var underwater := false
+var headlight: OmniLight3D
 var test_started := 0.0
 
 func _ready() -> void:
@@ -85,11 +87,21 @@ func _ready() -> void:
 	e.glow_intensity = 0.3
 	e.fog_enabled = true
 	e.fog_light_color = Color(0.72, 0.80, 0.90)
-	e.fog_density = 0.0004
-	e.fog_sky_affect = 0.15
-	e.fog_aerial_perspective = 0.5
+	e.fog_density = 0.0016
+	e.fog_sky_affect = 0.1
+	e.fog_aerial_perspective = 0.7
 	env.environment = e
 	add_child(env)
+	# Subtle head-light so caves are navigable rather than pitch black. Short
+	# range and low energy, so it is negligible against daylight but lets you
+	# see a few nodes underground. (A proper fix would feed Luanti's baked node
+	# light as an ambient floor.)
+	headlight = OmniLight3D.new()
+	headlight.light_energy = 0.5
+	headlight.omni_range = 9.0
+	headlight.light_color = Color(1.0, 0.96, 0.9)
+	headlight.shadow_enabled = false
+	add_child(headlight)
 
 	var host := OS.get_environment("GOANNA_HOST")
 	if host == "":
@@ -212,6 +224,7 @@ func _process(delta: float) -> void:
 	client.update_lights(cam.position, 48)
 	client.update_motes(cam.position, 32)
 	client.sync_entities(delta)
+	_update_environment_extras()
 	if t - last_print >= 1.0:
 		last_print = t
 		if OS.get_environment("GOANNA_DUMPSKY") != "" and int(t) == 3:
@@ -565,6 +578,28 @@ func _shots(dir: String) -> void:
 		print("saved ", path)
 
 
+# Per-frame environment extras: the cave head-light follows the camera, and
+# the fog switches to a dense underwater tint while the eye is submerged.
+func _update_environment_extras() -> void:
+	if headlight:
+		headlight.global_position = cam.global_position
+	var under: bool = client.is_underwater(cam.position)
+	if under == underwater:
+		return
+	underwater = under
+	var e := env.environment
+	if under:
+		# Murky blue-green underwater fog; you can tell you are submerged and
+		# the view shortens the way it should.
+		e.fog_enabled = true
+		e.fog_light_color = Color(0.10, 0.28, 0.34)
+		e.fog_density = 0.16
+		e.fog_aerial_perspective = 0.0
+		e.fog_sky_affect = 1.0
+	else:
+		# Restore the surface fog from the current sky state.
+		_apply_sky()
+
 # Map Luanti's sky/lighting state onto Godot's sun, sky and fog. Colours and the
 # day/dawn/night scheme are the server's (or Luanti's defaults); the blend by
 # sun elevation approximates Sky::update in the vanilla client.
@@ -621,9 +656,9 @@ func _apply_sky() -> void:
 	e.fog_light_color = fog_col
 	var fog_distance: float = sky["fog_distance"]
 	if fog_distance > 0.0:
-		e.fog_density = clamp(2.5 / fog_distance, 0.0005, 0.05)
+		e.fog_density = clamp(4.0 / fog_distance, 0.0016, 0.05)
 	else:
-		e.fog_density = 0.0004
+		e.fog_density = 0.0016
 	# --- ambient / grade from day-night ratio and server lighting ---
 	var ratio: float = st["day_night_ratio"]
 	e.ambient_light_energy = lerp(0.18, 1.0, ratio)

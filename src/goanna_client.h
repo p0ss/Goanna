@@ -131,10 +131,14 @@ public:
     // Sky/sun/fog/lighting state from the server, in Godot terms (see goanna_sky.h).
     godot::Dictionary sky_state() const;
     void set_time_of_day_override(float tod);
+    // True if the given eye position (Godot space, nodes) is inside a liquid
+    // node; for underwater fog/tint. Cheap map lookup.
+    bool is_underwater(const godot::Vector3 &eye);
     // Auto-bump strength: normal maps derived from diffuse luminance. 0 = off.
     // Rebuilds world materials so the change takes effect immediately.
     // Block edge bevel width as a fraction of a node (0 = off). Re-meshes.
     void set_bevel(float width);
+    float bevel() const;
     void set_auto_bump(float strength);
     float auto_bump() const { return m_auto_bump; }
 
