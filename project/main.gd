@@ -338,7 +338,7 @@ func _mantle_test(keys: Dictionary) -> bool:
 		_set_wield(5)  # basenodes:dirt_with_grass in the devtest hotbar
 	# aim down-forward and place one block one node ahead to make a step
 	if t > 4.5 and t < 6.0:
-		pitch = 55.0
+		pitch = -55.0
 		if absf(t - 5.0) < get_process_delta_time() * 0.6 or absf(t - 5.5) < get_process_delta_time() * 0.6:
 			test_plc_pressed = true
 	# now walk forward on the flat into the placed step
@@ -453,7 +453,31 @@ func _anim_probe(delta: float) -> void:
 		client.disconnect_from_server()
 		get_tree().quit()
 
+var _click_sent := false
+# GOANNA_CLICKTEST=1: exercise the real left-mouse dig path (dig_down), not the
+# test_dig shortcut, to see whether a click actually starts a dig.
+func _click_test() -> bool:
+	if OS.get_environment("GOANNA_CLICKTEST") == "":
+		return false
+	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	pitch = -80.0
+	if int(t) == 3 and not _click_sent:
+		_click_sent = true
+		var ev := InputEventMouseButton.new()
+		ev.button_index = MOUSE_BUTTON_LEFT
+		ev.pressed = true
+		Input.parse_input_event(ev)
+		print("clicktest: injected left-down; mouse_mode=", Input.get_mouse_mode())
+	if absf(t - round(t)) < get_process_delta_time() * 0.6:
+		print("clicktest: t=%d mouse_mode=%d dig_down=%s ui_blocks=%s" % [int(t), Input.get_mouse_mode(), str(dig_down), str(ui != null and ui.blocks_input())])
+	if t > 12.0:
+		client.disconnect_from_server()
+		get_tree().quit()
+	return true
+
 func _test_hooks(keys: Dictionary) -> void:
+	if _click_test():
+		return
 	_anim_probe(get_process_delta_time())
 	if _mantle_test(keys):
 		return
