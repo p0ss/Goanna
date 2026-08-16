@@ -766,6 +766,26 @@ void GoannaClient::harvestLights(v3s16 bp, MapBlock *block) {
             continue;
         NodeLight l;
         l.pos = Vector3(bp.X * MAP_BLOCKSIZE + x, bp.Y * MAP_BLOCKSIZE + y, -(bp.Z * MAP_BLOCKSIZE + z));
+        // A light at the node centre sits inside its own mesh (a lantern's
+        // cage, a glowing cube), so the moment its shadow map turns on it
+        // occludes itself and appears to switch off. Nudge it into the first
+        // open neighbour: below first (hanging lanterns), then above (floor
+        // lamps), then the sides. If everything is solid it is genuinely
+        // enclosed and staying dark is correct.
+        {
+            static const v3s16 nudge_dirs[6] = {
+                {0, -1, 0}, {0, 1, 0}, {1, 0, 0}, {-1, 0, 0}, {0, 0, 1}, {0, 0, -1}};
+            v3s16 npos(bp.X * MAP_BLOCKSIZE + x, bp.Y * MAP_BLOCKSIZE + y, bp.Z * MAP_BLOCKSIZE + z);
+            for (const v3s16 &d : nudge_dirs) {
+                MapNode nb = m_session->map().getNode(npos + d);
+                if (nb.getContent() == CONTENT_IGNORE)
+                    continue;
+                if (ndef->get(nb).visuals->solidness != 2) {
+                    l.pos += Vector3(d.X, d.Y, -d.Z) * 0.6f;
+                    break;
+                }
+            }
+        }
         l.level = f.light_source / 14.0f;
         // colour from the node's first tile (torch textures average to warm orange)
         video::SColor c(255, 255, 220, 160);
