@@ -28,6 +28,8 @@
 #include <set>
 #include <cstring>
 #include <sstream>
+#include <cstdlib>
+#include <cstdio>
 
 #include "constants.h"
 #include "exceptions.h"
@@ -751,6 +753,9 @@ void GoannaSession::stepInteract(float dtime, const InteractInput &in) {
             if (!params.diggable)
                 params = getDigParams(features.groups, &hand_item.getToolCapabilities(m_itemdef));
             m_interact.dig_time_complete = params.diggable ? params.time : 10000000.0f;
+            if (std::getenv("GOANNA_DEBUG_DIG") && !m_interact.digging)
+                fprintf(stderr, "goanna dig: node=%s tool=%s diggable=%d time=%.3f\n",
+                        features.name.c_str(), tool_item.name.c_str(), params.diggable, params.time);
             if (!m_interact.digging) {
                 m_dig_instantly = m_interact.dig_time_complete == 0;
                 sendInteract(INTERACT_START_DIGGING, pointed);

@@ -54,12 +54,19 @@ func _ready() -> void:
 	sun.light_energy = 1.3
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 250
+	# Bevel chamfers meet the light at grazing angles; raise the normal bias
+	# and soften the blend so the shadow edge does not flicker/acne on them.
+	sun.shadow_normal_bias = 2.5
+	sun.shadow_bias = 0.06
+	sun.shadow_blur = 1.5
 	add_child(sun)
 	moon = DirectionalLight3D.new()
 	moon.light_energy = 0.0
 	moon.light_color = Color(0.6, 0.7, 1.0)
 	moon.shadow_enabled = true
 	moon.directional_shadow_max_distance = 250
+	moon.shadow_normal_bias = 2.5
+	moon.shadow_bias = 0.06
 	add_child(moon)
 
 	env = WorldEnvironment.new()
@@ -298,6 +305,41 @@ func _process(delta: float) -> void:
 		client.disconnect_from_server()
 		get_tree().quit()
 
+# GOANNA_MANTLETEST=1: build a one-block step in front (needs give/place), walk
+# into it, and report whether the player rose a block. Simpler: teleport to a
+# known ledge on devtest and walk into it.
+var _mantle_y0 := 0.0
+var _mantle_done := false
+func _mantle_test(keys: Dictionary) -> bool:
+	if OS.get_environment("GOANNA_MANTLETEST") == "":
+		return false
+	# Build a clean one-block step in front on the flat devtest sand, then walk
+	# north into it. yaw 180 faces -Z (Luanti +Z); the step is placed one node
+	# ahead by pointing down at the sand and pressing place.
+	yaw = 180.0
+	if _mantle_y0 == 0.0:
+		_mantle_y0 = -2.0
+	if int(t) == 4:
+		_set_wield(5)  # basenodes:dirt_with_grass in the devtest hotbar
+	# aim down-forward and place one block one node ahead to make a step
+	if t > 4.5 and t < 6.0:
+		pitch = 55.0
+		if absf(t - 5.0) < get_process_delta_time() * 0.6 or absf(t - 5.5) < get_process_delta_time() * 0.6:
+			test_plc_pressed = true
+	# now walk forward on the flat into the placed step
+	if t >= 6.5 and t < 10.0:
+		pitch = 0.0
+		keys["up"] = true
+		if _mantle_y0 < -1.0:
+			_mantle_y0 = client.server_player_position().y
+	if t > 10.5 and not _mantle_done:
+		_mantle_done = true
+		var dy := client.server_player_position().y - _mantle_y0
+		print("mantletest: y rose %.2f nodes over the walk (mantle=%s)" % [dy, str(OS.get_environment("GOANNA_MANTLE"))])
+		client.disconnect_from_server()
+		get_tree().quit()
+	return true
+
 func _walktest_keys() -> Dictionary:
 	# Hold W from 4 to 7s, then release. With GOANNA_WALKRELEASE=1, report how
 	# far the player drifts in the 3s after release (should be ~0).
@@ -398,6 +440,8 @@ func _anim_probe(delta: float) -> void:
 
 func _test_hooks(keys: Dictionary) -> void:
 	_anim_probe(get_process_delta_time())
+	if _mantle_test(keys):
+		return
 	# GOANNA_FALLTEST=1: pillar-jump then fall; report hp drop and server damage line.
 	if OS.get_environment("GOANNA_FALLTEST") != "":
 		# grant fly+teleport, go up high, then drop and land
@@ -459,12 +503,16 @@ func _test_hooks(keys: Dictionary) -> void:
 		return
 	# GOANNA_MINETEST=1: pitch down at the node in front, dig, report inventory delta.
 	if OS.get_environment("GOANNA_MINETEST") != "":
-		pitch = -60.0
-		if int(t) == 2:
+		pitch = -75.0
+		if int(t) == 2 and test_teleported == 0.0:
+			test_teleported = 1.0
+			# stand on a known solid spot (grass near the cow field) and dig down
+			client.send_chat("/teleport 129 28 0")
+		if int(t) == 3:
 			_set_wield(int(OS.get_environment("GOANNA_MINE_SLOT")) if OS.get_environment("GOANNA_MINE_SLOT") != "" else 0)
 		if inv_before.is_empty() and t > 2.0:
 			inv_before = {"main": _main_list().duplicate(true)}
-		test_dig = t > 3.0 and t < 9.0
+		test_dig = t > 4.0 and t < 11.0
 		if t > 12.0:
 			print("minetest: before ", inv_before.get("main", []))
 			print("minetest: after ", _main_list())
