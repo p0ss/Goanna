@@ -713,11 +713,15 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
         if (mtype == TILE_MATERIAL_LIQUID_OPAQUE || mtype == TILE_MATERIAL_WAVING_LIQUID_OPAQUE)
             mat->set_roughness(0.35f); // lava-like
         if (emissive > 0) {
-            // light-emitting node: glow with its own texture; SDFGI picks this up
+            // light-emitting node: glow with its own texture; SDFGI picks this
+            // up. Quadratic in the light level, so a dim source (firefly bush,
+            // light_source 2) barely glows instead of rendering as a white
+            // fullbright plant, while torches and glowstone stay bright.
+            float lvl = emissive / 14.0f;
             mat->set_feature(BaseMaterial3D::FEATURE_EMISSION, true);
             mat->set_texture(BaseMaterial3D::TEXTURE_EMISSION, tex);
             mat->set_emission(Color(1, 1, 1));
-            mat->set_emission_energy_multiplier(0.6f + 2.4f * (emissive / 14.0f));
+            mat->set_emission_energy_multiplier(3.0f * lvl * lvl);
         }
     } else {
         mat->set_albedo(Color(0.9, 0.4, 0.9));
@@ -858,12 +862,21 @@ void GoannaClient::harvestMotes(v3s16 bp, MapBlock *block) {
             if (!tname.empty())
                 c = m_session->tsrc()->getTextureAverageColor(tname);
         }
+        // Palette-tinted foliage (Mineclonia leaves, grass) has a greyscale
+        // texture; the green comes from the node's palette colour by param2.
+        // Without it the average reads brown/orange.
+        if (f.visuals) {
+            video::SColor pc(255, 255, 255, 255);
+            f.visuals->getColor(n.getParam2(), &pc);
+            c.set(255, c.getRed() * pc.getRed() / 255,
+                    c.getGreen() * pc.getGreen() / 255,
+                    c.getBlue() * pc.getBlue() / 255);
+        }
         Color col(c.getRed() / 255.0f, c.getGreen() / 255.0f, c.getBlue() / 255.0f, 1.0f);
-        // Keep the node's hue (a leaf-green mote from green leaves), just lift
-        // the brightness so it reads; do not wash it toward white.
+        // Keep the hue; lift brightness only mildly so lighting still owns it.
         float mx = std::max(col.r, std::max(col.g, col.b));
-        if (mx > 0.02f)
-            col = col * (0.85f / mx);
+        if (mx > 0.02f && mx < 0.55f)
+            col = col * (0.55f / mx);
         m.color = col;
         motes.push_back(m);
     }
@@ -969,7 +982,7 @@ void GoannaClient::update_motes(const Vector3 &around, int max_emitters) {
         e.node->set_emitting(false);
         Ref<QuadMesh> qm;
         qm.instantiate();
-        qm->set_size(Vector2(0.16f, 0.16f));
+        qm->set_size(Vector2(0.11f, 0.11f));
         Ref<StandardMaterial3D> mm;
         mm.instantiate();
         mm->set_shading_mode(BaseMaterial3D::SHADING_MODE_PER_PIXEL);
