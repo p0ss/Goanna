@@ -694,11 +694,11 @@ Dictionary GoannaClient::step_player(double dt, const Dictionary &keys, float pi
         m_session->stepPlayer((float)dt);
     if (std::getenv("GOANNA_DEBUG_MANTLE")) {
         static int n = 0;
-        if (++n % 15 == 0)
-            fprintf(stderr, "mantle in: ground=%d speed=%.2f jump=%d sneak=%d aj=%d y=%.2f\n",
+        if (dt > 0 && c.direction_keys != 0 && ++n % 20 == 0)
+            fprintf(stderr, "mantle in: ground=%d speed=%.2f jump=%d aj=%d pos=%.1f,%.2f,%.1f\n",
                     (int)p->touching_ground, p->control.movement_speed,
-                    (int)p->control.jump, (int)p->control.sneak,
-                    (int)p->getAutojump(), p->getPosition().Y / BS);
+                    (int)p->control.jump, (int)p->getAutojump(),
+                    p->getPosition().X / BS, p->getPosition().Y / BS, p->getPosition().Z / BS);
     }
     if (std::getenv("GOANNA_DEBUG_MANTLE") && p->getAutojump())
         fprintf(stderr, "goanna mantle: autojump fired at y=%.2f\n", p->getPosition().Y / BS);
