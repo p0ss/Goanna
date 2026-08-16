@@ -349,6 +349,10 @@ private:
     std::unique_ptr<Client> m_mesh_client;
     std::map<u32, u8> m_emissive_by_texture;
     std::atomic<bool> m_content_ready{false};
+    // Set once prepareContentIfReady has actually built the visuals. The
+    // gap between content arriving and being prepared is long on large
+    // games, and blocks meshed in it render as unknown nodes.
+    std::atomic<bool> m_content_prepared{false};
     std::atomic<bool> m_send_ready{false};
     bool m_server_move_pending = false;
     v3f m_server_move_pos;

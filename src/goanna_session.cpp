@@ -1263,7 +1263,10 @@ bool GoannaSession::prepareContentIfReady() {
     }
     {
         // Anything meshed before now used the unknown node; re-mesh it.
+        // Under the map lock, so a block arriving from the network thread
+        // either lands in the list or is meshed with the visuals in place.
         std::lock_guard<std::mutex> lk(m_map_mutex);
+        m_content_prepared = true;
         for (const v3s16 &bp : m_preready_blocks)
             m_new_blocks.push_back(bp);
         actionstream << "goanna: re-meshing " << m_preready_blocks.size()
@@ -1574,7 +1577,7 @@ void GoannaSession::onBlockData(NetworkPacket &pkt) {
                     m_new_blocks.push_back(p + d);
         }
     }
-    if (!m_content_ready)
+    if (!m_content_prepared)
         m_preready_blocks.push_back(p);
     m_ack_blocks.push_back(p); // always ack, so the server stops re-sending
     {

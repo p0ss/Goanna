@@ -69,6 +69,7 @@ var hud_scale := 1.0
 var gui_scale := 1.0           # user interface-scale multiplier (Display settings)
 var damage_flash := true       # flash red on taking damage
 var flash_rect: ColorRect
+var cursor_ctl: Control      # dragged stack, drawn above the formspec
 var flash_alpha := 0.0
 var t := 0.0
 var last_hp := -1
@@ -114,6 +115,12 @@ func _ready() -> void:
 	flash_rect.color = Color(0.8, 0.0, 0.0, 0.0)
 	flash_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(flash_rect)
+
+	cursor_ctl = Control.new()
+	cursor_ctl.set_anchors_preset(Control.PRESET_FULL_RECT)
+	cursor_ctl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cursor_ctl.draw.connect(_draw_cursor_stack)
+	add_child(cursor_ctl)
 
 	get_viewport().size_changed.connect(_on_resize)
 	_on_resize()
@@ -185,6 +192,8 @@ func _process(delta: float) -> void:
 	elif flash_rect.color.a > 0.0:
 		flash_rect.color.a = 0.0
 	hud.queue_redraw()
+	if cursor_ctl != null:
+		cursor_ctl.queue_redraw()
 	_ui_shot_hook(delta)
 	_ui_move_test(delta)
 	_ui_chest_test(delta)
@@ -216,7 +225,27 @@ func _ui_shot_hook(delta: float) -> void:
 # Development aid: GOANNA_UI_TEST=move opens the inventory and moves the
 # stack in main slot 0 to slot 10 and back through the same path a mouse
 # would take, printing the main list before and after.
+func warp_mouse_for_shot() -> void:
+	var vs := get_viewport().get_visible_rect().size
+	Input.warp_mouse(vs * 0.5 + Vector2(40, 40))
+
 func _ui_move_test(delta: float) -> void:
+	if OS.get_environment("GOANNA_UI_TEST") == "drag":
+		if absf(t - 4.0) < delta * 0.6:
+			_open_inventory()
+			var main: Array = (inv_cache.get("lists", {}) as Dictionary).get("main", [])
+			for i in main.size():
+				if String(main[i].get("name", "")) != "":
+					_on_slot_clicked("current_player", "main", i, MOUSE_BUTTON_LEFT, false)
+					break
+			warp_mouse_for_shot()
+		if absf(t - 5.5) < delta * 0.6 and OS.get_environment("GOANNA_UI_SHOT") != "":
+			await RenderingServer.frame_post_draw
+			get_viewport().get_texture().get_image().save_png(OS.get_environment("GOANNA_UI_SHOT").path_join("ui_drag.png"))
+			print("saved ui_drag cursor=", selected.get("name", "none"))
+			client.disconnect_from_server()
+			get_tree().quit()
+		return
 	if OS.get_environment("GOANNA_UI_TEST") != "move":
 		return
 	if absf(t - 4.0) < delta * 0.6:
@@ -1051,16 +1080,21 @@ func _draw_hud() -> void:
 	if not hotbar_drawn and flags & HUD_FLAG_HOTBAR and st.get("version", 0) == 0:
 		# very old servers do not send a hotbar element
 		_draw_hotbar(st, Vector2(vs.x / 2.0, vs.y), Vector2.ZERO, HUD_DIR_LEFT_RIGHT, Vector2(0, -1))
-	# cursor stack while a form is open
-	if not selected.is_empty() and window == form:
-		var icon := item_icon(selected.get("name", ""))
-		var m := hud.get_local_mouse_position()
-		var s: float = form.imgsize * 0.8
-		if icon:
-			hud.draw_texture_rect(icon, Rect2(m - Vector2(s, s) / 2.0, Vector2(s, s)), false)
-		if selected["amount"] > 1:
-			hud.draw_string(hud.get_theme_default_font(), m + Vector2(s * 0.15, s * 0.5), str(selected["amount"]),
-				HORIZONTAL_ALIGNMENT_LEFT, -1, int(s * 0.35), Color.WHITE)
+
+# The stack on the cursor, drawn on its own control above the formspec so
+# it is visible while dragging (on the HUD it was hidden by the panel).
+func _draw_cursor_stack() -> void:
+	if selected.is_empty() or window != form or form == null:
+		return
+	var icon := item_icon(selected.get("name", ""))
+	var m := cursor_ctl.get_local_mouse_position()
+	var s: float = form.imgsize * 0.8
+	if icon:
+		cursor_ctl.draw_texture_rect(icon, Rect2(m - Vector2(s, s) / 2.0, Vector2(s, s)), false)
+	if int(selected.get("amount", 0)) > 1:
+		cursor_ctl.draw_string(cursor_ctl.get_theme_default_font(),
+			m + Vector2(s * 0.15, s * 0.5), str(selected["amount"]),
+			HORIZONTAL_ALIGNMENT_LEFT, -1, int(s * 0.35), Color.WHITE)
 
 func _hotbar_list() -> Array:
 	var lists: Dictionary = inv_cache.get("lists", {})
