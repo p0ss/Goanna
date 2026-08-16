@@ -41,11 +41,12 @@ Nearly, which is a newer answer than this project deserves.
 
 You can connect to an ordinary server, walk around, dig and place, chat,
 watch your health and hunger bars, open your inventory and the game's own
-menus, and move items between slots. Players and mobs have their real
-models and animations, and chests and furnaces open when you click them.
-What is missing is the long tail: dropped items and held tools drawn as
-what they are, node icons in menus, sound, particles, and a hundred small
-things a game notices before you do.
+menus, and move items between slots. You can fight a mob and pick up what
+it drops. Players and mobs have their real models and animations, and
+chests and furnaces open when you click them. What is missing is the long
+tail: your own held item and hand are not drawn yet, dropped items on the
+ground are placeholder boxes, sound, particles, and a hundred small things
+a game notices before you do.
 Crafting through the inventory grid should work but has not been tried on
 a real recipe yet.
 
@@ -109,12 +110,14 @@ experience bars the server sends, chat in both directions, your inventory
 and the game's own menus drawn from its formspecs, moving and splitting
 stacks between slots, a pause menu and a death screen. Players, mobs and
 model nodes arrive with [their real models and animations](docs/e0b_models.png),
-loaded by Luanti's own B3D, X, OBJ and glTF readers.
+loaded by Luanti's own B3D, X, OBJ and glTF readers. Digging, placing,
+fighting a mob and collecting its drops, and falling to your death all
+work, at the server's own timings.
 
-**Does not work.** Dropped items and held tools, which
-are still placeholder boxes, and node icons in the inventory, which are
-coloured tiles until a cube renderer exists. Underground lighting, so caves
-are as bright as the surface. Sound. Particles. Clouds. Windows and macOS.
+**Does not work.** Your own body, held item and hand, none of which are
+drawn in first person yet. Dropped items lying on the ground, still
+placeholder boxes. Underground lighting, so caves are as bright as the
+surface. Sound. Particles. Clouds. Windows and macOS.
 
 | Torches at midnight | Mineclonia through the day | Water and leaves |
 | --- | --- | --- |
