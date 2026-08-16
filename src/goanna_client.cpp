@@ -13,6 +13,9 @@
 #include "goanna_session.h"
 #include "goanna_textures.h"
 #include "goanna_sky.h"
+#include "itemdef.h"
+#include "util/string.h"
+#include "translation.h"
 #include "transplant/localplayer.h"
 #include "client/mapblock_mesh.h"
 #include "client/tile.h"
@@ -117,6 +120,148 @@ static Color toColor(const video::SColor &c) {
     return Color(c.getRed() / 255.0f, c.getGreen() / 255.0f, c.getBlue() / 255.0f, c.getAlpha() / 255.0f);
 }
 static Vector3 toGodotDir(const v3f &v) { return Vector3(v.X, v.Y, -v.Z); }
+
+// ---- in-game data for the UI layer ----
+
+Array GoannaClient::take_chat() {
+    Array out;
+    if (!m_session)
+        return out;
+    for (auto &line : m_session->takeChat()) {
+        Dictionary d;
+        d["type"] = (int)line.type;
+        d["sender"] = String::utf8(wide_to_utf8(unescape_translate(line.sender)).c_str());
+        d["message"] = String::utf8(wide_to_utf8(unescape_translate(line.message)).c_str());
+        d["raw_message"] = String::utf8(wide_to_utf8(line.message).c_str());
+        out.push_back(d);
+    }
+    return out;
+}
+
+void GoannaClient::send_chat(const String &message) {
+    if (m_session)
+        m_session->sendChat(utf8_to_wide(message.utf8().get_data()));
+}
+
+int GoannaClient::hp() const { return m_session ? m_session->hp() : 0; }
+int GoannaClient::breath() const { return m_session ? m_session->breath() : 0; }
+
+Dictionary GoannaClient::hud_state() const {
+    Dictionary d;
+    if (!m_session)
+        return d;
+    std::lock_guard<std::mutex> lk(m_session->hudLock());
+    Array elems;
+    for (auto &kv : m_session->hudElements()) {
+        const HudElement &e = kv.second;
+        Dictionary h;
+        h["id"] = (int)kv.first;
+        h["type"] = (int)e.type;
+        h["pos"] = Vector2(e.pos.X, e.pos.Y);
+        h["name"] = String::utf8(e.name.c_str());
+        h["scale"] = Vector2(e.scale.X, e.scale.Y);
+        h["text"] = String::utf8(e.text.c_str());
+        h["number"] = (int)e.number;
+        h["item"] = (int)e.item;
+        h["dir"] = (int)e.dir;
+        h["align"] = Vector2(e.align.X, e.align.Y);
+        h["offset"] = Vector2(e.offset.X, e.offset.Y);
+        h["world_pos"] = Vector3(e.world_pos.X, e.world_pos.Y, -e.world_pos.Z);
+        h["size"] = Vector2(e.size.X, e.size.Y);
+        h["z_index"] = (int)e.z_index;
+        h["text2"] = String::utf8(e.text2.c_str());
+        h["style"] = (int)e.style;
+        elems.push_back(h);
+    }
+    d["elements"] = elems;
+    d["flags"] = (int)m_session->hudFlags();
+    d["version"] = (int)m_session->hudVersion();
+    d["hotbar_itemcount"] = (int)m_session->hotbarItemCount();
+    d["hotbar_image"] = String::utf8(m_session->hotbarImage().c_str());
+    d["hotbar_selected_image"] = String::utf8(m_session->hotbarSelectedImage().c_str());
+    d["hp"] = (int)m_session->hp();
+    d["breath"] = (int)m_session->breath();
+    return d;
+}
+
+Dictionary GoannaClient::inventory_state() {
+    Dictionary d;
+    if (!m_session)
+        return d;
+    std::lock_guard<std::mutex> lk(m_session->mapLock());
+    Inventory *inv = m_session->inventory();
+    d["version"] = (int)m_session->inventoryVersion();
+    Dictionary lists;
+    if (inv) {
+        IItemDefManager *idef = m_session->getItemDefManager();
+        for (InventoryList *list : inv->getLists()) {
+            Array items;
+            for (u32 i = 0; i < list->getSize(); ++i) {
+                const ItemStack &st = list->getItem(i);
+                Dictionary it;
+                it["name"] = String::utf8(st.name.c_str());
+                it["count"] = (int)st.count;
+                it["wear"] = (int)st.wear;
+                if (!st.name.empty() && idef) {
+                    const ItemDefinition &def = st.getDefinition(idef);
+                    it["description"] = String::utf8(def.description.c_str());
+                    it["inventory_image"] = String::utf8(def.inventory_image.name.c_str());
+                    it["stack_max"] = (int)def.stack_max;
+                    it["type"] = (int)def.type;
+                }
+                items.push_back(it);
+            }
+            lists[String::utf8(list->getName().c_str())] = items;
+        }
+    }
+    d["lists"] = lists;
+    return d;
+}
+
+Ref<Texture2D> GoannaClient::texture(const String &name) {
+    if (!m_session)
+        return Ref<Texture2D>();
+    u32 id = m_session->tsrc()->getTextureId(name.utf8().get_data());
+    GoannaTexture *gt = m_session->tsrc()->goannaTexture(id);
+    if (!gt)
+        return Ref<Texture2D>();
+    return gt->godotTexture();
+}
+
+String GoannaClient::inventory_formspec() const {
+    return m_session ? String::utf8(m_session->inventoryFormspec().c_str()) : String();
+}
+
+Array GoannaClient::take_shown_formspecs() {
+    Array out;
+    if (!m_session)
+        return out;
+    for (auto &fs : m_session->takeShownFormspecs()) {
+        Dictionary d;
+        d["formspec"] = String::utf8(fs.first.c_str());
+        d["formname"] = String::utf8(fs.second.c_str());
+        out.push_back(d);
+    }
+    return out;
+}
+
+void GoannaClient::send_inventory_fields(const String &formname, const Dictionary &fields) {
+    if (!m_session)
+        return;
+    std::map<std::string, std::string> f;
+    Array keys = fields.keys();
+    for (int i = 0; i < keys.size(); ++i) {
+        String k = keys[i];
+        String v = fields[keys[i]];
+        f[k.utf8().get_data()] = v.utf8().get_data();
+    }
+    m_session->sendInventoryFields(formname.utf8().get_data(), f);
+}
+
+void GoannaClient::set_wield_index(int index) {
+    if (m_session)
+        m_session->sendPlayerItem((u16)index);
+}
 
 void GoannaClient::set_time_of_day_override(float tod) {
     if (m_session)
@@ -536,6 +681,17 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("sky_state"), &GoannaClient::sky_state);
     ClassDB::bind_method(D_METHOD("update_lights", "around", "max_lights"), &GoannaClient::update_lights);
     ClassDB::bind_method(D_METHOD("sync_entities", "dt"), &GoannaClient::sync_entities);
+    ClassDB::bind_method(D_METHOD("take_chat"), &GoannaClient::take_chat);
+    ClassDB::bind_method(D_METHOD("send_chat", "message"), &GoannaClient::send_chat);
+    ClassDB::bind_method(D_METHOD("hp"), &GoannaClient::hp);
+    ClassDB::bind_method(D_METHOD("breath"), &GoannaClient::breath);
+    ClassDB::bind_method(D_METHOD("hud_state"), &GoannaClient::hud_state);
+    ClassDB::bind_method(D_METHOD("inventory_state"), &GoannaClient::inventory_state);
+    ClassDB::bind_method(D_METHOD("texture", "name"), &GoannaClient::texture);
+    ClassDB::bind_method(D_METHOD("inventory_formspec"), &GoannaClient::inventory_formspec);
+    ClassDB::bind_method(D_METHOD("take_shown_formspecs"), &GoannaClient::take_shown_formspecs);
+    ClassDB::bind_method(D_METHOD("send_inventory_fields", "formname", "fields"), &GoannaClient::send_inventory_fields);
+    ClassDB::bind_method(D_METHOD("set_wield_index", "index"), &GoannaClient::set_wield_index);
     ClassDB::bind_method(D_METHOD("entity_count"), &GoannaClient::entity_count);
     ClassDB::bind_method(D_METHOD("entity_positions"), &GoannaClient::entity_positions);
     ClassDB::bind_method(D_METHOD("set_time_of_day_override", "tod"), &GoannaClient::set_time_of_day_override);

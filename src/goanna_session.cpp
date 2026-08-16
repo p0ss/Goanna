@@ -101,6 +101,7 @@ GoannaSession::GoannaSession() {
     m_nodedef = createNodeDefManager();
     m_itemdef = createItemDefManager();
     m_map = std::make_unique<GoannaMap>(this);
+    m_inventory = std::make_unique<Inventory>(m_itemdef);
     m_tsrc = std::make_unique<GoannaTextureSource>();
     m_mesh_client = std::make_unique<Client>(m_tsrc.get(), &m_shsrc, m_nodedef);
 }
@@ -223,6 +224,225 @@ void GoannaSession::stepPlayer(float dtime) {
         }
         lplayer->move(dtime_part, map);
     }
+}
+
+// ---- in-game data: chat, HUD, inventory, formspecs (Client::handleCommand_* transplanted) ----
+
+std::vector<GoannaSession::ChatLine> GoannaSession::takeChat() {
+    std::lock_guard<std::mutex> lk(m_hud_mutex);
+    std::vector<ChatLine> out;
+    out.swap(m_chat);
+    return out;
+}
+
+void GoannaSession::sendChat(const std::wstring &message) {
+    if (!m_con)
+        return;
+    NetworkPacket pkt(TOSERVER_CHAT_MESSAGE, 2 + message.size() * sizeof(u16));
+    pkt << message;
+    send(pkt);
+}
+
+void GoannaSession::sendPlayerItem(u16 index) {
+    if (!m_con)
+        return;
+    NetworkPacket pkt(TOSERVER_PLAYERITEM, 2);
+    pkt << index;
+    send(pkt);
+}
+
+void GoannaSession::sendInventoryFields(const std::string &formname,
+        const std::map<std::string, std::string> &fields) {
+    if (!m_con)
+        return;
+    NetworkPacket pkt(TOSERVER_INVENTORY_FIELDS, 0);
+    pkt << formname << (u16)fields.size();
+    for (auto &kv : fields) {
+        pkt << kv.first;
+        pkt.putLongString(kv.second);
+    }
+    send(pkt);
+}
+
+std::string GoannaSession::inventoryFormspec() const {
+    std::lock_guard<std::mutex> lk(m_hud_mutex);
+    return m_inventory_formspec;
+}
+std::vector<std::pair<std::string, std::string>> GoannaSession::takeShownFormspecs() {
+    std::lock_guard<std::mutex> lk(m_hud_mutex);
+    std::vector<std::pair<std::string, std::string>> out;
+    out.swap(m_shown_formspecs);
+    return out;
+}
+
+void GoannaSession::onChatMessage(NetworkPacket &pkt) {
+    u8 version, message_type;
+    pkt >> version >> message_type;
+    if (version != 1)
+        return;
+    ChatLine line;
+    line.type = message_type;
+    u64 timestamp;
+    pkt >> line.sender >> line.message >> timestamp;
+    std::lock_guard<std::mutex> lk(m_hud_mutex);
+    m_chat.push_back(std::move(line));
+}
+
+void GoannaSession::onHP(NetworkPacket &pkt) {
+    u16 hp;
+    pkt >> hp;
+    m_hp = hp;
+    std::lock_guard<std::mutex> lk(m_map_mutex);
+    if (m_player)
+        m_player->hp = hp;
+}
+
+void GoannaSession::onBreath(NetworkPacket &pkt) {
+    u16 breath;
+    pkt >> breath;
+    m_breath = breath;
+}
+
+void GoannaSession::onHudAdd(NetworkPacket &pkt) {
+    u32 server_id;
+    u8 type;
+    HudElement e;
+    pkt >> server_id >> type >> e.pos >> e.name >> e.scale >> e.text >> e.number >> e.item
+        >> e.dir >> e.align >> e.offset;
+    pkt >> e.world_pos;
+    if (stats().proto_ver >= 52) {
+        pkt >> e.size;
+    } else {
+        v2s32 old_format;
+        pkt >> old_format;
+        e.size = v2f::from(old_format);
+    }
+    e.z_index = 0;
+    e.style = 0;
+    do {
+        if (!pkt.hasRemainingBytes()) break;
+        pkt >> e.z_index;
+        if (!pkt.hasRemainingBytes()) break;
+        pkt >> e.text2;
+        if (!pkt.hasRemainingBytes()) break;
+        pkt >> e.style;
+    } while (0);
+    e.type = (HudElementType)type;
+    std::lock_guard<std::mutex> lk(m_hud_mutex);
+    m_hud[server_id] = e;
+    m_hud_version++;
+}
+
+void GoannaSession::onHudChange(NetworkPacket &pkt) {
+    std::string sdata;
+    v2f v2fdata;
+    v3f v3fdata;
+    u32 intdata = 0;
+    u32 server_id;
+    u8 stat;
+    pkt >> server_id >> stat;
+    if (stat >= HudElementStat_END)
+        return;
+    switch (static_cast<HudElementStat>(stat)) {
+    case HUD_STAT_POS: case HUD_STAT_SCALE: case HUD_STAT_ALIGN: case HUD_STAT_OFFSET:
+        pkt >> v2fdata; break;
+    case HUD_STAT_NAME: case HUD_STAT_TEXT: case HUD_STAT_TEXT2:
+        pkt >> sdata; break;
+    case HUD_STAT_WORLD_POS:
+        pkt >> v3fdata; break;
+    case HUD_STAT_SIZE:
+        if (stats().proto_ver >= 52) { pkt >> v2fdata; }
+        else { v2s32 old_format; pkt >> old_format; v2fdata = v2f::from(old_format); }
+        break;
+    default:
+        pkt >> intdata; break;
+    }
+    std::lock_guard<std::mutex> lk(m_hud_mutex);
+    auto it = m_hud.find(server_id);
+    if (it == m_hud.end())
+        return;
+    HudElement &e = it->second;
+    switch (static_cast<HudElementStat>(stat)) {
+    case HUD_STAT_POS: e.pos = v2fdata; break;
+    case HUD_STAT_NAME: e.name = sdata; break;
+    case HUD_STAT_SCALE: e.scale = v2fdata; break;
+    case HUD_STAT_TEXT: e.text = sdata; break;
+    case HUD_STAT_NUMBER: e.number = intdata; break;
+    case HUD_STAT_ITEM: e.item = intdata; break;
+    case HUD_STAT_DIR: e.dir = intdata; break;
+    case HUD_STAT_ALIGN: e.align = v2fdata; break;
+    case HUD_STAT_OFFSET: e.offset = v2fdata; break;
+    case HUD_STAT_WORLD_POS: e.world_pos = v3fdata; break;
+    case HUD_STAT_SIZE: e.size = v2fdata; break;
+    case HUD_STAT_Z_INDEX: e.z_index = (s16)intdata; break;
+    case HUD_STAT_TEXT2: e.text2 = sdata; break;
+    case HUD_STAT_STYLE: e.style = intdata; break;
+    default: break;
+    }
+    m_hud_version++;
+}
+
+void GoannaSession::onHudRemove(NetworkPacket &pkt) {
+    u32 server_id;
+    pkt >> server_id;
+    std::lock_guard<std::mutex> lk(m_hud_mutex);
+    m_hud.erase(server_id);
+    m_hud_version++;
+}
+
+void GoannaSession::onHudSetFlags(NetworkPacket &pkt) {
+    u32 flags, mask;
+    pkt >> flags >> mask;
+    std::lock_guard<std::mutex> lk(m_hud_mutex);
+    m_hud_flags &= ~mask;
+    m_hud_flags |= flags;
+    m_hud_version++;
+}
+
+void GoannaSession::onHudSetParam(NetworkPacket &pkt) {
+    u16 param;
+    std::string value;
+    pkt >> param >> value;
+    std::lock_guard<std::mutex> lk(m_hud_mutex);
+    if (param == HUD_PARAM_HOTBAR_ITEMCOUNT && value.size() == 4) {
+        s32 n = readS32((u8 *)value.c_str());
+        if (n > 0 && n <= HUD_HOTBAR_ITEMCOUNT_MAX)
+            m_hotbar_itemcount = n;
+    } else if (param == HUD_PARAM_HOTBAR_IMAGE) {
+        m_hotbar_image = value;
+    } else if (param == HUD_PARAM_HOTBAR_SELECTED_IMAGE) {
+        m_hotbar_selected_image = value;
+    }
+    m_hud_version++;
+}
+
+void GoannaSession::onInventory(NetworkPacket &pkt) {
+    if (pkt.getSize() < 1)
+        return;
+    std::string datastring;
+    if (stats().proto_ver > 51) {
+        datastring = pkt.readLongString();
+    } else {
+        datastring = std::string(pkt.getString(0), pkt.getSize());
+    }
+    std::istringstream is(datastring, std::ios_base::binary);
+    std::lock_guard<std::mutex> lk(m_map_mutex);
+    m_inventory->deSerialize(is);
+    m_inventory_version++;
+}
+
+void GoannaSession::onInventoryFormspec(NetworkPacket &pkt) {
+    std::string fs = pkt.readLongString();
+    std::lock_guard<std::mutex> lk(m_hud_mutex);
+    m_inventory_formspec = fs;
+}
+
+void GoannaSession::onShowFormspec(NetworkPacket &pkt) {
+    std::string formspec = pkt.readLongString();
+    std::string formname;
+    pkt >> formname;
+    std::lock_guard<std::mutex> lk(m_hud_mutex);
+    m_shown_formspecs.emplace_back(formspec, formname);
 }
 
 void GoannaSession::stepObjects(float dtime) {
@@ -630,6 +850,17 @@ void GoannaSession::handle(NetworkPacket &pkt) {
     case TOCLIENT_SET_SKY: onSetSky(pkt); break;
     case TOCLIENT_ACTIVE_OBJECT_REMOVE_ADD: onActiveObjectRemoveAdd(pkt); break;
     case TOCLIENT_ACTIVE_OBJECT_MESSAGES: onActiveObjectMessages(pkt); break;
+    case TOCLIENT_CHAT_MESSAGE: onChatMessage(pkt); break;
+    case TOCLIENT_HP: onHP(pkt); break;
+    case TOCLIENT_BREATH: onBreath(pkt); break;
+    case TOCLIENT_HUDADD: onHudAdd(pkt); break;
+    case TOCLIENT_HUDCHANGE: onHudChange(pkt); break;
+    case TOCLIENT_HUDRM: onHudRemove(pkt); break;
+    case TOCLIENT_HUD_SET_FLAGS: onHudSetFlags(pkt); break;
+    case TOCLIENT_HUD_SET_PARAM: onHudSetParam(pkt); break;
+    case TOCLIENT_INVENTORY: onInventory(pkt); break;
+    case TOCLIENT_INVENTORY_FORMSPEC: onInventoryFormspec(pkt); break;
+    case TOCLIENT_SHOW_FORMSPEC: onShowFormspec(pkt); break;
     case TOCLIENT_SET_SUN: onSetSun(pkt); break;
     case TOCLIENT_SET_MOON: onSetMoon(pkt); break;
     case TOCLIENT_SET_STARS: onSetStars(pkt); break;

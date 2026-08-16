@@ -25,6 +25,8 @@
 #include "goanna_textures.h"
 #include "goanna_sky.h"
 #include "goanna_active_object.h"
+#include "hud_element.h"
+#include "inventory.h"
 
 class NodeDefManager;
 class IWritableItemDefManager;
@@ -117,6 +119,34 @@ public:
     // (sub-stepping, gravity, liquid resistance). Caller holds mapLock().
     void stepPlayer(float dtime);
 
+    // --- in-game data for the UI layer ---
+    struct ChatLine { u8 type; std::wstring sender; std::wstring message; };
+    // Chat lines received since the last call (consumed).
+    std::vector<ChatLine> takeChat();
+    void sendChat(const std::wstring &message);
+    // HUD elements as the server defines them (id -> element). Caller holds hudLock().
+    std::map<u32, HudElement> &hudElements() { return m_hud; }
+    std::mutex &hudLock() { return m_hud_mutex; }
+    u32 hudFlags() const { return m_hud_flags; }
+    u32 hudVersion() const { return m_hud_version; }
+    s32 hotbarItemCount() const { return m_hotbar_itemcount; }
+    // Caller holds hudLock().
+    const std::string &hotbarImage() const { return m_hotbar_image; }
+    const std::string &hotbarSelectedImage() const { return m_hotbar_selected_image; }
+    u16 hp() const { return m_hp; }
+    u16 breath() const { return m_breath; }
+    // Player inventory (Luanti's own Inventory). Caller holds mapLock().
+    Inventory *inventory() { return m_inventory.get(); }
+    u32 inventoryVersion() const { return m_inventory_version; }
+    // Formspecs: the current inventory formspec, and a queue of shown formspecs
+    // (formspec, formname). Consumed by takeShownFormspecs().
+    std::string inventoryFormspec() const;
+    std::vector<std::pair<std::string, std::string>> takeShownFormspecs();
+    // Client -> server: hotbar selection.
+    void sendPlayerItem(u16 index);
+    // Client -> server: raw formspec fields (formname, {field: value}).
+    void sendInventoryFields(const std::string &formname, const std::map<std::string, std::string> &fields);
+
     // Active objects (players, mobs, items). Caller holds mapLock().
     std::map<u16, std::unique_ptr<GoannaActiveObject>> &objects() { return m_objects; }
     void stepObjects(float dtime);
@@ -187,6 +217,17 @@ private:
     void onOverrideDayNightRatio(NetworkPacket &pkt);
     void onActiveObjectRemoveAdd(NetworkPacket &pkt);
     void onActiveObjectMessages(NetworkPacket &pkt);
+    void onChatMessage(NetworkPacket &pkt);
+    void onHP(NetworkPacket &pkt);
+    void onBreath(NetworkPacket &pkt);
+    void onHudAdd(NetworkPacket &pkt);
+    void onHudChange(NetworkPacket &pkt);
+    void onHudRemove(NetworkPacket &pkt);
+    void onHudSetFlags(NetworkPacket &pkt);
+    void onHudSetParam(NetworkPacket &pkt);
+    void onInventory(NetworkPacket &pkt);
+    void onInventoryFormspec(NetworkPacket &pkt);
+    void onShowFormspec(NetworkPacket &pkt);
 
     std::string m_host;
     uint16_t m_port = 30000;
@@ -208,6 +249,20 @@ private:
     std::unique_ptr<GoannaMap> m_map;
     std::unique_ptr<LocalPlayer> m_player;
     std::map<u16, std::unique_ptr<GoannaActiveObject>> m_objects;
+
+    mutable std::mutex m_hud_mutex;
+    std::vector<ChatLine> m_chat;
+    std::map<u32, HudElement> m_hud;
+    u32 m_hud_flags = 0xffffffff;
+    u32 m_hud_version = 0;
+    s32 m_hotbar_itemcount = 8;
+    std::string m_hotbar_image, m_hotbar_selected_image;
+    std::atomic<u16> m_hp{20};
+    std::atomic<u16> m_breath{10};
+    std::unique_ptr<Inventory> m_inventory;
+    u32 m_inventory_version = 0;
+    std::string m_inventory_formspec;
+    std::vector<std::pair<std::string, std::string>> m_shown_formspecs;
     std::unique_ptr<GoannaTextureSource> m_tsrc;
     GoannaShaderSource m_shsrc;
     std::unique_ptr<Client> m_mesh_client;

@@ -138,6 +138,26 @@ func _process(delta: float) -> void:
 		last_print = t
 		if OS.get_environment("GOANNA_DUMPSKY") != "" and int(t) == 3:
 			print("SKY ", JSON.stringify(client.sky_state()))
+		if OS.get_environment("GOANNA_DUMPUI") != "":
+			if int(t) == 2:
+				client.send_chat("hello from goanna")
+			for line in client.take_chat():
+				print("CHAT ", line)
+			if int(t) == 4:
+				var hud: Dictionary = client.hud_state()
+				print("HUD flags=%d hotbar=%d elems=%d" % [hud.get("flags", 0), hud.get("hotbar_itemcount", 0), (hud.get("elements", []) as Array).size()])
+				for e in hud.get("elements", []):
+					print("  HUD ", e.get("type"), " ", e.get("name"), " ", e.get("text"), " n=", e.get("number"))
+				var inv: Dictionary = client.inventory_state()
+				for k in (inv.get("lists", {}) as Dictionary).keys():
+					var items: Array = inv["lists"][k]
+					var names := []
+					for it in items:
+						if it.get("name", "") != "": names.append("%s x%d" % [it["name"], it["count"]])
+					print("  INV %s (%d slots): %s" % [k, items.size(), ", ".join(names)])
+				var tex := client.texture("default_dirt.png^default_grass_side.png")
+				print("  TEX grass side: ", tex != null, " ", (tex.get_size() if tex else Vector2()))
+				print("  HP ", client.hp(), " breath ", client.breath())
 		var extra := ""
 		if placed and not fly_mode:
 			var r: Dictionary = client.step_player(0.0, {}, pitch, yaw)

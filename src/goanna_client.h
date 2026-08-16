@@ -6,6 +6,7 @@
 #include <godot_cpp/classes/mesh_instance3d.hpp>
 #include <godot_cpp/classes/omni_light3d.hpp>
 #include <godot_cpp/classes/shader.hpp>
+#include <godot_cpp/classes/texture2d.hpp>
 #include <godot_cpp/classes/node3d.hpp>
 #include <godot_cpp/classes/standard_material3d.hpp>
 #include <godot_cpp/variant/dictionary.hpp>
@@ -60,6 +61,27 @@ public:
     // Point lights for light-emitting nodes: keeps up to max_lights OmniLight3Ds
     // on the nearest bright nodes to `around` (Godot space, nodes).
     void update_lights(const godot::Vector3 &around, int max_lights);
+
+    // --- in-game data for the UI layer ---
+    // Chat lines received since last call: [{type, sender, message}].
+    godot::Array take_chat();
+    void send_chat(const godot::String &message);
+    int hp() const;
+    int breath() const;
+    // HUD elements: [{id, type, pos, name, scale, text, number, item, dir, align,
+    // offset, world_pos, size, z_index, text2, style}], plus flags/hotbar info.
+    godot::Dictionary hud_state() const;
+    // Player inventory: {version, lists: {name: [{name, count, wear, description,
+    // inventory_image, stack_max}]}}. Empty item names are empty slots.
+    godot::Dictionary inventory_state();
+    // Texture (ImageTexture) for a Luanti texture string (item icons, HUD images);
+    // null if unavailable. Goes through the texture-modifier DSL.
+    godot::Ref<godot::Texture2D> texture(const godot::String &name);
+    // Formspecs
+    godot::String inventory_formspec() const;
+    godot::Array take_shown_formspecs(); // [{formspec, formname}]
+    void send_inventory_fields(const godot::String &formname, const godot::Dictionary &fields);
+    void set_wield_index(int index);
 
     // Sky/sun/fog/lighting state from the server, in Godot terms (see goanna_sky.h).
     godot::Dictionary sky_state() const;
