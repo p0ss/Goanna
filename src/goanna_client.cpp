@@ -1224,6 +1224,11 @@ int GoannaClient::poll_blocks(int max_blocks) {
         MapBlock *block = m_session->getBlock(bp);
         if (!block)
             continue;
+        if (std::getenv("GOANNA_DEBUG_CONTENT") && !m_session->contentPrepared()) {
+            static int early = 0;
+            if (++early % 25 == 1)
+                fprintf(stderr, "goanna content: meshing block %d before content prepared\n", early);
+        }
         std::unique_ptr<MapBlockMesh> bm = meshBlock(*m_session, block);
         harvestLights(bp, block);
         harvestMotes(bp, block);

@@ -175,6 +175,19 @@ func _show_new_game() -> void:
 func _on_start_local() -> void:
 	var game := game_option.get_item_text(game_option.selected)
 	var world := world_edit.text.strip_edges()
+	# A world belongs to the game that made it. Loading it under another
+	# game leaves every stored node unknown (a world of pink "unknown
+	# node" blocks), so continue an existing world with its own game.
+	var data_dir: String = LocalServer.data_dir_or_empty()
+	if data_dir != "" and world != "":
+		var existing: String = LocalServer.world_gameid(data_dir, world)
+		if existing != "" and existing != game:
+			_fail("The world \"%s\" was created with %s, so it opens with %s."
+				% [world, existing, existing])
+			game = existing
+			for i in game_option.item_count:
+				if game_option.get_item_text(i) == existing:
+					game_option.select(i)
 	if world == "":
 		world = "my_world"
 	var allowed := RegEx.new()

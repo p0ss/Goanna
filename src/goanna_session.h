@@ -93,6 +93,7 @@ public:
     // into the texture source, fill node visuals, then send CLIENT_READY.
     // Returns true if it did the work this call.
     bool prepareContentIfReady();
+    bool contentPrepared() const { return m_content_prepared; }
     GoannaTextureSource *tsrc() { return m_tsrc.get(); }
     GoannaShaderSource &shsrc() { return m_shsrc; }
     // Interaction options, set from the UI, read in stepInteract.

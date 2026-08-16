@@ -95,6 +95,25 @@ static func list_worlds(data_dir: String) -> Array:
 	worlds.sort_custom(func(a, b): return a["name"] < b["name"])
 	return worlds
 
+# The game a world was created with, or "" if it is new/unknown. A world
+# remembers its game, and loading it under another one makes every stored
+# node unknown, so the caller must respect this.
+static func world_gameid(data_dir: String, worldname: String) -> String:
+	var wm := data_dir.path_join("worlds").path_join(worldname).path_join("world.mt")
+	var f := FileAccess.open(wm, FileAccess.READ)
+	if f == null:
+		return ""
+	while not f.eof_reached():
+		var line := f.get_line().strip_edges()
+		if line.begins_with("gameid"):
+			return line.get_slice("=", 1).strip_edges()
+	return ""
+
+# Where Luanti keeps its worlds, for callers that need to inspect them.
+static func data_dir_or_empty() -> String:
+	var env := detect()
+	return env["data_dir"] if not env.is_empty() else ""
+
 # Start a server for `gameid` on `worldname` (created under the data dir if
 # new). Picks a free-ish port and writes a log we can watch for readiness.
 # Returns "" on success, or an error message.

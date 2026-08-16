@@ -1269,10 +1269,23 @@ bool GoannaSession::prepareContentIfReady() {
         m_content_prepared = true;
         for (const v3s16 &bp : m_preready_blocks)
             m_new_blocks.push_back(bp);
-        actionstream << "goanna: re-meshing " << m_preready_blocks.size()
-                     << " blocks received before content was ready" << std::endl;
+        if (std::getenv("GOANNA_DEBUG_CONTENT"))
+            fprintf(stderr, "goanna content: requeued %zu pre-ready blocks\n", m_preready_blocks.size());
         m_preready_blocks.clear();
         m_preready_blocks.shrink_to_fit();
+    }
+    if (std::getenv("GOANNA_DEBUG_CONTENT")) {
+        content_t probe = CONTENT_IGNORE;
+        bool got = m_nodedef->getId("mcl_core:dirt", probe) || m_nodedef->getId("default:dirt", probe)
+                || m_nodedef->getId("mcl_core:stone", probe);
+        size_t defs = 0;
+        for (content_t i = 0; i < 65535; ++i) {
+            const ContentFeatures &cf = m_nodedef->get(i);
+            if (!cf.name.empty() && cf.name != "unknown") ++defs;
+        }
+        fprintf(stderr, "goanna content: images=%zu defs=%zu probe_ok=%d probe_id=%u visuals=%d\n",
+                n_img, defs, (int)got, (unsigned)probe,
+                (int)(m_nodedef->get(probe).visuals != nullptr));
     }
     actionstream << "goanna: content prepared: " << n_img << " images, node visuals filled" << std::endl;
     m_send_ready = true; // session thread sends CLIENT_READY
