@@ -615,31 +615,37 @@ func _save_setting(key: String, value: float) -> void:
 	cfg.save(SETTINGS_CFG)
 
 func _open_settings() -> void:
-	if settings_menu == null:
-		settings_menu = _build_settings()
+	# Rebuilt each time so it fits the current window size.
+	if settings_menu != null and is_instance_valid(settings_menu):
+		settings_menu.queue_free()
+	settings_menu = _build_settings()
 	_open_window(settings_menu)
 
 func _build_settings() -> Control:
+	var vs := get_viewport().get_visible_rect().size
+	var panel_w := clampf(vs.x * 0.52, 560.0, 780.0)
+	var content_h := clampf(vs.y * 0.6, 380.0, 680.0)
 	var centre := CenterContainer.new()
 	centre.set_anchors_preset(Control.PRESET_FULL_RECT)
 	centre.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var panel := PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.11, 0.12, 0.14, 0.96)
+	sb.set_corner_radius_all(10)
+	sb.set_content_margin_all(28)
+	panel.add_theme_stylebox_override("panel", sb)
 	centre.add_child(panel)
-	var margin := MarginContainer.new()
-	for side in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
-		margin.add_theme_constant_override(side, 24)
-	panel.add_child(margin)
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 10)
-	box.custom_minimum_size = Vector2(460, 0)
-	margin.add_child(box)
+	box.add_theme_constant_override("separation", 18)
+	box.custom_minimum_size = Vector2(panel_w, 0)
+	panel.add_child(box)
 	var title := Label.new()
 	title.text = "Settings"
-	title.add_theme_font_size_override("font_size", 24)
+	title.add_theme_font_size_override("font_size", 28)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
 	var tabs := TabContainer.new()
-	tabs.custom_minimum_size = Vector2(0, 360)
+	tabs.custom_minimum_size = Vector2(panel_w, content_h)
 	box.add_child(tabs)
 	var pages := {}
 	for entry in SETTINGS:
@@ -648,15 +654,21 @@ func _build_settings() -> Control:
 			var scroll := ScrollContainer.new()
 			scroll.name = tab
 			scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+			var pad := MarginContainer.new()
+			pad.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			for side in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
+				pad.add_theme_constant_override(side, 14)
 			var page := VBoxContainer.new()
-			page.add_theme_constant_override("separation", 8)
+			page.add_theme_constant_override("separation", 20)
 			page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			scroll.add_child(page)
+			pad.add_child(page)
+			scroll.add_child(pad)
 			tabs.add_child(scroll)
 			pages[tab] = page
 		_build_setting_row(pages[tab], entry)
 	var back := Button.new()
 	back.text = "Back"
+	back.custom_minimum_size = Vector2(0, 40)
 	back.pressed.connect(func() -> void: _open_pause_menu())
 	box.add_child(back)
 	centre.visible = false
@@ -666,14 +678,20 @@ func _build_settings() -> Control:
 func _build_setting_row(page: VBoxContainer, entry: Array) -> void:
 	var key: String = entry[1]
 	var kind: String = entry[2]
+	if page.get_child_count() > 0:
+		var sep := HSeparator.new()
+		sep.modulate = Color(1, 1, 1, 0.12)
+		page.add_child(sep)
 	var row := VBoxContainer.new()
-	row.add_theme_constant_override("separation", 2)
-	row.custom_minimum_size = Vector2(420, 0)
+	row.add_theme_constant_override("separation", 5)
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	page.add_child(row)
 	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 12)
 	row.add_child(head)
 	var name_label := Label.new()
 	name_label.text = entry[3]
+	name_label.add_theme_font_size_override("font_size", 17)
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(name_label)
 	if kind == "toggle":
@@ -685,10 +703,12 @@ func _build_setting_row(page: VBoxContainer, entry: Array) -> void:
 		head.add_child(check)
 	else:
 		var value_label := Label.new()
-		value_label.custom_minimum_size = Vector2(48, 0)
+		value_label.custom_minimum_size = Vector2(56, 0)
 		value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		head.add_child(value_label)
 		var slider := HSlider.new()
+		slider.custom_minimum_size = Vector2(0, 22)
+		slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		slider.min_value = entry[5]
 		slider.max_value = entry[6]
 		slider.step = entry[7]
@@ -698,11 +718,15 @@ func _build_setting_row(page: VBoxContainer, entry: Array) -> void:
 			value_label.text = "off" if v <= 0.0 else "%.2f" % v
 			_apply_setting(key, v)
 			_save_setting(key, v))
-		row.add_child(slider)
+		var srow := HBoxContainer.new()
+		srow.add_theme_constant_override("separation", 12)
+		srow.add_child(slider)
+		row.add_child(srow)
 	var desc := Label.new()
 	desc.text = entry[4]
-	desc.modulate = Color(1, 1, 1, 0.55)
-	desc.add_theme_font_size_override("font_size", 12)
+	desc.modulate = Color(1, 1, 1, 0.5)
+	desc.add_theme_font_size_override("font_size", 13)
+	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	row.add_child(desc)
 
 func _show_death_screen() -> void:
