@@ -44,6 +44,43 @@ jobs:
           test -f project/bin/libgoanna.linux.template_debug.x86_64.so
           ls -lh project/bin/
 
+  windows:
+    name: Windows, MSVC
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      # zlib and zstd are not on a stock Windows box. vcpkg manifest mode
+      # reads vcpkg.json at the repository root. The triplet is pinned to
+      # x64-windows (dynamic CRT) to match godot-cpp's MultiThreadedDLL
+      # default; a static triplet here produces a CRT mismatch at link time.
+      - name: Set up vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgGitCommitId: 74e6536215718009aae747d86d84b78376bf9e09
+
+      - name: Configure
+        run: >
+          cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+          -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
+          -DVCPKG_TARGET_TRIPLET=x64-windows
+
+      - name: Build
+        run: cmake --build build --config RelWithDebInfo
+
+      - name: Check the extension was produced
+        shell: bash
+        run: |
+          test -f project/bin/libgoanna.windows.template_debug.x86_64.dll
+          ls -lh project/bin/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: goanna-windows-x86_64
+          path: project/bin/*.dll
+
   style:
     name: Text style
     runs-on: ubuntu-latest

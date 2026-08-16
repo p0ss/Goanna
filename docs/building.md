@@ -139,16 +139,79 @@ run, without `--editor`, exits cleanly. The cause is most likely static
 destructor ordering in `luanti_core` when Godot unloads the library, and it
 is not yet fixed.
 
+**Check your diff afterwards.** Opening the project in the editor, including
+with `--headless --import`, rewrites `project/project.godot`. It adds a
+boilerplate header, and it silently drops any setting whose value happens to
+match Godot's own default. That has already cost this repository its
+explicit `[rendering] renderer/rendering_method="forward_plus"` line once.
+Forward+ is the default, so nothing broke, but that line is the one place
+the project asserts in machine readable form the thing the README spends a
+paragraph on. Run `git diff project/project.godot` after any editor pass and
+revert it unless you meant it.
+
+## Windows
+
+Untested. The build system knows about Windows and there is a CI job for it,
+but no Windows binary has been produced on real hardware yet, and nobody has
+played it. If you try this, a report either way is genuinely useful.
+
+The route is MSVC with vcpkg, not MinGW. Upstream Luanti abandoned GCC MinGW
+because thread-local storage is broken there, and Luanti's core leans on TLS,
+so that is not a road worth walking again.
+
+You need Visual Studio 2022 with the C++ workload, CMake, Git and Python, and
+[vcpkg](https://vcpkg.io/) for zlib and zstd, which a stock Windows machine
+does not have. The manifest at `vcpkg.json` lists them.
+
+```
+git clone --recurse-submodules --shallow-submodules https://github.com/p0ss/Goanna.git goanna
+cd goanna
+cmake -S . -B build -G "Visual Studio 17 2022" -A x64 ^
+  -DCMAKE_TOOLCHAIN_FILE=C:/path/to/vcpkg/scripts/buildsystems/vcpkg.cmake ^
+  -DVCPKG_TARGET_TRIPLET=x64-windows
+cmake --build build --config RelWithDebInfo
+```
+
+Keep the `x64-windows` triplet. It uses the dynamic CRT, which is what
+godot-cpp defaults to; a static triplet gives a CRT mismatch at link time,
+and the error message will not tell you that is what happened.
+
+The library lands at
+`project/bin/libgoanna.windows.template_debug.x86_64.dll`, which is the name
+`project/goanna.gdextension` expects.
+
+Expect the first attempts to fail inside `src/transplant/client/*.cpp` rather
+than in the CMake plumbing. MSVC is stricter than GCC about two-phase name
+lookup in templates, and that code is Luanti's, carried across unchanged. If
+it gets unpleasant, `-T ClangCL` is a reasonable escape hatch, and upstream
+Luanti supports that toolset too.
+
 ## Running
 
-Goanna needs a Luanti server to talk to. It has no single player mode and no
-built in server, and is not going to grow one.
+Goanna talks to a Luanti server, always. It has no built in server and is
+not going to grow one, because the whole point is that it is a client for
+the ordinary ecosystem.
 
-### Get a server running
+"Start a local game" in the menu is that principle applied rather than an
+exception to it. Goanna finds Luanti on your machine, launches an ordinary
+unmodified server on localhost, and joins it over the ordinary protocol,
+exactly as if you had started the server yourself in another terminal. It
+looks for `luantiserver` or `minetestserver` on `PATH`, then `luanti` or
+`minetest --server`, then the `org.luanti.luanti` flatpak. Set
+`GOANNA_SERVER_CMD` to override the command. It enumerates the games you
+have installed, creates the world, waits for the port to open, and connects.
+Quitting or disconnecting shuts that server down.
 
-Any ordinary Luanti 5.16.x server works. Goanna connects over the ordinary
-protocol and asks for nothing special. The quickest option is Luanti's own
-Development Test game, which is small, ugly and exercises the basics:
+So there is no singleplayer code path, no embedded engine and no private
+protocol. There is a server, it is Luanti's, and Goanna just started it for
+you.
+
+### Running a server yourself
+
+Any ordinary Luanti 5.16.x server works, and you will want your own for
+anything beyond a quick look. Goanna connects over the ordinary protocol and
+asks for nothing special. The quickest option is Luanti's own Development
+Test game, which is small, ugly and exercises the basics:
 
 ```sh
 luantiserver --gameid devtest --worldname goanna_test --port 30000

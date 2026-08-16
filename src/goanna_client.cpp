@@ -824,6 +824,12 @@ void GoannaClient::sync_entities(double dt) {
     m_entities->sync(*m_session, (float)dt, Vector3());
 }
 
+void GoannaClient::set_arm_swing(float s) {
+    m_arm_swing = std::clamp(s, 0.0f, 1.0f);
+    if (m_entities)
+        m_entities->setArmSwing(m_arm_swing);
+}
+
 void GoannaClient::set_show_body(bool show) {
     m_show_body = show;
     if (m_entities)
@@ -1289,6 +1295,7 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("entity_positions"), &GoannaClient::entity_positions);
     ClassDB::bind_method(D_METHOD("entity_list"), &GoannaClient::entity_list);
     ClassDB::bind_method(D_METHOD("set_show_body", "show"), &GoannaClient::set_show_body);
+    ClassDB::bind_method(D_METHOD("set_arm_swing", "s"), &GoannaClient::set_arm_swing);
     ClassDB::bind_method(D_METHOD("show_body"), &GoannaClient::show_body);
     ClassDB::bind_method(D_METHOD("wield_item_name"), &GoannaClient::wield_item_name);
     ClassDB::bind_method(D_METHOD("wield_info"), &GoannaClient::wield_info);

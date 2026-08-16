@@ -3,7 +3,7 @@
 **A different way to look at Luanti worlds.** Same servers, same games, same
 worlds, drawn with a modern game renderer.
 
-![A Mineclonia forest rendered by Goanna](docs/e0b_mineclonia_ground.png)
+![A Mineclonia forest rendered by Goanna](docs/canopy.png)
 
 ## What is this?
 
@@ -39,15 +39,16 @@ top of this page is the real thing.
 
 Nearly, which is a newer answer than this project deserves.
 
-You can connect to an ordinary server, walk around, dig and place, chat,
-watch your health and hunger bars, open your inventory and the game's own
-menus, and move items between slots. You can fight a mob and pick up what
-it drops. Players and mobs have their real models and animations, and
-chests and furnaces open when you click them. What is missing is the long
-tail: your own held item and hand are not drawn yet, dropped items on the
-ground are placeholder boxes, sound, particles, and a hundred small things
-a game notices before you do.
-Crafting through the inventory grid should work but has not been tried on
+Pick a game from the menu and Goanna starts a server for you, so you no
+longer have to find one first. Then you can walk around, dig and place,
+chat, watch your health and hunger bars, open your inventory and the game's
+own menus, and move items between slots. You can fight a mob and pick up
+what it drops. Players and mobs have their real models and animations, and
+chests and furnaces open when you click them.
+
+What is missing is the long tail: dropped items on the ground are placeholder
+boxes, sound, particles, and a hundred small things a game notices before you
+do. Crafting through the inventory grid should work but has not been tried on
 a real recipe yet.
 
 So: worth a look, worth an evening, not yet worth moving into. The Luanti
@@ -66,8 +67,11 @@ not the author's and tell us what broke.
 
 ## Trying it
 
-You need Godot 4.5, a graphics card that can run Vulkan, a C++ toolchain,
-and a Luanti server to connect to.
+You need Godot 4.5, a discrete graphics card with a working Vulkan driver, a
+C++ toolchain, and Luanti installed. Goanna asks more of a machine than the
+vanilla client does, on purpose: see
+[docs/requirements.md](docs/requirements.md), which has measured numbers and
+answers the Raspberry Pi question.
 
 ```sh
 git clone --recurse-submodules --shallow-submodules \
@@ -77,13 +81,17 @@ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
 cmake --build build
 ```
 
-Then start any ordinary Luanti server and run the project. A menu asks for
-the address, name and password:
+Then run it:
 
 ```sh
-luantiserver --gameid devtest --worldname goanna_test --port 30000
 /path/to/Godot_v4.5.1-stable_linux.x86_64 --path project
 ```
+
+The menu offers "Start a local game" or "Join a server". A local game is not
+a singleplayer mode: Goanna finds the Luanti you already have installed,
+starts an ordinary server with it on localhost, joins over the ordinary
+protocol, and shuts it down when you leave. Joining a server wants an
+address, a name and a password.
 
 W A S D to walk, mouse to look, space to jump, left and right mouse to dig
 and place, number keys to change item, I for the inventory, T to chat, F for
@@ -109,23 +117,38 @@ And an interface: crosshair and hotbar, the health, breath, hunger and
 experience bars the server sends, chat in both directions, your inventory
 and the game's own menus drawn from its formspecs, moving and splitting
 stacks between slots, a pause menu and a death screen. Players, mobs and
-model nodes arrive with [their real models and animations](docs/e0b_models.png),
-loaded by Luanti's own B3D, X, OBJ and glTF readers. Digging, placing,
-fighting a mob and collecting its drops, and falling to your death all
-work, at the server's own timings.
+model nodes arrive with their real models and animations, loaded by Luanti's
+own B3D, X, OBJ and glTF readers. Digging, placing, fighting a mob and
+collecting its drops, and falling to your death all work, at the server's own
+timings. In first person, your held item, its swing and your own body are
+drawn too, with an option to hide the body.
 
-**Does not work.** Your own body, held item and hand, none of which are
-drawn in first person yet. Dropped items lying on the ground, still
-placeholder boxes. Underground lighting, so caves are as bright as the
-surface. Sound. Particles. Clouds. Windows and macOS.
+Then the parts that are Goanna's own rather than Luanti's: a water shader
+with vertex waves and refraction, waving leaves and plants, distance fog and
+an underwater tint, chamfered edges on solid nodes, surface relief derived
+from each texture's own brightness, and motes drifting over leaves, flowers
+and sand. Those four are sliders in a video settings panel, on by default,
+and each takes effect immediately. The sun follows Luanti's own path, so
+low light at either end of the day is genuinely warm and directional rather
+than a filter.
 
-| Torches at midnight | Mineclonia through the day | Water and leaves |
+**Does not work.** Dropped items lying on the ground, still placeholder
+boxes. Sound. Particles. Windows and macOS.
+
+Node lighting has landed, so caves are dark and a torch matters underground,
+but its balance against daylight is still being tuned and open ground is
+currently darker than it should be.
+
+| Forest and held item | Lava underground | Coloured node light |
 | --- | --- | --- |
-| ![Glowing nodes lighting the ground around them](docs/e0b_torches_night.png) | ![The same scene at four times of day](docs/e0b_time_of_day.png) | ![Water, waving leaves and glass materials](docs/e0b_materials_day.png) |
+| ![A held plant in a sunlit birch forest](docs/forest.png) | ![A lava-lit cavern viewed from above](docs/lava.png) | ![Coloured lights illuminating a pale stone interior](docs/light.png) |
 
-More, including [the view over a Mineclonia canopy](docs/e0b_mineclonia_mesher.png)
-and the [lighting comparison sheet](docs/e0a_contact_sheet.png), are in
-[docs/](docs/).
+| Underwater | Village at night |
+| --- | --- |
+| ![Sun shafts and plants beneath the water](docs/underwater.png) | ![A Mineclonia village lit at night](docs/village.png) |
+
+The [early lighting comparison sheet](docs/e0a_contact_sheet.png) and the
+rest of the project notes are in [docs/](docs/).
 
 A packet by packet breakdown, for the curious, is in
 [docs/protocol-coverage.md](docs/protocol-coverage.md).
@@ -196,9 +219,9 @@ Goanna does not fork Luanti and there is no patch queue against the engine.
    community, and the games people actually play.
 4. Server sent client side modding, mirroring upstream when it lands.
 
-The largest single pieces of work between here and rung 3 are node light
-(so caves are dark and torches matter underground) and the long tail of
-the formspec element zoo that a game like Mineclonia leans on.
+The largest single pieces of work between here and rung 3 are sound, which
+does not exist at all, particles, and the long tail of the formspec element
+zoo that a game like Mineclonia leans on.
 
 ## Contributing
 

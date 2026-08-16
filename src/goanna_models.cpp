@@ -429,6 +429,11 @@ void ModelAnimator::step(float dt, std::map<std::string, BoneOverride> &override
         if (auto *t = std::get_if<core::Transform>(&locals[*m_shrink_joint]))
             t->scale *= 0.01f;
     }
+    // First-person arm pose wins over animation and server overrides.
+    if (m_rot_override_joint && *m_rot_override_joint < locals.size()) {
+        if (auto *t = std::get_if<core::Transform>(&locals[*m_rot_override_joint]))
+            t->rotation = m_rot_override_q;
+    }
 
     // relative -> global -> skin matrices
     for (size_t i = 0; i < joints.size(); ++i) {
@@ -452,6 +457,19 @@ void ModelAnimator::step(float dt, std::map<std::string, BoneOverride> &override
 void ModelAnimator::setShrinkJoint(const std::string &name) {
     if (m_model->skinned)
         m_shrink_joint = m_model->skinned->getJointNumber(name);
+}
+
+bool ModelAnimator::hasJoint(const std::string &name) const {
+    return m_model->skinned && m_model->skinned->getJointNumber(name).has_value();
+}
+
+void ModelAnimator::setJointRotationOverride(const std::string &name, const core::quaternion &q) {
+    if (name != m_rot_override_name) {
+        m_rot_override_name = name;
+        m_rot_override_joint = m_model->skinned ? m_model->skinned->getJointNumber(name)
+                                                : std::optional<u32>();
+    }
+    m_rot_override_q = q;
 }
 
 bool ModelAnimator::jointGlobal(const std::string &name, Transform3D &out) const {

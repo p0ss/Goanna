@@ -87,6 +87,8 @@ public:
     godot::Array entity_list();
     // First-person body (the local player's own model, head shrunk away).
     void set_show_body(bool show);
+    // First-person arm swing phase (0..1), driven from the input side.
+    void set_arm_swing(float s);
     bool show_body() const { return m_show_body; }
     // Currently wielded item: its name (cheap; poll for changes), and its
     // wield mesh as {name, mesh: ArrayMesh or null, scale: Vector3}.
@@ -189,6 +191,7 @@ private:
     bool m_shaders_loaded = false;
     float m_auto_bump = 0.35f;
     bool m_show_body = true;
+    float m_arm_swing = 0.0f;
     bool m_mantle = true;
     bool m_aux1_descends = false;
     bool m_pitch_move = false;

@@ -50,6 +50,8 @@ public:
     // First-person body: render the local player's model (mesh visuals only),
     // pinned to the predicted player with its head shrunk out of the camera.
     void setShowBody(bool show) { m_show_body = show; }
+    // 0..1 swing phase for the first-person arm (dig chop / place bob).
+    void setArmSwing(float s) { m_arm_swing = s; }
 
 private:
     struct EntityNode {
@@ -77,6 +79,7 @@ private:
     std::map<std::string, godot::Ref<godot::StandardMaterial3D>> m_materials;
     std::map<std::string, std::shared_ptr<GodotModel>> m_models;
     bool m_show_body = true;
+    float m_arm_swing = 0.0f;
 };
 
 } // namespace goanna

@@ -27,8 +27,18 @@ foreach(flag RUN_IN_PLACE DEVELOPMENT_BUILD ENABLE_UPDATE_CHECKER USE_GETTEXT US
         BUILD_UNITTESTS BUILD_BENCHMARKS BUILD_WITH_TRACY)
     set(${flag} 0)
 endforeach()
-set(HAVE_ENDIAN_H 1)
-set(HAVE_MALLOC_TRIM 1)
+# Probe these rather than asserting them. Both are hard compile failures when
+# wrong, not degradations: luanti/src/util/serialize.h gates be16toh and
+# htobe32 on HAVE_ENDIAN_H, and porting.cpp includes malloc.h and calls
+# malloc_trim on HAVE_MALLOC_TRIM. Mirrors luanti/src/CMakeLists.txt.
+include(CheckIncludeFiles)
+include(CheckSymbolExists)
+check_include_files(endian.h HAVE_ENDIAN_H)
+if(UNIX AND NOT APPLE)
+    check_symbol_exists(malloc_trim "malloc.h" HAVE_MALLOC_TRIM)
+else()
+    set(HAVE_MALLOC_TRIM FALSE)
+endif()
 # cmake_config.h.in expects PROJECT_NAME etc. from the luanti project scope; emulate.
 set(_saved_project_name "${PROJECT_NAME}")
 set(PROJECT_NAME "luanti")
@@ -50,10 +60,11 @@ find_package(ZLIB REQUIRED)
 # A static libzstd.a is preferred so the extension carries its own copy;
 # otherwise whatever zstd the linker finds. Point ZSTD_ROOT (or the two
 # variables below) at an unusual install, see docs/building.md.
-find_library(ZSTD_STATIC_LIB NAMES libzstd.a zstd HINTS ${ZSTD_ROOT}/lib)
+find_library(ZSTD_STATIC_LIB NAMES libzstd.a zstd_static zstd libzstd
+    HINTS ${ZSTD_ROOT}/lib)
 find_path(ZSTD_INCLUDE_DIR zstd.h HINTS ${ZSTD_ROOT}/include)
 if(NOT ZSTD_STATIC_LIB)
-    message(FATAL_ERROR "zstd not found")
+    message(FATAL_ERROR "zstd not found: install libzstd-dev or libzstd-devel, or pass -DZSTD_ROOT, or use a vcpkg toolchain file on Windows")
 endif()
 
 set(LUANTI_CORE_SRCS
@@ -93,6 +104,28 @@ add_library(luanti_core STATIC ${LUANTI_CORE_SRCS} ${IRR_CPU_SRCS})
 target_include_directories(luanti_core PUBLIC
     "${LUANTI_SRC}" "${LUANTI_DIR}/irr/include" "${LUANTI_DIR}/irr/src" "${LUANTI_DIR}/lib/tiniergltf" "${LUANTI_GEN}" "${ZSTD_INCLUDE_DIR}")
 target_compile_definitions(luanti_core PUBLIC USE_CMAKE_CONFIG_H MT_BUILDTARGET=1)
-target_compile_options(luanti_core PRIVATE -fvisibility=hidden -Wno-deprecated-declarations)
-target_link_libraries(luanti_core PUBLIC gmp sha256 jsoncpp ZLIB::ZLIB "${ZSTD_STATIC_LIB}" pthread)
+
+find_package(Threads REQUIRED)
+target_link_libraries(luanti_core PUBLIC gmp sha256 jsoncpp ZLIB::ZLIB
+    "${ZSTD_STATIC_LIB}" Threads::Threads)
+
+if(WIN32)
+    # _IRR_WINDOWS_ matters: without it irr/src/os.cpp takes the POSIX branch
+    # and includes byteswap.h, which does not exist here.
+    target_compile_definitions(luanti_core PUBLIC
+        _WIN32_WINNT=0x0601 WIN32_LEAN_AND_MEAN _IRR_WINDOWS_ _IRR_WINDOWS_API_)
+    # winsock, GetFileVersionInfo, PathRemoveFileSpec, timeGetTime.
+    target_link_libraries(luanti_core PUBLIC ws2_32 version shlwapi winmm)
+    if(MSVC)
+        target_compile_definitions(luanti_core PUBLIC
+            NOMINMAX _USE_MATH_DEFINES _CRT_SECURE_NO_DEPRECATE _CRT_SECURE_NO_WARNINGS)
+        target_link_libraries(luanti_core PUBLIC dbghelp)
+    endif()
+endif()
+
+if(NOT MSVC)
+    target_compile_options(luanti_core PRIVATE -fvisibility=hidden -Wno-deprecated-declarations)
+else()
+    target_compile_options(luanti_core PRIVATE /W1)
+endif()
 set_target_properties(gmp sha256 jsoncpp PROPERTIES POSITION_INDEPENDENT_CODE ON)

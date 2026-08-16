@@ -435,9 +435,38 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
                 pp.Z -= std::cos(yaw_rad) * 1.2f;
                 en.root->set_position(Vector3(pp.X / BS, pp.Y / BS, -pp.Z / BS));
                 // Unlike CAO rotations, the player yaw maps to Godot yaw
-                // directly; mirroring it made the body counter-rotate.
-                en.root->set_rotation_degrees(Vector3(0, lp->getYaw(), 0));
+                // directly (mirroring it made the body counter-rotate), and
+                // MC-family models face -Z, so add a half turn or the body
+                // faces the camera and the arms swap sides on screen.
+                en.root->set_rotation_degrees(Vector3(0, lp->getYaw() + 180.0f, 0));
             }
+        }
+        if (is_self && en.animator) {
+            // First-person arm: pose the body's right arm toward the view,
+            // using Mineclonia's own Arm_Right_Pitch_Control convention
+            // (x = 90 + look pitch, y pulls inward, z counters a little), so
+            // the wield item the game attaches to the arm bone sits in view;
+            // the swing chops the same pose. Tunable via GOANNA_ARM.
+            static float A[7] = {90.0f, -30.0f, 0.0f, 1.0f, -0.35f, -45.0f, -12.0f};
+            static bool arm_env = [] {
+                if (const char *e = std::getenv("GOANNA_ARM"))
+                    sscanf(e, "%f,%f,%f,%f,%f,%f,%f", &A[0], &A[1], &A[2], &A[3], &A[4], &A[5], &A[6]);
+                return true;
+            }();
+            (void)arm_env;
+            float pitch = 0.0f;
+            if (LocalPlayer *lp = session.player())
+                pitch = lp->getPitch();
+            const char *arm = en.animator->hasJoint("Arm_Right_Pitch_Control")
+                    ? "Arm_Right_Pitch_Control" : "Arm_Right";
+            v3f eul(A[0] + A[3] * pitch + A[5] * m_arm_swing,
+                    A[1] + A[6] * m_arm_swing,
+                    A[2] + A[4] * pitch);
+            // Same convention as server bone overrides: euler degrees,
+            // stored inverse (BoneSceneNode keeps rotations inverted).
+            core::quaternion q(eul * core::DEGTORAD);
+            q.makeInverse();
+            en.animator->setJointRotationOverride(arm, q);
         }
         // skeletal animation: GenericCAO::updateAnimation, then a step
         if (en.animator) {

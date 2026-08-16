@@ -8,3 +8,5 @@ reloadable = false
 
 linux.debug.x86_64 = "res://bin/libgoanna.linux.template_debug.x86_64.so"
 linux.release.x86_64 = "res://bin/libgoanna.linux.template_release.x86_64.so"
+windows.debug.x86_64 = "res://bin/libgoanna.windows.template_debug.x86_64.dll"
+windows.release.x86_64 = "res://bin/libgoanna.windows.template_release.x86_64.dll"

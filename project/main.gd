@@ -32,9 +32,6 @@ var place_pressed := false
 var wield := 0
 var selection_box: MeshInstance3D
 var pointed: Dictionary = {}
-var wield_node: Node3D
-var wield_mi: MeshInstance3D
-var wield_name := "\u0001"  # force the first wield_info fetch
 var swing_t := 1.0
 var wield_dig_active := false
 var test_dig := false
@@ -68,15 +65,6 @@ func _ready() -> void:
 	cam.far = 1000
 	add_child(cam)
 	cam.current = true
-	# First-person viewmodel: the wielded item, bottom-right of the lens. A
-	# child of the camera, so view bobbing carries it along.
-	wield_node = Node3D.new()
-	cam.add_child(wield_node)
-	wield_node.position = Vector3(0.34, -0.28, -0.55)
-	wield_node.rotation_degrees = Vector3(-8, 32, 8)
-	wield_mi = MeshInstance3D.new()
-	wield_mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	wield_node.add_child(wield_mi)
 
 	sun = DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-42, 35, 0)
@@ -721,36 +709,15 @@ func _shots(dir: String) -> void:
 
 # Per-frame environment extras: the cave head-light follows the camera, and
 # the fog switches to a dense underwater tint while the eye is submerged.
-# The held item in front of the camera: rebuilt when the wielded item
-# changes, swung while digging and on place. Sized by its own bounds so
-# every item kind lands at a sensible viewmodel scale.
+# First-person arm swing: continuous chop while digging, a single bob on
+# place. The arm itself (and the item in its hand) is the body's right arm,
+# posed toward the camera by the renderer; this just drives the phase.
 func _update_wield(delta: float) -> void:
-	if wield_mi == null or client == null:
-		return
-	var wn: String = client.wield_item_name()
-	if wn != wield_name:
-		wield_name = wn
-		if wn == "":
-			# empty hand: no arm model yet, so show nothing rather than the
-			# no_texture extrusion
-			wield_mi.visible = false
-			return
-		var info: Dictionary = client.wield_info()
-		var m: Mesh = info.get("mesh")
-		wield_mi.mesh = m
-		wield_mi.visible = m != null
-		if m != null:
-			var aabb := m.get_aabb()
-			var mx: float = maxf(aabb.size.x, maxf(aabb.size.y, aabb.size.z))
-			wield_mi.scale = Vector3.ONE * (0.34 / maxf(mx, 0.001))
-			wield_mi.position = -aabb.get_center() * wield_mi.scale.x
 	if swing_t < 1.0:
 		swing_t = minf(swing_t + delta * 3.4, 1.0)
 	elif wield_dig_active:
 		swing_t = 0.0
-	var k := sin(swing_t * PI)
-	wield_node.rotation_degrees = Vector3(-8 - 52.0 * k, 32 - 16.0 * k, 8)
-	wield_node.position = Vector3(0.34, -0.28 - 0.09 * k, -0.55 - 0.05 * k)
+	client.set_arm_swing(sin(swing_t * PI))
 
 func _update_environment_extras() -> void:
 	if headlight:

@@ -107,6 +107,10 @@ public:
     // step; used to keep the local player's head out of the first-person
     // camera. No effect if the model has no such joint.
     void setShrinkJoint(const std::string &name);
+    // Replace a named joint's local rotation each step (over animation and
+    // server bone overrides): poses the first-person arm toward the camera.
+    void setJointRotationOverride(const std::string &name, const core::quaternion &q);
+    bool hasJoint(const std::string &name) const;
 
 private:
     std::shared_ptr<GodotModel> m_model;
@@ -120,6 +124,9 @@ private:
     void beginTransition();
     std::vector<core::matrix4> m_globals;
     std::optional<u32> m_shrink_joint;
+    std::optional<u32> m_rot_override_joint;
+    std::string m_rot_override_name;
+    core::quaternion m_rot_override_q;
 };
 
 // Irrlicht matrix (row vectors, left-handed) to a Godot transform, z mirrored.
