@@ -859,6 +859,16 @@ func _draw_hud() -> void:
 		var l := 8.0 * hud_scale
 		hud.draw_line(c - Vector2(l, 0), c + Vector2(l, 0), Color(1, 1, 1, 0.8), 2.0)
 		hud.draw_line(c - Vector2(0, l), c + Vector2(0, l), Color(1, 1, 1, 0.8), 2.0)
+		# Dig progress ring: fills clockwise as a node is mined. The authentic
+		# per-node crack overlay is a rendering job; this is the input feedback.
+		var mnode := _main_node()
+		if mnode != null and mnode.get("pointed") is Dictionary:
+			var pt: Dictionary = mnode.pointed
+			var prog := float(pt.get("progress", 0.0))
+			if bool(pt.get("digging", false)) and prog > 0.0:
+				var r := 16.0 * hud_scale
+				hud.draw_arc(c, r, 0, TAU, 40, Color(0, 0, 0, 0.4), 3.0)
+				hud.draw_arc(c, r, -PI / 2.0, -PI / 2.0 + prog * TAU, 40, Color(1, 1, 1, 0.95), 3.0)
 	var elems: Array = st.get("elements", [])
 	elems.sort_custom(func(a, b) -> bool: return int(a.get("z_index", 0)) < int(b.get("z_index", 0)))
 	var hotbar_drawn := false
