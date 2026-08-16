@@ -625,10 +625,20 @@ Ref<Material> GoannaClient::materialForIrr(const video::SMaterial &m) {
     if (gt && m.getTexture(MapBlockMesh::TEXTURE_LAYER_CRACK)) {
         auto pr = MapBlockMesh::unpackCrackMaterialParam(m.MaterialTypeParam);
         if (pr.first >= 0) {
+            // [crack:<tiles>:<frame_count>:<progression>. frame_count is the
+            // number of ANIMATION frames in the destination texture, not the
+            // number of crack stages: the crack is scaled to one frame's
+            // height and blitted into each. Passing the stage count squashed
+            // the crack to a fraction of the node's height and repeated it,
+            // which read as thin lines and made the early stages invisible.
+            // Our per-level composite is a single-frame texture, so pass 1.
             std::string cracked = m_session->tsrc()->getTextureName(gt->id()) +
-                    "^[crack:" + std::to_string((int)pr.second) + ":" +
-                    std::to_string(m_session->crackAnimationLength()) + ":" +
+                    "^[crack:" + std::to_string((int)pr.second) + ":1:" +
                     std::to_string(pr.first);
+            if (getenv("GOANNA_DEBUG_CRACK"))
+                UtilityFunctions::print("crack: level ", pr.first, "/",
+                        m_session->crackAnimationLength(), " tiles ", (int)pr.second,
+                        " -> ", String(cracked.c_str()));
             u32 cid = m_session->tsrc()->getTextureId(cracked);
             if (cid != 0)
                 key.texture_id = cid;

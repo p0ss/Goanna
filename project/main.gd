@@ -282,6 +282,18 @@ func _process(delta: float) -> void:
 	_update_wield(delta)
 	if t - last_print >= 1.0:
 		last_print = t
+		# GOANNA_DUMPTEX="dir=name1,name2": save generated textures (including
+		# texture-modifier expressions) as PNGs, for inspecting composites.
+		if OS.get_environment("GOANNA_DUMPTEX") != "" and int(t) == 3:
+			var spec := OS.get_environment("GOANNA_DUMPTEX").split("=")
+			for nm in spec[1].split(","):
+				var tx: Texture2D = client.texture(nm)
+				if tx != null:
+					var fn: String = spec[0].path_join(nm.replace("^", "_").replace(":", "-") + ".png")
+					tx.get_image().save_png(fn)
+					print("dumped ", fn)
+				else:
+					print("no texture for ", nm)
 		if OS.get_environment("GOANNA_DUMPSKY") != "" and int(t) == 3:
 			print("SKY ", JSON.stringify(client.sky_state()))
 		if OS.get_environment("GOANNA_DUMPUI") != "" and int(t) == 5:
