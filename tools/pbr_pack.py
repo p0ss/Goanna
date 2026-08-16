@@ -71,15 +71,79 @@ def compose(src_dir, size, out_dir, target):
     return True
 
 
+# Luanti games prefix texture names by mod ("default_cobble.png",
+# "mcl_core_sandstone_top.png") while packs written for Minecraft use the
+# block's own name ("cobblestone"). Stripping the prefix and applying a few
+# well-known synonyms pairs most of them.
+PREFIXES = ("default_", "mcl_core_", "mcl_", "mtg_")
+SYNONYMS = {
+    "cobble": "cobblestone", "mossycobble": "mossy_cobblestone",
+    "tree": "oak_log", "tree_top": "oak_log_top",
+    "wood": "oak_planks", "junglewood": "jungle_planks",
+    "jungletree": "jungle_log", "jungletree_top": "jungle_log_top",
+    "acacia_tree": "acacia_log", "acacia_tree_top": "acacia_log_top",
+    "birchtree": "birch_log", "birchtree_top": "birch_log_top",
+    "sprucetree": "spruce_log", "sprucetree_top": "spruce_log_top",
+    "darktree": "dark_oak_log", "darktree_top": "dark_oak_log_top",
+    "brick_block": "bricks", "stonebrick": "stone_bricks",
+    "stone_andesite": "andesite", "stone_diorite": "diorite",
+    "stone_granite": "granite", "obsidian_block": "obsidian",
+}
+
+
+def strip_prefix(name):
+    for p in PREFIXES:
+        if name.startswith(p):
+            return name[len(p):]
+    return name
+
+
+def suggest(pack_dir, game_dir):
+    """Print candidate mapping lines for review. Never write them directly:
+    a wrong pair silently dresses one block in another's material."""
+    blocks = {d for d in os.listdir(pack_dir)
+            if os.path.isfile(os.path.join(pack_dir, d, "normal.png"))}
+    targets = {}
+    for root, _, files in os.walk(game_dir):
+        for f in files:
+            if not f.endswith(".png") or f.endswith("_n.png") or f.endswith("_s.png"):
+                continue
+            key = strip_prefix(f[:-4])
+            targets.setdefault(key, set()).add(f)
+    lines, ambiguous = [], 0
+    for key, names in sorted(targets.items()):
+        want = SYNONYMS.get(key, key)
+        if want not in blocks:
+            continue
+        if len(names) > 1: # same stripped name in two mods: needs a human
+            ambiguous += 1
+            continue
+        lines.append("%s %s" % (want, next(iter(names))))
+    for line in lines:
+        print(line)
+    print("# %d candidates, %d ambiguous names skipped" % (len(lines), ambiguous),
+            file=sys.stderr)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
             formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--pack", required=True, help="PixelGraph source tree (a directory per block)")
     ap.add_argument("--game", required=True, help="game directory, to read each target texture's size")
-    ap.add_argument("--map", required=True, help="lines of: <pack directory> <game texture>.png")
-    ap.add_argument("--out", required=True, help="mod textures directory to write into")
+    ap.add_argument("--map", help="lines of: <pack directory> <game texture>.png")
+    ap.add_argument("--out", help="mod textures directory to write into")
+    ap.add_argument("--suggest", action="store_true",
+            help="print candidate mapping lines for review instead of composing")
     args = ap.parse_args()
 
+    if args.suggest:
+        suggest(args.pack, args.game)
+        return
+    if not args.out:
+        sys.exit("--out is required unless --suggest is given")
+
+    if not args.map:
+        sys.exit("--map is required unless --suggest is given")
     pairs = []
     with open(args.map) as fh:
         for line in fh:
