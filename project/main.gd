@@ -210,6 +210,7 @@ func _process(delta: float) -> void:
 		cam.rotation_degrees = Vector3(pitch, yaw, 0)
 	client.poll_blocks(24)
 	client.update_lights(cam.position, 48)
+	client.update_motes(cam.position, 32)
 	client.sync_entities(delta)
 	if t - last_print >= 1.0:
 		last_print = t
@@ -484,6 +485,8 @@ func _test_hooks(keys: Dictionary) -> void:
 
 func _shots(dir: String) -> void:
 	fly_mode = true
+	if ui:
+		ui.visible = false  # keep the HUD/inventory out of rendering test shots
 	var base := cam.position
 	if OS.get_environment("GOANNA_AIM_ENTITY") != "":
 		# GOANNA_AIM_ENTITY=n (the first n visible entities) or a name
@@ -550,8 +553,10 @@ func _shots(dir: String) -> void:
 			pitch = cam.rotation_degrees.x
 			yaw = cam.rotation_degrees.y
 		client.set_player_pose(cam.position, 0, 0)
-		for i in 40:
+		var warm: int = 150 if OS.get_environment("GOANNA_MOTES") != "" else 40
+		for i in warm:
 			client.poll_blocks(64)
+			client.update_motes(cam.position, 32)
 			await get_tree().process_frame
 		await RenderingServer.frame_post_draw
 		var img := get_viewport().get_texture().get_image()

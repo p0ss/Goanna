@@ -54,6 +54,14 @@ stand-in client), so `node_visuals` handles them as upstream does.
   bevelled sides and joined to the cube edges by chamfer quads, with capped
   three-way corners. Width is a live setting; default from `GOANNA_BEVEL`.
 
+- **Motes** (`set_motes(density)`, 0 = off; driven by `update_motes(around, n)`
+  each frame): pooled particle emitters follow nearby leaf, flora and
+  sand/gravel nodes (classified by group and subsampled), each mote coloured
+  from the node's own texels, so leaves shed drifting leaf-motes, flowers a
+  slow pollen, sand a settling dust. Nearest-N within ~20 nodes are emitted,
+  reusing the light-pool pattern. Density scales the count and per-emitter
+  amount; default from `GOANNA_MOTES`.
+
 ## Coordinate conventions
 Luanti positions are in BS units (10 per node), left-handed; Goanna's Godot
 space is nodes with z mirrored: `godot = (x/BS, y/BS, -z/BS)`. Yaw values map

@@ -40,6 +40,8 @@
 #include "mapblock.h"
 #include "version.h"
 #include "goanna_mesh_flags.h"
+#include "itemgroup.h"
+#include <godot_cpp/classes/quad_mesh.hpp>
 
 using namespace godot;
 
@@ -52,6 +54,9 @@ GoannaClient::GoannaClient() {
     const char *bv = std::getenv("GOANNA_BEVEL");
     if (bv)
         g_goanna_bevel = (float)atof(bv);
+    const char *mo = std::getenv("GOANNA_MOTES");
+    if (mo)
+        m_motes = (float)atof(mo);
 }
 
 void GoannaClient::set_bevel(float width) {
@@ -769,6 +774,186 @@ void GoannaClient::update_lights(const Vector3 &around, int max_lights) {
     }
 }
 
+
+// ---- ambient motes -------------------------------------------------------
+
+void GoannaClient::harvestMotes(v3s16 bp, MapBlock *block) {
+    std::vector<MoteNode> motes;
+    const NodeDefManager *ndef = m_session->nodeDefs();
+    for (int z = 0; z < MAP_BLOCKSIZE; ++z)
+    for (int y = 0; y < MAP_BLOCKSIZE; ++y)
+    for (int x = 0; x < MAP_BLOCKSIZE; ++x) {
+        MapNode n = block->getNodeNoCheck(x, y, z);
+        const ContentFeatures &f = ndef->get(n);
+        int kind = -1;
+        if (itemgroup_get(f.groups, "leaves") > 0)
+            kind = 0;
+        else if (f.drawtype == NDT_PLANTLIKE || itemgroup_get(f.groups, "flower") > 0 ||
+                itemgroup_get(f.groups, "flora") > 0)
+            kind = 1;
+        else if (itemgroup_get(f.groups, "sand") > 0 || itemgroup_get(f.groups, "falling_node") > 0)
+            kind = 2;
+        if (kind < 0)
+            continue;
+        // Subsample so a dense canopy does not become thousands of emitters.
+        if (((x * 3 + y * 5 + z * 7) & 7) != 0)
+            continue;
+        // Only surface nodes shed motes: require air directly above (inside the
+        // block; at the top boundary assume exposed).
+        if (y + 1 < MAP_BLOCKSIZE) {
+            MapNode above = block->getNodeNoCheck(x, y + 1, z);
+            if (above.getContent() != CONTENT_AIR)
+                continue;
+        }
+        MoteNode m;
+        m.kind = kind;
+        m.pos = Vector3(bp.X * MAP_BLOCKSIZE + x, bp.Y * MAP_BLOCKSIZE + y, -(bp.Z * MAP_BLOCKSIZE + z));
+        video::SColor c(255, 200, 200, 200);
+        if (f.visuals && f.visuals->tiles[0].layers[0].texture_id) {
+            std::string tname = m_session->tsrc()->getTextureName(f.visuals->tiles[0].layers[0].texture_id);
+            if (!tname.empty())
+                c = m_session->tsrc()->getTextureAverageColor(tname);
+        }
+        Color col(c.getRed() / 255.0f, c.getGreen() / 255.0f, c.getBlue() / 255.0f, 1.0f);
+        // Lighten leaf/flora motes so they read against the canopy they shed from.
+        if (kind != 2)
+            col = col.lerp(Color(1, 1, 1, 1), 0.35f);
+        m.color = col;
+        motes.push_back(m);
+    }
+    if (motes.empty())
+        m_block_motes.erase(bp);
+    else
+        m_block_motes[bp] = std::move(motes);
+}
+
+void GoannaClient::ensureMoteMaterials() {
+    if (m_mote_proc[0].is_valid())
+        return;
+    using PPM = ParticleProcessMaterial;
+    for (int k = 0; k < 3; ++k) {
+        Ref<PPM> pm;
+        pm.instantiate();
+        pm->set_emission_shape(PPM::EMISSION_SHAPE_SPHERE);
+        m_mote_proc[k] = pm;
+    }
+    // leaves: drift down and tumble
+    m_mote_proc[0]->set_gravity(Vector3(0, -0.5f, 0));
+    m_mote_proc[0]->set_emission_sphere_radius(0.5f);
+    m_mote_proc[0]->set_direction(Vector3(0, -1, 0));
+    m_mote_proc[0]->set_param_min(PPM::PARAM_INITIAL_LINEAR_VELOCITY, 0.05f);
+    m_mote_proc[0]->set_param_max(PPM::PARAM_INITIAL_LINEAR_VELOCITY, 0.35f);
+    m_mote_proc[0]->set_param_min(PPM::PARAM_ANGULAR_VELOCITY, -120);
+    m_mote_proc[0]->set_param_max(PPM::PARAM_ANGULAR_VELOCITY, 120);
+    m_mote_proc[0]->set_param_min(PPM::PARAM_SCALE, 0.5f);
+    m_mote_proc[0]->set_param_max(PPM::PARAM_SCALE, 1.0f);
+    m_mote_proc[0]->set_param_min(PPM::PARAM_DAMPING, 0.1f);
+    m_mote_proc[0]->set_param_max(PPM::PARAM_DAMPING, 0.4f);
+    // flora: slow pollen, barely rising
+    m_mote_proc[1]->set_gravity(Vector3(0, 0.04f, 0));
+    m_mote_proc[1]->set_emission_sphere_radius(0.4f);
+    m_mote_proc[1]->set_param_min(PPM::PARAM_INITIAL_LINEAR_VELOCITY, 0.03f);
+    m_mote_proc[1]->set_param_max(PPM::PARAM_INITIAL_LINEAR_VELOCITY, 0.18f);
+    m_mote_proc[1]->set_param_min(PPM::PARAM_SCALE, 0.25f);
+    m_mote_proc[1]->set_param_max(PPM::PARAM_SCALE, 0.5f);
+    // sand/gravel: dust kicked up, settles quickly
+    m_mote_proc[2]->set_gravity(Vector3(0, -1.4f, 0));
+    m_mote_proc[2]->set_emission_sphere_radius(0.35f);
+    m_mote_proc[2]->set_direction(Vector3(0, 1, 0));
+    m_mote_proc[2]->set_param_min(PPM::PARAM_INITIAL_LINEAR_VELOCITY, 0.1f);
+    m_mote_proc[2]->set_param_max(PPM::PARAM_INITIAL_LINEAR_VELOCITY, 0.5f);
+    m_mote_proc[2]->set_param_min(PPM::PARAM_SCALE, 0.3f);
+    m_mote_proc[2]->set_param_max(PPM::PARAM_SCALE, 0.6f);
+}
+
+void GoannaClient::set_motes(float density) {
+    if (density < 0.0f)
+        density = 0.0f;
+    m_motes = density;
+    if (density == 0.0f)
+        for (auto &e : m_mote_pool)
+            if (e.node)
+                e.node->set_emitting(false);
+}
+
+void GoannaClient::update_motes(const Vector3 &around, int max_emitters) {
+    if (m_motes <= 0.0f) {
+        for (auto &e : m_mote_pool)
+            if (e.node && e.node->is_emitting())
+                e.node->set_emitting(false);
+        return;
+    }
+    ensureMoteMaterials();
+    // Motes are only worth drawing up close.
+    const float radius = 20.0f;
+    std::vector<const MoteNode *> all;
+    for (auto &kv : m_block_motes)
+        for (auto &m : kv.second)
+            if (m.pos.distance_squared_to(around) < radius * radius)
+                all.push_back(&m);
+    std::sort(all.begin(), all.end(), [&](const MoteNode *a, const MoteNode *b) {
+        return a->pos.distance_squared_to(around) < b->pos.distance_squared_to(around);
+    });
+    int want = std::min((int)all.size(), max_emitters);
+    if (getenv("GOANNA_DEBUG_MOTES")) {
+        static int dbg = 0;
+        if (dbg++ % 60 == 0)
+            UtilityFunctions::print("motes: candidates ", (int)all.size(), " active ", want,
+                    " (blocks ", (int)m_block_motes.size(), ")");
+    }
+    static const int base_amount[3] = {10, 8, 6};
+    static const float lifetime[3] = {5.0f, 6.0f, 1.6f};
+    while ((int)m_mote_pool.size() < max_emitters) {
+        MoteEmitter e;
+        e.node = memnew(GPUParticles3D);
+        e.node->set_visible(false);
+        e.node->set_emitting(false);
+        Ref<QuadMesh> qm;
+        qm.instantiate();
+        qm->set_size(Vector2(0.16f, 0.16f));
+        Ref<StandardMaterial3D> mm;
+        mm.instantiate();
+        mm->set_shading_mode(BaseMaterial3D::SHADING_MODE_UNSHADED);
+        mm->set_billboard_mode(BaseMaterial3D::BILLBOARD_ENABLED);
+        mm->set_transparency(BaseMaterial3D::TRANSPARENCY_ALPHA);
+        qm->set_material(mm);
+        e.node->set_draw_pass_mesh(0, qm);
+        add_child(e.node);
+        m_mote_pool.push_back(e);
+    }
+    for (int i = 0; i < (int)m_mote_pool.size(); ++i) {
+        MoteEmitter &e = m_mote_pool[i];
+        if (i >= want) {
+            if (e.node->is_emitting())
+                e.node->set_emitting(false);
+            e.node->set_visible(false);
+            e.kind = -1;
+            continue;
+        }
+        const MoteNode *m = all[i];
+        // Re-target only when the assigned node changes, so a puff does not jump
+        // every frame; local coords keep the particles around the emitter.
+        if (e.at != m->pos || e.kind != m->kind) {
+            e.at = m->pos;
+            e.kind = m->kind;
+            e.node->set_position(m->pos + Vector3(0, m->kind == 0 ? 0.2f : 0.0f, 0));
+            e.node->set_process_material(m_mote_proc[m->kind]);
+            e.node->set_lifetime(lifetime[m->kind]);
+            e.node->set_amount(std::max(1, (int)(base_amount[m->kind] * std::min(m_motes, 3.0f))));
+            Ref<Mesh> mesh = e.node->get_draw_pass_mesh(0);
+            if (mesh.is_valid()) {
+                Ref<StandardMaterial3D> mm = ((QuadMesh *)mesh.ptr())->get_material();
+                if (mm.is_valid())
+                    mm->set_albedo(m->color);
+            }
+            e.node->restart();
+        }
+        e.node->set_visible(true);
+        if (!e.node->is_emitting())
+            e.node->set_emitting(true);
+    }
+}
+
 int GoannaClient::poll_blocks(int max_blocks) {
     if (!m_session)
         return 0;
@@ -794,6 +979,7 @@ int GoannaClient::poll_blocks(int max_blocks) {
             continue;
         std::unique_ptr<MapBlockMesh> bm = meshBlock(*m_session, block);
         harvestLights(bp, block);
+        harvestMotes(bp, block);
         MeshInstance3D *mi = nullptr;
         auto it = m_block_nodes.find(bp);
         if (it != m_block_nodes.end())
@@ -881,6 +1067,9 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("step_player", "dt", "keys", "pitch_deg", "yaw_deg"), &GoannaClient::step_player);
     ClassDB::bind_method(D_METHOD("sky_state"), &GoannaClient::sky_state);
     ClassDB::bind_method(D_METHOD("update_lights", "around", "max_lights"), &GoannaClient::update_lights);
+    ClassDB::bind_method(D_METHOD("set_motes", "density"), &GoannaClient::set_motes);
+    ClassDB::bind_method(D_METHOD("motes"), &GoannaClient::motes);
+    ClassDB::bind_method(D_METHOD("update_motes", "around", "max_emitters"), &GoannaClient::update_motes);
     ClassDB::bind_method(D_METHOD("sync_entities", "dt"), &GoannaClient::sync_entities);
     ClassDB::bind_method(D_METHOD("take_chat"), &GoannaClient::take_chat);
     ClassDB::bind_method(D_METHOD("send_chat", "message"), &GoannaClient::send_chat);

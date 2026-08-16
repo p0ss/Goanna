@@ -8,6 +8,8 @@
 
 #include <godot_cpp/classes/mesh_instance3d.hpp>
 #include <godot_cpp/classes/omni_light3d.hpp>
+#include <godot_cpp/classes/gpu_particles3d.hpp>
+#include <godot_cpp/classes/particle_process_material.hpp>
 #include <godot_cpp/classes/shader.hpp>
 #include <godot_cpp/classes/texture2d.hpp>
 #include <godot_cpp/classes/node3d.hpp>
@@ -87,6 +89,12 @@ public:
     // Point lights for light-emitting nodes: keeps up to max_lights OmniLight3Ds
     // on the nearest bright nodes to `around` (Godot space, nodes).
     void update_lights(const godot::Vector3 &around, int max_lights);
+    // Ambient motes: pooled particle emitters that follow nearby leaf, flora
+    // and sand/gravel nodes, coloured from the node's texels. density scales
+    // the count and per-emitter amount (0 = off). update_motes drives the pool.
+    void set_motes(float density);
+    float motes() const { return m_motes; }
+    void update_motes(const godot::Vector3 &around, int max_emitters);
 
     // --- in-game data for the UI layer ---
     // Chat lines received since last call: [{type, sender, message}].
@@ -142,6 +150,8 @@ protected:
 
 private:
     void harvestLights(v3s16 bp, MapBlock *block);
+    void harvestMotes(v3s16 bp, MapBlock *block);
+    void ensureMoteMaterials();
 
     std::unique_ptr<GoannaSession> m_session;
     std::map<v3s16, godot::MeshInstance3D *> m_block_nodes;
@@ -154,6 +164,13 @@ private:
     struct NodeLight { godot::Vector3 pos; float level; godot::Color color; };
     std::map<v3s16, std::vector<NodeLight>> m_block_lights;
     std::vector<godot::OmniLight3D *> m_light_pool;
+    // kind: 0 = leaves (drift down), 1 = flora/pollen, 2 = sand/gravel dust
+    struct MoteNode { godot::Vector3 pos; int kind; godot::Color color; };
+    std::map<v3s16, std::vector<MoteNode>> m_block_motes;
+    struct MoteEmitter { godot::GPUParticles3D *node = nullptr; godot::Vector3 at; int kind = -1; };
+    std::vector<MoteEmitter> m_mote_pool;
+    godot::Ref<godot::ParticleProcessMaterial> m_mote_proc[3];
+    float m_motes = 0.0f;
 };
 
 } // namespace goanna
