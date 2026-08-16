@@ -17,12 +17,22 @@ add_library(goanna SHARED
     src/goanna_client.cpp
     src/goanna_session.cpp
     src/goanna_mesher.cpp
-    src/goanna_materials.cpp
+    src/goanna_textures.cpp
     src/transplant/collision.cpp
     src/transplant/localplayer.cpp
+    src/transplant/client/mapblock_mesh.cpp
+    src/transplant/client/content_mapblock.cpp
+    src/transplant/client/node_visuals.cpp
+    src/transplant/client/imagesource.cpp
     src/luanti_shims.cpp
 )
 target_include_directories(goanna PRIVATE src)
+# transplanted client files use bare includes ("mapblock_mesh.h") that must
+# resolve to Luanti's originals; goanna's own headers come first.
+set_source_files_properties(
+    src/transplant/client/mapblock_mesh.cpp src/transplant/client/content_mapblock.cpp
+    src/transplant/client/node_visuals.cpp src/transplant/client/imagesource.cpp
+    PROPERTIES INCLUDE_DIRECTORIES "${CMAKE_SOURCE_DIR}/src;${CMAKE_SOURCE_DIR}/luanti/src/client")
 target_link_libraries(goanna PRIVATE godot::cpp luanti_core)
 target_link_options(goanna PRIVATE -Wl,--exclude-libs,ALL -Wl,--no-undefined)
 

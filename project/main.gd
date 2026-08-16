@@ -156,6 +156,7 @@ func _walktest_keys() -> Dictionary:
 		"jump": t > 6.0 and t < 6.3, "sneak": false, "aux1": false}
 
 func _shots(dir: String) -> void:
+	fly_mode = true
 	var base := cam.position
 	var views := [
 		["a_spawn", base + Vector3(0, 6, 14), base + Vector3(0, 0, -20)],

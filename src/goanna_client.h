@@ -8,7 +8,6 @@
 #include <godot_cpp/classes/standard_material3d.hpp>
 #include <godot_cpp/variant/dictionary.hpp>
 
-#include "goanna_materials.h"
 #include "irrlichttypes_bloated.h"
 
 namespace goanna {
@@ -36,7 +35,7 @@ public:
     // Returns how many were processed.
     int poll_blocks(int max_blocks);
     int block_mesh_count() const { return (int)m_block_nodes.size(); }
-    int material_count() const { return m_materials.size(); }
+    int material_count() const { return (int)m_materials.size(); }
 
     // Camera/player pose in Godot space; reported to the server so it
     // streams blocks around us. Position in nodes.
@@ -54,9 +53,12 @@ protected:
     static void _bind_methods();
 
 private:
+    godot::Ref<godot::Material> materialFor(const struct MaterialKey &key);
+
     std::unique_ptr<GoannaSession> m_session;
     std::map<v3s16, godot::MeshInstance3D *> m_block_nodes;
-    MaterialCache m_materials;
+    std::map<uint64_t, godot::Ref<godot::StandardMaterial3D>> m_materials;
+    godot::Ref<godot::StandardMaterial3D> m_fallback;
 };
 
 } // namespace goanna

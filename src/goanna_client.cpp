@@ -11,7 +11,27 @@
 
 #include "goanna_mesher.h"
 #include "goanna_session.h"
+#include "goanna_textures.h"
 #include "transplant/localplayer.h"
+#include "client/mapblock_mesh.h"
+#include "client/tile.h"
+#include <SMesh.h>
+#include <CMeshBuffer.h>
+#include <SMaterial.h>
+#include <godot_cpp/classes/project_settings.hpp>
+#include <set>
+#include <godot_cpp/variant/packed_vector2_array.hpp>
+
+namespace goanna {
+struct MaterialKey {
+    u32 texture_id = 0;
+    int base_material = 0;   // video::E_MATERIAL_TYPE
+    bool backface_culling = true;
+    uint64_t hash() const {
+        return ((uint64_t)texture_id << 16) | ((uint64_t)(base_material & 0xff) << 1) | (backface_culling ? 1 : 0);
+    }
+};
+}
 #include "mapblock.h"
 #include "version.h"
 
@@ -32,6 +52,9 @@ String GoannaClient::luanti_version() const {
 
 void GoannaClient::connect_to(const String &host, int port, const String &player_name,
         const String &password) {
+    // Luanti's base texture pack lives in the luanti/ checkout next to project/.
+    String share = ProjectSettings::get_singleton()->globalize_path("res://../luanti");
+    GoannaSession::setSharePath(share.utf8().get_data());
     m_session = std::make_unique<GoannaSession>();
     m_session->start(host.utf8().get_data(), (uint16_t)port, player_name.utf8().get_data(),
             password.utf8().get_data());
@@ -124,10 +147,49 @@ Dictionary GoannaClient::step_player(double dt, const Dictionary &keys, float pi
     return out;
 }
 
+Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
+    auto it = m_materials.find(key.hash());
+    if (it != m_materials.end())
+        return it->second;
+    GoannaTexture *gt = m_session->tsrc()->goannaTexture(key.texture_id);
+    Ref<StandardMaterial3D> mat;
+    mat.instantiate();
+    mat->set_roughness(1.0f);
+    mat->set_metallic(0.0f);
+    mat->set_flag(BaseMaterial3D::FLAG_ALBEDO_FROM_VERTEX_COLOR, true);
+    mat->set_texture_filter(BaseMaterial3D::TEXTURE_FILTER_NEAREST_WITH_MIPMAPS);
+    mat->set_cull_mode(key.backface_culling ? BaseMaterial3D::CULL_BACK : BaseMaterial3D::CULL_DISABLED);
+    if (gt) {
+        Ref<ImageTexture> tex = gt->godotTexture();
+        if (tex.is_valid())
+            mat->set_texture(BaseMaterial3D::TEXTURE_ALBEDO, tex);
+        if (key.base_material == video::EMT_TRANSPARENT_ALPHA_CHANNEL) {
+            mat->set_transparency(BaseMaterial3D::TRANSPARENCY_ALPHA);
+            mat->set_depth_draw_mode(BaseMaterial3D::DEPTH_DRAW_ALWAYS);
+        } else if (key.base_material == video::EMT_TRANSPARENT_ALPHA_CHANNEL_REF || gt->hasAlpha()) {
+            mat->set_transparency(BaseMaterial3D::TRANSPARENCY_ALPHA_SCISSOR);
+            mat->set_alpha_scissor_threshold(0.5f);
+        }
+    } else {
+        mat->set_albedo(Color(0.9, 0.4, 0.9));
+    }
+    m_materials[key.hash()] = mat;
+    return mat;
+}
+
 int GoannaClient::poll_blocks(int max_blocks) {
     if (!m_session)
         return 0;
-    std::vector<v3s16> fresh = m_session->takeNewBlocks();
+    if (m_session->prepareContentIfReady())
+        return 0;
+    std::vector<v3s16> fresh_raw = m_session->takeNewBlocks();
+    std::vector<v3s16> fresh;
+    {
+        std::set<v3s16> seen;
+        for (const v3s16 &bp : fresh_raw)
+            if (seen.insert(bp).second)
+                fresh.push_back(bp);
+    }
     int done = 0;
     std::lock_guard<std::mutex> lk(m_session->mapLock());
     for (const v3s16 &bp : fresh) {
@@ -138,47 +200,72 @@ int GoannaClient::poll_blocks(int max_blocks) {
         MapBlock *block = m_session->getBlock(bp);
         if (!block)
             continue;
-        MeshData md = meshBlock(*m_session, block);
+        std::unique_ptr<MapBlockMesh> bm = meshBlock(*m_session, block);
         MeshInstance3D *mi = nullptr;
         auto it = m_block_nodes.find(bp);
         if (it != m_block_nodes.end())
             mi = it->second;
-        if (md.empty()) {
+        Ref<ArrayMesh> mesh;
+        mesh.instantiate();
+        int si = 0;
+        for (int layer = 0; layer < MAX_TILE_LAYERS && bm; ++layer) {
+            scene::IMesh *sm = bm->getMesh(layer);
+            if (!sm)
+                continue;
+            for (u32 b = 0; b < sm->getMeshBufferCount(); ++b) {
+                scene::IMeshBuffer *buf = sm->getMeshBuffer(b);
+                if (!buf || buf->getVertexCount() == 0 || buf->getIndexCount() == 0)
+                    continue;
+                if (buf->getVertexType() != video::EVT_STANDARD)
+                    continue;
+                const video::S3DVertex *v = (const video::S3DVertex *)buf->getVertices();
+                const u16 *idx16 = (const u16 *)buf->getIndices();
+                const u32 nv = buf->getVertexCount(), ni = buf->getIndexCount();
+                PackedVector3Array verts, norms;
+                PackedVector2Array uvs;
+                PackedColorArray cols;
+                PackedInt32Array idx;
+                verts.resize(nv); norms.resize(nv); uvs.resize(nv); cols.resize(nv);
+                for (u32 i = 0; i < nv; ++i) {
+                    // Luanti mesh space (BS units, block-local) -> Godot nodes; z mirrored
+                    verts[i] = Vector3(v[i].Pos.X / BS + bp.X * MAP_BLOCKSIZE,
+                            v[i].Pos.Y / BS + bp.Y * MAP_BLOCKSIZE,
+                            -(v[i].Pos.Z / BS + bp.Z * MAP_BLOCKSIZE));
+                    norms[i] = Vector3(v[i].Normal.X, v[i].Normal.Y, -v[i].Normal.Z);
+                    uvs[i] = Vector2(v[i].TCoords.X, v[i].TCoords.Y);
+                    cols[i] = Color(v[i].Color.getRed() / 255.0f, v[i].Color.getGreen() / 255.0f,
+                            v[i].Color.getBlue() / 255.0f, v[i].Color.getAlpha() / 255.0f);
+                }
+                // Irrlicht (left-handed) front faces are counter-clockwise as
+                // stored; mirroring z makes them clockwise, which is Godot's
+                // front-face winding — so the index order is kept as is.
+                idx.resize(ni);
+                for (u32 i = 0; i < ni; ++i)
+                    idx[i] = idx16[i];
+                Array arrays;
+                arrays.resize(Mesh::ARRAY_MAX);
+                arrays[Mesh::ARRAY_VERTEX] = verts;
+                arrays[Mesh::ARRAY_NORMAL] = norms;
+                arrays[Mesh::ARRAY_TEX_UV] = uvs;
+                arrays[Mesh::ARRAY_COLOR] = cols;
+                arrays[Mesh::ARRAY_INDEX] = idx;
+                mesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays);
+                const video::SMaterial &m = buf->getMaterial();
+                MaterialKey key;
+                GoannaTexture *gt = dynamic_cast<GoannaTexture *>(m.getTexture(0));
+                key.texture_id = gt ? gt->id() : 0;
+                key.base_material = (int)m.MaterialType;
+                key.backface_culling = m.BackfaceCulling;
+                mesh->surface_set_material(si++, materialFor(key));
+            }
+        }
+        if (si == 0) {
             if (mi) {
                 mi->queue_free();
                 m_block_nodes.erase(bp);
             }
             ++done;
             continue;
-        }
-        Ref<ArrayMesh> mesh;
-        mesh.instantiate();
-        int si = 0;
-        for (const SurfaceData &sd : md.surfaces) {
-            PackedVector3Array verts, norms;
-            PackedVector2Array uvs;
-            PackedColorArray cols;
-            PackedInt32Array idx;
-            size_t nv = sd.positions.size() / 3;
-            verts.resize(nv); norms.resize(nv); uvs.resize(nv); cols.resize(nv);
-            for (size_t i = 0; i < nv; ++i) {
-                verts[i] = Vector3(sd.positions[i*3], sd.positions[i*3+1], sd.positions[i*3+2]);
-                norms[i] = Vector3(sd.normals[i*3], sd.normals[i*3+1], sd.normals[i*3+2]);
-                uvs[i] = Vector2(sd.uvs[i*2], sd.uvs[i*2+1]);
-                cols[i] = Color(sd.colors[i*4], sd.colors[i*4+1], sd.colors[i*4+2], sd.colors[i*4+3]);
-            }
-            idx.resize(sd.indices.size());
-            for (size_t i = 0; i < sd.indices.size(); ++i)
-                idx[i] = sd.indices[i];
-            Array arrays;
-            arrays.resize(Mesh::ARRAY_MAX);
-            arrays[Mesh::ARRAY_VERTEX] = verts;
-            arrays[Mesh::ARRAY_NORMAL] = norms;
-            arrays[Mesh::ARRAY_TEX_UV] = uvs;
-            arrays[Mesh::ARRAY_COLOR] = cols;
-            arrays[Mesh::ARRAY_INDEX] = idx;
-            mesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays);
-            mesh->surface_set_material(si++, m_materials.get(*m_session, sd));
         }
         if (!mi) {
             mi = memnew(MeshInstance3D);

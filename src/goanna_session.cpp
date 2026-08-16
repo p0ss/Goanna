@@ -1,6 +1,8 @@
 #include "goanna_session.h"
 
 #include "transplant/localplayer.h"
+#include "goanna_luanti_client.h"
+#include "client/node_visuals.h"
 
 #include <chrono>
 #include <cmath>
@@ -36,6 +38,7 @@ const char *session_state_name(SessionState s) {
     case SessionState::Init: return "init";
     case SessionState::Auth: return "auth";
     case SessionState::Definitions: return "definitions";
+    case SessionState::ContentReady: return "content-ready";
     case SessionState::Ready: return "ready";
     case SessionState::Denied: return "denied";
     case SessionState::Disconnected: return "disconnected";
@@ -66,8 +69,30 @@ static void ensureSettings() {
                  "always_fly_fast", "aux1_descends", "noclip", "autojump"})
         defaults->setDefault(k, "false");
     defaults->setDefault("movement_speed_walk", "4.0");
+    // TextureSettings / meshing (transplanted node_visuals, mapblock_mesh)
+    defaults->setDefault("connected_glass", "true");
+    defaults->setDefault("translucent_liquids", "true");
+    defaults->setDefault("enable_minimap", "false");
+    defaults->setDefault("texture_min_size", "0");
+    defaults->setDefault("leaves_style", "fancy");
+    defaults->setDefault("world_aligned_mode", "enable");
+    defaults->setDefault("autoscale_mode", "disable");
+    defaults->setDefault("smooth_lighting", "false");
+    defaults->setDefault("ambient_occlusion_gamma", "1.8");
+    defaults->setDefault("texture_path", "");
+    defaults->setDefault("mip_map", "false");
+    defaults->setDefault("trilinear_filter", "false");
+    defaults->setDefault("bilinear_filter", "false");
+    defaults->setDefault("anisotropic_filter", "false");
+    defaults->setDefault("array_texture_max", "0");
+    defaults->setDefault("enable_water_reflections", "false");
+    defaults->setDefault("mesh_generation_interval", "0");
     g_settings = Settings::createLayer(SL_GLOBAL);
     sockets_init();
+}
+
+void GoannaSession::setSharePath(const std::string &path) {
+    porting::path_share = path;
 }
 
 GoannaSession::GoannaSession() {
@@ -75,6 +100,8 @@ GoannaSession::GoannaSession() {
     m_nodedef = createNodeDefManager();
     m_itemdef = createItemDefManager();
     m_map = std::make_unique<GoannaMap>(this);
+    m_tsrc = std::make_unique<GoannaTextureSource>();
+    m_mesh_client = std::make_unique<Client>(m_tsrc.get(), &m_shsrc, m_nodedef);
 }
 
 GoannaSession::~GoannaSession() {
@@ -277,6 +304,8 @@ void GoannaSession::threadMain() {
                                 << std::dec << ": " << e.what() << std::endl;
                 }
             }
+            if (m_send_ready && !m_ready_sent)
+                sendReady();
             if (m_media_announced && !m_media_done && !m_ready_sent) {
                 float waited = std::chrono::duration<float>(
                         std::chrono::steady_clock::now() - m_media_announce_time).count();
@@ -447,12 +476,42 @@ void GoannaSession::requestMedia(const std::vector<std::string> &names) {
 }
 
 void GoannaSession::maybeReady() {
-    if (!m_ready_sent && m_nodedef_received && m_itemdef_received && m_media_announced && m_media_done) {
+    if (!m_ready_sent && !m_content_ready && m_nodedef_received && m_itemdef_received &&
+            m_media_announced && m_media_done) {
+        m_content_ready = true;
+        setState(SessionState::ContentReady, "content received; building visuals");
+    }
+}
+
+static bool isImageName(const std::string &name) {
+    std::string ext = name.size() > 4 ? name.substr(name.size() - 4) : "";
+    for (auto &c : ext) c = tolower(c);
+    return ext == ".png" || ext == ".jpg" || ext == ".tga" || ext == ".bmp" || ext == "jpeg";
+}
+
+bool GoannaSession::prepareContentIfReady() {
+    if (!m_content_ready || m_send_ready)
+        return false;
+    // 1. media images into the texture source
+    size_t n_img = 0;
+    {
+        std::lock_guard<std::mutex> lk(m_media_mutex);
+        for (auto &kv : m_media) {
+            if (isImageName(kv.first) && m_tsrc->insertMediaImage(kv.first, kv.second))
+                ++n_img;
+        }
+    }
+    // 2. node definitions: same order as Client::afterContentReceived
+    {
+        std::lock_guard<std::mutex> lk(m_map_mutex);
         m_nodedef->updateAliases(m_itemdef);
         m_nodedef->setNodeRegistrationStatus(true);
         m_nodedef->runNodeResolveCallbacks();
-        sendReady();
+        NodeVisuals::fillNodeVisuals(m_nodedef, m_mesh_client.get(), nullptr);
     }
+    actionstream << "goanna: content prepared: " << n_img << " images, node visuals filled" << std::endl;
+    m_send_ready = true; // session thread sends CLIENT_READY
+    return true;
 }
 
 // --- incoming ---
@@ -698,6 +757,11 @@ void GoannaSession::onBlockData(NetworkPacket &pkt) {
     block->deSerialize(istr, ser_ver, false);
     block->deSerializeNetworkSpecific(istr);
     m_new_blocks.push_back(p);
+    // Neighbours already present must be re-meshed for their boundary faces.
+    static const v3s16 dirs[6] = {{1,0,0},{-1,0,0},{0,1,0},{0,-1,0},{0,0,1},{0,0,-1}};
+    for (const v3s16 &d : dirs)
+        if (m_map->getBlockNoCreateNoEx(p + d))
+            m_new_blocks.push_back(p + d);
     m_ack_blocks.push_back(p);
     {
         std::lock_guard<std::mutex> lk2(m_stats_mutex);

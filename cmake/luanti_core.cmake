@@ -1,14 +1,15 @@
 # Compiles the subset of Luanti's engine that Goanna transplants, as a
-# static library with server-build semantics (MT_BUILDTARGET=2), so no
-# Irrlicht render/GUI/scene types are pulled in. Header-only Irrlicht math
-# types (irr/include) are kept.
+# static library. Built with CLIENT-build semantics (MT_BUILDTARGET=1) so
+# the client-side visual data (NodeVisuals, TileSpec) exists, but without
+# any Irrlicht renderer: only header-only Irrlicht types plus the CPU-only
+# image class (CImage) are used.
 
 set(LUANTI_DIR "${CMAKE_SOURCE_DIR}/luanti")
 set(LUANTI_SRC "${LUANTI_DIR}/src")
 set(LUANTI_GEN "${CMAKE_BINARY_DIR}/luanti_gen")
 file(MAKE_DIRECTORY "${LUANTI_GEN}")
 
-# Version and feature flags — none of the optional subsystems.
+# Version and feature flags. None of the optional subsystems.
 set(PROJECT_NAME_CAPITALIZED "Luanti")
 set(VERSION_MAJOR 5)
 set(VERSION_MINOR 16)
@@ -63,6 +64,9 @@ set(LUANTI_CORE_SRCS
     # network (common part only; no server/client packet handlers)
     network/address.cpp network/connection.cpp network/mtp/impl.cpp network/mtp/threads.cpp
     network/networkpacket.cpp network/networkprotocol.cpp network/socket.cpp
+    # client-side pieces that compile verbatim (no renderer calls)
+    client/tile.cpp client/mesh.cpp client/meshgen/collector.cpp client/imagefilters.cpp
+    client/texturepaths.cpp
     # world data
     serialization.cpp nameidmapping.cpp mapnode.cpp mapblock.cpp nodedef.cpp itemdef.cpp
     tool.cpp inventory.cpp itemstackmetadata.cpp metadata.cpp nodemetadata.cpp
@@ -73,10 +77,14 @@ set(LUANTI_CORE_SRCS
 )
 list(TRANSFORM LUANTI_CORE_SRCS PREPEND "${LUANTI_SRC}/")
 
-add_library(luanti_core STATIC ${LUANTI_CORE_SRCS})
+# Irrlicht CPU-only image support (no driver, no GL)
+set(IRR_CPU_SRCS CImage.cpp CColorConverter.cpp os.cpp SkinnedMesh.cpp WeightBuffer.cpp HWBuffer.cpp)
+list(TRANSFORM IRR_CPU_SRCS PREPEND "${LUANTI_DIR}/irr/src/")
+
+add_library(luanti_core STATIC ${LUANTI_CORE_SRCS} ${IRR_CPU_SRCS})
 target_include_directories(luanti_core PUBLIC
-    "${LUANTI_SRC}" "${LUANTI_DIR}/irr/include" "${LUANTI_GEN}" "${ZSTD_INCLUDE_DIR}")
-target_compile_definitions(luanti_core PUBLIC USE_CMAKE_CONFIG_H MT_BUILDTARGET=2)
+    "${LUANTI_SRC}" "${LUANTI_DIR}/irr/include" "${LUANTI_DIR}/irr/src" "${LUANTI_GEN}" "${ZSTD_INCLUDE_DIR}")
+target_compile_definitions(luanti_core PUBLIC USE_CMAKE_CONFIG_H MT_BUILDTARGET=1)
 target_compile_options(luanti_core PRIVATE -fvisibility=hidden -Wno-deprecated-declarations)
 target_link_libraries(luanti_core PUBLIC gmp sha256 jsoncpp ZLIB::ZLIB "${ZSTD_STATIC_LIB}" pthread)
 set_target_properties(gmp sha256 jsoncpp PROPERTIES POSITION_INDEPENDENT_CODE ON)

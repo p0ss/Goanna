@@ -1,7 +1,7 @@
 // Small pieces of Luanti that live in server-only translation units but are
 // referenced by the shared core Goanna links. Copied verbatim from
-// luanti/src/inventorymanager.cpp (LGPL-2.1-or-later) so that file — which
-// drags in the server environment and scripting — need not be compiled.
+// luanti/src/inventorymanager.cpp (LGPL-2.1-or-later) so that file, which
+// drags in the server environment and scripting, need not be compiled.
 
 #include <sstream>
 

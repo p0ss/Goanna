@@ -22,12 +22,14 @@
 #include "network/connection.h"
 #include "network/networkprotocol.h"
 #include "goanna_map.h"
+#include "goanna_textures.h"
 
 class NodeDefManager;
 class IWritableItemDefManager;
 class MapBlock;
 class NetworkPacket;
 class LocalPlayer;
+class Client;
 struct SRPUser;
 
 namespace goanna {
@@ -37,7 +39,8 @@ enum class SessionState {
     Connecting,   // UDP handshake in progress
     Init,         // TOSERVER_INIT sent, waiting for HELLO
     Auth,         // SRP in flight
-    Definitions,  // AUTH_ACCEPT received; waiting for nodedef/itemdef/media announce
+    Definitions,  // AUTH_ACCEPT received; waiting for nodedef/itemdef/media
+    ContentReady, // everything received; waiting for the main thread to build visuals
     Ready,        // CLIENT_READY sent; blocks flowing
     Denied,
     Disconnected,
@@ -67,9 +70,21 @@ public:
     GoannaSession();
     ~GoannaSession() override;
 
+    // Where Luanti's base texture pack lives (the luanti/ checkout). Set once
+    // before any session starts.
+    static void setSharePath(const std::string &path);
+
     // Non-blocking: spins up the receive thread.
     void start(const std::string &host, uint16_t port, const std::string &player_name,
             const std::string &password);
+
+    // Main-thread step: when the session reaches ContentReady, decode media
+    // into the texture source, fill node visuals, then send CLIENT_READY.
+    // Returns true if it did the work this call.
+    bool prepareContentIfReady();
+    GoannaTextureSource *tsrc() { return m_tsrc.get(); }
+    GoannaShaderSource &shsrc() { return m_shsrc; }
+    Client *meshClient() { return m_mesh_client.get(); }
     void stop();
 
     SessionStats stats() const;
@@ -161,6 +176,11 @@ private:
     std::mutex m_map_mutex;
     std::unique_ptr<GoannaMap> m_map;
     std::unique_ptr<LocalPlayer> m_player;
+    std::unique_ptr<GoannaTextureSource> m_tsrc;
+    GoannaShaderSource m_shsrc;
+    std::unique_ptr<Client> m_mesh_client;
+    std::atomic<bool> m_content_ready{false};
+    std::atomic<bool> m_send_ready{false};
     bool m_server_move_pending = false;
     v3f m_server_move_pos;
     float m_server_move_pitch = 0, m_server_move_yaw = 0;
