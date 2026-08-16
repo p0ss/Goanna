@@ -330,7 +330,8 @@ func _build() -> void:
 			"listring": _listring(parts)
 			"listcolors": _listcolors(parts)
 			"tooltip": _tooltip(parts)
-			"style", "style_type", "tableoptions", "tablecolumns", "scrollbar", "scrollbaroptions", "model", "set_focus", "focus":
+			"model": _model(parts)
+			"style", "style_type", "tableoptions", "tablecolumns", "scrollbar", "scrollbaroptions", "set_focus", "focus":
 				skipped[name] = skipped.get(name, 0) + 1
 			_:
 				skipped[name] = skipped.get(name, 0) + 1
@@ -852,6 +853,40 @@ func _tooltip(parts: PackedStringArray) -> void:
 	# tooltip[element name;text;bgcolor;fontcolor] (area form skipped)
 	if parts.size() >= 2 and not parts[0].contains(","):
 		tooltips[fs_unescape(parts[0])] = fs_unescape(parts[1])
+
+# model[x,y;w,h;name;mesh;textures;...]: the 3D mesh preview is not rendered
+# yet. Drawing nothing leaves the game's own dark panel showing as a black
+# void, which reads as broken, so fill the area with a muted placeholder and
+# label it with the mesh name. Replace this with a real SubViewport render
+# when the entity model path is reachable from the UI.
+func _model(parts: PackedStringArray) -> void:
+	if parts.size() < 4:
+		return
+	var v := fs_split(parts[0], ",")
+	var g := fs_split(parts[1], ",")
+	if v.size() < 2 or g.size() < 2:
+		return
+	var panel := Panel.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.16, 0.17, 0.19, 0.85)
+	sb.set_corner_radius_all(int(imgsize * 0.06))
+	sb.set_border_width_all(1)
+	sb.border_color = Color(1, 1, 1, 0.12)
+	panel.add_theme_stylebox_override("panel", sb)
+	panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	_add(panel, _pos(v), _geom(g))
+	var mesh := fs_unescape(parts[3])
+	var base := mesh.get_file().get_basename()
+	var l := Label.new()
+	l.text = base if base != "" else "3D model"
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	l.add_theme_font_size_override("font_size", maxi(int(imgsize * 0.22), 9))
+	l.add_theme_color_override("font_color", Color(1, 1, 1, 0.5))
+	l.set_anchors_preset(Control.PRESET_FULL_RECT)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(l)
 
 func _font_size() -> int:
 	return maxi(int(imgsize * 0.32), 10)

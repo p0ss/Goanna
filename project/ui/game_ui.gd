@@ -64,6 +64,7 @@ var icon_cache := {}                   # item name -> Texture2D
 var tex_cache := {}                    # texture string -> Texture2D
 var selected := {}                     # cursor stack: {location, listname, index, amount}
 var pending_craft := false
+var chat_printed := 0
 var hud_scale := 1.0
 var t := 0.0
 var last_hp := -1
@@ -153,6 +154,7 @@ func _process(delta: float) -> void:
 	_ui_shot_hook(delta)
 	_ui_move_test(delta)
 	_ui_chest_test(delta)
+	_ui_chat_hook(delta)
 
 # Development aid: GOANNA_UI_SHOT=<dir> saves the HUD, the inventory, chat
 # and the pause menu at fixed times, then quits.
@@ -196,6 +198,24 @@ func _ui_move_test(delta: float) -> void:
 			await RenderingServer.frame_post_draw
 			get_viewport().get_texture().get_image().save_png(OS.get_environment("GOANNA_UI_SHOT").path_join("ui_move.png"))
 		_close_window()
+
+# Development aid: GOANNA_UI_CHAT="line|line|..." sends the lines as chat,
+# one per second from t=3, and prints what comes back.
+func _ui_chat_hook(delta: float) -> void:
+	var lines := OS.get_environment("GOANNA_UI_CHAT")
+	if lines == "":
+		return
+	var parts := lines.split("|", false)
+	for i in parts.size():
+		if absf(t - (3.0 + i)) < delta * 0.6:
+			print("ui chat: sending ", parts[i])
+			client.send_chat(parts[i])
+	while chat_printed < chat_lines.size():
+		print("ui chat: got: ", chat_lines[chat_printed]["text"])
+		chat_printed += 1
+	# GOANNA_UI_WIELD=<n> selects a hotbar slot once the world is ready.
+	if OS.get_environment("GOANNA_UI_WIELD") != "" and absf(t - 2.5) < delta * 0.6:
+		client.set_wield_index(int(OS.get_environment("GOANNA_UI_WIELD")))
 
 # Development aid: GOANNA_UI_TEST=chest:<x,y,z> opens a chest style form
 # listing nodemeta:x,y,z and prints what the slots resolve to.
@@ -370,6 +390,9 @@ func _hide_window() -> void:
 
 func _open_inventory() -> void:
 	var spec: String = client.inventory_formspec()
+	if OS.get_environment("GOANNA_DUMP_FORMSPEC") != "":
+		print("FORMSPEC>>>", spec, "<<<FORMSPEC")
+
 	if spec.strip_edges() == "":
 		spec = "size[8,7.5]list[current_player;main;0,3.5;8,4;]list[current_player;craft;3,0;3,3;]list[current_player;craftpreview;7,1;1,1;]listring[]"
 	form_is_inventory = true
