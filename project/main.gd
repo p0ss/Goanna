@@ -343,6 +343,15 @@ func _process(delta: float) -> void:
 								lit_px += 1
 					img.save_png(spec[0].path_join(nm.replace(":", "-") + ".png"))
 					print("icon ", nm, ": alpha>0=", op, " rgb>0=", lit_px, "/", img.get_width() * img.get_height())
+		# GOANNA_PERF=1: one telemetry line a second, so frame cost can be
+		# attributed rather than guessed at.
+		if OS.get_environment("GOANNA_PERF") != "":
+			var st: Dictionary = client.render_stats()
+			print("perf fps=%.0f frame=%.1fms | mesh=%.2f upload=%.2f lights=%.2f motes=%.2f ents=%.2f | meshed=%d queued=%d blocks=%d mats=%d | draws=%d objs=%d vram=%.0fMB" % [
+				Engine.get_frames_per_second(), 1000.0 / maxf(Engine.get_frames_per_second(), 1.0),
+				st["mesh_ms"], st["upload_ms"], st["lights_ms"], st["motes_ms"], st["entities_ms"],
+				st["blocks_meshed_last"], st["blocks_queued"], st["block_meshes"], st["materials"],
+				st.get("draw_calls", 0), st.get("objects", 0), st.get("video_mem_mb", 0.0)])
 		if OS.get_environment("GOANNA_DUMPSKY") != "" and int(t) == 3:
 			print("SKY ", JSON.stringify(client.sky_state()))
 		if OS.get_environment("GOANNA_DUMPUI") != "" and int(t) == 5:

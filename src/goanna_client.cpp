@@ -40,11 +40,25 @@
 
 #include "mapblock.h"
 #include "version.h"
+#include <chrono>
+#include <godot_cpp/classes/rendering_server.hpp>
 #include "goanna_mesh_flags.h"
 #include "itemgroup.h"
 #include <godot_cpp/classes/quad_mesh.hpp>
 
 using namespace godot;
+
+namespace {
+using clock_t_ = std::chrono::steady_clock;
+inline double ms_since(const clock_t_::time_point &t0) {
+    return std::chrono::duration<double, std::milli>(clock_t_::now() - t0).count();
+}
+// Exponential moving average: one bad frame should show, but the number
+// should still be readable.
+inline void ema(double &acc, double sample) { acc = acc * 0.9 + sample * 0.1; }
+} // namespace
+
+
 
 namespace goanna {
 
@@ -941,6 +955,7 @@ void GoannaClient::harvestLights(v3s16 bp, MapBlock *block) {
 void GoannaClient::sync_entities(double dt) {
     if (!m_session)
         return;
+    auto t0 = clock_t_::now();
     if (!m_entities) {
         m_entities = std::make_unique<EntityRenderer>(this);
         m_entities->setShowBody(m_show_body);
@@ -949,6 +964,7 @@ void GoannaClient::sync_entities(double dt) {
     if (dt > 0.1) dt = 0.1;
     m_session->stepObjects((float)dt);
     m_entities->sync(*m_session, (float)dt, Vector3());
+    ema(m_ms_entities, ms_since(t0));
 }
 
 void GoannaClient::set_arm_swing(float s) {
@@ -1013,6 +1029,29 @@ Dictionary GoannaClient::item_mesh(const String &item_name) {
     return d;
 }
 
+Dictionary GoannaClient::render_stats() {
+    Dictionary d;
+    d["mesh_ms"] = m_ms_mesh;
+    d["upload_ms"] = m_ms_upload;
+    d["lights_ms"] = m_ms_lights;
+    d["motes_ms"] = m_ms_motes;
+    d["entities_ms"] = m_ms_entities;
+    d["blocks_meshed_last"] = m_last_meshed;
+    d["blocks_queued"] = m_last_queue;
+    d["block_meshes"] = (int)m_block_nodes.size();
+    d["materials"] = (int)m_materials.size();
+    d["light_pool"] = (int)m_light_pool.size();
+    d["mote_pool"] = (int)m_mote_pool.size();
+    RenderingServer *rs = RenderingServer::get_singleton();
+    if (rs) {
+        d["draw_calls"] = (int)rs->get_rendering_info(RenderingServer::RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME);
+        d["primitives"] = (int64_t)rs->get_rendering_info(RenderingServer::RENDERING_INFO_TOTAL_PRIMITIVES_IN_FRAME);
+        d["objects"] = (int)rs->get_rendering_info(RenderingServer::RENDERING_INFO_TOTAL_OBJECTS_IN_FRAME);
+        d["video_mem_mb"] = (double)rs->get_rendering_info(RenderingServer::RENDERING_INFO_VIDEO_MEM_USED) / (1024.0 * 1024.0);
+    }
+    return d;
+}
+
 Array GoannaClient::entity_list() {
     if (!m_session || !m_entities)
         return Array();
@@ -1021,6 +1060,7 @@ Array GoannaClient::entity_list() {
 }
 
 void GoannaClient::update_lights(const Vector3 &around, int max_lights) {
+    auto t0 = clock_t_::now();
     std::vector<const NodeLight *> all;
     for (auto &kv : m_block_lights)
         for (auto &l : kv.second)
@@ -1057,6 +1097,7 @@ void GoannaClient::update_lights(const Vector3 &around, int max_lights) {
             ol->set_visible(false);
         }
     }
+    ema(m_ms_lights, ms_since(t0));
 }
 
 
@@ -1322,7 +1363,10 @@ int GoannaClient::poll_blocks(int max_blocks) {
             if (++early % 25 == 1)
                 fprintf(stderr, "goanna content: meshing block %d before content prepared\n", early);
         }
+        auto t_mesh = clock_t_::now();
         std::unique_ptr<MapBlockMesh> bm = meshBlock(*m_session, block);
+        ema(m_ms_mesh, ms_since(t_mesh));
+        auto t_upload = clock_t_::now();
         harvestLights(bp, block);
         harvestMotes(bp, block);
         MeshInstance3D *mi = nullptr;
@@ -1395,8 +1439,11 @@ int GoannaClient::poll_blocks(int max_blocks) {
             m_block_nodes[bp] = mi;
         }
         mi->set_mesh(mesh);
+        ema(m_ms_upload, ms_since(t_upload));
         ++done;
     }
+    m_last_meshed = done;
+    m_last_queue = (int)fresh.size() - done;
     return done;
 }
 
@@ -1448,6 +1495,7 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("entity_count"), &GoannaClient::entity_count);
     ClassDB::bind_method(D_METHOD("entity_positions"), &GoannaClient::entity_positions);
     ClassDB::bind_method(D_METHOD("entity_list"), &GoannaClient::entity_list);
+    ClassDB::bind_method(D_METHOD("render_stats"), &GoannaClient::render_stats);
     ClassDB::bind_method(D_METHOD("set_show_body", "show"), &GoannaClient::set_show_body);
     ClassDB::bind_method(D_METHOD("set_arm_swing", "s"), &GoannaClient::set_arm_swing);
     ClassDB::bind_method(D_METHOD("show_body"), &GoannaClient::show_body);

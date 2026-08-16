@@ -85,6 +85,10 @@ public:
     int entity_count() const { return m_entities ? m_entities->count() : 0; }
     godot::Array entity_positions() const { return m_entities ? m_entities->positions() : godot::Array(); }
     godot::Array entity_list();
+    // Frame-time telemetry: where the client's own time goes, and what the
+    // renderer is being asked to draw. Milliseconds are exponential moving
+    // averages so the numbers are readable rather than jittering per frame.
+    godot::Dictionary render_stats();
     // First-person body (the local player's own model, head shrunk away).
     void set_show_body(bool show);
     // First-person arm swing phase (0..1), driven from the input side.
@@ -216,6 +220,9 @@ private:
     bool m_shaders_loaded = false;
     float m_auto_bump = 0.35f;
     bool m_show_body = true;
+    // telemetry (EMA in milliseconds, plus last-frame counters)
+    double m_ms_mesh = 0, m_ms_upload = 0, m_ms_lights = 0, m_ms_motes = 0, m_ms_entities = 0;
+    int m_last_meshed = 0, m_last_queue = 0;
     float m_arm_swing = 0.0f;
     bool m_mantle = true;
     bool m_aux1_descends = false;
