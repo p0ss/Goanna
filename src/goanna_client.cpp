@@ -500,8 +500,10 @@ Dictionary GoannaClient::step_player(double dt, const Dictionary &keys, float pi
 
     v3f pos = p->getPosition();
     v3f eye = pos + p->getEyeOffset();
-    // report to server (nodes)
-    m_session->setPlayerPose(pos / BS, p->getPitch(), p->getYaw());
+    // report to server (nodes) with real speed and input intent, so the
+    // server's movement check does not reset us (which breaks item pickup)
+    m_session->setPlayerPose(pos / BS, p->getPitch(), p->getYaw(), p->getSpeed() / BS,
+            p->control.movement_speed, p->control.movement_direction);
     out["pos"] = Vector3(pos.X / BS, pos.Y / BS, -pos.Z / BS);
     out["eye_pos"] = Vector3(eye.X / BS, eye.Y / BS, -eye.Z / BS);
     out["pitch"] = -p->getPitch();

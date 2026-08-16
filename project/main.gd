@@ -313,6 +313,19 @@ func _main_list() -> Array:
 	var inv: Dictionary = client.inventory_state()
 	return (inv.get("lists", {}) as Dictionary).get("main", [])
 
+# Test hooks: teleport next to a target instead of walking (walking a straight
+# line into trees is what made the first mob test fail). Needs the teleport
+# privilege on the test server. Godot z is mirrored relative to Luanti.
+var test_teleported := 0.0
+func _teleport_near(target: Vector3) -> bool:
+	if test_teleported > 0.0:
+		return t - test_teleported > 2.0
+	test_teleported = t
+	var p := target + Vector3(1.5, 0.5, 1.5)
+	client.send_chat("/teleport %.1f %.1f %.1f" % [p.x, p.y, -p.z])
+	print("test: teleporting next to target at ", target)
+	return false
+
 func _test_hooks(keys: Dictionary) -> void:
 	# GOANNA_FALLTEST=1: pillar-jump then fall; report hp drop and server damage line.
 	if OS.get_environment("GOANNA_FALLTEST") != "":
@@ -367,8 +380,9 @@ func _test_hooks(keys: Dictionary) -> void:
 		mob_last_pos = Vector3(e["position"])
 		_aim_at(mob_last_pos + Vector3(0, 0.6, 0))
 		var dist: float = (mob_last_pos - cam.position).length()
-		if dist > 2.6:
-			keys["up"] = true
+		if dist > 3.0:
+			if _teleport_near(mob_last_pos):
+				keys["up"] = true
 		else:
 			test_dig = true
 		return
@@ -393,11 +407,16 @@ func _test_hooks(keys: Dictionary) -> void:
 		if inv_before.is_empty() and t > 2.0:
 			inv_before = {"main": _main_list().duplicate(true)}
 		if not e2.is_empty():
-			_aim_at(Vector3(e2["position"]) + Vector3(0, 0.6, 0))
-			if test_started == 0.0 and t > 3.0:
+			var target: Vector3 = Vector3(e2["position"])
+			_aim_at(target + Vector3(0, 0.6, 0))
+			# get into reach first (vanilla hand reach is 4 nodes)
+			if test_started == 0.0 and (target - cam.position).length() > 3.5:
+				if _teleport_near(target):
+					keys["up"] = true
+			elif test_started == 0.0 and t > 3.0:
 				test_started = t
 				test_plc_pressed = true
-				print("usetest: right-clicking ", e2["name"], " id ", e2["id"])
+				print("usetest: right-clicking ", e2["name"], " id ", e2["id"], " at ", (target - cam.position).length(), " nodes")
 		for f in client.take_shown_formspecs():
 			print("usetest: formspec name=", f["formname"], " context=", f["context"], " len=", String(f["formspec"]).length())
 		if test_started > 0.0 and t - test_started > 3.0:

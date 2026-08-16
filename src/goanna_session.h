@@ -203,7 +203,11 @@ public:
     void stepObjects(float dtime);
 
     // Player pose as the client will report it to the server (position in nodes).
-    void setPlayerPose(v3f pos_nodes, float pitch_deg, float yaw_deg);
+    // pos in nodes; speed in nodes/s; move_speed (0..1) and move_dir (radians)
+    // are the input intent (PlayerControl), reported so the server's movement
+    // validation and animation see a moving player.
+    void setPlayerPose(v3f pos_nodes, float pitch_deg, float yaw_deg,
+            v3f speed_nodes = v3f(0, 0, 0), float move_speed = 0, float move_dir = 0);
 
     // Media (textures, models, sounds) received from the server, by name.
     // Returns nullptr if unknown/not yet received. Thread-safe copy.
@@ -313,7 +317,8 @@ private:
     InteractState m_interact;
     PointedThing m_pointed_old;
     float m_nodig_delay_timer = 0, m_repeat_place_timer = 0;
-    bool m_dig_instantly = false, m_btn_down_for_dig = false;
+    float m_object_hit_delay_timer = 0;
+    bool m_dig_instantly = false, m_btn_down_for_dig = false, m_dig_was_down = false;
     u16 m_wield_index = 0;
     int m_crack_animation_length = -1;
 
@@ -363,7 +368,9 @@ private:
 
     std::mutex m_pose_mutex;
     v3f m_pose_pos = v3f(0, 0, 0);
+    v3f m_pose_speed = v3f(0, 0, 0);
     float m_pose_pitch = 0, m_pose_yaw = 0;
+    float m_pose_move_speed = 0, m_pose_move_dir = 0;
     float m_recommended_send_interval = 0.1f;
 };
 

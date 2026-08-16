@@ -712,7 +712,10 @@ void GoannaSession::stepInteract(float dtime, const InteractInput &in) {
 
     m_nodig_delay_timer -= dtime;
     if (m_nodig_delay_timer < 0) m_nodig_delay_timer = 0;
+    m_object_hit_delay_timer -= dtime;
+    if (m_object_hit_delay_timer < 0) m_object_hit_delay_timer = 0;
     const float repeat_dig_time = 0.0f, repeat_place_time = 0.25f;
+    const float object_hit_delay = 0.2f; // Game::object_hit_delay
 
     // pointing changed while digging -> stop
     if (m_interact.digging && !(pointed.type == POINTEDTHING_NODE && m_pointed_old.type == POINTEDTHING_NODE &&
@@ -809,11 +812,22 @@ void GoannaSession::stepInteract(float dtime, const InteractInput &in) {
             }
         }
     } else if (pointed.type == POINTEDTHING_OBJECT) {
-        // punch on press, place/use on right
-        if (in.dig && !m_btn_down_for_dig) {
-            m_btn_down_for_dig = true;
-            sendInteract(INTERACT_START_DIGGING, pointed);
-            m_nodig_delay_timer = std::max(0.15f, repeat_dig_time);
+        // Game::handlePointingAtObject: punch on the press edge and then at
+        // most once per object_hit_delay while held. The server measures the
+        // gap between punches and scales tool damage by it, so sending every
+        // frame would scale the damage to ~0.
+        if (in.dig) {
+            bool do_punch = false;
+            if (m_object_hit_delay_timer <= 0.0f) {
+                do_punch = true;
+                m_object_hit_delay_timer = object_hit_delay;
+            }
+            if (!m_dig_was_down) // wasKeyPressed(DIG)
+                do_punch = true;
+            if (do_punch) {
+                m_nodig_delay_timer = std::max(0.15f, repeat_dig_time);
+                sendInteract(INTERACT_START_DIGGING, pointed);
+            }
         }
         if (in.place_pressed)
             sendInteract(INTERACT_PLACE, pointed);
@@ -826,6 +840,7 @@ void GoannaSession::stepInteract(float dtime, const InteractInput &in) {
         }
     }
     m_pointed_old = pointed;
+    m_dig_was_down = in.dig;
     // crack overlay: re-mesh the block when the crack level or position changes
     static int last_level = -1;
     static v3s16 last_pos;
@@ -907,9 +922,13 @@ bool GoannaSession::takeServerMove(v3f &pos_bs, float &pitch, float &yaw) {
     return true;
 }
 
-void GoannaSession::setPlayerPose(v3f pos_nodes, float pitch_deg, float yaw_deg) {
+void GoannaSession::setPlayerPose(v3f pos_nodes, float pitch_deg, float yaw_deg,
+        v3f speed_nodes, float move_speed, float move_dir) {
     std::lock_guard<std::mutex> lk(m_pose_mutex);
     m_pose_pos = pos_nodes * BS;
+    m_pose_speed = speed_nodes * BS;
+    m_pose_move_speed = move_speed;
+    m_pose_move_dir = move_dir;
     m_pose_pitch = pitch_deg;
     m_pose_yaw = yaw_deg;
 }
@@ -1087,24 +1106,26 @@ void GoannaSession::sendReady() {
 }
 
 void GoannaSession::writePlayerPosTo(NetworkPacket &pkt) {
-    v3f pos;
-    float pitch, yaw;
+    v3f pos, speed_bs;
+    float pitch, yaw, movement_speed, movement_dir;
     {
         std::lock_guard<std::mutex> lk(m_pose_mutex);
         pos = m_pose_pos;
         pitch = m_pose_pitch;
         yaw = m_pose_yaw;
+        speed_bs = m_pose_speed;
+        movement_speed = m_pose_move_speed;
+        movement_dir = m_pose_move_dir;
     }
     // Format documented at TOSERVER_PLAYERPOS in networkprotocol.h.
     v3s32 position = v3s32::from(pos * 100);
-    v3s32 speed(0, 0, 0);
+    v3s32 speed = v3s32::from(speed_bs * 100);
     s32 ipitch = pitch * 100;
     s32 iyaw = yaw * 100;
     u32 keys = 0;
     u8 fov = (u8)std::min(255.0f, 1.2f * 80.0f);
     u8 wanted_range = 10; // blocks
     u8 camera_inverted = 0;
-    f32 movement_speed = 0, movement_dir = 0;
     pkt << position << speed << ipitch << iyaw << keys << fov << wanted_range << camera_inverted
         << movement_speed << movement_dir;
 }
