@@ -86,6 +86,13 @@ public:
     // Player inventory: {version, lists: {name: [{name, count, wear, description,
     // inventory_image, stack_max}]}}. Empty item names are empty slots.
     godot::Dictionary inventory_state();
+    // Inventory at "current_player", "detached:<name>" or "nodemeta:x,y,z":
+    // {found, version, lists}. version changes when detached inventories or
+    // node metadata change, so callers can poll cheaply.
+    godot::Dictionary inventory_state_at(const godot::String &location);
+    godot::PackedStringArray detached_inventory_names();
+    // Answer the death screen (builtin's "__builtin:death" formspec).
+    void respawn();
     // Texture (ImageTexture) for a Luanti texture string (item icons, HUD images);
     // null if unavailable. Goes through the texture-modifier DSL.
     godot::Ref<godot::Texture2D> texture(const godot::String &name);

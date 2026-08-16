@@ -21,6 +21,7 @@
 #include "raycast.h"
 #include "tool.h"
 
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <set>
@@ -33,6 +34,7 @@
 #include "itemdef.h"
 #include "log.h"
 #include "mapblock.h"
+#include "nodemetadata.h"
 #include "network/address.h"
 #include "network/networkpacket.h"
 #include "network/socket.h"
@@ -441,6 +443,69 @@ void GoannaSession::onHudSetParam(NetworkPacket &pkt) {
         m_hotbar_selected_image = value;
     }
     m_hud_version++;
+}
+
+// Client::handleCommand_DetachedInventory
+void GoannaSession::onDetachedInventory(NetworkPacket &pkt) {
+    std::string name;
+    bool keep_inv = true;
+    pkt >> name >> keep_inv;
+    std::lock_guard<std::mutex> lk(m_map_mutex);
+    m_detached_version++;
+    if (!keep_inv) {
+        m_detached_inventories.erase(name);
+        return;
+    }
+    auto &inv = m_detached_inventories[name];
+    if (!inv)
+        inv = std::make_unique<Inventory>(m_itemdef);
+    // this used to be the length of the following string, ignore it
+    pkt.skip(2);
+    std::string contents(pkt.getRemainingString(), pkt.getRemainingBytes());
+    std::istringstream is(contents, std::ios::binary);
+    inv->deSerialize(is);
+}
+
+// Client::handleCommand_NodemetaChanged
+void GoannaSession::onNodemetaChanged(NetworkPacket &pkt) {
+    if (pkt.getSize() < 1)
+        return;
+    std::istringstream is(pkt.readLongString(), std::ios::binary);
+    std::stringstream sstr(std::ios::binary | std::ios::in | std::ios::out);
+    decompressZlib(is, sstr);
+    NodeMetadataList meta_updates_list(false);
+    meta_updates_list.deSerialize(sstr, m_itemdef, true);
+    std::lock_guard<std::mutex> lk(m_map_mutex);
+    m_detached_version++;
+    for (auto i = meta_updates_list.begin(); i != meta_updates_list.end(); ++i) {
+        v3s16 pos = i->first;
+        if (m_map->isValidPosition(pos) && m_map->setNodeMetadata(pos, i->second))
+            continue; // Prevent from deleting metadata
+        // Meta couldn't be set, unused metadata
+        delete i->second;
+    }
+}
+
+Inventory *GoannaSession::inventoryAt(const std::string &location) {
+    // InventoryLocation::deSerialize, for the client-visible kinds
+    if (location == "current_player")
+        return m_inventory.get();
+    if (location.rfind("detached:", 0) == 0) {
+        auto it = m_detached_inventories.find(location.substr(9));
+        return it == m_detached_inventories.end() ? nullptr : it->second.get();
+    }
+    if (location.rfind("nodemeta:", 0) == 0) {
+        std::string coords = location.substr(9);
+        std::replace(coords.begin(), coords.end(), ',', ' ');
+        std::istringstream is(coords);
+        v3s16 p;
+        is >> p.X >> p.Y >> p.Z;
+        if (is.fail())
+            return nullptr;
+        NodeMetadata *meta = m_map->getNodeMetadata(p);
+        return meta ? meta->getInventory() : nullptr;
+    }
+    return nullptr;
 }
 
 void GoannaSession::onInventory(NetworkPacket &pkt) {
@@ -1099,6 +1164,8 @@ void GoannaSession::handle(NetworkPacket &pkt) {
     case TOCLIENT_HUD_SET_PARAM: onHudSetParam(pkt); break;
     case TOCLIENT_INVENTORY: onInventory(pkt); break;
     case TOCLIENT_INVENTORY_FORMSPEC: onInventoryFormspec(pkt); break;
+    case TOCLIENT_DETACHED_INVENTORY: onDetachedInventory(pkt); break;
+    case TOCLIENT_NODEMETA_CHANGED: onNodemetaChanged(pkt); break;
     case TOCLIENT_SHOW_FORMSPEC: onShowFormspec(pkt); break;
     case TOCLIENT_SET_SUN: onSetSun(pkt); break;
     case TOCLIENT_SET_MOON: onSetMoon(pkt); break;

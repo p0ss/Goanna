@@ -187,38 +187,69 @@ Dictionary GoannaClient::hud_state() const {
     return d;
 }
 
+static Dictionary inventoryLists(Inventory *inv, IItemDefManager *idef) {
+    Dictionary lists;
+    if (!inv)
+        return lists;
+    for (InventoryList *list : inv->getLists()) {
+        Array items;
+        for (u32 i = 0; i < list->getSize(); ++i) {
+            const ItemStack &st = list->getItem(i);
+            Dictionary it;
+            it["name"] = String::utf8(st.name.c_str());
+            it["count"] = (int)st.count;
+            it["wear"] = (int)st.wear;
+            if (!st.name.empty() && idef) {
+                const ItemDefinition &def = st.getDefinition(idef);
+                it["description"] = String::utf8(def.description.c_str());
+                it["inventory_image"] = String::utf8(def.inventory_image.name.c_str());
+                it["stack_max"] = (int)def.stack_max;
+                it["type"] = (int)def.type;
+            }
+            items.push_back(it);
+        }
+        lists[String::utf8(list->getName().c_str())] = items;
+    }
+    return lists;
+}
+
 Dictionary GoannaClient::inventory_state() {
     Dictionary d;
     if (!m_session)
         return d;
     std::lock_guard<std::mutex> lk(m_session->mapLock());
-    Inventory *inv = m_session->inventory();
     d["version"] = (int)m_session->inventoryVersion();
-    Dictionary lists;
-    if (inv) {
-        IItemDefManager *idef = m_session->getItemDefManager();
-        for (InventoryList *list : inv->getLists()) {
-            Array items;
-            for (u32 i = 0; i < list->getSize(); ++i) {
-                const ItemStack &st = list->getItem(i);
-                Dictionary it;
-                it["name"] = String::utf8(st.name.c_str());
-                it["count"] = (int)st.count;
-                it["wear"] = (int)st.wear;
-                if (!st.name.empty() && idef) {
-                    const ItemDefinition &def = st.getDefinition(idef);
-                    it["description"] = String::utf8(def.description.c_str());
-                    it["inventory_image"] = String::utf8(def.inventory_image.name.c_str());
-                    it["stack_max"] = (int)def.stack_max;
-                    it["type"] = (int)def.type;
-                }
-                items.push_back(it);
-            }
-            lists[String::utf8(list->getName().c_str())] = items;
-        }
-    }
-    d["lists"] = lists;
+    d["lists"] = inventoryLists(m_session->inventory(), m_session->getItemDefManager());
     return d;
+}
+
+Dictionary GoannaClient::inventory_state_at(const String &location) {
+    Dictionary d;
+    if (!m_session)
+        return d;
+    std::lock_guard<std::mutex> lk(m_session->mapLock());
+    Inventory *inv = m_session->inventoryAt(location.utf8().get_data());
+    d["found"] = inv != nullptr;
+    d["version"] = (int)(m_session->inventoryVersion() + m_session->detachedVersion());
+    d["lists"] = inventoryLists(inv, m_session->getItemDefManager());
+    return d;
+}
+
+PackedStringArray GoannaClient::detached_inventory_names() {
+    PackedStringArray names;
+    if (!m_session)
+        return names;
+    std::lock_guard<std::mutex> lk(m_session->mapLock());
+    for (auto &kv : m_session->detachedInventories())
+        names.push_back(String::utf8(kv.first.c_str()));
+    return names;
+}
+
+void GoannaClient::respawn() {
+    // 5.16 servers show builtin's "__builtin:death" formspec; closing it
+    // with quit set is what respawns the player (builtin/game/death_screen.lua).
+    if (m_session)
+        m_session->sendInventoryFields("__builtin:death", {{"quit", "true"}});
 }
 
 Ref<Texture2D> GoannaClient::texture(const String &name) {
@@ -754,6 +785,9 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("breath"), &GoannaClient::breath);
     ClassDB::bind_method(D_METHOD("hud_state"), &GoannaClient::hud_state);
     ClassDB::bind_method(D_METHOD("inventory_state"), &GoannaClient::inventory_state);
+    ClassDB::bind_method(D_METHOD("inventory_state_at", "location"), &GoannaClient::inventory_state_at);
+    ClassDB::bind_method(D_METHOD("detached_inventory_names"), &GoannaClient::detached_inventory_names);
+    ClassDB::bind_method(D_METHOD("respawn"), &GoannaClient::respawn);
     ClassDB::bind_method(D_METHOD("texture", "name"), &GoannaClient::texture);
     ClassDB::bind_method(D_METHOD("inventory_formspec"), &GoannaClient::inventory_formspec);
     ClassDB::bind_method(D_METHOD("take_shown_formspecs"), &GoannaClient::take_shown_formspecs);

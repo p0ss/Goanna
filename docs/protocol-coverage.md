@@ -19,6 +19,8 @@ transplanted from `Client::handleCommand_*` in
 | HP / BREATH | done | `hp()`, `breath()` (also in `hud_state()`) |
 | HUDADD / HUDCHANGE / HUDRM / HUD_SET_FLAGS / HUD_SET_PARAM | done, kept as Luanti `HudElement`s | `hud_state()` |
 | INVENTORY / INVENTORY_FORMSPEC / SHOW_FORMSPEC / TOSERVER_INVENTORY_ACTION | done (Luanti `Inventory` deserialised; formspecs passed as strings; actions sent as Luanti's action strings) | `inventory_state()`, `inventory_formspec()`, `take_shown_formspecs()`, `send_inventory_fields(...)`, `inventory_action(str)`, `set_wield_index(i)`, `wield_index()` |
+| DETACHED_INVENTORY / NODEMETA_CHANGED (and node metadata in BLOCKDATA) | done | `inventory_state_at("detached:<name>" or "nodemeta:x,y,z")`, `detached_inventory_names()` |
+| death screen (builtin's `__builtin:death` formspec, no dedicated packet since 5.9) | done | `respawn()` |
 | textures for UI (item icons, HUD images) | via the texture-modifier DSL | `texture(name) -> Texture2D` |
 | INTERACT (dig start/stop/completed, place) / PLAYERITEM | done, raycast and dig timing from Luanti's own code | `step_interact(dt, dig, place, place_pressed)`, `set_wield_index(i)` |
 
@@ -29,8 +31,7 @@ stand-in client), so `node_visuals` handles them as upstream does.
 - Item, wield-item and node entity visuals; the local player's wield hand.
 - Particles, sounds, node metadata display, minimap data, camera packets,
   death screen, mod channels, client-side mods (SSCSM).
-- Formspec `model[]` elements and `style[]`, and detached and node metadata
-  inventories. Formspecs are otherwise parsed and drawn by
+- Formspec `model[]` elements and `style[]`. Formspecs are otherwise parsed and drawn by
   `project/ui/formspec.gd`, with the layout maths from `GUIFormSpecMenu`.
 
 ## Coordinate conventions

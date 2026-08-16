@@ -184,6 +184,12 @@ func _process(delta: float) -> void:
 		last_print = t
 		if OS.get_environment("GOANNA_DUMPSKY") != "" and int(t) == 3:
 			print("SKY ", JSON.stringify(client.sky_state()))
+		if OS.get_environment("GOANNA_DUMPUI") != "" and int(t) == 5:
+			for dn in client.detached_inventory_names():
+				var ds: Dictionary = client.inventory_state_at("detached:" + dn)
+				print("detached ", dn, " lists ", (ds["lists"] as Dictionary).keys())
+			if OS.get_environment("GOANNA_NODEMETA") != "":
+				print("nodemeta ", client.inventory_state_at("nodemeta:" + OS.get_environment("GOANNA_NODEMETA")))
 		if OS.get_environment("GOANNA_DUMPUI") != "":
 			if int(t) == 2:
 				client.send_chat("hello from goanna")

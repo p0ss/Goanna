@@ -148,6 +148,13 @@ public:
     // Player inventory (Luanti's own Inventory). Caller holds mapLock().
     Inventory *inventory() { return m_inventory.get(); }
     u32 inventoryVersion() const { return m_inventory_version; }
+    // Inventory at a Luanti inventory location: "current_player",
+    // "detached:<name>" or "nodemeta:x,y,z"; nullptr if unknown. Caller
+    // holds mapLock().
+    Inventory *inventoryAt(const std::string &location);
+    // Bumped when any detached inventory or node metadata changes.
+    u32 detachedVersion() const { return m_detached_version; }
+    const std::map<std::string, std::unique_ptr<Inventory>> &detachedInventories() const { return m_detached_inventories; }
     // Formspecs: the current inventory formspec, and a queue of shown formspecs
     // (formspec, formname). Consumed by takeShownFormspecs().
     std::string inventoryFormspec() const;
@@ -265,6 +272,8 @@ private:
     void onHudSetParam(NetworkPacket &pkt);
     void onInventory(NetworkPacket &pkt);
     void onInventoryFormspec(NetworkPacket &pkt);
+    void onDetachedInventory(NetworkPacket &pkt);
+    void onNodemetaChanged(NetworkPacket &pkt);
     void onShowFormspec(NetworkPacket &pkt);
 
     std::string m_host;
@@ -305,6 +314,8 @@ private:
     std::atomic<u16> m_breath{10};
     std::unique_ptr<Inventory> m_inventory;
     u32 m_inventory_version = 0;
+    std::map<std::string, std::unique_ptr<Inventory>> m_detached_inventories;
+    u32 m_detached_version = 0;
     std::string m_inventory_formspec;
     std::vector<std::pair<std::string, std::string>> m_shown_formspecs;
     std::unique_ptr<GoannaTextureSource> m_tsrc;
