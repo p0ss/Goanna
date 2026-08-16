@@ -129,8 +129,23 @@ Sizing, by what happens to those ~57k lines:
   `REMOVENODE` re-mesh the affected blocks (verified with a worldmod that
   toggles a pillar). The sky packets and `TIME_OF_DAY` drive Godot's sun,
   sky colours, fog and grading along Luanti's own sun path
-  (`docs/e0b_time_of_day.png`). Remaining for E0b proper: node light,
-  `RenderingServer` instances instead of nodes, entities.
+  (`docs/e0b_time_of_day.png`).
+  **Stage 5 (2026-08-16, afternoon): materials, lights, interaction,
+  entities, menu.** Shader variants by Luanti material type (water, waving
+  leaves and plants, glass), emissive materials and a pool of shadow-casting
+  point lights for `light_source` nodes (`docs/e0b_torches_night.png`); a
+  transplant fix so transparent buffers reach Godot at all (water had never
+  rendered); digging and placing through Luanti's own raycast and
+  `TOSERVER_INTERACT`, confirmed in the devtest server log; `GenericCAO`
+  state transplanted with sprite, cube and placeholder visuals and nametags
+  (`docs/e0b_entities.png`); chat, HP, HUD, inventory and formspec strings
+  parsed and exposed to GDScript (`docs/protocol-coverage.md`); a
+  connection menu; licence headers and the transplant inventory brought
+  into order. Three sessions worked the tree at once this afternoon, which
+  is where the discipline in `CONTRIBUTING.md` and `docs/transplanting.md`
+  earned its keep. Remaining for E0b proper: node light, entity meshes and
+  animation, formspec rendering, `RenderingServer` instances instead of
+  nodes.
   Findings so far: the tangle in `src/client` is avoidable. The pieces
   below `Client` separate cleanly, so the transplant is "build Goanna's
   client on Luanti's real network/world layer", not "trim `Client`";

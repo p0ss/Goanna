@@ -20,8 +20,11 @@ The preferred case. `luanti/` is a git submodule pinned to a release tag, and
 `cmake/luanti_core.cmake` compiles a chosen subset of its sources directly
 into the `luanti_core` static library. Nothing is copied and nothing is
 edited. The network layer, serialisation, node and item definitions, MapBlock
-and Map, inventory and metadata, and the SRP authentication stack all come
-across this way.
+and Map, inventory and metadata, the SRP authentication stack, the raycast
+and object properties, and the CPU-only parts of Irrlicht that the meshing
+and model code need (`CImage`, colour conversion, `SkinnedMesh`) all come
+across this way. The list in `cmake/luanti_core.cmake` is the inventory for
+this tier.
 
 If a file can be compiled from the submodule, compile it from the submodule.
 Adding a file to the list in `cmake/luanti_core.cmake` costs nothing at merge
@@ -102,6 +105,7 @@ reviewer will read.
 | `src/transplant/client/content_mapblock.cpp` | `src/client/content_mapblock.cpp` | Reaches `Client` | Compiles against Goanna's `Client` stand-in; `applyFacesShading` calls are skipped while `g_goanna_no_light` is set |
 | `src/transplant/client/node_visuals.cpp` | `src/client/node_visuals.cpp` | Uses the video driver for array textures | Array textures unsupported; mesh manipulation and mesh loading via the `Client` stand-in |
 | `src/transplant/client/imagesource.cpp` | `src/client/imagesource.cpp` | Creates images through the video driver | Image creation and decoding go through `goanna_image_hooks.h`; otherwise verbatim |
+| `src/transplant/environment_raycast.cpp` | `src/environment.cpp` | `Environment::continueRaycast` needs an `Environment` (`getMap`, `getSelectedActiveObjects`) | Only `isPointableNode()` and `continueRaycast()` copied; a free function in namespace `goanna` taking `Map&` and an object-selection callback; body otherwise verbatim |
 | `src/luanti_shims.cpp` | `src/inventorymanager.cpp` | The whole file drags in the server environment and scripting | Two functions copied verbatim, nothing else |
 | `src/goanna_active_object.h`, `.cpp` | `src/client/content_cao.{h,cpp}` | `GenericCAO` is built around Irrlicht scene nodes | No scene nodes; state snapshot for the Godot side instead; movement calls the transplanted collision code rather than `ClientEnvironment`. **Misplaced:** roughly two thirds of the `.cpp` is upstream, so it is a tier 2 transplant and belongs under `src/transplant/` |
 | `src/goanna_sky.cpp` | `src/client/sky.cpp` | Sky rendering is Irrlicht; only the maths is wanted | The wicked time of day and sky body position functions only, each marked at its definition. Also credits numzero |

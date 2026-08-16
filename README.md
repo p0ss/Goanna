@@ -108,7 +108,28 @@ software to play with yet.
   rendered emissive, and a pool of `OmniLight3D`s follows the nearest bright
   nodes to the camera, so a torch or glowstone lights the ground around it
   and SDFGI picks up the bounce (`docs/e0b_torches_night.png`, a devtest
-  ring of `light14` nodes at midnight).
+  ring of `light14` nodes at midnight). The nearest eight of those lights
+  cast shadows.
+- Digging and placing. The pointed-thing raycast is Luanti's own
+  (`Environment::continueRaycast` transplanted, `raycast.cpp` compiled from
+  the submodule), dig time comes from the tool capabilities, and
+  `TOSERVER_INTERACT` start, stop, completed and place are sent with a
+  client-side removal prediction and crack level. Wield slot by number keys
+  and mouse wheel (`TOSERVER_PLAYERITEM`). Observed on devtest: instant dig
+  of `testnodes:light14`, a timed hand dig of `basenodes:dirt_with_grass`,
+  and two placements, all confirmed in the server log.
+- Entities, partly. `ACTIVE_OBJECT_REMOVE_ADD` and `ACTIVE_OBJECT_MESSAGES`
+  are handled by a transplant of `GenericCAO`'s state and message parsing
+  (position and rotation interpolation, animation and bone data, attachment,
+  physics overrides applied to the local player). Visuals are sprites, cubes
+  and placeholders with nametags (`docs/e0b_entities.png`, a second player
+  on devtest). Meshes and skeletal animation are not drawn yet.
+- In-game data, without an interface to show it. Chat in both directions,
+  HP and breath, HUD elements and flags, the inventory (Luanti's own
+  `Inventory`), inventory and shown formspecs as strings, and item icons
+  through the texture source are parsed and exposed to GDScript. See
+  [docs/protocol-coverage.md](docs/protocol-coverage.md) for the packet by
+  packet list and the `GoannaClient` API.
 - Rendering through Godot's Forward+ pipeline, with SDFGI, SSAO, SSIL, real
   shadows, fog and AgX tone mapping.
 
@@ -123,11 +144,15 @@ it:
   open design question, not just a missing feature.
 - Transparent nodes are sorted per mapblock, not per triangle as Luanti
   does, so overlapping water and glass can draw in the wrong order.
-- Digging, placing, and using anything at all. There is no interaction.
-- Inventory, formspecs, HUD, chat, sound, particles.
-- Entities. No other players, no mobs, no dropped items.
+- Entity meshes and skeletal animation, and `NDT_MESH` nodes. Anything with
+  a model is a placeholder box for now.
+- Any in-game user interface. Chat, HUD, inventory and formspecs arrive and
+  are exposed to GDScript, but nothing draws them yet; formspec rendering
+  in particular is a large piece of work. Wield item visuals, node metadata,
+  the death screen. There is a connection menu and nothing else.
+- Inventory actions (`TOSERVER_INVENTORY_ACTION`), sound, particles, the
+  minimap, camera packets, mod channels, client-side mods.
 - Clouds, and the sun, moon and star textures. The sky is a plain gradient.
-- Any in-game user interface. There is a connection menu and nothing else.
 - Windows and macOS. Linux only so far, for no better reason than that is
   where it was written.
 
