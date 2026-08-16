@@ -60,6 +60,7 @@ private:
         godot::Label3D *nametag = nullptr;
         godot::Skeleton3D *skeleton = nullptr;
         std::unique_ptr<ModelAnimator> animator;
+        std::string arm_bone; // first-person arm, chosen by which side it shows on
         uint32_t visual_version = 0;
         uint32_t anim_version = 0;
         godot::Vector2 anim_range = godot::Vector2(-1, -1); // last applied frame loop

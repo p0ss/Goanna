@@ -4,6 +4,7 @@
 #include "goanna_entities.h"
 
 #include <set>
+#include <godot_cpp/variant/utility_functions.hpp>
 
 #include <godot_cpp/classes/box_mesh.hpp>
 #include <godot_cpp/classes/capsule_mesh.hpp>
@@ -435,38 +436,74 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
                 pp.Z -= std::cos(yaw_rad) * 1.2f;
                 en.root->set_position(Vector3(pp.X / BS, pp.Y / BS, -pp.Z / BS));
                 // Unlike CAO rotations, the player yaw maps to Godot yaw
-                // directly (mirroring it made the body counter-rotate), and
-                // MC-family models face -Z, so add a half turn or the body
-                // faces the camera and the arms swap sides on screen.
+                // directly; mirroring it made the body counter-rotate. The
+                // model faces the camera at that yaw, so add a half turn:
+                // your body should face where you look (and its right arm
+                // then falls on the camera's right, which the arm pick below
+                // confirms).
                 en.root->set_rotation_degrees(Vector3(0, lp->getYaw() + 180.0f, 0));
             }
         }
         if (is_self && en.animator) {
-            // First-person arm: pose the body's right arm toward the view,
-            // using Mineclonia's own Arm_Right_Pitch_Control convention
-            // (x = 90 + look pitch, y pulls inward, z counters a little), so
-            // the wield item the game attaches to the arm bone sits in view;
-            // the swing chops the same pose. Tunable via GOANNA_ARM.
-            static float A[7] = {90.0f, -30.0f, 0.0f, 1.0f, -0.35f, -45.0f, -12.0f};
-            static bool arm_env = [] {
-                if (const char *e = std::getenv("GOANNA_ARM"))
-                    sscanf(e, "%f,%f,%f,%f,%f,%f,%f", &A[0], &A[1], &A[2], &A[3], &A[4], &A[5], &A[6]);
-                return true;
-            }();
-            (void)arm_env;
-            float pitch = 0.0f;
-            if (LocalPlayer *lp = session.player())
+            // First-person arm: pose one of the body's arms toward the view so
+            // the wield item the game attaches to that bone sits in hand, and
+            // swing the same pose. Which arm reads as "yours" depends on the
+            // model's facing and its bone naming, so pick the one that
+            // actually projects to the camera's right rather than assuming.
+            float yaw = 0.0f, pitch = 0.0f;
+            if (LocalPlayer *lp = session.player()) {
+                yaw = lp->getYaw();
                 pitch = lp->getPitch();
-            const char *arm = en.animator->hasJoint("Arm_Right_Pitch_Control")
-                    ? "Arm_Right_Pitch_Control" : "Arm_Right";
-            v3f eul(A[0] + A[3] * pitch + A[5] * m_arm_swing,
-                    A[1] + A[6] * m_arm_swing,
-                    A[2] + A[4] * pitch);
-            // Same convention as server bone overrides: euler degrees,
-            // stored inverse (BoneSceneNode keeps rotations inverted).
-            core::quaternion q(eul * core::DEGTORAD);
-            q.makeInverse();
-            en.animator->setJointRotationOverride(arm, q);
+            }
+            if (en.arm_bone.empty() && en.skeleton) {
+                const char *cands[4] = {"Arm_Right_Pitch_Control", "Arm_Right",
+                        "Arm_Left_Pitch_Control", "Arm_Left"};
+                float yr = yaw * core::DEGTORAD;
+                Vector3 cam_right(std::cos(yr), 0, -std::sin(yr));
+                Transform3D body = en.skeleton->get_global_transform();
+                float best = 0.0f;
+                for (const char *c : cands) {
+                    Transform3D j;
+                    if (!en.animator->jointGlobal(c, j))
+                        continue;
+                    float d = (body.xform(j.origin) - body.origin).dot(cam_right);
+                    if (en.arm_bone.empty() || d > best) {
+                        // require a real offset, so an unstepped (identity)
+                        // skeleton does not lock in a bad choice
+                        if (std::fabs(d) > 0.02f) {
+                            best = d;
+                            en.arm_bone = c;
+                        }
+                    }
+                }
+            }
+            if (!en.arm_bone.empty() && getenv("GOANNA_DEBUG_ARM")) {
+                static std::string last;
+                if (last != en.arm_bone) {
+                    last = en.arm_bone;
+                    godot::UtilityFunctions::print("arm bone chosen: ", String(en.arm_bone.c_str()));
+                }
+            }
+            if (!en.arm_bone.empty()) {
+                // Mineclonia's own Arm_Right_Pitch_Control convention:
+                // x = 90 + look pitch, y pulls the arm inward, z counters a
+                // little; the swing chops the same pose. Tunable: GOANNA_ARM.
+                static float A[7] = {62.0f, 14.0f, 0.0f, 1.0f, 0.35f, -40.0f, 10.0f};
+                static bool arm_env = [] {
+                    if (const char *e = std::getenv("GOANNA_ARM"))
+                        sscanf(e, "%f,%f,%f,%f,%f,%f,%f", &A[0], &A[1], &A[2], &A[3], &A[4], &A[5], &A[6]);
+                    return true;
+                }();
+                (void)arm_env;
+                v3f eul(A[0] + A[3] * pitch + A[5] * m_arm_swing,
+                        A[1] + A[6] * m_arm_swing,
+                        A[2] + A[4] * pitch);
+                // Same convention as server bone overrides: euler degrees,
+                // stored inverse (BoneSceneNode keeps rotations inverted).
+                core::quaternion q(eul * core::DEGTORAD);
+                q.makeInverse();
+                en.animator->setJointRotationOverride(en.arm_bone, q);
+            }
         }
         // skeletal animation: GenericCAO::updateAnimation, then a step
         if (en.animator) {
