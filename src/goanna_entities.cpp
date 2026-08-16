@@ -428,12 +428,15 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
             if (LocalPlayer *lp = session.player()) {
                 v3f pp = lp->getPosition();
                 // slightly behind the eye along the look yaw, so the
-                // shoulders sit below the lens instead of filling it
+                // shoulders sit below the lens instead of filling it. The
+                // horizontal look is (0,0,1).rotateXZBy(yaw) = (-sin, cos).
                 float yaw_rad = lp->getYaw() * core::DEGTORAD;
-                pp.X -= std::sin(yaw_rad) * 1.2f;
+                pp.X += std::sin(yaw_rad) * 1.2f;
                 pp.Z -= std::cos(yaw_rad) * 1.2f;
                 en.root->set_position(Vector3(pp.X / BS, pp.Y / BS, -pp.Z / BS));
-                en.root->set_rotation_degrees(Vector3(0, -lp->getYaw(), 0));
+                // Unlike CAO rotations, the player yaw maps to Godot yaw
+                // directly; mirroring it made the body counter-rotate.
+                en.root->set_rotation_degrees(Vector3(0, lp->getYaw(), 0));
             }
         }
         // skeletal animation: GenericCAO::updateAnimation, then a step

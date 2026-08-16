@@ -21,7 +21,11 @@ varying vec3 world_pos;
 
 void vertex() {
 	world_pos = VERTEX;
-	if (waving && NORMAL.y > 0.5) {
+	// Displace EVERY water vertex by the same world-position field, as the
+	// vanilla waving-liquid shader does. Gating on the normal displaced tops
+	// but not the sides of the same water, tearing every top/side junction
+	// (waterfalls, terraced flowing water) with animated gaps.
+	if (waving) {
 		float ph = (VERTEX.x + VERTEX.z * 0.7) * (6.2831853 / wave_length) + TIME * wave_speed;
 		float h = sin(ph) * wave_height + sin(ph * 1.7 + 1.3) * wave_height * 0.5;
 		VERTEX.y += h;
