@@ -117,6 +117,11 @@ func _ready() -> void:
 	flash_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(flash_rect)
 
+	var particles = preload("res://ui/particles.gd").new()
+	particles.client = client
+	var phost := _main_node()
+	if phost != null:
+		phost.add_child.call_deferred(particles)
 	audio = preload("res://ui/audio.gd").new()
 	audio.client = client
 	# 3D voices need to live in the 3D scene to be positioned; a CanvasLayer

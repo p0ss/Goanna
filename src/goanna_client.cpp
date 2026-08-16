@@ -564,6 +564,57 @@ PackedInt32Array GoannaClient::take_stopped_sounds() {
     return out;
 }
 
+static inline Vector3 gv(const v3f &v) { return Vector3(v.X, v.Y, v.Z); }
+
+Array GoannaClient::take_particle_spawners() {
+    Array out;
+    if (!m_session)
+        return out;
+    for (auto &e : m_session->takeParticleSpawners()) {
+        Dictionary d;
+        d["id"] = (int)e.id;
+        d["amount"] = (int)e.amount;
+        d["time"] = e.time;
+        d["pos_min"] = gv(e.pos_min); d["pos_max"] = gv(e.pos_max);
+        d["vel_min"] = gv(e.vel_min); d["vel_max"] = gv(e.vel_max);
+        d["acc_min"] = gv(e.acc_min); d["acc_max"] = gv(e.acc_max);
+        d["exp_min"] = e.exp_min; d["exp_max"] = e.exp_max;
+        d["size_min"] = e.size_min; d["size_max"] = e.size_max;
+        d["texture"] = String::utf8(e.texture.c_str());
+        d["vertical"] = e.vertical;
+        d["collision"] = e.collision;
+        d["attached_id"] = (int)e.attached_id;
+        out.push_back(d);
+    }
+    return out;
+}
+
+PackedInt32Array GoannaClient::take_deleted_spawners() {
+    PackedInt32Array out;
+    if (!m_session)
+        return out;
+    for (u32 id : m_session->takeDeletedSpawners())
+        out.push_back((int)id);
+    return out;
+}
+
+Array GoannaClient::take_particles() {
+    Array out;
+    if (!m_session)
+        return out;
+    for (auto &e : m_session->takeParticles()) {
+        Dictionary d;
+        d["position"] = gv(e.pos);
+        d["velocity"] = gv(e.vel);
+        d["acceleration"] = gv(e.acc);
+        d["expirationtime"] = e.expirationtime;
+        d["size"] = e.size;
+        d["texture"] = String::utf8(e.texture.c_str());
+        out.push_back(d);
+    }
+    return out;
+}
+
 PackedStringArray GoannaClient::media_names() {
     PackedStringArray out;
     if (!m_session)
@@ -1563,6 +1614,9 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("take_stopped_sounds"), &GoannaClient::take_stopped_sounds);
     ClassDB::bind_method(D_METHOD("media_bytes", "name"), &GoannaClient::media_bytes);
     ClassDB::bind_method(D_METHOD("media_names"), &GoannaClient::media_names);
+    ClassDB::bind_method(D_METHOD("take_particle_spawners"), &GoannaClient::take_particle_spawners);
+    ClassDB::bind_method(D_METHOD("take_deleted_spawners"), &GoannaClient::take_deleted_spawners);
+    ClassDB::bind_method(D_METHOD("take_particles"), &GoannaClient::take_particles);
     ClassDB::bind_method(D_METHOD("node_name_at", "pos"), &GoannaClient::node_name_at);
     ClassDB::bind_method(D_METHOD("node_sound", "node_name", "kind"), &GoannaClient::node_sound);
     ClassDB::bind_method(D_METHOD("sky_state"), &GoannaClient::sky_state);

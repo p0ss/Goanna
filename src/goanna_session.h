@@ -161,6 +161,30 @@ public:
     };
     std::vector<SoundEvent> takeSounds();
     std::vector<s32> takeStoppedSounds();
+    // --- particles ---
+    // A particle spawner the server asked for: a box of positions with
+    // velocity/acceleration ranges, a texture and a lifetime. Positions
+    // are Godot space (nodes, z mirrored).
+    struct ParticleSpawnerEvent {
+        u32 id = 0;
+        u16 amount = 0;
+        float time = 0.0f;
+        v3f pos_min, pos_max, vel_min, vel_max, acc_min, acc_max;
+        float exp_min = 1.0f, exp_max = 1.0f, size_min = 1.0f, size_max = 1.0f;
+        std::string texture;
+        u8 glow = 0;
+        bool vertical = false, collision = false;
+        u16 attached_id = 0;
+    };
+    struct ParticleEvent {
+        v3f pos, vel, acc;
+        float expirationtime = 1.0f, size = 1.0f;
+        std::string texture;
+        u8 glow = 0;
+    };
+    std::vector<ParticleSpawnerEvent> takeParticleSpawners();
+    std::vector<u32> takeDeletedSpawners();
+    std::vector<ParticleEvent> takeParticles();
     std::vector<std::string> mediaNames() const;
     // Raw bytes of a received media file (sounds are .ogg), empty if absent.
     bool mediaBytes(const std::string &name, std::string &out) const { return getMedia(name, out); }
@@ -293,6 +317,9 @@ private:
     void requestMedia(const std::vector<std::string> &names);
     void onBlockData(NetworkPacket &pkt);
     void onPlaySound(NetworkPacket &pkt);
+    void onAddParticleSpawner(NetworkPacket &pkt);
+    void onDeleteParticleSpawner(NetworkPacket &pkt);
+    void onSpawnParticle(NetworkPacket &pkt);
     void onStopSound(NetworkPacket &pkt);
     void onFadeSound(NetworkPacket &pkt);
     void onMovePlayer(NetworkPacket &pkt);
@@ -398,6 +425,9 @@ private:
     // content preparation completes.
     std::vector<v3s16> m_preready_blocks;
     std::vector<SoundEvent> m_sounds;
+    std::vector<ParticleSpawnerEvent> m_spawners;
+    std::vector<u32> m_deleted_spawners;
+    std::vector<ParticleEvent> m_particles;
     std::vector<s32> m_stopped_sounds;
     mutable std::mutex m_sound_mutex;
     std::vector<v3s16> m_ack_blocks;

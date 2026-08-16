@@ -155,6 +155,11 @@ public:
     godot::Array take_sounds();
     godot::PackedInt32Array take_stopped_sounds();
     godot::PackedStringArray media_names();
+    // Particle spawners the server asked for since the last call, the ids
+    // it cancelled, and one-shot particles.
+    godot::Array take_particle_spawners();
+    godot::PackedInt32Array take_deleted_spawners();
+    godot::Array take_particles();
     // Name of the node at a Godot-space position, "" if unknown.
     godot::String node_name_at(const godot::Vector3 &pos);
     // Raw bytes of a received media file (an .ogg for sounds), empty if absent.

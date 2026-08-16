@@ -42,6 +42,7 @@
 #include "network/networkpacket.h"
 #include "network/socket.h"
 #include "nodedef.h"
+#include "particles.h"
 #include "itemgroup.h"
 #include "collision.h"
 #include "porting.h"
@@ -1376,6 +1377,9 @@ void GoannaSession::handle(NetworkPacket &pkt) {
     case TOCLIENT_DETACHED_INVENTORY: onDetachedInventory(pkt); break;
     case TOCLIENT_NODEMETA_CHANGED: onNodemetaChanged(pkt); break;
     case TOCLIENT_PLAY_SOUND: onPlaySound(pkt); break;
+    case TOCLIENT_ADD_PARTICLESPAWNER: onAddParticleSpawner(pkt); break;
+    case TOCLIENT_DELETE_PARTICLESPAWNER: onDeleteParticleSpawner(pkt); break;
+    case TOCLIENT_SPAWN_PARTICLE: onSpawnParticle(pkt); break;
     case TOCLIENT_STOP_SOUND: onStopSound(pkt); break;
     case TOCLIENT_FADE_SOUND: onFadeSound(pkt); break;
     case TOCLIENT_SHOW_FORMSPEC: onShowFormspec(pkt); break;
@@ -1611,6 +1615,107 @@ static uint64_t hashBlockNodes(MapBlock *block) {
 // Server-driven sounds (Client::handleCommand_PlaySound). Goanna keeps the
 // event and lets the Godot side own playback; positions are converted to
 // Godot space (nodes, z mirrored) here.
+// Particles (Client::handleCommand_AddParticleSpawner). Luanti's own
+// parameter types do the deserialising, so the wire format stays theirs; we
+// keep the ranges the Godot side needs and convert to Godot space.
+static inline v3f toGodotVec(const v3f &v) { return v3f(v.X, v.Y, -v.Z); }
+
+void GoannaSession::onAddParticleSpawner(NetworkPacket &pkt) {
+    std::string datastring(pkt.getString(0), pkt.getSize());
+    std::istringstream is(datastring, std::ios_base::binary);
+    ParticleSpawnerParameters p;
+    p.amount = readU16(is);
+    p.time = readF32(is);
+    if (p.time < 0)
+        return;
+    u16 proto = stats().proto_ver;
+    if (proto >= 42) {
+        p.pos.deSerialize(is);
+        p.vel.deSerialize(is);
+        p.acc.deSerialize(is);
+        p.exptime.deSerialize(is);
+        p.size.deSerialize(is);
+    } else {
+        p.pos.start.legacyDeSerialize(is);
+        p.vel.start.legacyDeSerialize(is);
+        p.acc.start.legacyDeSerialize(is);
+        p.exptime.start.legacyDeSerialize(is);
+        p.size.start.legacyDeSerialize(is);
+    }
+    p.collisiondetection = readU8(is);
+    p.texture.string = deSerializeString32(is);
+    u32 server_id = readU32(is);
+    p.vertical = readU8(is);
+    p.collision_removal = readU8(is);
+    u16 attached_id = readU16(is);
+
+    ParticleSpawnerEvent ev;
+    ev.id = server_id;
+    ev.amount = p.amount;
+    ev.time = p.time;
+    ev.pos_min = toGodotVec(p.pos.start.min);
+    ev.pos_max = toGodotVec(p.pos.start.max);
+    ev.vel_min = toGodotVec(p.vel.start.min);
+    ev.vel_max = toGodotVec(p.vel.start.max);
+    ev.acc_min = toGodotVec(p.acc.start.min);
+    ev.acc_max = toGodotVec(p.acc.start.max);
+    ev.exp_min = p.exptime.start.min;
+    ev.exp_max = p.exptime.start.max;
+    ev.size_min = p.size.start.min;
+    ev.size_max = p.size.start.max;
+    ev.texture = p.texture.string;
+    ev.vertical = p.vertical;
+    ev.collision = p.collisiondetection;
+    ev.attached_id = attached_id;
+    std::lock_guard<std::mutex> lk(m_sound_mutex);
+    m_spawners.push_back(ev);
+}
+
+void GoannaSession::onDeleteParticleSpawner(NetworkPacket &pkt) {
+    u32 id = 0;
+    pkt >> id;
+    std::lock_guard<std::mutex> lk(m_sound_mutex);
+    m_deleted_spawners.push_back(id);
+}
+
+void GoannaSession::onSpawnParticle(NetworkPacket &pkt) {
+    std::string datastring(pkt.getString(0), pkt.getSize());
+    std::istringstream is(datastring, std::ios_base::binary);
+    ParticleParameters p;
+    p.deSerialize(is, stats().proto_ver);
+    ParticleEvent ev;
+    ev.pos = toGodotVec(p.pos);
+    ev.vel = toGodotVec(p.vel);
+    ev.acc = toGodotVec(p.acc);
+    ev.expirationtime = p.expirationtime;
+    ev.size = p.size;
+    ev.texture = p.texture.string;
+    ev.glow = p.glow;
+    std::lock_guard<std::mutex> lk(m_sound_mutex);
+    m_particles.push_back(ev);
+}
+
+std::vector<GoannaSession::ParticleSpawnerEvent> GoannaSession::takeParticleSpawners() {
+    std::lock_guard<std::mutex> lk(m_sound_mutex);
+    std::vector<ParticleSpawnerEvent> out;
+    out.swap(m_spawners);
+    return out;
+}
+
+std::vector<u32> GoannaSession::takeDeletedSpawners() {
+    std::lock_guard<std::mutex> lk(m_sound_mutex);
+    std::vector<u32> out;
+    out.swap(m_deleted_spawners);
+    return out;
+}
+
+std::vector<GoannaSession::ParticleEvent> GoannaSession::takeParticles() {
+    std::lock_guard<std::mutex> lk(m_sound_mutex);
+    std::vector<ParticleEvent> out;
+    out.swap(m_particles);
+    return out;
+}
+
 void GoannaSession::onPlaySound(NetworkPacket &pkt) {
     SoundEvent ev;
     u8 type = 0;

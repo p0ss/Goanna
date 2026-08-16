@@ -85,7 +85,7 @@ set(LUANTI_CORE_SRCS
     serialization.cpp nameidmapping.cpp mapnode.cpp mapblock.cpp nodedef.cpp itemdef.cpp
     tool.cpp inventory.cpp itemstackmetadata.cpp metadata.cpp nodemetadata.cpp
     staticobject.cpp nodetimer.cpp tileanimation.cpp texture_override.cpp light.cpp
-    content_nodemeta.cpp noise.cpp object_properties.cpp gettext_plural_form.cpp content_mapnode.cpp sound_spec.cpp voxel.cpp
+    content_nodemeta.cpp noise.cpp object_properties.cpp particles.cpp gettext_plural_form.cpp content_mapnode.cpp sound_spec.cpp voxel.cpp
     util/pointabilities.cpp convert_json.cpp map.cpp mapsector.cpp voxelalgorithms.cpp rollback_interface.cpp
     raycast.cpp
     player.cpp
