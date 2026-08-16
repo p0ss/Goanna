@@ -450,7 +450,7 @@ void MapblockMeshGenerator::drawAutoLightedCuboid(aabb3f box,
 // two inset faces by a 45-degree chamfer quad; three-way corners are capped.
 // mode: 1 = horizontal edges only, 2 = vertical only, 3 = both.
 static void drawBeveledSolid(MeshCollector *collector, v3f origin,
-		const TileSpec tiles[6], u8 faces, int mode)
+		const TileSpec tiles[6], u8 faces, int mode, u16 diag_open)
 {
 	const float h = 0.5f * BS;
 	float b = g_goanna_bevel * BS;
@@ -481,8 +481,15 @@ static void drawBeveledSolid(MeshCollector *collector, v3f origin,
 	};
 	auto exposed = [&](int f) { return (faces >> f) & 1; };
 	auto horiz = [&](int fa, int fb) { return FT[fa].pa == 1 || FT[fb].pa == 1; };
+	static const int EDGE_LOOKUP[6][6] = { // -1 if not an edge pair
+		{-1,-1, 0, 1, 2, 3}, {-1,-1, 4, 5, 6, 7},
+		{ 0, 4,-1,-1, 8, 9}, { 1, 5,-1,-1,10,11},
+		{ 2, 6, 8,10,-1,-1}, { 3, 7, 9,11,-1,-1}};
 	auto beveled = [&](int fa, int fb) {
 		if (!exposed(fa) || !exposed(fb))
+			return false;
+		int ei = EDGE_LOOKUP[fa][fb];
+		if (ei < 0 || !((diag_open >> ei) & 1)) // concave/filled junction
 			return false;
 		bool hz = horiz(fa, fb);
 		if (mode == 3) return true;
@@ -560,22 +567,8 @@ static void drawBeveledSolid(MeshCollector *collector, v3f origin,
 		emit(tiles[f], pts, 4, nrm);
 	}
 
-	// Corner caps: where all three edges at a cube corner are bevelled.
-	for (int sx = -1; sx <= 1; sx += 2)
-	for (int sy = -1; sy <= 1; sy += 2)
-	for (int sz = -1; sz <= 1; sz += 2) {
-		int fx = sx > 0 ? 2 : 3, fy = sy > 0 ? 0 : 1, fz = sz > 0 ? 4 : 5;
-		if (!(beveled(fx, fy) && beveled(fy, fz) && beveled(fx, fz)))
-			continue;
-		v3f px(sx*h, sy*(h-b), sz*(h-b));
-		v3f py(sx*(h-b), sy*h, sz*(h-b));
-		v3f pz(sx*(h-b), sy*(h-b), sz*h);
-		v3f nrm = v3f((float)sx, (float)sy, (float)sz); nrm.normalize();
-		v3f pts[3] = {px, py, pz};
-		v3f cross = (pts[1]-pts[0]).crossProduct(pts[2]-pts[0]);
-		if (cross.dotProduct(nrm) < 0) std::swap(pts[1], pts[2]);
-		emit(tiles[fy], pts, 3, nrm);
-	}
+	// Corners are closed by the full-length chamfers interpenetrating; a
+	// separate cap was mis-oriented and read as a dark facet.
 }
 
 void MapblockMeshGenerator::drawSolidNode()
@@ -641,7 +634,23 @@ void MapblockMeshGenerator::drawSolidNode()
 		else if (itemgroup_get(groups, "soil") > 0 || itemgroup_get(groups, "crumbly") > 0)
 			mode = 1;
 		if (mode != 0) {
-			drawBeveledSolid(collector, cur_node.origin, tiles, faces, mode);
+			// Only bevel a convex silhouette edge: one whose diagonal
+			// neighbour is open. Where a solid block fills that diagonal the
+			// bevel would inset the face and leave a gap at the junction.
+			static const v3s16 edge_diag[12] = {
+				{1,1,0},{-1,1,0},{0,1,1},{0,1,-1},
+				{1,-1,0},{-1,-1,0},{0,-1,1},{0,-1,-1},
+				{1,0,1},{1,0,-1},{-1,0,1},{-1,0,-1}};
+			u16 diag_open = 0;
+			for (int e = 0; e < 12; ++e) {
+				MapNode dn = data->m_vmanip.getNodeNoEx(blockpos_nodes + cur_node.p + edge_diag[e]);
+				content_t dc = dn.getContent();
+				bool open = dc == CONTENT_AIR || dc == CONTENT_IGNORE ||
+						nodedef->get(dn).visuals->solidness != 2;
+				if (open)
+					diag_open |= 1 << e;
+			}
+			drawBeveledSolid(collector, cur_node.origin, tiles, faces, mode, diag_open);
 			return;
 		}
 	}

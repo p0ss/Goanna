@@ -1,15 +1,15 @@
 // Goanna: liquids (Luanti TILE_MATERIAL_LIQUID_TRANSPARENT / WAVING_LIQUID_*).
 // Vertex waves like Luanti's waving liquids, low roughness, screen refraction.
 shader_type spatial;
-render_mode blend_mix, depth_draw_always, cull_disabled, diffuse_burley, specular_schlick_ggx;
+render_mode blend_mix, cull_disabled, diffuse_burley, specular_schlick_ggx;
 
 uniform sampler2D albedo_tex : source_color, filter_nearest_mipmap, repeat_enable;
 uniform sampler2D screen_tex : hint_screen_texture, filter_linear_mipmap;
-uniform float wave_height = 0.08;
+uniform float wave_height = 0.045;
 uniform float wave_speed = 1.6;
 uniform float wave_length = 4.0;
 uniform float alpha_mul = 0.82;
-uniform float refraction = 0.03;
+uniform float refraction = 0.018;
 uniform bool waving = true;
 
 varying vec3 world_pos;
