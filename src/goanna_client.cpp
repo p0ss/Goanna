@@ -552,6 +552,9 @@ void GoannaClient::update_lights(const Vector3 &around, int max_lights) {
         OmniLight3D *ol = m_light_pool[i];
         if (i < all.size()) {
             const NodeLight *l = all[i];
+            // Shadows on the nearest few only: omni shadows are cube maps and
+            // each costs six depth passes.
+            ol->set_shadow(i < 8);
             ol->set_position(l->pos + Vector3(0.5f, 0.5f, -0.5f) * 0.0f);
             ol->set_color(l->color);
             ol->set_param(Light3D::PARAM_RANGE, 4.0f + 10.0f * l->level);
