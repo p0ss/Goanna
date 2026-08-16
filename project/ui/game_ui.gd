@@ -355,7 +355,7 @@ func _close_window() -> void:
 		return  # only the respawn button closes the death screen
 	if window == form:
 		# tell the server the form was closed (vanilla sends quit=true)
-		client.send_inventory_fields(form.formname, {"quit": "true"})
+		_send_fields({"quit": "true"})
 		selected = {}
 	_hide_window()
 
@@ -395,8 +395,17 @@ func _reopen_form() -> void:
 	# re-layout after a resize, keeping the same spec
 	pass
 
+# Fields go to TOSERVER_NODEMETA_FIELDS for a node's own formspec (one
+# opened with a nodemeta context) and to TOSERVER_INVENTORY_FIELDS otherwise,
+# as vanilla's TextDestNodeMetadata and TextDestPlayerInventory do.
+func _send_fields(fields: Dictionary) -> void:
+	if form_context != "" and client.has_method("send_nodemeta_fields"):
+		client.send_nodemeta_fields(form_context, form.formname, fields)
+	else:
+		client.send_inventory_fields(form.formname, fields)
+
 func _on_form_fields(fields: Dictionary, quit: bool) -> void:
-	client.send_inventory_fields(form.formname, fields)
+	_send_fields(fields)
 	if quit:
 		selected = {}
 		_hide_window()
