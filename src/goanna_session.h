@@ -116,6 +116,12 @@ public:
 
     // Snapshot of block positions received since the last call (consumed).
     std::vector<v3s16> takeNewBlocks();
+    // Bounded residency: drop blocks further than `radius` mapblocks from
+    // the player and tell the server we no longer hold them, so it will
+    // send them again when we come back. Returns how many were dropped.
+    // Caller must not hold mapLock().
+    int pruneDistantBlocks(int radius);
+    size_t residentBlocks();
     void requeueBlock(v3s16 pos); // caller holds mapLock()
     // Access to a received block; nullptr if unknown. Caller holds mapLock().
     MapBlock *getBlock(v3s16 pos);
@@ -273,6 +279,7 @@ private:
     void sendReady();
     void sendPlayerPos();
     void sendGotBlocks(const std::vector<v3s16> &blocks);
+    void sendDeletedBlocks(const std::vector<v3s16> &blocks);
     void maybeReady();
 
     void onHello(NetworkPacket &pkt);

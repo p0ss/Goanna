@@ -96,6 +96,29 @@ void GoannaClient::set_bevel(float width) {
 
 float GoannaClient::bevel() const { return g_goanna_bevel; }
 
+int GoannaClient::prune_blocks(int radius) {
+    if (!m_session)
+        return 0;
+    int dropped = m_session->pruneDistantBlocks(radius);
+    if (dropped > 0) {
+        // forget the meshes for anything that is gone
+        std::lock_guard<std::mutex> lk(m_session->mapLock());
+        for (auto it = m_block_nodes.begin(); it != m_block_nodes.end();) {
+            if (!m_session->getBlock(it->first)) {
+                if (it->second)
+                    it->second->queue_free();
+                m_block_lights.erase(it->first);
+                it = m_block_nodes.erase(it);
+            } else {
+                ++it;
+            }
+        }
+    }
+    return dropped;
+}
+
+int GoannaClient::resident_blocks() { return m_session ? (int)m_session->residentBlocks() : 0; }
+
 void GoannaClient::set_view_range(int blocks) {
     if (m_session)
         m_session->wantedRange = blocks < 1 ? 1 : (blocks > 60 ? 60 : blocks);
@@ -167,6 +190,7 @@ Dictionary GoannaClient::status() const {
     d["media_announced"] = (int)s.media_announced;
     d["blocks_received"] = (int)s.blocks_received;
     d["blocks_meshed"] = (int)m_block_nodes.size();
+    d["resident_blocks"] = m_session ? (int)m_session->residentBlocks() : 0;
     d["entities"] = m_entities ? m_entities->count() : 0;
     d["media_received"] = (int)s.media_received;
     d["materials"] = m_materials.size();
@@ -1508,6 +1532,8 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("bevel"), &GoannaClient::bevel);
     ClassDB::bind_method(D_METHOD("set_auto_bump", "strength"), &GoannaClient::set_auto_bump);
     ClassDB::bind_method(D_METHOD("auto_bump"), &GoannaClient::auto_bump);
+    ClassDB::bind_method(D_METHOD("prune_blocks", "radius"), &GoannaClient::prune_blocks);
+    ClassDB::bind_method(D_METHOD("resident_blocks"), &GoannaClient::resident_blocks);
     ClassDB::bind_method(D_METHOD("set_view_range", "blocks"), &GoannaClient::set_view_range);
     ClassDB::bind_method(D_METHOD("view_range"), &GoannaClient::view_range);
     ClassDB::bind_method(D_METHOD("set_view_fov", "degrees"), &GoannaClient::set_view_fov);

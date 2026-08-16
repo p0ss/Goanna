@@ -176,6 +176,11 @@ public:
     float auto_bump() const { return m_auto_bump; }
     // How far to ask the server to stream, in mapblocks, and the camera
     // FOV reported with our position (both affect what the server sends).
+    // Drop blocks further than this many mapblocks from the player (and
+    // tell the server), so a long session does not grow without bound.
+    // Returns how many were dropped.
+    int prune_blocks(int radius);
+    int resident_blocks();
     void set_view_range(int blocks);
     int view_range() const;
     void set_view_fov(float degrees);

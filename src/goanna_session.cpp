@@ -1163,6 +1163,44 @@ void GoannaSession::sendPlayerPos() {
     send(pkt, false);
 }
 
+// Blocks the client no longer holds. The server tracks what it thinks we
+// have and will not resend a block it believes is still ours, so evicting
+// without this leaves permanent holes in the world.
+void GoannaSession::sendDeletedBlocks(const std::vector<v3s16> &blocks) {
+    for (size_t i = 0; i < blocks.size(); i += 255) {
+        u8 count = (u8)std::min<size_t>(255, blocks.size() - i);
+        NetworkPacket pkt(TOSERVER_DELETEDBLOCKS, 1 + 6 * count);
+        pkt << count;
+        for (u8 j = 0; j < count; ++j)
+            pkt << blocks[i + j];
+        send(pkt);
+    }
+}
+
+size_t GoannaSession::residentBlocks() {
+    std::lock_guard<std::mutex> lk(m_map_mutex);
+    return m_map->residentBlocks();
+}
+
+int GoannaSession::pruneDistantBlocks(int radius) {
+    std::vector<v3s16> gone;
+    {
+        std::lock_guard<std::mutex> lk(m_map_mutex);
+        if (!m_player)
+            return 0;
+        v3f pp = m_player->getPosition() / BS;
+        v3s16 centre((s16)std::floor(pp.X / MAP_BLOCKSIZE),
+                (s16)std::floor(pp.Y / MAP_BLOCKSIZE),
+                (s16)std::floor(pp.Z / MAP_BLOCKSIZE));
+        gone = m_map->blocksBeyond(centre, radius);
+        for (const v3s16 &bp : gone)
+            m_map->dropBlock(bp);
+    }
+    if (!gone.empty())
+        sendDeletedBlocks(gone);
+    return (int)gone.size();
+}
+
 void GoannaSession::sendGotBlocks(const std::vector<v3s16> &blocks) {
     // u8 count limits a packet to 255 blocks.
     for (size_t i = 0; i < blocks.size(); i += 255) {

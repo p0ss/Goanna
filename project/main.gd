@@ -32,6 +32,7 @@ var place_pressed := false
 var wield := 0
 var selection_box: MeshInstance3D
 var pointed: Dictionary = {}
+var _prune_timer := 2.0
 var last_move: Dictionary = {}   # last step_player result, read by the audio layer
 var swing_t := 1.0
 var wield_dig_active := false
@@ -291,6 +292,15 @@ func _process(delta: float) -> void:
 		cam.position += dir.normalized() * sp * delta if dir.length() > 0 else Vector3.ZERO
 		cam.rotation_degrees = Vector3(pitch, yaw, 0)
 	client.poll_blocks(24)
+	# Bounded residency: keep a margin beyond what we ask the server for, so
+	# blocks just behind us survive a turn but a long session stays bounded.
+	_prune_timer -= delta
+	if _prune_timer <= 0.0 and client.has_method("prune_blocks"):
+		_prune_timer = 2.0
+		var keep: int = (client.view_range() if client.has_method("view_range") else 12) + 4
+		if OS.get_environment("GOANNA_KEEP") != "":
+			keep = int(OS.get_environment("GOANNA_KEEP"))
+		client.prune_blocks(keep)
 	client.update_lights(cam.position, 48)
 	client.update_motes(cam.position, 32)
 	client.sync_entities(delta)
@@ -384,9 +394,9 @@ func _process(delta: float) -> void:
 		if placed and not fly_mode:
 			var r: Dictionary = client.step_player(0.0, {}, pitch, yaw)
 			extra = " | player %s ground=%s | pointed %s %s dig=%s prog=%.2f crack=%d" % [str(r.get("pos", Vector3())), str(r.get("on_ground", false)), str(pointed.get("type", "?")), str(pointed.get("node_name", pointed.get("object_name", ""))), str(pointed.get("digging", false)), float(pointed.get("progress", 0.0)), int(pointed.get("crack_level", -1))]
-		print("[%5.1fs] %s | %s | media %d/%d | blocks recv %d meshed %d | mats %d | lights %d%s" % [
+		print("[%5.1fs] %s | %s | media %d/%d | blocks recv %d meshed %d | mats %d | res %d | lights %d%s" % [
 			t, s.get("state"), s.get("message"), s.get("media_received", 0), s.get("media_announced", 0),
-			s.get("blocks_received", 0), s.get("blocks_meshed", 0), s.get("materials", 0), s.get("node_lights", 0), extra])
+			s.get("blocks_received", 0), s.get("blocks_meshed", 0), s.get("materials", 0), s.get("resident_blocks", 0), s.get("node_lights", 0), extra])
 	var shot := OS.get_environment("GOANNA_SHOT")
 	if shot != "" and OS.get_environment("GOANNA_TOGGLETEST") != "":
 		# walking mode, standing still, looking straight ahead: pillar appears 4 nodes in front
