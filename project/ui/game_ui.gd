@@ -503,6 +503,7 @@ const SETTINGS := [
 	["Controls", "repeat_place", "slider", "Place repeat delay", "Seconds a held place waits before repeating.", 0.0, 1.0, 0.05],
 	["Controls", "mouse_sensitivity", "slider", "Mouse sensitivity", "How far the view turns per mouse movement.", 0.02, 0.5, 0.01],
 	["Controls", "invert_mouse", "toggle", "Invert mouse", "Push the mouse forward to look up instead of down."],
+	["Controls", "view_bobbing", "slider", "View bobbing", "How much the camera bobs as you walk.", 0.0, 1.5, 0.1],
 	["Video", "auto_bump", "slider", "Auto bump", "Fake surface relief from texture brightness.", 0.0, 1.0, 0.05],
 	["Video", "bevel", "slider", "Edge bevel", "Chamfer the exposed edges of solid nodes.", 0.0, 0.15, 0.01],
 	["Video", "motes", "slider", "Ambient motes", "Drifting specks over leaves, flowers and sand.", 0.0, 4.0, 0.25],
@@ -514,8 +515,8 @@ const SETTINGS := [
 	["Display", "fullscreen", "toggle", "Fullscreen", "Run the window in fullscreen."],
 ]
 # Settings handled here rather than through the client (window, camera, UI).
-const LOCAL_KEYS := ["mouse_sensitivity", "invert_mouse", "fov", "gui_scale",
-	"max_fps", "vsync", "fullscreen", "damage_flash"]
+const LOCAL_KEYS := ["mouse_sensitivity", "invert_mouse", "view_bobbing", "fov",
+	"gui_scale", "max_fps", "vsync", "fullscreen", "damage_flash"]
 var settings_menu: Control
 
 func _main_node() -> Node:
@@ -530,6 +531,9 @@ func _apply_local(key: String, value: float, on: bool) -> void:
 		"invert_mouse":
 			var m := _main_node()
 			if m: m.invert_mouse = on
+		"view_bobbing":
+			var m := _main_node()
+			if m: m.view_bobbing = value
 		"fov":
 			var m := _main_node()
 			if m and m.get("cam") != null: m.cam.fov = value
@@ -550,6 +554,7 @@ func _local_value(key: String) -> float:
 	match key:
 		"mouse_sensitivity": return m.mouse_sensitivity if m else 0.15
 		"invert_mouse": return 1.0 if (m and m.invert_mouse) else 0.0
+		"view_bobbing": return m.view_bobbing if m else 1.0
 		"fov": return (m.cam.fov if (m and m.get("cam") != null) else 70.0)
 		"gui_scale": return gui_scale
 		"max_fps": return 240.0 if Engine.max_fps == 0 else float(Engine.max_fps)

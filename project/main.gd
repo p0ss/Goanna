@@ -20,6 +20,8 @@ var speed := 12.0
 # Look controls, set from the settings panel (game_ui) and saved in goanna.cfg.
 var mouse_sensitivity := 0.15
 var invert_mouse := false
+var view_bobbing := 1.0        # walk-cycle camera bob, 0 = off
+var _bob_phase := 0.0
 var shots_done := false
 var chest_opened := false
 var fly_mode := false
@@ -46,6 +48,7 @@ func _ready() -> void:
 	if cfg.load("user://goanna.cfg") == OK:
 		mouse_sensitivity = float(cfg.get_value("settings", "mouse_sensitivity", mouse_sensitivity))
 		invert_mouse = bool(cfg.get_value("settings", "invert_mouse", invert_mouse))
+		view_bobbing = float(cfg.get_value("settings", "view_bobbing", view_bobbing))
 	client = GoannaClient.new()
 	add_child(client)
 	# In-game UI (HUD, chat, inventory, formspecs, pause menu): project/ui/.
@@ -144,6 +147,21 @@ func _ready() -> void:
 	if OS.get_environment("GOANNA_SHOT") == "":
 		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 
+# Bob the camera along a walk cycle while moving on the ground: vertical at
+# twice the stride frequency, a gentle side sway at the stride frequency,
+# amplitude scaled by speed and the view_bobbing setting.
+func _apply_view_bob(r: Dictionary, delta: float) -> void:
+	if view_bobbing <= 0.0 or not r.get("on_ground", false):
+		return
+	var sp: Vector3 = r.get("speed", Vector3.ZERO)
+	var hspeed := Vector2(sp.x, sp.z).length()
+	if hspeed < 0.5:
+		return
+	_bob_phase += delta * (6.0 + hspeed)
+	var amp := view_bobbing * 0.045 * clampf(hspeed / 4.0, 0.0, 1.0)
+	var basis := cam.global_transform.basis
+	cam.position += basis.x * (cos(_bob_phase) * amp) + Vector3.UP * (absf(sin(_bob_phase * 2.0)) * amp)
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
 		if event.button_index == MOUSE_BUTTON_LEFT:
@@ -197,6 +215,7 @@ func _process(delta: float) -> void:
 		if r.has("eye_pos"):
 			cam.position = r["eye_pos"]
 			cam.rotation_degrees = Vector3(pitch, yaw, 0)
+			_apply_view_bob(r, delta)
 		var dig := (dig_down or test_dig) and not ui_blocks
 		var plc := place_down and not ui_blocks
 		var plc_pressed := (place_pressed or test_plc_pressed) and not ui_blocks
