@@ -672,7 +672,10 @@ Dictionary GoannaClient::step_player(double dt, const Dictionary &keys, float pi
     PlayerControl &c = p->control;
     c.direction_keys = ((bool)keys.get("up", false) & 1) | (((bool)keys.get("down", false) & 1) << 1) |
             (((bool)keys.get("left", false) & 1) << 2) | (((bool)keys.get("right", false) & 1) << 3);
-    c.jump = keys.get("jump", false);
+    // Autojump sets a flag on the player; the vanilla client feeds it back in
+    // as a jump press on the next frame (game.cpp: isKeyDown(JUMP) ||
+    // player->getAutojump()). Without this the flag was set and ignored.
+    c.jump = (bool)keys.get("jump", false) || p->getAutojump();
     c.sneak = keys.get("sneak", false);
     c.aux1 = keys.get("aux1", false);
     c.pitch = -pitch_deg;
@@ -689,6 +692,14 @@ Dictionary GoannaClient::step_player(double dt, const Dictionary &keys, float pi
     if (dt > 0.1) dt = 0.1;
     if (dt > 0)
         m_session->stepPlayer((float)dt);
+    if (std::getenv("GOANNA_DEBUG_MANTLE")) {
+        static int n = 0;
+        if (++n % 15 == 0)
+            fprintf(stderr, "mantle in: ground=%d speed=%.2f jump=%d sneak=%d aj=%d y=%.2f\n",
+                    (int)p->touching_ground, p->control.movement_speed,
+                    (int)p->control.jump, (int)p->control.sneak,
+                    (int)p->getAutojump(), p->getPosition().Y / BS);
+    }
     if (std::getenv("GOANNA_DEBUG_MANTLE") && p->getAutojump())
         fprintf(stderr, "goanna mantle: autojump fired at y=%.2f\n", p->getPosition().Y / BS);
 

@@ -569,7 +569,38 @@ func _click_test() -> bool:
 		get_tree().quit()
 	return true
 
+# GOANNA_AUTOJUMPTEST=1: place a block one node ahead, walk into it, and report
+# whether the player rose onto it (autojump) or was stopped by it.
+var _aj_y := 0.0
+var _aj_done := false
+func _autojump_test(keys: Dictionary) -> bool:
+	if OS.get_environment("GOANNA_AUTOJUMPTEST") == "":
+		return false
+	yaw = 0.0
+	# Dig the block underfoot to make a one-deep pit, drop in, then walk
+	# forward into its wall: a guaranteed one-block step to climb.
+	if t > 3.0 and t < 5.0:
+		pitch = -89.0
+		test_dig = true
+	else:
+		test_dig = false
+	if absf(t - 6.5) < get_process_delta_time() * 0.6:
+		_aj_y = client.server_player_position().y
+		print("autojumptest: in the pit at y=%.2f, walking at its wall" % _aj_y)
+	if t > 6.5 and t < 11.0:
+		pitch = 0.0
+		keys["up"] = true
+	if t > 11.5 and not _aj_done:
+		_aj_done = true
+		var dy := client.server_player_position().y - _aj_y
+		print("autojumptest: rose %.2f nodes (autojump=%s)" % [dy, str(OS.get_environment("GOANNA_MANTLE"))])
+		client.disconnect_from_server()
+		get_tree().quit()
+	return true
+
 func _test_hooks(keys: Dictionary) -> void:
+	if _autojump_test(keys):
+		return
 	if _click_test():
 		return
 	_anim_probe(get_process_delta_time())
