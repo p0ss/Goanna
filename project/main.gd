@@ -32,6 +32,11 @@ var place_pressed := false
 var wield := 0
 var selection_box: MeshInstance3D
 var pointed: Dictionary = {}
+var wield_node: Node3D
+var wield_mi: MeshInstance3D
+var wield_name := "\u0001"  # force the first wield_info fetch
+var swing_t := 1.0
+var wield_dig_active := false
 var test_dig := false
 var test_plc_pressed := false
 var mob_target_id := -1
@@ -63,6 +68,15 @@ func _ready() -> void:
 	cam.far = 1000
 	add_child(cam)
 	cam.current = true
+	# First-person viewmodel: the wielded item, bottom-right of the lens. A
+	# child of the camera, so view bobbing carries it along.
+	wield_node = Node3D.new()
+	cam.add_child(wield_node)
+	wield_node.position = Vector3(0.34, -0.28, -0.55)
+	wield_node.rotation_degrees = Vector3(-8, 32, 8)
+	wield_mi = MeshInstance3D.new()
+	wield_mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	wield_node.add_child(wield_mi)
 
 	sun = DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-42, 35, 0)
@@ -106,8 +120,8 @@ func _ready() -> void:
 	e.sdfgi_min_cell_size = 0.5
 	e.sdfgi_energy = 1.4
 	e.ssao_enabled = true
-	e.ssao_intensity = 3.0
-	e.ssao_radius = 1.5
+	e.ssao_intensity = 4.0
+	e.ssao_radius = 2.2
 	e.ssao_power = 1.6
 	e.ssao_detail = 1.0
 	e.ssao_light_affect = 0.5
@@ -252,6 +266,9 @@ func _process(delta: float) -> void:
 				client.disconnect_from_server()
 				get_tree().quit()
 		pointed = client.step_interact(delta, dig, plc, plc_pressed, keys["sneak"])
+		wield_dig_active = dig and str(pointed.get("type", "nothing")) != "nothing"
+		if plc_pressed:
+			swing_t = 0.0
 		place_pressed = false
 		_update_selection_box()
 	elif placed:
@@ -272,6 +289,7 @@ func _process(delta: float) -> void:
 	client.update_motes(cam.position, 32)
 	client.sync_entities(delta)
 	_update_environment_extras()
+	_update_wield(delta)
 	if t - last_print >= 1.0:
 		last_print = t
 		if OS.get_environment("GOANNA_DUMPSKY") != "" and int(t) == 3:
@@ -701,6 +719,37 @@ func _shots(dir: String) -> void:
 
 # Per-frame environment extras: the cave head-light follows the camera, and
 # the fog switches to a dense underwater tint while the eye is submerged.
+# The held item in front of the camera: rebuilt when the wielded item
+# changes, swung while digging and on place. Sized by its own bounds so
+# every item kind lands at a sensible viewmodel scale.
+func _update_wield(delta: float) -> void:
+	if wield_mi == null or client == null:
+		return
+	var wn: String = client.wield_item_name()
+	if wn != wield_name:
+		wield_name = wn
+		if wn == "":
+			# empty hand: no arm model yet, so show nothing rather than the
+			# no_texture extrusion
+			wield_mi.visible = false
+			return
+		var info: Dictionary = client.wield_info()
+		var m: Mesh = info.get("mesh")
+		wield_mi.mesh = m
+		wield_mi.visible = m != null
+		if m != null:
+			var aabb := m.get_aabb()
+			var mx: float = maxf(aabb.size.x, maxf(aabb.size.y, aabb.size.z))
+			wield_mi.scale = Vector3.ONE * (0.34 / maxf(mx, 0.001))
+			wield_mi.position = -aabb.get_center() * wield_mi.scale.x
+	if swing_t < 1.0:
+		swing_t = minf(swing_t + delta * 3.4, 1.0)
+	elif wield_dig_active:
+		swing_t = 0.0
+	var k := sin(swing_t * PI)
+	wield_node.rotation_degrees = Vector3(-8 - 52.0 * k, 32 - 16.0 * k, 8)
+	wield_node.position = Vector3(0.34, -0.28 - 0.09 * k, -0.55 - 0.05 * k)
+
 func _update_environment_extras() -> void:
 	if headlight:
 		headlight.global_position = cam.global_position

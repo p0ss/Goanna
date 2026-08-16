@@ -85,6 +85,13 @@ public:
     int entity_count() const { return m_entities ? m_entities->count() : 0; }
     godot::Array entity_positions() const { return m_entities ? m_entities->positions() : godot::Array(); }
     godot::Array entity_list();
+    // First-person body (the local player's own model, head shrunk away).
+    void set_show_body(bool show);
+    bool show_body() const { return m_show_body; }
+    // Currently wielded item: its name (cheap; poll for changes), and its
+    // wield mesh as {name, mesh: ArrayMesh or null, scale: Vector3}.
+    godot::String wield_item_name();
+    godot::Dictionary wield_info();
 
     // Point lights for light-emitting nodes: keeps up to max_lights OmniLight3Ds
     // on the nearest bright nodes to `around` (Godot space, nodes).
@@ -181,6 +188,7 @@ private:
     godot::Ref<godot::Shader> m_sh_water, m_sh_leaves, m_sh_plants, m_sh_glass;
     bool m_shaders_loaded = false;
     float m_auto_bump = 0.35f;
+    bool m_show_body = true;
     bool m_mantle = true;
     bool m_aux1_descends = false;
     bool m_pitch_move = false;

@@ -23,6 +23,8 @@
 #include "irrlichttypes_bloated.h"
 #include "goanna_models.h"
 
+struct ItemStack;
+
 namespace goanna {
 
 class GoannaSession;
@@ -40,6 +42,14 @@ public:
     // One Dictionary per visible entity: id, name, position, visual, mesh,
     // frame (animation frame, or -1). Caller holds session.mapLock().
     godot::Array list(GoannaSession &session) const;
+    // Build an item's wield mesh (Luanti's own wieldmesh code) as an
+    // ArrayMesh; null if the item has no mesh. out_scale receives the wield
+    // scale in Godot units. Caller holds session.mapLock(); main thread.
+    godot::Ref<godot::ArrayMesh> buildItemMesh(GoannaSession &session, const ItemStack &item,
+            bool check_wield_image, v3f *out_scale);
+    // First-person body: render the local player's model (mesh visuals only),
+    // pinned to the predicted player with its head shrunk out of the camera.
+    void setShowBody(bool show) { m_show_body = show; }
 
 private:
     struct EntityNode {
@@ -66,6 +76,7 @@ private:
     std::map<u16, EntityNode> m_nodes;
     std::map<std::string, godot::Ref<godot::StandardMaterial3D>> m_materials;
     std::map<std::string, std::shared_ptr<GodotModel>> m_models;
+    bool m_show_body = true;
 };
 
 } // namespace goanna

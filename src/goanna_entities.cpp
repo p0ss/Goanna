@@ -12,6 +12,7 @@
 #include <godot_cpp/classes/skin.hpp>
 
 #include "transplant/client/content_cao.h"
+#include "transplant/localplayer.h"
 #include "goanna_session.h"
 #include "goanna_textures.h"
 #include <IMeshManipulator.h>
@@ -131,6 +132,8 @@ bool EntityRenderer::buildMeshVisual(GoannaSession &session, GoannaActiveObject 
         en.skeleton = sk;
         en.animator = std::make_unique<ModelAnimator>(model);
         en.anim_range = Vector2(-1, -1); // apply the frame loop on the next sync
+        if (obj.isLocalPlayer())
+            en.animator->setShrinkJoint("Head");
     } else {
         holder->add_child(mi);
     }
@@ -142,21 +145,15 @@ bool EntityRenderer::buildMeshVisual(GoannaSession &session, GoannaActiveObject 
 // Luanti's own wieldmesh code and convert it to an ArrayMesh. Vertex colours
 // carry the item/tile colour (setColor bakes them), so the material reads
 // albedo from vertex colour.
-bool EntityRenderer::buildItemVisual(GoannaSession &session, GoannaActiveObject &obj, EntityNode &en) {
-    const ObjectProperties &p = obj.props();
-    IItemDefManager *idef = session.getItemDefManager();
-    ItemStack item;
-    if (p.wield_item.empty()) {
-        if (!p.textures.empty())
-            item = ItemStack(p.textures[0], 1, 0, idef);
-    } else {
-        item.deSerialize(p.wield_item, idef);
-    }
+Ref<ArrayMesh> EntityRenderer::buildItemMesh(GoannaSession &session, const ItemStack &item,
+        bool check_wield_image, v3f *out_scale) {
     WieldMesh wm;
-    wm.setItem(item, session.meshClient(), p.visual == OBJECTVISUAL_WIELDITEM);
+    wm.setItem(item, session.meshClient(), check_wield_image);
     scene::IMesh *mesh = wm.getMesh();
+    if (out_scale)
+        *out_scale = wm.getScale() / BS;
     if (!mesh || mesh->getMeshBufferCount() == 0)
-        return false;
+        return Ref<ArrayMesh>();
 
     Ref<ArrayMesh> am;
     am.instantiate();
@@ -200,12 +197,29 @@ bool EntityRenderer::buildItemVisual(GoannaSession &session, GoannaActiveObject 
         am->surface_set_material(am->get_surface_count() - 1, m2);
     }
     if (am->get_surface_count() == 0)
+        return Ref<ArrayMesh>();
+    return am;
+}
+
+bool EntityRenderer::buildItemVisual(GoannaSession &session, GoannaActiveObject &obj, EntityNode &en) {
+    const ObjectProperties &p = obj.props();
+    IItemDefManager *idef = session.getItemDefManager();
+    ItemStack item;
+    if (p.wield_item.empty()) {
+        if (!p.textures.empty())
+            item = ItemStack(p.textures[0], 1, 0, idef);
+    } else {
+        item.deSerialize(p.wield_item, idef);
+    }
+    v3f wield_scale(1, 1, 1);
+    Ref<ArrayMesh> am = buildItemMesh(session, item, p.visual == OBJECTVISUAL_WIELDITEM, &wield_scale);
+    if (am.is_null())
         return false;
     MeshInstance3D *mi = memnew(MeshInstance3D);
     mi->set_mesh(am);
     // content_cao: the wield node is scaled by visual_size/2 on top of the
-    // wield mesh's own scale; convert BS units to Godot nodes.
-    v3f sc = p.visual_size / 2.0f * wm.getScale() / BS;
+    // wield mesh's own scale (already in Godot units from buildItemMesh).
+    v3f sc = p.visual_size / 2.0f * wield_scale;
     Node3D *holder = memnew(Node3D);
     holder->set_scale(Vector3(sc.X, sc.Y, sc.Z));
     holder->add_child(mi);
@@ -358,7 +372,14 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
             en.root = memnew(Node3D);
             m_root->add_child(en.root);
         }
-        bool visible = obj.isVisible() && !obj.isLocalPlayer();
+        // First-person body: draw our own model too (mesh visuals only; a
+        // billboard self would just block the lens). The CAO init marks the
+        // local player invisible for first person, so gate on the property's
+        // own is_visible rather than isVisible() there.
+        bool is_self = obj.isLocalPlayer();
+        bool visible = is_self
+                ? (m_show_body && obj.props().visual == OBJECTVISUAL_MESH && obj.props().is_visible)
+                : obj.isVisible();
         en.root->set_visible(visible);
         if (!visible)
             continue;
@@ -398,6 +419,21 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
                         Math::deg_to_rad(-ar.Z))), Vector3(ap.X, ap.Y, -ap.Z));
                 Transform3D xf = pit->second.root->get_transform() * scale_xf * bone_xf * attach_xf;
                 en.root->set_transform(Transform3D(xf.basis.orthonormalized(), xf.origin));
+            }
+        }
+        if (is_self) {
+            // Pin the body to the predicted local player, not the
+            // server-interpolated CAO, or it trails the camera; body yaw
+            // follows the look yaw, pitch stays level.
+            if (LocalPlayer *lp = session.player()) {
+                v3f pp = lp->getPosition();
+                // slightly behind the eye along the look yaw, so the
+                // shoulders sit below the lens instead of filling it
+                float yaw_rad = lp->getYaw() * core::DEGTORAD;
+                pp.X -= std::sin(yaw_rad) * 1.2f;
+                pp.Z -= std::cos(yaw_rad) * 1.2f;
+                en.root->set_position(Vector3(pp.X / BS, pp.Y / BS, -pp.Z / BS));
+                en.root->set_rotation_degrees(Vector3(0, -lp->getYaw(), 0));
             }
         }
         // skeletal animation: GenericCAO::updateAnimation, then a step

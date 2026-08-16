@@ -103,6 +103,10 @@ public:
     // Global transform (mesh space, Godot handedness) of a named joint after
     // the last step; false if unknown.
     bool jointGlobal(const std::string &name, godot::Transform3D &out) const;
+    // Shrink a named joint (and everything attached to it) to near zero each
+    // step; used to keep the local player's head out of the first-person
+    // camera. No effect if the model has no such joint.
+    void setShrinkJoint(const std::string &name);
 
 private:
     std::shared_ptr<GodotModel> m_model;
@@ -115,6 +119,7 @@ private:
     std::vector<bool> m_last_locals_valid;
     void beginTransition();
     std::vector<core::matrix4> m_globals;
+    std::optional<u32> m_shrink_joint;
 };
 
 // Irrlicht matrix (row vectors, left-handed) to a Godot transform, z mirrored.

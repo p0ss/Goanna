@@ -60,6 +60,9 @@ GoannaClient::GoannaClient() {
     const char *mo = std::getenv("GOANNA_MOTES");
     if (mo)
         m_motes = (float)atof(mo);
+    const char *bd = std::getenv("GOANNA_BODY");
+    if (bd)
+        m_show_body = atoi(bd) != 0;
 }
 
 void GoannaClient::set_bevel(float width) {
@@ -791,12 +794,54 @@ void GoannaClient::harvestLights(v3s16 bp, MapBlock *block) {
 void GoannaClient::sync_entities(double dt) {
     if (!m_session)
         return;
-    if (!m_entities)
+    if (!m_entities) {
         m_entities = std::make_unique<EntityRenderer>(this);
+        m_entities->setShowBody(m_show_body);
+    }
     std::lock_guard<std::mutex> lk(m_session->mapLock());
     if (dt > 0.1) dt = 0.1;
     m_session->stepObjects((float)dt);
     m_entities->sync(*m_session, (float)dt, Vector3());
+}
+
+void GoannaClient::set_show_body(bool show) {
+    m_show_body = show;
+    if (m_entities)
+        m_entities->setShowBody(show);
+}
+
+static ItemStack goanna_wielded_item(GoannaSession *session) {
+    Inventory *inv = session->inventory();
+    if (!inv)
+        return ItemStack();
+    InventoryList *main_list = inv->getList("main");
+    u16 idx = session->wieldIndex();
+    if (!main_list || idx >= main_list->getSize())
+        return ItemStack();
+    return main_list->getItem(idx);
+}
+
+String GoannaClient::wield_item_name() {
+    if (!m_session)
+        return String();
+    std::lock_guard<std::mutex> lk(m_session->mapLock());
+    return String::utf8(goanna_wielded_item(m_session.get()).name.c_str());
+}
+
+Dictionary GoannaClient::wield_info() {
+    Dictionary d;
+    if (!m_session)
+        return d;
+    std::lock_guard<std::mutex> lk(m_session->mapLock());
+    if (!m_entities)
+        m_entities = std::make_unique<EntityRenderer>(this);
+    ItemStack item = goanna_wielded_item(m_session.get());
+    d["name"] = String::utf8(item.name.c_str());
+    v3f sc(1, 1, 1);
+    Ref<ArrayMesh> mesh = m_entities->buildItemMesh(*m_session, item, true, &sc);
+    d["mesh"] = mesh;
+    d["scale"] = Vector3(sc.X, sc.Y, sc.Z);
+    return d;
 }
 
 Array GoannaClient::entity_list() {
@@ -1223,6 +1268,10 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("entity_count"), &GoannaClient::entity_count);
     ClassDB::bind_method(D_METHOD("entity_positions"), &GoannaClient::entity_positions);
     ClassDB::bind_method(D_METHOD("entity_list"), &GoannaClient::entity_list);
+    ClassDB::bind_method(D_METHOD("set_show_body", "show"), &GoannaClient::set_show_body);
+    ClassDB::bind_method(D_METHOD("show_body"), &GoannaClient::show_body);
+    ClassDB::bind_method(D_METHOD("wield_item_name"), &GoannaClient::wield_item_name);
+    ClassDB::bind_method(D_METHOD("wield_info"), &GoannaClient::wield_info);
     ClassDB::bind_method(D_METHOD("set_time_of_day_override", "tod"), &GoannaClient::set_time_of_day_override);
     ClassDB::bind_method(D_METHOD("is_underwater", "eye"), &GoannaClient::is_underwater);
     ClassDB::bind_method(D_METHOD("set_bevel", "width"), &GoannaClient::set_bevel);

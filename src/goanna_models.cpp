@@ -423,6 +423,13 @@ void ModelAnimator::step(float dt, std::map<std::string, BoneOverride> &override
         ++it;
     }
 
+    // First-person: collapse the shrink joint so the head (and hat layers
+    // attached to it) never block the camera.
+    if (m_shrink_joint && *m_shrink_joint < locals.size()) {
+        if (auto *t = std::get_if<core::Transform>(&locals[*m_shrink_joint]))
+            t->scale *= 0.01f;
+    }
+
     // relative -> global -> skin matrices
     for (size_t i = 0; i < joints.size(); ++i) {
         if (auto *m = std::get_if<core::matrix4>(&locals[i]))
@@ -440,6 +447,11 @@ void ModelAnimator::step(float dt, std::map<std::string, BoneOverride> &override
         if (ab >= 0)
             skeleton->set_bone_pose(ab, toGodotTransform(m_globals[i]));
     }
+}
+
+void ModelAnimator::setShrinkJoint(const std::string &name) {
+    if (m_model->skinned)
+        m_shrink_joint = m_model->skinned->getJointNumber(name);
 }
 
 bool ModelAnimator::jointGlobal(const std::string &name, Transform3D &out) const {
