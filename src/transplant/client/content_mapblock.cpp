@@ -445,10 +445,14 @@ void MapblockMeshGenerator::drawAutoLightedCuboid(aabb3f box,
 	}
 }
 
-// Goanna: build a bevelled version of a solid node. Exposed faces are inset by
-// the bevel width on their bevelled sides; each bevelled edge is joined to the
-// two inset faces by a 45-degree chamfer quad; three-way corners are capped.
-// mode: 1 = horizontal edges only, 2 = vertical only, 3 = both.
+// Goanna: bevelled solid nodes, built as a convex polytope: the cube's six
+// face half-spaces plus one 45-degree chamfer half-space per bevelled edge.
+// Every emitted polygon is one plane's face on that polytope, clipped against
+// all the other half-spaces, so faces, chamfers, edge ends and corners meet
+// exactly and cannot poke through one another (the earlier hand-assembled
+// insets/caps could). Ends of edges that do not continue into the neighbour
+// get a clipped, slightly recessed cap so the open chamfer prism never reads
+// as a hole. mode: 1 = horizontal edges only, 2 = vertical, 3 = both.
 static void drawBeveledSolid(MeshCollector *collector, v3f origin,
 		const TileSpec tiles[6], u8 faces, int mode, u16 diag_open, u32 cap_mask)
 {
@@ -458,45 +462,35 @@ static void drawBeveledSolid(MeshCollector *collector, v3f origin,
 		b = h * 0.8f;
 	const video::SColor white(255, 255, 255, 255);
 
-	// Per face: plane axis, plane sign, in-plane axes (u,v), and the neighbour
-	// face on the +u,-u,+v,-v sides. Face order matches tile_dirs/setupCuboid:
-	// 0=+Y 1=-Y 2=+X 3=-X 4=+Z 5=-Z.
-	struct F { int pa, ps, ua, va, nup, num, nvp, nvm; };
-	static const F FT[6] = {
-		{1, +1, 0, 2, 2, 3, 4, 5}, // +Y
-		{1, -1, 0, 2, 2, 3, 4, 5}, // -Y
-		{0, +1, 1, 2, 0, 1, 4, 5}, // +X
-		{0, -1, 1, 2, 0, 1, 4, 5}, // -X
-		{2, +1, 0, 1, 2, 3, 0, 1}, // +Z
-		{2, -1, 0, 1, 2, 3, 0, 1}, // -Z
-	};
-	// Corner (su,sv) order per face, matching setupCuboidVertices winding.
-	static const int CO[6][4][2] = {
-		{{-1,+1},{+1,+1},{+1,-1},{-1,-1}}, // +Y (u=x,v=z)
-		{{-1,-1},{+1,-1},{+1,+1},{-1,+1}}, // -Y
-		{{+1,-1},{+1,+1},{-1,+1},{-1,-1}}, // +X (u=y,v=z)
-		{{+1,+1},{+1,-1},{-1,-1},{-1,+1}}, // -X
-		{{+1,+1},{-1,+1},{-1,-1},{+1,-1}}, // +Z (u=x,v=y)
-		{{-1,+1},{+1,+1},{+1,-1},{-1,-1}}, // -Z
-	};
-	auto exposed = [&](int f) { return (faces >> f) & 1; };
-	auto horiz = [&](int fa, int fb) { return FT[fa].pa == 1 || FT[fb].pa == 1; };
+	// Per face: plane axis, plane sign. Face order: 0=+Y 1=-Y 2=+X 3=-X 4=+Z 5=-Z.
+	struct F { int pa, ps; };
+	static const F FT[6] = {{1, +1}, {1, -1}, {0, +1}, {0, -1}, {2, +1}, {2, -1}};
+	static const int EDGES[12][2] = {
+		{0,2},{0,3},{0,4},{0,5},{1,2},{1,3},{1,4},{1,5},{2,4},{2,5},{3,4},{3,5}};
 	static const int EDGE_LOOKUP[6][6] = { // -1 if not an edge pair
 		{-1,-1, 0, 1, 2, 3}, {-1,-1, 4, 5, 6, 7},
 		{ 0, 4,-1,-1, 8, 9}, { 1, 5,-1,-1,10,11},
 		{ 2, 6, 8,10,-1,-1}, { 3, 7, 9,11,-1,-1}};
+
+	auto exposed = [&](int f) { return (faces >> f) & 1; };
+	auto horiz = [&](int fa, int fb) { return FT[fa].pa == 1 || FT[fb].pa == 1; };
 	auto beveled = [&](int fa, int fb) {
 		if (!exposed(fa) || !exposed(fb))
 			return false;
 		int ei = EDGE_LOOKUP[fa][fb];
-		if (ei < 0 || !((diag_open >> ei) & 1)) // concave/filled junction
+		if (ei < 0 || !((diag_open >> ei) & 1))
 			return false;
 		bool hz = horiz(fa, fb);
 		if (mode == 3) return true;
 		if (mode == 1) return hz;
 		return !hz;
 	};
-	auto setax = [&](v3f &p, int ax, float v) { if (ax == 0) p.X = v; else if (ax == 1) p.Y = v; else p.Z = v; };
+	auto setax = [&](v3f &p, int ax, float v) {
+		if (ax == 0) p.X = v; else if (ax == 1) p.Y = v; else p.Z = v;
+	};
+	auto axval = [&](const v3f &p, int ax) {
+		return ax == 0 ? p.X : (ax == 1 ? p.Y : p.Z);
+	};
 	auto uvOf = [&](const v3f &p, const v3f &n) {
 		float ax = std::fabs(n.X), ay = std::fabs(n.Y), az = std::fabs(n.Z);
 		float u, v;
@@ -505,106 +499,163 @@ static void drawBeveledSolid(MeshCollector *collector, v3f origin,
 		else { u = p.X; v = p.Y; }
 		return v2f((u + h) / (2 * h), 1.0f - (v + h) / (2 * h));
 	};
-	auto emit = [&](const TileSpec &t, const v3f *pts, int n, const v3f &nrm) {
-		video::S3DVertex vs[4];
-		for (int j = 0; j < n; j++) {
-			vs[j].Pos = pts[j] + origin;
-			vs[j].Normal = nrm;
-			vs[j].Color = white;
-			vs[j].TCoords = uvOf(pts[j], nrm);
+
+	// Half-spaces n.p <= d: six faces (always bounding), then chamfers.
+	struct Plane { v3f n; f32 d; };
+	Plane planes[18];
+	int n_planes = 0;
+	for (int i = 0; i < 6; ++i) {
+		v3f n(0, 0, 0);
+		setax(n, FT[i].pa, (f32)FT[i].ps);
+		planes[n_planes++] = {n, h};
+	}
+	int edge_plane[12];
+	for (int ei = 0; ei < 12; ++ei) {
+		edge_plane[ei] = -1;
+		int f = EDGES[ei][0], nf = EDGES[ei][1];
+		if (!beveled(f, nf))
+			continue;
+		v3f n(0, 0, 0);
+		setax(n, FT[f].pa, (f32)FT[f].ps);
+		setax(n, FT[nf].pa, (f32)FT[nf].ps);
+		n.normalize();
+		v3f q(0, 0, 0);
+		setax(q, FT[f].pa, FT[f].ps * h);
+		setax(q, FT[nf].pa, FT[nf].ps * (h - b));
+		edge_plane[ei] = n_planes;
+		planes[n_planes++] = {n, n.dotProduct(q)};
+	}
+
+	const f32 tol = 1.0e-3f * BS;
+	auto clip = [&](std::vector<v3f> &poly, const Plane &pl) {
+		if (poly.size() < 3)
+			return;
+		std::vector<v3f> out;
+		out.reserve(poly.size() + 2);
+		for (size_t i = 0; i < poly.size(); ++i) {
+			const v3f &pa = poly[i], &pb = poly[(i + 1) % poly.size()];
+			f32 da = pl.n.dotProduct(pa) - pl.d, db = pl.n.dotProduct(pb) - pl.d;
+			if (da <= tol)
+				out.push_back(pa);
+			if ((da <= tol) != (db <= tol) && std::fabs(da - db) > 1e-9f)
+				out.push_back(pa + (pb - pa) * (da / (da - db)));
 		}
-		static const u16 qi[6] = {0, 1, 2, 2, 3, 0};
-		static const u16 ti[3] = {0, 1, 2};
-		collector->append(t, vs, n, n == 4 ? qi : ti, n == 4 ? 6 : 3);
+		poly.swap(out);
+	};
+	auto clip_all = [&](std::vector<v3f> &poly, int skip) {
+		for (int i = 0; i < n_planes && poly.size() >= 3; ++i)
+			if (i != skip)
+				clip(poly, planes[i]);
+	};
+	auto emitPoly = [&](const TileSpec &t, std::vector<v3f> &poly, v3f nrm) {
+		if (poly.size() < 3)
+			return;
+		v3f ar(0, 0, 0);
+		for (size_t i = 1; i + 1 < poly.size(); ++i)
+			ar += (poly[i] - poly[0]).crossProduct(poly[i + 1] - poly[0]);
+		if (ar.getLength() < 1e-4f * BS * BS)
+			return; // degenerate sliver
+		if (ar.dotProduct(nrm) < 0)
+			std::reverse(poly.begin(), poly.end());
+		int n = (int)poly.size();
+		if (n > 12)
+			n = 12;
+		video::S3DVertex vs[12];
+		u16 idx[30];
+		for (int i = 0; i < n; ++i) {
+			vs[i].Pos = poly[i] + origin;
+			vs[i].Normal = nrm;
+			vs[i].Color = white;
+			vs[i].TCoords = uvOf(poly[i], nrm);
+		}
+		int ni = 0;
+		for (int i = 1; i + 1 < n; ++i) {
+			idx[ni++] = 0;
+			idx[ni++] = (u16)i;
+			idx[ni++] = (u16)(i + 1);
+		}
+		collector->append(t, vs, n, idx, ni);
 	};
 
-	// Inset face centres.
-	for (int f = 0; f < 6; f++) {
+	// Faces: the full square clipped by every chamfer plane. This both insets
+	// bevelled sides and diagonally cuts corners crossed by a perpendicular
+	// chamfer (e.g. the top of a trunk whose vertical edges are bevelled).
+	for (int f = 0; f < 6; ++f) {
 		if (!exposed(f))
 			continue;
 		const F &fd = FT[f];
-		float insUp = beveled(f, fd.nup) ? b : 0, insUm = beveled(f, fd.num) ? b : 0;
-		float insVp = beveled(f, fd.nvp) ? b : 0, insVm = beveled(f, fd.nvm) ? b : 0;
-		v3f n = v3f(0, 0, 0);
-		setax(n, fd.pa, (float)fd.ps);
-		v3f pts[4];
-		for (int c = 0; c < 4; c++) {
-			int su = CO[f][c][0], sv = CO[f][c][1];
-			float uu = su * (h - (su > 0 ? insUp : insUm));
-			float vv = sv * (h - (sv > 0 ? insVp : insVm));
+		int ua = fd.pa == 1 ? 0 : (fd.pa == 0 ? 1 : 0);
+		int va = fd.pa == 2 ? 1 : 2;
+		std::vector<v3f> poly;
+		static const int SQ[4][2] = {{-1,-1},{1,-1},{1,1},{-1,1}};
+		for (int c = 0; c < 4; ++c) {
 			v3f p(0, 0, 0);
 			setax(p, fd.pa, fd.ps * h);
-			setax(p, fd.ua, uu);
-			setax(p, fd.va, vv);
-			pts[c] = p;
+			setax(p, ua, SQ[c][0] * h);
+			setax(p, va, SQ[c][1] * h);
+			poly.push_back(p);
 		}
-		emit(tiles[f], pts, 4, n);
+		clip_all(poly, f);
+		v3f nrm(0, 0, 0);
+		setax(nrm, fd.pa, (f32)fd.ps);
+		emitPoly(tiles[f], poly, nrm);
 	}
 
-	// Edge chamfers (12 unique edges as face pairs).
-	static const int EDGES[12][2] = {
-		{0,2},{0,3},{0,4},{0,5},{1,2},{1,3},{1,4},{1,5},{2,4},{2,5},{3,4},{3,5}};
+	// Chamfers, clipped by each other so they meet in a point at corners,
+	// plus end caps where the edge does not continue into the neighbour.
 	for (int ei = 0; ei < 12; ++ei) {
-		const auto &e = EDGES[ei];
-		int f = e[0], nf = e[1];
-		if (!beveled(f, nf))
+		if (edge_plane[ei] < 0)
 			continue;
+		int f = EDGES[ei][0], nf = EDGES[ei][1];
 		const F &fd = FT[f], &nd = FT[nf];
-		int w = 3 - fd.pa - nd.pa; // the axis common to both planes
-		v3f nrm = v3f(0, 0, 0);
-		setax(nrm, fd.pa, (float)fd.ps);
-		setax(nrm, nd.pa, (float)nd.ps);
-		nrm.normalize();
-		float wlim = h; // full edge; corner caps close all-3 corners
-		v3f c1(0,0,0), c2(0,0,0), c3(0,0,0), c4(0,0,0);
-		// rim on f's plane, inset toward nf
-		auto onF = [&](float ww) { v3f p(0,0,0); setax(p, fd.pa, fd.ps*h); setax(p, nd.pa, nd.ps*(h-b)); setax(p, w, ww); return p; };
-		auto onNF = [&](float ww) { v3f p(0,0,0); setax(p, nd.pa, nd.ps*h); setax(p, fd.pa, fd.ps*(h-b)); setax(p, w, ww); return p; };
-		c1 = onF(-wlim); c2 = onNF(-wlim); c3 = onNF(wlim); c4 = onF(wlim);
-		v3f pts[4] = {c1, c2, c3, c4};
-		// pick winding so the quad faces outward (along nrm)
-		v3f cross = (pts[1]-pts[0]).crossProduct(pts[3]-pts[0]);
-		if (cross.dotProduct(nrm) < 0) { std::swap(pts[1], pts[3]); }
-		emit(tiles[f], pts, 4, nrm);
-		// End caps: close the chamfer prism where the edge does not continue.
-		// Recessed a hair so a cap coplanar with an exposed end face (which is
-		// drawn as a full square) does not z-fight it.
+		int w = 3 - fd.pa - nd.pa;
+		auto onF = [&](float ww) {
+			v3f p(0, 0, 0);
+			setax(p, fd.pa, fd.ps * h);
+			setax(p, nd.pa, nd.ps * (h - b));
+			setax(p, w, ww);
+			return p;
+		};
+		auto onNF = [&](float ww) {
+			v3f p(0, 0, 0);
+			setax(p, nd.pa, nd.ps * h);
+			setax(p, fd.pa, fd.ps * (h - b));
+			setax(p, w, ww);
+			return p;
+		};
+		std::vector<v3f> poly = {onF(-h), onNF(-h), onNF(h), onF(h)};
+		clip_all(poly, edge_plane[ei]);
+		emitPoly(tiles[f], poly, planes[edge_plane[ei]].n);
 		for (int sn = 0; sn < 2; ++sn) {
 			if (!((cap_mask >> (ei * 2 + sn)) & 1))
 				continue;
-			const float eps = 0.02f * b;
-			float ww = (sn ? wlim : -wlim) - (sn ? eps : -eps);
-			v3f a = onF(ww), bb = onNF(ww), cc(0, 0, 0);
+			float ww = sn ? h : -h;
+			v3f cc(0, 0, 0);
 			setax(cc, fd.pa, fd.ps * h);
 			setax(cc, nd.pa, nd.ps * h);
 			setax(cc, w, ww);
+			std::vector<v3f> cap = {onF(ww), onNF(ww), cc};
+			int wface = (w == 1) ? (sn ? 0 : 1) : (w == 0) ? (sn ? 2 : 3) : (sn ? 4 : 5);
+			clip_all(cap, wface);
+			// Recess a hair so a cap coplanar with a drawn end face or the
+			// neighbour's geometry cannot z-fight it.
+			for (auto &pp : cap)
+				setax(pp, w, axval(pp, w) + (sn ? -1.f : 1.f) * 0.02f * b);
+			// Winding must match the true cap orientation, but shade it with
+			// the chamfer's normal: lit like the bevel it terminates, it reads
+			// as a mitre rather than a dark shadow-side notch.
 			v3f cn(0, 0, 0);
-			setax(cn, w, sn ? -1.0f : 1.0f);
-			v3f cap[3] = {a, bb, cc};
-			v3f cr = (cap[1] - cap[0]).crossProduct(cap[2] - cap[0]);
-			if (cr.dotProduct(cn) < 0)
-				std::swap(cap[1], cap[2]);
-			emit(tiles[f], cap, 3, cn);
+			setax(cn, w, sn ? -1.f : 1.f);
+			if (cap.size() >= 3) {
+				v3f car(0, 0, 0);
+				for (size_t i = 1; i + 1 < cap.size(); ++i)
+					car += (cap[i] - cap[0]).crossProduct(cap[i + 1] - cap[0]);
+				if (car.dotProduct(cn) < 0)
+					std::reverse(cap.begin(), cap.end());
+			}
+			std::vector<v3f> capw = cap;
+			emitPoly(tiles[f], capw, planes[edge_plane[ei]].n);
 		}
-	}
-
-	// Convex corners where all three edges are bevelled get a diagonal cap.
-	for (int sx = -1; sx <= 1; sx += 2)
-	for (int sy = -1; sy <= 1; sy += 2)
-	for (int sz = -1; sz <= 1; sz += 2) {
-		int fx = sx > 0 ? 2 : 3, fy = sy > 0 ? 0 : 1, fz = sz > 0 ? 4 : 5;
-		if (!(beveled(fx, fy) && beveled(fy, fz) && beveled(fx, fz)))
-			continue;
-		v3f px(sx * h, sy * (h - b), sz * (h - b));
-		v3f py(sx * (h - b), sy * h, sz * (h - b));
-		v3f pz(sx * (h - b), sy * (h - b), sz * h);
-		v3f nrm = v3f((float)sx, (float)sy, (float)sz);
-		nrm.normalize();
-		v3f pts[3] = {px, py, pz};
-		v3f cr = (pts[1] - pts[0]).crossProduct(pts[2] - pts[0]);
-		if (cr.dotProduct(nrm) < 0)
-			std::swap(pts[1], pts[2]);
-		emit(tiles[fy], pts, 3, nrm);
 	}
 }
 
