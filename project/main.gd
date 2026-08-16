@@ -317,6 +317,7 @@ func _main_list() -> Array:
 # line into trees is what made the first mob test fail). Needs the teleport
 # privilege on the test server. Godot z is mirrored relative to Luanti.
 var test_teleported := 0.0
+var _anim_reported := false
 func _teleport_near(target: Vector3) -> bool:
 	if test_teleported > 0.0:
 		return t - test_teleported > 2.0
@@ -326,7 +327,40 @@ func _teleport_near(target: Vector3) -> bool:
 	print("test: teleporting next to target at ", target)
 	return false
 
+# Development aid: GOANNA_ANIMPROBE=<substr> samples the "frame" field of the
+# nearest matching entity every physics frame and reports frames advanced per
+# second, so an animation-speed bug can be measured instead of eyeballed.
+var _anim_samples: Array = []
+func _anim_probe(delta: float) -> void:
+	var sub := OS.get_environment("GOANNA_ANIMPROBE")
+	if sub == "":
+		return
+	var e := _nearest_entity(sub)
+	if not e.is_empty():
+		_anim_samples.append({"t": t, "id": int(e["id"]), "frame": float(e.get("frame", 0.0)), "pos": Vector3(e["position"])})
+	if t > 12.0 and not _anim_reported:
+		_anim_reported = true
+		# group by id, report frame span and moved distance
+		var by_id := {}
+		for smp in _anim_samples:
+			by_id.get_or_add(smp["id"], []).append(smp)
+		for id in by_id:
+			var arr: Array = by_id[id]
+			var f0: float = arr[0]["frame"]
+			var fmin := f0
+			var fmax := f0
+			var moved := 0.0
+			for i in range(1, arr.size()):
+				fmin = minf(fmin, arr[i]["frame"])
+				fmax = maxf(fmax, arr[i]["frame"])
+				moved += (arr[i]["pos"] - arr[i - 1]["pos"]).length()
+			var span: float = arr[-1]["t"] - arr[0]["t"]
+			print("animprobe id=%d frames %.1f..%.1f over %.1fs (%.1f frames/s) moved %.1f nodes samples=%d" % [id, fmin, fmax, span, (fmax - fmin) / maxf(span, 0.01), moved, arr.size()])
+		client.disconnect_from_server()
+		get_tree().quit()
+
 func _test_hooks(keys: Dictionary) -> void:
+	_anim_probe(get_process_delta_time())
 	# GOANNA_FALLTEST=1: pillar-jump then fall; report hp drop and server damage line.
 	if OS.get_environment("GOANNA_FALLTEST") != "":
 		# grant fly+teleport, go up high, then drop and land
