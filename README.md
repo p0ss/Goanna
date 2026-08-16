@@ -128,6 +128,17 @@ drawn, which brings weather such as rain and snow into the world. Particle
 support is new and has not yet been tested against the full range of effects
 games can define.
 
+Goanna will also use authored material maps if a server ships them. Beside
+an ordinary node texture it looks for LabPBR companions, the same files a
+shader pack for Minecraft carries, and reads real normals, roughness,
+metalness and emission from them. No protocol change and no server patch is
+needed: any server can serve a pack today, and textures without one fall
+back to the relief inferred from brightness. Verified against a CC0 pack
+served from a worldmod, though the sample mapping covers only eight
+Mineclonia textures so far, because such packs name blocks the Minecraft
+way and each Luanti game names them its own way. `tools/pbr_pack.py` builds
+a pack from that kind of source.
+
 Then the parts that are Goanna's own rather than Luanti's: a water shader
 with vertex waves and refraction, waving leaves and plants, distance fog and
 an underwater tint, chamfered edges on solid nodes, surface relief derived
