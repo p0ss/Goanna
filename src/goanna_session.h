@@ -354,6 +354,10 @@ private:
     v3f m_server_move_pos;
     float m_server_move_pitch = 0, m_server_move_yaw = 0;
     std::vector<v3s16> m_new_blocks;
+    // Blocks that arrived before the node definitions and media were
+    // ready: they mesh as unknown nodes, so they are re-meshed once
+    // content preparation completes.
+    std::vector<v3s16> m_preready_blocks;
     std::vector<v3s16> m_ack_blocks;
 
     NodeDefManager *m_nodedef = nullptr;

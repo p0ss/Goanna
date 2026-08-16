@@ -1261,6 +1261,16 @@ bool GoannaSession::prepareContentIfReady() {
             if (kv.second > 0)
                 m_emissive_by_texture[kv.first] = kv.second;
     }
+    {
+        // Anything meshed before now used the unknown node; re-mesh it.
+        std::lock_guard<std::mutex> lk(m_map_mutex);
+        for (const v3s16 &bp : m_preready_blocks)
+            m_new_blocks.push_back(bp);
+        actionstream << "goanna: re-meshing " << m_preready_blocks.size()
+                     << " blocks received before content was ready" << std::endl;
+        m_preready_blocks.clear();
+        m_preready_blocks.shrink_to_fit();
+    }
     actionstream << "goanna: content prepared: " << n_img << " images, node visuals filled" << std::endl;
     m_send_ready = true; // session thread sends CLIENT_READY
     return true;
@@ -1564,6 +1574,8 @@ void GoannaSession::onBlockData(NetworkPacket &pkt) {
                     m_new_blocks.push_back(p + d);
         }
     }
+    if (!m_content_ready)
+        m_preready_blocks.push_back(p);
     m_ack_blocks.push_back(p); // always ack, so the server stops re-sending
     {
         std::lock_guard<std::mutex> lk2(m_stats_mutex);
