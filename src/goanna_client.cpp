@@ -326,12 +326,28 @@ Ref<Texture2D> GoannaClient::item_icon(const String &item_name) {
             tex = def.inventory_image.name;
     }
     if (tex.empty()) {
-        // Node item with no flat inventory image: vanilla renders the node as a
-        // cube. Until Goanna renders one, use the node's own first tile, which
-        // at least shows the block's real face rather than a placeholder.
+        // Node item with no flat inventory image. Compose an isometric cube
+        // icon with Luanti's own [inventorycube modifier (builtin's
+        // core.inventorycube: top, left, right, with ^ escaped as &), which
+        // runs entirely in the image pipeline: no offscreen 3D pass, and it
+        // caches like any other generated texture. Tile order is
+        // +Y,-Y,+X,-X,+Z,-Z, so top/left/right are tiles 0, 3 and 4.
         const ContentFeatures &f = m_session->nodeDefs()->get(stack.name);
-        if (f.visuals && f.visuals->tiles[0].layers[0].texture_id)
-            tex = m_session->tsrc()->getTextureName(f.visuals->tiles[0].layers[0].texture_id);
+        if (f.visuals) {
+            auto tile_name = [&](int i) {
+                u32 tid = f.visuals->tiles[i].layers[0].texture_id;
+                std::string n = tid ? m_session->tsrc()->getTextureName(tid) : std::string();
+                std::replace(n.begin(), n.end(), '^', '&');
+                return n;
+            };
+            std::string top = tile_name(0), left = tile_name(3), right = tile_name(4);
+            if (left.empty()) left = top;
+            if (right.empty()) right = left;
+            if (!top.empty() && f.drawtype != NDT_AIRLIKE)
+                tex = "[inventorycube{" + top + "{" + left + "{" + right;
+            else
+                tex = top;
+        }
     }
     if (tex.empty())
         return Ref<Texture2D>();

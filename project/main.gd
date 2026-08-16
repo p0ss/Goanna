@@ -313,6 +313,29 @@ func _process(delta: float) -> void:
 					print("item_mesh ", nm, ": no mesh")
 				else:
 					print("item_mesh ", nm, ": surfaces=", m.get_surface_count(), " aabb=", m.get_aabb().size, " scale=", im["scale"])
+		# GOANNA_ICONTEST="dir=item,item": save item_icon() results, for
+		# checking inventory icons (node items composite an isometric cube).
+		if OS.get_environment("GOANNA_ICONTEST") != "" and int(t) == 3:
+			var spec := OS.get_environment("GOANNA_ICONTEST").split("=")
+			for nm in spec[1].split(","):
+				var img: Image = null
+				var itex: Texture2D = client.item_icon(nm)
+				if itex != null:
+					img = itex.get_image()
+				if img == null:
+					print("icon ", nm, ": no mesh")
+				else:
+					var op := 0
+					var lit_px := 0
+					for py in img.get_height():
+						for px in img.get_width():
+							var c := img.get_pixel(px, py)
+							if c.a > 0.02:
+								op += 1
+							if c.r + c.g + c.b > 0.02:
+								lit_px += 1
+					img.save_png(spec[0].path_join(nm.replace(":", "-") + ".png"))
+					print("icon ", nm, ": alpha>0=", op, " rgb>0=", lit_px, "/", img.get_width() * img.get_height())
 		if OS.get_environment("GOANNA_DUMPSKY") != "" and int(t) == 3:
 			print("SKY ", JSON.stringify(client.sky_state()))
 		if OS.get_environment("GOANNA_DUMPUI") != "" and int(t) == 5:
