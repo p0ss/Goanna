@@ -33,6 +33,7 @@
 #include <godot_cpp/classes/shader_material.hpp>
 #include <godot_cpp/variant/utility_functions.hpp>
 #include <cstdlib>
+#include <cstring>
 #include <algorithm>
 #include <set>
 #include <godot_cpp/variant/packed_vector2_array.hpp>
@@ -494,6 +495,77 @@ bool GoannaClient::is_underwater(const Vector3 &eye) {
 void GoannaClient::set_time_of_day_override(float tod) {
     if (m_session)
         m_session->setTimeOfDayOverride(tod);
+}
+
+Array GoannaClient::take_sounds() {
+    Array out;
+    if (!m_session)
+        return out;
+    for (auto &ev : m_session->takeSounds()) {
+        Dictionary d;
+        d["id"] = (int)ev.server_id;
+        d["name"] = String::utf8(ev.name.c_str());
+        d["gain"] = ev.gain;
+        d["pitch"] = ev.pitch;
+        d["loop"] = ev.loop;
+        d["positional"] = ev.positional;
+        d["position"] = Vector3(ev.pos.X, ev.pos.Y, ev.pos.Z);
+        d["object_id"] = (int)ev.object_id;
+        d["start_time"] = ev.start_time;
+        out.push_back(d);
+    }
+    return out;
+}
+
+PackedInt32Array GoannaClient::take_stopped_sounds() {
+    PackedInt32Array out;
+    if (!m_session)
+        return out;
+    for (s32 id : m_session->takeStoppedSounds())
+        out.push_back(id);
+    return out;
+}
+
+PackedStringArray GoannaClient::media_names() {
+    PackedStringArray out;
+    if (!m_session)
+        return out;
+    for (const auto &n : m_session->mediaNames())
+        out.push_back(String::utf8(n.c_str()));
+    return out;
+}
+
+String GoannaClient::node_name_at(const Vector3 &pos) {
+    if (!m_session)
+        return String();
+    std::lock_guard<std::mutex> lk(m_session->mapLock());
+    v3s16 np((s16)floorf(pos.x + 0.5f), (s16)floorf(pos.y + 0.5f), (s16)floorf(-pos.z + 0.5f));
+    MapNode n = m_session->map().getNode(np);
+    return String::utf8(m_session->nodeDefs()->get(n).name.c_str());
+}
+
+PackedByteArray GoannaClient::media_bytes(const String &name) {
+    PackedByteArray out;
+    std::string data;
+    if (m_session && m_session->mediaBytes(name.utf8().get_data(), data)) {
+        out.resize((int64_t)data.size());
+        memcpy(out.ptrw(), data.data(), data.size());
+    }
+    return out;
+}
+
+Dictionary GoannaClient::node_sound(const String &node_name, const String &kind) {
+    Dictionary d;
+    if (!m_session)
+        return d;
+    std::string sname;
+    float gain = 1.0f, pitch = 1.0f;
+    if (!m_session->nodeSound(node_name.utf8().get_data(), kind.utf8().get_data(), sname, gain, pitch))
+        return d;
+    d["name"] = String::utf8(sname.c_str());
+    d["gain"] = gain;
+    d["pitch"] = pitch;
+    return d;
 }
 
 Dictionary GoannaClient::sky_state() const {
@@ -1331,6 +1403,12 @@ void GoannaClient::_bind_methods() {
             &GoannaClient::set_player_pose);
     ClassDB::bind_method(D_METHOD("server_player_position"), &GoannaClient::server_player_position);
     ClassDB::bind_method(D_METHOD("step_player", "dt", "keys", "pitch_deg", "yaw_deg"), &GoannaClient::step_player);
+    ClassDB::bind_method(D_METHOD("take_sounds"), &GoannaClient::take_sounds);
+    ClassDB::bind_method(D_METHOD("take_stopped_sounds"), &GoannaClient::take_stopped_sounds);
+    ClassDB::bind_method(D_METHOD("media_bytes", "name"), &GoannaClient::media_bytes);
+    ClassDB::bind_method(D_METHOD("media_names"), &GoannaClient::media_names);
+    ClassDB::bind_method(D_METHOD("node_name_at", "pos"), &GoannaClient::node_name_at);
+    ClassDB::bind_method(D_METHOD("node_sound", "node_name", "kind"), &GoannaClient::node_sound);
     ClassDB::bind_method(D_METHOD("sky_state"), &GoannaClient::sky_state);
     ClassDB::bind_method(D_METHOD("update_lights", "around", "max_lights"), &GoannaClient::update_lights);
     ClassDB::bind_method(D_METHOD("set_motes", "density"), &GoannaClient::set_motes);

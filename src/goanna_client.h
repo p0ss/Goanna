@@ -143,6 +143,20 @@ public:
     godot::Array take_shown_formspecs(); // [{formspec, formname}]
     void send_inventory_fields(const godot::String &formname, const godot::Dictionary &fields);
 
+    // --- sound ---
+    // Sounds the server asked for since the last call:
+    // [{id, name, gain, pitch, loop, positional, position, object_id, start_time}].
+    godot::Array take_sounds();
+    godot::PackedInt32Array take_stopped_sounds();
+    godot::PackedStringArray media_names();
+    // Name of the node at a Godot-space position, "" if unknown.
+    godot::String node_name_at(const godot::Vector3 &pos);
+    // Raw bytes of a received media file (an .ogg for sounds), empty if absent.
+    godot::PackedByteArray media_bytes(const godot::String &name);
+    // A node's own sound: kind is "footstep", "dig" or "dug".
+    // Returns {name, gain, pitch} or an empty dictionary.
+    godot::Dictionary node_sound(const godot::String &node_name, const godot::String &kind);
+
     // Sky/sun/fog/lighting state from the server, in Godot terms (see goanna_sky.h).
     godot::Dictionary sky_state() const;
     void set_time_of_day_override(float tod);

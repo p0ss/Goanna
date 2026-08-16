@@ -142,6 +142,25 @@ public:
     struct ChatLine { u8 type; std::wstring sender; std::wstring message; };
     // Chat lines received since the last call (consumed).
     std::vector<ChatLine> takeChat();
+    // --- sound ---
+    // A sound the server asked us to play. pos is in nodes (Godot space);
+    // positional is false for a sound with no place in the world.
+    struct SoundEvent {
+        s32 server_id = 0;
+        std::string name;
+        float gain = 1.0f, pitch = 1.0f, fade = 0.0f, start_time = 0.0f;
+        bool loop = false, positional = false;
+        v3f pos;
+        u16 object_id = 0;
+    };
+    std::vector<SoundEvent> takeSounds();
+    std::vector<s32> takeStoppedSounds();
+    std::vector<std::string> mediaNames() const;
+    // Raw bytes of a received media file (sounds are .ogg), empty if absent.
+    bool mediaBytes(const std::string &name, std::string &out) const { return getMedia(name, out); }
+    // A node's own sound: kind is "footstep", "dig" or "dug".
+    bool nodeSound(const std::string &node_name, const std::string &kind,
+            std::string &sound_name, float &gain, float &pitch) const;
     void sendChat(const std::wstring &message);
     // Client -> server: a raw inventory action string (Client::inventoryAction),
     // e.g. "Move 1 current_player main 3 current_player main 5".
@@ -266,6 +285,9 @@ private:
     void onMedia(NetworkPacket &pkt);
     void requestMedia(const std::vector<std::string> &names);
     void onBlockData(NetworkPacket &pkt);
+    void onPlaySound(NetworkPacket &pkt);
+    void onStopSound(NetworkPacket &pkt);
+    void onFadeSound(NetworkPacket &pkt);
     void onMovePlayer(NetworkPacket &pkt);
     void onMovement(NetworkPacket &pkt);
     void onAddNode(NetworkPacket &pkt);
@@ -368,6 +390,9 @@ private:
     // ready: they mesh as unknown nodes, so they are re-meshed once
     // content preparation completes.
     std::vector<v3s16> m_preready_blocks;
+    std::vector<SoundEvent> m_sounds;
+    std::vector<s32> m_stopped_sounds;
+    mutable std::mutex m_sound_mutex;
     std::vector<v3s16> m_ack_blocks;
 
     NodeDefManager *m_nodedef = nullptr;

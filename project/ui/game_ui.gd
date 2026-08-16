@@ -70,6 +70,7 @@ var gui_scale := 1.0           # user interface-scale multiplier (Display settin
 var damage_flash := true       # flash red on taking damage
 var flash_rect: ColorRect
 var cursor_ctl: Control      # dragged stack, drawn above the formspec
+var audio: Node              # ui/audio.gd, sound
 var flash_alpha := 0.0
 var t := 0.0
 var last_hp := -1
@@ -116,6 +117,15 @@ func _ready() -> void:
 	flash_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(flash_rect)
 
+	audio = preload("res://ui/audio.gd").new()
+	audio.client = client
+	# 3D voices need to live in the 3D scene to be positioned; a CanvasLayer
+	# is not part of the 3D world.
+	var host := _main_node()
+	if host != null:
+		host.add_child.call_deferred(audio)
+	else:
+		add_child(audio)
 	cursor_ctl = Control.new()
 	cursor_ctl.set_anchors_preset(Control.PRESET_FULL_RECT)
 	cursor_ctl.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -193,6 +203,16 @@ func _process(delta: float) -> void:
 		flash_rect.color.a = flash_alpha
 	elif flash_rect.color.a > 0.0:
 		flash_rect.color.a = 0.0
+	if audio != null:
+		var m := _main_node()
+		if m != null:
+			var mv: Dictionary = m.get("last_move") if m.get("last_move") != null else {}
+			var sp: Vector3 = mv.get("speed", Vector3.ZERO)
+			var stand := ""
+			if client.has_method("node_name_at") and mv.has("pos"):
+				stand = client.node_name_at((mv["pos"] as Vector3) + Vector3(0, -0.5, 0))
+			audio.step_local(delta, Vector2(sp.x, sp.z).length() > 0.5,
+				bool(mv.get("on_ground", false)), stand, m.pointed)
 	hud.queue_redraw()
 	if cursor_ctl != null:
 		cursor_ctl.queue_redraw()
@@ -580,6 +600,8 @@ const SETTINGS := [
 	["Video", "view_range", "slider", "View distance", "How much world to ask the server for, in blocks of 16 nodes. Servers may cap it.", 4.0, 40.0, 1.0],
 	["Video", "damage_flash", "toggle", "Damage flash", "Flash the screen red when you take damage."],
 	["Video", "show_body", "toggle", "Show own body", "See your own body and held item when you look down."],
+	["Audio", "volume", "slider", "Volume", "Overall sound level.", 0.0, 1.0, 0.05],
+	["Audio", "muted", "toggle", "Mute", "Silence all sound."],
 	["Display", "fov", "slider", "Field of view", "The camera's field of view, in degrees.", 60.0, 110.0, 1.0],
 	["Display", "gui_scale", "slider", "Interface scale", "Size of the HUD and menus.", 0.5, 2.0, 0.1],
 	["Display", "max_fps", "slider", "Max FPS", "Frame rate cap (240 means uncapped).", 30.0, 240.0, 10.0],
@@ -588,7 +610,7 @@ const SETTINGS := [
 ]
 # Settings handled here rather than through the client (window, camera, UI).
 const LOCAL_KEYS := ["mouse_sensitivity", "invert_mouse", "view_bobbing", "fov",
-	"gui_scale", "max_fps", "vsync", "fullscreen", "damage_flash"]
+	"gui_scale", "max_fps", "vsync", "fullscreen", "damage_flash", "volume", "muted"]
 var settings_menu: Control
 
 func _main_node() -> Node:
@@ -621,6 +643,10 @@ func _apply_local(key: String, value: float, on: bool) -> void:
 			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN if on else DisplayServer.WINDOW_MODE_WINDOWED)
 		"damage_flash":
 			damage_flash = on
+		"volume":
+			if audio != null: audio.volume = value
+		"muted":
+			if audio != null: audio.muted = on
 
 func _local_value(key: String) -> float:
 	var m := _main_node()
@@ -634,6 +660,8 @@ func _local_value(key: String) -> float:
 		"vsync": return 1.0 if DisplayServer.window_get_vsync_mode() != DisplayServer.VSYNC_DISABLED else 0.0
 		"fullscreen": return 1.0 if DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN else 0.0
 		"damage_flash": return 1.0 if damage_flash else 0.0
+		"volume": return audio.volume if audio != null else 0.8
+		"muted": return 1.0 if (audio != null and audio.muted) else 0.0
 	return 0.0
 
 func _apply_setting(key: String, value: float) -> void:

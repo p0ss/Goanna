@@ -802,6 +802,16 @@ void GoannaSession::stepInteract(float dtime, const InteractInput &in) {
                     m_new_blocks.push_back(kv.first);
                 queueBlocksAround(nodepos);
                 sendInteract(INTERACT_DIGGING_COMPLETED, pointed);
+                if (!features.sound_dug.name.empty()) {
+                    SoundEvent ev;
+                    ev.name = features.sound_dug.name;
+                    ev.gain = features.sound_dug.gain;
+                    ev.pitch = features.sound_dug.pitch;
+                    ev.positional = true;
+                    ev.pos = v3f(nodepos.X, nodepos.Y, -nodepos.Z);
+                    std::lock_guard<std::mutex> sl(m_sound_mutex);
+                    m_sounds.push_back(ev);
+                }
                 if (std::getenv("GOANNA_DEBUG_DIG"))
                     fprintf(stderr, "goanna dig: COMPLETED %s after %.2fs\n",
                             features.name.c_str(), m_interact.dig_time_complete);
@@ -1327,6 +1337,9 @@ void GoannaSession::handle(NetworkPacket &pkt) {
     case TOCLIENT_INVENTORY_FORMSPEC: onInventoryFormspec(pkt); break;
     case TOCLIENT_DETACHED_INVENTORY: onDetachedInventory(pkt); break;
     case TOCLIENT_NODEMETA_CHANGED: onNodemetaChanged(pkt); break;
+    case TOCLIENT_PLAY_SOUND: onPlaySound(pkt); break;
+    case TOCLIENT_STOP_SOUND: onStopSound(pkt); break;
+    case TOCLIENT_FADE_SOUND: onFadeSound(pkt); break;
     case TOCLIENT_SHOW_FORMSPEC: onShowFormspec(pkt); break;
     case TOCLIENT_SET_SUN: onSetSun(pkt); break;
     case TOCLIENT_SET_MOON: onSetMoon(pkt); break;
@@ -1555,6 +1568,87 @@ static uint64_t hashBlockNodes(MapBlock *block) {
         h = (h ^ v) * 1099511628211ULL;
     }
     return h;
+}
+
+// Server-driven sounds (Client::handleCommand_PlaySound). Goanna keeps the
+// event and lets the Godot side own playback; positions are converted to
+// Godot space (nodes, z mirrored) here.
+void GoannaSession::onPlaySound(NetworkPacket &pkt) {
+    SoundEvent ev;
+    u8 type = 0;
+    v3f pos;
+    pkt >> ev.server_id >> ev.name >> ev.gain >> type >> pos >> ev.object_id >> ev.loop;
+    pkt >> ev.fade >> ev.pitch;
+    if (pkt.getRemainingBytes() > 0) {
+        bool ephemeral = false;
+        pkt >> ephemeral;
+    }
+    if (pkt.getRemainingBytes() > 0)
+        pkt >> ev.start_time;
+    // 0 = Local (no position), 1 = Position, 2 = Object
+    ev.positional = (type != 0);
+    pos *= 1.0f / BS;
+    ev.pos = v3f(pos.X, pos.Y, -pos.Z);
+    std::lock_guard<std::mutex> lk(m_sound_mutex);
+    m_sounds.push_back(ev);
+}
+
+void GoannaSession::onStopSound(NetworkPacket &pkt) {
+    s32 server_id = 0;
+    pkt >> server_id;
+    std::lock_guard<std::mutex> lk(m_sound_mutex);
+    m_stopped_sounds.push_back(server_id);
+}
+
+void GoannaSession::onFadeSound(NetworkPacket &pkt) {
+    // step/gain are the fade parameters; Goanna treats a fade as a stop, which
+    // is what every current use (looping ambience ending) amounts to.
+    s32 server_id = 0;
+    pkt >> server_id;
+    std::lock_guard<std::mutex> lk(m_sound_mutex);
+    m_stopped_sounds.push_back(server_id);
+}
+
+std::vector<GoannaSession::SoundEvent> GoannaSession::takeSounds() {
+    std::lock_guard<std::mutex> lk(m_sound_mutex);
+    std::vector<SoundEvent> out;
+    out.swap(m_sounds);
+    return out;
+}
+
+std::vector<std::string> GoannaSession::mediaNames() const {
+    std::lock_guard<std::mutex> lk(m_media_mutex);
+    std::vector<std::string> out;
+    out.reserve(m_media.size());
+    for (const auto &kv : m_media)
+        out.push_back(kv.first);
+    return out;
+}
+
+std::vector<s32> GoannaSession::takeStoppedSounds() {
+    std::lock_guard<std::mutex> lk(m_sound_mutex);
+    std::vector<s32> out;
+    out.swap(m_stopped_sounds);
+    return out;
+}
+
+// A node's own footstep/dig/dug sound, from its definition.
+bool GoannaSession::nodeSound(const std::string &node_name, const std::string &kind,
+        std::string &sound_name, float &gain, float &pitch) const {
+    content_t id = CONTENT_IGNORE;
+    if (!m_nodedef->getId(node_name, id))
+        return false;
+    const ContentFeatures &f = m_nodedef->get(id);
+    const SoundSpec *spec = nullptr;
+    if (kind == "footstep") spec = &f.sound_footstep;
+    else if (kind == "dig") spec = &f.sound_dig;
+    else if (kind == "dug") spec = &f.sound_dug;
+    if (!spec || spec->name.empty())
+        return false;
+    sound_name = spec->name;
+    gain = spec->gain;
+    pitch = spec->pitch;
+    return true;
 }
 
 void GoannaSession::onBlockData(NetworkPacket &pkt) {

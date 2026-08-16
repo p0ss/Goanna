@@ -32,6 +32,7 @@ var place_pressed := false
 var wield := 0
 var selection_box: MeshInstance3D
 var pointed: Dictionary = {}
+var last_move: Dictionary = {}   # last step_player result, read by the audio layer
 var swing_t := 1.0
 var wield_dig_active := false
 var test_dig := false
@@ -230,6 +231,7 @@ func _process(delta: float) -> void:
 			for k in keys:
 				keys[k] = false
 		var r: Dictionary = client.step_player(delta, keys, pitch, yaw)
+		last_move = r
 		if r.has("eye_pos"):
 			cam.position = r["eye_pos"]
 			cam.rotation_degrees = Vector3(pitch, yaw, 0)
