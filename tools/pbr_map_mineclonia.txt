@@ -1,0 +1,10 @@
+# Minecraft pack directory -> Mineclonia texture name.
+# Used with tools/pbr_pack.py; extend as coverage grows.
+cobblestone default_cobble.png
+mossy_cobblestone default_mossycobble.png
+oak_log_top default_tree_top.png
+birch_log_top default_birchtree_top.png
+jungle_log default_jungletree.png
+jungle_log_top default_jungletree_top.png
+acacia_log_top default_acacia_tree_top.png
+chiseled_sandstone mcl_core_sandstone_carved.png
