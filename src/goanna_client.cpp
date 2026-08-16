@@ -1064,6 +1064,7 @@ Dictionary GoannaClient::render_stats() {
     d["blocks_queued"] = m_last_queue;
     d["block_meshes"] = (int)m_block_nodes.size();
     d["materials"] = (int)m_materials.size();
+    d["resident_blocks"] = m_session ? m_session->residentBlocks() : 0;
     d["light_pool"] = (int)m_light_pool.size();
     d["mote_pool"] = (int)m_mote_pool.size();
     RenderingServer *rs = RenderingServer::get_singleton();

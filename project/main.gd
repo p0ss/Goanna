@@ -59,6 +59,14 @@ func _ready() -> void:
 	ui = preload("res://ui/game_ui.tscn").instantiate()
 	ui.client = client
 	add_child(ui)
+	if OS.get_environment("GOANNA_PERF") != "":
+		# Uncapped: with vsync on, every measurement reads as the refresh rate
+		# and says nothing about headroom.
+		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
+	# GOANNA_VIEW_RANGE=<blocks>: set the streamed view range for perf runs,
+	# so the draw-call curve can be measured without the settings UI.
+	if OS.get_environment("GOANNA_VIEW_RANGE") != "":
+		client.set_view_range(int(OS.get_environment("GOANNA_VIEW_RANGE")))
 	print(client.hello())
 	print(client.luanti_version())
 
