@@ -87,9 +87,14 @@ func _ready() -> void:
 	e.sdfgi_enabled = true
 	e.sdfgi_cascades = 6
 	e.sdfgi_min_cell_size = 0.5
+	e.sdfgi_energy = 1.4
 	e.ssao_enabled = true
-	e.ssao_intensity = 1.4
+	e.ssao_intensity = 3.0
+	e.ssao_radius = 1.5
+	e.ssao_power = 2.0
+	e.ssao_detail = 1.0
 	e.ssil_enabled = true
+	e.ssil_intensity = 1.4
 	e.glow_enabled = true
 	e.glow_intensity = 0.3
 	e.fog_enabled = true
@@ -718,7 +723,7 @@ func _apply_sky() -> void:
 		e.fog_density = 0.0007
 	# --- ambient / grade from day-night ratio and server lighting ---
 	var ratio: float = st["day_night_ratio"]
-	e.ambient_light_energy = lerp(0.18, 1.0, ratio)
+	e.ambient_light_energy = lerp(0.16, 0.6, ratio)
 	e.background_energy_multiplier = lerp(0.25, 1.15, ratio)
 	var lighting: Dictionary = st["lighting"]
 	e.adjustment_saturation = clamp(float(lighting["saturation"]), 0.0, 2.0)
