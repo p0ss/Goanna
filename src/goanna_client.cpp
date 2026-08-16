@@ -54,6 +54,9 @@ GoannaClient::GoannaClient() {
     const char *bv = std::getenv("GOANNA_BEVEL");
     if (bv)
         g_goanna_bevel = (float)atof(bv);
+    const char *mt = std::getenv("GOANNA_MANTLE");
+    if (mt)
+        m_mantle = atoi(mt) != 0;
     const char *mo = std::getenv("GOANNA_MOTES");
     if (mo)
         m_motes = (float)atof(mo);
@@ -533,6 +536,12 @@ Dictionary GoannaClient::step_player(double dt, const Dictionary &keys, float pi
     if (!p)
         return out;
     std::lock_guard<std::mutex> lk(m_session->mapLock());
+    // Mantling: Luanti's own autojump, which steps the player up a single
+    // block ledge it walks into (with clear headroom) using an ordinary jump,
+    // so the server sees nothing a vanilla client with autojump would not.
+    // Goanna defaults it on because it plays better; the toggle turns it off
+    // for strict vanilla parity.
+    p->getPlayerSettings().autojump = m_mantle;
     v3f spos;
     float spitch, syaw;
     if (m_session->takeServerMove(spos, spitch, syaw)) {
@@ -608,6 +617,10 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
     MaterialType mtype = m_session->shsrc().materialType(key.shader_id);
     video::E_MATERIAL_TYPE base = m_session->shsrc().baseMaterial(key.shader_id);
     u8 emissive = m_session->emissiveLevel(key.texture_id);
+    if (getenv("GOANNA_DEBUG_WHITE") && !tex.is_valid())
+        UtilityFunctions::print("no-tex material: id=", key.texture_id, " '",
+                String(m_session->tsrc()->getTextureName(key.texture_id).c_str()),
+                "' mtype=", (int)mtype, " shader=", key.shader_id);
     if (getenv("GOANNA_DEBUG_MATERIALS")) {
         UtilityFunctions::print("goanna material: tex=", key.texture_id, " '",
                 String(m_session->tsrc()->getTextureName(key.texture_id).c_str()),
@@ -638,6 +651,10 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
     default:
         break;
     }
+    if (getenv("GOANNA_DEBUG_WHITE") && sh.is_valid())
+        UtilityFunctions::print((sh == m_sh_glass ? "GLASS " : sh == m_sh_plants ? "PLANTS " : sh == m_sh_leaves ? "LEAVES " : "WATER "),
+                "'", String(m_session->tsrc()->getTextureName(key.texture_id).c_str()), "' mtype=", (int)mtype,
+                " cull=", key.backface_culling, " texvalid=", tex.is_valid());
     if (sh.is_valid() && tex.is_valid() && emissive == 0) {
         Ref<ShaderMaterial> sm;
         sm.instantiate();
@@ -917,6 +934,10 @@ void GoannaClient::update_motes(const Vector3 &around, int max_emitters) {
     std::sort(all.begin(), all.end(), [&](const MoteNode *a, const MoteNode *b) {
         return a->pos.distance_squared_to(around) < b->pos.distance_squared_to(around);
     });
+    // Choose the nearest candidates as targets, but bind each emitter to a
+    // specific node and keep it there: assigning "emitter i = i-th nearest"
+    // reshuffles as the player moves and makes every puff teleport. Emitters
+    // whose node is still a target stay put; freed ones take up new targets.
     int want = std::min((int)all.size(), max_emitters);
     if (getenv("GOANNA_DEBUG_MOTES")) {
         static int dbg = 0;
@@ -944,36 +965,55 @@ void GoannaClient::update_motes(const Vector3 &around, int max_emitters) {
         add_child(e.node);
         m_mote_pool.push_back(e);
     }
-    for (int i = 0; i < (int)m_mote_pool.size(); ++i) {
-        MoteEmitter &e = m_mote_pool[i];
-        if (i >= want) {
-            if (e.node->is_emitting())
-                e.node->set_emitting(false);
+    auto key = [](const Vector3 &p) {
+        return String::num_int64((int64_t)Math::round(p.x)) + "," +
+               String::num_int64((int64_t)Math::round(p.y)) + "," +
+               String::num_int64((int64_t)Math::round(p.z));
+    };
+    std::map<String, const MoteNode *> targets;
+    for (int i = 0; i < want; ++i)
+        targets[key(all[i]->pos)] = all[i];
+    // Keep emitters already sitting on a still-wanted target; release others.
+    std::set<String> covered;
+    for (auto &e : m_mote_pool) {
+        if (e.kind < 0)
+            continue;
+        String k = key(e.at);
+        if (targets.count(k) && !covered.count(k))
+            covered.insert(k);
+        else {
+            e.node->set_emitting(false);
             e.node->set_visible(false);
             e.kind = -1;
-            continue;
         }
-        const MoteNode *m = all[i];
-        // Re-target only when the assigned node changes, so a puff does not jump
-        // every frame; local coords keep the particles around the emitter.
-        if (e.at != m->pos || e.kind != m->kind) {
-            e.at = m->pos;
-            e.kind = m->kind;
-            e.node->set_position(m->pos + Vector3(0, m->kind == 0 ? 0.2f : 0.0f, 0));
-            e.node->set_process_material(m_mote_proc[m->kind]);
-            e.node->set_lifetime(lifetime[m->kind]);
-            e.node->set_amount(std::max(1, (int)(base_amount[m->kind] * std::min(m_motes, 3.0f))));
-            Ref<Mesh> mesh = e.node->get_draw_pass_mesh(0);
-            if (mesh.is_valid()) {
-                Ref<StandardMaterial3D> mm = ((QuadMesh *)mesh.ptr())->get_material();
-                if (mm.is_valid())
-                    mm->set_albedo(m->color);
-            }
-            e.node->restart();
+    }
+    auto assign = [&](MoteEmitter &e, const MoteNode *m) {
+        e.at = m->pos;
+        e.kind = m->kind;
+        e.node->set_position(m->pos + Vector3(0, m->kind == 0 ? 0.2f : 0.0f, 0));
+        e.node->set_process_material(m_mote_proc[m->kind]);
+        e.node->set_lifetime(lifetime[m->kind]);
+        e.node->set_amount(std::max(1, (int)(base_amount[m->kind] * std::min(m_motes, 3.0f))));
+        Ref<Mesh> mesh = e.node->get_draw_pass_mesh(0);
+        if (mesh.is_valid()) {
+            Ref<StandardMaterial3D> mm = ((QuadMesh *)mesh.ptr())->get_material();
+            if (mm.is_valid())
+                mm->set_albedo(m->color);
         }
+        e.node->restart();
         e.node->set_visible(true);
-        if (!e.node->is_emitting())
-            e.node->set_emitting(true);
+        e.node->set_emitting(true);
+    };
+    size_t ei = 0;
+    for (auto &kv : targets) {
+        if (covered.count(kv.first))
+            continue;
+        while (ei < m_mote_pool.size() && m_mote_pool[ei].kind >= 0)
+            ++ei;
+        if (ei >= m_mote_pool.size())
+            break;
+        assign(m_mote_pool[ei], kv.second);
+        ++ei;
     }
 }
 
@@ -1067,12 +1107,16 @@ int GoannaClient::poll_blocks(int max_blocks) {
         }
         if (si == 0) {
             if (mi) {
+                if (getenv("GOANNA_DEBUG_BLOCKS"))
+                    UtilityFunctions::print("block FREED (empty mesh): ", bp.X, ",", bp.Y, ",", bp.Z);
                 mi->queue_free();
                 m_block_nodes.erase(bp);
             }
             ++done;
             continue;
         }
+        if (getenv("GOANNA_DEBUG_BLOCKS") && mi)
+            UtilityFunctions::print("block re-meshed: ", bp.X, ",", bp.Y, ",", bp.Z, " surfaces ", si);
         if (!mi) {
             mi = memnew(MeshInstance3D);
             add_child(mi);
@@ -1132,6 +1176,8 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("bevel"), &GoannaClient::bevel);
     ClassDB::bind_method(D_METHOD("set_auto_bump", "strength"), &GoannaClient::set_auto_bump);
     ClassDB::bind_method(D_METHOD("auto_bump"), &GoannaClient::auto_bump);
+    ClassDB::bind_method(D_METHOD("set_mantle", "on"), &GoannaClient::set_mantle);
+    ClassDB::bind_method(D_METHOD("mantle"), &GoannaClient::mantle);
 }
 
 } // namespace goanna
