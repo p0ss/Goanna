@@ -70,20 +70,23 @@ func _ready() -> void:
 	sun.rotation_degrees = Vector3(-42, 35, 0)
 	sun.light_energy = 1.3
 	sun.shadow_enabled = true
-	sun.directional_shadow_max_distance = 400
+	sun.directional_shadow_max_distance = 200
 	# Bevel chamfers meet the light at grazing angles; raise the normal bias
 	# and soften the blend so the shadow edge does not flicker/acne on them.
-	sun.shadow_normal_bias = 2.0
-	sun.shadow_bias = 0.03
-	sun.shadow_blur = 1.5
+	# Low bias: a high normal bias pushes the shadow test off the surface and
+	# erases contact shadows, which is most of what makes a blocky world read
+	# as lit. Bevel chamfers were the reason it was high; they cope at 1.0.
+	sun.shadow_normal_bias = 1.0
+	sun.shadow_bias = 0.02
+	sun.shadow_blur = 1.0
 	add_child(sun)
 	moon = DirectionalLight3D.new()
 	moon.light_energy = 0.0
 	moon.light_color = Color(0.6, 0.7, 1.0)
 	moon.shadow_enabled = true
-	moon.directional_shadow_max_distance = 400
-	moon.shadow_normal_bias = 2.0
-	moon.shadow_bias = 0.03
+	moon.directional_shadow_max_distance = 200
+	moon.shadow_normal_bias = 1.0
+	moon.shadow_bias = 0.02
 	add_child(moon)
 
 	env = WorldEnvironment.new()
@@ -97,12 +100,15 @@ func _ready() -> void:
 	e.sky = sky
 	e.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 	e.ambient_light_energy = 1.1
-	e.tonemap_mode = Environment.TONE_MAPPER_AGX
-	# AGX plus a soft ambient fill reads washed out; grade it back.
+	# AGX is deliberately desaturating: side by side with the vanilla client
+	# (which does not tonemap at all) it turned Luanti's punchy greens grey.
+	# ACES keeps saturation and contrast, which is the look this client is for.
+	e.tonemap_mode = Environment.TONE_MAPPER_ACES
+	e.tonemap_white = 1.5
 	e.adjustment_enabled = true
-	e.adjustment_saturation = 1.22
-	e.adjustment_contrast = 1.07
-	e.adjustment_brightness = 1.02
+	e.adjustment_saturation = 1.15
+	e.adjustment_contrast = 1.05
+	e.adjustment_brightness = 1.0
 	e.sdfgi_enabled = true
 	e.sdfgi_cascades = 6
 	e.sdfgi_min_cell_size = 0.5
@@ -119,9 +125,12 @@ func _ready() -> void:
 	e.glow_intensity = 0.3
 	e.fog_enabled = true
 	e.fog_light_color = Color(0.72, 0.80, 0.90)
-	e.fog_density = 0.0007
-	e.fog_sky_affect = 0.15
-	e.fog_aerial_perspective = 0.5
+	# Aerial perspective blends distant geometry toward the sky colour; at 0.5
+	# it laid a milky veil over the whole view and desaturated mid-distance
+	# terrain. Keep a little for depth, not a haze.
+	e.fog_density = 0.0004
+	e.fog_sky_affect = 0.1
+	e.fog_aerial_perspective = 0.12
 	env.environment = e
 	add_child(env)
 	# Subtle head-light so caves are navigable rather than pitch black. Short
@@ -803,7 +812,10 @@ func _apply_sky() -> void:
 	moon.visible = moon.light_energy > 0.005
 	var shadow_intensity: float = st["lighting"]["shadow_intensity"]
 	# Luanti servers set 0..1; 0 means "not requested" for old games -> keep shadows but soft.
-	sun.shadow_opacity = 1.0 if shadow_intensity <= 0.0 else clamp(shadow_intensity, 0.2, 1.0)
+	# Luanti's shadow_intensity tunes its own much weaker shadow renderer
+	# (Mineclonia sends 0.33), which left Goanna's shadows barely visible.
+	# Treat it as a floor rather than a ceiling: real shadows are the point.
+	sun.shadow_opacity = 1.0 if shadow_intensity <= 0.0 else clamp(shadow_intensity, 0.85, 1.0)
 	moon.shadow_opacity = sun.shadow_opacity
 	# --- sky colours: blend day / dawn / night like the vanilla sky ---
 	var dawn: float = clamp(1.0 - abs(elev) / 0.22, 0.0, 1.0)
@@ -857,13 +869,14 @@ func _apply_sky() -> void:
 		e.fog_light_color = fog_col
 		var fog_distance: float = sky["fog_distance"]
 		if fog_distance > 0.0:
-			e.fog_density = clamp(2.5 / fog_distance, 0.0006, 0.010)
+			e.fog_density = clamp(2.5 / fog_distance, 0.0004, 0.006)
 		else:
-			e.fog_density = 0.0007
+			e.fog_density = 0.0004
 	# --- ambient / grade from day-night ratio and server lighting ---
 	var ratio: float = st["day_night_ratio"]
-	e.ambient_light_energy = lerp(0.16, 0.6, ratio)
-	e.background_energy_multiplier = lerp(0.25, 1.15, ratio)
+	e.ambient_light_energy = lerp(0.14, 0.42, ratio)
+	# do not push the sky toward white; it reads as haze and flattens the blue
+	e.background_energy_multiplier = lerp(0.25, 0.95, ratio)
 	var lighting: Dictionary = st["lighting"]
 	# Server saturation on top of our base grade, not instead of it.
 	e.adjustment_saturation = clamp(1.12 * float(lighting["saturation"]), 0.0, 2.0)
