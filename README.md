@@ -37,7 +37,7 @@ top of this page is the real thing.
 
 ## Can I play it yet?
 
-Nearly. Every hour that answer gets less cautious.
+Nearly, which is a newer answer than this project deserves.
 
 You can connect to an ordinary server, walk around, dig and place, chat,
 watch your health and hunger bars, open your inventory and the game's own
@@ -103,13 +103,12 @@ right tool timings. The sky, the sun and moon, day and night. Torches and
 other glowing nodes that actually light the room. Nodes appearing and
 disappearing as other players change the world.
 
-And, as of today, an interface: crosshair and hotbar with item icons and
-wear, the health, breath, hunger and experience bars the server sends, chat
-in both directions with history, your inventory and the game's own menus
-drawn from its formspecs, picking up, placing, splitting and shift-clicking
+And an interface: crosshair and hotbar, the health, breath, hunger and
+experience bars the server sends, chat in both directions, your inventory
+and the game's own menus drawn from its formspecs, moving and splitting
 stacks between slots, a pause menu and a death screen. Players, mobs and
-model nodes with their real models and skeletal animation, loaded by
-Luanti's own B3D, X, OBJ and glTF readers (`docs/e0b_models.png`).
+model nodes arrive with [their real models and animations](docs/e0b_models.png),
+loaded by Luanti's own B3D, X, OBJ and glTF readers.
 
 **Does not work.** Chest, furnace and other node or detached inventories
 inside menus (the slots draw empty). Dropped items and held tools, which
@@ -121,9 +120,8 @@ are as bright as the surface. Sound. Particles. Clouds. Windows and macOS.
 | --- | --- | --- |
 | ![Glowing nodes lighting the ground around them](docs/e0b_torches_night.png) | ![The same scene at four times of day](docs/e0b_time_of_day.png) | ![Water, waving leaves and glass materials](docs/e0b_materials_day.png) |
 
-More, including [the devtest model gallery](docs/e0b_models.png),
-[the view over a Mineclonia canopy](docs/e0b_mineclonia_mesher.png) and the
-[lighting comparison sheet](docs/e0a_contact_sheet.png), are in
+More, including [the view over a Mineclonia canopy](docs/e0b_mineclonia_mesher.png)
+and the [lighting comparison sheet](docs/e0a_contact_sheet.png), are in
 [docs/](docs/).
 
 A packet by packet breakdown, for the curious, is in
