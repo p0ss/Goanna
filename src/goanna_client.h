@@ -35,6 +35,9 @@ struct MaterialKey {
     u32 shader_id = 0;
     bool backface_culling = true;
     bool array_texture = false; // sample a Texture2DArray, layer from UV2.x
+    // texture_id already names a generated image (a crack composite), so the
+    // array fallback must not overwrite it with the plain layer.
+    bool composited = false;
     uint64_t hash() const {
         return ((uint64_t)texture_id << 24) | ((uint64_t)(shader_id & 0xffff) << 2) |
                 (backface_culling ? 2 : 0) | (array_texture ? 1 : 0);

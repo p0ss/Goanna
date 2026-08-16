@@ -844,8 +844,10 @@ MaterialKey GoannaClient::keyForIrr(const video::SMaterial &m, u16 layer) {
                         m_session->crackAnimationLength(), " tiles ", (int)pr.second,
                         " -> ", String(cracked.c_str()));
             u32 cid = m_session->tsrc()->getTextureId(cracked);
-            if (cid != 0)
+            if (cid != 0) {
                 key.texture_id = cid;
+                key.composited = true; // already a real image; do not resolve again
+            }
         }
     }
     key.shader_id = GoannaShaderSource::isShaderMaterial(m.MaterialType)
@@ -865,7 +867,7 @@ MaterialKey GoannaClient::keyForIrr(const video::SMaterial &m, u16 layer) {
                 gt->godotArray().is_valid();
         if (array_ready) {
             key.array_texture = true;
-        } else {
+        } else if (!key.composited) {
             if (getenv("GOANNA_DEBUG_ARRAY") && m.BackfaceCulling && !cracked)
                 UtilityFunctions::print("array fallback: id=", gt->id(),
                         " layers=", (int)gt->layerNames().size(),
@@ -880,6 +882,12 @@ MaterialKey GoannaClient::keyForIrr(const video::SMaterial &m, u16 layer) {
                 key.texture_id = m_session->tsrc()->getTextureId(names[idx]);
             }
         }
+    }
+    if (getenv("GOANNA_DEBUG_CRACK") && m.getTexture(MapBlockMesh::TEXTURE_LAYER_CRACK)) {
+        // the FINAL texture this material will use, after every fallback
+        UtilityFunctions::print("crack final: ",
+                String(m_session->tsrc()->getTextureName(key.texture_id).c_str()),
+                " array=", key.array_texture);
     }
     return key;
 }
