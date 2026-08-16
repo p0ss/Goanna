@@ -501,6 +501,15 @@ func _test_hooks(keys: Dictionary) -> void:
 		else:
 			test_dig = true
 		return
+	# GOANNA_DIGDOWNTEST=1: aim straight down and dig the block underfoot; the
+	# most reliable timed dig (always points at a solid node).
+	if OS.get_environment("GOANNA_DIGDOWNTEST") != "":
+		pitch = -89.0
+		test_dig = t > 3.0 and t < 13.0
+		if t > 14.0:
+			client.disconnect_from_server()
+			get_tree().quit()
+		return
 	# GOANNA_MINETEST=1: pitch down at the node in front, dig, report inventory delta.
 	if OS.get_environment("GOANNA_MINETEST") != "":
 		pitch = -75.0
