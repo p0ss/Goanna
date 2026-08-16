@@ -13,6 +13,9 @@ var placed := false
 var yaw := 0.0
 var pitch := 0.0
 var speed := 12.0
+# Look controls, set from the settings panel (game_ui) and saved in goanna.cfg.
+var mouse_sensitivity := 0.15
+var invert_mouse := false
 var shots_done := false
 var chest_opened := false
 var fly_mode := false
@@ -34,6 +37,11 @@ var headlight: OmniLight3D
 var test_started := 0.0
 
 func _ready() -> void:
+	add_to_group("goanna_main")  # game_ui updates look controls through this group
+	var cfg := ConfigFile.new()
+	if cfg.load("user://goanna.cfg") == OK:
+		mouse_sensitivity = float(cfg.get_value("settings", "mouse_sensitivity", mouse_sensitivity))
+		invert_mouse = bool(cfg.get_value("settings", "invert_mouse", invert_mouse))
 	client = GoannaClient.new()
 	add_child(client)
 	# In-game UI (HUD, chat, inventory, formspecs, pause menu): project/ui/.
@@ -145,8 +153,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and event.keycode >= KEY_1 and event.keycode <= KEY_8:
 		_set_wield(event.keycode - KEY_1)
 	if event is InputEventMouseMotion and Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
-		yaw -= event.relative.x * 0.15
-		pitch = clamp(pitch - event.relative.y * 0.15, -89, 89)
+		yaw -= event.relative.x * mouse_sensitivity
+		var dy: float = event.relative.y * mouse_sensitivity * (1.0 if invert_mouse else -1.0)
+		pitch = clamp(pitch + dy, -89, 89)
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
 		Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE if Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED else Input.MOUSE_MODE_CAPTURED)
 	if event is InputEventKey and event.pressed and event.keycode == KEY_F:

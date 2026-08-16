@@ -484,14 +484,26 @@ const SETTINGS := [
 	["Controls", "safe_dig", "toggle", "Safe digging and placing", "Release the button between each dig or place."],
 	["Controls", "repeat_dig", "slider", "Dig repeat delay", "Seconds a held dig waits before the next node.", 0.0, 1.0, 0.05],
 	["Controls", "repeat_place", "slider", "Place repeat delay", "Seconds a held place waits before repeating.", 0.0, 1.0, 0.05],
+	["Controls", "mouse_sensitivity", "slider", "Mouse sensitivity", "How far the view turns per mouse movement.", 0.02, 0.5, 0.01],
+	["Controls", "invert_mouse", "toggle", "Invert mouse", "Push the mouse forward to look up instead of down."],
 	["Video", "auto_bump", "slider", "Auto bump", "Fake surface relief from texture brightness.", 0.0, 1.0, 0.05],
 	["Video", "bevel", "slider", "Edge bevel", "Chamfer the exposed edges of solid nodes.", 0.0, 0.15, 0.01],
 	["Video", "motes", "slider", "Ambient motes", "Drifting specks over leaves, flowers and sand.", 0.0, 4.0, 0.25],
 ]
 var settings_menu: Control
 
+func _main_node() -> Node:
+	return get_tree().get_first_node_in_group("goanna_main")
+
 func _apply_setting(key: String, value: float) -> void:
 	var on := value > 0.5
+	# Look controls live on the game root (main.gd), not the client.
+	if key == "mouse_sensitivity" or key == "invert_mouse":
+		var m := _main_node()
+		if m:
+			if key == "mouse_sensitivity": m.mouse_sensitivity = value
+			else: m.invert_mouse = on
+		return
 	match key:
 		"mantle": if client.has_method("set_mantle"): client.set_mantle(on)
 		"aux1_descends": if client.has_method("set_aux1_descends"): client.set_aux1_descends(on)
@@ -505,6 +517,12 @@ func _apply_setting(key: String, value: float) -> void:
 		"motes": if client.has_method("set_motes"): client.set_motes(value)
 
 func _setting_value(key: String, fallback: float) -> float:
+	if key == "mouse_sensitivity" or key == "invert_mouse":
+		var m := _main_node()
+		if m:
+			if key == "mouse_sensitivity": return m.mouse_sensitivity
+			else: return 1.0 if m.invert_mouse else 0.0
+		return 0.15 if key == "mouse_sensitivity" else 0.0
 	match key:
 		"mantle": if client.has_method("mantle"): return 1.0 if client.mantle() else 0.0
 		"aux1_descends": if client.has_method("aux1_descends"): return 1.0 if client.aux1_descends() else 0.0
