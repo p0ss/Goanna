@@ -853,7 +853,16 @@ func _apply_sky() -> void:
 	var hor: Color = sky["day_horizon"] * day_w + sky["dawn_horizon"] * dawn + sky["night_horizon"] * night
 	if str(sky["type"]) == "plain":
 		top = sky["bgcolor"]; hor = sky["bgcolor"]
-	sky_mat.set_shader_parameter("sky_top", top)
+	# Servers send a fairly desaturated zenith (Mineclonia's day_sky is
+	# 0.53,0.53,0.59), which the vanilla client renders flat. Deepen the
+	# zenith while keeping the server's hue and leaving the horizon pale, so
+	# the sky has the gradient a real one does. A look choice, like drawing
+	# real shadows: black night skies are unaffected (saturating black is a
+	# no-op).
+	var zenith := top
+	zenith.s = maxf(zenith.s, 0.42)
+	zenith.v = minf(zenith.v, 0.92)
+	sky_mat.set_shader_parameter("sky_top", zenith)
 	sky_mat.set_shader_parameter("sky_horizon", hor)
 	sky_mat.set_shader_parameter("ground_color", hor.darkened(0.6))
 	sky_mat.set_shader_parameter("sun_dir", sun_dir.normalized() if sun_dir.length() > 0.001 else Vector3.UP)

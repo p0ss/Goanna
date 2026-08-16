@@ -27,7 +27,7 @@ uniform vec4 cloud_color : source_color = vec4(1.0, 1.0, 1.0, 0.9);
 uniform float cloud_coverage = 0.4;
 uniform float cloud_plane_h = 90.0;
 uniform vec2 cloud_offset = vec2(0.0);
-uniform float cloud_scale = 0.012;
+uniform float cloud_scale = 0.035;
 
 float hash12(vec2 p) {
 	vec3 p3 = fract(vec3(p.xyx) * 0.1031);
@@ -41,6 +41,18 @@ float vnoise(vec2 p) {
 	float a = hash12(i), b = hash12(i + vec2(1, 0));
 	float c = hash12(i + vec2(0, 1)), d = hash12(i + vec2(1, 1));
 	return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+}
+
+// Four octaves, so the deck has both big masses and torn edges rather than
+// one smooth blob.
+float fbm(vec2 p) {
+	float v = 0.0, a = 0.5;
+	for (int i = 0; i < 4; i++) {
+		v += a * vnoise(p);
+		p = p * 2.03 + vec2(7.3, 1.7);
+		a *= 0.5;
+	}
+	return v / 0.9375;
 }
 
 // Billboard uv of `dir` on a disc of angular half-size `size` around `center`.
@@ -104,13 +116,25 @@ void sky() {
 		col += sun_tint.rgb * pow(max(dot(dir, sun_dir), 0.0), 350.0) * 1.2;
 	}
 
-	// flat cloud layer overhead, scrolled by the server's cloud speed
+	// Cloud deck on a plane overhead, scrolled by the server's cloud speed.
+	// The ray is projected onto the deck, so the clouds have real perspective:
+	// big overhead, compressed toward the horizon.
 	if (cloud_coverage > 0.01 && dir.y > 0.02) {
-		vec2 cpos = dir.xz / dir.y * cloud_plane_h * cloud_scale + cloud_offset;
-		float nse = vnoise(cpos) * 0.65 + vnoise(cpos * 2.7 + 13.1) * 0.35;
-		float cov = smoothstep(1.0 - cloud_coverage, 1.0 - cloud_coverage + 0.25, nse);
-		float fade = smoothstep(0.02, 0.18, dir.y);
-		col = mix(col, cloud_color.rgb, cov * fade * cloud_color.a);
+		vec2 world = dir.xz / dir.y * cloud_plane_h;
+		vec2 uv = world * cloud_scale + cloud_offset;
+		float n = fbm(uv);
+		float cov = smoothstep(1.0 - cloud_coverage, 1.0 - cloud_coverage + 0.16, n);
+		float fade = smoothstep(0.02, 0.22, dir.y);
+		// Shade by the gradient toward the sun: the sunward side of a mass is
+		// bright, the far side darker, which is what reads as volume.
+		vec2 sund = normalize(sun_dir.xz + vec2(1e-4));
+		float lit = fbm(uv + sund * 0.6);
+		float shade = clamp(0.55 + (n - lit) * 3.0, 0.0, 1.0);
+		vec3 cc = mix(cloud_color.rgb * 0.45, cloud_color.rgb, shade);
+		// warm the clouds near the sun, as at dawn and dusk
+		float toward_sun = pow(max(dot(normalize(vec3(dir.x, 0.0, dir.z)), vec3(sund.x, 0.0, sund.y)), 0.0), 3.0);
+		cc = mix(cc, cc * sun_tint.rgb * 1.25, 0.35 * toward_sun);
+		col = mix(col, cc, cov * fade * cloud_color.a);
 	}
 	COLOR = col;
 }
