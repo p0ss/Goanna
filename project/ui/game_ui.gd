@@ -147,6 +147,7 @@ func _process(delta: float) -> void:
 	last_hp = hp
 	hud.queue_redraw()
 	_ui_shot_hook(delta)
+	_ui_move_test(delta)
 
 # Development aid: GOANNA_UI_SHOT=<dir> saves the HUD, the inventory, chat
 # and the pause menu at fixed times, then quits.
@@ -168,6 +169,37 @@ func _ui_shot_hook(delta: float) -> void:
 	if t > 8.0:
 		client.disconnect_from_server()
 		get_tree().quit()
+
+# Development aid: GOANNA_UI_TEST=move opens the inventory and moves the
+# stack in main slot 0 to slot 10 and back through the same path a mouse
+# would take, printing the main list before and after.
+func _ui_move_test(delta: float) -> void:
+	if OS.get_environment("GOANNA_UI_TEST") != "move":
+		return
+	if absf(t - 4.0) < delta * 0.6:
+		_open_inventory()
+		print("ui test: main before: ", _main_names())
+		_on_slot_clicked("current_player", "main", 0, MOUSE_BUTTON_LEFT, false)
+		_on_slot_clicked("current_player", "main", 10, MOUSE_BUTTON_LEFT, false)
+	if absf(t - 5.5) < delta * 0.6:
+		print("ui test: main after move: ", _main_names())
+		_on_slot_clicked("current_player", "main", 10, MOUSE_BUTTON_RIGHT, false)
+		_on_slot_clicked("current_player", "main", 11, MOUSE_BUTTON_LEFT, false)
+	if absf(t - 7.0) < delta * 0.6:
+		print("ui test: main after half split: ", _main_names())
+		if OS.get_environment("GOANNA_UI_SHOT") != "":
+			await RenderingServer.frame_post_draw
+			get_viewport().get_texture().get_image().save_png(OS.get_environment("GOANNA_UI_SHOT").path_join("ui_move.png"))
+		_close_window()
+
+func _main_names() -> Array:
+	var out := []
+	var items: Array = (inv_cache.get("lists", {}) as Dictionary).get("main", [])
+	for i in items.size():
+		var it: Dictionary = items[i]
+		if it.get("name", "") != "":
+			out.append("%d:%s x%d" % [i, it["name"], it.get("count", 0)])
+	return out
 
 func _unhandled_input(event: InputEvent) -> void:
 	if client == null:

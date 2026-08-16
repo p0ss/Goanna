@@ -22,8 +22,9 @@ into the `luanti_core` static library. Nothing is copied and nothing is
 edited. The network layer, serialisation, node and item definitions, MapBlock
 and Map, inventory and metadata, the SRP authentication stack, the raycast
 and object properties, and the CPU-only parts of Irrlicht that the meshing
-and model code need (`CImage`, colour conversion, `SkinnedMesh`) all come
-across this way. The list in `cmake/luanti_core.cmake` is the inventory for
+and model code need (`CImage`, colour conversion, `SkinnedMesh`, the B3D,
+X, OBJ and glTF mesh loaders and the mesh manipulator, behind a stub scene
+manager) all come across this way. The list in `cmake/luanti_core.cmake` is the inventory for
 this tier.
 
 If a file can be compiled from the submodule, compile it from the submodule.

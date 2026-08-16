@@ -37,16 +37,18 @@ top of this page is the real thing.
 
 ## Can I play it yet?
 
-Almost, and that sentence is newer than this paragraph deserves.
+Nearly. Every hour that answer gets less cautious.
 
 You can connect to an ordinary server, walk around, dig and place, chat,
-watch your health and hunger bars, open your inventory and read the game's
-own menus. What you cannot do yet is drag an item from one slot to another.
-That one gap rules out crafting, which rules out playing most games through
-to anything. Players and mobs are also still coloured boxes, because nothing
-loads their models yet.
+watch your health and hunger bars, open your inventory and the game's own
+menus, and move items between slots. Players and mobs have their real
+models and animations. What is missing is the long tail: chest and furnace
+inventories in menus, dropped items and held tools drawn as what they are,
+sound, particles, and a hundred small things a game notices before you do.
+Crafting through the inventory grid should work but has not been tried on
+a real recipe yet.
 
-So: worth a look, worth a screenshot, not yet worth moving into. The Luanti
+So: worth a look, worth an evening, not yet worth moving into. The Luanti
 client remains the one that works, and will always be the one to compare
 against.
 
@@ -104,18 +106,22 @@ disappearing as other players change the world.
 And, as of today, an interface: crosshair and hotbar with item icons and
 wear, the health, breath, hunger and experience bars the server sends, chat
 in both directions with history, your inventory and the game's own menus
-drawn from its formspecs, a pause menu and a death screen.
+drawn from its formspecs, picking up, placing, splitting and shift-clicking
+stacks between slots, a pause menu and a death screen. Players, mobs and
+model nodes with their real models and skeletal animation, loaded by
+Luanti's own B3D, X, OBJ and glTF readers (`docs/e0b_models.png`).
 
-**Does not work.** Moving items between inventory slots, so no crafting.
-Models, so players, mobs and dropped items are placeholder boxes and model
-nodes are missing. Underground lighting, so caves are as bright as the
-surface. Sound. Particles. Clouds. Windows and macOS.
+**Does not work.** Chest, furnace and other node or detached inventories
+inside menus (the slots draw empty). Dropped items and held tools, which
+are still placeholder boxes, and node icons in the inventory, which are
+coloured tiles until a cube renderer exists. Underground lighting, so caves
+are as bright as the surface. Sound. Particles. Clouds. Windows and macOS.
 
 | Torches at midnight | Mineclonia through the day | Water and leaves |
 | --- | --- | --- |
 | ![Glowing nodes lighting the ground around them](docs/e0b_torches_night.png) | ![The same scene at four times of day](docs/e0b_time_of_day.png) | ![Water, waving leaves and glass materials](docs/e0b_materials_day.png) |
 
-More, including [players and mobs as placeholders](docs/e0b_entities.png),
+More, including [the devtest model gallery](docs/e0b_models.png),
 [the view over a Mineclonia canopy](docs/e0b_mineclonia_mesher.png) and the
 [lighting comparison sheet](docs/e0a_contact_sheet.png), are in
 [docs/](docs/).
@@ -189,9 +195,9 @@ Goanna does not fork Luanti and there is no patch queue against the engine.
    community, and the games people actually play.
 4. Server sent client side modding, mirroring upstream when it lands.
 
-The largest single piece of work between here and rung 3 is model loading
-and skeletal animation, which is what stands between placeholder boxes and
-recognisable players, mobs and node models.
+The largest single pieces of work between here and rung 3 are node light
+(so caves are dark and torches matter underground) and the long tail of
+the formspec element zoo that a game like Mineclonia leans on.
 
 ## Contributing
 

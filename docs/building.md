@@ -266,6 +266,7 @@ features.
 | `GOANNA_VIEW="name:x,y,z:pitch,yaw;..."` | With `GOANNA_SHOT`, replaces the three fixed viewpoints. Positions are relative to the spawn eye position, or absolute with a leading `@`. |
 | `GOANNA_MENU_SHOT=<file.png>` | Render the connection menu once, save it, quit. |
 | `GOANNA_UI_SHOT=<directory>` | Save the HUD, inventory, chat and pause menu at fixed times. |
+| `GOANNA_UI_TEST=move` | Open the inventory and move the stack in main slot 0 to slot 10, then split it to slot 11, printing the list each time. Exercises inventory_action through the UI. |
 | `GOANNA_MENU_TEST="host:port:name:pass"` | Fill the menu and press Connect, to exercise the menu to game hand-over. Combine with `GOANNA_MENU=1` if a skip variable such as `GOANNA_SMOKE` is also set. |
 
 A minimal check that everything still works, end to end:
