@@ -451,7 +451,7 @@ func _open_pause_menu() -> void:
 	if pause_menu == null:
 		pause_menu = _build_menu("Goanna", [
 			["Continue", func() -> void: _close_window()],
-			["Video settings", func() -> void: _open_settings()],
+			["Settings", func() -> void: _open_settings()],
 			["Disconnect", func() -> void: _disconnect()],
 			["Quit", func() -> void: get_tree().quit()],
 		])
@@ -461,15 +461,19 @@ func _open_pause_menu() -> void:
 # immediately (auto-bump and bevel re-mesh; motes start or stop) and is saved
 # to user://goanna.cfg, reapplied on the next connect.
 const SETTINGS_CFG := "user://goanna.cfg"
-const VIDEO_SETTINGS := [
-	["auto_bump", "Auto bump", "Fake surface relief from texture brightness.", 0.0, 6.0, 0.25],
-	["bevel", "Edge bevel", "Chamfer the exposed edges of solid nodes.", 0.0, 0.15, 0.01],
-	["motes", "Ambient motes", "Drifting specks over leaves, flowers and sand.", 0.0, 4.0, 0.25],
+# [key, type, label, description, (min, max, step) for sliders]
+const SETTINGS := [
+	["mantle", "toggle", "Mantle single blocks", "Step up onto single-block ledges automatically, like autojump."],
+	["auto_bump", "slider", "Auto bump", "Fake surface relief from texture brightness.", 0.0, 1.0, 0.05],
+	["bevel", "slider", "Edge bevel", "Chamfer the exposed edges of solid nodes.", 0.0, 0.15, 0.01],
+	["motes", "slider", "Ambient motes", "Drifting specks over leaves, flowers and sand.", 0.0, 4.0, 0.25],
 ]
 var settings_menu: Control
 
 func _apply_setting(key: String, value: float) -> void:
 	match key:
+		"mantle":
+			if client.has_method("set_mantle"): client.set_mantle(value > 0.5)
 		"auto_bump":
 			if client.has_method("set_auto_bump"): client.set_auto_bump(value)
 		"bevel":
@@ -479,8 +483,12 @@ func _apply_setting(key: String, value: float) -> void:
 
 func _setting_value(key: String, fallback: float) -> float:
 	match key:
+		"mantle":
+			if client.has_method("mantle"): return 1.0 if client.mantle() else 0.0
 		"auto_bump":
 			if client.has_method("auto_bump"): return client.auto_bump()
+		"bevel":
+			if client.has_method("bevel"): return client.bevel()
 		"motes":
 			if client.has_method("motes"): return client.motes()
 	return fallback
@@ -489,8 +497,8 @@ func _load_apply_settings() -> void:
 	var cfg := ConfigFile.new()
 	if cfg.load(SETTINGS_CFG) != OK:
 		return
-	for s in VIDEO_SETTINGS:
-		var key: String = s[0]
+	for entry in SETTINGS:
+		var key: String = entry[0]
 		if cfg.has_section_key("video", key):
 			_apply_setting(key, float(cfg.get_value("video", key)))
 
@@ -520,38 +528,47 @@ func _build_settings() -> Control:
 	box.custom_minimum_size = Vector2(420, 0)
 	margin.add_child(box)
 	var title := Label.new()
-	title.text = "Video settings"
+	title.text = "Settings"
 	title.add_theme_font_size_override("font_size", 24)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
-	for s in VIDEO_SETTINGS:
-		var key: String = s[0]
+	for entry in SETTINGS:
+		var key: String = entry[0]
+		var kind: String = entry[1]
 		var row := VBoxContainer.new()
 		row.add_theme_constant_override("separation", 2)
 		box.add_child(row)
 		var head := HBoxContainer.new()
 		row.add_child(head)
 		var name_label := Label.new()
-		name_label.text = s[1]
+		name_label.text = entry[2]
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		head.add_child(name_label)
-		var value_label := Label.new()
-		value_label.custom_minimum_size = Vector2(48, 0)
-		value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		head.add_child(value_label)
-		var slider := HSlider.new()
-		slider.min_value = s[3]
-		slider.max_value = s[4]
-		slider.step = s[5]
-		slider.value = _setting_value(key, 0.0)
-		value_label.text = "off" if slider.value <= 0.0 else "%.2f" % slider.value
-		slider.value_changed.connect(func(v: float) -> void:
-			value_label.text = "off" if v <= 0.0 else "%.2f" % v
-			_apply_setting(key, v)
-			_save_setting(key, v))
-		row.add_child(slider)
+		if kind == "toggle":
+			var check := CheckButton.new()
+			check.button_pressed = _setting_value(key, 0.0) > 0.5
+			check.toggled.connect(func(on: bool) -> void:
+				_apply_setting(key, 1.0 if on else 0.0)
+				_save_setting(key, 1.0 if on else 0.0))
+			head.add_child(check)
+		else:
+			var value_label := Label.new()
+			value_label.custom_minimum_size = Vector2(48, 0)
+			value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			head.add_child(value_label)
+			var slider := HSlider.new()
+			slider.min_value = entry[4]
+			slider.max_value = entry[5]
+			slider.step = entry[6]
+			slider.value = _setting_value(key, 0.0)
+			value_label.text = "off" if slider.value <= 0.0 else "%.2f" % slider.value
+			slider.value_changed.connect(func(v: float) -> void:
+				value_label.text = "off" if v <= 0.0 else "%.2f" % v
+				_apply_setting(key, v)
+				_save_setting(key, v))
+			row.add_child(slider)
 		var desc := Label.new()
-		desc.text = s[2]
+		desc.text = entry[3]
 		desc.modulate = Color(1, 1, 1, 0.55)
 		desc.add_theme_font_size_override("font_size", 12)
 		row.add_child(desc)

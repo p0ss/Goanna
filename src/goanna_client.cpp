@@ -569,6 +569,8 @@ Dictionary GoannaClient::step_player(double dt, const Dictionary &keys, float pi
     if (dt > 0.1) dt = 0.1;
     if (dt > 0)
         m_session->stepPlayer((float)dt);
+    if (std::getenv("GOANNA_DEBUG_MANTLE") && p->getAutojump())
+        fprintf(stderr, "goanna mantle: autojump fired at y=%.2f\n", p->getPosition().Y / BS);
 
     v3f pos = p->getPosition();
     v3f eye = pos + p->getEyeOffset();

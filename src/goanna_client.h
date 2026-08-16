@@ -141,6 +141,9 @@ public:
     float bevel() const;
     void set_auto_bump(float strength);
     float auto_bump() const { return m_auto_bump; }
+    // Mantle over single-block ledges (Luanti's autojump). On by default.
+    void set_mantle(bool on) { m_mantle = on; }
+    bool mantle() const { return m_mantle; }
 
     godot::Dictionary step_player(double dt, const godot::Dictionary &keys, float pitch_deg, float yaw_deg);
 
@@ -163,6 +166,7 @@ private:
     godot::Ref<godot::Shader> m_sh_water, m_sh_leaves, m_sh_plants, m_sh_glass;
     bool m_shaders_loaded = false;
     float m_auto_bump = 0.0f;
+    bool m_mantle = true;
 
     std::unique_ptr<EntityRenderer> m_entities;
     struct NodeLight { godot::Vector3 pos; float level; godot::Color color; };
