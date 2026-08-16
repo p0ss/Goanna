@@ -1505,6 +1505,20 @@ void GoannaSession::onMedia(NetworkPacket &pkt) {
     }
 }
 
+// Hash a block's node content (id + param2; param1 is light, which Goanna's
+// mesher ignores). Used to tell a re-sent unchanged block from a real change.
+static uint64_t hashBlockNodes(MapBlock *block) {
+    uint64_t h = 1469598103934665603ULL; // FNV-1a offset basis
+    for (int z = 0; z < MAP_BLOCKSIZE; ++z)
+    for (int y = 0; y < MAP_BLOCKSIZE; ++y)
+    for (int x = 0; x < MAP_BLOCKSIZE; ++x) {
+        MapNode n = block->getNodeNoCheck(x, y, z);
+        uint32_t v = ((uint32_t)n.getContent() << 8) | n.getParam2();
+        h = (h ^ v) * 1099511628211ULL;
+    }
+    return h;
+}
+
 void GoannaSession::onBlockData(NetworkPacket &pkt) {
     if (pkt.getSize() < 6)
         return;
@@ -1517,17 +1531,28 @@ void GoannaSession::onBlockData(NetworkPacket &pkt) {
     std::lock_guard<std::mutex> lk(m_map_mutex);
     MapSector *sector = m_map->emergeSector(v2s16(p.X, p.Z));
     MapBlock *block = sector->getBlockNoCreateNoEx(p.Y);
-    if (!block)
+    // The server re-sends already-loaded blocks; only re-mesh when something
+    // actually changed, and only disturb the neighbours for a brand-new block.
+    bool is_new = (block == nullptr);
+    uint64_t old_hash = is_new ? 0 : hashBlockNodes(block);
+    if (is_new)
         block = sector->createBlankBlock(p.Y);
     block->deSerialize(istr, ser_ver, false);
     block->deSerializeNetworkSpecific(istr);
-    m_new_blocks.push_back(p);
-    // Neighbours already present must be re-meshed for their boundary faces.
-    static const v3s16 dirs[6] = {{1,0,0},{-1,0,0},{0,1,0},{0,-1,0},{0,0,1},{0,0,-1}};
-    for (const v3s16 &d : dirs)
-        if (m_map->getBlockNoCreateNoEx(p + d))
-            m_new_blocks.push_back(p + d);
-    m_ack_blocks.push_back(p);
+    bool changed = is_new || hashBlockNodes(block) != old_hash;
+    if (changed) {
+        m_new_blocks.push_back(p);
+        if (is_new) {
+            // A newly arrived block reveals its neighbours' boundary faces, so
+            // re-mesh the neighbours that are already present. A mere content
+            // change on a re-send does not (real node edits come via ADDNODE).
+            static const v3s16 dirs[6] = {{1,0,0},{-1,0,0},{0,1,0},{0,-1,0},{0,0,1},{0,0,-1}};
+            for (const v3s16 &d : dirs)
+                if (m_map->getBlockNoCreateNoEx(p + d))
+                    m_new_blocks.push_back(p + d);
+        }
+    }
+    m_ack_blocks.push_back(p); // always ack, so the server stops re-sending
     {
         std::lock_guard<std::mutex> lk2(m_stats_mutex);
         m_stats.blocks_received++;
