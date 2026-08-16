@@ -384,8 +384,10 @@ Ref<Texture2D> GoannaClient::item_icon(const String &item_name) {
         const ContentFeatures &f = m_session->nodeDefs()->get(stack.name);
         if (f.visuals) {
             auto tile_name = [&](int i) {
-                u32 tid = f.visuals->tiles[i].layers[0].texture_id;
-                std::string n = tid ? m_session->tsrc()->getTextureName(tid) : std::string();
+                const TileLayer &tl = f.visuals->tiles[i].layers[0];
+                std::string n = tl.texture_id
+                        ? m_session->tsrc()->imageName(tl.texture_id, tl.texture_layer_idx)
+                        : std::string();
                 std::replace(n.begin(), n.end(), '^', '&');
                 return n;
             };
@@ -834,7 +836,7 @@ MaterialKey GoannaClient::keyForIrr(const video::SMaterial &m, u16 layer) {
             // the crack to a fraction of the node's height and repeated it,
             // which read as thin lines and made the early stages invisible.
             // Our per-level composite is a single-frame texture, so pass 1.
-            std::string cracked = m_session->tsrc()->getTextureName(gt->id()) +
+            std::string cracked = m_session->tsrc()->imageName(gt->id(), layer) +
                     "^[crack:" + std::to_string((int)pr.second) + ":1:" +
                     std::to_string(pr.first);
             if (getenv("GOANNA_DEBUG_CRACK"))
@@ -1056,7 +1058,8 @@ void GoannaClient::harvestLights(v3s16 bp, MapBlock *block) {
         // colour from the node's first tile (torch textures average to warm orange)
         video::SColor c(255, 255, 220, 160);
         if (f.visuals && f.visuals->tiles[0].layers[0].texture_id) {
-            std::string tname = m_session->tsrc()->getTextureName(f.visuals->tiles[0].layers[0].texture_id);
+            const TileLayer &tl = f.visuals->tiles[0].layers[0];
+            std::string tname = m_session->tsrc()->imageName(tl.texture_id, tl.texture_layer_idx);
             if (!tname.empty())
                 c = m_session->tsrc()->getTextureAverageColor(tname);
         }
@@ -1262,7 +1265,8 @@ void GoannaClient::harvestMotes(v3s16 bp, MapBlock *block) {
         m.pos = Vector3(bp.X * MAP_BLOCKSIZE + x, bp.Y * MAP_BLOCKSIZE + y, -(bp.Z * MAP_BLOCKSIZE + z));
         video::SColor c(255, 200, 200, 200);
         if (f.visuals && f.visuals->tiles[0].layers[0].texture_id) {
-            std::string tname = m_session->tsrc()->getTextureName(f.visuals->tiles[0].layers[0].texture_id);
+            const TileLayer &tl = f.visuals->tiles[0].layers[0];
+            std::string tname = m_session->tsrc()->imageName(tl.texture_id, tl.texture_layer_idx);
             if (!tname.empty())
                 c = m_session->tsrc()->getTextureAverageColor(tname);
         }

@@ -94,6 +94,10 @@ public:
     // Goanna: register a media file's bytes as a source image (decoded here).
     bool insertMediaImage(const std::string &name, const std::string &bytes);
     GoannaTexture *goannaTexture(u32 id);
+    // The real image name behind a tile: an array texture's own name is not a
+    // loadable image, so anything building a texture-modifier string (crack
+    // overlays, inventory cubes) must resolve the layer first.
+    std::string imageName(u32 texture_id, u16 layer = 0);
 
 private:
     video::IImage *getOrGenerateImage(const std::string &name);

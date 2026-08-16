@@ -346,6 +346,18 @@ video::ITexture *GoannaTextureSource::addArrayTexture(const std::vector<std::str
     return result;
 }
 
+std::string GoannaTextureSource::imageName(u32 texture_id, u16 layer) {
+    GoannaTexture *gt = goannaTexture(texture_id);
+    if (!gt)
+        return std::string();
+    if (!gt->isArray())
+        return getTextureName(texture_id);
+    const auto &names = gt->layerNames();
+    if (names.empty())
+        return std::string();
+    return names[layer < names.size() ? layer : 0];
+}
+
 GoannaTexture *GoannaTextureSource::goannaTexture(u32 id) {
     if (id == 0 || id >= m_textures.size())
         return nullptr;
