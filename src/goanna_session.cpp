@@ -717,7 +717,7 @@ void GoannaSession::stepInteract(float dtime, const InteractInput &in) {
     if (m_nodig_delay_timer < 0) m_nodig_delay_timer = 0;
     m_object_hit_delay_timer -= dtime;
     if (m_object_hit_delay_timer < 0) m_object_hit_delay_timer = 0;
-    const float repeat_dig_time = 0.0f, repeat_place_time = 0.25f;
+    const float repeat_dig_time = repeatDigInterval, repeat_place_time = repeatPlaceInterval;
     const float object_hit_delay = 0.2f; // Game::object_hit_delay
 
     // pointing changed while digging -> stop
@@ -781,7 +781,7 @@ void GoannaSession::stepInteract(float dtime, const InteractInput &in) {
                 m_interact.crack_level = -1;
                 m_interact.dig_time = 0;
                 m_interact.digging = false;
-                if (g_settings->getBool("safe_dig_and_place"))
+                if (safeDig)
                     m_digging_blocked = true;
                 m_nodig_delay_timer = m_interact.dig_time_complete / (float)cal;
                 if (m_nodig_delay_timer > 0.3f) m_nodig_delay_timer = 0.3f;

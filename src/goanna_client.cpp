@@ -78,6 +78,13 @@ void GoannaClient::set_bevel(float width) {
 
 float GoannaClient::bevel() const { return g_goanna_bevel; }
 
+void GoannaClient::set_safe_dig(bool on) { if (m_session) m_session->safeDig = on; }
+bool GoannaClient::safe_dig() const { return m_session ? m_session->safeDig : false; }
+void GoannaClient::set_repeat_dig_interval(float s) { if (m_session) m_session->repeatDigInterval = s < 0 ? 0 : s; }
+float GoannaClient::repeat_dig_interval() const { return m_session ? m_session->repeatDigInterval : 0.0f; }
+void GoannaClient::set_repeat_place_interval(float s) { if (m_session) m_session->repeatPlaceInterval = s < 0 ? 0 : s; }
+float GoannaClient::repeat_place_interval() const { return m_session ? m_session->repeatPlaceInterval : 0.25f; }
+
 void GoannaClient::set_auto_bump(float strength) {
     if (strength < 0.0f)
         strength = 0.0f;
@@ -541,7 +548,11 @@ Dictionary GoannaClient::step_player(double dt, const Dictionary &keys, float pi
     // so the server sees nothing a vanilla client with autojump would not.
     // Goanna defaults it on because it plays better; the toggle turns it off
     // for strict vanilla parity.
-    p->getPlayerSettings().autojump = m_mantle;
+    PlayerSettings &ps = p->getPlayerSettings();
+    ps.autojump = m_mantle;
+    ps.aux1_descends = m_aux1_descends;
+    ps.pitch_move = m_pitch_move;
+    ps.always_fly_fast = m_always_fly_fast;
     v3f spos;
     float spitch, syaw;
     if (m_session->takeServerMove(spos, spitch, syaw)) {
@@ -1184,6 +1195,18 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("auto_bump"), &GoannaClient::auto_bump);
     ClassDB::bind_method(D_METHOD("set_mantle", "on"), &GoannaClient::set_mantle);
     ClassDB::bind_method(D_METHOD("mantle"), &GoannaClient::mantle);
+    ClassDB::bind_method(D_METHOD("set_aux1_descends", "on"), &GoannaClient::set_aux1_descends);
+    ClassDB::bind_method(D_METHOD("aux1_descends"), &GoannaClient::aux1_descends);
+    ClassDB::bind_method(D_METHOD("set_pitch_move", "on"), &GoannaClient::set_pitch_move);
+    ClassDB::bind_method(D_METHOD("pitch_move"), &GoannaClient::pitch_move);
+    ClassDB::bind_method(D_METHOD("set_always_fly_fast", "on"), &GoannaClient::set_always_fly_fast);
+    ClassDB::bind_method(D_METHOD("always_fly_fast"), &GoannaClient::always_fly_fast);
+    ClassDB::bind_method(D_METHOD("set_safe_dig", "on"), &GoannaClient::set_safe_dig);
+    ClassDB::bind_method(D_METHOD("safe_dig"), &GoannaClient::safe_dig);
+    ClassDB::bind_method(D_METHOD("set_repeat_dig_interval", "s"), &GoannaClient::set_repeat_dig_interval);
+    ClassDB::bind_method(D_METHOD("repeat_dig_interval"), &GoannaClient::repeat_dig_interval);
+    ClassDB::bind_method(D_METHOD("set_repeat_place_interval", "s"), &GoannaClient::set_repeat_place_interval);
+    ClassDB::bind_method(D_METHOD("repeat_place_interval"), &GoannaClient::repeat_place_interval);
 }
 
 } // namespace goanna

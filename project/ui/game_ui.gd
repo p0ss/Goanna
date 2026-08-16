@@ -475,36 +475,47 @@ func _open_pause_menu() -> void:
 # immediately (auto-bump and bevel re-mesh; motes start or stop) and is saved
 # to user://goanna.cfg, reapplied on the next connect.
 const SETTINGS_CFG := "user://goanna.cfg"
-# [key, type, label, description, (min, max, step) for sliders]
+# [tab, key, type, label, description, (min, max, step) for sliders]
 const SETTINGS := [
-	["mantle", "toggle", "Mantle single blocks", "Step up onto single-block ledges automatically, like autojump."],
-	["auto_bump", "slider", "Auto bump", "Fake surface relief from texture brightness.", 0.0, 1.0, 0.05],
-	["bevel", "slider", "Edge bevel", "Chamfer the exposed edges of solid nodes.", 0.0, 0.15, 0.01],
-	["motes", "slider", "Ambient motes", "Drifting specks over leaves, flowers and sand.", 0.0, 4.0, 0.25],
+	["Controls", "mantle", "toggle", "Mantle single blocks", "Step up onto single-block ledges automatically, like autojump."],
+	["Controls", "aux1_descends", "toggle", "Aux1 descends", "Use the Aux1 key to go down while flying or climbing."],
+	["Controls", "pitch_move", "toggle", "Pitch move", "Fly and swim in the direction you look, including up and down."],
+	["Controls", "always_fly_fast", "toggle", "Always fly fast", "Fly at the fast speed without holding the fast key."],
+	["Controls", "safe_dig", "toggle", "Safe digging and placing", "Release the button between each dig or place."],
+	["Controls", "repeat_dig", "slider", "Dig repeat delay", "Seconds a held dig waits before the next node.", 0.0, 1.0, 0.05],
+	["Controls", "repeat_place", "slider", "Place repeat delay", "Seconds a held place waits before repeating.", 0.0, 1.0, 0.05],
+	["Video", "auto_bump", "slider", "Auto bump", "Fake surface relief from texture brightness.", 0.0, 1.0, 0.05],
+	["Video", "bevel", "slider", "Edge bevel", "Chamfer the exposed edges of solid nodes.", 0.0, 0.15, 0.01],
+	["Video", "motes", "slider", "Ambient motes", "Drifting specks over leaves, flowers and sand.", 0.0, 4.0, 0.25],
 ]
 var settings_menu: Control
 
 func _apply_setting(key: String, value: float) -> void:
+	var on := value > 0.5
 	match key:
-		"mantle":
-			if client.has_method("set_mantle"): client.set_mantle(value > 0.5)
-		"auto_bump":
-			if client.has_method("set_auto_bump"): client.set_auto_bump(value)
-		"bevel":
-			if client.has_method("set_bevel"): client.set_bevel(value)
-		"motes":
-			if client.has_method("set_motes"): client.set_motes(value)
+		"mantle": if client.has_method("set_mantle"): client.set_mantle(on)
+		"aux1_descends": if client.has_method("set_aux1_descends"): client.set_aux1_descends(on)
+		"pitch_move": if client.has_method("set_pitch_move"): client.set_pitch_move(on)
+		"always_fly_fast": if client.has_method("set_always_fly_fast"): client.set_always_fly_fast(on)
+		"safe_dig": if client.has_method("set_safe_dig"): client.set_safe_dig(on)
+		"repeat_dig": if client.has_method("set_repeat_dig_interval"): client.set_repeat_dig_interval(value)
+		"repeat_place": if client.has_method("set_repeat_place_interval"): client.set_repeat_place_interval(value)
+		"auto_bump": if client.has_method("set_auto_bump"): client.set_auto_bump(value)
+		"bevel": if client.has_method("set_bevel"): client.set_bevel(value)
+		"motes": if client.has_method("set_motes"): client.set_motes(value)
 
 func _setting_value(key: String, fallback: float) -> float:
 	match key:
-		"mantle":
-			if client.has_method("mantle"): return 1.0 if client.mantle() else 0.0
-		"auto_bump":
-			if client.has_method("auto_bump"): return client.auto_bump()
-		"bevel":
-			if client.has_method("bevel"): return client.bevel()
-		"motes":
-			if client.has_method("motes"): return client.motes()
+		"mantle": if client.has_method("mantle"): return 1.0 if client.mantle() else 0.0
+		"aux1_descends": if client.has_method("aux1_descends"): return 1.0 if client.aux1_descends() else 0.0
+		"pitch_move": if client.has_method("pitch_move"): return 1.0 if client.pitch_move() else 0.0
+		"always_fly_fast": if client.has_method("always_fly_fast"): return 1.0 if client.always_fly_fast() else 0.0
+		"safe_dig": if client.has_method("safe_dig"): return 1.0 if client.safe_dig() else 0.0
+		"repeat_dig": if client.has_method("repeat_dig_interval"): return client.repeat_dig_interval()
+		"repeat_place": if client.has_method("repeat_place_interval"): return client.repeat_place_interval()
+		"auto_bump": if client.has_method("auto_bump"): return client.auto_bump()
+		"bevel": if client.has_method("bevel"): return client.bevel()
+		"motes": if client.has_method("motes"): return client.motes()
 	return fallback
 
 func _load_apply_settings() -> void:
@@ -512,14 +523,17 @@ func _load_apply_settings() -> void:
 	if cfg.load(SETTINGS_CFG) != OK:
 		return
 	for entry in SETTINGS:
-		var key: String = entry[0]
-		if cfg.has_section_key("video", key):
-			_apply_setting(key, float(cfg.get_value("video", key)))
+		var key: String = entry[1]
+		# "settings" is the current section; "video" is the pre-tabs one.
+		for section in ["settings", "video"]:
+			if cfg.has_section_key(section, key):
+				_apply_setting(key, float(cfg.get_value(section, key)))
+				break
 
 func _save_setting(key: String, value: float) -> void:
 	var cfg := ConfigFile.new()
-	cfg.load(SETTINGS_CFG)  # keep the menu's server/player sections
-	cfg.set_value("video", key, value)
+	cfg.load(SETTINGS_CFG)  # keep the menu's other sections
+	cfg.set_value("settings", key, value)
 	cfg.save(SETTINGS_CFG)
 
 func _open_settings() -> void:
@@ -538,54 +552,31 @@ func _build_settings() -> Control:
 		margin.add_theme_constant_override(side, 24)
 	panel.add_child(margin)
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 8)
-	box.custom_minimum_size = Vector2(420, 0)
+	box.add_theme_constant_override("separation", 10)
+	box.custom_minimum_size = Vector2(460, 0)
 	margin.add_child(box)
 	var title := Label.new()
 	title.text = "Settings"
 	title.add_theme_font_size_override("font_size", 24)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
+	var tabs := TabContainer.new()
+	tabs.custom_minimum_size = Vector2(0, 360)
+	box.add_child(tabs)
+	var pages := {}
 	for entry in SETTINGS:
-		var key: String = entry[0]
-		var kind: String = entry[1]
-		var row := VBoxContainer.new()
-		row.add_theme_constant_override("separation", 2)
-		box.add_child(row)
-		var head := HBoxContainer.new()
-		row.add_child(head)
-		var name_label := Label.new()
-		name_label.text = entry[2]
-		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		head.add_child(name_label)
-		if kind == "toggle":
-			var check := CheckButton.new()
-			check.button_pressed = _setting_value(key, 0.0) > 0.5
-			check.toggled.connect(func(on: bool) -> void:
-				_apply_setting(key, 1.0 if on else 0.0)
-				_save_setting(key, 1.0 if on else 0.0))
-			head.add_child(check)
-		else:
-			var value_label := Label.new()
-			value_label.custom_minimum_size = Vector2(48, 0)
-			value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-			head.add_child(value_label)
-			var slider := HSlider.new()
-			slider.min_value = entry[4]
-			slider.max_value = entry[5]
-			slider.step = entry[6]
-			slider.value = _setting_value(key, 0.0)
-			value_label.text = "off" if slider.value <= 0.0 else "%.2f" % slider.value
-			slider.value_changed.connect(func(v: float) -> void:
-				value_label.text = "off" if v <= 0.0 else "%.2f" % v
-				_apply_setting(key, v)
-				_save_setting(key, v))
-			row.add_child(slider)
-		var desc := Label.new()
-		desc.text = entry[3]
-		desc.modulate = Color(1, 1, 1, 0.55)
-		desc.add_theme_font_size_override("font_size", 12)
-		row.add_child(desc)
+		var tab: String = entry[0]
+		if not pages.has(tab):
+			var scroll := ScrollContainer.new()
+			scroll.name = tab
+			scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+			var page := VBoxContainer.new()
+			page.add_theme_constant_override("separation", 8)
+			page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			scroll.add_child(page)
+			tabs.add_child(scroll)
+			pages[tab] = page
+		_build_setting_row(pages[tab], entry)
 	var back := Button.new()
 	back.text = "Back"
 	back.pressed.connect(func() -> void: _open_pause_menu())
@@ -593,6 +584,48 @@ func _build_settings() -> Control:
 	centre.visible = false
 	add_child(centre)
 	return centre
+
+func _build_setting_row(page: VBoxContainer, entry: Array) -> void:
+	var key: String = entry[1]
+	var kind: String = entry[2]
+	var row := VBoxContainer.new()
+	row.add_theme_constant_override("separation", 2)
+	row.custom_minimum_size = Vector2(420, 0)
+	page.add_child(row)
+	var head := HBoxContainer.new()
+	row.add_child(head)
+	var name_label := Label.new()
+	name_label.text = entry[3]
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(name_label)
+	if kind == "toggle":
+		var check := CheckButton.new()
+		check.button_pressed = _setting_value(key, 0.0) > 0.5
+		check.toggled.connect(func(on: bool) -> void:
+			_apply_setting(key, 1.0 if on else 0.0)
+			_save_setting(key, 1.0 if on else 0.0))
+		head.add_child(check)
+	else:
+		var value_label := Label.new()
+		value_label.custom_minimum_size = Vector2(48, 0)
+		value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		head.add_child(value_label)
+		var slider := HSlider.new()
+		slider.min_value = entry[5]
+		slider.max_value = entry[6]
+		slider.step = entry[7]
+		slider.value = _setting_value(key, 0.0)
+		value_label.text = "off" if slider.value <= 0.0 else "%.2f" % slider.value
+		slider.value_changed.connect(func(v: float) -> void:
+			value_label.text = "off" if v <= 0.0 else "%.2f" % v
+			_apply_setting(key, v)
+			_save_setting(key, v))
+		row.add_child(slider)
+	var desc := Label.new()
+	desc.text = entry[4]
+	desc.modulate = Color(1, 1, 1, 0.55)
+	desc.add_theme_font_size_override("font_size", 12)
+	row.add_child(desc)
 
 func _show_death_screen() -> void:
 	if death_screen == null:

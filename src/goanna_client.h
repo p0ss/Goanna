@@ -144,6 +144,21 @@ public:
     // Mantle over single-block ledges (Luanti's autojump). On by default.
     void set_mantle(bool on) { m_mantle = on; }
     bool mantle() const { return m_mantle; }
+    // Movement option flags, applied to the local player's PlayerSettings each
+    // step (the transplanted movement code reads them).
+    void set_aux1_descends(bool on) { m_aux1_descends = on; }
+    bool aux1_descends() const { return m_aux1_descends; }
+    void set_pitch_move(bool on) { m_pitch_move = on; }
+    bool pitch_move() const { return m_pitch_move; }
+    void set_always_fly_fast(bool on) { m_always_fly_fast = on; }
+    bool always_fly_fast() const { return m_always_fly_fast; }
+    // Interaction options (forwarded to the session, read in stepInteract).
+    void set_safe_dig(bool on);
+    bool safe_dig() const;
+    void set_repeat_dig_interval(float s);
+    float repeat_dig_interval() const;
+    void set_repeat_place_interval(float s);
+    float repeat_place_interval() const;
 
     godot::Dictionary step_player(double dt, const godot::Dictionary &keys, float pitch_deg, float yaw_deg);
 
@@ -165,8 +180,11 @@ private:
     std::map<uint64_t, godot::Ref<godot::Material>> m_materials;
     godot::Ref<godot::Shader> m_sh_water, m_sh_leaves, m_sh_plants, m_sh_glass;
     bool m_shaders_loaded = false;
-    float m_auto_bump = 0.0f;
+    float m_auto_bump = 0.35f;
     bool m_mantle = true;
+    bool m_aux1_descends = false;
+    bool m_pitch_move = false;
+    bool m_always_fly_fast = false;
 
     std::unique_ptr<EntityRenderer> m_entities;
     struct NodeLight { godot::Vector3 pos; float level; godot::Color color; };
@@ -178,7 +196,7 @@ private:
     struct MoteEmitter { godot::GPUParticles3D *node = nullptr; godot::Vector3 at; int kind = -1; };
     std::vector<MoteEmitter> m_mote_pool;
     godot::Ref<godot::ParticleProcessMaterial> m_mote_proc[3];
-    float m_motes = 0.0f;
+    float m_motes = 0.5f;
 };
 
 } // namespace goanna

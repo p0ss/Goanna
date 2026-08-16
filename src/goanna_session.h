@@ -95,6 +95,10 @@ public:
     bool prepareContentIfReady();
     GoannaTextureSource *tsrc() { return m_tsrc.get(); }
     GoannaShaderSource &shsrc() { return m_shsrc; }
+    // Interaction options, set from the UI, read in stepInteract.
+    bool safeDig = false;
+    float repeatDigInterval = 0.0f;
+    float repeatPlaceInterval = 0.25f;
     // Highest light_source (0..14) among nodes using this texture id, or 0.
     u8 emissiveLevel(u32 texture_id) const;
     Client *meshClient() { return m_mesh_client.get(); }
