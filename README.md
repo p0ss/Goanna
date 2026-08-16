@@ -230,8 +230,8 @@ The largest pieces of work between here and rung 3 are animated node
 textures, the untested tail of particle behaviour, camera packets, and the
 long tail of the formspec element zoo that a game like Mineclonia leans on.
 
-## Why the name? 
-Godot + Luanti = Goanti 
+## Why the name?
+Godot + Luanti = Goanti
 that sounded too much like [Triantiwontigongolope ](https://www.australianculture.org/the-triantiwontigongolope-c-j-dennis/)
 so we get a real animal, Goanna instead
 
