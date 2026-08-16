@@ -171,10 +171,12 @@ func _apply_view_bob(r: Dictionary, delta: float) -> void:
 	var hspeed := Vector2(sp.x, sp.z).length()
 	if hspeed < 0.5:
 		return
-	_bob_phase += delta * (6.0 + hspeed)
-	var amp := view_bobbing * 0.045 * clampf(hspeed / 4.0, 0.0, 1.0)
+	_bob_phase += delta * (5.5 + hspeed * 0.8)
+	var amp := view_bobbing * 0.02 * clampf(hspeed / 4.0, 0.0, 1.0)
 	var basis := cam.global_transform.basis
-	cam.position += basis.x * (cos(_bob_phase) * amp) + Vector3.UP * (absf(sin(_bob_phase * 2.0)) * amp)
+	# side sway at the stride frequency, a smaller centred vertical at twice it
+	# (both oscillate around the eye, so it reads as a gait, not a tiptoe)
+	cam.position += basis.x * (cos(_bob_phase) * amp) + Vector3.UP * (sin(_bob_phase * 2.0) * amp * 0.5)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
