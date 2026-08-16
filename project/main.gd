@@ -904,11 +904,19 @@ func _apply_sky() -> void:
 		if fc.a > 0.0:
 			fog_col = fc
 		e.fog_light_color = fog_col
+		# Tie haze to the distance we actually stream: fog tuned independently
+		# hides geometry the server is sending at a high view range, and sits
+		# too clear at a low one. Keep it a light band at the far edge (about
+		# a sixth extinction there), enough to soften the draw boundary and
+		# give depth, not enough to grey out the mid distance.
+		var range_nodes: float = maxf(float(client.view_range()) * 16.0, 64.0)
+		var auto_density: float = 0.18 / range_nodes
 		var fog_distance: float = sky["fog_distance"]
 		if fog_distance > 0.0:
-			e.fog_density = clamp(2.5 / fog_distance, 0.0004, 0.006)
+			# a server asking for closer fog than our range still wins
+			e.fog_density = maxf(clamp(2.5 / fog_distance, 0.0004, 0.02), auto_density)
 		else:
-			e.fog_density = 0.0004
+			e.fog_density = auto_density
 	# --- ambient / grade from day-night ratio and server lighting ---
 	var ratio: float = st["day_night_ratio"]
 	e.ambient_light_energy = lerp(0.14, 0.42, ratio)
