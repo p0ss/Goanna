@@ -8,7 +8,7 @@ uniform sampler2D screen_tex : hint_screen_texture, filter_linear_mipmap;
 uniform float wave_height = 0.045;
 uniform float wave_speed = 1.6;
 uniform float wave_length = 4.0;
-uniform float alpha_mul = 0.82;
+uniform float alpha_mul = 0.92;
 uniform float refraction = 0.018;
 uniform bool waving = true;
 
@@ -36,6 +36,8 @@ void fragment() {
 	vec2 ofs = NORMAL.xy * refraction;
 	vec3 behind = texture(screen_tex, SCREEN_UV + ofs).rgb;
 	float a = clamp(tex.a * alpha_mul, 0.0, 1.0);
-	ALBEDO = mix(behind, tex.rgb, a * 0.85);
-	ALPHA = clamp(a + 0.15, 0.0, 1.0);
+	// Water should read as water: bias the surface toward its own colour and
+	// keep a high opacity so the bottom is tinted, not clear glass.
+	ALBEDO = mix(behind, tex.rgb, 0.72);
+	ALPHA = clamp(a * 0.78 + 0.22, 0.0, 1.0);
 }

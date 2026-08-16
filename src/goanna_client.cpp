@@ -961,9 +961,11 @@ void GoannaClient::update_motes(const Vector3 &around, int max_emitters) {
         qm->set_size(Vector2(0.16f, 0.16f));
         Ref<StandardMaterial3D> mm;
         mm.instantiate();
-        mm->set_shading_mode(BaseMaterial3D::SHADING_MODE_UNSHADED);
+        mm->set_shading_mode(BaseMaterial3D::SHADING_MODE_PER_PIXEL);
         mm->set_billboard_mode(BaseMaterial3D::BILLBOARD_ENABLED);
         mm->set_transparency(BaseMaterial3D::TRANSPARENCY_ALPHA);
+        // A little roughness so they are not tiny specular sparkles.
+        mm->set_roughness(1.0f);
         qm->set_material(mm);
         e.node->set_draw_pass_mesh(0, qm);
         add_child(e.node);
