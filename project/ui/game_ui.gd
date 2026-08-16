@@ -106,6 +106,8 @@ func _ready() -> void:
 
 	get_viewport().size_changed.connect(_on_resize)
 	_on_resize()
+	if client != null:
+		_load_apply_settings()
 
 func _on_resize() -> void:
 	var vs := get_viewport().get_visible_rect().size
@@ -165,7 +167,8 @@ func _ui_shot_hook(delta: float) -> void:
 	var steps := [[4.0, "ui_hud", func() -> void: pass],
 		[5.0, "ui_inventory", func() -> void: _open_inventory()],
 		[6.0, "ui_chat", func() -> void: _close_window(); _open_chat("hello from the goanna ui")],
-		[7.0, "ui_pause", func() -> void: _close_chat(); _open_pause_menu()]]
+		[7.0, "ui_pause", func() -> void: _close_chat(); _open_pause_menu()],
+		[8.0, "ui_settings", func() -> void: _open_settings()]]
 	for st in steps:
 		if absf(t - st[0]) < delta * 0.6:
 			st[2].call()
@@ -173,7 +176,7 @@ func _ui_shot_hook(delta: float) -> void:
 			await RenderingServer.frame_post_draw
 			get_viewport().get_texture().get_image().save_png(dir.path_join(st[1] + ".png"))
 			print("saved ", st[1])
-	if t > 8.0:
+	if t > 9.0:
 		client.disconnect_from_server()
 		get_tree().quit()
 
@@ -448,10 +451,117 @@ func _open_pause_menu() -> void:
 	if pause_menu == null:
 		pause_menu = _build_menu("Goanna", [
 			["Continue", func() -> void: _close_window()],
+			["Video settings", func() -> void: _open_settings()],
 			["Disconnect", func() -> void: _disconnect()],
 			["Quit", func() -> void: get_tree().quit()],
 		])
 	_open_window(pause_menu)
+
+# Live video settings, backed by GoannaClient's setters. Each takes effect
+# immediately (auto-bump and bevel re-mesh; motes start or stop) and is saved
+# to user://goanna.cfg, reapplied on the next connect.
+const SETTINGS_CFG := "user://goanna.cfg"
+const VIDEO_SETTINGS := [
+	["auto_bump", "Auto bump", "Fake surface relief from texture brightness.", 0.0, 6.0, 0.25],
+	["bevel", "Edge bevel", "Chamfer the exposed edges of solid nodes.", 0.0, 0.15, 0.01],
+	["motes", "Ambient motes", "Drifting specks over leaves, flowers and sand.", 0.0, 4.0, 0.25],
+]
+var settings_menu: Control
+
+func _apply_setting(key: String, value: float) -> void:
+	match key:
+		"auto_bump":
+			if client.has_method("set_auto_bump"): client.set_auto_bump(value)
+		"bevel":
+			if client.has_method("set_bevel"): client.set_bevel(value)
+		"motes":
+			if client.has_method("set_motes"): client.set_motes(value)
+
+func _setting_value(key: String, fallback: float) -> float:
+	match key:
+		"auto_bump":
+			if client.has_method("auto_bump"): return client.auto_bump()
+		"motes":
+			if client.has_method("motes"): return client.motes()
+	return fallback
+
+func _load_apply_settings() -> void:
+	var cfg := ConfigFile.new()
+	if cfg.load(SETTINGS_CFG) != OK:
+		return
+	for s in VIDEO_SETTINGS:
+		var key: String = s[0]
+		if cfg.has_section_key("video", key):
+			_apply_setting(key, float(cfg.get_value("video", key)))
+
+func _save_setting(key: String, value: float) -> void:
+	var cfg := ConfigFile.new()
+	cfg.load(SETTINGS_CFG)  # keep the menu's server/player sections
+	cfg.set_value("video", key, value)
+	cfg.save(SETTINGS_CFG)
+
+func _open_settings() -> void:
+	if settings_menu == null:
+		settings_menu = _build_settings()
+	_open_window(settings_menu)
+
+func _build_settings() -> Control:
+	var centre := CenterContainer.new()
+	centre.set_anchors_preset(Control.PRESET_FULL_RECT)
+	centre.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var panel := PanelContainer.new()
+	centre.add_child(panel)
+	var margin := MarginContainer.new()
+	for side in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
+		margin.add_theme_constant_override(side, 24)
+	panel.add_child(margin)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	box.custom_minimum_size = Vector2(420, 0)
+	margin.add_child(box)
+	var title := Label.new()
+	title.text = "Video settings"
+	title.add_theme_font_size_override("font_size", 24)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(title)
+	for s in VIDEO_SETTINGS:
+		var key: String = s[0]
+		var row := VBoxContainer.new()
+		row.add_theme_constant_override("separation", 2)
+		box.add_child(row)
+		var head := HBoxContainer.new()
+		row.add_child(head)
+		var name_label := Label.new()
+		name_label.text = s[1]
+		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		head.add_child(name_label)
+		var value_label := Label.new()
+		value_label.custom_minimum_size = Vector2(48, 0)
+		value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		head.add_child(value_label)
+		var slider := HSlider.new()
+		slider.min_value = s[3]
+		slider.max_value = s[4]
+		slider.step = s[5]
+		slider.value = _setting_value(key, 0.0)
+		value_label.text = "off" if slider.value <= 0.0 else "%.2f" % slider.value
+		slider.value_changed.connect(func(v: float) -> void:
+			value_label.text = "off" if v <= 0.0 else "%.2f" % v
+			_apply_setting(key, v)
+			_save_setting(key, v))
+		row.add_child(slider)
+		var desc := Label.new()
+		desc.text = s[2]
+		desc.modulate = Color(1, 1, 1, 0.55)
+		desc.add_theme_font_size_override("font_size", 12)
+		row.add_child(desc)
+	var back := Button.new()
+	back.text = "Back"
+	back.pressed.connect(func() -> void: _open_pause_menu())
+	box.add_child(back)
+	centre.visible = false
+	add_child(centre)
+	return centre
 
 func _show_death_screen() -> void:
 	if death_screen == null:
