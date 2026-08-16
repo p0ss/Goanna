@@ -40,6 +40,8 @@
 #include "network/networkpacket.h"
 #include "network/socket.h"
 #include "nodedef.h"
+#include "itemgroup.h"
+#include "collision.h"
 #include "porting.h"
 #include "serialization.h"
 #include "settings.h"
@@ -182,7 +184,6 @@ MapBlock *GoannaSession::getBlock(v3s16 pos) {
 
 // Transplanted from luanti/src/client/clientenvironment.cpp,
 // ClientEnvironment::step (LGPL-2.1-or-later): the local-player part only.
-// Fall damage is left out until HP is wired.
 void GoannaSession::stepPlayer(float dtime) {
     LocalPlayer *lplayer = m_player.get();
     if (!lplayer)
@@ -209,6 +210,7 @@ void GoannaSession::stepPlayer(float dtime) {
 
     u32 steps = std::ceil(dtime / dtime_max_increment);
     f32 dtime_part = dtime / steps;
+    std::vector<CollisionInfo> player_collisions;
     for (; steps > 0; --steps) {
         lplayer->applyControl(dtime_part, map);
 
@@ -246,8 +248,74 @@ void GoannaSession::stepPlayer(float dtime) {
                 lplayer->setSpeed(speed);
             }
         }
-        lplayer->move(dtime_part, map);
+        lplayer->move(dtime_part, map, &player_collisions);
     }
+    applyFallDamage(player_collisions);
+}
+
+// ClientEnvironment::step's fall-damage pass. Node fall-damage modifiers come
+// from the node groups; the player's own modifier and immortality come from
+// the local player's active object if it is known.
+void GoannaSession::applyFallDamage(const std::vector<CollisionInfo> &collisions) {
+    LocalPlayer *lplayer = m_player.get();
+    if (!lplayer)
+        return;
+    // The caller (stepPlayer, under mapLock) already holds m_map_mutex.
+    bool player_immortal = false;
+    f32 player_fall_factor = 1.0f;
+    for (auto &kv : m_objects) {
+        if (!kv.second->isLocalPlayer())
+            continue;
+        player_immortal = kv.second->isImmortal();
+        int addp_p = itemgroup_get(kv.second->armorGroups(), "fall_damage_add_percent");
+        player_fall_factor = 1.0f + (float)addp_p / 100.0f;
+        break;
+    }
+    u16 total_damage = 0;
+    for (const CollisionInfo &info : collisions) {
+        v3f speed_diff = info.new_speed - info.old_speed;
+        if (speed_diff.Y < 0 || info.old_speed.Y >= 0)
+            continue;
+        speed_diff.X = 0;
+        speed_diff.Z = 0;
+        f32 pre_factor = 1; // 1 hp per node/s
+        f32 tolerance = BS * 14; // 5 without damage
+        if (info.type == COLLISION_NODE) {
+            const ContentFeatures &f = m_nodedef->get(m_map->getNode(info.node_p));
+            int addp_n = itemgroup_get(f.groups, "fall_damage_add_percent");
+            f32 node_fall_factor = 1.0f + (float)addp_n / 100.0f;
+            pre_factor = node_fall_factor * player_fall_factor;
+        }
+        float speed = pre_factor * speed_diff.getLength();
+        if (speed > tolerance && !player_immortal && pre_factor > 0.0f) {
+            f32 damage_f = (speed - tolerance) / BS;
+            u16 damage = (u16)MYMIN(damage_f + 0.5, (double)U16_MAX);
+            total_damage = (u16)MYMIN((int)total_damage + damage, U16_MAX);
+        }
+    }
+    if (total_damage == 0)
+        return;
+    // client-authoritative: reduce local hp and tell the server
+    u16 hp = m_hp.load();
+    m_hp = hp > total_damage ? hp - total_damage : 0;
+    sendDamage(total_damage);
+}
+
+void GoannaSession::sendDamage(u16 damage) {
+    if (!m_con)
+        return;
+    NetworkPacket pkt(TOSERVER_DAMAGE, sizeof(u16));
+    pkt << damage;
+    send(pkt);
+}
+
+// Client::handleCommand_PlayerSpeed: server-driven knockback.
+void GoannaSession::onPlayerSpeed(NetworkPacket &pkt) {
+    v3f added_vel;
+    pkt >> added_vel;
+    std::lock_guard<std::mutex> lk(m_map_mutex);
+    if (m_player)
+        m_player->addVelocity(added_vel);
 }
 
 // ---- in-game data: chat, HUD, inventory, formspecs (Client::handleCommand_* transplanted) ----
@@ -1184,6 +1252,7 @@ void GoannaSession::handle(NetworkPacket &pkt) {
     case TOCLIENT_ACTIVE_OBJECT_MESSAGES: onActiveObjectMessages(pkt); break;
     case TOCLIENT_CHAT_MESSAGE: onChatMessage(pkt); break;
     case TOCLIENT_HP: onHP(pkt); break;
+    case TOCLIENT_PLAYER_SPEED: onPlayerSpeed(pkt); break;
     case TOCLIENT_BREATH: onBreath(pkt); break;
     case TOCLIENT_HUDADD: onHudAdd(pkt); break;
     case TOCLIENT_HUDCHANGE: onHudChange(pkt); break;

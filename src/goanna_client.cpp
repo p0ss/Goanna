@@ -786,13 +786,6 @@ int GoannaClient::poll_blocks(int max_blocks) {
                 arrays[Mesh::ARRAY_COLOR] = cols;
                 arrays[Mesh::ARRAY_INDEX] = idx;
                 mesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays);
-                if (const char *dbg = std::getenv("GOANNA_DEBUG_TINT")) {
-                    GoannaTexture *gt = dynamic_cast<GoannaTexture *>(buf->getMaterial().getTexture(0));
-                    std::string tn = gt ? m_session->tsrc()->getTextureName(gt->id()) : "";
-                    if (tn.find(dbg) != std::string::npos)
-                        UtilityFunctions::print("tint ", String(tn.c_str()), " mtype ", (int)buf->getMaterial().MaterialType,
-                                " c0 ", cols[0], " nv ", (int)nv);
-                }
                 mesh->surface_set_material(si++, materialForIrr(buf->getMaterial()));
             }
         }

@@ -39,6 +39,7 @@ class MapBlock;
 class NetworkPacket;
 class LocalPlayer;
 class Client;
+struct CollisionInfo;
 struct ItemVisualsManager;
 struct SRPUser;
 
@@ -273,6 +274,10 @@ private:
     void onActiveObjectMessages(NetworkPacket &pkt);
     void onChatMessage(NetworkPacket &pkt);
     void onHP(NetworkPacket &pkt);
+    void onPlayerSpeed(NetworkPacket &pkt);
+    // Client-side fall damage (ClientEnvironment::step) -> TOSERVER_DAMAGE.
+    void applyFallDamage(const std::vector<CollisionInfo> &collisions);
+    void sendDamage(u16 damage);
     void onBreath(NetworkPacket &pkt);
     void onHudAdd(NetworkPacket &pkt);
     void onHudChange(NetworkPacket &pkt);

@@ -23,6 +23,13 @@ var place_pressed := false
 var wield := 0
 var selection_box: MeshInstance3D
 var pointed: Dictionary = {}
+var test_dig := false
+var test_plc_pressed := false
+var mob_target_id := -1
+var mob_last_pos := Vector3.ZERO
+var inv_before := {}
+var fall_reported := false
+var test_started := 0.0
 
 func _ready() -> void:
 	client = GoannaClient.new()
@@ -139,6 +146,9 @@ func _process(delta: float) -> void:
 		}
 		if OS.get_environment("GOANNA_WALKTEST") != "":
 			keys = _walktest_keys()
+		test_dig = false
+		test_plc_pressed = false
+		_test_hooks(keys)
 		var ui_blocks: bool = ui != null and ui.blocks_input()
 		if ui_blocks:
 			for k in keys:
@@ -147,9 +157,9 @@ func _process(delta: float) -> void:
 		if r.has("eye_pos"):
 			cam.position = r["eye_pos"]
 			cam.rotation_degrees = Vector3(pitch, yaw, 0)
-		var dig := dig_down and not ui_blocks
+		var dig := (dig_down or test_dig) and not ui_blocks
 		var plc := place_down and not ui_blocks
-		var plc_pressed := place_pressed and not ui_blocks
+		var plc_pressed := (place_pressed or test_plc_pressed) and not ui_blocks
 		if OS.get_environment("GOANNA_DIGTEST") != "":
 			# look down at the ground in front (hand-diggable, timed) and use slot 4 (light14) to place
 			pitch = -55.0
@@ -278,6 +288,123 @@ func _walktest_keys() -> Dictionary:
 	var hold_w := t > 4.0 and t < 9.0
 	return {"up": hold_w, "down": false, "left": false, "right": false,
 		"jump": t > 6.0 and t < 6.3, "sneak": false, "aux1": false}
+
+func _aim_at(target: Vector3) -> void:
+	var d := (target - cam.position)
+	if d.length() < 0.001:
+		return
+	d = d.normalized()
+	yaw = rad_to_deg(atan2(-d.x, -d.z))
+	pitch = rad_to_deg(asin(clamp(d.y, -1.0, 1.0)))
+
+func _nearest_entity(sub: String) -> Dictionary:
+	var best := {}
+	var bestd := 1e9
+	for e in client.entity_list():
+		if not (String(e["name"]).contains(sub) or String(e["mesh"]).contains(sub)):
+			continue
+		var dd: float = (Vector3(e["position"]) - cam.position).length()
+		if dd < bestd:
+			bestd = dd
+			best = e
+	return best
+
+func _main_list() -> Array:
+	var inv: Dictionary = client.inventory_state()
+	return (inv.get("lists", {}) as Dictionary).get("main", [])
+
+func _test_hooks(keys: Dictionary) -> void:
+	# GOANNA_FALLTEST=1: pillar-jump then fall; report hp drop and server damage line.
+	if OS.get_environment("GOANNA_FALLTEST") != "":
+		# grant fly+teleport, go up high, then drop and land
+		if int(t) == 2 and test_started == 0.0:
+			test_started = 1.0
+			client.send_chat("/grant goanna all")
+		if int(t) == 4 and test_started == 1.0:
+			test_started = 2.0
+			print("falltest: hp before ", client.hp())
+			client.send_chat("/teleport 20 45 26")
+		if t > 5.0:
+			# stop holding anything; just fall under gravity
+			for k in keys: keys[k] = false
+		if client.hp() < 20 and not fall_reported:
+			fall_reported = true
+			print("falltest: hp after landing ", client.hp(), " at t ", t)
+		if t > 20.0:
+			print("falltest: final hp ", client.hp(), " (no damage taken)" if not fall_reported else "")
+			client.disconnect_from_server()
+			get_tree().quit()
+		return
+	# GOANNA_MOBTEST=<sub>: aim at nearest mob, walk to it, punch until it dies.
+	var mob := OS.get_environment("GOANNA_MOBTEST")
+	if mob != "":
+		if inv_before.is_empty() and t > 2.0:
+			inv_before = {"main": _main_list().duplicate(true)}
+		var e := _nearest_entity(mob)
+		if mob_target_id >= 0:
+			# is our target still alive?
+			var alive := false
+			for x in client.entity_list():
+				if int(x["id"]) == mob_target_id:
+					alive = true
+					mob_last_pos = Vector3(x["position"])
+			if not alive:
+				if test_started == 0.0:
+					test_started = t
+					print("mobtest: target ", mob_target_id, " gone at ", t, " main before ", inv_before.get("main", []).size())
+				# walk onto the drop then report
+				_aim_at(mob_last_pos)
+				if (mob_last_pos - cam.position).length() > 1.2:
+					keys["up"] = true
+				if t - test_started > 5.0:
+					print("mobtest: main after ", _main_list())
+					client.disconnect_from_server()
+					get_tree().quit()
+				return
+		if e.is_empty():
+			return
+		mob_target_id = int(e["id"])
+		mob_last_pos = Vector3(e["position"])
+		_aim_at(mob_last_pos + Vector3(0, 0.6, 0))
+		var dist: float = (mob_last_pos - cam.position).length()
+		if dist > 2.6:
+			keys["up"] = true
+		else:
+			test_dig = true
+		return
+	# GOANNA_MINETEST=1: pitch down at the node in front, dig, report inventory delta.
+	if OS.get_environment("GOANNA_MINETEST") != "":
+		pitch = -60.0
+		if int(t) == 2:
+			_set_wield(int(OS.get_environment("GOANNA_MINE_SLOT")) if OS.get_environment("GOANNA_MINE_SLOT") != "" else 0)
+		if inv_before.is_empty() and t > 2.0:
+			inv_before = {"main": _main_list().duplicate(true)}
+		test_dig = t > 3.0 and t < 9.0
+		if t > 12.0:
+			print("minetest: before ", inv_before.get("main", []))
+			print("minetest: after ", _main_list())
+			client.disconnect_from_server()
+			get_tree().quit()
+		return
+	# GOANNA_USETEST=<sub>: aim at nearest match, right-click once, report formspecs + inventory delta.
+	var use := OS.get_environment("GOANNA_USETEST")
+	if use != "":
+		var e2 := _nearest_entity(use)
+		if inv_before.is_empty() and t > 2.0:
+			inv_before = {"main": _main_list().duplicate(true)}
+		if not e2.is_empty():
+			_aim_at(Vector3(e2["position"]) + Vector3(0, 0.6, 0))
+			if test_started == 0.0 and t > 3.0:
+				test_started = t
+				test_plc_pressed = true
+				print("usetest: right-clicking ", e2["name"], " id ", e2["id"])
+		for f in client.take_shown_formspecs():
+			print("usetest: formspec name=", f["formname"], " context=", f["context"], " len=", String(f["formspec"]).length())
+		if test_started > 0.0 and t - test_started > 3.0:
+			print("usetest: main after ", _main_list())
+			client.disconnect_from_server()
+			get_tree().quit()
+		return
 
 func _shots(dir: String) -> void:
 	fly_mode = true

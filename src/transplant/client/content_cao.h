@@ -92,6 +92,9 @@ public:
     v3f attachmentRotation() const { return m_attachment_rotation; }
     bool attachmentForceVisible() const { return m_force_visible; }
     const std::map<std::string, BoneOverride> &boneOverrides() const { return m_bone_override; }
+    // GenericCAO::getGroups / isImmortal, for client-side fall damage.
+    const ItemGroupList &armorGroups() const { return m_armor_groups; }
+    bool isImmortal() const { return itemgroup_get(m_armor_groups, "immortal") != 0; }
     // The renderer advances dtime_passed and drops finished identity
     // overrides, as GenericCAO's animate callback does.
     std::map<std::string, BoneOverride> &boneOverridesMut() { return m_bone_override; }

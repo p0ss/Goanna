@@ -17,6 +17,8 @@ transplanted from `Client::handleCommand_*` in
 | ACTIVE_OBJECT_REMOVE_ADD / ACTIVE_OBJECT_MESSAGES | done (GenericCAO state transplanted); visuals: sprites, cubes, meshes (B3D, X, OBJ, glTF through Luanti's own loaders) with skeletal animation, bone overrides and bone attachments; item and wielditem entities through the transplanted wield mesh; node entity visuals are still placeholders | `sync_entities(dt)`, `entity_count()`, `entity_positions()`, `entity_list()` |
 | CHAT_MESSAGE / TOSERVER_CHAT_MESSAGE | done | `take_chat()`, `send_chat(msg)` |
 | HP / BREATH | done | `hp()`, `breath()` (also in `hud_state()`) |
+| fall damage (client-computed, ClientEnvironment::step) / TOSERVER_DAMAGE | done, sent when damage is enabled server-side | automatic in `step_player(...)` |
+| PLAYER_SPEED (knockback: server adds velocity to the local player) | done | automatic |
 | HUDADD / HUDCHANGE / HUDRM / HUD_SET_FLAGS / HUD_SET_PARAM | done, kept as Luanti `HudElement`s | `hud_state()` |
 | INVENTORY / INVENTORY_FORMSPEC / SHOW_FORMSPEC / TOSERVER_INVENTORY_ACTION | done (Luanti `Inventory` deserialised; formspecs passed as strings; actions sent as Luanti's action strings) | `inventory_state()`, `inventory_formspec()`, `take_shown_formspecs()`, `send_inventory_fields(...)`, `inventory_action(str)`, `set_wield_index(i)`, `wield_index()` |
 | DETACHED_INVENTORY / NODEMETA_CHANGED (and node metadata in BLOCKDATA) | done | `inventory_state_at("detached:<name>" or "nodemeta:x,y,z")`, `detached_inventory_names()` |
@@ -30,8 +32,8 @@ stand-in client), so `node_visuals` handles them as upstream does.
 
 ## Not yet
 - Item, wield-item and node entity visuals; the local player's wield hand.
-- Particles, sounds, node metadata display, minimap data, camera packets,
-  death screen, mod channels, client-side mods (SSCSM).
+- Particles, sounds (no audio yet), node metadata display, minimap data,
+  camera packets (FOV, CAMERA), mod channels, client-side mods (SSCSM).
 - Formspec `model[]` elements and `style[]`. Formspecs are otherwise parsed and drawn by
   `project/ui/formspec.gd`, with the layout maths from `GUIFormSpecMenu`.
 
