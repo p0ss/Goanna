@@ -56,6 +56,8 @@ var death_screen: Control
 var fullscreen_tint: ColorRect
 
 var inv_cache := {}                    # inventory_state() of this frame
+var other_inv_cache := {}              # location -> inventory_state_at(location), for open forms
+var form_context := ""                 # what "context" means in the open form (nodemeta:x,y,z)
 var inv_version := -1
 var item_defs := {}                    # item name -> {inventory_image, description, ...}
 var icon_cache := {}                   # item name -> Texture2D
@@ -137,8 +139,10 @@ func _process(delta: float) -> void:
 		if form.visible:
 			form.refresh_lists()
 			_after_inventory_update()
+	_poll_other_inventories()
 	# server-shown formspecs
 	for f in client.take_shown_formspecs():
+		form_context = str(f.get("context", ""))
 		_show_server_formspec(str(f.get("formspec", "")), str(f.get("formname", "")))
 	# death
 	var hp: int = client.hp()
@@ -148,12 +152,13 @@ func _process(delta: float) -> void:
 	hud.queue_redraw()
 	_ui_shot_hook(delta)
 	_ui_move_test(delta)
+	_ui_chest_test(delta)
 
 # Development aid: GOANNA_UI_SHOT=<dir> saves the HUD, the inventory, chat
 # and the pause menu at fixed times, then quits.
 func _ui_shot_hook(delta: float) -> void:
 	var dir := OS.get_environment("GOANNA_UI_SHOT")
-	if dir == "":
+	if dir == "" or OS.get_environment("GOANNA_UI_TEST") != "":
 		return
 	var steps := [[4.0, "ui_hud", func() -> void: pass],
 		[5.0, "ui_inventory", func() -> void: _open_inventory()],
@@ -190,6 +195,33 @@ func _ui_move_test(delta: float) -> void:
 		if OS.get_environment("GOANNA_UI_SHOT") != "":
 			await RenderingServer.frame_post_draw
 			get_viewport().get_texture().get_image().save_png(OS.get_environment("GOANNA_UI_SHOT").path_join("ui_move.png"))
+		_close_window()
+
+# Development aid: GOANNA_UI_TEST=chest:<x,y,z> opens a chest style form
+# listing nodemeta:x,y,z and prints what the slots resolve to.
+func _ui_chest_test(delta: float) -> void:
+	var spec := OS.get_environment("GOANNA_UI_TEST")
+	if not spec.begins_with("chest:"):
+		return
+	var pos := spec.substr(6)
+	if absf(t - 4.0) < delta * 0.6:
+		form_context = "nodemeta:" + pos
+		other_inv_cache.clear()
+		form_is_inventory = false
+		form.show_formspec("size[8,9]list[context;main;0,0.3;8,4;]list[current_player;main;0,4.85;8,1;]list[current_player;main;0,6.08;8,3;8]listring[context;main]listring[current_player;main]",
+			"", get_viewport().get_visible_rect().size)
+		fullscreen_tint.color = form.fullscreen_bg
+		_open_window(form)
+	if absf(t - 5.5) < delta * 0.6:
+		var found := []
+		for i in 32:
+			var it := get_list_item("context", "main", i)
+			if it.get("name", "") != "":
+				found.append("%d:%s x%d" % [i, it["name"], it.get("count", 0)])
+		print("ui test: chest ", pos, " -> ", found, " raw: ", client.inventory_state_at("nodemeta:" + pos), " detached: ", client.detached_inventory_names())
+		if OS.get_environment("GOANNA_UI_SHOT") != "":
+			await RenderingServer.frame_post_draw
+			get_viewport().get_texture().get_image().save_png(OS.get_environment("GOANNA_UI_SHOT").path_join("ui_chest.png"))
 		_close_window()
 
 func _main_names() -> Array:
@@ -341,6 +373,8 @@ func _open_inventory() -> void:
 	if spec.strip_edges() == "":
 		spec = "size[8,7.5]list[current_player;main;0,3.5;8,4;]list[current_player;craft;3,0;3,3;]list[current_player;craftpreview;7,1;1,1;]listring[]"
 	form_is_inventory = true
+	other_inv_cache.clear()
+	form_context = ""
 	form.show_formspec(spec, "", get_viewport().get_visible_rect().size)
 	fullscreen_tint.color = form.fullscreen_bg
 	_open_window(form)
@@ -352,6 +386,7 @@ func _show_server_formspec(spec: String, formname: String) -> void:
 			_hide_window()
 		return
 	form_is_inventory = false
+	other_inv_cache.clear()
 	form.show_formspec(spec, formname, get_viewport().get_visible_rect().size)
 	fullscreen_tint.color = form.fullscreen_bg
 	_open_window(form)
@@ -451,12 +486,33 @@ func get_list_item(location: String, listname: String, index: int) -> Dictionary
 		if index >= 0 and index < items.size():
 			return items[index]
 		return {}
-	if client.has_method("inventory_state_at"):
-		var st: Dictionary = client.inventory_state_at(location)
-		var items: Array = (st.get("lists", {}) as Dictionary).get(listname, [])
-		if index >= 0 and index < items.size():
-			return items[index]
+	if location == "context":
+		location = form_context
+		if location == "":
+			return {}
+	var st: Dictionary = other_inv_cache.get(location, {})
+	if st.is_empty() and client.has_method("inventory_state_at"):
+		st = client.inventory_state_at(location)
+		other_inv_cache[location] = st
+	var items: Array = (st.get("lists", {}) as Dictionary).get(listname, [])
+	if index >= 0 and index < items.size():
+		return items[index]
 	return {}
+
+# Node and detached inventories used by the open form: re-read when their
+# version changes and refresh the slots.
+func _poll_other_inventories() -> void:
+	if not form.visible or not client.has_method("inventory_state_at"):
+		return
+	var changed := false
+	for loc in other_inv_cache.keys():
+		var st: Dictionary = client.inventory_state_at(loc)
+		if int(st.get("version", -1)) != int(other_inv_cache[loc].get("version", -2)):
+			other_inv_cache[loc] = st
+			changed = true
+	if changed:
+		form.refresh_lists()
+		_after_inventory_update()
 
 func ui_texture(name: String) -> Texture2D:
 	if name.strip_edges() == "":
@@ -503,12 +559,19 @@ func _on_slot_clicked(location: String, listname: String, index: int, button: in
 	if not client.has_method("inventory_action"):
 		print("inventory: inventory_action not available yet")
 		return
+	if location == "context":
+		if form_context == "":
+			return
+		location = form_context
 	var item := get_list_item(location, listname, index)
 	var count: int = item.get("count", 0)
 	if shift and button == MOUSE_BUTTON_LEFT and count > 0 and selected.is_empty():
-		var nxt: Dictionary = form.next_in_ring(location, listname)
+		var nxt: Dictionary = form.next_in_ring(location if form_context == "" else location, listname)
+		if nxt.is_empty():
+			nxt = form.next_in_ring("context", listname) if location == form_context else {}
 		if not nxt.is_empty():
-			client.inventory_action("MoveSomewhere %d %s %s %d %s %s" % [count, location, listname, index, nxt["location"], nxt["listname"]])
+			var dst: String = form_context if nxt["location"] == "context" else nxt["location"]
+			client.inventory_action("MoveSomewhere %d %s %s %d %s %s" % [count, location, listname, index, dst, nxt["listname"]])
 		return
 	if listname == "craftpreview":
 		if count > 0 and selected.is_empty():
