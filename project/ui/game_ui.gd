@@ -118,6 +118,20 @@ func _on_resize() -> void:
 
 # --- what main.gd needs ------------------------------------------------------
 
+# Stop the local singleplayer server (if we started one) when the game scene
+# goes away, whether that is a disconnect back to the menu or the app quitting.
+func _exit_tree() -> void:
+	# The flatpak/launcher pid is not the sandboxed server, so kill by the
+	# unique world path (works for a native server too); the pid is a fallback.
+	var match_path := OS.get_environment("GOANNA_SP_MATCH")
+	if match_path != "":
+		OS.execute("pkill", ["-f", match_path])
+		OS.set_environment("GOANNA_SP_MATCH", "")
+	var pid := OS.get_environment("GOANNA_SP_PID")
+	if pid.is_valid_int() and int(pid) > 0:
+		OS.kill(int(pid))
+		OS.set_environment("GOANNA_SP_PID", "")
+
 func blocks_input() -> bool:
 	return window != null or chat_open
 
