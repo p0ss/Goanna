@@ -106,6 +106,7 @@ func _ready() -> void:
 	form.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	form.fields_submitted.connect(_on_form_fields)
 	form.slot_clicked.connect(_on_slot_clicked)
+	form.slot_released.connect(_on_slot_released)
 	add_child(form)
 
 	flash_rect = ColorRect.new()
@@ -187,6 +188,7 @@ func _process(delta: float) -> void:
 	_ui_shot_hook(delta)
 	_ui_move_test(delta)
 	_ui_chest_test(delta)
+	_ui_craft_test(delta)
 	_ui_chat_hook(delta)
 
 # Development aid: GOANNA_UI_SHOT=<dir> saves the HUD, the inventory, chat
@@ -250,6 +252,43 @@ func _ui_chat_hook(delta: float) -> void:
 	# GOANNA_UI_WIELD=<n> selects a hotbar slot once the world is ready.
 	if OS.get_environment("GOANNA_UI_WIELD") != "" and absf(t - 2.5) < delta * 0.6:
 		client.set_wield_index(int(OS.get_environment("GOANNA_UI_WIELD")))
+
+# Development aid: GOANNA_UI_TEST=craft puts the first log stack into the craft
+# grid, then takes the result out, printing the lists at each step.
+func _ui_craft_test(delta: float) -> void:
+	if OS.get_environment("GOANNA_UI_TEST") != "craft":
+		return
+	if absf(t - 4.0) < delta * 0.6:
+		_open_inventory()
+		var main: Array = (inv_cache.get("lists", {}) as Dictionary).get("main", [])
+		var src := -1
+		for i in main.size():
+			if String(main[i].get("name", "")).contains("tree"):
+				src = i
+				break
+		print("crafttest: log slot=", src, " name=", (main[src].get("name","") if src >= 0 else "none"))
+		if src >= 0:
+			_on_slot_clicked("current_player", "main", src, MOUSE_BUTTON_LEFT, false)
+			_on_slot_clicked("current_player", "craft", 0, MOUSE_BUTTON_LEFT, false)
+	if absf(t - 6.0) < delta * 0.6:
+		print("crafttest: craft=", _names_of("craft"), " preview=", _names_of("craftpreview"), " result=", _names_of("craftresult"))
+		_on_slot_clicked("current_player", "craftpreview", 0, MOUSE_BUTTON_LEFT, false)
+		print("crafttest: after preview click, cursor=", selected.get("name", "none"), " x", selected.get("amount", 0))
+	if absf(t - 7.5) < delta * 0.6:
+		_on_slot_clicked("current_player", "main", 20, MOUSE_BUTTON_LEFT, false)
+	if absf(t - 9.0) < delta * 0.6:
+		print("crafttest: main slot20=", get_list_item("current_player", "main", 20).get("name", "empty"),
+			" x", get_list_item("current_player", "main", 20).get("count", 0))
+		client.disconnect_from_server()
+		get_tree().quit()
+
+func _names_of(list: String) -> Array:
+	var out := []
+	var items: Array = (client.inventory_state().get("lists", {}) as Dictionary).get(list, [])
+	for it in items:
+		if String(it.get("name", "")) != "":
+			out.append("%s x%d" % [it["name"], it.get("count", 0)])
+	return out
 
 # Development aid: GOANNA_UI_TEST=chest:<x,y,z> opens a chest style form
 # listing nodemeta:x,y,z and prints what the slots resolve to.
@@ -866,6 +905,19 @@ func _placeholder_icon(item_name: String) -> Texture2D:
 		img.set_pixel(31, i, col.darkened(0.4))
 	return ImageTexture.create_from_image(img)
 
+# Completing a drag: the press picked a stack up, releasing over another
+# slot drops it there. Releasing on the source slot keeps it on the cursor,
+# so click-then-click still works exactly as before.
+func _on_slot_released(location: String, listname: String, index: int, button: int) -> void:
+	if selected.is_empty():
+		return
+	if location == "context":
+		location = form_context
+	if selected["location"] == location and selected["listname"] == listname \
+			and selected["index"] == index:
+		return
+	_on_slot_clicked(location, listname, index, button, false)
+
 func _on_slot_clicked(location: String, listname: String, index: int, button: int, shift: bool) -> void:
 	if not client.has_method("inventory_action"):
 		print("inventory: inventory_action not available yet")
@@ -885,9 +937,21 @@ func _on_slot_clicked(location: String, listname: String, index: int, button: in
 			client.inventory_action("MoveSomewhere %d %s %s %d %s %s" % [count, location, listname, index, dst, nxt["listname"]])
 		return
 	if listname == "craftpreview":
-		if count > 0 and selected.is_empty():
-			client.inventory_action("Craft 1 %s craft" % location)
-			pending_craft = true
+		# The preview only shows what the grid would make; the real item is in
+		# the hidden "craftresult" list, and picking that up is what performs
+		# the craft (GUIFormSpecMenu::updateSelectedItem does the same).
+		if selected.is_empty():
+			var res := get_list_item(location, "craftresult", 0)
+			if int(res.get("count", 0)) > 0:
+				selected = {"location": location, "listname": "craftresult", "index": 0,
+					"amount": int(res["count"]), "name": res.get("name", "")}
+				hud.queue_redraw()
+			elif count > 0:
+				# No craftresult (the server only filled the preview): ask for
+				# the craft itself. ICraftAction is "Craft <count> <location>";
+				# count 0 means craft as many as the grid allows.
+				client.inventory_action("Craft %d %s" % [count, location])
+				pending_craft = true
 		return
 	if selected.is_empty():
 		if count == 0:

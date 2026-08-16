@@ -16,6 +16,7 @@ extends Control
 
 signal fields_submitted(fields: Dictionary, quit: bool)
 signal slot_clicked(location: String, listname: String, index: int, button: int, shift: bool)
+signal slot_released(location: String, listname: String, index: int, button: int)
 signal closed()
 
 const ELEM_SEP := "]"
@@ -895,6 +896,10 @@ func _font_size() -> int:
 func _slot_clicked(loc: String, lname: String, index: int, button: int, shift: bool) -> void:
 	slot_clicked.emit(loc, lname, index, button, shift)
 
+# Mouse released over a slot: completes a drag started on another slot.
+func _slot_released(loc: String, lname: String, index: int, button: int) -> void:
+	slot_released.emit(loc, lname, index, button)
+
 # The next list in the ring after (loc, lname), for shift-click moves; empty if none.
 func next_in_ring(loc: String, lname: String) -> Dictionary:
 	if list_rings.size() < 2:
@@ -956,7 +961,13 @@ class FormspecSlot extends Control:
 			draw_rect(bar, Color(1.0 - frac, frac, 0.1))
 
 	func _gui_input(event: InputEvent) -> void:
-		if event is InputEventMouseButton and event.pressed:
-			if event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT, MOUSE_BUTTON_MIDDLE]:
+		if event is InputEventMouseButton \
+				and event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT, MOUSE_BUTTON_MIDDLE]:
+			if event.pressed:
 				form._slot_clicked(location, listname, index, event.button_index, event.shift_pressed)
-				accept_event()
+			else:
+				# Releasing over a different slot completes a drag: the press
+				# picked the stack up, so this drops it here. Releasing over the
+				# same slot is an ordinary click and leaves it on the cursor.
+				form._slot_released(location, listname, index, event.button_index)
+			accept_event()

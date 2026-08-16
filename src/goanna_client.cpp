@@ -325,8 +325,16 @@ Ref<Texture2D> GoannaClient::item_icon(const String &item_name) {
         if (def.type != ITEM_NODE && !def.inventory_image.name.empty())
             tex = def.inventory_image.name;
     }
+    if (tex.empty()) {
+        // Node item with no flat inventory image: vanilla renders the node as a
+        // cube. Until Goanna renders one, use the node's own first tile, which
+        // at least shows the block's real face rather than a placeholder.
+        const ContentFeatures &f = m_session->nodeDefs()->get(stack.name);
+        if (f.visuals && f.visuals->tiles[0].layers[0].texture_id)
+            tex = m_session->tsrc()->getTextureName(f.visuals->tiles[0].layers[0].texture_id);
+    }
     if (tex.empty())
-        return Ref<Texture2D>(); // node item: no flat image, UI keeps placeholder
+        return Ref<Texture2D>();
     u32 id = m_session->tsrc()->getTextureId(tex);
     GoannaTexture *gt = m_session->tsrc()->goannaTexture(id);
     if (!gt)
