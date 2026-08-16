@@ -126,6 +126,8 @@ func _ready() -> void:
 	_on_resize()
 	if client != null:
 		_load_apply_settings()
+		if OS.get_environment("GOANNA_VIEWRANGE") != "" and client.has_method("set_view_range"):
+			client.set_view_range(int(OS.get_environment("GOANNA_VIEWRANGE")))
 
 func _on_resize() -> void:
 	var vs := get_viewport().get_visible_rect().size
@@ -575,6 +577,7 @@ const SETTINGS := [
 	["Video", "auto_bump", "slider", "Auto bump", "Fake surface relief from texture brightness.", 0.0, 1.0, 0.05],
 	["Video", "bevel", "slider", "Edge bevel", "Chamfer the exposed edges of solid nodes.", 0.0, 0.15, 0.01],
 	["Video", "motes", "slider", "Ambient motes", "Drifting specks over leaves, flowers and sand.", 0.0, 4.0, 0.25],
+	["Video", "view_range", "slider", "View distance", "How much world to ask the server for, in blocks of 16 nodes. Servers may cap it.", 4.0, 40.0, 1.0],
 	["Video", "damage_flash", "toggle", "Damage flash", "Flash the screen red when you take damage."],
 	["Video", "show_body", "toggle", "Show own body", "See your own body and held item when you look down."],
 	["Display", "fov", "slider", "Field of view", "The camera's field of view, in degrees.", 60.0, 110.0, 1.0],
@@ -606,6 +609,7 @@ func _apply_local(key: String, value: float, on: bool) -> void:
 		"fov":
 			var m := _main_node()
 			if m and m.get("cam") != null: m.cam.fov = value
+			if client != null and client.has_method("set_view_fov"): client.set_view_fov(value)
 		"gui_scale":
 			gui_scale = value
 			_on_resize()
@@ -638,6 +642,7 @@ func _apply_setting(key: String, value: float) -> void:
 		_apply_local(key, value, on)
 		return
 	match key:
+		"view_range": if client.has_method("set_view_range"): client.set_view_range(int(value))
 		"mantle": if client.has_method("set_mantle"): client.set_mantle(on)
 		"show_body": if client.has_method("set_show_body"): client.set_show_body(on)
 		"aux1_descends": if client.has_method("set_aux1_descends"): client.set_aux1_descends(on)
@@ -654,6 +659,7 @@ func _setting_value(key: String, fallback: float) -> float:
 	if key in LOCAL_KEYS:
 		return _local_value(key)
 	match key:
+		"view_range": if client.has_method("view_range"): return float(client.view_range())
 		"mantle": if client.has_method("mantle"): return 1.0 if client.mantle() else 0.0
 		"show_body": if client.has_method("show_body"): return 1.0 if client.show_body() else 0.0
 		"aux1_descends": if client.has_method("aux1_descends"): return 1.0 if client.aux1_descends() else 0.0

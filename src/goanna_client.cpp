@@ -81,6 +81,16 @@ void GoannaClient::set_bevel(float width) {
 
 float GoannaClient::bevel() const { return g_goanna_bevel; }
 
+void GoannaClient::set_view_range(int blocks) {
+    if (m_session)
+        m_session->wantedRange = blocks < 1 ? 1 : (blocks > 60 ? 60 : blocks);
+}
+int GoannaClient::view_range() const { return m_session ? m_session->wantedRange : 12; }
+void GoannaClient::set_view_fov(float degrees) {
+    if (m_session)
+        m_session->cameraFov = degrees;
+}
+
 void GoannaClient::set_safe_dig(bool on) { if (m_session) m_session->safeDig = on; }
 bool GoannaClient::safe_dig() const { return m_session ? m_session->safeDig : false; }
 void GoannaClient::set_repeat_dig_interval(float s) { if (m_session) m_session->repeatDigInterval = s < 0 ? 0 : s; }
@@ -1361,6 +1371,9 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("bevel"), &GoannaClient::bevel);
     ClassDB::bind_method(D_METHOD("set_auto_bump", "strength"), &GoannaClient::set_auto_bump);
     ClassDB::bind_method(D_METHOD("auto_bump"), &GoannaClient::auto_bump);
+    ClassDB::bind_method(D_METHOD("set_view_range", "blocks"), &GoannaClient::set_view_range);
+    ClassDB::bind_method(D_METHOD("view_range"), &GoannaClient::view_range);
+    ClassDB::bind_method(D_METHOD("set_view_fov", "degrees"), &GoannaClient::set_view_fov);
     ClassDB::bind_method(D_METHOD("set_mantle", "on"), &GoannaClient::set_mantle);
     ClassDB::bind_method(D_METHOD("mantle"), &GoannaClient::mantle);
     ClassDB::bind_method(D_METHOD("set_aux1_descends", "on"), &GoannaClient::set_aux1_descends);

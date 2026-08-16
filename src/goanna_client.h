@@ -156,6 +156,11 @@ public:
     float bevel() const;
     void set_auto_bump(float strength);
     float auto_bump() const { return m_auto_bump; }
+    // How far to ask the server to stream, in mapblocks, and the camera
+    // FOV reported with our position (both affect what the server sends).
+    void set_view_range(int blocks);
+    int view_range() const;
+    void set_view_fov(float degrees);
     // Mantle over single-block ledges (Luanti's autojump). On by default.
     void set_mantle(bool on) { m_mantle = on; }
     bool mantle() const { return m_mantle; }

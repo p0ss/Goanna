@@ -96,6 +96,11 @@ public:
     bool contentPrepared() const { return m_content_prepared; }
     GoannaTextureSource *tsrc() { return m_tsrc.get(); }
     GoannaShaderSource &shsrc() { return m_shsrc; }
+    // How much world to ask the server to stream, in mapblocks (16 nodes
+    // each), and the camera FOV we report. Vanilla derives both from the
+    // client's own settings; servers cap the range themselves.
+    int wantedRange = 12;
+    float cameraFov = 70.0f;
     // Interaction options, set from the UI, read in stepInteract.
     bool safeDig = false;
     float repeatDigInterval = 0.0f;

@@ -1140,8 +1140,8 @@ void GoannaSession::writePlayerPosTo(NetworkPacket &pkt) {
     s32 ipitch = pitch * 100;
     s32 iyaw = yaw * 100;
     u32 keys = 0;
-    u8 fov = (u8)std::min(255.0f, 1.2f * 80.0f);
-    u8 wanted_range = 10; // blocks
+    u8 fov = (u8)std::clamp(cameraFov * 1.2f, 1.0f, 255.0f);
+    u8 wanted_range = (u8)std::clamp(wantedRange, 1, 255); // mapblocks
     u8 camera_inverted = 0;
     pkt << position << speed << ipitch << iyaw << keys << fov << wanted_range << camera_inverted
         << movement_speed << movement_dir;
