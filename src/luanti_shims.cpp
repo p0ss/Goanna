@@ -1,7 +1,12 @@
-// Small pieces of Luanti that live in server-only translation units but are
-// referenced by the shared core Goanna links. Copied verbatim from
-// luanti/src/inventorymanager.cpp (LGPL-2.1-or-later) so that file, which
-// drags in the server environment and scripting, need not be compiled.
+// Luanti
+// SPDX-License-Identifier: LGPL-2.1-or-later
+// Copyright (C) 2010-2013 celeron55, Perttu Ahola <celeron55@gmail.com>
+//
+// Copied verbatim from luanti/src/inventorymanager.cpp against Luanti
+// 5.16.1, 2026-08. Small pieces of Luanti that live in server-only
+// translation units but are referenced by the shared core Goanna links.
+// Copied so that file, which drags in the server environment and scripting,
+// need not be compiled.
 
 #include <sstream>
 

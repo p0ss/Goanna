@@ -133,6 +133,7 @@ func _process(delta: float) -> void:
 		cam.rotation_degrees = Vector3(pitch, yaw, 0)
 	client.poll_blocks(24)
 	client.update_lights(cam.position, 48)
+	client.sync_entities(delta)
 	if t - last_print >= 1.0:
 		last_print = t
 		if OS.get_environment("GOANNA_DUMPSKY") != "" and int(t) == 3:
@@ -188,6 +189,24 @@ func _walktest_keys() -> Dictionary:
 func _shots(dir: String) -> void:
 	fly_mode = true
 	var base := cam.position
+	var ents: Array = client.entity_positions()
+	if ents.size() > 0 and OS.get_environment("GOANNA_AIM_ENTITY") != "":
+		var target: Vector3 = ents[0]
+		var views_e := [["e_entity", target + Vector3(3, 1.5, 4), target + Vector3(0, 0.8, 0)],
+			["e_entity_far", target + Vector3(-8, 4, 8), target]]
+		for v in views_e:
+			cam.position = v[1]
+			cam.look_at(v[2], Vector3.UP)
+			for i in 30:
+				client.poll_blocks(64)
+				client.sync_entities(get_process_delta_time())
+				await get_tree().process_frame
+			await RenderingServer.frame_post_draw
+			var img := get_viewport().get_texture().get_image()
+			var path: String = dir.path_join(v[0] + ".png")
+			img.save_png(path)
+			print("saved ", path)
+		return
 	var views := [
 		["a_spawn", base + Vector3(0, 6, 14), base + Vector3(0, 0, -20)],
 		["b_high", base + Vector3(30, 40, 30), base],

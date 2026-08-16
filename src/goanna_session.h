@@ -24,6 +24,7 @@
 #include "goanna_map.h"
 #include "goanna_textures.h"
 #include "goanna_sky.h"
+#include "goanna_active_object.h"
 
 class NodeDefManager;
 class IWritableItemDefManager;
@@ -116,6 +117,10 @@ public:
     // (sub-stepping, gravity, liquid resistance). Caller holds mapLock().
     void stepPlayer(float dtime);
 
+    // Active objects (players, mobs, items). Caller holds mapLock().
+    std::map<u16, std::unique_ptr<GoannaActiveObject>> &objects() { return m_objects; }
+    void stepObjects(float dtime);
+
     // Player pose as the client will report it to the server (position in nodes).
     void setPlayerPose(v3f pos_nodes, float pitch_deg, float yaw_deg);
 
@@ -180,6 +185,8 @@ private:
     void onCloudParams(NetworkPacket &pkt);
     void onSetLighting(NetworkPacket &pkt);
     void onOverrideDayNightRatio(NetworkPacket &pkt);
+    void onActiveObjectRemoveAdd(NetworkPacket &pkt);
+    void onActiveObjectMessages(NetworkPacket &pkt);
 
     std::string m_host;
     uint16_t m_port = 30000;
@@ -200,6 +207,7 @@ private:
     std::mutex m_map_mutex;
     std::unique_ptr<GoannaMap> m_map;
     std::unique_ptr<LocalPlayer> m_player;
+    std::map<u16, std::unique_ptr<GoannaActiveObject>> m_objects;
     std::unique_ptr<GoannaTextureSource> m_tsrc;
     GoannaShaderSource m_shsrc;
     std::unique_ptr<Client> m_mesh_client;

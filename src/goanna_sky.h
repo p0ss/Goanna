@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LGPL-2.1-or-later
+// Copyright (C) 2026 the Goanna contributors
+
 #pragma once
 
 // Sky, sun/moon/stars, clouds, fog and lighting state as sent by the server

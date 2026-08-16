@@ -1,10 +1,12 @@
-// Transplanted from luanti/src/client/localplayer.h (LGPL-2.1-or-later).
-// Goanna changes: no Client, no client active object (CAO), no event
-// manager; movement takes a Map* rather than an Environment*; privileges are
-// plain flags set by the session; the legacy old_move path is dropped.
 // Luanti
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (C) 2010-2013 celeron55, Perttu Ahola <celeron55@gmail.com>
+//
+// Transplanted from luanti/src/client/localplayer.h.
+// Goanna changes 2026-08, against Luanti 5.16.1: no Client, no client
+// active object (CAO), no event manager; movement takes a Map* rather than
+// an Environment*; privileges are plain flags set by the session; the
+// legacy old_move path is dropped.
 
 #pragma once
 

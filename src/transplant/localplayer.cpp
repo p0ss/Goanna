@@ -1,8 +1,10 @@
-// Transplanted from luanti/src/client/localplayer.cpp (LGPL-2.1-or-later).
-// See localplayer.h for the Goanna changes. Movement maths is untouched.
 // Luanti
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (C) 2010-2013 celeron55, Perttu Ahola <celeron55@gmail.com>
+//
+// Transplanted from luanti/src/client/localplayer.cpp.
+// Goanna changes 2026-08, against Luanti 5.16.1: see localplayer.h.
+// Movement maths is untouched.
 
 #include "transplant/localplayer.h"
 #include "gamedef.h"

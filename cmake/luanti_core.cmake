@@ -47,8 +47,11 @@ target_include_directories(gmp INTERFACE "${LUANTI_DIR}/lib/gmp")
 target_include_directories(jsoncpp INTERFACE "${LUANTI_DIR}/lib/jsoncpp")
 
 find_package(ZLIB REQUIRED)
-find_library(ZSTD_STATIC_LIB NAMES libzstd.a zstd HINTS /home/linuxbrew/.linuxbrew/opt/zstd/lib)
-find_path(ZSTD_INCLUDE_DIR zstd.h HINTS /home/linuxbrew/.linuxbrew/opt/zstd/include)
+# A static libzstd.a is preferred so the extension carries its own copy;
+# otherwise whatever zstd the linker finds. Point ZSTD_ROOT (or the two
+# variables below) at an unusual install, see docs/building.md.
+find_library(ZSTD_STATIC_LIB NAMES libzstd.a zstd HINTS ${ZSTD_ROOT}/lib)
+find_path(ZSTD_INCLUDE_DIR zstd.h HINTS ${ZSTD_ROOT}/include)
 if(NOT ZSTD_STATIC_LIB)
     message(FATAL_ERROR "zstd not found")
 endif()
@@ -71,7 +74,7 @@ set(LUANTI_CORE_SRCS
     serialization.cpp nameidmapping.cpp mapnode.cpp mapblock.cpp nodedef.cpp itemdef.cpp
     tool.cpp inventory.cpp itemstackmetadata.cpp metadata.cpp nodemetadata.cpp
     staticobject.cpp nodetimer.cpp tileanimation.cpp texture_override.cpp light.cpp
-    content_nodemeta.cpp noise.cpp gettext_plural_form.cpp content_mapnode.cpp sound_spec.cpp voxel.cpp
+    content_nodemeta.cpp noise.cpp object_properties.cpp gettext_plural_form.cpp content_mapnode.cpp sound_spec.cpp voxel.cpp
     util/pointabilities.cpp convert_json.cpp map.cpp mapsector.cpp voxelalgorithms.cpp rollback_interface.cpp
     player.cpp
 )

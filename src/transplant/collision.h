@@ -1,6 +1,11 @@
 // Luanti
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (C) 2013 celeron55, Perttu Ahola <celeron55@gmail.com>
+//
+// Transplanted from luanti/src/collision.h.
+// Goanna changes 2026-08, against Luanti 5.16.1: the forward declaration of
+// Environment becomes Map, and collisionMoveSimple and
+// collision_check_intersection take a Map* instead of an Environment*.
 
 #pragma once
 

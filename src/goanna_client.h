@@ -10,6 +10,7 @@
 #include <godot_cpp/classes/standard_material3d.hpp>
 #include <godot_cpp/variant/dictionary.hpp>
 
+#include "goanna_entities.h"
 #include "irrlichttypes_bloated.h"
 
 class MapBlock;
@@ -51,6 +52,11 @@ public:
     // keys: {up,down,left,right,jump,sneak,aux1}; pitch/yaw in Godot degrees
     // (pitch positive = looking up). Returns {eye_pos, pos, pitch, yaw,
     // on_ground, in_liquid} in Godot space (nodes).
+    // Step and draw active objects (players, mobs, items).
+    void sync_entities(double dt);
+    int entity_count() const { return m_entities ? m_entities->count() : 0; }
+    godot::Array entity_positions() const { return m_entities ? m_entities->positions() : godot::Array(); }
+
     // Point lights for light-emitting nodes: keeps up to max_lights OmniLight3Ds
     // on the nearest bright nodes to `around` (Godot space, nodes).
     void update_lights(const godot::Vector3 &around, int max_lights);
@@ -74,6 +80,7 @@ private:
     godot::Ref<godot::Shader> m_sh_water, m_sh_leaves, m_sh_plants, m_sh_glass;
     bool m_shaders_loaded = false;
 
+    std::unique_ptr<EntityRenderer> m_entities;
     struct NodeLight { godot::Vector3 pos; float level; godot::Color color; };
     std::map<v3s16, std::vector<NodeLight>> m_block_lights;
     std::vector<godot::OmniLight3D *> m_light_pool;

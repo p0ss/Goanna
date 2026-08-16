@@ -1,3 +1,15 @@
+// SPDX-License-Identifier: LGPL-2.1-or-later
+// Copyright (C) 2026 the Goanna contributors
+// Copyright (C) 2010-2013 celeron55, Perttu Ahola <celeron55@gmail.com>
+//
+// Goanna's implementations of the texture and shader interfaces the
+// transplanted Luanti meshing code talks to.
+//
+// This file mixes Goanna original code with functions copied from Luanti
+// 5.16.1: createAnimationFrames from client/wieldmesh.cpp (verbatim), the
+// palette loader from client/texturesource.cpp, and getShader adapted from
+// client/shader.cpp. Each is marked at its definition.
+
 #include "goanna_textures.h"
 
 #include <cstring>

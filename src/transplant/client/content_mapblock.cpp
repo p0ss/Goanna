@@ -1,6 +1,13 @@
 // Luanti
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (C) 2010-2013 celeron55, Perttu Ahola <celeron55@gmail.com>
+//
+// Transplanted from luanti/src/client/content_mapblock.cpp.
+// Goanna changes 2026-08, against Luanti 5.16.1: compiles against Goanna's
+// Client stand-in (goanna_luanti_client.h instead of client.h); the
+// applyFacesShading calls are wrapped in a macro that skips them while
+// g_goanna_no_light is set, so directional face shading is not baked into
+// vertex colours when Godot lights the world; otherwise verbatim.
 
 #include <cmath>
 #include "content_mapblock.h"

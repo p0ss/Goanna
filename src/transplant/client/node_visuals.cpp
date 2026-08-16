@@ -1,9 +1,11 @@
-// Transplanted from luanti/src/client/node_visuals.cpp (LGPL-2.1-or-later).
-// Goanna changes: no video driver (array textures unsupported), mesh
-// manipulator/mesh loading via Goanna's Client stand-in; else verbatim.
 // Luanti
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (C) 2025 cx384
+//
+// Transplanted from luanti/src/client/node_visuals.cpp.
+// Goanna changes 2026-08, against Luanti 5.16.1: no video driver (array
+// textures unsupported), mesh manipulator and mesh loading via Goanna's
+// Client stand-in; else verbatim.
 
 #include "node_visuals.h"
 

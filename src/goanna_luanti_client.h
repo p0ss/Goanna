@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LGPL-2.1-or-later
+// Copyright (C) 2026 the Goanna contributors
+
 #pragma once
 
 // Luanti's meshing code (mapblock_mesh, content_mapblock, node_visuals) only

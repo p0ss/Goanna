@@ -88,6 +88,7 @@ Dictionary GoannaClient::status() const {
     d["media_announced"] = (int)s.media_announced;
     d["blocks_received"] = (int)s.blocks_received;
     d["blocks_meshed"] = (int)m_block_nodes.size();
+    d["entities"] = m_entities ? m_entities->count() : 0;
     d["media_received"] = (int)s.media_received;
     d["materials"] = m_materials.size();
     int n_lights = 0;
@@ -358,6 +359,7 @@ void GoannaClient::harvestLights(v3s16 bp, MapBlock *block) {
         float m = std::max(col.r, std::max(col.g, col.b));
         if (m > 0.05f) col = col / m;
         l.color = col.lerp(Color(1, 0.85, 0.6), 0.3f);
+        l.color.a = 1.0f;
         if (getenv("GOANNA_DEBUG_LIGHTS"))
             UtilityFunctions::print("goanna light: ", String(f.name.c_str()), " at ", l.pos,
                     " level ", (int)f.light_source, " colour ", l.color);
@@ -367,6 +369,17 @@ void GoannaClient::harvestLights(v3s16 bp, MapBlock *block) {
         m_block_lights.erase(bp);
     else
         m_block_lights[bp] = std::move(lights);
+}
+
+void GoannaClient::sync_entities(double dt) {
+    if (!m_session)
+        return;
+    if (!m_entities)
+        m_entities = std::make_unique<EntityRenderer>(this);
+    std::lock_guard<std::mutex> lk(m_session->mapLock());
+    if (dt > 0.1) dt = 0.1;
+    m_session->stepObjects((float)dt);
+    m_entities->sync(*m_session, (float)dt, Vector3());
 }
 
 void GoannaClient::update_lights(const Vector3 &around, int max_lights) {
@@ -522,6 +535,9 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("step_player", "dt", "keys", "pitch_deg", "yaw_deg"), &GoannaClient::step_player);
     ClassDB::bind_method(D_METHOD("sky_state"), &GoannaClient::sky_state);
     ClassDB::bind_method(D_METHOD("update_lights", "around", "max_lights"), &GoannaClient::update_lights);
+    ClassDB::bind_method(D_METHOD("sync_entities", "dt"), &GoannaClient::sync_entities);
+    ClassDB::bind_method(D_METHOD("entity_count"), &GoannaClient::entity_count);
+    ClassDB::bind_method(D_METHOD("entity_positions"), &GoannaClient::entity_positions);
     ClassDB::bind_method(D_METHOD("set_time_of_day_override", "tod"), &GoannaClient::set_time_of_day_override);
 }
 

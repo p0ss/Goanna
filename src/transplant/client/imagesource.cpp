@@ -1,9 +1,11 @@
-// Transplanted from luanti/src/client/imagesource.cpp (LGPL-2.1-or-later).
-// Goanna changes: image creation/decoding goes through goanna_image_hooks
-// instead of the Irrlicht video driver; everything else is verbatim.
 // Luanti
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (C) 2010-2013 celeron55, Perttu Ahola <celeron55@gmail.com>
+//
+// Transplanted from luanti/src/client/imagesource.cpp.
+// Goanna changes 2026-08, against Luanti 5.16.1: image creation and
+// decoding go through goanna_image_hooks.h instead of the Irrlicht video
+// driver; everything else is verbatim.
 
 #include "imagesource.h"
 

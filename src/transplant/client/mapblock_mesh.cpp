@@ -1,10 +1,15 @@
-// Transplanted from luanti/src/client/mapblock_mesh.cpp (LGPL-2.1-or-later).
-// Goanna changes: no video driver (no hardware mapping hint, no debug draw),
-// no minimap blocks; transparent buffers keep their indices (upstream draws
-// them from m_transparent_triangles instead); everything else is verbatim.
 // Luanti
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (C) 2010-2013 celeron55, Perttu Ahola <celeron55@gmail.com>
+//
+// Transplanted from luanti/src/client/mapblock_mesh.cpp.
+// Goanna changes 2026-08, against Luanti 5.16.1: no video driver (no
+// hardware mapping hint, no minimap blocks); PartialMeshBuffer::draw() is a
+// no-op because nothing is drawn through Irrlicht; g_goanna_no_light is
+// defined here and, while set, encode_light() returns opaque white, which
+// disables Luanti's baked vertex lighting; transparent buffers keep their
+// indices (upstream draws them from m_transparent_triangles instead);
+// everything else is verbatim.
 
 #include "mapblock_mesh.h"
 #include "CMeshBuffer.h"

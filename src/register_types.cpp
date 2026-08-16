@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LGPL-2.1-or-later
+// Copyright (C) 2026 the Goanna contributors
+
 #include "goanna_client.h"
 
 #include <gdextension_interface.h>

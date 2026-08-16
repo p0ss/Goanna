@@ -225,6 +225,63 @@ void GoannaSession::stepPlayer(float dtime) {
     }
 }
 
+void GoannaSession::stepObjects(float dtime) {
+    for (auto &kv : m_objects) {
+        GoannaActiveObject *obj = kv.second.get();
+        const GoannaActiveObject *parent = nullptr;
+        if (obj->attachmentParent() != 0) {
+            auto it = m_objects.find(obj->attachmentParent());
+            if (it != m_objects.end())
+                parent = it->second.get();
+        }
+        obj->step(dtime, m_map.get(), this, parent);
+    }
+}
+
+// Client::handleCommand_ActiveObjectRemoveAdd, transplanted.
+void GoannaSession::onActiveObjectRemoveAdd(NetworkPacket &pkt) {
+    u8 type;
+    u16 removed_count, added_count, id;
+    pkt >> removed_count;
+    std::lock_guard<std::mutex> lk(m_map_mutex);
+    for (u16 i = 0; i < removed_count; i++) {
+        pkt >> id;
+        m_objects.erase(id);
+    }
+    pkt >> added_count;
+    for (u16 i = 0; i < added_count; i++) {
+        pkt >> id >> type;
+        std::string init_data = pkt.readLongString();
+        auto obj = std::make_unique<GoannaActiveObject>(id, type);
+        try {
+            obj->initialize(init_data, m_player.get());
+        } catch (const std::exception &e) {
+            errorstream << "goanna: bad active object init data for id " << id << ": " << e.what() << std::endl;
+            continue;
+        }
+        m_objects[id] = std::move(obj);
+    }
+}
+
+// Client::handleCommand_ActiveObjectMessages, transplanted.
+void GoannaSession::onActiveObjectMessages(NetworkPacket &pkt) {
+    std::string datastring(pkt.getString(0), pkt.getSize());
+    std::istringstream is(datastring, std::ios_base::binary);
+    std::lock_guard<std::mutex> lk(m_map_mutex);
+    while (canRead(is)) {
+        u16 id = readU16(is);
+        std::string message = deSerializeString16(is);
+        auto it = m_objects.find(id);
+        if (it == m_objects.end())
+            continue;
+        try {
+            it->second->processMessage(message, m_player.get());
+        } catch (const std::exception &e) {
+            errorstream << "goanna: bad active object message for id " << id << ": " << e.what() << std::endl;
+        }
+    }
+}
+
 bool GoannaSession::takeServerMove(v3f &pos_bs, float &pitch, float &yaw) {
     std::lock_guard<std::mutex> lk(m_pose_mutex);
     if (!m_server_move_pending)
@@ -571,6 +628,8 @@ void GoannaSession::handle(NetworkPacket &pkt) {
     case TOCLIENT_PRIVILEGES: onPrivileges(pkt); break;
     case TOCLIENT_TIME_OF_DAY: onTimeOfDay(pkt); break;
     case TOCLIENT_SET_SKY: onSetSky(pkt); break;
+    case TOCLIENT_ACTIVE_OBJECT_REMOVE_ADD: onActiveObjectRemoveAdd(pkt); break;
+    case TOCLIENT_ACTIVE_OBJECT_MESSAGES: onActiveObjectMessages(pkt); break;
     case TOCLIENT_SET_SUN: onSetSun(pkt); break;
     case TOCLIENT_SET_MOON: onSetMoon(pkt); break;
     case TOCLIENT_SET_STARS: onSetStars(pkt); break;
