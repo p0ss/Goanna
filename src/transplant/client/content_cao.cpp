@@ -1,22 +1,18 @@
+// Luanti
 // SPDX-License-Identifier: LGPL-2.1-or-later
-// Copyright (C) 2026 the Goanna contributors
 // Copyright (C) 2010-2013 celeron55, Perttu Ahola <celeron55@gmail.com>
 //
-// Substantially transplanted from luanti/src/client/content_cao.cpp
-// (GenericCAO) against Luanti 5.16.1, 2026-08. The majority of this file is
-// upstream code: SmoothTranslator and its wrapped variants, the init data
-// and AO_CMD_* message parsing, position and rotation interpolation,
-// animation, bone overrides, attachment and texture modifier handling.
-//
-// Goanna changes: no Irrlicht scene nodes, so everything that built or
-// updated a scene node is removed and replaced by a state snapshot the
-// Godot side reads; movement uses the transplanted collision code directly
-// rather than ClientEnvironment.
-//
-// See docs/transplanting.md. This file is a tier 2 transplant living under
-// a Goanna name; it belongs under src/transplant/ and should be moved there.
+// Transplanted from luanti/src/client/content_cao.cpp (GenericCAO).
+// Goanna changes 2026-08, against Luanti 5.16.1: no Irrlicht scene nodes,
+// so everything that built or updated a scene node is removed and replaced
+// by a state snapshot the Godot side reads (goanna_entities); movement uses
+// the transplanted collision code directly rather than ClientEnvironment;
+// the class is goanna::GoannaActiveObject. SmoothTranslator and its wrapped
+// variants, the init data and AO_CMD_* message parsing, position and
+// rotation interpolation, animation, bone overrides, attachment and texture
+// modifier handling are upstream code.
 
-#include "goanna_active_object.h"
+#include "content_cao.h"
 
 #include <sstream>
 

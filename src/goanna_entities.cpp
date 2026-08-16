@@ -11,7 +11,7 @@
 #include <godot_cpp/classes/quad_mesh.hpp>
 #include <godot_cpp/classes/skin.hpp>
 
-#include "goanna_active_object.h"
+#include "transplant/client/content_cao.h"
 #include "goanna_session.h"
 #include "goanna_textures.h"
 #include <IMeshManipulator.h>

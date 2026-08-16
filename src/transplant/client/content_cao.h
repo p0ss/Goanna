@@ -1,10 +1,9 @@
+// Luanti
 // SPDX-License-Identifier: LGPL-2.1-or-later
-// Copyright (C) 2026 the Goanna contributors
 // Copyright (C) 2010-2013 celeron55, Perttu Ahola <celeron55@gmail.com>
 //
-// Declarations for the transplanted GenericCAO state, from
-// luanti/src/client/content_cao.h against Luanti 5.16.1, 2026-08.
-// See goanna_active_object.cpp for the Goanna changes.
+// Transplanted from luanti/src/client/content_cao.h (GenericCAO).
+// Goanna changes 2026-08, against Luanti 5.16.1: see content_cao.cpp.
 
 #pragma once
 

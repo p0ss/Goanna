@@ -27,7 +27,7 @@
 #include "goanna_map.h"
 #include "goanna_textures.h"
 #include "goanna_sky.h"
-#include "goanna_active_object.h"
+#include "transplant/client/content_cao.h"
 #include "goanna_models.h"
 #include "hud_element.h"
 #include "inventory.h"
