@@ -98,18 +98,31 @@ software to play with yet.
   blend the way the vanilla `Sky` does, and fog, saturation, exposure and
   bloom follow the server's lighting parameters
   (`docs/e0b_time_of_day.png`, Mineclonia at four times of day).
+- Materials chosen by Luanti's own material type. Liquids get a water
+  shader (vertex waves, refraction, low roughness), waving leaves and
+  plants sway, alpha nodes such as glass get a refracting blend shader, and
+  everything else is a `StandardMaterial3D` with nearest filtering and the
+  node's alpha mode. Water, leaves and plants observed on devtest and
+  Mineclonia; the glass shader has not been seen on a real node yet.
+- Light-emitting nodes. Textures used only by nodes with `light_source` are
+  rendered emissive, and a pool of `OmniLight3D`s follows the nearest bright
+  nodes to the camera, so a torch or glowstone lights the ground around it
+  and SDFGI picks up the bounce (`docs/e0b_torches_night.png`, a devtest
+  ring of `light14` nodes at midnight).
 - Rendering through Godot's Forward+ pipeline, with SDFGI, SSAO, SSIL, real
   shadows, fog and AgX tone mapping.
 
 **Not working yet.** This list is longer, and that is the point of showing
 it:
 
-- Node lighting. Luanti's baked vertex lighting is deliberately bypassed at
-  the moment (`g_goanna_no_light` in `src/goanna_mesh_flags.h`), so all light
-  comes from Godot's sun, sky and global illumination. Torches do not light
-  their surroundings, and caves are as bright as the surface. Reconciling
-  Luanti's light data with a physically based renderer is an open design
-  question, not just a missing feature.
+- Node lighting proper. Luanti's baked vertex lighting is deliberately
+  bypassed at the moment (`g_goanna_no_light` in `src/goanna_mesh_flags.h`),
+  so apart from the point lights above, all light comes from Godot's sun,
+  sky and global illumination. Caves are as bright as the surface.
+  Reconciling Luanti's light data with a physically based renderer is an
+  open design question, not just a missing feature.
+- Transparent nodes are sorted per mapblock, not per triangle as Luanti
+  does, so overlapping water and glass can draw in the wrong order.
 - Digging, placing, and using anything at all. There is no interaction.
 - Inventory, formspecs, HUD, chat, sound, particles.
 - Entities. No other players, no mobs, no dropped items.
