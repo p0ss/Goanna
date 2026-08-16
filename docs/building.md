@@ -177,8 +177,17 @@ missing and wrong geometry. Only the simplest drawtypes are meshed today.
 
 ### Point Goanna at it
 
-Connection details come from environment variables, read in
-`project/main.gd`. There is no menu yet.
+Run the project and a menu (`project/menu.gd`) asks for the server address,
+port, player name and password. It remembers the address, port and name in
+Godot's user data directory (`user://goanna.cfg`, which on Linux is
+`~/.local/share/godot/app_userdata/Goanna/goanna.cfg`) and never the
+password.
+
+The menu steps aside when the details are already in the environment, which
+is what scripts and the automated runs below use. Set `GOANNA_HOST` or
+`GOANNA_NAME` and Goanna connects straight away; set `GOANNA_MENU=1` to get
+the menu anyway, prefilled from whatever else is set. The variables are read
+in `project/main.gd`:
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
@@ -193,7 +202,7 @@ for anything else. And putting it on the command line writes it to your
 shell history and exposes it in `/proc/<pid>/environ`. Export it, or use a
 password you do not mind leaking, for anything public.
 
-Run the project with the Godot binary:
+Run the project with the Godot binary, skipping the menu:
 
 ```sh
 GOANNA_HOST=127.0.0.1 GOANNA_PORT=30000 \
@@ -247,6 +256,9 @@ features.
 | `GOANNA_SMOKE=<seconds>` | Connect, run for that many seconds, disconnect and quit. Useful in CI or after a change to the session code. |
 | `GOANNA_SHOT=<directory>` | Fly to three fixed viewpoints, save a PNG at each, then quit. |
 | `GOANNA_WALKTEST=1` | Drive the movement controls from a script rather than the keyboard. With `GOANNA_SHOT`, saves two frames mid walk. |
+| `GOANNA_VIEW="name:x,y,z:pitch,yaw;..."` | With `GOANNA_SHOT`, replaces the three fixed viewpoints. Positions are relative to the spawn eye position, or absolute with a leading `@`. |
+| `GOANNA_MENU_SHOT=<file.png>` | Render the connection menu once, save it, quit. |
+| `GOANNA_MENU_TEST="host:port:name:pass"` | Fill the menu and press Connect, to exercise the menu to game hand-over. Combine with `GOANNA_MENU=1` if a skip variable such as `GOANNA_SMOKE` is also set. |
 
 A minimal check that everything still works, end to end:
 

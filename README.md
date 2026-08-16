@@ -127,7 +127,7 @@ it:
 - Inventory, formspecs, HUD, chat, sound, particles.
 - Entities. No other players, no mobs, no dropped items.
 - Clouds, and the sun, moon and star textures. The sky is a plain gradient.
-- Any user interface. Connection details come from environment variables.
+- Any in-game user interface. There is a connection menu and nothing else.
 - Windows and macOS. Linux only so far, for no better reason than that is
   where it was written.
 
@@ -166,11 +166,19 @@ cmake --build build
 /path/to/Godot_v4.5.1-stable_linux.x86_64 --headless --editor --quit --path project
 ```
 
-Then start any ordinary Luanti server and point Goanna at it:
+Then start any ordinary Luanti server and run Goanna:
 
 ```sh
 luantiserver --gameid devtest --worldname goanna_test --port 30000
 
+/path/to/Godot_v4.5.1-stable_linux.x86_64 --path project
+```
+
+A small menu asks for the server address, port, player name and password,
+remembers everything but the password, and connects. To skip the menu, give
+the connection details in the environment instead:
+
+```sh
 GOANNA_HOST=127.0.0.1 GOANNA_NAME=goanna GOANNA_PASS=hunter2 \
   /path/to/Godot_v4.5.1-stable_linux.x86_64 --path project
 ```
