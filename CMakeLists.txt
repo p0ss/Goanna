@@ -22,6 +22,7 @@ add_library(goanna SHARED
     src/goanna_active_object.cpp
     src/goanna_entities.cpp
     src/transplant/collision.cpp
+    src/transplant/environment_raycast.cpp
     src/transplant/localplayer.cpp
     src/transplant/client/mapblock_mesh.cpp
     src/transplant/client/content_mapblock.cpp

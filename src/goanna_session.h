@@ -30,6 +30,7 @@
 #include "goanna_active_object.h"
 #include "hud_element.h"
 #include "inventory.h"
+#include "util/pointedthing.h"
 
 class NodeDefManager;
 class IWritableItemDefManager;
@@ -150,6 +151,30 @@ public:
     // Client -> server: raw formspec fields (formname, {field: value}).
     void sendInventoryFields(const std::string &formname, const std::map<std::string, std::string> &fields);
 
+    // --- interaction (digging, placing) ---
+    struct InteractInput {
+        bool dig = false;        // dig button held
+        bool place = false;      // place button held
+        bool place_pressed = false; // place button went down this frame
+        v3f eye_pos_bs;          // camera position (BS units, Luanti space)
+        v3f look_dir;            // unit vector, Luanti space
+    };
+    struct InteractState {
+        PointedThing pointed;
+        bool digging = false;
+        float dig_time = 0, dig_time_complete = 0;
+        int crack_level = -1;   // -1 none
+        v3s16 crack_pos;
+    };
+    // Game::updatePointedThing/handleDigging/nodePlacement transplanted in
+    // spirit: raycast, dig timing from tool capabilities, packets. Caller
+    // holds mapLock().
+    void stepInteract(float dtime, const InteractInput &in);
+    const InteractState &interactState() const { return m_interact; }
+    void setWieldIndex(u16 index);
+    u16 wieldIndex() const { return m_wield_index; }
+    int crackAnimationLength();
+
     // Active objects (players, mobs, items). Caller holds mapLock().
     std::map<u16, std::unique_ptr<GoannaActiveObject>> &objects() { return m_objects; }
     void stepObjects(float dtime);
@@ -218,6 +243,10 @@ private:
     void onCloudParams(NetworkPacket &pkt);
     void onSetLighting(NetworkPacket &pkt);
     void onOverrideDayNightRatio(NetworkPacket &pkt);
+    void sendInteract(u8 action, const PointedThing &pointed);
+    void writePlayerPosTo(NetworkPacket &pkt);
+    void selectObjects(const core::line3d<f32> &shootline, std::vector<PointedThing> &out,
+            const std::optional<Pointabilities> &pointabilities);
     void onActiveObjectRemoveAdd(NetworkPacket &pkt);
     void onActiveObjectMessages(NetworkPacket &pkt);
     void onChatMessage(NetworkPacket &pkt);
@@ -252,6 +281,12 @@ private:
     std::unique_ptr<GoannaMap> m_map;
     std::unique_ptr<LocalPlayer> m_player;
     std::map<u16, std::unique_ptr<GoannaActiveObject>> m_objects;
+    InteractState m_interact;
+    PointedThing m_pointed_old;
+    float m_nodig_delay_timer = 0, m_repeat_place_timer = 0;
+    bool m_dig_instantly = false, m_btn_down_for_dig = false;
+    u16 m_wield_index = 0;
+    int m_crack_animation_length = -1;
 
     mutable std::mutex m_hud_mutex;
     std::vector<ChatLine> m_chat;

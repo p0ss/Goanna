@@ -16,7 +16,10 @@
 
 #include "transplant/localplayer.h"
 #include "goanna_luanti_client.h"
+#include "goanna_raycast.h"
 #include "client/node_visuals.h"
+#include "raycast.h"
+#include "tool.h"
 
 #include <chrono>
 #include <cmath>
@@ -459,6 +462,212 @@ void GoannaSession::onShowFormspec(NetworkPacket &pkt) {
     m_shown_formspecs.emplace_back(formspec, formname);
 }
 
+// ---- interaction: Game::updatePointedThing / handleDigging / place, transplanted in spirit ----
+
+void GoannaSession::setWieldIndex(u16 index) {
+    m_wield_index = index;
+    if (m_player)
+        m_player->setWieldIndex(index);
+    sendPlayerItem(index);
+}
+
+int GoannaSession::crackAnimationLength() {
+    if (m_crack_animation_length < 0) {
+        auto size = m_tsrc->getTextureDimensions("crack_anylength.png");
+        m_crack_animation_length = (size.Width > 0 && size.Height >= size.Width) ? size.Height / size.Width : 5;
+    }
+    return m_crack_animation_length;
+}
+
+// Client::interact, transplanted.
+void GoannaSession::sendInteract(u8 action, const PointedThing &pointed) {
+    if (!m_con)
+        return;
+    NetworkPacket pkt(TOSERVER_INTERACT, 1 + 2 + 0);
+    pkt << action;
+    pkt << m_wield_index;
+    std::ostringstream tmp_os(std::ios::binary);
+    pointed.serialize(tmp_os);
+    pkt.putLongString(tmp_os.str());
+    writePlayerPosTo(pkt);
+    send(pkt);
+}
+
+// ClientEnvironment::getSelectedActiveObjects, against Goanna's objects.
+void GoannaSession::selectObjects(const core::line3d<f32> &shootline, std::vector<PointedThing> &out,
+        const std::optional<Pointabilities> &pointabilities) {
+    v3f line_vector = shootline.getVector();
+    for (auto &kv : m_objects) {
+        GoannaActiveObject *obj = kv.second.get();
+        if (obj->isLocalPlayer() || !obj->isVisible())
+            continue;
+        const ObjectProperties &p = obj->props();
+        if (!p.is_visible)
+            continue;
+        aabb3f selection_box = p.selectionbox;
+        selection_box.MinEdge *= BS;
+        selection_box.MaxEdge *= BS;
+        v3f pos = obj->position();
+        v3f rel_pos = shootline.start - pos;
+        v3f current_intersection, current_normal;
+        if (!boxLineCollision(selection_box, rel_pos, line_vector, &current_intersection, &current_normal))
+            continue;
+        PointabilityType pointable = p.pointable;
+        if (pointabilities) {
+            if (obj->isPlayer())
+                pointable = pointabilities->matchPlayer(ItemGroupList()).value_or(p.pointable);
+            else
+                pointable = pointabilities->matchObject(obj->name(), ItemGroupList()).value_or(p.pointable);
+        }
+        if (pointable == PointabilityType::POINTABLE_NOT)
+            continue;
+        current_intersection += pos;
+        f32 d_sq = (current_intersection - shootline.start).getLengthSQ();
+        out.emplace_back(obj->id(), current_intersection, current_normal, current_normal, d_sq, pointable);
+    }
+}
+
+void GoannaSession::stepInteract(float dtime, const InteractInput &in) {
+    if (!m_player || !m_ready_sent)
+        return;
+    // wielded / hand items
+    ItemStack selected_item, hand_item;
+    if (InventoryList *main = m_inventory->getList("main"))
+        if (m_wield_index < main->getSize())
+            selected_item = main->getItem(m_wield_index);
+    if (InventoryList *hand = m_inventory->getList("hand"))
+        if (hand->getSize() > 0)
+            hand_item = hand->getItem(0);
+    ItemStack tool_item = selected_item.name.empty() ? hand_item : selected_item;
+    f32 range = getToolRange(selected_item, hand_item, m_itemdef);
+
+    // pointed thing
+    core::line3d<f32> shootline(in.eye_pos_bs, in.eye_pos_bs + in.look_dir * BS * range);
+    const ItemDefinition &selected_def = selected_item.getDefinition(m_itemdef);
+    RaycastState state(shootline, true, selected_def.liquids_pointable, selected_def.pointabilities);
+    PointedThing pointed;
+    continueRaycast(&state, &pointed, *m_map,
+            [this](const core::line3d<f32> &l, std::vector<PointedThing> &o,
+                    const std::optional<Pointabilities> &pa) { selectObjects(l, o, pa); });
+    m_interact.pointed = pointed;
+
+    m_nodig_delay_timer -= dtime;
+    if (m_nodig_delay_timer < 0) m_nodig_delay_timer = 0;
+    const float repeat_dig_time = 0.0f, repeat_place_time = 0.25f;
+
+    // pointing changed while digging -> stop
+    if (m_interact.digging && !(pointed.type == POINTEDTHING_NODE && m_pointed_old.type == POINTEDTHING_NODE &&
+            pointed.node_undersurface == m_pointed_old.node_undersurface)) {
+        sendInteract(INTERACT_STOP_DIGGING, m_pointed_old);
+        m_interact.digging = false;
+        m_interact.dig_time = 0;
+        m_interact.crack_level = -1;
+    }
+    if (m_interact.digging && !in.dig) {
+        sendInteract(INTERACT_STOP_DIGGING, m_pointed_old);
+        m_interact.digging = false;
+        m_interact.dig_time = 0;
+        m_interact.crack_level = -1;
+    }
+    if (!m_interact.digging && m_btn_down_for_dig && !in.dig)
+        m_btn_down_for_dig = false;
+
+    if (in.place)
+        m_repeat_place_timer += dtime;
+    else
+        m_repeat_place_timer = 0;
+    bool place_now = in.place_pressed || (in.place && m_repeat_place_timer >= repeat_place_time);
+
+    if (pointed.type == POINTEDTHING_NODE) {
+        v3s16 nodepos = pointed.node_undersurface;
+        MapNode n = m_map->getNode(nodepos);
+        const ContentFeatures &features = m_nodedef->get(n);
+        // digging (Game::handleDigging)
+        if (in.dig && m_nodig_delay_timer <= 0 && !(m_btn_down_for_dig && !m_interact.digging)) {
+            DigParams params = getDigParams(features.groups,
+                    &tool_item.getToolCapabilities(m_itemdef, &hand_item), tool_item.wear);
+            if (!params.diggable)
+                params = getDigParams(features.groups, &hand_item.getToolCapabilities(m_itemdef));
+            m_interact.dig_time_complete = params.diggable ? params.time : 10000000.0f;
+            if (!m_interact.digging) {
+                m_dig_instantly = m_interact.dig_time_complete == 0;
+                sendInteract(INTERACT_START_DIGGING, pointed);
+                m_interact.digging = true;
+                m_btn_down_for_dig = true;
+            }
+            int cal = crackAnimationLength();
+            float dig_index = m_dig_instantly ? cal : (float)cal * m_interact.dig_time / m_interact.dig_time_complete;
+            if (m_interact.dig_time_complete >= 100000.0f) {
+                m_interact.crack_level = -1;
+            } else if (dig_index < cal) {
+                m_interact.crack_level = (int)dig_index;
+                m_interact.crack_pos = nodepos;
+            } else {
+                // Digging completed
+                m_interact.crack_level = -1;
+                m_interact.dig_time = 0;
+                m_interact.digging = false;
+                m_nodig_delay_timer = m_interact.dig_time_complete / (float)cal;
+                if (m_nodig_delay_timer > 0.3f) m_nodig_delay_timer = 0.3f;
+                else if (m_dig_instantly) m_nodig_delay_timer = 0.15f;
+                m_nodig_delay_timer = std::max(m_nodig_delay_timer, repeat_dig_time - m_interact.dig_time_complete);
+                // client-side prediction (Client::removeNode / addNode)
+                std::map<v3s16, MapBlock *> modified;
+                try {
+                    if (features.node_dig_prediction == "air") {
+                        m_map->removeNodeAndUpdate(nodepos, modified);
+                    } else if (!features.node_dig_prediction.empty()) {
+                        content_t id;
+                        if (m_nodedef->getId(features.node_dig_prediction, id))
+                            m_map->addNodeAndUpdate(nodepos, MapNode(id), modified, true);
+                    }
+                } catch (const InvalidPositionException &) {}
+                for (auto &kv : modified)
+                    m_new_blocks.push_back(kv.first);
+                queueBlocksAround(nodepos);
+                sendInteract(INTERACT_DIGGING_COMPLETED, pointed);
+            }
+            if (m_interact.dig_time_complete < 100000.0f)
+                m_interact.dig_time += dtime;
+            else
+                m_interact.dig_time = 0;
+        }
+        // placing (Game::nodePlacement without prediction)
+        if (place_now) {
+            m_repeat_place_timer = 0;
+            sendInteract(INTERACT_PLACE, pointed);
+        }
+    } else if (pointed.type == POINTEDTHING_OBJECT) {
+        // punch on press, place/use on right
+        if (in.dig && !m_btn_down_for_dig) {
+            m_btn_down_for_dig = true;
+            sendInteract(INTERACT_START_DIGGING, pointed);
+            m_nodig_delay_timer = std::max(0.15f, repeat_dig_time);
+        }
+        if (in.place_pressed)
+            sendInteract(INTERACT_PLACE, pointed);
+    } else {
+        // pointing at nothing: right click = activate (Game::handlePointingAtNothing)
+        if (in.place_pressed) {
+            PointedThing fauxPointed;
+            fauxPointed.type = POINTEDTHING_NOTHING;
+            sendInteract(INTERACT_ACTIVATE, fauxPointed);
+        }
+    }
+    m_pointed_old = pointed;
+    // crack overlay: re-mesh the block when the crack level or position changes
+    static int last_level = -1;
+    static v3s16 last_pos;
+    if (m_interact.crack_level != last_level || (m_interact.crack_level >= 0 && m_interact.crack_pos != last_pos)) {
+        if (last_level >= 0)
+            m_new_blocks.push_back(getNodeBlockPos(last_pos));
+        if (m_interact.crack_level >= 0)
+            m_new_blocks.push_back(getNodeBlockPos(m_interact.crack_pos));
+        last_level = m_interact.crack_level;
+        last_pos = m_interact.crack_pos;
+    }
+}
+
 void GoannaSession::stepObjects(float dtime) {
     for (auto &kv : m_objects) {
         GoannaActiveObject *obj = kv.second.get();
@@ -706,7 +915,7 @@ void GoannaSession::sendReady() {
     setState(SessionState::Ready, "TOSERVER_CLIENT_READY sent");
 }
 
-void GoannaSession::sendPlayerPos() {
+void GoannaSession::writePlayerPosTo(NetworkPacket &pkt) {
     v3f pos;
     float pitch, yaw;
     {
@@ -725,9 +934,13 @@ void GoannaSession::sendPlayerPos() {
     u8 wanted_range = 10; // blocks
     u8 camera_inverted = 0;
     f32 movement_speed = 0, movement_dir = 0;
-    NetworkPacket pkt(TOSERVER_PLAYERPOS, 12 + 12 + 4 + 4 + 4 + 1 + 1 + 1 + 4 + 4);
     pkt << position << speed << ipitch << iyaw << keys << fov << wanted_range << camera_inverted
         << movement_speed << movement_dir;
+}
+
+void GoannaSession::sendPlayerPos() {
+    NetworkPacket pkt(TOSERVER_PLAYERPOS, 12 + 12 + 4 + 4 + 4 + 1 + 1 + 1 + 4 + 4);
+    writePlayerPosTo(pkt);
     send(pkt, false);
 }
 

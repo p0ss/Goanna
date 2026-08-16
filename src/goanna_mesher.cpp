@@ -26,6 +26,9 @@ std::unique_ptr<MapBlockMesh> meshBlock(GoannaSession &session, MapBlock *block)
             }
     data.m_generate_minimap = false;
     data.m_smooth_lighting = false;
+    const auto &is = session.interactState();
+    if (is.crack_level >= 0 && getNodeBlockPos(is.crack_pos) == bp)
+        data.setCrack(is.crack_level, is.crack_pos);
     return std::make_unique<MapBlockMesh>(session.meshClient(), &data);
 }
 

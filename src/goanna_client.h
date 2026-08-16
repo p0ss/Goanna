@@ -56,6 +56,11 @@ public:
     // keys: {up,down,left,right,jump,sneak,aux1}; pitch/yaw in Godot degrees
     // (pitch positive = looking up). Returns {eye_pos, pos, pitch, yaw,
     // on_ground, in_liquid} in Godot space (nodes).
+    // Digging/placing: call once per frame with button state. Returns
+    // {type: "nothing"|"node"|"object", node, above, object_id, progress}.
+    godot::Dictionary step_interact(double dt, bool dig, bool place, bool place_pressed);
+    void set_wield_index(int index);
+
     // Step and draw active objects (players, mobs, items).
     void sync_entities(double dt);
     int entity_count() const { return m_entities ? m_entities->count() : 0; }
@@ -84,7 +89,6 @@ public:
     godot::String inventory_formspec() const;
     godot::Array take_shown_formspecs(); // [{formspec, formname}]
     void send_inventory_fields(const godot::String &formname, const godot::Dictionary &fields);
-    void set_wield_index(int index);
 
     // Sky/sun/fog/lighting state from the server, in Godot terms (see goanna_sky.h).
     godot::Dictionary sky_state() const;

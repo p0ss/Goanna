@@ -15,6 +15,12 @@ var speed := 12.0
 var shots_done := false
 var fly_mode := false
 var walk_started := false
+var dig_down := false
+var place_down := false
+var place_pressed := false
+var wield := 0
+var selection_box: MeshInstance3D
+var pointed: Dictionary = {}
 
 func _ready() -> void:
 	client = GoannaClient.new()
@@ -87,6 +93,19 @@ func _ready() -> void:
 		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			dig_down = event.pressed
+		elif event.button_index == MOUSE_BUTTON_RIGHT:
+			place_down = event.pressed
+			if event.pressed:
+				place_pressed = true
+		elif event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			_set_wield((wield + 7) % 8)
+		elif event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			_set_wield((wield + 1) % 8)
+	if event is InputEventKey and event.pressed and event.keycode >= KEY_1 and event.keycode <= KEY_8:
+		_set_wield(event.keycode - KEY_1)
 	if event is InputEventMouseMotion and Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
 		yaw -= event.relative.x * 0.15
 		pitch = clamp(pitch - event.relative.y * 0.15, -89, 89)
@@ -118,6 +137,24 @@ func _process(delta: float) -> void:
 		if r.has("eye_pos"):
 			cam.position = r["eye_pos"]
 			cam.rotation_degrees = Vector3(pitch, yaw, 0)
+		var dig := dig_down
+		var plc := place_down
+		var plc_pressed := place_pressed
+		if OS.get_environment("GOANNA_DIGTEST") != "":
+			# look down at the ground in front (hand-diggable, timed) and use slot 4 (light14) to place
+			pitch = -55.0
+			if absf(t - 3.0) < delta * 0.6:
+				_set_wield(4)
+			dig = t > 4.0 and t < 4.9
+			plc_pressed = absf(t - 8.5) < delta * 0.6 or absf(t - 9.5) < delta * 0.6
+			plc = plc_pressed
+			if OS.get_environment("GOANNA_SHOT") != "" and absf(t - 4.45) < delta * 0.6:
+				await RenderingServer.frame_post_draw
+				get_viewport().get_texture().get_image().save_png(OS.get_environment("GOANNA_SHOT").path_join("dig_crack.png"))
+				print("saved crack shot")
+		pointed = client.step_interact(delta, dig, plc, plc_pressed)
+		place_pressed = false
+		_update_selection_box()
 	elif placed:
 		# fly controls
 		var dir := Vector3.ZERO
@@ -161,7 +198,7 @@ func _process(delta: float) -> void:
 		var extra := ""
 		if placed and not fly_mode:
 			var r: Dictionary = client.step_player(0.0, {}, pitch, yaw)
-			extra = " | player %s ground=%s speed=%s g=%s free=%s climb=%s" % [str(r.get("pos", Vector3())), str(r.get("on_ground", false)), str(r.get("speed", Vector3())), str(r.get("gravity", 0)), str(r.get("free_move", false)), str(r.get("climbing", false))]
+			extra = " | player %s ground=%s | pointed %s %s dig=%s prog=%.2f crack=%d" % [str(r.get("pos", Vector3())), str(r.get("on_ground", false)), str(pointed.get("type", "?")), str(pointed.get("node_name", pointed.get("object_name", ""))), str(pointed.get("digging", false)), float(pointed.get("progress", 0.0)), int(pointed.get("crack_level", -1))]
 		print("[%5.1fs] %s | %s | media %d/%d | blocks recv %d meshed %d | mats %d | lights %d%s" % [
 			t, s.get("state"), s.get("message"), s.get("media_received", 0), s.get("media_announced", 0),
 			s.get("blocks_received", 0), s.get("blocks_meshed", 0), s.get("materials", 0), s.get("node_lights", 0), extra])
@@ -346,3 +383,29 @@ func _apply_sky() -> void:
 		e.volumetric_fog_anisotropy = 0.7
 		e.volumetric_fog_albedo = Color(0.9, 0.93, 1.0)
 		e.volumetric_fog_length = 96.0
+
+
+func _set_wield(i: int) -> void:
+	wield = i
+	client.set_wield_index(i)
+
+func _update_selection_box() -> void:
+	if selection_box == null:
+		selection_box = MeshInstance3D.new()
+		var bm := BoxMesh.new()
+		bm.size = Vector3(1.01, 1.01, 1.01)
+		selection_box.mesh = bm
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.albedo_color = Color(0, 0, 0, 0.35)
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		m.cull_mode = BaseMaterial3D.CULL_FRONT
+		m.no_depth_test = false
+		selection_box.material_override = m
+		add_child(selection_box)
+	if pointed.get("type", "nothing") == "node":
+		selection_box.visible = true
+		# node centre: Luanti node p spans p +- 0.5
+		selection_box.position = pointed["node"]
+	else:
+		selection_box.visible = false

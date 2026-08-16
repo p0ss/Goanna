@@ -262,8 +262,53 @@ void GoannaClient::send_inventory_fields(const String &formname, const Dictionar
 }
 
 void GoannaClient::set_wield_index(int index) {
-    if (m_session)
-        m_session->sendPlayerItem((u16)index);
+    if (!m_session)
+        return;
+    std::lock_guard<std::mutex> lk(m_session->mapLock());
+    m_session->setWieldIndex((u16)index);
+}
+
+Dictionary GoannaClient::step_interact(double dt, bool dig, bool place, bool place_pressed) {
+    Dictionary d;
+    d["type"] = "nothing";
+    if (!m_session)
+        return d;
+    std::lock_guard<std::mutex> lk(m_session->mapLock());
+    LocalPlayer *p = m_session->player();
+    if (!p)
+        return d;
+    GoannaSession::InteractInput in;
+    in.dig = dig;
+    in.place = place;
+    in.place_pressed = place_pressed;
+    in.eye_pos_bs = p->getPosition() + p->getEyeOffset();
+    // Luanti camera direction from pitch/yaw (Camera::update)
+    float pitch = p->getPitch(), yaw = p->getYaw();
+    v3f dir(0, 0, 1);
+    dir.rotateYZBy(pitch);
+    dir.rotateXZBy(yaw);
+    in.look_dir = dir.normalize();
+    m_session->stepInteract((float)dt, in);
+    const auto &st = m_session->interactState();
+    const PointedThing &pt = st.pointed;
+    if (pt.type == POINTEDTHING_NODE) {
+        d["type"] = "node";
+        d["node"] = Vector3(pt.node_undersurface.X, pt.node_undersurface.Y, -pt.node_undersurface.Z);
+        d["above"] = Vector3(pt.node_abovesurface.X, pt.node_abovesurface.Y, -pt.node_abovesurface.Z);
+        d["point"] = Vector3(pt.intersection_point.X / BS, pt.intersection_point.Y / BS, -pt.intersection_point.Z / BS);
+        d["node_name"] = String::utf8(m_session->nodeDefs()->get(m_session->map().getNode(pt.node_undersurface)).name.c_str());
+    } else if (pt.type == POINTEDTHING_OBJECT) {
+        d["type"] = "object";
+        d["object_id"] = (int)pt.object_id;
+        auto it = m_session->objects().find(pt.object_id);
+        if (it != m_session->objects().end())
+            d["object_name"] = String::utf8(it->second->name().c_str());
+    }
+    d["digging"] = st.digging;
+    d["progress"] = st.dig_time_complete > 0 && st.dig_time_complete < 100000.0f
+            ? std::min(1.0f, st.dig_time / st.dig_time_complete) : 0.0f;
+    d["crack_level"] = st.crack_level;
+    return d;
 }
 
 void GoannaClient::set_time_of_day_override(float tod) {
@@ -698,6 +743,7 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("take_shown_formspecs"), &GoannaClient::take_shown_formspecs);
     ClassDB::bind_method(D_METHOD("send_inventory_fields", "formname", "fields"), &GoannaClient::send_inventory_fields);
     ClassDB::bind_method(D_METHOD("set_wield_index", "index"), &GoannaClient::set_wield_index);
+    ClassDB::bind_method(D_METHOD("step_interact", "dt", "dig", "place", "place_pressed"), &GoannaClient::step_interact);
     ClassDB::bind_method(D_METHOD("entity_count"), &GoannaClient::entity_count);
     ClassDB::bind_method(D_METHOD("entity_positions"), &GoannaClient::entity_positions);
     ClassDB::bind_method(D_METHOD("set_time_of_day_override", "tod"), &GoannaClient::set_time_of_day_override);
