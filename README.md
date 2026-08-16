@@ -37,7 +37,7 @@ top of this page is the real thing.
 
 ## Can I play it yet?
 
-Nearly, which is a newer answer than this project deserves.
+Nearly, some things are still a bit janky.
 
 Pick a game from the menu and Goanna starts a server for you, so you no
 longer have to find one first. Then you can walk around, dig and place,
@@ -46,14 +46,12 @@ own menus, and move items between slots. You can fight a mob and pick up
 what it drops. Players and mobs have their real models and animations, and
 chests and furnaces open when you click them.
 
-What is missing is the long tail: dropped items on the ground are placeholder
+What is missing is the long tail: some dropped items on the ground are placeholder
 boxes, sound, particles, and a hundred small things a game notices before you
-do. Crafting through the inventory grid should work but has not been tried on
-a real recipe yet.
+do. Crafting through the inventory grid doesn't work for all things.
 
-So: worth a look, worth an evening, not yet worth moving into. The Luanti
-client remains the one that works, and will always be the one to compare
-against.
+So: worth a look, not yet worth moving into. The Luanti
+client remains the one that works, and will always be the reference implementation
 
 **If you want to follow along**, the pictures in [docs/](docs/) get updated
 as things land, and `PLAN.md` says where it is heading.
@@ -103,7 +101,7 @@ troubleshooting list are in **[docs/building.md](docs/building.md)**.
 
 ## What works, and what does not
 
-As at 16 August 2026. Pre-alpha, and moving quickly.
+As at August 2026 its an alph
 
 **Works.** Connecting and logging in to ordinary servers. The world itself:
 terrain, plants, water, glass and every other node shape, built by Luanti's
