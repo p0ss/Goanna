@@ -39,6 +39,7 @@
 
 #include "mapblock.h"
 #include "version.h"
+#include "goanna_mesh_flags.h"
 
 using namespace godot;
 
@@ -48,6 +49,23 @@ GoannaClient::GoannaClient() {
     const char *ab = std::getenv("GOANNA_AUTO_BUMP");
     if (ab)
         m_auto_bump = (float)atof(ab);
+    const char *bv = std::getenv("GOANNA_BEVEL");
+    if (bv)
+        g_goanna_bevel = (float)atof(bv);
+}
+
+void GoannaClient::set_bevel(float width) {
+    if (width < 0.0f)
+        width = 0.0f;
+    if (width == g_goanna_bevel)
+        return;
+    g_goanna_bevel = width;
+    // Bevelling changes geometry, so re-mesh every loaded block.
+    if (m_session) {
+        std::lock_guard<std::mutex> lk(m_session->mapLock());
+        for (auto &kv : m_block_nodes)
+            m_session->requeueBlock(kv.first);
+    }
 }
 
 void GoannaClient::set_auto_bump(float strength) {
@@ -887,6 +905,7 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("entity_positions"), &GoannaClient::entity_positions);
     ClassDB::bind_method(D_METHOD("entity_list"), &GoannaClient::entity_list);
     ClassDB::bind_method(D_METHOD("set_time_of_day_override", "tod"), &GoannaClient::set_time_of_day_override);
+    ClassDB::bind_method(D_METHOD("set_bevel", "width"), &GoannaClient::set_bevel);
     ClassDB::bind_method(D_METHOD("set_auto_bump", "strength"), &GoannaClient::set_auto_bump);
     ClassDB::bind_method(D_METHOD("auto_bump"), &GoannaClient::auto_bump);
 }

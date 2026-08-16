@@ -899,6 +899,7 @@ void MapBlockMesh::consolidateTransparentBuffers()
 }
 
 bool g_goanna_no_light = true;
+float g_goanna_bevel = 0.0f;
 
 video::SColor encode_light(u16 light, u8 emissive_light)
 {

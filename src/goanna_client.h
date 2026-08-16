@@ -125,6 +125,8 @@ public:
     void set_time_of_day_override(float tod);
     // Auto-bump strength: normal maps derived from diffuse luminance. 0 = off.
     // Rebuilds world materials so the change takes effect immediately.
+    // Block edge bevel width as a fraction of a node (0 = off). Re-meshes.
+    void set_bevel(float width);
     void set_auto_bump(float strength);
     float auto_bump() const { return m_auto_bump; }
 

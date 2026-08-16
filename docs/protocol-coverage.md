@@ -46,6 +46,14 @@ stand-in client), so `node_visuals` handles them as upstream does.
   lighting. Inferred, not authored; an authored normal map would override it
   when a material API lands. Default from `GOANNA_AUTO_BUMP`.
 
+- **Bevelling** (`set_bevel(width)`, 0 = off): exposed edges of solid
+  (NDT_NORMAL) nodes are chamfered so blocks read as bevelled rather than
+  perfectly sharp. Nodes are classified by group: `tree` bevels the vertical
+  edges, `falling_node`/`snowy` (sand, gravel, snow) all edges, `soil`/
+  `crumbly` (grass, dirt) the horizontal edges. Faces are inset on their
+  bevelled sides and joined to the cube edges by chamfer quads, with capped
+  three-way corners. Width is a live setting; default from `GOANNA_BEVEL`.
+
 ## Coordinate conventions
 Luanti positions are in BS units (10 per node), left-handed; Goanna's Godot
 space is nodes with z mirrored: `godot = (x/BS, y/BS, -z/BS)`. Yaw values map

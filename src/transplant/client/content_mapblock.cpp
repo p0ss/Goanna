@@ -18,6 +18,7 @@
 #include "mapblock_mesh.h"
 #include "node_visuals.h"
 #include "nodedef.h"
+#include "itemgroup.h"
 #include "client/tile.h"
 #include "mesh.h"
 #include "client/meshgen/collector.h"
@@ -444,6 +445,139 @@ void MapblockMeshGenerator::drawAutoLightedCuboid(aabb3f box,
 	}
 }
 
+// Goanna: build a bevelled version of a solid node. Exposed faces are inset by
+// the bevel width on their bevelled sides; each bevelled edge is joined to the
+// two inset faces by a 45-degree chamfer quad; three-way corners are capped.
+// mode: 1 = horizontal edges only, 2 = vertical only, 3 = both.
+static void drawBeveledSolid(MeshCollector *collector, v3f origin,
+		const TileSpec tiles[6], u8 faces, int mode)
+{
+	const float h = 0.5f * BS;
+	float b = g_goanna_bevel * BS;
+	if (b > h * 0.8f)
+		b = h * 0.8f;
+	const video::SColor white(255, 255, 255, 255);
+
+	// Per face: plane axis, plane sign, in-plane axes (u,v), and the neighbour
+	// face on the +u,-u,+v,-v sides. Face order matches tile_dirs/setupCuboid:
+	// 0=+Y 1=-Y 2=+X 3=-X 4=+Z 5=-Z.
+	struct F { int pa, ps, ua, va, nup, num, nvp, nvm; };
+	static const F FT[6] = {
+		{1, +1, 0, 2, 2, 3, 4, 5}, // +Y
+		{1, -1, 0, 2, 2, 3, 4, 5}, // -Y
+		{0, +1, 1, 2, 0, 1, 4, 5}, // +X
+		{0, -1, 1, 2, 0, 1, 4, 5}, // -X
+		{2, +1, 0, 1, 2, 3, 0, 1}, // +Z
+		{2, -1, 0, 1, 2, 3, 0, 1}, // -Z
+	};
+	// Corner (su,sv) order per face, matching setupCuboidVertices winding.
+	static const int CO[6][4][2] = {
+		{{-1,+1},{+1,+1},{+1,-1},{-1,-1}}, // +Y (u=x,v=z)
+		{{-1,-1},{+1,-1},{+1,+1},{-1,+1}}, // -Y
+		{{+1,-1},{+1,+1},{-1,+1},{-1,-1}}, // +X (u=y,v=z)
+		{{+1,+1},{+1,-1},{-1,-1},{-1,+1}}, // -X
+		{{+1,+1},{-1,+1},{-1,-1},{+1,-1}}, // +Z (u=x,v=y)
+		{{-1,+1},{+1,+1},{+1,-1},{-1,-1}}, // -Z
+	};
+	auto exposed = [&](int f) { return (faces >> f) & 1; };
+	auto horiz = [&](int fa, int fb) { return FT[fa].pa == 1 || FT[fb].pa == 1; };
+	auto beveled = [&](int fa, int fb) {
+		if (!exposed(fa) || !exposed(fb))
+			return false;
+		bool hz = horiz(fa, fb);
+		if (mode == 3) return true;
+		if (mode == 1) return hz;
+		return !hz;
+	};
+	auto setax = [&](v3f &p, int ax, float v) { if (ax == 0) p.X = v; else if (ax == 1) p.Y = v; else p.Z = v; };
+	auto uvOf = [&](const v3f &p, const v3f &n) {
+		float ax = std::fabs(n.X), ay = std::fabs(n.Y), az = std::fabs(n.Z);
+		float u, v;
+		if (ay >= ax && ay >= az) { u = p.X; v = p.Z; }
+		else if (ax >= az) { u = p.Z; v = p.Y; }
+		else { u = p.X; v = p.Y; }
+		return v2f((u + h) / (2 * h), 1.0f - (v + h) / (2 * h));
+	};
+	auto emit = [&](const TileSpec &t, const v3f *pts, int n, const v3f &nrm) {
+		video::S3DVertex vs[4];
+		for (int j = 0; j < n; j++) {
+			vs[j].Pos = pts[j] + origin;
+			vs[j].Normal = nrm;
+			vs[j].Color = white;
+			vs[j].TCoords = uvOf(pts[j], nrm);
+		}
+		static const u16 qi[6] = {0, 1, 2, 2, 3, 0};
+		static const u16 ti[3] = {0, 1, 2};
+		collector->append(t, vs, n, n == 4 ? qi : ti, n == 4 ? 6 : 3);
+	};
+
+	// Inset face centres.
+	for (int f = 0; f < 6; f++) {
+		if (!exposed(f))
+			continue;
+		const F &fd = FT[f];
+		float insUp = beveled(f, fd.nup) ? b : 0, insUm = beveled(f, fd.num) ? b : 0;
+		float insVp = beveled(f, fd.nvp) ? b : 0, insVm = beveled(f, fd.nvm) ? b : 0;
+		v3f n = v3f(0, 0, 0);
+		setax(n, fd.pa, (float)fd.ps);
+		v3f pts[4];
+		for (int c = 0; c < 4; c++) {
+			int su = CO[f][c][0], sv = CO[f][c][1];
+			float uu = su * (h - (su > 0 ? insUp : insUm));
+			float vv = sv * (h - (sv > 0 ? insVp : insVm));
+			v3f p(0, 0, 0);
+			setax(p, fd.pa, fd.ps * h);
+			setax(p, fd.ua, uu);
+			setax(p, fd.va, vv);
+			pts[c] = p;
+		}
+		emit(tiles[f], pts, 4, n);
+	}
+
+	// Edge chamfers (12 unique edges as face pairs).
+	static const int EDGES[12][2] = {
+		{0,2},{0,3},{0,4},{0,5},{1,2},{1,3},{1,4},{1,5},{2,4},{2,5},{3,4},{3,5}};
+	for (auto &e : EDGES) {
+		int f = e[0], nf = e[1];
+		if (!beveled(f, nf))
+			continue;
+		const F &fd = FT[f], &nd = FT[nf];
+		int w = 3 - fd.pa - nd.pa; // the axis common to both planes
+		v3f nrm = v3f(0, 0, 0);
+		setax(nrm, fd.pa, (float)fd.ps);
+		setax(nrm, nd.pa, (float)nd.ps);
+		nrm.normalize();
+		float wlim = h; // full edge; corner caps close all-3 corners
+		v3f c1(0,0,0), c2(0,0,0), c3(0,0,0), c4(0,0,0);
+		// rim on f's plane, inset toward nf
+		auto onF = [&](float ww) { v3f p(0,0,0); setax(p, fd.pa, fd.ps*h); setax(p, nd.pa, nd.ps*(h-b)); setax(p, w, ww); return p; };
+		auto onNF = [&](float ww) { v3f p(0,0,0); setax(p, nd.pa, nd.ps*h); setax(p, fd.pa, fd.ps*(h-b)); setax(p, w, ww); return p; };
+		c1 = onF(-wlim); c2 = onNF(-wlim); c3 = onNF(wlim); c4 = onF(wlim);
+		v3f pts[4] = {c1, c2, c3, c4};
+		// pick winding so the quad faces outward (along nrm)
+		v3f cross = (pts[1]-pts[0]).crossProduct(pts[3]-pts[0]);
+		if (cross.dotProduct(nrm) < 0) { std::swap(pts[1], pts[3]); }
+		emit(tiles[f], pts, 4, nrm);
+	}
+
+	// Corner caps: where all three edges at a cube corner are bevelled.
+	for (int sx = -1; sx <= 1; sx += 2)
+	for (int sy = -1; sy <= 1; sy += 2)
+	for (int sz = -1; sz <= 1; sz += 2) {
+		int fx = sx > 0 ? 2 : 3, fy = sy > 0 ? 0 : 1, fz = sz > 0 ? 4 : 5;
+		if (!(beveled(fx, fy) && beveled(fy, fz) && beveled(fx, fz)))
+			continue;
+		v3f px(sx*h, sy*(h-b), sz*(h-b));
+		v3f py(sx*(h-b), sy*h, sz*(h-b));
+		v3f pz(sx*(h-b), sy*(h-b), sz*h);
+		v3f nrm = v3f((float)sx, (float)sy, (float)sz); nrm.normalize();
+		v3f pts[3] = {px, py, pz};
+		v3f cross = (pts[1]-pts[0]).crossProduct(pts[2]-pts[0]);
+		if (cross.dotProduct(nrm) < 0) std::swap(pts[1], pts[2]);
+		emit(tiles[fy], pts, 3, nrm);
+	}
+}
+
 void MapblockMeshGenerator::drawSolidNode()
 {
 	u8 faces = 0; // k-th bit will be set if k-th face is to be drawn.
@@ -489,6 +623,28 @@ void MapblockMeshGenerator::drawSolidNode()
 	}
 	if (!faces)
 		return;
+
+	// Goanna: chamfer exposed edges of solid nodes (classified by group) so
+	// block edges read as bevelled rather than perfectly sharp. Faces are
+	// inset on their bevelled sides and joined to the cube edges by chamfer
+	// quads; three-way corners are capped. Flat white vertex colour like the
+	// rest of Goanna (Godot lights it); the chamfer normals are what catch
+	// the light. Only NDT_NORMAL nodes are bevelled, never liquids.
+	if (g_goanna_bevel > 0.0f && cur_node.f->drawtype == NDT_NORMAL) {
+		int mode = 0; // 1 = horizontal edges, 2 = vertical, 3 = both
+		const auto &groups = cur_node.f->groups;
+		if (itemgroup_get(groups, "tree") > 0)
+			mode = 2;
+		else if (itemgroup_get(groups, "falling_node") > 0 ||
+				itemgroup_get(groups, "snowy") > 0 || itemgroup_get(groups, "snow") > 0)
+			mode = 3;
+		else if (itemgroup_get(groups, "soil") > 0 || itemgroup_get(groups, "crumbly") > 0)
+			mode = 1;
+		if (mode != 0) {
+			drawBeveledSolid(collector, cur_node.origin, tiles, faces, mode);
+			return;
+		}
+	}
 	u8 mask = faces ^ 0b0011'1111; // k-th bit is set if k-th face is to be *omitted*, as expected by cuboid drawing functions.
 	auto box = aabb3f(v3f(-0.5 * BS), v3f(0.5 * BS));
 	box.MinEdge += cur_node.origin;

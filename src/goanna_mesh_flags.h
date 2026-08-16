@@ -7,3 +7,8 @@
 // When true, Luanti's baked vertex lighting and directional face shading are
 // bypassed (vertex colour = tile colour only) so Godot lights the world.
 extern bool g_goanna_no_light;
+
+// Block edge bevelling: chamfer width as a fraction of a node (0 = off). The
+// meshing code chamfers exposed edges of NDT_NORMAL nodes classified by group
+// (grass/dirt: horizontal edges; trees: vertical; sand/gravel/snow: both).
+extern float g_goanna_bevel;
