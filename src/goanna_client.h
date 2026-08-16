@@ -94,6 +94,12 @@ public:
     // wield mesh as {name, mesh: ArrayMesh or null, scale: Vector3}.
     godot::String wield_item_name();
     godot::Dictionary wield_info();
+    // Mesh for an arbitrary item name: {name, mesh: ArrayMesh or null,
+    // scale: Vector3}, for rendering 3D inventory icons. Node items get their
+    // real node mesh (stairs, slabs, torches), so this is not cube-only.
+    // Unlike wield_info this ignores wield_image, which is the wielded
+    // override rather than the inventory representation.
+    godot::Dictionary item_mesh(const godot::String &item_name);
 
     // Point lights for light-emitting nodes: keeps up to max_lights OmniLight3Ds
     // on the nearest bright nodes to `around` (Godot space, nodes).

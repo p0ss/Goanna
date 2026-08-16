@@ -888,6 +888,22 @@ Dictionary GoannaClient::wield_info() {
     return d;
 }
 
+Dictionary GoannaClient::item_mesh(const String &item_name) {
+    Dictionary d;
+    if (!m_session)
+        return d;
+    std::lock_guard<std::mutex> lk(m_session->mapLock());
+    if (!m_entities)
+        m_entities = std::make_unique<EntityRenderer>(this);
+    ItemStack item(item_name.utf8().get_data(), 1, 0, m_session->getItemDefManager());
+    d["name"] = item_name;
+    v3f sc(1, 1, 1);
+    Ref<ArrayMesh> mesh = m_entities->buildItemMesh(*m_session, item, false, &sc);
+    d["mesh"] = mesh;
+    d["scale"] = Vector3(sc.X, sc.Y, sc.Z);
+    return d;
+}
+
 Array GoannaClient::entity_list() {
     if (!m_session || !m_entities)
         return Array();
@@ -1317,6 +1333,7 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("show_body"), &GoannaClient::show_body);
     ClassDB::bind_method(D_METHOD("wield_item_name"), &GoannaClient::wield_item_name);
     ClassDB::bind_method(D_METHOD("wield_info"), &GoannaClient::wield_info);
+    ClassDB::bind_method(D_METHOD("item_mesh", "item_name"), &GoannaClient::item_mesh);
     ClassDB::bind_method(D_METHOD("set_time_of_day_override", "tod"), &GoannaClient::set_time_of_day_override);
     ClassDB::bind_method(D_METHOD("is_underwater", "eye"), &GoannaClient::is_underwater);
     ClassDB::bind_method(D_METHOD("set_bevel", "width"), &GoannaClient::set_bevel);

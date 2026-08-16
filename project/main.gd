@@ -294,6 +294,16 @@ func _process(delta: float) -> void:
 					print("dumped ", fn)
 				else:
 					print("no texture for ", nm)
+		# GOANNA_ITEMMESH="name,name": report item_mesh() results, for checking
+		# the 3D inventory icon meshes.
+		if OS.get_environment("GOANNA_ITEMMESH") != "" and int(t) == 3:
+			for nm in OS.get_environment("GOANNA_ITEMMESH").split(","):
+				var im: Dictionary = client.item_mesh(nm)
+				var m: Mesh = im.get("mesh")
+				if m == null:
+					print("item_mesh ", nm, ": no mesh")
+				else:
+					print("item_mesh ", nm, ": surfaces=", m.get_surface_count(), " aabb=", m.get_aabb().size, " scale=", im["scale"])
 		if OS.get_environment("GOANNA_DUMPSKY") != "" and int(t) == 3:
 			print("SKY ", JSON.stringify(client.sky_state()))
 		if OS.get_environment("GOANNA_DUMPUI") != "" and int(t) == 5:
