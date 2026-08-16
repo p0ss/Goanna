@@ -508,6 +508,7 @@ const SETTINGS := [
 	["Video", "bevel", "slider", "Edge bevel", "Chamfer the exposed edges of solid nodes.", 0.0, 0.15, 0.01],
 	["Video", "motes", "slider", "Ambient motes", "Drifting specks over leaves, flowers and sand.", 0.0, 4.0, 0.25],
 	["Video", "damage_flash", "toggle", "Damage flash", "Flash the screen red when you take damage."],
+	["Video", "show_body", "toggle", "Show own body", "See your own body and held item when you look down."],
 	["Display", "fov", "slider", "Field of view", "The camera's field of view, in degrees.", 60.0, 110.0, 1.0],
 	["Display", "gui_scale", "slider", "Interface scale", "Size of the HUD and menus.", 0.5, 2.0, 0.1],
 	["Display", "max_fps", "slider", "Max FPS", "Frame rate cap (240 means uncapped).", 30.0, 240.0, 10.0],
@@ -570,6 +571,7 @@ func _apply_setting(key: String, value: float) -> void:
 		return
 	match key:
 		"mantle": if client.has_method("set_mantle"): client.set_mantle(on)
+		"show_body": if client.has_method("set_show_body"): client.set_show_body(on)
 		"aux1_descends": if client.has_method("set_aux1_descends"): client.set_aux1_descends(on)
 		"pitch_move": if client.has_method("set_pitch_move"): client.set_pitch_move(on)
 		"always_fly_fast": if client.has_method("set_always_fly_fast"): client.set_always_fly_fast(on)
@@ -585,6 +587,7 @@ func _setting_value(key: String, fallback: float) -> float:
 		return _local_value(key)
 	match key:
 		"mantle": if client.has_method("mantle"): return 1.0 if client.mantle() else 0.0
+		"show_body": if client.has_method("show_body"): return 1.0 if client.show_body() else 0.0
 		"aux1_descends": if client.has_method("aux1_descends"): return 1.0 if client.aux1_descends() else 0.0
 		"pitch_move": if client.has_method("pitch_move"): return 1.0 if client.pitch_move() else 0.0
 		"always_fly_fast": if client.has_method("always_fly_fast"): return 1.0 if client.always_fly_fast() else 0.0
