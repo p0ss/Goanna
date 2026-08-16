@@ -66,6 +66,10 @@ var selected := {}                     # cursor stack: {location, listname, inde
 var pending_craft := false
 var chat_printed := 0
 var hud_scale := 1.0
+var gui_scale := 1.0           # user interface-scale multiplier (Display settings)
+var damage_flash := true       # flash red on taking damage
+var flash_rect: ColorRect
+var flash_alpha := 0.0
 var t := 0.0
 var last_hp := -1
 
@@ -104,6 +108,12 @@ func _ready() -> void:
 	form.slot_clicked.connect(_on_slot_clicked)
 	add_child(form)
 
+	flash_rect = ColorRect.new()
+	flash_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+	flash_rect.color = Color(0.8, 0.0, 0.0, 0.0)
+	flash_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(flash_rect)
+
 	get_viewport().size_changed.connect(_on_resize)
 	_on_resize()
 	if client != null:
@@ -111,7 +121,7 @@ func _ready() -> void:
 
 func _on_resize() -> void:
 	var vs := get_viewport().get_visible_rect().size
-	hud_scale = clampf(vs.y / 900.0, 0.75, 2.0)
+	hud_scale = clampf(vs.y / 900.0, 0.75, 2.0) * gui_scale
 	chat_input.size = Vector2(minf(vs.x * 0.5, 700), 34)
 	if window == form and form.visible:
 		_reopen_form()
@@ -165,7 +175,14 @@ func _process(delta: float) -> void:
 	var hp: int = client.hp()
 	if hp == 0 and last_hp > 0 and client.status().get("state") == "ready":
 		_show_death_screen()
+	if damage_flash and last_hp >= 0 and hp < last_hp and hp > 0:
+		flash_alpha = clampf(0.15 + 0.05 * (last_hp - hp), 0.15, 0.5)
 	last_hp = hp
+	if flash_alpha > 0.0:
+		flash_alpha = maxf(0.0, flash_alpha - delta * 1.5)
+		flash_rect.color.a = flash_alpha
+	elif flash_rect.color.a > 0.0:
+		flash_rect.color.a = 0.0
 	hud.queue_redraw()
 	_ui_shot_hook(delta)
 	_ui_move_test(delta)
@@ -489,20 +506,62 @@ const SETTINGS := [
 	["Video", "auto_bump", "slider", "Auto bump", "Fake surface relief from texture brightness.", 0.0, 1.0, 0.05],
 	["Video", "bevel", "slider", "Edge bevel", "Chamfer the exposed edges of solid nodes.", 0.0, 0.15, 0.01],
 	["Video", "motes", "slider", "Ambient motes", "Drifting specks over leaves, flowers and sand.", 0.0, 4.0, 0.25],
+	["Video", "damage_flash", "toggle", "Damage flash", "Flash the screen red when you take damage."],
+	["Display", "fov", "slider", "Field of view", "The camera's field of view, in degrees.", 60.0, 110.0, 1.0],
+	["Display", "gui_scale", "slider", "Interface scale", "Size of the HUD and menus.", 0.5, 2.0, 0.1],
+	["Display", "max_fps", "slider", "Max FPS", "Frame rate cap (240 means uncapped).", 30.0, 240.0, 10.0],
+	["Display", "vsync", "toggle", "VSync", "Sync frames to the display's refresh rate."],
+	["Display", "fullscreen", "toggle", "Fullscreen", "Run the window in fullscreen."],
 ]
+# Settings handled here rather than through the client (window, camera, UI).
+const LOCAL_KEYS := ["mouse_sensitivity", "invert_mouse", "fov", "gui_scale",
+	"max_fps", "vsync", "fullscreen", "damage_flash"]
 var settings_menu: Control
 
 func _main_node() -> Node:
 	return get_tree().get_first_node_in_group("goanna_main")
 
+# Window/camera/UI settings that Goanna applies directly, not via the client.
+func _apply_local(key: String, value: float, on: bool) -> void:
+	match key:
+		"mouse_sensitivity":
+			var m := _main_node()
+			if m: m.mouse_sensitivity = value
+		"invert_mouse":
+			var m := _main_node()
+			if m: m.invert_mouse = on
+		"fov":
+			var m := _main_node()
+			if m and m.get("cam") != null: m.cam.fov = value
+		"gui_scale":
+			gui_scale = value
+			_on_resize()
+		"max_fps":
+			Engine.max_fps = 0 if value >= 240.0 else int(value)
+		"vsync":
+			DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if on else DisplayServer.VSYNC_DISABLED)
+		"fullscreen":
+			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN if on else DisplayServer.WINDOW_MODE_WINDOWED)
+		"damage_flash":
+			damage_flash = on
+
+func _local_value(key: String) -> float:
+	var m := _main_node()
+	match key:
+		"mouse_sensitivity": return m.mouse_sensitivity if m else 0.15
+		"invert_mouse": return 1.0 if (m and m.invert_mouse) else 0.0
+		"fov": return (m.cam.fov if (m and m.get("cam") != null) else 70.0)
+		"gui_scale": return gui_scale
+		"max_fps": return 240.0 if Engine.max_fps == 0 else float(Engine.max_fps)
+		"vsync": return 1.0 if DisplayServer.window_get_vsync_mode() != DisplayServer.VSYNC_DISABLED else 0.0
+		"fullscreen": return 1.0 if DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN else 0.0
+		"damage_flash": return 1.0 if damage_flash else 0.0
+	return 0.0
+
 func _apply_setting(key: String, value: float) -> void:
 	var on := value > 0.5
-	# Look controls live on the game root (main.gd), not the client.
-	if key == "mouse_sensitivity" or key == "invert_mouse":
-		var m := _main_node()
-		if m:
-			if key == "mouse_sensitivity": m.mouse_sensitivity = value
-			else: m.invert_mouse = on
+	if key in LOCAL_KEYS:
+		_apply_local(key, value, on)
 		return
 	match key:
 		"mantle": if client.has_method("set_mantle"): client.set_mantle(on)
@@ -517,12 +576,8 @@ func _apply_setting(key: String, value: float) -> void:
 		"motes": if client.has_method("set_motes"): client.set_motes(value)
 
 func _setting_value(key: String, fallback: float) -> float:
-	if key == "mouse_sensitivity" or key == "invert_mouse":
-		var m := _main_node()
-		if m:
-			if key == "mouse_sensitivity": return m.mouse_sensitivity
-			else: return 1.0 if m.invert_mouse else 0.0
-		return 0.15 if key == "mouse_sensitivity" else 0.0
+	if key in LOCAL_KEYS:
+		return _local_value(key)
 	match key:
 		"mantle": if client.has_method("mantle"): return 1.0 if client.mantle() else 0.0
 		"aux1_descends": if client.has_method("aux1_descends"): return 1.0 if client.aux1_descends() else 0.0
