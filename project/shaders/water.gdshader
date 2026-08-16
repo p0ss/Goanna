@@ -36,6 +36,9 @@ void fragment() {
 	vec3 n = normalize(vec3(cos(ph) * 0.15, 1.0, cos(ph * 1.7 + 1.3) * 0.08));
 	NORMAL = normalize(mix(NORMAL, (VIEW_MATRIX * vec4(n, 0.0)).xyz, waving ? 0.6 : 0.0));
 
+	if (!FRONT_FACING)
+		NORMAL = -NORMAL;
+
 	// water thickness along the view ray, from the opaque depth buffer
 	float d = texture(depth_tex, SCREEN_UV).r;
 	vec4 scene = INV_PROJECTION_MATRIX * vec4(SCREEN_UV * 2.0 - 1.0, d, 1.0);

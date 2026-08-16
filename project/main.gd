@@ -6,7 +6,11 @@ var cam: Camera3D
 var sun: DirectionalLight3D
 var moon: DirectionalLight3D
 var env: WorldEnvironment
-var sky_mat: ProceduralSkyMaterial
+var sky_mat: ShaderMaterial
+var sky_tex_cache := {}
+var cloud_off := Vector2.ZERO
+var cloud_speed := Vector2(-2.0, 0.0)
+var cloud_height := 120.0
 var t := 0.0
 var last_print := -1.0
 var placed := false
@@ -80,18 +84,20 @@ func _ready() -> void:
 	env = WorldEnvironment.new()
 	var e := Environment.new()
 	var sky := Sky.new()
-	var sm := ProceduralSkyMaterial.new()
+	var sm := ShaderMaterial.new()
+	sm.shader = load("res://shaders/sky.gdshader")
 	sky_mat = sm
-	sm.sky_top_color = Color(0.36, 0.55, 0.85)
-	sm.sky_horizon_color = Color(0.72, 0.80, 0.90)
-	sm.ground_bottom_color = Color(0.25, 0.22, 0.20)
-	sm.ground_horizon_color = Color(0.72, 0.80, 0.90)
 	sky.sky_material = sm
 	e.background_mode = Environment.BG_SKY
 	e.sky = sky
 	e.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 	e.ambient_light_energy = 1.1
 	e.tonemap_mode = Environment.TONE_MAPPER_AGX
+	# AGX plus a soft ambient fill reads washed out; grade it back.
+	e.adjustment_enabled = true
+	e.adjustment_saturation = 1.22
+	e.adjustment_contrast = 1.07
+	e.adjustment_brightness = 1.02
 	e.sdfgi_enabled = true
 	e.sdfgi_cascades = 6
 	e.sdfgi_min_cell_size = 0.5
@@ -679,6 +685,10 @@ func _shots(dir: String) -> void:
 func _update_environment_extras() -> void:
 	if headlight:
 		headlight.global_position = cam.global_position
+	# scroll the cloud layer by the server's cloud speed
+	cloud_off += cloud_speed * get_process_delta_time() * 0.004
+	sky_mat.set_shader_parameter("cloud_offset", cloud_off)
+	sky_mat.set_shader_parameter("cloud_plane_h", clampf(cloud_height - cam.position.y, 10.0, 400.0))
 	var under: bool = client.is_underwater(cam.position)
 	if under == underwater:
 		return
@@ -693,11 +703,13 @@ func _update_environment_extras() -> void:
 		e.fog_aerial_perspective = 0.0
 		e.fog_sky_affect = 1.0
 		# Light shafts: sun scattering through the participating water volume.
+		# Moderate anisotropy and density: pushing either too hard shows the
+		# fog volume's depth slices as bands.
 		e.volumetric_fog_enabled = true
-		e.volumetric_fog_density = 0.06
+		e.volumetric_fog_density = 0.09
 		e.volumetric_fog_albedo = Color(0.25, 0.55, 0.62)
-		e.volumetric_fog_anisotropy = 0.9
-		e.volumetric_fog_length = 64.0
+		e.volumetric_fog_anisotropy = 0.72
+		e.volumetric_fog_length = 48.0
 	else:
 		# Restore the surface fog from the current sky state.
 		_apply_sky()
@@ -742,44 +754,89 @@ func _apply_sky() -> void:
 	var hor: Color = sky["day_horizon"] * day_w + sky["dawn_horizon"] * dawn + sky["night_horizon"] * night
 	if str(sky["type"]) == "plain":
 		top = sky["bgcolor"]; hor = sky["bgcolor"]
-	sky_mat.sky_top_color = top
-	sky_mat.sky_horizon_color = hor
-	sky_mat.ground_horizon_color = hor
-	sky_mat.ground_bottom_color = hor.darkened(0.6)
-	sky_mat.sun_angle_max = 6.0
-	sky_mat.sun_curve = 0.15
+	sky_mat.set_shader_parameter("sky_top", top)
+	sky_mat.set_shader_parameter("sky_horizon", hor)
+	sky_mat.set_shader_parameter("ground_color", hor.darkened(0.6))
+	sky_mat.set_shader_parameter("sun_dir", sun_dir.normalized() if sun_dir.length() > 0.001 else Vector3.UP)
+	sky_mat.set_shader_parameter("moon_dir", moon_dir.normalized() if moon_dir.length() > 0.001 else Vector3.DOWN)
+	sky_mat.set_shader_parameter("sun_visible", bool(st["sun"]["visible"]))
+	sky_mat.set_shader_parameter("moon_visible", bool(st["moon"]["visible"]))
+	sky_mat.set_shader_parameter("sun_size", 0.045 * float(st["sun"]["scale"]))
+	sky_mat.set_shader_parameter("moon_size", 0.02 * float(st["moon"]["scale"]))
+	sky_mat.set_shader_parameter("sun_tint", sun.light_color)
+	_set_sky_disc("sun_tex", "sun_use_tex", str(st["sun"]["texture"]))
+	_set_sky_disc("moon_tex", "moon_use_tex", str(st["moon"]["texture"]))
+	# stars: the server gives colour, count and how much survives daylight
+	var stars: Dictionary = st["stars"]
+	var star_col: Color = stars["color"]
+	var star_vis: float = (1.0 if bool(stars["visible"]) else 0.0) * lerp(1.0, float(stars["day_opacity"]), day)
+	sky_mat.set_shader_parameter("star_opacity", star_col.a * star_vis)
+	sky_mat.set_shader_parameter("star_color", star_col)
+	sky_mat.set_shader_parameter("star_density", clamp(float(stars["count"]) / 3000.0, 0.05, 0.6))
+	# clouds: density/colour here, scroll and height per frame
+	var clouds: Dictionary = st["clouds"]
+	var ccol: Color = clouds["color_bright"]
+	ccol.a = clamp(0.55 + 0.45 * float(clouds["density"]), 0.0, 1.0)
+	# clouds go dark at night, not glowing grey
+	var cdim: float = lerp(1.0, 0.16, night)
+	ccol = Color(ccol.r * cdim, ccol.g * cdim, ccol.b * cdim, ccol.a)
+	sky_mat.set_shader_parameter("cloud_color", ccol)
+	sky_mat.set_shader_parameter("cloud_coverage", clamp(float(clouds["density"]), 0.0, 0.95) if bool(sky.get("clouds", true)) else 0.0)
+	var cs: Vector2 = clouds["speed"]
+	cloud_speed = cs
+	cloud_height = float(clouds["height"])
 	# --- fog ---
-	var fog_col: Color = hor
-	if str(sky["fog_tint_type"]) == "default":
-		fog_col = fog_col.lerp(sky["fog_sun_tint"], 0.35 * dawn)
-	var fc: Color = sky["fog_color"]
-	if fc.a > 0.0:
-		fog_col = fc
-	e.fog_light_color = fog_col
-	var fog_distance: float = sky["fog_distance"]
-	if fog_distance > 0.0:
-		e.fog_density = clamp(2.5 / fog_distance, 0.0006, 0.010)
-	else:
-		e.fog_density = 0.0007
+	# While the eye is underwater, _update_environment_extras owns the fog and
+	# the shaft volume; sky packets must not clobber them.
+	if not underwater:
+		var fog_col: Color = hor
+		if str(sky["fog_tint_type"]) == "default":
+			fog_col = fog_col.lerp(sky["fog_sun_tint"], 0.35 * dawn)
+		var fc: Color = sky["fog_color"]
+		if fc.a > 0.0:
+			fog_col = fc
+		e.fog_light_color = fog_col
+		var fog_distance: float = sky["fog_distance"]
+		if fog_distance > 0.0:
+			e.fog_density = clamp(2.5 / fog_distance, 0.0006, 0.010)
+		else:
+			e.fog_density = 0.0007
 	# --- ambient / grade from day-night ratio and server lighting ---
 	var ratio: float = st["day_night_ratio"]
 	e.ambient_light_energy = lerp(0.16, 0.6, ratio)
 	e.background_energy_multiplier = lerp(0.25, 1.15, ratio)
 	var lighting: Dictionary = st["lighting"]
-	e.adjustment_saturation = clamp(float(lighting["saturation"]), 0.0, 2.0)
+	# Server saturation on top of our base grade, not instead of it.
+	e.adjustment_saturation = clamp(1.12 * float(lighting["saturation"]), 0.0, 2.0)
 	e.tonemap_exposure = clamp(1.0 + float(lighting["exposure_correction"]) * 0.25, 0.3, 3.0)
 	e.glow_intensity = clamp(0.3 + float(lighting["bloom_intensity"]) * 2.0, 0.0, 2.0)
 	# Luanti's volumetric_light_strength is god-ray strength (0..1), not fog
 	# density: thin volume, scattering scaled by the strength.
 	var vol: float = lighting["volumetric_light_strength"]
-	e.volumetric_fog_enabled = vol > 0.0
-	if vol > 0.0:
-		e.volumetric_fog_density = 0.00025 + 0.0006 * vol
-		e.volumetric_fog_emission_energy = 0.0
-		e.volumetric_fog_anisotropy = 0.7
-		e.volumetric_fog_albedo = Color(0.9, 0.93, 1.0)
-		e.volumetric_fog_length = 96.0
+	if not underwater:
+		e.volumetric_fog_enabled = vol > 0.0
+		if vol > 0.0:
+			e.volumetric_fog_density = 0.00025 + 0.0006 * vol
+			e.volumetric_fog_emission_energy = 0.0
+			e.volumetric_fog_anisotropy = 0.7
+			e.volumetric_fog_albedo = Color(0.9, 0.93, 1.0)
+			e.volumetric_fog_length = 96.0
 
+
+# Sun/moon disc textures come from the server's media through the texture
+# modifier DSL (e.g. Mineclonia's moon phase sheet); null until media arrives.
+func _set_sky_disc(tex_param: String, flag_param: String, tex_name: String) -> void:
+	if tex_name == "":
+		sky_mat.set_shader_parameter(flag_param, false)
+		return
+	var t: Texture2D = sky_tex_cache.get(tex_name)
+	if t == null:
+		t = client.texture(tex_name)
+		if t != null:
+			sky_tex_cache[tex_name] = t
+	sky_mat.set_shader_parameter(flag_param, t != null)
+	if t != null:
+		sky_mat.set_shader_parameter(tex_param, t)
 
 func _set_wield(i: int) -> void:
 	wield = i
