@@ -630,6 +630,11 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
     MaterialType mtype = m_session->shsrc().materialType(key.shader_id);
     video::E_MATERIAL_TYPE base = m_session->shsrc().baseMaterial(key.shader_id);
     u8 emissive = m_session->emissiveLevel(key.texture_id);
+    // Dim sources (firefly bush, light_source 2) should light their
+    // surroundings, not render as a glowing material; only strong sources
+    // (torches, glowstone) get emission. The point-light pool covers dim ones.
+    if (emissive < 6)
+        emissive = 0;
     if (getenv("GOANNA_DEBUG_WHITE") && !tex.is_valid())
         UtilityFunctions::print("no-tex material: id=", key.texture_id, " '",
                 String(m_session->tsrc()->getTextureName(key.texture_id).c_str()),
@@ -738,7 +743,7 @@ void GoannaClient::harvestLights(v3s16 bp, MapBlock *block) {
     for (int x = 0; x < MAP_BLOCKSIZE; ++x) {
         MapNode n = block->getNodeNoCheck(x, y, z);
         const ContentFeatures &f = ndef->get(n);
-        if (f.light_source < 6)
+        if (f.light_source < 2)
             continue;
         NodeLight l;
         l.pos = Vector3(bp.X * MAP_BLOCKSIZE + x, bp.Y * MAP_BLOCKSIZE + y, -(bp.Z * MAP_BLOCKSIZE + z));
@@ -812,8 +817,10 @@ void GoannaClient::update_lights(const Vector3 &around, int max_lights) {
             ol->set_shadow(i < 8);
             ol->set_position(l->pos + Vector3(0.5f, 0.5f, -0.5f) * 0.0f);
             ol->set_color(l->color);
-            ol->set_param(Light3D::PARAM_RANGE, 4.0f + 10.0f * l->level);
-            ol->set_param(Light3D::PARAM_ENERGY, 1.5f + 4.0f * l->level);
+            // Steeper than linear so a level-2 firefly bush is a soft glow
+            // while a level-14 torch keeps its old brightness.
+            ol->set_param(Light3D::PARAM_RANGE, 3.0f + 11.0f * l->level);
+            ol->set_param(Light3D::PARAM_ENERGY, 5.5f * std::pow(l->level, 1.6f));
             ol->set_param(Light3D::PARAM_ATTENUATION, 1.5f);
             ol->set_visible(true);
         } else {
