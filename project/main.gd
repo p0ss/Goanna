@@ -359,16 +359,26 @@ func _anim_probe(delta: float) -> void:
 			by_id.get_or_add(smp["id"], []).append(smp)
 		for id in by_id:
 			var arr: Array = by_id[id]
-			var f0: float = arr[0]["frame"]
-			var fmin := f0
-			var fmax := f0
+			var fmin: float = arr[0]["frame"]
+			var fmax := fmin
 			var moved := 0.0
+			var resets := 0
 			for i in range(1, arr.size()):
 				fmin = minf(fmin, arr[i]["frame"])
 				fmax = maxf(fmax, arr[i]["frame"])
 				moved += (arr[i]["pos"] - arr[i - 1]["pos"]).length()
+				if arr[i]["frame"] < arr[i - 1]["frame"] - 0.01:
+					resets += 1  # a loop wrap or a jitter reset
 			var span: float = arr[-1]["t"] - arr[0]["t"]
-			print("animprobe id=%d frames %.1f..%.1f over %.1fs (%.1f frames/s) moved %.1f nodes samples=%d" % [id, fmin, fmax, span, (fmax - fmin) / maxf(span, 0.01), moved, arr.size()])
+			print("animprobe id=%d range %.1f..%.1f over %.1fs, %d frame-decreases (%.1f/s), moved %.1f nodes, %d samples" % [id, fmin, fmax, span, resets, resets / maxf(span, 0.01), moved, arr.size()])
+			# raw trace at ~10 Hz so the sawtooth is visible
+			var trace := ""
+			var last_t := -1.0
+			for smp in arr:
+				if smp["t"] - last_t >= 0.1:
+					last_t = smp["t"]
+					trace += "%.1f " % smp["frame"]
+			print("animprobe id=%d trace: %s" % [id, trace])
 		client.disconnect_from_server()
 		get_tree().quit()
 
