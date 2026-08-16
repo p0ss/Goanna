@@ -156,9 +156,16 @@ public:
     u32 detachedVersion() const { return m_detached_version; }
     const std::map<std::string, std::unique_ptr<Inventory>> &detachedInventories() const { return m_detached_inventories; }
     // Formspecs: the current inventory formspec, and a queue of shown formspecs
-    // (formspec, formname). Consumed by takeShownFormspecs().
+    // Formspecs to show: from SHOW_FORMSPEC (context empty) or opened
+    // client-side from a pointed node's metadata (context "nodemeta:x,y,z",
+    // Game::nodePlacement). Consumed by takeShownFormspecs().
+    struct ShownFormspec {
+        std::string formspec, formname, context;
+    };
     std::string inventoryFormspec() const;
-    std::vector<std::pair<std::string, std::string>> takeShownFormspecs();
+    std::vector<ShownFormspec> takeShownFormspecs();
+    // Client -> server: fields of a node's own formspec (Client::sendNodemetaFields).
+    void sendNodemetaFields(v3s16 p, const std::string &formname, const std::map<std::string, std::string> &fields);
     // Client -> server: hotbar selection.
     void sendPlayerItem(u16 index);
     // Client -> server: raw formspec fields (formname, {field: value}).
@@ -169,6 +176,7 @@ public:
         bool dig = false;        // dig button held
         bool place = false;      // place button held
         bool place_pressed = false; // place button went down this frame
+        bool sneak = false;      // sneak held: no client-side node formspecs
         v3f eye_pos_bs;          // camera position (BS units, Luanti space)
         v3f look_dir;            // unit vector, Luanti space
     };
@@ -317,7 +325,7 @@ private:
     std::map<std::string, std::unique_ptr<Inventory>> m_detached_inventories;
     u32 m_detached_version = 0;
     std::string m_inventory_formspec;
-    std::vector<std::pair<std::string, std::string>> m_shown_formspecs;
+    std::vector<ShownFormspec> m_shown_formspecs;
     std::unique_ptr<GoannaTextureSource> m_tsrc;
     GoannaShaderSource m_shsrc;
     std::unique_ptr<ModelCache> m_models;

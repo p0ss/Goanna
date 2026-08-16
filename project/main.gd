@@ -14,6 +14,7 @@ var yaw := 0.0
 var pitch := 0.0
 var speed := 12.0
 var shots_done := false
+var chest_opened := false
 var fly_mode := false
 var walk_started := false
 var dig_down := false
@@ -161,7 +162,27 @@ func _process(delta: float) -> void:
 				await RenderingServer.frame_post_draw
 				get_viewport().get_texture().get_image().save_png(OS.get_environment("GOANNA_SHOT").path_join("dig_crack.png"))
 				print("saved crack shot")
-		pointed = client.step_interact(delta, dig, plc, plc_pressed)
+		if OS.get_environment("GOANNA_CHESTTEST") != "":
+			# sweep the view until a chest is pointed, right-click it once, report
+			# the formspec it opened, answer it
+			pitch = -25.0
+			if t > 3.0 and not chest_opened:
+				yaw += 3.0
+				if String(pointed.get("node_name", "")).contains("chest"):
+					plc_pressed = true
+					plc = true
+					chest_opened = true
+					print("chest test: pressing place at yaw ", yaw, " pointed ", pointed)
+			# the in-game UI consumes take_shown_formspecs() and draws the form;
+			# a screenshot shows the result
+			if OS.get_environment("GOANNA_SHOT") != "" and absf(t - 8.0) < delta * 0.6:
+				await RenderingServer.frame_post_draw
+				get_viewport().get_texture().get_image().save_png(OS.get_environment("GOANNA_SHOT").path_join("chest_form.png"))
+				print("saved chest shot")
+			if t > 12.0:
+				client.disconnect_from_server()
+				get_tree().quit()
+		pointed = client.step_interact(delta, dig, plc, plc_pressed, keys["sneak"])
 		place_pressed = false
 		_update_selection_box()
 	elif placed:

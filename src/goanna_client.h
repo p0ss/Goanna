@@ -58,7 +58,9 @@ public:
     // on_ground, in_liquid} in Godot space (nodes).
     // Digging/placing: call once per frame with button state. Returns
     // {type: "nothing"|"node"|"object", node, above, object_id, progress}.
-    godot::Dictionary step_interact(double dt, bool dig, bool place, bool place_pressed);
+    godot::Dictionary step_interact(double dt, bool dig, bool place, bool place_pressed, bool sneak = false);
+    // Fields of a node's own formspec, for a "nodemeta:x,y,z" context.
+    void send_nodemeta_fields(const godot::String &context, const godot::String &formname, const godot::Dictionary &fields);
     void set_wield_index(int index);
     int wield_index() const;
     // Raw Luanti inventory action string, e.g. "Move 1 current_player main 3 current_player main 5".

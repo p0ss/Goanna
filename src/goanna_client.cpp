@@ -272,11 +272,32 @@ Array GoannaClient::take_shown_formspecs() {
         return out;
     for (auto &fs : m_session->takeShownFormspecs()) {
         Dictionary d;
-        d["formspec"] = String::utf8(fs.first.c_str());
-        d["formname"] = String::utf8(fs.second.c_str());
+        d["formspec"] = String::utf8(fs.formspec.c_str());
+        d["formname"] = String::utf8(fs.formname.c_str());
+        d["context"] = String::utf8(fs.context.c_str());
         out.push_back(d);
     }
     return out;
+}
+
+void GoannaClient::send_nodemeta_fields(const String &context, const String &formname, const Dictionary &fields) {
+    if (!m_session)
+        return;
+    std::string ctx = context.utf8().get_data();
+    if (ctx.rfind("nodemeta:", 0) != 0)
+        return;
+    std::string coords = ctx.substr(9);
+    std::replace(coords.begin(), coords.end(), ',', ' ');
+    std::istringstream is(coords);
+    v3s16 p;
+    is >> p.X >> p.Y >> p.Z;
+    if (is.fail())
+        return;
+    std::map<std::string, std::string> f;
+    Array keys = fields.keys();
+    for (int i = 0; i < keys.size(); ++i)
+        f[String(keys[i]).utf8().get_data()] = String(fields[keys[i]]).utf8().get_data();
+    m_session->sendNodemetaFields(p, formname.utf8().get_data(), f);
 }
 
 void GoannaClient::send_inventory_fields(const String &formname, const Dictionary &fields) {
@@ -308,7 +329,7 @@ void GoannaClient::set_wield_index(int index) {
     m_session->setWieldIndex((u16)index);
 }
 
-Dictionary GoannaClient::step_interact(double dt, bool dig, bool place, bool place_pressed) {
+Dictionary GoannaClient::step_interact(double dt, bool dig, bool place, bool place_pressed, bool sneak) {
     Dictionary d;
     d["type"] = "nothing";
     if (!m_session)
@@ -321,6 +342,7 @@ Dictionary GoannaClient::step_interact(double dt, bool dig, bool place, bool pla
     in.dig = dig;
     in.place = place;
     in.place_pressed = place_pressed;
+    in.sneak = sneak;
     in.eye_pos_bs = p->getPosition() + p->getEyeOffset();
     // Luanti camera direction from pitch/yaw (Camera::update)
     float pitch = p->getPitch(), yaw = p->getYaw();
@@ -795,7 +817,8 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("set_wield_index", "index"), &GoannaClient::set_wield_index);
     ClassDB::bind_method(D_METHOD("wield_index"), &GoannaClient::wield_index);
     ClassDB::bind_method(D_METHOD("inventory_action", "action"), &GoannaClient::inventory_action);
-    ClassDB::bind_method(D_METHOD("step_interact", "dt", "dig", "place", "place_pressed"), &GoannaClient::step_interact);
+    ClassDB::bind_method(D_METHOD("step_interact", "dt", "dig", "place", "place_pressed", "sneak"), &GoannaClient::step_interact, DEFVAL(false));
+    ClassDB::bind_method(D_METHOD("send_nodemeta_fields", "context", "formname", "fields"), &GoannaClient::send_nodemeta_fields);
     ClassDB::bind_method(D_METHOD("entity_count"), &GoannaClient::entity_count);
     ClassDB::bind_method(D_METHOD("entity_positions"), &GoannaClient::entity_positions);
     ClassDB::bind_method(D_METHOD("entity_list"), &GoannaClient::entity_list);

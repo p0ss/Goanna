@@ -21,6 +21,7 @@ transplanted from `Client::handleCommand_*` in
 | INVENTORY / INVENTORY_FORMSPEC / SHOW_FORMSPEC / TOSERVER_INVENTORY_ACTION | done (Luanti `Inventory` deserialised; formspecs passed as strings; actions sent as Luanti's action strings) | `inventory_state()`, `inventory_formspec()`, `take_shown_formspecs()`, `send_inventory_fields(...)`, `inventory_action(str)`, `set_wield_index(i)`, `wield_index()` |
 | DETACHED_INVENTORY / NODEMETA_CHANGED (and node metadata in BLOCKDATA) | done | `inventory_state_at("detached:<name>" or "nodemeta:x,y,z")`, `detached_inventory_names()` |
 | death screen (builtin's `__builtin:death` formspec, no dedicated packet since 5.9) | done | `respawn()` |
+| node formspecs (`Game::nodePlacement`: a right-clicked node whose metadata has a `formspec` opens it client-side unless sneaking) / TOSERVER_NODEMETA_FIELDS | done | shown formspecs carry `context: "nodemeta:x,y,z"`; `send_nodemeta_fields(context, formname, fields)`; `step_interact(..., sneak)` |
 | textures for UI (item icons, HUD images) | via the texture-modifier DSL | `texture(name) -> Texture2D` |
 | INTERACT (dig start/stop/completed, place) / PLAYERITEM | done, raycast and dig timing from Luanti's own code | `step_interact(dt, dig, place, place_pressed)`, `set_wield_index(i)` |
 

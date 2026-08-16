@@ -297,11 +297,24 @@ std::string GoannaSession::inventoryFormspec() const {
     std::lock_guard<std::mutex> lk(m_hud_mutex);
     return m_inventory_formspec;
 }
-std::vector<std::pair<std::string, std::string>> GoannaSession::takeShownFormspecs() {
+std::vector<GoannaSession::ShownFormspec> GoannaSession::takeShownFormspecs() {
     std::lock_guard<std::mutex> lk(m_hud_mutex);
-    std::vector<std::pair<std::string, std::string>> out;
+    std::vector<ShownFormspec> out;
     out.swap(m_shown_formspecs);
     return out;
+}
+
+void GoannaSession::sendNodemetaFields(v3s16 p, const std::string &formname,
+        const std::map<std::string, std::string> &fields) {
+    if (!m_con)
+        return;
+    NetworkPacket pkt(TOSERVER_NODEMETA_FIELDS, 0);
+    pkt << p << formname << (u16)(fields.size() & 0xFFFF);
+    for (auto &kv : fields) {
+        pkt << kv.first;
+        pkt.putLongString(kv.second);
+    }
+    send(pkt);
 }
 
 void GoannaSession::onChatMessage(NetworkPacket &pkt) {
@@ -534,7 +547,7 @@ void GoannaSession::onShowFormspec(NetworkPacket &pkt) {
     std::string formname;
     pkt >> formname;
     std::lock_guard<std::mutex> lk(m_hud_mutex);
-    m_shown_formspecs.emplace_back(formspec, formname);
+    m_shown_formspecs.push_back({formspec, formname, ""});
 }
 
 // ---- interaction: Game::updatePointedThing / handleDigging / place, transplanted in spirit ----
@@ -710,7 +723,19 @@ void GoannaSession::stepInteract(float dtime, const InteractInput &in) {
         // placing (Game::nodePlacement without prediction)
         if (place_now) {
             m_repeat_place_timer = 0;
-            sendInteract(INTERACT_PLACE, pointed);
+            NodeMetadata *meta = m_map->getNodeMetadata(nodepos);
+            if (meta && !meta->getString("formspec").empty() && !in.sneak) {
+                // formspec in meta: opened client-side; on_rightclick
+                // callbacks are called anyway
+                if (features.rightclickable)
+                    sendInteract(INTERACT_PLACE, pointed);
+                std::string context = "nodemeta:" + std::to_string(nodepos.X) + "," +
+                        std::to_string(nodepos.Y) + "," + std::to_string(nodepos.Z);
+                std::lock_guard<std::mutex> hl(m_hud_mutex);
+                m_shown_formspecs.push_back({meta->getString("formspec"), "", context});
+            } else {
+                sendInteract(INTERACT_PLACE, pointed);
+            }
         }
     } else if (pointed.type == POINTEDTHING_OBJECT) {
         // punch on press, place/use on right
