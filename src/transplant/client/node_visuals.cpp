@@ -193,9 +193,11 @@ static bool isWorldAligned(AlignStyle style, WorldAlignMode mode, NodeDrawType d
 /// @return maximum number of layers in array textures we can use (0 if unsupported)
 static size_t getArrayTextureMax(IShaderSource *shdsrc)
 {
-	// Goanna: array textures are not used (Godot materials are per-tile).
-	(void)shdsrc;
-	return 0;
+	// Goanna: arrays are how a block stops costing one draw call per tile.
+	// Bounded well under the u16 layer index and typical Vulkan array limits.
+	if (!shdsrc->supportsSampler2DArray())
+		return 0;
+	return 256;
 }
 
 

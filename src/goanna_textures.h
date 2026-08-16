@@ -19,6 +19,7 @@
 #include <vector>
 
 #include <godot_cpp/classes/image_texture.hpp>
+#include <godot_cpp/classes/texture2d_array.hpp>
 
 #include "client/imagesource.h"
 #include "client/shader.h"
@@ -30,6 +31,10 @@ namespace goanna {
 class GoannaTexture final : public video::ITexture {
 public:
     GoannaTexture(const std::string &name, video::IImage *image, u32 id);
+    // Array texture: several same-sized images addressed by layer index, so a
+    // whole bunch of node tiles can share one material and one draw call.
+    GoannaTexture(const std::string &name, const std::vector<video::IImage *> &images,
+            const std::vector<std::string> &layer_names, u32 id);
     ~GoannaTexture() override;
 
     void *lock(video::E_TEXTURE_LOCK_MODE mode, u32 mipmapLevel, u32 layer,
@@ -41,6 +46,12 @@ public:
     video::IImage *image() const { return m_image; }
     // Godot-side texture, created on first use (main thread).
     godot::Ref<godot::ImageTexture> godotTexture();
+    // Array textures: the Godot side (built on first use, main thread) and the
+    // source image names, so a caller that cannot use an array (a special
+    // shader, an animated or cracked tile) can fall back to a single layer.
+    bool isArray() const { return !m_layers.empty(); }
+    godot::Ref<godot::Texture2DArray> godotArray();
+    const std::vector<std::string> &layerNames() const { return m_layer_names; }
     // Tangent-space normal map derived from the diffuse luminance ("auto
     // bump"): dark texels read as recessed, light as raised. Cached per
     // strength; regenerated when strength changes. Main thread only.
@@ -51,6 +62,9 @@ private:
     u32 m_id;
     video::IImage *m_image; // owned (ref)
     bool m_has_alpha = false;
+    std::vector<video::IImage *> m_layers; // owned (ref); empty unless an array
+    std::vector<std::string> m_layer_names;
+    godot::Ref<godot::Texture2DArray> m_godot_array;
     godot::Ref<godot::ImageTexture> m_godot;
     godot::Ref<godot::ImageTexture> m_normal;
     float m_normal_strength = -1.0f;
@@ -96,7 +110,7 @@ public:
     const ShaderInfo &getShaderInfo(u32 id) override;
     u32 getShader(const std::string &name, const ShaderConstants &input_const,
             video::E_MATERIAL_TYPE base_mat, IShaderUniformSetterRC *setter_cb = nullptr) override;
-    bool supportsSampler2DArray() const override { return false; }
+    bool supportsSampler2DArray() const override { return true; }
     void processQueue() override {}
     void insertSourceShader(const std::string &, const std::string &, const std::string &) override {}
     void rebuildShaders() override {}
@@ -106,6 +120,8 @@ public:
     // What Goanna's material builder wants to know about a shader id.
     MaterialType materialType(u32 id) const;
     video::E_MATERIAL_TYPE baseMaterial(u32 id) const;
+    // True if node_visuals asked for the array-texture variant of this shader.
+    bool usesArrayTexture(u32 id) const;
     // Luanti stores the driver's material id for a shader in ShaderInfo::material,
     // which the mesher copies into each buffer's SMaterial.MaterialType. Goanna
     // encodes the shader id there so the Godot side can recover it.
@@ -117,6 +133,7 @@ private:
     struct Entry {
         ShaderInfo info;
         MaterialType material_type = TILE_MATERIAL_BASIC;
+        bool array_texture = false;
     };
     std::vector<Entry> m_shaders;
     std::map<std::string, u32> m_keys;

@@ -18,6 +18,7 @@
 #include <sstream>
 
 #include <godot_cpp/classes/image.hpp>
+#include <godot_cpp/variant/typed_array.hpp>
 #include <godot_cpp/variant/packed_byte_array.hpp>
 
 #include "CImage.h"
@@ -114,10 +115,65 @@ GoannaTexture::GoannaTexture(const std::string &name, video::IImage *image, u32 
 GoannaTexture::~GoannaTexture() {
     if (m_image)
         m_image->drop();
+    for (video::IImage *layer : m_layers)
+        layer->drop();
 }
 
 void *GoannaTexture::lock(video::E_TEXTURE_LOCK_MODE, u32, u32, video::E_TEXTURE_LOCK_FLAGS) {
     return m_image ? m_image->getData() : nullptr;
+}
+
+GoannaTexture::GoannaTexture(const std::string &name, const std::vector<video::IImage *> &images,
+        const std::vector<std::string> &layer_names, u32 id)
+    : video::ITexture(name.c_str(), video::ETT_2D_ARRAY), m_id(id),
+      m_image(nullptr), m_layer_names(layer_names) {
+    m_layers.reserve(images.size());
+    for (video::IImage *img : images) {
+        img->grab();
+        m_layers.push_back(img);
+        for (u32 y = 0; y < img->getDimension().Height && !m_has_alpha; ++y)
+            for (u32 x = 0; x < img->getDimension().Width; ++x)
+                if (img->getPixel(x, y).getAlpha() < 255) { m_has_alpha = true; break; }
+    }
+    if (!m_layers.empty()) {
+        Size = OriginalSize = m_layers[0]->getDimension();
+        ColorFormat = m_layers[0]->getColorFormat();
+    }
+}
+
+static Ref<Image> goanna_image_to_godot(video::IImage *src) {
+    const u32 w = src->getDimension().Width, h = src->getDimension().Height;
+    PackedByteArray data;
+    data.resize(w * h * 4);
+    uint8_t *dst = data.ptrw();
+    for (u32 y = 0; y < h; ++y)
+        for (u32 x = 0; x < w; ++x) {
+            video::SColor c = src->getPixel(x, y);
+            size_t i = (y * w + x) * 4;
+            dst[i + 0] = c.getRed();
+            dst[i + 1] = c.getGreen();
+            dst[i + 2] = c.getBlue();
+            dst[i + 3] = c.getAlpha();
+        }
+    return Image::create_from_data(w, h, false, Image::FORMAT_RGBA8, data);
+}
+
+Ref<Texture2DArray> GoannaTexture::godotArray() {
+    if (m_godot_array.is_valid() || m_layers.empty())
+        return m_godot_array;
+    TypedArray<Image> imgs;
+    for (video::IImage *layer : m_layers) {
+        Ref<Image> img = goanna_image_to_godot(layer);
+        if (img.is_null())
+            return m_godot_array;
+        img->generate_mipmaps();
+        imgs.push_back(img);
+    }
+    Ref<Texture2DArray> tex;
+    tex.instantiate();
+    if (tex->create_from_images(imgs) == OK)
+        m_godot_array = tex;
+    return m_godot_array;
 }
 
 Ref<ImageTexture> GoannaTexture::godotTexture() {
@@ -254,10 +310,40 @@ video::ITexture *GoannaTextureSource::getTexture(const std::string &name, u32 *i
     return getTexture(i);
 }
 
-video::ITexture *GoannaTextureSource::addArrayTexture(const std::vector<std::string> &, u32 *id) {
-    if (id)
+video::ITexture *GoannaTextureSource::addArrayTexture(const std::vector<std::string> &images, u32 *id) {
+    // node_visuals has already grouped these by size, but a generated image can
+    // still come back a different size or fail, and every layer of a Godot
+    // Texture2DArray must match, so verify before committing to the bunch.
+    std::vector<video::IImage *> layers;
+    core::dimension2du dim;
+    for (const std::string &name : images) {
+        video::IImage *img = getOrGenerateImage(name);
+        if (!img)
+            break;
+        if (layers.empty())
+            dim = img->getDimension();
+        else if (img->getDimension() != dim) {
+            img->drop();
+            break;
+        }
+        layers.push_back(img);
+    }
+    bool ok = layers.size() == images.size() && layers.size() > 1;
+    video::ITexture *result = nullptr;
+    if (ok) {
+        u32 new_id = (u32)m_textures.size();
+        std::string name = "[array:" + std::to_string(new_id);
+        m_textures.push_back(std::make_unique<GoannaTexture>(name, layers, images, new_id));
+        m_name_to_id[name] = new_id;
+        if (id)
+            *id = new_id;
+        result = m_textures.back().get();
+    } else if (id) {
         *id = 0;
-    return nullptr;
+    }
+    for (video::IImage *img : layers)
+        img->drop();
+    return result;
 }
 
 GoannaTexture *GoannaTextureSource::goannaTexture(u32 id) {
@@ -373,7 +459,12 @@ u32 GoannaShaderSource::getShader(const std::string &name, const ShaderConstants
     auto it = input_const.find("MATERIAL_TYPE");
     if (it != input_const.end() && std::holds_alternative<int>(it->second))
         mt = std::get<int>(it->second);
-    std::string key = name + "|" + std::to_string(mt) + "|" + std::to_string((int)base_mat);
+    bool arr = false;
+    auto ait = input_const.find("USE_ARRAY_TEXTURE");
+    if (ait != input_const.end())
+        arr = true;
+    std::string key = name + "|" + std::to_string(mt) + "|" + std::to_string((int)base_mat) +
+            (arr ? "|arr" : "");
     auto k = m_keys.find(key);
     if (k != m_keys.end())
         return k->second;
@@ -382,11 +473,16 @@ u32 GoannaShaderSource::getShader(const std::string &name, const ShaderConstants
     e.info.base_material = base_mat;
     e.info.input_constants = input_const;
     e.material_type = (MaterialType)mt;
+    e.array_texture = arr;
     u32 id = (u32)m_shaders.size();
     e.info.material = (video::E_MATERIAL_TYPE)(MATERIAL_ID_BASE + id);
     m_shaders.push_back(e);
     m_keys[key] = id;
     return id;
+}
+
+bool GoannaShaderSource::usesArrayTexture(u32 id) const {
+    return id < m_shaders.size() && m_shaders[id].array_texture;
 }
 
 MaterialType GoannaShaderSource::materialType(u32 id) const {

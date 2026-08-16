@@ -190,8 +190,19 @@ Ref<ArrayMesh> EntityRenderer::buildItemMesh(GoannaSession &session, const ItemS
         arrays[Mesh::ARRAY_COLOR] = cols;
         arrays[Mesh::ARRAY_INDEX] = idx;
         am->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays);
+        // Node tiles may be array textures now; an entity material wants a
+        // plain 2D image, so resolve this buffer's layer back to its own
+        // image or the item renders as an untextured white cube.
         GoannaTexture *gt = dynamic_cast<GoannaTexture *>(buf->getMaterial().getTexture(0));
-        std::string tname = gt ? session.tsrc()->getTextureName(gt->id()) : "";
+        std::string tname;
+        if (gt && gt->isArray()) {
+            u16 aux = nv ? v[0].Aux : 0;
+            const auto &names = gt->layerNames();
+            if (aux < names.size())
+                tname = names[aux];
+        } else if (gt) {
+            tname = session.tsrc()->getTextureName(gt->id());
+        }
         Ref<StandardMaterial3D> mat = materialForTexture(session, tname, false, true);
         Ref<StandardMaterial3D> m2 = mat->duplicate();
         m2->set_flag(BaseMaterial3D::FLAG_ALBEDO_FROM_VERTEX_COLOR, true);

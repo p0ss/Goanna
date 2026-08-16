@@ -34,8 +34,10 @@ struct MaterialKey {
     u32 texture_id = 0;
     u32 shader_id = 0;
     bool backface_culling = true;
+    bool array_texture = false; // sample a Texture2DArray, layer from UV2.x
     uint64_t hash() const {
-        return ((uint64_t)texture_id << 24) | ((uint64_t)(shader_id & 0xffff) << 1) | (backface_culling ? 1 : 0);
+        return ((uint64_t)texture_id << 24) | ((uint64_t)(shader_id & 0xffff) << 2) |
+                (backface_culling ? 2 : 0) | (array_texture ? 1 : 0);
     }
 };
 
@@ -208,7 +210,8 @@ public:
     // World materials (shared by mapblocks and item entities): by key, or
     // straight from a Luanti SMaterial as the mesher leaves it.
     godot::Ref<godot::Material> materialFor(const MaterialKey &key);
-    godot::Ref<godot::Material> materialForIrr(const video::SMaterial &m);
+    godot::Ref<godot::Material> materialForIrr(const video::SMaterial &m, u16 layer = 0);
+    MaterialKey keyForIrr(const video::SMaterial &m, u16 layer);
 
 protected:
     static void _bind_methods();
@@ -221,7 +224,7 @@ private:
     std::unique_ptr<GoannaSession> m_session;
     std::map<v3s16, godot::MeshInstance3D *> m_block_nodes;
     std::map<uint64_t, godot::Ref<godot::Material>> m_materials;
-    godot::Ref<godot::Shader> m_sh_water, m_sh_leaves, m_sh_plants, m_sh_glass;
+    godot::Ref<godot::Shader> m_sh_water, m_sh_leaves, m_sh_plants, m_sh_glass, m_sh_array;
     bool m_shaders_loaded = false;
     float m_auto_bump = 0.35f;
     bool m_show_body = true;

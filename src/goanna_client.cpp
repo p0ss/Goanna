@@ -761,7 +761,11 @@ Dictionary GoannaClient::step_player(double dt, const Dictionary &keys, float pi
     return out;
 }
 
-Ref<Material> GoannaClient::materialForIrr(const video::SMaterial &m) {
+Ref<Material> GoannaClient::materialForIrr(const video::SMaterial &m, u16 layer) {
+    return materialFor(keyForIrr(m, layer));
+}
+
+MaterialKey GoannaClient::keyForIrr(const video::SMaterial &m, u16 layer) {
     MaterialKey key;
     GoannaTexture *gt = dynamic_cast<GoannaTexture *>(m.getTexture(0));
     key.texture_id = gt ? gt->id() : 0;
@@ -794,7 +798,37 @@ Ref<Material> GoannaClient::materialForIrr(const video::SMaterial &m) {
     key.shader_id = GoannaShaderSource::isShaderMaterial(m.MaterialType)
             ? GoannaShaderSource::shaderIdFromMaterial(m.MaterialType) : 0;
     key.backface_culling = m.BackfaceCulling;
-    return materialFor(key);
+    if (gt && gt->isArray()) {
+        // The array path covers the common case: an opaque, culled tile with
+        // no crack overlay. Anything else (a special shader, a double-sided
+        // plant, a tile being dug) resolves back to its own single image, so
+        // it is never sampled as if it were an array.
+        bool cracked = m.getTexture(MapBlockMesh::TEXTURE_LAYER_CRACK) != nullptr;
+        // Only commit to the array path if the Godot array actually built:
+        // otherwise the key would name a texture with no 2D image behind it
+        // and the tile would render untextured white.
+        bool array_ready = m.BackfaceCulling && !cracked &&
+                m_session->shsrc().usesArrayTexture(key.shader_id) &&
+                gt->godotArray().is_valid();
+        if (array_ready) {
+            key.array_texture = true;
+        } else {
+            if (getenv("GOANNA_DEBUG_ARRAY") && m.BackfaceCulling && !cracked)
+                UtilityFunctions::print("array fallback: id=", gt->id(),
+                        " layers=", (int)gt->layerNames().size(),
+                        " shader_array=", m_session->shsrc().usesArrayTexture(key.shader_id),
+                        " built=", gt->godotArray().is_valid());
+            // Must always land on a real 2D image: leaving the array id here
+            // gives the special shaders (glass, leaves, water) a sampler2D
+            // they cannot read, which renders as a smooth untextured pane.
+            const auto &names = gt->layerNames();
+            if (!names.empty()) {
+                size_t idx = layer < names.size() ? layer : 0;
+                key.texture_id = m_session->tsrc()->getTextureId(names[idx]);
+            }
+        }
+    }
+    return key;
 }
 
 Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
@@ -808,6 +842,7 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
         m_sh_leaves = rl->load("res://shaders/waving_leaves.gdshader");
         m_sh_plants = rl->load("res://shaders/waving_plants.gdshader");
         m_sh_glass = rl->load("res://shaders/glass.gdshader");
+        m_sh_array = rl->load("res://shaders/nodes_array.gdshader");
     }
     GoannaTexture *gt = m_session->tsrc()->goannaTexture(key.texture_id);
     Ref<ImageTexture> tex = gt ? gt->godotTexture() : Ref<ImageTexture>();
@@ -828,6 +863,21 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
                 String(m_session->tsrc()->getTextureName(key.texture_id).c_str()),
                 "' shader=", key.shader_id, " mtype=", (int)mtype, " base=", (int)base,
                 " emissive=", (int)emissive, " cull=", key.backface_culling);
+    }
+
+    // --- array texture: one material for a whole bunch of tiles ---
+    if (key.array_texture) {
+        GoannaTexture *agt = m_session->tsrc()->goannaTexture(key.texture_id);
+        Ref<Texture2DArray> arr = agt ? agt->godotArray() : Ref<Texture2DArray>();
+        if (arr.is_valid()) {
+            Ref<ShaderMaterial> sm;
+            sm.instantiate();
+            sm->set_shader(m_sh_array);
+            sm->set_shader_parameter("albedo_array", arr);
+            sm->set_shader_parameter("scissor", agt->hasAlpha());
+            m_materials[key.hash()] = sm;
+            return sm;
+        }
     }
 
     // --- shader variants by Luanti material type ---
@@ -1401,6 +1451,21 @@ int GoannaClient::poll_blocks(int max_blocks) {
         Ref<ArrayMesh> mesh;
         mesh.instantiate();
         int si = 0;
+        // Accumulate by material: a block emits one buffer per tile layer, and
+        // each surface is its own draw call, so buffers that resolve to the
+        // same material (which array textures make common) are concatenated
+        // into a single surface. This is where the draw-call saving is: the
+        // array texture only makes the materials equal, merging is what turns
+        // that into fewer draws.
+        struct SurfAccum {
+            MaterialKey key;
+            PackedVector3Array verts, norms;
+            PackedVector2Array uvs, uv2s;
+            PackedColorArray cols;
+            PackedInt32Array idx;
+            bool is_array = false;
+        };
+        std::map<uint64_t, SurfAccum> groups;
         for (int layer = 0; layer < MAX_TILE_LAYERS && bm; ++layer) {
             scene::IMesh *sm = bm->getMesh(layer);
             if (!sm)
@@ -1414,37 +1479,45 @@ int GoannaClient::poll_blocks(int max_blocks) {
                 const video::S3DVertex *v = (const video::S3DVertex *)buf->getVertices();
                 const u16 *idx16 = (const u16 *)buf->getIndices();
                 const u32 nv = buf->getVertexCount(), ni = buf->getIndexCount();
-                PackedVector3Array verts, norms;
-                PackedVector2Array uvs;
-                PackedColorArray cols;
-                PackedInt32Array idx;
-                verts.resize(nv); norms.resize(nv); uvs.resize(nv); cols.resize(nv);
+                MaterialKey key = keyForIrr(buf->getMaterial(), nv ? v[0].Aux : 0);
+                SurfAccum &acc = groups[key.hash()];
+                acc.key = key;
+                acc.is_array = key.array_texture;
+                const int base = acc.verts.size();
                 for (u32 i = 0; i < nv; ++i) {
                     // Luanti mesh space (BS units, block-local) -> Godot nodes; z mirrored
-                    verts[i] = Vector3(v[i].Pos.X / BS + bp.X * MAP_BLOCKSIZE,
+                    acc.verts.push_back(Vector3(v[i].Pos.X / BS + bp.X * MAP_BLOCKSIZE,
                             v[i].Pos.Y / BS + bp.Y * MAP_BLOCKSIZE,
-                            -(v[i].Pos.Z / BS + bp.Z * MAP_BLOCKSIZE));
-                    norms[i] = Vector3(v[i].Normal.X, v[i].Normal.Y, -v[i].Normal.Z);
-                    uvs[i] = Vector2(v[i].TCoords.X, v[i].TCoords.Y);
-                    cols[i] = Color(v[i].Color.getRed() / 255.0f, v[i].Color.getGreen() / 255.0f,
-                            v[i].Color.getBlue() / 255.0f, v[i].Color.getAlpha() / 255.0f);
+                            -(v[i].Pos.Z / BS + bp.Z * MAP_BLOCKSIZE)));
+                    acc.norms.push_back(Vector3(v[i].Normal.X, v[i].Normal.Y, -v[i].Normal.Z));
+                    acc.uvs.push_back(Vector2(v[i].TCoords.X, v[i].TCoords.Y));
+                    acc.cols.push_back(Color(v[i].Color.getRed() / 255.0f, v[i].Color.getGreen() / 255.0f,
+                            v[i].Color.getBlue() / 255.0f, v[i].Color.getAlpha() / 255.0f));
+                    if (acc.is_array)
+                        acc.uv2s.push_back(Vector2((float)v[i].Aux, 0.0f));
                 }
                 // Irrlicht (left-handed) front faces are counter-clockwise as
                 // stored; mirroring z makes them clockwise, which is Godot's
                 // front-face winding, so the index order is kept as is.
-                idx.resize(ni);
                 for (u32 i = 0; i < ni; ++i)
-                    idx[i] = idx16[i];
-                Array arrays;
-                arrays.resize(Mesh::ARRAY_MAX);
-                arrays[Mesh::ARRAY_VERTEX] = verts;
-                arrays[Mesh::ARRAY_NORMAL] = norms;
-                arrays[Mesh::ARRAY_TEX_UV] = uvs;
-                arrays[Mesh::ARRAY_COLOR] = cols;
-                arrays[Mesh::ARRAY_INDEX] = idx;
-                mesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays);
-                mesh->surface_set_material(si++, materialForIrr(buf->getMaterial()));
+                    acc.idx.push_back(base + idx16[i]);
             }
+        }
+        for (auto &kv : groups) {
+            SurfAccum &acc = kv.second;
+            if (acc.verts.is_empty() || acc.idx.is_empty())
+                continue;
+            Array arrays;
+            arrays.resize(Mesh::ARRAY_MAX);
+            arrays[Mesh::ARRAY_VERTEX] = acc.verts;
+            arrays[Mesh::ARRAY_NORMAL] = acc.norms;
+            arrays[Mesh::ARRAY_TEX_UV] = acc.uvs;
+            arrays[Mesh::ARRAY_COLOR] = acc.cols;
+            if (acc.is_array)
+                arrays[Mesh::ARRAY_TEX_UV2] = acc.uv2s;
+            arrays[Mesh::ARRAY_INDEX] = acc.idx;
+            mesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays);
+            mesh->surface_set_material(si++, materialFor(acc.key));
         }
         if (si == 0) {
             if (mi) {
