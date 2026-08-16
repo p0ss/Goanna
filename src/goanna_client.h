@@ -188,6 +188,14 @@ public:
     // Returns how many were dropped.
     int prune_blocks(int radius);
     int resident_blocks();
+    // Distance in mapblocks past which blocks are drawn as merged, flat
+    // coloured cells: one draw call each instead of one per tile material.
+    // 0 disables. update_lod re-meshes blocks whose tier changed as the
+    // player moves, bounded per call so it cannot stall a frame.
+    void set_lod_distance(int blocks);
+    int lod_distance() const { return m_lod_distance; }
+    void set_lod_cell(int nodes);
+    int update_lod(const godot::Vector3 &around, int max_rebuild);
     void set_view_range(int blocks);
     int view_range() const;
     void set_view_fov(float degrees);
@@ -217,6 +225,7 @@ public:
     godot::Ref<godot::Material> materialFor(const MaterialKey &key);
     godot::Ref<godot::Material> materialForIrr(const video::SMaterial &m, u16 layer = 0);
     MaterialKey keyForIrr(const video::SMaterial &m, u16 layer);
+    int lodTierFor(const v3s16 &bp, const godot::Vector3 &around) const;
 
 protected:
     static void _bind_methods();
@@ -228,6 +237,11 @@ private:
 
     std::unique_ptr<GoannaSession> m_session;
     std::map<v3s16, godot::MeshInstance3D *> m_block_nodes;
+    std::map<v3s16, int> m_block_tier; // 0 = full detail, 1 = LOD
+    godot::Ref<godot::StandardMaterial3D> m_lod_material;
+    godot::Vector3 m_lod_centre; // last camera position seen by update_lod
+    int m_lod_distance = 0;
+    int m_lod_cell = 4;
     std::map<uint64_t, godot::Ref<godot::Material>> m_materials;
     godot::Ref<godot::Shader> m_sh_water, m_sh_leaves, m_sh_plants, m_sh_glass, m_sh_array;
     bool m_shaders_loaded = false;

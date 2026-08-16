@@ -1451,6 +1451,53 @@ void GoannaClient::update_motes(const Vector3 &around, int max_emitters) {
     }
 }
 
+void GoannaClient::set_lod_distance(int blocks) {
+    if (blocks < 0)
+        blocks = 0;
+    if (blocks == m_lod_distance)
+        return;
+    m_lod_distance = blocks;
+    if (m_session) { // every block may change tier
+        std::lock_guard<std::mutex> lk(m_session->mapLock());
+        for (auto &kv : m_block_nodes)
+            m_session->requeueBlock(kv.first);
+    }
+}
+
+void GoannaClient::set_lod_cell(int nodes) {
+    m_lod_cell = std::clamp(nodes, 1, MAP_BLOCKSIZE);
+}
+
+// Which tier a block should be drawn at, from its distance to the player.
+int GoannaClient::lodTierFor(const v3s16 &bp, const Vector3 &around) const {
+    if (m_lod_distance <= 0)
+        return 0;
+    Vector3 centre((bp.X + 0.5f) * MAP_BLOCKSIZE, (bp.Y + 0.5f) * MAP_BLOCKSIZE,
+            -(bp.Z + 0.5f) * MAP_BLOCKSIZE);
+    float d = Vector2(centre.x - around.x, centre.z - around.z).length();
+    return d > m_lod_distance * MAP_BLOCKSIZE ? 1 : 0;
+}
+
+int GoannaClient::update_lod(const Vector3 &around, int max_rebuild) {
+    m_lod_centre = around; // poll_blocks tiers new blocks against this too
+    if (!m_session || m_lod_distance <= 0)
+        return 0;
+    std::vector<v3s16> changed;
+    for (auto &kv : m_block_tier) {
+        if (lodTierFor(kv.first, around) != kv.second) {
+            changed.push_back(kv.first);
+            if ((int)changed.size() >= max_rebuild)
+                break;
+        }
+    }
+    if (changed.empty())
+        return 0;
+    std::lock_guard<std::mutex> lk(m_session->mapLock());
+    for (const v3s16 &bp : changed)
+        m_session->requeueBlock(bp);
+    return (int)changed.size();
+}
+
 int GoannaClient::poll_blocks(int max_blocks) {
     if (!m_session)
         return 0;
@@ -1488,6 +1535,69 @@ int GoannaClient::poll_blocks(int max_blocks) {
             static int early = 0;
             if (++early % 25 == 1)
                 fprintf(stderr, "goanna content: meshing block %d before content prepared\n", early);
+        }
+        // Far blocks are drawn merged and flat coloured: one surface, one
+        // material, one draw call, instead of one per tile material.
+        int tier = lodTierFor(bp, m_lod_centre);
+        if (tier == 1) {
+            auto t_lod = clock_t_::now();
+            LodMesh lm = meshBlockLod(*m_session, block, bp, m_lod_cell);
+            ema(m_ms_mesh, ms_since(t_lod));
+            auto t_up = clock_t_::now();
+            MeshInstance3D *lmi = nullptr;
+            auto lit2 = m_block_nodes.find(bp);
+            if (lit2 != m_block_nodes.end())
+                lmi = lit2->second;
+            if (lm.empty()) {
+                if (lmi) {
+                    lmi->queue_free();
+                    m_block_nodes.erase(bp);
+                }
+                m_block_tier[bp] = tier;
+                ++done;
+                continue;
+            }
+            PackedVector3Array verts, norms;
+            PackedColorArray cols;
+            PackedInt32Array idx;
+            const int nv = (int)lm.pos.size();
+            verts.resize(nv); norms.resize(nv); cols.resize(nv);
+            for (int i = 0; i < nv; ++i) {
+                verts[i] = Vector3(lm.pos[i].X, lm.pos[i].Y, lm.pos[i].Z);
+                norms[i] = Vector3(lm.nrm[i].X, lm.nrm[i].Y, lm.nrm[i].Z);
+                u32 c = lm.col[i];
+                cols[i] = Color(((c >> 16) & 0xff) / 255.0f, ((c >> 8) & 0xff) / 255.0f,
+                        (c & 0xff) / 255.0f, 1.0f);
+            }
+            idx.resize((int)lm.idx.size());
+            for (size_t i = 0; i < lm.idx.size(); ++i)
+                idx[i] = (int)lm.idx[i];
+            Array arrays;
+            arrays.resize(Mesh::ARRAY_MAX);
+            arrays[Mesh::ARRAY_VERTEX] = verts;
+            arrays[Mesh::ARRAY_NORMAL] = norms;
+            arrays[Mesh::ARRAY_COLOR] = cols;
+            arrays[Mesh::ARRAY_INDEX] = idx;
+            Ref<ArrayMesh> lmesh;
+            lmesh.instantiate();
+            lmesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays);
+            if (m_lod_material.is_null()) {
+                m_lod_material.instantiate();
+                m_lod_material->set_flag(BaseMaterial3D::FLAG_ALBEDO_FROM_VERTEX_COLOR, true);
+                m_lod_material->set_roughness(1.0f);
+                m_lod_material->set_metallic(0.0f);
+            }
+            lmesh->surface_set_material(0, m_lod_material);
+            if (!lmi) {
+                lmi = memnew(MeshInstance3D);
+                add_child(lmi);
+                m_block_nodes[bp] = lmi;
+            }
+            lmi->set_mesh(lmesh);
+            m_block_tier[bp] = tier;
+            ema(m_ms_upload, ms_since(t_up));
+            ++done;
+            continue;
         }
         auto t_mesh = clock_t_::now();
         std::unique_ptr<MapBlockMesh> bm = meshBlock(*m_session, block);
@@ -1588,6 +1698,7 @@ int GoannaClient::poll_blocks(int max_blocks) {
             m_block_nodes[bp] = mi;
         }
         mi->set_mesh(mesh);
+        m_block_tier[bp] = 0;
         ema(m_ms_upload, ms_since(t_upload));
         ++done;
     }
@@ -1662,6 +1773,10 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("auto_bump"), &GoannaClient::auto_bump);
     ClassDB::bind_method(D_METHOD("prune_blocks", "radius"), &GoannaClient::prune_blocks);
     ClassDB::bind_method(D_METHOD("resident_blocks"), &GoannaClient::resident_blocks);
+    ClassDB::bind_method(D_METHOD("set_lod_distance", "blocks"), &GoannaClient::set_lod_distance);
+    ClassDB::bind_method(D_METHOD("lod_distance"), &GoannaClient::lod_distance);
+    ClassDB::bind_method(D_METHOD("set_lod_cell", "nodes"), &GoannaClient::set_lod_cell);
+    ClassDB::bind_method(D_METHOD("update_lod", "around", "max_rebuild"), &GoannaClient::update_lod);
     ClassDB::bind_method(D_METHOD("set_view_range", "blocks"), &GoannaClient::set_view_range);
     ClassDB::bind_method(D_METHOD("view_range"), &GoannaClient::view_range);
     ClassDB::bind_method(D_METHOD("set_view_fov", "degrees"), &GoannaClient::set_view_fov);

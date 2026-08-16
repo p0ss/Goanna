@@ -67,6 +67,10 @@ func _ready() -> void:
 	# so the draw-call curve can be measured without the settings UI.
 	if OS.get_environment("GOANNA_VIEW_RANGE") != "":
 		client.set_view_range(int(OS.get_environment("GOANNA_VIEW_RANGE")))
+	if OS.get_environment("GOANNA_LOD") != "":
+		client.set_lod_distance(int(OS.get_environment("GOANNA_LOD")))
+	if OS.get_environment("GOANNA_LOD_CELL") != "":
+		client.set_lod_cell(int(OS.get_environment("GOANNA_LOD_CELL")))
 	print(client.hello())
 	print(client.luanti_version())
 
@@ -299,6 +303,11 @@ func _process(delta: float) -> void:
 		var sp := speed * (3.0 if Input.is_key_pressed(KEY_CTRL) else 1.0)
 		cam.position += dir.normalized() * sp * delta if dir.length() > 0 else Vector3.ZERO
 		cam.rotation_degrees = Vector3(pitch, yaw, 0)
+		# Tell the server where the camera is, or it keeps streaming around
+		# wherever we last walked and flying loads nothing. A server may reject
+		# the movement as too fast without the fly privilege; that only resets
+		# the walking position, which fly mode is not using anyway.
+		client.set_player_pose(cam.position, pitch, yaw)
 	client.poll_blocks(24)
 	# Bounded residency: keep a margin beyond what we ask the server for, so
 	# blocks just behind us survive a turn but a long session stays bounded.
@@ -311,6 +320,7 @@ func _process(delta: float) -> void:
 		client.prune_blocks(keep)
 	client.update_lights(cam.position, 48)
 	client.update_motes(cam.position, 32)
+	client.update_lod(cam.position, 8)
 	client.sync_entities(delta)
 	_update_environment_extras()
 	_update_wield(delta)
