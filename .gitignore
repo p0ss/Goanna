@@ -1,6 +1,25 @@
+# Build output
 build/
+*.o
+*.a
+*.so
+compile_commands.json
+.cache/
+
+# Godot
 project/.godot/
 project/bin/
-*.o
-*.so
+*.import
+
+# Screenshot scratch. Images used in documentation live in docs/.
+project/shots/
+
+# Editors and tooling
+.vscode/
+.idea/
 __pycache__/
+
+# Junk
+core
+core.*
+.DS_Store

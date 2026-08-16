@@ -1,0 +1,103 @@
+# Third party code and licences
+
+Goanna's own code is LGPL-2.1-or-later, in `LICENSE`. Goanna is not,
+however, a self-contained program. It links a subset of Luanti's engine and
+several libraries that Luanti vendors, and it uses Godot's C++ bindings.
+This file lists everything that ends up in a built
+`libgoanna.linux.template_debug.x86_64.so`, where it comes from, and under
+what terms.
+
+Nothing here is vendored into this repository. `luanti/` and `godot-cpp/`
+are git submodules pinned to release tags, so upstream's own notices travel
+with the source. What follows is the accounting for the binary.
+
+## Summary
+
+| Component | Source | Linkage | Licence |
+| --- | --- | --- | --- |
+| Goanna | this repository | n/a | LGPL-2.1-or-later |
+| Luanti engine subset | `luanti/src`, submodule at 5.16.1 | static | LGPL-2.1-or-later |
+| IrrlichtMt, CPU image classes only | `luanti/irr/src` | static | zlib licence, Copyright (C) 2002-2012 Nikolaus Gebhardt |
+| mini-gmp | `luanti/lib/gmp` | static | LGPL-3.0-or-later **or** GPL-2.0-or-later, Copyright 1991-2022 Free Software Foundation |
+| sha256 | `luanti/lib/sha256` | static | OpenSSL licence (the old, four clause form), Copyright (c) 1998-2011 The OpenSSL Project |
+| JsonCpp | `luanti/lib/jsoncpp` | static | Public domain, or MIT where public domain is not recognised |
+| Zstandard | system library, static if available | static | BSD-3-Clause or GPL-2.0, at your option |
+| zlib | system library | dynamic | zlib licence |
+| godot-cpp | `godot-cpp/`, submodule on branch 4.5 | static | MIT, Copyright (c) 2017-present Godot Engine contributors |
+
+The exact source list is `cmake/luanti_core.cmake`. It is deliberately a
+small subset: the network layer, serialisation, node and item definitions,
+MapBlock and Map, inventory and metadata, the SRP authentication stack, and
+the CPU-only Irrlicht image classes. No renderer, no GUI, no scripting, no
+server.
+
+## What this means for the built binary
+
+The extension combines LGPL-2.1-or-later code (Goanna, Luanti) with
+LGPL-3.0-or-later code (mini-gmp). Because both Goanna's and Luanti's terms
+are "or later", the combination is distributable, and the effective licence
+of the built binary is **LGPL-3.0-or-later**, not LGPL-2.1. The source in
+this repository remains LGPL-2.1-or-later.
+
+This is the same combination that upstream Luanti's own builds contain, for
+the same reason, so it is not a situation Goanna has invented. It is
+recorded here because "LGPL-2.1-or-later" on its own understates what is in
+the binary.
+
+Anyone distributing built binaries should read this section rather than
+just the README. If mini-gmp's terms are a problem for a particular
+distribution, Luanti can be built against system GMP instead
+(`USE_SYSTEM_GMP`), which Goanna does not currently do.
+
+## Required acknowledgements
+
+These are obligations that attach to binary distribution, not just source.
+
+**OpenSSL**, for `luanti/lib/sha256`, clauses 3 and 6 of its licence:
+
+> This product includes software developed by the OpenSSL Project for use in
+> the OpenSSL Toolkit (http://www.openssl.org/)
+
+**IrrlichtMt / Irrlicht**, for the CPU image classes. The zlib licence does
+not require acknowledgement, but Irrlicht's own notice asks for one, and
+notes that Irrlicht is based in part on the work of the Independent JPEG
+Group:
+
+> This software is based in part on the Irrlicht Engine, Copyright (C)
+> 2002-2012 Nikolaus Gebhardt, and on the work of the Independent JPEG
+> Group.
+
+**Godot**, via godot-cpp, MIT. The MIT licence text and copyright notice
+must accompany distribution; they are in `godot-cpp/LICENSE.md`.
+
+## Media in this repository
+
+The screenshots under `docs/` are renders of worlds served by Luanti games,
+using media those games sent to the client. They are derivative works of
+that media.
+
+- `docs/e0b_*.png` show Luanti's Development Test game (devtest). Its media
+  are covered by Luanti's own media licence: CC BY-SA 3.0, Copyright (C)
+  2010-2012 celeron55, Perttu Ahola and contributors, with some assets under
+  CC BY-SA 4.0. See `luanti/LICENSE.txt`.
+- `docs/e0a_*.png` show a Mineclonia world, rendered offline in the E0a
+  study rather than by the client. Mineclonia's media carry their own
+  licences and attribution; see the Mineclonia project.
+
+Both sets are reproduced here under those terms, for documentation.
+
+## Trademarks
+
+"Luanti" and "Minetest" are used in this repository only to identify the
+software Goanna interoperates with. Goanna is an independent project and is
+not affiliated with, endorsed by or supported by the Luanti project. No
+Luanti or Minetest branding, logo or icon is included here.
+
+"Godot" is used likewise, to identify the engine.
+
+## Keeping this current
+
+Update this file whenever `cmake/luanti_core.cmake` gains a dependency, a
+submodule is bumped to a release with different vendored libraries, or a
+screenshot from a new game is added. It is the file an upstream reviewer and
+a distribution packager will both read first.

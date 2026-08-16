@@ -1,6 +1,7 @@
 // Transplanted from luanti/src/client/mapblock_mesh.cpp (LGPL-2.1-or-later).
 // Goanna changes: no video driver (no hardware mapping hint, no debug draw),
-// no minimap blocks; everything else is verbatim.
+// no minimap blocks; transparent buffers keep their indices (upstream draws
+// them from m_transparent_triangles instead); everything else is verbatim.
 // Luanti
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (C) 2010-2013 celeron55, Perttu Ahola <celeron55@gmail.com>
@@ -708,7 +709,11 @@ MapBlockMesh::MapBlockMesh(Client *client, MeshMakeData *data):
 			scene::SMeshBuffer *buf = new scene::SMeshBuffer();
 			buf->Material = material;
 			if (p.layer.isTransparent()) {
-				buf->append(&p.vertices[0], p.vertices.size(), nullptr, 0);
+				// Goanna: keep the indices in the buffer as well. Upstream
+				// draws transparent triangles from m_transparent_triangles
+				// in sorted order; Godot renders the buffer as a surface.
+				buf->append(&p.vertices[0], p.vertices.size(),
+					&p.indices[0], p.indices.size());
 
 				MeshTriangle t;
 				t.buffer = buf;

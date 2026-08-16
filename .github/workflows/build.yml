@@ -1,0 +1,53 @@
+# Build Goanna on a clean machine.
+#
+# The point of this job is not to test behaviour, it is to catch the two
+# things that break a fresh clone and that nobody notices on a developer's
+# own machine: a host dependency that is documented nowhere, and a source
+# file listed in CMakeLists.txt that was never committed.
+#
+# There is no run job yet. Goanna needs a Luanti server and, at present, a
+# one time editor pass to register the extension. See docs/building.md.
+
+name: build
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  linux:
+    name: Linux, GCC
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      # Kept in step with the dependency table in docs/building.md. If you
+      # change one, change the other.
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake ninja-build python3 zlib1g-dev libzstd-dev
+
+      - name: Configure
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Check the extension was produced
+        run: |
+          test -f project/bin/libgoanna.linux.template_debug.x86_64.so
+          ls -lh project/bin/
+
+  style:
+    name: Text style
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check house style
+        run: tools/check-style.sh
