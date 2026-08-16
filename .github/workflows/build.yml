@@ -61,9 +61,17 @@ jobs:
         with:
           vcpkgGitCommitId: 74e6536215718009aae747d86d84b78376bf9e09
 
+      # No explicit -G. windows-latest moved from a Visual Studio 2022 image
+      # to Visual Studio 2026 on 2026-06-08, and "Visual Studio 17 2022" is
+      # simply not there any more: the run fails at configure with "could
+      # not find any instance of Visual Studio". CMake's Visual Studio
+      # generator family auto-selects the newest installed VS when -G is
+      # omitted, so this tracks whatever GitHub ships next without another
+      # dated fix here. Pin explicitly (currently "Visual Studio 18 2026")
+      # only if a specific VS version is ever required.
       - name: Configure
         run: >
-          cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+          cmake -S . -B build -A x64
           -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
           -DVCPKG_TARGET_TRIPLET=x64-windows
 

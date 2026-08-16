@@ -159,18 +159,23 @@ The route is MSVC with vcpkg, not MinGW. Upstream Luanti abandoned GCC MinGW
 because thread-local storage is broken there, and Luanti's core leans on TLS,
 so that is not a road worth walking again.
 
-You need Visual Studio 2022 with the C++ workload, CMake, Git and Python, and
-[vcpkg](https://vcpkg.io/) for zlib and zstd, which a stock Windows machine
-does not have. The manifest at `vcpkg.json` lists them.
+You need Visual Studio, 2022 or newer, with the C++ workload, CMake, Git and
+Python, and [vcpkg](https://vcpkg.io/) for zlib and zstd, which a stock
+Windows machine does not have. The manifest at `vcpkg.json` lists them.
 
 ```
 git clone --recurse-submodules --shallow-submodules https://github.com/p0ss/Goanna.git goanna
 cd goanna
-cmake -S . -B build -G "Visual Studio 17 2022" -A x64 ^
+cmake -S . -B build -A x64 ^
   -DCMAKE_TOOLCHAIN_FILE=C:/path/to/vcpkg/scripts/buildsystems/vcpkg.cmake ^
   -DVCPKG_TARGET_TRIPLET=x64-windows
 cmake --build build --config RelWithDebInfo
 ```
+
+No `-G` on purpose. CMake picks the newest Visual Studio it finds when the
+generator is left unspecified, which is one less thing to go stale as new
+Visual Studio versions ship. Pass `-G "Visual Studio 18 2026"`, or whatever
+generator name matches your install, if you need a specific version.
 
 Keep the `x64-windows` triplet. It uses the dynamic CRT, which is what
 godot-cpp defaults to; a static triplet gives a CRT mismatch at link time,
