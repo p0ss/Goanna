@@ -602,7 +602,8 @@ const SETTINGS := [
 	["Video", "auto_bump", "slider", "Auto bump", "Fake surface relief from texture brightness.", 0.0, 1.0, 0.05],
 	["Video", "bevel", "slider", "Edge bevel", "Chamfer the exposed edges of solid nodes.", 0.0, 0.15, 0.01],
 	["Video", "motes", "slider", "Ambient motes", "Drifting specks over leaves, flowers and sand.", 0.0, 4.0, 0.25],
-	["Video", "view_range", "slider", "View distance", "How much world to ask the server for, in blocks of 16 nodes. Servers may cap it.", 4.0, 40.0, 1.0],
+	["Video", "view_range", "slider", "View distance", "How much world to ask the server for, in blocks of 16 nodes. Most servers cap this near 12, so higher values may change nothing.", 4.0, 40.0, 1.0],
+	["Video", "lod_distance", "slider", "Detail distance", "Blocks beyond this are drawn as simplified shapes, which costs less. 0 turns it off.", 0.0, 24.0, 1.0],
 	["Video", "damage_flash", "toggle", "Damage flash", "Flash the screen red when you take damage."],
 	["Video", "show_body", "toggle", "Show own body", "See your own body and held item when you look down."],
 	["Audio", "volume", "slider", "Volume", "Overall sound level.", 0.0, 1.0, 0.05],
@@ -676,6 +677,7 @@ func _apply_setting(key: String, value: float) -> void:
 		return
 	match key:
 		"view_range": if client.has_method("set_view_range"): client.set_view_range(int(value))
+		"lod_distance": if client.has_method("set_lod_distance"): client.set_lod_distance(int(value))
 		"mantle": if client.has_method("set_mantle"): client.set_mantle(on)
 		"show_body": if client.has_method("set_show_body"): client.set_show_body(on)
 		"aux1_descends": if client.has_method("set_aux1_descends"): client.set_aux1_descends(on)
@@ -693,6 +695,7 @@ func _setting_value(key: String, fallback: float) -> float:
 		return _local_value(key)
 	match key:
 		"view_range": if client.has_method("view_range"): return float(client.view_range())
+		"lod_distance": if client.has_method("lod_distance"): return float(client.lod_distance())
 		"mantle": if client.has_method("mantle"): return 1.0 if client.mantle() else 0.0
 		"show_body": if client.has_method("show_body"): return 1.0 if client.show_body() else 0.0
 		"aux1_descends": if client.has_method("aux1_descends"): return 1.0 if client.aux1_descends() else 0.0
