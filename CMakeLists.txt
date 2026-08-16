@@ -18,6 +18,7 @@ add_library(goanna SHARED
     src/goanna_session.cpp
     src/goanna_mesher.cpp
     src/goanna_textures.cpp
+    src/goanna_sky.cpp
     src/transplant/collision.cpp
     src/transplant/localplayer.cpp
     src/transplant/client/mapblock_mesh.cpp

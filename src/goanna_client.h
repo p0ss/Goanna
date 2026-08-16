@@ -47,6 +47,10 @@ public:
     // keys: {up,down,left,right,jump,sneak,aux1}; pitch/yaw in Godot degrees
     // (pitch positive = looking up). Returns {eye_pos, pos, pitch, yaw,
     // on_ground, in_liquid} in Godot space (nodes).
+    // Sky/sun/fog/lighting state from the server, in Godot terms (see goanna_sky.h).
+    godot::Dictionary sky_state() const;
+    void set_time_of_day_override(float tod);
+
     godot::Dictionary step_player(double dt, const godot::Dictionary &keys, float pitch_deg, float yaw_deg);
 
 protected:

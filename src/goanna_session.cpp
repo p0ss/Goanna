@@ -534,6 +534,13 @@ void GoannaSession::handle(NetworkPacket &pkt) {
     case TOCLIENT_REMOVENODE: onRemoveNode(pkt); break;
     case TOCLIENT_PRIVILEGES: onPrivileges(pkt); break;
     case TOCLIENT_TIME_OF_DAY: onTimeOfDay(pkt); break;
+    case TOCLIENT_SET_SKY: onSetSky(pkt); break;
+    case TOCLIENT_SET_SUN: onSetSun(pkt); break;
+    case TOCLIENT_SET_MOON: onSetMoon(pkt); break;
+    case TOCLIENT_SET_STARS: onSetStars(pkt); break;
+    case TOCLIENT_CLOUD_PARAMS: onCloudParams(pkt); break;
+    case TOCLIENT_SET_LIGHTING: onSetLighting(pkt); break;
+    case TOCLIENT_OVERRIDE_DAY_NIGHT_RATIO: onOverrideDayNightRatio(pkt); break;
     default:
         break; // everything else is ignored at this stage
     }
@@ -898,8 +905,151 @@ void GoannaSession::onTimeOfDay(NetworkPacket &pkt) {
         return;
     u16 tod;
     pkt >> tod;
+    f32 speed = 72.0f;
+    if (pkt.getRemainingBytes() >= 4)
+        pkt >> speed;
+    {
+        std::lock_guard<std::mutex> lk(m_sky_mutex);
+        m_sky.time_of_day = tod / 24000.0f;
+        m_sky.time_speed = speed;
+        m_time_of_day_at = std::chrono::steady_clock::now();
+        m_sky.version++;
+    }
     std::lock_guard<std::mutex> lk(m_stats_mutex);
     m_stats.time_of_day = tod / 24000.0f;
+}
+
+SkyState GoannaSession::skyState() const {
+    std::lock_guard<std::mutex> lk(m_sky_mutex);
+    SkyState st = m_sky;
+    // advance time locally like the real client (time_speed = game seconds per real second, 24000/day = 72 -> 20 min day)
+    float elapsed = std::chrono::duration<float>(std::chrono::steady_clock::now() - m_time_of_day_at).count();
+    st.time_of_day = std::fmod(st.time_of_day + elapsed * st.time_speed / 86400.0f, 1.0f);
+    if (st.time_of_day < 0) st.time_of_day += 1.0f;
+    if (m_tod_override >= 0.0f)
+        st.time_of_day = m_tod_override;
+    return st;
+}
+
+// The following decode exactly what Client::handleCommand_HudSetSky/Sun/Moon/
+// Stars/CloudParams/SetLighting/OverrideDayNightRatio decode.
+void GoannaSession::onSetSky(NetworkPacket &pkt) {
+    if (stats().proto_ver < 39)
+        return; // legacy servers: keep defaults
+    SkyboxParams skybox;
+    pkt >> skybox.bgcolor >> skybox.type >> skybox.clouds >>
+        skybox.fog_sun_tint >> skybox.fog_moon_tint >> skybox.fog_tint_type;
+    if (skybox.type == "skybox") {
+        u16 texture_count;
+        std::string texture;
+        pkt >> texture_count;
+        for (u16 i = 0; i < texture_count; i++) {
+            pkt >> texture;
+            skybox.textures.emplace_back(texture);
+        }
+    } else if (skybox.type == "regular") {
+        auto &c = skybox.sky_color;
+        pkt >> c.day_sky >> c.day_horizon >> c.dawn_sky >> c.dawn_horizon
+            >> c.night_sky >> c.night_horizon >> c.indoors;
+    }
+    do {
+        if (!pkt.hasRemainingBytes()) break;
+        pkt >> skybox.body_orbit_tilt;
+        if (!pkt.hasRemainingBytes()) break;
+        pkt >> skybox.fog_distance >> skybox.fog_start;
+        if (!pkt.hasRemainingBytes()) break;
+        pkt >> skybox.fog_color;
+        if (!pkt.hasRemainingBytes()) break;
+        pkt >> skybox.auto_dim_skybox;
+    } while (0);
+    std::lock_guard<std::mutex> lk(m_sky_mutex);
+    m_sky.sky = skybox;
+    m_sky.version++;
+}
+
+void GoannaSession::onSetSun(NetworkPacket &pkt) {
+    SunParams sun;
+    pkt >> sun.visible >> sun.texture >> sun.tonemap >> sun.sunrise >> sun.sunrise_visible >> sun.scale;
+    std::lock_guard<std::mutex> lk(m_sky_mutex);
+    m_sky.sun = sun;
+    m_sky.version++;
+}
+
+void GoannaSession::onSetMoon(NetworkPacket &pkt) {
+    MoonParams moon;
+    pkt >> moon.visible >> moon.texture >> moon.tonemap >> moon.scale;
+    std::lock_guard<std::mutex> lk(m_sky_mutex);
+    m_sky.moon = moon;
+    m_sky.version++;
+}
+
+void GoannaSession::onSetStars(NetworkPacket &pkt) {
+    StarParams stars = SkyboxDefaults::getStarDefaults();
+    pkt >> stars.visible >> stars.count >> stars.starcolor >> stars.scale;
+    do {
+        if (!pkt.hasRemainingBytes()) break;
+        pkt >> stars.day_opacity;
+        if (!pkt.hasRemainingBytes()) break;
+        pkt >> stars.star_seed;
+    } while (0);
+    std::lock_guard<std::mutex> lk(m_sky_mutex);
+    m_sky.stars = stars;
+    m_sky.version++;
+}
+
+void GoannaSession::onCloudParams(NetworkPacket &pkt) {
+    f32 density, height, thickness;
+    video::SColor color_bright, color_ambient;
+    video::SColor color_shadow = video::SColor(255, 204, 204, 204);
+    v2f speed;
+    pkt >> density >> color_bright >> color_ambient >> height >> thickness >> speed;
+    if (pkt.hasRemainingBytes())
+        pkt >> color_shadow;
+    std::lock_guard<std::mutex> lk(m_sky_mutex);
+    m_sky.clouds.density = density;
+    m_sky.clouds.color_bright = color_bright;
+    m_sky.clouds.color_ambient = color_ambient;
+    m_sky.clouds.color_shadow = color_shadow;
+    m_sky.clouds.height = height;
+    m_sky.clouds.thickness = thickness;
+    m_sky.clouds.speed = speed;
+    m_sky.version++;
+}
+
+void GoannaSession::onSetLighting(NetworkPacket &pkt) {
+    Lighting lighting;
+    {
+        std::lock_guard<std::mutex> lk(m_sky_mutex);
+        lighting = m_sky.lighting;
+    }
+    pkt >> lighting.shadow_intensity;
+    do {
+        if (!pkt.hasRemainingBytes()) break;
+        pkt >> lighting.saturation;
+        pkt >> lighting.exposure.luminance_min >> lighting.exposure.luminance_max
+            >> lighting.exposure.exposure_correction >> lighting.exposure.speed_dark_bright
+            >> lighting.exposure.speed_bright_dark >> lighting.exposure.center_weight_power;
+        if (!pkt.hasRemainingBytes()) break;
+        pkt >> lighting.volumetric_light_strength;
+        if (!pkt.hasRemainingBytes()) break;
+        pkt >> lighting.shadow_tint;
+        pkt >> lighting.bloom_intensity >> lighting.bloom_strength_factor >> lighting.bloom_radius;
+        if (!pkt.hasRemainingBytes()) break;
+        pkt >> lighting.shadow_direction;
+    } while (0);
+    std::lock_guard<std::mutex> lk(m_sky_mutex);
+    m_sky.lighting = lighting;
+    m_sky.version++;
+}
+
+void GoannaSession::onOverrideDayNightRatio(NetworkPacket &pkt) {
+    bool do_override;
+    u16 ratio_u;
+    pkt >> do_override >> ratio_u;
+    std::lock_guard<std::mutex> lk(m_sky_mutex);
+    m_sky.day_night_override = do_override;
+    m_sky.day_night_override_ratio = (float)ratio_u / 65536;
+    m_sky.version++;
 }
 
 } // namespace goanna

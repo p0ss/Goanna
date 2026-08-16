@@ -2,6 +2,10 @@ extends Node3D
 
 var client: GoannaClient
 var cam: Camera3D
+var sun: DirectionalLight3D
+var moon: DirectionalLight3D
+var env: WorldEnvironment
+var sky_mat: ProceduralSkyMaterial
 var t := 0.0
 var last_print := -1.0
 var placed := false
@@ -24,17 +28,24 @@ func _ready() -> void:
 	add_child(cam)
 	cam.current = true
 
-	var sun := DirectionalLight3D.new()
+	sun = DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-42, 35, 0)
 	sun.light_energy = 1.3
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 250
 	add_child(sun)
+	moon = DirectionalLight3D.new()
+	moon.light_energy = 0.0
+	moon.light_color = Color(0.6, 0.7, 1.0)
+	moon.shadow_enabled = true
+	moon.directional_shadow_max_distance = 250
+	add_child(moon)
 
-	var env := WorldEnvironment.new()
+	env = WorldEnvironment.new()
 	var e := Environment.new()
 	var sky := Sky.new()
 	var sm := ProceduralSkyMaterial.new()
+	sky_mat = sm
 	sm.sky_top_color = Color(0.36, 0.55, 0.85)
 	sm.sky_horizon_color = Color(0.72, 0.80, 0.90)
 	sm.ground_bottom_color = Color(0.25, 0.22, 0.20)
@@ -70,6 +81,8 @@ func _ready() -> void:
 		pname = "goanna"
 	print("connecting to ", host, ":", port, " as ", pname)
 	client.connect_to(host, port, pname, OS.get_environment("GOANNA_PASS"))
+	if OS.get_environment("GOANNA_TOD") != "":
+		client.set_time_of_day_override(float(OS.get_environment("GOANNA_TOD")))
 	if OS.get_environment("GOANNA_SHOT") == "":
 		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 
@@ -85,6 +98,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _process(delta: float) -> void:
 	t += delta
+	_apply_sky()
 	var s: Dictionary = client.status()
 	if not placed and s.get("state") == "ready":
 		var p: Vector3 = client.server_player_position()
@@ -188,3 +202,73 @@ func _shots(dir: String) -> void:
 		var path: String = dir.path_join(v[0] + ".png")
 		img.save_png(path)
 		print("saved ", path)
+
+
+# Map Luanti's sky/lighting state onto Godot's sun, sky and fog. Colours and the
+# day/dawn/night scheme are the server's (or Luanti's defaults); the blend by
+# sun elevation approximates Sky::update in the vanilla client.
+func _apply_sky() -> void:
+	var st: Dictionary = client.sky_state()
+	if st.is_empty() or not st.has("sun_direction"):
+		return
+	var sun_dir: Vector3 = st["sun_direction"]
+	var moon_dir: Vector3 = st["moon_direction"]
+	var e := env.environment
+	var sky: Dictionary = st["sky"]
+	var elev: float = sun_dir.y  # 1 = overhead, <0 below horizon
+	# --- sun and moon lights ---
+	if sun_dir.length() > 0.001:
+		sun.transform = Transform3D(Basis.looking_at(-sun_dir, Vector3.UP), Vector3.ZERO)
+	if moon_dir.length() > 0.001:
+		moon.transform = Transform3D(Basis.looking_at(-moon_dir, Vector3.UP), Vector3.ZERO)
+	var day: float = smoothstep(-0.02, 0.18, elev)
+	var warm: float = 1.0 - smoothstep(0.0, 0.32, elev)
+	sun.light_color = Color(1.0, 0.98, 0.94).lerp(Color(1.0, 0.62, 0.32), warm)
+	sun.light_energy = lerp(0.0, 1.5, day) * (1.0 if bool(st["sun"]["visible"]) else 0.0)
+	sun.visible = sun.light_energy > 0.01
+	var moon_up: float = smoothstep(-0.02, 0.15, moon_dir.y) * (1.0 - day)
+	moon.light_energy = 0.12 * moon_up * (1.0 if bool(st["moon"]["visible"]) else 0.0)
+	moon.visible = moon.light_energy > 0.005
+	var shadow_intensity: float = st["lighting"]["shadow_intensity"]
+	# Luanti servers set 0..1; 0 means "not requested" for old games -> keep shadows but soft.
+	sun.shadow_opacity = 1.0 if shadow_intensity <= 0.0 else clamp(shadow_intensity, 0.2, 1.0)
+	moon.shadow_opacity = sun.shadow_opacity
+	# --- sky colours: blend day / dawn / night like the vanilla sky ---
+	var dawn: float = clamp(1.0 - abs(elev) / 0.22, 0.0, 1.0)
+	var night: float = smoothstep(0.02, -0.25, elev)
+	var day_w: float = clamp(1.0 - dawn - night, 0.0, 1.0)
+	var top: Color = sky["day_sky"] * day_w + sky["dawn_sky"] * dawn + sky["night_sky"] * night
+	var hor: Color = sky["day_horizon"] * day_w + sky["dawn_horizon"] * dawn + sky["night_horizon"] * night
+	if str(sky["type"]) == "plain":
+		top = sky["bgcolor"]; hor = sky["bgcolor"]
+	sky_mat.sky_top_color = top
+	sky_mat.sky_horizon_color = hor
+	sky_mat.ground_horizon_color = hor
+	sky_mat.ground_bottom_color = hor.darkened(0.6)
+	sky_mat.sun_angle_max = 6.0
+	sky_mat.sun_curve = 0.15
+	# --- fog ---
+	var fog_col: Color = hor
+	if str(sky["fog_tint_type"]) == "default":
+		fog_col = fog_col.lerp(sky["fog_sun_tint"], 0.35 * dawn)
+	var fc: Color = sky["fog_color"]
+	if fc.a > 0.0:
+		fog_col = fc
+	e.fog_light_color = fog_col
+	var fog_distance: float = sky["fog_distance"]
+	if fog_distance > 0.0:
+		e.fog_density = clamp(2.5 / fog_distance, 0.0005, 0.05)
+	else:
+		e.fog_density = 0.0004
+	# --- ambient / grade from day-night ratio and server lighting ---
+	var ratio: float = st["day_night_ratio"]
+	e.ambient_light_energy = lerp(0.25, 1.15, ratio)
+	e.background_energy_multiplier = lerp(0.35, 1.25, ratio)
+	var lighting: Dictionary = st["lighting"]
+	e.adjustment_saturation = clamp(float(lighting["saturation"]), 0.0, 2.0)
+	e.tonemap_exposure = clamp(1.05 + float(lighting["exposure_correction"]) * 0.5, 0.3, 3.0)
+	e.glow_intensity = clamp(0.3 + float(lighting["bloom_intensity"]) * 2.0, 0.0, 2.0)
+	var vol: float = lighting["volumetric_light_strength"]
+	e.volumetric_fog_enabled = vol > 0.0
+	if vol > 0.0:
+		e.volumetric_fog_density = 0.002 + 0.02 * vol

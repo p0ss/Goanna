@@ -12,6 +12,7 @@
 #include "goanna_mesher.h"
 #include "goanna_session.h"
 #include "goanna_textures.h"
+#include "goanna_sky.h"
 #include "transplant/localplayer.h"
 #include "client/mapblock_mesh.h"
 #include "client/tile.h"
@@ -98,6 +99,92 @@ void GoannaClient::set_player_pose(const Vector3 &pos, float pitch_deg, float ya
     if (!m_session)
         return;
     m_session->setPlayerPose(v3f(pos.x, pos.y, -pos.z), pitch_deg, yaw_deg);
+}
+
+static Color toColor(const video::SColor &c) {
+    return Color(c.getRed() / 255.0f, c.getGreen() / 255.0f, c.getBlue() / 255.0f, c.getAlpha() / 255.0f);
+}
+static Vector3 toGodotDir(const v3f &v) { return Vector3(v.X, v.Y, -v.Z); }
+
+void GoannaClient::set_time_of_day_override(float tod) {
+    if (m_session)
+        m_session->setTimeOfDayOverride(tod);
+}
+
+Dictionary GoannaClient::sky_state() const {
+    Dictionary d;
+    if (!m_session)
+        return d;
+    SkyState st = m_session->skyState();
+    d["version"] = (int)st.version;
+    d["time_of_day"] = st.time_of_day;
+    d["time_speed"] = st.time_speed;
+    d["wicked_time_of_day"] = getWickedTimeOfDay(st.time_of_day);
+    float ratio = st.day_night_override ? st.day_night_override_ratio : dayNightRatio(st.time_of_day) / 1000.0f;
+    d["day_night_ratio"] = ratio;
+    d["sun_direction"] = toGodotDir(sunDirection(st.time_of_day, st.sky.body_orbit_tilt));
+    d["moon_direction"] = toGodotDir(moonDirection(st.time_of_day, st.sky.body_orbit_tilt));
+    Dictionary sky;
+    sky["type"] = String(st.sky.type.c_str());
+    sky["bgcolor"] = toColor(st.sky.bgcolor);
+    sky["clouds"] = st.sky.clouds;
+    sky["fog_sun_tint"] = toColor(st.sky.fog_sun_tint);
+    sky["fog_moon_tint"] = toColor(st.sky.fog_moon_tint);
+    sky["fog_tint_type"] = String(st.sky.fog_tint_type.c_str());
+    sky["fog_distance"] = st.sky.fog_distance;
+    sky["fog_start"] = st.sky.fog_start;
+    sky["fog_color"] = toColor(st.sky.fog_color);
+    sky["day_sky"] = toColor(st.sky.sky_color.day_sky);
+    sky["day_horizon"] = toColor(st.sky.sky_color.day_horizon);
+    sky["dawn_sky"] = toColor(st.sky.sky_color.dawn_sky);
+    sky["dawn_horizon"] = toColor(st.sky.sky_color.dawn_horizon);
+    sky["night_sky"] = toColor(st.sky.sky_color.night_sky);
+    sky["night_horizon"] = toColor(st.sky.sky_color.night_horizon);
+    sky["indoors"] = toColor(st.sky.sky_color.indoors);
+    Array textures;
+    for (auto &t : st.sky.textures) textures.push_back(String(t.c_str()));
+    sky["textures"] = textures;
+    d["sky"] = sky;
+    Dictionary sun;
+    sun["visible"] = st.sun.visible;
+    sun["texture"] = String(st.sun.texture.c_str());
+    sun["sunrise_visible"] = st.sun.sunrise_visible;
+    sun["scale"] = st.sun.scale;
+    d["sun"] = sun;
+    Dictionary moon;
+    moon["visible"] = st.moon.visible;
+    moon["texture"] = String(st.moon.texture.c_str());
+    moon["scale"] = st.moon.scale;
+    d["moon"] = moon;
+    Dictionary stars;
+    stars["visible"] = st.stars.visible;
+    stars["count"] = (int)st.stars.count;
+    stars["color"] = toColor(st.stars.starcolor);
+    stars["scale"] = st.stars.scale;
+    stars["day_opacity"] = st.stars.day_opacity;
+    d["stars"] = stars;
+    Dictionary clouds;
+    clouds["density"] = st.clouds.density;
+    clouds["color_bright"] = toColor(st.clouds.color_bright);
+    clouds["color_ambient"] = toColor(st.clouds.color_ambient);
+    clouds["color_shadow"] = toColor(st.clouds.color_shadow);
+    clouds["height"] = st.clouds.height;
+    clouds["thickness"] = st.clouds.thickness;
+    clouds["speed"] = Vector2(st.clouds.speed.X, st.clouds.speed.Y);
+    d["clouds"] = clouds;
+    Dictionary lighting;
+    lighting["shadow_intensity"] = st.lighting.shadow_intensity;
+    lighting["saturation"] = st.lighting.saturation;
+    lighting["exposure_correction"] = st.lighting.exposure.exposure_correction;
+    lighting["luminance_min"] = st.lighting.exposure.luminance_min;
+    lighting["luminance_max"] = st.lighting.exposure.luminance_max;
+    lighting["volumetric_light_strength"] = st.lighting.volumetric_light_strength;
+    lighting["shadow_tint"] = toColor(st.lighting.shadow_tint);
+    lighting["bloom_intensity"] = st.lighting.bloom_intensity;
+    lighting["bloom_strength_factor"] = st.lighting.bloom_strength_factor;
+    lighting["bloom_radius"] = st.lighting.bloom_radius;
+    d["lighting"] = lighting;
+    return d;
 }
 
 Dictionary GoannaClient::step_player(double dt, const Dictionary &keys, float pitch_deg, float yaw_deg) {
@@ -292,6 +379,8 @@ void GoannaClient::_bind_methods() {
             &GoannaClient::set_player_pose);
     ClassDB::bind_method(D_METHOD("server_player_position"), &GoannaClient::server_player_position);
     ClassDB::bind_method(D_METHOD("step_player", "dt", "keys", "pitch_deg", "yaw_deg"), &GoannaClient::step_player);
+    ClassDB::bind_method(D_METHOD("sky_state"), &GoannaClient::sky_state);
+    ClassDB::bind_method(D_METHOD("set_time_of_day_override", "tod"), &GoannaClient::set_time_of_day_override);
 }
 
 } // namespace goanna

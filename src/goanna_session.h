@@ -23,6 +23,7 @@
 #include "network/networkprotocol.h"
 #include "goanna_map.h"
 #include "goanna_textures.h"
+#include "goanna_sky.h"
 
 class NodeDefManager;
 class IWritableItemDefManager;
@@ -98,6 +99,12 @@ public:
     const NodeDefManager *nodeDefs() const { return m_nodedef; }
     GoannaMap &map() { return *m_map; }
 
+    // Sky/lighting as last sent by the server, with time of day advanced
+    // locally. Thread-safe copy.
+    SkyState skyState() const;
+    // Client-side override of the time of day (0..1), or <0 for none. Testing aid.
+    void setTimeOfDayOverride(float tod) { m_tod_override = tod; }
+
     // The local player (Luanti's LocalPlayer, transplanted). Positions in
     // BS units as in Luanti. Caller holds mapLock() while stepping.
     LocalPlayer *player() { return m_player.get(); }
@@ -164,6 +171,13 @@ private:
     void queueBlocksAround(v3s16 nodepos);
     void onPrivileges(NetworkPacket &pkt);
     void onTimeOfDay(NetworkPacket &pkt);
+    void onSetSky(NetworkPacket &pkt);
+    void onSetSun(NetworkPacket &pkt);
+    void onSetMoon(NetworkPacket &pkt);
+    void onSetStars(NetworkPacket &pkt);
+    void onCloudParams(NetworkPacket &pkt);
+    void onSetLighting(NetworkPacket &pkt);
+    void onOverrideDayNightRatio(NetworkPacket &pkt);
 
     std::string m_host;
     uint16_t m_port = 30000;
@@ -175,6 +189,11 @@ private:
 
     mutable std::mutex m_stats_mutex;
     SessionStats m_stats;
+
+    mutable std::mutex m_sky_mutex;
+    SkyState m_sky;
+    float m_tod_override = -1.0f;
+    std::chrono::steady_clock::time_point m_time_of_day_at;
 
     std::mutex m_map_mutex;
     std::unique_ptr<GoannaMap> m_map;
