@@ -848,9 +848,11 @@ void GoannaClient::harvestMotes(v3s16 bp, MapBlock *block) {
                 c = m_session->tsrc()->getTextureAverageColor(tname);
         }
         Color col(c.getRed() / 255.0f, c.getGreen() / 255.0f, c.getBlue() / 255.0f, 1.0f);
-        // Lighten leaf/flora motes so they read against the canopy they shed from.
-        if (kind != 2)
-            col = col.lerp(Color(1, 1, 1, 1), 0.35f);
+        // Keep the node's hue (a leaf-green mote from green leaves), just lift
+        // the brightness so it reads; do not wash it toward white.
+        float mx = std::max(col.r, std::max(col.g, col.b));
+        if (mx > 0.02f)
+            col = col * (0.85f / mx);
         m.color = col;
         motes.push_back(m);
     }
