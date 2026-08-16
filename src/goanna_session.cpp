@@ -112,6 +112,7 @@ static void ensureSettings() {
     defaults->setDefault("array_texture_max", "0");
     defaults->setDefault("enable_water_reflections", "false");
     defaults->setDefault("mesh_generation_interval", "0");
+    defaults->setDefault("safe_dig_and_place", "false");
     g_settings = Settings::createLayer(SL_GLOBAL);
     sockets_init();
 }
@@ -735,6 +736,9 @@ void GoannaSession::stepInteract(float dtime, const InteractInput &in) {
     }
     if (!m_interact.digging && m_btn_down_for_dig && !in.dig)
         m_btn_down_for_dig = false;
+    // Releasing the dig button clears the safe-dig block (Game::updateInteract).
+    if (m_digging_blocked && !in.dig)
+        m_digging_blocked = false;
 
     if (in.place)
         m_repeat_place_timer += dtime;
@@ -747,7 +751,10 @@ void GoannaSession::stepInteract(float dtime, const InteractInput &in) {
         MapNode n = m_map->getNode(nodepos);
         const ContentFeatures &features = m_nodedef->get(n);
         // digging (Game::handleDigging)
-        if (in.dig && m_nodig_delay_timer <= 0 && !(m_btn_down_for_dig && !m_interact.digging)) {
+        // Upstream gates on !digging_blocked, not on the button being freshly
+        // pressed, so holding dig mines through successive nodes. The block is
+        // only set when the "safe digging" option is on (off by default).
+        if (in.dig && m_nodig_delay_timer <= 0 && !m_digging_blocked) {
             DigParams params = getDigParams(features.groups,
                     &tool_item.getToolCapabilities(m_itemdef, &hand_item), tool_item.wear);
             if (!params.diggable)
@@ -774,6 +781,8 @@ void GoannaSession::stepInteract(float dtime, const InteractInput &in) {
                 m_interact.crack_level = -1;
                 m_interact.dig_time = 0;
                 m_interact.digging = false;
+                if (g_settings->getBool("safe_dig_and_place"))
+                    m_digging_blocked = true;
                 m_nodig_delay_timer = m_interact.dig_time_complete / (float)cal;
                 if (m_nodig_delay_timer > 0.3f) m_nodig_delay_timer = 0.3f;
                 else if (m_dig_instantly) m_nodig_delay_timer = 0.15f;
@@ -793,6 +802,9 @@ void GoannaSession::stepInteract(float dtime, const InteractInput &in) {
                     m_new_blocks.push_back(kv.first);
                 queueBlocksAround(nodepos);
                 sendInteract(INTERACT_DIGGING_COMPLETED, pointed);
+                if (std::getenv("GOANNA_DEBUG_DIG"))
+                    fprintf(stderr, "goanna dig: COMPLETED %s after %.2fs\n",
+                            features.name.c_str(), m_interact.dig_time_complete);
             }
             if (m_interact.dig_time_complete < 100000.0f)
                 m_interact.dig_time += dtime;

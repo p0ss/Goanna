@@ -319,6 +319,7 @@ private:
     float m_nodig_delay_timer = 0, m_repeat_place_timer = 0;
     float m_object_hit_delay_timer = 0;
     bool m_dig_instantly = false, m_btn_down_for_dig = false, m_dig_was_down = false;
+    bool m_digging_blocked = false;
     u16 m_wield_index = 0;
     int m_crack_animation_length = -1;
 
