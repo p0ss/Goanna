@@ -68,9 +68,13 @@ md_hits=$(for f in $(files | grep -E '\.md$'); do
     sed -E 's/`[^`]*`//g' "$f" | grep -nEi "$AMERICAN" | sed "s|^|$f:|"
 done 2>/dev/null)
 comment_hits=$(files | grep -vE '\.md$' | xargs -r grep -nEi "^[[:space:]]*(//|#)[^!].*$AMERICAN" 2>/dev/null)
+# Formspec element syntax (bgcolor[...], box[...], tooltip[...]) is protocol
+# vocabulary with fixed spelling, and it turns up in comments that document
+# what a renderer handles. Exempt any line carrying an element signature.
 spelling=$(printf '%s\n%s\n' "$md_hits" "$comment_hits" \
     | grep -v '^$' \
-    | grep -vE 'SPDX-License-Identifier|LICENSE')
+    | grep -vE 'SPDX-License-Identifier|LICENSE' \
+    | grep -vE '\b[a-z_]+\[[a-z_;,.<>|]*\]')
 
 if [ -n "$spelling" ]; then
     printf '\nAmerican spelling in prose. See the table in docs/style.md.\n'

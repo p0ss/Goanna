@@ -1,181 +1,69 @@
 # Goanna
 
-**A Godot 4 client for Luanti worlds.**
+**A different way to look at Luanti worlds.** Same servers, same games, same
+worlds, drawn with a modern game renderer.
 
-Goanna carries Luanti's own client logic into Godot as a GDExtension, and
-renders it with Godot's Forward+ pipeline: PBR materials, SDFGI, SSAO and
-SSIL, volumetric fog, real shadows. It connects to ordinary, unmodified
-Luanti servers, over the ordinary protocol.
+![A Mineclonia forest rendered by Goanna](docs/e0b_mineclonia_ground.png)
 
-The idea is narrow. Luanti's worlds, games, mods and servers are the point;
-Goanna changes nothing about them. It replaces one layer, the renderer, and
-keeps the rest of the client as close to Luanti's own code as it can.
+## What is this?
 
-> Goanna is an independent project. It is not affiliated with, endorsed by
-> or supported by the Luanti project. The name "Luanti" is used here only to
-> identify the software Goanna interoperates with.
+[Luanti](https://www.luanti.org/) is a free and open source voxel game
+engine, the one that used to be called Minetest. People build games on it,
+run public servers, and play them with Luanti's own client.
 
-## What it is not
+Goanna is a second client for those same servers. You log in with the same
+name, to the same worlds, playing the same games. Luanti calls the cubes a
+world is made of *nodes*, and so does the rest of this page. Nothing about the server
+changes, and nothing about the game changes. The only difference is what
+happens on your screen.
 
-"Alt client" has meant cheat client in this community, so it is worth being
-blunt about the boundaries. These are permanent, not temporary:
+The reason it exists is that a Luanti world already contains more than its
+renderer can show. Sunlight through a canopy, light bouncing off a coloured
+wall, soft shadow in a doorway: the shapes and the textures are all there
+already, and a modern renderer can find things in them that nobody had to
+build. Goanna hands the world to [Godot 4](https://godotengine.org/) and
+lets it do that.
 
-- Goanna asks a server for nothing a vanilla client does not ask for, and
-  shows the player nothing the server did not send. No x-ray, no reach, no
-  automation, no seeing through fog or darkness that the protocol did not
-  hand over.
-- Goanna does not modify servers, does not require a mod, and does not ship
-  a game.
-- Goanna does not fork Luanti. There is no patch queue against the engine.
-  `luanti/` is a submodule pinned to a release tag and used as it is.
-- The vanilla client is the reference. Where the two differ in behaviour,
-  the vanilla client is right and Goanna has a bug.
-
-Goanna is also not a replacement. It is Forward+ and Vulkan only, with no
-low specification fallback, deliberately. If a machine cannot run it, the
-machine should run the vanilla client, which will always be the one that
-runs everywhere.
-
-## Why
-
-There is more in a Luanti world than a renderer has to work with. The same
-nodes, the same textures and the same worldgen carry a lot of shape, and a
-global illumination pipeline can find things in them that nobody had to
-author.
-
-Below is one scene from a Mineclonia world, rendered twice. Both images are
-Godot. The left has the lighting turned off; the right has SDFGI, shadows,
-ambient occlusion and colour grading turned on. Nothing else differs: same
-geometry, same textures, no new art, no mod.
+Here is the same patch of forest with the lighting off and on. Same nodes,
+same textures, no new art:
 
 | Lighting off | Lighting on |
 | --- | --- |
-| ![Mineclonia forest with lighting disabled](docs/e0a_forest_flat.png) | ![The same forest with SDFGI, shadows and colour grading](docs/e0a_forest_golden.png) |
+| ![A Mineclonia forest with lighting disabled](docs/e0a_forest_flat.png) | ![The same forest with global illumination, shadows and colour grading](docs/e0a_forest_golden.png) |
 
-![Four scenes, three lighting modes each](docs/e0a_contact_sheet.png)
+That pair is from an early test, rendered offline rather than by the client,
+so treat it as the target rather than the current state. The picture at the
+top of this page is the real thing.
 
-These come from an offline study (E0a in `PLAN.md`): a Mineclonia world was
-exported to plain geometry and rendered in Godot, to find out whether the
-payoff was real before committing to the work. They are **not** the live
-client, and are labelled that way everywhere they appear. What the live
-client renders today is further down, and it is not there yet.
+## Can I play it yet?
 
-## Status: pre-alpha, as at 16 August 2026
+Almost, and that sentence is newer than this paragraph deserves.
 
-Goanna connects to a live server and you can walk around in it. That is the
-honest summary. It is a spike that got far enough to be worth showing, not
-software to play with yet.
+You can connect to an ordinary server, walk around, dig and place, chat,
+watch your health and hunger bars, open your inventory and read the game's
+own menus. What you cannot do yet is drag an item from one slot to another.
+That one gap rules out crafting, which rules out playing most games through
+to anything. Players and mobs are also still coloured boxes, because nothing
+loads their models yet.
 
-**Working:**
+So: worth a look, worth a screenshot, not yet worth moving into. The Luanti
+client remains the one that works, and will always be the one to compare
+against.
 
-- Connects to a Luanti 5.16.x server over the real protocol, with the real
-  handshake and Luanti's own network layer compiled from the submodule.
-- SRP authentication. Registers a new name, logs back in, and is correctly
-  refused with a wrong password. The server logs an ordinary "joins game".
-- Media transfer: announce, request, receive, zstd. Around 440 files from
-  devtest in about a second, with `CLIENT_READY` held until they all land.
-- Node and item definitions, and mapblocks streamed around the player, with
-  `GOTBLOCKS` acknowledgements and periodic position updates.
-- Meshing by Luanti's own `content_mapblock`, `mapblock_mesh` and
-  `node_visuals`, transplanted, so nodes are built by the engine's own rules
-  rather than an approximation of them. The resulting Irrlicht CPU meshes are
-  converted to Godot arrays, one mesh per mapblock.
-- The texture modifier language, `imagesource.cpp` transplanted, so tile
-  strings with `^` composites, `[colorize`, crack and the rest resolve the
-  way the server expects.
-- Movement using Luanti's own `collision.cpp` and `localplayer.cpp`,
-  transplanted nearly verbatim. Falling, landing, walking at the server's
-  speed, jumping, stepping up, sneaking. `MOVEMENT` and `PRIVILEGES` are
-  applied and `MOVE_PLAYER` teleports work.
-- Node changes from the server. `ADDNODE` and `REMOVENODE` go through
-  Luanti's own `Map::addNodeAndUpdate` and `removeNodeAndUpdate`, and the
-  affected mapblocks are re-meshed. Verified with a devtest worldmod that
-  toggles a stone pillar in front of the player every three seconds.
-- The server's sky. `SET_SKY`, `SET_SUN`, `SET_MOON`, `SET_STARS`,
-  `SET_CLOUD_PARAMS`, `SET_LIGHTING`, `OVERRIDE_DAY_NIGHT_RATIO` and
-  `TIME_OF_DAY` are parsed; the sun follows Luanti's own path across the sky
-  and drives Godot's directional light, the day, dawn and night sky colours
-  blend the way the vanilla `Sky` does, and fog, saturation, exposure and
-  bloom follow the server's lighting parameters
-  (`docs/e0b_time_of_day.png`, Mineclonia at four times of day).
-- Materials chosen by Luanti's own material type. Liquids get a water
-  shader (vertex waves, refraction, low roughness), waving leaves and
-  plants sway, alpha nodes such as glass get a refracting blend shader, and
-  everything else is a `StandardMaterial3D` with nearest filtering and the
-  node's alpha mode. Water, leaves and plants observed on devtest and
-  Mineclonia; the glass shader has not been seen on a real node yet.
-- Light-emitting nodes. Textures used only by nodes with `light_source` are
-  rendered emissive, and a pool of `OmniLight3D`s follows the nearest bright
-  nodes to the camera, so a torch or glowstone lights the ground around it
-  and SDFGI picks up the bounce (`docs/e0b_torches_night.png`, a devtest
-  ring of `light14` nodes at midnight). The nearest eight of those lights
-  cast shadows.
-- Digging and placing. The pointed-thing raycast is Luanti's own
-  (`Environment::continueRaycast` transplanted, `raycast.cpp` compiled from
-  the submodule), dig time comes from the tool capabilities, and
-  `TOSERVER_INTERACT` start, stop, completed and place are sent with a
-  client-side removal prediction and crack level. Wield slot by number keys
-  and mouse wheel (`TOSERVER_PLAYERITEM`). Observed on devtest: instant dig
-  of `testnodes:light14`, a timed hand dig of `basenodes:dirt_with_grass`,
-  and two placements, all confirmed in the server log.
-- Entities, partly. `ACTIVE_OBJECT_REMOVE_ADD` and `ACTIVE_OBJECT_MESSAGES`
-  are handled by a transplant of `GenericCAO`'s state and message parsing
-  (position and rotation interpolation, animation and bone data, attachment,
-  physics overrides applied to the local player). Visuals are sprites, cubes
-  and placeholders with nametags (`docs/e0b_entities.png`, a second player
-  on devtest). Meshes and skeletal animation are not drawn yet.
-- In-game data, without an interface to show it. Chat in both directions,
-  HP and breath, HUD elements and flags, the inventory (Luanti's own
-  `Inventory`), inventory and shown formspecs as strings, and item icons
-  through the texture source are parsed and exposed to GDScript. See
-  [docs/protocol-coverage.md](docs/protocol-coverage.md) for the packet by
-  packet list and the `GoannaClient` API.
-- Rendering through Godot's Forward+ pipeline, with SDFGI, SSAO, SSIL, real
-  shadows, fog and AgX tone mapping.
+**If you want to follow along**, the pictures in [docs/](docs/) get updated
+as things land, and `PLAN.md` says where it is heading.
 
-**Not working yet.** This list is longer, and that is the point of showing
-it:
+**If you want to try it**, see below. You will need to build it yourself,
+on Linux, for now.
 
-- Node lighting proper. Luanti's baked vertex lighting is deliberately
-  bypassed at the moment (`g_goanna_no_light` in `src/goanna_mesh_flags.h`),
-  so apart from the point lights above, all light comes from Godot's sun,
-  sky and global illumination. Caves are as bright as the surface.
-  Reconciling Luanti's light data with a physically based renderer is an
-  open design question, not just a missing feature.
-- Transparent nodes are sorted per mapblock, not per triangle as Luanti
-  does, so overlapping water and glass can draw in the wrong order.
-- Entity meshes and skeletal animation, and `NDT_MESH` nodes. Anything with
-  a model is a placeholder box for now.
-- Any in-game user interface. Chat, HUD, inventory and formspecs arrive and
-  are exposed to GDScript, but nothing draws them yet; formspec rendering
-  in particular is a large piece of work. Wield item visuals, node metadata,
-  the death screen. There is a connection menu and nothing else.
-- Inventory actions (`TOSERVER_INVENTORY_ACTION`), sound, particles, the
-  minimap, camera packets, mod channels, client-side mods.
-- Clouds, and the sun, moon and star textures. The sky is a plain gradient.
-- Windows and macOS. Linux only so far, for no better reason than that is
-  where it was written.
-
-What the live client renders today, connected to a Mineclonia server:
-
-![A Mineclonia forest rendered by the live client](docs/e0b_mineclonia_ground.png)
-
-![The same world from above the canopy](docs/e0b_mineclonia_mesher.png)
-
-Those are Luanti's own meshing rules and Luanti's own textures, drawn by
-Godot, over the ordinary protocol. Compare them with the offline study
-further up: the geometry and materials have arrived, and the lighting has
-not, because node light is still bypassed.
-
-The earlier devtest images, for the record, are
-[first light](docs/e0b_first_light.png) with no textures at all,
-[textured](docs/e0b_textured.png), and
-[after walking](docs/e0b_walking.png).
+**If you want to help**, [CONTRIBUTING.md](CONTRIBUTING.md) says what would
+actually be useful right now. Short version: build it on a machine that is
+not the author's and tell us what broke.
 
 ## Trying it
 
-You will need Godot 4.5, a Vulkan capable GPU, a C++17 toolchain, and a
-Luanti server to connect to.
+You need Godot 4.5, a graphics card that can run Vulkan, a C++ toolchain,
+and a Luanti server to connect to.
 
 ```sh
 git clone --recurse-submodules --shallow-submodules \
@@ -183,82 +71,127 @@ git clone --recurse-submodules --shallow-submodules \
 cd goanna
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
 cmake --build build
-
-# Once, so Godot registers the extension. It writes
-# project/.godot/extension_list.cfg, which is gitignored and which a plain
-# run will not create for you. It currently crashes on exit; that is a known
-# bug and the file is written first.
-/path/to/Godot_v4.5.1-stable_linux.x86_64 --headless --editor --quit --path project
 ```
 
-Then start any ordinary Luanti server and run Goanna:
+Then start any ordinary Luanti server and run the project. A menu asks for
+the address, name and password:
 
 ```sh
 luantiserver --gameid devtest --worldname goanna_test --port 30000
-
 /path/to/Godot_v4.5.1-stable_linux.x86_64 --path project
 ```
 
-A small menu asks for the server address, port, player name and password,
-remembers everything but the password, and connects. To skip the menu, give
-the connection details in the environment instead:
+W A S D to walk, mouse to look, space to jump, left and right mouse to dig
+and place, number keys to change item, I for the inventory, T to chat, F for
+a free camera, escape for the pause menu.
 
-```sh
-GOANNA_HOST=127.0.0.1 GOANNA_NAME=goanna GOANNA_PASS=hunter2 \
-  /path/to/Godot_v4.5.1-stable_linux.x86_64 --path project
-```
+There is one extra step the first time, and a couple of known rough edges.
+Full instructions, dependencies for common distributions and a
+troubleshooting list are in **[docs/building.md](docs/building.md)**.
 
-W A S D to walk, mouse to look, space to jump, F for a free camera, escape
-to release the mouse.
+## What works, and what does not
 
-Full instructions, including dependencies for common distributions, the
-environment variables and a troubleshooting list, are in
-**[docs/building.md](docs/building.md)**.
+As at 16 August 2026. Pre-alpha, and moving quickly.
+
+**Works.** Connecting and logging in to ordinary servers. The world itself:
+terrain, plants, water, glass and every other node shape, built by Luanti's
+own rules so nodes look the way the game intended. Walking, jumping,
+sneaking and falling, at the server's speeds. Digging and placing, with the
+right tool timings. The sky, the sun and moon, day and night. Torches and
+other glowing nodes that actually light the room. Nodes appearing and
+disappearing as other players change the world.
+
+And, as of today, an interface: crosshair and hotbar with item icons and
+wear, the health, breath, hunger and experience bars the server sends, chat
+in both directions with history, your inventory and the game's own menus
+drawn from its formspecs, a pause menu and a death screen.
+
+**Does not work.** Moving items between inventory slots, so no crafting.
+Models, so players, mobs and dropped items are placeholder boxes and model
+nodes are missing. Underground lighting, so caves are as bright as the
+surface. Sound. Particles. Clouds. Windows and macOS.
+
+| Torches at midnight | Mineclonia through the day | Water and leaves |
+| --- | --- | --- |
+| ![Glowing nodes lighting the ground around them](docs/e0b_torches_night.png) | ![The same scene at four times of day](docs/e0b_time_of_day.png) | ![Water, waving leaves and glass materials](docs/e0b_materials_day.png) |
+
+More, including [players and mobs as placeholders](docs/e0b_entities.png),
+[the view over a Mineclonia canopy](docs/e0b_mineclonia_mesher.png) and the
+[lighting comparison sheet](docs/e0a_contact_sheet.png), are in
+[docs/](docs/).
+
+A packet by packet breakdown, for the curious, is in
+[docs/protocol-coverage.md](docs/protocol-coverage.md).
+
+## Is it official? Is it cheating?
+
+Neither.
+
+> Goanna is an independent project. It is not affiliated with, endorsed by
+> or supported by the Luanti project. The name "Luanti" is used here only to
+> identify the software Goanna interoperates with.
+
+On cheating, the boundaries are permanent rather than a current limitation.
+Goanna asks a server for nothing that Luanti's own client does not ask for,
+and shows you nothing the server did not send. No seeing through walls, no
+extra reach, no automation, no peering through darkness the game meant you
+not to see. It does not modify servers, does not need a mod, and does not
+ship a game of its own. Anything that would give a Goanna player an
+advantage over anyone else is out of scope for good.
+
+That matters because "alt client" has usually meant "cheat client" around
+here, and this one is not going to blur the line.
+
+---
+
+# For developers
 
 ## How it works
 
-Luanti's client is not as entangled with its renderer as it looks. Outside
-`src/client` and `src/gui`, the engine barely touches Irrlicht at all. That
+Luanti's client is less tangled up in its renderer than it looks. Outside
+`src/client` and `src/gui`, the engine barely touches Irrlicht at all, which
 makes a transplant plausible where a rewrite would not be.
 
-So Goanna takes Luanti's client logic, the networking, world handling,
-movement prediction, node meshing rules and formspec parsing, and replaces
-only what Irrlicht used to provide: rendering, GUI widgets, mesh loading,
-input and the window. Parity with vanilla movement and formspecs is not
-something Goanna has to chase, because it is the same code.
+So Goanna carries Luanti's client logic across, the networking, world
+handling, movement prediction and node meshing rules, and replaces only what
+Irrlicht used to provide: rendering, widgets, model loading, input and the
+window. Parity with vanilla movement is not something Goanna has to chase,
+because it is running the same code.
 
-In practice that means three tiers:
+That happens in three tiers:
 
 1. **Compiled from the submodule, untouched.** The network layer,
-   serialisation, node and item definitions, MapBlock and Map, inventory and
-   metadata, the SRP stack. About fifty files, listed in
-   `cmake/luanti_core.cmake`, compiled into a static library and linked with
-   `--no-undefined`.
-2. **Copied into `src/transplant/`, minimally changed.** Only files that
-   cannot compile as they are, because they reach for the Irrlicht renderer
-   or for a `Client` that Goanna does not have. Each keeps its upstream
-   copyright header, gains a note saying what changed, and is listed in an
-   inventory table.
-3. **Goanna's own code.** The Godot side: meshes, materials, textures, the
-   session thread, the extension entry point.
+   serialisation, node and item definitions, MapBlock and Map, inventory,
+   the SRP stack. About fifty files, listed in `cmake/luanti_core.cmake`.
+2. **Copied into `src/transplant/`, changed as little as the compiler
+   allows.** Only files that cannot build as they are. Each keeps its
+   upstream copyright header, gains a note saying what changed, and appears
+   in an inventory table.
+3. **Goanna's own code.** The Godot side, plus the session thread.
 
-The rule is that tier 2 stays as small as possible, because tier 2 is what
-has to be re-applied at every Luanti release. The discipline, the inventory
-and the upstream tracking procedure are in
+Tier 2 is kept deliberately small, because tier 2 is what has to be
+re-applied at every Luanti release. The rules, the inventory and the
+upstream tracking procedure are in
 **[docs/transplanting.md](docs/transplanting.md)**.
+
+Goanna does not fork Luanti and there is no patch queue against the engine.
+`luanti/` is a submodule pinned to a release tag, currently 5.16.1.
 
 ## Where it is going
 
-`PLAN.md` has the full plan and the reasoning behind it. The short version
-is a compatibility ladder:
+`PLAN.md` has the full plan. The short version is a compatibility ladder:
 
-1. A plain game and devtest: mapblocks, movement, basic nodes. **In
+1. A plain game and devtest: nodes, movement, basic interaction. **In
    progress.**
 2. minetest_game, the classic baseline.
-3. Mineclonia and VoxeLibre: B3D models, the full formspec corner case zoo,
+3. Mineclonia and VoxeLibre: models, the full formspec corner case zoo,
    particles, attachments. This is the bar for being usable by the
    community, and the games people actually play.
 4. Server sent client side modding, mirroring upstream when it lands.
+
+The largest single piece of work between here and rung 3 is model loading
+and skeletal animation, which is what stands between placeholder boxes and
+recognisable players, mobs and node models.
 
 ## Contributing
 
@@ -285,13 +218,10 @@ and no copyright assignment.
 
 The built extension also links mini-gmp, which is LGPL-3.0-or-later or
 GPL-2.0-or-later, so a distributed binary is effectively LGPL-3.0-or-later.
-That is the same combination upstream Luanti's own builds contain.
-godot-cpp is MIT. The full accounting, including the acknowledgements that
-binary distribution requires, is in
-**[THIRD-PARTY.md](THIRD-PARTY.md)**.
-
-Screenshots show media from Luanti's Development Test game and from
-Mineclonia, which are covered by their own licences. See THIRD-PARTY.md.
+That is the same combination upstream Luanti's own builds contain. godot-cpp
+is MIT. The full accounting, including the acknowledgements that binary
+distribution requires and the licences on the game media in these
+screenshots, is in **[THIRD-PARTY.md](THIRD-PARTY.md)**.
 
 ## Credit
 

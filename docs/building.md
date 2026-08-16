@@ -230,12 +230,19 @@ first place to look.
 | --- | --- |
 | W A S D | Walk |
 | Mouse | Look |
+| Left mouse | Dig the pointed node, held down |
+| Right mouse | Place the wielded item |
+| 1 to 8 | Choose the wielded item |
+| Mouse wheel | Cycle the wielded item |
+| I | Open and close the inventory |
+| T | Open chat |
+| / | Open chat with a command already started |
+| Escape | Pause menu: continue, disconnect to the menu, or quit |
 | Space | Jump, or ascend while flying |
 | Shift | Sneak, or descend while flying |
 | E | Aux1, which is fast movement if the server grants it |
 | F | Toggle between walking and a free flying camera |
 | Ctrl | Move faster, while flying |
-| Escape | Release or recapture the mouse |
 
 Walking uses Luanti's own `LocalPlayer` and collision code, so speeds,
 gravity, step height and sneak behaviour are the server's, not an
@@ -258,6 +265,7 @@ features.
 | `GOANNA_WALKTEST=1` | Drive the movement controls from a script rather than the keyboard. With `GOANNA_SHOT`, saves two frames mid walk. |
 | `GOANNA_VIEW="name:x,y,z:pitch,yaw;..."` | With `GOANNA_SHOT`, replaces the three fixed viewpoints. Positions are relative to the spawn eye position, or absolute with a leading `@`. |
 | `GOANNA_MENU_SHOT=<file.png>` | Render the connection menu once, save it, quit. |
+| `GOANNA_UI_SHOT=<directory>` | Save the HUD, inventory, chat and pause menu at fixed times. |
 | `GOANNA_MENU_TEST="host:port:name:pass"` | Fill the menu and press Connect, to exercise the menu to game hand-over. Combine with `GOANNA_MENU=1` if a skip variable such as `GOANNA_SMOKE` is also set. |
 
 A minimal check that everything still works, end to end:

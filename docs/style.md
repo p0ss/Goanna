@@ -120,7 +120,7 @@ look like an outsider.
 | --- | --- |
 | Luanti | The engine and project. Use this name, not Minetest. |
 | Minetest | Only in historical context, for example a pre 2024 release or an old URL. |
-| node | One cube of world content. Not "block", not "voxel". |
+| node | One cube of world content. Not "block", not "voxel". In player facing text, gloss it once on first use ("the cubes a world is made of, which Luanti calls nodes") and then use "node" throughout. Do not switch to "block": it collides with "mapblock". |
 | mapblock | A 16x16x16 volume of nodes, the unit the server sends. |
 | game | A Luanti game, for example Mineclonia, VoxeLibre, minetest_game. |
 | mod | A Luanti mod. Not "plugin", not "addon". |
