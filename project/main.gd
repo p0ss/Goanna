@@ -9,6 +9,8 @@ var yaw := 0.0
 var pitch := 0.0
 var speed := 12.0
 var shots_done := false
+var fly_mode := false
+var walk_started := false
 
 func _ready() -> void:
 	client = GoannaClient.new()
@@ -77,6 +79,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		pitch = clamp(pitch - event.relative.y * 0.15, -89, 89)
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
 		Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE if Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED else Input.MOUSE_MODE_CAPTURED)
+	if event is InputEventKey and event.pressed and event.keycode == KEY_F:
+		fly_mode = not fly_mode
+		print("fly mode: ", fly_mode)
 
 func _process(delta: float) -> void:
 	t += delta
@@ -86,7 +91,20 @@ func _process(delta: float) -> void:
 		cam.position = p + Vector3(0, 1.6, 0)
 		placed = true
 		print("camera placed at ", cam.position)
-	if placed:
+	if placed and not fly_mode:
+		var keys := {
+			"up": Input.is_key_pressed(KEY_W), "down": Input.is_key_pressed(KEY_S),
+			"left": Input.is_key_pressed(KEY_A), "right": Input.is_key_pressed(KEY_D),
+			"jump": Input.is_key_pressed(KEY_SPACE), "sneak": Input.is_key_pressed(KEY_SHIFT),
+			"aux1": Input.is_key_pressed(KEY_E),
+		}
+		if OS.get_environment("GOANNA_WALKTEST") != "":
+			keys = _walktest_keys()
+		var r: Dictionary = client.step_player(delta, keys, pitch, yaw)
+		if r.has("eye_pos"):
+			cam.position = r["eye_pos"]
+			cam.rotation_degrees = Vector3(pitch, yaw, 0)
+	elif placed:
 		# fly controls
 		var dir := Vector3.ZERO
 		var basis := Basis.from_euler(Vector3(deg_to_rad(pitch), deg_to_rad(yaw), 0))
@@ -103,10 +121,25 @@ func _process(delta: float) -> void:
 	client.poll_blocks(24)
 	if t - last_print >= 1.0:
 		last_print = t
-		print("[%5.1fs] %s | %s | media %d/%d | blocks recv %d meshed %d | mats %d | cam %s" % [
+		var extra := ""
+		if placed and not fly_mode:
+			var r: Dictionary = client.step_player(0.0, {}, pitch, yaw)
+			extra = " | player %s ground=%s speed=%s g=%s free=%s climb=%s" % [str(r.get("pos", Vector3())), str(r.get("on_ground", false)), str(r.get("speed", Vector3())), str(r.get("gravity", 0)), str(r.get("free_move", false)), str(r.get("climbing", false))]
+		print("[%5.1fs] %s | %s | media %d/%d | blocks recv %d meshed %d | mats %d%s" % [
 			t, s.get("state"), s.get("message"), s.get("media_received", 0), s.get("media_announced", 0),
-			s.get("blocks_received", 0), s.get("blocks_meshed", 0), s.get("materials", 0), str(cam.position)])
+			s.get("blocks_received", 0), s.get("blocks_meshed", 0), s.get("materials", 0), extra])
 	var shot := OS.get_environment("GOANNA_SHOT")
+	if shot != "" and OS.get_environment("GOANNA_WALKTEST") != "":
+		if (absf(t - 5.0) < delta * 0.6) or (absf(t - 9.5) < delta * 0.6):
+			await RenderingServer.frame_post_draw
+			var img := get_viewport().get_texture().get_image()
+			var path: String = shot.path_join("walk_%d.png" % int(round(t)))
+			img.save_png(path)
+			print("saved ", path)
+		if t > 11.0:
+			client.disconnect_from_server()
+			get_tree().quit()
+		return
 	if shot != "" and not shots_done and t > 8.0:
 		shots_done = true
 		await _shots(shot)
@@ -116,6 +149,11 @@ func _process(delta: float) -> void:
 	if limit > 0.0 and t > limit:
 		client.disconnect_from_server()
 		get_tree().quit()
+
+func _walktest_keys() -> Dictionary:
+	var hold_w := t > 4.0 and t < 9.0
+	return {"up": hold_w, "down": false, "left": false, "right": false,
+		"jump": t > 6.0 and t < 6.3, "sneak": false, "aux1": false}
 
 func _shots(dir: String) -> void:
 	var base := cam.position

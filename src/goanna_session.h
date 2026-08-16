@@ -21,11 +21,13 @@
 #include "network/peerhandler.h" // must precede connection.h (PeerHandler lookup)
 #include "network/connection.h"
 #include "network/networkprotocol.h"
+#include "goanna_map.h"
 
 class NodeDefManager;
 class IWritableItemDefManager;
 class MapBlock;
 class NetworkPacket;
+class LocalPlayer;
 struct SRPUser;
 
 namespace goanna {
@@ -79,6 +81,16 @@ public:
     MapBlock *getBlock(v3s16 pos);
     std::mutex &mapLock() { return m_map_mutex; }
     const NodeDefManager *nodeDefs() const { return m_nodedef; }
+    GoannaMap &map() { return *m_map; }
+
+    // The local player (Luanti's LocalPlayer, transplanted). Positions in
+    // BS units as in Luanti. Caller holds mapLock() while stepping.
+    LocalPlayer *player() { return m_player.get(); }
+    // Server-set pose consumed by the controller (true once after MOVE_PLAYER).
+    bool takeServerMove(v3f &pos_bs, float &pitch, float &yaw);
+    // Advance the local player: transplanted from ClientEnvironment::step
+    // (sub-stepping, gravity, liquid resistance). Caller holds mapLock().
+    void stepPlayer(float dtime);
 
     // Player pose as the client will report it to the server (position in nodes).
     void setPlayerPose(v3f pos_nodes, float pitch_deg, float yaw_deg);
@@ -131,6 +143,8 @@ private:
     void requestMedia(const std::vector<std::string> &names);
     void onBlockData(NetworkPacket &pkt);
     void onMovePlayer(NetworkPacket &pkt);
+    void onMovement(NetworkPacket &pkt);
+    void onPrivileges(NetworkPacket &pkt);
     void onTimeOfDay(NetworkPacket &pkt);
 
     std::string m_host;
@@ -145,7 +159,11 @@ private:
     SessionStats m_stats;
 
     std::mutex m_map_mutex;
-    std::map<v3s16, std::unique_ptr<MapBlock>> m_blocks;
+    std::unique_ptr<GoannaMap> m_map;
+    std::unique_ptr<LocalPlayer> m_player;
+    bool m_server_move_pending = false;
+    v3f m_server_move_pos;
+    float m_server_move_pitch = 0, m_server_move_yaw = 0;
     std::vector<v3s16> m_new_blocks;
     std::vector<v3s16> m_ack_blocks;
 

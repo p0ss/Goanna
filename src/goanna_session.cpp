@@ -1,6 +1,9 @@
 #include "goanna_session.h"
 
+#include "transplant/localplayer.h"
+
 #include <chrono>
+#include <cmath>
 #include <set>
 #include <cstring>
 #include <sstream>
@@ -58,6 +61,11 @@ static void ensureSettings() {
     defaults->setDefault("time_speed", "72");
     defaults->setDefault("anticheat_flags", "");
     defaults->setDefault("debug_log_level", "action");
+    // PlayerSettings (transplanted LocalPlayer) reads these.
+    for (const char *k : {"free_move", "pitch_move", "fast_move", "continuous_forward",
+                 "always_fly_fast", "aux1_descends", "noclip", "autojump"})
+        defaults->setDefault(k, "false");
+    defaults->setDefault("movement_speed_walk", "4.0");
     g_settings = Settings::createLayer(SL_GLOBAL);
     sockets_init();
 }
@@ -66,6 +74,7 @@ GoannaSession::GoannaSession() {
     ensureSettings();
     m_nodedef = createNodeDefManager();
     m_itemdef = createItemDefManager();
+    m_map = std::make_unique<GoannaMap>(this);
 }
 
 GoannaSession::~GoannaSession() {
@@ -83,6 +92,7 @@ void GoannaSession::start(const std::string &host, uint16_t port, const std::str
     m_port = port;
     m_name = player_name;
     m_password = password;
+    m_player = std::make_unique<LocalPlayer>(this, player_name);
     m_running = true;
     m_thread = std::thread(&GoannaSession::threadMain, this);
 }
@@ -114,8 +124,88 @@ void GoannaSession::requeueBlock(v3s16 pos) {
 }
 
 MapBlock *GoannaSession::getBlock(v3s16 pos) {
-    auto it = m_blocks.find(pos);
-    return it == m_blocks.end() ? nullptr : it->second.get();
+    return m_map->getBlockNoCreateNoEx(pos);
+}
+
+// Transplanted from luanti/src/client/clientenvironment.cpp,
+// ClientEnvironment::step (LGPL-2.1-or-later): the local-player part only.
+// Fall damage is left out until HP is wired.
+void GoannaSession::stepPlayer(float dtime) {
+    LocalPlayer *lplayer = m_player.get();
+    if (!lplayer)
+        return;
+    bool fly_allowed = lplayer->privileges.fly;
+    bool free_move = fly_allowed && g_settings->getBool("free_move");
+    Map *map = m_map.get();
+
+    bool is_climbing = lplayer->is_climbing;
+    f32 player_speed = lplayer->getSpeed().getLength();
+
+    // Maximum position increment
+    f32 position_max_increment = 0.1 * BS;
+    // Maximum time increment (for collision detection etc)
+    f32 dtime_max_increment = 1;
+    if (player_speed > 0.001)
+        dtime_max_increment = position_max_increment / player_speed;
+    // Maximum time increment is 10ms or lower
+    if (dtime_max_increment > 0.01)
+        dtime_max_increment = 0.01;
+    // Don't allow overly huge dtime
+    if (dtime > DTIME_LIMIT)
+        dtime = DTIME_LIMIT;
+
+    u32 steps = std::ceil(dtime / dtime_max_increment);
+    f32 dtime_part = dtime / steps;
+    for (; steps > 0; --steps) {
+        lplayer->applyControl(dtime_part, map);
+
+        lplayer->gravity = 0;
+        if (!free_move) {
+            if (!is_climbing && !lplayer->in_liquid)
+                // HACK the factor 2 for gravity is arbitrary and should be removed eventually
+                lplayer->gravity = 2 * lplayer->movement_gravity * lplayer->physics_override.gravity;
+
+            if (!is_climbing && lplayer->in_liquid && !lplayer->swimming_vertical &&
+                    !lplayer->swimming_pitch)
+                lplayer->gravity = 2 * lplayer->movement_liquid_sink * lplayer->physics_override.liquid_sink;
+
+            if (lplayer->move_resistance > 0) {
+                v3f speed = lplayer->getSpeed();
+                static const f32 resistance_factor = 0.3f;
+                float fluidity = lplayer->movement_liquid_fluidity;
+                fluidity *= MYMAX(1.0f, lplayer->physics_override.liquid_fluidity);
+                fluidity = MYMAX(0.001f, fluidity);
+                float fluidity_smooth = lplayer->movement_liquid_fluidity_smooth;
+                fluidity_smooth *= lplayer->physics_override.liquid_fluidity_smooth;
+                fluidity_smooth = MYMAX(0.0f, fluidity_smooth);
+                v3f d_wanted;
+                bool in_liquid_stable = lplayer->in_liquid_stable || lplayer->in_liquid;
+                if (in_liquid_stable)
+                    d_wanted = -speed / fluidity;
+                else
+                    d_wanted = -speed / BS;
+                f32 dl = d_wanted.getLength();
+                if (in_liquid_stable)
+                    dl = MYMIN(dl, fluidity_smooth);
+                dl *= (lplayer->move_resistance * resistance_factor) + (1 - resistance_factor);
+                v3f d = d_wanted.normalize() * (dl * dtime_part * 100.0f);
+                speed += d;
+                lplayer->setSpeed(speed);
+            }
+        }
+        lplayer->move(dtime_part, map);
+    }
+}
+
+bool GoannaSession::takeServerMove(v3f &pos_bs, float &pitch, float &yaw) {
+    std::lock_guard<std::mutex> lk(m_pose_mutex);
+    if (!m_server_move_pending)
+        return false;
+    m_server_move_pending = false;
+    pos_bs = m_server_move_pos;
+    pitch = m_server_move_pitch;
+    yaw = m_server_move_yaw;
+    return true;
 }
 
 void GoannaSession::setPlayerPose(v3f pos_nodes, float pitch_deg, float yaw_deg) {
@@ -142,7 +232,8 @@ void GoannaSession::peerAdded(con::IPeer *peer) {
 
 void GoannaSession::deletingPeer(con::IPeer *peer, bool timeout) {
     infostream << "goanna: peer removed " << peer->id << (timeout ? " (timeout)" : "") << std::endl;
-    setState(SessionState::Disconnected, timeout ? "connection timed out" : "server closed connection");
+    if (stats().state != SessionState::Denied)
+        setState(SessionState::Disconnected, timeout ? "connection timed out" : "server closed connection");
     m_running = false;
 }
 
@@ -378,6 +469,8 @@ void GoannaSession::handle(NetworkPacket &pkt) {
     case TOCLIENT_MEDIA: onMedia(pkt); break;
     case TOCLIENT_BLOCKDATA: onBlockData(pkt); break;
     case TOCLIENT_MOVE_PLAYER: onMovePlayer(pkt); break;
+    case TOCLIENT_MOVEMENT: onMovement(pkt); break;
+    case TOCLIENT_PRIVILEGES: onPrivileges(pkt); break;
     case TOCLIENT_TIME_OF_DAY: onTimeOfDay(pkt); break;
     default:
         break; // everything else is ignored at this stage
@@ -598,15 +691,10 @@ void GoannaSession::onBlockData(NetworkPacket &pkt) {
     u8 ser_ver = stats().ser_ver;
 
     std::lock_guard<std::mutex> lk(m_map_mutex);
-    auto it = m_blocks.find(p);
-    MapBlock *block;
-    if (it == m_blocks.end()) {
-        auto nb = std::make_unique<MapBlock>(p, this);
-        block = nb.get();
-        m_blocks[p] = std::move(nb);
-    } else {
-        block = it->second.get();
-    }
+    MapSector *sector = m_map->emergeSector(v2s16(p.X, p.Z));
+    MapBlock *block = sector->getBlockNoCreateNoEx(p.Y);
+    if (!block)
+        block = sector->createBlankBlock(p.Y);
     block->deSerialize(istr, ser_ver, false);
     block->deSerializeNetworkSpecific(istr);
     m_new_blocks.push_back(p);
@@ -627,9 +715,57 @@ void GoannaSession::onMovePlayer(NetworkPacket &pkt) {
         m_stats.player_pitch = pitch;
         m_stats.player_yaw = yaw;
     }
+    {
+        std::lock_guard<std::mutex> lk(m_pose_mutex);
+        m_server_move_pending = true;
+        m_server_move_pos = pos;
+        m_server_move_pitch = pitch;
+        m_server_move_yaw = yaw;
+    }
     setPlayerPose(pos / BS, pitch, yaw);
     infostream << "goanna: MOVE_PLAYER to " << (pos / BS).X << "," << (pos / BS).Y << ","
                << (pos / BS).Z << std::endl;
+}
+
+void GoannaSession::onMovement(NetworkPacket &pkt) {
+    if (!m_player)
+        return;
+    f32 mad, maa, maf, msw, mscr, msf, mscl, msj, lf, lfs, ls, g;
+    pkt >> mad >> maa >> maf >> msw >> mscr >> msf >> mscl >> msj >> lf >> lfs >> ls >> g;
+    std::lock_guard<std::mutex> lk(m_map_mutex);
+    LocalPlayer *p = m_player.get();
+    p->movement_acceleration_default   = mad * BS;
+    p->movement_acceleration_air       = maa * BS;
+    p->movement_acceleration_fast      = maf * BS;
+    p->movement_speed_walk             = msw * BS;
+    p->movement_speed_crouch           = mscr * BS;
+    p->movement_speed_fast             = msf * BS;
+    p->movement_speed_climb            = mscl * BS;
+    p->movement_speed_jump             = msj * BS;
+    p->movement_liquid_fluidity        = lf * BS;
+    p->movement_liquid_fluidity_smooth = lfs * BS;
+    p->movement_liquid_sink            = ls * BS;
+    p->movement_gravity                = g * BS;
+    infostream << "goanna: movement params received (walk " << msw << ", jump " << msj
+               << ", gravity " << g << ")" << std::endl;
+}
+
+void GoannaSession::onPrivileges(NetworkPacket &pkt) {
+    u16 n;
+    pkt >> n;
+    LocalPlayer::Privileges privs;
+    for (u16 i = 0; i < n; ++i) {
+        std::string priv;
+        pkt >> priv;
+        if (priv == "fly") privs.fly = true;
+        else if (priv == "fast") privs.fast = true;
+        else if (priv == "noclip") privs.noclip = true;
+    }
+    std::lock_guard<std::mutex> lk(m_map_mutex);
+    if (m_player)
+        m_player->privileges = privs;
+    infostream << "goanna: privileges: fly=" << privs.fly << " fast=" << privs.fast
+               << " noclip=" << privs.noclip << std::endl;
 }
 
 void GoannaSession::onTimeOfDay(NetworkPacket &pkt) {

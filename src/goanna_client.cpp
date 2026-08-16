@@ -11,6 +11,7 @@
 
 #include "goanna_mesher.h"
 #include "goanna_session.h"
+#include "transplant/localplayer.h"
 #include "mapblock.h"
 #include "version.h"
 
@@ -74,6 +75,53 @@ void GoannaClient::set_player_pose(const Vector3 &pos, float pitch_deg, float ya
     if (!m_session)
         return;
     m_session->setPlayerPose(v3f(pos.x, pos.y, -pos.z), pitch_deg, yaw_deg);
+}
+
+Dictionary GoannaClient::step_player(double dt, const Dictionary &keys, float pitch_deg, float yaw_deg) {
+    Dictionary out;
+    if (!m_session)
+        return out;
+    LocalPlayer *p = m_session->player();
+    if (!p)
+        return out;
+    std::lock_guard<std::mutex> lk(m_session->mapLock());
+    v3f spos;
+    float spitch, syaw;
+    if (m_session->takeServerMove(spos, spitch, syaw)) {
+        p->setPosition(spos);
+        p->setSpeed(v3f(0, 0, 0));
+    }
+    // Luanti: pitch positive = looking down; yaw matches Godot after z-mirror.
+    PlayerControl &c = p->control;
+    c.direction_keys = ((bool)keys.get("up", false) & 1) | (((bool)keys.get("down", false) & 1) << 1) |
+            (((bool)keys.get("left", false) & 1) << 2) | (((bool)keys.get("right", false) & 1) << 3);
+    c.jump = keys.get("jump", false);
+    c.sneak = keys.get("sneak", false);
+    c.aux1 = keys.get("aux1", false);
+    c.pitch = -pitch_deg;
+    c.yaw = yaw_deg;
+    c.setMovementFromKeys();
+
+    if (dt > 0.1) dt = 0.1;
+    if (dt > 0)
+        m_session->stepPlayer((float)dt);
+
+    v3f pos = p->getPosition();
+    v3f eye = pos + p->getEyeOffset();
+    // report to server (nodes)
+    m_session->setPlayerPose(pos / BS, p->getPitch(), p->getYaw());
+    out["pos"] = Vector3(pos.X / BS, pos.Y / BS, -pos.Z / BS);
+    out["eye_pos"] = Vector3(eye.X / BS, eye.Y / BS, -eye.Z / BS);
+    out["pitch"] = -p->getPitch();
+    out["yaw"] = p->getYaw();
+    out["on_ground"] = p->touching_ground;
+    out["in_liquid"] = p->in_liquid;
+    v3f sp = p->getSpeed();
+    out["speed"] = Vector3(sp.X / BS, sp.Y / BS, -sp.Z / BS);
+    out["gravity"] = p->movement_gravity / BS;
+    out["free_move"] = p->getPlayerSettings().free_move;
+    out["climbing"] = p->is_climbing;
+    return out;
 }
 
 int GoannaClient::poll_blocks(int max_blocks) {
@@ -156,6 +204,7 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("set_player_pose", "pos", "pitch_deg", "yaw_deg"),
             &GoannaClient::set_player_pose);
     ClassDB::bind_method(D_METHOD("server_player_position"), &GoannaClient::server_player_position);
+    ClassDB::bind_method(D_METHOD("step_player", "dt", "keys", "pitch_deg", "yaw_deg"), &GoannaClient::step_player);
 }
 
 } // namespace goanna

@@ -101,9 +101,26 @@ Sizing, by what happens to those ~57k lines:
   A naive culled-cube mesher turns blocks into one `MeshInstance3D` each,
   vertex-coloured by node type; a fly camera feeds its pose back so the
   server streams around it. Rendered with SDFGI/SSAO/shadows/fog: see
-  `docs/e0b_first_light.png`. Remaining for E0b proper: media fetch (real
-  textures), port `content_mapblock` (all drawtypes), `LocalPlayer` physics
-  (walking, not flying), `RenderingServer` instances instead of nodes.
+  `docs/e0b_first_light.png`.
+  **Stage 3 (2026-08-16): media and movement.** Media announce → request →
+  receive with zstd, CLIENT_READY held until all files arrive (443 files in
+  ~1 s on devtest); a material cache turns received PNGs into
+  nearest-filtered PBR materials with alpha scissor/blend from the node's
+  alpha mode and first-frame handling for animated tiles; the mesher groups
+  faces by tile into surfaces with correct UV orientation and node-colour
+  tint (`docs/e0b_textured.png`). Movement: `collision.cpp` and
+  `localplayer.cpp` transplanted nearly verbatim (Environment* → Map*,
+  Client → IGameDef + privilege flags, CAO/event hooks removed, legacy
+  old_move dropped) plus the local-player part of
+  `ClientEnvironment::step` (sub-stepping, gravity, liquid resistance) as
+  `GoannaSession::stepPlayer`; the session owns a real Luanti `Map`
+  (`GoannaMap`) and a `LocalPlayer`, MOVEMENT and PRIVILEGES packets are
+  applied, MOVE_PLAYER teleports. Result: falls, lands, walks at the
+  server's speed, jumps, steps up blocks — Luanti's own physics inside Godot
+  (`docs/e0b_walking.png`). Auth verified: register with password, SRP
+  re-login, wrong password denied by the server. Remaining for E0b proper:
+  port `content_mapblock` (all drawtypes), node add/remove updates, texture
+  modifiers, `RenderingServer` instances instead of nodes, entities.
   Findings so far: the tangle in `src/client` is avoidable — the pieces
   below `Client` separate cleanly, so the transplant is "build Goanna's
   client on Luanti's real network/world layer", not "trim `Client`";
