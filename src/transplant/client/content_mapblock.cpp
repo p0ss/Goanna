@@ -717,8 +717,15 @@ void MapblockMeshGenerator::drawSolidNode()
 	if (g_goanna_bevel > 0.0f && cur_node.f->drawtype == NDT_NORMAL) {
 		int mode = 0; // 1 = horizontal edges, 2 = vertical, 3 = both
 		const auto &groups = cur_node.f->groups;
+		const std::string &nm = cur_node.f->name;
+		auto named = [&](const char *sub) { return nm.find(sub) != std::string::npos; };
 		if (itemgroup_get(groups, "tree") > 0)
 			mode = 2;
+		else if (itemgroup_get(groups, "leaves") > 0 || named("mushroom_block") ||
+				named("mushroom_stem") || named("huge_mushroom"))
+			mode = 3;
+		else if (named("mycelium"))
+			mode = 1;
 		else if (itemgroup_get(groups, "falling_node") > 0 ||
 				itemgroup_get(groups, "snowy") > 0 || itemgroup_get(groups, "snow") > 0)
 			mode = 3;
@@ -737,8 +744,13 @@ void MapblockMeshGenerator::drawSolidNode()
 			auto solid_at = [&](v3s16 rel) {
 				MapNode dn = data->m_vmanip.getNodeNoEx(blockpos_nodes + cur_node.p + rel);
 				content_t dc = dn.getContent();
-				return dc != CONTENT_AIR && dc != CONTENT_IGNORE &&
-						nodedef->get(dn).visuals->solidness == 2;
+				if (dc == CONTENT_AIR || dc == CONTENT_IGNORE)
+					return false;
+				const ContentFeatures &df = nodedef->get(dn);
+				// Liquids count as blocking for bevelling: water is drawn as a
+				// full cube, so chamfering the land it meets opens a wedge gap
+				// along the shoreline.
+				return df.visuals->solidness == 2 || df.isLiquid();
 			};
 			u16 diag_open = 0;
 			for (int e = 0; e < 12; ++e)

@@ -45,12 +45,23 @@ void fragment() {
 	// Ripple as a normal perturbation only: two crossing wave trains in world
 	// space, so neighbouring blocks agree along their shared edges.
 	if (waving) {
+		// Three wave trains at non-harmonic frequencies and unrelated
+		// directions: a single pair repeats visibly over open water, and its
+		// regular interference is what shows as moire from underneath.
 		float k = 6.2831853 / wave_length;
-		float a = world_pos.x * k + TIME * wave_speed;
-		float b = (world_pos.z * 0.86 + world_pos.x * 0.5) * k * 1.3 - TIME * wave_speed * 0.8;
-		vec3 n = normalize(vec3(cos(a) * 0.12 + cos(b) * 0.07, 1.0,
-				cos(b) * 0.12 + cos(a * 1.3) * 0.05));
-		NORMAL = normalize(mix(NORMAL, (VIEW_MATRIX * vec4(n, 0.0)).xyz, wave_strength));
+		vec2 p = world_pos.xz;
+		float t = TIME * wave_speed;
+		vec3 n = vec3(0.0, 1.0, 0.0);
+		n.xz += 0.10 * vec2(cos(dot(p, vec2(1.00, 0.35)) * k + t),
+				sin(dot(p, vec2(0.35, 1.00)) * k + t * 0.9));
+		n.xz += 0.06 * vec2(cos(dot(p, vec2(-0.70, 1.00)) * k * 1.73 - t * 1.3),
+				sin(dot(p, vec2(1.00, -0.60)) * k * 1.73 - t * 1.1));
+		n.xz += 0.035 * vec2(cos(dot(p, vec2(0.50, 0.90)) * k * 3.11 + t * 1.7),
+				sin(dot(p, vec2(-0.90, 0.50)) * k * 2.87 + t * 1.5));
+		// Seen from below the surface is a mirror at grazing angles, where
+		// fine normal detail aliases badly, so soften it there.
+		float detail = FRONT_FACING ? wave_strength : wave_strength * 0.35;
+		NORMAL = normalize(mix(NORMAL, (VIEW_MATRIX * vec4(normalize(n), 0.0)).xyz, detail));
 	}
 	if (!FRONT_FACING)
 		NORMAL = -NORMAL;
@@ -79,5 +90,6 @@ void fragment() {
 	ALPHA = clamp(0.9 + 0.1 * fres, 0.0, 1.0);
 	METALLIC = 0.15;
 	SPECULAR = 0.4 + 0.6 * fres;
-	ROUGHNESS = 0.03;
+	// a touch rougher from below, again to stop the mirror aliasing
+	ROUGHNESS = FRONT_FACING ? 0.04 : 0.13;
 }
