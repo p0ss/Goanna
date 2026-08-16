@@ -16,6 +16,7 @@
 
 #include "goanna_entities.h"
 #include "irrlichttypes_bloated.h"
+#include <SMaterial.h>
 
 class MapBlock;
 
@@ -25,6 +26,17 @@ class GoannaSession;
 
 // Root node of a Goanna session. Owns the transplanted Luanti client and
 // feeds what it produces (mapblock meshes, player pose) into the scene.
+// What a world material is keyed on: Luanti texture id, Goanna shader id
+// (which carries Luanti's material type) and culling.
+struct MaterialKey {
+    u32 texture_id = 0;
+    u32 shader_id = 0;
+    bool backface_culling = true;
+    uint64_t hash() const {
+        return ((uint64_t)texture_id << 24) | ((uint64_t)(shader_id & 0xffff) << 1) | (backface_culling ? 1 : 0);
+    }
+};
+
 class GoannaClient : public godot::Node3D {
     GDCLASS(GoannaClient, godot::Node3D)
 
@@ -98,6 +110,11 @@ public:
     // Texture (ImageTexture) for a Luanti texture string (item icons, HUD images);
     // null if unavailable. Goes through the texture-modifier DSL.
     godot::Ref<godot::Texture2D> texture(const godot::String &name);
+    // Inventory icon for an item name: its inventory_image texture if it has
+    // one (tools, most items), else the item's own texture; null if unknown.
+    // Node items without an inventory image return null (the UI keeps its
+    // coloured-tile placeholder; a rendered node icon needs an offscreen pass).
+    godot::Ref<godot::Texture2D> item_icon(const godot::String &item_name);
     // Formspecs
     godot::String inventory_formspec() const;
     godot::Array take_shown_formspecs(); // [{formspec, formname}]
@@ -109,11 +126,15 @@ public:
 
     godot::Dictionary step_player(double dt, const godot::Dictionary &keys, float pitch_deg, float yaw_deg);
 
+    // World materials (shared by mapblocks and item entities): by key, or
+    // straight from a Luanti SMaterial as the mesher leaves it.
+    godot::Ref<godot::Material> materialFor(const MaterialKey &key);
+    godot::Ref<godot::Material> materialForIrr(const video::SMaterial &m);
+
 protected:
     static void _bind_methods();
 
 private:
-    godot::Ref<godot::Material> materialFor(const struct MaterialKey &key);
     void harvestLights(v3s16 bp, MapBlock *block);
 
     std::unique_ptr<GoannaSession> m_session;

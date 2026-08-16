@@ -39,6 +39,7 @@ class MapBlock;
 class NetworkPacket;
 class LocalPlayer;
 class Client;
+struct ItemVisualsManager;
 struct SRPUser;
 
 namespace goanna {
@@ -329,6 +330,7 @@ private:
     std::unique_ptr<GoannaTextureSource> m_tsrc;
     GoannaShaderSource m_shsrc;
     std::unique_ptr<ModelCache> m_models;
+    std::unique_ptr<ItemVisualsManager> m_item_visuals;
     std::unique_ptr<Client> m_mesh_client;
     std::map<u32, u8> m_emissive_by_texture;
     std::atomic<bool> m_content_ready{false};

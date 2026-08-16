@@ -14,7 +14,7 @@ transplanted from `Client::handleCommand_*` in
 | ADDNODE / REMOVENODE | done, re-meshes affected blocks | automatic |
 | MOVEMENT / PRIVILEGES / MOVE_PLAYER | done, applied to the transplanted `LocalPlayer` | `step_player(...)` |
 | TIME_OF_DAY (+speed), SET_SKY/SUN/MOON/STARS, CLOUD_PARAMS, SET_LIGHTING, OVERRIDE_DAY_NIGHT_RATIO | done | `sky_state()`, `set_time_of_day_override(t)` |
-| ACTIVE_OBJECT_REMOVE_ADD / ACTIVE_OBJECT_MESSAGES | done (GenericCAO state transplanted); visuals: sprites, cubes, meshes (B3D, X, OBJ, glTF through Luanti's own loaders) with skeletal animation, bone overrides and bone attachments; item and node visuals are still placeholders | `sync_entities(dt)`, `entity_count()`, `entity_positions()`, `entity_list()` |
+| ACTIVE_OBJECT_REMOVE_ADD / ACTIVE_OBJECT_MESSAGES | done (GenericCAO state transplanted); visuals: sprites, cubes, meshes (B3D, X, OBJ, glTF through Luanti's own loaders) with skeletal animation, bone overrides and bone attachments; item and wielditem entities through the transplanted wield mesh; node entity visuals are still placeholders | `sync_entities(dt)`, `entity_count()`, `entity_positions()`, `entity_list()` |
 | CHAT_MESSAGE / TOSERVER_CHAT_MESSAGE | done | `take_chat()`, `send_chat(msg)` |
 | HP / BREATH | done | `hp()`, `breath()` (also in `hud_state()`) |
 | HUDADD / HUDCHANGE / HUDRM / HUD_SET_FLAGS / HUD_SET_PARAM | done, kept as Luanti `HudElement`s | `hud_state()` |
@@ -22,7 +22,7 @@ transplanted from `Client::handleCommand_*` in
 | DETACHED_INVENTORY / NODEMETA_CHANGED (and node metadata in BLOCKDATA) | done | `inventory_state_at("detached:<name>" or "nodemeta:x,y,z")`, `detached_inventory_names()` |
 | death screen (builtin's `__builtin:death` formspec, no dedicated packet since 5.9) | done | `respawn()` |
 | node formspecs (`Game::nodePlacement`: a right-clicked node whose metadata has a `formspec` opens it client-side unless sneaking) / TOSERVER_NODEMETA_FIELDS | done | shown formspecs carry `context: "nodemeta:x,y,z"`; `send_nodemeta_fields(context, formname, fields)`; `step_interact(..., sneak)` |
-| textures for UI (item icons, HUD images) | via the texture-modifier DSL | `texture(name) -> Texture2D` |
+| textures for UI (item icons, HUD images) | via the texture-modifier DSL; item icons resolve an item's inventory_image (node items without one return null, UI keeps its placeholder) | `texture(name) -> Texture2D`, `item_icon(item_name) -> Texture2D` |
 | INTERACT (dig start/stop/completed, place) / PLAYERITEM | done, raycast and dig timing from Luanti's own code | `step_interact(dt, dig, place, place_pressed)`, `set_wield_index(i)` |
 
 NDT_MESH nodes go through the same loaders (`Client::getMesh` on the

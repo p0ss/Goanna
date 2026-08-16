@@ -56,6 +56,7 @@ private:
     };
     void rebuildVisual(GoannaSession &session, GoannaActiveObject &obj, EntityNode &en);
     bool buildMeshVisual(GoannaSession &session, GoannaActiveObject &obj, EntityNode &en);
+    bool buildItemVisual(GoannaSession &session, GoannaActiveObject &obj, EntityNode &en);
     std::shared_ptr<GodotModel> modelFor(GoannaSession &session, const std::string &name);
     godot::Ref<godot::StandardMaterial3D> materialForTexture(GoannaSession &session,
             const std::string &texture, bool alpha, bool double_sided);

@@ -18,6 +18,7 @@
 #include "goanna_luanti_client.h"
 #include "goanna_raycast.h"
 #include "client/node_visuals.h"
+#include "client/item_visuals_manager.h"
 #include "raycast.h"
 #include "tool.h"
 
@@ -124,7 +125,9 @@ GoannaSession::GoannaSession() {
     m_tsrc = std::make_unique<GoannaTextureSource>();
     m_models = std::make_unique<ModelCache>(
             [this](const std::string &name, std::string &out) { return getMedia(name, out); });
-    m_mesh_client = std::make_unique<Client>(m_tsrc.get(), &m_shsrc, m_nodedef, m_models.get());
+    m_item_visuals = std::make_unique<ItemVisualsManager>();
+    m_mesh_client = std::make_unique<Client>(m_tsrc.get(), &m_shsrc, m_nodedef, m_itemdef,
+            m_models.get(), m_item_visuals.get());
 }
 
 GoannaSession::~GoannaSession() {

@@ -6,9 +6,8 @@
 // transplanted Luanti meshing code talks to.
 //
 // This file mixes Goanna original code with functions copied from Luanti
-// 5.16.1: createAnimationFrames from client/wieldmesh.cpp (verbatim), the
-// palette loader from client/texturesource.cpp, and getShader adapted from
-// client/shader.cpp. Each is marked at its definition.
+// 5.16.1: the palette loader from client/texturesource.cpp, and getShader
+// adapted from client/shader.cpp. Each is marked at its definition.
 
 #include "goanna_textures.h"
 
@@ -21,7 +20,6 @@
 #include <godot_cpp/variant/packed_byte_array.hpp>
 
 #include "CImage.h"
-#include "client/wieldmesh.h"
 #include "client/imagefilters.h"
 #include "goanna_image_hooks.h"
 #include "log.h"
@@ -378,42 +376,3 @@ u32 IShaderSource::getShader(const std::string &name, MaterialType material_type
     return getShader(name, input_const, base_mat);
 }
 
-// ---------------------------------------------------------------------------
-// Declared in client/wieldmesh.h and defined in wieldmesh.cpp (Irrlicht-heavy,
-// not compiled by Goanna). Copied verbatim from there.
-std::vector<FrameSpec> createAnimationFrames(ITextureSource *tsrc,
-		const std::string &image_name, const TileAnimationParams &animation,
-		int &result_frame_length_ms)
-{
-	result_frame_length_ms = 0;
-
-	if (image_name.empty())
-		return {};
-
-	// Still create texture if not animated
-	if (animation.type == TileAnimationType::TAT_NONE) {
-		u32 id;
-		video::ITexture *texture = tsrc->getTextureForMesh(image_name, &id);
-		return {{id, texture}};
-	}
-
-	auto texture_size = tsrc->getTextureDimensions(image_name);
-	if (!texture_size.Width || !texture_size.Height)
-		return {};
-
-	int frame_count = 1;
-	animation.determineParams(texture_size, &frame_count, &result_frame_length_ms, nullptr);
-
-	std::vector<FrameSpec> frames(frame_count);
-	std::ostringstream os(std::ios::binary);
-	for (int i = 0; i < frame_count; i++) {
-		os.str("");
-		os << image_name;
-		animation.getTextureModifer(os, texture_size, i);
-
-		u32 id;
-		frames[i].texture = tsrc->getTextureForMesh(os.str(), &id);
-		frames[i].texture_id = id;
-	}
-	return frames;
-}

@@ -17,6 +17,7 @@
 #include "goanna_textures.h"
 #include "goanna_sky.h"
 #include "itemdef.h"
+#include "inventory.h"
 #include "util/string.h"
 #include "translation.h"
 #include "transplant/localplayer.h"
@@ -36,16 +37,6 @@
 #include <set>
 #include <godot_cpp/variant/packed_vector2_array.hpp>
 
-namespace goanna {
-struct MaterialKey {
-    u32 texture_id = 0;
-    u32 shader_id = 0;       // Goanna shader source id (carries Luanti's material type)
-    bool backface_culling = true;
-    uint64_t hash() const {
-        return ((uint64_t)texture_id << 24) | ((uint64_t)(shader_id & 0xffff) << 1) | (backface_culling ? 1 : 0);
-    }
-};
-}
 #include "mapblock.h"
 #include "version.h"
 
@@ -256,6 +247,30 @@ Ref<Texture2D> GoannaClient::texture(const String &name) {
     if (!m_session)
         return Ref<Texture2D>();
     u32 id = m_session->tsrc()->getTextureId(name.utf8().get_data());
+    GoannaTexture *gt = m_session->tsrc()->goannaTexture(id);
+    if (!gt)
+        return Ref<Texture2D>();
+    return gt->godotTexture();
+}
+
+Ref<Texture2D> GoannaClient::item_icon(const String &item_name) {
+    if (!m_session)
+        return Ref<Texture2D>();
+    std::lock_guard<std::mutex> lk(m_session->mapLock());
+    IItemDefManager *idef = m_session->getItemDefManager();
+    ItemStack stack(item_name.utf8().get_data(), 1, 0, idef);
+    if (stack.name.empty())
+        return Ref<Texture2D>();
+    ItemImageDef img = stack.getInventoryImage(idef);
+    std::string tex = img.name;
+    if (tex.empty()) {
+        const ItemDefinition &def = stack.getDefinition(idef);
+        if (def.type != ITEM_NODE && !def.inventory_image.name.empty())
+            tex = def.inventory_image.name;
+    }
+    if (tex.empty())
+        return Ref<Texture2D>(); // node item: no flat image, UI keeps placeholder
+    u32 id = m_session->tsrc()->getTextureId(tex);
     GoannaTexture *gt = m_session->tsrc()->goannaTexture(id);
     if (!gt)
         return Ref<Texture2D>();
@@ -501,6 +516,16 @@ Dictionary GoannaClient::step_player(double dt, const Dictionary &keys, float pi
     return out;
 }
 
+Ref<Material> GoannaClient::materialForIrr(const video::SMaterial &m) {
+    MaterialKey key;
+    GoannaTexture *gt = dynamic_cast<GoannaTexture *>(m.getTexture(0));
+    key.texture_id = gt ? gt->id() : 0;
+    key.shader_id = GoannaShaderSource::isShaderMaterial(m.MaterialType)
+            ? GoannaShaderSource::shaderIdFromMaterial(m.MaterialType) : 0;
+    key.backface_culling = m.BackfaceCulling;
+    return materialFor(key);
+}
+
 Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
     auto it = m_materials.find(key.hash());
     if (it != m_materials.end())
@@ -538,7 +563,13 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
         sh = m_sh_plants; break;
     case TILE_MATERIAL_ALPHA:
     case TILE_MATERIAL_PLAIN_ALPHA:
-        sh = m_sh_glass; break;
+        // Refraction glass is only right for solid, backface-culled nodes
+        // (glass, ice, stained glass). Double-sided alpha-blend tiles are
+        // plants, leaves and the like: the glass shader's screen mix and
+        // specular make them read white, so they take the standard path.
+        if (key.backface_culling)
+            sh = m_sh_glass;
+        break;
     default:
         break;
     }
@@ -755,14 +786,14 @@ int GoannaClient::poll_blocks(int max_blocks) {
                 arrays[Mesh::ARRAY_COLOR] = cols;
                 arrays[Mesh::ARRAY_INDEX] = idx;
                 mesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays);
-                const video::SMaterial &m = buf->getMaterial();
-                MaterialKey key;
-                GoannaTexture *gt = dynamic_cast<GoannaTexture *>(m.getTexture(0));
-                key.texture_id = gt ? gt->id() : 0;
-                key.shader_id = GoannaShaderSource::isShaderMaterial(m.MaterialType)
-                        ? GoannaShaderSource::shaderIdFromMaterial(m.MaterialType) : 0;
-                key.backface_culling = m.BackfaceCulling;
-                mesh->surface_set_material(si++, materialFor(key));
+                if (const char *dbg = std::getenv("GOANNA_DEBUG_TINT")) {
+                    GoannaTexture *gt = dynamic_cast<GoannaTexture *>(buf->getMaterial().getTexture(0));
+                    std::string tn = gt ? m_session->tsrc()->getTextureName(gt->id()) : "";
+                    if (tn.find(dbg) != std::string::npos)
+                        UtilityFunctions::print("tint ", String(tn.c_str()), " mtype ", (int)buf->getMaterial().MaterialType,
+                                " c0 ", cols[0], " nv ", (int)nv);
+                }
+                mesh->surface_set_material(si++, materialForIrr(buf->getMaterial()));
             }
         }
         if (si == 0) {
@@ -811,6 +842,7 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("detached_inventory_names"), &GoannaClient::detached_inventory_names);
     ClassDB::bind_method(D_METHOD("respawn"), &GoannaClient::respawn);
     ClassDB::bind_method(D_METHOD("texture", "name"), &GoannaClient::texture);
+    ClassDB::bind_method(D_METHOD("item_icon", "item_name"), &GoannaClient::item_icon);
     ClassDB::bind_method(D_METHOD("inventory_formspec"), &GoannaClient::inventory_formspec);
     ClassDB::bind_method(D_METHOD("take_shown_formspecs"), &GoannaClient::take_shown_formspecs);
     ClassDB::bind_method(D_METHOD("send_inventory_fields", "formname", "fields"), &GoannaClient::send_inventory_fields);

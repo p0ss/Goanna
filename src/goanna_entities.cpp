@@ -15,7 +15,16 @@
 #include "goanna_session.h"
 #include "goanna_textures.h"
 #include <IMeshManipulator.h>
+#include <godot_cpp/classes/array_mesh.hpp>
+#include <godot_cpp/variant/packed_color_array.hpp>
+#include <godot_cpp/variant/packed_int32_array.hpp>
+#include <godot_cpp/variant/packed_vector2_array.hpp>
+#include <godot_cpp/variant/packed_vector3_array.hpp>
+#include <S3DVertex.h>
+#include "inventory.h"
 #include "client/mesh.h"
+#include "transplant/client/wieldmesh.h"
+#include "goanna_luanti_client.h"
 #include "constants.h"
 
 using namespace godot;
@@ -129,6 +138,81 @@ bool EntityRenderer::buildMeshVisual(GoannaSession &session, GoannaActiveObject 
     return true;
 }
 
+// OBJECTVISUAL_ITEM / OBJECTVISUAL_WIELDITEM: build the item's wield mesh with
+// Luanti's own wieldmesh code and convert it to an ArrayMesh. Vertex colours
+// carry the item/tile colour (setColor bakes them), so the material reads
+// albedo from vertex colour.
+bool EntityRenderer::buildItemVisual(GoannaSession &session, GoannaActiveObject &obj, EntityNode &en) {
+    const ObjectProperties &p = obj.props();
+    IItemDefManager *idef = session.getItemDefManager();
+    ItemStack item;
+    if (p.wield_item.empty()) {
+        if (!p.textures.empty())
+            item = ItemStack(p.textures[0], 1, 0, idef);
+    } else {
+        item.deSerialize(p.wield_item, idef);
+    }
+    WieldMesh wm;
+    wm.setItem(item, session.meshClient(), p.visual == OBJECTVISUAL_WIELDITEM);
+    scene::IMesh *mesh = wm.getMesh();
+    if (!mesh || mesh->getMeshBufferCount() == 0)
+        return false;
+
+    Ref<ArrayMesh> am;
+    am.instantiate();
+    for (u32 b = 0; b < mesh->getMeshBufferCount(); ++b) {
+        scene::IMeshBuffer *buf = mesh->getMeshBuffer(b);
+        if (buf->getVertexType() != video::EVT_STANDARD)
+            continue;
+        const video::S3DVertex *v = (const video::S3DVertex *)buf->getVertices();
+        const u16 *idxs = (const u16 *)buf->getIndices();
+        u32 nv = buf->getVertexCount(), ni = buf->getIndexCount();
+        if (!nv || !ni)
+            continue;
+        PackedVector3Array verts, norms;
+        PackedVector2Array uvs;
+        PackedColorArray cols;
+        PackedInt32Array idx;
+        verts.resize(nv); norms.resize(nv); uvs.resize(nv); cols.resize(nv);
+        for (u32 i = 0; i < nv; ++i) {
+            verts[i] = Vector3(v[i].Pos.X, v[i].Pos.Y, -v[i].Pos.Z);
+            norms[i] = Vector3(v[i].Normal.X, v[i].Normal.Y, -v[i].Normal.Z);
+            uvs[i] = Vector2(v[i].TCoords.X, v[i].TCoords.Y);
+            cols[i] = Color(v[i].Color.getRed() / 255.0f, v[i].Color.getGreen() / 255.0f,
+                    v[i].Color.getBlue() / 255.0f, v[i].Color.getAlpha() / 255.0f);
+        }
+        idx.resize(ni);
+        for (u32 i = 0; i < ni; ++i)
+            idx[i] = idxs[i];
+        Array arrays;
+        arrays.resize(Mesh::ARRAY_MAX);
+        arrays[Mesh::ARRAY_VERTEX] = verts;
+        arrays[Mesh::ARRAY_NORMAL] = norms;
+        arrays[Mesh::ARRAY_TEX_UV] = uvs;
+        arrays[Mesh::ARRAY_COLOR] = cols;
+        arrays[Mesh::ARRAY_INDEX] = idx;
+        am->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays);
+        GoannaTexture *gt = dynamic_cast<GoannaTexture *>(buf->getMaterial().getTexture(0));
+        std::string tname = gt ? session.tsrc()->getTextureName(gt->id()) : "";
+        Ref<StandardMaterial3D> mat = materialForTexture(session, tname, false, true);
+        Ref<StandardMaterial3D> m2 = mat->duplicate();
+        m2->set_flag(BaseMaterial3D::FLAG_ALBEDO_FROM_VERTEX_COLOR, true);
+        am->surface_set_material(am->get_surface_count() - 1, m2);
+    }
+    if (am->get_surface_count() == 0)
+        return false;
+    MeshInstance3D *mi = memnew(MeshInstance3D);
+    mi->set_mesh(am);
+    // content_cao: the wield node is scaled by visual_size/2 on top of the
+    // wield mesh's own scale; convert BS units to Godot nodes.
+    v3f sc = p.visual_size / 2.0f * wm.getScale() / BS;
+    Node3D *holder = memnew(Node3D);
+    holder->set_scale(Vector3(sc.X, sc.Y, sc.Z));
+    holder->add_child(mi);
+    en.visual = holder;
+    return true;
+}
+
 void EntityRenderer::rebuildVisual(GoannaSession &session, GoannaActiveObject &obj, EntityNode &en) {
     if (en.visual) {
         en.visual->queue_free();
@@ -179,6 +263,9 @@ void EntityRenderer::rebuildVisual(GoannaSession &session, GoannaActiveObject &o
         [[fallthrough]];
     case OBJECTVISUAL_ITEM:
     case OBJECTVISUAL_WIELDITEM:
+        if (buildItemVisual(session, obj, en))
+            break;
+        [[fallthrough]];
     case OBJECTVISUAL_NODE:
     default: {
         // Placeholder for item/node visuals (and models that failed to load):

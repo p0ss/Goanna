@@ -29,6 +29,8 @@ add_library(goanna SHARED
     src/transplant/client/node_visuals.cpp
     src/transplant/client/imagesource.cpp
     src/transplant/client/content_cao.cpp
+    src/transplant/client/wieldmesh.cpp
+    src/transplant/client/item_visuals_manager.cpp
     src/luanti_shims.cpp
 )
 target_include_directories(goanna PRIVATE src)
@@ -37,7 +39,8 @@ target_include_directories(goanna PRIVATE src)
 set_source_files_properties(
     src/transplant/client/mapblock_mesh.cpp src/transplant/client/content_mapblock.cpp
     src/transplant/client/node_visuals.cpp src/transplant/client/imagesource.cpp
-    src/transplant/client/content_cao.cpp
+    src/transplant/client/content_cao.cpp src/transplant/client/wieldmesh.cpp
+    src/transplant/client/item_visuals_manager.cpp
     PROPERTIES INCLUDE_DIRECTORIES "${CMAKE_SOURCE_DIR}/src;${CMAKE_SOURCE_DIR}/luanti/src/client")
 target_link_libraries(goanna PRIVATE godot::cpp luanti_core)
 target_link_options(goanna PRIVATE -Wl,--exclude-libs,ALL -Wl,--no-undefined)
