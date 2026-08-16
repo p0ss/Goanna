@@ -30,7 +30,7 @@ func _process(_delta: float) -> void:
 		if _dbg <= 0.0:
 			_dbg = 1.0
 			var m := get_tree().get_first_node_in_group("goanna_main")
-			var here: Vector3 = m.cam.position if (m != null and m.get("cam") != null) else Vector3.ZERO
+			var here: Vector3 = _player_feet(m) if m != null else Vector3.ZERO
 			var lines := []
 			for id in _spawners:
 				var n = _spawners[id]
@@ -62,12 +62,23 @@ func _process(_delta: float) -> void:
 	# to the player, so keep their emitters on the player.
 	if not _attached.is_empty():
 		var m := get_tree().get_first_node_in_group("goanna_main")
-		if m != null and m.get("cam") != null:
-			var here: Vector3 = m.cam.position
+		if m != null:
+			var here: Vector3 = _player_feet(m)
 			for id in _attached:
 				var node = _spawners.get(id)
 				if node != null and is_instance_valid(node):
 					node.position = here + _attached[id]
+
+# Spawners sent relative to the player are relative to the player, whose
+# origin is at the feet; the camera sits at eye height, so anchoring to it
+# put ground effects (snow and dust steps) around the head.
+func _player_feet(m: Node) -> Vector3:
+	var mv = m.get("last_move")
+	if mv is Dictionary and mv.has("pos"):
+		return mv["pos"]
+	if m.get("cam") != null:
+		return m.cam.position - Vector3(0, 1.6, 0)
+	return Vector3.ZERO
 
 func _texture_for(name: String) -> Texture2D:
 	if name == "":
@@ -84,6 +95,7 @@ func _add_spawner(ev: Dictionary) -> void:
 	if OS.get_environment("GOANNA_DEBUG_PARTICLES") != "":
 		print("spawner %d: amount=%s tex=%s box=%s..%s life=%s" % [id, str(ev.get("amount")),
 			str(ev.get("texture")), str(ev.get("pos_min")), str(ev.get("pos_max")), str(ev.get("exp_max"))])
+		print("   attached_id=%s size=%s..%s" % [str(ev.get("attached_id")), str(ev.get("size_min")), str(ev.get("size_max"))])
 	_remove_spawner(id)
 	if _spawners.size() >= MAX_SPAWNERS:
 		return
@@ -123,7 +135,9 @@ func _add_spawner(ev: Dictionary) -> void:
 	p.explosiveness = 0.0
 	p.local_coords = false
 	var quad := QuadMesh.new()
-	quad.size = Vector2(0.25, 0.25)
+	# Luanti draws a particle as a quad of `size` in BS units (10 per
+	# node), so a size of 10 is one node across.
+	quad.size = Vector2(0.1, 0.1)
 	var smat := StandardMaterial3D.new()
 	smat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	smat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -174,7 +188,7 @@ func _one_shot(ev: Dictionary) -> void:
 	p.explosiveness = 1.0
 	p.local_coords = false
 	var quad := QuadMesh.new()
-	quad.size = Vector2(0.2, 0.2)
+	quad.size = Vector2(0.1, 0.1)
 	var smat := StandardMaterial3D.new()
 	smat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	smat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
