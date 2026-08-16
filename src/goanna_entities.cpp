@@ -436,12 +436,12 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
                 pp.Z -= std::cos(yaw_rad) * 1.2f;
                 en.root->set_position(Vector3(pp.X / BS, pp.Y / BS, -pp.Z / BS));
                 // Unlike CAO rotations, the player yaw maps to Godot yaw
-                // directly; mirroring it made the body counter-rotate. The
-                // model faces the camera at that yaw, so add a half turn:
-                // your body should face where you look (and its right arm
-                // then falls on the camera's right, which the arm pick below
-                // confirms).
-                en.root->set_rotation_degrees(Vector3(0, lp->getYaw() + 180.0f, 0));
+                // directly; mirroring it made the body counter-rotate. No half
+                // turn: the model already faces the way the player looks, and
+                // adding one put the arm behind the camera. (The arm bone is
+                // picked by which side it shows on, so the naming convention
+                // of the model is not assumed either way.)
+                en.root->set_rotation_degrees(Vector3(0, lp->getYaw(), 0));
             }
         }
         if (is_self && en.animator) {

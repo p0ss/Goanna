@@ -73,20 +73,25 @@ func _ready() -> void:
 	sun.directional_shadow_max_distance = 200
 	# Bevel chamfers meet the light at grazing angles; raise the normal bias
 	# and soften the blend so the shadow edge does not flicker/acne on them.
-	# Low bias: a high normal bias pushes the shadow test off the surface and
-	# erases contact shadows, which is most of what makes a blocky world read
-	# as lit. Bevel chamfers were the reason it was high; they cope at 1.0.
-	sun.shadow_normal_bias = 1.0
-	sun.shadow_bias = 0.02
+	# Bias is a trade: too high erases the contact shadows that make a blocky
+	# world read as lit, too low gives acne stripes on lit faces. Precision
+	# (8192 map, 32-bit depth, set in project.godot) is what actually buys the
+	# headroom, so a modest bias is enough. Blended splits stop the shadow
+	# edge popping as cascades change while you move.
+	sun.shadow_normal_bias = 1.6
+	sun.shadow_bias = 0.04
 	sun.shadow_blur = 1.0
+	sun.directional_shadow_blend_splits = true
+	sun.directional_shadow_fade_start = 0.9
 	add_child(sun)
 	moon = DirectionalLight3D.new()
 	moon.light_energy = 0.0
 	moon.light_color = Color(0.6, 0.7, 1.0)
 	moon.shadow_enabled = true
 	moon.directional_shadow_max_distance = 200
-	moon.shadow_normal_bias = 1.0
-	moon.shadow_bias = 0.02
+	moon.shadow_normal_bias = 1.6
+	moon.shadow_bias = 0.04
+	moon.directional_shadow_blend_splits = true
 	add_child(moon)
 
 	env = WorldEnvironment.new()
