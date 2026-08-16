@@ -195,11 +195,14 @@ func _on_start_local() -> void:
 	if allowed.search(world) == null:
 		_fail("World names are 1 to 40 characters: letters, digits, spaces, _ and -.")
 		return
-	var cfg := ConfigFile.new()
-	cfg.load(CFG_PATH)
-	cfg.set_value("local", "game", game)
-	cfg.set_value("local", "world", world)
-	cfg.save(CFG_PATH)
+	# Scripted runs must not touch the player's remembered choices: a test
+	# world would otherwise turn up prefilled the next time they open the menu.
+	if OS.get_environment("GOANNA_LOCAL_TEST") == "":
+		var cfg := ConfigFile.new()
+		cfg.load(CFG_PATH)
+		cfg.set_value("local", "game", game)
+		cfg.set_value("local", "world", world)
+		cfg.save(CFG_PATH)
 	server = LocalServer.new()
 	var err: String = server.start(game, world)
 	if err != "":

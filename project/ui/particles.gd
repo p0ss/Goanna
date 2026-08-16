@@ -20,9 +20,38 @@ var _spawners := {}           # server id -> GPUParticles3D
 var _attached := {}           # server id -> offset, for spawners that follow us
 var _tex_cache := {}
 
+var _dbg := 0.0
+var _test_done := false
 func _process(_delta: float) -> void:
 	if client == null:
 		return
+	if OS.get_environment("GOANNA_DEBUG_PARTICLES") != "":
+		_dbg -= _delta
+		if _dbg <= 0.0:
+			_dbg = 1.0
+			var m := get_tree().get_first_node_in_group("goanna_main")
+			var here: Vector3 = m.cam.position if (m != null and m.get("cam") != null) else Vector3.ZERO
+			var lines := []
+			for id in _spawners:
+				var n = _spawners[id]
+				if is_instance_valid(n):
+					lines.append("%d:%s emit=%s pos=%s tex=%s" % [id, str(n.is_inside_tree()), str(n.emitting),
+						str(n.position.round()), str(n.draw_pass_1.material.albedo_texture != null)])
+			print("particles: nodes=%d attached=%d player=%s | %s" % [_spawners.size(), _attached.size(),
+				str(here.round()), ", ".join(lines.slice(0, 3))])
+	# GOANNA_TEST_PARTICLES=1 injects a synthetic rain-like spawner, to test
+	# the Godot side without needing a server storm.
+	if not _test_done and OS.get_environment("GOANNA_TEST_PARTICLES") != "":
+		var m0 := get_tree().get_first_node_in_group("goanna_main")
+		if m0 != null and m0.get("cam") != null and m0.cam.position != Vector3.ZERO:
+			_test_done = true
+			_add_spawner({"id": 999999, "amount": 400, "time": 0.0,
+				"pos_min": Vector3(-8, 12, -8), "pos_max": Vector3(8, 16, 8),
+				"vel_min": Vector3(0, -8, 0), "vel_max": Vector3(0, -12, 0),
+				"acc_min": Vector3.ZERO, "acc_max": Vector3.ZERO,
+				"exp_min": 2.0, "exp_max": 3.0, "size_min": 1.0, "size_max": 2.0,
+				"texture": "weather_pack_rain_raindrop_1.png", "vertical": true, "collision": false, "attached_id": 1})
+			print("particles: injected synthetic spawner at player")
 	for ev in client.take_particle_spawners():
 		_add_spawner(ev)
 	for id in client.take_deleted_spawners():
@@ -98,11 +127,11 @@ func _add_spawner(ev: Dictionary) -> void:
 	var smat := StandardMaterial3D.new()
 	smat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	smat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	smat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	smat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
 	smat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
 	smat.albedo_texture = _texture_for(str(ev.get("texture", "")))
-	if smat.albedo_texture == null:
-		smat.albedo_color = Color(0.8, 0.85, 1.0, 0.7)
+	smat.albedo_color = Color(1, 1, 1, 1) if smat.albedo_texture != null else Color(0.75, 0.85, 1.0, 0.85)
+	smat.disable_receive_shadows = true
 	quad.material = smat
 	p.draw_pass_1 = quad
 	p.position = (pmin + pmax) * 0.5
@@ -149,7 +178,7 @@ func _one_shot(ev: Dictionary) -> void:
 	var smat := StandardMaterial3D.new()
 	smat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	smat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	smat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	smat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
 	smat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
 	smat.albedo_texture = _texture_for(str(ev.get("texture", "")))
 	quad.material = smat
