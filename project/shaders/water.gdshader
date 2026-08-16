@@ -14,7 +14,7 @@ uniform float wave_speed = 1.6;
 uniform float wave_length = 4.0;
 uniform float refraction = 0.015;
 // Beer-Lambert absorption per metre; red dies first, like real water.
-uniform vec3 absorption = vec3(0.32, 0.14, 0.10);
+uniform vec3 absorption = vec3(0.55, 0.24, 0.16);
 uniform bool waving = true;
 
 varying vec3 world_pos;
@@ -33,8 +33,8 @@ void fragment() {
 
 	// animated normal perturbation for glints
 	float ph = (world_pos.x + world_pos.z * 0.7) * (6.2831853 / wave_length) + TIME * wave_speed;
-	vec3 n = normalize(vec3(cos(ph) * 0.15, 1.0, cos(ph * 1.7 + 1.3) * 0.08));
-	NORMAL = normalize(mix(NORMAL, (VIEW_MATRIX * vec4(n, 0.0)).xyz, waving ? 0.6 : 0.0));
+	vec3 n = normalize(vec3(cos(ph) * 0.07, 1.0, cos(ph * 1.7 + 1.3) * 0.05));
+	NORMAL = normalize(mix(NORMAL, (VIEW_MATRIX * vec4(n, 0.0)).xyz, waving ? 0.35 : 0.0));
 
 	if (!FRONT_FACING)
 		NORMAL = -NORMAL;
@@ -49,14 +49,16 @@ void fragment() {
 	// what is behind, refracted, absorbed by the water column
 	vec2 ofs = NORMAL.xy * refraction * clamp(thick, 0.0, 4.0) * 0.5;
 	vec3 behind = texture(screen_tex, SCREEN_UV + ofs).rgb;
-	vec3 deep_col = tex.rgb * 0.55; // the colour deep water converges to
+	vec3 deep_col = tex.rgb * 0.5; // the colour deep water converges to
 	vec3 body = mix(deep_col, behind, trans);
+	// a floor of the water's own colour so even shallow water reads as water
+	body = mix(body, tex.rgb * 0.85, 0.22);
 
 	// fresnel: face-on you see the water body, grazing you see reflection
 	float fres = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 5.0);
 	ALBEDO = body;
-	ALPHA = clamp(0.86 + 0.14 * fres, 0.0, 1.0);
-	METALLIC = 0.0;
-	SPECULAR = 0.25 + 0.75 * fres;
-	ROUGHNESS = 0.03;
+	ALPHA = clamp(0.9 + 0.1 * fres, 0.0, 1.0);
+	METALLIC = 0.15;
+	SPECULAR = 0.4 + 0.6 * fres;
+	ROUGHNESS = 0.025;
 }

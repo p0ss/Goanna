@@ -742,7 +742,7 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
             mat->set_feature(BaseMaterial3D::FEATURE_EMISSION, true);
             mat->set_texture(BaseMaterial3D::TEXTURE_EMISSION, tex);
             mat->set_emission(Color(1, 1, 1));
-            mat->set_emission_energy_multiplier(3.0f * lvl * lvl);
+            mat->set_emission_energy_multiplier(1.8f * lvl * lvl);
         }
     } else {
         mat->set_albedo(Color(0.9, 0.4, 0.9));

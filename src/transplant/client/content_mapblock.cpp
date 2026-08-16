@@ -542,9 +542,9 @@ static void drawBeveledSolid(MeshCollector *collector, v3f origin,
 		}
 		poly.swap(out);
 	};
-	auto clip_all = [&](std::vector<v3f> &poly, int skip) {
+	auto clip_all = [&](std::vector<v3f> &poly, int skip, int skip2 = -1) {
 		for (int i = 0; i < n_planes && poly.size() >= 3; ++i)
-			if (i != skip)
+			if (i != skip && i != skip2)
 				clip(poly, planes[i]);
 	};
 	auto emitPoly = [&](const TileSpec &t, std::vector<v3f> &poly, v3f nrm) {
@@ -636,7 +636,10 @@ static void drawBeveledSolid(MeshCollector *collector, v3f origin,
 			setax(cc, w, ww);
 			std::vector<v3f> cap = {onF(ww), onNF(ww), cc};
 			int wface = (w == 1) ? (sn ? 0 : 1) : (w == 0) ? (sn ? 2 : 3) : (sn ? 4 : 5);
-			clip_all(cap, wface);
+			// The cap closes the notch, so it lies OUTSIDE its own chamfer
+			// half-space; clipping against that plane would annihilate it.
+			// Other chamfers still clip it (the poke-through guard).
+			clip_all(cap, wface, edge_plane[ei]);
 			// Recess a hair so a cap coplanar with a drawn end face or the
 			// neighbour's geometry cannot z-fight it.
 			for (auto &pp : cap)
