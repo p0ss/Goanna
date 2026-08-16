@@ -11,6 +11,7 @@
 #include <sstream>
 
 #include "constants.h"
+#include "exceptions.h"
 #include "content/mods.h"
 #include "itemdef.h"
 #include "log.h"
@@ -529,6 +530,8 @@ void GoannaSession::handle(NetworkPacket &pkt) {
     case TOCLIENT_BLOCKDATA: onBlockData(pkt); break;
     case TOCLIENT_MOVE_PLAYER: onMovePlayer(pkt); break;
     case TOCLIENT_MOVEMENT: onMovement(pkt); break;
+    case TOCLIENT_ADDNODE: onAddNode(pkt); break;
+    case TOCLIENT_REMOVENODE: onRemoveNode(pkt); break;
     case TOCLIENT_PRIVILEGES: onPrivileges(pkt); break;
     case TOCLIENT_TIME_OF_DAY: onTimeOfDay(pkt); break;
     default:
@@ -789,6 +792,64 @@ void GoannaSession::onMovePlayer(NetworkPacket &pkt) {
     setPlayerPose(pos / BS, pitch, yaw);
     infostream << "goanna: MOVE_PLAYER to " << (pos / BS).X << "," << (pos / BS).Y << ","
                << (pos / BS).Z << std::endl;
+}
+
+// Queue the block containing nodepos and any neighbouring blocks the node
+// touches (a node on a block edge changes the neighbour's boundary faces).
+void GoannaSession::queueBlocksAround(v3s16 nodepos) {
+    v3s16 bp = getNodeBlockPos(nodepos);
+    v3s16 rel = nodepos - bp * MAP_BLOCKSIZE;
+    std::set<v3s16> blocks;
+    blocks.insert(bp);
+    for (int axis = 0; axis < 3; ++axis) {
+        s16 r = axis == 0 ? rel.X : (axis == 1 ? rel.Y : rel.Z);
+        v3s16 d(0, 0, 0);
+        if (r == 0) d = axis == 0 ? v3s16(-1,0,0) : (axis == 1 ? v3s16(0,-1,0) : v3s16(0,0,-1));
+        else if (r == MAP_BLOCKSIZE - 1) d = axis == 0 ? v3s16(1,0,0) : (axis == 1 ? v3s16(0,1,0) : v3s16(0,0,1));
+        if (d != v3s16(0,0,0))
+            blocks.insert(bp + d);
+    }
+    for (const v3s16 &b : blocks)
+        if (m_map->getBlockNoCreateNoEx(b))
+            m_new_blocks.push_back(b);
+}
+
+void GoannaSession::onAddNode(NetworkPacket &pkt) {
+    v3s16 p;
+    pkt >> p;
+    u8 ser_ver = stats().ser_ver;
+    auto *ptr = reinterpret_cast<const u8 *>(pkt.getRemainingString());
+    pkt.skip(MapNode::serializedLength(ser_ver));
+    MapNode n;
+    n.deSerialize(ptr, ser_ver);
+    bool keep_metadata = false;
+    if (pkt.getRemainingBytes() >= 1)
+        pkt >> keep_metadata;
+    std::lock_guard<std::mutex> lk(m_map_mutex);
+    std::map<v3s16, MapBlock *> modified;
+    try {
+        m_map->addNodeAndUpdate(p, n, modified, !keep_metadata);
+    } catch (const InvalidPositionException &) {
+        return;
+    }
+    for (auto &kv : modified)
+        m_new_blocks.push_back(kv.first);
+    queueBlocksAround(p);
+}
+
+void GoannaSession::onRemoveNode(NetworkPacket &pkt) {
+    v3s16 p;
+    pkt >> p;
+    std::lock_guard<std::mutex> lk(m_map_mutex);
+    std::map<v3s16, MapBlock *> modified;
+    try {
+        m_map->removeNodeAndUpdate(p, modified);
+    } catch (const InvalidPositionException &) {
+        return;
+    }
+    for (auto &kv : modified)
+        m_new_blocks.push_back(kv.first);
+    queueBlocksAround(p);
 }
 
 void GoannaSession::onMovement(NetworkPacket &pkt) {

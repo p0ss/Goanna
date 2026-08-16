@@ -159,6 +159,9 @@ private:
     void onBlockData(NetworkPacket &pkt);
     void onMovePlayer(NetworkPacket &pkt);
     void onMovement(NetworkPacket &pkt);
+    void onAddNode(NetworkPacket &pkt);
+    void onRemoveNode(NetworkPacket &pkt);
+    void queueBlocksAround(v3s16 nodepos);
     void onPrivileges(NetworkPacket &pkt);
     void onTimeOfDay(NetworkPacket &pkt);
 

@@ -238,7 +238,7 @@ int GoannaClient::poll_blocks(int max_blocks) {
                 }
                 // Irrlicht (left-handed) front faces are counter-clockwise as
                 // stored; mirroring z makes them clockwise, which is Godot's
-                // front-face winding — so the index order is kept as is.
+                // front-face winding, so the index order is kept as is.
                 idx.resize(ni);
                 for (u32 i = 0; i < ni; ++i)
                     idx[i] = idx16[i];

@@ -117,7 +117,6 @@ func _process(delta: float) -> void:
 		var sp := speed * (3.0 if Input.is_key_pressed(KEY_CTRL) else 1.0)
 		cam.position += dir.normalized() * sp * delta if dir.length() > 0 else Vector3.ZERO
 		cam.rotation_degrees = Vector3(pitch, yaw, 0)
-		client.set_player_pose(cam.position, -pitch, yaw)
 	client.poll_blocks(24)
 	if t - last_print >= 1.0:
 		last_print = t
@@ -129,6 +128,20 @@ func _process(delta: float) -> void:
 			t, s.get("state"), s.get("message"), s.get("media_received", 0), s.get("media_announced", 0),
 			s.get("blocks_received", 0), s.get("blocks_meshed", 0), s.get("materials", 0), extra])
 	var shot := OS.get_environment("GOANNA_SHOT")
+	if shot != "" and OS.get_environment("GOANNA_TOGGLETEST") != "":
+		# walking mode, standing still, looking straight ahead: pillar appears 4 nodes in front
+		client.poll_blocks(64)
+		for st in [4.0, 5.5, 7.0, 8.5, 10.0, 11.5, 13.0]:
+			if absf(t - st) < delta * 0.6:
+				await RenderingServer.frame_post_draw
+				var img := get_viewport().get_texture().get_image()
+				var path: String = shot.path_join("toggle_%d.png" % int(round(t)))
+				img.save_png(path)
+				print("saved ", path)
+		if t > 14.0:
+			client.disconnect_from_server()
+			get_tree().quit()
+		return
 	if shot != "" and OS.get_environment("GOANNA_WALKTEST") != "":
 		if (absf(t - 5.0) < delta * 0.6) or (absf(t - 9.5) < delta * 0.6):
 			await RenderingServer.frame_post_draw
