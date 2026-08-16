@@ -11,6 +11,7 @@
 
 #include "goanna_textures.h"
 
+#include <cmath>
 #include <cstring>
 #include <fstream>
 #include <set>
@@ -141,6 +142,64 @@ Ref<ImageTexture> GoannaTexture::godotTexture() {
         m_godot = ImageTexture::create_from_image(img);
     }
     return m_godot;
+}
+
+Ref<ImageTexture> GoannaTexture::godotNormal(float strength) {
+    if (m_normal.is_valid() && m_normal_strength == strength)
+        return m_normal;
+    if (!m_image || strength <= 0.0f) {
+        m_normal = Ref<ImageTexture>();
+        m_normal_strength = strength;
+        return m_normal;
+    }
+    const int w = (int)m_image->getDimension().Width, h = (int)m_image->getDimension().Height;
+    if (w < 2 || h < 2) {
+        m_normal_strength = strength;
+        return m_normal; // too small to derive relief
+    }
+    // Height from luminance, then a Sobel gradient to a tangent-space normal.
+    // Textures tile, so sample neighbours with wraparound for seamless relief.
+    std::vector<float> lum(w * h);
+    for (int y = 0; y < h; ++y)
+        for (int x = 0; x < w; ++x) {
+            video::SColor c = m_image->getPixel(x, y);
+            lum[y * w + x] = (0.299f * c.getRed() + 0.587f * c.getGreen() + 0.114f * c.getBlue()) / 255.0f;
+        }
+    auto at = [&](int x, int y) -> float {
+        return lum[((y + h) % h) * w + ((x + w) % w)];
+    };
+    PackedByteArray data;
+    data.resize(w * h * 4);
+    uint8_t *dst = data.ptrw();
+    for (int y = 0; y < h; ++y)
+        for (int x = 0; x < w; ++x) {
+            // Sobel
+            float gx = (at(x + 1, y - 1) + 2 * at(x + 1, y) + at(x + 1, y + 1))
+                     - (at(x - 1, y - 1) + 2 * at(x - 1, y) + at(x - 1, y + 1));
+            float gy = (at(x - 1, y + 1) + 2 * at(x, y + 1) + at(x + 1, y + 1))
+                     - (at(x - 1, y - 1) + 2 * at(x, y - 1) + at(x + 1, y - 1));
+            // dark in / light out: higher luminance should bulge towards the
+            // viewer, so the surface normal tilts away from bright neighbours.
+            float nx = -gx * strength;
+            float ny = -gy * strength;
+            float nz = 1.0f;
+            float inv = 1.0f / std::sqrt(nx * nx + ny * ny + nz * nz);
+            nx *= inv; ny *= inv; nz *= inv;
+            size_t i = (y * w + x) * 4;
+            // Godot uses OpenGL-style tangent normals (+Y up); the mesh UV V
+            // runs downward, so flip Y.
+            dst[i + 0] = (uint8_t)std::clamp((nx * 0.5f + 0.5f) * 255.0f, 0.0f, 255.0f);
+            dst[i + 1] = (uint8_t)std::clamp((-ny * 0.5f + 0.5f) * 255.0f, 0.0f, 255.0f);
+            dst[i + 2] = (uint8_t)std::clamp((nz * 0.5f + 0.5f) * 255.0f, 0.0f, 255.0f);
+            dst[i + 3] = 255;
+        }
+    Ref<Image> img = Image::create_from_data(w, h, false, Image::FORMAT_RGBA8, data);
+    if (img.is_valid()) {
+        img->generate_mipmaps();
+        m_normal = ImageTexture::create_from_image(img);
+    }
+    m_normal_strength = strength;
+    return m_normal;
 }
 
 // ---------------------------------------------------------------------------

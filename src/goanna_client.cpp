@@ -44,7 +44,26 @@ using namespace godot;
 
 namespace goanna {
 
-GoannaClient::GoannaClient() {}
+GoannaClient::GoannaClient() {
+    const char *ab = std::getenv("GOANNA_AUTO_BUMP");
+    if (ab)
+        m_auto_bump = (float)atof(ab);
+}
+
+void GoannaClient::set_auto_bump(float strength) {
+    if (strength < 0.0f)
+        strength = 0.0f;
+    if (strength == m_auto_bump)
+        return;
+    m_auto_bump = strength;
+    m_materials.clear();
+    // Re-request the loaded blocks so their meshes pick up the new materials.
+    if (m_session) {
+        std::lock_guard<std::mutex> lk(m_session->mapLock());
+        for (auto &kv : m_block_nodes)
+            m_session->requeueBlock(kv.first);
+    }
+}
 GoannaClient::~GoannaClient() {}
 
 String GoannaClient::hello() const {
@@ -606,6 +625,17 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
             mat->set_transparency(BaseMaterial3D::TRANSPARENCY_ALPHA_SCISSOR);
             mat->set_alpha_scissor_threshold(0.5f);
         }
+        // Auto-bump: a normal map derived from the diffuse luminance. Skip
+        // fully alpha-blended tiles (their transparency is not surface relief)
+        // and emissive tiles.
+        if (m_auto_bump > 0.0f && gt && base != video::EMT_TRANSPARENT_ALPHA_CHANNEL) {
+            Ref<Texture2D> nrm = gt->godotNormal(m_auto_bump);
+            if (nrm.is_valid()) {
+                mat->set_feature(BaseMaterial3D::FEATURE_NORMAL_MAPPING, true);
+                mat->set_texture(BaseMaterial3D::TEXTURE_NORMAL, nrm);
+                mat->set_normal_scale(1.0f);
+            }
+        }
         if (mtype == TILE_MATERIAL_LIQUID_OPAQUE || mtype == TILE_MATERIAL_WAVING_LIQUID_OPAQUE)
             mat->set_roughness(0.35f); // lava-like
         if (emissive > 0) {
@@ -850,6 +880,8 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("entity_positions"), &GoannaClient::entity_positions);
     ClassDB::bind_method(D_METHOD("entity_list"), &GoannaClient::entity_list);
     ClassDB::bind_method(D_METHOD("set_time_of_day_override", "tod"), &GoannaClient::set_time_of_day_override);
+    ClassDB::bind_method(D_METHOD("set_auto_bump", "strength"), &GoannaClient::set_auto_bump);
+    ClassDB::bind_method(D_METHOD("auto_bump"), &GoannaClient::auto_bump);
 }
 
 } // namespace goanna

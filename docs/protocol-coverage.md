@@ -37,6 +37,15 @@ stand-in client), so `node_visuals` handles them as upstream does.
 - Formspec `model[]` elements and `style[]`. Formspecs are otherwise parsed and drawn by
   `project/ui/formspec.gd`, with the layout maths from `GUIFormSpecMenu`.
 
+## Rendering settings
+
+- **Auto-bump** (`set_auto_bump(strength)`, 0 = off): a tangent-space normal
+  map is derived from each texture's diffuse luminance at load time (dark
+  texels read as recessed, light as raised) and applied to opaque node
+  materials, so untextured-looking blocks gain surface relief under Godot's
+  lighting. Inferred, not authored; an authored normal map would override it
+  when a material API lands. Default from `GOANNA_AUTO_BUMP`.
+
 ## Coordinate conventions
 Luanti positions are in BS units (10 per node), left-handed; Goanna's Godot
 space is nodes with z mirrored: `godot = (x/BS, y/BS, -z/BS)`. Yaw values map

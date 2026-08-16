@@ -41,6 +41,10 @@ public:
     video::IImage *image() const { return m_image; }
     // Godot-side texture, created on first use (main thread).
     godot::Ref<godot::ImageTexture> godotTexture();
+    // Tangent-space normal map derived from the diffuse luminance ("auto
+    // bump"): dark texels read as recessed, light as raised. Cached per
+    // strength; regenerated when strength changes. Main thread only.
+    godot::Ref<godot::ImageTexture> godotNormal(float strength);
     bool hasAlpha() const { return m_has_alpha; }
 
 private:
@@ -48,6 +52,8 @@ private:
     video::IImage *m_image; // owned (ref)
     bool m_has_alpha = false;
     godot::Ref<godot::ImageTexture> m_godot;
+    godot::Ref<godot::ImageTexture> m_normal;
+    float m_normal_strength = -1.0f;
 };
 
 class GoannaTextureSource final : public IWritableTextureSource {

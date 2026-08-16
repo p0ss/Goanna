@@ -123,6 +123,10 @@ public:
     // Sky/sun/fog/lighting state from the server, in Godot terms (see goanna_sky.h).
     godot::Dictionary sky_state() const;
     void set_time_of_day_override(float tod);
+    // Auto-bump strength: normal maps derived from diffuse luminance. 0 = off.
+    // Rebuilds world materials so the change takes effect immediately.
+    void set_auto_bump(float strength);
+    float auto_bump() const { return m_auto_bump; }
 
     godot::Dictionary step_player(double dt, const godot::Dictionary &keys, float pitch_deg, float yaw_deg);
 
@@ -142,6 +146,7 @@ private:
     std::map<uint64_t, godot::Ref<godot::Material>> m_materials;
     godot::Ref<godot::Shader> m_sh_water, m_sh_leaves, m_sh_plants, m_sh_glass;
     bool m_shaders_loaded = false;
+    float m_auto_bump = 0.0f;
 
     std::unique_ptr<EntityRenderer> m_entities;
     struct NodeLight { godot::Vector3 pos; float level; godot::Color color; };
