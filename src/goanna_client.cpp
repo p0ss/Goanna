@@ -607,6 +607,22 @@ Ref<Material> GoannaClient::materialForIrr(const video::SMaterial &m) {
     MaterialKey key;
     GoannaTexture *gt = dynamic_cast<GoannaTexture *>(m.getTexture(0));
     key.texture_id = gt ? gt->id() : 0;
+    // Mining crack: crack tiles carry crack_anylength.png at the crack layer
+    // and their level in MaterialTypeParam (packed by MapBlockMesh::animate).
+    // Composite the crack frame over the base through the texture-modifier
+    // DSL; the distinct texture id keys a distinct cached material per level.
+    if (gt && m.getTexture(MapBlockMesh::TEXTURE_LAYER_CRACK)) {
+        auto pr = MapBlockMesh::unpackCrackMaterialParam(m.MaterialTypeParam);
+        if (pr.first >= 0) {
+            std::string cracked = m_session->tsrc()->getTextureName(gt->id()) +
+                    "^[crack:" + std::to_string((int)pr.second) + ":" +
+                    std::to_string(m_session->crackAnimationLength()) + ":" +
+                    std::to_string(pr.first);
+            u32 cid = m_session->tsrc()->getTextureId(cracked);
+            if (cid != 0)
+                key.texture_id = cid;
+        }
+    }
     key.shader_id = GoannaShaderSource::isShaderMaterial(m.MaterialType)
             ? GoannaShaderSource::shaderIdFromMaterial(m.MaterialType) : 0;
     key.backface_culling = m.BackfaceCulling;

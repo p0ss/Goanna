@@ -27,9 +27,16 @@ std::unique_ptr<MapBlockMesh> meshBlock(GoannaSession &session, MapBlock *block)
     data.m_generate_minimap = false;
     data.m_smooth_lighting = false;
     const auto &is = session.interactState();
-    if (is.crack_level >= 0 && getNodeBlockPos(is.crack_pos) == bp)
+    bool has_crack = is.crack_level >= 0 && getNodeBlockPos(is.crack_pos) == bp;
+    if (has_crack)
         data.setCrack(is.crack_level, is.crack_pos);
-    return std::make_unique<MapBlockMesh>(session.meshClient(), &data);
+    auto mesh = std::make_unique<MapBlockMesh>(session.meshClient(), &data);
+    // Stamp the crack level into the crack materials' MaterialTypeParam
+    // (MapBlockMesh::animate's crack pass); the Godot side reads it back and
+    // composites the crack frame over the base texture through the DSL.
+    if (has_crack)
+        mesh->animate(false, 0.0f, is.crack_level, 1000);
+    return mesh;
 }
 
 } // namespace goanna
