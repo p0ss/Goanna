@@ -130,7 +130,7 @@ bool EntityRenderer::buildMeshVisual(GoannaSession &session, GoannaActiveObject 
         holder->add_child(sk);
         en.skeleton = sk;
         en.animator = std::make_unique<ModelAnimator>(model);
-        en.anim_version = 0; // apply the animation state on the next sync
+        en.anim_range = Vector2(-1, -1); // apply the frame loop on the next sync
     } else {
         holder->add_child(mi);
     }
@@ -402,14 +402,21 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
         }
         // skeletal animation: GenericCAO::updateAnimation, then a step
         if (en.animator) {
-            if (en.anim_version != obj.animVersion()) {
-                v2f range = obj.animRange();
+            // Only a range change restarts the frame loop. Servers resend
+            // set_animation_speed and bone positions many times a second for a
+            // moving mob, each bumping animVersion; re-applying setFrameLoop on
+            // every bump reset the frame to the range start and made the
+            // animation jitter. Speed, blend and loop are idempotent, so apply
+            // them each frame without touching the current frame.
+            v2f range = obj.animRange();
+            Vector2 vr(range.X, range.Y);
+            if (en.anim_range != vr) {
                 en.animator->setFrameLoop(range.X, range.Y);
-                en.animator->setAnimationSpeed(obj.animSpeed());
-                en.animator->setTransitionTime(obj.animBlend());
-                en.animator->setLoopMode(obj.animLoop());
-                en.anim_version = obj.animVersion();
+                en.anim_range = vr;
             }
+            en.animator->setAnimationSpeed(obj.animSpeed());
+            en.animator->setTransitionTime(obj.animBlend());
+            en.animator->setLoopMode(obj.animLoop());
             en.animator->step(dt, obj.boneOverridesMut(), en.skeleton);
         }
         // sprite frame animation

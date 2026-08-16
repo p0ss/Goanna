@@ -50,6 +50,7 @@ private:
         std::unique_ptr<ModelAnimator> animator;
         uint32_t visual_version = 0;
         uint32_t anim_version = 0;
+        godot::Vector2 anim_range = godot::Vector2(-1, -1); // last applied frame loop
         std::string textures_key;
         float sprite_time = 0;
         int sprite_frame = 0;
