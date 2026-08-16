@@ -53,20 +53,20 @@ func _ready() -> void:
 	sun.rotation_degrees = Vector3(-42, 35, 0)
 	sun.light_energy = 1.3
 	sun.shadow_enabled = true
-	sun.directional_shadow_max_distance = 250
+	sun.directional_shadow_max_distance = 400
 	# Bevel chamfers meet the light at grazing angles; raise the normal bias
 	# and soften the blend so the shadow edge does not flicker/acne on them.
-	sun.shadow_normal_bias = 2.5
-	sun.shadow_bias = 0.06
+	sun.shadow_normal_bias = 2.0
+	sun.shadow_bias = 0.03
 	sun.shadow_blur = 1.5
 	add_child(sun)
 	moon = DirectionalLight3D.new()
 	moon.light_energy = 0.0
 	moon.light_color = Color(0.6, 0.7, 1.0)
 	moon.shadow_enabled = true
-	moon.directional_shadow_max_distance = 250
-	moon.shadow_normal_bias = 2.5
-	moon.shadow_bias = 0.06
+	moon.directional_shadow_max_distance = 400
+	moon.shadow_normal_bias = 2.0
+	moon.shadow_bias = 0.03
 	add_child(moon)
 
 	env = WorldEnvironment.new()
@@ -91,8 +91,9 @@ func _ready() -> void:
 	e.ssao_enabled = true
 	e.ssao_intensity = 3.0
 	e.ssao_radius = 1.5
-	e.ssao_power = 2.0
+	e.ssao_power = 1.6
 	e.ssao_detail = 1.0
+	e.ssao_light_affect = 0.5
 	e.ssil_enabled = true
 	e.ssil_intensity = 1.4
 	e.glow_enabled = true
@@ -655,9 +656,15 @@ func _update_environment_extras() -> void:
 		# the view shortens the way it should.
 		e.fog_enabled = true
 		e.fog_light_color = Color(0.10, 0.28, 0.34)
-		e.fog_density = 0.16
+		e.fog_density = 0.12
 		e.fog_aerial_perspective = 0.0
 		e.fog_sky_affect = 1.0
+		# Light shafts: sun scattering through the participating water volume.
+		e.volumetric_fog_enabled = true
+		e.volumetric_fog_density = 0.06
+		e.volumetric_fog_albedo = Color(0.25, 0.55, 0.62)
+		e.volumetric_fog_anisotropy = 0.9
+		e.volumetric_fog_length = 64.0
 	else:
 		# Restore the surface fog from the current sky state.
 		_apply_sky()
