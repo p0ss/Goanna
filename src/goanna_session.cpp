@@ -1,3 +1,17 @@
+// SPDX-License-Identifier: LGPL-2.1-or-later
+// Copyright (C) 2026 the Goanna contributors
+// Copyright (C) 2010-2013 celeron55, Perttu Ahola <celeron55@gmail.com>
+//
+// A Luanti client session, built on Luanti's own network layer, node and
+// item definition managers and MapBlock code.
+//
+// Parts derive from Luanti 5.16.1, restructured rather than copied whole:
+// the packet handlers follow Client::handleCommand_* in
+// network/clientpackethandler.cpp; sendInit and startAuth follow
+// Client::sendInit and Client::startAuth in client/client.cpp; stepPlayer
+// is the local player half of ClientEnvironment::step. Each is marked at
+// its definition.
+
 #include "goanna_session.h"
 
 #include "transplant/localplayer.h"
@@ -621,6 +635,7 @@ void GoannaSession::threadMain() {
 
 // --- outgoing ---
 
+// Follows Client::sendInit in luanti/src/client/client.cpp.
 void GoannaSession::sendInit() {
     NetworkPacket pkt(TOSERVER_INIT, 1 + 2 + 2 + (1 + m_name.size()));
     pkt << SER_FMT_VER_HIGHEST_READ << (u16)0;
@@ -630,6 +645,7 @@ void GoannaSession::sendInit() {
     setState(SessionState::Init, "TOSERVER_INIT sent");
 }
 
+// Follows Client::startAuth in luanti/src/client/client.cpp.
 void GoannaSession::startAuth(AuthMechanism mech) {
     m_chosen_auth = mech;
     switch (mech) {
