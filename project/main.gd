@@ -1,6 +1,7 @@
 extends Node3D
 
 var client: GoannaClient
+var ui: CanvasLayer
 var cam: Camera3D
 var sun: DirectionalLight3D
 var moon: DirectionalLight3D
@@ -25,6 +26,10 @@ var pointed: Dictionary = {}
 func _ready() -> void:
 	client = GoannaClient.new()
 	add_child(client)
+	# In-game UI (HUD, chat, inventory, formspecs, pause menu): project/ui/.
+	ui = preload("res://ui/game_ui.tscn").instantiate()
+	ui.client = client
+	add_child(ui)
 	print(client.hello())
 	print(client.luanti_version())
 
@@ -133,13 +138,17 @@ func _process(delta: float) -> void:
 		}
 		if OS.get_environment("GOANNA_WALKTEST") != "":
 			keys = _walktest_keys()
+		var ui_blocks: bool = ui != null and ui.blocks_input()
+		if ui_blocks:
+			for k in keys:
+				keys[k] = false
 		var r: Dictionary = client.step_player(delta, keys, pitch, yaw)
 		if r.has("eye_pos"):
 			cam.position = r["eye_pos"]
 			cam.rotation_degrees = Vector3(pitch, yaw, 0)
-		var dig := dig_down
-		var plc := place_down
-		var plc_pressed := place_pressed
+		var dig := dig_down and not ui_blocks
+		var plc := place_down and not ui_blocks
+		var plc_pressed := place_pressed and not ui_blocks
 		if OS.get_environment("GOANNA_DIGTEST") != "":
 			# look down at the ground in front (hand-diggable, timed) and use slot 4 (light14) to place
 			pitch = -55.0
