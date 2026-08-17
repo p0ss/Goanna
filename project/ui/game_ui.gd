@@ -610,7 +610,7 @@ const SETTINGS := [
 	["Lighting", "light_ambient", "slider", "Ambient light", "Sky light filling shadowed surfaces.", 0.0, 3.0, 0.05],
 	["Lighting", "light_sdfgi", "slider", "Bounced light", "Strength of global illumination bouncing off surfaces.", 0.0, 4.0, 0.1],
 	["Lighting", "light_ssao", "slider", "Corner shading", "Darkening where surfaces meet (ambient occlusion).", 0.0, 8.0, 0.25],
-	["Lighting", "light_white", "slider", "White point", "Brightness at which highlights clip to white. Lower is brighter and flatter.", 0.5, 6.0, 0.1],
+	["Lighting", "light_white", "slider", "White point", "Where highlights clip to white. If bright surfaces look flat and detailless, lower Sunlight and Ambient light first: this alone will not recover them.", 0.5, 6.0, 0.1],
 	["Audio", "volume", "slider", "Volume", "Overall sound level.", 0.0, 1.0, 0.05],
 	["Audio", "muted", "toggle", "Mute", "Silence all sound."],
 	["Display", "fov", "slider", "Field of view", "The camera's field of view, in degrees.", 60.0, 110.0, 1.0],
