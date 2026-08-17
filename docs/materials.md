@@ -110,8 +110,9 @@ this wrong is subtle, pervasive and hard to see in a screenshot.
 **How texture modifiers propagate.** This is the Luanti specific question,
 and the one no existing standard can answer, because Minecraft has no
 equivalent. Luanti textures are expressions, not file names:
-`default_stone.png^[colorize:#ff0000`, `^[crack:1:4:2`, `[combine:16x16:0,0=a.png`,
-and the inventory cube form. An agreement has to say what the companion of an
+`default_stone.png^[colorize:#ff0000`, `^[crack:1:4:2`,
+`[combine:16x16:0,0=a.png`, and the inventory cube form. An agreement has to
+say what the companion of an
 expression is. Reasonable answers exist: a colour only modifier leaves the
 companions untouched, which is what makes one normal map serve every recolour
 of a texture, and `[combine:` has to composite the companions in the same

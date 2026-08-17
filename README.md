@@ -137,7 +137,8 @@ back to the relief inferred from brightness. Verified against a CC0 pack
 served from a worldmod, though the sample mapping covers only eight
 Mineclonia textures so far, because such packs name blocks the Minecraft
 way and each Luanti game names them its own way. `tools/pbr_pack.py` builds
-a pack from that kind of source.
+a pack from that kind of source, and [docs/materials.md](docs/materials.md)
+describes the convention and what it leaves unsettled.
 
 Then the parts that are Goanna's own rather than Luanti's: a water shader
 with vertex waves and refraction, waving leaves and plants, distance fog and
