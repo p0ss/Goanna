@@ -98,11 +98,3 @@ The good news is that the vanilla Luanti client runs well on a Pi 5, plays
 every game, connects to every server, and is actively maintained. That is
 genuinely the right answer for that hardware, and it is the answer `PLAN.md`
 committed to from the start.
-
-## What would move the needle
-
-If you want Goanna to run on weaker hardware, the useful work is not a
-fallback renderer. The settings screen now exposes view distance and the
-distance at which coarse LOD begins. The next useful controls would let a
-player trade quality for frame rate inside Godot's expensive pipeline: SDFGI
-off, shadow distance down, SSIL off and fog simplified.
