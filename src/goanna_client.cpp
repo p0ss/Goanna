@@ -1523,6 +1523,49 @@ int GoannaClient::update_lod(const Vector3 &around, int max_rebuild) {
         m_session->requeueBlock(bp);
     return (int)changed.size();
 }
+// Godot's NORMAL_MAP is tangent space, so a mesh needs a tangent frame in its
+// vertex data or every normal map on it, authored or inferred, does nothing at
+// all. Irrlicht's block buffers carry no tangents, so derive them from the UV
+// layout the way any tangent generator does: solve each triangle for the
+// direction u runs in, average that at the shared vertices, then straighten it
+// against the vertex normal.
+static PackedFloat32Array buildTangents(const PackedVector3Array &verts,
+        const PackedVector3Array &norms, const PackedVector2Array &uvs,
+        const PackedInt32Array &idx) {
+    const int nv = verts.size();
+    std::vector<Vector3> tan(nv, Vector3()), bitan(nv, Vector3());
+    for (int i = 0; i + 2 < idx.size(); i += 3) {
+        const int a = idx[i], b = idx[i + 1], c = idx[i + 2];
+        if (a >= nv || b >= nv || c >= nv)
+            continue;
+        const Vector3 e1 = verts[b] - verts[a], e2 = verts[c] - verts[a];
+        const Vector2 d1 = uvs[b] - uvs[a], d2 = uvs[c] - uvs[a];
+        const float det = d1.x * d2.y - d2.x * d1.y;
+        if (std::fabs(det) < 1e-12f) // degenerate in UV space, nothing to learn
+            continue;
+        const float r = 1.0f / det;
+        const Vector3 t = (e1 * d2.y - e2 * d1.y) * r;
+        const Vector3 bt = (e2 * d1.x - e1 * d2.x) * r;
+        tan[a] += t; tan[b] += t; tan[c] += t;
+        bitan[a] += bt; bitan[b] += bt; bitan[c] += bt;
+    }
+    PackedFloat32Array out;
+    out.resize(nv * 4);
+    for (int i = 0; i < nv; ++i) {
+        const Vector3 n = norms[i];
+        Vector3 t = tan[i] - n * n.dot(tan[i]); // Gram-Schmidt
+        if (t.length_squared() < 1e-12f) // no usable UV gradient; any frame will do
+            t = (std::fabs(n.x) < 0.9f ? Vector3(1, 0, 0) : Vector3(0, 1, 0)).cross(n);
+        t.normalize();
+        const float w = n.cross(t).dot(bitan[i]) < 0.0f ? -1.0f : 1.0f;
+        out.set(i * 4 + 0, t.x);
+        out.set(i * 4 + 1, t.y);
+        out.set(i * 4 + 2, t.z);
+        out.set(i * 4 + 3, w);
+    }
+    return out;
+}
+
 
 int GoannaClient::poll_blocks(int max_blocks) {
     if (!m_session)
@@ -1700,10 +1743,15 @@ int GoannaClient::poll_blocks(int max_blocks) {
             arrays[Mesh::ARRAY_NORMAL] = acc.norms;
             arrays[Mesh::ARRAY_TEX_UV] = acc.uvs;
             arrays[Mesh::ARRAY_COLOR] = acc.cols;
+            arrays[Mesh::ARRAY_TANGENT] = buildTangents(acc.verts, acc.norms, acc.uvs, acc.idx);
             if (acc.is_array)
                 arrays[Mesh::ARRAY_TEX_UV2] = acc.uv2s;
             arrays[Mesh::ARRAY_INDEX] = acc.idx;
             mesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays);
+            if (si == 0 && getenv("GOANNA_DEBUG_PBR"))
+                UtilityFunctions::print("surface format: tangent=",
+                        (bool)(mesh->surface_get_format(0) & Mesh::ARRAY_FORMAT_TANGENT),
+                        " uv2=", (bool)(mesh->surface_get_format(0) & Mesh::ARRAY_FORMAT_TEX_UV2));
             mesh->surface_set_material(si++, materialFor(acc.key));
         }
         if (si == 0) {
