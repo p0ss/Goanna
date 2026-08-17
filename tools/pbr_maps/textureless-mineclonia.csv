@@ -1,0 +1,41 @@
+# Pack: Null-MC/Textureless (CC0-1.0), PixelGraph source form
+# Game: Mineclonia
+# Generated with tools/pbr_pack.py --suggest, then reviewed.
+# A wrong pair silently dresses one block in another material,
+# so review additions rather than trusting the suggester.
+pack_block,game_texture
+acacia_leaves,default_acacia_leaves.png
+acacia_log_top,default_acacia_tree_top.png
+blast_furnace_front_on,blast_furnace_front_on.png
+bone_block_top,mcl_core_bone_block_top.png
+bookshelf,default_bookshelf.png
+brewing_stand,mcl_brewing_stand.png
+cactus_bottom,mcl_core_cactus_bottom.png
+cactus_side,mcl_core_cactus_side.png
+cactus_top,mcl_core_cactus_top.png
+cobblestone,default_cobble.png
+crimson_hyphae,crimson_hyphae.png
+crimson_roots,crimson_roots.png
+fletching_table_front,fletching_table_front.png
+fletching_table_side,fletching_table_side.png
+glow_lichen,mcl_core_glow_lichen.png
+grass_block_side_overlay,mcl_core_grass_block_side_overlay.png
+honey_block_bottom,mcl_honey_block_bottom.png
+honey_block_side,mcl_honey_block_side.png
+honey_block_top,mcl_honey_block_top.png
+jungle_log,default_jungletree.png
+jungle_log_top,default_jungletree_top.png
+mangrove_roots_side,mcl_mangrove_roots_side.png
+mangrove_roots_top,mcl_mangrove_roots_top.png
+nether_sprouts,nether_sprouts.png
+rail,default_rail.png
+stripped_crimson_stem_top,stripped_crimson_stem_top.png
+stripped_mangrove_log_top,mcl_stripped_mangrove_log_top.png
+stripped_warped_stem_top,stripped_warped_stem_top.png
+tnt_side,default_tnt_side.png
+oak_log_top,default_tree_top.png
+twisting_vines,twisting_vines.png
+twisting_vines_plant,twisting_vines_plant.png
+vine,mcl_core_vine.png
+warped_hyphae,warped_hyphae.png
+warped_roots,warped_roots.png

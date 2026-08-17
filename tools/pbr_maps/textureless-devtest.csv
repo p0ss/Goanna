@@ -1,0 +1,11 @@
+# Pack: Null-MC/Textureless (CC0-1.0), PixelGraph source form
+# Game: Luanti devtest
+# Generated with tools/pbr_pack.py --suggest, then reviewed.
+# A wrong pair silently dresses one block in another material,
+# so review additions rather than trusting the suggester.
+pack_block,game_texture
+cobblestone,default_cobble.png
+grass,default_grass.png
+jungle_log,default_jungletree.png
+jungle_log_top,default_jungletree_top.png
+oak_log_top,default_tree_top.png

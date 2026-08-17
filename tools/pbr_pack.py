@@ -9,10 +9,13 @@ convention, so packs written for other engines can be reused.
 
 Packs in PixelGraph source form keep those channels as separate files in a
 directory per block, which is what this reads. Point it at that source tree,
-at the game whose texture names you are targeting, and at a mapping file of
-"<pack directory> <game texture>.png" lines; it writes the companions, scaled
-to each target texture's own size, into a mod's textures directory. Serve them
-by dropping that mod in a world's worldmods.
+at the game whose texture names you are targeting, and at a mapping CSV of
+"pack_block,game_texture" rows; it writes the companions, scaled to each
+target texture's own size, into a mod's textures directory. Serve them by
+dropping that mod in a world's worldmods.
+
+Mappings live in tools/pbr_maps/<pack>-<game>.csv, one per pack and game,
+because coverage and block naming differ by pack.
 
 Nothing here is Goanna-specific: the output is a plain LabPBR pack.
 
@@ -23,6 +26,7 @@ that a converted copy inherits.
 """
 
 import argparse
+import csv
 import os
 import sys
 
@@ -110,7 +114,7 @@ def suggest(pack_dir, game_dir):
                 continue
             key = strip_prefix(f[:-4])
             targets.setdefault(key, set()).add(f)
-    lines, ambiguous = [], 0
+    rows, ambiguous = [], 0
     for key, names in sorted(targets.items()):
         want = SYNONYMS.get(key, key)
         if want not in blocks:
@@ -118,10 +122,11 @@ def suggest(pack_dir, game_dir):
         if len(names) > 1: # same stripped name in two mods: needs a human
             ambiguous += 1
             continue
-        lines.append("%s %s" % (want, next(iter(names))))
-    for line in lines:
-        print(line)
-    print("# %d candidates, %d ambiguous names skipped" % (len(lines), ambiguous),
+        rows.append((want, next(iter(names))))
+    out = csv.writer(sys.stdout, lineterminator="\n")
+    out.writerow(("pack_block", "game_texture"))
+    out.writerows(rows)
+    print("# %d candidates, %d ambiguous names skipped" % (len(rows), ambiguous),
             file=sys.stderr)
 
 
@@ -130,7 +135,7 @@ def main():
             formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--pack", required=True, help="PixelGraph source tree (a directory per block)")
     ap.add_argument("--game", required=True, help="game directory, to read each target texture's size")
-    ap.add_argument("--map", help="lines of: <pack directory> <game texture>.png")
+    ap.add_argument("--map", help="mapping CSV with pack_block,game_texture rows")
     ap.add_argument("--out", help="mod textures directory to write into")
     ap.add_argument("--suggest", action="store_true",
             help="print candidate mapping lines for review instead of composing")
@@ -145,13 +150,15 @@ def main():
     if not args.map:
         sys.exit("--map is required unless --suggest is given")
     pairs = []
-    with open(args.map) as fh:
-        for line in fh:
-            line = line.split("#", 1)[0].split()
-            if len(line) == 2:
-                pairs.append((line[0], line[1]))
+    with open(args.map, newline="") as fh:
+        for row in csv.reader(fh):
+            if not row or row[0].lstrip().startswith("#") or len(row) < 2:
+                continue
+            if row[0].strip() == "pack_block": # header
+                continue
+            pairs.append((row[0].strip(), row[1].strip()))
     if not pairs:
-        sys.exit("mapping file has no usable lines")
+        sys.exit("mapping CSV has no usable rows")
 
     os.makedirs(args.out, exist_ok=True)
     sizes = target_sizes(args.game, {t for _, t in pairs})
