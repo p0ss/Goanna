@@ -194,6 +194,7 @@ Ref<Texture2DArray> GoannaTexture::godotArraySuffixed(GoannaTextureSource &src, 
     const bool is_normal = key == "_n";
     TypedArray<Image> imgs;
     bool any = false;
+    int authored = 0;
     for (const std::string &base : m_layer_names) {
         size_t dotpos = base.rfind('.');
         std::string name = (dotpos == std::string::npos ? base : base.substr(0, dotpos)) + suffix +
@@ -203,8 +204,10 @@ Ref<Texture2DArray> GoannaTexture::godotArraySuffixed(GoannaTextureSource &src, 
             GoannaTexture *gt = dynamic_cast<GoannaTexture *>(src.getTexture(name));
             if (gt && gt->image() && gt->image()->getDimension() == Size) {
                 img = goanna_image_to_godot(gt->image());
-                if (img.is_valid())
+                if (img.is_valid()) {
                     any = true;
+                    ++authored;
+                }
             }
         }
         if (img.is_null()) {
@@ -215,6 +218,14 @@ Ref<Texture2DArray> GoannaTexture::godotArraySuffixed(GoannaTextureSource &src, 
         }
         img->generate_mipmaps();
         imgs.push_back(img);
+    }
+    if (getenv("GOANNA_DEBUG_PBR")) {
+        // has_normal being true only means SOME layer of the bunch had a
+        // companion. The rest are neutral fallbacks carrying no material at
+        // all, so this is the number that says how much of a scene is
+        // actually dressed.
+        UtilityFunctions::print("pbr coverage ", suffix, " ", authored, "/",
+                (int)m_layer_names.size());
     }
     if (!any) {
         m_suffixed_missing[key] = true;
