@@ -24,3 +24,8 @@ core
 core.*
 .DS_Store
 dist/
+
+# editor lock and swap files
+.~lock.*#
+*.kate-swp
+*.swp
