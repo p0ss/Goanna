@@ -42,9 +42,9 @@ func _quad() -> ArrayMesh:
 		Vector3(0, 0, 1), Vector3(0, 0, 1), Vector3(0, 0, 1), Vector3(0, 0, 1)])
 	arrays[Mesh.ARRAY_TEX_UV] = PackedVector2Array([
 		Vector2(0, 1), Vector2(1, 1), Vector2(1, 0), Vector2(0, 0)])
-	# UV2.x is the array layer the mesher writes; COLOR is Luanti's per vertex
-	# light, which the shader multiplies into the albedo. White here so the
-	# comparison is of the material and nothing else.
+	# UV2.x is the array layer the mesher writes. The vertex colour channel
+	# carries Luanti's per vertex light, which the shader multiplies into the
+	# albedo, so it is white here and the comparison is of the material alone.
 	arrays[Mesh.ARRAY_TEX_UV2] = PackedVector2Array([
 		Vector2(0, 0), Vector2(0, 0), Vector2(0, 0), Vector2(0, 0)])
 	arrays[Mesh.ARRAY_COLOR] = PackedColorArray([
