@@ -749,10 +749,44 @@ func _test_hooks(keys: Dictionary) -> void:
 			get_tree().quit()
 		return
 
+# GOANNA_TP="x,y,z": stand at an exact spot before doing anything else.
+# Ask the server to move us rather than moving the camera: a server side
+# teleport is authoritative, so blocks stream to where we land, while moving
+# ourselves is rejected as speed hacking and quietly reset. Coordinates are
+# Godot space, matching GOANNA_VIEW, so z is negated for the server.
+# Needs the teleport priv. Returns once the server agrees we are there.
+func _teleport() -> bool:
+	var tp := OS.get_environment("GOANNA_TP")
+	if tp == "":
+		return false
+	var t := tp.split(",")
+	if t.size() != 3:
+		push_error("GOANNA_TP wants x,y,z")
+		return false
+	var want := Vector3(float(t[0]), float(t[1]), float(t[2]))
+	client.send_chat("/teleport %.1f,%.1f,%.1f" % [want.x, want.y, -want.z])
+	for i in 600:
+		client.poll_blocks(64)
+		await get_tree().process_frame
+		if client.server_player_position().distance_to(want) < 2.0:
+			break
+	if client.server_player_position().distance_to(want) >= 2.0:
+		push_error("teleport to %s never took, still at %s" % [want, client.server_player_position()])
+		return false
+	# let the blocks around the new position arrive and mesh
+	for i in 240:
+		client.poll_blocks(64)
+		await get_tree().process_frame
+	cam.position = want
+	print("teleported to ", want)
+	return true
+
+
 func _shots(dir: String) -> void:
 	fly_mode = true
 	if ui:
 		ui.visible = false  # keep the HUD/inventory out of rendering test shots
+	await _teleport()
 	var base := cam.position
 	if OS.get_environment("GOANNA_AIM_ENTITY") != "":
 		# GOANNA_AIM_ENTITY=n (the first n visible entities) or a name
