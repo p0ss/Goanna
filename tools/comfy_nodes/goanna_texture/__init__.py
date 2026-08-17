@@ -148,7 +148,10 @@ class GoannaSeamEnergy:
         inner = (np.abs(a[0, :] - a[1, :]).mean() + np.abs(a[:, 0] - a[:, 1]).mean())
         seam = float(wrap / max(inner, 1e-6))
         verdict = "seamless" if seam <= 1.2 else ("marginal" if seam <= 2.0 else "VISIBLE SEAM")
-        return (seam, "seam %.2f (%s)" % (seam, verdict))
+        text = "seam %.2f (%s)" % (seam, verdict)
+        # OUTPUT_NODE only makes it run. Showing anything needs a ui dict,
+        # otherwise the node computes a number and quietly keeps it.
+        return {"ui": {"text": [text]}, "result": (seam, text)}
 
 
 class GoannaAOFromHeight:
@@ -295,7 +298,7 @@ class GoannaSaveLabPBR:
                     "albedo as F0" if metal else "F0",
                     b_val, "SSS" if sss > 0 else "porosity",
                     a_val, "no emission" if a_val == 255 else "emissive"))
-        return (report,)
+        return {"ui": {"text": [report]}, "result": (report,)}
 
 
 NODE_CLASS_MAPPINGS = {
