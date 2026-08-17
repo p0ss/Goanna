@@ -24,7 +24,7 @@ var view_bobbing := 1.0        # walk-cycle camera bob, 0 = off
 # Lighting levels, seeded from GOANNA_SUN/AMBIENT/SDFGI/SSAO/WHITE and then
 # settable live from the Lighting settings tab.
 var light_sun := 1.5
-var light_ambient := 1.1
+var light_ambient := 1.0
 var light_sdfgi := 1.4
 var light_ssao := 4.0
 var light_white := 1.5
@@ -134,15 +134,12 @@ func _ready() -> void:
 	e.background_mode = Environment.BG_SKY
 	e.sky = sky
 	e.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	# Defaults left as they were: measured against the material gallery,
-	# ambient and SDFGI barely move the result and the sun dominates, so
-	# there is no evidence for changing them. The hooks are here because
-	# the exposure as a whole is too hot and wants deciding: at these
+	# The exposure as a whole is too hot and wants deciding: at these
 	# settings sunlit stone of albedo 131 renders at 207, and snow and sea
 	# lanterns clip to flat white with every texel of detail gone, which is
 	# what makes materials read as "shiny" or "black" and nothing between.
 	# GOANNA_SUN / GOANNA_AMBIENT / GOANNA_SDFGI / GOANNA_SSAO / GOANNA_WHITE.
-	e.ambient_light_energy = light_ambient
+	e.ambient_light_energy = light_ambient # a starting value; _apply_sky owns it
 	# AGX is deliberately desaturating: side by side with the vanilla client
 	# (which does not tonemap at all) it turned Luanti's punchy greens grey.
 	# ACES keeps saturation and contrast, which is the look this client is for.
@@ -1082,7 +1079,11 @@ func _apply_sky() -> void:
 	var ratio: float = st["day_night_ratio"]
 	# The setting scales the sky driven ambient rather than replacing it, so
 	# day and night still differ while the slider still means something.
-	e.ambient_light_energy = lerp(0.14, 0.42, ratio) * (light_ambient / 1.1)
+	# Neutral is 1.0. It was written against a neutral of 1.1 to keep old
+	# GOANNA_AMBIENT recipes working, but there were none worth keeping:
+	# until the slider landed this line overwrote the env hook every frame,
+	# so GOANNA_AMBIENT had never done anything at all.
+	e.ambient_light_energy = lerp(0.14, 0.42, ratio) * light_ambient
 	# do not push the sky toward white; it reads as haze and flattens the blue
 	e.background_energy_multiplier = lerp(0.25, 0.95, ratio)
 	var lighting: Dictionary = st["lighting"]
