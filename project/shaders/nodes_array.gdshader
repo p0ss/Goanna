@@ -56,7 +56,13 @@ void fragment() {
 		ROUGHNESS = clamp((1.0 - sm) * (1.0 - sm), 0.04, 1.0);
 		// G below 229/255 is dielectric F0, at or above it is a metal index
 		METALLIC = sp.g >= 0.898 ? 1.0 : 0.0;
-		SPECULAR = sp.g >= 0.898 ? 0.5 : clamp(sp.g * 2.0, 0.0, 1.0);
+		// Godot's SPECULAR is not F0: it defines F0 = 0.08 * SPECULAR, so the
+		// ordinary dielectric F0 of 0.04 is SPECULAR 0.5. LabPBR stores F0
+		// directly, and we were passing it straight through doubled, which
+		// turned the standard dielectric byte of 10 into an F0 of 0.006,
+		// roughly six times too dark. Dielectrics had almost no specular at
+		// all, which is a large part of why none of this read as PBR.
+		SPECULAR = sp.g >= 0.898 ? 0.5 : clamp(sp.g / 0.08, 0.0, 1.0);
 		// A is emission strength, with 1.0 meaning none
 		if (sp.a < 0.999)
 			EMISSION = ALBEDO * sp.a * 4.0;
