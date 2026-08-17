@@ -1,11 +1,19 @@
 # Pack: Null-MC/Textureless (CC0-1.0), PixelGraph source form
-# Game: Luanti devtest
+# Game: Minetest Game
 # Generated with tools/pbr_pack.py --suggest, then reviewed.
 # A wrong pair silently dresses one block in another material,
 # so review additions rather than trusting the suggester.
+# Rejected on review: grass -> default_grass.png, because
+# Minecraft's grass is the plant and default_grass.png is the block top.
 pack_block,game_texture
+acacia_leaves,default_acacia_leaves.png
+acacia_log_top,default_acacia_tree_top.png
+bookshelf,default_bookshelf.png
+cactus_side,default_cactus_side.png
+cactus_top,default_cactus_top.png
 cobblestone,default_cobble.png
-grass,default_grass.png
 jungle_log,default_jungletree.png
 jungle_log_top,default_jungletree_top.png
+kelp,default_kelp.png
+tnt_side,tnt_side.png
 oak_log_top,default_tree_top.png
