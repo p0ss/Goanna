@@ -9,8 +9,10 @@ cannot drift apart.
     tools/comfy_workflow.py                 # writes to ComfyUI's workflow dir
     tools/comfy_workflow.py --out foo.json
 
-Load it in ComfyUI, put a 3x3 replica of a 16 px texture in the LoadImage
-node, and the interesting dials are:
+Load it in ComfyUI, point LoadImage at a plain 16 px texture, and hit run.
+The graph replicates it, upscales under tile conditioning, crops the centre,
+runs DeepBump for the normal map and reports the seam energy. The
+interesting dials are:
 
   denoise (KSampler)       0.4 timid, 0.55 default, 0.7 starts inventing
   strength (ControlNet)    how hard the original holds the structure
@@ -18,8 +20,10 @@ node, and the interesting dials are:
                            so each tile gets a third of it
 
 The 3x3 replica is what keeps the result seamless: the centre tile is
-generated with its own neighbours present, so its edges line up. Crop the
-middle ninth of the output. tools/pbr_bake.py does that automatically.
+generated with its own neighbours present, so its edges line up. The graph
+crops the middle ninth for you.
+
+Needs the goanna_texture nodes in ComfyUI/custom_nodes.
 """
 
 import argparse
@@ -119,10 +123,13 @@ def build(size=768, denoise=0.55, strength=0.9, steps=20, seed=1, lora=0.0):
         g.link(ckpt, 1, lo, 1, "CLIP")
         model_src, model_slot = lo, 0
         clip_src, clip_slot = lo, 1
-    load = g.node("LoadImage", (-20, 300), ["example.png", "image"], [],
+    load = g.node("LoadImage", (-20, 430), ["example.png", "image"], [],
             [("IMAGE", "IMAGE"), ("MASK", "MASK")], (340, 320),
-            title="LoadImage (feed a 3x3 replica)")
-    scale = g.node("ImageScale", (360, 300), ["nearest-exact", size, size, "disabled"],
+            title="LoadImage (a plain 16 px texture)")
+    tile = g.node("GoannaTile3x3", (360, 430), [], [("image", "IMAGE")],
+            [("IMAGE", "IMAGE")], (280, 40),
+            title="tile 3x3 (so the seams are generated with neighbours)")
+    scale = g.node("ImageScale", (360, 520), ["nearest-exact", size, size, "disabled"],
             [("image", "IMAGE")], [("IMAGE", "IMAGE")], (315, 130),
             title="ImageScale (nearest keeps the pixel edges)")
     pos = g.node("CLIPTextEncode", (360, 480), [PROMPT], [("clip", "CLIP")],
@@ -146,10 +153,22 @@ def build(size=768, denoise=0.55, strength=0.9, steps=20, seed=1, lora=0.0):
             [("LATENT", "LATENT")], (300, 260))
     dec = g.node("VAEDecode", (1520, 220), [], [("samples", "LATENT"), ("vae", "VAE")],
             [("IMAGE", "IMAGE")], (210, 50))
-    save = g.node("SaveImage", (1520, 340), ["goanna_bake"], [("images", "IMAGE")],
-            [], (320, 280))
+    crop = g.node("GoannaCropCentre", (1520, 330), [], [("image", "IMAGE")],
+            [("IMAGE", "IMAGE")], (280, 40),
+            title="crop centre (the tile that had neighbours)")
+    save = g.node("SaveImage", (1520, 420), ["goanna_albedo"], [("images", "IMAGE")],
+            [], (320, 280), title="upscaled colour")
+    bump = g.node("GoannaDeepBumpNormals", (1880, 330), ["LARGE"], [("image", "IMAGE")],
+            [("IMAGE", "IMAGE")], (300, 60),
+            title="DeepBump normals (needs the upscale to say anything)")
+    savn = g.node("SaveImage", (1880, 430), ["goanna_normal"], [("images", "IMAGE")],
+            [], (320, 280), title="normal map")
+    seam = g.node("GoannaSeamEnergy", (2240, 330), [], [("image", "IMAGE")],
+            [("seam", "FLOAT"), ("report", "STRING")], (300, 70),
+            title="seam check (under 1.2 is seamless)")
 
-    g.link(load, 0, scale, 0, "IMAGE")
+    g.link(load, 0, tile, 0, "IMAGE")
+    g.link(tile, 0, scale, 0, "IMAGE")
     g.link(clip_src, clip_slot, pos, 0, "CLIP")
     g.link(clip_src, clip_slot, neg, 0, "CLIP")
     g.link(pos, 0, cna, 0, "CONDITIONING")
@@ -164,7 +183,11 @@ def build(size=768, denoise=0.55, strength=0.9, steps=20, seed=1, lora=0.0):
     g.link(enc, 0, ks, 3, "LATENT")
     g.link(ks, 0, dec, 0, "LATENT")
     g.link(ckpt, 2, dec, 1, "VAE")
-    g.link(dec, 0, save, 0, "IMAGE")
+    g.link(dec, 0, crop, 0, "IMAGE")
+    g.link(crop, 0, save, 0, "IMAGE")
+    g.link(crop, 0, bump, 0, "IMAGE")
+    g.link(bump, 0, savn, 0, "IMAGE")
+    g.link(bump, 0, seam, 0, "IMAGE")
     return g.dump()
 
 
