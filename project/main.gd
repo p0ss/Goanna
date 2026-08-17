@@ -21,6 +21,13 @@ var speed := 12.0
 var mouse_sensitivity := 0.15
 var invert_mouse := false
 var view_bobbing := 1.0        # walk-cycle camera bob, 0 = off
+# Lighting levels, seeded from GOANNA_SUN/AMBIENT/SDFGI/SSAO/WHITE and then
+# settable live from the Lighting settings tab.
+var light_sun := 1.5
+var light_ambient := 1.1
+var light_sdfgi := 1.4
+var light_ssao := 4.0
+var light_white := 1.5
 var _bob_phase := 0.0
 var shots_done := false
 var chest_opened := false
@@ -53,6 +60,15 @@ func _ready() -> void:
 		mouse_sensitivity = float(cfg.get_value("settings", "mouse_sensitivity", mouse_sensitivity))
 		invert_mouse = bool(cfg.get_value("settings", "invert_mouse", invert_mouse))
 		view_bobbing = float(cfg.get_value("settings", "view_bobbing", view_bobbing))
+	light_sun = _envf("GOANNA_SUN", light_sun)
+	light_ambient = _envf("GOANNA_AMBIENT", light_ambient)
+	light_sdfgi = _envf("GOANNA_SDFGI", light_sdfgi)
+	light_ssao = _envf("GOANNA_SSAO", light_ssao)
+	light_white = _envf("GOANNA_WHITE", light_white)
+	if cfg.load("user://goanna.cfg") == OK:
+		for k in ["sun", "ambient", "sdfgi", "ssao", "white"]:
+			if cfg.has_section_key("settings", "light_" + k):
+				set("light_" + k, float(cfg.get_value("settings", "light_" + k)))
 	client = GoannaClient.new()
 	add_child(client)
 	# In-game UI (HUD, chat, inventory, formspecs, pause menu): project/ui/.
@@ -126,12 +142,12 @@ func _ready() -> void:
 	# lanterns clip to flat white with every texel of detail gone, which is
 	# what makes materials read as "shiny" or "black" and nothing between.
 	# GOANNA_SUN / GOANNA_AMBIENT / GOANNA_SDFGI / GOANNA_SSAO / GOANNA_WHITE.
-	e.ambient_light_energy = _envf("GOANNA_AMBIENT", 1.1)
+	e.ambient_light_energy = light_ambient
 	# AGX is deliberately desaturating: side by side with the vanilla client
 	# (which does not tonemap at all) it turned Luanti's punchy greens grey.
 	# ACES keeps saturation and contrast, which is the look this client is for.
 	e.tonemap_mode = Environment.TONE_MAPPER_ACES
-	e.tonemap_white = _envf("GOANNA_WHITE", 1.5)
+	e.tonemap_white = light_white
 	e.adjustment_enabled = true
 	e.adjustment_saturation = 1.15
 	e.adjustment_contrast = 1.05
@@ -139,9 +155,9 @@ func _ready() -> void:
 	e.sdfgi_enabled = true
 	e.sdfgi_cascades = 6
 	e.sdfgi_min_cell_size = 0.5
-	e.sdfgi_energy = _envf("GOANNA_SDFGI", 1.4)
+	e.sdfgi_energy = light_sdfgi
 	e.ssao_enabled = true
-	e.ssao_intensity = _envf("GOANNA_SSAO", 4.0)
+	e.ssao_intensity = light_ssao
 	e.ssao_radius = 2.2
 	e.ssao_power = 1.6
 	e.ssao_detail = 1.0
@@ -943,6 +959,16 @@ func _update_environment_extras() -> void:
 # day/dawn/night scheme are the server's (or Luanti's defaults); the blend by
 # sun elevation approximates Sky::update in the vanilla client.
 # Read a tuning override from the environment, falling back to the default.
+# Push the lighting levels onto the environment. The sun follows on the next
+# frame through _apply_sky, which reads light_sun directly.
+func apply_lighting() -> void:
+	if env == null or env.environment == null:
+		return
+	var e := env.environment
+	e.tonemap_white = light_white
+	e.sdfgi_energy = light_sdfgi
+	e.ssao_intensity = light_ssao
+
 func _envf(name: String, dflt: float) -> float:
 	var v := OS.get_environment(name)
 	return float(v) if v != "" else dflt
@@ -968,7 +994,7 @@ func _apply_sky() -> void:
 	var day: float = smoothstep(-0.02, 0.18, elev)
 	var warm: float = 1.0 - smoothstep(0.0, 0.32, elev)
 	sun.light_color = Color(1.0, 0.98, 0.94).lerp(Color(1.0, 0.62, 0.32), warm)
-	sun.light_energy = lerp(0.0, _envf("GOANNA_SUN", 1.5), day)
+	sun.light_energy = lerp(0.0, light_sun, day)
 	sun.visible = sun.light_energy > 0.01
 	var moon_up: float = smoothstep(-0.02, 0.15, moon_dir.y) * (1.0 - day)
 	moon.light_energy = 0.12 * moon_up
@@ -1054,7 +1080,9 @@ func _apply_sky() -> void:
 			e.fog_density = auto_density
 	# --- ambient / grade from day-night ratio and server lighting ---
 	var ratio: float = st["day_night_ratio"]
-	e.ambient_light_energy = lerp(0.14, 0.42, ratio)
+	# The setting scales the sky driven ambient rather than replacing it, so
+	# day and night still differ while the slider still means something.
+	e.ambient_light_energy = lerp(0.14, 0.42, ratio) * (light_ambient / 1.1)
 	# do not push the sky toward white; it reads as haze and flattens the blue
 	e.background_energy_multiplier = lerp(0.25, 0.95, ratio)
 	var lighting: Dictionary = st["lighting"]

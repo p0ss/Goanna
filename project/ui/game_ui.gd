@@ -606,6 +606,11 @@ const SETTINGS := [
 	["Video", "lod_distance", "slider", "Detail distance", "Blocks beyond this are drawn as simplified shapes, which costs less. 0 turns it off.", 0.0, 24.0, 1.0],
 	["Video", "damage_flash", "toggle", "Damage flash", "Flash the screen red when you take damage."],
 	["Video", "show_body", "toggle", "Show own body", "See your own body and held item when you look down."],
+	["Lighting", "light_sun", "slider", "Sunlight", "Strength of direct sun and moon light.", 0.0, 4.0, 0.1],
+	["Lighting", "light_ambient", "slider", "Ambient light", "Sky light filling shadowed surfaces.", 0.0, 3.0, 0.05],
+	["Lighting", "light_sdfgi", "slider", "Bounced light", "Strength of global illumination bouncing off surfaces.", 0.0, 4.0, 0.1],
+	["Lighting", "light_ssao", "slider", "Corner shading", "Darkening where surfaces meet (ambient occlusion).", 0.0, 8.0, 0.25],
+	["Lighting", "light_white", "slider", "White point", "Brightness at which highlights clip to white. Lower is brighter and flatter.", 0.5, 6.0, 0.1],
 	["Audio", "volume", "slider", "Volume", "Overall sound level.", 0.0, 1.0, 0.05],
 	["Audio", "muted", "toggle", "Mute", "Silence all sound."],
 	["Display", "fov", "slider", "Field of view", "The camera's field of view, in degrees.", 60.0, 110.0, 1.0],
@@ -616,7 +621,8 @@ const SETTINGS := [
 ]
 # Settings handled here rather than through the client (window, camera, UI).
 const LOCAL_KEYS := ["mouse_sensitivity", "invert_mouse", "view_bobbing", "fov",
-	"gui_scale", "max_fps", "vsync", "fullscreen", "damage_flash", "volume", "muted"]
+	"gui_scale", "max_fps", "vsync", "fullscreen", "damage_flash", "volume", "muted",
+	"light_sun", "light_ambient", "light_sdfgi", "light_ssao", "light_white"]
 var settings_menu: Control
 
 func _main_node() -> Node:
@@ -649,6 +655,11 @@ func _apply_local(key: String, value: float, on: bool) -> void:
 			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN if on else DisplayServer.WINDOW_MODE_WINDOWED)
 		"damage_flash":
 			damage_flash = on
+		"light_sun", "light_ambient", "light_sdfgi", "light_ssao", "light_white":
+			var ml := _main_node()
+			if ml != null:
+				ml.set(key, value)
+				ml.apply_lighting()
 		"volume":
 			if audio != null: audio.volume = value
 		"muted":
@@ -666,6 +677,8 @@ func _local_value(key: String) -> float:
 		"vsync": return 1.0 if DisplayServer.window_get_vsync_mode() != DisplayServer.VSYNC_DISABLED else 0.0
 		"fullscreen": return 1.0 if DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN else 0.0
 		"damage_flash": return 1.0 if damage_flash else 0.0
+		"light_sun", "light_ambient", "light_sdfgi", "light_ssao", "light_white":
+			return float(m.get(key)) if m != null else 1.0
 		"volume": return audio.volume if audio != null else 0.8
 		"muted": return 1.0 if (audio != null and audio.muted) else 0.0
 	return 0.0
