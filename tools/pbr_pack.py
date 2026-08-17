@@ -115,6 +115,26 @@ def compose(src_dir, size, out_dir, target):
 # block's own name ("cobblestone"). Stripping the prefix and applying a few
 # well-known synonyms pairs most of them.
 PREFIXES = ("default_", "mcl_core_", "mcl_", "mtg_")
+
+
+def mod_prefixes(game_dir):
+    """The prefix set a game actually uses, read off the mods on disk.
+
+    Luanti mods namespace their media with the mod name, so the mod
+    directories give the exact prefixes rather than a guess. Read the mod
+    names themselves, not their textures directories: VoxeLibre keeps
+    nearly every texture in one game-level directory while still using the
+    per-mod naming. It matters:
+    Mineclonia splits its blocks across mcl_flowers, mcl_nether, mcl_ocean
+    and dozens more, while Minetest Game keeps nearly everything in default.
+    Guessing a second segment would strip default_dry_grass down to grass
+    and pair the savanna grass block with Minecraft's short grass plant.
+    """
+    names = set()
+    for root, _, files in os.walk(game_dir):
+        if "init.lua" in files or "mod.conf" in files:
+            names.add(os.path.basename(root) + "_")
+    return sorted(names, key=len, reverse=True)
 SYNONYMS = {
     "cobble": "cobblestone", "mossycobble": "mossy_cobblestone",
     "tree": "oak_log", "tree_top": "oak_log_top",
@@ -130,9 +150,9 @@ SYNONYMS = {
 }
 
 
-def strip_prefix(name):
-    for p in PREFIXES:
-        if name.startswith(p):
+def strip_prefix(name, prefixes=PREFIXES):
+    for p in prefixes:
+        if name.startswith(p) and len(name) > len(p):
             return name[len(p):]
     return name
 
@@ -145,27 +165,38 @@ def suggest(pack_dir, game_dir):
     else:
         blocks = {d for d in os.listdir(pack_dir)
                 if os.path.isfile(os.path.join(pack_dir, d, "normal.png"))}
+    prefixes = mod_prefixes(game_dir) + list(PREFIXES)
     targets = {}
     for root, _, files in os.walk(game_dir):
         for f in files:
             if not f.endswith(".png") or f.endswith("_n.png") or f.endswith("_s.png"):
                 continue
-            key = strip_prefix(f[:-4])
-            targets.setdefault(key, set()).add(f)
-    rows, ambiguous = [], 0
+            base = f[:-4]
+            # Both, because a mod may share its name with a block: stripping
+            # the tnt mod's prefix off tnt_side.png would leave "side".
+            for key in {strip_prefix(base, prefixes), base}:
+                targets.setdefault(key, set()).add(f)
+    rows, ambiguous = [], []
     for key, names in sorted(targets.items()):
         want = SYNONYMS.get(key, key)
         if want not in blocks:
             continue
-        if len(names) > 1: # same stripped name in two mods: needs a human
-            ambiguous += 1
+        if len(names) > 1:
+            # Several mods ship a texture of this name. Often every one of
+            # them is worth dressing, since each is a distinct node; but a
+            # crystal stone and a plain one want different materials, so
+            # offer them rather than picking or dropping silently.
+            ambiguous.append((want, sorted(names)))
             continue
         rows.append((want, next(iter(names))))
     out = csv.writer(sys.stdout, lineterminator="\n")
     out.writerow(("pack_block", "game_texture"))
     out.writerows(rows)
-    print("# %d candidates, %d ambiguous names skipped" % (len(rows), ambiguous),
-            file=sys.stderr)
+    for want, names in ambiguous:
+        for n in names:
+            print("#? %s,%s" % (want, n))
+    print("# %d candidates, %d names offered for a choice (#?)"
+            % (len(rows), sum(len(n) for _, n in ambiguous)), file=sys.stderr)
 
 
 def main():

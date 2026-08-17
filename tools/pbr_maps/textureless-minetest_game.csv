@@ -1,10 +1,14 @@
 # Pack: Null-MC/Textureless, LabPBR 32x v1.15 (CC0-1.0)
 # Game: Minetest Game
-# Generated with tools/pbr_pack.py --suggest, then reviewed.
-# A wrong pair silently dresses one block in another material,
-# so review additions rather than trusting the suggester.
-# Rejected on review: grass -> default_grass.png, because
-# Minecraft's grass is the plant and default_grass.png is the block top.
+# Generated with tools/pbr_pack.py --suggest, then reviewed by hand.
+# The suggester matches on name, so a wrong pair silently dresses
+# one block in another block's material. Review any addition.
+# One pack block may dress several game textures: this pack ships its
+# own flat diffuse, so its relief was never aligned to these games'
+# art in the first place, and it reads as plausible rather than exact.
+# Rejected here: grass (Minecraft's is the short plant, these games'
+# is the block top), mcl_banners_bricks (a banner pattern) and
+# mobs_mc_stone (mob art, not a node).
 pack_block,game_texture
 acacia_leaves,default_acacia_leaves.png
 acacia_log,default_acacia_tree.png
@@ -27,6 +31,9 @@ jungle_log_top,default_jungletree_top.png
 jungle_planks,default_junglewood.png
 kelp,default_kelp.png
 mossy_cobblestone,default_mossycobble.png
+oak_log,default_tree.png
+oak_log_top,default_tree_top.png
+oak_planks,default_wood.png
 obsidian,default_obsidian.png
 obsidian,default_obsidian_block.png
 sand,default_sand.png
@@ -35,6 +42,3 @@ snow,default_snow.png
 stone,default_stone.png
 tnt_bottom,tnt_bottom.png
 tnt_side,tnt_side.png
-oak_log,default_tree.png
-oak_log_top,default_tree_top.png
-oak_planks,default_wood.png
