@@ -7,8 +7,10 @@ occlusion in B, height in A) and <name>_s.png (perceptual smoothness in R,
 F0 or metalness in G, porosity in B, emission in A). That is the LabPBR
 convention, so packs written for other engines can be reused.
 
-Packs in PixelGraph source form keep those channels as separate files in a
-directory per block, which is what this reads. Point it at that source tree,
+Packs come in two shapes and both are read here: already-packed LabPBR, a
+flat directory of <block>_n.png and <block>_s.png beside each texture, and
+PixelGraph source form, a directory per block holding the channels as
+separate files. Point it at either,
 at the game whose texture names you are targeting, and at a mapping CSV of
 "pack_block,game_texture" rows; it writes the companions, scaled to each
 target texture's own size, into a mod's textures directory. Serve them by
@@ -49,6 +51,39 @@ def target_sizes(game_dir, wanted):
                 except OSError:
                     pass
     return sizes
+
+
+def pack_form(pack_dir):
+    """"packed" for a flat LabPBR directory, "source" for PixelGraph form."""
+    for name in os.listdir(pack_dir):
+        if name.endswith("_n.png"):
+            return "packed"
+        if os.path.isfile(os.path.join(pack_dir, name, "normal.png")):
+            return "source"
+    sys.exit("no LabPBR files or PixelGraph block directories in " + pack_dir)
+
+
+def packed_blocks(pack_dir):
+    # "_inventory" variants are for item rendering, not the node's own faces
+    return {n[:-6] for n in os.listdir(pack_dir)
+            if n.endswith("_n.png") and not n[:-6].endswith("_inventory")}
+
+
+def compose_packed(pack_dir, block, size, out_dir, target):
+    """Already LabPBR: only the size has to change. The normal map tolerates
+    resampling, but the specular channels are discrete (a metal index, an
+    emission flag), so averaging them would invent materials that are not
+    in the pack: it is resized by nearest neighbour."""
+    stem = target[:-4] if target.endswith(".png") else target
+    wrote = False
+    for suffix, filt in (("_n", Image.LANCZOS), ("_s", Image.NEAREST)):
+        src = os.path.join(pack_dir, block + suffix + ".png")
+        if not os.path.exists(src):
+            continue
+        Image.open(src).convert("RGBA").resize(size, filt).save(
+                os.path.join(out_dir, stem + suffix + ".png"))
+        wrote = True
+    return wrote
 
 
 def compose(src_dir, size, out_dir, target):
@@ -105,8 +140,11 @@ def strip_prefix(name):
 def suggest(pack_dir, game_dir):
     """Print candidate mapping lines for review. Never write them directly:
     a wrong pair silently dresses one block in another's material."""
-    blocks = {d for d in os.listdir(pack_dir)
-            if os.path.isfile(os.path.join(pack_dir, d, "normal.png"))}
+    if pack_form(pack_dir) == "packed":
+        blocks = packed_blocks(pack_dir)
+    else:
+        blocks = {d for d in os.listdir(pack_dir)
+                if os.path.isfile(os.path.join(pack_dir, d, "normal.png"))}
     targets = {}
     for root, _, files in os.walk(game_dir):
         for f in files:
@@ -162,21 +200,24 @@ def main():
 
     os.makedirs(args.out, exist_ok=True)
     sizes = target_sizes(args.game, {t for _, t in pairs})
+    form = pack_form(args.pack)
     written = skipped = 0
     for src, target in pairs:
-        src_dir = os.path.join(args.pack, src)
         if target not in sizes:
             print("no such game texture, skipping:", target)
             skipped += 1
-        elif not os.path.isdir(src_dir):
-            print("not in pack, skipping:", src)
-            skipped += 1
-        elif compose(src_dir, sizes[target], args.out, target):
-            print("composed", target, sizes[target])
+            continue
+        if form == "packed":
+            ok = compose_packed(args.pack, src, sizes[target], args.out, target)
+        else:
+            src_dir = os.path.join(args.pack, src)
+            ok = os.path.isdir(src_dir) and compose(src_dir, sizes[target], args.out, target)
+        if ok:
             written += 1
         else:
-            print("no normal map, skipping:", src)
+            print("not in pack, skipping:", src)
             skipped += 1
+    print("form: %s" % form)
     print("wrote %d pairs, skipped %d" % (written, skipped))
 
 

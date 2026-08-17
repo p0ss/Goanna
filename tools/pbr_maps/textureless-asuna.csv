@@ -1,4 +1,4 @@
-# Pack: Null-MC/Textureless (CC0-1.0), PixelGraph source form
+# Pack: Null-MC/Textureless, LabPBR 32x v1.15 (CC0-1.0)
 # Game: Asuna
 # Generated with tools/pbr_pack.py --suggest, then reviewed.
 # A wrong pair silently dresses one block in another material,
@@ -7,14 +7,36 @@
 # Minecraft's grass is the plant and default_grass.png is the block top.
 pack_block,game_texture
 acacia_leaves,default_acacia_leaves.png
-acacia_log_top,default_acacia_tree_top.png
+acacia_log,default_acacia_tree.png
+acacia_wood,default_acacia_wood.png
 amethyst_block,amethyst_block.png
 bookshelf,default_bookshelf.png
-cactus_side,default_cactus_side.png
 cactus_top,default_cactus_top.png
+calcite,calcite.png
+clay,default_clay.png
+coal_block,default_coal_block.png
 cobblestone,default_cobble.png
+copper_block,default_copper_block.png
+diamond_block,default_diamond_block.png
+dirt,default_dirt.png
+furnace_top,default_furnace_top.png
+glass,default_glass.png
+gold_block,default_gold_block.png
+gravel,default_gravel.png
+ice,default_ice.png
 jungle_log,default_jungletree.png
 jungle_log_top,default_jungletree_top.png
+jungle_planks,default_junglewood.png
 kelp,default_kelp.png
+mossy_cobblestone,default_mossycobble.png
+obsidian,default_obsidian.png
+obsidian,default_obsidian_block.png
+sand,default_sand.png
+sandstone,default_sandstone.png
+snow,default_snow.png
+stone,default_stone.png
+tnt_bottom,tnt_bottom.png
 tnt_side,tnt_side.png
+oak_log,default_tree.png
 oak_log_top,default_tree_top.png
+oak_planks,default_wood.png
