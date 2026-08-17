@@ -31,7 +31,11 @@ void fragment() {
 
 	if (has_normal) {
 		vec4 n = texture(normal_array, vec3(UV, UV2.x));
-		vec2 xy = (n.rg * 2.0 - 1.0) * normal_strength;
+		// LabPBR stores Y down, the DirectX convention, while Godot wants
+		// OpenGL-style tangent normals with Y up. Unflipped, every authored
+		// bump lights as a dent. The inferred normals in goanna_textures.cpp
+		// already flip for the same reason.
+		vec2 xy = (vec2(n.r, 1.0 - n.g) * 2.0 - 1.0) * normal_strength;
 		float z = sqrt(clamp(1.0 - dot(xy, xy), 0.0, 1.0));
 		NORMAL_MAP = vec3(xy * 0.5 + 0.5, z * 0.5 + 0.5);
 		NORMAL_MAP_DEPTH = 1.0;
