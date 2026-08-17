@@ -25,6 +25,7 @@ const DEFAULT_LIST_SLOT_BORDER := Color(1, 1, 1, 0.25)
 
 var item_source: Node                # game_ui.gd, see get_list_items / item_icon
 var formname := ""
+var allow_close := true
 var real_coordinates := false
 var formspec_version := 1
 var invsize := Vector2(8, 9)
@@ -47,6 +48,9 @@ var tooltips := {}                   # element name -> text
 var list_rings: Array = []           # [{location, listname}]
 var fields := {}                     # name -> Control (LineEdit/TextEdit/CheckBox/OptionButton/ItemList)
 var field_close_on_enter := {}       # name -> bool
+var named_controls := {}             # element name -> focusable/tooltip Control
+var focus_name := ""
+var focus_force := false
 var slots: Array = []                # slot buttons for refresh
 var pending_elements: Array = []     # parsed [name, params] awaiting layout
 var root: Control                    # the form panel
@@ -76,7 +80,9 @@ func collect_fields() -> Dictionary:
 		var c: Control = fields[n]
 		if not is_instance_valid(c):
 			continue
-		if c is LineEdit:
+		if c is AnimatedFormspecImage:
+			out[n] = str((c as AnimatedFormspecImage).current_frame + 1)
+		elif c is LineEdit:
 			out[n] = c.text
 		elif c is TextEdit:
 			out[n] = c.text
@@ -108,6 +114,7 @@ func submit(extra: Dictionary, quit: bool) -> void:
 
 func _reset() -> void:
 	real_coordinates = false
+	allow_close = true
 	formspec_version = 1
 	invsize = Vector2(8, 9)
 	has_size = false
@@ -123,6 +130,9 @@ func _reset() -> void:
 	list_rings.clear()
 	fields.clear()
 	field_close_on_enter.clear()
+	named_controls.clear()
+	focus_name = ""
+	focus_force = false
 	slots.clear()
 	pending_elements.clear()
 	skipped.clear()
@@ -192,6 +202,8 @@ func _parse(spec: String) -> void:
 					real_coordinates = true
 			"real_coordinates":
 				real_coordinates = params.strip_edges() == "true"
+			"no_prepend":
+				pass
 			"size":
 				var p := fs_split(params, ",")
 				if p.size() >= 2:
@@ -209,7 +221,14 @@ func _parse(spec: String) -> void:
 				var p := fs_split(params, ",")
 				if p.size() >= 2:
 					form_padding = Vector2(float(p[0]), float(p[1]))
-			"no_prepend", "allow_close", "set_focus", "focus":
+			"allow_close":
+				allow_close = params.strip_edges() != "false"
+			"set_focus", "focus":
+				var p := fs_split(params, ";")
+				if p.size() >= 1:
+					focus_name = fs_unescape(p[0])
+					focus_force = p.size() >= 2 and p[1].strip_edges() == "true"
+			"no_prepend":
 				pass
 			_:
 				pending_elements.append([name, params])
@@ -298,6 +317,13 @@ static func parse_color(s: String, fallback: Color) -> Color:
 # --- building --------------------------------------------------------------
 
 func _build() -> void:
+	# Named tooltips apply regardless of whether they appear before or after
+	# their target element. Area tooltips still build in normal element order.
+	for el in pending_elements:
+		if el[0] == "tooltip":
+			var tooltip_parts := fs_split(el[1], ";")
+			if tooltip_parts.size() >= 2 and not tooltip_parts[0].contains(","):
+				tooltips[fs_unescape(tooltip_parts[0])] = fs_unescape(tooltip_parts[1])
 	# a fullscreen tint behind the form, if asked for
 	add_child(root)
 	for el in pending_elements:
@@ -332,8 +358,13 @@ func _build() -> void:
 			"listcolors": _listcolors(parts)
 			"tooltip": _tooltip(parts)
 			"model": _model(parts)
-			"style", "style_type", "tableoptions", "tablecolumns", "scrollbar", "scrollbaroptions", "set_focus", "focus":
+			"style", "style_type", "tableoptions", "tablecolumns", "scrollbar", "scrollbaroptions":
 				skipped[name] = skipped.get(name, 0) + 1
+			"set_focus", "focus":
+				var p := fs_split(params, ";")
+				if p.size() >= 1:
+					focus_name = fs_unescape(p[0])
+					focus_force = p.size() >= 2 and p[1].strip_edges() == "true"
 			_:
 				skipped[name] = skipped.get(name, 0) + 1
 	if skipped.size() > 0:
@@ -356,11 +387,29 @@ func _build() -> void:
 		sb.bg_color = Color(0.13, 0.13, 0.13, 0.9)
 		sb.set_corner_radius_all(int(imgsize * 0.08))
 		root.add_theme_stylebox_override("panel", sb)
+	_apply_focus()
 
 func _add(c: Control, pos: Vector2, size: Vector2) -> void:
 	c.position = pos.floor()
 	c.size = size.floor()
 	current_parent.add_child(c)
+
+func _register_named_control(name: String, control: Control) -> void:
+	if name == "":
+		return
+	named_controls[name] = control
+	control.set_meta("formspec_name", name)
+	if tooltips.has(name):
+		control.tooltip_text = tooltips[name]
+
+func _apply_focus() -> void:
+	if focus_name == "":
+		return
+	var target: Control = named_controls.get(focus_name)
+	if target == null:
+		target = fields.get(focus_name)
+	if target != null and (focus_force or not target.has_focus()):
+		target.grab_focus()
 
 func _container(parts: PackedStringArray) -> void:
 	var v := fs_split(parts[0], ",") if parts.size() >= 1 else PackedStringArray()
@@ -420,12 +469,8 @@ func _background(parts: PackedStringArray) -> void:
 	if tex == null:
 		return
 	var auto_clip := parts.size() >= 4 and parts[3].strip_edges() == "true"
-	var r := TextureRect.new()
-	r.texture = tex
-	r.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	r.stretch_mode = TextureRect.STRETCH_SCALE
-	r.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var middle := parts[4] if parts.size() >= 5 else ""
+	var r := _texture_rect(tex, middle)
 	if auto_clip:
 		# fills the whole form, geometry gives an outset in imgsize units
 		var out := Vector2(float(g[0]), float(g[1])) * (imgsize if real_coordinates else spacing.x)
@@ -434,6 +479,55 @@ func _background(parts: PackedStringArray) -> void:
 		_add(r, _pos(v), _geom(g))
 	# backgrounds go behind everything added so far
 	current_parent.move_child(r, 0)
+
+func _middle_margins(value: String, tex: Texture2D) -> Vector4:
+	if value.strip_edges() == "":
+		return Vector4.ZERO
+	var values := fs_split(value, ",")
+	var left: int
+	var top: int
+	var right_edge: int
+	var bottom_edge: int
+	if values.size() == 1:
+		left = int(values[0])
+		top = left
+		right_edge = -left
+		bottom_edge = -top
+	elif values.size() == 2:
+		left = int(values[0])
+		top = int(values[1])
+		right_edge = -left
+		bottom_edge = -top
+	elif values.size() == 4:
+		left = int(values[0])
+		top = int(values[1])
+		right_edge = int(values[2])
+		bottom_edge = int(values[3])
+	else:
+		return Vector4.ZERO
+	var right := -right_edge if right_edge < 0 else tex.get_width() - right_edge
+	var bottom := -bottom_edge if bottom_edge < 0 else tex.get_height() - bottom_edge
+	return Vector4(maxi(left, 0), maxi(top, 0), maxi(right, 0), maxi(bottom, 0))
+
+func _texture_rect(tex: Texture2D, middle: String) -> Control:
+	var margins := _middle_margins(middle, tex)
+	if margins != Vector4.ZERO:
+		var nine := NinePatchRect.new()
+		nine.texture = tex
+		nine.patch_margin_left = int(margins.x)
+		nine.patch_margin_top = int(margins.y)
+		nine.patch_margin_right = int(margins.z)
+		nine.patch_margin_bottom = int(margins.w)
+		nine.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		nine.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		return nine
+	var rect := TextureRect.new()
+	rect.texture = tex
+	rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	rect.stretch_mode = TextureRect.STRETCH_SCALE
+	rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return rect
 
 func _box(parts: PackedStringArray) -> void:
 	if parts.size() < 3:
@@ -448,27 +542,30 @@ func _box(parts: PackedStringArray) -> void:
 	_add(c, _pos(v), _geom(g))
 
 func _image(parts: PackedStringArray) -> void:
-	# image[x,y;w,h;texture;middle]
-	if parts.size() < 3:
+	# image[x,y;texture] or image[x,y;w,h;texture;middle]
+	if parts.size() < 2:
 		return
 	var v := fs_split(parts[0], ",")
-	var g := fs_split(parts[1], ",")
-	if v.size() < 2 or g.size() < 2:
+	if v.size() < 2:
 		return
-	var tex: Texture2D = item_source.ui_texture(fs_unescape(parts[2])) if item_source else null
+	var has_geometry := parts.size() >= 3
+	var texture_index := 2 if has_geometry else 1
+	var tex: Texture2D = item_source.ui_texture(fs_unescape(parts[texture_index])) if item_source else null
 	if tex == null:
 		return
-	var r := TextureRect.new()
-	r.texture = tex
-	r.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	r.stretch_mode = TextureRect.STRETCH_SCALE
-	r.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_add(r, _pos(v), _geom(g))
+	var middle := parts[3] if parts.size() >= 4 else ""
+	var r := _texture_rect(tex, middle)
+	var size := Vector2(tex.get_width(), tex.get_height())
+	if has_geometry:
+		var g := fs_split(parts[1], ",")
+		if g.size() < 2:
+			return
+		size = _geom(g)
+	_add(r, _pos(v), size)
 
 func _animated_image(parts: PackedStringArray) -> void:
 	# animated_image[x,y;w,h;name;texture;frame_count;frame_duration;frame_start]
-	if parts.size() < 5:
+	if parts.size() < 6:
 		return
 	var v := fs_split(parts[0], ",")
 	var g := fs_split(parts[1], ",")
@@ -478,16 +575,15 @@ func _animated_image(parts: PackedStringArray) -> void:
 	if tex == null:
 		return
 	var frames := maxi(int(parts[4]), 1)
-	var at := AtlasTexture.new()
-	at.atlas = tex
-	at.region = Rect2(0, 0, tex.get_width(), tex.get_height() / float(frames))
-	var r := TextureRect.new()
-	r.texture = at
-	r.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	r.stretch_mode = TextureRect.STRETCH_SCALE
-	r.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var frame_duration := maxi(int(parts[5]), 1)
+	var frame_start := clampi(int(parts[6]) - 1, 0, frames - 1) if parts.size() >= 7 else 0
+	var margins := _middle_margins(parts[7], tex) if parts.size() >= 8 else Vector4.ZERO
+	var r := AnimatedFormspecImage.new()
+	r.setup(tex, frames, frame_duration, frame_start, margins)
 	_add(r, _pos(v), _geom(g))
+	var aname := fs_unescape(parts[2])
+	fields[aname] = r
+	_register_named_control(aname, r)
 
 func _item_image(parts: PackedStringArray) -> void:
 	# item_image[x,y;w,h;item name]
@@ -610,8 +706,7 @@ func _item_image_button(parts: PackedStringArray) -> void:
 	_wire_button(b, bname, label, false)
 
 func _wire_button(b: Button, bname: String, label: String, exit: bool) -> void:
-	if tooltips.has(bname):
-		b.tooltip_text = tooltips[bname]
+	_register_named_control(bname, b)
 	b.pressed.connect(func() -> void:
 		submit({bname: label}, exit))
 
@@ -657,6 +752,7 @@ func _field(parts: PackedStringArray, password: bool) -> void:
 		return
 	e.text = def
 	fields[fname] = e
+	_register_named_control(fname, e)
 	e.text_submitted.connect(func(_t: String) -> void:
 		var quit: bool = field_close_on_enter.get(fname, true)
 		submit({"key_enter": "true", "key_enter_field": fname}, quit))
@@ -690,6 +786,7 @@ func _textarea(parts: PackedStringArray) -> void:
 	e.add_theme_font_size_override("font_size", _font_size())
 	_add(e, p, _geom(g))
 	fields[fname] = e
+	_register_named_control(fname, e)
 
 func _fcoe(parts: PackedStringArray) -> void:
 	if parts.size() >= 2:
@@ -712,6 +809,7 @@ func _checkbox(parts: PackedStringArray) -> void:
 	var cy := p.y if real_coordinates else p.y + imgsize / 2.0
 	c.position = Vector2(p.x, cy - c.get_minimum_size().y / 2.0).floor()
 	fields[cname] = c
+	_register_named_control(cname, c)
 	c.toggled.connect(func(_on: bool) -> void:
 		submit({cname: "true" if c.button_pressed else "false"}, false))
 
@@ -740,6 +838,7 @@ func _dropdown(parts: PackedStringArray) -> void:
 		size = r.size
 	_add(o, _pos(v), size)
 	fields[dname] = o
+	_register_named_control(dname, o)
 	o.item_selected.connect(func(_i: int) -> void:
 		var f := collect_fields()
 		submit({dname: f[dname]}, false))
@@ -764,6 +863,7 @@ func _textlist(parts: PackedStringArray) -> void:
 	il.add_theme_font_size_override("font_size", _font_size())
 	_add(il, _pos(v), _geom(g))
 	fields[lname] = il
+	_register_named_control(lname, il)
 	il.item_selected.connect(func(i: int) -> void:
 		submit({lname: "CHG:" + str(i + 1)}, false))
 	il.item_activated.connect(func(i: int) -> void:
@@ -798,6 +898,7 @@ func _tabheader(parts: PackedStringArray) -> void:
 	tb.position = Vector2(p.x, p.y - size.y).floor()
 	tb.size = size
 	fields[tname] = tb
+	_register_named_control(tname, tb)
 	tb.tab_changed.connect(func(i: int) -> void:
 		submit({tname: str(i + 1)}, false))
 
@@ -851,9 +952,23 @@ func _listcolors(parts: PackedStringArray) -> void:
 		listcolors["tooltip_fg"] = parse_color(parts[4], listcolors["tooltip_fg"])
 
 func _tooltip(parts: PackedStringArray) -> void:
-	# tooltip[element name;text;bgcolor;fontcolor] (area form skipped)
+	# tooltip[element name;text;bgcolor;fontcolor] or
+	# tooltip[x,y;w,h;text;bgcolor;fontcolor]
 	if parts.size() >= 2 and not parts[0].contains(","):
 		tooltips[fs_unescape(parts[0])] = fs_unescape(parts[1])
+		if named_controls.has(fs_unescape(parts[0])):
+			named_controls[fs_unescape(parts[0])].tooltip_text = fs_unescape(parts[1])
+		return
+	if parts.size() < 3:
+		return
+	var v := fs_split(parts[0], ",")
+	var g := fs_split(parts[1], ",")
+	if v.size() < 2 or g.size() < 2:
+		return
+	var area := Control.new()
+	area.tooltip_text = fs_unescape(parts[2])
+	area.mouse_filter = Control.MOUSE_FILTER_STOP
+	_add(area, _pos(v), _geom(g))
 
 # model[x,y;w,h;name;mesh;textures;...]: the 3D mesh preview is not rendered
 # yet. Drawing nothing leaves the game's own dark panel showing as a black
@@ -888,6 +1003,7 @@ func _model(parts: PackedStringArray) -> void:
 	l.set_anchors_preset(Control.PRESET_FULL_RECT)
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(l)
+	_register_named_control(fs_unescape(parts[2]), panel)
 
 func _font_size() -> int:
 	return maxi(int(imgsize * 0.32), 10)
@@ -909,6 +1025,53 @@ func next_in_ring(loc: String, lname: String) -> Dictionary:
 		if lr["location"] == loc and lr["listname"] == lname:
 			return list_rings[(i + 1) % list_rings.size()]
 	return {}
+
+
+class AnimatedFormspecImage extends Control:
+	var atlas := AtlasTexture.new()
+	var current_frame := 0
+	var frame_count := 1
+
+	func setup(source: Texture2D, frames: int, duration_ms: int, start: int,
+			margins: Vector4) -> void:
+		frame_count = maxi(frames, 1)
+		atlas.atlas = source
+		current_frame = clampi(start, 0, frame_count - 1)
+		var display: Control
+		if margins != Vector4.ZERO:
+			var nine := NinePatchRect.new()
+			nine.texture = atlas
+			nine.patch_margin_left = int(margins.x)
+			nine.patch_margin_top = int(margins.y)
+			nine.patch_margin_right = int(margins.z)
+			nine.patch_margin_bottom = int(margins.w)
+			display = nine
+		else:
+			var rect := TextureRect.new()
+			rect.texture = atlas
+			rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			rect.stretch_mode = TextureRect.STRETCH_SCALE
+			display = rect
+		display.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		display.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		display.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(display)
+		_set_frame(current_frame)
+		if frame_count > 1:
+			var timer := Timer.new()
+			timer.wait_time = maxf(duration_ms / 1000.0, 0.001)
+			timer.autostart = true
+			timer.timeout.connect(advance_frame)
+			add_child(timer)
+
+	func _set_frame(frame: int) -> void:
+		current_frame = posmod(frame, frame_count)
+		var frame_height := atlas.atlas.get_height() / float(frame_count)
+		atlas.region = Rect2(0, current_frame * frame_height,
+			atlas.atlas.get_width(), frame_height)
+
+	func advance_frame() -> void:
+		_set_frame(current_frame + 1)
 
 
 # One inventory slot. Draws the slot background, the item icon, count and
