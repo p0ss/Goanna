@@ -118,12 +118,20 @@ func _ready() -> void:
 	e.background_mode = Environment.BG_SKY
 	e.sky = sky
 	e.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	e.ambient_light_energy = 1.1
+	# Defaults left as they were: measured against the material gallery,
+	# ambient and SDFGI barely move the result and the sun dominates, so
+	# there is no evidence for changing them. The hooks are here because
+	# the exposure as a whole is too hot and wants deciding: at these
+	# settings sunlit stone of albedo 131 renders at 207, and snow and sea
+	# lanterns clip to flat white with every texel of detail gone, which is
+	# what makes materials read as "shiny" or "black" and nothing between.
+	# GOANNA_SUN / GOANNA_AMBIENT / GOANNA_SDFGI / GOANNA_SSAO / GOANNA_WHITE.
+	e.ambient_light_energy = _envf("GOANNA_AMBIENT", 1.1)
 	# AGX is deliberately desaturating: side by side with the vanilla client
 	# (which does not tonemap at all) it turned Luanti's punchy greens grey.
 	# ACES keeps saturation and contrast, which is the look this client is for.
 	e.tonemap_mode = Environment.TONE_MAPPER_ACES
-	e.tonemap_white = 1.5
+	e.tonemap_white = _envf("GOANNA_WHITE", 1.5)
 	e.adjustment_enabled = true
 	e.adjustment_saturation = 1.15
 	e.adjustment_contrast = 1.05
@@ -131,9 +139,9 @@ func _ready() -> void:
 	e.sdfgi_enabled = true
 	e.sdfgi_cascades = 6
 	e.sdfgi_min_cell_size = 0.5
-	e.sdfgi_energy = 1.4
+	e.sdfgi_energy = _envf("GOANNA_SDFGI", 1.4)
 	e.ssao_enabled = true
-	e.ssao_intensity = 4.0
+	e.ssao_intensity = _envf("GOANNA_SSAO", 4.0)
 	e.ssao_radius = 2.2
 	e.ssao_power = 1.6
 	e.ssao_detail = 1.0
@@ -773,10 +781,26 @@ func _teleport() -> bool:
 	if client.server_player_position().distance_to(want) >= 2.0:
 		push_error("teleport to %s never took, still at %s" % [want, client.server_player_position()])
 		return false
-	# let the blocks around the new position arrive and mesh
-	for i in 240:
+	# Wait for streaming to settle rather than for a fixed number of frames.
+	# A shot taken before the blocks arrive is a photograph of the sky, and
+	# it looks exactly like a render with the feature under test turned off.
+	# Measured in wall clock, not frames: at several hundred frames a second
+	# a frame count settles long before the server has sent anything.
+	var t0 := Time.get_ticks_msec()
+	var last_change := t0
+	var last := -1
+	while Time.get_ticks_msec() - t0 < 30000:
 		client.poll_blocks(64)
 		await get_tree().process_frame
+		var n: int = int(client.status()["blocks_meshed"])
+		if n != last:
+			last = n
+			last_change = Time.get_ticks_msec()
+		var now := Time.get_ticks_msec()
+		if now - t0 > 3000 and now - last_change > 2000:
+			break
+	print("blocks meshed at rest: ", last, " after ",
+		(Time.get_ticks_msec() - t0) / 1000.0, "s")
 	cam.position = want
 	print("teleported to ", want)
 	return true
@@ -918,6 +942,12 @@ func _update_environment_extras() -> void:
 # Map Luanti's sky/lighting state onto Godot's sun, sky and fog. Colours and the
 # day/dawn/night scheme are the server's (or Luanti's defaults); the blend by
 # sun elevation approximates Sky::update in the vanilla client.
+# Read a tuning override from the environment, falling back to the default.
+func _envf(name: String, dflt: float) -> float:
+	var v := OS.get_environment(name)
+	return float(v) if v != "" else dflt
+
+
 func _apply_sky() -> void:
 	var st: Dictionary = client.sky_state()
 	if st.is_empty() or not st.has("sun_direction"):
@@ -938,7 +968,7 @@ func _apply_sky() -> void:
 	var day: float = smoothstep(-0.02, 0.18, elev)
 	var warm: float = 1.0 - smoothstep(0.0, 0.32, elev)
 	sun.light_color = Color(1.0, 0.98, 0.94).lerp(Color(1.0, 0.62, 0.32), warm)
-	sun.light_energy = lerp(0.0, 1.5, day)
+	sun.light_energy = lerp(0.0, _envf("GOANNA_SUN", 1.5), day)
 	sun.visible = sun.light_energy > 0.01
 	var moon_up: float = smoothstep(-0.02, 0.15, moon_dir.y) * (1.0 - day)
 	moon.light_energy = 0.12 * moon_up
