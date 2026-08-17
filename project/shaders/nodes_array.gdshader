@@ -17,6 +17,7 @@ uniform sampler2DArray spec_array : hint_default_black, filter_nearest_mipmap, r
 uniform bool has_normal = false;
 uniform bool has_spec = false;
 uniform float normal_strength = 1.0;
+uniform float sss_strength : hint_range(0.0, 1.0) = 1.0;
 
 void fragment() {
 	vec4 tex = texture(albedo_array, vec3(UV, UV2.x)) * COLOR;
@@ -48,5 +49,16 @@ void fragment() {
 		// A is emission strength, with 1.0 meaning none
 		if (sp.a < 0.999)
 			EMISSION = ALBEDO * sp.a * 4.0;
+		// B is two channels in one: up to 64/255 it is porosity, above that
+		// it is subsurface scattering. Porosity only reads as anything once
+		// a surface is wet, so it waits for weather; scattering is what
+		// makes a leaf glow with the sun behind it.
+		if (sp.b > 0.2549) {
+			float sss = (sp.b - 0.2549) / 0.7451;
+			SSS_STRENGTH = sss * sss_strength;
+			SSS_TRANSMITTANCE_COLOR = vec4(ALBEDO, 1.0);
+			SSS_TRANSMITTANCE_DEPTH = mix(0.1, 0.8, sss);
+			SSS_TRANSMITTANCE_BOOST = 0.4;
+		}
 	}
 }

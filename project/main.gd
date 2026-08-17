@@ -829,6 +829,12 @@ func _shots(dir: String) -> void:
 		var path: String = dir.path_join(v[0] + ".png")
 		img.save_png(path)
 		print("saved ", path)
+	# Put the player back where the sweep found them. Each view pose is sent
+	# to the server so it keeps streaming blocks around the camera, but the
+	# server treats a large jump as speed-hacking and resets us, while a
+	# small one it simply accepts. Left alone, every run walks the saved
+	# position a little further along and eventually into a hillside.
+	client.set_player_pose(base, 0, 0)
 
 
 # Per-frame environment extras: the cave head-light follows the camera, and
