@@ -107,7 +107,7 @@ class Graph:
         }
 
 
-def build(size=768, denoise=0.55, strength=0.9, steps=20, seed=1, lora=0.0):
+def build(size=768, denoise=0.55, strength=0.9, steps=20, seed=1, lora=0.0, pack=False):
     g = Graph()
 
     ckpt = g.node("CheckpointLoaderSimple", (-20, 100), [CKPT], [],
@@ -188,6 +188,26 @@ def build(size=768, denoise=0.55, strength=0.9, steps=20, seed=1, lora=0.0):
     g.link(crop, 0, bump, 0, "IMAGE")
     g.link(bump, 0, savn, 0, "IMAGE")
     g.link(bump, 0, seam, 0, "IMAGE")
+
+    if pack:
+        # height from the normals, AO from the height, then both into the
+        # LabPBR pair the client actually reads
+        hgt = g.node("GoannaNormalsToHeight", (2240, 430), [True],
+                [("normals", "IMAGE"), ], [("IMAGE", "IMAGE")], (300, 60),
+                title="normals to height")
+        aon = g.node("GoannaAOFromHeight", (2240, 530), [1.0, 6, 8],
+                [("height", "IMAGE")], [("IMAGE", "IMAGE")], (300, 110),
+                title="AO from height (wraps at the edges)")
+        lab = g.node("GoannaSaveLabPBR", (2600, 330),
+                ["texture", "goanna_labpbr", 0.2, 0.04, False, 0.0, 0.0, 0.0],
+                [("normals", "IMAGE"), ("height", "IMAGE"), ("ao", "IMAGE")],
+                [("report", "STRING")], (360, 260),
+                title="save LabPBR pair (_n and _s)")
+        g.link(bump, 0, hgt, 0, "IMAGE")
+        g.link(hgt, 0, aon, 0, "IMAGE")
+        g.link(bump, 0, lab, 0, "IMAGE")
+        g.link(hgt, 0, lab, 1, "IMAGE")
+        g.link(aon, 0, lab, 2, "IMAGE")
     return g.dump()
 
 
@@ -201,11 +221,21 @@ def main():
     ap.add_argument("--steps", type=int, default=20)
     ap.add_argument("--lora", type=float, default=0.0,
             help="add the texture synthesis LoRA at this strength, 0 to omit")
+    ap.add_argument("--pack", action="store_true",
+            help="also derive height and AO and write the LabPBR pair")
+    ap.add_argument("--both", action="store_true",
+            help="write the plain workflow and the packed one side by side")
     args = ap.parse_args()
     os.makedirs(os.path.dirname(args.out), exist_ok=True)
-    with open(args.out, "w") as f:
-        json.dump(build(args.size, args.denoise, args.strength, args.steps, lora=args.lora), f, indent=2)
-    print("wrote", args.out)
+    variants = [(args.out, args.pack)]
+    if args.both:
+        stem = args.out[:-5] if args.out.endswith(".json") else args.out
+        variants = [(stem + ".json", False), (stem + "_labpbr.json", True)]
+    for path, pack in variants:
+        with open(path, "w") as f:
+            json.dump(build(args.size, args.denoise, args.strength, args.steps,
+                    lora=args.lora, pack=pack), f, indent=2)
+        print("wrote", path)
     return 0
 
 

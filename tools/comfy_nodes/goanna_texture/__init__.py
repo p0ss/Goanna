@@ -151,12 +151,161 @@ class GoannaSeamEnergy:
         return (seam, "seam %.2f (%s)" % (seam, verdict))
 
 
+class GoannaAOFromHeight:
+    """Ambient occlusion from a height map, wrapping at the edges.
+
+    Ours rather than ComfyUI-Texture-Simple's, which has the node we wanted
+    but whose package does not register under ComfyUI 0.33: its __init__
+    uses a relative import that the loader does not satisfy, then falls back
+    to a bare one that is not on the path.
+
+    Samples in a ring of directions and asks, for each, whether the terrain
+    rises enough along it to block the sky. Wrapping matters as much here as
+    everywhere else in this chain: a tile darkened at its edges reads as a
+    grid of shadows once it repeats.
+    """
+
+    CATEGORY = "goanna"
+    RETURN_TYPES = ("IMAGE",)
+    FUNCTION = "run"
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {
+            "height": ("IMAGE",),
+            "strength": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 4.0, "step": 0.05}),
+            "radius_px": ("INT", {"default": 6, "min": 1, "max": 64}),
+            "directions": ("INT", {"default": 8, "min": 4, "max": 32}),
+        }}
+
+    def run(self, height, strength, radius_px, directions):
+        h = height[0].cpu().numpy().mean(axis=2).astype(np.float32)
+        occ = np.zeros_like(h)
+        for d in range(directions):
+            ang = 2.0 * np.pi * d / directions
+            dx, dy = np.cos(ang), np.sin(ang)
+            horizon = np.zeros_like(h)
+            for r in range(1, radius_px + 1):
+                sx, sy = int(round(dx * r)), int(round(dy * r))
+                shifted = np.roll(np.roll(h, -sy, axis=0), -sx, axis=1)
+                # how far the neighbour rises, per unit distance
+                horizon = np.maximum(horizon, (shifted - h) / float(r))
+            occ += np.clip(horizon, 0.0, None)
+        occ = occ / float(directions)
+        ao = np.clip(1.0 - occ * strength * 4.0, 0.0, 1.0)
+        return (_to_comfy(np.repeat(ao[None, ...], 3, axis=0)),)
+
+
+class GoannaSaveLabPBR:
+    """Write the LabPBR pair that Goanna's shader decodes.
+
+    Not a generic channel packer, because LabPBR is a specification with
+    sharp edges and getting them wrong fails quietly. Alpha 255 in the
+    specular map means no emission rather than full emission. The blue
+    channel is two materials sharing one range, porosity up to 64 and
+    subsurface scattering from 65. Green above 229 stops being a
+    reflectance and becomes an index into a metal table. Encoding that in
+    one place beats rebuilding it out of general nodes each time.
+
+    Also writes the files itself rather than handing back an image, because
+    both maps carry data in alpha and ComfyUI's IMAGE is RGB, with alpha
+    living separately as a MASK.
+
+      _n   R,G tangent normal   B ambient occlusion   A height
+      _s   R smoothness   G F0 or metal   B porosity/SSS   A emission
+    """
+
+    CATEGORY = "goanna"
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("report",)
+    FUNCTION = "run"
+    OUTPUT_NODE = True
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "normals": ("IMAGE",),
+                "name": ("STRING", {"default": "texture"}),
+                "out_dir": ("STRING", {"default": "goanna_labpbr"}),
+                "smoothness": ("FLOAT", {"default": 0.2, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "f0": ("FLOAT", {"default": 0.04, "min": 0.0, "max": 0.9, "step": 0.01,
+                                 "tooltip": "dielectric reflectance; 0.04 is ordinary"}),
+                "metal": ("BOOLEAN", {"default": False}),
+                "sss": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01,
+                                  "tooltip": "leaves, ice, thin things"}),
+                "porosity": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01,
+                                       "tooltip": "ignored unless sss is 0"}),
+                "emission": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+            },
+            "optional": {"height": ("IMAGE",), "ao": ("IMAGE",)},
+        }
+
+    def run(self, normals, name, out_dir, smoothness, f0, metal, sss, porosity,
+            emission, height=None, ao=None):
+        import folder_paths
+        from PIL import Image
+
+        base = os.path.join(folder_paths.get_output_directory(), out_dir)
+        os.makedirs(base, exist_ok=True)
+        n = (normals[0].cpu().numpy() * 255.0).clip(0, 255)
+        h, w = n.shape[0], n.shape[1]
+
+        def grey(img, default):
+            if img is None:
+                return np.full((h, w), default, dtype=np.float32)
+            a = img[0].cpu().numpy()
+            g = a.mean(axis=2) * 255.0
+            if g.shape != (h, w):
+                g = np.asarray(Image.fromarray(g.astype(np.uint8)).resize((w, h),
+                        Image.LANCZOS), dtype=np.float32)
+            return g
+
+        nmap = np.zeros((h, w, 4), dtype=np.uint8)
+        nmap[..., 0] = n[..., 0]
+        nmap[..., 1] = n[..., 1]
+        nmap[..., 2] = grey(ao, 255).clip(0, 255)          # 255 is unoccluded
+        nmap[..., 3] = grey(height, 255).clip(0, 255)       # 255 is flat
+
+        # Green: 0..229 is F0 held linearly, 230..254 name a metal, and 255
+        # says to use the albedo as F0, which is what we want for a metal we
+        # have no table entry for.
+        g_val = 255 if metal else int(round(min(f0, 229.0 / 255.0) * 255))
+        # Blue: porosity lives at or below 64, scattering from 65 up.
+        if sss > 0.0:
+            b_val = int(round(65 + sss * (255 - 65)))
+        else:
+            b_val = int(round(porosity * 64))
+        # Alpha: 255 means none, so full emission is 254.
+        a_val = 255 if emission <= 0.0 else int(round(min(emission, 1.0) * 254))
+
+        smap = np.zeros((h, w, 4), dtype=np.uint8)
+        smap[..., 0] = int(round(smoothness * 255))
+        smap[..., 1] = g_val
+        smap[..., 2] = b_val
+        smap[..., 3] = a_val
+
+        np_path = os.path.join(base, name + "_n.png")
+        sp_path = os.path.join(base, name + "_s.png")
+        Image.fromarray(nmap, "RGBA").save(np_path)
+        Image.fromarray(smap, "RGBA").save(sp_path)
+        report = ("wrote %s_n.png and %s_s.png (%dx%d) | smoothness %d, "
+                "green %d (%s), blue %d (%s), alpha %d (%s)" % (
+                    name, name, w, h, smap[0, 0, 0], g_val,
+                    "albedo as F0" if metal else "F0",
+                    b_val, "SSS" if sss > 0 else "porosity",
+                    a_val, "no emission" if a_val == 255 else "emissive"))
+        return (report,)
+
+
 NODE_CLASS_MAPPINGS = {
     "GoannaTile3x3": GoannaTile3x3,
     "GoannaCropCentre": GoannaCropCentre,
     "GoannaDeepBumpNormals": GoannaDeepBumpNormals,
     "GoannaNormalsToHeight": GoannaNormalsToHeight,
     "GoannaSeamEnergy": GoannaSeamEnergy,
+    "GoannaAOFromHeight": GoannaAOFromHeight,
+    "GoannaSaveLabPBR": GoannaSaveLabPBR,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -165,6 +314,10 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "GoannaDeepBumpNormals": "Goanna: DeepBump normals",
     "GoannaNormalsToHeight": "Goanna: normals to height",
     "GoannaSeamEnergy": "Goanna: seam energy",
+    "GoannaAOFromHeight": "Goanna: AO from height",
+    "GoannaSaveLabPBR": "Goanna: save LabPBR pair",
 }
 
 __all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"]
+
+print("[goanna_texture] registering %d nodes from %s" % (len(NODE_CLASS_MAPPINGS), __file__))
