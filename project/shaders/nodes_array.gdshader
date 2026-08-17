@@ -59,10 +59,12 @@ void fragment() {
 		// makes a leaf glow with the sun behind it.
 		if (sp.b > 0.2549) {
 			float sss = (sp.b - 0.2549) / 0.7451;
-			SSS_STRENGTH = sss * sss_strength;
-			SSS_TRANSMITTANCE_COLOR = vec4(ALBEDO, 1.0);
-			SSS_TRANSMITTANCE_DEPTH = mix(0.1, 0.8, sss);
-			SSS_TRANSMITTANCE_BOOST = 0.4;
+			// BACKLIGHT, not SSS_STRENGTH. Godot's subsurface scattering is a
+			// screen-space pass meant for skin: pointed at a solid block it
+			// eats the diffuse and leaves it near black. Backlight adds the
+			// light coming through from behind, which is the whole of what a
+			// leaf or a pane of ice wants.
+			BACKLIGHT = ALBEDO * sss * sss_strength;
 		}
 	}
 }
