@@ -41,9 +41,14 @@ Two companion images per texture, eight channels in total.
 
 Two of these are worth calling out because they are easy to get wrong.
 
-The green channel of the normal map points **down**, which is the DirectX
-convention. Godot and glTF both want Y up. Feeding LabPBR through unflipped
-lights every bump as a dent, and nothing in the file name warns you.
+The green channel of the normal map points **down**, which is usually called
+the DirectX convention, against the Y up that glTF specifies and that most
+descriptions of a normal map assume. Whether that needs correcting depends
+on which way V runs in the mesh being shaded, and nothing in the file name
+tells you either fact. In Goanna it needs no correcting: Luanti's tile UVs
+run V down as well, so the two agree. Flipping to match the usual
+description turns block sides black. This is worth stating in any agreement,
+because it is invisible until someone renders it and then it is glaring.
 
 The blue channel of the specular map is two materials sharing one range. A
 surface is either porous or subsurface scattering, never both, and the split
@@ -55,7 +60,7 @@ the porosity range.
 
 | Channel | Status |
 | --- | --- |
-| Normal X and Y | Decoded, with the green channel flipped for Godot |
+| Normal X and Y | Decoded as stored. No green flip, see above |
 | Material AO | Decoded, at 0.4 light affect |
 | Height | **Not decoded.** Wanted for parallax and for terrain blending |
 | Smoothness | Decoded as roughness |
@@ -85,7 +90,7 @@ diverge at the edges in both directions, so neither is a superset.
 | Smoothness, `_s` R | `roughnessFactor` or roughness texture | `roughness = (1 - smoothness)` squared |
 | F0 and metal, `_s` G | `metallicFactor` or metallic texture | glTF has no metal table. Its model matches the LabPBR 255 case, albedo as F0 |
 | Material AO, `_n` B | `occlusionTexture` | Direct equivalent |
-| Normal, `_n` RG | `normalTexture` | **glTF requires Y up, LabPBR stores Y down** |
+| Normal, `_n` RG | `normalTexture` | **glTF specifies Y up, LabPBR stores Y down.** Whether a flip is needed depends on the mesh's V direction |
 | Emission, `_s` A | `emissiveTexture` and `emissiveStrength` | LabPBR is a scalar mask read against albedo, glTF carries an emissive colour |
 | Height, `_n` A | Nothing in core glTF | `KHR_materials_displacement` was never ratified |
 | Porosity and SSS, `_s` B | Partly `KHR_materials_volume`, `KHR_materials_diffuse_transmission` | No single equivalent channel |
@@ -101,8 +106,9 @@ A file name says which file. It says nothing about what the bytes mean, so
 two clients can both support LabPBR and still disagree. These are the points
 an agreement has to pin down, all of which we have hit in practice.
 
-**Normal orientation.** As above. This one cost us an afternoon of relief
-that lit backwards.
+**Normal orientation.** As above, and note that the answer is not a property
+of the texture alone. It cost us a day: first relief that did nothing we
+could see, then, once we 'fixed' the orientation, black block sides.
 
 **Colour space.** Which companions are sRGB and which are linear. Getting
 this wrong is subtle, pervasive and hard to see in a screenshot.
@@ -144,8 +150,9 @@ smallest useful version is:
 
 1. Companions are `<base>_n.png` and `<base>_s.png` beside `<base>.png`,
    with LabPBR channel assignments.
-2. Normals are stored Y up, contrary to LabPBR, matching glTF and every
-   engine that consumes glTF. Converters flip on import.
+2. Normals are stored Y down as LabPBR has them, which matches the V
+   direction of Luanti's tile UVs, so no client has to flip anything. State
+   it explicitly rather than leaving it to be inferred from glTF.
 3. All companions are linear. Only the diffuse is sRGB.
 4. Companions attach to the base image of a texture expression. Modifiers
    that only change colour leave them alone. Modifiers that change layout
@@ -154,8 +161,8 @@ smallest useful version is:
    offer the player an override.
 6. A client discovers companions by probing. No declaration is required.
 
-Points 2 and 3 are the only places this departs from LabPBR, and both are
-one line in a converter.
+Point 3 is the only place this departs from LabPBR, and it is one line in a
+converter.
 
 What this does not cover, and what a Lua side API would still be needed for,
 is anything keyed to a node rather than to a texture: chamfer profiles, mote
