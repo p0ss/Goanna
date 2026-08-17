@@ -72,9 +72,19 @@ func _ready() -> void:
 	client = GoannaClient.new()
 	add_child(client)
 	# In-game UI (HUD, chat, inventory, formspecs, pause menu): project/ui/.
+	# Guarded, because a script error anywhere in the UI leaves this node
+	# without its script, and assigning to a property it no longer has aborts
+	# the rest of _ready. That meant the camera below was never created and
+	# the world never rendered, so a UI parse error presented as a grey
+	# screen with the only visible complaint coming from _process.
 	ui = preload("res://ui/game_ui.tscn").instantiate()
-	ui.client = client
-	add_child(ui)
+	if "client" in ui:
+		ui.client = client
+	else:
+		push_error("game_ui failed to load its script; running without a UI")
+		ui = null
+	if ui:
+		add_child(ui)
 	if OS.get_environment("GOANNA_PERF") != "":
 		# Uncapped: with vsync on, every measurement reads as the refresh rate
 		# and says nothing about headroom.
