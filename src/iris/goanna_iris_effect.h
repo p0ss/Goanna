@@ -41,9 +41,10 @@ public:
     // What happened: programs found, passes built, per pass warnings and the
     // compile error if any. For printing from main.gd and for tests.
     godot::Dictionary report() const;
-    // Main thread, every frame: sun_direction, moon_direction (Vector3),
-    // time_of_day (0..1, 0 midnight), rain (0..1), in_water (int), sky_color,
-    // fog_color (Color). Missing keys keep their previous value.
+    // Main thread, every frame. The keys are sun_direction and
+    // moon_direction as a Vector3, time_of_day (0..1, 0 midnight), rain
+    // (0..1), in_water as an int, and sky_color and fog_color, which are
+    // colours. Missing keys keep their previous value.
     void set_world_state(const godot::Dictionary &state);
     // Dump the translated GLSL for each pass into a directory, for debugging.
     void set_dump_dir(const godot::String &dir);
