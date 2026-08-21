@@ -14,6 +14,8 @@
 
 #include "goanna_session.h"
 
+#include <ctime>
+
 #include "transplant/localplayer.h"
 #include "goanna_luanti_client.h"
 #include "goanna_raycast.h"
@@ -173,6 +175,28 @@ void GoannaSession::start(const std::string &host, uint16_t port, const std::str
     m_name = player_name;
     m_password = password;
     m_player = std::make_unique<LocalPlayer>(this, player_name);
+    if (!m_store_root.empty()) {
+        // One directory per server. The host as given, with anything that
+        // is not a filename character folded to '_'; a world is not named
+        // on the wire, so a server that swaps worlds shows stale terrain
+        // until it is looked at again, which docs/far-rendering.md accepts.
+        std::string dir = host;
+        for (char &c : dir)
+            if (!isalnum((unsigned char)c) && c != '.' && c != '-')
+                c = '_';
+        dir = m_store_root + "/" + dir + "_" + std::to_string(port);
+        uint64_t cap = 512ull << 20;
+        if (const char *mb = std::getenv("GOANNA_STORE_CAP_MB"))
+            cap = (uint64_t)std::max(1, atoi(mb)) << 20;
+        m_store = std::make_unique<BlockStore>();
+        if (!m_store->open(dir, cap)) {
+            errorstream << "Goanna: block store could not open " << dir << std::endl;
+            m_store.reset();
+        } else {
+            infostream << "Goanna: block store at " << dir << ", " << m_store->regions()
+                       << " regions, " << (m_store->bytes() >> 20) << " MB" << std::endl;
+        }
+    }
     m_running = true;
     m_thread = std::thread(&GoannaSession::threadMain, this);
 }
@@ -185,6 +209,70 @@ void GoannaSession::stop() {
         m_con->Disconnect();
         m_con.reset();
     }
+    if (m_store) {
+        // edits made this session, written back before the store closes
+        std::lock_guard<std::mutex> lk(m_map_mutex);
+        for (const v3s16 &bp : m_store_dirty)
+            if (MapBlock *b = m_map ? m_map->getBlockNoCreateNoEx(bp) : nullptr)
+                saveBlockToStore(b);
+        m_store_dirty.clear();
+        m_store->close();
+    }
+}
+
+void GoannaSession::saveBlockToStore(MapBlock *b) {
+    if (!m_store || !b)
+        return;
+    const u8 ser_ver = stats().ser_ver;
+    if (ser_ver < SER_FMT_VER_LOWEST_WRITE)
+        return;
+    try {
+        std::ostringstream os(std::ios_base::binary);
+        b->serialize(os, ser_ver, false, -1);
+        b->serializeNetworkSpecific(os);
+        m_store->put(b->getPos(), ser_ver, os.str(), (uint32_t)time(nullptr));
+    } catch (const std::exception &e) {
+        warningstream << "Goanna: block store could not serialise " << e.what() << std::endl;
+    }
+}
+
+std::unique_ptr<MapBlock> GoannaSession::loadStoredBlock(v3s16 bp) {
+    if (!m_store || !m_content_prepared)
+        return nullptr;
+    uint8_t ser_ver = 0;
+    std::string payload;
+    if (!m_store->get(bp, ser_ver, payload))
+        return nullptr;
+    try {
+        auto b = std::make_unique<MapBlock>(bp, this);
+        std::istringstream is(payload, std::ios_base::binary);
+        b->deSerialize(is, ser_ver, false);
+        b->deSerializeNetworkSpecific(is);
+        return b;
+    } catch (const std::exception &e) {
+        warningstream << "Goanna: block store entry unreadable at " << bp.X << "," << bp.Y << ","
+                      << bp.Z << ": " << e.what() << std::endl;
+        return nullptr;
+    }
+}
+
+bool GoannaSession::storedRegionMask(v3s16 region, std::vector<uint8_t> &bits) {
+    return m_store && m_store->regionMask(region, bits);
+}
+
+int GoannaSession::farRenderingGrant() const {
+    auto opts = serverOptions();
+    auto on = opts.find("far_rendering");
+    if (on == opts.end())
+        return 0;
+    const std::string &v = on->second;
+    if (!(v == "true" || v == "1" || v == "yes" || v == "on"))
+        return 0;
+    auto d = opts.find("far_rendering_distance");
+    int dist = 512;
+    if (d != opts.end())
+        dist = atoi(d->second.c_str());
+    return std::clamp(dist, 0, 4096);
 }
 
 SessionStats GoannaSession::stats() const {
@@ -1270,8 +1358,15 @@ int GoannaSession::pruneDistantBlocks(int radius) {
                 (s16)std::floor(pp.Y / MAP_BLOCKSIZE),
                 (s16)std::floor(pp.Z / MAP_BLOCKSIZE));
         gone = m_map->blocksBeyond(centre, radius);
-        for (const v3s16 &bp : gone)
+        for (const v3s16 &bp : gone) {
+            // An edited block goes back to the store before it goes, so the
+            // store holds the world as last seen rather than as first sent.
+            if (m_store && m_store_dirty.count(bp)) {
+                saveBlockToStore(m_map->getBlockNoCreateNoEx(bp));
+                m_store_dirty.erase(bp);
+            }
             m_map->dropBlock(bp);
+        }
     }
     if (!gone.empty())
         sendDeletedBlocks(gone);
@@ -1476,6 +1571,19 @@ bool GoannaSession::prepareContentIfReady() {
         for (auto &kv : min_light)
             if (kv.second > 0)
                 m_emissive_by_texture[kv.first] = kv.second;
+        // The per node classifier, docs/pbr-plan.md step 2: material class
+        // and Minecraft block per node, voted down to per texture, and handed
+        // to the texture source so the array companions it synthesises for
+        // textures no pack covers carry the class rather than nothing.
+        buildMaterialTable(m_nodedef, readTextureMap(m_texture_map), m_material_table);
+        m_tsrc->setMaterialTable(&m_material_table);
+        if (std::getenv("GOANNA_DEBUG_PBR")) {
+            const MaterialTable &t = m_material_table;
+            fprintf(stderr, "goanna classes: %d nodes, by footstep %d, group %d, drawtype %d, name %d,"
+                    " unclassed %d; %zu textures classed, %zu emissive; %zu block names\n",
+                    t.nodes, t.by_footstep, t.by_group, t.by_drawtype, t.by_name, t.unclassed,
+                    t.texture_class.size(), t.texture_emission.size(), t.block_names.size() - 1);
+        }
     }
     {
         // Anything meshed before now used the unknown node; re-mesh it.
@@ -2077,6 +2185,13 @@ void GoannaSession::onBlockData(NetworkPacket &pkt) {
         block = sector->createBlankBlock(p.Y);
     block->deSerialize(istr, ser_ver, false);
     block->deSerializeNetworkSpecific(istr);
+    // Into the store as it came: the payload is already the compact form
+    // Luanti serialises, so this is a write of what was received and nothing
+    // more. docs/far-rendering.md rung 5.
+    if (m_store) {
+        m_store->put(p, ser_ver, datastring, (uint32_t)time(nullptr));
+        m_store_dirty.erase(p);
+    }
     bool changed = is_new || hashBlockNodes(block) != old_hash;
     if (changed) {
         m_new_blocks.push_back(p);
@@ -2159,8 +2274,10 @@ void GoannaSession::onAddNode(NetworkPacket &pkt) {
     } catch (const InvalidPositionException &) {
         return;
     }
-    for (auto &kv : modified)
+    for (auto &kv : modified) {
         m_new_blocks.push_back(kv.first);
+        m_store_dirty.insert(kv.first);
+    }
     queueBlocksAround(p);
 }
 
@@ -2174,8 +2291,10 @@ void GoannaSession::onRemoveNode(NetworkPacket &pkt) {
     } catch (const InvalidPositionException &) {
         return;
     }
-    for (auto &kv : modified)
+    for (auto &kv : modified) {
         m_new_blocks.push_back(kv.first);
+        m_store_dirty.insert(kv.first);
+    }
     queueBlocksAround(p);
 }
 
@@ -2246,8 +2365,15 @@ SkyState GoannaSession::skyState() const {
     float elapsed = std::chrono::duration<float>(std::chrono::steady_clock::now() - m_time_of_day_at).count();
     st.time_of_day = std::fmod(st.time_of_day + elapsed * st.time_speed / 86400.0f, 1.0f);
     if (st.time_of_day < 0) st.time_of_day += 1.0f;
-    if (m_tod_override >= 0.0f)
+    if (m_tod_override >= 0.0f) {
+        // The testing override (GOANNA_TOD) wants the whole sky at that
+        // hour. A server that overrides the day night ratio, as Mineclonia
+        // does in weather and at night, would otherwise keep its ratio
+        // under a noon sun and the frame comes out dusk; a fixed camera
+        // A/B across a server's real night then measured its weather.
         st.time_of_day = m_tod_override;
+        st.day_night_override = false;
+    }
     return st;
 }
 

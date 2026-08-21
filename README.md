@@ -132,8 +132,10 @@ Goanna will also use authored material maps if a server ships them. Beside
 an ordinary node texture it looks for LabPBR companions, the same files a
 shader pack for Minecraft carries, and reads real normals, roughness,
 metalness and emission from them. No protocol change and no server patch is
-needed: any server can serve a pack today, and textures without one fall
-back to the relief inferred from brightness. Verified against a CC0 pack
+needed: any server can serve a pack today, and textures without one get a
+material from what the node is (its footstep sound, groups and drawtype,
+the same table for every game) and relief inferred from their own
+brightness, so authored maps override rather than being the only source. Verified against a CC0 pack
 served from a worldmod, though the sample mapping covers only eight
 Mineclonia textures so far, because such packs name blocks the Minecraft
 way and each Luanti game names them its own way. `tools/pbr_pack.py` builds
@@ -147,6 +149,18 @@ tested only with the proof pack in `project/tests/shaderpacks/`, and no real
 pack has been run yet. The `gbuffers` and `shadow` programs, which draw the
 world, are not loaded, so a pack's lighting model does not apply; see
 [docs/iris-compat.md](docs/iris-compat.md) for what that means and the plan.
+
+Distant terrain is drawn in coarser tiers the further it is, merged into a
+handful of meshes, on the same shader and textures as the ground at your
+feet, with its light and a baked occlusion term carried along. Every block
+the server sends is also kept in a local store, per server, and where a
+server grants it (its operator sets `goanna_far_rendering` with the server
+mod in `goanna_server_mod/`; Goanna's own single player server does) the far
+tiers draw from that store beyond the server's send distance, marked as
+remembered rather than seen. Observed against a local Mineclonia server on
+Godot 4.5.1: terrain 400 nodes behind the live range drawn from a previous
+visit. Without the grant the store only writes. The plan and the limits are
+in [docs/far-rendering.md](docs/far-rendering.md).
 
 Then the parts that are Goanna's own rather than Luanti's: a water shader
 with vertex waves and refraction, waving leaves and plants, distance fog and
@@ -163,8 +177,11 @@ particle behaviours and the batched particle packet are not implemented.
 Windows and macOS have not been play-tested.
 
 Node lighting has landed, so caves are dark and a torch matters underground,
-but its balance against daylight is still being tuned and open ground is
-currently darker than it should be.
+and the daylight balance was reset on a material chart rather than by eye:
+sunlit surfaces no longer clip to white, walls are no longer black at noon
+and night is a dim blue rather than black. Whether the overall level suits
+you is a slider (Exposure and Sky fill in the Lighting tab); the numbers it
+was set by are in [docs/pbr-plan.md](docs/pbr-plan.md).
 
 | Forest and held item | Lava underground | Coloured node light |
 | --- | --- | --- |

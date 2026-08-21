@@ -1,4 +1,11 @@
 ; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
 config_version=5
 
 [application]
@@ -14,15 +21,18 @@ window/size/viewport_height=900
 
 [rendering]
 
-renderer/rendering_method="forward_plus"
-# Shadow acne and cascade shimmer are depth-precision problems, not bias
-# problems: a bigger map with full 32-bit depth fixes them without the huge
-# normal bias that erases contact shadows.
 lights_and_shadows/directional_shadow/size=8192
-lights_and_shadows/directional_shadow/16_bits=false
 lights_and_shadows/directional_shadow/soft_shadow_filter_quality=3
+lights_and_shadows/directional_shadow/16_bits=false
 lights_and_shadows/positional_shadow/soft_shadow_filter_quality=3
 environment/ssao/quality=3
 environment/ssao/half_size=false
 environment/ssil/quality=3
 environment/ssil/half_size=false
+
+[shader_globals]
+
+goanna_sky_fill={
+"type": "vec3",
+"value": Vector3(0, 0, 0)
+}

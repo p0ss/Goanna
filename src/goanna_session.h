@@ -12,6 +12,7 @@
 #include <chrono>
 #include <cstdint>
 #include <map>
+#include <set>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -26,6 +27,8 @@
 #include "network/networkprotocol.h"
 #include "goanna_map.h"
 #include "goanna_textures.h"
+#include "goanna_materials.h"
+#include "goanna_store.h"
 #include "goanna_sky.h"
 #include "transplant/client/content_cao.h"
 #include "goanna_models.h"
@@ -95,6 +98,21 @@ public:
     bool prepareContentIfReady();
     bool contentPrepared() const { return m_content_prepared; }
     GoannaTextureSource *tsrc() { return m_tsrc.get(); }
+    // The classifier's table, docs/pbr-plan.md step 2: built when content is
+    // prepared, empty before. Read only from then on.
+    const MaterialTable &materialTable() const { return m_material_table; }
+    // A CSV of game_texture,pack_path, letting an unmodified Minecraft
+    // resource pack dress a Luanti game whose textures are named nothing like
+    // Minecraft's. Read in place at connect; nothing is ever written back out,
+    // because most Minecraft packs are ordinary copyrighted work and reading
+    // your own copy is not redistributing it. See tools/mc_texture_map.py.
+    void setTextureMap(const std::string &csv) { m_texture_map = csv; }
+    // What the paired server mod said it allows. See goanna_server_mod/.
+    std::map<std::string, std::string> serverOptions() const {
+        std::lock_guard<std::mutex> lk(m_server_opts_mutex);
+        return m_server_opts;
+    }
+
     GoannaShaderSource &shsrc() { return m_shsrc; }
     // How much world to ask the server to stream, in mapblocks (16 nodes
     // each), and the camera FOV we report. Vanilla derives both from the
@@ -125,6 +143,19 @@ public:
     void requeueBlock(v3s16 pos); // caller holds mapLock()
     // Access to a received block; nullptr if unknown. Caller holds mapLock().
     MapBlock *getBlock(v3s16 pos);
+    // --- the local block store, docs/far-rendering.md rung 5 ---
+    // Root directory; the server gets its own subdirectory. Set before
+    // start(); empty leaves the store off.
+    void setStoreRoot(const std::string &root) { m_store_root = root; }
+    BlockStore *store() { return m_store.get(); }
+    // A block from the store, deserialised into a block of its own that is
+    // not in the map, or nullptr. Caller holds mapLock(); content must be
+    // prepared, because the node names resolve through the nodedef.
+    std::unique_ptr<MapBlock> loadStoredBlock(v3s16 bp);
+    bool storedRegionMask(v3s16 region, std::vector<uint8_t> &bits);
+    // What the server mod granted, read from the options: far rendering on,
+    // and how far in nodes (0 if not granted).
+    int farRenderingGrant() const;
     std::mutex &mapLock() { return m_map_mutex; }
     const NodeDefManager *nodeDefs() const { return m_nodedef; }
     GoannaMap &map() { return *m_map; }
@@ -340,6 +371,9 @@ private:
     void onAddParticleSpawner(NetworkPacket &pkt);
     void onDeleteParticleSpawner(NetworkPacket &pkt);
     void onSpawnParticle(NetworkPacket &pkt);
+    void joinGoannaChannel();
+    void onModChannelMsg(NetworkPacket &pkt);
+    void onModChannelSignal(NetworkPacket &pkt);
     void onStopSound(NetworkPacket &pkt);
     void onFadeSound(NetworkPacket &pkt);
     void onMovePlayer(NetworkPacket &pkt);
@@ -383,6 +417,13 @@ private:
     std::string m_host;
     uint16_t m_port = 30000;
     std::string m_name, m_password;
+    std::string m_store_root;
+    std::unique_ptr<BlockStore> m_store;
+    // Blocks edited since they were stored (ADDNODE, REMOVENODE); written
+    // back when they are pruned or the session stops, so an edit survives
+    // in the store rather than the block as first received.
+    std::set<v3s16> m_store_dirty;
+    void saveBlockToStore(MapBlock *b); // caller holds mapLock()
 
     std::unique_ptr<con::IConnection> m_con;
     std::thread m_thread;
@@ -409,6 +450,11 @@ private:
     u16 m_wield_index = 0;
     int m_crack_animation_length = -1;
 
+    // Settings a paired server mod announced over the goanna mod channel. Empty
+    // against a server without the mod, which is the ordinary case and renders
+    // exactly as before: the mod grants, it never takes away.
+    std::map<std::string, std::string> m_server_opts;
+    mutable std::mutex m_server_opts_mutex;
     mutable std::mutex m_hud_mutex;
     std::vector<ChatLine> m_chat;
     std::map<u32, HudElement> m_hud;
@@ -425,6 +471,7 @@ private:
     std::string m_inventory_formspec;
     std::vector<ShownFormspec> m_shown_formspecs;
     std::unique_ptr<GoannaTextureSource> m_tsrc;
+    MaterialTable m_material_table;
     GoannaShaderSource m_shsrc;
     std::unique_ptr<ModelCache> m_models;
     std::unique_ptr<ItemVisualsManager> m_item_visuals;
@@ -466,6 +513,7 @@ private:
     mutable std::mutex m_media_mutex;
     std::map<std::string, std::string> m_media_wanted; // name -> sha1 raw
     std::map<std::string, std::string> m_media;        // name -> bytes
+    std::string m_texture_map;                         // see setTextureMap
 
     std::mutex m_pose_mutex;
     v3f m_pose_pos = v3f(0, 0, 0);

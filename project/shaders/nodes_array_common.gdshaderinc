@@ -44,6 +44,19 @@ uniform float vertex_ao_strength : hint_range(0.0, 1.0) = 1.0;
 // How much occlusion is allowed to touch direct light. Occlusion is not
 // shadow, so this is 0 by default and exists to be swept, not to be turned up.
 uniform float vertex_ao_light_strength : hint_range(0.0, 1.0) = 0.0;
+// Sky fill: Luanti's sky light, added as a flat fill in the colour of the
+// sky, scaled by the environment. This is what the vanilla client's own
+// light is, and it is here because Godot's GI cannot do it: measured on
+// lighting_chart.tscn, SDFGI gives a vertical face about 0.27 of a
+// horizontal face's ambient, so with the sun overhead a wall can never reach
+// a third of the top's brightness whatever the energy or exposure, and
+// raising either only washes the tops and lights the roofed bay. The fill
+// follows the sky light channel, so a cave gets none and a wall under open
+// sky gets it all. goanna_sky_fill is a global shader parameter, set by
+// main.gd's _apply_sky from the horizon colour and the time of day; the
+// strength here is the per material slider the rest of this file has.
+global uniform vec3 goanna_sky_fill;
+uniform float sky_fill_strength : hint_range(0.0, 2.0) = 1.0;
 // Block light as emission. Off by default: Goanna already places real Godot
 // lights for light emitting nodes, so adding it here would count torches
 // twice. The far tiers, which are past the range those lights reach, turn it
@@ -56,4 +69,11 @@ uniform float block_light_emission : hint_range(0.0, 4.0) = 0.0;
 // rather than a define so it can be toggled inside one run.
 uniform float debug_nodelight_strength : hint_range(0.0, 1.0) = 0.0;
 
+// Staleness: CUSTOM0.a is 255 on a live block and lower on one the far
+// tiers drew from the local store (docs/far-rendering.md, "Staleness"),
+// and the shader pulls such surfaces toward grey by this much, so terrain
+// that is remembered rather than seen says so without pretending.
+uniform float stale_strength : hint_range(0.0, 1.0) = 0.6;
+
 varying vec3 v_nodelight;
+varying float v_stale;

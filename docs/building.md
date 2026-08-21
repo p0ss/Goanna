@@ -332,6 +332,14 @@ features.
 | `GOANNA_SHOT=<directory>` | Fly to three fixed viewpoints, save a PNG at each, then quit. |
 | `GOANNA_WALKTEST=1` | Drive the movement controls from a script rather than the keyboard. With `GOANNA_SHOT`, saves two frames mid walk. |
 | `GOANNA_VIEW="name:x,y,z:pitch,yaw;..."` | With `GOANNA_SHOT`, replaces the three fixed viewpoints. Positions are relative to the spawn eye position, or absolute with a leading `@`. |
+| `GOANNA_SUN`, `GOANNA_WHITE`, `GOANNA_EXPOSURE`, `GOANNA_SKY_FILL`, `GOANNA_SDFGI`, `GOANNA_SSAO` | Seed the Lighting tab's values: sun energy, ACES white point, base exposure, sky fill strength, bounced light, corner shading. `project/lighting_chart.tscn` reads the same names, so a value judged there transfers. |
+| `GOANNA_TOD=<0..1>` | Override the time of day, and drop any day night ratio the server is overriding (Mineclonia does in weather), so the frame is that hour. |
+| `GOANNA_TEXTURE_MAP=<csv>` | A game_texture,pack_path CSV (`project/texture_maps/`), the same as the settings entry: lets a Minecraft resource pack dress the game, and gives the classifier its block column. |
+| `GOANNA_DEBUG_PBR=1` | Print the classifier's counts and, per array texture, how many layers are authored, classed or inferred, and how many are left neutral. |
+| `GOANNA_PERF=1` | Print one telemetry line a second: frame time, mesh and upload cost, draw calls, objects, video memory, and the far tier counts. |
+| `GOANNA_LOD=<blocks>` | Draw blocks beyond this many mapblocks as coarse tiers (`docs/far-rendering.md`); the same as the detail distance slider. `GOANNA_LOD_CELL=<nodes>` sets the first tier's cell size, a power of two from 2 to 16. |
+| `GOANNA_STORE=<dir>`, `GOANNA_NO_STORE=1` | Relocate or turn off the local block store (`docs/far-rendering.md` rung 5), which otherwise lives under `user://goanna_store`, one directory per server. `GOANNA_STORE_CAP_MB` sets its cap (512). `GOANNA_FAR_DISTANCE=<nodes>` caps how far stored blocks are drawn when the server grants far rendering. |
+| `GOANNA_DEBUG_LOD=1` | Print every far tier region build: tier, cell, members, faces, quads and the surfaces it produced. |
 | `GOANNA_SHADERPACK=<directory>` | Load an Iris or OptiFine shader pack (unpacked) and run its `deferred`, `composite` and `final` programs as a compositor effect. Only the screen space chain; see `docs/iris-compat.md`. |
 | `GOANNA_SHADERPACK_RAW=1` | With a pack: hand it Godot's linear HDR colour and keep Godot's tonemap, instead of the Minecraft style gamma space bridge. |
 | `GOANNA_SHADERPACK_DUMP=<directory>` | With a pack: write each program's translated Vulkan GLSL there, for reading compile errors. |

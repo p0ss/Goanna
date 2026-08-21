@@ -20,9 +20,10 @@ this one seen from that file's side.
    Iris rung 1 spike, done 2026-08-21 (the pipeline works)
         |
    lighting and materials
-     Godot lights, Luanti's light rides along (g_goanna_no_light goes)
-     near field baked occlusion
-     per node classifier: material class + Minecraft block, one table
+     Godot lights, Luanti's light rides along ... done 2026-08-21
+     near field baked occlusion .................. done 2026-08-21
+     exposure and sky fill, on the chart ......... done 2026-08-21
+     per node classifier, both columns ........... done 2026-08-21
         |
    +----+--------------------+
    |                         |
@@ -32,12 +33,14 @@ this one seen from that file's side.
    occupancy chain        connected textures, entity animation)
    far field occlusion
    vertex layout fixed
+   (all four done 2026-08-21; atmosphere still open)
    |
    v
- local store (Voxy shaped: full blocks, derived chain)
+ local store (Voxy shaped: full blocks, derived chain) ... done 2026-08-21
    |
    v                         v
  true far rendering      Iris rungs 2 to 4, screen space chain
+ (drawing from the store works; atmosphere and water at distance open)
                              |
                              v
                          Iris rungs 5 to 7, gbuffers translator
@@ -86,7 +89,7 @@ having any way for a server to grant one. It now exists
 (`joinGoannaChannel`, `onModChannelMsg` in `src/goanna_session.cpp`), is
 generic, and needs no change when a capability is added. What each
 capability still needs is its own reader of the option it was granted;
-nothing reads `far_rendering` yet.
+`far_rendering` has one since 2026-08-21 (`GoannaSession::farRenderingGrant`).
 
 **The block and texture mapping.** It feeds both a Minecraft resource pack
 dressing a Luanti game and, with the nodedef alongside it, the semantic IDs an
@@ -115,7 +118,9 @@ work, and whose answer changes how far `pbr-plan.md` step 3 should go.
    bloom, tonemap, volumetrics and reflections come from packs and item 2
    should not grow them in `.gdshader`. The rest of Iris waits for item 2.
 2. **Lighting and materials.** `pbr-plan.md` steps 1 to 3, and the gate
-   above. It contains: the vertex light path revived and `g_goanna_no_light`
+   above. Steps 1 to 3 landed 2026-08-21 (the chart, the classifier with
+   both columns, and the exposure and sky fill recipe the chart settled);
+   step 4, the audit, is open. It contains: the vertex light path revived and `g_goanna_no_light`
    removed, Luanti's block and sky light riding as an attribute; the near
    field of baked occlusion, traced per vertex against the block's
    neighbourhood and replacing the corner term; the per node classifier with
@@ -130,17 +135,18 @@ work, and whose answer changes how far `pbr-plan.md` step 3 should go.
    `capabilities.md`.
 4. **Far rendering rungs 2 to 4**: shading parity, multi tier LOD with the
    occupancy chain and the residency rule, the far field occlusion baked
-   into the tiers, atmosphere. These need no store and no authorisation,
-   they make the range the server already sends look like a landscape rather
-   than a contour map, and they fix the LOD vertex layout that item 7 has to
-   target.
+   into the tiers, atmosphere. Rungs 2 and 3 landed 2026-08-21
+   (`far-rendering.md`, "What landed"), so the LOD vertex layout item 7 has
+   to target is fixed; rung 4, atmosphere, is open. None of it needs a store
+   or authorisation, and it makes the range the server already sends look
+   like a landscape rather than a contour map, with the holes where the
+   server sent nothing now plainly visible as the thing item 5 fixes.
 5. **The local store**, Voxy shaped: full blocks as received, the derived
    chain alongside, a reader for the `far_rendering` grant, the far field
-   occlusion reaching beyond the live range. Authorisation already exists;
-   this is the engineering, and it is where far rendering becomes what it is
-   for. It does not depend on Iris and Iris does not depend on it, so it can
-   move either side of item 6 if that helps; it sits here because it is the
-   rung with the largest payoff.
+   occlusion reaching beyond the live range. Landed 2026-08-21
+   (`far-rendering.md`, "What landed at rung 5"): the first frame that drew
+   terrain the server was not sending. What remains of far rendering is
+   rung 4, atmosphere, and rung 6, water at distance.
 6. **Iris rungs 2 to 4**, the screen space chain. No translator needed, and
    a pack running only its composite chain already looks like a shader pack.
 7. **Iris rungs 5 to 7**, the gbuffers translator. Needs the LOD vertex

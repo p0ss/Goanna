@@ -23,7 +23,7 @@ meshers, both node array shaders and the LOD material in the same commit.
 | `ARRAY_TEX_UV` | tile UV | |
 | `ARRAY_TEX_UV2` | `x` array layer index, `y` block semantic ID | see below |
 | `ARRAY_COLOR` | tile tint only, never light | grass and foliage colourisation, `param2` colour |
-| `ARRAY_CUSTOM0` | `RGBA8_UNORM`: block light, sky light, ambient occlusion, reserved | see below |
+| `ARRAY_CUSTOM0` | `RGBA8_UNORM`: block light, sky light, ambient occlusion, freshness | see below |
 | `ARRAY_INDEX` | triangles, Godot winding | |
 
 `ARRAY_CUSTOM0` is declared with
@@ -62,7 +62,11 @@ they mean.
 - **`CUSTOM0.g`, sky light.** Luanti's `LIGHTBANK_DAY`, same treatment. How
   much of the sky reaches this vertex, before the time of day is applied.
   The shader scales the sky ambient by it, so an interior stops being lit by
-  the sky through its own roof. The other half of `lmcoord`.
+  the sky through its own roof, and since 2026-08-21 also adds a flat fill
+  in the sky's colour scaled by it (`goanna_sky_fill`, `pbr-plan.md` step
+  3), which is what the vanilla client's own light is and what lifts a wall
+  under open sky that Godot's GI leaves near black. The other half of
+  `lmcoord`.
 - **`CUSTOM0.b`, ambient occlusion.** 1.0 is unoccluded. Goanna's own
   hemisphere trace against node occupancy, described in
   `docs/far-rendering.md`. It multiplies into ambient and never into direct
@@ -70,9 +74,12 @@ they mean.
   darkening Luanti computes under smooth lighting, which is why
   `m_smooth_lighting` stays off: that path would bake its own occlusion into
   a channel we do not read.
-- **`CUSTOM0.a`, reserved.** Written as 255. Candidates are wetness for
-  weather and a second occlusion radius, and it is here so that adding one
-  does not change the surface format.
+- **`CUSTOM0.a`, freshness.** 255 on every vertex of a live block. The far
+  tiers write 96 on faces of a block drawn from the local store rather than
+  received this session (`docs/far-rendering.md`, rung 5), and the shaders
+  pull such surfaces toward grey by `stale_strength`, so remembered terrain
+  reads as remembered. Values between are unused so far; a second use
+  (wetness for weather) would take another byte rather than share this one.
 
 ## The block semantic ID
 
@@ -104,8 +111,11 @@ The same, at lower resolution, which is the whole point.
   leaves reach the horizon.
 
 A tier that cannot sample something writes the neutral value, which is 255
-for the light bytes and 1.0 for occlusion, never zero. A missing attribute
-should look unremarkable, not black.
+for sky light and occlusion and 0 for block light, never anything that
+darkens or glows. Block light's neutral differs from the near mesh's because
+the far tiers add it as emission, being past the reach of the node light
+pool, and 255 there would make every unknown face a lamp. A missing
+attribute should look unremarkable.
 
 ## Status, 2026-08-21
 
@@ -114,10 +124,18 @@ Landed: the layout above on Luanti meshed blocks, the sampler
 (`src/goanna_occlusion.cpp`, `src/goanna_light_test.cpp`), and both node array
 shaders reading the channels.
 
-Not landed: the LOD mesher still emits its old layout and its own
-`StandardMaterial3D`, so the "what the LOD mesher does with it" section above
-is the contract it will meet at far rendering rung 2, not what it does today.
-The block semantic ID is written as 0 everywhere, waiting on the classifier.
+Also landed, later the same day: the LOD tiers (`src/goanna_lod.cpp`) emit
+this layout and run the same array shader, so the "what the LOD mesher does
+with it" section above is what it does. Light is sampled per cell face from
+the air in front of it, occlusion is traced per face against the tier's own
+occupancy, and both are quantised to sixteen levels so that faces can merge.
+The block semantic ID is filled from the classifier's block column
+(`MaterialTable::blockOf`, `src/goanna_materials.h`) on both meshers since
+later the same day: for the near mesh from the node a triangle belongs to,
+for the far tiers from the cell's representative node. It is an index into
+`MaterialTable::block_names`, built from the texture map, 0 where the map
+has nothing to say; against Mineclonia with `project/texture_maps/mineclonia.csv`
+that is 200 names.
 
 Two things were found by building the instrument first, and both had been
 invisible.

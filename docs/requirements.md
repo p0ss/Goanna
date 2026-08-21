@@ -50,8 +50,13 @@ bottleneck and show the scale of the improvement.
 | After array textures and surface merging, 730 block meshes | 4,957 | 215 to 232 fps |
 | View range 20, full detail | 4,858 | 118 fps |
 | View range 20, coarse LOD beyond 6 mapblocks | 2,824 | 262 fps |
+| View range 12, full detail, 234 blocks, fixed view above a jungle | 3,454 | 287 fps |
+| Same view, tiers beyond 2 mapblocks: 15 full blocks, 220 in 10 region meshes | 306 | 377 fps |
 
-In ordinary terms, array textures, merged surfaces and distant level of detail
+The last two rows are from two runs of the same player at the same absolute
+viewpoint on 2026-08-21, so the streamed set differs slightly between them;
+the draw call ratio is the result and the frame rate is indicative. In
+ordinary terms, array textures, merged surfaces and distant level of detail
 moved the same class of scene from roughly 100 fps towards 300 fps. Draw calls,
 not triangle count or mesh generation time, were the limiting factor. The
 client now also bounds resident mapblocks and reports frame-time, queue,

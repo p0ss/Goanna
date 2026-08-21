@@ -11,6 +11,8 @@
 
 #include "goanna_textures.h"
 
+#include "client/texturepaths.h"
+
 #include <cmath>
 #include <cstring>
 #include <fstream>
@@ -94,6 +96,8 @@ video::IImage *goanna_load_image_file(const std::string &path) {
 }
 
 namespace goanna {
+
+static godot::Ref<godot::Image> inferNormalImage(video::IImage *image, float strength, bool labpbr);
 
 // ---------------------------------------------------------------------------
 // GoannaTexture
@@ -194,38 +198,97 @@ Ref<Texture2DArray> GoannaTexture::godotArraySuffixed(GoannaTextureSource &src, 
     const bool is_normal = key == "_n";
     TypedArray<Image> imgs;
     bool any = false;
-    int authored = 0;
-    for (const std::string &base : m_layer_names) {
+    int authored = 0, classed = 0, inferred = 0, emissive = 0;
+    const MaterialTable *table = src.materialTable();
+    for (size_t li = 0; li < m_layer_names.size(); ++li) {
+        const std::string &base = m_layer_names[li];
         size_t dotpos = base.rfind('.');
         std::string name = (dotpos == std::string::npos ? base : base.substr(0, dotpos)) + suffix +
                 (dotpos == std::string::npos ? std::string() : base.substr(dotpos));
         Ref<Image> img;
         if (src.isKnownSourceImage(name)) {
             GoannaTexture *gt = dynamic_cast<GoannaTexture *>(src.getTexture(name));
-            if (gt && gt->image() && gt->image()->getDimension() == Size) {
+            if (gt && gt->image()) {
                 img = goanna_image_to_godot(gt->image());
                 if (img.is_valid()) {
+                    // A companion at a different resolution to the base is
+                    // normal, not a fault: tools/pbr_bake.py writes a flat _s
+                    // at 4x4 on purpose (FLAT_SPEC_SIZE, a constant colour
+                    // reads the same at any size and a full resolution copy is
+                    // wasted VRAM), and an authored pack may simply be coarser
+                    // or finer than the game art it dresses. An exact match was
+                    // required here until now, which would have dropped 892
+                    // of the 1021 baked _s maps for Mineclonia to the neutral
+                    // fallback without saying so.
+                    //
+                    // Nearest for _s because its channels are categorical:
+                    // metalness is a threshold at 229 and interpolating across
+                    // a boundary invents a material that is in neither
+                    // neighbour. _n is a vector field, so it filters.
+                    if (img->get_width() != (int)Size.Width ||
+                            img->get_height() != (int)Size.Height)
+                        img->resize((int)Size.Width, (int)Size.Height,
+                                is_normal ? Image::INTERPOLATE_BILINEAR
+                                          : Image::INTERPOLATE_NEAREST);
                     any = true;
                     ++authored;
                 }
             }
         }
         if (img.is_null()) {
-            img = Image::create_empty(Size.Width, Size.Height, false, Image::FORMAT_RGBA8);
-            // flat tangent normal with full ambient light, or a rough
-            // dielectric with no emission
-            img->fill(is_normal ? Color(0.5f, 0.5f, 1.0f, 0.0f) : Color(0.0f, 0.04f, 0.0f, 1.0f));
+            // Nothing authored for this layer. docs/pbr-plan.md step 2: the
+            // layer is derived rather than left neutral, so authored data is
+            // an override on top of something that covers everything.
+            if (is_normal) {
+                // Relief from the texture's own brightness, the same
+                // inference the auto bump slider applies on the single image
+                // path, so the array path stops being the one place it did
+                // not reach.
+                if (li < m_layers.size())
+                    img = inferNormalImage(m_layers[li], src.inferredReliefStrength(), true);
+                if (img.is_valid())
+                    ++inferred;
+            } else if (table) {
+                // The material class the classifier voted for this texture,
+                // as a flat _s: smoothness, F0 (or 255 for a metal), the
+                // scattering share in B, emission in A for textures a
+                // glowing node shows.
+                // A generated layer is named by its whole tile string,
+                // modifiers and all; the table is keyed by the base image.
+                std::string plain = tileBaseName(base);
+                if (plain.empty())
+                    plain = base;
+                MaterialClass cls = table->textureClass(plain);
+                const ClassSpec &sp = classSpec(cls);
+                const float b = sp.sss > 0.0f ? 0.2549f + sp.sss * 0.7451f : 0.0f;
+                const float a = table->textureEmission(plain);
+                img = Image::create_empty(Size.Width, Size.Height, false, Image::FORMAT_RGBA8);
+                img->fill(Color(sp.smoothness, sp.metal ? 1.0f : sp.f0, b, a));
+                if (cls != MaterialClass::None)
+                    ++classed;
+                if (a < 0.999f)
+                    ++emissive;
+            }
+            if (img.is_null()) {
+                img = Image::create_empty(Size.Width, Size.Height, false, Image::FORMAT_RGBA8);
+                // flat tangent normal with full ambient light, or a rough
+                // dielectric with no emission
+                img->fill(is_normal ? Color(0.5f, 0.5f, 1.0f, 0.0f) : Color(0.0f, 0.04f, 0.0f, 1.0f));
+            }
         }
         img->generate_mipmaps();
         imgs.push_back(img);
+        any = true;
     }
     if (getenv("GOANNA_DEBUG_PBR")) {
-        // has_normal being true only means SOME layer of the bunch had a
-        // companion. The rest are neutral fallbacks carrying no material at
-        // all, so this is the number that says how much of a scene is
-        // actually dressed.
-        UtilityFunctions::print("pbr coverage ", suffix, " ", authored, "/",
-                (int)m_layer_names.size());
+        // The coverage number docs/pbr-plan.md step 2 wants: how many layers
+        // are authored, how many the classifier or the inference dressed,
+        // and how many are left neutral.
+        const int n = (int)m_layer_names.size();
+        UtilityFunctions::print("pbr coverage ", suffix, " authored ", authored, "/", n,
+                is_normal ? " inferred " : " classed ", is_normal ? inferred : classed, "/", n,
+                is_normal ? "" : " emissive ", is_normal ? "" : String::num_int64(emissive),
+                " neutral ", n - authored - (is_normal ? inferred : classed));
     }
     if (!any) {
         m_suffixed_missing[key] = true;
@@ -265,25 +328,23 @@ Ref<ImageTexture> GoannaTexture::godotTexture() {
     return m_godot;
 }
 
-Ref<ImageTexture> GoannaTexture::godotNormal(float strength) {
-    if (m_normal.is_valid() && m_normal_strength == strength)
-        return m_normal;
-    if (!m_image || strength <= 0.0f) {
-        m_normal = Ref<ImageTexture>();
-        m_normal_strength = strength;
-        return m_normal;
-    }
-    const int w = (int)m_image->getDimension().Width, h = (int)m_image->getDimension().Height;
-    if (w < 2 || h < 2) {
-        m_normal_strength = strength;
-        return m_normal; // too small to derive relief
-    }
-    // Height from luminance, then a Sobel gradient to a tangent-space normal.
-    // Textures tile, so sample neighbours with wraparound for seamless relief.
+// Relief inferred from a texture's own brightness: height from luminance,
+// then a Sobel gradient to a tangent space normal. Textures tile, so
+// neighbours wrap. Two conventions leave here: Godot's own normal map (+Y up,
+// B is the normal's z) for StandardMaterial3D, and a LabPBR _n layer (Y down
+// like the tile's V, B is ambient occlusion, here none) for the array shader,
+// which reconstructs z itself. They differ only in the sign of green and in
+// what blue holds.
+static Ref<Image> inferNormalImage(video::IImage *image, float strength, bool labpbr) {
+    if (!image || strength <= 0.0f)
+        return Ref<Image>();
+    const int w = (int)image->getDimension().Width, h = (int)image->getDimension().Height;
+    if (w < 2 || h < 2)
+        return Ref<Image>(); // too small to derive relief
     std::vector<float> lum(w * h);
     for (int y = 0; y < h; ++y)
         for (int x = 0; x < w; ++x) {
-            video::SColor c = m_image->getPixel(x, y);
+            video::SColor c = image->getPixel(x, y);
             lum[y * w + x] = (0.299f * c.getRed() + 0.587f * c.getGreen() + 0.114f * c.getBlue()) / 255.0f;
         }
     auto at = [&](int x, int y) -> float {
@@ -308,18 +369,26 @@ Ref<ImageTexture> GoannaTexture::godotNormal(float strength) {
             nx *= inv; ny *= inv; nz *= inv;
             size_t i = (y * w + x) * 4;
             // Godot uses OpenGL-style tangent normals (+Y up); the mesh UV V
-            // runs downward, so flip Y.
+            // runs downward, so flip Y. LabPBR stores Y down, which is the
+            // image's own row order, so there it stays.
             dst[i + 0] = (uint8_t)std::clamp((nx * 0.5f + 0.5f) * 255.0f, 0.0f, 255.0f);
-            dst[i + 1] = (uint8_t)std::clamp((-ny * 0.5f + 0.5f) * 255.0f, 0.0f, 255.0f);
-            dst[i + 2] = (uint8_t)std::clamp((nz * 0.5f + 0.5f) * 255.0f, 0.0f, 255.0f);
+            dst[i + 1] = (uint8_t)std::clamp(((labpbr ? ny : -ny) * 0.5f + 0.5f) * 255.0f, 0.0f, 255.0f);
+            dst[i + 2] = labpbr ? 255 : (uint8_t)std::clamp((nz * 0.5f + 0.5f) * 255.0f, 0.0f, 255.0f);
             dst[i + 3] = 255;
         }
-    Ref<Image> img = Image::create_from_data(w, h, false, Image::FORMAT_RGBA8, data);
+    return Image::create_from_data(w, h, false, Image::FORMAT_RGBA8, data);
+}
+
+Ref<ImageTexture> GoannaTexture::godotNormal(float strength) {
+    if (m_normal.is_valid() && m_normal_strength == strength)
+        return m_normal;
+    m_normal = Ref<ImageTexture>();
+    m_normal_strength = strength;
+    Ref<Image> img = inferNormalImage(m_image, strength, false);
     if (img.is_valid()) {
         img->generate_mipmaps();
         m_normal = ImageTexture::create_from_image(img);
     }
-    m_normal_strength = strength;
     return m_normal;
 }
 
@@ -333,6 +402,26 @@ GoannaTextureSource::GoannaTextureSource() {
 }
 
 GoannaTextureSource::~GoannaTextureSource() = default;
+
+void GoannaTextureSource::dropCompanions() {
+    for (auto &t : m_textures)
+        if (t)
+            t->dropCompanions();
+}
+
+void GoannaTextureSource::setMaterialTable(const MaterialTable *table) {
+    m_material_table = table;
+    dropCompanions();
+}
+
+void GoannaTextureSource::setInferredReliefStrength(float strength) {
+    if (strength < 0.0f)
+        strength = 0.0f;
+    if (strength == m_relief_strength)
+        return;
+    m_relief_strength = strength;
+    dropCompanions();
+}
 
 video::IImage *GoannaTextureSource::getOrGenerateImage(const std::string &name) {
     std::set<std::string> unused;
@@ -470,11 +559,14 @@ bool GoannaTextureSource::isKnownSourceImage(const std::string &name) {
     auto it = m_known_source.find(name);
     if (it != m_known_source.end())
         return it->second;
-    // Ask ImageSource by trying to generate; cache the answer.
-    video::IImage *img = getOrGenerateImage(name);
-    bool known = img != nullptr;
-    if (img)
-        img->drop();
+    // Whether a file of this name exists, which is what upstream's
+    // TextureSource::isKnownSourceImage tests (client/texturesource.cpp).
+    // This used to ask ImageSource to generate the image and treat a non-null
+    // result as yes, which says yes to every name ever asked about: a missing
+    // file makes generateImagePart log an error and hand back a 1x1 dummy of a
+    // random colour rather than fail. Every LabPBR companion lookup therefore
+    // "found" one, and only a later exact-dimension check was rejecting them.
+    bool known = !getTexturePath(name).empty();
     m_known_source[name] = known;
     return known;
 }
@@ -506,7 +598,14 @@ bool GoannaTextureSource::insertMediaImage(const std::string &name, const std::s
     video::IImage *img = goanna_decode_image_memory(bytes, name);
     if (!img)
         return false;
-    m_imagesource.insertSourceImage(name, img, false);
+    // prefer_local, matching upstream: TextureSource::insertSourceImage passes
+    // true (client/texturesource.cpp:534) for every media file Client::loadMedia
+    // receives, which is what makes a player's own texture pack override the
+    // server's art rather than merely fill gaps in it. Goanna passed false,
+    // so a pack could supply _n and _s companions but never replace a diffuse,
+    // which is not what a texture pack is. Costs one getTexturePath lookup per
+    // media file at load, the same as vanilla pays.
+    m_imagesource.insertSourceImage(name, img, true);
     img->drop();
     m_known_source[name] = true;
     return true;

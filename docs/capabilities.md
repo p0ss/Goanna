@@ -218,8 +218,9 @@ seen from the capabilities side, and where the two differ the roadmap wins.
 4. **Audio**, with the line drawn first. Cheap to do badly, and the accurate
    version needs an option in the mod, so decide which half is being built
    before building it.
-5. **Far rendering**, which now has its authorisation model but not its
-   store.
+5. **Far rendering**, which has its authorisation model and, since
+   2026-08-21, its store and a reader for the grant (`docs/far-rendering.md`,
+   rung 5).
 6. **Iris packs**, which subsume a great deal of the shading work and should
    not be started before the material path settles, or it will be built twice.
 7. **VR**, last of the large items, not because it is hard but because it

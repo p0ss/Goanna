@@ -153,45 +153,43 @@ and it is exactly the divergence the boundary rule is about.
 
 ### 2. Geometry cheap enough to draw
 
-Partly built. `meshBlockLod` in `goanna_mesher.cpp` already reduces a
-mapblock to coarse cells, and `docs/requirements.md` records the result: at
-view range 20, 4,858 draw calls and 118 fps became 2,824 and 262 with LOD
-beyond six mapblocks.
+Built, 2026-08-21, inside the range the server sends; see "What landed at
+rungs 2 and 3" below for what was observed. The shape of it:
 
-What is missing:
-
-- **Tiers.** `lodTierFor` (`goanna_client.cpp`) returns 0 or 1 from a single
-  distance. Long range wants several, cell 2 through 16, chosen per region
-  by distance with hysteresis, so cost falls with distance instead of
-  stepping once. The levels come from the same derived chain the store
-  keeps, so inside the live range and beyond it the tier data has one
-  shape.
-- **Merging.** Cells are emitted per cell, one mesh per mapblock. A cliff
-  face should be a few quads, not a few thousand, and a region of 8 by 8 by
-  8 mapblocks at a coarse tier should be one mesh. Greedy merging of
-  coplanar same content faces, on the CPU, into per region meshes per tier.
-- **Residency, which replaces seams.** Today seams are ignored on purpose,
-  and the comment in `goanna_mesher.cpp` says why: a neighbouring block
-  hides the join. With several tiers meeting, that stops being true. The
-  rule borrowed from Voxy is that a region at tier N is drawn only where no
-  finer tier is resident for it, and the mesh at tier N is built against its
-  neighbours' occupancy at tier N, not at whatever tier they happen to be
-  drawn at. A live mapblock arriving evicts the coarse cell it falls in.
-  Skirts stay as the cheap fallback at the join between the live mesh and
-  the first coarse tier, where the two meshers differ.
-- **Vertex format.** The LOD mesh must carry what the near mesh carries:
-  array layer and UV into the `Texture2DArray`, the per node light and
-  ambient occlusion term, and the block semantic ID. Nothing reads the last
-  two yet. They are there so that the shader family is one family and so
-  that a shader pack, later, treats the vista as terrain. See "Under a
-  shader pack".
-- **Depth precision.** Godot 4.3 and later use reversed Z, which takes most
-  of the far plane problem away. Measure at 4000 nodes before reaching for
-  anything clever; the likely remaining issue is the near plane, not the
-  far.
-
-None of this needs the store. It can be built and judged inside the range
-the server already sends.
+- **The chain.** `src/goanna_lod.h` derives, per mapblock, levels at cell
+  2, 4, 8 and 16: which cells are filled, which block light, what is seen
+  from each of the six sides, and how lit the air in them is. It is built
+  lazily from the block, dropped when the block changes, and is the only
+  thing the tier mesher reads. Inside the live range and beyond it the tier
+  data has one shape, which is what the store at rung 5 will persist.
+- **Tiers.** `lodTierFor` (`goanna_client.cpp`) chooses a tier per block
+  from horizontal distance, doubling the threshold per tier, with
+  hysteresis so a player standing on a boundary does not rebuild the same
+  blocks every step. Tier 1 is `lod_cell` nodes (4 by default), each tier
+  doubles it, up to a whole block.
+- **Merging.** Blocks at a tier belong to a region of that tier, four to
+  sixteen blocks on a side so a region is about 32 cells an axis whatever
+  the cell size, and the region is one mesh: coplanar faces with the same
+  tile, tint, light and occlusion are merged greedily into quads, one
+  surface per array texture. A region is rebuilt when a member block or a
+  block next to one changes, coalesced so streaming into it costs one
+  rebuild a quarter second rather than one per block, inside a per frame
+  time budget.
+- **Residency, which replaces seams.** A block is drawn by exactly one tier,
+  and a region's mesh culls its faces against every neighbour's occupancy
+  at that region's cell size, whatever tier the neighbour is drawn at. A
+  live mapblock arriving, or changing tier, leaves its region and the
+  region is rebuilt without it. No skirts have been needed so far at the
+  join between the live mesh and the first coarse tier; the cells there are
+  small and the live mesh hides the join, as it always did.
+- **Vertex format.** The region mesh carries exactly what the near mesh
+  carries, per `docs/mesh-attributes.md`: tile UV and array layer, tint,
+  Luanti's block and sky light, the occlusion term and the block semantic
+  ID, and it runs the same node array shader against the same arrays.
+- **Depth precision.** Not yet measured: nothing has been drawn further
+  than the server sends, which is a few hundred nodes. Godot 4.3 and later
+  use reversed Z, which takes most of the far plane problem away. Measure
+  at 4000 nodes at rung 5 before reaching for anything clever.
 
 ### 3. Shading that is continuous from your feet to the horizon
 
@@ -351,28 +349,144 @@ this avoids becoming a six month branch that never lands.
    which stopped a pack overriding server art. Against a stock Mineclonia
    server with no worldmod, `GOANNA_PACK` now takes companion coverage from
    0/256 to 179/256.
-2. **Far shading parity.** Give the existing coarse tier the array shader
-   and `_s`, on a vertex layout that already has room for light, occlusion
-   and block ID. No new geometry, no new storage. Immediately visible once
-   `pbr-plan.md` step 2 has given most nodes a real `_s`, and it is the
-   difference between a contour map and terrain.
-3. **Multi-tier LOD geometry**, still inside the server's view range. The
-   derived occupancy chain, tiers by distance, greedy merging into per region
-   meshes, the residency rule. The far field occlusion term is baked into
-   these meshes here. Proves tiers and joins without touching persistence.
+2. **Far shading parity.** Done, 2026-08-21. The coarse tiers run the node
+   array shader against the same `Texture2DArray` and its `_n` and `_s`
+   companions, on the vertex layout in `docs/mesh-attributes.md`, so there
+   is no distance at which the renderer changes. What it buys is bounded by
+   `pbr-plan.md` step 2 exactly as predicted: with most nodes on a flat
+   fallback `_s`, a far hillside is textured rather than flat coloured, and
+   no more than that yet.
+3. **Multi-tier LOD geometry**, still inside the server's view range. Done,
+   2026-08-21: the derived chain, tiers by distance, greedy merging into per
+   region meshes, the residency rule, and the far field occlusion term baked
+   into the region meshes from the same tracer as the near field, over a
+   field at the tier's cell size. Proven against a local Mineclonia server
+   on Godot 4.5.1 without touching persistence; details below.
 4. **Atmosphere at long range.** Re-derive fog and aerial perspective.
 5. **The store**, gated on the server allowing it, on by default only for
    the local server Goanna launches itself. Full blocks as received, the
    derived chain alongside, a reader for the `far_rendering` grant, and the
    far field occlusion reaching beyond the live range. Only at this rung does
    the view exceed what the server sends, and only at this rung does
-   staleness exist.
+   staleness exist. Done, 2026-08-21; see "What landed at rung 5" below.
 6. **Water at distance, without a pack.** Specular and fresnel from `_s` on
    the coarse tiers, so sea reads as sea at the horizon. Reflections proper
    are a shader pack's job (`docs/iris-compat.md`, `gbuffers_water` and
    the pack's own SSR) and are not duplicated here.
 
 Rungs 1 to 4 need no decision from anyone. Rung 5 does.
+
+## What landed at rung 5, 2026-08-21
+
+`src/goanna_store.{h,cpp}` is the store. One directory per server under the
+root `main.gd` passes in (`user://goanna_store/<host>_<port>`), one file per
+16 by 16 by 16 blocks (`r.<x>.<y>.<z>.gbs`): a 64 KB index of offset,
+length, time stamp and serialisation version per slot, then the payloads
+appended. A block is written as the server serialised it, on the session
+thread, as it arrives; a rewrite leaves dead bytes that are folded when they
+outweigh the live ones; a cap (512 MB, `GOANNA_STORE_CAP_MB`) evicts whole
+region files oldest first. There is no new format for a block, only for the
+file around it, and the format is plain enough to read with a hex editor.
+
+The session (`saveBlockToStore`, `loadStoredBlock`, `storedRegionMask`)
+writes on receipt, marks blocks edited by `ADDNODE` and `REMOVENODE`, and
+writes those back when they are pruned or the session stops, so the store
+holds the world as last seen rather than as first sent. `farRenderingGrant`
+reads the `far_rendering` and `far_rendering_distance` options the server
+mod announced; without them the store still writes (it is the player's own
+record of what they were sent, like a screenshot folder, and costs a capped
+directory) and nothing reads it.
+
+The client (`lodUpdateFar`, `lodChain`) is the consumer. Every two seconds
+or when the player crosses a block, it asks the store which blocks exist
+within the lesser of the grant and `far_distance` (512 nodes by default,
+`GOANNA_FAR_DISTANCE`), skips the ones the server is sending, assigns the
+rest to tiers exactly as received blocks are assigned, and lets go of those
+that pass out of range. The region mesher does not know the difference:
+`lodChain` builds a block's chain from the live block if there is one and
+from the store if not, and frees the stored block as soon as the chain
+exists. A live block arriving for a stored one takes over on the next poll.
+The far field occlusion reaches beyond the live range the same way, because
+the tracer reads chains.
+
+Staleness is marked, not hidden. A chain built from the store sets
+`CUSTOM0.a` on its faces to 96 rather than 255 (docs/mesh-attributes.md),
+and the node shaders pull such surfaces toward grey by `stale_strength`
+(0.6 by default, a material strength channel like the rest), so remembered
+terrain reads as remembered.
+
+Measured against the test Mineclonia server, which grants 512 nodes: a 25
+second visit to the spawn wrote 331 blocks (688 KB); a second run that went
+400 nodes away and looked back found 306 of them in the store, drew them as
+tier 3 from the store while the server sent the new surroundings live, with
+no errors, and the frame shows the spawn jungle as grey green cells beyond
+the live edge. That is the first frame of this client that drew terrain the
+server was not sending.
+
+Goanna's own local server grants it: `project/local_server.gd` writes
+`goanna_far_rendering = true` and a distance of 1024 into the conf it
+launches with, and copies `goanna_server_mod` into the world's `worldmods`
+so the grant reaches the client over the channel.
+
+Not done: a settings entry for the far distance and the stale strength (both
+are environment variables and bound methods today); the store's contents
+are not pruned against a world reset, only aged out by the cap; and the scan
+over stored regions is linear in the region count, which is fine at 512
+nodes (125 regions) and would want an index at 4000.
+
+## What landed at rungs 2 and 3, 2026-08-21
+
+`src/goanna_lod.{h,cpp}` holds the chain and the region mesher, free of
+Godot and of the session so the store can feed it later and so it can be
+tested offline. `GoannaClient` (`lodAssign`, `lodBuildRegion`, `lodRebuild`
+in `src/goanna_client.cpp`) keeps the membership, the dirty set and the
+region meshes, and converts the output to surfaces. The single tier,
+single block mesher it replaces (`meshBlockLod`) is gone.
+
+Measured against a local Mineclonia server, Luanti 5.16.1, Godot 4.5.1,
+from one fixed viewpoint 55 nodes above a jungle, view range 12: full detail
+drew 234 blocks in 3,454 draw calls at 287 fps; with tiers starting two
+blocks out, 15 blocks stayed at full detail and 220 were drawn at tiers 1 to
+3 in 10 region meshes, 31 surfaces, 306 draw calls, 377 fps. A region build
+costs about 1 to 2 ms at any tier. The two frames are from two runs of the
+same player at the same view, so the streamed set differs slightly; the
+draw call ratio is the result, the frame rate is indicative.
+
+Three things were wrong on the first run, and each is worth keeping:
+
+- **Every cell was drawn inside out.** The old mesher's quads were wound
+  counter clockwise, which Godot culls as back faces, so what rendered was
+  the underside of every cell seen through its missing top. Flat colour and
+  fog had hidden it for as long as that mesher existed; the array shader
+  showed it at once as a world of slate grey undersides lit only by sky.
+  Painting the light channels as emission (`debug_nodelight`) is what told
+  the two apart: the channels were right, the geometry was not.
+- **A cell with anything in it drew as a full cube.** At cell 16 a single
+  leaf made a cliff, and a jungle canopy became a wall of cubes. A cell now
+  draws when half a layer's worth of nodes fills it, which keeps a floor, a
+  canopy and a two by two trunk and drops a post and a stray branch, and it
+  blocks light when a full layer does. Both thresholds are named constants
+  in `buildLodChain` waiting to be calibrated on the chart, as this file
+  already asked.
+- **Leaves did not count.** Luanti classes leaves and glass as
+  `solidness` 0 with `visual_solidness` 1, and the first chain used
+  `solidness` alone, as the old mesher and the near field occlusion do. A
+  forest at range is its canopy, and without it the jungle meshed as the
+  log tops the trunks had been standing on. What draws is now solid, or
+  cube shaped, or liquid; what blocks light is still solid alone.
+
+And one limit, which is the reason rung 5 exists and was worth seeing
+plainly: the server sends only the blocks it has generated, within the view
+cone the client reports, so from a height the far tiers show holes where no
+block was ever sent, and a view turned away from the reported look direction
+shows nothing at all. The tiers draw what was received. Making the vista
+continuous is the store's job, not the mesher's.
+
+Not done here: the fill and occlusion thresholds have not been calibrated
+against a brute force count; the far field occlusion is visibly weak on the
+jungle floor and the reason is not yet separated between the thresholds, the
+radius and the terrain; animated tiles (water, lava) have no array texture
+and fall back to a flat average colour per face, which is what rung 6 is for.
 
 ## Where this is most likely to fail
 
@@ -410,5 +524,8 @@ result:
 - `tools/shotcheck.py` for viewpoint repeatability, which matters more here
   than anywhere else, because a vista shot before terrain streams in is a
   photograph of fog.
-- A per tier draw call and fps readout, so rung 3 cannot regress rung 2
-  silently.
+- A per tier readout, so rung 3 cannot regress rung 2 silently: `render_stats`
+  reports blocks per tier, region meshes, quads before and after merging,
+  surfaces and the build time, and `GOANNA_PERF=1` prints them each second.
+  `GOANNA_DEBUG_LOD=1` prints every region build with its surfaces, which is
+  what says whether a tier landed on the array shader or the flat fallback.

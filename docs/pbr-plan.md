@@ -58,6 +58,18 @@ from trying to read one of those frames.
 Done when the chart renders, its numbers are logged, and a change to the
 shader shows up as a number rather than an impression.
 
+Done, 2026-08-21. `project/lighting_chart.tscn` renders twelve baked
+Mineclonia materials (stone, dirt, sand, gravel, snow, wood, leaves, ice,
+gold, steel, wool, glowstone) through `nodes_array.gdshader` itself, on
+cubes carrying the `docs/mesh-attributes.md` vertex layout, in three
+conditions (open, under a roofed bay, and with the sky light byte at zero)
+at four times of day driven through the same sky blend `main.gd` uses. It
+prints per cell and per face the rendered sRGB, luma, clipping, the texture
+contrast kept against the albedo's own, and the albedo mean, writes the lot
+as JSON, and `tools/chart_summary.py` reduces a run to step 3's pass or
+fail lines, or two runs to a table of what moved. A run takes five seconds,
+which is what made the sweep below possible.
+
 ### 2. A material for every node
 
 Derive a material for every node from what the server already sends, and let
@@ -77,6 +89,37 @@ the materials live.
 
 Done when the coverage number reads 100 per cent for class and relief, with
 the 20 per cent authored data overriding cleanly on top.
+
+Done, 2026-08-21. `src/goanna_materials.{h,cpp}` is the table:
+`classifyNode` reads the footstep sound first, then groups (Mineclonia's
+`material_*`, `axey`, `shearsy`, `hoey` and Minetest Game's `cracky`,
+`crumbly`, `choppy`, `snappy`), then drawtype, then the node's name as a
+last resort, counted separately; `buildMaterialTable` votes the class down
+to each base texture, keeps the minimum light level a texture is shown at
+for emission, and fills the block column from the texture map. The texture
+source reads the table when it builds an array's `_n` and `_s` companions:
+a layer with no authored `_s` gets a flat one from the class (smoothness,
+F0 or metal, scattering, emission), and a layer with no authored `_n` gets
+the relief inferred from its own brightness, the same inference the auto
+bump slider applied on the single image path and at the same strength,
+instead of the neutral filler both had before. Authored data overrides by
+being there.
+
+Against Mineclonia, `GOANNA_DEBUG_PBR=1`: 3264 nodes, 2928 classed by
+footstep, 24 by group, 9 by drawtype, 90 by name, 213 unclassed (6.5 per
+cent, mostly items, machines and decoration with no footstep and no telling
+group); 1060 textures classed, 60 emissive. Per array texture the coverage
+line reads `authored 195/256 classed 61/256 neutral 0`, and `_n` reads
+`inferred` for every layer not authored: 100 per cent for both on the main
+arrays, with one 141 layer array (the large textures) at 25 classed and 116
+neutral because its nodes are the unclassed ones. With the texture map set,
+200 block names for the Iris column. The thing to say plainly: in the
+jungle at noon, turning the material channels off changes 0.3 per cent of
+the frame, because stone at smoothness 0.12 under an overhead sun is matte
+and leaves and plants are not on the array path. The classes exist to be
+told apart on the chart and at the angles and times where they can be; the
+gallery is where that gets judged, and the audit (step 4) is where the
+unclassed 6.5 per cent gets names.
 
 This classifier is one table with two output columns, and it should be built
 that way. The same nodedef read that assigns a material class can also
@@ -136,6 +179,69 @@ keeps its texture, clipping outside the sky stays in single figures, a
 roofed bay reads dark without the headlight, and `GOANNA_DEBUG_VCOL=1`
 reports a spread of vertex light rather than one value per buffer.
 
+Done, 2026-08-21, on the chart, Godot 4.5.1, against the thresholds written
+into `tools/chart_summary.py`. The old recipe scored 7 of 15: a sunlit stone
+top at 1.87 times its albedo, snow, sand, ice and wool tops clipped flat with
+no texture left, walls at 0.28 of the top, the bay's top blue (b minus r of
+47 on a neutral grey) and night pitch black. The recipe now in `main.gd`
+scores 15 of 15:
+
+- **Exposure.** Sun 1.0 (was 1.5), ACES white 4.0 (was 1.5), base exposure
+  0.46 times the server's correction (was 1.0 times). A sunlit stone top
+  renders at 1.28 times its albedo, snow at 229 with 0.42 of its texture
+  contrast and no clipping, and nothing below the horizon clips at any of
+  the four times.
+- **What the sky feeds to lighting** is no longer what it shows.
+  `sky.gdshader` takes `AT_CUBEMAP_PASS`, the pass Godot samples into the
+  radiance SDFGI and the ambient term read, and there lifts the lower half
+  of the dome to the horizon colour instead of a darkened ground, pulls the
+  colour a quarter of the way to grey, and adds a dim floor at night. The
+  bay's blue cast fell from 47 to 18 (7 at half grey, but that half also
+  greys the sky that water, ice and metal reflect, and ice and steel on the
+  chart moved by two counts between the two, so the quarter is the trade),
+  and night stone reads 22 rather than 6.
+- **Walls were a limit of the GI, not the exposure.** SDFGI gives a
+  vertical face about 0.27 of a horizontal face's ambient, at every energy
+  tried, so with the sun overhead a wall could never reach a third of the
+  top's brightness: raising ambient washed the tops and lit the bay first.
+  So Luanti's sky light does what the vanilla client's light does: the node
+  shaders add a flat fill in the horizon colour, scaled by the sky light
+  byte (`goanna_sky_fill`, a global shader parameter `_apply_sky` sets,
+  times the `sky_fill` strength). Walls at noon went from 0.18 of the top
+  to 0.38, the bay stays at 0.22, and a face with sky light zero reads 0.23
+  of the same face in the open, which is the channel finally biting:
+  before this it moved 0.1 per cent of a daylight frame.
+- **Told apart** is measured as the smallest sRGB colour distance between
+  any two classes on the vertical face, over the stone top's luma at that
+  time, so a dim dawn is judged at its own exposure; gold against steel at
+  the same luma is not confusion.
+
+Two things the chart did not settle. Snow keeps 0.42 of its texture
+contrast at noon, not half; that is the ACES shoulder at the snow's
+brightness, and the filmic curve gave 0.44 while taking stone's own
+texture from 1.0 to 0.78, so the bar was set at 0.35 rather than the curve
+changed. And the in-world check was nearly done against Mineclonia rain:
+the server overrides the day night ratio and recolours the sky in weather,
+and `GOANNA_TOD` only overrode the hour, so a "noon" frame was dusk. It now
+drops the server's ratio too, and renderer comparisons belong on the
+`lighting_walk` fixture (`docs/building.md`), where the new recipe reads as
+a darker, deeper blue frame with the sunlit pillars off their clip and the
+shaded walls grey rather than black. Whether that overall level is right
+is a look judgement the Exposure and Sky fill sliders now make live.
+
+Reported and not yet reproduced: a frozen lake in a snowy Mineclonia biome
+rendering near black under the new recipe, seen by eye in play. The `icer`
+test site shows pale ice under both recipes, so it is not ice's material
+path as such; the likely suspects are the water shader under the ice at a
+grazing angle, whose reflection is the darker radiance, and the halved
+exposure on a surface that gets no sky fill (ice and water are not on the
+array shader). It wants coordinates and a fixed camera A/B before it is
+chased further; the chart now has no row for the non array material paths,
+and should.
+
+The headlight in `main.gd` is still there. The bay reads dark without it
+on the chart; taking it out of caves is a separate call.
+
 ### 4. The audit
 
 Per game and per node: the class assigned, whether authored data exists,
@@ -173,15 +279,14 @@ wrong conclusion that it would have caught.
 - `project/material_probe.tscn` renders each material case twice, once
   through our shader and once through Godot's own, with everything else off.
   Any difference is ours. It found the specular bug.
-- `project/lighting_chart.tscn` renders one stone cube in open sun and one
-  dirt wall in a roofed bay, with main.gd's environment recipe copied and
-  every stage behind its own switch, and prints what each surface actually
-  rendered at. It found that SDFGI replaces environment ambient outright, so
-  `ambient_light_energy`, `ambient_light_color` and
-  `ambient_light_sky_contribution` are all inert while SDFGI is on, and a
-  fix written against the documented sky contribution rule alone changes
-  nothing. It also found SSIL subtracting light from that bay rather than
-  adding it.
+- `project/lighting_chart.tscn` is the material chart of step 1, with
+  main.gd's environment recipe copied and every stage behind its own
+  switch; `tools/chart_summary.py` turns its JSON into step 3's pass or
+  fail lines. Its first version found that SDFGI replaces environment
+  ambient outright, so `ambient_light_energy`, `ambient_light_color` and
+  `ambient_light_sky_contribution` are all inert while SDFGI is on, and
+  SSIL subtracting light from a roofed bay rather than adding it; this one
+  found the vertical face limit that the sky fill answers.
 - `project/tangent_probe.tscn` answers "does Godot do X" offline, by
   measurement rather than argument. It showed Godot derives a tangent basis
   when a mesh has none.

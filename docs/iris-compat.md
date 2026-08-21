@@ -396,6 +396,14 @@ reimplementation a reimplementation.
 This is the part that is easy to miss and is the reason the texture mapping
 work pays for itself twice.
 
+Since 2026-08-21 the node side of this exists: `src/goanna_materials.h`
+builds, per session, a table of the Minecraft block each node most
+resembles (through the texture map and the nodedef, one vote per tile) and
+writes its index into `UV2.y` on every node surface, near and far. What is
+still to do here is the pack side: parsing `block.properties` and mapping
+its block names onto that table's `block_names`, so `mc_Entity.x` answers
+with the pack's own numbers.
+
 Shader packs branch on block semantics, not on block names. A pack ships a
 `block.properties` assigning Minecraft blocks to numeric IDs, and its shaders
 read that ID through `mc_Entity.x` to decide that this surface is leaves and

@@ -1,0 +1,18 @@
+[Goanna client options]
+
+#    Let a Goanna client draw terrain past this server's send distance, from
+#    mapblocks it has already been sent. What it draws out there is as old as
+#    the last time the player was near it.
+goanna_far_rendering (Far rendering) bool false
+
+#    How far past the send distance, in nodes. Costs the client memory and
+#    draw calls, not the server.
+goanna_far_rendering_distance (Far rendering distance) int 256 64 8192
+
+#    Source engine style movement: air strafing, bunny hopping, surfing. Needs
+#    disable_anticheat as well, or the server rejects the movement it produces.
+goanna_source_movement (Source style movement) bool false
+
+goanna_source_movement_air_accel (Air acceleration) float 100.0 1.0 1000.0
+
+goanna_source_movement_max_air_speed (Max air speed) float 3.0 0.1 100.0

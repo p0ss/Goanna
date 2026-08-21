@@ -14,6 +14,7 @@
 //   TileLayer.shader_id maps onto Godot material variants.
 
 #include <map>
+#include <set>
 #include <memory>
 #include <string>
 #include <vector>
@@ -25,6 +26,7 @@
 #include "client/shader.h"
 #include "client/texturesource.h"
 #include "client/tile.h"
+#include "goanna_materials.h"
 
 namespace goanna {
 
@@ -57,6 +59,9 @@ public:
     // height) or "_s" (smoothness, F0, porosity, emission) suffix, built only
     // if a pack supplies one for every layer. Null when it does not.
     godot::Ref<godot::Texture2DArray> godotArraySuffixed(GoannaTextureSource &src, const char *suffix);
+    // Forget the companion arrays, so the next use rebuilds them: the
+    // classifier table or the relief strength changed under them.
+    void dropCompanions() { m_godot_suffixed.clear(); m_suffixed_missing.clear(); }
     const std::vector<std::string> &layerNames() const { return m_layer_names; }
     // Tangent-space normal map derived from the diffuse luminance ("auto
     // bump"): dark texels read as recessed, light as raised. Cached per
@@ -107,7 +112,21 @@ public:
     // overlays, inventory cubes) must resolve the layer first.
     std::string imageName(u32 texture_id, u16 layer = 0);
 
+    // The classifier's table (docs/pbr-plan.md step 2), owned by the session,
+    // read when an array's companion layers are synthesised for textures a
+    // pack does not cover. Setting it drops every cached companion array.
+    void setMaterialTable(const MaterialTable *table);
+    const MaterialTable *materialTable() const { return m_material_table; }
+    // Strength of the relief inferred from a texture's own brightness for
+    // layers with no authored _n; 0 turns inference off. The same value the
+    // auto bump slider sets. Changing it drops every cached companion array.
+    void setInferredReliefStrength(float strength);
+    float inferredReliefStrength() const { return m_relief_strength; }
+    void dropCompanions();
+
 private:
+    const MaterialTable *m_material_table = nullptr;
+    float m_relief_strength = 0.35f;
     video::IImage *getOrGenerateImage(const std::string &name);
     ImageSource m_imagesource;
     std::vector<std::unique_ptr<GoannaTexture>> m_textures; // index = id

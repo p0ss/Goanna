@@ -19,6 +19,12 @@ var log_path := ""
 var world_path := ""
 var _argv: PackedStringArray
 var _data_dir := ""
+# Mapblocks (16 nodes each) the local server will send. Luanti's own default is
+# 12; the client still has to ask for it through its own view range setting,
+# and asking for more than this gets nothing.
+var send_distance := 32
+# How far the local server grants far rendering, in nodes (docs/far-rendering.md).
+var far_distance := 1024
 
 # Where Luanti keeps games and worlds, and how to invoke its server.
 # Returns {} if no server could be found.
@@ -117,6 +123,21 @@ static func data_dir_or_empty() -> String:
 # Start a server for `gameid` on `worldname` (created under the data dir if
 # new). Picks a free-ish port and writes a log we can watch for readiness.
 # Returns "" on success, or an error message.
+# The server mod that relays goanna_* settings to the client, copied into the
+# world as a worldmod so the grant written above reaches the client. A copy,
+# not a link: the flatpak sandbox sees the world directory and not the
+# checkout.
+func _install_server_mod(world: String) -> void:
+	var src := ProjectSettings.globalize_path("res://../goanna_server_mod")
+	if not FileAccess.file_exists(src.path_join("init.lua")):
+		return
+	var dst := world.path_join("worldmods").path_join("goanna_server_mod")
+	DirAccess.make_dir_recursive_absolute(dst)
+	for f in ["init.lua", "mod.conf"]:
+		if FileAccess.file_exists(src.path_join(f)):
+			DirAccess.copy_absolute(src.path_join(f), dst.path_join(f))
+
+
 func start(gameid: String, worldname: String) -> String:
 	var env := detect()
 	if env.is_empty():
@@ -128,12 +149,36 @@ func start(gameid: String, worldname: String) -> String:
 	log_path = _data_dir.path_join("goanna_singleplayer.log")
 	# a fixed local port; if it is busy the log tells us and start() is retried
 	port = 30800 + (hash(worldname) % 150)
+	# How far the server will send blocks at all. Luanti defaults
+	# max_block_send_distance to 12 mapblocks, 192 nodes, and that is a hard
+	# ceiling on what any client can draw however much it asks for: see
+	# docs/far-rendering.md, where it is the reason distant vistas need more
+	# than a bigger view range. Raised here because a local single player
+	# server has one client and can afford it. Written next to the world so it
+	# is visible inside the flatpak sandbox, which cannot see the host's home.
+	var conf_path := _data_dir.path_join("goanna_local_server.conf")
+	var cf := FileAccess.open(conf_path, FileAccess.WRITE)
+	if cf:
+		cf.store_string("max_block_send_distance = %d\n" % send_distance)
+		# The queue limits throttle how fast those blocks actually arrive; the
+		# defaults are tuned for the default distance and starve a larger one.
+		cf.store_string("max_simultaneous_block_sends_per_client = 16\n")
+		cf.store_string("server_unload_unused_data_timeout = 600\n")
+		# A single player world on this machine, run by a server this client
+		# launched: there is no one to be unfair to, so far rendering is
+		# granted here, over the goanna:v1 channel the server mod installed
+		# below provides. docs/far-rendering.md, "the server decides".
+		cf.store_string("goanna_far_rendering = true\n")
+		cf.store_string("goanna_far_rendering_distance = %d\n" % far_distance)
+		cf = null
+	_install_server_mod(world_path)
 	var argv := Array(_argv)
 	argv.append_array([
 		"--world", world_path,
 		"--gameid", gameid,
 		"--port", str(port),
 		"--logfile", log_path,
+		"--config", conf_path,
 	])
 	# fresh log so readiness detection is not fooled by an old run
 	var lf := FileAccess.open(log_path, FileAccess.WRITE)

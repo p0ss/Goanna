@@ -21,15 +21,25 @@ var speed := 12.0
 var mouse_sensitivity := 0.15
 var invert_mouse := false
 var view_bobbing := 1.0        # walk-cycle camera bob, 0 = off
-# Lighting levels, seeded from GOANNA_SUN/AMBIENT/SDFGI/SSAO/WHITE and then
-# settable live from the Lighting settings tab.
-var light_sun := 1.5
+# Lighting levels, seeded from GOANNA_SUN/AMBIENT/SDFGI/SSAO/WHITE/EXPOSURE/
+# SKY_FILL and then settable live from the Lighting settings tab. The values
+# are the recipe settled on project/lighting_chart.tscn on 2026-08-21
+# (docs/pbr-plan.md step 3): sun 1.0 and white 4.0 with exposure 0.46 put a
+# sunlit stone top at 1.28 times its albedo and snow at 229 with no clipping,
+# where 1.5, 1.5 and 1.0 had put stone at 1.87 times and snow flat white;
+# the sky fill lifts a wall at noon from 0.18 of the top to 0.38.
+var light_sun := 1.0
 var light_ambient := 1.0
 var light_sdfgi := 1.4
 var light_sdfgi_cell := 0.5
 var light_pool := 96.0
 var light_ssao := 4.0
-var light_white := 1.5
+var light_white := 4.0
+# Base exposure; the server's exposure_correction multiplies it in _apply_sky.
+var light_exposure := 0.46
+# Sky fill strength: Luanti's sky light added by the node shaders as a flat
+# fill in the horizon colour (nodes_array_common.gdshaderinc). 0 turns it off.
+var light_fill := 0.4
 var _bob_phase := 0.0
 var shots_done := false
 var _chat_sent := false
@@ -116,8 +126,10 @@ func _ready() -> void:
 	light_pool = _envf("GOANNA_LIGHT_POOL", light_pool)
 	light_ssao = _envf("GOANNA_SSAO", light_ssao)
 	light_white = _envf("GOANNA_WHITE", light_white)
+	light_exposure = _envf("GOANNA_EXPOSURE", light_exposure)
+	light_fill = _envf("GOANNA_SKY_FILL", light_fill)
 	if cfg.load("user://goanna.cfg") == OK:
-		for k in ["sun", "ambient", "sdfgi", "sdfgi_cell", "ssao", "white"]:
+		for k in ["sun", "ambient", "sdfgi", "sdfgi_cell", "ssao", "white", "exposure", "fill"]:
 			if cfg.has_section_key("settings", "light_" + k):
 				set("light_" + k, float(cfg.get_value("settings", "light_" + k)))
 	client = GoannaClient.new()
@@ -197,11 +209,23 @@ func _ready() -> void:
 	e.background_mode = Environment.BG_SKY
 	e.sky = sky
 	e.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	# The exposure as a whole is too hot and wants deciding: at these
-	# settings sunlit stone of albedo 131 renders at 207, and snow and sea
-	# lanterns clip to flat white with every texel of detail gone, which is
-	# what makes materials read as "shiny" or "black" and nothing between.
-	# GOANNA_SUN / GOANNA_AMBIENT / GOANNA_SDFGI / GOANNA_SSAO / GOANNA_WHITE.
+	# The exposure was decided on project/lighting_chart.tscn, 2026-08-21,
+	# by the numbers in docs/pbr-plan.md step 3: it used to be too hot
+	# (sunlit stone of albedo 131 rendered at 207, snow and sea lanterns
+	# clipped to flat white with every texel gone), and the fix is sun 1.0,
+	# ACES white 4.0 and a base exposure of 0.46 (light_sun, light_white,
+	# light_exposure above). What the chart could not fix by exposure is
+	# walls: SDFGI gives a vertical face about 0.27 of a horizontal face's
+	# ambient, so with the sun overhead a wall cannot reach a third of the
+	# top's brightness whatever the energy, and the node shaders add a sky
+	# fill from Luanti's own sky light instead (light_fill; see
+	# nodes_array_common.gdshaderinc). The sky shader also feeds lighting a
+	# different radiance from what it shows (radiance_* in sky.gdshader): the
+	# lower half of the dome as the horizon colour rather than a darkened
+	# ground, a quarter desaturated so shadow is less blue (half greyed the
+	# sky that water and metal reflect for little gain on the chart), and a
+	# dim floor at night so a black sky still lights the world the way
+	# Luanti's does.
 	#
 	# GOANNA_AMBIENT does nothing, and cannot be made to while sdfgi_enabled
 	# is true below. Measured with project/lighting_chart.gd, which renders
@@ -238,6 +262,7 @@ func _ready() -> void:
 	# ACES keeps saturation and contrast, which is the look this client is for.
 	e.tonemap_mode = Environment.TONE_MAPPER_ACES
 	e.tonemap_white = light_white
+	e.tonemap_exposure = light_exposure
 	e.adjustment_enabled = true
 	e.adjustment_saturation = 1.15
 	e.adjustment_contrast = 1.05
@@ -351,6 +376,17 @@ func _ready() -> void:
 	if tmap != "" and FileAccess.file_exists(tmap):
 		client.set_texture_map(tmap)
 		print("texture map ", tmap)
+	# The local block store (docs/far-rendering.md rung 5): every block the
+	# server sends is kept under the user directory, per server, and drawn as
+	# far tiers beyond the live range when the server grants far rendering.
+	# GOANNA_STORE=<dir> relocates it, GOANNA_NO_STORE=1 turns it off.
+	if OS.get_environment("GOANNA_NO_STORE") == "":
+		var store_root := OS.get_environment("GOANNA_STORE")
+		if store_root == "":
+			store_root = ProjectSettings.globalize_path("user://goanna_store")
+		client.set_store_path(store_root)
+		if OS.get_environment("GOANNA_FAR_DISTANCE") != "":
+			client.set_far_distance(int(OS.get_environment("GOANNA_FAR_DISTANCE")))
 	if pack != "":
 		client.set_texture_path(pack)
 		print("texture pack ", pack)
@@ -561,11 +597,15 @@ func _process(delta: float) -> void:
 		# attributed rather than guessed at.
 		if OS.get_environment("GOANNA_PERF") != "":
 			var st: Dictionary = client.render_stats()
-			print("perf fps=%.0f frame=%.1fms | mesh=%.2f upload=%.2f lights=%.2f motes=%.2f ents=%.2f | meshed=%d queued=%d blocks=%d mats=%d | draws=%d objs=%d vram=%.0fMB" % [
+			print("perf fps=%.0f frame=%.1fms | mesh=%.2f upload=%.2f lights=%.2f motes=%.2f ents=%.2f | meshed=%d queued=%d blocks=%d mats=%d | draws=%d objs=%d vram=%.0fMB | lod tiers=%s regions=%d dirty=%d quads=%d/%d surfaces=%d lod_ms=%.2f" % [
 				Engine.get_frames_per_second(), 1000.0 / maxf(Engine.get_frames_per_second(), 1.0),
 				st["mesh_ms"], st["upload_ms"], st["lights_ms"], st["motes_ms"], st["entities_ms"],
 				st["blocks_meshed_last"], st["blocks_queued"], st["block_meshes"], st["materials"],
-				st.get("draw_calls", 0), st.get("objects", 0), st.get("video_mem_mb", 0.0)])
+				st.get("draw_calls", 0), st.get("objects", 0), st.get("video_mem_mb", 0.0),
+				str(st.get("lod_tiers", {})), st.get("lod_regions", 0), st.get("lod_regions_dirty", 0),
+				st.get("lod_quads", 0), st.get("lod_faces", 0), st.get("lod_surfaces", 0), st.get("lod_ms", 0.0)]
+				+ " | far=%d grant=%d store=%d/%.0fMB" % [st.get("far_blocks", 0), st.get("far_grant", 0),
+				st.get("store_blocks", 0), st.get("store_mb", 0.0)])
 		if OS.get_environment("GOANNA_DUMPSKY") != "" and int(t) == 3:
 			print("SKY ", JSON.stringify(client.sky_state()))
 		if OS.get_environment("GOANNA_DUMPUI") != "" and int(t) == 5:
@@ -985,6 +1025,10 @@ func _wait_for_streaming() -> void:
 	var last := -1
 	while Time.get_ticks_msec() - t0 < 30000:
 		client.poll_blocks(64)
+		# Tier as they arrive. Blocks streamed against a stale LOD centre come
+		# in as LOD and only convert later, so without this a capture races the
+		# conversion and sometimes measures the merged mesh instead.
+		client.update_lod(cam.position, 64)
 		await get_tree().process_frame
 		var n: int = int(client.status()["blocks_meshed"])
 		if n != last:
@@ -1039,17 +1083,32 @@ func _fixture_shots(dir: String, name: String) -> bool:
 		client.set_player_pose(pos, pitch, yaw)
 		for frame in int(spec["warm_frames"]):
 			client.poll_blocks(64)
+			# Fixtures have to tier blocks like the game does. Without this the
+			# LOD centre stays wherever it last was, which for a fixture run is
+			# the origin, so a site a thousand blocks out is drawn entirely as
+			# LOD and every measurement is of the wrong mesh. That silently
+			# invalidated a shadow measurement before it was noticed.
+			client.update_lod(cam.position, 64)
 			client.update_lights(cam.position, 0 if OS.get_environment("GOANNA_NO_LIGHTS") != "" else int(light_pool))
 			var st: Dictionary = client.render_stats()
 			churn += int(st.get("light_churn", 0))
 			in_range = maxi(in_range, int(st.get("lights_in_range", 0)))
 			await get_tree().process_frame
+		# Settle the tiers before capturing. update_lod returns how many blocks
+		# it still wants to re-mesh, so waiting for zero makes the tier state
+		# deterministic instead of whatever the warm budget happened to reach.
+		var guard := 0
+		while guard < 120 and client.update_lod(cam.position, 64) > 0:
+			client.poll_blocks(64)
+			await get_tree().process_frame
+			guard += 1
 		await RenderingServer.frame_post_draw
 		var image := get_viewport().get_texture().get_image()
 		var path := dir.path_join("%s_%02d.png" % [name, i])
 		image.save_png(path)
 		print("saved ", path, " at ", pos, " facing ", pitch, ",", yaw)
 	var fs: Dictionary = client.render_stats()
+	print("lod_distance=%d lod_cell=%d" % [client.lod_distance(), client.lod_cell() if client.has_method("lod_cell") else -1])
 	print("pool: lights_in_range<=%d churn=%d over %d steps, draws=%d blocks=%d" % [in_range,
 		churn, int(spec["steps"]), int(fs.get("draw_calls", -1)), int(fs.get("block_meshes", -1))])
 	var metadata := {
@@ -1066,6 +1125,8 @@ func _fixture_shots(dir: String, name: String) -> bool:
 		"ssao_intensity": light_ssao,
 		"sun_energy": light_sun,
 		"white_point": light_white,
+		"exposure": light_exposure,
+		"sky_fill": light_fill,
 	}
 	var metadata_file := FileAccess.open(dir.path_join(name + ".json"), FileAccess.WRITE)
 	if metadata_file:
@@ -1263,6 +1324,8 @@ func apply_lighting() -> void:
 	e.sdfgi_energy = light_sdfgi
 	e.sdfgi_min_cell_size = light_sdfgi_cell
 	e.ssao_intensity = light_ssao
+	# exposure and the sky fill follow on the next _apply_sky, which scales
+	# them by the server's correction and the time of day
 
 func _envf(name: String, dflt: float) -> float:
 	var v := OS.get_environment(name)
@@ -1321,6 +1384,17 @@ func _apply_sky() -> void:
 	sky_mat.set_shader_parameter("sky_top", zenith)
 	sky_mat.set_shader_parameter("sky_horizon", hor)
 	sky_mat.set_shader_parameter("ground_color", hor.darkened(0.6))
+	# What the sky feeds to lighting, as against what it shows: see the
+	# radiance_* uniforms in sky.gdshader and the environment comment in
+	# _ready. The night floor is the night horizon colour, scaled, by how
+	# much night it is; the sky fill the node shaders add is the horizon
+	# colour pulled half way to grey, by day only, times light_fill.
+	sky_mat.set_shader_parameter("radiance_ground_lift", 1.0)
+	sky_mat.set_shader_parameter("radiance_desaturate", 0.25)
+	var floor_col: Color = sky["night_horizon"] * (1.5 * night)
+	sky_mat.set_shader_parameter("radiance_floor", Vector3(floor_col.r, floor_col.g, floor_col.b))
+	var fill: Color = hor.lerp(Color(hor.v, hor.v, hor.v), 0.5) * (light_fill * day)
+	RenderingServer.global_shader_parameter_set("goanna_sky_fill", Vector3(fill.r, fill.g, fill.b))
 	sky_mat.set_shader_parameter("sun_dir", sun_dir.normalized() if sun_dir.length() > 0.001 else Vector3.UP)
 	sky_mat.set_shader_parameter("moon_dir", moon_dir.normalized() if moon_dir.length() > 0.001 else Vector3.DOWN)
 	sky_mat.set_shader_parameter("sun_visible", bool(st["sun"]["visible"]))
@@ -1385,7 +1459,7 @@ func _apply_sky() -> void:
 	var lighting: Dictionary = st["lighting"]
 	# Server saturation on top of our base grade, not instead of it.
 	e.adjustment_saturation = clamp(1.12 * float(lighting["saturation"]), 0.0, 2.0)
-	e.tonemap_exposure = clamp(1.0 + float(lighting["exposure_correction"]) * 0.25, 0.3, 3.0)
+	e.tonemap_exposure = clamp(light_exposure * (1.0 + float(lighting["exposure_correction"]) * 0.25), 0.1, 3.0)
 	e.glow_intensity = clamp(0.3 + float(lighting["bloom_intensity"]) * 2.0, 0.0, 2.0)
 	# Luanti's volumetric_light_strength is god-ray strength (0..1), not fog
 	# density: thin volume, scattering scaled by the strength.

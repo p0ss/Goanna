@@ -626,7 +626,9 @@ const SETTINGS := [
 	["Lighting", "light_pool", "slider", "Lamp count", "How many torches, lanterns and other node lights are lit at once. Where a scene has more than this, the ones whose lit area is furthest away are dropped, so a village can light up as you walk into it. Raise this if lighting changes as you approach buildings; lower it if the frame rate suffers.", 16.0, 256.0, 8.0],
 	["Lighting", "shadow_lamps", "slider", "Shadow casting lamps", "How many node lights cast a shadow at once, out of Lamp count. A lantern is a solid block that blocks its own light upward, so a lamp without a shadow lights the eave directly above it through itself, and gaining or losing one as you walk shows as surfaces brightening for no reason. Each costs six depth passes, so this is the expensive setting.", 0.0, 48.0, 1.0],
 	["Lighting", "light_ssao", "slider", "Corner shading", "Darkening where surfaces meet (ambient occlusion).", 0.0, 8.0, 0.25],
-	["Lighting", "light_white", "slider", "White point", "Where highlights clip to white. If bright surfaces look flat and detailless, lower Sunlight and Ambient light first: this alone will not recover them.", 0.5, 6.0, 0.1],
+	["Lighting", "light_white", "slider", "White point", "Where highlights clip to white. If bright surfaces look flat and detailless, lower Exposure first: this alone will not recover them.", 0.5, 6.0, 0.1],
+	["Lighting", "light_exposure", "slider", "Exposure", "Overall brightness before the tonemap. The default puts a sunlit surface at about 1.3 times its texture's brightness.", 0.1, 2.0, 0.02],
+	["Lighting", "light_fill", "slider", "Sky fill", "How much the sky lights walls and other shaded surfaces, following the light Luanti says reaches them. 0 leaves them to bounced light alone, which is dark.", 0.0, 1.5, 0.05],
 	["Audio", "volume", "slider", "Volume", "Overall sound level.", 0.0, 1.0, 0.05],
 	["Audio", "muted", "toggle", "Mute", "Silence all sound."],
 	["Display", "fov", "slider", "Field of view", "The camera's field of view, in degrees.", 60.0, 110.0, 1.0],
@@ -639,7 +641,7 @@ const SETTINGS := [
 const LOCAL_KEYS := ["mouse_sensitivity", "invert_mouse", "view_bobbing", "fov",
 	"gui_scale", "max_fps", "vsync", "fullscreen", "damage_flash", "volume", "muted",
 	"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao",
-	"light_white"]
+	"light_white", "light_exposure", "light_fill"]
 var settings_menu: Control
 
 func _main_node() -> Node:
@@ -672,7 +674,7 @@ func _apply_local(key: String, value: float, on: bool) -> void:
 			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN if on else DisplayServer.WINDOW_MODE_WINDOWED)
 		"damage_flash":
 			damage_flash = on
-		"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao", "light_white":
+		"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao", "light_white", "light_exposure", "light_fill":
 			var ml := _main_node()
 			if ml != null:
 				ml.set(key, value)
@@ -694,7 +696,7 @@ func _local_value(key: String) -> float:
 		"vsync": return 1.0 if DisplayServer.window_get_vsync_mode() != DisplayServer.VSYNC_DISABLED else 0.0
 		"fullscreen": return 1.0 if DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN else 0.0
 		"damage_flash": return 1.0 if damage_flash else 0.0
-		"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao", "light_white":
+		"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao", "light_white", "light_exposure", "light_fill":
 			return float(m.get(key)) if m != null else 1.0
 		"volume": return audio.volume if audio != null else 0.8
 		"muted": return 1.0 if (audio != null and audio.muted) else 0.0

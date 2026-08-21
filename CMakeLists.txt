@@ -41,6 +41,9 @@ add_library(goanna SHARED
     src/goanna_session.cpp
     src/goanna_mesher.cpp
     src/goanna_light.cpp
+    src/goanna_lod.cpp
+    src/goanna_materials.cpp
+    src/goanna_store.cpp
     src/goanna_occlusion.cpp
     src/goanna_models.cpp
     src/goanna_textures.cpp

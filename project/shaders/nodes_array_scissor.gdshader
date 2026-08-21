@@ -18,11 +18,14 @@ void vertex() {
 	// CUSTOM0 arrives as four bytes scaled to 0 to 1: block light, sky light,
 	// occlusion. See docs/mesh-attributes.md.
 	v_nodelight = CUSTOM0.rgb;
+	v_stale = 1.0 - CUSTOM0.a;
 }
 
 void fragment() {
 	vec4 tex = texture(albedo_array, vec3(UV, UV2.x)) * COLOR;
 	ALBEDO = tex.rgb;
+	if (v_stale > 0.001)
+		ALBEDO = mix(ALBEDO, vec3(dot(ALBEDO, vec3(0.2126, 0.7152, 0.0722))), v_stale * stale_strength);
 	ALPHA = tex.a;
 	ALPHA_SCISSOR_THRESHOLD = 0.5;
 	ROUGHNESS = 1.0;
@@ -66,6 +69,9 @@ void fragment() {
 	float occ = mix(1.0, v_nodelight.b, vertex_ao_strength);
 	AO = clamp(pack_ao * occ * sky_vis, 0.0, 1.0);
 	AO_LIGHT_AFFECT = vertex_ao_light_strength;
+	// The fill is emission so that it is neither shadowed nor occluded: it is
+	// the light the sky light channel says reaches here, see the include.
+	EMISSION += ALBEDO * goanna_sky_fill * v_nodelight.g * sky_fill_strength;
 	if (block_light_emission > 0.0)
 		EMISSION += ALBEDO * v_nodelight.r * block_light_emission;
 	if (debug_nodelight_strength > 0.0) {
