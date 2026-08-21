@@ -503,6 +503,11 @@ func _close_window() -> void:
 	if window == null or window == death_screen:
 		return  # only the respawn button closes the death screen
 	if window == form:
+		if not form.allow_close:
+			var fields: Dictionary = form.collect_fields()
+			fields["try_quit"] = "true"
+			_send_fields(fields)
+			return
 		# tell the server the form was closed (vanilla sends quit=true)
 		_send_fields({"quit": "true"})
 		selected = {}
@@ -599,7 +604,15 @@ const SETTINGS := [
 	["Controls", "mouse_sensitivity", "slider", "Mouse sensitivity", "How far the view turns per mouse movement.", 0.02, 0.5, 0.01],
 	["Controls", "invert_mouse", "toggle", "Invert mouse", "Push the mouse forward to look up instead of down."],
 	["Controls", "view_bobbing", "slider", "View bobbing", "How much the camera bobs as you walk.", 0.0, 1.5, 0.1],
+	["Video", "texture_pack", "path", "Texture pack", "A folder of image files used instead of the server's own art, LabPBR _n and _s companions included. Takes effect the next time you connect."],
+	["Video", "solid_ice", "toggle", "Solid ice", "Draw ice as opaque instead of slightly see-through. Ice is translucent, which makes it sort against waterfalls and other water badly and flicker. Opaque loses the see-through and fixes that."],
 	["Video", "auto_bump", "slider", "Auto bump", "Fake surface relief from texture brightness.", 0.0, 1.0, 0.05],
+	["Material", "mat_normal", "slider", "Normal strength", "How much of the pack's surface relief to apply. Packs are authored for other art at other resolutions, and a normal map meant for 64 pixel textures reads as smeared blotches on 16 pixel ones. Lower this first if a pack looks muddy.", 0.0, 2.0, 0.05],
+	["Material", "mat_ao", "slider", "Occlusion strength", "How much of the pack's baked in shading to apply. 0 leaves Godot's own corner shading to do it alone.", 0.0, 1.0, 0.05],
+	["Material", "mat_roughness", "slider", "Roughness strength", "How far to follow the pack's gloss. 0 makes every surface fully matte, as it is without a pack.", 0.0, 1.0, 0.05],
+	["Material", "mat_specular", "slider", "Specular strength", "Strength of reflections off non-metals. Above 1 exaggerates them.", 0.0, 2.0, 0.05],
+	["Material", "mat_emission", "slider", "Emission strength", "How brightly the pack's glowing surfaces glow.", 0.0, 8.0, 0.25],
+	["Material", "mat_sss", "slider", "Leaf translucency", "Light coming through leaves and ice from behind.", 0.0, 1.0, 0.05],
 	["Video", "bevel", "slider", "Edge bevel", "Chamfer the exposed edges of solid nodes.", 0.0, 0.15, 0.01],
 	["Video", "motes", "slider", "Ambient motes", "Drifting specks over leaves, flowers and sand.", 0.0, 4.0, 0.25],
 	["Video", "view_range", "slider", "View distance", "How much world to ask the server for, in blocks of 16 nodes. Most servers cap this near 12, so higher values may change nothing.", 4.0, 40.0, 1.0],
@@ -609,6 +622,9 @@ const SETTINGS := [
 	["Lighting", "light_sun", "slider", "Sunlight", "Strength of direct sun and moon light.", 0.0, 4.0, 0.1],
 	["Lighting", "light_ambient", "slider", "Ambient light", "Sky light filling shadowed surfaces.", 0.0, 3.0, 0.05],
 	["Lighting", "light_sdfgi", "slider", "Bounced light", "Strength of global illumination bouncing off surfaces.", 0.0, 4.0, 0.1],
+	["Lighting", "light_sdfgi_cell", "slider", "Bounced light grain", "How fine the bounced light grid is. Finer looks better standing still but the grid re-centres on you as you walk, which shows as shading popping in and out a few steps apart. Raise this if shadows change when you move.", 0.25, 8.0, 0.25],
+	["Lighting", "light_pool", "slider", "Lamp count", "How many torches, lanterns and other node lights are lit at once. Where a scene has more than this, the ones whose lit area is furthest away are dropped, so a village can light up as you walk into it. Raise this if lighting changes as you approach buildings; lower it if the frame rate suffers.", 16.0, 256.0, 8.0],
+	["Lighting", "shadow_lamps", "slider", "Shadow casting lamps", "How many node lights cast a shadow at once, out of Lamp count. A lantern is a solid block that blocks its own light upward, so a lamp without a shadow lights the eave directly above it through itself, and gaining or losing one as you walk shows as surfaces brightening for no reason. Each costs six depth passes, so this is the expensive setting.", 0.0, 48.0, 1.0],
 	["Lighting", "light_ssao", "slider", "Corner shading", "Darkening where surfaces meet (ambient occlusion).", 0.0, 8.0, 0.25],
 	["Lighting", "light_white", "slider", "White point", "Where highlights clip to white. If bright surfaces look flat and detailless, lower Sunlight and Ambient light first: this alone will not recover them.", 0.5, 6.0, 0.1],
 	["Audio", "volume", "slider", "Volume", "Overall sound level.", 0.0, 1.0, 0.05],
@@ -622,7 +638,8 @@ const SETTINGS := [
 # Settings handled here rather than through the client (window, camera, UI).
 const LOCAL_KEYS := ["mouse_sensitivity", "invert_mouse", "view_bobbing", "fov",
 	"gui_scale", "max_fps", "vsync", "fullscreen", "damage_flash", "volume", "muted",
-	"light_sun", "light_ambient", "light_sdfgi", "light_ssao", "light_white"]
+	"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao",
+	"light_white"]
 var settings_menu: Control
 
 func _main_node() -> Node:
@@ -655,7 +672,7 @@ func _apply_local(key: String, value: float, on: bool) -> void:
 			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN if on else DisplayServer.WINDOW_MODE_WINDOWED)
 		"damage_flash":
 			damage_flash = on
-		"light_sun", "light_ambient", "light_sdfgi", "light_ssao", "light_white":
+		"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao", "light_white":
 			var ml := _main_node()
 			if ml != null:
 				ml.set(key, value)
@@ -677,7 +694,7 @@ func _local_value(key: String) -> float:
 		"vsync": return 1.0 if DisplayServer.window_get_vsync_mode() != DisplayServer.VSYNC_DISABLED else 0.0
 		"fullscreen": return 1.0 if DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN else 0.0
 		"damage_flash": return 1.0 if damage_flash else 0.0
-		"light_sun", "light_ambient", "light_sdfgi", "light_ssao", "light_white":
+		"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao", "light_white":
 			return float(m.get(key)) if m != null else 1.0
 		"volume": return audio.volume if audio != null else 0.8
 		"muted": return 1.0 if (audio != null and audio.muted) else 0.0
@@ -700,8 +717,14 @@ func _apply_setting(key: String, value: float) -> void:
 		"repeat_dig": if client.has_method("set_repeat_dig_interval"): client.set_repeat_dig_interval(value)
 		"repeat_place": if client.has_method("set_repeat_place_interval"): client.set_repeat_place_interval(value)
 		"auto_bump": if client.has_method("set_auto_bump"): client.set_auto_bump(value)
+		"solid_ice": if client.has_method("set_solid_ice"): client.set_solid_ice(on)
+		"shadow_lamps": if client.has_method("set_shadow_lamps"): client.set_shadow_lamps(int(value))
 		"bevel": if client.has_method("set_bevel"): client.set_bevel(value)
 		"motes": if client.has_method("set_motes"): client.set_motes(value)
+		_:
+			# mat_<channel> maps straight onto the shader's <channel>_strength.
+			if key.begins_with("mat_") and client.has_method("set_material_strength"):
+				client.set_material_strength(key.substr(4), value)
 
 func _setting_value(key: String, fallback: float) -> float:
 	if key in LOCAL_KEYS:
@@ -718,8 +741,13 @@ func _setting_value(key: String, fallback: float) -> float:
 		"repeat_dig": if client.has_method("repeat_dig_interval"): return client.repeat_dig_interval()
 		"repeat_place": if client.has_method("repeat_place_interval"): return client.repeat_place_interval()
 		"auto_bump": if client.has_method("auto_bump"): return client.auto_bump()
+		"solid_ice": if client.has_method("solid_ice"): return 1.0 if client.solid_ice() else 0.0
+		"shadow_lamps": if client.has_method("shadow_lamps"): return float(client.shadow_lamps())
 		"bevel": if client.has_method("bevel"): return client.bevel()
 		"motes": if client.has_method("motes"): return client.motes()
+		_:
+			if key.begins_with("mat_") and client.has_method("material_strength"):
+				return client.material_strength(key.substr(4))
 	return fallback
 
 func _load_apply_settings() -> void:
@@ -801,6 +829,18 @@ func _build_settings() -> Control:
 	add_child(centre)
 	return centre
 
+func _setting_text(key: String) -> String:
+	var cfg := ConfigFile.new()
+	if cfg.load("user://goanna.cfg") == OK:
+		return str(cfg.get_value("settings", key, ""))
+	return ""
+
+func _save_setting_text(key: String, value: String) -> void:
+	var cfg := ConfigFile.new()
+	cfg.load("user://goanna.cfg")
+	cfg.set_value("settings", key, value)
+	cfg.save("user://goanna.cfg")
+
 func _build_setting_row(page: VBoxContainer, entry: Array) -> void:
 	var key: String = entry[1]
 	var kind: String = entry[2]
@@ -820,7 +860,19 @@ func _build_setting_row(page: VBoxContainer, entry: Array) -> void:
 	name_label.add_theme_font_size_override("font_size", 17)
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(name_label)
-	if kind == "toggle":
+	if kind == "path":
+		# A directory, typed rather than picked: it is set once and it has to
+		# be read before connect_to, so it takes effect on the next connection
+		# rather than now. Saved to goanna.cfg like the rest; main.gd reads it
+		# in _ready.
+		var edit := LineEdit.new()
+		edit.text = _setting_text(key)
+		edit.placeholder_text = "/path/to/pack"
+		edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		edit.text_submitted.connect(func(t: String) -> void: _save_setting_text(key, t.strip_edges()))
+		edit.focus_exited.connect(func() -> void: _save_setting_text(key, edit.text.strip_edges()))
+		row.add_child(edit)
+	elif kind == "toggle":
 		var check := CheckButton.new()
 		check.button_pressed = _setting_value(key, 0.0) > 0.5
 		check.toggled.connect(func(on: bool) -> void:
