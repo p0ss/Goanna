@@ -268,7 +268,17 @@ std::shared_ptr<GodotModel> buildGodotModel(scene::IAnimatedMesh *mesh) {
         if (ssb && model->animated) {
             const scene::WeightBuffer *w = ssb->getWeights();
             int aj = attached_joint[bi];
-            if (w || aj >= 0) {
+            // Every surface of an animated model gets bones, including a
+            // static buffer with no weights and no attached joint (the B3D
+            // loader never fills AttachedMeshes, so such buffers are common:
+            // Mineclonia's llama has one). Godot cannot mix skinned and
+            // unskinned surfaces in one skeleton bound mesh: mesh_storage
+            // allocates the skinning vertex buffer only for surfaces with
+            // bones and then binds a null one for the rest, which printed
+            // "vertex_array is null" on every draw. The unweighted branch
+            // below binds such a buffer to the identity bone, which is how
+            // upstream draws it too, at rest.
+            {
                 PackedInt32Array bones;
                 PackedFloat32Array weights;
                 bones.resize(vcount * 4);
