@@ -40,7 +40,7 @@ this one seen from that file's side.
    |
    v                         v
  true far rendering      Iris rungs 2 to 4, screen space chain
- (drawing from the store works; atmosphere and water at distance open)
+ (far rendering rungs 1 to 6 all done 2026-08-21)
                              |
                              v
                          Iris rungs 5 to 7, gbuffers translator
@@ -135,12 +135,12 @@ work, and whose answer changes how far `pbr-plan.md` step 3 should go.
    `capabilities.md`.
 4. **Far rendering rungs 2 to 4**: shading parity, multi tier LOD with the
    occupancy chain and the residency rule, the far field occlusion baked
-   into the tiers, atmosphere. Rungs 2 and 3 landed 2026-08-21
-   (`far-rendering.md`, "What landed"), so the LOD vertex layout item 7 has
-   to target is fixed; rung 4, atmosphere, is open. None of it needs a store
-   or authorisation, and it makes the range the server already sends look
-   like a landscape rather than a contour map, with the holes where the
-   server sent nothing now plainly visible as the thing item 5 fixes.
+   into the tiers, atmosphere. All landed 2026-08-21 (`far-rendering.md`,
+   "What landed"), along with rungs 5 (the store) and 6 (water at distance),
+   so every far rendering rung is done: the LOD vertex layout item 7 targets
+   is fixed, and the range the server sends reads as a landscape. What is
+   left of far rendering is quality (chain threshold calibration, a worker
+   thread for region meshing) and the reach beyond one's own path in item 5a.
 5. **The local store**, Voxy shaped: full blocks as received, the derived
    chain alongside, a reader for the `far_rendering` grant, the far field
    occlusion reaching beyond the live range. Landed 2026-08-21

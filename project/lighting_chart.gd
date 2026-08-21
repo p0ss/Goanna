@@ -130,7 +130,7 @@ var light_sun := 1.0
 var light_ambient := 0.42
 var rad_ground := 1.0
 var rad_desat := 0.25
-var rad_floor := 1.5
+var rad_floor := 3.5
 var sky_fill := 0.4
 var cubes := {} # row -> [MeshInstance3D]
 var open_mesh: ArrayMesh
@@ -424,7 +424,7 @@ func _apply_time(elev: float, moon_elev: float) -> void:
 	sun.light_energy = lerp(0.0, light_sun, day)
 	sun.visible = sun.light_energy > 0.01
 	var moon_up: float = smoothstep(-0.02, 0.15, moon_dir.y) * (1.0 - day)
-	moon.light_energy = 0.12 * moon_up
+	moon.light_energy = _envf("GOANNA_MOON", 0.25) * moon_up
 	moon.visible = moon.light_energy > 0.005
 	sun.shadow_opacity = 0.85 # Mineclonia sends 0.33, clamped to the floor
 	moon.shadow_opacity = sun.shadow_opacity
@@ -461,7 +461,12 @@ func _apply_time(elev: float, moon_elev: float) -> void:
 	env.background_energy_multiplier = lerp(0.25, 0.95, ratio)
 	# The sky fill the node shaders add: the horizon colour pulled toward
 	# grey, by day only. The global is colour times strength.
-	var fill: Color = hor.lerp(Color(hor.v, hor.v, hor.v), 0.5) * (sky_fill * day)
+	# By day the horizon colour pulled half way to grey; by night the night
+	# horizon at night_fill of the strength, which is what the vanilla
+	# client's dim blue night is. GOANNA_NIGHT_FILL sets the night share.
+	var night_fill := _envf("GOANNA_NIGHT_FILL", 1.6)
+	var fill: Color = hor.lerp(Color(hor.v, hor.v, hor.v), 0.5) * (sky_fill * day) \
+			+ SKY["night_horizon"] * (sky_fill * night_fill * night)
 	RenderingServer.global_shader_parameter_set("goanna_sky_fill", Vector3(fill.r, fill.g, fill.b))
 
 

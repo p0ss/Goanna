@@ -362,19 +362,31 @@ this avoids becoming a six month branch that never lands.
    into the region meshes from the same tracer as the near field, over a
    field at the tier's cell size. Proven against a local Mineclonia server
    on Godot 4.5.1 without touching persistence; details below.
-4. **Atmosphere at long range.** Re-derive fog and aerial perspective.
+4. **Atmosphere at long range.** Done, 2026-08-21. Fog density and aerial
+   perspective are tied to how far the tiers actually draw, not to the live
+   view range: when the server grants far rendering the draw distance is the
+   grant (up to `far_distance`), otherwise the view range, and the density
+   puts about a sixth extinction at that edge so the horizon fades to sky
+   and the mid distance stays clear. Aerial perspective and sky affect rise
+   with the distance, so a 512 node horizon reads as haze rather than a hard
+   edge. `_apply_sky` in `project/main.gd`.
 5. **The store**, gated on the server allowing it, on by default only for
    the local server Goanna launches itself. Full blocks as received, the
    derived chain alongside, a reader for the `far_rendering` grant, and the
    far field occlusion reaching beyond the live range. Only at this rung does
    the view exceed what the server sends, and only at this rung does
    staleness exist. Done, 2026-08-21; see "What landed at rung 5" below.
-6. **Water at distance, without a pack.** Specular and fresnel from `_s` on
-   the coarse tiers, so sea reads as sea at the horizon. Reflections proper
-   are a shader pack's job (`docs/iris-compat.md`, `gbuffers_water` and
-   the pack's own SSR) and are not duplicated here.
+6. **Water at distance, without a pack.** Done, 2026-08-21. A liquid cell
+   in the coarse chain records the height of its surface, and the region
+   mesher draws the liquid faces at that height (so a sea lies at sea level,
+   not at the top of its cell) on the same water shader as the near mesh,
+   keyed by the liquid's own tile. The sea reads as sea at the horizon with
+   its waves, specular and fresnel. Reflections proper are a shader pack's
+   job (`docs/iris-compat.md`, `gbuffers_water` and the pack's own SSR) and
+   are not duplicated here.
 
-Rungs 1 to 4 need no decision from anyone. Rung 5 does.
+Rungs 1 to 6 all landed by 2026-08-21. Rungs 1 to 4 and 6 need no decision
+from anyone; rung 5 does, and it is the local server that gives it here.
 
 ## What landed at rung 5, 2026-08-21
 
@@ -462,6 +474,13 @@ and the region work takes what is left of that budget.
 Regions were also halved for the near tiers: a region is now its cell size
 in blocks (4 blocks at cell 4, 16 at cell 16), so tier 1 arrives in 64 node
 pieces and a coarse tier still covers a lot of ground per draw call.
+
+And a mesh that has just appeared fades in rather than popping: the node
+shaders carry a per instance `fade` that a fresh MeshInstance opens from 0
+to 1 over a third of a second, through an interleaved gradient noise dither
+(opaque geometry cannot blend). `GoannaClient::startFade` and `advanceFades`.
+A rebuild of an existing mesh does not fade, or a dug node would flicker its
+whole block.
 
 Measured against the test server with the store holding the spawn area and
 the camera 400 nodes away: the worst poll per second is 7 to 10 ms while an

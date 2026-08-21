@@ -36,6 +36,12 @@ void vertex() {
 }
 
 void fragment() {
+	if (fade < 0.999) {
+		// interleaved gradient noise, stable per pixel
+		float dither = fract(52.9829189 * fract(dot(FRAGCOORD.xy, vec2(0.06711056, 0.00583715))));
+		if (dither > fade)
+			discard;
+	}
 	ALBEDO = (texture(albedo_array, vec3(UV, UV2.x)) * COLOR).rgb;
 	if (v_stale > 0.001)
 		ALBEDO = mix(ALBEDO, vec3(dot(ALBEDO, vec3(0.2126, 0.7152, 0.0722))), v_stale * stale_strength);

@@ -396,7 +396,19 @@ func _ready() -> void:
 	client.connect_to(host, port, pname, OS.get_environment("GOANNA_PASS"))
 	if OS.get_environment("GOANNA_TOD") != "":
 		client.set_time_of_day_override(float(OS.get_environment("GOANNA_TOD")))
-	if OS.get_environment("GOANNA_SHOT") == "":
+	# GOANNA_CONTROL=<port>: open the loopback command channel, so the client
+	# can be driven and questioned while it runs instead of being relaunched
+	# for each question. Development only; see docs/control-channel.md.
+	if OS.get_environment("GOANNA_CONTROL") != "":
+		if ResourceLoader.exists("res://control_channel.gd"):
+			var cc: Node = (load("res://control_channel.gd") as GDScript).new()
+			cc.main = self
+			add_child(cc)
+		else:
+			push_error("GOANNA_CONTROL is set but control_channel.gd is not in this build")
+	# A control session is usually unattended, and grabbing the pointer there
+	# takes the mouse away from whoever is watching. Escape still toggles it.
+	if OS.get_environment("GOANNA_SHOT") == "" and OS.get_environment("GOANNA_CONTROL") == "":
 		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 
 # Bob the camera along a walk cycle while moving on the ground: vertical at
@@ -604,8 +616,9 @@ func _process(delta: float) -> void:
 				st.get("draw_calls", 0), st.get("objects", 0), st.get("video_mem_mb", 0.0),
 				str(st.get("lod_tiers", {})), st.get("lod_regions", 0), st.get("lod_regions_dirty", 0),
 				st.get("lod_quads", 0), st.get("lod_faces", 0), st.get("lod_surfaces", 0), st.get("lod_ms", 0.0)]
-				+ " | far=%d grant=%d store=%d/%.0fMB" % [st.get("far_blocks", 0), st.get("far_grant", 0),
-				st.get("store_blocks", 0), st.get("store_mb", 0.0)])
+				+ " | far=%d grant=%d store=%d/%.0fMB | poll_max=%.1fms chains=%d queue=%d" % [st.get("far_blocks", 0), st.get("far_grant", 0),
+				st.get("store_blocks", 0), st.get("store_mb", 0.0), st.get("poll_max_ms", 0.0),
+				st.get("lod_chains", 0), st.get("lod_chain_queue", 0)])
 		if OS.get_environment("GOANNA_DUMPSKY") != "" and int(t) == 3:
 			print("SKY ", JSON.stringify(client.sky_state()))
 		if OS.get_environment("GOANNA_DUMPUI") != "" and int(t) == 5:
@@ -998,7 +1011,12 @@ func _teleport() -> bool:
 	if t.size() != 3:
 		push_error("GOANNA_TP wants x,y,z")
 		return false
-	var want := Vector3(float(t[0]), float(t[1]), float(t[2]))
+	return await teleport_to(Vector3(float(t[0]), float(t[1]), float(t[2])))
+
+
+# The teleport itself, also driven by the control channel. Coordinates are
+# Godot space; the server is told the same place with z negated.
+func teleport_to(want: Vector3) -> bool:
 	client.send_chat("/teleport %.1f,%.1f,%.1f" % [want.x, want.y, -want.z])
 	for i in 600:
 		client.poll_blocks(64)
@@ -1008,7 +1026,7 @@ func _teleport() -> bool:
 	if client.server_player_position().distance_to(want) >= 2.0:
 		push_error("teleport to %s never took, still at %s" % [want, client.server_player_position()])
 		return false
-	await _wait_for_streaming()
+	await wait_for_streaming()
 	cam.position = want
 	print("teleported to ", want)
 	return true
@@ -1019,7 +1037,7 @@ func _teleport() -> bool:
 # exactly like a render with the feature under test turned off. Wall-clock
 # quiet time matters here: at several hundred frames a second, a frame count
 # settles long before the server has sent anything.
-func _wait_for_streaming() -> void:
+func wait_for_streaming() -> void:
 	var t0 := Time.get_ticks_msec()
 	var last_change := t0
 	var last := -1
@@ -1063,7 +1081,7 @@ func _fixture_shots(dir: String, name: String) -> bool:
 		push_error(("fixture '%s' never became ready; install " +
 			"goanna_visual_test_mod in a dedicated singlenode world") % name)
 		return false
-	await _wait_for_streaming()
+	await wait_for_streaming()
 	if headlight:
 		headlight.light_energy = 0.0
 	var positions := []
@@ -1234,9 +1252,17 @@ func _shots(dir: String) -> void:
 			burst = [150 if OS.get_environment("GOANNA_MOTES") != "" else 40]
 		var frame := 0
 		for target in burst:
-			while frame < target:
+			# Settle: the frame count, and then until the mesh queue has been
+			# empty for a few frames, bounded. poll_blocks is budgeted per
+			# frame now, so a fixed count can capture sky where terrain has
+			# not been meshed yet, which is a photograph of the budget.
+			var settled := 0
+			while frame < target or (burst.size() == 1 and settled < 5 and frame < 600):
 				client.poll_blocks(64)
 				client.update_motes(cam.position, 32)
+				client.update_lod(cam.position, 64)
+				var st: Dictionary = client.render_stats()
+				settled = settled + 1 if int(st.get("blocks_queued", 0)) == 0 and int(st.get("lod_regions_dirty", 0)) == 0 else 0
 				await get_tree().process_frame
 				frame += 1
 			await RenderingServer.frame_post_draw
@@ -1355,7 +1381,7 @@ func _apply_sky() -> void:
 	sun.light_energy = lerp(0.0, light_sun, day)
 	sun.visible = sun.light_energy > 0.01
 	var moon_up: float = smoothstep(-0.02, 0.15, moon_dir.y) * (1.0 - day)
-	moon.light_energy = 0.12 * moon_up
+	moon.light_energy = 0.25 * moon_up
 	moon.visible = moon.light_energy > 0.005
 	var shadow_intensity: float = st["lighting"]["shadow_intensity"]
 	# Luanti servers set 0..1; 0 means "not requested" for old games -> keep shadows but soft.
@@ -1391,9 +1417,18 @@ func _apply_sky() -> void:
 	# colour pulled half way to grey, by day only, times light_fill.
 	sky_mat.set_shader_parameter("radiance_ground_lift", 1.0)
 	sky_mat.set_shader_parameter("radiance_desaturate", 0.25)
-	var floor_col: Color = sky["night_horizon"] * (1.5 * night)
+	# Night was measured near black on the chart and in play (stone 22 on top,
+	# 0 on a wall); the vanilla client's night is about 17.5 per cent of day.
+	# The floor at 3.5 and a night fill in the night horizon colour put stone
+	# near 70 on top and 20 on a wall, with noon unchanged.
+	var floor_col: Color = sky["night_horizon"] * (3.5 * night)
 	sky_mat.set_shader_parameter("radiance_floor", Vector3(floor_col.r, floor_col.g, floor_col.b))
-	var fill: Color = hor.lerp(Color(hor.v, hor.v, hor.v), 0.5) * (light_fill * day)
+	# The night share is 1.6 times the day strength: measured on the jungle at
+	# the spawn, a night fill equal to the day's left the canopy at a fifth of
+	# its day brightness, which is the vanilla client's night and reads as
+	# black next to it; 1.6 puts it near two fifths, dark but legible.
+	var fill: Color = hor.lerp(Color(hor.v, hor.v, hor.v), 0.5) * (light_fill * day) \
+			+ sky["night_horizon"] * (light_fill * 1.6 * night)
 	RenderingServer.global_shader_parameter_set("goanna_sky_fill", Vector3(fill.r, fill.g, fill.b))
 	sky_mat.set_shader_parameter("sun_dir", sun_dir.normalized() if sun_dir.length() > 0.001 else Vector3.UP)
 	sky_mat.set_shader_parameter("moon_dir", moon_dir.normalized() if moon_dir.length() > 0.001 else Vector3.DOWN)
@@ -1434,19 +1469,30 @@ func _apply_sky() -> void:
 		if fc.a > 0.0:
 			fog_col = fc
 		e.fog_light_color = fog_col
-		# Tie haze to the distance we actually stream: fog tuned independently
-		# hides geometry the server is sending at a high view range, and sits
-		# too clear at a low one. Keep it a light band at the far edge (about
-		# a sixth extinction there), enough to soften the draw boundary and
-		# give depth, not enough to grey out the mid distance.
-		var range_nodes: float = maxf(float(client.view_range()) * 16.0, 64.0)
-		var auto_density: float = 0.18 / range_nodes
+		# Tie haze to how far we actually draw: the far tiers reach the far
+		# grant when the server allows it (docs/far-rendering.md rung 5),
+		# otherwise the live view range. Fog tuned to the view range alone
+		# greyed out terrain the far tiers were still drawing past it. The
+		# density puts about a sixth extinction at that edge, so the horizon
+		# fades to sky and the mid distance stays clear: aerial perspective,
+		# not a wall. Re-derived on lighting_chart.tscn's distance case,
+		# docs/far-rendering.md rung 4.
+		var draw_nodes: float = maxf(float(client.view_range()) * 16.0, 64.0)
+		var stats: Dictionary = client.render_stats() if client.has_method("render_stats") else {}
+		if int(stats.get("far_grant", 0)) > 0 and client.has_method("far_distance"):
+			draw_nodes = maxf(draw_nodes, minf(float(client.far_distance()), float(stats.get("far_grant", 0))))
+		var auto_density: float = 0.9 / draw_nodes
 		var fog_distance: float = sky["fog_distance"]
 		if fog_distance > 0.0:
 			# a server asking for closer fog than our range still wins
 			e.fog_density = maxf(clamp(2.5 / fog_distance, 0.0004, 0.02), auto_density)
 		else:
 			e.fog_density = auto_density
+		# Aerial perspective blends distant geometry toward the sky, which is
+		# what actually sells a vista; it wants to be stronger the further we
+		# draw, so a 512 node horizon reads as haze rather than a hard edge.
+		e.fog_aerial_perspective = clamp(0.12 + 0.35 * clamp((draw_nodes - 192.0) / 512.0, 0.0, 1.0), 0.12, 0.5)
+		e.fog_sky_affect = 0.1 if draw_nodes < 260.0 else 0.5
 	# --- ambient / grade from day-night ratio and server lighting ---
 	var ratio: float = st["day_night_ratio"]
 	# Kept wired and kept honest: this line is inert while SDFGI is on, for

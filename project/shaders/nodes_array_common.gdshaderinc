@@ -75,5 +75,12 @@ uniform float debug_nodelight_strength : hint_range(0.0, 1.0) = 0.0;
 // that is remembered rather than seen says so without pretending.
 uniform float stale_strength : hint_range(0.0, 1.0) = 0.6;
 
+// Fade in, per instance: a region mesh or a block that has just appeared
+// is drawn through a screen space dither that opens over a fraction of a
+// second (GoannaClient advances it), so terrain arriving at the horizon no
+// longer pops in as a wall. Opaque geometry cannot blend, so it dithers;
+// at 1.0 the test compiles away to nothing visible.
+instance uniform float fade : hint_range(0.0, 1.0) = 1.0;
+
 varying vec3 v_nodelight;
 varying float v_stale;

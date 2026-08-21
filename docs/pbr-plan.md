@@ -250,6 +250,18 @@ by the sky light, a warm fill by the block light, and ambient scaled by the
 sky light, as the vanilla client lights its entities. A cow in deep shade
 reads as a cow.
 
+Night was the one part of the exposure the chart's daylight cases did not
+guard, and it came out near black in play: stone read 22 on a horizontal
+face and 0 on a wall, where the vanilla client's night is about 17.5 per
+cent of day. The night now has three sources, all measured on the chart's
+night case and on the jungle at the spawn: the moon at 0.25 (was 0.12), the
+sky radiance floor at 3.5 in the night horizon colour (`sky.gdshader`,
+`AT_CUBEMAP_PASS`), and the sky fill carrying a night share of 1.6 times its
+day strength in the night horizon colour. Stone reads about 70 on top and
+20 on a wall, the canopy near two fifths of its day brightness: a dim blue
+world, dark but legible, rather than black. `night visible, not day` on the
+chart is now 30 to 95 rather than 12 to 70.
+
 The headlight in `main.gd` is still there. The bay reads dark without it
 on the chart; taking it out of caves is a separate call.
 

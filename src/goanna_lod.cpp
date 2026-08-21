@@ -128,7 +128,7 @@ void buildLodChain(const NodeDefManager *ndef, MapBlock *block, BlockLodChain &o
             for (int cy = 0; cy < n; ++cy)
                 for (int cx = 0; cx < n; ++cx) {
                     LodLevel::Cell &out_cell = lv.cells[((size_t)cz * n + cy) * n + cx];
-                    int solid = 0, filled = 0, lit = 0, known = 0;
+                    int solid = 0, filled = 0, lit = 0, known = 0, top = 0;
                     long day = 0, night = 0;
                     const int x0 = cx * cell, y0 = cy * cell, z0 = cz * cell;
                     for (int z = z0; z < z0 + cell; ++z)
@@ -140,8 +140,10 @@ void buildLodChain(const NodeDefManager *ndef, MapBlock *block, BlockLodChain &o
                                 ++known;
                                 if (ni.flags & nSolid)
                                     ++solid;
-                                if (ni.flags & nFilled)
+                                if (ni.flags & nFilled) {
                                     ++filled;
+                                    top = std::max(top, y - y0 + 1);
+                                }
                                 if (ni.flags & nLit) {
                                     ++lit;
                                     day += ni.day;
@@ -151,6 +153,7 @@ void buildLodChain(const NodeDefManager *ndef, MapBlock *block, BlockLodChain &o
                     if (!known)
                         continue;
                     const bool is_filled = filled >= fill_at;
+                    out_cell.top = (uint8_t)top;
                     out_cell.flags = LodLevel::kKnown | (is_filled ? LodLevel::kFilled : 0) |
                             (solid >= occlude_at ? LodLevel::kOccludes : 0) | (lit ? LodLevel::kLit : 0);
                     if (lit) {
@@ -217,6 +220,25 @@ const LodTileCache::Entry &tileFor(LodTileCache &cache, const NodeDefManager *nd
     if (materials)
         e.block_id = materials->blockOf(c);
     const ContentFeatures &f = ndef->get(c);
+    if (f.visuals && tsrc && f.isLiquid()) {
+        // The water shader wants the tile's 2D image; an animated tile's
+        // first frame, or the tile itself. A flowing liquid draws from its
+        // special tiles (top, then side), its ordinary tiles being blank.
+        const TileLayer &l = f.drawtype == NDT_FLOWINGLIQUID
+                ? f.visuals->special_tiles[side == 0 ? 0 : 1].layers[0]
+                : f.visuals->tiles[side].layers[0];
+        u32 tid = l.texture_id;
+        if (l.frames && !l.frames->empty())
+            tid = (*l.frames)[0].texture_id;
+        GoannaTexture *gt = tsrc->goannaTexture(tid);
+        if (gt && !gt->isArray()) {
+            e.liquid = true;
+            e.texture_id = tid;
+            e.tile_has_color = l.has_color;
+            e.tint = l.has_color ? (l.color.color | 0xff000000) : 0xffffffff;
+            return cache.entries.emplace(key, e).first->second;
+        }
+    }
     if (f.visuals && tsrc) {
         const TileLayer &l = f.visuals->tiles[side].layers[0];
         e.tile_has_color = l.has_color;
@@ -261,10 +283,13 @@ struct FaceKey {
     // CUSTOM0.a: 255 for a live block, lower for one drawn from the store,
     // which the shader marks as stale.
     uint8_t fresh = 255;
+    bool liquid = false;
+    uint8_t top = 255; // a liquid's surface height within its cell, else 255
     bool valid = false;
     bool operator==(const FaceKey &o) const {
         return texture_id == o.texture_id && layer == o.layer && block_id == o.block_id && colour == o.colour &&
-                day == o.day && night == o.night && ao == o.ao && fresh == o.fresh;
+                day == o.day && night == o.night && ao == o.ao && fresh == o.fresh && liquid == o.liquid &&
+                top == o.top;
     }
 };
 
@@ -352,14 +377,16 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
     }
 
     const v3s16 origin_nodes = spec.origin * MAP_BLOCKSIZE;
-    std::map<u32, size_t> surface_of; // texture id -> index into out.surfaces
-    auto surfaceFor = [&](u32 texture_id) -> LodSurface & {
-        auto it = surface_of.find(texture_id);
+    std::map<uint64_t, size_t> surface_of; // texture id (and liquid bit) -> index into out.surfaces
+    auto surfaceFor = [&](u32 texture_id, bool liquid) -> LodSurface & {
+        const uint64_t k = (uint64_t)texture_id | (liquid ? (1ull << 40) : 0);
+        auto it = surface_of.find(k);
         if (it != surface_of.end())
             return out.surfaces[it->second];
         out.surfaces.emplace_back();
         out.surfaces.back().texture_id = texture_id;
-        surface_of[texture_id] = out.surfaces.size() - 1;
+        out.surfaces.back().liquid = liquid;
+        surface_of[k] = out.surfaces.size() - 1;
         return out.surfaces.back();
     };
 
@@ -397,6 +424,9 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                     fk.texture_id = te.texture_id;
                     fk.layer = te.layer;
                     fk.block_id = te.block_id;
+                    fk.liquid = te.liquid;
+                    if (te.liquid && c->top > 0 && c->top < cell)
+                        fk.top = c->top;
                     u32 tint = 0xffffffff;
                     if (te.tile_has_color) {
                         tint = te.tint;
@@ -477,6 +507,15 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                     hi[ua] = (u + w) * cell;
                     lo[va] = v * cell;
                     hi[va] = (v + h) * cell;
+                    // A liquid's surface sits at its own height within the
+                    // cell, and the sides stop there too. Such a quad is one
+                    // cell high, since the cells below it are full.
+                    if (key.liquid && key.top != 255) {
+                        if (axis == 1 && sign > 0)
+                            lo[1] = hi[1] = s * cell + key.top;
+                        else if (axis != 1)
+                            hi[1] = lo[1] + key.top;
+                    }
                     const float ox = (float)origin_nodes.X, oy = (float)origin_nodes.Y, oz = (float)origin_nodes.Z;
                     // Godot space: x0 < x1, y0 < y1, z1 <= z0 (z mirrored).
                     const float x0 = ox + lo[0], x1 = ox + hi[0];
@@ -492,7 +531,7 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                     default: a = {x1, y0, z0}; b = {x0, y0, z0}; c2 = {x0, y1, z0}; d2 = {x1, y1, z0}; break;
                     }
                     const v3f gn((float)DIRS[d][0], (float)DIRS[d][1], -(float)DIRS[d][2]);
-                    LodSurface &sf = surfaceFor(key.texture_id);
+                    LodSurface &sf = surfaceFor(key.texture_id, key.liquid);
                     const u32 base = (u32)sf.pos.size();
                     for (const v3f &p : {a, b, c2, d2}) {
                         // Back to Luanti coordinates relative to the region

@@ -304,6 +304,12 @@ private:
     std::map<v3s16, godot::MeshInstance3D *> m_block_nodes; // tier 0 only
     std::map<v3s16, int> m_block_tier; // 0 = full detail, 1 and up = LOD tiers
     godot::Ref<godot::StandardMaterial3D> m_lod_material; // flat colour fallback
+    std::map<u32, godot::Ref<godot::Material>> m_lod_water; // water shader per liquid tile
+    // Meshes fading in through the dither in the node shaders: the instance
+    // and when it appeared. Advanced every update_lod.
+    std::vector<std::pair<uint64_t, std::chrono::steady_clock::time_point>> m_fades;
+    void startFade(godot::MeshInstance3D *mi);
+    void advanceFades();
     godot::Vector3 m_lod_centre; // last camera position seen by update_lod
     int m_lod_distance = 0;
     int m_lod_cell = 4;

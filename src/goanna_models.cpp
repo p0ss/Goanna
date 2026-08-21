@@ -456,11 +456,22 @@ void ModelAnimator::step(float dt, std::map<std::string, BoneOverride> &override
     if (!skeleton)
         return;
     std::vector<core::matrix4> skin = mesh->calculateSkinMatrices(m_globals);
+    // A bone animated to zero scale (models hide parts that way) has a
+    // singular basis that Godot cannot split into a rotation, and it says
+    // so for every frame. Set such a pose by parts, rotation left alone.
+    auto set_pose = [&](int bone, const Transform3D &xf) {
+        if (std::fabs(xf.basis.determinant()) < 1e-9f) {
+            skeleton->set_bone_pose_position(bone, xf.origin);
+            skeleton->set_bone_pose_scale(bone, xf.basis.get_scale());
+            return;
+        }
+        skeleton->set_bone_pose(bone, xf);
+    };
     for (size_t i = 0; i < joints.size(); ++i) {
-        skeleton->set_bone_pose((int)i, toGodotTransform(skin[i]));
+        set_pose((int)i, toGodotTransform(skin[i]));
         int ab = m_model->attached_bone[i];
         if (ab >= 0)
-            skeleton->set_bone_pose(ab, toGodotTransform(m_globals[i]));
+            set_pose(ab, toGodotTransform(m_globals[i]));
     }
 }
 

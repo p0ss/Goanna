@@ -52,6 +52,10 @@ struct LodLevel {
         // Mean decoded light of the lit nodes in the cell. Valid when kLit.
         uint8_t day = 255, night = 0;
         uint8_t flags = 0;
+        // Height of the highest filled node, plus one, 0 to cell: where a
+        // liquid's surface is drawn, so a sea at a coarse tier lies at sea
+        // level and not at the top of its cell.
+        uint8_t top = 0;
     };
     int cell = 0; // nodes per cell
     int n = 0;    // cells per axis, MAP_BLOCKSIZE / cell
@@ -86,6 +90,9 @@ void buildLodChain(const NodeDefManager *ndef, MapBlock *block, BlockLodChain &o
 // tint. Everything else follows docs/mesh-attributes.md.
 struct LodSurface {
     u32 texture_id = 0;
+    // A liquid surface: texture_id is then the 2D image of the liquid's
+    // tile (its first animation frame), for the water shader, not an array.
+    bool liquid = false;
     std::vector<v3f> pos, nrm;
     std::vector<v2f> uv, uv2;
     std::vector<u32> col; // 0xAARRGGBB
@@ -110,6 +117,7 @@ struct LodTileCache {
         bool tile_has_color = false;
         u32 fallback = 0xff808080; // average colour when there is no array
         uint16_t block_id = 0;     // the semantic block ID, UV2.y
+        bool liquid = false;       // draw with the water shader, texture_id is 2D
     };
     std::map<u32, Entry> entries; // key content * 6 + side
 };

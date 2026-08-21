@@ -32,8 +32,9 @@ BAY_DARK_MAX = 0.35      # bay stone front over open stone top, noon
 BLUE_CAST_MAX = 12.0     # b minus r on the open stone front, neutral albedo
 BAY_CAST_MAX = 25.0      # b minus r on the bay stone top, lit by sky alone
 VERTICAL_MIN = 0.30      # open stone front over open stone top, noon
-NIGHT_MIN = 12.0         # open stone top luma at night: visible
-NIGHT_MAX = 70.0         # and not daylight
+NIGHT_MIN = 30.0         # open stone top luma at night: visible, near the
+                         # vanilla client's 17.5 per cent of day
+NIGHT_MAX = 95.0         # and not daylight
 SKY_CHANNEL_MAX = 0.80   # dark over lit stone front, noon: the channel bites
 
 

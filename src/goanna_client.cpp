@@ -6,6 +6,7 @@
 #include <godot_cpp/classes/array_mesh.hpp>
 #include <godot_cpp/classes/mesh.hpp>
 #include <godot_cpp/core/class_db.hpp>
+#include <godot_cpp/core/object.hpp>
 #include <godot_cpp/variant/packed_color_array.hpp>
 #include <godot_cpp/variant/packed_int32_array.hpp>
 #include <godot_cpp/variant/packed_vector2_array.hpp>
@@ -308,6 +309,8 @@ void GoannaClient::connect_to(const String &host, int port, const String &player
     m_lod_chain_waiters.clear();
     m_lod_chain_missing.clear();
     m_lod_tiles.entries.clear();
+    m_lod_water.clear();
+    m_fades.clear();
     if (!m_texture_map.is_empty())
         m_session->setTextureMap(std::string(m_texture_map.utf8().get_data()));
     // GoannaSession's constructor is what creates g_settings; set_texture_path
@@ -2371,7 +2374,26 @@ void GoannaClient::lodBuildRegion(const LodRegionKey &key, LodRegion &r) {
         mesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays, TypedArray<Array>(),
                 Dictionary(), kNodeSurfaceFlags);
         Ref<Material> mat;
-        if (sf.texture_id) {
+        if (sf.liquid) {
+            // Water at distance, docs/far-rendering.md rung 6: the same water
+            // shader as the near mesh, on the liquid's own tile, so the sea
+            // reads as sea at the horizon with its specular and fresnel.
+            auto wit = m_lod_water.find(sf.texture_id);
+            if (wit == m_lod_water.end()) {
+                Ref<ShaderMaterial> wm;
+                if (!m_shaders_loaded)
+                    materialFor(MaterialKey()); // loads the shaders
+                GoannaTexture *wgt = m_session->tsrc()->goannaTexture(sf.texture_id);
+                if (m_sh_water.is_valid() && wgt && wgt->godotTexture().is_valid()) {
+                    wm.instantiate();
+                    wm->set_shader(m_sh_water);
+                    wm->set_shader_parameter("albedo_tex", wgt->godotTexture());
+                    wm->set_shader_parameter("waving", true);
+                }
+                wit = m_lod_water.emplace(sf.texture_id, wm).first;
+            }
+            mat = wit->second;
+        } else if (sf.texture_id) {
             // The same array shader and arrays as the near mesh, so there is
             // no distance at which the world changes renderer; only the tier
             // copy adds block light as emission.
@@ -2391,14 +2413,48 @@ void GoannaClient::lodBuildRegion(const LodRegionKey &key, LodRegion &r) {
             }
             mat = m_lod_material;
         }
-        mesh->surface_set_material(si++, mat);
+        if (mat.is_valid())
+            mesh->surface_set_material(si, mat);
+        ++si;
     }
+    const bool fresh_node = !r.node;
     if (!r.node) {
         r.node = memnew(MeshInstance3D);
         add_child(r.node);
     }
     r.node->set_mesh(mesh);
+    if (fresh_node)
+        startFade(r.node);
     ema(m_ms_lod, ms_since(t0));
+}
+
+// A mesh that has just appeared opens through the dither in the node
+// shaders over a third of a second (the `fade` instance uniform), so far
+// terrain stops arriving as a wall. Rebuilds of an existing mesh do not
+// fade, or a dug node would flicker its whole block.
+void GoannaClient::startFade(MeshInstance3D *mi) {
+    if (!mi)
+        return;
+    mi->set_instance_shader_parameter("fade", 0.0f);
+    m_fades.emplace_back(mi->get_instance_id(), clock_t_::now());
+}
+
+void GoannaClient::advanceFades() {
+    const double kFadeMs = 350.0;
+    for (size_t i = 0; i < m_fades.size();) {
+        Object *o = ObjectDB::get_instance(m_fades[i].first);
+        MeshInstance3D *mi = Object::cast_to<MeshInstance3D>(o);
+        const double t = ms_since(m_fades[i].second) / kFadeMs;
+        if (!mi || t >= 1.0) {
+            if (mi)
+                mi->set_instance_shader_parameter("fade", 1.0f);
+            m_fades[i] = m_fades.back();
+            m_fades.pop_back();
+            continue;
+        }
+        mi->set_instance_shader_parameter("fade", (float)t);
+        ++i;
+    }
 }
 
 // Rebuild dirty regions, oldest first, inside a time budget. A region that
@@ -2480,6 +2536,7 @@ void GoannaClient::lodReset() {
 
 int GoannaClient::update_lod(const Vector3 &around, int max_rebuild) {
     m_lod_centre = around; // poll_blocks tiers new blocks against this too
+    advanceFades();
     if (!m_session || m_lod_distance <= 0)
         return 0;
     std::vector<v3s16> changed;
@@ -2824,12 +2881,15 @@ int GoannaClient::poll_blocks(int max_blocks) {
         }
         if (getenv("GOANNA_DEBUG_BLOCKS") && mi)
             UtilityFunctions::print("block re-meshed: ", bp.X, ",", bp.Y, ",", bp.Z, " surfaces ", si);
+        const bool fresh_block = !mi;
         if (!mi) {
             mi = memnew(MeshInstance3D);
             add_child(mi);
             m_block_nodes[bp] = mi;
         }
         mi->set_mesh(mesh);
+        if (fresh_block)
+            startFade(mi);
         // The glow mesh hangs off the block mesh rather than being tracked
         // beside it, so every place that frees a block frees this too and none
         // of them had to learn about it.
@@ -2865,6 +2925,7 @@ int GoannaClient::poll_blocks(int max_blocks) {
     }
     m_last_meshed = done;
     m_last_queue = (int)fresh.size() - done;
+    advanceFades(); // blocks start fading here, so advance here too
     // Regions dirtied above, and any still waiting from earlier polls, in
     // what is left of the budget plus a little, so a quiet frame still
     // advances the far tiers.
