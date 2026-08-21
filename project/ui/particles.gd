@@ -137,6 +137,25 @@ func _add_spawner(ev: Dictionary) -> void:
 	mat.gravity = (amin + amax) * 0.5
 	mat.scale_min = maxf(float(ev.get("size_min", 1.0)), 0.05)
 	mat.scale_max = maxf(float(ev.get("size_max", 1.0)), 0.05)
+	# Drag is a per axis vector; Godot damps along the velocity instead, so the
+	# magnitude is used and a drag that differs per axis loses its direction.
+	var drag: Vector3 = ev.get("drag", Vector3.ZERO)
+	if drag.length() > 0.001:
+		mat.damping_min = drag.length()
+		mat.damping_max = drag.length()
+	# Jitter is a random acceleration each step. Godot has no per step random
+	# force, so it becomes a spread on the initial velocity, which looks similar
+	# for short lived particles and diverges for long lived ones.
+	var jmin: Vector3 = ev.get("jitter_min", Vector3.ZERO)
+	var jmax: Vector3 = ev.get("jitter_max", Vector3.ZERO)
+	if jmax.length() > 0.001 or jmin.length() > 0.001:
+		mat.spread = maxf(mat.spread, 15.0)
+		mat.initial_velocity_max += maxf(jmin.length(), jmax.length())
+	if bool(ev.get("collision", false)):
+		mat.collision_mode = ParticleProcessMaterial.COLLISION_RIGID
+		mat.collision_bounce = clampf(float(ev.get("bounce_max", 0.0)), 0.0, 1.0)
+		if bool(ev.get("collision_removal", false)):
+			mat.collision_mode = ParticleProcessMaterial.COLLISION_HIDE_ON_CONTACT
 
 	var p := GPUParticles3D.new()
 	p.process_material = mat
@@ -155,9 +174,52 @@ func _add_spawner(ev: Dictionary) -> void:
 	smat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	smat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
 	smat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
-	smat.albedo_texture = _texture_for(str(ev.get("texture", "")))
+	# A spawner may carry a pool of textures and pick one per particle. Godot
+	# draws one pass with one material, so the first is used and the rest are
+	# not; a pool of one, which is the ordinary case, is exact.
+	var tex_path := str(ev.get("texture", ""))
+	var pool: Array = ev.get("texpool", [])
+	if tex_path == "" and pool.size() > 0:
+		tex_path = str(pool[0])
+	smat.albedo_texture = _texture_for(tex_path)
 	smat.albedo_color = Color(1, 1, 1, 1) if smat.albedo_texture != null else Color(0.75, 0.85, 1.0, 0.85)
 	smat.disable_receive_shadows = true
+	# Blend mode. Luanti has one Godot does not: screen has no equivalent, so
+	# it borrows add, which is the closest of the ones that exist. clip is
+	# alpha testing rather than a blend.
+	match int(ev.get("blend_mode", 0)):
+		1: smat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		2: smat.blend_mode = BaseMaterial3D.BLEND_MODE_SUB
+		3: smat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		4:
+			smat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+			smat.alpha_scissor_threshold = 0.5
+		_: smat.blend_mode = BaseMaterial3D.BLEND_MODE_MIX
+	# Texture animation. A vertical strip gives its frame aspect rather than a
+	# count, so the count only falls out once the texture's own size is known.
+	var anim_type := int(ev.get("anim_type", 0))
+	if anim_type != 0 and smat.albedo_texture != null:
+		var a := int(ev.get("anim_a", 1))
+		var b := int(ev.get("anim_b", 1))
+		var frames := 0
+		if anim_type == 1:
+			var tw := smat.albedo_texture.get_width()
+			var th := smat.albedo_texture.get_height()
+			if tw > 0 and b > 0:
+				frames = int(round(float(th) * float(a) / (float(tw) * float(b))))
+			smat.particles_anim_h_frames = 1
+			smat.particles_anim_v_frames = maxi(frames, 1)
+		else:
+			frames = maxi(a, 1) * maxi(b, 1)
+			smat.particles_anim_h_frames = maxi(a, 1)
+			smat.particles_anim_v_frames = maxi(b, 1)
+		smat.particles_anim_loop = true
+		var frame_len := float(ev.get("anim_frame_length", 0.0))
+		if frame_len > 0.0 and frames > 0:
+			# Godot counts animation in whole runs over a particle's life.
+			var runs := life / (frame_len * float(frames))
+			mat.anim_speed_min = runs
+			mat.anim_speed_max = runs
 	quad.material = smat
 	p.draw_pass_1 = quad
 	p.position = (pmin + pmax) * 0.5

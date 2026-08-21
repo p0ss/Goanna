@@ -213,7 +213,10 @@ public:
         // added after it.
         bool collision_removal = false, object_collision = false;
         u8 blend_mode = 0;              // alpha, add, sub, screen, clip
-        int anim_frames = 0;            // 0 when the texture is not animated
+        // 0 none, 1 vertical frames, 2 sheet. For vertical frames a and b are
+        // the frame's aspect ratio and the count needs the texture's pixel
+        // size to resolve; for a sheet they are the frame counts directly.
+        int anim_type = 0, anim_a = 0, anim_b = 0;
         float anim_frame_length = 0.0f;
         u16 node_param0 = 0;            // a particle may take a node's tile
         u8 node_param2 = 0, node_tile = 0;

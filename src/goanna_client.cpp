@@ -749,6 +749,32 @@ Array GoannaClient::take_particle_spawners() {
         d["vertical"] = e.vertical;
         d["collision"] = e.collision;
         d["attached_id"] = (int)e.attached_id;
+        d["glow"] = (int)e.glow;
+        d["collision_removal"] = e.collision_removal;
+        d["object_collision"] = e.object_collision;
+        d["blend_mode"] = (int)e.blend_mode;
+        d["anim_type"] = e.anim_type;
+        d["anim_a"] = e.anim_a;
+        d["anim_b"] = e.anim_b;
+        d["anim_frame_length"] = e.anim_frame_length;
+        d["node_param0"] = (int)e.node_param0;
+        d["node_param2"] = (int)e.node_param2;
+        d["node_tile"] = (int)e.node_tile;
+        d["drag"] = gv(e.drag);
+        d["jitter_min"] = gv(e.jitter_min); d["jitter_max"] = gv(e.jitter_max);
+        d["bounce_min"] = e.bounce_min; d["bounce_max"] = e.bounce_max;
+        d["radius_min"] = gv(e.radius_min); d["radius_max"] = gv(e.radius_max);
+        d["attractor_kind"] = (int)e.attractor_kind;
+        d["attract_min"] = e.attract_min; d["attract_max"] = e.attract_max;
+        d["attractor_origin"] = gv(e.attractor_origin);
+        d["attractor_direction"] = gv(e.attractor_direction);
+        d["attractor_kill"] = e.attractor_kill;
+        // The pool a spawner picks each particle's texture from. One entry is
+        // the ordinary case and means the same thing as "texture".
+        Array pool;
+        for (const auto &t : e.texpool)
+            pool.push_back(String::utf8(t.c_str()));
+        d["texpool"] = pool;
         out.push_back(d);
     }
     return out;

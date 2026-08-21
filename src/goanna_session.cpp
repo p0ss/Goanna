@@ -2011,13 +2011,17 @@ void GoannaSession::onAddParticleSpawner(NetworkPacket &pkt) {
     ev.object_collision = p.object_collision;
     ev.blend_mode = (u8)p.texture.blendmode;
     if (p.animation.type == TAT_VERTICAL_FRAMES) {
-        // Frame count needs the texture's pixel size, which the session does
-        // not have, so carry the ratio and let the renderer finish it.
-        ev.anim_frames = p.animation.vertical_frames.aspect_h > 0
-                ? p.animation.vertical_frames.aspect_w / p.animation.vertical_frames.aspect_h : 0;
+        // The frame count needs the texture's pixel size, which the session
+        // does not have, so carry the aspect ratio whole and let the renderer
+        // finish it. Dividing here would round it away.
+        ev.anim_type = 1;
+        ev.anim_a = p.animation.vertical_frames.aspect_w;
+        ev.anim_b = p.animation.vertical_frames.aspect_h;
         ev.anim_frame_length = p.animation.vertical_frames.length;
     } else if (p.animation.type == TAT_SHEET_2D) {
-        ev.anim_frames = p.animation.sheet_2d.frames_w * p.animation.sheet_2d.frames_h;
+        ev.anim_type = 2;
+        ev.anim_a = p.animation.sheet_2d.frames_w;
+        ev.anim_b = p.animation.sheet_2d.frames_h;
         ev.anim_frame_length = p.animation.sheet_2d.frame_length;
     }
     ev.node_param0 = p.node.param0;
