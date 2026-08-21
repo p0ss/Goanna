@@ -16,6 +16,7 @@ Usage:
     tools/shotcheck.py shot.png [shot2.png ...]
     tools/shotcheck.py --expect terrain shot.png     # non-zero exit if not
     tools/shotcheck.py --compare a.png b.png         # same framing?
+    tools/shotcheck.py --walk-series lighting_walk_*.png
 
 Checks are deliberately crude. They answer "is this the scene I think it is",
 not "is it correct".
@@ -65,6 +66,15 @@ def classify(d):
     return "terrain or built scene"
 
 
+def centre_luminance(path):
+    """Mean luminance of the stable centre region used by walking fixtures."""
+    a = np.asarray(Image.open(path).convert("RGB"), dtype=float)
+    h, w, _ = a.shape
+    centre = a[h // 5: h * 4 // 5, w // 5: w * 4 // 5]
+    return float((centre[:, :, 0] * 0.2126 + centre[:, :, 1] * 0.7152
+            + centre[:, :, 2] * 0.0722).mean())
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("images", nargs="+")
@@ -72,6 +82,10 @@ def main():
             help="exit non-zero if the frame does not look like this")
     ap.add_argument("--compare", action="store_true",
             help="report whether two shots share a framing, so a diff means something")
+    ap.add_argument("--walk-series", action="store_true",
+            help="report adjacent centre-luminance changes along a fixed-facing path")
+    ap.add_argument("--max-step", type=float,
+            help="with --walk-series, fail if an adjacent luminance step exceeds this")
     args = ap.parse_args()
 
     rows = [(p, describe(p)) for p in args.images]
@@ -111,6 +125,27 @@ def main():
             if agree < 85.0:
                 print("FAIL the camera moved between these, a pixel diff means nothing",
                         file=sys.stderr)
+                bad += 1
+
+    if args.walk_series:
+        if len(rows) < 3:
+            print("FAIL a walking series needs at least three frames", file=sys.stderr)
+            bad += 1
+        else:
+            values = [centre_luminance(p) for p, _ in rows]
+            steps = [abs(values[i] - values[i - 1]) for i in range(1, len(values))]
+            print("walking centre luminance:")
+            for i, ((path, _), value) in enumerate(zip(rows, values)):
+                change = "" if i == 0 else "  step %+.2f" % (value - values[i - 1])
+                print("  %s  %.2f%s" % (path, value, change))
+            worst = max(steps)
+            typical = float(np.median(steps))
+            ratio = worst / max(typical, 0.01)
+            print("walking steps: typical %.2f, worst %.2f, worst/typical %.2f"
+                    % (typical, worst, ratio))
+            if args.max_step is not None and worst > args.max_step:
+                print("FAIL worst luminance step %.2f exceeds %.2f"
+                        % (worst, args.max_step), file=sys.stderr)
                 bad += 1
 
     return 1 if bad else 0

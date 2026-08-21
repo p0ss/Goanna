@@ -1,6 +1,12 @@
 extends Node3D
 
-# Differential probe for the LabPBR decode in shaders/nodes_array.gdshader.
+# Differential probe for the LabPBR decode in shaders/nodes_array.gdshader,
+# and (for the non-emissive cases) shaders/entity.gdshader, the single
+# sampler2D version used for mob materials. Both share the same decode maths
+# by construction (entity.gdshader is a duplicate, not a shared function:
+# Godot does not allow a called function to write fragment built-ins), so
+# this is really one probe with an extra row confirming the duplication
+# stayed faithful.
 #
 # Screenshots of the game can show that something changed, and they catch
 # gross breakage, but they cannot show that a material is correct: the world
@@ -8,11 +14,12 @@ extends Node3D
 # hide or manufacture an effect. So compare against something whose answer is
 # already known instead.
 #
-# Each case draws two quads under one directional light with everything else
-# switched off. The left quad runs our shader, fed LabPBR bytes. The right
-# runs Godot's own StandardMaterial3D, set to the values our shader is
-# supposed to decode those bytes into. If the decode is right the two are the
-# same pixel. Any difference is ours.
+# Each case draws quads under one directional light with everything else
+# switched off: the top-most runs shaders/entity.gdshader, the middle runs
+# shaders/nodes_array.gdshader, both fed the same LabPBR bytes, and the
+# bottom runs Godot's own StandardMaterial3D, set to the values our shaders
+# are supposed to decode those bytes into. If the decode is right all three
+# are the same pixel. Any difference is ours.
 #
 # Run: godot --path project material_probe.tscn
 
@@ -120,6 +127,23 @@ func _ready() -> void:
 		ours.position = Vector3(x, 1.1, 0)
 		add_child(ours)
 
+		# entity.gdshader only ever runs for the opaque case (see
+		# EntityRenderer::materialForMeshTexture), so it is only worth
+		# checking against the non-emissive cases here.
+		if not (c.size() > 6 and c[6]):
+			var esm := ShaderMaterial.new()
+			esm.shader = load("res://shaders/entity.gdshader")
+			esm.set_shader_parameter("albedo", _tex(albedo))
+			esm.set_shader_parameter("normal_tex", _tex(flat_n))
+			esm.set_shader_parameter("spec_tex", _tex(c[1]))
+			esm.set_shader_parameter("has_normal", true)
+			esm.set_shader_parameter("has_spec", true)
+			var entity_mi := MeshInstance3D.new()
+			entity_mi.mesh = _quad()
+			entity_mi.material_override = esm
+			entity_mi.position = Vector3(x, 3.3, 0)
+			add_child(entity_mi)
+
 		if c.size() > 6 and c[6]:
 			var off := ShaderMaterial.new()
 			off.shader = load("res://shaders/nodes_array.gdshader")
@@ -175,7 +199,7 @@ func _ready() -> void:
 	if path != "":
 		img.save_png(path)
 
-	print("case               ours            standard        max delta")
+	print("case               entity          ours            standard        max delta")
 	var worst := 0.0
 	for i in cases.size():
 		var c: Array = cases[i]
@@ -185,7 +209,8 @@ func _ready() -> void:
 		var d: float = maxf(maxf(absf(a.x - b.x), absf(a.y - b.y)), absf(a.z - b.z))
 		worst = maxf(worst, d)
 		if c.size() > 6 and c[6]:
-			# EMISSION = ALBEDO * a * 4, all in linear
+			# EMISSION = ALBEDO * a * 4, all in linear. entity.gdshader is not
+			# checked here; see the comment where it is built.
 			var lit_a := pow((a.x / 255.0 + 0.055) / 1.055, 2.4)
 			var lit_b := pow((b.x / 255.0 + 0.055) / 1.055, 2.4)
 			var alb := pow((128.0 / 255.0 + 0.055) / 1.055, 2.4)
@@ -194,8 +219,11 @@ func _ready() -> void:
 			print("%-18s emission linear got %.4f want %.4f%s"
 				% [c[0], got, want, "   MISMATCH" if absf(got - want) > 0.01 else ""])
 			continue
-		print("%-18s %-15s %-15s %.1f%s" % [c[0], _fmt(a), _fmt(b), d,
-			"   MISMATCH" if d > 3.0 else ""])
+		var ent := _sample(img, cam, Vector3(x, 3.3, 0))
+		var ed: float = maxf(maxf(absf(ent.x - b.x), absf(ent.y - b.y)), absf(ent.z - b.z))
+		worst = maxf(worst, ed)
+		print("%-18s %-15s %-15s %-15s %.1f%s" % [c[0], _fmt(ent), _fmt(a), _fmt(b), maxf(d, ed),
+			"   MISMATCH" if maxf(d, ed) > 3.0 else ""])
 	print("worst channel delta: %.1f (8 bit)" % worst)
 	get_tree().quit()
 

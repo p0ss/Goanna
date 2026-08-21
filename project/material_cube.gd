@@ -180,6 +180,87 @@ void fragment() { ALBEDO = vec3(COLOR.a, COLOR.a, COLOR.a); }
 	rawmi.rotation_degrees = Vector3(0, -25, 0)
 	add_child(rawmi)
 	print("  %d: raw array sample, unshaded" % CASES.size())
+	# lit, but sampling nothing but the albedo: no ALPHA, no NORMAL_MAP, no
+	# AO. If this is clean and ours is not, the fault is one of those three.
+	var lit := Shader.new()
+	lit.code = """shader_type spatial;
+uniform sampler2DArray albedo_array : source_color, filter_nearest_mipmap, repeat_enable;
+void fragment() { ALBEDO = texture(albedo_array, vec3(UV, 0.0)).rgb; ROUGHNESS = 1.0; }
+"""
+	var lmat := ShaderMaterial.new()
+	lmat.shader = lit
+	lmat.set_shader_parameter("albedo_array", albedo_arr)
+	var lmi := MeshInstance3D.new()
+	lmi.mesh = _cube()
+	lmi.material_override = lmat
+	lmi.position = Vector3((CASES.size() + 2 - (CASES.size() - 1) / 2.0) * 1.45, 0, 0)
+	lmi.rotation_degrees = Vector3(0, -25, 0)
+	add_child(lmi)
+	print("  %d: lit, albedo only, no ALPHA/NORMAL_MAP/AO" % (CASES.size() + 2))
+
+	# lit, albedo, and ALPHA written from the texture. Our shader writes ALPHA
+	# unconditionally; the clean control above does not. If this one speckles,
+	# that single line is the difference, and Godot has put the material on a
+	# transparency path that dithers.
+	var alpha_sh := Shader.new()
+	alpha_sh.code = """shader_type spatial;
+uniform sampler2DArray albedo_array : source_color, filter_nearest_mipmap, repeat_enable;
+void fragment() {
+	vec4 t = texture(albedo_array, vec3(UV, 0.0));
+	ALBEDO = t.rgb;
+	ALPHA = t.a;
+	ROUGHNESS = 1.0;
+}
+"""
+	var amat := ShaderMaterial.new()
+	amat.shader = alpha_sh
+	amat.set_shader_parameter("albedo_array", albedo_arr)
+	var ami := MeshInstance3D.new()
+	ami.mesh = _cube()
+	ami.material_override = amat
+	ami.position = Vector3((CASES.size() + 3 - (CASES.size() - 1) / 2.0) * 1.45, 0, 0)
+	ami.rotation_degrees = Vector3(0, -25, 0)
+	add_child(ami)
+	print("  %d: lit, albedo + ALPHA" % (CASES.size() + 3))
+
+	# the last two things our shader does that the clean controls do not
+	for probe_i in 2:
+		var sh2 := Shader.new()
+		if probe_i == 0:
+			sh2.code = """shader_type spatial;
+uniform sampler2DArray albedo_array : source_color, filter_nearest_mipmap, repeat_enable;
+uniform sampler2DArray normal_array : hint_default_black, filter_linear_mipmap, repeat_enable;
+void fragment() {
+	ALBEDO = texture(albedo_array, vec3(UV, 0.0)).rgb;
+	ROUGHNESS = 1.0;
+	NORMAL_MAP = vec3(0.5, 0.5, 1.0);
+	NORMAL_MAP_DEPTH = 1.0;
+}
+"""
+		else:
+			sh2.code = """shader_type spatial;
+uniform sampler2DArray albedo_array : source_color, filter_nearest_mipmap, repeat_enable;
+uniform sampler2DArray normal_array : hint_default_black, filter_linear_mipmap, repeat_enable;
+void fragment() {
+	ALBEDO = texture(albedo_array, vec3(UV, 0.0)).rgb;
+	ROUGHNESS = 1.0;
+	AO = texture(normal_array, vec3(UV, 0.0)).b;
+	AO_LIGHT_AFFECT = 0.4;
+}
+"""
+		var m2 := ShaderMaterial.new()
+		m2.shader = sh2
+		m2.set_shader_parameter("albedo_array", albedo_arr)
+		m2.set_shader_parameter("normal_array", normal_arr)
+		var mi2 := MeshInstance3D.new()
+		mi2.mesh = _cube()
+		mi2.material_override = m2
+		mi2.position = Vector3((CASES.size() + 4 + probe_i - (CASES.size() - 1) / 2.0) * 1.45, 0, 0)
+		mi2.rotation_degrees = Vector3(0, -25, 0)
+		add_child(mi2)
+		print("  %d: lit + %s" % [CASES.size() + 4 + probe_i,
+			"flat NORMAL_MAP" if probe_i == 0 else "AO from normal blue"])
+
 	var pmat := ShaderMaterial.new()
 	pmat.shader = probe
 	var pmi := MeshInstance3D.new()
@@ -191,7 +272,7 @@ void fragment() { ALBEDO = vec3(COLOR.a, COLOR.a, COLOR.a); }
 	print("  %d: vertex colour alpha (white means 1.0)" % (CASES.size() + 1))
 
 	var cam := Camera3D.new()
-	cam.position = Vector3(1.5, 1.6, 9.0)
+	cam.position = Vector3(4.3, 1.6, 12.4)
 	cam.rotation_degrees = Vector3(-11, 0, 0)
 	cam.fov = 55
 	cam.current = true
