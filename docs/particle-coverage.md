@@ -14,7 +14,7 @@ order exactly so the two can be diffed when the format next changes.
 
 | Field | Read | Drawn | Note |
 |---|---|---|---|
-| `amount`, `time` | yes | yes | |
+| `amount`, `time` | yes | yes | `amount` is a rate, not a population, and converting it is not optional; see below |
 | `pos` | yes | yes | box emission shape |
 | `vel` | yes | approximated | Godot takes a direction and a spread, not a velocity box, so the mid velocity becomes the direction and its span becomes the spread. A box wider in one axis than another loses that difference. |
 | `acc` | yes | approximated | mid acceleration becomes gravity |
@@ -23,7 +23,7 @@ order exactly so the two can be diffed when the format next changes.
 | `collisiondetection` | yes | yes | rigid collision |
 | `collision_removal` | yes | yes | hide on contact |
 | `object_collision` | yes | no | Godot particles collide with the world, not with entities |
-| `vertical` | yes | no | billboards always face the camera |
+| `vertical` | yes | yes | upright billboard turning about its own axis, which is what makes rain and snow read as falling |
 | `texture` | yes | yes | |
 | `texpool` | yes | partly | Godot draws one pass with one material, so the first entry is used. A pool of one, the ordinary case, is exact. |
 | `animation` | yes | yes | vertical strips and 2D sheets both, see below |
@@ -37,6 +37,26 @@ order exactly so the two can be diffed when the format next changes.
 | `blendmode` | yes | mostly | alpha, add and sub map directly. clip becomes alpha scissor. **screen has no Godot equivalent and borrows add**, which is brighter than it should be where the two differ. |
 | per texture `alpha` and `scale` tweens | yes | no | |
 | tweened start and end values generally | yes | no | only the start range is used, so a spawner that tweens renders as its opening state |
+
+## Amount is a rate
+
+`ParticleSpawner` sizes its pool as `amount * longest_life` when `time` is
+zero, and `amount / (time / shortest_life)` when it is not. Godot's `amount`
+is the number alive at once, so passing the server's figure through means
+drawing a fraction of the weather: Mineclonia's snow asks for 100 with a five
+second life, which is five hundred flakes in the air and was being drawn as
+one hundred.
+
+## The culling box
+
+Godot culls a particle system by `visibility_aabb`, whose default is eight
+units around the emitter. A weather spawner emits across fifty units and its
+flakes fall for another fifty, so nearly every particle lives outside the
+default box and the whole snowfall blinks out as soon as that small box
+leaves the screen. The engine's own documentation says to grow it when
+particles suddenly appear or disappear, which is precisely the symptom. It is
+now derived from the emission box plus how far a particle can travel in its
+lifetime.
 
 ## Two that are deliberate
 

@@ -159,7 +159,18 @@ func _add_spawner(ev: Dictionary) -> void:
 
 	var p := GPUParticles3D.new()
 	p.process_material = mat
-	p.amount = clampi(amount, 1, 2000)
+	# Luanti's amount is a rate, not a population, and it means different
+	# things either side of time == 0. ParticleSpawner sizes its pool as
+	# amount * longest_life for an endless spawner, and amount / (time /
+	# shortest_life) for a timed one; Godot's amount is the number alive at
+	# once, so the conversion is not optional. Mineclonia's snow asks for 100
+	# with a five second life, which is five hundred flakes in the air at once
+	# and was being drawn as one hundred.
+	var spawner_time := float(ev.get("time", 0.0))
+	var alive := float(amount) * life
+	if spawner_time > 0.0:
+		alive = float(amount) * life / spawner_time
+	p.amount = clampi(int(ceil(alive)), 1, 8000)
 	p.lifetime = life
 	p.one_shot = false
 	# a spawner with time 0 runs until the server cancels it
@@ -172,7 +183,11 @@ func _add_spawner(ev: Dictionary) -> void:
 	var smat := StandardMaterial3D.new()
 	smat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	smat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	smat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	# A vertical particle stays upright and only turns about its own axis,
+	# which is what makes rain and snow read as falling rather than as discs
+	# facing you. Luanti's rain and snow both ask for it.
+	smat.billboard_mode = BaseMaterial3D.BILLBOARD_FIXED_Y if bool(ev.get("vertical", false)) \
+			else BaseMaterial3D.BILLBOARD_PARTICLES
 	smat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
 	# A spawner may carry a pool of textures and pick one per particle. Godot
 	# draws one pass with one material, so the first is used and the rest are
@@ -223,6 +238,21 @@ func _add_spawner(ev: Dictionary) -> void:
 	quad.material = smat
 	p.draw_pass_1 = quad
 	p.position = (pmin + pmax) * 0.5
+	# Godot culls the whole system by this box, and its default is eight units
+	# around the emitter. A weather spawner emits across fifty and its flakes
+	# fall for another fifty, so nearly all of them live outside the default
+	# and the entire snowfall blinks out as soon as that small box leaves the
+	# screen. The engine's own note on the property is that you grow it when
+	# particles suddenly appear or disappear, which is exactly the symptom.
+	var reach := mat.initial_velocity_max * life + 0.5 * mat.gravity.length() * life * life
+	reach = clampf(reach, 1.0, 256.0)
+	var ext := mat.emission_box_extents
+	var corner := Vector3(ext.x + reach, ext.y + reach, ext.z + reach)
+	p.visibility_aabb = AABB(-corner, corner * 2.0)
+	if OS.get_environment("GOANNA_DEBUG_PARTICLES") != "":
+		print("   pool=%d (server asked %d over %s) reach=%.1f aabb=%s billboard=%s" % [p.amount,
+			amount, "forever" if spawner_time <= 0.0 else str(spawner_time) + "s", reach,
+			str(p.visibility_aabb.size.round()), str(smat.billboard_mode)])
 	add_child(p)
 	_spawners[id] = p
 	if int(ev.get("attached_id", 0)) != 0 or pmin.length() + pmax.length() < 200.0:
@@ -232,7 +262,7 @@ func _add_spawner(ev: Dictionary) -> void:
 		if tex_name.contains("rain") or tex_name.contains("snow"):
 			_weather[id] = true
 	# a finite spawner cleans itself up
-	var life_time := float(ev.get("time", 0.0))
+	var life_time := spawner_time
 	if life_time > 0.0:
 		get_tree().create_timer(life_time + life).timeout.connect(func() -> void: _remove_spawner(id))
 
