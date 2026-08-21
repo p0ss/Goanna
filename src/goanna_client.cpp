@@ -27,6 +27,8 @@
 #include "client/node_visuals.h"
 #include "goanna_light.h"
 #include "goanna_store.h"
+#include "util/base64.h"
+#include "light.h"
 #include "client/texturepaths.h"
 #include "nodedef.h"
 #include "settings.h"
@@ -1505,6 +1507,7 @@ Dictionary GoannaClient::render_stats() {
     d["lod_chains"] = (int)m_lod_chains.size();
     d["lod_chain_queue"] = (int)m_lod_chain_queue.size();
     d["far_blocks"] = (int)m_far_blocks.size();
+    d["far_remote"] = (int)m_far_remote.size();
     d["far_grant"] = m_session ? m_session->farRenderingGrant() : 0;
     if (m_session && m_session->store()) {
         d["store_blocks"] = (int64_t)m_session->store()->blocksKnown();
@@ -2163,10 +2166,20 @@ void GoannaClient::lodUpdateFar(const Vector3 &around) {
                 lodForget(*it);
                 m_block_tier.erase(*it);
             }
+            m_far_remote.erase(*it);
             it = m_far_blocks.erase(it);
         } else {
             ++it;
         }
+    }
+    // Requested areas that have drifted out of range may be asked again if
+    // we come back.
+    for (auto it = m_far_requested.begin(); it != m_far_requested.end();) {
+        const v3s16 d = *it - centre;
+        if (std::abs(d.X) > radius + 16 || std::abs(d.Z) > radius + 16)
+            it = m_far_requested.erase(it);
+        else
+            ++it;
     }
     // in range, in the store, not live, not yet drawn: assign
     std::vector<uint8_t> bits;
@@ -2202,6 +2215,148 @@ void GoannaClient::lodUpdateFar(const Vector3 &around) {
     if (added && getenv("GOANNA_DEBUG_LOD"))
         UtilityFunctions::print("LOD far: ", added, " stored blocks assigned, ", (int)m_far_blocks.size(),
                 " in range, grant ", grant, " nodes, radius ", radius, " blocks");
+    lodRequestSummaries(centre, radius);
+}
+
+// The other half of the far view: places this client has never been. The
+// server mod summarises terrain the server has already generated, at the
+// operator's granted distance and rate, and those summaries become coarse
+// chains exactly as stored blocks do (docs/far-rendering.md). Areas are
+// asked for nearest first, a few in flight, and never asked twice.
+void GoannaClient::lodRequestSummaries(const v3s16 &centre, int radius) {
+    if (!m_session || !m_session->farSummariesOffered())
+        return;
+    constexpr int kEdge = 8; // blocks per area side
+    if (m_far_inflight >= 4)
+        return;
+    auto fdiv = [](int a, int b) { return a >= 0 ? a / b : -((-a + b - 1) / b); };
+    const v3s16 ac(fdiv(centre.X, kEdge), fdiv(centre.Y, kEdge), fdiv(centre.Z, kEdge));
+    const int aradius = radius / kEdge;
+    // Nearest unrequested area with nothing known about it. Vertically only
+    // one layer above and below the player's area: terrain lives there.
+    v3s16 best(32767, 32767, 32767);
+    int best_d = 1 << 30;
+    for (int az = ac.Z - aradius; az <= ac.Z + aradius; ++az)
+        for (int ay = std::max(ac.Y - 1, fdiv(-64, kEdge)); ay <= ac.Y + 1; ++ay)
+            for (int ax = ac.X - aradius; ax <= ac.X + aradius; ++ax) {
+                const v3s16 origin(ax * kEdge, ay * kEdge, az * kEdge);
+                if (m_far_requested.count(origin))
+                    continue;
+                const int dx = (ax * kEdge + kEdge / 2) - centre.X;
+                const int dz = (az * kEdge + kEdge / 2) - centre.Z;
+                const int d2 = dx * dx + dz * dz;
+                if (d2 >= best_d)
+                    continue;
+                // Skip areas inside the live range: the server sends those.
+                const int live = m_session->wantedRange + 2;
+                if (std::abs(dx) < live && std::abs(dz) < live)
+                    continue;
+                // Anything already known about the area means the store has
+                // it; ask only where we know nothing at all.
+                bool known = false;
+                for (int b = 0; b < kEdge && !known; ++b)
+                    known = m_lod_chains.count(origin + v3s16(b, 0, b)) ||
+                            m_far_blocks.count(origin + v3s16(b, 0, b));
+                if (known)
+                    continue;
+                best = origin;
+                best_d = d2;
+            }
+    if (best_d == 1 << 30)
+        return;
+    m_far_requested.insert(best);
+    ++m_far_inflight;
+    m_session->requestFarSummary(best, kEdge, 16);
+    if (getenv("GOANNA_DEBUG_LOD"))
+        UtilityFunctions::print("LOD far: asked for area ", best.X, ",", best.Y, ",", best.Z);
+}
+
+// Parse "farsum <cell> <ox> <oy> <oz> <edge> <names,csv>|<base64>" into
+// coarse chains. Caller holds the map lock.
+void GoannaClient::lodTakeSummaries() {
+    if (!m_session)
+        return;
+    for (const std::string &msg : m_session->takeFarSummaries()) {
+        if (m_far_inflight > 0)
+            --m_far_inflight;
+        // "farsum <who> <cell> <ox> <oy> <oz> <edge> ..."; a mod channel has
+        // no unicast, so every client sees every reply and takes its own.
+        char who[64] = {0};
+        int cell = 0, ox = 0, oy = 0, oz = 0, edge = 0, off = 0;
+        if (sscanf(msg.c_str(), "farsum %63s %d %d %d %d %d %n", who, &cell, &ox, &oy, &oz, &edge, &off) != 6)
+            continue;
+        if (m_session->playerName() != who)
+            continue;
+        if (cell != 16 || edge <= 0 || edge > 16)
+            continue;
+        const size_t bar = msg.find('|', off);
+        if (bar == std::string::npos)
+            continue;
+        // names
+        std::vector<content_t> ids;
+        ids.push_back(CONTENT_AIR); // index 0: none
+        {
+            std::string csv = msg.substr(off, bar - off);
+            while (!csv.empty() && csv.back() == ' ')
+                csv.pop_back();
+            size_t pos = 0;
+            const NodeDefManager *ndef = m_session->nodeDefs();
+            while (pos <= csv.size() && !csv.empty()) {
+                size_t comma = csv.find(',', pos);
+                std::string name = csv.substr(pos, comma == std::string::npos ? std::string::npos : comma - pos);
+                pos = comma == std::string::npos ? csv.size() + 1 : comma + 1;
+                content_t id = CONTENT_AIR;
+                if (ndef && !name.empty())
+                    ndef->getId(name, id);
+                ids.push_back(id);
+            }
+        }
+        const std::string blob = base64_decode(msg.substr(bar + 1));
+        const size_t total = (size_t)edge * edge * edge;
+        if (blob.size() < total * 6)
+            continue;
+        m_far_requested.insert(v3s16(ox, oy, oz)); // in case it was unsolicited
+        const int level = BlockLodChain::levelForCell(16);
+        int taken = 0;
+        for (size_t i = 0; i < total; ++i) {
+            const uint8_t *r = (const uint8_t *)blob.data() + i * 6;
+            if (!(r[0] & 16))
+                continue; // not generated: stays a hole, never invented
+            const v3s16 bp(ox + (int)(i % edge), oy + (int)((i / edge) % edge),
+                    oz + (int)(i / (edge * edge)));
+            if (m_session->getBlock(bp) || m_lod_chains.count(bp))
+                continue; // live or already known better
+            BlockLodChain &ch = m_lod_chains[bp];
+            LodLevel &lv = ch.level[level];
+            lv.cell = 16;
+            lv.n = 1;
+            lv.cells.assign(1, LodLevel::Cell());
+            LodLevel::Cell &c = lv.cells[0];
+            const content_t top = r[2] < ids.size() ? ids[r[2]] : CONTENT_AIR;
+            const content_t side = r[3] < ids.size() ? ids[r[3]] : top;
+            c.face[0] = top;
+            c.face[1] = side != CONTENT_AIR ? side : top;
+            for (int d = 2; d < 6; ++d)
+                c.face[d] = side != CONTENT_AIR ? side : top;
+            c.top = std::min<uint8_t>(r[1], 16);
+            c.day = decode_light(std::min<uint8_t>(r[4], 14));
+            c.night = decode_light(std::min<uint8_t>(r[5], 14));
+            c.flags = LodLevel::kKnown | ((r[0] & 1) ? LodLevel::kFilled : 0) |
+                    ((r[0] & 2) ? LodLevel::kOccludes : 0) | ((r[0] & 4) ? LodLevel::kLit : 0);
+            ch.stored = true;
+            m_lod_chain_missing.erase(bp);
+            if (r[0] & 1) {
+                lodAssign(bp, lodTierCount());
+                m_block_tier[bp] = lodTierCount();
+                m_far_blocks.insert(bp);
+                m_far_remote.insert(bp);
+                ++taken;
+            }
+        }
+        if (getenv("GOANNA_DEBUG_LOD"))
+            UtilityFunctions::print("LOD far: summary area ", ox, ",", oy, ",", oz, " gave ", taken,
+                    " blocks");
+    }
 }
 
 void GoannaClient::lodMarkDirty(const LodRegionKey &key) {
@@ -2527,6 +2682,9 @@ void GoannaClient::lodReset() {
     m_lod_chain_queued.clear();
     m_lod_chain_waiters.clear();
     m_lod_chain_missing.clear();
+    m_far_remote.clear();
+    m_far_requested.clear();
+    m_far_inflight = 0;
     if (m_session) {
         std::lock_guard<std::mutex> lk(m_session->mapLock());
         for (auto &kv : m_block_tier)
@@ -2548,7 +2706,10 @@ int GoannaClient::update_lod(const Vector3 &around, int max_rebuild) {
         }
     }
     std::lock_guard<std::mutex> lk(m_session->mapLock());
+    lodTakeSummaries();
     for (const v3s16 &bp : changed) {
+        if (m_far_remote.count(bp))
+            continue; // summary blocks are coarse only and stay at the top tier
         if (m_far_blocks.count(bp)) {
             // No live block to requeue: apply the new tier here.
             const int tier = lodTierFor(bp, around);

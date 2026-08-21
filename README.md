@@ -157,7 +157,10 @@ the server sends is also kept in a local store, per server, and where a
 server grants it (its operator sets `goanna_far_rendering` with the server
 mod in `goanna_server_mod/`; Goanna's own single player server does) the far
 tiers draw from that store beyond the server's send distance, marked as
-remembered rather than seen. Observed against a local Mineclonia server on
+remembered rather than seen. Such a server can also send coarse summaries of
+terrain it has already generated, so the horizon includes places you have
+never walked to; nothing is ever invented, and ground the server has not
+generated stays empty. Observed against a local Mineclonia server on
 Godot 4.5.1: terrain 400 nodes behind the live range drawn from a previous
 visit. Without the grant the store only writes. The plan and the limits are
 in [docs/far-rendering.md](docs/far-rendering.md).

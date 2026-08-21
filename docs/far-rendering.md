@@ -385,8 +385,14 @@ this avoids becoming a six month branch that never lands.
    job (`docs/iris-compat.md`, `gbuffers_water` and the pack's own SSR) and
    are not duplicated here.
 
-Rungs 1 to 6 all landed by 2026-08-21. Rungs 1 to 4 and 6 need no decision
-from anyone; rung 5 does, and it is the local server that gives it here.
+7. **Places you have never been.** The store answers "everywhere I have
+   walked"; this answers "everywhere the server already has". The server mod
+   summarises terrain it has generated, coarsely, on request and at the
+   operator's pace, and those summaries become chains like any other. Done,
+   2026-08-21; see "What landed at rung 7" below.
+
+Rungs 1 to 7 all landed by 2026-08-21. Rungs 1 to 4 and 6 need no decision
+from anyone; rungs 5 and 7 do, and it is the local server that gives it here.
 
 ## What landed at rung 5, 2026-08-21
 
@@ -445,6 +451,64 @@ are environment variables and bound methods today); the store's contents
 are not pruned against a world reset, only aged out by the cap; and the scan
 over stored regions is linear in the region count, which is fine at 512
 nodes (125 regions) and would want an index at 4000.
+
+## What landed at rung 7, 2026-08-21
+
+The store can only ever show you where you have been, and that is a real
+limit on the idea: the first thing anyone tries is looking at a horizon they
+have not walked to, and seeing nothing there. Distant Horizons answers that
+by generating the terrain locally, which this project rejects outright, and
+Voxy does not answer it at all, being client side. The answer that fits the
+boundary rule is the server: it already holds the terrain, so let it give
+what it chooses to give.
+
+`goanna_server_mod` answers `farsum?` requests. It reads already generated
+map through a VoxelManip, never generating any, and replies with six bytes
+per mapblock: filled, occludes, lit, liquid, the height the content reaches,
+the commonest top and side node (as an index into a name list in the same
+message), and the light levels. An 8 by 8 by 8 block area is about 3 KB on
+the wire against roughly a megabyte at full resolution. Requests beyond
+`goanna_far_rendering_distance` of the asking player are refused, and the
+work is paced by `goanna_far_summary_blocks_per_step` (32 mapblocks a step),
+so an area costs a second or two of wall clock and a small slice of each
+step.
+
+The client (`lodRequestSummaries`, `lodTakeSummaries` in
+`src/goanna_client.cpp`) asks for the nearest area it knows nothing about,
+four in flight, never twice, skipping anything inside the live range or
+already held by the store. A reply becomes a one cell chain per mapblock at
+cell 16, marked `stored` so it renders with the same staleness treatment,
+and the region mesher draws it through the same path as everything else:
+tiers, merging, water, occlusion, the fade. No new rendering code at all,
+which is what the chain was built for.
+
+Measured against a Mineclonia server holding terrain a previous player had
+explored: a fresh client with an empty store, a 96 node live range and the
+512 node grant drew 1087 blocks of terrain it had never visited, at 139 fps,
+with the worst poll at 7.6 ms. Areas the server has not generated come back
+as holes and stay holes.
+
+Two limits are worth knowing. A mod channel has no unicast, so replies are
+broadcast and filtered by the requester name they carry; the mod README says
+what that means for an operator. And a summary is cell 16 only, so distant
+terrain from this path is coarser than the same ground would be from the
+store; walking there replaces it with the real thing.
+
+## Cells are not cubes
+
+A coarse cell used to draw as a full cube, so at cell 16 a hill snapped to
+16 node steps and the vista read as a stack of boxes. Every cell in the chain
+records the height its content reaches, and the region mesher now uses it:
+a top face sits at that height, and a side face spans from the height the
+neighbour reaches to the height this cell reaches, which is nothing where
+the neighbour is as tall, a step where it is shorter, and the whole cell
+where it is empty. Terrain at any tier follows its own surface with one node
+of vertical resolution while keeping the horizontal cell size.
+
+A partial height side face cannot merge with one in the row above (each sits
+at its own height inside its own cell), so the face key carries its row and
+only full height faces merge freely, which is the common case underground
+and inside hills.
 
 ## How terrain arrives, and what it cost to make that smooth
 

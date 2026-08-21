@@ -173,7 +173,10 @@ do, why the split between action cheats and information cheats decides which
 capabilities need one at all, and the upstream proposal, which is broader than
 Goanna and stands on its own.
 
-- **Far rendering.** Sees terrain the server did not send this session.
+- **Far rendering.** Sees terrain the server did not send this session: from
+  the local store, and from coarse summaries the server mod gives of terrain
+  it has already generated, which is how places the player has never been are
+  drawn. Both are the server's to grant, neither invents any terrain.
   `docs/far-rendering.md`.
 - **Source style movement.** Moves in ways the server did not sanction, and
   the server rejects it as speed hacking unless it also relaxes

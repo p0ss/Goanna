@@ -462,6 +462,31 @@ void GoannaSession::joinGoannaChannel() {
     send(msg);
 }
 
+void GoannaSession::requestFarSummary(v3s16 origin_blocks, int edge_blocks, int cell) {
+    if (!m_con)
+        return;
+    std::string channel(kGoannaChannel);
+    std::string msg = "farsum? " + std::to_string(cell) + " " + std::to_string(origin_blocks.X) +
+            " " + std::to_string(origin_blocks.Y) + " " + std::to_string(origin_blocks.Z) + " " +
+            std::to_string(edge_blocks);
+    NetworkPacket pkt(TOSERVER_MODCHANNEL_MSG, 0);
+    pkt << channel << msg;
+    send(pkt);
+}
+
+std::vector<std::string> GoannaSession::takeFarSummaries() {
+    std::lock_guard<std::mutex> lk(m_server_opts_mutex);
+    std::vector<std::string> out;
+    out.swap(m_far_summaries);
+    return out;
+}
+
+bool GoannaSession::farSummariesOffered() const {
+    auto opts = serverOptions();
+    auto it = opts.find("far_summaries");
+    return it != opts.end() && (it->second == "true" || it->second == "1");
+}
+
 // key=value lines, one per line. Deliberately not JSON: the payload is a
 // handful of flags and numbers, and this needs no parser on either side.
 void GoannaSession::onModChannelMsg(NetworkPacket &pkt) {
@@ -469,6 +494,15 @@ void GoannaSession::onModChannelMsg(NetworkPacket &pkt) {
     pkt >> channel >> sender >> message;
     if (channel != kGoannaChannel)
         return;
+    // Far summary replies are their own stream, consumed by the client.
+    if (message.compare(0, 7, "farsum ") == 0) {
+        std::lock_guard<std::mutex> lk(m_server_opts_mutex);
+        if (m_far_summaries.size() < 256)
+            m_far_summaries.push_back(std::move(message));
+        return;
+    }
+    if (message.compare(0, 8, "farsum? ") == 0)
+        return; // our own request echoed to everyone on the channel
     std::lock_guard<std::mutex> lk(m_server_opts_mutex);
     size_t pos = 0;
     while (pos <= message.size()) {

@@ -284,12 +284,22 @@ struct FaceKey {
     // which the shader marks as stale.
     uint8_t fresh = 255;
     bool liquid = false;
-    uint8_t top = 255; // a liquid's surface height within its cell, else 255
+    // The vertical span of the face within its cell, in nodes: from the
+    // height the neighbour reaches to the height this cell reaches. A cell
+    // is not a full cube unless its content fills it, so a hill drawn at
+    // cell 16 follows its own surface rather than snapping to the cell.
+    uint8_t lo = 0, hi = 16;
+    // Which row of cells a partial height side face belongs to, plus one; 0
+    // for a full height face. Two partial faces in different rows are not
+    // one rectangle (each sits at its own height inside its own cell), so
+    // this keeps the greedy merge from joining them, while full height faces
+    // merge as freely as before.
+    uint16_t row = 0;
     bool valid = false;
     bool operator==(const FaceKey &o) const {
         return texture_id == o.texture_id && layer == o.layer && block_id == o.block_id && colour == o.colour &&
                 day == o.day && night == o.night && ao == o.ao && fresh == o.fresh && liquid == o.liquid &&
-                top == o.top;
+                lo == o.lo && hi == o.hi && row == o.row;
     }
 };
 
@@ -397,6 +407,9 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
         // In plane axes: u is the first of the other two, v the second.
         const int ua = axis == 0 ? 1 : 0;
         const int va = axis == 2 ? 1 : 2;
+        // Which of the two in plane axes is the vertical one, for a side
+        // face: u for an x facing quad, v for a z facing one.
+        const bool u_is_vertical = ua == 1;
         const v3f normal((float)DIRS[d][0], (float)DIRS[d][1], (float)DIRS[d][2]);
         for (int s = 0; s < n; ++s) {
             // Gather the slab's faces.
@@ -415,8 +428,35 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                     if (!c || !(c->flags & LodLevel::kFilled))
                         continue;
                     const int fx = g[0] + DIRS[d][0], fy = g[1] + DIRS[d][1], fz = g[2] + DIRS[d][2];
-                    if (filled(fx, fy, fz))
-                        continue;
+                    const LodLevel::Cell *front_cell = cellAt(fx, fy, fz);
+                    const bool front_filled = front_cell && (front_cell->flags & LodLevel::kFilled);
+                    // How high the content actually reaches in each cell.
+                    auto height_of = [&](const LodLevel::Cell *cc, bool is_filled) -> int {
+                        if (!is_filled)
+                            return 0;
+                        return cc->top > 0 && cc->top < cell ? (int)cc->top : cell;
+                    };
+                    const int h_self = height_of(c, true);
+                    const int h_front = height_of(front_cell, front_filled);
+                    if (axis == 1) {
+                        // A top or bottom face exists only where the cell
+                        // beyond is empty, as before.
+                        if (front_filled)
+                            continue;
+                        fk.lo = 0;
+                        fk.hi = (uint8_t)h_self;
+                    } else {
+                        // A side face spans from where the neighbour's
+                        // content stops to where this cell's stops: nothing
+                        // where the neighbour is as tall, a step where it is
+                        // shorter, the whole cell where it is empty.
+                        if (h_front >= h_self)
+                            continue;
+                        fk.lo = (uint8_t)h_front;
+                        fk.hi = (uint8_t)h_self;
+                        if (fk.lo != 0 || fk.hi != cell)
+                            fk.row = (uint16_t)(1 + (u_is_vertical ? u : v));
+                    }
                     const content_t content = c->face[d];
                     if (content == CONTENT_AIR || content == CONTENT_IGNORE)
                         continue;
@@ -425,8 +465,6 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                     fk.layer = te.layer;
                     fk.block_id = te.block_id;
                     fk.liquid = te.liquid;
-                    if (te.liquid && c->top > 0 && c->top < cell)
-                        fk.top = c->top;
                     u32 tint = 0xffffffff;
                     if (te.tile_has_color) {
                         tint = te.tint;
@@ -443,7 +481,7 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                     // own, else unlit sky and no block light. Block light's
                     // neutral is 0 rather than 255 here, because the far
                     // tiers add it as emission and 255 would glow.
-                    const LodLevel::Cell *front = cellAt(fx, fy, fz);
+                    const LodLevel::Cell *front = front_cell;
                     if (front && (front->flags & LodLevel::kLit)) {
                         fk.day = quant16(front->day);
                         fk.night = quant16(front->night);
@@ -507,14 +545,18 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                     hi[ua] = (u + w) * cell;
                     lo[va] = v * cell;
                     hi[va] = (v + h) * cell;
-                    // A liquid's surface sits at its own height within the
-                    // cell, and the sides stop there too. Such a quad is one
-                    // cell high, since the cells below it are full.
-                    if (key.liquid && key.top != 255) {
-                        if (axis == 1 && sign > 0)
-                            lo[1] = hi[1] = s * cell + key.top;
-                        else if (axis != 1)
-                            hi[1] = lo[1] + key.top;
+                    // The vertical span the face keys carry: a top face sits
+                    // at the height the content reaches, a side face spans
+                    // from the neighbour's height to this cell's. A full
+                    // height face keeps the merged extent it was given.
+                    if (axis == 1) {
+                        if (sign > 0)
+                            lo[1] = hi[1] = s * cell + key.hi;
+                    } else if (key.lo != 0 || key.hi != cell) {
+                        const int vax = u_is_vertical ? ua : va;
+                        const int vcell = u_is_vertical ? u : v;
+                        lo[vax] = vcell * cell + key.lo;
+                        hi[vax] = vcell * cell + key.hi;
                     }
                     const float ox = (float)origin_nodes.X, oy = (float)origin_nodes.Y, oz = (float)origin_nodes.Z;
                     // Godot space: x0 < x1, y0 < y1, z1 <= z0 (z mirrored).

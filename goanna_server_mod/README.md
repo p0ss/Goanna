@@ -72,6 +72,36 @@ why the client speaks first.
 `send_all` goes to everyone on the channel. That is deliberate: the options
 are a property of the server, not of the player.
 
+## Far terrain summaries
+
+This mod does one thing beyond relaying settings, and it is the half of far
+rendering a client cannot do alone: it answers a request for a coarse summary
+of an area of the map. That is how a Goanna client draws places its own player
+has never been.
+
+It reads terrain the server has already generated and never generates any. An
+ungenerated block is reported as unknown and stays a hole in the client's
+view, so nothing is invented and no worldgen happens on a request. What comes
+back per mapblock is six bytes: whether it is filled, whether it blocks light,
+the height its content reaches, the commonest node on top and at the sides,
+and its light levels. A block is about a thousandth of the size it would be
+sent at full resolution.
+
+Two bounds an operator owns. Requests outside `goanna_far_rendering_distance`
+of the asking player are refused silently, so the grant is the reach. And the
+work is paced by `goanna_far_summary_blocks_per_step`, thirty two mapblocks
+per server step by default, which keeps an area to a second or two of wall
+clock and a small slice of each step; lower it on a busy server.
+
+One limitation worth stating plainly, because it is Luanti's rather than
+ours: a mod channel has no unicast. `send_all` is the only way to answer, so
+every Goanna client on the channel sees every reply and filters by the
+requester name in it. Granting far rendering therefore grants coarse
+summaries of terrain near any player who asks, to every Goanna client on the
+server. The distance check is against the asking player and the grant is
+server wide, so this widens what is seen by other players' whereabouts, not
+by any distance beyond what was granted.
+
 ## Settings
 
 See `settingtypes.txt`. Everything is off by default.

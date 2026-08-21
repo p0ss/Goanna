@@ -40,7 +40,8 @@ this one seen from that file's side.
    |
    v                         v
  true far rendering      Iris rungs 2 to 4, screen space chain
- (far rendering rungs 1 to 6 all done 2026-08-21)
+ (far rendering rungs 1 to 7 all done 2026-08-21, including terrain the
+  server has but the player has not visited)
                              |
                              v
                          Iris rungs 5 to 7, gbuffers translator

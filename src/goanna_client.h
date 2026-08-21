@@ -362,10 +362,19 @@ private:
     godot::String m_store_root;
     int m_far_distance = 512;
     std::set<v3s16> m_far_blocks;
+    // Blocks whose chain came from a server far summary rather than the
+    // store: coarse only (cell 16), so they stay at the coarsest tier.
+    std::set<v3s16> m_far_remote;
+    // Area origins (block coords, 8 block aligned) already asked of the
+    // server, so a slow answer is not asked for again every scan.
+    std::set<v3s16> m_far_requested;
+    int m_far_inflight = 0;
     v3s16 m_far_centre{32767, 32767, 32767};
     std::chrono::steady_clock::time_point m_far_last;
     bool m_far_dirty = true;
     void lodUpdateFar(const godot::Vector3 &around);
+    void lodRequestSummaries(const v3s16 &centre, int radius);
+    void lodTakeSummaries();
     int lodTierCount() const;
     int lodCellFor(int tier) const;
     int lodRegionBlocks(int tier) const;
