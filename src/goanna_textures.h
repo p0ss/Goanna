@@ -67,6 +67,10 @@ public:
     // bump"): dark texels read as recessed, light as raised. Cached per
     // strength; regenerated when strength changes. Main thread only.
     godot::Ref<godot::ImageTexture> godotNormal(float strength);
+    // The same inferred relief in LabPBR's convention (Y down, B is ambient
+    // occlusion), for entity.gdshader, which decodes _n the way the node
+    // array shader does. Cached per strength.
+    godot::Ref<godot::ImageTexture> godotCompanionNormal(float strength);
     bool hasAlpha() const { return m_has_alpha; }
 
 private:
@@ -81,6 +85,8 @@ private:
     godot::Ref<godot::ImageTexture> m_godot;
     godot::Ref<godot::ImageTexture> m_normal;
     float m_normal_strength = -1.0f;
+    godot::Ref<godot::ImageTexture> m_companion_normal;
+    float m_companion_strength = -1.0f;
 };
 
 class GoannaTextureSource final : public IWritableTextureSource {

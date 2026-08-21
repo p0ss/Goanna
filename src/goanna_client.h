@@ -4,6 +4,7 @@
 #pragma once
 
 #include <chrono>
+#include <deque>
 #include <map>
 #include <set>
 #include <memory>
@@ -221,6 +222,7 @@ public:
     // True if the given eye position (Godot space, nodes) is inside a liquid
     // node; for underwater fog/tint. Cheap map lookup.
     bool is_underwater(const godot::Vector3 &eye);
+    bool isUnderwaterAt(const godot::Vector3 &eye);
     // Auto-bump strength: normal maps derived from diffuse luminance. 0 = off.
     // Rebuilds world materials so the change takes effect immediately.
     // Block edge bevel width as a fraction of a node (0 = off). Re-meshes.
@@ -329,9 +331,24 @@ private:
     std::map<LodRegionKey, LodRegion> m_lod_regions;
     std::map<v3s16, LodRegionKey> m_lod_member; // which region draws a block
     std::map<v3s16, BlockLodChain> m_lod_chains; // built lazily, dropped when the block changes
+    // Chains are built a few per poll inside a time budget, never inside a
+    // region build: a coarse region touches thousands of blocks, and building
+    // their chains in one poll was the frame stall of the first version. A
+    // region builds with the chains that exist and is dirtied again as the
+    // rest arrive, so terrain fills in progressively.
+    std::deque<v3s16> m_lod_chain_queue;
+    std::set<v3s16> m_lod_chain_queued;
+    std::map<v3s16, std::set<LodRegionKey>> m_lod_chain_waiters;
+    // Blocks that have no chain source, neither live nor stored: asked for
+    // once and not again until something arrives for them, or a region that
+    // touches one rebuilds every quarter second for nothing.
+    std::set<v3s16> m_lod_chain_missing;
+    void lodEnqueueChain(const v3s16 &bp);
     LodTileCache m_lod_tiles;
     double m_ms_lod = 0; // EMA of one region build
     int m_lod_last_built = 0;
+    double m_ms_poll_max = 0, m_ms_poll_max_last = 0; // worst poll_blocks call, per second
+    std::chrono::steady_clock::time_point m_poll_window;
     // Blocks drawn from the store rather than received: they sit in
     // m_block_tier like any other, flagged here so a tier change is applied
     // directly (there is no live block to requeue) and so they can be let go

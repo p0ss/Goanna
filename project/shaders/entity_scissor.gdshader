@@ -1,4 +1,7 @@
-// Goanna: opaque entity (mob/model) meshes, one flat texture per surface.
+// Goanna: alpha scissor entity (mob/model) meshes, the cut out variant of
+// entity.gdshader for textures with transparent texels, which is most mob
+// skins. Identical otherwise; two files rather than a toggle for the reason
+// nodes_array_scissor.gdshader gives.
 //
 // The single-texture counterpart to nodes_array.gdshader: an entity has one
 // texture per mesh surface, not many tiles sharing an array, so this reads
@@ -48,7 +51,10 @@ uniform float block_fill : hint_range(0.0, 2.0) = 0.6;
 uniform float sky_light_strength : hint_range(0.0, 1.0) = 1.0;
 
 void fragment() {
-	ALBEDO = texture(albedo, UV).rgb;
+	vec4 tex = texture(albedo, UV);
+	ALBEDO = tex.rgb;
+	ALPHA = tex.a;
+	ALPHA_SCISSOR_THRESHOLD = 0.5;
 	ROUGHNESS = 1.0;
 	METALLIC = 0.0;
 	SPECULAR = 0.2;

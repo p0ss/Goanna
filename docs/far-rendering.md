@@ -434,6 +434,44 @@ are not pruned against a world reset, only aged out by the cap; and the scan
 over stored regions is linear in the region count, which is fine at 512
 nodes (125 regions) and would want an index at 4000.
 
+## How terrain arrives, and what it cost to make that smooth
+
+The first build of the tiers arrived in walls: a region mesh appeared whole,
+and the frame stalled while it was made. Two things caused that, both
+measured with the worst `poll_blocks` call per second that `render_stats`
+now reports as `poll_max_ms` (the `GOANNA_PERF` line prints it).
+
+A region build used to build every block chain it touched, in the same
+poll. A tier 3 region reads its 16 by 16 by 16 member blocks and a margin
+of four more each side for the occlusion radius, nearly fourteen thousand
+blocks at 0.3 ms each live or 0.5 ms from the store: seconds in one frame
+when a far area first came into range. Chains are now built from a queue,
+a few per poll inside a time budget; a region builds with the chains that
+exist, asks for the ones it lacks, and is dirtied again only when one of
+those is actually built. Blocks with no source at all, neither live nor
+stored, are remembered as missing so a region touching one does not rebuild
+every quarter second for nothing, which the first draft of the queue did:
+`dirty` never reached zero.
+
+The near mesh had the same shape of problem without any store: `poll_blocks`
+took up to 24 blocks a call, at about 5 ms each meshed and uploaded, so the
+arrival of a new area was a 120 ms frame. It now stops at 6 ms
+(`GOANNA_POLL_MS` to change it) and requeues the rest for the next frame,
+and the region work takes what is left of that budget.
+
+Regions were also halved for the near tiers: a region is now its cell size
+in blocks (4 blocks at cell 4, 16 at cell 16), so tier 1 arrives in 64 node
+pieces and a coarse tier still covers a lot of ground per draw call.
+
+Measured against the test server with the store holding the spawn area and
+the camera 400 nodes away: the worst poll per second is 7 to 10 ms while an
+area streams, 0 to 1.4 ms at rest, and 126 ms once when the first materials
+and texture arrays are built; the one large figure left is content
+preparation itself (node visuals, the classifier, the first array textures)
+at 1.2 to 1.9 s, which happens before anything is drawn. Region meshing
+itself is still on the main thread at 0.3 to 1.3 ms a region, inside the
+budget; moving it to a worker is the next step if a finer budget is wanted.
+
 ## What landed at rungs 2 and 3, 2026-08-21
 
 `src/goanna_lod.{h,cpp}` holds the chain and the region mesher, free of

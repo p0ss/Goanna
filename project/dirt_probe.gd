@@ -9,11 +9,11 @@ extends Node3D
 # conclusion here has ever survived being read off a world screenshot.
 #
 # Three quads, same light, same albedo:
-#   left:   entity.gdshader, has_normal=false (flat) -- the "definitely no
+#   left:   entity.gdshader, has_normal=false (flat), the "definitely no
 #           bump" baseline
 #   centre: entity.gdshader, has_normal=true, fed the real default_dirt_n.png
 #   right:  StandardMaterial3D with Godot's OWN normal mapping, fed the same
-#           file -- if even this shows nothing, the data itself is too weak
+#           file; if even this shows nothing, the data itself is too weak
 #           to read here, not our shader
 #
 # Run: godot --path project dirt_probe.tscn

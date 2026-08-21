@@ -36,3 +36,7 @@ goanna_sky_fill={
 "type": "vec3",
 "value": Vector3(0, 0, 0)
 }
+goanna_eye_underwater={
+"type": "float",
+"value": 0.0
+}

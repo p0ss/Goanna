@@ -23,6 +23,11 @@ uniform float refraction = 0.006;
 // Beer-Lambert absorption per node; red dies first, like real water.
 uniform vec3 absorption = vec3(0.55, 0.24, 0.16);
 uniform bool waving = true;
+// Goanna: 1.0 while the eye is in a liquid, set by GoannaClient. Seen from
+// above, the undersides of sloped flowing tops and of neighbouring faces
+// draw through the surface as overlapping translucent squares, so back faces
+// are dropped unless the eye is under the water, where they are the surface.
+global uniform float goanna_eye_underwater;
 
 varying vec3 world_pos;
 
@@ -39,6 +44,8 @@ void vertex() {
 }
 
 void fragment() {
+	if (!FRONT_FACING && goanna_eye_underwater < 0.5)
+		discard;
 	vec4 tex = texture(albedo_tex, UV) * COLOR;
 	float here = -VERTEX.z;
 

@@ -30,6 +30,8 @@
 #include "transplant/client/wieldmesh.h"
 #include "goanna_luanti_client.h"
 #include "constants.h"
+#include "light.h"
+#include "nodedef.h"
 
 using namespace godot;
 
@@ -84,7 +86,7 @@ Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
     // plain material unchanged (see the declaration in goanna_entities.h for
     // why that means a separate function and cache rather than a mode on it).
     Ref<Texture2D> normal_tex, spec_tex;
-    if (gt && !alpha && !gt->hasAlpha()) {
+    if (gt && !alpha) {
         // A texture modifier (colourise, crack overlay, transform) is baked
         // into the rendered image and has no file of its own to look a
         // companion up for; only the base name before the first ^ does.
@@ -105,13 +107,26 @@ Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
         spec_tex = lookup("_s");
     }
 
+    // No authored relief: the same inference the node array path makes for
+    // an unauthored layer, in the convention entity.gdshader decodes.
+    if (gt && !alpha && !normal_tex.is_valid() && m_auto_bump > 0.0f)
+        normal_tex = gt->godotCompanionNormal(m_auto_bump);
+
     Ref<Material> result;
-    if (normal_tex.is_valid() || spec_tex.is_valid()) {
+    // Every opaque mesh surface goes through entity.gdshader, companions or
+    // not: it is where the node light reaches an entity (the node_light
+    // instance uniform EntityRenderer::sync sets), which StandardMaterial3D
+    // has no way to take.
+    if (gt && !alpha && !double_sided) {
         if (!m_sh_entity.is_valid())
             m_sh_entity = ResourceLoader::get_singleton()->load("res://shaders/entity.gdshader");
+        if (!m_sh_entity_scissor.is_valid())
+            m_sh_entity_scissor = ResourceLoader::get_singleton()->load("res://shaders/entity_scissor.gdshader");
         Ref<ShaderMaterial> sm;
         sm.instantiate();
-        sm->set_shader(m_sh_entity);
+        // Most mob skins have transparent texels, so the cut out variant is
+        // the common case; see entity_scissor.gdshader.
+        sm->set_shader(gt->hasAlpha() ? m_sh_entity_scissor : m_sh_entity);
         sm->set_shader_parameter("albedo", gt->godotTexture());
         sm->set_shader_parameter("has_normal", normal_tex.is_valid());
         sm->set_shader_parameter("has_spec", spec_tex.is_valid());
@@ -120,27 +135,10 @@ Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
         if (spec_tex.is_valid())
             sm->set_shader_parameter("spec_tex", spec_tex);
         result = sm;
-    } else if (gt && !alpha && !gt->hasAlpha() && m_auto_bump > 0.0f) {
-        // No authored data: the same diffuse-inferred relief the node path
-        // gives an unauthored tile, via StandardMaterial3D's own normal
-        // mapping rather than entity.gdshader, which only earns its keep
-        // when there is a real LabPBR decode to do.
-        Ref<StandardMaterial3D> mat;
-        mat.instantiate();
-        mat->set_roughness(1.0f);
-        mat->set_texture_filter(BaseMaterial3D::TEXTURE_FILTER_NEAREST_WITH_MIPMAPS);
-        mat->set_cull_mode(double_sided ? BaseMaterial3D::CULL_DISABLED : BaseMaterial3D::CULL_BACK);
-        Ref<ImageTexture> tex = gt->godotTexture();
-        if (tex.is_valid())
-            mat->set_texture(BaseMaterial3D::TEXTURE_ALBEDO, tex);
-        Ref<Texture2D> nrm = gt->godotNormal(m_auto_bump);
-        if (nrm.is_valid()) {
-            mat->set_feature(BaseMaterial3D::FEATURE_NORMAL_MAPPING, true);
-            mat->set_texture(BaseMaterial3D::TEXTURE_NORMAL, nrm);
-            mat->set_normal_scale(1.0f);
-        }
-        result = mat;
     } else {
+        // Alpha blended and double sided surfaces keep the plain material;
+        // the entity shaders are back face culled on purpose (see their
+        // headers).
         result = materialForTexture(session, texture, alpha, double_sided);
     }
     if (getenv("GOANNA_DEBUG_ENTITY_PBR"))
@@ -498,6 +496,29 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
         en.root->set_position(gp);
         // Luanti yaw: rotation.Y degrees; mirrored z flips the sense of yaw
         en.root->set_rotation_degrees(Vector3(rot.X, -rot.Y, -rot.Z));
+        // The node light where the entity stands, for entity.gdshader's
+        // node_light: read once per node the entity is in, at about eye
+        // height so a mob standing in a lit doorway takes the doorway's light.
+        if (en.visual && obj.props().visual == OBJECTVISUAL_MESH) {
+            const v3s16 np((s16)std::floor(pos.X / BS + 0.5f), (s16)std::floor(pos.Y / BS + 1.0f),
+                    (s16)std::floor(pos.Z / BS + 0.5f));
+            if (np != en.light_pos || !en.light_known) {
+                en.light_pos = np;
+                const NodeDefManager *ndef = session.nodeDefs();
+                MapNode n = session.map().getNode(np);
+                if (ndef && n.getContent() != CONTENT_IGNORE) {
+                    const ContentFeatures &f = ndef->get(n);
+                    if (f.param_type == CPT_LIGHT) {
+                        ContentLightingFlags lf = f.getLightingFlags();
+                        en.light_sky = decode_light(n.getLight(LIGHTBANK_DAY, lf)) / 255.0f;
+                        en.light_block = decode_light(n.getLight(LIGHTBANK_NIGHT, lf)) / 255.0f;
+                        en.light_known = true;
+                    }
+                }
+                if (MeshInstance3D *lmi = Object::cast_to<MeshInstance3D>(en.visual))
+                    lmi->set_instance_shader_parameter("node_light", Vector2(en.light_block, en.light_sky));
+            }
+        }
         // attached at a bone: follow the parent's joint from its last step
         if (obj.attachmentParent() != 0 && !obj.attachmentBone().empty()) {
             auto pit = m_nodes.find(obj.attachmentParent());

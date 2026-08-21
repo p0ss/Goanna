@@ -211,7 +211,7 @@ func _material(stem: String, label: String) -> ShaderMaterial:
 
 
 # A node sized cube with the world's vertex layout: UV per face, UV2 (layer 0,
-# block id 0), tint white in COLOR, and CUSTOM0 as four bytes: block light,
+# block id 0), a white tint in the vertex colour, and CUSTOM0 as four bytes: block light,
 # sky light, occlusion, spare. Clockwise front faces.
 func _cube_mesh(custom: Color) -> ArrayMesh:
 	var st := SurfaceTool.new()

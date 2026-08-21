@@ -72,6 +72,10 @@ private:
         std::string textures_key;
         float sprite_time = 0;
         int sprite_frame = 0;
+        // node light at the entity, see sync(); light_pos is the node last read
+        v3s16 light_pos{32767, 32767, 32767};
+        float light_sky = 1.0f, light_block = 0.0f;
+        bool light_known = false;
     };
     void rebuildVisual(GoannaSession &session, GoannaActiveObject &obj, EntityNode &en);
     bool buildMeshVisual(GoannaSession &session, GoannaActiveObject &obj, EntityNode &en);
@@ -96,6 +100,7 @@ private:
     std::map<std::string, godot::Ref<godot::Material>> m_mesh_materials;
     std::map<std::string, std::shared_ptr<GodotModel>> m_models;
     godot::Ref<godot::Shader> m_sh_entity; // res://shaders/entity.gdshader, loaded once
+    godot::Ref<godot::Shader> m_sh_entity_scissor; // its alpha scissor variant
     bool m_show_body = true;
     float m_arm_swing = 0.0f;
     float m_auto_bump = 0.35f;

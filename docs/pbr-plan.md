@@ -239,6 +239,17 @@ array shader). It wants coordinates and a fixed camera A/B before it is
 chased further; the chart now has no row for the non array material paths,
 and should.
 
+Entities take the same light since later that day. Nearly every mob skin
+has transparent texels, so mobs went through a plain `StandardMaterial3D`
+that had no share of the node light, and next to terrain carrying the sky
+fill they read as black, in a dungeon and in daylight alike. Mesh entities
+now render through `entity.gdshader` and its alpha scissor twin
+(`entity_scissor.gdshader`), which take the node light at the entity's
+position as a per instance uniform (`EntityRenderer::sync`): the sky fill
+by the sky light, a warm fill by the block light, and ambient scaled by the
+sky light, as the vanilla client lights its entities. A cow in deep shade
+reads as a cow.
+
 The headlight in `main.gd` is still there. The bay reads dark without it
 on the chart; taking it out of caves is a separate call.
 

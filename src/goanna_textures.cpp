@@ -392,6 +392,19 @@ Ref<ImageTexture> GoannaTexture::godotNormal(float strength) {
     return m_normal;
 }
 
+Ref<ImageTexture> GoannaTexture::godotCompanionNormal(float strength) {
+    if (m_companion_normal.is_valid() && m_companion_strength == strength)
+        return m_companion_normal;
+    m_companion_normal = Ref<ImageTexture>();
+    m_companion_strength = strength;
+    Ref<Image> img = inferNormalImage(m_image, strength, true);
+    if (img.is_valid()) {
+        img->generate_mipmaps();
+        m_companion_normal = ImageTexture::create_from_image(img);
+    }
+    return m_companion_normal;
+}
+
 // ---------------------------------------------------------------------------
 // GoannaTextureSource
 
