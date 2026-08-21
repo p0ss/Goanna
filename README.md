@@ -140,6 +140,14 @@ way and each Luanti game names them its own way. `tools/pbr_pack.py` builds
 a pack from that kind of source, and [docs/materials.md](docs/materials.md)
 describes the convention and what it leaves unsettled.
 
+The screen space half of an Iris or OptiFine shader pack loads too: the
+`composite` and `final` programs are translated to Vulkan GLSL and run as a
+Godot compositor effect, reading the scene colour and depth. This is new,
+tested only with the proof pack in `project/tests/shaderpacks/`, and no real
+pack has been run yet. The `gbuffers` and `shadow` programs, which draw the
+world, are not loaded, so a pack's lighting model does not apply; see
+[docs/iris-compat.md](docs/iris-compat.md) for what that means and the plan.
+
 Then the parts that are Goanna's own rather than Luanti's: a water shader
 with vertex waves and refraction, waving leaves and plants, distance fog and
 an underwater tint, chamfered edges on solid nodes, surface relief derived
@@ -184,9 +192,15 @@ On cheating, the boundaries are permanent rather than a current limitation.
 Goanna asks a server for nothing that Luanti's own client does not ask for,
 and shows you nothing the server did not send. No seeing through walls, no
 extra reach, no automation, no peering through darkness the game meant you
-not to see. It does not modify servers, does not need a mod, and does not
-ship a game of its own. Anything that would give a Goanna player an
-advantage over anyone else is out of scope for good.
+not to see. It does not modify servers and does not ship a game of its own.
+Anything that would give a Goanna player an advantage over anyone else is out
+of scope **without that server's consent**.
+
+That last clause is the whole of it. Goanna never decides for itself that a
+player may do more than a vanilla client can. A server may decide otherwise
+for its own players, and there is an optional mod for saying so, but a server
+that has never heard of Goanna gets a client that behaves exactly like any
+other. Absence of permission is the default, not an oversight.
 
 That matters because "alt client" has usually meant "cheat client" around
 here, and this one is not going to blur the line.

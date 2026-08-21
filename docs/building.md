@@ -332,6 +332,10 @@ features.
 | `GOANNA_SHOT=<directory>` | Fly to three fixed viewpoints, save a PNG at each, then quit. |
 | `GOANNA_WALKTEST=1` | Drive the movement controls from a script rather than the keyboard. With `GOANNA_SHOT`, saves two frames mid walk. |
 | `GOANNA_VIEW="name:x,y,z:pitch,yaw;..."` | With `GOANNA_SHOT`, replaces the three fixed viewpoints. Positions are relative to the spawn eye position, or absolute with a leading `@`. |
+| `GOANNA_SHADERPACK=<directory>` | Load an Iris or OptiFine shader pack (unpacked) and run its `deferred`, `composite` and `final` programs as a compositor effect. Only the screen space chain; see `docs/iris-compat.md`. |
+| `GOANNA_SHADERPACK_RAW=1` | With a pack: hand it Godot's linear HDR colour and keep Godot's tonemap, instead of the Minecraft style gamma space bridge. |
+| `GOANNA_SHADERPACK_DUMP=<directory>` | With a pack: write each program's translated Vulkan GLSL there, for reading compile errors. |
+| `GOANNA_VISUAL_TEST=lighting_walk` | With `GOANNA_SHOT`, request a named deterministic fixture, capture its fixed camera path and write the capture metadata. Requires `goanna_visual_test_mod` in a dedicated singlenode world. |
 | `GOANNA_MENU_SHOT=<file.png>` | Render the connection menu once, save it, quit. |
 | `GOANNA_UI_SHOT=<directory>` | Save the HUD, inventory, chat and pause menu at fixed times. |
 | `GOANNA_UI_TEST=move` | Open the inventory and move the stack in main slot 0 to slot 10, then split it to slot 11, printing the list each time. Exercises inventory_action through the UI. |
@@ -342,6 +346,54 @@ A minimal check that everything still works, end to end:
 ```sh
 GOANNA_SMOKE=20 /path/to/godot --path project
 ```
+
+### Deterministic visual fixtures
+
+Do not use a survival spawn or the material gallery for renderer comparisons.
+Terrain, time, weather, nearby lights and previously built tests all change the
+result, so a repeat run is not the same experiment.
+
+`goanna_visual_test_mod/` is a worldmod for a fresh test world using the
+`singlenode` mapgen. Copy or link it to the world's `worldmods/` directory and
+enable `goanna_visual_test` in `world.mt`. The mod refuses to build in any
+other mapgen, so an accidental install cannot clear part of a survival world.
+
+Run the lighting path against that server with:
+
+```sh
+GOANNA_HOST=127.0.0.1 GOANNA_NAME=goanna \
+GOANNA_SHOT=/tmp/goanna-lighting \
+GOANNA_VISUAL_TEST=lighting_walk \
+/path/to/godot --path project
+```
+
+The fixture fixes midday, removes clouds, disables the camera headlight and
+captures 17 positions half a node apart with one pitch and yaw. The output
+directory also receives `lighting_walk.json`, recording the positions and
+lighting settings used. Analyse adjacent changes with:
+
+```sh
+tools/shotcheck.py --walk-series \
+  /tmp/goanna-lighting/lighting_walk_*.png
+```
+
+Pass `--max-step N` once a measured acceptance threshold has been chosen. The
+checker reports the result without inventing a pass threshold by default.
+
+The `ao`, `materials` and `ice` fixture sites are 1024 nodes from one another
+and from `lighting_walk`. Their automated captures should be added at those
+sites rather than extending one shared gallery.
+
+The formspec renderer has a separate headless conformance suite. It checks
+the local Luanti parser registry as well as Godot-side layout and interaction
+fixtures:
+
+```sh
+tools/test-formspec.sh
+```
+
+See [formspec conformance](formspec-conformance.md) for classifications,
+reference screenshots and instructions for extending the suite.
 
 ## Troubleshooting
 
