@@ -159,6 +159,15 @@ smallest useful version is:
    apply the same layout to the companions.
 5. Server media takes precedence over a client side pack, and a client may
    offer the player an override.
+
+   Worth flagging before this is proposed anywhere: Luanti already does the
+   opposite. `Client::loadMedia` inserts every media file with
+   `prefer_local = true` (`client/texturesource.cpp:534`), so a player's
+   `texture_path` overrides the server's art. That is what makes a texture
+   pack a texture pack. Goanna matches upstream rather than this point, and
+   the point should probably be rewritten to match reality: the local pack
+   wins, and the interesting question is only whether a companion may be
+   taken from a different source to the diffuse it dresses.
 6. A client discovers companions by probing. No declaration is required.
 
 Point 3 is the only place this departs from LabPBR, and it is one line in a
@@ -169,6 +178,63 @@ is anything keyed to a node rather than to a texture: chamfer profiles, mote
 emission, waving amplitude, whether a surface should be displaced at all.
 Those are node properties, not surface properties, and no texture naming
 scheme reaches them.
+
+## Per channel strength
+
+A pack's channels are authored for another renderer and another art style, and
+they routinely arrive too strong for the game being dressed. The Mineclonia
+bake's normals carry a per channel standard deviation over 40 of 255 and its
+occlusion reaches 147, which on 16 pixel art reads as smeared blotches rather
+than relief.
+
+So every decoded channel is scaled by a uniform, settable live from the
+settings panel's Material tab and through
+`GoannaClient::set_material_strength`: `normal`, `ao`, `roughness`,
+`specular`, `emission`, `sss`. 1.0 is the pack as authored. 0.0 gives back
+exactly what a node with no companion gets, which makes each one an A/B
+against its own absence rather than a fade to black.
+
+These are presentation, not decode. The decode stays literal, so a pack that
+looks wrong at 1.0 is reporting something true about itself.
+
+## Licence of the source art
+
+Worth stating plainly, because the obvious assumption is wrong and this
+repository has got licences wrong before.
+
+The art a bake reads is not covered by the game's code licence, and not by
+Luanti's media terms either. Mineclonia's `LEGAL.md` puts its **code** under
+GPL-3.0 and its **textures** under CC BY-SA 4.0, being "based on Pixel
+Perfection by XSSheep and Pixel Perfection Legacy by Nova Wostra", with "most
+textures are verbatim copies". Other media there defaults to CC BY-SA 3.0.
+So the lineage runs back to a Minecraft resource pack, under a copyleft
+Creative Commons licence with a share-alike term and an attribution
+requirement.
+
+Everything `tools/pbr_bake.py` writes is a derivative of that art rather than
+new art: stage one is a deliberately low denoise pass conditioned on the
+source so the output stays the same texture, and the normal and spec maps are
+derived from that output. The licence and the attribution travel with them.
+
+Two practical consequences:
+
+- `pbr_bake.py` writes an `ATTRIBUTION.md` beside its output naming the source
+  game and its licence files. A folder of loose PNGs with no provenance is how
+  this gets lost.
+- `pbr_deploy.py` copies that file into the worldmod it builds. Serving a
+  worldmod is distribution, to every client that connects, so it is the point
+  at which the share-alike term actually bites.
+
+The top level file is the floor, not the whole account. Individual mods carry
+their own, naming authors the game wide statement does not:
+`mcl_amethyst/textures/LICENSE.txt` credits Nova_Wostra by name,
+`mcl_experience/textures/attributes.txt` points one texture at a third party
+repository, and `mobs_mc/LICENSE-media.md` is a media credits file in its own
+right. Mineclonia release 37652 has 27 such files. `write_attribution` sweeps
+`mods/` for them and lists each with its first line.
+
+Neither tool can tell you whether a given game's art permits any of this. Read
+those files before redistributing a bake.
 
 ## Tooling
 

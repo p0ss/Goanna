@@ -80,9 +80,16 @@ that media.
   are covered by Luanti's own media licence: CC BY-SA 3.0, Copyright (C)
   2010-2012 celeron55, Perttu Ahola and contributors, with some assets under
   CC BY-SA 4.0. See `luanti/LICENSE.txt`.
-- `docs/e0a_*.png` show a Mineclonia world, rendered offline in the E0a
-  study rather than by the client. Mineclonia's media carry their own
-  licences and attribution; see the Mineclonia project.
+- `docs/e0a_*.png`, and the other Mineclonia screenshots under `docs/`, show
+  a Mineclonia world. Mineclonia separates its code licence from its media
+  licence, and it is the media that applies here. Per its `LEGAL.md`, the
+  code is GPL-3.0 but the textures are CC BY-SA 4.0, being based on Pixel
+  Perfection by XSSheep and Pixel Perfection Legacy by Nova Wostra, of which
+  most are verbatim copies; other media there defaults to CC BY-SA 3.0.
+  Individual mods add their own files naming further authors, 27 of them in
+  release 37652, so `LEGAL.md` is the floor rather than the whole account.
+  None of this is Luanti's own media licence, which covers only the engine's
+  own assets.
 
 Both sets are reproduced here under those terms, for documentation.
 
