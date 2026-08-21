@@ -2,6 +2,7 @@
 // Copyright (C) 2026 the Goanna contributors
 
 #include "goanna_client.h"
+#include "iris/goanna_iris_effect.h"
 
 #include <gdextension_interface.h>
 #include <godot_cpp/core/class_db.hpp>
@@ -14,6 +15,7 @@ static void initialize_goanna(ModuleInitializationLevel p_level) {
     if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE)
         return;
     GDREGISTER_CLASS(goanna::GoannaClient);
+    GDREGISTER_CLASS(goanna::GoannaIrisEffect);
 }
 
 static void uninitialize_goanna(ModuleInitializationLevel p_level) {

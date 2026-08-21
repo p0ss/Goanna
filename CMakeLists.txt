@@ -44,6 +44,9 @@ add_library(goanna SHARED
     src/goanna_textures.cpp
     src/goanna_sky.cpp
     src/goanna_entities.cpp
+    src/iris/iris_glsl.cpp
+    src/iris/iris_pack.cpp
+    src/iris/goanna_iris_effect.cpp
     src/transplant/collision.cpp
     src/transplant/environment_raycast.cpp
     src/transplant/localplayer.cpp

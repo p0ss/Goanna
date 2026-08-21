@@ -18,7 +18,19 @@ var follow: Node3D            # the player/camera, for spawners attached to us
 
 var _spawners := {}           # server id -> GPUParticles3D
 var _attached := {}           # server id -> offset, for spawners that follow us
+var _weather := {}            # server id -> true, for rain and snow spawners
 var _tex_cache := {}
+
+func _ready() -> void:
+	add_to_group("goanna_particles")  # main reads precipitation() through this group
+
+# Luanti has no weather in the protocol; a game that rains does it with a
+# particle spawner attached to the player (Mineclonia's mcl_weather sends
+# weather_pack_rain_raindrop_N.png and weather_pack_snow_snowflake_N.png).
+# So precipitation is "a rain or snow spawner is running": 1.0 or 0.0, with
+# no strength in between. Shader packs read it as rainStrength.
+func precipitation() -> float:
+	return 1.0 if not _weather.is_empty() else 0.0
 
 var _dbg := 0.0
 var _test_done := false
@@ -154,6 +166,9 @@ func _add_spawner(ev: Dictionary) -> void:
 	if int(ev.get("attached_id", 0)) != 0 or pmin.length() + pmax.length() < 200.0:
 		# centred on the origin means player-relative, as weather is
 		_attached[id] = (pmin + pmax) * 0.5
+		var tex_name := str(ev.get("texture", "")).to_lower()
+		if tex_name.contains("rain") or tex_name.contains("snow"):
+			_weather[id] = true
 	# a finite spawner cleans itself up
 	var life_time := float(ev.get("time", 0.0))
 	if life_time > 0.0:
@@ -165,6 +180,7 @@ func _remove_spawner(id: int) -> void:
 		p.queue_free()
 	_spawners.erase(id)
 	_attached.erase(id)
+	_weather.erase(id)
 
 # A single particle: cheap enough to draw as a one-shot emitter.
 func _one_shot(ev: Dictionary) -> void:

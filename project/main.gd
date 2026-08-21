@@ -26,10 +26,13 @@ var view_bobbing := 1.0        # walk-cycle camera bob, 0 = off
 var light_sun := 1.5
 var light_ambient := 1.0
 var light_sdfgi := 1.4
+var light_sdfgi_cell := 0.5
+var light_pool := 96.0
 var light_ssao := 4.0
 var light_white := 1.5
 var _bob_phase := 0.0
 var shots_done := false
+var _chat_sent := false
 var chest_opened := false
 var fly_mode := false
 var walk_started := false
@@ -51,7 +54,53 @@ var inv_before := {}
 var fall_reported := false
 var underwater := false
 var headlight: OmniLight3D
+var iris: GoannaIrisEffect
 var test_started := 0.0
+
+# Named live-server fixtures bind the whole visual-test state together. These
+# coordinates match goanna_visual_test_mod. Add a new site there and here as
+# one change, rather than composing an unrecorded GOANNA_TP/TOD/VIEW command.
+const VISUAL_TESTS := {
+	# A lantern hanging under an overhang. Run it with Shadow casting lamps at 0
+	# and again at 32: a lantern is a solid node, so without a shadow map its
+	# light passes through itself and the overhang directly above it glows.
+	# Measured 17.3 against 4.6, a 3.7x brightening of a surface with no lamp
+	# having moved or changed.
+	"eaves": {
+		"server_position": Vector3(5120.0, 65.0, -14.0),
+		"camera_start": Vector3(5114.0, 67.0, -12.0),
+		"camera_step": Vector3(0.5, 0.0, 0.0),
+		"steps": 24,
+		"pitch": 10.0,
+		"yaw": 180.0,
+		"time_of_day": 0.5,
+		"warm_frames": 20,
+	},
+	# Walks from the subject lamps toward sixty decoys. Crossing the
+	# forty-eighth nearest lamp evicts the subject's own lamps from the pool, so
+	# the wall the camera is looking at loses its light without anything in the
+	# world having changed. That is the village symptom, reproduced.
+	"light_pool": {
+		"server_position": Vector3(4070.0, 65.0, -6.0),
+		"camera_start": Vector3(4074.0, 70.0, -14.0),
+		"camera_step": Vector3(0.5, 0.0, 0.0),
+		"steps": 45,
+		"pitch": -8.0,
+		"yaw": 150.0,
+		"time_of_day": 0.5,
+		"warm_frames": 20,
+	},
+	"lighting_walk": {
+		"server_position": Vector3(-4.0, 65.0, -16.0),
+		"camera_start": Vector3(-4.0, 66.625, -16.0),
+		"camera_step": Vector3(0.5, 0.0, 0.0),
+		"steps": 17,
+		"pitch": -5.0,
+		"yaw": 180.0,
+		"time_of_day": 0.5,
+		"warm_frames": 60,
+	},
+}
 
 func _ready() -> void:
 	add_to_group("goanna_main")  # game_ui updates look controls through this group
@@ -63,13 +112,17 @@ func _ready() -> void:
 	light_sun = _envf("GOANNA_SUN", light_sun)
 	light_ambient = _envf("GOANNA_AMBIENT", light_ambient)
 	light_sdfgi = _envf("GOANNA_SDFGI", light_sdfgi)
+	light_sdfgi_cell = _envf("GOANNA_SDFGI_CELL", light_sdfgi_cell)
+	light_pool = _envf("GOANNA_LIGHT_POOL", light_pool)
 	light_ssao = _envf("GOANNA_SSAO", light_ssao)
 	light_white = _envf("GOANNA_WHITE", light_white)
 	if cfg.load("user://goanna.cfg") == OK:
-		for k in ["sun", "ambient", "sdfgi", "ssao", "white"]:
+		for k in ["sun", "ambient", "sdfgi", "sdfgi_cell", "ssao", "white"]:
 			if cfg.has_section_key("settings", "light_" + k):
 				set("light_" + k, float(cfg.get_value("settings", "light_" + k)))
 	client = GoannaClient.new()
+	if OS.get_environment("GOANNA_SHADOW_LAMPS") != "":
+		client.set_shadow_lamps(int(OS.get_environment("GOANNA_SHADOW_LAMPS")))
 	add_child(client)
 	# In-game UI (HUD, chat, inventory, formspecs, pause menu): project/ui/.
 	# Guarded, because a script error anywhere in the UI leaves this node
@@ -149,6 +202,36 @@ func _ready() -> void:
 	# lanterns clip to flat white with every texel of detail gone, which is
 	# what makes materials read as "shiny" or "black" and nothing between.
 	# GOANNA_SUN / GOANNA_AMBIENT / GOANNA_SDFGI / GOANNA_SSAO / GOANNA_WHITE.
+	#
+	# GOANNA_AMBIENT does nothing, and cannot be made to while sdfgi_enabled
+	# is true below. Measured with project/lighting_chart.gd, which renders
+	# this same recipe with no world attached, sampling a dirt wall in a
+	# roofed bay (values are srgb8, sun at midday):
+	#
+	#   sdfgi on:  sky_contribution 1.0 / ambient 0.42 -> 30, 22, 19
+	#              sky_contribution 0.0 / ambient 0.0  -> 30, 22, 19
+	#              sky_contribution 0.0 / ambient 3.0  -> 30, 22, 19
+	#   sdfgi off: sky_contribution 0.0 / ambient 0.0  ->  0,  0,  0
+	#              sky_contribution 0.0 / ambient 3.0  -> 110, 93, 79
+	#              sky_contribution 1.0 / ambient 3.0  -> 25, 23, 26
+	#
+	# So two separate things gate it, and the second is the one that bites.
+	# Below full sky contribution the flat ambient_light_color * energy term
+	# blends in as documented, which is the sdfgi-off rows. But SDFGI
+	# replaces environment ambient outright for the geometry it covers, so
+	# with it on the whole ambient block is inert at any setting. An earlier
+	# pass here set sky_contribution to 0.5 and gave ambient_light_color the
+	# horizon colour, on the theory that the default of 1.0 was the only
+	# thing keeping GOANNA_AMBIENT dead. The chart says that changes nothing:
+	# both lines are reverted rather than left in looking load bearing.
+	#
+	# The levers that do reach a shadowed surface are sdfgi_energy (1.4 ->
+	# 3.0 took that same wall from 30, 22, 19 to 57, 47, 43), ssil_intensity
+	# (turning SSIL off at sdfgi 3.0 lifted it further to 81, 66, 59, so it
+	# is costing indirect light here rather than adding it) and
+	# sdfgi_read_sky_light, which is what actually carries sky colour into
+	# shadow: off, the same wall falls to 14, 5, 0. None of that is retuned
+	# here yet, only measured.
 	e.ambient_light_energy = light_ambient # a starting value; _apply_sky owns it
 	# AGX is deliberately desaturating: side by side with the vanilla client
 	# (which does not tonemap at all) it turned Luanti's punchy greens grey.
@@ -159,17 +242,27 @@ func _ready() -> void:
 	e.adjustment_saturation = 1.15
 	e.adjustment_contrast = 1.05
 	e.adjustment_brightness = 1.0
-	e.sdfgi_enabled = true
+	# GOANNA_NO_SDFGI=1 disables it outright. Setting Bounced light to 0 only
+	# zeroes sdfgi_energy, which leaves SDFGI enabled and still overriding the
+	# ordinary ambient path, so it is not a way to test life without it.
+	e.sdfgi_enabled = OS.get_environment("GOANNA_NO_SDFGI") == ""
 	e.sdfgi_cascades = 6
-	e.sdfgi_min_cell_size = 0.5
+	# GOANNA_SDFGI_CELL: cascade 0's cell size, which also sets how far each
+	# cascade reaches and therefore how often the whole grid re-centres on the
+	# camera. Small cells give finer bounced light and a smaller cascade, so
+	# the grid re-centres constantly as the player walks and everything it
+	# lights changes with it: measured at 0.5 as an irregular jump in shading
+	# every few steps, worst step 3.6 times the smallest, against a smooth
+	# ratio of 1.06 with SDFGI off entirely.
+	e.sdfgi_min_cell_size = light_sdfgi_cell
 	e.sdfgi_energy = light_sdfgi
-	e.ssao_enabled = true
+	e.ssao_enabled = OS.get_environment("GOANNA_NO_SSAO") == ""
 	e.ssao_intensity = light_ssao
 	e.ssao_radius = 2.2
 	e.ssao_power = 1.6
 	e.ssao_detail = 1.0
 	e.ssao_light_affect = 0.5
-	e.ssil_enabled = true
+	e.ssil_enabled = OS.get_environment("GOANNA_NO_SSIL") == ""
 	e.ssil_intensity = 1.4
 	e.glow_enabled = true
 	e.glow_intensity = 0.3
@@ -194,6 +287,45 @@ func _ready() -> void:
 	headlight.shadow_enabled = false
 	add_child(headlight)
 
+	# GOANNA_SHADERPACK=/path/to/pack: run an Iris or OptiFine shader pack's
+	# screen space chain (deferred, composite, final) as a CompositorEffect.
+	# The gbuffers programs are not run; see docs/iris-compat.md.
+	var shaderpack := OS.get_environment("GOANNA_SHADERPACK")
+	if shaderpack != "":
+		iris = GoannaIrisEffect.new()
+		if OS.get_environment("GOANNA_SHADERPACK_DUMP") != "":
+			iris.set_dump_dir(OS.get_environment("GOANNA_SHADERPACK_DUMP"))
+		if OS.get_environment("GOANNA_SHADERPACK_RAW") != "":
+			iris.set_bridge_colour(false)
+		if iris.load_pack(shaderpack):
+			var comp := Compositor.new()
+			comp.compositor_effects = [iris]
+			env.compositor = comp
+			# A pack's final program is the finished image: it has done its own
+			# exposure and tonemap, so Godot's must step aside or it is applied
+			# twice. The effect decodes the pack's output back to linear for
+			# the sRGB stage. GOANNA_SHADERPACK_RAW=1 keeps Godot's tonemap and
+			# hands the pack linear HDR instead, for comparison.
+			if iris.has_final() and iris.get_bridge_colour():
+				env.environment.tonemap_mode = Environment.TONE_MAPPER_LINEAR
+				env.environment.tonemap_white = 1.0
+				env.environment.tonemap_exposure = 1.0
+			print("shader pack ", iris.pack_name(), " ", iris.report())
+		else:
+			print("shader pack failed to load: ", iris.report())
+			iris = null
+
+	# GOANNA_MAT="channel=value,channel=value": set material strength channels
+	# at startup, so a headless run can put one of them in a state the settings
+	# panel would otherwise be needed for. Names are the ones
+	# GoannaClient::set_material_strength accepts.
+	if OS.get_environment("GOANNA_MAT") != "":
+		for pair in OS.get_environment("GOANNA_MAT").split(",", false):
+			var kv := pair.split("=")
+			if kv.size() == 2:
+				client.set_material_strength(kv[0].strip_edges(), float(kv[1]))
+				print("material strength ", kv[0].strip_edges(), " = ", float(kv[1]))
+
 	var host := OS.get_environment("GOANNA_HOST")
 	if host == "":
 		host = "127.0.0.1"
@@ -201,6 +333,29 @@ func _ready() -> void:
 	var pname := OS.get_environment("GOANNA_NAME")
 	if pname == "":
 		pname = "goanna"
+	# A directory searched by filename before the server's own media, LabPBR
+	# _n and _s companions included. This is Luanti's own texture_path
+	# override, exposed by set_texture_path. Settings panel writes
+	# settings/texture_pack; GOANNA_PACK overrides it for a headless run.
+	# Either way it has to be set before connect_to, because texture requests
+	# start as soon as the session does.
+	var pack := OS.get_environment("GOANNA_PACK")
+	if pack == "" and cfg.load("user://goanna.cfg") == OK:
+		pack = str(cfg.get_value("settings", "texture_pack", ""))
+	# A name map lets that pack be an unmodified Minecraft resource pack, whose
+	# files are named nothing like a Luanti game's. Without one, only a pack
+	# already using this game's names does anything.
+	var tmap := OS.get_environment("GOANNA_TEXTURE_MAP")
+	if tmap == "" and cfg.load("user://goanna.cfg") == OK:
+		tmap = str(cfg.get_value("settings", "texture_map", ""))
+	if tmap != "" and FileAccess.file_exists(tmap):
+		client.set_texture_map(tmap)
+		print("texture map ", tmap)
+	if pack != "":
+		client.set_texture_path(pack)
+		print("texture pack ", pack)
+	else:
+		print("no texture pack set (settings panel, or GOANNA_PACK)")
 	print("connecting to ", host, ":", port, " as ", pname)
 	client.connect_to(host, port, pname, OS.get_environment("GOANNA_PASS"))
 	if OS.get_environment("GOANNA_TOD") != "":
@@ -349,7 +504,7 @@ func _process(delta: float) -> void:
 		if OS.get_environment("GOANNA_KEEP") != "":
 			keep = int(OS.get_environment("GOANNA_KEEP"))
 		client.prune_blocks(keep)
-	client.update_lights(cam.position, 48)
+	client.update_lights(cam.position, 0 if OS.get_environment("GOANNA_NO_LIGHTS") != "" else int(light_pool))
 	client.update_motes(cam.position, 32)
 	client.update_lod(cam.position, 8)
 	client.sync_entities(delta)
@@ -425,6 +580,9 @@ func _process(delta: float) -> void:
 			for line in client.take_chat():
 				print("CHAT ", line)
 			if int(t) == 4:
+				if client.has_method("server_options"):
+					var so: Dictionary = client.server_options()
+					print("SERVER OPTIONS ", so if not so.is_empty() else "(none, vanilla server)")
 				var hud: Dictionary = client.hud_state()
 				print("HUD flags=%d hotbar=%d elems=%d" % [hud.get("flags", 0), hud.get("hotbar_itemcount", 0), (hud.get("elements", []) as Array).size()])
 				for e in hud.get("elements", []):
@@ -446,6 +604,12 @@ func _process(delta: float) -> void:
 		print("[%5.1fs] %s | %s | media %d/%d | blocks recv %d meshed %d | mats %d | res %d | lights %d%s" % [
 			t, s.get("state"), s.get("message"), s.get("media_received", 0), s.get("media_announced", 0),
 			s.get("blocks_received", 0), s.get("blocks_meshed", 0), s.get("materials", 0), s.get("resident_blocks", 0), s.get("node_lights", 0), extra])
+	# GOANNA_CHAT="cmd": send one chat line a few seconds in, so a server side
+	# test fixture can be triggered from a headless run.
+	if OS.get_environment("GOANNA_CHAT") != "" and not _chat_sent and t > 3.0:
+		_chat_sent = true
+		client.send_chat(OS.get_environment("GOANNA_CHAT"))
+		print("sent chat: ", OS.get_environment("GOANNA_CHAT"))
 	var shot := OS.get_environment("GOANNA_SHOT")
 	if shot != "" and OS.get_environment("GOANNA_TOGGLETEST") != "":
 		# walking mode, standing still, looking straight ahead: pillar appears 4 nodes in front
@@ -804,11 +968,18 @@ func _teleport() -> bool:
 	if client.server_player_position().distance_to(want) >= 2.0:
 		push_error("teleport to %s never took, still at %s" % [want, client.server_player_position()])
 		return false
-	# Wait for streaming to settle rather than for a fixed number of frames.
-	# A shot taken before the blocks arrive is a photograph of the sky, and
-	# it looks exactly like a render with the feature under test turned off.
-	# Measured in wall clock, not frames: at several hundred frames a second
-	# a frame count settles long before the server has sent anything.
+	await _wait_for_streaming()
+	cam.position = want
+	print("teleported to ", want)
+	return true
+
+
+# Wait for streaming to settle rather than for a fixed number of frames. A
+# shot taken before the blocks arrive is a photograph of the sky, and looks
+# exactly like a render with the feature under test turned off. Wall-clock
+# quiet time matters here: at several hundred frames a second, a frame count
+# settles long before the server has sent anything.
+func _wait_for_streaming() -> void:
 	var t0 := Time.get_ticks_msec()
 	var last_change := t0
 	var last := -1
@@ -824,8 +995,81 @@ func _teleport() -> bool:
 			break
 	print("blocks meshed at rest: ", last, " after ",
 		(Time.get_ticks_msec() - t0) / 1000.0, "s")
-	cam.position = want
-	print("teleported to ", want)
+
+
+# Capture a fixed-facing horizontal path through a named server fixture. The
+# player, time, geometry, light positions, camera and convergence budget are
+# all fixed, so adjacent-frame changes belong to the renderer rather than to
+# a survival world's spawn, clock or weather.
+func _fixture_shots(dir: String, name: String) -> bool:
+	if not VISUAL_TESTS.has(name):
+		push_error("unknown GOANNA_VISUAL_TEST '%s'" % name)
+		return false
+	var spec: Dictionary = VISUAL_TESTS[name]
+	var want: Vector3 = spec["server_position"]
+	client.set_time_of_day_override(float(spec["time_of_day"]))
+	client.send_chat("/goanna_fixture " + name)
+	var started := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - started < 30000:
+		client.poll_blocks(64)
+		await get_tree().process_frame
+		if client.server_player_position().distance_to(want) < 1.0:
+			break
+	if client.server_player_position().distance_to(want) >= 1.0:
+		push_error(("fixture '%s' never became ready; install " +
+			"goanna_visual_test_mod in a dedicated singlenode world") % name)
+		return false
+	await _wait_for_streaming()
+	if headlight:
+		headlight.light_energy = 0.0
+	var positions := []
+	var churn := 0
+	var in_range := 0
+	var start: Vector3 = spec["camera_start"]
+	var step: Vector3 = spec["camera_step"]
+	var fixed_pitch: float = spec["pitch"]
+	var fixed_yaw: float = spec["yaw"]
+	for i in int(spec["steps"]):
+		var pos := start + step * i
+		positions.append([pos.x, pos.y, pos.z])
+		cam.position = pos
+		pitch = fixed_pitch
+		yaw = fixed_yaw
+		cam.rotation_degrees = Vector3(pitch, yaw, 0)
+		client.set_player_pose(pos, pitch, yaw)
+		for frame in int(spec["warm_frames"]):
+			client.poll_blocks(64)
+			client.update_lights(cam.position, 0 if OS.get_environment("GOANNA_NO_LIGHTS") != "" else int(light_pool))
+			var st: Dictionary = client.render_stats()
+			churn += int(st.get("light_churn", 0))
+			in_range = maxi(in_range, int(st.get("lights_in_range", 0)))
+			await get_tree().process_frame
+		await RenderingServer.frame_post_draw
+		var image := get_viewport().get_texture().get_image()
+		var path := dir.path_join("%s_%02d.png" % [name, i])
+		image.save_png(path)
+		print("saved ", path, " at ", pos, " facing ", pitch, ",", yaw)
+	var fs: Dictionary = client.render_stats()
+	print("pool: lights_in_range<=%d churn=%d over %d steps, draws=%d blocks=%d" % [in_range,
+		churn, int(spec["steps"]), int(fs.get("draw_calls", -1)), int(fs.get("block_meshes", -1))])
+	var metadata := {
+		"fixture": name,
+		"light_churn": churn,
+		"lights_in_range": in_range,
+		"time_of_day": spec["time_of_day"],
+		"pitch": fixed_pitch,
+		"yaw": fixed_yaw,
+		"warm_frames": spec["warm_frames"],
+		"positions": positions,
+		"sdfgi_energy": light_sdfgi,
+		"sdfgi_min_cell_size": light_sdfgi_cell,
+		"ssao_intensity": light_ssao,
+		"sun_energy": light_sun,
+		"white_point": light_white,
+	}
+	var metadata_file := FileAccess.open(dir.path_join(name + ".json"), FileAccess.WRITE)
+	if metadata_file:
+		metadata_file.store_string(JSON.stringify(metadata, "\t") + "\n")
 	return true
 
 
@@ -833,6 +1077,10 @@ func _shots(dir: String) -> void:
 	fly_mode = true
 	if ui:
 		ui.visible = false  # keep the HUD/inventory out of rendering test shots
+	var fixture := OS.get_environment("GOANNA_VISUAL_TEST")
+	if fixture != "":
+		await _fixture_shots(dir, fixture)
+		return
 	await _teleport()
 	var base := cam.position
 	if OS.get_environment("GOANNA_AIM_ENTITY") != "":
@@ -890,6 +1138,15 @@ func _shots(dir: String) -> void:
 			var a := parts[2].split(",")
 			views.append([parts[0], origin + Vector3(float(p[0]), float(p[1]), float(p[2])),
 				Vector2(float(a[0]), float(a[1]))])
+	# GOANNA_AB="channel[,channel]": for each view, save the frame, then set
+	# those material strength channels to 0 and save it again as <name>_off.
+	# Both frames come from one run, so the world has streamed identically and
+	# the only difference is the channel. Two runs cannot do this: blocks
+	# arrive in a different order each time and the difference that shows up is
+	# the streaming, not the change.
+	var ab: PackedStringArray = []
+	if OS.get_environment("GOANNA_AB") != "":
+		ab = OS.get_environment("GOANNA_AB").split(",", false)
 	for v in views:
 		cam.position = v[1]
 		if v[2] is Vector2:
@@ -900,16 +1157,46 @@ func _shots(dir: String) -> void:
 			pitch = cam.rotation_degrees.x
 			yaw = cam.rotation_degrees.y
 		client.set_player_pose(cam.position, 0, 0)
-		var warm: int = 150 if OS.get_environment("GOANNA_MOTES") != "" else 40
-		for i in warm:
-			client.poll_blocks(64)
-			client.update_motes(cam.position, 32)
-			await get_tree().process_frame
-		await RenderingServer.frame_post_draw
-		var img := get_viewport().get_texture().get_image()
-		var path: String = dir.path_join(v[0] + ".png")
-		img.save_png(path)
-		print("saved ", path)
+		# GOANNA_BURST="0,1,2,4,8,16,30,60": capture at those frame counts after
+		# the move instead of one settled frame. A settled capture cannot show a
+		# transient, by construction: anything that pops on movement and then
+		# resolves has already resolved by the time a 40 or 150 frame warmup
+		# finishes, so every such capture reports the world as stable no matter
+		# how badly it flickered on the way there. Frame 0 is the frame the move
+		# lands on, which is where a light pool reshuffle or a cascade shift
+		# shows up.
+		var burst: Array = []
+		if OS.get_environment("GOANNA_BURST") != "":
+			for tok in OS.get_environment("GOANNA_BURST").split(",", false):
+				burst.append(int(tok))
+		if burst.is_empty():
+			burst = [150 if OS.get_environment("GOANNA_MOTES") != "" else 40]
+		var frame := 0
+		for target in burst:
+			while frame < target:
+				client.poll_blocks(64)
+				client.update_motes(cam.position, 32)
+				await get_tree().process_frame
+				frame += 1
+			await RenderingServer.frame_post_draw
+			var img := get_viewport().get_texture().get_image()
+			var suffix := "" if burst.size() == 1 else "_f%d" % target
+			var path: String = dir.path_join(v[0] + suffix + ".png")
+			img.save_png(path)
+			print("saved ", path)
+			if not ab.is_empty():
+				var was := {}
+				for ch in ab:
+					was[ch] = client.material_strength(ch)
+					client.set_material_strength(ch, 0.0)
+				await RenderingServer.frame_post_draw
+				await RenderingServer.frame_post_draw
+				var off_path: String = dir.path_join(v[0] + suffix + "_off.png")
+				get_viewport().get_texture().get_image().save_png(off_path)
+				print("saved ", off_path, " (", ",".join(ab), " = 0)")
+				for ch in was:
+					client.set_material_strength(ch, was[ch])
+				await RenderingServer.frame_post_draw
 	# Put the player back where the sweep found them. Each view pose is sent
 	# to the server so it keeps streaming blocks around the camera, but the
 	# server treats a large jump as speed-hacking and resets us, while a
@@ -974,6 +1261,7 @@ func apply_lighting() -> void:
 	var e := env.environment
 	e.tonemap_white = light_white
 	e.sdfgi_energy = light_sdfgi
+	e.sdfgi_min_cell_size = light_sdfgi_cell
 	e.ssao_intensity = light_ssao
 
 func _envf(name: String, dflt: float) -> float:
@@ -1087,12 +1375,10 @@ func _apply_sky() -> void:
 			e.fog_density = auto_density
 	# --- ambient / grade from day-night ratio and server lighting ---
 	var ratio: float = st["day_night_ratio"]
-	# The setting scales the sky driven ambient rather than replacing it, so
-	# day and night still differ while the slider still means something.
-	# Neutral is 1.0. It was written against a neutral of 1.1 to keep old
-	# GOANNA_AMBIENT recipes working, but there were none worth keeping:
-	# until the slider landed this line overwrote the env hook every frame,
-	# so GOANNA_AMBIENT had never done anything at all.
+	# Kept wired and kept honest: this line is inert while SDFGI is on, for
+	# the reason measured in _apply_lighting, and it is the sdfgi off path
+	# that it is here for. Day and night differ through the sky itself and
+	# through background_energy_multiplier below, not through this.
 	e.ambient_light_energy = lerp(0.14, 0.42, ratio) * light_ambient
 	# do not push the sky toward white; it reads as haze and flattens the blue
 	e.background_energy_multiplier = lerp(0.25, 0.95, ratio)
@@ -1112,6 +1398,18 @@ func _apply_sky() -> void:
 			e.volumetric_fog_anisotropy = 0.7
 			e.volumetric_fog_albedo = Color(0.9, 0.93, 1.0)
 			e.volumetric_fog_length = 96.0
+	# --- shader pack world state ---
+	# What a pack's uniforms can honestly be told: the sky zenith as the
+	# server blended it (before the look tweak above), the fog colour as the
+	# environment now has it (the underwater tint while submerged), the
+	# precipitation from the particle side, and "in water" for any liquid,
+	# since the node definition does not say which liquids are lava.
+	if iris:
+		var pn := get_tree().get_first_node_in_group("goanna_particles")
+		var rain: float = pn.precipitation() if pn != null else 0.0
+		iris.set_world_state({"sun_direction": sun_dir, "moon_direction": moon_dir,
+			"time_of_day": st["time_of_day"], "in_water": 1 if underwater else 0,
+			"sky_color": top, "fog_color": e.fog_light_color, "rain": rain})
 
 
 # Sun/moon disc textures come from the server's media through the texture
