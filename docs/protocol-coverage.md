@@ -40,8 +40,9 @@ stand-in client), so `node_visuals` handles them as upstream does.
 - Batched particles and comprehensive testing of particle parameters; node
   metadata display, minimap data, camera packets (FOV, CAMERA), mod channels,
   client-side mods (SSCSM).
-- Formspec `model[]` elements and `style[]`. Formspecs are otherwise parsed and drawn by
-  `project/ui/formspec.gd`, with the layout maths from `GUIFormSpecMenu`.
+- Several formspec elements have deliberate fallbacks or remain missing.
+  The exact, executable support matrix is maintained in
+  [formspec conformance](formspec-conformance.md).
 
 ## Rendering settings
 

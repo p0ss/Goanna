@@ -202,8 +202,6 @@ func _parse(spec: String) -> void:
 					real_coordinates = true
 			"real_coordinates":
 				real_coordinates = params.strip_edges() == "true"
-			"no_prepend":
-				pass
 			"size":
 				var p := fs_split(params, ",")
 				if p.size() >= 2:
@@ -360,11 +358,6 @@ func _build() -> void:
 			"model": _model(parts)
 			"style", "style_type", "tableoptions", "tablecolumns", "scrollbar", "scrollbaroptions":
 				skipped[name] = skipped.get(name, 0) + 1
-			"set_focus", "focus":
-				var p := fs_split(params, ";")
-				if p.size() >= 1:
-					focus_name = fs_unescape(p[0])
-					focus_force = p.size() >= 2 and p[1].strip_edges() == "true"
 			_:
 				skipped[name] = skipped.get(name, 0) + 1
 	if skipped.size() > 0:
@@ -969,6 +962,9 @@ func _tooltip(parts: PackedStringArray) -> void:
 	area.tooltip_text = fs_unescape(parts[2])
 	area.mouse_filter = Control.MOUSE_FILTER_STOP
 	_add(area, _pos(v), _geom(g))
+	# Keep the transparent tooltip region behind interactive controls. This
+	# preserves hover help over images without swallowing a button's clicks.
+	current_parent.move_child(area, 0)
 
 # model[x,y;w,h;name;mesh;textures;...]: the 3D mesh preview is not rendered
 # yet. Drawing nothing leaves the game's own dark panel showing as a black
@@ -1034,6 +1030,7 @@ class AnimatedFormspecImage extends Control:
 
 	func setup(source: Texture2D, frames: int, duration_ms: int, start: int,
 			margins: Vector4) -> void:
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
 		frame_count = maxi(frames, 1)
 		atlas.atlas = source
 		current_frame = clampi(start, 0, frame_count - 1)
