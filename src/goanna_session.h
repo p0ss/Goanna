@@ -175,6 +175,26 @@ public:
         u8 glow = 0;
         bool vertical = false, collision = false;
         u16 attached_id = 0;
+        // Everything below here is read but not all of it is drawn yet; see
+        // docs/particle-coverage.md for which is which. It is parsed
+        // regardless, because the stream is positional: stopping early does
+        // not just drop the tail, it means never being able to read anything
+        // added after it.
+        bool collision_removal = false, object_collision = false;
+        u8 blend_mode = 0;              // alpha, add, sub, screen, clip
+        int anim_frames = 0;            // 0 when the texture is not animated
+        float anim_frame_length = 0.0f;
+        u16 node_param0 = 0;            // a particle may take a node's tile
+        u8 node_param2 = 0, node_tile = 0;
+        v3f drag;
+        v3f jitter_min, jitter_max;
+        float bounce_min = 0.0f, bounce_max = 0.0f;
+        v3f radius_min, radius_max;
+        u8 attractor_kind = 0;          // none, point, line, plane
+        float attract_min = 0.0f, attract_max = 0.0f;
+        v3f attractor_origin, attractor_direction;
+        bool attractor_kill = true;
+        std::vector<std::string> texpool;
     };
     struct ParticleEvent {
         v3f pos, vel, acc;

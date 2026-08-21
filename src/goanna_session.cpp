@@ -1818,6 +1818,68 @@ void GoannaSession::onAddParticleSpawner(NetworkPacket &pkt) {
     p.collision_removal = readU8(is);
     u16 attached_id = readU16(is);
 
+    // Read the rest of the stream, following the client's own order in
+    // handleCommand_AddParticleSpawner. This used to stop here, which quietly
+    // cost every spawner its glow, its animation, its node tile and the whole
+    // 5.6 block. Reading a prefix is not a safe way to ignore a field: the
+    // format is positional, so anything appended upstream is unreachable
+    // until everything before it is read.
+    bool have_tail = true;
+    try {
+        p.animation.deSerialize(is, proto);
+        p.glow = readU8(is);
+        p.object_collision = readU8(is);
+        do {
+            if (!is.good() || is.peek() == std::istringstream::traits_type::eof())
+                break;
+            p.node.param0 = readU16(is);
+            p.node.param2 = readU8(is);
+            p.node_tile = readU8(is);
+            if (proto < 42) {
+                if (!is.good() || is.peek() == std::istringstream::traits_type::eof())
+                    break;
+                p.pos.start.bias = readF32(is);
+                p.vel.start.bias = readF32(is);
+                p.acc.start.bias = readF32(is);
+                p.exptime.start.bias = readF32(is);
+                p.size.start.bias = readF32(is);
+                p.pos.end.deSerialize(is);
+                p.vel.end.deSerialize(is);
+                p.acc.end.deSerialize(is);
+                p.exptime.end.deSerialize(is);
+                p.size.end.deSerialize(is);
+            }
+            p.texture.deSerialize(is, proto, true);
+            p.drag.deSerialize(is);
+            p.jitter.deSerialize(is);
+            p.bounce.deSerialize(is);
+            ParticleParamTypes::deSerializeParameterValue(is, p.attractor_kind);
+            if (p.attractor_kind != ParticleParamTypes::AttractorKind::none) {
+                p.attract.deSerialize(is);
+                p.attractor_origin.deSerialize(is);
+                p.attractor_attachment = readU16(is);
+                p.attractor_kill = !!(readU8(is) & 1);
+                if (p.attractor_kind != ParticleParamTypes::AttractorKind::point) {
+                    p.attractor_direction.deSerialize(is);
+                    p.attractor_direction_attachment = readU16(is);
+                }
+            }
+            p.radius.deSerialize(is);
+            u16 texpoolsz = readU16(is);
+            p.texpool.reserve(texpoolsz);
+            for (u16 i = 0; i < texpoolsz; ++i) {
+                ServerParticleTexture newtex;
+                newtex.deSerialize(is, proto);
+                p.texpool.push_back(newtex);
+            }
+        } while (0);
+    } catch (const SerializationError &) {
+        // An older or shorter spawner than this build expects. What was read
+        // before the end stands; the rest keeps its default.
+        have_tail = false;
+    }
+    (void)have_tail;
+
     ParticleSpawnerEvent ev;
     ev.id = server_id;
     ev.amount = p.amount;
@@ -1836,6 +1898,38 @@ void GoannaSession::onAddParticleSpawner(NetworkPacket &pkt) {
     ev.vertical = p.vertical;
     ev.collision = p.collisiondetection;
     ev.attached_id = attached_id;
+    ev.glow = p.glow;
+    ev.collision_removal = p.collision_removal;
+    ev.object_collision = p.object_collision;
+    ev.blend_mode = (u8)p.texture.blendmode;
+    if (p.animation.type == TAT_VERTICAL_FRAMES) {
+        // Frame count needs the texture's pixel size, which the session does
+        // not have, so carry the ratio and let the renderer finish it.
+        ev.anim_frames = p.animation.vertical_frames.aspect_h > 0
+                ? p.animation.vertical_frames.aspect_w / p.animation.vertical_frames.aspect_h : 0;
+        ev.anim_frame_length = p.animation.vertical_frames.length;
+    } else if (p.animation.type == TAT_SHEET_2D) {
+        ev.anim_frames = p.animation.sheet_2d.frames_w * p.animation.sheet_2d.frames_h;
+        ev.anim_frame_length = p.animation.sheet_2d.frame_length;
+    }
+    ev.node_param0 = p.node.param0;
+    ev.node_param2 = p.node.param2;
+    ev.node_tile = p.node_tile;
+    ev.drag = toGodotVec(p.drag.start.min);
+    ev.jitter_min = toGodotVec(p.jitter.start.min);
+    ev.jitter_max = toGodotVec(p.jitter.start.max);
+    ev.bounce_min = p.bounce.start.min;
+    ev.bounce_max = p.bounce.start.max;
+    ev.radius_min = toGodotVec(p.radius.start.min);
+    ev.radius_max = toGodotVec(p.radius.start.max);
+    ev.attractor_kind = (u8)p.attractor_kind;
+    ev.attract_min = p.attract.start.min;
+    ev.attract_max = p.attract.start.max;
+    ev.attractor_origin = toGodotVec(p.attractor_origin.start);
+    ev.attractor_direction = toGodotVec(p.attractor_direction.start);
+    ev.attractor_kill = p.attractor_kill;
+    for (const auto &t : p.texpool)
+        ev.texpool.push_back(t.string);
     std::lock_guard<std::mutex> lk(m_sound_mutex);
     m_spawners.push_back(ev);
 }
