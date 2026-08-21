@@ -24,7 +24,10 @@
 #include "client/mapblock_mesh.h"
 #include "client/tile.h"
 #include "client/node_visuals.h"
+#include "goanna_light.h"
+#include "client/texturepaths.h"
 #include "nodedef.h"
+#include "settings.h"
 #include <SMesh.h>
 #include <CMeshBuffer.h>
 #include <SMaterial.h>
@@ -35,6 +38,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <algorithm>
+#include <map>
 #include <set>
 #include <godot_cpp/variant/packed_vector2_array.hpp>
 
@@ -150,6 +154,31 @@ void GoannaClient::set_auto_bump(float strength) {
             m_session->requeueBlock(kv.first);
     }
 }
+// Ice and its like are translucent because their texture says so, which puts
+// them in the transparent pass, where Godot sorts whole objects by centre
+// distance. A mapblock sized sheet of ice can therefore sort in front of a
+// waterfall it is behind, and flip as the camera moves. Opaque puts them in
+// the opaque pass, where depth decides per pixel and there is no order to get
+// wrong. It is a trade rather than a fix, so it is a setting: you stop seeing
+// the water under the ice. Rebuilds materials immediately, like auto bump, so
+// it can be judged by dragging the toggle rather than by restarting.
+void GoannaClient::set_shadow_lamps(int n) {
+    m_shadow_lamps = std::max(0, std::min(64, n));
+}
+
+void GoannaClient::set_solid_ice(bool on) {
+    if (on == m_solid_ice)
+        return;
+    m_solid_ice = on;
+    m_materials.clear();
+    if (m_session) {
+        std::lock_guard<std::mutex> lk(m_session->mapLock());
+        for (auto &kv : m_block_nodes)
+            m_session->requeueBlock(kv.first);
+    }
+}
+bool GoannaClient::solid_ice() const { return m_solid_ice; }
+
 GoannaClient::~GoannaClient() {}
 
 String GoannaClient::hello() const {
@@ -160,12 +189,95 @@ String GoannaClient::luanti_version() const {
     return String("luanti core ") + g_version_hash;
 }
 
+// The shader uniform names are the channel names; the defaults here must match
+// the shaders' own, because a material built before any slider moves gets
+// whatever the shader declares.
+static const std::map<std::string, float> kMatStrengthDefaults = {
+    {"normal", 1.0f}, {"ao", 1.0f}, {"roughness", 1.0f},
+    {"specular", 1.0f}, {"emission", 4.0f}, {"sss", 1.0f},
+    // Per vertex node light and occlusion, docs/mesh-attributes.md. Here
+    // rather than as fixed uniforms so they can be swept at runtime, which is
+    // the only way to A/B them without the world streaming differently between
+    // two runs and swamping the difference being measured.
+    {"sky_light", 1.0f}, {"vertex_ao", 1.0f}, {"vertex_ao_light", 0.0f},
+    {"debug_nodelight", 0.0f},
+};
+
+float GoannaClient::material_strength(const String &channel) const {
+    std::string k(channel.utf8().get_data());
+    auto it = m_mat_strength.find(k);
+    if (it != m_mat_strength.end())
+        return it->second;
+    auto d = kMatStrengthDefaults.find(k);
+    return d == kMatStrengthDefaults.end() ? 1.0f : d->second;
+}
+
+void GoannaClient::set_material_strength(const String &channel, float value) {
+    std::string k(channel.utf8().get_data());
+    if (kMatStrengthDefaults.find(k) == kMatStrengthDefaults.end()) {
+        UtilityFunctions::push_warning("unknown material strength channel: ", channel);
+        return;
+    }
+    m_mat_strength[k] = value;
+    // Every material already built, not just the ones made from now on: these
+    // are sliders, and a strength that only takes effect on newly meshed
+    // blocks is unusable for judging a pack.
+    String uniform = channel + String("_strength");
+    for (auto &kv : m_materials) {
+        Ref<ShaderMaterial> sm = kv.second;
+        if (sm.is_valid())
+            sm->set_shader_parameter(uniform, value);
+    }
+}
+
+Dictionary GoannaClient::server_options() const {
+    Dictionary d;
+    if (!m_session)
+        return d;
+    for (const auto &kv : m_session->serverOptions())
+        d[String(kv.first.c_str())] = String(kv.second.c_str());
+    return d;
+}
+
+void GoannaClient::set_texture_map(const String &csv) {
+    m_texture_map = csv;
+    if (m_session)
+        m_session->setTextureMap(std::string(csv.utf8().get_data()));
+}
+
+void GoannaClient::set_texture_path(const String &path) {
+    // g_settings only exists once a GoannaSession has been constructed (its
+    // constructor creates the SL_GLOBAL layer), which the documented calling
+    // convention, before connect_to, means it usually does not yet. Remember
+    // it either way; connect_to applies whatever is remembered right after
+    // building the session and before start() begins requesting textures.
+    // If a session already exists (called again mid-connection, to swap
+    // packs), apply immediately instead of waiting for a connect_to that
+    // will not come.
+    m_texture_path = path;
+    if (g_settings) {
+        g_settings->set("texture_path", std::string(path.utf8().get_data()));
+        clearTextureNameCache();
+    }
+}
+
+String GoannaClient::texture_path() const {
+    return m_texture_path;
+}
+
 void GoannaClient::connect_to(const String &host, int port, const String &player_name,
         const String &password) {
     // Luanti's base texture pack lives in the luanti/ checkout next to project/.
     String share = ProjectSettings::get_singleton()->globalize_path("res://../luanti");
     GoannaSession::setSharePath(share.utf8().get_data());
     m_session = std::make_unique<GoannaSession>();
+    if (!m_texture_map.is_empty())
+        m_session->setTextureMap(std::string(m_texture_map.utf8().get_data()));
+    // GoannaSession's constructor is what creates g_settings; set_texture_path
+    // could only remember the value, not apply it, if called first as
+    // documented. Apply it now, before start() begins requesting textures.
+    if (!m_texture_path.is_empty() && g_settings)
+        g_settings->set("texture_path", std::string(m_texture_path.utf8().get_data()));
     m_session->start(host.utf8().get_data(), (uint16_t)port, player_name.utf8().get_data(),
             password.utf8().get_data());
 }
@@ -814,6 +926,13 @@ Dictionary GoannaClient::step_player(double dt, const Dictionary &keys, float pi
     return out;
 }
 
+// Every node surface declares CUSTOM0 as four unsigned bytes: block light,
+// sky light, ambient occlusion, spare. RGBA8_UNORM happens to be format 0, so
+// this constant is zero today; it is written out rather than assumed, because
+// the day the packing changes a silent 0 would be very hard to find.
+static const uint64_t kNodeSurfaceFlags =
+        (uint64_t)Mesh::ARRAY_CUSTOM_RGBA8_UNORM << Mesh::ARRAY_FORMAT_CUSTOM0_SHIFT;
+
 Ref<Material> GoannaClient::materialForIrr(const video::SMaterial &m, u16 layer) {
     return materialFor(keyForIrr(m, layer));
 }
@@ -892,6 +1011,54 @@ MaterialKey GoannaClient::keyForIrr(const video::SMaterial &m, u16 layer) {
     return key;
 }
 
+// Nodes that use a liquid drawtype without being a liquid.
+//
+// Mineclonia's ice is the case that matters: drawtype liquid, so that it tiles
+// seamlessly with itself the way water does, but liquid_type LIQUID_NONE
+// because it is a solid block you walk on. Luanti's tile generation only looks
+// at the drawtype, so the tile arrives as TILE_MATERIAL_LIQUID_TRANSPARENT and
+// materialFor hands it to the water shader.
+//
+// Drawn as water it looks like water: the shader reads the depth buffer to
+// work out how thick the column in front of it is, so a sheet of ice renders
+// pale where something sits close behind it and dark where the water below is
+// deep. That is the patchwork of dark rectangles on a frozen ocean, and why it
+// changes as the view does, and why only water with ice over it is affected.
+// The node is never wrong, only its material.
+//
+// ContentFeatures has both halves of the answer already, so collect the tile
+// textures of every node that draws as a liquid and is not one, and keep them
+// off the water shader.
+void GoannaClient::buildFakeLiquidTextures() {
+    if (m_fake_liquid_built || !m_session)
+        return;
+    const NodeDefManager *ndef = m_session->nodeDefs();
+    if (!ndef)
+        return;
+    m_fake_liquid_built = true;
+    // NodeDefManager exposes no count, but get() is bounds safe and returns
+    // the unknown feature past the end, so walk the whole content_t range once.
+    for (u32 c = 0; c <= 0xffff; ++c) {
+        const ContentFeatures &f = ndef->get((content_t)c);
+        if (f.name.empty() || f.name == "unknown")
+            continue;
+        if (f.drawtype != NDT_LIQUID && f.drawtype != NDT_FLOWINGLIQUID)
+            continue;
+        if (f.liquid_type != LIQUID_NONE)
+            continue;
+        for (const auto &tdef : f.tiledef) {
+            if (tdef.name.empty())
+                continue;
+            u32 id = m_session->tsrc()->getTextureId(tdef.name);
+            if (id)
+                m_fake_liquid_tex.insert(id);
+        }
+    }
+    if (getenv("GOANNA_DEBUG_WHITE"))
+        UtilityFunctions::print("fake liquids: ", (int)m_fake_liquid_tex.size(),
+                " textures drawn as liquid that are not one");
+}
+
 Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
     auto it = m_materials.find(key.hash());
     if (it != m_materials.end())
@@ -904,6 +1071,7 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
         m_sh_plants = rl->load("res://shaders/waving_plants.gdshader");
         m_sh_glass = rl->load("res://shaders/glass.gdshader");
         m_sh_array = rl->load("res://shaders/nodes_array.gdshader");
+        m_sh_array_scissor = rl->load("res://shaders/nodes_array_scissor.gdshader");
     }
     GoannaTexture *gt = m_session->tsrc()->goannaTexture(key.texture_id);
     Ref<ImageTexture> tex = gt ? gt->godotTexture() : Ref<ImageTexture>();
@@ -933,14 +1101,25 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
         if (arr.is_valid()) {
             Ref<ShaderMaterial> sm;
             sm.instantiate();
-            sm->set_shader(m_sh_array);
+            // Two shaders, not one with a scissor toggle: godotengine/godot#60388,
+            // see nodes_array.gdshader.
+            sm->set_shader(agt->hasAlpha() ? m_sh_array_scissor : m_sh_array);
             sm->set_shader_parameter("albedo_array", arr);
-            sm->set_shader_parameter("scissor", agt->hasAlpha());
             // Authored PBR from the server's own media, if a pack ships it:
             // this is what a resource pack buys over inferring relief from
             // the diffuse texture, and it needs no protocol change at all.
-            Ref<Texture2DArray> nrm = agt->godotArraySuffixed(*m_session->tsrc(), "_n");
+            // GOANNA_NO_NORMAL=1 binds everything else and drops only the
+            // normal array, so a fixed camera A/B separates what the normal
+            // map contributes from what swapping the albedo contributes. The
+            // two are easy to confuse: a pack changes both at once, and the
+            // albedo is much the louder of them.
+            Ref<Texture2DArray> nrm = getenv("GOANNA_NO_NORMAL")
+                    ? Ref<Texture2DArray>()
+                    : agt->godotArraySuffixed(*m_session->tsrc(), "_n");
             Ref<Texture2DArray> spc = agt->godotArraySuffixed(*m_session->tsrc(), "_s");
+            for (const auto &d : kMatStrengthDefaults)
+                sm->set_shader_parameter(String(d.first.c_str()) + String("_strength"),
+                        material_strength(String(d.first.c_str())));
             sm->set_shader_parameter("has_normal", nrm.is_valid());
             sm->set_shader_parameter("has_spec", spc.is_valid());
             if (nrm.is_valid())
@@ -961,7 +1140,13 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
     case TILE_MATERIAL_LIQUID_TRANSPARENT:
     case TILE_MATERIAL_WAVING_LIQUID_TRANSPARENT:
     case TILE_MATERIAL_WAVING_LIQUID_BASIC:
-        sh = m_sh_water; break;
+        // ice and its like draw as liquids without being one; see
+        // buildFakeLiquidTextures. Leaving sh unset drops them onto the
+        // ordinary path, which is what they are.
+        buildFakeLiquidTextures();
+        if (!m_fake_liquid_tex.count(key.texture_id))
+            sh = m_sh_water;
+        break;
     case TILE_MATERIAL_WAVING_LEAVES:
         sh = m_sh_leaves; break;
     case TILE_MATERIAL_WAVING_PLANTS:
@@ -1007,8 +1192,23 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
     if (tex.is_valid()) {
         mat->set_texture(BaseMaterial3D::TEXTURE_ALBEDO, tex);
         if (base == video::EMT_TRANSPARENT_ALPHA_CHANNEL) {
-            mat->set_transparency(BaseMaterial3D::TRANSPARENCY_ALPHA);
-            mat->set_depth_draw_mode(BaseMaterial3D::DEPTH_DRAW_ALWAYS);
+            // GOANNA_SOLID_ICE=1: render a node drawn as a liquid that is not
+            // one as opaque, rather than at the translucency its texture asks
+            // for. Mineclonia's ice is a flat alpha of 186, so 27 per cent of
+            // what is behind it shows through, and that 27 per cent costs a
+            // great deal: two transparent surfaces in different mapblocks are
+            // sorted by object centre, so a large ice mesh can sort in front
+            // of a waterfall it is behind, and flip as the camera moves. Going
+            // opaque puts it in the opaque pass where depth resolves it per
+            // pixel and no sorting is involved. It is a trade, not a fix: you
+            // stop seeing the water under the ice.
+            buildFakeLiquidTextures();
+            if (m_solid_ice && m_fake_liquid_tex.count(key.texture_id)) {
+                // leave the material opaque
+            } else {
+                mat->set_transparency(BaseMaterial3D::TRANSPARENCY_ALPHA);
+                mat->set_depth_draw_mode(BaseMaterial3D::DEPTH_DRAW_ALWAYS);
+            }
         } else if (base == video::EMT_TRANSPARENT_ALPHA_CHANNEL_REF || (gt && gt->hasAlpha())) {
             mat->set_transparency(BaseMaterial3D::TRANSPARENCY_ALPHA_SCISSOR);
             mat->set_alpha_scissor_threshold(0.5f);
@@ -1109,6 +1309,7 @@ void GoannaClient::sync_entities(double dt) {
     if (!m_entities) {
         m_entities = std::make_unique<EntityRenderer>(this);
         m_entities->setShowBody(m_show_body);
+        m_entities->setAutoBump(m_auto_bump);
     }
     std::lock_guard<std::mutex> lk(m_session->mapLock());
     if (dt > 0.1) dt = 0.1;
@@ -1192,6 +1393,8 @@ Dictionary GoannaClient::render_stats() {
     d["materials"] = (int)m_materials.size();
     d["resident_blocks"] = m_session ? m_session->residentBlocks() : 0;
     d["light_pool"] = (int)m_light_pool.size();
+    d["lights_in_range"] = m_lights_in_range;
+    d["light_churn"] = m_light_churn;
     d["mote_pool"] = (int)m_mote_pool.size();
     RenderingServer *rs = RenderingServer::get_singleton();
     if (rs) {
@@ -1210,47 +1413,252 @@ Array GoannaClient::entity_list() {
     return m_entities->list(*m_session);
 }
 
+// The render layer that light emitting node faces are drawn on. Node lights
+// are told not to accept shadow casters from it; the sun still does.
+static const uint32_t GLOW_LAYER = 1u << 1;
+
 void GoannaClient::update_lights(const Vector3 &around, int max_lights) {
     auto t0 = clock_t_::now();
-    std::vector<const NodeLight *> all;
+
+    // A lamp's identity is where it is. Node aligned positions make the
+    // rounding exact, so this key is stable for as long as the lamp exists and
+    // survives the pool being rebuilt.
+    auto key_of = [](const NodeLight *l) {
+        return ((int64_t)llroundf(l->pos.x) * 73856093LL) ^
+                ((int64_t)llroundf(l->pos.y) * 19349663LL) ^
+                ((int64_t)llroundf(l->pos.z) * 83492791LL);
+    };
+    // Steeper than linear so a level-2 firefly bush is a soft glow while a
+    // level-14 torch keeps its old brightness.
+    auto range_of = [](float level) { return 3.0f + 11.0f * level; };
+    auto energy_of = [](float level) { return 5.5f * std::pow(level, 1.6f); };
+
+    struct Cand {
+        const NodeLight *l;
+        int64_t key;
+        float score;
+    };
+    std::vector<Cand> all;
     for (auto &kv : m_block_lights)
-        for (auto &l : kv.second)
-            if (l.pos.distance_squared_to(around) < 64.0f * 64.0f)
-                all.push_back(&l);
-    std::sort(all.begin(), all.end(), [&](const NodeLight *a, const NodeLight *b) {
-        return a->pos.distance_squared_to(around) < b->pos.distance_squared_to(around);
+        for (auto &l : kv.second) {
+            // Rank by the distance to the lamp's lit region, not to the lamp.
+            //
+            // A lamp lights the geometry around itself, and that geometry is
+            // visible from much further away than the lamp is "near". Ranking
+            // by raw camera distance therefore leaves the lanterns on a house
+            // fifty blocks off out of the pool entirely, and admits them only
+            // once the player has walked close enough to outrank whatever is
+            // underfoot. The house appearing to light up as you approach it is
+            // that, not a texture or a shadow effect.
+            //
+            // Subtracting the range gives the distance to the nearest surface
+            // the lamp can actually light, which is zero for anything the
+            // player is standing inside and grows only once its lit region is
+            // genuinely far away. A bright lantern therefore outranks a dim
+            // firefly bush at the same distance, which is the right answer.
+            // Not clamped at zero. Clamping ties every lamp whose lit region
+            // reaches the camera at the same score, which in a lit room is most
+            // of them, and the tie-break then decides by key, meaning
+            // arbitrarily. Letting it go negative ranks by how far inside the
+            // lamp's reach the camera is, so a lamp overhead beats one across
+            // the room instead of drawing with it.
+            float score = l.pos.distance_to(around) - range_of(l.level);
+            if (score < 64.0f)
+                all.push_back({ &l, key_of(&l), score });
+        }
+    m_lights_in_range = (int)all.size();
+    m_light_churn = 0;
+
+    // Break ties on the key. A symmetrical build gives you equally ranked
+    // lamps constantly, and without a tie-break their order comes from however
+    // the block map happened to iterate, so they can swap between frames with
+    // nothing having moved.
+    std::sort(all.begin(), all.end(), [](const Cand &a, const Cand &b) {
+        return a.score != b.score ? a.score < b.score : a.key < b.key;
     });
-    if ((int)all.size() > max_lights)
-        all.resize(max_lights);
+
     while ((int)m_light_pool.size() < max_lights) {
         OmniLight3D *ol = memnew(OmniLight3D);
         ol->set_shadow(false);
         ol->set_visible(false);
+        // Keep node lights out of global illumination. Godot's default for a
+        // light is BAKE_DYNAMIC, meaning it feeds SDFGI, and SDFGI re-converges
+        // over several frames whenever its lighting changes. This pool follows
+        // the camera, so walking past a torch perturbed GI continuously and the
+        // world visibly settled behind the player. Measured on the light_pool
+        // fixture: a step differed from its own settled frame by 11.34 at frame
+        // 0, decaying over four frames, and that transient disappeared if
+        // either SDFGI or these lights' shadows were turned off, which is what
+        // identified the pair as the cause rather than either alone.
+        //
+        // Torchlight is a small, local, moving contribution that GI was not
+        // selling anyway; the sun and sky still light the scene through SDFGI.
+        ol->set_bake_mode(Light3D::BAKE_DISABLED);
+        ol->set_shadow_caster_mask(0xFFFFFFFFu & ~GLOW_LAYER);
         add_child(ol);
         m_light_pool.push_back(ol);
+        m_light_slot.push_back(LightSlot());
     }
-    for (size_t i = 0; i < m_light_pool.size(); ++i) {
-        OmniLight3D *ol = m_light_pool[i];
-        if (i < all.size()) {
-            const NodeLight *l = all[i];
-            // Shadows on the nearest few only: omni shadows are cube maps and
-            // each costs six depth passes.
-            ol->set_shadow(i < 8);
-            ol->set_position(l->pos + Vector3(0.5f, 0.5f, -0.5f) * 0.0f);
-            ol->set_color(l->color);
-            // Steeper than linear so a level-2 firefly bush is a soft glow
-            // while a level-14 torch keeps its old brightness.
-            ol->set_param(Light3D::PARAM_RANGE, 3.0f + 11.0f * l->level);
-            ol->set_param(Light3D::PARAM_ENERGY, 5.5f * std::pow(l->level, 1.6f));
-            ol->set_param(Light3D::PARAM_ATTENUATION, 1.5f);
-            ol->set_visible(true);
-        } else {
-            ol->set_visible(false);
+    // Shrink as well as grow: the pool size is a setting, and a lowered one
+    // that left its slots behind would keep lighting the scene from them.
+    while ((int)m_light_pool.size() > std::max(0, max_lights)) {
+        OmniLight3D *ol = m_light_pool.back();
+        m_light_pool.pop_back();
+        m_light_slot.pop_back();
+        ol->queue_free();
+    }
+    const size_t slots = m_light_pool.size();
+
+    // Admission and eviction deliberately use different thresholds.
+    //
+    // Where there are more lamps in range than slots the set is saturated, and
+    // every step changes the rank of every lamp. Taking the best max_lights
+    // each frame therefore switches lamps on and off continuously. So a lamp
+    // must reach max_lights to be given a slot, but keeps it until it falls
+    // past keep_limit.
+    const size_t admit_limit = std::min(all.size(), (size_t)std::max(0, max_lights));
+    const size_t keep_limit = std::min(all.size(), (size_t)std::max(0, max_lights) * 3 / 2);
+
+    std::map<int64_t, size_t> rank_of;
+    for (size_t i = 0; i < all.size(); ++i)
+        rank_of.emplace(all[i].key, i);
+
+    // Carry slot ownership over. A lamp keeps the same OmniLight3D as long as
+    // it is still in the retain window, so its shadow map is not rebuilt and
+    // its identity does not migrate across the pool.
+    std::vector<const Cand *> holder(slots, nullptr);
+    std::set<int64_t> held;
+    // GOANNA_LIGHT_RANK=1 restores the old behaviour: slot i is simply the i-th
+    // best lamp, reassigned every frame, with no retained identity, no retain
+    // window and no fade. This is what the stable path is measured against.
+    static const bool rank_pool = getenv("GOANNA_LIGHT_RANK") != nullptr;
+    if (rank_pool) {
+        for (size_t s = 0; s < slots && s < admit_limit; ++s) {
+            holder[s] = &all[s];
+            held.insert(all[s].key);
         }
+    } else {
+        for (size_t s = 0; s < slots; ++s) {
+            if (!m_light_slot[s].key)
+                continue;
+            auto it = rank_of.find(m_light_slot[s].key);
+            if (it == rank_of.end() || it->second >= keep_limit)
+                continue;
+            holder[s] = &all[it->second];
+            held.insert(it->first);
+        }
+        // Then fill whatever is free from the best lamps that do not have a
+        // slot. A slot still fading out is not free: taking it would swap one
+        // lamp for another mid-fade, which is the step the fade exists to
+        // avoid.
+        size_t next = 0;
+        for (size_t s = 0; s < slots; ++s) {
+            if (holder[s] || m_light_slot[s].fade > 0.0f)
+                continue;
+            while (next < admit_limit && held.count(all[next].key))
+                ++next;
+            if (next >= admit_limit)
+                break;
+            holder[s] = &all[next];
+            held.insert(all[next].key);
+            ++next;
+        }
+    }
+
+    // Which of those cast shadows, decided with its own hysteresis.
+    //
+    // Only the nearest few can: an omni shadow is a cube map and costs six
+    // depth passes. Choosing them by rank every frame, with no memory, means
+    // two lamps either side of the boundary swap shadow casting the moment
+    // their order flips, which a step or two does.
+    //
+    // The budget matters more than it looks. A lantern is a solid node, so it
+    // occludes its own light upward: with a shadow map the eave directly above
+    // it is dark, and without one the light passes through the lantern block
+    // and the eave glows. A lamp crossing the budget therefore does not merely
+    // lose a shadow, it starts lighting surfaces it should not reach at all.
+    const size_t SHADOW_COUNT = (size_t)std::max(0, m_shadow_lamps);
+    // GOANNA_SHADOW_KEEP: the rank a shadow caster may fall to before losing
+    // its shadow. Setting it equal to SHADOW_COUNT removes the hysteresis and
+    // restores rank-per-frame behaviour, which is how this was measured.
+    const size_t KEEP_RANK = getenv("GOANNA_SHADOW_KEEP")
+            ? (size_t)atoi(getenv("GOANNA_SHADOW_KEEP")) : SHADOW_COUNT * 7 / 4;
+    std::set<int64_t> next_shadowed;
+    size_t rank = 0;
+    for (size_t i = 0; i < all.size() && next_shadowed.size() < SHADOW_COUNT; ++i) {
+        if (!held.count(all[i].key))
+            continue;
+        if (rank < KEEP_RANK && m_light_shadowed.count(all[i].key))
+            next_shadowed.insert(all[i].key);
+        ++rank;
+    }
+    for (size_t i = 0; i < all.size() && next_shadowed.size() < SHADOW_COUNT; ++i)
+        if (held.count(all[i].key))
+            next_shadowed.insert(all[i].key);
+    m_light_shadowed.swap(next_shadowed);
+
+    // GOANNA_NO_LIGHT_SHADOWS=1 keeps the lights but takes their shadows away,
+    // so "is it the lights" and "is it their shadow maps" stay separable.
+    static const bool no_light_shadows = getenv("GOANNA_NO_LIGHT_SHADOWS") != nullptr;
+    // Admission and eviction ramp rather than step. Even a perfectly stable
+    // pool has to drop a lamp eventually, and a lamp that vanishes between one
+    // frame and the next is visible as a jump in the lighting of everything it
+    // touched. About seven frames is short enough to look immediate and long
+    // enough not to read as a switch.
+    const float FADE_STEP = rank_pool ? 1.0f : 0.15f;
+
+    for (size_t s = 0; s < slots; ++s) {
+        OmniLight3D *ol = m_light_pool[s];
+        LightSlot &slot = m_light_slot[s];
+        const Cand *c = holder[s];
+        if (c) {
+            if (slot.key != c->key) {
+                ++m_light_churn;
+                slot.key = c->key;
+                slot.fade = 0.0f;
+            }
+            slot.pos = c->l->pos;
+            slot.color = c->l->color;
+            slot.level = c->l->level;
+            slot.fade = std::min(1.0f, slot.fade + FADE_STEP);
+        } else if (slot.key) {
+            slot.fade -= FADE_STEP;
+            if (slot.fade <= 0.0f) {
+                slot.fade = 0.0f;
+                slot.key = 0;
+                ++m_light_churn;
+                ol->set_visible(false);
+                if (ol->has_shadow())
+                    ol->set_shadow(false);
+                continue;
+            }
+        } else {
+            continue;
+        }
+
+        // Only write when something actually differs. Re-setting a light's
+        // transform every frame is not free: it dirties the shadow map for a
+        // lamp that has not moved since it was placed.
+        const float want_range = range_of(slot.level);
+        const float want_energy = energy_of(slot.level) * slot.fade;
+        if (ol->get_position() != slot.pos)
+            ol->set_position(slot.pos);
+        if (ol->get_color() != slot.color)
+            ol->set_color(slot.color);
+        if (ol->get_param(Light3D::PARAM_RANGE) != want_range)
+            ol->set_param(Light3D::PARAM_RANGE, want_range);
+        if (ol->get_param(Light3D::PARAM_ENERGY) != want_energy)
+            ol->set_param(Light3D::PARAM_ENERGY, want_energy);
+        if (ol->get_param(Light3D::PARAM_ATTENUATION) != 1.5f)
+            ol->set_param(Light3D::PARAM_ATTENUATION, 1.5f);
+        if (!ol->is_visible())
+            ol->set_visible(true);
+        const bool want_shadow = !no_light_shadows && m_light_shadowed.count(slot.key) != 0;
+        if (ol->has_shadow() != want_shadow)
+            ol->set_shadow(want_shadow);
     }
     ema(m_ms_lights, ms_since(t0));
 }
-
 
 // ---- ambient motes -------------------------------------------------------
 
@@ -1627,6 +2035,20 @@ int GoannaClient::poll_blocks(int max_blocks) {
         }
         auto t_mesh = clock_t_::now();
         std::unique_ptr<MapBlockMesh> bm = meshBlock(*m_session, block);
+        // Luanti's own light never reaches the vertices (g_goanna_no_light,
+        // see goanna_mesh_flags.h), so it is read here instead, from the same
+        // nodes, along with the occlusion trace. docs/mesh-attributes.md.
+        BlockLightField lightfield;
+        lightfield.build(*m_session, bp);
+        // GOANNA_DEBUG_LIGHT=1: what the light and occlusion channels actually
+        // came out as, per block. The lesson recorded against GOANNA_DEBUG_VCOL
+        // applies here too: a channel that is silently constant looks exactly
+        // like one that is working, in every screenshot.
+        static const bool debug_light = getenv("GOANNA_DEBUG_LIGHT") != nullptr;
+        static const bool no_vertex_light = getenv("GOANNA_NO_VERTEX_LIGHT") != nullptr;
+        long dl_n = 0, dl_block = 0, dl_sky = 0, dl_ao = 0;
+        int dl_ao_min = 255, dl_ao_max = 0, dl_sky_min = 255, dl_sky_max = 0;
+        long dl_sky_bright = 0, dl_sky_dark = 0;
         ema(m_ms_mesh, ms_since(t_mesh));
         auto t_upload = clock_t_::now();
         harvestLights(bp, block);
@@ -1649,10 +2071,27 @@ int GoannaClient::poll_blocks(int max_blocks) {
             PackedVector3Array verts, norms;
             PackedVector2Array uvs, uv2s;
             PackedColorArray cols;
+            PackedByteArray custom0; // block light, sky light, occlusion, spare
             PackedInt32Array idx;
             bool is_array = false;
         };
         std::map<uint64_t, SurfAccum> groups;
+        // Faces belonging to a light emitting node are collected separately and
+        // drawn from a second mesh on its own render layer, which node lights
+        // are told not to take shadow casters from.
+        //
+        // A lantern is a solid node with a light inside it, so its own cube
+        // occludes its own light: the eave directly above it went dark, and a
+        // wall of glowstone cast slabs of shadow across itself from whichever
+        // block happened to hold the light. Both are wrong. A block that glows
+        // on every face does not shadow anything with its own light.
+        //
+        // Only node lights ignore this layer. The sun still casts shadows from
+        // glowing blocks, which is what you want: a glowstone wall should still
+        // have a shadow side in daylight.
+        std::map<uint64_t, SurfAccum> glow_groups;
+        static const bool glow_casts = getenv("GOANNA_GLOW_CASTS_SHADOW") != nullptr;
+        const NodeDefManager *gnd = m_session->nodeDefs();
         for (int layer = 0; layer < MAX_TILE_LAYERS && bm; ++layer) {
             scene::IMesh *sm = bm->getMesh(layer);
             if (!sm)
@@ -1667,27 +2106,114 @@ int GoannaClient::poll_blocks(int max_blocks) {
                 const u16 *idx16 = (const u16 *)buf->getIndices();
                 const u32 nv = buf->getVertexCount(), ni = buf->getIndexCount();
                 MaterialKey key = keyForIrr(buf->getMaterial(), nv ? v[0].Aux : 0);
-                SurfAccum &acc = groups[key.hash()];
-                acc.key = key;
-                acc.is_array = key.array_texture;
-                const int base = acc.verts.size();
-                for (u32 i = 0; i < nv; ++i) {
-                    // Luanti mesh space (BS units, block-local) -> Godot nodes; z mirrored
-                    acc.verts.push_back(Vector3(v[i].Pos.X / BS + bp.X * MAP_BLOCKSIZE,
-                            v[i].Pos.Y / BS + bp.Y * MAP_BLOCKSIZE,
-                            -(v[i].Pos.Z / BS + bp.Z * MAP_BLOCKSIZE)));
-                    acc.norms.push_back(Vector3(v[i].Normal.X, v[i].Normal.Y, -v[i].Normal.Z));
-                    acc.uvs.push_back(Vector2(v[i].TCoords.X, v[i].TCoords.Y));
-                    acc.cols.push_back(Color(v[i].Color.getRed() / 255.0f, v[i].Color.getGreen() / 255.0f,
-                            v[i].Color.getBlue() / 255.0f, v[i].Color.getAlpha() / 255.0f));
-                    if (acc.is_array)
-                        acc.uv2s.push_back(Vector2((float)v[i].Aux, 0.0f));
+                // Which node a face belongs to: step half a node back along the
+                // outward normal from the face centre and you are inside it.
+                auto owner_glows = [&](const u16 *tri) -> bool {
+                    if (glow_casts || !gnd)
+                        return false;
+                    float cx = (v[tri[0]].Pos.X + v[tri[1]].Pos.X + v[tri[2]].Pos.X) / (3.0f * BS);
+                    float cy = (v[tri[0]].Pos.Y + v[tri[1]].Pos.Y + v[tri[2]].Pos.Y) / (3.0f * BS);
+                    float cz = (v[tri[0]].Pos.Z + v[tri[1]].Pos.Z + v[tri[2]].Pos.Z) / (3.0f * BS);
+                    float nx = v[tri[0]].Normal.X, ny = v[tri[0]].Normal.Y, nz = v[tri[0]].Normal.Z;
+                    // Plantlike and similar can carry a degenerate normal; then
+                    // the face centre is as good a guess as any.
+                    if (nx * nx + ny * ny + nz * nz < 0.25f)
+                        nx = ny = nz = 0.0f;
+                    int ix = (int)floorf(cx - nx * 0.5f + 0.5f);
+                    int iy = (int)floorf(cy - ny * 0.5f + 0.5f);
+                    int iz = (int)floorf(cz - nz * 0.5f + 0.5f);
+                    if (ix < 0 || ix >= MAP_BLOCKSIZE || iy < 0 || iy >= MAP_BLOCKSIZE ||
+                            iz < 0 || iz >= MAP_BLOCKSIZE)
+                        return false;
+                    return gnd->get(block->getNodeNoCheck(ix, iy, iz)).light_source > 0;
+                };
+                // Vertices are shared within a buffer, so each destination keeps
+                // its own remap rather than duplicating every triangle's three.
+                std::map<u32, int> remap[2];
+                for (u32 t = 0; t + 2 < ni; t += 3) {
+                    const u16 tri[3] = { idx16[t], idx16[t + 1], idx16[t + 2] };
+                    const int g = owner_glows(tri) ? 1 : 0;
+                    SurfAccum &tacc = g ? glow_groups[key.hash()] : groups[key.hash()];
+                    tacc.key = key;
+                    tacc.is_array = key.array_texture;
+                    for (int k = 0; k < 3; ++k) {
+                        const u32 sv = tri[k];
+                        auto found = remap[g].find(sv);
+                        if (found != remap[g].end()) {
+                            tacc.idx.push_back(found->second);
+                            continue;
+                        }
+                        const int di = tacc.verts.size();
+                        tacc.verts.push_back(Vector3(v[sv].Pos.X / BS + bp.X * MAP_BLOCKSIZE,
+                                v[sv].Pos.Y / BS + bp.Y * MAP_BLOCKSIZE,
+                                -(v[sv].Pos.Z / BS + bp.Z * MAP_BLOCKSIZE)));
+                        tacc.norms.push_back(Vector3(v[sv].Normal.X, v[sv].Normal.Y, -v[sv].Normal.Z));
+                        tacc.uvs.push_back(Vector2(v[sv].TCoords.X, v[sv].TCoords.Y));
+                        tacc.cols.push_back(Color(v[sv].Color.getRed() / 255.0f,
+                                v[sv].Color.getGreen() / 255.0f, v[sv].Color.getBlue() / 255.0f,
+                                v[sv].Color.getAlpha() / 255.0f));
+                        // UV2 always, per docs/mesh-attributes.md: x is the
+                        // array layer, y the block semantic ID that an Iris
+                        // pack reads as mc_Entity.x. The ID is 0 until the
+                        // nodedef classifier in docs/pbr-plan.md fills it, and
+                        // 0 is the correct failure: unremarkable, not wrong.
+                        tacc.uv2s.push_back(Vector2(tacc.is_array ? (float)v[sv].Aux : 0.0f, 0.0f));
+                        // Luanti node coordinates, which is what the field
+                        // wants: the mirrored z above is Godot's convention.
+                        // GOANNA_NO_VERTEX_LIGHT=1 skips the sample and writes
+                        // the neutral values, both as a kill switch and to
+                        // measure what the trace costs at mesh time.
+                        const VertexLight vl = no_vertex_light ? VertexLight() : lightfield.sample(
+                                v3f(v[sv].Pos.X / BS + bp.X * MAP_BLOCKSIZE,
+                                        v[sv].Pos.Y / BS + bp.Y * MAP_BLOCKSIZE,
+                                        v[sv].Pos.Z / BS + bp.Z * MAP_BLOCKSIZE),
+                                v3f(v[sv].Normal.X, v[sv].Normal.Y, v[sv].Normal.Z));
+                        tacc.custom0.push_back(vl.block);
+                        tacc.custom0.push_back(vl.sky);
+                        tacc.custom0.push_back(vl.ao);
+                        tacc.custom0.push_back(255);
+                        if (debug_light) {
+                            ++dl_n;
+                            dl_block += vl.block;
+                            dl_sky += vl.sky;
+                            dl_ao += vl.ao;
+                            dl_ao_min = std::min(dl_ao_min, (int)vl.ao);
+                            dl_ao_max = std::max(dl_ao_max, (int)vl.ao);
+                            dl_sky_min = std::min(dl_sky_min, (int)vl.sky);
+                            dl_sky_max = std::max(dl_sky_max, (int)vl.sky);
+                            if (vl.sky >= 200)
+                                ++dl_sky_bright;
+                            else if (vl.sky == 0)
+                                ++dl_sky_dark;
+                        }
+                        remap[g][sv] = di;
+                        tacc.idx.push_back(di);
+                    }
+                }
+                // GOANNA_DEBUG_VCOL=1: the spread of per vertex colour inside
+                // one mesh buffer, which is the only place Luanti's baked light
+                // could reach us. It exists because turning on
+                // MeshMakeData::m_smooth_lighting looked like it worked and did
+                // nothing at all: encode_light() returns white while
+                // g_goanna_no_light is set, so every corner light collapses to
+                // the same value and no screenshot can tell you so. One
+                // distinct value per buffer means no light variation carried.
+                if (getenv("GOANNA_DEBUG_VCOL")) {
+                    int lo = 255, hi = 0;
+                    std::set<int> seen;
+                    for (u32 i = 0; i < nv; ++i) {
+                        int g = v[i].Color.getGreen();
+                        lo = std::min(lo, g);
+                        hi = std::max(hi, g);
+                        seen.insert(g);
+                    }
+                    UtilityFunctions::print("VCOL buf nv=", (int)nv, " green ", lo, "..", hi,
+                            " distinct=", (int)seen.size());
                 }
                 // Irrlicht (left-handed) front faces are counter-clockwise as
                 // stored; mirroring z makes them clockwise, which is Godot's
                 // front-face winding, so the index order is kept as is.
-                for (u32 i = 0; i < ni; ++i)
-                    acc.idx.push_back(base + idx16[i]);
+                // indices were emitted per triangle above
             }
         }
         for (auto &kv : groups) {
@@ -1700,17 +2226,40 @@ int GoannaClient::poll_blocks(int max_blocks) {
             arrays[Mesh::ARRAY_NORMAL] = acc.norms;
             arrays[Mesh::ARRAY_TEX_UV] = acc.uvs;
             arrays[Mesh::ARRAY_COLOR] = acc.cols;
-            if (acc.is_array)
-                arrays[Mesh::ARRAY_TEX_UV2] = acc.uv2s;
+            arrays[Mesh::ARRAY_TEX_UV2] = acc.uv2s;
+            arrays[Mesh::ARRAY_CUSTOM0] = acc.custom0;
             arrays[Mesh::ARRAY_INDEX] = acc.idx;
-            mesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays);
+            mesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays, TypedArray<Array>(),
+                    Dictionary(), kNodeSurfaceFlags);
             if (si == 0 && getenv("GOANNA_DEBUG_PBR"))
                 UtilityFunctions::print("surface format: tangent=",
                         (bool)(mesh->surface_get_format(0) & Mesh::ARRAY_FORMAT_TANGENT),
                         " uv2=", (bool)(mesh->surface_get_format(0) & Mesh::ARRAY_FORMAT_TEX_UV2));
             mesh->surface_set_material(si++, materialFor(acc.key));
         }
-        if (si == 0) {
+        Ref<ArrayMesh> gmesh;
+        gmesh.instantiate();
+        int gsi = 0;
+        for (auto &kv : glow_groups) {
+            SurfAccum &acc = kv.second;
+            if (acc.verts.is_empty() || acc.idx.is_empty())
+                continue;
+            Array arrays;
+            arrays.resize(Mesh::ARRAY_MAX);
+            arrays[Mesh::ARRAY_VERTEX] = acc.verts;
+            arrays[Mesh::ARRAY_NORMAL] = acc.norms;
+            arrays[Mesh::ARRAY_TEX_UV] = acc.uvs;
+            arrays[Mesh::ARRAY_COLOR] = acc.cols;
+            arrays[Mesh::ARRAY_TEX_UV2] = acc.uv2s;
+            arrays[Mesh::ARRAY_CUSTOM0] = acc.custom0;
+            arrays[Mesh::ARRAY_INDEX] = acc.idx;
+            gmesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays, TypedArray<Array>(),
+                    Dictionary(), kNodeSurfaceFlags);
+            gmesh->surface_set_material(gsi++, materialFor(acc.key));
+        }
+        // A block of nothing but lamps still has geometry, so both have to be
+        // empty before it is thrown away.
+        if (si == 0 && gsi == 0) {
             if (mi) {
                 if (getenv("GOANNA_DEBUG_BLOCKS"))
                     UtilityFunctions::print("block FREED (empty mesh): ", bp.X, ",", bp.Y, ",", bp.Z);
@@ -1728,6 +2277,32 @@ int GoannaClient::poll_blocks(int max_blocks) {
             m_block_nodes[bp] = mi;
         }
         mi->set_mesh(mesh);
+        // The glow mesh hangs off the block mesh rather than being tracked
+        // beside it, so every place that frees a block frees this too and none
+        // of them had to learn about it.
+        MeshInstance3D *gmi = nullptr;
+        for (int ci = 0; ci < mi->get_child_count(); ++ci) {
+            gmi = Object::cast_to<MeshInstance3D>(mi->get_child(ci));
+            if (gmi)
+                break;
+        }
+        if (gsi > 0) {
+            if (!gmi) {
+                gmi = memnew(MeshInstance3D);
+                gmi->set_layer_mask(GLOW_LAYER);
+                mi->add_child(gmi);
+            }
+            gmi->set_mesh(gmesh);
+        } else if (gmi) {
+            gmi->queue_free();
+        }
+        if (debug_light && dl_n > 0)
+            UtilityFunctions::print("LIGHT block ", bp.X, ",", bp.Y, ",", bp.Z, " verts ", (int)dl_n,
+                    " block ", (int)(dl_block / dl_n), " sky ", (int)(dl_sky / dl_n),
+                    " (", dl_sky_min, "..", dl_sky_max, ")",
+                    " ao ", (int)(dl_ao / dl_n), " (", dl_ao_min, "..", dl_ao_max, ")",
+                    " skybright ", (int)(100 * dl_sky_bright / dl_n), "% skydark ",
+                    (int)(100 * dl_sky_dark / dl_n), "%");
         m_block_tier[bp] = 0;
         ema(m_ms_upload, ms_since(t_upload));
         ++done;
@@ -1740,6 +2315,14 @@ int GoannaClient::poll_blocks(int max_blocks) {
 void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("hello"), &GoannaClient::hello);
     ClassDB::bind_method(D_METHOD("luanti_version"), &GoannaClient::luanti_version);
+    ClassDB::bind_method(D_METHOD("set_material_strength", "channel", "value"), &GoannaClient::set_material_strength);
+    ClassDB::bind_method(D_METHOD("material_strength", "channel"), &GoannaClient::material_strength);
+    ClassDB::bind_method(D_METHOD("server_options"), &GoannaClient::server_options);
+    ClassDB::bind_method(D_METHOD("set_solid_ice", "on"), &GoannaClient::set_solid_ice);
+    ClassDB::bind_method(D_METHOD("solid_ice"), &GoannaClient::solid_ice);
+    ClassDB::bind_method(D_METHOD("set_texture_map", "csv"), &GoannaClient::set_texture_map);
+    ClassDB::bind_method(D_METHOD("set_texture_path", "path"), &GoannaClient::set_texture_path);
+    ClassDB::bind_method(D_METHOD("texture_path"), &GoannaClient::texture_path);
     ClassDB::bind_method(D_METHOD("connect_to", "host", "port", "player_name", "password"),
             &GoannaClient::connect_to);
     ClassDB::bind_method(D_METHOD("disconnect_from_server"), &GoannaClient::disconnect_from_server);
@@ -1762,6 +2345,8 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("node_sound", "node_name", "kind"), &GoannaClient::node_sound);
     ClassDB::bind_method(D_METHOD("sky_state"), &GoannaClient::sky_state);
     ClassDB::bind_method(D_METHOD("update_lights", "around", "max_lights"), &GoannaClient::update_lights);
+    ClassDB::bind_method(D_METHOD("set_shadow_lamps", "n"), &GoannaClient::set_shadow_lamps);
+    ClassDB::bind_method(D_METHOD("shadow_lamps"), &GoannaClient::shadow_lamps);
     ClassDB::bind_method(D_METHOD("set_motes", "density"), &GoannaClient::set_motes);
     ClassDB::bind_method(D_METHOD("motes"), &GoannaClient::motes);
     ClassDB::bind_method(D_METHOD("update_motes", "around", "max_emitters"), &GoannaClient::update_motes);

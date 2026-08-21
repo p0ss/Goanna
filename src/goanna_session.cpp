@@ -23,6 +23,8 @@
 #include "tool.h"
 
 #include <algorithm>
+#include <fstream>
+#include <filesystem>
 #include <chrono>
 #include <cmath>
 #include <set>
@@ -36,6 +38,7 @@
 #include "content/mods.h"
 #include "itemdef.h"
 #include "log.h"
+#include "light.h"
 #include "mapblock.h"
 #include "nodemetadata.h"
 #include "network/address.h"
@@ -87,6 +90,21 @@ static void ensureSettings() {
     defaults->setDefault("disallow_empty_password", "false");
     defaults->setDefault("default_password", "");
     defaults->setDefault("enable_mod_channels", "false");
+    // The light decode curve, and the settings it reads. light_decode_table is
+    // a static array that starts as zeros and is only filled by
+    // set_light_curve(); Luanti's own client calls it during startup and
+    // Goanna never did, so decode_light() returned 0 for every light level
+    // including full sun. Nothing showed it: g_goanna_no_light discards the
+    // decoded value anyway, so the two faults hid each other, and turning
+    // Luanti's smooth lighting on could not have worked even with that flag
+    // cleared. Found by reading param1 off the wire (14) and the decode of the
+    // same node (0) side by side. See docs/mesh-attributes.md.
+    defaults->setDefault("display_gamma", "1.0");
+    defaults->setDefault("lighting_alpha", "0.0");
+    defaults->setDefault("lighting_beta", "1.5");
+    defaults->setDefault("lighting_boost", "0.2");
+    defaults->setDefault("lighting_boost_center", "0.5");
+    defaults->setDefault("lighting_boost_spread", "0.2");
     defaults->setDefault("time_speed", "72");
     defaults->setDefault("anticheat_flags", "");
     defaults->setDefault("debug_log_level", "action");
@@ -115,6 +133,9 @@ static void ensureSettings() {
     defaults->setDefault("mesh_generation_interval", "0");
     defaults->setDefault("safe_dig_and_place", "false");
     g_settings = Settings::createLayer(SL_GLOBAL);
+    // Fill the decode table now that the settings it reads exist. Everything
+    // that turns a stored light level into a brightness goes through it.
+    set_light_curve(g_settings->getFloat("display_gamma"));
     sockets_init();
 }
 
@@ -329,6 +350,59 @@ std::vector<GoannaSession::ChatLine> GoannaSession::takeChat() {
     std::vector<ChatLine> out;
     out.swap(m_chat);
     return out;
+}
+
+// The channel a paired server mod talks on. Versioned, so a later protocol can
+// run beside this one rather than having to guess what the other end supports.
+static const char *kGoannaChannel = "goanna:v1";
+
+// Joining is the whole of what Goanna asks for. A server without the mod has
+// no one listening, the join is harmless, no reply arrives, and the client
+// renders exactly as it does today. That is the point: the mod can only grant
+// permissions, so its absence is the conservative case rather than a failure.
+void GoannaSession::joinGoannaChannel() {
+    if (!m_con)
+        return;
+    std::string channel(kGoannaChannel);
+    NetworkPacket pkt(TOSERVER_MODCHANNEL_JOIN, 2 + channel.size());
+    pkt << channel;
+    send(pkt);
+    // Say hello so the mod has something to reply to: a server side mod cannot
+    // see who joined a channel, only messages arriving on it.
+    NetworkPacket msg(TOSERVER_MODCHANNEL_MSG, 0);
+    msg << channel << std::string("hello");
+    send(msg);
+}
+
+// key=value lines, one per line. Deliberately not JSON: the payload is a
+// handful of flags and numbers, and this needs no parser on either side.
+void GoannaSession::onModChannelMsg(NetworkPacket &pkt) {
+    std::string channel, sender, message;
+    pkt >> channel >> sender >> message;
+    if (channel != kGoannaChannel)
+        return;
+    std::lock_guard<std::mutex> lk(m_server_opts_mutex);
+    size_t pos = 0;
+    while (pos <= message.size()) {
+        size_t nl = message.find('\n', pos);
+        std::string line = message.substr(pos, nl == std::string::npos ? std::string::npos : nl - pos);
+        pos = nl == std::string::npos ? message.size() + 1 : nl + 1;
+        size_t eq = line.find('=');
+        if (eq == std::string::npos || eq == 0)
+            continue;
+        std::string k = line.substr(0, eq), v = line.substr(eq + 1);
+        while (!v.empty() && (v.back() == '\r' || v.back() == ' '))
+            v.pop_back();
+        m_server_opts[k] = v;
+    }
+    infostream << "Goanna: server mod announced " << m_server_opts.size()
+               << " options" << std::endl;
+}
+
+void GoannaSession::onModChannelSignal(NetworkPacket &pkt) {
+    // Join accepted, rejected, or the channel does not exist. Nothing to do:
+    // the absence of a reply is already the "no mod" case.
+    (void)pkt;
 }
 
 void GoannaSession::sendChat(const std::wstring &message) {
@@ -1131,6 +1205,8 @@ void GoannaSession::sendReady() {
     send(pkt);
     m_ready_sent = true;
     setState(SessionState::Ready, "TOSERVER_CLIENT_READY sent");
+    // After ready, so the server has a player to answer for.
+    joinGoannaChannel();
 }
 
 void GoannaSession::writePlayerPosTo(NetworkPacket &pkt) {
@@ -1259,6 +1335,92 @@ static bool isImageName(const std::string &name) {
     return ext == ".png" || ext == ".jpg" || ext == ".tga" || ext == ".bmp" || ext == "jpeg";
 }
 
+// Read a Minecraft resource pack through a name map, after the server's own
+// media, so the player's pack wins the way a texture pack is supposed to.
+//
+// Doing it as an insert rather than as a lookup hook is deliberate: the
+// alternative is to teach getTexturePath about the mapping, which lives in
+// transplanted code, and this needs nothing from it. The images go in under
+// the game's own names, so everything downstream, including the LabPBR
+// companion probe in GoannaTexture::godotArraySuffixed, carries on unaware.
+//
+// The companions come along by suffix on the *Minecraft* name, which is where
+// a LabPBR pack puts them: mcl_core_stone.png maps to block/stone.png, so
+// block/stone_n.png and block/stone_s.png are its normal and specular. That
+// is the whole reason this is worth having over a diffuse-only converter.
+static size_t loadMappedPack(const std::string &map_csv, const std::string &pack_dir,
+        GoannaTextureSource *tsrc) {
+    if (map_csv.empty() || pack_dir.empty())
+        return 0;
+    std::ifstream f(map_csv);
+    if (!f)
+        return 0;
+    // A pack keeps its textures under assets/<namespace>/textures/. Rather than
+    // guess the namespace, index every png once by the part of its path after
+    // "textures/", plus its bare name as a fallback.
+    std::map<std::string, std::string> index;
+    std::error_code ec;
+    for (auto it = std::filesystem::recursive_directory_iterator(pack_dir, ec);
+            it != std::filesystem::recursive_directory_iterator(); it.increment(ec)) {
+        if (ec)
+            break;
+        if (!it->is_regular_file(ec))
+            continue;
+        std::string full = it->path().string();
+        if (full.size() < 4 || full.compare(full.size() - 4, 4, ".png") != 0)
+            continue;
+        std::string key = full;
+        size_t at = full.find("/textures/");
+        if (at != std::string::npos)
+            key = full.substr(at + 10);
+        index.emplace(key, full);
+        index.emplace(it->path().filename().string(), full);
+    }
+    auto read_file = [](const std::string &path, std::string &out) {
+        std::ifstream in(path, std::ios::binary);
+        if (!in)
+            return false;
+        out.assign((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+        return !out.empty();
+    };
+    size_t n = 0;
+    std::string line;
+    while (std::getline(f, line)) {
+        if (line.empty() || line[0] == '#')
+            continue;
+        size_t comma = line.find(',');
+        if (comma == std::string::npos)
+            continue;
+        std::string game_tex = line.substr(0, comma);
+        std::string pack_path = line.substr(comma + 1);
+        while (!pack_path.empty() && (pack_path.back() == '\r' || pack_path.back() == '\n'))
+            pack_path.pop_back();
+        if (game_tex == "game_texture" || pack_path.empty())
+            continue;
+        // the diffuse, then its LabPBR companions under the same stem
+        static const char *kSuffix[] = {"", "_n", "_s"};
+        for (const char *suf : kSuffix) {
+            std::string want = pack_path;
+            std::string dest = game_tex;
+            if (*suf) {
+                if (want.size() < 4 || dest.size() < 4)
+                    continue;
+                want = want.substr(0, want.size() - 4) + suf + ".png";
+                dest = dest.substr(0, dest.size() - 4) + suf + ".png";
+            }
+            auto hit = index.find(want);
+            if (hit == index.end())
+                hit = index.find(want.substr(want.find_last_of('/') + 1));
+            if (hit == index.end())
+                continue;
+            std::string bytes;
+            if (read_file(hit->second, bytes) && tsrc->insertMediaImage(dest, bytes))
+                ++n;
+        }
+    }
+    return n;
+}
+
 bool GoannaSession::prepareContentIfReady() {
     if (!m_content_ready || m_send_ready)
         return false;
@@ -1271,6 +1433,11 @@ bool GoannaSession::prepareContentIfReady() {
                 ++n_img;
         }
     }
+    // 1b. the player's own Minecraft pack, after the media above so it wins.
+    size_t n_map = loadMappedPack(m_texture_map,
+            g_settings ? g_settings->get("texture_path") : std::string(), m_tsrc.get());
+    if (n_map)
+        infostream << "Goanna: mapped pack supplied " << n_map << " images" << std::endl;
     // 2. node definitions: same order as Client::afterContentReceived
     {
         std::lock_guard<std::mutex> lk(m_map_mutex);
@@ -1380,6 +1547,8 @@ void GoannaSession::handle(NetworkPacket &pkt) {
     case TOCLIENT_ADD_PARTICLESPAWNER: onAddParticleSpawner(pkt); break;
     case TOCLIENT_DELETE_PARTICLESPAWNER: onDeleteParticleSpawner(pkt); break;
     case TOCLIENT_SPAWN_PARTICLE: onSpawnParticle(pkt); break;
+    case TOCLIENT_MODCHANNEL_MSG: onModChannelMsg(pkt); break;
+    case TOCLIENT_MODCHANNEL_SIGNAL: onModChannelSignal(pkt); break;
     case TOCLIENT_STOP_SOUND: onStopSound(pkt); break;
     case TOCLIENT_FADE_SOUND: onFadeSound(pkt); break;
     case TOCLIENT_SHOW_FORMSPEC: onShowFormspec(pkt); break;
