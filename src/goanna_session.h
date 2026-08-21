@@ -198,6 +198,18 @@ public:
         u16 object_id = 0;
     };
     std::vector<SoundEvent> takeSounds();
+    // A node being dug, and the burst when it finally breaks. The client makes
+    // these itself, exactly as Luanti's own does: the server is never told and
+    // never asked, because a block coming apart is a thing you saw happen, not
+    // a thing you were sent.
+    struct NodeDugEvent {
+        v3f pos;
+        std::string texture;   // the node's own tile, so the pieces match it
+        u32 colour = 0xffffffff;
+        int count = 1;         // 16 when it breaks, 1 while it is being hit
+    };
+    std::vector<NodeDugEvent> takeDugNodes();
+    void queueDugParticles(v3s16 nodepos, const ContentFeatures &features, int count);
     std::vector<s32> takeStoppedSounds();
     // --- particles ---
     // A particle spawner the server asked for: a box of positions with
@@ -503,6 +515,8 @@ private:
     // content preparation completes.
     std::vector<v3s16> m_preready_blocks;
     std::vector<SoundEvent> m_sounds;
+    std::vector<NodeDugEvent> m_dug_nodes;
+    float m_dig_particle_timer = 0.0f;
     std::vector<ParticleSpawnerEvent> m_spawners;
     std::vector<u32> m_deleted_spawners;
     std::vector<ParticleEvent> m_particles;

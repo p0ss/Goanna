@@ -364,10 +364,27 @@ Vector3 GoannaClient::server_player_position() const {
     return Vector3(s.player_pos.X, s.player_pos.Y, -s.player_pos.Z);
 }
 
+// Placing the camera has to move the local player too, not only the position
+// reported to the server. Two things key off LocalPlayer rather than off the
+// camera, and both break quietly when it is left behind. GoannaSession::
+// pruneDistantBlocks drops every block beyond a radius of it, so flying used
+// to punch holes in the terrain it flew over: blocks arrived around the
+// camera, were pruned against the body two seconds later, and sendDeletedBlocks
+// then told the server we no longer had them, so it sent them again. And
+// step_player resumes from it, which is why switching fly off teleported you
+// back to wherever walking had left the body.
 void GoannaClient::set_player_pose(const Vector3 &pos, float pitch_deg, float yaw_deg) {
     if (!m_session)
         return;
-    m_session->setPlayerPose(v3f(pos.x, pos.y, -pos.z), pitch_deg, yaw_deg);
+    const v3f luanti(pos.x, pos.y, -pos.z);
+    m_session->setPlayerPose(luanti, pitch_deg, yaw_deg);
+    std::lock_guard<std::mutex> lk(m_session->mapLock());
+    if (LocalPlayer *p = m_session->player()) {
+        p->setPosition(luanti * BS);
+        // No inherited velocity: walking would otherwise resume with whatever
+        // speed the player had when the camera took over.
+        p->setSpeed(v3f(0, 0, 0));
+    }
 }
 
 static Color toColor(const video::SColor &c) {
@@ -780,6 +797,22 @@ Array GoannaClient::take_particle_spawners() {
         for (const auto &t : e.texpool)
             pool.push_back(String::utf8(t.c_str()));
         d["texpool"] = pool;
+        out.push_back(d);
+    }
+    return out;
+}
+
+Array GoannaClient::take_dug_nodes() {
+    Array out;
+    if (!m_session)
+        return out;
+    for (auto &e : m_session->takeDugNodes()) {
+        Dictionary d;
+        d["pos"] = gv(e.pos);
+        d["texture"] = String::utf8(e.texture.c_str());
+        d["count"] = e.count;
+        d["colour"] = Color(((e.colour >> 16) & 0xff) / 255.0f, ((e.colour >> 8) & 0xff) / 255.0f,
+                (e.colour & 0xff) / 255.0f, ((e.colour >> 24) & 0xff) / 255.0f);
         out.push_back(d);
     }
     return out;
@@ -2227,6 +2260,12 @@ void GoannaClient::lodRequestSummaries(const v3s16 &centre, int radius) {
     if (!m_session || !m_session->farSummariesOffered())
         return;
     constexpr int kEdge = 8; // blocks per area side
+    // The server refuses silently: an area outside its grant, a full queue,
+    // a player it cannot find. Without an expiry, four such refusals would
+    // stall every later request for the rest of the session. The areas stay
+    // in m_far_requested, so an expired one is not asked again here.
+    if (m_far_inflight > 0 && ms_since(m_far_asked) > 15000.0)
+        m_far_inflight = 0;
     if (m_far_inflight >= 4)
         return;
     auto fdiv = [](int a, int b) { return a >= 0 ? a / b : -((-a + b - 1) / b); };
@@ -2265,6 +2304,8 @@ void GoannaClient::lodRequestSummaries(const v3s16 &centre, int radius) {
     if (best_d == 1 << 30)
         return;
     m_far_requested.insert(best);
+    if (m_far_inflight == 0)
+        m_far_asked = clock_t_::now();
     ++m_far_inflight;
     m_session->requestFarSummary(best, kEdge, 16);
     if (getenv("GOANNA_DEBUG_LOD"))
@@ -3130,6 +3171,7 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("media_names"), &GoannaClient::media_names);
     ClassDB::bind_method(D_METHOD("take_particle_spawners"), &GoannaClient::take_particle_spawners);
     ClassDB::bind_method(D_METHOD("take_deleted_spawners"), &GoannaClient::take_deleted_spawners);
+    ClassDB::bind_method(D_METHOD("take_dug_nodes"), &GoannaClient::take_dug_nodes);
     ClassDB::bind_method(D_METHOD("take_particles"), &GoannaClient::take_particles);
     ClassDB::bind_method(D_METHOD("node_name_at", "pos"), &GoannaClient::node_name_at);
     ClassDB::bind_method(D_METHOD("node_sound", "node_name", "kind"), &GoannaClient::node_sound);

@@ -105,6 +105,28 @@ Godot counts animation speed in whole runs over a particle's lifetime, where
 Luanti gives seconds per frame, so the conversion needs the frame count and
 the lifetime together.
 
+## Breaking a node
+
+Not a protocol feature at all. The pieces a node throws off while it is hit
+and when it finally gives way are made by the client, and Luanti's own client
+makes them the same way: nothing is sent, nothing is asked for, and the server
+never knows. Sixteen pieces on breaking and one per tenth of a second while
+digging are vanilla's own numbers, matched deliberately, because the point is
+that a Goanna player sees the same block break as everyone else rather than a
+better one.
+
+Each piece shows a random patch of the node's own top tile, which is what
+makes them read as bits of the thing that broke rather than as generic dust.
+Godot has no per particle texture rectangle, but it does have particle
+animation frames, so a four by four grid with the animation stopped and its
+offset randomised gives every piece a different fixed quarter. Vanilla picks a
+random rectangle of up to a quarter of the texture, so the size matches and
+only the alignment differs.
+
+The rate limit while digging is deliberate. Vanilla adds a piece per frame
+from its digging handler, which means a fast machine throws several times more
+of them than a slow one for the same swing.
+
 ## Not covered here
 
 Single particles (`TOCLIENT_SPAWN_PARTICLE`) are parsed with Luanti's own

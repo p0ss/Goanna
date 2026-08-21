@@ -311,16 +311,34 @@ end
 -- the teleport worthless. Somewhere to stand costs nothing and says plainly
 -- that the world is up and waiting.
 local LANDING = {x = -SITE_GAP, y = FLOOR_Y, z = 0}
-local landed = false
 
+-- A block that bare hands can actually break, with four coloured quarters.
+--
+-- The quarters are the point: a broken node throws off pieces that each show a
+-- random patch of its texture, so a flat colour cannot tell you whether the
+-- patches differ or whether every piece is showing the same thing. Four
+-- quarters makes that visible at a glance.
+core.register_node("goanna_visual_test:soft", {
+	description = "Goanna visual test soft block",
+	tiles = {"[fill:16x16:#e06020"},
+	groups = {crumbly = 3, oddly_breakable_by_hand = 3},
+	is_ground_content = false,
+})
+
+-- Rebuilt on every join, not once per server. The dig harness breaks a block
+-- each run and the world keeps the hole, so after a few runs the player is
+-- standing in a pit pointing at a floor it cannot dig and the test quietly
+-- stops testing anything. A fixture that does not reset is not a fixture.
 local function build_landing()
-	if landed then
-		return
-	end
-	landed = true
 	local origin = LANDING
 	box(origin, {x = -6, y = 0, z = -6}, {x = 6, y = 0, z = 6},
 			"goanna_visual_test:neutral")
+	-- A layer of breakable blocks at foot level, with the spawn cell left clear.
+	-- The dig harness looks down at its own feet, so this is the only thing it
+	-- can reach, and standing in the gap means breaking one does not drop the
+	-- player through the floor.
+	box(origin, {x = -6, y = 1, z = -6}, {x = 6, y = 1, z = 6},
+			"goanna_visual_test:soft")
 	-- one marker per fixture, so the list of sites is visible from the floor
 	local i = 0
 	for name, _ in pairs(sites) do
@@ -334,8 +352,18 @@ local function build_landing()
 end
 
 core.register_on_joinplayer(function(player)
-	build_landing()
+	-- Move first, build second. A joining player is at the world spawn, so the
+	-- landing a thousand blocks away is not loaded yet and set_node would be
+	-- writing into blocks that are not there. Emerging the area and building
+	-- once it exists is the difference between a floor and nothing at all.
 	player:set_pos({x = LANDING.x, y = LANDING.y + 1, z = LANDING.z})
+	core.emerge_area(add(LANDING, {x = -8, y = -2, z = -8}),
+			add(LANDING, {x = 8, y = 6, z = 8}), function(_, _, remaining)
+		if remaining == 0 then
+			build_landing()
+			player:set_pos({x = LANDING.x, y = LANDING.y + 1, z = LANDING.z})
+		end
+	end)
 	player:set_clouds({density = 0})
 	core.chat_send_player(player:get_player_name(),
 			"goanna_visual_test ready. /goanna_fixture <name> to go to a site.")

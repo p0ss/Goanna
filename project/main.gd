@@ -498,6 +498,15 @@ func _process(delta: float) -> void:
 				await RenderingServer.frame_post_draw
 				get_viewport().get_texture().get_image().save_png(OS.get_environment("GOANNA_SHOT").path_join("dig_crack.png"))
 				print("saved crack shot")
+			# The break itself, a few frames apart. The crack shot above is
+			# taken mid dig and cannot show what the node does when it goes.
+			if OS.get_environment("GOANNA_SHOT") != "":
+				for mark in [4.70, 4.80, 4.95, 5.15]:
+					if absf(t - mark) < delta * 0.6:
+						await RenderingServer.frame_post_draw
+						get_viewport().get_texture().get_image().save_png(
+							OS.get_environment("GOANNA_SHOT").path_join("dig_break_%d.png" % int(mark * 100)))
+						print("saved break shot at ", mark)
 		if OS.get_environment("GOANNA_CHESTTEST") != "":
 			# sweep the view until a chest is pointed, right-click it once, report
 			# the formspec it opened, answer it

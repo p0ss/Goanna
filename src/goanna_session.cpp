@@ -973,6 +973,15 @@ void GoannaSession::stepInteract(float dtime, const InteractInput &in) {
             } else if (dig_index < cal) {
                 m_interact.crack_level = (int)dig_index;
                 m_interact.crack_pos = nodepos;
+                // A node sheds a few pieces while it is being hit, not only
+                // when it gives way. Rate limited rather than per step, or a
+                // fast machine would throw far more of them than a slow one
+                // for the same swing.
+                m_dig_particle_timer -= dtime;
+                if (m_dig_particle_timer <= 0.0f) {
+                    m_dig_particle_timer = 0.1f;
+                    queueDugParticles(nodepos, features, 1);
+                }
             } else {
                 // Digging completed
                 m_interact.crack_level = -1;
@@ -999,6 +1008,7 @@ void GoannaSession::stepInteract(float dtime, const InteractInput &in) {
                     m_new_blocks.push_back(kv.first);
                 queueBlocksAround(nodepos);
                 sendInteract(INTERACT_DIGGING_COMPLETED, pointed);
+                queueDugParticles(nodepos, features, 16);
                 if (!features.sound_dug.name.empty()) {
                     SoundEvent ev;
                     ev.name = features.sound_dug.name;
@@ -2159,6 +2169,33 @@ void GoannaSession::onFadeSound(NetworkPacket &pkt) {
     pkt >> server_id;
     std::lock_guard<std::mutex> lk(m_sound_mutex);
     m_stopped_sounds.push_back(server_id);
+}
+
+// The pieces a node throws off, made from the node's own top tile so they are
+// recognisably bits of the thing that broke. Luanti's client does this itself
+// and so does this one; nothing about it goes over the network.
+void GoannaSession::queueDugParticles(v3s16 nodepos, const ContentFeatures &features, int count) {
+    if (!features.visuals)
+        return;
+    const TileLayer &tl = features.visuals->tiles[0].layers[0];
+    if (!tl.texture_id)
+        return;
+    NodeDugEvent ev;
+    ev.pos = v3f(nodepos.X, nodepos.Y, -nodepos.Z);
+    ev.texture = tsrc()->imageName(tl.texture_id, tl.texture_layer_idx);
+    ev.colour = tl.has_color ? tl.color.color : 0xffffffff;
+    ev.count = count;
+    if (ev.texture.empty())
+        return;
+    std::lock_guard<std::mutex> lk(m_sound_mutex);
+    m_dug_nodes.push_back(ev);
+}
+
+std::vector<GoannaSession::NodeDugEvent> GoannaSession::takeDugNodes() {
+    std::lock_guard<std::mutex> lk(m_sound_mutex);
+    std::vector<NodeDugEvent> out;
+    out.swap(m_dug_nodes);
+    return out;
 }
 
 std::vector<GoannaSession::SoundEvent> GoannaSession::takeSounds() {

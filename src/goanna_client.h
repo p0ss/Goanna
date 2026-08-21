@@ -206,6 +206,7 @@ public:
     // Particle spawners the server asked for since the last call, the ids
     // it cancelled, and one-shot particles.
     godot::Array take_particle_spawners();
+    godot::Array take_dug_nodes();
     godot::PackedInt32Array take_deleted_spawners();
     godot::Array take_particles();
     // Name of the node at a Godot-space position, "" if unknown.
@@ -369,6 +370,7 @@ private:
     // server, so a slow answer is not asked for again every scan.
     std::set<v3s16> m_far_requested;
     int m_far_inflight = 0;
+    std::chrono::steady_clock::time_point m_far_asked; // when the oldest in flight was sent
     v3s16 m_far_centre{32767, 32767, 32767};
     std::chrono::steady_clock::time_point m_far_last;
     bool m_far_dirty = true;

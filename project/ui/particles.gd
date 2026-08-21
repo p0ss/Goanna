@@ -20,6 +20,9 @@ var _spawners := {}           # server id -> GPUParticles3D
 var _attached := {}           # server id -> offset, for spawners that follow us
 var _weather := {}            # server id -> true, for rain and snow spawners
 var _tex_cache := {}
+# One shot break bursts, capped so a fast dig cannot pile up emitters.
+const MAX_PIECES := 32
+var _pieces := {}
 
 func _ready() -> void:
 	add_to_group("goanna_particles")  # main reads precipitation() through this group
@@ -70,6 +73,9 @@ func _process(_delta: float) -> void:
 		_remove_spawner(int(id))
 	for p in client.take_particles():
 		_one_shot(p)
+	if client.has_method("take_dug_nodes"):
+		for ev in client.take_dug_nodes():
+			_node_pieces(ev)
 	# Weather and other attached spawners are sent in coordinates relative
 	# to the player, so keep their emitters on the player.
 	if not _attached.is_empty():
@@ -265,6 +271,96 @@ func _add_spawner(ev: Dictionary) -> void:
 	var life_time := spawner_time
 	if life_time > 0.0:
 		get_tree().create_timer(life_time + life).timeout.connect(func() -> void: _remove_spawner(id))
+
+# The pieces a node throws off while it is hit and when it breaks.
+#
+# The client makes these itself, as Luanti's own does: nothing is sent and
+# nothing is asked for. Sixteen on breaking and one per hit are vanilla's own
+# numbers, and the point of matching them is that a Goanna player sees the same
+# block break as everyone else rather than a better one.
+#
+# Each piece shows a random quarter of the node's own top tile, which is what
+# makes them read as bits of the thing that broke rather than as generic dust.
+# Godot has no per particle UV rectangle, but it does have particle animation
+# frames, so a four by four grid with the animation stopped and its offset
+# randomised gives every piece a different fixed patch. Vanilla picks a random
+# rectangle of up to a quarter of the texture, so a quarter grid is the same
+# size, just aligned.
+func _node_pieces(ev: Dictionary) -> void:
+	var count := int(ev.get("count", 1))
+	if count <= 0 or _pieces.size() >= MAX_PIECES:
+		return
+	var tex := _texture_for(str(ev.get("texture", "")))
+	if OS.get_environment("GOANNA_DEBUG_PARTICLES") != "":
+		print("pieces: %d at %s tex=%s (%s)" % [count, str(ev.get("pos")),
+			str(ev.get("texture")), "loaded" if tex != null else "MISSING"])
+	if tex == null:
+		return
+
+	var mat := ParticleProcessMaterial.new()
+	mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	# Vanilla scatters the source point a quarter of a node about the centre.
+	mat.emission_box_extents = Vector3(0.25, 0.25, 0.25)
+	mat.direction = Vector3.UP
+	# Vanilla throws each piece up to 3 up and 1.5 sideways, drawn separately
+	# per axis. A cone is not the same distribution but covers the same ground.
+	mat.spread = 45.0
+	mat.initial_velocity_min = 0.5
+	mat.initial_velocity_max = 3.4
+	mat.gravity = Vector3(0.0, -9.81, 0.0)
+	# Vanilla's piece is up to an eighth of a node across.
+	mat.scale_min = 0.15
+	mat.scale_max = 1.25
+	# Stop the animation and randomise where it starts, which turns the frame
+	# grid into a per particle choice of patch rather than a sequence.
+	mat.anim_speed_min = 0.0
+	mat.anim_speed_max = 0.0
+	mat.anim_offset_min = 0.0
+	mat.anim_offset_max = 1.0
+
+	var quad := QuadMesh.new()
+	quad.size = Vector2(0.1, 0.1)
+	var smat := StandardMaterial3D.new()
+	smat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	smat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+	smat.alpha_scissor_threshold = 0.5
+	smat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	smat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	smat.albedo_texture = tex
+	smat.albedo_color = ev.get("colour", Color(1, 1, 1, 1))
+	smat.particles_anim_h_frames = 4
+	smat.particles_anim_v_frames = 4
+	smat.particles_anim_loop = false
+	smat.disable_receive_shadows = true
+	quad.material = smat
+
+	var p := GPUParticles3D.new()
+	p.process_material = mat
+	p.draw_pass_1 = quad
+	p.amount = count
+	p.lifetime = 1.0
+	p.randomness = 1.0            # vanilla gives each piece 0 to 1 second
+	p.one_shot = true
+	p.explosiveness = 1.0         # a break is a burst, not a trickle
+	# A one shot system fires on emitting going false to true. It defaults to
+	# true, so setting it true again after building the node is not a
+	# transition and nothing is ever emitted.
+	p.emitting = false
+	p.local_coords = false
+	# Pieces travel about a metre and fall; the default culling box would drop
+	# the burst as soon as the emitter left the screen.
+	p.visibility_aabb = AABB(Vector3(-4, -8, -4), Vector3(8, 12, 8))
+	p.position = ev.get("pos", Vector3.ZERO)
+	add_child(p)
+	p.restart()
+	p.emitting = true
+	_pieces[p] = true
+	# One shot systems do not clean themselves up.
+	get_tree().create_timer(2.5).timeout.connect(func() -> void:
+		_pieces.erase(p)
+		if is_instance_valid(p):
+			p.queue_free())
+
 
 func _remove_spawner(id: int) -> void:
 	var p = _spawners.get(id)
