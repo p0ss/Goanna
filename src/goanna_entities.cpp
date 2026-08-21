@@ -10,6 +10,8 @@
 #include <godot_cpp/classes/capsule_mesh.hpp>
 #include <godot_cpp/classes/image_texture.hpp>
 #include <godot_cpp/classes/quad_mesh.hpp>
+#include <godot_cpp/classes/resource_loader.hpp>
+#include <godot_cpp/classes/shader_material.hpp>
 #include <godot_cpp/classes/skin.hpp>
 
 #include "transplant/client/content_cao.h"
@@ -68,6 +70,86 @@ Ref<StandardMaterial3D> EntityRenderer::materialForTexture(GoannaSession &sessio
     return mat;
 }
 
+Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
+        const std::string &texture, bool alpha, bool double_sided) {
+    std::string key = texture + (alpha ? "|a" : "|o") + (double_sided ? "|d" : "|s");
+    auto it = m_mesh_materials.find(key);
+    if (it != m_mesh_materials.end())
+        return it->second;
+
+    u32 tid = session.tsrc()->getTextureId(texture);
+    GoannaTexture *gt = session.tsrc()->goannaTexture(tid);
+    // LabPBR companions and auto-bump both assume a surface Goanna is free to
+    // relight; alpha and alpha-scissor entities keep materialForTexture's
+    // plain material unchanged (see the declaration in goanna_entities.h for
+    // why that means a separate function and cache rather than a mode on it).
+    Ref<Texture2D> normal_tex, spec_tex;
+    if (gt && !alpha && !gt->hasAlpha()) {
+        // A texture modifier (colourise, crack overlay, transform) is baked
+        // into the rendered image and has no file of its own to look a
+        // companion up for; only the base name before the first ^ does.
+        std::string base = texture.substr(0, texture.find('^'));
+        size_t dotpos = base.rfind('.');
+        std::string stem = dotpos == std::string::npos ? base : base.substr(0, dotpos);
+        std::string ext = dotpos == std::string::npos ? std::string() : base.substr(dotpos);
+        auto lookup = [&](const char *suffix) -> Ref<Texture2D> {
+            std::string name = stem + suffix + ext;
+            if (!session.tsrc()->isKnownSourceImage(name))
+                return Ref<Texture2D>();
+            GoannaTexture *cgt = dynamic_cast<GoannaTexture *>(session.tsrc()->getTexture(name));
+            if (!cgt)
+                return Ref<Texture2D>();
+            return Ref<Texture2D>(cgt->godotTexture());
+        };
+        normal_tex = lookup("_n");
+        spec_tex = lookup("_s");
+    }
+
+    Ref<Material> result;
+    if (normal_tex.is_valid() || spec_tex.is_valid()) {
+        if (!m_sh_entity.is_valid())
+            m_sh_entity = ResourceLoader::get_singleton()->load("res://shaders/entity.gdshader");
+        Ref<ShaderMaterial> sm;
+        sm.instantiate();
+        sm->set_shader(m_sh_entity);
+        sm->set_shader_parameter("albedo", gt->godotTexture());
+        sm->set_shader_parameter("has_normal", normal_tex.is_valid());
+        sm->set_shader_parameter("has_spec", spec_tex.is_valid());
+        if (normal_tex.is_valid())
+            sm->set_shader_parameter("normal_tex", normal_tex);
+        if (spec_tex.is_valid())
+            sm->set_shader_parameter("spec_tex", spec_tex);
+        result = sm;
+    } else if (gt && !alpha && !gt->hasAlpha() && m_auto_bump > 0.0f) {
+        // No authored data: the same diffuse-inferred relief the node path
+        // gives an unauthored tile, via StandardMaterial3D's own normal
+        // mapping rather than entity.gdshader, which only earns its keep
+        // when there is a real LabPBR decode to do.
+        Ref<StandardMaterial3D> mat;
+        mat.instantiate();
+        mat->set_roughness(1.0f);
+        mat->set_texture_filter(BaseMaterial3D::TEXTURE_FILTER_NEAREST_WITH_MIPMAPS);
+        mat->set_cull_mode(double_sided ? BaseMaterial3D::CULL_DISABLED : BaseMaterial3D::CULL_BACK);
+        Ref<ImageTexture> tex = gt->godotTexture();
+        if (tex.is_valid())
+            mat->set_texture(BaseMaterial3D::TEXTURE_ALBEDO, tex);
+        Ref<Texture2D> nrm = gt->godotNormal(m_auto_bump);
+        if (nrm.is_valid()) {
+            mat->set_feature(BaseMaterial3D::FEATURE_NORMAL_MAPPING, true);
+            mat->set_texture(BaseMaterial3D::TEXTURE_NORMAL, nrm);
+            mat->set_normal_scale(1.0f);
+        }
+        result = mat;
+    } else {
+        result = materialForTexture(session, texture, alpha, double_sided);
+    }
+    if (getenv("GOANNA_DEBUG_ENTITY_PBR"))
+        UtilityFunctions::print("entity pbr: ", String::utf8(texture.c_str()),
+                " normal=", normal_tex.is_valid(), " spec=", spec_tex.is_valid());
+    m_mesh_materials[key] = result;
+    return result;
+}
+
 std::shared_ptr<GodotModel> EntityRenderer::modelFor(GoannaSession &session, const std::string &name) {
     auto it = m_models.find(name);
     if (it != m_models.end())
@@ -105,7 +187,7 @@ bool EntityRenderer::buildMeshVisual(GoannaSession &session, GoannaActiveObject 
         if (tex.empty())
             continue; // upstream: empty string means leave the material alone
         tex += obj.textureModifier();
-        mi->set_surface_override_material(i, materialForTexture(session, tex, p.use_texture_alpha, !p.backface_culling));
+        mi->set_surface_override_material(i, materialForMeshTexture(session, tex, p.use_texture_alpha, !p.backface_culling));
     }
     en.animator.reset();
     en.skeleton = nullptr;

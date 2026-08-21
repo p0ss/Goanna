@@ -14,8 +14,10 @@
 #include <string>
 
 #include <godot_cpp/classes/label3d.hpp>
+#include <godot_cpp/classes/material.hpp>
 #include <godot_cpp/classes/mesh_instance3d.hpp>
 #include <godot_cpp/classes/node3d.hpp>
+#include <godot_cpp/classes/shader.hpp>
 #include <godot_cpp/classes/skeleton3d.hpp>
 #include <godot_cpp/classes/sprite3d.hpp>
 #include <godot_cpp/classes/standard_material3d.hpp>
@@ -52,6 +54,9 @@ public:
     void setShowBody(bool show) { m_show_body = show; }
     // 0..1 swing phase for the first-person arm (dig chop / place bob).
     void setArmSwing(float s) { m_arm_swing = s; }
+    // Diffuse-inferred normal strength for mesh surfaces with no authored
+    // _n/_s companion; 0 disables it. Mirrors GoannaClient::m_auto_bump.
+    void setAutoBump(float strength) { m_auto_bump = strength; }
 
 private:
     struct EntityNode {
@@ -74,13 +79,26 @@ private:
     std::shared_ptr<GodotModel> modelFor(GoannaSession &session, const std::string &name);
     godot::Ref<godot::StandardMaterial3D> materialForTexture(GoannaSession &session,
             const std::string &texture, bool alpha, bool double_sided);
+    // Only used for mesh-visual surfaces (buildMeshVisual): looks up LabPBR
+    // _n/_s companions (or falls back to auto-bump) for the opaque case and
+    // returns a ShaderMaterial on entity.gdshader when either is found,
+    // otherwise the same plain material materialForTexture would build.
+    // A separate function and cache rather than a mode on materialForTexture
+    // because its other callers (sprites, wielditem-as-node) duplicate() the
+    // result and call StandardMaterial3D-specific setters on it, which would
+    // not compile, let alone make sense, against a ShaderMaterial.
+    godot::Ref<godot::Material> materialForMeshTexture(GoannaSession &session,
+            const std::string &texture, bool alpha, bool double_sided);
 
     godot::Node3D *m_root;
     std::map<u16, EntityNode> m_nodes;
     std::map<std::string, godot::Ref<godot::StandardMaterial3D>> m_materials;
+    std::map<std::string, godot::Ref<godot::Material>> m_mesh_materials;
     std::map<std::string, std::shared_ptr<GodotModel>> m_models;
+    godot::Ref<godot::Shader> m_sh_entity; // res://shaders/entity.gdshader, loaded once
     bool m_show_body = true;
     float m_arm_swing = 0.0f;
+    float m_auto_bump = 0.35f;
 };
 
 } // namespace goanna
