@@ -17,6 +17,12 @@ extends Node3D
 #   GOANNA_PACK_DIR=<dir>   textures, default baked/pack-mineclonia-v2
 #   GOANNA_SHOT=<dir>       write detail_off.png and detail_on.png, then quit
 #   GOANNA_FIELD_CELL=<n>   stochastic cell size in nodes, default 3
+#   GOANNA_FIELD_LOD=<dir>  write lod_off.png and lod_on.png and print the
+#                           strip colours, which is the near mesh against the
+#                           far tiers on one surface under one sky
+#   GOANNA_FIELD_LAYER=<n>  put the tile at array layer n rather than 0, with
+#                           a different colour in every other lod_avg_colour
+#                           entry, so an index that misses shows up
 #
 # Run: godot --path project material_field.tscn
 
@@ -35,7 +41,12 @@ const NODES := 16  # strip length, in nodes
 const WIDE := 5    # strip width, in nodes
 
 var shot_dir := ""
+var lod_dir := ""
+var lod_layer := 0
 var materials: Array[ShaderMaterial] = []
+# One strip's tile average, in linear light, in the order the strips are made.
+var tile_means: Array[Vector3] = []
+var strip_x: Array[int] = []
 
 
 func _tex_array(img: Image) -> Texture2DArray:
@@ -90,6 +101,43 @@ func _strip() -> ArrayMesh:
 	return m
 
 
+# The same strip, with the tile at some other array layer. The client's arrays
+# hold up to 256 tiles and a node face carries its layer in UV2.x, so layer 0
+# is the one case that cannot catch an index that is off or an array that is
+# strided differently from the way it was packed. _strip_at(0) builds exactly
+# what _strip() builds.
+func _strip_at(layer: int) -> ArrayMesh:
+	var m := _strip()
+	var arrays: Array = m.surface_get_arrays(0)
+	var uv2 := PackedVector2Array()
+	for i in (arrays[Mesh.ARRAY_VERTEX] as PackedVector3Array).size():
+		uv2.append(Vector2(float(layer), 0.0))
+	arrays[Mesh.ARRAY_TEX_UV2] = uv2
+	var out := ArrayMesh.new()
+	out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	return out
+
+
+# An array with the tile at `layer` and a flat magenta everywhere else, so a
+# sample that reads the wrong layer is unmistakable.
+func _tex_array_at(img: Image, layer: int) -> Texture2DArray:
+	var tile := Image.create_from_data(img.get_width(), img.get_height(), false,
+		Image.FORMAT_RGBA8, img.get_data())
+	tile.generate_mipmaps()
+	var imgs: Array[Image] = []
+	for i in layer + 1:
+		if i == layer:
+			imgs.append(tile)
+			continue
+		var other := Image.create_empty(img.get_width(), img.get_height(), true,
+			Image.FORMAT_RGBA8)
+		other.fill(Color(1.0, 0.0, 1.0, 1.0))
+		imgs.append(other)
+	var a := Texture2DArray.new()
+	a.create_from_images(imgs)
+	return a
+
+
 func _environment() -> void:
 	var e := Environment.new()
 	var sky := Sky.new()
@@ -121,6 +169,9 @@ func _ready() -> void:
 	if dir == "":
 		dir = ProjectSettings.globalize_path("res://../baked/pack-mineclonia-v2/textures")
 	shot_dir = OS.get_environment("GOANNA_SHOT")
+	lod_dir = OS.get_environment("GOANNA_FIELD_LOD")
+	if OS.get_environment("GOANNA_FIELD_LAYER") != "":
+		lod_layer = int(OS.get_environment("GOANNA_FIELD_LAYER"))
 	var cell := 3.0
 	if OS.get_environment("GOANNA_FIELD_CELL") != "":
 		cell = float(OS.get_environment("GOANNA_FIELD_CELL"))
@@ -142,7 +193,8 @@ func _ready() -> void:
 			continue
 		var mat := ShaderMaterial.new()
 		mat.shader = shader
-		mat.set_shader_parameter("albedo_array", _tex_array(img))
+		mat.set_shader_parameter("albedo_array",
+			_tex_array_at(img, lod_layer) if lod_layer > 0 else _tex_array(img))
 		mat.set_shader_parameter("normal_array", flat_n)
 		mat.set_shader_parameter("spec_array", flat_s)
 		mat.set_shader_parameter("has_normal", false)
@@ -157,9 +209,38 @@ func _ready() -> void:
 		mat.set_shader_parameter("vertex_ao_strength", 0.0)
 		mat.set_shader_parameter("sky_fill_strength", 0.0)
 		mat.set_shader_parameter("block_light_emission", 0.0)
+		# The tile's own average in linear light, which is the colour a
+		# correctly minified sample converges to and therefore what a far
+		# tier has to reach if it is to meet the near mesh (docs/
+		# launch-target.md, "one light, one air").
+		var acc := Vector3.ZERO
+		var count := 0
+		for y in img.get_height():
+			for x in img.get_width():
+				var c: Color = img.get_pixel(x, y)
+				if c.a <= 0.0:
+					continue
+				var lin: Color = c.srgb_to_linear()
+				acc += Vector3(lin.r, lin.g, lin.b)
+				count += 1
+		if count > 0:
+			acc /= count
+		tile_means.append(acc)
+		# Every other entry a different colour, so an index that lands one
+		# short, or a driver that strides the array differently from the way
+		# the value was packed, paints something obviously wrong rather than
+		# something plausible.
+		var avg := PackedVector3Array()
+		avg.resize(256)
+		for k in 256:
+			avg[k] = Vector3(float((k * 7) % 32) / 31.0, float((k * 13) % 32) / 31.0,
+				float((k * 29) % 32) / 31.0)
+		avg[lod_layer] = acc
+		mat.set_shader_parameter("lod_avg_colour", avg)
 		materials.append(mat)
+		strip_x.append(i * (WIDE + 1))
 		var mi := MeshInstance3D.new()
-		mi.mesh = _strip()
+		mi.mesh = _strip_at(lod_layer)
 		mi.material_override = mat
 		mi.position = Vector3(i * (WIDE + 1), 0, 0)
 		add_child(mi)
@@ -175,7 +256,10 @@ func _ready() -> void:
 	cam.look_at(Vector3(span * 0.5, 0.0, NODES * 0.55), Vector3.UP)
 	cam.current = true
 
-	if shot_dir != "":
+	if lod_dir != "":
+		DirAccess.make_dir_recursive_absolute(lod_dir)
+		_shoot_lod()
+	elif shot_dir != "":
 		DirAccess.make_dir_recursive_absolute(shot_dir)
 		_shoot()
 
@@ -183,6 +267,56 @@ func _ready() -> void:
 func _set_detail(v: float) -> void:
 	for m in materials:
 		m.set_shader_parameter("detail_strength", v)
+
+
+# The near mesh against the far tiers, on one surface, under one sky.
+#
+# Added for docs/far-rendering.md, "The far field's albedo, 2026-08-23". The
+# only thing that separates the two in the shader is lod_flatten and the
+# colour the flatten blends to, so this draws each strip both ways and prints
+# what came out. Nothing about the field itself moves between the two frames,
+# so a difference is the shader's and nothing else's.
+func _shoot_lod() -> void:
+	var cam: Camera3D = get_viewport().get_camera_3d()
+	for pass_i in 2:
+		var on := pass_i == 1
+		for m in materials:
+			m.set_shader_parameter("lod_flatten", on)
+			# Flatten from nothing, so the whole strip is the far case rather
+			# than a ramp across it.
+			m.set_shader_parameter("lod_flatten_near", 0.0)
+			m.set_shader_parameter("lod_flatten_far", 0.001)
+			m.set_shader_parameter("lod_repeat_near", 100000.0)
+			m.set_shader_parameter("lod_repeat_far", 200000.0)
+		for _f in 6:
+			await RenderingServer.frame_post_draw
+		var img := get_viewport().get_texture().get_image()
+		var path := lod_dir.path_join("lod_off.png" if pass_i == 0 else "lod_on.png")
+		img.save_png(path)
+		print("wrote ", path)
+		for i in materials.size():
+			# A patch of the strip, halfway along it, read back off the frame.
+			var world := Vector3(strip_x[i] + WIDE * 0.5, 0.0, NODES * 0.5)
+			var p: Vector2 = cam.unproject_position(world)
+			var acc := Vector3.ZERO
+			var n := 0
+			for dy in range(-6, 7):
+				for dx in range(-6, 7):
+					var x := int(p.x) + dx
+					var y := int(p.y) + dy
+					if x < 0 or y < 0 or x >= img.get_width() or y >= img.get_height():
+						continue
+					var c := img.get_pixel(x, y)
+					acc += Vector3(c.r, c.g, c.b)
+					n += 1
+			if n == 0:
+				continue
+			acc = acc / n * 255.0
+			var mean: Vector3 = tile_means[i]
+			print("%-18s %s  frame (%6.2f,%6.2f,%6.2f)  tile linear mean (%.4f,%.4f,%.4f)"
+				% [STRIPS[i][0], "far " if on else "near", acc.x, acc.y, acc.z,
+					mean.x, mean.y, mean.z])
+	get_tree().quit()
 
 
 # Two frames of the same field, the treatment off and on, so the difference is
