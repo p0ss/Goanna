@@ -117,8 +117,30 @@ and the haze beginning close enough that a seam two hundred nodes out is
 already softened and the generated edge is never seen as an edge. The
 volumetric grid is short (`volumetric_fog_length`), so it does the near
 shafts and the exponential fog does the far haze, and the two must agree
-on colour. Sonnet with the chart, after R1 lands, since R1 changes what
-the chart shows.
+on colour.
+
+Most of this landed 2026-08-22 from another session working the same
+branch, commit 7b37a71 "Put light shafts and haze in the air above water".
+The volumetric block was already wired to the server's
+`volumetric_light_strength` but at a density of 0.00025 to 0.00085 against
+Godot's own default of 0.05, so it could not be seen at any hour; it now
+has a density that shows, shaped by sun elevation, weather and the
+server's strength, with a volume length of 72 and detail spread 3.0, and
+`project.godot` buys the range back with `volume_size` 128 and
+`volume_depth` 96. `e.fog_sun_scatter`, which was never set, now warms the
+distance fog around a low sun, and it works in `FOG_MODE_DEPTH` so it
+composes with the depth curve the haze uses rather than fighting it. There
+is a Light shafts setting on the Lighting tab, with `GOANNA_SHAFTS`
+alongside it.
+
+What is left of R3 is the part its author was straight about not having:
+the haze and the warm backlit look were verified at sunset against shafts
+off, and noon is unchanged to the eye, but no discrete beam through a gap
+was ever photographed, because every occluder framed was a solid ridge.
+The shot that proves or kills it is under a canopy at mid morning. Also
+still open: the near volumetric and the far depth haze agreeing on colour
+across the whole depth, which is the half that touches the far field and
+wants judging with R1's lighting settled.
 
 **R4, the instrument.** `shotcheck.py` grows a continuity check that the
 harness fails on: luminance and chroma discontinuity across the live/far
