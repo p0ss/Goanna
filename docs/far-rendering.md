@@ -603,6 +603,67 @@ this; 1024 nodes is the number recorded as affordable on this machine at the
 default settings, and it is also, not coincidentally, the number
 `project/local_server.gd` has granted since before this task.
 
+### Background, overlay, foreground, 2026-08-22
+
+The four defects above were closed and a fresh world still read as broken.
+What was left was not a defect in any panel but the absences between and
+beyond them: the world was seen ending. A panel that has not arrived is a
+hole showing sky through the ground, and the outermost panels stop at a
+line, in clear air, with nothing past them.
+
+Correct panels do not add up to a cohesive field, because the eye reads the
+gaps as well as the geometry. So the far view is three layers rather than
+one, and only the middle layer is terrain:
+
+**Background, always complete.** The sky's lower hemisphere holds a broad
+band of the horizon's own colour under the horizon line
+(`sky.gdshader`'s `ground_curve`, 3.0, set from `main.gd`), and only darkens
+toward the ground colour when the camera looks steeply down, where terrain
+is always loaded. Nothing is invented by this: it claims no terrain, it is
+air. It costs nothing and it is there from the first frame, which is what
+the far field cannot be.
+
+**Overlay, as much as we have.** The tiers, drawn over that background and
+revealed through the haze as they arrive.
+
+**Foreground.** The live range.
+
+The layer that joins them is the haze, and the thing that was wrong is what
+its distances were tied to. Every one of them followed the distance the
+server permits us to draw. The far field reaches only as far as the store
+and the summaries have filled, which on a new world is very little and grows
+for minutes, so the haze was closing hundreds of nodes past the last panel
+and the edge stood in clear air. Measured on a fresh profile against the
+test server: `far_blocks` 0, terrain stopping at the live edge of 192 nodes,
+fog set to close at the 512 node grant.
+
+So `GoannaClient` reports `far_extent`, the ninetieth percentile ring of
+what is actually drawn, recomputed on each far rescan, and the haze closes
+there, floored at the live range and capped by the grant. A percentile
+rather than a maximum, so one straggler across a gap does not report a
+horizon that is not there. Where there is nothing to show there is haze
+rather than an edge, and the view opens as terrain arrives, which reads as
+weather clearing rather than as a world being built.
+
+The fog is a depth curve rather than exponential. An exponential cannot be
+both clear in the foreground and closed at the edge: the density that hides
+the far edge puts most of its extinction on the mid ground and lays a veil
+over everything, which is what the first attempt did. Depth fog takes a
+begin, an end and a curve, so it is clear to half the extent, closes over
+the last part and is complete at the edge (`fog_clear_fraction` 0.5 and
+`fog_curve` 3.0 in `main.gd`, swept with `GOANNA_FOG_CLEAR` and
+`GOANNA_FOG_CURVE`). Under water the fog stays exponential, because that
+murk is a property of the water and starts at the eye.
+
+Measured on the pregenerated world at a 1024 node grant: 4898 far blocks,
+`far_extent` 512, haze from 256 to 512, and the far edge dissolving with no
+boundary visible in the frame.
+
+What this does not fix, and does not pretend to: the panels are still
+blocky, they still take minutes to fill, and their side faces still read
+darker than their tops at a low sun. The background makes those less
+visible rather than untrue. `docs/launch-target.md` R1 and R3 hold the rest.
+
 ## Cells are not cubes
 
 A coarse cell used to draw as a full cube, so at cell 16 a hill snapped to
