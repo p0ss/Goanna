@@ -40,6 +40,7 @@ const MAX_LINE := 1 << 20
 # this channel can do.
 const COMMANDS := {
 	"help": "list these commands",
+	"label": "text: what this session is testing, shown on screen",
 	"ping": "liveness, and how long the client has been up",
 	"status": "session state, camera pose, block and entity counts",
 	"tp": "x,y,z: server side teleport, then wait for blocks to arrive",
@@ -73,6 +74,16 @@ var _baseline := {}					# settings key -> value before the first command
 var _tod := -1.0					# our own copy: the client does not read it back
 var _reloaded := []					# shaders hot loaded since launch, a deviation
 var _port := 0
+# The test overlay's state, read by ui/game_ui.gd. `label` says what this
+# session is for, set with the label command or GOANNA_TEST_LABEL at launch;
+# the rest is kept by _run so a watcher can tell a hung client from a waiting
+# agent without attaching anything.
+var label := ""
+var running_cmd := ""
+var running_since := 0.0
+var last_cmd := ""
+var last_finished := 0.0
+var last_failed := false
 
 func _ready() -> void:
 	var spec := OS.get_environment("GOANNA_CONTROL")
@@ -83,6 +94,11 @@ func _ready() -> void:
 		set_process(false)
 		return
 	print("control: listening on 127.0.0.1:%d" % _port)
+	label = OS.get_environment("GOANNA_TEST_LABEL")
+	# So ui/game_ui.gd can find us for the overlay without main.gd having to
+	# hold a reference, and without the overlay existing at all in a build
+	# where this file was excluded.
+	add_to_group("goanna_control")
 
 func _exit_tree() -> void:
 	_srv.stop()
@@ -158,7 +174,17 @@ func _shorthand(line: String) -> Dictionary:
 	return {"cmd": parts[0], "args": args}
 
 func _run(req: Dictionary) -> void:
+	# What the overlay reads. A watcher cannot otherwise tell a client stuck
+	# inside a block from an agent that is simply thinking: both look like a
+	# window that is not moving. Knowing which command is running, and for how
+	# long, separates them at a glance.
+	running_cmd = String(req["cmd"])
+	running_since = Time.get_ticks_msec() / 1000.0
 	var result = await _dispatch(String(req["cmd"]), req["args"])
+	last_cmd = running_cmd
+	last_finished = Time.get_ticks_msec() / 1000.0
+	last_failed = result is Dictionary and (result as Dictionary).has("__error")
+	running_cmd = ""
 	var msg := {"id": req["id"]}
 	if result is Dictionary and (result as Dictionary).has("__error"):
 		msg["ok"] = false
@@ -189,6 +215,9 @@ func _dispatch(cmd: String, a: Dictionary) -> Variant:
 	match cmd:
 		"help":
 			return {"commands": COMMANDS, "port": _port}
+		"label":
+			label = str(a.get("text", a.get("value", "")))
+			return {"label": label}
 		"ping":
 			return {"pong": true, "uptime": main.t}
 		"status":

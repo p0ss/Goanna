@@ -1170,6 +1170,39 @@ func _after_inventory_update() -> void:
 
 # --- HUD ---------------------------------------------------------------------
 
+# What a scripted session is doing, drawn only when the control channel is open
+# (docs/control-channel.md). A window that is not moving looks the same whether
+# the client is wedged, the server has stopped answering, or the agent driving
+# it is simply thinking, and telling those apart has cost this project whole
+# measurements. So say which command is running and for how long: a number that
+# keeps climbing under one command is a stall, a number that resets is progress,
+# and "idle" means nobody has asked for anything.
+func _draw_test_overlay(vs: Vector2) -> void:
+	var cc := get_tree().get_first_node_in_group("goanna_control")
+	if cc == null:
+		return
+	var f := hud.get_theme_default_font()
+	var fs := int(14 * hud_scale)
+	var now: float = Time.get_ticks_msec() / 1000.0
+	var lines: Array[String] = []
+	if str(cc.label) != "":
+		lines.append(str(cc.label))
+	if str(cc.running_cmd) != "":
+		lines.append("running %s  %.1fs" % [str(cc.running_cmd), now - float(cc.running_since)])
+	elif str(cc.last_cmd) != "":
+		lines.append("idle %.1fs  after %s%s" % [now - float(cc.last_finished),
+				str(cc.last_cmd), "  FAILED" if bool(cc.last_failed) else ""])
+	else:
+		lines.append("idle, no command yet")
+	var y := 46.0 * hud_scale
+	for line in lines:
+		var w := f.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		var pos := Vector2(vs.x - w - 12.0 * hud_scale, y)
+		hud.draw_string_outline(f, pos, line, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 3, Color(0, 0, 0, 0.8))
+		hud.draw_string(f, pos, line, HORIZONTAL_ALIGNMENT_LEFT, -1, fs,
+				Color(1, 0.75, 0.4) if bool(cc.last_failed) else Color(0.6, 1.0, 0.75))
+		y += float(fs) * 1.3
+
 func _draw_hud() -> void:
 	if client == null:
 		return
@@ -1183,6 +1216,7 @@ func _draw_hud() -> void:
 		hud.draw_string_outline(f, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 3,
 				Color(0, 0, 0, 0.7 * far_hint_alpha))
 		hud.draw_string(f, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1, 1, 1, 0.85 * far_hint_alpha))
+	_draw_test_overlay(vs)
 	var st: Dictionary = client.hud_state()
 	var flags: int = st.get("flags", 0xffff)
 	# crosshair

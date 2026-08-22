@@ -64,6 +64,7 @@ overlapping camera moves would each photograph the other's pose.
 | Command | What it does |
 | --- | --- |
 | `ping` | Liveness, and how long the client has been up. |
+| `label <text>` | What this session is testing. Shown on screen; see below. |
 | `status` | Session state, camera pose, block, entity and media counts. |
 | `tp x y z` | Teleport through the server, then wait for the blocks to arrive. |
 | `pose x y z pitch= yaw=` | Place the camera. No server move, so use it for viewpoints, not for travel. |
@@ -100,6 +101,35 @@ while y > int(p.y) - 20:
 	y -= 1
 return {"node": "nothing found"}'
 ```
+
+## The overlay, so a watching human knows what is going on
+
+A window that is not moving looks the same whether the client is wedged, the
+server has stopped answering, or the agent driving it is simply thinking.
+Telling those apart by watching has cost real time here, so a client with the
+control channel open draws a small overlay in the top right corner saying
+what it is doing:
+
+```
+far tier lighting: midnight comparison
+running wait  8.4s
+```
+
+The first line is the session's label, set with `label <text>` or with
+`GOANNA_TEST_LABEL` at launch. The second is the command in flight and how
+long it has been running, or, when nothing is in flight, how long the client
+has been idle and which command finished last. A failed command says so and
+the overlay turns orange until the next one succeeds.
+
+How to read it: a number that keeps climbing under one command name is a
+stall, in the client or in the server it is waiting on. A number that resets
+is progress. `idle` climbing means the client is fine and whatever is driving
+it has not asked for anything, so look at the agent rather than the client.
+
+It is drawn as part of the HUD, and `shot` hides the HUD while it captures,
+so the overlay never appears in a screenshot the tooling takes. That is
+deliberate: it is for the person watching the window, and captures stay
+clean. To photograph it, grab the viewport directly with `run` instead.
 
 ## What it may and may not do
 
