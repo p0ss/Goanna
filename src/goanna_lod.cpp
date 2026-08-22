@@ -440,8 +440,30 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                     const int h_front = height_of(front_cell, front_filled);
                     if (axis == 1) {
                         // A top or bottom face exists only where the cell
-                        // beyond is empty, as before.
+                        // beyond is empty, and unknown is not empty here
+                        // either. What saves the far field from going
+                        // invisible from above, which is what a blanket
+                        // version of this rule did, is that the face only
+                        // leans on the neighbour when it has to: a cell whose
+                        // content stops inside it carries its own surface,
+                        // known from this cell alone, so its top face is
+                        // drawn whatever is above. Only a cell filled right
+                        // to its ceiling depends on the cell above, and a
+                        // bottom face always depends on the cell below,
+                        // because the chain fills a cell from its floor.
+                        //
+                        // Left leaning on nothing, a solid column whose
+                        // neighbour above was never sent grew a lid, and a
+                        // mapgen chunk is five blocks tall against a summary
+                        // area's eight, so a generated chunk under an
+                        // ungenerated one put a flat plate across the whole
+                        // area at the chunk boundary: the panels seen hanging
+                        // in the sky (docs/far-rendering.md, "Lids, layers
+                        // and the vertical walk").
                         if (front_filled)
+                            continue;
+                        const bool leans_on_front = sign < 0 || h_self >= cell;
+                        if (leans_on_front && (!front_cell || !(front_cell->flags & LodLevel::kKnown)))
                             continue;
                         fk.lo = 0;
                         fk.hi = (uint8_t)h_self;
@@ -465,11 +487,9 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                         // "Background, overlay, foreground"), so what is left
                         // is air rather than a hole.
                         //
-                        // Top and bottom faces keep the old rule on purpose.
-                        // The block above a surface is often one we have
-                        // never been sent, and applying this there would take
-                        // the ground's top face away and leave the far field
-                        // invisible from above rather than merely walled.
+                        // Top and bottom faces now follow the same rule,
+                        // guarded so that a cell carrying its own surface
+                        // keeps its top face. See the axis 1 branch above.
                         if (!front_cell || !(front_cell->flags & LodLevel::kKnown))
                             continue;
                         if (h_front >= h_self)
