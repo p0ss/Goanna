@@ -787,10 +787,10 @@ regular rectangles a few nodes from the eye.
 
 The merge loop in `meshLodRegion` already knows how wide each quad it
 builds is, in the same node units the UV switch repeats the tile in (`w`
-and `h`, cell units, times `cell`). `LodRegionMesh` now carries the
-widest span seen while building a region, `max_span`,
+and `h`, cell units, times `cell`). `LodRegionMesh` now carries the widest
+span seen while building a region, `max_span`, and
 `GoannaClient::lodBuildRegion` hands it to that region's `MeshInstance3D`
-as a new instance uniform, `lod_repeat`, and the node shaders' flatten now
+as a new instance uniform, `lod_repeat`. The node shaders' flatten now
 fires on either how far away a fragment is or how wide the quad it sits on
 actually is: `smoothstep(lod_flatten_near, lod_flatten_far,
 length(VERTEX))` for distance, `smoothstep(lod_repeat_near,
@@ -832,8 +832,8 @@ on a terraced, banded rock formation whose own stepped geometry, not its
 texture, dominates `--far-band`'s reading there; a flat panel was needed
 to isolate tiling from geometry and this session did not hold one still
 long enough for a second controlled reading before the client went again.
-What did land cleanly: the mechanism proof above, and `tools/
-test-launch-target.sh`'s own horizon shot, at the ordinary range 2c was
+What did land cleanly: the mechanism proof above, and
+`test-launch-target.sh`'s own horizon shot, at the ordinary range 2c was
 judged against, still reads 0.67 on `--far-band`, unchanged and well under
 9.0, so the far range case this extends is not regressed by any of it.
 
