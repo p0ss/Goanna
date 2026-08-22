@@ -35,6 +35,29 @@ func _ready() -> void:
 func precipitation() -> float:
 	return 1.0 if not _weather.is_empty() else 0.0
 
+const TEST_SPAWNER_ID := 999999
+
+# A synthetic precipitation spawner, for exercising the Godot side without a
+# server storm: GOANNA_TEST_PARTICLES=1 at startup, or the control channel's
+# weather command with fake set. It is the texture name that makes a spawner
+# count as weather, here exactly as for a real one, so a fake storm reads
+# through precipitation() and reaches a shader pack as rainStrength.
+func inject_test_spawner(kind: String) -> void:
+	var snow := kind == "snow"
+	_add_spawner({"id": TEST_SPAWNER_ID, "amount": 400, "time": 0.0,
+		"pos_min": Vector3(-8, 12, -8), "pos_max": Vector3(8, 16, 8),
+		"vel_min": Vector3(0, -1.5 if snow else -8, 0),
+		"vel_max": Vector3(0, -2.5 if snow else -12, 0),
+		"acc_min": Vector3.ZERO, "acc_max": Vector3.ZERO,
+		"exp_min": 6.0 if snow else 2.0, "exp_max": 8.0 if snow else 3.0,
+		"size_min": 1.0, "size_max": 2.0,
+		"texture": "weather_pack_snow_snowflake_1.png" if snow else "weather_pack_rain_raindrop_1.png",
+		"vertical": not snow, "collision": false, "attached_id": 1})
+	print("particles: injected synthetic %s spawner at player" % kind)
+
+func clear_test_spawner() -> void:
+	_remove_spawner(TEST_SPAWNER_ID)
+
 var _dbg := 0.0
 var _test_done := false
 func _process(_delta: float) -> void:
@@ -60,13 +83,7 @@ func _process(_delta: float) -> void:
 		var m0 := get_tree().get_first_node_in_group("goanna_main")
 		if m0 != null and m0.get("cam") != null and m0.cam.position != Vector3.ZERO:
 			_test_done = true
-			_add_spawner({"id": 999999, "amount": 400, "time": 0.0,
-				"pos_min": Vector3(-8, 12, -8), "pos_max": Vector3(8, 16, 8),
-				"vel_min": Vector3(0, -8, 0), "vel_max": Vector3(0, -12, 0),
-				"acc_min": Vector3.ZERO, "acc_max": Vector3.ZERO,
-				"exp_min": 2.0, "exp_max": 3.0, "size_min": 1.0, "size_max": 2.0,
-				"texture": "weather_pack_rain_raindrop_1.png", "vertical": true, "collision": false, "attached_id": 1})
-			print("particles: injected synthetic spawner at player")
+			inject_test_spawner("rain")
 	for ev in client.take_particle_spawners():
 		_add_spawner(ev)
 	for id in client.take_deleted_spawners():

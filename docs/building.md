@@ -328,6 +328,7 @@ features.
 
 | Variable | Effect |
 | --- | --- |
+| `GOANNA_CONTROL=<port>` | Open a loopback command channel on that port (`1` means 30800), so the running client can be teleported, posed, questioned and photographed instead of relaunched for each question. `docs/control-channel.md` has the commands and the rule about not reporting a live tweak as a result. |
 | `GOANNA_SMOKE=<seconds>` | Connect, run for that many seconds, disconnect and quit. Useful in CI or after a change to the session code. |
 | `GOANNA_SHOT=<directory>` | Fly to three fixed viewpoints, save a PNG at each, then quit. |
 | `GOANNA_WALKTEST=1` | Drive the movement controls from a script rather than the keyboard. With `GOANNA_SHOT`, saves two frames mid walk. |
