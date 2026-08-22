@@ -221,7 +221,11 @@ static const std::map<std::string, float> kMatStrengthDefaults = {
     // the only way to A/B them without the world streaming differently between
     // two runs and swamping the difference being measured.
     {"sky_light", 1.0f}, {"vertex_ao", 1.0f}, {"vertex_ao_light", 0.0f},
-    {"sky_fill", 1.0f}, {"stale", 0.6f}, {"debug_nodelight", 0.0f},
+    // stale is 0: pulling remembered terrain toward grey is a per tier
+    // signal painted into the frame, and the far field is judged by there
+    // being none (docs/launch-target.md, "one light, one air"). The channel
+    // stays so the signal can be turned on to see what is remembered.
+    {"sky_fill", 1.0f}, {"stale", 0.0f}, {"debug_nodelight", 0.0f},
 };
 
 float GoannaClient::material_strength(const String &channel) const {
@@ -1255,7 +1259,13 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
                 const auto &names = agt->layerNames();
                 avg.resize((int)names.size());
                 for (size_t i = 0; i < names.size(); ++i) {
-                    const Color c = toColor(m_session->tsrc()->getTextureAverageColor(names[i]));
+                    // The average is taken over the sRGB bytes of the
+                    // texture; the shader blends it into ALBEDO, which is
+                    // linear (the array is sampled as source_color). Handed
+                    // over unconverted it read brighter and paler than the
+                    // same tile near, which is the far band changing colour
+                    // with distance (docs/launch-target.md, R1).
+                    const Color c = toColor(m_session->tsrc()->getTextureAverageColor(names[i])).srgb_to_linear();
                     avg[(int)i] = Vector3(c.r, c.g, c.b);
                 }
                 sm->set_shader_parameter("lod_avg_colour", avg);
@@ -2481,7 +2491,10 @@ void GoannaClient::lodTakeSummaries() {
                         c.flags = cflags | LodLevel::kFilled;
                     }
                 }
-            ch.stored = true;
+            // Not stored: a summary is what the server holds now, not a
+            // memory of what it once sent, so it is not marked stale
+            // (docs/launch-target.md, R1). The chain is still known.
+            ch.stored = false;
             m_lod_chain_missing.erase(bp);
             if (any_filled) {
                 lodAssign(bp, tier);
@@ -2688,8 +2701,11 @@ void GoannaClient::lodBuildRegion(const LodRegionKey &key, LodRegion &r) {
                     wm->set_shader(m_sh_water);
                     wm->set_shader_parameter("albedo_tex", wgt->godotTexture());
                     wm->set_shader_parameter("waving", false);
+                    // sRGB average into a linear shader colour, as for the
+                    // node materials above.
                     const Color avg = toColor(
-                            m_session->tsrc()->getTextureAverageColor(m_session->tsrc()->getTextureName(sf.texture_id)));
+                            m_session->tsrc()->getTextureAverageColor(m_session->tsrc()->getTextureName(sf.texture_id)))
+                            .srgb_to_linear();
                     wm->set_shader_parameter("lod_avg_colour", Vector3(avg.r, avg.g, avg.b));
                 }
                 wit = m_lod_water.emplace(sf.texture_id, wm).first;
@@ -2710,6 +2726,11 @@ void GoannaClient::lodBuildRegion(const LodRegionKey &key, LodRegion &r) {
             if (m_lod_material.is_null()) {
                 m_lod_material.instantiate();
                 m_lod_material->set_flag(BaseMaterial3D::FLAG_ALBEDO_FROM_VERTEX_COLOR, true);
+                // The vertex colour here is the tile's sRGB average (the
+                // fallback in goanna_lod.cpp), so say so, or Godot reads it
+                // as linear and the tile is brighter than it is anywhere
+                // else (docs/launch-target.md, R1).
+                m_lod_material->set_flag(BaseMaterial3D::FLAG_SRGB_VERTEX_COLOR, true);
                 m_lod_material->set_roughness(1.0f);
                 m_lod_material->set_metallic(0.0f);
             }

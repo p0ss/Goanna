@@ -71,9 +71,12 @@ uniform float debug_nodelight_strength : hint_range(0.0, 1.0) = 0.0;
 
 // Staleness: CUSTOM0.a is 255 on a live block and lower on one the far
 // tiers drew from the local store (docs/far-rendering.md, "Staleness"),
-// and the shader pulls such surfaces toward grey by this much, so terrain
-// that is remembered rather than seen says so without pretending.
-uniform float stale_strength : hint_range(0.0, 1.0) = 0.6;
+// and the shader can pull such surfaces toward grey by this much. Off by
+// default: a grey far field is a per tier signal painted into the frame,
+// and the far field is judged by there being none (docs/launch-target.md,
+// "one light, one air"). The channel stays so the signal can be turned on
+// to see what is remembered rather than seen.
+uniform float stale_strength : hint_range(0.0, 1.0) = 0.0;
 
 // Far tiers only (docs/far-rendering.md, "Shade the far field as a far
 // field"): a region quad's UV still repeats once per node, which is right up
