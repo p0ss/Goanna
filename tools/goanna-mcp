@@ -188,6 +188,22 @@ class Session:
             out.update(channel.send("status"))
         return out
 
+    def reap(self):
+        """Collect the child if it has exited on its own.
+
+        Only stop() ever polled the handle, so a client that quit by itself,
+        crashed, was told to quit over the control channel by something else,
+        or was killed, stayed a zombie for the life of this server: exited,
+        but never waited on. Two of them had been sitting in the process table
+        for hours. That is not merely untidy. Anything that asks whether the
+        client is running by looking for the process gets told yes, so a dead
+        client reads as a live one that has stopped answering, which is what
+        a frozen client looks like too. Hours went into that confusion today.
+        Poll wherever liveness is reported, and the kernel lets the entry go.
+        """
+        if self.proc is not None and self.proc.poll() is not None:
+            self.proc = None
+
     def stop(self, channel):
         stopped = False
         if channel.up():
@@ -425,9 +441,20 @@ def call_tool(name, args, channel, session):
         action = args.get("action", "status")
         out = {}
         if action == "status":
+            session.reap()
             if not channel.up():
-                return {"running": False,
-                        "hint": "no client is answering; goanna_session action=start"}
+                # Say which of the two it is. A client that exited and one that
+                # is wedged both fail to answer, and they want opposite
+                # responses: start a new one, or go and look at why the old one
+                # is stuck.
+                if session.proc is None:
+                    return {"running": False,
+                            "hint": "no client is answering; goanna_session action=start"}
+                return {"running": False, "pid": session.proc.pid,
+                        "hint": "the process is alive but not answering on the control "
+                                "channel: it is wedged rather than gone. Look at it before "
+                                "restarting, and see docs/control-channel.md for the "
+                                "overlay that says what it was last asked to do."}
             return dict(channel.send("status"), running=True)
         if action in ("start", "restart") and args.get("build"):
             out.update(session.build())
