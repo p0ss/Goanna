@@ -463,24 +463,33 @@ boundary rule is the server: it already holds the terrain, so let it give
 what it chooses to give.
 
 `goanna_server_mod` answers `farsum?` requests. It reads already generated
-map through a VoxelManip, never generating any, and replies with six bytes
-per mapblock: filled, occludes, lit, liquid, the height the content reaches,
-the commonest top and side node (as an index into a name list in the same
-message), and the light levels. An 8 by 8 by 8 block area is about 3 KB on
-the wire against roughly a megabyte at full resolution. Requests beyond
-`goanna_far_rendering_distance` of the asking player are refused, and the
-work is paced by `goanna_far_summary_blocks_per_step` (32 mapblocks a step),
-so an area costs a second or two of wall clock and a small slice of each
-step.
+map through a VoxelManip, never generating any, and replies with 21 bytes
+per mapblock, protocol version 2 since 2026-08-22: occludes, lit, liquid, a
+4 by 4 grid of surface heights over the block's footprint (one byte each, 0
+to 16), the commonest top and side node (as an index into a name list in the
+same message), and the light levels. Version 1 sent one height for the whole
+block, so a slope summarised as a stepped box; see
+`goanna_server_mod/README.md` and the protocol comment above
+`GoannaClient::lodTakeSummaries` for what changed and why an old mod and a
+new client refuse each other's messages rather than misreading them. An 8 by
+8 by 8 block area is about 14 KB on the wire against roughly a megabyte at
+full resolution. Requests beyond `goanna_far_rendering_distance` of the
+asking player are refused, and the work is paced by
+`goanna_far_summary_blocks_per_step` (32 mapblocks a step), so an area costs
+a second or two of wall clock and a small slice of each step; the larger
+record does not change that bound, since it is still one VoxelManip read per
+block.
 
 The client (`lodRequestSummaries`, `lodTakeSummaries` in
-`src/goanna_client.cpp`) asks for the nearest area it knows nothing about,
-four in flight, never twice, skipping anything inside the live range or
-already held by the store. A reply becomes a one cell chain per mapblock at
-cell 16, marked `stored` so it renders with the same staleness treatment,
-and the region mesher draws it through the same path as everything else:
-tiers, merging, water, occlusion, the fade. No new rendering code at all,
-which is what the chain was built for.
+`src/goanna_client.cpp`) asks for the nearest area that is not entirely live
+and not entirely known already, four in flight, never twice, skipping
+anything already fully covered by the live range or the store. A reply
+becomes a chain per mapblock at whichever tier's cell is the finest this
+client can use at 4 nodes or coarser (cell 4 at the default `lod_cell`),
+marked `stored` so it renders with the same staleness treatment, and the
+region mesher draws it through the same path as everything else: tiers,
+merging, water, occlusion, the fade, and now a real slope instead of a flat
+top. No new rendering code at all, which is what the chain was built for.
 
 Measured against a Mineclonia server holding terrain a previous player had
 explored: a fresh client with an empty store, a 96 node live range and the
@@ -490,9 +499,10 @@ as holes and stay holes.
 
 Two limits are worth knowing. A mod channel has no unicast, so replies are
 broadcast and filtered by the requester name they carry; the mod README says
-what that means for an operator. And a summary is cell 16 only, so distant
-terrain from this path is coarser than the same ground would be from the
-store; walking there replaces it with the real thing.
+what that means for an operator. And a summary carries no data finer than 4
+node cells, so distant terrain from this path is coarser than the same
+ground would be from the store, which keeps the full block; walking there
+replaces it with the real thing.
 
 ### Pregeneration, 2026-08-22
 
@@ -518,6 +528,80 @@ on (`project/local_server.gd`); a public operator decides for themselves.
 It stays inside the boundary: the server generates its own world on its own
 schedule, as it would for a player walking there, and the client never
 generates or asks for anything a vanilla client could not.
+
+### The launch target's four defects, closed 2026-08-22
+
+`docs/launch-target.md` task 2 named four things wrong with the picture
+rather than the mechanism, found from screenshots rather than from the
+numbers above, and closed them in the order the task set: each one's result
+is what the next was judged against.
+
+**2a, the seam.** `lodRequestSummaries` skipped an area whenever its centre,
+not its farthest corner, was inside the live range, and skipped it again
+whenever any one sampled cell was already known, so a ring straddling the
+live edge, or one the player had crossed a corner of, was never asked about.
+Both are now farthest-corner and fully-known tests, and the vertical window
+widened from one area either side of the player to four, capped rather than
+matched to the horizontal radius so a large grant does not turn into a scan
+of mostly sky and stone. No mod change was needed for "the ring around spawn
+generated by ordinary play": the loosened ask already reaches it, because
+`goanna_server_mod` answers `farsum?` for anything generated regardless of
+how it got that way.
+
+**2b, the surface.** The record grew from 6 bytes (one height for the whole
+block) to 21 (a 4 by 4 grid of them), protocol version 2, and
+`lodTakeSummaries` builds the chain at whichever tier's cell is the finest
+this client can use at 4 nodes or coarser, rather than always at cell 16, so
+the region mesher's existing per-cell height logic (`meshLodRegion`, "Cells
+are not cubes" below) draws a slope from a summary exactly as it already did
+from a stored block. `goanna_server_mod/README.md` and the protocol comment
+above `block_summary` and `lodTakeSummaries` carry the wire format and the
+cost per area (14 KB now, was 3 KB).
+
+**2c, the shading.** A merged region quad's UV still repeats once per node,
+which is right at the near end of a tier but aliases into a shimmer once the
+quad is only a few hundred pixels on screen and no anisotropic filtering is
+in the sampler. Past a distance in nodes (64 to 256 by default,
+`lod_flatten_near`/`lod_flatten_far` in `nodes_array_common.gdshaderinc` and
+`water.gdshader`) the sampled colour blends toward the tile's own average,
+the same `getTextureAverageColor` value the no-array fallback material
+already used, carried per array layer in a `lod_avg_colour` uniform set only
+on LOD materials (`GoannaClient::materialFor`) so the near mesh's shader,
+which is the same compiled resource, never engages it. Water at a tier stops
+waving (there is nothing at 16 node cells for a per node ripple to be) and
+gets the same colour blend. `tools/shotcheck.py --far-band` measures the
+result: Laplacian energy in a horizon shot's far band, low for a flat
+blended surface, high for an aliased one.
+
+**2d, the horizon.** `m_far_distance` now defaults to whatever the server's
+far rendering grant turns out to be (`GoannaClient::lodUpdateFar`), rather
+than to a fixed 512 regardless of a larger grant, and an explicit choice
+(the settings panel's new "Far draw distance", or `GOANNA_FAR_DISTANCE`)
+turns the auto-tracking off. `cam.far` and the fog density, already tied to
+the draw distance since rung 4 above, follow the same number and so now
+reach as far as the grant does rather than stalling at the old default's
+edge. A second new settings entry, "Remembered terrain tint", exposes
+`stale_strength` through the existing generic `mat_*` mechanism, no new
+plumbing needed. A HUD line reads "Generating distant terrain (N cells so
+far)" while `render_stats().far_remote` is still changing, fading a few
+seconds after it stops, so a fresh world's first minute or two does not read
+as broken. And the purple cells: found by reading `lodTakeSummaries`
+alongside `NodeDefManager::get(name)`, which defaults to `CONTENT_UNKNOWN`
+when a name will not resolve; the summary path defaulted to `CONTENT_AIR`
+instead, so a name this client could not resolve became an invisible hole
+rather than Luanti's own magenta and black `unknown_node.png`. Now it
+defaults to `CONTENT_UNKNOWN` like the rest of the codebase does, so an
+unresolved name is honestly ugly instead of silently absent.
+
+Cost, measured on this machine (Luanti 5.16.1 flatpak, Godot 4.5.1) against
+a fresh local Mineclonia world at the default 1024 node grant, through
+`tools/test-launch-target.sh`: two minutes after joining, `far_remote` was
+6656 blocks across 159 regions and 359 surfaces, 847 draw calls total, the
+worst `poll_blocks` call 0.43 ms, and 137 blocks still at full detail near
+the player. `docs/requirements.md`'s draw call budget is not threatened by
+this; 1024 nodes is the number recorded as affordable on this machine at the
+default settings, and it is also, not coincidentally, the number
+`project/local_server.gd` has granted since before this task.
 
 ## Cells are not cubes
 

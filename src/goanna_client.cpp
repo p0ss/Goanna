@@ -1243,9 +1243,23 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
                 sm->set_shader_parameter("spec_array", spc);
             // The far tiers are past the reach of the node light pool, so
             // their block light is added as emission, which the near mesh
-            // must not do or a torch counts twice.
-            if (key.lod)
+            // must not do or a torch counts twice. They also alias at range
+            // (docs/far-rendering.md, "Shade the far field as a far field"),
+            // so each layer's own average colour rides along for the shader
+            // to blend toward with distance; the near mesh never draws far
+            // enough to need it and leaves lod_flatten false.
+            if (key.lod) {
                 sm->set_shader_parameter("block_light_emission", 1.0f);
+                sm->set_shader_parameter("lod_flatten", true);
+                PackedVector3Array avg;
+                const auto &names = agt->layerNames();
+                avg.resize((int)names.size());
+                for (size_t i = 0; i < names.size(); ++i) {
+                    const Color c = toColor(m_session->tsrc()->getTextureAverageColor(names[i]));
+                    avg[(int)i] = Vector3(c.r, c.g, c.b);
+                }
+                sm->set_shader_parameter("lod_avg_colour", avg);
+            }
             if (getenv("GOANNA_DEBUG_PBR"))
                 UtilityFunctions::print("pbr array id=", key.texture_id,
                         " normal=", nrm.is_valid(), " spec=", spc.is_valid());
@@ -2159,6 +2173,7 @@ void GoannaClient::set_store_path(const String &root) {
 
 void GoannaClient::set_far_distance(int nodes) {
     m_far_distance = std::clamp(nodes, 0, 4096);
+    m_far_distance_explicit = true;
     m_far_dirty = true;
 }
 
@@ -2171,6 +2186,14 @@ void GoannaClient::lodUpdateFar(const Vector3 &around) {
     if (!m_session)
         return;
     int grant = m_session->farRenderingGrant();
+    // The default is the grant, not a fixed number (docs/launch-target.md
+    // task 2d): a 512 node default left half of a 1024 node grant unused
+    // until someone thought to raise it. An explicit choice, env var or
+    // settings panel, still wins.
+    if (!m_far_distance_explicit && grant > 0 && grant != m_far_distance) {
+        m_far_distance = std::clamp(grant, 0, 4096);
+        m_far_dirty = true;
+    }
     if (m_lod_distance <= 0 || grant <= 0 || m_store_root.is_empty()) {
         if (!m_far_blocks.empty()) {
             for (const v3s16 &bp : m_far_blocks) {
@@ -2271,12 +2294,24 @@ void GoannaClient::lodRequestSummaries(const v3s16 &centre, int radius) {
     auto fdiv = [](int a, int b) { return a >= 0 ? a / b : -((-a + b - 1) / b); };
     const v3s16 ac(fdiv(centre.X, kEdge), fdiv(centre.Y, kEdge), fdiv(centre.Z, kEdge));
     const int aradius = radius / kEdge;
-    // Nearest unrequested area with nothing known about it. Vertically only
-    // one layer above and below the player's area: terrain lives there.
+    // Vertical window: real terrain is nowhere near as tall as the horizontal
+    // grant is wide, but a fixed one area either side (docs/far-rendering.md's
+    // "seam" defect) was too narrow for a hill or a valley near the player.
+    // Capped rather than matched to aradius, or a large grant turns this into
+    // a scan of mostly sky and stone with nothing to summarise.
+    const int varadius = std::min(aradius, 4);
+    // Nearest unrequested area that is not entirely live and not entirely
+    // known already. Both conditions used to be centre-of-area tests, which
+    // left a band unasked: an area whose centre sat just past the live range
+    // but whose near edge was still inside it, and an area where a single
+    // sampled cell happened to be known. lodTakeSummaries already keeps only
+    // the blocks that are neither live nor chained (a request for an area we
+    // partly know just re-describes the part we already have), so asking
+    // liberally here costs bandwidth, not correctness.
     v3s16 best(32767, 32767, 32767);
     int best_d = 1 << 30;
     for (int az = ac.Z - aradius; az <= ac.Z + aradius; ++az)
-        for (int ay = std::max(ac.Y - 1, fdiv(-64, kEdge)); ay <= ac.Y + 1; ++ay)
+        for (int ay = ac.Y - varadius; ay <= ac.Y + varadius; ++ay)
             for (int ax = ac.X - aradius; ax <= ac.X + aradius; ++ax) {
                 const v3s16 origin(ax * kEdge, ay * kEdge, az * kEdge);
                 if (m_far_requested.count(origin))
@@ -2286,17 +2321,20 @@ void GoannaClient::lodRequestSummaries(const v3s16 &centre, int radius) {
                 const int d2 = dx * dx + dz * dz;
                 if (d2 >= best_d)
                     continue;
-                // Skip areas inside the live range: the server sends those.
+                // Skip an area only when the server would already be sending
+                // every block in it: the live range reaches to its farthest
+                // corner, not just its centre.
                 const int live = m_session->wantedRange + 2;
-                if (std::abs(dx) < live && std::abs(dz) < live)
+                if (std::abs(dx) + kEdge / 2 < live && std::abs(dz) + kEdge / 2 < live)
                     continue;
-                // Anything already known about the area means the store has
-                // it; ask only where we know nothing at all.
-                bool known = false;
-                for (int b = 0; b < kEdge && !known; ++b)
-                    known = m_lod_chains.count(origin + v3s16(b, 0, b)) ||
+                // Skip only once every sampled cell is already known, so a
+                // corner the player has crossed does not hide the rest of the
+                // area from ever being asked about.
+                bool fully_known = true;
+                for (int b = 0; b < kEdge && fully_known; ++b)
+                    fully_known = m_lod_chains.count(origin + v3s16(b, 0, b)) ||
                             m_far_blocks.count(origin + v3s16(b, 0, b));
-                if (known)
+                if (fully_known)
                     continue;
                 best = origin;
                 best_d = d2;
@@ -2312,22 +2350,39 @@ void GoannaClient::lodRequestSummaries(const v3s16 &centre, int radius) {
         UtilityFunctions::print("LOD far: asked for area ", best.X, ",", best.Y, ",", best.Z);
 }
 
-// Parse "farsum <cell> <ox> <oy> <oz> <edge> <names,csv>|<base64>" into
-// coarse chains. Caller holds the map lock.
+// Parse "farsum <who> <ver> <cell> <ox> <oy> <oz> <edge> <names,csv>|<base64>"
+// into coarse chains. Version 2: the per-block record is 21 bytes, a 4 by 4
+// grid of surface heights (one byte each, 0 to 16) rather than one height for
+// the whole block, so a slope reads as a slope instead of a stepped box; see
+// the matching comment in goanna_server_mod/init.lua. Caller holds the map
+// lock.
 void GoannaClient::lodTakeSummaries() {
     if (!m_session)
         return;
+    static const int kRecordSize = 21;
     for (const std::string &msg : m_session->takeFarSummaries()) {
         if (m_far_inflight > 0)
             --m_far_inflight;
-        // "farsum <who> <cell> <ox> <oy> <oz> <edge> ..."; a mod channel has
-        // no unicast, so every client sees every reply and takes its own.
+        // "farsum <who> <ver> <cell> <ox> <oy> <oz> <edge> ..."; a mod
+        // channel has no unicast, so every client sees every reply and takes
+        // its own.
         char who[64] = {0};
-        int cell = 0, ox = 0, oy = 0, oz = 0, edge = 0, off = 0;
-        if (sscanf(msg.c_str(), "farsum %63s %d %d %d %d %d %n", who, &cell, &ox, &oy, &oz, &edge, &off) != 6)
-            continue;
+        int ver = 0, cell = 0, ox = 0, oy = 0, oz = 0, edge = 0, off = 0;
+        const int got = sscanf(msg.c_str(), "farsum %63s %d %d %d %d %d %d %n", who, &ver, &cell,
+                &ox, &oy, &oz, &edge, &off);
         if (m_session->playerName() != who)
             continue;
+        // A v1 server mod's reply has no version field, so its "ver" here is
+        // actually cell (16) and the field count comes up short; either way
+        // this is not a reply this client can read, and staying quiet about
+        // it would look like the far field had simply gone empty. Once per
+        // reply, not once per record.
+        if (got != 7 || ver != 2) {
+            UtilityFunctions::push_error("goanna_server_mod's far summary reply does not match "
+                    "protocol version 2 (a v1 mod?); update goanna_server_mod. Message: ",
+                    String(msg.substr(0, 80).c_str()));
+            continue;
+        }
         if (cell != 16 || edge <= 0 || edge > 16)
             continue;
         const size_t bar = msg.find('|', off);
@@ -2346,7 +2401,15 @@ void GoannaClient::lodTakeSummaries() {
                 size_t comma = csv.find(',', pos);
                 std::string name = csv.substr(pos, comma == std::string::npos ? std::string::npos : comma - pos);
                 pos = comma == std::string::npos ? csv.size() + 1 : comma + 1;
-                content_t id = CONTENT_AIR;
+                // CONTENT_UNKNOWN, not CONTENT_AIR: NodeDefManager::get(name)
+                // itself defaults there when getId fails, and its tile is
+                // unknown_node.png, the classic magenta checker, for exactly
+                // this reason. Defaulting to air instead (found while chasing
+                // docs/launch-target.md's purple cells) turned a name this
+                // client cannot resolve into an invisible hole, which is a
+                // worse failure than an ugly one: a hole reads as there being
+                // nothing there at all.
+                content_t id = CONTENT_UNKNOWN;
                 if (ndef && !name.empty())
                     ndef->getId(name, id);
                 ids.push_back(id);
@@ -2354,41 +2417,75 @@ void GoannaClient::lodTakeSummaries() {
         }
         const std::string blob = base64_decode(msg.substr(bar + 1));
         const size_t total = (size_t)edge * edge * edge;
-        if (blob.size() < total * 6)
+        if (blob.size() < total * kRecordSize)
             continue;
         m_far_requested.insert(v3s16(ox, oy, oz)); // in case it was unsolicited
-        const int level = BlockLodChain::levelForCell(16);
+        // The wire record is a 4 by 4 grid of 4 node cells, the finest tier
+        // this client's own lod_cell setting can use is not necessarily that
+        // fine, so build at whichever tier's cell is the smallest one at
+        // least that fine, grouping the wire cells up to it. At the default
+        // lod_cell (4) that tier is 1 and the grouping is 1 for 1.
+        int tier = 1;
+        while (tier < lodTierCount() && lodCellFor(tier) < 4)
+            ++tier;
+        const int build_cell = lodCellFor(tier);
+        const int group = std::max(1, build_cell / 4);
+        const int n = std::max(1, MAP_BLOCKSIZE / build_cell);
+        const int level = BlockLodChain::levelForCell(build_cell);
         int taken = 0;
         for (size_t i = 0; i < total; ++i) {
-            const uint8_t *r = (const uint8_t *)blob.data() + i * 6;
+            const uint8_t *r = (const uint8_t *)blob.data() + i * kRecordSize;
             if (!(r[0] & 16))
                 continue; // not generated: stays a hole, never invented
             const v3s16 bp(ox + (int)(i % edge), oy + (int)((i / edge) % edge),
                     oz + (int)(i / (edge * edge)));
             if (m_session->getBlock(bp) || m_lod_chains.count(bp))
                 continue; // live or already known better
+            const content_t top_c = r[17] < ids.size() ? ids[r[17]] : CONTENT_AIR;
+            const content_t side_c = r[18] < ids.size() ? ids[r[18]] : top_c;
+            const content_t side = side_c != CONTENT_AIR ? side_c : top_c;
+            const uint8_t day = decode_light(std::min<uint8_t>(r[19], 14));
+            const uint8_t night = decode_light(std::min<uint8_t>(r[20], 14));
+            const uint8_t cflags = LodLevel::kKnown | ((r[0] & 2) ? LodLevel::kOccludes : 0) |
+                    ((r[0] & 4) ? LodLevel::kLit : 0);
             BlockLodChain &ch = m_lod_chains[bp];
             LodLevel &lv = ch.level[level];
-            lv.cell = 16;
-            lv.n = 1;
-            lv.cells.assign(1, LodLevel::Cell());
-            LodLevel::Cell &c = lv.cells[0];
-            const content_t top = r[2] < ids.size() ? ids[r[2]] : CONTENT_AIR;
-            const content_t side = r[3] < ids.size() ? ids[r[3]] : top;
-            c.face[0] = top;
-            c.face[1] = side != CONTENT_AIR ? side : top;
-            for (int d = 2; d < 6; ++d)
-                c.face[d] = side != CONTENT_AIR ? side : top;
-            c.top = std::min<uint8_t>(r[1], 16);
-            c.day = decode_light(std::min<uint8_t>(r[4], 14));
-            c.night = decode_light(std::min<uint8_t>(r[5], 14));
-            c.flags = LodLevel::kKnown | ((r[0] & 1) ? LodLevel::kFilled : 0) |
-                    ((r[0] & 2) ? LodLevel::kOccludes : 0) | ((r[0] & 4) ? LodLevel::kLit : 0);
+            lv.cell = build_cell;
+            lv.n = n;
+            lv.cells.assign((size_t)n * n * n, LodLevel::Cell());
+            bool any_filled = false;
+            for (int tz = 0; tz < n; ++tz)
+                for (int tx = 0; tx < n; ++tx) {
+                    int h = 0; // tallest of the wire cells this tier's cell groups
+                    for (int gz = 0; gz < group; ++gz)
+                        for (int gx = 0; gx < group; ++gx) {
+                            const int fx = tx * group + gx, fz = tz * group + gz;
+                            if (fx < 4 && fz < 4)
+                                h = std::max(h, (int)r[1 + fz * 4 + fx]);
+                        }
+                    if (h <= 0)
+                        continue;
+                    any_filled = true;
+                    const int filled_below = (h - 1) / build_cell; // fully covered cells under the top one
+                    const int top_frac = h - filled_below * build_cell; // 1..build_cell
+                    for (int ty = 0; ty <= filled_below && ty < n; ++ty) {
+                        LodLevel::Cell &c = lv.cells[((size_t)tz * n + ty) * n + tx];
+                        c.face[1] = side;
+                        for (int d = 2; d < 6; ++d)
+                            c.face[d] = side;
+                        const bool is_top = ty == filled_below;
+                        c.face[0] = is_top ? top_c : side; // buried tops are culled by the cell above anyway
+                        c.top = is_top ? (uint8_t)top_frac : 0; // 0 reads as a full cell, see height_of()
+                        c.day = day;
+                        c.night = night;
+                        c.flags = cflags | LodLevel::kFilled;
+                    }
+                }
             ch.stored = true;
             m_lod_chain_missing.erase(bp);
-            if (r[0] & 1) {
-                lodAssign(bp, lodTierCount());
-                m_block_tier[bp] = lodTierCount();
+            if (any_filled) {
+                lodAssign(bp, tier);
+                m_block_tier[bp] = tier;
                 m_far_blocks.insert(bp);
                 m_far_remote.insert(bp);
                 ++taken;
@@ -2573,7 +2670,13 @@ void GoannaClient::lodBuildRegion(const LodRegionKey &key, LodRegion &r) {
         if (sf.liquid) {
             // Water at distance, docs/far-rendering.md rung 6: the same water
             // shader as the near mesh, on the liquid's own tile, so the sea
-            // reads as sea at the horizon with its specular and fresnel.
+            // reads as sea at the horizon with its specular and fresnel. A
+            // tier's own quad is one flat plane per cell, so there is nothing
+            // at that scale for a per node wave to ripple, and its UV aliases
+            // the same way a solid tile's does; waving is off and the sampled
+            // colour blends toward the tile's own average with distance, same
+            // as the array shader (docs/far-rendering.md, "Shade the far
+            // field as a far field").
             auto wit = m_lod_water.find(sf.texture_id);
             if (wit == m_lod_water.end()) {
                 Ref<ShaderMaterial> wm;
@@ -2584,7 +2687,10 @@ void GoannaClient::lodBuildRegion(const LodRegionKey &key, LodRegion &r) {
                     wm.instantiate();
                     wm->set_shader(m_sh_water);
                     wm->set_shader_parameter("albedo_tex", wgt->godotTexture());
-                    wm->set_shader_parameter("waving", true);
+                    wm->set_shader_parameter("waving", false);
+                    const Color avg = toColor(
+                            m_session->tsrc()->getTextureAverageColor(m_session->tsrc()->getTextureName(sf.texture_id)));
+                    wm->set_shader_parameter("lod_avg_colour", Vector3(avg.r, avg.g, avg.b));
                 }
                 wit = m_lod_water.emplace(sf.texture_id, wm).first;
             }

@@ -151,6 +151,15 @@ result. Write the value into the source, relaunch with nothing set, take it
 again, and report that one. `README.md` and `PLAN.md` only ever get the
 second number.
 
+One setting is expected to show up here on a completely untouched profile:
+`far_distance` defaults to whatever the server's far rendering grant turns
+out to be (`docs/launch-target.md` task 2d), not to the fixed number its C++
+field starts at, so the baseline taken on the first command (usually before
+a grant has arrived) and the value once the world has streamed in
+legitimately differ. That is the code adapting, not a live tweak; check
+`render_stats().far_grant` against it before treating it as a lead worth
+chasing.
+
 ## Driving it from an agent
 
 `tools/goanna-mcp` is an MCP server over the channel, so an agent can drive

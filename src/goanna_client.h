@@ -366,7 +366,13 @@ private:
     // directly (there is no live block to requeue) and so they can be let go
     // when they pass out of range.
     godot::String m_store_root;
+    // Default is the grant, not a fixed number: lodUpdateFar raises this to
+    // match farRenderingGrant() the first time one is seen, so a fresh
+    // install draws out to whatever the server actually allowed rather than
+    // to half of it. set_far_distance (an explicit env var or settings panel
+    // choice) turns that off, docs/launch-target.md task 2d.
     int m_far_distance = 512;
+    bool m_far_distance_explicit = false;
     std::set<v3s16> m_far_blocks;
     // Blocks whose chain came from a server far summary rather than the
     // store: coarse only (cell 16), so they stay at the coarsest tier.

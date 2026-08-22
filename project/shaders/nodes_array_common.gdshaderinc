@@ -75,6 +75,28 @@ uniform float debug_nodelight_strength : hint_range(0.0, 1.0) = 0.0;
 // that is remembered rather than seen says so without pretending.
 uniform float stale_strength : hint_range(0.0, 1.0) = 0.6;
 
+// Far tiers only (docs/far-rendering.md, "Shade the far field as a far
+// field"): a region quad's UV still repeats once per node, which is right up
+// close where a tile is a tile's width away, but a merged quad can span a
+// couple of hundred nodes, and at that scale the repeat aliases into a
+// shimmer no amount of ordinary mipmapping fixes without anisotropic
+// filtering, which this sampler does not have. Past lod_flatten_near the
+// sampled colour blends toward the tile's own average, reaching it fully by
+// lod_flatten_far, so a quad reads as one surface rather than a repeating
+// pattern at the range it is actually seen from. False, and the array below
+// empty, on every material the near mesh builds: it never draws far enough
+// for the blend to be visible, but leaving the flag off rather than trusting
+// distance alone keeps that an explicit fact about the material instead of a
+// hope about where the camera can reach.
+uniform bool lod_flatten = false;
+// One entry per array layer, that layer's average colour
+// (GoannaTextureSource::getTextureAverageColor, the same value the no-array
+// fallback material already paints with), set once when a LOD material is
+// built. 256 is the array layer cap (getArrayTextureMax in node_visuals.cpp).
+uniform vec3 lod_avg_colour[256];
+uniform float lod_flatten_near : hint_range(0.0, 2048.0) = 64.0;
+uniform float lod_flatten_far : hint_range(0.0, 4096.0) = 256.0;
+
 // Fade in, per instance: a region mesh or a block that has just appeared
 // is drawn through a screen space dither that opens over a fraction of a
 // second (GoannaClient advances it), so terrain arriving at the horizon no

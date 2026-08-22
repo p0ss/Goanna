@@ -1506,6 +1506,12 @@ func _apply_sky() -> void:
 		var stats: Dictionary = client.render_stats() if client.has_method("render_stats") else {}
 		if int(stats.get("far_grant", 0)) > 0 and client.has_method("far_distance"):
 			draw_nodes = maxf(draw_nodes, minf(float(client.far_distance()), float(stats.get("far_grant", 0))))
+		# The far plane has to clear whatever is actually drawn, or the
+		# far tiers' own horizon is what clips them, not the fog. A fixed
+		# margin on top of draw_nodes rather than a multiple: at a 4000
+		# node grant a 10 per cent margin is 400 nodes for no reason,
+		# while 256 covers the coarsest region's own size at any grant.
+		cam.far = maxf(1000.0, draw_nodes + 256.0)
 		var auto_density: float = 0.9 / draw_nodes
 		var fog_distance: float = sky["fog_distance"]
 		if fog_distance > 0.0:

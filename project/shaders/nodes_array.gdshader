@@ -45,6 +45,11 @@ void fragment() {
 	ALBEDO = (texture(albedo_array, vec3(UV, UV2.x)) * COLOR).rgb;
 	if (v_stale > 0.001)
 		ALBEDO = mix(ALBEDO, vec3(dot(ALBEDO, vec3(0.2126, 0.7152, 0.0722))), v_stale * stale_strength);
+	if (lod_flatten) {
+		float flatten = smoothstep(lod_flatten_near, lod_flatten_far, length(VERTEX));
+		if (flatten > 0.001)
+			ALBEDO = mix(ALBEDO, lod_avg_colour[int(UV2.x)] * COLOR.rgb, flatten);
+	}
 	ROUGHNESS = 1.0;
 	METALLIC = 0.0;
 	SPECULAR = 0.2;

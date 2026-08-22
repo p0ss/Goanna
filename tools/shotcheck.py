@@ -90,6 +90,26 @@ def local_detail(path):
     return float(lap.std())
 
 
+def band_detail(path, top, bottom):
+    """The same Laplacian standard deviation as local_detail, over a
+    horizontal band of the frame (top and bottom as fractions of height, full
+    width) instead of the centre quarter. Used to read the far band of a
+    horizon shot, docs/far-rendering.md task 2c: a tile that still repeats
+    once per node at the range a merged region quad is actually seen from
+    aliases into a per-pixel shimmer, which this measures as high local
+    variance even though the frame is otherwise an ordinary lit scene, not a
+    synthetic pattern. A flat, blended-to-average surface (correct) reads
+    close to the sky's own near-zero value; ordinary terrain detail sits well
+    below what aliasing produces because distance has already minified it."""
+    a = np.asarray(Image.open(path).convert("L"), dtype=float)
+    h, w = a.shape
+    c = a[int(h * top): int(h * bottom)]
+    if c.shape[0] < 3:
+        return 0.0
+    lap = -4 * c[1:-1, 1:-1] + c[:-2, 1:-1] + c[2:, 1:-1] + c[1:-1, :-2] + c[1:-1, 2:]
+    return float(lap.std())
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("images", nargs="+")
@@ -111,6 +131,17 @@ def main():
     ap.add_argument("--normal-detail-min", type=float, default=5.0,
             help="with --launch-target, minimum local_detail() on the wall shot, when "
                  "auto_bump is on (default 5.0)")
+    ap.add_argument("--far-band", action="store_true",
+            help="check a horizon shot's far band (docs/far-rendering.md task 2c): fails "
+                 "if a merged region quad, water included, still aliases into a shimmer "
+                 "at the range it is actually seen from")
+    ap.add_argument("--far-band-top", type=float, default=0.40,
+            help="with --far-band, top of the band as a fraction of frame height (default 0.40)")
+    ap.add_argument("--far-band-bottom", type=float, default=0.60,
+            help="with --far-band, bottom of the band as a fraction of frame height (default 0.60)")
+    ap.add_argument("--far-band-max", type=float, default=9.0,
+            help="with --far-band, maximum band_detail() before it reads as aliasing "
+                 "rather than ordinary, already-distant terrain detail (default 9.0)")
     args = ap.parse_args()
 
     rows = [(p, describe(p)) for p in args.images]
@@ -171,6 +202,15 @@ def main():
             if args.max_step is not None and worst > args.max_step:
                 print("FAIL worst luminance step %.2f exceeds %.2f"
                         % (worst, args.max_step), file=sys.stderr)
+                bad += 1
+
+    if args.far_band:
+        for p, _ in rows:
+            detail = band_detail(p, args.far_band_top, args.far_band_bottom)
+            ok = detail <= args.far_band_max
+            print("far band: %s: %s detail %.2f, wanted at most %.2f"
+                    % ("PASS" if ok else "FAIL", p, detail, args.far_band_max))
+            if not ok:
                 bad += 1
 
     if args.launch_target:

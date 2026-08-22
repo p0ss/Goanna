@@ -74,6 +74,14 @@ var audio: Node              # ui/audio.gd, sound
 var flash_alpha := 0.0
 var t := 0.0
 var last_hp := -1
+# docs/launch-target.md task 2d: a fresh world's far field fills in over the
+# first minute or two (pregeneration, far summaries), which with no word of
+# it reads as broken rather than as still arriving. Shown while far_remote
+# is actually changing, faded out a few seconds after it stops, whether it
+# stopped because the horizon is full or because there was nothing to fill.
+var far_hint_last := -1
+var far_hint_changed_at := 0.0
+var far_hint_alpha := 0.0
 
 func _ready() -> void:
 	layer = 10
@@ -203,6 +211,13 @@ func _process(delta: float) -> void:
 	if damage_flash and last_hp >= 0 and hp < last_hp and hp > 0:
 		flash_alpha = clampf(0.15 + 0.05 * (last_hp - hp), 0.15, 0.5)
 	last_hp = hp
+	if client.has_method("render_stats"):
+		var far: int = int((client.render_stats() as Dictionary).get("far_remote", 0))
+		if far != far_hint_last:
+			far_hint_last = far
+			far_hint_changed_at = t
+		far_hint_alpha = 1.0 if (far > 0 and t - far_hint_changed_at < 4.0) \
+				else maxf(0.0, far_hint_alpha - delta * 0.5)
 	if flash_alpha > 0.0:
 		flash_alpha = maxf(0.0, flash_alpha - delta * 1.5)
 		flash_rect.color.a = flash_alpha
@@ -617,6 +632,8 @@ const SETTINGS := [
 	["Video", "motes", "slider", "Ambient motes", "Drifting specks over leaves, flowers and sand.", 0.0, 4.0, 0.25],
 	["Video", "view_range", "slider", "View distance", "How much world to ask the server for, in blocks of 16 nodes. Most servers cap this near 12, so higher values may change nothing.", 4.0, 40.0, 1.0],
 	["Video", "lod_distance", "slider", "Detail distance", "Blocks beyond this are drawn as simplified shapes, which costs less, and distant terrain beyond the server's range is drawn only when this is on. 0 turns both off.", 0.0, 24.0, 1.0],
+	["Video", "far_distance", "slider", "Far draw distance", "How far past the live range the far tiers draw, in nodes. Capped by what the server actually granted (docs/far-rendering.md); raising this past the grant changes nothing. Defaults to the grant itself, so this only needs touching to draw less than the server allows.", 0.0, 4096.0, 32.0],
+	["Material", "mat_stale", "slider", "Remembered terrain tint", "How far terrain drawn from what you saw earlier, rather than what the server is sending now, is pulled toward grey. 0 shows it at full colour, indistinguishable from live.", 0.0, 1.0, 0.05],
 	["Video", "damage_flash", "toggle", "Damage flash", "Flash the screen red when you take damage."],
 	["Video", "show_body", "toggle", "Show own body", "See your own body and held item when you look down."],
 	["Lighting", "light_sun", "slider", "Sunlight", "Strength of direct sun and moon light.", 0.0, 4.0, 0.1],
@@ -710,6 +727,7 @@ func _apply_setting(key: String, value: float) -> void:
 	match key:
 		"view_range": if client.has_method("set_view_range"): client.set_view_range(int(value))
 		"lod_distance": if client.has_method("set_lod_distance"): client.set_lod_distance(int(value))
+		"far_distance": if client.has_method("set_far_distance"): client.set_far_distance(int(value))
 		"mantle": if client.has_method("set_mantle"): client.set_mantle(on)
 		"show_body": if client.has_method("set_show_body"): client.set_show_body(on)
 		"aux1_descends": if client.has_method("set_aux1_descends"): client.set_aux1_descends(on)
@@ -734,6 +752,7 @@ func _setting_value(key: String, fallback: float) -> float:
 	match key:
 		"view_range": if client.has_method("view_range"): return float(client.view_range())
 		"lod_distance": if client.has_method("lod_distance"): return float(client.lod_distance())
+		"far_distance": if client.has_method("far_distance"): return float(client.far_distance())
 		"mantle": if client.has_method("mantle"): return 1.0 if client.mantle() else 0.0
 		"show_body": if client.has_method("show_body"): return 1.0 if client.show_body() else 0.0
 		"aux1_descends": if client.has_method("aux1_descends"): return 1.0 if client.aux1_descends() else 0.0
@@ -1140,6 +1159,15 @@ func _draw_hud() -> void:
 	if client == null:
 		return
 	var vs := hud.size
+	if far_hint_alpha > 0.0:
+		var f := hud.get_theme_default_font()
+		var fs := int(15 * hud_scale)
+		var text := "Generating distant terrain (%d cells so far)" % far_hint_last
+		var w := f.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		var pos := Vector2((vs.x - w) / 2.0, 28.0 * hud_scale)
+		hud.draw_string_outline(f, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 3,
+				Color(0, 0, 0, 0.7 * far_hint_alpha))
+		hud.draw_string(f, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1, 1, 1, 0.85 * far_hint_alpha))
 	var st: Dictionary = client.hud_state()
 	var flags: int = st.get("flags", 0xffff)
 	# crosshair

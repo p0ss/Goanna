@@ -82,10 +82,13 @@ has never been.
 It reads terrain the server has already generated and never generates any. An
 ungenerated block is reported as unknown and stays a hole in the client's
 view, so nothing is invented and no worldgen happens on a request. What comes
-back per mapblock is six bytes: whether it is filled, whether it blocks light,
-the height its content reaches, the commonest node on top and at the sides,
-and its light levels. A block is about a thousandth of the size it would be
-sent at full resolution.
+back per mapblock is 21 bytes, protocol version 2: whether it blocks light,
+whether it is lit, a 4 by 4 grid of surface heights over the block's
+footprint (one byte each, so a slope reads as a slope rather than a stepped
+box), the commonest node on top and at the sides, and its light levels. A
+block is still under a hundredth of the size it would be sent at full
+resolution, and an 8 by 8 by 8 block area, the size a request covers, is
+about 10.5 KB raw and 14 KB once base64 encoded for the channel.
 
 Two bounds an operator owns. Requests outside `goanna_far_rendering_distance`
 of the asking player are refused silently, so the grant is the reach. And the

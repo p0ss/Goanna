@@ -29,6 +29,16 @@ uniform bool waving = true;
 // are dropped unless the eye is under the water, where they are the surface.
 global uniform float goanna_eye_underwater;
 
+// Far tiers only, set alongside waving=false: a tier's water quad is one
+// flat plane per cell, whose UV repeats the tile the same way a solid one
+// does, and aliases the same way at range (docs/far-rendering.md, "Shade the
+// far field as a far field"). Past lod_flatten_near the sampled tile colour
+// blends toward its own average, reaching it fully by lod_flatten_far.
+uniform bool lod_flatten = false;
+uniform vec3 lod_avg_colour = vec3(0.0);
+uniform float lod_flatten_near : hint_range(0.0, 2048.0) = 64.0;
+uniform float lod_flatten_far : hint_range(0.0, 4096.0) = 256.0;
+
 varying vec3 world_pos;
 
 // View-space distance of whatever opaque geometry is at this screen uv.
@@ -47,6 +57,11 @@ void fragment() {
 	if (!FRONT_FACING && goanna_eye_underwater < 0.5)
 		discard;
 	vec4 tex = texture(albedo_tex, UV) * COLOR;
+	if (lod_flatten) {
+		float flatten = smoothstep(lod_flatten_near, lod_flatten_far, length(VERTEX));
+		if (flatten > 0.001)
+			tex.rgb = mix(tex.rgb, lod_avg_colour * COLOR.rgb, flatten);
+	}
 	float here = -VERTEX.z;
 
 	// Ripple as a normal perturbation only: two crossing wave trains in world

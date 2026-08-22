@@ -81,9 +81,9 @@ end
 -- eventually be sent, and it only answers at all when the operator granted
 -- far rendering, so the reach is given, not taken.
 --
--- Request:  "farsum? <cell> <ox> <oy> <oz> <edge>"  (block coords, edge in
--- blocks; only cell 16 and edge 8 are served today).
--- Reply:    "farsum <who> <cell> <ox> <oy> <oz> <edge> <names,csv>|<base64>"
+-- Request:  "farsum? <ver> <cell> <ox> <oy> <oz> <edge>"  (block coords, edge
+-- in blocks; only cell 16 and edge 8 are served today).
+-- Reply:    "farsum <who> <ver> <cell> <ox> <oy> <oz> <edge> <names,csv>|<base64>"
 --
 -- The reply names its requester because a mod channel has no unicast: Luanti
 -- only offers send_all, so every client on the channel sees every reply and
@@ -93,13 +93,34 @@ end
 -- distance check below is against the asking player, and the grant is server
 -- wide, so this widens what is seen by other players' whereabouts rather
 -- than by any distance beyond the grant.
--- The blob is one 6 byte record per block, x fastest then y then z:
---   flags (1 filled, 2 occludes, 4 lit, 8 liquid, 16 known), surface height
---   within the block (0 to 16), top content index, side content index
---   (1 based into the name list, 0 none), day light, night light (raw 0-15).
+--
+-- Version 2, 2026-08-22: the record grew from 6 bytes to 21, so a client and
+-- a mod that disagree on <ver> must not try to read each other's bytes as if
+-- they agreed. A pre-version request or reply has five numbers where this one
+-- has six, so the pattern below simply does not match it, and GoannaClient
+-- logs a plain error rather than silently drawing whatever six bytes happened
+-- to fall out of a twenty-one byte record. The blob is one 21 byte record per
+-- block, x fastest then y then z:
+--   flags (2 occludes, 4 lit, 8 liquid, 16 known; bit 1 is unused since this
+--   version, see below), a 4 by 4 grid of surface heights within the block
+--   (one byte each, 0 to 16, x fastest then z, over 4 node cells), top
+--   content index, side content index (1 based into the name list, 0 none),
+--   day light, night light (raw 0-15).
+--
+-- Version 1 sent one height for the whole block and gated the whole record on
+-- at least half its columns being filled, so a block that was mostly empty
+-- but for a beach's thin edge or a hill's sloped flank was reported as
+-- entirely empty. The per cell grid makes that gate pointless: a cell with
+-- nothing in it already reports height 0, and the client's chain builder
+-- reads "filled" straight off the height rather than off a whole block
+-- majority, which is also why the flags byte's old bit 1 goes unused now.
+--
 -- Work is queued and paced by goanna_far_summary_blocks_per_step, so a
 -- request costs the server a bounded slice of each step, and the operator
--- owns the knob next to the grant itself.
+-- owns the knob next to the grant itself. The larger record does not raise
+-- the per block cost much: it is still one VoxelManip read per block, now
+-- bucketing each column into one of 16 height cells instead of one, which is
+-- index arithmetic on data already read rather than a second read.
 
 local far_enabled = conf_bool("goanna_far_rendering", false)
 local far_distance = conf_num("goanna_far_rendering_distance", 512)
@@ -141,7 +162,11 @@ local function classify(cid)
 	return c
 end
 
--- One block's record, or nil if the block is not generated.
+-- One block's 21 byte record, or nil if the block is not generated. The
+-- height grid is 4 by 4 over the block's 16 by 16 footprint, one byte per
+-- 4 node cell, index z * 4 + x; top and side content stay a single pair for
+-- the whole block, which is most of what keeps the record at 21 bytes rather
+-- than one per cell.
 local function block_summary(bx, by, bz, names, name_index)
 	local pmin = vector.new(bx * 16, by * 16, bz * 16)
 	local pmax = vector.add(pmin, 15)
@@ -152,15 +177,19 @@ local function block_summary(bx, by, bz, names, name_index)
 	local data = vm:get_data()
 	local light = vm:get_light_data()
 	local area = VoxelArea:new({MinEdge = emin, MaxEdge = emax})
-	local filled, solidn = 0, 0
-	local top = 0
+	local solidn = 0
+	local cell_top = {}
+	for i = 0, 15 do cell_top[i] = 0 end
 	local top_counts, side_counts = {}, {}
 	local day, night = 0, 0
 	local lit = false
 	local known = false
 	local liquid_tops = 0
 	for z = pmin.z, pmax.z do
+		local cz = math.floor((z - pmin.z) / 4)
 		for x = pmin.x, pmax.x do
+			local cx = math.floor((x - pmin.x) / 4)
+			local cell = cz * 4 + cx
 			local col_top
 			for y = pmax.y, pmin.y, -1 do
 				local cid = data[area:index(x, y, z)]
@@ -168,15 +197,14 @@ local function block_summary(bx, by, bz, names, name_index)
 					known = true
 					local c = classify(cid)
 					if c.filled then
-						filled = filled + 1
 						if c.solid then
 							solidn = solidn + 1
 						end
 						if not col_top then
 							col_top = cid
 							local h = y - pmin.y + 1
-							if h > top then
-								top = h
+							if h > cell_top[cell] then
+								cell_top[cell] = h
 							end
 							if c.liquid then
 								liquid_tops = liquid_tops + 1
@@ -231,11 +259,15 @@ local function block_summary(bx, by, bz, names, name_index)
 	local topc = mode(top_counts)
 	local sidec = mode(side_counts) or topc
 	local flags = 16
-	if filled >= 128 then flags = flags + 1 end
 	if solidn >= 256 then flags = flags + 2 end
 	if lit then flags = flags + 4 end
 	if topc and classify(topc).liquid and liquid_tops * 2 >= 256 then flags = flags + 8 end
-	return string.char(flags, math.min(top, 16), idx_of(topc), idx_of(sidec), day, night)
+	local heights = {}
+	for i = 0, 15 do
+		heights[i + 1] = string.char(math.min(cell_top[i], 16))
+	end
+	return string.char(flags) .. table.concat(heights) ..
+			string.char(idx_of(topc), idx_of(sidec), day, night)
 end
 
 -- Per player work queue: one request is an area; blocks are summarised a few
@@ -249,6 +281,10 @@ local function queue_area(player_name, cell, ox, oy, oz, edge)
 	}
 end
 
+-- Version 2's record; see the protocol comment above block_summary.
+local FARSUM_VERSION = 2
+local EMPTY_RECORD = string.rep("\0", 21)
+
 core.register_globalstep(function()
 	local job = far_queue[1]
 	if not job then
@@ -261,16 +297,15 @@ core.register_globalstep(function()
 		local bx = job.ox + i % job.edge
 		local by = job.oy + math.floor(i / job.edge) % job.edge
 		local bz = job.oz + math.floor(i / (job.edge * job.edge))
-		job.records[i + 1] = block_summary(bx, by, bz, job.names, job.name_index)
-				or string.char(0, 0, 0, 0, 0, 0)
+		job.records[i + 1] = block_summary(bx, by, bz, job.names, job.name_index) or EMPTY_RECORD
 		job.i = i + 1
 		n = n + 1
 	end
 	if job.i >= total then
 		table.remove(far_queue, 1)
 		if channel and channel:is_writeable() then
-			channel:send_all(string.format("farsum %s %d %d %d %d %d %s|%s",
-					job.who, job.cell, job.ox, job.oy, job.oz, job.edge,
+			channel:send_all(string.format("farsum %s %d %d %d %d %d %d %s|%s",
+					job.who, FARSUM_VERSION, job.cell, job.ox, job.oy, job.oz, job.edge,
 					table.concat(job.names, ","),
 					core.encode_base64(table.concat(job.records))))
 		end
@@ -382,14 +417,28 @@ core.register_on_modchannel_message(function(channel_name, sender, message)
 		channel:send_all(options())
 		return
 	end
-	local cell, ox, oy, oz, edge = message:match("^farsum%? (%d+) (%-?%d+) (%-?%d+) (%-?%d+) (%d+)$")
-	if not cell then
+	local ver, cell, ox, oy, oz, edge =
+			message:match("^farsum%? (%d+) (%d+) (%-?%d+) (%-?%d+) (%-?%d+) (%d+)$")
+	if not ver then
+		-- A pre-version request has five numbers where this one has six, so
+		-- it does not match above; tell the operator plainly rather than
+		-- leaving an old client's summaries silently absent.
+		if far_enabled and message:match("^farsum%? %d+ %-?%d+ %-?%d+ %-?%d+ %d+$") then
+			core.log("warning", "[goanna] a client asked for a far summary in the pre " ..
+					"version 2 format; it will get no reply. Update its Goanna build.")
+		end
 		return
 	end
 	if not far_enabled then
 		return
 	end
-	cell, ox, oy, oz, edge = tonumber(cell), tonumber(ox), tonumber(oy), tonumber(oz), tonumber(edge)
+	ver, cell, ox, oy, oz, edge =
+			tonumber(ver), tonumber(cell), tonumber(ox), tonumber(oy), tonumber(oz), tonumber(edge)
+	if ver ~= 2 then
+		core.log("warning", "[goanna] a client asked for a far summary at protocol version " ..
+				ver .. ", this mod speaks version 2; no reply sent.")
+		return
+	end
 	if cell ~= 16 or edge ~= 8 then
 		return
 	end
