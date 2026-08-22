@@ -130,7 +130,7 @@ uniform int layer_class[256];
 // Surface detail: how much of the per class treatment runs. 0 is the plain
 // single sample this shader has always done, which is what the far tiers and
 // modest hardware want; the Material tab drives it as mat_detail.
-uniform float detail_strength : hint_range(0.0, 2.0) = 0.0;
+uniform float detail_strength : hint_range(0.0, 2.0) = 1.0;
 // World units across one cell of the stochastic grid. Below about a node the
 // pattern breaks up into noise; well above it the repeat comes back.
 uniform float detail_cell : hint_range(0.5, 32.0) = 3.0;

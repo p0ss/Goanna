@@ -229,10 +229,8 @@ static const std::map<std::string, float> kMatStrengthDefaults = {
     // Per class surface treatment, the stochastic tiling in
     // nodes_array_common.gdshaderinc. It is the one channel here that costs
     // frames rather than only changing a look, which is why it is a slider
-    // and not a constant: 0 is the plain single sample. It ships at 0 until
-    // it has been seen rendering: the machine it was written on could not
-    // stream a block for long enough to photograph one.
-    {"detail", 0.0f},
+    // and not a constant: 0 is the plain single sample.
+    {"detail", 1.0f},
 };
 
 float GoannaClient::material_strength(const String &channel) const {
@@ -1275,6 +1273,13 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
                     classes[(int)i] = (int)mtable.textureClass(plain);
                 }
                 sm->set_shader_parameter("layer_class", classes);
+                if (getenv("GOANNA_DEBUG_PBR")) {
+                    int n = (int)std::min<size_t>(lnames.size(), 4);
+                    for (int i = 0; i < n; ++i)
+                        UtilityFunctions::print("layer_class ", String(lnames[i].c_str()),
+                                " base='", String(tileBaseName(lnames[i]).c_str()),
+                                "' cls=", classes[i]);
+                }
             }
             sm->set_shader_parameter("has_normal", nrm.is_valid());
             sm->set_shader_parameter("has_spec", spc.is_valid());
