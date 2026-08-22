@@ -40,10 +40,18 @@ add_library(goanna SHARED
     src/goanna_client.cpp
     src/goanna_session.cpp
     src/goanna_mesher.cpp
+    src/goanna_light.cpp
+    src/goanna_lod.cpp
+    src/goanna_materials.cpp
+    src/goanna_store.cpp
+    src/goanna_occlusion.cpp
     src/goanna_models.cpp
     src/goanna_textures.cpp
     src/goanna_sky.cpp
     src/goanna_entities.cpp
+    src/iris/iris_glsl.cpp
+    src/iris/iris_pack.cpp
+    src/iris/goanna_iris_effect.cpp
     src/transplant/collision.cpp
     src/transplant/environment_raycast.cpp
     src/transplant/localplayer.cpp
@@ -57,6 +65,15 @@ add_library(goanna SHARED
     src/luanti_shims.cpp
 )
 target_include_directories(goanna PRIVATE src)
+
+# Offline check of the ambient occlusion tracer against a dense reference
+# integral. Not built by default: cmake --build build --target goanna_light_test
+add_executable(goanna_light_test EXCLUDE_FROM_ALL
+    src/goanna_light_test.cpp
+    src/goanna_occlusion.cpp
+)
+target_include_directories(goanna_light_test PRIVATE src)
+target_link_libraries(goanna_light_test PRIVATE luanti_core)
 # transplanted client files use bare includes ("mapblock_mesh.h") that must
 # resolve to Luanti's originals; goanna's own headers come first.
 set_source_files_properties(

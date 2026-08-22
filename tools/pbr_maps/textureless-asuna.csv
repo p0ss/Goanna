@@ -1,0 +1,77 @@
+# Pack: Null-MC/Textureless, LabPBR 32x v1.15 (CC0-1.0)
+# Game: Asuna
+# Generated with tools/pbr_pack.py --suggest, then reviewed by hand.
+# The suggester matches on name, so a wrong pair silently dresses
+# one block in another block's material. Review any addition.
+# One pack block may dress several game textures: this pack ships its
+# own flat diffuse, so its relief was never aligned to these games'
+# art in the first place, and it reads as plausible rather than exact.
+# Rejected here: grass (Minecraft's is the short plant, these games'
+# is the block top), mcl_banners_bricks (a banner pattern) and
+# mobs_mc_stone (mob art, not a node).
+pack_block,game_texture
+acacia_leaves,default_acacia_leaves.png
+acacia_log,default_acacia_tree.png
+acacia_trapdoor,naturalbiomes_acacia_trapdoor.png
+acacia_trapdoor_side,naturalbiomes_acacia_trapdoor_side.png
+acacia_wood,default_acacia_wood.png
+amethyst_block,amethyst_block.png
+barrel_side,lootchests_default_barrel_side.png
+birch_trapdoor_side,naturalbiomes_birch_trapdoor_side.png
+bookshelf,default_bookshelf.png
+cactus_top,default_cactus_top.png
+cactus_top,everness_cactus_top.png
+cactus_top,x_farming_cactus_top.png
+calcite,calcite.png
+clay,default_clay.png
+coal_block,default_coal_block.png
+cobblestone,default_cobble.png
+copper_block,default_copper_block.png
+diamond_block,default_diamond_block.png
+dirt,default_dirt.png
+dirt,everness_dirt.png
+furnace_top,default_furnace_top.png
+glass,default_glass.png
+glass,everness_glass.png
+gold_block,default_gold_block.png
+gravel,default_gravel.png
+gravel,everness_gravel.png
+honeycomb_block,x_farming_honeycomb_block.png
+ice,default_ice.png
+ice,x_farming_ice.png
+jungle_log,default_jungletree.png
+jungle_log_top,default_jungletree_top.png
+jungle_planks,default_junglewood.png
+jungle_wood,x_farming_jungle_wood.png
+kelp,default_kelp.png
+kelp,marinara_kelp.png
+mossy_cobblestone,default_mossycobble.png
+mushroom_stem,caverealms_mushroom_stem.png
+oak_log,badland_tree.png
+oak_log,default_tree.png
+oak_log,frost_land_tree.png
+oak_log,nightshade_tree.png
+oak_log_top,badland_tree_top.png
+oak_log_top,default_tree_top.png
+oak_log_top,frost_land_tree_top.png
+oak_log_top,nightshade_tree_top.png
+oak_planks,badland_wood.png
+oak_planks,default_wood.png
+oak_planks,frost_land_wood.png
+oak_planks,nightshade_wood.png
+obsidian,default_obsidian.png
+obsidian,default_obsidian_block.png
+poppy,ethereal_poppy.png
+pumpkin_side,farming_pumpkin_side.png
+quartz_block_bottom,everness_quartz_block_bottom.png
+quartz_block_side,everness_quartz_block_side.png
+quartz_block_top,everness_quartz_block_top.png
+sand,default_sand.png
+sandstone,default_sandstone.png
+slime_block,ethereal_slime_block.png
+slime_block,livingslimes_slime_block.png
+snow,default_snow.png
+stone,default_stone.png
+stone,everness_stone.png
+tnt_bottom,tnt_bottom.png
+tnt_side,tnt_side.png

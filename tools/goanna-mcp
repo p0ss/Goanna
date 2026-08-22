@@ -1,0 +1,587 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: LGPL-2.1-or-later
+# Copyright (C) 2026 the Goanna contributors
+"""An MCP server over Goanna's control channel (docs/control-channel.md).
+
+The channel is the interface and this is a wrapper over it, so everything
+here can be done from a shell with tools/goanna-control. What the wrapper
+adds is the session: starting the client, rebuilding and relaunching it
+after a C++ change, and handing back a shot already checked by shotcheck.
+
+It speaks MCP over stdin and stdout, as newline delimited JSON-RPC, with no
+dependencies beyond the standard library. Register it with:
+
+    claude mcp add goanna /path/to/goanna/tools/goanna-mcp
+
+Nothing may print to stdout except protocol messages. Diagnostics go to
+stderr, and the client's own output goes to a log file.
+"""
+
+import json
+import os
+import pathlib
+import shutil
+import socket
+import subprocess
+import sys
+import tempfile
+import time
+
+PROTOCOL = "2025-06-18"
+KNOWN_PROTOCOLS = {"2024-11-05", "2025-03-26", PROTOCOL}
+REPO = pathlib.Path(__file__).resolve().parent.parent
+LOG_DIR = pathlib.Path(os.environ.get("GOANNA_MCP_LOG_DIR",
+                                      pathlib.Path(tempfile.gettempdir()) / "goanna-mcp"))
+
+
+def log(*parts):
+    print(*parts, file=sys.stderr, flush=True)
+
+
+# --- the control channel -----------------------------------------------------
+
+class ChannelError(RuntimeError):
+    pass
+
+
+class Channel:
+    """One connection per command. The channel runs one command at a time
+    anyway, and a short lived connection keeps no state in this process."""
+
+    def __init__(self, host="127.0.0.1", port=None):
+        self.host = host
+        self.port = int(port or os.environ.get("GOANNA_CONTROL_PORT", 30800))
+
+    def up(self):
+        try:
+            self.send("ping", timeout=5.0)
+            return True
+        except ChannelError:
+            return False
+
+    def send(self, cmd, args=None, timeout=180.0):
+        request = json.dumps({"id": 1, "cmd": cmd, "args": args or {}}) + "\n"
+        try:
+            sock = socket.create_connection((self.host, self.port), timeout=5.0)
+        except OSError as exc:
+            raise ChannelError(
+                "no control channel on %s:%d (%s). Start one with goanna_session "
+                "action=start, or launch the client yourself with GOANNA_CONTROL=1."
+                % (self.host, self.port, exc))
+        with sock:
+            sock.settimeout(timeout)
+            sock.sendall(request.encode("utf-8"))
+            buf = b""
+            while b"\n" not in buf:
+                try:
+                    chunk = sock.recv(65536)
+                except socket.timeout:
+                    raise ChannelError("the client did not reply within %gs; it may be "
+                                       "still streaming, or wedged" % timeout)
+                if not chunk:
+                    raise ChannelError("the client closed the connection without replying")
+                buf += chunk
+        reply = json.loads(buf.split(b"\n", 1)[0].decode("utf-8"))
+        if not reply.get("ok"):
+            raise ChannelError(str(reply.get("error", "the client refused the command")))
+        return reply.get("result")
+
+
+# --- the client process ------------------------------------------------------
+
+class Session:
+    """Start, stop and rebuild the client. Held across calls, so a restart
+    can reuse whatever the last start was given."""
+
+    def __init__(self):
+        self.proc = None
+        self.log_path = None
+        self.args = {"host": "127.0.0.1", "port": 30000, "name": "dev",
+                     "password": "", "env": {}}
+
+    @staticmethod
+    def godot():
+        candidates = [os.environ.get("GODOT_BIN"), "godot", "godot4",
+                      str(REPO.parent / "Godot_v4.5.1-stable_linux.x86_64")]
+        for cand in candidates:
+            if not cand:
+                continue
+            found = shutil.which(cand) or (cand if os.access(cand, os.X_OK) else None)
+            if found:
+                return found
+        raise ChannelError("no Godot binary found; set GODOT_BIN")
+
+    @staticmethod
+    def diagnose(log_path):
+        """Turn an exit code into something worth reading. A client that
+        cannot open a display fails this way whenever the host trims the
+        environment it starts this server with, which is not obvious from
+        the exit code alone."""
+        try:
+            tail = pathlib.Path(log_path).read_text(errors="replace").strip().split("\n")[-20:]
+        except OSError:
+            return "the log could not be read"
+        text = "\n".join(tail)
+        if "Unable to create DisplayServer" in text or "X11 Display is not available" in text:
+            return ("the client could not open a display. Whatever started this MCP server "
+                    "did not pass DISPLAY, WAYLAND_DISPLAY and XDG_RUNTIME_DIR through; pass "
+                    "them in env, or start the client yourself with GOANNA_CONTROL=1. A shot "
+                    "needs a real display, so headless is not a way around it.\n" + text)
+        if "Can't open dynamic library" in text or "gdextension" in text.lower():
+            return ("the extension did not load; the build output has to land in "
+                    "project/bin/. Try goanna_session with build=true.\n" + text)
+        return text
+
+    def build(self):
+        """cmake --build build, which is what a C++ change needs before a
+        relaunch can show it."""
+        proc = subprocess.run(["cmake", "--build", "build"], cwd=REPO,
+                              capture_output=True, text=True, timeout=1800)
+        out = (proc.stdout + proc.stderr).strip().split("\n")
+        if proc.returncode != 0:
+            raise ChannelError("the build failed:\n" + "\n".join(out[-25:]))
+        return {"built": True, "tail": out[-3:]}
+
+    def start(self, channel, host=None, port=None, name=None, password=None, env=None,
+              wait_ready=True):
+        if channel.up():
+            raise ChannelError("a client is already answering on port %d; stop it first "
+                               "or use action=restart" % channel.port)
+        for key, value in (("host", host), ("port", port), ("name", name),
+                           ("password", password)):
+            if value is not None:
+                self.args[key] = value
+        if env:
+            self.args["env"] = dict(env)
+        LOG_DIR.mkdir(parents=True, exist_ok=True)
+        self.log_path = LOG_DIR / ("client-%d.log" % int(time.time()))
+        run_env = dict(os.environ)
+        run_env.update({k: str(v) for k, v in self.args["env"].items()})
+        run_env.update({
+            "GOANNA_CONTROL": str(channel.port),
+            "GOANNA_HOST": str(self.args["host"]),
+            "GOANNA_PORT": str(self.args["port"]),
+            "GOANNA_NAME": str(self.args["name"]),
+            "GOANNA_PASS": str(self.args["password"]),
+        })
+        handle = open(self.log_path, "w")
+        self.proc = subprocess.Popen([self.godot(), "--path", "project"], cwd=REPO,
+                                     env=run_env, stdout=handle, stderr=subprocess.STDOUT,
+                                     stdin=subprocess.DEVNULL, start_new_session=True)
+        deadline = time.time() + 120.0
+        while time.time() < deadline:
+            if self.proc.poll() is not None:
+                raise ChannelError("the client exited during startup (%d). Its log is %s\n%s"
+                                   % (self.proc.returncode, self.log_path,
+                                      self.diagnose(self.log_path)))
+            if channel.up():
+                break
+            time.sleep(0.5)
+        else:
+            raise ChannelError("the channel never opened. The log is %s\n%s"
+                               % (self.log_path, self.diagnose(self.log_path)))
+        out = {"pid": self.proc.pid, "log": str(self.log_path), "args": dict(self.args)}
+        if wait_ready:
+            # Connected and holding the definitions, rather than merely running.
+            out["wait"] = channel.send("wait", {
+                "expr": 'client.status()["state"] == "ready"', "timeout_ms": 180000})
+            out.update(channel.send("status"))
+        return out
+
+    def stop(self, channel):
+        stopped = False
+        if channel.up():
+            channel.send("quit", timeout=30.0)
+            stopped = True
+            deadline = time.time() + 15.0
+            while time.time() < deadline and channel.up():
+                time.sleep(0.5)
+        if self.proc is not None and self.proc.poll() is None:
+            self.proc.terminate()
+            try:
+                self.proc.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                self.proc.kill()
+            stopped = True
+        self.proc = None
+        return {"stopped": stopped}
+
+
+# --- tools -------------------------------------------------------------------
+
+def vec(value, what):
+    if not (isinstance(value, list) and len(value) == 3):
+        raise ChannelError("%s wants three numbers, [x, y, z]" % what)
+    return {"x": float(value[0]), "y": float(value[1]), "z": float(value[2])}
+
+
+TOOLS = [
+    {
+        "name": "goanna_session",
+        "description":
+            "Start, stop or restart the Goanna client that every other tool talks to. "
+            "A restart is the only way to see a C++ change, because the GDExtension is "
+            "not reloadable; pass build=true to run cmake first and to be told plainly "
+            "if it failed. A restart is also how a reading gets confirmed: a fresh "
+            "client has no deviations, so a number measured on it is a number the "
+            "committed code produces. Shaders, GDScript and settings do not need this.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "action": {"type": "string", "enum": ["status", "start", "stop", "restart"],
+                           "description": "status reports whether a client is answering"},
+                "build": {"type": "boolean",
+                          "description": "run cmake --build build first (start and restart)"},
+                "host": {"type": "string", "description": "server to connect to, default 127.0.0.1"},
+                "port": {"type": "integer", "description": "server port, default 30000"},
+                "name": {"type": "string",
+                         "description": "player name. Reuse one name across a comparison: "
+                                        "a fresh name spawns at a random point, so two "
+                                        "names photograph two different places"},
+                "env": {"type": "object",
+                        "description": "extra environment variables for the launch: the "
+                                       "GOANNA_* ones that can only be set at startup, such "
+                                       "as GOANNA_SHADERPACK or GOANNA_PACK, and DISPLAY, "
+                                       "WAYLAND_DISPLAY and XDG_RUNTIME_DIR if whatever "
+                                       "started this server trimmed them away"},
+            },
+            "required": ["action"],
+        },
+    },
+    {
+        "name": "goanna_status",
+        "description":
+            "Where the client is and what it is holding: session state, camera pose, "
+            "blocks received and meshed, entity count, time of day, and the deviations "
+            "list. Start here when picking up a session you did not launch.",
+        "inputSchema": {"type": "object", "properties": {}},
+    },
+    {
+        "name": "goanna_view",
+        "description":
+            "Put the camera somewhere. teleport goes through the server, so the player "
+            "really moves and blocks stream to where they land, and it returns only once "
+            "streaming has settled; use it to travel. position moves the camera alone "
+            "without telling the server to move the player; use it for viewpoints around "
+            "a place already streamed in. Combine with look_at, or set pitch and yaw "
+            "directly. Positions are Godot space, the same as GOANNA_VIEW.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "teleport": {"type": "array", "items": {"type": "number"},
+                             "description": "[x, y, z] to move the player to, through the server"},
+                "position": {"type": "array", "items": {"type": "number"},
+                             "description": "[x, y, z] to move the camera to"},
+                "look_at": {"type": "array", "items": {"type": "number"},
+                            "description": "[x, y, z] to aim at"},
+                "pitch": {"type": "number"},
+                "yaw": {"type": "number"},
+                "fly": {"type": "boolean",
+                        "description": "false walks with collision; a posed camera needs true"},
+            },
+        },
+    },
+    {
+        "name": "goanna_world",
+        "description":
+            "Change the world or the session. Everything here except the time override "
+            "goes to the server as an ordinary chat command and needs the privileges a "
+            "vanilla client would need, so the reply carries what the server said and "
+            "sets refused when it turned the command down. Not every game has every "
+            "command: Mineclonia has no /spawnentity, and a mob comes from giving a "
+            "spawn egg instead.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "time": {"type": "number",
+                         "description": "0 to 1, this client's clock only. Below 0 hands "
+                                        "it back to the server"},
+                "time_on_server": {"type": "boolean",
+                                   "description": "also run /time, moving the world's clock "
+                                                  "for everyone on the server"},
+                "weather": {"type": "string",
+                            "description": "clear, rain, snow or thunder, through the game's "
+                                           "own command"},
+                "fake_weather": {"type": "boolean",
+                                 "description": "inject a local precipitation spawner instead "
+                                                "of asking the server. Reads through to "
+                                                "precipitation() and to a shader pack's "
+                                                "rainStrength, and needs no privilege"},
+                "give": {"type": "string", "description": "item name, through /giveme"},
+                "spawn": {"type": "string", "description": "entity name, through /spawnentity"},
+                "at": {"type": "array", "items": {"type": "number"},
+                       "description": "[x, y, z] for spawn"},
+                "count": {"type": "integer"},
+                "chat": {"type": "string",
+                         "description": "any chat line, for a command this tool does not cover"},
+            },
+        },
+    },
+    {
+        "name": "goanna_settings",
+        "description":
+            "Read or change anything in the settings panel: the lighting recipe "
+            "(light_sun, light_exposure, light_white, light_fill, light_sdfgi, light_ssao, "
+            "light_pool, shadow_lamps), the material strengths (mat_normal, mat_ao, "
+            "mat_roughness, mat_specular, mat_emission, mat_sss), view_range, lod_distance "
+            "and the rest. Changes are live and go through the same code the panel uses. "
+            "Every value moved this way shows up in deviations until the client restarts.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "action": {"type": "string", "enum": ["get", "set", "list"]},
+                "key": {"type": "string"},
+                "value": {"type": "number"},
+            },
+            "required": ["action"],
+        },
+    },
+    {
+        "name": "goanna_shot",
+        "description":
+            "Capture a frame. Waits for block streaming to go quiet first, so the frame "
+            "is of the world rather than of the sky it had not loaded yet, hides the HUD, "
+            "and writes a JSON sidecar with the pose, the clock, the block count and the "
+            "deviations. The reply includes what shotcheck.py makes of the frame, which "
+            "is the check on whether it is the scene you meant to photograph. Needs a "
+            "real display: a headless client has no viewport to save.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "path": {"type": "string",
+                         "description": "absolute PNG path. Defaults to a temporary file"},
+                "settle": {"type": "boolean",
+                           "description": "wait for streaming to go quiet, default true. "
+                                          "false only when nothing has moved since the last shot"},
+                "warm": {"type": "integer",
+                         "description": "frames to render after settling, default 8. Raise it "
+                                        "for effects that converge, such as bounced light"},
+                "hide_ui": {"type": "boolean"},
+            },
+        },
+    },
+    {
+        "name": "goanna_run",
+        "description":
+            "Run a GDScript snippet inside the client and get what it returns. This is the "
+            "one that does not run out: main, client, cam and ui are in scope, it may "
+            "await, and the client exposes about ninety bound methods (node_name_at, "
+            "entity_list, render_stats, sky_state, inventory_state_at, material_strength, "
+            "texture, item_icon and so on). Use it for anything with a loop, a search or a "
+            "wait in it, and prefer returning a small dictionary of numbers over printing. "
+            "Indent with tabs.\n"
+            "Example, find the ground under the player:\n"
+            "var p = client.server_player_position()\n"
+            "var y = int(p.y) + 4\n"
+            "while y > int(p.y) - 20:\n"
+            "\tvar n = client.node_name_at(Vector3(p.x, y, p.z))\n"
+            "\tif n != \"air\" and n != \"ignore\":\n"
+            "\t\treturn {\"y\": y, \"node\": n}\n"
+            "\ty -= 1\n"
+            "return {\"node\": \"nothing found\"}",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "src": {"type": "string", "description": "the snippet, ending in a return"},
+            },
+            "required": ["src"],
+        },
+    },
+    {
+        "name": "goanna_command",
+        "description":
+            "Any control channel command by name, for the ones the tools above do not "
+            "wrap. reload_shader recompiles a .gdshader from disk in the running client, "
+            "which is the fast half of the loop for anything shader shaped. wait blocks on "
+            "a condition (settle, frames, ms, or a GDScript expr). deviations lists what "
+            "has moved since startup. help lists everything the channel takes.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "cmd": {"type": "string", "description": "for example reload_shader, wait, help"},
+                "args": {"type": "object", "description": "that command's arguments"},
+            },
+            "required": ["cmd"],
+        },
+    },
+]
+
+
+def shotcheck(path):
+    script = REPO / "tools" / "shotcheck.py"
+    if not script.exists():
+        return None
+    try:
+        proc = subprocess.run([sys.executable, str(script), path],
+                              capture_output=True, text=True, timeout=60)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    text = (proc.stdout or proc.stderr).strip()
+    return text or None
+
+
+def call_tool(name, args, channel, session):
+    if name == "goanna_session":
+        action = args.get("action", "status")
+        out = {}
+        if action == "status":
+            if not channel.up():
+                return {"running": False,
+                        "hint": "no client is answering; goanna_session action=start"}
+            return dict(channel.send("status"), running=True)
+        if action in ("start", "restart") and args.get("build"):
+            out.update(session.build())
+        if action in ("stop", "restart"):
+            out.update(session.stop(channel))
+        if action == "stop":
+            return out
+        if action in ("start", "restart"):
+            out.update(session.start(channel, host=args.get("host"), port=args.get("port"),
+                                     name=args.get("name"), env=args.get("env")))
+            return out
+        raise ChannelError("unknown action '%s'" % action)
+
+    if name == "goanna_status":
+        return dict(channel.send("status"), deviations=channel.send("deviations"))
+
+    if name == "goanna_view":
+        out = {}
+        if "teleport" in args:
+            out["teleport"] = channel.send("tp", vec(args["teleport"], "teleport"))
+        pose = {}
+        if "position" in args:
+            pose.update(vec(args["position"], "position"))
+        for key in ("pitch", "yaw", "fly"):
+            if key in args:
+                pose[key] = args[key]
+        if pose:
+            out["pose"] = channel.send("pose", pose)
+        if "look_at" in args:
+            out["look"] = channel.send("look", vec(args["look_at"], "look_at"))
+        if not out:
+            raise ChannelError("goanna_view wants teleport, position, look_at, pitch, yaw or fly")
+        return out
+
+    if name == "goanna_world":
+        out = {}
+        if "time" in args:
+            out["time"] = channel.send("time", {"tod": args["time"],
+                                                "server": bool(args.get("time_on_server"))})
+        if "weather" in args:
+            out["weather"] = channel.send("weather", {"kind": args["weather"],
+                                                      "fake": bool(args.get("fake_weather"))})
+        if "give" in args:
+            out["give"] = channel.send("give", {"item": args["give"],
+                                                "count": int(args.get("count", 1))})
+        if "spawn" in args:
+            spawn = {"name": args["spawn"], "count": int(args.get("count", 1))}
+            if "at" in args:
+                spawn.update(vec(args["at"], "at"))
+            out["spawn"] = channel.send("spawn", spawn)
+        if "chat" in args:
+            out["chat"] = channel.send("chat", {"text": args["chat"]})
+        if not out:
+            raise ChannelError("goanna_world wants time, weather, give, spawn or chat")
+        return out
+
+    if name == "goanna_settings":
+        action = args.get("action")
+        if action == "list":
+            return channel.send("settings")
+        if action == "get":
+            return channel.send("get", {"key": args.get("key", "")})
+        if action == "set":
+            if "value" not in args:
+                raise ChannelError("set wants a value")
+            return channel.send("set", {"key": args.get("key", ""), "value": args["value"]})
+        raise ChannelError("goanna_settings wants action get, set or list")
+
+    if name == "goanna_shot":
+        path = args.get("path")
+        if not path:
+            LOG_DIR.mkdir(parents=True, exist_ok=True)
+            path = str(LOG_DIR / ("shot-%d.png" % int(time.time() * 1000)))
+        shot = {"path": path}
+        for key in ("settle", "warm", "hide_ui"):
+            if key in args:
+                shot[key] = args[key]
+        result = channel.send("shot", shot, timeout=300.0)
+        checked = shotcheck(path)
+        if checked:
+            result["shotcheck"] = checked
+        return result
+
+    if name == "goanna_run":
+        return channel.send("run", {"src": args.get("src", "")}, timeout=300.0)
+
+    if name == "goanna_command":
+        return channel.send(args.get("cmd", ""), args.get("args") or {}, timeout=300.0)
+
+    raise ChannelError("no such tool '%s'" % name)
+
+
+# --- MCP over stdio ----------------------------------------------------------
+
+def reply(msg_id, result=None, error=None):
+    msg = {"jsonrpc": "2.0", "id": msg_id}
+    if error is not None:
+        msg["error"] = error
+    else:
+        msg["result"] = result
+    sys.stdout.write(json.dumps(msg) + "\n")
+    sys.stdout.flush()
+
+
+def main():
+    channel = Channel()
+    session = Session()
+    for line in sys.stdin:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            msg = json.loads(line)
+        except ValueError:
+            log("goanna-mcp: ignoring a line that is not JSON")
+            continue
+        method = msg.get("method")
+        msg_id = msg.get("id")
+        params = msg.get("params") or {}
+
+        if method == "initialize":
+            asked = params.get("protocolVersion")
+            reply(msg_id, {
+                "protocolVersion": asked if asked in KNOWN_PROTOCOLS else PROTOCOL,
+                "capabilities": {"tools": {}},
+                "serverInfo": {"name": "goanna", "version": "0.1.0"},
+            })
+        elif method == "tools/list":
+            reply(msg_id, {"tools": TOOLS})
+        elif method == "tools/call":
+            name = params.get("name", "")
+            args = params.get("arguments") or {}
+            try:
+                result = call_tool(name, args, channel, session)
+                text = json.dumps(result, indent=2, default=str)
+                reply(msg_id, {"content": [{"type": "text", "text": text}]})
+            except ChannelError as exc:
+                reply(msg_id, {"content": [{"type": "text", "text": str(exc)}],
+                               "isError": True})
+            except Exception as exc:                      # noqa: BLE001
+                log("goanna-mcp: %s failed: %r" % (name, exc))
+                reply(msg_id, {"content": [{"type": "text",
+                                            "text": "%s: %s" % (type(exc).__name__, exc)}],
+                               "isError": True})
+        elif method == "ping":
+            reply(msg_id, {})
+        elif method == "resources/list":
+            reply(msg_id, {"resources": []})
+        elif method == "prompts/list":
+            reply(msg_id, {"prompts": []})
+        elif msg_id is not None:
+            reply(msg_id, error={"code": -32601, "message": "no method '%s'" % method})
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

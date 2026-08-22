@@ -15,10 +15,17 @@ class_name GoannaLocalServer
 
 var pid := -1
 var port := 0
+var gameid := "" # the game start() was asked for, for per game client defaults
 var log_path := ""
 var world_path := ""
 var _argv: PackedStringArray
 var _data_dir := ""
+# Mapblocks (16 nodes each) the local server will send. Luanti's own default is
+# 12; the client still has to ask for it through its own view range setting,
+# and asking for more than this gets nothing.
+var send_distance := 32
+# How far the local server grants far rendering, in nodes (docs/far-rendering.md).
+var far_distance := 1024
 
 # Where Luanti keeps games and worlds, and how to invoke its server.
 # Returns {} if no server could be found.
@@ -81,15 +88,15 @@ static func list_worlds(data_dir: String) -> Array:
 	while name != "":
 		var wm := data_dir.path_join("worlds").path_join(name).path_join("world.mt")
 		if d.current_is_dir() and FileAccess.file_exists(wm):
-			var gameid := ""
+			var gid := ""
 			var cf := ConfigFile.new()
 			var f := FileAccess.open(wm, FileAccess.READ)
 			if f:
 				while not f.eof_reached():
 					var line := f.get_line().strip_edges()
 					if line.begins_with("gameid"):
-						gameid = line.get_slice("=", 1).strip_edges()
-			worlds.append({"name": name, "gameid": gameid})
+						gid = line.get_slice("=", 1).strip_edges()
+			worlds.append({"name": name, "gameid": gid})
 		name = d.get_next()
 	d.list_dir_end()
 	worlds.sort_custom(func(a, b): return a["name"] < b["name"])
@@ -117,7 +124,28 @@ static func data_dir_or_empty() -> String:
 # Start a server for `gameid` on `worldname` (created under the data dir if
 # new). Picks a free-ish port and writes a log we can watch for readiness.
 # Returns "" on success, or an error message.
-func start(gameid: String, worldname: String) -> String:
+# The server mod that relays goanna_* settings to the client, copied into the
+# world as a worldmod so the grant written above reaches the client. A copy,
+# not a link: the flatpak sandbox sees the world directory and not the
+# checkout.
+func _install_server_mod(world: String) -> void:
+	var src := ProjectSettings.globalize_path("res://../goanna_server_mod")
+	if not FileAccess.file_exists(src.path_join("init.lua")):
+		# True of every exported build today: the mod lives beside project/
+		# in the checkout and is not packed. Say so, or the grant written
+		# above is silently never relayed and far rendering just does not
+		# happen.
+		push_warning("goanna_server_mod not found at %s; far rendering will not be granted in this world" % src)
+		return
+	var dst := world.path_join("worldmods").path_join("goanna_server_mod")
+	DirAccess.make_dir_recursive_absolute(dst)
+	for f in ["init.lua", "mod.conf"]:
+		if FileAccess.file_exists(src.path_join(f)):
+			DirAccess.copy_absolute(src.path_join(f), dst.path_join(f))
+
+
+func start(gameid_: String, worldname: String, player_name: String = "player") -> String:
+	gameid = gameid_
 	var env := detect()
 	if env.is_empty():
 		return "No Luanti server found. Install Luanti (or the org.luanti.luanti flatpak), or set GOANNA_SERVER_CMD."
@@ -128,12 +156,83 @@ func start(gameid: String, worldname: String) -> String:
 	log_path = _data_dir.path_join("goanna_singleplayer.log")
 	# a fixed local port; if it is busy the log tells us and start() is retried
 	port = 30800 + (hash(worldname) % 150)
+	# How far the server will send blocks at all. Luanti defaults
+	# max_block_send_distance to 12 mapblocks, 192 nodes, and that is a hard
+	# ceiling on what any client can draw however much it asks for: see
+	# docs/far-rendering.md, where it is the reason distant vistas need more
+	# than a bigger view range. Raised here because a local single player
+	# server has one client and can afford it. Written next to the world so it
+	# is visible inside the flatpak sandbox, which cannot see the host's home.
+	var conf_path := _data_dir.path_join("goanna_local_server.conf")
+	var cf := FileAccess.open(conf_path, FileAccess.WRITE)
+	if cf:
+		cf.store_string("max_block_send_distance = %d\n" % send_distance)
+		# The queue limits throttle how fast those blocks actually arrive; the
+		# defaults are tuned for the default distance and starve a larger one.
+		cf.store_string("max_simultaneous_block_sends_per_client = 16\n")
+		cf.store_string("server_unload_unused_data_timeout = 600\n")
+		# A single player world on this machine, run by a server this client
+		# launched: there is no one to be unfair to, so far rendering is
+		# granted here, over the goanna:v1 channel the server mod installed
+		# below provides. docs/far-rendering.md, "the server decides".
+		cf.store_string("goanna_far_rendering = true\n")
+		cf.store_string("goanna_far_rendering_distance = %d\n" % far_distance)
+		# A fresh world has no far terrain to summarise. The server generates
+		# only within the range the client asks for (max_block_generate_distance
+		# is capped by the client's wanted range in clientiface.cpp), so the
+		# grant above puts no horizon on a world nobody has walked. The mod's
+		# pregeneration is the server's own answer: it generates outward from
+		# each player at its own pace, one 128 node area at a time, and pushes
+		# each area's summary as it lands. It is the operator's choice, and
+		# here the operator is the player.
+		cf.store_string("goanna_far_pregenerate = true\n")
+		# Privileges. The client's fly toggle works whether or not the server
+		# allows it, exactly as the vanilla client's does, and a server that
+		# does not allow it answers every flying step with "moved too fast"
+		# and resets the player to the ground. On a public server that is
+		# correct. On the server this player just launched for themselves it
+		# means flying loads nothing, because the live blocks and the far
+		# summaries both follow where the server believes the player is. So
+		# new players on this server start with the single player set:
+		# Luanti gives fly, fast, noclip, teleport, give and settime to no one
+		# by default, not even the admin (give_to_admin follows
+		# give_to_singleplayer, and those are registered false), which is why
+		# name= below is not enough on its own.
+		cf.store_string("default_privs = interact, shout, fly, fast, noclip, teleport, give, settime\n")
+		# default_privs applies at first join only, so a player created in an
+		# earlier world keeps what they had. Naming the player as the server's
+		# admin gives them the privs priv on every world, old or new, so
+		# "/grantme all" is available when that happens.
+		if player_name != "":
+			cf.store_string("name = %s\n" % player_name)
+		# A scripted run is not a game. The harness and the agents that drive
+		# this client are there to photograph the world, and a night falling
+		# partway through a capture, or a mob killing the player between two
+		# frames of a comparison, ruins the measurement rather than merely
+		# annoying someone: two shots meant to differ by one change end up
+		# differing by the hour and by whether anyone was still alive. So a
+		# run nobody is watching gets a frozen clock and no damage.
+		# GOANNA_LOCAL_TEST is menu.gd's own marker for exactly that, and a
+		# player's own world is left as the game intends.
+		#
+		# time_speed 0 stops the clock where the world starts it; the client's
+		# own GOANNA_TOD and the control channel's time command set which hour
+		# a shot is taken at, so this only has to stop it moving. Damage off
+		# is Luanti's own setting and needs nothing from the game, unlike
+		# turning mob spawning off, which every game spells differently: the
+		# mobs still walk about here, they just cannot hurt anyone.
+		if OS.get_environment("GOANNA_LOCAL_TEST") != "":
+			cf.store_string("enable_damage = false\n")
+			cf.store_string("time_speed = 0\n")
+		cf = null
+	_install_server_mod(world_path)
 	var argv := Array(_argv)
 	argv.append_array([
 		"--world", world_path,
 		"--gameid", gameid,
 		"--port", str(port),
 		"--logfile", log_path,
+		"--config", conf_path,
 	])
 	# fresh log so readiness detection is not fooled by an old run
 	var lf := FileAccess.open(log_path, FileAccess.WRITE)

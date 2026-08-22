@@ -1,0 +1,41 @@
+[Goanna client options]
+
+#    Let a Goanna client draw terrain past this server's send distance: from
+#    mapblocks it has already been sent, and from coarse summaries this mod
+#    gives of terrain the server has already generated, which is how places
+#    the player has never been are drawn. Nothing is generated to answer a
+#    summary, and what is drawn from the client's own store is as old as the
+#    last time the player was near it.
+goanna_far_rendering (Far rendering) bool false
+
+#    How far past the send distance, in nodes. Costs the client memory and
+#    draw calls, and bounds the far terrain summaries below.
+goanna_far_rendering_distance (Far rendering distance) int 256 64 8192
+
+# How much work a far terrain summary request may cost each server step, in
+# mapblocks read. Summaries are what let a client draw places its player has
+# never been: the server reads terrain it has already generated (it never
+# generates any for this) and sends a coarse digest. Lower this on a busy
+# server; 0 does not disable the feature, goanna_far_rendering does.
+goanna_far_summary_blocks_per_step (Far summary blocks per step) int 32 1 512
+
+#    Generate terrain around each player out to the far rendering distance,
+#    one 128 node area at a time with a pause between, and hand each area's
+#    summary to the clients near it. A summary can only describe terrain that
+#    exists, and a server generates only within the range a client asks for,
+#    so without this a new world has a 192 node horizon whatever the distance
+#    above says. Costs mapgen time and map memory for terrain no one has
+#    visited, which is why it is off here and on for the server a Goanna
+#    client launches for itself.
+goanna_far_pregenerate (Far pregeneration) bool false
+
+#    Seconds to wait between one pregenerated area and the next.
+goanna_far_pregenerate_interval (Far pregeneration interval) float 3.0 0.0 600.0
+
+#    Source engine style movement: air strafing, bunny hopping, surfing. Needs
+#    disable_anticheat as well, or the server rejects the movement it produces.
+goanna_source_movement (Source style movement) bool false
+
+goanna_source_movement_air_accel (Air acceleration) float 100.0 1.0 1000.0
+
+goanna_source_movement_max_air_speed (Max air speed) float 3.0 0.1 100.0

@@ -14,6 +14,8 @@
 
 #include "goanna_session.h"
 
+#include <ctime>
+
 #include "transplant/localplayer.h"
 #include "goanna_luanti_client.h"
 #include "goanna_raycast.h"
@@ -23,6 +25,8 @@
 #include "tool.h"
 
 #include <algorithm>
+#include <fstream>
+#include <filesystem>
 #include <chrono>
 #include <cmath>
 #include <set>
@@ -36,6 +40,7 @@
 #include "content/mods.h"
 #include "itemdef.h"
 #include "log.h"
+#include "light.h"
 #include "mapblock.h"
 #include "nodemetadata.h"
 #include "network/address.h"
@@ -87,6 +92,21 @@ static void ensureSettings() {
     defaults->setDefault("disallow_empty_password", "false");
     defaults->setDefault("default_password", "");
     defaults->setDefault("enable_mod_channels", "false");
+    // The light decode curve, and the settings it reads. light_decode_table is
+    // a static array that starts as zeros and is only filled by
+    // set_light_curve(); Luanti's own client calls it during startup and
+    // Goanna never did, so decode_light() returned 0 for every light level
+    // including full sun. Nothing showed it: g_goanna_no_light discards the
+    // decoded value anyway, so the two faults hid each other, and turning
+    // Luanti's smooth lighting on could not have worked even with that flag
+    // cleared. Found by reading param1 off the wire (14) and the decode of the
+    // same node (0) side by side. See docs/mesh-attributes.md.
+    defaults->setDefault("display_gamma", "1.0");
+    defaults->setDefault("lighting_alpha", "0.0");
+    defaults->setDefault("lighting_beta", "1.5");
+    defaults->setDefault("lighting_boost", "0.2");
+    defaults->setDefault("lighting_boost_center", "0.5");
+    defaults->setDefault("lighting_boost_spread", "0.2");
     defaults->setDefault("time_speed", "72");
     defaults->setDefault("anticheat_flags", "");
     defaults->setDefault("debug_log_level", "action");
@@ -115,6 +135,9 @@ static void ensureSettings() {
     defaults->setDefault("mesh_generation_interval", "0");
     defaults->setDefault("safe_dig_and_place", "false");
     g_settings = Settings::createLayer(SL_GLOBAL);
+    // Fill the decode table now that the settings it reads exist. Everything
+    // that turns a stored light level into a brightness goes through it.
+    set_light_curve(g_settings->getFloat("display_gamma"));
     sockets_init();
 }
 
@@ -152,6 +175,28 @@ void GoannaSession::start(const std::string &host, uint16_t port, const std::str
     m_name = player_name;
     m_password = password;
     m_player = std::make_unique<LocalPlayer>(this, player_name);
+    if (!m_store_root.empty()) {
+        // One directory per server. The host as given, with anything that
+        // is not a filename character folded to '_'; a world is not named
+        // on the wire, so a server that swaps worlds shows stale terrain
+        // until it is looked at again, which docs/far-rendering.md accepts.
+        std::string dir = host;
+        for (char &c : dir)
+            if (!isalnum((unsigned char)c) && c != '.' && c != '-')
+                c = '_';
+        dir = m_store_root + "/" + dir + "_" + std::to_string(port);
+        uint64_t cap = 512ull << 20;
+        if (const char *mb = std::getenv("GOANNA_STORE_CAP_MB"))
+            cap = (uint64_t)std::max(1, atoi(mb)) << 20;
+        m_store = std::make_unique<BlockStore>();
+        if (!m_store->open(dir, cap)) {
+            errorstream << "Goanna: block store could not open " << dir << std::endl;
+            m_store.reset();
+        } else {
+            infostream << "Goanna: block store at " << dir << ", " << m_store->regions()
+                       << " regions, " << (m_store->bytes() >> 20) << " MB" << std::endl;
+        }
+    }
     m_running = true;
     m_thread = std::thread(&GoannaSession::threadMain, this);
 }
@@ -164,6 +209,70 @@ void GoannaSession::stop() {
         m_con->Disconnect();
         m_con.reset();
     }
+    if (m_store) {
+        // edits made this session, written back before the store closes
+        std::lock_guard<std::mutex> lk(m_map_mutex);
+        for (const v3s16 &bp : m_store_dirty)
+            if (MapBlock *b = m_map ? m_map->getBlockNoCreateNoEx(bp) : nullptr)
+                saveBlockToStore(b);
+        m_store_dirty.clear();
+        m_store->close();
+    }
+}
+
+void GoannaSession::saveBlockToStore(MapBlock *b) {
+    if (!m_store || !b)
+        return;
+    const u8 ser_ver = stats().ser_ver;
+    if (ser_ver < SER_FMT_VER_LOWEST_WRITE)
+        return;
+    try {
+        std::ostringstream os(std::ios_base::binary);
+        b->serialize(os, ser_ver, false, -1);
+        b->serializeNetworkSpecific(os);
+        m_store->put(b->getPos(), ser_ver, os.str(), (uint32_t)time(nullptr));
+    } catch (const std::exception &e) {
+        warningstream << "Goanna: block store could not serialise " << e.what() << std::endl;
+    }
+}
+
+std::unique_ptr<MapBlock> GoannaSession::loadStoredBlock(v3s16 bp) {
+    if (!m_store || !m_content_prepared)
+        return nullptr;
+    uint8_t ser_ver = 0;
+    std::string payload;
+    if (!m_store->get(bp, ser_ver, payload))
+        return nullptr;
+    try {
+        auto b = std::make_unique<MapBlock>(bp, this);
+        std::istringstream is(payload, std::ios_base::binary);
+        b->deSerialize(is, ser_ver, false);
+        b->deSerializeNetworkSpecific(is);
+        return b;
+    } catch (const std::exception &e) {
+        warningstream << "Goanna: block store entry unreadable at " << bp.X << "," << bp.Y << ","
+                      << bp.Z << ": " << e.what() << std::endl;
+        return nullptr;
+    }
+}
+
+bool GoannaSession::storedRegionMask(v3s16 region, std::vector<uint8_t> &bits) {
+    return m_store && m_store->regionMask(region, bits);
+}
+
+int GoannaSession::farRenderingGrant() const {
+    auto opts = serverOptions();
+    auto on = opts.find("far_rendering");
+    if (on == opts.end())
+        return 0;
+    const std::string &v = on->second;
+    if (!(v == "true" || v == "1" || v == "yes" || v == "on"))
+        return 0;
+    auto d = opts.find("far_rendering_distance");
+    int dist = 512;
+    if (d != opts.end())
+        dist = atoi(d->second.c_str());
+    return std::clamp(dist, 0, 4096);
 }
 
 SessionStats GoannaSession::stats() const {
@@ -329,6 +438,99 @@ std::vector<GoannaSession::ChatLine> GoannaSession::takeChat() {
     std::vector<ChatLine> out;
     out.swap(m_chat);
     return out;
+}
+
+// The channel a paired server mod talks on. Versioned, so a later protocol can
+// run beside this one rather than having to guess what the other end supports.
+static const char *kGoannaChannel = "goanna:v1";
+
+// Joining is the whole of what Goanna asks for. A server without the mod has
+// no one listening, the join is harmless, no reply arrives, and the client
+// renders exactly as it does today. That is the point: the mod can only grant
+// permissions, so its absence is the conservative case rather than a failure.
+void GoannaSession::joinGoannaChannel() {
+    if (!m_con)
+        return;
+    std::string channel(kGoannaChannel);
+    NetworkPacket pkt(TOSERVER_MODCHANNEL_JOIN, 2 + channel.size());
+    pkt << channel;
+    send(pkt);
+    // Say hello so the mod has something to reply to: a server side mod cannot
+    // see who joined a channel, only messages arriving on it.
+    NetworkPacket msg(TOSERVER_MODCHANNEL_MSG, 0);
+    msg << channel << std::string("hello");
+    send(msg);
+}
+
+void GoannaSession::requestFarSummary(v3s16 origin_blocks, int edge_blocks, int cell) {
+    if (!m_con)
+        return;
+    std::string channel(kGoannaChannel);
+    // Version 2: the per-block record grew from 6 bytes to 21, a 4 by 4 grid
+    // of surface heights rather than one for the whole block. See the
+    // matching comment in goanna_server_mod/init.lua and
+    // GoannaClient::lodTakeSummaries. A v1 server mod's request pattern wants
+    // exactly 5 numbers and will not match this line, so an old mod simply
+    // never answers a new client rather than answering with the wrong shape.
+    std::string msg = "farsum? 2 " + std::to_string(cell) + " " + std::to_string(origin_blocks.X) +
+            " " + std::to_string(origin_blocks.Y) + " " + std::to_string(origin_blocks.Z) + " " +
+            std::to_string(edge_blocks);
+    NetworkPacket pkt(TOSERVER_MODCHANNEL_MSG, 0);
+    pkt << channel << msg;
+    send(pkt);
+}
+
+std::vector<std::string> GoannaSession::takeFarSummaries() {
+    std::lock_guard<std::mutex> lk(m_server_opts_mutex);
+    std::vector<std::string> out;
+    out.swap(m_far_summaries);
+    return out;
+}
+
+bool GoannaSession::farSummariesOffered() const {
+    auto opts = serverOptions();
+    auto it = opts.find("far_summaries");
+    return it != opts.end() && (it->second == "true" || it->second == "1");
+}
+
+// key=value lines, one per line. Deliberately not JSON: the payload is a
+// handful of flags and numbers, and this needs no parser on either side.
+void GoannaSession::onModChannelMsg(NetworkPacket &pkt) {
+    std::string channel, sender, message;
+    pkt >> channel >> sender >> message;
+    if (channel != kGoannaChannel)
+        return;
+    // Far summary replies are their own stream, consumed by the client.
+    if (message.compare(0, 7, "farsum ") == 0) {
+        std::lock_guard<std::mutex> lk(m_server_opts_mutex);
+        if (m_far_summaries.size() < 256)
+            m_far_summaries.push_back(std::move(message));
+        return;
+    }
+    if (message.compare(0, 8, "farsum? ") == 0)
+        return; // our own request echoed to everyone on the channel
+    std::lock_guard<std::mutex> lk(m_server_opts_mutex);
+    size_t pos = 0;
+    while (pos <= message.size()) {
+        size_t nl = message.find('\n', pos);
+        std::string line = message.substr(pos, nl == std::string::npos ? std::string::npos : nl - pos);
+        pos = nl == std::string::npos ? message.size() + 1 : nl + 1;
+        size_t eq = line.find('=');
+        if (eq == std::string::npos || eq == 0)
+            continue;
+        std::string k = line.substr(0, eq), v = line.substr(eq + 1);
+        while (!v.empty() && (v.back() == '\r' || v.back() == ' '))
+            v.pop_back();
+        m_server_opts[k] = v;
+    }
+    infostream << "Goanna: server mod announced " << m_server_opts.size()
+               << " options" << std::endl;
+}
+
+void GoannaSession::onModChannelSignal(NetworkPacket &pkt) {
+    // Join accepted, rejected, or the channel does not exist. Nothing to do:
+    // the absence of a reply is already the "no mod" case.
+    (void)pkt;
 }
 
 void GoannaSession::sendChat(const std::wstring &message) {
@@ -777,6 +979,15 @@ void GoannaSession::stepInteract(float dtime, const InteractInput &in) {
             } else if (dig_index < cal) {
                 m_interact.crack_level = (int)dig_index;
                 m_interact.crack_pos = nodepos;
+                // A node sheds a few pieces while it is being hit, not only
+                // when it gives way. Rate limited rather than per step, or a
+                // fast machine would throw far more of them than a slow one
+                // for the same swing.
+                m_dig_particle_timer -= dtime;
+                if (m_dig_particle_timer <= 0.0f) {
+                    m_dig_particle_timer = 0.1f;
+                    queueDugParticles(nodepos, features, 1);
+                }
             } else {
                 // Digging completed
                 m_interact.crack_level = -1;
@@ -803,6 +1014,7 @@ void GoannaSession::stepInteract(float dtime, const InteractInput &in) {
                     m_new_blocks.push_back(kv.first);
                 queueBlocksAround(nodepos);
                 sendInteract(INTERACT_DIGGING_COMPLETED, pointed);
+                queueDugParticles(nodepos, features, 16);
                 if (!features.sound_dug.name.empty()) {
                     SoundEvent ev;
                     ev.name = features.sound_dug.name;
@@ -1131,6 +1343,8 @@ void GoannaSession::sendReady() {
     send(pkt);
     m_ready_sent = true;
     setState(SessionState::Ready, "TOSERVER_CLIENT_READY sent");
+    // After ready, so the server has a player to answer for.
+    joinGoannaChannel();
 }
 
 void GoannaSession::writePlayerPosTo(NetworkPacket &pkt) {
@@ -1194,8 +1408,15 @@ int GoannaSession::pruneDistantBlocks(int radius) {
                 (s16)std::floor(pp.Y / MAP_BLOCKSIZE),
                 (s16)std::floor(pp.Z / MAP_BLOCKSIZE));
         gone = m_map->blocksBeyond(centre, radius);
-        for (const v3s16 &bp : gone)
+        for (const v3s16 &bp : gone) {
+            // An edited block goes back to the store before it goes, so the
+            // store holds the world as last seen rather than as first sent.
+            if (m_store && m_store_dirty.count(bp)) {
+                saveBlockToStore(m_map->getBlockNoCreateNoEx(bp));
+                m_store_dirty.erase(bp);
+            }
             m_map->dropBlock(bp);
+        }
     }
     if (!gone.empty())
         sendDeletedBlocks(gone);
@@ -1259,6 +1480,92 @@ static bool isImageName(const std::string &name) {
     return ext == ".png" || ext == ".jpg" || ext == ".tga" || ext == ".bmp" || ext == "jpeg";
 }
 
+// Read a Minecraft resource pack through a name map, after the server's own
+// media, so the player's pack wins the way a texture pack is supposed to.
+//
+// Doing it as an insert rather than as a lookup hook is deliberate: the
+// alternative is to teach getTexturePath about the mapping, which lives in
+// transplanted code, and this needs nothing from it. The images go in under
+// the game's own names, so everything downstream, including the LabPBR
+// companion probe in GoannaTexture::godotArraySuffixed, carries on unaware.
+//
+// The companions come along by suffix on the *Minecraft* name, which is where
+// a LabPBR pack puts them: mcl_core_stone.png maps to block/stone.png, so
+// block/stone_n.png and block/stone_s.png are its normal and specular. That
+// is the whole reason this is worth having over a diffuse-only converter.
+static size_t loadMappedPack(const std::string &map_csv, const std::string &pack_dir,
+        GoannaTextureSource *tsrc) {
+    if (map_csv.empty() || pack_dir.empty())
+        return 0;
+    std::ifstream f(map_csv);
+    if (!f)
+        return 0;
+    // A pack keeps its textures under assets/<namespace>/textures/. Rather than
+    // guess the namespace, index every png once by the part of its path after
+    // "textures/", plus its bare name as a fallback.
+    std::map<std::string, std::string> index;
+    std::error_code ec;
+    for (auto it = std::filesystem::recursive_directory_iterator(pack_dir, ec);
+            it != std::filesystem::recursive_directory_iterator(); it.increment(ec)) {
+        if (ec)
+            break;
+        if (!it->is_regular_file(ec))
+            continue;
+        std::string full = it->path().string();
+        if (full.size() < 4 || full.compare(full.size() - 4, 4, ".png") != 0)
+            continue;
+        std::string key = full;
+        size_t at = full.find("/textures/");
+        if (at != std::string::npos)
+            key = full.substr(at + 10);
+        index.emplace(key, full);
+        index.emplace(it->path().filename().string(), full);
+    }
+    auto read_file = [](const std::string &path, std::string &out) {
+        std::ifstream in(path, std::ios::binary);
+        if (!in)
+            return false;
+        out.assign((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+        return !out.empty();
+    };
+    size_t n = 0;
+    std::string line;
+    while (std::getline(f, line)) {
+        if (line.empty() || line[0] == '#')
+            continue;
+        size_t comma = line.find(',');
+        if (comma == std::string::npos)
+            continue;
+        std::string game_tex = line.substr(0, comma);
+        std::string pack_path = line.substr(comma + 1);
+        while (!pack_path.empty() && (pack_path.back() == '\r' || pack_path.back() == '\n'))
+            pack_path.pop_back();
+        if (game_tex == "game_texture" || pack_path.empty())
+            continue;
+        // the diffuse, then its LabPBR companions under the same stem
+        static const char *kSuffix[] = {"", "_n", "_s"};
+        for (const char *suf : kSuffix) {
+            std::string want = pack_path;
+            std::string dest = game_tex;
+            if (*suf) {
+                if (want.size() < 4 || dest.size() < 4)
+                    continue;
+                want = want.substr(0, want.size() - 4) + suf + ".png";
+                dest = dest.substr(0, dest.size() - 4) + suf + ".png";
+            }
+            auto hit = index.find(want);
+            if (hit == index.end())
+                hit = index.find(want.substr(want.find_last_of('/') + 1));
+            if (hit == index.end())
+                continue;
+            std::string bytes;
+            if (read_file(hit->second, bytes) && tsrc->insertMediaImage(dest, bytes))
+                ++n;
+        }
+    }
+    return n;
+}
+
 bool GoannaSession::prepareContentIfReady() {
     if (!m_content_ready || m_send_ready)
         return false;
@@ -1271,6 +1578,11 @@ bool GoannaSession::prepareContentIfReady() {
                 ++n_img;
         }
     }
+    // 1b. the player's own Minecraft pack, after the media above so it wins.
+    size_t n_map = loadMappedPack(m_texture_map,
+            g_settings ? g_settings->get("texture_path") : std::string(), m_tsrc.get());
+    if (n_map)
+        infostream << "Goanna: mapped pack supplied " << n_map << " images" << std::endl;
     // 2. node definitions: same order as Client::afterContentReceived
     {
         std::lock_guard<std::mutex> lk(m_map_mutex);
@@ -1309,6 +1621,19 @@ bool GoannaSession::prepareContentIfReady() {
         for (auto &kv : min_light)
             if (kv.second > 0)
                 m_emissive_by_texture[kv.first] = kv.second;
+        // The per node classifier, docs/pbr-plan.md step 2: material class
+        // and Minecraft block per node, voted down to per texture, and handed
+        // to the texture source so the array companions it synthesises for
+        // textures no pack covers carry the class rather than nothing.
+        buildMaterialTable(m_nodedef, readTextureMap(m_texture_map), m_material_table);
+        m_tsrc->setMaterialTable(&m_material_table);
+        if (std::getenv("GOANNA_DEBUG_PBR")) {
+            const MaterialTable &t = m_material_table;
+            fprintf(stderr, "goanna classes: %d nodes, by footstep %d, group %d, drawtype %d, name %d,"
+                    " unclassed %d; %zu textures classed, %zu emissive; %zu block names\n",
+                    t.nodes, t.by_footstep, t.by_group, t.by_drawtype, t.by_name, t.unclassed,
+                    t.texture_class.size(), t.texture_emission.size(), t.block_names.size() - 1);
+        }
     }
     {
         // Anything meshed before now used the unknown node; re-mesh it.
@@ -1380,6 +1705,8 @@ void GoannaSession::handle(NetworkPacket &pkt) {
     case TOCLIENT_ADD_PARTICLESPAWNER: onAddParticleSpawner(pkt); break;
     case TOCLIENT_DELETE_PARTICLESPAWNER: onDeleteParticleSpawner(pkt); break;
     case TOCLIENT_SPAWN_PARTICLE: onSpawnParticle(pkt); break;
+    case TOCLIENT_MODCHANNEL_MSG: onModChannelMsg(pkt); break;
+    case TOCLIENT_MODCHANNEL_SIGNAL: onModChannelSignal(pkt); break;
     case TOCLIENT_STOP_SOUND: onStopSound(pkt); break;
     case TOCLIENT_FADE_SOUND: onFadeSound(pkt); break;
     case TOCLIENT_SHOW_FORMSPEC: onShowFormspec(pkt); break;
@@ -1649,6 +1976,68 @@ void GoannaSession::onAddParticleSpawner(NetworkPacket &pkt) {
     p.collision_removal = readU8(is);
     u16 attached_id = readU16(is);
 
+    // Read the rest of the stream, following the client's own order in
+    // handleCommand_AddParticleSpawner. This used to stop here, which quietly
+    // cost every spawner its glow, its animation, its node tile and the whole
+    // 5.6 block. Reading a prefix is not a safe way to ignore a field: the
+    // format is positional, so anything appended upstream is unreachable
+    // until everything before it is read.
+    bool have_tail = true;
+    try {
+        p.animation.deSerialize(is, proto);
+        p.glow = readU8(is);
+        p.object_collision = readU8(is);
+        do {
+            if (!is.good() || is.peek() == std::istringstream::traits_type::eof())
+                break;
+            p.node.param0 = readU16(is);
+            p.node.param2 = readU8(is);
+            p.node_tile = readU8(is);
+            if (proto < 42) {
+                if (!is.good() || is.peek() == std::istringstream::traits_type::eof())
+                    break;
+                p.pos.start.bias = readF32(is);
+                p.vel.start.bias = readF32(is);
+                p.acc.start.bias = readF32(is);
+                p.exptime.start.bias = readF32(is);
+                p.size.start.bias = readF32(is);
+                p.pos.end.deSerialize(is);
+                p.vel.end.deSerialize(is);
+                p.acc.end.deSerialize(is);
+                p.exptime.end.deSerialize(is);
+                p.size.end.deSerialize(is);
+            }
+            p.texture.deSerialize(is, proto, true);
+            p.drag.deSerialize(is);
+            p.jitter.deSerialize(is);
+            p.bounce.deSerialize(is);
+            ParticleParamTypes::deSerializeParameterValue(is, p.attractor_kind);
+            if (p.attractor_kind != ParticleParamTypes::AttractorKind::none) {
+                p.attract.deSerialize(is);
+                p.attractor_origin.deSerialize(is);
+                p.attractor_attachment = readU16(is);
+                p.attractor_kill = !!(readU8(is) & 1);
+                if (p.attractor_kind != ParticleParamTypes::AttractorKind::point) {
+                    p.attractor_direction.deSerialize(is);
+                    p.attractor_direction_attachment = readU16(is);
+                }
+            }
+            p.radius.deSerialize(is);
+            u16 texpoolsz = readU16(is);
+            p.texpool.reserve(texpoolsz);
+            for (u16 i = 0; i < texpoolsz; ++i) {
+                ServerParticleTexture newtex;
+                newtex.deSerialize(is, proto);
+                p.texpool.push_back(newtex);
+            }
+        } while (0);
+    } catch (const SerializationError &) {
+        // An older or shorter spawner than this build expects. What was read
+        // before the end stands; the rest keeps its default.
+        have_tail = false;
+    }
+    (void)have_tail;
+
     ParticleSpawnerEvent ev;
     ev.id = server_id;
     ev.amount = p.amount;
@@ -1667,6 +2056,42 @@ void GoannaSession::onAddParticleSpawner(NetworkPacket &pkt) {
     ev.vertical = p.vertical;
     ev.collision = p.collisiondetection;
     ev.attached_id = attached_id;
+    ev.glow = p.glow;
+    ev.collision_removal = p.collision_removal;
+    ev.object_collision = p.object_collision;
+    ev.blend_mode = (u8)p.texture.blendmode;
+    if (p.animation.type == TAT_VERTICAL_FRAMES) {
+        // The frame count needs the texture's pixel size, which the session
+        // does not have, so carry the aspect ratio whole and let the renderer
+        // finish it. Dividing here would round it away.
+        ev.anim_type = 1;
+        ev.anim_a = p.animation.vertical_frames.aspect_w;
+        ev.anim_b = p.animation.vertical_frames.aspect_h;
+        ev.anim_frame_length = p.animation.vertical_frames.length;
+    } else if (p.animation.type == TAT_SHEET_2D) {
+        ev.anim_type = 2;
+        ev.anim_a = p.animation.sheet_2d.frames_w;
+        ev.anim_b = p.animation.sheet_2d.frames_h;
+        ev.anim_frame_length = p.animation.sheet_2d.frame_length;
+    }
+    ev.node_param0 = p.node.param0;
+    ev.node_param2 = p.node.param2;
+    ev.node_tile = p.node_tile;
+    ev.drag = toGodotVec(p.drag.start.min);
+    ev.jitter_min = toGodotVec(p.jitter.start.min);
+    ev.jitter_max = toGodotVec(p.jitter.start.max);
+    ev.bounce_min = p.bounce.start.min;
+    ev.bounce_max = p.bounce.start.max;
+    ev.radius_min = toGodotVec(p.radius.start.min);
+    ev.radius_max = toGodotVec(p.radius.start.max);
+    ev.attractor_kind = (u8)p.attractor_kind;
+    ev.attract_min = p.attract.start.min;
+    ev.attract_max = p.attract.start.max;
+    ev.attractor_origin = toGodotVec(p.attractor_origin.start);
+    ev.attractor_direction = toGodotVec(p.attractor_direction.start);
+    ev.attractor_kill = p.attractor_kill;
+    for (const auto &t : p.texpool)
+        ev.texpool.push_back(t.string);
     std::lock_guard<std::mutex> lk(m_sound_mutex);
     m_spawners.push_back(ev);
 }
@@ -1752,6 +2177,33 @@ void GoannaSession::onFadeSound(NetworkPacket &pkt) {
     m_stopped_sounds.push_back(server_id);
 }
 
+// The pieces a node throws off, made from the node's own top tile so they are
+// recognisably bits of the thing that broke. Luanti's client does this itself
+// and so does this one; nothing about it goes over the network.
+void GoannaSession::queueDugParticles(v3s16 nodepos, const ContentFeatures &features, int count) {
+    if (!features.visuals)
+        return;
+    const TileLayer &tl = features.visuals->tiles[0].layers[0];
+    if (!tl.texture_id)
+        return;
+    NodeDugEvent ev;
+    ev.pos = v3f(nodepos.X, nodepos.Y, -nodepos.Z);
+    ev.texture = tsrc()->imageName(tl.texture_id, tl.texture_layer_idx);
+    ev.colour = tl.has_color ? tl.color.color : 0xffffffff;
+    ev.count = count;
+    if (ev.texture.empty())
+        return;
+    std::lock_guard<std::mutex> lk(m_sound_mutex);
+    m_dug_nodes.push_back(ev);
+}
+
+std::vector<GoannaSession::NodeDugEvent> GoannaSession::takeDugNodes() {
+    std::lock_guard<std::mutex> lk(m_sound_mutex);
+    std::vector<NodeDugEvent> out;
+    out.swap(m_dug_nodes);
+    return out;
+}
+
 std::vector<GoannaSession::SoundEvent> GoannaSession::takeSounds() {
     std::lock_guard<std::mutex> lk(m_sound_mutex);
     std::vector<SoundEvent> out;
@@ -1814,6 +2266,13 @@ void GoannaSession::onBlockData(NetworkPacket &pkt) {
         block = sector->createBlankBlock(p.Y);
     block->deSerialize(istr, ser_ver, false);
     block->deSerializeNetworkSpecific(istr);
+    // Into the store as it came: the payload is already the compact form
+    // Luanti serialises, so this is a write of what was received and nothing
+    // more. docs/far-rendering.md rung 5.
+    if (m_store) {
+        m_store->put(p, ser_ver, datastring, (uint32_t)time(nullptr));
+        m_store_dirty.erase(p);
+    }
     bool changed = is_new || hashBlockNodes(block) != old_hash;
     if (changed) {
         m_new_blocks.push_back(p);
@@ -1896,8 +2355,10 @@ void GoannaSession::onAddNode(NetworkPacket &pkt) {
     } catch (const InvalidPositionException &) {
         return;
     }
-    for (auto &kv : modified)
+    for (auto &kv : modified) {
         m_new_blocks.push_back(kv.first);
+        m_store_dirty.insert(kv.first);
+    }
     queueBlocksAround(p);
 }
 
@@ -1911,8 +2372,10 @@ void GoannaSession::onRemoveNode(NetworkPacket &pkt) {
     } catch (const InvalidPositionException &) {
         return;
     }
-    for (auto &kv : modified)
+    for (auto &kv : modified) {
         m_new_blocks.push_back(kv.first);
+        m_store_dirty.insert(kv.first);
+    }
     queueBlocksAround(p);
 }
 
@@ -1983,8 +2446,15 @@ SkyState GoannaSession::skyState() const {
     float elapsed = std::chrono::duration<float>(std::chrono::steady_clock::now() - m_time_of_day_at).count();
     st.time_of_day = std::fmod(st.time_of_day + elapsed * st.time_speed / 86400.0f, 1.0f);
     if (st.time_of_day < 0) st.time_of_day += 1.0f;
-    if (m_tod_override >= 0.0f)
+    if (m_tod_override >= 0.0f) {
+        // The testing override (GOANNA_TOD) wants the whole sky at that
+        // hour. A server that overrides the day night ratio, as Mineclonia
+        // does in weather and at night, would otherwise keep its ratio
+        // under a noon sun and the frame comes out dusk; a fixed camera
+        // A/B across a server's real night then measured its weather.
         st.time_of_day = m_tod_override;
+        st.day_night_override = false;
+    }
     return st;
 }
 

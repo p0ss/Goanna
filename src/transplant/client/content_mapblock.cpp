@@ -7,7 +7,12 @@
 // Client stand-in (goanna_luanti_client.h instead of client.h); the
 // applyFacesShading calls are wrapped in a macro that skips them while
 // g_goanna_no_light is set, so directional face shading is not baked into
-// vertex colours when Godot lights the world; otherwise verbatim.
+// vertex colours when Godot lights the world; and drawSolidNode can hand a
+// node to drawBeveledSolid, a Goanna addition that chamfers exposed edges
+// while g_goanna_bevel is above zero; and a liquid draws no face against a
+// node that is drawn as a liquid without being one (isFakeLiquid), which is
+// what keeps ice and the water under it from putting two faces in one plane.
+// Otherwise verbatim.
 
 #include <cmath>
 #include "content_mapblock.h"
@@ -445,6 +450,17 @@ void MapblockMeshGenerator::drawAutoLightedCuboid(aabb3f box,
 	}
 }
 
+// Goanna: a node drawn as a liquid without being one. Mineclonia's ice is the
+// case that matters: drawtype liquid, so that a sheet of it tiles seamlessly
+// the way water does, but liquid_type LIQUID_NONE, because it is a solid block
+// you walk on. The renderer has to tell the two apart in a few places where
+// the drawtype alone would give the wrong answer.
+static inline bool isFakeLiquid(const ContentFeatures &f)
+{
+	return (f.drawtype == NDT_LIQUID || f.drawtype == NDT_FLOWINGLIQUID) &&
+			f.liquid_type == LIQUID_NONE;
+}
+
 // Goanna: bevelled solid nodes, built as a convex polytope: the cube's six
 // face half-spaces plus one 45-degree chamfer half-space per bevelled edge.
 // Every emitted polygon is one plane's face on that polytope, clipped against
@@ -454,7 +470,7 @@ void MapblockMeshGenerator::drawAutoLightedCuboid(aabb3f box,
 // get a clipped, slightly recessed cap so the open chamfer prism never reads
 // as a hole. mode: 1 = horizontal edges only, 2 = vertical, 3 = both.
 static void drawBeveledSolid(MeshCollector *collector, v3f origin,
-		const TileSpec tiles[6], u8 faces, int mode, u16 diag_open, u32 cap_mask)
+		const TileSpec tiles[6], u8 faces, int mode, u16 edge_mask, u32 cap_mask)
 {
 	const float h = 0.5f * BS;
 	float b = g_goanna_bevel * BS;
@@ -478,7 +494,7 @@ static void drawBeveledSolid(MeshCollector *collector, v3f origin,
 		if (!exposed(fa) || !exposed(fb))
 			return false;
 		int ei = EDGE_LOOKUP[fa][fb];
-		if (ei < 0 || !((diag_open >> ei) & 1))
+		if (ei < 0 || !((edge_mask >> ei) & 1))
 			return false;
 		bool hz = horiz(fa, fb);
 		if (mode == 3) return true;
@@ -692,6 +708,15 @@ void MapblockMeshGenerator::drawSolidNode()
 			if (cur_node.f->drawtype == NDT_LIQUID) {
 				if (cur_node.f->sameLiquidRender(f2))
 					continue;
+				// Goanna: both sides of a water/ice boundary draw a face
+				// there, in the same plane, and both are alpha blended. They
+				// z-fight, which is the mapblock sized flicker on a frozen
+				// ocean, and it is why the water's own animated surface can
+				// be seen through the ice above it. Only one of the two is a
+				// real interface: the solid block keeps its face and the
+				// liquid gives up its own.
+				if (!isFakeLiquid(*cur_node.f) && isFakeLiquid(f2))
+					continue;
 				backface_culling = f2.visuals->solidness || f2.visuals->visual_solidness;
 			}
 		}
@@ -752,10 +777,27 @@ void MapblockMeshGenerator::drawSolidNode()
 				// along the shoreline.
 				return df.visuals->solidness == 2 || df.isLiquid();
 			};
-			u16 diag_open = 0;
-			for (int e = 0; e < 12; ++e)
-				if (!solid_at(edge_diag[e]))
-					diag_open |= 1 << e;
+			// A face that meets a liquid has to keep its full square. The
+			// liquid culls its own side face against solid land, so a chamfer
+			// there cuts a wedge with nothing behind it and the waterline
+			// reads as a row of notches. The diagonal test above does not
+			// catch this one: at a shoreline the node above the water is air.
+			auto liquid_at = [&](v3s16 rel) {
+				MapNode dn = data->m_vmanip.getNodeNoEx(blockpos_nodes + cur_node.p + rel);
+				content_t dc = dn.getContent();
+				if (dc == CONTENT_AIR || dc == CONTENT_IGNORE)
+					return false;
+				return nodedef->get(dn).isLiquid();
+			};
+			u16 edge_mask = 0;
+			for (int e = 0; e < 12; ++e) {
+				if (solid_at(edge_diag[e]))
+					continue;
+				if (liquid_at(tile_dirs[edge_faces[e][0]]) ||
+						liquid_at(tile_dirs[edge_faces[e][1]]))
+					continue;
+				edge_mask |= 1 << e;
+			}
 			// A chamfer is an open prism; where the edge does not continue into
 			// the neighbouring node along the edge axis, its end must be capped
 			// or it reads as a hole (e.g. the base of a bevelled tree trunk).
@@ -781,7 +823,7 @@ void MapblockMeshGenerator::drawSolidNode()
 						cap_mask |= 1u << (e * 2 + sn);
 				}
 			}
-			drawBeveledSolid(collector, cur_node.origin, tiles, faces, mode, diag_open, cap_mask);
+			drawBeveledSolid(collector, cur_node.origin, tiles, faces, mode, edge_mask, cap_mask);
 			return;
 		}
 	}
@@ -1023,6 +1065,10 @@ void MapblockMeshGenerator::drawLiquidSides()
 		// Don't draw face if neighbor is blocking the view
 		if (neighbor_features.visuals->solidness == 2)
 			continue;
+		// Goanna: nor against ice, which draws that face itself. See
+		// isFakeLiquid and drawSolidNode.
+		if (isFakeLiquid(neighbor_features))
+			continue;
 
 		video::S3DVertex vertices[4];
 		for (int j = 0; j < 4; j++) {
@@ -1163,7 +1209,10 @@ void MapblockMeshGenerator::drawLiquidNode()
 	getLiquidNeighborhood();
 	calculateCornerLevels();
 	drawLiquidSides();
-	if (!cur_liquid.top_is_same_liquid)
+	// Goanna: the top is the other half of the same rule. LiquidData is
+	// upstream's, so ask here rather than carrying a flag through it.
+	MapNode ntop = data->m_vmanip.getNodeNoEx(blockpos_nodes + cur_node.p + v3s16(0, 1, 0));
+	if (!cur_liquid.top_is_same_liquid && !isFakeLiquid(nodedef->get(ntop)))
 		drawLiquidTop();
 	if (cur_liquid.draw_bottom)
 		drawLiquidBottom();

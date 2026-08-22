@@ -10,6 +10,8 @@
 #include <godot_cpp/classes/capsule_mesh.hpp>
 #include <godot_cpp/classes/image_texture.hpp>
 #include <godot_cpp/classes/quad_mesh.hpp>
+#include <godot_cpp/classes/resource_loader.hpp>
+#include <godot_cpp/classes/shader_material.hpp>
 #include <godot_cpp/classes/skin.hpp>
 
 #include "transplant/client/content_cao.h"
@@ -28,6 +30,8 @@
 #include "transplant/client/wieldmesh.h"
 #include "goanna_luanti_client.h"
 #include "constants.h"
+#include "light.h"
+#include "nodedef.h"
 
 using namespace godot;
 
@@ -68,6 +72,82 @@ Ref<StandardMaterial3D> EntityRenderer::materialForTexture(GoannaSession &sessio
     return mat;
 }
 
+Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
+        const std::string &texture, bool alpha, bool double_sided) {
+    std::string key = texture + (alpha ? "|a" : "|o") + (double_sided ? "|d" : "|s");
+    auto it = m_mesh_materials.find(key);
+    if (it != m_mesh_materials.end())
+        return it->second;
+
+    u32 tid = session.tsrc()->getTextureId(texture);
+    GoannaTexture *gt = session.tsrc()->goannaTexture(tid);
+    // LabPBR companions and auto-bump both assume a surface Goanna is free to
+    // relight; alpha and alpha-scissor entities keep materialForTexture's
+    // plain material unchanged (see the declaration in goanna_entities.h for
+    // why that means a separate function and cache rather than a mode on it).
+    Ref<Texture2D> normal_tex, spec_tex;
+    if (gt && !alpha) {
+        // A texture modifier (colourise, crack overlay, transform) is baked
+        // into the rendered image and has no file of its own to look a
+        // companion up for; only the base name before the first ^ does.
+        std::string base = texture.substr(0, texture.find('^'));
+        size_t dotpos = base.rfind('.');
+        std::string stem = dotpos == std::string::npos ? base : base.substr(0, dotpos);
+        std::string ext = dotpos == std::string::npos ? std::string() : base.substr(dotpos);
+        auto lookup = [&](const char *suffix) -> Ref<Texture2D> {
+            std::string name = stem + suffix + ext;
+            if (!session.tsrc()->isKnownSourceImage(name))
+                return Ref<Texture2D>();
+            GoannaTexture *cgt = dynamic_cast<GoannaTexture *>(session.tsrc()->getTexture(name));
+            if (!cgt)
+                return Ref<Texture2D>();
+            return Ref<Texture2D>(cgt->godotTexture());
+        };
+        normal_tex = lookup("_n");
+        spec_tex = lookup("_s");
+    }
+
+    // No authored relief: the same inference the node array path makes for
+    // an unauthored layer, in the convention entity.gdshader decodes.
+    if (gt && !alpha && !normal_tex.is_valid() && m_auto_bump > 0.0f)
+        normal_tex = gt->godotCompanionNormal(m_auto_bump);
+
+    Ref<Material> result;
+    // Every opaque mesh surface goes through entity.gdshader, companions or
+    // not: it is where the node light reaches an entity (the node_light
+    // instance uniform EntityRenderer::sync sets), which StandardMaterial3D
+    // has no way to take.
+    if (gt && !alpha && !double_sided) {
+        if (!m_sh_entity.is_valid())
+            m_sh_entity = ResourceLoader::get_singleton()->load("res://shaders/entity.gdshader");
+        if (!m_sh_entity_scissor.is_valid())
+            m_sh_entity_scissor = ResourceLoader::get_singleton()->load("res://shaders/entity_scissor.gdshader");
+        Ref<ShaderMaterial> sm;
+        sm.instantiate();
+        // Most mob skins have transparent texels, so the cut out variant is
+        // the common case; see entity_scissor.gdshader.
+        sm->set_shader(gt->hasAlpha() ? m_sh_entity_scissor : m_sh_entity);
+        sm->set_shader_parameter("albedo", gt->godotTexture());
+        sm->set_shader_parameter("has_normal", normal_tex.is_valid());
+        sm->set_shader_parameter("has_spec", spec_tex.is_valid());
+        if (normal_tex.is_valid())
+            sm->set_shader_parameter("normal_tex", normal_tex);
+        if (spec_tex.is_valid())
+            sm->set_shader_parameter("spec_tex", spec_tex);
+        result = sm;
+    } else {
+        // Alpha blended and double sided surfaces keep the plain material;
+        // the entity shaders are back face culled on purpose (see their
+        // headers).
+        result = materialForTexture(session, texture, alpha, double_sided);
+    }
+    if (getenv("GOANNA_DEBUG_ENTITY_PBR"))
+        UtilityFunctions::print("entity pbr: ", String::utf8(texture.c_str()),
+                " normal=", normal_tex.is_valid(), " spec=", spec_tex.is_valid());
+    m_mesh_materials[key] = result;
+    return result;
+}
+
 std::shared_ptr<GodotModel> EntityRenderer::modelFor(GoannaSession &session, const std::string &name) {
     auto it = m_models.find(name);
     if (it != m_models.end())
@@ -105,7 +185,7 @@ bool EntityRenderer::buildMeshVisual(GoannaSession &session, GoannaActiveObject 
         if (tex.empty())
             continue; // upstream: empty string means leave the material alone
         tex += obj.textureModifier();
-        mi->set_surface_override_material(i, materialForTexture(session, tex, p.use_texture_alpha, !p.backface_culling));
+        mi->set_surface_override_material(i, materialForMeshTexture(session, tex, p.use_texture_alpha, !p.backface_culling));
     }
     en.animator.reset();
     en.skeleton = nullptr;
@@ -416,6 +496,29 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
         en.root->set_position(gp);
         // Luanti yaw: rotation.Y degrees; mirrored z flips the sense of yaw
         en.root->set_rotation_degrees(Vector3(rot.X, -rot.Y, -rot.Z));
+        // The node light where the entity stands, for entity.gdshader's
+        // node_light: read once per node the entity is in, at about eye
+        // height so a mob standing in a lit doorway takes the doorway's light.
+        if (en.visual && obj.props().visual == OBJECTVISUAL_MESH) {
+            const v3s16 np((s16)std::floor(pos.X / BS + 0.5f), (s16)std::floor(pos.Y / BS + 1.0f),
+                    (s16)std::floor(pos.Z / BS + 0.5f));
+            if (np != en.light_pos || !en.light_known) {
+                en.light_pos = np;
+                const NodeDefManager *ndef = session.nodeDefs();
+                MapNode n = session.map().getNode(np);
+                if (ndef && n.getContent() != CONTENT_IGNORE) {
+                    const ContentFeatures &f = ndef->get(n);
+                    if (f.param_type == CPT_LIGHT) {
+                        ContentLightingFlags lf = f.getLightingFlags();
+                        en.light_sky = decode_light(n.getLight(LIGHTBANK_DAY, lf)) / 255.0f;
+                        en.light_block = decode_light(n.getLight(LIGHTBANK_NIGHT, lf)) / 255.0f;
+                        en.light_known = true;
+                    }
+                }
+                if (MeshInstance3D *lmi = Object::cast_to<MeshInstance3D>(en.visual))
+                    lmi->set_instance_shader_parameter("node_light", Vector2(en.light_block, en.light_sky));
+            }
+        }
         // attached at a bone: follow the parent's joint from its last step
         if (obj.attachmentParent() != 0 && !obj.attachmentBone().empty()) {
             auto pit = m_nodes.find(obj.attachmentParent());

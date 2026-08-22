@@ -328,20 +328,83 @@ features.
 
 | Variable | Effect |
 | --- | --- |
+| `GOANNA_CONTROL=<port>` | Open a loopback command channel on that port (`1` means 30800), so the running client can be teleported, posed, questioned and photographed instead of relaunched for each question. `docs/control-channel.md` has the commands and the rule about not reporting a live tweak as a result. |
 | `GOANNA_SMOKE=<seconds>` | Connect, run for that many seconds, disconnect and quit. Useful in CI or after a change to the session code. |
 | `GOANNA_SHOT=<directory>` | Fly to three fixed viewpoints, save a PNG at each, then quit. |
 | `GOANNA_WALKTEST=1` | Drive the movement controls from a script rather than the keyboard. With `GOANNA_SHOT`, saves two frames mid walk. |
 | `GOANNA_VIEW="name:x,y,z:pitch,yaw;..."` | With `GOANNA_SHOT`, replaces the three fixed viewpoints. Positions are relative to the spawn eye position, or absolute with a leading `@`. |
+| `GOANNA_SUN`, `GOANNA_WHITE`, `GOANNA_EXPOSURE`, `GOANNA_SKY_FILL`, `GOANNA_SDFGI`, `GOANNA_SSAO` | Seed the Lighting tab's values: sun energy, ACES white point, base exposure, sky fill strength, bounced light, corner shading. `project/lighting_chart.tscn` reads the same names, so a value judged there transfers. |
+| `GOANNA_TOD=<0..1>` | Override the time of day, and drop any day night ratio the server is overriding (Mineclonia does in weather), so the frame is that hour. |
+| `GOANNA_GAME=<gameid>` | The game the server runs, set by the menu when it launches a local world. Picks per game defaults the player has not chosen: today the bundled `project/texture_maps/<gameid>.csv`, when one exists. |
+| `GOANNA_TEXTURE_MAP=<csv>` | A game_texture,pack_path CSV (`project/texture_maps/`), the same as the settings entry: lets a Minecraft resource pack dress the game, and gives the classifier its block column. |
+| `GOANNA_DEBUG_PBR=1` | Print the classifier's counts and, per array texture, how many layers are authored, classed or inferred, and how many are left neutral. |
+| `GOANNA_PERF=1` | Print one telemetry line a second: frame time, mesh and upload cost, draw calls, objects, video memory, and the far tier counts. |
+| `GOANNA_LOD=<blocks>` | Draw blocks beyond this many mapblocks as coarse tiers (`docs/far-rendering.md`); the same as the detail distance slider. `GOANNA_LOD_CELL=<nodes>` sets the first tier's cell size, a power of two from 2 to 16. |
+| `GOANNA_STORE=<dir>`, `GOANNA_NO_STORE=1` | Relocate or turn off the local block store (`docs/far-rendering.md` rung 5), which otherwise lives under `user://goanna_store`, one directory per server. `GOANNA_STORE_CAP_MB` sets its cap (512). `GOANNA_FAR_DISTANCE=<nodes>` caps how far stored blocks are drawn when the server grants far rendering. |
+| `GOANNA_DEBUG_LOD=1` | Print every far tier region build: tier, cell, members, faces, quads and the surfaces it produced. |
+| `GOANNA_SHADERPACK=<directory>` | Load an Iris or OptiFine shader pack (unpacked) and run its `deferred`, `composite` and `final` programs as a compositor effect. Only the screen space chain; see `docs/iris-compat.md`. |
+| `GOANNA_SHADERPACK_RAW=1` | With a pack: hand it Godot's linear HDR colour and keep Godot's tonemap, instead of the Minecraft style gamma space bridge. |
+| `GOANNA_SHADERPACK_DUMP=<directory>` | With a pack: write each program's translated Vulkan GLSL there, for reading compile errors. |
+| `GOANNA_VISUAL_TEST=lighting_walk` | With `GOANNA_SHOT`, request a named deterministic fixture, capture its fixed camera path and write the capture metadata. Requires `goanna_visual_test_mod` in a dedicated singlenode world. |
 | `GOANNA_MENU_SHOT=<file.png>` | Render the connection menu once, save it, quit. |
 | `GOANNA_UI_SHOT=<directory>` | Save the HUD, inventory, chat and pause menu at fixed times. |
 | `GOANNA_UI_TEST=move` | Open the inventory and move the stack in main slot 0 to slot 10, then split it to slot 11, printing the list each time. Exercises inventory_action through the UI. |
 | `GOANNA_MENU_TEST="host:port:name:pass"` | Fill the menu and press Connect, to exercise the menu to game hand-over. Combine with `GOANNA_MENU=1` if a skip variable such as `GOANNA_SMOKE` is also set. |
+| `GOANNA_LOCAL_TEST="game:world"` | Drive the "start a local game" screen without a human: it does not save the world and game into the player's remembered choices, and the server it launches gets `enable_damage = false` and `time_speed = 0`. A frozen clock and no damage is what makes two captures comparable, since otherwise a night falling or a mob landing a hit between them shows up as a difference the run did not cause. Set the hour a shot is taken at with `GOANNA_TOD` or the control channel's `time`. |
 
 A minimal check that everything still works, end to end:
 
 ```sh
 GOANNA_SMOKE=20 /path/to/godot --path project
 ```
+
+### Deterministic visual fixtures
+
+Do not use a survival spawn or the material gallery for renderer comparisons.
+Terrain, time, weather, nearby lights and previously built tests all change the
+result, so a repeat run is not the same experiment.
+
+`goanna_visual_test_mod/` is a worldmod for a fresh test world using the
+`singlenode` mapgen. Copy or link it to the world's `worldmods/` directory and
+enable `goanna_visual_test` in `world.mt`. The mod refuses to build in any
+other mapgen, so an accidental install cannot clear part of a survival world.
+
+Run the lighting path against that server with:
+
+```sh
+GOANNA_HOST=127.0.0.1 GOANNA_NAME=goanna \
+GOANNA_SHOT=/tmp/goanna-lighting \
+GOANNA_VISUAL_TEST=lighting_walk \
+/path/to/godot --path project
+```
+
+The fixture fixes midday, removes clouds, disables the camera headlight and
+captures 17 positions half a node apart with one pitch and yaw. The output
+directory also receives `lighting_walk.json`, recording the positions and
+lighting settings used. Analyse adjacent changes with:
+
+```sh
+tools/shotcheck.py --walk-series \
+  /tmp/goanna-lighting/lighting_walk_*.png
+```
+
+Pass `--max-step N` once a measured acceptance threshold has been chosen. The
+checker reports the result without inventing a pass threshold by default.
+
+The `ao`, `materials` and `ice` fixture sites are 1024 nodes from one another
+and from `lighting_walk`. Their automated captures should be added at those
+sites rather than extending one shared gallery.
+
+The formspec renderer has a separate headless conformance suite. It checks
+the local Luanti parser registry as well as Godot-side layout and interaction
+fixtures:
+
+```sh
+tools/test-formspec.sh
+```
+
+See [formspec conformance](formspec-conformance.md) for classifications,
+reference screenshots and instructions for extending the suite.
 
 ## Troubleshooting
 

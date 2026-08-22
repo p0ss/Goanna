@@ -1,0 +1,135 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: LGPL-2.1-or-later
+# Copyright (C) 2026 the Goanna contributors
+"""Talk to a running Goanna client's control channel.
+
+Start the client with the channel open:
+
+    GOANNA_CONTROL=1 GOANNA_HOST=127.0.0.1 GOANNA_NAME=dev \\
+        /path/to/godot --path project
+
+then drive it:
+
+    tools/goanna-control status
+    tools/goanna-control tp 10 65 -20
+    tools/goanna-control time 0.5
+    tools/goanna-control set light_sun 2.0
+    tools/goanna-control weather rain
+    tools/goanna-control shot /tmp/a.png
+    tools/goanna-control eval 'client.node_name_at(Vector3(10, 64, -20))'
+    tools/goanna-control deviations
+
+Arguments after the command are either positional, per the table below, or
+key=value pairs whose values are parsed as JSON where they can be. Anything
+the table does not cover is reachable as key=value, and the channel's own
+"help" lists every command it takes.
+"""
+
+import argparse
+import json
+import re
+import socket
+import sys
+
+DEFAULT_PORT = 30800
+
+# Positional arguments per command, so the common calls stay short. A name
+# ending in ":f" is read as a number, ":b" as a boolean, "*" swallows the
+# rest of the line as one string.
+POSITIONAL = {
+    "tp": ["x:f", "y:f", "z:f"],
+    "pose": ["x:f", "y:f", "z:f"],
+    "look": ["x:f", "y:f", "z:f"],
+    "fly": ["on:b"],
+    "time": ["tod:f"],
+    "weather": ["kind"],
+    "spawn": ["name", "x:f", "y:f", "z:f"],
+    "give": ["item"],
+    "chat": ["text*"],
+    "set": ["key", "value:f"],
+    "get": ["key"],
+    "shot": ["path"],
+    "reload_shader": ["path"],
+    "call": ["method"],
+    "eval": ["expr*"],
+}
+
+
+# A key=value pair, as opposed to an expression or a chat line that happens
+# to contain an equals sign. The name has to start the word for it to count,
+# so `chat "/help x" reply_ms=800` splits the way it reads.
+PAIR = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+
+
+def build_args(cmd, words):
+    args = {}
+    spec = POSITIONAL.get(cmd, [])
+    positional, pairs = [], []
+    for word in words:
+        (pairs if PAIR.match(word) else positional).append(word)
+    for i, name in enumerate(spec):
+        if i >= len(positional):
+            break
+        if name.endswith("*"):
+            args[name[:-1]] = " ".join(positional[i:])
+            break
+        key, _, kind = name.partition(":")
+        raw = positional[i]
+        if kind == "f":
+            args[key] = float(raw)
+        elif kind == "b":
+            args[key] = raw.lower() not in ("0", "false", "off", "no")
+        else:
+            args[key] = raw
+    for pair in pairs:
+        key, _, raw = pair.partition("=")
+        try:
+            args[key] = json.loads(raw)
+        except ValueError:
+            args[key] = raw
+    return args
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--port", type=int, default=DEFAULT_PORT)
+    ap.add_argument("--host", default="127.0.0.1")
+    ap.add_argument("--timeout", type=float, default=120.0,
+                    help="seconds to wait for a reply; settling can take 30")
+    ap.add_argument("--raw", action="store_true", help="print the whole reply")
+    ap.add_argument("cmd", help="a channel command, or 'help' for the list")
+    ap.add_argument("words", nargs="*")
+    opt = ap.parse_args()
+
+    request = {"id": 1, "cmd": opt.cmd, "args": build_args(opt.cmd, opt.words)}
+    try:
+        sock = socket.create_connection((opt.host, opt.port), timeout=5.0)
+    except OSError as exc:
+        sys.exit("no control channel on %s:%d (%s). Is the client running "
+                 "with GOANNA_CONTROL set?" % (opt.host, opt.port, exc))
+    sock.settimeout(opt.timeout)
+    sock.sendall((json.dumps(request) + "\n").encode("utf-8"))
+
+    buf = b""
+    while b"\n" not in buf:
+        try:
+            chunk = sock.recv(65536)
+        except socket.timeout:
+            sys.exit("timed out after %gs waiting for a reply" % opt.timeout)
+        if not chunk:
+            sys.exit("the client closed the connection without replying")
+        buf += chunk
+    reply = json.loads(buf.split(b"\n", 1)[0].decode("utf-8"))
+
+    if opt.raw:
+        print(json.dumps(reply, indent=2))
+    elif reply.get("ok"):
+        print(json.dumps(reply.get("result"), indent=2))
+    else:
+        print(json.dumps(reply, indent=2), file=sys.stderr)
+    return 0 if reply.get("ok") else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

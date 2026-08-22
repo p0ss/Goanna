@@ -12,6 +12,7 @@
 #include <chrono>
 #include <cstdint>
 #include <map>
+#include <set>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -26,6 +27,8 @@
 #include "network/networkprotocol.h"
 #include "goanna_map.h"
 #include "goanna_textures.h"
+#include "goanna_materials.h"
+#include "goanna_store.h"
 #include "goanna_sky.h"
 #include "transplant/client/content_cao.h"
 #include "goanna_models.h"
@@ -95,6 +98,21 @@ public:
     bool prepareContentIfReady();
     bool contentPrepared() const { return m_content_prepared; }
     GoannaTextureSource *tsrc() { return m_tsrc.get(); }
+    // The classifier's table, docs/pbr-plan.md step 2: built when content is
+    // prepared, empty before. Read only from then on.
+    const MaterialTable &materialTable() const { return m_material_table; }
+    // A CSV of game_texture,pack_path, letting an unmodified Minecraft
+    // resource pack dress a Luanti game whose textures are named nothing like
+    // Minecraft's. Read in place at connect; nothing is ever written back out,
+    // because most Minecraft packs are ordinary copyrighted work and reading
+    // your own copy is not redistributing it. See tools/mc_texture_map.py.
+    void setTextureMap(const std::string &csv) { m_texture_map = csv; }
+    // What the paired server mod said it allows. See goanna_server_mod/.
+    std::map<std::string, std::string> serverOptions() const {
+        std::lock_guard<std::mutex> lk(m_server_opts_mutex);
+        return m_server_opts;
+    }
+
     GoannaShaderSource &shsrc() { return m_shsrc; }
     // How much world to ask the server to stream, in mapblocks (16 nodes
     // each), and the camera FOV we report. Vanilla derives both from the
@@ -125,6 +143,26 @@ public:
     void requeueBlock(v3s16 pos); // caller holds mapLock()
     // Access to a received block; nullptr if unknown. Caller holds mapLock().
     MapBlock *getBlock(v3s16 pos);
+    // --- the local block store, docs/far-rendering.md rung 5 ---
+    // Root directory; the server gets its own subdirectory. Set before
+    // start(); empty leaves the store off.
+    void setStoreRoot(const std::string &root) { m_store_root = root; }
+    BlockStore *store() { return m_store.get(); }
+    // A block from the store, deserialised into a block of its own that is
+    // not in the map, or nullptr. Caller holds mapLock(); content must be
+    // prepared, because the node names resolve through the nodedef.
+    std::unique_ptr<MapBlock> loadStoredBlock(v3s16 bp);
+    bool storedRegionMask(v3s16 region, std::vector<uint8_t> &bits);
+    // What the server mod granted, read from the options: far rendering on,
+    // and how far in nodes (0 if not granted).
+    int farRenderingGrant() const;
+    // Whether the server mod answers far summary requests at all.
+    bool farSummariesOffered() const;
+    const std::string &playerName() const { return m_name; }
+    // Ask the server for a far area summary (block coords, edge in blocks).
+    void requestFarSummary(v3s16 origin_blocks, int edge_blocks, int cell);
+    // Raw summary replies, consumed by the client on the main thread.
+    std::vector<std::string> takeFarSummaries();
     std::mutex &mapLock() { return m_map_mutex; }
     const NodeDefManager *nodeDefs() const { return m_nodedef; }
     GoannaMap &map() { return *m_map; }
@@ -160,6 +198,18 @@ public:
         u16 object_id = 0;
     };
     std::vector<SoundEvent> takeSounds();
+    // A node being dug, and the burst when it finally breaks. The client makes
+    // these itself, exactly as Luanti's own does: the server is never told and
+    // never asked, because a block coming apart is a thing you saw happen, not
+    // a thing you were sent.
+    struct NodeDugEvent {
+        v3f pos;
+        std::string texture;   // the node's own tile, so the pieces match it
+        u32 colour = 0xffffffff;
+        int count = 1;         // 16 when it breaks, 1 while it is being hit
+    };
+    std::vector<NodeDugEvent> takeDugNodes();
+    void queueDugParticles(v3s16 nodepos, const ContentFeatures &features, int count);
     std::vector<s32> takeStoppedSounds();
     // --- particles ---
     // A particle spawner the server asked for: a box of positions with
@@ -175,6 +225,29 @@ public:
         u8 glow = 0;
         bool vertical = false, collision = false;
         u16 attached_id = 0;
+        // Everything below here is read but not all of it is drawn yet; see
+        // docs/particle-coverage.md for which is which. It is parsed
+        // regardless, because the stream is positional: stopping early does
+        // not just drop the tail, it means never being able to read anything
+        // added after it.
+        bool collision_removal = false, object_collision = false;
+        u8 blend_mode = 0;              // alpha, add, sub, screen, clip
+        // 0 none, 1 vertical frames, 2 sheet. For vertical frames a and b are
+        // the frame's aspect ratio and the count needs the texture's pixel
+        // size to resolve; for a sheet they are the frame counts directly.
+        int anim_type = 0, anim_a = 0, anim_b = 0;
+        float anim_frame_length = 0.0f;
+        u16 node_param0 = 0;            // a particle may take a node's tile
+        u8 node_param2 = 0, node_tile = 0;
+        v3f drag;
+        v3f jitter_min, jitter_max;
+        float bounce_min = 0.0f, bounce_max = 0.0f;
+        v3f radius_min, radius_max;
+        u8 attractor_kind = 0;          // none, point, line, plane
+        float attract_min = 0.0f, attract_max = 0.0f;
+        v3f attractor_origin, attractor_direction;
+        bool attractor_kill = true;
+        std::vector<std::string> texpool;
     };
     struct ParticleEvent {
         v3f pos, vel, acc;
@@ -320,6 +393,9 @@ private:
     void onAddParticleSpawner(NetworkPacket &pkt);
     void onDeleteParticleSpawner(NetworkPacket &pkt);
     void onSpawnParticle(NetworkPacket &pkt);
+    void joinGoannaChannel();
+    void onModChannelMsg(NetworkPacket &pkt);
+    void onModChannelSignal(NetworkPacket &pkt);
     void onStopSound(NetworkPacket &pkt);
     void onFadeSound(NetworkPacket &pkt);
     void onMovePlayer(NetworkPacket &pkt);
@@ -363,6 +439,13 @@ private:
     std::string m_host;
     uint16_t m_port = 30000;
     std::string m_name, m_password;
+    std::string m_store_root;
+    std::unique_ptr<BlockStore> m_store;
+    // Blocks edited since they were stored (ADDNODE, REMOVENODE); written
+    // back when they are pruned or the session stops, so an edit survives
+    // in the store rather than the block as first received.
+    std::set<v3s16> m_store_dirty;
+    void saveBlockToStore(MapBlock *b); // caller holds mapLock()
 
     std::unique_ptr<con::IConnection> m_con;
     std::thread m_thread;
@@ -389,6 +472,12 @@ private:
     u16 m_wield_index = 0;
     int m_crack_animation_length = -1;
 
+    std::vector<std::string> m_far_summaries; // raw farsum messages, under m_server_opts_mutex
+    // Settings a paired server mod announced over the goanna mod channel. Empty
+    // against a server without the mod, which is the ordinary case and renders
+    // exactly as before: the mod grants, it never takes away.
+    std::map<std::string, std::string> m_server_opts;
+    mutable std::mutex m_server_opts_mutex;
     mutable std::mutex m_hud_mutex;
     std::vector<ChatLine> m_chat;
     std::map<u32, HudElement> m_hud;
@@ -405,6 +494,7 @@ private:
     std::string m_inventory_formspec;
     std::vector<ShownFormspec> m_shown_formspecs;
     std::unique_ptr<GoannaTextureSource> m_tsrc;
+    MaterialTable m_material_table;
     GoannaShaderSource m_shsrc;
     std::unique_ptr<ModelCache> m_models;
     std::unique_ptr<ItemVisualsManager> m_item_visuals;
@@ -425,6 +515,8 @@ private:
     // content preparation completes.
     std::vector<v3s16> m_preready_blocks;
     std::vector<SoundEvent> m_sounds;
+    std::vector<NodeDugEvent> m_dug_nodes;
+    float m_dig_particle_timer = 0.0f;
     std::vector<ParticleSpawnerEvent> m_spawners;
     std::vector<u32> m_deleted_spawners;
     std::vector<ParticleEvent> m_particles;
@@ -446,6 +538,7 @@ private:
     mutable std::mutex m_media_mutex;
     std::map<std::string, std::string> m_media_wanted; // name -> sha1 raw
     std::map<std::string, std::string> m_media;        // name -> bytes
+    std::string m_texture_map;                         // see setTextureMap
 
     std::mutex m_pose_mutex;
     v3f m_pose_pos = v3f(0, 0, 0);

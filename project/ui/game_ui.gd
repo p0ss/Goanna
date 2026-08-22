@@ -74,6 +74,14 @@ var audio: Node              # ui/audio.gd, sound
 var flash_alpha := 0.0
 var t := 0.0
 var last_hp := -1
+# docs/launch-target.md task 2d: a fresh world's far field fills in over the
+# first minute or two (pregeneration, far summaries), which with no word of
+# it reads as broken rather than as still arriving. Shown while far_remote
+# is actually changing, faded out a few seconds after it stops, whether it
+# stopped because the horizon is full or because there was nothing to fill.
+var far_hint_last := -1
+var far_hint_changed_at := 0.0
+var far_hint_alpha := 0.0
 
 func _ready() -> void:
 	layer = 10
@@ -203,6 +211,27 @@ func _process(delta: float) -> void:
 	if damage_flash and last_hp >= 0 and hp < last_hp and hp > 0:
 		flash_alpha = clampf(0.15 + 0.05 * (last_hp - hp), 0.15, 0.5)
 	last_hp = hp
+	if client.has_method("render_stats"):
+		# The hint says the horizon is still filling, so that a fresh world's
+		# empty distance does not read as broken. It used to show whenever the
+		# summary count moved at all, which never stops: the server keeps
+		# pregenerating, blocks come and go as the player moves, and since
+		# incomplete areas are asked for again every twenty seconds the count
+		# ticks over for the life of the session. So it never went away, which
+		# taught a player to ignore it, which is the opposite of the point.
+		# It now tracks whether the far field has actually reached as far as it
+		# is allowed to go, and says nothing once it has.
+		var rs: Dictionary = client.render_stats()
+		var far: int = int(rs.get("far_remote", 0))
+		var grant: int = int(rs.get("far_grant", 0))
+		var extent: int = int(rs.get("far_extent", 0))
+		var reached: bool = grant <= 0 or extent >= int(0.9 * float(mini(grant,
+				int(client.far_distance()) if client.has_method("far_distance") else grant)))
+		if far != far_hint_last:
+			far_hint_last = far
+			far_hint_changed_at = t
+		far_hint_alpha = 1.0 if (far > 0 and not reached and t - far_hint_changed_at < 4.0) \
+				else maxf(0.0, far_hint_alpha - delta * 0.5)
 	if flash_alpha > 0.0:
 		flash_alpha = maxf(0.0, flash_alpha - delta * 1.5)
 		flash_rect.color.a = flash_alpha
@@ -503,6 +532,11 @@ func _close_window() -> void:
 	if window == null or window == death_screen:
 		return  # only the respawn button closes the death screen
 	if window == form:
+		if not form.allow_close:
+			var fields: Dictionary = form.collect_fields()
+			fields["try_quit"] = "true"
+			_send_fields(fields)
+			return
 		# tell the server the form was closed (vanilla sends quit=true)
 		_send_fields({"quit": "true"})
 		selected = {}
@@ -599,13 +633,34 @@ const SETTINGS := [
 	["Controls", "mouse_sensitivity", "slider", "Mouse sensitivity", "How far the view turns per mouse movement.", 0.02, 0.5, 0.01],
 	["Controls", "invert_mouse", "toggle", "Invert mouse", "Push the mouse forward to look up instead of down."],
 	["Controls", "view_bobbing", "slider", "View bobbing", "How much the camera bobs as you walk.", 0.0, 1.5, 0.1],
+	["Video", "texture_pack", "path", "Texture pack", "A folder of image files used instead of the server's own art, LabPBR _n and _s companions included. Takes effect the next time you connect."],
+	["Video", "solid_ice", "toggle", "Solid ice", "Draw ice as opaque instead of slightly see-through. Ice is translucent, which makes it sort against waterfalls and other water badly and flicker. Opaque loses the see-through and fixes that."],
 	["Video", "auto_bump", "slider", "Auto bump", "Fake surface relief from texture brightness.", 0.0, 1.0, 0.05],
+	["Material", "mat_normal", "slider", "Normal strength", "How much of the pack's surface relief to apply. Packs are authored for other art at other resolutions, and a normal map meant for 64 pixel textures reads as smeared blotches on 16 pixel ones. Lower this first if a pack looks muddy.", 0.0, 2.0, 0.05],
+	["Material", "mat_ao", "slider", "Occlusion strength", "How much of the pack's baked in shading to apply. 0 leaves Godot's own corner shading to do it alone.", 0.0, 1.0, 0.05],
+	["Material", "mat_roughness", "slider", "Roughness strength", "How far to follow the pack's gloss. 0 makes every surface fully matte, as it is without a pack.", 0.0, 1.0, 0.05],
+	["Material", "mat_specular", "slider", "Specular strength", "Strength of reflections off non-metals. Above 1 exaggerates them.", 0.0, 2.0, 0.05],
+	["Material", "mat_emission", "slider", "Emission strength", "How brightly the pack's glowing surfaces glow.", 0.0, 8.0, 0.25],
+	["Material", "mat_sss", "slider", "Leaf translucency", "Light coming through leaves and ice from behind.", 0.0, 1.0, 0.05],
 	["Video", "bevel", "slider", "Edge bevel", "Chamfer the exposed edges of solid nodes.", 0.0, 0.15, 0.01],
 	["Video", "motes", "slider", "Ambient motes", "Drifting specks over leaves, flowers and sand.", 0.0, 4.0, 0.25],
 	["Video", "view_range", "slider", "View distance", "How much world to ask the server for, in blocks of 16 nodes. Most servers cap this near 12, so higher values may change nothing.", 4.0, 40.0, 1.0],
-	["Video", "lod_distance", "slider", "Detail distance", "Blocks beyond this are drawn as simplified shapes, which costs less. 0 turns it off.", 0.0, 24.0, 1.0],
+	["Video", "lod_distance", "slider", "Detail distance", "Blocks beyond this are drawn as simplified shapes, which costs less, and distant terrain beyond the server's range is drawn only when this is on. 0 turns both off.", 0.0, 24.0, 1.0],
+	["Video", "far_distance", "slider", "Far draw distance", "How far past the live range the far tiers draw, in nodes. Capped by what the server actually granted (docs/far-rendering.md); raising this past the grant changes nothing. Defaults to the grant itself, so this only needs touching to draw less than the server allows.", 0.0, 4096.0, 32.0],
+	["Material", "mat_stale", "slider", "Remembered terrain tint", "How far terrain drawn from what you saw earlier, rather than what the server is sending now, is pulled toward grey. 0 shows it at full colour, indistinguishable from live.", 0.0, 1.0, 0.05],
 	["Video", "damage_flash", "toggle", "Damage flash", "Flash the screen red when you take damage."],
 	["Video", "show_body", "toggle", "Show own body", "See your own body and held item when you look down."],
+	["Lighting", "light_sun", "slider", "Sunlight", "Strength of direct sun and moon light.", 0.0, 4.0, 0.1],
+	["Lighting", "light_ambient", "slider", "Ambient light", "Sky light filling shadowed surfaces.", 0.0, 3.0, 0.05],
+	["Lighting", "light_sdfgi", "slider", "Bounced light", "Strength of global illumination bouncing off surfaces.", 0.0, 4.0, 0.1],
+	["Lighting", "light_sdfgi_cell", "slider", "Bounced light grain", "How fine the bounced light grid is. Finer looks better standing still but the grid re-centres on you as you walk, which shows as shading popping in and out a few steps apart. Raise this if shadows change when you move.", 0.25, 8.0, 0.25],
+	["Lighting", "light_pool", "slider", "Lamp count", "How many torches, lanterns and other node lights are lit at once. Where a scene has more than this, the ones whose lit area is furthest away are dropped, so a village can light up as you walk into it. Raise this if lighting changes as you approach buildings; lower it if the frame rate suffers.", 16.0, 256.0, 8.0],
+	["Lighting", "shadow_lamps", "slider", "Shadow casting lamps", "How many node lights cast a shadow at once, out of Lamp count. A lantern is a solid block that blocks its own light upward, so a lamp without a shadow lights the eave directly above it through itself, and gaining or losing one as you walk shows as surfaces brightening for no reason. Each costs six depth passes, so this is the expensive setting.", 0.0, 48.0, 1.0],
+	["Lighting", "light_ssao", "slider", "Corner shading", "Darkening where surfaces meet (ambient occlusion).", 0.0, 8.0, 0.25],
+	["Lighting", "light_white", "slider", "White point", "Where highlights clip to white. If bright surfaces look flat and detailless, lower Exposure first: this alone will not recover them.", 0.5, 6.0, 0.1],
+	["Lighting", "light_exposure", "slider", "Exposure", "Overall brightness before the tonemap. The default puts a sunlit surface at about 1.3 times its texture's brightness.", 0.1, 2.0, 0.02],
+	["Lighting", "light_shafts", "slider", "Light shafts", "Sun and moon light scattering out of the air, so a gap in a canopy or a hillside throws a visible shaft. Strongest near dawn and dusk, and in rain. 0 leaves the air clear.", 0.0, 3.0, 0.1],
+	["Lighting", "light_fill", "slider", "Sky fill", "How much the sky lights walls and other shaded surfaces, following the light Luanti says reaches them. 0 leaves them to bounced light alone, which is dark.", 0.0, 1.5, 0.05],
 	["Audio", "volume", "slider", "Volume", "Overall sound level.", 0.0, 1.0, 0.05],
 	["Audio", "muted", "toggle", "Mute", "Silence all sound."],
 	["Display", "fov", "slider", "Field of view", "The camera's field of view, in degrees.", 60.0, 110.0, 1.0],
@@ -616,7 +671,9 @@ const SETTINGS := [
 ]
 # Settings handled here rather than through the client (window, camera, UI).
 const LOCAL_KEYS := ["mouse_sensitivity", "invert_mouse", "view_bobbing", "fov",
-	"gui_scale", "max_fps", "vsync", "fullscreen", "damage_flash", "volume", "muted"]
+	"gui_scale", "max_fps", "vsync", "fullscreen", "damage_flash", "volume", "muted",
+	"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao",
+	"light_white", "light_exposure", "light_fill", "light_shafts"]
 var settings_menu: Control
 
 func _main_node() -> Node:
@@ -649,6 +706,11 @@ func _apply_local(key: String, value: float, on: bool) -> void:
 			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN if on else DisplayServer.WINDOW_MODE_WINDOWED)
 		"damage_flash":
 			damage_flash = on
+		"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao", "light_white", "light_exposure", "light_fill", "light_shafts":
+			var ml := _main_node()
+			if ml != null:
+				ml.set(key, value)
+				ml.apply_lighting()
 		"volume":
 			if audio != null: audio.volume = value
 		"muted":
@@ -666,6 +728,8 @@ func _local_value(key: String) -> float:
 		"vsync": return 1.0 if DisplayServer.window_get_vsync_mode() != DisplayServer.VSYNC_DISABLED else 0.0
 		"fullscreen": return 1.0 if DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN else 0.0
 		"damage_flash": return 1.0 if damage_flash else 0.0
+		"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao", "light_white", "light_exposure", "light_fill", "light_shafts":
+			return float(m.get(key)) if m != null else 1.0
 		"volume": return audio.volume if audio != null else 0.8
 		"muted": return 1.0 if (audio != null and audio.muted) else 0.0
 	return 0.0
@@ -678,6 +742,7 @@ func _apply_setting(key: String, value: float) -> void:
 	match key:
 		"view_range": if client.has_method("set_view_range"): client.set_view_range(int(value))
 		"lod_distance": if client.has_method("set_lod_distance"): client.set_lod_distance(int(value))
+		"far_distance": if client.has_method("set_far_distance"): client.set_far_distance(int(value))
 		"mantle": if client.has_method("set_mantle"): client.set_mantle(on)
 		"show_body": if client.has_method("set_show_body"): client.set_show_body(on)
 		"aux1_descends": if client.has_method("set_aux1_descends"): client.set_aux1_descends(on)
@@ -687,8 +752,14 @@ func _apply_setting(key: String, value: float) -> void:
 		"repeat_dig": if client.has_method("set_repeat_dig_interval"): client.set_repeat_dig_interval(value)
 		"repeat_place": if client.has_method("set_repeat_place_interval"): client.set_repeat_place_interval(value)
 		"auto_bump": if client.has_method("set_auto_bump"): client.set_auto_bump(value)
+		"solid_ice": if client.has_method("set_solid_ice"): client.set_solid_ice(on)
+		"shadow_lamps": if client.has_method("set_shadow_lamps"): client.set_shadow_lamps(int(value))
 		"bevel": if client.has_method("set_bevel"): client.set_bevel(value)
 		"motes": if client.has_method("set_motes"): client.set_motes(value)
+		_:
+			# mat_<channel> maps straight onto the shader's <channel>_strength.
+			if key.begins_with("mat_") and client.has_method("set_material_strength"):
+				client.set_material_strength(key.substr(4), value)
 
 func _setting_value(key: String, fallback: float) -> float:
 	if key in LOCAL_KEYS:
@@ -696,6 +767,7 @@ func _setting_value(key: String, fallback: float) -> float:
 	match key:
 		"view_range": if client.has_method("view_range"): return float(client.view_range())
 		"lod_distance": if client.has_method("lod_distance"): return float(client.lod_distance())
+		"far_distance": if client.has_method("far_distance"): return float(client.far_distance())
 		"mantle": if client.has_method("mantle"): return 1.0 if client.mantle() else 0.0
 		"show_body": if client.has_method("show_body"): return 1.0 if client.show_body() else 0.0
 		"aux1_descends": if client.has_method("aux1_descends"): return 1.0 if client.aux1_descends() else 0.0
@@ -705,8 +777,13 @@ func _setting_value(key: String, fallback: float) -> float:
 		"repeat_dig": if client.has_method("repeat_dig_interval"): return client.repeat_dig_interval()
 		"repeat_place": if client.has_method("repeat_place_interval"): return client.repeat_place_interval()
 		"auto_bump": if client.has_method("auto_bump"): return client.auto_bump()
+		"solid_ice": if client.has_method("solid_ice"): return 1.0 if client.solid_ice() else 0.0
+		"shadow_lamps": if client.has_method("shadow_lamps"): return float(client.shadow_lamps())
 		"bevel": if client.has_method("bevel"): return client.bevel()
 		"motes": if client.has_method("motes"): return client.motes()
+		_:
+			if key.begins_with("mat_") and client.has_method("material_strength"):
+				return client.material_strength(key.substr(4))
 	return fallback
 
 func _load_apply_settings() -> void:
@@ -788,6 +865,18 @@ func _build_settings() -> Control:
 	add_child(centre)
 	return centre
 
+func _setting_text(key: String) -> String:
+	var cfg := ConfigFile.new()
+	if cfg.load("user://goanna.cfg") == OK:
+		return str(cfg.get_value("settings", key, ""))
+	return ""
+
+func _save_setting_text(key: String, value: String) -> void:
+	var cfg := ConfigFile.new()
+	cfg.load("user://goanna.cfg")
+	cfg.set_value("settings", key, value)
+	cfg.save("user://goanna.cfg")
+
 func _build_setting_row(page: VBoxContainer, entry: Array) -> void:
 	var key: String = entry[1]
 	var kind: String = entry[2]
@@ -807,7 +896,19 @@ func _build_setting_row(page: VBoxContainer, entry: Array) -> void:
 	name_label.add_theme_font_size_override("font_size", 17)
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(name_label)
-	if kind == "toggle":
+	if kind == "path":
+		# A directory, typed rather than picked: it is set once and it has to
+		# be read before connect_to, so it takes effect on the next connection
+		# rather than now. Saved to goanna.cfg like the rest; main.gd reads it
+		# in _ready.
+		var edit := LineEdit.new()
+		edit.text = _setting_text(key)
+		edit.placeholder_text = "/path/to/pack"
+		edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		edit.text_submitted.connect(func(t: String) -> void: _save_setting_text(key, t.strip_edges()))
+		edit.focus_exited.connect(func() -> void: _save_setting_text(key, edit.text.strip_edges()))
+		row.add_child(edit)
+	elif kind == "toggle":
 		var check := CheckButton.new()
 		check.button_pressed = _setting_value(key, 0.0) > 0.5
 		check.toggled.connect(func(on: bool) -> void:
@@ -1073,6 +1174,15 @@ func _draw_hud() -> void:
 	if client == null:
 		return
 	var vs := hud.size
+	if far_hint_alpha > 0.0:
+		var f := hud.get_theme_default_font()
+		var fs := int(15 * hud_scale)
+		var text := "Generating distant terrain (%d cells so far)" % far_hint_last
+		var w := f.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		var pos := Vector2((vs.x - w) / 2.0, 28.0 * hud_scale)
+		hud.draw_string_outline(f, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 3,
+				Color(0, 0, 0, 0.7 * far_hint_alpha))
+		hud.draw_string(f, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1, 1, 1, 0.85 * far_hint_alpha))
 	var st: Dictionary = client.hud_state()
 	var flags: int = st.get("flags", 0xffff)
 	# crosshair

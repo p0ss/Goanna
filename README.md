@@ -128,6 +128,43 @@ drawn, which brings weather such as rain and snow into the world. Particle
 support is new and has not yet been tested against the full range of effects
 games can define.
 
+Goanna will also use authored material maps if a server ships them. Beside
+an ordinary node texture it looks for LabPBR companions, the same files a
+shader pack for Minecraft carries, and reads real normals, roughness,
+metalness and emission from them. No protocol change and no server patch is
+needed: any server can serve a pack today, and textures without one get a
+material from what the node is (its footstep sound, groups and drawtype,
+the same table for every game) and relief inferred from their own
+brightness, so authored maps override rather than being the only source. Verified against a CC0 pack
+served from a worldmod, though the sample mapping covers only eight
+Mineclonia textures so far, because such packs name blocks the Minecraft
+way and each Luanti game names them its own way. `tools/pbr_pack.py` builds
+a pack from that kind of source, and [docs/materials.md](docs/materials.md)
+describes the convention and what it leaves unsettled.
+
+The screen space half of an Iris or OptiFine shader pack loads too: the
+`composite` and `final` programs are translated to Vulkan GLSL and run as a
+Godot compositor effect, reading the scene colour and depth. This is new,
+tested only with the proof pack in `project/tests/shaderpacks/`, and no real
+pack has been run yet. The `gbuffers` and `shadow` programs, which draw the
+world, are not loaded, so a pack's lighting model does not apply; see
+[docs/iris-compat.md](docs/iris-compat.md) for what that means and the plan.
+
+Distant terrain is drawn in coarser tiers the further it is, merged into a
+handful of meshes, on the same shader and textures as the ground at your
+feet, with its light and a baked occlusion term carried along. Every block
+the server sends is also kept in a local store, per server, and where a
+server grants it (its operator sets `goanna_far_rendering` with the server
+mod in `goanna_server_mod/`; Goanna's own single player server does) the far
+tiers draw from that store beyond the server's send distance, marked as
+remembered rather than seen. Such a server can also send coarse summaries of
+terrain it has already generated, so the horizon includes places you have
+never walked to; nothing is ever invented, and ground the server has not
+generated stays empty. Observed against a local Mineclonia server on
+Godot 4.5.1: terrain 400 nodes behind the live range drawn from a previous
+visit. Without the grant the store only writes. The plan and the limits are
+in [docs/far-rendering.md](docs/far-rendering.md).
+
 Then the parts that are Goanna's own rather than Luanti's: a water shader
 with vertex waves and refraction, waving leaves and plants, distance fog and
 an underwater tint, chamfered edges on solid nodes, surface relief derived
@@ -143,8 +180,11 @@ particle behaviours and the batched particle packet are not implemented.
 Windows and macOS have not been play-tested.
 
 Node lighting has landed, so caves are dark and a torch matters underground,
-but its balance against daylight is still being tuned and open ground is
-currently darker than it should be.
+and the daylight balance was reset on a material chart rather than by eye:
+sunlit surfaces no longer clip to white, walls are no longer black at noon
+and night is a dim blue rather than black. Whether the overall level suits
+you is a slider (Exposure and Sky fill in the Lighting tab); the numbers it
+was set by are in [docs/pbr-plan.md](docs/pbr-plan.md).
 
 | Forest and held item | Lava underground | Coloured node light |
 | --- | --- | --- |
@@ -172,9 +212,15 @@ On cheating, the boundaries are permanent rather than a current limitation.
 Goanna asks a server for nothing that Luanti's own client does not ask for,
 and shows you nothing the server did not send. No seeing through walls, no
 extra reach, no automation, no peering through darkness the game meant you
-not to see. It does not modify servers, does not need a mod, and does not
-ship a game of its own. Anything that would give a Goanna player an
-advantage over anyone else is out of scope for good.
+not to see. It does not modify servers and does not ship a game of its own.
+Anything that would give a Goanna player an advantage over anyone else is out
+of scope **without that server's consent**.
+
+That last clause is the whole of it. Goanna never decides for itself that a
+player may do more than a vanilla client can. A server may decide otherwise
+for its own players, and there is an optional mod for saying so, but a server
+that has never heard of Goanna gets a client that behaves exactly like any
+other. Absence of permission is the default, not an oversight.
 
 That matters because "alt client" has usually meant "cheat client" around
 here, and this one is not going to blur the line.

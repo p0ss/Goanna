@@ -1,0 +1,101 @@
+{
+  "animated_image": {
+    "status": "supported"
+  },
+  "background": {"status": "supported"},
+  "background9": {
+    "status": "supported"
+  },
+  "bgcolor": {"status": "supported"},
+  "box": {"status": "supported"},
+  "button": {"status": "supported"},
+  "button_exit": {"status": "supported"},
+  "button_key": {
+    "status": "missing",
+    "note": "Key binding display and activation are not implemented."
+  },
+  "button_url": {
+    "status": "partial",
+    "note": "Rendered as a normal button; it does not open a URL."
+  },
+  "button_url_exit": {
+    "status": "partial",
+    "note": "Rendered as a normal exit button; it does not open a URL."
+  },
+  "checkbox": {"status": "supported"},
+  "container": {"status": "supported"},
+  "container_end": {"status": "supported"},
+  "dropdown": {"status": "supported"},
+  "field": {"status": "supported"},
+  "field_close_on_enter": {"status": "supported"},
+  "field_enter_after_edit": {
+    "status": "missing",
+    "note": "The enter-after-edit compatibility setting is ignored."
+  },
+  "hypertext": {
+    "status": "partial",
+    "note": "Tags are stripped and the result is rendered as plain text."
+  },
+  "image": {"status": "supported"},
+  "image_button": {"status": "supported"},
+  "image_button_exit": {"status": "supported"},
+  "item_image": {"status": "supported"},
+  "item_image_button": {"status": "supported"},
+  "label": {"status": "supported"},
+  "list": {"status": "supported"},
+  "listcolors": {"status": "supported"},
+  "listring": {"status": "supported"},
+  "model": {
+    "status": "partial",
+    "note": "A labelled placeholder is drawn instead of a 3D preview."
+  },
+  "pwdfield": {"status": "supported"},
+  "real_coordinates": {"status": "supported"},
+  "scroll_container": {
+    "status": "partial",
+    "note": "Uses a generic vertical container and ignores named scrollbars, orientation and factor."
+  },
+  "scroll_container_end": {"status": "supported"},
+  "scrollbar": {
+    "status": "missing",
+    "note": "No formspec scrollbar widget is built."
+  },
+  "scrollbaroptions": {
+    "status": "missing",
+    "note": "Scrollbar options are ignored."
+  },
+  "set_focus": {
+    "status": "supported"
+  },
+  "style": {
+    "status": "missing",
+    "note": "Per-element styles are ignored."
+  },
+  "style_type": {
+    "status": "missing",
+    "note": "Per-type styles are ignored."
+  },
+  "tabheader": {"status": "supported"},
+  "table": {
+    "status": "partial",
+    "note": "Rendered as a text list without table columns or table events."
+  },
+  "tablecolumns": {
+    "status": "missing",
+    "note": "Column definitions are ignored."
+  },
+  "tableoptions": {
+    "status": "missing",
+    "note": "Table options are ignored."
+  },
+  "textarea": {"status": "supported"},
+  "textlist": {"status": "supported"},
+  "tooltip": {
+    "status": "partial",
+    "note": "Named and area tooltips work, but custom tooltip colours are ignored."
+  },
+  "vertlabel": {"status": "supported"},
+  "allow_close": {
+    "status": "supported"
+  }
+}

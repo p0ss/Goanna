@@ -28,6 +28,36 @@ uniform float cloud_coverage = 0.4;
 uniform float cloud_plane_h = 90.0;
 uniform vec2 cloud_offset = vec2(0.0);
 uniform float cloud_scale = 0.035;
+// Goanna: what the sky feeds to lighting is not what it shows. Godot samples
+// this shader into the radiance cubemap that SDFGI and the ambient term read,
+// with AT_CUBEMAP_PASS set, so the lighting half can differ from the visible
+// half where the look and the light disagree. Three ways, all judged on
+// project/lighting_chart.tscn (docs/pbr-plan.md step 3):
+//   radiance_ground_lift  the visible ground half of the dome is the horizon
+//                         colour darkened, which reads as a horizon; as
+//                         light it tells a vertical face that the ground
+//                         below is dark, when the ground is sunlit. 1 uses
+//                         the horizon colour for the lower hemisphere.
+//   radiance_desaturate   Mineclonia's zenith is a saturated blue and the
+//                         look here deepens it further; as light it turns
+//                         every shadowed face blue. Pulls the radiance
+//                         toward its own luminance.
+//   radiance_floor        added to the radiance only. A black night sky with
+//                         stars lights nothing, and Luanti's night is a dim
+//                         blue world, not a black one. main.gd sets this from
+//                         the night weight; it is zero by day.
+// How broad the haze band below the horizon is. The lower hemisphere runs
+// from the horizon colour to ground_color, and this is the exponent on that
+// blend, so a high value keeps a wide band of horizon colour under the
+// horizon line and only darkens when you look steeply down, where terrain is
+// always loaded anyway. That band is the background the far field is drawn
+// over (docs/far-rendering.md, "Background, overlay, foreground"): terrain
+// that has not arrived, or a hole between two panels, reads as haze at the
+// same colour the fog fades the far edge to, rather than as a void.
+uniform float ground_curve : hint_range(0.2, 8.0) = 0.6;
+uniform float radiance_ground_lift : hint_range(0.0, 1.0) = 0.0;
+uniform float radiance_desaturate : hint_range(0.0, 1.0) = 0.0;
+uniform vec3 radiance_floor = vec3(0.0);
 
 float hash12(vec2 p) {
 	vec3 p3 = fract(vec3(p.xyx) * 0.1031);
@@ -71,7 +101,13 @@ void sky() {
 	if (up >= 0.0)
 		col = mix(sky_horizon.rgb, sky_top.rgb, pow(up, 0.45));
 	else
-		col = mix(sky_horizon.rgb, ground_color.rgb, pow(-up, 0.6));
+		col = mix(sky_horizon.rgb, ground_color.rgb, pow(-up, ground_curve));
+	if (AT_CUBEMAP_PASS) {
+		if (up < 0.0)
+			col = mix(col, sky_horizon.rgb, radiance_ground_lift);
+		col = mix(col, vec3(dot(col, vec3(0.2126, 0.7152, 0.0722))), radiance_desaturate);
+		col += radiance_floor;
+	}
 
 	// stars: one jittered point per hashed cell on the dome, faded by daylight.
 	// sin of the angle to the star (via the cross product) keeps the star far

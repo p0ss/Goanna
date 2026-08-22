@@ -70,6 +70,25 @@ Group:
 **Godot**, via godot-cpp, MIT. The MIT licence text and copyright notice
 must accompany distribution; they are in `godot-cpp/LICENSE.md`.
 
+## Shader code in this repository
+
+`project/shaders/` holds Goanna's own GDShader. None of it is linked into
+`libgoanna`, so it is not in the table above, but one method in it is
+adapted rather than invented and carries a licence with it.
+
+**`water.gdshader`, the wave field.** The sum of octaves, the drag term that
+shifts each octave by the slope of the ones before it, and the constants
+that space them out (the weight, frequency and time multipliers, and the
+step between wave directions) are from afl_ext's "Very fast procedural
+ocean", <https://www.shadertoy.com/view/MdXyzX>, MIT, by way of the Glimmer
+shader pack, <https://github.com/jbritain/glimmer-shaders>, MIT, Copyright
+(c) 2024 Josh Britain. The MIT licence asks that its copyright notice and
+permission notice travel with any substantial portion of the work, so both
+projects are named in the file's own header as well as here. The code in
+`water.gdshader` is a rewrite against Godot's shading language rather than a
+copy: the surrounding absorption, refraction, screen space reflection and
+far tier handling are Goanna's.
+
 ## Media in this repository
 
 The screenshots under `docs/` are renders of worlds served by Luanti games,
@@ -80,9 +99,16 @@ that media.
   are covered by Luanti's own media licence: CC BY-SA 3.0, Copyright (C)
   2010-2012 celeron55, Perttu Ahola and contributors, with some assets under
   CC BY-SA 4.0. See `luanti/LICENSE.txt`.
-- `docs/e0a_*.png` show a Mineclonia world, rendered offline in the E0a
-  study rather than by the client. Mineclonia's media carry their own
-  licences and attribution; see the Mineclonia project.
+- `docs/e0a_*.png`, and the other Mineclonia screenshots under `docs/`, show
+  a Mineclonia world. Mineclonia separates its code licence from its media
+  licence, and it is the media that applies here. Per its `LEGAL.md`, the
+  code is GPL-3.0 but the textures are CC BY-SA 4.0, being based on Pixel
+  Perfection by XSSheep and Pixel Perfection Legacy by Nova Wostra, of which
+  most are verbatim copies; other media there defaults to CC BY-SA 3.0.
+  Individual mods add their own files naming further authors, 27 of them in
+  release 37652, so `LEGAL.md` is the floor rather than the whole account.
+  None of this is Luanti's own media licence, which covers only the engine's
+  own assets.
 
 Both sets are reproduced here under those terms, for documentation.
 

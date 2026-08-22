@@ -14,6 +14,10 @@ project/bin/
 # Screenshot scratch. Images used in documentation live in docs/.
 project/shots/
 
+# tools/pbr_bake.py output. Generated, large, and regenerable; deploy it to a
+# world with tools/pbr_deploy.py rather than committing it.
+baked/
+
 # Editors and tooling
 .vscode/
 .idea/
@@ -24,3 +28,9 @@ core
 core.*
 .DS_Store
 dist/
+
+# editor lock and swap files
+.~lock.*#
+*.kate-swp
+*.swp
+.aider*
