@@ -1173,6 +1173,12 @@ void GoannaSession::setPlayerPose(v3f pos_nodes, float pitch_deg, float yaw_deg,
     m_pose_yaw = yaw_deg;
 }
 
+// PlayerControl::getKeysPressed packs dig at bit 7 and place at bit 8.
+void GoannaSession::setPlayerKeys(bool dig, bool place) {
+    std::lock_guard<std::mutex> lk(m_pose_mutex);
+    m_pose_keys = ((u32)dig << 7) | ((u32)place << 8);
+}
+
 // --- IGameDef ---
 
 IItemDefManager *GoannaSession::getItemDefManager() { return m_itemdef; }
@@ -1350,6 +1356,7 @@ void GoannaSession::sendReady() {
 void GoannaSession::writePlayerPosTo(NetworkPacket &pkt) {
     v3f pos, speed_bs;
     float pitch, yaw, movement_speed, movement_dir;
+    u32 keys;
     {
         std::lock_guard<std::mutex> lk(m_pose_mutex);
         pos = m_pose_pos;
@@ -1358,13 +1365,13 @@ void GoannaSession::writePlayerPosTo(NetworkPacket &pkt) {
         speed_bs = m_pose_speed;
         movement_speed = m_pose_move_speed;
         movement_dir = m_pose_move_dir;
+        keys = m_pose_keys;
     }
     // Format documented at TOSERVER_PLAYERPOS in networkprotocol.h.
     v3s32 position = v3s32::from(pos * 100);
     v3s32 speed = v3s32::from(speed_bs * 100);
     s32 ipitch = pitch * 100;
     s32 iyaw = yaw * 100;
-    u32 keys = 0;
     u8 fov = (u8)std::clamp(cameraFov * 1.2f, 1.0f, 255.0f);
     u8 wanted_range = (u8)std::clamp(wantedRange, 1, 255); // mapblocks
     u8 camera_inverted = 0;

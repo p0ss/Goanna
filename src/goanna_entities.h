@@ -51,6 +51,8 @@ public:
             bool check_wield_image, v3f *out_scale);
     // First-person body: render the local player's model (mesh visuals only),
     // pinned to the predicted player with its head shrunk out of the camera.
+    // The head stays in the shadow pass through a second, shadow-only copy of
+    // the mesh, so turning this off is the only thing that removes the shadow.
     void setShowBody(bool show) { m_show_body = show; }
     // 0..1 swing phase for the first-person arm (dig chop / place bob).
     void setArmSwing(float s) { m_arm_swing = s; }
@@ -64,6 +66,10 @@ private:
         godot::Node3D *visual = nullptr;
         godot::Label3D *nametag = nullptr;
         godot::Skeleton3D *skeleton = nullptr;
+        // First-person body only: a second, shadow-only copy of the same
+        // skinned mesh, posed without the head shrink so the shadow keeps its
+        // head. Null for every other entity.
+        godot::Skeleton3D *shadow_skeleton = nullptr;
         std::unique_ptr<ModelAnimator> animator;
         std::string arm_bone; // first-person arm, chosen by which side it shows on
         uint32_t visual_version = 0;
@@ -77,6 +83,11 @@ private:
         float light_sky = 1.0f, light_block = 0.0f;
         bool light_known = false;
     };
+    // The bone the first-person swing turns: the arm holding the wield item
+    // where the game attaches one, otherwise the arm on the camera's right.
+    // Empty while the skeleton has not been stepped and the answer would be a
+    // coin toss. Caller holds session.mapLock().
+    std::string chooseArmBone(GoannaSession &session, u16 self_id, const EntityNode &en, float yaw) const;
     void rebuildVisual(GoannaSession &session, GoannaActiveObject &obj, EntityNode &en);
     bool buildMeshVisual(GoannaSession &session, GoannaActiveObject &obj, EntityNode &en);
     bool buildItemVisual(GoannaSession &session, GoannaActiveObject &obj, EntityNode &en);

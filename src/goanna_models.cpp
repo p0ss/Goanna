@@ -359,7 +359,8 @@ void ModelAnimator::beginTransition() {
     m_transiting_blend = 0.f;
 }
 
-void ModelAnimator::step(float dt, std::map<std::string, BoneOverride> &overrides, Skeleton3D *skeleton) {
+void ModelAnimator::step(float dt, std::map<std::string, BoneOverride> &overrides, Skeleton3D *skeleton,
+        Skeleton3D *unshrunk) {
     scene::SkinnedMesh *mesh = m_model->skinned;
     if (!mesh)
         return;
@@ -433,46 +434,74 @@ void ModelAnimator::step(float dt, std::map<std::string, BoneOverride> &override
         ++it;
     }
 
+    // First-person arm swing, added to whatever the animation and the server's
+    // own bone override left on the joint, in the same euler degrees (and the
+    // same inverted storage) a Luanti bone override uses. Added rather than
+    // replacing: an absolute pose of Goanna's own throws away the arm pitch
+    // the game itself sets for the held item, and silently mirrors any model
+    // that bakes a half turn into the joint's rest, which Mineclonia's
+    // character does as a scale flip on Arm_Right_Pitch_Control.
+    if (m_rot_override_joint && *m_rot_override_joint < locals.size()) {
+        if (auto *t = std::get_if<core::Transform>(&locals[*m_rot_override_joint])) {
+            core::quaternion inv = t->rotation;
+            inv.makeInverse();
+            v3f euler;
+            inv.toEuler(euler);
+            euler *= core::RADTODEG;
+            t->rotation = core::quaternion((euler + m_rot_override_euler) * core::DEGTORAD).makeInverse();
+        }
+    }
+
+    // relative -> global -> skin matrices
+    auto to_globals = [&]() {
+        for (size_t i = 0; i < joints.size(); ++i) {
+            if (auto *m = std::get_if<core::matrix4>(&locals[i]))
+                m_globals[i] = *m;
+            else
+                m_globals[i] = std::get<core::Transform>(locals[i]).buildMatrix();
+        }
+        mesh->calculateGlobalMatrices(m_globals);
+    };
+    // A bone animated to zero scale (models hide parts that way) has a
+    // singular basis that Godot cannot split into a rotation, and it says
+    // so for every frame. Set such a pose by parts, rotation left alone.
+    auto write_poses = [&](Skeleton3D *sk, const std::vector<core::matrix4> &skin) {
+        auto set_pose = [&](int bone, const Transform3D &xf) {
+            if (std::fabs(xf.basis.determinant()) < 1e-9f) {
+                sk->set_bone_pose_position(bone, xf.origin);
+                sk->set_bone_pose_scale(bone, xf.basis.get_scale());
+                return;
+            }
+            sk->set_bone_pose(bone, xf);
+        };
+        for (size_t i = 0; i < joints.size(); ++i) {
+            set_pose((int)i, toGodotTransform(skin[i]));
+            int ab = m_model->attached_bone[i];
+            if (ab >= 0)
+                set_pose(ab, toGodotTransform(m_globals[i]));
+        }
+    };
+
+    // The unshrunk pose first, for the shadow-only copy of the model: the head
+    // has to be in the shadow pass even though the camera must not see it, and
+    // one skinned mesh cannot be two shapes at once. m_globals is left holding
+    // the shrunk pose because that is the one jointGlobal callers are asking
+    // about (where the wield item hangs, which arm faces the camera).
+    if (unshrunk && m_shrink_joint) {
+        to_globals();
+        write_poses(unshrunk, mesh->calculateSkinMatrices(m_globals));
+    }
+
     // First-person: collapse the shrink joint so the head (and hat layers
     // attached to it) never block the camera.
     if (m_shrink_joint && *m_shrink_joint < locals.size()) {
         if (auto *t = std::get_if<core::Transform>(&locals[*m_shrink_joint]))
             t->scale *= 0.01f;
     }
-    // First-person arm pose wins over animation and server overrides.
-    if (m_rot_override_joint && *m_rot_override_joint < locals.size()) {
-        if (auto *t = std::get_if<core::Transform>(&locals[*m_rot_override_joint]))
-            t->rotation = m_rot_override_q;
-    }
-
-    // relative -> global -> skin matrices
-    for (size_t i = 0; i < joints.size(); ++i) {
-        if (auto *m = std::get_if<core::matrix4>(&locals[i]))
-            m_globals[i] = *m;
-        else
-            m_globals[i] = std::get<core::Transform>(locals[i]).buildMatrix();
-    }
-    mesh->calculateGlobalMatrices(m_globals);
+    to_globals();
     if (!skeleton)
         return;
-    std::vector<core::matrix4> skin = mesh->calculateSkinMatrices(m_globals);
-    // A bone animated to zero scale (models hide parts that way) has a
-    // singular basis that Godot cannot split into a rotation, and it says
-    // so for every frame. Set such a pose by parts, rotation left alone.
-    auto set_pose = [&](int bone, const Transform3D &xf) {
-        if (std::fabs(xf.basis.determinant()) < 1e-9f) {
-            skeleton->set_bone_pose_position(bone, xf.origin);
-            skeleton->set_bone_pose_scale(bone, xf.basis.get_scale());
-            return;
-        }
-        skeleton->set_bone_pose(bone, xf);
-    };
-    for (size_t i = 0; i < joints.size(); ++i) {
-        set_pose((int)i, toGodotTransform(skin[i]));
-        int ab = m_model->attached_bone[i];
-        if (ab >= 0)
-            set_pose(ab, toGodotTransform(m_globals[i]));
-    }
+    write_poses(skeleton, mesh->calculateSkinMatrices(m_globals));
 }
 
 void ModelAnimator::setShrinkJoint(const std::string &name) {
@@ -484,13 +513,13 @@ bool ModelAnimator::hasJoint(const std::string &name) const {
     return m_model->skinned && m_model->skinned->getJointNumber(name).has_value();
 }
 
-void ModelAnimator::setJointRotationOverride(const std::string &name, const core::quaternion &q) {
+void ModelAnimator::setJointRotationOverride(const std::string &name, const v3f &euler_deg) {
     if (name != m_rot_override_name) {
         m_rot_override_name = name;
         m_rot_override_joint = m_model->skinned ? m_model->skinned->getJointNumber(name)
                                                 : std::optional<u32>();
     }
-    m_rot_override_q = q;
+    m_rot_override_euler = euler_deg;
 }
 
 bool ModelAnimator::jointGlobal(const std::string &name, Transform3D &out) const {
