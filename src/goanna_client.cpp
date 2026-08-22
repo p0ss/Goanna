@@ -2900,8 +2900,37 @@ void GoannaClient::lodBuildRegion(const LodRegionKey &key, LodRegion &r) {
         add_child(r.node);
     }
     r.node->set_mesh(mesh);
-    if (fresh_node)
-        startFade(r.node);
+    // How far a tile repeats across the widest quad this region built, so
+    // the shader can flatten a panel that merged flat and wide even where
+    // it sits close to the camera (docs/far-rendering.md, "Shade the far
+    // field as a far field").
+    r.node->set_instance_shader_parameter("lod_repeat", (float)lm.max_span);
+    if (fresh_node) {
+        // A region arriving well inside the haze (docs/far-rendering.md,
+        // "Background, overlay, foreground") is already mostly hidden by
+        // fog, so dithering it in over a third of a second buys nothing
+        // visible and only adds to the stipple: while a world pregenerates,
+        // most of what newly appears is near the current edge of what is
+        // known, and during that stretch hundreds of regions are mid fade
+        // at once (docs/far-rendering.md, "How terrain arrives"). Skip the
+        // fade there and let it pop under the haze instead; close to the
+        // camera, where a pop would read as a wall of terrain, the fade
+        // still runs exactly as before.
+        const float region_span = (float)(rb * MAP_BLOCKSIZE);
+        const float cx = ((float)key.pos.X + 0.5f) * region_span;
+        const float cz = -(((float)key.pos.Z + 0.5f) * region_span);
+        const float dx = cx - m_lod_centre.x, dz = cz - m_lod_centre.z;
+        const float region_dist = std::max(std::abs(dx), std::abs(dz));
+        // Three tenths of the drawn extent is where main.gd's fog starts
+        // closing (fog_clear_fraction's default); mirrored here rather than
+        // plumbed through, since only the shape of the cutoff matters, and
+        // m_far_extent is already the lower quartile across sectors (how far
+        // a poor direction reaches) rather than one radius, so this follows
+        // the same ragged frontier the haze itself now follows.
+        const bool past_haze = m_far_extent > 0 && region_dist >= 0.3f * (float)m_far_extent;
+        if (!past_haze)
+            startFade(r.node);
+    }
     ema(m_ms_lod, ms_since(t0));
 }
 

@@ -932,6 +932,115 @@ A steeper look down is what shows the far tiers. And the first person body
 which in fly mode sits at the camera and can fill a third of the frame at the
 harness pose; `EntityRenderer` sets its visibility every frame, so hiding the
 node does not hold and `client.set_show_body(false)` is what works.
+### Stipple and close tiling, closed 2026-08-22
+
+Two more defects, both found in screenshots of a world mid pregeneration
+rather than in the numbers: the arrival dither reading as a permanent
+stipple, and a far tier panel tiling into a regular pattern close to the
+camera.
+
+**Stipple.** `GoannaClient::startFade` opens every fresh region's mesh
+through the interleaved gradient noise dither in the node shaders over a
+third of a second (`advanceFades`), which reads well for one region
+appearing at a time. While a world pregenerates, hundreds of regions arrive
+at once, so a large fraction of the far field was mid fade at any instant
+and the whole distance read as a dotted, flickering texture rather than as
+terrain, which is what the user described as two different textures
+alternating.
+
+A region well inside the haze is already mostly hidden by fog, so
+dithering it in over a third of a second buys nothing visible.
+`lodBuildRegion` now skips the fade for a fresh region whose horizontal
+distance from the camera is past three tenths of `far_extent`, the same
+fraction `main.gd`'s `fog_clear_fraction` uses to begin closing the haze
+(mirrored here rather than plumbed through, since only the shape of the
+cutoff matters, and `far_extent` is already the per direction lower
+quartile rather than one radius, so this follows the same ragged frontier
+the haze itself follows). A region past that line pops under the haze
+instead of fading; close to the camera, where a pop would read as a wall
+of terrain, the fade still runs exactly as before. This was chosen over a
+shorter fade or a randomised dither because it removes the wasted case
+outright rather than shrinking it: a region nobody can really see fading
+in is not worth spending a third of a second dithering, whatever the
+dither looks like or how long it runs.
+
+Measured on a fresh, actively pregenerating local Mineclonia world (a
+scratch `XDG_DATA_HOME` profile, Luanti 5.16.1 flatpak, Godot 4.5.1), with
+a temporary counter added for the measurement and removed afterward: over
+a fifteen second window from a fresh connection, the unmodified code
+started a fade on every one of 68 newly created regions; with the fix, 46
+of 85 started a fade, the remaining 39 popping under haze instead. The
+existing pop metric (`tools/shotcheck.py --launch-target`, run through
+`tools/test-launch-target.sh`) still reads 0.0 across eleven frame pairs
+on this machine, unchanged from before this landed. That is expected
+rather than evidence either way: the metric watches one fixed camera cone
+(`docs/launch-target.md` R4's own finding), this fix specifically removes
+fades outside whatever cone happens to be in frame at the time, and it
+must not regress the metric, which it does not. The fade count comparison
+above is what actually exercises the change.
+
+**Close tiling.** A far tier quad is one greedy merged face from
+`meshLodRegion`, and its UV repeats the tile once per node
+(`src/goanna_lod.cpp`'s `uv` switch). `lod_flatten` blends the sampled
+colour toward the tile's average between `lod_flatten_near` and
+`lod_flatten_far` nodes of camera distance, which handles a quad seen from
+far away. It did nothing for a panel drawn close to the camera, which
+happens wherever the server has not streamed a block but the store or a
+summary has: the panel is still a single wide merged quad, so the tile
+visibly repeats at point blank range, and screenshots showed a wall of
+regular rectangles a few nodes from the eye.
+
+The merge loop in `meshLodRegion` already knows how wide each quad it
+builds is, in the same node units the UV switch repeats the tile in (`w`
+and `h`, cell units, times `cell`). `LodRegionMesh` now carries the widest
+span seen while building a region, `max_span`, and
+`GoannaClient::lodBuildRegion` hands it to that region's `MeshInstance3D`
+as a new instance uniform, `lod_repeat`. The node shaders' flatten now
+fires on either how far away a fragment is or how wide the quad it sits on
+actually is: `smoothstep(lod_flatten_near, lod_flatten_far,
+length(VERTEX))` for distance, `smoothstep(lod_repeat_near,
+lod_repeat_far, lod_repeat)` for size, combined with `max`. The size test
+gets its own thresholds, 16 to 64 nodes rather than the distance test's 64
+to 256, because a merge only a few tens of nodes across already reads as
+a repeat once it fills much of a close view, well inside where the
+distance test would ever fire on its own; a small quad still only
+flattens at range, as before.
+
+Flattening the colour was not enough on its own. Auto bump
+(`docs/pbr-plan.md`) infers a normal map from the diffuse texture at 0.35
+strength by default, on every material, with no resource pack needed, and
+a strongly patterned diffuse tile infers a matching relief: a fully
+flattened albedo still shaded like the tile pattern under the sun, bumps
+and all, because the normal map sample was untouched by any of this. The
+same `flatten` value now also blends the sampled relief and the pack's
+baked occlusion toward neutral (`normal_strength * (1.0 - flatten)`,
+`ao_strength * (1.0 - flatten)`), so a flattened panel reads as flat under
+lighting as well as in colour, in both node array shaders.
+
+Measured on a merged far tier quad, camera posed away from the player so
+the panel stayed LOD rather than streaming live, close and at an oblique
+angle (a stress case chosen to show the defect, not the ordinary horizon
+shot 2c above was judged against): with no size based flattening at all,
+`tools/shotcheck.py --far-band` on the shot read 29.65 to 30.92 across
+three separate readings, comfortably above the 9.0 the harness wants; with
+the size test engaged, sharing the distance thresholds and touching
+colour only, it read 22.53 in the same session against the same
+underlying mesh, a genuine drop that proves the mechanism. The
+independent, tighter thresholds and the normal map fade above are a
+further refinement of the same mechanism, reasoned through rather than
+measured against that exact figure: this machine's clients crashed or
+hung repeatedly partway through the follow up runs needed to confirm it
+(silent, no crash log, the same shape of fault `docs/launch-target.md`'s
+R4 section already records on this machine under concurrent load), and
+the one merged quad this session could reach repeatably turned out to sit
+on a terraced, banded rock formation whose own stepped geometry, not its
+texture, dominates `--far-band`'s reading there; a flat panel was needed
+to isolate tiling from geometry and this session did not hold one still
+long enough for a second controlled reading before the client went again.
+What did land cleanly: the mechanism proof above, and
+`test-launch-target.sh`'s own horizon shot, at the ordinary range 2c was
+judged against, still reads 0.67 on `--far-band`, unchanged and well under
+9.0, so the far range case this extends is not regressed by any of it.
 
 ## Cells are not cubes
 

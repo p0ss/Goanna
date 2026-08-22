@@ -45,8 +45,18 @@ void fragment() {
 	ALBEDO = (texture(albedo_array, vec3(UV, UV2.x)) * COLOR).rgb;
 	if (v_stale > 0.001)
 		ALBEDO = mix(ALBEDO, vec3(dot(ALBEDO, vec3(0.2126, 0.7152, 0.0722))), v_stale * stale_strength);
+	// Either how far away this fragment is or how wide the quad it sits
+	// on actually is can call for flattening (see lod_repeat above), so a
+	// wide merged panel flattens on its own size even at point blank
+	// range and a small one still only flattens at range. Read below by
+	// the normal map too: a flattened colour with its relief left alone
+	// still shades like the tile pattern, bumps and all, so the repeat
+	// reads through the lighting even where the albedo no longer shows it.
+	float flatten = 0.0;
 	if (lod_flatten) {
-		float flatten = smoothstep(lod_flatten_near, lod_flatten_far, length(VERTEX));
+		flatten = max(
+				smoothstep(lod_flatten_near, lod_flatten_far, length(VERTEX)),
+				smoothstep(lod_repeat_near, lod_repeat_far, lod_repeat));
 		if (flatten > 0.001)
 			ALBEDO = mix(ALBEDO, lod_avg_colour[int(UV2.x)] * COLOR.rgb, flatten);
 	}
@@ -63,15 +73,16 @@ void fragment() {
 		// which a fixed camera A/B shows plainly. The inferred normals in
 		// goanna_textures.cpp do flip, because they are built in image space
 		// where the row order is the other way about.
-		vec2 xy = (n.rg * 2.0 - 1.0) * normal_strength;
+		vec2 xy = (n.rg * 2.0 - 1.0) * normal_strength * (1.0 - flatten);
 		float z = sqrt(clamp(1.0 - dot(xy, xy), 0.0, 1.0));
 		NORMAL_MAP = vec3(xy * 0.5 + 0.5, z * 0.5 + 0.5);
 		NORMAL_MAP_DEPTH = 1.0;
 		// Toward fully lit as the strength falls, so 0 removes the pack's
 		// occlusion rather than removing Godot's own shading with it. The
 		// pack's occlusion is texture scale detail; the vertex one below is
-		// the shape of the room, and they multiply.
-		pack_ao = mix(1.0, n.b, ao_strength);
+		// the shape of the room, and they multiply. Flattened the same way
+		// as the relief above, for the same reason.
+		pack_ao = mix(1.0, n.b, ao_strength * (1.0 - flatten));
 	}
 	if (has_spec) {
 		vec4 sp = texture(spec_array, vec3(UV, UV2.x));

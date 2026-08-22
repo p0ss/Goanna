@@ -559,6 +559,11 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                         for (int du = 0; du < w; ++du)
                             mask[(size_t)(v + dv) * n + u + du].valid = false;
 
+                    // w and h are cells; nodes is what the UV switch below
+                    // repeats the tile in, so this is the repeat count a
+                    // panel drawn from this quad actually shows.
+                    out.max_span = std::max(out.max_span, std::max(w, h) * cell);
+
                     // The quad, Luanti node coordinates relative to the region
                     // origin: the face plane along the axis, u and v spans.
                     int lo[3], hi[3];

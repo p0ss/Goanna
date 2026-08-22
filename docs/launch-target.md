@@ -144,6 +144,17 @@ occlusion is much heavier than the near field's (mean 113 against 205) for
 one to one and a half luminance units. Both are recorded with their numbers
 in `far-rendering.md`; the occlusion one wants calibrating on the chart
 against the near tracer.
+Landed, 2026-08-22, a separate defect in the same fade mechanism, not the
+fourth item above: while a world pregenerates, hundreds of regions arrive
+and fade at once, so a large fraction of the far field was mid fade at any
+instant and the distance read as a dotted, flickering texture rather than
+as terrain. `GoannaClient::lodBuildRegion` now skips the fade for a fresh
+region past three tenths of `far_extent` from the camera, since it is
+already mostly hidden by the haze and popping there is not visible as
+popping; close to the camera the fade still runs as before. Full detail
+and what was and was not confirmed by measurement are in
+`far-rendering.md`, "Stipple and close tiling, closed 2026-08-22". The
+fourth item above, holding old faces through a tier swap, is still open.
 
 **R2, water.** `water.gdshader` tiles a 16 pixel texture and refracts.
 Replace the surface model: world space procedural waves in a few octaves
@@ -434,6 +445,18 @@ needed no change to the shared vertex format the near mesh also uses,
 tier stops waving and gets the same blend, both a two line change since
 `waving` was already a per instance uniform on the shared water shader.
 `shotcheck.py --far-band` is the instrument.
+
+Landed further, 2026-08-22: 2c's flatten only ever looked at camera
+distance, which missed a panel drawn close to the camera where the server
+has not streamed a block but the store or a summary has, since it is
+still a single wide merged quad and the tile visibly repeats at point
+blank range. `meshLodRegion` now tracks the widest merged quad it built
+each region, `GoannaClient::lodBuildRegion` hands that to the region's
+mesh as a new instance uniform, and the node shaders' flatten fires on
+quad size as well as distance, each against its own thresholds, with the
+auto-inferred normal map's relief and occlusion fading the same way the
+colour does. Full detail and what was and was not confirmed by measurement
+are in `far-rendering.md`, "Stipple and close tiling, closed 2026-08-22".
 
 2d: `m_far_distance` defaults to the grant, an explicit choice (env var or
 the new "Far draw distance" setting) turns that off; `cam.far` and the fog
