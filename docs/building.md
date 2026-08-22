@@ -350,6 +350,7 @@ features.
 | `GOANNA_UI_SHOT=<directory>` | Save the HUD, inventory, chat and pause menu at fixed times. |
 | `GOANNA_UI_TEST=move` | Open the inventory and move the stack in main slot 0 to slot 10, then split it to slot 11, printing the list each time. Exercises inventory_action through the UI. |
 | `GOANNA_MENU_TEST="host:port:name:pass"` | Fill the menu and press Connect, to exercise the menu to game hand-over. Combine with `GOANNA_MENU=1` if a skip variable such as `GOANNA_SMOKE` is also set. |
+| `GOANNA_LOCAL_TEST="game:world"` | Drive the "start a local game" screen without a human: it does not save the world and game into the player's remembered choices, and the server it launches gets `enable_damage = false` and `time_speed = 0`. A frozen clock and no damage is what makes two captures comparable, since otherwise a night falling or a mob landing a hit between them shows up as a difference the run did not cause. Set the hour a shot is taken at with `GOANNA_TOD` or the control channel's `time`. |
 
 A minimal check that everything still works, end to end:
 

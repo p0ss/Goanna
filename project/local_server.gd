@@ -205,6 +205,25 @@ func start(gameid_: String, worldname: String, player_name: String = "player") -
 		# "/grantme all" is available when that happens.
 		if player_name != "":
 			cf.store_string("name = %s\n" % player_name)
+		# A scripted run is not a game. The harness and the agents that drive
+		# this client are there to photograph the world, and a night falling
+		# partway through a capture, or a mob killing the player between two
+		# frames of a comparison, ruins the measurement rather than merely
+		# annoying someone: two shots meant to differ by one change end up
+		# differing by the hour and by whether anyone was still alive. So a
+		# run nobody is watching gets a frozen clock and no damage.
+		# GOANNA_LOCAL_TEST is menu.gd's own marker for exactly that, and a
+		# player's own world is left as the game intends.
+		#
+		# time_speed 0 stops the clock where the world starts it; the client's
+		# own GOANNA_TOD and the control channel's time command set which hour
+		# a shot is taken at, so this only has to stop it moving. Damage off
+		# is Luanti's own setting and needs nothing from the game, unlike
+		# turning mob spawning off, which every game spells differently: the
+		# mobs still walk about here, they just cannot hurt anyone.
+		if OS.get_environment("GOANNA_LOCAL_TEST") != "":
+			cf.store_string("enable_damage = false\n")
+			cf.store_string("time_speed = 0\n")
 		cf = null
 	_install_server_mod(world_path)
 	var argv := Array(_argv)
