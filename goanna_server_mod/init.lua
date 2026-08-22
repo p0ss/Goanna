@@ -277,6 +277,98 @@ core.register_globalstep(function()
 	end
 end)
 
+-- Pregeneration: the other half of "places you have never been" on a world
+-- that has none yet. A summary can only digest terrain that exists, and a
+-- server generates only within the range its client asks for (clientiface
+-- caps max_block_generate_distance by the client's wanted range), so a fresh
+-- world has a 192 node horizon whatever the grant says, and the first player
+-- on it sees exactly that. This is the server's own answer, and it is off
+-- unless the operator turns it on, because it spends mapgen CPU and map
+-- memory on terrain no one has walked to: one 128 node area at a time,
+-- nearest to a player first, with a pause between areas, out to the far
+-- rendering distance. Nothing here changes what a client may ask; the server
+-- generates its own world on its own schedule, exactly as it would for a
+-- player walking there, and then tells the clients near it what it made.
+--
+-- Each finished area is summarised for every client within range without
+-- being asked, because a client that asked while the area was still
+-- ungenerated was told there was nothing there and does not ask twice.
+local pregen_enabled = far_enabled and conf_bool("goanna_far_pregenerate", false)
+local pregen_interval = conf_num("goanna_far_pregenerate_interval", 3)
+local pregen = { busy = false, since = 0, wait = 0, done = {}, pending = {} }
+
+-- Nearest area to any connected player that this session has not generated.
+local function pregen_pick()
+	local best, best_d
+	local aradius = math.ceil(far_distance / 128)
+	for _, player in ipairs(core.get_connected_players()) do
+		local pp = player:get_pos()
+		local ax, ay, az = math.floor(pp.x / 128), math.floor(pp.y / 128), math.floor(pp.z / 128)
+		for dz = -aradius, aradius do
+			for dy = -1, 1 do
+				for dx = -aradius, aradius do
+					local key = (ax + dx) .. ":" .. (ay + dy) .. ":" .. (az + dz)
+					if not pregen.done[key] then
+						local cx, cz = (ax + dx) * 128 + 64, (az + dz) * 128 + 64
+						local d = math.max(math.abs(cx - pp.x), math.abs(cz - pp.z))
+						if d <= far_distance and (not best_d or d < best_d) then
+							best = {x = ax + dx, y = ay + dy, z = az + dz, key = key}
+							best_d = d
+						end
+					end
+				end
+			end
+		end
+	end
+	return best
+end
+
+core.register_globalstep(function(dtime)
+	if not pregen_enabled then
+		return
+	end
+	-- Summaries of finished areas go out as the summary queue has room.
+	while #pregen.pending > 0 and #far_queue < 8 do
+		local a = table.remove(pregen.pending, 1)
+		queue_area(a.who, 16, a.x * 8, a.y * 8, a.z * 8, 8)
+	end
+	if pregen.busy then
+		pregen.since = pregen.since + dtime
+		if pregen.since > 120 then
+			pregen.busy = false -- the emerge never reported back; move on
+		end
+		return
+	end
+	pregen.wait = pregen.wait - dtime
+	if pregen.wait > 0 then
+		return
+	end
+	pregen.wait = pregen_interval
+	local a = pregen_pick()
+	if not a then
+		return
+	end
+	pregen.done[a.key] = true
+	pregen.busy, pregen.since = true, 0
+	local pmin = vector.new(a.x * 128, a.y * 128, a.z * 128)
+	local pmax = vector.add(pmin, 127)
+	core.emerge_area(pmin, pmax, function(blockpos, action, calls_remaining)
+		if calls_remaining > 0 then
+			return
+		end
+		pregen.busy = false
+		for _, player in ipairs(core.get_connected_players()) do
+			local pp = player:get_pos()
+			local d = math.max(math.abs(pmin.x + 64 - pp.x), math.abs(pmin.z + 64 - pp.z))
+			if d <= far_distance + 128 then
+				pregen.pending[#pregen.pending + 1] = {
+					who = player:get_player_name(), x = a.x, y = a.y, z = a.z,
+				}
+			end
+		end
+	end)
+end)
+
 core.register_on_modchannel_message(function(channel_name, sender, message)
 	if channel_name ~= CHANNEL then
 		return

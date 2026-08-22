@@ -102,6 +102,18 @@ server. The distance check is against the asking player and the grant is
 server wide, so this widens what is seen by other players' whereabouts, not
 by any distance beyond what was granted.
 
+### Pregeneration
+
+A summary describes terrain that exists, and a server generates only within
+the range its client asks for, so a new world has a 192 node horizon
+whatever distance was granted. `goanna_far_pregenerate` lets this mod
+generate outward from each connected player, one 128 node area at a time,
+nearest first, with `goanna_far_pregenerate_interval` seconds between areas,
+out to the far rendering distance, and summarise each finished area for the
+clients near it unasked. It spends mapgen time and map memory on terrain no
+one has visited, so it is off unless the operator turns it on. The server a
+Goanna client launches for itself turns it on.
+
 ## Settings
 
 See `settingtypes.txt`. Everything is off by default.

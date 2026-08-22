@@ -204,7 +204,7 @@ func _on_start_local() -> void:
 		cfg.set_value("local", "world", world)
 		cfg.save(CFG_PATH)
 	server = LocalServer.new()
-	var err: String = server.start(game, world)
+	var err: String = server.start(game, world, _local_player_name())
 	if err != "":
 		_fail(err)
 		return

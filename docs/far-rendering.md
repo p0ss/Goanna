@@ -494,6 +494,31 @@ what that means for an operator. And a summary is cell 16 only, so distant
 terrain from this path is coarser than the same ground would be from the
 store; walking there replaces it with the real thing.
 
+### Pregeneration, 2026-08-22
+
+A third limit turned up the first time a world was launched from the client:
+a summary can only describe terrain that exists, and a server generates only
+within the range its client asks for (`max_block_generate_distance` is capped
+by the client's wanted range in `clientiface.cpp`, and Goanna asks for 12
+blocks). So a fresh world has a 192 node horizon whatever the grant says,
+and the player who just created it, the one most likely to look, sees
+nothing at all past the live edge.
+
+`goanna_far_pregenerate` is the server's answer, off by default because it
+spends mapgen time and map memory on terrain no one has visited. When on,
+the mod generates outward from each connected player, one 128 node area at a
+time, nearest first, with `goanna_far_pregenerate_interval` seconds between
+areas, out to the far rendering distance. Each finished area is summarised
+for every client within range without being asked, because a client that
+asked while it was still ungenerated was told there was nothing and does not
+ask twice. The client needs no change for this: an unsolicited summary is
+taken exactly like an answered one. The local server Goanna launches turns it
+on (`project/local_server.gd`); a public operator decides for themselves.
+
+It stays inside the boundary: the server generates its own world on its own
+schedule, as it would for a player walking there, and the client never
+generates or asks for anything a vanilla client could not.
+
 ## Cells are not cubes
 
 A coarse cell used to draw as a full cube, so at cell 16 a hill snapped to

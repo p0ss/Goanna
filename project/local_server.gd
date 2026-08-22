@@ -130,6 +130,11 @@ static func data_dir_or_empty() -> String:
 func _install_server_mod(world: String) -> void:
 	var src := ProjectSettings.globalize_path("res://../goanna_server_mod")
 	if not FileAccess.file_exists(src.path_join("init.lua")):
+		# True of every exported build today: the mod lives beside project/
+		# in the checkout and is not packed. Say so, or the grant written
+		# above is silently never relayed and far rendering just does not
+		# happen.
+		push_warning("goanna_server_mod not found at %s; far rendering will not be granted in this world" % src)
 		return
 	var dst := world.path_join("worldmods").path_join("goanna_server_mod")
 	DirAccess.make_dir_recursive_absolute(dst)
@@ -138,7 +143,7 @@ func _install_server_mod(world: String) -> void:
 			DirAccess.copy_absolute(src.path_join(f), dst.path_join(f))
 
 
-func start(gameid: String, worldname: String) -> String:
+func start(gameid: String, worldname: String, player_name: String = "player") -> String:
 	var env := detect()
 	if env.is_empty():
 		return "No Luanti server found. Install Luanti (or the org.luanti.luanti flatpak), or set GOANNA_SERVER_CMD."
@@ -170,6 +175,34 @@ func start(gameid: String, worldname: String) -> String:
 		# below provides. docs/far-rendering.md, "the server decides".
 		cf.store_string("goanna_far_rendering = true\n")
 		cf.store_string("goanna_far_rendering_distance = %d\n" % far_distance)
+		# A fresh world has no far terrain to summarise. The server generates
+		# only within the range the client asks for (max_block_generate_distance
+		# is capped by the client's wanted range in clientiface.cpp), so the
+		# grant above puts no horizon on a world nobody has walked. The mod's
+		# pregeneration is the server's own answer: it generates outward from
+		# each player at its own pace, one 128 node area at a time, and pushes
+		# each area's summary as it lands. It is the operator's choice, and
+		# here the operator is the player.
+		cf.store_string("goanna_far_pregenerate = true\n")
+		# Privileges. The client's fly toggle works whether or not the server
+		# allows it, exactly as the vanilla client's does, and a server that
+		# does not allow it answers every flying step with "moved too fast"
+		# and resets the player to the ground. On a public server that is
+		# correct. On the server this player just launched for themselves it
+		# means flying loads nothing, because the live blocks and the far
+		# summaries both follow where the server believes the player is. So
+		# new players on this server start with the single player set:
+		# Luanti gives fly, fast, noclip, teleport, give and settime to no one
+		# by default, not even the admin (give_to_admin follows
+		# give_to_singleplayer, and those are registered false), which is why
+		# name= below is not enough on its own.
+		cf.store_string("default_privs = interact, shout, fly, fast, noclip, teleport, give, settime\n")
+		# default_privs applies at first join only, so a player created in an
+		# earlier world keeps what they had. Naming the player as the server's
+		# admin gives them the privs priv on every world, old or new, so
+		# "/grantme all" is available when that happens.
+		if player_name != "":
+			cf.store_string("name = %s\n" % player_name)
 		cf = null
 	_install_server_mod(world_path)
 	var argv := Array(_argv)
