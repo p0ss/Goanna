@@ -99,7 +99,10 @@ public:
     float frame() const { return m_current_frame; }
     // Advances by dt seconds, applies overrides (their dtime_passed advances,
     // finished identity overrides are erased) and writes bone poses.
-    void step(float dt, std::map<std::string, BoneOverride> &overrides, godot::Skeleton3D *skeleton);
+    // With a shrink joint set, unshrunk (when given) receives the same pose
+    // without the shrink, for the shadow-only copy of the model.
+    void step(float dt, std::map<std::string, BoneOverride> &overrides, godot::Skeleton3D *skeleton,
+            godot::Skeleton3D *unshrunk = nullptr);
     // Global transform (mesh space, Godot handedness) of a named joint after
     // the last step; false if unknown.
     bool jointGlobal(const std::string &name, godot::Transform3D &out) const;
@@ -107,9 +110,12 @@ public:
     // step; used to keep the local player's head out of the first-person
     // camera. No effect if the model has no such joint.
     void setShrinkJoint(const std::string &name);
-    // Replace a named joint's local rotation each step (over animation and
-    // server bone overrides): poses the first-person arm toward the camera.
-    void setJointRotationOverride(const std::string &name, const core::quaternion &q);
+    // Turn a named joint each step, in its parent's space, on top of the
+    // animation and any server bone override: the first-person arm swing.
+    // Relative rather than absolute because the model may bake a half turn
+    // into the joint's rest (Mineclonia's character does, as a scale flip),
+    // which an absolute pose silently mirrors.
+    void setJointRotationOverride(const std::string &name, const v3f &euler_deg);
     bool hasJoint(const std::string &name) const;
 
 private:
@@ -126,7 +132,7 @@ private:
     std::optional<u32> m_shrink_joint;
     std::optional<u32> m_rot_override_joint;
     std::string m_rot_override_name;
-    core::quaternion m_rot_override_q;
+    v3f m_rot_override_euler;
 };
 
 // Irrlicht matrix (row vectors, left-handed) to a Godot transform, z mirrored.

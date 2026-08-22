@@ -4,7 +4,10 @@
 #include "goanna_entities.h"
 
 #include <set>
+#include <vector>
 #include <godot_cpp/variant/utility_functions.hpp>
+
+#include <godot_cpp/classes/geometry_instance3d.hpp>
 
 #include <godot_cpp/classes/box_mesh.hpp>
 #include <godot_cpp/classes/capsule_mesh.hpp>
@@ -161,7 +164,12 @@ std::shared_ptr<GodotModel> EntityRenderer::modelFor(GoannaSession &session, con
         model = buildGodotModel(mesh);
         mesh->drop();
     }
-    m_models[name] = model;
+    // Only a success is remembered. Caching the failure meant one lookup that
+    // ran before the model's media had arrived condemned that model to the
+    // placeholder for the rest of the session, and for the local player the
+    // placeholder is a capsule at the lens.
+    if (model)
+        m_models[name] = model;
     return model;
 }
 
@@ -175,46 +183,70 @@ bool EntityRenderer::buildMeshVisual(GoannaSession &session, GoannaActiveObject 
         return false;
     Node3D *holder = memnew(Node3D);
     holder->set_scale(Vector3(p.visual_size.X, p.visual_size.Y, p.visual_size.Z) / BS);
-    MeshInstance3D *mi = memnew(MeshInstance3D);
-    mi->set_mesh(model->mesh);
-    for (int i = 0; i < (int)model->texture_slots.size(); ++i) {
-        u32 slot = model->texture_slots[i];
-        std::string tex;
-        if (slot < p.textures.size())
-            tex = p.textures[slot];
-        if (tex.empty())
-            continue; // upstream: empty string means leave the material alone
-        tex += obj.textureModifier();
-        mi->set_surface_override_material(i, materialForMeshTexture(session, tex, p.use_texture_alpha, !p.backface_culling));
-    }
+    auto build_instance = [&]() {
+        MeshInstance3D *m = memnew(MeshInstance3D);
+        m->set_mesh(model->mesh);
+        for (int i = 0; i < (int)model->texture_slots.size(); ++i) {
+            u32 slot = model->texture_slots[i];
+            std::string tex;
+            if (slot < p.textures.size())
+                tex = p.textures[slot];
+            if (tex.empty())
+                continue; // upstream: empty string means leave the material alone
+            tex += obj.textureModifier();
+            m->set_surface_override_material(i,
+                    materialForMeshTexture(session, tex, p.use_texture_alpha, !p.backface_culling));
+        }
+        return m;
+    };
+    MeshInstance3D *mi = build_instance();
     en.animator.reset();
     en.skeleton = nullptr;
+    en.shadow_skeleton = nullptr;
     if (model->animated) {
-        Skeleton3D *sk = memnew(Skeleton3D);
+        // Godot wants unique bone names; models may repeat them (and the
+        // extra rigid-attachment bones have none). Lookups use indices.
         const auto &joints = model->skinned->getAllJoints();
+        std::vector<String> bone_names;
         std::set<std::string> used;
         for (int i = 0; i < model->bone_count; ++i) {
-            // Godot wants unique bone names; models may repeat them (and the
-            // extra rigid-attachment bones have none). Lookups use indices.
             std::string name = (i < model->joint_count && joints[i]->Name) ? *joints[i]->Name : "";
             if (name.empty() || used.count(name))
                 name += "#" + std::to_string(i);
             used.insert(name);
-            sk->add_bone(String::utf8(name.c_str()));
+            bone_names.push_back(String::utf8(name.c_str()));
         }
-        Ref<Skin> skin;
-        skin.instantiate();
-        for (int i = 0; i < model->bone_count; ++i)
-            skin->add_bind(i, Transform3D());
-        mi->set_skin(skin);
-        sk->add_child(mi);
-        mi->set_skeleton_path(NodePath(".."));
-        holder->add_child(sk);
-        en.skeleton = sk;
+        auto skin_under_skeleton = [&](MeshInstance3D *m) {
+            Skeleton3D *sk = memnew(Skeleton3D);
+            for (const String &n : bone_names)
+                sk->add_bone(n);
+            Ref<Skin> skin;
+            skin.instantiate();
+            for (int i = 0; i < model->bone_count; ++i)
+                skin->add_bind(i, Transform3D());
+            m->set_skin(skin);
+            sk->add_child(m);
+            m->set_skeleton_path(NodePath(".."));
+            holder->add_child(sk);
+            return sk;
+        };
+        en.skeleton = skin_under_skeleton(mi);
         en.animator = std::make_unique<ModelAnimator>(model);
         en.anim_range = Vector2(-1, -1); // apply the frame loop on the next sync
-        if (obj.isLocalPlayer())
+        if (obj.isLocalPlayer()) {
             en.animator->setShrinkJoint("Head");
+            // The head is shrunk out of the lens, which also took it out of
+            // the shadow: one skinned mesh cannot be headless to the camera
+            // and whole to the light. So the local player gets a second copy
+            // of the same mesh on its own skeleton, posed without the shrink
+            // and drawn into the shadow pass only, and the copy the camera
+            // sees stops casting. The cost is one extra skinned draw for one
+            // entity.
+            MeshInstance3D *shadow_mi = build_instance();
+            en.shadow_skeleton = skin_under_skeleton(shadow_mi);
+            shadow_mi->set_cast_shadows_setting(GeometryInstance3D::SHADOW_CASTING_SETTING_SHADOWS_ONLY);
+            mi->set_cast_shadows_setting(GeometryInstance3D::SHADOW_CASTING_SETTING_OFF);
+        }
     } else {
         holder->add_child(mi);
     }
@@ -325,6 +357,7 @@ void EntityRenderer::rebuildVisual(GoannaSession &session, GoannaActiveObject &o
         en.visual = nullptr;
     }
     en.skeleton = nullptr;
+    en.shadow_skeleton = nullptr;
     en.animator.reset();
     const ObjectProperties &p = obj.props();
     std::string tex0 = p.textures.empty() ? "" : p.textures[0];
@@ -365,6 +398,13 @@ void EntityRenderer::rebuildVisual(GoannaSession &session, GoannaActiveObject &o
     }
     case OBJECTVISUAL_MESH:
         if (buildMeshVisual(session, obj, en))
+            break;
+        // The placeholder below stands where the entity is, which for anything
+        // else is helpful and for the local player is a magenta capsule around
+        // the camera: it is your own collision box, so you are inside it, and
+        // in fly mode it fills the frame. Nothing at all is better; the body
+        // comes back on the next visual version once the model loads.
+        if (obj.isLocalPlayer())
             break;
         [[fallthrough]];
     case OBJECTVISUAL_ITEM:
@@ -445,6 +485,77 @@ Array EntityRenderer::list(GoannaSession &session) const {
     return a;
 }
 
+// Which of the model's arms is the one a first-person player thinks of as
+// theirs. The game itself answers this: it hangs the wield item off a bone in
+// that hand, so the arm nearest that bone is the one holding the tool. Only
+// when nothing is attached does this fall back to the older guess, the arm
+// that projects furthest to the camera's right, which is wrong for any model
+// whose arms are not laid out the way Luanti's character is.
+std::string EntityRenderer::chooseArmBone(GoannaSession &session, u16 self_id, const EntityNode &en,
+        float yaw) const {
+    // Pitch control first on each side: it is the bone Luanti's own character
+    // model gives games to aim the arm with, and turning it turns the whole
+    // arm rather than bending it at the elbow.
+    static const char *sides[2][2] = {{"Arm_Right_Pitch_Control", "Arm_Right"},
+            {"Arm_Left_Pitch_Control", "Arm_Left"}};
+
+    Transform3D wield_xf;
+    bool have_wield = false, wield_shown = false;
+    for (auto &kv : session.objects()) {
+        const GoannaActiveObject &o = *kv.second;
+        if (o.attachmentParent() != self_id || o.attachmentBone().empty())
+            continue;
+        if (o.props().visual != OBJECTVISUAL_WIELDITEM && o.props().visual != OBJECTVISUAL_ITEM)
+            continue;
+        // A game may hang one of these off each hand (Mineclonia gives the
+        // offhand its own), and the one holding something is the main hand.
+        if (have_wield && (wield_shown || !o.props().is_visible))
+            continue;
+        Transform3D j;
+        if (!en.animator->jointGlobal(o.attachmentBone(), j))
+            continue;
+        wield_xf = j;
+        have_wield = true;
+        wield_shown = o.props().is_visible;
+    }
+
+    float yr = yaw * core::DEGTORAD;
+    const Vector3 cam_right(std::cos(yr), 0, -std::sin(yr));
+    const Transform3D body = en.skeleton->get_global_transform();
+    int best_side = -1;
+    float best_score = 0.0f;
+    for (int s = 0; s < 2; ++s) {
+        for (const char *name : sides[s]) {
+            Transform3D j;
+            if (!en.animator->jointGlobal(name, j))
+                continue;
+            float score;
+            if (have_wield) {
+                score = -j.origin.distance_to(wield_xf.origin);
+            } else {
+                score = (body.xform(j.origin) - body.origin).dot(cam_right);
+                // An unstepped skeleton is all identity, so every joint sits
+                // at the origin and every side scores the same; wait rather
+                // than lock in a coin toss.
+                if (std::fabs(score) <= 0.02f)
+                    continue;
+            }
+            if (best_side < 0 || score > best_score) {
+                best_side = s;
+                best_score = score;
+            }
+        }
+    }
+    if (best_side < 0)
+        return std::string();
+    for (const char *name : sides[best_side]) {
+        Transform3D j;
+        if (en.animator->jointGlobal(name, j))
+            return name;
+    }
+    return std::string();
+}
+
 void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camera_pos) {
     auto &objects = session.objects();
     // remove gone
@@ -470,13 +581,20 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
         // own is_visible rather than isVisible() there.
         bool is_self = obj.isLocalPlayer();
         bool visible = is_self
-                ? (m_show_body && obj.props().visual == OBJECTVISUAL_MESH && obj.props().is_visible)
+                ? (obj.props().visual == OBJECTVISUAL_MESH && obj.props().is_visible)
                 : obj.isVisible();
         en.root->set_visible(visible);
         if (!visible)
             continue;
         if (en.visual_version != obj.visualVersion())
             rebuildVisual(session, obj, en);
+        // "Show own body" hides the copy the camera sees, not the whole
+        // entity: the shadow-only copy stays, so a player who does not want
+        // to see their own legs still has a shadow to judge the sun by.
+        if (is_self && en.skeleton)
+            en.skeleton->set_visible(m_show_body);
+        else if (is_self && en.visual)
+            en.visual->set_visible(m_show_body);
         // pose: Luanti BS units, z mirrored; rotation.Y is yaw about Y
         v3f pos = obj.position();
         v3f rot = obj.rotation();
@@ -541,56 +659,33 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
             // server-interpolated CAO, or it trails the camera; body yaw
             // follows the look yaw, pitch stays level.
             if (LocalPlayer *lp = session.player()) {
-                v3f pp = lp->getPosition();
-                // slightly behind the eye along the look yaw, so the
-                // shoulders sit below the lens instead of filling it. The
-                // horizontal look is (0,0,1).rotateXZBy(yaw) = (-sin, cos).
-                float yaw_rad = lp->getYaw() * core::DEGTORAD;
-                pp.X += std::sin(yaw_rad) * 1.2f;
-                pp.Z -= std::cos(yaw_rad) * 1.2f;
+                // Standing where the player stands, not nudged back along the
+                // look. The nudge was 1.2 BS, which is 0.12 nodes, and it was
+                // there to keep the shoulders out of the lens; with the head
+                // shrunk there is nothing at eye height to keep out, and the
+                // nudge only put the legs and the shadow 12 cm behind the
+                // feet, where a player looking down can see the mismatch.
+                const v3f pp = lp->getPosition();
                 en.root->set_position(Vector3(pp.X / BS, pp.Y / BS, -pp.Z / BS));
                 // Unlike CAO rotations, the player yaw maps to Godot yaw
                 // directly; mirroring it made the body counter-rotate. No half
                 // turn: the model already faces the way the player looks, and
-                // adding one put the arm behind the camera. (The arm bone is
-                // picked by which side it shows on, so the naming convention
-                // of the model is not assumed either way.)
+                // adding one put the arm behind the camera.
                 en.root->set_rotation_degrees(Vector3(0, lp->getYaw(), 0));
             }
         }
         if (is_self && en.animator) {
-            // First-person arm: pose one of the body's arms toward the view so
-            // the wield item the game attaches to that bone sits in hand, and
-            // swing the same pose. Which arm reads as "yours" depends on the
-            // model's facing and its bone naming, so pick the one that
-            // actually projects to the camera's right rather than assuming.
+            // First-person arm. Goanna does not pose it any more than it has
+            // to: the game already does, and now that the dig key is reported
+            // it does it for a dig as well. All that is left here is a swing
+            // for a game that never touches the bone.
             float yaw = 0.0f, pitch = 0.0f;
             if (LocalPlayer *lp = session.player()) {
                 yaw = lp->getYaw();
                 pitch = lp->getPitch();
             }
-            if (en.arm_bone.empty() && en.skeleton) {
-                const char *cands[4] = {"Arm_Right_Pitch_Control", "Arm_Right",
-                        "Arm_Left_Pitch_Control", "Arm_Left"};
-                float yr = yaw * core::DEGTORAD;
-                Vector3 cam_right(std::cos(yr), 0, -std::sin(yr));
-                Transform3D body = en.skeleton->get_global_transform();
-                float best = 0.0f;
-                for (const char *c : cands) {
-                    Transform3D j;
-                    if (!en.animator->jointGlobal(c, j))
-                        continue;
-                    float d = (body.xform(j.origin) - body.origin).dot(cam_right);
-                    if (en.arm_bone.empty() || d > best) {
-                        // require a real offset, so an unstepped (identity)
-                        // skeleton does not lock in a bad choice
-                        if (std::fabs(d) > 0.02f) {
-                            best = d;
-                            en.arm_bone = c;
-                        }
-                    }
-                }
-            }
+            if (en.arm_bone.empty() && en.skeleton)
+                en.arm_bone = chooseArmBone(session, kv.first, en, yaw);
             if (!en.arm_bone.empty() && getenv("GOANNA_DEBUG_ARM")) {
                 static std::string last;
                 if (last != en.arm_bone) {
@@ -598,25 +693,33 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
                     godot::UtilityFunctions::print("arm bone chosen: ", String(en.arm_bone.c_str()));
                 }
             }
+            // A game that poses this bone itself is already saying where the
+            // arm goes, and now that Goanna reports the dig key it says it for
+            // a dig too (Mineclonia switches to its mine animation and aims
+            // the arm down the look). Adding a swing of our own on top of that
+            // only overshoots, so the local swing is the fallback for games
+            // that leave the bone alone, not a second opinion.
             if (!en.arm_bone.empty()) {
-                // Mineclonia's own Arm_Right_Pitch_Control convention:
-                // x = 90 + look pitch, y pulls the arm inward, z counters a
-                // little; the swing chops the same pose. Tunable: GOANNA_ARM.
-                static float A[7] = {62.0f, 14.0f, 0.0f, 1.0f, 0.35f, -40.0f, 10.0f};
+                // Degrees about the joint's pitch axis at the top of the
+                // swing, and how much of the look pitch the arm takes with it
+                // there, so a chop aimed at the ground lands on the ground.
+                // Both come from Mineclonia's own rule for this bone: an
+                // absolute (look pitch, 0, 0) while punching against a resting
+                // (20, 0, 0) while holding an item, so the swing is a relative
+                // (pitch - 20). Tunable: GOANNA_ARM="chop,pitch_follow".
+                static float A[2] = {-20.0f, 1.0f};
                 static bool arm_env = [] {
                     if (const char *e = std::getenv("GOANNA_ARM"))
-                        sscanf(e, "%f,%f,%f,%f,%f,%f,%f", &A[0], &A[1], &A[2], &A[3], &A[4], &A[5], &A[6]);
+                        sscanf(e, "%f,%f", &A[0], &A[1]);
                     return true;
                 }();
                 (void)arm_env;
-                v3f eul(A[0] + A[3] * pitch + A[5] * m_arm_swing,
-                        A[1] + A[6] * m_arm_swing,
-                        A[2] + A[4] * pitch);
-                // Same convention as server bone overrides: euler degrees,
-                // stored inverse (BoneSceneNode keeps rotations inverted).
-                core::quaternion q(eul * core::DEGTORAD);
-                q.makeInverse();
-                en.animator->setJointRotationOverride(en.arm_bone, q);
+                // Everything scales with the swing, so at rest the arm is
+                // exactly where the model and the server left it.
+                float swing = m_arm_swing * (A[0] + A[1] * pitch);
+                if (obj.boneOverrides().count(en.arm_bone))
+                    swing = 0.0f;
+                en.animator->setJointRotationOverride(en.arm_bone, v3f(swing, 0, 0));
             }
         }
         // skeletal animation: GenericCAO::updateAnimation, then a step
@@ -636,7 +739,7 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
             en.animator->setAnimationSpeed(obj.animSpeed());
             en.animator->setTransitionTime(obj.animBlend());
             en.animator->setLoopMode(obj.animLoop());
-            en.animator->step(dt, obj.boneOverridesMut(), en.skeleton);
+            en.animator->step(dt, obj.boneOverridesMut(), en.skeleton, en.shadow_skeleton);
         }
         // sprite frame animation
         const ObjectProperties &p = obj.props();

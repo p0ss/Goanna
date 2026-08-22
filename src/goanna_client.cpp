@@ -384,7 +384,14 @@ void GoannaClient::set_player_pose(const Vector3 &pos, float pitch_deg, float ya
     m_session->setPlayerPose(luanti, pitch_deg, yaw_deg);
     std::lock_guard<std::mutex> lk(m_session->mapLock());
     if (LocalPlayer *p = m_session->player()) {
-        p->setPosition(luanti * BS);
+        // Every caller hands us the camera, which is the eye, but every reader
+        // of the local player's position takes it for the feet: the collision
+        // box stands on it, the dig ray starts an eye offset above it, and the
+        // first-person body is drawn from it. Setting it to the eye put the
+        // body's feet at eye height, so in fly mode (which is what the control
+        // channel's "pose" turns on) the legs and waist filled the lens and
+        // every screenshot had a wall of skin across it.
+        p->setPosition(luanti * BS - p->getEyeOffset());
         // No inherited velocity: walking would otherwise resume with whatever
         // speed the player had when the camera took over.
         p->setSpeed(v3f(0, 0, 0));
@@ -665,6 +672,11 @@ Dictionary GoannaClient::step_interact(double dt, bool dig, bool place, bool pla
     in.place = place;
     in.place_pressed = place_pressed;
     in.sneak = sneak;
+    // Tell the server which of the two buttons is down. A vanilla client sends
+    // this in every position packet; Goanna sent zero, so no game ever saw the
+    // local player digging and no game ever played its mining animation on the
+    // body, which is most of why the first-person arm looked wrong in a dig.
+    m_session->setPlayerKeys(dig, place);
     in.eye_pos_bs = p->getPosition() + p->getEyeOffset();
     // Luanti camera direction from pitch/yaw (Camera::update)
     float pitch = p->getPitch(), yaw = p->getYaw();
