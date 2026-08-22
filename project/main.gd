@@ -52,6 +52,9 @@ var light_shafts := 1.0
 # below 1 it starts early and rises slowly.
 var fog_clear_fraction := 0.3
 var fog_curve := 1.6
+# How opaque the haze is allowed to get at the drawn edge. Below 1 on purpose:
+# see the note where fog_density is set. GOANNA_FOG_MAX sweeps it.
+var fog_max := 0.88
 # How broad the haze band below the horizon line is, sky.gdshader's
 # ground_curve: the background terrain has not arrived over.
 var sky_ground_curve := 3.0
@@ -146,6 +149,7 @@ func _ready() -> void:
 	light_shafts = _envf("GOANNA_SHAFTS", light_shafts)
 	fog_clear_fraction = _envf("GOANNA_FOG_CLEAR", fog_clear_fraction)
 	fog_curve = _envf("GOANNA_FOG_CURVE", fog_curve)
+	fog_max = _envf("GOANNA_FOG_MAX", fog_max)
 	sky_ground_curve = _envf("GOANNA_GROUND_CURVE", sky_ground_curve)
 	if cfg.load("user://goanna.cfg") == OK:
 		for k in ["sun", "ambient", "sdfgi", "sdfgi_cell", "ssao", "white", "exposure", "fill", "shafts"]:
@@ -1615,7 +1619,19 @@ func _apply_sky() -> void:
 		e.fog_depth_begin = clampf(haze_from, fog_end * fog_clear_fraction, fog_end * 0.6)
 		e.fog_depth_end = fog_end
 		e.fog_depth_curve = fog_curve
-		e.fog_density = 1.0
+		# Never quite all of it. Full extinction paints every pixel past the
+		# drawn edge in one flat fog colour, and since that colour is the
+		# horizon's it is brighter than night terrain and brighter than the
+		# zenith, so it reads as a pale band laid across the world rather than
+		# as distance. Measured on a server with no far rendering granted:
+		# fog closing at the 192 node live edge, colour 74,103,144, against
+		# near black ground. The vanilla client does not do this, and what it
+		# does instead is exactly this: haze that keeps rising and never
+		# arrives, so the furthest terrain is a tint of itself rather than
+		# gone. What is left visible at the edge is a silhouette, which is a
+		# better answer than a wall even where there is a ragged far field
+		# frontier behind it.
+		e.fog_density = fog_max
 		# Aerial perspective blends distant geometry toward the sky, which is
 		# what actually sells a vista; it wants to be stronger the further we
 		# draw, so a 512 node horizon reads as haze rather than a hard edge.

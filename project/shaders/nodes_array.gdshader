@@ -17,7 +17,20 @@
 shader_type spatial;
 render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 
-uniform sampler2DArray albedo_array : source_color, filter_nearest_mipmap, repeat_enable;
+// Anisotropic, because a node surface seen at a grazing angle is the case
+// that matters and ordinary mipmapping cannot serve it: one mip level has to
+// cover a footprint that is many texels long and one wide, so it either
+// aliases into a moire of fish scales or blurs the surface away. A hillside
+// running to the horizon is nothing but grazing angles, which is why the
+// distance shimmered while the ground underfoot looked right. The vanilla
+// client does not show this on the same world.
+//
+// Nearest within the level, so the art stays pixel art. This file's own
+// comment on lod_flatten already named the cause and worked around it with a
+// blend to the tile's average colour rather than fixing it; that blend is
+// still worth having, since a merged quad hundreds of nodes across is beyond
+// what any filtering can hold, but it was covering for this.
+uniform sampler2DArray albedo_array : source_color, filter_nearest_mipmap_anisotropic, repeat_enable;
 // LabPBR companions, when a resource pack ships them (see docs): _n carries
 // the tangent normal in RG with ambient occlusion in B, _s carries perceptual
 // smoothness in R, F0/metalness in G and emission in A.
@@ -150,6 +163,15 @@ void fragment() {
 			// leaf or a pane of ice wants.
 			BACKLIGHT = ALBEDO * sss * sss_strength;
 		}
+	}
+
+	// Cloth catches the light along a grazing edge, which no LabPBR channel
+	// can say and which is most of what separates wool from painted stone.
+	// Godot's own rim term, so it stays inside the lighting the rest of the
+	// world is lit by. The class is the one already looked up above.
+	if (cls == 11) {
+		RIM = 0.6;
+		RIM_TINT = 0.35;
 	}
 
 	// Node light and occlusion. Occlusion multiplies ambient and, by default,

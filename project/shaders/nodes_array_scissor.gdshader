@@ -11,7 +11,9 @@
 shader_type spatial;
 render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 
-uniform sampler2DArray albedo_array : source_color, filter_nearest_mipmap, repeat_enable;
+// Anisotropic, matching nodes_array.gdshader; its header says why. Change
+// one, change the other.
+uniform sampler2DArray albedo_array : source_color, filter_nearest_mipmap_anisotropic, repeat_enable;
 #include "res://shaders/nodes_array_common.gdshaderinc"
 
 void vertex() {
@@ -109,6 +111,15 @@ void fragment() {
 			float sss = (sp.b - 0.2549) / 0.7451;
 			BACKLIGHT = ALBEDO * sss * sss_strength;
 		}
+	}
+
+	// Cloth catches the light along a grazing edge, which no LabPBR channel
+	// can say and which is most of what separates wool from painted stone.
+	// Godot's own rim term, so it stays inside the lighting the rest of the
+	// world is lit by. The class is the one already looked up above.
+	if (cls == 11) {
+		RIM = 0.6;
+		RIM_TINT = 0.35;
 	}
 
 	// Node light and occlusion. Occlusion multiplies ambient and, by default,

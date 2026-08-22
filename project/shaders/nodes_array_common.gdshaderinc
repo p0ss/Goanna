@@ -6,8 +6,8 @@
 // duplicated in nodes_array.gdshader and nodes_array_scissor.gdshader rather
 // than shared. Change one, change the other.
 
-uniform sampler2DArray normal_array : hint_default_black, filter_linear_mipmap, repeat_enable;
-uniform sampler2DArray spec_array : hint_default_black, filter_linear_mipmap, repeat_enable;
+uniform sampler2DArray normal_array : hint_default_black, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2DArray spec_array : hint_default_black, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform bool has_normal = false;
 uniform bool has_spec = false;
 // Per channel strengths. A LabPBR pack is authored for someone else's
