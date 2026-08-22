@@ -60,8 +60,21 @@ one frame. Water is the rule applied to one material: one surface model at
 every range, procedural waves with detail that fades by distance, the same
 reflection and absorption near and far, no texture tiling at any range.
 
-Where the code breaks it on 2026-08-22, found by reading rather than by
-guessing, each a task under the rule:
+One light, one air is not enough on its own, because the eye reads the gaps
+as well as the geometry, and on a new world most of the far view is gaps:
+panels that have not arrived, holes between the ones that have, and an
+outermost edge with nothing past it. So the far view is three layers and
+only the middle one is terrain. A background of horizon coloured air,
+complete from the first frame and claiming no terrain at all; the panels
+over it; the live range in front. The haze that joins them closes at the
+edge of what is actually drawn rather than at the distance the server
+permits, so where there is nothing to show there is air rather than an
+edge, and the view opens as terrain arrives. That landed 2026-08-22;
+`far-rendering.md`, "Background, overlay, foreground", has the measurements
+and what it deliberately does not fix.
+
+Where the code breaks the rule on 2026-08-22, found by reading rather than
+by guessing, each a task under it:
 
 **R1, continuity of the far field.** Four things, all in `src/` and the
 node shaders. Three landed 2026-08-22 (commit "Stop the far field reading
