@@ -212,11 +212,25 @@ func _process(delta: float) -> void:
 		flash_alpha = clampf(0.15 + 0.05 * (last_hp - hp), 0.15, 0.5)
 	last_hp = hp
 	if client.has_method("render_stats"):
-		var far: int = int((client.render_stats() as Dictionary).get("far_remote", 0))
+		# The hint says the horizon is still filling, so that a fresh world's
+		# empty distance does not read as broken. It used to show whenever the
+		# summary count moved at all, which never stops: the server keeps
+		# pregenerating, blocks come and go as the player moves, and since
+		# incomplete areas are asked for again every twenty seconds the count
+		# ticks over for the life of the session. So it never went away, which
+		# taught a player to ignore it, which is the opposite of the point.
+		# It now tracks whether the far field has actually reached as far as it
+		# is allowed to go, and says nothing once it has.
+		var rs: Dictionary = client.render_stats()
+		var far: int = int(rs.get("far_remote", 0))
+		var grant: int = int(rs.get("far_grant", 0))
+		var extent: int = int(rs.get("far_extent", 0))
+		var reached: bool = grant <= 0 or extent >= int(0.9 * float(mini(grant,
+				int(client.far_distance()) if client.has_method("far_distance") else grant)))
 		if far != far_hint_last:
 			far_hint_last = far
 			far_hint_changed_at = t
-		far_hint_alpha = 1.0 if (far > 0 and t - far_hint_changed_at < 4.0) \
+		far_hint_alpha = 1.0 if (far > 0 and not reached and t - far_hint_changed_at < 4.0) \
 				else maxf(0.0, far_hint_alpha - delta * 0.5)
 	if flash_alpha > 0.0:
 		flash_alpha = maxf(0.0, flash_alpha - delta * 1.5)
