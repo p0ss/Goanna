@@ -59,12 +59,12 @@ global uniform vec3 goanna_sky_horizon;
 // Far tiers only, set alongside waving=false: a tier's water quad is one
 // flat plane per cell, whose UV repeats the tile the same way a solid one
 // does, and aliases the same way at range (docs/far-rendering.md, "Shade the
-// far field as a far field"). Past lod_flatten_near the sampled tile colour
-// blends toward its own average, reaching it fully by lod_flatten_far.
+// far field as a far field"). fragment() answers that by sampling the tile's
+// last mip rather than by blending toward an average with distance, so the
+// three uniforms that blend is set from are no longer read here.
+// GoannaClient still sets them on this material, which is harmless, and the
+// solid node shaders still use their own copies.
 uniform bool lod_flatten = false;
-uniform vec3 lod_avg_colour = vec3(0.0);
-uniform float lod_flatten_near : hint_range(0.0, 2048.0) = 64.0;
-uniform float lod_flatten_far : hint_range(0.0, 4096.0) = 256.0;
 
 varying vec3 world_pos;
 
@@ -136,12 +136,19 @@ void vertex() {
 void fragment() {
 	if (!FRONT_FACING && goanna_eye_underwater < 0.5)
 		discard;
-	vec4 tex = texture(albedo_tex, UV) * COLOR;
-	if (lod_flatten) {
-		float flatten = smoothstep(lod_flatten_near, lod_flatten_far, length(VERTEX));
-		if (flatten > 0.001)
-			tex.rgb = mix(tex.rgb, lod_avg_colour * COLOR.rgb, flatten);
-	}
+	// A tier's quad is one merged face that can span hundreds of nodes while
+	// its UV still repeats the tile once per node, so sampling it normally
+	// aliases into a shimmer at any range a tier is actually seen from. Take
+	// the 1 by 1 mip instead, which is the tile's own average: one colour,
+	// from one place, for the whole far surface. That is what the near mesh
+	// converges to as well, so the two agree where they meet by construction
+	// rather than by a distance blend that has to be tuned. That replaces the
+	// blend toward lod_avg_colour between lod_flatten_near and
+	// lod_flatten_far, which reached the same colour but only past 64 nodes,
+	// so a tier drawn closer than that, which the store produces wherever the
+	// server has not streamed a block yet, still showed the tile repeating.
+	vec4 tex = lod_flatten ? textureLod(albedo_tex, vec2(0.5), 24.0) * COLOR
+			: texture(albedo_tex, UV) * COLOR;
 	float here = -VERTEX.z;
 
 	if (waving) {
