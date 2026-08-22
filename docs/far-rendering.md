@@ -1556,10 +1556,15 @@ colour the far tiers flatten toward, so a far surface took a neighbouring
 tile's average on half its pixels and its own on the rest. It is now
 `int(round(UV2.x))`, computed once, in both node shaders.
 
-The near mesh never sees it: `lod_flatten` is false there, so the flatten
-branch never runs, and the class index only reaches the frame through the
-stochastic tiling, which is off by default. That is what made it a per tier
-signal rather than a global one.
+The colour half of it is the far tiers' alone: `lod_flatten` is false on the
+near mesh, so the flatten branch never runs there, which is what made this a
+per tier signal rather than a global one. The class half is not. It was
+harmless while `detail_strength` defaulted to 0, and `25e8247` turned the
+surface treatment on for everyone, so from that commit the same truncation
+also decides whether a fragment is treated as granular, on the near mesh as
+well: a sand face whose neighbour layer is planks would have taken the
+treatment on half its pixels and not the other half. One rounded index fixes
+both, and it went in on the same day the treatment did.
 
 **Measured offline first.** `project/material_field.tscn` renders strips of
 real pack textures through `nodes_array.gdshader` with no server, and it

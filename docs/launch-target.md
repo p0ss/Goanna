@@ -156,9 +156,10 @@ a far tier flattens toward. A far surface therefore took a neighbouring
 tile's average colour on half its pixels and its own on the rest, which is a
 different colour and a different sign for every tile and every world: about a
 fifth too dark on grass, a warm grey where the near mesh had deep blue on a
-frozen sea. The near mesh never flattens, so it never saw it, which is what
-made it a per tier signal. It is now `int(round(UV2.x))` in both node
-shaders.
+frozen sea. The near mesh never flattens, so it never saw the colour half,
+which is what made that a per tier signal; the class half is not per tier,
+and became live for everyone when `25e8247` turned the surface treatment on.
+It is now `int(round(UV2.x))`, computed once, in both node shaders.
 
 Measured on a world built to have nothing else in it, `mg_name = flat` with
 `mcl_superflat_classic`, one tile at one height under open sky, one client
