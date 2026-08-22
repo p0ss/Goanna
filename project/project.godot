@@ -29,6 +29,8 @@ environment/ssao/quality=3
 environment/ssao/half_size=false
 environment/ssil/quality=3
 environment/ssil/half_size=false
+environment/volumetric_fog/volume_size=128
+environment/volumetric_fog/volume_depth=96
 
 [shader_globals]
 

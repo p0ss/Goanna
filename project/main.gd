@@ -40,6 +40,11 @@ var light_exposure := 0.46
 # Sky fill strength: Luanti's sky light added by the node shaders as a flat
 # fill in the horizon colour (nodes_array_common.gdshaderinc). 0 turns it off.
 var light_fill := 0.4
+# Light shafts: how much of the sun's light scatters out of the air on its
+# way past, and so how visible the shafts through a canopy or a gap are. A
+# multiplier on what the server asks for, not a replacement; 0 turns the
+# volume off and leaves the flat distance fog alone.
+var light_shafts := 1.0
 # The background layer's shape (docs/far-rendering.md, "Background, overlay,
 # foreground"), swept with GOANNA_FOG_CLEAR and GOANNA_FOG_CURVE. The fraction
 # of the drawn distance that stays clear of haze, and the exponent on the ramp
@@ -138,11 +143,12 @@ func _ready() -> void:
 	light_white = _envf("GOANNA_WHITE", light_white)
 	light_exposure = _envf("GOANNA_EXPOSURE", light_exposure)
 	light_fill = _envf("GOANNA_SKY_FILL", light_fill)
+	light_shafts = _envf("GOANNA_SHAFTS", light_shafts)
 	fog_clear_fraction = _envf("GOANNA_FOG_CLEAR", fog_clear_fraction)
 	fog_curve = _envf("GOANNA_FOG_CURVE", fog_curve)
 	sky_ground_curve = _envf("GOANNA_GROUND_CURVE", sky_ground_curve)
 	if cfg.load("user://goanna.cfg") == OK:
-		for k in ["sun", "ambient", "sdfgi", "sdfgi_cell", "ssao", "white", "exposure", "fill"]:
+		for k in ["sun", "ambient", "sdfgi", "sdfgi_cell", "ssao", "white", "exposure", "fill", "shafts"]:
 			if cfg.has_section_key("settings", "light_" + k):
 				set("light_" + k, float(cfg.get_value("settings", "light_" + k)))
 	client = GoannaClient.new()
@@ -1395,7 +1401,10 @@ func apply_lighting() -> void:
 	e.sdfgi_min_cell_size = light_sdfgi_cell
 	e.ssao_intensity = light_ssao
 	# exposure and the sky fill follow on the next _apply_sky, which scales
-	# them by the server's correction and the time of day
+	# them by the server's correction and the time of day. The shafts are
+	# shaped there too, by the sun's elevation and the weather, so ask for
+	# that now rather than leaving the slider dead until the next sky packet.
+	_apply_sky()
 
 func _envf(name: String, dflt: float) -> float:
 	var v := OS.get_environment(name)
@@ -1583,17 +1592,55 @@ func _apply_sky() -> void:
 	e.adjustment_saturation = clamp(1.12 * float(lighting["saturation"]), 0.0, 2.0)
 	e.tonemap_exposure = clamp(light_exposure * (1.0 + float(lighting["exposure_correction"]) * 0.25), 0.1, 3.0)
 	e.glow_intensity = clamp(0.3 + float(lighting["bloom_intensity"]) * 2.0, 0.0, 2.0)
-	# Luanti's volumetric_light_strength is god-ray strength (0..1), not fog
-	# density: thin volume, scattering scaled by the strength.
+	# --- light shafts, and the air they are shafts in ---
+	# Luanti's volumetric_light_strength is the server asking for god rays,
+	# 0 to 1. Take it the way shadow_intensity is taken above, as a floor on
+	# something Goanna draws anyway rather than as a switch: a server that
+	# never sets it is not asking for a vacuum, it is a server whose own
+	# client cannot draw this at all. The slider is where "none" lives.
 	var vol: float = lighting["volumetric_light_strength"]
 	if not underwater:
-		e.volumetric_fog_enabled = vol > 0.0
-		if vol > 0.0:
-			e.volumetric_fog_density = 0.00025 + 0.0006 * vol
+		# A shaft is a low sun effect. The light crosses far more air near
+		# the horizon, and the forward scattering that makes a shaft visible
+		# points it at an eye looking that way; the same density at noon is
+		# only haze, so most of it is spent when the sun is low.
+		var low: float = 1.0 - clamp(maxf(elev, 0.0) / 0.35, 0.0, 1.0)
+		var air: float = (0.004 + 0.011 * low) * (0.25 + 0.75 * day)
+		# Rain and snow are the air made visible, so the shafts thicken with
+		# them. The particle side is what knows, the sky packet does not.
+		var pnode := get_tree().get_first_node_in_group("goanna_particles")
+		if pnode != null:
+			air += 0.010 * float(pnode.precipitation())
+		air *= (0.6 + 1.4 * vol) * light_shafts
+		e.volumetric_fog_enabled = air > 0.0004
+		if e.volumetric_fog_enabled:
+			e.volumetric_fog_density = air
+			# The air scatters the sun's own colour, which is what makes a
+			# dawn shaft warm and a noon one white.
+			e.volumetric_fog_albedo = Color(1.0, 0.98, 0.95).lerp(sky["fog_sun_tint"], 0.5 * dawn)
+			e.volumetric_fog_anisotropy = 0.8
+			# The volume is a fixed grid of froxels stretched over this range,
+			# so range is bought with resolution: at 160 nodes the near field
+			# was too coarse to hold the shadow of anything smaller than a
+			# hillside and the light came out as an even glow. Shorter, with
+			# the spread pushing more of the grid into the near field, is what
+			# lets a lane in the air have an edge. Past it there is no volume
+			# at all, which is the distance fog's job.
+			e.volumetric_fog_length = 72.0
+			e.volumetric_fog_detail_spread = 3.0
+			# Fog in shadow lit by nothing at all is black, and black air
+			# between shafts reads as smoke. A little sky in it keeps the
+			# shadowed air as air.
+			e.volumetric_fog_ambient_inject = 0.5
 			e.volumetric_fog_emission_energy = 0.0
-			e.volumetric_fog_anisotropy = 0.7
-			e.volumetric_fog_albedo = Color(0.9, 0.93, 1.0)
-			e.volumetric_fog_length = 96.0
+			e.volumetric_fog_gi_inject = 0.0
+		# The shaft is the lamp's contribution to the volume, so this is the
+		# knob that decides how much shaft there is, as against how much haze.
+		sun.light_volumetric_fog_energy = 2.4 * light_shafts
+		moon.light_volumetric_fog_energy = 1.0 * light_shafts
+		# The warm bloom in the air around a low sun. Distance fog can carry
+		# it without the volume, and it survives at any shaft setting.
+		e.fog_sun_scatter = clamp(0.15 + 0.5 * dawn, 0.0, 1.0)
 	# --- shader pack world state ---
 	# What a pack's uniforms can honestly be told: the sky zenith as the
 	# server blended it (before the look tweak above), the fog colour as the
