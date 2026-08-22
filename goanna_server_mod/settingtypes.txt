@@ -12,12 +12,21 @@ goanna_far_rendering (Far rendering) bool false
 #    draw calls, and bounds the far terrain summaries below.
 goanna_far_rendering_distance (Far rendering distance) int 256 64 8192
 
-# How much work a far terrain summary request may cost each server step, in
-# mapblocks read. Summaries are what let a client draw places its player has
-# never been: the server reads terrain it has already generated (it never
-# generates any for this) and sends a coarse digest. Lower this on a busy
-# server; 0 does not disable the feature, goanna_far_rendering does.
-goanna_far_summary_blocks_per_step (Far summary blocks per step) int 32 1 512
+#    How much work a far terrain summary request may cost each server step,
+#    in mapblocks read. Summaries are what let a client draw places its
+#    player has never been: the server reads terrain it has already generated
+#    (it never generates any for this) and sends a coarse digest. This is the
+#    rate the whole far view fills at, for every client together: one area is
+#    512 mapblocks, so 96 a step is about half a second an area. Lower it on
+#    a busy server; 0 does not disable the feature, goanna_far_rendering
+#    does.
+goanna_far_summary_blocks_per_step (Far summary blocks per step) int 96 1 512
+
+#    Stop reading summaries while the server's reported maximum lag is above
+#    this, in seconds, and carry on where the part finished area left off
+#    once it drops. The same guard and the same default as pregeneration's,
+#    and the reason the rate above can be raised at all.
+goanna_far_summary_lag (Far summary lag limit) float 0.5 0.0 60.0
 
 #    Generate terrain around each player out to the far rendering distance,
 #    one 128 node area at a time, a slice of an area per emerge call, and

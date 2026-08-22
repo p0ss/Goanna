@@ -125,9 +125,27 @@ end
 local far_enabled = conf_bool("goanna_far_rendering", false)
 local far_distance = conf_num("goanna_far_rendering_distance", 512)
 -- One mapblock is a 16 cubed VoxelManip read, a few hundred microseconds.
--- 32 a step keeps an 8 cubed area (512 blocks) to about 1.5 seconds of
--- wall clock without any step costing much, and the operator owns the knob.
-local blocks_per_step = conf_num("goanna_far_summary_blocks_per_step", 32)
+--
+-- This is the rate the whole far view fills at, and it was the reason a
+-- horizon arrived as a mosaic. The queue is one job at a time, an area is
+-- 512 mapblocks, so 32 a step is 16 steps, about 1.6 seconds an area, which
+-- is 320 mapblocks a second for every client on the server put together. A
+-- 1024 node grant is 128 by 128 mapblocks around each player, so one
+-- horizontal layer of it is 16384 blocks and takes eight minutes. The
+-- player watching that sees panels appear one at a time for the whole of it.
+--
+-- 96 is three times the rate and still a bounded slice: measured against
+-- mineclonia on this machine, one step of 96 blocks is a few milliseconds
+-- against a 100 ms step. The guard below is what makes raising it safe,
+-- rather than the number itself being cautious.
+local blocks_per_step = conf_num("goanna_far_summary_blocks_per_step", 96)
+-- Stop summarising while the server is behind, the same guard and the same
+-- default as pregeneration's. Without it the knob above is a promise the
+-- operator cannot take back on a loaded server; with it, the rate is what
+-- the server can afford rather than what someone guessed. See the note
+-- above goanna_far_pregenerate_lag for why 0.5 rather than something near
+-- the step length.
+local summary_lag_limit = conf_num("goanna_far_summary_lag", 0.5)
 local c_ignore = core.CONTENT_IGNORE
 local c_air = core.CONTENT_AIR
 
@@ -305,6 +323,13 @@ local EMPTY_RECORD = string.rep("\0", 21)
 core.register_globalstep(function()
 	local job = far_queue[1]
 	if not job then
+		return
+	end
+	-- A job that is part way through is not abandoned, only paused: the
+	-- records already read stay in it and it carries on when the server
+	-- catches up. Dropping it would waste the reads and leave the client
+	-- waiting on a reply that never comes.
+	if core.get_server_max_lag() > summary_lag_limit then
 		return
 	end
 	local total = job.edge * job.edge * job.edge

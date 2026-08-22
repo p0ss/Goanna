@@ -1548,11 +1548,32 @@ func _apply_sky() -> void:
 		# world looked wrong for: measured 2026-08-22 on a fresh profile with
 		# far_blocks at 0, terrain stopping at 192 nodes and the fog set to
 		# close at 512. So the cap bounds it and the content decides it.
-		var draw_nodes: float = maxf(float(client.view_range()) * 16.0, 64.0)
+		var live_nodes: float = maxf(float(client.view_range()) * 16.0, 64.0)
+		var draw_nodes: float = live_nodes
+		# Where the haze starts. The near field is the foreground layer and it
+		# is meant to be clear (docs/launch-target.md, "The rule: one light,
+		# one air"), so this is floored at the live range below.
+		var haze_from: float = live_nodes
 		var stats: Dictionary = client.render_stats() if client.has_method("render_stats") else {}
 		if int(stats.get("far_grant", 0)) > 0 and client.has_method("far_distance"):
 			var cap: float = minf(float(client.far_distance()), float(stats.get("far_grant", 0)))
-			draw_nodes = clampf(float(stats.get("far_extent", 0)), draw_nodes, maxf(draw_nodes, cap))
+			# Two numbers off the same per sector histogram, because one
+			# radius cannot describe a ragged frontier. far_extent is the
+			# lower quartile across the eight sectors, how far a poor
+			# direction reaches; far_reach is the upper quartile, how far a
+			# good one does. Closing the haze at the extent meant every good
+			# direction had its real terrain flattened to sky colour: measured
+			# on the test world at a 1024 node grant, the extent was 496 nodes
+			# while the field reached past 900, so nearly half of what had
+			# been built and drawn was behind solid fog, and the player
+			# reported the fog as being nearer than the far land. A depth fog
+			# has a begin and an end, so it can have both: the haze opens
+			# where the sparse directions run out and closes where the rich
+			# ones do.
+			var far_extent: float = float(stats.get("far_extent", 0))
+			var far_reach: float = maxf(far_extent, float(stats.get("far_reach", 0)))
+			draw_nodes = clampf(far_reach, live_nodes, maxf(live_nodes, cap))
+			haze_from = clampf(far_extent, live_nodes, draw_nodes)
 		# The far plane has to clear whatever is actually drawn, or the
 		# far tiers' own horizon is what clips them, not the fog. A fixed
 		# margin on top of draw_nodes rather than a multiple: at a 4000
@@ -1574,8 +1595,24 @@ func _apply_sky() -> void:
 		if fog_distance > 0.0:
 			# a server asking for closer fog than our range still wins
 			fog_end = minf(fog_end, fog_distance)
+			haze_from = minf(haze_from, fog_end)
 		e.fog_mode = Environment.FOG_MODE_DEPTH
-		e.fog_depth_begin = fog_end * fog_clear_fraction
+		# The fraction is the floor, not the answer. It was the whole answer,
+		# and on the test world that put the haze's start at 149 nodes against
+		# a 192 node live range: the near field, which is the one layer that
+		# is always complete and always worth seeing, was under haze before
+		# the far field began. Whichever of the two is further out wins, so
+		# the foreground stays clear and the fraction still covers the case
+		# where there is no far field at all and the live edge is what has to
+		# be hidden.
+		#
+		# The ceiling is the other half. Once the field fills evenly the
+		# extent catches the reach up, and without a bound the haze collapsed
+		# into the last fifty nodes: measured at 958 to 1008 on a field that
+		# had reached the whole grant, which is a hard edge rather than a
+		# horizon. Two fifths of the drawn depth is always haze, whatever the
+		# frontier is doing.
+		e.fog_depth_begin = clampf(haze_from, fog_end * fog_clear_fraction, fog_end * 0.6)
 		e.fog_depth_end = fog_end
 		e.fog_depth_curve = fog_curve
 		e.fog_density = 1.0

@@ -103,6 +103,13 @@ struct LodRegionMesh {
     std::vector<LodSurface> surfaces;
     int faces = 0; // cell faces before merging
     int quads = 0; // after
+    // Of those faces, how many are side faces that do not span their whole
+    // cell vertically. Each such face sits at its own height inside its own
+    // row of cells, so it can only ever merge along one axis, and a field of
+    // them is a field of strips. The ratio is the instrument for whether a
+    // tier is meshing a surface or a staircase (docs/far-rendering.md,
+    // "Strips, and what the merge can and cannot do").
+    int partial = 0;
     // The widest a single merged quad got, in nodes along its longer edge,
     // which is also how many times its tile repeats across it (UV runs one
     // unit per node). Handed to the region's MeshInstance3D as an instance

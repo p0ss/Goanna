@@ -1278,6 +1278,263 @@ partially generated area is still asked again every twenty seconds for as long
 as it is in range, which is right when a server is generating and pure cost
 when it has stopped.
 
+### Where the summary budget actually went, 2026-08-23
+
+Three complaints, in the project owner's words after a day of fixes that each
+closed one symptom and left the whole still wrong: the fog is applied nearer
+than the far land; there is a gap between near and far; and the far land is
+permanently filled with holes. Under all three, the sentence that is the real
+brief: "the whole intent of Voxy is to have a single continuous terrain off
+into the distance, not to be pulling in one panel at a time for 100k separate
+panels."
+
+That last one is not a matter of taste. It is arithmetic, and this section is
+the arithmetic, because every fix below follows from it.
+
+**The far view fills at one rate and it is a small one.** The mod's summary
+queue is one job at a time. A job is an 8 by 8 by 8 block area, 512 mapblocks,
+paced at `goanna_far_summary_blocks_per_step`, which was 32. That is 16 server
+steps, about 1.6 seconds an area, or 320 mapblocks a second for every client
+on the server put together. A 1024 node grant is 128 by 128 mapblocks around a
+player, so one horizontal layer of it is 16384 blocks and takes eight and a
+half minutes. The player watching that is watching panels arrive one at a
+time, because that is exactly what is happening, and no amount of meshing or
+shading work changes it.
+
+So the question worth asking is not how to draw the panels better. It is where
+that budget goes.
+
+**Two thirds of it went to layers the player cannot see.** Measured off the
+client's own `GOANNA_DEBUG_LOD` request log, one session against the test
+Mineclonia world at a 1024 node grant:
+
+| Area layer, relative to the player's | Asks | Generated records | Blocks drawn |
+| --- | --- | --- | --- |
+| +2 | 8 | 1536 | 2 |
+| +1 | 2 | 39936 | 153 |
+| 0 | 105 | 92165 | 18151 |
+| -1 | 25 | 44638 | 41369 |
+| -2 | 21 | 1477 | 45 |
+| -3 | 9 | 0 | 0 |
+| -4 | 8 | 0 | 0 |
+
+105 of 178 requests were the layer the player was standing in. Seventeen went
+to the two lowest layers and every one of those came back with 0 of 512
+records generated: 8704 mapblocks of `VoxelManip` read for nothing, on a queue
+that fills the horizon at half an area a second. The rows below the player are
+solid rock between 16 and 128 nodes down, drawing 41369 blocks that are buried
+and mesh to no faces at all.
+
+Two separate causes, and both are one line each.
+
+**The walk had no floor.** "Lids, layers and the vertical walk" above set the
+rule that a block the server has not generated is not known to be solid, so it
+does not stop the walk downward. That was written for a player flying above
+ground the server had never made. Its unintended reading is that an area that
+is entirely ungenerated, which is what everything below the bottom of the
+world is, opens the area under it, which is also entirely ungenerated, and so
+on until the vertical bound runs out. `FarAsk` now records whether a reply had
+any generated record at all, and an area with none is not evidence about
+anything beyond it. The retry brings it back once the server has made
+something there, and then its answer means something.
+
+**The vertical tie break was not a tie break.** The request loop sorted on
+`dx * dx + dz * dz + dy * dy / 64` with `dy` in blocks. A layer four down is
+32 blocks, which is 16 after the division, against 64 for the very next area
+sideways. So a whole column, five layers of 512 blocks each, was always asked
+before the next ring out. The vertical offset is now priced in areas:
+`kLayerCost` of 4 means one layer off the player's own ranks like four areas
+of horizontal distance, so the ground in front of the player fills out to four
+areas before anything above or below it is asked about, and a hill or a valley
+near the player is still reached long before a distant one.
+
+Measured after, same world, same server, same four minutes from a cold
+profile: 182 of 195 asks in the player's own layer, 11 in the one below, 2
+above, and none at all below that. From 59 per cent of the budget on the
+frontier to 93 per cent.
+
+**The rate itself was too low, and the reason it was low was reversible.**
+`goanna_far_summary_blocks_per_step` was set at 32 as a bounded slice of a
+server step with no guard behind it, so it had to be cautious enough for the
+worst case. It now has the same lag guard pregeneration has,
+`goanna_far_summary_lag`, which pauses a part finished area rather than
+abandoning it, and the default rises to 96. The rate a server can afford is
+now what it does rather than what somebody guessed.
+
+### The gap between near and far, 2026-08-23
+
+`lodRequestSummaries` skipped any area whose farthest corner fell inside the
+client's wanted range plus two blocks, on the assumption that the server is
+sending every block in there. It is not, and the assumption is not close.
+
+A Luanti server sends only what is inside the player's view cone
+(`RemoteClient::GetNextBlocks` skips anything `isBlockInSight` refuses beyond
+one block) and only what is generated, and it sends it a few blocks a step.
+Measured on the test world at a 192 node wanted range, four and a half minutes
+after joining and not moving: **402 resident blocks**, of which 174 were near
+enough for the full detail mesh. A filled 12 block disc is thousands. So the
+band just inside the live edge was neither live nor summarised, and it is a
+ring of nothing exactly where the eye goes, which is what the player reported
+between the near field and the far one.
+
+The assumption is gone. What replaces it is a test of what is actually there:
+a block that is live, or that already has a chain from the store or an earlier
+summary, is covered, and anything else is worth asking about however near it
+is. The sample runs the diagonal of the area's footprint at both the layer's
+floor and its ceiling, so a column that is live near the ground does not vouch
+for the sky above it. In the same four minutes, seven requests now go to areas
+that the old rule would have skipped outright.
+
+This costs requests near the player, which is where they are worth spending,
+and it is bounded: an area that comes back fully generated is finished with
+and never asked again.
+
+### Haze over the ragged frontier, 2026-08-23
+
+Two things were wrong with the fog and they pull in opposite directions.
+
+**It began inside the near field.** `fog_depth_begin` was `fog_clear_fraction`
+(0.3) times the drawn extent, and nothing else. On a fresh connection with a
+192 node live range and the far field not yet filled, that is 149 nodes: the
+haze started 43 nodes inside the live edge, over the one layer of the picture
+that is always complete and always worth seeing. The near field is the
+foreground layer in `docs/launch-target.md`'s three layer model and it is
+meant to be clear. The fraction is now a floor rather than the answer, and the
+live range is the other candidate; whichever is further out wins.
+
+**It closed well inside terrain that was there.** The haze ended at
+`far_extent`, which is the lower quartile of the eight sector histogram: how
+far the field reaches in a poor direction. That number exists for a good
+reason, and "Background, overlay, foreground" above has it: a single radius
+describes the directions holding the most blocks, which are the ones that
+least need hiding, and leaves the sparse ones ending in clear air. But a
+single radius cannot describe a ragged frontier in either direction. Measured
+on the test world at a 1024 node grant, `far_extent` was 496 nodes while the
+field itself reached past 900, so nearly half of what the client had asked
+for, chained, meshed, uploaded and drawn was behind solid fog. That is the
+fog being nearer than the far land, and it is also several hundred draw calls
+spent on nothing.
+
+A depth fog has a begin and an end, so it can have both numbers.
+`GoannaClient` now reports `far_reach` alongside `far_extent`, the upper
+quartile of the same histogram. The haze opens where the sparse directions run
+out and closes where the rich ones do. A sparse bearing is fully hazed at its
+own edge, as before; a rich one keeps its terrain.
+
+Two bounds keep that honest. The begin is floored at the live range, above.
+And it is capped at three fifths of the end, because once a field fills evenly
+the extent catches the reach up and the haze collapses: measured at 958 to
+1008 on a field that had reached the whole grant, which is a hard edge rather
+than a horizon. Two fifths of the drawn depth is always haze.
+
+**Buried blocks no longer set the horizon.** The sector histogram counted
+every block in `m_far_blocks`, and the table above shows that 41369 of 58257
+of them were solid rock under the ground. A block whose ceiling is filled and
+whose neighbour above is also filled draws no faces at all: every one of them
+is culled. Counting them measured how far the ground goes down rather than how
+far the view goes out. They are skipped now, which is worth about a 5 per cent
+longer reported extent on a third of the blocks.
+
+**The frames.** Same pose (208, 84, 144) looking north at 6 degrees down, same
+`time 0.0` and `time 0.5` overrides, `show_body 0`, fresh `XDG_DATA_HOME`
+profile each side, four and a half minutes from joining, Mineclonia on Luanti
+5.16.1, Godot 4.5.1, a 1024 node grant on a pregenerated world, both arms
+against the same server with the same mod. Before: fog from 216 to 720 nodes,
+and the far land stops in a bright band a third of the way up the frame with
+flat fog past it. After: fog from 605 to 1008, the terrain runs to a lower and
+further horizon, and the near field runs into the mid ground with no step. At
+noon the difference is starker: the whole mid ground had been milky and is now
+in colour.
+
+Cost, same two runs: 294 far regions against 348, 2599 draw calls against
+3136, and the far mesher's moving average 3.9 ms against 4.8. The far field
+reaches further for less, because the budget stopped going underground.
+
+### Strips, and what the merge can and cannot do, 2026-08-23
+
+Reported as "it really often seems like the far terrain has either vertical or
+horizontal strips, but not both", which is a good observation because nothing
+about terrain is anisotropic.
+
+`LodRegionMesh` now counts `partial`: side faces that do not span their whole
+cell vertically. Those are the ones that carry `FaceKey::row`, which is what
+keeps the greedy merge from joining two faces that sit at different heights
+inside different cells, and the effect of a row id is that such a face can
+only ever merge along one axis. Measured on the same frame as above: **67514
+of 133648 faces**, just over half, and the merge ratio is 1.27 faces per quad.
+The merge is achieving almost nothing.
+
+That is not a bug in the merge. It is what a heightfield costs when it is
+drawn as boxes. A summary carries a 4 by 4 grid of surface heights per block,
+so at cell 4 every cell has its own height; adjacent cells on a slope differ,
+so their top faces have different heights and cannot be one rectangle, and the
+step between them is a side face one or two nodes tall that belongs to its own
+cell row. One quad per cell edge is the floor for this representation, and the
+mesher is at it.
+
+So the strips are terracing, and the merge cannot fix terracing. Two things
+could, and neither is a tonight change:
+
+- **Coarse levels take the maximum height of their group.**
+  `lodTakeSummaries` builds cell 8 and cell 16 from the same 4 by 4 wire grid
+  by taking the tallest column in each group. That makes a coarse tier as tall
+  as the tallest thing in every 16 node square, which exaggerates roughness
+  exactly where the cells are biggest, creates steps the terrain does not
+  have, and blocks merges that would otherwise happen on flat ground. A mean
+  or a median would flatten the coarse tiers toward the real surface and merge
+  far better. It would also lose thin spikes, which at a 16 node cell is
+  correct. This wants measuring against the frame before it is trusted, since
+  a coarse cell reading shorter than the finer tier beside it puts a step at
+  the tier boundary.
+- **Draw the far field as a surface rather than as boxes.** The chain already
+  holds a per cell height. A connected triangle mesh over those heights has no
+  risers at all, so the whole partial face population disappears, and a slope
+  is one strip of triangles instead of a staircase of quads and steps. This is
+  a real change to `meshLodRegion` and it interacts with the residency rule,
+  the water surface and the occlusion trace, so it is a piece of work rather
+  than an edit.
+
+The counter stays either way, because it is the instrument: `lod_partial`
+against `lod_faces` says whether a tier is meshing a surface or a staircase,
+in one number, without a screenshot.
+
+### Is the per area request model the obstacle, 2026-08-23
+
+Asked directly by the project owner, and the answer measured above is: partly,
+and not in the way the shape of the request suggests.
+
+The store is already Voxy shaped. `lodChain` reads a block's chain from the
+live block, the store or a summary without the region mesher knowing which,
+and the regions draw continuously from whatever is resident. Nothing about
+that assembles a mosaic. What arrives as a mosaic is the summaries, and the
+reason is the rate, not the granularity: 320 mapblocks a second against a
+grant that wants 16384 for one layer. An area is a sensible unit; asking for
+smaller ones more often would not change the total.
+
+Three things would, in the order they are worth doing:
+
+1. **Stop paying for what cannot be seen.** Two thirds of the budget was going
+   to buried rock and empty sky, and that is now fixed. This was the largest
+   single factor by a wide margin and it needed no protocol change.
+2. **Raise the rate the server will actually stand.** Done, with a guard, and
+   the guard is what makes the number arguable rather than fixed. The next
+   step here is the mod's own cost per block: `block_summary` allocates one
+   `VoxelManip` per mapblock and copies 4096 content ids and 4096 light bytes
+   into Lua tables for each. Reading a whole 8 block column in one
+   `VoxelManip` is the same volume of data through an eighth of the calls, and
+   it is a contained change to one function that does not touch the wire
+   format.
+3. **Send the surface rather than the volume.** An area is 512 mapblocks of
+   which the client draws, on the frontier layer, roughly 30. The record is
+   already a heightfield; the *request* is still a volume. A request for a
+   column, "the surface over these 8 by 8 block columns, wherever it is",
+   would let the server find the surface once per column instead of reading
+   every block in a 128 node cube. That is a protocol version 3 and it wants
+   its own day.
+
+None of those is a rearchitecture of the store, which is the part that was
+already right.
+
 ## Cells are not cubes
 
 A coarse cell used to draw as a full cube, so at cell 16 a hill snapped to
@@ -1434,3 +1691,18 @@ result:
   surfaces and the build time, and `GOANNA_PERF=1` prints them each second.
   `GOANNA_DEBUG_LOD=1` prints every region build with its surfaces, which is
   what says whether a tier landed on the array shader or the flat fallback.
+- `lod_partial` against `lod_faces` in `render_stats`: how much of a tier's
+  geometry is the risers of a staircase rather than the treads. Just over half
+  is what a summary heightfield drawn as boxes costs today; a surface mesher
+  would take it to nothing. See "Strips, and what the merge can and cannot
+  do".
+- `far_extent` and `far_reach`: the lower and upper quartile of the eight
+  sector histogram, so the raggedness of the frontier is a number rather than
+  an impression. The gap between them is what the haze has to cover, and the
+  ratio is how lopsided the field is at that moment.
+- `GOANNA_DEBUG_LOD=1`'s request log answers the question that matters most
+  about the summaries, which is not how fast they arrive but where they go:
+  group `asked for area` by its middle coordinate and read off how much of a
+  budget that fills half an area a second is being spent on layers the player
+  cannot see. That measurement is what "Where the summary budget actually
+  went" is.

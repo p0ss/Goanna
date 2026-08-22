@@ -92,9 +92,19 @@ about 10.5 KB raw and 14 KB once base64 encoded for the channel.
 
 Two bounds an operator owns. Requests outside `goanna_far_rendering_distance`
 of the asking player are refused silently, so the grant is the reach. And the
-work is paced by `goanna_far_summary_blocks_per_step`, thirty two mapblocks
-per server step by default, which keeps an area to a second or two of wall
-clock and a small slice of each step; lower it on a busy server.
+work is paced by `goanna_far_summary_blocks_per_step`, ninety six mapblocks
+per server step by default, which keeps an area to about half a second of
+wall clock; lower it on a busy server.
+
+That number is the rate the whole far view fills at, for every client on the
+server together, and it is worth knowing what it buys. The queue runs one job
+at a time and a job is 512 mapblocks, so 96 a step is roughly two areas a
+second. A 1024 node grant is 128 by 128 mapblocks around a player, one
+horizontal layer of which is 16384 blocks: nearly three minutes at that rate,
+and it was eight and a half at the old default of 32. `goanna_far_summary_lag`
+is what makes raising it safe. Above that many seconds of reported server lag
+the queue pauses, keeping the part finished area rather than abandoning it, so
+no client is left waiting on a reply that never comes.
 
 One limitation worth stating plainly, because it is Luanti's rather than
 ours: a mod channel has no unicast. `send_all` is the only way to answer, so

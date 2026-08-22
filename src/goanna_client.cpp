@@ -1590,11 +1590,13 @@ Dictionary GoannaClient::render_stats() {
     d["poll_max_ms"] = std::max(m_ms_poll_max, m_ms_poll_max_last);
     d["lod_regions_built_last"] = m_lod_last_built;
     int lod_regions = 0, lod_faces = 0, lod_quads = 0, lod_surfaces = 0, lod_dirty = 0;
+    int lod_partial = 0;
     for (auto &kv : m_lod_regions) {
         if (kv.second.node)
             ++lod_regions;
         lod_faces += kv.second.faces;
         lod_quads += kv.second.quads;
+        lod_partial += kv.second.partial;
         lod_surfaces += kv.second.surfaces;
         if (kv.second.dirty)
             ++lod_dirty;
@@ -1602,6 +1604,7 @@ Dictionary GoannaClient::render_stats() {
     d["lod_regions"] = lod_regions;
     d["lod_regions_dirty"] = lod_dirty;
     d["lod_faces"] = lod_faces;
+    d["lod_partial"] = lod_partial;
     d["lod_quads"] = lod_quads;
     d["lod_surfaces"] = lod_surfaces;
     d["lod_chains"] = (int)m_lod_chains.size();
@@ -1610,6 +1613,7 @@ Dictionary GoannaClient::render_stats() {
     d["far_remote"] = (int)m_far_remote.size();
     d["far_grant"] = m_session ? m_session->farRenderingGrant() : 0;
     d["far_extent"] = m_far_extent;
+    d["far_reach"] = m_far_reach;
     if (m_session && m_session->store()) {
         d["store_blocks"] = (int64_t)m_session->store()->blocksKnown();
         d["store_mb"] = (double)m_session->store()->bytes() / (1024.0 * 1024.0);
@@ -2349,16 +2353,47 @@ void GoannaClient::lodUpdateFar(const Vector3 &around) {
         // that hold anything: how far you can see in a poor direction rather
         // than a good one. A sector holding nothing at all is skipped, since
         // the live range floor already covers it.
+        //
+        // The upper quartile is taken as well, and it is the other half of
+        // the answer. One radius cannot describe a ragged frontier, and
+        // closing the haze at the poor direction's radius means every good
+        // direction has its real terrain flattened to sky colour: measured
+        // on the test world at a 1024 node grant, the extent was 496 nodes
+        // while the field itself reached past 900, so nearly half of what
+        // the client had built, meshed and drawn was behind solid fog. A
+        // depth fog has a begin and an end, so main.gd now begins the haze
+        // at the extent and closes it at the reach.
+        //
+        // Only cells that can be seen count. A buried block, the interior of
+        // a hill or the rock under a plain, draws no faces at all: every
+        // neighbour is filled, so the mesher culls the lot. Counting them
+        // measured how far the ground goes down rather than how far the view
+        // goes out, and since the vertical walk fills whole columns of them
+        // at once they used to be most of the population.
         constexpr int kSectors = 8;
         constexpr float kPi = 3.14159265f;
         const size_t nrings = (size_t)radius + 2;
         std::vector<int> rings((size_t)kSectors * nrings, 0);
         std::vector<size_t> totals((size_t)kSectors, 0);
+        // Filled to its ceiling, so the block above rests on it. Read off the
+        // coarsest level, which every chain has whatever it was built from.
+        auto solid_lid = [&](const v3s16 &at) -> bool {
+            auto it = m_lod_chains.find(at);
+            if (it == m_lod_chains.end())
+                return false;
+            const LodLevel *lv = it->second.forCell(MAP_BLOCKSIZE);
+            if (!lv || lv->cells.empty())
+                return false;
+            const LodLevel::Cell &c = lv->cells[0];
+            return (c.flags & LodLevel::kFilled) && (c.top == 0 || c.top >= MAP_BLOCKSIZE);
+        };
         for (const v3s16 &bp : m_far_blocks) {
             const v3s16 d = bp - centre;
             const int r = std::max(std::abs(d.X), std::abs(d.Z));
             if (r < 0 || r >= (int)nrings)
                 continue;
+            if (solid_lid(bp) && solid_lid(bp + v3s16(0, 1, 0)))
+                continue; // buried: draws nothing, so it is not a horizon
             const float a = std::atan2((float)d.Z, (float)d.X); // -pi to pi
             int s = (int)std::floor((a + kPi) / (2.0f * kPi) * (float)kSectors);
             s = std::clamp(s, 0, kSectors - 1);
@@ -2380,9 +2415,11 @@ void GoannaClient::lodUpdateFar(const Vector3 &around) {
         }
         if (reach.empty()) {
             m_far_extent = 0;
+            m_far_reach = 0;
         } else {
             std::sort(reach.begin(), reach.end());
             m_far_extent = reach[reach.size() / 4] * MAP_BLOCKSIZE;
+            m_far_reach = reach[(reach.size() * 3) / 4] * MAP_BLOCKSIZE;
         }
     }
     lodRequestSummaries(centre, radius);
@@ -2438,7 +2475,21 @@ void GoannaClient::lodRequestSummaries(const v3s16 &centre, int radius) {
             return true;
         const int towards = ay > ac.Y ? -1 : 1; // the layer nearer the player
         const FarAsk *n = answered(v3s16(ax * kEdge, (ay + towards) * kEdge, az * kEdge));
-        return n && (ay > ac.Y ? n->open_above : n->open_below);
+        if (!n)
+            return false;
+        // An area the server has nothing at all for is not evidence about
+        // the area beyond it. Letting it open the next one walked the queue
+        // out of the bottom of the world: measured over one session, 38 of
+        // 105 requests went to the two lowest layers, every one of them came
+        // back with 0 of 512 blocks generated, and each cost the server 512
+        // VoxelManip reads out of a budget that fills the horizon at about
+        // half an area a second. The retry brings this area back once the
+        // server has made something here, and then its answer means
+        // something (docs/far-rendering.md, "Where the summary budget
+        // actually went").
+        if (n->empty)
+            return false;
+        return ay > ac.Y ? n->open_above : n->open_below;
     };
     // Nearest unrequested area that is not entirely live and not entirely
     // known already. Both conditions used to be centre-of-area tests, which
@@ -2469,41 +2520,75 @@ void GoannaClient::lodRequestSummaries(const v3s16 &centre, int radius) {
                     continue;
                 const int dx = (ax * kEdge + kEdge / 2) - centre.X;
                 const int dz = (az * kEdge + kEdge / 2) - centre.Z;
-                const int dy = (ay - ac.Y) * kEdge;
-                // Horizontal distance decides the order, with the vertical
-                // offset only breaking ties, because the frontier that needs
-                // filling is horizontal. Without the tie break the loop order
-                // chose for us, and it chose the lowest layer of each column
-                // first: the deepest rock, asked before the ground the player
-                // is standing on.
-                const int d2 = dx * dx + dz * dz + dy * dy / 64;
+                // Horizontal distance decides the order, and a layer off the
+                // player's own is ranked as though it were several areas
+                // further out, because the frontier that needs filling is
+                // horizontal.
+                //
+                // The old weight was the vertical offset in blocks, squared
+                // and divided by 64, which put a layer four down at 16
+                // against 64 for the very next area sideways. So a whole
+                // column, five layers of 512 blocks each, was always asked
+                // before the next ring out: over one session two thirds of
+                // every request went to layers the player cannot see, on a
+                // queue that fills about half an area a second. That is what
+                // made the horizon arrive as a mosaic rather than as a
+                // frontier.
+                //
+                // kLayerCost is in areas: one layer of vertical offset ranks
+                // like this many areas of horizontal distance, so the ground
+                // in front of the player fills out to four areas before
+                // anything above or below it is asked about, and a hill or a
+                // valley near the player is still reached long before a
+                // distant one.
+                constexpr int kLayerCost = 4;
+                const int dl = std::abs(ay - ac.Y) * kLayerCost * kEdge;
+                const int d2 = dx * dx + dz * dz + dl * dl;
                 if (d2 >= best_d)
                     continue;
-                // Skip an area only when the server would already be sending
-                // every block in it: the live range reaches to its farthest
-                // corner, not just its centre.
-                const int live = m_session->wantedRange + 2;
-                if (std::abs(dx) + kEdge / 2 < live && std::abs(dz) + kEdge / 2 < live)
-                    continue;
-                // Skip only once every sampled cell is already known, so a
-                // corner the player has crossed does not hide the rest of the
-                // area from ever being asked about.
+                // Skip only once the area is already covered, so a corner the
+                // player has crossed does not hide the rest of it from ever
+                // being asked about.
                 //
-                // This is a shortcut for areas the store already covers, so it
-                // must not apply to one the server has told us is only partly
-                // generated. Those are the areas that never filled in: the
-                // blocks the server did have made the sample look known, and
-                // the area was skipped for the rest of the session, so the
-                // ungenerated part stayed a gap no matter how long anyone
-                // stood and watched. An incomplete answer beats a known
-                // looking sample, and the retry delay above is what keeps it
-                // from being asked constantly.
+                // This used to have a shortcut in front of it: an area whose
+                // farthest corner fell inside the client's wanted range was
+                // skipped outright, on the assumption that the server is
+                // sending every block in there. It is not. A server sends
+                // only what is in the player's view cone and only what is
+                // generated, so the live disc is never filled: measured on
+                // the test world at a 192 node wanted range, 363 blocks were
+                // resident where a filled disc is thousands. The band just
+                // inside the live edge was therefore neither live nor
+                // summarised, which is a gap exactly where the eye goes, and
+                // it is the one the player reported between the near field
+                // and the far one.
+                //
+                // What replaces it is a test of what is actually there. A
+                // block that is live, or that already has a chain from the
+                // store or an earlier summary, is covered; anything else is
+                // worth asking about however near it is. That costs requests
+                // near the player, which is where they are worth spending.
+                //
+                // The sample must not apply to an area the server has told us
+                // is only partly generated. Those are the areas that never
+                // filled in: the blocks the server did have made the sample
+                // look known, and the area was skipped for the rest of the
+                // session. An incomplete answer beats a covered looking
+                // sample, and the retry delay above is what keeps it from
+                // being asked constantly.
                 const bool incomplete = ask != m_far_requested.end() && !ask->second.complete;
-                bool fully_known = !incomplete;
-                for (int b = 0; b < kEdge && fully_known; ++b)
-                    fully_known = m_lod_chains.count(origin + v3s16(b, 0, b)) ||
-                            m_far_blocks.count(origin + v3s16(b, 0, b));
-                if (fully_known)
+                bool covered = !incomplete;
+                for (int b = 0; b < kEdge && covered; ++b) {
+                    // A diagonal through the area's footprint, at the layer's
+                    // own floor and ceiling, so a column that is live near
+                    // the ground does not vouch for the sky above it.
+                    for (int h = 0; h < kEdge && covered; h += kEdge - 1) {
+                        const v3s16 at = origin + v3s16(b, h, b);
+                        covered = m_lod_chains.count(at) || m_far_blocks.count(at) ||
+                                m_session->getBlock(at) != nullptr;
+                    }
+                }
+                if (covered)
                     continue;
                 best = origin;
                 best_d = d2;
@@ -2641,6 +2726,7 @@ void GoannaClient::lodTakeSummaries(const Vector3 &around) {
         ask.asked = clock_t_::now();
         ask.complete = known_records == total;
         ask.answered = true;
+        ask.empty = known_records == 0;
         ask.open_above = open_above;
         ask.open_below = open_below;
         // The wire record is a 4 by 4 grid of 4 node cells, so 4 nodes is the
@@ -2878,6 +2964,7 @@ void GoannaClient::lodBuildRegion(const LodRegionKey &key, LodRegion &r) {
             &m_session->materialTable(), m_lod_tiles);
     r.faces = lm.faces;
     r.quads = lm.quads;
+    r.partial = lm.partial;
     r.surfaces = (int)lm.surfaces.size();
     // GOANNA_DEBUG_LOD=1: what each region build produced, per surface, so a
     // tier that lands on the flat colour fallback instead of the array shader
