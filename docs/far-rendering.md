@@ -759,6 +759,12 @@ surface is often one we have never been sent, and applying this there
 would take the ground's own top face away, which would make the far field
 invisible from above rather than merely walled.
 
+That held for the rest of the day and then stopped holding. Once a summary
+marked its own air as air, a cell could carry its own top face without asking
+the cell above, and the exception's only remaining effect was a lid over every
+solid column at a mapgen chunk boundary. See "Lids, layers and the vertical
+walk" below for the narrower rule that replaced it.
+
 The trade this makes, stated plainly: a block missing from the middle of
 otherwise known terrain now shows a gap where it used to show a wall. A
 gap in the haze is the better of the two, and the walls were never true,
