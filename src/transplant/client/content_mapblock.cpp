@@ -7,7 +7,9 @@
 // Client stand-in (goanna_luanti_client.h instead of client.h); the
 // applyFacesShading calls are wrapped in a macro that skips them while
 // g_goanna_no_light is set, so directional face shading is not baked into
-// vertex colours when Godot lights the world; otherwise verbatim.
+// vertex colours when Godot lights the world; and drawSolidNode can hand a
+// node to drawBeveledSolid, a Goanna addition that chamfers exposed edges
+// while g_goanna_bevel is above zero. Otherwise verbatim.
 
 #include <cmath>
 #include "content_mapblock.h"
@@ -454,7 +456,7 @@ void MapblockMeshGenerator::drawAutoLightedCuboid(aabb3f box,
 // get a clipped, slightly recessed cap so the open chamfer prism never reads
 // as a hole. mode: 1 = horizontal edges only, 2 = vertical, 3 = both.
 static void drawBeveledSolid(MeshCollector *collector, v3f origin,
-		const TileSpec tiles[6], u8 faces, int mode, u16 diag_open, u32 cap_mask)
+		const TileSpec tiles[6], u8 faces, int mode, u16 edge_mask, u32 cap_mask)
 {
 	const float h = 0.5f * BS;
 	float b = g_goanna_bevel * BS;
@@ -478,7 +480,7 @@ static void drawBeveledSolid(MeshCollector *collector, v3f origin,
 		if (!exposed(fa) || !exposed(fb))
 			return false;
 		int ei = EDGE_LOOKUP[fa][fb];
-		if (ei < 0 || !((diag_open >> ei) & 1))
+		if (ei < 0 || !((edge_mask >> ei) & 1))
 			return false;
 		bool hz = horiz(fa, fb);
 		if (mode == 3) return true;
@@ -752,10 +754,27 @@ void MapblockMeshGenerator::drawSolidNode()
 				// along the shoreline.
 				return df.visuals->solidness == 2 || df.isLiquid();
 			};
-			u16 diag_open = 0;
-			for (int e = 0; e < 12; ++e)
-				if (!solid_at(edge_diag[e]))
-					diag_open |= 1 << e;
+			// A face that meets a liquid has to keep its full square. The
+			// liquid culls its own side face against solid land, so a chamfer
+			// there cuts a wedge with nothing behind it and the waterline
+			// reads as a row of notches. The diagonal test above does not
+			// catch this one: at a shoreline the node above the water is air.
+			auto liquid_at = [&](v3s16 rel) {
+				MapNode dn = data->m_vmanip.getNodeNoEx(blockpos_nodes + cur_node.p + rel);
+				content_t dc = dn.getContent();
+				if (dc == CONTENT_AIR || dc == CONTENT_IGNORE)
+					return false;
+				return nodedef->get(dn).isLiquid();
+			};
+			u16 edge_mask = 0;
+			for (int e = 0; e < 12; ++e) {
+				if (solid_at(edge_diag[e]))
+					continue;
+				if (liquid_at(tile_dirs[edge_faces[e][0]]) ||
+						liquid_at(tile_dirs[edge_faces[e][1]]))
+					continue;
+				edge_mask |= 1 << e;
+			}
 			// A chamfer is an open prism; where the edge does not continue into
 			// the neighbouring node along the edge axis, its end must be capped
 			// or it reads as a hole (e.g. the base of a bevelled tree trunk).
@@ -781,7 +800,7 @@ void MapblockMeshGenerator::drawSolidNode()
 						cap_mask |= 1u << (e * 2 + sn);
 				}
 			}
-			drawBeveledSolid(collector, cur_node.origin, tiles, faces, mode, diag_open, cap_mask);
+			drawBeveledSolid(collector, cur_node.origin, tiles, faces, mode, edge_mask, cap_mask);
 			return;
 		}
 	}
