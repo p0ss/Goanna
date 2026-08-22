@@ -23,6 +23,7 @@ not "is it correct".
 """
 
 import argparse
+import json
 import sys
 
 try:
@@ -75,6 +76,20 @@ def centre_luminance(path):
             + centre[:, :, 2] * 0.0722).mean())
 
 
+def local_detail(path):
+    """A crude proxy for shading variation across a nearby surface: the
+    standard deviation of a Laplacian over the frame's centre quarter. A
+    flat-lit or blank frame is near zero; a lit, bumped material is not.
+    This cannot tell a normal map's relief from the albedo's own pattern, so
+    it is evidence that materials are engaging at close range, not proof the
+    normal map specifically is what produced it."""
+    a = np.asarray(Image.open(path).convert("L"), dtype=float)
+    h, w = a.shape
+    c = a[h // 4: h * 3 // 4, w // 4: w * 3 // 4]
+    lap = -4 * c[1:-1, 1:-1] + c[:-2, 1:-1] + c[2:, 1:-1] + c[1:-1, :-2] + c[1:-1, 2:]
+    return float(lap.std())
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("images", nargs="+")
@@ -86,6 +101,16 @@ def main():
             help="report adjacent centre-luminance changes along a fixed-facing path")
     ap.add_argument("--max-step", type=float,
             help="with --walk-series, fail if an adjacent luminance step exceeds this")
+    ap.add_argument("--launch-target", action="store_true",
+            help="check docs/launch-target.md task 1's pair: a horizon shot and a wall "
+                 "shot, plus --settings, the JSON of settings and render_stats the "
+                 "harness wrote beside them")
+    ap.add_argument("--settings", help="the settings.json tools/test-launch-target.sh wrote")
+    ap.add_argument("--far-cells-min", type=int, default=500,
+            help="with --launch-target, minimum render_stats().far_remote (default 500)")
+    ap.add_argument("--normal-detail-min", type=float, default=5.0,
+            help="with --launch-target, minimum local_detail() on the wall shot, when "
+                 "auto_bump is on (default 5.0)")
     args = ap.parse_args()
 
     rows = [(p, describe(p)) for p in args.images]
@@ -147,6 +172,52 @@ def main():
                 print("FAIL worst luminance step %.2f exceeds %.2f"
                         % (worst, args.max_step), file=sys.stderr)
                 bad += 1
+
+    if args.launch_target:
+        if not args.settings:
+            print("FAIL --launch-target needs --settings <path>", file=sys.stderr)
+            bad += 1
+        elif len(args.images) != 2:
+            print("FAIL --launch-target wants exactly two images: the horizon shot "
+                    "then the wall shot", file=sys.stderr)
+            bad += 1
+        else:
+            horizon_path, wall_path = args.images
+            with open(args.settings) as f:
+                meta = json.load(f)
+
+            far_remote = meta.get("render_stats", {}).get("far_remote", 0)
+            far_ok = far_remote >= args.far_cells_min
+            print("launch target: %s: far cells %d, wanted at least %d"
+                    % ("PASS" if far_ok else "FAIL", far_remote, args.far_cells_min))
+            if not far_ok:
+                bad += 1
+
+            auto_bump = meta.get("settings", {}).get("auto_bump", {}).get("value", 0.0)
+            if auto_bump <= 0.0:
+                print("launch target: SKIP: normal map response (auto_bump is off)")
+            else:
+                detail = local_detail(wall_path)
+                normal_ok = detail >= args.normal_detail_min
+                print("launch target: %s: normal map response, close shot detail %.2f, "
+                        "wanted at least %.2f" % ("PASS" if normal_ok else "FAIL",
+                        detail, args.normal_detail_min))
+                if not normal_ok:
+                    bad += 1
+
+            shader_pack = meta.get("shader_pack", "")
+            if not shader_pack:
+                print("launch target: SKIP: shader pack final pass (no pack active)")
+            else:
+                # The same crude mark shaderpack_check.py looks for on the proof pack's
+                # composite: a flat identity pass leaves the frame smooth, a real final
+                # pass (fog, bloom, tonemap) does not.
+                frame_std = describe(horizon_path)["detail"]
+                pack_ok = frame_std > 8.0
+                print("launch target: %s: shader pack final pass, horizon frame detail %.2f"
+                        % ("PASS" if pack_ok else "FAIL", frame_std))
+                if not pack_ok:
+                    bad += 1
 
     return 1 if bad else 0
 

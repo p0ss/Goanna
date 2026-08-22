@@ -118,6 +118,28 @@ shot, a non identity final pass in the frame when a pack is on.
 Done when the script passes on this machine from a fresh profile and its
 output is the evidence the rest of this file cites. Sonnet. No dependencies.
 
+Landed 2026-08-22. `tools/test-launch-target.sh` drives the control channel
+with an embedded Python client rather than shelling out per command, because
+the sequence (wait for the far field, find the ground under a spawn point
+nobody chose, pose two shots, write settings.json, quit) has too much state
+to carry through `tools/goanna-control` calls cleanly. Every run gets a
+freshly named world, because a reused one's earlier pregeneration would let
+a regression here hide behind old progress.
+
+Run three times on this machine against fresh profiles and fresh worlds,
+Luanti 5.16.1 flatpak, Godot 4.5.1, `far_min` at its default of 500: passed
+each time, with `render_stats().far_remote` at 616, 2139 and (a fourth,
+deliberately impossible run to check the failure path) never, all within
+five seconds of joining. `deviations` was empty at both the start and the
+end of every passing run, so the profile was cold throughout. The close
+shot's local shading detail (10 to 24 depending on what terrain a fresh
+spawn produced) passed against `auto_bump` at its default 0.35 in all
+three; the shader pack check reported `SKIP` in all three, correctly, since
+nothing sets `GOANNA_SHADERPACK` by default today. A run that cannot reach
+the control channel, or times out waiting on the far field, exits non-zero
+with the run directory and a log tail; verified separately by asking for
+more far cells than any world could produce in five seconds.
+
 ### 2. The far field, made continuous
 
 The four defects listed above, as four pieces that can go to four agents,
@@ -214,44 +236,92 @@ with the chart; opus if the two conditions want different exposure
 pipelines rather than different numbers. Depends on 3, or on the pack
 being present locally, which it is on this machine.
 
-### 5. A shader pack of our own, on by default
+### 5. Base-Shader running, which means the gbuffers translator
 
-Rung 1 of `iris-compat.md` proved that a pack's screen space chain runs.
-No third party pack is licensed for us to ship, and none has been run. So
-the default is ours: `project/shaderpacks/goanna/`, LGPL-2.1-or-later like
-the rest of the repository, written in the GLSL 120 dialect the translator
-already handles, doing what packs do that Godot's environment does not:
-depth fog tied to the far distance so near and far tiers sit in one
-atmosphere, bloom, a tonemap, and whatever else earns its place. It must
-read `depthtex0` and the colour buffer only, so it works over the far tiers
-exactly as over live blocks, which is what "across near and far scales"
-means in practice.
+Changed on 2026-08-22, after reading both packs rather than their pages.
+The earlier plan here was to write a pack of our own, on the grounds that no
+third party pack was licensed for us to ship. That was simply wrong:
+Base-Shader is CC0-1.0 and Eclipse is CC-BY-4.0, both shippable, Eclipse
+with attribution. So the default is a real pack, and the work is the
+translator that lets one run.
 
-The design decision inside it: who owns fog and tonemap when a pack is on.
-`main.gd` already switches Godot's tonemap to linear when a pack has a
-`final`; fog needs the same rule, or the far tiers are fogged twice, once by
-the environment and once by the pack. Write the rule down in
-`iris-compat.md` and apply it to every pack, not only ours.
+Base-Shader is fourteen `gbuffers_*` programs and no screen space chain at
+all. Loaded into Goanna today it succeeds and draws nothing, because
+`compositeChain()` is empty. So this task is rung 5 of `iris-compat.md`:
+translate `gbuffers_terrain`, unshaded, into the node array shader path, and
+run the same translated shader on the far tiers so the horizon is shaded
+like the near bubble rather than left as Godot drew it.
 
-Also in this task: a `shader_pack` settings entry (path, or `default`, or
-`off`), `main.gd` reading it where it reads `GOANNA_SHADERPACK` today, and a
-toggle in the pause menu so a player on a weak machine can turn it off
-without a relaunch if the effect can be removed and re-added live.
+Two findings make this smaller than the rung description assumed. The
+lightmap coordinate `lmcoord`, which `iris-compat.md` listed as a known hole
+to be reopened, has been carried in `CUSTOM0.rg` since 2026-08-21, so it is
+a scale rather than a revival. And Base asks for nothing beyond an atlas
+sample, a lightmap sample, a vertex colour and a fog mix: no normals, no
+second render target, no vertex displacement, no parallax. The substitution
+table and the one genuine mismatch, Goanna's array texture against
+Minecraft's flat atlas, are in `iris-compat.md` under "The first target".
 
-Done when task 1's two shots, taken with no setting touched, show the
-pack's final pass in both, and `tools/shaderpack_check.py` says so. Opus.
-Depends on nothing; pairs with 4 because the pack's tonemap is the
-exposure's last stage.
+New pieces, none of them large:
 
-### 6. Real Iris packs
+- A hand written shell `.gdshader` declaring the Iris vertex and uniform
+  environment, into which the pack's `main` bodies are placed.
+- A generated `lightmap` texture, from the server's sky colour and the torch
+  colour, or every translated pack renders fullbright.
+- Fixed function fog state as uniforms (`gl_Fog.*`, `fogShape`, `fogMode`),
+  fed from the drawn distance `main.gd` already computes at the fog block,
+  not from `far`, which is the camera's 1000 and not what Goanna draws.
+- `MC_RENDER_STAGE_*` as preprocessor constants.
+- `report()` saying "no screen space programs" when a pack has none, so the
+  silent no op above cannot happen again.
 
-`iris-compat.md` rungs 2 to 4: the `shaders.properties` option `#define`s
-and custom uniforms, `depthtex1` and `depthtex2`, a real `shadowtex`
-fallback, and then two or three real packs run locally, not shipped, to
-find the long tail of the dialect. Done when one real pack's composite
-chain renders without a translator edit specific to that pack. Opus; the
-preprocessor is the hard part and the document says so. Independent of 5,
-but 5's fog and tonemap rule is what makes a real pack look right here.
+The fog and tonemap ownership rule is settled and written down in
+`iris-compat.md`: a pack with `final` takes the tonemap, a pack with a
+translated terrain program takes the fog, neither is inferred from mere pack
+presence. Apply it to every pack, not to one.
+
+Also in this task, unchanged from the earlier plan: a `shader_pack` settings
+entry, `main.gd` reading it where it reads `GOANNA_SHADERPACK` today, packs
+found in a `shaderpacks/` directory beside the executable so a player can
+drop one in, and a pause menu toggle.
+
+Done when Base-Shader is the default with no setting touched, task 1's two
+shots show its terrain program shading the near mesh and the far tiers
+alike, and `tools/shaderpack_check.py` grows a check that says so. Opus, and
+the largest task on this page. Depends on nothing here, but it is now on the
+critical path where task 6 used to be.
+
+One consequence to decide rather than fix: `unshaded` takes Godot's
+lighting, normal maps, roughness, specular, SSAO and SDFGI off every surface
+the pack shades. Base recreates vanilla Minecraft's flat look on purpose, so
+with Base as the default the baked PBR pack from task 3 and the lighting
+defaults from task 4 settle nothing about what a player actually sees. The
+sentence at the top of this file promises PBR up close and a pack across the
+whole depth, and those two are in tension. Eclipse recovers some of it, and
+task 6 is where that is judged.
+
+### 6. Eclipse, which is rungs 6 and 7
+
+Eclipse ships `gbuffers_water` and `shadow`, which Base does not, so it is
+what rungs 6 and 7 are measured against, and it has a real composite chain
+on top. It is also where the pack side of the look is decided, because it is
+the one of the two that is trying to be good looking rather than faithful.
+
+Four things found in its source on 2026-08-22, recorded in `iris-compat.md`
+so they are not rediscovered: its `final` is an identity pass, so it cannot
+be used to test that a final pass ran; its composites are gated on targets
+only the geometry programs write, so it is a whole pack or nothing; it is
+`#version 330 compatibility` with located outputs, which the translator does
+not yet handle; and it declares a variable named `sample`, reserved since
+GLSL 4.20, which the translator has to rename.
+
+`iris-compat.md` rungs 2 and 4 come with it: the `shaders.properties` option
+`#define`s and custom uniforms, `depthtex1` and `depthtex2`, and a real
+`shadowtex`. Eclipse's options live as `//[25 50 75 100]` comments on its
+`#define` lines, which is the OptiFine convention and the thing rung 2 is.
+
+Done when Eclipse renders with no translator edit specific to it, and the
+default pack question from task 5 has an answer that was looked at rather
+than assumed. Opus. Depends on 5.
 
 ### 7. The audit
 
