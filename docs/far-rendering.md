@@ -1535,6 +1535,205 @@ Three things would, in the order they are worth doing:
 None of those is a rearchitecture of the store, which is the part that was
 already right.
 
+### The far field's albedo, 2026-08-23
+
+The far field's own colour, not its light. This is R1 in
+`docs/launch-target.md` again, opened on a report that at night the far
+field glows while the near ground is black, so the frame reads as two
+worlds under two skies. The light turned out to be right and the tile
+colour turned out to be wrong, on the far tiers only, by whichever tile
+happens to sit one array layer back.
+
+**The one line.** A node face carries its array layer in `UV2.x`, the same
+integer at every vertex of the face, and the node shaders read it two ways:
+the texture samplers take it as a coordinate, and `lod_avg_colour` and
+`layer_class` index a uniform array with `int(UV2.x)`. Interpolation
+delivers that integer to the fragment a hair either side of itself, and
+`int()` truncates, so layer 16 arrives as 15 on about half the fragments.
+The samplers never showed it because GLSL rounds an array layer coordinate
+itself. Only the hand written indexes were affected, and one of them is the
+colour the far tiers flatten toward, so a far surface took a neighbouring
+tile's average on half its pixels and its own on the rest. It is now
+`int(round(UV2.x))`, computed once, in both node shaders.
+
+The near mesh never sees it: `lod_flatten` is false there, so the flatten
+branch never runs, and the class index only reaches the frame through the
+stochastic tiling, which is off by default. That is what made it a per tier
+signal rather than a global one.
+
+**Measured offline first.** `project/material_field.tscn` renders strips of
+real pack textures through `nodes_array.gdshader` with no server, and it
+already had every uniform this needed. Two modes were added to
+`material_field.gd`, `GOANNA_FIELD_LOD` and `GOANNA_FIELD_LAYER`, described
+under "Instruments" below. With the tile at array layer 0, which is where
+the fixture put it, the fault is invisible, because element 0 is the one
+element a truncation cannot miss. With the tile at layer 16 and a different
+colour in every other `lod_avg_colour` entry, each strip drew in horizontal
+bands of its own colour and its neighbour's. The same run with the fix is
+byte identical to the layer 0 run on every strip, and within a few units of
+the near case:
+
+| strip | near mesh | far tiers, before | far tiers, after |
+| --- | --- | --- | --- |
+| sand | 222.8, 198.6, 166.7 | 194.8, 146.2, 192.7 | 218.0, 192.0, 161.1 |
+| stone | 138.4, 132.8, 138.6 | 154.4, 119.0, 179.4 | 141.0, 136.0, 142.0 |
+| gravel | 114.6, 108.0, 109.6 | 140.7, 111.9, 157.2 | 125.2, 119.0, 121.0 |
+| dirt | 107.7, 82.7, 69.7 | 132.9, 90.4, 129.5 | 111.0, 85.0, 71.0 |
+| snow | 219.0, 222.9, 231.6 | 191.4, 156.2, 226.7 | 218.0, 223.0, 231.0 |
+| planks | 221.1, 167.2, 161.8 | 193.0, 128.6, 193.0 | 221.0, 162.0, 158.0 |
+
+**Then on one surface with a server, and this is the number that matters.**
+A world with `mg_name = flat` and `mcl_superflat_classic`, so the ground is
+one tile at one height under open sky in every direction, is the only place
+a near and a far reading are the same thing measured twice. Camera at 40
+looking down 9 degrees, midnight, one client, the shader reloaded in place
+between the two readings so nothing else moved. Near and far pixels were
+separated by difference masking rather than by guessing at rows: only the
+far materials were switched to the debug channel for one frame, so a pixel
+that moved is a far pixel, and the near ones follow from switching both. In
+the band of rows where both are at the same distance:
+
+| | far tiers | near mesh | difference |
+| --- | --- | --- | --- |
+| before, luminance | 42.38 | 55.86 | -13.48 |
+| after, luminance | 54.18 | 55.77 | -1.59 |
+| before, rgb | 28.3, 46.2, 46.0 | 36.1, 61.6, 57.2 | |
+| after, rgb | 35.1, 59.5, 57.6 | 36.0, 61.5, 57.2 | |
+
+The residual 1.59 is the haze: the far pixels in that band really are
+further away. Every channel is now within two of the near mesh where it was
+out by eight to fifteen.
+
+**What was eliminated, with numbers, before the albedo was suspected.**
+Each far shading term was set to 0 on a running client with the camera not
+moved, read as the change in mean luminance of the far pixels. On the flat
+world at midnight: `block_light_emission` 0.29, `vertex_ao_strength` 0.18,
+`sky_light_strength` 0.04. On a natural world at midnight the same sweep
+gave `block_light_emission` 0.53 and `vertex_ao_strength` 2.2. None of them
+is the two worlds. `sky_fill_strength` is much larger, 8.96 on the far
+tiers against 15.65 on the near mesh, but that is the fill doing its job on
+two different albedos, which is the same fault seen through the light
+rather than a fault in the light.
+
+The light itself was read directly and is the same on both. Painting
+`CUSTOM0` straight to the screen with `debug_nodelight_strength`, the far
+tiers give 48.3, 205.4, 203.8 and the near mesh 45.2, 207.0, 206.3, which
+is block light, sky light and traced occlusion agreeing to about one part
+in a hundred on ground that is the same on both sides. The two populations
+of sky light that "One light, from your feet to the horizon" closed on
+2026-08-22 are closed and stayed closed.
+
+Driving the sky fill to white, so the frame is very nearly albedo times sky
+light and nothing else, isolates it completely: far 64.4, 78.3, 61.0
+against near 78.8, 100.6, 76.7, and the same far pixels with the flatten
+blend taken out of the path entirely read 78.7, 99.2, 76.6. The far tiers
+had the right light and the wrong paint.
+
+**Why the reported symptom was a glow in one frame and a shadow in
+another.** The colour a far surface took was a neighbouring array layer's
+average, and array layers are in whatever order the mesher grouped them, so
+the error is a different colour and a different sign for every tile and
+every world. On the superflat's grass it was 20 per cent too dark. On a
+frozen sea it put a warm grey where the near mesh had deep blue: the same
+ground measured near and far, from one camera, came out 46.79 against 47.77
+in luminance, which is nothing, and 11.4, 51.6, 103.6 against 32.0, 49.6,
+75.8 in colour, which is a different material. That is why it reads as two
+worlds rather than as one world at two brightnesses, and why no per tier
+constant could have fixed it.
+
+**`tools/shotcheck.py --launch-target` at time 0.5, 0.25 and 0.0**, same
+world, same viewpoint, one client, the shader reloaded between the two
+sets, on the Mineclonia world `r1tod1` at a 1024 node grant with 87000 to
+94000 far cells, Luanti 5.16.1 flatpak, Godot 4.5.1:
+
+| time | luminance diff before | after | chroma before | after |
+| --- | --- | --- | --- | --- |
+| 0.5 | 6.61 | 4.47 | 1.31 | 0.89 |
+| 0.25 | 2.39 | 0.81 | 0.79 | 0.67 |
+| 0.0 | 1.95 | 1.10 | 1.24 | 0.54 |
+
+All six runs passed every threshold, before and after, including the pop
+check once the world had stopped growing. **The check was never going to
+find this**, and it is worth saying exactly why, because it passed while
+the frame was plainly wrong. It compares the mean luminance and mean chroma
+of two thin bands either side of one computed row. The defect is a per
+fragment coin flip between two tiles, so it is a speckle rather than a
+step, and averaging a band is precisely the operation that removes it: the
+mean of half right and half wrong pixels sits between the two and moves the
+band mean by a couple of units, well inside a threshold of 8. It is also
+worst where the two bands are least alike in content and best where they
+are most alike, which is the opposite of what a boundary check is sensitive
+to. A metric that would have caught it is variance, or a nearest neighbour
+colour distance, within the far band, not a difference of means across the
+boundary.
+
+The whole frame moved by a mean absolute 9.3 to 12.7 of 255 per pixel at
+the three times, which is the speckle going away; the mean luminance moved
+by +6.39 at midnight and -4.18 at dawn on the same pose, in opposite
+directions, which is again the error's sign following the tile.
+
+**Not changed, and why.** `block_light_emission` at 1.0 on LOD materials
+and 0 on the near mesh is still a per tier term by construction and is
+still worth 0.3 to 0.5 luminance on these worlds, which is inside the drift
+between two shots of the same settings. The far tracer's occlusion is still
+much heavier than the near field's and still wants calibrating on the
+chart. `water.gdshader` was not touched and is not the cause, but it is
+worth recording what it does at range, because it was one of the two
+explanations this task opened with and it is a real difference: the far
+tier water plane has `waving` false, and the screen space reflection is
+gated on `waving`, so far water has no reflection at all where near water
+does; and its `thick`, the distance through the water to the depth buffer,
+is near zero on a flat tier plane sitting on the tier terrain, so
+`exp(-absorption * thick)` is near 1 and far water does not absorb where
+near water does. Both are real and both are R2's, not this task's.
+
+**Also found, measured, and deliberately not fixed here: a Mineclonia
+weather sky puts the night out entirely.** `_apply_sky` derives
+`goanna_sky_fill` as `sky["night_horizon"]` times a number, and
+`radiance_floor` likewise. Mineclonia's `mcl_weather` `skycolor.lua` sets
+`night_sky` and `night_horizon` to the darkest layer of its weather ramp,
+which is pure black, whenever it is raining or thundering where the player
+is, and holds the world up with `override_day_night_ratio` at a floor of
+0.2 instead, which the vanilla client reads as node light and Goanna does
+not read at all. Reproduced deliberately with `/weather thunder` and
+`/time 0:00`: the server sends `night_horizon` (0, 0, 0) and `day_horizon`
+a 0.5294 grey, the fill is exactly (0, 0, 0), and the frame is left to the
+moon. Mean luminance 1.34 of 255 with 81 per cent of the frame at pure
+black from 140 nodes up, and 1.85 with 67 per cent from 40 nodes up. A
+guard that takes the night's level from the day horizon where the server
+gives no night colour was written, measured and taken out again: it moved
+the frame from 1.34 to 2.02, which is not a fix, and the number that would
+make it one has to be calibrated on `lighting_chart.tscn` against the
+vanilla client rather than guessed at two in the morning. The honest fix is
+probably that the night share's level should follow the server's
+`day_night_ratio`, which Goanna already receives and already uses for
+`ambient_light_energy`, rather than the brightness of a colour the server
+is free to set to black. That is a change to a calibrated line and it wants
+the chart.
+
+**Four traps, all of which cost time here.**
+
+`time <t>` on the control channel moves the client's clock and nothing
+else, and Mineclonia computes its sky colours from the server's clock, so a
+client overridden to midnight against a server at noon is lit by a daytime
+sky's night colours. Three of this task's first night measurements were
+taken that way and had to be thrown out. Use `time <t> server=true` for
+anything a time of day is supposed to mean.
+
+`reload_shader` re-reads the named `.gdshader` from disk and keeps the
+cached `.gdshaderinc`, so a uniform added to the include is unknown to the
+recompiled shader, the compile fails, and the material is silently left as
+it was.
+
+Killing the flatpak wrapper's pid leaves `luanti.bin` running and holding
+the port. `ps aux | grep '[l]uanti.bin --server'` finds the real one.
+
+Lowering `view_range` prunes blocks and raising it again does not bring
+them back, because the server's per client sent set still says it sent
+them. A teleport away and back does not clear it either. To compare a patch
+of ground drawn near against the same patch drawn far, take the near
+reading first.
+
 ## Cells are not cubes
 
 A coarse cell used to draw as a full cube, so at cell 16 a hill snapped to
@@ -1706,3 +1905,19 @@ result:
   budget that fills half an area a second is being spent on layers the player
   cannot see. That measurement is what "Where the summary budget actually
   went" is.
+- `project/material_field.tscn`, run as `godot --path project
+  material_field.tscn`, draws strips of a pack's own textures through
+  `nodes_array.gdshader` with no server, no streaming and no privileges, so a
+  question about the shader can be answered when no client on the machine
+  will hold enough blocks to draw the ground. `GOANNA_FIELD_LOD=<dir>` writes
+  `lod_off.png` and `lod_on.png`, one strip drawn as the near mesh draws it
+  and the same strip drawn as a far tier does, and prints the colour it read
+  back off each frame beside the tile's own average in linear light, which is
+  the near mesh against the far tiers on one surface under one sky.
+  `GOANNA_FIELD_LAYER=<n>` puts the tile at array layer n with a flat magenta
+  in every other layer and a different colour in every other
+  `lod_avg_colour` entry, because layer 0 is the one layer an index that
+  truncates cannot get wrong, so a fixture that only ever uses layer 0 cannot
+  see the fault "The far field's albedo" was about. Both were added on
+  2026-08-23 alongside the fixture's own detail mode, which they leave
+  untouched.

@@ -37,6 +37,9 @@ void fragment() {
 	// array layers, and dFdx inside that is not defined.
 	vec2 uv_dx = dFdx(UV);
 	vec2 uv_dy = dFdy(UV);
+	// The array layer, rounded rather than truncated; see the note on the
+	// same line in nodes_array.gdshader.
+	int layer = int(round(UV2.x));
 	// Either how far away this fragment is or how wide the quad it sits
 	// on actually is can call for flattening (see lod_repeat above), so a
 	// wide merged panel flattens on its own size even at point blank
@@ -57,7 +60,7 @@ void fragment() {
 	// Per class surface treatment, in world space so a near block and a far
 	// tier's merged quad draw one continuous pattern. Spent only where a node
 	// is still worth more than a pixel.
-	int cls = layer_class[int(UV2.x)];
+	int cls = layer_class[layer];
 	float detail = detail_strength * (1.0 - flatten);
 	vec4 tile;
 	if (detail > 0.01 && goanna_class_is_granular(cls)) {
@@ -71,7 +74,7 @@ void fragment() {
 	if (v_stale > 0.001)
 		ALBEDO = mix(ALBEDO, vec3(dot(ALBEDO, vec3(0.2126, 0.7152, 0.0722))), v_stale * stale_strength);
 	if (flatten > 0.001)
-		ALBEDO = mix(ALBEDO, lod_avg_colour[int(UV2.x)] * COLOR.rgb, flatten);
+		ALBEDO = mix(ALBEDO, lod_avg_colour[layer] * COLOR.rgb, flatten);
 	ALPHA = tex.a;
 	ALPHA_SCISSOR_THRESHOLD = 0.5;
 	ROUGHNESS = 1.0;

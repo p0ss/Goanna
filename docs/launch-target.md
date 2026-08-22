@@ -144,6 +144,53 @@ occlusion is much heavier than the near field's (mean 113 against 205) for
 one to one and a half luminance units. Both are recorded with their numbers
 in `far-rendering.md`; the occlusion one wants calibrating on the chart
 against the near tracer.
+
+Landed 2026-08-23, the paint. The light was right and the colour was not.
+A node face carries its array texture layer in `UV2.x`, and the node shaders
+read it two ways: the texture samplers take it as a coordinate, which GLSL
+rounds, while `lod_avg_colour` and `layer_class` indexed a uniform array with
+`int(UV2.x)`, which truncates. The same integer reaches the fragment through
+interpolation a hair either side of itself, so layer 16 arrived as 15 on
+about half the fragments, and one of those hand written indexes is the colour
+a far tier flattens toward. A far surface therefore took a neighbouring
+tile's average colour on half its pixels and its own on the rest, which is a
+different colour and a different sign for every tile and every world: 20 per
+cent too dark on grass, a warm grey where the near mesh had deep blue on a
+frozen sea. The near mesh never flattens, so it never saw it, which is what
+made it a per tier signal. It is now `int(round(UV2.x))` in both node
+shaders.
+
+Measured on a world built to have nothing else in it, `mg_name = flat` with
+`mcl_superflat_classic`, one tile at one height under open sky, one client
+with the shader reloaded in place between the two readings: in the band of
+rows where the near mesh and the far tiers are the same distance away, at
+midnight, the far tiers were 13.48 luminance below the near mesh and are now
+1.59 below, which is the haze between them. Every channel is within two of
+the near mesh where it was out by eight to fifteen. Read directly, the light
+channels were already identical on both sides (48.3, 205.4, 203.8 far
+against 45.2, 207.0, 206.3 near), and every other per tier shading term was
+swept and eliminated with a number first. `tools/shotcheck.py
+--launch-target` at time 0.5, 0.25 and 0.0 on a Mineclonia world with 87000
+to 94000 far cells: boundary luminance difference 6.61, 2.39, 1.95 before and
+4.47, 0.81, 1.10 after, chroma 1.31, 0.79, 1.24 before and 0.89, 0.67, 0.54
+after. All six runs passed every threshold, before and after, and that is not
+a fluke of tuning: the defect is a per fragment speckle, and averaging a band
+either side of one row is exactly the operation that removes it. Catching
+this kind of fault wants variance or a nearest neighbour colour distance
+within the far band, not a difference of means across the boundary. Full
+detail, the offline fixture that isolated it with no server at all, and what
+was measured and left alone, are in `far-rendering.md`, "The far field's
+albedo".
+
+Recorded there and not fixed: on Mineclonia, rain or thunder sets the
+server's `night_sky` and `night_horizon` to pure black, and both
+`goanna_sky_fill` and `radiance_floor` are multiples of that colour, so
+through weather at night the world is lit by the moon alone. Reproduced with
+`/weather thunder` and `/time 0:00`: mean luminance 1.34 of 255 with 81 per
+cent of the frame at pure black. The level of the night share probably has to
+come from the server's `day_night_ratio` rather than from the brightness of a
+colour the server may set to black, and that is a change to a line calibrated
+on the chart, so it wants the chart.
 Landed, 2026-08-22, a separate defect in the same fade mechanism, not the
 fourth item above: while a world pregenerates, hundreds of regions arrive
 and fade at once, so a large fraction of the far field was mid fade at any
