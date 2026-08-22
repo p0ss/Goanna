@@ -40,6 +40,16 @@ var light_exposure := 0.46
 # Sky fill strength: Luanti's sky light added by the node shaders as a flat
 # fill in the horizon colour (nodes_array_common.gdshaderinc). 0 turns it off.
 var light_fill := 0.4
+# The background layer's shape (docs/far-rendering.md, "Background, overlay,
+# foreground"), swept with GOANNA_FOG_CLEAR and GOANNA_FOG_CURVE. The fraction
+# of the drawn distance that stays clear of haze, and the exponent on the ramp
+# over the rest: above 1 the haze holds off and then closes near the edge,
+# below 1 it starts early and rises slowly.
+var fog_clear_fraction := 0.5
+var fog_curve := 3.0
+# How broad the haze band below the horizon line is, sky.gdshader's
+# ground_curve: the background terrain has not arrived over.
+var sky_ground_curve := 3.0
 var _bob_phase := 0.0
 var shots_done := false
 var _chat_sent := false
@@ -128,6 +138,9 @@ func _ready() -> void:
 	light_white = _envf("GOANNA_WHITE", light_white)
 	light_exposure = _envf("GOANNA_EXPOSURE", light_exposure)
 	light_fill = _envf("GOANNA_SKY_FILL", light_fill)
+	fog_clear_fraction = _envf("GOANNA_FOG_CLEAR", fog_clear_fraction)
+	fog_curve = _envf("GOANNA_FOG_CURVE", fog_curve)
+	sky_ground_curve = _envf("GOANNA_GROUND_CURVE", sky_ground_curve)
 	if cfg.load("user://goanna.cfg") == OK:
 		for k in ["sun", "ambient", "sdfgi", "sdfgi_cell", "ssao", "white", "exposure", "fill"]:
 			if cfg.has_section_key("settings", "light_" + k):
@@ -1345,6 +1358,12 @@ func _update_environment_extras() -> void:
 		# Murky blue-green underwater fog; you can tell you are submerged and
 		# the view shortens the way it should.
 		e.fog_enabled = true
+		# Exponential, not the depth curve the open air uses: under water the
+		# murk is a property of the water and starts at the eye, where the
+		# air's haze is a property of how far there is anything to see and
+		# holds off until near that edge. _apply_sky puts the depth curve back
+		# when the eye leaves the water.
+		e.fog_mode = Environment.FOG_MODE_EXPONENTIAL
 		e.fog_light_color = Color(0.10, 0.28, 0.34)
 		e.fog_density = 0.12
 		e.fog_aerial_perspective = 0.0
@@ -1435,6 +1454,9 @@ func _apply_sky() -> void:
 	sky_mat.set_shader_parameter("sky_top", zenith)
 	sky_mat.set_shader_parameter("sky_horizon", hor)
 	sky_mat.set_shader_parameter("ground_color", hor.darkened(0.6))
+	# The haze band under the horizon line, wide enough that a gap in the far
+	# field reads as distance rather than as a hole in the world.
+	sky_mat.set_shader_parameter("ground_curve", sky_ground_curve)
 	# What the sky feeds to lighting, as against what it shows: see the
 	# radiance_* uniforms in sky.gdshader and the environment comment in
 	# _ready. The night floor is the night horizon colour, scaled, by how
@@ -1494,31 +1516,46 @@ func _apply_sky() -> void:
 		if fc.a > 0.0:
 			fog_col = fc
 		e.fog_light_color = fog_col
-		# Tie haze to how far we actually draw: the far tiers reach the far
-		# grant when the server allows it (docs/far-rendering.md rung 5),
-		# otherwise the live view range. Fog tuned to the view range alone
-		# greyed out terrain the far tiers were still drawing past it. The
-		# density puts about a sixth extinction at that edge, so the horizon
-		# fades to sky and the mid distance stays clear: aerial perspective,
-		# not a wall. Re-derived on lighting_chart.tscn's distance case,
-		# docs/far-rendering.md rung 4.
+		# How far there is actually something to see, which is not how far we
+		# are permitted to draw. The live range is always there; past it the
+		# far field reaches only as far as the store and the server's
+		# summaries have filled, which on a new world is very little and grows
+		# for minutes. Haze tied to the permitted distance instead left the
+		# terrain ending in clear air, which is the whole of what a fresh
+		# world looked wrong for: measured 2026-08-22 on a fresh profile with
+		# far_blocks at 0, terrain stopping at 192 nodes and the fog set to
+		# close at 512. So the cap bounds it and the content decides it.
 		var draw_nodes: float = maxf(float(client.view_range()) * 16.0, 64.0)
 		var stats: Dictionary = client.render_stats() if client.has_method("render_stats") else {}
 		if int(stats.get("far_grant", 0)) > 0 and client.has_method("far_distance"):
-			draw_nodes = maxf(draw_nodes, minf(float(client.far_distance()), float(stats.get("far_grant", 0))))
+			var cap: float = minf(float(client.far_distance()), float(stats.get("far_grant", 0)))
+			draw_nodes = clampf(float(stats.get("far_extent", 0)), draw_nodes, maxf(draw_nodes, cap))
 		# The far plane has to clear whatever is actually drawn, or the
 		# far tiers' own horizon is what clips them, not the fog. A fixed
 		# margin on top of draw_nodes rather than a multiple: at a 4000
 		# node grant a 10 per cent margin is 400 nodes for no reason,
 		# while 256 covers the coarsest region's own size at any grant.
 		cam.far = maxf(1000.0, draw_nodes + 256.0)
-		var auto_density: float = 0.9 / draw_nodes
+		# The background layer, docs/far-rendering.md "Background, overlay,
+		# foreground". Depth fog rather than exponential: an exponential curve
+		# cannot be both clear in the foreground and closed at the cap, because
+		# the density that hides the far edge puts most of its extinction on
+		# the mid ground and lays a veil over everything. Depth fog takes a
+		# begin, an end and a curve, so the near field stays clear, the haze
+		# builds over the outer part and closes at the edge of what is drawn.
+		# Terrain that has not arrived yet, and the gaps between panels, are
+		# then haze at the horizon's own colour rather than a void, and a panel
+		# emerges from that haze as the player walks toward it.
+		var fog_end: float = draw_nodes
 		var fog_distance: float = sky["fog_distance"]
 		if fog_distance > 0.0:
 			# a server asking for closer fog than our range still wins
-			e.fog_density = maxf(clamp(2.5 / fog_distance, 0.0004, 0.02), auto_density)
-		else:
-			e.fog_density = auto_density
+			fog_end = minf(fog_end, fog_distance)
+		e.fog_mode = Environment.FOG_MODE_DEPTH
+		e.fog_depth_begin = fog_end * fog_clear_fraction
+		e.fog_depth_end = fog_end
+		e.fog_depth_curve = fog_curve
+		e.fog_density = 1.0
 		# Aerial perspective blends distant geometry toward the sky, which is
 		# what actually sells a vista; it wants to be stronger the further we
 		# draw, so a 512 node horizon reads as haze rather than a hard edge.

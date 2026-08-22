@@ -1566,6 +1566,7 @@ Dictionary GoannaClient::render_stats() {
     d["far_blocks"] = (int)m_far_blocks.size();
     d["far_remote"] = (int)m_far_remote.size();
     d["far_grant"] = m_session ? m_session->farRenderingGrant() : 0;
+    d["far_extent"] = m_far_extent;
     if (m_session && m_session->store()) {
         d["store_blocks"] = (int64_t)m_session->store()->blocksKnown();
         d["store_mb"] = (double)m_session->store()->bytes() / (1024.0 * 1024.0);
@@ -2281,6 +2282,35 @@ void GoannaClient::lodUpdateFar(const Vector3 &around) {
     if (added && getenv("GOANNA_DEBUG_LOD"))
         UtilityFunctions::print("LOD far: ", added, " stored blocks assigned, ", (int)m_far_blocks.size(),
                 " in range, grant ", grant, " nodes, radius ", radius, " blocks");
+    // How far the far field actually reaches, which is not how far we are
+    // allowed to draw. The haze has to close at the edge of what we have or
+    // the world is seen ending in clear air (docs/far-rendering.md,
+    // "Background, overlay, foreground"), and what we have is whatever the
+    // store held and the server has summarised so far, which on a new world
+    // is very little and grows for minutes. Ring histogram by horizontal
+    // distance, walked outward to where nine tenths of the blocks are inside,
+    // so one straggler beyond a gap does not report a horizon that is not
+    // there.
+    {
+        std::vector<int> rings((size_t)radius + 2, 0);
+        for (const v3s16 &bp : m_far_blocks) {
+            const v3s16 d = bp - centre;
+            const int r = std::max(std::abs(d.X), std::abs(d.Z));
+            if (r >= 0 && r < (int)rings.size())
+                ++rings[(size_t)r];
+        }
+        const size_t total = m_far_blocks.size();
+        size_t seen = 0;
+        int reach = 0;
+        for (size_t r = 0; r < rings.size(); ++r) {
+            seen += (size_t)rings[r];
+            if (total && seen * 10 >= total * 9) {
+                reach = (int)r;
+                break;
+            }
+        }
+        m_far_extent = reach * MAP_BLOCKSIZE;
+    }
     lodRequestSummaries(centre, radius);
 }
 

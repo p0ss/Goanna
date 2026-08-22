@@ -372,6 +372,11 @@ private:
     // to half of it. set_far_distance (an explicit env var or settings panel
     // choice) turns that off, docs/launch-target.md task 2d.
     int m_far_distance = 512;
+    // Nodes: how far the far field actually reaches around the player, the
+    // ninetieth percentile ring of what is drawn, recomputed on each far
+    // rescan. What the haze closes at, so the world is never seen ending in
+    // clear air. 0 when nothing far is drawn at all.
+    int m_far_extent = 0;
     bool m_far_distance_explicit = false;
     std::set<v3s16> m_far_blocks;
     // Blocks whose chain came from a server far summary rather than the

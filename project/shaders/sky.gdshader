@@ -46,6 +46,15 @@ uniform float cloud_scale = 0.035;
 //                         stars lights nothing, and Luanti's night is a dim
 //                         blue world, not a black one. main.gd sets this from
 //                         the night weight; it is zero by day.
+// How broad the haze band below the horizon is. The lower hemisphere runs
+// from the horizon colour to ground_color, and this is the exponent on that
+// blend, so a high value keeps a wide band of horizon colour under the
+// horizon line and only darkens when you look steeply down, where terrain is
+// always loaded anyway. That band is the background the far field is drawn
+// over (docs/far-rendering.md, "Background, overlay, foreground"): terrain
+// that has not arrived, or a hole between two panels, reads as haze at the
+// same colour the fog fades the far edge to, rather than as a void.
+uniform float ground_curve : hint_range(0.2, 8.0) = 0.6;
 uniform float radiance_ground_lift : hint_range(0.0, 1.0) = 0.0;
 uniform float radiance_desaturate : hint_range(0.0, 1.0) = 0.0;
 uniform vec3 radiance_floor = vec3(0.0);
@@ -92,7 +101,7 @@ void sky() {
 	if (up >= 0.0)
 		col = mix(sky_horizon.rgb, sky_top.rgb, pow(up, 0.45));
 	else
-		col = mix(sky_horizon.rgb, ground_color.rgb, pow(-up, 0.6));
+		col = mix(sky_horizon.rgb, ground_color.rgb, pow(-up, ground_curve));
 	if (AT_CUBEMAP_PASS) {
 		if (up < 0.0)
 			col = mix(col, sky_horizon.rgb, radiance_ground_lift);
