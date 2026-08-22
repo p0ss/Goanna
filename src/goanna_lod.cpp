@@ -450,6 +450,28 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                         // content stops to where this cell's stops: nothing
                         // where the neighbour is as tall, a step where it is
                         // shorter, the whole cell where it is empty.
+                        //
+                        // Empty, though, means known to be empty. Unknown is
+                        // not air, and at the frontier of what the store and
+                        // the summaries have filled it used to read as air:
+                        // every filled cell along that frontier grew a side
+                        // face, so the far field ended in free standing walls
+                        // of terrain, pitch black wherever what stood behind
+                        // them was underground and unlit. Nothing is drawn
+                        // there now, which is the honest answer and is the
+                        // same rule as never inventing terrain: we do not
+                        // know that surface exists. The haze closes at that
+                        // frontier anyway (docs/far-rendering.md,
+                        // "Background, overlay, foreground"), so what is left
+                        // is air rather than a hole.
+                        //
+                        // Top and bottom faces keep the old rule on purpose.
+                        // The block above a surface is often one we have
+                        // never been sent, and applying this there would take
+                        // the ground's top face away and leave the far field
+                        // invisible from above rather than merely walled.
+                        if (!front_cell || !(front_cell->flags & LodLevel::kKnown))
+                            continue;
                         if (h_front >= h_self)
                             continue;
                         fk.lo = (uint8_t)h_front;

@@ -664,6 +664,45 @@ blocky, they still take minutes to fill, and their side faces still read
 darker than their tops at a low sun. The background makes those less
 visible rather than untrue. `docs/launch-target.md` R1 and R3 hold the rest.
 
+### Unknown is not air, 2026-08-22
+
+Screenshots of a world mid pregeneration showed free standing vertical
+slabs of terrain out in the far field, and one pitch black mass standing
+above the horizon with holes in it. Both are the same fault, and it is a
+one line reading of a flag the mesher already had.
+
+`LodLevel::kKnown` marks a cell that contains at least one node which is
+not `CONTENT_IGNORE`, so it separates "air" from "never seen". It was set
+faithfully everywhere, by `buildLodChain` and by the summary reader, and
+then never read. `meshLodRegion` asked only whether the neighbouring cell
+was filled, and a cell we know nothing about answers no, exactly as air
+does. So every filled cell along the frontier of what the store and the
+summaries had filled grew a side face, and the frontier is a plane: a wall.
+Where the cells behind that wall were underground, their light is zero and
+their faces are the interior of the ground, so the wall was black.
+
+A side face is now drawn only against a neighbour we know to be empty.
+Nothing is drawn at the frontier instead, which is the honest answer and
+the same rule as never inventing terrain: we do not know that surface is
+there. The haze closes at that frontier anyway, so what is left is air
+rather than a hole.
+
+Top and bottom faces keep the old rule deliberately. The block above a
+surface is often one we have never been sent, and applying this there
+would take the ground's own top face away, which would make the far field
+invisible from above rather than merely walled.
+
+The trade this makes, stated plainly: a block missing from the middle of
+otherwise known terrain now shows a gap where it used to show a wall. A
+gap in the haze is the better of the two, and the walls were never true,
+but neither is right and the answer to both is the vertical extent work in
+`docs/launch-target.md` task 8, which stops asking for the areas that
+produce them.
+
+Measured against the pregenerated world at a 1024 node grant, 3034 far
+blocks and `far_extent` 800: no free standing slabs and no black masses in
+frame, and the far field still draws from above.
+
 ## Cells are not cubes
 
 A coarse cell used to draw as a full cube, so at cell 16 a hill snapped to
