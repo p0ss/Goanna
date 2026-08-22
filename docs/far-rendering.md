@@ -603,6 +603,49 @@ this; 1024 nodes is the number recorded as affordable on this machine at the
 default settings, and it is also, not coincidentally, the number
 `project/local_server.gd` has granted since before this task.
 
+### Why distant patches never filled in, 2026-08-22
+
+Reported as terrain that is "only ever partially created": sitting still for
+minutes, the shattered plates and the gaps in the distant land never close.
+They were not slow. They were permanent, and the cause was on this side.
+
+A summary describes terrain the server has already generated and reports
+the rest as ungenerated, which the client drops rather than inventing. That
+is right. What was wrong is that the client asked for each area exactly
+once. `lodRequestSummaries` recorded every area it had asked about and never
+asked again, so an area that was half generated at the moment it was asked
+kept that half for the whole session. The only thing that ever corrected one
+was the mod pushing an unsolicited summary for an area its own pregeneration
+had just finished, which covers the areas it generates and nothing else.
+
+Worse, the blocks that did arrive hid the rest. The request loop skips an
+area once its sampled cells are all known, which is the right shortcut for
+an area the store already covers. A partly generated area has chains for the
+part that exists, so it could pass that test on the strength of the very
+blocks that proved it incomplete, and be skipped for ever.
+
+So an ask is now remembered with what came back rather than merely that it
+happened: `GoannaClient::FarAsk` holds when the area was last asked and
+whether every record in the reply was generated. A complete area is finished
+with and never asked again. An incomplete one is asked again once
+`kFarRetryMs` (20 seconds) has passed, and the known looking sample no
+longer skips it, because an incomplete answer beats a sample that looks
+known.
+
+Twenty seconds is chosen so that a server generating steadily is not asked
+the same question every second, and a player standing still watches gaps
+close rather than waiting out the session. It costs one request per stale
+area per twenty seconds, against a queue that already holds at most four in
+flight.
+
+Not measured live. The machine was running four agents, five servers and
+their clients at the time, and a client launched to watch the retry was
+killed out from under the measurement, so what is written here is the
+mechanism and the reasoning rather than an observed before and after. The
+observation to take is simple and worth taking before this is trusted: stand
+still with `GOANNA_DEBUG_LOD=1` and watch whether an area that first reported
+few blocks is asked again and reports more.
+
 ### Background, overlay, foreground, 2026-08-22
 
 The four defects above were closed and a fresh world still read as broken.

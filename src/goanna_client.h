@@ -384,7 +384,18 @@ private:
     std::set<v3s16> m_far_remote;
     // Area origins (block coords, 8 block aligned) already asked of the
     // server, so a slow answer is not asked for again every scan.
-    std::set<v3s16> m_far_requested;
+    // Areas whose summary has been asked for, and what came back. A server
+    // answers from terrain it has already generated and reports the rest as
+    // ungenerated, so an area asked while it was half made stays half made
+    // for the whole session unless it is asked again: that is why distant
+    // patches never filled in. `complete` is set when every record in the
+    // reply was generated; anything less is retried once the delay below has
+    // passed, and `asked` is when it last went out.
+    struct FarAsk {
+        std::chrono::steady_clock::time_point asked;
+        bool complete = false;
+    };
+    std::map<v3s16, FarAsk> m_far_requested;
     int m_far_inflight = 0;
     std::chrono::steady_clock::time_point m_far_asked; // when the oldest in flight was sent
     v3s16 m_far_centre{32767, 32767, 32767};

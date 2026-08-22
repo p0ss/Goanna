@@ -1285,11 +1285,17 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
     case TILE_MATERIAL_WAVING_LIQUID_TRANSPARENT:
     case TILE_MATERIAL_WAVING_LIQUID_BASIC:
         // ice and its like draw as liquids without being one; see
-        // buildFakeLiquidTextures. Leaving sh unset drops them onto the
-        // ordinary path, which is what they are.
+        // buildFakeLiquidTextures. They are alpha blended solid blocks, which
+        // is what glass.gdshader is for and what its own header has always
+        // said it was for; the drawtype is the only reason they never reached
+        // it. Refraction and a low roughness are most of what separates ice
+        // from a sheet of tinted water. GOANNA_SOLID_ICE wants the plain
+        // opaque material instead, so leave that path alone.
         buildFakeLiquidTextures();
         if (!m_fake_liquid_tex.count(key.texture_id))
             sh = m_sh_water;
+        else if (!m_solid_ice)
+            sh = m_sh_glass;
         break;
     case TILE_MATERIAL_WAVING_LEAVES:
         sh = m_sh_leaves; break;
@@ -2242,7 +2248,7 @@ void GoannaClient::lodUpdateFar(const Vector3 &around) {
     // Requested areas that have drifted out of range may be asked again if
     // we come back.
     for (auto it = m_far_requested.begin(); it != m_far_requested.end();) {
-        const v3s16 d = *it - centre;
+        const v3s16 d = it->first - centre;
         if (std::abs(d.X) > radius + 16 || std::abs(d.Z) > radius + 16)
             it = m_far_requested.erase(it);
         else
@@ -2354,6 +2360,11 @@ void GoannaClient::lodRequestSummaries(const v3s16 &centre, int radius) {
     if (!m_session || !m_session->farSummariesOffered())
         return;
     constexpr int kEdge = 8; // blocks per area side
+    // How long to leave a partly generated area alone before asking again.
+    // Long enough that a server generating steadily is not asked the same
+    // question every second, short enough that a player standing still sees
+    // the gaps close rather than waiting out the session.
+    constexpr double kFarRetryMs = 20000.0;
     // The server refuses silently: an area outside its grant, a full queue,
     // a player it cannot find. Without an expiry, four such refusals would
     // stall every later request for the rest of the session. The areas stay
@@ -2385,7 +2396,16 @@ void GoannaClient::lodRequestSummaries(const v3s16 &centre, int radius) {
         for (int ay = ac.Y - varadius; ay <= ac.Y + varadius; ++ay)
             for (int ax = ac.X - aradius; ax <= ac.X + aradius; ++ax) {
                 const v3s16 origin(ax * kEdge, ay * kEdge, az * kEdge);
-                if (m_far_requested.count(origin))
+                // Asked once and never again was why a half generated area
+                // stayed half generated: the server answers from what it has
+                // made so far, and terrain keeps being made afterwards, by
+                // this mod's pregeneration and by every other player walking
+                // about. An area that came back whole is finished with. One
+                // that came back with any ungenerated record in it is asked
+                // again once the retry delay has passed.
+                auto ask = m_far_requested.find(origin);
+                if (ask != m_far_requested.end() &&
+                        (ask->second.complete || ms_since(ask->second.asked) < kFarRetryMs))
                     continue;
                 const int dx = (ax * kEdge + kEdge / 2) - centre.X;
                 const int dz = (az * kEdge + kEdge / 2) - centre.Z;
@@ -2401,7 +2421,18 @@ void GoannaClient::lodRequestSummaries(const v3s16 &centre, int radius) {
                 // Skip only once every sampled cell is already known, so a
                 // corner the player has crossed does not hide the rest of the
                 // area from ever being asked about.
-                bool fully_known = true;
+                //
+                // This is a shortcut for areas the store already covers, so it
+                // must not apply to one the server has told us is only partly
+                // generated. Those are the areas that never filled in: the
+                // blocks the server did have made the sample look known, and
+                // the area was skipped for the rest of the session, so the
+                // ungenerated part stayed a gap no matter how long anyone
+                // stood and watched. An incomplete answer beats a known
+                // looking sample, and the retry delay above is what keeps it
+                // from being asked constantly.
+                const bool incomplete = ask != m_far_requested.end() && !ask->second.complete;
+                bool fully_known = !incomplete;
                 for (int b = 0; b < kEdge && fully_known; ++b)
                     fully_known = m_lod_chains.count(origin + v3s16(b, 0, b)) ||
                             m_far_blocks.count(origin + v3s16(b, 0, b));
@@ -2412,7 +2443,7 @@ void GoannaClient::lodRequestSummaries(const v3s16 &centre, int radius) {
             }
     if (best_d == 1 << 30)
         return;
-    m_far_requested.insert(best);
+    m_far_requested[best].asked = clock_t_::now();
     if (m_far_inflight == 0)
         m_far_asked = clock_t_::now();
     ++m_far_inflight;
@@ -2490,7 +2521,20 @@ void GoannaClient::lodTakeSummaries() {
         const size_t total = (size_t)edge * edge * edge;
         if (blob.size() < total * kRecordSize)
             continue;
-        m_far_requested.insert(v3s16(ox, oy, oz)); // in case it was unsolicited
+        // Record the ask even for a reply nobody asked for, which is how the
+        // mod hands over an area its pregeneration has just finished, and
+        // count how much of it the server actually had. Every record
+        // generated means the area is done and never needs asking again;
+        // anything less leaves it due for a retry, since the missing part is
+        // terrain that does not exist yet rather than terrain we failed to
+        // read.
+        size_t known_records = 0;
+        for (size_t i = 0; i < total; ++i)
+            if (((const uint8_t *)blob.data())[i * kRecordSize] & 16)
+                ++known_records;
+        FarAsk &ask = m_far_requested[v3s16(ox, oy, oz)];
+        ask.asked = clock_t_::now();
+        ask.complete = known_records == total;
         // The wire record is a 4 by 4 grid of 4 node cells, the finest tier
         // this client's own lod_cell setting can use is not necessarily that
         // fine, so build at whichever tier's cell is the smallest one at
