@@ -1607,10 +1607,10 @@ out by eight to fifteen.
 **What was eliminated, with numbers, before the albedo was suspected.**
 Each far shading term was set to 0 on a running client with the camera not
 moved, read as the change in mean luminance of the far pixels. On the flat
-world at midnight: `block_light_emission` 0.29, `vertex_ao_strength` 0.18,
-`sky_light_strength` 0.04. On a natural world at midnight the same sweep
-gave `block_light_emission` 0.53 and `vertex_ao_strength` 2.2. None of them
-is the two worlds. `sky_fill_strength` is much larger, 8.96 on the far
+world at midnight, `block_light_emission` 0.29 and `vertex_ao_strength`
+0.18; on a natural world at midnight, `block_light_emission` 0.53,
+`vertex_ao_strength` 2.2 and `sky_light_strength` 0.04. None of them is the
+two worlds. `sky_fill_strength` is much larger, 8.96 on the far
 tiers against 15.65 on the near mesh, but that is the fill doing its job on
 two different albedos, which is the same fault seen through the light
 rather than a fault in the light.
@@ -1633,11 +1633,14 @@ had the right light and the wrong paint.
 another.** The colour a far surface took was a neighbouring array layer's
 average, and array layers are in whatever order the mesher grouped them, so
 the error is a different colour and a different sign for every tile and
-every world. On the superflat's grass it was 20 per cent too dark. On a
+every world. On the superflat's grass it was about a fifth too dark. On a
 frozen sea it put a warm grey where the near mesh had deep blue: the same
 ground measured near and far, from one camera, came out 46.79 against 47.77
 in luminance, which is nothing, and 11.4, 51.6, 103.6 against 32.0, 49.6,
-75.8 in colour, which is a different material. That is why it reads as two
+75.8 in colour, which is a different material. (That pair was taken on the
+tip before `cb2b735`, by pulling `view_range` in so the far tiers redrew
+ground the near mesh had just drawn; the offline fixture reproduces the
+same thing deterministically and is the evidence to trust.) That is why it reads as two
 worlds rather than as one world at two brightnesses, and why no per tier
 constant could have fixed it.
 

@@ -154,8 +154,8 @@ interpolation a hair either side of itself, so layer 16 arrived as 15 on
 about half the fragments, and one of those hand written indexes is the colour
 a far tier flattens toward. A far surface therefore took a neighbouring
 tile's average colour on half its pixels and its own on the rest, which is a
-different colour and a different sign for every tile and every world: 20 per
-cent too dark on grass, a warm grey where the near mesh had deep blue on a
+different colour and a different sign for every tile and every world: about a
+fifth too dark on grass, a warm grey where the near mesh had deep blue on a
 frozen sea. The near mesh never flattens, so it never saw it, which is what
 made it a per tier signal. It is now `int(round(UV2.x))` in both node
 shaders.
