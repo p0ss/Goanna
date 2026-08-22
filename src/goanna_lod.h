@@ -103,6 +103,13 @@ struct LodRegionMesh {
     std::vector<LodSurface> surfaces;
     int faces = 0; // cell faces before merging
     int quads = 0; // after
+    // The widest a single merged quad got, in nodes along its longer edge,
+    // which is also how many times its tile repeats across it (UV runs one
+    // unit per node). Handed to the region's MeshInstance3D as an instance
+    // uniform so the shader can flatten a panel that is merged flat and wide
+    // even where it sits close to the camera, not only where it is far
+    // (docs/far-rendering.md, "Shade the far field as a far field").
+    int max_span = 0;
     bool empty() const { return surfaces.empty(); }
 };
 

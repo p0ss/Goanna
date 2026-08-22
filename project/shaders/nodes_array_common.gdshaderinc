@@ -99,6 +99,20 @@ uniform bool lod_flatten = false;
 uniform vec3 lod_avg_colour[256];
 uniform float lod_flatten_near : hint_range(0.0, 2048.0) = 64.0;
 uniform float lod_flatten_far : hint_range(0.0, 4096.0) = 256.0;
+// How many times the tile repeats across the widest quad this region's
+// mesher actually built (GoannaClient::lodBuildRegion, from
+// LodRegionMesh::max_span), in nodes. Distance alone missed a panel drawn
+// close to the camera where the server has not streamed a block but the
+// store or a summary has: it is a single wide merged quad, so the tile still
+// visibly repeats at point blank range. A quad this wide reads as a pattern
+// on its own, independent of how far away it is, so it gets its own
+// threshold below rather than sharing lod_flatten_near/far: those are tuned
+// for when ordinary aliasing starts at range, and a merge only a few tens of
+// nodes across already shows as a repeat once it fills much of the view up
+// close, well inside where the distance test would ever fire.
+instance uniform float lod_repeat : hint_range(0.0, 4096.0) = 0.0;
+uniform float lod_repeat_near : hint_range(0.0, 512.0) = 16.0;
+uniform float lod_repeat_far : hint_range(0.0, 1024.0) = 64.0;
 
 // Fade in, per instance: a region mesh or a block that has just appeared
 // is drawn through a screen space dither that opens over a fraction of a
