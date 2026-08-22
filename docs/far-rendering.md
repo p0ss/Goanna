@@ -986,13 +986,15 @@ session, and solid rock, which does come back complete and answers with 512
 buried blocks nobody can ever see.
 
 Measured on the client's own request log, standing on a pregenerating
-Mineclonia server at a 1024 node grant: of 237 areas asked in one run, **three**
-were in the layer the player was standing in. The other 234 were sky between
-256 and 768 nodes up, or rock between 256 and 512 nodes down, and the same
-handful of them were asked over and over as their retries came due. That is
-why the horizontal frontier stood still while a player watched, and it is most
-of "still not contiguous": the summaries were not slow, the requests were
-going somewhere else.
+Mineclonia server at a 1024 node grant: of 91 areas asked in the first 150
+seconds, **three** were in the layer the player was standing in. The other 88
+were sky between 256 and 768 nodes up, or rock between 256 and 512 nodes down,
+and the same handful were asked over and over as their retries came due. A
+longer run of the same build put 3 of 237 in the player's layer, so the ratio
+gets worse the longer you stand there, not better. That is why the horizontal
+frontier stood still while a player watched, and it is most of "still not
+contiguous": the summaries were not slow, the requests were going somewhere
+else.
 
 The window is now a bound on a walk rather than a window. The layer the player
 is in is always eligible. A layer above becomes eligible only once the layer
@@ -1004,9 +1006,16 @@ ground rather than tunnelling to bedrock. The vertical offset also joins the
 distance the request loop sorts on, as a tie break, because the loop order was
 choosing for us and it chose the deepest layer of each column first.
 
-After, on the same server and grant: 67 of 77 areas asked were the player's own
-layer, 5 the one above, 4 the one below and 1 two above. From 1.3 per cent
-useful to 87 per cent.
+A block the server has not generated is not known to be solid, so it does not
+close the walk downward. Without that guard a player flying above a column the
+server had never made would get an ungenerated answer for their own layer and
+never ask about the ground under it. Upward asks for evidence instead, terrain
+reaching the top face, because nothing is the usual answer up there and taking
+it as a reason to climb is the scan this replaces.
+
+After, same server, same grant, same 150 seconds, same 91 areas asked: 71 were
+the player's own layer, 7 the one below, 13 above. From 3 per cent useful to 78
+per cent.
 
 **One tier at every distance.** `lodTakeSummaries` built one chain level, the
 4 node one, and assigned every summarised block to the tier that uses it, at
@@ -1017,23 +1026,33 @@ and the two never joined. Every level from 4 nodes up is now built from the
 same 4 by 4 heights, and a summarised block takes the tier its distance calls
 for, the same as a stored one.
 
-Measured against the same viewpoint on the same world, 150 seconds after
-connecting, Mineclonia on Luanti 5.16.1, Godot 4.5.1, a 1024 node grant with
-pregeneration on:
+Both builds run against the same world from the same fresh connection, 150
+seconds in, same camera at (3000, 130, 3000), same time of day override, same
+`show_body 0`, Mineclonia on Luanti 5.16.1, Godot 4.5.1, a 1024 node grant
+with pregeneration on:
 
 | | Before | After |
 | --- | --- | --- |
-| Blocks at tier 1, 2, 3 | 30972, 0, 0 | 2007, 10873, 11515 |
-| Far regions | 603 | 204 |
-| Draw calls | 1339 | 380 |
-| Primitives | 564065 | 154565 |
-| `far_extent` | 544 | 608 |
-| Far blocks | 30972 | 24386 |
+| Far blocks | 23176 | 34845 |
+| Far blocks at tier 1, 2, 3 | 23185, 0, 0 | 2007, 9395, 23452 |
+| Far regions | 451 | 187 |
+| Draw calls | 731 | 381 |
+| Cell faces before merging | 191049 | 84454 |
+| Primitives | 203509 | 154895 |
+| `far_extent` | 832 | 944 |
 
-Looking down from 260 nodes, the before frame has a black void directly under
-the camera where nothing at all had been summarised; the after frame has
-terrain there. Fewer far blocks with a longer reach is the point: the ones
-that went were buried.
+Half again as much far terrain, reaching further, in a quarter of the cell
+faces and half the draw calls. The blocks that went were buried and the ones
+that came are surface, and drawing them at the tier their distance calls for
+is where the rest of the saving is.
+
+Looking north at a shallow angle, the before frame is one island of terrain
+around the player with a single panel hanging in clear air off to the left and
+nothing else out of the fog; the after frame is a continuous landscape to the
+horizon. Looking down from 260 nodes, the before frame has a void across the
+whole centre with two fragments floating in it, and two disconnected patches at
+the bottom corners; the after frame has terrain across the lower half with no
+void.
 
 What this does not fix. Small fragments still hang over the far field, a few
 cells each, where a treetop or a snow drift sits in a block whose neighbours

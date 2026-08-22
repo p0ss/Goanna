@@ -2575,11 +2575,23 @@ void GoannaClient::lodTakeSummaries(const Vector3 &around) {
         bool open_above = false, open_below = false;
         for (size_t i = 0; i < total; ++i) {
             const uint8_t *r = (const uint8_t *)blob.data() + i * kRecordSize;
-            if (!(r[0] & 16))
-                continue;
-            ++known_records;
+            const bool generated = (r[0] & 16) != 0;
+            if (generated)
+                ++known_records;
             const int ly = (int)((i / (size_t)edge) % (size_t)edge);
             if (ly != 0 && ly != edge - 1)
+                continue;
+            // Downward asks whether the floor is solid, and a block the
+            // server has not generated is not known to be solid, so it does
+            // not stop the walk. Without that a player flying above a column
+            // the server has never made would get an ungenerated answer for
+            // their own layer and never ask about the ground under it.
+            // Upward asks for evidence instead, terrain reaching the top
+            // face, because nothing is the usual answer up there and taking
+            // it as a reason to climb is the scan this replaces.
+            if (ly == 0 && !generated)
+                open_below = true;
+            if (!generated)
                 continue;
             for (int h = 0; h < 16; ++h) {
                 if (ly == edge - 1 && r[1 + h] >= MAP_BLOCKSIZE)
