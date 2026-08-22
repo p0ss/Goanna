@@ -338,7 +338,7 @@ private:
         std::set<v3s16> members;
         bool dirty = false;
         std::chrono::steady_clock::time_point dirty_at;
-        int faces = 0, quads = 0, surfaces = 0;
+        int faces = 0, quads = 0, surfaces = 0, partial = 0;
     };
     std::map<LodRegionKey, LodRegion> m_lod_regions;
     std::map<v3s16, LodRegionKey> m_lod_member; // which region draws a block
@@ -376,7 +376,17 @@ private:
     // ninetieth percentile ring of what is drawn, recomputed on each far
     // rescan. What the haze closes at, so the world is never seen ending in
     // clear air. 0 when nothing far is drawn at all.
+    //
+    // Two numbers, because one cannot describe a ragged frontier. The extent
+    // is the lower quartile across the eight sectors, how far a poor
+    // direction reaches; the reach is the upper quartile, how far a good one
+    // does. A depth fog takes a begin and an end, so it can have both: the
+    // haze starts where the sparse directions run out and closes where the
+    // rich ones do, instead of flattening real terrain to sky colour because
+    // some other bearing is empty (docs/far-rendering.md, "Haze over the
+    // ragged frontier").
     int m_far_extent = 0;
+    int m_far_reach = 0;
     bool m_far_distance_explicit = false;
     std::set<v3s16> m_far_blocks;
     // Blocks whose chain came from a server far summary rather than the
@@ -408,6 +418,13 @@ private:
         // landscape: nothing there is ever visible, and asking for it cost
         // one request in nine and half a million buried cells.
         bool open_below = false;
+        // Nothing in the area was generated at all. The walk below must not
+        // treat that as a reason to look further down: a layer the server
+        // has never made says nothing about the layer under it, and taking
+        // it as an invitation walked the request queue straight out of the
+        // bottom of the world (docs/far-rendering.md, "Where the summary
+        // budget actually went").
+        bool empty = false;
     };
     std::map<v3s16, FarAsk> m_far_requested;
     int m_far_inflight = 0;
