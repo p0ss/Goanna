@@ -205,30 +205,27 @@ entry) both times they were tried; that looks unrelated to this task, since
 it reproduced with an unmodified client on an old world, and is left as a
 finding rather than chased, since `src/` is out of scope here. Sonnet.
 
-That last finding was chased afterwards and is not what it looked like.
-The client does not crash on a distant teleport; its server dies under it,
-and the client then sits in "connection timed out" with the player at the
-origin, which is what an attempt to reproduce it produced exactly. Two
-`luanti.bin` processes dumped core at 16:26 on 2026-08-22, on a
-`goanna_launch_target_*` world running `goanna_local_server.conf`, which is
-to say with pregeneration on. Both aborted the same way: `SIGABRT` reached
-through libstdc++'s terminate handler in a background thread, so an
-uncaught C++ exception, in the server rather than in Goanna. Memory is
-ruled out: 41 GB was available, no swap in use, and the kernel's out of
-memory killer never fired. The `test_world` server on port 30000 died the
-same day and took a later attempt with it.
+That last finding is not a crash in Goanna and not a fault at all. There
+was no server left to talk to: several agents were running four or five
+clients and their servers at once on this machine that afternoon, and the
+user shut servers down to get the machine back. A client whose server has
+gone sits exactly as described, so an attempt to reproduce it reproduced
+the symptom and none of the cause. Two `luanti.bin` core dumps from that
+afternoon reach `SIGABRT` through libstdc++'s terminate handler in a
+background thread, which is what a shutdown racing a working thread looks
+like as well as what a spontaneous fault would, so they are not evidence
+of one either. An earlier version of this paragraph read them as a
+pregeneration crash and said so; that was wrong, and it was written before
+asking what had actually happened on the machine.
 
-What is missing is the exception's own message, and the reason it is
-missing is ours: `local_server.gd` starts the server with
-`OS.create_process`, which does not capture the child's output, and
-Luanti's fatal errors go to stderr rather than to the `--logfile` debug
-log. So the one line that would name the fault lands in whatever stderr
-the client happened to inherit, which for a packaged build is nowhere. The
-next step is to give the launched server its own stderr file, then run
-pregeneration until it aborts again. Until that is done, nobody should say
-whether `goanna_server_mod`'s pregeneration causes this or merely runs
-while Mineclonia's mapgen does, and pregeneration is on by default in
-every world the menu creates.
+Two things worth keeping from it. The client says nothing useful when its
+server disappears: it sits in "connection timed out" with the player at
+the origin and no message a player would understand, which is worth fixing
+whatever killed the server. And the launched server's stderr goes nowhere
+a player could find, because `local_server.gd` starts it with
+`OS.create_process`, which captures no output, while Luanti's fatal errors
+go to stderr rather than to the `--logfile` it is given, so a real fault
+there would be as silent as this one was. Both belong with task 9.
 
 These come ahead of everything in "The tasks, in order" below except task
 1, which they use. The translator (tasks 5 and 6) continues as shader pack
