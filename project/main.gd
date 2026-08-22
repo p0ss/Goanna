@@ -1453,6 +1453,14 @@ func _apply_sky() -> void:
 	zenith.v = minf(zenith.v, 0.92)
 	sky_mat.set_shader_parameter("sky_top", zenith)
 	sky_mat.set_shader_parameter("sky_horizon", hor)
+	# The water surface reflects the sky wherever its screen space ray runs off
+	# the frame, which is most of the time, so it needs the same two colours.
+	# Linear, because source_color uniforms are converted on assignment and a
+	# plain vec3 one is not.
+	var zl := zenith.srgb_to_linear()
+	var hl := hor.srgb_to_linear()
+	RenderingServer.global_shader_parameter_set("goanna_sky_top", Vector3(zl.r, zl.g, zl.b))
+	RenderingServer.global_shader_parameter_set("goanna_sky_horizon", Vector3(hl.r, hl.g, hl.b))
 	sky_mat.set_shader_parameter("ground_color", hor.darkened(0.6))
 	# The haze band under the horizon line, wide enough that a gap in the far
 	# field reads as distance rather than as a hole in the world.

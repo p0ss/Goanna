@@ -70,6 +70,25 @@ Group:
 **Godot**, via godot-cpp, MIT. The MIT licence text and copyright notice
 must accompany distribution; they are in `godot-cpp/LICENSE.md`.
 
+## Shader code in this repository
+
+`project/shaders/` holds Goanna's own GDShader. None of it is linked into
+`libgoanna`, so it is not in the table above, but one method in it is
+adapted rather than invented and carries a licence with it.
+
+**`water.gdshader`, the wave field.** The sum of octaves, the drag term that
+shifts each octave by the slope of the ones before it, and the constants
+that space them out (the weight, frequency and time multipliers, and the
+step between wave directions) are from afl_ext's "Very fast procedural
+ocean", <https://www.shadertoy.com/view/MdXyzX>, MIT, by way of the Glimmer
+shader pack, <https://github.com/jbritain/glimmer-shaders>, MIT, Copyright
+(c) 2024 Josh Britain. The MIT licence asks that its copyright notice and
+permission notice travel with any substantial portion of the work, so both
+projects are named in the file's own header as well as here. The code in
+`water.gdshader` is a rewrite against Godot's shading language rather than a
+copy: the surrounding absorption, refraction, screen space reflection and
+far tier handling are Goanna's.
+
 ## Media in this repository
 
 The screenshots under `docs/` are renders of worlds served by Luanti games,
