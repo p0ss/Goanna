@@ -508,6 +508,18 @@ meshing (cross thread rules in `CLAUDE.md` apply, everything through
 asked to cover 4000 nodes. Opus for the thread, sonnet for the rest.
 Depends on 2 for the numbers.
 
+Also here, and the reason a new world takes minutes to fill: most of what
+is asked for is never seen. Task 2a widened the vertical window to four
+area layers either side of the player, so a column of nine 128 node areas
+is requested where the terrain in it is one surface and the rest is sky
+above and stone below. The sky areas summarise to nothing and the stone
+areas to a solid block whose faces are all interior. Both cost the server a
+`VoxelManip` read per mapblock and cost us the round trip. The fix is for
+the mod to answer the vertical extent of generated terrain per column, and
+for `lodRequestSummaries` to ask only within it, which needs a protocol
+version like 2b's. Until then the pregeneration rate, not the client, is
+what the first minutes are waiting on.
+
 ### 9. Launcher polish
 
 The worldmod copy of `goanna_server_mod` goes stale when the checkout moves
