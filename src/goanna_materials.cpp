@@ -174,15 +174,28 @@ MaterialClass classifyNode(const NodeDefManager *ndef, content_t c, int *signal)
         break;
     }
     // 4. the name, the part after the mod prefix
-    std::string name = f.name;
+    MaterialClass by_name = classifyName(f.name);
+    if (by_name != MaterialClass::None) {
+        if (signal) *signal = 4;
+        return by_name;
+    }
+    return MaterialClass::None;
+}
+
+// The name pass on its own, for something that is not a node and so has no
+// footstep, no groups and no drawtype to ask: an item, the tool or the armour
+// a player is carrying, a mob's skin. It is the weakest of the four signals
+// and the node classifier only reaches it last, but for a texture that is not
+// a node tile it is the only one there is, and "iron" in a name is a better
+// guess than the flat dielectric default that stands in for knowing nothing.
+MaterialClass classifyName(const std::string &raw) {
+    std::string name = raw;
     size_t colon = name.find(':');
     if (colon != std::string::npos)
         name = name.substr(colon + 1);
     for (const NameClass &nc : kNameHints)
-        if (contains(name, nc.token)) {
-            if (signal) *signal = 4;
+        if (contains(name, nc.token))
             return nc.cls;
-        }
     return MaterialClass::None;
 }
 

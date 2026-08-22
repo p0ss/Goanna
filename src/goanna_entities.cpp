@@ -3,6 +3,8 @@
 
 #include "goanna_entities.h"
 
+#include "goanna_materials.h"
+
 #include <set>
 #include <vector>
 #include <godot_cpp/variant/utility_functions.hpp>
@@ -131,6 +133,27 @@ Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
         // the common case; see entity_scissor.gdshader.
         sm->set_shader(gt->hasAlpha() ? m_sh_entity_scissor : m_sh_entity);
         sm->set_shader_parameter("albedo", gt->godotTexture());
+        // What this thing is made of. The node path learns that from the
+        // classifier and carries it in a generated _s (goanna_textures.cpp),
+        // but an item, a tool, a piece of armour or a mob skin is a texture
+        // rather than a node: it has no footstep, no groups and no drawtype,
+        // so nothing ever reached it and every one of them shaded as the flat
+        // rough dielectric this shader falls back to. Mineclonia ships no _s
+        // for any of them either. Ask the table first, in case the texture is
+        // also a node tile, then fall back to the name.
+        std::string cbase = texture.substr(0, texture.find('^'));
+        MaterialClass cls = session.materialTable().textureClass(tileBaseName(cbase));
+        if (cls == MaterialClass::None)
+            cls = classifyName(cbase);
+        const ClassSpec &csp = classSpec(cls);
+        sm->set_shader_parameter("mat_class", (int)cls);
+        sm->set_shader_parameter("class_smoothness", csp.smoothness);
+        sm->set_shader_parameter("class_f0", csp.f0);
+        sm->set_shader_parameter("class_metal", csp.metal ? 1.0f : 0.0f);
+        sm->set_shader_parameter("class_sss", csp.sss);
+        if (getenv("GOANNA_DEBUG_ENTITY_PBR"))
+            UtilityFunctions::print("entity class: ", String::utf8(cbase.c_str()),
+                    " -> ", String(className(cls)));
         sm->set_shader_parameter("has_normal", normal_tex.is_valid());
         sm->set_shader_parameter("has_spec", spec_tex.is_valid());
         if (normal_tex.is_valid())

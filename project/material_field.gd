@@ -20,6 +20,9 @@ extends Node3D
 #   GOANNA_FIELD_LOD=<dir>  write lod_off.png and lod_on.png and print the
 #                           strip colours, which is the near mesh against the
 #                           far tiers on one surface under one sky
+#   GOANNA_FIELD_ITEMS=1    render the item row through entity.gdshader instead
+#                           of the ground strips, and write class_off.png and
+#                           class_on.png
 #   GOANNA_FIELD_LAYER=<n>  put the tile at array layer n rather than 0, with
 #                           a different colour in every other lod_avg_colour
 #                           entry, so an index that misses shows up
@@ -178,6 +181,13 @@ func _ready() -> void:
 
 	_environment()
 
+	if OS.get_environment("GOANNA_FIELD_ITEMS") != "":
+		_items(dir)
+		if shot_dir != "":
+			DirAccess.make_dir_recursive_absolute(shot_dir)
+			_shoot_items()
+		return
+
 	# Every sampler2DArray must be bound even where a case does not use it:
 	# an unbound array sampler is undefined and corrupts the albedo sample.
 	# material_cube.gd spent four wrong diagnoses on that.
@@ -270,6 +280,90 @@ func _ready() -> void:
 	elif shot_dir != "":
 		DirAccess.make_dir_recursive_absolute(shot_dir)
 		_shoot()
+
+
+# Items, tools, armour and mob skins go through entity.gdshader, not the node
+# array, and they are textures rather than nodes: no footstep, no groups, no
+# drawtype. Nothing ever told that shader what they are made of, and
+# Mineclonia ships no authored _s for any of them, so every one of them
+# shaded as the flat rough dielectric the shader falls back to. This row is
+# that path: the same quads twice, the class withheld and then given.
+const ITEMS := [
+	["iron", "mcl_raw_ores_raw_iron_block", 10],
+	["wool", "wool_white", 11],
+	["stone", "default_stone", 1],
+	["planks", "mcl_cherry_blossom_planks", 2],
+]
+
+# The class constants are src/goanna_materials.cpp's CLASS_SPEC, which is
+# where the real values live; these are the four the row needs.
+const CLASS_SPEC := {
+	1: [0.30, 0.04, 0.0, 0.0],
+	2: [0.25, 0.04, 0.0, 0.0],
+	10: [0.55, 1.00, 1.0, 0.0],
+	11: [0.08, 0.04, 0.0, 0.0],
+}
+
+
+func _items(dir: String) -> void:
+	var shader: Shader = load("res://shaders/entity.gdshader")
+	for i in ITEMS.size():
+		var it: Array = ITEMS[i]
+		var img := _load(dir.path_join(str(it[1]) + ".png"))
+		if img.get_width() <= 1:
+			push_error("no texture at " + dir.path_join(str(it[1]) + ".png"))
+			continue
+		var mat := ShaderMaterial.new()
+		mat.shader = shader
+		mat.set_shader_parameter("albedo", ImageTexture.create_from_image(img))
+		mat.set_shader_parameter("has_normal", false)
+		mat.set_shader_parameter("has_spec", false)
+		mat.set_shader_parameter("sky_light_strength", 0.0)
+		mat.set_shader_parameter("block_fill", 0.0)
+		materials.append(mat)
+		var q := QuadMesh.new()
+		q.size = Vector2(1.6, 1.6)
+		var mi := MeshInstance3D.new()
+		mi.mesh = q
+		mi.material_override = mat
+		mi.position = Vector3(i * 2.0, 1.0, 0.0)
+		mi.rotation_degrees = Vector3(-20, 0, 0)
+		add_child(mi)
+		print("item %d: %s (class %d)" % [i, it[0], int(it[2])])
+
+	var cam := Camera3D.new()
+	var span := (ITEMS.size() - 1) * 2.0
+	cam.position = Vector3(span * 0.5, 1.7, 5.6)
+	cam.fov = 50.0
+	add_child(cam)
+	cam.look_at(Vector3(span * 0.5, 0.9, 0.0), Vector3.UP)
+	cam.current = true
+
+
+# The class withheld, then given, which is exactly the difference between what
+# an item looked like before this and after it.
+func _set_class(on: bool) -> void:
+	for i in materials.size():
+		var it: Array = ITEMS[i]
+		var cls: int = int(it[2])
+		var sp: Array = CLASS_SPEC[cls]
+		materials[i].set_shader_parameter("mat_class", cls if on else 0)
+		materials[i].set_shader_parameter("class_smoothness", sp[0] if on else 0.0)
+		materials[i].set_shader_parameter("class_f0", sp[1] if on else 0.04)
+		materials[i].set_shader_parameter("class_metal", sp[2] if on else 0.0)
+		materials[i].set_shader_parameter("class_sss", sp[3] if on else 0.0)
+
+
+func _shoot_items() -> void:
+	for pass_i in 2:
+		_set_class(pass_i == 1)
+		for _f in 6:
+			await RenderingServer.frame_post_draw
+		var img := get_viewport().get_texture().get_image()
+		var path := shot_dir.path_join("class_off.png" if pass_i == 0 else "class_on.png")
+		img.save_png(path)
+		print("wrote ", path)
+	get_tree().quit()
 
 
 func _set_detail(v: float) -> void:

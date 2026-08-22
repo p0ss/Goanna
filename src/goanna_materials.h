@@ -96,6 +96,9 @@ struct MaterialTable {
 
 // Classify one node from its definition.
 MaterialClass classifyNode(const NodeDefManager *ndef, content_t c, int *signal = nullptr);
+// Classify by name alone: items, tools, armour and mob skins are textures
+// rather than nodes, so the other three signals do not exist for them.
+MaterialClass classifyName(const std::string &name);
 
 // game_texture -> pack path, from the CSV tools/mc_texture_map.py writes.
 // Empty if the path does not read.

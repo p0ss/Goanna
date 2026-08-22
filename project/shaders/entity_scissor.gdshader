@@ -49,6 +49,17 @@ global uniform vec3 goanna_sky_fill;
 instance uniform vec2 node_light = vec2(0.0, 1.0);
 uniform float block_fill : hint_range(0.0, 2.0) = 0.6;
 uniform float sky_light_strength : hint_range(0.0, 1.0) = 1.0;
+// Goanna: what this surface is made of, from the classifier
+// (src/goanna_materials.h, MaterialClass), and that class's material
+// constants. A node tile gets these through a generated _s; an item, a tool,
+// a piece of armour or a mob skin is not a node and gets nothing, so they
+// arrive here directly. Used only where the pack ships no authored _s, which
+// for Mineclonia's items is always.
+uniform int mat_class = 0;
+uniform float class_smoothness : hint_range(0.0, 1.0) = 0.0;
+uniform float class_f0 : hint_range(0.0, 1.0) = 0.04;
+uniform float class_metal : hint_range(0.0, 1.0) = 0.0;
+uniform float class_sss : hint_range(0.0, 1.0) = 0.0;
 
 void fragment() {
 	vec4 tex = texture(albedo, UV);
@@ -70,6 +81,25 @@ void fragment() {
 		NORMAL_MAP_DEPTH = 1.0;
 		AO *= mix(1.0, n.b, ao_strength);
 		AO_LIGHT_AFFECT = 0.4 * ao_strength;
+	}
+	if (!has_spec && (class_smoothness > 0.0 || class_metal > 0.0)) {
+		// The same decode as the authored path below, from the class's own
+		// constants rather than from a texture. An iron pickaxe is not rough
+		// plastic, and until this it was shaded as exactly that.
+		ROUGHNESS = mix(1.0, clamp((1.0 - class_smoothness) * (1.0 - class_smoothness), 0.04, 1.0),
+				roughness_strength);
+		METALLIC = class_metal;
+		SPECULAR = clamp((class_metal > 0.5 ? 0.5 : class_f0 / 0.08) * specular_strength, 0.0, 1.0);
+		if (class_sss > 0.0)
+			BACKLIGHT = ALBEDO * class_sss * sss_strength;
+	}
+	// Cloth catches the light along a grazing edge, which no channel LabPBR
+	// carries can say and which is most of what separates wool from painted
+	// stone. Godot's own rim term, so it stays inside the lighting the rest
+	// of the world is lit by rather than needing a light() of its own.
+	if (mat_class == 11) {
+		RIM = 0.6;
+		RIM_TINT = 0.35;
 	}
 	if (has_spec) {
 		vec4 sp = texture(spec_tex, UV);
