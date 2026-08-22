@@ -24,6 +24,7 @@ not "is it correct".
 
 import argparse
 import json
+import math
 import sys
 
 try:
@@ -110,6 +111,147 @@ def band_detail(path, top, bottom):
     return float(lap.std())
 
 
+def _row_for_elevation(pitch_deg, fov_deg, elevation_deg):
+    """Fraction of image height (0 at the top) where a ray at `elevation_deg`
+    from horizontal (positive is up, matching main.gd's own
+    `pitch = rad_to_deg(asin(d.y))`) crosses the frame, given the camera's
+    boresight `pitch_deg` and its vertical `fov_deg` (`Camera3D.fov` under
+    `KEEP_ASPECT_HEIGHT`, which is what `main.gd` leaves it at). None if that
+    ray is outside the frame altogether.
+
+    This is a plain symmetric perspective projection: the screen offset from
+    the boresight goes as the tangent of the angle off it, scaled by the
+    tangent of the half vertical fov. Checked on this machine against the
+    real camera (`cam.project_ray_normal` at the row this returns lands
+    within a node of the ground distance it was asked for; see the R4 entry
+    in docs/launch-target.md for the numbers)."""
+    if fov_deg is None or fov_deg <= 0 or elevation_deg is None:
+        return None
+    theta_deg = elevation_deg - pitch_deg
+    if abs(theta_deg) >= 90.0:
+        return None
+    tan_half = math.tan(math.radians(fov_deg / 2.0))
+    if tan_half <= 0:
+        return None
+    ndc_y = math.tan(math.radians(theta_deg)) / tan_half
+    v = (1.0 - ndc_y) / 2.0
+    if v < 0.0 or v > 1.0:
+        return None
+    return v
+
+
+def horizon_boundary_row(pitch_deg, fov_deg, eye_height, target_distance):
+    """Row (as a fraction of image height) where a flat ground plane
+    `target_distance` nodes out crosses the frame, given the camera's
+    `eye_height` above that plane. This is the live/far boundary row for
+    docs/launch-target.md's R4 continuity check, with `target_distance` the
+    live range (`view_range` blocks * 16). None if the boundary is not
+    visible in this frame, most often because the camera is pitched above
+    the horizon."""
+    if eye_height is None or target_distance is None or eye_height <= 0 or target_distance <= 0:
+        return None
+    elevation_deg = -math.degrees(math.atan2(eye_height, target_distance))
+    return _row_for_elevation(pitch_deg, fov_deg, elevation_deg)
+
+
+def horizon_row(pitch_deg, fov_deg):
+    """Row (as a fraction of image height) where the true horizon, ground at
+    infinite distance, crosses the frame: the top edge of the far band, above
+    which nothing but sky can appear regardless of draw distance."""
+    return _row_for_elevation(pitch_deg, fov_deg, 0.0)
+
+
+def band_luma_chroma(arr, top_frac, bottom_frac):
+    """Mean luminance and mean chroma (the average of |R-G| and |G-B|, a
+    crude but sensible measure: it is near zero for a neutral grey or a
+    single hue shaded by sun and sky alone, and rises with per tier colour
+    that does not belong) of a horizontal band, full width, given as
+    fractions of image height, of an HxWx3 float RGB array. None if fewer
+    than two rows survive clipping to the image."""
+    h = arr.shape[0]
+    top = max(0, min(h, int(round(top_frac * h))))
+    bottom = max(0, min(h, int(round(bottom_frac * h))))
+    if bottom - top < 2:
+        return None
+    band = arr[top:bottom]
+    r, g, b = band[:, :, 0], band[:, :, 1], band[:, :, 2]
+    lum = 0.2126 * r + 0.7152 * g + 0.0722 * b
+    chroma = (np.abs(r - g) + np.abs(g - b)) / 2.0
+    return {"rows": [top, bottom], "luminance": float(lum.mean()), "chroma": float(chroma.mean())}
+
+
+def _far_geometry(meta):
+    """Everything docs/launch-target.md's R4 continuity and pop checks need
+    to place the live/far boundary and the horizon on a horizon shot: the
+    camera's pitch and vertical fov, its height above the ground the harness
+    found under the player, and the live range in nodes (view_range * 16).
+    Returns (geometry, None) or (None, reason) if the settings JSON predates
+    one of these fields, or the boundary is not in this frame at all."""
+    horizon_shot = meta.get("horizon_shot", {})
+    ground = meta.get("ground", {})
+    settings = meta.get("settings", {})
+    pitch = horizon_shot.get("pitch")
+    camera = horizon_shot.get("camera")
+    fov = settings.get("fov", {}).get("value")
+    view_range = settings.get("view_range", {}).get("value")
+    ground_y = ground.get("y")
+    if None in (pitch, camera, fov, view_range, ground_y):
+        return None, ("missing pose, fov, view_range or ground in the settings JSON "
+                "(an older harness run)")
+    eye_height = float(camera[1]) - float(ground_y)
+    target_distance = float(view_range) * 16.0
+    v_boundary = horizon_boundary_row(float(pitch), float(fov), eye_height, target_distance)
+    v_horizon = horizon_row(float(pitch), float(fov))
+    if v_boundary is None or v_horizon is None:
+        return None, "the live/far boundary is not in this frame (camera pitched above the horizon?)"
+    return {
+        "pitch": float(pitch), "fov": float(fov), "eye_height": eye_height,
+        "target_distance": target_distance,
+        "v_boundary": v_boundary, "v_horizon": v_horizon,
+    }, None
+
+
+def continuity_check(horizon_path, v_boundary, band_frac):
+    """docs/launch-target.md R4: the mean luminance and mean chroma of a
+    band just inside the live/far boundary (closer than it, still live)
+    against a band just outside it (past it, in the far tiers), on the one
+    horizon shot. One light, one air says these should read the same; a per
+    tier tint or brightness shift shows up as a difference between them."""
+    arr = np.asarray(Image.open(horizon_path).convert("RGB"), dtype=float)
+    inside = band_luma_chroma(arr, v_boundary, v_boundary + band_frac)
+    outside = band_luma_chroma(arr, v_boundary - band_frac, v_boundary)
+    if inside is None or outside is None:
+        return None
+    return {
+        "inside": inside, "outside": outside,
+        "luminance_diff": abs(inside["luminance"] - outside["luminance"]),
+        "chroma_diff": abs(inside["chroma"] - outside["chroma"]),
+    }
+
+
+def pop_fraction_series(paths, top_frac, bottom_frac, change):
+    """docs/launch-target.md R4's pop metric: the fraction of pixels in a
+    horizontal band (full width, the far band between the horizon and the
+    live/far boundary) whose luminance moves by more than `change` between
+    each consecutive pair of frames in `paths`, a burst taken with the
+    camera standing still. A dither fade spreads a change over many frames
+    and keeps every one of these small; a cell popping in or out changes its
+    whole area in a single frame and shows as a spike."""
+    frames = []
+    for p in paths:
+        a = np.asarray(Image.open(p).convert("L"), dtype=float)
+        h, w = a.shape
+        top = max(0, min(h, int(round(top_frac * h))))
+        bottom = max(0, min(h, int(round(bottom_frac * h))))
+        frames.append(a[top:bottom])
+    fractions = []
+    for i in range(1, len(frames)):
+        if frames[i].shape != frames[i - 1].shape or frames[i].size == 0:
+            continue
+        fractions.append(float((np.abs(frames[i] - frames[i - 1]) > change).mean()))
+    return fractions
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("images", nargs="+")
@@ -124,13 +266,31 @@ def main():
     ap.add_argument("--launch-target", action="store_true",
             help="check docs/launch-target.md task 1's pair: a horizon shot and a wall "
                  "shot, plus --settings, the JSON of settings and render_stats the "
-                 "harness wrote beside them")
+                 "harness wrote beside them. Also runs R4's continuity and pop checks "
+                 "when the settings JSON carries the pose and burst frames for them")
     ap.add_argument("--settings", help="the settings.json tools/test-launch-target.sh wrote")
     ap.add_argument("--far-cells-min", type=int, default=500,
             help="with --launch-target, minimum render_stats().far_remote (default 500)")
     ap.add_argument("--normal-detail-min", type=float, default=5.0,
             help="with --launch-target, minimum local_detail() on the wall shot, when "
                  "auto_bump is on (default 5.0)")
+    ap.add_argument("--continuity-band-frac", type=float, default=0.03,
+            help="with --launch-target, docs/launch-target.md R4: half width, as a fraction "
+                 "of frame height, of the band read just inside and just outside the live/far "
+                 "boundary row on the horizon shot (default 0.03)")
+    ap.add_argument("--continuity-luminance-max", type=float, default=8.0,
+            help="with --launch-target, R4: maximum mean luminance difference (0-255) between "
+                 "the band just inside the live/far boundary and the band just outside it "
+                 "(default 8.0, see docs/launch-target.md R4 for how this was chosen)")
+    ap.add_argument("--continuity-chroma-max", type=float, default=3.0,
+            help="with --launch-target, R4: maximum mean chroma difference between the same "
+                 "two bands (default 3.0)")
+    ap.add_argument("--pop-change-threshold", type=float, default=10.0,
+            help="with --launch-target, R4: a pixel's luminance has to move by more than this "
+                 "(0-255) between two burst frames to count as changed (default 10.0)")
+    ap.add_argument("--pop-max-fraction", type=float, default=0.01,
+            help="with --launch-target, R4: maximum fraction of far-band pixels allowed to "
+                 "change in any single frame of the standing-still burst (default 0.01)")
     ap.add_argument("--far-band", action="store_true",
             help="check a horizon shot's far band (docs/far-rendering.md task 2c): fails "
                  "if a merged region quad, water included, still aliases into a shimmer "
@@ -258,6 +418,61 @@ def main():
                         % ("PASS" if pack_ok else "FAIL", frame_std))
                 if not pack_ok:
                     bad += 1
+
+            # R4, docs/launch-target.md: continuity across the live/far boundary, and a
+            # pop metric, both needing the pose and (for the pop metric) the burst frames
+            # tools/test-launch-target.sh writes into the settings JSON alongside the two
+            # shots task 1 already takes.
+            geom, geom_err = _far_geometry(meta)
+            if geom is None:
+                print("launch target: SKIP: continuity and pop (%s)" % geom_err)
+            else:
+                cont = continuity_check(horizon_path, geom["v_boundary"], args.continuity_band_frac)
+                if cont is None:
+                    print("launch target: FAIL: continuity band fell outside the frame",
+                            file=sys.stderr)
+                    bad += 1
+                else:
+                    lum_ok = cont["luminance_diff"] <= args.continuity_luminance_max
+                    chroma_ok = cont["chroma_diff"] <= args.continuity_chroma_max
+                    img_h = Image.open(horizon_path).height
+                    print("continuity: boundary row %d of %d (%.0f nodes out, eye height "
+                            "%.1f): inside luminance %.2f chroma %.2f, outside luminance %.2f "
+                            "chroma %.2f"
+                            % (int(round(geom["v_boundary"] * img_h)), img_h,
+                                geom["target_distance"], geom["eye_height"],
+                                cont["inside"]["luminance"], cont["inside"]["chroma"],
+                                cont["outside"]["luminance"], cont["outside"]["chroma"]))
+                    print("continuity: luminance diff %.2f (wanted at most %.2f), chroma diff "
+                            "%.2f (wanted at most %.2f)"
+                            % (cont["luminance_diff"], args.continuity_luminance_max,
+                                cont["chroma_diff"], args.continuity_chroma_max))
+                    print("launch target: %s: continuity"
+                            % ("PASS" if (lum_ok and chroma_ok) else "FAIL"))
+                    if not (lum_ok and chroma_ok):
+                        bad += 1
+
+                pop_frames = meta.get("pop_frames", [])
+                if len(pop_frames) < 2:
+                    print("launch target: SKIP: pop metric (fewer than two burst frames in "
+                            "the settings JSON)")
+                else:
+                    fractions = pop_fraction_series(pop_frames, geom["v_horizon"],
+                            geom["v_boundary"], args.pop_change_threshold)
+                    if not fractions:
+                        print("launch target: FAIL: pop metric could not compare the burst "
+                                "frames (sizes did not match)", file=sys.stderr)
+                        bad += 1
+                    else:
+                        worst = max(fractions)
+                        print("pop: far band, %d frame pairs, changed fraction per pair: %s"
+                                % (len(fractions), ", ".join("%.3f" % f for f in fractions)))
+                        pop_ok = worst <= args.pop_max_fraction
+                        print("launch target: %s: pop, worst frame changed fraction %.3f, "
+                                "wanted at most %.3f"
+                                % ("PASS" if pop_ok else "FAIL", worst, args.pop_max_fraction))
+                        if not pop_ok:
+                            bad += 1
 
     return 1 if bad else 0
 

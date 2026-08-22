@@ -6,7 +6,11 @@
 # against an empty settings file, start a new local world through the menu
 # path (not a hand started server), wait on the control channel for the far
 # field to reach a real size, take a horizon shot and a close shot, and
-# check both with shotcheck.py --launch-target.
+# check both with shotcheck.py --launch-target. That check also carries R4's
+# continuity and pop instruments: the horizon shot's pose plus the ground
+# height found below give shotcheck.py the live/far boundary row, and a
+# standing-still burst taken at that same pose (the "pop" directory) lets it
+# measure the largest single frame change in the far band.
 #
 # The empty settings file is XDG_DATA_HOME pointed at a scratch directory:
 # Godot puts user:// under it, so there is no goanna.cfg and every value is
@@ -56,6 +60,13 @@ control_port=${GOANNA_LAUNCH_TARGET_PORT:-30800}
 far_min=${GOANNA_LAUNCH_TARGET_FAR_MIN:-500}
 far_timeout_ms=${GOANNA_LAUNCH_TARGET_FAR_TIMEOUT_MS:-180000}
 startup_timeout_s=${GOANNA_LAUNCH_TARGET_STARTUP_TIMEOUT_S:-90}
+# R4's pop metric (docs/launch-target.md): a burst of frames at the horizon
+# pose, camera standing still, spaced by engine frames rather than a wall
+# clock sleep so the count is not at the mercy of how fast this machine
+# renders. pop_count frames over pop_gap_frames * (pop_count - 1) frames is
+# about three seconds at 60fps, the window R4 asks for.
+pop_count=${GOANNA_LAUNCH_TARGET_POP_COUNT:-12}
+pop_gap_frames=${GOANNA_LAUNCH_TARGET_POP_GAP_FRAMES:-18}
 
 run_dir=${GOANNA_LAUNCH_TARGET_DIR:-}
 keep_dir=1
@@ -70,7 +81,10 @@ log="$run_dir/goanna.log"
 horizon="$run_dir/horizon.png"
 wall="$run_dir/wall.png"
 settings_json="$run_dir/settings.json"
+pop_dir="$run_dir/pop"
 rm -f "$log" "$horizon" "$wall" "$settings_json"
+rm -rf "$pop_dir"
+mkdir -p "$pop_dir"
 
 printf 'launch target test: starting %s:%s (profile %s), log %s\n' "$game" "$world" "$profile_dir" "$log"
 
@@ -104,8 +118,9 @@ say_fail() {
 # Drives the control channel: waits for it to come up, waits for the far
 # field to pass far_min, finds the ground under the player (spawn terrain is
 # not known in advance), takes the wall shot two nodes ahead of it and the
-# horizon shot from high above looking out, then writes settings.json and
-# quits. Configuration comes through the environment rather than shell
+# horizon shot from high above looking out, takes R4's standing-still burst
+# at that same horizon pose, then writes settings.json and quits.
+# Configuration comes through the environment rather than shell
 # interpolation into the script, because the heredoc below is quoted.
 export GLT_CONTROL_PORT="$control_port"
 export GLT_FAR_MIN="$far_min"
@@ -117,6 +132,9 @@ export GLT_SETTINGS_JSON="$settings_json"
 export GLT_GAME="$game"
 export GLT_WORLD="$world"
 export GLT_SHADER_PACK="${GOANNA_SHADERPACK:-}"
+export GLT_POP_DIR="$pop_dir"
+export GLT_POP_COUNT="$pop_count"
+export GLT_POP_GAP_FRAMES="$pop_gap_frames"
 
 driver_timeout=$(( startup_timeout_s + far_timeout_ms / 1000 + 90 ))
 set +e
@@ -135,6 +153,9 @@ startup_timeout_s = float(os.environ["GLT_STARTUP_TIMEOUT_S"])
 horizon_path = os.environ["GLT_HORIZON"]
 wall_path = os.environ["GLT_WALL"]
 settings_path = os.environ["GLT_SETTINGS_JSON"]
+pop_dir = os.environ["GLT_POP_DIR"]
+pop_count = int(os.environ["GLT_POP_COUNT"])
+pop_gap_frames = int(os.environ["GLT_POP_GAP_FRAMES"])
 
 _next_id = [0]
 
@@ -221,6 +242,19 @@ def main():
         call(sock, "look", {"x": px + 300.0, "y": py + 100.0, "z": pz})
         horizon_meta = call(sock, "shot", {"path": horizon_path})
 
+        # R4's pop metric (docs/launch-target.md): a burst of frames at this
+        # same horizon pose, camera not moved since, spaced by engine frames
+        # rather than a wall clock sleep. settle is off and warm is 0 because
+        # nothing has moved since the settled horizon shot above, and adding
+        # either back in would eat into the frame spacing wait_frames sets.
+        pop_frames = []
+        for i in range(pop_count):
+            if i > 0:
+                call(sock, "wait", {"frames": pop_gap_frames})
+            p = os.path.join(pop_dir, "pop_%04d.png" % i)
+            call(sock, "shot", {"path": p, "settle": False, "warm": 0})
+            pop_frames.append(p)
+
         render_stats = call(sock, "eval", {"expr": "client.render_stats()"})["value"]
         settings = call(sock, "settings")
         final_dev = call(sock, "deviations")
@@ -233,8 +267,10 @@ def main():
                 "render_stats": render_stats,
                 "settings": settings,
                 "deviations": final_dev,
+                "ground": ground,
                 "horizon_shot": horizon_meta,
                 "wall_shot": wall_meta,
+                "pop_frames": pop_frames,
             }, f, indent=2)
 
         call(sock, "quit")

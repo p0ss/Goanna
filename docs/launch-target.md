@@ -113,6 +113,85 @@ boundary of the horizon shot, and a pop metric, the largest single frame
 change in the far band over a few seconds standing still, which a dither
 fade keeps small and a pop does not. Sonnet. Before R1 is judged.
 
+Landed 2026-08-22. `shotcheck.py` places the live/far boundary on the
+horizon shot from the pose the harness already records: the boresight pitch
+and camera height in the shot's own JSON sidecar, the vertical fov and
+`view_range` from the settings JSON, and the ground height under the player
+that `tools/test-launch-target.sh` finds but did not previously write down,
+added there as `ground`. The row a ground plane `view_range * 16` nodes out
+crosses the frame follows straight from the camera's perspective projection
+(the screen offset from the boresight goes as the tangent of the angle off
+it, over the tangent of the half vertical fov), which the geometric
+derivation used in preference to the double-shot `lod_distance 0` fallback
+because it checked out exactly on a live client: `cam.project_ray_normal` at
+the row the formula names lands within a node of the ground distance asked
+for, at every row tried from the middle of the frame to the bottom. The same
+projection gives the top of the far band, the row where the true horizon
+(ground at infinite distance) crosses the frame, above which nothing but sky
+can appear at any draw distance. The continuity check reads mean luminance
+and a chroma measure (the average of \|R-G\| and \|G-B\|) in a band just
+inside the boundary against a band just outside it; the pop check takes a
+twelve frame burst at the horizon pose spaced by `wait frames=18`
+(about three seconds at 60fps) through the control channel, camera not
+moved since the settled horizon shot, and reports the largest fraction of
+far-band pixels whose luminance moved by more than a threshold between
+consecutive frames. Both are wired into `shotcheck.py --launch-target`
+directly rather than a new flag, so `tools/test-launch-target.sh`'s existing
+call is unchanged; the harness only gained the burst capture and the
+`ground` field in `settings.json`.
+
+Thresholds were set by comparing the boundary reading against the same
+metric run on two adjacent bands of the wall shot, which has no tier
+boundary in it at all and reads as one continuous surface by construction:
+on the two runs below that natural, same-tier noise floor was 0.35 to 4.93
+luminance and 0.30 to 1.41 chroma. `--continuity-luminance-max` is 8.0 and
+`--continuity-chroma-max` is 3.0, above that floor but well under the tens
+of luminance units a reintroduced stale grey pull or a bytes-as-linear
+colour would produce. For the pop metric, twenty-two standing-still frame
+pairs across both runs read exactly 0.0 changed fraction, a clean floor with
+no dithering or temporal noise crossing the per-pixel threshold;
+`--pop-change-threshold` stays at 10.0 (0-255) and `--pop-max-fraction` is
+0.01, comfortably above that floor while still well under what a coarse
+region's faces vanishing over their own screen area in one frame would read.
+
+Run twice on this machine against fresh profiles and fresh worlds, Luanti
+5.16.1 flatpak, Godot 4.5.1, both after commit "Stop the far field reading
+as a different world" (three of R1's four fixes: the stale grey pull default
+to 0, summary blocks no longer markable stale, the tier average colour
+converted from sRGB to linear before it reaches `ALBEDO`). Boundary row 802
+of 900 both times (192 nodes out, eye height 151.0, matching the harness's
+fixed camera offsets). First run, `far_min` 500: far cells 3071, luminance
+diff 1.05, chroma diff 0.29, worst pop fraction 0.0 across eleven frame
+pairs. Second, `far_min` lowered to 150 to land the burst earlier in the
+far field's population: far cells 990, luminance diff 1.08, chroma diff
+0.19, worst pop fraction 0.0 across eleven frame pairs. Both pass the
+thresholds above, and both diffs sit inside the natural noise floor
+measured the same run, which is the expected result now that three of
+R1's four causes are fixed rather than the failure this task opened
+expecting: the instrument was written and its thresholds chosen before
+those three landed, in the same working tree, while this task was in
+progress.
+
+The fourth cause, a coarse region's faces removed the moment a finer
+replacement is assigned rather than held until it has faded in, is
+deliberately still open, and it is exactly what the pop metric exists to
+catch. It was not caught in either run above: `far_remote`'s growth (500 or
+150 to nearly 3000) happens across the whole far field around the player,
+in every direction, while the pop burst watches one fixed camera cone, so
+most of that resolving activity was almost certainly outside the frame both
+times. Reproducing the old stale grey signal live, by setting `mat_stale`
+back to its old default of 0.6 on a running client, no longer moves the
+reading either: the fix removed summary blocks from being markable stale at
+all, not merely the default strength, so that path is gone rather than
+dialled down. Catching the fourth cause in a harness run will need the
+burst aimed at a direction with active chain resolution in it, or a longer
+burst, either of which is a fair follow up rather than a change to what
+shipped here. Separately: distant teleports to force fresh chain activity
+into view crashed the client outright on this machine (silent, no log
+entry) both times they were tried; that looks unrelated to this task, since
+it reproduced with an unmodified client on an old world, and is left as a
+finding rather than chased, since `src/` is out of scope here. Sonnet.
+
 These come ahead of everything in "The tasks, in order" below except task
 1, which they use. The translator (tasks 5 and 6) continues as shader pack
 compatibility, off by default; the shipped look is Goanna's own.
