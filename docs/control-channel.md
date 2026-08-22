@@ -47,13 +47,21 @@ tools/goanna-control set light_sun 2.0
 tools/goanna-control shot /tmp/a.png
 ```
 
-`tools/goanna-control` talks to 30800 unless you pass `--port`. It does not
-read `GOANNA_CONTROL`, so a client started on another port is not found by
-default, and worse, a client that happens to be on 30800 is. With several
-sessions on one machine that is a live hazard rather than a nuisance: it has
-already sent a `set` and a teleport into someone else's client. Pass
-`--port` explicitly whenever more than one client can be running, and give
-each session its own port.
+The port is not inferred at either end, and on a machine running more than
+one client that is a hazard rather than a nuisance. `tools/goanna-control`
+talks to 30800 unless you pass `--port`, and does not read `GOANNA_CONTROL`,
+so a client started on another port is not found and a client that happens
+to be on 30800 is. The client side has the mirror of it: whoever binds 30800
+first holds it for everybody, so a second client launched without
+`GOANNA_CONTROL` set silently has no channel of its own while the tool
+cheerfully drives the first one.
+
+This has already happened twice in one evening, in both directions, between
+two people who each thought they were driving their own client: a settings
+change and a teleport went into someone else's session each time. Give every
+session its own port, set `GOANNA_CONTROL` explicitly when you launch, pass
+`--port` on every call, and check `label` or `status` before you believe a
+reply came from the client you meant.
 
 The wire format is one JSON object per line over TCP,
 `{"id": 1, "cmd": "tp", "args": {"x": 10, "y": 65, "z": -20}}`, and one
