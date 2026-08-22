@@ -117,10 +117,14 @@ chain thresholds, a worker thread for region meshing, settings entries for
 the far distance and the stale strength, and an index over stored regions
 before that scan is asked to cover 4000 nodes.
 
-After those, in order: Iris rungs 5 to 7, the gbuffers translator, which
-needs both the LOD vertex layout and the light path and now has them; source
-movement, behind the validator that is the larger half of it; and VR, which
-multiplies the cost of everything still unsettled.
+Iris rungs 5 to 7, the gbuffers translator, were listed after those. They
+need the LOD vertex layout and the light path and have had both since 21
+August, and the audit they were queued behind is measurement and gates
+nothing, so on 2026-08-22 they were taken up ahead of it, with Base-Shader
+as the conformance target and Eclipse after it (`launch-target.md` tasks 5
+and 6). After that: source movement, behind the validator that is the
+larger half of it; and VR, which multiplies the cost of everything still
+unsettled.
 
 ## Chokepoints
 
@@ -222,7 +226,9 @@ work, and whose answer changes how far `pbr-plan.md` step 3 should go.
    a pack running only its composite chain already looks like a shader pack.
 7. **Iris rungs 5 to 7**, the gbuffers translator. Needs the LOD vertex
    layout from item 4 and the light path from item 2, or the vista renders
-   as Godot drew it under a pack that shades everything else.
+   as Godot drew it under a pack that shades everything else. Both landed
+   2026-08-21; begun 2026-08-22 with Base-Shader, ahead of the audit in
+   item 2, which measures and does not gate.
 8. **Source movement**, only behind its validator, which is the larger half.
 9. **VR**, which multiplies the cost of everything unsettled.
 
