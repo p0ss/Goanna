@@ -549,6 +549,8 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                     fk.valid = true;
                     any = true;
                     ++out.faces;
+                    if (fk.row)
+                        ++out.partial;
                 }
             if (!any)
                 continue;
