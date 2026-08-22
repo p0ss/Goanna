@@ -199,7 +199,15 @@ func _ready() -> void:
 		mat.set_shader_parameter("spec_array", flat_s)
 		mat.set_shader_parameter("has_normal", false)
 		mat.set_shader_parameter("has_spec", false)
-		mat.set_shader_parameter("layer_class", PackedInt32Array([int(s[2])]))
+		# The class table is indexed by array layer, so it has to reach the
+		# layer the strip actually sits on. Left at one entry, a run with
+		# GOANNA_FIELD_LAYER set reads class 0 and quietly draws the plain
+		# tile, which is the fixture passing while testing nothing: exactly
+		# the shape of blindness that let a truncating layer index through.
+		var classes := PackedInt32Array()
+		classes.resize(lod_layer + 1)
+		classes[lod_layer] = int(s[2])
+		mat.set_shader_parameter("layer_class", classes)
 		mat.set_shader_parameter("detail_cell", cell)
 		mat.set_shader_parameter("detail_strength", 0.0)
 		# The per vertex channels the client fills from the map. There is no
