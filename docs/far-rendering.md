@@ -518,16 +518,116 @@ nothing at all past the live edge.
 spends mapgen time and map memory on terrain no one has visited. When on,
 the mod generates outward from each connected player, one 128 node area at a
 time, nearest first, with `goanna_far_pregenerate_interval` seconds between
-areas, out to the far rendering distance. Each finished area is summarised
-for every client within range without being asked, because a client that
-asked while it was still ungenerated was told there was nothing and does not
-ask twice. The client needs no change for this: an unsolicited summary is
-taken exactly like an answered one. The local server Goanna launches turns it
-on (`project/local_server.gd`); a public operator decides for themselves.
+areas, out to the far rendering distance. An area is emerged a slice at a
+time rather than all at once, for the reason the next section gives. Each
+finished area is summarised for every client within range without being
+asked, because a client that asked while it was still ungenerated was told
+there was nothing and does not ask twice. The client needs no change for
+this: an unsolicited summary is taken exactly like an answered one. The
+local server Goanna launches turns it on (`project/local_server.gd`); a
+public operator decides for themselves.
 
 It stays inside the boundary: the server generates its own world on its own
 schedule, as it would for a player walking there, and the client never
 generates or asks for anything a vanilla client could not.
+
+### Pregeneration yields to the player, 2026-08-22
+
+Pregeneration shipped in the morning and the near field, the blocks around
+the player, got worse the same day. The near field is what the client is
+for, so this is the more serious half of what pregeneration was added to
+fix, and it was traded away without anyone measuring it.
+
+**Why it happened.** An area is 8 by 8 by 8 mapblocks and the mod called
+`core.emerge_area` on the whole of it. Lua's emerge sets
+`BLOCK_EMERGE_FORCE_QUEUE` (`luanti/src/script/lua_api/l_env.cpp`), which
+`EmergeManager::pushBlockEmergeData` reads as "skip every queue limit", so
+none of `emergequeue_limit_total`, `_diskonly` or `_generate` applied. Each
+emerge thread's queue is a plain `std::queue`, and a player's own block
+request goes through `RemoteClient::GetNextBlocks` into the same queue. So
+512 mapblocks of terrain nobody had asked for sat in front of the blocks the
+player was waiting for, every `goanna_far_pregenerate_interval` seconds.
+Logged from inside the mod, one such batch was 0.0 to 3.1 seconds of mapgen
+on mineclonia, and the server's `get_server_max_lag` rose from 0.11 to 0.34
+while a batch and its summary ran.
+
+Two smaller wastes turned up in the same read. The area search ranked
+candidates by horizontal distance only, and the three vertical layers it
+searches are all at the same horizontal distance, so the tie always went to
+whichever the loop reached first: the layer below the player. Every column
+was generated deep stone first and surface last. And a client's own
+`farsum?` was appended to the same queue as the summaries pregeneration
+offers unasked, up to eight of them, each 512 blocks of `VoxelManip`; worse,
+the queue limit that refuses a request counted those offers, so
+pregeneration could make the server silently refuse a player's own ask, and
+`lodRequestSummaries` does not ask twice.
+
+**What changed**, all in `goanna_server_mod/init.lua`:
+
+- An area is emerged `goanna_far_pregenerate_slice` mapblocks on a side at a
+  time, 4 by default, and the next slice starts from the previous one's
+  completion callback rather than on a clock. The queue holds 64 blocks
+  where it held 512.
+- `goanna_far_pregenerate_interval` now paces areas rather than protecting
+  the queue, so its default drops from 3 seconds to 1. The slices within an
+  area run back to back.
+- The area search ranks the player's own vertical layer ahead of the two
+  beside it.
+- `goanna_far_pregenerate_lag` stops pregeneration when
+  `core.get_server_max_lag()` is above it. The default is 0.5 s, five times
+  the server step, and the retry is 0.5 s rather than the full interval:
+  that number is a running maximum which halves every minute
+  (`Server::AsyncRunStep`), not an average, so a threshold near the step
+  length reads as "behind" long after one slow step. At 0.2 the mod's own
+  summary pass tripped it and pregeneration ran at a third of its rate on a
+  server that was fine.
+- A client's own `farsum?` is queued ahead of every offered summary, and
+  only asked requests count towards the limit that refuses one.
+
+**The numbers.** Godot 4.5.1, mineclonia 0.90 on Luanti 5.16.1, the local
+server `project/local_server.gd` starts, on a shared and loaded machine (one
+minute load average 1.8 to 5.6 across the runs, three other agents working).
+Each run is a brand new world on a fixed map seed, joined through the menu,
+28 seconds to settle, then a teleport to (3000, 90, 3000), which no run has
+visited, with the camera placed and aimed identically. The far tiers were
+drawn throughout, at the client's default `lod_distance`, which matters
+because turning them off would also have stopped the summary requests:
+`lodRequestSummaries` is called at the end of `lodUpdateFar`, and that
+returns early when `m_lod_distance <= 0`. Three or four runs per condition,
+interleaved so the load is comparable.
+
+| Condition | +400 blocks after the jump | far blocks at 45 s |
+| --- | --- | --- |
+| `goanna_far_pregenerate` off | 3.2, 5.3, 3.6 s | 0, 0, 0 |
+| on, before | 4.9, 5.7, 5.3 s | 3548, 3551, 3551 |
+| on, after | 4.4, 4.4, 3.7, 3.6 s | 3937, 4126, 4127, 4128 |
+
+Far region meshes at the same moment, which is what the far blocks turn
+into: 0 with pregeneration off, 69 in all three before runs, 96 then 100,
+100, 100 after.
+
+Pregeneration off is the closest thing to the vanilla comparison the user
+made: the same server with the mod's pregeneration loop taken out. It cost
+1.3 seconds on a 4 second near field fill before, and costs nothing now,
+while the horizon fills faster than it did rather than slower. The 45 second
+far block count is the client's `render_stats().far_remote`, blocks known
+only from summaries.
+
+The variance is real and the machine was busy: the off condition's own three
+runs span 3.2 to 5.3 seconds. Read the run means, 4.0 off, 5.3 before, 4.0
+after, rather than any single pair. The far block counts are much steadier
+because they are paced by the mod rather than by the machine.
+
+**What this does not fix.** `docs/launch-target.md` task 8 still stands: the
+client asks for four area layers either side of it and most of what comes
+back is sky or interior stone. Ranking the vertical only changes the order,
+not the volume. The mod also still offers a summary for an area only when
+its own pregeneration made it, so on a real server, where players walking
+about generate most of the map, terrain that comes into existence any other
+way is never offered to anyone. `core.register_on_generated` is the obvious
+answer and is not implemented here; it would want the same discipline as
+above, one area at a time, only outside the live send range, and behind the
+same lag guard.
 
 ### The launch target's four defects, closed 2026-08-22
 

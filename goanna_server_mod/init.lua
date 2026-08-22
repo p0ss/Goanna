@@ -272,13 +272,30 @@ end
 
 -- Per player work queue: one request is an area; blocks are summarised a few
 -- per step and the reply sent when the area completes.
+--
+-- Two kinds of job share it. A client asked for one and is waiting on it; a
+-- pregenerated area is offered unasked and nobody is waiting. A job is 512
+-- blocks, about a second and a half, so a plain queue put an asking client
+-- behind however many offers happened to be in front of it. An asked job
+-- therefore goes ahead of every offered one, after whichever job is part
+-- way through: no work is lost, the offers still go out, and the player
+-- waiting on the view in front of them is served first.
 local far_queue = {}
 
-local function queue_area(player_name, cell, ox, oy, oz, edge)
-	far_queue[#far_queue + 1] = {
+local function queue_area(player_name, cell, ox, oy, oz, edge, offered)
+	local job = {
 		who = player_name, cell = cell, ox = ox, oy = oy, oz = oz, edge = edge,
-		i = 0, records = {}, names = {}, name_index = {},
+		i = 0, records = {}, names = {}, name_index = {}, offered = offered,
 	}
+	if not offered then
+		for i = 2, #far_queue do
+			if far_queue[i].offered then
+				table.insert(far_queue, i, job)
+				return
+			end
+		end
+	end
+	far_queue[#far_queue + 1] = job
 end
 
 -- Version 2's record; see the protocol comment above block_summary.
@@ -328,11 +345,66 @@ end)
 -- Each finished area is summarised for every client within range without
 -- being asked, because a client that asked while the area was still
 -- ungenerated was told there was nothing there and does not ask twice.
+--
+-- It must lose that race to the player, and the first version of it did not.
+-- An area is 8 by 8 by 8 mapblocks, and `core.emerge_area` on the whole of
+-- it put all 512 into the server's emerge queue in one call. Lua's emerge
+-- carries BLOCK_EMERGE_FORCE_QUEUE (`l_env.cpp`), so none of the queue
+-- limits that hold an ordinary client's requests back apply to it, and each
+-- emerge thread's queue is a plain FIFO: the blocks the player is waiting
+-- for went in behind the whole backlog. Measured on mineclonia, one such
+-- batch is up to about three seconds of mapgen, and 400 blocks around a
+-- player arriving somewhere new took 5.3 seconds to arrive where the same
+-- world with pregeneration off took 4.0 (docs/far-rendering.md,
+-- "Pregeneration yields to the player").
+--
+-- So an area is emerged a slice at a time, `pregen_slice` mapblocks on a
+-- side, and the next slice is started from the previous one's completion
+-- callback rather than on a clock. The queue then holds one slice rather
+-- than one area, the player's own requests are never more than a slice
+-- behind, and the horizon still fills at the rate the interval sets, since
+-- the interval now paces areas and the slices within one run back to back.
+-- `core.get_server_max_lag` is the other half: a server already behind its
+-- step gets left alone until it catches up.
 local pregen_enabled = far_enabled and conf_bool("goanna_far_pregenerate", false)
-local pregen_interval = conf_num("goanna_far_pregenerate_interval", 3)
-local pregen = { busy = false, since = 0, wait = 0, done = {}, pending = {} }
+local pregen_interval = conf_num("goanna_far_pregenerate_interval", 1)
+-- Mapblocks on a side of one emerge call. 4 is 64 blocks, smaller than the
+-- 5 cubed chunk mapgen works in, so a slice is one or two chunks of work.
+-- Must divide 8; anything else is rounded down to the nearest that does.
+local pregen_slice = conf_num("goanna_far_pregenerate_slice", 4)
+if pregen_slice >= 8 then
+	pregen_slice = 8
+elseif pregen_slice >= 4 then
+	pregen_slice = 4
+elseif pregen_slice >= 2 then
+	pregen_slice = 2
+else
+	pregen_slice = 1
+end
+-- Seconds of server step time above which pregeneration waits. Read
+-- get_server_max_lag before choosing a number: it is a running maximum that
+-- halves every minute (`Server::AsyncRunStep`), not an average, so one slow
+-- step pins it high for a long time afterwards. A threshold near the step
+-- length therefore reads as "behind" almost permanently: at 0.2 this mod's
+-- own summary pass tripped it, and pregeneration stalled to a third of its
+-- rate on a server that was fine. Half a second is five times the 0.1 s
+-- step, high enough to mean something is really wrong.
+local pregen_lag_limit = conf_num("goanna_far_pregenerate_lag", 0.5)
+local pregen_slices = math.floor((8 / pregen_slice) ^ 3)
+local pregen = {
+	busy = false, since = 0, wait = 0, done = {}, pending = {},
+	area = nil, slice = 0,
+}
 
 -- Nearest area to any connected player that this session has not generated.
+-- Nearest counts the vertical too, which is not fussiness: the search covers
+-- one area above and below the player's own, all three at the same
+-- horizontal distance, and a tie went to the first one found, which was
+-- always the one below. Every column was therefore generated deep stone
+-- first and surface last, which is the layer nobody can see being paid for
+-- before the only one anybody looks at. docs/launch-target.md task 8 is the
+-- rest of that story: the vertical extent asked for is still mostly sky and
+-- stone, and only the client asking within the generated extent fixes it.
 local function pregen_pick()
 	local best, best_d
 	local aradius = math.ceil(far_distance / 128)
@@ -346,9 +418,11 @@ local function pregen_pick()
 					if not pregen.done[key] then
 						local cx, cz = (ax + dx) * 128 + 64, (az + dz) * 128 + 64
 						local d = math.max(math.abs(cx - pp.x), math.abs(cz - pp.z))
-						if d <= far_distance and (not best_d or d < best_d) then
+						-- the player's own layer first, then the two beside it
+						local rank = d + math.abs(dy) * 64
+						if d <= far_distance and (not best_d or rank < best_d) then
 							best = {x = ax + dx, y = ay + dy, z = az + dz, key = key}
-							best_d = d
+							best_d = rank
 						end
 					end
 				end
@@ -358,14 +432,65 @@ local function pregen_pick()
 	return best
 end
 
+-- One slice of the current area, or the next area's first slice. The
+-- completion callback runs on an emerge thread, so it only sets the state
+-- the globalstep above reads.
+local function pregen_emerge()
+	if not pregen.area then
+		local a = pregen_pick()
+		if not a then
+			-- Nothing left in range. The search is a few hundred keys, so
+			-- pause before asking again rather than every step.
+			pregen.wait = pregen_interval
+			return
+		end
+		pregen.done[a.key] = true
+		pregen.area, pregen.slice = a, 0
+	end
+	local a, i = pregen.area, pregen.slice
+	-- floored: a float here would put fractional node coordinates in pmin
+	local n = math.floor(8 / pregen_slice)
+	local edge = pregen_slice * 16
+	local pmin = vector.new(
+			a.x * 128 + (i % n) * edge,
+			a.y * 128 + (math.floor(i / n) % n) * edge,
+			a.z * 128 + math.floor(i / (n * n)) * edge)
+	local pmax = vector.add(pmin, edge - 1)
+	pregen.busy, pregen.since = true, 0
+	core.emerge_area(pmin, pmax, function(blockpos, action, calls_remaining)
+		if calls_remaining > 0 then
+			return
+		end
+		pregen.busy = false
+		pregen.slice = i + 1
+		if pregen.slice < pregen_slices then
+			return
+		end
+		-- The area is whole: pause, and offer it to the clients near it.
+		pregen.area, pregen.slice = nil, 0
+		pregen.wait = pregen_interval
+		for _, player in ipairs(core.get_connected_players()) do
+			local pp = player:get_pos()
+			local d = math.max(math.abs(a.x * 128 + 64 - pp.x), math.abs(a.z * 128 + 64 - pp.z))
+			if d <= far_distance + 128 then
+				pregen.pending[#pregen.pending + 1] = {
+					who = player:get_player_name(), x = a.x, y = a.y, z = a.z,
+				}
+			end
+		end
+	end)
+end
+
 core.register_globalstep(function(dtime)
 	if not pregen_enabled then
 		return
 	end
-	-- Summaries of finished areas go out as the summary queue has room.
+	-- Finished areas are offered as the queue has room. Depth is not what
+	-- costs a client here, since queue_area puts an asked job ahead of every
+	-- offered one; this only bounds the memory a backlog of offers holds.
 	while #pregen.pending > 0 and #far_queue < 8 do
 		local a = table.remove(pregen.pending, 1)
-		queue_area(a.who, 16, a.x * 8, a.y * 8, a.z * 8, 8)
+		queue_area(a.who, 16, a.x * 8, a.y * 8, a.z * 8, 8, true)
 	end
 	if pregen.busy then
 		pregen.since = pregen.since + dtime
@@ -378,30 +503,13 @@ core.register_globalstep(function(dtime)
 	if pregen.wait > 0 then
 		return
 	end
-	pregen.wait = pregen_interval
-	local a = pregen_pick()
-	if not a then
+	if core.get_server_max_lag() > pregen_lag_limit then
+		-- Behind already. Look again soon: the check costs nothing and a
+		-- long pause here turns one slow step into a long stall.
+		pregen.wait = 0.5
 		return
 	end
-	pregen.done[a.key] = true
-	pregen.busy, pregen.since = true, 0
-	local pmin = vector.new(a.x * 128, a.y * 128, a.z * 128)
-	local pmax = vector.add(pmin, 127)
-	core.emerge_area(pmin, pmax, function(blockpos, action, calls_remaining)
-		if calls_remaining > 0 then
-			return
-		end
-		pregen.busy = false
-		for _, player in ipairs(core.get_connected_players()) do
-			local pp = player:get_pos()
-			local d = math.max(math.abs(pmin.x + 64 - pp.x), math.abs(pmin.z + 64 - pp.z))
-			if d <= far_distance + 128 then
-				pregen.pending[#pregen.pending + 1] = {
-					who = player:get_player_name(), x = a.x, y = a.y, z = a.z,
-				}
-			end
-		end
-	end)
+	pregen_emerge()
 end)
 
 core.register_on_modchannel_message(function(channel_name, sender, message)
@@ -454,7 +562,18 @@ core.register_on_modchannel_message(function(channel_name, sender, message)
 	if dist > far_distance + edge * 16 then
 		return
 	end
-	if #far_queue < 8 then
+	-- Only jobs someone asked for count against the limit. Counting the
+	-- offered ones too meant pregeneration could fill the queue and this
+	-- would refuse a player's own request, silently, and the client does not
+	-- ask twice: the horizon then depended entirely on being offered the
+	-- right area.
+	local asked = 0
+	for i = 1, #far_queue do
+		if not far_queue[i].offered then
+			asked = asked + 1
+		end
+	end
+	if asked < 8 then
 		queue_area(sender, cell, ox, oy, oz, edge)
 	end
 end)

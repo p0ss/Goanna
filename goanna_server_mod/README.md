@@ -111,11 +111,28 @@ A summary describes terrain that exists, and a server generates only within
 the range its client asks for, so a new world has a 192 node horizon
 whatever distance was granted. `goanna_far_pregenerate` lets this mod
 generate outward from each connected player, one 128 node area at a time,
-nearest first, with `goanna_far_pregenerate_interval` seconds between areas,
-out to the far rendering distance, and summarise each finished area for the
+nearest first and the player's own vertical layer before the ones above and
+below it, with `goanna_far_pregenerate_interval` seconds between areas, out
+to the far rendering distance, and summarise each finished area for the
 clients near it unasked. It spends mapgen time and map memory on terrain no
 one has visited, so it is off unless the operator turns it on. The server a
 Goanna client launches for itself turns it on.
+
+An area is emerged `goanna_far_pregenerate_slice` mapblocks on a side at a
+time rather than all at once, and the next slice starts when the last one
+reports back. This is the part that keeps pregeneration out of a player's
+way, and it is not optional politeness: Lua's `core.emerge_area` carries
+`BLOCK_EMERGE_FORCE_QUEUE`, so none of the per client queue limits apply to
+it, and each emerge thread's queue is a plain FIFO. Emerging a whole area
+put 512 mapblocks in front of whatever the player was waiting for.
+`goanna_far_pregenerate_lag` is the coarser guard: above that many seconds
+of server step time, pregeneration waits for the server to catch up.
+`docs/far-rendering.md` has the before and after timings.
+
+A client's own `farsum?` goes ahead of every summary offered from
+pregeneration, and only asked requests count towards the queue limit that
+refuses one. A player waiting on the view in front of them is not made to
+wait behind terrain nobody asked about.
 
 ## Settings
 
