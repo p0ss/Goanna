@@ -98,6 +98,53 @@ move, and confirm on the chart that the same material under the same sky
 at 100, 300 and 600 nodes has no step where a shadow distance or an SDFGI
 cascade edge would fall. Fable has this one.
 
+Landed 2026-08-22, the light. Full detail and the numbers are in
+`far-rendering.md`, "One light, from your feet to the horizon"; the summary,
+including what this task expected to find and did not:
+
+The far tiers do not bake a time of day and never did, so the framing this
+task opened with was wrong. `LIGHTBANK_DAY` is Luanti's sunlight
+propagation, a visibility term that does not move with the clock, and both
+meshers store the same thing; the hour comes from `_apply_sky`'s
+`goanna_sky_fill` and the sky radiance, through the same shader for near and
+far alike. Measured on one running client: the `CUSTOM0` bytes on the live
+meshes were identical at time 0.5, 0.25 and 0.0 while the frame went from
+noon to midnight.
+
+What was really there, found by reading those bytes rather than the frames,
+was two populations of sky light where the world has one surface.
+`lodTakeSummaries` clamped the wire's light level to `LIGHT_MAX` (14) before
+decoding, and an open sky column carries `LIGHT_SUN` (15), so 40.9 per cent
+of far vertices read 234 of 255 where the same ground reads 255 the moment
+it comes inside the live range. After: 3.2 per cent, which is the level 14
+light that is really there. Alongside it, and louder in the frame, a summary
+block left every cell above its surface marked "never seen", so "Unknown is
+not air" culled the side faces against them and the far field drew as
+floating tops with daylight through them; a generated block's air is now
+marked as air, and it draws as landscape.
+
+`tools/shotcheck.py --launch-target` at time 0.5, 0.25 and 0.0, same world,
+same viewpoint, before and after, on a fresh Mineclonia world at a 1024 node
+grant with 6600 to 10000 far blocks, Luanti 5.16.1 flatpak, Godot 4.5.1: all
+six runs passed every threshold, and the live/far boundary luminance
+difference at midnight, where the sky fill is most of the light, went from
+3.69 to 0.61 and its chroma difference from 1.15 to 0.28. Noon and dawn were
+already inside R4's same-tier noise floor and stayed there. The harness was
+never failing on this, which is why the vertex bytes were the instrument
+that found it. `tools/test-launch-target.sh` itself, unmodified, passes on a
+fresh profile and a fresh world; two earlier attempts failed on the close
+shot's normal map response, which `far-rendering.md` records as a fragility
+in where that shot is posed rather than anything about the far field.
+
+Two per tier terms were measured and left: `block_light_emission` at 1.0 on
+LOD materials moves the far band's mean luminance by 0.04 at midnight and
+0.03 at noon, which is nothing against the 0.90 two shots of the same
+settings drift by while the world streams; and the far tiers' traced
+occlusion is much heavier than the near field's (mean 113 against 205) for
+one to one and a half luminance units. Both are recorded with their numbers
+in `far-rendering.md`; the occlusion one wants calibrating on the chart
+against the near tracer.
+
 **R2, water.** `water.gdshader` tiles a 16 pixel texture and refracts.
 Replace the surface model: world space procedural waves in a few octaves
 with detail fading by distance (Glimmer, MIT, and Daybreak, CC0, are the

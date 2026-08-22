@@ -117,6 +117,15 @@ the far tiers add it as emission, being past the reach of the node light
 pool, and 255 there would make every unknown face a lamp. A missing
 attribute should look unremarkable.
 
+Sky light's neutral of 255 stays 255 even though the near mesh answers 0 for
+a face with every neighbour solid, and the difference is not an
+inconsistency. The far mesher never draws a buried face: a top face needs an
+unfilled cell in front of it and a side face a shorter one, so a far face
+that reaches the fallback has no light record rather than no light. Answering
+0 there was tried on 2026-08-22 and put 53 per cent of far vertices at zero
+sky light with black patches across the far field
+(`docs/far-rendering.md`, "One light, from your feet to the horizon").
+
 ## Status, 2026-08-21
 
 Landed: the layout above on Luanti meshed blocks, the sampler

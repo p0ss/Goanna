@@ -727,6 +727,169 @@ Measured against the pregenerated world at a 1024 node grant, 3034 far
 blocks and `far_extent` 800: no free standing slabs and no black masses in
 frame, and the far field still draws from above.
 
+### One light, from your feet to the horizon, 2026-08-22
+
+This is the open half of R1 in `docs/launch-target.md`, and the reading it
+opened with was wrong, so the record starts with what the instrument said
+rather than with the fix.
+
+**There is no baked hour, and there never was.** The task was framed on
+`goanna_lod.cpp` taking a face's light from a cell's stored `day` and
+`night`, so a far tier would carry whatever the light was when that data was
+made. It does not. `LIGHTBANK_DAY` is Luanti's sunlight propagation, a
+visibility term that says how much of the sky reaches a node, and it does not
+move with the clock; the vanilla client blends it against the night bank by
+the day/night ratio at draw time, and Goanna does the same job in the shader
+with `goanna_sky_fill` and the sky radiance, which `main.gd`'s `_apply_sky`
+sets from the time of day. Both meshers store exactly that same value, the
+near one per vertex in `goanna_light.cpp`, the far one per cell in
+`goanna_lod.cpp`, and the shader is the same shader. Measured, on one running
+client through the control channel: the `CUSTOM0` bytes read straight off the
+live meshes were identical at time 0.5, 0.25 and 0.0, to the sampled vertex,
+while the frame changed from noon to midnight. So there was nothing to fix in
+the mesher's idea of time, and any fix that had moved the stored value would
+have been moving the wrong number.
+
+**What the same instrument did find is two populations where the world has
+one surface.** Reading `CUSTOM0.g` off every mesh under the client and
+splitting it by whether the material has `lod_flatten` set, which is what
+separates a far tier from the near mesh, on a fresh Mineclonia world at a
+1024 node grant with about 9000 far blocks resident:
+
+| | near mesh | far tiers |
+| --- | --- | --- |
+| share of sampled vertices at 255 | 96.4 per cent | 42.6 per cent |
+| share at 238 | 0.2 per cent | 40.9 per cent |
+| mean | 247.8 | 229.5 |
+
+238 is `quant16(decode_light(14))`. `GoannaClient::lodTakeSummaries` clamped
+the wire's raw light level to `LIGHT_MAX`, 14, before decoding it, and an
+open sky column on the wire carries `LIGHT_SUN`, 15. So two fifths of the far
+field was reading 234 of 255 sky visibility where the same open ground reads
+255 the moment it comes inside the live range, and that 7 per cent went
+straight into the sky fill and the sky ambient. `LIGHT_MAX` is the cap for a
+light source, not for sunlight, and `decode_light` clamps to `LIGHT_SUN`
+itself, so the clamp is gone.
+
+**The louder fault was the same defect seen from the geometry side.** A
+summary block wrote a cell only where its heightfield said something was
+there, and left every cell above the surface at the default flags, which is
+`kKnown` clear: never seen. "Unknown is not air" above then culled every side
+face against them, so a summarised hillside drew one cell of skirt at a step
+of any height and nothing under it. The far field came out as floating tops
+with daylight through them, which no amount of shading was going to rescue.
+A generated block's air is air, and `lodTakeSummaries` now says so, marking
+those cells known, and lit with the block's light where the record reports
+any. It also puts a summary top face's light back on the same footing as the
+live mesher's, taking it from the air in front of the face rather than
+falling through to the block's own average.
+
+That costs what the missing faces were saving. On the same world and pose,
+`lod_quads` per far block went from 2.9 to 4.6, a 59 per cent increase, and
+the far mesher's own moving average, `lod_ms`, from 0.68 to 0.85 ms per poll.
+That is the price of the cliffs and it is not optional: they are the terrain.
+
+Judged in the frame from 180 nodes up looking down at a ridge 260 nodes out,
+at midnight so the sky fill is doing the work: before, the ridge is a spray
+of separate tops with night sky visible between and under them, and it reads
+as confetti rather than as a hill. After, it is one landscape with cliff
+faces, and the near ground at the bottom of the frame runs into it with no
+step at the join.
+
+**One change was made, measured and taken out again.** The mesher's fallback
+for a face it has no light for is `day = 255`, full sky exposure, and the
+obvious reading is that it should be 0 for a face buried in solid ground, the
+way `BlockLightField::sample` answers for the near mesh when every neighbour
+is solid. Answering 0 whenever the cell in front is known and unlit put 53
+per cent of far vertices at sky light 0, against 4 per cent before it, and
+painted black patches across the far field in the very next frame captured.
+The reason is that the
+far mesher never draws a buried face: a top face needs an unfilled cell in
+front of it, a side face needs a shorter one, so the case that branch was
+written for does not arise, and what it caught instead was air cells with no
+light record. `docs/mesh-attributes.md`'s neutral of 255, "a missing
+attribute should look unremarkable", is right and stays.
+
+**Measured after, same world, same viewpoint, same three times**: far
+vertices at 255 went from 42.6 per cent to 74.2 per cent and the 238
+population fell from 40.9 per cent to 3.2 per cent, which is the level 14
+light that is really there under a tree edge rather than a clamp. Far mean
+sky visibility 229.5 to 232.9 against a near mesh whose own mode is 255 in
+both runs. `shotcheck.py --launch-target` continuity across the live/far
+boundary, at time 0.5, 0.25 and 0.0, before and after:
+
+| time | luminance diff before | after | chroma before | after |
+| --- | --- | --- | --- | --- |
+| 0.5 | 0.68 | 0.58 | 0.10 | 0.03 |
+| 0.25 | 0.22 | 1.30 | 0.28 | 0.29 |
+| 0.0 | 3.69 | 0.61 | 1.15 | 0.28 |
+
+Midnight is where it shows, and that is the expected shape: the sky fill is
+most of the light at night, it is scaled by exactly this channel, and the sun
+swamps a 7 per cent difference at noon. The 0.25 row moving the wrong way by
+one luminance unit is noise; R4 measured the same-tier floor at 0.35 to 4.93
+luminance, so every number in that table except the 3.69 is inside it. Every
+one of the six runs passed the harness thresholds, before and after: the
+check was never failing, which is why the vertex bytes rather than the frames
+are what found this.
+
+`tools/test-launch-target.sh` itself, unmodified, on a fresh profile and a
+fresh world: passes. Two earlier attempts failed, both on the close shot's
+`normal map response` (detail 3.72 and 3.24 against a floor of 5.0), and
+neither is this change: the harness poses that shot 1.2 nodes above the
+ground looking 31 degrees down at a point two nodes ahead, so when the
+settled camera stays exactly where it was put, a single node face fills the
+whole frame and there is no detail in it to measure. The passing runs are the
+ones where the spawn put something further away in front of the camera, or
+where the camera drifted during the settle. That is a fragility in the pose
+rather than in what it is looking at, and it is worth a fixed distance from
+the surface rather than a fixed distance from the player.
+
+**Measured and deliberately left alone.** Each of the far tiers' own shading
+terms was swept on a running client by setting its uniform on every material
+with `lod_flatten`, camera not moved between shots, and read as the change in
+mean luminance of the far band. Two shots of the same settings a minute apart
+drift by 0.90 at midnight and 0.15 at noon while the world streams, so that
+is the floor these sit against:
+
+| term set to 0 on the far tiers | far band at midnight | at noon |
+| --- | --- | --- |
+| `block_light_emission` | +0.04 | -0.03 |
+| `sky_light_strength` | +0.25 | +0.10 |
+| `vertex_ao_strength` | +1.07 | +1.40 |
+| `sky_fill_strength` | -5.94 | -3.55 |
+
+`block_light_emission` is 1.0 on LOD materials and 0 on the near mesh, which
+makes it a per tier term by construction: a far tier adds Luanti's block
+light as unshaded emission, being past the reach of the node light pool the
+near mesh uses instead. On this world it does not reach the frame at all, at
+either time, and it is recorded here rather than changed. `sky_fill` is the
+loudest term in the far band and it is not per tier: it is the same
+`goanna_sky_fill` the near mesh takes, which is exactly why the sky light
+channel it is scaled by had to be right.
+
+The one that is still open and is worth a number: the far tiers' own traced
+occlusion is much heavier than the near field's, `CUSTOM0.b` mean 113 against
+205 on the same world and frame. The far tracer runs at `6 * cell` nodes of
+radius, up to 64, against a field where a cell is filled if half a layer of
+it is, so a hillside occludes a great deal more of the hemisphere than the
+same hillside does node by node. Occlusion multiplies ambient only, so the
+frame cost is the one to one and a half luminance units in the table above,
+which is the largest remaining per tier term in this channel and still a
+small one. It wants calibrating on `lighting_chart.tscn` against the near
+tracer rather than adjusting by eye, which is what `docs/pbr-plan.md` step 3
+says about all of these.
+
+Two notes for whoever measures here next. The harness's horizon pose puts the
+camera 150 nodes above the player looking out at a shallow angle, which at a
+sea level spawn lands most of the far field in the thickest part of the haze:
+the frames are nearly all fog and the continuity bands read fog against fog.
+A steeper look down is what shows the far tiers. And the first person body
+(`GoannaClient::m_show_body`, on by default) draws the player's own model,
+which in fly mode sits at the camera and can fill a third of the frame at the
+harness pose; `EntityRenderer` sets its visibility every frame, so hiding the
+node does not hold and `client.set_show_body(false)` is what works.
+
 ## Cells are not cubes
 
 A coarse cell used to draw as a full cube, so at cell 16 a hill snapped to
