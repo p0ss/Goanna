@@ -205,6 +205,31 @@ entry) both times they were tried; that looks unrelated to this task, since
 it reproduced with an unmodified client on an old world, and is left as a
 finding rather than chased, since `src/` is out of scope here. Sonnet.
 
+That last finding was chased afterwards and is not what it looked like.
+The client does not crash on a distant teleport; its server dies under it,
+and the client then sits in "connection timed out" with the player at the
+origin, which is what an attempt to reproduce it produced exactly. Two
+`luanti.bin` processes dumped core at 16:26 on 2026-08-22, on a
+`goanna_launch_target_*` world running `goanna_local_server.conf`, which is
+to say with pregeneration on. Both aborted the same way: `SIGABRT` reached
+through libstdc++'s terminate handler in a background thread, so an
+uncaught C++ exception, in the server rather than in Goanna. Memory is
+ruled out: 41 GB was available, no swap in use, and the kernel's out of
+memory killer never fired. The `test_world` server on port 30000 died the
+same day and took a later attempt with it.
+
+What is missing is the exception's own message, and the reason it is
+missing is ours: `local_server.gd` starts the server with
+`OS.create_process`, which does not capture the child's output, and
+Luanti's fatal errors go to stderr rather than to the `--logfile` debug
+log. So the one line that would name the fault lands in whatever stderr
+the client happened to inherit, which for a packaged build is nowhere. The
+next step is to give the launched server its own stderr file, then run
+pregeneration until it aborts again. Until that is done, nobody should say
+whether `goanna_server_mod`'s pregeneration causes this or merely runs
+while Mineclonia's mapgen does, and pregeneration is on by default in
+every world the menu creates.
+
 These come ahead of everything in "The tasks, in order" below except task
 1, which they use. The translator (tasks 5 and 6) continues as shader pack
 compatibility, off by default; the shipped look is Goanna's own.
