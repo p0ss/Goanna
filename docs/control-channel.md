@@ -86,7 +86,7 @@ overlapping camera moves would each photograph the other's pose.
 | `pose x y z pitch= yaw=` | Place the camera. No server move, so use it for viewpoints, not for travel. |
 | `look x y z` | Aim the camera at a point. |
 | `fly on` | Fly camera, or walk with collision. |
-| `time <0..1>` | Override the time of day. Below 0 hands the clock back to the server. `server=true` also runs `/time`, which moves it for everyone. |
+| `time <0..1>` | Override the time of day, for this client only. Below 0 hands the clock back to the server. `server=true` also runs `/time`, which moves it for everyone, and is what you want whenever the sky itself matters: see below. |
 | `weather <kind>` | The game's own weather command. `fake=true` injects a local spawner instead. |
 | `spawn <name> [x y z]` | `/spawnentity` through the server. |
 | `give <item> count=` | `/giveme` through the server. |
@@ -101,6 +101,25 @@ overlapping camera moves would each photograph the other's pose.
 | `eval <expr>` | One GDScript expression, evaluated against `main`. |
 | `run src=<snippet>` | A GDScript snippet, for anything with a loop or a wait in it. |
 | `quit` | Disconnect and close the client. |
+
+### Two clocks, and the one that will bite you
+
+`time` moves this client's clock and nothing else. The server keeps its own,
+and a game computes its sky from the server's: Mineclonia's night sky
+colours, its weather and its day night ratio all come from there. So a
+client side override moves the sun and leaves the sky it is meant to be
+setting behind, and the two disagree silently.
+
+Two sessions lost measurements to this in one evening. One noticed only
+because the frames came back too dark to use. Frames that are subtly wrong
+rather than obviously wrong are the case that will cost someone a day, and
+nothing in the reply says which clock you moved.
+
+So: `time` for a quick look at the sun, and `time <t> server=true`, or a
+plain `/time` over `chat`, for anything where the sky, the weather or the
+ambient light is part of what you are measuring. If a night measurement
+comes back brighter or darker than it should, check the server's clock
+before you believe the renderer.
 
 `run` is the one that matters most. `eval` handles a single expression, so
 anything with a variable, a loop or a wait in it goes here instead. The
