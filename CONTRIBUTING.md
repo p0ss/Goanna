@@ -115,6 +115,15 @@ pull request.
   worth writing down. Say which server, which game and which Godot version.
 - Screenshots are welcome and should say whether they are from the live
   client or from an offline study. Do not present one as the other.
+- If anyone else is working in the same checkout, diff the exact paths
+  before you commit them. Naming paths on a `git commit` does not commit
+  only your work in those files: a pathspec commits the whole current state of
+  every file it names, including hunks someone else has not finished. This
+  has put three separate people's uncommitted work into commits whose
+  messages say nothing about it, twice in one evening, and each time the
+  author believed naming paths had protected them. `git add -p` is the
+  answer when a file is shared. Better still, work in a `git worktree` of
+  your own and merge, which is what the trap cannot reach.
 
 ## Building
 
