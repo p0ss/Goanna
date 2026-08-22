@@ -64,21 +64,26 @@ Where the code breaks it on 2026-08-22, found by reading rather than by
 guessing, each a task under the rule:
 
 **R1, continuity of the far field.** Four things, all in `src/` and the
-node shaders. `stale_strength` defaults to 0.6 and pulls remembered
-terrain toward grey on purpose, a per tier signal painted into the image;
-it goes to 0, and summary blocks (what the server holds now, not a memory)
-stop being marked stale at all. The tier average colour that 2c blends
-toward is `getTextureAverageColor`, an sRGB byte average, handed to a
-shader whose `ALBEDO` is linear, so a far tile is brighter and paler than
-the same tile near; it is converted, and the no array fallback material
-gets the same correction. Coarse faces are removed the moment a finer
-replacement is assigned, while the replacement dithers in from nothing
-over a third of a second, so every tier change is a hole for that long;
-the old faces stay until the new ones have faded in. And the discontinuity
-that remains after those three is measured rather than argued about: the
-same material under the same sky at 100, 300 and 600 nodes on the chart,
-which is where a shadow distance or an SDFGI cascade edge would show.
-Done when the harness continuity check (R4) passes. Fable has this one.
+node shaders. Three landed 2026-08-22 (commit "Stop the far field reading
+as a different world"): `stale_strength` now defaults to 0, since pulling
+remembered terrain toward grey is a per tier signal painted into the frame,
+and summary blocks, which are what the server holds now rather than a
+memory, are no longer marked stale at all; and the tier average colour that
+2c blends toward, `getTextureAverageColor`'s sRGB byte average handed to a
+shader whose `ALBEDO` is linear, is now converted to linear in the node
+materials, the water material and the no array fallback, so a far tile is
+no longer brighter and paler than the same tile near. The orange far tops
+in the fresh world shots were that conversion missing.
+
+The fourth is deferred until R4's pop metric can measure it, because it
+reworks the region swap path that task 2 tuned for streaming: a coarse
+region's faces are removed the moment a finer replacement is assigned,
+while the replacement dithers in from nothing over a third of a second, so
+every tier change is a hole for that long. The fix is to hold the old
+faces until the new ones have faded in. Do it once R4 gives a number to
+move, and confirm on the chart that the same material under the same sky
+at 100, 300 and 600 nodes has no step where a shadow distance or an SDFGI
+cascade edge would fall. Fable has this one.
 
 **R2, water.** `water.gdshader` tiles a 16 pixel texture and refracts.
 Replace the surface model: world space procedural waves in a few octaves
