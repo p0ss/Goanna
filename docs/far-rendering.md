@@ -759,6 +759,12 @@ surface is often one we have never been sent, and applying this there
 would take the ground's own top face away, which would make the far field
 invisible from above rather than merely walled.
 
+That held for the rest of the day and then stopped holding. Once a summary
+marked its own air as air, a cell could carry its own top face without asking
+the cell above, and the exception's only remaining effect was a lid over every
+solid column at a mapgen chunk boundary. See "Lids, layers and the vertical
+walk" below for the narrower rule that replaced it.
+
 The trade this makes, stated plainly: a block missing from the middle of
 otherwise known terrain now shows a gap where it used to show a wall. A
 gap in the haze is the better of the two, and the walls were never true,
@@ -1041,6 +1047,136 @@ What did land cleanly: the mechanism proof above, and
 `test-launch-target.sh`'s own horizon shot, at the ordinary range 2c was
 judged against, still reads 0.67 on `--far-band`, unchanged and well under
 9.0, so the far range case this extends is not regressed by any of it.
+
+### Lids, layers and the vertical walk, 2026-08-22
+
+Three complaints from one afternoon's screenshots: panels floating in the sky
+over savanna, a large magenta mass over desert, and distant panels still not
+joined to each other. Two of them share a cause, and the third was never the
+far field at all.
+
+**The magenta was not this.** The summary reader defaults an unresolved name
+to `CONTENT_UNKNOWN` on purpose, so a name this client cannot resolve draws as
+`unknown_node.png` rather than as an invisible hole, and that made it the
+obvious suspect. It is not the culprit. `lodTakeSummaries` now counts the
+names in each reply it cannot resolve and reports them under
+`GOANNA_DEBUG_LOD`; over roughly two hundred replies on a Mineclonia world,
+including an unexplored area at (3000, 90, 3000) reached by teleport, the
+count was zero in every reply. No magenta appeared in any far field frame
+taken here. The mass in those screenshots sits at the camera and is the first
+person body model, not a summary. The counter stays, because it is the
+instrument that settles the question in one line next time.
+
+**Panels in the sky are lids, and a mapgen chunk is where they form.** The
+region mesher drew a top or bottom face wherever the cell beyond was not
+filled, and treated a cell it knows nothing about as not filled. That was
+deliberate ("Unknown is not air", above): the block above a surface is often
+one nobody has sent, and culling there would take the ground's own top face
+away and leave the far field invisible from above.
+
+The cost of that exception is a lid. A column of solid rock that reaches the
+top of its block, with the block above unknown, grows a top face across the
+whole column, and the greedy mesher merges those into one region sized quad.
+Luanti generates in chunks five blocks tall while a summary area is eight, so
+a generated chunk under an ungenerated one is the ordinary case, not a corner
+case: the result is a flat plate at the chunk boundary, hanging in clear air
+with no terrain under it, exactly the shape reported.
+
+The exception is now narrowed rather than removed, and what makes that safe is
+a change made earlier the same day: a generated summary block marks the air
+above its surface as air, so an ordinary hillside carries its own top face
+inside its own cells. A cell whose content stops part way up is known from
+that cell alone and keeps its top face whatever is above it. Only a cell
+filled right to its ceiling leans on the cell above, and a bottom face always
+leans on the cell below, because the chain fills a cell from its floor. Those
+two are now culled against an unknown neighbour like the sides. The far field
+still draws from above, which is what the exception existed to protect.
+
+**Nine vertical layers, of which at most two hold anything.**
+`lodRequestSummaries` asked for a fixed window of area layers, four either
+side of the player, each 128 nodes tall and 512 blocks in it. Of the nine, one
+or two hold the surface. The rest are sky the server has not generated, which
+never comes back complete and so is asked again at every retry for the whole
+session, and solid rock, which does come back complete and answers with 512
+buried blocks nobody can ever see.
+
+Measured on the client's own request log, standing on a pregenerating
+Mineclonia server at a 1024 node grant: of 91 areas asked in the first 150
+seconds, **three** were in the layer the player was standing in. The other 88
+were sky between 256 and 768 nodes up, or rock between 256 and 512 nodes down,
+and the same handful were asked over and over as their retries came due. A
+longer run of the same build put 3 of 237 in the player's layer, so the ratio
+gets worse the longer you stand there, not better. That is why the horizontal
+frontier stood still while a player watched, and it is most of "still not
+contiguous": the summaries were not slow, the requests were going somewhere
+else.
+
+The window is now a bound on a walk rather than a window. The layer the player
+is in is always eligible. A layer above becomes eligible only once the layer
+below it has answered that terrain reaches its top face, and a layer below
+only once the layer above it has answered that its floor is not solid
+everywhere. Both flags fall out of the heights already in the reply, and a
+layer that is all rock along its floor is neither, so the walk stops at the
+ground rather than tunnelling to bedrock. The vertical offset also joins the
+distance the request loop sorts on, as a tie break, because the loop order was
+choosing for us and it chose the deepest layer of each column first.
+
+A block the server has not generated is not known to be solid, so it does not
+close the walk downward. Without that guard a player flying above a column the
+server had never made would get an ungenerated answer for their own layer and
+never ask about the ground under it. Upward asks for evidence instead, terrain
+reaching the top face, because nothing is the usual answer up there and taking
+it as a reason to climb is the scan this replaces.
+
+After, same server, same grant, same 150 seconds, same 91 areas asked: 71 were
+the player's own layer, 7 the one below, 13 above. From 3 per cent useful to 78
+per cent.
+
+**One tier at every distance.** `lodTakeSummaries` built one chain level, the
+4 node one, and assigned every summarised block to the tier that uses it, at
+any distance. A region reads its own tier's cell size out of a block's chain,
+and a chain holding one level answers "nothing known" at every other, so a
+coarse region beside summarised terrain culled its whole boundary against it
+and the two never joined. Every level from 4 nodes up is now built from the
+same 4 by 4 heights, and a summarised block takes the tier its distance calls
+for, the same as a stored one.
+
+Both builds run against the same world from the same fresh connection, 150
+seconds in, same camera at (3000, 130, 3000), same time of day override, same
+`show_body 0`, Mineclonia on Luanti 5.16.1, Godot 4.5.1, a 1024 node grant
+with pregeneration on:
+
+| | Before | After |
+| --- | --- | --- |
+| Far blocks | 23176 | 34845 |
+| Far blocks at tier 1, 2, 3 | 23185, 0, 0 | 2007, 9395, 23452 |
+| Far regions | 451 | 187 |
+| Draw calls | 731 | 381 |
+| Cell faces before merging | 191049 | 84454 |
+| Primitives | 203509 | 154895 |
+| `far_extent` | 832 | 944 |
+
+Half again as much far terrain, reaching further, in a quarter of the cell
+faces and half the draw calls. The blocks that went were buried and the ones
+that came are surface, and drawing them at the tier their distance calls for
+is where the rest of the saving is.
+
+Looking north at a shallow angle, the before frame is one island of terrain
+around the player with a single panel hanging in clear air off to the left and
+nothing else out of the fog; the after frame is a continuous landscape to the
+horizon. Looking down from 260 nodes, the before frame has a void across the
+whole centre with two fragments floating in it, and two disconnected patches at
+the bottom corners; the after frame has terrain across the lower half with no
+void.
+
+What this does not fix. Small fragments still hang over the far field, a few
+cells each, where a treetop or a snow drift sits in a block whose neighbours
+have not arrived; they close as the field fills rather than staying. The
+vertical walk needs one round trip per layer, so a player who flies a long way
+straight up waits a layer at a time for the ground to reappear. And a
+partially generated area is still asked again every twenty seconds for as long
+as it is in range, which is right when a server is generating and pure cost
+when it has stopped.
 
 ## Cells are not cubes
 

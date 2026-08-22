@@ -394,6 +394,20 @@ private:
     struct FarAsk {
         std::chrono::steady_clock::time_point asked;
         bool complete = false;
+        // A reply for this area has been read, so the two flags below mean
+        // something. They are what decides whether the layer above or below
+        // is worth asking for at all, rather than a fixed window of layers
+        // (docs/far-rendering.md, "Lids, layers and the vertical walk").
+        bool answered = false;
+        // Terrain reaches the top face of this area, so it may carry on into
+        // the layer above.
+        bool open_above = false;
+        // Some column is air at the bottom face of this area, so whatever is
+        // in the layer below could be seen. False for a layer that is solid
+        // along its floor, which is the whole of the ground under a normal
+        // landscape: nothing there is ever visible, and asking for it cost
+        // one request in nine and half a million buried cells.
+        bool open_below = false;
     };
     std::map<v3s16, FarAsk> m_far_requested;
     int m_far_inflight = 0;
@@ -403,7 +417,7 @@ private:
     bool m_far_dirty = true;
     void lodUpdateFar(const godot::Vector3 &around);
     void lodRequestSummaries(const v3s16 &centre, int radius);
-    void lodTakeSummaries();
+    void lodTakeSummaries(const godot::Vector3 &around);
     int lodTierCount() const;
     int lodCellFor(int tier) const;
     int lodRegionBlocks(int tier) const;
