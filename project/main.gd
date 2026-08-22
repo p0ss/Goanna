@@ -373,6 +373,22 @@ func _ready() -> void:
 	var tmap := OS.get_environment("GOANNA_TEXTURE_MAP")
 	if tmap == "" and cfg.load("user://goanna.cfg") == OK:
 		tmap = str(cfg.get_value("settings", "texture_map", ""))
+	# Without a choice, the bundled map for the game being launched, when
+	# there is one (project/texture_maps/<game>.csv). The launcher sets
+	# GOANNA_GAME for a local world; a remote server's game is unknown. The
+	# session reads the file by path, and res:// is not a path once exported,
+	# so the map is copied under user:// first.
+	if tmap == "" and OS.get_environment("GOANNA_GAME") != "":
+		var bundled := "res://texture_maps/%s.csv" % OS.get_environment("GOANNA_GAME")
+		if FileAccess.file_exists(bundled):
+			DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("user://texture_maps"))
+			var copy := "user://texture_maps/%s.csv" % OS.get_environment("GOANNA_GAME")
+			var src_f := FileAccess.open(bundled, FileAccess.READ)
+			var dst_f := FileAccess.open(copy, FileAccess.WRITE)
+			if src_f and dst_f:
+				dst_f.store_buffer(src_f.get_buffer(src_f.get_length()))
+				dst_f = null
+				tmap = ProjectSettings.globalize_path(copy)
 	if tmap != "" and FileAccess.file_exists(tmap):
 		client.set_texture_map(tmap)
 		print("texture map ", tmap)

@@ -86,7 +86,9 @@ rather than a second classifier.
 
 Nearly every numbered item in "Order, and why" is marked done, which makes
 that list hard to read as a plan. Four things are actually open. In the
-order they should be taken:
+order they should be taken below. `launch-target.md` cuts across them from
+the other side: the one experience a fresh install should have, and the
+tasks, in order, that get it there.
 
 **The audit, `pbr-plan.md` step 4.** The last of the material path, and the
 gate the Iris items wait behind. Per game and per node: the class assigned,

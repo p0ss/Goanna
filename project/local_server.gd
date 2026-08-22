@@ -15,6 +15,7 @@ class_name GoannaLocalServer
 
 var pid := -1
 var port := 0
+var gameid := "" # the game start() was asked for, for per game client defaults
 var log_path := ""
 var world_path := ""
 var _argv: PackedStringArray
@@ -87,15 +88,15 @@ static func list_worlds(data_dir: String) -> Array:
 	while name != "":
 		var wm := data_dir.path_join("worlds").path_join(name).path_join("world.mt")
 		if d.current_is_dir() and FileAccess.file_exists(wm):
-			var gameid := ""
+			var gid := ""
 			var cf := ConfigFile.new()
 			var f := FileAccess.open(wm, FileAccess.READ)
 			if f:
 				while not f.eof_reached():
 					var line := f.get_line().strip_edges()
 					if line.begins_with("gameid"):
-						gameid = line.get_slice("=", 1).strip_edges()
-			worlds.append({"name": name, "gameid": gameid})
+						gid = line.get_slice("=", 1).strip_edges()
+			worlds.append({"name": name, "gameid": gid})
 		name = d.get_next()
 	d.list_dir_end()
 	worlds.sort_custom(func(a, b): return a["name"] < b["name"])
@@ -143,7 +144,8 @@ func _install_server_mod(world: String) -> void:
 			DirAccess.copy_absolute(src.path_join(f), dst.path_join(f))
 
 
-func start(gameid: String, worldname: String, player_name: String = "player") -> String:
+func start(gameid_: String, worldname: String, player_name: String = "player") -> String:
+	gameid = gameid_
 	var env := detect()
 	if env.is_empty():
 		return "No Luanti server found. Install Luanti (or the org.luanti.luanti flatpak), or set GOANNA_SERVER_CMD."

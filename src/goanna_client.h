@@ -312,7 +312,12 @@ private:
     void startFade(godot::MeshInstance3D *mi);
     void advanceFades();
     godot::Vector3 m_lod_centre; // last camera position seen by update_lod
-    int m_lod_distance = 0;
+    // Blocks beyond this many are drawn as coarse tiers, and everything far
+    // (the store, the server's summaries) gates on it being above zero. The
+    // default is the vanilla send distance, so a fresh install draws the live
+    // range at full detail and sees past it when a server grants far
+    // rendering; 0 turns all of it off. docs/launch-target.md.
+    int m_lod_distance = 12;
     int m_lod_cell = 4;
     // --- far rendering (docs/far-rendering.md rungs 2 and 3) ---
     // Blocks at a tier of 1 or more are not meshed one by one: each belongs

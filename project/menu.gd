@@ -226,6 +226,9 @@ func _process(_delta: float) -> void:
 		OS.set_environment("GOANNA_PORT", str(server.port))
 		OS.set_environment("GOANNA_NAME", _local_player_name())
 		OS.set_environment("GOANNA_PASS", "")
+		# The game this world runs, so main.gd can pick per game defaults
+		# (the bundled texture map today) without being told by the player.
+		OS.set_environment("GOANNA_GAME", server.gameid)
 		# the game scene stops this server on exit
 		OS.set_environment("GOANNA_SP_PID", str(server.pid))
 		OS.set_environment("GOANNA_SP_MATCH", server.world_path)
@@ -311,6 +314,8 @@ func _on_connect() -> void:
 	OS.set_environment("GOANNA_HOST", host)
 	OS.set_environment("GOANNA_PORT", port_text)
 	OS.set_environment("GOANNA_NAME", pname)
+	# A remote server's game is not known here; do not inherit a local one.
+	OS.set_environment("GOANNA_GAME", "")
 	OS.set_environment("GOANNA_PASS", pass_edit.text)
 	OS.set_environment("GOANNA_SP_PID", "")
 	connect_button.disabled = true

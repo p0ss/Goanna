@@ -335,6 +335,7 @@ features.
 | `GOANNA_VIEW="name:x,y,z:pitch,yaw;..."` | With `GOANNA_SHOT`, replaces the three fixed viewpoints. Positions are relative to the spawn eye position, or absolute with a leading `@`. |
 | `GOANNA_SUN`, `GOANNA_WHITE`, `GOANNA_EXPOSURE`, `GOANNA_SKY_FILL`, `GOANNA_SDFGI`, `GOANNA_SSAO` | Seed the Lighting tab's values: sun energy, ACES white point, base exposure, sky fill strength, bounced light, corner shading. `project/lighting_chart.tscn` reads the same names, so a value judged there transfers. |
 | `GOANNA_TOD=<0..1>` | Override the time of day, and drop any day night ratio the server is overriding (Mineclonia does in weather), so the frame is that hour. |
+| `GOANNA_GAME=<gameid>` | The game the server runs, set by the menu when it launches a local world. Picks per game defaults the player has not chosen: today the bundled `project/texture_maps/<gameid>.csv`, when one exists. |
 | `GOANNA_TEXTURE_MAP=<csv>` | A game_texture,pack_path CSV (`project/texture_maps/`), the same as the settings entry: lets a Minecraft resource pack dress the game, and gives the classifier its block column. |
 | `GOANNA_DEBUG_PBR=1` | Print the classifier's counts and, per array texture, how many layers are authored, classed or inferred, and how many are left neutral. |
 | `GOANNA_PERF=1` | Print one telemetry line a second: frame time, mesh and upload cost, draw calls, objects, video memory, and the far tier counts. |
