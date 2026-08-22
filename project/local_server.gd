@@ -182,9 +182,11 @@ func start(gameid_: String, worldname: String, player_name: String = "player") -
 		# is capped by the client's wanted range in clientiface.cpp), so the
 		# grant above puts no horizon on a world nobody has walked. The mod's
 		# pregeneration is the server's own answer: it generates outward from
-		# each player at its own pace, one 128 node area at a time, and pushes
-		# each area's summary as it lands. It is the operator's choice, and
-		# here the operator is the player.
+		# each player at its own pace, one 128 node area at a time and a slice
+		# of an area per emerge call so the player's own blocks are never
+		# queued behind it (docs/far-rendering.md, "Pregeneration yields to
+		# the player"), and pushes each area's summary as it lands. It is the
+		# operator's choice, and here the operator is the player.
 		cf.store_string("goanna_far_pregenerate = true\n")
 		# Privileges. The client's fly toggle works whether or not the server
 		# allows it, exactly as the vanilla client's does, and a server that

@@ -20,17 +20,33 @@ goanna_far_rendering_distance (Far rendering distance) int 256 64 8192
 goanna_far_summary_blocks_per_step (Far summary blocks per step) int 32 1 512
 
 #    Generate terrain around each player out to the far rendering distance,
-#    one 128 node area at a time with a pause between, and hand each area's
-#    summary to the clients near it. A summary can only describe terrain that
-#    exists, and a server generates only within the range a client asks for,
-#    so without this a new world has a 192 node horizon whatever the distance
-#    above says. Costs mapgen time and map memory for terrain no one has
+#    one 128 node area at a time, a slice of an area per emerge call, and
+#    hand each area's summary to the clients near it. A summary can only
+#    describe terrain that exists, and a server generates only within the
+#    range a client asks for, so without this a new world has a 192 node
+#    horizon whatever the distance above says. Costs mapgen time and map
+#    memory for terrain no one has
 #    visited, which is why it is off here and on for the server a Goanna
 #    client launches for itself.
 goanna_far_pregenerate (Far pregeneration) bool false
 
-#    Seconds to wait between one pregenerated area and the next.
-goanna_far_pregenerate_interval (Far pregeneration interval) float 3.0 0.0 600.0
+#    Seconds to wait between one pregenerated area and the next. The pause
+#    between the slices within an area is nothing: an area is emerged a slice
+#    at a time so it never fills the queue the player's own blocks come
+#    through, and that is what keeps it out of the way, not this.
+goanna_far_pregenerate_interval (Far pregeneration interval) float 1.0 0.0 600.0
+
+#    Mapblocks on a side of one pregeneration emerge call. The whole point of
+#    slicing is that the server's emerge queue is a FIFO and Lua's emerge
+#    ignores its limits, so a large slice is a long wait for the player's own
+#    blocks behind it. Rounded down to 1, 2, 4 or 8.
+goanna_far_pregenerate_slice (Far pregeneration slice) int 4 1 8
+
+#    Seconds of server step time above which pregeneration waits for the
+#    server to catch up. get_server_max_lag is a running maximum that halves
+#    every minute, not an average, so a value near the step length reads as
+#    "behind" long after one slow step and stalls pregeneration.
+goanna_far_pregenerate_lag (Far pregeneration lag limit) float 0.5 0.0 60.0
 
 #    Source engine style movement: air strafing, bunny hopping, surfing. Needs
 #    disable_anticheat as well, or the server rejects the movement it produces.
