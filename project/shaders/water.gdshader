@@ -246,10 +246,15 @@ void fragment() {
 		}
 	}
 
-	ALBEDO = body * (1.0 - refl_amount);
+	// The reflected share only comes out of the body where it is going back
+	// in as light. Nothing marches from below, or on the far tiers, and
+	// taking it out anyway drove the surface to black at exactly the grazing
+	// angles that fill the view when you are under it.
+	float refl_mix = do_reflect ? refl_amount : 0.0;
+	ALBEDO = body * (1.0 - refl_mix);
 	// Reflected light is light that never entered the water, so it must not
 	// be shaded a second time by the lamp that already lit what it came from.
-	EMISSION = reflected * refl_amount;
+	EMISSION = reflected * refl_mix;
 	ALPHA = clamp(0.9 + 0.1 * fres, 0.0, 1.0);
 	METALLIC = 0.0;
 	SPECULAR = 0.4 + 0.6 * fres;

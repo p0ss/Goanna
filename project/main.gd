@@ -1382,6 +1382,12 @@ func _update_environment_extras() -> void:
 		e.volumetric_fog_albedo = Color(0.25, 0.55, 0.62)
 		e.volumetric_fog_anisotropy = 0.72
 		e.volumetric_fog_length = 48.0
+		e.volumetric_fog_detail_spread = 2.0
+		# The air's warm scatter toward a low sun belongs to the air. Left
+		# standing while the eye is under water it lights the murk from the
+		# direction of a sun that is not down here, which reads as a glow
+		# with no source. _apply_sky sets it again on the way out.
+		e.fog_sun_scatter = 0.0
 	else:
 		# Restore the surface fog from the current sky state.
 		_apply_sky()
