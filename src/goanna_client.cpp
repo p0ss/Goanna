@@ -2559,8 +2559,17 @@ void GoannaClient::lodTakeSummaries() {
             const content_t top_c = r[17] < ids.size() ? ids[r[17]] : CONTENT_AIR;
             const content_t side_c = r[18] < ids.size() ? ids[r[18]] : top_c;
             const content_t side = side_c != CONTENT_AIR ? side_c : top_c;
-            const uint8_t day = decode_light(std::min<uint8_t>(r[19], 14));
-            const uint8_t night = decode_light(std::min<uint8_t>(r[20], 14));
+            // LIGHT_SUN, not LIGHT_MAX. The wire carries Luanti's raw 0 to 15,
+            // and 15 is what an open sky column holds; clamping to 14 first
+            // put a summarised hillside at decode_light(14), 234, where the
+            // same ground meshed live or read back from the store carries
+            // decode_light(15), 255. That is a 7 per cent step in sky
+            // visibility with no cause in the world, between two halves of the
+            // same far field, and it survived into the sky fill and the
+            // ambient term (docs/launch-target.md, R1). decode_light clamps to
+            // LIGHT_SUN itself, so nothing here has to.
+            const uint8_t day = decode_light(r[19]);
+            const uint8_t night = decode_light(r[20]);
             const uint8_t cflags = LodLevel::kKnown | ((r[0] & 2) ? LodLevel::kOccludes : 0) |
                     ((r[0] & 4) ? LodLevel::kLit : 0);
             BlockLodChain &ch = m_lod_chains[bp];
@@ -2578,11 +2587,13 @@ void GoannaClient::lodTakeSummaries() {
                             if (fx < 4 && fz < 4)
                                 h = std::max(h, (int)r[1 + fz * 4 + fx]);
                         }
-                    if (h <= 0)
-                        continue;
-                    any_filled = true;
-                    const int filled_below = (h - 1) / build_cell; // fully covered cells under the top one
+                    // -1 where the column is empty all the way down, so the
+                    // filled loop does nothing and the known-air loop below
+                    // covers the whole column.
+                    const int filled_below = h > 0 ? (h - 1) / build_cell : -1;
                     const int top_frac = h - filled_below * build_cell; // 1..build_cell
+                    if (h > 0)
+                        any_filled = true;
                     for (int ty = 0; ty <= filled_below && ty < n; ++ty) {
                         LodLevel::Cell &c = lv.cells[((size_t)tz * n + ty) * n + tx];
                         c.face[1] = side;
@@ -2594,6 +2605,32 @@ void GoannaClient::lodTakeSummaries() {
                         c.day = day;
                         c.night = night;
                         c.flags = cflags | LodLevel::kFilled;
+                    }
+                    // Everything above the column's surface is air we know
+                    // about, because the server generated this block to
+                    // answer for it, so say so. Left at the default flags it
+                    // read as "never seen", and "Unknown is not air" then
+                    // culled every side face against it: a summarised hillside
+                    // drew one cell of skirt at a step of any height and
+                    // nothing below it, so the far field came out as floating
+                    // tops with daylight through them.
+                    //
+                    // kLit only where the block reported light. A block that
+                    // is all air has no surface column to read light above, so
+                    // the record's day is 0 and its lit bit is clear; marking
+                    // its cells lit anyway would hand 0 to every top face
+                    // under it and paint that terrain black, which is what the
+                    // first version of this did.
+                    for (int ty = std::max(0, filled_below + 1); ty < n; ++ty) {
+                        LodLevel::Cell &c = lv.cells[((size_t)tz * n + ty) * n + tx];
+                        // Known and possibly lit, never occluding: the
+                        // occludes bit is the block's, and air does not
+                        // block the tier's own occlusion trace.
+                        c.flags = LodLevel::kKnown | (cflags & LodLevel::kLit);
+                        if (cflags & LodLevel::kLit) {
+                            c.day = day;
+                            c.night = night;
+                        }
                     }
                 }
             // Not stored: a summary is what the server holds now, not a
