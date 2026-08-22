@@ -121,5 +121,116 @@ uniform float lod_repeat_far : hint_range(0.0, 1024.0) = 64.0;
 // at 1.0 the test compiles away to nothing visible.
 instance uniform float fade : hint_range(0.0, 1.0) = 1.0;
 
+// Goanna: the material class the classifier voted for each array layer
+// (src/goanna_materials.h, MaterialClass: 1 stone, 2 wood, 3 leaves, 4 glass,
+// 5 sand, 6 gravel, 7 snow, 8 ice, 9 soil, 10 metal, 11 cloth, 0 none), so a
+// treatment can be chosen by what a surface is rather than by which pack
+// dressed it. Same 256 layer cap as lod_avg_colour.
+uniform int layer_class[256];
+// Surface detail: how much of the per class treatment runs. 0 is the plain
+// single sample this shader has always done, which is what the far tiers and
+// modest hardware want; the Material tab drives it as mat_detail.
+uniform float detail_strength : hint_range(0.0, 2.0) = 0.0;
+// World units across one cell of the stochastic grid. Below about a node the
+// pattern breaks up into noise; well above it the repeat comes back.
+uniform float detail_cell : hint_range(0.5, 32.0) = 3.0;
+// How hard the three cell weights are pushed toward the nearest one. High
+// values keep pixel art crisp and take one texture read instead of three
+// over most of the screen; low values cross fade and blur.
+uniform float detail_sharpen : hint_range(1.0, 32.0) = 8.0;
+
 varying vec3 v_nodelight;
 varying float v_stale;
+varying vec3 v_world;
+varying vec3 v_wnormal;
+
+// Goanna: stochastic tiling, so a field of sand or a cliff face stops being
+// the same sixteen pixels repeated to the horizon. A virtual triangle grid
+// laid over world space picks three cells; each cell shifts the tile by its
+// own random amount, and the three are blended by their barycentric weights,
+// which leaves the mean of the surface exactly what it was. Mean preserving
+// matters here beyond tidiness: the far tiers blend toward each layer's
+// average colour, so a treatment that moved the mean would show as a band of
+// changed brightness at whatever range it faded out.
+//
+// After Mikkelsen's practical hex tiling, by way of the Godot adaptation at
+// https://godotshaders.com/shader/stochastic-hex-tiling-mikkelsens-adaptation
+// (MIT). Two departures, both because this is pixel art rather than a
+// photographed material. The offsets are whole texels and there is no random
+// rotation, so the tile's own pixel grid still lands on the pixel grid.
+// And the weights are sharpened, so all but a narrow band along each cell
+// border takes a single sample: pixel art is made of hard edges and a three
+// way cross fade turns them to mush. The sharpening pays for itself twice,
+// because the single sample case is also one texture read rather than three.
+vec2 goanna_cell_hash(vec2 p) {
+	p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)));
+	return fract(sin(p) * 43758.5453);
+}
+
+// Which triangle of the skewed grid this point falls in, and how near it is
+// to each of that triangle's three corners.
+void goanna_cell_weights(vec2 p, out vec3 w, out vec2 c1, out vec2 c2, out vec2 c3) {
+	p *= 3.464; // 2 sqrt 3, the grid to triangle scale
+	vec2 skew = vec2(p.x, p.y * 1.15470054 - p.x * 0.57735027);
+	vec2 base = floor(skew);
+	vec3 f = vec3(fract(skew), 0.0);
+	f.z = 1.0 - f.x - f.y;
+	if (f.z > 0.0) {
+		w = vec3(f.z, f.y, f.x);
+		c1 = base;
+		c2 = base + vec2(0.0, 1.0);
+		c3 = base + vec2(1.0, 0.0);
+	} else {
+		w = vec3(-f.z, 1.0 - f.y, 1.0 - f.x);
+		c1 = base + vec2(1.0, 1.0);
+		c2 = base + vec2(1.0, 0.0);
+		c3 = base + vec2(0.0, 1.0);
+	}
+}
+
+// The tile shifted by whole texels, so the pixel grid is never broken.
+vec2 goanna_cell_offset(vec2 cell, float texels) {
+	return floor(goanna_cell_hash(cell) * texels) / texels;
+}
+
+// The derivatives are the caller's, taken before any branching: a fragment
+// quad can straddle two array layers, and dFdx inside that is not defined.
+vec4 goanna_stochastic(sampler2DArray tex, vec2 uv, float layer, vec2 hex,
+		vec2 dx, vec2 dy, float sharpen) {
+	vec3 w;
+	vec2 c1, c2, c3;
+	goanna_cell_weights(hex, w, c1, c2, c3);
+	w = pow(w, vec3(sharpen));
+	w /= (w.x + w.y + w.z);
+	float texels = float(textureSize(tex, 0).x);
+	if (w.x > 0.995)
+		return textureGrad(tex, vec3(uv + goanna_cell_offset(c1, texels), layer), dx, dy);
+	if (w.y > 0.995)
+		return textureGrad(tex, vec3(uv + goanna_cell_offset(c2, texels), layer), dx, dy);
+	if (w.z > 0.995)
+		return textureGrad(tex, vec3(uv + goanna_cell_offset(c3, texels), layer), dx, dy);
+	return w.x * textureGrad(tex, vec3(uv + goanna_cell_offset(c1, texels), layer), dx, dy)
+			+ w.y * textureGrad(tex, vec3(uv + goanna_cell_offset(c2, texels), layer), dx, dy)
+			+ w.z * textureGrad(tex, vec3(uv + goanna_cell_offset(c3, texels), layer), dx, dy);
+}
+
+// The surface coordinate a treatment runs in: world space, on the plane the
+// face actually faces, so two nodes side by side continue one pattern and a
+// far tier's merged quad lands on the same pattern the near mesh drew. Every
+// treatment has to be a function of this and the class alone, or the near
+// mesh and the far field will disagree at the seam by construction.
+vec2 goanna_surface_uv(vec3 world, vec3 wnormal) {
+	vec3 a = abs(wnormal);
+	if (a.y >= a.x && a.y >= a.z)
+		return world.xz;
+	if (a.x >= a.z)
+		return world.zy;
+	return world.xy;
+}
+
+// Which classes want stochastic tiling. Wood and brickwork are ruled out by
+// the method itself, whose author warns that parallel lines distort; glass,
+// metal and cloth are man made and are meant to repeat.
+bool goanna_class_is_granular(int cls) {
+	return cls == 1 || cls == 5 || cls == 6 || cls == 7 || cls == 9;
+}

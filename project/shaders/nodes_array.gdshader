@@ -33,6 +33,11 @@ void vertex() {
 	// occlusion. See docs/mesh-attributes.md.
 	v_nodelight = CUSTOM0.rgb;
 	v_stale = 1.0 - CUSTOM0.a;
+	// Where this fragment is in the world, and which way the face points
+	// there. Every per class treatment runs in these and nothing else, so a
+	// near block and a far tier's merged quad cannot disagree.
+	v_world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	v_wnormal = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
 }
 
 void fragment() {
@@ -42,9 +47,10 @@ void fragment() {
 		if (dither > fade)
 			discard;
 	}
-	ALBEDO = (texture(albedo_array, vec3(UV, UV2.x)) * COLOR).rgb;
-	if (v_stale > 0.001)
-		ALBEDO = mix(ALBEDO, vec3(dot(ALBEDO, vec3(0.2126, 0.7152, 0.0722))), v_stale * stale_strength);
+	// Derivatives before any branching: a fragment quad can straddle two
+	// array layers, and dFdx inside that is not defined.
+	vec2 uv_dx = dFdx(UV);
+	vec2 uv_dy = dFdy(UV);
 	// Either how far away this fragment is or how wide the quad it sits
 	// on actually is can call for flattening (see lod_repeat above), so a
 	// wide merged panel flattens on its own size even at point blank
@@ -52,14 +58,33 @@ void fragment() {
 	// the normal map too: a flattened colour with its relief left alone
 	// still shades like the tile pattern, bumps and all, so the repeat
 	// reads through the lighting even where the albedo no longer shows it.
+	// It is computed here, before the tile is read, because the surface
+	// detail below rides on it: one factor decides both, so there can be no
+	// band of range where the detail has gone and the flattening has not
+	// started.
 	float flatten = 0.0;
 	if (lod_flatten) {
 		flatten = max(
 				smoothstep(lod_flatten_near, lod_flatten_far, length(VERTEX)),
 				smoothstep(lod_repeat_near, lod_repeat_far, lod_repeat));
-		if (flatten > 0.001)
-			ALBEDO = mix(ALBEDO, lod_avg_colour[int(UV2.x)] * COLOR.rgb, flatten);
 	}
+	// Per class surface treatment, in world space so a near block and a far
+	// tier's merged quad draw one continuous pattern. Spent only where a node
+	// is still worth more than a pixel.
+	int cls = layer_class[int(UV2.x)];
+	float detail = detail_strength * (1.0 - flatten);
+	vec4 tile;
+	if (detail > 0.01 && goanna_class_is_granular(cls)) {
+		vec2 hex = goanna_surface_uv(v_world, v_wnormal) / max(detail_cell, 0.5);
+		tile = goanna_stochastic(albedo_array, UV, UV2.x, hex, uv_dx, uv_dy, detail_sharpen);
+	} else {
+		tile = texture(albedo_array, vec3(UV, UV2.x));
+	}
+	ALBEDO = (tile * COLOR).rgb;
+	if (v_stale > 0.001)
+		ALBEDO = mix(ALBEDO, vec3(dot(ALBEDO, vec3(0.2126, 0.7152, 0.0722))), v_stale * stale_strength);
+	if (flatten > 0.001)
+		ALBEDO = mix(ALBEDO, lod_avg_colour[int(UV2.x)] * COLOR.rgb, flatten);
 	ROUGHNESS = 1.0;
 	METALLIC = 0.0;
 	SPECULAR = 0.2;

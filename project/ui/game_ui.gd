@@ -641,6 +641,7 @@ const SETTINGS := [
 	["Material", "mat_roughness", "slider", "Roughness strength", "How far to follow the pack's gloss. 0 makes every surface fully matte, as it is without a pack.", 0.0, 1.0, 0.05],
 	["Material", "mat_specular", "slider", "Specular strength", "Strength of reflections off non-metals. Above 1 exaggerates them.", 0.0, 2.0, 0.05],
 	["Material", "mat_emission", "slider", "Emission strength", "How brightly the pack's glowing surfaces glow.", 0.0, 8.0, 0.25],
+	["Material", "mat_detail", "slider", "Surface detail", "Breaks up the repeat on natural surfaces: sand, stone, gravel, soil and snow are drawn from a grid of randomly shifted copies of their own tile rather than the same one every node. 0 is the plain tile and costs nothing; 1 is one extra texture read along cell borders only. Man made surfaces are left alone, and the far tiers never pay for it.", 0.0, 2.0, 0.25],
 	["Material", "mat_sss", "slider", "Leaf translucency", "Light coming through leaves and ice from behind.", 0.0, 1.0, 0.05],
 	["Video", "bevel", "slider", "Edge bevel", "Chamfer the exposed edges of solid nodes.", 0.0, 0.15, 0.01],
 	["Video", "motes", "slider", "Ambient motes", "Drifting specks over leaves, flowers and sand.", 0.0, 4.0, 0.25],

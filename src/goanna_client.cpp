@@ -226,6 +226,13 @@ static const std::map<std::string, float> kMatStrengthDefaults = {
     // being none (docs/launch-target.md, "one light, one air"). The channel
     // stays so the signal can be turned on to see what is remembered.
     {"sky_fill", 1.0f}, {"stale", 0.0f}, {"debug_nodelight", 0.0f},
+    // Per class surface treatment, the stochastic tiling in
+    // nodes_array_common.gdshaderinc. It is the one channel here that costs
+    // frames rather than only changing a look, which is why it is a slider
+    // and not a constant: 0 is the plain single sample. It ships at 0 until
+    // it has been seen rendering: the machine it was written on could not
+    // stream a block for long enough to photograph one.
+    {"detail", 0.0f},
 };
 
 float GoannaClient::material_strength(const String &channel) const {
@@ -1251,6 +1258,24 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
             for (const auto &d : kMatStrengthDefaults)
                 sm->set_shader_parameter(String(d.first.c_str()) + String("_strength"),
                         material_strength(String(d.first.c_str())));
+            // Which material each layer is, so the shader can treat sand as
+            // sand and planks as planks. The classifier keys on the base
+            // image, and a generated layer is named by its whole tile string,
+            // modifiers and all, the same normalisation goanna_textures.cpp
+            // uses when it fills a missing _s.
+            {
+                const MaterialTable &mtable = m_session->materialTable();
+                const auto &lnames = agt->layerNames();
+                PackedInt32Array classes;
+                classes.resize((int)lnames.size());
+                for (size_t i = 0; i < lnames.size(); ++i) {
+                    std::string plain = tileBaseName(lnames[i]);
+                    if (plain.empty())
+                        plain = lnames[i];
+                    classes[(int)i] = (int)mtable.textureClass(plain);
+                }
+                sm->set_shader_parameter("layer_class", classes);
+            }
             sm->set_shader_parameter("has_normal", nrm.is_valid());
             sm->set_shader_parameter("has_spec", spc.is_valid());
             if (nrm.is_valid())
