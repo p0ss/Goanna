@@ -50,8 +50,8 @@ var light_shafts := 1.0
 # of the drawn distance that stays clear of haze, and the exponent on the ramp
 # over the rest: above 1 the haze holds off and then closes near the edge,
 # below 1 it starts early and rises slowly.
-var fog_clear_fraction := 0.5
-var fog_curve := 3.0
+var fog_clear_fraction := 0.3
+var fog_curve := 1.6
 # How broad the haze band below the horizon line is, sky.gdshader's
 # ground_curve: the background terrain has not arrived over.
 var sky_ground_curve := 3.0

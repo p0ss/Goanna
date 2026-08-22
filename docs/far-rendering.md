@@ -637,13 +637,37 @@ and the edge stood in clear air. Measured on a fresh profile against the
 test server: `far_blocks` 0, terrain stopping at the live edge of 192 nodes,
 fog set to close at the 512 node grant.
 
-So `GoannaClient` reports `far_extent`, the ninetieth percentile ring of
-what is actually drawn, recomputed on each far rescan, and the haze closes
-there, floored at the live range and capped by the grant. A percentile
-rather than a maximum, so one straggler across a gap does not report a
-horizon that is not there. Where there is nothing to show there is haze
-rather than an edge, and the view opens as terrain arrives, which reads as
-weather clearing rather than as a world being built.
+So `GoannaClient` reports `far_extent`, recomputed on each far rescan, and
+the haze closes there, floored at the live range and capped by the grant.
+Where there is nothing to show there is haze rather than an edge, and the
+view opens as terrain arrives, which reads as weather clearing rather than
+as a world being built.
+
+The first version of that measurement was one ring histogram around the
+player, taken at the ninetieth percentile so a straggler across a gap could
+not report a horizon that was not there. It was not enough, and the way it
+failed is worth keeping. The frontier is ragged: the store and the
+summaries fill outward at whatever rate the server generates, so for most
+of the time a world is filling, the field reaches several times further one
+way than another. One radius describes the directions holding the most
+blocks, which are exactly the directions that least need hiding, and leaves
+the sparse ones ending in clear air. The haze looked right when the field
+happened to be even and wrong the rest of the time, which is how it was
+reported: it looks great when it works, and it does not work all that
+often.
+
+It is now measured per direction: eight sectors, each with its own ring
+histogram and its own ninetieth percentile, and the extent is the lower
+quartile across the sectors that hold anything, so it says how far you can
+see in a poor direction rather than a good one. Sectors holding nothing are
+skipped, since the live range floor already covers them. Measured at the
+same spot on the same world, the old figure was 512 nodes and the new one
+240, which is the size of the raggedness rather than a change of policy.
+
+The curve was opened up with it, since the same complaint was that there
+was too little haze: `fog_clear_fraction` 0.5 to 0.3 and `fog_curve` 3.0 to
+1.6, so the haze begins nearer and builds steadily instead of holding off
+and then closing hard over the last fifth.
 
 The fog is a depth curve rather than exponential. An exponential cannot be
 both clear in the foreground and closed at the edge: the density that hides

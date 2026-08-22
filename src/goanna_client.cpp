@@ -2292,24 +2292,55 @@ void GoannaClient::lodUpdateFar(const Vector3 &around) {
     // so one straggler beyond a gap does not report a horizon that is not
     // there.
     {
-        std::vector<int> rings((size_t)radius + 2, 0);
+        // Measured per direction rather than as one radius around the player,
+        // because the frontier is ragged: the store and the summaries fill
+        // outward at whatever rate the server generates, so the field reaches
+        // much further one way than another for most of the time it is
+        // filling. A single radius describes the directions that happen to
+        // hold the most blocks, which are the ones that least need hiding,
+        // and leaves the sparse ones ending in clear air. That is why the
+        // haze looked right sometimes and not most of the time.
+        //
+        // Eight sectors, each with its own ring histogram and its own ninetieth
+        // percentile, and the extent is the lower quartile across the sectors
+        // that hold anything: how far you can see in a poor direction rather
+        // than a good one. A sector holding nothing at all is skipped, since
+        // the live range floor already covers it.
+        constexpr int kSectors = 8;
+        constexpr float kPi = 3.14159265f;
+        const size_t nrings = (size_t)radius + 2;
+        std::vector<int> rings((size_t)kSectors * nrings, 0);
+        std::vector<size_t> totals((size_t)kSectors, 0);
         for (const v3s16 &bp : m_far_blocks) {
             const v3s16 d = bp - centre;
             const int r = std::max(std::abs(d.X), std::abs(d.Z));
-            if (r >= 0 && r < (int)rings.size())
-                ++rings[(size_t)r];
+            if (r < 0 || r >= (int)nrings)
+                continue;
+            const float a = std::atan2((float)d.Z, (float)d.X); // -pi to pi
+            int s = (int)std::floor((a + kPi) / (2.0f * kPi) * (float)kSectors);
+            s = std::clamp(s, 0, kSectors - 1);
+            ++rings[(size_t)s * nrings + (size_t)r];
+            ++totals[(size_t)s];
         }
-        const size_t total = m_far_blocks.size();
-        size_t seen = 0;
-        int reach = 0;
-        for (size_t r = 0; r < rings.size(); ++r) {
-            seen += (size_t)rings[r];
-            if (total && seen * 10 >= total * 9) {
-                reach = (int)r;
-                break;
+        std::vector<int> reach;
+        for (int s = 0; s < kSectors; ++s) {
+            if (!totals[s])
+                continue;
+            size_t seen = 0;
+            for (size_t r = 0; r < nrings; ++r) {
+                seen += (size_t)rings[(size_t)s * nrings + r];
+                if (seen * 10 >= totals[s] * 9) {
+                    reach.push_back((int)r);
+                    break;
+                }
             }
         }
-        m_far_extent = reach * MAP_BLOCKSIZE;
+        if (reach.empty()) {
+            m_far_extent = 0;
+        } else {
+            std::sort(reach.begin(), reach.end());
+            m_far_extent = reach[reach.size() / 4] * MAP_BLOCKSIZE;
+        }
     }
     lodRequestSummaries(centre, radius);
 }
