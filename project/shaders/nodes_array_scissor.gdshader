@@ -62,22 +62,15 @@ void fragment() {
 	int cls = layer_class[layer];
 	float detail = detail_strength * (1.0 - flatten);
 	vec4 tile;
-	// The cells are chosen once and then used for the relief and the specular
-	// as well, further down: one fragment has to read all three arrays from
-	// the same shifted copy of the tile, or it lights a pattern its colour no
-	// longer has.
+	// Per node: this face reads its own turned and shifted copy of the tile.
+	// One read, and every discontinuity lands on a node boundary, where the
+	// art already has one.
 	bool tiled = detail > 0.01 && goanna_class_is_granular(cls);
-	vec3 cell_w = vec3(1.0, 0.0, 0.0);
-	vec2 cell_o1 = vec2(0.0), cell_o2 = vec2(0.0), cell_o3 = vec2(0.0);
-	if (tiled) {
-		vec2 hex = goanna_surface_uv(v_world, v_wnormal) / max(detail_cell, 0.5);
-		goanna_cell_pick(UV, hex, float(textureSize(albedo_array, 0).x), detail_sharpen,
-				cell_w, cell_o1, cell_o2, cell_o3);
-		tile = goanna_cells_albedo(float(layer), uv_dx, uv_dy,
-				cell_w, cell_o1, cell_o2, cell_o3);
-	} else {
-		tile = texture(albedo_array, vec3(UV, UV2.x));
-	}
+	vec2 tile_uv = UV;
+	if (tiled)
+		tile_uv = goanna_node_uv(UV, goanna_surface_uv(v_world, v_wnormal),
+				float(textureSize(albedo_array, 0).x), detail_turn);
+	tile = textureGrad(albedo_array, vec3(tile_uv, float(layer)), uv_dx, uv_dy);
 	vec4 tex = tile * COLOR;
 	ALBEDO = tex.rgb;
 	if (v_stale > 0.001)
@@ -92,10 +85,7 @@ void fragment() {
 	float pack_ao = 1.0;
 
 	if (has_normal) {
-		vec4 n = tiled
-				? goanna_cells_normal(float(layer), uv_dx, uv_dy,
-						cell_w, cell_o1, cell_o2, cell_o3)
-				: texture(normal_array, vec3(UV, UV2.x));
+		vec4 n = textureGrad(normal_array, vec3(tile_uv, float(layer)), uv_dx, uv_dy);
 		vec2 xy = (n.rg * 2.0 - 1.0) * normal_strength * (1.0 - flatten);
 		float z = sqrt(clamp(1.0 - dot(xy, xy), 0.0, 1.0));
 		NORMAL_MAP = vec3(xy * 0.5 + 0.5, z * 0.5 + 0.5);
@@ -108,10 +98,7 @@ void fragment() {
 		pack_ao = mix(1.0, n.b, ao_strength * (1.0 - flatten));
 	}
 	if (has_spec) {
-		vec4 sp = tiled
-				? goanna_cells_spec(float(layer), uv_dx, uv_dy,
-						cell_w, cell_o1, cell_o2, cell_o3)
-				: texture(spec_array, vec3(UV, UV2.x));
+		vec4 sp = textureGrad(spec_array, vec3(tile_uv, float(layer)), uv_dx, uv_dy);
 		float sm = sp.r;
 		// Toward 1.0, the unlit-looking fully rough default, so 0 gives back
 		// exactly what a node with no companion gets.

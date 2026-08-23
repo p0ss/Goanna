@@ -16,10 +16,9 @@ extends Node3D
 #
 #   GOANNA_PACK_DIR=<dir>   textures, default baked/pack-mineclonia-v2
 #   GOANNA_SHOT=<dir>       write detail_off.png and detail_on.png, then quit
-#   GOANNA_FIELD_CELL=<n>   stochastic cell size in nodes, default 3
 #   GOANNA_FIELD_LEN=<n>    strip length in nodes, default 120
 #   GOANNA_FIELD_PLAIN=1    do not bind the pack's _n and _s companions
-#   GOANNA_FIELD_SHARPEN=<n> weight sharpening, default 8
+#   GOANNA_FIELD_TURN=1     let a node turn its tile as well as shift it
 #   GOANNA_FIELD_WALL=<stem> one material as a wall filling the frame, face
 #                           on, which is where a seam in the cell grid has
 #                           nowhere to hide: a perspective ground plane can
@@ -199,12 +198,9 @@ func _ready() -> void:
 	lod_dir = OS.get_environment("GOANNA_FIELD_LOD")
 	if OS.get_environment("GOANNA_FIELD_LAYER") != "":
 		lod_layer = int(OS.get_environment("GOANNA_FIELD_LAYER"))
-	var cell := 3.0
-	var sharpen := 8.0
-	if OS.get_environment("GOANNA_FIELD_CELL") != "":
-		cell = float(OS.get_environment("GOANNA_FIELD_CELL"))
-	if OS.get_environment("GOANNA_FIELD_SHARPEN") != "":
-		sharpen = float(OS.get_environment("GOANNA_FIELD_SHARPEN"))
+	var turn := 0.0
+	if OS.get_environment("GOANNA_FIELD_TURN") != "":
+		turn = float(OS.get_environment("GOANNA_FIELD_TURN"))
 	if OS.get_environment("GOANNA_FIELD_LEN") != "":
 		strip_len = float(OS.get_environment("GOANNA_FIELD_LEN"))
 	# GOANNA_FIELD_PLAIN=1 leaves the companions unbound, which is the older
@@ -215,7 +211,7 @@ func _ready() -> void:
 
 	var wall := OS.get_environment("GOANNA_FIELD_WALL")
 	if wall != "":
-		_wall(dir, wall, cell, sharpen)
+		_wall(dir, wall, turn)
 		if shot_dir != "":
 			DirAccess.make_dir_recursive_absolute(shot_dir)
 			_shoot()
@@ -267,8 +263,7 @@ func _ready() -> void:
 		classes.resize(lod_layer + 1)
 		classes[lod_layer] = int(s[2])
 		mat.set_shader_parameter("layer_class", classes)
-		mat.set_shader_parameter("detail_cell", cell)
-		mat.set_shader_parameter("detail_sharpen", sharpen)
+		mat.set_shader_parameter("detail_turn", turn)
 		mat.set_shader_parameter("detail_strength", 0.0)
 		# The per vertex channels the client fills from the map. There is no
 		# map here, so take the light out of the way rather than leaving the
@@ -422,7 +417,7 @@ func _shoot_items() -> void:
 # One material, one wall, face on and filling the frame. Twenty by twenty
 # nodes, so a cell grid of a few nodes has room to show its lines, and no
 # perspective for them to hide in.
-func _wall(dir: String, stem: String, cell: float, sharpen: float) -> void:
+func _wall(dir: String, stem: String, turn: float) -> void:
 	var img := _load(dir.path_join(stem + ".png"))
 	if img.get_width() <= 1:
 		push_error("no texture at " + dir.path_join(stem + ".png"))
@@ -441,8 +436,7 @@ func _wall(dir: String, stem: String, cell: float, sharpen: float) -> void:
 	# Stone unless told otherwise: the class only decides whether the
 	# treatment runs at all, and this scene is about what it does when it does.
 	mat.set_shader_parameter("layer_class", PackedInt32Array([1]))
-	mat.set_shader_parameter("detail_cell", cell)
-	mat.set_shader_parameter("detail_sharpen", sharpen)
+	mat.set_shader_parameter("detail_turn", turn)
 	mat.set_shader_parameter("detail_strength", 0.0)
 	mat.set_shader_parameter("sky_light_strength", 0.0)
 	mat.set_shader_parameter("vertex_ao_strength", 0.0)

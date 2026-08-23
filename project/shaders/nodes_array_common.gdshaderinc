@@ -138,78 +138,54 @@ uniform int layer_class[256];
 // single sample this shader has always done, which is what the far tiers and
 // modest hardware want; the Material tab drives it as mat_detail.
 uniform float detail_strength : hint_range(0.0, 2.0) = 1.0;
-// World units across one cell of the stochastic grid. Below about a node the
-// pattern breaks up into noise; well above it the repeat comes back.
-uniform float detail_cell : hint_range(0.5, 32.0) = 3.0;
 // How hard the three cell weights are pushed toward the nearest one. High
 // values keep pixel art crisp and take one texture read instead of three
 // over most of the screen; low values cross fade and blur.
-uniform float detail_sharpen : hint_range(1.0, 32.0) = 8.0;
+// Whether a node may also turn its tile by a right angle, as well as shift
+// it. Off by default, and it is a look decision rather than a tuning one:
+// on an isotropic texture like stone or gravel a turn adds variety for
+// nothing, but sand's ripple runs in one direction on purpose, and turning
+// it per node reads as a woven quilt rather than as a dune.
+uniform float detail_turn : hint_range(0.0, 1.0) = 0.0;
 
 varying vec3 v_nodelight;
 varying float v_stale;
 varying vec3 v_world;
 varying vec3 v_wnormal;
 
-// Goanna: stochastic tiling, so a field of sand or a cliff face stops being
-// the same sixteen pixels repeated to the horizon. A virtual triangle grid
-// laid over world space picks three cells; each cell shifts the tile by its
-// own random amount, and the three are blended by their barycentric weights,
-// which leaves the mean of the surface exactly what it was. Mean preserving
-// matters here beyond tidiness: the far tiers blend toward each layer's
-// average colour, so a treatment that moved the mean would show as a band of
-// changed brightness at whatever range it faded out.
+// Goanna: per node tiling, so a field of sand or a cliff face stops being
+// the same sixteen pixels repeated to the horizon.
 //
-// After Mikkelsen's practical hex tiling, by way of the Godot adaptation at
-// https://godotshaders.com/shader/stochastic-hex-tiling-mikkelsens-adaptation
-// (MIT). Two departures, both because this is pixel art rather than a
-// photographed material. The offsets are whole texels and there is no random
-// rotation, so the tile's own pixel grid still lands on the pixel grid.
-// And the weights are sharpened, so all but a narrow band along each cell
-// border takes a single sample: pixel art is made of hard edges and a three
-// way cross fade turns them to mush. The sharpening pays for itself twice,
-// because the single sample case is also one texture read rather than three.
+// This started as Mikkelsen's stochastic hex tiling, a virtual triangle grid
+// over world space with three shifted copies of the tile blended by
+// barycentric weight. That method is built for photographed materials laid
+// continuously over a surface, and this is not that. Two attempts showed
+// why. Shifted copies alone left every cell the same way up, so the cell
+// borders all lay on the grid's own axes and the eye joined them into a
+// diagonal weave. Turning each cell to break the alignment made neighbouring
+// cells differ far more, so every border became a hard edge and the grid
+// itself appeared, as triangles.
+//
+// The grid was the mistake. Voxel art already has a grid, and its seams are
+// already visible: every node face draws one whole tile, with a hard edge at
+// every node boundary, which is the look the art is drawn for. So randomise
+// per node face instead. A shift and a quarter turn chosen from the node's
+// own coordinate puts a different part of the tile on every node, and puts
+// every discontinuity exactly where the art already has one. No new seam is
+// created anywhere, which is why this needs no blending, no weights and no
+// contrast restoration, and costs one texture read rather than three.
+//
+// Whole texels and right angles only: the tile's own pixel grid then lands
+// back on the pixel grid, where a fractional shift or an arbitrary angle
+// would resample pixel art into mush.
 vec2 goanna_cell_hash(vec2 p) {
 	p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)));
 	return fract(sin(p) * 43758.5453);
 }
 
-// Which triangle of the skewed grid this point falls in, and how near it is
-// to each of that triangle's three corners.
-void goanna_cell_weights(vec2 p, out vec3 w, out vec2 c1, out vec2 c2, out vec2 c3) {
-	p *= 3.464; // 2 sqrt 3, the grid to triangle scale
-	vec2 skew = vec2(p.x, p.y * 1.15470054 - p.x * 0.57735027);
-	vec2 base = floor(skew);
-	vec3 f = vec3(fract(skew), 0.0);
-	f.z = 1.0 - f.x - f.y;
-	if (f.z > 0.0) {
-		w = vec3(f.z, f.y, f.x);
-		c1 = base;
-		c2 = base + vec2(0.0, 1.0);
-		c3 = base + vec2(1.0, 0.0);
-	} else {
-		w = vec3(-f.z, 1.0 - f.y, 1.0 - f.x);
-		c1 = base + vec2(1.0, 1.0);
-		c2 = base + vec2(1.0, 0.0);
-		c3 = base + vec2(0.0, 1.0);
-	}
-}
-
-// The tile shifted by whole texels, so the pixel grid is never broken.
-vec2 goanna_cell_offset(vec2 cell, float texels) {
-	return floor(goanna_cell_hash(cell) * texels) / texels;
-}
-
-// A quarter turn per cell, chosen from the same hash. Shifting alone leaves
-// every copy of the tile in the same orientation, so whatever direction the
-// art runs in runs the same way in every cell, and the eye joins them up
-// into the faint diagonal weave that the grid's own axes are laid out on.
-// Turning by a right angle breaks that and is the one rotation pixel art can
-// take: the texel grid lands back on the texel grid, where an arbitrary
-// angle would resample it into mush.
+// A quarter turn, chosen from a second hash of the same node so the turn and
+// the shift do not agree with each other.
 vec2 goanna_cell_turn(vec2 uv, vec2 cell) {
-	// A second, unrelated hash of the same cell, so the turn and the shift do
-	// not agree with each other.
 	float h = fract(sin(dot(cell, vec2(74.7, 219.3))) * 21793.13);
 	int q = int(floor(h * 4.0));
 	if (q == 1)
@@ -221,61 +197,14 @@ vec2 goanna_cell_turn(vec2 uv, vec2 cell) {
 	return uv;
 }
 
-// Which cells this fragment sits between, and how far each shifts the tile.
-// Chosen once and then used for every array, because the albedo, the relief
-// and the specular of one fragment have to come from the same copy of the
-// tile. Shifting only the colour leaves the relief still repeating on the
-// node grid and, worse, lighting a pattern that is no longer there: this
-// file's own comment on lod_flatten already names that failure, where a
-// flattened colour with its relief left alone still shades like the tile.
-void goanna_cell_pick(vec2 uv, vec2 hex, float texels, float sharpen,
-		out vec3 w, out vec2 u1, out vec2 u2, out vec2 u3) {
-	vec2 c1, c2, c3;
-	goanna_cell_weights(hex, w, c1, c2, c3);
-	w = pow(w, vec3(sharpen));
-	w /= (w.x + w.y + w.z);
-	// Each cell gets the tile turned and then shifted, and returns a whole
-	// coordinate rather than an offset, because a turn is not an offset.
-	u1 = goanna_cell_turn(uv, c1) + goanna_cell_offset(c1, texels);
-	u2 = goanna_cell_turn(uv, c2) + goanna_cell_offset(c2, texels);
-	u3 = goanna_cell_turn(uv, c3) + goanna_cell_offset(c3, texels);
-}
-
-// One of these per array, because Godot will not let a single function take
-// samplers that differ in filter, repeat or hint, and its preprocessor will
-// not take a #define from an included file either. The bodies are the same
-// three lines; the sampler is the only difference between them.
-//
-// The first three cases are the common one: with the weights sharpened, all
-// but a narrow band along each cell border wants a single texture read. The
-// derivatives are the caller's, taken before any branching, because a
-// fragment quad can straddle two array layers and dFdx inside that is not
-// defined.
-vec4 goanna_cells_albedo(float lyr, vec2 dx, vec2 dy, vec3 w, vec2 u1, vec2 u2, vec2 u3) {
-	if (w.x > 0.995) return textureGrad(albedo_array, vec3(u1, lyr), dx, dy);
-	if (w.y > 0.995) return textureGrad(albedo_array, vec3(u2, lyr), dx, dy);
-	if (w.z > 0.995) return textureGrad(albedo_array, vec3(u3, lyr), dx, dy);
-	return w.x * textureGrad(albedo_array, vec3(u1, lyr), dx, dy)
-			+ w.y * textureGrad(albedo_array, vec3(u2, lyr), dx, dy)
-			+ w.z * textureGrad(albedo_array, vec3(u3, lyr), dx, dy);
-}
-
-vec4 goanna_cells_normal(float lyr, vec2 dx, vec2 dy, vec3 w, vec2 u1, vec2 u2, vec2 u3) {
-	if (w.x > 0.995) return textureGrad(normal_array, vec3(u1, lyr), dx, dy);
-	if (w.y > 0.995) return textureGrad(normal_array, vec3(u2, lyr), dx, dy);
-	if (w.z > 0.995) return textureGrad(normal_array, vec3(u3, lyr), dx, dy);
-	return w.x * textureGrad(normal_array, vec3(u1, lyr), dx, dy)
-			+ w.y * textureGrad(normal_array, vec3(u2, lyr), dx, dy)
-			+ w.z * textureGrad(normal_array, vec3(u3, lyr), dx, dy);
-}
-
-vec4 goanna_cells_spec(float lyr, vec2 dx, vec2 dy, vec3 w, vec2 u1, vec2 u2, vec2 u3) {
-	if (w.x > 0.995) return textureGrad(spec_array, vec3(u1, lyr), dx, dy);
-	if (w.y > 0.995) return textureGrad(spec_array, vec3(u2, lyr), dx, dy);
-	if (w.z > 0.995) return textureGrad(spec_array, vec3(u3, lyr), dx, dy);
-	return w.x * textureGrad(spec_array, vec3(u1, lyr), dx, dy)
-			+ w.y * textureGrad(spec_array, vec3(u2, lyr), dx, dy)
-			+ w.z * textureGrad(spec_array, vec3(u3, lyr), dx, dy);
+// The coordinate to read the tile at: this node's own turn and shift. The
+// derivatives stay the caller's, taken from the untouched UV, because the
+// offset is a step at every node boundary and an implicit derivative across
+// one would pick a mip level for a jump that is not really there.
+vec2 goanna_node_uv(vec2 uv, vec2 surface_uv, float texels, float turn) {
+	vec2 cell = floor(surface_uv);
+	vec2 t = turn > 0.5 ? goanna_cell_turn(uv, cell) : uv;
+	return t + floor(goanna_cell_hash(cell) * texels) / texels;
 }
 
 // The surface coordinate a treatment runs in: world space, on the plane the
