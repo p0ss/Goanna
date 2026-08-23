@@ -157,13 +157,20 @@ the server sends is also kept in a local store, per server, and where a
 server grants it (its operator sets `goanna_far_rendering` with the server
 mod in `goanna_server_mod/`; Goanna's own single player server does) the far
 tiers draw from that store beyond the server's send distance, marked as
-remembered rather than seen. Such a server can also send coarse summaries of
-terrain it has already generated, so the horizon includes places you have
-never walked to; nothing is ever invented, and ground the server has not
-generated stays empty. Observed against a local Mineclonia server on
-Godot 4.5.1: terrain 400 nodes behind the live range drawn from a previous
-visit. Without the grant the store only writes. The plan and the limits are
-in [docs/far-rendering.md](docs/far-rendering.md).
+remembered rather than seen. Such a server also keeps coarse summaries of
+terrain it has generated and answers a client's requests for them from that
+store, so the horizon includes places you have never walked to and fills in
+seconds rather than minutes (observed 2026-08-23 against a local Mineclonia
+server on Luanti 5.16.1, Godot 4.5.1: a 1024 node grant drawn within 30 s of
+joining, across a server restart). The ground is drawn as one connected
+surface over those summaries, trees as boxes on it. A mapgen that can say
+where its ground is without generating it can register a far surface with
+the mod, and the terrain diffusion mapgen does, so on such a world the whole
+grant is seen on a fresh world with nothing generated; real summaries
+replace it as blocks are made. Elsewhere nothing is invented and ground the
+server has not generated stays empty. Without the grant the store only
+writes. The plan and the limits are in
+[docs/far-rendering.md](docs/far-rendering.md).
 
 Then the parts that are Goanna's own rather than Luanti's: a water shader
 with vertex waves and refraction, waving leaves and plants, distance fog and

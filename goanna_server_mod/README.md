@@ -81,30 +81,56 @@ has never been.
 
 It reads terrain the server has already generated and never generates any. An
 ungenerated block is reported as unknown and stays a hole in the client's
-view, so nothing is invented and no worldgen happens on a request. What comes
-back per mapblock is 21 bytes, protocol version 2: whether it blocks light,
-whether it is lit, a 4 by 4 grid of surface heights over the block's
-footprint (one byte each, so a slope reads as a slope rather than a stepped
-box), the commonest node on top and at the sides, and its light levels. A
-block is still under a hundredth of the size it would be sent at full
-resolution, and an 8 by 8 by 8 block area, the size a request covers, is
-about 10.5 KB raw and 14 KB once base64 encoded for the channel.
+view, so nothing is invented and no worldgen happens on a request (unless the
+mapgen has registered a far surface, below). What comes back per mapblock is
+69 bytes, protocol version 3: whether it blocks light, whether it is lit, and
+per 4 node cell of the block's footprint the terrain height (the highest
+filled node that is not vegetation), the vegetation base and top, and the
+terrain's top node, then the vegetation node, the side node and the light
+levels. Vegetation is by node group (tree, leaves, cactus, bamboo and the
+plant groups), the same list the client uses, so trees stand on the ground
+the client draws as a surface rather than being part of it. A block is still
+well under a tenth of the size it would be sent at full resolution, and an 8
+by 8 by 8 block area, the size a request covers, is about 35 KB raw and 47 KB
+once base64 encoded for the channel.
+
+### The store
+
+A block is summarised once and kept. Since 2026-08-23 the mod holds a store
+of records, in areas of 8 by 8 by 8 mapblocks (the unit a client asks for),
+persisted in mod storage under keys that carry the protocol version, and a
+request for an area the store knows is answered in the same server step by
+lookup. Before that every request read every block of its area through a
+`VoxelManip` when it was asked, one job at a time for every client on the
+server, and that rate, not the network, was what made a horizon arrive as a
+mosaic over minutes and be recomputed from nothing for every client that
+joined.
+
+The store fills without being asked: every freshly generated block is
+summarised within a few steps of `register_on_generated`, while it is still
+in memory; a block someone digs, builds on or floods is summarised again a
+few seconds after `register_on_mapblocks_changed` reports it; and when the
+queues are idle, the nearest unsettled area to any player is read in the
+background (`goanna_far_summary_backfill`), which is how a world that
+existed before the store did gets read once rather than on the first
+client's clock. An area is settled once every block in it is known or has
+been looked at and found ungenerated, and is not read again: generation and
+node changes are the only things that change it and both are reported.
 
 Two bounds an operator owns. Requests outside `goanna_far_rendering_distance`
-of the asking player are refused silently, so the grant is the reach. And the
-work is paced by `goanna_far_summary_blocks_per_step`, ninety six mapblocks
-per server step by default, which keeps an area to about half a second of
-wall clock; lower it on a busy server.
+of the asking player are refused silently, so the grant is the reach. And
+every read of the map is paced by `goanna_far_summary_blocks_per_step`,
+ninety six mapblocks per server step by default, with asked jobs ahead of
+generated blocks, changed blocks and backfill in that order.
+`goanna_far_summary_lag` pauses all of it while the server's reported lag is
+above that many seconds, keeping part finished work rather than abandoning
+it. `goanna_far_summary_cache_areas` bounds how many areas stay in memory;
+past it, areas untouched for ten minutes are written out and let go.
 
-That number is the rate the whole far view fills at, for every client on the
-server together, and it is worth knowing what it buys. The queue runs one job
-at a time and a job is 512 mapblocks, so 96 a step is roughly two areas a
-second. A 1024 node grant is 128 by 128 mapblocks around a player, one
-horizontal layer of which is 16384 blocks: nearly three minutes at that rate,
-and it was eight and a half at the old default of 32. `goanna_far_summary_lag`
-is what makes raising it safe. Above that many seconds of reported server lag
-the queue pauses, keeping the part finished area rather than abandoning it, so
-no client is left waiting on a reply that never comes.
+What the store does not do yet is tell a client that a block it already has
+changed. A client never asks twice for an area that came back complete, so
+far terrain another player alters stays as it was until the client walks
+there or rejoins.
 
 One limitation worth stating plainly, because it is Luanti's rather than
 ours: a mod channel has no unicast. `send_all` is the only way to answer, so
@@ -115,6 +141,29 @@ server. The distance check is against the asking player and the grant is
 server wide, so this widens what is seen by other players' whereabouts, not
 by any distance beyond what was granted.
 
+### A far surface from the mapgen
+
+A mapgen that can say where its ground is for any (x, z) without generating
+anything can register that with this mod, and then a client sees the whole
+grant on a world nobody has walked:
+
+```lua
+goanna_register_far_surface(function(x, z)
+    -- surface_y, top_name, water_y or nil, side_name
+    return y, "mcl_core:dirt_with_grass", nil, "mcl_core:dirt"
+end, {water = "mcl_core:water_source"})
+```
+
+When the store finds a block ungenerated and a provider is registered, it asks
+for one sample per 4 node cell of the area's footprint and serves the record
+made from that as known. Such a record is remembered as the provider's, and
+when the block is really generated the real summary replaces it and the area
+is offered again to the clients near it. The terrain diffusion mapgen
+registers one (`tdl_far.lua` in that repository); the engine mapgens have no
+such function, and pregeneration is the answer there. Nothing here writes to
+the world, the operator grants it with the rest of far rendering, and the
+client asks for the same summaries as before.
+
 ### Pregeneration
 
 A summary describes terrain that exists, and a server generates only within
@@ -124,7 +173,11 @@ generate outward from each connected player, one 128 node area at a time,
 nearest first and the player's own vertical layer before the ones above and
 below it, with `goanna_far_pregenerate_interval` seconds between areas, out
 to the far rendering distance, and summarise each finished area for the
-clients near it unasked. It spends mapgen time and map memory on terrain no
+clients near it unasked. Beyond the layer either side of the player's, an
+area is generated only when the area nearer the player's layer is done and
+its summary says the terrain carries on that way (ground at its ceiling, or
+air along its floor), so a valley under a mountain is followed down and the
+sky over a plain is left alone. It spends mapgen time and map memory on terrain no
 one has visited, so it is off unless the operator turns it on. The server a
 Goanna client launches for itself turns it on.
 

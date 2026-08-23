@@ -12,15 +12,27 @@ goanna_far_rendering (Far rendering) bool false
 #    draw calls, and bounds the far terrain summaries below.
 goanna_far_rendering_distance (Far rendering distance) int 256 64 8192
 
-#    How much work a far terrain summary request may cost each server step,
-#    in mapblocks read. Summaries are what let a client draw places its
-#    player has never been: the server reads terrain it has already generated
-#    (it never generates any for this) and sends a coarse digest. This is the
-#    rate the whole far view fills at, for every client together: one area is
-#    512 mapblocks, so 96 a step is about half a second an area. Lower it on
-#    a busy server; 0 does not disable the feature, goanna_far_rendering
-#    does.
+#    How many mapblocks this mod may read from the map each server step to
+#    summarise them. Summaries are what let a client draw places its player
+#    has never been: the server reads terrain it has already generated (it
+#    never generates any for this), keeps a coarse record of each block, and
+#    answers a client's request from those records. A block is read once,
+#    when it is generated, when it changes, or the first time it is wanted
+#    on a world older than the store, so this paces the reading, not the
+#    answering: an area the store knows is answered at once. Lower it on a
+#    busy server; 0 does not disable the feature, goanna_far_rendering does.
 goanna_far_summary_blocks_per_step (Far summary blocks per step) int 96 1 512
+
+#    Read the areas around each player into the summary store in the
+#    background, nearest first, when nothing else is waiting. On a world
+#    generated under this mod there is nothing for it to do; on an older one
+#    it is how the map gets read once instead of on the first client's clock.
+goanna_far_summary_backfill (Far summary backfill) bool true
+
+#    How many 8 by 8 by 8 mapblock areas of summaries to keep in memory.
+#    About 11 KB each. Past this, areas untouched for ten minutes are written
+#    to mod storage and let go, and come back when next wanted.
+goanna_far_summary_cache_areas (Far summary areas in memory) int 4096 64 65536
 
 #    Stop reading summaries while the server's reported maximum lag is above
 #    this, in seconds, and carry on where the part finished area left off

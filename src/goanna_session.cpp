@@ -466,13 +466,13 @@ void GoannaSession::requestFarSummary(v3s16 origin_blocks, int edge_blocks, int 
     if (!m_con)
         return;
     std::string channel(kGoannaChannel);
-    // Version 2: the per-block record grew from 6 bytes to 21, a 4 by 4 grid
-    // of surface heights rather than one for the whole block. See the
-    // matching comment in goanna_server_mod/init.lua and
-    // GoannaClient::lodTakeSummaries. A v1 server mod's request pattern wants
-    // exactly 5 numbers and will not match this line, so an old mod simply
-    // never answers a new client rather than answering with the wrong shape.
-    std::string msg = "farsum? 2 " + std::to_string(cell) + " " + std::to_string(origin_blocks.X) +
+    // Version 3: the per-block record is 69 bytes, terrain and vegetation
+    // heights kept apart per 4 node cell, so the far surface can be drawn
+    // over the ground alone. See the matching comment in
+    // goanna_server_mod/init.lua and GoannaClient::lodTakeSummaries. A mod
+    // at another version logs a warning and never answers, rather than
+    // answering with the wrong shape.
+    std::string msg = "farsum? 3 " + std::to_string(cell) + " " + std::to_string(origin_blocks.X) +
             " " + std::to_string(origin_blocks.Y) + " " + std::to_string(origin_blocks.Z) + " " +
             std::to_string(edge_blocks);
     NetworkPacket pkt(TOSERVER_MODCHANNEL_MSG, 0);

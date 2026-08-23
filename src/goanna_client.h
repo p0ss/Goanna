@@ -249,6 +249,8 @@ public:
     int lod_distance() const { return m_lod_distance; }
     void set_lod_cell(int nodes);
     int lod_cell() const { return m_lod_cell; }
+    void set_lod_terrace(bool on);
+    bool lod_terrace() const { return m_lod_terrace; }
     int update_lod(const godot::Vector3 &around, int max_rebuild);
     // The local block store (docs/far-rendering.md rung 5). The root
     // directory; each server gets its own subdirectory beneath it. Empty
@@ -289,7 +291,10 @@ public:
     godot::Ref<godot::Material> materialFor(const MaterialKey &key);
     godot::Ref<godot::Material> materialForIrr(const video::SMaterial &m, u16 layer = 0);
     MaterialKey keyForIrr(const video::SMaterial &m, u16 layer);
-    int lodTierFor(const v3s16 &bp, const godot::Vector3 &around) const;
+    // live: the server is sending this block, so inside the wanted range it
+    // is never coarsened. A block from the store or a summary is tiered by
+    // the detail distance alone.
+    int lodTierFor(const v3s16 &bp, const godot::Vector3 &around, bool live) const;
 
 protected:
     static void _bind_methods();
@@ -319,6 +324,7 @@ private:
     // rendering; 0 turns all of it off. docs/launch-target.md.
     int m_lod_distance = 12;
     int m_lod_cell = 4;
+    bool m_lod_terrace = false;
     // --- far rendering (docs/far-rendering.md rungs 2 and 3) ---
     // Blocks at a tier of 1 or more are not meshed one by one: each belongs
     // to a region at its tier, and the region is one mesh built from the
@@ -425,11 +431,19 @@ private:
         // bottom of the world (docs/far-rendering.md, "Where the summary
         // budget actually went").
         bool empty = false;
+        // Every generated record in the reply was air from top to bottom: the
+        // area is sky the server has made. A layer like that costs nothing to
+        // walk through when the request loop ranks areas, so the ground under
+        // a flying player ranks as though the player stood on it rather than
+        // behind every area of sky around them.
+        bool air = false;
     };
     std::map<v3s16, FarAsk> m_far_requested;
     int m_far_inflight = 0;
     std::chrono::steady_clock::time_point m_far_asked; // when the oldest in flight was sent
+    std::chrono::steady_clock::time_point m_far_scan; // when lodRequestSummaries last looked
     v3s16 m_far_centre{32767, 32767, 32767};
+    int m_far_radius = 0; // blocks, what lodUpdateFar last scanned with
     std::chrono::steady_clock::time_point m_far_last;
     bool m_far_dirty = true;
     void lodUpdateFar(const godot::Vector3 &around);

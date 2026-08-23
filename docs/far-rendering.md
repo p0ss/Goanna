@@ -1742,6 +1742,309 @@ them. A teleport away and back does not clear it either. To compare a patch
 of ground drawn near against the same patch drawn far, take the near
 reading first.
 
+### The far field emptied to the wanted range, 2026-08-23
+
+Reported as far terrain arriving half complete (a distant hill with its top
+present and its flanks missing) and the sides of the view never filling in
+while flying. Both were one change.
+
+"Stop coarsening blocks the server is actually sending" (commit 5fb6e83) set
+the first tier threshold to the wanted range for every block, not only for
+live ones. `lodTierFor` answering 0 is read by `lodUpdateFar` and
+`update_lod` as "the server will send it", so a block from the store or a
+summary inside that radius was never drawn, and one that had been assigned
+was forgotten on the next update. At the user's 40 block view range, on a
+server whose `max_block_send_distance` is 32, that was a 656 node disc
+drawn from the server's cone alone: measured on a probe client, the nearest
+far region centre sat at 575 nodes, the band from 512 to 656 was empty in
+every direction, and inside it the only terrain was what the server chose to
+send, which is the view cone (narrowed by up to half while flying
+forward, `RemoteClient::GetNextBlocks`), minus whatever its occlusion test
+culled from the player's position, minus whatever had not streamed yet. The
+hilltops that stand above the intervening ground pass the occlusion test and
+their flanks do not, which is the half complete hill.
+
+Fixed by giving `lodTierFor` a `live` argument. A live block inside the
+wanted range is never coarsened, which keeps that commit's intent. A block
+that is not live is tiered by the detail distance as before, and inside the
+detail distance it now draws at the finest tier rather than not at all,
+because the alternative was what the request loop's "gap between near and
+far" rule was asking for and then throwing away: a summary for an area
+inside the detail distance was taken, assigned at tier 1, forgotten by the
+next `update_lod`, and, being complete, never asked for again. Measured on
+the same probe after the change, from ground level: nearest far region
+centre 315 nodes, 36 regions in the 256 ring and 61 in the 384 ring where
+there had been none, and the far field meets the live field at the sides of
+the frame instead of stopping at the cone.
+
+Two smaller things found on the way. `_report_fov` ran at startup and when
+the field of view slider moved, so a window dragged wider afterwards was
+still reported at its old width and the server culled the new edges; it now
+runs on every viewport resize. And the request walk priced every layer of
+vertical offset as four areas of horizontal distance, which under a player
+at 260 nodes put the ground behind some eighty areas of sky: measured as 115
+asks in two minutes with the column under the player still unasked. An area
+the server has answered as nothing but air (`FarAsk::air`) now costs nothing
+to walk through, so columns are asked top to bottom nearest first, and the
+ground under a flying player is asked right after its own sky.
+
+Both measurements were against the user's own local server (Mineclonia,
+Luanti 5.16.1, Godot 4.5.1, 1024 node grant, pregeneration on) with a second
+player, which also means they competed with the user's client for the one
+summary queue; see below.
+
+### Why it is still not contiguous, 2026-08-23
+
+Asked directly, after the above: Distant Horizons shows the whole world in
+every direction within half a minute, Goanna can sit for an hour and not.
+Even vanilla Luanti fills the near field reliably and this client does not
+always. That is the right complaint and the fixes above do not answer it.
+What does, in order of how much each is worth:
+
+**The summary queue is the bottleneck, and it is the shape of the mod.** The
+mod holds no summaries. Every request reads every block of its area through
+a `VoxelManip` at the moment it is asked, at `goanna_far_summary_blocks_per_step`
+(96) per server step, one job at a time for every client on the server. That
+is about 0.5 s per area at best, and a 1024 node grant is 256 areas per
+layer with the walk visiting two or three layers per column: five to ten
+minutes for one client when the server is otherwise idle, repeated from
+nothing for every client that joins and every time one rejoins, and
+competing with mapgen when the world is being pregenerated. Distant Horizons
+on a server does not compute on request: its server side keeps an LOD store
+that is filled as chunks are generated and changed, and a client is sent
+data that already exists. The mod can do the same, in Lua, without touching
+the protocol: summarise a block once in `register_on_generated` (the
+`VoxelManip` is already in hand there), keep the per block record in mod
+storage or a file, refresh it on node changes, and answer a request from the
+store. A request then costs a lookup, and a whole grant can go out as fast
+as the wire takes it, to every client. This is the change that makes the
+field arrive in seconds rather than minutes. It is a rewrite of the mod's
+data path and a day's work, with the wire format kept so the client does not
+change.
+
+**The live field is the server's cone, and the far field has to fill it.**
+A Luanti server sends blocks inside the reported field of view, only where
+its occlusion test from the player's eye passes, only where generated, a
+few a step. Vanilla hides the rest behind fog at the view range. Goanna's
+far layers exist to stand in for whatever the server does not send, at any
+distance, and the change above restores that inside the live range; the near
+field then reads as complete as the summaries it is standing on, which is
+the previous point again.
+
+**The far field is boxes, and boxes do not join.** Each tier draws cells as
+columns with a height, and a slope is a staircase; two tiers meet at a step;
+a live block meets its coarse neighbour at a change of shading and of shape.
+The "Strips" section above measured it: half of all far faces are partial
+risers, and the merge achieves 1.27 faces a quad. The contiguous look the
+owner is describing is what a connected surface gives: one triangle mesh
+over the per cell heights, skirts only at tier boundaries and the live edge,
+and the colour and light sampled from the same place the live mesh gets
+them. `meshLodRegion` already has the heights; this is the rewrite it was
+built to make possible, and it is the second day's work.
+
+**Nothing here needs the boundary rule bent.** The server keeps deciding
+what it sends, and a summary store describes terrain that exists.
+
+### The cone was upside down in fly mode, 2026-08-23
+
+Reported as detail arriving in a patch around the centre of vision out in
+the distance rather than around the player, with the foreground left at the
+far tiers, and as the sides of the frame never sharpening. Luanti's pitch is
+positive looking down and Godot's `rotation.x` is positive looking up;
+`step_player` negates it for the walking path and `set_player_pose`, the fly
+path, did not. So the server culled its sends for a camera tilted the other
+way: a flyer looking 20 degrees down was served as one looking 20 degrees
+up, the ground under them fell outside the cone, and whatever sat at the
+horizon inside it was what arrived at full detail. Measured on the terrain
+diffusion world from 2420 nodes looking 20 degrees down, 90 s after joining:
+1845 blocks resident before, 3210 after, and the slope in front of and below
+the camera at full detail instead of the hillside across the valley.
+
+What is left after that is the server's own behaviour, which vanilla has
+too and hides behind nearer fog: it narrows the cone by up to half while the
+player moves in the direction they look (`camera_fov / (1 + dot / 300)` in
+`RemoteClient::GetNextBlocks`), so a fast flyer is sent the middle of the
+frame only until they stop; it sends nothing behind or beside the cone until
+the player turns; and on a world whose terrain does not exist yet, the order
+detail arrives in is the order the mapgen makes it, nearest ring first and
+sky rings included from altitude. `max_block_generate_distance` decides how
+much of that cone the mapgen is asked for; with the far surface covering the
+rest, a small value puts the mapgen's effort where the player is.
+
+### Terraces or slopes, islands, canopies, night haze, 2026-08-23
+
+Five things from looking at the surface in play, in the order they came up.
+
+**The haze at night.** Reported as hills glowing at night. The haze colour
+was right (the horizon band, dimmed with the sky), but a hazed mountain
+stands above that band against the black of the night sky and at the band's
+own brightness it reads as a pale silhouette. Blending the haze toward the
+sky behind it (`fog_aerial_perspective` at 1) made it worse, because Godot
+blends toward the sky's radiance, which `_apply_sky` lifts at night so the
+ground is lit at all. The haze colour is now halved by full night on top of
+the dimming, so a hazed hill is a dark shape below the band. A haze that
+truly takes the colour of the sky behind each pixel is a far tier shader
+doing its own fog, and that is the next piece of work, together with a far
+water that is continuous with the near water (the server's sent rectangle
+of a lake is outlined against the far water today, and no blue does both).
+
+**Overhangs and islands.** A floating island's top was taken as the
+column's surface and the heightfield draped from its rim to the real ground
+as a cone. A block whose ground does not rest on the block below it (the
+one below not filled to its ceiling, the block itself not filled to its own)
+is now a floating run: its cells are drawn as boxes and the surface goes on
+down to the ground. The block below being unknown keeps the old answer, so
+the frontier does not get holes.
+
+**Skirts only as deep as the step.** Three cells of skirt at the coarsest
+tier were 48 node plates on every mountainside ("dominoes"). A skirt now
+drops to the lowest corner of the neighbour it disagrees with, plus one
+node; one cell where the neighbour is unknown.
+
+**Forests at coarse tiers.** Trees at cell 8 and 16 were piles of cubes. At
+those tiers the highest vegetation cell in a column, when it stands above
+the ground, is now the column's surface with the canopy's colour, so a
+forest is a green roof rolling with the land, and the vegetation boxes
+under it are not drawn. At the finest far tier trees stay boxes, since
+there they are still individual trees.
+
+**Terraces or slopes.** "Nothing in Minecraft is rounded." The smoothed
+surface is a look choice and not the only honest one: the blocks under it
+step. `lod_terrace` in the settings panel (Video, "Terraced far terrain")
+draws each cell flat at its own height with risers between neighbours that
+differ, the same pass with the corner averaging off and the skirt logic
+doing the risers. Off by default; both were captured on `r1tod1` from
+(27, 140, -22) looking north and either reads as a world, the terraced one
+as a block world.
+
+### The summary store, 2026-08-23
+
+Part 1 of the answer to "why is it still not contiguous" above, and it was
+the arithmetic. The mod now keeps a store of records, in areas of 8 by 8 by 8
+mapblocks (the unit a client asks for), persisted in mod storage under keys
+that carry the protocol version, and a request for an area the store knows is
+answered in the same server step by lookup. The store fills without being
+asked: every freshly generated block is summarised within a few steps of
+`register_on_generated`, while it is still in memory; a changed block is
+summarised again a few seconds after `register_on_mapblocks_changed`; and
+when the queues are idle the nearest unsettled area to any player is read in
+the background, which is how a world older than the store gets read once. An
+area is settled once every block in it is known or has been found
+ungenerated, and is not read again. `goanna_server_mod/README.md` has the
+details and the settings.
+
+The client had to change with it: `lodRequestSummaries` ran once per
+`lodUpdateFar`, which is every two seconds when the player stands still, and
+issued one request, so a server that answered at once would have been held to
+a request every two seconds, twenty minutes for a grant. It now keeps four
+in flight, scanning a few times a second while there is room.
+
+Measured on the `r1tod1` Mineclonia world (Luanti 5.16.1, Godot 4.5.1, 1024
+node grant, view range 40, detail distance 23), fresh profile each time:
+
+| | replies at 10 s | 20 s | 30 s | far_extent at 30 s | reach |
+| --- | --- | --- | --- | --- | --- |
+| Cold store, first client ever | | | 224 at 60 s | | |
+| Warm store, same server run | 219 | 384 | 455 | 992 | 1024 |
+| After a server restart, from storage | 187 | 314 | 377 | 992 | 992 |
+
+Against five to ten minutes before, and it no longer depends on how many
+clients are on the server or how many times they rejoin.
+
+### The far field as a surface, 2026-08-23
+
+Part 3. Protocol version 3 first, because the version 2 record could not
+carry it: per block it now holds, per 4 node cell, the terrain height (the
+highest filled node that is not vegetation), the vegetation base and top, and
+the terrain top content, then the vegetation content, the side content and
+the light. Vegetation is by node group, the same list in the mod
+(`VEG_GROUPS`) and in `lodIsVegetation` in `src/goanna_lod.cpp`: tree,
+leaves, cactus, bamboo and the plant groups. Two things were wrong with
+version 2 that this fixes: a canopy crossing a block boundary was drawn as a
+slab resting on that block's floor (the pink plates floating over the cherry
+grove in the report), since only a top height was sent, and a tree was part
+of the ground, so a surface drawn over the heights would have made a tent of
+every one.
+
+`LodLevel` carries `terrain` per column and the ground cells are flagged
+`kTerrain`. `meshLodRegion` draws the ground as one quad per cell over the
+heights at the cell's four corners, where a corner is the mean of the
+surfaces of the same tier, non water columns around it and a water cell
+keeps its own level, so the sea is flat to the shore. Both regions either
+side of a boundary compute a shared corner from the same columns, which is
+what makes one tier seamless without the regions knowing about each other.
+Where a cell's edge meets something that does not share its heights, a hole,
+the shore, a block drawn at another tier or at full detail, or the edge of
+what is known, a skirt drops three cells from the edge. Ground cells emit no
+box faces; the box pass draws only what is not ground, which is the
+vegetation from its real base to its top. Normals follow the ground and the
+occlusion trace runs per corner, so the shading is continuous too.
+
+Coarse tiers take the mean of the wire cells they group rather than the
+maximum, which the "Strips" section asked for.
+
+Measured effects: `lod_partial`, the count of partial risers that could only
+merge one way, now counts only vegetation boxes. Ground level and from 120
+nodes up on `r1tod1` the horizon reads as continuous slopes; on the terrain
+diffusion world a 2200 node mountain with a lake at its top draws as smooth
+snowfields with the lake flat to its shore. Remaining visible seams: the
+shore skirts at coarse tiers stand as a palisade where the land falls
+steeply into water, and a cell's colour is still its own, so a snow and
+stone mountainside is patches at cell 16.
+
+### A far surface from the mapgen, 2026-08-23
+
+"Must it be explored" was the owner's next question, and on an ordinary
+world the answer is still pregeneration, which the mod does and which is
+paced by mapgen. But the far field only needs one thing per column, where
+the ground is and what it is made of, and a mapgen that can say that for any
+(x, z) without generating anything can say it directly. Distant Horizons'
+server side does the same thing, asking the world generator at reduced
+detail. So the mod has a hook, `goanna_register_far_surface(fn, opts)`,
+with `fn(x, z)` returning the surface height, the top node name, the water
+surface height if any and the node under the surface. When the store finds
+a block ungenerated and a provider is registered, it asks for the 16 columns
+of each of the area's blocks, one sample per 4 node cell, and serves the
+record made from that as known. A record made that way is remembered; when
+the block is really generated, `register_on_generated` replaces it with the
+real one and the area is offered again to the clients near it, which take a
+newer summary over a chain built from an older one (`BlockLodChain::summary`
+is what lets a summary chain be replaced where a live or stored one would
+not be).
+
+The terrain diffusion mapgen registers one in `tdl_far.lua`: elevation from
+the tiles, the biome classifier's material, rivers and lakes from the water
+field, the sea at sea level. What it leaves out, against the generated
+terrain, is the detail noise (metres on a slope, nothing on a plain), the
+dither, the ragged soil line, caves and the trees, none of which is visible
+at four nodes a cell and hundreds of nodes away; the trees arrive when the
+blocks do.
+
+Measured on a copy of the `tdl_test` world (122.9 km across, 1 m per node),
+joining at the explored mountain at (-26130, 2350, -9990) with a fresh
+profile: 848 node extent at 30 s, 944 at 60 s, the full 1024 grant at two
+minutes, on a server that had 31 live blocks resident at the time. Nothing
+was generated for any of it.
+
+Found on the way and fixed: a synthesised column whose surface node sat in a
+block's top layer was treated as buried and painted with the filler, which
+drew contour lines of dirt across every snowfield.
+
+The boundary rule holds: the server decides to offer this, from its own
+mapgen, and the client asks for exactly the summaries it asked for before.
+
+### Pregeneration walks vertically, 2026-08-23
+
+Pregeneration only generated the player's 128 node layer and the one either
+side, which on ordinary terrain is everything that can be seen and on the
+terrain diffusion world is not: from a 500 node mountain the valleys were
+three layers down and were never made. Beyond the one layer either side, an
+area is now a candidate only when the area nearer the player's layer is
+generated and the mod's own store says the terrain carries on that way,
+ground at its ceiling for upward and air along its floor for downward, the
+same rule the client's request walk uses. Sky above a plain and rock under
+it are still never asked for.
+
 ## Cells are not cubes
 
 A coarse cell used to draw as a full cube, so at cell 16 a hill snapped to

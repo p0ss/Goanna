@@ -391,7 +391,14 @@ void GoannaClient::set_player_pose(const Vector3 &pos, float pitch_deg, float ya
     if (!m_session)
         return;
     const v3f luanti(pos.x, pos.y, -pos.z);
-    m_session->setPlayerPose(luanti, pitch_deg, yaw_deg);
+    // Luanti's pitch is positive looking down, Godot's rotation.x positive
+    // looking up; step_player negates it for the walking path and this path
+    // did not. The server culls what it sends against the look direction it
+    // is told (RemoteClient::GetNextBlocks), so a flying player looking 20
+    // degrees down was served as one looking 20 degrees up: the ground under
+    // them fell outside the cone and a hillside at the horizon was what
+    // arrived at full detail, while the foreground stayed at the far tiers.
+    m_session->setPlayerPose(luanti, -pitch_deg, yaw_deg);
     std::lock_guard<std::mutex> lk(m_session->mapLock());
     if (LocalPlayer *p = m_session->player()) {
         // Every caller hands us the camera, which is the eye, but every reader
@@ -2136,6 +2143,13 @@ void GoannaClient::set_lod_distance(int blocks) {
     }
 }
 
+void GoannaClient::set_lod_terrace(bool on) {
+    if (on == m_lod_terrace)
+        return;
+    m_lod_terrace = on;
+    lodReset();
+}
+
 void GoannaClient::set_lod_cell(int nodes) {
     // A chain level: 2, 4, 8 or 16, rounded down.
     int cell = 2;
@@ -2187,7 +2201,7 @@ GoannaClient::LodRegionKey GoannaClient::lodRegionFor(int tier, const v3s16 &bp)
 // Thresholds double per tier, and a block only comes back finer once it is
 // well inside the threshold it crossed, or a player standing at the edge
 // rebuilds the same blocks every step.
-int GoannaClient::lodTierFor(const v3s16 &bp, const Vector3 &around) const {
+int GoannaClient::lodTierFor(const v3s16 &bp, const Vector3 &around, bool live) const {
     if (m_lod_distance <= 0)
         return 0;
     Vector3 centre((bp.X + 0.5f) * MAP_BLOCKSIZE, (bp.Y + 0.5f) * MAP_BLOCKSIZE,
@@ -2208,12 +2222,39 @@ int GoannaClient::lodTierFor(const v3s16 &bp, const Vector3 &around) const {
     // One block of margin past the wanted range, because the server sends by
     // block and the outermost ones straddle the boundary this distance is
     // measured against.
-    const float live = (float)(m_session ? m_session->wantedRange + 1 : 0) * MAP_BLOCKSIZE;
-    const float first = std::max((float)m_lod_distance * MAP_BLOCKSIZE, live);
+    //
+    // Only for a block that is live, though. This rule first went in as a
+    // wider first threshold for every block, and that emptied the far field
+    // out to the wanted range: a block the server is not sending (outside its
+    // view cone, culled by its occlusion test, not yet streamed, or past the
+    // distance it actually sends to, which is capped by the server and not by
+    // what we ask for) was ranked tier 0 and so was never drawn from the store
+    // or a summary either. At a 40 block view range on a server sending 32,
+    // the nearest far region sat at 540 nodes, the band from 512 to 656 was
+    // empty in every direction, and inside that the only terrain was the
+    // server's cone, with the hills it had occlusion culled missing from it
+    // (docs/far-rendering.md, "The gap between near and far"). A block that
+    // is not live keeps the detail distance as its first threshold, which is
+    // what fills those gaps.
+    const float live_range = (float)(m_session ? m_session->wantedRange + 1 : 0) * MAP_BLOCKSIZE;
+    if (live && d <= live_range)
+        return 0;
+    const float first = (float)m_lod_distance * MAP_BLOCKSIZE;
     auto threshold = [&](int t) {
         return first * (float)(1 << (t - 1));
     };
-    int desired = 0;
+    // A block that is not live has nothing to draw it at tier 0, so inside
+    // the detail distance it is drawn at the finest tier rather than not at
+    // all. It used to come back 0 there, which lodUpdateFar and update_lod
+    // read as "the server will send it" and dropped: a summary for an area
+    // inside the detail distance was taken, assigned, forgotten on the next
+    // update and, being complete, never asked for again. So the band the
+    // request loop deliberately asks about ("The gap between near and far")
+    // was asked for and thrown away, and at the user's 23 block detail
+    // distance that was a 368 node ring of nothing around the server's cone.
+    // A live block arriving replaces the stand-in, as it does everywhere
+    // else.
+    int desired = live ? 0 : 1;
     for (int t = 1; t <= tiers; ++t)
         if (d > threshold(t))
             desired = t;
@@ -2294,6 +2335,7 @@ void GoannaClient::lodUpdateFar(const Vector3 &around) {
         return;
     m_far_dirty = false;
     m_far_centre = centre;
+    m_far_radius = radius;
     m_far_last = clock_t_::now();
     // out of range, or now live: let go
     for (auto it = m_far_blocks.begin(); it != m_far_blocks.end();) {
@@ -2340,9 +2382,9 @@ void GoannaClient::lodUpdateFar(const Vector3 &around) {
                         continue;
                     if (m_far_blocks.count(bp) || m_session->getBlock(bp))
                         continue;
-                    const int tier = lodTierFor(bp, around);
+                    const int tier = lodTierFor(bp, around, false);
                     if (tier < 1)
-                        continue; // inside the live range: the server will send it
+                        continue; // tiers off
                     m_lod_chain_missing.erase(bp);
                     lodAssign(bp, tier);
                     m_block_tier[bp] = tier;
@@ -2471,6 +2513,16 @@ void GoannaClient::lodRequestSummaries(const v3s16 &centre, int radius) {
         m_far_inflight = 0;
     if (m_far_inflight >= 4)
         return;
+    m_far_scan = clock_t_::now();
+    // As many as there is room for, so a server that answers from a store
+    // is kept busy rather than asked once a scan. The scan itself is the
+    // cost, not the asking, so the best few are kept from one pass.
+    const size_t want = (size_t)(4 - m_far_inflight);
+    struct Pick {
+        int d2;
+        v3s16 origin;
+    };
+    std::vector<Pick> picks;
     auto fdiv = [](int a, int b) { return a >= 0 ? a / b : -((-a + b - 1) / b); };
     const v3s16 ac(fdiv(centre.X, kEdge), fdiv(centre.Y, kEdge), fdiv(centre.Z, kEdge));
     const int aradius = radius / kEdge;
@@ -2523,8 +2575,7 @@ void GoannaClient::lodRequestSummaries(const v3s16 &centre, int radius) {
     // the blocks that are neither live nor chained (a request for an area we
     // partly know just re-describes the part we already have), so asking
     // liberally here costs bandwidth, not correctness.
-    v3s16 best(32767, 32767, 32767);
-    int best_d = 1 << 30;
+    auto cut = [&]() { return picks.size() < want ? (1 << 30) : picks.back().d2; };
     for (int az = ac.Z - aradius; az <= ac.Z + aradius; ++az)
         for (int ay = ac.Y - varadius; ay <= ac.Y + varadius; ++ay)
             for (int ax = ac.X - aradius; ax <= ac.X + aradius; ++ax) {
@@ -2540,10 +2591,15 @@ void GoannaClient::lodRequestSummaries(const v3s16 &centre, int radius) {
                 if (ask != m_far_requested.end() &&
                         (ask->second.complete || ms_since(ask->second.asked) < kFarRetryMs))
                     continue;
-                if (!layer_wanted(ax, ay, az))
-                    continue;
                 const int dx = (ax * kEdge + kEdge / 2) - centre.X;
                 const int dz = (az * kEdge + kEdge / 2) - centre.Z;
+                // The vertical term below only adds, so an area already
+                // further out horizontally than the best so far is out before
+                // the lookups that term costs.
+                if (dx * dx + dz * dz >= cut())
+                    continue;
+                if (!layer_wanted(ax, ay, az))
+                    continue;
                 // Horizontal distance decides the order, and a layer off the
                 // player's own is ranked as though it were several areas
                 // further out, because the frontier that needs filling is
@@ -2565,10 +2621,26 @@ void GoannaClient::lodRequestSummaries(const v3s16 &centre, int radius) {
                 // anything above or below it is asked about, and a hill or a
                 // valley near the player is still reached long before a
                 // distant one.
+                //
+                // A layer the server has answered as nothing but air does not
+                // count. Under a player flying at 260 nodes the ground is two
+                // layers down, and pricing those two layers put it behind some
+                // eighty areas of sky, each costing the server 512 reads to
+                // say so again: measured as 115 asks in two minutes with the
+                // ground under the player still unasked. Sky that has been
+                // confirmed is walked through for free, so the ground ranks
+                // as it would with the player standing on it.
                 constexpr int kLayerCost = 4;
-                const int dl = std::abs(ay - ac.Y) * kLayerCost * kEdge;
+                int layers = 0;
+                const int towards = ay > ac.Y ? -1 : 1;
+                for (int y = ay; y != ac.Y; y += towards) {
+                    const FarAsk *n = answered(v3s16(ax * kEdge, (y + towards) * kEdge, az * kEdge));
+                    if (!(n && n->air))
+                        ++layers;
+                }
+                const int dl = layers * kLayerCost * kEdge;
                 const int d2 = dx * dx + dz * dz + dl * dl;
-                if (d2 >= best_d)
+                if (d2 >= cut())
                     continue;
                 // Skip only once the area is already covered, so a corner the
                 // player has crossed does not hide the rest of it from ever
@@ -2614,30 +2686,45 @@ void GoannaClient::lodRequestSummaries(const v3s16 &centre, int radius) {
                 }
                 if (covered)
                     continue;
-                best = origin;
-                best_d = d2;
+                // Keep the list sorted and no longer than wanted.
+                auto at = picks.begin();
+                while (at != picks.end() && at->d2 <= d2)
+                    ++at;
+                picks.insert(at, Pick{d2, origin});
+                if (picks.size() > want)
+                    picks.pop_back();
             }
-    if (best_d == 1 << 30)
-        return;
-    m_far_requested[best].asked = clock_t_::now();
-    if (m_far_inflight == 0)
-        m_far_asked = clock_t_::now();
-    ++m_far_inflight;
-    m_session->requestFarSummary(best, kEdge, 16);
-    if (getenv("GOANNA_DEBUG_LOD"))
-        UtilityFunctions::print("LOD far: asked for area ", best.X, ",", best.Y, ",", best.Z);
+    for (const Pick &pk : picks) {
+        m_far_requested[pk.origin].asked = clock_t_::now();
+        if (m_far_inflight == 0)
+            m_far_asked = clock_t_::now();
+        ++m_far_inflight;
+        m_session->requestFarSummary(pk.origin, kEdge, 16);
+        if (getenv("GOANNA_DEBUG_LOD"))
+            UtilityFunctions::print("LOD far: asked for area ", pk.origin.X, ",", pk.origin.Y, ",",
+                    pk.origin.Z);
+    }
 }
 
 // Parse "farsum <who> <ver> <cell> <ox> <oy> <oz> <edge> <names,csv>|<base64>"
-// into coarse chains. Version 2: the per-block record is 21 bytes, a 4 by 4
-// grid of surface heights (one byte each, 0 to 16) rather than one height for
-// the whole block, so a slope reads as a slope instead of a stepped box; see
-// the matching comment in goanna_server_mod/init.lua. Caller holds the map
-// lock.
+// into coarse chains. Version 3: the per-block record is 69 bytes: flags, 16
+// terrain heights (the highest filled node that is not vegetation, per 4 node
+// cell, 0 to 16), 16 vegetation bases and 16 vegetation tops (1 to 16, 0 for
+// none), 16 terrain top content indices, then the vegetation content, the
+// side content, day and night light; see the matching comment above
+// block_summary in goanna_server_mod/init.lua. The ground goes into the
+// chain's per column terrain array and is drawn as one surface; vegetation
+// goes in as boxes from its base to its top, which is what stops a canopy
+// crossing a block boundary from resting on that block's floor. Caller holds
+// the map lock.
 void GoannaClient::lodTakeSummaries(const Vector3 &around) {
     if (!m_session)
         return;
-    static const int kRecordSize = 21;
+    static const int kRecordSize = 69;
+    static const int kVer = 3;
+    // Record offsets.
+    enum { rFlags = 0, rTerrain = 1, rVegLo = 17, rVegHi = 33, rTopIdx = 49, rVegIdx = 65,
+        rSideIdx = 66, rDay = 67, rNight = 68 };
     for (const std::string &msg : m_session->takeFarSummaries()) {
         if (m_far_inflight > 0)
             --m_far_inflight;
@@ -2655,9 +2742,9 @@ void GoannaClient::lodTakeSummaries(const Vector3 &around) {
         // this is not a reply this client can read, and staying quiet about
         // it would look like the far field had simply gone empty. Once per
         // reply, not once per record.
-        if (got != 7 || ver != 2) {
+        if (got != 7 || ver != kVer) {
             UtilityFunctions::push_error("goanna_server_mod's far summary reply does not match "
-                    "protocol version 2 (a v1 mod?); update goanna_server_mod. Message: ",
+                    "protocol version 3 (an older mod?); update goanna_server_mod. Message: ",
                     String(msg.substr(0, 80).c_str()));
             continue;
         }
@@ -2719,11 +2806,15 @@ void GoannaClient::lodTakeSummaries(const Vector3 &around) {
         // solid rock is neither, and it is most of what a nine layer window
         // spent its requests on.
         bool open_above = false, open_below = false;
+        bool any_ground = false;
         for (size_t i = 0; i < total; ++i) {
             const uint8_t *r = (const uint8_t *)blob.data() + i * kRecordSize;
-            const bool generated = (r[0] & 16) != 0;
-            if (generated)
+            const bool generated = (r[rFlags] & 16) != 0;
+            if (generated) {
                 ++known_records;
+                for (int h = 0; h < 16 && !any_ground; ++h)
+                    any_ground = r[rTerrain + h] != 0 || r[rVegHi + h] != 0;
+            }
             const int ly = (int)((i / (size_t)edge) % (size_t)edge);
             if (ly != 0 && ly != edge - 1)
                 continue;
@@ -2740,9 +2831,9 @@ void GoannaClient::lodTakeSummaries(const Vector3 &around) {
             if (!generated)
                 continue;
             for (int h = 0; h < 16; ++h) {
-                if (ly == edge - 1 && r[1 + h] >= MAP_BLOCKSIZE)
+                if (ly == edge - 1 && (r[rTerrain + h] >= MAP_BLOCKSIZE || r[rVegHi + h] >= MAP_BLOCKSIZE))
                     open_above = true;
-                if (ly == 0 && r[1 + h] == 0)
+                if (ly == 0 && r[rTerrain + h] == 0)
                     open_below = true;
             }
         }
@@ -2751,6 +2842,7 @@ void GoannaClient::lodTakeSummaries(const Vector3 &around) {
         ask.complete = known_records == total;
         ask.answered = true;
         ask.empty = known_records == 0;
+        ask.air = known_records > 0 && !any_ground;
         ask.open_above = open_above;
         ask.open_below = open_below;
         // The wire record is a 4 by 4 grid of 4 node cells, so 4 nodes is the
@@ -2770,11 +2862,24 @@ void GoannaClient::lodTakeSummaries(const Vector3 &around) {
                 continue; // not generated: stays a hole, never invented
             const v3s16 bp(ox + (int)(i % edge), oy + (int)((i / edge) % edge),
                     oz + (int)(i / (edge * edge)));
-            if (m_session->getBlock(bp) || m_lod_chains.count(bp))
-                continue; // live or already known better
-            const content_t top_c = r[17] < ids.size() ? ids[r[17]] : CONTENT_AIR;
-            const content_t side_c = r[18] < ids.size() ? ids[r[18]] : top_c;
-            const content_t side = side_c != CONTENT_AIR ? side_c : top_c;
+            if (m_session->getBlock(bp))
+                continue; // live: known better
+            {
+                // A chain from the store or from live nodes is known better
+                // than a summary and stays. One built from an earlier summary
+                // is replaced: that is how a server's real summary of a block
+                // it has just generated takes over from the provider's guess,
+                // and how a changed block reaches a client that is offered
+                // its area again.
+                auto old = m_lod_chains.find(bp);
+                if (old != m_lod_chains.end() && !old->second.summary)
+                    continue;
+            }
+            auto name_of = [&](uint8_t idx, content_t fallback) -> content_t {
+                return idx != 0 && idx < ids.size() ? ids[idx] : fallback;
+            };
+            const content_t veg_c = name_of(r[rVegIdx], CONTENT_AIR);
+            const content_t side_c0 = name_of(r[rSideIdx], CONTENT_AIR);
             // LIGHT_SUN, not LIGHT_MAX. The wire carries Luanti's raw 0 to 15,
             // and 15 is what an open sky column holds; clamping to 14 first
             // put a summarised hillside at decode_light(14), 234, where the
@@ -2784,10 +2889,10 @@ void GoannaClient::lodTakeSummaries(const Vector3 &around) {
             // same far field, and it survived into the sky fill and the
             // ambient term (docs/launch-target.md, R1). decode_light clamps to
             // LIGHT_SUN itself, so nothing here has to.
-            const uint8_t day = decode_light(r[19]);
-            const uint8_t night = decode_light(r[20]);
-            const uint8_t cflags = LodLevel::kKnown | ((r[0] & 2) ? LodLevel::kOccludes : 0) |
-                    ((r[0] & 4) ? LodLevel::kLit : 0);
+            const uint8_t day = decode_light(r[rDay]);
+            const uint8_t night = decode_light(r[rNight]);
+            const uint8_t cflags = LodLevel::kKnown | ((r[rFlags] & 2) ? LodLevel::kOccludes : 0) |
+                    ((r[rFlags] & 4) ? LodLevel::kLit : 0);
             BlockLodChain &ch = m_lod_chains[bp];
             bool any_filled = false;
             for (int level = first_level; level < BlockLodChain::kLevels; ++level) {
@@ -2798,21 +2903,51 @@ void GoannaClient::lodTakeSummaries(const Vector3 &around) {
             lv.cell = build_cell;
             lv.n = n;
             lv.cells.assign((size_t)n * n * n, LodLevel::Cell());
+            lv.terrain.assign((size_t)n * n, 0);
             for (int tz = 0; tz < n; ++tz)
                 for (int tx = 0; tx < n; ++tx) {
-                    int h = 0; // tallest of the wire cells this tier's cell groups
+                    // The ground over this tier's cell: the mean of the wire
+                    // cells it groups that hold any, so a coarse tier lies
+                    // on the slope rather than at the top of it (the maximum
+                    // made every 16 node square as tall as its tallest
+                    // column, which is what the "Strips" section measured as
+                    // steps the terrain does not have). Vegetation takes the
+                    // lowest base and the highest top of the group, since a
+                    // box that misses a canopy is a hole in the forest.
+                    int tsum = 0, tn = 0, tmax = 0, top_idx = 0;
+                    int vlo = 0, vhi = 0;
                     for (int gz = 0; gz < group; ++gz)
                         for (int gx = 0; gx < group; ++gx) {
                             const int fx = tx * group + gx, fz = tz * group + gz;
-                            if (fx < 4 && fz < 4)
-                                h = std::max(h, (int)r[1 + fz * 4 + fx]);
+                            if (fx >= 4 || fz >= 4)
+                                continue;
+                            const int wi = fz * 4 + fx;
+                            const int th = r[rTerrain + wi];
+                            if (th > 0) {
+                                tsum += th;
+                                ++tn;
+                                if (th > tmax) {
+                                    tmax = th;
+                                    top_idx = r[rTopIdx + wi];
+                                }
+                            }
+                            const int lo = r[rVegLo + wi], hi = r[rVegHi + wi];
+                            if (hi > 0) {
+                                vhi = std::max(vhi, hi);
+                                vlo = vlo == 0 ? lo : std::min(vlo, lo);
+                            }
                         }
-                    // -1 where the column is empty all the way down, so the
-                    // filled loop does nothing and the known-air loop below
-                    // covers the whole column.
-                    const int filled_below = h > 0 ? (h - 1) / build_cell : -1;
-                    const int top_frac = h - filled_below * build_cell; // 1..build_cell
-                    if (h > 0)
+                    const int terr = tn ? (tsum + tn / 2) / tn : 0;
+                    lv.terrain[(size_t)tz * n + tx] = (uint8_t)std::min(terr, MAP_BLOCKSIZE);
+                    const content_t top_c = name_of((uint8_t)top_idx, CONTENT_AIR);
+                    const content_t side = side_c0 != CONTENT_AIR ? side_c0 : top_c;
+                    // The ground run: cells from the floor up to the terrain
+                    // height, flagged terrain so the region mesher draws the
+                    // surface over them and no boxes. -1 where there is no
+                    // ground in this block, so the loop does nothing.
+                    const int filled_below = terr > 0 ? (terr - 1) / build_cell : -1;
+                    const int top_frac = terr - filled_below * build_cell; // 1..build_cell
+                    if (terr > 0)
                         any_filled = true;
                     for (int ty = 0; ty <= filled_below && ty < n; ++ty) {
                         LodLevel::Cell &c = lv.cells[((size_t)tz * n + ty) * n + tx];
@@ -2820,20 +2955,43 @@ void GoannaClient::lodTakeSummaries(const Vector3 &around) {
                         for (int d = 2; d < 6; ++d)
                             c.face[d] = side;
                         const bool is_top = ty == filled_below;
-                        c.face[0] = is_top ? top_c : side; // buried tops are culled by the cell above anyway
+                        c.face[0] = is_top ? top_c : side;
                         c.top = is_top ? (uint8_t)top_frac : 0; // 0 reads as a full cell, see height_of()
                         c.day = day;
                         c.night = night;
-                        c.flags = cflags | LodLevel::kFilled;
+                        c.flags = cflags | LodLevel::kFilled | LodLevel::kTerrain;
                     }
-                    // Everything above the column's surface is air we know
-                    // about, because the server generated this block to
-                    // answer for it, so say so. Left at the default flags it
-                    // read as "never seen", and "Unknown is not air" then
-                    // culled every side face against it: a summarised hillside
-                    // drew one cell of skirt at a step of any height and
-                    // nothing below it, so the far field came out as floating
-                    // tops with daylight through them.
+                    // Vegetation above it, as boxes from its real base to its
+                    // top: a canopy crossing a block boundary no longer rests
+                    // on the block's floor.
+                    int veg_first = -1, veg_last = -2;
+                    if (vhi > 0 && veg_c != CONTENT_AIR) {
+                        veg_first = std::max(filled_below + 1, (std::max(vlo, 1) - 1) / build_cell);
+                        veg_last = std::min(n - 1, (vhi - 1) / build_cell);
+                        if (veg_last >= veg_first)
+                            any_filled = true;
+                        for (int ty = veg_first; ty <= veg_last; ++ty) {
+                            LodLevel::Cell &c = lv.cells[((size_t)tz * n + ty) * n + tx];
+                            for (int d = 0; d < 6; ++d)
+                                c.face[d] = veg_c;
+                            const bool is_top = ty == veg_last;
+                            const int frac = vhi - ty * build_cell;
+                            c.top = is_top && frac < build_cell ? (uint8_t)frac : 0;
+                            c.day = day;
+                            c.night = night;
+                            // Not occluding: a canopy is leaves, and the
+                            // block's occludes bit belongs to its ground.
+                            c.flags = LodLevel::kKnown | (cflags & LodLevel::kLit) | LodLevel::kFilled;
+                        }
+                    }
+                    // Everything else in the column is air we know about,
+                    // because the server generated this block to answer for
+                    // it, so say so. Left at the default flags it read as
+                    // "never seen", and "Unknown is not air" then culled
+                    // every side face against it: a summarised hillside drew
+                    // one cell of skirt at a step of any height and nothing
+                    // below it, so the far field came out as floating tops
+                    // with daylight through them.
                     //
                     // kLit only where the block reported light. A block that
                     // is all air has no surface column to read light above, so
@@ -2842,6 +3000,8 @@ void GoannaClient::lodTakeSummaries(const Vector3 &around) {
                     // under it and paint that terrain black, which is what the
                     // first version of this did.
                     for (int ty = std::max(0, filled_below + 1); ty < n; ++ty) {
+                        if (ty >= veg_first && ty <= veg_last)
+                            continue;
                         LodLevel::Cell &c = lv.cells[((size_t)tz * n + ty) * n + tx];
                         // Known and possibly lit, never occluding: the
                         // occludes bit is the block's, and air does not
@@ -2858,7 +3018,16 @@ void GoannaClient::lodTakeSummaries(const Vector3 &around) {
             // memory of what it once sent, so it is not marked stale
             // (docs/launch-target.md, R1). The chain is still known.
             ch.stored = false;
+            ch.summary = true;
             m_lod_chain_missing.erase(bp);
+            // The regions beside this block share corners with it now, and
+            // its own region, if it is in one already, holds a changed chain.
+            lodDirtyAround(bp, nullptr);
+            {
+                auto mit = m_lod_member.find(bp);
+                if (mit != m_lod_member.end())
+                    lodMarkDirty(mit->second);
+            }
             if (any_filled) {
                 // The same tier a stored block at this distance would get,
                 // floored at the finest level a summary can fill. It used to
@@ -2866,7 +3035,7 @@ void GoannaClient::lodTakeSummaries(const Vector3 &around) {
                 // was drawn at 4 node cells a kilometre away while the stored
                 // block beside it was at 16, which put the two in different
                 // regions that could not cull against each other.
-                int tier = std::max(1, lodTierFor(bp, around));
+                int tier = std::max(1, lodTierFor(bp, around, false));
                 while (tier < lodTierCount() && lodCellFor(tier) < 4)
                     ++tier;
                 lodAssign(bp, tier);
@@ -2898,7 +3067,14 @@ void GoannaClient::lodMarkDirty(const LodRegionKey &key) {
 // the regions drawing those neighbours are rebuilt too. The region the block
 // itself belongs to is passed as `except` when the caller has already done it.
 void GoannaClient::lodDirtyAround(const v3s16 &bp, const LodRegionKey *except) {
-    static const v3s16 around[6] = {{1, 0, 0}, {-1, 0, 0}, {0, 1, 0}, {0, -1, 0}, {0, 0, 1}, {0, 0, -1}};
+    // The six face neighbours, and the four horizontal diagonals as well: the
+    // far surface's corners are the mean of the four columns around them, so
+    // a column arriving or changing moves a corner shared with the region
+    // diagonally beside it, and that region has to be re-meshed or its edge
+    // no longer meets this one (docs/far-rendering.md, "The far field as a
+    // surface").
+    static const v3s16 around[10] = {{1, 0, 0}, {-1, 0, 0}, {0, 1, 0}, {0, -1, 0}, {0, 0, 1}, {0, 0, -1},
+            {1, 0, 1}, {1, 0, -1}, {-1, 0, 1}, {-1, 0, -1}};
     for (const v3s16 &o : around) {
         auto it = m_lod_member.find(bp + o);
         if (it == m_lod_member.end())
@@ -2983,6 +3159,15 @@ void GoannaClient::lodBuildRegion(const LodRegionKey &key, LodRegion &r) {
         if (m_lod_chain_queued.count(bp))
             m_lod_chain_waiters[bp].insert(key);
         return nullptr;
+    };
+    // What a neighbouring block is drawn at, for the surface's seams: its
+    // tier's cell, 0 for full detail, -1 for nothing.
+    spec.terrace = m_lod_terrace;
+    spec.drawn_cell = [&](v3s16 bp) -> int {
+        auto it = m_block_tier.find(bp);
+        if (it == m_block_tier.end())
+            return -1;
+        return it->second <= 0 ? 0 : lodCellFor(it->second);
     };
     LodRegionMesh lm = meshLodRegion(spec, m_session->nodeDefs(), m_session->tsrc(),
             &m_session->materialTable(), m_lod_tiles);
@@ -3273,7 +3458,9 @@ int GoannaClient::update_lod(const Vector3 &around, int max_rebuild) {
         return 0;
     std::vector<v3s16> changed;
     for (auto &kv : m_block_tier) {
-        if (lodTierFor(kv.first, around) != kv.second) {
+        // A block in m_block_tier that is not a far block is live, or was
+        // until the prune that takes it out of both.
+        if (lodTierFor(kv.first, around, !m_far_blocks.count(kv.first)) != kv.second) {
             changed.push_back(kv.first);
             if ((int)changed.size() >= max_rebuild)
                 break;
@@ -3281,10 +3468,18 @@ int GoannaClient::update_lod(const Vector3 &around, int max_rebuild) {
     }
     std::lock_guard<std::mutex> lk(m_session->mapLock());
     lodTakeSummaries(around);
+    // Keep the summary requests in flight. lodUpdateFar only runs every two
+    // seconds when the player stands still, and one request per run was the
+    // whole rate of the far field once the server answered from its store:
+    // a 1024 node grant is some six hundred areas, which is twenty minutes
+    // at a request every two seconds. The scan is a few milliseconds, so it
+    // runs a few times a second while there is room in flight.
+    if (m_far_inflight < 4 && m_far_radius > 0 && ms_since(m_far_scan) > 250.0)
+        lodRequestSummaries(m_far_centre, m_far_radius);
     for (const v3s16 &bp : changed) {
         if (m_far_blocks.count(bp)) {
             // No live block to requeue: apply the new tier here.
-            const int tier = lodTierFor(bp, around);
+            const int tier = lodTierFor(bp, around, false);
             if (tier < 1) {
                 lodForget(bp);
                 m_block_tier.erase(bp);
@@ -3350,7 +3545,7 @@ int GoannaClient::poll_blocks(int max_blocks) {
         }
         // Far blocks are drawn by their region's mesh at their tier, never one
         // by one: see lodBuildRegion and docs/far-rendering.md.
-        int tier = lodTierFor(bp, m_lod_centre);
+        int tier = lodTierFor(bp, m_lod_centre, true);
         // The block's data is fresh, so any coarse summary of it is stale.
         m_lod_chains.erase(bp);
         m_lod_chain_missing.erase(bp);
@@ -3754,6 +3949,8 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("set_lod_distance", "blocks"), &GoannaClient::set_lod_distance);
     ClassDB::bind_method(D_METHOD("lod_distance"), &GoannaClient::lod_distance);
     ClassDB::bind_method(D_METHOD("set_lod_cell", "nodes"), &GoannaClient::set_lod_cell);
+    ClassDB::bind_method(D_METHOD("set_lod_terrace", "on"), &GoannaClient::set_lod_terrace);
+    ClassDB::bind_method(D_METHOD("lod_terrace"), &GoannaClient::lod_terrace);
     ClassDB::bind_method(D_METHOD("lod_cell"), &GoannaClient::lod_cell);
     ClassDB::bind_method(D_METHOD("update_lod", "around", "max_rebuild"), &GoannaClient::update_lod);
     ClassDB::bind_method(D_METHOD("set_store_path", "root"), &GoannaClient::set_store_path);

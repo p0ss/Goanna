@@ -41,6 +41,13 @@ struct LodLevel {
         kOccludes = 2, // enough solid nodes to block light: traced against
         kLit = 4,      // has nodes light propagates through, so day/night mean something
         kKnown = 8,    // at least one node that is not CONTENT_IGNORE
+        // Part of the ground: a filled cell in the run from the block's floor
+        // up to the column's terrain height. The region mesher draws the
+        // ground as one connected surface over `terrain` below and never as
+        // boxes, so these cells emit no faces of their own; a filled cell
+        // without this flag (a canopy, a trunk, an overhang, anything the
+        // summary or the chain builder classed as vegetation) is still a box.
+        kTerrain = 16,
     };
     struct Cell {
         // What is seen looking into the cell from each of the six sides, in
@@ -60,9 +67,21 @@ struct LodLevel {
     int cell = 0; // nodes per cell
     int n = 0;    // cells per axis, MAP_BLOCKSIZE / cell
     std::vector<Cell> cells;
+    // Per column (z * n + x): the height within the block of the highest
+    // filled node that is not vegetation, 1 to 16, or 0 where the column
+    // holds no ground in this block. Water counts as ground, so a sea is a
+    // flat surface at sea level. This is what the far surface is built over
+    // (docs/far-rendering.md, "The far field as a surface").
+    std::vector<uint8_t> terrain;
     const Cell &at(int x, int y, int z) const { return cells[((size_t)z * n + y) * n + x]; }
+    uint8_t terrainAt(int x, int z) const { return terrain.empty() ? 0 : terrain[(size_t)z * n + x]; }
     bool built() const { return !cells.empty(); }
 };
+
+// Vegetation, for keeping trees out of the ground: the node is in one of the
+// groups the server mod's block_summary uses (tree, leaves, cactus, bamboo
+// and the plant groups), so a summary and a chain built from nodes agree.
+bool lodIsVegetation(const NodeDefManager *ndef, content_t c);
 
 struct BlockLodChain {
     static constexpr int kLevels = 4; // cell 2, 4, 8, 16
@@ -70,6 +89,9 @@ struct BlockLodChain {
     // Derived from the store rather than from a live block: what the far
     // tiers mark as stale (docs/far-rendering.md, "Staleness").
     bool stored = false;
+    // Built from a server summary rather than from nodes. A later summary of
+    // the same block replaces it; a chain from nodes is never replaced by one.
+    bool summary = false;
     // 2 -> 0, 4 -> 1, 8 -> 2, 16 -> 3; -1 for anything else.
     static int levelForCell(int cell);
     static int cellForLevel(int level) { return 2 << level; }
@@ -103,6 +125,11 @@ struct LodRegionMesh {
     std::vector<LodSurface> surfaces;
     int faces = 0; // cell faces before merging
     int quads = 0; // after
+    // Ground cells drawn as part of the connected surface, and the skirts
+    // dropped at its edges (docs/far-rendering.md, "The far field as a
+    // surface"). Neither goes through the merge.
+    int surface_cells = 0;
+    int skirts = 0;
     // Of those faces, how many are side faces that do not span their whole
     // cell vertically. Each such face sits at its own height inside its own
     // row of cells, so it can only ever merge along one axis, and a field of
@@ -148,6 +175,17 @@ struct LodRegionSpec {
     std::function<bool(v3s16)> member;
     // The chain of any block, or nullptr if nothing is known about it.
     std::function<const BlockLodChain *(v3s16)> chain;
+    // The cell size any block is currently drawn at: this tier's cell for a
+    // block in a region of this tier, another tier's cell, 0 for a block
+    // drawn at full detail, -1 for one not drawn at all. The far surface
+    // joins onto a neighbour drawn at the same cell and drops a skirt
+    // against anything else.
+    std::function<int(v3s16)> drawn_cell;
+    // Draw the ground as flat cells at their own height with risers between
+    // them, the way the blocks underneath actually step, instead of as a
+    // surface whose corners are averaged with the neighbours. A look choice
+    // (docs/far-rendering.md, "Terraces or slopes").
+    bool terrace = false;
 };
 
 // materials may be null, in which case every block ID is 0.

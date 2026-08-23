@@ -194,6 +194,10 @@ func _ready() -> void:
 	add_child(cam)
 	cam.current = true
 	_report_fov()
+	# And again whenever the window changes shape: the horizontal angle grows
+	# with the aspect, and a window dragged wider after startup was otherwise
+	# still reported at its old width, so the server culled the new edges.
+	get_viewport().size_changed.connect(_report_fov)
 
 	sun = DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-42, 35, 0)
@@ -1651,6 +1655,9 @@ func _apply_sky() -> void:
 		# Aerial perspective blends distant geometry toward the sky, which is
 		# what actually sells a vista; it wants to be stronger the further we
 		# draw, so a 512 node horizon reads as haze rather than a hard edge.
+		# Not stronger at night, though that was tried: Godot blends toward
+		# the sky's radiance, which _apply_sky lifts at night so that the
+		# ground is lit at all, and the haze came out brighter than the band.
 		e.fog_aerial_perspective = clamp(0.12 + 0.35 * clamp((draw_nodes - 192.0) / 512.0, 0.0, 1.0), 0.12, 0.5)
 		e.fog_sky_affect = 0.1 if draw_nodes < 260.0 else 0.5
 	# --- ambient / grade from day-night ratio and server lighting ---
@@ -1670,8 +1677,18 @@ func _apply_sky() -> void:
 	# sky, which is the most distracting thing in a night frame and reads as
 	# the far field being lit wrongly when it is the air in front of it.
 	# Underwater keeps its own murk, set in _update_environment_extras.
+	#
+	# And darker again by night. With the multiplier alone the haze at night
+	# was the horizon band's own brightness, about twice what the vanilla
+	# client's night sky comes to, and a hazed mountain standing above that
+	# band against the black sky read as a pale grey silhouette, the far
+	# field glowing (reported 2026-08-23 from a Mineclonia village at night).
+	# Halving it by full night puts a hazed hill below the band rather than
+	# at it, a dark shape on the horizon, which is what a night horizon
+	# looks like; dusk and dawn are untouched. `night` is the same sun
+	# elevation blend the sky colours use above.
 	if not underwater:
-		e.fog_light_color = e.fog_light_color * e.background_energy_multiplier
+		e.fog_light_color = e.fog_light_color * e.background_energy_multiplier * lerp(1.0, 0.5, night)
 	var lighting: Dictionary = st["lighting"]
 	# Server saturation on top of our base grade, not instead of it.
 	e.adjustment_saturation = clamp(1.12 * float(lighting["saturation"]), 0.0, 2.0)
