@@ -28,7 +28,7 @@ const CASES := [
 	["gravel", "default_gravel", 6],
 	["snow", "default_snow", 7],
 	["soil", "default_dirt", 9],
-	["metal", "mcl_raw_ores_raw_iron_block", 10],
+	["metal", "default_steel_block", 10],
 	["cloth", "wool_white", 11],
 ]
 
@@ -74,6 +74,19 @@ func _tex_array(img: Image) -> Texture2DArray:
 	var a := Texture2DArray.new()
 	a.create_from_images([m])
 	return a
+
+
+# The flat specular map the client fills in for a layer with no authored
+# companion: smoothness in R, F0 or the metal flag in G, scattering in B,
+# emission in A. Same convention and the same numbers as
+# goanna_textures.cpp, which is what makes a block agree with its own item.
+func _class_spec_array(cls: int) -> Texture2DArray:
+	var sp: Array = CLASS_SPEC[cls]
+	var b := 0.0
+	if float(sp[3]) > 0.0:
+		b = 0.2549 + float(sp[3]) * 0.7451
+	var g: float = 1.0 if float(sp[2]) > 0.5 else float(sp[1])
+	return _tex_array(_solid(Color(float(sp[0]), g, b, 1.0)))
 
 
 # A cube for the node array shader: it wants the array layer in UV2 and a
@@ -201,10 +214,22 @@ func _ready() -> void:
 		var bm := ShaderMaterial.new()
 		bm.shader = node_shader
 		bm.set_shader_parameter("albedo_array", _tex_array(img))
-		bm.set_shader_parameter("normal_array", flat_n)
-		bm.set_shader_parameter("spec_array", flat_s)
-		bm.set_shader_parameter("has_normal", false)
-		bm.set_shader_parameter("has_spec", false)
+		# The pack's own relief and specular where it ships them, because a
+		# material is all three channels together and judging the class
+		# against flat filler is judging half of it.
+		var nrm := _load(dir.path_join(str(c[1]) + "_n.png"))
+		var spc := _load(dir.path_join(str(c[1]) + "_s.png"))
+		var has_n: bool = nrm.get_width() > 1
+		bm.set_shader_parameter("normal_array", _tex_array(nrm) if has_n else flat_n)
+		bm.set_shader_parameter("has_normal", has_n)
+		# Not the pack's own _s, which would answer the very question the
+		# class is here to answer, but the flat one the client synthesises
+		# from the class for a layer that has none (goanna_textures.cpp). That
+		# is how a block gets its class in the real renderer, and binding
+		# nothing here instead left the block matte beside a metallic card,
+		# which is a disagreement this scene invented rather than found.
+		bm.set_shader_parameter("spec_array", _class_spec_array(int(c[2])))
+		bm.set_shader_parameter("has_spec", true)
 		bm.set_shader_parameter("layer_class", PackedInt32Array([int(c[2])]))
 		bm.set_shader_parameter("sky_light_strength", 0.0)
 		bm.set_shader_parameter("vertex_ao_strength", 0.0)
@@ -223,7 +248,8 @@ func _ready() -> void:
 		var im := ShaderMaterial.new()
 		im.shader = item_shader
 		im.set_shader_parameter("albedo", ImageTexture.create_from_image(img))
-		im.set_shader_parameter("has_normal", false)
+		im.set_shader_parameter("normal_tex", ImageTexture.create_from_image(nrm) if has_n else null)
+		im.set_shader_parameter("has_normal", has_n)
 		im.set_shader_parameter("has_spec", false)
 		im.set_shader_parameter("sky_light_strength", 0.0)
 		im.set_shader_parameter("block_fill", 0.0)
@@ -260,6 +286,9 @@ func _apply(on: bool) -> void:
 		block_mats[i].set_shader_parameter("layer_class",
 			PackedInt32Array([cls if on else 0]))
 		block_mats[i].set_shader_parameter("detail_strength", 1.0 if on else 0.0)
+		# Off is a block that knows nothing about itself, which is the flat
+		# rough dielectric every one of these was before the material work.
+		block_mats[i].set_shader_parameter("has_spec", on)
 		card_mats[i].set_shader_parameter("mat_class", cls if on else 0)
 		card_mats[i].set_shader_parameter("class_smoothness", sp[0] if on else 0.0)
 		card_mats[i].set_shader_parameter("class_f0", sp[1] if on else 0.04)

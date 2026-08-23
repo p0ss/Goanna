@@ -17,6 +17,8 @@ extends Node3D
 #   GOANNA_PACK_DIR=<dir>   textures, default baked/pack-mineclonia-v2
 #   GOANNA_SHOT=<dir>       write detail_off.png and detail_on.png, then quit
 #   GOANNA_FIELD_CELL=<n>   stochastic cell size in nodes, default 3
+#   GOANNA_FIELD_LEN=<n>    strip length in nodes, default 120
+#   GOANNA_FIELD_PLAIN=1    do not bind the pack's _n and _s companions
 #   GOANNA_FIELD_LOD=<dir>  write lod_off.png and lod_on.png and print the
 #                           strip colours, which is the near mesh against the
 #                           far tiers on one surface under one sky
@@ -40,8 +42,12 @@ const STRIPS := [
 	["planks (control)", "mcl_cherry_blossom_planks", 2],
 ]
 
-const NODES := 16  # strip length, in nodes
-const WIDE := 5    # strip width, in nodes
+const WIDE := 9  # strip width, in nodes
+# Strip length in nodes. Long by default, because the repeat this exists to
+# break is a distance problem: sixteen nodes shows the tile, a hundred and
+# twenty shows what a field of it does to the horizon, which is the thing
+# anyone actually complains about.
+var strip_len := 120.0
 
 var shot_dir := ""
 var lod_dir := ""
@@ -81,9 +87,9 @@ func _load(path: String) -> Image:
 func _strip() -> ArrayMesh:
 	var verts := PackedVector3Array([
 		Vector3(0, 0, 0), Vector3(WIDE, 0, 0),
-		Vector3(WIDE, 0, NODES), Vector3(0, 0, NODES)])
+		Vector3(WIDE, 0, strip_len), Vector3(0, 0, strip_len)])
 	var uvs := PackedVector2Array([
-		Vector2(0, 0), Vector2(WIDE, 0), Vector2(WIDE, NODES), Vector2(0, NODES)])
+		Vector2(0, 0), Vector2(WIDE, 0), Vector2(WIDE, strip_len), Vector2(0, strip_len)])
 	var norms := PackedVector3Array()
 	var uv2 := PackedVector2Array()
 	var col := PackedColorArray()
@@ -191,6 +197,11 @@ func _ready() -> void:
 	var cell := 3.0
 	if OS.get_environment("GOANNA_FIELD_CELL") != "":
 		cell = float(OS.get_environment("GOANNA_FIELD_CELL"))
+	if OS.get_environment("GOANNA_FIELD_LEN") != "":
+		strip_len = float(OS.get_environment("GOANNA_FIELD_LEN"))
+	# GOANNA_FIELD_PLAIN=1 leaves the companions unbound, which is the older
+	# behaviour of this scene and isolates what the colour alone is doing.
+	var plain_pbr := OS.get_environment("GOANNA_FIELD_PLAIN") != ""
 
 	_environment()
 
@@ -218,10 +229,19 @@ func _ready() -> void:
 		mat.shader = shader
 		mat.set_shader_parameter("albedo_array",
 			_tex_array_at(img, lod_layer) if lod_layer > 0 else _tex_array(img))
-		mat.set_shader_parameter("normal_array", flat_n)
-		mat.set_shader_parameter("spec_array", flat_s)
-		mat.set_shader_parameter("has_normal", false)
-		mat.set_shader_parameter("has_spec", false)
+		# The pack's own relief and specular, when it ships them, because that
+		# is what the client binds and because the question the treatment has
+		# to answer is what the whole material does, not what its colour does.
+		# A tile whose colour is shifted and whose bumps are not lights a
+		# pattern that is no longer there.
+		var nrm := _load(dir.path_join(str(s[1]) + "_n.png"))
+		var spc := _load(dir.path_join(str(s[1]) + "_s.png"))
+		var has_n: bool = nrm.get_width() > 1 and not plain_pbr
+		var has_s: bool = spc.get_width() > 1 and not plain_pbr
+		mat.set_shader_parameter("normal_array", _tex_array(nrm) if has_n else flat_n)
+		mat.set_shader_parameter("spec_array", _tex_array(spc) if has_s else flat_s)
+		mat.set_shader_parameter("has_normal", has_n)
+		mat.set_shader_parameter("has_spec", has_s)
 		# The class table is indexed by array layer, so it has to reach the
 		# layer the strip actually sits on. Left at one entry, a run with
 		# GOANNA_FIELD_LAYER set reads class 0 and quietly draws the plain
@@ -279,12 +299,15 @@ func _ready() -> void:
 
 	var cam := Camera3D.new()
 	var span := STRIPS.size() * (WIDE + 1)
-	cam.position = Vector3(span * 0.5, 9.0, -7.0)
-	cam.fov = 60.0
+	# Low and close to the near end: a repeat is loudest in perspective, and
+	# the far end of a long strip is where mipmapping and the treatment have
+	# to agree or the surface changes character somewhere in the middle.
+	cam.position = Vector3(span * 0.5, 3.4, -6.0)
+	cam.fov = 62.0
 	add_child(cam)
 	# Aiming needs the node in the tree; look_at before add_child is a silent
 	# no-op that leaves the camera pointing away from the field.
-	cam.look_at(Vector3(span * 0.5, 0.0, NODES * 0.55), Vector3.UP)
+	cam.look_at(Vector3(span * 0.5, 0.0, strip_len * 0.16), Vector3.UP)
 	cam.current = true
 
 	if lod_dir != "":
@@ -411,7 +434,7 @@ func _shoot_lod() -> void:
 		print("wrote ", path)
 		for i in materials.size():
 			# A patch of the strip, halfway along it, read back off the frame.
-			var world := Vector3(strip_x[i] + WIDE * 0.5, 0.0, NODES * 0.5)
+			var world := Vector3(strip_x[i] + WIDE * 0.5, 0.0, strip_len * 0.5)
 			var p: Vector2 = cam.unproject_position(world)
 			var acc := Vector3.ZERO
 			var n := 0
