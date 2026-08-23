@@ -6,6 +6,13 @@
 // duplicated in nodes_array.gdshader and nodes_array_scissor.gdshader rather
 // than shared. Change one, change the other.
 
+// The tile colours. Declared here rather than in each shader because the
+// stochastic sampling below has to reach all three arrays, and Godot will not
+// let one function take samplers that differ in filter, repeat or hint, which
+// these deliberately do: the albedo is nearest because it is pixel art, the
+// other two linear because a direction field snapped to texels swings the
+// highlight from frame to frame.
+uniform sampler2DArray albedo_array : source_color, filter_nearest_mipmap_anisotropic, repeat_enable;
 uniform sampler2DArray normal_array : hint_default_black, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2DArray spec_array : hint_default_black, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform bool has_normal = false;
@@ -193,25 +200,59 @@ vec2 goanna_cell_offset(vec2 cell, float texels) {
 	return floor(goanna_cell_hash(cell) * texels) / texels;
 }
 
-// The derivatives are the caller's, taken before any branching: a fragment
-// quad can straddle two array layers, and dFdx inside that is not defined.
-vec4 goanna_stochastic(sampler2DArray tex, vec2 uv, float layer, vec2 hex,
-		vec2 dx, vec2 dy, float sharpen) {
-	vec3 w;
+// Which cells this fragment sits between, and how far each shifts the tile.
+// Chosen once and then used for every array, because the albedo, the relief
+// and the specular of one fragment have to come from the same copy of the
+// tile. Shifting only the colour leaves the relief still repeating on the
+// node grid and, worse, lighting a pattern that is no longer there: this
+// file's own comment on lod_flatten already names that failure, where a
+// flattened colour with its relief left alone still shades like the tile.
+void goanna_cell_pick(vec2 hex, float texels, float sharpen,
+		out vec3 w, out vec2 o1, out vec2 o2, out vec2 o3) {
 	vec2 c1, c2, c3;
 	goanna_cell_weights(hex, w, c1, c2, c3);
 	w = pow(w, vec3(sharpen));
 	w /= (w.x + w.y + w.z);
-	float texels = float(textureSize(tex, 0).x);
-	if (w.x > 0.995)
-		return textureGrad(tex, vec3(uv + goanna_cell_offset(c1, texels), layer), dx, dy);
-	if (w.y > 0.995)
-		return textureGrad(tex, vec3(uv + goanna_cell_offset(c2, texels), layer), dx, dy);
-	if (w.z > 0.995)
-		return textureGrad(tex, vec3(uv + goanna_cell_offset(c3, texels), layer), dx, dy);
-	return w.x * textureGrad(tex, vec3(uv + goanna_cell_offset(c1, texels), layer), dx, dy)
-			+ w.y * textureGrad(tex, vec3(uv + goanna_cell_offset(c2, texels), layer), dx, dy)
-			+ w.z * textureGrad(tex, vec3(uv + goanna_cell_offset(c3, texels), layer), dx, dy);
+	o1 = goanna_cell_offset(c1, texels);
+	o2 = goanna_cell_offset(c2, texels);
+	o3 = goanna_cell_offset(c3, texels);
+}
+
+// One of these per array, because Godot will not let a single function take
+// samplers that differ in filter, repeat or hint, and its preprocessor will
+// not take a #define from an included file either. The bodies are the same
+// three lines; the sampler is the only difference between them.
+//
+// The first three cases are the common one: with the weights sharpened, all
+// but a narrow band along each cell border wants a single texture read. The
+// derivatives are the caller's, taken before any branching, because a
+// fragment quad can straddle two array layers and dFdx inside that is not
+// defined.
+vec4 goanna_cells_albedo(vec2 uv, float lyr, vec2 dx, vec2 dy, vec3 w, vec2 o1, vec2 o2, vec2 o3) {
+	if (w.x > 0.995) return textureGrad(albedo_array, vec3(uv + o1, lyr), dx, dy);
+	if (w.y > 0.995) return textureGrad(albedo_array, vec3(uv + o2, lyr), dx, dy);
+	if (w.z > 0.995) return textureGrad(albedo_array, vec3(uv + o3, lyr), dx, dy);
+	return w.x * textureGrad(albedo_array, vec3(uv + o1, lyr), dx, dy)
+			+ w.y * textureGrad(albedo_array, vec3(uv + o2, lyr), dx, dy)
+			+ w.z * textureGrad(albedo_array, vec3(uv + o3, lyr), dx, dy);
+}
+
+vec4 goanna_cells_normal(vec2 uv, float lyr, vec2 dx, vec2 dy, vec3 w, vec2 o1, vec2 o2, vec2 o3) {
+	if (w.x > 0.995) return textureGrad(normal_array, vec3(uv + o1, lyr), dx, dy);
+	if (w.y > 0.995) return textureGrad(normal_array, vec3(uv + o2, lyr), dx, dy);
+	if (w.z > 0.995) return textureGrad(normal_array, vec3(uv + o3, lyr), dx, dy);
+	return w.x * textureGrad(normal_array, vec3(uv + o1, lyr), dx, dy)
+			+ w.y * textureGrad(normal_array, vec3(uv + o2, lyr), dx, dy)
+			+ w.z * textureGrad(normal_array, vec3(uv + o3, lyr), dx, dy);
+}
+
+vec4 goanna_cells_spec(vec2 uv, float lyr, vec2 dx, vec2 dy, vec3 w, vec2 o1, vec2 o2, vec2 o3) {
+	if (w.x > 0.995) return textureGrad(spec_array, vec3(uv + o1, lyr), dx, dy);
+	if (w.y > 0.995) return textureGrad(spec_array, vec3(uv + o2, lyr), dx, dy);
+	if (w.z > 0.995) return textureGrad(spec_array, vec3(uv + o3, lyr), dx, dy);
+	return w.x * textureGrad(spec_array, vec3(uv + o1, lyr), dx, dy)
+			+ w.y * textureGrad(spec_array, vec3(uv + o2, lyr), dx, dy)
+			+ w.z * textureGrad(spec_array, vec3(uv + o3, lyr), dx, dy);
 }
 
 // The surface coordinate a treatment runs in: world space, on the plane the

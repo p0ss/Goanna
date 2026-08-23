@@ -17,20 +17,6 @@
 shader_type spatial;
 render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 
-// Anisotropic, because a node surface seen at a grazing angle is the case
-// that matters and ordinary mipmapping cannot serve it: one mip level has to
-// cover a footprint that is many texels long and one wide, so it either
-// aliases into a moire of fish scales or blurs the surface away. A hillside
-// running to the horizon is nothing but grazing angles, which is why the
-// distance shimmered while the ground underfoot looked right. The vanilla
-// client does not show this on the same world.
-//
-// Nearest within the level, so the art stays pixel art. This file's own
-// comment on lod_flatten already named the cause and worked around it with a
-// blend to the tile's average colour rather than fixing it; that blend is
-// still worth having, since a merged quad hundreds of nodes across is beyond
-// what any filtering can hold, but it was covering for this.
-uniform sampler2DArray albedo_array : source_color, filter_nearest_mipmap_anisotropic, repeat_enable;
 // LabPBR companions, when a resource pack ships them (see docs): _n carries
 // the tangent normal in RG with ambient occlusion in B, _s carries perceptual
 // smoothness in R, F0/metalness in G and emission in A.
@@ -96,9 +82,19 @@ void fragment() {
 	int cls = layer_class[layer];
 	float detail = detail_strength * (1.0 - flatten);
 	vec4 tile;
-	if (detail > 0.01 && goanna_class_is_granular(cls)) {
+	// The cells are chosen once and then used for the relief and the specular
+	// as well, further down: one fragment has to read all three arrays from
+	// the same shifted copy of the tile, or it lights a pattern its colour no
+	// longer has.
+	bool tiled = detail > 0.01 && goanna_class_is_granular(cls);
+	vec3 cell_w = vec3(1.0, 0.0, 0.0);
+	vec2 cell_o1 = vec2(0.0), cell_o2 = vec2(0.0), cell_o3 = vec2(0.0);
+	if (tiled) {
 		vec2 hex = goanna_surface_uv(v_world, v_wnormal) / max(detail_cell, 0.5);
-		tile = goanna_stochastic(albedo_array, UV, UV2.x, hex, uv_dx, uv_dy, detail_sharpen);
+		goanna_cell_pick(hex, float(textureSize(albedo_array, 0).x), detail_sharpen,
+				cell_w, cell_o1, cell_o2, cell_o3);
+		tile = goanna_cells_albedo(UV, float(layer), uv_dx, uv_dy,
+				cell_w, cell_o1, cell_o2, cell_o3);
 	} else {
 		tile = texture(albedo_array, vec3(UV, UV2.x));
 	}
@@ -113,7 +109,10 @@ void fragment() {
 	float pack_ao = 1.0;
 
 	if (has_normal) {
-		vec4 n = texture(normal_array, vec3(UV, UV2.x));
+		vec4 n = tiled
+				? goanna_cells_normal(UV, float(layer), uv_dx, uv_dy,
+						cell_w, cell_o1, cell_o2, cell_o3)
+				: texture(normal_array, vec3(UV, UV2.x));
 		// No green flip. LabPBR stores Y down, and Luanti's tile UVs run V
 		// down as well, so the two already agree. Flipping to match the
 		// usual OpenGL description of a normal map turns block sides black,
@@ -132,7 +131,10 @@ void fragment() {
 		pack_ao = mix(1.0, n.b, ao_strength * (1.0 - flatten));
 	}
 	if (has_spec) {
-		vec4 sp = texture(spec_array, vec3(UV, UV2.x));
+		vec4 sp = tiled
+				? goanna_cells_spec(UV, float(layer), uv_dx, uv_dy,
+						cell_w, cell_o1, cell_o2, cell_o3)
+				: texture(spec_array, vec3(UV, UV2.x));
 		// LabPBR: R is perceptual smoothness, roughness = (1 - smoothness)^2
 		float sm = sp.r;
 		// Toward 1.0, the unlit-looking fully rough default, so 0 gives back
