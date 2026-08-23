@@ -141,10 +141,16 @@ Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
         // rough dielectric this shader falls back to. Mineclonia ships no _s
         // for any of them either. Ask the table first, in case the texture is
         // also a node tile, then fall back to the name.
+        // GOANNA_NO_CLASS=1 withholds it, the same A/B switch GOANNA_NO_NORMAL
+        // gives the node path: two runs of one scene, one variable, rather
+        // than an argument about a screenshot.
         std::string cbase = texture.substr(0, texture.find('^'));
-        MaterialClass cls = session.materialTable().textureClass(tileBaseName(cbase));
-        if (cls == MaterialClass::None)
-            cls = classifyName(cbase);
+        MaterialClass cls = MaterialClass::None;
+        if (!getenv("GOANNA_NO_CLASS")) {
+            cls = session.materialTable().textureClass(tileBaseName(cbase));
+            if (cls == MaterialClass::None)
+                cls = classifyName(cbase);
+        }
         const ClassSpec &csp = classSpec(cls);
         sm->set_shader_parameter("mat_class", (int)cls);
         sm->set_shader_parameter("class_smoothness", csp.smoothness);

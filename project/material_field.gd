@@ -144,12 +144,25 @@ func _tex_array_at(img: Image, layer: int) -> Texture2DArray:
 func _environment() -> void:
 	var e := Environment.new()
 	var sky := Sky.new()
-	var pm := ProceduralSkyMaterial.new()
-	pm.sky_top_color = Color(0.28, 0.42, 0.72)
-	pm.sky_horizon_color = Color(0.72, 0.78, 0.85)
-	pm.ground_bottom_color = Color(0.22, 0.2, 0.18)
-	pm.ground_horizon_color = Color(0.5, 0.47, 0.44)
-	sky.sky_material = pm
+	# Goanna's own sky, not Godot's procedural one. It is what the client
+	# lights and reflects the world with, and the difference is not cosmetic:
+	# a metal is its reflection, so a metallic surface judged against a plain
+	# blue dome comes out blue, and against this one comes out as whatever
+	# the client would really show. radiance_ground_lift is the part that
+	# matters, since it fills the lower half of the dome with the horizon
+	# colour rather than leaving a metal to reflect a dark floor.
+	var sm := ShaderMaterial.new()
+	sm.shader = load("res://shaders/sky.gdshader")
+	sm.set_shader_parameter("sky_top", Color(0.20, 0.36, 0.68))
+	sm.set_shader_parameter("sky_horizon", Color(0.72, 0.78, 0.85))
+	sm.set_shader_parameter("ground_color", Color(0.29, 0.31, 0.34))
+	sm.set_shader_parameter("sun_dir", Vector3(0.35, 0.72, 0.6).normalized())
+	sm.set_shader_parameter("sun_visible", true)
+	sm.set_shader_parameter("moon_visible", false)
+	sm.set_shader_parameter("radiance_ground_lift", 1.0)
+	sm.set_shader_parameter("radiance_desaturate", 0.25)
+	sm.set_shader_parameter("ground_curve", 3.0)
+	sky.sky_material = sm
 	e.background_mode = Environment.BG_SKY
 	e.sky = sky
 	e.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
