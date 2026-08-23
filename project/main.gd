@@ -1521,7 +1521,17 @@ func _apply_sky() -> void:
 	# the spawn, a night fill equal to the day's left the canopy at a fifth of
 	# its day brightness, which is the vanilla client's night and reads as
 	# black next to it; 1.6 puts it near two fifths, dark but legible.
+	# The dawn term bridges a gap that read as the land going black at
+	# sunrise: the night fill fades out as the sun nears the horizon, the
+	# moon has set, the sun's own energy has barely begun its ramp, and with
+	# SDFGI off the ambient follows the server's day night ratio, which lags
+	# the sky colours. For a few minutes every source was near zero at once
+	# under a bright sky. Twilight is the sky lighting the ground, so the
+	# fill carries the horizon colour through dawn and dusk, handing over to
+	# the day term as the sun's ramp arrives, and the golden light lasts as
+	# long on the land as it does in the sky.
 	var fill: Color = hor.lerp(Color(hor.v, hor.v, hor.v), 0.5) * (light_fill * day) \
+			+ hor * (light_fill * 0.9 * dawn * (1.0 - day)) \
 			+ sky["night_horizon"] * (light_fill * 1.6 * night)
 	RenderingServer.global_shader_parameter_set("goanna_sky_fill", Vector3(fill.r, fill.g, fill.b))
 	sky_mat.set_shader_parameter("sun_dir", sun_dir.normalized() if sun_dir.length() > 0.001 else Vector3.UP)
@@ -1666,7 +1676,10 @@ func _apply_sky() -> void:
 	# the reason measured in _apply_lighting, and it is the sdfgi off path
 	# that it is here for. Day and night differ through the sky itself and
 	# through background_energy_multiplier below, not through this.
-	e.ambient_light_energy = lerp(0.14, 0.42, ratio) * light_ambient
+	# maxf with the sun's own ramp: the server's ratio arrives in a late
+	# steep step, and holding the ambient to it kept the ground at its night
+	# level under a sky that was already blue.
+	e.ambient_light_energy = lerp(0.14, 0.42, maxf(ratio, day)) * light_ambient
 	# do not push the sky toward white; it reads as haze and flattens the blue
 	e.background_energy_multiplier = lerp(0.25, 0.95, ratio)
 	# And the haze is dimmed with it. The fog colour above is the server's
