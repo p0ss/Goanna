@@ -362,3 +362,54 @@ wrong conclusion that it would have caught.
   it worked: the vertex light path is switched off at `encode_light`, which
   returns white while `g_goanna_no_light` is set, so no screenshot could
   show that the flag changed nothing.
+
+## The macro scale, 2026-08-24
+
+The owner's observation, with the far field now continuous: the picture has
+high fidelity at the micro scale (relief, specular, stochastic tiling) and in
+the mid distance (the far tiers), and is flat in between. At the distances
+most of a frame sits at, the normal maps have mipped away, the grass is one
+green, there is no visible occlusion around blocks, and outside a lamp's
+pool nothing varies. Dawn and dusk look right; noon and night, which is most
+of the time, read close to vanilla. What would change that, in the order
+they are worth doing:
+
+1. **Corner occlusion that touches direct light.** The near mesh already
+   carries traced occlusion per vertex, but it multiplies ambient only, and
+   under an overhead sun ambient is a small share, so it vanishes at noon.
+   `vertex_ao_light_strength` exists for exactly this sweep and defaults to
+   0. Vanilla's corner darkening multiplies everything, which is why its
+   blocks read at any distance. Sweep on the chart, then consider a sharper
+   corner term (the classic three neighbour rule) written into CUSTOM0.b by
+   the near mesher; Luanti's own smooth lighting path cannot be reused
+   because its light is discarded at `encode_light` while
+   `g_goanna_no_light` is set.
+2. **Cloud shadows.** The sky already knows its coverage, speed and height;
+   the ground never hears about it. One large Decal following the camera,
+   modulating albedo with the same cloud field, puts moving hundred node
+   scale variance over every outdoor scene for one texture and no per node
+   cost. Godot's directional lights have no cookie, which is why a decal.
+3. **A hemisphere ambient.** With SDFGI off (it is off in the owner's own
+   profile) ambient is one flat constant. A normal dependent term in the
+   node shaders, sky colour from above, horizon at the sides, a ground
+   bounce from below, sells shape at every distance for a few shader lines.
+   SDFGI remains the real answer where it is affordable; this is the floor.
+4. **Carried light.** A wielded torch or lantern lighting the world from the
+   player's hand (an omni light at the camera driven by the wielded item's
+   light_source, through the existing light pool). The night scene's pool
+   of light then travels with the player. Vanilla does not do this; it
+   takes nothing from the server and shows nothing that is not the
+   player's own.
+5. **Macro albedo variation.** Two octaves of world position tint at about
+   32 and 128 nodes, a few per cent of value and a little hue, on the
+   ground materials. The stochastic tiling fixed repetition per node; this
+   breaks the one green field per biome.
+6. **Shadow reach.** Tree shadows end at 200 nodes
+   (`directional_shadow_max_distance`); the mid ground the owner pointed at
+   is largely past it. Scale with the view range and measure the cost.
+7. **Bounce.** Where SDFGI stays off, a dim counter light opposite the sun
+   in the ground's average colour is the cheap stand in.
+
+The far field's own next step, a far tier shader that does its fog toward
+the sky per pixel and a far water continuous with the near water, is in
+docs/far-rendering.md and belongs to the same picture.
