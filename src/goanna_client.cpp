@@ -2196,8 +2196,22 @@ int GoannaClient::lodTierFor(const v3s16 &bp, const Vector3 &around) const {
     auto cur = m_block_tier.find(bp);
     const int current = cur == m_block_tier.end() ? 0 : cur->second;
     const int tiers = lodTierCount();
+    // Never coarsen a block the server is actually sending. The tiers exist to
+    // draw terrain past the live range, and a block inside it has already been
+    // paid for: turning it into cells throws away detail that arrived, for a
+    // saving on geometry that is already resident. On a server granting no far
+    // rendering, which is every ordinary one, that is pure loss, and it showed
+    // as a shell of coarse incomplete looking panels around the outside of the
+    // view where the vanilla client draws ordinary terrain. Measured on such a
+    // server: 40 of 170 resident blocks were being drawn at tier 1.
+    //
+    // One block of margin past the wanted range, because the server sends by
+    // block and the outermost ones straddle the boundary this distance is
+    // measured against.
+    const float live = (float)(m_session ? m_session->wantedRange + 1 : 0) * MAP_BLOCKSIZE;
+    const float first = std::max((float)m_lod_distance * MAP_BLOCKSIZE, live);
     auto threshold = [&](int t) {
-        return (float)m_lod_distance * MAP_BLOCKSIZE * (float)(1 << (t - 1));
+        return first * (float)(1 << (t - 1));
     };
     int desired = 0;
     for (int t = 1; t <= tiers; ++t)

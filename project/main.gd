@@ -1662,6 +1662,16 @@ func _apply_sky() -> void:
 	e.ambient_light_energy = lerp(0.14, 0.42, ratio) * light_ambient
 	# do not push the sky toward white; it reads as haze and flattens the blue
 	e.background_energy_multiplier = lerp(0.25, 0.95, ratio)
+	# And the haze is dimmed with it. The fog colour above is the server's
+	# horizon colour as sent, but the sky is not drawn at that colour: this
+	# multiplier darkens it, by four times at night. So the haze was four
+	# times brighter than the sky it is supposed to be blending terrain into,
+	# and distant ground came out as pale patches glowing against a dark night
+	# sky, which is the most distracting thing in a night frame and reads as
+	# the far field being lit wrongly when it is the air in front of it.
+	# Underwater keeps its own murk, set in _update_environment_extras.
+	if not underwater:
+		e.fog_light_color = e.fog_light_color * e.background_energy_multiplier
 	var lighting: Dictionary = st["lighting"]
 	# Server saturation on top of our base grade, not instead of it.
 	e.adjustment_saturation = clamp(1.12 * float(lighting["saturation"]), 0.0, 2.0)
