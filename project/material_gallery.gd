@@ -17,6 +17,11 @@ extends Node3D
 #
 #   GOANNA_PACK_DIR=<dir>   textures, default baked/pack-mineclonia-v2
 #   GOANNA_SHOT=<dir>       write gallery_off.png and gallery_on.png and quit
+#   GOANNA_ITEM_DIR=<dir>   a copy of the game, for the tool and armour set:
+#                           the baked pack has 1023 textures and not one
+#                           pickaxe, because tools and armour come from the
+#                           game the server is running
+#   GOANNA_GALLERY_SET=items  show tools and armour rather than materials
 #
 # Run: godot --path project material_gallery.tscn
 
@@ -34,22 +39,78 @@ const CASES := [
 
 # src/goanna_materials.cpp's CLASS_SPEC, the four values a class carries:
 # smoothness, F0, metalness, scattering.
+# Copied from kSpecs in src/goanna_materials.cpp. Three of these had drifted
+# from it, which is a fixture quietly measuring numbers the renderer does not
+# use; if that file changes, this one has to follow.
 const CLASS_SPEC := {
-	1: [0.30, 0.04, 0.0, 0.0],
-	2: [0.25, 0.04, 0.0, 0.0],
-	5: [0.15, 0.04, 0.0, 0.0],
-	6: [0.10, 0.04, 0.0, 0.0],
-	7: [0.35, 0.04, 0.0, 0.2],
-	9: [0.05, 0.04, 0.0, 0.0],
-	10: [0.55, 1.00, 1.0, 0.0],
-	11: [0.08, 0.04, 0.0, 0.0],
+	0: [0.20, 0.04, 0.0, 0.0],   # none, the dull default
+	1: [0.12, 0.04, 0.0, 0.0],   # stone
+	2: [0.22, 0.04, 0.0, 0.0],   # wood
+	3: [0.30, 0.04, 0.0, 0.5],   # leaves
+	4: [0.92, 0.04, 0.0, 0.0],   # glass, and diamond by way of it
+	5: [0.08, 0.04, 0.0, 0.0],   # sand
+	6: [0.10, 0.04, 0.0, 0.0],   # gravel
+	7: [0.35, 0.04, 0.0, 0.2],   # snow
+	8: [0.88, 0.04, 0.0, 0.35],  # ice
+	9: [0.05, 0.04, 0.0, 0.0],   # soil
+	10: [0.55, 1.00, 1.0, 0.0],  # metal
+	11: [0.08, 0.04, 0.0, 0.0],  # cloth
 }
 
-const STEP := 2.4  # spacing between plinths
+# Tools and armour, which is the case the class work is really for: they are
+# textures rather than nodes, so the classifier has only their names to go
+# on, and Mineclonia ships no authored specular for a single one of them.
+# The class each name lands on is in the third column, so the scene states
+# what it expects rather than only showing it.
+const ITEM_CASES := [
+	["iron pick", "default_tool_steelpick", 10],
+	["gold sword", "default_tool_goldsword", 10],
+	["diamond pick", "default_tool_diamondpick", 4],
+	["netherite sword", "default_tool_netheritesword", 10],
+	["wood pick", "default_tool_woodpick", 2],
+	["iron helmet", "mcl_armor_inv_helmet_iron", 10],
+	["chain chestplate", "mcl_armor_inv_chestplate_chain", 10],
+	["diamond helmet", "mcl_armor_inv_helmet_diamond", 4],
+	["leather chestplate", "mcl_armor_inv_chestplate_leather", 11],
+]
+
+const STEP := 2.4        # spacing between plinths
+const ITEM_STEP := 3.2  # wider for the item set, whose labels are longer
 
 var shot_dir := ""
+var items_only := false
+var item_paths := {}
+var cases: Array = CASES
 var block_mats: Array[ShaderMaterial] = []
 var card_mats: Array[ShaderMaterial] = []
+
+
+# Tools and armour are not in the baked pack: it has 1023 textures and not
+# one pickaxe. They come from the game the server is running, so the scene is
+# pointed at a copy of it and walks it once. GOANNA_ITEM_DIR names the game's
+# directory; without it the item set has nothing to show and says so.
+func _index_textures(root: String) -> Dictionary:
+	var found := {}
+	var stack: Array[String] = [root]
+	while not stack.is_empty():
+		var d: String = stack.pop_back()
+		var da := DirAccess.open(d)
+		if da == null:
+			continue
+		da.list_dir_begin()
+		var name := da.get_next()
+		while name != "":
+			var full := d.path_join(name)
+			if da.current_is_dir():
+				if not name.begins_with("."):
+					stack.append(full)
+			elif name.ends_with(".png"):
+				var stem := name.substr(0, name.length() - 4)
+				if not found.has(stem):
+					found[stem] = full
+			name = da.get_next()
+		da.list_dir_end()
+	return found
 
 
 func _load(path: String) -> Image:
@@ -193,20 +254,37 @@ func _ready() -> void:
 
 	_environment()
 
+	items_only = OS.get_environment("GOANNA_GALLERY_SET") == "items"
+	if items_only:
+		var item_dir := OS.get_environment("GOANNA_ITEM_DIR")
+		if item_dir == "":
+			push_error("GOANNA_GALLERY_SET=items needs GOANNA_ITEM_DIR pointing at a copy of the game")
+			get_tree().quit()
+			return
+		item_paths = _index_textures(item_dir)
+		print("indexed %d textures under %s" % [item_paths.size(), item_dir])
+		cases = ITEM_CASES
+
 	# An unbound array sampler is undefined and corrupts the albedo sample;
 	# material_cube.gd spent four wrong diagnoses on that.
 	var flat_n := _tex_array(_solid(Color(0.5, 0.5, 1.0, 1.0)))
 	var flat_s := _tex_array(_solid(Color(0.0, 0.04, 0.0, 1.0)))
 	var node_shader: Shader = load("res://shaders/nodes_array.gdshader")
-	var item_shader: Shader = load("res://shaders/entity.gdshader")
+	# An item icon is a cut out: most of it is transparent, and the plain
+	# entity shader has no alpha, so every one of them came out on a black
+	# card. The client picks the scissor variant for exactly this reason.
+	var item_shader: Shader = load("res://shaders/entity_scissor.gdshader" if items_only
+			else "res://shaders/entity.gdshader")
 
-	for i in CASES.size():
-		var c: Array = CASES[i]
-		var img := _load(dir.path_join(str(c[1]) + ".png"))
+	for i in cases.size():
+		var c: Array = cases[i]
+		var stem := str(c[1])
+		var path: String = item_paths.get(stem, "") if items_only else dir.path_join(stem + ".png")
+		var img := _load(path)
 		if img.get_width() <= 1:
-			push_error("no texture at " + dir.path_join(str(c[1]) + ".png"))
+			push_error("no texture for " + stem)
 			continue
-		var at := Vector3(i * STEP, 0.0, 0.0)
+		var at := Vector3(i * (ITEM_STEP if items_only else STEP), 0.0, 0.0)
 		_plinth(at)
 		_label(str(c[0]), at)
 
@@ -241,6 +319,9 @@ func _ready() -> void:
 		bmi.material_override = bm
 		bmi.position = at + Vector3(-0.45, 1.42, 0)
 		bmi.rotation_degrees = Vector3(0, -22, 0)
+		# A pickaxe has no block form, and a cube of pickaxe would be a lie
+		# about what the entity path draws.
+		bmi.visible = not items_only
 		add_child(bmi)
 
 		# The item card, through the entity path, which is what a tool, a
@@ -255,20 +336,20 @@ func _ready() -> void:
 		im.set_shader_parameter("block_fill", 0.0)
 		card_mats.append(im)
 		var q := QuadMesh.new()
-		q.size = Vector2(0.8, 0.8)
+		q.size = Vector2(1.5, 1.5) if items_only else Vector2(0.8, 0.8)
 		var imi := MeshInstance3D.new()
 		imi.mesh = q
 		imi.material_override = im
-		imi.position = at + Vector3(0.5, 1.42, 0)
+		imi.position = at + Vector3(0.0 if items_only else 0.5, 1.75 if items_only else 1.5, 0)
 		imi.rotation_degrees = Vector3(-12, 0, 0)
 		add_child(imi)
 
 	var cam := Camera3D.new()
-	var span := (CASES.size() - 1) * STEP
-	cam.position = Vector3(span * 0.5, 2.9, 11.0)
+	var span := (cases.size() - 1) * (ITEM_STEP if items_only else STEP)
+	cam.position = Vector3(span * 0.5, 2.4, 11.0 if not items_only else 12.5)
 	cam.fov = 60.0
 	add_child(cam)
-	cam.look_at(Vector3(span * 0.5, 1.25, 0.0), Vector3.UP)
+	cam.look_at(Vector3(span * 0.5, 1.75 if items_only else 1.25, 0.0), Vector3.UP)
 	cam.current = true
 
 	if shot_dir != "":
@@ -280,8 +361,8 @@ func _ready() -> void:
 # one of these looked like before the material work: one flat rough dielectric
 # whatever it was made of.
 func _apply(on: bool) -> void:
-	for i in CASES.size():
-		var cls: int = int(CASES[i][2])
+	for i in cases.size():
+		var cls: int = int(cases[i][2])
 		var sp: Array = CLASS_SPEC[cls]
 		block_mats[i].set_shader_parameter("layer_class",
 			PackedInt32Array([cls if on else 0]))

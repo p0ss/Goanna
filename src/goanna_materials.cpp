@@ -74,6 +74,12 @@ const NameClass kNameHints[] = {
     {"plank", MaterialClass::Wood}, {"wood", MaterialClass::Wood}, {"log", MaterialClass::Wood},
     {"tree", MaterialClass::Wood}, {"fence", MaterialClass::Wood}, {"door", MaterialClass::Wood},
     {"iron", MaterialClass::Metal}, {"gold", MaterialClass::Metal}, {"steel", MaterialClass::Metal},
+    // Tools and armour reach the name pass with nothing else to go on, and
+    // these three were falling through it to the dull default. Leather is
+    // cloth for rendering purposes; diamond is the closest thing the classes
+    // have to a hard clear gem, which is what glass already is.
+    {"netherite", MaterialClass::Metal}, {"leather", MaterialClass::Cloth},
+    {"diamond", MaterialClass::Glass},
     {"copper", MaterialClass::Metal}, {"metal", MaterialClass::Metal}, {"anvil", MaterialClass::Metal},
     {"rail", MaterialClass::Metal}, {"lantern", MaterialClass::Metal}, {"chain", MaterialClass::Metal},
     {"stone", MaterialClass::Stone}, {"brick", MaterialClass::Stone}, {"cobble", MaterialClass::Stone},
