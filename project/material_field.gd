@@ -19,6 +19,11 @@ extends Node3D
 #   GOANNA_FIELD_CELL=<n>   stochastic cell size in nodes, default 3
 #   GOANNA_FIELD_LEN=<n>    strip length in nodes, default 120
 #   GOANNA_FIELD_PLAIN=1    do not bind the pack's _n and _s companions
+#   GOANNA_FIELD_SHARPEN=<n> weight sharpening, default 8
+#   GOANNA_FIELD_WALL=<stem> one material as a wall filling the frame, face
+#                           on, which is where a seam in the cell grid has
+#                           nowhere to hide: a perspective ground plane can
+#                           swallow a straight line, a flat wall cannot
 #   GOANNA_FIELD_LOD=<dir>  write lod_off.png and lod_on.png and print the
 #                           strip colours, which is the near mesh against the
 #                           far tiers on one surface under one sky
@@ -195,8 +200,11 @@ func _ready() -> void:
 	if OS.get_environment("GOANNA_FIELD_LAYER") != "":
 		lod_layer = int(OS.get_environment("GOANNA_FIELD_LAYER"))
 	var cell := 3.0
+	var sharpen := 8.0
 	if OS.get_environment("GOANNA_FIELD_CELL") != "":
 		cell = float(OS.get_environment("GOANNA_FIELD_CELL"))
+	if OS.get_environment("GOANNA_FIELD_SHARPEN") != "":
+		sharpen = float(OS.get_environment("GOANNA_FIELD_SHARPEN"))
 	if OS.get_environment("GOANNA_FIELD_LEN") != "":
 		strip_len = float(OS.get_environment("GOANNA_FIELD_LEN"))
 	# GOANNA_FIELD_PLAIN=1 leaves the companions unbound, which is the older
@@ -204,6 +212,14 @@ func _ready() -> void:
 	var plain_pbr := OS.get_environment("GOANNA_FIELD_PLAIN") != ""
 
 	_environment()
+
+	var wall := OS.get_environment("GOANNA_FIELD_WALL")
+	if wall != "":
+		_wall(dir, wall, cell, sharpen)
+		if shot_dir != "":
+			DirAccess.make_dir_recursive_absolute(shot_dir)
+			_shoot()
+		return
 
 	if OS.get_environment("GOANNA_FIELD_ITEMS") != "":
 		_items(dir)
@@ -252,6 +268,7 @@ func _ready() -> void:
 		classes[lod_layer] = int(s[2])
 		mat.set_shader_parameter("layer_class", classes)
 		mat.set_shader_parameter("detail_cell", cell)
+		mat.set_shader_parameter("detail_sharpen", sharpen)
 		mat.set_shader_parameter("detail_strength", 0.0)
 		# The per vertex channels the client fills from the map. There is no
 		# map here, so take the light out of the way rather than leaving the
@@ -400,6 +417,74 @@ func _shoot_items() -> void:
 		img.save_png(path)
 		print("wrote ", path)
 	get_tree().quit()
+
+
+# One material, one wall, face on and filling the frame. Twenty by twenty
+# nodes, so a cell grid of a few nodes has room to show its lines, and no
+# perspective for them to hide in.
+func _wall(dir: String, stem: String, cell: float, sharpen: float) -> void:
+	var img := _load(dir.path_join(stem + ".png"))
+	if img.get_width() <= 1:
+		push_error("no texture at " + dir.path_join(stem + ".png"))
+		get_tree().quit()
+		return
+	var nrm := _load(dir.path_join(stem + "_n.png"))
+	var has_n: bool = nrm.get_width() > 1 and OS.get_environment("GOANNA_FIELD_PLAIN") == ""
+	var mat := ShaderMaterial.new()
+	mat.shader = load("res://shaders/nodes_array.gdshader")
+	mat.set_shader_parameter("albedo_array", _tex_array(img))
+	mat.set_shader_parameter("normal_array",
+		_tex_array(nrm) if has_n else _tex_array(_solid(Color(0.5, 0.5, 1.0, 1.0))))
+	mat.set_shader_parameter("spec_array", _tex_array(_solid(Color(0.0, 0.04, 0.0, 1.0))))
+	mat.set_shader_parameter("has_normal", has_n)
+	mat.set_shader_parameter("has_spec", false)
+	# Stone unless told otherwise: the class only decides whether the
+	# treatment runs at all, and this scene is about what it does when it does.
+	mat.set_shader_parameter("layer_class", PackedInt32Array([1]))
+	mat.set_shader_parameter("detail_cell", cell)
+	mat.set_shader_parameter("detail_sharpen", sharpen)
+	mat.set_shader_parameter("detail_strength", 0.0)
+	mat.set_shader_parameter("sky_light_strength", 0.0)
+	mat.set_shader_parameter("vertex_ao_strength", 0.0)
+	mat.set_shader_parameter("sky_fill_strength", 0.0)
+	mat.set_shader_parameter("block_light_emission", 0.0)
+	materials.append(mat)
+
+	var n := 20.0
+	var verts := PackedVector3Array([
+		Vector3(0, 0, 0), Vector3(n, 0, 0), Vector3(n, n, 0), Vector3(0, n, 0)])
+	var uvs := PackedVector2Array([
+		Vector2(0, n), Vector2(n, n), Vector2(n, 0), Vector2(0, 0)])
+	var norms := PackedVector3Array()
+	var uv2 := PackedVector2Array()
+	var col := PackedColorArray()
+	for i in 4:
+		norms.append(Vector3(0, 0, 1))
+		uv2.append(Vector2.ZERO)
+		col.append(Color.WHITE)
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = verts
+	arrays[Mesh.ARRAY_NORMAL] = norms
+	arrays[Mesh.ARRAY_TEX_UV] = uvs
+	arrays[Mesh.ARRAY_TEX_UV2] = uv2
+	arrays[Mesh.ARRAY_COLOR] = col
+	# The other winding from the ground strips: this quad faces the camera
+	# rather than the sky, and cull_back does not forgive.
+	arrays[Mesh.ARRAY_INDEX] = PackedInt32Array([0, 2, 1, 0, 3, 2])
+	var m := ArrayMesh.new()
+	m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	var mi := MeshInstance3D.new()
+	mi.mesh = m
+	mi.material_override = mat
+	add_child(mi)
+
+	var cam := Camera3D.new()
+	cam.position = Vector3(n * 0.5, n * 0.5, n * 0.92)
+	cam.fov = 60.0
+	add_child(cam)
+	cam.look_at(Vector3(n * 0.5, n * 0.5, 0.0), Vector3.UP)
+	cam.current = true
 
 
 func _set_detail(v: float) -> void:

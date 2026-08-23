@@ -71,9 +71,9 @@ void fragment() {
 	vec2 cell_o1 = vec2(0.0), cell_o2 = vec2(0.0), cell_o3 = vec2(0.0);
 	if (tiled) {
 		vec2 hex = goanna_surface_uv(v_world, v_wnormal) / max(detail_cell, 0.5);
-		goanna_cell_pick(hex, float(textureSize(albedo_array, 0).x), detail_sharpen,
+		goanna_cell_pick(UV, hex, float(textureSize(albedo_array, 0).x), detail_sharpen,
 				cell_w, cell_o1, cell_o2, cell_o3);
-		tile = goanna_cells_albedo(UV, float(layer), uv_dx, uv_dy,
+		tile = goanna_cells_albedo(float(layer), uv_dx, uv_dy,
 				cell_w, cell_o1, cell_o2, cell_o3);
 	} else {
 		tile = texture(albedo_array, vec3(UV, UV2.x));
@@ -93,7 +93,7 @@ void fragment() {
 
 	if (has_normal) {
 		vec4 n = tiled
-				? goanna_cells_normal(UV, float(layer), uv_dx, uv_dy,
+				? goanna_cells_normal(float(layer), uv_dx, uv_dy,
 						cell_w, cell_o1, cell_o2, cell_o3)
 				: texture(normal_array, vec3(UV, UV2.x));
 		vec2 xy = (n.rg * 2.0 - 1.0) * normal_strength * (1.0 - flatten);
@@ -109,7 +109,7 @@ void fragment() {
 	}
 	if (has_spec) {
 		vec4 sp = tiled
-				? goanna_cells_spec(UV, float(layer), uv_dx, uv_dy,
+				? goanna_cells_spec(float(layer), uv_dx, uv_dy,
 						cell_w, cell_o1, cell_o2, cell_o3)
 				: texture(spec_array, vec3(UV, UV2.x));
 		float sm = sp.r;

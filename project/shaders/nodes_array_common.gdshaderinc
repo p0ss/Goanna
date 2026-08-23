@@ -200,6 +200,27 @@ vec2 goanna_cell_offset(vec2 cell, float texels) {
 	return floor(goanna_cell_hash(cell) * texels) / texels;
 }
 
+// A quarter turn per cell, chosen from the same hash. Shifting alone leaves
+// every copy of the tile in the same orientation, so whatever direction the
+// art runs in runs the same way in every cell, and the eye joins them up
+// into the faint diagonal weave that the grid's own axes are laid out on.
+// Turning by a right angle breaks that and is the one rotation pixel art can
+// take: the texel grid lands back on the texel grid, where an arbitrary
+// angle would resample it into mush.
+vec2 goanna_cell_turn(vec2 uv, vec2 cell) {
+	// A second, unrelated hash of the same cell, so the turn and the shift do
+	// not agree with each other.
+	float h = fract(sin(dot(cell, vec2(74.7, 219.3))) * 21793.13);
+	int q = int(floor(h * 4.0));
+	if (q == 1)
+		return vec2(uv.y, -uv.x);
+	if (q == 2)
+		return -uv;
+	if (q == 3)
+		return vec2(-uv.y, uv.x);
+	return uv;
+}
+
 // Which cells this fragment sits between, and how far each shifts the tile.
 // Chosen once and then used for every array, because the albedo, the relief
 // and the specular of one fragment have to come from the same copy of the
@@ -207,15 +228,17 @@ vec2 goanna_cell_offset(vec2 cell, float texels) {
 // node grid and, worse, lighting a pattern that is no longer there: this
 // file's own comment on lod_flatten already names that failure, where a
 // flattened colour with its relief left alone still shades like the tile.
-void goanna_cell_pick(vec2 hex, float texels, float sharpen,
-		out vec3 w, out vec2 o1, out vec2 o2, out vec2 o3) {
+void goanna_cell_pick(vec2 uv, vec2 hex, float texels, float sharpen,
+		out vec3 w, out vec2 u1, out vec2 u2, out vec2 u3) {
 	vec2 c1, c2, c3;
 	goanna_cell_weights(hex, w, c1, c2, c3);
 	w = pow(w, vec3(sharpen));
 	w /= (w.x + w.y + w.z);
-	o1 = goanna_cell_offset(c1, texels);
-	o2 = goanna_cell_offset(c2, texels);
-	o3 = goanna_cell_offset(c3, texels);
+	// Each cell gets the tile turned and then shifted, and returns a whole
+	// coordinate rather than an offset, because a turn is not an offset.
+	u1 = goanna_cell_turn(uv, c1) + goanna_cell_offset(c1, texels);
+	u2 = goanna_cell_turn(uv, c2) + goanna_cell_offset(c2, texels);
+	u3 = goanna_cell_turn(uv, c3) + goanna_cell_offset(c3, texels);
 }
 
 // One of these per array, because Godot will not let a single function take
@@ -228,31 +251,31 @@ void goanna_cell_pick(vec2 hex, float texels, float sharpen,
 // derivatives are the caller's, taken before any branching, because a
 // fragment quad can straddle two array layers and dFdx inside that is not
 // defined.
-vec4 goanna_cells_albedo(vec2 uv, float lyr, vec2 dx, vec2 dy, vec3 w, vec2 o1, vec2 o2, vec2 o3) {
-	if (w.x > 0.995) return textureGrad(albedo_array, vec3(uv + o1, lyr), dx, dy);
-	if (w.y > 0.995) return textureGrad(albedo_array, vec3(uv + o2, lyr), dx, dy);
-	if (w.z > 0.995) return textureGrad(albedo_array, vec3(uv + o3, lyr), dx, dy);
-	return w.x * textureGrad(albedo_array, vec3(uv + o1, lyr), dx, dy)
-			+ w.y * textureGrad(albedo_array, vec3(uv + o2, lyr), dx, dy)
-			+ w.z * textureGrad(albedo_array, vec3(uv + o3, lyr), dx, dy);
+vec4 goanna_cells_albedo(float lyr, vec2 dx, vec2 dy, vec3 w, vec2 u1, vec2 u2, vec2 u3) {
+	if (w.x > 0.995) return textureGrad(albedo_array, vec3(u1, lyr), dx, dy);
+	if (w.y > 0.995) return textureGrad(albedo_array, vec3(u2, lyr), dx, dy);
+	if (w.z > 0.995) return textureGrad(albedo_array, vec3(u3, lyr), dx, dy);
+	return w.x * textureGrad(albedo_array, vec3(u1, lyr), dx, dy)
+			+ w.y * textureGrad(albedo_array, vec3(u2, lyr), dx, dy)
+			+ w.z * textureGrad(albedo_array, vec3(u3, lyr), dx, dy);
 }
 
-vec4 goanna_cells_normal(vec2 uv, float lyr, vec2 dx, vec2 dy, vec3 w, vec2 o1, vec2 o2, vec2 o3) {
-	if (w.x > 0.995) return textureGrad(normal_array, vec3(uv + o1, lyr), dx, dy);
-	if (w.y > 0.995) return textureGrad(normal_array, vec3(uv + o2, lyr), dx, dy);
-	if (w.z > 0.995) return textureGrad(normal_array, vec3(uv + o3, lyr), dx, dy);
-	return w.x * textureGrad(normal_array, vec3(uv + o1, lyr), dx, dy)
-			+ w.y * textureGrad(normal_array, vec3(uv + o2, lyr), dx, dy)
-			+ w.z * textureGrad(normal_array, vec3(uv + o3, lyr), dx, dy);
+vec4 goanna_cells_normal(float lyr, vec2 dx, vec2 dy, vec3 w, vec2 u1, vec2 u2, vec2 u3) {
+	if (w.x > 0.995) return textureGrad(normal_array, vec3(u1, lyr), dx, dy);
+	if (w.y > 0.995) return textureGrad(normal_array, vec3(u2, lyr), dx, dy);
+	if (w.z > 0.995) return textureGrad(normal_array, vec3(u3, lyr), dx, dy);
+	return w.x * textureGrad(normal_array, vec3(u1, lyr), dx, dy)
+			+ w.y * textureGrad(normal_array, vec3(u2, lyr), dx, dy)
+			+ w.z * textureGrad(normal_array, vec3(u3, lyr), dx, dy);
 }
 
-vec4 goanna_cells_spec(vec2 uv, float lyr, vec2 dx, vec2 dy, vec3 w, vec2 o1, vec2 o2, vec2 o3) {
-	if (w.x > 0.995) return textureGrad(spec_array, vec3(uv + o1, lyr), dx, dy);
-	if (w.y > 0.995) return textureGrad(spec_array, vec3(uv + o2, lyr), dx, dy);
-	if (w.z > 0.995) return textureGrad(spec_array, vec3(uv + o3, lyr), dx, dy);
-	return w.x * textureGrad(spec_array, vec3(uv + o1, lyr), dx, dy)
-			+ w.y * textureGrad(spec_array, vec3(uv + o2, lyr), dx, dy)
-			+ w.z * textureGrad(spec_array, vec3(uv + o3, lyr), dx, dy);
+vec4 goanna_cells_spec(float lyr, vec2 dx, vec2 dy, vec3 w, vec2 u1, vec2 u2, vec2 u3) {
+	if (w.x > 0.995) return textureGrad(spec_array, vec3(u1, lyr), dx, dy);
+	if (w.y > 0.995) return textureGrad(spec_array, vec3(u2, lyr), dx, dy);
+	if (w.z > 0.995) return textureGrad(spec_array, vec3(u3, lyr), dx, dy);
+	return w.x * textureGrad(spec_array, vec3(u1, lyr), dx, dy)
+			+ w.y * textureGrad(spec_array, vec3(u2, lyr), dx, dy)
+			+ w.z * textureGrad(spec_array, vec3(u3, lyr), dx, dy);
 }
 
 // The surface coordinate a treatment runs in: world space, on the plane the
