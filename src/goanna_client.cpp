@@ -1572,6 +1572,26 @@ Dictionary GoannaClient::wield_info() {
     return d;
 }
 
+// The light the wielded item would cast placed as a node, decoded 0 to 255,
+// or 0 for anything unlit. main.gd drives the head light with it, so a torch
+// in the hand lights the way (docs/pbr-plan.md, "The macro scale"). Client
+// side only: nothing is asked of the server and nothing shown that is not
+// the player's own flame.
+int GoannaClient::wield_light() {
+    if (!m_session)
+        return 0;
+    std::lock_guard<std::mutex> lk(m_session->mapLock());
+    ItemStack item = goanna_wielded_item(m_session.get());
+    if (item.name.empty())
+        return 0;
+    const NodeDefManager *ndef = m_session->nodeDefs();
+    content_t id = CONTENT_IGNORE;
+    if (!ndef || !ndef->getId(item.name, id))
+        return 0;
+    const ContentFeatures &f = ndef->get(id);
+    return f.light_source > 0 ? decode_light(f.light_source) : 0;
+}
+
 Dictionary GoannaClient::item_mesh(const String &item_name) {
     Dictionary d;
     if (!m_session)
@@ -3940,6 +3960,7 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("set_arm_swing", "s"), &GoannaClient::set_arm_swing);
     ClassDB::bind_method(D_METHOD("show_body"), &GoannaClient::show_body);
     ClassDB::bind_method(D_METHOD("wield_item_name"), &GoannaClient::wield_item_name);
+    ClassDB::bind_method(D_METHOD("wield_light"), &GoannaClient::wield_light);
     ClassDB::bind_method(D_METHOD("wield_info"), &GoannaClient::wield_info);
     ClassDB::bind_method(D_METHOD("item_mesh", "item_name"), &GoannaClient::item_mesh);
     ClassDB::bind_method(D_METHOD("set_time_of_day_override", "tod"), &GoannaClient::set_time_of_day_override);

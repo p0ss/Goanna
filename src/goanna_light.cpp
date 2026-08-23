@@ -150,6 +150,32 @@ VertexLight BlockLightField::sample(const v3f &p, const v3f &n) const {
         out.block = c.night;
     }
     out.ao = (uint8_t)std::lround(traceOcclusion(m_occ, p, nn, occlusionRadius()) * 255.0f);
+    // The corner term, vanilla's smooth lighting darkening: of the four
+    // cells in front of the face around this vertex, one is the face's own
+    // air and the other three are the two sides and the diagonal. Each
+    // solid one pulls the corner down. The traced term above is broad and
+    // soft (a valley darker than a plain); this one is what makes each
+    // block's edges read, and it is the occlusion that survives at any
+    // distance because it rides the same vertex channel. Only for axis
+    // aligned faces: a plant's crossed quads have no corners to darken.
+    if (std::fabs(nn.X) > 0.99f || std::fabs(nn.Y) > 0.99f || std::fabs(nn.Z) > 0.99f) {
+        const int axis = std::fabs(nn.X) > 0.99f ? 0 : (std::fabs(nn.Y) > 0.99f ? 1 : 2);
+        const float comp = axis == 0 ? nn.X : (axis == 1 ? nn.Y : nn.Z);
+        const int front = comp > 0.0f ? 1 : 0;
+        int solid = 0;
+        for (int dz = 0; dz < 2; ++dz)
+            for (int dy = 0; dy < 2; ++dy)
+                for (int dx = 0; dx < 2; ++dx) {
+                    const int along = axis == 0 ? dx : (axis == 1 ? dy : dz);
+                    if (along != front)
+                        continue;
+                    const Cell &c = at(lx + dx, ly + dy, lz + dz);
+                    if ((c.flags & kKnown) && (c.flags & kSolid))
+                        ++solid;
+                }
+        static const float curve[4] = {1.0f, 0.75f, 0.58f, 0.45f};
+        out.ao = (uint8_t)std::lround(out.ao * curve[std::min(solid, 3)]);
+    }
     return out;
 }
 

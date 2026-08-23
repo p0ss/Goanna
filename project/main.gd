@@ -82,6 +82,9 @@ var inv_before := {}
 var fall_reported := false
 var underwater := false
 var headlight: OmniLight3D
+# The fixture runner zeroes the head light for determinism; this stops the
+# per frame carried light update from turning it back on.
+var headlight_auto := true
 var iris: GoannaIrisEffect
 var test_started := 0.0
 
@@ -298,7 +301,11 @@ func _ready() -> void:
 	# GOANNA_NO_SDFGI=1 disables it outright. Setting Bounced light to 0 only
 	# zeroes sdfgi_energy, which leaves SDFGI enabled and still overriding the
 	# ordinary ambient path, so it is not a way to test life without it.
-	e.sdfgi_enabled = OS.get_environment("GOANNA_NO_SDFGI") == ""
+	# And energy 0 now disables it outright: an enabled SDFGI at zero energy
+	# is the darkest possible configuration, still overriding ambient while
+	# contributing nothing, and a profile was found running that way after a
+	# slider sweep.
+	e.sdfgi_enabled = OS.get_environment("GOANNA_NO_SDFGI") == "" and light_sdfgi > 0.01
 	e.sdfgi_cascades = 6
 	# GOANNA_SDFGI_CELL: cascade 0's cell size, which also sets how far each
 	# cascade reaches and therefore how often the whole grid re-centres on the
@@ -1151,6 +1158,7 @@ func _fixture_shots(dir: String, name: String) -> bool:
 		return false
 	await wait_for_streaming()
 	if headlight:
+		headlight_auto = false
 		headlight.light_energy = 0.0
 	var positions := []
 	var churn := 0
@@ -1375,6 +1383,17 @@ func _update_wield(delta: float) -> void:
 func _update_environment_extras() -> void:
 	if headlight:
 		headlight.global_position = cam.global_position
+		# The carried light: whatever is in the hand lights the world with
+		# the light it would cast placed, on top of the faint cave aid. A
+		# torch at night makes a pool that travels with the player, which no
+		# vanilla client does and every night scene wanted. Lerped so
+		# switching items breathes rather than snaps.
+		if headlight_auto and client.has_method("wield_light"):
+			var carried: float = float(client.wield_light()) / 255.0
+			var k := minf(get_process_delta_time() * 8.0, 1.0)
+			headlight.light_energy = lerpf(headlight.light_energy, 0.5 + 2.2 * carried, k)
+			headlight.omni_range = lerpf(headlight.omni_range, 9.0 + 9.0 * carried, k)
+			headlight.light_color = Color(1.0, 0.96, 0.9).lerp(Color(1.0, 0.72, 0.42), carried)
 	# scroll the cloud layer by the server's cloud speed
 	cloud_off += cloud_speed * get_process_delta_time() * 0.004
 	sky_mat.set_shader_parameter("cloud_offset", cloud_off)
@@ -1428,6 +1447,7 @@ func apply_lighting() -> void:
 	var e := env.environment
 	e.tonemap_white = light_white
 	e.sdfgi_energy = light_sdfgi
+	e.sdfgi_enabled = OS.get_environment("GOANNA_NO_SDFGI") == "" and light_sdfgi > 0.01
 	e.sdfgi_min_cell_size = light_sdfgi_cell
 	e.ssao_intensity = light_ssao
 	# exposure and the sky fill follow on the next _apply_sky, which scales

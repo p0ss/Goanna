@@ -374,7 +374,9 @@ pool nothing varies. Dawn and dusk look right; noon and night, which is most
 of the time, read close to vanilla. What would change that, in the order
 they are worth doing:
 
-1. **Corner occlusion that touches direct light.** The near mesh already
+1. *(landed 2026-08-24: the corner term below is in the sampler, and
+   `vertex_ao_light_strength` defaults to 0.3)* **Corner occlusion that
+   touches direct light.** The near mesh already
    carries traced occlusion per vertex, but it multiplies ambient only, and
    under an overhead sun ambient is a small share, so it vanishes at noon.
    `vertex_ao_light_strength` exists for exactly this sweep and defaults to
@@ -394,7 +396,10 @@ they are worth doing:
    node shaders, sky colour from above, horizon at the sides, a ground
    bounce from below, sells shape at every distance for a few shader lines.
    SDFGI remains the real answer where it is affordable; this is the floor.
-4. **Carried light.** A wielded torch or lantern lighting the world from the
+4. *(landed 2026-08-24: the head light follows the wielded item's
+   light_source; and SDFGI at zero energy now disables itself rather than
+   overriding ambient with nothing, which one profile was found doing)*
+   **Carried light.** A wielded torch or lantern lighting the world from the
    player's hand (an omni light at the camera driven by the wielded item's
    light_source, through the existing light pool). The night scene's pool
    of light then travels with the player. Vanilla does not do this; it

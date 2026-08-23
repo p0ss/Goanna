@@ -147,6 +147,7 @@ public:
     // Currently wielded item: its name (cheap; poll for changes), and its
     // wield mesh as {name, mesh: ArrayMesh or null, scale: Vector3}.
     godot::String wield_item_name();
+    int wield_light();
     godot::Dictionary wield_info();
     // Mesh for an arbitrary item name: {name, mesh: ArrayMesh or null,
     // scale: Vector3}, for rendering 3D inventory icons. Node items get their
