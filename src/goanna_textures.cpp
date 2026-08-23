@@ -602,6 +602,72 @@ video::SColor GoannaTextureSource::getTextureAverageColor(const std::string &nam
     return c;
 }
 
+// Split a tile's variance into the part carried by big shapes and the part
+// carried by grain, and return the big shapes' share.
+//
+// The per node tiling shifts a tile so that a field of it stops repeating.
+// That is right for a surface whose texture is grain: any part of it looks
+// like any other part, so a shifted copy is as good as the original. It is
+// wrong for a tile whose whole point is a few large shapes in a known place,
+// which is what an ore is: shifting one wraps its blobs around the edge and
+// cuts them in half against a neighbour that does not match. A lone ore in a
+// wall of stone then looks worse than it did untreated.
+//
+// Coarse variance is measured over a four by four grid of block means, which
+// on a sixteen pixel tile is four texels a block: below that is grain, above
+// it is shape. The share is that over the whole variance, so it does not
+// care how contrasty the tile is, only how the contrast is arranged.
+float GoannaTextureSource::textureCoarseness(const std::string &name) {
+    if (name.empty())
+        return 0.0f;
+    auto it = m_coarseness.find(name);
+    if (it != m_coarseness.end())
+        return it->second;
+    video::IImage *image = getOrGenerateImage(name);
+    float ratio = 0.0f;
+    if (image) {
+        const core::dimension2d<u32> dim = image->getDimension();
+        const u32 w = dim.Width, h = dim.Height;
+        if (w >= 4 && h >= 4) {
+            const int G = 4;
+            double sum = 0.0, sum2 = 0.0;
+            double bsum[G][G] = {};
+            double bcount[G][G] = {};
+            for (u32 y = 0; y < h; ++y) {
+                for (u32 x = 0; x < w; ++x) {
+                    const video::SColor c = image->getPixel(x, y);
+                    // Alpha weighted: the transparent half of a cut out is
+                    // not part of the picture and must not count as flatness.
+                    const double a = c.getAlpha() / 255.0;
+                    const double l = (0.2126 * c.getRed() + 0.7152 * c.getGreen()
+                            + 0.0722 * c.getBlue()) * a;
+                    sum += l;
+                    sum2 += l * l;
+                    const int gx = std::min((int)(x * G / w), G - 1);
+                    const int gy = std::min((int)(y * G / h), G - 1);
+                    bsum[gy][gx] += l;
+                    bcount[gy][gx] += 1.0;
+                }
+            }
+            const double n = (double)w * (double)h;
+            const double mean = sum / n;
+            const double var = std::max(sum2 / n - mean * mean, 0.0);
+            double between = 0.0;
+            for (int gy = 0; gy < G; ++gy)
+                for (int gx = 0; gx < G; ++gx)
+                    if (bcount[gy][gx] > 0.0) {
+                        const double bm = bsum[gy][gx] / bcount[gy][gx];
+                        between += bcount[gy][gx] * (bm - mean) * (bm - mean);
+                    }
+            between /= n;
+            ratio = var > 1.0 ? (float)std::min(between / var, 1.0) : 0.0f;
+        }
+        image->drop();
+    }
+    m_coarseness[name] = ratio;
+    return ratio;
+}
+
 void GoannaTextureSource::insertSourceImage(const std::string &name, video::IImage *img) {
     m_imagesource.insertSourceImage(name, img, true);
     m_known_source[name] = true;

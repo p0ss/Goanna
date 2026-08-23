@@ -105,6 +105,12 @@ public:
     bool isKnownSourceImage(const std::string &name) override;
     core::dimension2du getTextureDimensions(const std::string &image) override;
     video::SColor getTextureAverageColor(const std::string &image) override;
+    // How much of a tile's variance sits in features larger than a texel or
+    // two: near 0 for an even grain like sand or stone, high for a tile whose
+    // point is a few big shapes, like an ore's blobs or a cracked brick. The
+    // per node tiling reads it to decide whether a tile is a field to break
+    // up or a picture to leave alone. Cached: it opens the image to answer.
+    float textureCoarseness(const std::string &image);
     // IWritableTextureSource
     void processQueue() override {}
     void insertSourceImage(const std::string &name, video::IImage *img) override;
@@ -134,6 +140,7 @@ private:
     const MaterialTable *m_material_table = nullptr;
     float m_relief_strength = 0.35f;
     video::IImage *getOrGenerateImage(const std::string &name);
+    std::map<std::string, float> m_coarseness;
     ImageSource m_imagesource;
     std::vector<std::unique_ptr<GoannaTexture>> m_textures; // index = id
     std::map<std::string, u32> m_name_to_id;
