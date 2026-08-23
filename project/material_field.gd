@@ -305,7 +305,12 @@ func _ready() -> void:
 		var mi := MeshInstance3D.new()
 		mi.mesh = _strip_at(lod_layer)
 		mi.material_override = mat
-		mi.position = Vector3(i * (WIDE + 1), 0, 0)
+		# Half a node back, so a tile boundary lands where a node boundary
+		# does. The client puts a node's centre on an integer and its faces at
+		# plus and minus a half, so a fixture whose tiles start on integers is
+		# half a node out of step, and anything keyed on the node then changes
+		# in the middle of every tile.
+		mi.position = Vector3(i * (WIDE + 1) - 0.5, 0, -0.5)
 		add_child(mi)
 		print("strip %d: %s (class %d) at x=%d" % [i, s[0], int(s[2]), i * (WIDE + 1)])
 
@@ -471,6 +476,8 @@ func _wall(dir: String, stem: String, turn: float) -> void:
 	var mi := MeshInstance3D.new()
 	mi.mesh = m
 	mi.material_override = mat
+	# Half a node back in the wall's own plane, for the same reason.
+	mi.position = Vector3(-0.5, -0.5, 0.0)
 	add_child(mi)
 
 	var cam := Camera3D.new()

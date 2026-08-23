@@ -134,6 +134,21 @@ instance uniform float fade : hint_range(0.0, 1.0) = 1.0;
 // treatment can be chosen by what a surface is rather than by which pack
 // dressed it. Same 256 layer cap as lod_avg_colour.
 uniform int layer_class[256];
+// How much of each layer's variance sits in big shapes rather than grain
+// (GoannaTextureSource::textureCoarseness). A tile whose point is a few
+// large shapes in known places is a picture rather than a field: shifting it
+// wraps those shapes around the tile edge and cuts them in half.
+//
+// This only catches the loudest cases and does not pretend otherwise. The
+// measured share for Mineclonia's grain tiles tops out at 0.200 for sand,
+// while the worst ores run 0.36 to 0.65, so a threshold above sand can only
+// help and can never take the treatment away from a field. Plenty of ores
+// sit below it: three statistics were tried against these tiles and none
+// separates ore from grain, because what makes a lone ore look wrong is that
+// it is alone, which is a fact about the world and not about its texture.
+// The real rule wants the mesher to say how far the same node runs.
+uniform float layer_coarse[256];
+uniform float detail_max_coarse : hint_range(0.0, 1.0) = 0.35;
 // Surface detail: how much of the per class treatment runs. 0 is the plain
 // single sample this shader has always done, which is what the far tiers and
 // modest hardware want; the Material tab drives it as mat_detail.
@@ -197,14 +212,31 @@ vec2 goanna_cell_turn(vec2 uv, vec2 cell) {
 	return uv;
 }
 
+// Which node this fragment is on. A face lies half a node out from its own
+// centre along its normal, so step back along the normal to get there. All
+// six faces of one node then agree, which is the difference between a block
+// that reads as a block and a collage: keyed on the face's own plane
+// instead, the top of a block and its side drew different parts of the tile
+// and every stair step in a cave came apart.
+vec3 goanna_node_of(vec3 world, vec3 wnormal) {
+	return floor(world - 0.5 * wnormal + 0.5);
+}
+
+// Two numbers from a node coordinate, and one more for the turn.
+vec2 goanna_node_hash(vec3 n) {
+	vec3 p = vec3(dot(n, vec3(127.1, 311.7, 74.7)),
+			dot(n, vec3(269.5, 183.3, 246.1)),
+			dot(n, vec3(113.5, 271.9, 124.6)));
+	return fract(sin(p.xy) * 43758.5453);
+}
+
 // The coordinate to read the tile at: this node's own turn and shift. The
 // derivatives stay the caller's, taken from the untouched UV, because the
 // offset is a step at every node boundary and an implicit derivative across
 // one would pick a mip level for a jump that is not really there.
-vec2 goanna_node_uv(vec2 uv, vec2 surface_uv, float texels, float turn) {
-	vec2 cell = floor(surface_uv);
-	vec2 t = turn > 0.5 ? goanna_cell_turn(uv, cell) : uv;
-	return t + floor(goanna_cell_hash(cell) * texels) / texels;
+vec2 goanna_node_uv(vec2 uv, vec3 node, float texels, float turn) {
+	vec2 t = turn > 0.5 ? goanna_cell_turn(uv, node.xz + node.y) : uv;
+	return t + floor(goanna_node_hash(node) * texels) / texels;
 }
 
 // The surface coordinate a treatment runs in: world space, on the plane the

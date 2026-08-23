@@ -85,10 +85,11 @@ void fragment() {
 	// Per node: this face reads its own turned and shifted copy of the tile.
 	// One read, and every discontinuity lands on a node boundary, where the
 	// art already has one.
-	bool tiled = detail > 0.01 && goanna_class_is_granular(cls);
+	bool tiled = detail > 0.01 && goanna_class_is_granular(cls)
+			&& layer_coarse[layer] < detail_max_coarse;
 	vec2 tile_uv = UV;
 	if (tiled)
-		tile_uv = goanna_node_uv(UV, goanna_surface_uv(v_world, v_wnormal),
+		tile_uv = goanna_node_uv(UV, goanna_node_of(v_world, v_wnormal),
 				float(textureSize(albedo_array, 0).x), detail_turn);
 	tile = textureGrad(albedo_array, vec3(tile_uv, float(layer)), uv_dx, uv_dy);
 	ALBEDO = (tile * COLOR).rgb;
