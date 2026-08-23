@@ -145,6 +145,11 @@ void GoannaClient::set_view_range(int blocks) {
         m_session->wantedRange = blocks < 1 ? 1 : (blocks > 60 ? 60 : blocks);
 }
 int GoannaClient::view_range() const { return m_session ? m_session->wantedRange : 12; }
+// The wider of the camera's two field of view angles, in degrees. Not the
+// vertical one Godot's Camera3D carries: the server culls what it sends
+// against this angle, so it has to be the one that reaches the corners of the
+// window. main.gd works it out, since the viewport's shape is not visible
+// from here. See writePlayerPosTo for what the wire wants.
 void GoannaClient::set_view_fov(float degrees) {
     if (m_session)
         m_session->cameraFov = degrees;

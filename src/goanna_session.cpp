@@ -1372,7 +1372,24 @@ void GoannaSession::writePlayerPosTo(NetworkPacket &pkt) {
     v3s32 speed = v3s32::from(speed_bs * 100);
     s32 ipitch = pitch * 100;
     s32 iyaw = yaw * 100;
-    u8 fov = (u8)std::clamp(cameraFov * 1.2f, 1.0f, 255.0f);
+    // The server culls what it sends against this: RemoteClient::GetNextBlocks
+    // tests each candidate block against the direction and this angle, so a
+    // client that under reports its own field of view is sent nothing for the
+    // parts of its screen it did not admit to having. That showed as wedges of
+    // missing world at the left and right edges of the frame, worse the wider
+    // the window, and it read as the far field having holes when it was the
+    // near field never arriving.
+    //
+    // Luanti's own client sends max(fov_x, fov_y) in radians, encoded as
+    // fov * 80 (Client::sendPlayerPos, Camera::getFovMax). Goanna sent Godot's
+    // vertical fov in degrees, encoded as fov * 1.2, which is wrong twice
+    // over: degrees * 1.2 is 14 per cent short of radians * 80 for the same
+    // angle, and the vertical is the smaller of the two on any window wider
+    // than it is tall. At 70 degrees vertical on 16 by 9 the horizontal is
+    // about 105, so the honest number is 146 and the wire carried 84.
+    // cameraFov is now the wider of the two, in degrees, set by main.gd which
+    // is the only place that knows the viewport's shape.
+    u8 fov = (u8)std::clamp(cameraFov * (float)M_PI / 180.0f * 80.0f, 1.0f, 255.0f);
     u8 wanted_range = (u8)std::clamp(wantedRange, 1, 255); // mapblocks
     u8 camera_inverted = 0;
     pkt << position << speed << ipitch << iyaw << keys << fov << wanted_range << camera_inverted

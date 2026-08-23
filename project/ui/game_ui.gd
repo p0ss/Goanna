@@ -695,7 +695,9 @@ func _apply_local(key: String, value: float, on: bool) -> void:
 		"fov":
 			var m := _main_node()
 			if m and m.get("cam") != null: m.cam.fov = value
-			if client != null and client.has_method("set_view_fov"): client.set_view_fov(value)
+			# main.gd owns what gets reported, since the wider of the two angles
+			# depends on the window's shape as well as this slider.
+			if m and m.has_method("_report_fov"): m._report_fov()
 		"gui_scale":
 			gui_scale = value
 			_on_resize()

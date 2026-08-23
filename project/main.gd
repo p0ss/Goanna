@@ -193,6 +193,7 @@ func _ready() -> void:
 	cam.far = 1000
 	add_child(cam)
 	cam.current = true
+	_report_fov()
 
 	sun = DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-42, 35, 0)
@@ -490,6 +491,21 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and event.keycode == KEY_F:
 		fly_mode = not fly_mode
 		print("fly mode: ", fly_mode)
+
+# Tell the client the wider of the camera's two field of view angles, which is
+# what the server culls against. Godot's Camera3D.fov is the vertical one and
+# keeps it fixed as the window changes shape, so on any window wider than it is
+# tall the horizontal is the larger and is the one that reaches the corners.
+# Under reporting it means the server sends nothing for the edges of the frame,
+# which showed as wedges of missing world at the left and right of the screen.
+func _report_fov() -> void:
+	if client == null or not client.has_method("set_view_fov") or cam == null:
+		return
+	var vs := get_viewport().get_visible_rect().size
+	var aspect: float = vs.x / vs.y if vs.y > 0.0 else 1.0
+	var v := deg_to_rad(cam.fov)
+	var h := 2.0 * atan(tan(v * 0.5) * aspect)
+	client.set_view_fov(rad_to_deg(maxf(v, h)))
 
 func _process(delta: float) -> void:
 	t += delta
