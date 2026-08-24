@@ -616,7 +616,15 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                     if (!canopy && th < MAP_BLOCKSIZE && by > 0) {
                         const size_t below = ((size_t)bz * B + (by - 1)) * B + bx;
                         const LodLevel *lb = levels[below];
-                        if (lb && lb->terrainAt(lx, lz) < MAP_BLOCKSIZE) {
+                        // Below half, not merely below the ceiling. The coarse
+                        // tiers carry the mean of their wire heights, so under
+                        // any slope the block below reads a little short of
+                        // full, and requiring a full ceiling walked whole
+                        // columns of ordinary mountainside into the floating
+                        // case until nothing was left to draw: the see
+                        // through hills. A real island or overhang has next
+                        // to nothing under it and still qualifies.
+                        if (lb && lb->terrainAt(lx, lz) * 2 < MAP_BLOCKSIZE) {
                             floatAt(bi, lx, lz) = 1;
                             continue;
                         }
@@ -641,6 +649,52 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                     }
                 }
             }
+        // Close the one cell gaps in the forest roof. A clearing of a single
+        // cell dropped the canopy surface ten nodes to the ground and back,
+        // and a stand of trees at a shallow angle read as a roof full of
+        // holes. A column whose surface is ground, with canopy on at least
+        // three of its four sides standing above it, joins the roof at the
+        // lowest of those neighbours; a real clearing, two cells or wider,
+        // keeps its ground. Decided from the filled grid and applied after,
+        // so the order of the pass cannot cascade, and the margin columns
+        // are computed the same way by the regions either side.
+        if (cell >= 8) {
+            struct Join {
+                int ix, iz;
+                const Column *from;
+            };
+            std::vector<Join> joins;
+            for (int gz = -margin + 1; gz < n + margin - 1; ++gz)
+                for (int gx = -margin + 1; gx < n + margin - 1; ++gx) {
+                    Column &col = *colAt(gx, gz);
+                    if (!col.has || col.canopy || col.water)
+                        continue;
+                    static const int dxs[4] = {1, -1, 0, 0};
+                    static const int dzs[4] = {0, 0, 1, -1};
+                    int roof = 0;
+                    const Column *low = nullptr;
+                    for (int e = 0; e < 4; ++e) {
+                        const Column *nc = colAt(gx + dxs[e], gz + dzs[e]);
+                        if (nc && nc->has && nc->canopy && nc->h > col.h + 2.0f) {
+                            ++roof;
+                            if (!low || nc->h < low->h)
+                                low = nc;
+                        }
+                    }
+                    if (roof >= 3)
+                        joins.push_back(Join{gx + margin, gz + margin, low});
+                }
+            for (const Join &j : joins) {
+                Column &col = cols[(size_t)j.iz * W + j.ix];
+                col.canopy = true;
+                col.water = false;
+                col.h = j.from->h;
+                col.top = j.from->top;
+                col.above = j.from->above;
+                canopy_cols[(size_t)j.iz * canopy_w + j.ix] = 1;
+            }
+        }
+
         // Corner height: mean of the same tier, non water columns around it;
         // a water cell asks for its own level instead.
         auto cornerLand = [&](int cx, int cz, float &h) -> bool {
@@ -888,6 +942,14 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                 const int ciz[4] = {gz, gz, gz + 1, gz + 1};
                 LodSurface &sf = surfaceFor(te.texture_id, te.liquid);
                 const u32 base = (u32)sf.pos.size();
+                // A steep quad projected from above stretches its tile down
+                // the whole face, which is what made far cliffs read as
+                // streaks. Past 45 degrees the tile is projected as a wall
+                // instead, along whichever horizontal axis the face runs.
+                const float dhx = std::fabs((hs[1] + hs[2]) - (hs[0] + hs[3])) * 0.5f;
+                const float dhz = std::fabs((hs[2] + hs[3]) - (hs[0] + hs[1])) * 0.5f;
+                const bool steep = std::max(dhx, dhz) > (float)cell;
+                const bool wall_x = dhx >= dhz; // the face falls along x: run the tile along z
                 for (int i = 0; i < 4; ++i) {
                     // Godot space: z mirrored.
                     const v3f p(ox + cxs[i], hs[i], -(oz + czs[i]));
@@ -900,7 +962,10 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                                 spec.ao_radius) * 255.0f));
                     sf.pos.push_back(p);
                     sf.nrm.push_back(nrm);
-                    sf.uv.push_back(v2f(cxs[i], -czs[i]));
+                    if (steep)
+                        sf.uv.push_back(wall_x ? v2f(czs[i], -hs[i] + oy) : v2f(cxs[i], -hs[i] + oy));
+                    else
+                        sf.uv.push_back(v2f(cxs[i], -czs[i]));
                     sf.uv2.push_back(v2f((float)te.layer, (float)te.block_id));
                     sf.col.push_back(colour);
                     sf.custom0.push_back(night);

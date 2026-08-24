@@ -532,7 +532,16 @@ func _report_fov() -> void:
 	var aspect: float = vs.x / vs.y if vs.y > 0.0 else 1.0
 	var v := deg_to_rad(cam.fov)
 	var h := 2.0 * atan(tan(v * 0.5) * aspect)
-	client.set_view_fov(rad_to_deg(maxf(v, h)))
+	# The diagonal, not the wider of the two axes. The server's cone is
+	# circular around the view direction, so the angle that has to fit is
+	# the one to the frame's corners, and on a pitched wide window a bottom
+	# corner subtends more azimuth than the horizontal angle alone: measured
+	# on a 16 by 9 frame at 70 degrees vertical, live blocks filled to 45
+	# degrees off axis and the outer wedge of each bottom corner never
+	# arrived, however long the camera held still, which read as the far
+	# field refusing to sharpen at the edges of the screen.
+	var d := 2.0 * atan(sqrt(pow(tan(h * 0.5), 2.0) + pow(tan(v * 0.5), 2.0)))
+	client.set_view_fov(rad_to_deg(d))
 
 func _process(delta: float) -> void:
 	t += delta
