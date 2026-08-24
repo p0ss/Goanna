@@ -675,7 +675,8 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                     const Column *low = nullptr;
                     for (int e = 0; e < 4; ++e) {
                         const Column *nc = colAt(gx + dxs[e], gz + dzs[e]);
-                        if (nc && nc->has && nc->canopy && nc->h > col.h + 2.0f) {
+                        if (nc && nc->has && nc->canopy && nc->h > col.h + 2.0f &&
+                                nc->h - col.h < 3.0f * (float)cell) {
                             ++roof;
                             if (!low || nc->h < low->h)
                                 low = nc;
@@ -695,15 +696,26 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
             }
         }
 
-        // Corner height: mean of the same tier, non water columns around it;
-        // a water cell asks for its own level instead.
-        auto cornerLand = [&](int cx, int cz, float &h) -> bool {
+        // Corner height: mean of the same tier, non water columns around it,
+        // and only of the ones within reach of the asking cell's own height.
+        // Averaging across a cliff drew ramps: a spire's top blended with
+        // the water sixty nodes below it, and a stand of tall jungle trees
+        // over a bay became sails draped between the trunks. Within three
+        // cells of relief the ground is a slope and averages; past that it
+        // is a cliff, the cell keeps its own edge, the neighbours keep
+        // theirs, and the disagreement grows a skirt, which is what a cliff
+        // is. ref is the asking cell's height, so both triangles of one
+        // quad agree, and the region either side of a boundary computes the
+        // same corner for the same cell.
+        const float cliff_window = 3.0f * (float)cell;
+        auto cornerLand = [&](int cx, int cz, float ref, float &h) -> bool {
             float sum = 0.0f;
             int k = 0;
             for (int dz = -1; dz <= 0; ++dz)
                 for (int dx = -1; dx <= 0; ++dx) {
                     const Column *c = colAt(cx + dx, cz + dz);
-                    if (c && c->has && c->same && !c->water) {
+                    if (c && c->has && c->same && !c->water &&
+                            std::fabs(c->h - ref) <= cliff_window) {
                         sum += c->h;
                         ++k;
                     }
@@ -771,13 +783,15 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
             return &col;
         };
         // What the coarse region computes at one of its corners.
-        auto cornerCoarse = [&](int cx2, int cz2, float &h) -> bool {
+        auto cornerCoarse = [&](int cx2, int cz2, float ref, float &h) -> bool {
             float sum = 0.0f;
             int k = 0;
+            const float window2 = 3.0f * (float)(cell2 ? cell2 : cell);
             for (int dz = -1; dz <= 0; ++dz)
                 for (int dx = -1; dx <= 0; ++dx) {
                     const Column2 *c = col2At(cx2 + dx, cz2 + dz);
-                    if (c && c->has && c->same && !c->water) {
+                    if (c && c->has && c->same && !c->water &&
+                            std::fabs(c->h - ref) <= window2) {
                         sum += c->h;
                         ++k;
                     }
@@ -803,27 +817,27 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
         // The coarse side's height at a fine corner on the boundary: the
         // coarse corner where the grids coincide, else the midpoint of the
         // coarse edge, else (inside a coarse cell) the mean of its corners.
-        auto stitchedHeight = [&](int cx, int cz, float &h) -> bool {
+        auto stitchedHeight = [&](int cx, int cz, float ref, float &h) -> bool {
             auto fdiv2 = [](int v) { return v >= 0 ? v / 2 : -((-v + 1) / 2); };
             const int ex = cx % 2 == 0, ez = cz % 2 == 0;
             const int bx = fdiv2(cx), bz = fdiv2(cz);
             if (ex && ez)
-                return cornerCoarse(bx, bz, h);
+                return cornerCoarse(bx, bz, ref, h);
             float ha, hb, hc, hd;
             if (ex) {
-                if (!cornerCoarse(bx, bz, ha) || !cornerCoarse(bx, bz + 1, hb))
+                if (!cornerCoarse(bx, bz, ref, ha) || !cornerCoarse(bx, bz + 1, ref, hb))
                     return false;
                 h = 0.5f * (ha + hb);
                 return true;
             }
             if (ez) {
-                if (!cornerCoarse(bx, bz, ha) || !cornerCoarse(bx + 1, bz, hb))
+                if (!cornerCoarse(bx, bz, ref, ha) || !cornerCoarse(bx + 1, bz, ref, hb))
                     return false;
                 h = 0.5f * (ha + hb);
                 return true;
             }
-            if (!cornerCoarse(bx, bz, ha) || !cornerCoarse(bx + 1, bz, hb) ||
-                    !cornerCoarse(bx, bz + 1, hc) || !cornerCoarse(bx + 1, bz + 1, hd))
+            if (!cornerCoarse(bx, bz, ref, ha) || !cornerCoarse(bx + 1, bz, ref, hb) ||
+                    !cornerCoarse(bx, bz + 1, ref, hc) || !cornerCoarse(bx + 1, bz + 1, ref, hd))
                 return false;
             h = 0.25f * (ha + hb + hc + hd);
             return true;
@@ -843,9 +857,9 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
             const int cx[4] = {gx, gx + 1, gx + 1, gx};
             const int cz[4] = {gz, gz, gz + 1, gz + 1};
             for (int i = 0; i < 4; ++i) {
-                if (onCoarseEdge(cx[i], cz[i]) && stitchedHeight(cx[i], cz[i], out[i]))
+                if (onCoarseEdge(cx[i], cz[i]) && stitchedHeight(cx[i], cz[i], c->h, out[i]))
                     continue;
-                if (!cornerLand(cx[i], cz[i], out[i]))
+                if (!cornerLand(cx[i], cz[i], c->h, out[i]))
                     out[i] = c->h; // cannot happen: the cell itself counts
             }
             return true;
@@ -863,18 +877,18 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
             if (nc->water)
                 return std::fabs(nc->h - ha) < 0.01f && std::fabs(nc->h - hb) < 0.01f;
             float sa, sb;
-            if (!stitchedHeight(cax, caz, sa) || !stitchedHeight(cbx, cbz, sb))
+            if (!stitchedHeight(cax, caz, nc->h, sa) || !stitchedHeight(cbx, cbz, nc->h, sb))
                 return false;
             return std::fabs(sa - ha) < 0.01f && std::fabs(sb - hb) < 0.01f;
         };
         // Normal at a corner from the heights of the columns around it.
-        auto cornerNormal = [&](int cx, int cz) -> v3f {
+        auto cornerNormal = [&](int cx, int cz, float ref) -> v3f {
             auto hAt = [&](int x, int z, float fallback) -> float {
                 float h;
-                return cornerLand(x, z, h) ? h : fallback;
+                return cornerLand(x, z, ref, h) ? h : fallback;
             };
             float h0;
-            if (!cornerLand(cx, cz, h0))
+            if (!cornerLand(cx, cz, ref, h0))
                 return v3f(0, 1, 0);
             const float hx0 = hAt(cx - 1, cz, h0), hx1 = hAt(cx + 1, cz, h0);
             const float hz0 = hAt(cx, cz - 1, h0), hz1 = hAt(cx, cz + 1, h0);
@@ -953,7 +967,7 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                 for (int i = 0; i < 4; ++i) {
                     // Godot space: z mirrored.
                     const v3f p(ox + cxs[i], hs[i], -(oz + czs[i]));
-                    v3f nrm = col.water || spec.terrace ? v3f(0, 1, 0) : cornerNormal(cix[i], ciz[i]);
+                    v3f nrm = col.water || spec.terrace ? v3f(0, 1, 0) : cornerNormal(cix[i], ciz[i], col.h);
                     nrm.Z = -nrm.Z;
                     uint8_t ao = 255;
                     if (trace)
