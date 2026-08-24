@@ -9,6 +9,11 @@ var env: WorldEnvironment
 var sky_mat: ShaderMaterial
 var sky_tex_cache := {}
 var cloud_off := Vector2.ZERO
+# The sky hands these to the node shaders' cloud shadows each frame.
+var cloud_cov := 0.0
+var cloud_shadow_k := 0.0
+var sun_par := Vector2.ZERO
+var bounce: DirectionalLight3D
 var cloud_speed := Vector2(-2.0, 0.0)
 var cloud_height := 120.0
 var t := 0.0
@@ -229,6 +234,17 @@ func _ready() -> void:
 	moon.shadow_bias = 0.04
 	moon.directional_shadow_blend_splits = true
 	add_child(moon)
+
+	# The bounce: ground light thrown back up, a dim wide light shining
+	# upward biased away from the sun, in an earthy colour. Where SDFGI is
+	# on it is nearly redundant (real bounce exists) and runs at a third;
+	# where SDFGI is off it is the only light a ceiling or an eave ever
+	# gets. No shadows: bounce light is soft by nature.
+	bounce = DirectionalLight3D.new()
+	bounce.light_energy = 0.0
+	bounce.shadow_enabled = false
+	bounce.light_color = Color(0.62, 0.55, 0.44)
+	add_child(bounce)
 
 	env = WorldEnvironment.new()
 	var e := Environment.new()
@@ -1398,6 +1414,12 @@ func _update_environment_extras() -> void:
 	cloud_off += cloud_speed * get_process_delta_time() * 0.004
 	sky_mat.set_shader_parameter("cloud_offset", cloud_off)
 	sky_mat.set_shader_parameter("cloud_plane_h", clampf(cloud_height - cam.position.y, 10.0, 400.0))
+	# The node shaders' cloud shadows read the same deck: scroll, coverage,
+	# strength, and where the deck is so the shadow is cast along the sun.
+	RenderingServer.global_shader_parameter_set("goanna_cloud_shadow",
+			Vector4(cloud_off.x, cloud_off.y, cloud_cov, cloud_shadow_k))
+	RenderingServer.global_shader_parameter_set("goanna_cloud_geom",
+			Vector4(0.035, maxf(cloud_height, cam.position.y + 10.0), sun_par.x, sun_par.y))
 	var under: bool = client.is_underwater(cam.position)
 	if under == underwater:
 		return
@@ -1554,6 +1576,25 @@ func _apply_sky() -> void:
 			+ hor * (light_fill * 0.9 * dawn * (1.0 - day)) \
 			+ sky["night_horizon"] * (light_fill * 1.6 * night)
 	RenderingServer.global_shader_parameter_set("goanna_sky_fill", Vector3(fill.r, fill.g, fill.b))
+	# The lower hemisphere of the same fill: what the ground throws back,
+	# dimmer and pulled toward earth. The node shaders blend by the world
+	# normal.
+	var gfill := fill * 0.6
+	RenderingServer.global_shader_parameter_set("goanna_ground_fill",
+			Vector3(gfill.r * 1.0, gfill.g * 0.9, gfill.b * 0.72))
+	# Cloud shadow strength: by day only, and by how much cloud there is to
+	# cast one. 0.35 of the light at full coverage, soft, never black.
+	var cdens: float = float(st["clouds"]["density"]) if st.has("clouds") else 0.0
+	cloud_cov = clamp(cdens, 0.0, 0.95) if bool(sky.get("clouds", true)) else 0.0
+	cloud_shadow_k = 0.35 * day * smoothstep(0.02, 0.15, cloud_cov)
+	sun_par = Vector2(sun_dir.x, sun_dir.z) / maxf(sun_dir.y, 0.25)
+	# And the bounce follows the sun: strongest at noon, earthy, from below,
+	# biased away from the sun's azimuth as real ground bounce is.
+	var bdir := Vector3(-sun_dir.x * 0.35, 1.0, -sun_dir.z * 0.35).normalized()
+	bounce.transform = Transform3D(Basis.looking_at(bdir, Vector3.FORWARD), Vector3.ZERO)
+	bounce.light_energy = light_sun * 0.16 * day * (0.35 if env.environment.sdfgi_enabled else 1.0)
+	bounce.light_color = Color(0.62, 0.55, 0.44) * sun.light_color
+	bounce.visible = bounce.light_energy > 0.005
 	sky_mat.set_shader_parameter("sun_dir", sun_dir.normalized() if sun_dir.length() > 0.001 else Vector3.UP)
 	sky_mat.set_shader_parameter("moon_dir", moon_dir.normalized() if moon_dir.length() > 0.001 else Vector3.DOWN)
 	sky_mat.set_shader_parameter("sun_visible", bool(st["sun"]["visible"]))

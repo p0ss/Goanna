@@ -50,3 +50,15 @@ goanna_sky_horizon={
 "type": "vec3",
 "value": Vector3(0.47, 0.6, 0.79)
 }
+goanna_cloud_shadow={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
+goanna_cloud_geom={
+"type": "vec4",
+"value": Vector4(0.035, 120, 0, 0)
+}
+goanna_ground_fill={
+"type": "vec3",
+"value": Vector3(0, 0, 0)
+}

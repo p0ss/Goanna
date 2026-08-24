@@ -156,7 +156,10 @@ void sky() {
 	// The ray is projected onto the deck, so the clouds have real perspective:
 	// big overhead, compressed toward the horizon.
 	if (cloud_coverage > 0.01 && dir.y > 0.02) {
-		vec2 world = dir.xz / dir.y * cloud_plane_h;
+		// POSITION anchors the deck to the world rather than to the camera,
+		// so the clouds parallax as the player moves and the shadows the
+		// node shaders cast from the same field lie under their clouds.
+		vec2 world = POSITION.xz + dir.xz / dir.y * cloud_plane_h;
 		vec2 uv = world * cloud_scale + cloud_offset;
 		float n = fbm(uv);
 		float cov = smoothstep(1.0 - cloud_coverage, 1.0 - cloud_coverage + 0.16, n);

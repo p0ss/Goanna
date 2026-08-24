@@ -386,12 +386,17 @@ they are worth doing:
    the near mesher; Luanti's own smooth lighting path cannot be reused
    because its light is discarded at `encode_light` while
    `g_goanna_no_light` is set.
-2. **Cloud shadows.** The sky already knows its coverage, speed and height;
+2. *(landed 2026-08-24: the node shaders compute the sky's own cloud fbm
+   at each pixel, projected along the sun through the deck, with a wider
+   threshold so the dimming is soft; the deck is world anchored now so the
+   shadows lie under their clouds)* **Cloud shadows.** The sky already knows its coverage, speed and height;
    the ground never hears about it. One large Decal following the camera,
    modulating albedo with the same cloud field, puts moving hundred node
    scale variance over every outdoor scene for one texture and no per node
    cost. Godot's directional lights have no cookie, which is why a decal.
-3. **A hemisphere ambient.** With SDFGI off (it is off in the owner's own
+3. *(landed 2026-08-24: the fill blends between goanna_sky_fill and a
+   warm dim goanna_ground_fill by the world normal)* **A hemisphere
+   ambient.** With SDFGI off (it is off in the owner's own
    profile) ambient is one flat constant. A normal dependent term in the
    node shaders, sky colour from above, horizon at the sides, a ground
    bounce from below, sells shape at every distance for a few shader lines.
@@ -412,7 +417,9 @@ they are worth doing:
 6. **Shadow reach.** Tree shadows end at 200 nodes
    (`directional_shadow_max_distance`); the mid ground the owner pointed at
    is largely past it. Scale with the view range and measure the cost.
-7. **Bounce.** Where SDFGI stays off, a dim counter light opposite the sun
+7. *(landed 2026-08-24: a shadowless earthy light shining upward, biased
+   away from the sun, at a sixth of the sun by day and a third of that
+   where SDFGI is on)* **Bounce.** Where SDFGI stays off, a dim counter light opposite the sun
    in the ground's average colour is the cheap stand in.
 
 The far field's own next step, a far tier shader that does its fog toward

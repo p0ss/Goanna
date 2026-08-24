@@ -174,7 +174,10 @@ void fragment() {
 	AO_LIGHT_AFFECT = vertex_ao_light_strength;
 	// The fill is emission so that it is neither shadowed nor occluded: it is
 	// the light the sky light channel says reaches here, see the include.
-	EMISSION += ALBEDO * goanna_sky_fill * v_nodelight.g * sky_fill_strength;
+	// Clouds between here and the sun dim the surface, fill and all.
+	ALBEDO *= goanna_cloud_dim(v_world);
+	vec3 fill_col = mix(goanna_ground_fill, goanna_sky_fill, clamp(0.5 + 0.5 * v_wnormal.y, 0.0, 1.0));
+	EMISSION += ALBEDO * fill_col * v_nodelight.g * sky_fill_strength;
 	if (block_light_emission > 0.0)
 		EMISSION += ALBEDO * v_nodelight.r * block_light_emission;
 	if (debug_nodelight_strength > 0.0) {
