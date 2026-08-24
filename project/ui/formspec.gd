@@ -167,22 +167,7 @@ static func fs_unescape(s: String) -> String:
 			esc = true
 		else:
 			out += ch
-	# strip enriched-text escape sequences: ESC ( ... )
-	var res := ""
-	var i := 0
-	while i < out.length():
-		if out.unicode_at(i) == 0x1b and i + 1 < out.length() and out[i + 1] == "(":
-			var j := out.find(")", i)
-			if j < 0:
-				break
-			i = j + 1
-			continue
-		if out.unicode_at(i) == 0x1b:
-			i += 2
-			continue
-		res += out[i]
-		i += 1
-	return res
+	return strip_enriched(out)
 
 func _parse(spec: String) -> void:
 	for raw in fs_split(spec, ELEM_SEP):
@@ -311,6 +296,62 @@ static func parse_color(s: String, fallback: Color) -> Color:
 		c.a = alpha
 		return c
 	return fallback
+
+# Splits Luanti's enriched-text escape sequences into colour runs, for
+# anything that draws its own text instead of handing it to a Label:
+# HUD text, item tooltips, chat. `core.get_color_escape_sequence` writes
+# `ESC(c@#rrggbb)`; `core.colorize` wraps it with `ESC(c@)` to reset. A
+# translated string arrives as `ESC(T@textdomain)...ESCE`, from
+# `core.translate`: Goanna has no client-side translation catalogue, so,
+# like an upstream client missing the language pack, the marked text is
+# kept as-is rather than translated (docs/lua_api.md, "Escape sequences").
+static func parse_enriched_runs(s: String, default_color: Color) -> Array:
+	var runs := []
+	var cur := default_color
+	var buf := ""
+	var i := 0
+	var n := s.length()
+	while i < n:
+		if s.unicode_at(i) == 0x1b:
+			if buf != "":
+				runs.append({"text": buf, "color": cur})
+				buf = ""
+			i += 1
+			if i >= n:
+				break
+			var seq := ""
+			if s[i] == "(":
+				i += 1
+				var start := i
+				while i < n and s[i] != ")":
+					if s[i] == "\\":
+						i += 1
+					i += 1
+				seq = s.substr(start, i - start)
+				if i < n:
+					i += 1  # skip ')'
+			else:
+				seq = s[i]
+				i += 1
+			var parts := seq.split("@")
+			if parts[0] == "c":
+				cur = parse_color(parts[1], default_color) if parts.size() > 1 and parts[1] != "" else default_color
+			# "T" (translation start), "E" (its end) and "F" (an argument's
+			# start) carry no colour of their own; leave cur as it is.
+		else:
+			buf += s[i]
+			i += 1
+	if buf != "":
+		runs.append({"text": buf, "color": cur})
+	return runs
+
+# The plain-text form of parse_enriched_runs, for contexts (tooltips, chat)
+# that can only show one colour.
+static func strip_enriched(s: String) -> String:
+	var out := ""
+	for run in parse_enriched_runs(s, Color.WHITE):
+		out += run["text"]
+	return out
 
 # --- building --------------------------------------------------------------
 
@@ -1089,13 +1130,18 @@ class FormspecSlot extends Control:
 		listname = lname
 		index = i
 		colors = cols
+		# Item icons are pixel art; the default 2D filter is linear, which
+		# blurs their hard silhouette edges into the transparent background
+		# and reads as a soft grey fringe, worst on thin shapes like tool
+		# heads where edge pixels are a large share of the icon.
+		texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		mouse_entered.connect(func() -> void: hovered = true; queue_redraw())
 		mouse_exited.connect(func() -> void: hovered = false; queue_redraw())
 
 	func refresh() -> void:
 		item = form.item_source.get_list_item(location, listname, index) if form.item_source else {}
 		icon = form.item_source.item_icon(item.get("name", "")) if (form.item_source and item.get("name", "") != "") else null
-		tooltip_text = item.get("description", "") if item.get("name", "") != "" else ""
+		tooltip_text = form.strip_enriched(String(item.get("description", ""))) if item.get("name", "") != "" else ""
 		if tooltip_text == "":
 			tooltip_text = item.get("name", "")
 		queue_redraw()

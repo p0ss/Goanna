@@ -1126,10 +1126,25 @@ MaterialKey GoannaClient::keyForIrr(const video::SMaterial &m, u16 layer) {
         // plant, a tile being dug) resolves back to its own single image, so
         // it is never sampled as if it were an array.
         bool cracked = m.getTexture(MapBlockMesh::TEXTURE_LAYER_CRACK) != nullptr;
+        // Waving leaves are backface-culled (they are cube-shaped, unlike
+        // waving plants), so the checks above do not rule them out, but
+        // nodes_array.gdshader has no wind logic at all: routing them
+        // through it silently drops the sway, which is how leaves ended up
+        // rendering still. materialFor() below picks the special per-material
+        // shader (leaves, plants, glass, water) whenever it is not an array,
+        // so keep those material types off the array path here too.
+        MaterialType mtype = m_session->shsrc().materialType(key.shader_id);
+        bool wants_special_shader = mtype == TILE_MATERIAL_WAVING_LEAVES ||
+                mtype == TILE_MATERIAL_WAVING_PLANTS ||
+                mtype == TILE_MATERIAL_LIQUID_TRANSPARENT ||
+                mtype == TILE_MATERIAL_WAVING_LIQUID_TRANSPARENT ||
+                mtype == TILE_MATERIAL_WAVING_LIQUID_BASIC ||
+                ((mtype == TILE_MATERIAL_ALPHA || mtype == TILE_MATERIAL_PLAIN_ALPHA) &&
+                        m.BackfaceCulling);
         // Only commit to the array path if the Godot array actually built:
         // otherwise the key would name a texture with no 2D image behind it
         // and the tile would render untextured white.
-        bool array_ready = m.BackfaceCulling && !cracked &&
+        bool array_ready = m.BackfaceCulling && !cracked && !wants_special_shader &&
                 m_session->shsrc().usesArrayTexture(key.shader_id) &&
                 gt->godotArray().is_valid();
         if (array_ready) {

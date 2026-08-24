@@ -88,6 +88,11 @@ func _ready() -> void:
 	hud = Control.new()
 	hud.set_anchors_preset(Control.PRESET_FULL_RECT)
 	hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# The default 2D filter is linear, which blurs a drawn icon's hard
+	# silhouette edges into the transparent background: a soft grey fringe,
+	# worst on thin shapes like tool heads. formspec.gd's own item slots
+	# set this for the same reason.
+	hud.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	hud.draw.connect(_draw_hud)
 	add_child(hud)
 
@@ -142,6 +147,7 @@ func _ready() -> void:
 	cursor_ctl = Control.new()
 	cursor_ctl.set_anchors_preset(Control.PRESET_FULL_RECT)
 	cursor_ctl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cursor_ctl.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	cursor_ctl.draw.connect(_draw_cursor_stack)
 	add_child(cursor_ctl)
 
@@ -411,10 +417,27 @@ func _main_names() -> Array:
 			out.append("%d:%s x%d" % [i, it["name"], it.get("count", 0)])
 	return out
 
+var _last_toggle_keycode := -1
+var _last_toggle_frame := -1
+
 func _unhandled_input(event: InputEvent) -> void:
 	if client == null:
 		return
 	if event is InputEventKey and event.pressed and not event.echo:
+		# Some Linux input backends (seen under Wayland/XWayland) have
+		# delivered one physical keypress as two separate, non-echo
+		# InputEventKey events in the same frame. A person cannot press,
+		# release and press the same key again inside one frame, so a
+		# second one this soon is a duplicate delivery, not a fast
+		# double-tap; acting on it toggled a window straight back to where
+		# it started, which read as the window closing and reopening on a
+		# single keypress.
+		var frame := Engine.get_process_frames()
+		if event.keycode == _last_toggle_keycode and frame == _last_toggle_frame:
+			get_viewport().set_input_as_handled()
+			return
+		_last_toggle_keycode = event.keycode
+		_last_toggle_frame = frame
 		if window != null:
 			if event.keycode == KEY_ESCAPE:
 				_close_window()
@@ -454,12 +477,16 @@ func _unhandled_input(event: InputEvent) -> void:
 static func _chat_text(line: Variant) -> String:
 	if line is Dictionary:
 		var d: Dictionary = line
-		var msg := str(d.get("message", ""))
-		var sender := str(d.get("sender", ""))
+		# Chat is a plain Label, which cannot show colour runs the way HUD
+		# text now can; a server message wrapped in core.colorize (deaths,
+		# warnings) is at least readable stripped rather than shown with its
+		# escape sequences as literal text.
+		var msg := FormspecScript.strip_enriched(str(d.get("message", "")))
+		var sender := FormspecScript.strip_enriched(str(d.get("sender", "")))
 		if sender != "" and not msg.begins_with("<"):
 			return "<%s> %s" % [sender, msg]
 		return msg
-	return str(line)
+	return FormspecScript.strip_enriched(str(line))
 
 func _add_chat_line(text: String) -> void:
 	chat_lines.append({"text": text, "time": t})
@@ -1435,10 +1462,20 @@ func _draw_hud_text(pos: Vector2, e: Dictionary) -> void:
 	var total_h := line_h * lines.size()
 	var y := pos.y + (align.y - 1.0) * total_h / 2.0 + (e["offset"] as Vector2).y * hud_scale + f.get_ascent(fs)
 	for line in lines:
-		var w := f.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		# A HUD text element is how Mineclonia's achievement toasts and
+		# waypoint labels reach the client, both wrapped in `core.colorize`
+		# and `core.translate`; drawing the raw string showed their escape
+		# sequences as literal text, e.g. "(c@#ffff00)(T@awards)Advancement
+		# Made!E(c@#fff)" instead of a coloured "Advancement Made!".
+		var runs: Array = FormspecScript.parse_enriched_runs(line, col)
+		var w := 0.0
+		for run in runs:
+			w += f.get_string_size(run["text"], HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 		var x := pos.x + (align.x - 1.0) * w / 2.0 + (e["offset"] as Vector2).x * hud_scale
-		hud.draw_string_outline(f, Vector2(x, y), line, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 3, Color(0, 0, 0, 0.7))
-		hud.draw_string(f, Vector2(x, y), line, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
+		for run in runs:
+			hud.draw_string_outline(f, Vector2(x, y), run["text"], HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 3, Color(0, 0, 0, 0.7))
+			hud.draw_string(f, Vector2(x, y), run["text"], HORIZONTAL_ALIGNMENT_LEFT, -1, fs, run["color"])
+			x += f.get_string_size(run["text"], HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 		y += line_h
 
 func _draw_hud_inventory(pos: Vector2, e: Dictionary) -> void:

@@ -513,9 +513,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		yaw -= event.relative.x * mouse_sensitivity
 		var dy: float = event.relative.y * mouse_sensitivity * (1.0 if invert_mouse else -1.0)
 		pitch = clamp(pitch + dy, -89, 89)
-	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
 		Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE if Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED else Input.MOUSE_MODE_CAPTURED)
-	if event is InputEventKey and event.pressed and event.keycode == KEY_F:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F:
 		fly_mode = not fly_mode
 		print("fly mode: ", fly_mode)
 
@@ -568,6 +568,13 @@ func _process(delta: float) -> void:
 		if ui_blocks:
 			for k in keys:
 				keys[k] = false
+			# A window opening while the mouse button is physically still
+			# down (mid dig, say the player hits escape to check something)
+			# must not leave that held state to resume the moment the
+			# window closes: nothing clears it otherwise, since closing the
+			# window is not itself a button event.
+			dig_down = false
+			place_down = false
 		var r: Dictionary = client.step_player(delta, keys, pitch, yaw)
 		last_move = r
 		if r.has("eye_pos"):
