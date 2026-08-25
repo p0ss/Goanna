@@ -68,6 +68,9 @@ var chat_printed := 0
 var hud_scale := 1.0
 var gui_scale := 1.0           # user interface-scale multiplier (Display settings)
 var damage_flash := true       # flash red on taking damage
+var show_fps := false          # compact renderer/performance overlay
+var show_position := false     # player's server/world coordinates
+var render_stats_cache: Dictionary = {}
 var flash_rect: ColorRect
 var cursor_ctl: Control      # dragged stack, drawn above the formspec
 var audio: Node              # ui/audio.gd, sound
@@ -228,6 +231,7 @@ func _process(delta: float) -> void:
 		# It now tracks whether the far field has actually reached as far as it
 		# is allowed to go, and says nothing once it has.
 		var rs: Dictionary = client.render_stats()
+		render_stats_cache = rs
 		var far: int = int(rs.get("far_remote", 0))
 		var grant: int = int(rs.get("far_grant", 0))
 		var extent: int = int(rs.get("far_extent", 0))
@@ -679,6 +683,8 @@ const SETTINGS := [
 	["Material", "mat_stale", "slider", "Remembered terrain tint", "How far terrain drawn from what you saw earlier, rather than what the server is sending now, is pulled toward grey. 0 shows it at full colour, indistinguishable from live.", 0.0, 1.0, 0.05],
 	["Video", "damage_flash", "toggle", "Damage flash", "Flash the screen red when you take damage."],
 	["Video", "show_body", "toggle", "Show own body", "See your own body and held item when you look down."],
+	["Video", "show_fps", "toggle", "Performance counter", "Show FPS and the renderer counts that help distinguish graphics load from terrain streaming."],
+	["Video", "show_position", "toggle", "World position", "Show your current world coordinates."],
 	["Lighting", "light_sun", "slider", "Sunlight", "Strength of direct sun and moon light.", 0.0, 4.0, 0.1],
 	["Lighting", "light_ambient", "slider", "Ambient light", "Sky light filling shadowed surfaces.", 0.0, 3.0, 0.05],
 	["Lighting", "light_sdfgi", "slider", "Bounced light", "Strength of global illumination bouncing off surfaces.", 0.0, 4.0, 0.1],
@@ -700,7 +706,7 @@ const SETTINGS := [
 ]
 # Settings handled here rather than through the client (window, camera, UI).
 const LOCAL_KEYS := ["mouse_sensitivity", "invert_mouse", "view_bobbing", "fov",
-	"gui_scale", "max_fps", "vsync", "fullscreen", "damage_flash", "volume", "muted",
+	"gui_scale", "max_fps", "vsync", "fullscreen", "damage_flash", "show_fps", "show_position", "volume", "muted",
 	"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao",
 	"light_white", "light_exposure", "light_fill", "light_shafts"]
 var settings_menu: Control
@@ -737,6 +743,12 @@ func _apply_local(key: String, value: float, on: bool) -> void:
 			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN if on else DisplayServer.WINDOW_MODE_WINDOWED)
 		"damage_flash":
 			damage_flash = on
+		"show_fps":
+			show_fps = on
+			hud.queue_redraw()
+		"show_position":
+			show_position = on
+			hud.queue_redraw()
 		"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao", "light_white", "light_exposure", "light_fill", "light_shafts":
 			var ml := _main_node()
 			if ml != null:
@@ -759,6 +771,8 @@ func _local_value(key: String) -> float:
 		"vsync": return 1.0 if DisplayServer.window_get_vsync_mode() != DisplayServer.VSYNC_DISABLED else 0.0
 		"fullscreen": return 1.0 if DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN else 0.0
 		"damage_flash": return 1.0 if damage_flash else 0.0
+		"show_fps": return 1.0 if show_fps else 0.0
+		"show_position": return 1.0 if show_position else 0.0
 		"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao", "light_white", "light_exposure", "light_fill", "light_shafts":
 			return float(m.get(key)) if m != null else 1.0
 		"volume": return audio.volume if audio != null else 0.8
@@ -1236,6 +1250,63 @@ func _draw_test_overlay(vs: Vector2) -> void:
 				Color(1, 0.75, 0.4) if bool(cc.last_failed) else Color(0.6, 1.0, 0.75))
 		y += float(fs) * 1.3
 
+# The counter deliberately reuses the render_stats() sample already taken for
+# the far-field hint. It therefore adds only a few 2D glyphs, not another
+# renderer synchronization point or a tree of Label nodes. The extra counts
+# make an FPS report actionable: a high draw count is graphics/presentation
+# pressure, while a growing mesh queue with an ordinary draw count is terrain
+# production pressure.
+func _draw_performance_overlay(vs: Vector2) -> void:
+	if not show_fps and not show_position:
+		return
+	var lines: Array[String] = []
+	if show_fps:
+		var fps := Engine.get_frames_per_second()
+		var frame_ms := 1000.0 / float(fps) if fps > 0 else 0.0
+		lines.append("FPS %d   %.1f ms" % [fps, frame_ms])
+		lines.append("Draws %d   objects %d   GPU %.0f MB" % [
+				int(render_stats_cache.get("draw_calls", 0)),
+				int(render_stats_cache.get("objects", 0)),
+				float(render_stats_cache.get("video_mem_mb", 0.0))])
+		lines.append("Near %d   far %d   queue %d" % [
+				int(render_stats_cache.get("block_meshes", 0)),
+				int(render_stats_cache.get("lod_regions", 0)),
+				int(render_stats_cache.get("blocks_queued", 0))])
+		lines.append("Mesh %.1f ms   LOD %.1f ms   poll %.1f ms" % [
+				float(render_stats_cache.get("mesh_ms", 0.0)),
+				float(render_stats_cache.get("lod_ms", 0.0)),
+				float(render_stats_cache.get("poll_max_ms", 0.0))])
+	if show_position:
+		var m := _main_node()
+		var p := Vector3.ZERO
+		var have_position := false
+		if m != null and m.get("last_move") is Dictionary:
+			var mv: Dictionary = m.get("last_move")
+			if mv.get("pos") is Vector3:
+				p = mv["pos"]
+				have_position = true
+		if not have_position and m != null and m.get("cam") is Camera3D:
+			p = m.cam.global_position
+			have_position = true
+		if have_position:
+			lines.append("XYZ %.1f  %.1f  %.1f" % [p.x, p.y, p.z])
+
+	var f := hud.get_theme_default_font()
+	var fs := maxi(12, int(15 * hud_scale))
+	var pad := 7.0 * hud_scale
+	var line_h := float(fs) * 1.28
+	var widest := 0.0
+	for line in lines:
+		widest = maxf(widest, f.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x)
+	var box_size := Vector2(widest + pad * 2.0, line_h * lines.size() + pad * 1.5)
+	var box_pos := Vector2(vs.x - box_size.x - 12.0 * hud_scale, 12.0 * hud_scale)
+	hud.draw_rect(Rect2(box_pos, box_size), Color(0.015, 0.02, 0.025, 0.72), true)
+	var y := box_pos.y + pad + float(fs)
+	for line in lines:
+		var pos := Vector2(box_pos.x + pad, y)
+		hud.draw_string(f, pos, line, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(0.94, 0.97, 1.0))
+		y += line_h
+
 func _draw_hud() -> void:
 	if client == null:
 		return
@@ -1249,6 +1320,7 @@ func _draw_hud() -> void:
 		hud.draw_string_outline(f, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 3,
 				Color(0, 0, 0, 0.7 * far_hint_alpha))
 		hud.draw_string(f, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1, 1, 1, 0.85 * far_hint_alpha))
+	_draw_performance_overlay(vs)
 	_draw_test_overlay(vs)
 	var st: Dictionary = client.hud_state()
 	var flags: int = st.get("flags", 0xffff)
