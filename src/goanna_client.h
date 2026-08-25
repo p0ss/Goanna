@@ -262,6 +262,13 @@ public:
     int lod_cell() const { return m_lod_cell; }
     void set_lod_terrace(bool on);
     bool lod_terrace() const { return m_lod_terrace; }
+    // How many threads mesh the far field. 0 means pick from the hardware,
+    // which is what the pool does when it is started without a number; -1
+    // means mesh on the main thread, the comparison to make when a far field
+    // fault looks like a threading one. Takes effect immediately: the pool is
+    // stopped and restarted, and every region is captured again.
+    void set_mesh_threads(int threads);
+    int mesh_threads() const { return m_mesh_threads; }
     int update_lod(const godot::Vector3 &around, int max_rebuild);
     // The local block store (docs/far-rendering.md rung 5). The root
     // directory; each server gets its own subdirectory beneath it. Empty
@@ -448,6 +455,9 @@ private:
     // session goes, because a job holds the session's node definitions,
     // texture source and material table.
     MeshPool m_mesh_pool;
+    // The requested worker count, which is not the running one: 0 asks the
+    // pool to choose. MeshPool::stats() reports what it actually started.
+    int m_mesh_threads = 0;
     // How many finished regions to publish per poll. Uploading an ArrayMesh
     // is main thread work no matter who meshed it, so a backlog is spread
     // rather than spent at once.

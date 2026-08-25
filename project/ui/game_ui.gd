@@ -681,6 +681,7 @@ const SETTINGS := [
 	["Video", "bevel", "slider", "Edge bevel", "Chamfer the exposed edges of solid nodes.", 0.0, 0.15, 0.01],
 	["Video", "motes", "slider", "Ambient motes", "Drifting specks over leaves, flowers and sand.", 0.0, 4.0, 0.25],
 	["Video", "view_range", "slider", "View distance", "How much world to ask the server for, in blocks of 16 nodes. Most servers cap this near 12, so higher values may change nothing.", 4.0, 40.0, 1.0],
+	["Video", "mesh_threads", "slider", "Far mesh threads", "How many background threads build distant terrain. 0 picks a number from your processor, leaving a core for the game and one for the network. -1 builds it on the main thread instead, which is slower and is the setting to compare against if distant terrain looks wrong.", -1.0, 16.0, 1.0],
 	["Video", "lod_terrace", "toggle", "Terraced far terrain", "Draw distant ground as flat cells with steps between them, the way the blocks underneath do, instead of as a smoothed surface."],
 	["Video", "lod_distance", "slider", "Detail distance", "Blocks beyond this are drawn as simplified shapes, which costs less, and distant terrain beyond the server's range is drawn only when this is on. 0 turns both off.", 0.0, 24.0, 1.0],
 	["Video", "far_distance", "slider", "Far draw distance", "How far past the live range the far tiers draw, in nodes. Capped by what the server actually granted (docs/far-rendering.md); raising this past the grant changes nothing. Defaults to the grant itself, so this only needs touching to draw less than the server allows.", 0.0, 4096.0, 32.0],
@@ -805,6 +806,7 @@ func _apply_setting(key: String, value: float) -> void:
 		"lod_distance": if client.has_method("set_lod_distance"): client.set_lod_distance(int(value))
 		"far_distance": if client.has_method("set_far_distance"): client.set_far_distance(int(value))
 		"mantle": if client.has_method("set_mantle"): client.set_mantle(on)
+		"mesh_threads": if client.has_method("set_mesh_threads"): client.set_mesh_threads(int(value))
 		"lod_terrace": if client.has_method("set_lod_terrace"): client.set_lod_terrace(on)
 		"show_body": if client.has_method("set_show_body"): client.set_show_body(on)
 		"aux1_descends": if client.has_method("set_aux1_descends"): client.set_aux1_descends(on)
@@ -831,6 +833,7 @@ func _setting_value(key: String, fallback: float) -> float:
 		"lod_distance": if client.has_method("lod_distance"): return float(client.lod_distance())
 		"far_distance": if client.has_method("far_distance"): return float(client.far_distance())
 		"mantle": if client.has_method("mantle"): return 1.0 if client.mantle() else 0.0
+		"mesh_threads": if client.has_method("mesh_threads"): return float(client.mesh_threads())
 		"lod_terrace": if client.has_method("lod_terrace"): return 1.0 if client.lod_terrace() else 0.0
 		"show_body": if client.has_method("show_body"): return 1.0 if client.show_body() else 0.0
 		"aux1_descends": if client.has_method("aux1_descends"): return 1.0 if client.aux1_descends() else 0.0

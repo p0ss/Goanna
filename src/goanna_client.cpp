@@ -744,13 +744,14 @@ void GoannaClient::connect_to(const String &host, int port, const String &player
         g_settings->set("texture_path", std::string(m_texture_path.utf8().get_data()));
     m_session->start(host.utf8().get_data(), (uint16_t)port, player_name.utf8().get_data(),
             password.utf8().get_data());
-    // GOANNA_MESH_THREADS=0 keeps every mesh on the main thread, which is the
-    // comparison to make when a far field fault looks like a threading one.
-    int mesh_threads = 0;
+    // GOANNA_MESH_THREADS seeds the setting for a scripted run: -1 keeps
+    // every mesh on the main thread, which is the comparison to make when a
+    // far field fault looks like a threading one, and 0 lets the pool choose.
+    // The video settings panel moves the same value.
     if (const char *env = getenv("GOANNA_MESH_THREADS"))
-        mesh_threads = atoi(env);
-    if (!(mesh_threads == 0 && getenv("GOANNA_MESH_THREADS")))
-        m_mesh_pool.start(mesh_threads);
+        m_mesh_threads = std::clamp(atoi(env), -1, 16);
+    if (m_mesh_threads >= 0)
+        m_mesh_pool.start(m_mesh_threads);
 }
 
 void GoannaClient::disconnect_from_server() {
@@ -2685,6 +2686,29 @@ void GoannaClient::set_lod_terrace(bool on) {
         return;
     m_lod_terrace = on;
     lodReset();
+}
+
+void GoannaClient::set_mesh_threads(int threads) {
+    threads = std::clamp(threads, -1, 16);
+    if (threads == m_mesh_threads)
+        return;
+    m_mesh_threads = threads;
+    if (!m_session)
+        return; // applied on the next connect
+    m_mesh_pool.stop();
+    if (m_mesh_threads >= 0)
+        m_mesh_pool.start(m_mesh_threads);
+    // Anything captured for the old pool went with it, and the regions that
+    // were mid-build still believe they are building. Collect the keys first:
+    // lodMarkDirty touches the same map.
+    std::vector<LodRegionKey> keys;
+    keys.reserve(m_lod_regions.size());
+    for (auto &kv : m_lod_regions) {
+        kv.second.building = false;
+        keys.push_back(kv.first);
+    }
+    for (const LodRegionKey &k : keys)
+        lodMarkDirty(k);
 }
 
 void GoannaClient::set_lod_cell(int nodes) {
@@ -4734,6 +4758,8 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("lod_distance"), &GoannaClient::lod_distance);
     ClassDB::bind_method(D_METHOD("set_lod_cell", "nodes"), &GoannaClient::set_lod_cell);
     ClassDB::bind_method(D_METHOD("set_lod_terrace", "on"), &GoannaClient::set_lod_terrace);
+    ClassDB::bind_method(D_METHOD("set_mesh_threads", "threads"), &GoannaClient::set_mesh_threads);
+    ClassDB::bind_method(D_METHOD("mesh_threads"), &GoannaClient::mesh_threads);
     ClassDB::bind_method(D_METHOD("lod_terrace"), &GoannaClient::lod_terrace);
     ClassDB::bind_method(D_METHOD("lod_cell"), &GoannaClient::lod_cell);
     ClassDB::bind_method(D_METHOD("update_lod", "around", "max_rebuild"), &GoannaClient::update_lod);
