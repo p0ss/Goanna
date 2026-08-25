@@ -24,6 +24,12 @@ uniform float star_opacity = 0.0;
 uniform vec4 star_color : source_color = vec4(0.92, 0.92, 1.0, 1.0);
 uniform float star_density = 0.35;
 uniform vec4 cloud_color : source_color = vec4(1.0, 1.0, 1.0, 0.9);
+// The dawn/dusk colour ramp and how far into it the current sun elevation
+// is, both worked out once per frame in main.gd's _cloud_twilight_color:
+// see the comment there for why the window is wider than the ground's own
+// day/night bands.
+uniform vec3 cloud_twilight_color : source_color = vec3(1.0, 0.55, 0.25);
+uniform float cloud_twilight_k : hint_range(0.0, 1.0) = 0.0;
 uniform float cloud_coverage = 0.4;
 uniform float cloud_plane_h = 90.0;
 uniform vec2 cloud_offset = vec2(0.0);
@@ -170,9 +176,17 @@ void sky() {
 		float lit = fbm(uv + sund * 0.6);
 		float shade = clamp(0.55 + (n - lit) * 3.0, 0.0, 1.0);
 		vec3 cc = mix(cloud_color.rgb * 0.45, cloud_color.rgb, shade);
-		// warm the clouds near the sun, as at dawn and dusk
-		float toward_sun = pow(max(dot(normalize(vec3(dir.x, 0.0, dir.z)), vec3(sund.x, 0.0, sund.y)), 0.0), 3.0);
-		cc = mix(cc, cc * sun_tint.rgb * 1.25, 0.35 * toward_sun);
+		// Dawn and dusk light the whole underside of the sky, brightest
+		// toward the sun but never zero away from it, the way a real
+		// horizon glows along its length and not just at one point.
+		// cloud_twilight_k is how far into that window the sun's elevation
+		// currently is; cloud_twilight_color is the ramp it is picked from
+		// (both worked out in main.gd, see cloud_twilight_k's comment
+		// there). The lit side of a mass still runs brighter than its
+		// shadowed side within the glow, the same shade term as above.
+		float toward_sun = pow(max(dot(normalize(vec3(dir.x, 0.0, dir.z)), vec3(sund.x, 0.0, sund.y)), 0.0), 1.4);
+		float glow = mix(0.4, 1.0, toward_sun);
+		cc = mix(cc, cloud_twilight_color * mix(0.8, 1.3, shade), cloud_twilight_k * glow);
 		col = mix(col, cc, cov * fade * cloud_color.a);
 	}
 	COLOR = col;

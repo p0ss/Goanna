@@ -723,7 +723,9 @@ func _process(delta: float) -> void:
 				st.get("draw_calls", 0), st.get("objects", 0), st.get("video_mem_mb", 0.0),
 				str(st.get("lod_tiers", {})), st.get("lod_regions", 0), st.get("lod_regions_dirty", 0),
 				st.get("lod_quads", 0), st.get("lod_faces", 0), st.get("lod_surfaces", 0), st.get("lod_ms", 0.0)]
-				+ " | far=%d grant=%d store=%d/%.0fMB | poll_max=%.1fms chains=%d queue=%d" % [st.get("far_blocks", 0), st.get("far_grant", 0),
+				+ " | far=%d grant=%d reach=%d/%d req=%d areas=%d/%d/%d store=%d/%.0fMB | poll_max=%.1fms chains=%d queue=%d" % [st.get("far_blocks", 0), st.get("far_grant", 0),
+				st.get("far_extent", 0), st.get("far_reach", 0), st.get("far_requests_inflight", 0),
+				st.get("far_areas_complete", 0), st.get("far_areas_partial", 0), st.get("far_areas_empty", 0),
 				st.get("store_blocks", 0), st.get("store_mb", 0.0), st.get("poll_max_ms", 0.0),
 				st.get("lod_chains", 0), st.get("lod_chain_queue", 0)])
 		if OS.get_environment("GOANNA_DUMPSKY") != "" and int(t) == 3:
@@ -1498,6 +1500,36 @@ func _envf(name: String, dflt: float) -> float:
 	var v := OS.get_environment(name)
 	return float(v) if v != "" else dflt
 
+# The colour clouds turn as the sun crosses the horizon: gold while it is
+# still a little above it, hot orange right on the horizon, then through
+# pink into magenta and on toward night blue as it sinks further. A single
+# warm tint (what sun.light_color still uses, for the disc and direct
+# light) reads as a mild colour shift; a sky on fire at sunset runs through
+# several hues, which is what this stop table is for. `elev` is sun_dir.y,
+# the same units _apply_sky already works in: 1 overhead, 0 the horizon,
+# negative below it.
+const CLOUD_TWILIGHT_STOPS := [
+	[0.16, Color(1.0, 0.97, 0.90)],
+	[0.06, Color(1.0, 0.82, 0.48)],
+	[0.0, Color(1.0, 0.52, 0.22)],
+	[-0.06, Color(0.95, 0.38, 0.42)],
+	[-0.16, Color(0.62, 0.28, 0.48)],
+	[-0.30, Color(0.30, 0.22, 0.42)],
+	[-0.42, Color(0.14, 0.14, 0.24)],
+]
+
+static func _cloud_twilight_color(elev: float) -> Color:
+	var stops := CLOUD_TWILIGHT_STOPS
+	if elev >= stops[0][0]:
+		return stops[0][1]
+	if elev <= stops[-1][0]:
+		return stops[-1][1]
+	for i in stops.size() - 1:
+		var a: Array = stops[i]
+		var b: Array = stops[i + 1]
+		if elev <= a[0] and elev >= b[0]:
+			return (a[1] as Color).lerp(b[1], inverse_lerp(a[0], b[0], elev))
+	return stops[-1][1]
 
 func _apply_sky() -> void:
 	var st: Dictionary = client.sky_state()
@@ -1631,10 +1663,25 @@ func _apply_sky() -> void:
 	var clouds: Dictionary = st["clouds"]
 	var ccol: Color = clouds["color_bright"]
 	ccol.a = clamp(0.55 + 0.45 * float(clouds["density"]), 0.0, 1.0)
-	# clouds go dark at night, not glowing grey
-	var cdim: float = lerp(1.0, 0.16, night)
+	# Clouds are the highest thing in the scene, so the sun clears the
+	# horizon for them before it does for the ground, and stays on them
+	# after the ground has gone dark: real dawn shows in the clouds before
+	# the ground brightens, and dusk lingers in them after it dims. So the
+	# dark floor below only bites once well past where the ground alone
+	# would already call it night (`night` reaches 1 by elev -0.25).
+	var cloud_night: float = smoothstep(-0.42, -0.60, elev)
+	var cdim: float = lerp(1.0, 0.16, cloud_night)
 	ccol = Color(ccol.r * cdim, ccol.g * cdim, ccol.b * cdim, ccol.a)
 	sky_mat.set_shader_parameter("cloud_color", ccol)
+	# The twilight glow itself: a window centred on the horizon, wider than
+	# the ground's own day/night bands for the same reason as cloud_night
+	# above, carrying the colour ramp and how strongly it currently applies.
+	var twilight_rise: float = smoothstep(-0.42, -0.06, elev)
+	var twilight_fall: float = 1.0 - smoothstep(0.02, 0.28, elev)
+	var twilight: float = clamp(twilight_rise * twilight_fall, 0.0, 1.0)
+	var tcol: Color = _cloud_twilight_color(elev)
+	sky_mat.set_shader_parameter("cloud_twilight_color", Vector3(tcol.r, tcol.g, tcol.b))
+	sky_mat.set_shader_parameter("cloud_twilight_k", twilight)
 	sky_mat.set_shader_parameter("cloud_coverage", clamp(float(clouds["density"]), 0.0, 0.95) if bool(sky.get("clouds", true)) else 0.0)
 	var cs: Vector2 = clouds["speed"]
 	cloud_speed = cs
