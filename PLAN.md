@@ -192,15 +192,23 @@ with Godot 4.5.1, Forward+ on Vulkan, NVIDIA:
 - Server particle spawners, weather, positional sound, the first person
   body and held item, and the formspec and inventory work behind rung 3.
 
+- The far field at summary protocol version 6, 2026-08-25, measured from
+  the packaged `v0.2.0-alpha` build headless against that same server: the
+  full 1024 node grant reached (`reach=992/992`) in about 40 s from joining,
+  61,947 far blocks, 364 complete areas and 181,436 coarse chains. That is
+  the request, summary and chain path proven end to end at the new version.
+
 **Built and unit tested, not yet observed in a session.** These are in
 `v0.2.0-alpha` and are the first thing to look at if it misbehaves:
 
-- The far field's move from a heightfield to a 4 by 4 by 4 voxel mip chain,
-  landed 2026-08-25, which is what lets a distant cave mouth, overhang or
-  floating island keep its lower and side faces. `goanna_lod_test` covers
-  the recursive mip and the exposed faces. The summary protocol goes to
-  version 6 with it, so a 0.1 era copy of `goanna_server_mod` will log a
-  version mismatch and send nothing until it is updated.
+- What the volumetric far field actually looks like. The move from a
+  heightfield to a 4 by 4 by 4 voxel mip chain is what should let a distant
+  cave mouth, overhang or floating island keep its lower and side faces, and
+  `goanna_lod_test` covers the recursive mip and the exposed faces, but the
+  measurement above was headless, so nothing has yet judged the picture. The
+  summary protocol goes to version 6 with the change, so a 0.1 era copy of
+  `goanna_server_mod` will log a version mismatch and send nothing until it
+  is updated.
 - Concurrent far pregeneration, and the client's own local server trusting
   this single player's movement (`anticheat_flags = digging,interaction`)
   so fast flight stops reading as a streaming limit. This applies only to
