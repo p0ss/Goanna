@@ -1268,11 +1268,14 @@ func _draw_performance_overlay(vs: Vector2) -> void:
 				int(render_stats_cache.get("draw_calls", 0)),
 				int(render_stats_cache.get("objects", 0)),
 				float(render_stats_cache.get("video_mem_mb", 0.0))])
-		lines.append("Near %d   far %d   queue %d" % [
+		lines.append("Near %d/%d   far %d/%d   entities %d" % [
 				int(render_stats_cache.get("block_meshes", 0)),
+				int(render_stats_cache.get("near_surfaces", 0)),
 				int(render_stats_cache.get("lod_regions", 0)),
-				int(render_stats_cache.get("blocks_queued", 0))])
-		lines.append("Mesh %.1f ms   LOD %.1f ms   poll %.1f ms" % [
+				int(render_stats_cache.get("lod_surfaces", 0)),
+				int(render_stats_cache.get("entities", 0))])
+		lines.append("Queue %d   mesh %.1f   LOD %.1f   poll %.1f ms" % [
+				int(render_stats_cache.get("blocks_queued", 0)),
 				float(render_stats_cache.get("mesh_ms", 0.0)),
 				float(render_stats_cache.get("lod_ms", 0.0)),
 				float(render_stats_cache.get("poll_max_ms", 0.0))])

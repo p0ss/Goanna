@@ -1710,6 +1710,21 @@ Dictionary GoannaClient::render_stats() {
     d["blocks_meshed_last"] = m_last_meshed;
     d["blocks_queued"] = m_last_queue;
     d["block_meshes"] = (int)m_block_nodes.size();
+    int near_surfaces = 0;
+    for (const auto &kv : m_block_nodes) {
+        if (!kv.second)
+            continue;
+        Ref<Mesh> mesh = kv.second->get_mesh();
+        if (mesh.is_valid())
+            near_surfaces += mesh->get_surface_count();
+        for (int ci = 0; ci < kv.second->get_child_count(); ++ci) {
+            MeshInstance3D *child = Object::cast_to<MeshInstance3D>(kv.second->get_child(ci));
+            if (child && child->get_mesh().is_valid())
+                near_surfaces += child->get_mesh()->get_surface_count();
+        }
+    }
+    d["near_surfaces"] = near_surfaces;
+    d["entities"] = m_entities ? m_entities->count() : 0;
     d["materials"] = (int)m_materials.size();
     d["resident_blocks"] = m_session ? m_session->residentBlocks() : 0;
     d["light_pool"] = (int)m_light_pool.size();
@@ -3539,12 +3554,6 @@ int GoannaClient::poll_blocks(int max_blocks) {
         return 0;
     std::vector<v3s16> fresh_raw = m_session->takeNewBlocks();
     std::vector<v3s16> fresh;
-    {
-        std::set<v3s16> seen;
-        for (const v3s16 &bp : fresh_raw)
-            if (seen.insert(bp).second)
-                fresh.push_back(bp);
-    }
     int done = 0;
     auto t_poll = clock_t_::now();
     // A time budget as well as a count: a full detail block costs about 5 ms
@@ -3558,13 +3567,45 @@ int GoannaClient::poll_blocks(int max_blocks) {
     std::lock_guard<std::mutex> lk(m_session->mapLock());
     // Mesh nearest-first so a backlog does not leave the block right ahead of
     // the player unmeshed (visible pop-in) while distant ones mesh in arrival
-    // order.
+    // order. A reduced view range is also cancellation: blocks left in the
+    // old queue are already in the persistent store and do not need exact GPU
+    // meshes before pruneDistantBlocks releases their full node data. Before
+    // this filter, lowering 40 to 12 left 182,849 stale blocks being copied,
+    // sorted and requeued every frame indefinitely.
+    v3f pb;
+    v3s16 player_block;
+    bool have_player = false;
     if (LocalPlayer *pl = m_session->player()) {
         v3f pp = pl->getPosition() * (1.0f / BS);
-        v3f pb(pp.X / MAP_BLOCKSIZE, pp.Y / MAP_BLOCKSIZE, pp.Z / MAP_BLOCKSIZE);
-        std::sort(fresh.begin(), fresh.end(), [&](const v3s16 &a, const v3s16 &b) {
-            return v3f::from(a).getDistanceFromSQ(pb) < v3f::from(b).getDistanceFromSQ(pb);
-        });
+        pb = v3f(pp.X / MAP_BLOCKSIZE, pp.Y / MAP_BLOCKSIZE, pp.Z / MAP_BLOCKSIZE);
+        player_block = v3s16((s16)std::floor(pb.X), (s16)std::floor(pb.Y), (s16)std::floor(pb.Z));
+        have_player = true;
+    }
+    const int keep = m_session->wantedRange + 4;
+    std::set<v3s16> seen;
+    fresh.reserve(fresh_raw.size());
+    for (const v3s16 &bp : fresh_raw) {
+        const v3s16 d = bp - player_block;
+        if (have_player && (std::abs(d.X) > keep || std::abs(d.Y) > keep || std::abs(d.Z) > keep))
+            continue;
+        if (seen.insert(bp).second)
+            fresh.push_back(bp);
+    }
+    auto nearer = [&](const v3s16 &a, const v3s16 &b) {
+        return v3f::from(a).getDistanceFromSQ(pb) < v3f::from(b).getDistanceFromSQ(pb);
+    };
+    // Only the first max_blocks can possibly be consumed this frame. A full
+    // sort of a six-figure backlog cost tens of milliseconds and was thrown
+    // away when all but a handful were requeued. Partition in linear time and
+    // order just the shortlist that will actually be visited.
+    const size_t shortlist = std::min(fresh.size(), (size_t)std::max(0, max_blocks));
+    if (shortlist < fresh.size())
+        std::nth_element(fresh.begin(), fresh.begin() + shortlist, fresh.end(), nearer);
+    if (shortlist > 1)
+        std::sort(fresh.begin(), fresh.begin() + shortlist, nearer);
+    if (fresh_raw.size() > fresh.size() && getenv("GOANNA_DEBUG_BLOCKS")) {
+        UtilityFunctions::print("block queue: cancelled ", (int64_t)(fresh_raw.size() - fresh.size()),
+                " outside current range, retained ", (int64_t)fresh.size());
     }
     for (const v3s16 &bp : fresh) {
         if (done >= max_blocks || (done > 0 && ms_since(t_poll) > poll_budget_ms)) {
