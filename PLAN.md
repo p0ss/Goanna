@@ -165,6 +165,54 @@ Sizing, by what happens to those ~57k lines:
   threading is unproblematic (session thread + Godot main thread with two
   mutexes). The sizing above holds or is pessimistic.
 
+## Log since v0.1.0-alpha (2026-08-17 to 2026-08-25)
+
+The tag `v0.1.0-alpha` was cut on 2026-08-17. What follows is what landed
+between then and `v0.2.0-alpha`, separated into what has been observed
+running and what has only been built and unit tested. That separation is the
+point of this section: the code existing is not the same claim as the code
+working, and `README.md` may only move an item on the second.
+
+**Observed running.** Against a local Mineclonia server on Luanti 5.16.1
+with Godot 4.5.1, Forward+ on Vulkan, NVIDIA:
+
+- Far rendering end to end, 2026-08-23. A 1024 node grant drawn within 30 s
+  of joining, and again across a server restart, from summaries the mod
+  keeps for terrain it has generated. `docs/far-rendering.md`.
+- An Iris shader pack's screen space chain, 2026-08-21. The proof pack in
+  `project/tests/shaderpacks/proof/` renders through `composite` and `final`
+  with DRAWBUFFERS routing, ping pong and live uniforms. No real pack has
+  been run. `docs/iris-compat.md`.
+- Per vertex light, 2026-08-21. Luanti's two light banks carried in
+  `CUSTOM0` rather than multiplied into albedo, so caves are dark, a torch
+  matters, and the same values are available to a translated pack as
+  `lmcoord`. `docs/mesh-attributes.md` is the contract.
+- The daylight balance reset on a material chart rather than by eye, with
+  the numbers in `docs/pbr-plan.md`.
+- Server particle spawners, weather, positional sound, the first person
+  body and held item, and the formspec and inventory work behind rung 3.
+
+**Built and unit tested, not yet observed in a session.** These are in
+`v0.2.0-alpha` and are the first thing to look at if it misbehaves:
+
+- The far field's move from a heightfield to a 4 by 4 by 4 voxel mip chain,
+  landed 2026-08-25, which is what lets a distant cave mouth, overhang or
+  floating island keep its lower and side faces. `goanna_lod_test` covers
+  the recursive mip and the exposed faces. The summary protocol goes to
+  version 6 with it, so a 0.1 era copy of `goanna_server_mod` will log a
+  version mismatch and send nothing until it is updated.
+- Concurrent far pregeneration, and the client's own local server trusting
+  this single player's movement (`anticheat_flags = digging,interaction`)
+  so fast flight stops reading as a streaming limit. This applies only to
+  the server Goanna starts for its own player and changes nothing for any
+  other server.
+- The cloud twilight ramp.
+
+**Still not working**, unchanged from `README.md`: some dropped items are
+placeholder boxes, animated node textures stay on their first frame, parts
+of particle behaviour and the batched particle packet are absent, and
+Windows and macOS have not been play-tested.
+
 ## Verified on (as of 2026-08-16)
 
 Godot 4.5.1 release binary; Luanti 5.16.1 via flatpak with a Mineclonia
