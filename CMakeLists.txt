@@ -40,6 +40,7 @@ add_library(goanna SHARED
     src/goanna_client.cpp
     src/goanna_session.cpp
     src/goanna_mesher.cpp
+    src/goanna_mesh_pool.cpp
     src/goanna_light.cpp
     src/goanna_lod.cpp
     src/goanna_materials.cpp
@@ -79,6 +80,15 @@ target_link_libraries(goanna_light_test PRIVATE luanti_core)
 add_executable(goanna_lod_test EXCLUDE_FROM_ALL src/goanna_lod_test.cpp)
 target_include_directories(goanna_lod_test PRIVATE src)
 target_link_libraries(goanna_lod_test PRIVATE goanna luanti_core)
+
+# The mesh worker pool's contract: no job lost, none run twice, resubmission
+# replaces, cancel drops, priority orders.
+add_executable(goanna_mesh_pool_test EXCLUDE_FROM_ALL
+    src/goanna_mesh_pool_test.cpp
+    src/goanna_mesh_pool.cpp
+)
+target_include_directories(goanna_mesh_pool_test PRIVATE src)
+target_link_libraries(goanna_mesh_pool_test PRIVATE luanti_core)
 # transplanted client files use bare includes ("mapblock_mesh.h") that must
 # resolve to Luanti's originals; goanna's own headers come first.
 set_source_files_properties(

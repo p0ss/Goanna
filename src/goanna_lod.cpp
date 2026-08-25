@@ -359,12 +359,70 @@ void compactLodFineBoundary(BlockLodChain &out) {
 // ---------------------------------------------------------------------------
 // The region mesher
 
+void LodRegionSnapshot::reset(v3s16 origin_, int blocks_, int margin_) {
+    origin = origin_;
+    blocks = std::max(1, blocks_);
+    margin = std::max(0, margin_);
+    const size_t e = (size_t)edge();
+    entries.assign(e * e * e, Entry());
+}
+
+LodRegionSnapshot::Entry *LodRegionSnapshot::at(v3s16 bp) {
+    const LodRegionSnapshot *self = this;
+    return const_cast<Entry *>(self->at(bp));
+}
+
+const LodRegionSnapshot::Entry *LodRegionSnapshot::at(v3s16 bp) const {
+    const int e = edge();
+    const int x = bp.X - origin.X + margin;
+    const int y = bp.Y - origin.Y + margin;
+    const int z = bp.Z - origin.Z + margin;
+    if (x < 0 || y < 0 || z < 0 || x >= e || y >= e || z >= e)
+        return nullptr;
+    return &entries[((size_t)z * e + y) * e + x];
+}
+
+void LodRegionSnapshot::bind(LodRegionSpec &spec) const {
+    const int cell = spec.cell;
+    spec.chain = [this](v3s16 bp) -> const BlockLodChain * {
+        const Entry *e = at(bp);
+        return e ? e->chain.get() : nullptr;
+    };
+    spec.drawn_cell = [this](v3s16 bp) -> int {
+        const Entry *e = at(bp);
+        return e ? e->drawn_cell : -1;
+    };
+    // The live build tests region membership and the drawn cell together,
+    // because one capture serves both the exact and the fallback pass and
+    // only the cell tells them apart.
+    spec.member = [this, cell](v3s16 bp) -> bool {
+        const Entry *e = at(bp);
+        return e && e->member && e->drawn_cell == cell;
+    };
+}
+
+int lodRegionMarginBlocks(int cell, float ao_radius) {
+    if (cell < 1)
+        return 1;
+    const int cpb = MAP_BLOCKSIZE / cell; // cells per block
+    const int margin_cells = ao_radius > 0.0f ? (int)std::ceil(ao_radius / cell) : 0;
+    return std::max(1, (margin_cells + cpb - 1) / cpb);
+}
+
 namespace {
 
 // The tile behind (content, side), resolved once.
-const LodTileCache::Entry &tileFor(LodTileCache &cache, const NodeDefManager *ndef,
+//
+// Runs on a mesh worker, so the cache and the texture source calls that fill
+// it are both under cache.mutex. Nothing here creates a Godot object: the
+// texture source is asked only for an id, a name, an average colour and its
+// GoannaTexture wrapper, and the Godot side texture is made separately, on
+// the main thread, on first use (goanna_textures.h). Returns a copy so a
+// clear on the main thread cannot pull the entry out from under the caller.
+LodTileCache::Entry tileFor(LodTileCache &cache, const NodeDefManager *ndef,
         GoannaTextureSource *tsrc, const MaterialTable *materials, content_t c, int side) {
     const u32 key = (u32)c * 6 + side;
+    std::lock_guard<std::mutex> cache_lock(cache.mutex);
     auto it = cache.entries.find(key);
     if (it != cache.entries.end())
         return it->second;
@@ -475,8 +533,7 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
     // Every block the mesh reads: the region, plus a margin wide enough for
     // the occlusion radius, and never less than one block so faces on the
     // region's skin are culled against the neighbour.
-    const int margin_cells = spec.ao_radius > 0.0f ? (int)std::ceil(spec.ao_radius / cell) : 0;
-    const int mb = std::max(1, (margin_cells + cpb - 1) / cpb);
+    const int mb = lodRegionMarginBlocks(cell, spec.ao_radius);
     const int B = spec.blocks + 2 * mb;
     std::vector<const BlockLodChain *> chains((size_t)B * B * B, nullptr);
     std::vector<const LodLevel *> levels((size_t)B * B * B, nullptr);

@@ -30,6 +30,7 @@
 
 #include "goanna_entities.h"
 #include "goanna_lod.h"
+#include "goanna_mesh_pool.h"
 #include "irrlichttypes_bloated.h"
 #include <SMaterial.h>
 
@@ -409,10 +410,22 @@ private:
         bool dirty = false;
         std::chrono::steady_clock::time_point dirty_at;
         int faces = 0, quads = 0, surfaces = 0, partial = 0;
+        // Atomic publication. The node above keeps drawing the last mesh
+        // that finished while a worker builds the next, so a region is never
+        // half meshed on screen and a tier hand-off never shows a hole.
+        // `generation` stamps each capture: a result arriving with an older
+        // stamp was overtaken while it was building and is dropped.
+        uint64_t generation = 0;
+        bool building = false;
     };
     std::map<LodRegionKey, LodRegion> m_lod_regions;
     std::map<v3s16, LodRegionKey> m_lod_member; // which region draws a block
-    std::map<v3s16, BlockLodChain> m_lod_chains; // built lazily, dropped when the block changes
+    // Built lazily, dropped when the block changes. Shared and immutable
+    // once published, so a mesh worker can hold the chains its region needs
+    // while the main thread erases and rebuilds others: replacing a chain
+    // means erasing the entry and building a new one, never writing through
+    // one that is already in the map. See goanna_mesh_pool.h.
+    std::map<v3s16, std::shared_ptr<const BlockLodChain>> m_lod_chains;
     // Chains are built a few per poll inside a time budget, never inside a
     // region build: a coarse region touches thousands of blocks, and building
     // their chains in one poll was the frame stall of the first version. A
@@ -430,6 +443,15 @@ private:
     std::set<v3s16> m_lod_chain_missing;
     void lodEnqueueChain(const v3s16 &bp);
     LodTileCache m_lod_tiles;
+    // Mesh workers. Far regions are captured on this thread, meshed on those,
+    // and published back here. Started with the client and stopped before the
+    // session goes, because a job holds the session's node definitions,
+    // texture source and material table.
+    MeshPool m_mesh_pool;
+    // How many finished regions to publish per poll. Uploading an ArrayMesh
+    // is main thread work no matter who meshed it, so a backlog is spread
+    // rather than spent at once.
+    int m_lod_publish_budget = 4;
     double m_ms_lod = 0; // EMA of one region build
     double m_ms_lod_update = 0; // complete update_lod call, including lock wait
     double m_ms_lod_tier_scan = 0;
@@ -549,6 +571,20 @@ private:
     void lodAssign(const v3s16 &bp, int tier);
     void lodForget(const v3s16 &bp);
     void lodBuildRegion(const LodRegionKey &key, LodRegion &r);
+    // Capture what a worker needs to mesh this region, main thread. Uses the
+    // same lookups the synchronous path does, side effects included, so a
+    // chain that is missing is still asked for here.
+    void lodCaptureRegion(const LodRegionKey &key, const LodRegionSpec &exact,
+            const LodRegionSpec &coarse, LodRegionSnapshot &out);
+    // Turn a finished LodRegionMesh into the region's ArrayMesh and put it on
+    // screen. Main thread, whether the mesh came from a worker or was built
+    // inline because the pool is not running.
+    void lodPublishRegion(const LodRegionKey &key, LodRegion &r, const LodRegionMesh &lm,
+            std::chrono::steady_clock::time_point t0, int exact_cell, int coarse_cell);
+    // Collect whatever the mesh workers have finished. Main thread, once a
+    // poll, bounded so a large backlog is spread over frames rather than
+    // spent in one.
+    void lodCollectMeshes();
     void lodRebuild(double budget_ms);
     void lodReset();
     std::map<uint64_t, godot::Ref<godot::Material>> m_materials;

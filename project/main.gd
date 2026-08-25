@@ -729,11 +729,13 @@ func _process(delta: float) -> void:
 				st.get("draw_calls", 0), st.get("objects", 0), st.get("video_mem_mb", 0.0),
 				str(st.get("lod_tiers", {})), st.get("lod_regions", 0), st.get("lod_regions_dirty", 0),
 				st.get("lod_quads", 0), st.get("lod_faces", 0), st.get("lod_surfaces", 0), st.get("lod_ms", 0.0)]
-				+ " | far=%d grant=%d reach=%d/%d req=%d areas=%d/%d/%d store=%d/%.0fMB | poll_max=%.1fms chains=%d queue=%d" % [st.get("far_blocks", 0), st.get("far_grant", 0),
+				+ " | far=%d grant=%d reach=%d/%d req=%d areas=%d/%d/%d store=%d/%.0fMB | poll_max=%.1fms chains=%d queue=%d | mesh %dthr q=%d run=%d rdy=%d build=%d" % [st.get("far_blocks", 0), st.get("far_grant", 0),
 				st.get("far_extent", 0), st.get("far_reach", 0), st.get("far_requests_inflight", 0),
 				st.get("far_areas_complete", 0), st.get("far_areas_partial", 0), st.get("far_areas_empty", 0),
 				st.get("store_blocks", 0), st.get("store_mb", 0.0), st.get("poll_max_ms", 0.0),
-				st.get("lod_chains", 0), st.get("lod_chain_queue", 0)]
+				st.get("lod_chains", 0), st.get("lod_chain_queue", 0),
+				st.get("mesh_threads", 0), st.get("mesh_queued", 0), st.get("mesh_running", 0),
+				st.get("mesh_ready", 0), st.get("lod_building", 0)]
 				+ " | lod_frame=%.2f tier=%.2f sums=%.2f asks=%.2f far_scan=%.2f stats=%.2fms" % [
 				st.get("lod_update_ms", 0.0), st.get("lod_tier_scan_ms", 0.0),
 				st.get("lod_summary_ms", 0.0), st.get("lod_request_ms", 0.0),

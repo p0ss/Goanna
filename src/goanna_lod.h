@@ -22,6 +22,8 @@
 #include <cstdint>
 #include <functional>
 #include <map>
+#include <memory>
+#include <mutex>
 #include <vector>
 
 #include "irrlichttypes_bloated.h"
@@ -178,6 +180,12 @@ struct LodRegionMesh {
 // definition and the texture source. Content ids are per session, so the
 // owner clears it when the session changes.
 struct LodTileCache {
+    // Shared by every mesh worker (goanna_mesh_pool.h) and cleared on the
+    // main thread when the textures change, so both the map and the texture
+    // source calls that fill it are taken under this lock. tileFor returns a
+    // copy rather than a reference for the same reason: a clear must not be
+    // able to invalidate something a worker is still reading.
+    mutable std::mutex mutex;
     struct Entry {
         u32 texture_id = 0;   // array texture id, or 0 for the fallback
         u16 layer = 0;        // layer into the array
@@ -188,6 +196,51 @@ struct LodTileCache {
         bool liquid = false;       // draw with the water shader, texture_id is 2D
     };
     std::map<u32, Entry> entries; // key content * 6 + side
+};
+
+// How many blocks beyond its own bounds meshLodRegion reads, given the cell
+// size and occlusion radius it was handed. Capture and mesher must agree
+// exactly or the faces on a region's skin are culled against nothing, so the
+// rule lives here rather than being written out twice.
+int lodRegionMarginBlocks(int cell, float ao_radius);
+
+// Everything meshLodRegion reads about a region, captured on the main thread
+// so a worker can mesh it (goanna_mesh_pool.h). The three callbacks on
+// LodRegionSpec reach into live client state, which a worker must not touch;
+// bind() replaces them with lookups into this instead.
+//
+// The cube covered is the region plus `margin` blocks on every side, which is
+// exactly meshLodRegion's own walk. Chains are held by shared_ptr, so the
+// main thread may erase and rebuild any chain while a worker still reads the
+// version it was given.
+struct LodRegionSpec;
+
+struct LodRegionSnapshot {
+    v3s16 origin;   // block position of the region's low corner
+    int blocks = 8; // blocks per axis, the region proper
+    int margin = 1; // blocks of halo, from lodRegionMarginBlocks()
+
+    struct Entry {
+        std::shared_ptr<const BlockLodChain> chain;
+        // What cell size this block is drawn at by whoever draws it: 0 for
+        // full detail, -1 for not drawn. Not the region's own cell.
+        int drawn_cell = -1;
+        // Whether this region draws this block at all, before the cell test
+        // that bind() adds, because that test differs between the exact and
+        // fallback passes over the same capture.
+        bool member = false;
+    };
+
+    int edge() const { return blocks + 2 * margin; }
+    void reset(v3s16 origin_, int blocks_, int margin_);
+    Entry *at(v3s16 bp);
+    const Entry *at(v3s16 bp) const;
+    // Point a spec's callbacks at this snapshot. Call after spec.cell is set:
+    // the member test depends on it. The snapshot must outlive the
+    // meshLodRegion call it is bound into.
+    void bind(LodRegionSpec &spec) const;
+
+    std::vector<Entry> entries; // edge() cubed
 };
 
 struct LodRegionSpec {
