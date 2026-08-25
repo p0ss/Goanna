@@ -34,3 +34,7 @@ dist/
 *.kate-swp
 *.swp
 .aider*
+
+.CLAUDE.md
+
+.claude/worktrees/

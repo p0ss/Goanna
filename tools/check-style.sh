@@ -64,8 +64,11 @@ report "trailing whitespace." \
 AMERICAN='\b(color|colors|colored|coloring|behavior|behaviors|neighbor|neighbors|center|centers|centered|centering|meters|liter|liters|fiber|organiz(e|ed|es|ing|ation)|recogniz(e|ed|es|ing)|analyz(e|ed|es|ing)|optimiz(e|ed|es|ing|ation)|customiz(e|ed|es|ing)|gray|catalog|dialog|analog|defense|offense|pretense|traveling|canceled|modeled|labeled|enroll|fulfill|installment)\b'
 
 # Inline code spans in Markdown are identifiers and exempt: strip them first.
+# So are fenced blocks, which quote real source and must keep its spelling.
+# Fenced lines are blanked rather than dropped, so line numbers still match.
 md_hits=$(for f in $(files | grep -E '\.md$'); do
-    sed -E 's/`[^`]*`//g' "$f" | grep -nEi "$AMERICAN" | sed "s|^|$f:|"
+    awk '/^```/ { fence = !fence; print ""; next } fence { print ""; next } { print }' "$f" \
+        | sed -E 's/`[^`]*`//g' | grep -nEi "$AMERICAN" | sed "s|^|$f:|"
 done 2>/dev/null)
 comment_hits=$(files | grep -vE '\.md$' | xargs -r grep -nEi "^[[:space:]]*(//|#)[^!].*$AMERICAN" 2>/dev/null)
 # Formspec element syntax (bgcolor[...], box[...], tooltip[...]) is protocol
