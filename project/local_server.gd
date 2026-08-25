@@ -188,6 +188,10 @@ func start(gameid_: String, worldname: String, player_name: String = "player") -
 		# the player"), and pushes each area's summary as it lands. It is the
 		# operator's choice, and here the operator is the player.
 		cf.store_string("goanna_far_pregenerate = true\n")
+		# Three asynchronous area streams keep a flying local player supplied;
+		# each stream queues only one 64-node slice at a time, so live terrain
+		# still gets frequent opportunities between them.
+		cf.store_string("goanna_far_pregenerate_concurrency = 3\n")
 		# Privileges. The client's fly toggle works whether or not the server
 		# allows it, exactly as the vanilla client's does, and a server that
 		# does not allow it answers every flying step with "moved too fast"
@@ -201,6 +205,15 @@ func start(gameid_: String, worldname: String, player_name: String = "player") -
 		# give_to_singleplayer, and those are registered false), which is why
 		# name= below is not enough on its own.
 		cf.store_string("default_privs = interact, shout, fly, fast, noclip, teleport, give, settime\n")
+		# This is a private server launched by this client for its owner. The
+		# movement validator still rejects fast flight even with fly/fast
+		# privileges (the server log then repeats "moved too fast" while the
+		# local camera travels kilometres away). Far requests are validated and
+		# pregeneration is centred on that authoritative server position, so the
+		# disagreement looks exactly like a hard streaming limit. Keep digging
+		# and interaction checks, but let this single player's movement be the
+		# streaming centre. A public server must make its own trust decision.
+		cf.store_string("anticheat_flags = digging,interaction\n")
 		# default_privs applies at first join only, so a player created in an
 		# earlier world keeps what they had. Naming the player as the server's
 		# admin gives them the privs priv on every world, old or new, so

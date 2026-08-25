@@ -22,6 +22,7 @@ every value is the code's default.
 | Server mod installed into the world | yes | `project/local_server.gd`, `_install_server_mod` | on |
 | Far rendering granted, 1024 nodes | yes | `local_server.gd`, `far_distance` | on |
 | Pregeneration around the player | yes | `local_server.gd` writes `goanna_far_pregenerate = true` | on |
+| Fast flight remains server-authoritative | yes | local server omits the movement anticheat flag | on |
 | Send distance 32 blocks | yes | `local_server.gd`, `send_distance` | on |
 | Far tiers, store and summaries drawn | yes since 2026-08-22 | `m_lod_distance` in `src/goanna_client.h`, was 0, is 12 | on, measured below |
 | Far distance cap, stale strength | the grant, 0.6 | settings entries since 2026-08-22 (task 2d) | on; the stale grey is a per tier signal and R1 takes it to 0 |
