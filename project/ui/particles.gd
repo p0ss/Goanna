@@ -15,6 +15,7 @@ const MAX_SPAWNERS := 24
 
 var client: Node
 var follow: Node3D            # the player/camera, for spawners attached to us
+var player_effect_particles := false
 
 var _spawners := {}           # server id -> GPUParticles3D
 var _attached := {}           # server id -> offset, for spawners that follow us
@@ -34,6 +35,16 @@ func _ready() -> void:
 # no strength in between. Shader packs read it as rainStrength.
 func precipitation() -> float:
 	return 1.0 if not _weather.is_empty() else 0.0
+
+func set_player_effect_particles(on: bool) -> void:
+	player_effect_particles = on
+	if on:
+		return
+	# Weather is also attached to the player, but is an environment input and
+	# remains visible. Remove only character/status spawners already running.
+	for id in _attached.keys():
+		if not _weather.has(id):
+			_remove_spawner(int(id))
 
 const TEST_SPAWNER_ID := 999999
 
@@ -139,6 +150,15 @@ func _add_spawner(ev: Dictionary) -> void:
 		return
 	var pmin: Vector3 = ev.get("pos_min", Vector3.ZERO)
 	var pmax: Vector3 = ev.get("pos_max", Vector3.ZERO)
+	var tex_path := str(ev.get("texture", ""))
+	var pool: Array = ev.get("texpool", [])
+	if tex_path == "" and pool.size() > 0:
+		tex_path = str(pool[0])
+	var tex_name := tex_path.to_lower()
+	var is_weather := tex_name.contains("rain") or tex_name.contains("snow")
+	var is_attached := int(ev.get("attached_id", 0)) != 0 or pmin.length() + pmax.length() < 200.0
+	if is_attached and not is_weather and not player_effect_particles:
+		return
 	var vmin: Vector3 = ev.get("vel_min", Vector3.ZERO)
 	var vmax: Vector3 = ev.get("vel_max", Vector3.ZERO)
 	var amin: Vector3 = ev.get("acc_min", Vector3.ZERO)
@@ -215,10 +235,6 @@ func _add_spawner(ev: Dictionary) -> void:
 	# A spawner may carry a pool of textures and pick one per particle. Godot
 	# draws one pass with one material, so the first is used and the rest are
 	# not; a pool of one, which is the ordinary case, is exact.
-	var tex_path := str(ev.get("texture", ""))
-	var pool: Array = ev.get("texpool", [])
-	if tex_path == "" and pool.size() > 0:
-		tex_path = str(pool[0])
 	smat.albedo_texture = _texture_for(tex_path)
 	smat.albedo_color = Color(1, 1, 1, 1) if smat.albedo_texture != null else Color(0.75, 0.85, 1.0, 0.85)
 	smat.disable_receive_shadows = true
@@ -278,11 +294,10 @@ func _add_spawner(ev: Dictionary) -> void:
 			str(p.visibility_aabb.size.round()), str(smat.billboard_mode)])
 	add_child(p)
 	_spawners[id] = p
-	if int(ev.get("attached_id", 0)) != 0 or pmin.length() + pmax.length() < 200.0:
+	if is_attached:
 		# centred on the origin means player-relative, as weather is
 		_attached[id] = (pmin + pmax) * 0.5
-		var tex_name := str(ev.get("texture", "")).to_lower()
-		if tex_name.contains("rain") or tex_name.contains("snow"):
+		if is_weather:
 			_weather[id] = true
 	# a finite spawner cleans itself up
 	var life_time := spawner_time

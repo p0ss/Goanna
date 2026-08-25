@@ -63,6 +63,13 @@ public:
     // classifier table or the relief strength changed under them.
     void dropCompanions() { m_godot_suffixed.clear(); m_suffixed_missing.clear(); }
     const std::vector<std::string> &layerNames() const { return m_layer_names; }
+    // Alpha is tracked per array layer as well as for the whole texture. A
+    // solid stone layer may share an array with cut-out leaves, and treating
+    // the whole array as transparent prevents the stone from being a safe
+    // terrain occluder.
+    bool layerHasAlpha(u16 layer) const {
+        return layer >= m_layer_alpha.size() || m_layer_alpha[layer];
+    }
     // Tangent-space normal map derived from the diffuse luminance ("auto
     // bump"): dark texels read as recessed, light as raised. Cached per
     // strength; regenerated when strength changes. Main thread only.
@@ -79,6 +86,7 @@ private:
     bool m_has_alpha = false;
     std::vector<video::IImage *> m_layers; // owned (ref); empty unless an array
     std::vector<std::string> m_layer_names;
+    std::vector<bool> m_layer_alpha;
     godot::Ref<godot::Texture2DArray> m_godot_array;
     std::map<std::string, godot::Ref<godot::Texture2DArray>> m_godot_suffixed;
     std::map<std::string, bool> m_suffixed_missing;

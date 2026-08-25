@@ -23,12 +23,67 @@ static const int DIRS[6][3] = {{0, 1, 0}, {0, -1, 0}, {1, 0, 0}, {-1, 0, 0}, {0,
 
 int BlockLodChain::levelForCell(int cell) {
     switch (cell) {
-    case 2: return 0;
-    case 4: return 1;
-    case 8: return 2;
-    case 16: return 3;
+    case 1: return 0;
+    case 2: return 1;
+    case 4: return 2;
+    case 8: return 3;
+    case 16: return 4;
     default: return -1;
     }
+}
+
+const LodLevel::Cell *BlockLodChain::cellAt(int cell, int x, int y, int z) const {
+    if (cell != 1) {
+        const LodLevel *lv = forCell(cell);
+        return lv ? &lv->at(x, y, z) : nullptr;
+    }
+    if (!fine_available) {
+        const LodLevel *lv = forCell(1);
+        return lv ? &lv->at(x, y, z) : nullptr;
+    }
+    if (x < 0 || y < 0 || z < 0 || x >= MAP_BLOCKSIZE || y >= MAP_BLOCKSIZE ||
+            z >= MAP_BLOCKSIZE)
+        return nullptr;
+    const uint16_t index = (uint16_t)(((size_t)z * MAP_BLOCKSIZE + y) * MAP_BLOCKSIZE + x);
+    const unsigned word = index >> 6, bit = index & 63;
+    const uint64_t mask = fine_record_mask[word];
+    if (!(mask & (1ull << bit)))
+        return nullptr;
+    const uint64_t below = bit ? mask & ((1ull << bit) - 1) : 0;
+    const size_t record = fine_record_base[word] + (size_t)__builtin_popcountll(below);
+    return record < fine_records.size() ? &fine_records[record].cell : nullptr;
+}
+
+bool BlockLodChain::filledAt(int cell, int x, int y, int z) const {
+    if (cell != 1) {
+        const LodLevel::Cell *c = cellAt(cell, x, y, z);
+        return c && (c->flags & LodLevel::kFilled);
+    }
+    if (!fine_available) {
+        const LodLevel::Cell *c = cellAt(1, x, y, z);
+        return c && (c->flags & LodLevel::kFilled);
+    }
+    if (x < 0 || y < 0 || z < 0 || x >= MAP_BLOCKSIZE || y >= MAP_BLOCKSIZE ||
+            z >= MAP_BLOCKSIZE)
+        return false;
+    const size_t index = ((size_t)z * MAP_BLOCKSIZE + y) * MAP_BLOCKSIZE + x;
+    return (fine_filled[index >> 6] & (1ull << (index & 63))) != 0;
+}
+
+bool BlockLodChain::occludesAt(int cell, int x, int y, int z) const {
+    if (cell != 1) {
+        const LodLevel::Cell *c = cellAt(cell, x, y, z);
+        return c && (c->flags & LodLevel::kOccludes);
+    }
+    if (!fine_available) {
+        const LodLevel::Cell *c = cellAt(1, x, y, z);
+        return c && (c->flags & LodLevel::kOccludes);
+    }
+    if (x < 0 || y < 0 || z < 0 || x >= MAP_BLOCKSIZE || y >= MAP_BLOCKSIZE ||
+            z >= MAP_BLOCKSIZE)
+        return false;
+    const size_t index = ((size_t)z * MAP_BLOCKSIZE + y) * MAP_BLOCKSIZE + x;
+    return (fine_occludes[index >> 6] & (1ull << (index & 63))) != 0;
 }
 
 // ---------------------------------------------------------------------------
@@ -54,6 +109,12 @@ void buildLodChain(const NodeDefManager *ndef, MapBlock *block, BlockLodChain &o
     const int N = MAP_BLOCKSIZE;
     for (LodLevel &lv : out.level)
         lv = LodLevel();
+    out.fine_available = false;
+    out.fine_filled.fill(0);
+    out.fine_occludes.fill(0);
+    out.fine_record_mask.fill(0);
+    out.fine_record_base.fill(0);
+    out.fine_records.clear();
     if (!ndef || !block)
         return;
     min_level = std::clamp(min_level, 0, BlockLodChain::kLevels - 1);
@@ -167,6 +228,8 @@ void buildLodChain(const NodeDefManager *ndef, MapBlock *block, BlockLodChain &o
                 // voxel occupies its complete cell, including its lower face.
             }
     buildLodMipLevels(out, min_level);
+    if (cell == 1)
+        compactLodFineBoundary(out);
 }
 
 void buildLodMipLevels(BlockLodChain &out, int first_level) {
@@ -232,6 +295,65 @@ void buildLodMipLevels(BlockLodChain &out, int first_level) {
                     }
                 }
     }
+}
+
+void compactLodFineBoundary(BlockLodChain &out) {
+    LodLevel &base = out.level[BlockLodChain::levelForCell(1)];
+    if (base.cell != 1 || base.n != MAP_BLOCKSIZE || base.cells.empty())
+        return;
+    out.fine_filled.fill(0);
+    out.fine_occludes.fill(0);
+    out.fine_record_mask.fill(0);
+    out.fine_record_base.fill(0);
+    out.fine_records.clear();
+    std::array<uint8_t, MAP_BLOCKSIZE * MAP_BLOCKSIZE * MAP_BLOCKSIZE> keep{};
+    auto index_of = [&](int x, int y, int z) {
+        return ((size_t)z * MAP_BLOCKSIZE + y) * MAP_BLOCKSIZE + x;
+    };
+    for (int z = 0; z < MAP_BLOCKSIZE; ++z)
+        for (int y = 0; y < MAP_BLOCKSIZE; ++y)
+            for (int x = 0; x < MAP_BLOCKSIZE; ++x) {
+                const size_t index = index_of(x, y, z);
+                const LodLevel::Cell &c = base.cells[index];
+                if (!(c.flags & LodLevel::kFilled))
+                    continue;
+                out.fine_filled[index >> 6] |= 1ull << (index & 63);
+                if (c.flags & LodLevel::kOccludes)
+                    out.fine_occludes[index >> 6] |= 1ull << (index & 63);
+                bool exposed = false;
+                for (const auto &dir : DIRS) {
+                    const int nx = x + dir[0], ny = y + dir[1], nz = z + dir[2];
+                    if (nx < 0 || ny < 0 || nz < 0 || nx >= MAP_BLOCKSIZE ||
+                            ny >= MAP_BLOCKSIZE || nz >= MAP_BLOCKSIZE ||
+                            !(base.at(nx, ny, nz).flags & LodLevel::kFilled)) {
+                        exposed = true;
+                        break;
+                    }
+                }
+                if (!exposed)
+                    continue;
+                keep[index] = 1;
+                for (const auto &dir : DIRS) {
+                    const int nx = x + dir[0], ny = y + dir[1], nz = z + dir[2];
+                    if (nx >= 0 && ny >= 0 && nz >= 0 && nx < MAP_BLOCKSIZE &&
+                            ny < MAP_BLOCKSIZE && nz < MAP_BLOCKSIZE)
+                        keep[index_of(nx, ny, nz)] = 1;
+                }
+            }
+    out.fine_records.reserve((size_t)std::count(keep.begin(), keep.end(), (uint8_t)1));
+    uint16_t record_count = 0;
+    for (size_t i = 0; i < base.cells.size(); ++i) {
+        if ((i & 63) == 0)
+            out.fine_record_base[i >> 6] = record_count;
+        if (keep[i]) {
+            out.fine_record_mask[i >> 6] |= 1ull << (i & 63);
+            out.fine_records.push_back({(uint16_t)i, base.cells[i]});
+            ++record_count;
+        }
+    }
+    out.fine_available = true;
+    base.cells.clear();
+    base.cells.shrink_to_fit();
 }
 
 // ---------------------------------------------------------------------------
@@ -388,11 +510,11 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
         const int bx = (gx + mb * cpb) / cpb, by = (gy + mb * cpb) / cpb, bz = (gz + mb * cpb) / cpb;
         if (bx < 0 || by < 0 || bz < 0 || bx >= B || by >= B || bz >= B)
             return nullptr;
-        const LodLevel *lv = levels[((size_t)bz * B + by) * B + bx];
-        if (!lv)
+        const BlockLodChain *ch = chains[((size_t)bz * B + by) * B + bx];
+        if (!ch || !ch->hasCell(cell))
             return nullptr;
         const int lx = (gx + mb * cpb) % cpb, ly = (gy + mb * cpb) % cpb, lz = (gz + mb * cpb) % cpb;
-        return &lv->at(lx, ly, lz);
+        return ch->cellAt(cell, lx, ly, lz);
     };
     auto isMember = [&](int gx, int gy, int gz) -> bool {
         const int bx = gx / cpb + mb, by = gy / cpb + mb, bz = gz / cpb + mb;
@@ -423,15 +545,12 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
         const size_t bi = ((size_t)bz * B + by) * B + bx;
         const int dc = drawn[bi];
         const BlockLodChain *ch = chains[bi];
-        const LodLevel *lv = ch && dc > 0 ? ch->forCell(dc) : nullptr;
-        if (!lv)
+        if (!ch || dc <= 0 || !ch->hasCell(dc))
             return false;
         const int lx = (sx % MAP_BLOCKSIZE) / dc;
         const int ly = (sy % MAP_BLOCKSIZE) / dc;
         const int lz = (sz % MAP_BLOCKSIZE) / dc;
-        const LodLevel::Cell &c = lv->at(lx, ly, lz);
-        return (c.flags & (LodLevel::kKnown | LodLevel::kFilled)) ==
-                (LodLevel::kKnown | LodLevel::kFilled);
+        return ch->filledAt(dc, lx, ly, lz);
     };
     auto renderedFaceCovered = [&](const int g[3], int d) -> bool {
         const int axis = DIRS[d][0] ? 0 : (DIRS[d][1] ? 1 : 2);
@@ -479,13 +598,13 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
         for (int bz = 0; bz < B; ++bz)
             for (int by = 0; by < B; ++by)
                 for (int bx = 0; bx < B; ++bx) {
-                    const LodLevel *lv = levels[((size_t)bz * B + by) * B + bx];
-                    if (!lv)
+                    const BlockLodChain *ch = chains[((size_t)bz * B + by) * B + bx];
+                    if (!ch || !ch->hasCell(cell))
                         continue;
                     for (int z = 0; z < cpb; ++z)
                         for (int y = 0; y < cpb; ++y)
                             for (int x = 0; x < cpb; ++x)
-                                if (lv->at(x, y, z).flags & LodLevel::kOccludes)
+                                if (ch->occludesAt(cell, x, y, z))
                                     occ.setCell(bx * cpb + x, by * cpb + y, bz * cpb + z);
                 }
     }
@@ -1164,6 +1283,12 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                     auto height_of = [&](const LodLevel::Cell *cc, bool is_filled) -> int {
                         if (!is_filled)
                             return 0;
+                        // A neighbour drawn at another resolution can cover
+                        // this face even though it has no cell in `levels`,
+                        // which is the current pass's resolution. Such a
+                        // covering voxel spans this whole sample.
+                        if (!cc)
+                            return cell;
                         return cc->top > 0 && cc->top < cell ? (int)cc->top : cell;
                     };
                     const int h_self = height_of(c, true);
@@ -1345,11 +1470,18 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                         sf.custom0.push_back(key.fresh);
                     }
                     // Clockwise seen from outside, which is Godot's front
-                    // face. The old single tier wound these the other way and
-                    // drew every cell inside out; flat colour hid it, the
-                    // array shader did not.
-                    for (u32 i : {0u, 2u, 1u, 0u, 3u, 2u})
-                        sf.idx.push_back(base + i);
+                    // face. Mirroring Luanti Z into Godot Z reverses the two
+                    // Z-facing vertex tables relative to the X and Y tables;
+                    // giving every direction the same indices wound those
+                    // two sides inward, so backface culling made coarse hills
+                    // look like stacks of disconnected panels.
+                    if (d == 4 || d == 5) {
+                        for (u32 i : {0u, 1u, 2u, 0u, 2u, 3u})
+                            sf.idx.push_back(base + i);
+                    } else {
+                        for (u32 i : {0u, 2u, 1u, 0u, 3u, 2u})
+                            sf.idx.push_back(base + i);
+                    }
                     ++out.quads;
                     u += w;
                 }

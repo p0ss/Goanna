@@ -71,6 +71,8 @@ var damage_flash := true       # flash red on taking damage
 var show_fps := false          # compact renderer/performance overlay
 var show_position := false     # player's server/world coordinates
 var render_stats_cache: Dictionary = {}
+var render_stats_next_at := 0.0 # render_stats walks retained terrain; sample, do not poll every frame
+var player_effect_particles := false
 var flash_rect: ColorRect
 var cursor_ctl: Control      # dragged stack, drawn above the formspec
 var audio: Node              # ui/audio.gd, sound
@@ -135,6 +137,7 @@ func _ready() -> void:
 
 	var particles = preload("res://ui/particles.gd").new()
 	particles.client = client
+	particles.player_effect_particles = player_effect_particles
 	var phost := _main_node()
 	if phost != null:
 		phost.add_child.call_deferred(particles)
@@ -220,7 +223,8 @@ func _process(delta: float) -> void:
 	if damage_flash and last_hp >= 0 and hp < last_hp and hp > 0:
 		flash_alpha = clampf(0.15 + 0.05 * (last_hp - hp), 0.15, 0.5)
 	last_hp = hp
-	if client.has_method("render_stats"):
+	if client.has_method("render_stats") and t >= render_stats_next_at:
+		render_stats_next_at = t + 0.25
 		# The hint says the horizon is still filling, so that a fresh world's
 		# empty distance does not read as broken. It used to show whenever the
 		# summary count moved at all, which never stops: the server keeps
@@ -680,6 +684,8 @@ const SETTINGS := [
 	["Video", "lod_terrace", "toggle", "Terraced far terrain", "Draw distant ground as flat cells with steps between them, the way the blocks underneath do, instead of as a smoothed surface."],
 	["Video", "lod_distance", "slider", "Detail distance", "Blocks beyond this are drawn as simplified shapes, which costs less, and distant terrain beyond the server's range is drawn only when this is on. 0 turns both off.", 0.0, 24.0, 1.0],
 	["Video", "far_distance", "slider", "Far draw distance", "How far past the live range the far tiers draw, in nodes. Capped by what the server actually granted (docs/far-rendering.md); raising this past the grant changes nothing. Defaults to the grant itself, so this only needs touching to draw less than the server allows.", 0.0, 4096.0, 32.0],
+	["Video", "terrain_occlusion", "toggle", "Terrain occlusion", "Use opaque nearby terrain to avoid drawing regions completely hidden behind it. Most useful in caves, buildings and deep valleys."],
+	["Video", "player_effect_particles", "toggle", "Player effect particles", "Show server particle spawners attached to your character. Turn this off to hide persistent status sparkles; weather and block-breaking pieces remain visible."],
 	["Material", "mat_stale", "slider", "Remembered terrain tint", "How far terrain drawn from what you saw earlier, rather than what the server is sending now, is pulled toward grey. 0 shows it at full colour, indistinguishable from live.", 0.0, 1.0, 0.05],
 	["Video", "damage_flash", "toggle", "Damage flash", "Flash the screen red when you take damage."],
 	["Video", "show_body", "toggle", "Show own body", "See your own body and held item when you look down."],
@@ -706,7 +712,7 @@ const SETTINGS := [
 ]
 # Settings handled here rather than through the client (window, camera, UI).
 const LOCAL_KEYS := ["mouse_sensitivity", "invert_mouse", "view_bobbing", "fov",
-	"gui_scale", "max_fps", "vsync", "fullscreen", "damage_flash", "show_fps", "show_position", "volume", "muted",
+	"gui_scale", "max_fps", "vsync", "fullscreen", "damage_flash", "show_fps", "show_position", "terrain_occlusion", "player_effect_particles", "volume", "muted",
 	"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao",
 	"light_white", "light_exposure", "light_fill", "light_shafts"]
 var settings_menu: Control
@@ -745,7 +751,15 @@ func _apply_local(key: String, value: float, on: bool) -> void:
 			damage_flash = on
 		"show_fps":
 			show_fps = on
+			RenderingServer.viewport_set_measure_render_time(get_viewport().get_viewport_rid(), on)
 			hud.queue_redraw()
+		"terrain_occlusion":
+			get_tree().root.use_occlusion_culling = on
+		"player_effect_particles":
+			player_effect_particles = on
+			var pn := get_tree().get_first_node_in_group("goanna_particles")
+			if pn != null and pn.has_method("set_player_effect_particles"):
+				pn.set_player_effect_particles(on)
 		"show_position":
 			show_position = on
 			hud.queue_redraw()
@@ -772,6 +786,8 @@ func _local_value(key: String) -> float:
 		"fullscreen": return 1.0 if DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN else 0.0
 		"damage_flash": return 1.0 if damage_flash else 0.0
 		"show_fps": return 1.0 if show_fps else 0.0
+		"terrain_occlusion": return 1.0 if get_tree().root.use_occlusion_culling else 0.0
+		"player_effect_particles": return 1.0 if player_effect_particles else 0.0
 		"show_position": return 1.0 if show_position else 0.0
 		"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao", "light_white", "light_exposure", "light_fill", "light_shafts":
 			return float(m.get(key)) if m != null else 1.0
@@ -1264,10 +1280,15 @@ func _draw_performance_overlay(vs: Vector2) -> void:
 		var fps := Engine.get_frames_per_second()
 		var frame_ms := 1000.0 / float(fps) if fps > 0 else 0.0
 		lines.append("FPS %d   %.1f ms" % [fps, frame_ms])
-		lines.append("Draws %d   objects %d   GPU %.0f MB" % [
+		lines.append("Draws %d   objects %d   primitives %.2fM   GPU %.0f MB" % [
 				int(render_stats_cache.get("draw_calls", 0)),
 				int(render_stats_cache.get("objects", 0)),
+				float(render_stats_cache.get("primitives", 0)) / 1000000.0,
 				float(render_stats_cache.get("video_mem_mb", 0.0))])
+		lines.append("Render CPU %.1f + %.1f ms   GPU %.1f ms" % [
+				float(render_stats_cache.get("render_cpu_setup_ms", 0.0)),
+				float(render_stats_cache.get("render_cpu_draw_ms", 0.0)),
+				float(render_stats_cache.get("render_gpu_ms", 0.0))])
 		lines.append("Near %d blocks   %d -> %d surfaces" % [
 				int(render_stats_cache.get("block_meshes", 0)),
 				int(render_stats_cache.get("near_source_surfaces", 0)),
@@ -1277,12 +1298,37 @@ func _draw_performance_overlay(vs: Vector2) -> void:
 				int(render_stats_cache.get("lod_regions", 0)),
 				int(render_stats_cache.get("lod_surfaces", 0)),
 				int(render_stats_cache.get("entities", 0))])
-		lines.append("Queue %d   mesh %.1f   batch %.1f   LOD %.1f   poll %.1f ms" % [
+		lines.append("Occlusion %s   %d regions   %d triangles" % [
+				"on" if bool(render_stats_cache.get("occlusion_enabled", false)) else "off",
+				int(render_stats_cache.get("occluder_regions", 0)),
+				int(render_stats_cache.get("occluder_triangles", 0))])
+		lines.append("Queue %d   mesh %.1f   batch %.1f   LOD build %.1f   chain %.1f/%d   poll %.1f ms" % [
 				int(render_stats_cache.get("blocks_queued", 0)),
 				float(render_stats_cache.get("mesh_ms", 0.0)),
 				float(render_stats_cache.get("near_batch_ms", 0.0)),
 				float(render_stats_cache.get("lod_ms", 0.0)),
+				float(render_stats_cache.get("lod_chain_ms", 0.0)),
+				int(render_stats_cache.get("lod_chains_built_last", 0)),
 				float(render_stats_cache.get("poll_max_ms", 0.0))])
+		lines.append("Poll lock %.1f   queue %.1f   blocks %.1f (upload %.1f)   near %.1f   far %.1f ms" % [
+				float(render_stats_cache.get("poll_lock_ms", 0.0)),
+				float(render_stats_cache.get("poll_queue_ms", 0.0)),
+				float(render_stats_cache.get("poll_blocks_ms", 0.0)),
+				float(render_stats_cache.get("upload_ms", 0.0)),
+				float(render_stats_cache.get("poll_near_ms", 0.0)),
+				float(render_stats_cache.get("poll_lod_ms", 0.0))])
+		lines.append("World lights %.1f   motes %.1f   entities %.1f ms" % [
+				float(render_stats_cache.get("lights_ms", 0.0)),
+				float(render_stats_cache.get("motes_ms", 0.0)),
+				float(render_stats_cache.get("entities_ms", 0.0))])
+		lines.append("LOD frame %.1f   tiers %.1f/%d   sums %.1f   asks %.1f   far %.1f   stats %.1f ms" % [
+				float(render_stats_cache.get("lod_update_ms", 0.0)),
+				float(render_stats_cache.get("lod_tier_scan_ms", 0.0)),
+				int(render_stats_cache.get("lod_retier_queue", 0)),
+				float(render_stats_cache.get("lod_summary_ms", 0.0)),
+				float(render_stats_cache.get("lod_request_ms", 0.0)),
+				float(render_stats_cache.get("lod_far_scan_ms", 0.0)),
+				float(render_stats_cache.get("stats_ms", 0.0))])
 	if show_position:
 		var m := _main_node()
 		var p := Vector3.ZERO

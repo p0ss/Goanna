@@ -185,6 +185,7 @@ func _ready() -> void:
 		# Uncapped: with vsync on, every measurement reads as the refresh rate
 		# and says nothing about headroom.
 		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
+		RenderingServer.viewport_set_measure_render_time(get_viewport().get_viewport_rid(), true)
 	# GOANNA_VIEW_RANGE=<blocks>: set the streamed view range for perf runs,
 	# so the draw-call curve can be measured without the settings UI.
 	if OS.get_environment("GOANNA_VIEW_RANGE") != "":
@@ -716,12 +717,15 @@ func _process(delta: float) -> void:
 		# attributed rather than guessed at.
 		if OS.get_environment("GOANNA_PERF") != "":
 			var st: Dictionary = client.render_stats()
-			print("perf fps=%.0f frame=%.1fms | mesh=%.2f upload=%.2f lights=%.2f motes=%.2f ents=%.2f | meshed=%d queued=%d blocks=%d near=%d->%d/%d batch=%.2fms mats=%d | draws=%d objs=%d vram=%.0fMB | lod tiers=%s regions=%d dirty=%d quads=%d/%d surfaces=%d lod_ms=%.2f" % [
+			print("perf fps=%.0f frame=%.1fms render=%.2f+%.2fms gpu=%.2fms | mesh=%.2f upload=%.2f lights=%.2f motes=%.2f ents=%.2f | meshed=%d queued=%d blocks=%d near=%d->%d/%d batch=%.2fms occ=%d/%d mats=%d | draws=%d objs=%d vram=%.0fMB | lod tiers=%s regions=%d dirty=%d quads=%d/%d surfaces=%d lod_ms=%.2f" % [
 				Engine.get_frames_per_second(), 1000.0 / maxf(Engine.get_frames_per_second(), 1.0),
+				st.get("render_cpu_setup_ms", 0.0), st.get("render_cpu_draw_ms", 0.0),
+				st.get("render_gpu_ms", 0.0),
 				st["mesh_ms"], st["upload_ms"], st["lights_ms"], st["motes_ms"], st["entities_ms"],
 				st["blocks_meshed_last"], st["blocks_queued"], st["block_meshes"],
 				st.get("near_source_surfaces", 0), st.get("near_surfaces", 0), st.get("near_regions", 0),
-				st.get("near_batch_ms", 0.0), st["materials"],
+				st.get("near_batch_ms", 0.0), st.get("occluder_regions", 0),
+				st.get("occluder_triangles", 0), st["materials"],
 				st.get("draw_calls", 0), st.get("objects", 0), st.get("video_mem_mb", 0.0),
 				str(st.get("lod_tiers", {})), st.get("lod_regions", 0), st.get("lod_regions_dirty", 0),
 				st.get("lod_quads", 0), st.get("lod_faces", 0), st.get("lod_surfaces", 0), st.get("lod_ms", 0.0)]
@@ -729,7 +733,11 @@ func _process(delta: float) -> void:
 				st.get("far_extent", 0), st.get("far_reach", 0), st.get("far_requests_inflight", 0),
 				st.get("far_areas_complete", 0), st.get("far_areas_partial", 0), st.get("far_areas_empty", 0),
 				st.get("store_blocks", 0), st.get("store_mb", 0.0), st.get("poll_max_ms", 0.0),
-				st.get("lod_chains", 0), st.get("lod_chain_queue", 0)])
+				st.get("lod_chains", 0), st.get("lod_chain_queue", 0)]
+				+ " | lod_frame=%.2f tier=%.2f sums=%.2f asks=%.2f far_scan=%.2f stats=%.2fms" % [
+				st.get("lod_update_ms", 0.0), st.get("lod_tier_scan_ms", 0.0),
+				st.get("lod_summary_ms", 0.0), st.get("lod_request_ms", 0.0),
+				st.get("lod_far_scan_ms", 0.0), st.get("stats_ms", 0.0)])
 		if OS.get_environment("GOANNA_DUMPSKY") != "" and int(t) == 3:
 			print("SKY ", JSON.stringify(client.sky_state()))
 		if OS.get_environment("GOANNA_DUMPUI") != "" and int(t) == 5:
@@ -1697,7 +1705,11 @@ func _apply_sky() -> void:
 			fog_col = fog_col.lerp(sky["fog_sun_tint"], 0.35 * dawn)
 		var fc: Color = sky["fog_color"]
 		if fc.a > 0.0:
-			fog_col = fc
+			# A server fog override is commonly authored as one daytime colour.
+			# Replacing the blended night horizon with it made distant terrain
+			# fade toward a pale day haze under a black sky. Honour it by day and
+			# hand back to the server's time-aware horizon through the night.
+			fog_col = fog_col.lerp(fc, fc.a * (1.0 - night))
 		e.fog_light_color = fog_col
 		# How far there is actually something to see, which is not how far we
 		# are permitted to draw. The live range is always there; past it the
@@ -1794,7 +1806,13 @@ func _apply_sky() -> void:
 		# Not stronger at night, though that was tried: Godot blends toward
 		# the sky's radiance, which _apply_sky lifts at night so that the
 		# ground is lit at all, and the haze came out brighter than the band.
-		e.fog_aerial_perspective = clamp(0.12 + 0.35 * clamp((draw_nodes - 192.0) / 512.0, 0.0, 1.0), 0.12, 0.5)
+		var aerial: float = clamp(0.12 + 0.35 * clamp((draw_nodes - 192.0) / 512.0, 0.0, 1.0), 0.12, 0.5)
+		# Aerial perspective samples sky radiance, which is intentionally
+		# lifted at night to provide ambient light. Using that lifted radiance
+		# as fog colour is what faded mountains and trees toward white. Night
+		# keeps the depth fog above, already coloured and dimmed from the night
+		# horizon; sky-radiance blending belongs to daylight and twilight.
+		e.fog_aerial_perspective = aerial * maxf(day, dawn * 0.65)
 		e.fog_sky_affect = 0.1 if draw_nodes < 260.0 else 0.5
 	# --- ambient / grade from day-night ratio and server lighting ---
 	var ratio: float = st["day_night_ratio"]

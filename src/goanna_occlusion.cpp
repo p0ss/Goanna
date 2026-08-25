@@ -13,7 +13,12 @@ namespace {
 // Tracing budget. Chosen from the sweep goanna_light_test.cpp prints, not by
 // eye: with grid traversal the error is flat in step size, so only the ray
 // count and the radius are left to choose.
-int g_rays = 24;
+// This runs once per emitted terrain vertex while blocks and LOD regions are
+// produced. Twenty-four grid-traversed rays dominated streaming frames for a
+// difference largely covered by the separate four-cell corner term below.
+// Eight retains broad valley/pit shading without making terrain production a
+// CPU ray tracer.
+int g_rays = 8;
 int g_steps = 1; // unused by the traversal, kept so the setter stays stable
 float g_radius = 6.0f;
 

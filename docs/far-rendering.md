@@ -2279,19 +2279,35 @@ streaming. Caves and gaps disappear only when they become smaller than the
 selected voxel, not because Y was discarded.
 
 The recursive levels remain useful occupancy summaries, but presentation no
-longer spends resolution by coarsening exposed faces. Every far tier meshes
-the finest retained level (cell 4 by default); distance tiers only increase
-region batching. Hidden interior voxels already emit no triangles, so making
-them coarser saves no visible geometry, whereas making boundary voxels
-coarser directly damages the silhouette. Deep regions are capped at eight
-mapblocks per edge so this boundary-first policy scans at most 32 cubed cells
-per build at the default setting.
+longer spends resolution by coarsening exposed faces. A full block received
+live or recovered from the store retains an exact cell-1 boundary. Its 4096
+node occupancy values are compacted to bit masks after the cell 2/4/8/16 mips
+are built; only exposed filled nodes and adjacent lighting samples retain full
+cell records. A one-node trunk, leaf crown, cave wall or floating-island
+underside therefore stays on the node grid without retaining a dense cell-1
+material volume.
+
+Server summaries still begin at cell 4 because that is all protocol version 6
+transmits. Exact data uses a world-aligned cell 1, 2, 4 progression across the
+three distance tiers, while summary-only blocks remain cell 4. A region can
+therefore have two ownership passes. Their surfaces are folded into the same
+texture batches before upload, and the mixed-resolution boundary test culls a
+face only when the geometry actually drawn by the other pass covers it. Region
+batching also grows with distance; deep regions remain capped at eight
+mapblocks per edge.
 
 Tier seams cull against the voxel size actually drawn by the neighbouring
 block. In particular, a coarse face touching four finer voxels is removed only
 when all four cover it; an occupied but undrawn coarse mip of that neighbour
 cannot suppress the face. This conservatively permits some hidden overlap at
 a mixed-detail edge, but it cannot open a strip through the terrain.
+
+All six boundary directions must also agree on winding after Luanti Z is
+mirrored into Godot Z. The Z-facing tables once used the X/Y index order and
+were consequently wound inward: the CPU reported a complete six-sided voxel,
+but backface culling removed two sides and hills appeared as disconnected
+horizontal panels. `goanna_lod_test` now compares every triangle's winding to
+its outward normal, rather than merely counting faces.
 
 The smooth terrain surface remains in the mesher for old/internal callers but
 is no longer authoritative for chains built by the client or protocol v6.
@@ -2340,10 +2356,23 @@ merged quad in a region forced every face in that region to its tile-average
 colour. Flattening now uses camera-to-world-fragment distance only and starts
 beyond 384 nodes, leaving the near/far boundary unflattened. Water makes the
 same gradual transition instead of switching straight to its last mip.
+The distance ramp flattens the whole texture-scale material response together:
+normal relief, roughness, metalness, specular and leaf backlighting approach a
+fully rough dielectric along with the averaged albedo. Flattening colour and
+normals alone left a smooth averaged canopy carrying the close tile's sharp
+highlight, so distant trees became more reflective at precisely the point
+their visible detail disappeared.
 Summary lighting also no longer paints a block-wide maximum over solid
 interiors: skylight is reconstructed through known open columns, and the
 unlocated block-light maximum is not allowed to turn an entire distant hill
 emissive.
+
+Night distance fog uses the blended night horizon, not a server's commonly
+day-authored fixed fog override. Godot aerial perspective samples sky
+radiance; Goanna deliberately lifts that radiance at night for ambient light,
+so using it as the fog destination faded distant terrain toward pale grey.
+Aerial perspective now belongs to daylight and twilight, while night retains
+the separately coloured and dimmed depth fog.
 
 ### Regional full-detail batches, 2026-08-25
 
@@ -2369,3 +2398,34 @@ applied on connection rather than being discarded. At 1600 by 900 and a 70
 degree vertical FOV this reports a 110 degree circular cone, enough to include
 the frame corners; the former 70 degree session default cut vertical wedges
 from both screen edges until a window resize happened to resend the setting.
+
+### Terrain occlusion, 2026-08-25
+
+Frustum culling cannot tell that a far region is behind a cave wall. Regional
+near meshes therefore also publish `ArrayOccluder3D` geometry for their fully
+opaque, backface-culled triangles. Alpha-blended tiles, cut-out foliage and
+liquids never occlude. Array textures are classified by the triangle's actual
+layer, not by the whole array: a stone layer remains an occluder when a leaf
+layer elsewhere in the same array contains transparent texels. Godot culls a
+region only when the occlusion buffer covers its complete AABB, so incomplete
+or partly visible far terrain remains visible.
+
+The Video settings include a live Terrain occlusion toggle for an exact A/B.
+The performance overlay reports active occluder regions and triangles, render
+setup CPU time, viewport render CPU time and measured GPU time. On Mineclonia
+with Godot 4.5.1, a fixed outdoor view with 4,094 far blocks changed from 841
+draws and 912 objects with occlusion off to 707 draws and 778 objects with it
+on. This open view is deliberately a weak case: measured render CPU rose from
+about 0.52 to 0.71 ms while GPU time changed from 3.02 to 2.94 ms. Enclosed
+spaces are the intended case, because their nearby walls can cover the far
+regions that frustum culling alone still submits.
+
+Retained summaries are knowledge, not visible work. A settled client may hold
+tens of thousands of mapblocks while only a few hundred regions contribute to
+the frame. Tier reassessment therefore runs after the camera crosses a
+mapblock boundary or a tier setting changes, not over the full retained map on
+every stationary frame. The HUD samples `render_stats()` four times a second,
+and its optional tier histogram is built only for `GOANNA_PERF`; otherwise the
+performance counter itself scaled with the summary database. The overlay
+separates complete LOD-frame time, tier scan, summary ingestion, request scan,
+periodic far audit and statistics collection so future growth is attributable.

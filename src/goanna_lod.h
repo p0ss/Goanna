@@ -8,7 +8,7 @@
 // for the vertex layout the output meets.
 //
 // Each mapblock that is drawn coarsely, or that neighbours one, gets a chain
-// of levels at cell 2, 4, 8 and 16 nodes: which cells are filled, which block
+// of levels at cell 1, 2, 4, 8 and 16 nodes: which cells are filled, which block
 // light, what is seen from each side, and how lit the air in them is. Regions
 // of blocks at one tier are then meshed from those chains alone, never from
 // the nodes, which is what lets a tier be rebuilt cheaply and is the shape the
@@ -18,6 +18,7 @@
 // tracer is the one in goanna_occlusion.h, run against a field at the tier's
 // cell size, which is the far field term in docs/far-rendering.md.
 
+#include <array>
 #include <cstdint>
 #include <functional>
 #include <map>
@@ -78,33 +79,59 @@ struct LodLevel {
 };
 
 struct BlockLodChain {
-    static constexpr int kLevels = 4; // cell 2, 4, 8, 16
+    static constexpr int kLevels = 5; // cell 1, 2, 4, 8, 16
     LodLevel level[kLevels];
+    // Cell-1 is retained as a sparse boundary after its coarser mips have
+    // been built. `fine_filled` is the exact occupancy used to cull inward
+    // faces; records contain exposed filled nodes plus adjacent lit air, so
+    // the mesher also has the material and light needed at the boundary.
+    struct FineRecord {
+        uint16_t index = 0;
+        LodLevel::Cell cell;
+    };
+    bool fine_available = false;
+    std::array<uint64_t, 64> fine_filled{}; // 4096 node bits
+    std::array<uint64_t, 64> fine_occludes{};
+    std::array<uint64_t, 64> fine_record_mask{};
+    std::array<uint16_t, 64> fine_record_base{};
+    std::vector<FineRecord> fine_records;   // sorted by index
     // Derived from the store rather than from a live block: what the far
     // tiers mark as stale (docs/far-rendering.md, "Staleness").
     bool stored = false;
     // Built from a server summary rather than from nodes. A later summary of
     // the same block replaces it; a chain from nodes is never replaced by one.
     bool summary = false;
-    // 2 -> 0, 4 -> 1, 8 -> 2, 16 -> 3; -1 for anything else.
+    // 1 -> 0, 2 -> 1, 4 -> 2, 8 -> 3, 16 -> 4; -1 otherwise.
     static int levelForCell(int cell);
-    static int cellForLevel(int level) { return 2 << level; }
+    static int cellForLevel(int level) { return 1 << level; }
     const LodLevel *forCell(int cell) const {
         int l = levelForCell(cell);
         return l < 0 || !level[l].built() ? nullptr : &level[l];
     }
+    bool hasCell(int cell) const {
+        return cell == 1 ? (fine_available || forCell(1) != nullptr) : forCell(cell) != nullptr;
+    }
+    const LodLevel::Cell *cellAt(int cell, int x, int y, int z) const;
+    bool filledAt(int cell, int x, int y, int z) const;
+    bool occludesAt(int cell, int x, int y, int z) const;
 };
 
-// Build a three-dimensional voxel mip chain from the nodes. Every occupied
-// cell remains a voxel at every level; terrain is not reconstructed from a
-// heightfield, so caves, overhangs and floating islands keep their lower and
-// side faces for as long as the opening is at least one cell wide.
+// Build a three-dimensional voxel mip chain from the nodes. A full block can
+// retain cell 1, so the mesher emits its exact exposed voxel boundary: thin
+// trunks, leaves, cave walls and island undersides all remain on the node
+// grid. Every occupied cell remains a voxel at coarser levels; terrain is not
+// reconstructed from a heightfield.
 void buildLodChain(const NodeDefManager *ndef, MapBlock *block, BlockLodChain &out, int min_level = 0);
 
 // Build every level above first_level from its 2 by 2 by 2 children. Summary
 // records fill the cell-4 level directly and use this same reducer as live and
 // stored blocks, so changing source cannot change the shape of the mip.
 void buildLodMipLevels(BlockLodChain &out, int first_level);
+
+// Compact an already-built dense cell-1 level into the sparse exact boundary
+// representation. Public for focused regression tests; normal callers use
+// buildLodChain, which invokes it after deriving the coarser mips.
+void compactLodFineBoundary(BlockLodChain &out);
 
 // Output, in Godot space (nodes, z mirrored), world absolute, one surface per
 // array texture. texture_id 0 is the flat colour fallback for tiles that have

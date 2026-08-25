@@ -103,9 +103,15 @@ void fragment() {
 			EMISSION = ALBEDO * sp.a * emission_strength;
 		if (sp.b > 0.2549) {
 			float sss = (sp.b - 0.2549) / 0.7451;
-			BACKLIGHT = ALBEDO * sss * sss_strength;
+			BACKLIGHT = ALBEDO * sss * sss_strength * (1.0 - flatten);
 		}
 	}
+	// Keep the complete micro-PBR response on the same distance ramp as the
+	// albedo and normal detail. Otherwise a flat averaged canopy retains the
+	// close tile's sharp highlight and becomes reflective at the LOD handoff.
+	ROUGHNESS = mix(ROUGHNESS, 1.0, flatten);
+	METALLIC = mix(METALLIC, 0.0, flatten);
+	SPECULAR = mix(SPECULAR, 0.2, flatten);
 
 	// Cloth catches the light along a grazing edge, which no LabPBR channel
 	// can say and which is most of what separates wool from painted stone.

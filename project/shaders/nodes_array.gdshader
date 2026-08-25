@@ -144,9 +144,16 @@ void fragment() {
 			// eats the diffuse and leaves it near black. Backlight adds the
 			// light coming through from behind, which is the whole of what a
 			// leaf or a pane of ice wants.
-			BACKLIGHT = ALBEDO * sss * sss_strength;
+			BACKLIGHT = ALBEDO * sss * sss_strength * (1.0 - flatten);
 		}
 	}
+	// The albedo, normal relief and material response are one level of
+	// texture-scale detail. Flattening only the first two left the averaged
+	// far tile carrying the close tile's sharp specular lobe, so distant
+	// foliage became smoother and more reflective than the same tree nearby.
+	ROUGHNESS = mix(ROUGHNESS, 1.0, flatten);
+	METALLIC = mix(METALLIC, 0.0, flatten);
+	SPECULAR = mix(SPECULAR, 0.2, flatten);
 
 	// Cloth catches the light along a grazing edge, which no LabPBR channel
 	// can say and which is most of what separates wool from painted stone.

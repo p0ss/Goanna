@@ -134,12 +134,16 @@ GoannaTexture::GoannaTexture(const std::string &name, const std::vector<video::I
     : video::ITexture(name.c_str(), video::ETT_2D_ARRAY), m_id(id),
       m_image(nullptr), m_layer_names(layer_names) {
     m_layers.reserve(images.size());
+    m_layer_alpha.reserve(images.size());
     for (video::IImage *img : images) {
         img->grab();
         m_layers.push_back(img);
-        for (u32 y = 0; y < img->getDimension().Height && !m_has_alpha; ++y)
+        bool layer_alpha = false;
+        for (u32 y = 0; y < img->getDimension().Height && !layer_alpha; ++y)
             for (u32 x = 0; x < img->getDimension().Width; ++x)
-                if (img->getPixel(x, y).getAlpha() < 255) { m_has_alpha = true; break; }
+                if (img->getPixel(x, y).getAlpha() < 255) { layer_alpha = true; break; }
+        m_layer_alpha.push_back(layer_alpha);
+        m_has_alpha = m_has_alpha || layer_alpha;
     }
     if (!m_layers.empty()) {
         Size = OriginalSize = m_layers[0]->getDimension();
@@ -785,4 +789,3 @@ u32 IShaderSource::getShader(const std::string &name, MaterialType material_type
     }
     return getShader(name, input_const, base_mat);
 }
-

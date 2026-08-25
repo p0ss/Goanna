@@ -11,7 +11,9 @@
 #include <vector>
 
 #include <godot_cpp/classes/array_mesh.hpp>
+#include <godot_cpp/classes/array_occluder3d.hpp>
 #include <godot_cpp/classes/mesh_instance3d.hpp>
+#include <godot_cpp/classes/occluder_instance3d.hpp>
 #include <godot_cpp/classes/omni_light3d.hpp>
 #include <godot_cpp/classes/gpu_particles3d.hpp>
 #include <godot_cpp/classes/particle_process_material.hpp>
@@ -338,10 +340,11 @@ private:
     struct NearRegion {
         godot::MeshInstance3D *node = nullptr;
         godot::MeshInstance3D *glow_node = nullptr;
+        godot::OccluderInstance3D *occluder_node = nullptr;
         std::set<v3s16> members;
         bool dirty = false;
         std::chrono::steady_clock::time_point dirty_at;
-        int surfaces = 0;
+        int surfaces = 0, occluder_triangles = 0;
     };
     static constexpr int kNearRegionBlocks = 4;
     std::map<v3s16, NearBlock> m_near_blocks;
@@ -349,6 +352,7 @@ private:
     std::map<v3s16, v3s16> m_near_member;
     v3s16 nearRegionFor(const v3s16 &bp) const;
     bool nearCanBatch(const MaterialKey &key) const;
+    bool nearCanOcclude(const MaterialKey &key) const;
     void nearMarkDirty(NearRegion &region);
     void nearAssign(const v3s16 &bp);
     void nearDrop(const v3s16 &bp);
@@ -361,6 +365,17 @@ private:
     godot::Ref<godot::StandardMaterial3D> m_lod_material; // flat colour fallback
     std::map<u32, godot::Ref<godot::Material>> m_lod_water; // water shader per liquid tile
     godot::Vector3 m_lod_centre; // last camera position seen by update_lod
+    // Existing blocks only need their distance tier reconsidered after the
+    // camera crosses a mapblock boundary (or a setting changes). New blocks
+    // are assigned against m_lod_centre as they arrive. Walking the complete
+    // retained far-summary map while standing still made frame cost grow with
+    // terrain knowledge rather than with anything being drawn.
+    v3s16 m_lod_retier_centre{32767, 32767, 32767};
+    bool m_lod_retier_pending = true;
+    // Snapshot of retained blocks still to reconsider after the camera moves.
+    // The old loop restarted at map.begin() after each eight changes, turning
+    // a linear scan into repeated O(n) work while terrain streamed.
+    std::deque<v3s16> m_lod_retier_queue;
     // Distance scale, in blocks, at which coarse cell sizes begin doubling.
     // Resident blocks are always full detail; a non-resident block starts at
     // the finest coarse tier even inside this distance, so server delivery
@@ -406,6 +421,9 @@ private:
     std::deque<v3s16> m_lod_chain_queue;
     std::set<v3s16> m_lod_chain_queued;
     std::map<v3s16, std::set<LodRegionKey>> m_lod_chain_waiters;
+    // Exact near meshes retained across prune until their asynchronously
+    // derived far region has actually been uploaded (atomic handoff).
+    std::set<v3s16> m_lod_handoff_near;
     // Blocks that have no chain source, neither live nor stored: asked for
     // once and not again until something arrives for them, or a region that
     // touches one rebuilds every quarter second for nothing.
@@ -413,8 +431,18 @@ private:
     void lodEnqueueChain(const v3s16 &bp);
     LodTileCache m_lod_tiles;
     double m_ms_lod = 0; // EMA of one region build
+    double m_ms_lod_update = 0; // complete update_lod call, including lock wait
+    double m_ms_lod_tier_scan = 0;
+    double m_ms_lod_summaries = 0;
+    double m_ms_lod_requests = 0;
+    double m_ms_lod_far_scan = 0;
+    double m_ms_lod_chain = 0; // EMA of one lazily derived exact hierarchy
+    int m_lod_chains_built_last = 0;
+    double m_ms_stats = 0;
     int m_lod_last_built = 0;
     double m_ms_poll_max = 0, m_ms_poll_max_last = 0; // worst poll_blocks call, per second
+    double m_ms_poll_lock = 0, m_ms_poll_queue = 0, m_ms_poll_blocks = 0;
+    double m_ms_poll_near = 0, m_ms_poll_lod = 0;
     std::chrono::steady_clock::time_point m_poll_window;
     // Blocks drawn from the store rather than received: they sit in
     // m_block_tier like any other, flagged here so a tier change is applied
