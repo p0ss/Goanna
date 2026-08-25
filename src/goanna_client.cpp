@@ -64,6 +64,14 @@ inline double ms_since(const clock_t_::time_point &t0) {
 // Exponential moving average: one bad frame should show, but the number
 // should still be readable.
 inline void ema(double &acc, double sample) { acc = acc * 0.9 + sample * 0.1; }
+// Every node surface declares CUSTOM0 as four unsigned bytes: block light,
+// sky light, ambient occlusion, spare. RGBA8_UNORM happens to be format 0,
+// so this constant is zero today; it is named rather than assumed.
+const uint64_t kNodeSurfaceFlags =
+        (uint64_t)Mesh::ARRAY_CUSTOM_RGBA8_UNORM << Mesh::ARRAY_FORMAT_CUSTOM0_SHIFT;
+// Light-emitting faces sit outside node lights' shadow caster mask. The sun
+// still sees this layer.
+const uint32_t GLOW_LAYER = 1u << 1;
 } // namespace
 
 
@@ -97,12 +105,225 @@ void GoannaClient::set_bevel(float width) {
     // Bevelling changes geometry, so re-mesh every loaded block.
     if (m_session) {
         std::lock_guard<std::mutex> lk(m_session->mapLock());
-        for (auto &kv : m_block_nodes)
+        for (auto &kv : m_near_blocks)
             m_session->requeueBlock(kv.first);
     }
 }
 
 float GoannaClient::bevel() const { return g_goanna_bevel; }
+
+v3s16 GoannaClient::nearRegionFor(const v3s16 &bp) const {
+    auto fdiv = [](int a, int b) { return a >= 0 ? a / b : -((-a + b - 1) / b); };
+    return v3s16(fdiv(bp.X, kNearRegionBlocks), fdiv(bp.Y, kNearRegionBlocks),
+            fdiv(bp.Z, kNearRegionBlocks));
+}
+
+bool GoannaClient::nearCanBatch(const MaterialKey &key) const {
+    if (key.array_texture)
+        return true;
+    // Region-sized transparent objects sort as a unit, which is visibly
+    // wrong when water, glass or another blended tile overlaps a nearer
+    // block. Opaque and alpha-scissored materials retain depth correctness
+    // when grouped, including waving leaves and plants.
+    const MaterialType type = m_session->shsrc().materialType(key.shader_id);
+    switch (type) {
+    case TILE_MATERIAL_ALPHA:
+    case TILE_MATERIAL_PLAIN_ALPHA:
+    case TILE_MATERIAL_LIQUID_TRANSPARENT:
+    case TILE_MATERIAL_WAVING_LIQUID_BASIC:
+    case TILE_MATERIAL_WAVING_LIQUID_TRANSPARENT:
+        return false;
+    default:
+        return true;
+    }
+}
+
+void GoannaClient::nearMarkDirty(NearRegion &region) {
+    // Preserve the first invalidation time. A busy streaming region must be
+    // rebuilt after the debounce even if another block arrives every frame.
+    if (!region.dirty)
+        region.dirty_at = clock_t_::now();
+    region.dirty = true;
+}
+
+void GoannaClient::nearAssign(const v3s16 &bp) {
+    auto block = m_near_blocks.find(bp);
+    const bool has_regional = block != m_near_blocks.end() && !block->second.surfaces.empty();
+    auto old = m_near_member.find(bp);
+    if (!has_regional) {
+        if (old != m_near_member.end()) {
+            NearRegion &region = m_near_regions[old->second];
+            region.members.erase(bp);
+            nearMarkDirty(region);
+            m_near_member.erase(old);
+        }
+        return;
+    }
+    const v3s16 key = nearRegionFor(bp);
+    if (old != m_near_member.end() && old->second != key) {
+        NearRegion &region = m_near_regions[old->second];
+        region.members.erase(bp);
+        nearMarkDirty(region);
+    }
+    NearRegion &region = m_near_regions[key];
+    region.members.insert(bp);
+    nearMarkDirty(region);
+    m_near_member[bp] = key;
+}
+
+void GoannaClient::nearDrop(const v3s16 &bp) {
+    auto member = m_near_member.find(bp);
+    if (member != m_near_member.end()) {
+        NearRegion &region = m_near_regions[member->second];
+        region.members.erase(bp);
+        nearMarkDirty(region);
+        m_near_member.erase(member);
+    }
+    auto block = m_near_blocks.find(bp);
+    if (block != m_near_blocks.end()) {
+        if (block->second.special_node)
+            block->second.special_node->queue_free();
+        m_near_blocks.erase(block);
+    }
+}
+
+void GoannaClient::nearBuildRegion(const v3s16 &key, NearRegion &region) {
+    auto t0 = clock_t_::now();
+    struct Accum {
+        MaterialKey key;
+        PackedVector3Array verts, norms;
+        PackedVector2Array uvs, uv2s;
+        PackedColorArray cols;
+        PackedByteArray custom0;
+        PackedInt32Array idx;
+        bool glow = false;
+    };
+    std::map<uint64_t, Accum> groups;
+    for (const v3s16 &bp : region.members) {
+        auto block = m_near_blocks.find(bp);
+        if (block == m_near_blocks.end())
+            continue;
+        for (const NearSurface &surface : block->second.surfaces) {
+            const uint64_t group_key = (surface.key.hash() << 1) | (surface.glow ? 1 : 0);
+            Accum &acc = groups[group_key];
+            acc.key = surface.key;
+            acc.glow = surface.glow;
+            const int base = acc.verts.size();
+            acc.verts.append_array(surface.verts);
+            acc.norms.append_array(surface.norms);
+            acc.uvs.append_array(surface.uvs);
+            acc.uv2s.append_array(surface.uv2s);
+            acc.cols.append_array(surface.cols);
+            acc.custom0.append_array(surface.custom0);
+            for (int i = 0; i < surface.idx.size(); ++i)
+                acc.idx.push_back(surface.idx[i] + base);
+        }
+    }
+
+    auto build_mesh = [&](bool glow) -> Ref<ArrayMesh> {
+        Ref<ArrayMesh> mesh;
+        mesh.instantiate();
+        int si = 0;
+        for (auto &kv : groups) {
+            Accum &acc = kv.second;
+            if (acc.glow != glow || acc.verts.is_empty() || acc.idx.is_empty())
+                continue;
+            Array arrays;
+            arrays.resize(Mesh::ARRAY_MAX);
+            arrays[Mesh::ARRAY_VERTEX] = acc.verts;
+            arrays[Mesh::ARRAY_NORMAL] = acc.norms;
+            arrays[Mesh::ARRAY_TEX_UV] = acc.uvs;
+            arrays[Mesh::ARRAY_TEX_UV2] = acc.uv2s;
+            arrays[Mesh::ARRAY_COLOR] = acc.cols;
+            arrays[Mesh::ARRAY_CUSTOM0] = acc.custom0;
+            arrays[Mesh::ARRAY_INDEX] = acc.idx;
+            mesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays, TypedArray<Array>(),
+                    Dictionary(), kNodeSurfaceFlags);
+            mesh->surface_set_material(si++, materialFor(acc.key));
+        }
+        return mesh;
+    };
+
+    Ref<ArrayMesh> mesh = build_mesh(false);
+    Ref<ArrayMesh> glow_mesh = build_mesh(true);
+    const float region_edge = (float)(kNearRegionBlocks * MAP_BLOCKSIZE);
+    const Vector3 region_min(key.X * region_edge - 1.0f, key.Y * region_edge - 1.0f,
+            -(key.Z + 1) * region_edge - 1.0f);
+    const AABB region_bounds(region_min,
+            Vector3(region_edge + 2.0f, region_edge + 2.0f, region_edge + 2.0f));
+    auto apply = [&](MeshInstance3D *&node, const Ref<ArrayMesh> &next, bool glow) {
+        if (next->get_surface_count() == 0) {
+            if (node) {
+                node->queue_free();
+                node = nullptr;
+            }
+            return;
+        }
+        if (!node) {
+            node = memnew(MeshInstance3D);
+            if (glow)
+                node->set_layer_mask(GLOW_LAYER);
+            add_child(node);
+        }
+        // A regional mesh is deliberately culled as a region. Use its full
+        // ownership cube, with room for bevel and vegetation sway, rather
+        // than trusting a temporarily sparse rebuild's geometry bounds. A
+        // partial batch at the frustum edge must not make other member blocks
+        // disappear as the camera turns.
+        node->set_custom_aabb(region_bounds);
+        node->set_mesh(next);
+    };
+    apply(region.node, mesh, false);
+    apply(region.glow_node, glow_mesh, true);
+    region.surfaces = mesh->get_surface_count() + glow_mesh->get_surface_count();
+    region.dirty = false;
+    ema(m_ms_near_batch, ms_since(t0));
+    if (getenv("GOANNA_DEBUG_BLOCKS"))
+        UtilityFunctions::print("near region ", key.X, ",", key.Y, ",", key.Z, " blocks ",
+                (int)region.members.size(), " surfaces ", region.surfaces, " in ",
+                String::num(ms_since(t0), 2), " ms");
+}
+
+void GoannaClient::nearRebuild(double budget_ms) {
+    m_near_regions_built_last = 0;
+    auto t0 = clock_t_::now();
+    std::vector<std::pair<clock_t_::time_point, v3s16>> dirty;
+    for (const auto &kv : m_near_regions)
+        if (kv.second.dirty)
+            dirty.push_back({kv.second.dirty_at, kv.first});
+    std::sort(dirty.begin(), dirty.end(),
+            [](const auto &a, const auto &b) { return a.first < b.first; });
+    for (const auto &entry : dirty) {
+        if (m_near_regions_built_last > 0 && ms_since(t0) >= budget_ms)
+            break;
+        auto it = m_near_regions.find(entry.second);
+        if (it == m_near_regions.end())
+            continue;
+        NearRegion &region = it->second;
+        if ((region.node || region.glow_node) && !region.members.empty() &&
+                ms_since(region.dirty_at) < 100.0)
+            continue;
+        nearBuildRegion(entry.second, region);
+        ++m_near_regions_built_last;
+        if (region.members.empty())
+            m_near_regions.erase(it);
+    }
+}
+
+void GoannaClient::nearClear() {
+    for (auto &kv : m_near_blocks)
+        if (kv.second.special_node)
+            kv.second.special_node->queue_free();
+    for (auto &kv : m_near_regions) {
+        if (kv.second.node)
+            kv.second.node->queue_free();
+        if (kv.second.glow_node)
+            kv.second.glow_node->queue_free();
+    }
+    m_near_blocks.clear();
+    m_near_regions.clear();
+    m_near_member.clear();
+}
 
 int GoannaClient::prune_blocks(int radius) {
     if (!m_session)
@@ -130,7 +351,7 @@ int GoannaClient::prune_blocks(int radius) {
                 // the measured hour-long run and exhausted Godot's shader
                 // instance buffer. Keep it only until its grouped replacement
                 // has been built at the end of this handoff.
-                if (m_block_nodes.count(bp))
+                if (m_near_blocks.count(bp))
                     handoff_nodes.insert(bp);
                 const int tier = lodTierFor(bp, m_lod_centre, false);
                 if (tier >= 1 && m_lod_chains.count(bp)) {
@@ -152,7 +373,7 @@ int GoannaClient::prune_blocks(int radius) {
         // Drop orphan exact meshes outside the volumetric grant immediately.
         // In-range ones are repaired into grouped ownership by the chain
         // audit below and released after those regions build.
-        for (auto it = m_block_nodes.begin(); it != m_block_nodes.end();) {
+        for (auto it = m_near_blocks.begin(); it != m_near_blocks.end();) {
             const v3s16 bp = it->first;
             if (m_session->getBlock(bp)) {
                 ++it;
@@ -164,12 +385,11 @@ int GoannaClient::prune_blocks(int radius) {
                 ++it;
                 continue;
             }
-            if (it->second)
-                it->second->queue_free();
+            ++it;
             m_block_lights.erase(bp);
             m_block_tier.erase(bp);
             lodForget(bp);
-            it = m_block_nodes.erase(it);
+            nearDrop(bp);
         }
         // The chain database is authoritative. Repair ownership from it as
         // well as from presentation bookkeeping, so no future zero-mesh,
@@ -191,7 +411,7 @@ int GoannaClient::prune_blocks(int radius) {
             handoff_regions.insert(m_lod_member[bp]);
             m_block_tier[bp] = tier;
             m_far_blocks.insert(bp);
-            if (m_block_nodes.count(bp))
+            if (m_near_blocks.count(bp))
                 handoff_nodes.insert(bp);
         }
         // Bypass the normal 250 ms dirty-region debounce, then retire exact
@@ -203,13 +423,10 @@ int GoannaClient::prune_blocks(int radius) {
             lodBuildRegion(key, rit->second);
         }
         for (const v3s16 &bp : handoff_nodes) {
-            auto ni = m_block_nodes.find(bp);
-            if (ni == m_block_nodes.end())
+            if (!m_near_blocks.count(bp))
                 continue;
-            if (ni->second)
-                ni->second->queue_free();
             m_block_lights.erase(bp);
-            m_block_nodes.erase(ni);
+            nearDrop(bp);
         }
         m_far_dirty = true;
     }
@@ -223,14 +440,14 @@ void GoannaClient::set_view_range(int blocks) {
         m_session->wantedRange = blocks < 1 ? 1 : (blocks > 60 ? 60 : blocks);
 }
 int GoannaClient::view_range() const { return m_session ? m_session->wantedRange : 12; }
-// The wider of the camera's two field of view angles, in degrees. Not the
-// vertical one Godot's Camera3D carries: the server culls what it sends
-// against this angle, so it has to be the one that reaches the corners of the
-// window. main.gd works it out, since the viewport's shape is not visible
-// from here. See writePlayerPosTo for what the wire wants.
+// The camera's enclosing circular field of view, in degrees. Not the vertical
+// angle Godot's Camera3D carries: the server culls against a circular cone, so
+// it has to reach the window corners. main.gd works it out because the
+// viewport's shape is not visible here. See writePlayerPosTo for the wire.
 void GoannaClient::set_view_fov(float degrees) {
+    m_view_fov = std::clamp(degrees, 1.0f, 179.0f);
     if (m_session)
-        m_session->cameraFov = degrees;
+        m_session->cameraFov = m_view_fov;
 }
 
 void GoannaClient::set_safe_dig(bool on) { if (m_session) m_session->safeDig = on; }
@@ -254,7 +471,7 @@ void GoannaClient::set_auto_bump(float strength) {
     // Re-request the loaded blocks so their meshes pick up the new materials.
     if (m_session) {
         std::lock_guard<std::mutex> lk(m_session->mapLock());
-        for (auto &kv : m_block_nodes)
+        for (auto &kv : m_near_blocks)
             m_session->requeueBlock(kv.first);
     }
 }
@@ -277,7 +494,7 @@ void GoannaClient::set_solid_ice(bool on) {
     m_materials.clear();
     if (m_session) {
         std::lock_guard<std::mutex> lk(m_session->mapLock());
-        for (auto &kv : m_block_nodes)
+        for (auto &kv : m_near_blocks)
             m_session->requeueBlock(kv.first);
     }
 }
@@ -383,7 +600,13 @@ void GoannaClient::connect_to(const String &host, int port, const String &player
     // Luanti's base texture pack lives in the luanti/ checkout next to project/.
     String share = ProjectSettings::get_singleton()->globalize_path("res://../luanti");
     GoannaSession::setSharePath(share.utf8().get_data());
+    nearClear();
     m_session = std::make_unique<GoannaSession>();
+    // The camera is created before connect_to(), so _report_fov() normally
+    // arrives before the session. Apply the retained cone before the first
+    // player-position packet or the server streams only its 70 degree
+    // default and cuts vertical wedges from a wide viewport.
+    m_session->cameraFov = m_view_fov;
     if (m_session->tsrc())
         m_session->tsrc()->setInferredReliefStrength(m_auto_bump);
     if (!m_store_root.is_empty())
@@ -416,6 +639,7 @@ void GoannaClient::connect_to(const String &host, int port, const String &player
 }
 
 void GoannaClient::disconnect_from_server() {
+    nearClear();
     m_session.reset();
 }
 
@@ -434,11 +658,12 @@ Dictionary GoannaClient::status() const {
     d["item_defs"] = (int)s.item_defs;
     d["media_announced"] = (int)s.media_announced;
     d["blocks_received"] = (int)s.blocks_received;
-    d["blocks_meshed"] = (int)m_block_nodes.size();
+    d["blocks_meshed"] = (int)m_near_blocks.size();
     d["resident_blocks"] = m_session ? (int)m_session->residentBlocks() : 0;
     d["entities"] = m_entities ? m_entities->count() : 0;
     d["media_received"] = (int)s.media_received;
     d["materials"] = m_materials.size();
+    d["camera_fov"] = m_session->cameraFov;
     int n_lights = 0;
     for (auto &kv : m_block_lights)
         n_lights += (int)kv.second.size();
@@ -1151,13 +1376,6 @@ Dictionary GoannaClient::step_player(double dt, const Dictionary &keys, float pi
     return out;
 }
 
-// Every node surface declares CUSTOM0 as four unsigned bytes: block light,
-// sky light, ambient occlusion, spare. RGBA8_UNORM happens to be format 0, so
-// this constant is zero today; it is written out rather than assumed, because
-// the day the packing changes a silent 0 would be very hard to find.
-static const uint64_t kNodeSurfaceFlags =
-        (uint64_t)Mesh::ARRAY_CUSTOM_RGBA8_UNORM << Mesh::ARRAY_FORMAT_CUSTOM0_SHIFT;
-
 Ref<Material> GoannaClient::materialForIrr(const video::SMaterial &m, u16 layer) {
     return materialFor(keyForIrr(m, layer));
 }
@@ -1709,21 +1927,30 @@ Dictionary GoannaClient::render_stats() {
     d["entities_ms"] = m_ms_entities;
     d["blocks_meshed_last"] = m_last_meshed;
     d["blocks_queued"] = m_last_queue;
-    d["block_meshes"] = (int)m_block_nodes.size();
-    int near_surfaces = 0;
-    for (const auto &kv : m_block_nodes) {
-        if (!kv.second)
-            continue;
-        Ref<Mesh> mesh = kv.second->get_mesh();
-        if (mesh.is_valid())
-            near_surfaces += mesh->get_surface_count();
-        for (int ci = 0; ci < kv.second->get_child_count(); ++ci) {
-            MeshInstance3D *child = Object::cast_to<MeshInstance3D>(kv.second->get_child(ci));
-            if (child && child->get_mesh().is_valid())
-                near_surfaces += child->get_mesh()->get_surface_count();
-        }
+    d["block_meshes"] = (int)m_near_blocks.size();
+    int near_surfaces = 0, near_regions = 0, near_source_surfaces = 0;
+    for (const auto &kv : m_near_regions) {
+        near_surfaces += kv.second.surfaces;
+        if (kv.second.node || kv.second.glow_node)
+            ++near_regions;
+    }
+    for (const auto &kv : m_near_blocks) {
+        near_source_surfaces += kv.second.source_surfaces;
+        if (kv.second.special_node && kv.second.special_node->get_mesh().is_valid())
+            near_surfaces += kv.second.special_node->get_mesh()->get_surface_count();
+        if (kv.second.special_node)
+            for (int ci = 0; ci < kv.second.special_node->get_child_count(); ++ci) {
+                MeshInstance3D *child = Object::cast_to<MeshInstance3D>(
+                        kv.second.special_node->get_child(ci));
+                if (child && child->get_mesh().is_valid())
+                    near_surfaces += child->get_mesh()->get_surface_count();
+            }
     }
     d["near_surfaces"] = near_surfaces;
+    d["near_source_surfaces"] = near_source_surfaces;
+    d["near_regions"] = near_regions;
+    d["near_batch_ms"] = m_ms_near_batch;
+    d["near_regions_built_last"] = m_near_regions_built_last;
     d["entities"] = m_entities ? m_entities->count() : 0;
     d["materials"] = (int)m_materials.size();
     d["resident_blocks"] = m_session ? m_session->residentBlocks() : 0;
@@ -1802,10 +2029,6 @@ Array GoannaClient::entity_list() {
     std::lock_guard<std::mutex> lk(m_session->mapLock());
     return m_entities->list(*m_session);
 }
-
-// The render layer that light emitting node faces are drawn on. Node lights
-// are told not to accept shadow casters from it; the sun still does.
-static const uint32_t GLOW_LAYER = 1u << 1;
 
 void GoannaClient::update_lights(const Vector3 &around, int max_lights) {
     auto t0 = clock_t_::now();
@@ -2520,7 +2743,7 @@ void GoannaClient::lodUpdateFar(const Vector3 &around) {
                         continue;
                     if (m_session->getBlock(bp))
                         continue;
-                    if (m_block_nodes.count(bp))
+                    if (m_near_blocks.count(bp))
                         continue; // retained full-detail surface shell
                     // Deterministic source upgrades: a stored block contains
                     // full nodes and must replace an earlier remote summary.
@@ -2549,7 +2772,7 @@ void GoannaClient::lodUpdateFar(const Vector3 &around) {
     // for example across a live/far ownership change. A complete area will
     // not be requested again, so this cache must remain independently useful.
     for (const v3s16 &bp : m_far_remote) {
-        if (m_far_blocks.count(bp) || m_session->getBlock(bp) || m_block_nodes.count(bp))
+        if (m_far_blocks.count(bp) || m_session->getBlock(bp) || m_near_blocks.count(bp))
             continue;
         const v3s16 d = bp - centre;
         if (std::abs(d.X) > radius || std::abs(d.Y) > radius || std::abs(d.Z) > radius)
@@ -2641,7 +2864,7 @@ void GoannaClient::lodUpdateFar(const Vector3 &around) {
         // Pruned full-detail surface shells are part of the far view too.
         // Excluding them made fog close before retained mountains and looked
         // like an artificially short far-render distance.
-        for (const auto &kv : m_block_nodes)
+        for (const auto &kv : m_near_blocks)
             if (!m_session->getBlock(kv.first))
                 count_reach(kv.first);
         std::vector<int> reach;
@@ -3016,14 +3239,11 @@ void GoannaClient::lodTakeSummaries(const Vector3 &around) {
         ask.air = available_records > 0 && !any_ground;
         ask.open_above = open_above;
         ask.open_below = open_below;
-        // Publish summary areas atomically. During pregeneration an emerge
-        // slice contains complete individual mapblocks, but the other slices
-        // in the same 8-cubed area are still absent. Meshing those records
-        // immediately is what produced floating horizontal panels and holes
-        // arranged on generation-slice boundaries. Voxy exposes completed
-        // sections; use the summary area's own completion boundary here and
-        // retry partial progress quickly instead. Existing full/store/live
-        // chains are left untouched while this reply waits.
+        // Publish summary areas atomically. A volumetric record can close its
+        // faces against unknown space, but a completed generation slice is
+        // still visibly half a hill when neighbouring slices have not arrived.
+        // Keep all earlier full/store/live chains while this reply waits, and
+        // expose the new summary only when its whole 8-cubed unit is complete.
         if (!ask.complete)
             continue;
         // The wire record is a 4 by 4 by 4 field of 4-node voxels, so 4 nodes is the
@@ -3039,13 +3259,13 @@ void GoannaClient::lodTakeSummaries(const Vector3 &around) {
         int dbg_miny = 32767, dbg_maxy = -32768;
         for (size_t i = 0; i < total; ++i) {
             const uint8_t *r = (const uint8_t *)blob.data() + i * kRecordSize;
-            if (!(r[0] & 16))
+            if (!(r[rFlags] & 16))
                 continue; // no emerged data: stays unknown, never invented
             const v3s16 bp(ox + (int)(i % edge), oy + (int)((i / edge) % edge),
                     oz + (int)(i / (edge * edge)));
             if (m_session->getBlock(bp))
                 continue; // live: known better
-            if (m_block_nodes.count(bp))
+            if (m_near_blocks.count(bp))
                 continue; // resident exact mesh: visibly known better
             {
                 // A chain from the store or from live nodes is known better
@@ -3643,11 +3863,7 @@ int GoannaClient::poll_blocks(int max_blocks) {
         m_far_blocks.erase(bp); // live now, whatever the store said
         m_far_remote.erase(bp);
         if (tier >= 1) {
-            auto lit2 = m_block_nodes.find(bp);
-            if (lit2 != m_block_nodes.end()) {
-                lit2->second->queue_free();
-                m_block_nodes.erase(lit2);
-            }
+            nearDrop(bp);
             lodAssign(bp, tier);
             m_block_tier[bp] = tier;
             ++done;
@@ -3676,10 +3892,7 @@ int GoannaClient::poll_blocks(int max_blocks) {
         auto t_upload = clock_t_::now();
         harvestLights(bp, block);
         harvestMotes(bp, block);
-        MeshInstance3D *mi = nullptr;
-        auto it = m_block_nodes.find(bp);
-        if (it != m_block_nodes.end())
-            mi = it->second;
+        NearBlock near_block;
         Ref<ArrayMesh> mesh;
         mesh.instantiate();
         int si = 0;
@@ -3846,10 +4059,31 @@ int GoannaClient::poll_blocks(int max_blocks) {
                 // indices were emitted per triangle above
             }
         }
+        auto keep_regional = [&](SurfAccum &acc, bool glow) {
+            NearSurface surface;
+            surface.key = acc.key;
+            surface.verts = acc.verts;
+            surface.norms = acc.norms;
+            surface.uvs = acc.uvs;
+            surface.uv2s = acc.uv2s;
+            surface.cols = acc.cols;
+            surface.custom0 = acc.custom0;
+            surface.idx = acc.idx;
+            surface.glow = glow;
+            near_block.surfaces.push_back(std::move(surface));
+        };
         for (auto &kv : groups) {
             SurfAccum &acc = kv.second;
             if (acc.verts.is_empty() || acc.idx.is_empty())
                 continue;
+            ++near_block.source_surfaces;
+            // Group every depth-writing material by its exact key. Water,
+            // glass and other alpha-blended surfaces stay per block because
+            // Godot sorts transparent MeshInstance3Ds as whole objects.
+            if (nearCanBatch(acc.key)) {
+                keep_regional(acc, false);
+                continue;
+            }
             Array arrays;
             arrays.resize(Mesh::ARRAY_MAX);
             arrays[Mesh::ARRAY_VERTEX] = acc.verts;
@@ -3874,6 +4108,11 @@ int GoannaClient::poll_blocks(int max_blocks) {
             SurfAccum &acc = kv.second;
             if (acc.verts.is_empty() || acc.idx.is_empty())
                 continue;
+            ++near_block.source_surfaces;
+            if (nearCanBatch(acc.key)) {
+                keep_regional(acc, true);
+                continue;
+            }
             Array arrays;
             arrays.resize(Mesh::ARRAY_MAX);
             arrays[Mesh::ARRAY_VERTEX] = acc.verts;
@@ -3887,15 +4126,13 @@ int GoannaClient::poll_blocks(int max_blocks) {
                     Dictionary(), kNodeSurfaceFlags);
             gmesh->surface_set_material(gsi++, materialFor(acc.key));
         }
-        // A block of nothing but lamps still has geometry, so both have to be
-        // empty before it is thrown away.
-        if (si == 0 && gsi == 0) {
-            if (mi) {
-                if (getenv("GOANNA_DEBUG_BLOCKS"))
-                    UtilityFunctions::print("block FREED (empty mesh): ", bp.X, ",", bp.Y, ",", bp.Z);
-                mi->queue_free();
-                m_block_nodes.erase(bp);
-            }
+        // A block of nothing but region-batched or glowing surfaces still
+        // has geometry, so all three destinations have to be empty before it
+        // is thrown away.
+        if (near_block.surfaces.empty() && si == 0 && gsi == 0) {
+            if (getenv("GOANNA_DEBUG_BLOCKS") && m_near_blocks.count(bp))
+                UtilityFunctions::print("block FREED (empty mesh): ", bp.X, ",", bp.Y, ",", bp.Z);
+            nearDrop(bp);
             // Zero triangles does not mean zero terrain. A completely
             // enclosed solid mapblock has no near faces, yet its retained
             // occupancy is essential when the live set is pruned and the
@@ -3907,36 +4144,31 @@ int GoannaClient::poll_blocks(int max_blocks) {
             ++done;
             continue;
         }
-        if (getenv("GOANNA_DEBUG_BLOCKS") && mi)
-            UtilityFunctions::print("block re-meshed: ", bp.X, ",", bp.Y, ",", bp.Z, " surfaces ", si);
-        if (!mi) {
+        nearDrop(bp);
+        MeshInstance3D *mi = nullptr;
+        if (si > 0 || gsi > 0) {
             mi = memnew(MeshInstance3D);
             add_child(mi);
-            m_block_nodes[bp] = mi;
+            near_block.special_node = mi;
         }
-        mi->set_mesh(mesh);
+        if (si > 0)
+            mi->set_mesh(mesh);
         // The glow mesh hangs off the block mesh rather than being tracked
         // beside it, so every place that frees a block frees this too and none
         // of them had to learn about it.
         MeshInstance3D *gmi = nullptr;
-        for (int ci = 0; ci < mi->get_child_count(); ++ci) {
-            MeshInstance3D *cand = Object::cast_to<MeshInstance3D>(mi->get_child(ci));
-            if (cand && !cand->is_queued_for_deletion()) {
-                gmi = cand;
-                break;
-            }
-        }
         if (gsi > 0) {
-            if (!gmi) {
-                gmi = memnew(MeshInstance3D);
-                gmi->set_layer_mask(GLOW_LAYER);
-                mi->add_child(gmi);
-            }
+            gmi = memnew(MeshInstance3D);
+            gmi->set_layer_mask(GLOW_LAYER);
+            mi->add_child(gmi);
             gmi->set_mesh(gmesh);
-        } else if (gmi) {
-            mi->remove_child(gmi);
-            gmi->queue_free();
         }
+        m_near_blocks[bp] = std::move(near_block);
+        nearAssign(bp);
+        if (getenv("GOANNA_DEBUG_BLOCKS"))
+            UtilityFunctions::print("block re-meshed: ", bp.X, ",", bp.Y, ",", bp.Z,
+                    " source surfaces ", m_near_blocks[bp].source_surfaces, " regional ",
+                    (int)m_near_blocks[bp].surfaces.size(), " special ", si + gsi);
         if (debug_light && dl_n > 0)
             UtilityFunctions::print("LIGHT block ", bp.X, ",", bp.Y, ",", bp.Z, " verts ", (int)dl_n,
                     " block ", (int)(dl_block / dl_n), " sky ", (int)(dl_sky / dl_n),
@@ -3961,9 +4193,10 @@ int GoannaClient::poll_blocks(int max_blocks) {
     }
     m_last_meshed = done;
     m_last_queue = (int)fresh.size() - done;
-    // Regions dirtied above, and any still waiting from earlier polls, in
-    // what is left of the budget plus a little, so a quiet frame still
-    // advances the far tiers.
+    // Exact regional batches are the visible foreground and go first. Far
+    // regions then use what remains, with a small floor so a quiet frame
+    // advances both queues.
+    nearRebuild(std::max(2.0, poll_budget_ms - ms_since(t_poll)));
     lodRebuild(std::max(2.0, poll_budget_ms - ms_since(t_poll)));
     // The worst poll in the last second, which is the frame stall figure.
     const double took = ms_since(t_poll);

@@ -8,7 +8,9 @@
 #include <map>
 #include <set>
 #include <memory>
+#include <vector>
 
+#include <godot_cpp/classes/array_mesh.hpp>
 #include <godot_cpp/classes/mesh_instance3d.hpp>
 #include <godot_cpp/classes/omni_light3d.hpp>
 #include <godot_cpp/classes/gpu_particles3d.hpp>
@@ -18,6 +20,11 @@
 #include <godot_cpp/classes/node3d.hpp>
 #include <godot_cpp/classes/standard_material3d.hpp>
 #include <godot_cpp/variant/dictionary.hpp>
+#include <godot_cpp/variant/packed_byte_array.hpp>
+#include <godot_cpp/variant/packed_color_array.hpp>
+#include <godot_cpp/variant/packed_int32_array.hpp>
+#include <godot_cpp/variant/packed_vector2_array.hpp>
+#include <godot_cpp/variant/packed_vector3_array.hpp>
 
 #include "goanna_entities.h"
 #include "goanna_lod.h"
@@ -104,10 +111,10 @@ public:
     void disconnect_from_server();
     godot::Dictionary status() const;
 
-    // Mesh up to max_blocks newly received blocks into child MeshInstance3Ds.
+    // Mesh up to max_blocks newly received blocks into regional near meshes.
     // Returns how many were processed.
     int poll_blocks(int max_blocks);
-    int block_mesh_count() const { return (int)m_block_nodes.size(); }
+    int block_mesh_count() const { return (int)m_near_blocks.size(); }
     int material_count() const { return (int)m_materials.size(); }
 
     // Camera/player pose in Godot space; reported to the server so it
@@ -308,10 +315,48 @@ private:
     std::unique_ptr<GoannaSession> m_session;
     godot::String m_texture_path; // see set_texture_path
     godot::String m_texture_map;  // see set_texture_map
-    // Tier-0 visible surfaces for resident blocks. Pruned blocks transfer to
-    // grouped far regions; retaining one exact mesh per old mapblock exhausts
-    // Godot's instance buffer and defeats the LOD draw-call budget.
-    std::map<v3s16, godot::MeshInstance3D *> m_block_nodes;
+    // Exact tier-0 geometry is cached per block on the CPU, then compatible
+    // array-material surfaces are combined into one GPU mesh per 4-cubed
+    // region. Water and other order-sensitive special shaders remain in a
+    // per-block node. One GPU instance per ordinary mapblock produced 4,000
+    // to 15,000 draw calls in measured play, even when most were hidden by a
+    // cave wall.
+    struct NearSurface {
+        MaterialKey key;
+        godot::PackedVector3Array verts, norms;
+        godot::PackedVector2Array uvs, uv2s;
+        godot::PackedColorArray cols;
+        godot::PackedByteArray custom0;
+        godot::PackedInt32Array idx;
+        bool glow = false;
+    };
+    struct NearBlock {
+        std::vector<NearSurface> surfaces;
+        godot::MeshInstance3D *special_node = nullptr;
+        int source_surfaces = 0;
+    };
+    struct NearRegion {
+        godot::MeshInstance3D *node = nullptr;
+        godot::MeshInstance3D *glow_node = nullptr;
+        std::set<v3s16> members;
+        bool dirty = false;
+        std::chrono::steady_clock::time_point dirty_at;
+        int surfaces = 0;
+    };
+    static constexpr int kNearRegionBlocks = 4;
+    std::map<v3s16, NearBlock> m_near_blocks;
+    std::map<v3s16, NearRegion> m_near_regions;
+    std::map<v3s16, v3s16> m_near_member;
+    v3s16 nearRegionFor(const v3s16 &bp) const;
+    bool nearCanBatch(const MaterialKey &key) const;
+    void nearMarkDirty(NearRegion &region);
+    void nearAssign(const v3s16 &bp);
+    void nearDrop(const v3s16 &bp);
+    void nearBuildRegion(const v3s16 &key, NearRegion &region);
+    void nearRebuild(double budget_ms);
+    void nearClear();
+    double m_ms_near_batch = 0;
+    int m_near_regions_built_last = 0;
     std::map<v3s16, int> m_block_tier; // 0 = full detail, 1 and up = LOD tiers
     godot::Ref<godot::StandardMaterial3D> m_lod_material; // flat colour fallback
     std::map<u32, godot::Ref<godot::Material>> m_lod_water; // water shader per liquid tile
@@ -397,6 +442,9 @@ private:
     // ragged frontier").
     int m_far_extent = 0;
     int m_far_reach = 0;
+    // The full camera cone reported by main.gd. It may be set before a
+    // GoannaSession exists, so retain it across connection and reconnection.
+    float m_view_fov = 70.0f;
     bool m_far_distance_explicit = false;
     std::set<v3s16> m_far_blocks;
     // Blocks whose chain came from a server far summary rather than the

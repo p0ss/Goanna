@@ -716,10 +716,12 @@ func _process(delta: float) -> void:
 		# attributed rather than guessed at.
 		if OS.get_environment("GOANNA_PERF") != "":
 			var st: Dictionary = client.render_stats()
-			print("perf fps=%.0f frame=%.1fms | mesh=%.2f upload=%.2f lights=%.2f motes=%.2f ents=%.2f | meshed=%d queued=%d blocks=%d mats=%d | draws=%d objs=%d vram=%.0fMB | lod tiers=%s regions=%d dirty=%d quads=%d/%d surfaces=%d lod_ms=%.2f" % [
+			print("perf fps=%.0f frame=%.1fms | mesh=%.2f upload=%.2f lights=%.2f motes=%.2f ents=%.2f | meshed=%d queued=%d blocks=%d near=%d->%d/%d batch=%.2fms mats=%d | draws=%d objs=%d vram=%.0fMB | lod tiers=%s regions=%d dirty=%d quads=%d/%d surfaces=%d lod_ms=%.2f" % [
 				Engine.get_frames_per_second(), 1000.0 / maxf(Engine.get_frames_per_second(), 1.0),
 				st["mesh_ms"], st["upload_ms"], st["lights_ms"], st["motes_ms"], st["entities_ms"],
-				st["blocks_meshed_last"], st["blocks_queued"], st["block_meshes"], st["materials"],
+				st["blocks_meshed_last"], st["blocks_queued"], st["block_meshes"],
+				st.get("near_source_surfaces", 0), st.get("near_surfaces", 0), st.get("near_regions", 0),
+				st.get("near_batch_ms", 0.0), st["materials"],
 				st.get("draw_calls", 0), st.get("objects", 0), st.get("video_mem_mb", 0.0),
 				str(st.get("lod_tiers", {})), st.get("lod_regions", 0), st.get("lod_regions_dirty", 0),
 				st.get("lod_quads", 0), st.get("lod_faces", 0), st.get("lod_surfaces", 0), st.get("lod_ms", 0.0)]

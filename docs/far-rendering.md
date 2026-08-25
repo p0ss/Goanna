@@ -2344,3 +2344,28 @@ Summary lighting also no longer paints a block-wide maximum over solid
 interiors: skylight is reconstructed through known open columns, and the
 unlocated block-light maximum is not allowed to turn an entire distant hill
 emissive.
+
+### Regional full-detail batches, 2026-08-25
+
+Tier-zero geometry keeps one CPU surface cache per resident mapblock, but
+depth-writing surfaces are uploaded in 4 by 4 by 4 block regions grouped by
+their exact material key. Water, glass and other alpha-blended surfaces stay
+block-local because Godot sorts transparent instances as whole objects. The
+regional node uses its complete ownership cube as a conservative visibility
+bound, including a margin for bevels and vegetation sway, so an incomplete
+region rebuild cannot cull a member at the edge of the camera frustum.
+
+This preserves block-level remeshing and the existing near-to-far ownership
+handoff while removing the one-GPU-instance-per-mapblock cost. In measured
+fresh worlds, about 1,700 source surfaces became 288 regional/special surfaces
+across 26 batches, with roughly 105 visible draws. `render_stats()` and the
+performance overlay report source surfaces, presented surfaces, batch count
+and regional rebuild time separately.
+
+The server's live-block view cone now follows the actual frame from the first
+player-position packet. Godot creates the camera before it creates a network
+session, so the computed enclosing FOV is retained by `GoannaClient` and
+applied on connection rather than being discarded. At 1600 by 900 and a 70
+degree vertical FOV this reports a 110 degree circular cone, enough to include
+the frame corners; the former 70 degree session default cut vertical wedges
+from both screen edges until a window resize happened to resend the setting.
