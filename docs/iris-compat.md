@@ -76,6 +76,13 @@ Things learnt on the way, recorded so they are not relearnt:
 the first thing to look at when a pack fails to compile: the error line
 numbers refer to the pack's own file because the translator keeps lines.
 
+Changed on 2026-08-22: the default pack will be a real one rather than one
+of ours. Base-Shader first, Eclipse after it. Both are licensed to ship, the
+lightmap coordinate a gbuffers pack needs turned out to be carried already,
+and Base asks for little else, so the translator rungs move ahead of writing
+a pack. See "The first target, and why it is Base-Shader" below, and task 5
+in `docs/launch-target.md`.
+
 ## What Godot gives us, checked rather than assumed
 
 Two APIs decide whether this is possible at all, and both exist in 4.5.
@@ -249,29 +256,31 @@ which decides whether `colortex0` after the geometry pass holds lit colour or
 raw albedo, and therefore what the composite chain is entitled to assume. It
 is a directory listing, not an analysis.
 
-### What lmcoord needs from Goanna, which is currently switched off
+### What lmcoord needs from Goanna, which is now carried
 
-Both cases above have a dependency that is easy to miss and is already a
-known hole. A pack reads Minecraft's baked lightmap through `lmcoord`: block
-light in one axis, sky light in the other. A pack that lights inline reads
-it in the gbuffers fragment. A pack that lights in `deferred` reads it in
-gbuffers all the same and writes it to a colortex for the lighting pass to
-use, because the lightmap is the only source of torch and lava light either
-kind has. So this is not a subset of packs; nearly every pack reads it
-somewhere. That is the same data Luanti carries as per vertex light on
-mapblock meshes.
+Both cases above have a dependency that is easy to miss. A pack reads
+Minecraft's baked lightmap through `lmcoord`: block light in one axis, sky
+light in the other. A pack that lights inline reads it in the gbuffers
+fragment. A pack that lights in `deferred` reads it in gbuffers all the same
+and writes it to a colortex for the lighting pass to use, because the
+lightmap is the only source of torch and lava light either kind has. So this
+is not a subset of packs; nearly every pack reads it somewhere. That is the
+same data Luanti carries as per vertex light on mapblock meshes.
 
-Goanna does not currently carry it. `encode_light` in
-`src/transplant/client/mapblock_mesh.cpp` returns opaque white for every
-vertex while `g_goanna_no_light` is set, because Godot lights the world
-instead. See the note in `src/goanna_mesher.cpp` where enabling Luanti's
-smooth lighting turned out to change nothing for exactly this reason.
+This was a hole until 2026-08-21, when per vertex light landed for its own
+reasons. `CUSTOM0` now carries Luanti's `LIGHTBANK_NIGHT` in `r` and
+`LIGHTBANK_DAY` in `g` on every node surface, near mesh and far tier alike;
+`docs/mesh-attributes.md` is the contract. So `lmcoord` is a scale of what
+is already on the vertex, `CUSTOM0.rg * 255.0`, rather than a path to
+revive. Earlier drafts of this page said otherwise and were right when they
+were written.
 
-So supporting a pack that lights inline means reviving that path: vertex
-colour carrying real block and sky light, exposed to the translated shader as
-`lmcoord`. That is not difficult, it is a switch and a decision, but it has
-to happen before any such pack renders correctly, and nothing about the
-translator will reveal the problem: the pack will simply render fullbright.
+What is still absent is the `lightmap` sampler itself, the small texture a
+pack multiplies that coordinate through. Minecraft generates it from the
+time of day, so Goanna has to generate its own from the server's sky colour
+and its torch colour. Without it a translated gbuffers program samples
+nothing and the world renders fullbright, which is the same symptom the
+missing coordinate would have caused and is worth not confusing with it.
 
 ### The limit is multiple render targets
 
@@ -334,16 +343,137 @@ rather than a preference.
 5. **Translate `gbuffers_terrain`**, unshaded, into the node array shader
    path. One program, the most visible one, and the first real test of the
    translator. Its DRAWBUFFERS declaration says immediately whether the pack
-   is expressible.
+   is expressible. The target is Base-Shader; the section below says why and
+   lists what it asks for.
 6. **`gbuffers_water`, then the rest.** Water is the one whose absence is
-   most obvious, and it exercises vertex displacement.
+   most obvious, and it exercises vertex displacement. Base has no water
+   program, so this rung is measured against Eclipse.
 7. **Shadow.** Godot already runs a shadow pass, so a translated shadow
    program mostly needs vertex displacement to agree with the terrain
-   program, or waving grass casts unwaving shadows.
+   program, or waving grass casts unwaving shadows. Base has no shadow
+   program either; Eclipse ships one.
 
 Rungs 1 to 4 are the screen space chain and need no translator at all. Rungs
 5 to 7 are the translator, and each is separately useful: a pack with only
 its composite chain running already looks like a shader pack.
+
+## The first target, and why it is Base-Shader
+
+Read on 2026-08-22, from the pack sources rather than from their pages.
+Base-Shader is CC0-1.0, source at `github.com/Bestsoft101/Base-Shader`.
+Eclipse is CC-BY-4.0, distributed as a zip through Modrinth with no public
+source repository. Both are licensed for Goanna to ship, Eclipse with
+attribution. An earlier draft of `docs/launch-target.md` said no third party
+pack was licensed for us to ship. That was wrong, and it is the reason this
+plan changed.
+
+**Base-Shader has no screen space chain at all.** Fourteen `gbuffers_*`
+programs, `block.properties`, `entity.properties`, `fog.glsl`, and no
+`deferred`, `composite` or `final`. So it is not a pack the machinery from
+rungs 1 to 4 can run: `Pack::load` succeeds because it finds `.fsh` files,
+`compositeChain()` comes back empty, no passes are built and the frame is
+untouched. A pack that loads and changes nothing is the worst failure
+available here, because nothing reports it, and `GoannaIrisEffect::report()`
+should say so rather than leave it to be noticed.
+
+That is also what makes it the right first target for rung 5. Every one of
+its programs is the same handful of lines. `gbuffers_terrain` entire:
+
+```glsl
+// vsh
+color = gl_Color * texture2D(lightmap, clamp(gl_MultiTexCoord1.xy / 255.0f,
+                                             0.5f / 16.0f, 15.5f / 16.0f));
+texcoord = gl_MultiTexCoord0.xy;
+gl_Position = ftransform();
+// fsh
+vec4 albedo = texture2D(texture, texcoord) * color;
+albedo.rgb = mix(albedo.rgb, gl_Fog.color.rgb,
+                 getFogStrength(fogShape, gl_Fog.start, gl_Fog.end));
+gl_FragData[0] = albedo;
+```
+
+There are no normals, no second render target, no vertex displacement, no
+parallax and no shadow sampling anywhere in the pack. So the MRT ceiling
+described above is never reached, and rung 5 against Base is a hand written
+shell plus a substitution table, which is the shape this page predicted the
+work would take.
+
+| What the pack asks for | What Goanna answers with |
+| --- | --- |
+| `gl_Vertex`, `gl_Color`, `gl_MultiTexCoord0` | `VERTEX`, `COLOR`, `UV` |
+| `gl_MultiTexCoord1` (`lmcoord`) | `CUSTOM0.rg * 255.0` |
+| `ftransform()` | Godot's own transform: leave `VERTEX` alone |
+| `texture2D(texture, uv)` | `texture(albedo_array, vec3(uv, UV2.x))` |
+| `lightmap` | generated per frame from the sky and torch colour |
+| `gl_Fog.color`, `.start`, `.end`, `fogShape` | uniforms from the drawn distance |
+| `mc_Entity.x` | `UV2.y`, the block semantic ID |
+| `gl_FragData[0]` | `ALBEDO` and `ALPHA`, under `unshaded` |
+| `MC_RENDER_STAGE_*` | preprocessor constants |
+
+The one genuine mismatch in that table is the atlas. Minecraft hands a pack
+one 2D atlas and the pack's `texcoord` indexes it directly; Goanna's node
+material is a `sampler2DArray` with the layer in `UV2.x`. Base never does
+arithmetic on `texcoord`, so the substitution is exact for it. A pack that
+offsets within the atlas, for parallax or for a neighbouring tile, cannot be
+answered this way and will have to be met with an atlas built for the
+purpose. Base not needing that is precisely why it goes first.
+
+**Eclipse is the second target, and it is a different shape.** It has
+`composite`, `composite1` and `final`, plus `gbuffers_water` and `shadow`,
+so it exercises rungs 6 and 7 where Base does not. Four things about it are
+worth knowing before starting:
+
+- Its `final.fsh` is an identity pass. The ACES fit is written out in full
+  and then commented out of the call. So "the pack's final pass is visible"
+  cannot be a test against Eclipse.
+- `composite.fsh` wraps its whole body in `if (water >= 0.1)`, where `water`
+  is `colortex4.r` written by `gbuffers_water`, and `composite1.fsh` reads
+  its normals from `colortex1`. Without the geometry programs those targets
+  are never written, so the chain is inert. Eclipse is not a rung 4 pack
+  that happens to have geometry; it is a whole pack or nothing.
+- It is `#version 330 compatibility`, not 120: `in`, `out`,
+  `layout(location = 0) out vec4`, `texture()`, and `RENDERTARGETS` rather
+  than `DRAWBUFFERS`. The translator already handles both comment forms and
+  both declaration keywords, but it blanks only unlocated `in` and `out`
+  declarations, so an already located output will collide with the output
+  emission and needs handling.
+- `composite1.fsh` declares `vec3 sample`. `sample` is reserved from GLSL
+  4.20, so it is rejected at the `#version 450` the translator emits. A pack
+  is entitled to that name in its own dialect, so renaming reserved words is
+  the translator's job, not the pack's problem.
+
+### Fog ownership, settled
+
+A pack that supplies `gbuffers_terrain` does its own fog in that program,
+which is what Base's `fog.glsl` is for. Godot's environment fog must then be
+switched off, or terrain is fogged twice, once by `main.gd` and once by the
+pack. Unlike the tonemap rule this needs no declaration from the pack and no
+Goanna specific property: supplying a terrain program is the signal, because
+a pack that has one has taken over the surface the fog is applied to.
+
+The rule, then, and it applies to every pack rather than to ours alone:
+
+- The pack has `final`: Godot's tonemap goes linear. Already implemented in
+  `project/main.gd`.
+- The pack has a translated terrain program: Godot's `fog_density`,
+  `fog_aerial_perspective` and `fog_sky_affect` writes are skipped, and the
+  drawn distance `main.gd` already computes is handed to the pack as
+  `gl_Fog.start` and `gl_Fog.end` instead. `far` on its own is the camera's
+  1000, not what Goanna draws, so a pack scaling fog by `far` would fog the
+  far tiers wrongly.
+- Neither: Godot keeps both, as today.
+
+### What unshaded costs, stated plainly
+
+`render_mode unshaded` is not optional, for the reasons above, and it takes
+Godot's lighting off every surface the pack supplies a program for. Normal
+maps, roughness, specular, SSAO, SDFGI and the node lights stop applying to
+terrain while such a pack is running. Base-Shader recreates vanilla
+Minecraft's flat look by design, which is what "vanilla-like" on its page
+means, so with Base running the baked PBR pack and the lighting defaults
+settle nothing about what the player sees. That is a real conflict with the
+sentence at the top of `docs/launch-target.md`, and it is a decision about
+what the default should be rather than a defect to fix.
 
 ## The preprocessor, which is the hard part
 
