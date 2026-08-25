@@ -106,6 +106,11 @@ public:
     // Take one finished job, main thread. False when there are none waiting.
     bool next(Done &out);
 
+    // Put one back at the front, main thread. For a collector that drains
+    // every result to find the kinds it can still afford this frame and has
+    // to keep the rest in order.
+    void requeueReady(Done &&d);
+
     // How many jobs are queued, running and waiting to be collected. Reported
     // through render_stats so a backlog is visible rather than guessed at.
     struct Stats {

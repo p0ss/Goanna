@@ -141,6 +141,11 @@ bool MeshPool::next(Done &out) {
     return true;
 }
 
+void MeshPool::requeueReady(Done &&d) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_ready.push_front(std::move(d));
+}
+
 MeshPool::Stats MeshPool::stats() const {
     std::lock_guard<std::mutex> lock(m_mutex);
     Stats s;

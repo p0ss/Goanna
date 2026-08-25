@@ -29,6 +29,8 @@
 #include <godot_cpp/variant/packed_vector3_array.hpp>
 
 #include "goanna_entities.h"
+#include "goanna_light.h"
+#include "goanna_mesher.h" // MapBlockMesh, for the near ready cache
 #include "goanna_lod.h"
 #include "goanna_mesh_pool.h"
 #include "irrlichttypes_bloated.h"
@@ -595,6 +597,26 @@ private:
     // poll, bounded so a large backlog is spread over frames rather than
     // spent in one.
     void lodCollectMeshes();
+
+    // A near block a worker has meshed, waiting to be turned into Godot
+    // arrays. Until this lands the block stays in whatever far region draws
+    // it, which is what makes the far to near hand-off atomic: no frame has
+    // to show a hole where the far tier used to be.
+    struct NearReady {
+        std::unique_ptr<MapBlockMesh> mesh;
+        BlockLightField light;
+        // Per vertex light and occlusion, keyed (layer << 16 | buffer), so
+        // the publishing loop indexes it instead of running the occlusion
+        // trace while the frame waits. Empty when the trace is switched off.
+        std::map<uint32_t, std::vector<VertexLight>> vertex_light;
+    };
+    std::map<v3s16, NearReady> m_near_ready;
+    std::set<v3s16> m_near_inflight;
+    // Gather one block's meshing input under the map lock and queue it.
+    // False when it cannot be queued and the caller should mesh it inline,
+    // which is the block with the dig crack in it: that path asks the texture
+    // source for the crack overlay and is not thread safe here.
+    bool nearSubmit(v3s16 bp, MapBlock *block);
     void lodRebuild(double budget_ms);
     void lodReset();
     std::map<uint64_t, godot::Ref<godot::Material>> m_materials;

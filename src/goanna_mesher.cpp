@@ -13,12 +13,12 @@
 
 namespace goanna {
 
-std::unique_ptr<MapBlockMesh> meshBlock(GoannaSession &session, MapBlock *block) {
+bool gatherMeshData(GoannaSession &session, MapBlock *block, MeshMakeData &data,
+        bool &has_crack) {
+    has_crack = false;
     if (!block)
-        return nullptr;
+        return false;
     const v3s16 bp = block->getPos();
-    MeshGrid grid{1};
-    MeshMakeData data(session.nodeDefs(), MAP_BLOCKSIZE, grid);
     data.fillBlockDataBegin(bp);
     for (s16 z = -1; z <= 1; ++z)
         for (s16 y = -1; y <= 1; ++y)
@@ -51,15 +51,32 @@ std::unique_ptr<MapBlockMesh> meshBlock(GoannaSession &session, MapBlock *block)
     // discarded.
     data.m_smooth_lighting = false;
     const auto &is = session.interactState();
-    bool has_crack = is.crack_level >= 0 && getNodeBlockPos(is.crack_pos) == bp;
+    has_crack = is.crack_level >= 0 && getNodeBlockPos(is.crack_pos) == bp;
     if (has_crack)
         data.setCrack(is.crack_level, is.crack_pos);
-    auto mesh = std::make_unique<MapBlockMesh>(session.meshClient(), &data);
+    return true;
+}
+
+std::unique_ptr<MapBlockMesh> meshGathered(GoannaSession &session, MeshMakeData &data) {
+    return std::make_unique<MapBlockMesh>(session.meshClient(), &data);
+}
+
+std::unique_ptr<MapBlockMesh> meshBlock(GoannaSession &session, MapBlock *block) {
+    if (!block)
+        return nullptr;
+    MeshGrid grid{1};
+    MeshMakeData data(session.nodeDefs(), MAP_BLOCKSIZE, grid);
+    bool has_crack = false;
+    if (!gatherMeshData(session, block, data, has_crack))
+        return nullptr;
+    auto mesh = meshGathered(session, data);
     // Stamp the crack level into the crack materials' MaterialTypeParam
     // (MapBlockMesh::animate's crack pass); the Godot side reads it back and
     // composites the crack frame over the base texture through the DSL.
-    if (has_crack)
+    if (has_crack) {
+        const auto &is = session.interactState();
         mesh->animate(false, 0.0f, is.crack_level, 1000);
+    }
     return mesh;
 }
 

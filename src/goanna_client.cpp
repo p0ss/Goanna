@@ -714,6 +714,9 @@ void GoannaClient::connect_to(const String &host, int port, const String &player
     if (!m_store_root.is_empty())
         m_session->setStoreRoot(std::string(m_store_root.utf8().get_data()));
     m_mesh_pool.stop(); // the outgoing session owns what any job is reading
+    // Meshes built against the outgoing session reference its tiles.
+    m_near_ready.clear();
+    m_near_inflight.clear();
     m_far_blocks.clear();
     m_far_dirty = true;
     // Content ids and texture ids are per session, and so is everything the
@@ -758,6 +761,8 @@ void GoannaClient::disconnect_from_server() {
     // Jobs hold the session's node definitions, texture source and material
     // table by raw pointer, so no worker may be running when it goes.
     m_mesh_pool.stop();
+    m_near_ready.clear();
+    m_near_inflight.clear();
     nearClear();
     m_session.reset();
 }
@@ -2696,6 +2701,10 @@ void GoannaClient::set_mesh_threads(int threads) {
     if (!m_session)
         return; // applied on the next connect
     m_mesh_pool.stop();
+    // Whatever was queued died with the pool. Forget that those blocks were
+    // in flight, or poll_blocks skips them for ever waiting on a result that
+    // is never coming.
+    m_near_inflight.clear();
     if (m_mesh_threads >= 0)
         m_mesh_pool.start(m_mesh_threads);
     // Anything captured for the old pool went with it, and the regions that
@@ -3690,6 +3699,60 @@ void GoannaClient::lodForget(const v3s16 &bp) {
     lodAssign(bp, 0);
 }
 
+// One near block's meshing, run on a mesh worker.
+//
+// The map reads are already done: gatherMeshData copied the block and its
+// 3x3x3 neighbourhood into `data`, and the light field copied the same
+// neighbourhood's light and occupancy, both on the main thread under the map
+// lock. What is left is the two expensive parts, Luanti's mesher and the
+// occlusion trace, neither of which touches the map, Godot or (for a block
+// with no dig crack in it) the texture source.
+namespace {
+struct NearBlockJob : goanna::MeshJob {
+    goanna::GoannaSession *session = nullptr;
+    v3s16 bp;
+    std::unique_ptr<MeshMakeData> data;
+    bool no_vertex_light = false;
+    // Outputs, read by poll_blocks once this has come back.
+    std::unique_ptr<MapBlockMesh> mesh;
+    BlockLightField light;
+    std::map<uint32_t, std::vector<VertexLight>> vertex_light;
+
+    void run() override {
+        if (!session || !data)
+            return;
+        mesh = goanna::meshGathered(*session, *data);
+        if (!mesh || no_vertex_light)
+            return;
+        // Sample every vertex of every buffer now, keyed the way the
+        // publishing loop walks them, so that loop indexes a table instead
+        // of tracing eight rays per vertex with the frame waiting on it.
+        for (int layer = 0; layer < MAX_TILE_LAYERS; ++layer) {
+            scene::IMesh *sm = mesh->getMesh(layer);
+            if (!sm)
+                continue;
+            for (u32 b = 0; b < sm->getMeshBufferCount(); ++b) {
+                scene::IMeshBuffer *buf = sm->getMeshBuffer(b);
+                if (!buf || buf->getVertexCount() == 0 || buf->getIndexCount() == 0)
+                    continue;
+                if (buf->getVertexType() != video::EVT_STANDARD)
+                    continue;
+                const video::S3DVertex *v = (const video::S3DVertex *)buf->getVertices();
+                const u32 nv = buf->getVertexCount();
+                std::vector<VertexLight> &tab = vertex_light[((uint32_t)layer << 16) | b];
+                tab.resize(nv);
+                for (u32 i = 0; i < nv; ++i)
+                    tab[i] = light.sample(
+                            v3f(v[i].Pos.X / BS + bp.X * MAP_BLOCKSIZE,
+                                    v[i].Pos.Y / BS + bp.Y * MAP_BLOCKSIZE,
+                                    v[i].Pos.Z / BS + bp.Z * MAP_BLOCKSIZE),
+                            v3f(v[i].Normal.X, v[i].Normal.Y, v[i].Normal.Z));
+            }
+        }
+    }
+};
+} // namespace
+
 // One far region's meshing, run on a mesh worker.
 //
 // Everything it reads was captured on the main thread: the snapshot holds the
@@ -3870,6 +3933,40 @@ void GoannaClient::lodCaptureRegion(const LodRegionKey &key, const LodRegionSpec
             }
 }
 
+// Gather one block's meshing input and queue it, main thread, map lock held.
+bool GoannaClient::nearSubmit(v3s16 bp, MapBlock *block) {
+    if (m_near_inflight.count(bp))
+        return true; // already with a worker; poll_blocks tries again later
+    if (!m_session || !block)
+        return false;
+    auto job = std::make_unique<NearBlockJob>();
+    MeshGrid grid{1};
+    job->data = std::make_unique<MeshMakeData>(m_session->nodeDefs(), MAP_BLOCKSIZE, grid);
+    bool has_crack = false;
+    if (!goanna::gatherMeshData(*m_session, block, *job->data, has_crack))
+        return false;
+    // The block being dug asks the texture source for the crack overlay while
+    // it meshes, which is main thread only here, and it re-meshes on every
+    // crack step anyway. One block, meshed inline.
+    if (has_crack)
+        return false;
+    job->session = m_session.get();
+    job->bp = bp;
+    job->no_vertex_light = getenv("GOANNA_NO_VERTEX_LIGHT") != nullptr;
+    if (!job->no_vertex_light)
+        job->light.build(*m_session, bp);
+    const godot::Vector3 at(bp.X * MAP_BLOCKSIZE, bp.Y * MAP_BLOCKSIZE, -bp.Z * MAP_BLOCKSIZE);
+    MeshJobKey jk;
+    jk.kind = MeshJobKey::kNearBlock;
+    jk.pos = bp;
+    jk.tier = 0;
+    m_near_inflight.insert(bp);
+    // Near blocks before far regions at the same distance: the player is
+    // standing in them.
+    m_mesh_pool.submit(jk, 1, (int)at.distance_to(m_lod_centre) - 4096, std::move(job));
+    return true;
+}
+
 // Publish whatever the mesh workers finished, main thread.
 //
 // A result is dropped when the region has gone, or when it was overtaken
@@ -3879,9 +3976,30 @@ void GoannaClient::lodCaptureRegion(const LodRegionKey &key, const LodRegionSpec
 void GoannaClient::lodCollectMeshes() {
     int published = 0;
     MeshPool::Done done;
-    while (published < m_lod_publish_budget && m_mesh_pool.next(done)) {
+    while (m_mesh_pool.next(done)) {
+        if (done.key.kind == MeshJobKey::kNearBlock) {
+            // Meshed, not yet drawn: poll_blocks turns it into Godot arrays
+            // on its own budget, and the block stays in its far region until
+            // it does.
+            auto *nb = static_cast<NearBlockJob *>(done.job.get());
+            m_near_inflight.erase(done.key.pos);
+            if (nb && nb->mesh) {
+                NearReady ready;
+                ready.mesh = std::move(nb->mesh);
+                ready.light = std::move(nb->light);
+                ready.vertex_light = std::move(nb->vertex_light);
+                m_near_ready[done.key.pos] = std::move(ready);
+            }
+            continue;
+        }
         if (done.key.kind != MeshJobKey::kLodRegion)
             continue;
+        if (published >= m_lod_publish_budget) {
+            // Over budget for regions this poll, but the queue must still be
+            // drained of near results, so put this one back and stop.
+            m_mesh_pool.requeueReady(std::move(done));
+            break;
+        }
         auto *job = static_cast<LodRegionJob *>(done.job.get());
         if (!job)
             continue;
@@ -4277,7 +4395,14 @@ int GoannaClient::poll_blocks(int max_blocks) {
     }
     const int keep = m_session->wantedRange + 4;
     std::set<v3s16> seen;
-    fresh.reserve(fresh_raw.size());
+    fresh.reserve(fresh_raw.size() + m_near_ready.size());
+    // takeNewBlocks drains the session's queue, so a block is offered once.
+    // A block handed to a worker was passed over on an earlier poll and is
+    // not in fresh_raw any more, so put the finished ones back at the front:
+    // they are the nearest work there is and their mesh is already built.
+    for (const auto &kv : m_near_ready)
+        if (seen.insert(kv.first).second)
+            fresh.push_back(kv.first);
     for (const v3s16 &bp : fresh_raw) {
         const v3s16 d = bp - player_block;
         if (have_player && (std::abs(d.X) > keep || std::abs(d.Y) > keep || std::abs(d.Z) > keep))
@@ -4338,16 +4463,33 @@ int GoannaClient::poll_blocks(int max_blocks) {
             ++done;
             continue;
         }
-        // Full detail: leave any region it was in, and let the regions next
-        // to it cull against its new contents.
-        lodAssign(bp, 0);
         auto t_mesh = clock_t_::now();
-        std::unique_ptr<MapBlockMesh> bm = meshBlock(*m_session, block);
         // Luanti's own light never reaches the vertices (g_goanna_no_light,
         // see goanna_mesh_flags.h), so it is read here instead, from the same
         // nodes, along with the occlusion trace. docs/mesh-attributes.md.
+        std::unique_ptr<MapBlockMesh> bm;
         BlockLightField lightfield;
-        lightfield.build(*m_session, bp);
+        std::map<uint32_t, std::vector<VertexLight>> vertex_light;
+        auto ready = m_near_ready.find(bp);
+        if (ready != m_near_ready.end()) {
+            bm = std::move(ready->second.mesh);
+            lightfield = std::move(ready->second.light);
+            vertex_light = std::move(ready->second.vertex_light);
+            m_near_ready.erase(ready);
+        } else if (m_mesh_pool.running() && nearSubmit(bp, block)) {
+            // With a worker. Leave the block in whatever far region draws it
+            // and come back when the mesh is here: that is what makes the far
+            // to near hand-off atomic, and it is the hand-off that used to
+            // mesh a region's worth of blocks inside one frame.
+            continue;
+        } else {
+            bm = meshBlock(*m_session, block);
+            lightfield.build(*m_session, bp);
+        }
+        // Full detail: leave any region it was in, and let the regions next
+        // to it cull against its new contents. After the mesh exists, never
+        // before, or the frame in between has a hole in it.
+        lodAssign(bp, 0);
         // GOANNA_DEBUG_LIGHT=1: what the light and occlusion channels actually
         // came out as, per block. The lesson recorded against GOANNA_DEBUG_VCOL
         // applies here too: a channel that is silently constant looks exactly
@@ -4410,6 +4552,13 @@ int GoannaClient::poll_blocks(int max_blocks) {
                 const video::S3DVertex *v = (const video::S3DVertex *)buf->getVertices();
                 const u16 *idx16 = (const u16 *)buf->getIndices();
                 const u32 nv = buf->getVertexCount(), ni = buf->getIndexCount();
+                // What a worker already traced for this buffer, if one did.
+                const std::vector<VertexLight> *vl_tab = nullptr;
+                if (!vertex_light.empty()) {
+                    auto vlit = vertex_light.find(((uint32_t)layer << 16) | b);
+                    if (vlit != vertex_light.end() && vlit->second.size() == nv)
+                        vl_tab = &vlit->second;
+                }
                 MaterialKey key = keyForIrr(buf->getMaterial(), nv ? v[0].Aux : 0);
                 // Which node a face belongs to: step half a node back along the
                 // outward normal from the face centre and you are inside it.
@@ -4475,11 +4624,13 @@ int GoannaClient::poll_blocks(int max_blocks) {
                         // GOANNA_NO_VERTEX_LIGHT=1 skips the sample and writes
                         // the neutral values, both as a kill switch and to
                         // measure what the trace costs at mesh time.
-                        const VertexLight vl = no_vertex_light ? VertexLight() : lightfield.sample(
-                                v3f(v[sv].Pos.X / BS + bp.X * MAP_BLOCKSIZE,
-                                        v[sv].Pos.Y / BS + bp.Y * MAP_BLOCKSIZE,
-                                        v[sv].Pos.Z / BS + bp.Z * MAP_BLOCKSIZE),
-                                v3f(v[sv].Normal.X, v[sv].Normal.Y, v[sv].Normal.Z));
+                        const VertexLight vl = no_vertex_light ? VertexLight()
+                                : (vl_tab ? (*vl_tab)[sv] : lightfield.sample(
+                                        v3f(v[sv].Pos.X / BS + bp.X * MAP_BLOCKSIZE,
+                                                v[sv].Pos.Y / BS + bp.Y * MAP_BLOCKSIZE,
+                                                v[sv].Pos.Z / BS + bp.Z * MAP_BLOCKSIZE),
+                                        v3f(v[sv].Normal.X, v[sv].Normal.Y,
+                                                v[sv].Normal.Z)));
                         tacc.custom0.push_back(vl.block);
                         tacc.custom0.push_back(vl.sky);
                         tacc.custom0.push_back(vl.ao);
