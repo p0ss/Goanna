@@ -121,22 +121,17 @@ int GoannaClient::prune_blocks(int radius) {
         // from a summary/store race is how a gap that solidified on approach
         // became a gap again on retreat.
         std::set<LodRegionKey> handoff_regions;
+        std::set<v3s16> handoff_nodes;
         for (auto it = m_block_tier.begin(); it != m_block_tier.end();) {
             if (!m_far_blocks.count(it->first) && !m_session->getBlock(it->first)) {
                 const v3s16 bp = it->first;
-                // The near mesh is already the ideal boundary representation:
-                // exact silhouette, caves and materials, with hidden faces
-                // removed. Keep that GPU mesh as a bounded surface-shell
-                // cache after dropping its MapBlock data. Coarse occupancy is
-                // still used for zero-face interior blocks and unseen terrain.
-                // Reconstructing a surface we already had was both lower
-                // fidelity and the source of the "look back, half a mountain
-                // vanished" failure.
-                if (m_block_nodes.count(bp)) {
-                    it->second = 0;
-                    ++it;
-                    continue;
-                }
+                // Persistent knowledge is the chain, not the exact GPU mesh.
+                // The latter accumulated 6,161 individual block instances in
+                // the measured hour-long run and exhausted Godot's shader
+                // instance buffer. Keep it only until its grouped replacement
+                // has been built at the end of this handoff.
+                if (m_block_nodes.count(bp))
+                    handoff_nodes.insert(bp);
                 const int tier = lodTierFor(bp, m_lod_centre, false);
                 if (tier >= 1 && m_lod_chains.count(bp)) {
                     lodAssign(bp, tier);
@@ -154,8 +149,9 @@ int GoannaClient::prune_blocks(int radius) {
                 ++it;
             }
         }
-        // Bound the shell cache by the same grant as the volumetric database.
-        // Beyond it neither renderer is authorised to retain/draw terrain.
+        // Drop orphan exact meshes outside the volumetric grant immediately.
+        // In-range ones are repaired into grouped ownership by the chain
+        // audit below and released after those regions build.
         for (auto it = m_block_nodes.begin(); it != m_block_nodes.end();) {
             const v3s16 bp = it->first;
             if (m_session->getBlock(bp)) {
@@ -182,8 +178,7 @@ int GoannaClient::prune_blocks(int radius) {
         // the memory/draw bound.
         for (const auto &kv : m_lod_chains) {
             const v3s16 bp = kv.first;
-            if (m_session->getBlock(bp) || m_block_nodes.count(bp) ||
-                    m_far_blocks.count(bp) || m_far_remote.count(bp))
+            if (m_session->getBlock(bp) || m_far_blocks.count(bp) || m_far_remote.count(bp))
                 continue;
             const v3s16 d = bp - centre;
             if (grant_blocks <= 0 || std::abs(d.X) > grant_blocks ||
@@ -196,16 +191,25 @@ int GoannaClient::prune_blocks(int radius) {
             handoff_regions.insert(m_lod_member[bp]);
             m_block_tier[bp] = tier;
             m_far_blocks.insert(bp);
+            if (m_block_nodes.count(bp))
+                handoff_nodes.insert(bp);
         }
-        // Bypass the normal 250 ms dirty-region debounce for newly exposed
-        // zero-face/interior occupancy. Visible surface blocks remain owned
-        // by the full-detail shell cache above.
+        // Bypass the normal 250 ms dirty-region debounce, then retire exact
+        // meshes only after their grouped replacements have been uploaded.
         for (const LodRegionKey &key : handoff_regions) {
             auto rit = m_lod_regions.find(key);
             if (rit == m_lod_regions.end())
                 continue;
             lodBuildRegion(key, rit->second);
-            finishFade(rit->second.node);
+        }
+        for (const v3s16 &bp : handoff_nodes) {
+            auto ni = m_block_nodes.find(bp);
+            if (ni == m_block_nodes.end())
+                continue;
+            if (ni->second)
+                ni->second->queue_free();
+            m_block_lights.erase(bp);
+            m_block_nodes.erase(ni);
         }
         m_far_dirty = true;
     }
@@ -400,7 +404,6 @@ void GoannaClient::connect_to(const String &host, int port, const String &player
     m_lod_chain_missing.clear();
     m_lod_tiles.entries.clear();
     m_lod_water.clear();
-    m_fades.clear();
     if (!m_texture_map.is_empty())
         m_session->setTextureMap(std::string(m_texture_map.utf8().get_data()));
     // GoannaSession's constructor is what creates g_settings; set_texture_path
@@ -3028,7 +3031,7 @@ void GoannaClient::lodTakeSummaries(const Vector3 &around) {
             if (m_session->getBlock(bp))
                 continue; // live: known better
             if (m_block_nodes.count(bp))
-                continue; // retained full-detail shell: visibly known better
+                continue; // resident exact mesh: visibly known better
             {
                 // A chain from the store or from live nodes is known better
                 // than a summary and stays. One built from an earlier summary
@@ -3395,83 +3398,12 @@ void GoannaClient::lodBuildRegion(const LodRegionKey &key, LodRegion &r) {
             mesh->surface_set_material(si, mat);
         ++si;
     }
-    const bool fresh_node = !r.node;
     if (!r.node) {
         r.node = memnew(MeshInstance3D);
         add_child(r.node);
     }
     r.node->set_mesh(mesh);
-    if (fresh_node) {
-        // A region arriving well inside the haze (docs/far-rendering.md,
-        // "Background, overlay, foreground") is already mostly hidden by
-        // fog, so dithering it in over a third of a second buys nothing
-        // visible and only adds to the stipple: while a world pregenerates,
-        // most of what newly appears is near the current edge of what is
-        // known, and during that stretch hundreds of regions are mid fade
-        // at once (docs/far-rendering.md, "How terrain arrives"). Skip the
-        // fade there and let it pop under the haze instead; close to the
-        // camera, where a pop would read as a wall of terrain, the fade
-        // still runs exactly as before.
-        const float region_span = (float)(rb * MAP_BLOCKSIZE);
-        const float cx = ((float)key.pos.X + 0.5f) * region_span;
-        const float cz = -(((float)key.pos.Z + 0.5f) * region_span);
-        const float dx = cx - m_lod_centre.x, dz = cz - m_lod_centre.z;
-        const float region_dist = std::max(std::abs(dx), std::abs(dz));
-        // Three tenths of the drawn extent is where main.gd's fog starts
-        // closing (fog_clear_fraction's default); mirrored here rather than
-        // plumbed through, since only the shape of the cutoff matters, and
-        // m_far_extent is already the lower quartile across sectors (how far
-        // a poor direction reaches) rather than one radius, so this follows
-        // the same ragged frontier the haze itself now follows.
-        const bool past_haze = m_far_extent > 0 && region_dist >= 0.3f * (float)m_far_extent;
-        if (!past_haze)
-            startFade(r.node);
-    }
     ema(m_ms_lod, ms_since(t0));
-}
-
-// A mesh that has just appeared opens through the dither in the node
-// shaders over a third of a second (the `fade` instance uniform), so far
-// terrain stops arriving as a wall. Rebuilds of an existing mesh do not
-// fade, or a dug node would flicker its whole block.
-void GoannaClient::startFade(MeshInstance3D *mi) {
-    if (!mi)
-        return;
-    mi->set_instance_shader_parameter("fade", 0.0f);
-    m_fades.emplace_back(mi->get_instance_id(), clock_t_::now());
-}
-
-void GoannaClient::finishFade(MeshInstance3D *mi) {
-    if (!mi)
-        return;
-    const uint64_t id = mi->get_instance_id();
-    for (size_t i = 0; i < m_fades.size();) {
-        if (m_fades[i].first == id) {
-            m_fades[i] = m_fades.back();
-            m_fades.pop_back();
-        } else {
-            ++i;
-        }
-    }
-    mi->set_instance_shader_parameter("fade", 1.0f);
-}
-
-void GoannaClient::advanceFades() {
-    const double kFadeMs = 350.0;
-    for (size_t i = 0; i < m_fades.size();) {
-        Object *o = ObjectDB::get_instance(m_fades[i].first);
-        MeshInstance3D *mi = Object::cast_to<MeshInstance3D>(o);
-        const double t = ms_since(m_fades[i].second) / kFadeMs;
-        if (!mi || t >= 1.0) {
-            if (mi)
-                mi->set_instance_shader_parameter("fade", 1.0f);
-            m_fades[i] = m_fades.back();
-            m_fades.pop_back();
-            continue;
-        }
-        mi->set_instance_shader_parameter("fade", (float)t);
-        ++i;
-    }
 }
 
 // Rebuild dirty regions, oldest first, inside a time budget. A region that
@@ -3556,7 +3488,6 @@ void GoannaClient::lodReset() {
 
 int GoannaClient::update_lod(const Vector3 &around, int max_rebuild) {
     m_lod_centre = around; // poll_blocks tiers new blocks against this too
-    advanceFades();
     if (!m_session || m_lod_distance <= 0)
         return 0;
     std::vector<v3s16> changed;
@@ -3643,7 +3574,6 @@ int GoannaClient::poll_blocks(int max_blocks) {
         MapBlock *block = m_session->getBlock(bp);
         if (!block)
             continue;
-        const bool replacing_far = m_far_blocks.count(bp);
         LodRegionKey replaced_region;
         bool had_replaced_region = false;
         auto old_member = m_lod_member.find(bp);
@@ -3938,22 +3868,12 @@ int GoannaClient::poll_blocks(int max_blocks) {
         }
         if (getenv("GOANNA_DEBUG_BLOCKS") && mi)
             UtilityFunctions::print("block re-meshed: ", bp.X, ",", bp.Y, ",", bp.Z, " surfaces ", si);
-        const bool fresh_block = !mi;
         if (!mi) {
             mi = memnew(MeshInstance3D);
             add_child(mi);
             m_block_nodes[bp] = mi;
         }
         mi->set_mesh(mesh);
-        if (fresh_block) {
-            // The far mesh is still present until the end of this hand-off;
-            // make its full-detail replacement opaque immediately. Dithering
-            // both owners during a swap presents as holes in solid ground.
-            if (replacing_far)
-                finishFade(mi);
-            else
-                startFade(mi);
-        }
         // The glow mesh hangs off the block mesh rather than being tracked
         // beside it, so every place that frees a block frees this too and none
         // of them had to learn about it.
@@ -4000,7 +3920,6 @@ int GoannaClient::poll_blocks(int max_blocks) {
     }
     m_last_meshed = done;
     m_last_queue = (int)fresh.size() - done;
-    advanceFades(); // blocks start fading here, so advance here too
     // Regions dirtied above, and any still waiting from earlier polls, in
     // what is left of the budget plus a little, so a quiet frame still
     // advances the far tiers.

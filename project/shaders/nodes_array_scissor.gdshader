@@ -26,12 +26,6 @@ void vertex() {
 }
 
 void fragment() {
-	if (fade < 0.999) {
-		// interleaved gradient noise, stable per pixel
-		float dither = fract(52.9829189 * fract(dot(FRAGCOORD.xy, vec2(0.06711056, 0.00583715))));
-		if (dither > fade)
-			discard;
-	}
 	// Derivatives before any branching: a fragment quad can straddle two
 	// array layers, and dFdx inside that is not defined.
 	vec2 uv_dx = dFdx(UV);

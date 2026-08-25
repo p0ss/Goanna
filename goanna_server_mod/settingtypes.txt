@@ -69,6 +69,10 @@ goanna_far_pregenerate_slice (Far pregeneration slice) int 4 1 8
 #    on a CPU-limited public server.
 goanna_far_pregenerate_concurrency (Far pregeneration concurrency) int 2 1 8
 
+#    Write far-pipeline progress, queue depths and Lua memory to the server
+#    log every 30 seconds. Useful for diagnosing long-running generation.
+goanna_far_log_stats (Log far pipeline statistics) bool false
+
 #    Seconds of server step time above which pregeneration waits for the
 #    server to catch up. get_server_max_lag is a running maximum that halves
 #    every minute, not an average, so a value near the step length reads as

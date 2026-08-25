@@ -169,13 +169,6 @@ uniform vec3 lod_avg_colour[256];
 uniform float lod_flatten_near : hint_range(0.0, 2048.0) = 384.0;
 uniform float lod_flatten_far : hint_range(0.0, 4096.0) = 1024.0;
 
-// Fade in, per instance: a region mesh or a block that has just appeared
-// is drawn through a screen space dither that opens over a fraction of a
-// second (GoannaClient advances it), so terrain arriving at the horizon no
-// longer pops in as a wall. Opaque geometry cannot blend, so it dithers;
-// at 1.0 the test compiles away to nothing visible.
-instance uniform float fade : hint_range(0.0, 1.0) = 1.0;
-
 // Goanna: the material class the classifier voted for each array layer
 // (src/goanna_materials.h, MaterialClass: 1 stone, 2 wood, 3 leaves, 4 glass,
 // 5 sand, 6 gravel, 7 snow, 8 ice, 9 soil, 10 metal, 11 cloth, 0 none), so a

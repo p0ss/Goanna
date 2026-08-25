@@ -1027,6 +1027,7 @@ end)
 -- `core.get_server_max_lag` is the other half: a server already behind its
 -- step gets left alone until it catches up.
 local pregen_enabled = far_enabled and conf_bool("goanna_far_pregenerate", false)
+local far_log_stats = conf_bool("goanna_far_log_stats", false)
 local pregen_interval = conf_num("goanna_far_pregenerate_interval", 1)
 -- Mapblocks on a side of one emerge call. 4 is 64 blocks, smaller than the
 -- 5 cubed chunk mapgen works in, so a slice is one or two chunks of work.
@@ -1254,6 +1255,33 @@ core.register_globalstep(function(dtime)
 		end
 	end
 end)
+
+-- Low-frequency pipeline evidence for long-running servers. The far path is
+-- otherwise intentionally quiet, which made an hour-long stall impossible to
+-- distinguish from a client rendering failure after the fact.
+if far_log_stats then
+	local stats_timer = 0
+	core.register_globalstep(function(dtime)
+		stats_timer = stats_timer + dtime
+		if stats_timer < 30 then
+			return
+		end
+		stats_timer = 0
+		local done, asked = 0, 0
+		for _ in pairs(pregen.done) do done = done + 1 end
+		for _, job in ipairs(far_queue) do
+			if not job.offered then asked = asked + 1 end
+		end
+		local generated = math.max(0, #gen_queue - gen_head + 1)
+		core.log("action", string.format(
+				"[goanna] far stats: areas_started=%d active=%d pending=%d " ..
+				"reply_queue=%d asked=%d generated_queue=%d cache_areas=%d " ..
+				"lua_mb=%.1f max_lag=%.3f",
+				done, #pregen.active, #pregen.pending, #far_queue, asked,
+				generated, store_count, collectgarbage("count") / 1024,
+				core.get_server_max_lag()))
+	end)
+end
 
 core.register_on_modchannel_message(function(channel_name, sender, message)
 	if channel_name ~= CHANNEL then

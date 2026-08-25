@@ -170,7 +170,14 @@ func start(gameid_: String, worldname: String, player_name: String = "player") -
 		# The queue limits throttle how fast those blocks actually arrive; the
 		# defaults are tuned for the default distance and starve a larger one.
 		cf.store_string("max_simultaneous_block_sends_per_client = 16\n")
-		cf.store_string("server_unload_unused_data_timeout = 600\n")
+		# Three far-generation streams can touch hundreds of thousands of
+		# mapblocks. The measured run generated a 471 MB world, and ten minutes
+		# of retention kept a large part of that as a silent server working set.
+		# One minute still
+		# covers ordinary revisits without retaining the whole generated ring.
+		cf.store_string("server_unload_unused_data_timeout = 60\n")
+		cf.store_string("goanna_far_summary_cache_areas = 1024\n")
+		cf.store_string("goanna_far_log_stats = true\n")
 		# A single player world on this machine, run by a server this client
 		# launched: there is no one to be unfair to, so far rendering is
 		# granted here, over the goanna:v1 channel the server mod installed

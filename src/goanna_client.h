@@ -308,18 +308,13 @@ private:
     std::unique_ptr<GoannaSession> m_session;
     godot::String m_texture_path; // see set_texture_path
     godot::String m_texture_map;  // see set_texture_map
-    // Tier-0 visible surfaces, including pruned full-detail meshes retained as
-    // the bounded far shell cache. Their MapBlock data need not remain live.
+    // Tier-0 visible surfaces for resident blocks. Pruned blocks transfer to
+    // grouped far regions; retaining one exact mesh per old mapblock exhausts
+    // Godot's instance buffer and defeats the LOD draw-call budget.
     std::map<v3s16, godot::MeshInstance3D *> m_block_nodes;
     std::map<v3s16, int> m_block_tier; // 0 = full detail, 1 and up = LOD tiers
     godot::Ref<godot::StandardMaterial3D> m_lod_material; // flat colour fallback
     std::map<u32, godot::Ref<godot::Material>> m_lod_water; // water shader per liquid tile
-    // Meshes fading in through the dither in the node shaders: the instance
-    // and when it appeared. Advanced every update_lod.
-    std::vector<std::pair<uint64_t, std::chrono::steady_clock::time_point>> m_fades;
-    void startFade(godot::MeshInstance3D *mi);
-    void finishFade(godot::MeshInstance3D *mi);
-    void advanceFades();
     godot::Vector3 m_lod_centre; // last camera position seen by update_lod
     // Distance scale, in blocks, at which coarse cell sizes begin doubling.
     // Resident blocks are always full detail; a non-resident block starts at

@@ -2101,12 +2101,12 @@ Regions were also halved for the near tiers: a region is now its cell size
 in blocks (4 blocks at cell 4, 16 at cell 16), so tier 1 arrives in 64 node
 pieces and a coarse tier still covers a lot of ground per draw call.
 
-And a mesh that has just appeared fades in rather than popping: the node
-shaders carry a per instance `fade` that a fresh MeshInstance opens from 0
-to 1 over a third of a second, through an interleaved gradient noise dither
-(opaque geometry cannot blend). `GoannaClient::startFade` and `advanceFades`.
-A rebuild of an existing mesh does not fade, or a dug node would flicker its
-whole block.
+The original arrival fade used a shader instance uniform on every terrain
+MeshInstance. That is not a scalable place for transition state: an hour-long
+run exhausted Godot's instance buffer after roughly 3,800 retained block
+meshes, then emitted about 145,000 allocation errors and collapsed frame
+performance. Terrain now swaps atomically: its grouped replacement is built
+before the old exact mesh is released, and it uses no per-instance fade slot.
 
 Measured against the test server with the store holding the spawn area and
 the camera 400 nodes away: the worst poll per second is 7 to 10 ms while an
@@ -2314,16 +2314,15 @@ Tracking only blocks with a `MeshInstance3D` omitted those interiors during
 the near-to-far transfer and reopened holes in terrain the client had already
 visited.
 
-Visible full-detail mapblock meshes become a bounded surface-shell cache when
-their MapBlock data is pruned. They are already the best possible boundary
-representation: exact silhouette and caves with hidden faces removed. Keeping
-that GPU surface within the far grant means looking back cannot replace a
-mountain the player saw with a lossy reconstruction. Blocks with no near
-triangles (air and enclosed fill) transfer to volumetric regions, so central
-fill stays cheap. The retained chain database is also audited directly during
-pruning, rather than trusting presentation bookkeeping to enumerate every
-known block. Cached shells count toward `far_extent`/`far_reach`, preventing
-fog from clipping them as though they were absent.
+Visible full-detail mapblock meshes remain only while their MapBlocks are
+resident. On pruning, their persistent 4-node occupancy chains transfer into
+grouped volumetric regions; each replacement region is uploaded before the
+old exact meshes are freed, so looking back cannot expose a one-frame hole.
+Retaining the exact meshes throughout the far grant was tried and rejected:
+the measured hour-long run held 6,161 individual block meshes, exhausted
+Godot's shader-instance buffer after 104 seconds, and reduced the client to a
+crawl. The retained chain database is audited directly during pruning rather
+than trusting presentation bookkeeping to enumerate every known block.
 
 For terrain not previously seen at full detail, ownership is still decided
 per mapblock: a resident block is near and any non-resident block with a chain
