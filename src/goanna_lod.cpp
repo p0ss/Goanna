@@ -40,7 +40,7 @@ struct NodeInfo {
     content_t c = CONTENT_AIR;
     uint8_t p2 = 0, day = 0, night = 0, flags = 0;
 };
-enum : uint8_t { nSolid = 1, nFilled = 2, nLit = 4, nKnown = 8, nVeg = 16 };
+enum : uint8_t { nSolid = 1, nFilled = 2, nLit = 4, nKnown = 8, nLiquid = 16 };
 
 struct ContentClass {
     uint8_t flags = 0;
@@ -49,21 +49,6 @@ struct ContentClass {
 };
 
 } // namespace
-
-bool lodIsVegetation(const NodeDefManager *ndef, content_t c) {
-    // Mirrors VEG_GROUPS in goanna_server_mod/init.lua. Keep the two lists
-    // the same, or a stored block and the summary beside it disagree on
-    // where the ground is and the surface steps at the seam.
-    static const char *const kGroups[] = {"tree", "leaves", "cactus", "bamboo", "plant", "flora",
-            "sapling", "flower", "mushroom", "fruit", "vines"};
-    if (!ndef)
-        return false;
-    const ContentFeatures &f = ndef->get(c);
-    for (const char *g : kGroups)
-        if (itemgroup_get(f.groups, g) > 0)
-            return true;
-    return false;
-}
 
 void buildLodChain(const NodeDefManager *ndef, MapBlock *block, BlockLodChain &out, int min_level) {
     const int N = MAP_BLOCKSIZE;
@@ -92,9 +77,8 @@ void buildLodChain(const NodeDefManager *ndef, MapBlock *block, BlockLodChain &o
         // rule as the near field in goanna_light.cpp.
         const bool filled = solid || (f.visuals && f.visuals->visual_solidness >= 1) || f.isLiquid();
         const bool lit = f.param_type == CPT_LIGHT && !solid;
-        const bool veg = filled && lodIsVegetation(ndef, c);
-        cc.flags = nKnown | (solid ? nSolid : 0) | (filled ? nFilled : 0) | (lit ? nLit : 0) |
-                (veg ? nVeg : 0);
+        cc.flags = nKnown | (solid ? nSolid : 0) | (filled ? nFilled : 0) |
+                (lit ? nLit : 0) | (f.isLiquid() ? nLiquid : 0);
         cc.glow = f.light_source > 0 ? decode_light(f.light_source) : 0;
         cc.lf = f.getLightingFlags();
         return classes.emplace(c, cc).first->second;
@@ -118,177 +102,135 @@ void buildLodChain(const NodeDefManager *ndef, MapBlock *block, BlockLodChain &o
                     ni.night = std::max(ni.night, cc.glow);
             }
 
-    for (int l = min_level; l < BlockLodChain::kLevels; ++l) {
-        LodLevel &lv = out.level[l];
-        lv.cell = BlockLodChain::cellForLevel(l);
-        lv.n = N / lv.cell;
-        const int cell = lv.cell, n = lv.n;
-        lv.cells.assign((size_t)n * n * n, LodLevel::Cell());
-        // The ground per column: the highest filled node that is not
-        // vegetation, over the cell's footprint, so a tree stands on the
-        // surface rather than being part of it. Cells in the run from the
-        // floor up to it are flagged terrain below, once they are known to
-        // be filled.
-        lv.terrain.assign((size_t)n * n, 0);
-        // The content seen on the ground per column, the commonest top
-        // terrain node over the footprint, kept so the surface cell's top
-        // face can be set after the cells are built: that cell may hold too
-        // few nodes to count as filled, and then has no faces of its own,
-        // but the surface still needs to know what it is made of.
-        std::vector<content_t> ground_c((size_t)n * n, CONTENT_AIR);
-        std::vector<uint8_t> ground_p2((size_t)n * n, 0);
-        for (int cz = 0; cz < n; ++cz)
+    // Build only the finest requested level from nodes. Coarser levels are
+    // recursive 2x2x2 mips of it, exactly like summary-derived chains.
+    LodLevel &base = out.level[min_level];
+    base.cell = BlockLodChain::cellForLevel(min_level);
+    base.n = N / base.cell;
+    const int cell = base.cell, n = base.n;
+    base.cells.assign((size_t)n * n * n, LodLevel::Cell());
+    base.terrain.clear();
+    for (int cz = 0; cz < n; ++cz)
+        for (int cy = 0; cy < n; ++cy)
             for (int cx = 0; cx < n; ++cx) {
-                int h = 0;
-                struct Top {
-                    content_t c;
-                    uint8_t p2;
-                    int count;
-                };
-                Top tops[16];
-                int ntops = 0;
-                for (int z = cz * cell; z < (cz + 1) * cell; ++z)
-                    for (int x = cx * cell; x < (cx + 1) * cell; ++x)
-                        for (int y = N - 1; y >= 0; --y) {
+                LodLevel::Cell &dst = base.cells[((size_t)cz * n + cy) * n + cx];
+                const NodeInfo *chosen = nullptr;
+                int chosen_score = -1, known = 0, lit = 0, liquid_top = 0;
+                uint8_t day = 0, night = 0;
+                const int x0 = cx * cell, y0 = cy * cell, z0 = cz * cell;
+                // Stable z/y/x order and >= on ties match the server summary
+                // reducer: opaque wins over non-opaque, then the last corner.
+                for (int z = z0; z < z0 + cell; ++z)
+                    for (int y = y0; y < y0 + cell; ++y)
+                        for (int x = x0; x < x0 + cell; ++x) {
                             const NodeInfo &ni = info[((size_t)z * N + y) * N + x];
-                            if ((ni.flags & nFilled) && !(ni.flags & nVeg)) {
-                                h = std::max(h, y + 1);
-                                int t = 0;
-                                for (; t < ntops; ++t)
-                                    if (tops[t].c == ni.c && tops[t].p2 == ni.p2) {
-                                        ++tops[t].count;
-                                        break;
-                                    }
-                                if (t == ntops && ntops < 16)
-                                    tops[ntops++] = Top{ni.c, ni.p2, 1};
-                                break;
+                            if (!(ni.flags & nKnown))
+                                continue;
+                            ++known;
+                            if (ni.flags & nLit) {
+                                ++lit;
+                                day = std::max(day, ni.day);
+                                night = std::max(night, ni.night);
+                            }
+                            if (!(ni.flags & nFilled))
+                                continue;
+                            if (ni.flags & nLiquid)
+                                liquid_top = std::max(liquid_top, y - y0 + 1);
+                            const int score = (ni.flags & nSolid) ? 2 : 1;
+                            if (score >= chosen_score) {
+                                chosen = &ni;
+                                chosen_score = score;
                             }
                         }
-                lv.terrain[(size_t)cz * n + cx] = (uint8_t)h;
-                int best = -1;
-                for (int t = 0; t < ntops; ++t)
-                    if (best < 0 || tops[t].count > tops[best].count)
-                        best = t;
-                if (best >= 0) {
-                    ground_c[(size_t)cz * n + cx] = tops[best].c;
-                    ground_p2[(size_t)cz * n + cx] = tops[best].p2;
+                if (!known)
+                    continue;
+                dst.flags = LodLevel::kKnown | (lit ? LodLevel::kLit : 0);
+                if (lit) {
+                    dst.day = day;
+                    dst.night = night;
                 }
+                if (!chosen)
+                    continue;
+                dst.flags |= LodLevel::kFilled;
+                if (chosen->flags & nSolid)
+                    dst.flags |= LodLevel::kOccludes;
+                if (chosen->flags & nLiquid) {
+                    dst.flags |= LodLevel::kLiquid;
+                    if (liquid_top > 0 && liquid_top < cell)
+                        dst.top = (uint8_t)liquid_top;
+                }
+                for (int d = 0; d < 6; ++d) {
+                    dst.face[d] = chosen->c;
+                    dst.param2[d] = chosen->p2;
+                }
+                // Non-liquids and a liquid filling the cell keep top=0: the
+                // voxel occupies its complete cell, including its lower face.
             }
-        // A cell draws as a full cube, so what counts as filled decides how
-        // the world simplifies. Any node at all is wrong: a single leaf turns
-        // a 16 node cell into a cliff, and a jungle canopy at the coarsest
-        // tier became a wall of cubes in the first run. Half a layer's worth
-        // keeps a floor and a canopy and a 2 by 2 trunk, and drops a post
-        // and a stray branch, which is roughly what a tree is at that range.
-        // Blocking light takes a full layer, so a one node floor occludes and
-        // a lone post does not. docs/far-rendering.md says to calibrate both
-        // on the chart before trusting the look; these are the knobs.
-        const int fill_at = std::max(1, cell * cell / 2);
-        const int occlude_at = cell * cell;
-        struct Tally {
-            content_t c;
-            uint8_t p2;
-            int count;
-        };
-        Tally tally[16];
-        for (int cz = 0; cz < n; ++cz)
-            for (int cy = 0; cy < n; ++cy)
-                for (int cx = 0; cx < n; ++cx) {
-                    LodLevel::Cell &out_cell = lv.cells[((size_t)cz * n + cy) * n + cx];
-                    int solid = 0, filled = 0, lit = 0, known = 0, top = 0;
-                    long day = 0, night = 0;
-                    const int x0 = cx * cell, y0 = cy * cell, z0 = cz * cell;
-                    for (int z = z0; z < z0 + cell; ++z)
-                        for (int y = y0; y < y0 + cell; ++y)
-                            for (int x = x0; x < x0 + cell; ++x) {
-                                const NodeInfo &ni = info[((size_t)z * N + y) * N + x];
-                                if (!(ni.flags & nKnown))
+    buildLodMipLevels(out, min_level);
+}
+
+void buildLodMipLevels(BlockLodChain &out, int first_level) {
+    first_level = std::clamp(first_level, 0, BlockLodChain::kLevels - 1);
+    for (int level = first_level + 1; level < BlockLodChain::kLevels; ++level) {
+        const LodLevel &src = out.level[level - 1];
+        if (!src.built())
+            break;
+        LodLevel &dst = out.level[level];
+        dst.cell = src.cell * 2;
+        dst.n = src.n / 2;
+        dst.cells.assign((size_t)dst.n * dst.n * dst.n, LodLevel::Cell());
+        dst.terrain.clear();
+        for (int z = 0; z < dst.n; ++z)
+            for (int y = 0; y < dst.n; ++y)
+                for (int x = 0; x < dst.n; ++x) {
+                    LodLevel::Cell &coarse = dst.cells[((size_t)z * dst.n + y) * dst.n + x];
+                    const LodLevel::Cell *chosen = nullptr;
+                    int chosen_score = -1, chosen_y = 0, known = 0, lit = 0;
+                    uint8_t day = 0, night = 0;
+                    for (int dz = 0; dz < 2; ++dz)
+                        for (int dy = 0; dy < 2; ++dy)
+                            for (int dx = 0; dx < 2; ++dx) {
+                                const LodLevel::Cell &c = src.at(x * 2 + dx, y * 2 + dy, z * 2 + dz);
+                                if (!(c.flags & LodLevel::kKnown))
                                     continue;
                                 ++known;
-                                if (ni.flags & nSolid)
-                                    ++solid;
-                                if (ni.flags & nFilled) {
-                                    ++filled;
-                                    top = std::max(top, y - y0 + 1);
-                                }
-                                if (ni.flags & nLit) {
+                                if (c.flags & LodLevel::kLit) {
                                     ++lit;
-                                    day += ni.day;
-                                    night += ni.night;
+                                    day = std::max(day, c.day);
+                                    night = std::max(night, c.night);
+                                }
+                                if (!(c.flags & LodLevel::kFilled))
+                                    continue;
+                                const int score = (c.flags & LodLevel::kOccludes) ? 2 : 1;
+                                if (score >= chosen_score) {
+                                    chosen = &c;
+                                    chosen_y = dy;
+                                    chosen_score = score;
                                 }
                             }
                     if (!known)
                         continue;
-                    const bool is_filled = filled >= fill_at;
-                    out_cell.top = (uint8_t)top;
-                    const bool in_ground = is_filled && y0 < (int)lv.terrain[(size_t)cz * n + cx];
-                    out_cell.flags = LodLevel::kKnown | (is_filled ? LodLevel::kFilled : 0) |
-                            (solid >= occlude_at ? LodLevel::kOccludes : 0) | (lit ? LodLevel::kLit : 0) |
-                            (in_ground ? LodLevel::kTerrain : 0);
+                    coarse.flags = LodLevel::kKnown | (lit ? LodLevel::kLit : 0);
                     if (lit) {
-                        out_cell.day = (uint8_t)(day / lit);
-                        out_cell.night = (uint8_t)(night / lit);
+                        coarse.day = day;
+                        coarse.night = night;
                     }
-                    if (!is_filled)
+                    if (!chosen)
                         continue;
-                    // What each side sees: the first filled node down every
-                    // column, by majority. Grass on top of a hill, dirt on
-                    // its cut side, stone deeper, as the near mesh shows it.
                     for (int d = 0; d < 6; ++d) {
-                        const int axis = DIRS[d][0] ? 0 : (DIRS[d][1] ? 1 : 2);
-                        const int sign = DIRS[d][0] + DIRS[d][1] + DIRS[d][2];
-                        int ntally = 0;
-                        for (int i = 0; i < cell; ++i)
-                            for (int j = 0; j < cell; ++j)
-                                for (int k = 0; k < cell; ++k) {
-                                    // k runs from the outer face inward
-                                    const int along = sign > 0 ? cell - 1 - k : k;
-                                    int x, y, z;
-                                    if (axis == 0) { x = x0 + along; y = y0 + i; z = z0 + j; }
-                                    else if (axis == 1) { x = x0 + i; y = y0 + along; z = z0 + j; }
-                                    else { x = x0 + i; y = y0 + j; z = z0 + along; }
-                                    const NodeInfo &ni = info[((size_t)z * N + y) * N + x];
-                                    if (!(ni.flags & nFilled))
-                                        continue;
-                                    int t = 0;
-                                    for (; t < ntally; ++t)
-                                        if (tally[t].c == ni.c && tally[t].p2 == ni.p2) {
-                                            ++tally[t].count;
-                                            break;
-                                        }
-                                    if (t == ntally && ntally < 16)
-                                        tally[ntally++] = Tally{ni.c, ni.p2, 1};
-                                    break;
-                                }
-                        int best = -1;
-                        for (int t = 0; t < ntally; ++t)
-                            if (best < 0 || tally[t].count > tally[best].count)
-                                best = t;
-                        if (best >= 0) {
-                            out_cell.face[d] = tally[best].c;
-                            out_cell.param2[d] = tally[best].p2;
-                        }
+                        coarse.face[d] = chosen->face[d];
+                        coarse.param2[d] = chosen->param2[d];
+                    }
+                    coarse.flags |= LodLevel::kFilled;
+                    if (chosen->flags & LodLevel::kOccludes)
+                        coarse.flags |= LodLevel::kOccludes;
+                    if (chosen->flags & LodLevel::kLiquid) {
+                        coarse.flags |= LodLevel::kLiquid;
+                        const int child_top = chosen->top > 0 ? chosen->top : src.cell;
+                        const int top = chosen_y * src.cell + child_top;
+                        coarse.top = top < dst.cell ? (uint8_t)top : 0;
                     }
                 }
-        // The surface cell of every column with ground: its top face is the
-        // ground's own content, and its sides take it too where the tally
-        // above found nothing, so the surface pass and its skirts have
-        // something to draw whatever the cell's fill count.
-        for (int cz = 0; cz < n; ++cz)
-            for (int cx = 0; cx < n; ++cx) {
-                const int h = lv.terrain[(size_t)cz * n + cx];
-                const content_t gc = ground_c[(size_t)cz * n + cx];
-                if (h <= 0 || gc == CONTENT_AIR)
-                    continue;
-                LodLevel::Cell &top_cell = lv.cells[((size_t)cz * n + (h - 1) / cell) * n + cx];
-                top_cell.face[0] = gc;
-                top_cell.param2[0] = ground_p2[(size_t)cz * n + cx];
-                for (int d = 1; d < 6; ++d)
-                    if (top_cell.face[d] == CONTENT_AIR) {
-                        top_cell.face[d] = gc;
-                        top_cell.param2[d] = ground_p2[(size_t)cz * n + cx];
-                    }
-            }
     }
 }
 
@@ -414,6 +356,7 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
     const int margin_cells = spec.ao_radius > 0.0f ? (int)std::ceil(spec.ao_radius / cell) : 0;
     const int mb = std::max(1, (margin_cells + cpb - 1) / cpb);
     const int B = spec.blocks + 2 * mb;
+    std::vector<const BlockLodChain *> chains((size_t)B * B * B, nullptr);
     std::vector<const LodLevel *> levels((size_t)B * B * B, nullptr);
     // The level one tier coarser, for stitching this tier's edge onto a
     // coarser neighbour; null where there is no coarser tier.
@@ -428,6 +371,7 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                 v3s16 bp = spec.origin + v3s16(bx - mb, by - mb, bz - mb);
                 const BlockLodChain *ch = spec.chain(bp);
                 const size_t i = ((size_t)bz * B + by) * B + bx;
+                chains[i] = ch;
                 levels[i] = ch ? ch->forCell(cell) : nullptr;
                 levels2[i] = ch && cell2 ? ch->forCell(cell2) : nullptr;
                 stored[i] = ch && ch->stored ? 1 : 0;
@@ -461,6 +405,68 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
     auto filled = [&](int gx, int gy, int gz) -> bool {
         const LodLevel::Cell *c = cellAt(gx, gy, gz);
         return c && (c->flags & LodLevel::kFilled);
+    };
+    // Whether the geometry actually drawn in another block covers this
+    // point. Reading `levels` alone is wrong at a tier boundary: it tests an
+    // unused mip of the neighbour, which can say occupied because of a child
+    // deeper inside the coarse voxel while the fine cells touching this face
+    // are air. That suppresses our face and opens a strip between tiers.
+    auto renderedFilledAtNode = [&](int nx, int ny, int nz) -> bool {
+        const int sx = nx + mb * MAP_BLOCKSIZE;
+        const int sy = ny + mb * MAP_BLOCKSIZE;
+        const int sz = nz + mb * MAP_BLOCKSIZE;
+        if (sx < 0 || sy < 0 || sz < 0)
+            return false;
+        const int bx = sx / MAP_BLOCKSIZE, by = sy / MAP_BLOCKSIZE, bz = sz / MAP_BLOCKSIZE;
+        if (bx >= B || by >= B || bz >= B)
+            return false;
+        const size_t bi = ((size_t)bz * B + by) * B + bx;
+        const int dc = drawn[bi];
+        const BlockLodChain *ch = chains[bi];
+        const LodLevel *lv = ch && dc > 0 ? ch->forCell(dc) : nullptr;
+        if (!lv)
+            return false;
+        const int lx = (sx % MAP_BLOCKSIZE) / dc;
+        const int ly = (sy % MAP_BLOCKSIZE) / dc;
+        const int lz = (sz % MAP_BLOCKSIZE) / dc;
+        const LodLevel::Cell &c = lv->at(lx, ly, lz);
+        return (c.flags & (LodLevel::kKnown | LodLevel::kFilled)) ==
+                (LodLevel::kKnown | LodLevel::kFilled);
+    };
+    auto renderedFaceCovered = [&](const int g[3], int d) -> bool {
+        const int axis = DIRS[d][0] ? 0 : (DIRS[d][1] ? 1 : 2);
+        const int ua = axis == 0 ? 1 : 0;
+        const int va = axis == 2 ? 1 : 2;
+        int centre[3] = {g[0] * cell + cell / 2, g[1] * cell + cell / 2,
+                g[2] * cell + cell / 2};
+        centre[axis] = DIRS[d][axis] > 0 ? (g[axis] + 1) * cell : g[axis] * cell - 1;
+
+        const int sx = centre[0] + mb * MAP_BLOCKSIZE;
+        const int sy = centre[1] + mb * MAP_BLOCKSIZE;
+        const int sz = centre[2] + mb * MAP_BLOCKSIZE;
+        if (sx < 0 || sy < 0 || sz < 0)
+            return false;
+        const int bx = sx / MAP_BLOCKSIZE, by = sy / MAP_BLOCKSIZE, bz = sz / MAP_BLOCKSIZE;
+        if (bx >= B || by >= B || bz >= B)
+            return false;
+        const int dc = drawn[((size_t)bz * B + by) * B + bx];
+        if (dc <= 0)
+            return false;
+
+        // A coarse face may touch several finer voxels. Cull it only if all
+        // of them cover the interface; otherwise a full boundary face is the
+        // conservative, closed-volume transition until a split transition
+        // mesh is warranted.
+        const int step = std::min(cell, dc);
+        for (int v = step / 2; v < cell; v += step)
+            for (int u = step / 2; u < cell; u += step) {
+                int p[3] = {centre[0], centre[1], centre[2]};
+                p[ua] = g[ua] * cell + u;
+                p[va] = g[va] * cell + v;
+                if (!renderedFilledAtNode(p[0], p[1], p[2]))
+                    return false;
+            }
+        return true;
     };
 
     // The far field occlusion: the same tracer as the near field, over a field
@@ -519,9 +525,9 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
     };
 
     // -----------------------------------------------------------------------
-    // The ground as one surface.
+    // Legacy ground-heightfield surface.
     //
-    // Every column of cells has, in the chains, a terrain height per block:
+    // Older chains carried a terrain height per block in every cell column:
     // the highest filled node that is not vegetation. The highest block in the
     // column that holds one carries the column's surface, and this region
     // draws that surface for every column whose surface block is a member,
@@ -539,12 +545,18 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
     // seen under the surface. The ground cells themselves emit no box faces
     // below; the box pass draws only what is not ground, which is the
     // vegetation and anything else the chain could not class as terrain.
+    // Protocol-v5 and live/store volumetric chains leave `terrain` empty and
+    // never set kTerrain, so this pass emits nothing and the box pass below
+    // meshes all occupied voxels, including undersides.
     //
     // This replaces the staircase a heightfield costs when it is drawn as
     // boxes (docs/far-rendering.md, "Strips, and what the merge can and
     // cannot do"): a slope is two triangles a cell, there are no risers to
     // merge, and the normals follow the ground.
-    {
+    bool has_legacy_surface = false;
+    for (const LodLevel *lv : levels)
+        has_legacy_surface |= lv && !lv->terrain.empty();
+    if (has_legacy_surface) {
         const int margin = mb * cpb; // cells of margin each side, horizontally
         const int W = n + 2 * margin;
         struct Column {
@@ -1147,7 +1159,7 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                     }
                     const int fx = g[0] + DIRS[d][0], fy = g[1] + DIRS[d][1], fz = g[2] + DIRS[d][2];
                     const LodLevel::Cell *front_cell = cellAt(fx, fy, fz);
-                    const bool front_filled = front_cell && (front_cell->flags & LodLevel::kFilled);
+                    const bool front_filled = renderedFaceCovered(g, d);
                     // How high the content actually reaches in each cell.
                     auto height_of = [&](const LodLevel::Cell *cc, bool is_filled) -> int {
                         if (!is_filled)
@@ -1157,31 +1169,13 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                     const int h_self = height_of(c, true);
                     const int h_front = height_of(front_cell, front_filled);
                     if (axis == 1) {
-                        // A top or bottom face exists only where the cell
-                        // beyond is empty, and unknown is not empty here
-                        // either. What saves the far field from going
-                        // invisible from above, which is what a blanket
-                        // version of this rule did, is that the face only
-                        // leans on the neighbour when it has to: a cell whose
-                        // content stops inside it carries its own surface,
-                        // known from this cell alone, so its top face is
-                        // drawn whatever is above. Only a cell filled right
-                        // to its ceiling depends on the cell above, and a
-                        // bottom face always depends on the cell below,
-                        // because the chain fills a cell from its floor.
-                        //
-                        // Left leaning on nothing, a solid column whose
-                        // neighbour above was never sent grew a lid, and a
-                        // mapgen chunk is five blocks tall against a summary
-                        // area's eight, so a generated chunk under an
-                        // ungenerated one put a flat plate across the whole
-                        // area at the chunk boundary: the panels seen hanging
-                        // in the sky (docs/far-rendering.md, "Lids, layers
-                        // and the vertical walk").
+                        // Emit a boundary face when the neighbour is known
+                        // air or unavailable. This mirrors Voxy's section-side
+                        // meshing: a partially loaded voxel volume is closed,
+                        // then remeshed and culled when its neighbour arrives.
+                        // Suppressing the face against unknown left literal
+                        // holes through caves, islands, and summary frontiers.
                         if (front_filled)
-                            continue;
-                        const bool leans_on_front = sign < 0 || h_self >= cell;
-                        if (leans_on_front && (!front_cell || !(front_cell->flags & LodLevel::kKnown)))
                             continue;
                         fk.lo = 0;
                         fk.hi = (uint8_t)h_self;
@@ -1191,25 +1185,6 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                         // where the neighbour is as tall, a step where it is
                         // shorter, the whole cell where it is empty.
                         //
-                        // Empty, though, means known to be empty. Unknown is
-                        // not air, and at the frontier of what the store and
-                        // the summaries have filled it used to read as air:
-                        // every filled cell along that frontier grew a side
-                        // face, so the far field ended in free standing walls
-                        // of terrain, pitch black wherever what stood behind
-                        // them was underground and unlit. Nothing is drawn
-                        // there now, which is the honest answer and is the
-                        // same rule as never inventing terrain: we do not
-                        // know that surface exists. The haze closes at that
-                        // frontier anyway (docs/far-rendering.md,
-                        // "Background, overlay, foreground"), so what is left
-                        // is air rather than a hole.
-                        //
-                        // Top and bottom faces now follow the same rule,
-                        // guarded so that a cell carrying its own surface
-                        // keeps its top face. See the axis 1 branch above.
-                        if (!front_cell || !(front_cell->flags & LodLevel::kKnown))
-                            continue;
                         if (h_front >= h_self)
                             continue;
                         fk.lo = (uint8_t)h_front;

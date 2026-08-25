@@ -59,10 +59,11 @@ void fragment() {
 	// took the colour and the class of whichever tile happens to sit one
 	// layer back. See docs/far-rendering.md, "The far field's albedo".
 	int layer = int(round(UV2.x));
-	// Either how far away this fragment is or how wide the quad it sits
-	// on actually is can call for flattening (see lod_repeat above), so a
-	// wide merged panel flattens on its own size even at point blank
-	// range and a small one still only flattens at range. Read below by
+	// Flatten by camera distance. VERTEX is an absolute world position in
+	// Goanna's meshes, so length(VERTEX) measured distance from world zero and
+	// made the same hill change colour as the player crossed tier boundaries.
+	// A former region-wide widest-quad term also flattened every face because
+	// one unrelated face happened to merge well. Read below by
 	// the normal map too: a flattened colour with its relief left alone
 	// still shades like the tile pattern, bumps and all, so the repeat
 	// reads through the lighting even where the albedo no longer shows it.
@@ -71,11 +72,9 @@ void fragment() {
 	// band of range where the detail has gone and the flattening has not
 	// started.
 	float flatten = 0.0;
-	if (lod_flatten) {
-		flatten = max(
-				smoothstep(lod_flatten_near, lod_flatten_far, length(VERTEX)),
-				smoothstep(lod_repeat_near, lod_repeat_far, lod_repeat));
-	}
+	if (lod_flatten)
+		flatten = smoothstep(lod_flatten_near, lod_flatten_far,
+				length(v_world - CAMERA_POSITION_WORLD));
 	// Per class surface treatment, in world space so a near block and a far
 	// tier's merged quad draw one continuous pattern. Spent only where a node
 	// is still worth more than a pixel.

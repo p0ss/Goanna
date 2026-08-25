@@ -506,6 +506,7 @@ Array EntityRenderer::list(GoannaSession &session) const {
         d["id"] = (int)kv.first;
         d["name"] = String::utf8(obj.name().c_str());
         d["position"] = kv.second.root->get_position();
+        d["rotation_y"] = kv.second.root->get_rotation_degrees().y;
         d["visual"] = (int)obj.props().visual;
         d["mesh"] = String::utf8(obj.props().mesh.c_str());
         d["frame"] = kv.second.animator ? kv.second.animator->frame() : -1.0f;

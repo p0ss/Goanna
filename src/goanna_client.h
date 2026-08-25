@@ -308,7 +308,9 @@ private:
     std::unique_ptr<GoannaSession> m_session;
     godot::String m_texture_path; // see set_texture_path
     godot::String m_texture_map;  // see set_texture_map
-    std::map<v3s16, godot::MeshInstance3D *> m_block_nodes; // tier 0 only
+    // Tier-0 visible surfaces, including pruned full-detail meshes retained as
+    // the bounded far shell cache. Their MapBlock data need not remain live.
+    std::map<v3s16, godot::MeshInstance3D *> m_block_nodes;
     std::map<v3s16, int> m_block_tier; // 0 = full detail, 1 and up = LOD tiers
     godot::Ref<godot::StandardMaterial3D> m_lod_material; // flat colour fallback
     std::map<u32, godot::Ref<godot::Material>> m_lod_water; // water shader per liquid tile
@@ -316,16 +318,22 @@ private:
     // and when it appeared. Advanced every update_lod.
     std::vector<std::pair<uint64_t, std::chrono::steady_clock::time_point>> m_fades;
     void startFade(godot::MeshInstance3D *mi);
+    void finishFade(godot::MeshInstance3D *mi);
     void advanceFades();
     godot::Vector3 m_lod_centre; // last camera position seen by update_lod
-    // Blocks beyond this many are drawn as coarse tiers, and everything far
-    // (the store, the server's summaries) gates on it being above zero. The
-    // default is the vanilla send distance, so a fresh install draws the live
-    // range at full detail and sees past it when a server grants far
-    // rendering; 0 turns all of it off. docs/launch-target.md.
+    // Distance scale, in blocks, at which coarse cell sizes begin doubling.
+    // Resident blocks are always full detail; a non-resident block starts at
+    // the finest coarse tier even inside this distance, so server delivery
+    // holes cannot become a circular trench. Everything far gates on this
+    // being above zero; 0 turns it off. docs/launch-target.md.
     int m_lod_distance = 12;
     int m_lod_cell = 4;
-    bool m_lod_terrace = false;
+    // The smoothed surface reads as melted terrain wherever the far field
+    // meets a cliff or a coastline (docs/far-rendering.md, "Terraces or
+    // slopes" and "Stop the far surface averaging across cliffs"), and it
+    // is a Minecraft world underneath either way, so the honest default is
+    // the one that looks like the blocks actually there.
+    bool m_lod_terrace = true;
     // --- far rendering (docs/far-rendering.md rungs 2 and 3) ---
     // Blocks at a tier of 1 or more are not meshed one by one: each belongs
     // to a region at its tier, and the region is one mesh built from the
@@ -397,7 +405,8 @@ private:
     bool m_far_distance_explicit = false;
     std::set<v3s16> m_far_blocks;
     // Blocks whose chain came from a server far summary rather than the
-    // store: coarse only (cell 16), so they stay at the coarsest tier.
+    // store. This also retains summaries currently inside the near-field
+    // floor, so moving away can assign them without requesting the area again.
     std::set<v3s16> m_far_remote;
     // Area origins (block coords, 8 block aligned) already asked of the
     // server, so a slow answer is not asked for again every scan.
@@ -411,6 +420,14 @@ private:
     struct FarAsk {
         std::chrono::steady_clock::time_point asked;
         bool complete = false;
+        // Progress in the most recent answer. A partly generated area can
+        // take many seconds to finish; retrying it at a fixed high rate used
+        // all four request slots and starved never-seen areas at the moving
+        // frontier. Consecutive answers with no progress back off, while a
+        // newly completed slice makes the area responsive again.
+        uint16_t available_records = 0;
+        uint16_t complete_records = 0;
+        uint8_t stalled_replies = 0;
         // A reply for this area has been read, so the two flags below mean
         // something. They are what decides whether the layer above or below
         // is worth asking for at all, rather than a fixed window of layers

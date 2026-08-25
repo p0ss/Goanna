@@ -41,47 +41,41 @@ struct LodLevel {
         kOccludes = 2, // enough solid nodes to block light: traced against
         kLit = 4,      // has nodes light propagates through, so day/night mean something
         kKnown = 8,    // at least one node that is not CONTENT_IGNORE
-        // Part of the ground: a filled cell in the run from the block's floor
-        // up to the column's terrain height. The region mesher draws the
-        // ground as one connected surface over `terrain` below and never as
-        // boxes, so these cells emit no faces of their own; a filled cell
-        // without this flag (a canopy, a trunk, an overhang, anything the
-        // summary or the chain builder classed as vegetation) is still a box.
+        // Legacy heightfield marker. Protocol-v5 summaries and chains built
+        // by buildLodChain leave it unset, so every occupied coarse voxel is
+        // handled by the six-face box mesher.
         kTerrain = 16,
+        // The representative is liquid. `top` can then retain its surface
+        // within the coarse voxel instead of expanding a one-node sea into a
+        // 4/8/16-node-high slab.
+        kLiquid = 32,
     };
     struct Cell {
-        // What is seen looking into the cell from each of the six sides, in
-        // Luanti's tile order (+Y, -Y, +X, -X, +Z, -Z): the commonest content
-        // among the first filled node down each column. CONTENT_AIR if none.
+        // Representative content for each side, in Luanti's tile order
+        // (+Y, -Y, +X, -X, +Z, -Z). Volumetric mips currently put the same
+        // representative in all six entries. CONTENT_AIR means none.
         content_t face[6] = {CONTENT_AIR, CONTENT_AIR, CONTENT_AIR, CONTENT_AIR, CONTENT_AIR, CONTENT_AIR};
         // That node's param2, for palette coloured nodes (biome grass).
         uint8_t param2[6] = {0, 0, 0, 0, 0, 0};
         // Mean decoded light of the lit nodes in the cell. Valid when kLit.
         uint8_t day = 255, night = 0;
         uint8_t flags = 0;
-        // Height of the highest filled node, plus one, 0 to cell: where a
-        // liquid's surface is drawn, so a sea at a coarse tier lies at sea
-        // level and not at the top of its cell.
+        // Legacy partial-height support. Zero means a volumetric coarse voxel
+        // occupies the complete cell, including its lower face.
         uint8_t top = 0;
     };
     int cell = 0; // nodes per cell
     int n = 0;    // cells per axis, MAP_BLOCKSIZE / cell
     std::vector<Cell> cells;
-    // Per column (z * n + x): the height within the block of the highest
-    // filled node that is not vegetation, 1 to 16, or 0 where the column
-    // holds no ground in this block. Water counts as ground, so a sea is a
-    // flat surface at sea level. This is what the far surface is built over
-    // (docs/far-rendering.md, "The far field as a surface").
+    // Optional legacy per-column height data. The volumetric path keeps this
+    // empty, which disables the old surface pass and leaves all occupied
+    // cells to the six-face voxel mesher.
     std::vector<uint8_t> terrain;
+    Cell &at(int x, int y, int z) { return cells[((size_t)z * n + y) * n + x]; }
     const Cell &at(int x, int y, int z) const { return cells[((size_t)z * n + y) * n + x]; }
     uint8_t terrainAt(int x, int z) const { return terrain.empty() ? 0 : terrain[(size_t)z * n + x]; }
     bool built() const { return !cells.empty(); }
 };
-
-// Vegetation, for keeping trees out of the ground: the node is in one of the
-// groups the server mod's block_summary uses (tree, leaves, cactus, bamboo
-// and the plant groups), so a summary and a chain built from nodes agree.
-bool lodIsVegetation(const NodeDefManager *ndef, content_t c);
 
 struct BlockLodChain {
     static constexpr int kLevels = 4; // cell 2, 4, 8, 16
@@ -101,10 +95,16 @@ struct BlockLodChain {
     }
 };
 
-// Build the levels from min_level up. The finer a level the more it costs to
-// keep, and a tier at cell 4 never reads the cell 2 level, so the caller says
-// how fine it needs.
+// Build a three-dimensional voxel mip chain from the nodes. Every occupied
+// cell remains a voxel at every level; terrain is not reconstructed from a
+// heightfield, so caves, overhangs and floating islands keep their lower and
+// side faces for as long as the opening is at least one cell wide.
 void buildLodChain(const NodeDefManager *ndef, MapBlock *block, BlockLodChain &out, int min_level = 0);
+
+// Build every level above first_level from its 2 by 2 by 2 children. Summary
+// records fill the cell-4 level directly and use this same reducer as live and
+// stored blocks, so changing source cannot change the shape of the mip.
+void buildLodMipLevels(BlockLodChain &out, int first_level);
 
 // Output, in Godot space (nodes, z mirrored), world absolute, one surface per
 // array texture. texture_id 0 is the flat colour fallback for tiles that have

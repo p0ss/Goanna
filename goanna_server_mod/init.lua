@@ -96,8 +96,17 @@ end
 --
 -- The version number is how a client and a mod that disagree on the record
 -- refuse each other rather than misreading each other's bytes: a request or
--- reply at another version gets a logged warning and no answer. Version 3,
--- 2026-08-23, is 69 bytes per block, laid out above block_summary below.
+-- reply at another version gets a logged warning and no answer. Version 6,
+-- 2026-08-25, is 83 bytes per block, laid out above block_summary below.
+-- It is a 4 by 4 by 4 voxel field rather than a heightfield, so caves,
+-- overhangs and floating islands retain coarse vertical occupancy; packed
+-- liquid tops keep flat water at its real height through every mip. Unlike
+-- version 5, its flags distinguish a useful partial record from a complete
+-- one, so a partially emerged mountain is retried rather than cached forever.
+-- Version 5 was the same record without the completeness flag.
+-- Version 4 (2026-08-25) was the same occupancy field without liquid tops.
+-- Version 3 (2026-08-23) was 69 bytes per block, terrain heights and
+-- vegetation bounds per 4 node horizontal cell.
 -- Version 2 (2026-08-22) was 21 bytes, one height per 4 node cell; version 1
 -- one height per block. The blob is one record per block, x fastest then y
 -- then z, base64 encoded after the area's name list.
@@ -136,22 +145,18 @@ local summary_lag_limit = conf_num("goanna_far_summary_lag", 0.5)
 local c_ignore = core.CONTENT_IGNORE
 local c_air = core.CONTENT_AIR
 
--- content id -> {filled, solid, liquid, veg}, from the node's registration.
+-- content id -> {filled, solid, liquid}, from the node's registration.
 -- The same rule the client's chain uses: a full cube or cube shaped drawtype
--- or a liquid draws, a full solid cube blocks light. Vegetation is what the
--- far surface keeps out of the ground: trees, leaves, cacti, bamboo and the
--- plant groups, by the node's own groups, the list mirrored in
--- src/goanna_lod.cpp so a summary and a chain built from nodes agree on
--- what the terrain is.
-local VEG_GROUPS = {"tree", "leaves", "cactus", "bamboo", "plant", "flora", "sapling",
-	"flower", "mushroom", "fruit", "vines"}
+-- or a liquid draws, and a full solid cube blocks light. Version 4 treats
+-- vegetation as ordinary occupied voxels; there is no separate heightfield
+-- path that needs to classify it away from terrain.
 local cls_cache = {}
 local function classify(cid)
 	local c = cls_cache[cid]
 	if c then
 		return c
 	end
-	c = {filled = false, solid = false, liquid = false, veg = false}
+	c = {filled = false, solid = false, liquid = false}
 	if cid ~= c_ignore and cid ~= c_air then
 		local name = core.get_name_from_content_id(cid)
 		local def = name and core.registered_nodes[name]
@@ -167,13 +172,6 @@ local function classify(cid)
 				c.filled = true
 				c.liquid = true
 			end
-			local groups = def.groups or {}
-			for _, g in ipairs(VEG_GROUPS) do
-				if (groups[g] or 0) > 0 then
-					c.veg = true
-					break
-				end
-			end
 		end
 	end
 	cls_cache[cid] = c
@@ -181,19 +179,23 @@ local function classify(cid)
 end
 
 -- One block's record, or nil if the block is not generated. Protocol
--- version 3, 2026-08-23, 69 bytes:
---   flags (2 occludes, 4 lit, 8 liquid, 16 known)
---   16 terrain heights: per 4 node cell (z * 4 + x), the highest filled node
---     that is not vegetation, as height within the block, 0 to 16, 0 none
---   16 vegetation bases and 16 vegetation tops: per cell, the lowest and
---     highest vegetation node above the cell's terrain, 1 to 16, 0 none
---   16 terrain top content indices, per cell, 1 based into the name list
---   vegetation content index (one for the block), side content index
---   day light, night light (raw 0 to 15)
--- Version 2 carried one height per cell with no base and no split, so a
--- canopy crossing a block boundary was drawn as a slab on that block's floor
--- and a tree was a pillar of ground; the surface the client now draws over
--- the terrain heights needs the vegetation kept out of them.
+-- version 6, 2026-08-25, 83 bytes:
+--   flags (16 has emerged data, 8 all nodes emerged/record complete)
+--   64 coarse contents, indexed (z * 4 + y) * 4 + x:
+--       0 known air, 1..254 one based into the area's name list,
+--       255 unknown (only possible at a partially emerged frontier)
+--   16 bytes of packed 2-bit liquid surface heights, four cells per byte:
+--       0 full cell/non-liquid, 1..3 height within the 4-node cell
+--   maximum raw day and night light for the block (0 to 15)
+-- Per-voxel light would make an 8 cubed area's base64 exceed Luanti's 16-bit
+-- mod-channel string limit. Occupancy is the topology-critical part; light
+-- stays at v3's block granularity until replies are chunked.
+--
+-- A coarse cell chooses a representative from its 4 cubed nodes: any filled
+-- node keeps the cell occupied, opaque wins over non-opaque, and ties use a
+-- stable z/y/x scan order. The client uses the same rule on live/store nodes
+-- and recursively for cell 8 and 16, so changing source or tier does not
+-- reinterpret a heightfield. Most importantly Y is never discarded.
 local function block_summary(bx, by, bz, names, name_index)
 	local pmin = vector.new(bx * 16, by * 16, bz * 16)
 	local pmax = vector.add(pmin, 15)
@@ -204,136 +206,85 @@ local function block_summary(bx, by, bz, names, name_index)
 	local data = vm:get_data()
 	local light = vm:get_light_data()
 	local area = VoxelArea:new({MinEdge = emin, MaxEdge = emax})
-	local solidn = 0
-	local terr, terr_c, veg_lo, veg_hi = {}, {}, {}, {}
-	for i = 0, 15 do
-		terr[i], terr_c[i], veg_lo[i], veg_hi[i] = 0, nil, 0, 0
-	end
-	local veg_counts, side_counts = {}, {}
-	local day, night = 0, 0
-	local lit = false
-	local known = false
-	local liquid_tops, tops = 0, 0
-	for z = pmin.z, pmax.z do
-		local cz = math.floor((z - pmin.z) / 4)
-		for x = pmin.x, pmax.x do
-			local cx = math.floor((x - pmin.x) / 4)
-			local cell = cz * 4 + cx
-			local col_top = false
-			local col_terr, col_terr_c = 0, nil
-			local col_veg_lo, col_veg_hi = 0, 0
-			for y = pmax.y, pmin.y, -1 do
-				local cid = data[area:index(x, y, z)]
-				if cid ~= c_ignore then
-					known = true
-					local c = classify(cid)
-					if c.filled then
-						if c.solid then
-							solidn = solidn + 1
-						end
-						local h = y - pmin.y + 1
-						if not col_top then
-							col_top = true
-							tops = tops + 1
-							if c.liquid then
-								liquid_tops = liquid_tops + 1
-							end
-							-- light of the node above the surface
-							local li = light[area:index(x, math.min(y + 1, pmax.y), z)] or 0
-							local d = li % 16
-							local n = math.floor(li / 16) % 16
-							if d > day then day = d end
-							if n > night then night = n end
-							if d > 0 or n > 0 then lit = true end
-						end
-						if c.veg then
-							if col_terr == 0 then
-								-- vegetation above the terrain
-								if col_veg_hi == 0 then
-									col_veg_hi = h
-								end
-								col_veg_lo = h
-								veg_counts[cid] = (veg_counts[cid] or 0) + 1
-							end
-						elseif col_terr == 0 then
-							col_terr, col_terr_c = h, cid
-						else
-							side_counts[cid] = (side_counts[cid] or 0) + 1
-						end
-					end
-				end
-			end
-			if col_terr > terr[cell] then
-				terr[cell], terr_c[cell] = col_terr, col_terr_c
-			end
-			if col_veg_hi > 0 then
-				if col_veg_hi > veg_hi[cell] then
-					veg_hi[cell] = col_veg_hi
-				end
-				if veg_lo[cell] == 0 or col_veg_lo < veg_lo[cell] then
-					veg_lo[cell] = col_veg_lo
-				end
-			end
-		end
-	end
-	if not known then
-		return nil
-	end
-	local function mode(counts)
-		local best, bn = nil, 0
-		for cid, n in pairs(counts) do
-			if n > bn then
-				best, bn = cid, n
-			end
-		end
-		return best
-	end
 	local function idx_of(cid)
 		if not cid then
 			return 0
 		end
 		local name = core.get_name_from_content_id(cid)
 		if not name then
-			return 0
+			return #names > 0 and 1 or 0
 		end
 		local i = name_index[name]
 		if not i then
 			i = #names + 1
-			if i > 255 then
-				return 0
+			if i > 254 then
+				-- Preserve occupancy even if an exceptionally varied area
+				-- exhausts the one-byte palette. Its first material is a
+				-- better degradation than turning this voxel into air.
+				return 1
 			end
 			names[i] = name
 			name_index[name] = i
 		end
 		return i
 	end
-	-- Vegetation that sits inside the cell's terrain run, a bush beside a
-	-- taller column, is hidden in it and is not a box; clamp the base above
-	-- the terrain and drop what does not reach.
-	local terr_counts = {}
-	for i = 0, 15 do
-		if veg_hi[i] <= terr[i] then
-			veg_lo[i], veg_hi[i] = 0, 0
-		elseif veg_lo[i] <= terr[i] then
-			veg_lo[i] = terr[i] + 1
-		end
-		if terr_c[i] then
-			terr_counts[terr_c[i]] = (terr_counts[terr_c[i]] or 0) + 1
+	local contents, liquid_tops = {}, {}
+	local block_known, block_complete = false, true
+	local block_day, block_night = 0, 0
+	for cz = 0, 3 do
+		for cy = 0, 3 do
+			for cx = 0, 3 do
+				local ci = (cz * 4 + cy) * 4 + cx
+				local chosen, chosen_score, chosen_liquid = nil, -1, false
+				local liquid_top = 0
+				local cell_known, day, night = false, 0, 0
+				for z = pmin.z + cz * 4, pmin.z + cz * 4 + 3 do
+					for y = pmin.y + cy * 4, pmin.y + cy * 4 + 3 do
+						for x = pmin.x + cx * 4, pmin.x + cx * 4 + 3 do
+							local vi = area:index(x, y, z)
+							local cid = data[vi]
+							if cid ~= c_ignore then
+								cell_known, block_known = true, true
+								local li = light[vi] or 0
+								day = math.max(day, li % 16)
+								night = math.max(night, math.floor(li / 16) % 16)
+								local c = classify(cid)
+								if c.filled then
+									if c.liquid then
+										liquid_top = math.max(liquid_top,
+											y - (pmin.y + cy * 4) + 1)
+									end
+									local score = c.solid and 2 or 1
+									if score >= chosen_score then
+										chosen, chosen_score, chosen_liquid = cid, score, c.liquid
+									end
+								end
+							else
+								block_complete = false
+							end
+						end
+					end
+				end
+				contents[ci] = not cell_known and 255 or idx_of(chosen)
+				liquid_tops[ci] = chosen_liquid and liquid_top < 4 and liquid_top or 0
+				block_day = math.max(block_day, day)
+				block_night = math.max(block_night, night)
+			end
 		end
 	end
-	local topc = mode(terr_counts)
-	local vegc = mode(veg_counts)
-	local sidec = mode(side_counts) or topc
-	local flags = 16
-	if solidn >= 256 then flags = flags + 2 end
-	if lit then flags = flags + 4 end
-	if topc and classify(topc).liquid and liquid_tops * 2 >= tops then flags = flags + 8 end
-	local parts = {string.char(flags)}
-	for i = 0, 15 do parts[#parts + 1] = string.char(math.min(terr[i], 16)) end
-	for i = 0, 15 do parts[#parts + 1] = string.char(math.min(veg_lo[i], 16)) end
-	for i = 0, 15 do parts[#parts + 1] = string.char(math.min(veg_hi[i], 16)) end
-	for i = 0, 15 do parts[#parts + 1] = string.char(idx_of(terr_c[i])) end
-	parts[#parts + 1] = string.char(idx_of(vegc), idx_of(sidec), day, night)
+	if not block_known then
+		return nil
+	end
+	local parts = {string.char(16 + (block_complete and 8 or 0))}
+	for i = 0, 63 do parts[#parts + 1] = string.char(contents[i]) end
+	for i = 0, 15 do
+		local packed = 0
+		for j = 0, 3 do
+			packed = packed + (liquid_tops[i * 4 + j] or 0) * 2 ^ (j * 2)
+		end
+		parts[#parts + 1] = string.char(packed)
+	end
+	parts[#parts + 1] = string.char(block_day, block_night)
 	return table.concat(parts)
 end
 
@@ -348,11 +299,11 @@ end
 --
 -- Now a block is summarised once and kept. Records live in areas of 8 by 8
 -- by 8 mapblocks, the unit a client asks for, as one string of 512 records
--- in the same 21 byte layout the wire carries (x fastest, then y, then z),
--- with the area's own name list beside it. A record whose known bit is clear
--- is a block this mod has not summarised, or has looked at and found
--- ungenerated. A request for an area whose records are all known is
--- answered the same step, by lookup; one with gaps has only the gaps read.
+-- in the same 83 byte layout the wire carries (x fastest, then y, then z),
+-- with the area's own name list beside it. A record whose complete bit is
+-- clear is ungenerated or only partly emerged. A request for an area whose
+-- records are all complete is answered by lookup; one with gaps retries only
+-- those records while still sending their useful partial contents.
 --
 -- Three things fill the store without anyone asking:
 --   - register_on_generated: every freshly generated block is summarised
@@ -379,10 +330,10 @@ end
 -- complete, so far terrain someone else has altered stays as it was until
 -- the client rejoins or walks there. The pregeneration offers below are
 -- the one unasked push there is.
-local REC = 69
+local REC = 83
 local AREA = 8
 local AREA_BLOCKS = AREA * AREA * AREA
-local STORE_KEY = "fs3:"
+local STORE_KEY = "fs6:"
 local EMPTY_BLOB = string.rep("\0", REC * AREA_BLOCKS)
 local cache_limit = conf_num("goanna_far_summary_cache_areas", 4096)
 local backfill_enabled = conf_bool("goanna_far_summary_backfill", true)
@@ -415,6 +366,13 @@ local function split_csv(s)
 end
 
 local function record_known(blob, i)
+	-- Complete, not merely useful. A partial record remains in the blob and
+	-- can be sent to clients, but every request retries it until all of the
+	-- mapblock has emerged.
+	return blob:byte(i * REC + 1) % 16 >= 8
+end
+
+local function record_available(blob, i)
 	return blob:byte(i * REC + 1) % 32 >= 16
 end
 
@@ -473,6 +431,7 @@ local function save_area(a)
 end
 
 local function set_record(a, i, rec)
+	assert(#rec == REC, "far summary record has the wrong size")
 	local was = record_known(a.blob, i)
 	a.blob = a.blob:sub(1, i * REC) .. rec .. a.blob:sub((i + 1) * REC + 1)
 	if not was then
@@ -485,10 +444,8 @@ local function set_record(a, i, rec)
 	a.dirty = true
 end
 
--- Every record is known or has been looked at and found ungenerated. Such
--- an area is not worth reading again: the only way a record in it changes
--- is generation, which register_on_generated reports, or a node change,
--- which register_on_mapblocks_changed reports.
+-- Every record is complete or has been looked at and found wholly
+-- ungenerated. A partial record does not settle its area and is retried.
 local function area_settled(a)
 	return a.known + a.nchecked >= AREA_BLOCKS
 end
@@ -577,7 +534,7 @@ local function synthesise_area(a)
 		local i = a.name_index[name]
 		if not i then
 			i = #a.names + 1
-			if i > 255 then
+			if i > 254 then
 				return 0
 			end
 			a.names[i] = name
@@ -587,68 +544,56 @@ local function synthesise_area(a)
 	end
 	local made = 0
 	for i = 0, AREA_BLOCKS - 1 do
-		if not record_known(a.blob, i) then
+		-- Never replace real partial voxel data with the provider's height
+		-- estimate. Partial records are retried by summarise(); synthesis is
+		-- only for a block for which the map supplied nothing at all.
+		if not record_available(a.blob, i) then
 			local bx = i % AREA
 			local by = math.floor(i / AREA) % AREA
 			local bz = math.floor(i / (AREA * AREA))
 			local floor_y = y0 + by * 16
-			local parts = {}
-			local tops, liquid, solid_cells, air_cells = {}, 0, 0, 0
-			local heights, tidx = {}, {}
+			local contents, liquid_tops = {}, {}
 			local any = false
-			for c = 0, 15 do
-				local col = cols[(bz * 4 + math.floor(c / 4)) * 32 + bx * 4 + c % 4]
-				local th, ti = 0, 0
-				if col then
-					any = true
-					local top_y, top_name = col.sy, col.top
-					if col.wy and col.wy >= col.sy then
-						top_y, top_name = col.wy, far_provider_water
-					end
-					local raw = top_y - floor_y + 1
-					th = raw
-					if th < 0 then th = 0 elseif th > 16 then th = 16 end
-					if raw > 16 then
-						-- the surface is above this block: what shows here,
-						-- if anything ever does, is what is under it, or the
-						-- water standing over the ground
-						ti = idx_of(col.wy and col.wy > floor_y + 15 and col.sy <= floor_y + 15
-								and far_provider_water or col.side)
-						solid_cells = solid_cells + 1
-					elseif raw >= 1 then
-						-- the surface node is in this block, at its ceiling
-						-- when raw is 16, and it is still the surface
-						ti = idx_of(top_name)
-						tops[top_name] = (tops[top_name] or 0) + 1
-						if top_name == far_provider_water then
-							liquid = liquid + 1
+			local any_air = false
+			for cz = 0, 3 do
+				for cy = 0, 3 do
+					for cx = 0, 3 do
+						local ci = (cz * 4 + cy) * 4 + cx
+						local col = cols[(bz * 4 + cz) * 32 + bx * 4 + cx]
+						if not col then
+							contents[ci] = 255
+						else
+							any = true
+							local lo, hi = floor_y + cy * 4, floor_y + cy * 4 + 3
+							local name, liquid_top = nil, 0
+							if lo <= col.sy then
+								name = col.sy >= lo and col.sy <= hi and col.top or col.side
+							elseif col.wy and lo <= col.wy then
+								name = far_provider_water
+								liquid_top = col.wy < hi and col.wy - lo + 1 or 0
+							end
+							contents[ci] = idx_of(name)
+							liquid_tops[ci] = liquid_top
+							any_air = any_air or not name
 						end
-						if raw == 16 then
-							solid_cells = solid_cells + 1
-						end
-					else
-						air_cells = air_cells + 1
 					end
 				end
-				heights[c] = th
-				tidx[c] = ti
 			end
 			if any then
-				local flags = 16
-				if solid_cells == 16 then flags = flags + 2 end
-				if solid_cells < 16 then flags = flags + 4 end
-				if liquid * 2 >= 16 then flags = flags + 8 end
-				parts[1] = string.char(flags)
-				for c = 0, 15 do parts[#parts + 1] = string.char(heights[c]) end
-				parts[#parts + 1] = string.rep("\0", 32) -- no vegetation
-				for c = 0, 15 do parts[#parts + 1] = string.char(tidx[c]) end
-				-- vegetation index, side index, day, night
-				local side_name = nil
-				for c = 0, 15 do
-					local col = cols[(bz * 4 + math.floor(c / 4)) * 32 + bx * 4 + c % 4]
-					if col then side_name = col.side break end
+				local complete = true
+				for c = 0, 63 do
+					if contents[c] == 255 then complete = false break end
 				end
-				parts[#parts + 1] = string.char(0, idx_of(side_name), solid_cells < 16 and 15 or 0, 0)
+				local parts = {string.char(16 + (complete and 8 or 0))}
+				for c = 0, 63 do parts[#parts + 1] = string.char(contents[c]) end
+				for b = 0, 15 do
+					local packed = 0
+					for j = 0, 3 do
+						packed = packed + (liquid_tops[b * 4 + j] or 0) * 2 ^ (j * 2)
+					end
+					parts[#parts + 1] = string.char(packed)
+				end
+				parts[#parts + 1] = string.char(any_air and 15 or 0, 0)
 				set_record(a, i, table.concat(parts))
 				a.synth[i] = true
 				made = made + 1
@@ -673,7 +618,7 @@ local function summarise(bx, by, bz, force, fresh)
 	local i = (bx - ax * AREA) + (by - ay * AREA) * AREA + (bz - az * AREA) * AREA * AREA
 	local synth = a.synth and a.synth[i]
 	if not force and ((record_known(a.blob, i) and not (synth and fresh)) or
-			(a.checked[i] and not fresh)) then
+			(a.checked[i] and not record_available(a.blob, i) and not fresh)) then
 		return false
 	end
 	local rec = block_summary(bx, by, bz, a.names, a.name_index)
@@ -685,7 +630,7 @@ local function summarise(bx, by, bz, force, fresh)
 			a.synth[i] = nil
 			reoffer[a.key] = a
 		end
-	elseif not a.checked[i] then
+	elseif not record_available(a.blob, i) and not a.checked[i] then
 		a.checked[i] = true
 		a.nchecked = a.nchecked + 1
 	end
@@ -698,30 +643,49 @@ local function summarise(bx, by, bz, force, fresh)
 end
 
 -- Jobs that end in a reply: a client asked, or pregeneration offers an area
--- it has just finished. An asked job goes ahead of every offered one, after
--- whichever job is part way through, as before: no work is lost and the
--- player waiting on the view in front of them is served first. A job only
--- reads the blocks the store does not know, so on a store that is warm it
--- finishes in the step it was queued.
+-- it has just finished. A completed offer goes immediately after whichever
+-- job is part way through: it is useful new frontier already paid for by
+-- mapgen, whereas an ask can be a speculative scan of 512 ungenerated
+-- blocks. Letting asks stay ahead forever saturated the summary budget and
+-- made asynchronously generated terrain wait indefinitely to be published.
 local far_queue = {}
 
 local function queue_area(player_name, cell, ox, oy, oz, edge, offered)
+	-- A slow or partly generated area can be requested again before its old
+	-- job reaches the head. Keeping both copies let four client retries grow
+	-- into an effectively permanent queue, and completed pregeneration offers
+	-- then had no room to enter it. One player needs at most one pending reply
+	-- for one area. A direct request upgrades an existing background offer and
+	-- moves it ahead of the remaining offers.
+	for i = 1, #far_queue do
+		local old = far_queue[i]
+		if old.who == player_name and old.ox == ox and old.oy == oy and old.oz == oz and
+				old.cell == cell and old.edge == edge then
+			if not offered and old.offered then
+				old.offered = false
+			end
+			return false
+		end
+	end
 	local job = {
 		who = player_name, cell = cell, ox = ox, oy = oy, oz = oz, edge = edge,
 		i = 0, offered = offered,
 	}
-	if not offered then
-		for i = 2, #far_queue do
-			if far_queue[i].offered then
-				table.insert(far_queue, i, job)
-				return
-			end
+	if offered and #far_queue > 0 then
+		-- Keep the active head in place, then the FIFO run of completed
+		-- offers, then speculative asks.
+		local at = 2
+		while at <= #far_queue and far_queue[at].offered do
+			at = at + 1
 		end
+		table.insert(far_queue, at, job)
+		return true
 	end
 	far_queue[#far_queue + 1] = job
+	return true
 end
 
-local FARSUM_VERSION = 3
+local FARSUM_VERSION = 6
 
 local function send_area(job)
 	if not (channel and channel:is_writeable()) then
@@ -890,6 +854,27 @@ core.register_globalstep(function(dtime)
 	end
 	local budget = blocks_per_step
 	local sent = 0
+	-- Generated blocks are the output side of the asynchronous producer.
+	-- Requests used to run first and could consume this whole budget forever
+	-- by scanning new empty areas, leaving completed mapgen unindexed and its
+	-- offers unable to become complete wire areas. Reserve half for fresh
+	-- output before servicing speculative reads; the ordinary pass below may
+	-- still use anything left after replies.
+	local fresh_budget = math.max(1, math.floor(blocks_per_step / 2))
+	while budget > 0 and fresh_budget > 0 and gen_head <= #gen_queue do
+		local h = gen_queue[gen_head]
+		gen_queue[gen_head] = nil
+		gen_head = gen_head + 1
+		gen_set[h] = nil
+		local p = core.get_position_from_hash(h)
+		if summarise(p.x, p.y, p.z, false, true) then
+			budget = budget - 1
+			fresh_budget = fresh_budget - 1
+		end
+	end
+	if gen_head > #gen_queue then
+		gen_queue, gen_head = {}, 1
+	end
 	-- Replies first. A job whose area the store already knows costs nothing
 	-- and is sent at once; several can go in one step, bounded so a warm
 	-- store does not turn one step into a burst the connection will queue.
@@ -1065,10 +1050,16 @@ end
 -- rate on a server that was fine. Half a second is five times the 0.1 s
 -- step, high enough to mean something is really wrong.
 local pregen_lag_limit = conf_num("goanna_far_pregenerate_lag", 0.5)
+-- Number of independent area streams. emerge_area itself is asynchronous,
+-- but one stream waits for each slice callback before submitting the next;
+-- at flying speed that serial producer cannot keep the horizon around the
+-- player. A small pipeline keeps the emerge workers occupied without ever
+-- putting more than one slice per stream into their forced FIFO queue.
+local pregen_concurrency = math.max(1,
+		math.min(8, math.floor(conf_num("goanna_far_pregenerate_concurrency", 2))))
 local pregen_slices = math.floor((8 / pregen_slice) ^ 3)
 local pregen = {
-	busy = false, since = 0, wait = 0, done = {}, pending = {},
-	area = nil, slice = 0,
+	wait = 0, done = {}, pending = {}, active = {},
 }
 
 -- What the store says about an area's faces, for the vertical walk below:
@@ -1086,14 +1077,16 @@ local function area_faces(ax, ay, az)
 		local ly = math.floor(i / AREA) % AREA
 		if (ly == 0 or ly == AREA - 1) and record_known(blob, i) then
 			local base = i * REC + 1
-			for c = 0, 15 do
-				local th = blob:byte(base + 1 + c)
-				local vh = blob:byte(base + 33 + c)
-				if ly == AREA - 1 and (th >= 16 or vh >= 16) then
-					open_above = true
-				end
-				if ly == 0 and th == 0 then
-					open_below = true
+			for z = 0, 3 do
+				for x = 0, 3 do
+					local bottom = blob:byte(base + 1 + (z * 4) * 4 + x)
+					local top = blob:byte(base + 1 + (z * 4 + 3) * 4 + x)
+					if ly == AREA - 1 and top > 0 and top < 255 then
+						open_above = true
+					end
+					if ly == 0 and (bottom == 0 or bottom == 255) then
+						open_below = true
+					end
 				end
 			end
 		end
@@ -1157,22 +1150,11 @@ local function pregen_pick()
 	return best
 end
 
--- One slice of the current area, or the next area's first slice. The
--- completion callback runs on an emerge thread, so it only sets the state
--- the globalstep above reads.
-local function pregen_emerge()
-	if not pregen.area then
-		local a = pregen_pick()
-		if not a then
-			-- Nothing left in range. The search is a few hundred keys, so
-			-- pause before asking again rather than every step.
-			pregen.wait = pregen_interval
-			return
-		end
-		pregen.done[a.key] = true
-		pregen.area, pregen.slice = a, 0
-	end
-	local a, i = pregen.area, pregen.slice
+-- Submit one slice for one independent area stream. The completion callback
+-- only advances this job; the globalstep submits its next slice, which keeps
+-- callback re-entry and the emerge queue bounded and predictable.
+local function pregen_emerge(job)
+	local a, i = job.area, job.slice
 	-- floored: a float here would put fractional node coordinates in pmin
 	local n = math.floor(8 / pregen_slice)
 	local edge = pregen_slice * 16
@@ -1181,19 +1163,21 @@ local function pregen_emerge()
 			a.y * 128 + (math.floor(i / n) % n) * edge,
 			a.z * 128 + math.floor(i / (n * n)) * edge)
 	local pmax = vector.add(pmin, edge - 1)
-	pregen.busy, pregen.since = true, 0
+	job.busy, job.since = true, 0
+	job.serial = job.serial + 1
+	local serial = job.serial
 	core.emerge_area(pmin, pmax, function(blockpos, action, calls_remaining)
-		if calls_remaining > 0 then
+		if calls_remaining > 0 or job.serial ~= serial then
 			return
 		end
-		pregen.busy = false
-		pregen.slice = i + 1
-		if pregen.slice < pregen_slices then
+		job.busy = false
+		job.slice = i + 1
+		if job.slice < pregen_slices then
 			return
 		end
-		-- The area is whole: pause, and offer it to the clients near it.
-		pregen.area, pregen.slice = nil, 0
-		pregen.wait = pregen_interval
+		-- The area is whole: retire this stream and offer it to nearby
+		-- clients. Queue deduplication keeps this from duplicating an ask.
+		job.complete = true
 		for _, player in ipairs(core.get_connected_players()) do
 			local pp = player:get_pos()
 			local d = math.max(math.abs(a.x * 128 + 64 - pp.x), math.abs(a.z * 128 + 64 - pp.z))
@@ -1206,6 +1190,18 @@ local function pregen_emerge()
 	end)
 end
 
+local function pregen_start_area()
+	local a = pregen_pick()
+	if not a then
+		return false
+	end
+	pregen.done[a.key] = true
+	pregen.active[#pregen.active + 1] = {
+		area = a, slice = 0, busy = false, since = 0, serial = 0, complete = false,
+	}
+	return true
+end
+
 core.register_globalstep(function(dtime)
 	if not pregen_enabled then
 		return
@@ -1213,28 +1209,50 @@ core.register_globalstep(function(dtime)
 	-- Finished areas are offered as the queue has room. Depth is not what
 	-- costs a client here, since queue_area puts an asked job ahead of every
 	-- offered one; this only bounds the memory a backlog of offers holds.
-	while #pregen.pending > 0 and #far_queue < 8 do
+	-- Completed areas are bounded independently of the eight speculative
+	-- asks. Otherwise a permanently full ask queue prevents the output of
+	-- pregeneration from entering at all.
+	while #pregen.pending > 0 and #far_queue < 32 do
 		local a = table.remove(pregen.pending, 1)
 		queue_area(a.who, 16, a.x * 8, a.y * 8, a.z * 8, 8, true)
 	end
-	if pregen.busy then
-		pregen.since = pregen.since + dtime
-		if pregen.since > 120 then
-			pregen.busy = false -- the emerge never reported back; move on
+	-- Retire completed streams, and recover a slice whose callback was lost.
+	-- Incrementing serial makes a very late old callback harmless.
+	for i = #pregen.active, 1, -1 do
+		local job = pregen.active[i]
+		if job.complete then
+			table.remove(pregen.active, i)
+		elseif job.busy then
+			job.since = job.since + dtime
+			if job.since > 120 then
+				job.serial = job.serial + 1
+				job.busy = false
+			end
 		end
-		return
 	end
 	pregen.wait = pregen.wait - dtime
-	if pregen.wait > 0 then
-		return
-	end
 	if core.get_server_max_lag() > pregen_lag_limit then
 		-- Behind already. Look again soon: the check costs nothing and a
 		-- long pause here turns one slow step into a long stall.
 		pregen.wait = 0.5
 		return
 	end
-	pregen_emerge()
+	-- Keep every stream moving, but only one slice per stream may be queued.
+	for _, job in ipairs(pregen.active) do
+		if not job.busy then
+			pregen_emerge(job)
+		end
+	end
+	-- Fill the pipeline gradually. The interval now paces stream starts;
+	-- slices within each stream still run back to back.
+	if #pregen.active < pregen_concurrency and pregen.wait <= 0 then
+		if pregen_start_area() then
+			pregen.wait = pregen_interval
+			pregen_emerge(pregen.active[#pregen.active])
+		else
+			pregen.wait = math.max(pregen_interval, 1)
+		end
+	end
 end)
 
 core.register_on_modchannel_message(function(channel_name, sender, message)

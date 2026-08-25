@@ -80,19 +80,30 @@ of an area of the map. That is how a Goanna client draws places its own player
 has never been.
 
 It reads terrain the server has already generated and never generates any. An
-ungenerated block is reported as unknown and stays a hole in the client's
-view, so nothing is invented and no worldgen happens on a request (unless the
-mapgen has registered a far surface, below). What comes back per mapblock is
-69 bytes, protocol version 3: whether it blocks light, whether it is lit, and
-per 4 node cell of the block's footprint the terrain height (the highest
-filled node that is not vegetation), the vegetation base and top, and the
-terrain's top node, then the vegetation node, the side node and the light
-levels. Vegetation is by node group (tree, leaves, cactus, bamboo and the
-plant groups), the same list the client uses, so trees stand on the ground
-the client draws as a surface rather than being part of it. A block is still
-well under a tenth of the size it would be sent at full resolution, and an 8
-by 8 by 8 block area, the size a request covers, is about 35 KB raw and 47 KB
-once base64 encoded for the channel.
+ungenerated block is reported as unknown, so no terrain volume is invented
+and no worldgen happens on a request (unless the mapgen has registered a far
+surface, below). The client temporarily closes the boundary faces of adjacent
+known voxels until more data arrives, rather than exposing the inside of the
+coarse volume. What comes back per mapblock is 83 bytes, protocol version 6:
+flags for available and complete data, a 4 by 4 by 4 field of coarse content indices, packed
+liquid surface heights, and the block's maximum day and night light. Index 0
+is known air and 255 is unknown, so vertical occupancy is retained: a
+sufficiently large cave, overhang or gap below a floating island remains air
+instead of being reconstructed as solid ground under one height. A block is
+still well under a tenth of the size it would be sent at full resolution, and
+an 8 by 8 by 8 block area, the size a request covers, is about 42 KB raw and
+57 KB once base64 encoded for the channel.
+
+A partially emerged mapblock is useful progress but is not complete. Its
+known cells are sent, while the client stages the reply and retries until the
+whole summary area can be published atomically. Version 5 conflated those
+states, allowing an early partial read to preserve unknown strips through a
+mountain indefinitely.
+
+The light remains block-wide because 64 packed per-voxel lights would take an
+area reply beyond Luanti's 16-bit mod-channel string limit. Occupancy is the
+topology-critical part of this protocol; a later chunked reply can raise the
+lighting resolution without changing the mip or meshing model.
 
 ### The store
 
@@ -169,9 +180,10 @@ client asks for the same summaries as before.
 A summary describes terrain that exists, and a server generates only within
 the range its client asks for, so a new world has a 192 node horizon
 whatever distance was granted. `goanna_far_pregenerate` lets this mod
-generate outward from each connected player, one 128 node area at a time,
-nearest first and the player's own vertical layer before the ones above and
-below it, with `goanna_far_pregenerate_interval` seconds between areas, out
+generate outward from each connected player with a small pipeline of 128
+node areas, nearest first and the player's own vertical layer before the
+ones above and below it, with `goanna_far_pregenerate_interval` seconds
+between starting streams, out
 to the far rendering distance, and summarise each finished area for the
 clients near it unasked. Beyond the layer either side of the player's, an
 area is generated only when the area nearer the player's layer is done and
@@ -181,9 +193,11 @@ sky over a plain is left alone. It spends mapgen time and map memory on terrain 
 one has visited, so it is off unless the operator turns it on. The server a
 Goanna client launches for itself turns it on.
 
-An area is emerged `goanna_far_pregenerate_slice` mapblocks on a side at a
-time rather than all at once, and the next slice starts when the last one
-reports back. This is the part that keeps pregeneration out of a player's
+Each area is emerged `goanna_far_pregenerate_slice` mapblocks on a side at a
+time rather than all at once, and its next slice starts when the last one
+reports back. `goanna_far_pregenerate_concurrency` controls how many of
+these independent streams are active (two by default; the bundled local
+server uses three). This is the part that keeps pregeneration out of a player's
 way, and it is not optional politeness: Lua's `core.emerge_area` carries
 `BLOCK_EMERGE_FORCE_QUEUE`, so none of the per client queue limits apply to
 it, and each emerge thread's queue is a plain FIFO. Emerging a whole area
@@ -192,10 +206,12 @@ put 512 mapblocks in front of whatever the player was waiting for.
 of server step time, pregeneration waits for the server to catch up.
 `docs/far-rendering.md` has the before and after timings.
 
-A client's own `farsum?` goes ahead of every summary offered from
-pregeneration, and only asked requests count towards the queue limit that
-refuses one. A player waiting on the view in front of them is not made to
-wait behind terrain nobody asked about.
+A completed pregeneration area goes ahead of speculative `farsum?` scans,
+and half of the per-step summary budget is reserved for indexing newly
+generated blocks. This prevents requests for empty areas from starving the
+output side of mapgen. Duplicate jobs for the same player and area are
+collapsed, and only asked requests count towards the queue limit that
+refuses one.
 
 ## Settings
 

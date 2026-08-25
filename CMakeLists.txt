@@ -74,6 +74,11 @@ add_executable(goanna_light_test EXCLUDE_FROM_ALL
 )
 target_include_directories(goanna_light_test PRIVATE src)
 target_link_libraries(goanna_light_test PRIVATE luanti_core)
+
+# Coarse voxel topology: recursive XYZ mips and exposed lower faces.
+add_executable(goanna_lod_test EXCLUDE_FROM_ALL src/goanna_lod_test.cpp)
+target_include_directories(goanna_lod_test PRIVATE src)
+target_link_libraries(goanna_lod_test PRIVATE goanna luanti_core)
 # transplanted client files use bare includes ("mapblock_mesh.h") that must
 # resolve to Luanti's originals; goanna's own headers come first.
 set_source_files_properties(

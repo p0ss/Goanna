@@ -568,6 +568,12 @@ pregeneration could make the server silently refuse a player's own ask, and
   time, 4 by default, and the next slice starts from the previous one's
   completion callback rather than on a clock. The queue holds 64 blocks
   where it held 512.
+- Independent area streams are pipelined by
+  `goanna_far_pregenerate_concurrency` (two by default and three on the
+  bundled local server). Each stream still has only one slice queued, so
+  mapgen workers can remain occupied without returning to a 512-block
+  forced batch. This was added after testing at flying speed exposed the
+  single stream as the sustained frontier limit.
 - `goanna_far_pregenerate_interval` now paces areas rather than protecting
   the queue, so its default drops from 3 seconds to 1. The slices within an
   area run back to back.
@@ -581,8 +587,11 @@ pregeneration could make the server silently refuse a player's own ask, and
   length reads as "behind" long after one slow step. At 0.2 the mod's own
   summary pass tripped it and pregeneration ran at a third of its rate on a
   server that was fine.
-- A client's own `farsum?` is queued ahead of every offered summary, and
-  only asked requests count towards the limit that refuses one.
+- A completed pregeneration offer is queued ahead of speculative `farsum?`
+  scans, half the summary budget is reserved for freshly generated blocks,
+  and only asked requests count towards the limit that refuses one. This
+  prevents empty-area scans from starving mapgen's completed output.
+  Duplicate jobs for the same client and area collapse into one.
 
 **The numbers.** Godot 4.5.1, mineclonia 0.90 on Luanti 5.16.1, the local
 server `project/local_server.gd` starts, on a shared and loaded machine (one
@@ -1913,9 +1922,11 @@ surface is a look choice and not the only honest one: the blocks under it
 step. `lod_terrace` in the settings panel (Video, "Terraced far terrain")
 draws each cell flat at its own height with risers between neighbours that
 differ, the same pass with the corner averaging off and the skirt logic
-doing the risers. Off by default; both were captured on `r1tod1` from
-(27, 140, -22) looking north and either reads as a world, the terraced one
-as a block world.
+doing the risers. Both were captured on `r1tod1` from (27, 140, -22) looking
+north and either reads as a world, the terraced one as a block world; the
+smoothed one is what reads as melted at a cliff or a coastline (see "Stop
+the far surface averaging across cliffs" below), so terracing is on by
+default from 2026-08-24.
 
 ### The summary store, 2026-08-23
 
@@ -2232,3 +2243,105 @@ result:
   see the fault "The far field's albedo" was about. Both were added on
   2026-08-23 alongside the fixture's own detail mode, which they leave
   untouched.
+
+### Three-dimensional voxel summaries, 2026-08-25
+
+Protocol version 6 replaces the per-column terrain and vegetation heights
+with 64 coarse voxels per mapblock, a 4 by 4 by 4 field at cell size 4. Each
+entry is known air, unknown, or a content index into the area's name list.
+The record is 83 bytes including packed two-bit liquid tops and block-level
+day and night light. The liquid tops stop a one-node sea from rising to the
+top of its 4, 8 or 16-node voxel. Per-voxel light is deliberately deferred
+because it would take one 8 cubed area's base64 reply past the mod channel's
+16-bit string limit.
+
+The flags separately say that a record has emerged data and that every node
+in it has emerged. A partial reply is retained as progress state but is not
+published into the rendered LOD database until its 8 cubed area is complete;
+it is retried after two seconds. Publishing the complete mapblocks from one
+pregeneration slice while the other slices were absent produced the floating
+horizontal panels seen on a new server. Version 5 also used one flag for both
+meanings, so one known cell could make a partly emerged mapblock permanent
+and preserve its unknown cells as strips through a mountain. Version 6 uses
+a new `fs6:` store prefix so those stale partial records cannot survive the
+upgrade.
+
+Live nodes, stored nodes and summaries now feed the same recursive 2 by 2 by
+2 reducer for cell 8 and cell 16. Any occupied child keeps its parent
+occupied, an opaque child wins over a non-opaque one, and a stable corner
+order breaks ties. This is the Voxy-shaped invariant the old heightfield did
+not have: every tier is still an XYZ occupancy field. The region box mesher
+therefore emits an underside wherever an occupied voxel has air below, with
+no floating-island heuristic. It also closes a face at an unknown section
+boundary and remeshes it when the neighbour arrives, matching Voxy's
+section-side strategy instead of exposing the volume's interior while
+streaming. Caves and gaps disappear only when they become smaller than the
+selected voxel, not because Y was discarded.
+
+The recursive levels remain useful occupancy summaries, but presentation no
+longer spends resolution by coarsening exposed faces. Every far tier meshes
+the finest retained level (cell 4 by default); distance tiers only increase
+region batching. Hidden interior voxels already emit no triangles, so making
+them coarser saves no visible geometry, whereas making boundary voxels
+coarser directly damages the silhouette. Deep regions are capped at eight
+mapblocks per edge so this boundary-first policy scans at most 32 cubed cells
+per build at the default setting.
+
+Tier seams cull against the voxel size actually drawn by the neighbouring
+block. In particular, a coarse face touching four finer voxels is removed only
+when all four cover it; an occupied but undrawn coarse mip of that neighbour
+cannot suppress the face. This conservatively permits some hidden overlap at
+a mixed-detail edge, but it cannot open a strip through the terrain.
+
+The smooth terrain surface remains in the mesher for old/internal callers but
+is no longer authoritative for chains built by the client or protocol v6.
+Those chains leave `terrain` empty and draw their confirmed occupancy on all
+six sides. Source precedence is deterministic as well: stored full nodes
+upgrade a summary even if the summary arrived first, and live nodes upgrade
+both.
+
+Live blocks are ingested into this chain even while the full-detail renderer
+owns them. Pruning a near block transfers that retained chain directly to a
+far region instead of calling `lodForget`; approaching a hole therefore
+cannot teach the client correct terrain only for it to discard that knowledge
+again on retreat. The request scanner no longer lets 16 diagonal samples claim
+that all 512 blocks of an area are covered.
+
+Every processed live mapblock is registered as tier zero even when its near
+mesh has no triangles. A fully enclosed solid block quite correctly emits no
+near faces, but it still carries occupancy the far volume needs after pruning.
+Tracking only blocks with a `MeshInstance3D` omitted those interiors during
+the near-to-far transfer and reopened holes in terrain the client had already
+visited.
+
+Visible full-detail mapblock meshes become a bounded surface-shell cache when
+their MapBlock data is pruned. They are already the best possible boundary
+representation: exact silhouette and caves with hidden faces removed. Keeping
+that GPU surface within the far grant means looking back cannot replace a
+mountain the player saw with a lossy reconstruction. Blocks with no near
+triangles (air and enclosed fill) transfer to volumetric regions, so central
+fill stays cheap. The retained chain database is also audited directly during
+pruning, rather than trusting presentation bookkeeping to enumerate every
+known block. Cached shells count toward `far_extent`/`far_reach`, preventing
+fog from clipping them as though they were absent.
+
+For terrain not previously seen at full detail, ownership is still decided
+per mapblock: a resident block is near and any non-resident block with a chain
+is far. A configured view radius cannot serve as a floor because generation,
+view-cone and server occlusion filtering do not guarantee that every block
+inside its circle was actually delivered; using it as one cut the visible
+circular trench between the two renderers. On approach, the full-detail block
+is made opaque before an old volumetric region drops its member.
+
+Far materials use the same array shader, normal/specular companions and PBR
+path as near blocks. Their former colour discontinuity came from two inputs,
+not a separate non-PBR material: `length(VERTEX)` measured distance from the
+world origin because Goanna vertices are already absolute, and the widest
+merged quad in a region forced every face in that region to its tile-average
+colour. Flattening now uses camera-to-world-fragment distance only and starts
+beyond 384 nodes, leaving the near/far boundary unflattened. Water makes the
+same gradual transition instead of switching straight to its last mip.
+Summary lighting also no longer paints a block-wide maximum over solid
+interiors: skylight is reconstructed through known open columns, and the
+unlocated block-light maximum is not allowed to turn an entire distant hill
+emissive.

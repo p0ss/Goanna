@@ -63,6 +63,12 @@ goanna_far_pregenerate_interval (Far pregeneration interval) float 1.0 0.0 600.0
 #    blocks behind it. Rounded down to 1, 2, 4 or 8.
 goanna_far_pregenerate_slice (Far pregeneration slice) int 4 1 8
 
+#    Number of 128-node areas emerged concurrently. Each stream has at most
+#    one slice in the emerge queue, so this raises throughput without one
+#    enormous forced batch blocking the player's live terrain. Reduce to 1
+#    on a CPU-limited public server.
+goanna_far_pregenerate_concurrency (Far pregeneration concurrency) int 2 1 8
+
 #    Seconds of server step time above which pregeneration waits for the
 #    server to catch up. get_server_max_lag is a running maximum that halves
 #    every minute, not an average, so a value near the step length reads as
