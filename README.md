@@ -172,6 +172,36 @@ server has not generated stays empty. Without the grant the store only
 writes. The plan and the limits are in
 [docs/far-rendering.md](docs/far-rendering.md).
 
+The Start Game screen treats Terrain Diffusion as a world generator rather
+than as a separate game. It can be selected with any installed game that
+registers biomes; Mineclonia is currently the most thoroughly tested and has
+the fullest vegetation integration. Its format-4 default bake is 61.4 km
+square at one metre per node. Goanna downloads the versioned 6.9 MB archive
+from the [Terrain Diffusion release](https://github.com/p0ss/terrain-diffusion-luanti/releases/tag/default-1m-v1)
+on first use, verifies its pinned SHA-256 checksum, and keeps it in a shared
+content cache for subsequent worlds.
+The launcher copies that immutable cached template into the new world,
+installs the runtime worldmod, sets `mg_name = singlenode`, disables
+Mineclonia's competing singlenode mapgen, and pins thirty nodes per native
+30 m model sample. Existing Terrain Diffusion worlds keep using their own bake
+and neither need the shared cache nor make a network request.
+Terrain Diffusion is never installed over a populated conventional world: old
+mapblocks would survive and form a second, partial landscape above or below
+the new surface. Both the Start Game screen and the server launcher reject
+that conversion and require a genuinely empty world.
+
+A separately generated world can use the heavyweight Terrain Diffusion
+inference environment and a different seed or region. That path downloads the
+model and its inputs and bakes into the world rather than changing the
+downloaded default.
+
+Start Game also manages existing and new worlds, creative mode and damage,
+per-world installed mods, and optional hosting. Hosting exposes server name,
+description, password, port, maximum players and public-list announcement;
+announcement is never enabled unless hosting itself is enabled. Deleting a
+world moves it under the Luanti worlds directory's `.goanna-trash` instead of
+irreversibly removing it.
+
 Then the parts that are Goanna's own rather than Luanti's: a water shader
 with vertex waves and refraction, waving leaves and plants, distance fog and
 an underwater tint, chamfered edges on solid nodes, surface relief derived

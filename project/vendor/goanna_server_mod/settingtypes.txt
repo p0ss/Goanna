@@ -1,0 +1,88 @@
+[Goanna client options]
+
+#    Let a Goanna client draw terrain past this server's send distance: from
+#    mapblocks it has already been sent, and from coarse summaries this mod
+#    gives of terrain the server has already generated, which is how places
+#    the player has never been are drawn. Nothing is generated to answer a
+#    summary, and what is drawn from the client's own store is as old as the
+#    last time the player was near it.
+goanna_far_rendering (Far rendering) bool false
+
+#    How far past the send distance, in nodes. Costs the client memory and
+#    draw calls, and bounds the far terrain summaries below.
+goanna_far_rendering_distance (Far rendering distance) int 256 64 8192
+
+#    How many mapblocks this mod may read from the map each server step to
+#    summarise them. Summaries are what let a client draw places its player
+#    has never been: the server reads terrain it has already generated (it
+#    never generates any for this), keeps a coarse record of each block, and
+#    answers a client's request from those records. A block is read once,
+#    when it is generated, when it changes, or the first time it is wanted
+#    on a world older than the store, so this paces the reading, not the
+#    answering: an area the store knows is answered at once. Lower it on a
+#    busy server; 0 does not disable the feature, goanna_far_rendering does.
+goanna_far_summary_blocks_per_step (Far summary blocks per step) int 96 1 512
+
+#    Read the areas around each player into the summary store in the
+#    background, nearest first, when nothing else is waiting. On a world
+#    generated under this mod there is nothing for it to do; on an older one
+#    it is how the map gets read once instead of on the first client's clock.
+goanna_far_summary_backfill (Far summary backfill) bool true
+
+#    How many 8 by 8 by 8 mapblock areas of summaries to keep in memory.
+#    About 11 KB each. Past this, areas untouched for ten minutes are written
+#    to mod storage and let go, and come back when next wanted.
+goanna_far_summary_cache_areas (Far summary areas in memory) int 4096 64 65536
+
+#    Stop reading summaries while the server's reported maximum lag is above
+#    this, in seconds, and carry on where the part finished area left off
+#    once it drops. The same guard and the same default as pregeneration's,
+#    and the reason the rate above can be raised at all.
+goanna_far_summary_lag (Far summary lag limit) float 0.5 0.0 60.0
+
+#    Generate terrain around each player out to the far rendering distance,
+#    one 128 node area at a time, a slice of an area per emerge call, and
+#    hand each area's summary to the clients near it. A summary can only
+#    describe terrain that exists, and a server generates only within the
+#    range a client asks for, so without this a new world has a 192 node
+#    horizon whatever the distance above says. Costs mapgen time and map
+#    memory for terrain no one has
+#    visited, which is why it is off here and on for the server a Goanna
+#    client launches for itself.
+goanna_far_pregenerate (Far pregeneration) bool false
+
+#    Seconds to wait between one pregenerated area and the next. The pause
+#    between the slices within an area is nothing: an area is emerged a slice
+#    at a time so it never fills the queue the player's own blocks come
+#    through, and that is what keeps it out of the way, not this.
+goanna_far_pregenerate_interval (Far pregeneration interval) float 1.0 0.0 600.0
+
+#    Mapblocks on a side of one pregeneration emerge call. The whole point of
+#    slicing is that the server's emerge queue is a FIFO and Lua's emerge
+#    ignores its limits, so a large slice is a long wait for the player's own
+#    blocks behind it. Rounded down to 1, 2, 4 or 8.
+goanna_far_pregenerate_slice (Far pregeneration slice) int 4 1 8
+
+#    Number of 128-node areas emerged concurrently. Each stream has at most
+#    one slice in the emerge queue, so this raises throughput without one
+#    enormous forced batch blocking the player's live terrain. Reduce to 1
+#    on a CPU-limited public server.
+goanna_far_pregenerate_concurrency (Far pregeneration concurrency) int 2 1 8
+
+#    Write far-pipeline progress, queue depths and Lua memory to the server
+#    log every 30 seconds. Useful for diagnosing long-running generation.
+goanna_far_log_stats (Log far pipeline statistics) bool false
+
+#    Seconds of server step time above which pregeneration waits for the
+#    server to catch up. get_server_max_lag is a running maximum that halves
+#    every minute, not an average, so a value near the step length reads as
+#    "behind" long after one slow step and stalls pregeneration.
+goanna_far_pregenerate_lag (Far pregeneration lag limit) float 0.5 0.0 60.0
+
+#    Source engine style movement: air strafing, bunny hopping, surfing. Needs
+#    disable_anticheat as well, or the server rejects the movement it produces.
+goanna_source_movement (Source style movement) bool false
+
+goanna_source_movement_air_accel (Air acceleration) float 100.0 1.0 1000.0
+
+goanna_source_movement_max_air_speed (Max air speed) float 3.0 0.1 100.0

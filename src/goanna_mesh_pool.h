@@ -33,6 +33,17 @@
 
 namespace goanna {
 
+// Work is admitted and dispatched in this order. Later stages may improve an
+// existing image but must never crowd out a missing coarse world.
+enum class MeshWorkStage : uint8_t {
+    kCoverage = 0,
+    kNear = 1,
+    kStructure = 2,
+    kDetail = 3,
+    kMaterial = 4,
+    kCount
+};
+
 // What a job is about, and what makes two jobs the same job. A second job
 // with a key already queued replaces the first rather than queueing behind
 // it, which is what stops a region that keeps changing from meshing once per
@@ -86,20 +97,33 @@ public:
 
     // Queue a job. `generation` stamps the state the job was captured from:
     // a result arriving with a generation older than the key's current one is
-    // stale and the caller drops it. `priority` orders the queue, lower
-    // first, and is the distance in blocks from the player in practice.
-    void submit(const MeshJobKey &key, uint64_t generation, int priority,
+    // stale and the caller drops it. Stage orders the cohesive pipeline;
+    // priority orders work within a stage, lower first.
+    // False means the bounded scheduler did not admit this job. The caller
+    // retains its dirty/retry state and should offer it again later.
+    bool submit(const MeshJobKey &key, uint64_t generation, MeshWorkStage stage, int priority,
             std::unique_ptr<MeshJob> job);
+    bool canSubmit(const MeshJobKey &key, MeshWorkStage stage) const;
+
+    // Primarily for focused tests. Configure before starting/submitting.
+    void setLimits(int queued, int noncoverage, int refinement, int ready);
 
     // Forget a queued job that has not started. A job already running is left
     // to finish and its result discarded by the generation test on the way
     // out, because a worker cannot be interrupted safely part way through.
     void cancel(const MeshJobKey &key);
+    // Cancel queued and completed-but-uncollected jobs of one kind. Running
+    // jobs finish normally; their owner rejects them when they arrive. This
+    // lets an LOD layout reset discard far work without stranding unrelated
+    // near-block jobs in the same pool.
+    void cancelKind(MeshJobKey::Kind kind);
     void cancelAll();
 
     struct Done {
         MeshJobKey key;
         uint64_t generation = 0;
+        MeshWorkStage stage = MeshWorkStage::kCoverage;
+        int priority = 0;
         std::unique_ptr<MeshJob> job;
     };
 
@@ -118,6 +142,8 @@ public:
         int running = 0;
         int ready = 0;
         int threads = 0;
+        int rejected = 0;
+        int queued_stage[(int)MeshWorkStage::kCount] = {};
     };
     Stats stats() const;
 
@@ -125,6 +151,7 @@ private:
     struct Queued {
         MeshJobKey key;
         uint64_t generation = 0;
+        MeshWorkStage stage = MeshWorkStage::kCoverage;
         int priority = 0;
         std::unique_ptr<MeshJob> job;
     };
@@ -133,6 +160,7 @@ private:
     // Caller holds m_mutex. Lowest priority first, oldest first within a
     // priority, so a region does not starve behind a stream of nearer ones.
     bool takeLocked(Queued &out);
+    bool canAdmitLocked(const MeshJobKey &key, MeshWorkStage stage) const;
 
     mutable std::mutex m_mutex;
     std::condition_variable m_wake;
@@ -142,6 +170,11 @@ private:
     std::vector<std::thread> m_threads;
     std::atomic<bool> m_running{false};
     int m_active = 0; // jobs inside run()
+    int m_max_queued = 256;
+    int m_max_noncoverage = 192;
+    int m_max_refinement = 128;
+    int m_max_ready = 64;
+    int m_rejected = 0;
 };
 
 } // namespace goanna

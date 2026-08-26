@@ -33,7 +33,7 @@ uniform float cloud_twilight_k : hint_range(0.0, 1.0) = 0.0;
 uniform float cloud_coverage = 0.4;
 uniform float cloud_plane_h = 90.0;
 uniform vec2 cloud_offset = vec2(0.0);
-uniform float cloud_scale = 0.035;
+uniform float cloud_scale = 0.012;
 // Goanna: what the sky feeds to lighting is not what it shows. Godot samples
 // this shader into the radiance cubemap that SDFGI and the ambient term read,
 // with AT_CUBEMAP_PASS set, so the lighting half can differ from the visible
@@ -169,7 +169,9 @@ void sky() {
 		vec2 uv = world * cloud_scale + cloud_offset;
 		float n = fbm(uv);
 		float cov = smoothstep(1.0 - cloud_coverage, 1.0 - cloud_coverage + 0.16, n);
-		float fade = smoothstep(0.02, 0.22, dir.y);
+		// Keep broad banks visible toward the horizon. The old 0.22 upper edge
+		// erased clouds exactly where a vista needs their scale and depth.
+		float fade = smoothstep(0.008, 0.10, dir.y);
 		// Shade by the gradient toward the sun: the sunward side of a mass is
 		// bright, the far side darker, which is what reads as volume.
 		vec2 sund = normalize(sun_dir.xz + vec2(1e-4));

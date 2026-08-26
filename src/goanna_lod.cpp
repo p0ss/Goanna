@@ -175,7 +175,7 @@ void buildLodChain(const NodeDefManager *ndef, MapBlock *block, BlockLodChain &o
         for (int cy = 0; cy < n; ++cy)
             for (int cx = 0; cx < n; ++cx) {
                 LodLevel::Cell &dst = base.cells[((size_t)cz * n + cy) * n + cx];
-                const NodeInfo *chosen = nullptr;
+                const NodeInfo *chosen = nullptr, *chosen_liquid = nullptr;
                 int chosen_score = -1, known = 0, lit = 0, liquid_top = 0;
                 uint8_t day = 0, night = 0;
                 const int x0 = cx * cell, y0 = cy * cell, z0 = cz * cell;
@@ -195,8 +195,11 @@ void buildLodChain(const NodeDefManager *ndef, MapBlock *block, BlockLodChain &o
                             }
                             if (!(ni.flags & nFilled))
                                 continue;
-                            if (ni.flags & nLiquid)
+                            if (ni.flags & nLiquid) {
                                 liquid_top = std::max(liquid_top, y - y0 + 1);
+                                chosen_liquid = &ni;
+                                continue;
+                            }
                             const int score = (ni.flags & nSolid) ? 2 : 1;
                             if (score >= chosen_score) {
                                 chosen = &ni;
@@ -210,19 +213,21 @@ void buildLodChain(const NodeDefManager *ndef, MapBlock *block, BlockLodChain &o
                     dst.day = day;
                     dst.night = night;
                 }
-                if (!chosen)
-                    continue;
-                dst.flags |= LodLevel::kFilled;
-                if (chosen->flags & nSolid)
-                    dst.flags |= LodLevel::kOccludes;
-                if (chosen->flags & nLiquid) {
+                if (chosen_liquid) {
                     dst.flags |= LodLevel::kLiquid;
+                    dst.liquid = chosen_liquid->c;
+                    dst.liquid_param2 = chosen_liquid->p2;
                     if (liquid_top > 0 && liquid_top < cell)
-                        dst.top = (uint8_t)liquid_top;
+                        dst.liquid_top = (uint8_t)liquid_top;
                 }
-                for (int d = 0; d < 6; ++d) {
-                    dst.face[d] = chosen->c;
-                    dst.param2[d] = chosen->p2;
+                if (chosen) {
+                    dst.flags |= LodLevel::kFilled;
+                    if (chosen->flags & nSolid)
+                        dst.flags |= LodLevel::kOccludes;
+                    for (int d = 0; d < 6; ++d) {
+                        dst.face[d] = chosen->c;
+                        dst.param2[d] = chosen->p2;
+                    }
                 }
                 // Non-liquids and a liquid filling the cell keep top=0: the
                 // voxel occupies its complete cell, including its lower face.
@@ -247,8 +252,8 @@ void buildLodMipLevels(BlockLodChain &out, int first_level) {
             for (int y = 0; y < dst.n; ++y)
                 for (int x = 0; x < dst.n; ++x) {
                     LodLevel::Cell &coarse = dst.cells[((size_t)z * dst.n + y) * dst.n + x];
-                    const LodLevel::Cell *chosen = nullptr;
-                    int chosen_score = -1, chosen_y = 0, known = 0, lit = 0;
+                    const LodLevel::Cell *chosen = nullptr, *chosen_liquid = nullptr;
+                    int chosen_score = -1, chosen_liquid_top = -1, known = 0, lit = 0;
                     uint8_t day = 0, night = 0;
                     for (int dz = 0; dz < 2; ++dz)
                         for (int dy = 0; dy < 2; ++dy)
@@ -262,13 +267,20 @@ void buildLodMipLevels(BlockLodChain &out, int first_level) {
                                     day = std::max(day, c.day);
                                     night = std::max(night, c.night);
                                 }
-                                if (!(c.flags & LodLevel::kFilled))
-                                    continue;
-                                const int score = (c.flags & LodLevel::kOccludes) ? 2 : 1;
-                                if (score >= chosen_score) {
-                                    chosen = &c;
-                                    chosen_y = dy;
-                                    chosen_score = score;
+                                if (c.flags & LodLevel::kLiquid) {
+                                    const int child_top = c.liquid_top > 0 ? c.liquid_top : src.cell;
+                                    const int liquid_top = dy * src.cell + child_top;
+                                    if (liquid_top >= chosen_liquid_top) {
+                                        chosen_liquid = &c;
+                                        chosen_liquid_top = liquid_top;
+                                    }
+                                }
+                                if (c.flags & LodLevel::kFilled) {
+                                    const int score = (c.flags & LodLevel::kOccludes) ? 2 : 1;
+                                    if (score >= chosen_score) {
+                                        chosen = &c;
+                                        chosen_score = score;
+                                    }
                                 }
                             }
                     if (!known)
@@ -278,20 +290,21 @@ void buildLodMipLevels(BlockLodChain &out, int first_level) {
                         coarse.day = day;
                         coarse.night = night;
                     }
-                    if (!chosen)
-                        continue;
-                    for (int d = 0; d < 6; ++d) {
-                        coarse.face[d] = chosen->face[d];
-                        coarse.param2[d] = chosen->param2[d];
-                    }
-                    coarse.flags |= LodLevel::kFilled;
-                    if (chosen->flags & LodLevel::kOccludes)
-                        coarse.flags |= LodLevel::kOccludes;
-                    if (chosen->flags & LodLevel::kLiquid) {
+                    if (chosen_liquid) {
                         coarse.flags |= LodLevel::kLiquid;
-                        const int child_top = chosen->top > 0 ? chosen->top : src.cell;
-                        const int top = chosen_y * src.cell + child_top;
-                        coarse.top = top < dst.cell ? (uint8_t)top : 0;
+                        coarse.liquid = chosen_liquid->liquid;
+                        coarse.liquid_param2 = chosen_liquid->liquid_param2;
+                        coarse.liquid_top = chosen_liquid_top < dst.cell ?
+                                (uint8_t)chosen_liquid_top : 0;
+                    }
+                    if (chosen) {
+                        for (int d = 0; d < 6; ++d) {
+                            coarse.face[d] = chosen->face[d];
+                            coarse.param2[d] = chosen->param2[d];
+                        }
+                        coarse.flags |= LodLevel::kFilled;
+                        if (chosen->flags & LodLevel::kOccludes)
+                            coarse.flags |= LodLevel::kOccludes;
                     }
                 }
     }
@@ -315,17 +328,27 @@ void compactLodFineBoundary(BlockLodChain &out) {
             for (int x = 0; x < MAP_BLOCKSIZE; ++x) {
                 const size_t index = index_of(x, y, z);
                 const LodLevel::Cell &c = base.cells[index];
-                if (!(c.flags & LodLevel::kFilled))
+                if (!(c.flags & (LodLevel::kFilled | LodLevel::kLiquid)))
                     continue;
-                out.fine_filled[index >> 6] |= 1ull << (index & 63);
-                if (c.flags & LodLevel::kOccludes)
-                    out.fine_occludes[index >> 6] |= 1ull << (index & 63);
+                if (c.flags & LodLevel::kFilled) {
+                    out.fine_filled[index >> 6] |= 1ull << (index & 63);
+                    if (c.flags & LodLevel::kOccludes)
+                        out.fine_occludes[index >> 6] |= 1ull << (index & 63);
+                }
                 bool exposed = false;
                 for (const auto &dir : DIRS) {
                     const int nx = x + dir[0], ny = y + dir[1], nz = z + dir[2];
                     if (nx < 0 || ny < 0 || nz < 0 || nx >= MAP_BLOCKSIZE ||
-                            ny >= MAP_BLOCKSIZE || nz >= MAP_BLOCKSIZE ||
-                            !(base.at(nx, ny, nz).flags & LodLevel::kFilled)) {
+                            ny >= MAP_BLOCKSIZE || nz >= MAP_BLOCKSIZE) {
+                        exposed = true;
+                        break;
+                    }
+                    const uint8_t neighbour = base.at(nx, ny, nz).flags;
+                    if ((c.flags & LodLevel::kFilled) && !(neighbour & LodLevel::kFilled)) {
+                        exposed = true;
+                        break;
+                    }
+                    if ((c.flags & LodLevel::kLiquid) && !(neighbour & LodLevel::kLiquid)) {
                         exposed = true;
                         break;
                     }
@@ -1317,25 +1340,39 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                     if (!isMember(g[0], g[1], g[2]))
                         continue;
                     const LodLevel::Cell *c = cellAt(g[0], g[1], g[2]);
-                    if (!c || !(c->flags & LodLevel::kFilled))
+                    if (!c)
+                        continue;
+                    // Liquid is an independent exterior envelope, not filled
+                    // transparent volume. Only its upper boundary is emitted;
+                    // the ordinary solid pass below remains the seabed and
+                    // prevents the water from becoming a portal into caves.
+                    bool liquid_face = d == 0 && (c->flags & LodLevel::kLiquid);
+                    if (liquid_face) {
+                        const LodLevel::Cell *above = cellAt(g[0], g[1] + 1, g[2]);
+                        if (above && (above->flags & (LodLevel::kLiquid | LodLevel::kFilled)))
+                            liquid_face = false;
+                    }
+                    const bool solid_face = (c->flags & LodLevel::kFilled) &&
+                            !(d == 0 && (c->flags & LodLevel::kLiquid));
+                    if (!liquid_face && !solid_face)
                         continue;
                     // Ground is drawn by the surface pass above, never as
                     // boxes: its side faces would cut through the slopes.
                     // Except a run with air under it, an overhang or an
                     // island, which the surface pass left for here.
-                    if (c->flags & LodLevel::kTerrain) {
+                    if (!liquid_face && (c->flags & LodLevel::kTerrain)) {
                         const int bx = g[0] / cpb + mb, by = g[1] / cpb + mb, bz = g[2] / cpb + mb;
                         const size_t bi = ((size_t)bz * B + by) * B + bx;
                         if (!floatAt(bi, g[0] % cpb, g[2] % cpb))
                             continue;
-                    } else if (canopyAt(g[0], g[2])) {
+                    } else if (!liquid_face && canopyAt(g[0], g[2])) {
                         // Vegetation under a canopy surface is inside the
                         // roof the surface pass drew.
                         continue;
                     }
                     const int fx = g[0] + DIRS[d][0], fy = g[1] + DIRS[d][1], fz = g[2] + DIRS[d][2];
                     const LodLevel::Cell *front_cell = cellAt(fx, fy, fz);
-                    const bool front_filled = renderedFaceCovered(g, d);
+                    const bool front_filled = !liquid_face && renderedFaceCovered(g, d);
                     // How high the content actually reaches in each cell.
                     auto height_of = [&](const LodLevel::Cell *cc, bool is_filled) -> int {
                         if (!is_filled)
@@ -1348,7 +1385,8 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                             return cell;
                         return cc->top > 0 && cc->top < cell ? (int)cc->top : cell;
                     };
-                    const int h_self = height_of(c, true);
+                    const int h_self = liquid_face ?
+                            (c->liquid_top > 0 ? (int)c->liquid_top : cell) : height_of(c, true);
                     const int h_front = height_of(front_cell, front_filled);
                     if (axis == 1) {
                         // Emit a boundary face when the neighbour is known
@@ -1357,7 +1395,7 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                         // then remeshed and culled when its neighbour arrives.
                         // Suppressing the face against unknown left literal
                         // holes through caves, islands, and summary frontiers.
-                        if (front_filled)
+                        if (!liquid_face && front_filled)
                             continue;
                         fk.lo = 0;
                         fk.hi = (uint8_t)h_self;
@@ -1374,10 +1412,11 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                         if (fk.lo != 0 || fk.hi != cell)
                             fk.row = (uint16_t)(1 + (u_is_vertical ? u : v));
                     }
-                    const content_t content = c->face[d];
+                    const content_t content = liquid_face ? c->liquid : c->face[d];
                     if (content == CONTENT_AIR || content == CONTENT_IGNORE)
                         continue;
-                    const LodTileCache::Entry &te = tileFor(tiles, ndef, tsrc, materials, content, d);
+                    const LodTileCache::Entry &te = tileFor(tiles, ndef, tsrc, materials, content,
+                            liquid_face ? 0 : d);
                     fk.texture_id = te.texture_id;
                     fk.layer = te.layer;
                     fk.block_id = te.block_id;
@@ -1389,7 +1428,7 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                         const ContentFeatures &f = ndef->get(content);
                         if (f.visuals) {
                             video::SColor col;
-                            f.visuals->getColor(c->param2[d], &col);
+                            f.visuals->getColor(liquid_face ? c->liquid_param2 : c->param2[d], &col);
                             tint = col.color | 0xff000000;
                         }
                     }

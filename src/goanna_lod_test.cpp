@@ -75,30 +75,61 @@ void testLiquidSurfaceHeightSurvivesMip() {
     BlockLodChain ch = airChain();
     LodLevel &fine = ch.level[BlockLodChain::levelForCell(4)];
     LodLevel::Cell &water = fine.at(0, 0, 0);
-    water.flags |= LodLevel::kFilled | LodLevel::kLiquid;
-    water.top = 2;
-    for (content_t &face : water.face)
-        face = 100;
+    water.flags |= LodLevel::kLiquid;
+    water.liquid = 100;
+    water.liquid_top = 2;
 
     buildLodMipLevels(ch, BlockLodChain::levelForCell(4));
     const LodLevel::Cell &cell8 = ch.level[BlockLodChain::levelForCell(8)].at(0, 0, 0);
     const LodLevel::Cell &cell16 = ch.level[BlockLodChain::levelForCell(16)].at(0, 0, 0);
     expect(cell8.flags & LodLevel::kLiquid, "mip lost liquid identity");
-    expect(cell8.top == 2, "cell-8 mip raised the liquid surface");
-    expect(cell16.top == 2, "cell-16 mip raised the liquid surface");
+    expect(!(cell8.flags & LodLevel::kFilled), "liquid became solid occupancy");
+    expect(cell8.liquid_top == 2, "cell-8 mip raised the liquid surface");
+    expect(cell16.liquid_top == 2, "cell-16 mip raised the liquid surface");
 
     BlockLodChain full_child = airChain();
     LodLevel::Cell &full_water =
             full_child.level[BlockLodChain::levelForCell(4)].at(0, 0, 0);
-    full_water.flags |= LodLevel::kFilled | LodLevel::kLiquid;
-    full_water.top = 0;
-    for (content_t &face : full_water.face)
-        face = 100;
+    full_water.flags |= LodLevel::kLiquid;
+    full_water.liquid = 100;
+    full_water.liquid_top = 0;
     buildLodMipLevels(full_child, BlockLodChain::levelForCell(4));
-    expect(full_child.level[BlockLodChain::levelForCell(8)].at(0, 0, 0).top == 4,
+    expect(full_child.level[BlockLodChain::levelForCell(8)].at(0, 0, 0).liquid_top == 4,
             "full liquid child expanded to the parent ceiling");
-    expect(full_child.level[BlockLodChain::levelForCell(16)].at(0, 0, 0).top == 4,
+    expect(full_child.level[BlockLodChain::levelForCell(16)].at(0, 0, 0).liquid_top == 4,
             "full liquid child expanded through the recursive mip");
+}
+
+void testLiquidIsAnEnvelopeOverSolid() {
+    BlockLodChain ocean = airChain();
+    LodLevel::Cell &cell = ocean.level[BlockLodChain::levelForCell(4)].at(1, 1, 1);
+    cell.flags |= LodLevel::kLiquid;
+    cell.liquid = CONTENT_UNKNOWN;
+    cell.liquid_top = 3;
+
+    LodRegionSpec spec;
+    spec.origin = v3s16(0, 0, 0);
+    spec.blocks = 1;
+    spec.cell = 4;
+    spec.member = [](v3s16 bp) { return bp == v3s16(0, 0, 0); };
+    spec.chain = [&](v3s16 bp) -> const BlockLodChain * {
+        return bp == v3s16(0, 0, 0) ? &ocean : nullptr;
+    };
+    spec.drawn_cell = [](v3s16 bp) { return bp == v3s16(0, 0, 0) ? 4 : -1; };
+
+    NodeDefManager ndef;
+    LodTileCache tiles;
+    LodRegionMesh mesh = meshLodRegion(spec, &ndef, nullptr, nullptr, tiles);
+    expect(mesh.faces == 1, "liquid voxel emitted transparent sides or underside");
+    float max_y = -1000.0f;
+    for (const LodSurface &surface : mesh.surfaces)
+        for (const v3f &p : surface.pos)
+            max_y = std::max(max_y, p.Y);
+    expect(std::abs(max_y - 7.0f) < 0.001f, "liquid envelope lost its partial height");
+
+    fillCell(cell, CONTENT_UNKNOWN);
+    mesh = meshLodRegion(spec, &ndef, nullptr, nullptr, tiles);
+    expect(mesh.faces == 6, "solid seabed and liquid envelope did not coexist");
 }
 
 void testIsolatedVoxelHasAllSixFaces() {
@@ -308,6 +339,7 @@ void testTierBoundaryUsesDrawnOccupancy() {
 int main() {
     testRecursiveVoxelMip();
     testLiquidSurfaceHeightSurvivesMip();
+    testLiquidIsAnEnvelopeOverSolid();
     testIsolatedVoxelHasAllSixFaces();
     testCellOneTreeBoundary();
     testCellOneMeetsCellFourWithoutOverlap();

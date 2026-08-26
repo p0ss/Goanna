@@ -4,12 +4,13 @@ Goanna's own code is LGPL-2.1-or-later, in `LICENSE`. Goanna is not,
 however, a self-contained program. It links a subset of Luanti's engine and
 several libraries that Luanti vendors, and it uses Godot's C++ bindings.
 This file lists everything that ends up in a built
-`libgoanna.linux.template_debug.x86_64.so`, where it comes from, and under
-what terms.
+`libgoanna.linux.template_debug.x86_64.so`, and the runtime components shipped
+beside it, where they come from, and under what terms.
 
-Nothing here is vendored into this repository. `luanti/` and `godot-cpp/`
-are git submodules pinned to release tags, so upstream's own notices travel
-with the source. What follows is the accounting for the binary.
+The engine dependencies are not copied into Goanna: `luanti/` and
+`godot-cpp/` are git submodules pinned to release tags, so upstream's own
+notices travel with the source. The optional Terrain Diffusion runtime is a
+small vendored worldmod and is called out separately below.
 
 ## Summary
 
@@ -24,6 +25,23 @@ with the source. What follows is the accounting for the binary.
 | Zstandard | system library, static if available | static | BSD-3-Clause or GPL-2.0, at your option |
 | zlib | system library | dynamic | zlib licence |
 | godot-cpp | `godot-cpp/`, submodule on branch 4.5 | static | MIT, Copyright (c) 2017-present Godot Engine contributors |
+| Terrain Diffusion for Luanti runtime | `project/vendor/terrain_diffusion` | deployed as an optional worldmod | MIT, Copyright (c) 2026 p0ss |
+| Terrain Diffusion default output | optional [versioned download](https://github.com/p0ss/terrain-diffusion-luanti/releases/tag/default-1m-v1) | copied from the shared cache into new local worlds | generated data from MIT-licensed generator and model |
+
+## Optional Terrain Diffusion runtime
+
+`project/vendor/terrain_diffusion/` is the lightweight Luanti mapgen runtime
+from Terrain Diffusion for Luanti. Goanna deploys it only for a prepared
+Mineclonia + Terrain Diffusion world. Its complete MIT notice is shipped as
+`project/vendor/terrain_diffusion/LICENSE`.
+
+The inference environment, model weights, upstream source checkout, source
+training datasets and generated default bake are not vendored. The optional
+default is generated model output rather than a copy of those source rasters:
+a format-4, 4 by 4 tile bake made with seed 1234. Goanna downloads its immutable
+6.9 MB release archive on first use and verifies SHA-256 before extracting it.
+Players choosing a freshly generated world download and run the inference
+environment separately.
 
 The exact source list is `cmake/luanti_core.cmake`. It is deliberately a
 small subset: the network layer, serialisation, node and item definitions,

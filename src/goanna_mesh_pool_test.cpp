@@ -55,6 +55,13 @@ MeshJobKey regionKey(int x, int tier = 1) {
     return k;
 }
 
+MeshJobKey nearKey(int x) {
+    MeshJobKey k;
+    k.kind = MeshJobKey::kNearBlock;
+    k.pos = v3s16((s16)x, 0, 0);
+    return k;
+}
+
 // Drain until `want` results have arrived. Returns how many were collected;
 // the caller checks that against `want` rather than looping for ever.
 int drain(MeshPool &pool, int want, std::vector<int> *order = nullptr) {
@@ -73,10 +80,12 @@ int drain(MeshPool &pool, int want, std::vector<int> *order = nullptr) {
 void testEveryJobReturnsOnce() {
     g_ran.store(0);
     MeshPool pool;
+    pool.setLimits(1024, 1024, 1024, 1024);
     pool.start(4);
     const int n = 500;
     for (int i = 0; i < n; ++i)
-        pool.submit(regionKey(i), 1, i, std::make_unique<CountingJob>(i, 200));
+        pool.submit(regionKey(i), 1, MeshWorkStage::kStructure, i,
+                std::make_unique<CountingJob>(i, 200));
 
     std::vector<int> ids;
     int got = drain(pool, n, &ids);
@@ -96,7 +105,8 @@ void testResubmitReplaces() {
     g_ran.store(0);
     MeshPool pool; // not started: nothing can run while the queue is loaded
     for (int i = 0; i < 10; ++i)
-        pool.submit(regionKey(7), (uint64_t)(i + 1), 0, std::make_unique<CountingJob>(i));
+        pool.submit(regionKey(7), (uint64_t)(i + 1), MeshWorkStage::kStructure, 0,
+                std::make_unique<CountingJob>(i));
     check(pool.stats().queued == 1, "ten submissions of one key queue one job");
 
     pool.start(2);
@@ -112,7 +122,8 @@ void testCancel() {
     g_ran.store(0);
     MeshPool pool;
     for (int i = 0; i < 5; ++i)
-        pool.submit(regionKey(i), 1, i, std::make_unique<CountingJob>(i));
+        pool.submit(regionKey(i), 1, MeshWorkStage::kStructure, i,
+                std::make_unique<CountingJob>(i));
     pool.cancel(regionKey(2));
     check(pool.stats().queued == 4, "cancel drops the queued job");
 
@@ -128,13 +139,46 @@ void testCancel() {
     pool.stop();
 }
 
+void testCancelKindKeepsOtherWork() {
+    g_ran.store(0);
+    MeshPool pool;
+    pool.submit(regionKey(1), 1, MeshWorkStage::kStructure, 0, std::make_unique<CountingJob>(1));
+    pool.submit(nearKey(2), 1, MeshWorkStage::kNear, 0, std::make_unique<CountingJob>(2));
+    pool.submit(regionKey(3), 1, MeshWorkStage::kStructure, 0, std::make_unique<CountingJob>(3));
+    pool.cancelKind(MeshJobKey::kLodRegion);
+    check(pool.stats().queued == 1, "kind cancellation retains unrelated jobs");
+    pool.start(1);
+    std::vector<int> ids;
+    int got = drain(pool, 1, &ids);
+    check(got == 1 && ids[0] == 2, "LOD reset does not cancel near work");
+    pool.stop();
+}
+
+void testCancelKindDropsReadyResults() {
+    g_ran.store(0);
+    MeshPool pool;
+    pool.start(1);
+    pool.submit(regionKey(1), 1, MeshWorkStage::kStructure, 0, std::make_unique<CountingJob>(1));
+    pool.submit(nearKey(2), 1, MeshWorkStage::kNear, 1, std::make_unique<CountingJob>(2));
+    for (int spins = 0; spins < 200000 && pool.stats().ready < 2; ++spins) {
+    }
+    check(pool.stats().ready == 2, "jobs reached the ready queue before kind cancellation");
+    pool.cancelKind(MeshJobKey::kLodRegion);
+    MeshPool::Done done;
+    check(pool.next(done) && done.key.kind == MeshJobKey::kNearBlock,
+            "kind cancellation drops stale ready LOD results only");
+    check(!pool.next(done), "no cancelled ready result remains");
+    pool.stop();
+}
+
 void testPriorityOrder() {
     g_ran.store(0);
     MeshPool pool;
     // Load the queue with the workers stopped, then run one worker, so the
     // order out is the order the queue chose rather than a race.
     for (int i = 0; i < 20; ++i)
-        pool.submit(regionKey(i), 1, 100 - i, std::make_unique<CountingJob>(i));
+        pool.submit(regionKey(i), 1, MeshWorkStage::kStructure, 100 - i,
+                std::make_unique<CountingJob>(i));
     pool.start(1);
     std::vector<int> ids;
     int got = drain(pool, 20, &ids);
@@ -150,9 +194,74 @@ void testPriorityOrder() {
     pool.stop();
 }
 
+void testStageOrder() {
+    g_ran.store(0);
+    MeshPool pool;
+    pool.submit(regionKey(1), 1, MeshWorkStage::kStructure, -1000,
+            std::make_unique<CountingJob>(1));
+    pool.submit(nearKey(2), 1, MeshWorkStage::kNear, 1000,
+            std::make_unique<CountingJob>(2));
+    pool.submit(regionKey(3), 1, MeshWorkStage::kCoverage, 2000,
+            std::make_unique<CountingJob>(3));
+    pool.start(1);
+    std::vector<int> ids;
+    check(drain(pool, 3, &ids) == 3, "all staged jobs return");
+    check(ids.size() == 3 && ids[0] == 3 && ids[1] == 2 && ids[2] == 1,
+            "coverage dispatches before near and refinement regardless of distance");
+    pool.stop();
+}
+
+void testBoundedAdmissionReservesCoverage() {
+    MeshPool pool;
+    pool.setLimits(4, 2, 1, 2);
+    check(pool.submit(regionKey(1), 1, MeshWorkStage::kStructure, 0,
+                  std::make_unique<CountingJob>(1)),
+            "first refinement is admitted");
+    check(!pool.submit(regionKey(2), 1, MeshWorkStage::kStructure, 0,
+                   std::make_unique<CountingJob>(2)),
+            "refinement capacity is bounded");
+    check(pool.submit(nearKey(3), 1, MeshWorkStage::kNear, 0,
+                  std::make_unique<CountingJob>(3)),
+            "near work uses its reserved non-refinement space");
+    check(!pool.submit(nearKey(4), 1, MeshWorkStage::kNear, 0,
+                   std::make_unique<CountingJob>(4)),
+            "noncoverage work cannot consume the coverage reserve");
+    check(pool.submit(regionKey(5), 1, MeshWorkStage::kCoverage, 0,
+                  std::make_unique<CountingJob>(5)) &&
+                  pool.submit(regionKey(6), 1, MeshWorkStage::kCoverage, 0,
+                          std::make_unique<CountingJob>(6)),
+            "coverage can use the reserved queue slots");
+    check(!pool.submit(regionKey(7), 1, MeshWorkStage::kCoverage, 0,
+                   std::make_unique<CountingJob>(7)),
+            "total queue capacity remains bounded");
+    check(pool.stats().queued == 4 && pool.stats().rejected == 3,
+            "admission accounting reports the bound");
+    pool.stop();
+}
+
+void testReadyBackpressure() {
+    MeshPool pool;
+    pool.setLimits(8, 8, 8, 1);
+    pool.start(1);
+    pool.submit(regionKey(1), 1, MeshWorkStage::kCoverage, 0,
+            std::make_unique<CountingJob>(1));
+    pool.submit(regionKey(2), 1, MeshWorkStage::kCoverage, 1,
+            std::make_unique<CountingJob>(2));
+    for (int spins = 0; spins < 200000 &&
+            !(pool.stats().ready == 1 && pool.stats().running == 1); ++spins) {
+    }
+    check(pool.stats().ready == 1 && pool.stats().running == 1,
+            "a full ready queue applies worker backpressure");
+    MeshPool::Done done;
+    check(pool.next(done), "the main thread can release ready capacity");
+    check(drain(pool, 1) == 1, "the waiting completed job advances after collection");
+    pool.stop();
+}
+
 void testStopWithoutStart() {
     MeshPool pool;
-    pool.submit(regionKey(1), 1, 0, std::make_unique<CountingJob>(1));
+    pool.submit(regionKey(1), 1, MeshWorkStage::kStructure, 0,
+            std::make_unique<CountingJob>(1));
     pool.stop(); // must not hang or crash
     check(true, "stop on a pool that never started is safe");
 }
@@ -163,7 +272,12 @@ int main() {
     testEveryJobReturnsOnce();
     testResubmitReplaces();
     testCancel();
+    testCancelKindKeepsOtherWork();
+    testCancelKindDropsReadyResults();
     testPriorityOrder();
+    testStageOrder();
+    testBoundedAdmissionReservesCoverage();
+    testReadyBackpressure();
     testStopWithoutStart();
 
     if (g_failures) {

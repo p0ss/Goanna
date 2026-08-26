@@ -702,6 +702,7 @@ const SETTINGS := [
 	["Lighting", "light_white", "slider", "White point", "Where highlights clip to white. If bright surfaces look flat and detailless, lower Exposure first: this alone will not recover them.", 0.5, 6.0, 0.1],
 	["Lighting", "light_exposure", "slider", "Exposure", "Overall brightness before the tonemap. The default puts a sunlit surface at about 1.3 times its texture's brightness.", 0.1, 2.0, 0.02],
 	["Lighting", "light_shafts", "slider", "Light shafts", "Sun and moon light scattering out of the air, so a gap in a canopy or a hillside throws a visible shaft. Strongest near dawn and dusk, and in rain. 0 leaves the air clear.", 0.0, 3.0, 0.1],
+	["Lighting", "atmosphere_quality", "slider", "Volumetric atmosphere", "Quality and reach of valley fog and thick clouds. 0 uses only the inexpensive horizon fade; lower this first if clouds cost too much frame rate.", 0.0, 1.0, 0.1],
 	["Lighting", "light_fill", "slider", "Sky fill", "How much the sky lights walls and other shaded surfaces, following the light Luanti says reaches them. 0 leaves them to bounced light alone, which is dark.", 0.0, 1.5, 0.05],
 	["Audio", "volume", "slider", "Volume", "Overall sound level.", 0.0, 1.0, 0.05],
 	["Audio", "muted", "toggle", "Mute", "Silence all sound."],
@@ -715,7 +716,7 @@ const SETTINGS := [
 const LOCAL_KEYS := ["mouse_sensitivity", "invert_mouse", "view_bobbing", "fov",
 	"gui_scale", "max_fps", "vsync", "fullscreen", "damage_flash", "show_fps", "show_position", "terrain_occlusion", "player_effect_particles", "volume", "muted",
 	"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao",
-	"light_white", "light_exposure", "light_fill", "light_shafts"]
+	"light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality"]
 var settings_menu: Control
 
 func _main_node() -> Node:
@@ -764,7 +765,7 @@ func _apply_local(key: String, value: float, on: bool) -> void:
 		"show_position":
 			show_position = on
 			hud.queue_redraw()
-		"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao", "light_white", "light_exposure", "light_fill", "light_shafts":
+		"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao", "light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality":
 			var ml := _main_node()
 			if ml != null:
 				ml.set(key, value)
@@ -790,7 +791,7 @@ func _local_value(key: String) -> float:
 		"terrain_occlusion": return 1.0 if get_tree().root.use_occlusion_culling else 0.0
 		"player_effect_particles": return 1.0 if player_effect_particles else 0.0
 		"show_position": return 1.0 if show_position else 0.0
-		"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao", "light_white", "light_exposure", "light_fill", "light_shafts":
+		"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao", "light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality":
 			return float(m.get(key)) if m != null else 1.0
 		"volume": return audio.volume if audio != null else 0.8
 		"muted": return 1.0 if (audio != null and audio.muted) else 0.0

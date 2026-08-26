@@ -48,9 +48,8 @@ struct LodLevel {
         // by buildLodChain leave it unset, so every occupied coarse voxel is
         // handled by the six-face box mesher.
         kTerrain = 16,
-        // The representative is liquid. `top` can then retain its surface
-        // within the coarse voxel instead of expanding a one-node sea into a
-        // 4/8/16-node-high slab.
+        // Liquid exists independently of solid occupancy. It is rendered as
+        // an exterior surface envelope, never as a transparent filled box.
         kLiquid = 32,
     };
     struct Cell {
@@ -63,9 +62,14 @@ struct LodLevel {
         // Mean decoded light of the lit nodes in the cell. Valid when kLit.
         uint8_t day = 255, night = 0;
         uint8_t flags = 0;
-        // Legacy partial-height support. Zero means a volumetric coarse voxel
+        // Legacy solid partial-height support. Zero means a volumetric solid
         // occupies the complete cell, including its lower face.
         uint8_t top = 0;
+        // Independent liquid envelope. A solid seabed and water may coexist
+        // in one coarse cell. Zero top means the liquid reaches the cell top.
+        content_t liquid = CONTENT_AIR;
+        uint8_t liquid_param2 = 0;
+        uint8_t liquid_top = 0;
     };
     int cell = 0; // nodes per cell
     int n = 0;    // cells per axis, MAP_BLOCKSIZE / cell

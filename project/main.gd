@@ -7,6 +7,8 @@ var sun: DirectionalLight3D
 var moon: DirectionalLight3D
 var env: WorldEnvironment
 var sky_mat: ShaderMaterial
+var atmosphere_volume: FogVolume
+var atmosphere_mat: ShaderMaterial
 var sky_tex_cache := {}
 var cloud_off := Vector2.ZERO
 # The sky hands these to the node shaders' cloud shadows each frame.
@@ -16,6 +18,10 @@ var sun_par := Vector2.ZERO
 var bounce: DirectionalLight3D
 var cloud_speed := Vector2(-2.0, 0.0)
 var cloud_height := 120.0
+var cloud_thickness := 16.0
+var atmosphere_ground := 0.0
+var atmosphere_ground_set := false
+var atmosphere_length := 512.0
 var t := 0.0
 var last_print := -1.0
 var placed := false
@@ -50,16 +56,19 @@ var light_fill := 0.4
 # multiplier on what the server asks for, not a replacement; 0 turns the
 # volume off and leaves the flat distance fog alone.
 var light_shafts := 1.0
+# Cost and reach of the shared atmospheric froxel volume. Zero leaves only
+# the inexpensive sky and horizon fade.
+var atmosphere_quality := 1.0
 # The background layer's shape (docs/far-rendering.md, "Background, overlay,
 # foreground"), swept with GOANNA_FOG_CLEAR and GOANNA_FOG_CURVE. The fraction
 # of the drawn distance that stays clear of haze, and the exponent on the ramp
 # over the rest: above 1 the haze holds off and then closes near the edge,
 # below 1 it starts early and rises slowly.
-var fog_clear_fraction := 0.3
+var fog_clear_fraction := 0.48
 var fog_curve := 1.6
 # How opaque the haze is allowed to get at the drawn edge. Below 1 on purpose:
 # see the note where fog_density is set. GOANNA_FOG_MAX sweeps it.
-var fog_max := 0.88
+var fog_max := 0.70
 # How broad the haze band below the horizon line is, sky.gdshader's
 # ground_curve: the background terrain has not arrived over.
 var sky_ground_curve := 3.0
@@ -155,11 +164,13 @@ func _ready() -> void:
 	light_exposure = _envf("GOANNA_EXPOSURE", light_exposure)
 	light_fill = _envf("GOANNA_SKY_FILL", light_fill)
 	light_shafts = _envf("GOANNA_SHAFTS", light_shafts)
+	atmosphere_quality = _envf("GOANNA_ATMOSPHERE", atmosphere_quality)
 	fog_clear_fraction = _envf("GOANNA_FOG_CLEAR", fog_clear_fraction)
 	fog_curve = _envf("GOANNA_FOG_CURVE", fog_curve)
 	fog_max = _envf("GOANNA_FOG_MAX", fog_max)
 	sky_ground_curve = _envf("GOANNA_GROUND_CURVE", sky_ground_curve)
 	if cfg.load("user://goanna.cfg") == OK:
+		atmosphere_quality = float(cfg.get_value("settings", "atmosphere_quality", atmosphere_quality))
 		for k in ["sun", "ambient", "sdfgi", "sdfgi_cell", "ssao", "white", "exposure", "fill", "shafts"]:
 			if cfg.has_section_key("settings", "light_" + k):
 				set("light_" + k, float(cfg.get_value("settings", "light_" + k)))
@@ -354,6 +365,15 @@ func _ready() -> void:
 	e.fog_aerial_perspective = 0.12
 	env.environment = e
 	add_child(env)
+	# One world-sized fog volume supplies spatial density to the environment's
+	# froxel grid. It adds no scene geometry or per-cloud objects: valleys and
+	# the cloud body are two density bands in one shader.
+	atmosphere_volume = FogVolume.new()
+	atmosphere_volume.shape = RenderingServer.FOG_VOLUME_SHAPE_WORLD
+	atmosphere_mat = ShaderMaterial.new()
+	atmosphere_mat.shader = load("res://shaders/atmosphere_volume.gdshader")
+	atmosphere_volume.material = atmosphere_mat
+	add_child(atmosphere_volume)
 	# Subtle head-light so caves are navigable rather than pitch black. Short
 	# range and low energy, so it is negligible against daylight but lets you
 	# see a few nodes underground. (A proper fix would feed Luanti's baked node
@@ -683,6 +703,8 @@ func _process(delta: float) -> void:
 	if not placed and s.get("state") == "ready":
 		var p: Vector3 = client.server_player_position()
 		cam.position = p + Vector3(0, 1.6, 0)
+		atmosphere_ground = p.y
+		atmosphere_ground_set = true
 		placed = true
 		print("camera placed at ", cam.position)
 	if placed and not fly_mode:
@@ -1582,8 +1604,23 @@ func _update_environment_extras() -> void:
 	RenderingServer.global_shader_parameter_set("goanna_cloud_shadow",
 			Vector4(cloud_off.x, cloud_off.y, cloud_cov, cloud_shadow_k))
 	RenderingServer.global_shader_parameter_set("goanna_cloud_geom",
-			Vector4(0.035, maxf(cloud_height, cam.position.y + 10.0), sun_par.x, sun_par.y))
+			Vector4(0.012, maxf(cloud_height, cam.position.y + 10.0), sun_par.x, sun_par.y))
+	if atmosphere_mat:
+		atmosphere_mat.set_shader_parameter("weather_offset", cloud_off)
+		atmosphere_mat.set_shader_parameter("cloud_base", cloud_height)
+		atmosphere_mat.set_shader_parameter("cloud_thickness", maxf(cloud_thickness, 8.0))
+		atmosphere_mat.set_shader_parameter("cloud_coverage", cloud_cov)
+		# Keep the reference at the world's inhabited surface while flying; a
+		# camera-relative layer would rise with the player and erase valleys.
+		atmosphere_mat.set_shader_parameter("mist_level",
+				atmosphere_ground + 18.0 if atmosphere_ground_set else cam.position.y + 12.0)
+		atmosphere_mat.set_shader_parameter("mist_density",
+				0.010 * (0.35 + cloud_cov) * atmosphere_quality)
+		atmosphere_mat.set_shader_parameter("cloud_density", 0.09 * atmosphere_quality)
+		atmosphere_mat.set_shader_parameter("quality", atmosphere_quality)
 	var under: bool = client.is_underwater(cam.position)
+	if atmosphere_volume:
+		atmosphere_volume.visible = not under and atmosphere_quality > 0.01
 	if under == underwater:
 		return
 	underwater = under
@@ -1831,6 +1868,7 @@ func _apply_sky() -> void:
 	var cs: Vector2 = clouds["speed"]
 	cloud_speed = cs
 	cloud_height = float(clouds["height"])
+	cloud_thickness = maxf(float(clouds.get("thickness", 16.0)), 8.0)
 	# --- fog ---
 	# While the eye is underwater, _update_environment_extras owns the fog and
 	# the shaft volume; sky packets must not clobber them.
@@ -1846,6 +1884,9 @@ func _apply_sky() -> void:
 			# hand back to the server's time-aware horizon through the night.
 			fog_col = fog_col.lerp(fc, fc.a * (1.0 - night))
 		e.fog_light_color = fog_col
+		if atmosphere_mat:
+			atmosphere_mat.set_shader_parameter("atmosphere_color", fog_col)
+			atmosphere_mat.set_shader_parameter("cloud_color", ccol)
 		# How far there is actually something to see, which is not how far we
 		# are permitted to draw. The live range is always there; past it the
 		# far field reaches only as far as the store and the server's
@@ -1887,6 +1928,7 @@ func _apply_sky() -> void:
 		# node grant a 10 per cent margin is 400 nodes for no reason,
 		# while 256 covers the coarsest region's own size at any grant.
 		cam.far = maxf(1000.0, draw_nodes + 256.0)
+		atmosphere_length = clampf(draw_nodes + 96.0, 256.0, 768.0)
 		# The background layer, docs/far-rendering.md "Background, overlay,
 		# foreground". Depth fog rather than exponential: an exponential curve
 		# cannot be both clear in the foreground and closed at the cap, because
@@ -1999,14 +2041,14 @@ func _apply_sky() -> void:
 		# points it at an eye looking that way; the same density at noon is
 		# only haze, so most of it is spent when the sun is low.
 		var low: float = 1.0 - clamp(maxf(elev, 0.0) / 0.35, 0.0, 1.0)
-		var air: float = (0.004 + 0.011 * low) * (0.25 + 0.75 * day)
+		var air: float = (0.0007 + 0.0023 * low) * (0.25 + 0.75 * day)
 		# Rain and snow are the air made visible, so the shafts thicken with
 		# them. The particle side is what knows, the sky packet does not.
 		var pnode := get_tree().get_first_node_in_group("goanna_particles")
 		if pnode != null:
 			air += 0.010 * float(pnode.precipitation())
 		air *= (0.6 + 1.4 * vol) * light_shafts
-		e.volumetric_fog_enabled = air > 0.0004
+		e.volumetric_fog_enabled = atmosphere_quality > 0.01 and (atmosphere_mat != null or air > 0.0004)
 		if e.volumetric_fog_enabled:
 			e.volumetric_fog_density = air
 			# The air scatters the sun's own colour, which is what makes a
@@ -2020,8 +2062,8 @@ func _apply_sky() -> void:
 			# the spread pushing more of the grid into the near field, is what
 			# lets a lane in the air have an edge. Past it there is no volume
 			# at all, which is the distance fog's job.
-			e.volumetric_fog_length = 72.0
-			e.volumetric_fog_detail_spread = 3.0
+			e.volumetric_fog_length = lerpf(192.0, atmosphere_length, atmosphere_quality)
+			e.volumetric_fog_detail_spread = 1.8
 			# Fog in shadow lit by nothing at all is black, and black air
 			# between shafts reads as smoke. A little sky in it keeps the
 			# shadowed air as air.
