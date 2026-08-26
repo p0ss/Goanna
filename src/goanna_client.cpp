@@ -257,6 +257,12 @@ void GoannaClient::nearBuildRegion(const v3s16 &key, NearRegion &region) {
         int v_at = 0, i_at = 0;     // write cursors for the filling pass
     };
     std::map<uint64_t, Accum> groups;
+    // Count first, then fill. This used to append each surface and push every
+    // index one at a time, and a region is four blocks cubed of full detail
+    // geometry, so that was hundreds of thousands of single element calls
+    // across the GDExtension boundary and the largest cost in the frame. A
+    // region is rebuilt whenever one block joins or leaves it, which happens
+    // continuously while the player walks, so it is paid constantly.
     for (const v3s16 &bp : region.members) {
         auto block = m_near_blocks.find(bp);
         if (block == m_near_blocks.end())
@@ -266,15 +272,47 @@ void GoannaClient::nearBuildRegion(const v3s16 &key, NearRegion &region) {
             Accum &acc = groups[group_key];
             acc.key = surface.key;
             acc.glow = surface.glow;
-            const int base = acc.verts.size();
-            acc.verts.append_array(surface.verts);
-            acc.norms.append_array(surface.norms);
-            acc.uvs.append_array(surface.uvs);
-            acc.uv2s.append_array(surface.uv2s);
-            acc.cols.append_array(surface.cols);
-            acc.custom0.append_array(surface.custom0);
-            for (int i = 0; i < surface.idx.size(); ++i)
-                acc.idx.push_back(surface.idx[i] + base);
+            acc.n_verts += surface.verts.size();
+            acc.n_idx += (int)surface.idx.size();
+        }
+    }
+    for (auto &kv : groups) {
+        Accum &a = kv.second;
+        a.verts.resize(a.n_verts);
+        a.norms.resize(a.n_verts);
+        a.uvs.resize(a.n_verts);
+        a.uv2s.resize(a.n_verts);
+        a.cols.resize(a.n_verts);
+        a.custom0.resize(a.n_verts * 4);
+        a.idx.resize(a.n_idx);
+    }
+    for (const v3s16 &bp : region.members) {
+        auto block = m_near_blocks.find(bp);
+        if (block == m_near_blocks.end())
+            continue;
+        for (const NearSurface &surface : block->second.surfaces) {
+            const uint64_t group_key = (surface.key.hash() << 1) | (surface.glow ? 1 : 0);
+            Accum &acc = groups[group_key];
+            const int n = surface.verts.size();
+            const int base = acc.v_at;
+            if (n > 0) {
+                memcpy(acc.verts.ptrw() + base, surface.verts.ptr(), (size_t)n * sizeof(Vector3));
+                memcpy(acc.norms.ptrw() + base, surface.norms.ptr(), (size_t)n * sizeof(Vector3));
+                memcpy(acc.uvs.ptrw() + base, surface.uvs.ptr(), (size_t)n * sizeof(Vector2));
+                memcpy(acc.uv2s.ptrw() + base, surface.uv2s.ptr(), (size_t)n * sizeof(Vector2));
+                memcpy(acc.cols.ptrw() + base, surface.cols.ptr(), (size_t)n * sizeof(Color));
+                memcpy(acc.custom0.ptrw() + (size_t)base * 4, surface.custom0.ptr(),
+                        (size_t)n * 4);
+            }
+            const int ni = (int)surface.idx.size();
+            if (ni > 0) {
+                int32_t *w = acc.idx.ptrw() + acc.i_at;
+                const int32_t *r = surface.idx.ptr();
+                for (int i = 0; i < ni; ++i)
+                    w[i] = r[i] + base;
+            }
+            acc.v_at += n;
+            acc.i_at += ni;
         }
     }
 
