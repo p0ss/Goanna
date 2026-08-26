@@ -200,7 +200,9 @@ Ref<Texture2DArray> GoannaTexture::godotArraySuffixed(GoannaTextureSource &src, 
     // no emission) rather than abandoning the whole bunch. Only if nothing at
     // all is authored is the companion reported as absent.
     const bool is_normal = key == "_n";
-    if (!is_normal)
+    if (is_normal)
+        m_layer_normal_var.clear();
+    else
         m_layer_spec.clear();
     TypedArray<Image> imgs;
     bool any = false;
@@ -281,6 +283,26 @@ Ref<Texture2DArray> GoannaTexture::godotArraySuffixed(GoannaTextureSource &src, 
                 // dielectric with no emission
                 img->fill(is_normal ? Color(0.5f, 0.5f, 1.0f, 0.0f) : Color(0.0f, 0.04f, 0.0f, 1.0f));
             }
+        }
+        if (is_normal) {
+            // How rough this tile's relief is, as the mean squared tangent
+            // deviation. Measured on the same RG the shader decodes and
+            // before normal_strength, which is a runtime slider and is
+            // applied on the other side.
+            double var = 0.0;
+            const int w = img->get_width(), h = img->get_height();
+            const int n = w * h;
+            if (n > 0) {
+                for (int y = 0; y < h; ++y)
+                    for (int x = 0; x < w; ++x) {
+                        const Color c = img->get_pixel(x, y);
+                        const float tx = c.r * 2.0f - 1.0f;
+                        const float ty = c.g * 2.0f - 1.0f;
+                        var += (double)(tx * tx + ty * ty);
+                    }
+                var /= (double)n;
+            }
+            m_layer_normal_var.push_back((float)var);
         }
         if (!is_normal) {
             // The mean material response of this layer, converted per texel

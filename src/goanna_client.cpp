@@ -1835,6 +1835,14 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
                 sm->set_shader_parameter("lod_avg_rough", rough);
                 sm->set_shader_parameter("lod_avg_metal", metal);
                 sm->set_shader_parameter("lod_avg_spec", spec);
+                // What the relief is worth, so flattening it can hand its
+                // roughness back rather than leaving a flat shiny surface.
+                const auto &nvar = agt->layerNormalVariance();
+                PackedFloat32Array nv;
+                nv.resize((int)names.size());
+                for (size_t i = 0; i < names.size(); ++i)
+                    nv[(int)i] = i < nvar.size() ? nvar[i] : 0.0f;
+                sm->set_shader_parameter("lod_normal_variance", nv);
             }
             if (getenv("GOANNA_DEBUG_PBR"))
                 UtilityFunctions::print("pbr array id=", key.texture_id,

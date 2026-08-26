@@ -116,6 +116,15 @@ void fragment() {
 	// albedo and normal detail. Otherwise a flat averaged canopy retains the
 	// close tile's sharp highlight and becomes reflective at the LOD handoff.
 	ROUGHNESS = mix(ROUGHNESS, mix(1.0, lod_avg_rough[layer], roughness_strength), flatten);
+	// The relief that flattening just removed, returned as roughness. Added in
+	// squared roughness, which is where a slope distribution's variance
+	// belongs, and scaled by normal_strength because that is how much of the
+	// relief was being shown in the first place.
+	if (flatten > 0.001 && lod_variance_roughness > 0.0) {
+		float lost = lod_normal_variance[layer] * normal_strength * normal_strength
+				* flatten * lod_variance_roughness;
+		ROUGHNESS = clamp(sqrt(ROUGHNESS * ROUGHNESS + lost), 0.0, 1.0);
+	}
 	METALLIC = mix(METALLIC, lod_avg_metal[layer], flatten);
 	SPECULAR = mix(SPECULAR, clamp(lod_avg_spec[layer] * specular_strength, 0.0, 1.0), flatten);
 

@@ -78,6 +78,15 @@ public:
         float spec = 0.2f;   // Godot SPECULAR, before specular_strength
     };
     const std::vector<LayerSpec> &layerSpecMeans() const { return m_layer_spec; }
+    // How far each layer's normal map departs from flat, as the mean of
+    // dot(xy, xy) over its texels, where xy is the tangent pair the shader
+    // decodes from RG. That is the squared tangent deviation, and it is
+    // exactly the quantity the far field throws away when it flattens the
+    // relief. Handed to the shader so it can come back as roughness: detail
+    // going sub-pixel does not make a surface smoother, it makes it rougher
+    // at a scale the highlight can no longer resolve. Without it a distant
+    // surface is flat and still shiny, which is what reads as plastic.
+    const std::vector<float> &layerNormalVariance() const { return m_layer_normal_var; }
     // Alpha is tracked per array layer as well as for the whole texture. A
     // solid stone layer may share an array with cut-out leaves, and treating
     // the whole array as transparent prevents the stone from being a safe
@@ -105,6 +114,7 @@ private:
     godot::Ref<godot::Texture2DArray> m_godot_array;
     std::map<std::string, godot::Ref<godot::Texture2DArray>> m_godot_suffixed;
     std::vector<LayerSpec> m_layer_spec;
+    std::vector<float> m_layer_normal_var;
     std::map<std::string, bool> m_suffixed_missing;
     godot::Ref<godot::ImageTexture> m_godot;
     godot::Ref<godot::ImageTexture> m_normal;

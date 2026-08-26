@@ -189,6 +189,18 @@ uniform float lod_coverage[256];
 uniform float lod_avg_rough[256];
 uniform float lod_avg_metal[256];
 uniform float lod_avg_spec[256];
+// How far each layer's relief departs from flat, from
+// GoannaTexture::layerNormalVariance: the mean of dot(xy, xy) over the tile's
+// decoded tangent pairs.
+//
+// Flattening the relief without this is what players read as plastic. The
+// normal map fades out with distance and the specular response does not, so a
+// surface ends up perfectly flat and still holding a sharp highlight, which no
+// real material does. Detail going sub-pixel does not make a surface smoother;
+// it makes it rougher at a scale the highlight can no longer resolve, and that
+// is what this puts back. Same 256 layer cap as above.
+uniform float lod_normal_variance[256];
+uniform float lod_variance_roughness : hint_range(0.0, 2.0) = 1.0;
 uniform float lod_coverage_strength : hint_range(0.0, 1.0) = 1.0;
 // Keep the hand-off range visually identical to the near renderer. Detail is
 // only flattened once fog and screen footprint make an individual tile too
