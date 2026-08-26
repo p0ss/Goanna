@@ -606,6 +606,32 @@ video::SColor GoannaTextureSource::getTextureAverageColor(const std::string &nam
     return c;
 }
 
+float GoannaTextureSource::textureCoverage(const std::string &name) {
+    if (name.empty())
+        return 1.0f;
+    auto it = m_coverage_cache.find(name);
+    if (it != m_coverage_cache.end())
+        return it->second;
+    float cov = 1.0f;
+    if (video::IImage *img = getOrGenerateImage(name)) {
+        const core::dimension2du dim = img->getDimension();
+        const u32 n = dim.Width * dim.Height;
+        if (n) {
+            u32 kept = 0;
+            for (u32 y = 0; y < dim.Height; ++y)
+                for (u32 x = 0; x < dim.Width; ++x)
+                    // The same half-alpha cut the near mesh's alpha test
+                    // makes, so the two agree on what is there.
+                    if (img->getPixel(x, y).getAlpha() > 127)
+                        ++kept;
+            cov = (float)kept / (float)n;
+        }
+        img->drop();
+    }
+    m_coverage_cache[name] = cov;
+    return cov;
+}
+
 // Split a tile's variance into the part carried by big shapes and the part
 // carried by grain, and return the big shapes' share.
 //

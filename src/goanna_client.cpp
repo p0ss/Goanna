@@ -1761,6 +1761,16 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
                     avg[(int)i] = Vector3(c.r, c.g, c.b);
                 }
                 sm->set_shader_parameter("lod_avg_colour", avg);
+                // How much of each tile the near mesh's alpha test actually
+                // keeps. A far tier draws a leaf cell as a solid box, so
+                // without this a canopy at range is 18 to 36 per cent more
+                // leaf than the same canopy up close, which reads as the
+                // trees changing colour as they cross into the far field.
+                PackedFloat32Array cover;
+                cover.resize((int)names.size());
+                for (size_t i = 0; i < names.size(); ++i)
+                    cover[(int)i] = m_session->tsrc()->textureCoverage(names[i]);
+                sm->set_shader_parameter("lod_coverage", cover);
             }
             if (getenv("GOANNA_DEBUG_PBR"))
                 UtilityFunctions::print("pbr array id=", key.texture_id,

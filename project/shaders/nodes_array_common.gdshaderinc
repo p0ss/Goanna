@@ -163,6 +163,19 @@ uniform bool lod_flatten = false;
 // fallback material already paints with), set once when a LOD material is
 // built. 256 is the array layer cap (getArrayTextureMax in node_visuals.cpp).
 uniform vec3 lod_avg_colour[256];
+// What fraction of each layer's tile the near mesh's alpha test keeps, from
+// GoannaTextureSource::textureCoverage. 1.0 for an ordinary opaque tile.
+//
+// A far tier draws an alpha tested node (leaves above all) as a solid box of
+// its tile, where the near mesh draws faces you see through to shadow behind.
+// The same canopy therefore integrates brighter and more saturated at range,
+// which is the trees changing colour as they cross the tier boundary. Scaling
+// the far albedo by coverage is the cheap half of the right answer: what is
+// behind the gaps is treated as dark, which is true of a canopy over ground
+// and wrong for a lone tree against the sky, so it is a strength rather than
+// a flat multiply. Same 256 layer cap as lod_avg_colour.
+uniform float lod_coverage[256];
+uniform float lod_coverage_strength : hint_range(0.0, 1.0) = 1.0;
 // Keep the hand-off range visually identical to the near renderer. Detail is
 // only flattened once fog and screen footprint make an individual tile too
 // small to read. These are camera distances, not distances from world zero.

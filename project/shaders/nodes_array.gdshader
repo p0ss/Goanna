@@ -90,6 +90,12 @@ void fragment() {
 		ALBEDO = mix(ALBEDO, vec3(dot(ALBEDO, vec3(0.2126, 0.7152, 0.0722))), v_stale * stale_strength);
 	if (flatten > 0.001)
 		ALBEDO = mix(ALBEDO, lod_avg_colour[layer] * COLOR.rgb, flatten);
+	// Coverage applies wherever a far tier draws, not only past
+	// lod_flatten_near: a canopy changes colour at the tier boundary, which
+	// is well inside where any flattening starts. An opaque tile has
+	// coverage 1.0 and is untouched.
+	if (lod_flatten)
+		ALBEDO *= mix(1.0, lod_coverage[layer], lod_coverage_strength);
 	ROUGHNESS = 1.0;
 	METALLIC = 0.0;
 	SPECULAR = 0.2;

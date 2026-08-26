@@ -119,6 +119,18 @@ public:
     // per node tiling reads it to decide whether a tile is a field to break
     // up or a picture to leave alone. Cached: it opens the image to answer.
     float textureCoarseness(const std::string &image);
+    // How much of a tile is actually there: the fraction of texels the near
+    // mesh's alpha test keeps. 1.0 for an ordinary opaque tile, 0.64 to 0.82
+    // for Mineclonia's leaves, near 0 for an overlay.
+    //
+    // The far tiers draw a leaf cell as a solid box of the leaf tile, where
+    // the near mesh draws alpha tested faces you see through, so the same
+    // canopy integrates brighter and more saturated at range than it does up
+    // close. getTextureAverageColor answers what colour the leaf material is;
+    // this is what fraction of the surface is leaf at all, which is the other
+    // half of what a distant canopy should converge to. Cached: it opens the
+    // image to answer.
+    float textureCoverage(const std::string &image);
     // IWritableTextureSource
     void processQueue() override {}
     void insertSourceImage(const std::string &name, video::IImage *img) override;
@@ -149,6 +161,7 @@ private:
     float m_relief_strength = 0.35f;
     video::IImage *getOrGenerateImage(const std::string &name);
     std::map<std::string, float> m_coarseness;
+    std::map<std::string, float> m_coverage_cache;
     ImageSource m_imagesource;
     std::vector<std::unique_ptr<GoannaTexture>> m_textures; // index = id
     std::map<std::string, u32> m_name_to_id;
