@@ -2003,16 +2003,17 @@ func _apply_sky() -> void:
 	e.ambient_light_energy = lerp(0.14, 0.42, maxf(ratio, day)) * light_ambient
 	# do not push the sky toward white; it reads as haze and flattens the blue
 	#
-	# Divided by the exposure, because the sky and the ground were not in the
-	# same units. The server sends sky and cloud colours as display sRGB, ready
-	# to put on screen, and they then went through background_energy_multiplier
-	# and tonemap_exposure like everything else, so the sky could never exceed
-	# about 0.44 of the colour it was sent as. The ground does not have that
-	# problem: it is lit by lamps whose energy was chosen against this exact
-	# exposure. So the land read as golden hour under a sky that read as
-	# overcast dusk. Dividing here puts the sky back in the scene's units and
-	# lets the two move together when the exposure slider moves.
-	e.background_energy_multiplier = lerp(0.25, 0.95, ratio) / maxf(light_exposure, 0.05)
+	# Do not scale this to make the sky brighter against the ground. It is
+	# tempting, because the server sends sky colours as display sRGB and they
+	# then go through this and tonemap_exposure, so the visible sky lands well
+	# under the lamp-lit ground. But ambient_light_source is AMBIENT_SOURCE_SKY
+	# (see _apply_lighting) and sdfgi_read_sky_light is on, so this multiplier
+	# is also how much light the sky casts on the world. Dividing it by the
+	# exposure was tried on 2026-08-26: the sky matched, and the land was lit
+	# like noon at midnight, because the ambient went up by the same factor.
+	# Whatever fixes the sky against ground mismatch has to leave the sky's
+	# contribution as a light source alone.
+	e.background_energy_multiplier = lerp(0.25, 0.95, ratio)
 	# And the haze is dimmed with it. The fog colour above is the server's
 	# horizon colour as sent, but the sky is not drawn at that colour: this
 	# multiplier darkens it, by four times at night. So the haze was four
