@@ -1985,7 +1985,12 @@ func _apply_sky() -> void:
 		# keeps the depth fog above, already coloured and dimmed from the night
 		# horizon; sky-radiance blending belongs to daylight and twilight.
 		e.fog_aerial_perspective = aerial * maxf(day, dawn * 0.65)
-		e.fog_sky_affect = 0.1 if draw_nodes < 260.0 else 0.5
+		# Ramped, not stepped. draw_nodes follows far_reach, which grows as the
+		# far field fills, so this crossed its threshold while the player stood
+		# still and the sky snapped between clear and hazy like a switch. The
+		# aerial term above already ramps over the same quantity; this was the
+		# one hard edge left in the sky's response to draw distance.
+		e.fog_sky_affect = lerpf(0.1, 0.5, smoothstep(220.0, 340.0, draw_nodes))
 	# --- ambient / grade from day-night ratio and server lighting ---
 	var ratio: float = st["day_night_ratio"]
 	# Kept wired and kept honest: this line is inert while SDFGI is on, for
@@ -1997,7 +2002,17 @@ func _apply_sky() -> void:
 	# level under a sky that was already blue.
 	e.ambient_light_energy = lerp(0.14, 0.42, maxf(ratio, day)) * light_ambient
 	# do not push the sky toward white; it reads as haze and flattens the blue
-	e.background_energy_multiplier = lerp(0.25, 0.95, ratio)
+	#
+	# Divided by the exposure, because the sky and the ground were not in the
+	# same units. The server sends sky and cloud colours as display sRGB, ready
+	# to put on screen, and they then went through background_energy_multiplier
+	# and tonemap_exposure like everything else, so the sky could never exceed
+	# about 0.44 of the colour it was sent as. The ground does not have that
+	# problem: it is lit by lamps whose energy was chosen against this exact
+	# exposure. So the land read as golden hour under a sky that read as
+	# overcast dusk. Dividing here puts the sky back in the scene's units and
+	# lets the two move together when the exposure slider moves.
+	e.background_energy_multiplier = lerp(0.25, 0.95, ratio) / maxf(light_exposure, 0.05)
 	# And the haze is dimmed with it. The fog colour above is the server's
 	# horizon colour as sent, but the sky is not drawn at that colour: this
 	# multiplier darkens it, by four times at night. So the haze was four
