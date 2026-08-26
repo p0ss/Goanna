@@ -86,11 +86,17 @@ Then run it:
 /path/to/Godot_v4.5.1-stable_linux.x86_64 --path project
 ```
 
-The menu offers "Start a local game" or "Join a server". A local game is not
-a singleplayer mode: Goanna finds the Luanti you already have installed,
-starts an ordinary server with it on localhost, joins over the ordinary
-protocol, and shuts it down when you leave. Joining a server wants an
-address, a name and a password.
+The menu is Start Game, Join Game, Content, Settings and About. A local game
+is not a singleplayer mode: Goanna finds the Luanti you already have
+installed, starts an ordinary server with it on localhost, joins over the
+ordinary protocol, and shuts it down when you leave. That is the only part
+of Goanna that needs Luanti present; joining someone else's server does not.
+
+Join Game lists the public servers, from the same list Luanti's own client
+reads, so you can pick one rather than having to know an address. It is the
+only request Goanna makes to anything other than the server you chose, it is
+what a vanilla client already asks for, and it is optional: the address,
+name and password fields work with the list absent.
 
 W A S D to walk, mouse to look, space to jump, left and right mouse to dig
 and place, number keys to change item, I for the inventory, T to chat, F for
