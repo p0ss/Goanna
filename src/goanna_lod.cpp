@@ -17,6 +17,27 @@
 
 namespace goanna {
 
+// How many bits are set in a 64 bit word.
+//
+// __builtin_popcountll is a GCC and Clang extension and MSVC does not have
+// it, which is what broke the Windows build: "error C3861:
+// '__builtin_popcountll': identifier not found". std::popcount would be the
+// answer but it is C++20 and this is C++17 (CMakeLists.txt). The fallback is
+// the usual SWAR count rather than MSVC's __popcnt64, because that intrinsic
+// needs a CPU with the POPCNT instruction and silently returns nonsense
+// where there is none; this is correct everywhere and the sparse boundary
+// lookup that calls it is not hot enough to care.
+static inline int popcount64(uint64_t v) {
+#if defined(__GNUC__) || defined(__clang__)
+    return __builtin_popcountll(v);
+#else
+    v = v - ((v >> 1) & 0x5555555555555555ull);
+    v = (v & 0x3333333333333333ull) + ((v >> 2) & 0x3333333333333333ull);
+    v = (v + (v >> 4)) & 0x0f0f0f0f0f0f0f0full;
+    return (int)((v * 0x0101010101010101ull) >> 56);
+#endif
+}
+
 // Luanti's tile order, which is also the face order here: +Y, -Y, +X, -X,
 // +Z, -Z. Luanti coordinates; the z mirror happens when a vertex is emitted.
 static const int DIRS[6][3] = {{0, 1, 0}, {0, -1, 0}, {1, 0, 0}, {-1, 0, 0}, {0, 0, 1}, {0, 0, -1}};
@@ -50,7 +71,7 @@ const LodLevel::Cell *BlockLodChain::cellAt(int cell, int x, int y, int z) const
     if (!(mask & (1ull << bit)))
         return nullptr;
     const uint64_t below = bit ? mask & ((1ull << bit) - 1) : 0;
-    const size_t record = fine_record_base[word] + (size_t)__builtin_popcountll(below);
+    const size_t record = fine_record_base[word] + (size_t)popcount64(below);
     return record < fine_records.size() ? &fine_records[record].cell : nullptr;
 }
 
