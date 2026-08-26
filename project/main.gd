@@ -167,6 +167,7 @@ func _ready() -> void:
 	if OS.get_environment("GOANNA_SHADOW_LAMPS") != "":
 		client.set_shadow_lamps(int(OS.get_environment("GOANNA_SHADOW_LAMPS")))
 	add_child(client)
+	_apply_hardware_defaults()
 	# In-game UI (HUD, chat, inventory, formspecs, pause menu): project/ui/.
 	# Guarded, because a script error anywhere in the UI leaves this node
 	# without its script, and assigning to a property it no longer has aborts
@@ -619,6 +620,60 @@ func _update_connect_overlay(s: Dictionary) -> void:
 		connect_title.text = "Connecting"
 		connect_bar.value = 0.0
 		connect_detail.text = msg if msg != "" else state
+
+# Start from what the machine says it is, rather than from one number chosen
+# on the author's desktop.
+#
+# The compiled-in defaults are what a modest machine should run; this raises
+# them where the hardware reports itself capable. It runs before the settings
+# panel seeds goanna.cfg (ui/game_ui.gd), so what it picks becomes the recorded
+# default, and it never touches a value the player has already chosen: a stored
+# setting is applied over the top afterwards by _load_apply_settings.
+#
+# What Godot will actually tell us is narrow. Total video memory is not
+# exposed: RenderingDevice.get_memory_usage(MEMORY_TOTAL) reports what Godot
+# has allocated, not what the card has. So the discriminator is the adapter
+# type, which separates a discrete card from an integrated one sharing system
+# memory, and that is the distinction that matters most here anyway.
+func _apply_hardware_defaults() -> void:
+	if OS.get_environment("GOANNA_NO_HW_DEFAULTS") != "":
+		return
+	var cores := OS.get_processor_count()
+	# get_video_adapter_type returns a RenderingDevice.DeviceType, so the
+	# constant lives there rather than on RenderingServer.
+	var gpu: int = RenderingServer.get_video_adapter_type()
+	var discrete: bool = gpu == RenderingDevice.DEVICE_TYPE_DISCRETE_GPU
+	# Detail distance in blocks, mesh worker threads, far draw distance in
+	# nodes. Far distance is a ceiling on what the server granted, never a
+	# request for more, so a generous number here costs nothing on a server
+	# that grants less.
+	var detail := 20
+	var threads := 0  # 0 lets the pool choose from the processor count
+	# -1 means "leave it alone", which is not the same as a large number:
+	# set_far_distance marks the value explicit and it stops tracking whatever
+	# the server granted, so naming a generous number here would cap a server
+	# that grants more. Only a machine that should draw less says anything.
+	var far := -1
+	if discrete and cores >= 12:
+		detail = 32
+	elif discrete:
+		detail = 24
+	else:
+		# Integrated, virtual or software: shares memory with everything else
+		# and is the case the old defaults were chosen for.
+		detail = 12
+		threads = 2
+		far = 512
+	if client.has_method("set_lod_distance"):
+		client.set_lod_distance(detail)
+	if far >= 0 and client.has_method("set_far_distance"):
+		client.set_far_distance(far)
+	if threads > 0 and client.has_method("set_mesh_threads"):
+		client.set_mesh_threads(threads)
+	print("hardware: %d cores, %s (%s), detail %d blocks, far %s" % [
+		cores, RenderingServer.get_video_adapter_name(),
+		"discrete" if discrete else "shared", detail,
+		"the server's grant" if far < 0 else str(far) + " nodes"])
 
 func _process(delta: float) -> void:
 	t += delta

@@ -26,8 +26,28 @@ var pass_edit: LineEdit
 var connect_button: Button
 # new game
 var game_option: OptionButton
+var world_option: OptionButton
 var world_edit: LineEdit
+var generator_option: OptionButton
+var creative_check: CheckBox
+var damage_check: CheckBox
+var host_check: CheckBox
+var hosting_box: VBoxContainer
+var server_name_edit: LineEdit
+var server_description_edit: LineEdit
+var server_password_edit: LineEdit
+var server_port_edit: LineEdit
+var announce_check: CheckBox
+var max_players_spin: SpinBox
+var mod_checks := {}
+var delete_button: Button
+var _local_data_dir := ""
+var _local_join_password := ""
 var start_button: Button
+var terrain_download_label: Label
+var terrain_http: HTTPRequest
+var _terrain_archive_path := ""
+var _pending_terrain_start := false
 var server  # GoannaLocalServer (local_server.gd)
 var server_deadline := 0.0
 
@@ -337,7 +357,7 @@ Licence: LGPL-2.1-or-later, matching the Luanti client code it carries. godot-cp
 # --- new local game ----------------------------------------------------------
 
 func _show_new_game() -> void:
-	_new_screen("Start a local game", "Goanna runs a Luanti server on your machine and joins it.")
+	_new_screen("Start Game", "Choose a world, its game and map generator, or host it for other players.")
 	var env := LocalServer.detect()
 	if env.is_empty():
 		_fail("No Luanti server found. Install Luanti, or the org.luanti.luanti flatpak, or set GOANNA_SERVER_CMD.")
@@ -348,74 +368,357 @@ func _show_new_game() -> void:
 		_fail("No games are installed for Luanti. Install a game (devtest, Mineclonia, ...) first.")
 		screen.add_child(_button("Back", _show_main))
 		return
+	_local_data_dir = env["data_dir"]
+	var tabs := TabContainer.new()
+	tabs.custom_minimum_size = Vector2(650, 470)
+	screen.add_child(tabs)
+	var world_scroll := ScrollContainer.new()
+	world_scroll.name = "World"
+	world_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	tabs.add_child(world_scroll)
+	var world_page := VBoxContainer.new()
+	world_page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	world_page.add_theme_constant_override("separation", 8)
+	world_scroll.add_child(world_page)
 	var grid := GridContainer.new()
 	grid.columns = 2
 	grid.add_theme_constant_override("h_separation", 12)
 	grid.add_theme_constant_override("v_separation", 8)
-	screen.add_child(grid)
+	world_page.add_child(grid)
+	var wlabel := Label.new()
+	wlabel.text = "World"
+	grid.add_child(wlabel)
+	world_option = OptionButton.new()
+	world_option.add_item("Create new world ...")
+	world_option.set_item_metadata(0, {})
+	for entry in LocalServer.list_worlds(_local_data_dir):
+		world_option.add_item(str(entry["name"]))
+		world_option.set_item_metadata(world_option.item_count - 1, entry)
+	grid.add_child(world_option)
+	world_edit = _labelled_edit(grid, "New world name", "my_world")
 	var glabel := Label.new()
 	glabel.text = "Game"
 	grid.add_child(glabel)
 	game_option = OptionButton.new()
 	for g in games:
 		game_option.add_item(g)
-		game_option.set_item_metadata(game_option.item_count - 1,
-			{"gameid": g, "terrain_diffusion": false})
-		if g == "mineclonia":
-			game_option.add_item("Mineclonia + Terrain Diffusion")
-			game_option.set_item_metadata(game_option.item_count - 1,
-				{"gameid": g, "terrain_diffusion": true})
+		game_option.set_item_metadata(game_option.item_count - 1, g)
 	grid.add_child(game_option)
-	world_edit = _labelled_edit(grid, "World name", "my_world")
+	var gen_label := Label.new()
+	gen_label.text = "World generator"
+	grid.add_child(gen_label)
+	generator_option = OptionButton.new()
+	generator_option.add_item("Game default")
+	generator_option.set_item_metadata(0, "default")
+	generator_option.add_item("Terrain Diffusion, default 1 m world")
+	generator_option.set_item_metadata(1, "terrain_default")
+	generator_option.add_item("Terrain Diffusion, generate new (setup required)")
+	generator_option.set_item_metadata(2, "terrain_generate")
+	generator_option.set_item_disabled(2, true)
+	grid.add_child(generator_option)
+	terrain_download_label = Label.new()
+	terrain_download_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	terrain_download_label.modulate = Color(1, 1, 1, 0.6)
+	world_page.add_child(terrain_download_label)
+	creative_check = CheckBox.new()
+	creative_check.text = "Creative mode"
+	world_page.add_child(creative_check)
+	damage_check = CheckBox.new()
+	damage_check.text = "Enable damage"
+	damage_check.button_pressed = true
+	world_page.add_child(damage_check)
+	var compatibility := Label.new()
+	compatibility.text = "Terrain Diffusion uses any game's registered biomes. Mineclonia currently has the fullest vegetation support."
+	compatibility.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	compatibility.modulate = Color(1, 1, 1, 0.55)
+	world_page.add_child(compatibility)
+
+	var mods_scroll := ScrollContainer.new()
+	mods_scroll.name = "Mods"
+	mods_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	tabs.add_child(mods_scroll)
+	var mods_page := VBoxContainer.new()
+	mods_page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	mods_page.add_theme_constant_override("separation", 5)
+	mods_scroll.add_child(mods_page)
+	var mods := LocalServer.list_mods(_local_data_dir)
+	if mods.is_empty():
+		var none := Label.new()
+		none.text = "No separately installed mods were found. Game-bundled mods are managed by the game."
+		none.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		mods_page.add_child(none)
+	else:
+		for mod in mods:
+			var check := CheckBox.new()
+			check.text = str(mod)
+			mods_page.add_child(check)
+			mod_checks[str(mod)] = check
+
+	var host_scroll := ScrollContainer.new()
+	host_scroll.name = "Hosting"
+	host_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	tabs.add_child(host_scroll)
+	var host_page := VBoxContainer.new()
+	host_page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	host_page.add_theme_constant_override("separation", 8)
+	host_scroll.add_child(host_page)
+	host_check = CheckBox.new()
+	host_check.text = "Host this world for other players"
+	host_page.add_child(host_check)
+	hosting_box = VBoxContainer.new()
+	hosting_box.add_theme_constant_override("separation", 8)
+	host_page.add_child(hosting_box)
+	var host_grid := GridContainer.new()
+	host_grid.columns = 2
+	host_grid.add_theme_constant_override("h_separation", 12)
+	host_grid.add_theme_constant_override("v_separation", 8)
+	hosting_box.add_child(host_grid)
+	server_name_edit = _labelled_edit(host_grid, "Server name", "My Goanna server")
+	server_description_edit = _labelled_edit(host_grid, "Description", "")
+	server_password_edit = _labelled_edit(host_grid, "Server password", "")
+	server_password_edit.secret = true
+	server_port_edit = _labelled_edit(host_grid, "Port", "30000")
+	var max_label := Label.new()
+	max_label.text = "Maximum players"
+	host_grid.add_child(max_label)
+	max_players_spin = SpinBox.new()
+	max_players_spin.min_value = 1
+	max_players_spin.max_value = 100
+	max_players_spin.value = 8
+	host_grid.add_child(max_players_spin)
+	announce_check = CheckBox.new()
+	announce_check.text = "Announce on the public Luanti server list"
+	hosting_box.add_child(announce_check)
+	var warning := Label.new()
+	warning.text = "Announcing exposes the server publicly. Your network may also require port forwarding."
+	warning.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	warning.modulate = Color(1, 0.8, 0.55, 0.8)
+	hosting_box.add_child(warning)
+	hosting_box.visible = false
+	host_check.toggled.connect(func(on: bool) -> void: hosting_box.visible = on)
+
 	var cfg := ConfigFile.new()
 	cfg.load(CFG_PATH)
 	world_edit.text = str(cfg.get_value("local", "world", "my_world"))
 	var last_game := str(cfg.get_value("local", "game", ""))
-	var last_tdl := bool(cfg.get_value("local", "terrain_diffusion", false))
 	for i in game_option.item_count:
-		var meta: Dictionary = game_option.get_item_metadata(i)
-		if meta.get("gameid", "") == last_game and bool(meta.get("terrain_diffusion", false)) == last_tdl:
+		if str(game_option.get_item_metadata(i)) == last_game:
 			game_option.select(i)
+	for i in world_option.item_count:
+		if world_option.get_item_text(i) == world_edit.text:
+			world_option.select(i)
+			break
+	host_check.button_pressed = bool(cfg.get_value("local_host", "enabled", false))
+	hosting_box.visible = host_check.button_pressed
+	server_name_edit.text = str(cfg.get_value("local_host", "name", "My Goanna server"))
+	server_description_edit.text = str(cfg.get_value("local_host", "description", ""))
+	server_port_edit.text = str(cfg.get_value("local_host", "port", "30000"))
+	announce_check.button_pressed = bool(cfg.get_value("local_host", "announce", false))
+	max_players_spin.value = int(cfg.get_value("local_host", "max_players", 8))
+	world_option.item_selected.connect(_on_world_selected)
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_END
 	row.add_theme_constant_override("separation", 8)
 	screen.add_child(row)
 	row.add_child(_button("Back", _show_main))
+	delete_button = _button("Delete world", _confirm_delete_world)
+	row.add_child(delete_button)
 	start_button = _button("Start", _on_start_local)
 	row.add_child(start_button)
+	generator_option.item_selected.connect(func(_index: int) -> void:
+		_refresh_terrain_download_state())
+	_on_world_selected(world_option.selected)
+	_refresh_terrain_download_state()
 	world_edit.text_submitted.connect(func(_t): _on_start_local())
 
+func _on_world_selected(index: int) -> void:
+	var entry: Dictionary = world_option.get_item_metadata(index)
+	var is_new := entry.is_empty()
+	world_edit.editable = is_new
+	world_edit.visible = is_new
+	if delete_button:
+		delete_button.visible = not is_new
+	game_option.disabled = not is_new
+	generator_option.disabled = not is_new
+	if is_new:
+		for check in mod_checks.values():
+			(check as CheckBox).button_pressed = false
+		_refresh_terrain_download_state()
+		return
+	var name := str(entry.get("name", ""))
+	world_edit.text = name
+	var options := LocalServer.world_options(_local_data_dir, name)
+	var gid := str(options.get("gameid", ""))
+	for i in game_option.item_count:
+		if str(game_option.get_item_metadata(i)) == gid:
+			game_option.select(i)
+			break
+	generator_option.select(1 if bool(options.get("terrain_diffusion", false)) else 0)
+	creative_check.button_pressed = bool(options.get("creative", false))
+	damage_check.button_pressed = bool(options.get("damage", true))
+	var selected_mods: Array = options.get("mods", [])
+	for mod in mod_checks:
+		(mod_checks[mod] as CheckBox).button_pressed = selected_mods.has(mod)
+	_refresh_terrain_download_state()
+
+func _refresh_terrain_download_state() -> void:
+	if not is_instance_valid(terrain_download_label) or not is_instance_valid(generator_option):
+		return
+	var wants_default := str(generator_option.get_item_metadata(generator_option.selected)) == "terrain_default"
+	terrain_download_label.visible = wants_default and not generator_option.disabled
+	if not wants_default:
+		return
+	if LocalServer.default_terrain_cached():
+		terrain_download_label.text = "Default terrain is downloaded and ready."
+		if is_instance_valid(start_button):
+			start_button.text = "Start"
+	else:
+		terrain_download_label.text = "One-time download required: %.1f MB. It will be reused by future worlds." % (LocalServer.DEFAULT_TERRAIN_DOWNLOAD_BYTES / 1000000.0)
+		if is_instance_valid(start_button):
+			start_button.text = "Download & Start"
+
+func _start_terrain_download() -> void:
+	if terrain_http != null:
+		return
+	var downloads := ProjectSettings.globalize_path("user://content/downloads")
+	DirAccess.make_dir_recursive_absolute(downloads)
+	_terrain_archive_path = downloads.path_join(LocalServer.DEFAULT_TERRAIN_ID + ".zip.part")
+	DirAccess.remove_absolute(_terrain_archive_path)
+	terrain_http = HTTPRequest.new()
+	terrain_http.download_file = _terrain_archive_path
+	add_child(terrain_http)
+	terrain_http.request_completed.connect(_on_terrain_download_completed)
+	var err := terrain_http.request(LocalServer.DEFAULT_TERRAIN_URL)
+	if err != OK:
+		terrain_http.queue_free()
+		terrain_http = null
+		_pending_terrain_start = false
+		_fail("Could not start the Terrain Diffusion download.")
+		return
+	start_button.disabled = true
+	status_label.modulate = Color(1, 1, 1, 0.7)
+	status_label.text = "Downloading Terrain Diffusion default world ..."
+	set_process(true)
+
+func _on_terrain_download_completed(result: int, code: int,
+		_headers: PackedStringArray, _body: PackedByteArray) -> void:
+	var request := terrain_http
+	terrain_http = null
+	if is_instance_valid(request):
+		request.queue_free()
+	if result != HTTPRequest.RESULT_SUCCESS or code != 200:
+		DirAccess.remove_absolute(_terrain_archive_path)
+		_pending_terrain_start = false
+		start_button.disabled = false
+		_fail("Terrain download failed (HTTP %d). Check your connection and try again." % code)
+		return
+	var actual_hash := FileAccess.get_sha256(_terrain_archive_path)
+	if actual_hash.to_lower() != LocalServer.DEFAULT_TERRAIN_SHA256:
+		DirAccess.remove_absolute(_terrain_archive_path)
+		_pending_terrain_start = false
+		start_button.disabled = false
+		_fail("Terrain download failed its integrity check and was discarded.")
+		return
+	var install_error := _extract_default_terrain(_terrain_archive_path)
+	DirAccess.remove_absolute(_terrain_archive_path)
+	if install_error != "":
+		_pending_terrain_start = false
+		start_button.disabled = false
+		_fail(install_error)
+		return
+	_refresh_terrain_download_state()
+	status_label.text = "Terrain Diffusion default world downloaded."
+	start_button.disabled = false
+	if _pending_terrain_start:
+		_pending_terrain_start = false
+		call_deferred("_on_start_local")
+
+func _extract_default_terrain(archive_path: String) -> String:
+	var zip := ZIPReader.new()
+	if zip.open(archive_path) != OK:
+		return "The downloaded terrain archive could not be opened."
+	var parent := ProjectSettings.globalize_path("user://content")
+	DirAccess.make_dir_recursive_absolute(parent)
+	var staging := parent.path_join(".%s-install-%d" % [LocalServer.DEFAULT_TERRAIN_ID, OS.get_process_id()])
+	DirAccess.make_dir_recursive_absolute(staging)
+	for entry in zip.get_files():
+		var clean := entry.replace("\\", "/").simplify_path()
+		if clean == "." or clean.begins_with("../") or clean.begins_with("/"):
+			zip.close()
+			return "The downloaded terrain archive contains an unsafe path."
+		var destination := staging.path_join(clean)
+		if entry.ends_with("/"):
+			DirAccess.make_dir_recursive_absolute(destination)
+			continue
+		DirAccess.make_dir_recursive_absolute(destination.get_base_dir())
+		var output := FileAccess.open(destination, FileAccess.WRITE)
+		if output == null:
+			zip.close()
+			return "Could not write the downloaded terrain cache."
+		output.store_buffer(zip.read_file(entry))
+	zip.close()
+	if not LocalServer.default_terrain_dir_valid(staging):
+		return "The downloaded terrain archive is incomplete."
+	var destination := LocalServer.default_terrain_cache_dir()
+	if DirAccess.dir_exists_absolute(destination):
+		var old := destination + ".invalid-%d" % int(Time.get_unix_time_from_system())
+		if DirAccess.rename_absolute(destination, old) != OK:
+			return "Could not replace the invalid terrain cache."
+	if DirAccess.rename_absolute(staging, destination) != OK:
+		return "Could not install the downloaded terrain cache."
+	return ""
+
+func _confirm_delete_world() -> void:
+	var entry: Dictionary = world_option.get_item_metadata(world_option.selected)
+	if entry.is_empty():
+		return
+	var dialog := ConfirmationDialog.new()
+	dialog.title = "Delete world"
+	dialog.dialog_text = "Move '%s' out of the world list? It will be kept in .goanna-trash for recovery." % entry["name"]
+	dialog.ok_button_text = "Delete"
+	dialog.confirmed.connect(func() -> void:
+		var err := LocalServer.delete_world_recoverably(_local_data_dir, str(entry["name"]))
+		if err != "":
+			_fail(err)
+		else:
+			status_label.text = "World moved to .goanna-trash."
+			_show_new_game())
+	add_child(dialog)
+	dialog.popup_centered()
+
 func _on_start_local() -> void:
-	var selected: Dictionary = game_option.get_item_metadata(game_option.selected)
-	var game := str(selected.get("gameid", game_option.get_item_text(game_option.selected)))
-	var terrain_diffusion := bool(selected.get("terrain_diffusion", false))
-	var world := world_edit.text.strip_edges()
+	var game := str(game_option.get_item_metadata(game_option.selected))
+	var generator := str(generator_option.get_item_metadata(generator_option.selected))
+	var terrain_diffusion := generator.begins_with("terrain_")
+	var existing: Dictionary = world_option.get_item_metadata(world_option.selected)
+	var world := str(existing.get("name", "")) if not existing.is_empty() else world_edit.text.strip_edges()
 	# A world belongs to the game that made it. Loading it under another
 	# game leaves every stored node unknown (a world of pink "unknown
 	# node" blocks), so continue an existing world with its own game.
-	var data_dir: String = LocalServer.data_dir_or_empty()
-	if data_dir != "" and world != "":
-		var existing: String = LocalServer.world_gameid(data_dir, world)
-		if existing != "" and existing != game:
-			_fail("The world \"%s\" was created with %s, so it opens with %s."
-				% [world, existing, existing])
-			game = existing
-			terrain_diffusion = false
-			for i in game_option.item_count:
-				var meta: Dictionary = game_option.get_item_metadata(i)
-				if meta.get("gameid", "") == existing and not bool(meta.get("terrain_diffusion", false)):
-					game_option.select(i)
-		# Prepared Terrain Diffusion worlds always need their runtime mod and
-		# singlenode settings, even when selected from an older saved menu choice.
-		if existing == "mineclonia" and LocalServer.terrain_diffusion_ready(data_dir, world):
-			terrain_diffusion = true
 	if world == "":
-		world = "my_world"
+		_fail("Enter a name for the new world.")
+		return
 	var allowed := RegEx.new()
 	allowed.compile("^[A-Za-z0-9_ -]{1,40}$")
 	if allowed.search(world) == null:
 		_fail("World names are 1 to 40 characters: letters, digits, spaces, _ and -.")
 		return
+	if existing.is_empty() and DirAccess.dir_exists_absolute(_local_data_dir.path_join("worlds").path_join(world)):
+		_fail("A world directory named '%s' already exists. Select it from the world list or choose a new name; it will not be overwritten." % world)
+		return
+	if host_check.button_pressed:
+		var ptext := server_port_edit.text.strip_edges()
+		if not ptext.is_valid_int() or int(ptext) < 1 or int(ptext) > 65535:
+			_fail("Hosting port must be between 1 and 65535.")
+			return
+	if existing.is_empty() and generator == "terrain_default" and not LocalServer.default_terrain_cached():
+		_pending_terrain_start = true
+		_start_terrain_download()
+		return
+	var enabled_mods: Array = []
+	for mod in mod_checks:
+		if (mod_checks[mod] as CheckBox).button_pressed:
+			enabled_mods.append(mod)
 	# Scripted runs must not touch the player's remembered choices: a test
 	# world would otherwise turn up prefilled the next time they open the menu.
 	if OS.get_environment("GOANNA_LOCAL_TEST") == "":
@@ -424,19 +727,44 @@ func _on_start_local() -> void:
 		cfg.set_value("local", "game", game)
 		cfg.set_value("local", "terrain_diffusion", terrain_diffusion)
 		cfg.set_value("local", "world", world)
+		cfg.set_value("local_host", "enabled", host_check.button_pressed)
+		cfg.set_value("local_host", "name", server_name_edit.text)
+		cfg.set_value("local_host", "description", server_description_edit.text)
+		cfg.set_value("local_host", "port", server_port_edit.text)
+		cfg.set_value("local_host", "announce", announce_check.button_pressed)
+		cfg.set_value("local_host", "max_players", int(max_players_spin.value))
 		cfg.save(CFG_PATH)
 	server = LocalServer.new()
-	var err: String = server.start(game, world, _local_player_name(), terrain_diffusion)
+	var public_announce := host_check.button_pressed and announce_check.button_pressed
+	var launch := {"gameid": game, "world": world, "player_name": _local_player_name(),
+		"terrain_diffusion": terrain_diffusion, "creative": creative_check.button_pressed,
+		"damage": damage_check.button_pressed, "mods": enabled_mods,
+		"host": host_check.button_pressed, "server_name": server_name_edit.text.strip_edges(),
+		"server_description": server_description_edit.text.strip_edges(),
+		"password": server_password_edit.text, "announce": public_announce,
+		"max_users": int(max_players_spin.value)}
+	if host_check.button_pressed:
+		launch["port"] = int(server_port_edit.text)
+	_local_join_password = server_password_edit.text if host_check.button_pressed else ""
+	var err: String = server.start_config(launch)
 	if err != "":
 		_fail(err)
 		return
 	start_button.disabled = true
 	status_label.modulate = Color(1, 1, 1, 0.7)
-	status_label.text = "Starting %s ..." % ("Mineclonia + Terrain Diffusion" if terrain_diffusion else game)
+	status_label.text = "Starting %s ..." % world
 	server_deadline = _now() + 20.0
 	set_process(true)
 
 func _process(_delta: float) -> void:
+	if terrain_http != null:
+		var downloaded := terrain_http.get_downloaded_bytes()
+		var total := terrain_http.get_body_size()
+		if total > 0:
+			status_label.text = "Downloading Terrain Diffusion default world: %.1f / %.1f MB" % [downloaded / 1000000.0, total / 1000000.0]
+		else:
+			status_label.text = "Downloading Terrain Diffusion default world: %.1f MB" % (downloaded / 1000000.0)
+		return
 	if server == null:
 		set_process(false)
 		return
@@ -447,7 +775,7 @@ func _process(_delta: float) -> void:
 		OS.set_environment("GOANNA_HOST", "127.0.0.1")
 		OS.set_environment("GOANNA_PORT", str(server.port))
 		OS.set_environment("GOANNA_NAME", _local_player_name())
-		OS.set_environment("GOANNA_PASS", "")
+		OS.set_environment("GOANNA_PASS", _local_join_password)
 		# The game this world runs, so main.gd can pick per game defaults
 		# (the bundled texture map today) without being told by the player.
 		OS.set_environment("GOANNA_GAME", server.gameid)

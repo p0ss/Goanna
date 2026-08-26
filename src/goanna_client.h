@@ -391,7 +391,15 @@ private:
     // the finest coarse tier even inside this distance, so server delivery
     // holes cannot become a circular trench. Everything far gates on this
     // being above zero; 0 turns it off. docs/launch-target.md.
-    int m_lod_distance = 12;
+    // Blocks nearer than this are drawn at full detail. Twelve was chosen
+    // before there was any far rendering at all, when everything past it was
+    // fog, so it had to be close enough to hide that. Now the far tiers draw
+    // out to the server's grant and this only decides where exact geometry
+    // gives way to coarse, which is a much cheaper boundary to move.
+    // Measured on a local Mineclonia world: twelve against twenty-four is
+    // within noise on frame time and within five megabytes of video memory.
+    // main.gd raises it further on a machine that reports itself capable.
+    int m_lod_distance = 20;
     int m_lod_cell = 4;
     // The smoothed surface reads as melted terrain wherever the far field
     // meets a cliff or a coastline (docs/far-rendering.md, "Terraces or
@@ -429,6 +437,17 @@ private:
     };
     std::map<LodRegionKey, LodRegion> m_lod_regions;
     std::map<v3s16, LodRegionKey> m_lod_member; // which region draws a block
+    // A tier change crosses region ownership. The new region may take several
+    // frames to capture, mesh and upload, so the old region retains a duplicate
+    // member until the target has actually published a mesh containing the
+    // block. Atomic publication within one region is not enough for this
+    // cross-region handoff.
+    struct LodFarHandoff {
+        LodRegionKey target;
+        std::set<LodRegionKey> old_regions;
+    };
+    std::map<v3s16, LodFarHandoff> m_lod_handoff_far;
+    std::map<LodRegionKey, int> m_lod_handoff_old_counts;
     // Built lazily, dropped when the block changes. Shared and immutable
     // once published, so a mesh worker can hold the chains its region needs
     // while the main thread erases and rebuilds others: replacing a chain
@@ -603,6 +622,7 @@ private:
     // it, which is what makes the far to near hand-off atomic: no frame has
     // to show a hole where the far tier used to be.
     struct NearReady {
+        uint64_t generation = 0;
         std::unique_ptr<MapBlockMesh> mesh;
         BlockLightField light;
         // Per vertex light and occlusion, keyed (layer << 16 | buffer), so
@@ -611,7 +631,12 @@ private:
         std::map<uint32_t, std::vector<VertexLight>> vertex_light;
     };
     std::map<v3s16, NearReady> m_near_ready;
-    std::set<v3s16> m_near_inflight;
+    // Latest map/neighbourhood revision requested for each block, and the
+    // latest revision submitted to the pool. A block can change while an
+    // older capture is running; the replacement queues behind it and the
+    // older result is rejected on collection.
+    std::map<v3s16, uint64_t> m_near_generation;
+    std::map<v3s16, uint64_t> m_near_inflight;
     // Gather one block's meshing input under the map lock and queue it.
     // False when it cannot be queued and the caller should mesh it inline,
     // which is the block with the dig crack in it: that path asks the texture

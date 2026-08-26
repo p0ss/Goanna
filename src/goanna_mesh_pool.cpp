@@ -11,12 +11,15 @@ void MeshPool::start(int threads) {
     if (m_running.load(std::memory_order_acquire))
         return;
     if (threads <= 0) {
-        // Leave a core for Godot's main thread and one for the session
-        // thread. Four is enough to keep a region backlog moving and small
-        // enough that the meshers do not evict the renderer's working set on
-        // a four core machine, where hardware_concurrency() - 2 is 2 anyway.
+        // Half the machine, leaving the other half for Godot's main thread,
+        // the session thread and everything else. The old rule capped at four
+        // whatever the machine had, which on a sixteen thread desktop left
+        // three quarters of it idle while the player watched terrain arrive.
+        // Still one on anything small, and still bounded, because past about
+        // eight the meshers start costing more in cache pressure than they
+        // return.
         unsigned hw = std::thread::hardware_concurrency();
-        threads = (int)std::clamp<unsigned>(hw > 2 ? hw - 2 : 1, 1, 4);
+        threads = (int)std::clamp<unsigned>(hw / 2, 1, 8);
     }
     m_running.store(true, std::memory_order_release);
     m_threads.reserve((size_t)threads);
@@ -31,6 +34,10 @@ void MeshPool::stop() {
             if (t.joinable())
                 t.join();
         m_threads.clear();
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_queue.clear();
+        m_ready.clear();
+        m_inflight.clear();
         return;
     }
     m_wake.notify_all();
@@ -44,10 +51,39 @@ void MeshPool::stop() {
     m_inflight.clear();
 }
 
-void MeshPool::submit(const MeshJobKey &key, uint64_t generation, int priority,
+void MeshPool::setLimits(int queued, int noncoverage, int refinement, int ready) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_max_queued = std::max(1, queued);
+    m_max_noncoverage = std::clamp(noncoverage, 0, m_max_queued);
+    m_max_refinement = std::clamp(refinement, 0, m_max_noncoverage);
+    m_max_ready = std::max(1, ready);
+}
+
+bool MeshPool::canAdmitLocked(const MeshJobKey &key, MeshWorkStage stage) const {
+    int noncoverage = 0;
+    int refinement = 0;
+    for (const Queued &q : m_queue) {
+        if (q.key == key)
+            return true; // replacing a queued capture does not consume space
+        if (q.stage != MeshWorkStage::kCoverage)
+            ++noncoverage;
+        if (q.stage >= MeshWorkStage::kStructure)
+            ++refinement;
+    }
+    return (int)m_queue.size() < m_max_queued &&
+            (stage == MeshWorkStage::kCoverage || noncoverage < m_max_noncoverage) &&
+            (stage < MeshWorkStage::kStructure || refinement < m_max_refinement);
+}
+
+bool MeshPool::canSubmit(const MeshJobKey &key, MeshWorkStage stage) const {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return canAdmitLocked(key, stage);
+}
+
+bool MeshPool::submit(const MeshJobKey &key, uint64_t generation, MeshWorkStage stage, int priority,
         std::unique_ptr<MeshJob> job) {
     if (!job)
-        return;
+        return false;
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         // Replace a queued job for the same key rather than queueing behind
@@ -56,20 +92,27 @@ void MeshPool::submit(const MeshJobKey &key, uint64_t generation, int priority,
         for (auto &q : m_queue) {
             if (q.key == key) {
                 q.generation = generation;
+                q.stage = stage;
                 q.priority = priority;
                 q.job = std::move(job);
                 m_wake.notify_one();
-                return;
+                return true;
             }
+        }
+        if (!canAdmitLocked(key, stage)) {
+            ++m_rejected;
+            return false;
         }
         Queued q;
         q.key = key;
         q.generation = generation;
+        q.stage = stage;
         q.priority = priority;
         q.job = std::move(job);
         m_queue.push_back(std::move(q));
     }
     m_wake.notify_one();
+    return true;
 }
 
 void MeshPool::cancel(const MeshJobKey &key) {
@@ -82,6 +125,17 @@ void MeshPool::cancel(const MeshJobKey &key) {
     }
 }
 
+void MeshPool::cancelKind(MeshJobKey::Kind kind) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_queue.erase(std::remove_if(m_queue.begin(), m_queue.end(),
+                          [kind](const Queued &q) { return q.key.kind == kind; }),
+            m_queue.end());
+    m_ready.erase(std::remove_if(m_ready.begin(), m_ready.end(),
+                          [kind](const Done &d) { return d.key.kind == kind; }),
+            m_ready.end());
+    m_wake.notify_all();
+}
+
 void MeshPool::cancelAll() {
     std::lock_guard<std::mutex> lock(m_mutex);
     m_queue.clear();
@@ -92,7 +146,8 @@ bool MeshPool::takeLocked(Queued &out) {
         return false;
     auto best = m_queue.begin();
     for (auto it = std::next(best); it != m_queue.end(); ++it)
-        if (it->priority < best->priority)
+        if (it->stage < best->stage ||
+                (it->stage == best->stage && it->priority < best->priority))
             best = it;
     out = std::move(*best);
     m_queue.erase(best);
@@ -118,14 +173,22 @@ void MeshPool::workerMain() {
         q.job->run();
 
         {
-            std::lock_guard<std::mutex> lock(m_mutex);
+            std::unique_lock<std::mutex> lock(m_mutex);
+            m_wake.wait(lock, [&] {
+                return !m_running.load(std::memory_order_acquire) ||
+                        (int)m_ready.size() < m_max_ready;
+            });
             --m_active;
             auto it = m_inflight.find(q.key);
             if (it != m_inflight.end() && it->second == q.generation)
                 m_inflight.erase(it);
+            if (!m_running.load(std::memory_order_acquire))
+                return;
             Done d;
             d.key = q.key;
             d.generation = q.generation;
+            d.stage = q.stage;
+            d.priority = q.priority;
             d.job = std::move(q.job);
             m_ready.push_back(std::move(d));
         }
@@ -136,8 +199,14 @@ bool MeshPool::next(Done &out) {
     std::lock_guard<std::mutex> lock(m_mutex);
     if (m_ready.empty())
         return false;
-    out = std::move(m_ready.front());
-    m_ready.pop_front();
+    auto best = m_ready.begin();
+    for (auto it = std::next(best); it != m_ready.end(); ++it)
+        if (it->stage < best->stage ||
+                (it->stage == best->stage && it->priority < best->priority))
+            best = it;
+    out = std::move(*best);
+    m_ready.erase(best);
+    m_wake.notify_one();
     return true;
 }
 
@@ -153,6 +222,9 @@ MeshPool::Stats MeshPool::stats() const {
     s.running = m_active;
     s.ready = (int)m_ready.size();
     s.threads = (int)m_threads.size();
+    s.rejected = m_rejected;
+    for (const Queued &q : m_queue)
+        ++s.queued_stage[(int)q.stage];
     return s;
 }
 

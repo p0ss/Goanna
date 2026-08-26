@@ -31,6 +31,10 @@ const TERRAIN_DIFFUSION_FILES := [
 	"tdl_terrain.lua", "tdl_mapgen.lua", "settingtypes.txt", "mod.conf", "LICENSE",
 ]
 const GOANNA_SERVER_MOD_FILES := ["init.lua", "mod.conf", "settingtypes.txt", "README.md"]
+const DEFAULT_TERRAIN_ID := "tdl-default-1m-v1"
+const DEFAULT_TERRAIN_URL := "https://github.com/p0ss/terrain-diffusion-luanti/releases/download/default-1m-v1/tdl-default-1m-v1.zip"
+const DEFAULT_TERRAIN_SHA256 := "682f6e603fa26d095e1dc47f4c05195d50d8dfb0af9a6530e1e9bbfad32d4742"
+const DEFAULT_TERRAIN_DOWNLOAD_BYTES := 6883437
 const DEFAULT_TERRAIN_I0 := 84
 const DEFAULT_TERRAIN_J0 := 80
 const DEFAULT_TERRAIN_TILES := 4
@@ -157,16 +161,54 @@ static func world_gameid(data_dir: String, worldname: String) -> String:
 			return line.get_slice("=", 1).strip_edges()
 	return ""
 
+static func world_options(data_dir: String, worldname: String) -> Dictionary:
+	var result := {"gameid": world_gameid(data_dir, worldname), "creative": false,
+		"damage": true, "mods": [], "terrain_diffusion": terrain_diffusion_ready(data_dir, worldname)}
+	var path := data_dir.path_join("worlds").path_join(worldname).path_join("world.mt")
+	var f := FileAccess.open(path, FileAccess.READ)
+	if f == null:
+		return result
+	while not f.eof_reached():
+		var line := f.get_line().strip_edges()
+		var key := line.get_slice("=", 0).strip_edges()
+		var value := line.get_slice("=", 1).strip_edges()
+		if key == "creative_mode":
+			result["creative"] = value == "true"
+		elif key == "enable_damage":
+			result["damage"] = value != "false"
+		elif key.begins_with("load_mod_") and value != "false":
+			(result["mods"] as Array).append(key.trim_prefix("load_mod_"))
+	return result
+
+static func delete_world_recoverably(data_dir: String, worldname: String) -> String:
+	var source := data_dir.path_join("worlds").path_join(worldname)
+	if not DirAccess.dir_exists_absolute(source):
+		return "World not found: %s" % worldname
+	var trash := data_dir.path_join("worlds").path_join(".goanna-trash")
+	DirAccess.make_dir_recursive_absolute(trash)
+	var stamp := int(Time.get_unix_time_from_system())
+	var target := trash.path_join("%s-%d" % [worldname, stamp])
+	var err := DirAccess.rename_absolute(source, target)
+	return "" if err == OK else "Could not move the world to %s." % target
+
 # Where Luanti keeps its worlds, for callers that need to inspect them.
 static func data_dir_or_empty() -> String:
 	var env := detect()
 	return env["data_dir"] if not env.is_empty() else ""
 
-# A Terrain Diffusion world carries a generated tile cache. New default worlds
-# receive the packaged cache below; custom worlds receive one from the baker.
+# A Terrain Diffusion world carries its own generated tile cache. The default
+# bake is downloaded once into a shared content cache, then copied into each
+# world so existing worlds never depend on a network request or mutable asset.
 static func terrain_diffusion_ready(data_dir: String, worldname: String) -> bool:
 	return FileAccess.file_exists(data_dir.path_join("worlds").path_join(worldname)
 		.path_join("terrain_diffusion").path_join("manifest.json"))
+
+static func world_has_generated_map(data_dir: String, worldname: String) -> bool:
+	var world := data_dir.path_join("worlds").path_join(worldname)
+	for backend in ["map.sqlite", "map.db", "map.lmdb"]:
+		if FileAccess.file_exists(world.path_join(backend)):
+			return true
+	return DirAccess.dir_exists_absolute(world.path_join("map"))
 
 static func _copy_resource_file(src: String, dst: String) -> bool:
 	var input := FileAccess.open(src, FileAccess.READ)
@@ -178,29 +220,48 @@ static func _copy_resource_file(src: String, dst: String) -> bool:
 	output.store_buffer(input.get_buffer(input.get_length()))
 	return true
 
-# Materialise the bundled 1 m-per-node template inside a new world. Its
-# manifest is an internal runtime detail, not something the player supplies.
-func _install_default_terrain(world: String) -> String:
-	var src := "res://vendor/terrain_diffusion_default"
+static func default_terrain_cache_dir() -> String:
+	return ProjectSettings.globalize_path("user://content").path_join(DEFAULT_TERRAIN_ID)
+
+static func default_terrain_dir_valid(src: String) -> bool:
+	if not FileAccess.file_exists(src.path_join("manifest.json")):
+		return false
+	for ti in range(DEFAULT_TERRAIN_I0, DEFAULT_TERRAIN_I0 + DEFAULT_TERRAIN_TILES):
+		for tj in range(DEFAULT_TERRAIN_J0, DEFAULT_TERRAIN_J0 + DEFAULT_TERRAIN_TILES):
+			if not FileAccess.file_exists(src.path_join("tiles").path_join(
+					"t_%d_%d.bin" % [ti, tj])):
+				return false
+	return true
+
+static func default_terrain_cached() -> bool:
+	return default_terrain_dir_valid(default_terrain_cache_dir())
+
+static func _conf_value(value: Variant) -> String:
+	return str(value).replace("\r", " ").replace("\n", " ").strip_edges()
+
+# Materialise the cached 1 m-per-node template inside a new world.
+func _install_default_terrain(world: String, source := "") -> String:
+	var src: String = source if source != "" else default_terrain_cache_dir()
 	var dst := world.path_join("terrain_diffusion")
 	DirAccess.make_dir_recursive_absolute(dst.path_join("tiles"))
 	if not _copy_resource_file(src.path_join("manifest.json"), dst.path_join("manifest.json")):
-		return "The packaged default Terrain Diffusion world is missing its manifest."
+		return "Download the Terrain Diffusion default world before starting this world."
 	for ti in range(DEFAULT_TERRAIN_I0, DEFAULT_TERRAIN_I0 + DEFAULT_TERRAIN_TILES):
 		for tj in range(DEFAULT_TERRAIN_J0, DEFAULT_TERRAIN_J0 + DEFAULT_TERRAIN_TILES):
 			var filename := "t_%d_%d.bin" % [ti, tj]
 			if not _copy_resource_file(src.path_join("tiles").path_join(filename),
 					dst.path_join("tiles").path_join(filename)):
-				return "The packaged default Terrain Diffusion world is missing %s." % filename
+				return "The cached Terrain Diffusion default world is incomplete (%s is missing)." % filename
 	return ""
 
-func _initialise_terrain_diffusion_world(world: String, worldname: String) -> String:
+func _initialise_terrain_diffusion_world(world: String, worldname: String,
+		world_gameid: String = "mineclonia") -> String:
 	var world_mt := world.path_join("world.mt")
 	if not FileAccess.file_exists(world_mt):
 		var wf := FileAccess.open(world_mt, FileAccess.WRITE)
 		if wf == null:
 			return "Could not initialise %s." % world_mt
-		wf.store_string("gameid = mineclonia\nworld_name = %s\nbackend = sqlite3\n" % worldname)
+		wf.store_string("gameid = %s\nworld_name = %s\nbackend = sqlite3\n" % [world_gameid, worldname])
 		wf.store_string("player_backend = sqlite3\nauth_backend = sqlite3\nmod_storage_backend = sqlite3\n")
 		wf.store_string("creative_mode = false\nenable_damage = true\nserver_announce = false\n")
 	var map_meta := world.path_join("map_meta.txt")
@@ -211,6 +272,34 @@ func _initialise_terrain_diffusion_world(world: String, worldname: String) -> St
 		mf.store_string("seed = 1234\nchunksize = 5\nwater_level = 1\n")
 		mf.store_string("mg_flags = caves, nodungeons, light, decorations, biomes, ores\n")
 		mf.store_string("mg_name = singlenode\nmcl_singlenode_mapgen = false\n[end_of_params]\n")
+	return ""
+
+func _write_world_options(world: String, options: Dictionary) -> String:
+	var path := world.path_join("world.mt")
+	var values := {
+		"gameid": str(options.get("gameid", "")),
+		"world_name": str(options.get("world", "")),
+		"creative_mode": "true" if bool(options.get("creative", false)) else "false",
+		"enable_damage": "true" if bool(options.get("damage", true)) else "false",
+		"server_announce": "true" if bool(options.get("announce", false)) else "false",
+	}
+	var mods: Array = options.get("mods", [])
+	for mod in mods:
+		values["load_mod_" + str(mod)] = "true"
+	var kept: PackedStringArray = []
+	if FileAccess.file_exists(path):
+		for line in FileAccess.get_file_as_string(path).split("\n"):
+			var key := line.get_slice("=", 0).strip_edges()
+			if values.has(key) or key.begins_with("load_mod_"):
+				continue
+			if line != "":
+				kept.append(line)
+	for key in values:
+		kept.append("%s = %s" % [key, values[key]])
+	var output := FileAccess.open(path, FileAccess.WRITE)
+	if output == null:
+		return "Could not update %s." % path
+	output.store_string("\n".join(kept) + "\n")
 	return ""
 
 func _install_terrain_diffusion(world: String) -> String:
@@ -267,7 +356,14 @@ func _install_server_mod(world: String) -> String:
 
 func start(gameid_: String, worldname: String, player_name: String = "player",
 		terrain_diffusion: bool = false) -> String:
-	gameid = gameid_
+	return start_config({"gameid": gameid_, "world": worldname, "player_name": player_name,
+		"terrain_diffusion": terrain_diffusion})
+
+func start_config(options: Dictionary) -> String:
+	gameid = str(options.get("gameid", ""))
+	var worldname := str(options.get("world", ""))
+	var player_name := str(options.get("player_name", "player"))
+	var terrain_diffusion := bool(options.get("terrain_diffusion", false))
 	var env := detect()
 	if env.is_empty():
 		return "No Luanti server found. Install Luanti (or the org.luanti.luanti flatpak), or set GOANNA_SERVER_CMD."
@@ -277,10 +373,12 @@ func start(gameid_: String, worldname: String, player_name: String = "player",
 	DirAccess.make_dir_recursive_absolute(world_path)
 	if terrain_diffusion:
 		if not terrain_diffusion_ready(_data_dir, worldname):
+			if world_has_generated_map(_data_dir, worldname):
+				return "Terrain Diffusion cannot be applied to the populated world '%s': its existing map would remain as a second stacked landscape. Create an empty world with a new name instead." % worldname
 			var default_error := _install_default_terrain(world_path)
 			if default_error != "":
 				return default_error
-		var initialise_error := _initialise_terrain_diffusion_world(world_path, worldname)
+		var initialise_error := _initialise_terrain_diffusion_world(world_path, worldname, gameid)
 		if initialise_error != "":
 			return initialise_error
 		var prepare_error := _prepare_terrain_diffusion_meta(world_path)
@@ -289,9 +387,14 @@ func start(gameid_: String, worldname: String, player_name: String = "player",
 		var install_error := _install_terrain_diffusion(world_path)
 		if install_error != "":
 			return install_error
+	var world_options_error := _write_world_options(world_path, options)
+	if world_options_error != "":
+		return world_options_error
 	log_path = _data_dir.path_join("goanna_singleplayer.log")
 	# a fixed local port; if it is busy the log tells us and start() is retried
-	port = 30800 + (hash(worldname) % 150)
+	port = int(options.get("port", 0))
+	if port == 0:
+		port = 30800 + (hash(worldname) % 150)
 	# How far the server will send blocks at all. Luanti defaults
 	# max_block_send_distance to 12 mapblocks, 192 nodes, and that is a hard
 	# ceiling on what any client can draw however much it asks for: see
@@ -302,6 +405,15 @@ func start(gameid_: String, worldname: String, player_name: String = "player",
 	var conf_path := _data_dir.path_join("goanna_local_server.conf")
 	var cf := FileAccess.open(conf_path, FileAccess.WRITE)
 	if cf:
+		var hosting := bool(options.get("host", false))
+		cf.store_string("bind_address = %s\n" % ("0.0.0.0" if hosting else "127.0.0.1"))
+		cf.store_string("server_name = %s\n" % _conf_value(options.get("server_name", worldname)))
+		cf.store_string("server_description = %s\n" % _conf_value(options.get("server_description", "")))
+		cf.store_string("max_users = %d\n" % int(options.get("max_users", 8)))
+		cf.store_string("server_announce = %s\n" % ("true" if bool(options.get("announce", false)) else "false"))
+		var server_password := _conf_value(options.get("password", ""))
+		if server_password != "":
+			cf.store_string("default_password = %s\n" % server_password)
 		cf.store_string("max_block_send_distance = %d\n" % send_distance)
 		# The queue limits throttle how fast those blocks actually arrive; the
 		# defaults are tuned for the default distance and starve a larger one.
