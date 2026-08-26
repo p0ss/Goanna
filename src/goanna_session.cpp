@@ -291,6 +291,23 @@ void GoannaSession::requeueBlock(v3s16 pos) {
     m_new_blocks.push_back(pos);
 }
 
+void GoannaSession::queueBlockUpdate(v3s16 pos) {
+    uint64_t &revision = m_block_revisions[pos];
+    ++revision;
+    if (revision == 0)
+        revision = 1;
+    m_new_blocks.push_back(pos);
+}
+
+uint64_t GoannaSession::blockRevision(v3s16 pos) const {
+    auto it = m_block_revisions.find(pos);
+    return it == m_block_revisions.end() ? 0 : it->second;
+}
+
+void GoannaSession::invalidateBlock(v3s16 pos) {
+    queueBlockUpdate(pos);
+}
+
 MapBlock *GoannaSession::getBlock(v3s16 pos) {
     return m_map->getBlockNoCreateNoEx(pos);
 }
@@ -466,12 +483,12 @@ void GoannaSession::requestFarSummary(v3s16 origin_blocks, int edge_blocks, int 
     if (!m_con)
         return;
     std::string channel(kGoannaChannel);
-    // Version 6: the per-block record is a 4 by 4 by 4 coarse voxel field,
+    // Version 7: the per-block record is a 4 by 4 by 4 coarse voxel field,
     // retaining vertical occupancy for caves, overhangs and floating islands.
     // See the matching comment in goanna_server_mod/init.lua and
     // GoannaClient::lodTakeSummaries. A mod at another version logs a warning
     // and never answers, rather than answering with the wrong shape.
-    std::string msg = "farsum? 6 " + std::to_string(cell) + " " + std::to_string(origin_blocks.X) +
+    std::string msg = "farsum? 7 " + std::to_string(cell) + " " + std::to_string(origin_blocks.X) +
             " " + std::to_string(origin_blocks.Y) + " " + std::to_string(origin_blocks.Z) + " " +
             std::to_string(edge_blocks);
     NetworkPacket pkt(TOSERVER_MODCHANNEL_MSG, 0);
@@ -1010,7 +1027,7 @@ void GoannaSession::stepInteract(float dtime, const InteractInput &in) {
                     }
                 } catch (const InvalidPositionException &) {}
                 for (auto &kv : modified)
-                    m_new_blocks.push_back(kv.first);
+                    queueBlockUpdate(kv.first);
                 queueBlocksAround(nodepos);
                 sendInteract(INTERACT_DIGGING_COMPLETED, pointed);
                 queueDugParticles(nodepos, features, 16);
@@ -1085,9 +1102,9 @@ void GoannaSession::stepInteract(float dtime, const InteractInput &in) {
     static v3s16 last_pos;
     if (m_interact.crack_level != last_level || (m_interact.crack_level >= 0 && m_interact.crack_pos != last_pos)) {
         if (last_level >= 0)
-            m_new_blocks.push_back(getNodeBlockPos(last_pos));
+            queueBlockUpdate(getNodeBlockPos(last_pos));
         if (m_interact.crack_level >= 0)
-            m_new_blocks.push_back(getNodeBlockPos(m_interact.crack_pos));
+            queueBlockUpdate(getNodeBlockPos(m_interact.crack_pos));
         last_level = m_interact.crack_level;
         last_pos = m_interact.crack_pos;
     }
@@ -1243,10 +1260,26 @@ void GoannaSession::threadMain() {
             if (m_send_ready && !m_ready_sent)
                 sendReady();
             if (m_media_announced && !m_media_done && !m_ready_sent) {
-                float waited = std::chrono::duration<float>(
-                        std::chrono::steady_clock::now() - m_media_announce_time).count();
-                if (waited > 30.0f) {
-                    warningstream << "goanna: media incomplete after 30 s; proceeding" << std::endl;
+                // Give up on a stall, not on a total. A big public server
+                // sends far more media than a small one and takes as long as
+                // it takes; the old test was 30 s from the announce, which
+                // every large server exceeds while still sending, and
+                // proceeding then starts the game with textures missing.
+                // Thirty seconds of complete silence is a stall.
+                std::chrono::steady_clock::time_point last;
+                size_t have = 0, want = 0;
+                {
+                    std::lock_guard<std::mutex> lk(m_media_mutex);
+                    last = m_media_last_arrival;
+                    have = m_media.size();
+                    want = m_media_wanted.size();
+                }
+                const float quiet = std::chrono::duration<float>(
+                        std::chrono::steady_clock::now() - last).count();
+                if (quiet > 30.0f) {
+                    warningstream << "goanna: no media for " << (int)quiet << " s ("
+                                  << have << " of " << want
+                                  << " received); proceeding without the rest" << std::endl;
                     m_media_done = true;
                     maybeReady();
                 }
@@ -1665,7 +1698,7 @@ bool GoannaSession::prepareContentIfReady() {
         std::lock_guard<std::mutex> lk(m_map_mutex);
         m_content_prepared = true;
         for (const v3s16 &bp : m_preready_blocks)
-            m_new_blocks.push_back(bp);
+            queueBlockUpdate(bp);
         if (std::getenv("GOANNA_DEBUG_CONTENT"))
             fprintf(stderr, "goanna content: requeued %zu pre-ready blocks\n", m_preready_blocks.size());
         m_preready_blocks.clear();
@@ -1905,6 +1938,7 @@ void GoannaSession::onAnnounceMedia(NetworkPacket &pkt) {
     }
     m_media_announced = true;
     m_media_announce_time = std::chrono::steady_clock::now();
+    m_media_last_arrival = m_media_announce_time;
     infostream << "goanna: media announced: " << names.size() << " files; requesting all" << std::endl;
     if (names.empty()) {
         m_media_done = true;
@@ -1933,6 +1967,7 @@ void GoannaSession::onMedia(NetworkPacket &pkt) {
                 data = oss.str();
             }
             m_media[name] = std::move(data);
+            m_media_last_arrival = std::chrono::steady_clock::now();
         }
         have = m_media.size();
         want = m_media_wanted.size();
@@ -2298,7 +2333,7 @@ void GoannaSession::onBlockData(NetworkPacket &pkt) {
     }
     bool changed = is_new || hashBlockNodes(block) != old_hash;
     if (changed) {
-        m_new_blocks.push_back(p);
+        queueBlockUpdate(p);
         if (is_new) {
             // A newly arrived block reveals its neighbours' boundary faces, so
             // re-mesh the neighbours that are already present. A mere content
@@ -2306,7 +2341,7 @@ void GoannaSession::onBlockData(NetworkPacket &pkt) {
             static const v3s16 dirs[6] = {{1,0,0},{-1,0,0},{0,1,0},{0,-1,0},{0,0,1},{0,0,-1}};
             for (const v3s16 &d : dirs)
                 if (m_map->getBlockNoCreateNoEx(p + d))
-                    m_new_blocks.push_back(p + d);
+                    queueBlockUpdate(p + d);
         }
     }
     if (!m_content_prepared)
@@ -2357,7 +2392,7 @@ void GoannaSession::queueBlocksAround(v3s16 nodepos) {
     }
     for (const v3s16 &b : blocks)
         if (m_map->getBlockNoCreateNoEx(b))
-            m_new_blocks.push_back(b);
+            queueBlockUpdate(b);
 }
 
 void GoannaSession::onAddNode(NetworkPacket &pkt) {
@@ -2379,7 +2414,7 @@ void GoannaSession::onAddNode(NetworkPacket &pkt) {
         return;
     }
     for (auto &kv : modified) {
-        m_new_blocks.push_back(kv.first);
+        queueBlockUpdate(kv.first);
         m_store_dirty.insert(kv.first);
     }
     queueBlocksAround(p);
@@ -2396,7 +2431,7 @@ void GoannaSession::onRemoveNode(NetworkPacket &pkt) {
         return;
     }
     for (auto &kv : modified) {
-        m_new_blocks.push_back(kv.first);
+        queueBlockUpdate(kv.first);
         m_store_dirty.insert(kv.first);
     }
     queueBlocksAround(p);

@@ -141,6 +141,11 @@ public:
     int pruneDistantBlocks(int radius);
     size_t residentBlocks();
     void requeueBlock(v3s16 pos); // caller holds mapLock()
+    // Revision of the block mesh input, including notifications caused by a
+    // changed boundary neighbour. Retries do not advance it. Caller holds
+    // mapLock().
+    uint64_t blockRevision(v3s16 pos) const;
+    void invalidateBlock(v3s16 pos); // advance revision and queue; caller holds mapLock()
     // Access to a received block; nullptr if unknown. Caller holds mapLock().
     MapBlock *getBlock(v3s16 pos);
     // --- the local block store, docs/far-rendering.md rung 5 ---
@@ -515,6 +520,8 @@ private:
     v3f m_server_move_pos;
     float m_server_move_pitch = 0, m_server_move_yaw = 0;
     std::vector<v3s16> m_new_blocks;
+    std::map<v3s16, uint64_t> m_block_revisions;
+    void queueBlockUpdate(v3s16 pos);
     // Blocks that arrived before the node definitions and media were
     // ready: they mesh as unknown nodes, so they are re-meshed once
     // content preparation completes.
@@ -539,6 +546,11 @@ private:
     bool m_media_done = false;
     bool m_ready_sent = false;
     std::chrono::steady_clock::time_point m_media_announce_time;
+    // When a media bunch last arrived. The give-up test is on this rather
+    // than on the announce time: a large server's media legitimately takes
+    // longer than any fixed total, and giving up while it is still arriving
+    // sends the client on with textures missing. Written under m_media_mutex.
+    std::chrono::steady_clock::time_point m_media_last_arrival;
 
     mutable std::mutex m_media_mutex;
     std::map<std::string, std::string> m_media_wanted; // name -> sha1 raw
