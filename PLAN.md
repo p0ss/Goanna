@@ -165,6 +165,84 @@ Sizing, by what happens to those ~57k lines:
   threading is unproblematic (session thread + Godot main thread with two
   mutexes). The sizing above holds or is pessimistic.
 
+## Log since v0.2.0-alpha (2026-08-25 to 2026-08-26)
+
+Eighteen commits. The theme is that the client stopped doing its heavy work
+on the frame, and that several things which looked like rendering faults
+turned out to be one number set wrongly.
+
+**A breaking change first.** The far summary protocol goes from version 6 to
+version 7. `goanna_server_mod` must be updated with the client: an older mod
+logs a version mismatch and answers nothing, so far rendering stops without
+saying why on screen. A stale copy in a world's `worldmods` is the usual way
+this bites, and it bit the author's own test world for most of a day.
+
+**Measured, on a local Mineclonia server on Luanti 5.16.1 with Godot 4.5.1,
+one player name reused so runs stand in the same place.**
+
+- Meshing left the main thread. `goanna_mesh_pool.h` is a worker pool in the
+  shape of Luanti's own `mesh_generator_thread.h`, which Goanna had never
+  compiled. Far region meshing went first (main thread cost 3.24 to 8.77 ms
+  down to 0.24 to 0.25 ms), then near block meshing with its occlusion trace
+  (0.36 ms down to 0.00 ms). Hand-off between tiers is atomic: a block keeps
+  its far mesh until the near one is ready.
+- Region merging stopped pushing indices one at a time across the
+  GDExtension boundary. 2.45 ms down to 1.24 ms, mean of three runs.
+- Defaults come from the machine. Detail distance was a hardcoded 12 blocks
+  chosen before far rendering existed; 12 against 24 is within noise on
+  frame time and within five megabytes of video memory, so the default is 20
+  and a discrete card with twelve threads asks for 32. The mesh pool takes
+  half the machine to a cap of eight rather than four to a cap of four.
+  Godot will not report total video memory, so the discriminator is the
+  adapter type.
+- Distant foliage draws as thick as near foliage. Leaves are alpha tested at
+  64 to 82 per cent coverage and the far tiers drew them solid, so a canopy
+  was 22 to 56 per cent more leaf at range than up close.
+- A far surface keeps its own reflectivity. Roughness and specular converged
+  to fixed constants past the flatten distance; they converge to the tile's
+  own mean now. Birch leaves are 0.493 and 0.490, where the constants were
+  1.000 and 0.200.
+
+**Observed on screen, before and after shots kept.**
+
+- The sky was being painted over by the volumetric fog:
+  `volumetric_fog_sky_affect` defaults to 1.0 in Godot and nothing set it, so
+  the sky gradient, the sun and the cloud deck were all replaced by flat fog
+  colour. The clouds reported as black smog were not black, they were not
+  visible at all.
+- Clouds were being drawn twice, once on the sky deck and once as a slab in
+  the froxel grid. The froxel one is gone: that grid ends at
+  `volumetric_fog_length` and spreads a fixed cell count over it, so a cloud
+  edge cannot exist in one at any tuning.
+- The main menu has the screens a Luanti player expects, and Join Game lists
+  the public servers from the same place Luanti's own client takes them.
+  Measured against the live endpoint: 437 servers.
+
+**Fixed but not confirmed against the fault it was written for.**
+
+- Media no longer times out 30 seconds after the announce whatever is
+  happening; the test is on silence instead. A player reported the client
+  dying at media load on several large public servers while a small one
+  worked, which is the shape this produces, but their log has not been read.
+- Connection state is on screen: a progress bar while media arrives, and the
+  server's refusal in words when it refuses. `access denied (code 7)` now
+  reads "this server requires a password", which is what Your Land answers a
+  join with no password, and what was previously a black screen for four
+  minutes.
+
+**Tried and reverted, recorded so it is not tried again.** Dividing
+`background_energy_multiplier` by the exposure makes the visible sky sit in
+the same units as the lamp-lit ground, and also lights the world: ambient
+comes from the sky and SDFGI reads it, so the land was lit like noon at
+midnight. The sky against ground mismatch is real and still open; whatever
+fixes it must move the sky's appearance without moving its contribution as a
+light source.
+
+**Still not working**, unchanged: some dropped items are placeholder boxes,
+animated node textures stay on their first frame, parts of particle
+behaviour and the batched particle packet are absent, and Windows and macOS
+have not been play-tested.
+
 ## Log since v0.1.0-alpha (2026-08-17 to 2026-08-25)
 
 The tag `v0.1.0-alpha` was cut on 2026-08-17. What follows is what landed
