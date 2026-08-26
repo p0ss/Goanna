@@ -681,7 +681,7 @@ const SETTINGS := [
 	["Video", "bevel", "slider", "Edge bevel", "Chamfer the exposed edges of solid nodes.", 0.0, 0.15, 0.01],
 	["Video", "motes", "slider", "Ambient motes", "Drifting specks over leaves, flowers and sand.", 0.0, 4.0, 0.25],
 	["Video", "view_range", "slider", "View distance", "How much world to ask the server for, in blocks of 16 nodes. Most servers cap this near 12, so higher values may change nothing.", 4.0, 40.0, 1.0],
-	["Video", "mesh_threads", "slider", "Far mesh threads", "How many background threads build distant terrain. 0 picks a number from your processor, leaving a core for the game and one for the network. -1 builds it on the main thread instead, which is slower and is the setting to compare against if distant terrain looks wrong.", -1.0, 16.0, 1.0],
+	["Video", "mesh_threads", "slider", "Terrain mesh threads", "How many background threads build near and distant terrain. 0 picks a number from your processor, leaving a core for the game and one for the network. -1 builds on the main thread instead, which is slower and is useful for diagnosing terrain faults.", -1.0, 16.0, 1.0],
 	["Video", "lod_terrace", "toggle", "Terraced far terrain", "Draw distant ground as flat cells with steps between them, the way the blocks underneath do, instead of as a smoothed surface."],
 	["Video", "lod_distance", "slider", "Detail distance", "Blocks beyond this are drawn as simplified shapes, which costs less, and distant terrain beyond the server's range is drawn only when this is on. 0 turns both off.", 0.0, 24.0, 1.0],
 	["Video", "far_distance", "slider", "Far draw distance", "How far past the live range the far tiers draw, in nodes. Capped by what the server actually granted (docs/far-rendering.md); raising this past the grant changes nothing. Defaults to the grant itself, so this only needs touching to draw less than the server allows.", 0.0, 4096.0, 32.0],
@@ -854,15 +854,27 @@ func _setting_value(key: String, fallback: float) -> float:
 
 func _load_apply_settings() -> void:
 	var cfg := ConfigFile.new()
-	if cfg.load(SETTINGS_CFG) != OK:
-		return
+	cfg.load(SETTINGS_CFG)  # absent is normal on a first run
+	var seeded := false
 	for entry in SETTINGS:
 		var key: String = entry[1]
 		# "settings" is the current section; "video" is the pre-tabs one.
+		var found := false
 		for section in ["settings", "video"]:
 			if cfg.has_section_key(section, key):
 				_apply_setting(key, float(cfg.get_value(section, key)))
+				found = true
 				break
+		if not found and str(entry[2]) != "path":
+			# Write the value the client is actually running with. The main
+			# menu's settings screen has no client to ask, so without this it
+			# would have to guess a default and would show the wrong state for
+			# everything the player has never touched. Here the answer is
+			# known, so record it once and let both screens read the same file.
+			cfg.set_value("settings", key, _setting_value(key, _local_value(key)))
+			seeded = true
+	if seeded:
+		cfg.save(SETTINGS_CFG)
 
 func _save_setting(key: String, value: float) -> void:
 	var cfg := ConfigFile.new()

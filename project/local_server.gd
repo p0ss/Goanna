@@ -26,6 +26,14 @@ var _data_dir := ""
 var send_distance := 32
 # How far the local server grants far rendering, in nodes (docs/far-rendering.md).
 var far_distance := 1024
+const TERRAIN_DIFFUSION_FILES := [
+	"init.lua", "tdl_far.lua", "tdl_palette.lua", "tdl_biomes.lua",
+	"tdl_terrain.lua", "tdl_mapgen.lua", "settingtypes.txt", "mod.conf", "LICENSE",
+]
+const GOANNA_SERVER_MOD_FILES := ["init.lua", "mod.conf", "settingtypes.txt", "README.md"]
+const DEFAULT_TERRAIN_I0 := 84
+const DEFAULT_TERRAIN_J0 := 80
+const DEFAULT_TERRAIN_TILES := 4
 
 # Where Luanti keeps games and worlds, and how to invoke its server.
 # Returns {} if no server could be found.
@@ -77,6 +85,39 @@ static func list_games(data_dir: String) -> Array:
 	games.sort()
 	return games
 
+# Mods and texture packs the detected Luanti already has. Goanna does not
+# install content, it borrows whatever that install carries, so these are for
+# showing the player what Start Game can offer and nothing else.
+static func list_mods(data_dir: String) -> Array:
+	return _list_dirs([data_dir.path_join("mods")], ["mod.conf", "init.lua", "modpack.conf"])
+
+static func list_texture_packs(data_dir: String) -> Array:
+	return _list_dirs([data_dir.path_join("textures")], [])
+
+# Subdirectories of `bases` that carry at least one of `markers`, or any
+# subdirectory when `markers` is empty. Sorted, de-duplicated across bases.
+static func _list_dirs(bases: Array, markers: Array) -> Array:
+	var found: Array = []
+	for base in bases:
+		var d := DirAccess.open(base)
+		if d == null:
+			continue
+		d.list_dir_begin()
+		var name := d.get_next()
+		while name != "":
+			if d.current_is_dir() and not name.begins_with(".") and not found.has(name):
+				if markers.is_empty():
+					found.append(name)
+				else:
+					for m in markers:
+						if FileAccess.file_exists(base.path_join(name).path_join(m)):
+							found.append(name)
+							break
+			name = d.get_next()
+		d.list_dir_end()
+	found.sort()
+	return found
+
 # Existing worlds and the game each was made with.
 static func list_worlds(data_dir: String) -> Array:
 	var worlds: Array = []
@@ -121,6 +162,90 @@ static func data_dir_or_empty() -> String:
 	var env := detect()
 	return env["data_dir"] if not env.is_empty() else ""
 
+# A Terrain Diffusion world carries a generated tile cache. New default worlds
+# receive the packaged cache below; custom worlds receive one from the baker.
+static func terrain_diffusion_ready(data_dir: String, worldname: String) -> bool:
+	return FileAccess.file_exists(data_dir.path_join("worlds").path_join(worldname)
+		.path_join("terrain_diffusion").path_join("manifest.json"))
+
+static func _copy_resource_file(src: String, dst: String) -> bool:
+	var input := FileAccess.open(src, FileAccess.READ)
+	if input == null:
+		return false
+	var output := FileAccess.open(dst, FileAccess.WRITE)
+	if output == null:
+		return false
+	output.store_buffer(input.get_buffer(input.get_length()))
+	return true
+
+# Materialise the bundled 1 m-per-node template inside a new world. Its
+# manifest is an internal runtime detail, not something the player supplies.
+func _install_default_terrain(world: String) -> String:
+	var src := "res://vendor/terrain_diffusion_default"
+	var dst := world.path_join("terrain_diffusion")
+	DirAccess.make_dir_recursive_absolute(dst.path_join("tiles"))
+	if not _copy_resource_file(src.path_join("manifest.json"), dst.path_join("manifest.json")):
+		return "The packaged default Terrain Diffusion world is missing its manifest."
+	for ti in range(DEFAULT_TERRAIN_I0, DEFAULT_TERRAIN_I0 + DEFAULT_TERRAIN_TILES):
+		for tj in range(DEFAULT_TERRAIN_J0, DEFAULT_TERRAIN_J0 + DEFAULT_TERRAIN_TILES):
+			var filename := "t_%d_%d.bin" % [ti, tj]
+			if not _copy_resource_file(src.path_join("tiles").path_join(filename),
+					dst.path_join("tiles").path_join(filename)):
+				return "The packaged default Terrain Diffusion world is missing %s." % filename
+	return ""
+
+func _initialise_terrain_diffusion_world(world: String, worldname: String) -> String:
+	var world_mt := world.path_join("world.mt")
+	if not FileAccess.file_exists(world_mt):
+		var wf := FileAccess.open(world_mt, FileAccess.WRITE)
+		if wf == null:
+			return "Could not initialise %s." % world_mt
+		wf.store_string("gameid = mineclonia\nworld_name = %s\nbackend = sqlite3\n" % worldname)
+		wf.store_string("player_backend = sqlite3\nauth_backend = sqlite3\nmod_storage_backend = sqlite3\n")
+		wf.store_string("creative_mode = false\nenable_damage = true\nserver_announce = false\n")
+	var map_meta := world.path_join("map_meta.txt")
+	if not FileAccess.file_exists(map_meta):
+		var mf := FileAccess.open(map_meta, FileAccess.WRITE)
+		if mf == null:
+			return "Could not initialise %s." % map_meta
+		mf.store_string("seed = 1234\nchunksize = 5\nwater_level = 1\n")
+		mf.store_string("mg_flags = caves, nodungeons, light, decorations, biomes, ores\n")
+		mf.store_string("mg_name = singlenode\nmcl_singlenode_mapgen = false\n[end_of_params]\n")
+	return ""
+
+func _install_terrain_diffusion(world: String) -> String:
+	var src := "res://vendor/terrain_diffusion"
+	var dst := world.path_join("worldmods").path_join("terrain_diffusion")
+	DirAccess.make_dir_recursive_absolute(dst)
+	for filename in TERRAIN_DIFFUSION_FILES:
+		if not _copy_resource_file(src.path_join(filename), dst.path_join(filename)):
+			return "The bundled Terrain Diffusion runtime is missing %s." % filename
+	return ""
+
+# These settings must exist before mods load: singlenode keeps engine mapgen
+# out, while disabling Mineclonia's own singlenode generator leaves the world
+# to Terrain Diffusion. Preserve every seed and game-authored parameter.
+func _prepare_terrain_diffusion_meta(world: String) -> String:
+	var path := world.path_join("map_meta.txt")
+	if not FileAccess.file_exists(path):
+		return "Terrain Diffusion has been baked, but %s is missing. Start Mineclonia once to initialise the world, then bake it." % path
+	var lines := FileAccess.get_file_as_string(path).split("\n")
+	var kept: PackedStringArray = []
+	for line in lines:
+		if line.begins_with("mg_name =") or line.begins_with("mcl_singlenode_mapgen =") \
+				or line.strip_edges() == "[end_of_params]":
+			continue
+		if line != "":
+			kept.append(line)
+	kept.append("mg_name = singlenode")
+	kept.append("mcl_singlenode_mapgen = false")
+	kept.append("[end_of_params]")
+	var output := FileAccess.open(path, FileAccess.WRITE)
+	if output == null:
+		return "Could not update %s for Terrain Diffusion." % path
+	output.store_string("\n".join(kept) + "\n")
+	return ""
+
 # Start a server for `gameid` on `worldname` (created under the data dir if
 # new). Picks a free-ish port and writes a log we can watch for readiness.
 # Returns "" on success, or an error message.
@@ -128,23 +253,20 @@ static func data_dir_or_empty() -> String:
 # world as a worldmod so the grant written above reaches the client. A copy,
 # not a link: the flatpak sandbox sees the world directory and not the
 # checkout.
-func _install_server_mod(world: String) -> void:
+func _install_server_mod(world: String) -> String:
 	var src := ProjectSettings.globalize_path("res://../goanna_server_mod")
 	if not FileAccess.file_exists(src.path_join("init.lua")):
-		# True of every exported build today: the mod lives beside project/
-		# in the checkout and is not packed. Say so, or the grant written
-		# above is silently never relayed and far rendering just does not
-		# happen.
-		push_warning("goanna_server_mod not found at %s; far rendering will not be granted in this world" % src)
-		return
+		src = "res://vendor/goanna_server_mod"
 	var dst := world.path_join("worldmods").path_join("goanna_server_mod")
 	DirAccess.make_dir_recursive_absolute(dst)
-	for f in ["init.lua", "mod.conf"]:
-		if FileAccess.file_exists(src.path_join(f)):
-			DirAccess.copy_absolute(src.path_join(f), dst.path_join(f))
+	for filename in GOANNA_SERVER_MOD_FILES:
+		if not _copy_resource_file(src.path_join(filename), dst.path_join(filename)):
+			return "The bundled Goanna server mod is missing %s." % filename
+	return ""
 
 
-func start(gameid_: String, worldname: String, player_name: String = "player") -> String:
+func start(gameid_: String, worldname: String, player_name: String = "player",
+		terrain_diffusion: bool = false) -> String:
 	gameid = gameid_
 	var env := detect()
 	if env.is_empty():
@@ -153,6 +275,20 @@ func start(gameid_: String, worldname: String, player_name: String = "player") -
 	_data_dir = env["data_dir"]
 	world_path = _data_dir.path_join("worlds").path_join(worldname)
 	DirAccess.make_dir_recursive_absolute(world_path)
+	if terrain_diffusion:
+		if not terrain_diffusion_ready(_data_dir, worldname):
+			var default_error := _install_default_terrain(world_path)
+			if default_error != "":
+				return default_error
+		var initialise_error := _initialise_terrain_diffusion_world(world_path, worldname)
+		if initialise_error != "":
+			return initialise_error
+		var prepare_error := _prepare_terrain_diffusion_meta(world_path)
+		if prepare_error != "":
+			return prepare_error
+		var install_error := _install_terrain_diffusion(world_path)
+		if install_error != "":
+			return install_error
 	log_path = _data_dir.path_join("goanna_singleplayer.log")
 	# a fixed local port; if it is busy the log tells us and start() is retried
 	port = 30800 + (hash(worldname) % 150)
@@ -194,7 +330,14 @@ func start(gameid_: String, worldname: String, player_name: String = "player") -
 		# queued behind it (docs/far-rendering.md, "Pregeneration yields to
 		# the player"), and pushes each area's summary as it lands. It is the
 		# operator's choice, and here the operator is the player.
-		cf.store_string("goanna_far_pregenerate = true\n")
+		# A Terrain Diffusion provider answers unexplored columns directly from
+		# baked tiles. Full-block pregeneration would duplicate that work and
+		# consume the disk space this path exists to avoid.
+		cf.store_string("goanna_far_pregenerate = %s\n" % ("false" if terrain_diffusion else "true"))
+		if terrain_diffusion:
+			# Reconstruct each native 30 m sample onto thirty 1 m nodes. Pin this
+			# so a global Luanti preference cannot make the world coarser.
+			cf.store_string("tdl_nodes_per_pixel = 30\n")
 		# Three asynchronous area streams keep a flying local player supplied;
 		# each stream queues only one 64-node slice at a time, so live terrain
 		# still gets frequent opportunities between them.
@@ -247,7 +390,9 @@ func start(gameid_: String, worldname: String, player_name: String = "player") -
 			cf.store_string("enable_damage = false\n")
 			cf.store_string("time_speed = 0\n")
 		cf = null
-	_install_server_mod(world_path)
+	var server_mod_error := _install_server_mod(world_path)
+	if server_mod_error != "":
+		return server_mod_error
 	var argv := Array(_argv)
 	argv.append_array([
 		"--world", world_path,
