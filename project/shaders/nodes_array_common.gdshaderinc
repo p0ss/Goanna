@@ -175,6 +175,20 @@ uniform vec3 lod_avg_colour[256];
 // and wrong for a lone tree against the sky, so it is a strength rather than
 // a flat multiply. Same 256 layer cap as lod_avg_colour.
 uniform float lod_coverage[256];
+// The mean material response of each layer's tile, from
+// GoannaTexture::layerSpecMeans: already converted to Godot's ROUGHNESS,
+// METALLIC and SPECULAR and then averaged, because neither the roughness
+// curve nor the metal threshold survives averaging its input.
+//
+// A far surface flattens toward these rather than toward a fixed matte
+// constant. Converging to 1.0 roughness made a distant hill answer a sunset
+// differently from the same tree in front of you, which is the same
+// discontinuity as the colour one with the sign flipped: the far field has
+// to converge to the average of what the near renderer shows, not to a
+// number that happens to look inoffensive. Same 256 layer cap as above.
+uniform float lod_avg_rough[256];
+uniform float lod_avg_metal[256];
+uniform float lod_avg_spec[256];
 uniform float lod_coverage_strength : hint_range(0.0, 1.0) = 1.0;
 // Keep the hand-off range visually identical to the near renderer. Detail is
 // only flattened once fog and screen footprint make an individual tile too

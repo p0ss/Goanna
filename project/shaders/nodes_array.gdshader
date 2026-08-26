@@ -157,9 +157,9 @@ void fragment() {
 	// texture-scale detail. Flattening only the first two left the averaged
 	// far tile carrying the close tile's sharp specular lobe, so distant
 	// foliage became smoother and more reflective than the same tree nearby.
-	ROUGHNESS = mix(ROUGHNESS, 1.0, flatten);
-	METALLIC = mix(METALLIC, 0.0, flatten);
-	SPECULAR = mix(SPECULAR, 0.2, flatten);
+	ROUGHNESS = mix(ROUGHNESS, mix(1.0, lod_avg_rough[layer], roughness_strength), flatten);
+	METALLIC = mix(METALLIC, lod_avg_metal[layer], flatten);
+	SPECULAR = mix(SPECULAR, clamp(lod_avg_spec[layer] * specular_strength, 0.0, 1.0), flatten);
 
 	// Cloth catches the light along a grazing edge, which no LabPBR channel
 	// can say and which is most of what separates wool from painted stone.

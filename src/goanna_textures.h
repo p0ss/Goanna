@@ -63,6 +63,21 @@ public:
     // classifier table or the relief strength changed under them.
     void dropCompanions() { m_godot_suffixed.clear(); m_suffixed_missing.clear(); }
     const std::vector<std::string> &layerNames() const { return m_layer_names; }
+    // What each layer's LabPBR _s map averages out to, in the units the
+    // shader ends up using, so a far surface can converge to the mean
+    // material response of its tile instead of to an arbitrary constant.
+    //
+    // Averaged after the conversion, not before: roughness is (1-smoothness)
+    // squared and metalness is a threshold, so the mean of the inputs is not
+    // the input of the mean. Filled while the _s array is built, which is
+    // also where a layer with nothing authored gets its class-derived flat
+    // map, so generated layers are counted the same as authored ones.
+    struct LayerSpec {
+        float rough = 1.0f;  // Godot ROUGHNESS
+        float metal = 0.0f;  // Godot METALLIC
+        float spec = 0.2f;   // Godot SPECULAR, before specular_strength
+    };
+    const std::vector<LayerSpec> &layerSpecMeans() const { return m_layer_spec; }
     // Alpha is tracked per array layer as well as for the whole texture. A
     // solid stone layer may share an array with cut-out leaves, and treating
     // the whole array as transparent prevents the stone from being a safe
@@ -89,6 +104,7 @@ private:
     std::vector<bool> m_layer_alpha;
     godot::Ref<godot::Texture2DArray> m_godot_array;
     std::map<std::string, godot::Ref<godot::Texture2DArray>> m_godot_suffixed;
+    std::vector<LayerSpec> m_layer_spec;
     std::map<std::string, bool> m_suffixed_missing;
     godot::Ref<godot::ImageTexture> m_godot;
     godot::Ref<godot::ImageTexture> m_normal;

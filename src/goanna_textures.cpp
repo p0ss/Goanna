@@ -200,6 +200,8 @@ Ref<Texture2DArray> GoannaTexture::godotArraySuffixed(GoannaTextureSource &src, 
     // no emission) rather than abandoning the whole bunch. Only if nothing at
     // all is authored is the companion reported as absent.
     const bool is_normal = key == "_n";
+    if (!is_normal)
+        m_layer_spec.clear();
     TypedArray<Image> imgs;
     bool any = false;
     int authored = 0, classed = 0, inferred = 0, emissive = 0;
@@ -279,6 +281,31 @@ Ref<Texture2DArray> GoannaTexture::godotArraySuffixed(GoannaTextureSource &src, 
                 // dielectric with no emission
                 img->fill(is_normal ? Color(0.5f, 0.5f, 1.0f, 0.0f) : Color(0.0f, 0.04f, 0.0f, 1.0f));
             }
+        }
+        if (!is_normal) {
+            // The mean material response of this layer, converted per texel
+            // the way nodes_array.gdshader converts it and averaged after,
+            // because neither the roughness curve nor the metal threshold
+            // survives averaging its input.
+            LayerSpec ls;
+            const int w = img->get_width(), h = img->get_height();
+            const int n = w * h;
+            if (n > 0) {
+                double rough = 0.0, metal = 0.0, spec = 0.0;
+                for (int y = 0; y < h; ++y)
+                    for (int x = 0; x < w; ++x) {
+                        const Color c = img->get_pixel(x, y);
+                        const float sm = c.r;
+                        rough += std::clamp((1.0f - sm) * (1.0f - sm), 0.04f, 1.0f);
+                        const bool is_metal = c.g >= 0.898f;
+                        metal += is_metal ? 1.0 : 0.0;
+                        spec += is_metal ? 0.5f : std::min(c.g / 0.08f, 1.0f);
+                    }
+                ls.rough = (float)(rough / n);
+                ls.metal = (float)(metal / n);
+                ls.spec = (float)(spec / n);
+            }
+            m_layer_spec.push_back(ls);
         }
         img->generate_mipmaps();
         imgs.push_back(img);

@@ -1771,6 +1771,24 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
                 for (size_t i = 0; i < names.size(); ++i)
                     cover[(int)i] = m_session->tsrc()->textureCoverage(names[i]);
                 sm->set_shader_parameter("lod_coverage", cover);
+                // The mean material response of each tile, so a far surface
+                // converges to the average of what the near renderer would
+                // show rather than to a fixed matte constant. Falls back to
+                // the no-companion defaults when the _s array is absent.
+                const auto &means = agt->layerSpecMeans();
+                PackedFloat32Array rough, metal, spec;
+                rough.resize((int)names.size());
+                metal.resize((int)names.size());
+                spec.resize((int)names.size());
+                for (size_t i = 0; i < names.size(); ++i) {
+                    const bool have = i < means.size();
+                    rough[(int)i] = have ? means[i].rough : 1.0f;
+                    metal[(int)i] = have ? means[i].metal : 0.0f;
+                    spec[(int)i] = have ? means[i].spec : 0.2f;
+                }
+                sm->set_shader_parameter("lod_avg_rough", rough);
+                sm->set_shader_parameter("lod_avg_metal", metal);
+                sm->set_shader_parameter("lod_avg_spec", spec);
             }
             if (getenv("GOANNA_DEBUG_PBR"))
                 UtilityFunctions::print("pbr array id=", key.texture_id,
