@@ -4,6 +4,18 @@ Goanna is an alternative Luanti client. You use the same account, servers,
 games and worlds as with Luanti's own client. A server does not need to know
 about Goanna for ordinary play.
 
+## What it looks like
+
+These are representative Goanna renders from the current development build.
+They are illustrative rather than a promise that every server, shader pack or
+GPU will produce identical results.
+
+![Forest canopy and distant terrain](forest.png)
+
+![Village landscape](village.png)
+
+![Underwater lighting](underwater.png)
+
 ## Requirements
 
 The current supported development target is Linux with Godot 4.5 and a

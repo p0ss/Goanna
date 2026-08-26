@@ -8,6 +8,17 @@ renderer with Godot.
 Goanna is an alpha-quality project. The Luanti client remains the reference
 client for compatibility and reliability.
 
+![A forested valley rendered in Goanna](docs/forest.png)
+
+Goanna is first and foremost a graphics project: these screenshots show the
+intended direction—large views, dynamic lighting and detailed materials while
+remaining connected to an ordinary Luanti world.
+
+| Landscapes | Lighting and materials |
+| --- | --- |
+| ![Village and surrounding terrain](docs/village.png) | ![Dynamic lighting](docs/light.png) |
+| ![Underwater terrain](docs/underwater.png) | ![Lava and volcanic terrain](docs/lava.png) |
+
 ## Highlights
 
 - Modern Godot lighting, shadows, materials and sky rendering.
