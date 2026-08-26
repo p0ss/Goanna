@@ -1607,16 +1607,12 @@ func _update_environment_extras() -> void:
 			Vector4(0.012, maxf(cloud_height, cam.position.y + 10.0), sun_par.x, sun_par.y))
 	if atmosphere_mat:
 		atmosphere_mat.set_shader_parameter("weather_offset", cloud_off)
-		atmosphere_mat.set_shader_parameter("cloud_base", cloud_height)
-		atmosphere_mat.set_shader_parameter("cloud_thickness", maxf(cloud_thickness, 8.0))
-		atmosphere_mat.set_shader_parameter("cloud_coverage", cloud_cov)
 		# Keep the reference at the world's inhabited surface while flying; a
 		# camera-relative layer would rise with the player and erase valleys.
 		atmosphere_mat.set_shader_parameter("mist_level",
 				atmosphere_ground + 18.0 if atmosphere_ground_set else cam.position.y + 12.0)
 		atmosphere_mat.set_shader_parameter("mist_density",
 				0.010 * (0.35 + cloud_cov) * atmosphere_quality)
-		atmosphere_mat.set_shader_parameter("cloud_density", 0.09 * atmosphere_quality)
 		atmosphere_mat.set_shader_parameter("quality", atmosphere_quality)
 	var under: bool = client.is_underwater(cam.position)
 	if atmosphere_volume:
@@ -1886,7 +1882,6 @@ func _apply_sky() -> void:
 		e.fog_light_color = fog_col
 		if atmosphere_mat:
 			atmosphere_mat.set_shader_parameter("atmosphere_color", fog_col)
-			atmosphere_mat.set_shader_parameter("cloud_color", ccol)
 		# How far there is actually something to see, which is not how far we
 		# are permitted to draw. The live range is always there; past it the
 		# far field reaches only as far as the store and the server's
@@ -2070,6 +2065,13 @@ func _apply_sky() -> void:
 			e.volumetric_fog_ambient_inject = 0.5
 			e.volumetric_fog_emission_energy = 0.0
 			e.volumetric_fog_gi_inject = 0.0
+			# The sky is not in the volume. Godot defaults this to 1.0, which
+			# paints the whole froxel depth over the sky dome, so the sky's own
+			# gradient, the sun and the cloud deck sky.gdshader draws all
+			# disappear behind flat fog colour: the clouds were not black, they
+			# were not visible at all. The air still fogs everything that is
+			# actually in it, which is the point of having it.
+			e.volumetric_fog_sky_affect = 0.0
 		# The shaft is the lamp's contribution to the volume, so this is the
 		# knob that decides how much shaft there is, as against how much haze.
 		sun.light_volumetric_fog_energy = 2.4 * light_shafts

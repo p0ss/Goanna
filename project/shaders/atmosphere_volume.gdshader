@@ -1,16 +1,23 @@
-// Sparse participating media for the playable atmosphere. This runs in
-// Godot's froxel grid: one world-sized volume gives valleys a low mist layer
-// and clouds genuine thickness without creating geometry or draw calls.
+// Sparse participating media near the ground: one world-sized volume that
+// pools mist in the valleys, without geometry or draw calls.
+//
+// Clouds are deliberately not here. Godot's froxel grid is camera relative
+// and ends at volumetric_fog_length, which main.gd caps at 768 nodes, so a
+// cloud deck drawn in it stops partway to the horizon instead of receding to
+// it; and the grid spreads a fixed cell count over that whole distance, so
+// cells are metres across and a cumulus edge cannot exist. Clouds drawn here
+// came out as a dark band low in the sky, which is the grid running out, not
+// a lighting fault. They live in sky.gdshader instead, on a projected deck
+// that has real perspective and no range limit, and the node shaders already
+// read that same deck to cast its shadows on the ground.
+//
+// What the grid is good at is exactly this: bounded, close to the camera, and
+// soft-edged by nature.
 shader_type fog;
 
 uniform vec3 atmosphere_color : source_color = vec3(0.72, 0.80, 0.90);
-uniform vec3 cloud_color : source_color = vec3(1.0);
 uniform float mist_level = 64.0;
 uniform float mist_density : hint_range(0.0, 0.1) = 0.012;
-uniform float cloud_base = 120.0;
-uniform float cloud_thickness = 24.0;
-uniform float cloud_coverage : hint_range(0.0, 0.95) = 0.4;
-uniform float cloud_density : hint_range(0.0, 0.3) = 0.09;
 uniform vec2 weather_offset = vec2(0.0);
 uniform float quality : hint_range(0.0, 1.0) = 1.0;
 
@@ -55,7 +62,6 @@ float weather_noise(vec3 p) {
 void fog() {
 	vec3 p = WORLD_POSITION;
 	float mist = 0.0;
-	float cloud = 0.0;
 
 	// Moist air pools below the local inhabited elevation. Large-scale noise
 	// breaks the layer into banks rather than tinting every valley uniformly.
@@ -68,22 +74,6 @@ void fog() {
 		mist = mist_density * mist_height * mix(0.28, 1.0, mist_noise);
 	}
 
-	// A soft-bottomed, soft-topped cloud slab. Horizontal samples are broad
-	// weather masses; the vertical component creates billows and holes through
-	// the body instead of a painted sheet.
-	float top = cloud_base + max(cloud_thickness, 4.0);
-	float edge = min(max(cloud_thickness * 0.28, 2.0), 12.0);
-	float vertical = smoothstep(cloud_base, cloud_base + edge, p.y) *
-			(1.0 - smoothstep(top - edge, top, p.y));
-	if (vertical > 0.001 && cloud_coverage > 0.01) {
-		vec3 cp = vec3(p.x * 0.010 + weather_offset.x,
-				p.y * 0.035, p.z * 0.010 + weather_offset.y);
-		float field = weather_noise(cp);
-		float threshold = mix(0.78, 0.30, cloud_coverage);
-		cloud = cloud_density * vertical * smoothstep(threshold, threshold + 0.14, field);
-	}
-
-	DENSITY = mist + cloud;
-	ALBEDO = mix(atmosphere_color, cloud_color,
-			cloud / max(mist + cloud, 0.0001));
+	DENSITY = mist;
+	ALBEDO = atmosphere_color;
 }
