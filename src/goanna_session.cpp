@@ -1847,6 +1847,28 @@ void GoannaSession::onAuthAccept(NetworkPacket &pkt) {
     setState(SessionState::Definitions, "authenticated; waiting for definitions");
 }
 
+// What the numbered refusal actually means, in words a player can act on.
+// AccessDeniedCode in luanti/src/network/networkprotocol.h; the client says
+// this and nothing else about why the join failed, so "code 7" was leaving
+// people to guess that the server wanted a password.
+static const char *accessDeniedReason(u8 code) {
+    switch (code) {
+    case SERVER_ACCESSDENIED_WRONG_PASSWORD: return "wrong password";
+    case SERVER_ACCESSDENIED_UNEXPECTED_DATA: return "the server did not expect that";
+    case SERVER_ACCESSDENIED_SINGLEPLAYER: return "the server is in single player mode";
+    case SERVER_ACCESSDENIED_WRONG_VERSION: return "this client's protocol version is not accepted";
+    case SERVER_ACCESSDENIED_WRONG_CHARS_IN_NAME: return "that player name has characters the server does not allow";
+    case SERVER_ACCESSDENIED_WRONG_NAME: return "that player name is not allowed here";
+    case SERVER_ACCESSDENIED_TOO_MANY_USERS: return "the server is full";
+    case SERVER_ACCESSDENIED_EMPTY_PASSWORD: return "this server requires a password";
+    case SERVER_ACCESSDENIED_ALREADY_CONNECTED: return "that player is already connected";
+    case SERVER_ACCESSDENIED_SERVER_FAIL: return "the server hit an internal error";
+    case SERVER_ACCESSDENIED_SHUTDOWN: return "the server is shutting down";
+    case SERVER_ACCESSDENIED_CRASH: return "the server crashed";
+    default: return "";
+    }
+}
+
 void GoannaSession::onAccessDenied(NetworkPacket &pkt) {
     std::string reason = "access denied";
     if (pkt.getSize() >= 1) {
@@ -1855,10 +1877,18 @@ void GoannaSession::onAccessDenied(NetworkPacket &pkt) {
         if (pkt.getRemainingBytes() >= 2) {
             std::string custom;
             pkt >> custom;
+            // A server's own words beat ours: SERVER_ACCESSDENIED_CUSTOM_STRING
+            // is how it explains a rule we know nothing about.
             if (!custom.empty())
                 reason = custom;
         }
-        reason += " (code " + std::to_string((int)code) + ")";
+        const char *plain = accessDeniedReason(code);
+        if (*plain && reason == "access denied")
+            reason = plain;
+        else if (*plain)
+            reason += std::string(" (") + plain + ")";
+        else
+            reason += " (code " + std::to_string((int)code) + ")";
     }
     setState(SessionState::Denied, reason);
 }

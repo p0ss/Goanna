@@ -461,6 +461,13 @@ func _ready() -> void:
 	else:
 		print("no texture pack set (settings panel, or GOANNA_PACK)")
 	print("connecting to ", host, ":", port, " as ", pname)
+	# Something on screen from the first frame: joining a large public server
+	# takes minutes at the media step, and a refusal arrives in seconds. Both
+	# used to look like a black window.
+	if OS.get_environment("GOANNA_SHOT") == "" and OS.get_environment("GOANNA_MENU_SHOT") == "":
+		_build_connect_overlay()
+		connect_title.text = "Connecting"
+		connect_detail.text = "%s:%d as %s" % [host, port, pname]
 	client.connect_to(host, port, pname, OS.get_environment("GOANNA_PASS"))
 	if OS.get_environment("GOANNA_TOD") != "":
 		client.set_time_of_day_override(float(OS.get_environment("GOANNA_TOD")))
@@ -544,10 +551,80 @@ func _report_fov() -> void:
 	var d := 2.0 * atan(sqrt(pow(tan(h * 0.5), 2.0) + pow(tan(v * 0.5), 2.0)))
 	client.set_view_fov(rad_to_deg(d))
 
+# What the player sees between pressing Connect and the world appearing.
+#
+# Until now that was nothing at all: the state and the server's own message
+# went to stdout and the screen stayed black, so a server saying "you need a
+# password" looked exactly like a large server sending its media, and both
+# looked exactly like a hang. A big public server legitimately takes minutes
+# at the media step, so the two have to be told apart on screen.
+var connect_overlay: Control
+var connect_title: Label
+var connect_detail: Label
+var connect_bar: ProgressBar
+
+func _build_connect_overlay() -> void:
+	connect_overlay = ColorRect.new()
+	(connect_overlay as ColorRect).color = Color(0.06, 0.07, 0.09)
+	connect_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	connect_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var centre := CenterContainer.new()
+	centre.set_anchors_preset(Control.PRESET_FULL_RECT)
+	connect_overlay.add_child(centre)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 10)
+	box.custom_minimum_size = Vector2(520, 0)
+	centre.add_child(box)
+	connect_title = Label.new()
+	connect_title.add_theme_font_size_override("font_size", 22)
+	box.add_child(connect_title)
+	connect_bar = ProgressBar.new()
+	connect_bar.custom_minimum_size = Vector2(520, 18)
+	connect_bar.min_value = 0.0
+	connect_bar.max_value = 1.0
+	box.add_child(connect_bar)
+	connect_detail = Label.new()
+	connect_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	connect_detail.modulate = Color(1, 1, 1, 0.7)
+	box.add_child(connect_detail)
+	add_child(connect_overlay)
+
+func _update_connect_overlay(s: Dictionary) -> void:
+	if connect_overlay == null:
+		return
+	var state := str(s.get("state", ""))
+	if state == "ready":
+		# The world is up; never come back, even if the state flickers.
+		connect_overlay.queue_free()
+		connect_overlay = null
+		return
+	var got := int(s.get("media_received", 0))
+	var want := int(s.get("media_announced", 0))
+	var msg := str(s.get("message", ""))
+	if state == "denied" or state == "error" or msg.begins_with("access denied"):
+		# The server has refused and is not going to change its mind. Say what
+		# it said, rather than leaving the player watching a blank screen.
+		connect_title.text = "The server refused the connection"
+		connect_bar.visible = false
+		connect_detail.text = msg + "\n\nPress Escape to go back to the menu."
+		connect_detail.modulate = Color(1, 0.65, 0.55)
+		return
+	connect_bar.visible = true
+	connect_detail.modulate = Color(1, 1, 1, 0.7)
+	if want > 0:
+		connect_title.text = "Downloading media"
+		connect_bar.value = float(got) / float(want)
+		connect_detail.text = "%d of %d files. A large public server sends a great deal of media; this can take a few minutes the first time." % [got, want]
+	else:
+		connect_title.text = "Connecting"
+		connect_bar.value = 0.0
+		connect_detail.text = msg if msg != "" else state
+
 func _process(delta: float) -> void:
 	t += delta
 	_apply_sky()
 	var s: Dictionary = client.status()
+	_update_connect_overlay(s)
 	if not placed and s.get("state") == "ready":
 		var p: Vector3 = client.server_player_position()
 		cam.position = p + Vector3(0, 1.6, 0)
@@ -729,13 +806,14 @@ func _process(delta: float) -> void:
 				st.get("draw_calls", 0), st.get("objects", 0), st.get("video_mem_mb", 0.0),
 				str(st.get("lod_tiers", {})), st.get("lod_regions", 0), st.get("lod_regions_dirty", 0),
 				st.get("lod_quads", 0), st.get("lod_faces", 0), st.get("lod_surfaces", 0), st.get("lod_ms", 0.0)]
-				+ " | far=%d grant=%d reach=%d/%d req=%d areas=%d/%d/%d store=%d/%.0fMB | poll_max=%.1fms chains=%d queue=%d | mesh %dthr q=%d run=%d rdy=%d build=%d" % [st.get("far_blocks", 0), st.get("far_grant", 0),
+				+ " | far=%d grant=%d reach=%d/%d req=%d areas=%d/%d/%d store=%d/%.0fMB | poll_max=%.1fms chains=%d queue=%d | mesh %dthr q=%d(%d/%d/%d) run=%d rdy=%d reject=%d build=%d" % [st.get("far_blocks", 0), st.get("far_grant", 0),
 				st.get("far_extent", 0), st.get("far_reach", 0), st.get("far_requests_inflight", 0),
 				st.get("far_areas_complete", 0), st.get("far_areas_partial", 0), st.get("far_areas_empty", 0),
 				st.get("store_blocks", 0), st.get("store_mb", 0.0), st.get("poll_max_ms", 0.0),
 				st.get("lod_chains", 0), st.get("lod_chain_queue", 0),
-				st.get("mesh_threads", 0), st.get("mesh_queued", 0), st.get("mesh_running", 0),
-				st.get("mesh_ready", 0), st.get("lod_building", 0)]
+				st.get("mesh_threads", 0), st.get("mesh_queued", 0), st.get("mesh_q_coverage", 0),
+				st.get("mesh_q_near", 0), st.get("mesh_q_structure", 0), st.get("mesh_running", 0),
+				st.get("mesh_ready", 0), st.get("mesh_rejected", 0), st.get("lod_building", 0)]
 				+ " | lod_frame=%.2f tier=%.2f sums=%.2f asks=%.2f far_scan=%.2f stats=%.2fms" % [
 				st.get("lod_update_ms", 0.0), st.get("lod_tier_scan_ms", 0.0),
 				st.get("lod_summary_ms", 0.0), st.get("lod_request_ms", 0.0),
