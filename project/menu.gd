@@ -517,12 +517,18 @@ func _show_new_game() -> void:
 	max_players_spin.value = int(cfg.get_value("local_host", "max_players", 8))
 	world_option.item_selected.connect(_on_world_selected)
 	var row := HBoxContainer.new()
-	row.alignment = BoxContainer.ALIGNMENT_END
 	row.add_theme_constant_override("separation", 8)
 	screen.add_child(row)
-	row.add_child(_button("Back", _show_main))
+	# Delete sits at the far end, with the whole row between it and Start.
+	# The two were adjacent, so the button that destroys a world was one
+	# slip away from the button that opens it, and both are pressed from
+	# the same screen in the same frame of mind.
 	delete_button = _button("Delete world", _confirm_delete_world)
 	row.add_child(delete_button)
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(spacer)
+	row.add_child(_button("Back", _show_main))
 	start_button = _button("Start", _on_start_local)
 	row.add_child(start_button)
 	generator_option.item_selected.connect(func(_index: int) -> void:

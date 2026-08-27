@@ -11,7 +11,7 @@ client for compatibility and reliability.
 ![A forested valley rendered in Goanna](docs/forest.png)
 
 Goanna is first and foremost a graphics project: these screenshots show the
-intended direction—large views, dynamic lighting and detailed materials while
+intended direction: large views, dynamic lighting and detailed materials while
 remaining connected to an ordinary Luanti world.
 
 | Landscapes | Lighting and materials |
