@@ -40,6 +40,10 @@ flatpak notes are in [building.md](building.md).
 
 ## Tests and validation
 
+Start performance work with the [rendering baseline](baseline.md). It defines
+the control condition, capture views and acceptance gates used to separate
+geometry/streaming regressions from optional visual-system costs.
+
 Native tests are built in `build/`:
 
 ```sh

@@ -4,6 +4,8 @@
   known limitations.
 - [Developer guide](developers.md): architecture, build, tests and technical
   references.
+- [Rendering baseline](baseline.md): reproducible performance and visual
+  acceptance protocol.
 
 The remaining files are focused references linked from the developer guide.
 Start with [far rendering](far-rendering.md), [materials](materials.md),

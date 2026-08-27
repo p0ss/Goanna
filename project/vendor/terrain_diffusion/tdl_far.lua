@@ -56,8 +56,18 @@ local SCREE = "mcl_core:gravel"
 local WATER = "mcl_core:water_source"
 
 local sea_level = tdl.sea_level
+local min_drainage_km2 = tdl.min_drainage_km2
 local run = 2 * 30.0
 local use_palette = core.settings:get_bool("tdl_use_game_biomes", true)
+
+-- Same reasoning as tdl_mapgen.lua: past this depth below its own water
+-- level, a column is the interior of a lake or the sea, not its edge, and
+-- there is no channel bed left to invent for it.
+local MAX_INVENTED_DEPTH = 24
+
+-- How shallow standing water has to be before its floor counts as a beach,
+-- rather than just the interior of whatever it is part of.
+local SHORE_DEPTH = 4
 
 goanna_register_far_surface(function(x, z)
         local fi, fj = tdl.node_to_pixel(x, z)
@@ -98,23 +108,42 @@ goanna_register_far_surface(function(x, z)
         -- the horizon has water where the ground does. The bed profile is
         -- skipped: at four nodes a cell it is below what can be seen.
         local water_y = nil
+        local shore = false
         local distance = tdl.water_distance_at(fi, fj)
         if distance < 400 then
                 local level = tdl.water_surface_at(fi, fj)
-                local catchment = math.max(1, tdl.drainage_at(fi, fj))
-                local half = 0.7 * math.sqrt(catchment)
-                if half < 2 then half = 2 elseif half > 300 then half = 300 end
-                local deep = 0.35 * (catchment ^ 0.3)
-                if deep < 1 then deep = 1 elseif deep > 24 then deep = 24 end
-                if distance < half then
-                        local across = distance / half
-                        local bed = level - deep * math.sqrt(math.max(0, 1 - across * across))
-                        if bed < elevation then elevation = bed end
+
+                if elevation < level - MAX_INVENTED_DEPTH then
+                        -- The interior of a lake or the sea, not its edge:
+                        -- "distance to water" cannot see past its own
+                        -- surface, so it reads zero out here too. Flood it
+                        -- and leave the ground and its material alone.
                         water_y = tdl.surface_y(level)
-                elseif elevation < level - 0.5 and distance < half * 2.5 then
-                        water_y = tdl.surface_y(level)
+                else
+                        local catchment = math.max(1, tdl.drainage_at(fi, fj))
+                        local is_channel = catchment >= min_drainage_km2
+                        local half = 0.7 * math.sqrt(catchment)
+                        if half < 2 then half = 2 elseif half > 300 then half = 300 end
+                        local deep = 0.35 * (catchment ^ 0.3)
+                        if deep < 1 then deep = 1 elseif deep > 24 then deep = 24 end
+                        if is_channel and distance < half then
+                                local across = distance / half
+                                local bed = level - deep * math.sqrt(math.max(0, 1 - across * across))
+                                if bed < elevation then elevation = bed end
+                                water_y = tdl.surface_y(level)
+                                shore = true
+                        elseif elevation < level - 0.5 and distance < half * 2.5 then
+                                water_y = tdl.surface_y(level)
+                                -- Shallow enough to be a rim, not just
+                                -- anywhere on a lake's or the sea's own
+                                -- floor: "distance to water" cannot tell the
+                                -- difference once a column is already wet.
+                                if elevation > level - SHORE_DEPTH then
+                                        shore = true
+                                end
+                        end
                 end
-                if water_y then
+                if shore then
                         top = slope > 0.35 and "mcl_core:gravel" or "mcl_core:sand"
                         side = "mcl_core:sand"
                 end

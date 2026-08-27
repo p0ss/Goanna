@@ -78,6 +78,21 @@ local sea_level = tdl.sea_level
 local nodes_per_pixel = tdl.nodes_per_pixel
 local metres_per_node = tdl.metres_per_node
 local detail_metres = tdl.detail_metres
+local min_drainage_km2 = tdl.min_drainage_km2
+
+-- Deeper than this below its own water level, a column is the interior of a
+-- lake or the sea rather than its edge, so there is nothing left to invent:
+-- the deepest bed this mapgen ever carves for a real channel is 24 m, so
+-- past that depth the ground already explains itself.
+local MAX_INVENTED_DEPTH = 24
+
+-- How shallow standing water has to be before its floor counts as a beach.
+-- "Distance to water" cannot tell a true shoreline from the middle of a lake
+-- once a column is already wet, since both read zero, so a shallow pond a
+-- kilometre across would otherwise sand its entire bed rather than just the
+-- rim. Depth can tell the difference: a rim is shallow, a middle usually
+-- is not.
+local SHORE_DEPTH = 4
 
 -- Everything the model knows about is 30 m across or larger. Below that the
 -- terrain has to be invented, and the amplitude of what gets invented has to
@@ -249,6 +264,7 @@ local slopes = {}
 local materials = {}
 local grounds = {}
 local water_levels = {}
+local shore_columns = {}
 
 local floor = math.floor
 local sqrt = math.sqrt
@@ -347,10 +363,7 @@ core.register_on_generated(function(vmanip, minp, maxp, blockseed)
         local raw_x = wide_x + 2
 
         if not detail_map then
-                -- NoiseMap's constructor reads a 3-D size even when the map
-                -- will be sampled through get_2d_map_flat. An omitted z was
-                -- accepted as 1 but emitted three warnings per emerge thread.
-                local size = {x = wide_x, y = wide_z, z = 1}
+                local size = {x = wide_x, y = wide_z}
                 detail_map = ValueNoiseMap(detail_params, size)
                 rock_map = ValueNoiseMap(rock_params, size)
                 dither_map = ValueNoiseMap(dither_params, size)
@@ -409,63 +422,119 @@ core.register_on_generated(function(vmanip, minp, maxp, blockseed)
                         -- trunk river is hundreds, and neither is tied to the
                         -- thirty metre pixel the model works in.
                         local water_y = nil
+                        local shore = false
                         local distance = tdl.water_distance_at(fi_here, fj_here)
                         if distance < 800 then
                                 local level = tdl.water_surface_at(fi_here, fj_here)
-                                local catchment = max(1, tdl.drainage_at(fi_here, fj_here))
-                                local half = 0.7 * math.sqrt(catchment)
-                                if half < 2 then half = 2 elseif half > 300 then half = 300 end
-                                local deep = 0.35 * (catchment ^ 0.3)
-                                if deep < 1 then deep = 1 elseif deep > 24 then deep = 24 end
 
-                                -- Put the invented relief away as the water is
-                                -- approached. A floodplain is flat, and twenty
-                                -- metres of noise beside a river is what stands
-                                -- isolated cubes of water up on the bank: every
-                                -- column the noise happens to dip below the
-                                -- river's level floods on its own.
-                                local reach = half * 2.5
-                                local near = 1 - min(1, distance / reach)
-                                if near > 0 then
-                                        near = near * near * (3 - 2 * near)
-                                        detailed = detailed + (elevation - detailed) * near
-                                end
-
-                                if distance < half then
-                                        -- Inside the channel: a rounded bed, so
-                                        -- the bottom is deepest mid stream and
-                                        -- rises to meet the banks.
-                                        local across = distance / half
-                                        local bed = level - deep * math.sqrt(max(0, 1 - across * across))
-                                        if bed < detailed then detailed = bed end
+                                if elevation < level - MAX_INVENTED_DEPTH then
+                                        -- Well below the water's own level:
+                                        -- this is the interior of a lake or
+                                        -- the sea, not its edge. "Distance to
+                                        -- water" reads zero out here just as
+                                        -- it does right at the shoreline,
+                                        -- since it cannot see past its own
+                                        -- surface, so depth is what tells
+                                        -- the two apart. Flood it and leave
+                                        -- the bed and material alone: the
+                                        -- heightmap is already the basin,
+                                        -- and the biome classifier already
+                                        -- knows what a sea floor is made of.
                                         water_y = tdl.surface_y(level)
-                                elseif distance < reach then
-                                        -- Just outside: ease the ground up away
-                                        -- from the bank instead of leaving the
-                                        -- vertical wall the old carve left.
-                                        local t = (distance - half) / (reach - half)
-                                        t = t * t * (3 - 2 * t)
-                                        local bank = level + 0.5
-                                        if bank < detailed then
-                                                detailed = bank + (detailed - bank) * t
+                                else
+                                        local catchment = max(1, tdl.drainage_at(fi_here, fj_here))
+                                        -- A real channel is worth inventing a
+                                        -- bed for, the same catchment the
+                                        -- bake needed before it would call
+                                        -- something a river. Below that this
+                                        -- is the edge of a pond, a lake or
+                                        -- the sea, all of which are wide
+                                        -- enough that the model already
+                                        -- resolved their bed: the basin in
+                                        -- the heightmap is the bed, not a
+                                        -- profile invented from how much
+                                        -- land drains to it.
+                                        local is_channel = catchment >= min_drainage_km2
+                                        local half = 0.7 * math.sqrt(catchment)
+                                        if half < 2 then half = 2 elseif half > 300 then half = 300 end
+                                        local deep = 0.35 * (catchment ^ 0.3)
+                                        if deep < 1 then deep = 1 elseif deep > 24 then deep = 24 end
+
+                                        -- Put the invented relief away as the
+                                        -- water is approached. A floodplain
+                                        -- is flat, and twenty metres of noise
+                                        -- beside a river is what stands
+                                        -- isolated cubes of water up on the
+                                        -- bank: every column the noise
+                                        -- happens to dip below the river's
+                                        -- level floods on its own.
+                                        local reach = half * 2.5
+                                        local near = 1 - min(1, distance / reach)
+                                        if near > 0 then
+                                                near = near * near * (3 - 2 * near)
+                                                detailed = detailed + (elevation - detailed) * near
                                         end
-                                end
 
-                                -- Standing water outside the channel is decided
-                                -- by the baked ground, never by the noise laid
-                                -- on top of it, or every dip becomes a pond.
-                                if not water_y and distance < reach
-                                        and elevation < level - 0.5 then
-                                        water_y = tdl.surface_y(level)
-                                        if detailed > level then detailed = elevation end
+                                        if is_channel and distance < half then
+                                                -- Inside a real channel: a
+                                                -- rounded bed, so the bottom
+                                                -- is deepest mid stream and
+                                                -- rises to meet the banks.
+                                                local across = distance / half
+                                                local bed = level - deep * math.sqrt(max(0, 1 - across * across))
+                                                if bed < detailed then detailed = bed end
+                                                water_y = tdl.surface_y(level)
+                                                shore = true
+                                        elseif distance < reach then
+                                                -- Just outside a channel, or
+                                                -- anywhere near the edge of a
+                                                -- standing body: ease the
+                                                -- ground towards the
+                                                -- shoreline instead of
+                                                -- leaving a vertical wall. t
+                                                -- can start below zero here
+                                                -- (a standing body has no
+                                                -- "inside half" to have
+                                                -- already excluded), so
+                                                -- clamp it.
+                                                local t = (distance - half) / (reach - half)
+                                                if t < 0 then t = 0 elseif t > 1 then t = 1 end
+                                                t = t * t * (3 - 2 * t)
+                                                local bank = level + 0.5
+                                                if bank < detailed then
+                                                        detailed = bank + (detailed - bank) * t
+                                                end
+                                        end
+
+                                        -- Standing water is decided by the
+                                        -- baked ground, never by the noise
+                                        -- laid on top of it: this is what
+                                        -- floods a basin to the level the
+                                        -- heightmap actually holds it at,
+                                        -- rather than every dip becoming its
+                                        -- own pond.
+                                        if not water_y and distance < reach
+                                                and elevation < level - 0.5 then
+                                                water_y = tdl.surface_y(level)
+                                                if detailed > level then detailed = elevation end
+                                                -- Shallow enough to be a rim,
+                                                -- not just anywhere on a
+                                                -- lake's or the sea's own
+                                                -- floor.
+                                                if elevation > level - SHORE_DEPTH then
+                                                        shore = true
+                                                end
+                                        end
                                 end
                         end
 
                         local surface = tdl.surface_y(detailed)
                         if water_y and water_y < surface then
                                 water_y = nil
+                                shore = false
                         end
                         water_levels[index] = water_y
+                        shore_columns[index] = shore
 
                         heights[index] = surface
                         slopes[index] = slope
@@ -538,7 +607,12 @@ core.register_on_generated(function(vmanip, minp, maxp, blockseed)
                         end
 
                         local water_y = water_levels[index]
-                        if water_y then
+                        if water_y and shore_columns[index] then
+                                -- Only right at the edge: the interior of a
+                                -- lake or the sea is deep enough that this
+                                -- column was never marked a shore, and keeps
+                                -- whatever the biome classifier decided a
+                                -- floor that deep is made of.
                                 top = (slope > 0.35) and c_gravel or c_sand
                                 filler = c_sand
                         end

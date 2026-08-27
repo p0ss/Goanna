@@ -38,6 +38,9 @@ const DEFAULT_TERRAIN_DOWNLOAD_BYTES := 6883437
 const DEFAULT_TERRAIN_I0 := 84
 const DEFAULT_TERRAIN_J0 := 80
 const DEFAULT_TERRAIN_TILES := 4
+# New worlds start at an inland valley rather than the release bake's
+# monotonous central plateau. Coordinates are model pixels in (i, j) order.
+const DEFAULT_TERRAIN_SHOWCASE_SPAWN := [44032, 41984]
 
 # Where Luanti keeps games and worlds, and how to invoke its server.
 # Returns {} if no server could be found.
@@ -246,6 +249,16 @@ func _install_default_terrain(world: String, source := "") -> String:
 	DirAccess.make_dir_recursive_absolute(dst.path_join("tiles"))
 	if not _copy_resource_file(src.path_join("manifest.json"), dst.path_join("manifest.json")):
 		return "Download the Terrain Diffusion default world before starting this world."
+	# Keep the shared release cache immutable; customise only this world's copy.
+	if source == "":
+		var manifest_path := dst.path_join("manifest.json")
+		var manifest_data = JSON.parse_string(FileAccess.get_file_as_string(manifest_path))
+		if manifest_data is Dictionary:
+			manifest_data["spawn_px"] = DEFAULT_TERRAIN_SHOWCASE_SPAWN.duplicate()
+			var rewritten := FileAccess.open(manifest_path, FileAccess.WRITE)
+			if rewritten == null:
+				return "Could not write the Terrain Diffusion world manifest."
+			rewritten.store_string(JSON.stringify(manifest_data, "  "))
 	for ti in range(DEFAULT_TERRAIN_I0, DEFAULT_TERRAIN_I0 + DEFAULT_TERRAIN_TILES):
 		for tj in range(DEFAULT_TERRAIN_J0, DEFAULT_TERRAIN_J0 + DEFAULT_TERRAIN_TILES):
 			var filename := "t_%d_%d.bin" % [ti, tj]
@@ -450,6 +463,11 @@ func start_config(options: Dictionary) -> String:
 			# Reconstruct each native 30 m sample onto thirty 1 m nodes. Pin this
 			# so a global Luanti preference cannot make the world coarser.
 			cf.store_string("tdl_nodes_per_pixel = 30\n")
+			# The 62 km default bake is physically one climate zone and otherwise
+			# opens as a monotonous biome. Stretch only the climate lookup so the
+			# showcase spawn crosses forest, wetland and upland climates without
+			# distorting the baked elevation or hydrology.
+			cf.store_string("tdl_climate_stretch = 4\n")
 		# Three asynchronous area streams keep a flying local player supplied;
 		# each stream queues only one 64-node slice at a time, so live terrain
 		# still gets frequent opportunities between them.

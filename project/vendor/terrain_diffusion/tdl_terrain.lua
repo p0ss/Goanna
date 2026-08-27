@@ -67,6 +67,13 @@ local tile_j1 = tile_j0 + manifest.tiles - 1
 
 local climate_factors = manifest.climate_factors
 
+-- How much catchment a channel needs before it is worth carving a bed for,
+-- straight from the bake so the mapgen never disagrees with the field it is
+-- reading. Below this a "river" is really just a wet patch of ground, and
+-- the flat area it is next to (a pond, a lake, the sea) has no channel to
+-- speak of: its bed is whatever the heightmap says, not an invented profile.
+tdl.min_drainage_km2 = manifest.min_drainage_km2 or 8.0
+
 -- Tile cache. Tiles are decoded once into flat arrays and kept, bounded so a
 -- long flight does not grow without limit. Each emerge thread has its own copy
 -- of this, which is the price of the mapgen environment being isolated.
