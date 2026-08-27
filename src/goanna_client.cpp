@@ -1777,6 +1777,11 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
                                 "' cls=", classes[i], " coarse=", coarse[i]);
                 }
             }
+            // Worked out from how flat this pack's authored maps measured
+            // when the array was built, so a flat pack is lifted and a good
+            // one is left alone. 1.0 when there is nothing to correct.
+            sm->set_shader_parameter("pack_normal_gain",
+                    nrm.is_valid() ? agt->normalGain() : 1.0f);
             sm->set_shader_parameter("has_normal", nrm.is_valid());
             sm->set_shader_parameter("has_spec", spc.is_valid());
             if (nrm.is_valid())

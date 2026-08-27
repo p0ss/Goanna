@@ -26,6 +26,11 @@ uniform bool has_spec = false;
 // authored and 0.0 being that channel off. They are set from the settings
 // panel through GoannaClient::set_material_strength.
 uniform float normal_strength : hint_range(0.0, 2.0) = 1.0;
+// A per pack correction on top of normal_strength, from
+// GoannaTexture::normalGain. The slider is the player's preference; this is
+// the pack's own shortfall, measured when its normal array was built. A pack
+// with real relief reads 1.0 and is untouched.
+uniform float pack_normal_gain : hint_range(1.0, 3.0) = 1.0;
 uniform float ao_strength : hint_range(0.0, 1.0) = 1.0;
 uniform float roughness_strength : hint_range(0.0, 1.0) = 1.0;
 uniform float specular_strength : hint_range(0.0, 2.0) = 1.0;

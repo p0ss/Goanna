@@ -659,7 +659,16 @@ private:
     godot::Ref<godot::Shader> m_sh_water, m_sh_leaves, m_sh_plants, m_sh_glass, m_sh_array,
             m_sh_array_scissor;
     bool m_shaders_loaded = false;
-    float m_auto_bump = 0.35f;
+    // Relief inferred from a texture's own brightness, for every texture a
+    // pack does not supply a normal map for. Only ever used where nothing is
+    // authored (goanna_textures.cpp), so it never fights a pack.
+    //
+    // Was 0.35, chosen on 2026-08-16 before there was any way to measure what
+    // it produced. Measured since: 0.35 gave a ninth decile tilt of 20.5
+    // degrees and 0.6 gave about 31, against the 55 the pack gain now targets.
+    // 0.95 puts the inference in the same range, so a texture without a normal
+    // map stops reading flatter than one beside it that has one.
+    float m_auto_bump = 0.95f;
     bool m_show_body = true;
     // telemetry (EMA in milliseconds, plus last-frame counters)
     double m_ms_mesh = 0, m_ms_upload = 0, m_ms_lights = 0, m_ms_motes = 0, m_ms_entities = 0;

@@ -109,7 +109,7 @@ void fragment() {
 		// which a fixed camera A/B shows plainly. The inferred normals in
 		// goanna_textures.cpp do flip, because they are built in image space
 		// where the row order is the other way about.
-		vec2 xy = (n.rg * 2.0 - 1.0) * normal_strength * (1.0 - flatten);
+		vec2 xy = (n.rg * 2.0 - 1.0) * normal_strength * pack_normal_gain * (1.0 - flatten);
 		float z = sqrt(clamp(1.0 - dot(xy, xy), 0.0, 1.0));
 		NORMAL_MAP = vec3(xy * 0.5 + 0.5, z * 0.5 + 0.5);
 		NORMAL_MAP_DEPTH = 1.0;
@@ -163,7 +163,8 @@ void fragment() {
 	// belongs, and scaled by normal_strength because that is how much of the
 	// relief was being shown in the first place.
 	if (flatten > 0.001 && lod_variance_roughness > 0.0) {
-		float lost = lod_normal_variance[layer] * normal_strength * normal_strength
+		float g = normal_strength * pack_normal_gain;
+		float lost = lod_normal_variance[layer] * g * g
 				* flatten * lod_variance_roughness;
 		ROUGHNESS = clamp(sqrt(ROUGHNESS * ROUGHNESS + lost), 0.0, 1.0);
 	}

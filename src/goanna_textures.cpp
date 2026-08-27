@@ -340,6 +340,25 @@ Ref<Texture2DArray> GoannaTexture::godotArraySuffixed(GoannaTextureSource &src, 
         imgs.push_back(img);
         any = true;
     }
+    if (is_normal) {
+        // Decide whether this pack's authored relief needs help. The measure
+        // is the ninth decile rather than the median, so one steep texture
+        // does not speak for the pack and a long flat tail does not either.
+        // Target 55 degrees at the ninth decile. 35 was tried first and
+        // judged still too flat in play, with the normal_strength slider
+        // wanted at 2 on top of it, so the default was leaving the work to
+        // the player. The Mineclonia bake reaches 20.6 degrees at its very
+        // roughest, so it is flat as a whole and scales as a whole.
+        m_normal_gain = 1.0f;
+        if (authored_tilt.size() >= 8) {
+            std::vector<float> t = authored_tilt;
+            std::sort(t.begin(), t.end());
+            const double p90 = std::sqrt((double)t[(size_t)(t.size() * 0.9)]);
+            const double target = std::sin(55.0 * M_PI / 180.0);
+            if (p90 > 1e-4 && p90 < target)
+                m_normal_gain = (float)std::min(4.0, target / p90);
+        }
+    }
     if (getenv("GOANNA_DEBUG_PBR")) {
         // The coverage number docs/pbr-plan.md step 2 wants: how many layers
         // are authored, how many the classifier or the inference dressed,
@@ -371,6 +390,9 @@ Ref<Texture2DArray> GoannaTexture::godotArraySuffixed(GoannaTextureSource &src, 
             };
             report("authored", authored_tilt);
             report("inferred", inferred_tilt);
+            if (m_normal_gain > 1.001f)
+                UtilityFunctions::print("  relief authored gain ",
+                        String::num(m_normal_gain, 2), "x (pack reads flat)");
         }
     }
     if (!any) {

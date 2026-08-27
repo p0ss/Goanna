@@ -87,6 +87,16 @@ public:
     // at a scale the highlight can no longer resolve. Without it a distant
     // surface is flat and still shiny, which is what reads as plastic.
     const std::vector<float> &layerNormalVariance() const { return m_layer_normal_var; }
+    // A gain for this array's authored normal maps, worked out from how much
+    // relief they actually carry rather than from a constant.
+    //
+    // A pack whose authored maps are all shallow is flat as a pack and can be
+    // scaled as one. A pack with real relief must not be touched, or its
+    // steep textures become noise, so this only ever raises and only when the
+    // measurement says the whole set is compressed. 1.0 means leave it alone,
+    // which is also what a pack with no authored normals gets, because the
+    // inference has its own strength.
+    float normalGain() const { return m_normal_gain; }
     // Alpha is tracked per array layer as well as for the whole texture. A
     // solid stone layer may share an array with cut-out leaves, and treating
     // the whole array as transparent prevents the stone from being a safe
@@ -115,6 +125,7 @@ private:
     std::map<std::string, godot::Ref<godot::Texture2DArray>> m_godot_suffixed;
     std::vector<LayerSpec> m_layer_spec;
     std::vector<float> m_layer_normal_var;
+    float m_normal_gain = 1.0f;
     std::map<std::string, bool> m_suffixed_missing;
     godot::Ref<godot::ImageTexture> m_godot;
     godot::Ref<godot::ImageTexture> m_normal;
