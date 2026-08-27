@@ -207,6 +207,10 @@ Ref<Texture2DArray> GoannaTexture::godotArraySuffixed(GoannaTextureSource &src, 
     TypedArray<Image> imgs;
     bool any = false;
     int authored = 0, classed = 0, inferred = 0, emissive = 0;
+    // Per layer relief, kept apart by where it came from, so a pack can be
+    // judged rather than guessed at: whether flat normals are the whole pack
+    // or a few textures decides whether to correct the pack or the texture.
+    std::vector<float> authored_tilt, inferred_tilt;
     const MaterialTable *table = src.materialTable();
     for (size_t li = 0; li < m_layer_names.size(); ++li) {
         const std::string &base = m_layer_names[li];
@@ -214,6 +218,7 @@ Ref<Texture2DArray> GoannaTexture::godotArraySuffixed(GoannaTextureSource &src, 
         std::string name = (dotpos == std::string::npos ? base : base.substr(0, dotpos)) + suffix +
                 (dotpos == std::string::npos ? std::string() : base.substr(dotpos));
         Ref<Image> img;
+        bool was_authored = false;
         if (src.isKnownSourceImage(name)) {
             GoannaTexture *gt = dynamic_cast<GoannaTexture *>(src.getTexture(name));
             if (gt && gt->image()) {
@@ -240,6 +245,7 @@ Ref<Texture2DArray> GoannaTexture::godotArraySuffixed(GoannaTextureSource &src, 
                                           : Image::INTERPOLATE_NEAREST);
                     any = true;
                     ++authored;
+                    was_authored = true;
                 }
             }
         }
@@ -303,6 +309,7 @@ Ref<Texture2DArray> GoannaTexture::godotArraySuffixed(GoannaTextureSource &src, 
                 var /= (double)n;
             }
             m_layer_normal_var.push_back((float)var);
+            (was_authored ? authored_tilt : inferred_tilt).push_back((float)var);
         }
         if (!is_normal) {
             // The mean material response of this layer, converted per texel
@@ -342,6 +349,29 @@ Ref<Texture2DArray> GoannaTexture::godotArraySuffixed(GoannaTextureSource &src, 
                 is_normal ? " inferred " : " classed ", is_normal ? inferred : classed, "/", n,
                 is_normal ? "" : " emissive ", is_normal ? "" : String::num_int64(emissive),
                 " neutral ", n - authored - (is_normal ? inferred : classed));
+        if (is_normal) {
+            // How much relief each group actually carries, as the tilt a
+            // typical texel has away from flat. A pack whose authored maps
+            // read a few degrees is flat everywhere and wants correcting as a
+            // pack; one where only some textures do wants correcting per
+            // texture. Reported rather than acted on: the decision needs a
+            // person, and a genuinely smooth surface is allowed to be smooth.
+            auto report = [](const char *what, std::vector<float> &v) {
+                if (v.empty())
+                    return;
+                std::sort(v.begin(), v.end());
+                auto deg = [](float var) {
+                    return (float)(std::asin(std::min(1.0, std::sqrt((double)var))) * 180.0 / M_PI);
+                };
+                UtilityFunctions::print("  relief ", what, " n=", (int)v.size(),
+                        " median ", String::num(deg(v[v.size() / 2]), 1),
+                        " deg, p90 ", String::num(deg(v[(size_t)(v.size() * 0.9)]), 1),
+                        " deg, flattest ", String::num(deg(v.front()), 1),
+                        " deg, roughest ", String::num(deg(v.back()), 1), " deg");
+            };
+            report("authored", authored_tilt);
+            report("inferred", inferred_tilt);
+        }
     }
     if (!any) {
         m_suffixed_missing[key] = true;
