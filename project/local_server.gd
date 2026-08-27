@@ -31,16 +31,16 @@ const TERRAIN_DIFFUSION_FILES := [
 	"tdl_terrain.lua", "tdl_mapgen.lua", "settingtypes.txt", "mod.conf", "LICENSE",
 ]
 const GOANNA_SERVER_MOD_FILES := ["init.lua", "mod.conf", "settingtypes.txt", "README.md"]
-const DEFAULT_TERRAIN_ID := "tdl-default-1m-v1"
-const DEFAULT_TERRAIN_URL := "https://github.com/p0ss/terrain-diffusion-luanti/releases/download/default-1m-v1/tdl-default-1m-v1.zip"
-const DEFAULT_TERRAIN_SHA256 := "682f6e603fa26d095e1dc47f4c05195d50d8dfb0af9a6530e1e9bbfad32d4742"
-const DEFAULT_TERRAIN_DOWNLOAD_BYTES := 6883437
-const DEFAULT_TERRAIN_I0 := 84
-const DEFAULT_TERRAIN_J0 := 80
-const DEFAULT_TERRAIN_TILES := 4
-# New worlds start at an inland valley rather than the release bake's
-# monotonous central plateau. Coordinates are model pixels in (i, j) order.
-const DEFAULT_TERRAIN_SHOWCASE_SPAWN := [44032, 41984]
+const DEFAULT_TERRAIN_ID := "tdl-default-1m-v2"
+const DEFAULT_TERRAIN_URL := "https://github.com/p0ss/terrain-diffusion-luanti/releases/download/default-1m-v2/tdl-default-1m-v2.zip"
+const DEFAULT_TERRAIN_SHA256 := "8e90adba10d62ffac135004813f4c96cfbdf78dbda1ab8d77220ea2af7e529d9"
+const DEFAULT_TERRAIN_DOWNLOAD_BYTES := 71201860
+const DEFAULT_TERRAIN_I0 := 74
+const DEFAULT_TERRAIN_J0 := 74
+const DEFAULT_TERRAIN_TILES := 16
+# The v2 bake records a showcase origin near a coast with several biome
+# transitions. Coordinates are model pixels in (i, j) order.
+const DEFAULT_TERRAIN_SHOWCASE_SPAWN := [41172, 40364]
 
 # Where Luanti keeps games and worlds, and how to invoke its server.
 # Returns {} if no server could be found.
@@ -463,11 +463,9 @@ func start_config(options: Dictionary) -> String:
 			# Reconstruct each native 30 m sample onto thirty 1 m nodes. Pin this
 			# so a global Luanti preference cannot make the world coarser.
 			cf.store_string("tdl_nodes_per_pixel = 30\n")
-			# The 62 km default bake is physically one climate zone and otherwise
-			# opens as a monotonous biome. Stretch only the climate lookup so the
-			# showcase spawn crosses forest, wetland and upland climates without
-			# distorting the baked elevation or hydrology.
-			cf.store_string("tdl_climate_stretch = 4\n")
+			# v2 is baked around a deliberate multi-biome showcase spawn, so keep
+			# climate aligned with the terrain rather than stretching it.
+			cf.store_string("tdl_climate_stretch = 1\n")
 		# Three asynchronous area streams keep a flying local player supplied;
 		# each stream queues only one 64-node slice at a time, so live terrain
 		# still gets frequent opportunities between them.
