@@ -32,6 +32,11 @@ var ground_tint_timer := 0.0
 # How rained-on the world is, 0 to 1, fed to the goanna_wetness shader
 # global: rises during rain and drains slowly after, see _apply_sky.
 var wetness := 0.0
+# The terrain height under the camera, from client.ground_height, sampled on
+# the ground tint's clock and held at its last answer while flying too high
+# for the scan to reach. The haze layer is anchored to it, so the depth fog
+# thins as the camera climbs instead of drowning the map from altitude.
+var terrain_ref := 0.0
 var cloud_speed := Vector2(-2.0, 0.0)
 var cloud_height := 120.0
 var cloud_thickness := 16.0
@@ -1821,6 +1826,9 @@ func _ground_tint() -> Color:
 			var s: Color = client.ground_albedo(cam.global_position)
 			if s.a > 0.2:
 				ground_tint_raw = Color(s.r, s.g, s.b)
+			var h: float = client.ground_height(cam.global_position)
+			if h > -1e8:
+				terrain_ref = lerpf(terrain_ref, h, 0.35)
 	ground_tint = ground_tint.lerp(ground_tint_raw, 1.0 - exp(-dt / 2.5))
 	return ground_tint
 
@@ -2216,7 +2224,21 @@ func _apply_sky() -> void:
 		# gone. What is left visible at the edge is a silhouette, which is a
 		# better answer than a wall even where there is a ragged far field
 		# frontier behind it.
-		e.fog_density = fog_max
+		# The haze is a layer the terrain wears, not a property of distance in
+		# empty air. Godot's depth fog knows only the ramp, so from altitude
+		# every slant ray to the ground crossed it and the whole map drowned
+		# in one flat horizon colour (reported from a Terrain Diffusion world
+		# at height: "the entire ground turns into this horrible distance
+		# fog"). Godot's own height fog modulates by the fragment's height,
+		# and the ground is always inside the layer, so it cannot say this;
+		# thinning the density by how far the camera stands above the terrain
+		# can. At ground level nothing changes; climbing out of the layer
+		# clears the view straight down while the sky shader's own haze band
+		# still holds the horizon.
+		var alt_above: float = get_viewport().get_camera_3d().global_position.y \
+				- terrain_ref if get_viewport().get_camera_3d() else 0.0
+		var alt_clear: float = smoothstep(90.0, 360.0, alt_above)
+		e.fog_density = fog_max * (1.0 - 0.85 * alt_clear)
 		# Aerial perspective blends distant geometry toward the sky, which is
 		# what actually sells a vista; it wants to be stronger the further we
 		# draw, so a 512 node horizon reads as haze rather than a hard edge.
@@ -2229,13 +2251,14 @@ func _apply_sky() -> void:
 		# as fog colour is what faded mountains and trees toward white. Night
 		# keeps the depth fog above, already coloured and dimmed from the night
 		# horizon; sky-radiance blending belongs to daylight and twilight.
-		e.fog_aerial_perspective = aerial * maxf(day, dawn * 0.65)
+		e.fog_aerial_perspective = aerial * maxf(day, dawn * 0.65) * (1.0 - 0.7 * alt_clear)
 		# Ramped, not stepped. draw_nodes follows far_reach, which grows as the
 		# far field fills, so this crossed its threshold while the player stood
 		# still and the sky snapped between clear and hazy like a switch. The
 		# aerial term above already ramps over the same quantity; this was the
 		# one hard edge left in the sky's response to draw distance.
-		e.fog_sky_affect = lerpf(0.1, 0.5, smoothstep(220.0, 340.0, draw_nodes))
+		e.fog_sky_affect = lerpf(0.1, 0.5, smoothstep(220.0, 340.0, draw_nodes)) \
+				* (1.0 - 0.6 * alt_clear)
 	# --- ambient / grade from day-night ratio and server lighting ---
 	var ratio: float = st["day_night_ratio"]
 	# Kept wired and kept honest: this line is inert while SDFGI is on, for

@@ -165,6 +165,22 @@ Sizing, by what happens to those ~57k lines:
   threading is unproblematic (session thread + Godot main thread with two
   mutexes). The sizing above holds or is pessimistic.
 
+## Log since v0.4.0-alpha (2026-08-29)
+
+- The depth fog thins with altitude. It is a layer the terrain wears, not
+  a property of distance in empty air, but Godot's depth fog knows only
+  the camera-distance ramp, so from any height every slant ray crossed it
+  and the whole map drowned in one flat horizon colour (reported from a
+  Terrain Diffusion world: "the entire ground turns into this horrible
+  distance fog"). Godot's own height fog modulates by the fragment's
+  height and the ground is always inside the layer, so it cannot help;
+  the density, aerial perspective and the fogged share of the sky now
+  scale down by how far the camera stands above the terrain, anchored by
+  a new ground_height sample beside ground_albedo and held at its last
+  answer during high flight. At ground level nothing changes. Verified
+  at 280 nodes up over the test world: the map below reads as an aerial
+  view with haze at the horizon, against a uniform wash before.
+
 ## Log since v0.3.0-alpha (2026-08-28)
 
 Verified on a local Mineclonia server on Luanti 5.17.0 with Godot 4.5.1

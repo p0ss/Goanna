@@ -1389,6 +1389,36 @@ String GoannaClient::node_name_at(const Vector3 &pos) {
 // green plain, blue over open sea (weighted down: water throws back little
 // diffuse light). Alpha carries the share of columns that answered, so a
 // caller can hold its last tint when nothing is loaded.
+// Mean surface height of the loaded columns just under the given point, or
+// -1e9 when none answer (the scan reaches only a little below the camera, so
+// high flight keeps the caller's last answer). main.gd anchors the haze
+// layer with it, so the depth fog thins as the camera climbs above the
+// terrain instead of drowning the whole ground from altitude.
+float GoannaClient::ground_height(const Vector3 &center) {
+    if (!m_session)
+        return -1e9f;
+    std::lock_guard<std::mutex> lk(m_session->mapLock());
+    const s16 cx = (s16)floorf(center.x + 0.5f);
+    const s16 cy = (s16)floorf(center.y + 0.5f);
+    const s16 cz = (s16)floorf(-center.z + 0.5f);
+    float sum = 0.0f;
+    int n = 0;
+    for (int dz = -4; dz <= 4; ++dz)
+        for (int dx = -4; dx <= 4; ++dx)
+            for (s16 y = cy + 8; y >= cy - 24; --y) {
+                MapNode nd = m_session->map().getNode(v3s16(cx + dx * 3, y, cz + dz * 3));
+                const content_t c = nd.getContent();
+                if (c == CONTENT_AIR)
+                    continue;
+                if (c == CONTENT_IGNORE)
+                    break;
+                sum += (float)y;
+                ++n;
+                break;
+            }
+    return n >= 20 ? sum / (float)n : -1e9f;
+}
+
 Color GoannaClient::ground_albedo(const Vector3 &center) {
     if (!m_session)
         return Color(0.5f, 0.5f, 0.5f, 0.0f);
@@ -5618,6 +5648,7 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("take_particles"), &GoannaClient::take_particles);
     ClassDB::bind_method(D_METHOD("node_name_at", "pos"), &GoannaClient::node_name_at);
     ClassDB::bind_method(D_METHOD("ground_albedo", "center"), &GoannaClient::ground_albedo);
+    ClassDB::bind_method(D_METHOD("ground_height", "center"), &GoannaClient::ground_height);
     ClassDB::bind_method(D_METHOD("node_sound", "node_name", "kind"), &GoannaClient::node_sound);
     ClassDB::bind_method(D_METHOD("sky_state"), &GoannaClient::sky_state);
     ClassDB::bind_method(D_METHOD("update_lights", "around", "max_lights"), &GoannaClient::update_lights);
