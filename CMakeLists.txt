@@ -81,6 +81,12 @@ add_executable(goanna_lod_test EXCLUDE_FROM_ALL src/goanna_lod_test.cpp)
 target_include_directories(goanna_lod_test PRIVATE src)
 target_link_libraries(goanna_lod_test PRIVATE goanna luanti_core)
 
+# The one scheduling rule every queue shares: the Z mirror crossing into
+# Godot space, class bands, and a view cone that weights rather than filters.
+add_executable(goanna_schedule_test EXCLUDE_FROM_ALL src/goanna_schedule_test.cpp)
+target_include_directories(goanna_schedule_test PRIVATE src)
+target_link_libraries(goanna_schedule_test PRIVATE luanti_core)
+
 # The mesh worker pool's contract: no job lost, none run twice, resubmission
 # replaces, cancel drops, priority orders.
 add_executable(goanna_mesh_pool_test EXCLUDE_FROM_ALL

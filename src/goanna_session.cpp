@@ -272,6 +272,14 @@ int GoannaSession::farRenderingGrant() const {
     int dist = 512;
     if (d != opts.end())
         dist = atoi(d->second.c_str());
+    // A registered procedural provider explicitly grants coarse synthetic
+    // terrain beyond the generated/store radius. It reveals no nodes, caves
+    // or structures and costs no emerge work; use it as the presentation and
+    // summary-request horizon while the server mod keeps pregeneration bound
+    // to far_rendering_distance.
+    auto p = opts.find("far_provider_distance");
+    if (p != opts.end())
+        dist = std::max(dist, atoi(p->second.c_str()));
     return std::clamp(dist, 0, 4096);
 }
 

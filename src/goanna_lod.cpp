@@ -91,6 +91,11 @@ bool BlockLodChain::filledAt(int cell, int x, int y, int z) const {
     return (fine_filled[index >> 6] & (1ull << (index & 63))) != 0;
 }
 
+bool BlockLodChain::liquidAt(int cell, int x, int y, int z) const {
+    const LodLevel::Cell *c = cellAt(cell, x, y, z);
+    return c && (c->flags & LodLevel::kLiquid);
+}
+
 bool BlockLodChain::occludesAt(int cell, int x, int y, int z) const {
     if (cell != 1) {
         const LodLevel::Cell *c = cellAt(cell, x, y, z);
@@ -653,7 +658,29 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
         const int lz = (sz % MAP_BLOCKSIZE) / dc;
         return ch->filledAt(dc, lx, ly, lz);
     };
-    auto renderedFaceCovered = [&](const int g[3], int d) -> bool {
+    auto renderedLiquidAtNode = [&](int nx, int ny, int nz) -> bool {
+        const int sx = nx + mb * MAP_BLOCKSIZE;
+        const int sy = ny + mb * MAP_BLOCKSIZE;
+        const int sz = nz + mb * MAP_BLOCKSIZE;
+        if (sx < 0 || sy < 0 || sz < 0)
+            return false;
+        const int bx = sx / MAP_BLOCKSIZE, by = sy / MAP_BLOCKSIZE, bz = sz / MAP_BLOCKSIZE;
+        if (bx >= B || by >= B || bz >= B)
+            return false;
+        const size_t bi = ((size_t)bz * B + by) * B + bx;
+        const int dc = drawn[bi];
+        const BlockLodChain *ch = chains[bi];
+        if (!ch || dc <= 0 || !ch->hasCell(dc))
+            return false;
+        return ch->liquidAt(dc, (sx % MAP_BLOCKSIZE) / dc, (sy % MAP_BLOCKSIZE) / dc,
+                (sz % MAP_BLOCKSIZE) / dc);
+    };
+    // liquid_covers: whether a liquid voxel counts as covering the face.
+    // True keeps water culling water, which is what stops every internal
+    // cell boundary of a sea from drawing. False is for a solid face: water
+    // is drawn transparent, so a sea floor culled against the sea above it
+    // left every water body bottomless, blue over the void.
+    auto renderedFaceCovered = [&](const int g[3], int d, bool liquid_covers) -> bool {
         const int axis = DIRS[d][0] ? 0 : (DIRS[d][1] ? 1 : 2);
         const int ua = axis == 0 ? 1 : 0;
         const int va = axis == 2 ? 1 : 2;
@@ -684,6 +711,8 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                 p[ua] = g[ua] * cell + u;
                 p[va] = g[va] * cell + v;
                 if (!renderedFilledAtNode(p[0], p[1], p[2]))
+                    return false;
+                if (!liquid_covers && renderedLiquidAtNode(p[0], p[1], p[2]))
                     return false;
             }
         return true;
@@ -1393,7 +1422,13 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                     }
                     const int fx = g[0] + DIRS[d][0], fy = g[1] + DIRS[d][1], fz = g[2] + DIRS[d][2];
                     const LodLevel::Cell *front_cell = cellAt(fx, fy, fz);
-                    const bool front_filled = !liquid_face && renderedFaceCovered(g, d);
+                    // A liquid face keeps liquid-covers-liquid culling (the
+                    // inside of a sea is not a stack of internal faces); a
+                    // solid face is not covered by the transparent water in
+                    // front of it, which is what draws the sea floor and the
+                    // underwater risers.
+                    const bool front_filled = !liquid_face &&
+                            renderedFaceCovered(g, d, (c->flags & LodLevel::kLiquid) != 0);
                     // How high the content actually reaches in each cell.
                     auto height_of = [&](const LodLevel::Cell *cc, bool is_filled) -> int {
                         if (!is_filled)

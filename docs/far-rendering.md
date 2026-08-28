@@ -2256,15 +2256,22 @@ because it would take one 8 cubed area's base64 reply past the mod channel's
 16-bit string limit.
 
 The flags separately say that a record has emerged data and that every node
-in it has emerged. A partial reply is retained as progress state but is not
-published into the rendered LOD database until its 8 cubed area is complete;
-it is retried after two seconds. Publishing the complete mapblocks from one
-pregeneration slice while the other slices were absent produced the floating
-horizontal panels seen on a new server. Version 5 also used one flag for both
-meanings, so one known cell could make a partly emerged mapblock permanent
-and preserve its unknown cells as strips through a mountain. Version 6 uses
-a new `fs6:` store prefix so those stale partial records cannot survive the
-upgrade.
+in it has emerged. A partial reply is published as it stands and stays due
+for retry until its 8 cubed area is complete (2026-08-28; the records that
+are missing stay unknown rather than invented, and a later reply's summary
+chains replace the earlier ones). It was published only once the whole area
+was complete, a rule added because publishing the complete mapblocks from
+one pregeneration slice while the other slices were absent produced floating
+horizontal panels on a new server. But an area holds 512 blocks and Luanti
+generates in 5 block tall chunks, so one ungenerated block at a chunk
+boundary is the normal state, and the atomic rule held the other 511 back
+for the whole session: the horizon was full of 128 node holes that never
+closed. The panels the rule was written against were the store and provider
+paths' absence of retry, which the retry now covers. Version 5 used one
+flag for both meanings, so one known cell could make a partly emerged
+mapblock permanent and preserve its unknown cells as strips through a
+mountain. Version 6 uses a new `fs6:` store prefix so those stale partial
+records cannot survive the upgrade.
 
 Live nodes, stored nodes and summaries now feed the same recursive 2 by 2 by
 2 reducer for cell 8 and cell 16. Any occupied child keeps its parent

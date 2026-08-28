@@ -2,6 +2,7 @@
 // Copyright (C) 2026 the Goanna contributors
 
 #include "goanna_mesh_pool.h"
+#include "goanna_schedule.h"
 
 #include <algorithm>
 
@@ -55,22 +56,29 @@ void MeshPool::setLimits(int queued, int noncoverage, int refinement, int ready)
     std::lock_guard<std::mutex> lock(m_mutex);
     m_max_queued = std::max(1, queued);
     m_max_noncoverage = std::clamp(noncoverage, 0, m_max_queued);
+    // The coverage reserve is symmetric: coverage must not fill every slot
+    // and prevent an urgent stale or near update from being admitted.
+    m_max_coverage = std::max(1, m_max_noncoverage);
     m_max_refinement = std::clamp(refinement, 0, m_max_noncoverage);
     m_max_ready = std::max(1, ready);
 }
 
 bool MeshPool::canAdmitLocked(const MeshJobKey &key, MeshWorkStage stage) const {
+    int coverage = 0;
     int noncoverage = 0;
     int refinement = 0;
     for (const Queued &q : m_queue) {
         if (q.key == key)
             return true; // replacing a queued capture does not consume space
-        if (q.stage != MeshWorkStage::kCoverage)
+        if (q.stage == MeshWorkStage::kCoverage)
+            ++coverage;
+        else
             ++noncoverage;
         if (q.stage >= MeshWorkStage::kStructure)
             ++refinement;
     }
     return (int)m_queue.size() < m_max_queued &&
+            (stage != MeshWorkStage::kCoverage || coverage < m_max_coverage) &&
             (stage == MeshWorkStage::kCoverage || noncoverage < m_max_noncoverage) &&
             (stage < MeshWorkStage::kStructure || refinement < m_max_refinement);
 }
@@ -108,6 +116,7 @@ bool MeshPool::submit(const MeshJobKey &key, uint64_t generation, MeshWorkStage 
         q.generation = generation;
         q.stage = stage;
         q.priority = priority;
+        q.queued_at = std::chrono::steady_clock::now();
         q.job = std::move(job);
         m_queue.push_back(std::move(q));
     }
@@ -146,12 +155,31 @@ bool MeshPool::takeLocked(Queued &out) {
         return false;
     auto best = m_queue.begin();
     for (auto it = std::next(best); it != m_queue.end(); ++it)
-        if (it->stage < best->stage ||
-                (it->stage == best->stage && it->priority < best->priority))
+        if (effectivePriorityLocked(*it) < effectivePriorityLocked(*best) ||
+                (effectivePriorityLocked(*it) == effectivePriorityLocked(*best) &&
+                        it->stage < best->stage))
             best = it;
     out = std::move(*best);
     m_queue.erase(best);
     return true;
+}
+
+int MeshPool::effectivePriorityLocked(const Queued &q) const {
+    constexpr double kAgeMs = 4000.0;
+    const double waited = std::chrono::duration<double, std::milli>(
+            std::chrono::steady_clock::now() - q.queued_at).count();
+    const ViewPriority::Class cls = ViewPriority::aged(
+            ViewPriority::classOf(q.priority), waited, kAgeMs);
+    return (int)cls * ViewPriority::kClassStride + ViewPriority::distanceOf(q.priority);
+}
+
+int MeshPool::effectivePriorityLocked(const Done &d) const {
+    constexpr double kAgeMs = 4000.0;
+    const double waited = std::chrono::duration<double, std::milli>(
+            std::chrono::steady_clock::now() - d.queued_at).count();
+    const ViewPriority::Class cls = ViewPriority::aged(
+            ViewPriority::classOf(d.priority), waited, kAgeMs);
+    return (int)cls * ViewPriority::kClassStride + ViewPriority::distanceOf(d.priority);
 }
 
 void MeshPool::workerMain() {
@@ -189,6 +217,7 @@ void MeshPool::workerMain() {
             d.generation = q.generation;
             d.stage = q.stage;
             d.priority = q.priority;
+            d.queued_at = q.queued_at;
             d.job = std::move(q.job);
             m_ready.push_back(std::move(d));
         }
@@ -201,8 +230,9 @@ bool MeshPool::next(Done &out) {
         return false;
     auto best = m_ready.begin();
     for (auto it = std::next(best); it != m_ready.end(); ++it)
-        if (it->stage < best->stage ||
-                (it->stage == best->stage && it->priority < best->priority))
+        if (effectivePriorityLocked(*it) < effectivePriorityLocked(*best) ||
+                (effectivePriorityLocked(*it) == effectivePriorityLocked(*best) &&
+                        it->stage < best->stage))
             best = it;
     out = std::move(*best);
     m_ready.erase(best);
@@ -223,8 +253,30 @@ MeshPool::Stats MeshPool::stats() const {
     s.ready = (int)m_ready.size();
     s.threads = (int)m_threads.size();
     s.rejected = m_rejected;
-    for (const Queued &q : m_queue)
+    const Queued *head = nullptr;
+    const Queued *nearest = nullptr;
+    for (const Queued &q : m_queue) {
         ++s.queued_stage[(int)q.stage];
+        // The same choice takeLocked makes, so the reported head is the job
+        // that really does run next rather than whatever is at the front of
+        // the deque.
+        if (!head || effectivePriorityLocked(q) < effectivePriorityLocked(*head) ||
+                (effectivePriorityLocked(q) == effectivePriorityLocked(*head) &&
+                        q.stage < head->stage))
+            head = &q;
+        if (!nearest || ViewPriority::distanceOf(q.priority) <
+                        ViewPriority::distanceOf(nearest->priority))
+            nearest = &q;
+    }
+    if (head) {
+        s.has_head = true;
+        s.head_stage = head->stage;
+        s.head_priority = effectivePriorityLocked(*head);
+    }
+    if (nearest) {
+        s.has_nearest = true;
+        s.nearest_priority = nearest->priority;
+    }
     return s;
 }
 

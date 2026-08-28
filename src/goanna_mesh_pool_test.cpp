@@ -11,6 +11,7 @@
 // still while the queue is loaded.
 
 #include "goanna_mesh_pool.h"
+#include "goanna_schedule.h"
 
 #include <atomic>
 #include <cstdio>
@@ -194,20 +195,25 @@ void testPriorityOrder() {
     pool.stop();
 }
 
-void testStageOrder() {
+void testPriorityClassesOverrideStages() {
     g_ran.store(0);
     MeshPool pool;
-    pool.submit(regionKey(1), 1, MeshWorkStage::kStructure, -1000,
+    ViewPriority vp;
+    vp.bootstrap = 0.0f;
+    pool.submit(regionKey(1), 1, MeshWorkStage::kStructure,
+            vp.of(ViewPriority::kStale, v3f(3000, 0, 0)),
             std::make_unique<CountingJob>(1));
-    pool.submit(nearKey(2), 1, MeshWorkStage::kNear, 1000,
+    pool.submit(nearKey(2), 1, MeshWorkStage::kNear,
+            vp.of(ViewPriority::kMaintain, v3f(1, 0, 0)),
             std::make_unique<CountingJob>(2));
-    pool.submit(regionKey(3), 1, MeshWorkStage::kCoverage, 2000,
+    pool.submit(regionKey(3), 1, MeshWorkStage::kCoverage,
+            vp.of(ViewPriority::kCoverage, v3f(10, 0, 0)),
             std::make_unique<CountingJob>(3));
     pool.start(1);
     std::vector<int> ids;
     check(drain(pool, 3, &ids) == 3, "all staged jobs return");
-    check(ids.size() == 3 && ids[0] == 3 && ids[1] == 2 && ids[2] == 1,
-            "coverage dispatches before near and refinement regardless of distance");
+    check(ids.size() == 3 && ids[0] == 1 && ids[1] == 3 && ids[2] == 2,
+            "priority classes dispatch stale, coverage, then maintenance across stages");
     pool.stop();
 }
 
@@ -233,9 +239,26 @@ void testBoundedAdmissionReservesCoverage() {
             "coverage can use the reserved queue slots");
     check(!pool.submit(regionKey(7), 1, MeshWorkStage::kCoverage, 0,
                    std::make_unique<CountingJob>(7)),
-            "total queue capacity remains bounded");
+            "coverage cannot consume the noncoverage reserve");
     check(pool.stats().queued == 4 && pool.stats().rejected == 3,
             "admission accounting reports the bound");
+    pool.stop();
+}
+
+void testCoverageCannotFillRepairReserveFirst() {
+    MeshPool pool;
+    pool.setLimits(4, 2, 1, 2);
+    check(pool.submit(regionKey(1), 1, MeshWorkStage::kCoverage, 0,
+                  std::make_unique<CountingJob>(1)) &&
+                    pool.submit(regionKey(2), 1, MeshWorkStage::kCoverage, 1,
+                            std::make_unique<CountingJob>(2)),
+            "coverage fills only its share when submitted first");
+    check(!pool.submit(regionKey(3), 1, MeshWorkStage::kCoverage, 2,
+                   std::make_unique<CountingJob>(3)),
+            "additional coverage leaves capacity for repairs");
+    check(pool.submit(nearKey(4), 1, MeshWorkStage::kNear, 0,
+                  std::make_unique<CountingJob>(4)),
+            "urgent noncoverage work can enter the reserved slot");
     pool.stop();
 }
 
@@ -275,8 +298,9 @@ int main() {
     testCancelKindKeepsOtherWork();
     testCancelKindDropsReadyResults();
     testPriorityOrder();
-    testStageOrder();
+    testPriorityClassesOverrideStages();
     testBoundedAdmissionReservesCoverage();
+    testCoverageCannotFillRepairReserveFirst();
     testReadyBackpressure();
     testStopWithoutStart();
 

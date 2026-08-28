@@ -415,6 +415,12 @@ void GoannaClient::nearBuildRegion(const v3s16 &key, NearRegion &region) {
     region.surfaces = mesh->get_surface_count() + glow_mesh->get_surface_count();
     region.occluder_triangles = occ_idx.size() / 3;
     region.dirty = false;
+    // Only here are region-batched block surfaces actually visible. Retire
+    // their retained far copies after set_mesh(), never when the CPU-side
+    // NearSurface arrays are merely queued for this rebuild.
+    std::vector<v3s16> published(region.members.begin(), region.members.end());
+    for (const v3s16 &bp : published)
+        lodFinishNearHandoff(bp);
     ema(m_ms_near_batch, ms_since(t0));
     if (getenv("GOANNA_DEBUG_BLOCKS"))
         UtilityFunctions::print("near region ", key.X, ",", key.Y, ",", key.Z, " blocks ",
@@ -760,7 +766,9 @@ void GoannaClient::connect_to(const String &host, int port, const String &player
     m_near_generation.clear();
     m_far_blocks.clear();
     m_lod_handoff_far.clear();
+    m_lod_handoff_to_near.clear();
     m_lod_handoff_old_counts.clear();
+    m_lod_frozen_at.clear();
     m_far_dirty = true;
     // Content ids and texture ids are per session, and so is everything the
     // far tiers cached from them.
@@ -775,7 +783,9 @@ void GoannaClient::connect_to(const String &host, int port, const String &player
     m_lod_chain_waiters.clear();
     m_lod_handoff_near.clear();
     m_lod_handoff_far.clear();
+    m_lod_handoff_to_near.clear();
     m_lod_handoff_old_counts.clear();
+    m_lod_frozen_at.clear();
     m_lod_chain_missing.clear();
     {
         // Workers resolve tiles through this cache; take their lock.
@@ -871,6 +881,10 @@ void GoannaClient::set_player_pose(const Vector3 &pos, float pitch_deg, float ya
     // them fell outside the cone and a hillside at the horizon was what
     // arrived at full detail, while the foreground stayed at the far tiers.
     m_session->setPlayerPose(luanti, -pitch_deg, yaw_deg);
+    // The schedulers weight by where the camera looks, and this path does not
+    // go through the local player's pitch and yaw, so it has to say so
+    // itself. Godot's convention, unnegated: setViewAngles wants the camera's.
+    setViewAngles(pitch_deg, yaw_deg);
     std::lock_guard<std::mutex> lk(m_session->mapLock());
     if (LocalPlayer *p = m_session->player()) {
         // Every caller hands us the camera, which is the eye, but every reader
@@ -1503,6 +1517,7 @@ Dictionary GoannaClient::step_player(double dt, const Dictionary &keys, float pi
     c.aux1 = keys.get("aux1", false);
     c.pitch = -pitch_deg;
     c.yaw = yaw_deg;
+    setViewAngles(pitch_deg, yaw_deg);
     // Upstream seeds these from the joystick each frame (0 with no stick), then
     // setMovementFromKeys() only overrides them while a direction key is held,
     // leaving them untouched otherwise. Goanna has no joystick and reuses the
@@ -2209,6 +2224,29 @@ Dictionary GoannaClient::render_stats() {
     d["mesh_q_coverage"] = mp.queued_stage[(int)MeshWorkStage::kCoverage];
     d["mesh_q_near"] = mp.queued_stage[(int)MeshWorkStage::kNear];
     d["mesh_q_structure"] = mp.queued_stage[(int)MeshWorkStage::kStructure];
+    // The scheduler, not the queue. Depth says how much work there is; these
+    // say whether it is being done in the right order. `sched_head` is the
+    // effective distance of the job that runs next and `sched_nearest` the
+    // nearest job anywhere in that same worker queue. They can differ because
+    // a more urgent class legitimately wins; unlike the old far-only number,
+    // both now describe the same set of near and far candidates.
+    const goanna::ViewPriority vp = viewPriority();
+    d["sched_head"] = mp.has_head ? goanna::ViewPriority::distanceOf(mp.head_priority) : 0;
+    d["sched_head_class"] = mp.has_head
+            ? goanna::ViewPriority::className(goanna::ViewPriority::classOf(mp.head_priority))
+            : "idle";
+    d["sched_nearest"] = mp.has_nearest
+            ? goanna::ViewPriority::distanceOf(mp.nearest_priority) : 0;
+    d["sched_stale"] = m_sched_stale;
+    d["sched_oldest_ms"] = m_sched_oldest_ms;
+    d["sched_boot"] = m_sched_pending[(int)goanna::ViewPriority::kBootstrap];
+    d["sched_stale_band"] = m_sched_pending[(int)goanna::ViewPriority::kStale];
+    d["sched_cover"] = m_sched_pending[(int)goanna::ViewPriority::kCoverage];
+    d["sched_refine"] = m_sched_pending[(int)goanna::ViewPriority::kRefine];
+    d["sched_maintain"] = m_sched_pending[(int)goanna::ViewPriority::kMaintain];
+    // How far the cone has opened, which explains a queue that has started
+    // filling in behind the player.
+    d["sched_cone"] = vp.widen;
     int lod_building = 0;
     for (auto &kv : m_lod_regions)
         if (kv.second.building)
@@ -2234,6 +2272,13 @@ Dictionary GoannaClient::render_stats() {
     d["lod_surfaces"] = lod_surfaces;
     d["lod_chains"] = (int)m_lod_chains.size();
     d["lod_chain_queue"] = (int)m_lod_chain_queue.size();
+    // The handoff freeze bookkeeping, visible because a leak here is a
+    // region that draws its old mesh forever (the stale-drawn HUD count):
+    // regions currently frozen against rebuild, and the pending handoffs
+    // that hold them.
+    d["lod_frozen_regions"] = (int)m_lod_handoff_old_counts.size();
+    d["lod_handoff_to_near"] = (int)m_lod_handoff_to_near.size();
+    d["lod_handoff_far"] = (int)m_lod_handoff_far.size();
     d["far_blocks"] = (int)m_far_blocks.size();
     d["far_remote"] = (int)m_far_remote.size();
     d["far_grant"] = m_session ? m_session->farRenderingGrant() : 0;
@@ -2395,6 +2440,22 @@ void GoannaClient::update_lights(const Vector3 &around, int max_lights) {
     // past keep_limit.
     const size_t admit_limit = std::min(all.size(), (size_t)std::max(0, max_lights));
     const size_t keep_limit = std::min(all.size(), (size_t)std::max(0, max_lights) * 3 / 2);
+
+    // Where the pooled lights end, for the node shaders. A distant village
+    // used to pass through three states: far tiers bake block light as
+    // emission (lit), the near mesh relies on the light pool (dark, because
+    // its lamps did not make the pool), then close up the pool admits them
+    // (lit again). The shaders fade the same baked emission in past this
+    // distance, so the middle state is lit by the bake the far field would
+    // have used. The score is the camera's distance to a lamp's lit region,
+    // which is what a surface's view distance approximates; unsaturated
+    // pools light everything they consider, so only the 64-node candidate
+    // window bounds it then.
+    float unlit_from = 64.0f;
+    if (all.size() > admit_limit)
+        unlit_from = std::min(unlit_from, std::max(0.0f, all[admit_limit].score));
+    RenderingServer::get_singleton()->global_shader_parameter_set(
+            "goanna_lamp_reach", unlit_from);
 
     std::map<int64_t, size_t> rank_of;
     for (size_t i = 0; i < all.size(); ++i)
@@ -2839,22 +2900,22 @@ void GoannaClient::set_lod_cell(int nodes) {
 
 // --- far rendering: tiers and regions (docs/far-rendering.md rungs 2, 3) ---
 
-// Tier 0 is Luanti's full detail mesh. Far tiers change batching distance,
-// not the resolution of exposed geometry: every visible boundary uses the
-// finest retained occupancy. Coarsening hidden fill saves no triangles (it
-// emits no faces already), while coarsening the boundary spends the entire
-// visual error budget on the silhouette and makes mountains both blocky and
-// easy to perforate.
+// Tier 0 is Luanti's full detail mesh. The four far tiers consume the rest of
+// the retained occupancy ladder: cell 2, 4, 8 and 16. Repeating cell 1 as a
+// far tier meant a 32-mapblock detail radius kept almost the entire ordinary
+// 1024-node horizon at node resolution; the useful coarse rungs existed only
+// beyond the grant. Atomic publication supplies transition overlap, so a
+// duplicate steady-state resolution is unnecessary.
 int GoannaClient::lodTierCount() const {
-    int tiers = 0;
-    for (int c = m_lod_cell; c <= MAP_BLOCKSIZE; c *= 2)
-        ++tiers;
-    return tiers;
+    return BlockLodChain::kLevels - 1;
 }
 
 int GoannaClient::lodCellFor(int tier) const {
-    (void)tier;
-    return m_lod_cell;
+    // Protocol summaries start at m_lod_cell (normally cell 4), while exact
+    // chains retain finer rungs. This is the fallback pass used for summaries;
+    // lodBuildRegion separately selects 1 << tier for exact data.
+    const int rung = 1 << std::clamp(tier, 1, BlockLodChain::kLevels - 1);
+    return std::min(MAP_BLOCKSIZE, std::max(m_lod_cell, rung));
 }
 
 // Region edge, in blocks. Keep the finest pass at roughly 32 cells per axis:
@@ -2883,6 +2944,40 @@ GoannaClient::LodRegionKey GoannaClient::lodRegionFor(int tier, const v3s16 &bp)
 // Thresholds double per tier, and a block only comes back finer once it is
 // well inside the threshold it crossed, or a player standing at the edge
 // rebuilds the same blocks every step.
+// Godot's camera forward from pitch and yaw. main.gd builds the camera the
+// same way (Basis.from_euler with rotation.x = pitch, rotation.y = yaw, and
+// forward at -Z), so this is the direction the player is actually looking,
+// not the Luanti look_dir above, which is mirrored in Z and exists only to
+// tell the server what to send.
+void GoannaClient::setViewAngles(float pitch_deg, float yaw_deg) {
+    constexpr float kDeg = 3.14159265358979323846f / 180.0f;
+    const float p = pitch_deg * kDeg, y = yaw_deg * kDeg;
+    const v3f dir(-std::cos(p) * std::sin(y), std::sin(p), -std::cos(p) * std::cos(y));
+    // Five degrees. Small enough that a mouse twitch does not shut the cone,
+    // large enough that a real look around does.
+    if (m_view_dir.getLengthSQ() < 0.5f || dir.dotProduct(m_view_dir) < 0.996f)
+        noteViewMoved();
+    m_view_dir = dir;
+}
+
+// The one scheduling rule, built from where the camera is and what it is
+// doing. See goanna_schedule.h for what the numbers mean.
+goanna::ViewPriority GoannaClient::viewPriority() const {
+    // The camera holding still is the signal that the player is looking at
+    // something rather than travelling through it, so the cone relaxes and
+    // the schedulers fill outward in every direction instead of only forward.
+    // Two seconds before it starts to open and eight more to open completely:
+    // long enough that a glance sideways does not lose the weighting, short
+    // enough that standing and watching a horizon fills the whole horizon.
+    constexpr double kHoldMs = 2000.0;
+    constexpr double kOpenMs = 8000.0;
+    goanna::ViewPriority vp;
+    vp.eye = v3f(m_lod_centre.x, m_lod_centre.y, m_lod_centre.z);
+    vp.forward = m_view_dir;
+    vp.widen = (float)std::clamp((ms_since(m_view_still) - kHoldMs) / kOpenMs, 0.0, 1.0);
+    return vp;
+}
+
 int GoannaClient::lodTierFor(const v3s16 &bp, const Vector3 &around, bool live) const {
     if (m_lod_distance <= 0)
         return 0;
@@ -2893,22 +2988,26 @@ int GoannaClient::lodTierFor(const v3s16 &bp, const Vector3 &around, bool live) 
     const int current = cur == m_block_tier.end() ? 0 : cur->second;
     const int tiers = lodTierCount();
     const float first = (float)m_lod_distance * MAP_BLOCKSIZE;
-    // Ownership is per block, not radial. The configured wanted range is not
-    // a promise that the server supplied every block inside it: generation,
-    // view-cone and occlusion filtering all leave holes in that circle. A
-    // geometric near floor therefore cut a literal circular slice between
-    // the resident near meshes and suppressed far data. Any resident block
-    // stays full-detail; any non-resident block with a retained chain may be
-    // represented by the finest coarse tier, even close to the camera.
-    if (live)
+    // Residency is a data-source fact, not a presentation level. It promises
+    // full detail only inside the configured detail radius. A local server
+    // may send 32--40 mapblocks; keeping all of those at tier zero produced
+    // 11 million primitives while the actual far field was only ~13k quads.
+    // Outside this floor, live blocks enter the same atomic handoff as stored
+    // blocks, so server range can improve knowledge without defeating LOD.
+    // A live block inside the detail radius belongs to near. If it has not
+    // arrived, however, keep the far fallback: server streaming coverage is
+    // not a solid disc and reserving the whole radius for data we do not have
+    // opens the circular moat seen while flying. lodBeginNearHandoff retires
+    // that fallback only after the regional near mesh is actually published.
+    if (live && d <= first)
         return 0;
     auto threshold = [&](int t) {
         return first * (float)(1 << (t - 1));
     };
     int desired = 1;
-    for (int t = 1; t <= tiers; ++t)
-        if (d > threshold(t))
-            desired = t;
+    for (int t = 1; t < tiers; ++t)
+        if (d > threshold(t + 1))
+            desired = t + 1;
     if (desired < current && current >= 1 && d > threshold(current) * 0.85f)
         return current;
     return desired;
@@ -2966,7 +3065,7 @@ void GoannaClient::set_store_path(const String &root) {
 }
 
 void GoannaClient::set_far_distance(int nodes) {
-    m_far_distance = std::clamp(nodes, 0, 4096);
+    m_far_distance = std::clamp(nodes, 0, 8192);
     m_far_distance_explicit = true;
     m_far_dirty = true;
 }
@@ -3189,14 +3288,36 @@ void GoannaClient::lodUpdateFar(const Vector3 &around) {
             ++rings[(size_t)s * nrings + (size_t)r];
             ++totals[(size_t)s];
         };
-        for (const v3s16 &bp : m_far_blocks)
-            count_reach(bp);
-        // Pruned full-detail surface shells are part of the far view too.
-        // Excluding them made fog close before retained mountains and looked
-        // like an artificially short far-render distance.
-        for (const auto &kv : m_near_blocks)
-            if (!m_session->getBlock(kv.first))
-                count_reach(kv.first);
+		// Answered summary areas describe coverage directly and are three orders
+		// of magnitude fewer than their constituent mapblocks. Scanning every
+		// retained block whenever new summaries arrived turned a full TDL field
+		// into a main-thread performance cliff even though rendering took 5 ms.
+		// Use one representative surface point per non-air area. Stored-only
+		// worlds have no such evidence and retain the block fallback below.
+		//
+		// Partial areas count. They are drawn, so they are part of the
+		// horizon; requiring completeness pinned the reach at the complete
+		// core on any world without a provider, where a mapgen chunk
+		// boundary keeps most areas partial forever. Measured on a vanilla
+		// Mineclonia world: reach stuck at 352 against a 1024 grant, with
+		// the drawn fragments beyond it culled by the far plane and the fog
+		// closed over them, and fifteen minutes changed nothing.
+		size_t covered_areas = 0;
+		for (const auto &kv : m_far_requested) {
+			const FarAsk &a = kv.second;
+			if (!a.answered || a.empty || a.air || a.available_records == 0)
+				continue;
+			count_reach(kv.first + v3s16(4, 0, 4));
+			++covered_areas;
+		}
+		if (covered_areas == 0) {
+			for (const v3s16 &bp : m_far_blocks)
+				count_reach(bp);
+			// Pruned full-detail surface shells are part of the far view too.
+			for (const auto &kv : m_near_blocks)
+				if (!m_session->getBlock(kv.first))
+					count_reach(kv.first);
+		}
         std::vector<int> reach;
         for (int s = 0; s < kSectors; ++s) {
             if (!totals[s])
@@ -3230,7 +3351,13 @@ void GoannaClient::lodUpdateFar(const Vector3 &around) {
 void GoannaClient::lodRequestSummaries(const v3s16 &centre, int radius) {
     if (!m_session || !m_session->farSummariesOffered())
         return;
-    constexpr int kEdge = 8; // blocks per area side
+	constexpr int kEdge = 8; // blocks per area side
+	// Procedural-provider replies are cheap and the 4096-node horizon contains
+	// thousands of horizontal areas. Four requests kept the server mostly idle
+	// while the balanced reach stalled around 1.5 km. Twelve remains a small
+	// bounded network window (the server emits at most four replies per step)
+	// but completes the silhouette before spending minutes on refinement.
+	constexpr int kMaxFarInflight = 12;
     // How long to leave a partly generated area alone before asking again.
     // Long enough that a server generating steadily is not asked the same
     // question every second, short enough that a player standing still sees
@@ -3238,24 +3365,40 @@ void GoannaClient::lodRequestSummaries(const v3s16 &centre, int radius) {
     constexpr double kFarRetryEmptyMs = 20000.0;
     constexpr double kFarRetryPartialMs = 2000.0;
     // The server refuses silently: an area outside its grant, a full queue,
-    // a player it cannot find. Without an expiry, four such refusals would
-    // stall every later request for the rest of the session. The areas stay
-    // in m_far_requested, so an expired one is not asked again here.
-    if (m_far_inflight > 0 && ms_since(m_far_asked) > 15000.0)
-        m_far_inflight = 0;
-    if (m_far_inflight >= 4)
+    // a duplicate ask it collapsed, a player it cannot find. Each ask expires
+    // on its own clock. The old rule expired the whole window at once, only
+    // after 15 seconds with no reply at all, so a window holding even one
+    // dropped ask pinned at twelve until every reply went quiet: measured as
+    // "requests 12" all session and an effective ask rate under one a second
+    // against thousands of areas. The areas stay in m_far_requested, so an
+    // expired one is not asked again here until its retry delay passes.
+    constexpr double kFarAskTimeoutMs = 10000.0;
+    for (auto it = m_far_pending.begin(); it != m_far_pending.end();) {
+        if (ms_since(it->second) > kFarAskTimeoutMs)
+            it = m_far_pending.erase(it);
+        else
+            ++it;
+    }
+    m_far_inflight = (int)m_far_pending.size();
+	if (m_far_inflight >= kMaxFarInflight)
         return;
     m_far_scan = clock_t_::now();
     // As many as there is room for, so a server that answers from a store
     // is kept busy rather than asked once a scan. The scan itself is the
     // cost, not the asking, so the best few are kept from one pass.
-    const size_t want = (size_t)(4 - m_far_inflight);
+	const size_t want = (size_t)(kMaxFarInflight - m_far_inflight);
     struct Pick {
-        int d2;
+        int key;
         v3s16 origin;
     };
     std::vector<Pick> fresh_picks;
     std::vector<Pick> retry_picks;
+    // The same rule the mesh queues use, so an area in front of the player is
+    // asked about before one behind it at the same range. Until this existed
+    // the scan was purely radial, and a player who stood and looked at a
+    // horizon watched the ring fill in every direction but the one they were
+    // facing (goanna_schedule.h).
+    const goanna::ViewPriority vp = viewPriority();
     auto fdiv = [](int a, int b) { return a >= 0 ? a / b : -((-a + b - 1) / b); };
     const v3s16 ac(fdiv(centre.X, kEdge), fdiv(centre.Y, kEdge), fdiv(centre.Z, kEdge));
     const int aradius = radius / kEdge;
@@ -3308,11 +3451,11 @@ void GoannaClient::lodRequestSummaries(const v3s16 &centre, int radius) {
     // the blocks that are neither live nor chained (a request for an area we
     // partly know just re-describes the part we already have), so asking
     // liberally here costs bandwidth, not correctness.
-    auto add_pick = [want](std::vector<Pick> &into, int d2, const v3s16 &origin) {
+    auto add_pick = [want](std::vector<Pick> &into, int key, const v3s16 &origin) {
         auto at = into.begin();
-        while (at != into.end() && at->d2 <= d2)
+        while (at != into.end() && at->key <= key)
             ++at;
-        into.insert(at, Pick{d2, origin});
+        into.insert(at, Pick{key, origin});
         if (into.size() > want)
             into.pop_back();
     };
@@ -3330,12 +3473,17 @@ void GoannaClient::lodRequestSummaries(const v3s16 &centre, int radius) {
                 auto ask = m_far_requested.find(origin);
                 const bool retrying = ask != m_far_requested.end();
                 if (ask != m_far_requested.end()) {
-                    // No-progress partial answers back off 2, 4, 8, 16,
-                    // then 32 seconds. Pregeneration offers the completed
-                    // area without being asked, so hammering the same hole
-                    // cannot make it finish sooner; it only prevents the
-                    // frontier from being described.
-                    const int shift = std::min<int>(ask->second.stalled_replies, 4);
+                    // No-progress partial answers back off 2, 4, 8 seconds
+                    // and so on, up to about four minutes. Partial areas are
+                    // drawn now, so the retry is refinement rather than
+                    // repair, and an area stuck at 511 of 512 records (a
+                    // mapgen chunk boundary the server may never fill) is
+                    // not worth 512 VoxelManip reads every half minute for
+                    // the rest of the session. Pregeneration offers the
+                    // completed area without being asked, so hammering the
+                    // same hole cannot make it finish sooner; it only
+                    // prevents the frontier from being described.
+                    const int shift = std::min<int>(ask->second.stalled_replies, 7);
                     const double retry = ask->second.answered && !ask->second.empty ?
                             kFarRetryPartialMs * (1 << shift) : kFarRetryEmptyMs;
                     if (ask->second.complete || ms_since(ask->second.asked) < retry)
@@ -3348,10 +3496,10 @@ void GoannaClient::lodRequestSummaries(const v3s16 &centre, int radius) {
                 // the lookups that term costs.
                 if (!layer_wanted(ax, ay, az))
                     continue;
-                // Horizontal distance decides the order, and a layer off the
-                // player's own is ranked as though it were several areas
-                // further out, because the frontier that needs filling is
-                // horizontal.
+                // Horizontal distance and the view cone decide the order,
+                // and a layer off the player's own is ranked as though it
+                // were several areas further out, because the frontier that
+                // needs filling is horizontal.
                 //
                 // The old weight was the vertical offset in blocks, squared
                 // and divided by 64, which put a layer four down at 16
@@ -3387,14 +3535,22 @@ void GoannaClient::lodRequestSummaries(const v3s16 &centre, int radius) {
                         ++layers;
                 }
                 const int dl = layers * kLayerCost * kEdge;
-                const int d2 = dx * dx + dz * dz + dl * dl;
+                // In nodes, with the layer walk above standing in for the
+                // vertical term. Whether the server has answered that the
+                // layers between hold anything is knowledge no geometric rule
+                // can have, so ViewPriority takes this distance as measured
+                // and contributes the cone and the class band.
+                const float measured =
+                        std::sqrt((float)(dx * dx + dz * dz + dl * dl)) * (float)MAP_BLOCKSIZE;
+                const int key = vp.of(goanna::ViewPriority::kCoverage,
+                        goanna::godotCentreOfBlocks(origin, kEdge, MAP_BLOCKSIZE), measured);
                 // Do not infer 512-block area coverage from a diagonal
                 // sample. Sixteen resident blocks used to vouch for the other
                 // 496, permanently skipping precisely the areas that appear
                 // as a sparse lattice in the distance. Every area is asked
                 // once; m_far_requested suppresses repeats for complete
                 // answers and paces retries for incomplete ones.
-                add_pick(retrying ? retry_picks : fresh_picks, d2, origin);
+                add_pick(retrying ? retry_picks : fresh_picks, key, origin);
             }
     // Reserve one slot for healing an old partial area and use the rest for
     // never-seen frontier. Previously distance alone let the same nearest
@@ -3410,9 +3566,8 @@ void GoannaClient::lodRequestSummaries(const v3s16 &centre, int radius) {
         picks.push_back(fresh_picks[i]);
     for (const Pick &pk : picks) {
         m_far_requested[pk.origin].asked = clock_t_::now();
-        if (m_far_inflight == 0)
-            m_far_asked = clock_t_::now();
-        ++m_far_inflight;
+        m_far_pending[pk.origin] = clock_t_::now();
+        m_far_inflight = (int)m_far_pending.size();
         m_session->requestFarSummary(pk.origin, kEdge, 16);
         if (getenv("GOANNA_DEBUG_LOD"))
             UtilityFunctions::print("LOD far: asked for area ", pk.origin.X, ",", pk.origin.Y, ",",
@@ -3437,8 +3592,6 @@ void GoannaClient::lodTakeSummaries(const Vector3 &around) {
     enum { rFlags = 0, rContent = 1, rLiquidTop = 65, rDay = 81, rNight = 82,
         rLiquid = 83, rLiquidMask = 84 };
     for (const std::string &msg : m_session->takeFarSummaries()) {
-        if (m_far_inflight > 0)
-            --m_far_inflight;
         // "farsum <who> <ver> <cell> <ox> <oy> <oz> <edge> ..."; a mod
         // channel has no unicast, so every client sees every reply and takes
         // its own.
@@ -3459,6 +3612,14 @@ void GoannaClient::lodTakeSummaries(const Vector3 &around) {
                     String(msg.substr(0, 80).c_str()));
             continue;
         }
+        // This reply answers this client's ask for this area, so release
+        // exactly that slot. The old accounting decremented one shared
+        // counter per message before the name check, so another client's
+        // replies freed slots this client's asks were still using, and a
+        // silently dropped ask never freed its slot at all (the sweep in
+        // lodRequestSummaries now times those out one by one).
+        m_far_pending.erase(v3s16(ox, oy, oz));
+        m_far_inflight = (int)m_far_pending.size();
         if (cell != 16 || edge <= 0 || edge > 16)
             continue;
         const size_t bar = msg.find('|', off);
@@ -3544,7 +3705,7 @@ void GoannaClient::lodTakeSummaries(const Vector3 &around) {
                 open_below = true;
             if (!available)
                 continue;
-            for (int z = 0; z < 4; ++z)
+			for (int z = 0; z < 4; ++z)
                 for (int x = 0; x < 4; ++x) {
                     const uint8_t bottom = r[rContent + (z * 4) * 4 + x];
                     const uint8_t top = r[rContent + (z * 4 + 3) * 4 + x];
@@ -3570,13 +3731,17 @@ void GoannaClient::lodTakeSummaries(const Vector3 &around) {
         ask.air = available_records > 0 && !any_ground;
         ask.open_above = open_above;
         ask.open_below = open_below;
-        // Publish summary areas atomically. A volumetric record can close its
-        // faces against unknown space, but a completed generation slice is
-        // still visibly half a hill when neighbouring slices have not arrived.
-        // Keep all earlier full/store/live chains while this reply waits, and
-        // expose the new summary only when its whole 8-cubed unit is complete.
-        if (!ask.complete)
-            continue;
+        // Publish whatever the server had. This used to wait for the whole
+        // 8-cubed area to be complete, so one ungenerated mapblock (the
+        // normal state at a mapgen chunk boundary: Luanti generates five
+        // blocks tall, an area is eight) held back the other 511 for the
+        // whole session, and the horizon was full of 128-node holes that
+        // never closed. A partial area drawn now is half a hill for a while;
+        // an atomic one was a hole through the mountain forever. The records
+        // that are missing stay unknown rather than invented, the area stays
+        // due for retry until it is complete, and a later reply's summary
+        // chains replace these ones, so the half hill heals as the server
+        // generates.
         // The wire record is a 4 by 4 by 4 field of 4-node voxels, so 4 nodes is the
         // finest level a summary can honestly fill, and every level from
         // there up is built rather than only that one. A region reads its own
@@ -3655,10 +3820,17 @@ void GoannaClient::lodTakeSummaries(const Vector3 &around) {
                             c.flags |= LodLevel::kLiquid;
                             c.liquid = name_of(r[rLiquid], CONTENT_UNKNOWN);
                             c.liquid_top = (r[rLiquidTop + ci / 4] >> ((ci % 4) * 2)) & 3;
-                            any_filled = true;
-                        }
-                    }
-            // The wire only has one light pair for the block. Applying its
+							any_filled = true;
+						}
+					}
+			// Complete provider records include known empty and deliberately
+			// omitted buried-interior blocks so an area can be atomically complete.
+			// They are useful protocol evidence, not drawable objects. Retaining a
+			// chain for each one grew a 4 km height field past a million blocks and
+			// made retiering dominate the main thread despite an idle renderer.
+			if (!any_filled)
+				continue;
+			// The wire only has one light pair for the block. Applying its
             // maximum to every occupied cell made the interior of hills as
             // bright as their tops. Reconstruct the useful part of sky light
             // from the occupancy we do have: known air with an unobstructed
@@ -3736,10 +3908,23 @@ void GoannaClient::lodTakeSummaries(const Vector3 &around) {
 
 void GoannaClient::lodMarkDirty(const LodRegionKey &key) {
     LodRegion &r = m_lod_regions[key];
+    ++r.state_revision;
     if (!r.dirty) {
         r.dirty = true;
         r.dirty_at = clock_t_::now();
     }
+}
+
+// A block has left this region. If the region is already drawing, what is on
+// screen now contains geometry that belongs to the near field or to another
+// tier, and it hangs over the top of the real thing until the rebuild lands.
+// That is worse than a region that draws nothing yet, so it is ranked ahead
+// of one rather than behind every one of them.
+void GoannaClient::lodMarkStale(const LodRegionKey &key) {
+    LodRegion &r = m_lod_regions[key];
+    if (r.node)
+        r.stale = true;
+    lodMarkDirty(key);
 }
 
 // A block changing moves the faces its six neighbours cull against it, so
@@ -3773,9 +3958,38 @@ void GoannaClient::lodEnqueueChain(const v3s16 &bp) {
     m_lod_chain_queue.push_back(bp);
 }
 
+void GoannaClient::lodDropHandoffCount(const LodRegionKey &key) {
+    auto count = m_lod_handoff_old_counts.find(key);
+    if (count != m_lod_handoff_old_counts.end() && --count->second <= 0) {
+        m_lod_handoff_old_counts.erase(count);
+        m_lod_frozen_at.erase(key);
+    }
+}
+
 void GoannaClient::lodAssign(const v3s16 &bp, int tier) {
     auto old = m_lod_member.find(bp);
+    if (tier > 0) {
+        // The player moved away again before a pending batched-near upload.
+        // Keep the already visible far owner, release its rebuild freeze and
+        // let the ordinary near->far handoff below decide when near data can
+        // be discarded.
+        auto nh = m_lod_handoff_to_near.find(bp);
+        if (nh != m_lod_handoff_to_near.end()) {
+            lodDropHandoffCount(nh->second);
+            m_lod_handoff_to_near.erase(nh);
+        }
+    }
     if (tier <= 0) {
+        // The block is leaving the far system entirely: it is near-owned,
+        // known empty, or out of the grant. A pending far-to-near handoff
+        // finishes now, releasing the old region's rebuild freeze. Every
+        // caller on this path either has the near mesh already visible or is
+        // discarding the block outright, so there is nothing left to wait
+        // for; leaving the entry behind froze the old region's mesh over
+        // the real terrain for the rest of the session (the HUD's
+        // stale-drawn count with an oldest age in the hundreds of seconds).
+        lodFinishNearHandoff(bp);
+        old = m_lod_member.find(bp); // lodFinishNearHandoff may have erased it
         // Near publication is already delayed until its mesh exists. Retire
         // every far copy accumulated by an interrupted/multi-tier handoff.
         auto pending = m_lod_handoff_far.find(bp);
@@ -3783,17 +3997,15 @@ void GoannaClient::lodAssign(const v3s16 &bp, int tier) {
             for (const LodRegionKey &key : pending->second.old_regions) {
                 LodRegion &r = m_lod_regions[key];
                 r.members.erase(bp);
-                lodMarkDirty(key);
-                auto count = m_lod_handoff_old_counts.find(key);
-                if (count != m_lod_handoff_old_counts.end() && --count->second <= 0)
-                    m_lod_handoff_old_counts.erase(count);
+                lodMarkStale(key);
+                lodDropHandoffCount(key);
             }
             m_lod_handoff_far.erase(pending);
         }
         if (old != m_lod_member.end()) {
             LodRegion &r = m_lod_regions[old->second];
             r.members.erase(bp);
-            lodMarkDirty(old->second);
+            lodMarkStale(old->second);
             m_lod_member.erase(old);
         }
         lodDirtyAround(bp, nullptr);
@@ -3807,8 +4019,10 @@ void GoannaClient::lodAssign(const v3s16 &bp, int tier) {
         // upload lands creates the one-frame (or many-frame under pressure)
         // transparent flash seen at tier boundaries.
         LodFarHandoff &handoff = m_lod_handoff_far[bp];
-        if (handoff.old_regions.insert(old->second).second)
+        if (handoff.old_regions.insert(old->second).second) {
             ++m_lod_handoff_old_counts[old->second];
+            m_lod_frozen_at.emplace(old->second, clock_t_::now());
+        }
         handoff.target = key;
     }
     m_lod_regions[key].members.insert(bp);
@@ -3820,6 +4034,34 @@ void GoannaClient::lodAssign(const v3s16 &bp, int tier) {
     lodEnqueueChain(bp);
     for (const v3s16 &o : around)
         lodEnqueueChain(bp + o);
+}
+
+void GoannaClient::lodBeginNearHandoff(const v3s16 &bp) {
+    if (m_lod_handoff_to_near.count(bp))
+        return;
+    auto old = m_lod_member.find(bp);
+    if (old == m_lod_member.end())
+        return;
+    m_lod_handoff_to_near[bp] = old->second;
+    ++m_lod_handoff_old_counts[old->second];
+    m_lod_frozen_at.emplace(old->second, clock_t_::now());
+}
+
+void GoannaClient::lodFinishNearHandoff(const v3s16 &bp) {
+    auto pending = m_lod_handoff_to_near.find(bp);
+    if (pending == m_lod_handoff_to_near.end())
+        return;
+    const LodRegionKey old_key = pending->second;
+    auto old = m_lod_member.find(bp);
+    if (old != m_lod_member.end() && old->second == old_key) {
+        LodRegion &r = m_lod_regions[old_key];
+        r.members.erase(bp);
+        lodMarkStale(old_key);
+        m_lod_member.erase(old);
+    }
+    lodDropHandoffCount(old_key);
+    m_lod_handoff_to_near.erase(pending);
+    lodDirtyAround(bp, nullptr);
 }
 
 void GoannaClient::lodForget(const v3s16 &bp) {
@@ -3899,6 +4141,7 @@ struct LodRegionJob : goanna::MeshJob {
     const MaterialTable *materials = nullptr;
     LodTileCache *tiles = nullptr;
     LodRegionMesh result;
+    uint64_t state_revision = 0;
 
     void run() override {
         if (!ndef || !tiles)
@@ -3913,6 +4156,39 @@ struct LodRegionJob : goanna::MeshJob {
 };
 } // namespace
 
+// What a region is worth building next: what is wrong with it, how far away
+// it is, whether the player is looking at it, and how long it has waited.
+int GoannaClient::lodRegionPriority(const LodRegionKey &key, const LodRegion &r) const {
+    // A region gains a band for every four seconds it has waited. Ordering by
+    // priority alone has no fairness, and the oldest-first sort this replaced
+    // did: measured on the showcase fixture, sixty regions that had lost
+    // blocks to the near field sat unbuilt for 43 seconds while the coverage
+    // band ahead of them drained from 3210 to 79.
+    constexpr double kAgeMs = 4000.0;
+    goanna::ViewPriority vp = viewPriority();
+    // Coverage only, and measure() applies it to nothing else: the far
+    // frontier fills horizontally, but a stale slab overhead is urgent.
+    vp.vertical = 2.0f;
+    bool missing = !r.published || r.published_partial;
+    if (!missing)
+        for (const v3s16 &bp : r.members)
+            if (!r.published_members.count(bp)) {
+                missing = true;
+                break;
+            }
+    const int wanted_exact = std::min(lodCellFor(key.tier), 1 << std::max(1, key.tier));
+    const int wanted_coarse = lodCellFor(key.tier);
+    const bool refining = r.published && !missing &&
+            (r.published_exact_cell != wanted_exact || r.published_coarse_cell != wanted_coarse);
+    goanna::ViewPriority::Class cls = r.stale ? goanna::ViewPriority::kStale
+            : missing                         ? goanna::ViewPriority::kCoverage
+            : refining                        ? goanna::ViewPriority::kRefine
+                                              : goanna::ViewPriority::kMaintain;
+    cls = goanna::ViewPriority::aged(cls, ms_since(r.dirty_at), kAgeMs);
+    const int rb = lodRegionBlocks(key.tier);
+    return vp.of(cls, goanna::godotCentreOfBlocks(key.pos * rb, rb, MAP_BLOCKSIZE));
+}
+
 void GoannaClient::lodBuildRegion(const LodRegionKey &key, LodRegion &r) {
     r.dirty = false;
     if (r.members.empty() || !m_session) {
@@ -3921,16 +4197,33 @@ void GoannaClient::lodBuildRegion(const LodRegionKey &key, LodRegion &r) {
             r.node = nullptr;
         }
         r.faces = r.quads = r.surfaces = 0;
+        r.published = false;
+        r.published_members.clear();
+        r.published_partial = false;
+        r.published_exact_cell = 0;
+        r.published_coarse_cell = 0;
         return;
     }
     // A region serving as the visible half of a cross-tier handoff must stay
     // byte-for-byte as last published. Rebuilding it against the new logical
     // ownership would remove the transitioning cells before the target mesh
     // exists. Once the target publishes, lodPublishRegion removes those
-    // retained members, marks this region dirty, and normal rebuilding resumes.
+    // retained members, marks this region dirty, and normal rebuilding
+    // resumes. But only for so long: a frozen region cannot publish, and
+    // publishing is what releases freezes, so a mass retier formed cycles of
+    // regions waiting on each other forever (the growing stale-drawn count
+    // with oldest ages in the minutes). Past the timeout the region rebuilds
+    // from current ownership, trading a one-frame flash for the cycle.
+    constexpr double kLodFreezeMs = 8000.0;
     if (m_lod_handoff_old_counts.count(key)) {
-        r.dirty = true;
-        return;
+        auto at = m_lod_frozen_at.find(key);
+        if (at == m_lod_frozen_at.end()) {
+            at = m_lod_frozen_at.emplace(key, clock_t_::now()).first;
+        }
+        if (ms_since(at->second) < kLodFreezeMs) {
+            r.dirty = true;
+            return;
+        }
     }
     auto t0 = clock_t_::now();
     static const bool no_vertex_light = getenv("GOANNA_NO_VERTEX_LIGHT") != nullptr;
@@ -3968,7 +4261,7 @@ void GoannaClient::lodBuildRegion(const LodRegionKey &key, LodRegion &r) {
         // Exact data follows a block-aligned 1,2,4 progression with distance.
         // The summary fallback begins at cell 4 and cannot join the first two
         // rungs except through the mixed-resolution boundary.
-        return std::min(lodCellFor(it->second), 1 << std::max(0, it->second - 1));
+        return std::min(lodCellFor(it->second), 1 << std::max(1, it->second));
     };
     auto make_spec = [&](int cell) {
         LodRegionSpec spec;
@@ -3988,7 +4281,7 @@ void GoannaClient::lodBuildRegion(const LodRegionKey &key, LodRegion &r) {
     // Exact boundaries and summary fallback are meshed separately because a
     // LodRegionSpec has one cell size. They are immediately folded into the
     // same texture surfaces and uploaded as one regional ArrayMesh.
-    const int exact_cell = std::min(lodCellFor(key.tier), 1 << std::max(0, key.tier - 1));
+    const int exact_cell = std::min(lodCellFor(key.tier), 1 << std::max(1, key.tier));
     LodRegionSpec exact_spec = make_spec(exact_cell);
     LodRegionSpec coarse_spec = make_spec(lodCellFor(key.tier));
 
@@ -3997,7 +4290,17 @@ void GoannaClient::lodBuildRegion(const LodRegionKey &key, LodRegion &r) {
         jk.kind = MeshJobKey::kLodRegion;
         jk.pos = key.pos;
         jk.tier = (int16_t)key.tier;
-        const MeshWorkStage stage = r.node ? MeshWorkStage::kStructure : MeshWorkStage::kCoverage;
+        const int priority = lodRegionPriority(key, r);
+        const goanna::ViewPriority::Class priority_class =
+                goanna::ViewPriority::classOf(priority);
+        const MeshWorkStage stage = priority_class == goanna::ViewPriority::kBootstrap ||
+                        priority_class == goanna::ViewPriority::kCoverage
+                ? MeshWorkStage::kCoverage
+                : priority_class == goanna::ViewPriority::kStale
+                ? MeshWorkStage::kNear
+                : priority_class == goanna::ViewPriority::kRefine
+                ? MeshWorkStage::kStructure
+                : MeshWorkStage::kDetail;
         if (!m_mesh_pool.canSubmit(jk, stage)) {
             r.dirty = true;
             r.building = false;
@@ -4021,13 +4324,19 @@ void GoannaClient::lodBuildRegion(const LodRegionKey &key, LodRegion &r) {
         job->tsrc = m_session->tsrc();
         job->materials = &m_session->materialTable();
         job->tiles = &m_lod_tiles;
+        job->state_revision = r.state_revision;
         lodCaptureRegion(key, exact_spec, coarse_spec, job->snap);
-        // Nearer regions first, so walking forward fills what is in front of
-        // the player before it refreshes what is behind.
-        const v3s16 rb0 = key.pos * lodRegionBlocks(key.tier);
-        const godot::Vector3 centre_nodes(rb0.X * MAP_BLOCKSIZE, rb0.Y * MAP_BLOCKSIZE,
-                rb0.Z * MAP_BLOCKSIZE);
-        const int priority = (int)centre_nodes.distance_to(m_lod_centre);
+        // Nearer regions first, and what the player is looking at before what
+        // is behind them (goanna_schedule.h).
+        //
+        // This used to build the region's position by hand and get the Z
+        // mirror wrong, so it sorted against a point reflected through z = 0.
+        // At the showcase spawn that is about 1150 nodes of error, more than
+        // the whole far distance, and the effect was that the regions built
+        // first were the ones behind the player: whole rectangular strips of
+        // the visible world never arrived while the queue filled in the world
+        // nobody could see. It also used the region's low corner rather than
+        // its centre, which is another 64 nodes at tier 3.
         const uint64_t generation = r.generation + 1;
         if (!m_mesh_pool.submit(jk, generation, stage, priority, std::move(job))) {
             // Admission is deliberately bounded. Keep the last complete mesh
@@ -4102,7 +4411,16 @@ bool GoannaClient::nearSubmit(v3s16 bp, MapBlock *block) {
     jk.kind = MeshJobKey::kNearBlock;
     jk.pos = bp;
     jk.tier = 0;
-    if (!m_mesh_pool.canSubmit(jk, MeshWorkStage::kNear)) {
+    // A block with nothing drawn is missing coverage exactly as a far region
+    // with no node is, and belongs in the same stage. It used to sit in
+    // kNear, which the pool dispatches after every far region that has never
+    // been meshed, so the geometry the player was standing in queued behind
+    // thousands of distant regions and the bounded-admission cap on
+    // non-coverage work refused it outright while they drained. A block that
+    // already has a mesh is a refresh, and must not crowd coverage out.
+    const bool drawn = m_near_blocks.count(bp) != 0;
+    const MeshWorkStage stage = drawn ? MeshWorkStage::kNear : MeshWorkStage::kCoverage;
+    if (!m_mesh_pool.canSubmit(jk, stage)) {
         m_session->requeueBlock(bp);
         return true;
     }
@@ -4122,11 +4440,15 @@ bool GoannaClient::nearSubmit(v3s16 bp, MapBlock *block) {
     job->no_vertex_light = getenv("GOANNA_NO_VERTEX_LIGHT") != nullptr;
     if (!job->no_vertex_light)
         job->light.build(*m_session, bp);
-    const godot::Vector3 at(bp.X * MAP_BLOCKSIZE, bp.Y * MAP_BLOCKSIZE, -bp.Z * MAP_BLOCKSIZE);
-    // Near blocks before far regions at the same distance: the player is
-    // standing in them.
-    if (!m_mesh_pool.submit(jk, generation, MeshWorkStage::kNear,
-                (int)at.distance_to(m_lod_centre) - 4096, std::move(job))) {
+    // One rule with the far field, so a near block and a far region at the
+    // same distance are ordered against each other rather than each against
+    // its own kind. The old constant -4096 was meant to say "near first" and
+    // could not: the pool sorts by stage before priority, so it only ever
+    // ordered near blocks among themselves.
+    const int priority = viewPriority().of(drawn ? goanna::ViewPriority::kMaintain
+                                                 : goanna::ViewPriority::kCoverage,
+            goanna::godotCentreOfBlock(bp, MAP_BLOCKSIZE));
+    if (!m_mesh_pool.submit(jk, generation, stage, priority, std::move(job))) {
         // A retry is not a map change, so preserve the generation. Returning
         // true tells poll_blocks not to fall back to synchronous meshing and
         // defeat the scheduler's bound.
@@ -4186,6 +4508,12 @@ void GoannaClient::lodCollectMeshes() {
         if (it == m_lod_regions.end())
             continue; // the region went away while it was meshing
         LodRegion &r = it->second;
+        if (job->state_revision != r.state_revision) {
+            // Membership or source data changed after this snapshot. Keep the
+            // last coherent node and let the current dirty state rebuild.
+            r.building = false;
+            continue;
+        }
         if (done.generation != r.generation) {
             // Overtaken. The newer capture is queued or running; keep drawing
             // what is already there rather than showing an older shape.
@@ -4200,6 +4528,7 @@ void GoannaClient::lodCollectMeshes() {
 void GoannaClient::lodPublishRegion(const LodRegionKey &key, LodRegion &r, const LodRegionMesh &lm,
         std::chrono::steady_clock::time_point t0, int exact_cell_used, int coarse_cell_used) {
     r.building = false;
+    r.stale = false; // what is about to be on screen is current again
     r.faces = lm.faces;
     r.quads = lm.quads;
     r.partial = lm.partial;
@@ -4212,18 +4541,25 @@ void GoannaClient::lodPublishRegion(const LodRegionKey &key, LodRegion &r, const
         std::vector<v3s16> far_done;
         for (const v3s16 &bp : r.members) {
             auto hit = m_lod_handoff_far.find(bp);
-            if (hit == m_lod_handoff_far.end() || hit->second.target != key ||
-                    !m_lod_chains.count(bp))
+            if (hit == m_lod_handoff_far.end() || hit->second.target != key)
+                continue;
+            // A chain still queued may yet arrive, so its handoff waits.
+            // One recorded as missing never will, and a handoff waiting on
+            // it froze its old regions permanently; release it and let the
+            // old regions rebuild from what is actually known.
+            if (!m_lod_chains.count(bp) && !m_lod_chain_missing.count(bp))
                 continue;
             for (const LodRegionKey &old_key : hit->second.old_regions) {
+                // The count is released even when the old region is this
+                // region: a block that left for another tier and came back
+                // put its own key in old_regions, and skipping the decrement
+                // for it left this region frozen at its own gate forever.
+                lodDropHandoffCount(old_key);
                 if (old_key == key)
                     continue;
                 LodRegion &old_region = m_lod_regions[old_key];
                 old_region.members.erase(bp);
-                lodMarkDirty(old_key);
-                auto count = m_lod_handoff_old_counts.find(old_key);
-                if (count != m_lod_handoff_old_counts.end() && --count->second <= 0)
-                    m_lod_handoff_old_counts.erase(count);
+                lodMarkStale(old_key);
             }
             far_done.push_back(bp);
         }
@@ -4258,6 +4594,14 @@ void GoannaClient::lodPublishRegion(const LodRegionKey &key, LodRegion &r, const
             r.node->queue_free();
             r.node = nullptr;
         }
+        // Empty is still a valid published result when the captured region
+        // is known air. Preserve its coverage metadata; a partial empty
+        // capture remains coverage work until its missing chains arrive.
+        r.published = true;
+        r.published_members = r.members;
+        r.published_partial = lm.partial;
+        r.published_exact_cell = exact_cell_used;
+        r.published_coarse_cell = coarse_cell_used;
         ema(m_ms_lod, ms_since(t0));
         finish_handoffs();
         return;
@@ -4366,13 +4710,24 @@ void GoannaClient::lodPublishRegion(const LodRegionKey &key, LodRegion &r, const
         add_child(r.node);
     }
     r.node->set_mesh(mesh);
+    r.published = true;
+    r.published_members = r.members;
+    r.published_partial = lm.partial;
+    r.published_exact_cell = exact_cell_used;
+    r.published_coarse_cell = coarse_cell_used;
     finish_handoffs();
     ema(m_ms_lod, ms_since(t0));
 }
 
-// Rebuild dirty regions, oldest first, inside a time budget. A region that
-// already has a mesh waits a moment after it is first dirtied, so one
-// rebuild covers the many blocks that stream into it in that time.
+// Rebuild dirty regions inside a time budget, nearest and most looked at
+// first (goanna_schedule.h). A region that already has a mesh waits a moment
+// after it is first dirtied, so one rebuild covers the many blocks that
+// stream into it in that time.
+//
+// This used to run oldest-dirtied first, which threw away the priority
+// lodBuildRegion then computed: with thousands of regions and a two
+// millisecond slice, the handful that reached the pool each poll were
+// whichever had been waiting longest, not whichever the player could see.
 void GoannaClient::lodRebuild(double budget_ms) {
     m_lod_last_built = 0;
     m_lod_chains_built_last = 0;
@@ -4400,12 +4755,30 @@ void GoannaClient::lodRebuild(double budget_ms) {
     }
     if (m_lod_regions.empty())
         return;
-    std::vector<std::pair<clock_t_::time_point, LodRegionKey>> dirty;
+    std::vector<std::pair<int, LodRegionKey>> dirty;
     for (auto &kv : m_lod_regions)
         if (kv.second.dirty)
-            dirty.push_back({kv.second.dirty_at, kv.first});
+            dirty.push_back({lodRegionPriority(kv.first, kv.second), kv.first});
     std::sort(dirty.begin(), dirty.end(),
             [](const auto &a, const auto &b) { return a.first < b.first; });
+    for (int &n : m_sched_pending)
+        n = 0;
+    for (const auto &dk : dirty)
+        ++m_sched_pending[(int)goanna::ViewPriority::classOf(dk.first)];
+    // How many regions are drawing something that has moved on, and how long
+    // the region that has waited longest has been waiting. Ordering by
+    // priority alone has no fairness: the sort it replaced was oldest first,
+    // which was wrong about what to do next but right that everything drains.
+    // These two are what say whether that guarantee has been lost.
+    m_sched_stale = 0;
+    m_sched_oldest_ms = 0.0;
+    for (const auto &kv : m_lod_regions) {
+        if (!kv.second.dirty)
+            continue;
+        if (kv.second.stale)
+            ++m_sched_stale;
+        m_sched_oldest_ms = std::max(m_sched_oldest_ms, ms_since(kv.second.dirty_at));
+    }
     for (const auto &dk : dirty) {
         if (m_lod_last_built > 0 && ms_since(t0) > budget_ms)
             break;
@@ -4458,9 +4831,18 @@ void GoannaClient::lodReset() {
     m_lod_chain_queued.clear();
     m_lod_chain_waiters.clear();
     m_lod_handoff_near.clear();
+    m_lod_handoff_to_near.clear();
+    // These as well: the regions they name were just freed, and a new
+    // region under the same key inherits a leaked freeze count at the
+    // lodBuildRegion gate, dirty but never rebuilt for the whole session.
+    // The other two teardown sites already clear the full set together.
+    m_lod_handoff_far.clear();
+    m_lod_handoff_old_counts.clear();
+    m_lod_frozen_at.clear();
     m_lod_chain_missing.clear();
     m_far_remote.clear();
     m_far_requested.clear();
+    m_far_pending.clear();
     m_far_inflight = 0;
     if (m_session) {
         std::lock_guard<std::mutex> lk(m_session->mapLock());
@@ -4471,6 +4853,14 @@ void GoannaClient::lodReset() {
 
 int GoannaClient::update_lod(const Vector3 &around, int max_rebuild) {
     const auto t_update = clock_t_::now();
+    // Moving is as much a reason to shut the view cone as turning is: what is
+    // in front of the player is changing either way. Half a mapblock, which a
+    // walking player crosses in about two seconds and a standing one never.
+    const v3f here(around.x, around.y, around.z);
+    if (here.getDistanceFromSQ(m_view_anchor) > 64.0f) {
+        m_view_anchor = here;
+        noteViewMoved();
+    }
     m_lod_centre = around; // poll_blocks tiers new blocks against this too
     // Put finished regions on screen before queueing more, so a worker that
     // has already done the work is not left holding it for another frame.
@@ -4528,7 +4918,7 @@ int GoannaClient::update_lod(const Vector3 &around, int max_rebuild) {
     // at a request every two seconds. The scan is a few milliseconds, so it
     // runs a few times a second while there is room in flight.
     const auto t_requests = clock_t_::now();
-    if (m_far_inflight < 4 && m_far_radius > 0 && ms_since(m_far_scan) > 250.0)
+	if (m_far_inflight < 12 && m_far_radius > 0 && ms_since(m_far_scan) > 250.0)
         lodRequestSummaries(m_far_centre, m_far_radius);
     ema(m_ms_lod_requests, ms_since(t_requests));
     for (const v3s16 &bp : changed) {
@@ -4629,13 +5019,25 @@ int GoannaClient::poll_blocks(int max_blocks) {
     };
     // Only the first max_blocks can possibly be consumed this frame. A full
     // sort of a six-figure backlog cost tens of milliseconds and was thrown
-    // away when all but a handful were requeued. Partition in linear time and
-    // order just the shortlist that will actually be visited.
-    const size_t shortlist = std::min(fresh.size(), (size_t)std::max(0, max_blocks));
-    if (shortlist < fresh.size())
-        std::nth_element(fresh.begin(), fresh.begin() + shortlist, fresh.end(), nearer);
-    if (shortlist > 1)
-        std::sort(fresh.begin(), fresh.begin() + shortlist, nearer);
+    // away when all but a handful were requeued. So partition in linear time
+    // on plain distance, then order the band that could plausibly be reached
+    // by the rule every other queue uses (goanna_schedule.h). The band is
+    // wider than the frame's own count so the cone has something to choose
+    // between, and small enough that its normalise per comparison does not
+    // come near the cost the old full sort had.
+    const size_t visit = (size_t)std::max(0, max_blocks);
+    const size_t band = std::min(fresh.size(), visit * 8);
+    if (band < fresh.size())
+        std::nth_element(fresh.begin(), fresh.begin() + band, fresh.end(), nearer);
+    if (band > 1) {
+        const goanna::ViewPriority vp = viewPriority();
+        auto wanted = [&](const v3s16 &b) {
+            return vp.of(goanna::ViewPriority::kCoverage,
+                    goanna::godotCentreOfBlock(b, MAP_BLOCKSIZE));
+        };
+        std::sort(fresh.begin(), fresh.begin() + band,
+                [&](const v3s16 &a, const v3s16 &b) { return wanted(a) < wanted(b); });
+    }
     ema(m_ms_poll_queue, ms_since(t_queue));
     const auto t_blocks = clock_t_::now();
     if (fresh_raw.size() > fresh.size() && getenv("GOANNA_DEBUG_BLOCKS")) {
@@ -4709,10 +5111,6 @@ int GoannaClient::poll_blocks(int max_blocks) {
             bm = meshBlock(*m_session, block);
             lightfield.build(*m_session, bp);
         }
-        // Full detail: leave any region it was in, and let the regions next
-        // to it cull against its new contents. After the mesh exists, never
-        // before, or the frame in between has a hole in it.
-        lodAssign(bp, 0);
         // GOANNA_DEBUG_LIGHT=1: what the light and occlusion channels actually
         // came out as, per block. The lesson recorded against GOANNA_DEBUG_VCOL
         // applies here too: a channel that is silently constant looks exactly
@@ -4976,6 +5374,9 @@ int GoannaClient::poll_blocks(int max_blocks) {
             if (getenv("GOANNA_DEBUG_BLOCKS") && m_near_blocks.count(bp))
                 UtilityFunctions::print("block FREED (empty mesh): ", bp.X, ",", bp.Y, ",", bp.Z);
             nearDrop(bp);
+            // Known enclosed air/solid has no replacement surface to wait
+            // for; logical near ownership can complete immediately.
+            lodAssign(bp, 0);
             // Zero triangles does not mean zero terrain. A completely
             // enclosed solid mapblock has no near faces, yet its retained
             // occupancy is essential when the live set is pruned and the
@@ -5008,6 +5409,12 @@ int GoannaClient::poll_blocks(int max_blocks) {
         }
         m_near_blocks[bp] = std::move(near_block);
         nearAssign(bp);
+        if (!m_near_blocks[bp].surfaces.empty())
+            lodBeginNearHandoff(bp);
+        else
+            // Only unbatched special geometry: set_mesh() above already made
+            // it visible, so no regional publication barrier is required.
+            lodAssign(bp, 0);
         if (getenv("GOANNA_DEBUG_BLOCKS"))
             UtilityFunctions::print("block re-meshed: ", bp.X, ",", bp.Y, ",", bp.Z,
                     " source surfaces ", m_near_blocks[bp].source_surfaces, " regional ",

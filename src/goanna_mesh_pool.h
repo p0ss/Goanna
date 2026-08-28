@@ -20,6 +20,7 @@
 // carries everything it needs, captured on the main thread when it is made.
 
 #include <atomic>
+#include <chrono>
 #include <condition_variable>
 #include <cstdint>
 #include <deque>
@@ -97,8 +98,9 @@ public:
 
     // Queue a job. `generation` stamps the state the job was captured from:
     // a result arriving with a generation older than the key's current one is
-    // stale and the caller drops it. Stage orders the cohesive pipeline;
-    // priority orders work within a stage, lower first.
+    // stale and the caller drops it. Priority is the authoritative cohesive
+    // pipeline order; stage is retained for admission reservations and
+    // diagnostics, and breaks exact priority ties only.
     // False means the bounded scheduler did not admit this job. The caller
     // retains its dirty/retry state and should offer it again later.
     bool submit(const MeshJobKey &key, uint64_t generation, MeshWorkStage stage, int priority,
@@ -124,6 +126,7 @@ public:
         uint64_t generation = 0;
         MeshWorkStage stage = MeshWorkStage::kCoverage;
         int priority = 0;
+        std::chrono::steady_clock::time_point queued_at = std::chrono::steady_clock::now();
         std::unique_ptr<MeshJob> job;
     };
 
@@ -144,6 +147,16 @@ public:
         int threads = 0;
         int rejected = 0;
         int queued_stage[(int)MeshWorkStage::kCount] = {};
+        // What would run next, which is the only way to see a queue that is
+        // ordered wrongly rather than merely deep. A far region priority that
+        // was mirrored in Z sorted the world behind the player to the front
+        // of this queue for months, and every depth and timing figure in the
+        // overlay looked healthy throughout.
+        bool has_head = false;
+        MeshWorkStage head_stage = MeshWorkStage::kCoverage;
+        int head_priority = 0;
+        bool has_nearest = false;
+        int nearest_priority = 0;
     };
     Stats stats() const;
 
@@ -153,6 +166,7 @@ private:
         uint64_t generation = 0;
         MeshWorkStage stage = MeshWorkStage::kCoverage;
         int priority = 0;
+        std::chrono::steady_clock::time_point queued_at = std::chrono::steady_clock::now();
         std::unique_ptr<MeshJob> job;
     };
 
@@ -160,6 +174,8 @@ private:
     // Caller holds m_mutex. Lowest priority first, oldest first within a
     // priority, so a region does not starve behind a stream of nearer ones.
     bool takeLocked(Queued &out);
+    int effectivePriorityLocked(const Queued &q) const;
+    int effectivePriorityLocked(const Done &d) const;
     bool canAdmitLocked(const MeshJobKey &key, MeshWorkStage stage) const;
 
     mutable std::mutex m_mutex;
@@ -171,6 +187,7 @@ private:
     std::atomic<bool> m_running{false};
     int m_active = 0; // jobs inside run()
     int m_max_queued = 256;
+    int m_max_coverage = 192;
     int m_max_noncoverage = 192;
     int m_max_refinement = 128;
     int m_max_ready = 64;

@@ -120,6 +120,12 @@ end
 
 local far_enabled = conf_bool("goanna_far_rendering", false)
 local far_distance = conf_num("goanna_far_rendering_distance", 512)
+-- A procedural surface provider can answer much farther away without
+-- emerging or reading mapblocks. Keep that cheap horizon independent from
+-- the real/generated-data grant, which also drives backfill and optional
+-- pregeneration. Without this split, extending TDL's horizon to 4096 nodes
+-- would ask Luanti to generate the same enormous voxel volume.
+local far_provider_distance = conf_num("goanna_far_provider_distance", far_distance)
 -- One mapblock is a 16 cubed VoxelManip read, a few hundred microseconds.
 --
 -- This is the rate the whole far view fills at, and it was the reason a
@@ -348,7 +354,11 @@ end
 local REC = 92
 local AREA = 8
 local AREA_BLOCKS = AREA * AREA * AREA
-local STORE_KEY = "fs7:"
+-- Protocol v7, provider-shell schema 1. The wire layout did not change, but
+-- old provider records materialised every buried block in a 128-node slab.
+-- Keep their persistent cache separate so a restart cannot resurrect that
+-- million-block interior after the visible-shell fix.
+local STORE_KEY = "fs7s1:"
 local EMPTY_BLOB = string.rep("\0", REC * AREA_BLOCKS)
 local cache_limit = conf_num("goanna_far_summary_cache_areas", 4096)
 local backfill_enabled = conf_bool("goanna_far_summary_backfill", true)
@@ -517,6 +527,7 @@ function goanna_register_far_surface(fn, opts)
 	if opts and opts.water then
 		far_provider_water = opts.water
 	end
+	goanna_announce("far_provider_distance", tostring(far_provider_distance))
 end
 
 -- Fill every record in the area that is not known with what the provider
@@ -527,14 +538,16 @@ local function synthesise_area(a)
 		return false
 	end
 	local x0, y0, z0 = a.ax * AREA * 16, a.ay * AREA * 16, a.az * AREA * 16
-	local cols = {} -- per 4 node cell over the area footprint: 32 x 32
+	-- One-cell border lets the visible-shell test agree across area edges.
+	-- Without it, every 128-node boundary was treated as an exposed cliff.
+	local cols = {} -- per 4 node cell, bordered 34 x 34
 	local ok_any = false
-	for cz = 0, AREA * 4 - 1 do
-		for cx = 0, AREA * 4 - 1 do
+	for cz = -1, AREA * 4 do
+		for cx = -1, AREA * 4 do
 			local sy, top, wy, side = far_provider(x0 + cx * 4 + 2, z0 + cz * 4 + 2)
 			if sy then
 				ok_any = true
-				cols[cz * 32 + cx] = {sy = sy, top = top, wy = wy, side = side or top}
+				cols[(cz + 1) * 34 + cx + 1] = {sy = sy, top = top, wy = wy, side = side or top}
 			end
 		end
 	end
@@ -574,14 +587,29 @@ local function synthesise_area(a)
 				for cy = 0, 3 do
 					for cx = 0, 3 do
 						local ci = (cz * 4 + cy) * 4 + cx
-						local col = cols[(bz * 4 + cz) * 32 + bx * 4 + cx]
+						local gx, gz = bx * 4 + cx, bz * 4 + cz
+						local col = cols[(gz + 1) * 34 + gx + 1]
 						if not col then
 							contents[ci] = 255
 						else
 							any = true
 							local lo, hi = floor_y + cy * 4, floor_y + cy * 4 + 3
 							local name, liquid_top, liquid = nil, 0, false
-							if lo <= col.sy then
+							-- Retain the visible height shell, not every fully buried
+							-- 4-node cell down to the bottom of this 128-node slab. A
+							-- column descends only as far as its lowest neighbour, which
+							-- preserves cliffs while removing occluded interior blocks.
+							local exposed_floor = col.sy
+							local neighbours = {
+								cols[(gz + 1) * 34 + gx],
+								cols[(gz + 1) * 34 + gx + 2],
+								cols[gz * 34 + gx + 1],
+								cols[(gz + 2) * 34 + gx + 1],
+							}
+							for _, neighbour in ipairs(neighbours) do
+								if neighbour then exposed_floor = math.min(exposed_floor, neighbour.sy) end
+							end
+							if lo <= col.sy and hi >= exposed_floor - 3 then
 								name = col.sy >= lo and col.sy <= hi and col.top or col.side
 							end
 							-- Solid and liquid are independent. In a shallow cell the
@@ -1364,7 +1392,8 @@ core.register_on_modchannel_message(function(channel_name, sender, message)
 	local pp = player:get_pos()
 	local cx, cz = (ox + edge / 2) * 16, (oz + edge / 2) * 16
 	local dist = math.max(math.abs(cx - pp.x), math.abs(cz - pp.z))
-	if dist > far_distance + edge * 16 then
+	local request_distance = far_provider and far_provider_distance or far_distance
+	if dist > request_distance + edge * 16 then
 		return
 	end
 	-- Only jobs someone asked for count against the limit. Counting the
@@ -1378,8 +1407,27 @@ core.register_on_modchannel_message(function(channel_name, sender, message)
 			asked = asked + 1
 		end
 	end
-	if asked < 8 then
+	-- Providers synthesise from their bake without VoxelManip/emerge work, so
+	-- let the client keep a wider bounded network window while filling a 4 km
+	-- baseline. Generated-world summaries retain the conservative old limit.
+	local asked_limit = far_provider and 24 or 8
+	if asked < asked_limit then
 		queue_area(sender, cell, ox, oy, oz, edge)
+		-- A camera above the cloud layer otherwise has to discover empty
+		-- 128-node Y slabs one request round at a time before it ever asks for
+		-- the ground. A procedural provider already knows the surface without
+		-- map reads, so publish the matching ground slab as a companion offer.
+		-- This is the provider equivalent of a height-indexed LOD database and
+		-- is what lets an aerial horizon fill outward instead of downward.
+		if far_provider then
+			local sy = far_provider(cx, cz)
+			if sy then
+				local ground_oy = fdiv(math.floor(sy), AREA * 16) * AREA
+				if ground_oy ~= oy then
+					queue_area(sender, cell, ox, ground_oy, oz, edge, true)
+				end
+			end
+		end
 	end
 end)
 

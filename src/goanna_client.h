@@ -33,6 +33,7 @@
 #include "goanna_mesher.h" // MapBlockMesh, for the near ready cache
 #include "goanna_lod.h"
 #include "goanna_mesh_pool.h"
+#include "goanna_schedule.h"
 #include "irrlichttypes_bloated.h"
 #include <SMaterial.h>
 
@@ -311,9 +312,9 @@ public:
     godot::Ref<godot::Material> materialFor(const MaterialKey &key);
     godot::Ref<godot::Material> materialForIrr(const video::SMaterial &m, u16 layer = 0);
     MaterialKey keyForIrr(const video::SMaterial &m, u16 layer);
-    // live: the server is sending this block, so inside the wanted range it
-    // is never coarsened. A block from the store or a summary is tiered by
-    // the detail distance alone.
+    // `live` says the server still owns the source block. It guarantees exact
+    // presentation inside the detail radius, but beyond that source residency
+    // must not defeat the distance ladder.
     int lodTierFor(const v3s16 &bp, const godot::Vector3 &around, bool live) const;
 
 protected:
@@ -375,6 +376,33 @@ private:
     godot::Ref<godot::StandardMaterial3D> m_lod_material; // flat colour fallback
     std::map<u32, godot::Ref<godot::Material>> m_lod_water; // water shader per liquid tile
     godot::Vector3 m_lod_centre; // last camera position seen by update_lod
+    // Where the camera points, Godot space, and since when. Every scheduler
+    // weights its candidates by this (goanna_schedule.h); before it existed,
+    // none of them knew which way the player was facing and the far field
+    // filled radially whatever was on screen. A zero vector means no pose has
+    // arrived yet, which weights nothing.
+    v3f m_view_dir{0, 0, 0};
+    // Where the camera stood when the cone last shut. The test has to be
+    // against that, not against the previous frame: the camera position is
+    // refreshed every frame, so a frame-to-frame comparison never sees a
+    // walking player move at all.
+    v3f m_view_anchor{0, 0, 0};
+    std::chrono::steady_clock::time_point m_view_still = std::chrono::steady_clock::now();
+    // Godot's camera forward from the pitch and yaw every control path
+    // already reports, and a note that the view has changed enough to shut
+    // the cone again.
+    void setViewAngles(float pitch_deg, float yaw_deg);
+    void noteViewMoved() { m_view_still = std::chrono::steady_clock::now(); }
+    // The scheduling rule, built from the camera as it stands now. Cheap:
+    // callers that sort with it should still hoist it out of the comparison.
+    goanna::ViewPriority viewPriority() const;
+    // What the schedulers are doing, for the overlay. A queue depth cannot
+    // show a queue that is ordered wrongly, which is how the mirrored far
+    // region priority survived: report the head of the queue against the
+    // nearest thing that still wants building, and the gap is the fault.
+    int m_sched_stale = 0;   // regions drawing geometry that has moved on
+    double m_sched_oldest_ms = 0; // longest any region has waited dirty
+    int m_sched_pending[goanna::ViewPriority::kClassCount] = {};
     // Existing blocks only need their distance tier reconsidered after the
     // camera crosses a mapblock boundary (or a setting changes). New blocks
     // are assigned against m_lod_centre as they arrive. Walking the complete
@@ -433,7 +461,27 @@ private:
         // `generation` stamps each capture: a result arriving with an older
         // stamp was overtaken while it was building and is dropped.
         uint64_t generation = 0;
+        // Logical input changes, independent of submission generations. A
+        // worker result captured before this revision is never published.
+        uint64_t state_revision = 0;
         bool building = false;
+        // Membership shrank since this node was published, so what it still
+        // draws includes blocks that have moved to the near field or to
+        // another tier. That is not merely out of date: the old geometry
+        // hangs over the top of the real thing until the rebuild lands.
+        bool stale = false;
+        // A successfully published capture can legitimately contain only
+        // known air and therefore have no MeshInstance3D. Do not infer
+        // coverage from `node`: that turns empty sky into a permanent hole
+        // in the scheduler and repeatedly spends the coverage budget on it.
+        bool published = false;
+        // What the current node actually contains. A node can cover only
+        // part of a region after new members arrive, so node existence alone
+        // is not evidence that coverage is complete.
+        std::set<v3s16> published_members;
+        bool published_partial = false;
+        int published_exact_cell = 0;
+        int published_coarse_cell = 0;
     };
     std::map<LodRegionKey, LodRegion> m_lod_regions;
     std::map<v3s16, LodRegionKey> m_lod_member; // which region draws a block
@@ -447,7 +495,19 @@ private:
         std::set<LodRegionKey> old_regions;
     };
     std::map<v3s16, LodFarHandoff> m_lod_handoff_far;
+    // Far -> batched-near is not complete when a block's CPU surfaces have
+    // been prepared. The old far member remains frozen and visible until the
+    // regional near ArrayMesh containing those surfaces is installed.
+    std::map<v3s16, LodRegionKey> m_lod_handoff_to_near;
     std::map<LodRegionKey, int> m_lod_handoff_old_counts;
+    // When each frozen region first froze. The freeze exists to avoid a
+    // one-frame flash while a block migrates, but a frozen region cannot
+    // publish, and publishing is the only thing that releases freezes, so a
+    // mass retier (a teleport) formed cycles of regions all waiting on each
+    // other: measured at 2145 frozen regions and 41823 pending handoffs,
+    // diverging. lodBuildRegion stops honouring a freeze older than
+    // kLodFreezeMs and rebuilds, accepting the flash to break the cycle.
+    std::map<LodRegionKey, std::chrono::steady_clock::time_point> m_lod_frozen_at;
     // Built lazily, dropped when the block changes. Shared and immutable
     // once published, so a mesh worker can hold the chains its region needs
     // while the main thread erases and rebuilds others: replacing a chain
@@ -581,8 +641,12 @@ private:
         bool air = false;
     };
     std::map<v3s16, FarAsk> m_far_requested;
+    // Asks awaiting a reply, each on its own clock. m_far_inflight mirrors
+    // its size for the HUD. An entry leaves when its area's reply arrives or
+    // when lodRequestSummaries times it out, so one silently dropped ask
+    // costs one slot for ten seconds rather than freezing the whole window.
+    std::map<v3s16, std::chrono::steady_clock::time_point> m_far_pending;
     int m_far_inflight = 0;
-    std::chrono::steady_clock::time_point m_far_asked; // when the oldest in flight was sent
     std::chrono::steady_clock::time_point m_far_scan; // when lodRequestSummaries last looked
     v3s16 m_far_centre{32767, 32767, 32767};
     int m_far_radius = 0; // blocks, what lodUpdateFar last scanned with
@@ -598,10 +662,24 @@ private:
     // All of these are called with the session's mapLock() held.
     const BlockLodChain *lodChain(v3s16 bp);
     void lodMarkDirty(const LodRegionKey &key);
+    // lodMarkDirty, and record that what is on screen is now wrong rather
+    // than merely old. Call this wherever a block leaves a region.
+    void lodMarkStale(const LodRegionKey &key);
     void lodDirtyAround(const v3s16 &bp, const LodRegionKey *except);
     void lodAssign(const v3s16 &bp, int tier);
+    void lodBeginNearHandoff(const v3s16 &bp);
+    void lodFinishNearHandoff(const v3s16 &bp);
+    // One release of a region's handoff freeze count, keeping the freeze
+    // timestamp map in step. Every place a handoff completes or is
+    // abandoned goes through here; a decrement that misses the timestamp
+    // map would revive the leak this exists to prevent.
+    void lodDropHandoffCount(const LodRegionKey &key);
     void lodForget(const v3s16 &bp);
     void lodBuildRegion(const LodRegionKey &key, LodRegion &r);
+    // What this region is worth building, for the rebuild sort and for the
+    // pool submission alike. Both used to work it out separately, and the
+    // rebuild's answer was thrown away the moment it reached the pool.
+    int lodRegionPriority(const LodRegionKey &key, const LodRegion &r) const;
     // Capture what a worker needs to mesh this region, main thread. Uses the
     // same lookups the synchronous path does, side effects included, so a
     // chain that is missing is still asked for here.
@@ -653,7 +731,9 @@ private:
     // not churn as their distance order changes. See update_lights.
     std::set<int64_t> m_light_shadowed;
     bool m_fake_liquid_built = false;
-    bool m_solid_ice = false;
+	// Stable depth wins by default. Transparent ice is still available as a
+	// setting, but whole-mapblock alpha sorting makes freezing water flicker.
+	bool m_solid_ice = true;
     void buildFakeLiquidTextures();
 
     godot::Ref<godot::Shader> m_sh_water, m_sh_leaves, m_sh_plants, m_sh_glass, m_sh_array,

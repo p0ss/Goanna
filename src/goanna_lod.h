@@ -120,6 +120,12 @@ struct BlockLodChain {
     const LodLevel::Cell *cellAt(int cell, int x, int y, int z) const;
     bool filledAt(int cell, int x, int y, int z) const;
     bool occludesAt(int cell, int x, int y, int z) const;
+    // Whether the cell holds liquid. filledAt counts water as filled (a
+    // liquid is drawable content), so a face-culling test that must not let
+    // transparent water cover a solid face asks this as well. The fine
+    // (cell 1) path has no liquid bitset and answers false when only the
+    // bitsets are available, which errs toward culling, the old behaviour.
+    bool liquidAt(int cell, int x, int y, int z) const;
 };
 
 // Build a three-dimensional voxel mip chain from the nodes. A full block can
