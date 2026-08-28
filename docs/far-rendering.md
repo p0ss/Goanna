@@ -383,7 +383,11 @@ this avoids becoming a six month branch that never lands.
    keyed by the liquid's own tile. The sea reads as sea at the horizon with
    its waves, specular and fresnel. Reflections proper are a shader pack's
    job (`docs/iris-compat.md`, `gbuffers_water` and the pack's own SSR) and
-   are not duplicated here.
+   are not duplicated here. Revisited 2026-08-28: the far tier now runs the
+   same water material as the near mesh with the same parameters, and
+   everything that differs (waves, the reflection march, absorption, the
+   flatten) is a function of view distance inside the shader; see "The
+   near/far water hand-off, 2026-08-28" below.
 
 7. **Places you have never been.** The store answers "everywhere I have
    walked"; this answers "everywhere the server already has". The server mod
@@ -1702,7 +1706,8 @@ gated on `waving`, so far water has no reflection at all where near water
 does; and its `thick`, the distance through the water to the depth buffer,
 is near zero on a flat tier plane sitting on the tier terrain, so
 `exp(-absorption * thick)` is near 1 and far water does not absorb where
-near water does. Both are real and both are R2's, not this task's.
+near water does. Both are real and both are R2's, not this task's. Both
+closed 2026-08-28; see "The near/far water hand-off" below.
 
 **Also found, measured, and deliberately not fixed here: a Mineclonia
 weather sky puts the night out entirely.** `_apply_sky` derives
@@ -2436,3 +2441,77 @@ and its optional tier histogram is built only for `GOANNA_PERF`; otherwise the
 performance counter itself scaled with the summary database. The overlay
 separates complete LOD-frame time, tier scan, summary ingestion, request scan,
 periodic far audit and statistics collection so future growth is attributable.
+
+### The near/far water hand-off, 2026-08-28
+
+The far tier water plane used to run `water.gdshader` with `waving` off and
+the reflection march gated on `waving`, so far water had no reflection at
+all where near water was nearly all reflection, and its `thick` was near
+zero on a plane sitting on the tier terrain, so it did not absorb either
+(recorded under "The far field's albedo" above as an R2). At sea the result
+was a dark band across the horizon with a hard edge wherever the near mesh
+ended, and no sunrise or sunset on the far water.
+
+Both materials now carry the same parameters (`waving` true, `lod_flatten`
+true, near mesh included), and every difference between near and far is a
+continuous function of view distance inside the shader, never of which mesh
+a pixel came from. Two materials that agree at every distance cannot draw a
+seam, wherever the hand-off falls, and the client's view range no longer
+enters into it. The distance rules:
+
+- Waves already dropped octaves over 24 to 200 nodes; the remaining detail
+  now also fades to the flat face over 500 to 1200 nodes, where even the
+  longest train is below a pixel and only shimmers.
+- The screen space march fades out over `reflect_range` (default 512
+  nodes) and the sky fallback stands alone beyond it; the fallback itself
+  runs at every distance, far tiers included.
+- The fallback draws the sun's disc and halo from two new globals,
+  `goanna_sun_dir` and `goanna_sun_glow` (set in `_apply_sky` beside the
+  sky gradient, zero at night and under weather skies that hide the disc),
+  with the same weights the sky shader uses. This is what lays the sunrise
+  and sunset out across the sea to the horizon.
+- Before settling for the gradient, the fallback samples the frame's own
+  sky: the opaque pass has already rendered the sky shader, raymarched
+  clouds and all, into the screen texture the water samples anyway, and a
+  reflected direction projects to the screen point showing that direction
+  with one matrix multiply, because the camera is the view space origin.
+  Where the depth buffer says sky at that point, the real pixel is used
+  (edge faded back to the gradient), so the water reflects the actual
+  cloud deck; water near the horizon reflects sky just above the horizon,
+  which is on screen in exactly the views where it matters. Two texture
+  fetches per water pixel, against the 24-step march already running.
+- Absorption is forced to full depth over 160 to 420 nodes: at eye height
+  the view ray out there is near grazing and the near mesh is fully
+  absorbed anyway, and the forcing gives the far tier the same answer its
+  zero measured thickness cannot.
+
+Verified offline in `project/water_seam.tscn`, a fixture that draws one
+sheet of water split at 240 nodes into a near strip and a far tier strip
+under a sunset (`GOANNA_SEAM_OLD=1` reproduces the old material set for a
+before shot): before, the far strip is a flat dark band with a hard edge;
+after, the sea is continuous to the horizon with a glitter path under the
+sun and the split is not findable in the frame. Godot 4.5.1, no server.
+Not yet observed against a live server.
+
+### The far field was half a node adrift, 2026-08-28
+
+The region mesher builds a cell for node k across [k, k+1] on every axis;
+the near mesh centres node k on k, spanning [k-0.5, k+0.5], and Luanti Z
+mirrors into Godot with the sign flipped. So the whole far field rendered
+half a node high and half a node sideways. Terrain hid it: skirts are half
+a cell deep and hillsides are not flat. Flat water told on it, twice: the
+far sea rode above the near sea as a bright lip wherever the hand-off
+crossed open water, and far water lay level with far ice tops it should
+sit half a node under, so a frozen sheet's edge in the far field flickered
+between the water's colour and the ice's (both reported with screenshots,
+2026-08-28).
+
+The correction is one transform: the published far region node sits at
+(-0.5, -0.5, +0.5) in Godot space, and every vertex the mesher emits keeps
+its internal corner convention. UVs are derived from the same positions,
+so the tiling moves with the geometry and stays aligned with the near
+mesh's per node repeat. Verified against the live server by day (a storm
+took the dusk): the lip at the water junction is gone and the junction
+reads as one sheet. The frozen sheet at far range was not re-verified
+before the storm closed in; if its edge still misbehaves, look at the
+hand-off freeze counters before the geometry.

@@ -1862,6 +1862,17 @@ func _apply_sky() -> void:
 	var hl := hor.srgb_to_linear()
 	RenderingServer.global_shader_parameter_set("goanna_sky_top", Vector3(zl.r, zl.g, zl.b))
 	RenderingServer.global_shader_parameter_set("goanna_sky_horizon", Vector3(hl.r, hl.g, hl.b))
+	# The sun in that same fallback: the water shader draws the disc and its
+	# halo itself, because a ray reflected off water near the horizon almost
+	# always leaves the screen, and without this the sunrise and sunset never
+	# reached the far sea. The glow carries the sun's warm colour and dies as
+	# the disc sinks, or whenever the server hides it (weather skies).
+	var sun_glow: Color = sun.light_color.srgb_to_linear() \
+			* (smoothstep(-0.08, 0.0, elev) if bool(st["sun"]["visible"]) else 0.0)
+	RenderingServer.global_shader_parameter_set("goanna_sun_dir",
+			sun_dir.normalized() if sun_dir.length() > 0.001 else Vector3.UP)
+	RenderingServer.global_shader_parameter_set("goanna_sun_glow",
+			Vector3(sun_glow.r, sun_glow.g, sun_glow.b))
 	sky_mat.set_shader_parameter("ground_color", hor.darkened(0.6))
 	# The haze band under the horizon line, wide enough that a gap in the far
 	# field reads as distance rather than as a hole in the world.

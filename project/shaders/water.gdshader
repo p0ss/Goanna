@@ -20,9 +20,21 @@
 // haloes onto blocks that are not behind the water at all.
 //
 // Reflections are marched in screen space against the same depth buffer, and
-// fall back to the sky gradient where the ray leaves the screen. That is what
-// puts the far bank and its trees into the water; the sky is most of what a
+// fall back to the sky where the ray leaves the screen. That is what puts
+// the far bank and its trees into the water; the sky is most of what a
 // water surface reflects anyway, so the fallback is not a poor relation.
+// The sky answer itself has two rungs: where the reflected direction's sky
+// is on screen, the frame's own sky pixels (clouds, discs, haze, already
+// rendered by the opaque pass) are sampled by direction; where it is not,
+// a gradient plus a drawn sun disc and halo (goanna_sun_*) stands in, so
+// the sun on the water at dawn and dusk survives the fallback's fallback.
+//
+// The near mesh and the far tiers run this same shader with the same
+// parameters, and everything that must differ between near and far (octave
+// count, wave strength, the reflection march, absorption, the texture
+// flatten) is a continuous function of view distance, never of which mesh a
+// pixel came from. That is the whole hand-off strategy: two materials that
+// agree at every distance cannot draw a seam, wherever the near mesh ends.
 shader_type spatial;
 render_mode blend_mix, cull_disabled, diffuse_burley, specular_schlick_ggx;
 
@@ -41,6 +53,11 @@ uniform float wave_relief = 0.75;
 // the grid: without it the sum is still periodic, however many trains it has.
 uniform float wave_drag = 0.28;
 uniform int wave_octaves : hint_range(3, 16) = 9;
+// The screen space march stops past this distance and the sky answer stands
+// alone. Out there a reflected bank subtends a few pixels; the march is all
+// cost and no picture, and the far tiers would otherwise pay it across the
+// whole sea.
+uniform float reflect_range : hint_range(0.0, 4096.0) = 512.0;
 uniform float refraction = 0.006;
 // Beer-Lambert absorption per node; red dies first, like real water. The
 // old (0.55, 0.24, 0.16) went opaque within a few nodes, so every lake read
@@ -58,6 +75,11 @@ global uniform float goanna_eye_underwater;
 // leaves the screen can be answered with the sky it would really have hit.
 global uniform vec3 goanna_sky_top;
 global uniform vec3 goanna_sky_horizon;
+// The sun the same fallback ray would have hit: its direction, and a colour
+// already scaled by how much sun there is to reflect (zero at night and when
+// a weather sky hides the disc). Set beside the gradient in _apply_sky.
+global uniform vec3 goanna_sun_dir;
+global uniform vec3 goanna_sun_glow;
 
 // Far tiers use the same near sample at the hand-off, then converge on the
 // tile average only in the deep far field. Switching immediately to the last
@@ -152,9 +174,16 @@ void fragment() {
 		// fine normal detail aliases badly, so soften it there.
 		float detail = FRONT_FACING ? wave_strength : wave_strength * 0.35;
 		detail *= mix(1.0, 0.45, fade);
-		vec3 n = wave_normal(world_pos.xz, TIME * wave_speed, octaves,
-				TAU / max(wave_length, 0.5), wave_relief);
-		NORMAL = normalize(mix(NORMAL, (VIEW_MATRIX * vec4(n, 0.0)).xyz, detail));
+		// And in the deep far field even the longest train is below a pixel,
+		// so the last octaves hand over to the flat face smoothly; the far
+		// tiers run this same ramp, which is what removes the wave seam at
+		// whatever range the near mesh happens to end.
+		detail *= 1.0 - smoothstep(500.0, 1200.0, here);
+		if (detail > 0.004) {
+			vec3 n = wave_normal(world_pos.xz, TIME * wave_speed, octaves,
+					TAU / max(wave_length, 0.5), wave_relief);
+			NORMAL = normalize(mix(NORMAL, (VIEW_MATRIX * vec4(n, 0.0)).xyz, detail));
+		}
 	}
 	if (!FRONT_FACING)
 		NORMAL = -NORMAL;
@@ -162,12 +191,21 @@ void fragment() {
 	// Thickness of water along the view ray, from the opaque depth buffer.
 	float behind = scene_distance(SCREEN_UV, INV_PROJECTION_MATRIX);
 	float thick = clamp(behind - here, 0.0, 64.0);
+	// Past a few hundred nodes every water body reads as deep: at eye height
+	// the view ray through a surface out there is always near grazing, so the
+	// near mesh is fully absorbed anyway. The far tiers need the same answer
+	// forced, because a tier's water plane sits directly on the tier terrain
+	// and its measured thickness is near zero, which let the ground show
+	// through a sea (docs/far-rendering.md, "the far tier water plane").
+	float deep_far = smoothstep(160.0, 420.0, here);
+	thick = max(thick, 64.0 * deep_far);
 	// How far the floor is straight down, which is what "shallow" means to
 	// anyone standing on the shore. The view ray length is long at a grazing
 	// angle however shallow the water is, so it cannot answer this.
 	vec3 floor_world = (INV_VIEW_MATRIX
 			* vec4(scene_position(SCREEN_UV, INV_PROJECTION_MATRIX), 1.0)).xyz;
 	float below = clamp(world_pos.y - floor_world.y, 0.0, 64.0);
+	below = max(below, 32.0 * deep_far);
 	float shallow = exp(-below * 0.9);
 
 	// Refraction, validated: if the offset sample is not actually behind the
@@ -193,12 +231,15 @@ void fragment() {
 	float refl_amount = clamp(0.02 + 0.98 * fres, 0.0, 1.0);
 
 	vec3 reflected = vec3(0.0);
-	// Two places the march is not worth running: waving is false on the far
-	// tiers, which are one flat quad per cell and are meant to stay cheap and
-	// plain, so it would cost the most where it shows least; and looking
-	// straight down there is almost nothing reflected to find.
-	bool do_reflect = reflections && waving && FRONT_FACING
+	// Looking straight down there is almost nothing reflected to find, and
+	// from under the surface nothing marches at all.
+	bool do_reflect = reflections && FRONT_FACING
 			&& goanna_eye_underwater < 0.5 && refl_amount > 0.03;
+	// The march is the expensive half, and past reflect_range it finds only
+	// what the sky answer already says, so it fades out with distance; the
+	// sky fallback runs everywhere, far tiers included, which is what keeps
+	// the horizon water lit instead of a dark band past the near mesh.
+	float march_keep = 1.0 - smoothstep(reflect_range * 0.7, reflect_range, here);
 	if (do_reflect) {
 		vec3 dir = reflect(normalize(VERTEX), NORMAL);
 		// The sky the ray would have reached, on the same curve the sky
@@ -206,41 +247,77 @@ void fragment() {
 		vec3 world_dir = normalize((INV_VIEW_MATRIX * vec4(dir, 0.0)).xyz);
 		float up = clamp(world_dir.y, 0.0, 1.0);
 		reflected = mix(goanna_sky_horizon, goanna_sky_top, pow(up, 0.45));
+		// The sun in that sky, disc and halo, the same shape and weights
+		// sky.gdshader draws (its disc is tint times 3, its halo the same
+		// power of 350). This is what lays the sunrise and sunset out
+		// across the water; on the waves the jittered normal breaks it
+		// into the glitter path.
+		float sun_d = max(dot(world_dir, goanna_sun_dir), 0.0);
+		reflected += goanna_sun_glow
+				* (pow(sun_d, 1500.0) * 3.0 + pow(sun_d, 350.0) * 0.8);
+
+		// Better than any gradient: the sky as it was actually drawn this
+		// frame. The opaque pass has already rendered the sky shader, clouds,
+		// discs and haze included, into the screen texture this shader is
+		// sampling anyway, and the camera sits at the view space origin, so a
+		// reflected direction projects to the screen point showing that very
+		// direction with one matrix multiply. Water near the horizon reflects
+		// sky just above the horizon, which is exactly the sky most likely to
+		// be on screen; a ray whose sky is off screen keeps the gradient and
+		// the drawn glint, and fresnel is small at those steep angles anyway.
+		// Only where the depth buffer says sky (reversed Z, far plane is 0):
+		// by-direction sampling treats everything as infinitely far, which is
+		// true of the sky and a double image on near geometry, whose parallax
+		// the march below handles properly. The wave normal is already in the
+		// direction, so the reflection ripples for free.
+		if (dir.z < 0.0) {
+			vec4 sclip = PROJECTION_MATRIX * vec4(dir, 1.0);
+			vec2 suv = (sclip.xy / sclip.w) * 0.5 + 0.5;
+			if (suv == clamp(suv, vec2(0.0), vec2(1.0))
+					&& texture(depth_tex, suv).r < 1e-6) {
+				vec2 sfade = smoothstep(vec2(0.0), vec2(0.08), suv)
+						* (1.0 - smoothstep(vec2(0.92), vec2(1.0), suv));
+				reflected = mix(reflected, texture(screen_tex, suv).rgb,
+						sfade.x * sfade.y);
+			}
+		}
 
 		// March the reflected ray against the depth buffer. Steps grow, so a
 		// near bank is found precisely and a far one is still reached.
-		float step_len = 0.3;
-		vec3 p = VERTEX;
-		for (int i = 0; i < 24; i++) {
-			p += dir * step_len;
-			step_len *= 1.32;
-			vec4 clip = PROJECTION_MATRIX * vec4(p, 1.0);
-			if (clip.w <= 0.0)
-				break;
-			vec2 uv = (clip.xy / clip.w) * 0.5 + 0.5;
-			if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0)
-				break;
-			float scene = scene_distance(uv, INV_PROJECTION_MATRIX);
-			float ray = -p.z;
-			// Behind the depth buffer, but not so far behind that the ray
-			// passed through open space in front of something distant.
-			if (ray > scene && ray - scene < step_len * 4.0) {
-				// A screen hit is only as good as the edge it sits near:
-				// fade it out rather than cutting it off, and let the sky
-				// take over.
-				vec2 fade2 = smoothstep(vec2(0.0), vec2(0.1), uv)
-						* (1.0 - smoothstep(vec2(0.9), vec2(1.0), uv));
-				reflected = mix(reflected, texture(screen_tex, uv).rgb,
-						fade2.x * fade2.y);
-				break;
+		if (waving && march_keep > 0.001) {
+			float step_len = 0.3;
+			vec3 p = VERTEX;
+			for (int i = 0; i < 24; i++) {
+				p += dir * step_len;
+				step_len *= 1.32;
+				vec4 clip = PROJECTION_MATRIX * vec4(p, 1.0);
+				if (clip.w <= 0.0)
+					break;
+				vec2 uv = (clip.xy / clip.w) * 0.5 + 0.5;
+				if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0)
+					break;
+				float scene = scene_distance(uv, INV_PROJECTION_MATRIX);
+				float ray = -p.z;
+				// Behind the depth buffer, but not so far behind that the ray
+				// passed through open space in front of something distant.
+				if (ray > scene && ray - scene < step_len * 4.0) {
+					// A screen hit is only as good as the edge it sits near:
+					// fade it out rather than cutting it off, and let the sky
+					// take over.
+					vec2 fade2 = smoothstep(vec2(0.0), vec2(0.1), uv)
+							* (1.0 - smoothstep(vec2(0.9), vec2(1.0), uv));
+					reflected = mix(reflected, texture(screen_tex, uv).rgb,
+							fade2.x * fade2.y * march_keep);
+					break;
+				}
 			}
 		}
 	}
 
 	// The reflected share only comes out of the body where it is going back
-	// in as light. Nothing marches from below, or on the far tiers, and
-	// taking it out anyway drove the surface to black at exactly the grazing
-	// angles that fill the view when you are under it.
+	// in as light. Nothing is reflected from below, and taking it out anyway
+	// drove the surface to black at exactly the grazing angles that fill the
+	// view when you are under it.
 	float refl_mix = do_reflect ? refl_amount : 0.0;
 	ALBEDO = body * (1.0 - refl_mix);
 	// Reflected light is light that never entered the water, so it must not

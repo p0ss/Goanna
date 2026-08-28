@@ -11,8 +11,10 @@
 // node to drawBeveledSolid, a Goanna addition that chamfers exposed edges
 // while g_goanna_bevel is above zero; and a liquid draws no face against a
 // node that is drawn as a liquid without being one (isFakeLiquid), which is
-// what keeps ice and the water under it from putting two faces in one plane.
-// Otherwise verbatim.
+// what keeps ice and the water under it from putting two faces in one plane,
+// and such a node in turn draws no sideways face against a liquid source at
+// its own level, because that face is wholly submerged and sorted over the
+// nearer water surface. Otherwise verbatim.
 
 #include <cmath>
 #include "content_mapblock.h"
@@ -716,6 +718,19 @@ void MapblockMeshGenerator::drawSolidNode()
 				// real interface: the solid block keeps its face and the
 				// liquid gives up its own.
 				if (!isFakeLiquid(*cur_node.f) && isFakeLiquid(f2))
+					continue;
+				// Goanna: and the face the solid block kept is dropped too on
+				// a sideways boundary with a liquid source at the same level.
+				// A source renders its surface at the top of its node, so the
+				// whole shared face lies at or under the waterline; drawn, it
+				// is a submerged pane that Godot's per mesh transparent sort
+				// can put in front of the nearer water surface, which reads
+				// as the ice edge standing on top of the water. Sideways
+				// only: a face over air, or over flowing water part way up
+				// the node, is genuinely exposed and stays.
+				if (isFakeLiquid(*cur_node.f) && !isFakeLiquid(f2) &&
+						f2.liquid_type == LIQUID_SOURCE &&
+						tile_dirs[face].Y == 0)
 					continue;
 				backface_culling = f2.visuals->solidness || f2.visuals->visual_solidness;
 			}

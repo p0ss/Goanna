@@ -1921,6 +1921,38 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
                 mtype == TILE_MATERIAL_WAVING_PLANTS);
         if (sh == m_sh_water || sh == m_sh_leaves || sh == m_sh_plants)
             sm->set_shader_parameter("waving", waving);
+        // Water shades by distance, not by tier: the near mesh runs the same
+        // flatten curve as its far tier material, so wherever the near mesh
+        // ends the far tier continues the very same functions of distance
+        // and the hand-off has nothing to draw a seam with.
+        if (sh == m_sh_water)
+            sm->set_shader_parameter("lod_flatten", true);
+        // Glass and ice take their LabPBR companions, looked up by stem the
+        // way the entity path does (goanna_entities.cpp): the _n is the
+        // authored relief, and the _s smoothness is what breaks a frozen
+        // sheet's reflection into frost and slick instead of one mirror.
+        if (sh == m_sh_glass) {
+            std::string base = m_session->tsrc()->getTextureName(key.texture_id);
+            base = base.substr(0, base.find('^'));
+            const size_t dotpos = base.rfind('.');
+            const std::string stem = dotpos == std::string::npos ? base : base.substr(0, dotpos);
+            const std::string ext = dotpos == std::string::npos ? std::string() : base.substr(dotpos);
+            auto lookup = [&](const char *suffix) -> Ref<Texture2D> {
+                const std::string name = stem + suffix + ext;
+                if (stem.empty() || !m_session->tsrc()->isKnownSourceImage(name))
+                    return Ref<Texture2D>();
+                GoannaTexture *cgt = dynamic_cast<GoannaTexture *>(m_session->tsrc()->getTexture(name));
+                return cgt ? Ref<Texture2D>(cgt->godotTexture()) : Ref<Texture2D>();
+            };
+            Ref<Texture2D> nrm_tex = lookup("_n");
+            Ref<Texture2D> spc_tex = lookup("_s");
+            sm->set_shader_parameter("has_normal", nrm_tex.is_valid());
+            sm->set_shader_parameter("has_spec", spc_tex.is_valid());
+            if (nrm_tex.is_valid())
+                sm->set_shader_parameter("normal_tex", nrm_tex);
+            if (spc_tex.is_valid())
+                sm->set_shader_parameter("spec_tex", spc_tex);
+        }
         m_materials[key.hash()] = sm;
         return sm;
     }
@@ -4652,14 +4684,17 @@ void GoannaClient::lodPublishRegion(const LodRegionKey &key, LodRegion &r, const
         Ref<Material> mat;
         if (sf.liquid) {
             // Water at distance, docs/far-rendering.md rung 6: the same water
-            // shader as the near mesh, on the liquid's own tile, so the sea
-            // reads as sea at the horizon with its specular and fresnel. A
-            // tier's own quad is one flat plane per cell, so there is nothing
-            // at that scale for a per node wave to ripple, and its UV aliases
-            // the same way a solid tile's does; waving is off and the sampled
-            // colour blends toward the tile's own average with distance, same
-            // as the array shader (docs/far-rendering.md, "Shade the far
-            // field as a far field").
+            // shader as the near mesh, on the liquid's own tile, with the
+            // same parameters, so the sea reads as sea at the horizon with
+            // its specular, fresnel and the sky's reflection. Everything that
+            // must differ between near and far (waves, the reflection march,
+            // absorption, the flatten toward the tile average) is a function
+            // of view distance inside the shader itself, because two
+            // materials that agree at every distance cannot draw a seam at
+            // the hand-off. Waving used to be off here, and the reflection
+            // march was gated on it, which left the far sea a dark band
+            // against the reflecting near water (the R2 recorded in
+            // docs/far-rendering.md, "the far tier water plane").
             auto wit = m_lod_water.find(sf.texture_id);
             if (wit == m_lod_water.end()) {
                 Ref<ShaderMaterial> wm;
@@ -4670,7 +4705,7 @@ void GoannaClient::lodPublishRegion(const LodRegionKey &key, LodRegion &r, const
                     wm.instantiate();
                     wm->set_shader(m_sh_water);
                     wm->set_shader_parameter("albedo_tex", wgt->godotTexture());
-                    wm->set_shader_parameter("waving", false);
+                    wm->set_shader_parameter("waving", true);
                     wm->set_shader_parameter("lod_flatten", true);
                 }
                 wit = m_lod_water.emplace(sf.texture_id, wm).first;
@@ -4707,6 +4742,15 @@ void GoannaClient::lodPublishRegion(const LodRegionKey &key, LodRegion &r, const
     }
     if (!r.node) {
         r.node = memnew(MeshInstance3D);
+        // The region mesher builds a cell for node k across [k, k+1] on every
+        // axis, while the near mesh centres node k on k, spanning [k-0.5,
+        // k+0.5]; Luanti Z is mirrored into Godot, which flips that axis's
+        // sign. Uncorrected, the whole far field sat half a node high and
+        // half a node sideways, which flat water made visible: the far sea
+        // rode above the near sea as a lip at the hand-off, and sat level
+        // with far ice tops it should lie half a node under, where the two
+        // fought for the plane. Terrain hid the same offset under its skirts.
+        r.node->set_position(Vector3(-0.5f, -0.5f, 0.5f));
         add_child(r.node);
     }
     r.node->set_mesh(mesh);
