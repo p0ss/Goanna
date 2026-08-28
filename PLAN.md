@@ -165,6 +165,56 @@ Sizing, by what happens to those ~57k lines:
   threading is unproblematic (session thread + Godot main thread with two
   mutexes). The sizing above holds or is pessimistic.
 
+## Log since v0.3.0-alpha (2026-08-28)
+
+Verified on a local Mineclonia server on Luanti 5.17.0 with Godot 4.5.1
+unless marked otherwise; the offline fixture is `project/water_seam.tscn`.
+
+- The near/far water hand-off no longer draws a seam. Both tiers run the
+  same water material with the same parameters and every difference is a
+  function of view distance inside the shader; the fallback reflection
+  samples the frame's own sky pixels by direction, with a drawn sun disc
+  and halo (new globals `goanna_sun_dir`, `goanna_sun_glow`) where the sky
+  is off screen. See "The near/far water hand-off, 2026-08-28" in
+  `docs/far-rendering.md`.
+- The far field sat half a node adrift of the near mesh on all three axes,
+  a corner-versus-centred node convention mismatch. One transform on the
+  published region node corrects it. Verified over open water by day; the
+  frozen sheet at far range was not re-verified before a storm closed in.
+- Ice and glass reflect the same two-rung sky answer, bent by the pack's
+  `_n` companion and gated per texel by the `_s` smoothness, under a hard
+  cap (`reflect_strength`), with the water's screen space march for banks
+  and trees. Judged live against the icetest sheet through three rounds of
+  the author's feedback: the first pass read as a mirror, the balance is
+  now roughly nine parts texture to one part sheen.
+- The sun holds through the golden hour (a twilight band in `_apply_sky`)
+  instead of dying exactly when the sky peaks pink, and the bounce light
+  and shader ground fill take their colour from `ground_albedo`, a new
+  sampled average of the terrain around the camera, so undersides are
+  tinted by what the scene actually stands on. Judged live at dusk; the
+  lighting chart does not exercise `_apply_sky`.
+- `goanna_server.conf` default privs gained `weather_manager`: Mineclonia
+  storms blacken the night sky, and clearing them mid-test needs the priv
+  on a freshly created player.
+- The first `ground_albedo` cut the frame rate from 90 to under 30: it
+  called `getTextureAverageColor` per column twice a second, and that
+  composes the full tile image on every call. A per content cache with a
+  small per-call warm budget restored 90 at dusk with the sun hold, moon,
+  bounce and sampling all active, measured sitting still at the bay.
+- The violet hour reaches the land: the sky fill's twilight term borrows
+  the cloud deck's own colour ramp and rides the twilight window rather
+  than the narrower dawn band, so cliffs and canopies go purple-grey under
+  a purple sky instead of dead grey (the player's report). Deep night is
+  unchanged; the extension decays with the ramp itself.
+- The ice edge stopped standing on the water. At a flush shore the ice's
+  sideways boundary face lies wholly at or under the waterline (a source
+  renders its surface at the top of its node), and Godot's per mesh
+  transparent sort could draw that submerged pane over the nearer water
+  surface. The face is now skipped outright on a sideways boundary with a
+  source at the same level (content_mapblock.cpp, the second half of the
+  water/ice ownership rule); a face over air or part filled flowing water
+  is genuinely exposed and stays. Verified at the icetest sheet's edge.
+
 ## Log since v0.2.0-alpha (2026-08-25 to 2026-08-26)
 
 Eighteen commits. The theme is that the client stopped doing its heavy work
