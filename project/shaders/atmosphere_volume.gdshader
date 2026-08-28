@@ -1,5 +1,7 @@
-// Sparse participating media near the ground: one world-sized volume that
-// pools mist in the valleys, without geometry or draw calls.
+// Participating media near the ground and camera: one world-sized volume that
+// pools mist in valleys and gives nearby clouds real depth, without geometry
+// or per-bank draw calls. The sky shader continues the cloud field beyond the
+// froxel range, where true volume resolution would be too coarse to help.
 //
 // Clouds are deliberately not here. Godot's froxel grid is camera relative
 // and ends at volumetric_fog_length, which main.gd caps at 768 nodes, so a
@@ -20,6 +22,11 @@ uniform float mist_level = 64.0;
 uniform float mist_density : hint_range(0.0, 0.1) = 0.012;
 uniform vec2 weather_offset = vec2(0.0);
 uniform float quality : hint_range(0.0, 1.0) = 1.0;
+uniform float cloud_level = 120.0;
+uniform float cloud_thickness = 24.0;
+uniform float cloud_density : hint_range(0.0, 0.1) = 0.025;
+uniform float cloud_coverage : hint_range(0.0, 1.0) = 0.4;
+uniform vec3 cloud_albedo : source_color = vec3(0.95, 0.96, 1.0);
 
 float hash31(vec3 p) {
 	p = fract(p * 0.1031);
@@ -63,17 +70,42 @@ void fog() {
 	vec3 p = WORLD_POSITION;
 	float mist = 0.0;
 
-	// Moist air pools below the local inhabited elevation. Large-scale noise
-	// breaks the layer into banks rather than tinting every valley uniformly.
-	// The lower fade also keeps this out of the vast underground volume.
-	float mist_height = smoothstep(mist_level - 58.0, mist_level - 28.0, p.y) *
-			(1.0 - smoothstep(mist_level - 8.0, mist_level + 28.0, p.y));
+	// Moist air pools below the local inhabited elevation. Use an exponential
+	// tail above it, rather than a finite band with a visible horizontal top.
+	// The lower fade keeps the volume out of the vast underground space.
+	//
+	// The tail is short and the noise floor is zero on purpose. A 42 node
+	// tail with a 0.28 floor was not valley mist, it was a world-wide medium:
+	// at eye level it still held a third of full density, and over a few
+	// hundred nodes of path that extinguished the scene into grey murk
+	// (measured as the frame mean falling from 216 to 119 with the volume
+	// on). Banks with real gaps between them read as weather; a floor reads
+	// as a dirty lens.
+	float mist_height = smoothstep(mist_level - 72.0, mist_level - 32.0, p.y) *
+			exp(-max(p.y - mist_level, 0.0) / 18.0);
 	if (mist_height > 0.001) {
-		float mist_noise = smoothstep(0.28, 0.78,
-				weather_noise(vec3(p.xz * 0.008 + weather_offset * 0.15, p.y * 0.018)));
-		mist = mist_density * mist_height * mix(0.28, 1.0, mist_noise);
+		float mist_noise = smoothstep(0.40, 0.68,
+				weather_noise(vec3(p.xz * 0.005 + weather_offset * 0.15, p.y * 0.018)));
+		mist = mist_density * mist_height * mist_noise;
 	}
 
-	DENSITY = mist;
-	ALBEDO = atmosphere_color;
+	// A real local cloud body. Its far continuation is projected by the sky
+	// shader, but within the froxel range this density has thickness, can be
+	// entered from either side, and is lit/shadowed as participating media.
+	float cloud = 0.0;
+	float half_cloud = max(cloud_thickness * 0.5, 4.0);
+	float ch = 1.0 - abs(p.y - cloud_level) / half_cloud;
+	if (ch > 0.0 && cloud_coverage > 0.01) {
+		float profile = smoothstep(0.0, 0.22, ch) * smoothstep(0.0, 0.18, ch);
+		vec3 cp = vec3(p.x * 0.006 + weather_offset.x * 0.12,
+				p.y * 0.018, p.z * 0.006 + weather_offset.y * 0.12);
+		float shape = weather_noise(cp);
+		float threshold = mix(0.76, 0.32, cloud_coverage);
+		cloud = cloud_density * profile * smoothstep(threshold, threshold + 0.18, shape);
+	}
+
+	float total = mist + cloud;
+	DENSITY = total;
+	ALBEDO = total > 0.00001 ?
+			(atmosphere_color * mist + cloud_albedo * cloud) / total : atmosphere_color;
 }

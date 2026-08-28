@@ -133,6 +133,12 @@ float goanna_cloud_dim(vec3 world) {
 // twice. The far tiers, which are past the range those lights reach, turn it
 // on; see docs/far-rendering.md.
 uniform float block_light_emission : hint_range(0.0, 4.0) = 0.0;
+// Where the light pool's real lamps end, in view distance, set per frame by
+// GoannaClient::update_lights. Past it the near mesh fades in the same
+// baked block-light emission the far tiers use, so a village keeps its
+// glow through the middle distance where its lamps have not made the pool
+// instead of going dark between the far bake and the near pool.
+global uniform float goanna_lamp_reach;
 
 // Paints the three channels straight onto the screen as emission: red block
 // light, green sky light, blue occlusion. It answers "is this data arriving at

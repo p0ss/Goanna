@@ -32,8 +32,10 @@ uniform vec3 cloud_twilight_color : source_color = vec3(1.0, 0.55, 0.25);
 uniform float cloud_twilight_k : hint_range(0.0, 1.0) = 0.0;
 uniform float cloud_coverage = 0.4;
 uniform float cloud_plane_h = 90.0;
+uniform float cloud_thickness = 16.0;
 uniform vec2 cloud_offset = vec2(0.0);
-uniform float cloud_scale = 0.012;
+uniform vec4 haze_color : source_color = vec4(0.72, 0.8, 0.9, 1.0);
+uniform float haze_twilight : hint_range(0.0, 1.0) = 0.0;
 // Goanna: what the sky feeds to lighting is not what it shows. Godot samples
 // this shader into the radiance cubemap that SDFGI and the ambient term read,
 // with AT_CUBEMAP_PASS set, so the lighting half can differ from the visible
@@ -91,6 +93,53 @@ float fbm(vec2 p) {
 	return v / 0.9375;
 }
 
+// The cumulus body: real 3D noise from a texture (built once in main.gd,
+// far cheaper than ALU noise at march rates), shaped by a height gradient
+// into a flat base and a domed top. Every earlier attempt at clouds here
+// sampled a 2D field at stacked heights, and every one of them read as
+// stacked translucent sheets whatever the shading said, because a sheet has
+// no side to see. Only a density the ray actually marches through has one.
+uniform sampler3D cloud_body_tex : repeat_enable, filter_linear;
+
+// Where masses are at all: a slow 2D system hundreds of nodes across. It
+// modulates coverage, breaks the 3D texture's tiling, and is the same
+// envelope the node shaders approximate for their cloud shadows.
+float cloud_weather(vec2 wxz) {
+	return fbm(wxz * 0.0009 + cloud_offset * 0.4);
+}
+
+// Density at a world point. base_w and deck are the slab; weather is
+// cloud_weather at the sample's column, passed in because the light march
+// reuses its own.
+float cloud_density(vec3 wp, float base_w, float deck, float weather) {
+	float hf = (wp.y - base_w) / deck;
+	if (hf <= 0.0 || hf >= 1.0)
+		return 0.0;
+	// The base ramp spans several march steps on purpose. At 0.08 of the
+	// deck it was a fourteen-node cliff that one step could straddle, and
+	// with the per-direction jitter that showed as heavy speckle across
+	// every underside: neighbouring pixels landed on opposite sides of the
+	// ramp and disagreed about both opacity and light. A soft underside is
+	// true of cumulus anyway. The top tapers early where the weather is
+	// weak and late where it is strong, so strong systems tower and weak
+	// ones stay shallow.
+	float grad = smoothstep(0.0, 0.22, hf) * (1.0 - smoothstep(mix(0.20, 0.85, weather), 1.0, hf));
+	vec3 uvw = vec3(wp.x, wp.y * 2.4, wp.z) / 680.0;
+	uvw.xz += cloud_offset * 0.05;
+	float body = texture(cloud_body_tex, uvw).r;
+	float cover = cloud_coverage * smoothstep(0.30, 0.62, weather);
+	return smoothstep(1.0 - cover, 1.0 - cover + 0.16, body * grad * 1.25);
+}
+
+// Optical depth toward the sun: four short steps of the same density. This
+// is what buries a core in its own shadow and leaves the sunward flank lit.
+float cloud_light_od(vec3 wp, vec3 toward_sun, float base_w, float deck, float weather) {
+	float od = 0.0;
+	for (int j = 1; j <= 4; j++)
+		od += cloud_density(wp + toward_sun * (22.0 * float(j)), base_w, deck, weather);
+	return od * 22.0;
+}
+
 // Billboard uv of `dir` on a disc of angular half-size `size` around `center`.
 vec2 disc_uv(vec3 dir, vec3 center, float size, out float inside) {
 	vec3 u_ax = normalize(cross(abs(center.y) > 0.99 ? vec3(1, 0, 0) : vec3(0, 1, 0), center));
@@ -114,6 +163,18 @@ void sky() {
 		col = mix(col, vec3(dot(col, vec3(0.2126, 0.7152, 0.0722))), radiance_desaturate);
 		col += radiance_floor;
 	}
+	// The same air colour used by depth fog lives in the sky itself. This is
+	// strongest along the geometric horizon and toward a low sun, so sunset
+	// cannot leave orange land against an unrelated blue/grey backdrop. The
+	// warm term comes from the exact direct-light tint used on the terrain.
+	if (!AT_CUBEMAP_PASS && up > -0.12) {
+		float horizon = exp(-abs(up) * mix(9.0, 5.0, haze_twilight));
+		float sun_haze = pow(max(dot(normalize(vec3(dir.x, 0.08, dir.z)),
+				normalize(vec3(sun_dir.x, 0.08, sun_dir.z))), 0.0), 5.0);
+		vec3 air = mix(haze_color.rgb, sun_tint.rgb * 0.82,
+				haze_twilight * mix(0.20, 0.82, sun_haze));
+		col = mix(col, air, horizon * (0.26 + 0.48 * haze_twilight));
+	}
 
 	// stars: one jittered point per hashed cell on the dome, faded by daylight.
 	// sin of the angle to the star (via the cross product) keeps the star far
@@ -133,11 +194,25 @@ void sky() {
 
 	float inside;
 	if (moon_visible) {
+		// Scattering around the moon belongs to the atmosphere behind geometry,
+		// not to a depth-fog gradient painted over the nearest hillside. Kept
+		// tight: the old exponent of 24 spread a glow across a third of the
+		// sky, and with bloom on top the moon read as a big blur with no
+		// body in it.
+		float moon_mu = max(dot(dir, moon_dir), 0.0);
+		float moon_halo = pow(moon_mu, 90.0) * 0.05 + pow(moon_mu, 600.0) * 0.18;
+		col += moon_tint.rgb * moon_halo * smoothstep(-0.08, 0.12, moon_dir.y);
 		vec2 uv = disc_uv(dir, moon_dir, moon_size, inside);
 		if (inside > 0.5) {
 			if (moon_use_tex) {
 				vec4 t = texture(moon_tex, uv);
-				col = mix(col, t.rgb * moon_tint.rgb * 1.6, t.a);
+				// The faint additive term is the dark side of the disc. A
+				// phase texture is mostly black near new moon, and drawing
+				// black on a black sky erased the moon entirely: all that
+				// survived was the halo, a blur with no body in it. The real
+				// sky shows the unlit disc as a silhouette a shade off the
+				// sky behind it.
+				col = mix(col, t.rgb * moon_tint.rgb * 2.4 + moon_tint.rgb * 0.06, t.a);
 			} else {
 				float d = length(uv - 0.5) * 2.0;
 				col = mix(col, moon_tint.rgb * 1.5, smoothstep(1.0, 0.85, d));
@@ -152,44 +227,99 @@ void sky() {
 				col = mix(col, t.rgb * sun_tint.rgb * 3.0, t.a);
 			} else {
 				float d = length(uv - 0.5) * 2.0;
-				col = mix(col, sun_tint.rgb * 4.0, smoothstep(1.0, 0.8, d));
+				col = mix(col, sun_tint.rgb * 3.0, smoothstep(1.0, 0.8, d));
 			}
 		}
-		col += sun_tint.rgb * pow(max(dot(dir, sun_dir), 0.0), 350.0) * 1.2;
+		// 0.8, down from 1.2: with bloom and the dawn scatter on top, the
+		// old value blew a third of the sky to white around a low sun.
+		col += sun_tint.rgb * pow(max(dot(dir, sun_dir), 0.0), 350.0) * 0.8;
 	}
 
-	// Cloud deck on a plane overhead, scrolled by the server's cloud speed.
-	// The ray is projected onto the deck, so the clouds have real perspective:
-	// big overhead, compressed toward the horizon.
-	if (cloud_coverage > 0.01 && dir.y > 0.02) {
-		// POSITION anchors the deck to the world rather than to the camera,
-		// so the clouds parallax as the player moves and the shadows the
-		// node shaders cast from the same field lie under their clouds.
-		vec2 world = POSITION.xz + dir.xz / dir.y * cloud_plane_h;
-		vec2 uv = world * cloud_scale + cloud_offset;
-		float n = fbm(uv);
-		float cov = smoothstep(1.0 - cloud_coverage, 1.0 - cloud_coverage + 0.16, n);
-		// Keep broad banks visible toward the horizon. The old 0.22 upper edge
-		// erased clouds exactly where a vista needs their scale and depth.
-		float fade = smoothstep(0.008, 0.10, dir.y);
-		// Shade by the gradient toward the sun: the sunward side of a mass is
-		// bright, the far side darker, which is what reads as volume.
-		vec2 sund = normalize(sun_dir.xz + vec2(1e-4));
-		float lit = fbm(uv + sund * 0.6);
-		float shade = clamp(0.55 + (n - lit) * 3.0, 0.0, 1.0);
-		vec3 cc = mix(cloud_color.rgb * 0.45, cloud_color.rgb, shade);
-		// Dawn and dusk light the whole underside of the sky, brightest
-		// toward the sun but never zero away from it, the way a real
-		// horizon glows along its length and not just at one point.
-		// cloud_twilight_k is how far into that window the sun's elevation
-		// currently is; cloud_twilight_color is the ramp it is picked from
-		// (both worked out in main.gd, see cloud_twilight_k's comment
-		// there). The lit side of a mass still runs brighter than its
-		// shadowed side within the glow, the same shade term as above.
-		float toward_sun = pow(max(dot(normalize(vec3(dir.x, 0.0, dir.z)), vec3(sund.x, 0.0, sund.y)), 0.0), 1.4);
-		float glow = mix(0.4, 1.0, toward_sun);
-		cc = mix(cc, cloud_twilight_color * mix(0.8, 1.3, shade), cloud_twilight_k * glow);
-		col = mix(col, cc, cov * fade * cloud_color.a);
+	// Volumetric cumulus, raymarched. The ray is intersected with the slab
+	// the clouds live in, then walked with Beer-Lambert transmittance; each
+	// occupied step is lit by a short march toward the sun through the same
+	// density, plus an ambient share of the sky. POSITION anchors everything
+	// to the world, so masses parallax properly as the player moves and the
+	// froxel volume's nearby bodies sit under the same weather. The result
+	// occludes the sun disc and the stars behind it through T, which a
+	// blended sheet never did.
+	if (cloud_coverage > 0.01) {
+		float base_w = POSITION.y + cloud_plane_h;
+		float deck = max(cloud_thickness * 3.0, 170.0);
+		float top_w = base_w + deck;
+		float t0 = 0.0;
+		float t1 = -1.0;
+		if (abs(dir.y) > 0.002) {
+			float ta = (base_w - POSITION.y) / dir.y;
+			float tb = (top_w - POSITION.y) / dir.y;
+			t0 = max(min(ta, tb), 0.0);
+			t1 = max(ta, tb);
+		} else if (POSITION.y > base_w && POSITION.y < top_w) {
+			t0 = 0.0;
+			t1 = 8000.0;
+		}
+		// The horizon cap: past this the deck has melted into the haze band
+		// anyway, and a grazing ray otherwise marches tens of kilometres.
+		t1 = min(t1, 9000.0);
+		if (t1 > t0 + 1.0) {
+			int steps = AT_CUBEMAP_PASS ? 8 : 24;
+			// Capped step: a grazing ray's slab crossing is kilometres, and
+			// (t1 - t0) / steps then puts hundreds of nodes in one step, so
+			// a single sample straddled the whole base transition and the
+			// jitter turned that into speckle. The near stretch gets the
+			// steps; whatever lies past steps * dt is already inside the
+			// distance fade and the horizon haze.
+			float dt = min((t1 - t0) / float(steps), 45.0);
+			// Per-direction start offset: stable (no shimmer), breaks the
+			// slab's stepping into noise the eye ignores. At 0.6 of a step,
+			// not a full one: the soft base ramp already spans several
+			// steps, so full-amplitude white noise was pure grain on the
+			// torn edges with no banding left for it to hide.
+			float jit = hash12(dir.xz * 311.7 + vec2(dir.y * 97.3)) * 0.6 + 0.2;
+			float T = 1.0;
+			vec3 acc = vec3(0.0);
+			float mu = dot(dir, sun_dir);
+			// A forward lobe over an isotropic floor: silver linings toward
+			// the sun without the away side going black.
+			float hg = 0.55;
+			float phase = mix(1.0, (1.0 - hg * hg) / pow(1.0 + hg * hg - 2.0 * hg * mu, 1.5), 0.55);
+			// The sun as the clouds see it: tinted by the same warm ramp as
+			// the ground, handed to the twilight colour through dawn and
+			// dusk, and held a little past the ground's sunset because the
+			// deck is the highest thing in the scene.
+			vec3 csun = sun_tint.rgb * 2.2;
+			csun = mix(csun, cloud_twilight_color * 2.0, cloud_twilight_k);
+			csun *= smoothstep(-0.18, 0.0, sun_dir.y);
+			float sigma = 0.055;
+			for (int i = 0; i < 24; i++) {
+				if (i >= steps)
+					break;
+				float t = t0 + (float(i) + jit) * dt;
+				vec3 wp = POSITION + dir * t;
+				float weather = cloud_weather(wp.xz);
+				float dens = cloud_density(wp, base_w, deck, weather);
+				// Thin out with distance so the far deck dissolves into the
+				// horizon haze instead of stacking into a wall.
+				dens *= 1.0 - smoothstep(5200.0, 8800.0, t);
+				if (dens > 0.004) {
+					float od = cloud_light_od(wp, sun_dir, base_w, deck, weather);
+					float light = exp(-od * sigma);
+					// Powder term: a dense core keeps a bright rim where the
+					// eye and the light are on the same side.
+					light *= 1.0 - 0.5 * exp(-dens * 3.0);
+					float hf = clamp((wp.y - base_w) / deck, 0.0, 1.0);
+					vec3 amb = mix(sky_horizon.rgb, sky_top.rgb, 0.6) * mix(0.35, 0.75, hf);
+					amb = mix(amb, cloud_twilight_color * 0.7, cloud_twilight_k * 0.6);
+					vec3 s = cloud_color.rgb * (csun * (light * phase) + amb);
+					float a = 1.0 - exp(-dens * sigma * dt);
+					acc += T * s * a;
+					T *= 1.0 - a;
+					if (T < 0.015)
+						break;
+				}
+			}
+			col = acc + col * T;
+		}
 	}
 	COLOR = col;
 }

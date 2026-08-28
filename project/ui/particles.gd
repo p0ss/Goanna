@@ -168,6 +168,14 @@ func _add_spawner(ev: Dictionary) -> void:
 	var mat := ParticleProcessMaterial.new()
 	mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
 	var half := (pmax - pmin) * 0.5
+	if is_weather:
+		# Server weather is player-local, but its small vanilla box assumes a
+		# much shorter view. Broaden it enough to read as a weather front and
+		# extend it down toward the ground so slow snow does not hover only over
+		# the player's head. Keep one GPU emitter and the same total population.
+		half.x = maxf(absf(half.x), 24.0)
+		half.z = maxf(absf(half.z), 24.0)
+		half.y = maxf(absf(half.y), 9.0)
 	mat.emission_box_extents = Vector3(maxf(absf(half.x), 0.01), maxf(absf(half.y), 0.01), maxf(absf(half.z), 0.01))
 	# Godot gives a direction plus a spread; the server gives a velocity box,
 	# so use the mid velocity as the direction and its span as randomness.
@@ -213,7 +221,10 @@ func _add_spawner(ev: Dictionary) -> void:
 	var alive := float(amount) * life
 	if spawner_time > 0.0:
 		alive = float(amount) * life / spawner_time
-	p.amount = clampi(int(ceil(alive)), 1, 8000)
+	# Weather must never consume an unbounded particle population. Density is
+	# traded for coverage above; 1500 flakes/rain streaks are ample at this
+	# scale, while ordinary short-lived effects retain their existing ceiling.
+	p.amount = clampi(int(ceil(alive)), 1, 1500 if is_weather else 8000)
 	p.lifetime = life
 	p.one_shot = false
 	# a spawner with time 0 runs until the server cancels it

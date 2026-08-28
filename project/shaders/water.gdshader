@@ -42,8 +42,11 @@ uniform float wave_relief = 0.75;
 uniform float wave_drag = 0.28;
 uniform int wave_octaves : hint_range(3, 16) = 9;
 uniform float refraction = 0.006;
-// Beer-Lambert absorption per node; red dies first, like real water.
-uniform vec3 absorption = vec3(0.55, 0.24, 0.16);
+// Beer-Lambert absorption per node; red dies first, like real water. The
+// old (0.55, 0.24, 0.16) went opaque within a few nodes, so every lake read
+// as a bottomless blue void; these keep a bed visible ten or so nodes down
+// through a teal shift, which is roughly what clear real water does.
+uniform vec3 absorption = vec3(0.45, 0.11, 0.05);
 uniform bool waving = true;
 uniform bool reflections = true;
 // Goanna: 1.0 while the eye is in a liquid, set by GoannaClient. Seen from

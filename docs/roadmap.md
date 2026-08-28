@@ -29,10 +29,13 @@ separate backend concern; see [far-rendering.md](far-rendering.md).
 
 ### 2. Atmospheric presentation
 
-Volumetric valley mist and cloud bodies are now present. Tune them against
-day, night, weather, altitude and underwater scenes while keeping a quality
-off/low path for slower GPUs. The atmosphere must reveal silhouettes rather
-than hide the entire map behind a uniform white wall.
+Volumetric valley mist and raymarched cumulus are now present. The clouds
+march a 3D noise body in the sky pass rather than the range-limited froxel
+grid, while
+local mist retains a quality off/low path for slower GPUs. Continue tuning
+both against day, night, weather, altitude and underwater scenes. The
+atmosphere must reveal silhouettes rather than hide the map behind a uniform
+white wall.
 
 ### 3. Material and lighting coverage
 

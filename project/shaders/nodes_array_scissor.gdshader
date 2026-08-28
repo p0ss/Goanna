@@ -152,8 +152,12 @@ void fragment() {
 	ALBEDO *= goanna_cloud_dim(v_world);
 	vec3 fill_col = mix(goanna_ground_fill, goanna_sky_fill, clamp(0.5 + 0.5 * v_wnormal.y, 0.0, 1.0));
 	EMISSION += ALBEDO * fill_col * v_nodelight.g * sky_fill_strength;
-	if (block_light_emission > 0.0)
-		EMISSION += ALBEDO * v_nodelight.r * block_light_emission;
+	// Same rule as nodes_array.gdshader: the far tiers bake lamp light, the
+	// near mesh fades the same bake in past the light pool's reach.
+	float lamp_bake = max(block_light_emission,
+			smoothstep(goanna_lamp_reach, goanna_lamp_reach * 1.5 + 48.0, length(VERTEX)));
+	if (lamp_bake > 0.0)
+		EMISSION += ALBEDO * v_nodelight.r * lamp_bake;
 	if (debug_nodelight_strength > 0.0) {
 		ALBEDO = vec3(0.0);
 		EMISSION = v_nodelight * debug_nodelight_strength;

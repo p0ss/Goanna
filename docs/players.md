@@ -64,8 +64,10 @@ Goanna's important visual systems are adjustable while connected:
 - Material settings control normals, roughness, specular, emission, bevels and
   surface detail.
 - Lighting settings control SDFGI, ambient light, lamps, shadows and shafts.
-- Volumetric atmosphere controls valley mist and thick cloud volumes; set it
-  to zero to disable the froxel volume on slower hardware.
+- Volumetric atmosphere controls the local valley-mist volume; set it to zero
+  to disable that froxel cost on slower hardware. The raymarched cumulus
+  stay in the sky pass and share the terrain's sun, twilight and
+  horizon-haze colours.
 - Player effect particles can be disabled independently of weather and block
   particles.
 

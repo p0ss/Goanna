@@ -14,6 +14,11 @@ var cloud_off := Vector2.ZERO
 # The sky hands these to the node shaders' cloud shadows each frame.
 var cloud_cov := 0.0
 var cloud_shadow_k := 0.0
+# Coverage inferred from the rain itself, eased so a front rolls in over
+# seconds rather than snapping. Mineclonia greys the cloud colour during
+# rain but never raises the density, so without this it rained out of the
+# same scattered fair-weather cumulus as a clear day.
+var storm_cover := 0.0
 var sun_par := Vector2.ZERO
 var bounce: DirectionalLight3D
 var cloud_speed := Vector2(-2.0, 0.0)
@@ -64,11 +69,20 @@ var atmosphere_quality := 1.0
 # of the drawn distance that stays clear of haze, and the exponent on the ramp
 # over the rest: above 1 the haze holds off and then closes near the edge,
 # below 1 it starts early and rises slowly.
-var fog_clear_fraction := 0.48
-var fog_curve := 1.6
+var fog_clear_fraction := 0.40
+var fog_curve := 1.45
 # How opaque the haze is allowed to get at the drawn edge. Below 1 on purpose:
-# see the note where fog_density is set. GOANNA_FOG_MAX sweeps it.
-var fog_max := 0.70
+# see the note where fog_density is set. GOANNA_FOG_MAX sweeps it. 0.86 lets
+# the last ridge dissolve into the haze with only a ghost of a silhouette,
+# which is how a real horizon ends; 0.70 left the drawn edge visible as an
+# edge, and 0.92 with an early start washed the whole day into pastel.
+var fog_max := 0.86
+# Coverage arrives in rectangular summary areas and LOD regions. Driving the
+# atmosphere directly from each frame's quartiles made the whole horizon pump
+# as one area arrived or changed owner. These are eased presentation values;
+# geometry remains governed by the exact scheduler state.
+var fog_draw_smoothed := 0.0
+var fog_begin_smoothed := 0.0
 # How broad the haze band below the horizon line is, sky.gdshader's
 # ground_curve: the background terrain has not arrived over.
 var sky_ground_curve := 3.0
@@ -101,6 +115,8 @@ var headlight: OmniLight3D
 var headlight_auto := true
 var iris: GoannaIrisEffect
 var test_started := 0.0
+var showcase_mode := false
+var showcase_placed := false
 
 # Named live-server fixtures bind the whole visual-test state together. These
 # coordinates match goanna_visual_test_mod. Add a new site there and here as
@@ -148,6 +164,7 @@ const VISUAL_TESTS := {
 }
 
 func _ready() -> void:
+	showcase_mode = OS.get_environment("GOANNA_SHOWCASE") != ""
 	add_to_group("goanna_main")  # game_ui updates look controls through this group
 	var cfg := ConfigFile.new()
 	if cfg.load("user://goanna.cfg") == OK:
@@ -193,6 +210,8 @@ func _ready() -> void:
 		ui = null
 	if ui:
 		add_child(ui)
+		if showcase_mode:
+			ui.visible = false
 	if OS.get_environment("GOANNA_PERF") != "":
 		# Uncapped: with vsync on, every measurement reads as the refresh rate
 		# and says nothing about headroom.
@@ -265,6 +284,24 @@ func _ready() -> void:
 	var sm := ShaderMaterial.new()
 	sm.shader = load("res://shaders/sky.gdshader")
 	sky_mat = sm
+	# The 3D body the volumetric cumulus march samples (sky.gdshader,
+	# cloud_density). A texture fetch is what makes 24 steps a pixel
+	# affordable; seamless so the slab tiles, with the weather field breaking
+	# the repetition. Generation is threaded and the march just sees no
+	# density until it lands.
+	var cloud_noise := FastNoiseLite.new()
+	cloud_noise.noise_type = FastNoiseLite.TYPE_PERLIN
+	cloud_noise.fractal_type = FastNoiseLite.FRACTAL_FBM
+	cloud_noise.fractal_octaves = 5
+	cloud_noise.frequency = 0.02
+	var cloud_tex := NoiseTexture3D.new()
+	cloud_tex.width = 128
+	cloud_tex.height = 96
+	cloud_tex.depth = 128
+	cloud_tex.seamless = true
+	cloud_tex.normalize = true
+	cloud_tex.noise = cloud_noise
+	sm.set_shader_parameter("cloud_body_tex", cloud_tex)
 	sky.sky_material = sm
 	e.background_mode = Environment.BG_SKY
 	e.sky = sky
@@ -350,7 +387,8 @@ func _ready() -> void:
 	e.ssao_radius = 2.2
 	e.ssao_power = 1.6
 	e.ssao_detail = 1.0
-	e.ssao_light_affect = 0.5
+	# The same mapping as apply_lighting, which owns this from then on.
+	e.ssao_light_affect = clampf(light_ssao * 0.09, 0.0, 0.72)
 	e.ssil_enabled = OS.get_environment("GOANNA_NO_SSIL") == ""
 	e.ssil_intensity = 1.4
 	e.glow_enabled = true
@@ -485,7 +523,7 @@ func _ready() -> void:
 	# Something on screen from the first frame: joining a large public server
 	# takes minutes at the media step, and a refusal arrives in seconds. Both
 	# used to look like a black window.
-	if OS.get_environment("GOANNA_SHOT") == "" and OS.get_environment("GOANNA_MENU_SHOT") == "":
+	if OS.get_environment("GOANNA_SHOT") == "" and OS.get_environment("GOANNA_MENU_SHOT") == "" and not showcase_mode:
 		_build_connect_overlay()
 		connect_title.text = "Connecting"
 		connect_detail.text = "%s:%d as %s" % [host, port, pname]
@@ -533,11 +571,19 @@ func _unhandled_input(event: InputEvent) -> void:
 			if event.pressed:
 				place_pressed = true
 		elif event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_UP:
-			_set_wield((wield + 7) % 8)
+			var n := _hotbar_count()
+			_set_wield((wield + n - 1) % n)
 		elif event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			_set_wield((wield + 1) % 8)
-	if event is InputEventKey and event.pressed and event.keycode >= KEY_1 and event.keycode <= KEY_8:
-		_set_wield(event.keycode - KEY_1)
+			_set_wield((wield + 1) % _hotbar_count())
+	# Slot keys 1 to 9, then 0 for the tenth, as Luanti's own keymap_slot1 to
+	# keymap_slot10 defaults do. A key past the end of the hotbar does nothing,
+	# which is what processItemSelection's loop over max_item amounts to.
+	if event is InputEventKey and event.pressed and event.keycode >= KEY_1 and event.keycode <= KEY_9:
+		var slot: int = event.keycode - KEY_1
+		if slot < _hotbar_count():
+			_set_wield(slot)
+	if event is InputEventKey and event.pressed and event.keycode == KEY_0 and _hotbar_count() > 9:
+		_set_wield(9)
 	if event is InputEventMouseMotion and Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
 		yaw -= event.relative.x * mouse_sensitivity
 		var dy: float = event.relative.y * mouse_sensitivity * (1.0 if invert_mouse else -1.0)
@@ -700,6 +746,21 @@ func _process(delta: float) -> void:
 	_apply_sky()
 	var s: Dictionary = client.status()
 	_update_connect_overlay(s)
+	if showcase_mode and not showcase_placed and s.get("state") == "ready":
+		showcase_placed = true
+		fly_mode = true
+		var showcase_pos := Vector3(float(OS.get_environment("GOANNA_SHOWCASE_X")),
+				float(OS.get_environment("GOANNA_SHOWCASE_Y")),
+				float(OS.get_environment("GOANNA_SHOWCASE_Z")))
+		cam.position = showcase_pos + Vector3(0, 1.6, 0)
+		await teleport_to(showcase_pos)
+		cam.position = showcase_pos + Vector3(0, 1.6, 0)
+		pitch = -8.0
+		yaw = float(OS.get_environment("GOANNA_SHOWCASE_YAW"))
+		cam.rotation_degrees = Vector3(pitch, yaw, 0)
+		if headlight:
+			headlight_auto = false
+			headlight.light_energy = 0.0
 	if not placed and s.get("state") == "ready":
 		var p: Vector3 = client.server_player_position()
 		cam.position = p + Vector3(0, 1.6, 0)
@@ -707,7 +768,7 @@ func _process(delta: float) -> void:
 		atmosphere_ground_set = true
 		placed = true
 		print("camera placed at ", cam.position)
-	if placed and not fly_mode:
+	if placed and not fly_mode and not showcase_mode:
 		var keys := {
 			"up": Input.is_key_pressed(KEY_W), "down": Input.is_key_pressed(KEY_S),
 			"left": Input.is_key_pressed(KEY_A), "right": Input.is_key_pressed(KEY_D),
@@ -786,7 +847,7 @@ func _process(delta: float) -> void:
 			swing_t = 0.0
 		place_pressed = false
 		_update_selection_box()
-	elif placed:
+	elif placed and not showcase_mode:
 		# fly controls
 		var dir := Vector3.ZERO
 		var basis := Basis.from_euler(Vector3(deg_to_rad(pitch), deg_to_rad(yaw), 0))
@@ -811,6 +872,11 @@ func _process(delta: float) -> void:
 	if _prune_timer <= 0.0 and client.has_method("prune_blocks"):
 		_prune_timer = 2.0
 		var keep: int = (client.view_range() if client.has_method("view_range") else 12) + 4
+		if showcase_mode:
+			# The showcase camera never moves. Keep only a tight radial envelope
+			# around the fixed view; the far renderer still supplies the distant
+			# mountain silhouette from its persistent store.
+			keep = 18
 		if OS.get_environment("GOANNA_KEEP") != "":
 			keep = int(OS.get_environment("GOANNA_KEEP"))
 		client.prune_blocks(keep)
@@ -1598,21 +1664,37 @@ func _update_environment_extras() -> void:
 	# scroll the cloud layer by the server's cloud speed
 	cloud_off += cloud_speed * get_process_delta_time() * 0.004
 	sky_mat.set_shader_parameter("cloud_offset", cloud_off)
-	sky_mat.set_shader_parameter("cloud_plane_h", clampf(cloud_height - cam.position.y, 10.0, 400.0))
+	# Signed height relative to the eye. Clamping this above the camera made the
+	# visual deck rise forever as the player flew, so it behaved like a ceiling
+	# that could never be entered or passed. The sky shader now intersects rays
+	# with the slab from either side and while the eye is inside it.
+	sky_mat.set_shader_parameter("cloud_plane_h", cloud_height - cam.position.y)
 	# The node shaders' cloud shadows read the same deck: scroll, coverage,
 	# strength, and where the deck is so the shadow is cast along the sun.
 	RenderingServer.global_shader_parameter_set("goanna_cloud_shadow",
 			Vector4(cloud_off.x, cloud_off.y, cloud_cov, cloud_shadow_k))
+	# The x component is the scale of the weather envelope the sky's
+	# volumetric clouds are placed by (cloud_weather in sky.gdshader), so the
+	# ground shadows fall roughly under the masses that cast them.
 	RenderingServer.global_shader_parameter_set("goanna_cloud_geom",
-			Vector4(0.012, maxf(cloud_height, cam.position.y + 10.0), sun_par.x, sun_par.y))
+			Vector4(0.0009, maxf(cloud_height, cam.position.y + 10.0), sun_par.x, sun_par.y))
 	if atmosphere_mat:
 		atmosphere_mat.set_shader_parameter("weather_offset", cloud_off)
+		atmosphere_mat.set_shader_parameter("cloud_level", cloud_height)
+		# Luanti's decorative sheet is commonly only 8--16 nodes thick. A real
+		# cloud body needs enough vertical extent to have a base, interior and
+		# crown at the froxel resolution.
+		atmosphere_mat.set_shader_parameter("cloud_thickness", maxf(cloud_thickness, 48.0))
+		atmosphere_mat.set_shader_parameter("cloud_coverage", cloud_cov)
+		# Local volume quality is the first atmospheric detail surrendered under
+		# load; the horizon continuation remains in the much cheaper sky pass.
+		atmosphere_mat.set_shader_parameter("cloud_density", 0.026 * atmosphere_quality)
 		# Keep the reference at the world's inhabited surface while flying; a
 		# camera-relative layer would rise with the player and erase valleys.
 		atmosphere_mat.set_shader_parameter("mist_level",
 				atmosphere_ground + 18.0 if atmosphere_ground_set else cam.position.y + 12.0)
 		atmosphere_mat.set_shader_parameter("mist_density",
-				0.010 * (0.35 + cloud_cov) * atmosphere_quality)
+				0.012 * (0.35 + cloud_cov) * atmosphere_quality)
 		atmosphere_mat.set_shader_parameter("quality", atmosphere_quality)
 	var under: bool = client.is_underwater(cam.position)
 	if atmosphere_volume:
@@ -1668,6 +1750,13 @@ func apply_lighting() -> void:
 	e.sdfgi_enabled = OS.get_environment("GOANNA_NO_SDFGI") == "" and light_sdfgi > 0.01
 	e.sdfgi_min_cell_size = light_sdfgi_cell
 	e.ssao_intensity = light_ssao
+	# The slider's visible half. SSAO's own intensity only darkens ambient
+	# light, and the chart measured that with SDFGI on it "barely touched
+	# the bay and cost the sun cube two counts": in a sunlit scene nearly
+	# all light is direct, so the slider read as dead at any value. Scaling
+	# the direct-light share with the same slider gives it teeth where the
+	# player is actually looking.
+	e.ssao_light_affect = clampf(light_ssao * 0.09, 0.0, 0.72)
 	# exposure and the sky fill follow on the next _apply_sky, which scales
 	# them by the server's correction and the time of day. The shafts are
 	# shaped there too, by the sun's elevation and the weather, so ask for
@@ -1732,7 +1821,12 @@ func _apply_sky() -> void:
 	sun.light_energy = lerp(0.0, light_sun, day)
 	sun.visible = sun.light_energy > 0.01
 	var moon_up: float = smoothstep(-0.02, 0.15, moon_dir.y) * (1.0 - day)
-	moon.light_energy = 0.25 * moon_up
+	# Scaled by the same slider as the sun, which is what its tooltip has
+	# always claimed. The old hardcoded 0.25 was the reason night stayed
+	# pitch black however the lighting settings were moved: no knob reached
+	# it, and with SDFGI replacing ambient outright the moon is most of what
+	# a night scene has.
+	moon.light_energy = light_sun * 0.3 * moon_up
 	moon.visible = moon.light_energy > 0.005
 	var shadow_intensity: float = st["lighting"]["shadow_intensity"]
 	# Luanti servers set 0..1; 0 means "not requested" for old games -> keep shadows but soft.
@@ -1779,11 +1873,19 @@ func _apply_sky() -> void:
 	# colour pulled half way to grey, by day only, times light_fill.
 	sky_mat.set_shader_parameter("radiance_ground_lift", 1.0)
 	sky_mat.set_shader_parameter("radiance_desaturate", 0.25)
-	# Night was measured near black on the chart and in play (stone 22 on top,
-	# 0 on a wall); the vanilla client's night is about 17.5 per cent of day.
-	# The floor at 3.5 and a night fill in the night horizon colour put stone
-	# near 70 on top and 20 on a wall, with noon unchanged.
-	var floor_col: Color = sky["night_horizon"] * (3.5 * night)
+	# The floor takes the server's HUE and this client's BRIGHTNESS. It was
+	# night_horizon * 3.5, a multiplier calibrated against a near-black
+	# horizon; Mineclonia sends #4A6790 (luminance 0.39), and 3.5 times that
+	# is a radiance of 1.4, which lit the midnight ground like an overcast
+	# day and turned the sand salmon. Normalising to a fixed dim luminance
+	# gives the same dim blue night whether a server authors its horizon
+	# black or mid blue, and a black one no longer zeroes the whole chain.
+	var nh: Color = sky["night_horizon"]
+	var nh_lum := nh.get_luminance()
+	# The server's hue at unit luminance; a black horizon falls back to the
+	# dim blue every vanilla night has.
+	var night_col: Color = nh * (1.0 / nh_lum) if nh_lum >= 0.004 else Color(0.72, 0.92, 1.6)
+	var floor_col: Color = night_col * (0.045 * night)
 	sky_mat.set_shader_parameter("radiance_floor", Vector3(floor_col.r, floor_col.g, floor_col.b))
 	# The night share is 1.6 times the day strength: measured on the jungle at
 	# the spawn, a night fill equal to the day's left the canopy at a fifth of
@@ -1798,9 +1900,11 @@ func _apply_sky() -> void:
 	# fill carries the horizon colour through dawn and dusk, handing over to
 	# the day term as the sun's ramp arrives, and the golden light lasts as
 	# long on the land as it does in the sky.
+	# The night term is normalised the same way as the radiance floor above
+	# and for the same reason: 1.6 times a mid blue horizon was daylight.
 	var fill: Color = hor.lerp(Color(hor.v, hor.v, hor.v), 0.5) * (light_fill * day) \
 			+ hor * (light_fill * 0.9 * dawn * (1.0 - day)) \
-			+ sky["night_horizon"] * (light_fill * 1.6 * night)
+			+ night_col * (0.10 * light_fill * night)
 	RenderingServer.global_shader_parameter_set("goanna_sky_fill", Vector3(fill.r, fill.g, fill.b))
 	# The lower hemisphere of the same fill: what the ground throws back,
 	# dimmer and pulled toward earth. The node shaders blend by the world
@@ -1810,23 +1914,45 @@ func _apply_sky() -> void:
 			Vector3(gfill.r * 1.0, gfill.g * 0.9, gfill.b * 0.72))
 	# Cloud shadow strength: by day only, and by how much cloud there is to
 	# cast one. 0.35 of the light at full coverage, soft, never black.
+	#
+	# Rain thickens the deck. The protocol has no weather, and Mineclonia
+	# says "rain" with a particle spawner and a greyer cloud colour while
+	# leaving the density alone, so the storm sky is inferred from the rain:
+	# precipitation eases coverage toward overcast and back out again after,
+	# and the same figure feeds the sky march, the froxel bodies and the
+	# ground shadows so all three agree.
+	var pnode_sky := get_tree().get_first_node_in_group("goanna_particles")
+	var precip_now: float = float(pnode_sky.precipitation()) if pnode_sky != null else 0.0
+	storm_cover = lerpf(storm_cover, 0.80 * precip_now,
+			1.0 - exp(-get_process_delta_time() / 6.0))
 	var cdens: float = float(st["clouds"]["density"]) if st.has("clouds") else 0.0
+	cdens = maxf(cdens, storm_cover)
 	cloud_cov = clamp(cdens, 0.0, 0.95) if bool(sky.get("clouds", true)) else 0.0
 	cloud_shadow_k = 0.35 * day * smoothstep(0.02, 0.15, cloud_cov)
 	sun_par = Vector2(sun_dir.x, sun_dir.z) / maxf(sun_dir.y, 0.25)
-	# And the bounce follows the sun: strongest at noon, earthy, from below,
-	# biased away from the sun's azimuth as real ground bounce is.
-	var bdir := Vector3(-sun_dir.x * 0.35, 1.0, -sun_dir.z * 0.35).normalized()
+	# And the bounce follows whichever light is up: strongest at noon,
+	# earthy, from below, biased away from the light's azimuth as real
+	# ground bounce is. At night it is the moon's light thrown back, cooler
+	# and dimmer; without it the underside of everything was pure black,
+	# which is the half of "night is pitch black" that the moon alone
+	# cannot fix.
+	var lit_dir := sun_dir if day > moon_up else moon_dir
+	var bdir := Vector3(-lit_dir.x * 0.35, 1.0, -lit_dir.z * 0.35).normalized()
 	bounce.transform = Transform3D(Basis.looking_at(bdir, Vector3.FORWARD), Vector3.ZERO)
-	bounce.light_energy = light_sun * 0.16 * day * (0.35 if env.environment.sdfgi_enabled else 1.0)
-	bounce.light_color = Color(0.62, 0.55, 0.44) * sun.light_color
+	bounce.light_energy = light_sun * 0.16 * maxf(day, 0.4 * moon_up) \
+			* (0.35 if env.environment.sdfgi_enabled else 1.0)
+	bounce.light_color = (Color(0.62, 0.55, 0.44) * sun.light_color) if day > moon_up \
+			else Color(0.38, 0.42, 0.52)
 	bounce.visible = bounce.light_energy > 0.005
 	sky_mat.set_shader_parameter("sun_dir", sun_dir.normalized() if sun_dir.length() > 0.001 else Vector3.UP)
 	sky_mat.set_shader_parameter("moon_dir", moon_dir.normalized() if moon_dir.length() > 0.001 else Vector3.DOWN)
 	sky_mat.set_shader_parameter("sun_visible", bool(st["sun"]["visible"]))
 	sky_mat.set_shader_parameter("moon_visible", bool(st["moon"]["visible"]))
 	sky_mat.set_shader_parameter("sun_size", 0.045 * float(st["sun"]["scale"]))
-	sky_mat.set_shader_parameter("moon_size", 0.02 * float(st["moon"]["scale"]))
+	# 0.028, not 0.02: the disc graphic in a phase sheet fills about 40 per
+	# cent of its cell (measured on Mineclonia's), so the quad has to be
+	# larger than the moon the player should see.
+	sky_mat.set_shader_parameter("moon_size", 0.028 * float(st["moon"]["scale"]))
 	sky_mat.set_shader_parameter("sun_tint", sun.light_color)
 	_set_sky_disc("sun_tex", "sun_use_tex", str(st["sun"]["texture"]))
 	_set_sky_disc("moon_tex", "moon_use_tex", str(st["moon"]["texture"]))
@@ -1860,11 +1986,14 @@ func _apply_sky() -> void:
 	var tcol: Color = _cloud_twilight_color(elev)
 	sky_mat.set_shader_parameter("cloud_twilight_color", Vector3(tcol.r, tcol.g, tcol.b))
 	sky_mat.set_shader_parameter("cloud_twilight_k", twilight)
-	sky_mat.set_shader_parameter("cloud_coverage", clamp(float(clouds["density"]), 0.0, 0.95) if bool(sky.get("clouds", true)) else 0.0)
+	sky_mat.set_shader_parameter("cloud_coverage",
+			clamp(maxf(float(clouds["density"]), storm_cover), 0.0, 0.95)
+			if bool(sky.get("clouds", true)) else 0.0)
 	var cs: Vector2 = clouds["speed"]
 	cloud_speed = cs
 	cloud_height = float(clouds["height"])
 	cloud_thickness = maxf(float(clouds.get("thickness", 16.0)), 8.0)
+	sky_mat.set_shader_parameter("cloud_thickness", cloud_thickness)
 	# --- fog ---
 	# While the eye is underwater, _update_environment_extras owns the fog and
 	# the shaft volume; sky packets must not clobber them.
@@ -1880,6 +2009,11 @@ func _apply_sky() -> void:
 			# hand back to the server's time-aware horizon through the night.
 			fog_col = fog_col.lerp(fc, fc.a * (1.0 - night))
 		e.fog_light_color = fog_col
+		sky_mat.set_shader_parameter("haze_color", fog_col)
+		# `twilight` is deliberately wider than the ground's dawn band; using
+		# dawn alone left the directly sunlit land orange after the sky had
+		# already snapped back to blue.
+		sky_mat.set_shader_parameter("haze_twilight", maxf(dawn, twilight))
 		if atmosphere_mat:
 			atmosphere_mat.set_shader_parameter("atmosphere_color", fog_col)
 		# How far there is actually something to see, which is not how far we
@@ -1917,6 +2051,20 @@ func _apply_sky() -> void:
 			var far_reach: float = maxf(far_extent, float(stats.get("far_reach", 0)))
 			draw_nodes = clampf(far_reach, live_nodes, maxf(live_nodes, cap))
 			haze_from = clampf(far_extent, live_nodes, draw_nodes)
+		# Summary areas arrive a whole 128-node slab at a time. Ease that
+		# quantisation out of the camera and fog endpoints, and retreat much
+		# more slowly than we advance so a transient ownership change cannot
+		# pull the horizon visibly toward the player.
+		if fog_draw_smoothed <= 0.0:
+			fog_draw_smoothed = draw_nodes
+			fog_begin_smoothed = haze_from
+		var dt := maxf(get_process_delta_time(), 0.001)
+		var draw_tau := 1.5 if draw_nodes >= fog_draw_smoothed else 10.0
+		var begin_tau := 2.5 if haze_from >= fog_begin_smoothed else 12.0
+		fog_draw_smoothed = lerpf(fog_draw_smoothed, draw_nodes, 1.0 - exp(-dt / draw_tau))
+		fog_begin_smoothed = lerpf(fog_begin_smoothed, haze_from, 1.0 - exp(-dt / begin_tau))
+		draw_nodes = maxf(live_nodes, fog_draw_smoothed)
+		haze_from = clampf(fog_begin_smoothed, live_nodes, draw_nodes)
 		# The far plane has to clear whatever is actually drawn, or the
 		# far tiers' own horizon is what clips them, not the fog. A fixed
 		# margin on top of draw_nodes rather than a multiple: at a 4000
@@ -1954,9 +2102,11 @@ func _apply_sky() -> void:
 		# extent catches the reach up, and without a bound the haze collapsed
 		# into the last fifty nodes: measured at 958 to 1008 on a field that
 		# had reached the whole grant, which is a hard edge rather than a
-		# horizon. Two fifths of the drawn depth is always haze, whatever the
-		# frontier is doing.
-		e.fog_depth_begin = clampf(haze_from, fog_end * fog_clear_fraction, fog_end * 0.6)
+		# horizon. Half the drawn depth is always haze, whatever the
+		# frontier is doing: the reference look builds its aerial
+		# perspective over the whole back half of the vista rather than
+		# saving it for the last stretch.
+		e.fog_depth_begin = clampf(haze_from, fog_end * fog_clear_fraction, fog_end * 0.5)
 		e.fog_depth_end = fog_end
 		e.fog_depth_curve = fog_curve
 		# Never quite all of it. Full extinction paints every pixel past the
@@ -2076,25 +2226,36 @@ func _apply_sky() -> void:
 			e.volumetric_fog_length = lerpf(192.0, atmosphere_length, atmosphere_quality)
 			e.volumetric_fog_detail_spread = 1.8
 			# Fog in shadow lit by nothing at all is black, and black air
-			# between shafts reads as smoke. A little sky in it keeps the
-			# shadowed air as air.
-			e.volumetric_fog_ambient_inject = 0.5
+			# between shafts reads as smoke. Sky in it keeps the shadowed air
+			# as air, and a share of GI lets the bounced sky light whiten a
+			# daytime bank the way a real one is white. Both were lower and
+			# the fog sat darker than the sky behind it, which is what turned
+			# the whole scene into grey murk rather than into air: measured
+			# as the frame mean at 119 with the volume on against 216 with it
+			# off, on the same noon vista.
+			e.volumetric_fog_ambient_inject = 0.9
 			e.volumetric_fog_emission_energy = 0.0
-			e.volumetric_fog_gi_inject = 0.0
-			# The sky is not in the volume. Godot defaults this to 1.0, which
-			# paints the whole froxel depth over the sky dome, so the sky's own
-			# gradient, the sun and the cloud deck sky.gdshader draws all
-			# disappear behind flat fog colour: the clouds were not black, they
-			# were not visible at all. The air still fogs everything that is
-			# actually in it, which is the point of having it.
-			e.volumetric_fog_sky_affect = 0.0
+			e.volumetric_fog_gi_inject = 0.4
+			# The volume must also composite against the sky or a cloud has depth
+			# only where terrain happens to be behind it, the exact hill-shaped
+			# overlay failure. Full influence previously flattened the dome because
+			# uniform air occupied every froxel. A partial composite preserves the
+			# gradient while making sparse cloud/mist density visible in open sky
+			# and joins the land and sky through the same participating medium.
+			# 0.55 laid the froxel medium over the whole dome and greyed the
+			# sky into permanent overcast; most of the sky is above the
+			# volume and should stay the sky's own colour.
+			e.volumetric_fog_sky_affect = 0.30 * atmosphere_quality
 		# The shaft is the lamp's contribution to the volume, so this is the
 		# knob that decides how much shaft there is, as against how much haze.
 		sun.light_volumetric_fog_energy = 2.4 * light_shafts
-		moon.light_volumetric_fog_energy = 1.0 * light_shafts
+		# A strong moon contribution projected the froxel field onto hills like a
+		# radial screen overlay. The broad moon halo belongs in the sky shader;
+		# retain only enough here to silver genuinely nearby mist and cloud.
+		moon.light_volumetric_fog_energy = 0.15 * light_shafts
 		# The warm bloom in the air around a low sun. Distance fog can carry
 		# it without the volume, and it survives at any shaft setting.
-		e.fog_sun_scatter = clamp(0.15 + 0.5 * dawn, 0.0, 1.0)
+		e.fog_sun_scatter = clamp(0.15 + 0.35 * dawn, 0.0, 1.0)
 	# --- shader pack world state ---
 	# What a pack's uniforms can honestly be told: the sky zenith as the
 	# server blended it (before the look tweak above), the fog colour as the
@@ -2123,6 +2284,15 @@ func _set_sky_disc(tex_param: String, flag_param: String, tex_name: String) -> v
 	sky_mat.set_shader_parameter(flag_param, t != null)
 	if t != null:
 		sky_mat.set_shader_parameter(tex_param, t)
+
+# How many hotbar slots the server is showing. Luanti selects over
+# Player::getMaxHotbarItemcount(), not a fixed eight: Mineclonia and
+# MineClone2 both use nine, so hard coding eight left their last slot drawn
+# but unreachable, and nothing in it could be wielded or placed.
+func _hotbar_count() -> int:
+	if not client.has_method("hud_state"):
+		return 8
+	return clampi(int(client.hud_state().get("hotbar_itemcount", 8)), 1, 32)
 
 func _set_wield(i: int) -> void:
 	wield = i
