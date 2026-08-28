@@ -75,3 +75,7 @@ goanna_sun_glow={
 "type": "vec3",
 "value": Vector3(0, 0, 0)
 }
+goanna_wetness={
+"type": "float",
+"value": 0.0
+}

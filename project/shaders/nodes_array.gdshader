@@ -120,6 +120,9 @@ void fragment() {
 		// as the relief above, for the same reason.
 		pack_ao = mix(1.0, n.b, ao_strength * (1.0 - flatten));
 	}
+	// A middling default for tiles without an _s: soil-like, takes rain
+	// without turning to glass.
+	float porosity = 0.35;
 	if (has_spec) {
 		vec4 sp = textureGrad(spec_array, vec3(tile_uv, float(layer)), uv_dx, uv_dy);
 		// LabPBR: R is perceptual smoothness, roughness = (1 - smoothness)^2
@@ -140,9 +143,11 @@ void fragment() {
 		if (sp.a < 0.999)
 			EMISSION = ALBEDO * sp.a * emission_strength;
 		// B is two channels in one: up to 64/255 it is porosity, above that
-		// it is subsurface scattering. Porosity only reads as anything once
-		// a surface is wet, so it waits for weather; scattering is what
-		// makes a leaf glow with the sun behind it.
+		// it is subsurface scattering. Porosity is read by the wetness block
+		// below: a porous surface soaks and darkens, a dense one sheens.
+		// Scattering is what makes a leaf glow with the sun behind it.
+		if (sp.b <= 0.2549)
+			porosity = sp.b / 0.2549;
 		if (sp.b > 0.2549) {
 			float sss = (sp.b - 0.2549) / 0.7451;
 			// BACKLIGHT, not SSS_STRENGTH. Godot's subsurface scattering is a
@@ -178,6 +183,20 @@ void fragment() {
 	if (cls == 11) {
 		RIM = 0.6;
 		RIM_TINT = 0.35;
+	}
+
+	// Rain wets what the sky can reach: up facing surfaces with strong sky
+	// light darken and go glossy, so a shower leaves the ground gleaming,
+	// while anything under a roof keeps its dry look; the sky light channel
+	// is the roof test the mesh already carries. Porosity (the _s blue
+	// channel) decides the split the way LabPBR intends: soil soaks and
+	// darkens, stone sheens.
+	if (goanna_wetness > 0.001) {
+		float wet = goanna_wetness * clamp(v_wnormal.y, 0.0, 1.0)
+				* smoothstep(0.55, 0.9, v_nodelight.g);
+		ALBEDO *= 1.0 - wet * (0.10 + 0.18 * porosity);
+		ROUGHNESS = mix(ROUGHNESS, 0.13, wet * (0.85 - 0.45 * porosity));
+		SPECULAR = mix(SPECULAR, 0.5, wet * 0.6);
 	}
 
 	// Node light and occlusion. Occlusion multiplies ambient and, by default,

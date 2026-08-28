@@ -206,6 +206,19 @@ unless marked otherwise; the offline fixture is `project/water_seam.tscn`.
   than the narrower dawn band, so cliffs and canopies go purple-grey under
   a purple sky instead of dead grey (the player's report). Deep night is
   unchanged; the extension decays with the ramp itself.
+- A storm stopped wearing a white wall at the horizon. Three sun-facing
+  terms were cloud-blind, because the raymarched deck casts no shadow map:
+  the froxel air's sun energy, the depth fog's sun scatter, and the haze
+  colour itself, which kept the server's fair weather horizon while the
+  deck darkened, so a bright band sat between dark clouds and dark ground
+  with a hard join. All three now answer to the same cloud cover the deck
+  and the ground shadows use. Verified in live rain: the sun reads as a
+  soft glow through overcast and the haze meets the deck as one weather.
+- Rain wets the ground: a goanna_wetness global rises over half a minute
+  of rain and drains over a few minutes after, and the array shaders
+  darken and gloss up-facing, sky-lit surfaces by it, split by the pack's
+  LabPBR porosity (soil soaks, stone sheens); anything under a roof stays
+  dry via the sky light channel. Verified in live rain at the bay.
 - The ice edge stopped standing on the water. At a flush shore the ice's
   sideways boundary face lies wholly at or under the waterline (a source
   renders its surface at the top of its node), and Godot's per mesh

@@ -97,6 +97,8 @@ void fragment() {
 		// as the relief above, for the same reason.
 		pack_ao = mix(1.0, n.b, ao_strength * (1.0 - flatten));
 	}
+	// See nodes_array.gdshader: the wetness block reads porosity.
+	float porosity = 0.35;
 	if (has_spec) {
 		vec4 sp = textureGrad(spec_array, vec3(tile_uv, float(layer)), uv_dx, uv_dy);
 		float sm = sp.r;
@@ -107,6 +109,8 @@ void fragment() {
 		SPECULAR = clamp((sp.g >= 0.898 ? 0.5 : sp.g / 0.08) * specular_strength, 0.0, 1.0);
 		if (sp.a < 0.999)
 			EMISSION = ALBEDO * sp.a * emission_strength;
+		if (sp.b <= 0.2549)
+			porosity = sp.b / 0.2549;
 		if (sp.b > 0.2549) {
 			float sss = (sp.b - 0.2549) / 0.7451;
 			BACKLIGHT = ALBEDO * sss * sss_strength * (1.0 - flatten);
@@ -136,6 +140,16 @@ void fragment() {
 	if (cls == 11) {
 		RIM = 0.6;
 		RIM_TINT = 0.35;
+	}
+
+	// Rain wets what the sky can reach; the full account is in
+	// nodes_array.gdshader beside the same block.
+	if (goanna_wetness > 0.001) {
+		float wet = goanna_wetness * clamp(v_wnormal.y, 0.0, 1.0)
+				* smoothstep(0.55, 0.9, v_nodelight.g);
+		ALBEDO *= 1.0 - wet * (0.10 + 0.18 * porosity);
+		ROUGHNESS = mix(ROUGHNESS, 0.13, wet * (0.85 - 0.45 * porosity));
+		SPECULAR = mix(SPECULAR, 0.5, wet * 0.6);
 	}
 
 	// Node light and occlusion. Occlusion multiplies ambient and, by default,

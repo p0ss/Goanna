@@ -29,6 +29,9 @@ var bounce: DirectionalLight3D
 var ground_tint := Color(0.62, 0.55, 0.44)
 var ground_tint_raw := Color(0.62, 0.55, 0.44)
 var ground_tint_timer := 0.0
+# How rained-on the world is, 0 to 1, fed to the goanna_wetness shader
+# global: rises during rain and drains slowly after, see _apply_sky.
+var wetness := 0.0
 var cloud_speed := Vector2(-2.0, 0.0)
 var cloud_height := 120.0
 var cloud_thickness := 16.0
@@ -1993,6 +1996,16 @@ func _apply_sky() -> void:
 	var precip_now: float = float(pnode_sky.precipitation()) if pnode_sky != null else 0.0
 	storm_cover = lerpf(storm_cover, 0.80 * precip_now,
 			1.0 - exp(-get_process_delta_time() / 6.0))
+	# Wet ground: rain soaks in over half a minute and dries off over a few
+	# minutes after it stops, so a passing shower leaves the world gleaming
+	# for a while. The shaders decide what wet means per surface (up facing,
+	# sky lit, porosity from the pack's _s); this is only how rained-on the
+	# world currently is.
+	var wet_target: float = smoothstep(0.15, 0.6, precip_now)
+	var wet_rate: float = 30.0 if wet_target > wetness else 150.0
+	wetness = lerpf(wetness, wet_target,
+			1.0 - exp(-get_process_delta_time() / wet_rate))
+	RenderingServer.global_shader_parameter_set("goanna_wetness", wetness)
 	var cdens: float = float(st["clouds"]["density"]) if st.has("clouds") else 0.0
 	cdens = maxf(cdens, storm_cover)
 	cloud_cov = clamp(cdens, 0.0, 0.95) if bool(sky.get("clouds", true)) else 0.0
@@ -2084,6 +2097,12 @@ func _apply_sky() -> void:
 			# fade toward a pale day haze under a black sky. Honour it by day and
 			# hand back to the server's time-aware horizon through the night.
 			fog_col = fog_col.lerp(fc, fc.a * (1.0 - night))
+		# The deck darkens with the storm but the haze band kept the server's
+		# fair weather horizon, so a rainstorm wore a bright pale band between
+		# dark clouds and dark ground, with a hard join where the fogged sky
+		# hands over to the deck. Pull the air down with the same cover the
+		# deck answers to and the two meet as one weather.
+		fog_col = fog_col.darkened(0.5 * smoothstep(0.4, 0.95, cloud_cov))
 		e.fog_light_color = fog_col
 		sky_mat.set_shader_parameter("haze_color", fog_col)
 		# `twilight` is deliberately wider than the ground's dawn band; using
@@ -2324,14 +2343,21 @@ func _apply_sky() -> void:
 			e.volumetric_fog_sky_affect = 0.30 * atmosphere_quality
 		# The shaft is the lamp's contribution to the volume, so this is the
 		# knob that decides how much shaft there is, as against how much haze.
-		sun.light_volumetric_fog_energy = 2.4 * light_shafts
+		# Scaled by how much of the sun the deck lets through: the raymarched
+		# clouds cast no shadow map, so under full overcast the froxel air was
+		# still lit by the bare sun and a white radial wall swallowed the
+		# horizon whenever the camera faced it.
+		var sun_open: float = 1.0 - 0.9 * smoothstep(0.35, 0.9, cloud_cov)
+		sun.light_volumetric_fog_energy = 2.4 * light_shafts * sun_open
 		# A strong moon contribution projected the froxel field onto hills like a
 		# radial screen overlay. The broad moon halo belongs in the sky shader;
 		# retain only enough here to silver genuinely nearby mist and cloud.
 		moon.light_volumetric_fog_energy = 0.15 * light_shafts
 		# The warm bloom in the air around a low sun. Distance fog can carry
-		# it without the volume, and it survives at any shaft setting.
-		e.fog_sun_scatter = clamp(0.15 + 0.35 * dawn, 0.0, 1.0)
+		# it without the volume, and it survives at any shaft setting. The
+		# same deck gate as the shafts above: a storm hidden sun blooms into
+		# nothing.
+		e.fog_sun_scatter = clamp((0.15 + 0.35 * dawn) * sun_open, 0.0, 1.0)
 	# --- shader pack world state ---
 	# What a pack's uniforms can honestly be told: the sky zenith as the
 	# server blended it (before the look tweak above), the fog colour as the

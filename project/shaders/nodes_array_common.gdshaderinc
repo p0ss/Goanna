@@ -139,6 +139,11 @@ uniform float block_light_emission : hint_range(0.0, 4.0) = 0.0;
 // glow through the middle distance where its lamps have not made the pool
 // instead of going dark between the far bake and the near pool.
 global uniform float goanna_lamp_reach;
+// How rained-on the world currently is, 0 to 1: eased up over half a minute
+// of rain and back down over a few minutes after it stops, set beside the
+// storm cover in _apply_sky. What it does to a surface lives in the
+// fragment shaders that read it.
+global uniform float goanna_wetness;
 
 // Paints the three channels straight onto the screen as emission: red block
 // light, green sky light, blue occlusion. It answers "is this data arriving at
