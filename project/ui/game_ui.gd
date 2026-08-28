@@ -684,7 +684,7 @@ const SETTINGS := [
 	["Video", "mesh_threads", "slider", "Terrain mesh threads", "How many background threads build near and distant terrain. 0 picks a number from your processor, leaving a core for the game and one for the network. -1 builds on the main thread instead, which is slower and is useful for diagnosing terrain faults.", -1.0, 16.0, 1.0],
 	["Video", "lod_terrace", "toggle", "Terraced far terrain", "Draw distant ground as flat cells with steps between them, the way the blocks underneath do, instead of as a smoothed surface."],
 	["Video", "lod_distance", "slider", "Detail distance", "Blocks beyond this are drawn as simplified shapes, which costs less, and distant terrain beyond the server's range is drawn only when this is on. 0 turns both off.", 0.0, 48.0, 1.0],
-	["Video", "far_distance", "slider", "Far draw distance", "How far past the live range the far tiers draw, in nodes. Capped by what the server actually granted (docs/far-rendering.md); raising this past the grant changes nothing. Defaults to the grant itself, so this only needs touching to draw less than the server allows.", 0.0, 4096.0, 32.0],
+	["Video", "far_distance", "slider", "Far draw distance", "How far past the live range the far tiers draw, in nodes. Capped by what the server actually granted (docs/far-rendering.md); raising this past the grant changes nothing. Defaults to the grant itself, so this only needs touching to draw less than the server allows. A local single player server grants this same setting, so on your own worlds this is the one knob.", 0.0, 8192.0, 32.0],
 	["Video", "terrain_occlusion", "toggle", "Terrain occlusion", "Use opaque nearby terrain to avoid drawing regions completely hidden behind it. Most useful in caves, buildings and deep valleys."],
 	["Video", "player_effect_particles", "toggle", "Player effect particles", "Show server particle spawners attached to your character. Turn this off to hide persistent status sparkles; weather and block-breaking pieces remain visible."],
 	["Material", "mat_stale", "slider", "Remembered terrain tint", "How far terrain drawn from what you saw earlier, rather than what the server is sending now, is pulled toward grey. 0 shows it at full colour, indistinguishable from live.", 0.0, 1.0, 0.05],
@@ -1314,6 +1314,12 @@ func _draw_performance_overlay(vs: Vector2) -> void:
 				int(render_stats_cache.get("lod_regions", 0)),
 				int(render_stats_cache.get("lod_surfaces", 0)),
 				int(render_stats_cache.get("entities", 0))])
+		lines.append("Far field %d blocks   reach %d/%d   grant %d   requests %d" % [
+				int(render_stats_cache.get("far_blocks", 0)),
+				int(render_stats_cache.get("far_extent", 0)),
+				int(render_stats_cache.get("far_reach", 0)),
+				int(render_stats_cache.get("far_grant", 0)),
+				int(render_stats_cache.get("far_requests_inflight", 0))])
 		lines.append("Occlusion %s   %d regions   %d triangles" % [
 				"on" if bool(render_stats_cache.get("occlusion_enabled", false)) else "off",
 				int(render_stats_cache.get("occluder_regions", 0)),
@@ -1326,6 +1332,32 @@ func _draw_performance_overlay(vs: Vector2) -> void:
 				float(render_stats_cache.get("lod_chain_ms", 0.0)),
 				int(render_stats_cache.get("lod_chains_built_last", 0)),
 				float(render_stats_cache.get("poll_max_ms", 0.0))])
+		# What the schedulers are doing, not how deep their queues are. `head`
+		# is the effective distance in nodes of the job that runs next and
+		# `nearest` that of the geometrically nearest job in the same worker
+		# queue, both after view weighting. A more urgent class can legitimately
+		# make them differ; the pair shows the trade rather than claiming that
+		# every difference is a fault.
+		lines.append("Sched head %d %s   nearest %d   boot %d  stale %d  cover %d  refine %d  maint %d   cone %d%%" % [
+				int(render_stats_cache.get("sched_head", 0)),
+				str(render_stats_cache.get("sched_head_class", "idle")),
+				int(render_stats_cache.get("sched_nearest", 0)),
+				int(render_stats_cache.get("sched_boot", 0)),
+				int(render_stats_cache.get("sched_stale_band", 0)),
+				int(render_stats_cache.get("sched_cover", 0)),
+				int(render_stats_cache.get("sched_refine", 0)),
+				int(render_stats_cache.get("sched_maintain", 0)),
+				int(round(100.0 * float(render_stats_cache.get("sched_cone", 0.0))))])
+		# `stale-drawn` counts regions still drawing geometry that has moved
+		# to the near field or another tier: a coarse slab hanging over the
+		# real ground. It differs from the `stale` band above, which also
+		# holds work promoted there by age. `oldest` is the longest any dirty
+		# region has waited. Both should sit near zero: sixty regions stale
+		# for 43 seconds is what a slab that hovers until you stand under it
+		# looks like from here.
+		lines.append("      stale-drawn %d   oldest %.1fs" % [
+				int(render_stats_cache.get("sched_stale", 0)),
+				float(render_stats_cache.get("sched_oldest_ms", 0.0)) / 1000.0])
 		lines.append("Poll lock %.1f   queue %.1f   blocks %.1f (upload %.1f)   near %.1f   far %.1f ms" % [
 				float(render_stats_cache.get("poll_lock_ms", 0.0)),
 				float(render_stats_cache.get("poll_queue_ms", 0.0)),
@@ -1349,7 +1381,13 @@ func _draw_performance_overlay(vs: Vector2) -> void:
 		var m := _main_node()
 		var p := Vector3.ZERO
 		var have_position := false
-		if m != null and m.get("last_move") is Dictionary:
+		# Flying moves the local camera independently of the last movement packet.
+		# Prefer that real viewpoint so coverage/horizon reports can be correlated
+		# with the position that actually drives LOD selection.
+		if m != null and bool(m.get("fly_mode")) and m.get("cam") is Camera3D:
+			p = m.cam.global_position
+			have_position = true
+		if not have_position and m != null and m.get("last_move") is Dictionary:
 			var mv: Dictionary = m.get("last_move")
 			if mv.get("pos") is Vector3:
 				p = mv["pos"]

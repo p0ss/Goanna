@@ -347,6 +347,7 @@ features.
 | `GOANNA_SHADERPACK_DUMP=<directory>` | With a pack: write each program's translated Vulkan GLSL there, for reading compile errors. |
 | `GOANNA_VISUAL_TEST=lighting_walk` | With `GOANNA_SHOT`, request a named deterministic fixture, capture its fixed camera path and write the capture metadata. Requires `goanna_visual_test_mod` in a dedicated singlenode world. |
 | `GOANNA_MENU_SHOT=<file.png>` | Render the connection menu once, save it, quit. |
+| `GOANNA_NO_SHOWCASE=1` | Disable the normal menu's real-world Mineclonia `treetree` backdrop. The default view uses `(25.3, 2.0, -115.8)`, dawn lighting and a bounded 18-mapblock stream. |
 | `GOANNA_UI_SHOT=<directory>` | Save the HUD, inventory, chat and pause menu at fixed times. |
 | `GOANNA_UI_TEST=move` | Open the inventory and move the stack in main slot 0 to slot 10, then split it to slot 11, printing the list each time. Exercises inventory_action through the UI. |
 | `GOANNA_MENU_TEST="host:port:name:pass"` | Fill the menu and press Connect, to exercise the menu to game hand-over. Combine with `GOANNA_MENU=1` if a skip variable such as `GOANNA_SMOKE` is also set. |

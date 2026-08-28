@@ -444,7 +444,18 @@ func start_config(options: Dictionary) -> String:
 		# granted here, over the goanna:v1 channel the server mod installed
 		# below provides. docs/far-rendering.md, "the server decides".
 		cf.store_string("goanna_far_rendering = true\n")
-		cf.store_string("goanna_far_rendering_distance = %d\n" % far_distance)
+		# The player's own Far draw distance setting is the grant, floored at
+		# the old conservative bound. It is their machine paying for the
+		# mapgen and the drawing, so how vast the vista gets is their call;
+		# a fixed 1024 here was the invisible ceiling that made the far
+		# distance slider appear to do nothing past it.
+		var grant := clampi(int(options.get("far_distance", far_distance)), far_distance, 8192)
+		cf.store_string("goanna_far_rendering_distance = %d\n" % grant)
+		# TDL can synthesise its coarse surface directly from the bake
+		# without emerging mapblocks, so its horizon is nearly free: at
+		# least the old 4096, and further when the player asks for further.
+		if terrain_diffusion:
+			cf.store_string("goanna_far_provider_distance = %d\n" % maxi(4096, grant))
 		# A fresh world has no far terrain to summarise. The server generates
 		# only within the range the client asks for (max_block_generate_distance
 		# is capped by the client's wanted range in clientiface.cpp), so the

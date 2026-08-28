@@ -50,9 +50,15 @@ var _terrain_archive_path := ""
 var _pending_terrain_start := false
 var server  # GoannaLocalServer (local_server.gd)
 var server_deadline := 0.0
+var showcase_launch := false
 
 func _ready() -> void:
 	set_process(false)
+	# The real-world backdrop is the normal menu. Keep screenshot automation
+	# and recovery on machines without Luanti deterministic, and allow an
+	# explicit opt-out for low-power or offline launches.
+	showcase_launch = OS.get_environment("GOANNA_NO_SHOWCASE") == "" \
+			and OS.get_environment("GOANNA_MENU_SHOT") == ""
 	if OS.get_environment("GOANNA_MENU") == "":
 		for v in SKIP_VARS:
 			if OS.get_environment(v) != "":
@@ -60,6 +66,9 @@ func _ready() -> void:
 				return
 	_build_frame()
 	_show_main()
+	if showcase_launch:
+		_start_showcase()
+		return
 	if OS.get_environment("GOANNA_LOCAL_TEST") != "":
 		# Development aid: "game:world" starts a local game and joins it.
 		var gw := OS.get_environment("GOANNA_LOCAL_TEST").split(":")
@@ -99,13 +108,20 @@ var _panel_box: VBoxContainer
 
 func _build_frame() -> void:
 	var bg := ColorRect.new()
-	bg.color = Color(0.09, 0.11, 0.13)
+	bg.color = Color(0.03, 0.04, 0.06, 0.10 if showcase_launch else 1.0)
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 	var centre := CenterContainer.new()
 	centre.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(centre)
 	var panel := PanelContainer.new()
+	if showcase_launch:
+		var panel_style := StyleBoxFlat.new()
+		panel_style.bg_color = Color(0.035, 0.05, 0.08, 0.91)
+		panel_style.border_color = Color(0.55, 0.68, 0.82, 0.42)
+		panel_style.set_border_width_all(1)
+		panel_style.set_corner_radius_all(8)
+		panel.add_theme_stylebox_override("panel", panel_style)
 	centre.add_child(panel)
 	var margin := MarginContainer.new()
 	for side in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
@@ -114,7 +130,50 @@ func _build_frame() -> void:
 	_panel_box = VBoxContainer.new()
 	_panel_box.add_theme_constant_override("separation", 12)
 	_panel_box.custom_minimum_size = Vector2(440, 0)
+	if showcase_launch:
+		_panel_box.custom_minimum_size = Vector2(360, 0)
 	margin.add_child(_panel_box)
+
+func _start_showcase() -> void:
+	var env := LocalServer.detect()
+	if env.is_empty():
+		_fail("Mineclonia showcase unavailable: no Luanti server was found.")
+		return
+	server = LocalServer.new()
+	var err: String = server.start_config({
+		"gameid": "mineclonia", "world": "treetree",
+		"player_name": _local_player_name(), "creative": false,
+		"damage": false, "mods": [], "host": false,
+		"server_name": "Goanna Showcase", "server_description": "",
+		"password": "", "announce": false, "max_users": 1})
+	if err != "":
+		_fail(err)
+		return
+	status_label.text = "Preparing the TreeTree showcase ..."
+	server_deadline = _now() + 30.0
+	set_process(true)
+
+func _stop_showcase() -> void:
+	if not showcase_launch:
+		return
+	if server != null:
+		server.stop()
+		server = null
+	var world := get_node_or_null("Main")
+	if world:
+		world.queue_free()
+	# Everything the showcase set, not just its flag. These are process
+	# environment, and the real session launches from this same process, so
+	# a leftover GOANNA_TOD pinned the joined world's clock at the
+	# showcase's dusk forever (server time marched on into night and spawned
+	# monsters into a sunset that never moved), and the leftover
+	# GOANNA_FAR_DISTANCE capped the horizon at the showcase's 384 whatever
+	# the server granted.
+	for k in ["GOANNA_SHOWCASE", "GOANNA_TOD", "GOANNA_VIEW_RANGE", "GOANNA_LOD",
+			"GOANNA_FAR_DISTANCE", "GOANNA_SHOWCASE_X", "GOANNA_SHOWCASE_Y",
+			"GOANNA_SHOWCASE_Z", "GOANNA_SHOWCASE_YAW"]:
+		OS.set_environment(k, "")
+	showcase_launch = false
 
 func _new_screen(title: String, subtitle: String) -> void:
 	for c in _panel_box.get_children():
@@ -357,6 +416,7 @@ Licence: LGPL-2.1-or-later, matching the Luanti client code it carries. godot-cp
 # --- new local game ----------------------------------------------------------
 
 func _show_new_game() -> void:
+	_stop_showcase()
 	_new_screen("Start Game", "Choose a world, its game and map generator, or host it for other players.")
 	var env := LocalServer.detect()
 	if env.is_empty():
@@ -751,6 +811,12 @@ func _on_start_local() -> void:
 		"max_users": int(max_players_spin.value)}
 	if host_check.button_pressed:
 		launch["port"] = int(server_port_edit.text)
+	# The player's Far draw distance setting travels to the server as the
+	# far rendering grant: on their own machine the slider is the one knob,
+	# rather than silently stopping at the server's old fixed 1024.
+	var far_cfg := ConfigFile.new()
+	if far_cfg.load(CFG_PATH) == OK:
+		launch["far_distance"] = int(far_cfg.get_value("settings", "far_distance", 1024))
 	_local_join_password = server_password_edit.text if host_check.button_pressed else ""
 	var err: String = server.start_config(launch)
 	if err != "":
@@ -777,6 +843,30 @@ func _process(_delta: float) -> void:
 	var st: String = server.poll_ready()
 	if st == "ready":
 		set_process(false)
+		if showcase_launch:
+			OS.set_environment("GOANNA_HOST", "127.0.0.1")
+			OS.set_environment("GOANNA_PORT", str(server.port))
+			OS.set_environment("GOANNA_NAME", _local_player_name())
+			OS.set_environment("GOANNA_PASS", "")
+			OS.set_environment("GOANNA_GAME", "mineclonia")
+			OS.set_environment("GOANNA_SP_PID", str(server.pid))
+			OS.set_environment("GOANNA_SP_MATCH", server.world_path)
+			OS.set_environment("GOANNA_SHOWCASE", "1")
+			OS.set_environment("GOANNA_SHOWCASE_X", "25.3")
+			# The bake v2 waterline sits at y 1 here (water from -4 up, air
+			# from 2); the old -3.2 was measured against the previous bake
+			# and put the menu backdrop four metres under water. 2.0 stands
+			# the eye (plus 1.6) a couple of metres above the surface.
+			OS.set_environment("GOANNA_SHOWCASE_Y", "2.0")
+			OS.set_environment("GOANNA_SHOWCASE_Z", "-115.8")
+			OS.set_environment("GOANNA_SHOWCASE_YAW", "-90")
+			OS.set_environment("GOANNA_TOD", "0.24")
+			OS.set_environment("GOANNA_VIEW_RANGE", "18")
+			OS.set_environment("GOANNA_LOD", "18")
+			OS.set_environment("GOANNA_FAR_DISTANCE", "384")
+			var world_scene := preload("res://main.tscn").instantiate()
+			add_child(world_scene)
+			return
 		status_label.text = "Joining ..."
 		OS.set_environment("GOANNA_HOST", "127.0.0.1")
 		OS.set_environment("GOANNA_PORT", str(server.port))
@@ -812,6 +902,7 @@ func _local_player_name() -> String:
 # --- join a server -----------------------------------------------------------
 
 func _show_join() -> void:
+	_stop_showcase()
 	_new_screen("Join Game", "")
 	_build_server_list()
 	var grid := GridContainer.new()
