@@ -52,7 +52,11 @@ func _run() -> void:
 	_test_controls_and_submission()
 	_test_inventory_and_listring()
 	_test_partial_elements()
-	_test_known_gaps()
+	_test_scroll_container()
+	_test_styles()
+	_test_table()
+	_test_hypertext()
+	_test_nothing_skipped()
 	await _write_reference_shots()
 	if failures == 0:
 		print("formspec conformance: PASS: ", checks, " checks")
@@ -217,19 +221,146 @@ func _test_partial_elements() -> void:
 	_discard(form)
 
 
-func _test_known_gaps() -> void:
-	var spec := "formspec_version[6]size[8,6]allow_close[false]set_focus[name;true]"
-	spec += "style[name;border=false]style_type[button;border=false]"
-	spec += "tableoptions[background=#000000]tablecolumns[text]"
-	spec += "scrollbaroptions[min=0;max=10]scrollbar[0,0;1,4;vertical;scroll;0]"
-	spec += "button_key[1,1;2,1;jump;Jump]field_enter_after_edit[name;true]"
+# The shape Mineclonia's creative inventory uses: a list inside a scroll
+# container, driven by a named scrollbar declared after it. The container has
+# no scroll of its own, so this is really a test that the two found each other.
+func _test_scroll_container() -> void:
+	var spec := "formspec_version[6]size[13,10]"
+	spec += "scroll_container[0.375,0.875;11.575,6;scroll;vertical;1.25]"
+	spec += "list[detached:test;store;0,0;9,20;]"
+	spec += "scroll_container_end[]"
+	spec += "scrollbaroptions[min=0;max=15;smallstep=1;largestep=1;arrows=hide]"
+	spec += "scrollbar[11.75,0.825;0.75,6.1;vertical;scroll;0]"
 	var form := _new_form(spec)
-	var expected := ["button_key", "field_enter_after_edit", "scrollbar", "scrollbaroptions",
-		"style", "style_type", "tablecolumns", "tableoptions"]
-	for element in expected:
-		_check(form.skipped.has(element), "known gap remains reported: " + element)
+	_check(form.skipped.is_empty(), "scroll container form builds with nothing skipped")
+	_check(form.scroll_containers.has("scroll"), "scroll container registers under its scrollbar name")
+	_check(form.scrollbars.has("scroll"), "scrollbar registers under its own name")
+	var bar: ScrollBar = form.scrollbars["scroll"]
+	var mover: Control = form.scroll_containers["scroll"]
+	_check(bar is VScrollBar, "a vertical scrollbar builds a VScrollBar")
+	_equal(bar.min_value, 0.0, "scrollbar minimum from scrollbaroptions")
+	_check(bar.max_value - bar.page == 15.0, "scrollbar reaches the requested maximum")
+	_equal(bar.step, 1.0, "smallstep becomes the scrollbar step")
+	_equal(mover.position.y, 0.0, "mover starts unscrolled")
+	# One scroll unit moves the contents up by factor * imgsize, and the sign
+	# is upstream's: a positive factor scrolls the content out of the top.
+	bar.value = 4
+	var expected := floorf(4.0 * -1.25 * form.imgsize)
+	_equal(mover.position.y, expected, "mover follows the scrollbar by value times factor")
+	_check(mover.get_parent().clip_contents, "scroll container clips its contents")
+	_equal(form.collect_fields()["scroll"], "VAL:4", "scrollbar reports its value")
+	_discard(form)
+
+
+# style[] and style_type[] resolve by type with the inheritance chain, by
+# name, and by state, with a later declaration beating an earlier one.
+func _test_styles() -> void:
+	var spec := "formspec_version[6]size[10,8]"
+	spec += "style_type[button;bgcolor=#112233;textcolor=#ff0000]"
+	spec += "style[named;bgcolor=#445566]"
+	spec += "style[named:hovered;bgcolor=#778899]"
+	spec += "button[0,0;2,1;named;Named]"
+	spec += "button[0,1.5;2,1;plain;Plain]"
+	spec += "style_type[list;size=0.5,0.5;spacing=0.25,0.25]"
+	spec += "list[current_player;main;0,3;2,1;]"
+	var form := _new_form(spec)
+	_check(form.skipped.is_empty(), "styled form builds with nothing skipped")
+	var named := _button_named(form, "Named")
+	var plain := _button_named(form, "Plain")
+	_check(named != null and plain != null, "both styled buttons build")
+	# The name style wins over the type style it was declared after.
+	_equal(named.get_theme_stylebox("normal").bg_color, Color.html("445566"),
+		"style by name overrides style_type")
+	_equal(plain.get_theme_stylebox("normal").bg_color, Color.html("112233"),
+		"style_type reaches an unnamed-in-style button")
+	_equal(named.get_theme_stylebox("hover").bg_color, Color.html("778899"),
+		"a hovered state selector reaches the hover stylebox")
+	_equal(plain.get_theme_color("font_color"), Color.html("ff0000"),
+		"textcolor from style_type")
+	# size=0.5 halves the slot, and spacing=0.25 is the gap added on top of it.
+	var slot: Control = form.slots[0]
+	_equal(slot.size, Vector2(form.imgsize * 0.5, form.imgsize * 0.5).floor(),
+		"style_type[list;size] resizes inventory slots")
+	_equal(form.slots[1].position.x - slot.position.x, floorf(form.imgsize * 0.75),
+		"style_type[list;spacing] sets the gap between slots")
+	_discard(form)
+
+
+# hypertext markup drives the rich text label directly. The parse is checked
+# through the plain text it produces plus the spans it opened, because Godot
+# gives no way to read a pushed format back.
+func _test_hypertext() -> void:
+	# Attribute values may be quoted with either mark, and a backslash inside
+	# a quoted value escapes the next character.
+	var attrs := Formspec._markup_attrs("name=go color=\"#ff0000\" title='a \\'quoted\\' word'")
+	_equal(attrs["name"], "go", "unquoted attribute value")
+	_equal(attrs["color"], "#ff0000", "double quoted attribute value")
+	_equal(attrs["title"], "a 'quoted' word", "escaped quote inside a quoted value")
+
+	var spec := "formspec_version[6]size[10,8]"
+	spec += "hypertext[0,0;9,4;rich;"
+	spec += "<global color=#112233><tag name=warn color=#ff0000>"
+	spec += "<b>bold</b> plain <warn>warned</warn> <action name=go>link</action>"
+	# A doubled backslash survives the formspec unescape as a single one, and
+	# the markup parser then reads it as a literal angle bracket.
+	spec += " <img name=fixture.png width=32> \\\\<not a tag\\\\>"
+	spec += "]"
+	var form := _new_form(spec)
+	_check(form.skipped.is_empty(), "hypertext form builds with nothing skipped")
+	var rt: RichTextLabel = form.named_controls["rich"]
+	_check(rt is RichTextLabel, "hypertext builds a RichTextLabel")
+	_check(not rt.bbcode_enabled, "markup is parsed by us, not handed to BBCode")
+	var plain: String = rt.get_parsed_text()
+	_check(plain.contains("bold plain warned link"),
+		"tag content survives while the tags themselves are consumed")
+	_check(plain.contains("<not a tag>"), "an escaped angle bracket is literal text")
+	_check(not plain.contains("fixture.png"), "an img tag is consumed, not printed")
+	_equal(rt.get_theme_color("default_color"), Color.html("112233"),
+		"global color sets the element default")
+	_discard(form)
+
+
+# tablecolumns[] declares the layout; color and indent columns consume a cell
+# each without being a column the player sees.
+func _test_table() -> void:
+	var spec := "formspec_version[6]size[10,8]"
+	spec += "tableoptions[color=#00ff00;background=#101010;highlight=#466432]"
+	spec += "tablecolumns[color;indent;text,align=right,width=4;text]"
+	spec += "table[0,0;9,5;rows;"
+	spec += "#ff0000,0,alpha,first,"
+	spec += "#0000ff,1,beta,second"
+	spec += ";2]"
+	var form := _new_form(spec)
+	_check(form.skipped.is_empty(), "table form builds with nothing skipped")
+	var tree: Tree = form.fields["rows"]
+	_check(tree is Tree, "table builds a Tree, not a flat list")
+	_equal(tree.columns, 2, "color and indent columns are not visible columns")
+	var first := tree.get_root().get_first_child()
+	_equal(first.get_text(0), "alpha", "first visible cell of the first row")
+	_equal(first.get_text(1), "first", "second visible cell of the first row")
+	_equal(first.get_custom_color(0), Color.html("ff0000"), "a color column tints the cells after it")
+	_equal(first.get_text_alignment(0), HORIZONTAL_ALIGNMENT_RIGHT, "column align option")
+	# The second row asked for indent 1, so it hangs under the first.
+	var second := first.get_first_child()
+	_check(second != null, "an indent column nests the row it precedes")
+	_equal(second.get_text(0), "beta", "second row content")
+	_check(tree.hide_folding, "indent without a tree column shows no folding arrows")
+	_equal(form.collect_fields()["rows"], "CHG:2", "table reports the selected row")
+	_discard(form)
+
+
+# Every element upstream registers now builds something. This is the guard
+# that a new Luanti element does not quietly render as nothing.
+func _test_nothing_skipped() -> void:
+	var spec := "formspec_version[6]size[8,6]allow_close[false]set_focus[name;true]"
+	spec += "tableoptions[background=#000000]tablecolumns[text]"
+	spec += "button_key[1,1;2,1;jump;Jump]field_enter_after_edit[name;true]"
+	spec += "table[0,2;4,2;t;a,b;1]"
+	var form := _new_form(spec)
+	_equal(form.skipped, {}, "no element of a full form is left unrendered")
 	_check(not form.skipped.has("allow_close"), "direct allow_close header is parsed separately")
 	_check(not form.skipped.has("set_focus"), "direct set_focus header is parsed separately")
+	_check(_button_named(form, "Jump") != null, "button_key draws a button with its label")
 	_discard(form)
 
 

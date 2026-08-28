@@ -31,6 +31,23 @@ path:
 GOANNA_FORMSPEC_SHOTS=/tmp/goanna-formspec tools/test-formspec.sh
 ```
 
+## Current state
+
+Every element Luanti registers now builds something: the manifest holds no
+`missing` entries, and `_test_nothing_skipped` in the Godot suite fails if a
+form leaves anything unrendered. What remains is a set of `partial` entries,
+each with the omitted behaviour named in the manifest:
+
+- `model` draws a labelled placeholder. A real preview needs a mesh from the
+  client media cache, which the UI cannot reach yet.
+- `button_key` draws an ordinary button. Goanna has no key binding capture.
+- `hypertext` renders tags, styles, images, items and actions, but not
+  `hovercolor` or vertical alignment.
+- `style` and `style_type` apply colours, background images, borders, font
+  size and list slot geometry, but not the font family or sounds.
+- `tablecolumns` ignores the per-column `padding` option.
+- `tooltip` ignores custom tooltip colours.
+
 ## Reading the result
 
 The coverage manifest uses three deliberately narrow labels:

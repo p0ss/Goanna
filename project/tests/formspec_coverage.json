@@ -11,17 +11,11 @@
   "button": {"status": "supported"},
   "button_exit": {"status": "supported"},
   "button_key": {
-    "status": "missing",
-    "note": "Key binding display and activation are not implemented."
-  },
-  "button_url": {
     "status": "partial",
-    "note": "Rendered as a normal button; it does not open a URL."
+    "note": "Drawn as an ordinary button showing its label; it cannot capture a key binding."
   },
-  "button_url_exit": {
-    "status": "partial",
-    "note": "Rendered as a normal exit button; it does not open a URL."
-  },
+  "button_url": {"status": "supported"},
+  "button_url_exit": {"status": "supported"},
   "checkbox": {"status": "supported"},
   "container": {"status": "supported"},
   "container_end": {"status": "supported"},
@@ -29,12 +23,12 @@
   "field": {"status": "supported"},
   "field_close_on_enter": {"status": "supported"},
   "field_enter_after_edit": {
-    "status": "missing",
-    "note": "The enter-after-edit compatibility setting is ignored."
+    "status": "supported",
+    "note": "Parsed and ignored, which is the whole behaviour on a non-Android client."
   },
   "hypertext": {
     "status": "partial",
-    "note": "Tags are stripped and the result is rendered as plain text."
+    "note": "Tags, styles, images, items and actions are rendered; hovercolor and vertical alignment are not."
   },
   "image": {"status": "supported"},
   "image_button": {"status": "supported"},
@@ -51,43 +45,31 @@
   },
   "pwdfield": {"status": "supported"},
   "real_coordinates": {"status": "supported"},
-  "scroll_container": {
-    "status": "partial",
-    "note": "Uses a generic vertical container and ignores named scrollbars, orientation and factor."
-  },
+  "scroll_container": {"status": "supported"},
   "scroll_container_end": {"status": "supported"},
-  "scrollbar": {
-    "status": "missing",
-    "note": "No formspec scrollbar widget is built."
-  },
+  "scrollbar": {"status": "supported"},
   "scrollbaroptions": {
-    "status": "missing",
-    "note": "Scrollbar options are ignored."
+    "status": "supported",
+    "note": "min, max, smallstep, largestep and thumbsize are applied. Godot's scrollbar draws no arrow buttons, so the arrows option has nothing to act on."
   },
   "set_focus": {
     "status": "supported"
   },
   "style": {
-    "status": "missing",
-    "note": "Per-element styles are ignored."
+    "status": "partial",
+    "note": "Colours, background images, borders, font size and list slot geometry are applied; font family and sound are not."
   },
   "style_type": {
-    "status": "missing",
-    "note": "Per-type styles are ignored."
+    "status": "partial",
+    "note": "Colours, background images, borders, font size and list slot geometry are applied; font family and sound are not."
   },
   "tabheader": {"status": "supported"},
-  "table": {
-    "status": "partial",
-    "note": "Rendered as a text list without table columns or table events."
-  },
+  "table": {"status": "supported"},
   "tablecolumns": {
-    "status": "missing",
-    "note": "Column definitions are ignored."
+    "status": "partial",
+    "note": "text, image, color, indent and tree columns with align, width and tooltip; the padding option is ignored."
   },
-  "tableoptions": {
-    "status": "missing",
-    "note": "Table options are ignored."
-  },
+  "tableoptions": {"status": "supported"},
   "textarea": {"status": "supported"},
   "textlist": {"status": "supported"},
   "tooltip": {
