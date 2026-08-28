@@ -21,6 +21,14 @@ var cloud_shadow_k := 0.0
 var storm_cover := 0.0
 var sun_par := Vector2.ZERO
 var bounce: DirectionalLight3D
+# The smoothed colour of the terrain around the camera (client.ground_albedo),
+# sampled twice a second and eased over a few seconds so crossing a biome
+# boundary drifts the bounce and the ground fill rather than snapping them.
+# Starts at the old fixed earth constant, which is also what it falls back to
+# before any blocks answer.
+var ground_tint := Color(0.62, 0.55, 0.44)
+var ground_tint_raw := Color(0.62, 0.55, 0.44)
+var ground_tint_timer := 0.0
 var cloud_speed := Vector2(-2.0, 0.0)
 var cloud_height := 120.0
 var cloud_thickness := 16.0
@@ -1798,6 +1806,22 @@ static func _cloud_twilight_color(elev: float) -> Color:
 			return (a[1] as Color).lerp(b[1], inverse_lerp(a[0], b[0], elev))
 	return stops[-1][1]
 
+# See the ground_tint declaration. The alpha of ground_albedo is the share of
+# columns that answered; a frame with nothing loaded keeps the last colour.
+func _ground_tint() -> Color:
+	var dt := get_process_delta_time()
+	ground_tint_timer -= dt
+	if ground_tint_timer <= 0.0:
+		ground_tint_timer = 0.5
+		var cam := get_viewport().get_camera_3d()
+		if cam != null and client != null:
+			var s: Color = client.ground_albedo(cam.global_position)
+			if s.a > 0.2:
+				ground_tint_raw = Color(s.r, s.g, s.b)
+	ground_tint = ground_tint.lerp(ground_tint_raw, 1.0 - exp(-dt / 2.5))
+	return ground_tint
+
+
 func _apply_sky() -> void:
 	var st: Dictionary = client.sky_state()
 	if st.is_empty() or not st.has("sun_direction"):
@@ -1818,7 +1842,17 @@ func _apply_sky() -> void:
 	var day: float = smoothstep(-0.02, 0.18, elev)
 	var warm: float = 1.0 - smoothstep(0.0, 0.32, elev)
 	sun.light_color = Color(1.0, 0.98, 0.94).lerp(Color(1.0, 0.62, 0.32), warm)
-	sun.light_energy = lerp(0.0, light_sun, day)
+	# Hold the sun through the golden hour. Its energy used to follow `day`
+	# alone, which is near zero exactly when the sky peaks pink, so the
+	# clouds burned and the trees stood in flat grey-green: the water showed
+	# the sunset (it mirrors the sky) and nothing on land was lit by it. The
+	# hold peaks as the disc crosses the horizon and hands over both ways:
+	# to `day` above it, to the night lights below minus 0.06, so noon and
+	# night calibration are untouched and the low orange light rakes the
+	# canopy at the moment the sky is worth reflecting.
+	var dusk_hold: float = smoothstep(-0.06, -0.005, elev) \
+			* (1.0 - smoothstep(0.02, 0.10, elev))
+	sun.light_energy = light_sun * maxf(day, 0.4 * dusk_hold)
 	sun.visible = sun.light_energy > 0.01
 	var moon_up: float = smoothstep(-0.02, 0.15, moon_dir.y) * (1.0 - day)
 	# Scaled by the same slider as the sun, which is what its tooltip has
@@ -1913,16 +1947,39 @@ func _apply_sky() -> void:
 	# long on the land as it does in the sky.
 	# The night term is normalised the same way as the radiance floor above
 	# and for the same reason: 1.6 times a mid blue horizon was daylight.
+	# The land under a twilight sky borrows the colour ramp the cloud deck
+	# burns through (_cloud_twilight_color, hoisted here from the cloud
+	# block below): the server's horizon blend never reaches the magenta
+	# band, so the fill stayed dull blue while the sky went purple, and a
+	# cliff face stood grey under a violet sunset. Only the hue of the dawn
+	# term moves; its magnitude curve keeps its calibration.
+	var tw_rise: float = smoothstep(-0.42, -0.06, elev)
+	var tw_fall: float = 1.0 - smoothstep(0.02, 0.28, elev)
+	var tw_k: float = clamp(tw_rise * tw_fall, 0.0, 1.0)
+	var tw_col: Color = _cloud_twilight_color(elev)
+	# The twilight term rides maxf(dawn, tw_k * 0.45): the dawn band dies at
+	# elev -0.22 while the violet phase of the ramp runs to -0.42, and with
+	# dawn alone as the carrier the land had gone dark before the sky's
+	# purple arrived, which read as grey cliffs under a violet sky. The
+	# extension decays with tw_k itself, so deep night keeps its floor.
 	var fill: Color = hor.lerp(Color(hor.v, hor.v, hor.v), 0.5) * (light_fill * day) \
-			+ hor * (light_fill * 0.9 * dawn * (1.0 - day)) \
-			+ night_col * (0.10 * light_fill * night)
+			+ hor.lerp(tw_col, 0.6 * tw_k) \
+			* (light_fill * 0.9 * maxf(dawn, 0.45 * tw_k) * (1.0 - day)) \
+			+ night_col.lerp(tw_col, 0.35 * tw_k) * (0.10 * light_fill * night)
 	RenderingServer.global_shader_parameter_set("goanna_sky_fill", Vector3(fill.r, fill.g, fill.b))
 	# The lower hemisphere of the same fill: what the ground throws back,
 	# dimmer and pulled toward earth. The node shaders blend by the world
-	# normal.
+	# normal. "Earth" used to be a constant (1.0, 0.9, 0.72); it is now the
+	# sampled colour of the actual ground around the camera, so the underside
+	# of a canopy is warm red over desert and green over a plain, which is
+	# the colour bleed the GI is too coarse to show.
+	var galb := _ground_tint()
+	var glum: float = maxf(galb.get_luminance(), 0.05)
+	var gw: Color = galb * (0.92 / glum)
 	var gfill := fill * 0.6
 	RenderingServer.global_shader_parameter_set("goanna_ground_fill",
-			Vector3(gfill.r * 1.0, gfill.g * 0.9, gfill.b * 0.72))
+			Vector3(gfill.r * minf(gw.r, 1.4), gfill.g * minf(gw.g, 1.4),
+					gfill.b * minf(gw.b, 1.4)))
 	# Cloud shadow strength: by day only, and by how much cloud there is to
 	# cast one. 0.35 of the light at full coverage, soft, never black.
 	#
@@ -1950,10 +2007,20 @@ func _apply_sky() -> void:
 	var lit_dir := sun_dir if day > moon_up else moon_dir
 	var bdir := Vector3(-lit_dir.x * 0.35, 1.0, -lit_dir.z * 0.35).normalized()
 	bounce.transform = Transform3D(Basis.looking_at(bdir, Vector3.FORWARD), Vector3.ZERO)
-	bounce.light_energy = light_sun * 0.16 * maxf(day, 0.4 * moon_up) \
+	# The dusk hold reaches the bounce too: golden hour side light deserves
+	# its counter-glow, or the shadow side of a canopy goes black while the
+	# lit side burns.
+	bounce.light_energy = light_sun * 0.16 * maxf(maxf(day, 0.5 * dusk_hold), 0.4 * moon_up) \
 			* (0.35 if env.environment.sdfgi_enabled else 1.0)
-	bounce.light_color = (Color(0.62, 0.55, 0.44) * sun.light_color) if day > moon_up \
-			else Color(0.38, 0.42, 0.52)
+	# What the bounce carries is the key light times what the ground
+	# reflects. The ground's share used to be the fixed earthy constant
+	# (0.62, 0.55, 0.44); it is now the sampled surroundings at that
+	# constant's brightness, so the sliders keep their calibration and only
+	# the hue follows the terrain.
+	var bcol: Color = galb * (0.56 / glum)
+	bcol = Color(minf(bcol.r, 1.0), minf(bcol.g, 1.0), minf(bcol.b, 1.0))
+	bounce.light_color = (bcol * sun.light_color) if day > moon_up \
+			else Color(bcol.r * 0.55, bcol.g * 0.62, bcol.b * 0.82)
 	bounce.visible = bounce.light_energy > 0.005
 	sky_mat.set_shader_parameter("sun_dir", sun_dir.normalized() if sun_dir.length() > 0.001 else Vector3.UP)
 	sky_mat.set_shader_parameter("moon_dir", moon_dir.normalized() if moon_dir.length() > 0.001 else Vector3.DOWN)
@@ -1991,12 +2058,10 @@ func _apply_sky() -> void:
 	# The twilight glow itself: a window centred on the horizon, wider than
 	# the ground's own day/night bands for the same reason as cloud_night
 	# above, carrying the colour ramp and how strongly it currently applies.
-	var twilight_rise: float = smoothstep(-0.42, -0.06, elev)
-	var twilight_fall: float = 1.0 - smoothstep(0.02, 0.28, elev)
-	var twilight: float = clamp(twilight_rise * twilight_fall, 0.0, 1.0)
-	var tcol: Color = _cloud_twilight_color(elev)
-	sky_mat.set_shader_parameter("cloud_twilight_color", Vector3(tcol.r, tcol.g, tcol.b))
-	sky_mat.set_shader_parameter("cloud_twilight_k", twilight)
+	# tw_k and tw_col are computed beside the sky fill above, which now
+	# shares them.
+	sky_mat.set_shader_parameter("cloud_twilight_color", Vector3(tw_col.r, tw_col.g, tw_col.b))
+	sky_mat.set_shader_parameter("cloud_twilight_k", tw_k)
 	sky_mat.set_shader_parameter("cloud_coverage",
 			clamp(maxf(float(clouds["density"]), storm_cover), 0.0, 0.95)
 			if bool(sky.get("clouds", true)) else 0.0)
@@ -2024,7 +2089,7 @@ func _apply_sky() -> void:
 		# `twilight` is deliberately wider than the ground's dawn band; using
 		# dawn alone left the directly sunlit land orange after the sky had
 		# already snapped back to blue.
-		sky_mat.set_shader_parameter("haze_twilight", maxf(dawn, twilight))
+		sky_mat.set_shader_parameter("haze_twilight", maxf(dawn, tw_k))
 		if atmosphere_mat:
 			atmosphere_mat.set_shader_parameter("atmosphere_color", fog_col)
 		# How far there is actually something to see, which is not how far we

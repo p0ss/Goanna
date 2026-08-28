@@ -225,6 +225,11 @@ public:
     godot::Array take_particles();
     // Name of the node at a Godot-space position, "" if unknown.
     godot::String node_name_at(const godot::Vector3 &pos);
+    godot::Color ground_albedo(const godot::Vector3 &center);
+    // Per content average tile colour (0xAARGB bytes), alpha 0 for "no
+    // answer": composing a tile image to average it is far too slow to do
+    // per sample. Main thread only, like the method that fills it.
+    std::unordered_map<content_t, uint32_t> m_ground_albedo_cache;
     // Raw bytes of a received media file (an .ogg for sounds), empty if absent.
     godot::PackedByteArray media_bytes(const godot::String &name);
     // A node's own sound: kind is "footstep", "dig" or "dug".

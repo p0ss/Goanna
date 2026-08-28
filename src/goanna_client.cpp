@@ -1381,6 +1381,91 @@ String GoannaClient::node_name_at(const Vector3 &pos) {
     return String::utf8(m_session->nodeDefs()->get(n).name.c_str());
 }
 
+// What colour the ground around the given point would throw back: the tile
+// colour of the surface found under a coarse grid of columns, palette tint
+// included (Mineclonia's grass is a grey texture; the green is param2).
+// main.gd feeds it to the bounce light and the shader ground fill, so an
+// object's underside is tinted by what it actually stands on: red desert,
+// green plain, blue over open sea (weighted down: water throws back little
+// diffuse light). Alpha carries the share of columns that answered, so a
+// caller can hold its last tint when nothing is loaded.
+Color GoannaClient::ground_albedo(const Vector3 &center) {
+    if (!m_session)
+        return Color(0.5f, 0.5f, 0.5f, 0.0f);
+    // Two phases, because composing a tile image to average it is
+    // milliseconds and this runs twice a second forever: the map walk under
+    // its lock only gathers each column's surface (content, param2), and
+    // colours come from a per content cache afterwards. At most a few
+    // uncached contents are composed per call, so entering a new biome
+    // warms the cache over a couple of samples instead of hitching one
+    // frame; unresolved columns simply sit this sample out. The uncached
+    // path was the difference between 90 and under 30 frames a second.
+    struct Sample {
+        content_t c;
+        u16 param2;
+    };
+    std::vector<Sample> samples;
+    int cols = 0;
+    {
+        std::lock_guard<std::mutex> lk(m_session->mapLock());
+        const NodeDefManager *ndef = m_session->nodeDefs();
+        const s16 cx = (s16)floorf(center.x + 0.5f);
+        const s16 cy = (s16)floorf(center.y + 0.5f);
+        const s16 cz = (s16)floorf(-center.z + 0.5f);
+        for (int dz = -4; dz <= 4; ++dz)
+            for (int dx = -4; dx <= 4; ++dx) {
+                ++cols;
+                for (s16 y = cy + 8; y >= cy - 16; --y) {
+                    MapNode n = m_session->map().getNode(v3s16(cx + dx * 3, y, cz + dz * 3));
+                    const content_t c = n.getContent();
+                    if (c == CONTENT_AIR)
+                        continue;
+                    if (c == CONTENT_IGNORE)
+                        break;
+                    const ContentFeatures &f = ndef->get(n);
+                    if (!f.visuals || !f.visuals->tiles[0].layers[0].texture_id)
+                        break;
+                    samples.push_back({c, n.getParam2()});
+                    break;
+                }
+            }
+    }
+    const NodeDefManager *ndef = m_session->nodeDefs();
+    int budget = 4;
+    float r = 0.0f, g = 0.0f, b = 0.0f, w = 0.0f;
+    int answered = 0;
+    for (const Sample &s : samples) {
+        auto it = m_ground_albedo_cache.find(s.c);
+        if (it == m_ground_albedo_cache.end()) {
+            if (budget <= 0)
+                continue;
+            --budget;
+            const ContentFeatures &f = ndef->get(s.c);
+            const TileLayer &tl = f.visuals->tiles[0].layers[0];
+            const std::string tname = m_session->tsrc()->imageName(tl.texture_id, tl.texture_layer_idx);
+            video::SColor avg(0, 0, 0, 0);
+            if (!tname.empty())
+                avg = m_session->tsrc()->getTextureAverageColor(tname);
+            it = m_ground_albedo_cache.emplace(s.c, avg.color).first;
+        }
+        const video::SColor avg(it->second);
+        if (avg.getAlpha() == 0)
+            continue;
+        const ContentFeatures &f = ndef->get(s.c);
+        video::SColor pc(255, 255, 255, 255);
+        f.visuals->getColor(s.param2, &pc);
+        const float wt = f.isLiquid() ? 0.35f : 1.0f;
+        r += (avg.getRed() / 255.0f) * (pc.getRed() / 255.0f) * wt;
+        g += (avg.getGreen() / 255.0f) * (pc.getGreen() / 255.0f) * wt;
+        b += (avg.getBlue() / 255.0f) * (pc.getBlue() / 255.0f) * wt;
+        w += wt;
+        ++answered;
+    }
+    if (w <= 0.0f)
+        return Color(0.5f, 0.5f, 0.5f, 0.0f);
+    return Color(r / w, g / w, b / w, (float)answered / (float)cols);
+}
+
 PackedByteArray GoannaClient::media_bytes(const String &name) {
     PackedByteArray out;
     std::string data;
@@ -5532,6 +5617,7 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("take_dug_nodes"), &GoannaClient::take_dug_nodes);
     ClassDB::bind_method(D_METHOD("take_particles"), &GoannaClient::take_particles);
     ClassDB::bind_method(D_METHOD("node_name_at", "pos"), &GoannaClient::node_name_at);
+    ClassDB::bind_method(D_METHOD("ground_albedo", "center"), &GoannaClient::ground_albedo);
     ClassDB::bind_method(D_METHOD("node_sound", "node_name", "kind"), &GoannaClient::node_sound);
     ClassDB::bind_method(D_METHOD("sky_state"), &GoannaClient::sky_state);
     ClassDB::bind_method(D_METHOD("update_lights", "around", "max_lights"), &GoannaClient::update_lights);
