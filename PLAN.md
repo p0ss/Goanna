@@ -165,6 +165,60 @@ Sizing, by what happens to those ~57k lines:
   threading is unproblematic (session thread + Godot main thread with two
   mutexes). The sizing above holds or is pessimistic.
 
+## Log since v0.4.1-alpha (2026-08-30)
+
+Verified on a local Mineclonia server on Luanti 5.17.0 with Godot 4.5.1 and
+an RTX 3090, unless marked otherwise.
+
+- The screen space light shafts had never drawn anything, from the day the
+  code landed until it was first run. The fragment ended `ALBEDO =
+  vec3(0.0); EMISSION = col;`, and under `render_mode unshaded` Godot takes
+  the fragment colour from ALBEDO alone and never runs the lighting step
+  that applies emission, so the additive quad added black on every frame.
+  `ALBEDO = col` is the whole fix. The fault survived a first look because
+  the `light_shafts` slider also scales `volumetric_fog_density`: sweeping
+  the slider moves the froxel fog a great deal and reads as the setting
+  working. Measured instead by hiding the quad, at the mesa east of
+  (130, 37, 313) at dawn, the pass moved the frame by +0.01 of 255 before
+  the fix and +3.11 after, against a frame-to-frame noise floor of 0.09
+  taken from two shots with nothing changed. At ten times the shipped
+  strength the broken pass was still an order of magnitude under that
+  floor. After the fix a dawn sun behind the mesa throws lanes of light
+  across the canopy, the fan swings with the camera, and there is nothing
+  on the far side. The pass was already paying its cost: the depth march
+  ran every frame and only the write was discarded.
+
+- The graphics profiles are Medium, High and Ultra, renamed from Modest,
+  Balanced and Rich. Nothing reads the stored profile name, because the
+  picker works out the current profile by comparing values, so no config
+  migrates and nobody loses a setting.
+
+- The top profile could never be shown. `matches()` compared the profile's
+  `far_distance` of -1, the "whatever the server granted" sentinel, against
+  the number the client reports, which is the grant it is tracking, so any
+  session with a grant at all read as Custom. A negative target now matches
+  any value, the rule `below_hardware` already used for the same sentinel.
+
+- The tiers were measured as live sweeps in two scenes, because neither
+  alone can judge them: the vista carries the view and detail distances,
+  the village after dark carries the lamp shadows, and a setting a scene
+  cannot exercise reads as free. Against the client's own defaults, steady
+  state and GPU bound in every row: by day High is -9 per cent on the
+  median and -20 on the 1% low, Medium -32 and -35; at night High is -13
+  and +12, Medium -33 and -32. Noise floors 8.4 and 4.2 per cent. The
+  server granted 512 far nodes, so Ultra and High shared a far distance
+  and only Medium's 256 was genuinely smaller.
+
+- The first version of that plan measured its own ordering rather than the
+  tiers. Four tests, a process per variant and one shared warm store: the
+  store fills as the plan runs, so each variant began from a fuller world
+  than the last, the end-of-plan control repeat came back 45.7 per cent
+  from the first control on the steady median and 84.6 on the moving one,
+  and every tier result sat under that noise. `docs/benchmark.md` carries
+  the rule that came out of it. Load and streaming-ceiling numbers for the
+  tiers are therefore not claimed: they need a plan that hands every run an
+  identical pre-warmed store, which the harness cannot yet do.
+
 ## Log since v0.4.0-alpha (2026-08-29)
 
 - The depth fog thins with altitude. It is a layer the terrain wears, not

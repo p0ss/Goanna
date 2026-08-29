@@ -143,7 +143,7 @@ var bench: Node = null
 # The profile this machine would open on, worked out in
 # _apply_hardware_defaults and read by the settings panel so it can say when
 # a stored config is below what the hardware could do.
-var hardware_profile := "balanced"
+var hardware_profile := "high"
 const GraphicsProfiles := preload("res://graphics_profiles.gd")
 
 # Named live-server fixtures bind the whole visual-test state together. These

@@ -46,11 +46,19 @@ tools/goanna-bench.py tools/bench_plans/graphics.json /tmp/bench-graphics
 ```
 
 A plan names the scene and the variants. `tools/bench_plans/graphics.json`
-moves one graphics setting at a time and measures the steady state;
-`tools/bench_plans/profiles.json` runs all four tests over candidate
-profiles. The report is printed and written to `report.md` in the output
-directory, with `frames.csv`, `samples.jsonl` and `summary.json` beside each
-run.
+moves one graphics setting at a time and measures the steady state.
+`tools/bench_plans/profiles.json` and `tools/bench_plans/profiles-night.json`
+measure the shipped profiles themselves, and between them they are one
+answer in two halves: the first runs all four tests at the vista, where the
+tiers differ on how much world is drawn, and the second is a steady state
+live sweep in the village after dark, where they differ on how many lamps
+cast shadows. Neither is complete on its own, because a scene that cannot
+exercise a setting reports it as free. The variants in both are
+`project/graphics_profiles.gd` key for key; changing a tier means changing
+it in all three files, or the report describes a client nobody runs.
+
+The report is printed and written to `report.md` in the output directory,
+with `frames.csv`, `samples.jsonl` and `summary.json` beside each run.
 
 Useful flags: `--only <name>` to run one variant, `--no-repeat` to skip the
 control repeat and with it the noise floor, `--port` when another client is
@@ -139,6 +147,23 @@ significance. It also catches a harness fault that no amount of statistics
 would: if the two control runs disagree, something is leaking between
 variants, and that is worth knowing before any of the other rows are
 believed.
+
+It has already earned that. The profiles plan was first written to run all
+four tests with a process per variant against a shared warm store, and the
+control repeat came back 45.7 per cent from the first control on the steady
+median and 84.6 per cent on the moving one, with the tiers settling in 135,
+19, 28 and 107 seconds in the order they happened to run. The store fills as
+the plan runs, so each variant started from a fuller world than the one
+before it and the plan was measuring its own ordering. Every tier result in
+that report was under its own noise floor. Rerun as a live sweep, on one
+process and one block set, the same comparison came back with an 8.4 per
+cent floor and tiers cleanly separated.
+
+The lesson generalises: **a shared warm store and a process per variant do
+not mix.** Either give every run an identical pre-warmed store, which this
+harness cannot yet do, or measure steady state as a live sweep. A cold store
+per process is the third option and it is honest, but at an open vista it
+does not converge: 400,000 blocks over twenty minutes, never settling.
 
 ## Writing a plan
 

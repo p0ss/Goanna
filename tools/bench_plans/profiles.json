@@ -1,15 +1,45 @@
 {
-  "label": "candidate graphics profiles, all four tests",
+  "label": "the shipped graphics profiles, steady state, the vista by day",
 
   "comment": [
-    "The tier values here are a starting guess, not a result. Run",
-    "tools/bench_plans/graphics.json first: it measures one setting at a",
-    "time and says which ones are worth spending on. Correct these from",
-    "that report before quoting any number from this one.",
+    "The variants below are the profiles in project/graphics_profiles.gd,",
+    "key for key. They are not a proposal: changing a number here without",
+    "changing it there makes the report describe a client nobody runs.",
     "",
-    "Each variant is a whole fresh process with a cold terrain store, which",
-    "is what makes the load numbers mean anything. Point GOANNA_STORE at a",
-    "shared warm directory in env to measure a returning player instead."
+    "The vista is the scene from graphics.json, because the tiers differ",
+    "mostly on how much world is drawn (view_range, lod_distance,",
+    "far_distance) and that can only be seen from somewhere with distance",
+    "in it. What this scene cannot measure is shadow_lamps, free at noon",
+    "with nothing lit: profiles-night.json is the other half.",
+    "",
+    "Steady state only, which makes this a live sweep: one process, one",
+    "block set, one light pool, the profile the only thing that moves.",
+    "That is deliberate and it replaces an earlier version of this plan",
+    "that ran all four tests with a process each.",
+    "",
+    "Why that version was abandoned, measured 2026-08-30: with a shared",
+    "warm store the store keeps filling as the plan runs, so each variant",
+    "starts from a fuller world than the one before it. The end-of-plan",
+    "control repeat came out 45.7 per cent from the first control on the",
+    "steady median and 84.6 per cent on the moving one, and the tiers",
+    "settled in 135, 19, 28 and 107 seconds in the order they were run.",
+    "Nearly every result was under that noise. Give each variant a cold",
+    "store instead and nothing converges at all: this vista took 400,000",
+    "blocks over twenty minutes on a cold store and never settled. Load",
+    "and streaming numbers therefore want a plan that hands every run an",
+    "identical pre-warmed store, which this harness cannot yet do, and",
+    "they are not attempted here rather than being reported wrong.",
+    "",
+    "GOANNA_STORE still points at a warm store, but now only one process",
+    "reads it, so there is nothing for it to bias.",
+    "",
+    "Read the far_distance rows against the grant the server actually gave.",
+    "The reference server here sets goanna_far_rendering_distance = 512, and",
+    "the client takes the lesser of the grant and the setting, so ultra (the",
+    "grant) and high (1024) both come out at 512 and differ on nothing but",
+    "view_range and lod_distance. Only medium's 256 is really a smaller far",
+    "field. On a server granting more than 1024 the ultra-to-high gap would",
+    "be wider than anything measured here."
   ],
 
   "host": "127.0.0.1",
@@ -17,65 +47,56 @@
   "name": "bench",
   "resolution": [1920, 1080],
 
-  "tests": ["load", "steady", "move_early", "move_full"],
-  "seconds": 60,
-  "sweep_seconds": 40,
-  "settle_quiet": 30,
+  "tests": ["steady"],
+  "seconds": 45,
+  "settle_quiet": 20,
   "settle_timeout": 900,
-  "walk_speed": 4.317,
-  "sweep": [4.317, 10, 20, 40, 80, 160],
-  "ground_floor": 0.9,
-  "speed_slack": 1.5,
+  "warmup_seconds": 60,
 
-  "time_of_day": 0.78,
-  "weather": "rain",
-  "yaw": 0.0,
-  "anchor": {"offset": [0, 2, 0]},
-  "actors": [
-    {"name": "mobs_mc:sheep", "at": [10, 1, 10], "count": 6},
-    {"name": "mobs_mc:chicken", "at": [-10, 1, 8], "count": 6},
-    {"name": "mobs_mc:zombie", "at": [8, 1, -10], "count": 4}
-  ],
+  "time_of_day": 0.5,
+  "weather": "clear",
+  "anchor": {"at": [-72, 54, 378], "offset": [0, 0, 0]},
+  "aim": [-100, 46, 342],
 
-  "route": {
-    "mode": "fly",
-    "relative": true,
-    "loop": true,
-    "points": [[0, 8, 0], [128, 8, 0], [128, 8, 128], [0, 8, 128]]
+  "base": {
+    "show_body": 0,
+    "texture_pack": "/var/home/poss/Documents/Code/Godot/goanna/baked/pack-mineclonia-v2/textures"
   },
 
-  "base": {},
   "variants": [
-    {"name": "rich"},
-
-    {"name": "balanced", "set": {
-      "view_range": 12,
-      "lod_distance": 16,
-      "far_distance": 1024,
-      "light_sdfgi_cell": 2.0,
+    {"name": "ultra", "set": {
+      "view_range": 16,
+      "lod_distance": 32,
+      "far_distance": -1,
+      "shadow_lamps": 16,
       "light_pool": 96,
-      "shadow_lamps": 8,
-      "atmosphere_quality": 0.5,
-      "light_shafts": 0.5,
-      "mat_detail": 0.5,
-      "motes": 1.0
+      "terrain_occlusion": 1
     }},
 
-    {"name": "modest", "set": {
+    {"name": "high", "set": {
+      "view_range": 12,
+      "lod_distance": 20,
+      "far_distance": 1024,
+      "shadow_lamps": 8,
+      "light_pool": 64,
+      "terrain_occlusion": 1
+    }},
+
+    {"name": "medium", "set": {
       "view_range": 8,
-      "lod_distance": 8,
+      "lod_distance": 12,
       "far_distance": 256,
-      "lod_terrace": 1,
-      "light_sdfgi": 0,
-      "light_ssao": 0,
-      "light_pool": 48,
       "shadow_lamps": 0,
-      "atmosphere_quality": 0,
-      "light_shafts": 0,
-      "mat_detail": 0,
-      "mat_normal": 0.5,
-      "motes": 0,
-      "bevel": 0
+      "light_pool": 48,
+      "terrain_occlusion": 1
     }}
-  ]
+  ],
+
+  "env": {
+    "GOANNA_STORE": "/tmp/claude-1000/-var-home-poss-Documents-Code-Godot-goanna/8b2b5be9-6a7c-4d49-b1b7-baec4f1472a9/scratchpad/bench-store"
+  },
+
+  "control_every": 2,
+  "resolve_samples": 24,
+  "resolve_gap_s": 3.0
 }

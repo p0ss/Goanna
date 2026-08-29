@@ -1,0 +1,79 @@
+{
+  "label": "the shipped graphics profiles, steady state, night in the village",
+
+  "comment": [
+    "The other half of profiles.json. The tiers differ on shadow_lamps (16,",
+    "8, 0) and light_pool (96, 64, 48), and both are free at noon in a",
+    "scene with nothing lit in it: measured at the vista they read as no",
+    "difference, which is true of that scene and false of the client.",
+    "",
+    "So this is the same three profiles, standing in the village after",
+    "dark where the lamps are the frame. Steady state only, which makes it",
+    "a live sweep: one process, one block set, one light pool, the setting",
+    "the only thing that moves between variants. Load and streaming are",
+    "profiles.json's job and are not repeated here.",
+    "",
+    "The variants are project/graphics_profiles.gd key for key, as there.",
+    "view_range, lod_distance and far_distance are carried even though",
+    "this scene cannot show them, because a profile is measured as a whole",
+    "or it is not the profile."
+  ],
+
+  "host": "127.0.0.1",
+  "port": 30000,
+  "name": "bench",
+  "resolution": [1920, 1080],
+
+  "tests": ["steady"],
+  "seconds": 45,
+  "settle_quiet": 20,
+  "settle_timeout": 900,
+  "warmup_seconds": 45,
+
+  "time_of_day": 0.0,
+  "weather": "clear",
+  "anchor": {"at": [-100, 30.6, 340], "offset": [0, 0, 0]},
+  "aim": [-92, 28.5, 344],
+
+  "base": {
+    "show_body": 0,
+    "texture_pack": "/var/home/poss/Documents/Code/Godot/goanna/baked/pack-mineclonia-v2/textures"
+  },
+
+  "variants": [
+    {"name": "ultra", "set": {
+      "view_range": 16,
+      "lod_distance": 32,
+      "far_distance": -1,
+      "shadow_lamps": 16,
+      "light_pool": 96,
+      "terrain_occlusion": 1
+    }},
+
+    {"name": "high", "set": {
+      "view_range": 12,
+      "lod_distance": 20,
+      "far_distance": 1024,
+      "shadow_lamps": 8,
+      "light_pool": 64,
+      "terrain_occlusion": 1
+    }},
+
+    {"name": "medium", "set": {
+      "view_range": 8,
+      "lod_distance": 12,
+      "far_distance": 256,
+      "shadow_lamps": 0,
+      "light_pool": 48,
+      "terrain_occlusion": 1
+    }}
+  ],
+
+  "env": {
+    "GOANNA_STORE": "/tmp/claude-1000/-var-home-poss-Documents-Code-Godot-goanna/8b2b5be9-6a7c-4d49-b1b7-baec4f1472a9/scratchpad/bench-store"
+  },
+
+  "control_every": 2,
+  "resolve_samples": 24,
+  "resolve_gap_s": 3.0
+}
