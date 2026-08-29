@@ -1111,18 +1111,13 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
             const Column *c = colAt(gx, gz);
             if (!c || !c->has || !c->same)
                 return false;
-            if (c->water || spec.terrace) {
-                out[0] = out[1] = out[2] = out[3] = c->h;
-                return true;
-            }
-            const int cx[4] = {gx, gx + 1, gx + 1, gx};
-            const int cz[4] = {gz, gz, gz + 1, gz + 1};
-            for (int i = 0; i < 4; ++i) {
-                if (onCoarseEdge(cx[i], cz[i]) && stitchedHeight(cx[i], cz[i], c->h, out[i]))
-                    continue;
-                if (!cornerLand(cx[i], cz[i], c->h, out[i]))
-                    out[i] = c->h; // cannot happen: the cell itself counts
-            }
+            // Flat cells at their own height, with risers between them, the
+            // way the blocks underneath actually step. This was a choice
+            // against a surface whose corners were averaged with its
+            // neighbours, from when the far tiers were a heightfield and the
+            // hills in them sloped. The summaries carry Y occupancy now, so
+            // the smoothed alternative described ground that is not there.
+            out[0] = out[1] = out[2] = out[3] = c->h;
             return true;
         };
         // The coarse neighbour's surface along the edge of a fine cell: true
@@ -1141,21 +1136,6 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
             if (!stitchedHeight(cax, caz, nc->h, sa) || !stitchedHeight(cbx, cbz, nc->h, sb))
                 return false;
             return std::fabs(sa - ha) < 0.01f && std::fabs(sb - hb) < 0.01f;
-        };
-        // Normal at a corner from the heights of the columns around it.
-        auto cornerNormal = [&](int cx, int cz, float ref) -> v3f {
-            auto hAt = [&](int x, int z, float fallback) -> float {
-                float h;
-                return cornerLand(x, z, ref, h) ? h : fallback;
-            };
-            float h0;
-            if (!cornerLand(cx, cz, ref, h0))
-                return v3f(0, 1, 0);
-            const float hx0 = hAt(cx - 1, cz, h0), hx1 = hAt(cx + 1, cz, h0);
-            const float hz0 = hAt(cx, cz - 1, h0), hz1 = hAt(cx, cz + 1, h0);
-            v3f nrm((hx0 - hx1) / (2.0f * cell), 1.0f, (hz0 - hz1) / (2.0f * cell));
-            nrm.normalize();
-            return nrm;
         };
         // How far a skirt drops: to the lowest corner of the neighbour it
         // does not agree with, plus a little, so it covers the step and no
@@ -1228,7 +1208,7 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                 for (int i = 0; i < 4; ++i) {
                     // Godot space: z mirrored.
                     const v3f p(ox + cxs[i], hs[i], -(oz + czs[i]));
-                    v3f nrm = col.water || spec.terrace ? v3f(0, 1, 0) : cornerNormal(cix[i], ciz[i], col.h);
+                    v3f nrm(0, 1, 0);   // flat, to match the terraced cells above
                     nrm.Z = -nrm.Z;
                     uint8_t ao = 255;
                     if (trace)

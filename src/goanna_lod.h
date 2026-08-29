@@ -271,11 +271,6 @@ struct LodRegionSpec {
     // joins onto a neighbour drawn at the same cell and drops a skirt
     // against anything else.
     std::function<int(v3s16)> drawn_cell;
-    // Draw the ground as flat cells at their own height with risers between
-    // them, the way the blocks underneath actually step, instead of as a
-    // surface whose corners are averaged with the neighbours. A look choice
-    // (docs/far-rendering.md, "Terraces or slopes").
-    bool terrace = false;
 };
 
 // materials may be null, in which case every block ID is 0.

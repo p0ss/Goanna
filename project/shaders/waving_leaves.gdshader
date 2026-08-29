@@ -55,17 +55,22 @@ void fragment() {
 	ROUGHNESS = 0.9;
 	SPECULAR = 0.2;
 	METALLIC = 0.0;
+	// The pack's occlusion, but deliberately not its relief. Leaves are an
+	// allfaces drawtype, so two stacked blocks draw a pair of coincident
+	// interior faces at the same plane. That z-fight was always there and
+	// was invisible while both faces shaded identically at a fixed
+	// roughness; giving them per-face normals made the two sides shade
+	// differently and the fight started to flicker. Measured nose-first in
+	// a canopy, the relief took the share of temporally unstable pixels
+	// from 0.8% to 1.7%.
+	//
+	// It was buying nothing anyway. The node mesher writes no ARRAY_TANGENT
+	// (src/goanna_client.cpp), so a tangent space normal map here has no
+	// basis to be expressed in and degenerates to the geometric normal.
+	// Occlusion is a scalar and needs no tangents, so that part stays.
 	float pack_ao = 1.0;
-	if (has_normal) {
-		// No green flip, and the same reasoning as nodes_array.gdshader:
-		// LabPBR stores Y down and Luanti's tile V runs down as well.
-		vec4 n = texture(normal_tex, UV);
-		vec2 xy = (n.rg * 2.0 - 1.0) * normal_strength;
-		float z = sqrt(clamp(1.0 - dot(xy, xy), 0.0, 1.0));
-		NORMAL_MAP = vec3(xy * 0.5 + 0.5, z * 0.5 + 0.5);
-		NORMAL_MAP_DEPTH = 1.0;
-		pack_ao = mix(1.0, n.b, ao_strength);
-	}
+	if (has_normal)
+		pack_ao = mix(1.0, texture(normal_tex, UV).b, ao_strength);
 	AO = pack_ao;
 	AO_LIGHT_AFFECT = 0.0;
 	// Soil-like, for a tile with no _s: takes rain without turning to glass.
