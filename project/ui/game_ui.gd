@@ -904,13 +904,11 @@ func _load_apply_settings() -> void:
 			and OS.get_environment("GOANNA_NO_HW_DEFAULTS") == "":
 		var want: String = str(m.hardware_profile)
 		for key in GraphicsProfiles.PROFILES.get(want, {}):
-			var v: float = float(GraphicsProfiles.PROFILES[want][key])
-			# far_distance -1 means "whatever the server granted", which is
-			# what set_far_distance treats as unset; naming a number would
-			# cap a server that grants more.
-			if key == "far_distance" and v < 0.0:
-				continue
-			_apply_setting(key, v)
+			# far_distance -1 means "whatever the server granted";
+			# set_far_distance treats a negative as exactly that, so it is
+			# passed through rather than skipped: passing it clears any
+			# explicit cap a previous profile or session left behind.
+			_apply_setting(key, float(GraphicsProfiles.PROFILES[want][key]))
 	var seeded := false
 	for entry in SETTINGS:
 		var key: String = entry[1]

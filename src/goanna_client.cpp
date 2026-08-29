@@ -1098,10 +1098,6 @@ String GoannaClient::inventory_formspec() const {
     return m_session ? String::utf8(m_session->inventoryFormspec().c_str()) : String();
 }
 
-String GoannaClient::formspec_prepend() const {
-    return m_session ? String::utf8(m_session->formspecPrepend().c_str()) : String();
-}
-
 Array GoannaClient::take_shown_formspecs() {
     Array out;
     if (!m_session)
@@ -2494,6 +2490,7 @@ Dictionary GoannaClient::render_stats() {
     d["far_areas_complete"] = far_areas_complete;
     d["far_areas_partial"] = far_areas_partial;
     d["far_areas_empty"] = far_areas_empty;
+    d["far_ray_yield"] = m_far_ray_yield;
     if (m_session && m_session->store()) {
         d["store_blocks"] = (int64_t)m_session->store()->blocksKnown();
         d["store_mb"] = (double)m_session->store()->bytes() / (1024.0 * 1024.0);
@@ -3061,12 +3058,6 @@ void GoannaClient::set_lod_distance(int blocks) {
     }
 }
 
-void GoannaClient::set_lod_terrace(bool on) {
-    if (on == m_lod_terrace)
-        return;
-    m_lod_terrace = on;
-    lodReset();
-}
 
 void GoannaClient::set_mesh_threads(int threads) {
     threads = std::clamp(threads, -1, 16);
@@ -3224,8 +3215,16 @@ int GoannaClient::lodTierFor(const v3s16 &bp, const Vector3 &around, bool live) 
     // that fallback only after the regional near mesh is actually published.
     if (live && d <= first)
         return 0;
+    // Coarse bands double from a capped base, not from the detail distance.
+    // They used to double from `first` itself, so raising detail from 12 to
+    // 32 blocks also pushed cell 4 geometry out to a kilometre and the
+    // cell 16 tier past a 4096 grant entirely: measured at 10M primitives
+    // and 15k draws on the diffusion world. Detail buys the near field;
+    // the far ladder keeps its own scale. At the old default of 12 the cap
+    // changes nothing.
+    const float base = std::min(first, 256.0f);
     auto threshold = [&](int t) {
-        return first * (float)(1 << (t - 1));
+        return std::max(first, base * (float)(1 << (t - 1)));
     };
     int desired = 1;
     for (int t = 1; t < tiers; ++t)
@@ -3288,8 +3287,17 @@ void GoannaClient::set_store_path(const String &root) {
 }
 
 void GoannaClient::set_far_distance(int nodes) {
-    m_far_distance = std::clamp(nodes, 0, 8192);
-    m_far_distance_explicit = true;
+    // Negative means "whatever the server grants". The graphics profiles and
+    // goanna.cfg store -1 with that meaning, and clamping it to 0 here turned
+    // the whole far field off while the HUD still showed the grant: radius one
+    // block, no summary requests, and every pruned near block forgotten
+    // instead of degrading to a far tier.
+    if (nodes < 0) {
+        m_far_distance_explicit = false;
+    } else {
+        m_far_distance = std::clamp(nodes, 0, 8192);
+        m_far_distance_explicit = true;
+    }
     m_far_dirty = true;
 }
 
@@ -3330,40 +3338,65 @@ void GoannaClient::lodUpdateFar(const Vector3 &around) {
     m_far_centre = centre;
     m_far_radius = radius;
     m_far_last = clock_t_::now();
-    // out of range, or now live: let go
-    for (auto it = m_far_blocks.begin(); it != m_far_blocks.end();) {
-        const v3s16 d = *it - centre;
-        const bool out = std::abs(d.X) > radius + 1 || std::abs(d.Y) > radius + 1 || std::abs(d.Z) > radius + 1;
-        if (out || m_session->getBlock(*it)) {
-            if (out) {
-                lodForget(*it);
-                m_block_tier.erase(*it);
+    // Out of range, or now live: let go. Swept a bounded slice per rescan
+    // rather than in full: at a 4096 grant the retained set runs to half a
+    // million blocks, and walking every one of them under the map lock every
+    // two seconds was over 30 ms of main thread on its own (the "far 31.7 ms"
+    // HUD line this replaces). A block turning live is already released at
+    // once by poll_blocks; leaving range is memory hygiene, and hygiene can
+    // be lazy. The cursor makes the sweep complete a full cycle in
+    // set size / kFarSweep rescans.
+    constexpr int kFarSweep = 16384;
+    {
+        auto it = m_far_blocks.lower_bound(m_far_prune_cursor);
+        int visited = 0;
+        while (it != m_far_blocks.end() && visited < kFarSweep) {
+            ++visited;
+            const v3s16 d = *it - centre;
+            const bool out = std::abs(d.X) > radius + 1 || std::abs(d.Y) > radius + 1 || std::abs(d.Z) > radius + 1;
+            if (out || m_session->getBlock(*it)) {
+                if (out) {
+                    lodForget(*it);
+                    m_block_tier.erase(*it);
+                }
+                m_far_remote.erase(*it);
+                it = m_far_blocks.erase(it);
+            } else {
+                ++it;
             }
-            m_far_remote.erase(*it);
-            it = m_far_blocks.erase(it);
-        } else {
-            ++it;
         }
+        m_far_prune_cursor = it == m_far_blocks.end()
+                ? v3s16(-32768, -32768, -32768)
+                : *it;
     }
     // Summaries inside the near floor are cached but not members of a far
     // region. Prune those caches independently; a live block supersedes one
-    // immediately, and an out-of-range summary need not occupy memory.
-    for (auto it = m_far_remote.begin(); it != m_far_remote.end();) {
-        if (m_far_blocks.count(*it)) {
-            ++it;
-            continue;
+    // immediately, and an out-of-range summary need not occupy memory. Same
+    // bounded sweep as above, for the same reason.
+    {
+        auto it = m_far_remote.lower_bound(m_far_remote_cursor);
+        int visited = 0;
+        while (it != m_far_remote.end() && visited < kFarSweep) {
+            ++visited;
+            if (m_far_blocks.count(*it)) {
+                ++it;
+                continue;
+            }
+            const v3s16 d = *it - centre;
+            const bool out = std::abs(d.X) > radius + 1 || std::abs(d.Y) > radius + 1 ||
+                    std::abs(d.Z) > radius + 1;
+            if (out || m_session->getBlock(*it)) {
+                auto ch = m_lod_chains.find(*it);
+                if (ch != m_lod_chains.end() && ch->second->summary)
+                    m_lod_chains.erase(ch);
+                it = m_far_remote.erase(it);
+            } else {
+                ++it;
+            }
         }
-        const v3s16 d = *it - centre;
-        const bool out = std::abs(d.X) > radius + 1 || std::abs(d.Y) > radius + 1 ||
-                std::abs(d.Z) > radius + 1;
-        if (out || m_session->getBlock(*it)) {
-            auto ch = m_lod_chains.find(*it);
-            if (ch != m_lod_chains.end() && ch->second->summary)
-                m_lod_chains.erase(ch);
-            it = m_far_remote.erase(it);
-        } else {
-            ++it;
-        }
+        m_far_remote_cursor = it == m_far_remote.end()
+                ? v3s16(-32768, -32768, -32768)
+                : *it;
     }
     // Requested areas that have drifted out of range may be asked again if
     // we come back.
@@ -3374,16 +3407,29 @@ void GoannaClient::lodUpdateFar(const Vector3 &around) {
         else
             ++it;
     }
-    // in range, in the store, not live, not yet drawn: assign
+    // In range, in the store, not live, not yet drawn: assign. Also a
+    // bounded slice per rescan: at a 4096 grant the cube is some 36000
+    // region mask queries, and on a store holding hundreds of regions each
+    // present one churns the bounded file handle pool. The linear cursor
+    // wraps over the current cube; the near-to-far handoff in prune_blocks
+    // covers freshly pruned ground at once, so this backstop can take a few
+    // rescans to come round.
     std::vector<uint8_t> bits;
     const int R = BlockStore::kRegionBlocks;
     auto fdiv = [](int a, int b) { return a >= 0 ? a / b : -((-a + b - 1) / b); };
     const v3s16 lo(fdiv(centre.X - radius, R), fdiv(centre.Y - radius, R), fdiv(centre.Z - radius, R));
     const v3s16 hi(fdiv(centre.X + radius, R), fdiv(centre.Y + radius, R), fdiv(centre.Z + radius, R));
     int added = 0;
-    for (int rz = lo.Z; rz <= hi.Z; ++rz)
-        for (int ry = lo.Y; ry <= hi.Y; ++ry)
-            for (int rx = lo.X; rx <= hi.X; ++rx) {
+    const int64_t span_x = hi.X - lo.X + 1, span_y = hi.Y - lo.Y + 1, span_z = hi.Z - lo.Z + 1;
+    const int64_t cube = span_x * span_y * span_z;
+    constexpr int64_t kStoreScanRegions = 4096;
+    if (m_far_store_cursor >= cube)
+        m_far_store_cursor = 0;
+    const int64_t scan_end = std::min(cube, m_far_store_cursor + kStoreScanRegions);
+    for (int64_t idx = m_far_store_cursor; idx < scan_end; ++idx) {
+                const int rx = lo.X + (int)(idx % span_x);
+                const int ry = lo.Y + (int)((idx / span_x) % span_y);
+                const int rz = lo.Z + (int)(idx / (span_x * span_y));
                 if (!m_session->storedRegionMask(v3s16(rx, ry, rz), bits))
                     continue;
                 for (int i = 0; i < BlockStore::kSlots; ++i) {
@@ -3419,23 +3465,36 @@ void GoannaClient::lodUpdateFar(const Vector3 &around) {
                     m_far_blocks.insert(bp);
                     ++added;
                 }
-            }
+    }
+    m_far_store_cursor = scan_end >= cube ? 0 : scan_end;
     // Reassign any remote chain that temporarily has no region membership,
     // for example across a live/far ownership change. A complete area will
     // not be requested again, so this cache must remain independently useful.
-    for (const v3s16 &bp : m_far_remote) {
-        if (m_far_blocks.count(bp) || m_session->getBlock(bp) || m_near_blocks.count(bp))
-            continue;
-        const v3s16 d = bp - centre;
-        if (std::abs(d.X) > radius || std::abs(d.Y) > radius || std::abs(d.Z) > radius)
-            continue;
-        const int tier = lodTierFor(bp, around, false);
-        if (tier < 1)
-            continue;
-        lodAssign(bp, tier);
-        m_block_tier[bp] = tier;
-        m_far_blocks.insert(bp);
-        ++added;
+    // Bounded like the sweeps above: the ordinary path assigns a summary the
+    // moment it arrives, so this is a repair pass and can take its time.
+    {
+        auto it = m_far_remote.lower_bound(m_far_reassign_cursor);
+        int visited = 0;
+        while (it != m_far_remote.end() && visited < kFarSweep) {
+            ++visited;
+            const v3s16 bp = *it;
+            ++it;
+            if (m_far_blocks.count(bp) || m_session->getBlock(bp) || m_near_blocks.count(bp))
+                continue;
+            const v3s16 d = bp - centre;
+            if (std::abs(d.X) > radius || std::abs(d.Y) > radius || std::abs(d.Z) > radius)
+                continue;
+            const int tier = lodTierFor(bp, around, false);
+            if (tier < 1)
+                continue;
+            lodAssign(bp, tier);
+            m_block_tier[bp] = tier;
+            m_far_blocks.insert(bp);
+            ++added;
+        }
+        m_far_reassign_cursor = it == m_far_remote.end()
+                ? v3s16(-32768, -32768, -32768)
+                : *it;
     }
     if (added && getenv("GOANNA_DEBUG_LOD"))
         UtilityFunctions::print("LOD far: ", added, " stored blocks assigned, ", (int)m_far_blocks.size(),
@@ -3616,6 +3675,10 @@ void GoannaClient::lodRequestSummaries(const v3s16 &centre, int radius) {
     };
     std::vector<Pick> fresh_picks;
     std::vector<Pick> retry_picks;
+    // Areas a ray reached. Kept apart because they are the ones the player
+    // is looking at, and because they are the only ones allowed past the
+    // topological veto below.
+    std::vector<Pick> seen_picks;
     // The same rule the mesh queues use, so an area in front of the player is
     // asked about before one behind it at the same range. Until this existed
     // the scan was purely radial, and a player who stood and looked at a
@@ -3645,6 +3708,105 @@ void GoannaClient::lodRequestSummaries(const v3s16 &centre, int radius) {
         auto it = m_far_requested.find(origin);
         return it != m_far_requested.end() && it->second.answered ? &it->second : nullptr;
     };
+    // --- what the player can actually see ----------------------------------
+    // The walk below decides eligibility from topology: an area is worth
+    // asking for only if the one between it and the player answered that it
+    // is open in that direction, and an area the server has nothing for
+    // vetoes everything behind it. That encodes an assumption which does not
+    // hold in a world generated where players have been. Such a map is
+    // corridors of generated chunks with ungenerated gaps between them, and
+    // the veto turns every gap into a permanent wall: measured at one vista,
+    // 30 areas complete against 90 empty, the far field stopped at 240 nodes
+    // of a 512 node grant, and flying out so the server generated the
+    // missing ground did not move it by a single area.
+    //
+    // So ask what is visible instead of what is adjacent. Sample directions
+    // around where the player is looking and march the area lattice: whole
+    // cells, integer arithmetic, no map access and no geometry, because a
+    // ray cannot hit terrain the client does not have. Each ray takes the
+    // first area it reaches that has never been described. A ray walks
+    // straight through an ungenerated gap, so one gap stops one ray and not
+    // the fan, and what is behind it stays reachable on another bearing.
+    //
+    // This asks for no more than the walk does and never past the grant: it
+    // is the same budget of summaries the server already offers, spent on
+    // areas the player is looking at rather than on areas that happen to be
+    // adjacent.
+    std::set<v3s16> ray_picks;
+    {
+        // Sky and bedrock need no memory to reject. The lattice is bounded
+        // vertically by varadius, so a ray leaving through the top or the
+        // bottom before it reaches the grant can never find anything, and
+        // the march simply stops. Everything else it walks through is an
+        // area already answered, which costs a map lookup and no request.
+        constexpr int kRayMin = 24;
+        constexpr int kRayMax = 192;
+        const int rays = kRayMin + (int)((kRayMax - kRayMin) *
+                std::clamp(m_far_ray_yield, 0.0f, 1.0f));
+        const float stride = 0.5f * (float)kEdge * (float)MAP_BLOCKSIZE;
+        const int steps = (int)((float)(radius * MAP_BLOCKSIZE) / stride) + 2;
+        // Godot mirrors Z; the lattice is in Luanti coordinates.
+        const v3f eye(vp.eye.X, vp.eye.Y, -vp.eye.Z);
+        v3f fwd(vp.forward.X, vp.forward.Y, -vp.forward.Z);
+        const float flen = fwd.getLength();
+        if (flen > 0.001f && rays > 0) {
+            fwd /= flen;
+            // An orthonormal pair about the view direction.
+            v3f up(0, 1, 0);
+            if (std::fabs(fwd.Y) > 0.95f)
+                up = v3f(1, 0, 0);
+            v3f right = fwd.crossProduct(up);
+            right.normalize();
+            v3f vup = right.crossProduct(fwd);
+            int found = 0;
+            for (int i = 0; i < rays; ++i) {
+                // A counter, not a clock, so a repeated run walks the same
+                // directions in the same order.
+                m_far_ray_seed = m_far_ray_seed * 1664525u + 1013904223u;
+                const float u1 = (float)((m_far_ray_seed >> 8) & 0xFFFF) / 65536.0f;
+                m_far_ray_seed = m_far_ray_seed * 1664525u + 1013904223u;
+                const float u2 = (float)((m_far_ray_seed >> 8) & 0xFFFF) / 65536.0f;
+                // u1 squared crowds the samples toward the middle of the
+                // view, which is where the player is looking and where a
+                // hole is most worth closing. It is a weight and not a
+                // window: the tail still reaches the frustum corners.
+                const float theta = 1.22f * u1 * u1;      // up to about 70 degrees
+                const float phi = 6.2831853f * u2;
+                const float st = std::sin(theta);
+                v3f d = fwd * std::cos(theta) + right * (st * std::cos(phi))
+                        + vup * (st * std::sin(phi));
+                d.normalize();
+                v3f p = eye;
+                for (int step = 0; step < steps; ++step) {
+                    p += d * stride;
+                    const v3s16 cell(fdiv((int)std::floor(p.X) / MAP_BLOCKSIZE, kEdge),
+                            fdiv((int)std::floor(p.Y) / MAP_BLOCKSIZE, kEdge),
+                            fdiv((int)std::floor(p.Z) / MAP_BLOCKSIZE, kEdge));
+                    if (std::abs(cell.X - ac.X) > aradius || std::abs(cell.Z - ac.Z) > aradius)
+                        break;
+                    if (std::abs(cell.Y - ac.Y) > varadius)
+                        break;   // out of the lattice: sky above or rock below
+                    const v3s16 origin(cell.X * kEdge, cell.Y * kEdge, cell.Z * kEdge);
+                    auto at = m_far_requested.find(origin);
+                    if (at == m_far_requested.end()) {
+                        ray_picks.insert(origin);
+                        ++found;
+                        break;
+                    }
+                    if (!at->second.answered)
+                        break;   // asked and still in flight; the answer is coming
+                    if (at->second.empty || at->second.air)
+                        continue; // nothing here to see or to hide what is behind it
+                    break;        // answered with ground: it may occlude, stop
+                }
+            }
+            // Smoothed, so one scan that happens to look at the sky does not
+            // starve the next. Never reaches zero: kRayMin keeps enough rays
+            // alive to notice when the world changes.
+            m_far_ray_yield = 0.75f * m_far_ray_yield + 0.25f * ((float)found / (float)rays);
+        }
+    }
+
     auto layer_wanted = [&](int ax, int ay, int az) -> bool {
         if (ay == ac.Y)
             return true;
@@ -3717,7 +3879,13 @@ void GoannaClient::lodRequestSummaries(const v3s16 &centre, int radius) {
                 // The vertical term below only adds, so an area already
                 // further out horizontally than the best so far is out before
                 // the lookups that term costs.
-                if (!layer_wanted(ax, ay, az))
+                // Visibility beats adjacency. An area a ray reached is asked
+                // for whatever the walk thinks of the layer it sits in: the
+                // walk cannot know about a corridor of generated terrain
+                // behind an ungenerated gap, and the ray has just been down
+                // one.
+                const bool seen = ray_picks.count(origin) != 0;
+                if (!seen && !layer_wanted(ax, ay, az))
                     continue;
                 // Horizontal distance and the view cone decide the order,
                 // and a layer off the player's own is ranked as though it
@@ -3773,7 +3941,8 @@ void GoannaClient::lodRequestSummaries(const v3s16 &centre, int radius) {
                 // as a sparse lattice in the distance. Every area is asked
                 // once; m_far_requested suppresses repeats for complete
                 // answers and paces retries for incomplete ones.
-                add_pick(retrying ? retry_picks : fresh_picks, key, origin);
+                add_pick(seen && !retrying ? seen_picks
+                                : retrying ? retry_picks : fresh_picks, key, origin);
             }
     // Reserve one slot for healing an old partial area and use the rest for
     // never-seen frontier. Previously distance alone let the same nearest
@@ -3781,7 +3950,11 @@ void GoannaClient::lodRequestSummaries(const v3s16 &centre, int radius) {
     // candidates, the other class uses the spare capacity.
     std::vector<Pick> picks;
     const size_t fresh_quota = want > 1 ? want - 1 : want;
-    for (size_t i = 0; i < fresh_picks.size() && i < fresh_quota; ++i)
+    // What the player is looking at first, then the frontier the walk found,
+    // then one slot for healing an old partial area.
+    for (size_t i = 0; i < seen_picks.size() && picks.size() < fresh_quota; ++i)
+        picks.push_back(seen_picks[i]);
+    for (size_t i = 0; i < fresh_picks.size() && picks.size() < fresh_quota; ++i)
         picks.push_back(fresh_picks[i]);
     for (size_t i = 0; i < retry_picks.size() && picks.size() < want; ++i)
         picks.push_back(retry_picks[i]);
@@ -4497,7 +4670,6 @@ void GoannaClient::lodBuildRegion(const LodRegionKey &key, LodRegion &r) {
         spec.member = [&, cell](v3s16 bp) { return region_member(bp) && drawn_cell(bp) == cell; };
         spec.chain = chain;
         spec.drawn_cell = drawn_cell;
-        spec.terrace = m_lod_terrace;
         return spec;
     };
 
@@ -5748,7 +5920,6 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("texture", "name"), &GoannaClient::texture);
     ClassDB::bind_method(D_METHOD("item_icon", "item_name"), &GoannaClient::item_icon);
     ClassDB::bind_method(D_METHOD("inventory_formspec"), &GoannaClient::inventory_formspec);
-    ClassDB::bind_method(D_METHOD("formspec_prepend"), &GoannaClient::formspec_prepend);
     ClassDB::bind_method(D_METHOD("take_shown_formspecs"), &GoannaClient::take_shown_formspecs);
     ClassDB::bind_method(D_METHOD("send_inventory_fields", "formname", "fields"), &GoannaClient::send_inventory_fields);
     ClassDB::bind_method(D_METHOD("set_wield_index", "index"), &GoannaClient::set_wield_index);
@@ -5780,10 +5951,8 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("set_lod_distance", "blocks"), &GoannaClient::set_lod_distance);
     ClassDB::bind_method(D_METHOD("lod_distance"), &GoannaClient::lod_distance);
     ClassDB::bind_method(D_METHOD("set_lod_cell", "nodes"), &GoannaClient::set_lod_cell);
-    ClassDB::bind_method(D_METHOD("set_lod_terrace", "on"), &GoannaClient::set_lod_terrace);
     ClassDB::bind_method(D_METHOD("set_mesh_threads", "threads"), &GoannaClient::set_mesh_threads);
     ClassDB::bind_method(D_METHOD("mesh_threads"), &GoannaClient::mesh_threads);
-    ClassDB::bind_method(D_METHOD("lod_terrace"), &GoannaClient::lod_terrace);
     ClassDB::bind_method(D_METHOD("lod_cell"), &GoannaClient::lod_cell);
     ClassDB::bind_method(D_METHOD("update_lod", "around", "max_rebuild"), &GoannaClient::update_lod);
     ClassDB::bind_method(D_METHOD("set_store_path", "root"), &GoannaClient::set_store_path);

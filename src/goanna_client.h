@@ -221,10 +221,6 @@ public:
     godot::Ref<godot::Texture2D> item_icon(const godot::String &item_name);
     // Formspecs
     godot::String inventory_formspec() const;
-    // The game's formspec prepend: its window theme, built behind every
-    // server sent form that does not say no_prepend[]. Empty until the
-    // server sends one.
-    godot::String formspec_prepend() const;
     godot::Array take_shown_formspecs(); // [{formspec, formname}]
     void send_inventory_fields(const godot::String &formname, const godot::Dictionary &fields);
 
@@ -286,8 +282,6 @@ public:
     int lod_distance() const { return m_lod_distance; }
     void set_lod_cell(int nodes);
     int lod_cell() const { return m_lod_cell; }
-    void set_lod_terrace(bool on);
-    bool lod_terrace() const { return m_lod_terrace; }
     // How many threads mesh the far field. 0 means pick from the hardware,
     // which is what the pool does when it is started without a number; -1
     // means mesh on the main thread, the comparison to make when a far field
@@ -457,7 +451,6 @@ private:
     // slopes" and "Stop the far surface averaging across cliffs"), and it
     // is a Minecraft world underneath either way, so the honest default is
     // the one that looks like the blocks actually there.
-    bool m_lod_terrace = true;
     // --- far rendering (docs/far-rendering.md rungs 2 and 3) ---
     // Blocks at a tier of 1 or more are not meshed one by one: each belongs
     // to a region at its tier, and the region is one mesh built from the
@@ -611,6 +604,13 @@ private:
     float m_view_fov = 70.0f;
     bool m_far_distance_explicit = false;
     std::set<v3s16> m_far_blocks;
+    // Where the bounded out-of-range sweeps in lodUpdateFar resume. Walking
+    // the full retained sets every rescan cost tens of milliseconds once a
+    // 4096 grant held half a million blocks.
+    v3s16 m_far_prune_cursor{-32768, -32768, -32768};
+    v3s16 m_far_remote_cursor{-32768, -32768, -32768};
+    v3s16 m_far_reassign_cursor{-32768, -32768, -32768};
+    int64_t m_far_store_cursor = 0;
     // Blocks whose chain came from a server far summary rather than the
     // store. This also retains summaries currently inside the near-field
     // floor, so moving away can assign them without requesting the area again.
@@ -664,6 +664,14 @@ private:
         bool air = false;
     };
     std::map<v3s16, FarAsk> m_far_requested;
+    // Visibility driven far requests: how many rays the last scan spent and
+    // what share of them found an area worth asking about. The scan spends
+    // fewer rays as the horizon converges, so a player standing in front of
+    // a finished view pays almost nothing, and recovers as soon as they turn
+    // or walk and the yield rises again. Seeded from a counter rather than a
+    // clock so a benchmark run repeats: docs/benchmark.md.
+    float m_far_ray_yield = 1.0f;
+    uint32_t m_far_ray_seed = 1;
     // Asks awaiting a reply, each on its own clock. m_far_inflight mirrors
     // its size for the HUD. An entry leaves when its area's reply arrives or
     // when lodRequestSummaries times it out, so one silently dropped ask
