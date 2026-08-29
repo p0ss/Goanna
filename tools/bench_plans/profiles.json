@@ -1,0 +1,81 @@
+{
+  "label": "candidate graphics profiles, all four tests",
+
+  "comment": [
+    "The tier values here are a starting guess, not a result. Run",
+    "tools/bench_plans/graphics.json first: it measures one setting at a",
+    "time and says which ones are worth spending on. Correct these from",
+    "that report before quoting any number from this one.",
+    "",
+    "Each variant is a whole fresh process with a cold terrain store, which",
+    "is what makes the load numbers mean anything. Point GOANNA_STORE at a",
+    "shared warm directory in env to measure a returning player instead."
+  ],
+
+  "host": "127.0.0.1",
+  "port": 30000,
+  "name": "bench",
+  "resolution": [1920, 1080],
+
+  "tests": ["load", "steady", "move_early", "move_full"],
+  "seconds": 60,
+  "sweep_seconds": 40,
+  "settle_quiet": 30,
+  "settle_timeout": 900,
+  "walk_speed": 4.317,
+  "sweep": [4.317, 10, 20, 40, 80, 160],
+  "ground_floor": 0.9,
+  "speed_slack": 1.5,
+
+  "time_of_day": 0.78,
+  "weather": "rain",
+  "yaw": 0.0,
+  "anchor": {"offset": [0, 2, 0]},
+  "actors": [
+    {"name": "mobs_mc:sheep", "at": [10, 1, 10], "count": 6},
+    {"name": "mobs_mc:chicken", "at": [-10, 1, 8], "count": 6},
+    {"name": "mobs_mc:zombie", "at": [8, 1, -10], "count": 4}
+  ],
+
+  "route": {
+    "mode": "fly",
+    "relative": true,
+    "loop": true,
+    "points": [[0, 8, 0], [128, 8, 0], [128, 8, 128], [0, 8, 128]]
+  },
+
+  "base": {},
+  "variants": [
+    {"name": "rich"},
+
+    {"name": "balanced", "set": {
+      "view_range": 12,
+      "lod_distance": 16,
+      "far_distance": 1024,
+      "light_sdfgi_cell": 2.0,
+      "light_pool": 96,
+      "shadow_lamps": 8,
+      "atmosphere_quality": 0.5,
+      "light_shafts": 0.5,
+      "mat_detail": 0.5,
+      "motes": 1.0
+    }},
+
+    {"name": "modest", "set": {
+      "view_range": 8,
+      "lod_distance": 8,
+      "far_distance": 256,
+      "lod_terrace": 1,
+      "light_sdfgi": 0,
+      "light_ssao": 0,
+      "light_pool": 48,
+      "shadow_lamps": 0,
+      "atmosphere_quality": 0,
+      "light_shafts": 0,
+      "mat_detail": 0,
+      "mat_normal": 0.5,
+      "motes": 0,
+      "bevel": 0
+    }}
+  ]
+}

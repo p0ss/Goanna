@@ -277,6 +277,9 @@ func _show_content() -> void:
 # the same section it writes to itself.
 const GameUI := preload("res://ui/game_ui.gd")
 
+var menu_advanced_open := false   # Advanced graphics, kept across reopens
+const GraphicsProfiles := preload("res://graphics_profiles.gd")
+
 func _show_settings() -> void:
 	_new_screen("Settings", "Applied when you next join a world. The pause menu has the same settings, and changes there take effect immediately.")
 	var tabs := TabContainer.new()
@@ -285,20 +288,96 @@ func _show_settings() -> void:
 	var cfg := ConfigFile.new()
 	cfg.load(CFG_PATH)
 	var pages := {}
+	var new_page := func(name: String) -> VBoxContainer:
+		var scroll := ScrollContainer.new()
+		scroll.name = name
+		scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		var box := VBoxContainer.new()
+		box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		box.add_theme_constant_override("separation", 10)
+		scroll.add_child(box)
+		tabs.add_child(scroll)
+		return box
+	# The same shape as the in-game panel (ui/game_ui.gd): one Graphics tab
+	# holding a profile and the few settings worth an opinion, with the rest
+	# behind Advanced. The two screens claim to be the same settings, so they
+	# had better be arranged the same way.
+	pages["Graphics"] = new_page.call("Graphics")
+	_menu_graphics_page(pages["Graphics"], cfg)
 	for row in GameUI.SETTINGS:
 		var tab := str(row[0])
+		if not GameUI.PLAIN_TABS.has(tab):
+			continue
 		if not pages.has(tab):
-			var scroll := ScrollContainer.new()
-			scroll.name = tab
-			scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-			var box := VBoxContainer.new()
-			box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			box.add_theme_constant_override("separation", 10)
-			scroll.add_child(box)
-			tabs.add_child(scroll)
-			pages[tab] = box
+			pages[tab] = new_page.call(tab)
 		_settings_row(pages[tab], row, cfg)
 	screen.add_child(_button("Back", _show_main))
+
+# The menu has no client to ask, so everything here reads and writes
+# goanna.cfg directly and takes effect on the next connect.
+func _menu_graphics_page(box: VBoxContainer, cfg: ConfigFile) -> void:
+	var head := Label.new()
+	head.text = "Graphics profile"
+	box.add_child(head)
+	var picker := OptionButton.new()
+	var blurb := Label.new()
+	blurb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	blurb.modulate = Color(1, 1, 1, 0.72)
+	var names: Array = GraphicsProfiles.ORDER.duplicate()
+	names.append("custom")
+	for i in names.size():
+		picker.add_item(GraphicsProfiles.LABELS[names[i]], i)
+	var stored := func() -> Dictionary:
+		var have := {}
+		for row in GameUI.SETTINGS:
+			var k := str(row[1])
+			if cfg.has_section_key("settings", k):
+				have[k] = float(cfg.get_value("settings", k, 0.0))
+		return have
+	var show_current := func() -> void:
+		var name: String = GraphicsProfiles.matches(stored.call())
+		picker.select(maxi(0, names.find(name)))
+		blurb.text = GraphicsProfiles.BLURBS[name]
+	picker.item_selected.connect(func(i: int) -> void:
+		var name: String = names[i]
+		if name == "custom":
+			show_current.call()
+			return
+		for key in GraphicsProfiles.PROFILES[name]:
+			cfg.set_value("settings", key, float(GraphicsProfiles.PROFILES[name][key]))
+		cfg.set_value("settings", "graphics_profile", name)
+		cfg.save(CFG_PATH)
+		_show_settings())
+	box.add_child(picker)
+	box.add_child(blurb)
+	show_current.call()
+	var adv := CheckButton.new()
+	adv.text = "Advanced graphics settings"
+	adv.button_pressed = menu_advanced_open
+	box.add_child(adv)
+	var rest := VBoxContainer.new()
+	rest.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rest.add_theme_constant_override("separation", 10)
+	rest.visible = menu_advanced_open
+	box.add_child(rest)
+	adv.toggled.connect(func(on: bool) -> void:
+		menu_advanced_open = on
+		rest.visible = on)
+	var group := ""
+	for row in GameUI.SETTINGS:
+		var tab := str(row[0])
+		if GameUI.PLAIN_TABS.has(tab):
+			continue
+		if GameUI.SIMPLE_KEYS.has(str(row[1])):
+			_settings_row(box, row, cfg)
+			continue
+		if tab != group:
+			group = tab
+			var sub := Label.new()
+			sub.text = tab
+			sub.modulate = Color(1, 1, 1, 0.6)
+			rest.add_child(sub)
+		_settings_row(rest, row, cfg)
 
 func _settings_row(box: VBoxContainer, row: Array, cfg: ConfigFile) -> void:
 	var key := str(row[1])

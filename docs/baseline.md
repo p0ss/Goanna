@@ -4,6 +4,13 @@ The baseline is the control condition for renderer work. It answers one
 question: does a change improve the world without making the client slower,
 less contiguous or less stable?
 
+For a frame cost question with a number at the end of it, use
+[benchmark.md](benchmark.md) instead: it automates the discipline below, and
+records every frame rather than one telemetry line a second, which is what a
+1% low or a hitch count needs. This page remains the description of the
+control condition, and the far rendering suite below is still the tool for
+contiguity and residency over a long soak.
+
 ## Control condition
 
 Use the same build, resolution, world, player position and camera path for

@@ -1,0 +1,376 @@
+{
+  "label": "one graphics setting at a time, steady state",
+  "host": "127.0.0.1",
+  "port": 30000,
+  "name": "bench",
+  "resolution": [
+    1920,
+    1080
+  ],
+  "tests": [
+    "steady"
+  ],
+  "seconds": 40,
+  "settle_quiet": 20,
+  "settle_timeout": 900,
+  "time_of_day": 0.5,
+  "weather": "clear",
+  "anchor": {
+    "at": [
+      -72,
+      54,
+      378
+    ],
+    "offset": [
+      0,
+      0,
+      0
+    ]
+  },
+  "actors": [
+    {
+      "name": "mobs_mc:sheep",
+      "at": [
+        -24,
+        -8,
+        -32
+      ],
+      "count": 4
+    },
+    {
+      "name": "mobs_mc:chicken",
+      "at": [
+        -32,
+        -8,
+        -40
+      ],
+      "count": 4
+    },
+    {
+      "name": "mobs_mc:cow",
+      "at": [
+        -20,
+        -8,
+        -44
+      ],
+      "count": 3
+    }
+  ],
+  "base": {
+    "show_body": 0,
+    "texture_pack": "/var/home/poss/Documents/Code/Godot/goanna/baked/pack-mineclonia-v2/textures"
+  },
+  "variants": [
+    {
+      "name": "no-bounced-light",
+      "set": {
+        "light_sdfgi": 0
+      },
+      "scene": "close"
+    },
+    {
+      "name": "coarse-bounce-grid",
+      "set": {
+        "light_sdfgi_cell": 8.0
+      },
+      "scene": "close"
+    },
+    {
+      "name": "no-corner-shading",
+      "set": {
+        "light_ssao": 0
+      },
+      "scene": "close"
+    },
+    {
+      "name": "no-light-shafts",
+      "set": {
+        "light_shafts": 0
+      },
+      "scene": "dusk"
+    },
+    {
+      "name": "no-volumetrics",
+      "set": {
+        "atmosphere_quality": 0
+      },
+      "scene": "dusk"
+    },
+    {
+      "name": "half-volumetrics",
+      "set": {
+        "atmosphere_quality": 0.5
+      },
+      "scene": "dusk"
+    },
+    {
+      "name": "no-sky-fill",
+      "set": {
+        "light_fill": 0
+      },
+      "scene": "close"
+    },
+    {
+      "name": "no-shadow-lamps",
+      "set": {
+        "shadow_lamps": 0
+      },
+      "scene": "night"
+    },
+    {
+      "name": "few-shadow-lamps",
+      "set": {
+        "shadow_lamps": 8
+      },
+      "scene": "night"
+    },
+    {
+      "name": "small-lamp-pool",
+      "set": {
+        "light_pool": 32
+      },
+      "scene": "night"
+    },
+    {
+      "name": "large-lamp-pool",
+      "set": {
+        "light_pool": 256
+      },
+      "scene": "night"
+    },
+    {
+      "name": "no-normal-maps",
+      "set": {
+        "mat_normal": 0
+      },
+      "scene": "close"
+    },
+    {
+      "name": "no-material-ao",
+      "set": {
+        "mat_ao": 0
+      },
+      "scene": "close"
+    },
+    {
+      "name": "no-roughness",
+      "set": {
+        "mat_roughness": 0
+      },
+      "scene": "close"
+    },
+    {
+      "name": "no-specular",
+      "set": {
+        "mat_specular": 0
+      },
+      "scene": "close"
+    },
+    {
+      "name": "no-surface-detail",
+      "set": {
+        "mat_detail": 0
+      },
+      "scene": "close"
+    },
+    {
+      "name": "no-leaf-translucency",
+      "set": {
+        "mat_sss": 0
+      },
+      "scene": "close"
+    },
+    {
+      "name": "no-bevel",
+      "set": {
+        "bevel": 0
+      },
+      "scene": "close"
+    },
+    {
+      "name": "no-motes",
+      "set": {
+        "motes": 0
+      },
+      "scene": "close"
+    },
+    {
+      "name": "no-auto-bump",
+      "set": {
+        "auto_bump": 0
+      },
+      "scene": "close"
+    },
+    {
+      "name": "no-effect-particles",
+      "set": {
+        "player_effect_particles": 0
+      },
+      "scene": "close"
+    },
+    {
+      "name": "no-occlusion",
+      "set": {
+        "terrain_occlusion": 0
+      },
+      "scene": "vista",
+      "expect_visible": false
+    },
+    {
+      "name": "terraced-far",
+      "set": {
+        "lod_terrace": 1
+      },
+      "scene": "vista"
+    },
+    {
+      "name": "view-8",
+      "set": {
+        "view_range": 8
+      },
+      "scene": "vista"
+    },
+    {
+      "name": "view-16",
+      "set": {
+        "view_range": 16
+      },
+      "scene": "vista"
+    },
+    {
+      "name": "detail-12",
+      "set": {
+        "lod_distance": 12
+      },
+      "scene": "vista"
+    },
+    {
+      "name": "detail-0",
+      "set": {
+        "lod_distance": 0
+      },
+      "scene": "vista"
+    },
+    {
+      "name": "far-512",
+      "set": {
+        "far_distance": 512
+      },
+      "scene": "vista"
+    },
+    {
+      "name": "far-0",
+      "set": {
+        "far_distance": 0
+      },
+      "scene": "vista"
+    }
+  ],
+  "control_every": 4,
+  "comment": [
+    "Four scenes, because one cannot exercise every setting. Sun shafts are",
+    "strongest with the sun on the horizon and in rain, so at noon under a",
+    "clear sky the setting does nothing by construction and reads as free.",
+    "Normal maps, corner shading and surface detail act on near surfaces, so a",
+    "camera thirty nodes from anything cannot see them either. Lamp shadows",
+    "want a lit village after dark. Each variant names the scene it can act in,",
+    "and the control is measured inside every scene it is compared against.",
+    "",
+    "base sets a texture pack. Without one there are no LabPBR maps for the",
+    "mat_* strengths to scale, so those settings would multiply nothing and",
+    "read as free for that reason rather than any other. base also turns",
+    "show_body off: in fly mode the own body draws as a large flat red quad",
+    "across the lower sixth of the frame, which is a rendering fault worth",
+    "fixing on its own but not part of the scene being measured.",
+    "",
+    "GOANNA_STORE points at a warmed block store. This world's far field does",
+    "not converge from nothing at the vista: a cold run sat there twenty",
+    "minutes taking 400,000 blocks and never settled.",
+    "",
+    "structures places the village. Run once with --build-scene on a world",
+    "that has not had it, then never again, or the villages stack.",
+    "",
+    "scene.png beside the report is what was measured. The first run of this",
+    "harness aimed yaw 0 from the spawn and photographed a tree trunk."
+  ],
+  "aim": [
+    -100,
+    46,
+    342
+  ],
+  "structures": [
+    {
+      "type": "village",
+      "at": [
+        -100,
+        45,
+        340
+      ]
+    }
+  ],
+  "env": {
+    "GOANNA_STORE": "/tmp/claude-1000/-var-home-poss-Documents-Code-Godot-goanna/386a7c19-6e36-4926-b436-f4091fafde94/scratchpad/bench-store"
+  },
+  "scenes": {
+    "vista": {
+      "at": [
+        -72,
+        54,
+        378
+      ],
+      "aim": [
+        -100,
+        46,
+        342
+      ],
+      "time_of_day": 0.5,
+      "weather": "clear"
+    },
+    "close": {
+      "at": [
+        -100,
+        30.6,
+        340
+      ],
+      "aim": [
+        -92,
+        28.5,
+        344
+      ],
+      "time_of_day": 0.5,
+      "weather": "clear"
+    },
+    "dusk": {
+      "at": [
+        -72,
+        54,
+        378
+      ],
+      "aim": [
+        -100,
+        46,
+        342
+      ],
+      "time_of_day": 0.78,
+      "weather": "rain"
+    },
+    "night": {
+      "at": [
+        -100,
+        30.6,
+        340
+      ],
+      "aim": [
+        -92,
+        28.5,
+        344
+      ],
+      "time_of_day": 0.0,
+      "weather": "clear"
+    }
+  },
+  "default_scene": "vista",
+  "resolve_samples": 24,
+  "resolve_gap_s": 3.0,
+  "warmup_seconds": 45
+}

@@ -61,6 +61,8 @@ const COMMANDS := {
 	"reload_shader": "path: recompile a .gdshader from disk in place",
 	"call": "method, args: any GoannaClient method",
 	"eval": "expr: a GDScript expression evaluated against main",
+	"bench": "start / mark / stop / summary / stamps: the frame recorder",
+	"route": "mode / points / speed / loop: fly or walk a fixed path",
 	"quit": "disconnect and close the client",
 }
 
@@ -299,19 +301,7 @@ func _dispatch(cmd: String, a: Dictionary) -> Variant:
 			_client().send_chat("/weather " + kind)
 			return await _after_chat("/weather " + kind, a)
 		"spawn":
-			var name := String(a.get("name", ""))
-			if name == "":
-				return _err("spawn wants a name, for example mobs_mc:sheep")
-			var at = _vec3(a)
-			var sent := []
-			for i in maxi(1, int(a.get("count", 1))):
-				var text := "/spawnentity " + name
-				if at != null:
-					# Godot space in, Luanti space out, as teleport does.
-					text += " %.1f,%.1f,%.1f" % [at.x, at.y, -at.z]
-				_client().send_chat(text)
-				sent.append(text)
-			return await _after_chat(", ".join(sent), a)
+			return await _spawn(a)
 		"give":
 			var item := String(a.get("item", ""))
 			if item == "":
@@ -355,6 +345,10 @@ func _dispatch(cmd: String, a: Dictionary) -> Variant:
 			return _eval(String(a.get("expr", "")))
 		"run":
 			return await _run_snippet(String(a.get("src", "")))
+		"bench":
+			return _bench(a)
+		"route":
+			return _route(a)
 		"quit":
 			_client().disconnect_from_server()
 			_quit_soon()
@@ -391,6 +385,67 @@ func _after_chat(sent: String, a: Dictionary) -> Dictionary:
 				or line.contains("Insufficient privileges"):
 			out["refused"] = true
 			break
+	return out
+
+# The command that puts an entity in the world is not the same on every
+# game. Luanti's builtin is /spawnentity; Mineclonia unregisters it and
+# registers /summon in its place, with the same parameters (its
+# mcl_commands/summon.lua copies the builtin and only adds the peaceful mobs
+# check). So the first spawn of a session tries the builtin, reads what the
+# server said, and remembers the one that worked.
+#
+# Sends are also spaced. A server allows eight chat messages per ten seconds
+# by default, and a request for a dozen mobs sent back to back spends the
+# whole allowance, gets the rest refused, and leaves the next command
+# (a /time or a /weather) refused as well.
+var _spawn_cmd := ""
+
+func _spawn(a: Dictionary) -> Variant:
+	var name := String(a.get("name", ""))
+	if name == "":
+		return _err("spawn wants a name, for example mobs_mc:sheep")
+	var at = _vec3(a)
+	var suffix := ""
+	if at != null:
+		# Godot space in, Luanti space out, as teleport does.
+		suffix = " %.1f,%.1f,%.1f" % [at.x, at.y, -at.z]
+	var count := maxi(1, int(a.get("count", 1)))
+	var sent := []
+	var said := []
+	var refused := false
+	for i in count:
+		if _spawn_cmd == "":
+			var probe := await _try_spawn("/spawnentity " + name + suffix, a)
+			if bool(probe.get("refused", false)):
+				probe = await _try_spawn("/summon " + name + suffix, a)
+				if bool(probe.get("refused", false)):
+					return {"sent": "/spawnentity and /summon", "spawned": 0,
+						"refused": true, "server_said": probe.get("server_said", [])}
+				_spawn_cmd = "/summon"
+			else:
+				_spawn_cmd = "/spawnentity"
+			sent.append(_spawn_cmd + " " + name + suffix)
+			said.append_array(probe.get("server_said", []))
+			continue
+		var text := _spawn_cmd + " " + name + suffix
+		var reply := await _try_spawn(text, a)
+		sent.append(text)
+		said.append_array(reply.get("server_said", []))
+		if bool(reply.get("refused", false)):
+			refused = true
+			break
+	return {"sent": sent, "spawned": sent.size(), "refused": refused,
+		"command": _spawn_cmd, "server_said": said}
+
+# One chat line, with enough of a gap after it that a run of them does not
+# spend the server's per ten second allowance.
+func _try_spawn(text: String, a: Dictionary) -> Dictionary:
+	_client().send_chat(text)
+	var out := await _after_chat(text, a)
+	var gap := int(a.get("gap_ms", 1400))
+	var until := Time.get_ticks_msec() + gap
+	while Time.get_ticks_msec() < until:
+		await get_tree().process_frame
 	return out
 
 func _set_setting(a: Dictionary) -> Variant:
@@ -582,6 +637,37 @@ func _run_snippet(src: String) -> Variant:
 	var v = await sc.new().run(main, main.client, main.cam, main.ui)
 	return {"value": v}
 
+
+# The frame recorder (project/bench.gd). It is built at startup under
+# GOANNA_BENCH rather than on demand, because its load stamps begin at
+# process start and no driver can be connected that early; a client launched
+# without it can still be asked, and says so.
+func _bench(a: Dictionary) -> Variant:
+	if main.bench == null:
+		return _err("no recorder in this client; relaunch with GOANNA_BENCH=1")
+	var action := String(a.get("action", a.get("do", "summary")))
+	match action:
+		"start":
+			return main.bench.start(a)
+		"mark":
+			return main.bench.mark(a)
+		"stop":
+			return main.bench.stop(a)
+		"summary":
+			return main.bench.summary(a)
+		"stamps":
+			return main.bench.stamps
+	return _err("bench wants start, mark, stop, summary or stamps")
+
+# A fixed path through the world, walked or flown at a fixed speed. "stop"
+# hands the camera back to the keyboard. Poll bench.route_active() through
+# wait to know when a route that is not looping has finished.
+func _route(a: Dictionary) -> Variant:
+	if main.bench == null:
+		return _err("no recorder in this client; relaunch with GOANNA_BENCH=1")
+	if String(a.get("action", "")) == "stop" or a.get("mode", "") == "stop":
+		return main.bench.route_stop()
+	return main.bench.route_start(a)
 
 func _quit_soon() -> void:
 	await get_tree().process_frame

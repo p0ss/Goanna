@@ -69,6 +69,7 @@ Developer-facing documentation starts at [docs/developers.md](docs/developers.md
 The specialised references remain available for contributors:
 
 - [Building and validation](docs/building.md), [requirements](docs/requirements.md)
+- [Benchmarking graphics settings](docs/benchmark.md), [rendering baseline](docs/baseline.md)
 - [Distant terrain](docs/far-rendering.md), [materials](docs/materials.md),
   [PBR plan](docs/pbr-plan.md)
 - [Protocol coverage](docs/protocol-coverage.md), [capabilities](docs/capabilities.md),

@@ -408,7 +408,7 @@ func _ui_chest_test(delta: float) -> void:
 		other_inv_cache.clear()
 		form_is_inventory = false
 		form.show_formspec("size[8,9]list[context;main;0,0.3;8,4;]list[current_player;main;0,4.85;8,1;]list[current_player;main;0,6.08;8,3;8]listring[context;main]listring[current_player;main]",
-			"", get_viewport().get_visible_rect().size, _formspec_prepend())
+			"", get_viewport().get_visible_rect().size)
 		fullscreen_tint.color = form.fullscreen_bg
 		_open_window(form)
 	if absf(t - 5.5) < delta * 0.6:
@@ -614,15 +614,9 @@ func _open_inventory() -> void:
 	form_is_inventory = true
 	other_inv_cache.clear()
 	form_context = ""
-	form.show_formspec(spec, "", get_viewport().get_visible_rect().size, _formspec_prepend())
+	form.show_formspec(spec, "", get_viewport().get_visible_rect().size)
 	fullscreen_tint.color = form.fullscreen_bg
 	_open_window(form)
-
-# The game's window theme, sent once as TOCLIENT_FORMSPEC_PREPEND. Only
-# server formspecs get it: Goanna's own pause menu and settings screens are
-# ordinary Controls and are not formspecs at all.
-func _formspec_prepend() -> String:
-	return client.formspec_prepend() if client.has_method("formspec_prepend") else ""
 
 func _show_server_formspec(spec: String, formname: String) -> void:
 	if spec.strip_edges() == "":
@@ -632,7 +626,7 @@ func _show_server_formspec(spec: String, formname: String) -> void:
 		return
 	form_is_inventory = false
 	other_inv_cache.clear()
-	form.show_formspec(spec, formname, get_viewport().get_visible_rect().size, _formspec_prepend())
+	form.show_formspec(spec, formname, get_viewport().get_visible_rect().size)
 	fullscreen_tint.color = form.fullscreen_bg
 	_open_window(form)
 
@@ -707,7 +701,6 @@ const SETTINGS := [
 	["Video", "motes", "slider", "Ambient motes", "Drifting specks over leaves, flowers and sand.", 0.0, 4.0, 0.25],
 	["Video", "view_range", "slider", "View distance", "How much world to ask the server for, in blocks of 16 nodes. Most servers cap this near 12, so higher values may change nothing.", 4.0, 40.0, 1.0],
 	["Video", "mesh_threads", "slider", "Terrain mesh threads", "How many background threads build near and distant terrain. 0 picks a number from your processor, leaving a core for the game and one for the network. -1 builds on the main thread instead, which is slower and is useful for diagnosing terrain faults.", -1.0, 16.0, 1.0],
-	["Video", "lod_terrace", "toggle", "Terraced far terrain", "Draw distant ground as flat cells with steps between them, the way the blocks underneath do, instead of as a smoothed surface."],
 	["Video", "lod_distance", "slider", "Detail distance", "Blocks beyond this are drawn as simplified shapes, which costs less, and distant terrain beyond the server's range is drawn only when this is on. 0 turns both off.", 0.0, 48.0, 1.0],
 	["Video", "far_distance", "slider", "Far draw distance", "How far past the live range the far tiers draw, in nodes. Capped by what the server actually granted (docs/far-rendering.md); raising this past the grant changes nothing. Defaults to the grant itself, so this only needs touching to draw less than the server allows. A local single player server grants this same setting, so on your own worlds this is the one knob.", 0.0, 8192.0, 32.0],
 	["Video", "terrain_occlusion", "toggle", "Terrain occlusion", "Use opaque nearby terrain to avoid drawing regions completely hidden behind it. Most useful in caves, buildings and deep valleys."],
@@ -738,12 +731,31 @@ const SETTINGS := [
 	["Display", "vsync", "toggle", "VSync", "Sync frames to the display's refresh rate."],
 	["Display", "fullscreen", "toggle", "Fullscreen", "Run the window in fullscreen."],
 ]
+const GraphicsProfiles := preload("res://graphics_profiles.gd")
+
+# What a player sees before opening Advanced. Everything else in SETTINGS is
+# still there, one disclosure away, but a panel that opens on thirty sliders
+# asks the player to have an opinion about all of them. These are the ones
+# worth an opinion without a frame counter open: what the world looks like
+# and how big it is, not how its materials respond.
+#
+# The Video tab also carries the profile picker, which is what actually moves
+# the settings a profile is about (project/graphics_profiles.gd).
+const SIMPLE_KEYS := ["texture_pack", "view_range", "far_distance",
+	"damage_flash", "show_body", "show_fps", "show_position",
+	"player_effect_particles"]
+
+# Tabs that are entirely player preference rather than graphics quality, so
+# they are shown whole and have no Advanced half.
+const PLAIN_TABS := ["Controls", "Audio", "Display"]
+
 # Settings handled here rather than through the client (window, camera, UI).
 const LOCAL_KEYS := ["mouse_sensitivity", "invert_mouse", "view_bobbing", "fov",
 	"gui_scale", "max_fps", "vsync", "fullscreen", "damage_flash", "show_fps", "show_position", "terrain_occlusion", "player_effect_particles", "volume", "muted",
 	"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao",
 	"light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality"]
 var settings_menu: Control
+var advanced_open := false      # Advanced graphics settings, kept across reopens
 
 func _main_node() -> Node:
 	return get_tree().get_first_node_in_group("goanna_main")
@@ -834,7 +846,6 @@ func _apply_setting(key: String, value: float) -> void:
 		"far_distance": if client.has_method("set_far_distance"): client.set_far_distance(int(value))
 		"mantle": if client.has_method("set_mantle"): client.set_mantle(on)
 		"mesh_threads": if client.has_method("set_mesh_threads"): client.set_mesh_threads(int(value))
-		"lod_terrace": if client.has_method("set_lod_terrace"): client.set_lod_terrace(on)
 		"show_body": if client.has_method("set_show_body"): client.set_show_body(on)
 		"aux1_descends": if client.has_method("set_aux1_descends"): client.set_aux1_descends(on)
 		"pitch_move": if client.has_method("set_pitch_move"): client.set_pitch_move(on)
@@ -862,7 +873,6 @@ func _setting_value(key: String, fallback: float) -> float:
 		"far_distance": if client.has_method("far_distance"): return float(client.far_distance())
 		"mantle": if client.has_method("mantle"): return 1.0 if client.mantle() else 0.0
 		"mesh_threads": if client.has_method("mesh_threads"): return float(client.mesh_threads())
-		"lod_terrace": if client.has_method("lod_terrace"): return 1.0 if client.lod_terrace() else 0.0
 		"show_body": if client.has_method("show_body"): return 1.0 if client.show_body() else 0.0
 		"aux1_descends": if client.has_method("aux1_descends"): return 1.0 if client.aux1_descends() else 0.0
 		"pitch_move": if client.has_method("pitch_move"): return 1.0 if client.pitch_move() else 0.0
@@ -884,6 +894,23 @@ func _setting_value(key: String, fallback: float) -> float:
 func _load_apply_settings() -> void:
 	var cfg := ConfigFile.new()
 	cfg.load(SETTINGS_CFG)  # absent is normal on a first run
+	# The machine's profile goes down first and the player's stored settings
+	# over the top, so a profile is a starting point and never overrides a
+	# choice. main.gd works out which profile from the adapter and the core
+	# count but deliberately does not apply it, because it runs before this
+	# panel exists and the order would come out backwards.
+	var m := _main_node()
+	if m != null and m.get("hardware_profile") != null \
+			and OS.get_environment("GOANNA_NO_HW_DEFAULTS") == "":
+		var want: String = str(m.hardware_profile)
+		for key in GraphicsProfiles.PROFILES.get(want, {}):
+			var v: float = float(GraphicsProfiles.PROFILES[want][key])
+			# far_distance -1 means "whatever the server granted", which is
+			# what set_far_distance treats as unset; naming a number would
+			# cap a server that grants more.
+			if key == "far_distance" and v < 0.0:
+				continue
+			_apply_setting(key, v)
 	var seeded := false
 	for entry in SETTINGS:
 		var key: String = entry[1]
@@ -945,23 +972,33 @@ func _build_settings() -> Control:
 	tabs.custom_minimum_size = Vector2(panel_w, content_h)
 	box.add_child(tabs)
 	var pages := {}
+	var new_page := func(name: String) -> VBoxContainer:
+		var scroll := ScrollContainer.new()
+		scroll.name = name
+		scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		var pad := MarginContainer.new()
+		pad.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		for side in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
+			pad.add_theme_constant_override(side, 14)
+		var page := VBoxContainer.new()
+		page.add_theme_constant_override("separation", 20)
+		page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		pad.add_child(page)
+		scroll.add_child(pad)
+		tabs.add_child(scroll)
+		return page
+	# One Graphics tab in place of Video, Material and Lighting. It opens on
+	# a profile and the handful of settings worth an opinion without a frame
+	# counter open; the other thirty are one disclosure away, grouped under
+	# the headings they used to be tabs for.
+	pages["Graphics"] = new_page.call("Graphics")
+	_build_graphics_page(pages["Graphics"])
 	for entry in SETTINGS:
 		var tab: String = entry[0]
+		if not PLAIN_TABS.has(tab):
+			continue
 		if not pages.has(tab):
-			var scroll := ScrollContainer.new()
-			scroll.name = tab
-			scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-			var pad := MarginContainer.new()
-			pad.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			for side in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
-				pad.add_theme_constant_override(side, 14)
-			var page := VBoxContainer.new()
-			page.add_theme_constant_override("separation", 20)
-			page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			pad.add_child(page)
-			scroll.add_child(pad)
-			tabs.add_child(scroll)
-			pages[tab] = page
+			pages[tab] = new_page.call(tab)
 		_build_setting_row(pages[tab], entry)
 	var back := Button.new()
 	back.text = "Back"
@@ -983,6 +1020,100 @@ func _save_setting_text(key: String, value: String) -> void:
 	cfg.load("user://goanna.cfg")
 	cfg.set_value("settings", key, value)
 	cfg.save("user://goanna.cfg")
+
+# The Graphics tab: a profile, the few settings a player can judge by eye,
+# then everything else behind one toggle.
+func _build_graphics_page(page: VBoxContainer) -> void:
+	var picker := OptionButton.new()
+	var head := Label.new()
+	head.text = "Graphics profile"
+	head.add_theme_font_size_override("font_size", 17)
+	page.add_child(head)
+	var blurb := Label.new()
+	blurb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	blurb.add_theme_font_size_override("font_size", 13)
+	blurb.modulate = Color(1, 1, 1, 0.72)
+	var names: Array = GraphicsProfiles.ORDER.duplicate()
+	names.append("custom")
+	for i in names.size():
+		picker.add_item(GraphicsProfiles.LABELS[names[i]], i)
+	var current := func() -> String:
+		var have := {}
+		for entry in SETTINGS:
+			have[entry[1]] = _setting_value(entry[1], 0.0)
+		return GraphicsProfiles.matches(have)
+	var show_current := func() -> void:
+		var name: String = current.call()
+		picker.select(maxi(0, names.find(name)))
+		blurb.text = GraphicsProfiles.BLURBS[name]
+	picker.item_selected.connect(func(i: int) -> void:
+		var name: String = names[i]
+		if name == "custom":
+			show_current.call()
+			return
+		for key in GraphicsProfiles.PROFILES[name]:
+			var v := float(GraphicsProfiles.PROFILES[name][key])
+			_apply_setting(key, v)
+			_save_setting(key, v)
+		_save_setting_text("graphics_profile", name)
+		show_current.call()
+		_open_settings())
+	page.add_child(picker)
+	page.add_child(blurb)
+	show_current.call()
+	# The stale seed. goanna.cfg is written on the first run with whatever the
+	# hardware default picked then, and from that point the stored value
+	# always wins, so a config first written by an older build or on a run
+	# that read the adapter as shared pins a capable machine to the low tier
+	# for ever with nothing on screen to say so.
+	var m := _main_node()
+	if m != null and m.get("hardware_profile") != null:
+		var want: String = str(m.hardware_profile)
+		var have := {}
+		for entry in SETTINGS:
+			have[entry[1]] = _setting_value(entry[1], 0.0)
+		var short: Array = GraphicsProfiles.below_hardware(have, want)
+		if not short.is_empty():
+			var note := Label.new()
+			note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			note.add_theme_font_size_override("font_size", 13)
+			note.modulate = Color(1, 0.85, 0.55)
+			note.text = ("This machine is a %s one, and %d of these settings are "
+					+ "below what that profile would give it. Settings are saved "
+					+ "on the first run and never raised again afterwards, so an "
+					+ "older launch can leave them low. Picking %s above sets them.") \
+					% [GraphicsProfiles.LABELS[want], short.size(),
+					GraphicsProfiles.LABELS[want]]
+			page.add_child(note)
+	var adv := CheckButton.new()
+	adv.text = "Advanced graphics settings"
+	adv.button_pressed = advanced_open
+	page.add_child(adv)
+	var rest := VBoxContainer.new()
+	rest.add_theme_constant_override("separation", 20)
+	rest.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rest.visible = advanced_open
+	page.add_child(rest)
+	adv.toggled.connect(func(on: bool) -> void:
+		advanced_open = on
+		rest.visible = on)
+	var group := ""
+	for entry in SETTINGS:
+		var tab: String = entry[0]
+		if PLAIN_TABS.has(tab):
+			continue
+		var key: String = entry[1]
+		if SIMPLE_KEYS.has(key):
+			_build_setting_row(page, entry)
+			continue
+		if tab != group:
+			group = tab
+			var sub := Label.new()
+			sub.text = tab
+			sub.add_theme_font_size_override("font_size", 15)
+			sub.modulate = Color(1, 1, 1, 0.6)
+			rest.add_child(sub)
+		_build_setting_row(rest, entry)
 
 func _build_setting_row(page: VBoxContainer, entry: Array) -> void:
 	var key: String = entry[1]

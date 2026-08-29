@@ -44,6 +44,13 @@ Start performance work with the [rendering baseline](baseline.md). It defines
 the control condition, capture views and acceptance gates used to separate
 geometry/streaming regressions from optional visual-system costs.
 
+To measure what a graphics setting costs, or to show a renderer change has
+not made things slower, use the [benchmark harness](benchmark.md). It runs a
+plan of setting variants through load, steady state and two movement tests,
+records every frame rather than one line a second, and reports medians, 1%
+lows, stability and what each frame was waiting on, against a noise floor it
+measures on the same machine in the same session.
+
 Native tests are built in `build/`:
 
 ```sh

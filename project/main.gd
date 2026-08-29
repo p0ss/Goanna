@@ -133,6 +133,14 @@ var iris: GoannaIrisEffect
 var test_started := 0.0
 var showcase_mode := false
 var showcase_placed := false
+# project/bench.gd when GOANNA_BENCH is set: the per frame recorder and
+# the scripted route. Null in an ordinary session, so every use is guarded.
+var bench: Node = null
+# The profile this machine would open on, worked out in
+# _apply_hardware_defaults and read by the settings panel so it can say when
+# a stored config is below what the hardware could do.
+var hardware_profile := "balanced"
+const GraphicsProfiles := preload("res://graphics_profiles.gd")
 
 # Named live-server fixtures bind the whole visual-test state together. These
 # coordinates match goanna_visual_test_mod. Add a new site there and here as
@@ -556,6 +564,18 @@ func _ready() -> void:
 			add_child(cc)
 		else:
 			push_error("GOANNA_CONTROL is set but control_channel.gd is not in this build")
+	# GOANNA_BENCH=1: build the frame recorder now rather than when the first
+	# bench command arrives, because the load stamps it takes start at process
+	# start and a driver cannot connect that early. It is added after the
+	# control channel so its _process runs after this node has moved the
+	# camera, and the frame it records is the one that was just drawn.
+	if OS.get_environment("GOANNA_BENCH") != "":
+		if ResourceLoader.exists("res://bench.gd"):
+			bench = (load("res://bench.gd") as GDScript).new()
+			bench.main = self
+			add_child(bench)
+		else:
+			push_error("GOANNA_BENCH is set but bench.gd is not in this build")
 	# A control session is usually unattended, and grabbing the pointer there
 	# takes the mouse away from whoever is watching. Escape still toggles it.
 	if OS.get_environment("GOANNA_SHOT") == "" and OS.get_environment("GOANNA_CONTROL") == "":
@@ -579,6 +599,12 @@ func _apply_view_bob(r: Dictionary, delta: float) -> void:
 	cam.position += basis.x * (cos(_bob_phase) * amp) + Vector3.UP * (sin(_bob_phase * 2.0) * amp * 0.5)
 
 func _unhandled_input(event: InputEvent) -> void:
+	# Same reason as the movement keys above: while a benchmark run is
+	# recording, nothing outside the run may turn the camera. Escape is in
+	# here too, because it toggles mouse capture and capture is what makes
+	# mouse motion turn the view at all.
+	if bench != null and bench.owns_input():
+		return
 	if event is InputEventMouseButton and Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
 		if event.button_index == MOUSE_BUTTON_LEFT:
 			dig_down = event.pressed
@@ -728,44 +754,30 @@ func _update_connect_overlay(s: Dictionary) -> void:
 # type, which separates a discrete card from an integrated one sharing system
 # memory, and that is the distinction that matters most here anyway.
 func _apply_hardware_defaults() -> void:
-	if OS.get_environment("GOANNA_NO_HW_DEFAULTS") != "":
-		return
 	var cores := OS.get_processor_count()
 	# get_video_adapter_type returns a RenderingDevice.DeviceType, so the
 	# constant lives there rather than on RenderingServer.
 	var gpu: int = RenderingServer.get_video_adapter_type()
 	var discrete: bool = gpu == RenderingDevice.DEVICE_TYPE_DISCRETE_GPU
-	# Detail distance in blocks, mesh worker threads, far draw distance in
-	# nodes. Far distance is a ceiling on what the server granted, never a
-	# request for more, so a generous number here costs nothing on a server
-	# that grants less.
-	var detail := 20
-	var threads := 0  # 0 lets the pool choose from the processor count
-	# -1 means "leave it alone", which is not the same as a large number:
-	# set_far_distance marks the value explicit and it stops tracking whatever
-	# the server granted, so naming a generous number here would cap a server
-	# that grants more. Only a machine that should draw less says anything.
-	var far := -1
-	if discrete and cores >= 12:
-		detail = 32
-	elif discrete:
-		detail = 24
-	else:
-		# Integrated, virtual or software: shares memory with everything else
-		# and is the case the old defaults were chosen for.
-		detail = 12
-		threads = 2
-		far = 512
-	if client.has_method("set_lod_distance"):
-		client.set_lod_distance(detail)
-	if far >= 0 and client.has_method("set_far_distance"):
-		client.set_far_distance(far)
-	if threads > 0 and client.has_method("set_mesh_threads"):
-		client.set_mesh_threads(threads)
-	print("hardware: %d cores, %s (%s), detail %d blocks, far %s" % [
+	# The machine's profile is worked out even when the values are not
+	# applied, because the settings panel shows it: a config written on an
+	# older run pins a capable machine to the low tier for ever, and the
+	# panel can only say so if it knows what the machine should have been.
+	hardware_profile = GraphicsProfiles.for_hardware(discrete, cores)
+	if OS.get_environment("GOANNA_NO_HW_DEFAULTS") != "":
+		return
+	# The values themselves are applied by ui/game_ui.gd's _load_apply_settings,
+	# which runs when the panel is built: it has to put the profile down first
+	# and the player's stored settings over the top, and doing it here would
+	# be the wrong way round, because this runs before the panel exists.
+	# Not part of a profile: a machine sharing memory with everything else
+	# should leave a core for the game and one for the network, and that is
+	# a fact about the machine rather than a look the player picks.
+	if not discrete and client.has_method("set_mesh_threads"):
+		client.set_mesh_threads(2)
+	print("hardware: %d cores, %s (%s), profile %s" % [
 		cores, RenderingServer.get_video_adapter_name(),
-		"discrete" if discrete else "shared", detail,
-		"the server's grant" if far < 0 else str(far) + " nodes"])
+		"discrete" if discrete else "shared", hardware_profile])
 
 func _process(delta: float) -> void:
 	t += delta
@@ -803,6 +815,14 @@ func _process(delta: float) -> void:
 		}
 		if OS.get_environment("GOANNA_WALKTEST") != "":
 			keys = _walktest_keys()
+		if bench != null and bench.owns_input():
+			# A recording run owns the camera. This window can still be
+			# clicked into and typed at, and a stray key in the middle of a
+			# sample moves the player without anything saying so.
+			for k in keys:
+				keys[k] = false
+		if bench != null and bench.route_active() and bench.route_mode == "walk":
+			keys = bench.walk_keys()
 		test_dig = false
 		test_plc_pressed = false
 		_test_hooks(keys)
@@ -875,16 +895,29 @@ func _process(delta: float) -> void:
 		_update_selection_box()
 	elif placed and not showcase_mode:
 		# fly controls
-		var dir := Vector3.ZERO
-		var basis := Basis.from_euler(Vector3(deg_to_rad(pitch), deg_to_rad(yaw), 0))
-		if Input.is_key_pressed(KEY_W): dir -= basis.z
-		if Input.is_key_pressed(KEY_S): dir += basis.z
-		if Input.is_key_pressed(KEY_A): dir -= basis.x
-		if Input.is_key_pressed(KEY_D): dir += basis.x
-		if Input.is_key_pressed(KEY_SPACE): dir += Vector3.UP
-		if Input.is_key_pressed(KEY_SHIFT): dir -= Vector3.UP
-		var sp := speed * (3.0 if Input.is_key_pressed(KEY_CTRL) else 1.0)
-		cam.position += dir.normalized() * sp * delta if dir.length() > 0 else Vector3.ZERO
+		if bench != null and bench.route_active() and bench.route_mode == "fly":
+			# A benchmark route flies the camera in place of the keyboard, at a
+			# fixed speed in nodes a second. It advances on elapsed time rather
+			# than per frame on purpose: a setting that halves the frame rate
+			# would otherwise cover half the ground in the same wall clock, and
+			# the two runs would no longer be the same traversal.
+			var step: Dictionary = bench.route_step(delta)
+			cam.position = step["position"]
+			pitch = step["pitch"]
+			yaw = step["yaw"]
+		elif bench != null and bench.owns_input():
+			pass          # a recording run holds the camera where it put it
+		else:
+			var dir := Vector3.ZERO
+			var basis := Basis.from_euler(Vector3(deg_to_rad(pitch), deg_to_rad(yaw), 0))
+			if Input.is_key_pressed(KEY_W): dir -= basis.z
+			if Input.is_key_pressed(KEY_S): dir += basis.z
+			if Input.is_key_pressed(KEY_A): dir -= basis.x
+			if Input.is_key_pressed(KEY_D): dir += basis.x
+			if Input.is_key_pressed(KEY_SPACE): dir += Vector3.UP
+			if Input.is_key_pressed(KEY_SHIFT): dir -= Vector3.UP
+			var sp := speed * (3.0 if Input.is_key_pressed(KEY_CTRL) else 1.0)
+			cam.position += dir.normalized() * sp * delta if dir.length() > 0 else Vector3.ZERO
 		cam.rotation_degrees = Vector3(pitch, yaw, 0)
 		# Tell the server where the camera is, or it keeps streaming around
 		# wherever we last walked and flying loads nothing. A server may reject

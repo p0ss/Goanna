@@ -18,6 +18,8 @@ then drive it:
     tools/goanna-control shot /tmp/a.png
     tools/goanna-control eval 'client.node_name_at(Vector3(10, 64, -20))'
     tools/goanna-control deviations
+    tools/goanna-control bench start label=sdfgi-off
+    tools/goanna-control bench stop dir=/tmp/run
 
 Arguments after the command are either positional, per the table below, or
 key=value pairs whose values are parsed as JSON where they can be. Anything
@@ -52,6 +54,7 @@ POSITIONAL = {
     "reload_shader": ["path"],
     "call": ["method"],
     "eval": ["expr*"],
+    "bench": ["action"],
 }
 
 
