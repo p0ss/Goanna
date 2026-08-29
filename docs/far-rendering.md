@@ -2663,3 +2663,40 @@ mesa east of (130, 37, 313), rays swinging as the camera pans, no
 mirror-image rays (which would mean the projection's Y convention
 differs from the water path after all), and the pass gone at noon, at
 night, in storms and under water.
+
+### The shafts pass drew nothing at all, 2026-08-30
+
+Run for the first time after the reboot, against the checklist above. It
+failed the first item: at the mesa at dawn the frame was the same with the
+pass on and off.
+
+**`unshaded` discards `EMISSION`.** The fragment ended `ALBEDO = vec3(0.0);
+EMISSION = col;`, and under `render_mode unshaded` Godot takes the fragment
+colour from `ALBEDO` alone and never runs the lighting step that would
+apply emission. The quad was therefore adding black, on every frame, since
+the pass landed. `ALBEDO = col` is the whole fix.
+
+Measured at (130, 37, 313) looking east, `time_of_day` 0.22, the slider at
+its shipped 0.8, by hiding `shaft_quad` rather than moving the slider: the
+slider also scales `volumetric_fog_density`, so an A/B on it measures the
+froxel fog and not this pass, which is how the fault survived a first look.
+
+| | signed mean, /255 | pixels differing by more than 2 |
+| --- | --- | --- |
+| two shots, pass hidden both times (the noise floor) | -0.09 | 279,981 |
+| before the fix, pass shown against hidden | +0.01 | 200,551 |
+| before the fix, slider forced to 8.0, ten times shipped | +0.09 | 57,696 |
+| after the fix, pass shown against hidden | **+3.11** | **1,105,440** |
+
+The middle row is the point: at ten times the shipped strength the pass was
+still an order of magnitude under the frame-to-frame noise of the animated
+clouds and foliage. Anything measured against a moving sky needs its own
+noise floor taken the same way, or a null result reads as a small one.
+
+After the fix the checklist passes: lanes of light through the gaps in the
+mesa silhouette, fanning across the canopy; the fan swings to the screen
+edge and falls off as the camera pans away; nothing on the far side (the
+`dir.z < -0.05` guard leaves `col` at zero, and the measured difference
+with the sun behind the camera sits at the noise floor); and
+`shaft_strength` is 0.0 from `time_of_day` 0.278 to 0.72, so noon costs
+nothing.

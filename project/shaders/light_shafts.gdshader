@@ -77,6 +77,9 @@ void fragment() {
 			col = goanna_sun_glow * (shaft * shaft * fall * on * shaft_strength);
 		}
 	}
-	ALBEDO = vec3(0.0);
-	EMISSION = col;
+	// The added light goes in ALBEDO, not EMISSION. Under `unshaded` Godot
+	// takes the fragment colour from ALBEDO alone and never runs the lighting
+	// that would apply EMISSION, so an emissive-only pass adds a black quad:
+	// this drew nothing at all until it was measured against a hidden quad.
+	ALBEDO = col;
 }
