@@ -2042,11 +2042,14 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
         // and the hand-off has nothing to draw a seam with.
         if (sh == m_sh_water)
             sm->set_shader_parameter("lod_flatten", true);
-        // Glass and ice take their LabPBR companions, looked up by stem the
-        // way the entity path does (goanna_entities.cpp): the _n is the
-        // authored relief, and the _s smoothness is what breaks a frozen
-        // sheet's reflection into frost and slick instead of one mirror.
-        if (sh == m_sh_glass) {
+        // Glass, ice, leaves and plants take their LabPBR companions, looked
+        // up by stem the way the entity path does (goanna_entities.cpp): the
+        // _n is the authored relief, and the _s smoothness is what breaks a
+        // frozen sheet's reflection into frost and slick instead of one
+        // mirror. Foliage was left out of this until now, so a pack's maps
+        // reached the ground and the walls and stopped at the treeline, and
+        // every mat_ slider moved one and not the other.
+        if (sh == m_sh_glass || sh == m_sh_leaves || sh == m_sh_plants) {
             std::string base = m_session->tsrc()->getTextureName(key.texture_id);
             base = base.substr(0, base.find('^'));
             const size_t dotpos = base.rfind('.');
@@ -2067,6 +2070,15 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
                 sm->set_shader_parameter("normal_tex", nrm_tex);
             if (spc_tex.is_valid())
                 sm->set_shader_parameter("spec_tex", spc_tex);
+            // The settings panel's mat_ channels, so a slider reaches
+            // foliage as well as terrain. Glass has its own fixed response
+            // and is left alone.
+            if (sh == m_sh_leaves || sh == m_sh_plants) {
+                for (const char *ch : {"normal", "ao", "roughness", "specular",
+                                       "sss", "emission"})
+                    sm->set_shader_parameter(String(ch) + String("_strength"),
+                            material_strength(String(ch)));
+            }
         }
         m_materials[key.hash()] = sm;
         return sm;
