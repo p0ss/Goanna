@@ -609,6 +609,16 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F:
 		fly_mode = not fly_mode
 		print("fly mode: ", fly_mode)
+	# E is dual purpose, as aux1 already is in Luanti's own default keymap:
+	# whatever it is pointed at, from the last frame's step_interact, decides
+	# whether it opens the inventory or uses that node or object. A held E
+	# also drives aux1 (climb/fly down) every frame below; this is only the
+	# discrete "just pressed" edge for the UI/use side of the key.
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_E and ui != null:
+		if not ui.blocks_input() and pointed.get("type", "nothing") != "nothing":
+			place_pressed = true
+		else:
+			ui.toggle_inventory()
 
 # Tell the client the wider of the camera's two field of view angles, which is
 # what the server culls against. Godot's Camera3D.fov is the vertical one and

@@ -48,8 +48,10 @@ password, port, player limit and public-list announcement.
 
 WASD moves, the mouse looks, Space jumps, Shift sneaks, and the left and right
 mouse buttons dig and place. Number keys select the hotbar. `I` opens the
-inventory, `T` opens chat, `F` toggles the free camera, and Escape opens the
-pause menu. The exact bindings and camera options can be changed in Settings.
+inventory; so does `E`, unless something is pointed, in which case `E` uses
+it instead, the same as a right click. `T` opens chat, `F` toggles the free
+camera, and Escape opens the pause menu. The exact bindings and camera
+options can be changed in Settings.
 
 The performance overlay can show FPS, draw calls, object and triangle counts,
 terrain queues, occlusion and world position. It is useful when reporting a

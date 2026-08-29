@@ -510,6 +510,60 @@ Ref<ImageTexture> GoannaTexture::godotCompanionNormal(float strength) {
     return m_companion_normal;
 }
 
+// A light-emitting node's material used to glow with its own diffuse texture
+// wholesale: every texel, coloured by its own albedo, at the same emission
+// strength. A torch's wood handle is not black, so it glowed along with the
+// flame, and the whole node read as lit rather than just the flame doing the
+// lighting. tools/pbr_bake.py leaves the baked _s alpha at 255 (no emission)
+// everywhere and defers to the node's protocol light_source instead, so there
+// is no authored mask to fall back on either.
+//
+// Luminance stands in for one: the flame or the glass is the brightest thing
+// in the tile by a wide margin, the handle and cage are not, and that holds
+// for every light-emitting texture in the pack without per-node tuning. A
+// texture that is bright everywhere (glowstone) ends up glowing everywhere,
+// which is the same correct answer by the same rule.
+static Ref<Image> inferEmissionMaskImage(video::IImage *image) {
+    if (!image)
+        return Ref<Image>();
+    const int w = (int)image->getDimension().Width, h = (int)image->getDimension().Height;
+    if (w < 1 || h < 1)
+        return Ref<Image>();
+    PackedByteArray data;
+    data.resize(w * h * 4);
+    uint8_t *dst = data.ptrw();
+    // Below this luminance a texel is the cold material, not the light; above
+    // it, the squared ramp keeps a soft edge instead of a hard cutout so an
+    // antialiased flame edge does not become a jagged glow.
+    const float threshold = 0.55f;
+    for (int y = 0; y < h; ++y)
+        for (int x = 0; x < w; ++x) {
+            video::SColor c = image->getPixel(x, y);
+            float r = c.getRed() / 255.0f, g = c.getGreen() / 255.0f, b = c.getBlue() / 255.0f;
+            float lum = 0.299f * r + 0.587f * g + 0.114f * b;
+            float mask = std::clamp((lum - threshold) / (1.0f - threshold), 0.0f, 1.0f);
+            mask *= mask;
+            size_t i = (size_t)(y * w + x) * 4;
+            dst[i + 0] = (uint8_t)std::clamp(r * mask * 255.0f, 0.0f, 255.0f);
+            dst[i + 1] = (uint8_t)std::clamp(g * mask * 255.0f, 0.0f, 255.0f);
+            dst[i + 2] = (uint8_t)std::clamp(b * mask * 255.0f, 0.0f, 255.0f);
+            dst[i + 3] = 255;
+        }
+    return Image::create_from_data(w, h, false, Image::FORMAT_RGBA8, data);
+}
+
+Ref<ImageTexture> GoannaTexture::godotEmissionMask() {
+    if (m_emission_mask_built)
+        return m_emission_mask;
+    m_emission_mask_built = true;
+    Ref<Image> img = inferEmissionMaskImage(m_image);
+    if (img.is_valid()) {
+        img->generate_mipmaps();
+        m_emission_mask = ImageTexture::create_from_image(img);
+    }
+    return m_emission_mask;
+}
+
 // ---------------------------------------------------------------------------
 // GoannaTextureSource
 

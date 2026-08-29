@@ -106,6 +106,11 @@ public:
     // set_solid_ice in the implementation for the trade it makes.
     void set_shadow_lamps(int n);
     int shadow_lamps() const { return m_shadow_lamps; }
+    // Subtle brightness variance on node lights, like a living flame. Off
+    // for anyone the movement bothers, on by default because it is gentle
+    // rather than a strobe: see update_lights() for the actual waveform.
+    void set_light_flicker(bool on) { m_light_flicker = on; }
+    bool light_flicker() const { return m_light_flicker; }
     void set_solid_ice(bool on);
     bool solid_ice() const;
     void set_texture_map(const godot::String &csv);
@@ -779,6 +784,9 @@ private:
         godot::Color color;
         float level = 0.0f;
         float fade = 0.0f;
+        // A flame's own phase, so a village of torches does not pulse in
+        // lockstep: derived once from the lamp's key, at admission.
+        float flicker_phase = 0.0f;
     };
     std::vector<LightSlot> m_light_slot;
     // How many node lights may cast a shadow at once. An omni shadow is a cube
@@ -786,6 +794,7 @@ private:
     // a lantern is a solid node and occludes its own upward light, so one that
     // loses its shadow lights the eave directly above it through itself.
     int m_shadow_lamps = 16;
+    bool m_light_flicker = true;
     int m_lights_in_range = 0;
     // Slots whose lamp changed on the last update: the churn that makes
     // lighting step as the player walks.

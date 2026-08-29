@@ -2130,13 +2130,24 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
         if (mtype == TILE_MATERIAL_LIQUID_OPAQUE || mtype == TILE_MATERIAL_WAVING_LIQUID_OPAQUE)
             mat->set_roughness(0.35f); // lava-like
         if (emissive > 0) {
-            // light-emitting node: glow with its own texture; SDFGI picks this
-            // up. Quadratic in the light level, so a dim source (firefly bush,
-            // light_source 2) barely glows instead of rendering as a white
-            // fullbright plant, while torches and glowstone stay bright.
+            // light-emitting node: glow with the bright part of its own
+            // texture, not the whole tile (a torch's handle is not the
+            // flame). SDFGI picks this up. Quadratic in the light level, so
+            // a dim source (firefly bush, light_source 2) barely glows
+            // instead of rendering as a white fullbright plant, while
+            // torches and glowstone stay bright.
+            //
+            // EMISSION_OP_ADD is the BaseMaterial3D default, and it adds the
+            // flat emission colour to the emission texture rather than
+            // tinting it: emission white plus a mask that is black outside
+            // the flame still adds white everywhere, which is a full bright
+            // node-shaped block regardless of what the texture says. Multiply
+            // instead, so a masked-out texel (0, 0, 0) actually stays dark.
             float lvl = emissive / 14.0f;
             mat->set_feature(BaseMaterial3D::FEATURE_EMISSION, true);
-            mat->set_texture(BaseMaterial3D::TEXTURE_EMISSION, tex);
+            mat->set_emission_operator(BaseMaterial3D::EMISSION_OP_MULTIPLY);
+            Ref<ImageTexture> glow = gt ? gt->godotEmissionMask() : Ref<ImageTexture>();
+            mat->set_texture(BaseMaterial3D::TEXTURE_EMISSION, glow.is_valid() ? glow : tex);
             mat->set_emission(Color(1, 1, 1));
             mat->set_emission_energy_multiplier(1.8f * lvl * lvl);
         }
@@ -2704,6 +2715,13 @@ void GoannaClient::update_lights(const Vector3 &around, int max_lights) {
     // enough not to read as a switch.
     const float FADE_STEP = rank_pool ? 1.0f : 0.15f;
 
+    // Wall clock, not dtime: update_lights() is called with the camera
+    // position only (see the header), and a phase that free-runs off real
+    // time keeps flickering even the frames a lamp's own admission or
+    // ranking does not otherwise touch.
+    const float flicker_t = (float)std::chrono::duration<double>(
+            clock_t_::now().time_since_epoch()).count();
+
     for (size_t s = 0; s < slots; ++s) {
         OmniLight3D *ol = m_light_pool[s];
         LightSlot &slot = m_light_slot[s];
@@ -2713,6 +2731,11 @@ void GoannaClient::update_lights(const Vector3 &around, int max_lights) {
                 ++m_light_churn;
                 slot.key = c->key;
                 slot.fade = 0.0f;
+                // A stable pseudo-random phase from the key, not the pool
+                // slot: two lamps swapping slots must not swap flicker too,
+                // or the swap reads as the flame itself jumping.
+                slot.flicker_phase = (float)((uint64_t)c->key % 1000003u) *
+                        (6.2831853f / 1000003.0f);
             }
             slot.pos = c->l->pos;
             slot.color = c->l->color;
@@ -2733,11 +2756,26 @@ void GoannaClient::update_lights(const Vector3 &around, int max_lights) {
             continue;
         }
 
+        // A living flame, not a strobe: three sine waves at incommensurate
+        // frequencies so the sum never repeats on a beat a player can catch,
+        // each lamp's own phase keeping a room from pulsing in lockstep. The
+        // amplitudes sum to a touch over a tenth of the lamp's energy either
+        // way, which reads as restless rather than as motion.
+        float flicker = 1.0f;
+        if (m_light_flicker) {
+            const float p = slot.flicker_phase;
+            flicker = 1.0f + 0.04f * std::sin(flicker_t * 3.7f + p)
+                            + 0.02f * std::sin(flicker_t * 9.1f + p * 2.3f)
+                            + 0.012f * std::sin(flicker_t * 17.0f + p * 0.7f);
+        }
+
         // Only write when something actually differs. Re-setting a light's
         // transform every frame is not free: it dirties the shadow map for a
-        // lamp that has not moved since it was placed.
+        // lamp that has not moved since it was placed. Energy is a plain
+        // scalar the shadow map does not care about, so the flicker term is
+        // free to change it every frame regardless.
         const float want_range = range_of(slot.level);
-        const float want_energy = energy_of(slot.level) * slot.fade;
+        const float want_energy = energy_of(slot.level) * slot.fade * flicker;
         if (ol->get_position() != slot.pos)
             ol->set_position(slot.pos);
         if (ol->get_color() != slot.color)
@@ -5666,6 +5704,8 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("update_lights", "around", "max_lights"), &GoannaClient::update_lights);
     ClassDB::bind_method(D_METHOD("set_shadow_lamps", "n"), &GoannaClient::set_shadow_lamps);
     ClassDB::bind_method(D_METHOD("shadow_lamps"), &GoannaClient::shadow_lamps);
+    ClassDB::bind_method(D_METHOD("set_light_flicker", "on"), &GoannaClient::set_light_flicker);
+    ClassDB::bind_method(D_METHOD("light_flicker"), &GoannaClient::light_flicker);
     ClassDB::bind_method(D_METHOD("set_motes", "density"), &GoannaClient::set_motes);
     ClassDB::bind_method(D_METHOD("motes"), &GoannaClient::motes);
     ClassDB::bind_method(D_METHOD("update_motes", "around", "max_emitters"), &GoannaClient::update_motes);

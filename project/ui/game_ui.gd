@@ -64,6 +64,7 @@ var icon_cache := {}                   # item name -> Texture2D
 var tex_cache := {}                    # texture string -> Texture2D
 var selected := {}                     # cursor stack: {location, listname, index, amount}
 var pending_craft := false
+var shift_craft_location := ""         # non-empty: a shift-crafted stack is due a ring move
 var chat_printed := 0
 var hud_scale := 1.0
 var gui_scale := 1.0           # user interface-scale multiplier (Display settings)
@@ -586,6 +587,17 @@ func _hide_window() -> void:
 	if OS.get_environment("GOANNA_SHOT") == "":
 		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 
+# Open the player's own inventory, or close it if it is already the window
+# showing. Does nothing while a different window (a server formspec, the
+# pause menu) is up, or while chat is open, so a caller does not need to
+# check blocks_input() itself first. main.gd calls this for the "E" key,
+# alongside the "I" binding below.
+func toggle_inventory() -> void:
+	if window == form and form_is_inventory:
+		_close_window()
+	elif window == null and not chat_open:
+		_open_inventory()
+
 func _open_inventory() -> void:
 	var spec: String = client.inventory_formspec()
 	if OS.get_environment("GOANNA_DUMP_FORMSPEC") != "":
@@ -698,6 +710,7 @@ const SETTINGS := [
 	["Lighting", "light_sdfgi_cell", "slider", "Bounced light grain", "How fine the bounced light grid is. Finer looks better standing still but the grid re-centres on you as you walk, which shows as shading popping in and out a few steps apart. Raise this if shadows change when you move.", 0.25, 8.0, 0.25],
 	["Lighting", "light_pool", "slider", "Lamp count", "How many torches, lanterns and other node lights are lit at once. Where a scene has more than this, the ones whose lit area is furthest away are dropped, so a village can light up as you walk into it. Raise this if lighting changes as you approach buildings; lower it if the frame rate suffers.", 16.0, 256.0, 8.0],
 	["Lighting", "shadow_lamps", "slider", "Shadow casting lamps", "How many node lights cast a shadow at once, out of Lamp count. A lantern is a solid block that blocks its own light upward, so a lamp without a shadow lights the eave directly above it through itself, and gaining or losing one as you walk shows as surfaces brightening for no reason. Each costs six depth passes, so this is the expensive setting.", 0.0, 48.0, 1.0],
+	["Lighting", "light_flicker", "toggle", "Flame flicker", "A subtle, steady brightness variance on torches, lanterns and other node lights, like a living flame rather than a fixed bulb. Turn off if moving light bothers you."],
 	["Lighting", "light_ssao", "slider", "Corner shading", "Darkening where surfaces meet (ambient occlusion).", 0.0, 8.0, 0.25],
 	["Lighting", "light_white", "slider", "White point", "Where highlights clip to white. If bright surfaces look flat and detailless, lower Exposure first: this alone will not recover them.", 0.5, 6.0, 0.1],
 	["Lighting", "light_exposure", "slider", "Exposure", "Overall brightness before the tonemap. The default puts a sunlit surface at about 1.3 times its texture's brightness.", 0.1, 2.0, 0.02],
@@ -819,6 +832,7 @@ func _apply_setting(key: String, value: float) -> void:
 		"auto_bump": if client.has_method("set_auto_bump"): client.set_auto_bump(value)
 		"solid_ice": if client.has_method("set_solid_ice"): client.set_solid_ice(on)
 		"shadow_lamps": if client.has_method("set_shadow_lamps"): client.set_shadow_lamps(int(value))
+		"light_flicker": if client.has_method("set_light_flicker"): client.set_light_flicker(on)
 		"bevel": if client.has_method("set_bevel"): client.set_bevel(value)
 		"motes": if client.has_method("set_motes"): client.set_motes(value)
 		_:
@@ -846,6 +860,7 @@ func _setting_value(key: String, fallback: float) -> float:
 		"auto_bump": if client.has_method("auto_bump"): return client.auto_bump()
 		"solid_ice": if client.has_method("solid_ice"): return 1.0 if client.solid_ice() else 0.0
 		"shadow_lamps": if client.has_method("shadow_lamps"): return float(client.shadow_lamps())
+		"light_flicker": if client.has_method("light_flicker"): return 1.0 if client.light_flicker() else 0.0
 		"bevel": if client.has_method("bevel"): return client.bevel()
 		"motes": if client.has_method("motes"): return client.motes()
 		_:
@@ -1179,7 +1194,7 @@ func _on_slot_clicked(location: String, listname: String, index: int, button: in
 		location = form_context
 	var item := get_list_item(location, listname, index)
 	var count: int = item.get("count", 0)
-	if shift and button == MOUSE_BUTTON_LEFT and count > 0 and selected.is_empty():
+	if shift and button == MOUSE_BUTTON_LEFT and count > 0 and selected.is_empty() and listname != "craftpreview":
 		var nxt: Dictionary = form.next_in_ring(location if form_context == "" else location, listname)
 		if nxt.is_empty():
 			nxt = form.next_in_ring("context", listname) if location == form_context else {}
@@ -1192,6 +1207,17 @@ func _on_slot_clicked(location: String, listname: String, index: int, button: in
 		# the hidden "craftresult" list, and picking that up is what performs
 		# the craft (GUIFormSpecMenu::updateSelectedItem does the same).
 		if selected.is_empty():
+			if shift and button == MOUSE_BUTTON_LEFT and count > 0:
+				# Shift click crafts a full stack: ask for as many repeats as
+				# the result's own stack size allows (GUIFormSpecMenu sends
+				# getStackMax(), not the ingredient count), then move the
+				# whole crafted stack into the inventory instead of picking
+				# it up, once the next inventory update shows what landed in
+				# craftresult.
+				var stack_max: int = int(item_defs.get(item.get("name", ""), {}).get("stack_max", 99))
+				client.inventory_action("Craft %d %s" % [stack_max, location])
+				shift_craft_location = location
+				return
 			var res := get_list_item(location, "craftresult", 0)
 			if int(res.get("count", 0)) > 0:
 				selected = {"location": location, "listname": "craftresult", "index": 0,
@@ -1240,6 +1266,30 @@ func _after_inventory_update() -> void:
 		if res.get("count", 0) > 0:
 			selected = {"location": "current_player", "listname": "craftresult", "index": 0,
 				"amount": res["count"], "name": res.get("name", "")}
+	elif shift_craft_location != "":
+		# The full stack a shift click asked for is in craftresult now; send
+		# it straight to the next list in the ring instead of the cursor, the
+		# way GUIFormSpecMenu's own m_shift_move_after_craft does.
+		#
+		# The Craft action's own two effects, the grid emptying and
+		# craftresult filling, do not necessarily arrive as one inventory
+		# update: a version bump caught between the two would read an empty
+		# craftresult and, clearing the flag here on the spot, never come
+		# back for the stack that lands a moment later. So keep the flag
+		# armed and simply try again on the next update until either the
+		# move actually finds something to take or the ring has nowhere to
+		# put it.
+		var loc := shift_craft_location
+		var res := get_list_item(loc, "craftresult", 0)
+		var amt: int = int(res.get("count", 0))
+		if amt > 0:
+			var nxt: Dictionary = form.next_in_ring(loc, "craft")
+			if nxt.is_empty():
+				shift_craft_location = ""
+			else:
+				var dst: String = form_context if nxt["location"] == "context" else nxt["location"]
+				client.inventory_action("MoveSomewhere %d %s craftresult 0 %s %s" % [amt, loc, dst, nxt["listname"]])
+				shift_craft_location = ""
 	elif not selected.is_empty():
 		var cur := get_list_item(selected["location"], selected["listname"], selected["index"])
 		if cur.get("count", 0) == 0 or cur.get("name", "") != selected.get("name", ""):

@@ -108,6 +108,12 @@ public:
     // bump"): dark texels read as recessed, light as raised. Cached per
     // strength; regenerated when strength changes. Main thread only.
     godot::Ref<godot::ImageTexture> godotNormal(float strength);
+    // Emission mask derived from the diffuse texture's own luminance: a
+    // torch's flame or a lantern's glass is the brightest thing in its
+    // tile, the handle and cage are not, so thresholding luminance picks out
+    // the lit part on its own with no authored data. Cached; built once,
+    // main thread only.
+    godot::Ref<godot::ImageTexture> godotEmissionMask();
     // The same inferred relief in LabPBR's convention (Y down, B is ambient
     // occlusion), for entity.gdshader, which decodes _n the way the node
     // array shader does. Cached per strength.
@@ -130,6 +136,8 @@ private:
     godot::Ref<godot::ImageTexture> m_godot;
     godot::Ref<godot::ImageTexture> m_normal;
     float m_normal_strength = -1.0f;
+    godot::Ref<godot::ImageTexture> m_emission_mask;
+    bool m_emission_mask_built = false;
     godot::Ref<godot::ImageTexture> m_companion_normal;
     float m_companion_strength = -1.0f;
 };
