@@ -302,6 +302,10 @@ public:
         std::string formspec, formname, context;
     };
     std::string inventoryFormspec() const;
+    // The game's window theme, from TOCLIENT_FORMSPEC_PREPEND. Built in
+    // front of every server sent form unless the form says no_prepend[]
+    // (GUIFormSpecMenu::regenerateGui).
+    std::string formspecPrepend() const;
     std::vector<ShownFormspec> takeShownFormspecs();
     // Client -> server: fields of a node's own formspec (Client::sendNodemetaFields).
     void sendNodemetaFields(v3s16 p, const std::string &formname, const std::map<std::string, std::string> &fields);
@@ -442,6 +446,7 @@ private:
     void onHudSetParam(NetworkPacket &pkt);
     void onInventory(NetworkPacket &pkt);
     void onInventoryFormspec(NetworkPacket &pkt);
+    void onFormspecPrepend(NetworkPacket &pkt);
     void onDetachedInventory(NetworkPacket &pkt);
     void onNodemetaChanged(NetworkPacket &pkt);
     void onShowFormspec(NetworkPacket &pkt);
@@ -502,6 +507,7 @@ private:
     std::map<std::string, std::unique_ptr<Inventory>> m_detached_inventories;
     u32 m_detached_version = 0;
     std::string m_inventory_formspec;
+    std::string m_formspec_prepend;
     std::vector<ShownFormspec> m_shown_formspecs;
     std::unique_ptr<GoannaTextureSource> m_tsrc;
     MaterialTable m_material_table;

@@ -9,9 +9,11 @@
 // skinned and animated on a Skeleton3D, nametags as Label3D. Attachments
 // follow their parent, at a bone when one is named.
 
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include <godot_cpp/classes/label3d.hpp>
 #include <godot_cpp/classes/material.hpp>
@@ -59,6 +61,18 @@ public:
     // Diffuse-inferred normal strength for mesh surfaces with no authored
     // _n/_s companion; 0 disables it. Mirrors GoannaClient::m_auto_bump.
     void setAutoBump(float strength) { m_auto_bump = strength; }
+    // The formspec model[] element (upstream's GUIScene): a standalone copy of
+    // a media mesh with its textures applied, posed at the first frame of the
+    // loop, for the UI to hang under a SubViewport. Unshaded, alpha tested at
+    // 0.5 and double sided, which is how upstream's GUI scene draws it, so it
+    // needs no lights of its own. out_aabb receives the mesh bounds, which the
+    // caller needs to centre and frame it. Null if the media has not arrived
+    // or holds no geometry; the caller owns the returned node. A non-zero
+    // speed on an animated model registers the preview for stepping in sync().
+    // Caller holds session.mapLock(); main thread.
+    godot::Node3D *buildModelPreview(GoannaSession &session, const std::string &mesh,
+            const std::vector<std::string> &textures, float frame_begin, float frame_end,
+            float speed, godot::AABB *out_aabb);
 
 private:
     struct EntityNode {
@@ -104,12 +118,23 @@ private:
     // not compile, let alone make sense, against a ShaderMaterial.
     godot::Ref<godot::Material> materialForMeshTexture(GoannaSession &session,
             const std::string &texture, bool alpha, bool double_sided);
+    // Unshaded, alpha tested, double sided material for a model[] preview
+    // surface, matching GUIScene::setTexture.
+    godot::Ref<godot::StandardMaterial3D> materialForPreviewTexture(GoannaSession &session,
+            const std::string &texture);
+    // Advance every live model[] preview that asked for animation, and forget
+    // the ones whose skeleton has been freed with its formspec.
+    void stepModelPreviews(float dt);
 
     godot::Node3D *m_root;
     std::map<u16, EntityNode> m_nodes;
     std::map<std::string, godot::Ref<godot::StandardMaterial3D>> m_materials;
     std::map<std::string, godot::Ref<godot::Material>> m_mesh_materials;
     std::map<std::string, std::shared_ptr<GodotModel>> m_models;
+    // Animated model[] previews, keyed by their skeleton's instance id so a
+    // formspec that has been freed can be recognised without a dangling
+    // pointer. The UI owns the nodes; this owns only the animation state.
+    std::map<uint64_t, std::unique_ptr<ModelAnimator>> m_previews;
     godot::Ref<godot::Shader> m_sh_entity; // res://shaders/entity.gdshader, loaded once
     godot::Ref<godot::Shader> m_sh_entity_scissor; // its alpha scissor variant
     bool m_show_body = true;

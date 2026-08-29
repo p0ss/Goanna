@@ -1098,6 +1098,10 @@ String GoannaClient::inventory_formspec() const {
     return m_session ? String::utf8(m_session->inventoryFormspec().c_str()) : String();
 }
 
+String GoannaClient::formspec_prepend() const {
+    return m_session ? String::utf8(m_session->formspecPrepend().c_str()) : String();
+}
+
 Array GoannaClient::take_shown_formspecs() {
     Array out;
     if (!m_session)
@@ -2311,6 +2315,28 @@ Dictionary GoannaClient::item_mesh(const String &item_name) {
     Ref<ArrayMesh> mesh = m_entities->buildItemMesh(*m_session, item, false, &sc);
     d["mesh"] = mesh;
     d["scale"] = Vector3(sc.X, sc.Y, sc.Z);
+    return d;
+}
+
+Dictionary GoannaClient::model_preview(const String &mesh_name, const PackedStringArray &textures,
+        const Vector2 &frame_loop, float speed) {
+    Dictionary d;
+    if (!m_session)
+        return d;
+    std::lock_guard<std::mutex> lk(m_session->mapLock());
+    if (!m_entities)
+        m_entities = std::make_unique<EntityRenderer>(this);
+    std::vector<std::string> texs;
+    texs.reserve(textures.size());
+    for (int i = 0; i < textures.size(); ++i)
+        texs.push_back(textures[i].utf8().get_data());
+    AABB box;
+    Node3D *node = m_entities->buildModelPreview(*m_session, mesh_name.utf8().get_data(), texs,
+            frame_loop.x, frame_loop.y, speed, &box);
+    if (!node)
+        return d;
+    d["node"] = node;
+    d["aabb"] = box;
     return d;
 }
 
@@ -5722,6 +5748,7 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("texture", "name"), &GoannaClient::texture);
     ClassDB::bind_method(D_METHOD("item_icon", "item_name"), &GoannaClient::item_icon);
     ClassDB::bind_method(D_METHOD("inventory_formspec"), &GoannaClient::inventory_formspec);
+    ClassDB::bind_method(D_METHOD("formspec_prepend"), &GoannaClient::formspec_prepend);
     ClassDB::bind_method(D_METHOD("take_shown_formspecs"), &GoannaClient::take_shown_formspecs);
     ClassDB::bind_method(D_METHOD("send_inventory_fields", "formname", "fields"), &GoannaClient::send_inventory_fields);
     ClassDB::bind_method(D_METHOD("set_wield_index", "index"), &GoannaClient::set_wield_index);
@@ -5740,6 +5767,8 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("wield_light"), &GoannaClient::wield_light);
     ClassDB::bind_method(D_METHOD("wield_info"), &GoannaClient::wield_info);
     ClassDB::bind_method(D_METHOD("item_mesh", "item_name"), &GoannaClient::item_mesh);
+    ClassDB::bind_method(D_METHOD("model_preview", "mesh_name", "textures", "frame_loop", "speed"),
+            &GoannaClient::model_preview);
     ClassDB::bind_method(D_METHOD("set_time_of_day_override", "tod"), &GoannaClient::set_time_of_day_override);
     ClassDB::bind_method(D_METHOD("is_underwater", "eye"), &GoannaClient::is_underwater);
     ClassDB::bind_method(D_METHOD("set_bevel", "width"), &GoannaClient::set_bevel);

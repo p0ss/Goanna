@@ -12,11 +12,22 @@
 # lists, item icons and the cursor stack, and receives:
 #   fields_submitted(fields: Dictionary, quit: bool)
 #   slot_clicked(location: String, listname: String, index: int, button: int, shift: bool)
+#   slot_dragged(location: String, listname: String, index: int, button: int)
+#   slot_released(location: String, listname: String, index: int, button: int)
+#   slot_double_clicked(location: String, listname: String, index: int)
 extends Control
 
 signal fields_submitted(fields: Dictionary, quit: bool)
 signal slot_clicked(location: String, listname: String, index: int, button: int, shift: bool)
+# The pointer crossed into another slot with a mouse button held down. One
+# report per slot entered, so a drag can share a stack out over the slots it
+# passes over.
+signal slot_dragged(location: String, listname: String, index: int, button: int)
+# A mouse button came up. The slot named is the one under the pointer, which
+# is not necessarily the one the press went to; an empty listname means the
+# pointer was not over a slot at all.
 signal slot_released(location: String, listname: String, index: int, button: int)
+signal slot_double_clicked(location: String, listname: String, index: int)
 signal closed()
 
 const ELEM_SEP := "]"
@@ -52,6 +63,7 @@ var named_controls := {}             # element name -> focusable/tooltip Control
 var focus_name := ""
 var focus_force := false
 var slots: Array = []                # slot buttons for refresh
+var drag_over_slot: Control = null   # slot the pointer was last reported over
 # Scroll containers and the scrollbars that drive them. In Luanti a
 # scroll_container has no scroll of its own: it is moved by the named
 # scrollbar's value times the scroll factor (guiScrollContainer.cpp,
@@ -71,18 +83,28 @@ var current_element := ""            # the type being built, for style lookup
 var table_columns: Array = []        # tablecolumns[] for the next table[]
 var table_options := {}              # tableoptions[] for the next table[]
 var pending_elements: Array = []     # parsed [name, params] awaiting layout
+# The game's window theme, from TOCLIENT_FORMSPEC_PREPEND. It is kept in its
+# own list because it is built before the form's own elements, and with the
+# old coordinate system whatever the form asked for.
+var prepend_elements: Array = []     # parsed prepend [name, params]
+var enable_prepends := true          # cleared by no_prepend[]
 var root: Control                    # the form panel
 var current_parent: Control
 var skipped := {}
 
 # --- public -----------------------------------------------------------------
 
-func show_formspec(spec: String, name: String, screen: Vector2) -> void:
+# `prepend` is the game's window theme, from TOCLIENT_FORMSPEC_PREPEND. It is
+# built behind the form unless the form asked for no_prepend[], which is why
+# it is parsed after the form and not simply glued in front of it.
+func show_formspec(spec: String, name: String, screen: Vector2, prepend := "") -> void:
 	formname = name
 	for c in get_children():
 		c.queue_free()
 	_reset()
 	_parse(spec)
+	if enable_prepends:
+		_parse_prepend(prepend)
 	_layout(screen)
 	_build()
 	refresh_lists()
@@ -157,6 +179,7 @@ func _reset() -> void:
 	focus_name = ""
 	focus_force = false
 	slots.clear()
+	drag_over_slot = null
 	scroll_containers.clear()
 	scrollbars.clear()
 	scrollbar_options = _default_scrollbar_options()
@@ -167,6 +190,8 @@ func _reset() -> void:
 	table_columns.clear()
 	table_options = {}
 	pending_elements.clear()
+	prepend_elements.clear()
+	enable_prepends = true
 	skipped.clear()
 
 # scrollbaroptions[] defaults, from parseScrollBarOptions.
@@ -249,9 +274,31 @@ func _parse(spec: String) -> void:
 					focus_name = fs_unescape(p[0])
 					focus_force = p.size() >= 2 and p[1].strip_edges() == "true"
 			"no_prepend":
-				pass
+				enable_prepends = false
 			_:
 				pending_elements.append([name, params])
+
+# The game's window theme, sent once as TOCLIENT_FORMSPEC_PREPEND and applied
+# to every server form that does not opt out. Upstream feeds it to the
+# ordinary element parser (GUIFormSpecMenu::regenerateGui), so the headers
+# that are only read from the front of a form, size, position, anchor,
+# padding and no_prepend, are not elements here at all and are dropped. The
+# rest, formspec_version and real_coordinates included, are elements, and
+# _build applies them while the prepend builds and undoes them afterwards.
+func _parse_prepend(prepend: String) -> void:
+	for raw in fs_split(prepend, ELEM_SEP):
+		var e := raw.strip_edges()
+		if e == "":
+			continue
+		var br := e.find("[")
+		if br < 0:
+			continue
+		var name := e.substr(0, br).strip_edges()
+		match name:
+			"size", "position", "anchor", "padding", "no_prepend":
+				pass
+			_:
+				prepend_elements.append([name, e.substr(br + 1)])
 
 # --- layout maths (GUIFormSpecMenu::regenerateGui) ---------------------------
 
@@ -395,7 +442,7 @@ static func strip_enriched(s: String) -> String:
 func _build() -> void:
 	# Named tooltips apply regardless of whether they appear before or after
 	# their target element. Area tooltips still build in normal element order.
-	for el in pending_elements:
+	for el in prepend_elements + pending_elements:
 		if el[0] == "tooltip":
 			var tooltip_parts := fs_split(el[1], ";")
 			if tooltip_parts.size() >= 2 and not tooltip_parts[0].contains(","):
@@ -403,52 +450,21 @@ func _build() -> void:
 	# a fullscreen tint behind the form, if asked for
 	add_child(root)
 	building = true
+	# The game's window theme first, so that it is behind the form's own
+	# elements. Upstream builds it with the old coordinate system whatever
+	# the form asked for, and puts the formspec version back afterwards, so
+	# that a version 6 form does not drag the prepend into real coordinates
+	# (GUIFormSpecMenu::regenerateGui).
+	if prepend_elements.size() > 0:
+		var real_backup := real_coordinates
+		var version_backup := formspec_version
+		real_coordinates = false
+		for el in prepend_elements:
+			_build_element(el[0], el[1])
+		formspec_version = version_backup
+		real_coordinates = real_backup
 	for el in pending_elements:
-		var name: String = el[0]
-		var parts := fs_split(el[1], ";")
-		current_element = name
-		match name:
-			"style": _style(parts, false)
-			"style_type": _style(parts, true)
-			"container": _container(parts)
-			"container_end": _container_end()
-			"scroll_container": _scroll_container(parts)
-			"scroll_container_end": _container_end()
-			"bgcolor": _bgcolor(parts)
-			"background", "background9": _background(parts)
-			"box": _box(parts)
-			"image": _image(parts)
-			"animated_image": _animated_image(parts)
-			"item_image": _item_image(parts)
-			"label": _label(parts, false)
-			"vertlabel": _label(parts, true)
-			"hypertext": _hypertext(parts)
-			"button", "button_exit", "button_url", "button_url_exit", "button_key":
-				_button(parts, name.ends_with("_exit"), name)
-			"image_button", "image_button_exit": _image_button(parts, name.ends_with("_exit"))
-			"item_image_button": _item_image_button(parts)
-			"field", "pwdfield": _field(parts, name == "pwdfield")
-			"textarea": _textarea(parts)
-			"field_close_on_enter": _fcoe(parts)
-			# Android only: it makes the on-screen keyboard's Done button
-			# simulate Enter. A desktop client has nothing to do with it.
-			"field_enter_after_edit": pass
-			"checkbox": _checkbox(parts)
-			"dropdown": _dropdown(parts)
-			"textlist": _textlist(parts)
-			"table": _table(parts)
-			"tablecolumns": _tablecolumns(parts)
-			"tableoptions": _tableoptions(parts)
-			"tabheader": _tabheader(parts)
-			"list": _list(parts)
-			"listring": _listring(parts)
-			"listcolors": _listcolors(parts)
-			"tooltip": _tooltip(parts)
-			"model": _model(parts)
-			"scrollbar": _scrollbar(parts)
-			"scrollbaroptions": _scrollbaroptions(parts)
-			_:
-				skipped[name] = skipped.get(name, 0) + 1
+		_build_element(el[0], el[1])
 	building = false
 	if skipped.size() > 0:
 		print("formspec: elements not rendered: ", skipped)
@@ -471,6 +487,62 @@ func _build() -> void:
 		sb.set_corner_radius_all(int(imgsize * 0.08))
 		root.add_theme_stylebox_override("panel", sb)
 	_apply_focus()
+
+# One element, from the form itself or from the prepend. The headers a form
+# only accepts at its front are elements when a prepend uses them, which is
+# why formspec_version, real_coordinates, allow_close and set_focus appear
+# here as well as in _parse.
+func _build_element(name: String, params: String) -> void:
+	var parts := fs_split(params, ";")
+	current_element = name
+	match name:
+		"formspec_version": formspec_version = int(params)
+		"real_coordinates": real_coordinates = params.strip_edges() == "true"
+		"allow_close": allow_close = params.strip_edges() != "false"
+		"set_focus", "focus":
+			focus_name = fs_unescape(parts[0]) if parts.size() >= 1 else ""
+			focus_force = parts.size() >= 2 and parts[1].strip_edges() == "true"
+		"style": _style(parts, false)
+		"style_type": _style(parts, true)
+		"container": _container(parts)
+		"container_end": _container_end()
+		"scroll_container": _scroll_container(parts)
+		"scroll_container_end": _container_end()
+		"bgcolor": _bgcolor(parts)
+		"background", "background9": _background(parts)
+		"box": _box(parts)
+		"image": _image(parts)
+		"animated_image": _animated_image(parts)
+		"item_image": _item_image(parts)
+		"label": _label(parts, false)
+		"vertlabel": _label(parts, true)
+		"hypertext": _hypertext(parts)
+		"button", "button_exit", "button_url", "button_url_exit", "button_key":
+			_button(parts, name.ends_with("_exit"), name)
+		"image_button", "image_button_exit": _image_button(parts, name.ends_with("_exit"))
+		"item_image_button": _item_image_button(parts)
+		"field", "pwdfield": _field(parts, name == "pwdfield")
+		"textarea": _textarea(parts)
+		"field_close_on_enter": _fcoe(parts)
+		# Android only: it makes the on-screen keyboard's Done button
+		# simulate Enter. A desktop client has nothing to do with it.
+		"field_enter_after_edit": pass
+		"checkbox": _checkbox(parts)
+		"dropdown": _dropdown(parts)
+		"textlist": _textlist(parts)
+		"table": _table(parts)
+		"tablecolumns": _tablecolumns(parts)
+		"tableoptions": _tableoptions(parts)
+		"tabheader": _tabheader(parts)
+		"list": _list(parts)
+		"listring": _listring(parts)
+		"listcolors": _listcolors(parts)
+		"tooltip": _tooltip(parts)
+		"model": _model(parts)
+		"scrollbar": _scrollbar(parts)
+		"scrollbaroptions": _scrollbaroptions(parts)
+		_:
+			skipped[name] = skipped.get(name, 0) + 1
 
 func _add(c: Control, pos: Vector2, size: Vector2) -> void:
 	c.position = pos.floor()
@@ -703,8 +775,13 @@ func _background(parts: PackedStringArray) -> void:
 	var middle := parts[4] if parts.size() >= 5 else ""
 	var r := _texture_rect(tex, middle)
 	if auto_clip:
-		# fills the whole form, geometry gives an outset in imgsize units
-		var out := Vector2(float(g[0]), float(g[1])) * (imgsize if real_coordinates else spacing.x)
+		# Fills the form, and the position, not the geometry, moves its
+		# edges: raw pixels outward in the old coordinate system, imgsize
+		# units inward in the new one (parseBackground and
+		# GUIBackgroundImage::draw).
+		var out := Vector2(float(v[0]), float(v[1]))
+		if real_coordinates:
+			out = -out * imgsize
 		_add(r, -out, root.size + out * 2)
 	else:
 		_add(r, _pos(v), _geom(g))
@@ -1699,11 +1776,21 @@ func _tooltip(parts: PackedStringArray) -> void:
 	# preserves hover help over images without swallowing a button's clicks.
 	current_parent.move_child(area, 0)
 
-# model[x,y;w,h;name;mesh;textures;...]: the 3D mesh preview is not rendered
-# yet. Drawing nothing leaves the game's own dark panel showing as a black
-# void, which reads as broken, so fill the area with a muted placeholder and
-# label it with the mesh name. Replace this with a real SubViewport render
-# when the entity model path is reachable from the UI.
+# model[x,y;w,h;name;mesh;textures;rotation;continuous;mouse control;frame
+# loop range;animation speed]
+#
+# The mesh is a client media file, loaded by the extension with Luanti's own
+# model loaders and handed over already textured and posed at the first frame
+# of the loop. Everything after that is upstream's GUIScene: the model sits
+# centred on its bounding box in a SubViewport of its own, and a camera with a
+# 30 degree vertical field of view orbits it at the distance that just fits.
+# The rotation turns the camera, not the model, which is why dragging and
+# continuous rotation both come out as camera moves.
+#
+# If the mesh cannot be had, because the media has not arrived or there is no
+# client behind item_source, the old placeholder is drawn instead: drawing
+# nothing leaves the game's own dark panel showing as a black void, which
+# reads as broken.
 func _model(parts: PackedStringArray) -> void:
 	if parts.size() < 4:
 		return
@@ -1711,6 +1798,49 @@ func _model(parts: PackedStringArray) -> void:
 	var g := fs_split(parts[1], ",")
 	if v.size() < 2 or g.size() < 2:
 		return
+	var mname := fs_unescape(parts[2])
+	var mesh := fs_unescape(parts[3])
+	var textures := PackedStringArray()
+	if parts.size() >= 5:
+		for t in fs_split(parts[4], ","):
+			textures.append(fs_unescape(t))
+	# The frame loop defaults to every frame the model has; the extension
+	# clamps an infinite end to the last one, as AnimatedMeshSceneNode does.
+	var loop := Vector2(0.0, INF)
+	if parts.size() >= 9:
+		var f := fs_split(parts[8], ",")
+		if f.size() == 2:
+			loop = Vector2(float(f[0]), float(f[1]))
+	var speed := float(parts[9]) if parts.size() >= 10 else 0.0
+	var preview: Dictionary = {}
+	if item_source and item_source.has_method("model_preview"):
+		preview = item_source.model_preview(mesh, textures, loop, speed)
+	if preview.is_empty() or preview.get("node") == null:
+		_model_placeholder(mname, mesh, _pos(v), _geom(g))
+		return
+	var rotation_xy := Vector2.ZERO
+	if parts.size() >= 6:
+		var r := fs_split(parts[5], ",")
+		if r.size() >= 2:
+			rotation_xy = Vector2(float(r[0]), float(r[1]))
+	var spin := parts.size() >= 7 and _model_is_yes(parts[6])
+	# Mouse control defaults to true, including when the field is left empty.
+	var mouse_control := parts.size() < 8 or parts[7].strip_edges() == "" \
+		or _model_is_yes(parts[7])
+	var c := FormspecModel.new()
+	c.setup(preview["node"], preview.get("aabb", AABB()), rotation_xy, spin, mouse_control)
+	_add(c, _pos(v), _geom(g))
+	_register_named_control(mname, c)
+
+# is_yes in upstream's string.h: a yes, a true, or a number that is not zero.
+func _model_is_yes(s: String) -> bool:
+	var t := s.strip_edges().to_lower()
+	return t == "y" or t == "yes" or t == "true" or (t.is_valid_int() and int(t) != 0)
+
+# What model[] draws when the mesh is not available: a muted panel labelled
+# with the mesh name, so the element reads as a model that failed rather than
+# as a hole in the form.
+func _model_placeholder(mname: String, mesh: String, pos: Vector2, geom: Vector2) -> void:
 	var panel := Panel.new()
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color(0.16, 0.17, 0.19, 0.85)
@@ -1719,8 +1849,7 @@ func _model(parts: PackedStringArray) -> void:
 	sb.border_color = Color(1, 1, 1, 0.12)
 	panel.add_theme_stylebox_override("panel", sb)
 	panel.mouse_filter = Control.MOUSE_FILTER_STOP
-	_add(panel, _pos(v), _geom(g))
-	var mesh := fs_unescape(parts[3])
+	_add(panel, pos, geom)
 	var base := mesh.get_file().get_basename()
 	var l := Label.new()
 	l.text = base if base != "" else "3D model"
@@ -1732,7 +1861,7 @@ func _model(parts: PackedStringArray) -> void:
 	l.set_anchors_preset(Control.PRESET_FULL_RECT)
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(l)
-	_register_named_control(fs_unescape(parts[2]), panel)
+	_register_named_control(mname, panel)
 
 func _font_size() -> int:
 	return maxi(int(imgsize * 0.32), 10)
@@ -1924,9 +2053,28 @@ func _apply_style(c: Control, ename: String) -> void:
 func _slot_clicked(loc: String, lname: String, index: int, button: int, shift: bool) -> void:
 	slot_clicked.emit(loc, lname, index, button, shift)
 
-# Mouse released over a slot: completes a drag started on another slot.
+# The pointer reached another slot with a button held down.
+func _slot_dragged(loc: String, lname: String, index: int, button: int) -> void:
+	slot_dragged.emit(loc, lname, index, button)
+
+# Mouse released: completes a drag started on another slot. An empty listname
+# means the pointer was not over a slot when the button came up.
 func _slot_released(loc: String, lname: String, index: int, button: int) -> void:
 	slot_released.emit(loc, lname, index, button)
+
+func _slot_double_clicked(loc: String, lname: String, index: int) -> void:
+	slot_double_clicked.emit(loc, lname, index)
+
+# The slot under a point in viewport coordinates, or null. Godot hands motion
+# and release events to whichever Control took the press, wherever the pointer
+# has got to since, so a drag across slots has to ask where the pointer
+# actually is; GUIFormSpecMenu does the same with getItemAtPos().
+func slot_at(global_pos: Vector2) -> Control:
+	for s in slots:
+		if is_instance_valid(s) and s.is_visible_in_tree() \
+				and s.get_global_rect().has_point(global_pos):
+			return s
+	return null
 
 # The next list in the ring after (loc, lname), for shift-click moves; empty if none.
 func next_in_ring(loc: String, lname: String) -> Dictionary:
@@ -1987,6 +2135,110 @@ class AnimatedFormspecImage extends Control:
 		_set_frame(current_frame + 1)
 
 
+# The 3D preview behind a model[] element. The mesh arrives from the client
+# already textured; this owns the SubViewport it is drawn in and the camera
+# that orbits it. The camera maths is guiScene.cpp's: 30 degrees of vertical
+# field of view, the distance that just fits the larger of the model's width
+# and depth (pushed back by half of it so a turn cannot clip), the pitch held
+# inside 60 degrees, and one degree of turn per pixel dragged.
+class FormspecModel extends Control:
+	const FOV_DEGREES := 30.0
+	const PITCH_LIMIT := 60.0
+	const SPIN_DEGREES_PER_SECOND := 30.0
+
+	var viewport: SubViewport
+	var camera: Camera3D
+	var model: Node3D
+	var max_width := 1.0 # the wider of the model's width and depth
+	var height := 1.0
+	var distance := 1.0
+	var pitch := 0.0
+	var yaw := 0.0
+	var spinning := false
+	var mouse_control := true
+	var dragging := false
+
+	func setup(node: Node3D, bounds: AABB, rotation_xy: Vector2, spin: bool,
+			mouse: bool) -> void:
+		model = node
+		spinning = spin
+		mouse_control = mouse
+		mouse_filter = Control.MOUSE_FILTER_STOP if mouse else Control.MOUSE_FILTER_IGNORE
+		clip_contents = true
+		pitch = clampf(rotation_xy.x, -PITCH_LIMIT, PITCH_LIMIT)
+		yaw = rotation_xy.y
+		max_width = maxf(maxf(bounds.size.x, bounds.size.z), 0.001)
+		height = maxf(bounds.size.y, 0.001)
+		model.position = -bounds.get_center()
+		viewport = SubViewport.new()
+		# Its own world, or the SubViewport would draw the game world it is
+		# sitting in front of, and its own transparency, so the form's
+		# background stays visible around the model.
+		viewport.own_world_3d = true
+		viewport.transparent_bg = true
+		viewport.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
+		camera = Camera3D.new()
+		camera.fov = FOV_DEGREES
+		viewport.add_child(camera)
+		viewport.add_child(model)
+		var holder := SubViewportContainer.new()
+		holder.stretch = true
+		holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		holder.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		holder.add_child(viewport)
+		add_child(holder)
+		resized.connect(_frame_model)
+		set_process(spinning)
+
+	func _ready() -> void:
+		_frame_model()
+
+	# calcOptimalDistance: fit whichever of the two axes the element's pixel
+	# shape makes the tighter one.
+	func _frame_model() -> void:
+		if camera == null or size.x <= 0.0 or size.y <= 0.0:
+			return
+		var tan_v := tan(deg_to_rad(FOV_DEGREES) * 0.5)
+		var tan_h := tan_v * (size.x / size.y)
+		if size.x / max_width < size.y / height:
+			distance = max_width / (2.0 * tan_h) + 0.5 * max_width
+		else:
+			distance = height / (2.0 * tan_v) + 0.5 * max_width
+		camera.near = maxf(distance * 0.01, 0.01)
+		camera.far = distance * 4.0 + max_width + height
+		_place_camera()
+
+	# The camera orbits the centred model. Upstream keeps its scene left
+	# handed and starts the orbit half a turn round, which is why the yaw here
+	# is negated in x and the model's own z is already mirrored.
+	func _place_camera() -> void:
+		if camera == null:
+			return
+		var p := deg_to_rad(pitch)
+		var y := deg_to_rad(yaw)
+		var eye := Vector3(-distance * cos(p) * sin(y), -distance * sin(p),
+			distance * cos(p) * cos(y))
+		camera.transform = Transform3D(Basis.looking_at(-eye, Vector3.UP), eye)
+
+	func _process(delta: float) -> void:
+		if not spinning:
+			return
+		yaw -= SPIN_DEGREES_PER_SECOND * delta
+		_place_camera()
+
+	func _gui_input(event: InputEvent) -> void:
+		if not mouse_control:
+			return
+		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+			dragging = event.pressed
+			accept_event()
+		elif event is InputEventMouseMotion and dragging:
+			pitch = clampf(pitch - event.relative.y, -PITCH_LIMIT, PITCH_LIMIT)
+			yaw += event.relative.x
+			_place_camera()
+			accept_event()
+
+
 # One inventory slot. Draws the slot background, the item icon, count and
 # wear bar, and reports clicks.
 class FormspecSlot extends Control:
@@ -2041,14 +2293,49 @@ class FormspecSlot extends Control:
 			var bar := Rect2(Vector2(size.x * 0.1, size.y * 0.85), Vector2(size.x * 0.8 * frac, size.y * 0.08))
 			draw_rect(bar, Color(1.0 - frac, frac, 0.1))
 
+	# Which single button a motion event says is held. Left wins over right
+	# and right over middle, the order GUIFormSpecMenu tests them in.
+	static func held_button(mask: int) -> int:
+		if mask & MOUSE_BUTTON_MASK_LEFT:
+			return MOUSE_BUTTON_LEFT
+		if mask & MOUSE_BUTTON_MASK_RIGHT:
+			return MOUSE_BUTTON_RIGHT
+		if mask & MOUSE_BUTTON_MASK_MIDDLE:
+			return MOUSE_BUTTON_MIDDLE
+		return 0
+
 	func _gui_input(event: InputEvent) -> void:
 		if event is InputEventMouseButton \
 				and event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT, MOUSE_BUTTON_MIDDLE]:
 			if event.pressed:
+				form.drag_over_slot = self
 				form._slot_clicked(location, listname, index, event.button_index, event.shift_pressed)
+				if event.double_click and event.button_index == MOUSE_BUTTON_LEFT:
+					# Godot flags the second press rather than sending an event
+					# of its own; Irrlicht sends EMIE_LMOUSE_DOUBLE_CLICK after
+					# the press, and GUIFormSpecMenu wants both in that order.
+					form._slot_double_clicked(location, listname, index)
 			else:
-				# Releasing over a different slot completes a drag: the press
-				# picked the stack up, so this drops it here. Releasing over the
-				# same slot is an ordinary click and leaves it on the cursor.
-				form._slot_released(location, listname, index, event.button_index)
+				# Godot delivers the release to whichever Control took the
+				# press, so the slot the player let go over has to be looked
+				# up by position rather than assumed to be this one.
+				var over: Control = form.slot_at(event.global_position)
+				form.drag_over_slot = null
+				if over:
+					form._slot_released(over.location, over.listname, over.index,
+						event.button_index)
+				else:
+					form._slot_released("", "", -1, event.button_index)
 			accept_event()
+		elif event is InputEventMouseMotion:
+			# Only the pressed slot sees motion while a button is down, so it
+			# is the one that reports crossing into another slot. One report
+			# per slot entered, which is what upstream's m_old_pointer test
+			# amounts to.
+			var button := held_button(event.button_mask)
+			if button == 0:
+				return
+			var over: Control = form.slot_at(event.global_position)
+			if over and over != form.drag_over_slot:
+				form.drag_over_slot = over
+				form._slot_dragged(over.location, over.listname, over.index, button)

@@ -173,6 +173,14 @@ public:
     // Unlike wield_info this ignores wield_image, which is the wielded
     // override rather than the inventory representation.
     godot::Dictionary item_mesh(const godot::String &item_name);
+    // The formspec model[] element: {node: Node3D, aabb: AABB} for a media
+    // mesh with its textures applied and posed at frame_loop.x, or an empty
+    // Dictionary if the media has not arrived. The caller owns the node and
+    // must put it under a SubViewport (or free it). A non-zero speed keeps
+    // the pose advancing while sync_entities is being called.
+    godot::Dictionary model_preview(const godot::String &mesh_name,
+            const godot::PackedStringArray &textures, const godot::Vector2 &frame_loop,
+            float speed);
 
     // Point lights for light-emitting nodes: keeps up to max_lights OmniLight3Ds
     // on the nearest bright nodes to `around` (Godot space, nodes).
@@ -213,6 +221,10 @@ public:
     godot::Ref<godot::Texture2D> item_icon(const godot::String &item_name);
     // Formspecs
     godot::String inventory_formspec() const;
+    // The game's formspec prepend: its window theme, built behind every
+    // server sent form that does not say no_prepend[]. Empty until the
+    // server sends one.
+    godot::String formspec_prepend() const;
     godot::Array take_shown_formspecs(); // [{formspec, formname}]
     void send_inventory_fields(const godot::String &formname, const godot::Dictionary &fields);
 

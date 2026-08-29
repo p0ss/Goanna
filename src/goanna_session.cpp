@@ -598,6 +598,10 @@ std::string GoannaSession::inventoryFormspec() const {
     std::lock_guard<std::mutex> lk(m_hud_mutex);
     return m_inventory_formspec;
 }
+std::string GoannaSession::formspecPrepend() const {
+    std::lock_guard<std::mutex> lk(m_hud_mutex);
+    return m_formspec_prepend;
+}
 std::vector<GoannaSession::ShownFormspec> GoannaSession::takeShownFormspecs() {
     std::lock_guard<std::mutex> lk(m_hud_mutex);
     std::vector<ShownFormspec> out;
@@ -841,6 +845,16 @@ void GoannaSession::onInventoryFormspec(NetworkPacket &pkt) {
     std::string fs = pkt.readLongString();
     std::lock_guard<std::mutex> lk(m_hud_mutex);
     m_inventory_formspec = fs;
+}
+
+// TOCLIENT_FORMSPEC_PREPEND: one u16 length prefixed string, the game's
+// window theme (Client::handleCommand_FormspecPrepend, which keeps it on the
+// LocalPlayer). Goanna keeps it here and the UI builds it behind each form.
+void GoannaSession::onFormspecPrepend(NetworkPacket &pkt) {
+    std::string prepend;
+    pkt >> prepend;
+    std::lock_guard<std::mutex> lk(m_hud_mutex);
+    m_formspec_prepend = prepend;
 }
 
 void GoannaSession::onShowFormspec(NetworkPacket &pkt) {
@@ -1774,6 +1788,7 @@ void GoannaSession::handle(NetworkPacket &pkt) {
     case TOCLIENT_STOP_SOUND: onStopSound(pkt); break;
     case TOCLIENT_FADE_SOUND: onFadeSound(pkt); break;
     case TOCLIENT_SHOW_FORMSPEC: onShowFormspec(pkt); break;
+    case TOCLIENT_FORMSPEC_PREPEND: onFormspecPrepend(pkt); break;
     case TOCLIENT_SET_SUN: onSetSun(pkt); break;
     case TOCLIENT_SET_MOON: onSetMoon(pkt); break;
     case TOCLIENT_SET_STARS: onSetStars(pkt); break;

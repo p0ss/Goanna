@@ -41,7 +41,7 @@
   "listring": {"status": "supported"},
   "model": {
     "status": "partial",
-    "note": "A labelled placeholder is drawn instead of a 3D preview."
+    "note": "The mesh is loaded with Luanti's own loaders, textured, posed at the frame loop and drawn in a SubViewport, honouring the initial rotation, continuous rotation, mouse control and a non-zero animation speed. A mesh whose media has not arrived falls back to a labelled placeholder. Style properties (noclip, bgcolor) are not applied."
   },
   "pwdfield": {"status": "supported"},
   "real_coordinates": {"status": "supported"},

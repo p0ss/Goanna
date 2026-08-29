@@ -63,6 +63,10 @@ var item_defs := {}                    # item name -> {inventory_image, descript
 var icon_cache := {}                   # item name -> Texture2D
 var tex_cache := {}                    # texture string -> Texture2D
 var selected := {}                     # cursor stack: {location, listname, index, amount}
+var drag_button := 0                   # mouse button held over a slot, 0 for none
+var drag_picked := false               # the held press is what picked the cursor stack up
+var drag_slots: Array = []             # left drag: slots to share the cursor stack out over
+var drag_amount := 0                   # what the cursor held when the left drag began
 var pending_craft := false
 var shift_craft_location := ""         # non-empty: a shift-crafted stack is due a ring move
 var chat_printed := 0
@@ -127,7 +131,9 @@ func _ready() -> void:
 	form.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	form.fields_submitted.connect(_on_form_fields)
 	form.slot_clicked.connect(_on_slot_clicked)
+	form.slot_dragged.connect(_on_slot_dragged)
 	form.slot_released.connect(_on_slot_released)
+	form.slot_double_clicked.connect(_on_slot_double_clicked)
 	add_child(form)
 
 	flash_rect = ColorRect.new()
@@ -307,7 +313,7 @@ func _ui_move_test(delta: float) -> void:
 			var main: Array = (inv_cache.get("lists", {}) as Dictionary).get("main", [])
 			for i in main.size():
 				if String(main[i].get("name", "")) != "":
-					_on_slot_clicked("current_player", "main", i, MOUSE_BUTTON_LEFT, false)
+					_click_slot("current_player", "main", i, MOUSE_BUTTON_LEFT)
 					break
 			warp_mouse_for_shot()
 		if absf(t - 5.5) < delta * 0.6 and OS.get_environment("GOANNA_UI_SHOT") != "":
@@ -322,12 +328,12 @@ func _ui_move_test(delta: float) -> void:
 	if absf(t - 4.0) < delta * 0.6:
 		_open_inventory()
 		print("ui test: main before: ", _main_names())
-		_on_slot_clicked("current_player", "main", 0, MOUSE_BUTTON_LEFT, false)
-		_on_slot_clicked("current_player", "main", 10, MOUSE_BUTTON_LEFT, false)
+		_click_slot("current_player", "main", 0, MOUSE_BUTTON_LEFT)
+		_click_slot("current_player", "main", 10, MOUSE_BUTTON_LEFT)
 	if absf(t - 5.5) < delta * 0.6:
 		print("ui test: main after move: ", _main_names())
-		_on_slot_clicked("current_player", "main", 10, MOUSE_BUTTON_RIGHT, false)
-		_on_slot_clicked("current_player", "main", 11, MOUSE_BUTTON_LEFT, false)
+		_click_slot("current_player", "main", 10, MOUSE_BUTTON_RIGHT)
+		_click_slot("current_player", "main", 11, MOUSE_BUTTON_LEFT)
 	if absf(t - 7.0) < delta * 0.6:
 		print("ui test: main after half split: ", _main_names())
 		if OS.get_environment("GOANNA_UI_SHOT") != "":
@@ -368,14 +374,14 @@ func _ui_craft_test(delta: float) -> void:
 				break
 		print("crafttest: log slot=", src, " name=", (main[src].get("name","") if src >= 0 else "none"))
 		if src >= 0:
-			_on_slot_clicked("current_player", "main", src, MOUSE_BUTTON_LEFT, false)
-			_on_slot_clicked("current_player", "craft", 0, MOUSE_BUTTON_LEFT, false)
+			_click_slot("current_player", "main", src, MOUSE_BUTTON_LEFT)
+			_click_slot("current_player", "craft", 0, MOUSE_BUTTON_LEFT)
 	if absf(t - 6.0) < delta * 0.6:
 		print("crafttest: craft=", _names_of("craft"), " preview=", _names_of("craftpreview"), " result=", _names_of("craftresult"))
-		_on_slot_clicked("current_player", "craftpreview", 0, MOUSE_BUTTON_LEFT, false)
+		_click_slot("current_player", "craftpreview", 0, MOUSE_BUTTON_LEFT)
 		print("crafttest: after preview click, cursor=", selected.get("name", "none"), " x", selected.get("amount", 0))
 	if absf(t - 7.5) < delta * 0.6:
-		_on_slot_clicked("current_player", "main", 20, MOUSE_BUTTON_LEFT, false)
+		_click_slot("current_player", "main", 20, MOUSE_BUTTON_LEFT)
 	if absf(t - 9.0) < delta * 0.6:
 		print("crafttest: main slot20=", get_list_item("current_player", "main", 20).get("name", "empty"),
 			" x", get_list_item("current_player", "main", 20).get("count", 0))
@@ -402,7 +408,7 @@ func _ui_chest_test(delta: float) -> void:
 		other_inv_cache.clear()
 		form_is_inventory = false
 		form.show_formspec("size[8,9]list[context;main;0,0.3;8,4;]list[current_player;main;0,4.85;8,1;]list[current_player;main;0,6.08;8,3;8]listring[context;main]listring[current_player;main]",
-			"", get_viewport().get_visible_rect().size)
+			"", get_viewport().get_visible_rect().size, _formspec_prepend())
 		fullscreen_tint.color = form.fullscreen_bg
 		_open_window(form)
 	if absf(t - 5.5) < delta * 0.6:
@@ -575,7 +581,7 @@ func _close_window() -> void:
 			return
 		# tell the server the form was closed (vanilla sends quit=true)
 		_send_fields({"quit": "true"})
-		selected = {}
+		_clear_cursor()
 	_hide_window()
 
 func _hide_window() -> void:
@@ -608,9 +614,15 @@ func _open_inventory() -> void:
 	form_is_inventory = true
 	other_inv_cache.clear()
 	form_context = ""
-	form.show_formspec(spec, "", get_viewport().get_visible_rect().size)
+	form.show_formspec(spec, "", get_viewport().get_visible_rect().size, _formspec_prepend())
 	fullscreen_tint.color = form.fullscreen_bg
 	_open_window(form)
+
+# The game's window theme, sent once as TOCLIENT_FORMSPEC_PREPEND. Only
+# server formspecs get it: Goanna's own pause menu and settings screens are
+# ordinary Controls and are not formspecs at all.
+func _formspec_prepend() -> String:
+	return client.formspec_prepend() if client.has_method("formspec_prepend") else ""
 
 func _show_server_formspec(spec: String, formname: String) -> void:
 	if spec.strip_edges() == "":
@@ -620,7 +632,7 @@ func _show_server_formspec(spec: String, formname: String) -> void:
 		return
 	form_is_inventory = false
 	other_inv_cache.clear()
-	form.show_formspec(spec, formname, get_viewport().get_visible_rect().size)
+	form.show_formspec(spec, formname, get_viewport().get_visible_rect().size, _formspec_prepend())
 	fullscreen_tint.color = form.fullscreen_bg
 	_open_window(form)
 
@@ -640,7 +652,7 @@ func _send_fields(fields: Dictionary) -> void:
 func _on_form_fields(fields: Dictionary, quit: bool) -> void:
 	_send_fields(fields)
 	if quit:
-		selected = {}
+		_clear_cursor()
 		_hide_window()
 
 func _on_outside_click(event: InputEvent) -> void:
@@ -652,6 +664,7 @@ func _on_outside_click(event: InputEvent) -> void:
 			selected["amount"] -= amt
 			if selected["amount"] <= 0:
 				selected = {}
+			drag_slots = []
 			hud.queue_redraw()
 
 func _open_pause_menu() -> void:
@@ -1139,6 +1152,15 @@ func ui_texture(name: String) -> Texture2D:
 	tex_cache[name] = tex
 	return tex
 
+# A formspec model[] preview: {node: Node3D, aabb: AABB}, or {} when the mesh
+# media has not arrived or the extension is too old to know the method. Not
+# cached, because each element poses its own copy of the model.
+func model_preview(mesh_name: String, textures: PackedStringArray, frame_loop: Vector2,
+		speed: float) -> Dictionary:
+	if mesh_name == "" or not client.has_method("model_preview"):
+		return {}
+	return client.model_preview(mesh_name, textures, frame_loop, speed)
+
 func item_icon(item_name: String) -> Texture2D:
 	if item_name == "":
 		return null
@@ -1171,20 +1193,244 @@ func _placeholder_icon(item_name: String) -> Texture2D:
 		img.set_pixel(31, i, col.darkened(0.4))
 	return ImageTexture.create_from_image(img)
 
-# Completing a drag: the press picked a stack up, releasing over another
-# slot drops it there. Releasing on the source slot keeps it on the cursor,
-# so click-then-click still works exactly as before.
-func _on_slot_released(location: String, listname: String, index: int, button: int) -> void:
+# --- the cursor stack ---------------------------------------------------------
+#
+# Goanna, like GUIFormSpecMenu, never really moves the held stack anywhere.
+# It remembers which slot the stack came from and sends inventory actions;
+# the server's next inventory update is what actually changes any list.
+# Four gestures share that state, and follow guiFormSpecMenu.cpp's OnEvent,
+# the BET_DOWN, BET_MOVE, BET_UP and BET_OTHER cases:
+#
+#   press, release          pick a stack up, put it down
+#   press, drag, release    left shares the held stack out evenly over every
+#                           slot the pointer crossed, right places one in
+#                           each and middle ten
+#   double click            gather every matching stack in the list onto the
+#                           cursor, up to the item's stack maximum
+#
+# So a left press over a slot that could take the stack moves nothing yet:
+# only the release knows whether it was a put down, a share out, or the
+# first half of a double click.
+#
+# Not carried over from upstream: dragging with the left button to pick up
+# matching stacks, and shift dragging to send each slot crossed to the next
+# list in the ring.
+
+# A whole click on one slot, for the scripted development aids above and for
+# anything else that wants click-then-click behaviour directly.
+func _click_slot(location: String, listname: String, index: int, button: int) -> void:
+	_on_slot_clicked(location, listname, index, button, false)
+	_on_slot_released(location, listname, index, button)
+
+# Drop the cursor stack and any half finished drag: the form it belonged to
+# is going away.
+func _clear_cursor() -> void:
+	selected = {}
+	drag_button = 0
+	drag_picked = false
+	drag_slots = []
+	drag_amount = 0
+
+func _stack_max(item_name: String) -> int:
+	return int(item_defs.get(item_name, {}).get("stack_max", 99))
+
+# How many slots a list has, so a double click knows how far to look. Reads
+# the same caches get_list_item does, and asks the client the same way when a
+# node or detached inventory has not been read yet.
+func _list_size(location: String, listname: String) -> int:
+	if location == "current_player":
+		return (inv_cache.get("lists", {}) as Dictionary).get(listname, []).size()
+	var st: Dictionary = other_inv_cache.get(location, {})
+	if st.is_empty() and client.has_method("inventory_state_at"):
+		st = client.inventory_state_at(location)
+		other_inv_cache[location] = st
+	return (st.get("lists", {}) as Dictionary).get(listname, []).size()
+
+# Whether a slot could take the cursor stack: empty, or holding the same item
+# at the same wear (ItemStack::stacksWith). Metadata is not compared, because
+# the inventory dictionaries do not carry it, so a slot whose item differs
+# only by metadata is treated as matching and the server sorts it out.
+func _slot_takes_selected(location: String, listname: String, index: int) -> bool:
 	if selected.is_empty():
+		return false
+	var dst := get_list_item(location, listname, index)
+	if int(dst.get("count", 0)) == 0:
+		return true
+	var src := get_list_item(selected["location"], selected["listname"], selected["index"])
+	return String(dst.get("name", "")) == String(src.get("name", "")) \
+		and int(dst.get("wear", 0)) == int(src.get("wear", 0))
+
+# Sends the action that puts part of the cursor stack into a slot and takes
+# that much off the cursor. Shared by clicking a slot, releasing over one and
+# dragging across several.
+func _move_selected(location: String, listname: String, index: int, amt: int) -> void:
+	if selected.is_empty() or amt <= 0:
+		return
+	client.inventory_action("Move %d %s %s %d %s %s %d" % [amt,
+		selected["location"], selected["listname"], selected["index"],
+		location, listname, index])
+	if selected["listname"] == "craftresult":
+		# taking the result out is what performs the craft, so the cursor
+		# cannot go on pointing at it
+		selected = {}
+	else:
+		selected["amount"] = int(selected["amount"]) - amt
+		if selected["amount"] <= 0:
+			selected = {}
+	hud.queue_redraw()
+
+# Share the held stack out over the slots a left drag crossed. Every slot
+# gets the same whole number of items and the remainder stays on the cursor,
+# which is upstream's split_amount and split_remaining. The slot the stack
+# came from takes its share by simply staying where it is, so nothing is
+# sent for it, and a slot that cannot hold a whole share takes what fits.
+func _share_out_drag(slots: Array, amount: int) -> void:
+	if selected.is_empty() or slots.size() < 2:
+		return
+	var share: int = amount / slots.size()
+	var remainder: int = amount % slots.size()
+	var src := get_list_item(selected["location"], selected["listname"], selected["index"])
+	var cap := _stack_max(String(src.get("name", selected.get("name", ""))))
+	var left := amount
+	for entry in slots:
+		if entry["location"] == selected["location"] \
+				and entry["listname"] == selected["listname"] \
+				and entry["index"] == selected["index"]:
+			# The cursor's own slot: its share and the remainder are already
+			# sitting there, they just stop being held.
+			left -= share + remainder
+			continue
+		var give: int = mini(share, maxi(cap - int(entry["count"]), 0))
+		if give <= 0:
+			continue
+		client.inventory_action("Move %d %s %s %d %s %s %d" % [give,
+			selected["location"], selected["listname"], selected["index"],
+			entry["location"], entry["listname"], entry["index"]])
+		left -= give
+	selected["amount"] = maxi(left, 0)
+	if selected["amount"] <= 0:
+		selected = {}
+	hud.queue_redraw()
+
+# The pointer crossed into another slot with a button held down. The left
+# button collects the slots to share the stack out over when it comes up;
+# right and middle place one and ten as they go.
+func _on_slot_dragged(location: String, listname: String, index: int, button: int) -> void:
+	if selected.is_empty() or button != drag_button:
+		return
+	if not client.has_method("inventory_action"):
 		return
 	if location == "context":
+		if form_context == "":
+			return
 		location = form_context
-	if selected["location"] == location and selected["listname"] == listname \
-			and selected["index"] == index:
+	if listname == "craftpreview" or listname == "craftresult":
 		return
-	_on_slot_clicked(location, listname, index, button, false)
+	if not _slot_takes_selected(location, listname, index):
+		return
+	if button == MOUSE_BUTTON_LEFT:
+		if drag_slots.is_empty() or drag_amount <= drag_slots.size():
+			# nothing was picked up to share out, or every slot already has a
+			# share and one more would get none
+			return
+		for entry in drag_slots:
+			if entry["location"] == location and entry["listname"] == listname \
+					and entry["index"] == index:
+				return  # crossing a slot twice does not earn it two shares
+		drag_slots.append({"location": location, "listname": listname, "index": index,
+			"count": int(get_list_item(location, listname, index).get("count", 0))})
+		return
+	if drag_picked:
+		return  # this press picked the stack up, it is not putting it down
+	_move_selected(location, listname, index,
+		1 if button == MOUSE_BUTTON_RIGHT else mini(10, int(selected["amount"])))
 
-func _on_slot_clicked(location: String, listname: String, index: int, button: int, shift: bool) -> void:
+# Double click on the slot the cursor stack came from: gather every other
+# stack of the same item in that list onto the cursor, up to the item's stack
+# maximum. The press that came with it started a left drag, and collecting
+# cancels that drag, as upstream does.
+func _on_slot_double_clicked(location: String, listname: String, index: int) -> void:
+	if selected.is_empty() or not client.has_method("inventory_action"):
+		return
+	if location == "context":
+		if form_context == "":
+			return
+		location = form_context
+	if drag_slots.is_empty():
+		return  # the press did not start a left drag, so this is not a collect
+	if selected["location"] != location or selected["listname"] != listname \
+			or selected["index"] != index:
+		return
+	var src := get_list_item(location, listname, index)
+	var item_name := String(src.get("name", ""))
+	if item_name == "":
+		return
+	var wear: int = int(src.get("wear", 0))
+	var held: int = int(src.get("count", 0))
+	var cap := _stack_max(item_name)
+	var collected := 0
+	for i in _list_size(location, listname):
+		if held >= cap:
+			break
+		if i == index:
+			continue
+		var other := get_list_item(location, listname, i)
+		if int(other.get("count", 0)) == 0:
+			continue
+		if String(other.get("name", "")) != item_name or int(other.get("wear", 0)) != wear:
+			continue
+		var take: int = mini(int(other["count"]), cap - held)
+		client.inventory_action("Move %d %s %s %d %s %s %d" % [take,
+			location, listname, i, location, listname, index])
+		held += take
+		collected += take
+	if collected > 0:
+		selected["amount"] = int(selected["amount"]) + collected
+		drag_slots = []
+		hud.queue_redraw()
+
+# A mouse button came up. The slot named is the one under the pointer, which
+# Godot does not otherwise tell the slot that took the press; an empty
+# listname means the pointer was not over a slot at all.
+func _on_slot_released(location: String, listname: String, index: int, button: int) -> void:
+	if location == "context":
+		if form_context == "":
+			return
+		location = form_context
+	if button != drag_button:
+		return
+	var slots: Array = drag_slots
+	var amount := drag_amount
+	var picked := drag_picked
+	drag_button = 0
+	drag_picked = false
+	drag_slots = []
+	drag_amount = 0
+	if selected.is_empty() or not client.has_method("inventory_action"):
+		return
+	if button == MOUSE_BUTTON_LEFT and slots.size() > 1:
+		_share_out_drag(slots, amount)
+		return
+	if listname == "":
+		return
+	var same_slot: bool = selected["location"] == location \
+		and selected["listname"] == listname and selected["index"] == index
+	if button == MOUSE_BUTTON_LEFT and slots.size() == 1:
+		# One slot only, so the drag was an ordinary put down, or the stack
+		# going back where it came from.
+		if same_slot:
+			selected = {}
+			hud.queue_redraw()
+		else:
+			_move_selected(location, listname, index, int(selected["amount"]))
+		return
+	if picked and not same_slot:
+		# The press picked the stack up and the player let go somewhere else:
+		# put all of it down there (upstream's m_selected_dragging).
+		_move_selected(location, listname, index, int(selected["amount"]))
+
+func _on_slot_clicked(location: String, listname: String, index: int, button: int,
+		shift: bool, press := true) -> void:
 	if not client.has_method("inventory_action"):
 		print("inventory: inventory_action not available yet")
 		return
@@ -1192,6 +1438,11 @@ func _on_slot_clicked(location: String, listname: String, index: int, button: in
 		if form_context == "":
 			return
 		location = form_context
+	if press:
+		drag_button = button
+		drag_picked = false
+		drag_slots = []
+		drag_amount = 0
 	var item := get_list_item(location, listname, index)
 	var count: int = item.get("count", 0)
 	if shift and button == MOUSE_BUTTON_LEFT and count > 0 and selected.is_empty() and listname != "craftpreview":
@@ -1239,9 +1490,21 @@ func _on_slot_clicked(location: String, listname: String, index: int, button: in
 		elif button == MOUSE_BUTTON_MIDDLE:
 			amt = mini(10, count)
 		selected = {"location": location, "listname": listname, "index": index, "amount": amt, "name": item.get("name", "")}
+		drag_picked = press
 		hud.queue_redraw()
 		return
 	# something is on the cursor
+	if press and button == MOUSE_BUTTON_LEFT and selected["listname"] != "craftresult" \
+			and _slot_takes_selected(location, listname, index):
+		# Nothing moves on the press: this is the start of a left drag, and
+		# the release says whether the stack was put down here, shared out
+		# over several slots, or double clicked to collect. A craft result is
+		# left out because taking it from the list performs the craft, which
+		# cannot be done a share at a time.
+		drag_amount = int(selected["amount"])
+		drag_slots = [{"location": location, "listname": listname, "index": index,
+			"count": count}]
+		return
 	if selected["location"] == location and selected["listname"] == listname and selected["index"] == index:
 		selected = {}
 		hud.queue_redraw()
@@ -1249,14 +1512,9 @@ func _on_slot_clicked(location: String, listname: String, index: int, button: in
 	var amt: int = selected["amount"]
 	if button == MOUSE_BUTTON_RIGHT:
 		amt = 1
-	client.inventory_action("Move %d %s %s %d %s %s %d" % [amt, selected["location"], selected["listname"], selected["index"], location, listname, index])
-	if selected["listname"] == "craftresult":
-		selected = {}
-	else:
-		selected["amount"] -= amt
-		if selected["amount"] <= 0:
-			selected = {}
-	hud.queue_redraw()
+	elif button == MOUSE_BUTTON_MIDDLE:
+		amt = mini(10, amt)
+	_move_selected(location, listname, index, amt)
 
 func _after_inventory_update() -> void:
 	# after a craft the result sits in craftresult: pick it up, as vanilla does

@@ -60,10 +60,20 @@ The coverage manifest uses three deliberately narrow labels:
 - `missing` means the element or directive has no effect. Missing build-time
   elements must also appear in the renderer's `skipped` report.
 
-Luanti parses `formspec_version[]`, `size[]`, `position[]`, `anchor[]` and
-`padding[]` before its element registry. The Godot suite tests these as
-layout headers, while the source coverage count is limited to the registry
-itself.
+Luanti parses `formspec_version[]`, `size[]`, `position[]`, `anchor[]`,
+`padding[]` and `no_prepend[]` before its element registry. The Godot suite
+tests these as layout headers, while the source coverage count is limited to
+the registry itself.
+
+The game's own window theme, sent once as `TOCLIENT_FORMSPEC_PREPEND`, is
+built in front of every server sent form that does not say `no_prepend[]`.
+Upstream parses it with the old coordinate system whatever the form asked
+for, and restores the formspec version afterwards, so a `formspec_version[6]`
+form does not drag the prepend's positions into real coordinates. Goanna
+keeps the prepend in its own element list and builds it first, under the same
+rules; `_test_prepend` covers all three parts. Goanna's own pause menu and
+settings screens are ordinary Godot Controls, not formspecs, so the prepend
+never reaches them.
 
 When Luanti adds or removes a registered element, the source check fails
 until the manifest is updated. New support should update the renderer, the

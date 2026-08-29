@@ -202,6 +202,40 @@ std::shared_ptr<GodotModel> EntityRenderer::modelFor(GoannaSession &session, con
     return model;
 }
 
+// Godot wants unique bone names; models may repeat them (and the extra
+// rigid-attachment bones have none). Lookups use indices.
+static std::vector<String> modelBoneNames(const GodotModel &model) {
+    const auto &joints = model.skinned->getAllJoints();
+    std::vector<String> names;
+    std::set<std::string> used;
+    for (int i = 0; i < model.bone_count; ++i) {
+        std::string name = (i < model.joint_count && joints[i]->Name) ? *joints[i]->Name : "";
+        if (name.empty() || used.count(name))
+            name += "#" + std::to_string(i);
+        used.insert(name);
+        names.push_back(String::utf8(name.c_str()));
+    }
+    return names;
+}
+
+// A skinned mesh instance under its own Skeleton3D with identity binds, so
+// the bone poses ModelAnimator writes are the skin matrices themselves.
+static Skeleton3D *skinUnderSkeleton(const GodotModel &model,
+        const std::vector<String> &bone_names, MeshInstance3D *m, Node3D *parent) {
+    Skeleton3D *sk = memnew(Skeleton3D);
+    for (const String &n : bone_names)
+        sk->add_bone(n);
+    Ref<Skin> skin;
+    skin.instantiate();
+    for (int i = 0; i < model.bone_count; ++i)
+        skin->add_bind(i, Transform3D());
+    m->set_skin(skin);
+    sk->add_child(m);
+    m->set_skeleton_path(NodePath(".."));
+    parent->add_child(sk);
+    return sk;
+}
+
 // OBJECTVISUAL_MESH: the model under a node scaled from mesh units (BS) by
 // visual_size; skinned models get a Skeleton3D with identity binds whose
 // bone poses are the skin matrices, so Godot does the skinning.
@@ -233,31 +267,9 @@ bool EntityRenderer::buildMeshVisual(GoannaSession &session, GoannaActiveObject 
     en.skeleton = nullptr;
     en.shadow_skeleton = nullptr;
     if (model->animated) {
-        // Godot wants unique bone names; models may repeat them (and the
-        // extra rigid-attachment bones have none). Lookups use indices.
-        const auto &joints = model->skinned->getAllJoints();
-        std::vector<String> bone_names;
-        std::set<std::string> used;
-        for (int i = 0; i < model->bone_count; ++i) {
-            std::string name = (i < model->joint_count && joints[i]->Name) ? *joints[i]->Name : "";
-            if (name.empty() || used.count(name))
-                name += "#" + std::to_string(i);
-            used.insert(name);
-            bone_names.push_back(String::utf8(name.c_str()));
-        }
+        std::vector<String> bone_names = modelBoneNames(*model);
         auto skin_under_skeleton = [&](MeshInstance3D *m) {
-            Skeleton3D *sk = memnew(Skeleton3D);
-            for (const String &n : bone_names)
-                sk->add_bone(n);
-            Ref<Skin> skin;
-            skin.instantiate();
-            for (int i = 0; i < model->bone_count; ++i)
-                skin->add_bind(i, Transform3D());
-            m->set_skin(skin);
-            sk->add_child(m);
-            m->set_skeleton_path(NodePath(".."));
-            holder->add_child(sk);
-            return sk;
+            return skinUnderSkeleton(*model, bone_names, m, holder);
         };
         en.skeleton = skin_under_skeleton(mi);
         en.animator = std::make_unique<ModelAnimator>(model);
@@ -281,6 +293,95 @@ bool EntityRenderer::buildMeshVisual(GoannaSession &session, GoannaActiveObject 
     }
     en.visual = holder;
     return true;
+}
+
+// GUIScene::setTexture: nearest filtered, alpha tested at 0.5 and drawn from
+// both sides. Unshaded because upstream's GUI scene manager holds no lights,
+// so the preview is the flat texture and nothing else, whatever the time of
+// day is doing to the world behind the formspec.
+Ref<StandardMaterial3D> EntityRenderer::materialForPreviewTexture(GoannaSession &session,
+        const std::string &texture) {
+    std::string key = "model[]|" + texture;
+    auto it = m_materials.find(key);
+    if (it != m_materials.end())
+        return it->second;
+    Ref<StandardMaterial3D> mat;
+    mat.instantiate();
+    mat->set_shading_mode(BaseMaterial3D::SHADING_MODE_UNSHADED);
+    mat->set_texture_filter(BaseMaterial3D::TEXTURE_FILTER_NEAREST);
+    mat->set_cull_mode(BaseMaterial3D::CULL_DISABLED);
+    mat->set_transparency(BaseMaterial3D::TRANSPARENCY_ALPHA_SCISSOR);
+    mat->set_alpha_scissor_threshold(0.5f);
+    u32 tid = session.tsrc()->getTextureId(texture);
+    if (GoannaTexture *gt = session.tsrc()->goannaTexture(tid)) {
+        Ref<ImageTexture> tex = gt->godotTexture();
+        if (tex.is_valid())
+            mat->set_texture(BaseMaterial3D::TEXTURE_ALBEDO, tex);
+    } else {
+        mat->set_albedo(Color(0.8, 0.3, 0.8));
+    }
+    m_materials[key] = mat;
+    return mat;
+}
+
+// The formspec model[] element. Upstream builds a whole second scene manager
+// for this (guiScene.cpp); here the UI hangs the returned node under a
+// SubViewport of its own and orbits a camera round it, so all that is needed
+// is the mesh, its textures and the pose.
+Node3D *EntityRenderer::buildModelPreview(GoannaSession &session, const std::string &mesh,
+        const std::vector<std::string> &textures, float frame_begin, float frame_end,
+        float speed, AABB *out_aabb) {
+    std::shared_ptr<GodotModel> model = modelFor(session, mesh);
+    if (!model || model->mesh.is_null() || model->mesh->get_surface_count() == 0)
+        return nullptr;
+    Node3D *holder = memnew(Node3D);
+    MeshInstance3D *mi = memnew(MeshInstance3D);
+    mi->set_mesh(model->mesh);
+    for (int i = 0; i < (int)model->texture_slots.size(); ++i) {
+        u32 slot = model->texture_slots[i];
+        // Upstream warns "Not enough textures" and leaves the surface with
+        // whatever the loader gave it.
+        if (slot >= textures.size() || textures[slot].empty())
+            continue;
+        mi->set_surface_override_material(i, materialForPreviewTexture(session, textures[slot]));
+    }
+    if (out_aabb)
+        *out_aabb = model->mesh->get_aabb();
+    if (!model->animated) {
+        holder->add_child(mi);
+        return holder;
+    }
+    // Skinned: the rest pose the loader leaves in the vertex data is not
+    // necessarily the pose the element asked for, so build the skeleton and
+    // step the animator once to land on the first frame of the loop. That is
+    // what upstream shows too, since animation speed defaults to zero.
+    std::vector<String> bone_names = modelBoneNames(*model);
+    Skeleton3D *sk = skinUnderSkeleton(*model, bone_names, mi, holder);
+    auto animator = std::make_unique<ModelAnimator>(model);
+    animator->setAnimationSpeed(speed);
+    animator->setFrameLoop(frame_begin, frame_end);
+    std::map<std::string, BoneOverride> no_overrides;
+    animator->step(0.0f, no_overrides, sk);
+    if (speed != 0.0f)
+        m_previews[(uint64_t)sk->get_instance_id()] = std::move(animator);
+    return holder;
+}
+
+void EntityRenderer::stepModelPreviews(float dt) {
+    if (m_previews.empty())
+        return;
+    std::map<std::string, BoneOverride> no_overrides;
+    for (auto it = m_previews.begin(); it != m_previews.end();) {
+        Skeleton3D *sk = Object::cast_to<Skeleton3D>(
+                UtilityFunctions::instance_from_id((int64_t)it->first));
+        if (!sk) {
+            // The formspec that owned it has been closed.
+            it = m_previews.erase(it);
+            continue;
+        }
+        it->second->step(dt, no_overrides, sk);
+        ++it;
+    }
 }
 
 // OBJECTVISUAL_ITEM / OBJECTVISUAL_WIELDITEM: build the item's wield mesh with
@@ -587,6 +688,7 @@ std::string EntityRenderer::chooseArmBone(GoannaSession &session, u16 self_id, c
 }
 
 void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camera_pos) {
+    stepModelPreviews(dt);
     auto &objects = session.objects();
     // remove gone
     for (auto it = m_nodes.begin(); it != m_nodes.end();) {
