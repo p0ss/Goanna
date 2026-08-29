@@ -642,8 +642,11 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
             }
         }
         en.root->set_position(gp);
-        // Luanti yaw: rotation.Y degrees; mirrored z flips the sense of yaw
-        en.root->set_rotation_degrees(Vector3(rot.X, -rot.Y, -rot.Z));
+        // Luanti yaw maps to Godot yaw directly, same as the local player's
+        // body below: negating it here mirrored the facing across Z instead
+        // of rotating it, which only happened to look right for north/south
+        // movement and put every east/west-facing mob backwards.
+        en.root->set_rotation_degrees(Vector3(rot.X, rot.Y, -rot.Z));
         // The node light where the entity stands, for entity.gdshader's
         // node_light: read once per node the entity is in, at about eye
         // height so a mob standing in a lit doorway takes the doorway's light.
