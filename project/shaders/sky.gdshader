@@ -36,6 +36,11 @@ uniform float cloud_thickness = 16.0;
 uniform vec2 cloud_offset = vec2(0.0);
 uniform vec4 haze_color : source_color = vec4(0.72, 0.8, 0.9, 1.0);
 uniform float haze_twilight : hint_range(0.0, 1.0) = 0.0;
+// How much of the air colour the sky takes along the geometric horizon by
+// day. This is the band a hole in the far field is seen against, and at the
+// old 0.26 it stayed three quarters sky while the terrain beside it faded
+// fully into the air, so a gap read as a pale slot between brown hills.
+uniform float horizon_air_day : hint_range(0.0, 1.0) = 0.26;
 // Goanna: what the sky feeds to lighting is not what it shows. Godot samples
 // this shader into the radiance cubemap that SDFGI and the ambient term read,
 // with AT_CUBEMAP_PASS set, so the lighting half can differ from the visible
@@ -153,10 +158,24 @@ void sky() {
 	vec3 dir = EYEDIR;
 	float up = clamp(dir.y, -1.0, 1.0);
 	vec3 col;
-	if (up >= 0.0)
+	if (up >= 0.0) {
 		col = mix(sky_horizon.rgb, sky_top.rgb, pow(up, 0.45));
-	else
-		col = mix(sky_horizon.rgb, ground_color.rgb, pow(-up, ground_curve));
+	} else {
+		// The band under the horizon line is the background a gap in the far
+		// field is seen through, so it has to be the same air the terrain
+		// dissolves into, not the sky above it. It used to start at
+		// sky_horizon and take only a quarter of the haze from the air term
+		// further down, so a hole in the far field read as a pale slot
+		// against hills fading to brown: the two backgrounds did not match.
+		// Ramped over a couple of degrees so the join at the horizon line is
+		// not a step. The cubemap pass keeps the old colour, because that
+		// half of this shader is the light the world is lit by rather than
+		// what is drawn, and this is a fix to the picture only.
+		vec3 base = sky_horizon.rgb;
+		if (!AT_CUBEMAP_PASS)
+			base = mix(sky_horizon.rgb, haze_color.rgb, smoothstep(0.0, -0.03, up));
+		col = mix(base, ground_color.rgb, pow(-up, ground_curve));
+	}
 	if (AT_CUBEMAP_PASS) {
 		if (up < 0.0)
 			col = mix(col, sky_horizon.rgb, radiance_ground_lift);
@@ -173,7 +192,7 @@ void sky() {
 				normalize(vec3(sun_dir.x, 0.08, sun_dir.z))), 0.0), 5.0);
 		vec3 air = mix(haze_color.rgb, sun_tint.rgb * 0.82,
 				haze_twilight * mix(0.20, 0.82, sun_haze));
-		col = mix(col, air, horizon * (0.26 + 0.48 * haze_twilight));
+		col = mix(col, air, horizon * (horizon_air_day + 0.48 * haze_twilight));
 	}
 
 	// stars: one jittered point per hashed cell on the dome, faded by daylight.
@@ -192,8 +211,14 @@ void sky() {
 		col += star_color.rgb * star * star_opacity * (0.6 + 0.4 * hash12(cell.zy + 4.7));
 	}
 
+	// The discs and their halos are the picture, not the light: the radiance
+	// cubemap feeds ambient and, through fog_aerial_perspective, the colour
+	// depth fog blends toward, per direction. With the sun disc in it, a
+	// hazed hill in front of a low sun glowed with the disc behind it, dawn
+	// shining through the terrain. Their solid angle is far too small to
+	// matter to ambient energy, so the cubemap pass skips them entirely.
 	float inside;
-	if (moon_visible) {
+	if (moon_visible && !AT_CUBEMAP_PASS) {
 		// Scattering around the moon belongs to the atmosphere behind geometry,
 		// not to a depth-fog gradient painted over the nearest hillside. Kept
 		// tight: the old exponent of 24 spread a glow across a third of the
@@ -219,7 +244,7 @@ void sky() {
 			}
 		}
 	}
-	if (sun_visible) {
+	if (sun_visible && !AT_CUBEMAP_PASS) {
 		vec2 uv = disc_uv(dir, sun_dir, sun_size, inside);
 		if (inside > 0.5) {
 			if (sun_use_tex) {

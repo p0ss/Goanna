@@ -2515,3 +2515,151 @@ took the dusk): the lip at the water junction is gone and the junction
 reads as one sheet. The frozen sheet at far range was not re-verified
 before the storm closed in; if its edge still misbehaves, look at the
 hand-off freeze counters before the geometry.
+
+### The far field was off in every session, 2026-08-30
+
+Reported as terrain disappearing when the player leaves it rather than
+degrading to a coarse surface, and, after waiting for the horizon to fill,
+the whole vacated region vanishing: far field 0 blocks, reach 0/0, requests
+0, while the HUD showed a 4096 node grant. On the same frames, thousands of
+far region meshes with stale-drawn in the thousands and oldest past seven
+minutes: nearly everything visible in the distance was a zombie mesh whose
+members had already been forgotten, dissolving as rebuilds landed.
+
+The cause was one clamp. The graphics profiles store `far_distance = -1`
+meaning "whatever the server grants". The profile apply loop knew to skip
+it, but the profile picker saved it raw into `goanna.cfg`, and the stored
+settings loop applied it raw on every later launch: `set_far_distance(-1)`
+clamped to 0 and set the explicit flag, so `lodUpdateFar` ran with a far
+radius of one mapblock for the whole session. Every pruned near block was
+handed to the far field and forgotten within two seconds as out of range;
+no summary was ever requested; the store was never scanned. Everything in
+docs since the profiles landed that reads "the horizon never fills" wants
+re-judging against a build with this fixed.
+
+`set_far_distance` now treats a negative as the auto choice: it clears the
+explicit flag so the grant is tracked again, and the profile apply loop
+passes -1 through instead of skipping it, which also clears a numeric cap
+left by an earlier profile. A cfg holding -1 is valid and keeps meaning
+"the grant".
+
+Measured against the local Mineclonia test world (Luanti 5.16.1, Godot
+4.5.1, 512 node grant), the user's own profile with the poisoned cfg: 20 s
+after joining, 22047 far blocks, requests in flight, extent 288 and
+climbing; 45 s after a teleport 800 nodes away, extent 480 of the 512
+grant, stale-drawn 0, oldest 0.0 s, and the look back shows the vacated
+area as a continuous coarse surface to the horizon.
+
+Left open: the settings panel shows "Custom" instead of "Rich" whenever
+far_distance tracks the grant, because `far_distance()` reports the
+tracked number and the profile compares it against -1. Cosmetic, and it
+predates this fix.
+
+### Ten million triangles, and terrain from the wrong world, 2026-08-30
+
+Four fixes from one report against the terrain diffusion world at a 4096
+node grant: 17 fps sinking to 2, dawn shining through a hill, holes in the
+hills, and giant mismatched panels, all at 10M primitives and 15k draws.
+
+**The tier ladder scaled with the detail distance.** Coarse thresholds
+doubled from `lod_distance * 16` itself, so the rich profile's detail of
+32 blocks pushed cell 4 geometry out to a kilometre, cell 8 to two, and
+the cell 16 tier past the grant entirely, in tier 1 regions two mapblocks
+across. The doubling base is now capped at 256 nodes (the detail distance
+still floors the first band), which changes nothing at the old default of
+12 and returns the coarse tiers to their intended job above it.
+
+**Every far rescan walked every retained block.** The out-of-range prune,
+the summary cache prune, the store scan and the membership repair pass in
+`lodUpdateFar` each visited the full sets, under the map lock, every two
+seconds; at half a million retained blocks that was over 30 ms of main
+thread per rescan. All four are now bounded sweeps with resume cursors
+(16384 entries or 4096 store regions per rescan). Leaving range is memory
+hygiene and can be lazy; a block turning live is still released at once by
+poll_blocks, and prune_blocks still hands pruned ground straight to a far
+region.
+
+Measured at the same viewpoint two minutes after joining, before and
+after: far regions 14596 to 5749, GPU 14.0 to 4.5 ms, far rescan EMA to
+0.004 ms, 39 to 57 fps. At the filled state (716k far blocks, reach
+2880): 5.6k draws, 2.1M primitives, GPU 4.7 ms. The median fps while the
+field actively streams is still ~30 with spikes from mesh production, so
+production pacing is the next candidate, but the render side is settled.
+
+**Dawn shone through hills because the sun disc was in the radiance
+cubemap.** `fog_aerial_perspective` blends a fogged pixel toward the sky's
+radiance in that pixel's direction, and the sky shader drew the sun disc
+at three times unity, plus its halo, in the cubemap pass too, so a hazed
+hill in front of a low sun glowed with the disc behind it. The discs and
+halos (moon too) are now picture-pass only; their solid angle is far too
+small to matter to ambient energy. Extending the sun's 200 node shadow
+distance was measured as an alternative (the far meshes do cast): 1200
+and 2400 nodes moved the glow band by two luminance units of 98 while
+costing 10 to 20 fps, so it stays at 200; the remaining broad dawn haze
+is bloom plus fog in-scatter, which is weather rather than a defect.
+
+**The giant panels and the permanent holes were another world's store.**
+The block store is one directory per host and port, which is right for a
+remote server and wrong for the local flow, where every world a player
+ever launches lives at 127.0.0.1 on the same port. Stored blocks
+deliberately beat summaries, so a slab of savanna stored while playing
+one world drew inside the mesa world at the savanna's own elevation, a
+floating foreign panel, and air stored in one world cut holes in the
+other's hills that no retry could ever fill. Reproduced by copying the
+mixed store under a test key: a patch of jungle spawn, structures and
+all, stood in the diffusion plain; the same viewpoint with a clean store
+shows the world's own ground. A locally launched world is the one case
+where the client knows the world, so `main.gd` now roots the store at
+`goanna_store/world_<name>/` when `GOANNA_SP_MATCH` names one. Existing
+mixed directories are left alone; local worlds simply stop reading them.
+A remote server that swaps worlds still shows stale terrain until looked
+at, as recorded above, because the wire still does not name the world.
+
+### After the radiance fix: the pre-crest brightness and the rays, 2026-08-30
+
+Two observations followed the sun-disc-out-of-radiance fix: the world
+brightens before the disc clears a ridge, and no rays stream when it does.
+Both were investigated on the diffusion world; one led to a measurement
+and a rejection, the other to a new pass.
+
+**The early brightness is not unshadowed sun.** At a pre-crest time the
+frame was identical at a 200 and a 1536 node shadow distance: the light on
+the land is the sky fill and the dawn ambient, which ramp with the clock,
+plus the dusk hold that runs the sun at 0.4 energy while the disc is still
+below the geometric horizon (main.gd, "Hold the sun through the golden
+hour"). Longer shadows cannot dim any of that. The glow that used to sit
+on the terrain toward the sun was the radiance defect itself, and it had
+been reading as "the sun arriving"; what remains is a calibration question
+for the chart, not a shadowing one. Extending the shadow distance was
+measured anyway: 1536 nodes triples draw calls (4k to 13k, the far
+regions drawn into the cascades) and costs about 3 ms of GPU on this
+machine, for two luminance units of change in the dawn frames. It stays
+at 200.
+
+**Godot's froxel fog cannot draw the rays this world wants.** A ray at
+the horizon is shaped by a ridge hundreds of nodes out; the froxel volume
+is metres per cell at that range and the 200 node shadow map never
+contains the ridge. So the rays are now screen space:
+`shaders/light_shafts.gdshader`, a full screen additive quad on the
+camera that marches the depth buffer from each pixel toward the sun's
+screen position, the classic crepuscular pass. Every silhouette at every
+distance occludes it for free, far tiers included. It reads the same
+`goanna_sun_dir` and `goanna_sun_glow` globals as the water's fallback
+reflection (so night and weather already zero it), projects with the same
+matrix idiom water.gdshader has proven against the screen, and its
+strength follows the shafts slider, the sun's elevation, the cloud deck
+gate and the underwater cut in `_apply_sky`.
+
+**Not yet run.** Every client launch after the code landed died at
+`vkCreateDevice`; the kernel log shows `NV_ERR_RESET_REQUIRED` from NVRM
+on each new channel allocation. The cause was an `rpm-ostree install`
+run on the box meanwhile: new NVIDIA userspace under the still running
+kernel module, so no new process could create a device while already
+running ones kept theirs (a bare Godot with no project reproduced it).
+A reboot into the new deployment clears it. `main.gd` passes `--check-only`;
+the shader is built from constructs the water shader already compiles.
+First run after the reset should check: a dawn sun half hidden by the
+mesa east of (130, 37, 313), rays swinging as the camera pans, no
+mirror-image rays (which would mean the projection's Y convention
+differs from the water path after all), and the pass gone at noon, at
+night, in storms and under water.

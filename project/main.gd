@@ -77,6 +77,10 @@ var light_fill := 0.4
 # multiplier on what the server asks for, not a replacement; 0 turns the
 # volume off and leaves the flat distance fog alone.
 var light_shafts := 1.0
+# The screen space ray pass on the camera; see _ready and
+# shaders/light_shafts.gdshader.
+var shaft_quad: MeshInstance3D
+var shaft_mat: ShaderMaterial
 # Cost and reach of the shared atmospheric froxel volume. Zero leaves only
 # the inexpensive sky and horizon fade.
 var atmosphere_quality := 1.0
@@ -257,6 +261,24 @@ func _ready() -> void:
 	cam.far = 1000
 	add_child(cam)
 	cam.current = true
+	# Screen space crepuscular rays (shaders/light_shafts.gdshader): a full
+	# screen quad on the camera, additive over the finished frame, marching
+	# the depth buffer toward the sun. The volumetric fog cannot draw rays
+	# shaped by a distant ridge (froxels are metres wide out there and the
+	# shadow map stops at 200 nodes); the depth buffer knows every silhouette
+	# at every distance for free. Strength follows the shafts slider in
+	# _apply_sky; the huge custom AABB stops the quad being culled.
+	shaft_quad = MeshInstance3D.new()
+	var shaft_mesh := QuadMesh.new()
+	shaft_mesh.size = Vector2(2, 2)
+	shaft_quad.mesh = shaft_mesh
+	shaft_mat = ShaderMaterial.new()
+	shaft_mat.shader = load("res://shaders/light_shafts.gdshader")
+	shaft_mat.render_priority = 100
+	shaft_quad.material_override = shaft_mat
+	shaft_quad.custom_aabb = AABB(Vector3(-5e8, -5e8, -5e8), Vector3(1e9, 1e9, 1e9))
+	shaft_quad.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	cam.add_child(shaft_quad)
 	_report_fov()
 	# And again whenever the window changes shape: the horizontal angle grows
 	# with the aspect, and a window dragged wider after startup was otherwise
@@ -535,6 +557,16 @@ func _ready() -> void:
 		var store_root := OS.get_environment("GOANNA_STORE")
 		if store_root == "":
 			store_root = ProjectSettings.globalize_path("user://goanna_store")
+		# The session keys its store directory by host and port, and every
+		# locally hosted world lives at 127.0.0.1 on whatever port was free,
+		# so local worlds shared one store. Stored terrain from one world
+		# then drew inside another, as giant mismatched panels, and stored
+		# air from one world cut holes in another's hills, because a stored
+		# block deliberately beats a summary. A locally launched world is
+		# the one case where the world is known, so it gets its own root.
+		var sp_world := OS.get_environment("GOANNA_SP_MATCH")
+		if sp_world != "":
+			store_root = store_root.path_join("world_" + sp_world.get_file())
 		client.set_store_path(store_root)
 		if OS.get_environment("GOANNA_FAR_DISTANCE") != "":
 			client.set_far_distance(int(OS.get_environment("GOANNA_FAR_DISTANCE")))
@@ -2424,6 +2456,19 @@ func _apply_sky() -> void:
 		# same deck gate as the shafts above: a storm hidden sun blooms into
 		# nothing.
 		e.fog_sun_scatter = clamp((0.15 + 0.35 * dawn) * sun_open, 0.0, 1.0)
+		# The screen space rays (light_shafts.gdshader) share the weighting
+		# already derived here: a low sun, the server's volumetric ask as a
+		# floor, the deck gate, the slider as the knob. They exist because
+		# the froxel volume cannot carry a ray shaped by a ridge hundreds of
+		# nodes out; the sun glow global zeroes them at night and under
+		# weather skies by itself.
+		if shaft_mat != null:
+			shaft_mat.set_shader_parameter("shaft_strength",
+					0.55 * light_shafts * (0.6 + 1.4 * vol) * low * sun_open)
+	elif shaft_mat != null:
+		# Underwater the murk owns the light; rays through the surface are
+		# a different effect and this one only ever read as glare.
+		shaft_mat.set_shader_parameter("shaft_strength", 0.0)
 	# --- shader pack world state ---
 	# What a pack's uniforms can honestly be told: the sky zenith as the
 	# server blended it (before the look tweak above), the fog colour as the
