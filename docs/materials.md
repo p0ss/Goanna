@@ -197,7 +197,29 @@ against its own absence rather than a fade to black.
 These are presentation, not decode. The decode stays literal, so a pack that
 looks wrong at 1.0 is reporting something true about itself.
 
-## Licence of the source art
+### Occlusion has to reach the fill, 2026-08-30
+
+Reported as AO and corner darkening never visibly working, at any slider.
+The knobs worked; the light they modulate was the minority of the pixel.
+The pack's `ao` and the traced `vertex_ao` fed Godot's `AO` output, which
+multiplies ambient light only, and SSAO likewise darkens ambient. But most
+of a Goanna surface's light is the sky fill, written as `EMISSION` so the
+sun's shadow cannot darken it, and emission is outside every occlusion
+path. Measured on a noon forest floor with the camera held still: turning
+the sky fill off removed 57 per cent of the frame's mean luminance and 87
+per cent of the darkest quartile's, while sweeping `vertex_ao` end to end
+moved the frame by 0.1 of 255 and the whole SSAO slider by 3.
+
+The fill in the two `nodes_array` shaders now multiplies
+`clamp(pack_ao * occ, 0.0, 1.0)`, the same terms the `AO` output carries,
+so a corner is dark in the light that actually reaches it. Same scene
+after: sweeping `vertex_ao` moves the darkest quartile by 6.7 of 255
+rather than 0.2. The far vista, checked from 110 nodes up over the same
+world, does not collapse: the far tracer's heavier occlusion (a known
+calibration debt) darkens the fill there too, and it wants the chart
+before it is trusted, but the frame still reads as terrain under haze.
+SSAO still cannot reach the fill; the traced term is the stable one and
+is now the one doing the visible work.
 
 Worth stating plainly, because the obvious assumption is wrong and this
 repository has got licences wrong before.

@@ -207,12 +207,18 @@ void fragment() {
 	float occ = mix(1.0, v_nodelight.b, vertex_ao_strength);
 	AO = clamp(pack_ao * occ * sky_vis, 0.0, 1.0);
 	AO_LIGHT_AFFECT = vertex_ao_light_strength;
-	// The fill is emission so that it is neither shadowed nor occluded: it is
+	// The fill is emission so that the sun's shadow does not darken it: it is
 	// the light the sky light channel says reaches here, see the include.
+	// Emission is also outside Godot's AO path, and the fill is most of the
+	// light in a frame (87 per cent of the dark quartile, measured on a noon
+	// forest floor), so it multiplies the same occlusion the ambient path
+	// carries or corners can never read dark. SSAO still cannot reach it;
+	// the traced term is the stable one anyway.
 	// Clouds between here and the sun dim the surface, fill and all.
 	ALBEDO *= goanna_cloud_dim(v_world);
 	vec3 fill_col = mix(goanna_ground_fill, goanna_sky_fill, clamp(0.5 + 0.5 * v_wnormal.y, 0.0, 1.0));
-	EMISSION += ALBEDO * fill_col * v_nodelight.g * sky_fill_strength;
+	EMISSION += ALBEDO * fill_col * v_nodelight.g * sky_fill_strength
+			* clamp(pack_ao * occ, 0.0, 1.0);
 	// block_light_emission is 1 on the far tiers (baked lamp light instead
 	// of real lights) and 0 on the near mesh, where the fade takes over
 	// past the pool's reach so a mid-distance village stays lit.

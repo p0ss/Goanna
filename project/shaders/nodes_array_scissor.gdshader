@@ -160,12 +160,15 @@ void fragment() {
 	float occ = mix(1.0, v_nodelight.b, vertex_ao_strength);
 	AO = clamp(pack_ao * occ * sky_vis, 0.0, 1.0);
 	AO_LIGHT_AFFECT = vertex_ao_light_strength;
-	// The fill is emission so that it is neither shadowed nor occluded: it is
-	// the light the sky light channel says reaches here, see the include.
+	// The fill is emission so that the sun's shadow does not darken it, but
+	// emission is also outside Godot's AO path and the fill is most of the
+	// light in a frame, so it multiplies the same occlusion the ambient path
+	// carries. See nodes_array.gdshader for the measurement.
 	// Clouds between here and the sun dim the surface, fill and all.
 	ALBEDO *= goanna_cloud_dim(v_world);
 	vec3 fill_col = mix(goanna_ground_fill, goanna_sky_fill, clamp(0.5 + 0.5 * v_wnormal.y, 0.0, 1.0));
-	EMISSION += ALBEDO * fill_col * v_nodelight.g * sky_fill_strength;
+	EMISSION += ALBEDO * fill_col * v_nodelight.g * sky_fill_strength
+			* clamp(pack_ao * occ, 0.0, 1.0);
 	// Same rule as nodes_array.gdshader: the far tiers bake lamp light, the
 	// near mesh fades the same bake in past the light pool's reach.
 	float lamp_bake = max(block_light_emission,
