@@ -897,6 +897,15 @@ private:
     // older result is rejected on collection.
     std::map<v3s16, uint64_t> m_near_generation;
     std::map<v3s16, uint64_t> m_near_inflight;
+    // When a block first appeared in poll_blocks's fresh list, waiting to be
+    // meshed or reassigned a tier. Set once and left alone while the block is
+    // requeued frame after frame, so ViewPriority::aged (goanna_schedule.h)
+    // can promote it: without this, a block a torch just lit competed on
+    // camera direction and distance alone, forever, and a placement anywhere
+    // but dead ahead of the player could lose that race to a steady stream of
+    // fresh coverage and never light up until the block was remeshed for some
+    // other reason (or the session reconnected).
+    std::map<v3s16, std::chrono::steady_clock::time_point> m_block_queued_at;
     // Gather one block's meshing input under the map lock and queue it.
     // False when it cannot be queued and the caller should mesh it inline,
     // which is the block with the dig crack in it: that path asks the texture

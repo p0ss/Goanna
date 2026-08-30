@@ -767,6 +767,7 @@ int GoannaClient::prune_blocks(int radius) {
             ++it;
             m_block_lights.erase(bp);
             m_block_tier.erase(bp);
+            m_block_queued_at.erase(bp);
             lodForget(bp);
             nearDrop(bp);
         }
@@ -1003,6 +1004,7 @@ void GoannaClient::connect_to(const String &host, int port, const String &player
     m_near_ready.clear();
     m_near_inflight.clear();
     m_near_generation.clear();
+    m_block_queued_at.clear();
     m_far_blocks.clear();
     m_lod_handoff_far.clear();
     m_lod_handoff_to_near.clear();
@@ -1058,6 +1060,7 @@ void GoannaClient::disconnect_from_server() {
     m_near_ready.clear();
     m_near_inflight.clear();
     m_near_generation.clear();
+    m_block_queued_at.clear();
     nearClear();
     m_session.reset();
 }
@@ -3125,6 +3128,48 @@ void GoannaClient::update_lights(const Vector3 &around, int max_lights) {
             held.insert(all[next].key);
             ++next;
         }
+        // Neither pass above ever displaces a holder that is merely inside
+        // keep_limit: retaining looks at the holder's own rank alone, and
+        // filling only ever touches an already free slot. So a lamp that is
+        // the single best candidate in the world, freshly placed, can sit
+        // outside the pool indefinitely if every slot happens to already
+        // hold something still under keep_limit, which a torch placed
+        // anywhere already reasonably lit does. That is the gap between "is
+        // ranked within admit_limit" and "is given a slot" the comment above
+        // promises does not exist. Close it: evict the worst-ranked holder
+        // (never one mid fade-out) for each top-admit_limit lamp still
+        // without a slot.
+        for (size_t i = 0; i < admit_limit; ++i) {
+            if (held.count(all[i].key))
+                continue;
+            size_t victim = slots, worst_rank = 0;
+            for (size_t s = 0; s < slots; ++s) {
+                // A held slot's fade only ever ramps up (the render loop
+                // below counts it down only once holder[s] goes null), so
+                // there is no fade-out to interrupt here: unlike the free
+                // slot search above, excluding fade > 0 would exclude every
+                // stable, fully lit lamp, which is every eviction target
+                // there is.
+                if (!holder[s])
+                    continue;
+                auto it = rank_of.find(holder[s]->key);
+                const size_t r = it != rank_of.end() ? it->second : all.size();
+                if (victim == slots || r > worst_rank) {
+                    worst_rank = r;
+                    victim = s;
+                }
+            }
+            if (victim == slots)
+                break; // nothing evictable: every slot is free
+            // Only trade up. The worst holder can still rank better than
+            // this candidate, and candidates only get worse from here, so
+            // stop rather than swap a brighter lamp for a dimmer one.
+            if (worst_rank <= i)
+                break;
+            held.erase(holder[victim]->key);
+            holder[victim] = &all[i];
+            held.insert(all[i].key);
+        }
     }
 
     // Which of those cast shadows, decided with its own hysteresis.
@@ -3843,6 +3888,7 @@ void GoannaClient::lodUpdateFar(const Vector3 &around) {
                 if (out) {
                     lodForget(*it);
                     m_block_tier.erase(*it);
+                    m_block_queued_at.erase(*it);
                 }
                 m_far_remote.erase(*it);
                 it = m_far_blocks.erase(it);
@@ -6107,6 +6153,15 @@ int GoannaClient::poll_blocks(int max_blocks) {
         if (seen.insert(bp).second)
             fresh.push_back(bp);
     }
+    // First sight of a pending block, kept until it is actually serviced
+    // below (or it leaves tracking elsewhere). The wanted() sort ages a
+    // candidate off this, not off how many times it has been requeued, so a
+    // block that keeps losing the camera-direction race still promotes.
+    {
+        const auto now_tp = clock_t_::now();
+        for (const v3s16 &bp : fresh)
+            m_block_queued_at.try_emplace(bp, now_tp);
+    }
     auto nearer = [&](const v3s16 &a, const v3s16 &b) {
         return v3f::from(a).getDistanceFromSQ(pb) < v3f::from(b).getDistanceFromSQ(pb);
     };
@@ -6124,12 +6179,41 @@ int GoannaClient::poll_blocks(int max_blocks) {
         std::nth_element(fresh.begin(), fresh.begin() + band, fresh.end(), nearer);
     if (band > 1) {
         const goanna::ViewPriority vp = viewPriority();
-        auto wanted = [&](const v3s16 &b) {
-            return vp.of(goanna::ViewPriority::kCoverage,
-                    goanna::godotCentreOfBlock(b, MAP_BLOCKSIZE));
-        };
-        std::sort(fresh.begin(), fresh.begin() + band,
-                [&](const v3s16 &a, const v3s16 &b) { return wanted(a) < wanted(b); });
+        // Every other scheduler in this file ages its priority (MeshPool::
+        // effectivePriorityLocked, lodRegionPriority) so a candidate that
+        // keeps losing on distance or camera direction still drains
+        // eventually. This one did not: a block behind the player, or simply
+        // outranked by a steady stream of fresh coverage ahead of it, could
+        // requeue forever under the exact same weighting every frame. That is
+        // how a torch placed anywhere but dead ahead could stay unlit until
+        // something else forced the block to remesh, or the session
+        // reconnected and rebuilt everything from scratch.
+        constexpr double kAgeMs = 4000.0;
+        // Score once per element, then sort on the stored score. The first
+        // version of this evaluated the score inside the comparator, and
+        // ms_since calls now() every time, so the same element scored
+        // differently as the sort progressed: not a strict weak ordering,
+        // which is undefined behaviour, and std::sort walked off the end of
+        // the buffer (three SIGSEGVs on 2026-08-31, all in
+        // __unguarded_insertion_sort under this frame, each after about
+        // eleven minutes of flight when the band was largest). Decorating
+        // also drops a map find per comparison.
+        std::vector<std::pair<int, v3s16>> scored;
+        scored.reserve(band);
+        for (size_t i = 0; i < band; ++i) {
+            const v3s16 b = fresh[i];
+            double waited = 0.0;
+            auto it = m_block_queued_at.find(b);
+            if (it != m_block_queued_at.end())
+                waited = ms_since(it->second);
+            const goanna::ViewPriority::Class cls = goanna::ViewPriority::aged(
+                    goanna::ViewPriority::kCoverage, waited, kAgeMs);
+            scored.emplace_back(vp.of(cls, goanna::godotCentreOfBlock(b, MAP_BLOCKSIZE)), b);
+        }
+        std::sort(scored.begin(), scored.end(),
+                [](const auto &a, const auto &b) { return a.first < b.first; });
+        for (size_t i = 0; i < band; ++i)
+            fresh[i] = scored[i].second;
     }
     ema(m_ms_poll_queue, ms_since(t_queue));
     const auto t_blocks = clock_t_::now();
@@ -6165,6 +6249,7 @@ int GoannaClient::poll_blocks(int max_blocks) {
         m_lod_chain_missing.erase(bp);
         m_far_blocks.erase(bp); // live now, whatever the store said
         m_far_remote.erase(bp);
+        m_block_queued_at.erase(bp); // reached the front: aging starts over
         if (tier >= 1) {
             nearDrop(bp);
             lodAssign(bp, tier);
