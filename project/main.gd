@@ -2417,8 +2417,9 @@ func _apply_sky() -> void:
 		# far tiers' own horizon is what clips them, not the fog. A fixed
 		# margin on top of draw_nodes rather than a multiple: at a 4000
 		# node grant a 10 per cent margin is 400 nodes for no reason,
-		# while 256 covers the coarsest region's own size at any grant.
-		cam.far = maxf(1000.0, draw_nodes + 256.0)
+		# while 512 covers the coarsest region's own edge now that the
+		# region ladder keeps doubling with the tier (lodRegionBlocks).
+		cam.far = maxf(1000.0, draw_nodes + 512.0)
 		atmosphere_length = clampf(draw_nodes + 96.0, 256.0, 768.0)
 		# The background layer, docs/far-rendering.md "Background, overlay,
 		# foreground". Depth fog rather than exponential: an exponential curve

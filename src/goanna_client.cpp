@@ -3170,11 +3170,25 @@ int GoannaClient::lodCellFor(int tier) const {
 // meaningless. Coarser tiers grow spatially while retaining the same meshing
 // workload and better batching at distance.
 int GoannaClient::lodRegionBlocks(int tier) const {
+    // The region edge doubles with the tier, like the cells do, keeping a
+    // region at about a quarter of its band's inner radius. It used to run
+    // 2, 4, 8, 8, 8, so while a far tier's cells were 8 times coarser its
+    // regions were nearly the same physical size, and the instance count
+    // per ring of horizon grew linearly with distance. Worse, most far
+    // blocks are not on the horizon at all: at the test_world beach the
+    // field held 16k tier 1 and 23k tier 2 blocks (the deep columns under
+    // the 256 to 1024 node band) against 2.6k in tier 3, so two thirds of
+    // the 3100 regions were 32 node tier 1 boxes, and the open west view
+    // cost 4703 camera draws at 244 primitives each. Regions build on the
+    // mesh workers and the far field rarely rebuilds once published, so
+    // the churn cost of bigger batches lands off the main thread.
     if (tier <= 1)
-        return 2;
-    if (tier == 2)
         return 4;
-    return std::min(8, 2 * m_lod_cell);
+    if (tier == 2)
+        return 8;
+    if (tier == 3)
+        return std::min(16, 4 * m_lod_cell);
+    return std::min(32, 8 * m_lod_cell);
 }
 
 GoannaClient::LodRegionKey GoannaClient::lodRegionFor(int tier, const v3s16 &bp) const {
