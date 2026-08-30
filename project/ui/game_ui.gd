@@ -1737,10 +1737,18 @@ func _draw_performance_overlay(vs: Vector2) -> void:
 		var fps := Engine.get_frames_per_second()
 		var frame_ms := 1000.0 / float(fps) if fps > 0 else 0.0
 		lines.append("FPS %d   %.1f ms" % [fps, frame_ms])
-		lines.append("Draws %d   objects %d   primitives %.2fM   GPU %.0f MB" % [
+		# Camera pass first, then the frame total with every pass folded in
+		# (depth prepass, shadow cascades, radiance cubemap). The old line
+		# showed only the total, and a benchmark read its direction
+		# invariance as frustum culling being broken when the invariant
+		# share was the shadow passes.
+		lines.append("Draws %d (%d shadow, %d total)   objects %d   prims %.2fM vis / %.2fM shadow   GPU %.0f MB" % [
+				int(render_stats_cache.get("vis_draw_calls", 0)),
+				int(render_stats_cache.get("shadow_draw_calls", 0)),
 				int(render_stats_cache.get("draw_calls", 0)),
-				int(render_stats_cache.get("objects", 0)),
-				float(render_stats_cache.get("primitives", 0)) / 1000000.0,
+				int(render_stats_cache.get("vis_objects", 0)),
+				float(render_stats_cache.get("vis_primitives", 0)) / 1000000.0,
+				float(render_stats_cache.get("shadow_primitives", 0)) / 1000000.0,
 				float(render_stats_cache.get("video_mem_mb", 0.0))])
 		lines.append("Render CPU %.1f + %.1f ms   GPU %.1f ms" % [
 				float(render_stats_cache.get("render_cpu_setup_ms", 0.0)),

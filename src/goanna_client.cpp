@@ -2516,6 +2516,12 @@ Dictionary GoannaClient::render_stats() {
     d["lod_tiers"] = tiers;
     RenderingServer *rs = RenderingServer::get_singleton();
     if (rs) {
+        // The TOTAL counters lump every pass in the frame together: depth
+        // prepass, colour, all shadow cascades, the radiance cubemap. A
+        // benchmark reading them concluded frustum culling was off, because
+        // they barely move with view direction; what is direction-invariant
+        // is the shadow work. The per pass viewport counters below are the
+        // ones to read for what the camera actually drew.
         d["draw_calls"] = (int)rs->get_rendering_info(RenderingServer::RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME);
         d["primitives"] = (int64_t)rs->get_rendering_info(RenderingServer::RENDERING_INFO_TOTAL_PRIMITIVES_IN_FRAME);
         d["objects"] = (int)rs->get_rendering_info(RenderingServer::RENDERING_INFO_TOTAL_OBJECTS_IN_FRAME);
@@ -2523,6 +2529,21 @@ Dictionary GoannaClient::render_stats() {
         Viewport *viewport = get_viewport();
         if (viewport) {
             const RID rid = viewport->get_viewport_rid();
+            d["vis_draw_calls"] = (int)rs->viewport_get_render_info(rid,
+                    RenderingServer::VIEWPORT_RENDER_INFO_TYPE_VISIBLE,
+                    RenderingServer::VIEWPORT_RENDER_INFO_DRAW_CALLS_IN_FRAME);
+            d["vis_primitives"] = (int64_t)rs->viewport_get_render_info(rid,
+                    RenderingServer::VIEWPORT_RENDER_INFO_TYPE_VISIBLE,
+                    RenderingServer::VIEWPORT_RENDER_INFO_PRIMITIVES_IN_FRAME);
+            d["vis_objects"] = (int)rs->viewport_get_render_info(rid,
+                    RenderingServer::VIEWPORT_RENDER_INFO_TYPE_VISIBLE,
+                    RenderingServer::VIEWPORT_RENDER_INFO_OBJECTS_IN_FRAME);
+            d["shadow_draw_calls"] = (int)rs->viewport_get_render_info(rid,
+                    RenderingServer::VIEWPORT_RENDER_INFO_TYPE_SHADOW,
+                    RenderingServer::VIEWPORT_RENDER_INFO_DRAW_CALLS_IN_FRAME);
+            d["shadow_primitives"] = (int64_t)rs->viewport_get_render_info(rid,
+                    RenderingServer::VIEWPORT_RENDER_INFO_TYPE_SHADOW,
+                    RenderingServer::VIEWPORT_RENDER_INFO_PRIMITIVES_IN_FRAME);
             d["occlusion_enabled"] = viewport->is_using_occlusion_culling();
             d["render_cpu_setup_ms"] = rs->get_frame_setup_time_cpu();
             d["render_cpu_draw_ms"] = rs->viewport_get_measured_render_time_cpu(rid);
@@ -5194,6 +5215,16 @@ void GoannaClient::lodPublishRegion(const LodRegionKey &key, LodRegion &r, const
     }
     if (!r.node) {
         r.node = memnew(MeshInstance3D);
+        // Far tiers cast no shadows. The directional map only covers 200
+        // nodes of receivers, so a far region's contribution is a poorly
+        // sampled long shadow at best, and the cost was measured on
+        // 2026-08-30 at the beach on test_world: 3103 far nodes added 948
+        // draw calls to every frame's shadow passes (2307 against 1359
+        // with them off), about a fifth of the whole frame's draw calls,
+        // for around 4 per cent of the shadow primitives. The dawn gate
+        // already holds the sun below a ridge's crest, which covers the
+        // moment a distant mountain's long shadow would have sold.
+        r.node->set_cast_shadows_setting(GeometryInstance3D::SHADOW_CASTING_SETTING_OFF);
         // The region mesher builds a cell for node k across [k, k+1] on every
         // axis, while the near mesh centres node k on k, spanning [k-0.5,
         // k+0.5]; Luanti Z is mirrored into Godot, which flips that axis's
