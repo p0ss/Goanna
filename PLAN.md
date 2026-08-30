@@ -201,6 +201,24 @@ an RTX 3090, unless marked otherwise.
   census with SDFGI and occluders toggled, the occluder distance sweep,
   and the prolonged session growth question.
 
+- The near batch build moved onto the mesh workers (the structural fix
+  the whole attribution night pointed at): the concatenation and the
+  occluder triangle filter run as pool jobs on copy-on-write snapshots,
+  and the main thread keeps only surface assembly, material binding,
+  the mesh swap and the occluder commit, budgeted with the far region
+  publishes and guarded by generation stamps. Validated live: terrain
+  renders correctly through the worker path, and the worst single
+  publish across two teleport streaming floods measured 7.3 ms warm
+  against the old path's routine 10 to 29. First-sight material
+  creation still spikes a cold publish to about 114 ms; deferring it
+  is the named follow-up.
+
+- The torch responsiveness work came back from the stash, repaired:
+  the aging sort scores once per element (the old in-comparator now()
+  broke strict weak ordering and caused the night's three SIGSEGVs),
+  and the lamp slot eviction only trades up. Verified live: a torch
+  placed at night lights its ground promptly and takes a pool slot.
+
 - The validation trio that closed the night (V1/V2/V3, one route, one
   instrument, 1.7 per cent noise floor): the arrival-gap rebuild
   debounce is a confirmed win (mesh-cut occluders went 299-304 to 256
