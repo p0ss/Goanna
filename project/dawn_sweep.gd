@@ -269,7 +269,9 @@ func _apply(elev: float, use_ridge: bool) -> void:
 	atmosphere_mat.set_shader_parameter("atmosphere_color", fog_col)
 	var mist_cycle := lerpf(0.7, 1.6, clampf(land["night"] + land["dawn"] * 0.6, 0.0, 1.0))
 	atmosphere_mat.set_shader_parameter("mist_density", 0.012 * 0.85 * mist_cycle)
-	var mist_glow: Color = night_col * (0.24 * glow_scale * land["night"])
+	var mgc: Color = Color(minf(night_col.r, 1.2), minf(night_col.g, 1.2),
+			minf(night_col.b, 1.2))
+	var mist_glow: Color = mgc * (0.08 * glow_scale * land["night"])
 	atmosphere_mat.set_shader_parameter("mist_glow",
 			Vector3(mist_glow.r, mist_glow.g, mist_glow.b))
 
@@ -304,6 +306,9 @@ func _apply(elev: float, use_ridge: bool) -> void:
 	e.fog_sun_scatter = clampf((0.15 + 0.35 * land["dawn"]) * bs_ground, 0.0, 1.0)
 
 	var sun_glow: Color = sun.light_color.srgb_to_linear() * bs_ground
+	var cunder: Color = sun_glow * 0.35
+	atmosphere_mat.set_shader_parameter("cloud_under_glow",
+			Vector3(cunder.r, cunder.g, cunder.b))
 	RenderingServer.global_shader_parameter_set("goanna_sun_dir", sun_dir)
 	RenderingServer.global_shader_parameter_set("goanna_sun_glow",
 			Vector3(sun_glow.r, sun_glow.g, sun_glow.b))

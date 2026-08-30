@@ -37,6 +37,7 @@ var wetness := 0.0
 # for the scan to reach. The haze layer is anchored to it, so the depth fog
 # thins as the camera climbs instead of drowning the map from altitude.
 var terrain_ref := 0.0
+var terrain_ref_set := false
 var cloud_speed := Vector2(-2.0, 0.0)
 var cloud_height := 120.0
 var cloud_thickness := 16.0
@@ -1878,6 +1879,35 @@ func _envf(name: String, dflt: float) -> float:
 # The twilight colour script lives in sky_director.gd now (BEAM_STOPS): one
 # hue table for every warm term rather than a cloud-only one.
 
+# A biome border is one packet: games send a whole new sky colour set as
+# the player crosses, and applying it in the frame it lands flips the
+# entire dome like a switch (reported 2026-08-30 on a Terrain Diffusion
+# world: indigo to peach in a few steps). The server's set is the target;
+# what the dome shows eases toward it over a few seconds. The first value
+# of each key snaps, so joining a world does not fade in from defaults.
+# The same easing covers a server /time jump: the sun moves at once, the
+# colours breathe after it.
+var sky_smoothed := {}
+var clouds_smoothed := {}
+
+# Ease each colour or number in `target` toward its value from previous
+# frames, held in `held`. Returns a copy of `target` with the eased
+# values; unlisted keys pass through untouched.
+func _smooth_colour_set(target: Dictionary, held: Dictionary, keys: Array, k: float) -> Dictionary:
+	var out := target.duplicate()
+	for key in keys:
+		if not target.has(key):
+			continue
+		var t = target[key]
+		if held.has(key):
+			if t is Color:
+				t = (held[key] as Color).lerp(t, k)
+			elif t is float:
+				t = lerpf(held[key], t, k)
+		held[key] = t
+		out[key] = t
+	return out
+
 # Ease the ridge probe's stepped answers (it advances a block at a time as
 # the far field fills) and derive the cloud deck's horizon from the same
 # ridge. With no probe data everything falls back to the astronomical
@@ -1909,7 +1939,8 @@ func _ground_tint() -> Color:
 				ground_tint_raw = Color(s.r, s.g, s.b)
 			var h: float = client.ground_height(cam.global_position)
 			if h > -1e8:
-				terrain_ref = lerpf(terrain_ref, h, 0.35)
+				terrain_ref = h if not terrain_ref_set else lerpf(terrain_ref, h, 0.35)
+				terrain_ref_set = true
 	ground_tint = ground_tint.lerp(ground_tint_raw, 1.0 - exp(-dt / 2.5))
 	return ground_tint
 
@@ -1921,8 +1952,19 @@ func _apply_sky() -> void:
 	var sun_dir: Vector3 = st["sun_direction"]
 	var moon_dir: Vector3 = st["moon_direction"]
 	_update_horizons(st)
+	# Ease the server's sky and cloud sets across biome borders and time
+	# jumps; see sky_smoothed's comment. Four seconds: long enough that a
+	# border is a change of weather, short enough that the destination
+	# biome's sky has arrived before its terrain fills the view.
+	var kcol := 1.0 - exp(-maxf(get_process_delta_time(), 0.001) / 4.0)
+	var sky: Dictionary = _smooth_colour_set(st["sky"], sky_smoothed,
+			["day_sky", "day_horizon", "dawn_sky", "dawn_horizon",
+			"night_sky", "night_horizon", "bgcolor",
+			"fog_sun_tint", "fog_moon_tint", "fog_color"], kcol)
+	var clouds_now: Dictionary = _smooth_colour_set(st["clouds"], clouds_smoothed,
+			["color_bright", "density", "height", "thickness"], kcol) \
+			if st.has("clouds") else {}
 	var e := env.environment
-	var sky: Dictionary = st["sky"]
 	var elev: float = sun_dir.y  # 1 = overhead, <0 below horizon
 	# Per layer sun altitudes (docs/sky-orchestration.md, and sky_director.gd
 	# for the two authorities). The dome's colour script stays on the
@@ -2054,13 +2096,25 @@ func _apply_sky() -> void:
 	# scaled well under the floor: lit air, not a light source.
 	mist_cycle = lerpf(0.7, 1.6, clampf(land["night"] + land["dawn"] * 0.6, 0.0, 1.0))
 	if atmosphere_mat:
-		# 0.24 was calibrated on the dawn sweep fixture at 2026-08-30: 0.03
-		# was invisible against black land even boosted eightfold in post,
-		# and 0.9 read as moonlit milk. The banks should be legible weather,
-		# not a light source.
-		var mist_glow: Color = night_col * (0.24 * land["night"])
+		# 0.24 out of the fixture was an aurora on a live night (reported
+		# 2026-08-30: "never seen fog light up a mountain like that"). The
+		# fixture's grey boxes hid what a biome's own colours and the full
+		# grade amplify, and the unit-luminance normalisation above can
+		# push one channel well past 1, which is where the green banding
+		# came from. A third of the strength, channels capped: banks that
+		# are legible weather, not a light source. 0.03 stays invisible,
+		# so the working range is narrow; judge any change on a live night.
+		var mgc: Color = Color(minf(night_col.r, 1.2), minf(night_col.g, 1.2),
+				minf(night_col.b, 1.2))
+		var mist_glow: Color = mgc * (0.08 * land["night"])
 		atmosphere_mat.set_shader_parameter("mist_glow",
 				Vector3(mist_glow.r, mist_glow.g, mist_glow.b))
+		# The ground bounce onto the local cloud bodies' undersides, the
+		# froxel half of the sky march's `under` term. sun_glow already
+		# carries the ridge gate and dies at night.
+		var cunder: Color = sun_glow * 0.35
+		atmosphere_mat.set_shader_parameter("cloud_under_glow",
+				Vector3(cunder.r, cunder.g, cunder.b))
 	# The night share is 1.6 times the day strength: measured on the jungle at
 	# the spawn, a night fill equal to the day's left the canopy at a fifth of
 	# its day brightness, which is the vanilla client's night and reads as
@@ -2102,6 +2156,18 @@ func _apply_sky() -> void:
 	# of a canopy is warm red over desert and green over a plain, which is
 	# the colour bleed the GI is too coarse to show.
 	var galb := _ground_tint()
+	# The mist band's reference was pinned at the spawn's elevation for the
+	# whole session, so in a mountain world every climb to spawn height ran
+	# the camera into the band: a grey veil over the sky with the sun as a
+	# blob in it (reported 2026-08-30). Track the terrain instead, with the
+	# asymmetry real mist has: it drains into a valley quickly and creeps
+	# up to a plateau slowly, so topping a peak keeps the banks below where
+	# they belong and only a long stay up high brings the fen to the fell.
+	if placed and terrain_ref_set:
+		var dtg := maxf(get_process_delta_time(), 0.001)
+		var gtau := 8.0 if terrain_ref < atmosphere_ground else 90.0
+		atmosphere_ground = lerpf(atmosphere_ground, terrain_ref, 1.0 - exp(-dtg / gtau))
+		atmosphere_ground_set = true
 	var glum: float = maxf(galb.get_luminance(), 0.05)
 	var gw: Color = galb * (0.92 / glum)
 	var gfill := fill * 0.6
@@ -2131,7 +2197,7 @@ func _apply_sky() -> void:
 	wetness = lerpf(wetness, wet_target,
 			1.0 - exp(-get_process_delta_time() / wet_rate))
 	RenderingServer.global_shader_parameter_set("goanna_wetness", wetness)
-	var cdens: float = float(st["clouds"]["density"]) if st.has("clouds") else 0.0
+	var cdens: float = float(clouds_now.get("density", 0.0))
 	cdens = maxf(cdens, storm_cover)
 	cloud_cov = clamp(cdens, 0.0, 0.95) if bool(sky.get("clouds", true)) else 0.0
 	cloud_shadow_k = 0.35 * day * smoothstep(0.02, 0.15, cloud_cov)
@@ -2180,7 +2246,7 @@ func _apply_sky() -> void:
 	sky_mat.set_shader_parameter("star_color", star_col)
 	sky_mat.set_shader_parameter("star_density", clamp(float(stars["count"]) / 3000.0, 0.05, 0.6))
 	# clouds: density/colour here, scroll and height per frame
-	var clouds: Dictionary = st["clouds"]
+	var clouds: Dictionary = clouds_now
 	var ccol: Color = clouds["color_bright"]
 	ccol.a = clamp(0.55 + 0.45 * float(clouds["density"]), 0.0, 1.0)
 	# Clouds are the highest thing in the scene, so the sun clears the

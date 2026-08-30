@@ -33,6 +33,11 @@ uniform vec4 cloud_color : source_color = vec4(1.0, 1.0, 1.0, 0.9);
 // luminances.
 uniform vec3 cloud_beam = vec3(1.0, 0.9, 0.7);
 uniform vec3 air_beam = vec3(0.0);
+// The ground's beam, gated by the ridge probe, shared with the water's
+// fallback reflection and the screen space shafts. Here it is the light
+// the land throws back up at the deck: see the underside term in the
+// march.
+global uniform vec3 goanna_sun_glow;
 uniform float cloud_coverage = 0.4;
 uniform float cloud_plane_h = 90.0;
 uniform float cloud_thickness = 16.0;
@@ -343,7 +348,15 @@ void sky() {
 					// the twilight window it takes the same air colour the
 					// haze band and the depth fog wear.
 					amb = mix(amb, haze_color.rgb * 0.8, haze_twilight * 0.6);
-					vec3 s = cloud_color.rgb * (csun * (light * phase) + amb);
+					// The ground bounce: when the beam reaches the land (the
+					// same gated glow the water and shafts use), the flood
+					// it lays on the ground lights the deck from beneath,
+					// strongest at the base and gone by the crown. Without
+					// it the underside of a sunset deck stood black over a
+					// golden valley, which is the one face of the deck the
+					// player is usually looking at.
+					vec3 under = goanna_sun_glow * (1.2 * exp(-hf * 3.0));
+					vec3 s = cloud_color.rgb * (csun * (light * phase) + amb + under);
 					float a = 1.0 - exp(-dens * sigma * dt);
 					acc += T * s * a;
 					T *= 1.0 - a;

@@ -32,6 +32,13 @@ uniform vec3 cloud_albedo : source_color = vec3(0.95, 0.96, 1.0);
 // until dawn arrived to light it, so the dawn appeared to summon the fog
 // rather than pierce it. Zero by day, when the sun owns the banks.
 uniform vec3 mist_glow : source_color = vec3(0.0);
+// The ground's beam thrown back up at the local cloud bodies, set from
+// the same gated sun glow as the sky march's underside term. The froxel
+// sun is gated down under heavy cover (sun_open in main.gd) to stop the
+// air glowing through the deck, and that gate also robbed the bodies of
+// the low sun that really does slide under a deck's edge; this puts the
+// underside light back without ungating the air.
+uniform vec3 cloud_under_glow : source_color = vec3(0.0);
 
 float hash31(vec3 p) {
 	p = fract(p * 0.1031);
@@ -113,6 +120,11 @@ void fog() {
 	DENSITY = total;
 	ALBEDO = total > 0.00001 ?
 			(atmosphere_color * mist + cloud_albedo * cloud) / total : atmosphere_color;
-	// Only the mist share glows: a night cloud overhead stays dark.
-	EMISSION = mist_glow * (total > 0.00001 ? mist / total : 0.0);
+	// The mist share glows with the night floor; the cloud share takes the
+	// ground bounce on its underside, fading out by the crown.
+	float base_share = clamp(1.0 - (p.y - (cloud_level - half_cloud))
+			/ max(cloud_thickness, 1.0), 0.0, 1.0);
+	EMISSION = total > 0.00001 ?
+			(mist_glow * mist + cloud_under_glow * base_share * cloud) / total
+			: vec3(0.0);
 }
