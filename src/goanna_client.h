@@ -667,7 +667,13 @@ private:
     // seconds.
     int m_far_ask_row = 0;
     int m_occluder_distance = 0;
-    bool m_occluder_boxes = false;
+    // Boxes by default: the 2026-08-31 measurement night's V1/V3 pair
+    // has box occluders strictly dominating the full-mesh cut on every
+    // tail metric (199 against 256 hitches a minute, 15.2 against 18.0 ms
+    // 1 per cent lows) while genuinely occluding in flight, and the cost
+    // signature tracks the engine's per-commit consumption, not triangle
+    // count. GOANNA_OCCLUDER_BOXES=0 restores the mesh cut.
+    bool m_occluder_boxes = true;
     double m_ms_occluder_swap = 0.0;
     uint64_t m_occluder_swaps = 0;
     // The engine-side counters render_stats refreshes at most five times a

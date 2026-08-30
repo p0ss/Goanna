@@ -629,6 +629,10 @@ func _ready() -> void:
 		# measured it; flip it per run with GOANNA_FAR_MESH=<nodes>.
 		if OS.get_environment("GOANNA_FAR_MESH") != "":
 			client.set_far_mesh_distance(int(OS.get_environment("GOANNA_FAR_MESH")))
+		# Box occluders are the default (see the perf log for the night
+		# that measured it); 0 restores the full-mesh occluder cut.
+		if OS.get_environment("GOANNA_OCCLUDER_BOXES") != "":
+			client.set_occluder_boxes(OS.get_environment("GOANNA_OCCLUDER_BOXES") != "0")
 	if pack != "":
 		client.set_texture_path(pack)
 		print("texture pack ", pack)
