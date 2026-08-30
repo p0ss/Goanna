@@ -118,7 +118,6 @@ const PROFILES := {
 		"screen_space_detail": 3,
 		"shadow_detail": 2,
 		"light_ssil": 1.4,
-		"cloud_detail": 2,
 	},
 	"high": {
 		"view_range": 12,
@@ -130,7 +129,6 @@ const PROFILES := {
 		"screen_space_detail": 2,
 		"shadow_detail": 1,
 		"light_ssil": 1.4,
-		"cloud_detail": 1,
 	},
 	"medium": {
 		"view_range": 8,
@@ -142,7 +140,6 @@ const PROFILES := {
 		"screen_space_detail": 1,
 		"shadow_detail": 1,
 		"light_ssil": 0,
-		"cloud_detail": 0,
 	},
 }
 

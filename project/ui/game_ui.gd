@@ -721,7 +721,6 @@ const SETTINGS := [
 	["Lighting", "light_ssil", "slider", "Screen space bounce", "Colour bounced between nearby surfaces (SSIL). Costs about a sixth of the frame on its own; 0 turns the pass off rather than just hiding it.", 0.0, 4.0, 0.1],
 	["Lighting", "screen_space_detail", "slider", "Screen space detail", "Resolution and quality of corner shading and screen space bounce. 3 runs them at full resolution, which is about a fifth of the frame; below that they run at half resolution, which is Godot's own default and hard to tell apart. Lower this before turning either effect off.", 0.0, 3.0, 1.0],
 	["Lighting", "shadow_detail", "slider", "Shadow detail", "Size of the sun's shadow map: 2048, 4096 or 8192. Most of the cost is the step from 8192 to 4096, and 4096 is Godot's own default.", 0.0, 2.0, 1.0],
-	["Lighting", "cloud_detail", "slider", "Cloud detail", "How finely the cumulus deck is raymarched. The march is about a quarter of the frame, the single largest thing in it. Lower settings march fewer steps and filter the speckle that leaves behind, which measured quieter than the full rate march, not noisier.", 0.0, 2.0, 1.0],
 	["Lighting", "light_white", "slider", "White point", "Where highlights clip to white. If bright surfaces look flat and detailless, lower Exposure first: this alone will not recover them.", 0.5, 6.0, 0.1],
 	["Lighting", "light_exposure", "slider", "Exposure", "Overall brightness before the tonemap. The default puts a sunlit surface at about 1.3 times its texture's brightness.", 0.1, 2.0, 0.02],
 	["Lighting", "light_shafts", "slider", "Light shafts", "Sun and moon light scattering out of the air, so a gap in a canopy or a hillside throws a visible shaft. Strongest near dawn and dusk, and in rain. 0 leaves the air clear.", 0.0, 3.0, 0.1],
@@ -758,7 +757,7 @@ const LOCAL_KEYS := ["mouse_sensitivity", "invert_mouse", "view_bobbing", "fov",
 	"gui_scale", "max_fps", "vsync", "fullscreen", "damage_flash", "show_fps", "show_position", "terrain_occlusion", "player_effect_particles", "volume", "muted",
 	"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao",
 	"light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality",
-	"light_ssil", "screen_space_detail", "shadow_detail", "cloud_detail"]
+	"light_ssil", "screen_space_detail", "shadow_detail"]
 var settings_menu: Control
 var advanced_open := false      # Advanced graphics settings, kept across reopens
 
@@ -808,7 +807,7 @@ func _apply_local(key: String, value: float, on: bool) -> void:
 		"show_position":
 			show_position = on
 			hud.queue_redraw()
-		"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao", "light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality", "light_ssil", "screen_space_detail", "shadow_detail", "cloud_detail":
+		"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao", "light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality", "light_ssil", "screen_space_detail", "shadow_detail":
 			var ml := _main_node()
 			if ml != null:
 				ml.set(key, value)
@@ -834,7 +833,7 @@ func _local_value(key: String) -> float:
 		"terrain_occlusion": return 1.0 if get_tree().root.use_occlusion_culling else 0.0
 		"player_effect_particles": return 1.0 if player_effect_particles else 0.0
 		"show_position": return 1.0 if show_position else 0.0
-		"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao", "light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality", "light_ssil", "screen_space_detail", "shadow_detail", "cloud_detail":
+		"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao", "light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality", "light_ssil", "screen_space_detail", "shadow_detail":
 			return float(m.get(key)) if m != null else 1.0
 		"volume": return audio.volume if audio != null else 0.8
 		"muted": return 1.0 if (audio != null and audio.muted) else 0.0

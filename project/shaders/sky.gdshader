@@ -41,13 +41,6 @@ global uniform vec3 goanna_sun_glow;
 uniform float cloud_coverage = 0.4;
 uniform float cloud_plane_h = 90.0;
 uniform float cloud_thickness = 16.0;
-// How many steps the picture pass marches the deck in. The radiance pass
-// is fixed at 8 because it is a 128 pixel cubemap that nothing looks at
-// directly. Lowering this is the largest single frame saving available in
-// this scene, and it is only affordable because shaders/sky_denoise.gdshader
-// filters the speckle it produces: see the numbers there. main.gd moves the
-// two together, so the march never gets cheaper without the filter.
-uniform float cloud_steps = 24.0;
 uniform vec2 cloud_offset = vec2(0.0);
 uniform vec4 haze_color : source_color = vec4(0.72, 0.8, 0.9, 1.0);
 uniform float haze_twilight : hint_range(0.0, 1.0) = 0.0;
@@ -306,7 +299,7 @@ void sky() {
 		// anyway, and a grazing ray otherwise marches tens of kilometres.
 		t1 = min(t1, 9000.0);
 		if (t1 > t0 + 1.0) {
-			int steps = AT_CUBEMAP_PASS ? 8 : int(cloud_steps);
+			int steps = AT_CUBEMAP_PASS ? 8 : 24;
 			// Capped step: a grazing ray's slab crossing is kilometres, and
 			// (t1 - t0) / steps then puts hundreds of nodes in one step, so
 			// a single sample straddled the whole base transition and the
