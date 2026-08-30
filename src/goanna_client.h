@@ -399,6 +399,12 @@ private:
         bool dirty = false;
         std::chrono::steady_clock::time_point dirty_at;
         int surfaces = 0, occluder_triangles = 0;
+        // Hash of the occluder geometry last swapped in, so a rebuild that
+        // changed only lighting (a day/night ratio step remeshes the whole
+        // world with identical geometry) does not re-commit an identical
+        // occluder BVH. The periodic mass re-emission tripled the hitch
+        // rate for a minute at a time (census of 2026-08-31).
+        uint64_t occluder_hash = 0;
     };
     static constexpr int kNearRegionBlocks = 4;
     std::map<v3s16, NearBlock> m_near_blocks;

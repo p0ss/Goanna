@@ -466,19 +466,40 @@ void GoannaClient::nearBuildRegion(const v3s16 &key, NearRegion &region) {
             region.occluder_node->queue_free();
             region.occluder_node = nullptr;
             region.occluder_triangles = 0;
+            region.occluder_hash = 0;
         }
     } else {
-        const auto t_occ = clock_t_::now();
-        Ref<ArrayOccluder3D> shape;
-        shape.instantiate();
-        shape->set_arrays(occ_verts, occ_idx);
-        if (!region.occluder_node) {
-            region.occluder_node = memnew(OccluderInstance3D);
-            add_child(region.occluder_node);
+        // A rebuild that changed only lighting (the whole world remeshes on
+        // every day/night ratio step) produces byte-identical occluder
+        // geometry, and re-committing it re-built the BVH for nothing: the
+        // 2026-08-31 census caught the resulting mass re-emission tripling
+        // the hitch rate for a minute at a time, twice in ten. Hash the
+        // geometry and swap only when it actually changed.
+        uint64_t h = 1469598103934665603ull;
+        auto mix = [&h](const uint8_t *p, size_t n) {
+            for (size_t i = 0; i < n; ++i) {
+                h ^= p[i];
+                h *= 1099511628211ull;
+            }
+        };
+        mix((const uint8_t *)occ_verts.ptr(), (size_t)occ_verts.size() * sizeof(Vector3));
+        mix((const uint8_t *)occ_idx.ptr(), (size_t)occ_idx.size() * sizeof(int32_t));
+        if (h == 0)
+            h = 1;
+        if (region.occluder_node == nullptr || h != region.occluder_hash) {
+            const auto t_occ = clock_t_::now();
+            Ref<ArrayOccluder3D> shape;
+            shape.instantiate();
+            shape->set_arrays(occ_verts, occ_idx);
+            if (!region.occluder_node) {
+                region.occluder_node = memnew(OccluderInstance3D);
+                add_child(region.occluder_node);
+            }
+            region.occluder_node->set_occluder(shape);
+            region.occluder_hash = h;
+            ema(m_ms_occluder_swap, ms_since(t_occ));
+            ++m_occluder_swaps;
         }
-        region.occluder_node->set_occluder(shape);
-        ema(m_ms_occluder_swap, ms_since(t_occ));
-        ++m_occluder_swaps;
     }
     region.surfaces = mesh->get_surface_count() + glow_mesh->get_surface_count();
     region.occluder_triangles = want_occluder ? occ_idx.size() / 3 : 0;
