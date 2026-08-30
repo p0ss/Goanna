@@ -1805,6 +1805,17 @@ bool GoannaClient::horizonExtractSlice(int budget) {
     return false;
 }
 
+Dictionary GoannaClient::perf_worst_take() {
+    Dictionary d;
+    d["lod_worst_ms"] = m_ms_lod_worst;
+    d["near_batch_worst_ms"] = m_ms_near_batch_worst;
+    d["occluder_worst_ms"] = m_ms_occluder_worst;
+    m_ms_lod_worst = 0.0;
+    m_ms_near_batch_worst = 0.0;
+    m_ms_occluder_worst = 0.0;
+    return d;
+}
+
 Dictionary GoannaClient::horizon_bake_poll() {
     Dictionary d;
     // Pump the incremental extraction: one bounded slice per frame, and
@@ -2651,15 +2662,15 @@ Dictionary GoannaClient::render_stats() {
     d["lod_ms"] = m_ms_lod;
     d["lod_update_ms"] = m_ms_lod_update;
     d["lod_tier_scan_ms"] = m_ms_lod_tier_scan;
-    // Read-and-reset worst single costs since the last stats call, so a
-    // 1 Hz sampler sees the worst of its window: the flying tail is
-    // hitches under flat medians, which the EMAs above cannot show.
+    // Worst single costs since perf_worst_take last cleared them. These
+    // were read-and-reset here at first, which made them blind: main.gd's
+    // _apply_sky calls render_stats every frame, so a 1 Hz sampler only
+    // ever saw the last frame's worst (found by the perf tester on its
+    // first cell). render_stats now only reports; the sampler that wants
+    // the window owns the reset through perf_worst_take.
     d["lod_worst_ms"] = m_ms_lod_worst;
-    m_ms_lod_worst = 0.0;
     d["near_batch_worst_ms"] = m_ms_near_batch_worst;
-    m_ms_near_batch_worst = 0.0;
     d["occluder_worst_ms"] = m_ms_occluder_worst;
-    m_ms_occluder_worst = 0.0;
     d["lod_summary_ms"] = m_ms_lod_summaries;
     d["lod_request_ms"] = m_ms_lod_requests;
     d["lod_far_scan_ms"] = m_ms_lod_far_scan;
@@ -6414,6 +6425,7 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("horizon_bake_request", "origin", "r0", "r1"),
             &GoannaClient::horizon_bake_request);
     ClassDB::bind_method(D_METHOD("horizon_bake_poll"), &GoannaClient::horizon_bake_poll);
+    ClassDB::bind_method(D_METHOD("perf_worst_take"), &GoannaClient::perf_worst_take);
     ClassDB::bind_method(D_METHOD("update_lights", "around", "max_lights"), &GoannaClient::update_lights);
     ClassDB::bind_method(D_METHOD("set_shadow_lamps", "n"), &GoannaClient::set_shadow_lamps);
     ClassDB::bind_method(D_METHOD("shadow_lamps"), &GoannaClient::shadow_lamps);

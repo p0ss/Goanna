@@ -262,6 +262,10 @@ public:
     // docs/sky-orchestration.md.
     void horizon_bake_request(const godot::Vector3 &origin, float r0, float r1);
     godot::Dictionary horizon_bake_poll();
+    // The worst single publish, near batch and occluder costs since this
+    // was last called, then cleared. The sampler owns the reset;
+    // render_stats only reports.
+    godot::Dictionary perf_worst_take();
     bool horizonExtractSlice(int budget);
     void set_time_of_day_override(float tod);
     // True if the given eye position (Godot space, nodes) is inside a liquid
