@@ -3446,6 +3446,19 @@ void GoannaClient::set_far_distance(int nodes) {
     m_far_dirty = true;
 }
 
+void GoannaClient::set_far_mesh_distance(int nodes) {
+    // The knowledge/mesh split (docs/sky-orchestration.md, "The baked
+    // horizon"): chains, summaries and the store walk keep filling to the
+    // far distance, but region meshes are only built inside this radius;
+    // beyond it the terrain is carried by the horizon bake alone, at zero
+    // draw calls. 0 or negative means no split, the old behaviour.
+    const int v = nodes <= 0 ? 0 : std::clamp(nodes, 256, 8192);
+    if (v == m_far_mesh_distance)
+        return;
+    m_far_mesh_distance = v;
+    m_far_dirty = true;
+}
+
 // Blocks the server is not sending but the store holds, within the granted
 // far distance: assigned to tiers like received blocks and drawn from their
 // chains. Rescans when the player crosses a block boundary or every two
@@ -3475,6 +3488,11 @@ void GoannaClient::lodUpdateFar(const Vector3 &around) {
     }
     const int dist = std::min(grant, m_far_distance);
     const int radius = std::max(1, dist / MAP_BLOCKSIZE);
+    // The mesh horizon in block units, for lodAssign and the reach
+    // histogram. 0 when the split is off.
+    m_far_mesh_radius = m_far_mesh_distance > 0
+            ? std::min(radius, std::max(1, m_far_mesh_distance / MAP_BLOCKSIZE))
+            : 0;
     const v3s16 centre((s16)std::floor(around.x / MAP_BLOCKSIZE), (s16)std::floor(around.y / MAP_BLOCKSIZE),
             (s16)std::floor(-around.z / MAP_BLOCKSIZE));
     if (!m_far_dirty && centre == m_far_centre && ms_since(m_far_last) < 2000.0)
@@ -3706,6 +3724,11 @@ void GoannaClient::lodUpdateFar(const Vector3 &around) {
             const v3s16 d = bp - centre;
             const int r = std::max(std::abs(d.X), std::abs(d.Z));
             if (r < 0 || r >= (int)nrings)
+                return;
+            // Beyond the mesh horizon nothing is drawn, so it must not
+            // stretch the fog: the haze closes at the drawn edge and the
+            // baked horizon carries the rest behind the wall.
+            if (m_far_mesh_radius > 0 && r > m_far_mesh_radius)
                 return;
             if (solid_lid(bp) && solid_lid(bp + v3s16(0, 1, 0)))
                 return; // buried: draws nothing, so it is not a horizon
@@ -4590,6 +4613,24 @@ void GoannaClient::lodDropHandoffCount(const LodRegionKey &key) {
 
 void GoannaClient::lodAssign(const v3s16 &bp, int tier) {
     auto old = m_lod_member.find(bp);
+    // Beyond the mesh horizon a block is known but not drawn: it keeps its
+    // chain built (the ridge probe and the horizon bake read it), stays in
+    // m_far_blocks, and is pruned by the ordinary sweeps, but it owns no
+    // region, so it costs no mesh and no draw. It takes the removal branch
+    // below to release any membership it held when the horizon moved, then
+    // still enqueues its own chain, which the membership path would have
+    // done.
+    bool beyond_mesh = false;
+    if (tier > 0 && m_far_mesh_radius > 0) {
+        const int64_t dx = bp.X - m_far_centre.X;
+        const int64_t dz = bp.Z - m_far_centre.Z;
+        beyond_mesh = dx * dx + dz * dz >
+                (int64_t)m_far_mesh_radius * m_far_mesh_radius;
+    }
+    if (beyond_mesh) {
+        lodEnqueueChain(bp);
+        tier = -1;
+    }
     if (tier > 0) {
         // The player moved away again before a pending batched-near upload.
         // Keep the already visible far owner, release its rebuild freeze and
@@ -6197,6 +6238,9 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("set_store_path", "root"), &GoannaClient::set_store_path);
     ClassDB::bind_method(D_METHOD("store_path"), &GoannaClient::store_path);
     ClassDB::bind_method(D_METHOD("set_far_distance", "nodes"), &GoannaClient::set_far_distance);
+    ClassDB::bind_method(D_METHOD("set_far_mesh_distance", "nodes"),
+            &GoannaClient::set_far_mesh_distance);
+    ClassDB::bind_method(D_METHOD("far_mesh_distance"), &GoannaClient::far_mesh_distance);
     ClassDB::bind_method(D_METHOD("far_distance"), &GoannaClient::far_distance);
     ClassDB::bind_method(D_METHOD("set_view_range", "blocks"), &GoannaClient::set_view_range);
     ClassDB::bind_method(D_METHOD("view_range"), &GoannaClient::view_range);

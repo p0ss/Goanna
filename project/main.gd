@@ -624,6 +624,11 @@ func _ready() -> void:
 		client.set_store_path(store_root)
 		if OS.get_environment("GOANNA_FAR_DISTANCE") != "":
 			client.set_far_distance(int(OS.get_environment("GOANNA_FAR_DISTANCE")))
+		# The knowledge/mesh split: meshes stop here, the horizon bake
+		# carries the rest. Off by default until the benchmark session has
+		# measured it; flip it per run with GOANNA_FAR_MESH=<nodes>.
+		if OS.get_environment("GOANNA_FAR_MESH") != "":
+			client.set_far_mesh_distance(int(OS.get_environment("GOANNA_FAR_MESH")))
 	if pack != "":
 		client.set_texture_path(pack)
 		print("texture pack ", pack)

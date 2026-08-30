@@ -124,12 +124,17 @@ Rebaked when the camera moves about a hundred nodes or on a slow clock.
 `GOANNA_HORIZON=0` disables it; `GOANNA_HORIZON_R0` forces the inner
 radius, which is how it is A/B'd against terrain that is actually drawn.
 
-Today it fills directions the far field knows about but has not built or
-has holes in. Its coverage is bounded by the chain radius, which equals
-the far draw distance, so it cannot yet show terrain beyond what would
-be drawn. The payoff step is splitting that knob: retain chains (and so
-the bake) to the full grant while building region meshes only to a
-shorter mesh radius, so the outermost band becomes panorama alone.
+By default it fills directions the far field knows about but has not
+built or has holes in, since the chain radius equals the far draw
+distance. `set_far_mesh_distance` (env `GOANNA_FAR_MESH=<nodes>`) splits
+those knobs: chains, summaries and the bake keep filling to the far
+distance while region meshes stop at the mesh radius, the fog closes at
+the drawn edge, and the band beyond is panorama alone at zero draw
+calls. Measured at the test_world beach with the mesh horizon at 512
+against knowledge to 960: regions 604 to 428, camera draws 1895 to
+1350, and the horizon stays continuous, silhouette ranges over the
+water where meshes end. Off by default until benchmarked; the graphics
+profiles are the natural owner of the default once it is.
 
 ## Not done yet
 

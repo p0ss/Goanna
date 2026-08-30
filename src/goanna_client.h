@@ -309,6 +309,11 @@ public:
     void set_store_path(const godot::String &root);
     godot::String store_path() const { return m_store_root; }
     void set_far_distance(int nodes);
+    // The knowledge/mesh split: region meshes stop at this radius while
+    // chains, summaries and the horizon bake continue to the far distance.
+    // 0 or negative disables the split. See docs/sky-orchestration.md.
+    void set_far_mesh_distance(int nodes);
+    int far_mesh_distance() const { return m_far_mesh_distance; }
     int far_distance() const { return m_far_distance; }
     void set_view_range(int blocks);
     int view_range() const;
@@ -609,6 +614,10 @@ private:
     // ragged frontier").
     int m_far_extent = 0;
     int m_far_reach = 0;
+    // The knowledge/mesh split (set_far_mesh_distance): nodes, and the
+    // derived block radius lodUpdateFar refreshes each rescan. 0 = off.
+    int m_far_mesh_distance = 0;
+    int m_far_mesh_radius = 0;
     // The ridge probe (docs/sky-orchestration.md): the terrain horizon
     // toward the sun's azimuth as the eye last saw it, published through
     // sky_state() so main.gd can re-base its dawn ramps on the sun's
