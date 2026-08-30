@@ -22,25 +22,53 @@
 # What the tiers themselves come to, measured 2026-08-30 on that machine as
 # live sweeps against the client's own defaults as the control
 # (tools/bench_plans/profiles.json by day, profiles-night.json after dark;
-# steady state, GPU bound in every row):
+# steady state at 2560x1371, GPU bound in every row):
 #
 #                 vista by day          night in the village
-#   ultra         under noise           +3% med, +13% low
-#   high          -9% med, -20% low     -13% med, +12% low
-#   medium        -32% med, -35% low    -33% med, -32% low
+#   ultra         +4% med               under noise
+#   high          -3% med, +43% low     -10% med, -13% low
+#   medium        -24% med, -37% low    -25% med, -30% low
 #
-# Noise floor 8.4% of the median by day and 4.2% at night, from three
+# Noise floor 1.7% of the median by day and 3.3% at night, from three
 # measurements of the control spread through each plan. Both scenes are
 # needed and neither is enough: shadow_lamps is most of what separates the
 # tiers after dark and costs nothing at noon with nothing lit, while the
 # view and detail distances need somewhere with distance in it.
 #
-# Two things the numbers do not say. The server under test granted 512 far
-# nodes, and the client takes the lesser of the grant and the setting, so
-# ultra and high shared a far distance and only medium's 256 was smaller;
-# on a more generous server the top gap would be wider. And high gave up
-# 12% on the 1% low at night while taking 13% off the median, on four times
-# the hitches, which is one measurement and not yet a story.
+# **Ultra and High are not far apart on hardware like this, and that is the
+# honest reading.** It is not that the tiers do nothing. Counted at the same
+# vista, settling each tier from the coarsest up so the LOD hysteresis
+# cannot carry fine tiers down into a lower one:
+#
+#              draw calls   primitives   resident blocks
+#   medium          2507        3.65M          783
+#   high            2619        4.24M          936
+#   ultra           3066        6.41M         1278
+#
+# Ultra draws 76 per cent more geometry than Medium for 24 per cent more
+# frame time, because a 3090 is nowhere near geometry limited at this
+# scale. Two checks that this is about the machine and not the tiers: the
+# same sweep at 1600x900 gave a *wider* spread (-9 and -32 per cent), so
+# more pixels shrink the gap and this is not a fill rate story; and turning
+# every material and lighting quality channel off at Medium bought only a
+# further 10 per cent, so the frame is not sitting in those either. What
+# the tiers buy should grow on a card that is geometry limited, which is
+# the hardware they exist for and is not the hardware they were measured
+# on. Treat the percentages as a floor, not an estimate.
+#
+# Two more things the numbers do not say. The server under test granted 512
+# far nodes, and the client takes the lesser of the grant and the setting,
+# so ultra and high shared a far distance and only medium's 256 was
+# smaller; on a more generous server the top gap would be wider. And these
+# are settled frames with the camera still, which is the kindest case for
+# settings that govern how much world is streamed: the cost of a bigger
+# view lands while it arrives, not once it has.
+#
+# Forcing the resolution: the plans ask for one and Wayland refuses to let
+# a client resize its own window, so the harness notes the mismatch and
+# measures whatever it got. Point GODOT_BIN at a wrapper passing
+# `--resolution WxH` to set it at window creation, or the numbers are of
+# the default window and not of the plan.
 #
 # They do not differ on the material and lighting quality channels: normal
 # strength, occlusion, roughness, specular, surface detail, leaf

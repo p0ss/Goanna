@@ -203,11 +203,33 @@ an RTX 3090, unless marked otherwise.
   alone can judge them: the vista carries the view and detail distances,
   the village after dark carries the lamp shadows, and a setting a scene
   cannot exercise reads as free. Against the client's own defaults, steady
-  state and GPU bound in every row: by day High is -9 per cent on the
-  median and -20 on the 1% low, Medium -32 and -35; at night High is -13
-  and +12, Medium -33 and -32. Noise floors 8.4 and 4.2 per cent. The
-  server granted 512 far nodes, so Ultra and High shared a far distance
-  and only Medium's 256 was genuinely smaller.
+  state at 2560x1371 and GPU bound in every row: by day High is -3 per
+  cent on the median and Medium -24; at night High is -10 and Medium -25,
+  with Ultra under the noise floor in both. Floors 1.7 and 3.3 per cent.
+  The server granted 512 far nodes, so Ultra and High shared a far
+  distance and only Medium's 256 was genuinely smaller.
+
+- Ultra and High are close enough on this hardware to question whether
+  they are two tiers, and the reason is the machine rather than the
+  profiles. Counted at the same vista, settling each tier from the
+  coarsest up so the LOD hysteresis cannot carry fine tiers downward,
+  Medium draws 2507 calls and 3.65M primitives, High 2619 and 4.24M,
+  Ultra 3066 and 6.41M: Ultra draws 76 per cent more geometry than Medium
+  for 24 per cent more frame time, because an RTX 3090 is nowhere near
+  geometry limited at this scale. The same sweep at 1600x900 gave a wider
+  spread than at 2560x1371, so more pixels shrink the gap and this is not
+  a fill rate story, and switching every material and lighting quality
+  channel off at Medium bought only a further 10 per cent, so the frame is
+  not sitting in those either. Where the rest of the frame goes is not yet
+  answered. The percentages are a floor for weaker hardware, not an
+  estimate of it.
+
+- The plans ask for a resolution and do not get it. Wayland does not let a
+  client resize its own window, so `window_set_size` is ignored, the
+  harness notes the mismatch and measures the default window anyway. The
+  first pair of tier reports were taken at 1600x900 while asking for
+  1920x1080. Forcing it needs `--resolution` at window creation, through a
+  wrapper on GODOT_BIN.
 
 - The first version of that plan measured its own ordering rather than the
   tiers. Four tests, a process per variant and one shared warm store: the
