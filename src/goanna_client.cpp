@@ -3645,6 +3645,18 @@ void GoannaClient::set_far_distance(int nodes) {
     m_far_dirty = true;
 }
 
+void GoannaClient::set_occluder_boxes(bool on) {
+    if (on == m_occluder_boxes)
+        return;
+    m_occluder_boxes = on;
+    // Chains for the near field arrive lazily as blocks are (re)assigned;
+    // enqueue the ones already resident so coverage does not wait for a
+    // world's worth of remeshes.
+    if (on)
+        for (const auto &kv : m_near_blocks)
+            lodEnqueueChain(kv.first);
+}
+
 void GoannaClient::set_occluder_distance(int nodes) {
     m_occluder_distance = std::max(0, nodes);
     // Existing occluders re-evaluate as their regions next rebuild; a
@@ -4829,8 +4841,14 @@ void GoannaClient::lodDirtyAround(const v3s16 &bp, const LodRegionKey *except) {
 
 void GoannaClient::lodEnqueueChain(const v3s16 &bp) {
     auto tier = m_block_tier.find(bp);
-    if (tier != m_block_tier.end() && tier->second <= 0)
-        return; // the exact near mesh owns this block
+    // The exact near mesh owns a tier 0 block, so it needs no chain to
+    // draw; but box occluders read the chain's fine occlusion bits, and
+    // without near coverage the box mode emitted almost nothing (measured
+    // 2026-08-31: 3.5k box triangles against 537k mesh-cut at the vista)
+    // while the mesh-cut construction it replaces was about 45 per cent of
+    // the flying hitch rate on a same-client A/B.
+    if (tier != m_block_tier.end() && tier->second <= 0 && !m_occluder_boxes)
+        return;
     if (m_lod_chains.count(bp) || m_lod_chain_missing.count(bp) || !m_lod_chain_queued.insert(bp).second)
         return;
     m_lod_chain_queue.push_back(bp);
@@ -6354,6 +6372,9 @@ int GoannaClient::poll_blocks(int max_blocks) {
         }
         m_near_blocks[bp] = std::move(near_block);
         nearAssign(bp);
+        if (m_occluder_boxes)
+            lodEnqueueChain(bp); // box occluders read the fine bits
+
         if (!m_near_blocks[bp].surfaces.empty())
             lodBeginNearHandoff(bp);
         else

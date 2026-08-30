@@ -327,7 +327,7 @@ public:
     // Decimated occluders: one inset box per fully solid shell block
     // instead of the region's whole opaque mesh. Strictly conservative;
     // regions re-emit as they next rebuild.
-    void set_occluder_boxes(bool on) { m_occluder_boxes = on; }
+    void set_occluder_boxes(bool on);
     bool occluder_boxes() const { return m_occluder_boxes; }
     int far_distance() const { return m_far_distance; }
     void set_view_range(int blocks);
