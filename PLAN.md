@@ -178,6 +178,15 @@ an RTX 3090, unless marked otherwise.
   Before and after screenshots match, including the pre-existing
   floating stale shelves.
 
+- The knowledge/mesh split is in (2026-08-31, set_far_mesh_distance,
+  env GOANNA_FAR_MESH): region meshes stop at the mesh horizon while
+  chains, summaries and the horizon bake keep filling to the far
+  distance, the fog closes at the drawn edge, and the band beyond is
+  panorama alone. At the beach with the mesh horizon at 512 against
+  knowledge to 960: regions 604 to 428, camera draws 1895 to 1350, the
+  horizon continuous. Off by default until the benchmark session
+  measures it; the profiles own the default after that.
+
 - The horizon bake is in (2026-08-31, docs/sky-orchestration.md, "The
   baked horizon"): the terrain the client knows about, marched into a
   cylindrical albedo and distance panorama off the main thread and
