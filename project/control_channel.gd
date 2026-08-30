@@ -92,8 +92,18 @@ func _ready() -> void:
 	_port = int(spec) if spec.is_valid_int() and int(spec) > 1 else DEFAULT_PORT
 	var err := _srv.listen(_port, "127.0.0.1")
 	if err != OK:
-		push_error("control: cannot listen on 127.0.0.1:%d (error %d)" % [_port, err])
-		set_process(false)
+		# A tool asked for this channel by setting GOANNA_CONTROL, and a
+		# client that cannot be driven is worse than none: it sits there
+		# deaf while every command sent to the port reaches whichever other
+		# client already holds it, so a measurement quietly drives and
+		# censuses the wrong instance (two clients fought over one port on
+		# 2026-08-31 and wedged a benchmark run). Exit instead, so the
+		# launcher sees the collision at startup.
+		push_error("control: cannot listen on 127.0.0.1:%d (error %d); "
+				% [_port, err]
+				+ "another client already holds the port. Exiting so the "
+				+ "launcher notices; pick a different GOANNA_CONTROL port.")
+		get_tree().quit(3)
 		return
 	print("control: listening on 127.0.0.1:%d" % _port)
 	label = OS.get_environment("GOANNA_TEST_LABEL")
