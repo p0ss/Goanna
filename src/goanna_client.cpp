@@ -252,56 +252,67 @@ void GoannaClient::nearDrop(const v3s16 &bp) {
     }
 }
 
-void GoannaClient::nearBuildRegion(const v3s16 &key, NearRegion &region) {
-    auto t0 = clock_t_::now();
-    struct Accum {
-        MaterialKey key;
+// The near batch job: concatenate one region's member surfaces into merged
+// material groups, and in mesh-cut occluder mode filter the occluder
+// triangles, all away from the main thread. The per-second trace of
+// 2026-08-31 put 91 per cent of the flying hitch tail on exactly this work
+// (10 to 29 ms single builds during arrival floods). Everything the job
+// reads is copied at submit; the Packed arrays are copy-on-write, so the
+// copies are reference bumps and stay immutable because a remesh replaces
+// a block's arrays rather than mutating them.
+struct NearBatchJob : goanna::MeshJob {
+    struct Surface {
+        goanna::MaterialKey key;
         PackedVector3Array verts, norms;
         PackedVector2Array uvs, uv2s;
         PackedColorArray cols;
         PackedByteArray custom0;
         PackedInt32Array idx;
         bool glow = false;
-        int n_verts = 0, n_idx = 0; // totals from the counting pass
-        int v_at = 0, i_at = 0;     // write cursors for the filling pass
+        // Occluder metadata resolved on the main thread at submit, so the
+        // worker never touches the texture source: whether this material
+        // may occlude at all, and for array textures which layers have
+        // alpha (null means nothing to filter).
+        bool can_occlude = false;
+        std::shared_ptr<const std::vector<bool>> alpha_layers;
     };
-    std::map<uint64_t, Accum> groups;
-    // Count first, then fill. This used to append each surface and push every
-    // index one at a time, and a region is four blocks cubed of full detail
-    // geometry, so that was hundreds of thousands of single element calls
-    // across the GDExtension boundary and the largest cost in the frame. A
-    // region is rebuilt whenever one block joins or leaves it, which happens
-    // continuously while the player walks, so it is paid constantly.
-    for (const v3s16 &bp : region.members) {
-        auto block = m_near_blocks.find(bp);
-        if (block == m_near_blocks.end())
-            continue;
-        for (const NearSurface &surface : block->second.surfaces) {
+    std::vector<Surface> surfaces;
+    std::vector<v3s16> members;
+    bool build_occluder = false; // mesh-cut mode; boxes are built at publish
+    // Outputs.
+    std::vector<goanna::GoannaClient::NearBatchGroup> groups_out;
+    PackedVector3Array occ_verts;
+    PackedInt32Array occ_idx;
+
+    void run() override {
+        using Group = goanna::GoannaClient::NearBatchGroup;
+        std::map<uint64_t, Group> groups;
+        // Count first, then fill, exactly as the main-thread version did:
+        // single element appends across the GDExtension boundary were the
+        // original largest cost in the frame.
+        for (const Surface &surface : surfaces) {
             const uint64_t group_key = (surface.key.hash() << 1) | (surface.glow ? 1 : 0);
-            Accum &acc = groups[group_key];
+            Group &acc = groups[group_key];
             acc.key = surface.key;
             acc.glow = surface.glow;
             acc.n_verts += surface.verts.size();
             acc.n_idx += (int)surface.idx.size();
         }
-    }
-    for (auto &kv : groups) {
-        Accum &a = kv.second;
-        a.verts.resize(a.n_verts);
-        a.norms.resize(a.n_verts);
-        a.uvs.resize(a.n_verts);
-        a.uv2s.resize(a.n_verts);
-        a.cols.resize(a.n_verts);
-        a.custom0.resize(a.n_verts * 4);
-        a.idx.resize(a.n_idx);
-    }
-    for (const v3s16 &bp : region.members) {
-        auto block = m_near_blocks.find(bp);
-        if (block == m_near_blocks.end())
-            continue;
-        for (const NearSurface &surface : block->second.surfaces) {
+        for (auto &kv : groups) {
+            Group &a = kv.second;
+            a.verts.resize(a.n_verts);
+            a.norms.resize(a.n_verts);
+            a.uvs.resize(a.n_verts);
+            a.uv2s.resize(a.n_verts);
+            a.cols.resize(a.n_verts);
+            a.custom0.resize(a.n_verts * 4);
+            a.idx.resize(a.n_idx);
+        }
+        std::map<uint64_t, bool> occludable;
+        for (const Surface &surface : surfaces) {
             const uint64_t group_key = (surface.key.hash() << 1) | (surface.glow ? 1 : 0);
-            Accum &acc = groups[group_key];
+            Group &acc = groups[group_key];
+            occludable[group_key] = surface.can_occlude;
             const int n = surface.verts.size();
             const int base = acc.v_at;
             if (n > 0) {
@@ -323,14 +334,130 @@ void GoannaClient::nearBuildRegion(const v3s16 &key, NearRegion &region) {
             acc.v_at += n;
             acc.i_at += ni;
         }
+        if (build_occluder) {
+            // The per-triangle alpha filter, driven by the metadata the
+            // submit captured rather than by texture source queries.
+            std::map<uint64_t, std::shared_ptr<const std::vector<bool>>> alpha;
+            for (const Surface &surface : surfaces) {
+                const uint64_t group_key =
+                        (surface.key.hash() << 1) | (surface.glow ? 1 : 0);
+                if (surface.alpha_layers)
+                    alpha[group_key] = surface.alpha_layers;
+            }
+            for (auto &kv : groups) {
+                Group &acc = kv.second;
+                if (!occludable[kv.first] || acc.verts.is_empty() || acc.idx.is_empty())
+                    continue;
+                const std::vector<bool> *has_alpha = nullptr;
+                auto ai = alpha.find(kv.first);
+                if (ai != alpha.end())
+                    has_alpha = ai->second.get();
+                PackedInt32Array visible_idx;
+                for (int i = 0; i + 2 < acc.idx.size(); i += 3) {
+                    const int vi = acc.idx[i];
+                    if (vi < 0 || vi >= acc.uv2s.size())
+                        continue;
+                    const size_t layer = (size_t)std::max(0, (int)std::lround(acc.uv2s[vi].x));
+                    if (has_alpha && layer < has_alpha->size() && (*has_alpha)[layer])
+                        continue;
+                    visible_idx.push_back(acc.idx[i]);
+                    visible_idx.push_back(acc.idx[i + 1]);
+                    visible_idx.push_back(acc.idx[i + 2]);
+                }
+                if (visible_idx.is_empty())
+                    continue;
+                const int base = occ_verts.size();
+                occ_verts.append_array(acc.verts);
+                for (int i = 0; i < visible_idx.size(); ++i)
+                    occ_idx.push_back(visible_idx[i] + base);
+            }
+        }
+        groups_out.reserve(groups.size());
+        for (auto &kv : groups)
+            groups_out.push_back(std::move(kv.second));
     }
+};
 
+void GoannaClient::nearBoxOccluder(const v3s16 &key, PackedVector3Array &occ_verts,
+        PackedInt32Array &occ_idx) {
+    auto emit_box = [&](float x0, float y0, float z0g, float x1, float y1, float z1g) {
+        const int base = occ_verts.size();
+        occ_verts.push_back(Vector3(x0, y0, z0g));
+        occ_verts.push_back(Vector3(x1, y0, z0g));
+        occ_verts.push_back(Vector3(x1, y1, z0g));
+        occ_verts.push_back(Vector3(x0, y1, z0g));
+        occ_verts.push_back(Vector3(x0, y0, z1g));
+        occ_verts.push_back(Vector3(x1, y0, z1g));
+        occ_verts.push_back(Vector3(x1, y1, z1g));
+        occ_verts.push_back(Vector3(x0, y1, z1g));
+        static const int kBox[36] = {0, 2, 1, 0, 3, 2, 4, 5, 6, 4, 6, 7,
+                0, 1, 5, 0, 5, 4, 3, 7, 6, 3, 6, 2,
+                0, 4, 7, 0, 7, 3, 1, 2, 6, 1, 6, 5};
+        for (int i : kBox)
+            occ_idx.push_back(base + i);
+    };
+    // All 512 bits of one 8 node sub-cell set: strictly conservative, and
+    // achievable on real terrain, which a fully solid 16 node block is not.
+    auto subcell_solid = [](const std::array<uint64_t, 64> &occ, int sx, int sy,
+                                 int sz) -> bool {
+        for (int z = 8 * sz; z < 8 * sz + 8; ++z)
+            for (int y = 8 * sy; y < 8 * sy + 8; ++y) {
+                const size_t base = ((size_t)z * 16 + y) * 16 + (size_t)(8 * sx);
+                if (((occ[base >> 6] >> (base & 63)) & 0xFF) != 0xFF)
+                    return false;
+            }
+        return true;
+    };
+    // The whole region cube, not the member list: membership requires
+    // visible surfaces, and the fully solid blocks boxes are made of have
+    // none.
+    for (int bz = key.Z * kNearRegionBlocks; bz < (key.Z + 1) * kNearRegionBlocks; ++bz)
+    for (int by = key.Y * kNearRegionBlocks; by < (key.Y + 1) * kNearRegionBlocks; ++by)
+    for (int bx = key.X * kNearRegionBlocks; bx < (key.X + 1) * kNearRegionBlocks; ++bx) {
+        const v3s16 bp((s16)bx, (s16)by, (s16)bz);
+        auto cit = m_lod_chains.find(bp);
+        if (cit == m_lod_chains.end() || !cit->second->fine_available)
+            continue;
+        const auto &occ = cit->second->fine_occludes;
+        bool solid[2][2][2];
+        int nsolid = 0;
+        for (int sz = 0; sz < 2; ++sz)
+            for (int sy = 0; sy < 2; ++sy)
+                for (int sx = 0; sx < 2; ++sx) {
+                    solid[sz][sy][sx] = subcell_solid(occ, sx, sy, sz);
+                    nsolid += solid[sz][sy][sx] ? 1 : 0;
+                }
+        if (nsolid == 0)
+            continue;
+        if (nsolid == 8) {
+            const float x0 = bp.X * 16.0f;
+            const float y0 = bp.Y * 16.0f;
+            const float z1 = -(bp.Z * 16.0f);
+            emit_box(x0, y0, z1 - 15.0f, x0 + 15.0f, y0 + 15.0f, z1);
+            continue;
+        }
+        for (int sz = 0; sz < 2; ++sz)
+            for (int sy = 0; sy < 2; ++sy)
+                for (int sx = 0; sx < 2; ++sx) {
+                    if (!solid[sz][sy][sx])
+                        continue;
+                    const float x0 = bp.X * 16.0f + 8.0f * sx;
+                    const float y0 = bp.Y * 16.0f + 8.0f * sy;
+                    const float z1 = -(bp.Z * 16.0f + 8.0f * sz);
+                    emit_box(x0, y0, z1 - 7.0f, x0 + 7.0f, y0 + 7.0f, z1);
+                }
+    }
+}
+
+void GoannaClient::nearPublishBatch(const v3s16 &key, NearRegion &region,
+        std::vector<NearBatchGroup> &groups, PackedVector3Array &occ_verts,
+        PackedInt32Array &occ_idx, const std::vector<v3s16> &members) {
+    auto t0 = clock_t_::now();
     auto build_mesh = [&](bool glow) -> Ref<ArrayMesh> {
         Ref<ArrayMesh> mesh;
         mesh.instantiate();
         int si = 0;
-        for (auto &kv : groups) {
-            Accum &acc = kv.second;
+        for (NearBatchGroup &acc : groups) {
             if (acc.glow != glow || acc.verts.is_empty() || acc.idx.is_empty())
                 continue;
             Array arrays;
@@ -348,116 +475,12 @@ void GoannaClient::nearBuildRegion(const v3s16 &key, NearRegion &region) {
         }
         return mesh;
     };
-
     Ref<ArrayMesh> mesh = build_mesh(false);
     Ref<ArrayMesh> glow_mesh = build_mesh(true);
-    PackedVector3Array occ_verts;
-    PackedInt32Array occ_idx;
     if (m_occluder_boxes) {
-        // Decimated occluders: one box per fully solid member block, shell
-        // blocks only, instead of the region's whole opaque mesh. Strictly
-        // conservative twice over: a block qualifies only when every one of
-        // its 4096 fine occlusion bits is set, and the box is inset half a
-        // node inside the node hull, so it can never occlude anything the
-        // real geometry would not. Tens of triangles per region against
-        // thousands, aimed at the software raster's per frame cost and the
-        // BVH rebuilt on every swap.
-        auto emit_box = [&](float x0, float y0, float z0g, float x1, float y1, float z1g) {
-            const int base = occ_verts.size();
-            occ_verts.push_back(Vector3(x0, y0, z0g));
-            occ_verts.push_back(Vector3(x1, y0, z0g));
-            occ_verts.push_back(Vector3(x1, y1, z0g));
-            occ_verts.push_back(Vector3(x0, y1, z0g));
-            occ_verts.push_back(Vector3(x0, y0, z1g));
-            occ_verts.push_back(Vector3(x1, y0, z1g));
-            occ_verts.push_back(Vector3(x1, y1, z1g));
-            occ_verts.push_back(Vector3(x0, y1, z1g));
-            static const int kBox[36] = {0, 2, 1, 0, 3, 2, 4, 5, 6, 4, 6, 7,
-                    0, 1, 5, 0, 5, 4, 3, 7, 6, 3, 6, 2,
-                    0, 4, 7, 0, 7, 3, 1, 2, 6, 1, 6, 5};
-            for (int i : kBox)
-                occ_idx.push_back(base + i);
-        };
-        // All 512 bits of one 8 node sub-cell set. The first cut demanded a
-        // fully solid 16 node block and emitted nothing at all on real
-        // terrain (measured 2026-08-31: zero triangles across a whole ten
-        // minute run), because a surface block always holds air; the solid
-        // earth lives in the sub-cells beneath the turf.
-        auto subcell_solid = [](const std::array<uint64_t, 64> &occ, int sx, int sy,
-                                     int sz) -> bool {
-            for (int z = 8 * sz; z < 8 * sz + 8; ++z)
-                for (int y = 8 * sy; y < 8 * sy + 8; ++y) {
-                    const size_t base = ((size_t)z * 16 + y) * 16 + (size_t)(8 * sx);
-                    if (((occ[base >> 6] >> (base & 63)) & 0xFF) != 0xFF)
-                        return false;
-                }
-            return true;
-        };
-        // The whole region cube, not the member list: membership requires
-        // visible surfaces, and a fully solid block has none, so the very
-        // blocks the boxes are made of are never members. Iterating members
-        // is why coverage stayed at a few thousand triangles even after the
-        // chains existed (V2 verification, 2026-08-31).
-        for (int bz = key.Z * kNearRegionBlocks; bz < (key.Z + 1) * kNearRegionBlocks; ++bz)
-        for (int by = key.Y * kNearRegionBlocks; by < (key.Y + 1) * kNearRegionBlocks; ++by)
-        for (int bx = key.X * kNearRegionBlocks; bx < (key.X + 1) * kNearRegionBlocks; ++bx) {
-            const v3s16 bp((s16)bx, (s16)by, (s16)bz);
-            auto cit = m_lod_chains.find(bp);
-            if (cit == m_lod_chains.end() || !cit->second->fine_available)
-                continue;
-            const auto &occ = cit->second->fine_occludes;
-            bool solid[2][2][2];
-            int nsolid = 0;
-            for (int sz = 0; sz < 2; ++sz)
-                for (int sy = 0; sy < 2; ++sy)
-                    for (int sx = 0; sx < 2; ++sx) {
-                        solid[sz][sy][sx] = subcell_solid(occ, sx, sy, sz);
-                        nsolid += solid[sz][sy][sx] ? 1 : 0;
-                    }
-            if (nsolid == 0)
-                continue;
-            if (nsolid == 8) {
-                const float x0 = bp.X * 16.0f;
-                const float y0 = bp.Y * 16.0f;
-                const float z1 = -(bp.Z * 16.0f);
-                emit_box(x0, y0, z1 - 15.0f, x0 + 15.0f, y0 + 15.0f, z1);
-                continue;
-            }
-            for (int sz = 0; sz < 2; ++sz)
-                for (int sy = 0; sy < 2; ++sy)
-                    for (int sx = 0; sx < 2; ++sx) {
-                        if (!solid[sz][sy][sx])
-                            continue;
-                        const float x0 = bp.X * 16.0f + 8.0f * sx;
-                        const float y0 = bp.Y * 16.0f + 8.0f * sy;
-                        const float z1 = -(bp.Z * 16.0f + 8.0f * sz);
-                        emit_box(x0, y0, z1 - 7.0f, x0 + 7.0f, y0 + 7.0f, z1);
-                    }
-        }
-    } else
-    for (auto &kv : groups) {
-        Accum &acc = kv.second;
-        if (!nearCanOcclude(acc.key) || acc.verts.is_empty() || acc.idx.is_empty())
-            continue;
-        PackedInt32Array visible_idx;
-        GoannaTexture *texture = m_session->tsrc()->goannaTexture(acc.key.texture_id);
-        for (int i = 0; i + 2 < acc.idx.size(); i += 3) {
-            const int vi = acc.idx[i];
-            if (vi < 0 || vi >= acc.uv2s.size())
-                continue;
-            const u16 layer = (u16)std::max(0, (int)std::lround(acc.uv2s[vi].x));
-            if (texture && texture->isArray() && texture->layerHasAlpha(layer))
-                continue;
-            visible_idx.push_back(acc.idx[i]);
-            visible_idx.push_back(acc.idx[i + 1]);
-            visible_idx.push_back(acc.idx[i + 2]);
-        }
-        if (visible_idx.is_empty())
-            continue;
-        const int base = occ_verts.size();
-        occ_verts.append_array(acc.verts);
-        for (int i = 0; i < visible_idx.size(); ++i)
-            occ_idx.push_back(visible_idx[i] + base);
+        occ_verts.clear();
+        occ_idx.clear();
+        nearBoxOccluder(key, occ_verts, occ_idx);
     }
     const float region_edge = (float)(kNearRegionBlocks * MAP_BLOCKSIZE);
     const Vector3 region_min(key.X * region_edge - 1.0f, key.Y * region_edge - 1.0f,
@@ -488,13 +511,10 @@ void GoannaClient::nearBuildRegion(const v3s16 &key, NearRegion &region) {
     };
     apply(region.node, mesh, false);
     apply(region.glow_node, glow_mesh, true);
-    // The occluder is the region's full opaque mesh, and every rebuild here
-    // swaps a fresh ArrayOccluder3D into the renderer's software raster,
-    // whose BVH is rebuilt on each swap. On big worlds the HUD has shown
-    // millions of occluder triangles, far beyond what that raster is
-    // designed for, so the swap is timed (occluder_swap_ms, occluder_swaps
-    // in render_stats) and gated by set_occluder_distance so the cost can
-    // be measured and bounded live rather than argued about.
+    // The swap is timed (occluder_swap_ms, occluder_swaps in render_stats)
+    // and gated by set_occluder_distance so the engine's per-commit
+    // occlusion consumption, measured at about 37 per cent of flying
+    // hitches on its own, stays boundable.
     bool want_occluder = !occ_idx.is_empty();
     if (want_occluder && m_occluder_distance > 0) {
         const Vector3 rc = region_min + Vector3(region_edge, region_edge, region_edge) * 0.5f;
@@ -509,12 +529,10 @@ void GoannaClient::nearBuildRegion(const v3s16 &key, NearRegion &region) {
             region.occluder_hash = 0;
         }
     } else {
-        // A rebuild that changed only lighting (the whole world remeshes on
-        // every day/night ratio step) produces byte-identical occluder
-        // geometry, and re-committing it re-built the BVH for nothing: the
-        // 2026-08-31 census caught the resulting mass re-emission tripling
-        // the hitch rate for a minute at a time, twice in ten. Hash the
-        // geometry and swap only when it actually changed.
+        // A rebuild that changed only lighting produces byte-identical
+        // occluder geometry; re-committing it re-built the BVH for nothing
+        // (the census caught the mass re-emission tripling the hitch rate).
+        // Hash the geometry and swap only when it actually changed.
         uint64_t h = 1469598103934665603ull;
         auto mix = [&h](const uint8_t *p, size_t n) {
             for (size_t i = 0; i < n; ++i) {
@@ -547,21 +565,21 @@ void GoannaClient::nearBuildRegion(const v3s16 &key, NearRegion &region) {
     }
     region.surfaces = mesh->get_surface_count() + glow_mesh->get_surface_count();
     region.occluder_triangles = want_occluder ? occ_idx.size() / 3 : 0;
-    region.dirty = false;
     // Only here are region-batched block surfaces actually visible. Retire
     // their retained far copies after set_mesh(), never when the CPU-side
-    // NearSurface arrays are merely queued for this rebuild.
-    std::vector<v3s16> published(region.members.begin(), region.members.end());
-    for (const v3s16 &bp : published)
-        lodFinishNearHandoff(bp);
+    // arrays were merely captured for the job. Members that left the region
+    // while the job ran belong to their new owners' next publish.
+    for (const v3s16 &bp : members)
+        if (region.members.count(bp))
+            lodFinishNearHandoff(bp);
     {
         const double batch_ms_now = ms_since(t0);
         ema(m_ms_near_batch, batch_ms_now);
         m_ms_near_batch_worst = std::max(m_ms_near_batch_worst, batch_ms_now);
     }
     if (getenv("GOANNA_DEBUG_BLOCKS"))
-        UtilityFunctions::print("near region ", key.X, ",", key.Y, ",", key.Z, " blocks ",
-                (int)region.members.size(), " surfaces ", region.surfaces, " in ",
+        UtilityFunctions::print("near region ", key.X, ",", key.Y, ",", key.Z, " publish ",
+                (int)region.members.size(), " blocks ", region.surfaces, " surfaces in ",
                 String::num(ms_since(t0), 2), " ms");
 }
 
@@ -570,10 +588,30 @@ void GoannaClient::nearRebuild(double budget_ms) {
     auto t0 = clock_t_::now();
     std::vector<std::pair<clock_t_::time_point, v3s16>> dirty;
     for (const auto &kv : m_near_regions)
-        if (kv.second.dirty)
+        if (kv.second.dirty && !kv.second.building)
             dirty.push_back({kv.second.dirty_at, kv.first});
     std::sort(dirty.begin(), dirty.end(),
             [](const auto &a, const auto &b) { return a.first < b.first; });
+    // Alpha layer bitsets per array texture, captured once per call so the
+    // worker never touches the texture source.
+    std::map<u32, std::shared_ptr<const std::vector<bool>>> alpha_cache;
+    auto alpha_for = [&](u32 texture_id) -> std::shared_ptr<const std::vector<bool>> {
+        auto it = alpha_cache.find(texture_id);
+        if (it != alpha_cache.end())
+            return it->second;
+        std::shared_ptr<const std::vector<bool>> out;
+        GoannaTexture *texture = m_session ? m_session->tsrc()->goannaTexture(texture_id) : nullptr;
+        if (texture && texture->isArray()) {
+            auto bits = std::make_shared<std::vector<bool>>();
+            const size_t layers = texture->layerNames().size();
+            bits->resize(layers);
+            for (size_t l = 0; l < layers; ++l)
+                (*bits)[l] = texture->layerHasAlpha((u16)l);
+            out = std::move(bits);
+        }
+        alpha_cache[texture_id] = out;
+        return out;
+    };
     for (const auto &entry : dirty) {
         if (m_near_regions_built_last > 0 && ms_since(t0) >= budget_ms)
             break;
@@ -583,22 +621,77 @@ void GoannaClient::nearRebuild(double budget_ms) {
         NearRegion &region = it->second;
         // Wait for a gap in the arrivals (or the staleness cap), not merely
         // for age: rebuilding on age alone rebuilt a still-streaming region
-        // five and more times over, and those batch builds are 91 per cent
-        // of the flying hitch tail (cell 1, 2026-08-31). 150 ms of quiet is
-        // one to two rebuilds per region per flood; the 700 ms cap keeps a
-        // region under constant trickle from starving on screen.
+        // five and more times over. 150 ms of quiet is one to two rebuilds
+        // per region per flood; the 700 ms cap keeps a region under constant
+        // trickle from starving on screen.
         if ((region.node || region.glow_node) && !region.members.empty() &&
                 ms_since(region.last_dirty_at) < 150.0 &&
                 ms_since(region.dirty_at) < 700.0)
             continue;
-        nearBuildRegion(entry.second, region);
-        ++m_near_regions_built_last;
-        if (region.members.empty())
+        if (region.members.empty()) {
+            // Nothing left to build: free the nodes inline and let go.
+            std::vector<NearBatchGroup> none;
+            PackedVector3Array ov;
+            PackedInt32Array oi;
+            nearPublishBatch(entry.second, region, none, ov, oi, {});
+            region.dirty = false;
             m_near_regions.erase(it);
+            ++m_near_regions_built_last;
+            continue;
+        }
+        auto job = std::make_unique<NearBatchJob>();
+        job->members.assign(region.members.begin(), region.members.end());
+        job->build_occluder = !m_occluder_boxes;
+        for (const v3s16 &bp : job->members) {
+            auto block = m_near_blocks.find(bp);
+            if (block == m_near_blocks.end())
+                continue;
+            for (const NearSurface &surface : block->second.surfaces) {
+                NearBatchJob::Surface js;
+                js.key = surface.key;
+                js.verts = surface.verts;
+                js.norms = surface.norms;
+                js.uvs = surface.uvs;
+                js.uv2s = surface.uv2s;
+                js.cols = surface.cols;
+                js.custom0 = surface.custom0;
+                js.idx = surface.idx;
+                js.glow = surface.glow;
+                if (job->build_occluder) {
+                    js.can_occlude = nearCanOcclude(surface.key);
+                    if (js.can_occlude)
+                        js.alpha_layers = alpha_for(surface.key.texture_id);
+                }
+                job->surfaces.push_back(std::move(js));
+            }
+        }
+        goanna::MeshJobKey jk;
+        jk.kind = goanna::MeshJobKey::kNearBatch;
+        jk.pos = entry.second;
+        const uint64_t generation = region.generation + 1;
+        const bool drawn = region.node != nullptr || region.glow_node != nullptr;
+        const int priority = viewPriority().of(
+                drawn ? goanna::ViewPriority::kMaintain : goanna::ViewPriority::kCoverage,
+                goanna::godotCentreOfBlocks(
+                        v3s16(entry.second.X * kNearRegionBlocks,
+                                entry.second.Y * kNearRegionBlocks,
+                                entry.second.Z * kNearRegionBlocks),
+                        kNearRegionBlocks, MAP_BLOCKSIZE));
+        if (!m_mesh_pool.submit(jk, generation, goanna::MeshWorkStage::kNear, priority,
+                    std::move(job)))
+            break; // admission bounded; the region stays dirty and retries
+        region.generation = generation;
+        region.building = true;
+        region.dirty = false;
+        ++m_near_regions_built_last;
     }
 }
 
 void GoannaClient::nearClear() {
+    // Batch jobs in flight belong to regions that are about to vanish;
+    // cancel what has not started, and the generation test drops whatever
+    // a worker still finishes.
+    m_mesh_pool.cancelKind(goanna::MeshJobKey::kNearBatch);
     for (auto &kv : m_near_blocks)
         if (kv.second.special_node)
             kv.second.special_node->queue_free();
@@ -5425,6 +5518,31 @@ void GoannaClient::lodCollectMeshes() {
                 ready.vertex_light = std::move(nb->vertex_light);
                 m_near_ready[done.key.pos] = std::move(ready);
             }
+            continue;
+        }
+        if (done.key.kind == MeshJobKey::kNearBatch) {
+            if (published >= m_lod_publish_budget) {
+                // Same budget as far regions: a flood of finished batches
+                // must land over several frames, not in one.
+                m_mesh_pool.requeueReady(std::move(done));
+                break;
+            }
+            auto *job = static_cast<NearBatchJob *>(done.job.get());
+            auto it = m_near_regions.find(done.key.pos);
+            if (!job || it == m_near_regions.end())
+                continue;
+            NearRegion &region = it->second;
+            region.building = false;
+            // Superseded: the region changed again after this snapshot was
+            // captured and a fresh submit is queued or coming; publishing
+            // this one would flash stale content over the newer state.
+            if (done.generation != region.generation)
+                continue;
+            nearPublishBatch(done.key.pos, region, job->groups_out, job->occ_verts,
+                    job->occ_idx, job->members);
+            ++published;
+            if (region.members.empty() && !region.dirty)
+                m_near_regions.erase(it);
             continue;
         }
         if (done.key.kind != MeshJobKey::kLodRegion)

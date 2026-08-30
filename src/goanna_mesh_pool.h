@@ -50,7 +50,7 @@ enum class MeshWorkStage : uint8_t {
 // it, which is what stops a region that keeps changing from meshing once per
 // change while the player walks past it.
 struct MeshJobKey {
-    enum Kind : uint8_t { kNearBlock = 0, kLodRegion = 1 };
+    enum Kind : uint8_t { kNearBlock = 0, kLodRegion = 1, kNearBatch = 2 };
     Kind kind = kNearBlock;
     v3s16 pos;      // block position, or the region key's position
     int16_t tier = 0; // 0 for a near block

@@ -78,6 +78,22 @@ class GoannaClient : public godot::Node3D {
     GDCLASS(GoannaClient, godot::Node3D)
 
 public:
+    // One merged material group out of a near batch job: the worker
+    // concatenates member block surfaces into these, and the publish step
+    // turns them into ArrayMesh surfaces and binds materials. Public so
+    // the cpp-local job type can carry them.
+    struct NearBatchGroup {
+        MaterialKey key;
+        godot::PackedVector3Array verts, norms;
+        godot::PackedVector2Array uvs, uv2s;
+        godot::PackedColorArray cols;
+        godot::PackedByteArray custom0;
+        godot::PackedInt32Array idx;
+        bool glow = false;
+        int n_verts = 0, n_idx = 0;
+        int v_at = 0, i_at = 0;
+    };
+
     GoannaClient();
     ~GoannaClient() override;
 
@@ -407,6 +423,12 @@ private:
         std::chrono::steady_clock::time_point dirty_at;
         std::chrono::steady_clock::time_point last_dirty_at;
         int surfaces = 0, occluder_triangles = 0;
+        // The batch build runs on the mesh workers (NearBatchJob): the
+        // generation stamps what a submitted snapshot was captured from, so
+        // a result arriving after the region changed again is dropped, and
+        // building stops a second submission racing the first.
+        uint64_t generation = 0;
+        bool building = false;
         // Hash of the occluder geometry last swapped in, so a rebuild that
         // changed only lighting (a day/night ratio step remeshes the whole
         // world with identical geometry) does not re-commit an identical
@@ -424,8 +446,19 @@ private:
     void nearMarkDirty(NearRegion &region);
     void nearAssign(const v3s16 &bp);
     void nearDrop(const v3s16 &bp);
-    void nearBuildRegion(const v3s16 &key, NearRegion &region);
+    // The near batch pipeline: nearRebuild snapshots due dirty regions and
+    // submits NearBatchJobs to the mesh pool (the concatenation and the
+    // occluder triangle filter were 91 per cent of the flying hitch tail
+    // when they ran on the main thread); nearPublishBatch turns a finished
+    // job into meshes, materials and the occluder swap, which is all that
+    // must happen here. nearBoxOccluder emits the box occluder from the
+    // region cube's chains, main-side because chains are main state.
     void nearRebuild(double budget_ms);
+    void nearPublishBatch(const v3s16 &key, NearRegion &region,
+            std::vector<NearBatchGroup> &groups, godot::PackedVector3Array &occ_verts,
+            godot::PackedInt32Array &occ_idx, const std::vector<v3s16> &members);
+    void nearBoxOccluder(const v3s16 &key, godot::PackedVector3Array &occ_verts,
+            godot::PackedInt32Array &occ_idx);
     void nearClear();
     double m_ms_near_batch = 0;
     int m_near_regions_built_last = 0;
