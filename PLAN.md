@@ -201,6 +201,25 @@ an RTX 3090, unless marked otherwise.
   census with SDFGI and occluders toggled, the occluder distance sweep,
   and the prolonged session growth question.
 
+- The measurement half of that session, later the same night, on clean
+  single revisions: no growth over ten minutes of instrumented flight
+  (medians, heap and VRAM flat), so the long-session drain does not
+  reproduce on test_world. The periodic 657k-triangle occluder mass
+  events were identical recommits and the geometry hash in c06a86d
+  removed them (peak 88k after, heap normal, and a run spanning both
+  day/night ratio transitions showed none, killing that trigger
+  theory). With occluders absent entirely the flying hitch rate fell
+  336 to 236 a minute and the 1 per cent low 17.1 to 11.7 ms, so
+  occluders own about a third of the tail; the first box criterion
+  never fired on real terrain (a fully solid 16 node block does not
+  exist at the surface) and 13f24fb re-cuts it per 8 node sub-cell.
+  Openly unexplained and recorded as such: a five minute cycle of
+  residency burst plus a near-quiet minute that survives revision,
+  occluder and clock changes, and monotonic residency decay between
+  bursts on a fixed loop. An arrivals-versus-hitches correlation was
+  tested and is not established. Remaining queue: fixed-yaw cell,
+  boxes retest with the distance sweep, and the SDFGI 2x2.
+
 - The knowledge/mesh split is in (2026-08-31, set_far_mesh_distance,
   env GOANNA_FAR_MESH): region meshes stop at the mesh horizon while
   chains, summaries and the horizon bake keep filling to the far
