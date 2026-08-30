@@ -178,6 +178,29 @@ an RTX 3090, unless marked otherwise.
   Before and after screenshots match, including the pre-existing
   floating stale shelves.
 
+- Overnight performance session, 2026-08-31, with the benchmark session
+  measuring and this one code-only. What its data established: flying
+  is the failure mode, medians healthy at 4.7 to 6 ms while 1 per cent
+  lows sit at 36 to 49 ms and 0.1 per cent at 119 to 263 ms, GPU bound,
+  170 to 340 hitches a minute, and standing still has no such tail, so
+  the cratering happens while the world arrives, not while it draws.
+  The region ladder was confirmed independently (-32 per cent camera
+  draws at the village anchor) but moved frame time by nothing there,
+  so draw submission is not the binding constraint at that anchor; and
+  the per frame HUD stats path measured as free at test_world scale.
+  What landed on that evidence and on code reading, in bd91ace through
+  baad665: the tier rescan no longer copies all of m_block_tier per
+  camera block crossing (a 10 ms and worse hitch every 16 nodes of
+  travel at half a million blocks); the horizon bake extraction became
+  bounded slices; the summary ask scan's lattice walk is sliced by row;
+  the engine render counters refresh five times a second instead of per
+  frame; occluder swaps are timed and boundable by distance
+  (set_occluder_distance); and far tier meshes left SDFGI, whose
+  re-voxelisation on arriving geometry is a prime suspect for the GPU
+  bound tail. Still to be measured on one revision: the flying hitch
+  census with SDFGI and occluders toggled, the occluder distance sweep,
+  and the prolonged session growth question.
+
 - The knowledge/mesh split is in (2026-08-31, set_far_mesh_distance,
   env GOANNA_FAR_MESH): region meshes stop at the mesh horizon while
   chains, summaries and the horizon bake keep filling to the far
