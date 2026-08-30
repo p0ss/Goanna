@@ -320,6 +320,11 @@ public:
     // raster's cost can be swept while measuring, not argued about.
     void set_occluder_distance(int nodes);
     int occluder_distance() const { return m_occluder_distance; }
+    // Decimated occluders: one inset box per fully solid shell block
+    // instead of the region's whole opaque mesh. Strictly conservative;
+    // regions re-emit as they next rebuild.
+    void set_occluder_boxes(bool on) { m_occluder_boxes = on; }
+    bool occluder_boxes() const { return m_occluder_boxes; }
     int far_distance() const { return m_far_distance; }
     void set_view_range(int blocks);
     int view_range() const;
@@ -637,6 +642,7 @@ private:
     // seconds.
     int m_far_ask_row = 0;
     int m_occluder_distance = 0;
+    bool m_occluder_boxes = false;
     double m_ms_occluder_swap = 0.0;
     uint64_t m_occluder_swaps = 0;
     // The engine-side counters render_stats refreshes at most five times a

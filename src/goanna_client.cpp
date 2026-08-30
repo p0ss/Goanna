@@ -345,6 +345,56 @@ void GoannaClient::nearBuildRegion(const v3s16 &key, NearRegion &region) {
     Ref<ArrayMesh> glow_mesh = build_mesh(true);
     PackedVector3Array occ_verts;
     PackedInt32Array occ_idx;
+    if (m_occluder_boxes) {
+        // Decimated occluders: one box per fully solid member block, shell
+        // blocks only, instead of the region's whole opaque mesh. Strictly
+        // conservative twice over: a block qualifies only when every one of
+        // its 4096 fine occlusion bits is set, and the box is inset half a
+        // node inside the node hull, so it can never occlude anything the
+        // real geometry would not. Tens of triangles per region against
+        // thousands, aimed at the software raster's per frame cost and the
+        // BVH rebuilt on every swap.
+        auto solid_block = [&](const v3s16 &bp) -> bool {
+            auto cit = m_lod_chains.find(bp);
+            if (cit == m_lod_chains.end() || !cit->second->fine_available)
+                return false;
+            for (uint64_t w : cit->second->fine_occludes)
+                if (w != ~0ull)
+                    return false;
+            return true;
+        };
+        static const v3s16 kDirs[6] = {
+            {1, 0, 0}, {-1, 0, 0}, {0, 1, 0}, {0, -1, 0}, {0, 0, 1}, {0, 0, -1}};
+        for (const v3s16 &bp : region.members) {
+            if (!solid_block(bp))
+                continue;
+            bool shell = false;
+            for (const v3s16 &o : kDirs)
+                if (!solid_block(bp + o)) {
+                    shell = true;
+                    break;
+                }
+            if (!shell)
+                continue;
+            const float x0 = bp.X * 16.0f, x1 = x0 + 15.0f;
+            const float y0 = bp.Y * 16.0f, y1 = y0 + 15.0f;
+            const float z1 = -(bp.Z * 16.0f), z0 = z1 - 15.0f;
+            const int base = occ_verts.size();
+            occ_verts.push_back(Vector3(x0, y0, z0));
+            occ_verts.push_back(Vector3(x1, y0, z0));
+            occ_verts.push_back(Vector3(x1, y1, z0));
+            occ_verts.push_back(Vector3(x0, y1, z0));
+            occ_verts.push_back(Vector3(x0, y0, z1));
+            occ_verts.push_back(Vector3(x1, y0, z1));
+            occ_verts.push_back(Vector3(x1, y1, z1));
+            occ_verts.push_back(Vector3(x0, y1, z1));
+            static const int kBox[36] = {0, 2, 1, 0, 3, 2, 4, 5, 6, 4, 6, 7,
+                    0, 1, 5, 0, 5, 4, 3, 7, 6, 3, 6, 2,
+                    0, 4, 7, 0, 7, 3, 1, 2, 6, 1, 6, 5};
+            for (int i : kBox)
+                occ_idx.push_back(base + i);
+        }
+    } else
     for (auto &kv : groups) {
         Accum &acc = kv.second;
         if (!nearCanOcclude(acc.key) || acc.verts.is_empty() || acc.idx.is_empty())
@@ -6347,6 +6397,8 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("set_occluder_distance", "nodes"),
             &GoannaClient::set_occluder_distance);
     ClassDB::bind_method(D_METHOD("occluder_distance"), &GoannaClient::occluder_distance);
+    ClassDB::bind_method(D_METHOD("set_occluder_boxes", "on"), &GoannaClient::set_occluder_boxes);
+    ClassDB::bind_method(D_METHOD("occluder_boxes"), &GoannaClient::occluder_boxes);
     ClassDB::bind_method(D_METHOD("far_distance"), &GoannaClient::far_distance);
     ClassDB::bind_method(D_METHOD("set_view_range", "blocks"), &GoannaClient::set_view_range);
     ClassDB::bind_method(D_METHOD("view_range"), &GoannaClient::view_range);
