@@ -401,7 +401,11 @@ private:
         godot::OccluderInstance3D *occluder_node = nullptr;
         std::set<v3s16> members;
         bool dirty = false;
+        // dirty_at is the FIRST invalidation since the last build (the
+        // staleness cap and the oldest-first ordering); last_dirty_at is
+        // the latest (the quiet-gap debounce). See nearMarkDirty.
         std::chrono::steady_clock::time_point dirty_at;
+        std::chrono::steady_clock::time_point last_dirty_at;
         int surfaces = 0, occluder_triangles = 0;
         // Hash of the occluder geometry last swapped in, so a rebuild that
         // changed only lighting (a day/night ratio step remeshes the whole
@@ -510,7 +514,11 @@ private:
         godot::MeshInstance3D *node = nullptr;
         std::set<v3s16> members;
         bool dirty = false;
+        // dirty_at is the FIRST invalidation since the last build (the
+        // staleness cap and the oldest-first ordering); last_dirty_at is
+        // the latest (the quiet-gap debounce). See nearMarkDirty.
         std::chrono::steady_clock::time_point dirty_at;
+        std::chrono::steady_clock::time_point last_dirty_at;
         int faces = 0, quads = 0, surfaces = 0, partial = 0;
         // Atomic publication. The node above keeps drawing the last mesh
         // that finished while a worker builds the next, so a region is never

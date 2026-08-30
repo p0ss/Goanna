@@ -196,10 +196,18 @@ bool GoannaClient::nearCanOcclude(const MaterialKey &key) const {
 }
 
 void GoannaClient::nearMarkDirty(NearRegion &region) {
+    const auto now = clock_t_::now();
     // Preserve the first invalidation time. A busy streaming region must be
     // rebuilt after the debounce even if another block arrives every frame.
     if (!region.dirty)
-        region.dirty_at = clock_t_::now();
+        region.dirty_at = now;
+    // And the latest, separately: the rebuild gate wants a gap in the
+    // arrivals, not merely age. Rebuilding 100 ms after the FIRST arrival
+    // meant a region streaming in over a couple of seconds was rebuilt
+    // five and more times, each a full batch on the main thread, and the
+    // cell 1 trace put 91 per cent of all flying hitches on exactly those
+    // builds (10 to 29 ms singles during arrival floods).
+    region.last_dirty_at = now;
     region.dirty = true;
 }
 
@@ -565,8 +573,15 @@ void GoannaClient::nearRebuild(double budget_ms) {
         if (it == m_near_regions.end())
             continue;
         NearRegion &region = it->second;
+        // Wait for a gap in the arrivals (or the staleness cap), not merely
+        // for age: rebuilding on age alone rebuilt a still-streaming region
+        // five and more times over, and those batch builds are 91 per cent
+        // of the flying hitch tail (cell 1, 2026-08-31). 150 ms of quiet is
+        // one to two rebuilds per region per flood; the 700 ms cap keeps a
+        // region under constant trickle from starving on screen.
         if ((region.node || region.glow_node) && !region.members.empty() &&
-                ms_since(region.dirty_at) < 100.0)
+                ms_since(region.last_dirty_at) < 150.0 &&
+                ms_since(region.dirty_at) < 700.0)
             continue;
         nearBuildRegion(entry.second, region);
         ++m_near_regions_built_last;
