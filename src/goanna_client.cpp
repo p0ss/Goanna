@@ -354,45 +354,69 @@ void GoannaClient::nearBuildRegion(const v3s16 &key, NearRegion &region) {
         // real geometry would not. Tens of triangles per region against
         // thousands, aimed at the software raster's per frame cost and the
         // BVH rebuilt on every swap.
-        auto solid_block = [&](const v3s16 &bp) -> bool {
-            auto cit = m_lod_chains.find(bp);
-            if (cit == m_lod_chains.end() || !cit->second->fine_available)
-                return false;
-            for (uint64_t w : cit->second->fine_occludes)
-                if (w != ~0ull)
-                    return false;
-            return true;
-        };
-        static const v3s16 kDirs[6] = {
-            {1, 0, 0}, {-1, 0, 0}, {0, 1, 0}, {0, -1, 0}, {0, 0, 1}, {0, 0, -1}};
-        for (const v3s16 &bp : region.members) {
-            if (!solid_block(bp))
-                continue;
-            bool shell = false;
-            for (const v3s16 &o : kDirs)
-                if (!solid_block(bp + o)) {
-                    shell = true;
-                    break;
-                }
-            if (!shell)
-                continue;
-            const float x0 = bp.X * 16.0f, x1 = x0 + 15.0f;
-            const float y0 = bp.Y * 16.0f, y1 = y0 + 15.0f;
-            const float z1 = -(bp.Z * 16.0f), z0 = z1 - 15.0f;
+        auto emit_box = [&](float x0, float y0, float z0g, float x1, float y1, float z1g) {
             const int base = occ_verts.size();
-            occ_verts.push_back(Vector3(x0, y0, z0));
-            occ_verts.push_back(Vector3(x1, y0, z0));
-            occ_verts.push_back(Vector3(x1, y1, z0));
-            occ_verts.push_back(Vector3(x0, y1, z0));
-            occ_verts.push_back(Vector3(x0, y0, z1));
-            occ_verts.push_back(Vector3(x1, y0, z1));
-            occ_verts.push_back(Vector3(x1, y1, z1));
-            occ_verts.push_back(Vector3(x0, y1, z1));
+            occ_verts.push_back(Vector3(x0, y0, z0g));
+            occ_verts.push_back(Vector3(x1, y0, z0g));
+            occ_verts.push_back(Vector3(x1, y1, z0g));
+            occ_verts.push_back(Vector3(x0, y1, z0g));
+            occ_verts.push_back(Vector3(x0, y0, z1g));
+            occ_verts.push_back(Vector3(x1, y0, z1g));
+            occ_verts.push_back(Vector3(x1, y1, z1g));
+            occ_verts.push_back(Vector3(x0, y1, z1g));
             static const int kBox[36] = {0, 2, 1, 0, 3, 2, 4, 5, 6, 4, 6, 7,
                     0, 1, 5, 0, 5, 4, 3, 7, 6, 3, 6, 2,
                     0, 4, 7, 0, 7, 3, 1, 2, 6, 1, 6, 5};
             for (int i : kBox)
                 occ_idx.push_back(base + i);
+        };
+        // All 512 bits of one 8 node sub-cell set. The first cut demanded a
+        // fully solid 16 node block and emitted nothing at all on real
+        // terrain (measured 2026-08-31: zero triangles across a whole ten
+        // minute run), because a surface block always holds air; the solid
+        // earth lives in the sub-cells beneath the turf.
+        auto subcell_solid = [](const std::array<uint64_t, 64> &occ, int sx, int sy,
+                                     int sz) -> bool {
+            for (int z = 8 * sz; z < 8 * sz + 8; ++z)
+                for (int y = 8 * sy; y < 8 * sy + 8; ++y) {
+                    const size_t base = ((size_t)z * 16 + y) * 16 + (size_t)(8 * sx);
+                    if (((occ[base >> 6] >> (base & 63)) & 0xFF) != 0xFF)
+                        return false;
+                }
+            return true;
+        };
+        for (const v3s16 &bp : region.members) {
+            auto cit = m_lod_chains.find(bp);
+            if (cit == m_lod_chains.end() || !cit->second->fine_available)
+                continue;
+            const auto &occ = cit->second->fine_occludes;
+            bool solid[2][2][2];
+            int nsolid = 0;
+            for (int sz = 0; sz < 2; ++sz)
+                for (int sy = 0; sy < 2; ++sy)
+                    for (int sx = 0; sx < 2; ++sx) {
+                        solid[sz][sy][sx] = subcell_solid(occ, sx, sy, sz);
+                        nsolid += solid[sz][sy][sx] ? 1 : 0;
+                    }
+            if (nsolid == 0)
+                continue;
+            if (nsolid == 8) {
+                const float x0 = bp.X * 16.0f;
+                const float y0 = bp.Y * 16.0f;
+                const float z1 = -(bp.Z * 16.0f);
+                emit_box(x0, y0, z1 - 15.0f, x0 + 15.0f, y0 + 15.0f, z1);
+                continue;
+            }
+            for (int sz = 0; sz < 2; ++sz)
+                for (int sy = 0; sy < 2; ++sy)
+                    for (int sx = 0; sx < 2; ++sx) {
+                        if (!solid[sz][sy][sx])
+                            continue;
+                        const float x0 = bp.X * 16.0f + 8.0f * sx;
+                        const float y0 = bp.Y * 16.0f + 8.0f * sy;
+                        const float z1 = -(bp.Z * 16.0f + 8.0f * sz);
+                        emit_box(x0, y0, z1 - 7.0f, x0 + 7.0f, y0 + 7.0f, z1);
+                    }
         }
     } else
     for (auto &kv : groups) {
