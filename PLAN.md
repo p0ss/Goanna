@@ -201,6 +201,29 @@ an RTX 3090, unless marked otherwise.
   census with SDFGI and occluders toggled, the occluder distance sweep,
   and the prolonged session growth question.
 
+- The dedicated tester's queue, small hours of 2026-08-31, all on one
+  clean revision with per-second instrumentation: 91 per cent of flying
+  hitches are near batch region builds (10 to 29 ms single builds
+  during arrival floods); the occluder swap itself never exceeded 0.8
+  ms. The celebrated five minute cycle, quiet minutes, residency decay
+  and all, was aliasing: the bench route's wrap teleports 300 nodes
+  every 75 seconds and re-streams the same 15.4k blocks per lap, and
+  60 second census bins against 75 second laps manufacture a 300
+  second beat; per lap figures are flat. A same-client live A/B then
+  put the mesh-cut occluder construction inside those batch builds at
+  about 45 per cent of the hitch rate (310 to 171 a minute), while the
+  box representation emitted almost nothing because tier 0 blocks
+  carry no chains, a coverage gap, not a terrain fact. SDFGI owns
+  essentially none of the tail (299 against 303 a minute with it off)
+  and about 0.2 ms of steady median. Cross-cell noise for this
+  instrument bounds at about 4 per cent. Fixes staged on the findings,
+  committed unlinked pending the queue's end: rebuild debounce on a
+  gap in arrivals rather than age, worst-cost counters with a proper
+  reset owner, and chain coverage for near blocks so box occluders can
+  actually stand in for the mesh-cut. The route wrap wants a closing
+  leg; the near batch belongs on the mesh workers; both are morning
+  work.
+
 - The measurement half of that session, later the same night, on clean
   single revisions: no growth over ten minutes of instrumented flight
   (medians, heap and VRAM flat), so the long-session drain does not
