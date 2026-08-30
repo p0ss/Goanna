@@ -170,6 +170,19 @@ Sizing, by what happens to those ~57k lines:
 Verified on a local Mineclonia server on Luanti 5.17.0 with Godot 4.5.1 and
 an RTX 3090, unless marked otherwise.
 
+- The tier benchmark's "frustum culling is not running" was the counter,
+  not the culling. The HUD read the TOTAL rendering counters, which fold
+  every pass together, and the direction-invariant share is the shadow
+  cascades: measured per pass at the test_world beach, the camera pass
+  drops 478 draws on the vista to 92 straight down while the shadow
+  passes hold ~2.5M primitives per frame against ~0.25M visible.
+  render_stats now reports the per pass counters, the HUD leads with the
+  camera pass, and far tier regions no longer cast shadows (948 draw
+  calls per frame into a 200 node map, for 4 per cent of the shadow
+  primitives). Whether the far ladder's pixel-size detail reduction
+  holds is still an open question, handed to the benchmark session with
+  the new counters.
+
 - First field session on a Terrain Diffusion world (4096 grant, half a
   million far blocks) reported four faults against the new sky: biome
   borders flipped the whole dome in one frame (indigo to peach in a few
