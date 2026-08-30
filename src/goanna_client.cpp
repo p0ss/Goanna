@@ -3292,7 +3292,7 @@ void GoannaClient::set_lod_distance(int blocks) {
         return;
     m_lod_distance = blocks;
     m_lod_retier_pending = true;
-    m_lod_retier_queue.clear();
+    m_lod_retier_cursor = v3s16(-32768, -32768, -32768);
     if (m_session) { // every block may change tier
         std::lock_guard<std::mutex> lk(m_session->mapLock());
         for (auto &kv : m_block_tier)
