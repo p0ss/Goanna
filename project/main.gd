@@ -71,6 +71,29 @@ var light_sdfgi := 1.4
 var light_sdfgi_cell := 0.5
 var light_pool := 96.0
 var light_ssao := 4.0
+# Screen space indirect light. This had no control at all until it was
+# measured: it is a sixteenth of the frame on its own at 1440p, which is more
+# than any graphics profile was moving. 0 turns the pass off; above that is
+# its intensity, the same shape as light_sdfgi.
+var light_ssil := 1.4
+# How much of the frame SSAO and SSIL are allowed to cost, 0 to 3. 3 is full
+# resolution at Godot's high quality, which is what this project shipped; 0 to
+# 2 run the pass at half resolution, at rising quality. Measured at the
+# benchmark vista at 2560x1440 (docs/benchmark.md), the resolution is what
+# matters and the quality level barely does:
+#   3, full resolution, high   8.18 ms   what shipped
+#   2, full resolution         7.57 ms   -7.5%
+#   2, half resolution         6.65 ms   -18.7%
+#   0, half resolution         6.36 ms   -22.2%
+# Half resolution is also Godot's own default for SSAO; full was a choice
+# this project made and never measured.
+var screen_space_detail := 3.0
+# The directional shadow map, 0 to 2: 2048, 4096 or 8192 texels. Measured in
+# the same place: 8192 costs 8.33 ms, 4096 costs 7.85 (-5.8%) and 2048 costs
+# 7.76 (-6.8%), so nearly all of it is the first step down, and 4096 is
+# Godot's own default. 16 bit depth measured no cheaper than 32 at 4096 and
+# is not offered.
+var shadow_detail := 2.0
 var light_white := 4.0
 # Base exposure; the server's exposure_correction multiplies it in _apply_sky.
 var light_exposure := 0.46
@@ -453,8 +476,9 @@ func _ready() -> void:
 	e.ssao_detail = 1.0
 	# The same mapping as apply_lighting, which owns this from then on.
 	e.ssao_light_affect = clampf(light_ssao * 0.09, 0.0, 0.72)
-	e.ssil_enabled = OS.get_environment("GOANNA_NO_SSIL") == ""
-	e.ssil_intensity = 1.4
+	# SSIL, the screen space quality and the shadow map size are owned by
+	# _apply_screen_space, so a profile can reach them; it is called at the
+	# end of this function and again from apply_lighting.
 	e.glow_enabled = true
 	e.glow_intensity = 0.3
 	e.fog_enabled = true
@@ -467,6 +491,7 @@ func _ready() -> void:
 	e.fog_aerial_perspective = 0.12
 	env.environment = e
 	add_child(env)
+	_apply_screen_space()
 	# One world-sized fog volume supplies spatial density to the environment's
 	# froxel grid. It adds no scene geometry or per-cloud objects: valleys and
 	# the cloud body are two density bands in one shader.
@@ -1866,11 +1891,39 @@ func apply_lighting() -> void:
 	# the direct-light share with the same slider gives it teeth where the
 	# player is actually looking.
 	e.ssao_light_affect = clampf(light_ssao * 0.09, 0.0, 0.72)
+	_apply_screen_space()
 	# exposure and the sky fill follow on the next _apply_sky, which scales
 	# them by the server's correction and the time of day. The shafts are
 	# shaped there too, by the sun's elevation and the weather, so ask for
 	# that now rather than leaving the slider dead until the next sky packet.
 	_apply_sky()
+
+# SSIL, the SSAO/SSIL cost knob and the shadow map size. These are the three
+# things a graphics profile could not reach before they were measured: at the
+# benchmark vista they are about a quarter of a Medium frame between them,
+# which is more than every other quality slider put together moved.
+#
+# Quality and half resolution are set through RenderingServer rather than the
+# Environment, because they are renderer-wide and Godot exposes them nowhere
+# else; the project settings that seed them are only read at startup.
+func _apply_screen_space() -> void:
+	if env == null or env.environment == null:
+		return
+	var e := env.environment
+	e.ssil_enabled = OS.get_environment("GOANNA_NO_SSIL") == "" and light_ssil > 0.01
+	e.ssil_intensity = light_ssil
+	var d := int(clampf(screen_space_detail, 0.0, 3.0))
+	# 3 is the only one that stays at full resolution. Below it the pass runs
+	# at half and the quality level is what the number picks, because that is
+	# how the measurement came out: dropping resolution is worth about two and
+	# a half times what dropping quality at full resolution is.
+	var half := d < 3
+	var q := d if d < 3 else 3
+	RenderingServer.environment_set_ssao_quality(q, half, 0.5, 2, 50.0, 300.0)
+	RenderingServer.environment_set_ssil_quality(q, half, 0.5, 4, 50.0, 300.0)
+	var sizes := [2048, 4096, 8192]
+	RenderingServer.directional_shadow_atlas_set_size(
+			sizes[int(clampf(shadow_detail, 0.0, 2.0))], false)
 
 func _envf(name: String, dflt: float) -> float:
 	var v := OS.get_environment(name)

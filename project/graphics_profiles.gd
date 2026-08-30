@@ -24,45 +24,42 @@
 # (tools/bench_plans/profiles.json by day, profiles-night.json after dark;
 # steady state at 2560x1371, GPU bound in every row):
 #
-#                 vista by day          night in the village
-#   ultra         +4% med               under noise
-#   high          -3% med, +43% low     -10% med, -13% low
-#   medium        -24% med, -37% low    -25% med, -30% low
+#                 vista by day        night in the village
+#   ultra         the control         the control
+#   high          -21% med, 104 fps   -24% med, 123 fps
+#   medium        -47% med, 157 fps   -46% med, 172 fps
 #
-# Noise floor 1.7% of the median by day and 3.3% at night, from three
-# measurements of the control spread through each plan. Both scenes are
-# needed and neither is enough: shadow_lamps is most of what separates the
-# tiers after dark and costs nothing at noon with nothing lit, while the
-# view and detail distances need somewhere with distance in it.
+# Ultra is the control in both, because the compiled defaults are what Ultra
+# is. Noise floors 6.6 and 10.0 per cent of the median, from three
+# measurements of the control spread through each plan, on a server granting
+# 2048 far nodes so that all three tiers differ on far distance. Both scenes
+# are needed and neither is enough: shadow_lamps is most of what separates
+# the tiers after dark and costs nothing at noon with nothing lit, while the
+# view and detail distances need somewhere with distance in it. The two
+# scenes agreeing to within a few points is the main reason to believe them.
 #
-# **Ultra and High are not far apart on hardware like this, and that is the
-# honest reading.** It is not that the tiers do nothing. Counted at the same
-# vista, settling each tier from the coarsest up so the LOD hysteresis
-# cannot carry fine tiers down into a lower one:
+# Those are the numbers after the screen space settings above existed. Before
+# them the same day sweep gave High -10 and Medium -23, so exposing that
+# group roughly doubled what a tier is worth, and the tiers moved only
+# geometry. Counted at the same vista, settling each tier from the coarsest
+# up so the LOD hysteresis cannot carry fine tiers down into a lower one:
 #
 #              draw calls   primitives   resident blocks
 #   medium          2507        3.65M          783
 #   high            2619        4.24M          936
 #   ultra           3066        6.41M         1278
 #
-# Ultra draws 76 per cent more geometry than Medium for 24 per cent more
-# frame time, because a 3090 is nowhere near geometry limited at this
-# scale. Two checks that this is about the machine and not the tiers: the
-# same sweep at 1600x900 gave a *wider* spread (-9 and -32 per cent), so
-# more pixels shrink the gap and this is not a fill rate story; and turning
-# every material and lighting quality channel off at Medium bought only a
-# further 10 per cent, so the frame is not sitting in those either. What
-# the tiers buy should grow on a card that is geometry limited, which is
-# the hardware they exist for and is not the hardware they were measured
-# on. Treat the percentages as a floor, not an estimate.
+# Ultra draws 76 per cent more geometry than Medium, and on this card that
+# was worth only 24 per cent of the frame: a 3090 is nowhere near geometry
+# limited at this scale, and the same sweep at 1600x900 gave a *wider*
+# spread than at 2560x1440, so it is not a fill rate story either. Roughly
+# half of what the tiers are now worth is the screen space group, not the
+# geometry, and that half is the half a weak card feels.
 #
-# Two more things the numbers do not say. The server under test granted 512
-# far nodes, and the client takes the lesser of the grant and the setting,
-# so ultra and high shared a far distance and only medium's 256 was
-# smaller; on a more generous server the top gap would be wider. And these
-# are settled frames with the camera still, which is the kindest case for
-# settings that govern how much world is streamed: the cost of a bigger
-# view lands while it arrives, not once it has.
+# One thing the numbers still do not say: these are settled frames with the
+# camera still, which is the kindest case for settings that govern how much
+# world is streamed. The cost of a bigger view lands while it arrives, not
+# once it has.
 #
 # Forcing the resolution: the plans ask for one and Wayland refuses to let
 # a client resize its own window, so the harness notes the mismatch and
@@ -77,6 +74,25 @@
 # scene where they can act, so degrading them in a lower tier would be a
 # guess dressed as a number. They stay at the compiled defaults in every
 # profile until there is a measurement to move them.
+#
+# That was measured on 2026-08-30, and the answer was that almost none of
+# them cost anything to turn down, because most of those sliders scale an
+# effect's output while the pass that produces it runs regardless. At the
+# vista at 2560x1440, against a 9.9 per cent control drift, turning every one
+# of them off at once moved the frame 7 per cent, which is under the noise;
+# `light_ssao` at zero measured slower than at four. Only `light_sdfgi`
+# genuinely gates its own pass.
+#
+# What did cost something was never exposed at all:
+#
+#   ssao and ssil at half resolution   -18.7%   (Godot's own default)
+#   the shadow map at 4096, not 8192    -5.8%   (Godot's own default)
+#   ssil off rather than merely dark   -15.9%
+#
+# So `screen_space_detail`, `shadow_detail` and `light_ssil` are settings
+# now, and the tiers differ on them. On one geometry at the vista, the whole
+# group is worth -21.9 per cent at the High values and -27.5 at the Medium
+# ones, which is more than the geometry between the tiers ever was.
 #
 # So a lower tier buys frames by drawing less world and lighting fewer lamps,
 # not by making what it does draw look worse. If a machine still cannot hold
@@ -99,6 +115,9 @@ const PROFILES := {
 		"shadow_lamps": 16,
 		"light_pool": 96,
 		"terrain_occlusion": 1,
+		"screen_space_detail": 3,
+		"shadow_detail": 2,
+		"light_ssil": 1.4,
 	},
 	"high": {
 		"view_range": 12,
@@ -107,6 +126,9 @@ const PROFILES := {
 		"shadow_lamps": 8,
 		"light_pool": 64,
 		"terrain_occlusion": 1,
+		"screen_space_detail": 2,
+		"shadow_detail": 1,
+		"light_ssil": 1.4,
 	},
 	"medium": {
 		"view_range": 8,
@@ -115,6 +137,9 @@ const PROFILES := {
 		"shadow_lamps": 0,
 		"light_pool": 48,
 		"terrain_occlusion": 1,
+		"screen_space_detail": 1,
+		"shadow_detail": 1,
+		"light_ssil": 0,
 	},
 }
 

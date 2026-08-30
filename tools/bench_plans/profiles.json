@@ -1,6 +1,5 @@
 {
   "label": "the shipped graphics profiles, steady state, the vista by day",
-
   "comment": [
     "The variants below are the profiles in project/graphics_profiles.gd,",
     "key for key. They are not a proposal: changing a number here without",
@@ -33,69 +32,103 @@
     "GOANNA_STORE still points at a warm store, but now only one process",
     "reads it, so there is nothing for it to bias.",
     "",
-    "Read the far_distance rows against the grant the server actually gave.",
-    "The reference server here sets goanna_far_rendering_distance = 512, and",
-    "the client takes the lesser of the grant and the setting, so ultra (the",
-    "grant) and high (1024) both come out at 512 and differ on nothing but",
-    "view_range and lod_distance. Only medium's 256 is really a smaller far",
-    "field. On a server granting more than 1024 the ultra-to-high gap would",
-    "be wider than anything measured here."
+    "Read the far_distance rows against the grant the server actually gave:",
+    "the client takes the lesser of the grant and the setting. The reference",
+    "server was raised to goanna_far_rendering_distance = 2048 for these, so",
+    "all three tiers differ on it. At the 512 it shipped with, ultra and high",
+    "both came out at 512 and the top of the ladder was flat for that reason",
+    "alone.",
+    "",
+    "screen_space_detail, shadow_detail and light_ssil are in every variant",
+    "because they are in every profile. They were added on 2026-08-30 after",
+    "the older quality sliders were measured and found to scale an effect's",
+    "output while its pass ran regardless; these are the ones that actually",
+    "cost, and between them they are worth more than the geometry is."
   ],
-
   "host": "127.0.0.1",
   "port": 30000,
   "name": "bench",
-  "resolution": [1920, 1080],
-
-  "tests": ["steady"],
+  "resolution": [
+    1920,
+    1080
+  ],
+  "tests": [
+    "steady"
+  ],
   "seconds": 45,
   "settle_quiet": 20,
   "settle_timeout": 900,
   "warmup_seconds": 60,
-
   "time_of_day": 0.5,
   "weather": "clear",
-  "anchor": {"at": [-72, 54, 378], "offset": [0, 0, 0]},
-  "aim": [-100, 46, 342],
-
+  "anchor": {
+    "at": [
+      -72,
+      54,
+      378
+    ],
+    "offset": [
+      0,
+      0,
+      0
+    ]
+  },
+  "aim": [
+    -100,
+    46,
+    342
+  ],
   "base": {
     "show_body": 0,
     "texture_pack": "/var/home/poss/Documents/Code/Godot/goanna/baked/pack-mineclonia-v2/textures"
   },
-
   "variants": [
-    {"name": "ultra", "set": {
-      "view_range": 16,
-      "lod_distance": 32,
-      "far_distance": -1,
-      "shadow_lamps": 16,
-      "light_pool": 96,
-      "terrain_occlusion": 1
-    }},
-
-    {"name": "high", "set": {
-      "view_range": 12,
-      "lod_distance": 20,
-      "far_distance": 1024,
-      "shadow_lamps": 8,
-      "light_pool": 64,
-      "terrain_occlusion": 1
-    }},
-
-    {"name": "medium", "set": {
-      "view_range": 8,
-      "lod_distance": 12,
-      "far_distance": 256,
-      "shadow_lamps": 0,
-      "light_pool": 48,
-      "terrain_occlusion": 1
-    }}
+    {
+      "name": "ultra",
+      "set": {
+        "view_range": 16,
+        "lod_distance": 32,
+        "far_distance": -1,
+        "shadow_lamps": 16,
+        "light_pool": 96,
+        "terrain_occlusion": 1,
+        "screen_space_detail": 3,
+        "shadow_detail": 2,
+        "light_ssil": 1.4
+      }
+    },
+    {
+      "name": "high",
+      "set": {
+        "view_range": 12,
+        "lod_distance": 20,
+        "far_distance": 1024,
+        "shadow_lamps": 8,
+        "light_pool": 64,
+        "terrain_occlusion": 1,
+        "screen_space_detail": 2,
+        "shadow_detail": 1,
+        "light_ssil": 1.4
+      }
+    },
+    {
+      "name": "medium",
+      "set": {
+        "view_range": 8,
+        "lod_distance": 12,
+        "far_distance": 256,
+        "shadow_lamps": 0,
+        "light_pool": 48,
+        "terrain_occlusion": 1,
+        "screen_space_detail": 1,
+        "shadow_detail": 1,
+        "light_ssil": 0
+      }
+    }
   ],
-
   "env": {
     "GOANNA_STORE": "/tmp/claude-1000/-var-home-poss-Documents-Code-Godot-goanna/8b2b5be9-6a7c-4d49-b1b7-baec4f1472a9/scratchpad/bench-store"
   },
-
   "control_every": 2,
   "resolve_samples": 24,
   "resolve_gap_s": 3.0

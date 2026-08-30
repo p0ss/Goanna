@@ -49,13 +49,22 @@ A plan names the scene and the variants. `tools/bench_plans/graphics.json`
 moves one graphics setting at a time and measures the steady state.
 `tools/bench_plans/profiles.json` and `tools/bench_plans/profiles-night.json`
 measure the shipped profiles themselves, and between them they are one
-answer in two halves: the first runs all four tests at the vista, where the
-tiers differ on how much world is drawn, and the second is a steady state
-live sweep in the village after dark, where they differ on how many lamps
-cast shadows. Neither is complete on its own, because a scene that cannot
-exercise a setting reports it as free. The variants in both are
-`project/graphics_profiles.gd` key for key; changing a tier means changing
-it in all three files, or the report describes a client nobody runs.
+answer in two halves. Both are steady state live sweeps: the first at the
+vista by day, where the tiers differ on how much world is drawn, the second
+in the village after dark, where they differ on how many lamps cast shadows.
+Neither is complete on its own, because a scene that cannot exercise a
+setting reports it as free.
+
+**The variants in both are `project/graphics_profiles.gd` key for key, and
+nothing enforces it.** A tier value therefore lives in three files, and
+changing it in one is a silent failure: on 2026-08-30 three settings were
+added to the profiles and not to the plans, and the sweep ran for
+twenty-five minutes and reported the old tiers under the new names, with a
+healthy noise floor and nothing anywhere to say the numbers were of
+something else. If a report disagrees with a measurement you took by hand,
+diff the plan's `set` blocks against `PROFILES` before believing either.
+Generating the variants from `graphics_profiles.gd` would end this class of
+mistake and is worth doing.
 
 The report is printed and written to `report.md` in the output directory,
 with `frames.csv`, `samples.jsonl` and `summary.json` beside each run.
