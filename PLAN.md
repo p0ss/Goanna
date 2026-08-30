@@ -170,6 +170,25 @@ Sizing, by what happens to those ~57k lines:
 Verified on a local Mineclonia server on Luanti 5.17.0 with Godot 4.5.1 and
 an RTX 3090, unless marked otherwise.
 
+- The far region ladder keeps doubling with the tier (4, 8, 16, 32, 32
+  blocks against the old 2, 4, 8, 8, 8): measured at the test_world
+  beach facing the open west after a 75 s settle, regions fell 3116 to
+  604, far surfaces 11.2k to 3.1k, and camera draw calls 4703 to 1895
+  with primitives unchanged, the same picture in fewer submissions.
+  Before and after screenshots match, including the pre-existing
+  floating stale shelves.
+
+- The horizon bake is in (2026-08-31, docs/sky-orchestration.md, "The
+  baked horizon"): the terrain the client knows about, marched into a
+  cylindrical albedo and distance panorama off the main thread and
+  relit by the sky shader every frame from the beam and air
+  authorities. Verified at the beach: baked silhouettes hide exactly
+  behind the drawn terrain they duplicate, and toggling it shows known
+  but unbuilt directions filling in. Coverage is currently bounded by
+  the chain radius, so the next step is retaining chains to the full
+  grant while meshing only a shorter radius, at which point the
+  outermost band costs zero draw calls.
+
 - The tier benchmark's "frustum culling is not running" had two wrong
   explanations before the right one. Culling works: per pass counters at
   the test_world beach drop from 478 camera draws on the vista to 92
