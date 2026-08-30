@@ -94,6 +94,15 @@ var screen_space_detail := 3.0
 # Godot's own default. 16 bit depth measured no cheaper than 32 at 4096 and
 # is not offered.
 var shadow_detail := 2.0
+# Cloud march quality, 0 to 2. The sky shader raymarches the cumulus deck
+# per pixel, and at the benchmark vista that march is about a quarter of the
+# whole frame, the largest single item in it and the one nothing could reach
+# until now. Fewer steps is cheap but speckles every cloud edge, so this
+# moves the step count and the sky denoise filter together and never one
+# without the other. Measured at 2560x1440 on the Medium profile:
+#   2, 24 steps, no filter   5.87 to 6.21 ms   speckle 0.575, what shipped
+#   0,  8 steps, filtered    to be confirmed   speckle 0.274
+var cloud_detail := 2.0
 var light_white := 4.0
 # Base exposure; the server's exposure_correction multiplies it in _apply_sky.
 var light_exposure := 0.46
@@ -109,6 +118,9 @@ var light_shafts := 1.0
 # shaders/light_shafts.gdshader.
 var shaft_quad: MeshInstance3D
 var shaft_mat: ShaderMaterial
+# The sky denoise pass; see shaders/sky_denoise.gdshader.
+var denoise_quad: MeshInstance3D
+var denoise_mat: ShaderMaterial
 # Cost and reach of the shared atmospheric froxel volume. Zero leaves only
 # the inexpensive sky and horizon fade.
 var atmosphere_quality := 1.0
@@ -320,6 +332,22 @@ func _ready() -> void:
 	shaft_quad.custom_aabb = AABB(Vector3(-5e8, -5e8, -5e8), Vector3(1e9, 1e9, 1e9))
 	shaft_quad.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	cam.add_child(shaft_quad)
+	# The sky denoiser (shaders/sky_denoise.gdshader), the same full screen
+	# quad idiom. It draws at a lower render_priority than the shafts, so the
+	# sky is filtered before they are laid over it. It exists so the cloud
+	# march can be cheap: cloud_detail moves the march step count and this
+	# radius together, in _apply_screen_space.
+	denoise_quad = MeshInstance3D.new()
+	var denoise_mesh := QuadMesh.new()
+	denoise_mesh.size = Vector2(2, 2)
+	denoise_quad.mesh = denoise_mesh
+	denoise_mat = ShaderMaterial.new()
+	denoise_mat.shader = load("res://shaders/sky_denoise.gdshader")
+	denoise_mat.render_priority = 90
+	denoise_quad.material_override = denoise_mat
+	denoise_quad.custom_aabb = AABB(Vector3(-5e8, -5e8, -5e8), Vector3(1e9, 1e9, 1e9))
+	denoise_quad.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	cam.add_child(denoise_quad)
 	_report_fov()
 	# And again whenever the window changes shape: the horizontal angle grows
 	# with the aspect, and a window dragged wider after startup was otherwise
@@ -1924,6 +1952,23 @@ func _apply_screen_space() -> void:
 	var sizes := [2048, 4096, 8192]
 	RenderingServer.directional_shadow_atlas_set_size(
 			sizes[int(clampf(shadow_detail, 0.0, 2.0))], false)
+	# The cloud march and its filter, which only make sense together: a
+	# cheaper march is only affordable because the filter cleans up after it.
+	var cd := int(clampf(cloud_detail, 0.0, 2.0))
+	var steps: float = [8.0, 16.0, 24.0][cd]
+	var radius: float = [1.5, 1.0, 0.0][cd]
+	if sky_mat != null:
+		sky_mat.set_shader_parameter("cloud_steps", steps)
+	if denoise_mat != null:
+		denoise_mat.set_shader_parameter("denoise_radius", radius)
+	# Hidden rather than merely inert at full march quality. A full screen
+	# quad that reads the screen still costs the back buffer copy: measured
+	# at 0.12 ms of a 6.64 ms frame at 2560x1440, which is most of what the
+	# filter costs when it is doing real work. Leaving it drawing a no-op
+	# would be the same kind of unreachable always-on cost this pass exists
+	# to remove.
+	if denoise_quad != null:
+		denoise_quad.visible = radius > 0.01
 
 func _envf(name: String, dflt: float) -> float:
 	var v := OS.get_environment(name)
