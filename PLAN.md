@@ -170,18 +170,25 @@ Sizing, by what happens to those ~57k lines:
 Verified on a local Mineclonia server on Luanti 5.17.0 with Godot 4.5.1 and
 an RTX 3090, unless marked otherwise.
 
-- The tier benchmark's "frustum culling is not running" was the counter,
-  not the culling. The HUD read the TOTAL rendering counters, which fold
-  every pass together, and the direction-invariant share is the shadow
-  cascades: measured per pass at the test_world beach, the camera pass
-  drops 478 draws on the vista to 92 straight down while the shadow
-  passes hold ~2.5M primitives per frame against ~0.25M visible.
-  render_stats now reports the per pass counters, the HUD leads with the
-  camera pass, and far tier regions no longer cast shadows (948 draw
-  calls per frame into a 200 node map, for 4 per cent of the shadow
-  primitives). Whether the far ladder's pixel-size detail reduction
-  holds is still an open question, handed to the benchmark session with
-  the new counters.
+- The tier benchmark's "frustum culling is not running" had two wrong
+  explanations before the right one. Culling works: per pass counters at
+  the test_world beach drop from 478 camera draws on the vista to 92
+  straight down. The first wrong story was the counter (the HUD's TOTAL
+  numbers fold every pass together, which is real but was not the cause);
+  the second was this session's "the shadow passes are direction
+  invariant", contradicted by its own measurements and by the cascades
+  being fitted to the camera frustum. The actual cause, found by the
+  benchmark session: the benchmark set the camera with cam.look_at()
+  from a run snippet, and main._process overwrites the camera basis from
+  the player pose every frame, so the camera never turned and every
+  direction photographed yaw 0. Only the control channel pose commands
+  stick. What survives: render_stats reports per pass counters, the HUD
+  leads with the camera pass, far tier regions no longer cast shadows
+  (they were 948 shadow draw calls per frame into a 200 node map for 4
+  per cent of its primitives), and the re-run attribution says the
+  frame is dominated by per draw submission (~1600 camera draws at ~760
+  primitives each), not by any post effect. The far ladder's pixel-size
+  reduction remains an open question.
 
 - First field session on a Terrain Diffusion world (4096 grant, half a
   million far blocks) reported four faults against the new sky: biome

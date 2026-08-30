@@ -1739,9 +1739,9 @@ func _draw_performance_overlay(vs: Vector2) -> void:
 		lines.append("FPS %d   %.1f ms" % [fps, frame_ms])
 		# Camera pass first, then the frame total with every pass folded in
 		# (depth prepass, shadow cascades, radiance cubemap). The old line
-		# showed only the total, and a benchmark read its direction
-		# invariance as frustum culling being broken when the invariant
-		# share was the shadow passes.
+		# showed only the total, which cannot separate what the camera drew
+		# from what the cascades redrew, and a benchmark misread it while
+		# chasing a culling question.
 		lines.append("Draws %d (%d shadow, %d total)   objects %d   prims %.2fM vis / %.2fM shadow   GPU %.0f MB" % [
 				int(render_stats_cache.get("vis_draw_calls", 0)),
 				int(render_stats_cache.get("shadow_draw_calls", 0)),

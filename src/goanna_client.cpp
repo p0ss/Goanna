@@ -2517,11 +2517,14 @@ Dictionary GoannaClient::render_stats() {
     RenderingServer *rs = RenderingServer::get_singleton();
     if (rs) {
         // The TOTAL counters lump every pass in the frame together: depth
-        // prepass, colour, all shadow cascades, the radiance cubemap. A
-        // benchmark reading them concluded frustum culling was off, because
-        // they barely move with view direction; what is direction-invariant
-        // is the shadow work. The per pass viewport counters below are the
-        // ones to read for what the camera actually drew.
+        // prepass, colour, all shadow cascades, the radiance cubemap. The
+        // per pass viewport counters below are the ones to read for what
+        // the camera actually drew, and the shadow pair beside them for
+        // what the cascades cost; both vary with view direction, since the
+        // cascades are fitted to the camera frustum. (A benchmark once read
+        // identical TOTALs across three directions as culling being off;
+        // the real cause was a camera set from a run snippet, which
+        // main._process silently overwrites every frame.)
         d["draw_calls"] = (int)rs->get_rendering_info(RenderingServer::RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME);
         d["primitives"] = (int64_t)rs->get_rendering_info(RenderingServer::RENDERING_INFO_TOTAL_PRIMITIVES_IN_FRAME);
         d["objects"] = (int)rs->get_rendering_info(RenderingServer::RENDERING_INFO_TOTAL_OBJECTS_IN_FRAME);
