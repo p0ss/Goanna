@@ -145,8 +145,23 @@ class Session:
     def start(self, channel, host=None, port=None, name=None, password=None, env=None,
               wait_ready=True):
         if channel.up():
-            raise ChannelError("a client is already answering on port %d; stop it first "
-                               "or use action=restart" % channel.port)
+            if self.proc is not None and self.proc.poll() is None:
+                raise ChannelError("this server's own client is already answering on port %d; "
+                                   "stop it first or use action=restart" % channel.port)
+            # A client this server did not start answers here: another
+            # session's. Every wrapper used to default to port 30800 and
+            # stop/restart sent quit at whatever answered, so sessions
+            # killed each other's clients mid-run and one benchmark
+            # silently measured the wrong client (both found 2026-08-31,
+            # the night it voided a run). Move to a free port instead and
+            # leave the other session's client alone.
+            for candidate in range(channel.port + 1, channel.port + 20):
+                if not Channel(channel.host, candidate).up():
+                    channel.port = candidate
+                    break
+            else:
+                raise ChannelError("every control port from %d to %d is taken; set "
+                                   "GOANNA_CONTROL_PORT" % (channel.port, channel.port + 19))
         for key, value in (("host", host), ("port", port), ("name", name),
                            ("password", password)):
             if value is not None:
@@ -206,7 +221,16 @@ class Session:
 
     def stop(self, channel):
         stopped = False
+        own = self.proc is not None and self.proc.poll() is None
         if channel.up():
+            if not own:
+                # Not ours: another session's client (or one this server has
+                # lost track of). Quitting it killed other sessions' test
+                # runs; whoever owns it stops it, and a deliberate takeover
+                # is still possible with goanna_command cmd=quit.
+                return {"stopped": False,
+                        "note": "a client this server did not start is answering on "
+                                "port %d; leaving it alone" % channel.port}
             channel.send("quit", timeout=30.0)
             stopped = True
             deadline = time.time() + 15.0
