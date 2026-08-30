@@ -2664,7 +2664,17 @@ Dictionary GoannaClient::render_stats() {
     }
     d["lod_tiers"] = tiers;
     RenderingServer *rs = RenderingServer::get_singleton();
-    if (rs) {
+    // The engine queries below (get_rendering_info, the viewport counters,
+    // the measured render times) can force a main-to-render-thread sync,
+    // and the HUD calls render_stats every frame; the user's own HUD has
+    // shown this stats block at 3.5 to 6.4 ms on a big world. They refresh
+    // at most five times a second and the dictionary carries the cached
+    // values between refreshes, which is plenty for a HUD and for a 1 Hz
+    // benchmark sampler, and keeps the measurement from taxing the frame
+    // it measures.
+    const bool refresh_info = ms_since(m_render_info_at) > 200.0;
+    if (rs && refresh_info) {
+        m_render_info_at = clock_t_::now();
         // The TOTAL counters lump every pass in the frame together: depth
         // prepass, colour, all shadow cascades, the radiance cubemap. The
         // per pass viewport counters below are the ones to read for what
@@ -2674,34 +2684,35 @@ Dictionary GoannaClient::render_stats() {
         // identical TOTALs across three directions as culling being off;
         // the real cause was a camera set from a run snippet, which
         // main._process silently overwrites every frame.)
-        d["draw_calls"] = (int)rs->get_rendering_info(RenderingServer::RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME);
-        d["primitives"] = (int64_t)rs->get_rendering_info(RenderingServer::RENDERING_INFO_TOTAL_PRIMITIVES_IN_FRAME);
-        d["objects"] = (int)rs->get_rendering_info(RenderingServer::RENDERING_INFO_TOTAL_OBJECTS_IN_FRAME);
-        d["video_mem_mb"] = (double)rs->get_rendering_info(RenderingServer::RENDERING_INFO_VIDEO_MEM_USED) / (1024.0 * 1024.0);
+        m_render_info["draw_calls"] = (int)rs->get_rendering_info(RenderingServer::RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME);
+        m_render_info["primitives"] = (int64_t)rs->get_rendering_info(RenderingServer::RENDERING_INFO_TOTAL_PRIMITIVES_IN_FRAME);
+        m_render_info["objects"] = (int)rs->get_rendering_info(RenderingServer::RENDERING_INFO_TOTAL_OBJECTS_IN_FRAME);
+        m_render_info["video_mem_mb"] = (double)rs->get_rendering_info(RenderingServer::RENDERING_INFO_VIDEO_MEM_USED) / (1024.0 * 1024.0);
         Viewport *viewport = get_viewport();
         if (viewport) {
             const RID rid = viewport->get_viewport_rid();
-            d["vis_draw_calls"] = (int)rs->viewport_get_render_info(rid,
+            m_render_info["vis_draw_calls"] = (int)rs->viewport_get_render_info(rid,
                     RenderingServer::VIEWPORT_RENDER_INFO_TYPE_VISIBLE,
                     RenderingServer::VIEWPORT_RENDER_INFO_DRAW_CALLS_IN_FRAME);
-            d["vis_primitives"] = (int64_t)rs->viewport_get_render_info(rid,
+            m_render_info["vis_primitives"] = (int64_t)rs->viewport_get_render_info(rid,
                     RenderingServer::VIEWPORT_RENDER_INFO_TYPE_VISIBLE,
                     RenderingServer::VIEWPORT_RENDER_INFO_PRIMITIVES_IN_FRAME);
-            d["vis_objects"] = (int)rs->viewport_get_render_info(rid,
+            m_render_info["vis_objects"] = (int)rs->viewport_get_render_info(rid,
                     RenderingServer::VIEWPORT_RENDER_INFO_TYPE_VISIBLE,
                     RenderingServer::VIEWPORT_RENDER_INFO_OBJECTS_IN_FRAME);
-            d["shadow_draw_calls"] = (int)rs->viewport_get_render_info(rid,
+            m_render_info["shadow_draw_calls"] = (int)rs->viewport_get_render_info(rid,
                     RenderingServer::VIEWPORT_RENDER_INFO_TYPE_SHADOW,
                     RenderingServer::VIEWPORT_RENDER_INFO_DRAW_CALLS_IN_FRAME);
-            d["shadow_primitives"] = (int64_t)rs->viewport_get_render_info(rid,
+            m_render_info["shadow_primitives"] = (int64_t)rs->viewport_get_render_info(rid,
                     RenderingServer::VIEWPORT_RENDER_INFO_TYPE_SHADOW,
                     RenderingServer::VIEWPORT_RENDER_INFO_PRIMITIVES_IN_FRAME);
-            d["occlusion_enabled"] = viewport->is_using_occlusion_culling();
-            d["render_cpu_setup_ms"] = rs->get_frame_setup_time_cpu();
-            d["render_cpu_draw_ms"] = rs->viewport_get_measured_render_time_cpu(rid);
-            d["render_gpu_ms"] = rs->viewport_get_measured_render_time_gpu(rid);
+            m_render_info["occlusion_enabled"] = viewport->is_using_occlusion_culling();
+            m_render_info["render_cpu_setup_ms"] = rs->get_frame_setup_time_cpu();
+            m_render_info["render_cpu_draw_ms"] = rs->viewport_get_measured_render_time_cpu(rid);
+            m_render_info["render_gpu_ms"] = rs->viewport_get_measured_render_time_gpu(rid);
         }
     }
+    d.merge(m_render_info, true);
     ema(m_ms_stats, ms_since(t_stats));
     return d;
 }

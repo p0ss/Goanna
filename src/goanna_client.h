@@ -635,6 +635,11 @@ private:
     int m_occluder_distance = 0;
     double m_ms_occluder_swap = 0.0;
     uint64_t m_occluder_swaps = 0;
+    // The engine-side counters render_stats refreshes at most five times a
+    // second, because the queries can sync the render thread and the HUD
+    // asks every frame.
+    godot::Dictionary m_render_info;
+    std::chrono::steady_clock::time_point m_render_info_at{};
     // The ridge probe (docs/sky-orchestration.md): the terrain horizon
     // toward the sun's azimuth as the eye last saw it, published through
     // sky_state() so main.gd can re-base its dawn ramps on the sun's
