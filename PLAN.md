@@ -201,6 +201,24 @@ an RTX 3090, unless marked otherwise.
   census with SDFGI and occluders toggled, the occluder distance sweep,
   and the prolonged session growth question.
 
+- The validation trio that closed the night (V1/V2/V3, one route, one
+  instrument, 1.7 per cent noise floor): the arrival-gap rebuild
+  debounce is a confirmed win (mesh-cut occluders went 299-304 to 256
+  hitches a minute, 1 per cent low 22.6 to 18.0 ms, rebuild commits
+  halved). Box occluders with real coverage (the emitter had iterated
+  the member list, which structurally excludes the solid blocks boxes
+  are made of; fixed by walking the region cube and enqueueing chains
+  for buried live blocks) read 199 a minute and 15.2 ms against the
+  mesh cut's 256 and 18.0 while genuinely occluding in flight, with a
+  clean over-occlusion check, so boxes are now the default
+  (GOANNA_OCCLUDER_BOXES=0 restores the mesh cut). The residual cost
+  tracks the engine's per-commit occlusion consumption, not triangle
+  count, naming distance-gated box commits as the next lever; the
+  bigger remaining item is moving the near batch build onto the mesh
+  workers, which owns the ~150 a minute floor and every extreme frame.
+  The bench route wrap (a teleport, not a lap) still wants a closing
+  leg before any future census.
+
 - The dedicated tester's queue, small hours of 2026-08-31, all on one
   clean revision with per-second instrumentation: 91 per cent of flying
   hitches are near batch region builds (10 to 29 ms single builds
