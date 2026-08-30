@@ -208,6 +208,13 @@ struct LodTileCache {
     std::map<u32, Entry> entries; // key content * 6 + side
 };
 
+// The flat average colour (0xAARRGGBB) of a node's top tile, tint and
+// palette applied: what the horizon bake paints a distant column with.
+// Takes the tile cache's own lock, like every tileFor caller.
+u32 lodFlatColour(LodTileCache &cache, const NodeDefManager *ndef,
+        GoannaTextureSource *tsrc, const MaterialTable *materials,
+        content_t c, uint8_t param2);
+
 // How many blocks beyond its own bounds meshLodRegion reads, given the cell
 // size and occlusion radius it was handed. Capture and mesher must agree
 // exactly or the faces on a region's skin are culled against nothing, so the

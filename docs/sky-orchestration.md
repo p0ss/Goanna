@@ -108,6 +108,29 @@ Environment left at the default `fog_sky_affect` of 1.0 repaints the whole
 dome with fog colour, and the 3D cloud noise texture builds on a thread,
 so early frames have no clouds.
 
+## The baked horizon
+
+`src/goanna_horizon.cpp` bakes a cylindrical panorama of every terrain
+column the client knows about: the snapshot (top surface and resolved
+tile colour per block column, from the chains' coarsest level) is
+extracted on the main thread, a worker marches it into albedo and
+distance images, and `main.gd` hands them to the sky shader. The dome
+composites it after the discs (a far mountain hides a rising sun) and
+before the clouds, and relights it every frame from the same beam and
+air authorities as everything else, so the panorama rides through dawn,
+dusk and biome fades without being re-rendered; its own aerial
+perspective dissolves toward the same directional air as the haze band.
+Rebaked when the camera moves about a hundred nodes or on a slow clock.
+`GOANNA_HORIZON=0` disables it; `GOANNA_HORIZON_R0` forces the inner
+radius, which is how it is A/B'd against terrain that is actually drawn.
+
+Today it fills directions the far field knows about but has not built or
+has holes in. Its coverage is bounded by the chain radius, which equals
+the far draw distance, so it cannot yet show terrain beyond what would
+be drawn. The payoff step is splitting that knob: retain chains (and so
+the bake) to the full grant while building region meshes only to a
+shorter mesh radius, so the outermost band becomes panorama alone.
+
 ## Not done yet
 
 - The moon gets no ridge treatment; moonrise still uses the astronomical

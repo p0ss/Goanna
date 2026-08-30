@@ -5,6 +5,7 @@
 
 #include <godot_cpp/classes/array_mesh.hpp>
 #include <godot_cpp/classes/array_occluder3d.hpp>
+#include <godot_cpp/classes/image.hpp>
 #include <godot_cpp/classes/mesh.hpp>
 #include <godot_cpp/classes/occluder_instance3d.hpp>
 #include <godot_cpp/classes/viewport.hpp>
@@ -648,6 +649,8 @@ bool GoannaClient::solid_ice() const { return m_solid_ice; }
 GoannaClient::~GoannaClient() {
     // Before the session and the tile cache go.
     m_mesh_pool.stop();
+    if (m_horizon_thread.joinable())
+        m_horizon_thread.join();
 }
 
 String GoannaClient::hello() const {
@@ -1601,6 +1604,102 @@ Dictionary GoannaClient::sky_state() const {
     ridge["height"] = m_ridge_height;
     ridge["distance"] = m_ridge_dist;
     d["ridge"] = ridge;
+    return d;
+}
+
+void GoannaClient::horizon_bake_request(const Vector3 &origin, float r0, float r1) {
+    if (!m_session)
+        return;
+    {
+        std::lock_guard<std::mutex> lk(m_horizon_mutex);
+        if (m_horizon_busy)
+            return;
+        m_horizon_busy = true;
+    }
+    if (m_horizon_thread.joinable())
+        m_horizon_thread.join();
+    // The snapshot: every known column's top surface and its resolved
+    // colour, from the chains' coarsest level, which every chain has
+    // whatever it was built from. Colours resolve here on the main thread
+    // so the worker owns nothing but its own copy. Cost is one pass over
+    // the chains; on the half million chain worlds this wants a cursor,
+    // which can come when the hitch is measured rather than presumed.
+    HorizonSnapshot snap;
+    snap.origin_x = origin.x;
+    snap.origin_y = origin.y;
+    snap.origin_z = -origin.z;
+    snap.r0 = std::max(64.0f, r0);
+    snap.r1 = std::clamp(r1, snap.r0 + 256.0f, 8192.0f);
+    const NodeDefManager *ndef = m_session->nodeDefs();
+    GoannaTextureSource *tsrc = m_session->tsrc();
+    const MaterialTable *materials = &m_session->materialTable();
+    std::unordered_map<uint32_t, uint32_t> colour_of; // content | p2 << 16
+    snap.columns.reserve(m_lod_chains.size() / 4 + 16);
+    for (const auto &kv : m_lod_chains) {
+        const v3s16 bp = kv.first;
+        const LodLevel *lv = kv.second->forCell(MAP_BLOCKSIZE);
+        if (!lv || lv->cells.empty())
+            continue;
+        const LodLevel::Cell &c = lv->cells[0];
+        if (!(c.flags & LodLevel::kFilled))
+            continue;
+        content_t content = c.face[0];
+        uint8_t p2 = c.param2[0];
+        if ((content == CONTENT_AIR || content == CONTENT_IGNORE) &&
+                c.liquid != CONTENT_AIR) {
+            content = c.liquid;
+            p2 = c.liquid_param2;
+        }
+        if (content == CONTENT_AIR || content == CONTENT_IGNORE)
+            continue;
+        const int top_in = (c.top == 0 || c.top >= MAP_BLOCKSIZE) ? MAP_BLOCKSIZE : c.top;
+        const int16_t top_y = (int16_t)(bp.Y * MAP_BLOCKSIZE + top_in - 1);
+        const uint32_t key = HorizonSnapshot::key(bp.X, bp.Z);
+        auto &col = snap.columns[key];
+        if (col.top_y != -32768 && col.top_y >= top_y)
+            continue;
+        const uint32_t ck = (uint32_t)content | ((uint32_t)p2 << 16);
+        auto cit = colour_of.find(ck);
+        if (cit == colour_of.end())
+            cit = colour_of.emplace(ck,
+                    lodFlatColour(m_lod_tiles, ndef, tsrc, materials, content, p2)).first;
+        col.top_y = top_y;
+        col.colour = cit->second;
+    }
+    m_horizon_thread = std::thread([this, snap = std::move(snap)]() mutable {
+        HorizonResult res = buildHorizonPanorama(snap);
+        std::lock_guard<std::mutex> lk(m_horizon_mutex);
+        m_horizon_result = std::move(res);
+        m_horizon_fresh = true;
+        m_horizon_busy = false;
+    });
+}
+
+Dictionary GoannaClient::horizon_bake_poll() {
+    Dictionary d;
+    HorizonResult res;
+    {
+        std::lock_guard<std::mutex> lk(m_horizon_mutex);
+        if (!m_horizon_fresh)
+            return d;
+        m_horizon_fresh = false;
+        res = std::move(m_horizon_result);
+    }
+    PackedByteArray alb;
+    alb.resize((int64_t)res.albedo.size());
+    memcpy(alb.ptrw(), res.albedo.data(), res.albedo.size());
+    PackedByteArray dist;
+    dist.resize((int64_t)res.distance.size() * 4);
+    memcpy(dist.ptrw(), res.distance.data(), res.distance.size() * 4);
+    d["albedo"] = Image::create_from_data(res.width, res.height, false,
+            Image::FORMAT_RGBA8, alb);
+    d["dist"] = Image::create_from_data(res.width, res.height, false,
+            Image::FORMAT_RF, dist);
+    d["origin"] = Vector3(res.origin_x, res.origin_y, -res.origin_z);
+    d["r0"] = res.r0;
+    d["r1"] = res.r1;
+    d["y_min"] = res.y_min;
+    d["y_max"] = res.y_max;
     return d;
 }
 
@@ -6036,6 +6135,9 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("ground_height", "center"), &GoannaClient::ground_height);
     ClassDB::bind_method(D_METHOD("node_sound", "node_name", "kind"), &GoannaClient::node_sound);
     ClassDB::bind_method(D_METHOD("sky_state"), &GoannaClient::sky_state);
+    ClassDB::bind_method(D_METHOD("horizon_bake_request", "origin", "r0", "r1"),
+            &GoannaClient::horizon_bake_request);
+    ClassDB::bind_method(D_METHOD("horizon_bake_poll"), &GoannaClient::horizon_bake_poll);
     ClassDB::bind_method(D_METHOD("update_lights", "around", "max_lights"), &GoannaClient::update_lights);
     ClassDB::bind_method(D_METHOD("set_shadow_lamps", "n"), &GoannaClient::set_shadow_lamps);
     ClassDB::bind_method(D_METHOD("shadow_lamps"), &GoannaClient::shadow_lamps);

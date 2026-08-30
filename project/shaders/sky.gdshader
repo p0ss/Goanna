@@ -33,6 +33,23 @@ uniform vec4 cloud_color : source_color = vec4(1.0, 1.0, 1.0, 0.9);
 // luminances.
 uniform vec3 cloud_beam = vec3(1.0, 0.9, 0.7);
 uniform vec3 air_beam = vec3(0.0);
+// The baked horizon (src/goanna_horizon.cpp, docs/sky-orchestration.md):
+// a cylindrical panorama of the terrain the client knows about beyond the
+// drawn far field. Albedo and distance only; it is relit here every frame
+// from the same beam and air the live terrain answers to, so it rides
+// through dawn, dusk and biome fades without being re-rendered. U wraps
+// the azimuth with theta 0 facing -Z, V spans horizon_y_min..max in the
+// same sin-elevation units as sun_dir.y.
+uniform float horizon_on = 0.0;
+uniform sampler2D horizon_tex : source_color, filter_linear, repeat_enable;
+uniform sampler2D horizon_dist : hint_default_black, filter_linear, repeat_enable;
+uniform float horizon_y_min = -0.08;
+uniform float horizon_y_max = 0.35;
+uniform float horizon_fade0 = 512.0;
+uniform float horizon_r1 = 4096.0;
+// What the baked land is lit by, worked out per frame in main.gd from the
+// same authorities as the fill.
+uniform vec3 horizon_light = vec3(0.5);
 // The ground's beam, gated by the ridge probe, shared with the water's
 // fallback reflection and the screen space shafts. Here it is the light
 // the land throws back up at the deck: see the underside term in the
@@ -198,11 +215,15 @@ void sky() {
 	// warm term is the high air's beam, the same one the clouds are lit by.
 	// No lower bound on up: the warm gradient runs down the fog wall with
 	// the same exponential falloff, so the wall and the band are one air.
+	// `air` survives the block: it is also what the baked horizon's own
+	// aerial perspective dissolves toward, so the panorama and the band are
+	// one air too.
+	vec3 air = haze_color.rgb;
 	if (!AT_CUBEMAP_PASS) {
 		float horizon = exp(-abs(up) * mix(9.0, 5.0, haze_twilight));
 		float sun_haze = pow(max(dot(normalize(vec3(dir.x, 0.08, dir.z)),
 				normalize(vec3(sun_dir.x, 0.08, sun_dir.z))), 0.0), 5.0);
-		vec3 air = mix(haze_color.rgb, air_beam * 0.82,
+		air = mix(haze_color.rgb, air_beam * 0.82,
 				haze_twilight * mix(0.20, 0.82, sun_haze));
 		col = mix(col, air, horizon * (horizon_air_day + 0.48 * haze_twilight));
 	}
@@ -270,6 +291,27 @@ void sky() {
 		// 0.8, down from 1.2: with bloom and the dawn scatter on top, the
 		// old value blew a third of the sky to white around a low sun.
 		col += sun_tint.rgb * pow(max(dot(dir, sun_dir), 0.0), 350.0) * 0.8;
+	}
+
+	// The baked horizon: drawn after the discs, so a far mountain hides a
+	// rising sun and the stars behind it, and before the clouds, which
+	// stand nearer along a grazing ray than the land they overhang. Skipped
+	// in the cubemap pass like the discs: it is the picture, not the light.
+	if (horizon_on > 0.5 && !AT_CUBEMAP_PASS && up < horizon_y_max && up > horizon_y_min) {
+		float hu = fract(atan(dir.x, -dir.z) / 6.28318530718);
+		float hv = clamp((up - horizon_y_min) / (horizon_y_max - horizon_y_min), 0.0, 1.0);
+		vec4 hp = texture(horizon_tex, vec2(hu, hv));
+		if (hp.a > 0.4) {
+			float hd = texture(horizon_dist, vec2(hu, hv)).r;
+			vec3 lit = hp.rgb * horizon_light;
+			// Its own aerial perspective continues the depth fog's: mostly
+			// air by its near edge, almost but never fully air at the far
+			// one, so the furthest ridges stay silhouettes the way the
+			// drawn far field's do.
+			float fogf = clamp((hd - horizon_fade0)
+					/ max(horizon_r1 - horizon_fade0, 1.0), 0.0, 1.0);
+			col = mix(col, mix(lit, air, 0.45 + 0.50 * fogf), hp.a);
+		}
 	}
 
 	// Volumetric cumulus, raymarched. The ray is intersected with the slab

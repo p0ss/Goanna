@@ -6,8 +6,10 @@
 #include <chrono>
 #include <deque>
 #include <map>
+#include <mutex>
 #include <set>
 #include <memory>
+#include <thread>
 #include <vector>
 
 #include <godot_cpp/classes/array_mesh.hpp>
@@ -29,6 +31,7 @@
 #include <godot_cpp/variant/packed_vector3_array.hpp>
 
 #include "goanna_entities.h"
+#include "goanna_horizon.h"
 #include "goanna_light.h"
 #include "goanna_mesher.h" // MapBlockMesh, for the near ready cache
 #include "goanna_lod.h"
@@ -252,6 +255,13 @@ public:
 
     // Sky/sun/fog/lighting state from the server, in Godot terms (see goanna_sky.h).
     godot::Dictionary sky_state() const;
+    // The horizon bake: request extracts a snapshot of every known column
+    // and hands it to a worker; poll returns the finished panorama once,
+    // as {albedo: Image, dist: Image, origin, r0, r1, y_min, y_max}, or an
+    // empty dictionary. origin in Godot space. See goanna_horizon.h and
+    // docs/sky-orchestration.md.
+    void horizon_bake_request(const godot::Vector3 &origin, float r0, float r1);
+    godot::Dictionary horizon_bake_poll();
     void set_time_of_day_override(float tod);
     // True if the given eye position (Godot space, nodes) is inside a liquid
     // node; for underwater fog/tint. Cheap map lookup.
@@ -609,6 +619,14 @@ private:
     // bounded cursor like the prune sweeps, so the partials below carry a
     // cycle in progress while the published values hold the last complete
     // one.
+    // The horizon bake (goanna_horizon.h): the snapshot is extracted on
+    // the main thread, the panorama marches on this one worker, and the
+    // result waits under the mutex until horizon_bake_poll collects it.
+    std::thread m_horizon_thread;
+    std::mutex m_horizon_mutex;
+    bool m_horizon_busy = false;
+    bool m_horizon_fresh = false;
+    HorizonResult m_horizon_result;
     float m_ridge_sin = 0.0f;
     float m_ridge_height = 0.0f;
     float m_ridge_dist = 0.0f;

@@ -1622,4 +1622,22 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
     return out;
 }
 
+u32 lodFlatColour(LodTileCache &cache, const NodeDefManager *ndef,
+        GoannaTextureSource *tsrc, const MaterialTable *materials,
+        content_t c, uint8_t param2) {
+    const LodTileCache::Entry te = tileFor(cache, ndef, tsrc, materials, c, 0);
+    u32 tint = 0xffffffff;
+    if (te.tile_has_color) {
+        tint = te.tint;
+    } else {
+        const ContentFeatures &f = ndef->get(c);
+        if (f.visuals) {
+            video::SColor col;
+            f.visuals->getColor(param2, &col);
+            tint = col.color | 0xff000000;
+        }
+    }
+    return mulColour(te.fallback, tint);
+}
+
 } // namespace goanna

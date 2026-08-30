@@ -142,6 +142,15 @@ var ridge_h_smoothed := 0.0
 var ridge_d_smoothed := 0.0
 var cloud_horizon_smoothed := -0.20
 var ridge_override := -1.0
+# The horizon bake (docs/sky-orchestration.md): when the last bake was
+# asked for and from where. Rebaked when the camera has moved far enough
+# for parallax to show or on a slow clock, whichever first.
+# GOANNA_HORIZON=0 disables it; GOANNA_HORIZON_R0 forces the inner radius,
+# which is how the bake is A/B'd against terrain that is actually drawn.
+var horizon_enabled := true
+var horizon_bake_pos := Vector3(1e9, 1e9, 1e9)
+var horizon_bake_timer := 0.0
+var horizon_r0_override := -1.0
 # How broad the haze band below the horizon line is, sky.gdshader's
 # ground_curve: the background terrain has not arrived over.
 var sky_ground_curve := 3.0
@@ -251,6 +260,8 @@ func _ready() -> void:
 	light_shafts = _envf("GOANNA_SHAFTS", light_shafts)
 	atmosphere_quality = _envf("GOANNA_ATMOSPHERE", atmosphere_quality)
 	ridge_override = _envf("GOANNA_RIDGE", ridge_override)
+	horizon_enabled = OS.get_environment("GOANNA_HORIZON") != "0"
+	horizon_r0_override = _envf("GOANNA_HORIZON_R0", horizon_r0_override)
 	fog_clear_fraction = _envf("GOANNA_FOG_CLEAR", fog_clear_fraction)
 	fog_curve = _envf("GOANNA_FOG_CURVE", fog_curve)
 	fog_max = _envf("GOANNA_FOG_MAX", fog_max)
@@ -1830,6 +1841,33 @@ func _update_environment_extras() -> void:
 		atmosphere_mat.set_shader_parameter("mist_density",
 				0.012 * (0.35 + cloud_cov) * atmosphere_quality * mist_cycle)
 		atmosphere_mat.set_shader_parameter("quality", atmosphere_quality)
+	# The horizon bake: ask again when the camera has drifted or the clock
+	# has run down; collect whatever a worker finished. The inner radius
+	# tracks the drawn edge so the panorama begins where meshes end.
+	if horizon_enabled and client.has_method("horizon_bake_request"):
+		horizon_bake_timer -= get_process_delta_time()
+		var hp := cam.global_position
+		if horizon_bake_timer <= 0.0 or hp.distance_to(horizon_bake_pos) > 96.0:
+			horizon_bake_timer = 25.0
+			horizon_bake_pos = hp
+			var hr0 := maxf(fog_draw_smoothed * 0.9, 192.0)
+			if horizon_r0_override >= 0.0:
+				hr0 = horizon_r0_override
+			var hr1 := 4096.0
+			if client.has_method("far_distance"):
+				hr1 = clampf(float(client.far_distance()) * 2.0, 2048.0, 8192.0)
+			client.horizon_bake_request(hp, hr0, hr1)
+		var hb: Dictionary = client.horizon_bake_poll()
+		if not hb.is_empty():
+			sky_mat.set_shader_parameter("horizon_tex",
+					ImageTexture.create_from_image(hb["albedo"]))
+			sky_mat.set_shader_parameter("horizon_dist",
+					ImageTexture.create_from_image(hb["dist"]))
+			sky_mat.set_shader_parameter("horizon_y_min", hb["y_min"])
+			sky_mat.set_shader_parameter("horizon_y_max", hb["y_max"])
+			sky_mat.set_shader_parameter("horizon_fade0", hb["r0"])
+			sky_mat.set_shader_parameter("horizon_r1", hb["r1"])
+			sky_mat.set_shader_parameter("horizon_on", 1.0)
 	var under: bool = client.is_underwater(cam.position)
 	if atmosphere_volume:
 		atmosphere_volume.visible = not under and atmosphere_quality > 0.01
@@ -2168,6 +2206,14 @@ func _apply_sky() -> void:
 		var cunder: Color = sun_glow * 0.35
 		atmosphere_mat.set_shader_parameter("cloud_under_glow",
 				Vector3(cunder.r, cunder.g, cunder.b))
+	# What the baked horizon's land is lit by, from the same authorities as
+	# everything else: the sky's ambient share, the beam's lambert-ish
+	# average, and the night floor so distant ridges do not go blacker than
+	# the land in front of them.
+	var hlit: Color = hor * (0.30 + 0.45 * day) \
+			+ sun.light_color * (sun.light_energy * 0.35) \
+			+ night_col * (0.03 * land["night"])
+	sky_mat.set_shader_parameter("horizon_light", Vector3(hlit.r, hlit.g, hlit.b))
 	# The night share is 1.6 times the day strength: measured on the jungle at
 	# the spawn, a night fill equal to the day's left the canopy at a fifth of
 	# its day brightness, which is the vanilla client's night and reads as
