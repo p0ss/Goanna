@@ -116,5 +116,7 @@ so early frames have no clouds.
   occlusion (see above).
 - The probe fan is fixed at about 20 degrees; a sunrise through a narrow
   notch inside the fan reads as crested a little early.
-- Verified on the offline fixture only so far; the live server pass is
-  recorded in PLAN.md when done.
+- The night mist glow is calibrated on the fixture only; its hue on a
+  live server night is unjudged. The rest of the sequence was verified on
+  the test_world Mineclonia server on 2026-08-30; PLAN.md has the
+  numbers.

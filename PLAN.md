@@ -170,6 +170,24 @@ Sizing, by what happens to those ~57k lines:
 Verified on a local Mineclonia server on Luanti 5.17.0 with Godot 4.5.1 and
 an RTX 3090, unless marked otherwise.
 
+- The dawn is orchestrated from the horizon each layer actually sees
+  (docs/sky-orchestration.md): one transmitted-sun beam behind every warm
+  term, per layer horizons behind every timing ramp, the ridge probe in
+  lodUpdateFar feeding the ground's gate, the dome's lower hemisphere
+  drawn as the fog wall, and the valley mist given a diurnal cycle and a
+  night glow so dawn pierces a fog that already exists. Composed on the
+  offline dawn sweep fixture, then verified 2026-08-30 on the test_world
+  Mineclonia server: at the beach at (515, 6, 447) a 42 node hill 133
+  nodes east holds the sunrise, the clouds light pink at sun elevation
+  -0.13 over a dark land, the astronomical rise at 0.0 brightens only
+  the sky, the morning stays sunless in the hill's shadow through 0.20,
+  and the sun's energy ramps in over the crest near 0.29 with the first
+  warm rake on the terraces. The probe reads 0.288/48/133 there, stable
+  across shots, with lod_ms at 0.2. Not yet done: the moon still rises
+  astronomically, daytime terrain past the 200 node shadow map is still
+  lit unshadowed, and the night mist glow is calibrated on the fixture
+  only.
+
 - The screen space light shafts had never drawn anything, from the day the
   code landed until it was first run. The fragment ended `ALBEDO =
   vec3(0.0); EMISSION = col;`, and under `render_mode unshaded` Godot takes
