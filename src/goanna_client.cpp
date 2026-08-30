@@ -393,7 +393,15 @@ void GoannaClient::nearBuildRegion(const v3s16 &key, NearRegion &region) {
                 }
             return true;
         };
-        for (const v3s16 &bp : region.members) {
+        // The whole region cube, not the member list: membership requires
+        // visible surfaces, and a fully solid block has none, so the very
+        // blocks the boxes are made of are never members. Iterating members
+        // is why coverage stayed at a few thousand triangles even after the
+        // chains existed (V2 verification, 2026-08-31).
+        for (int bz = key.Z * kNearRegionBlocks; bz < (key.Z + 1) * kNearRegionBlocks; ++bz)
+        for (int by = key.Y * kNearRegionBlocks; by < (key.Y + 1) * kNearRegionBlocks; ++by)
+        for (int bx = key.X * kNearRegionBlocks; bx < (key.X + 1) * kNearRegionBlocks; ++bx) {
+            const v3s16 bp((s16)bx, (s16)by, (s16)bz);
             auto cit = m_lod_chains.find(bp);
             if (cit == m_lod_chains.end() || !cit->second->fine_available)
                 continue;
@@ -3653,8 +3661,12 @@ void GoannaClient::set_occluder_boxes(bool on) {
     // enqueue the ones already resident so coverage does not wait for a
     // world's worth of remeshes.
     if (on)
-        for (const auto &kv : m_near_blocks)
-            lodEnqueueChain(kv.first);
+        // Tier 0 entries, not just surfaced blocks: fully buried live
+        // blocks never enter m_near_blocks, and they are exactly the
+        // solids the boxes are made of.
+        for (const auto &kv : m_block_tier)
+            if (kv.second <= 0)
+                lodEnqueueChain(kv.first);
 }
 
 void GoannaClient::set_occluder_distance(int nodes) {
@@ -6348,6 +6360,8 @@ int GoannaClient::poll_blocks(int max_blocks) {
             // a MeshInstance entered m_block_tier, punching holes through
             // already visited mountains.
             m_block_tier[bp] = 0;
+            if (m_occluder_boxes)
+                lodEnqueueChain(bp); // buried solids are what boxes are made of
             ++done;
             continue;
         }
