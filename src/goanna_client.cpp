@@ -398,12 +398,27 @@ void GoannaClient::nearBuildRegion(const v3s16 &key, NearRegion &region) {
     };
     apply(region.node, mesh, false);
     apply(region.glow_node, glow_mesh, true);
-    if (occ_idx.is_empty()) {
+    // The occluder is the region's full opaque mesh, and every rebuild here
+    // swaps a fresh ArrayOccluder3D into the renderer's software raster,
+    // whose BVH is rebuilt on each swap. On big worlds the HUD has shown
+    // millions of occluder triangles, far beyond what that raster is
+    // designed for, so the swap is timed (occluder_swap_ms, occluder_swaps
+    // in render_stats) and gated by set_occluder_distance so the cost can
+    // be measured and bounded live rather than argued about.
+    bool want_occluder = !occ_idx.is_empty();
+    if (want_occluder && m_occluder_distance > 0) {
+        const Vector3 rc = region_min + Vector3(region_edge, region_edge, region_edge) * 0.5f;
+        want_occluder = Vector2(rc.x - m_lod_centre.x, rc.z - m_lod_centre.z).length()
+                <= (float)m_occluder_distance + region_edge;
+    }
+    if (!want_occluder) {
         if (region.occluder_node) {
             region.occluder_node->queue_free();
             region.occluder_node = nullptr;
+            region.occluder_triangles = 0;
         }
     } else {
+        const auto t_occ = clock_t_::now();
         Ref<ArrayOccluder3D> shape;
         shape.instantiate();
         shape->set_arrays(occ_verts, occ_idx);
@@ -412,9 +427,11 @@ void GoannaClient::nearBuildRegion(const v3s16 &key, NearRegion &region) {
             add_child(region.occluder_node);
         }
         region.occluder_node->set_occluder(shape);
+        ema(m_ms_occluder_swap, ms_since(t_occ));
+        ++m_occluder_swaps;
     }
     region.surfaces = mesh->get_surface_count() + glow_mesh->get_surface_count();
-    region.occluder_triangles = occ_idx.size() / 3;
+    region.occluder_triangles = want_occluder ? occ_idx.size() / 3 : 0;
     region.dirty = false;
     // Only here are region-batched block surfaces actually visible. Retire
     // their retained far copies after set_mesh(), never when the CPU-side
@@ -1614,30 +1631,43 @@ void GoannaClient::horizon_bake_request(const Vector3 &origin, float r0, float r
         std::lock_guard<std::mutex> lk(m_horizon_mutex);
         if (m_horizon_busy)
             return;
-        m_horizon_busy = true;
     }
-    if (m_horizon_thread.joinable())
-        m_horizon_thread.join();
-    // The snapshot: every known column's top surface and its resolved
-    // colour, from the chains' coarsest level, which every chain has
-    // whatever it was built from. Colours resolve here on the main thread
-    // so the worker owns nothing but its own copy. Cost is one pass over
-    // the chains; on the half million chain worlds this wants a cursor,
-    // which can come when the hitch is measured rather than presumed.
-    HorizonSnapshot snap;
-    snap.origin_x = origin.x;
-    snap.origin_y = origin.y;
-    snap.origin_z = -origin.z;
-    snap.r0 = std::max(64.0f, r0);
-    snap.r1 = std::clamp(r1, snap.r0 + 256.0f, 8192.0f);
+    if (m_horizon_extracting)
+        return;
+    // The snapshot is extracted incrementally: this only opens the cursor,
+    // and horizon_bake_poll walks a bounded slice of the chains per frame
+    // until it is done, then hands the snapshot to the worker. A single
+    // full walk here was a guaranteed hitch on the half-million-chain
+    // worlds, the exact intermittent cratering this client is fighting.
+    m_horizon_pending = HorizonSnapshot();
+    m_horizon_pending.origin_x = origin.x;
+    m_horizon_pending.origin_y = origin.y;
+    m_horizon_pending.origin_z = -origin.z;
+    m_horizon_pending.r0 = std::max(64.0f, r0);
+    m_horizon_pending.r1 = std::clamp(r1, m_horizon_pending.r0 + 256.0f, 8192.0f);
+    m_horizon_pending.columns.reserve(m_lod_chains.size() / 4 + 16);
+    m_horizon_colours.clear();
+    m_horizon_extract_cursor = v3s16(-32768, -32768, -32768);
+    m_horizon_extracting = true;
+}
+
+// Walk up to `budget` chains from the cursor into the pending snapshot.
+// Returns true when the extraction is complete. The chains map can gain
+// and lose entries between slices, like the prune sweeps' cursors; a
+// column that is a frame staler than its neighbour is invisible in a
+// background panorama.
+bool GoannaClient::horizonExtractSlice(int budget) {
     const NodeDefManager *ndef = m_session->nodeDefs();
     GoannaTextureSource *tsrc = m_session->tsrc();
     const MaterialTable *materials = &m_session->materialTable();
-    std::unordered_map<uint32_t, uint32_t> colour_of; // content | p2 << 16
-    snap.columns.reserve(m_lod_chains.size() / 4 + 16);
-    for (const auto &kv : m_lod_chains) {
-        const v3s16 bp = kv.first;
-        const LodLevel *lv = kv.second->forCell(MAP_BLOCKSIZE);
+    auto it = m_lod_chains.lower_bound(m_horizon_extract_cursor);
+    int visited = 0;
+    while (it != m_lod_chains.end() && visited < budget) {
+        ++visited;
+        const v3s16 bp = it->first;
+        const BlockLodChain *chain = it->second.get();
+        ++it;
+        const LodLevel *lv = chain->forCell(MAP_BLOCKSIZE);
         if (!lv || lv->cells.empty())
             continue;
         const LodLevel::Cell &c = lv->cells[0];
@@ -1655,28 +1685,46 @@ void GoannaClient::horizon_bake_request(const Vector3 &origin, float r0, float r
         const int top_in = (c.top == 0 || c.top >= MAP_BLOCKSIZE) ? MAP_BLOCKSIZE : c.top;
         const int16_t top_y = (int16_t)(bp.Y * MAP_BLOCKSIZE + top_in - 1);
         const uint32_t key = HorizonSnapshot::key(bp.X, bp.Z);
-        auto &col = snap.columns[key];
+        auto &col = m_horizon_pending.columns[key];
         if (col.top_y != -32768 && col.top_y >= top_y)
             continue;
         const uint32_t ck = (uint32_t)content | ((uint32_t)p2 << 16);
-        auto cit = colour_of.find(ck);
-        if (cit == colour_of.end())
-            cit = colour_of.emplace(ck,
+        auto cit = m_horizon_colours.find(ck);
+        if (cit == m_horizon_colours.end())
+            cit = m_horizon_colours.emplace(ck,
                     lodFlatColour(m_lod_tiles, ndef, tsrc, materials, content, p2)).first;
         col.top_y = top_y;
         col.colour = cit->second;
     }
-    m_horizon_thread = std::thread([this, snap = std::move(snap)]() mutable {
-        HorizonResult res = buildHorizonPanorama(snap);
-        std::lock_guard<std::mutex> lk(m_horizon_mutex);
-        m_horizon_result = std::move(res);
-        m_horizon_fresh = true;
-        m_horizon_busy = false;
-    });
+    if (it == m_lod_chains.end())
+        return true;
+    m_horizon_extract_cursor = it->first;
+    return false;
 }
 
 Dictionary GoannaClient::horizon_bake_poll() {
     Dictionary d;
+    // Pump the incremental extraction: one bounded slice per frame, and
+    // when the walk completes, hand the snapshot to the worker.
+    if (m_horizon_extracting && m_session && horizonExtractSlice(8000)) {
+        m_horizon_extracting = false;
+        {
+            std::lock_guard<std::mutex> lk(m_horizon_mutex);
+            m_horizon_busy = true;
+        }
+        if (m_horizon_thread.joinable())
+            m_horizon_thread.join();
+        m_horizon_thread = std::thread(
+                [this, snap = std::move(m_horizon_pending)]() mutable {
+                    HorizonResult res = buildHorizonPanorama(snap);
+                    std::lock_guard<std::mutex> lk(m_horizon_mutex);
+                    m_horizon_result = std::move(res);
+                    m_horizon_fresh = true;
+                    m_horizon_busy = false;
+                });
+        m_horizon_pending = HorizonSnapshot();
+        m_horizon_colours.clear();
+    }
     HorizonResult res;
     {
         std::lock_guard<std::mutex> lk(m_horizon_mutex);
@@ -2483,6 +2531,8 @@ Dictionary GoannaClient::render_stats() {
     d["near_regions"] = near_regions;
     d["occluder_regions"] = occluder_regions;
     d["occluder_triangles"] = occluder_triangles;
+    d["occluder_swap_ms"] = m_ms_occluder_swap;
+    d["occluder_swaps"] = (int64_t)m_occluder_swaps;
     d["near_batch_ms"] = m_ms_near_batch;
     d["near_regions_built_last"] = m_near_regions_built_last;
     d["entities"] = m_entities ? m_entities->count() : 0;
@@ -2503,7 +2553,7 @@ Dictionary GoannaClient::render_stats() {
     d["lod_far_scan_ms"] = m_ms_lod_far_scan;
     d["lod_chain_ms"] = m_ms_lod_chain;
     d["lod_chains_built_last"] = m_lod_chains_built_last;
-    d["lod_retier_queue"] = (int)m_lod_retier_queue.size();
+    d["lod_retier_queue"] = m_lod_retier_pending ? 1 : 0;
     d["poll_max_ms"] = std::max(m_ms_poll_max, m_ms_poll_max_last);
     d["poll_lock_ms"] = m_ms_poll_lock;
     d["poll_queue_ms"] = m_ms_poll_queue;
@@ -3444,6 +3494,12 @@ void GoannaClient::set_far_distance(int nodes) {
         m_far_distance_explicit = true;
     }
     m_far_dirty = true;
+}
+
+void GoannaClient::set_occluder_distance(int nodes) {
+    m_occluder_distance = std::max(0, nodes);
+    // Existing occluders re-evaluate as their regions next rebuild; a
+    // measurement sweep restarts the client or waits out the churn.
 }
 
 void GoannaClient::set_far_mesh_distance(int nodes) {
@@ -5510,7 +5566,7 @@ void GoannaClient::lodReset() {
     m_far_dirty = true;
     m_lod_retier_pending = true;
     m_lod_retier_centre = v3s16(32767, 32767, 32767);
-    m_lod_retier_queue.clear();
+    m_lod_retier_cursor = v3s16(-32768, -32768, -32768);
     m_lod_chain_queue.clear();
     m_lod_chain_queued.clear();
     m_lod_chain_waiters.clear();
@@ -5557,38 +5613,39 @@ int GoannaClient::update_lod(const Vector3 &around, int max_rebuild) {
     if (centre != m_lod_retier_centre) {
         m_lod_retier_centre = centre;
         m_lod_retier_pending = true;
-        m_lod_retier_queue.clear();
+        m_lod_retier_cursor = v3s16(-32768, -32768, -32768);
     }
     std::vector<v3s16> changed;
     const auto t_tier = clock_t_::now();
     if (m_lod_retier_pending) {
-        // Take one stable snapshot for this camera block. Previously every
-        // frame restarted at map.begin(), found eight changed entries, then
-        // scanned the same prefix again next frame. With tens of thousands of
-        // retained blocks that alone consumed 20--35 ms continuously.
-        if (m_lod_retier_queue.empty()) {
-            for (const auto &kv : m_block_tier)
-                m_lod_retier_queue.push_back(kv.first);
-        }
-        // Bound both changed blocks and unchanged inspection. New entries are
-        // assigned against m_lod_centre when inserted, so they need not join
-        // this snapshot.
+        // A bounded cursor over the live map, like every prune sweep here.
+        // The first cure for this scan copied all of m_block_tier into a
+        // deque per camera block crossing, which at half a million retained
+        // blocks was itself a 10 ms and worse hitch every 16 nodes of
+        // travel: the movement-correlated cratering of 2026-08-31. The
+        // cursor tolerates entries appearing and vanishing mid-pass; a
+        // block missed by a shifted cursor is caught on the next crossing,
+        // and new entries are tiered against m_lod_centre when inserted.
         const int scan_budget = std::max(256, max_rebuild * 128);
         int scanned = 0;
-        while (!m_lod_retier_queue.empty() && scanned < scan_budget &&
+        auto it = m_block_tier.lower_bound(m_lod_retier_cursor);
+        while (it != m_block_tier.end() && scanned < scan_budget &&
                 (int)changed.size() < max_rebuild) {
-            const v3s16 bp = m_lod_retier_queue.front();
-            m_lod_retier_queue.pop_front();
             ++scanned;
-            auto current = m_block_tier.find(bp);
-            if (current == m_block_tier.end())
-                continue;
+            const v3s16 bp = it->first;
+            const int current = it->second;
+            ++it;
             // A retained entry that is not a far block is live, or was until
             // the prune that takes it out of both.
-            if (lodTierFor(bp, around, !m_far_blocks.count(bp)) != current->second)
+            if (lodTierFor(bp, around, !m_far_blocks.count(bp)) != current)
                 changed.push_back(bp);
         }
-        m_lod_retier_pending = !m_lod_retier_queue.empty();
+        if (it == m_block_tier.end()) {
+            m_lod_retier_pending = false;
+            m_lod_retier_cursor = v3s16(-32768, -32768, -32768);
+        } else {
+            m_lod_retier_cursor = it->first;
+        }
     }
     ema(m_ms_lod_tier_scan, ms_since(t_tier));
     std::lock_guard<std::mutex> lk(m_session->mapLock());
@@ -6241,6 +6298,9 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("set_far_mesh_distance", "nodes"),
             &GoannaClient::set_far_mesh_distance);
     ClassDB::bind_method(D_METHOD("far_mesh_distance"), &GoannaClient::far_mesh_distance);
+    ClassDB::bind_method(D_METHOD("set_occluder_distance", "nodes"),
+            &GoannaClient::set_occluder_distance);
+    ClassDB::bind_method(D_METHOD("occluder_distance"), &GoannaClient::occluder_distance);
     ClassDB::bind_method(D_METHOD("far_distance"), &GoannaClient::far_distance);
     ClassDB::bind_method(D_METHOD("set_view_range", "blocks"), &GoannaClient::set_view_range);
     ClassDB::bind_method(D_METHOD("view_range"), &GoannaClient::view_range);

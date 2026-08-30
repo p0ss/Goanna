@@ -262,6 +262,7 @@ public:
     // docs/sky-orchestration.md.
     void horizon_bake_request(const godot::Vector3 &origin, float r0, float r1);
     godot::Dictionary horizon_bake_poll();
+    bool horizonExtractSlice(int budget);
     void set_time_of_day_override(float tod);
     // True if the given eye position (Godot space, nodes) is inside a liquid
     // node; for underwater fog/tint. Cheap map lookup.
@@ -314,6 +315,11 @@ public:
     // 0 or negative disables the split. See docs/sky-orchestration.md.
     void set_far_mesh_distance(int nodes);
     int far_mesh_distance() const { return m_far_mesh_distance; }
+    // Occluders are published only for near regions within this many nodes
+    // (0 = everywhere, the old behaviour). A live knob so the software
+    // raster's cost can be swept while measuring, not argued about.
+    void set_occluder_distance(int nodes);
+    int occluder_distance() const { return m_occluder_distance; }
     int far_distance() const { return m_far_distance; }
     void set_view_range(int blocks);
     int view_range() const;
@@ -445,7 +451,12 @@ private:
     // Snapshot of retained blocks still to reconsider after the camera moves.
     // The old loop restarted at map.begin() after each eight changes, turning
     // a linear scan into repeated O(n) work while terrain streamed.
-    std::deque<v3s16> m_lod_retier_queue;
+    // A cursor over m_block_tier rather than a copied queue: snapshotting
+    // half a million entries into a deque was a 10 ms and worse hitch on
+    // every 16 node camera block crossing, the movement-correlated
+    // cratering of 2026-08-31. The cursor tolerates the map changing under
+    // it the way every prune sweep here does.
+    v3s16 m_lod_retier_cursor{-32768, -32768, -32768};
     // Distance scale, in blocks, at which coarse cell sizes begin doubling.
     // Resident blocks are always full detail; a non-resident block starts at
     // the finest coarse tier even inside this distance, so server delivery
@@ -618,6 +629,12 @@ private:
     // derived block radius lodUpdateFar refreshes each rescan. 0 = off.
     int m_far_mesh_distance = 0;
     int m_far_mesh_radius = 0;
+    // Occluder policy and cost: regions further than this (nodes, 0 =
+    // unlimited) publish no occluder; the swap ema and count let the cost
+    // be watched live. See the swap site in the near region batcher.
+    int m_occluder_distance = 0;
+    double m_ms_occluder_swap = 0.0;
+    uint64_t m_occluder_swaps = 0;
     // The ridge probe (docs/sky-orchestration.md): the terrain horizon
     // toward the sun's azimuth as the eye last saw it, published through
     // sky_state() so main.gd can re-base its dawn ramps on the sun's
@@ -636,6 +653,14 @@ private:
     bool m_horizon_busy = false;
     bool m_horizon_fresh = false;
     HorizonResult m_horizon_result;
+    // The incremental extraction: horizon_bake_request opens the cursor
+    // and horizon_bake_poll walks a bounded slice of the chains per frame
+    // (horizonExtractSlice), so a half-million-chain world never pays the
+    // walk as one hitch.
+    bool m_horizon_extracting = false;
+    HorizonSnapshot m_horizon_pending;
+    std::unordered_map<uint32_t, uint32_t> m_horizon_colours;
+    v3s16 m_horizon_extract_cursor{-32768, -32768, -32768};
     float m_ridge_sin = 0.0f;
     float m_ridge_height = 0.0f;
     float m_ridge_dist = 0.0f;

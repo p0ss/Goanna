@@ -8,6 +8,46 @@
 
 namespace goanna {
 
+namespace {
+
+// The far field is known to leak floating stale boxes (a block or two,
+// nowhere near the ground), and a snapshot column made from one paints a
+// tall pale slab across the sky when the march treats it as a spire. A
+// column with no neighbouring column at all is such a leak, or the very
+// corner of the frontier, and is dropped; one that stands far above every
+// neighbour it has is clamped to the tallest of them plus a grace. A real
+// mesa is wide, so its interior columns keep each other tall.
+std::unordered_map<uint32_t, HorizonSnapshot::Column> despiked(
+        const std::unordered_map<uint32_t, HorizonSnapshot::Column> &in) {
+    constexpr int kGrace = 48;
+    std::unordered_map<uint32_t, HorizonSnapshot::Column> out;
+    out.reserve(in.size());
+    for (const auto &kv : in) {
+        const int bx = (int)(kv.first >> 16) - 32768;
+        const int bz = (int)(kv.first & 0xffff) - 32768;
+        int best = -32768;
+        int neighbours = 0;
+        const int nx[4] = {1, -1, 0, 0};
+        const int nz[4] = {0, 0, 1, -1};
+        for (int i = 0; i < 4; ++i) {
+            auto it = in.find(HorizonSnapshot::key(bx + nx[i], bz + nz[i]));
+            if (it == in.end())
+                continue;
+            ++neighbours;
+            best = std::max(best, (int)it->second.top_y);
+        }
+        if (neighbours == 0)
+            continue;
+        HorizonSnapshot::Column c = kv.second;
+        if ((int)c.top_y > best + kGrace)
+            c.top_y = (int16_t)(best + kGrace);
+        out.emplace(kv.first, c);
+    }
+    return out;
+}
+
+} // namespace
+
 HorizonResult buildHorizonPanorama(const HorizonSnapshot &snap) {
     HorizonResult out;
     out.width = snap.width;
@@ -21,6 +61,7 @@ HorizonResult buildHorizonPanorama(const HorizonSnapshot &snap) {
     out.r1 = snap.r1;
     out.y_min = snap.y_min;
     out.y_max = snap.y_max;
+    const auto columns = despiked(snap.columns);
     const float tau = 6.28318530718f;
     const float span = snap.y_max - snap.y_min;
     for (int i = 0; i < snap.width; ++i) {
@@ -49,8 +90,8 @@ HorizonResult buildHorizonPanorama(const HorizonSnapshot &snap) {
                 continue;
             last_bx = bx;
             last_bz = bz;
-            auto it = snap.columns.find(HorizonSnapshot::key(bx, bz));
-            if (it == snap.columns.end())
+            auto it = columns.find(HorizonSnapshot::key(bx, bz));
+            if (it == columns.end())
                 continue;
             const float top = (float)it->second.top_y + 1.0f;
             const float dy = top - snap.origin_y;

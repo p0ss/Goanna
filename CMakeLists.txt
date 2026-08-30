@@ -84,6 +84,11 @@ target_link_libraries(goanna_lod_test PRIVATE goanna luanti_core)
 
 # The one scheduling rule every queue shares: the Z mirror crossing into
 # Godot space, class bands, and a view cone that weights rather than filters.
+add_executable(goanna_horizon_test EXCLUDE_FROM_ALL
+    src/goanna_horizon_test.cpp
+    src/goanna_horizon.cpp)
+target_include_directories(goanna_horizon_test PRIVATE src)
+
 add_executable(goanna_schedule_test EXCLUDE_FROM_ALL src/goanna_schedule_test.cpp)
 target_include_directories(goanna_schedule_test PRIVATE src)
 target_link_libraries(goanna_schedule_test PRIVATE luanti_core)
