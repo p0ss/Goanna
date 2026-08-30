@@ -55,16 +55,27 @@ in the village after dark, where they differ on how many lamps cast shadows.
 Neither is complete on its own, because a scene that cannot exercise a
 setting reports it as free.
 
-**The variants in both are `project/graphics_profiles.gd` key for key, and
-nothing enforces it.** A tier value therefore lives in three files, and
+`tools/bench_plans/profiles-move.json` is the third: it flies a long one
+way route out of everything the client started with, which is the only one
+of the three that asks what a bigger view costs while it arrives rather than
+once it has. It sets no `GOANNA_STORE` on purpose, so every run gets its own
+cold store and an identical start, and it runs `move_early` rather than
+`move_full` because the streaming ceiling is decided by `ground_fraction`,
+which collapses to nothing when the camera flies high enough to clear the
+terrain.
+
+**The variants in all three are `project/graphics_profiles.gd` key for key,
+and nothing enforces it.** A tier value therefore lives in three files, and
 changing it in one is a silent failure: on 2026-08-30 three settings were
 added to the profiles and not to the plans, and the sweep ran for
 twenty-five minutes and reported the old tiers under the new names, with a
 healthy noise floor and nothing anywhere to say the numbers were of
 something else. If a report disagrees with a measurement you took by hand,
 diff the plan's `set` blocks against `PROFILES` before believing either.
-Generating the variants from `graphics_profiles.gd` would end this class of
-mistake and is worth doing.
+`tools/check-bench-plans.py` compares every plan against `PROFILES` and
+exits non-zero on drift; run it before believing a profile report. Having
+the harness generate the variants outright would end the class of mistake
+and is still worth doing.
 
 The report is printed and written to `report.md` in the output directory,
 with `frames.csv`, `samples.jsonl` and `summary.json` beside each run.
