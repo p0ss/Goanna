@@ -521,7 +521,11 @@ void GoannaClient::nearBuildRegion(const v3s16 &key, NearRegion &region) {
             }
             region.occluder_node->set_occluder(shape);
             region.occluder_hash = h;
-            ema(m_ms_occluder_swap, ms_since(t_occ));
+            {
+                const double occ_ms_now = ms_since(t_occ);
+                ema(m_ms_occluder_swap, occ_ms_now);
+                m_ms_occluder_worst = std::max(m_ms_occluder_worst, occ_ms_now);
+            }
             ++m_occluder_swaps;
         }
     }
@@ -534,7 +538,11 @@ void GoannaClient::nearBuildRegion(const v3s16 &key, NearRegion &region) {
     std::vector<v3s16> published(region.members.begin(), region.members.end());
     for (const v3s16 &bp : published)
         lodFinishNearHandoff(bp);
-    ema(m_ms_near_batch, ms_since(t0));
+    {
+        const double batch_ms_now = ms_since(t0);
+        ema(m_ms_near_batch, batch_ms_now);
+        m_ms_near_batch_worst = std::max(m_ms_near_batch_worst, batch_ms_now);
+    }
     if (getenv("GOANNA_DEBUG_BLOCKS"))
         UtilityFunctions::print("near region ", key.X, ",", key.Y, ",", key.Z, " blocks ",
                 (int)region.members.size(), " surfaces ", region.surfaces, " in ",
@@ -2643,6 +2651,15 @@ Dictionary GoannaClient::render_stats() {
     d["lod_ms"] = m_ms_lod;
     d["lod_update_ms"] = m_ms_lod_update;
     d["lod_tier_scan_ms"] = m_ms_lod_tier_scan;
+    // Read-and-reset worst single costs since the last stats call, so a
+    // 1 Hz sampler sees the worst of its window: the flying tail is
+    // hitches under flat medians, which the EMAs above cannot show.
+    d["lod_worst_ms"] = m_ms_lod_worst;
+    m_ms_lod_worst = 0.0;
+    d["near_batch_worst_ms"] = m_ms_near_batch_worst;
+    m_ms_near_batch_worst = 0.0;
+    d["occluder_worst_ms"] = m_ms_occluder_worst;
+    m_ms_occluder_worst = 0.0;
     d["lod_summary_ms"] = m_ms_lod_summaries;
     d["lod_request_ms"] = m_ms_lod_requests;
     d["lod_far_scan_ms"] = m_ms_lod_far_scan;
@@ -5156,7 +5173,11 @@ void GoannaClient::lodBuildRegion(const LodRegionKey &key, LodRegion &r) {
         if (!m_mesh_pool.canSubmit(jk, stage)) {
             r.dirty = true;
             r.building = false;
-            ema(m_ms_lod, ms_since(t0));
+            {
+        const double lod_ms_now = ms_since(t0);
+        ema(m_ms_lod, lod_ms_now);
+        m_ms_lod_worst = std::max(m_ms_lod_worst, lod_ms_now);
+    }
             return;
         }
         auto job = std::make_unique<LodRegionJob>();
@@ -5196,14 +5217,22 @@ void GoannaClient::lodBuildRegion(const LodRegionKey &key, LodRegion &r) {
             // from already admitted work drains.
             r.dirty = true;
             r.building = false;
-            ema(m_ms_lod, ms_since(t0));
+            {
+        const double lod_ms_now = ms_since(t0);
+        ema(m_ms_lod, lod_ms_now);
+        m_ms_lod_worst = std::max(m_ms_lod_worst, lod_ms_now);
+    }
             return;
         }
         r.generation = generation;
         r.building = true;
         // The region keeps drawing whatever it last published until the
         // result lands, which is what stops a hand-off showing a hole.
-        ema(m_ms_lod, ms_since(t0));
+        {
+        const double lod_ms_now = ms_since(t0);
+        ema(m_ms_lod, lod_ms_now);
+        m_ms_lod_worst = std::max(m_ms_lod_worst, lod_ms_now);
+    }
         return;
     }
 
@@ -5454,7 +5483,11 @@ void GoannaClient::lodPublishRegion(const LodRegionKey &key, LodRegion &r, const
         r.published_partial = lm.partial;
         r.published_exact_cell = exact_cell_used;
         r.published_coarse_cell = coarse_cell_used;
-        ema(m_ms_lod, ms_since(t0));
+        {
+        const double lod_ms_now = ms_since(t0);
+        ema(m_ms_lod, lod_ms_now);
+        m_ms_lod_worst = std::max(m_ms_lod_worst, lod_ms_now);
+    }
         finish_handoffs();
         return;
     }
@@ -5597,7 +5630,11 @@ void GoannaClient::lodPublishRegion(const LodRegionKey &key, LodRegion &r, const
     r.published_exact_cell = exact_cell_used;
     r.published_coarse_cell = coarse_cell_used;
     finish_handoffs();
-    ema(m_ms_lod, ms_since(t0));
+    {
+        const double lod_ms_now = ms_since(t0);
+        ema(m_ms_lod, lod_ms_now);
+        m_ms_lod_worst = std::max(m_ms_lod_worst, lod_ms_now);
+    }
 }
 
 // Rebuild dirty regions inside a time budget, nearest and most looked at

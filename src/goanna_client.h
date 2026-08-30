@@ -607,6 +607,13 @@ private:
     double m_ms_stats = 0;
     int m_lod_last_built = 0;
     double m_ms_poll_max = 0, m_ms_poll_max_last = 0; // worst poll_blocks call, per second
+    // Worst single cost since render_stats last read them (read-and-reset,
+    // so a 1 Hz sampler sees the worst of its window): one region publish,
+    // one near batch, one occluder swap. The flying tail is hitches with
+    // flat medians, so EMAs hide exactly what these expose.
+    double m_ms_lod_worst = 0;
+    double m_ms_near_batch_worst = 0;
+    double m_ms_occluder_worst = 0;
     double m_ms_poll_lock = 0, m_ms_poll_queue = 0, m_ms_poll_blocks = 0;
     double m_ms_poll_near = 0, m_ms_poll_lod = 0;
     std::chrono::steady_clock::time_point m_poll_window;
