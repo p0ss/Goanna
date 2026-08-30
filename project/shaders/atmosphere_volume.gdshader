@@ -27,6 +27,11 @@ uniform float cloud_thickness = 24.0;
 uniform float cloud_density : hint_range(0.0, 0.1) = 0.025;
 uniform float cloud_coverage : hint_range(0.0, 1.0) = 0.4;
 uniform vec3 cloud_albedo : source_color = vec3(0.95, 0.96, 1.0);
+// The mist's own faint light, set from the night radiance floor in
+// main.gd. Fog on the fens exists at night; without this it was invisible
+// until dawn arrived to light it, so the dawn appeared to summon the fog
+// rather than pierce it. Zero by day, when the sun owns the banks.
+uniform vec3 mist_glow : source_color = vec3(0.0);
 
 float hash31(vec3 p) {
 	p = fract(p * 0.1031);
@@ -108,4 +113,6 @@ void fog() {
 	DENSITY = total;
 	ALBEDO = total > 0.00001 ?
 			(atmosphere_color * mist + cloud_albedo * cloud) / total : atmosphere_color;
+	// Only the mist share glows: a night cloud overhead stays dark.
+	EMISSION = mist_glow * (total > 0.00001 ? mist / total : 0.0);
 }

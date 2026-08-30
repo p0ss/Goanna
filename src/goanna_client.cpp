@@ -1593,6 +1593,14 @@ Dictionary GoannaClient::sky_state() const {
     lighting["bloom_strength_factor"] = st.lighting.bloom_strength_factor;
     lighting["bloom_radius"] = st.lighting.bloom_radius;
     d["lighting"] = lighting;
+    // The ridge probe's latest answer (lodUpdateFar): the terrain horizon
+    // toward the sun's azimuth. main.gd smooths it and derives the cloud
+    // deck's own horizon from height and distance.
+    Dictionary ridge;
+    ridge["sin"] = m_ridge_sin;
+    ridge["height"] = m_ridge_height;
+    ridge["distance"] = m_ridge_dist;
+    d["ridge"] = ridge;
     return d;
 }
 
@@ -3620,6 +3628,87 @@ void GoannaClient::lodUpdateFar(const Vector3 &around) {
             std::sort(reach.begin(), reach.end());
             m_far_extent = reach[reach.size() / 4] * MAP_BLOCKSIZE;
             m_far_reach = reach[(reach.size() * 3) / 4] * MAP_BLOCKSIZE;
+        }
+    }
+    // The ridge probe (docs/sky-orchestration.md): how high the drawn
+    // terrain stands toward the sun's azimuth, as the eye sees it. main.gd
+    // re-bases its dawn ramps on the sun's altitude relative to this, so
+    // the true dawn holds until the sun crests what actually occludes it.
+    // A max over block tops needs no buried test: a buried block's top
+    // always sits under the surface block above it, so it can never win.
+    // The near set is small and walked whole; the far set is walked with
+    // the same bounded cursor discipline as the prune sweeps above (a full
+    // walk cost tens of milliseconds at a 4096 grant), accumulating a
+    // cycle's best and publishing when the cursor wraps.
+    {
+        SkyState sst = m_session->skyState();
+        v3f sd = sunDirection(sst.time_of_day, sst.sky.body_orbit_tilt);
+        const float ah = std::hypot(sd.X, sd.Z);
+        if (ah > 1e-4f) {
+            const float ax = sd.X / ah, az = sd.Z / ah;
+            // The eye in Luanti node space, the same mapping `centre` uses.
+            const float eye_x = around.x, eye_y = around.y, eye_z = -around.z;
+            // Inside 128 nodes the canopy beside the player would report a
+            // horizon halfway up the sky; the gate is for ridge lines.
+            constexpr float kMinDist = 128.0f;
+            // cos of about 20 degrees either side of the azimuth.
+            constexpr float kCosFan = 0.94f;
+            float best_sin = 0.0f, best_h = 0.0f, best_d = 0.0f;
+            auto probe = [&](const v3s16 &bp) {
+                const float dx = ((float)bp.X + 0.5f) * MAP_BLOCKSIZE - eye_x;
+                const float dz = ((float)bp.Z + 0.5f) * MAP_BLOCKSIZE - eye_z;
+                const float dh = std::hypot(dx, dz);
+                if (dh < kMinDist || dx * ax + dz * az < kCosFan * dh)
+                    return;
+                const float top = ((float)bp.Y + 1.0f) * MAP_BLOCKSIZE;
+                const float dy = top - eye_y;
+                if (dy <= 0.0f)
+                    return;
+                const float s = dy / std::sqrt(dh * dh + dy * dy);
+                if (s > best_sin) {
+                    best_sin = s;
+                    best_h = top;
+                    best_d = dh;
+                }
+            };
+            for (const auto &kv : m_near_blocks)
+                probe(kv.first);
+            const float near_sin = best_sin, near_h = best_h, near_d = best_d;
+            best_sin = m_ridge_scan_sin;
+            best_h = m_ridge_scan_height;
+            best_d = m_ridge_scan_dist;
+            constexpr int kRidgeSweep = 24576;
+            auto it = m_far_blocks.lower_bound(m_ridge_cursor);
+            int visited = 0;
+            while (it != m_far_blocks.end() && visited < kRidgeSweep) {
+                ++visited;
+                probe(*it);
+                ++it;
+            }
+            if (it == m_far_blocks.end()) {
+                // Cycle complete: publish and start the next accumulation.
+                m_ridge_far_sin = best_sin;
+                m_ridge_far_height = best_h;
+                m_ridge_far_dist = best_d;
+                m_ridge_scan_sin = 0.0f;
+                m_ridge_scan_height = 0.0f;
+                m_ridge_scan_dist = 0.0f;
+                m_ridge_cursor = v3s16(-32768, -32768, -32768);
+            } else {
+                m_ridge_scan_sin = best_sin;
+                m_ridge_scan_height = best_h;
+                m_ridge_scan_dist = best_d;
+                m_ridge_cursor = *it;
+            }
+            if (near_sin > m_ridge_far_sin) {
+                m_ridge_sin = near_sin;
+                m_ridge_height = near_h;
+                m_ridge_dist = near_d;
+            } else {
+                m_ridge_sin = m_ridge_far_sin;
+                m_ridge_height = m_ridge_far_height;
+                m_ridge_dist = m_ridge_far_dist;
+            }
         }
     }
     lodRequestSummaries(centre, radius);

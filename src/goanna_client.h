@@ -599,6 +599,26 @@ private:
     // ragged frontier").
     int m_far_extent = 0;
     int m_far_reach = 0;
+    // The ridge probe (docs/sky-orchestration.md): the terrain horizon
+    // toward the sun's azimuth as the eye last saw it, published through
+    // sky_state() so main.gd can re-base its dawn ramps on the sun's
+    // altitude relative to what actually occludes it. sin is
+    // sin(elevation), the same units as sun_direction.y; height and
+    // distance describe the winning ridge so the cloud deck can derive its
+    // own, altitude-corrected horizon. The far set is walked with a
+    // bounded cursor like the prune sweeps, so the partials below carry a
+    // cycle in progress while the published values hold the last complete
+    // one.
+    float m_ridge_sin = 0.0f;
+    float m_ridge_height = 0.0f;
+    float m_ridge_dist = 0.0f;
+    float m_ridge_far_sin = 0.0f;
+    float m_ridge_far_height = 0.0f;
+    float m_ridge_far_dist = 0.0f;
+    float m_ridge_scan_sin = 0.0f;
+    float m_ridge_scan_height = 0.0f;
+    float m_ridge_scan_dist = 0.0f;
+    v3s16 m_ridge_cursor{-32768, -32768, -32768};
     // The full camera cone reported by main.gd. It may be set before a
     // GoannaSession exists, so retain it across connection and reconnection.
     float m_view_fov = 70.0f;

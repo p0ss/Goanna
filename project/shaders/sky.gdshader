@@ -24,12 +24,15 @@ uniform float star_opacity = 0.0;
 uniform vec4 star_color : source_color = vec4(0.92, 0.92, 1.0, 1.0);
 uniform float star_density = 0.35;
 uniform vec4 cloud_color : source_color = vec4(1.0, 1.0, 1.0, 0.9);
-// The dawn/dusk colour ramp and how far into it the current sun elevation
-// is, both worked out once per frame in main.gd's _cloud_twilight_color:
-// see the comment there for why the window is wider than the ground's own
-// day/night bands.
-uniform vec3 cloud_twilight_color : source_color = vec3(1.0, 0.55, 0.25);
-uniform float cloud_twilight_k : hint_range(0.0, 1.0) = 0.0;
+// The transmitted sun, per layer, premultiplied hue times strength, from
+// SkyDirector via main.gd: cloud_beam is the beam at the deck's own
+// horizon-relative altitude, air_beam the one the dome's high air
+// scatters, which outlives the ground's through predawn and afterglow.
+// One hue script behind every warm term is what keeps the cloud
+// undersides and the glow around the disc from being unrelated
+// luminances.
+uniform vec3 cloud_beam = vec3(1.0, 0.9, 0.7);
+uniform vec3 air_beam = vec3(0.0);
 uniform float cloud_coverage = 0.4;
 uniform float cloud_plane_h = 90.0;
 uniform float cloud_thickness = 16.0;
@@ -161,13 +164,15 @@ void sky() {
 	if (up >= 0.0) {
 		col = mix(sky_horizon.rgb, sky_top.rgb, pow(up, 0.45));
 	} else {
-		// The band under the horizon line is the background a gap in the far
-		// field is seen through, so it has to be the same air the terrain
-		// dissolves into, not the sky above it. It used to start at
-		// sky_horizon and take only a quarter of the haze from the air term
-		// further down, so a hole in the far field read as a pale slot
-		// against hills fading to brown: the two backgrounds did not match.
-		// Ramped over a couple of degrees so the join at the horizon line is
+		// The whole lower hemisphere is the fog wall: terrain wearing full
+		// fog, not unlit ground. Where the far field stands proud of the
+		// horizon line it dissolves into this same air (the depth fog
+		// converges on haze_color), and where it dips below, the wall
+		// stands in as the horizon, so the disc's edge and the dome blend
+		// through one gradient instead of meeting at a join. ground_color
+		// is now the wall's depth (main.gd feeds the fog colour darkened),
+		// so looking steeply down reads as thicker air, not as a different
+		// material. Ramped over a couple of degrees so the horizon line is
 		// not a step. The cubemap pass keeps the old colour, because that
 		// half of this shader is the light the world is lit by rather than
 		// what is drawn, and this is a fix to the picture only.
@@ -185,12 +190,14 @@ void sky() {
 	// The same air colour used by depth fog lives in the sky itself. This is
 	// strongest along the geometric horizon and toward a low sun, so sunset
 	// cannot leave orange land against an unrelated blue/grey backdrop. The
-	// warm term comes from the exact direct-light tint used on the terrain.
-	if (!AT_CUBEMAP_PASS && up > -0.12) {
+	// warm term is the high air's beam, the same one the clouds are lit by.
+	// No lower bound on up: the warm gradient runs down the fog wall with
+	// the same exponential falloff, so the wall and the band are one air.
+	if (!AT_CUBEMAP_PASS) {
 		float horizon = exp(-abs(up) * mix(9.0, 5.0, haze_twilight));
 		float sun_haze = pow(max(dot(normalize(vec3(dir.x, 0.08, dir.z)),
 				normalize(vec3(sun_dir.x, 0.08, sun_dir.z))), 0.0), 5.0);
-		vec3 air = mix(haze_color.rgb, sun_tint.rgb * 0.82,
+		vec3 air = mix(haze_color.rgb, air_beam * 0.82,
 				haze_twilight * mix(0.20, 0.82, sun_haze));
 		col = mix(col, air, horizon * (horizon_air_day + 0.48 * haze_twilight));
 	}
@@ -308,13 +315,11 @@ void sky() {
 			// the sun without the away side going black.
 			float hg = 0.55;
 			float phase = mix(1.0, (1.0 - hg * hg) / pow(1.0 + hg * hg - 2.0 * hg * mu, 1.5), 0.55);
-			// The sun as the clouds see it: tinted by the same warm ramp as
-			// the ground, handed to the twilight colour through dawn and
-			// dusk, and held a little past the ground's sunset because the
-			// deck is the highest thing in the scene.
-			vec3 csun = sun_tint.rgb * 2.2;
-			csun = mix(csun, cloud_twilight_color * 2.0, cloud_twilight_k);
-			csun *= smoothstep(-0.18, 0.0, sun_dir.y);
+			// The sun as the clouds see it: the shared beam at the deck's
+			// own altitude. Its strength already encodes that the deck sees
+			// over the ground's ridge and holds the light past the ground's
+			// sunset, so there is no elevation gate here any more.
+			vec3 csun = cloud_beam * 2.2;
 			float sigma = 0.055;
 			for (int i = 0; i < 24; i++) {
 				if (i >= steps)
@@ -334,7 +339,10 @@ void sky() {
 					light *= 1.0 - 0.5 * exp(-dens * 3.0);
 					float hf = clamp((wp.y - base_w) / deck, 0.0, 1.0);
 					vec3 amb = mix(sky_horizon.rgb, sky_top.rgb, 0.6) * mix(0.35, 0.75, hf);
-					amb = mix(amb, cloud_twilight_color * 0.7, cloud_twilight_k * 0.6);
+					// A shadowed cloud is lit by the air around it, so in
+					// the twilight window it takes the same air colour the
+					// haze band and the depth fog wear.
+					amb = mix(amb, haze_color.rgb * 0.8, haze_twilight * 0.6);
 					vec3 s = cloud_color.rgb * (csun * (light * phase) + amb);
 					float a = 1.0 - exp(-dens * sigma * dt);
 					acc += T * s * a;
