@@ -5477,6 +5477,13 @@ void GoannaClient::lodPublishRegion(const LodRegionKey &key, LodRegion &r, const
         // already holds the sun below a ridge's crest, which covers the
         // moment a distant mountain's long shadow would have sold.
         r.node->set_cast_shadows_setting(GeometryInstance3D::SHADOW_CASTING_SETTING_OFF);
+        // And no GI: a far tier's contribution to SDFGI at its distance is
+        // nothing, but a static-GI mesh swapping inside cascade range asks
+        // the GPU to re-voxelise, and the far field swaps constantly while
+        // the player travels. The flying hitch census (2026-08-31: medians
+        // healthy, 0.1 per cent lows above 100 ms, GPU bound, only while
+        // the world arrives) is the tail this is aimed at.
+        r.node->set_gi_mode(GeometryInstance3D::GI_MODE_DISABLED);
         // The region mesher builds a cell for node k across [k, k+1] on every
         // axis, while the near mesh centres node k on k, spanning [k-0.5,
         // k+0.5]; Luanti Z is mirrored into Godot, which flips that axis's
