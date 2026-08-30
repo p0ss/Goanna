@@ -170,6 +170,22 @@ Sizing, by what happens to those ~57k lines:
 Verified on a local Mineclonia server on Luanti 5.17.0 with Godot 4.5.1 and
 an RTX 3090, unless marked otherwise.
 
+- First field session on a Terrain Diffusion world (4096 grant, half a
+  million far blocks) reported four faults against the new sky: biome
+  borders flipped the whole dome in one frame (indigo to peach in a few
+  steps), the valley mist band was pinned at spawn height so climbing to
+  that height anywhere wrapped the camera in a veil, the night mist glow
+  banded green like an aurora, and a sunset deck's underside stayed black
+  over gold-flooded land. All four addressed: server sky and cloud sets
+  ease over four seconds, the mist reference tracks terrain (down in
+  seconds, up over ninety), the glow dropped to a third with the hue
+  capped, and both cloud layers take an underside term from the
+  ridge-gated ground beam. The easing and mist tracking are verified by
+  code and fixture only; a biome border cannot be reproduced offline, so
+  the next session on that world is the test. The same session showed the
+  far poll at 65 ms on that world, which is the known far field scale
+  cost, not new.
+
 - The dawn is orchestrated from the horizon each layer actually sees
   (docs/sky-orchestration.md): one transmitted-sun beam behind every warm
   term, per layer horizons behind every timing ramp, the ridge probe in
