@@ -632,6 +632,10 @@ private:
     // Occluder policy and cost: regions further than this (nodes, 0 =
     // unlimited) publish no occluder; the swap ema and count let the cost
     // be watched live. See the swap site in the near region batcher.
+    // The ask scan's rotating Z-row cursor (lodRequestSummaries): the
+    // lattice is walked a slice per firing, full coverage about every two
+    // seconds.
+    int m_far_ask_row = 0;
     int m_occluder_distance = 0;
     double m_ms_occluder_swap = 0.0;
     uint64_t m_occluder_swaps = 0;

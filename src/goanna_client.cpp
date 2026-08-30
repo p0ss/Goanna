@@ -4160,7 +4160,22 @@ void GoannaClient::lodRequestSummaries(const v3s16 &centre, int radius) {
         if (into.size() > want)
             into.pop_back();
     };
-    for (int az = ac.Z - aradius; az <= ac.Z + aradius; ++az)
+    // The lattice walk is sliced by Z row and rotates through the whole
+    // lattice across calls. At a 4096 node grant the full walk is a 65 by
+    // 65 by 9 sweep with a map lookup per cell, and running all of it on
+    // every 250 ms firing burned milliseconds of main thread per second on
+    // the big worlds while finding nothing new (the field mostly asked,
+    // every cell a continue). A slice bounds the cost per call; full
+    // coverage still comes around about every two seconds, which was the
+    // whole rate of this scan before it was hoisted out of lodUpdateFar.
+    // The ray picks above stay global on every call, so what the player is
+    // looking at never waits for the rotation.
+    const int rows = 2 * aradius + 1;
+    const int row_budget = std::max(3, rows / 8);
+    const int row0 = m_far_ask_row % rows;
+    m_far_ask_row = (m_far_ask_row + row_budget) % rows;
+    for (int rz = row0; rz < row0 + row_budget; ++rz) {
+        const int az = ac.Z - aradius + (rz % rows);
         for (int ay = ac.Y - varadius; ay <= ac.Y + varadius; ++ay)
             for (int ax = ac.X - aradius; ax <= ac.X + aradius; ++ax) {
                 const v3s16 origin(ax * kEdge, ay * kEdge, az * kEdge);
@@ -4256,10 +4271,23 @@ void GoannaClient::lodRequestSummaries(const v3s16 &centre, int radius) {
                 // 496, permanently skipping precisely the areas that appear
                 // as a sparse lattice in the distance. Every area is asked
                 // once; m_far_requested suppresses repeats for complete
-                // answers and paces retries for incomplete ones.
-                add_pick(seen && !retrying ? seen_picks
-                                : retrying ? retry_picks : fresh_picks, key, origin);
+                // answers and paces retries for incomplete ones. Ray picks
+                // are added globally after the slice, and are never-asked by
+                // construction, so they cannot be retries.
+                if (!seen)
+                    add_pick(retrying ? retry_picks : fresh_picks, key, origin);
             }
+    }
+    // What the player is looking at joins every call, whatever the slice
+    // rotation is showing.
+    for (const v3s16 &origin : ray_picks) {
+        const int dx = origin.X + kEdge / 2 - centre.X;
+        const int dz = origin.Z + kEdge / 2 - centre.Z;
+        const float measured = std::sqrt((float)(dx * dx + dz * dz)) * (float)MAP_BLOCKSIZE;
+        const int key = vp.of(goanna::ViewPriority::kCoverage,
+                goanna::godotCentreOfBlocks(origin, kEdge, MAP_BLOCKSIZE), measured);
+        add_pick(seen_picks, key, origin);
+    }
     // Reserve one slot for healing an old partial area and use the rest for
     // never-seen frontier. Previously distance alone let the same nearest
     // partial areas win all four slots forever. If either class has fewer
