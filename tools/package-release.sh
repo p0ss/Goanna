@@ -51,11 +51,14 @@ test -f "$STAGE/$EXE" || { echo "export did not produce $STAGE/$EXE" >&2; exit 1
 #   Goanna-<version>-<platform>-x86_64/
 #     Goanna/          the export: exe, .pck, the GDExtension .so or .dll
 #     luanti/           just textures/base/pack (~450 KiB), nothing else
+#     pbr_packs/        bundled Minetest Game and Mineclonia material worldmods
+python3 tools/check-pbr-packs.py
 PKG="dist/Goanna-${VERSION}-${PLATFORM}-x86_64"
 rm -rf "$PKG"
-mkdir -p "$PKG/Goanna" "$PKG/luanti/textures"
+mkdir -p "$PKG/Goanna" "$PKG/luanti/textures" "$PKG/pbr_packs"
 cp -r "$STAGE"/* "$PKG/Goanna/"
 cp -r luanti/textures/base "$PKG/luanti/textures/"
+cp -r pbr_packs/minetest_game pbr_packs/mineclonia "$PKG/pbr_packs/"
 chmod +x "$PKG/Goanna/$EXE" 2>/dev/null || true
 
 # Godot's exporter copies the GDExtension shared library itself (declared in

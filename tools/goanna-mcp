@@ -297,6 +297,34 @@ TOOLS = [
         "inputSchema": {"type": "object", "properties": {}},
     },
     {
+        "name": "goanna_inspect",
+        "description":
+            "Inspect the running client through stable, structured observations. Start "
+            "with target=capabilities to discover the surface. scene returns a bounded "
+            "Godot scene tree; render returns renderer and streaming counters; materials "
+            "returns the active texture path and PBR channel strengths; sky, entities and "
+            "inventory return their current runtime state; node resolves a world position. "
+            "This is the preferred read path; use goanna_run only for questions it cannot answer.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "target": {"type": "string", "enum": ["capabilities", "scene", "render",
+                                                              "materials", "sky", "entities",
+                                                              "inventory", "node"]},
+                "position": {"type": "array", "items": {"type": "number"},
+                             "minItems": 3, "maxItems": 3,
+                             "description": "[x, y, z], required for target=node"},
+                "depth": {"type": "integer", "minimum": 0, "maximum": 8,
+                          "description": "scene depth, default 3"},
+                "limit": {"type": "integer", "minimum": 1, "maximum": 2000,
+                          "description": "maximum scene nodes or entities returned"},
+                "texture": {"type": "string",
+                            "description": "for materials, a game texture filename such as default_stone.png; returns resolved albedo, _n and _s provenance"},
+            },
+            "required": ["target"],
+        },
+    },
+    {
         "name": "goanna_view",
         "description":
             "Put the camera somewhere. teleport goes through the server, so the player "
@@ -494,6 +522,16 @@ def call_tool(name, args, channel, session):
 
     if name == "goanna_status":
         return dict(channel.send("status"), deviations=channel.send("deviations"))
+
+    if name == "goanna_inspect":
+        request = {"target": args.get("target", "capabilities")}
+        if "position" in args:
+            position = vec(args["position"], "position")
+            request["pos"] = [position["x"], position["y"], position["z"]]
+        for key in ("depth", "limit", "texture"):
+            if key in args:
+                request[key] = args[key]
+        return channel.send("inspect", request)
 
     if name == "goanna_view":
         out = {}

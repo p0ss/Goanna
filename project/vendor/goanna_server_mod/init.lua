@@ -360,9 +360,17 @@ local AREA_BLOCKS = AREA * AREA * AREA
 -- million-block interior after the visible-shell fix.
 local STORE_KEY = "fs7s1:"
 local EMPTY_BLOB = string.rep("\0", REC * AREA_BLOCKS)
+local EMPTY_RECORD = string.rep("\0", REC)
 local cache_limit = conf_num("goanna_far_summary_cache_areas", 4096)
 local backfill_enabled = conf_bool("goanna_far_summary_backfill", true)
 local storage = core.get_mod_storage()
+
+-- Declared before load_area because persisted provider guesses must be
+-- rejected when the mapgen that made them is no longer installed. Providers
+-- register during mod loading, before any player can request an area.
+local far_provider = nil
+local settled = {}
+local settled_dirty = false
 
 local store = {}
 local store_count = 0
@@ -433,6 +441,23 @@ local function load_area(ax, ay, az)
 				for i in synth_csv:gmatch("[^,]+") do
 					a.synth[tonumber(i)] = true
 				end
+				-- Synthetic records describe a particular mapgen rather than
+				-- emerged world data. Keeping them after that provider is removed
+				-- makes its old terrain reappear whenever the real blocks leave
+				-- the client's near field.
+				if not far_provider then
+					for i in pairs(a.synth) do
+						if record_known(a.blob, i) then
+							a.known = a.known - 1
+						end
+						a.blob = a.blob:sub(1, i * REC) .. EMPTY_RECORD ..
+							a.blob:sub((i + 1) * REC + 1)
+					end
+					a.synth = nil
+					a.dirty = true
+					settled[key] = nil
+					settled_dirty = true
+				end
 			end
 		end
 	end
@@ -481,8 +506,6 @@ local last_summarised = {}
 -- loading them, and persisted as one list because it is monotonic: the only
 -- things that change a settled area's records, generation and node changes,
 -- keep it settled.
-local settled = {}
-local settled_dirty = false
 do
 	local s = storage:get_string(STORE_KEY .. "settled")
 	for key in s:gmatch("[^,]+") do
@@ -520,7 +543,6 @@ end
 --     opts.water: node name of the water (default "mcl_core:water_source")
 -- Nothing here generates or changes the world, and the server decides to
 -- offer it; the client asks for the same summaries as before.
-local far_provider = nil
 local far_provider_water = "mcl_core:water_source"
 function goanna_register_far_surface(fn, opts)
 	far_provider = fn

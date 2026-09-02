@@ -33,6 +33,11 @@
 # this script deletes a world; they accumulate under Luanti's own data
 # directory and are left for inspection.
 #
+# GOANNA_LAUNCH_TARGET_GRAPHICS may be the Start Game graphics id to exercise
+# (for example pack:/absolute/path/to/craft_and_ruin_pbr). Empty keeps the
+# normal bundled default. This travels through menu.gd's real OptionButton and
+# launch handoff; it is not copied into GOANNA_PACK by this script.
+#
 # The run directory (log, shots, settings.json) is printed on failure; set
 # GOANNA_LAUNCH_TARGET_DIR to choose it and keep it always.
 set -euo pipefail
@@ -91,6 +96,7 @@ printf 'launch target test: starting %s:%s (profile %s), log %s\n' "$game" "$wor
 env \
 	XDG_DATA_HOME="$profile_dir" \
 	GOANNA_LOCAL_TEST="$game:$world" \
+	GOANNA_LOCAL_TEST_GRAPHICS="${GOANNA_LAUNCH_TARGET_GRAPHICS:-}" \
 	GOANNA_CONTROL="$control_port" \
 	"$godot_bin" --path "$repo_dir/project" >"$log" 2>&1 &
 gpid=$!

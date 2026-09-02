@@ -154,7 +154,10 @@ void buildLodChain(const NodeDefManager *ndef, MapBlock *block, BlockLodChain &o
             return it->second;
         const ContentFeatures &f = ndef->get(c);
         ContentClass cc;
-        const bool solid = f.visuals && f.visuals->solidness == 2;
+        // Airlike is authoritative: technical nodes such as Mineclonia's
+        // barriers may carry inventory/PBR images but never have world faces.
+        const bool visible = f.drawtype != NDT_AIRLIKE;
+        const bool solid = visible && f.visuals && f.visuals->solidness == 2;
         // Filled is what draws: a full solid node, anything that looks like a
         // cube (leaves, glass, allfaces: solidness 0, visual_solidness 1, the
         // way node_visuals.cpp classes them) and a liquid, so the sea is a
@@ -162,7 +165,8 @@ void buildLodChain(const NodeDefManager *ndef, MapBlock *block, BlockLodChain &o
         // at range is its canopy, and without them a jungle meshed as the log
         // tops the trunks were standing on. Only solid blocks light, the same
         // rule as the near field in goanna_light.cpp.
-        const bool filled = solid || (f.visuals && f.visuals->visual_solidness >= 1) || f.isLiquid();
+        const bool filled = visible && (solid ||
+                (f.visuals && f.visuals->visual_solidness >= 1) || f.isLiquid());
         const bool lit = f.param_type == CPT_LIGHT && !solid;
         cc.flags = nKnown | (solid ? nSolid : 0) | (filled ? nFilled : 0) |
                 (lit ? nLit : 0) | (f.isLiquid() ? nLiquid : 0);

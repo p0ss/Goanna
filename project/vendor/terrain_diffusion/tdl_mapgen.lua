@@ -426,6 +426,19 @@ core.register_on_generated(function(vmanip, minp, maxp, blockseed)
                         local distance = tdl.water_distance_at(fi_here, fj_here)
                         if distance < 800 then
                                 local level = tdl.water_surface_at(fi_here, fj_here)
+                                local catchment = max(1, tdl.drainage_at(fi_here, fj_here))
+                                local is_channel = catchment >= min_drainage_km2
+                                local half = 0.7 * math.sqrt(catchment)
+                                if half < 2 then half = 2 elseif half > 300 then half = 300 end
+                                if is_channel and distance >= half
+                                        and distance <= tdl.manifest.native_resolution then
+                                        local segment_distance, segment_level =
+                                                tdl.channel_segment_at(fi_here, fj_here, distance)
+                                        if segment_distance < distance then
+                                                distance = segment_distance
+                                                if segment_level then level = segment_level end
+                                        end
+                                end
 
                                 if elevation < level - MAX_INVENTED_DEPTH then
                                         -- Well below the water's own level:
@@ -442,7 +455,6 @@ core.register_on_generated(function(vmanip, minp, maxp, blockseed)
                                         -- knows what a sea floor is made of.
                                         water_y = tdl.surface_y(level)
                                 else
-                                        local catchment = max(1, tdl.drainage_at(fi_here, fj_here))
                                         -- A real channel is worth inventing a
                                         -- bed for, the same catchment the
                                         -- bake needed before it would call
@@ -454,9 +466,6 @@ core.register_on_generated(function(vmanip, minp, maxp, blockseed)
                                         -- the heightmap is the bed, not a
                                         -- profile invented from how much
                                         -- land drains to it.
-                                        local is_channel = catchment >= min_drainage_km2
-                                        local half = 0.7 * math.sqrt(catchment)
-                                        if half < 2 then half = 2 elseif half > 300 then half = 300 end
                                         local deep = 0.35 * (catchment ^ 0.3)
                                         if deep < 1 then deep = 1 elseif deep > 24 then deep = 24 end
 

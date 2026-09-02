@@ -37,6 +37,8 @@ void vertex() {
 	// near block and a far tier's merged quad cannot disagree.
 	v_world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	v_wnormal = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
+	v_wtangent = normalize((MODEL_MATRIX * vec4(TANGENT, 0.0)).xyz);
+	v_wbinormal = normalize((MODEL_MATRIX * vec4(BINORMAL, 0.0)).xyz);
 }
 
 void fragment() {
@@ -100,6 +102,7 @@ void fragment() {
 	METALLIC = 0.0;
 	SPECULAR = 0.2;
 	float pack_ao = 1.0;
+	vec3 relief_normal = vec3(0.0, 0.0, 1.0);
 
 	if (has_normal) {
 		vec4 n = textureGrad(normal_array, vec3(tile_uv, float(layer)), uv_dx, uv_dy);
@@ -111,6 +114,7 @@ void fragment() {
 		// where the row order is the other way about.
 		vec2 xy = (n.rg * 2.0 - 1.0) * normal_strength * pack_normal_gain * (1.0 - flatten);
 		float z = sqrt(clamp(1.0 - dot(xy, xy), 0.0, 1.0));
+		relief_normal = vec3(xy, z);
 		NORMAL_MAP = vec3(xy * 0.5 + 0.5, z * 0.5 + 0.5);
 		NORMAL_MAP_DEPTH = 1.0;
 		// Toward fully lit as the strength falls, so 0 removes the pack's
@@ -216,8 +220,15 @@ void fragment() {
 	// the traced term is the stable one anyway.
 	// Clouds between here and the sun dim the surface, fill and all.
 	ALBEDO *= goanna_cloud_dim(v_world);
-	vec3 fill_col = mix(goanna_ground_fill, goanna_sky_fill, clamp(0.5 + 0.5 * v_wnormal.y, 0.0, 1.0));
-	EMISSION += ALBEDO * fill_col * v_nodelight.g * sky_fill_strength
+	// The sky channel is ambient, but it comes from a hemisphere. Basing its
+	// dominant fill only on the geometric cube face hid normal relief anywhere
+	// a point light was not nearby. Let the decoded normal softly shape it too.
+	vec3 fill_normal = normalize(v_wtangent * relief_normal.x +
+			v_wbinormal * relief_normal.y + v_wnormal * relief_normal.z);
+	float fill_up = clamp(0.5 + 0.5 * fill_normal.y, 0.0, 1.0);
+	vec3 fill_col = mix(goanna_ground_fill, goanna_sky_fill, fill_up);
+	float fill_shape = mix(0.65, 1.0, fill_up);
+	EMISSION += ALBEDO * fill_col * fill_shape * v_nodelight.g * sky_fill_strength
 			* clamp(pack_ao * occ, 0.0, 1.0);
 	// block_light_emission is 1 on the far tiers (baked lamp light instead
 	// of real lights) and 0 on the near mesh, where the fade takes over

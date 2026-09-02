@@ -3,15 +3,12 @@
 // or per-bank draw calls. The sky shader continues the cloud field beyond the
 // froxel range, where true volume resolution would be too coarse to help.
 //
-// Clouds are deliberately not here. Godot's froxel grid is camera relative
-// and ends at volumetric_fog_length, which main.gd caps at 768 nodes, so a
-// cloud deck drawn in it stops partway to the horizon instead of receding to
-// it; and the grid spreads a fixed cell count over that whole distance, so
-// cells are metres across and a cumulus edge cannot exist. Clouds drawn here
-// came out as a dark band low in the sky, which is the grid running out, not
-// a lighting fault. They live in sky.gdshader instead, on a projected deck
-// that has real perspective and no range limit, and the node shaders already
-// read that same deck to cast its shadows on the ground.
+// The complete cloud deck is deliberately not here. Godot's froxel grid is
+// camera relative and ends at volumetric_fog_length, so it cannot carry a
+// deck continuously to the horizon. sky.gdshader draws that full projected
+// field; this volume contributes only the nearby body that the camera may
+// approach or enter. The node shaders read the related deck field for ground
+// shadows.
 //
 // What the grid is good at is exactly this: bounded, close to the camera, and
 // soft-edged by nature.
@@ -39,6 +36,10 @@ uniform vec3 mist_glow : source_color = vec3(0.0);
 // the low sun that really does slide under a deck's edge; this puts the
 // underside light back without ungating the air.
 uniform vec3 cloud_under_glow : source_color = vec3(0.0);
+// Approximate the multiple scattering a water cloud retains. Godot's fog
+// lighting is largely single scattering; without a diffuse floor, dense
+// near-camera cloud extinguishes the sky to black rather than becoming grey.
+uniform vec3 cloud_ambient : source_color = vec3(0.12, 0.14, 0.16);
 
 float hash31(vec3 p) {
 	p = fract(p * 0.1031);
@@ -125,6 +126,7 @@ void fog() {
 	float base_share = clamp(1.0 - (p.y - (cloud_level - half_cloud))
 			/ max(cloud_thickness, 1.0), 0.0, 1.0);
 	EMISSION = total > 0.00001 ?
-			(mist_glow * mist + cloud_under_glow * base_share * cloud) / total
+			(mist_glow * mist + (cloud_ambient
+					+ cloud_under_glow * base_share) * cloud) / total
 			: vec3(0.0);
 }

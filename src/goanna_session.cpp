@@ -1571,10 +1571,88 @@ static bool isImageName(const std::string &name) {
 // a LabPBR pack puts them: mcl_core_stone.png maps to block/stone.png, so
 // block/stone_n.png and block/stone_s.png are its normal and specular. That
 // is the whole reason this is worth having over a diffuse-only converter.
+// Whether a pack directory is a Minecraft resource pack rather than one that
+// already speaks this game's own texture names.
+//
+// The distinction matters because loadMappedPack falls back to a bare filename
+// when a mapped path misses, to save guessing a pack's asset namespace. That
+// is right for a Minecraft pack and actively wrong for a native one: measured
+// against the Craft and Ruin pack (Luanti names throughout), 24 of
+// mineclonia.csv's rows matched only by bare name and inserted art under a
+// stem it was never drawn for, so block/orange_tulip.png landed on
+// flowers_tulip.png. A native pack needs no translation at all: the plain
+// texture_path override already matches it by filename, which is the whole
+// reason it works. So the map is not merely redundant against one, it damages
+// it, and the cheapest correct thing is not to run.
+//
+// Detection is structural rather than a guess at the names: a Minecraft pack
+// carries pack.mcmeta at its root, and keeps art under assets/<namespace>/
+// textures/. An unpacked copy that lost its mcmeta still has the assets tree.
+static bool looksLikeMinecraftPack(const std::string &dir) {
+    std::error_code ec;
+    const std::filesystem::path root(dir);
+    if (std::filesystem::exists(root / "pack.mcmeta", ec))
+        return true;
+    const std::filesystem::path assets = root / "assets";
+    if (!std::filesystem::is_directory(assets, ec))
+        return false;
+    for (auto it = std::filesystem::directory_iterator(assets, ec);
+            it != std::filesystem::directory_iterator(); it.increment(ec)) {
+        if (ec)
+            break;
+        if (it->is_directory(ec) && std::filesystem::is_directory(it->path() / "textures", ec))
+            return true;
+    }
+    return false;
+}
+
+// Native Luanti packs are conventionally looked up through texture_path.
+// Explicitly importing the selected pack is less fragile for Goanna: server
+// media has already been inserted, native packs commonly organise otherwise
+// flat Luanti filenames into namespace subdirectories, and the chosen client
+// pack must unambiguously win for diffuse and companion images alike.
+static size_t loadNativePack(const std::string &pack_dir, GoannaTextureSource *tsrc) {
+    if (pack_dir.empty() || looksLikeMinecraftPack(pack_dir))
+        return 0;
+    std::vector<std::filesystem::path> files;
+    std::error_code ec;
+    for (auto it = std::filesystem::recursive_directory_iterator(pack_dir, ec);
+            it != std::filesystem::recursive_directory_iterator(); it.increment(ec)) {
+        if (ec)
+            break;
+        if (it->is_regular_file(ec) && isImageName(it->path().filename().string()))
+            files.push_back(it->path());
+    }
+    std::sort(files.begin(), files.end());
+    std::set<std::string> inserted;
+    size_t n = 0;
+    for (const auto &path : files) {
+        const std::string name = path.filename().string();
+        // Match Luanti's first recursive-directory hit deterministically when
+        // two namespace folders contain the same flat media name.
+        if (!inserted.insert(name).second)
+            continue;
+        std::ifstream in(path, std::ios::binary);
+        if (!in)
+            continue;
+        std::string bytes((std::istreambuf_iterator<char>(in)),
+                std::istreambuf_iterator<char>());
+        if (!bytes.empty() && tsrc->insertLocalImage(name, bytes))
+            ++n;
+    }
+    return n;
+}
+
 static size_t loadMappedPack(const std::string &map_csv, const std::string &pack_dir,
         GoannaTextureSource *tsrc) {
     if (map_csv.empty() || pack_dir.empty())
         return 0;
+    if (!looksLikeMinecraftPack(pack_dir)) {
+        infostream << "Goanna: texture pack " << pack_dir
+                   << " uses this game's own names, so the name map is not applied"
+                   << std::endl;
+        return 0;
+    }
     std::ifstream f(map_csv);
     if (!f)
         return 0;
@@ -1656,11 +1734,25 @@ bool GoannaSession::prepareContentIfReady() {
                 ++n_img;
         }
     }
-    // 1b. the player's own Minecraft pack, after the media above so it wins.
-    size_t n_map = loadMappedPack(m_texture_map,
-            g_settings ? g_settings->get("texture_path") : std::string(), m_tsrc.get());
+    // 1b. The player's pack, after media so it wins. Native Luanti packs are
+    // indexed by their flat media names; Minecraft packs use the game map.
+    const std::string pack_dir = g_settings ? g_settings->get("texture_path") : std::string();
+    size_t n_native = loadNativePack(pack_dir, m_tsrc.get());
+    if (n_native)
+        infostream << "Goanna: native pack supplied " << n_native << " images" << std::endl;
+    size_t n_map = loadMappedPack(m_texture_map, pack_dir, m_tsrc.get());
     if (n_map)
         infostream << "Goanna: mapped pack supplied " << n_map << " images" << std::endl;
+    // This is deliberately visible in Godot's ordinary output, rather than
+    // only Luanti's info log.  A selected pack is release-critical and this
+    // identifies both whether it was imported and which cobble source won.
+    // Craft and Ruin's default_cobble is 16x16; Goanna's bundled Mineclonia
+    // material is 256x256, making the result an unambiguous runtime probe.
+    core::dimension2du cobble_dim = m_tsrc->getTextureDimensions("default_cobble.png");
+    godot::UtilityFunctions::print("Goanna texture pack: path='",
+            godot::String::utf8(pack_dir.c_str()), "' native=", (int64_t)n_native,
+            " mapped=", (int64_t)n_map, " default_cobble=",
+            (int64_t)cobble_dim.Width, "x", (int64_t)cobble_dim.Height);
     // 2. node definitions: same order as Client::afterContentReceived
     {
         std::lock_guard<std::mutex> lk(m_map_mutex);

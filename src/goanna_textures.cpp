@@ -176,7 +176,14 @@ Ref<Texture2DArray> GoannaTexture::godotArray() {
         Ref<Image> img = goanna_image_to_godot(layer);
         if (img.is_null())
             return m_godot_array;
-        img->generate_mipmaps();
+		// Texture2DArray requires every layer to have exactly the same format.
+		// Authored companion PNGs are commonly RGB8 while inferred/neutral
+		// fallbacks are RGBA8; coverage could therefore report authored maps
+		// even though create_from_images rejected the mixed array and the
+		// material ultimately received no normal or specular texture at all.
+		if (img->get_format() != Image::FORMAT_RGBA8)
+			img->convert(Image::FORMAT_RGBA8);
+		img->generate_mipmaps();
         imgs.push_back(img);
     }
     Ref<Texture2DArray> tex;
@@ -870,6 +877,16 @@ bool GoannaTextureSource::insertMediaImage(const std::string &name, const std::s
     // which is not what a texture pack is. Costs one getTexturePath lookup per
     // media file at load, the same as vanilla pays.
     m_imagesource.insertSourceImage(name, img, true);
+    img->drop();
+    m_known_source[name] = true;
+    return true;
+}
+
+bool GoannaTextureSource::insertLocalImage(const std::string &name, const std::string &bytes) {
+    video::IImage *img = goanna_decode_image_memory(bytes, name);
+    if (!img)
+        return false;
+    m_imagesource.insertSourceImage(name, img, false);
     img->drop();
     m_known_source[name] = true;
     return true;

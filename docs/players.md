@@ -41,6 +41,16 @@ The launcher rejects that combination because old mapblocks would remain and
 produce two overlapping landscapes.
 
 The same screen controls creative mode, damage, mods and optional hosting.
+For Minetest Game and Mineclonia worlds its Materials dropdown serves
+Goanna's bundled PBR set by default, can select an installed texture pack such
+as Craft and Ruin as a client-side overlay, or can choose Standard to disable
+PBR. An installed style pack takes precedence for textures it supplies while
+the bundled set fills uncovered game textures.
+
+When joining a remote server, choose **None / server default**, **Bundled
+Minetest Game PBR** or **Bundled Mineclonia PBR** on the Join Game screen.
+Remote selection is client-side and supplies only normal and material
+companions, so a server's Iron, Stone or other style textures stay visible.
 Hosting starts a normal Luanti server and can expose a name, description,
 password, port, player limit and public-list announcement.
 

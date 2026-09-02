@@ -41,6 +41,9 @@ var terrain_ref_set := false
 var cloud_speed := Vector2(-2.0, 0.0)
 var cloud_height := 120.0
 var cloud_thickness := 16.0
+# Optical depth around the eye, sampled from the same local fog-volume field.
+# It gates post effects that otherwise draw on top of a cloud they cannot see.
+var camera_cloud_opacity := 0.0
 # The mist's diurnal cycle: thicker through the night and predawn, burning
 # off through the morning. _apply_sky owns it; the per frame density set in
 # _update_environment_extras multiplies by it.
@@ -576,8 +579,16 @@ func _ready() -> void:
 	# Either way it has to be set before connect_to, because texture requests
 	# start as soon as the session does.
 	var pack := OS.get_environment("GOANNA_PACK")
-	if pack == "" and cfg.load("user://goanna.cfg") == OK:
+	# Join Game always sets GOANNA_PACK_SET, including for its explicit None.
+	# An empty GOANNA_PACK without that marker means no command-line override
+	# was supplied and the saved global setting still applies.
+	if OS.get_environment("GOANNA_PACK_SET") == "" and pack == "" \
+			and cfg.load("user://goanna.cfg") == OK:
 		pack = str(cfg.get_value("settings", "texture_pack", ""))
+	# PBR is the normal/default rendering path. Only the launch screen's
+	# explicit Standard choice disables server- or pack-supplied companions.
+	if OS.get_environment("GOANNA_PBR_SET") == "":
+		OS.set_environment("GOANNA_NO_PBR", "")
 	# A name map lets that pack be an unmodified Minecraft resource pack, whose
 	# files are named nothing like a Luanti game's. Without one, only a pack
 	# already using this game's names does anything.
@@ -659,6 +670,15 @@ func _ready() -> void:
 			add_child(cc)
 		else:
 			push_error("GOANNA_CONTROL is set but control_channel.gd is not in this build")
+	# Experimental player-agent protocol. This is a distinct, read-only
+	# endpoint: it deliberately cannot reach the privileged control dispatcher.
+	if OS.get_environment("GOANNA_PLAYER_AGENT") != "":
+		if ResourceLoader.exists("res://player_agent_channel.gd"):
+			var pa: Node = (load("res://player_agent_channel.gd") as GDScript).new()
+			pa.main = self
+			add_child(pa)
+		else:
+			push_error("GOANNA_PLAYER_AGENT is set but player_agent_channel.gd is not in this build")
 	# GOANNA_BENCH=1: build the frame recorder now rather than when the first
 	# bench command arrives, because the load stamps it takes start at process
 	# start and a driver cannot connect that early. It is added after the
@@ -673,7 +693,14 @@ func _ready() -> void:
 			push_error("GOANNA_BENCH is set but bench.gd is not in this build")
 	# A control session is usually unattended, and grabbing the pointer there
 	# takes the mouse away from whoever is watching. Escape still toggles it.
-	if OS.get_environment("GOANNA_SHOT") == "" and OS.get_environment("GOANNA_CONTROL") == "":
+	#
+	# The showcase is the menu's backdrop, not a session anyone is playing: the
+	# pointer belongs to the menu in front of it. Capturing it here is what made
+	# the menu feel broken, because the cursor vanished the moment the backdrop
+	# finished connecting and every click after that went to a camera nobody
+	# was driving.
+	if OS.get_environment("GOANNA_SHOT") == "" and OS.get_environment("GOANNA_CONTROL") == "" \
+			and not showcase_mode:
 		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 
 # Bob the camera along a walk cycle while moving on the ground: vertical at
@@ -881,15 +908,28 @@ func _process(delta: float) -> void:
 	_update_connect_overlay(s)
 	if showcase_mode and not showcase_placed and s.get("state") == "ready":
 		showcase_placed = true
+		# Claim ordinary placement before teleport_to yields. _process continues
+		# running while that coroutine waits for the server and streaming; leaving
+		# placed false lets the ordinary ready path below move the camera back to
+		# the old player position on the next frame. wait_for_streaming then tiers
+		# that old location, and the menu opens at the village with only its coarse
+		# stored far meshes available.
+		placed = true
 		fly_mode = true
 		var showcase_pos := Vector3(float(OS.get_environment("GOANNA_SHOWCASE_X")),
 				float(OS.get_environment("GOANNA_SHOWCASE_Y")),
 				float(OS.get_environment("GOANNA_SHOWCASE_Z")))
 		cam.position = showcase_pos + Vector3(0, 1.6, 0)
-		await teleport_to(showcase_pos)
-		cam.position = showcase_pos + Vector3(0, 1.6, 0)
+		# Apply the final view before waiting too. The server and both mesh
+		# schedulers prioritise the camera cone; setting this afterwards filled
+		# yaw zero first and left the actual menu foreground on far fallbacks.
 		pitch = -8.0
 		yaw = float(OS.get_environment("GOANNA_SHOWCASE_YAW"))
+		cam.rotation_degrees = Vector3(pitch, yaw, 0)
+		atmosphere_ground = showcase_pos.y
+		atmosphere_ground_set = true
+		await teleport_to(showcase_pos)
+		cam.position = showcase_pos + Vector3(0, 1.6, 0)
 		cam.rotation_degrees = Vector3(pitch, yaw, 0)
 		if headlight:
 			headlight_auto = false
@@ -1044,7 +1084,9 @@ func _process(delta: float) -> void:
 		last_print = t
 		# GOANNA_DUMPTEX="dir=name1,name2": save generated textures (including
 		# texture-modifier expressions) as PNGs, for inspecting composites.
-		if OS.get_environment("GOANNA_DUMPTEX") != "" and int(t) == 3:
+		var dumptex_at := int(OS.get_environment("GOANNA_DUMPTEX_AT")) \
+				if OS.get_environment("GOANNA_DUMPTEX_AT") != "" else 3
+		if OS.get_environment("GOANNA_DUMPTEX") != "" and int(t) == dumptex_at:
 			var spec := OS.get_environment("GOANNA_DUMPTEX").split("=")
 			for nm in spec[1].split(","):
 				var tx: Texture2D = client.texture(nm)
@@ -1817,6 +1859,10 @@ func _update_environment_extras() -> void:
 			headlight.light_color = Color(1.0, 0.96, 0.9).lerp(Color(1.0, 0.72, 0.42), carried)
 	# scroll the cloud layer by the server's cloud speed
 	cloud_off += cloud_speed * get_process_delta_time() * 0.004
+	var local_cloud := _local_cloud_density(cam.position)
+	var opacity_target := 1.0 - exp(-local_cloud * 70.0)
+	camera_cloud_opacity = lerpf(camera_cloud_opacity, opacity_target,
+			1.0 - exp(-get_process_delta_time() / 0.35))
 	sky_mat.set_shader_parameter("cloud_offset", cloud_off)
 	# Signed height relative to the eye. Clamping this above the camera made the
 	# visual deck rise forever as the player flew, so it behaved like a ceiling
@@ -1850,6 +1896,7 @@ func _update_environment_extras() -> void:
 		atmosphere_mat.set_shader_parameter("mist_density",
 				0.012 * (0.35 + cloud_cov) * atmosphere_quality * mist_cycle)
 		atmosphere_mat.set_shader_parameter("quality", atmosphere_quality)
+
 	# The horizon bake: ask again when the camera has drifted or the clock
 	# has run down; collect whatever a worker finished. The inner radius
 	# tracks the drawn edge so the panorama begins where meshes end.
@@ -1922,6 +1969,56 @@ func _update_environment_extras() -> void:
 # Read a tuning override from the environment, falling back to the default.
 # Push the lighting levels onto the environment. The sun follows on the next
 # frame through _apply_sky, which reads light_sun directly.
+# Exact CPU counterpart of atmosphere_volume.gdshader's local cloud field.
+# The sky cloud march already knows its own per-ray transmittance, but the
+# additive shaft pass runs later with fog disabled; this gives that pass the
+# optical depth at the camera instead of letting it shine through the volume.
+func _cloud_hash31(p: Vector3) -> float:
+	p = Vector3(fposmod(p.x * 0.1031, 1.0), fposmod(p.y * 0.1031, 1.0),
+			fposmod(p.z * 0.1031, 1.0))
+	p += Vector3.ONE * p.dot(Vector3(p.y, p.z, p.x) + Vector3.ONE * 33.33)
+	return fposmod((p.x + p.y) * p.z, 1.0)
+
+func _cloud_noise3(p: Vector3) -> float:
+	var i := p.floor()
+	var f := p - i
+	f = Vector3(f.x * f.x * (3.0 - 2.0 * f.x),
+			f.y * f.y * (3.0 - 2.0 * f.y), f.z * f.z * (3.0 - 2.0 * f.z))
+	var x00 := lerpf(_cloud_hash31(i), _cloud_hash31(i + Vector3.RIGHT), f.x)
+	var x10 := lerpf(_cloud_hash31(i + Vector3.UP),
+			_cloud_hash31(i + Vector3.RIGHT + Vector3.UP), f.x)
+	var x01 := lerpf(_cloud_hash31(i + Vector3.BACK),
+			_cloud_hash31(i + Vector3.RIGHT + Vector3.BACK), f.x)
+	var x11 := lerpf(_cloud_hash31(i + Vector3.UP + Vector3.BACK),
+			_cloud_hash31(i + Vector3.ONE), f.x)
+	return lerpf(lerpf(x00, x10, f.y), lerpf(x01, x11, f.y), f.z)
+
+func _local_cloud_density(world: Vector3) -> float:
+	if cloud_cov <= 0.01 or atmosphere_quality <= 0.01:
+		return 0.0
+	var thick := maxf(cloud_thickness, 48.0)
+	var half_cloud := maxf(thick * 0.5, 4.0)
+	var ch := 1.0 - absf(world.y - cloud_height) / half_cloud
+	if ch <= 0.0:
+		return 0.0
+	var profile := smoothstep(0.0, 0.22, ch) * smoothstep(0.0, 0.18, ch)
+	var p := Vector3(world.x * 0.006 + cloud_off.x * 0.12, world.y * 0.018,
+			world.z * 0.006 + cloud_off.y * 0.12)
+	var value := _cloud_noise3(p) * 0.55
+	var weight := 0.55
+	if atmosphere_quality > 0.34:
+		p = p * 2.03 + Vector3(7.1, 3.7, 1.9)
+		value += _cloud_noise3(p) * 0.264
+		weight += 0.264
+	if atmosphere_quality > 0.67:
+		p = p * 2.03 + Vector3(7.1, 3.7, 1.9)
+		value += _cloud_noise3(p) * 0.127
+		weight += 0.127
+	var shape := value / weight
+	var threshold := lerpf(0.76, 0.32, cloud_cov)
+	return 0.026 * atmosphere_quality * profile \
+			* smoothstep(threshold, threshold + 0.18, shape)
+
 func apply_lighting() -> void:
 	if env == null or env.environment == null:
 		return
@@ -2215,6 +2312,13 @@ func _apply_sky() -> void:
 		var cunder: Color = sun_glow * 0.35
 		atmosphere_mat.set_shader_parameter("cloud_under_glow",
 				Vector3(cunder.r, cunder.g, cunder.b))
+		# Water droplets recycle diffuse sky light through many scattering
+		# events. The froxel renderer models mostly single scattering, so without
+		# this floor a ray beginning inside cloud behaves like black absorption,
+		# even when it immediately exits behind the player.
+		var camb: Color = hor.lerp(zenith, 0.35) * (0.16 + 0.30 * day)
+		atmosphere_mat.set_shader_parameter("cloud_ambient",
+				Vector3(camb.r, camb.g, camb.b))
 	# What the baked horizon's land is lit by, from the same authorities as
 	# everything else: the sky's ambient share, the beam's lambert-ish
 	# average, and the night floor so distant ridges do not go blacker than
@@ -2671,7 +2775,12 @@ func _apply_sky() -> void:
 		# clouds cast no shadow map, so under full overcast the froxel air was
 		# still lit by the bare sun and a white radial wall swallowed the
 		# horizon whenever the camera faced it.
-		var sun_open: float = 1.0 - 0.9 * smoothstep(0.35, 0.9, cloud_cov)
+		var deck_open: float = 1.0 - 0.9 * smoothstep(0.35, 0.9, cloud_cov)
+		# Coverage describes the whole weather system. A post effect also needs
+		# the optical depth at this camera, or it draws a full-strength sun over
+		# the blackened result after the fog pass.
+		var camera_open: float = 1.0 - 0.95 * camera_cloud_opacity
+		var sun_open: float = deck_open * camera_open
 		sun.light_volumetric_fog_energy = 2.4 * light_shafts * sun_open
 		# A strong moon contribution projected the froxel field onto hills like a
 		# radial screen overlay. The broad moon halo belongs in the sky shader;

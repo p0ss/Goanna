@@ -183,6 +183,10 @@ public:
 
     // Goanna: register a media file's bytes as a source image (decoded here).
     bool insertMediaImage(const std::string &name, const std::string &bytes);
+    // Register an explicitly selected client-pack image. Unlike server media,
+    // its bytes are already the preferred local source and need no second
+    // filesystem override lookup.
+    bool insertLocalImage(const std::string &name, const std::string &bytes);
     GoannaTexture *goannaTexture(u32 id);
     // The real image name behind a tile: an array texture's own name is not a
     // loadable image, so anything building a texture-modifier string (crack

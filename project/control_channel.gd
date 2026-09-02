@@ -43,6 +43,7 @@ const COMMANDS := {
 	"label": "text: what this session is testing, shown on screen",
 	"ping": "liveness, and how long the client has been up",
 	"status": "session state, camera pose, block and entity counts",
+	"inspect": "target: structured scene, render, material, sky, entity, inventory or node data",
 	"tp": "x,y,z: server side teleport, then wait for blocks to arrive",
 	"pose": "x,y,z / pitch / yaw / fly: place the camera, no server move",
 	"look": "x,y,z: aim the camera at a point",
@@ -244,6 +245,8 @@ func _dispatch(cmd: String, a: Dictionary) -> Variant:
 			st["time_of_day_override"] = _tod
 			st["precipitation"] = _precipitation()
 			return st
+		"inspect":
+			return _inspect(a)
 		"tp":
 			var want = _vec3(a)
 			if want == null:
@@ -364,6 +367,69 @@ func _dispatch(cmd: String, a: Dictionary) -> Variant:
 			_quit_soon()
 			return {"quitting": true}
 	return _err("unknown command '%s'; try help" % cmd)
+
+# Stable, named observations for the questions a development agent asks most.
+# Keep these separate from `run`: callers should not need repository-specific
+# GDScript merely to discover the scene tree or diagnose a material problem.
+func _inspect(a: Dictionary) -> Variant:
+	var target := String(a.get("target", "capabilities"))
+	match target:
+		"capabilities":
+			return {
+				"interface": "goanna-dev/0.1",
+				"targets": ["capabilities", "scene", "render", "materials",
+					"sky", "entities", "inventory", "node"],
+				"mutating_commands": ["tp", "pose", "look", "fly", "time",
+					"weather", "spawn", "give", "chat", "set", "reload_shader",
+					"call", "eval", "run", "bench", "route", "quit"],
+				"privileged": true,
+			}
+		"scene":
+			var depth := clampi(int(a.get("depth", 3)), 0, 8)
+			var limit := clampi(int(a.get("limit", 200)), 1, 2000)
+			var count := [0]
+			return {"root": _inspect_scene(get_tree().root, depth, limit, count),
+				"nodes": count[0], "truncated": count[0] >= limit}
+		"render":
+			return _client().render_stats()
+		"materials":
+			var strengths := {}
+			for channel in ["normal", "ao", "roughness", "specular", "emission", "sss"]:
+				strengths[channel] = _client().material_strength(channel)
+			var diagnostics: Dictionary = _client().material_diagnostics(String(a.get("texture", "")))
+			diagnostics["strengths"] = strengths
+			return diagnostics
+		"sky":
+			return _client().sky_state()
+		"entities":
+			var entities: Array = _client().entity_list()
+			var limit := clampi(int(a.get("limit", 100)), 1, 1000)
+			return {"total": entities.size(), "entities": entities.slice(0, limit),
+				"truncated": entities.size() > limit}
+		"inventory":
+			return _client().inventory_state()
+		"node":
+			var pos = _vec3(a)
+			if pos == null:
+				return _err("inspect node wants x, y, z (or pos: [x, y, z])")
+			return {"position": pos, "name": _client().node_name_at(pos)}
+	return _err("unknown inspect target '%s'" % target)
+
+func _inspect_scene(node: Node, depth: int, limit: int, count: Array) -> Dictionary:
+	if count[0] >= limit:
+		return {}
+	count[0] += 1
+	var out := {"name": node.name, "type": node.get_class(), "path": str(node.get_path())}
+	if depth <= 0:
+		out["children"] = node.get_child_count()
+		return out
+	var children := []
+	for child in node.get_children():
+		if count[0] >= limit:
+			break
+		children.append(_inspect_scene(child, depth - 1, limit, count))
+	out["children"] = children
+	return out
 
 func _pose() -> Dictionary:
 	return {"position": main.cam.position, "pitch": main.pitch, "yaw": main.yaw,

@@ -108,8 +108,11 @@ Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
                 return Ref<Texture2D>();
             return Ref<Texture2D>(cgt->godotTexture());
         };
-        normal_tex = lookup("_n");
-        spec_tex = lookup("_s");
+		const char *no_pbr_env = getenv("GOANNA_NO_PBR");
+		if (!no_pbr_env || !*no_pbr_env) {
+            normal_tex = lookup("_n");
+            spec_tex = lookup("_s");
+        }
     }
 
     // No authored relief: the same inference the node array path makes for

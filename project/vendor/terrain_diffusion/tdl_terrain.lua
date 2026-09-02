@@ -210,6 +210,68 @@ function tdl.water_surface_at(fi, fj)
         return bilinear("water", fi, fj, -30000)
 end
 
+-- Reconstruct the centre line between adjacent wet pixels. A distance raster
+-- sampled at pixel centres is not enough for a narrow stream: two diagonal
+-- zeroes only meet at one mathematical point after bilinear interpolation, so
+-- a two metre channel sampled from 30 m pixels becomes a row of disconnected
+-- puddles. Treating adjacent wet centres as line segments preserves the route
+-- while still allowing the mapgen to choose a width at node resolution.
+--
+-- Returns distance in metres and the surface interpolated along the closest
+-- segment. The small search is only needed near water and is bounded to 5x5
+-- native pixels.
+function tdl.channel_segment_at(fi, fj, raster_distance)
+        if raster_distance > manifest.native_resolution then
+                return raster_distance, nil
+        end
+
+        local function field_at(name, pi, pj, missing)
+                local ti = math.floor(pi / TILE_PX)
+                local tj = math.floor(pj / TILE_PX)
+                local tile = get_tile(ti, tj)
+                if not tile then return missing end
+                local li = pi - ti * TILE_PX
+                local lj = pj - tj * TILE_PX
+                return tile[name][li * TILE_PX + lj + 1]
+        end
+
+        local best = raster_distance / manifest.native_resolution
+        local best_level = nil
+        local i0, j0 = math.floor(fi), math.floor(fj)
+        for pi = i0 - 1, i0 + 1 do
+                for pj = j0 - 1, j0 + 1 do
+                        if field_at("water_distance", pi, pj, 1) == 0 then
+                                -- Half of the eight neighbours avoids testing
+                                -- every undirected segment twice.
+                                for di = 0, 1 do
+                                        for dj = -1, 1 do
+                                                if not (di == 0 and dj <= 0) then
+                                                        local qi, qj = pi + di, pj + dj
+                                                        if field_at("water_distance", qi, qj, 1) == 0 then
+                                                                local vi, vj = qi - pi, qj - pj
+                                                                local length2 = vi * vi + vj * vj
+                                                                local t = ((fi - pi) * vi + (fj - pj) * vj) / length2
+                                                                if t < 0 then t = 0 elseif t > 1 then t = 1 end
+                                                                local ni = pi + t * vi
+                                                                local nj = pj + t * vj
+                                                                local dfi, dfj = fi - ni, fj - nj
+                                                                local d = math.sqrt(dfi * dfi + dfj * dfj)
+                                                                if d < best then
+                                                                        local a = field_at("water", pi, pj, -30000)
+                                                                        local b = field_at("water", qi, qj, -30000)
+                                                                        best = d
+                                                                        best_level = a + (b - a) * t
+                                                                end
+                                                        end
+                                                end
+                                        end
+                                end
+                        end
+                end
+        end
+        return best * manifest.native_resolution, best_level
+end
+
 -- Bilinear elevation in metres at a fractional pixel position. The model works
 -- at 30 m, so everything finer than that is interpolation, not new information.
 function tdl.elevation_at(fi, fj)

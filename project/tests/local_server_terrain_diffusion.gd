@@ -25,6 +25,7 @@ func _initialize() -> void:
 	_assert(server._prepare_terrain_diffusion_meta(world) == "", "map metadata preparation failed")
 	_assert(server._install_terrain_diffusion(world) == "", "runtime deployment failed")
 	_assert(server._install_server_mod(world) == "", "Goanna server mod deployment failed")
+	_assert(server._install_pbr_mod(world, "minetest") == "", "Minetest Game PBR deployment failed")
 	var prepared := FileAccess.get_file_as_string(world.path_join("map_meta.txt"))
 	_assert(prepared.contains("seed = 123"), "world seed was discarded")
 	_assert(prepared.contains("mg_name = singlenode"), "singlenode was not selected")
@@ -35,6 +36,9 @@ func _initialize() -> void:
 	for filename in LocalServer.GOANNA_SERVER_MOD_FILES:
 		_assert(FileAccess.file_exists(world.path_join("worldmods/goanna_server_mod").path_join(filename)),
 			"Goanna server mod file was not deployed: " + filename)
+	_assert(FileAccess.file_exists(world.path_join(
+		"worldmods/goanna_pbr/textures/default_stone_n.png")),
+		"bundled Minetest Game PBR material was not deployed")
 	var default_world := base.path_join("worlds").path_join("default_test")
 	DirAccess.make_dir_recursive_absolute(default_world)
 	var cached_bake := base.path_join("content").path_join(LocalServer.DEFAULT_TERRAIN_ID)
@@ -68,6 +72,8 @@ func _initialize() -> void:
 	_assert(world_settings.contains("creative_mode = true"), "creative mode was not persisted")
 	_assert(world_settings.contains("enable_damage = false"), "damage setting was not persisted")
 	_assert(world_settings.contains("load_mod_test_mod = true"), "enabled mod was not persisted")
+	_assert(world_settings.contains("load_mod_goanna_pbr = false"),
+		"unsupported games did not disable the bundled PBR mod")
 	_assert(LocalServer.world_options(base, "default_test").get("terrain_diffusion", false),
 		"structured world reader lost the terrain generator")
 	_assert(LocalServer.delete_world_recoverably(base, "default_test") == "",

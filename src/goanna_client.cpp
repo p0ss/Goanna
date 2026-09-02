@@ -73,6 +73,53 @@ inline void ema(double &acc, double sample) { acc = acc * 0.9 + sample * 0.1; }
 // so this constant is zero today; it is named rather than assumed.
 const uint64_t kNodeSurfaceFlags =
         (uint64_t)Mesh::ARRAY_CUSTOM_RGBA8_UNORM << Mesh::ARRAY_FORMAT_CUSTOM0_SHIFT;
+
+// Godot's NORMAL_MAP output is tangent-space. Luanti's node mesh carries
+// positions, normals and UVs but no tangents, so merely binding a valid _n
+// array cannot perturb the geometric normal. Build the missing basis once at
+// upload time from the same indexed triangles and UVs the shader will sample.
+PackedFloat32Array node_tangents(const PackedVector3Array &verts,
+        const PackedVector3Array &norms, const PackedVector2Array &uvs,
+        const PackedInt32Array &indices) {
+    const int nv = verts.size();
+    std::vector<Vector3> tan((size_t)nv), bitan((size_t)nv);
+    for (int i = 0; i + 2 < indices.size(); i += 3) {
+        const int ia = indices[i], ib = indices[i + 1], ic = indices[i + 2];
+        if (ia < 0 || ib < 0 || ic < 0 || ia >= nv || ib >= nv || ic >= nv)
+            continue;
+        const Vector3 e1 = verts[ib] - verts[ia];
+        const Vector3 e2 = verts[ic] - verts[ia];
+        const Vector2 d1 = uvs[ib] - uvs[ia];
+        const Vector2 d2 = uvs[ic] - uvs[ia];
+        const float det = d1.x * d2.y - d1.y * d2.x;
+        if (Math::abs(det) < 1e-8f)
+            continue;
+        const float r = 1.0f / det;
+        const Vector3 t = (e1 * d2.y - e2 * d1.y) * r;
+        const Vector3 b = (e2 * d1.x - e1 * d2.x) * r;
+        for (int v : {ia, ib, ic}) {
+            tan[(size_t)v] += t;
+            bitan[(size_t)v] += b;
+        }
+    }
+    PackedFloat32Array out;
+    out.resize(nv * 4);
+    for (int i = 0; i < nv; ++i) {
+        const Vector3 n = norms[i].normalized();
+        Vector3 t = tan[(size_t)i] - n * n.dot(tan[(size_t)i]);
+        if (t.length_squared() < 1e-8f) {
+            const Vector3 axis = Math::abs(n.y) < 0.9f ? Vector3(0, 1, 0) : Vector3(1, 0, 0);
+            t = axis.cross(n);
+        }
+        t.normalize();
+        const float handedness = n.cross(t).dot(bitan[(size_t)i]) < 0.0f ? -1.0f : 1.0f;
+        out[i * 4] = t.x;
+        out[i * 4 + 1] = t.y;
+        out[i * 4 + 2] = t.z;
+        out[i * 4 + 3] = handedness;
+    }
+    return out;
+}
 // Light-emitting faces sit outside node lights' shadow caster mask. The sun
 // still sees this layer.
 const uint32_t GLOW_LAYER = 1u << 1;
@@ -464,6 +511,7 @@ void GoannaClient::nearPublishBatch(const v3s16 &key, NearRegion &region,
             arrays.resize(Mesh::ARRAY_MAX);
             arrays[Mesh::ARRAY_VERTEX] = acc.verts;
             arrays[Mesh::ARRAY_NORMAL] = acc.norms;
+			arrays[Mesh::ARRAY_TANGENT] = node_tangents(acc.verts, acc.norms, acc.uvs, acc.idx);
             arrays[Mesh::ARRAY_TEX_UV] = acc.uvs;
             arrays[Mesh::ARRAY_TEX_UV2] = acc.uv2s;
             arrays[Mesh::ARRAY_COLOR] = acc.cols;
@@ -983,12 +1031,75 @@ String GoannaClient::texture_path() const {
     return m_texture_path;
 }
 
+Dictionary GoannaClient::material_diagnostics(const String &texture_name) const {
+    Dictionary out;
+    out["texture_path"] = m_texture_path;
+    const char *disabled = getenv("GOANNA_NO_PBR");
+    out["pbr_disabled"] = disabled && *disabled;
+    out["materials"] = (int)m_materials.size();
+
+    int shader_materials = 0, array_materials = 0, normals_bound = 0, specs_bound = 0;
+    for (const auto &entry : m_materials) {
+        Ref<ShaderMaterial> sm = entry.second;
+        if (sm.is_null())
+            continue;
+        ++shader_materials;
+        Variant has_normal = sm->get_shader_parameter("has_normal");
+        Variant has_spec = sm->get_shader_parameter("has_spec");
+        if (has_normal.get_type() == Variant::BOOL || has_spec.get_type() == Variant::BOOL) {
+            ++array_materials;
+            if (has_normal.get_type() == Variant::BOOL && (bool)has_normal)
+                ++normals_bound;
+            if (has_spec.get_type() == Variant::BOOL && (bool)has_spec)
+                ++specs_bound;
+        }
+    }
+    Dictionary built;
+    built["shader_materials"] = shader_materials;
+    built["array_materials"] = array_materials;
+    built["normal_arrays_bound"] = normals_bound;
+    built["spec_arrays_bound"] = specs_bound;
+    out["built"] = built;
+
+    if (!texture_name.is_empty() && m_session && m_session->tsrc()) {
+        std::string base(texture_name.utf8().get_data());
+        const size_t dot = base.rfind('.');
+        auto companion = [&](const char *suffix) {
+            return (dot == std::string::npos ? base : base.substr(0, dot)) + suffix +
+                    (dot == std::string::npos ? std::string() : base.substr(dot));
+        };
+        Dictionary files;
+        for (const char *suffix : {"", "_n", "_s"}) {
+            std::string name = *suffix ? companion(suffix) : base;
+            const bool found = m_session->tsrc()->isKnownSourceImage(name);
+            Dictionary file;
+            file["name"] = String(name.c_str());
+            file["found"] = found;
+            if (found) {
+                core::dimension2du size = m_session->tsrc()->getTextureDimensions(name);
+                file["width"] = (int)size.Width;
+                file["height"] = (int)size.Height;
+            }
+            files[String(*suffix ? suffix + 1 : "albedo")] = file;
+        }
+        out["texture"] = texture_name;
+        out["resolved"] = files;
+    }
+    return out;
+}
+
 void GoannaClient::connect_to(const String &host, int port, const String &player_name,
         const String &password) {
     // Luanti's base texture pack lives in the luanti/ checkout next to project/.
     String share = ProjectSettings::get_singleton()->globalize_path("res://../luanti");
     GoannaSession::setSharePath(share.utf8().get_data());
     nearClear();
+    // Materials retain the outgoing session's texture objects. Texture ids
+    // start over for each connection, so keeping this cache makes a later
+    // pack reuse shader materials still bound to the first pack's arrays.
+    m_materials.clear();
+    m_fake_liquid_tex.clear();
+    m_fake_liquid_built = false;
     m_session = std::make_unique<GoannaSession>();
     // The camera is created before connect_to(), so _report_fov() normally
     // arrives before the session. Apply the retained cone before the first
@@ -1039,8 +1150,15 @@ void GoannaClient::connect_to(const String &host, int port, const String &player
     // GoannaSession's constructor is what creates g_settings; set_texture_path
     // could only remember the value, not apply it, if called first as
     // documented. Apply it now, before start() begins requesting textures.
-    if (!m_texture_path.is_empty() && g_settings)
+    if (!m_texture_path.is_empty() && g_settings) {
         g_settings->set("texture_path", std::string(m_texture_path.utf8().get_data()));
+        // A session constructs the Luanti globals before this retained path can
+        // be applied. Texture lookup is process-global and may already contain
+        // misses (or directories from the preceding session), so without the
+        // same invalidation set_texture_path performs, local-only _n/_s files
+        // remain invisible for the lifetime of the process.
+        clearTextureNameCache();
+    }
     m_session->start(host.utf8().get_data(), (uint16_t)port, player_name.utf8().get_data(),
             password.utf8().get_data());
     // GOANNA_MESH_THREADS seeds the setting for a scripted run: -1 keeps
@@ -2259,10 +2377,14 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
             // map contributes from what swapping the albedo contributes. The
             // two are easy to confuse: a pack changes both at once, and the
             // albedo is much the louder of them.
-            Ref<Texture2DArray> nrm = getenv("GOANNA_NO_NORMAL")
+			const char *no_pbr_env = getenv("GOANNA_NO_PBR");
+			const bool pbr_disabled = no_pbr_env && *no_pbr_env;
+            Ref<Texture2DArray> nrm = (pbr_disabled || getenv("GOANNA_NO_NORMAL"))
                     ? Ref<Texture2DArray>()
                     : agt->godotArraySuffixed(*m_session->tsrc(), "_n");
-            Ref<Texture2DArray> spc = agt->godotArraySuffixed(*m_session->tsrc(), "_s");
+            Ref<Texture2DArray> spc = pbr_disabled
+                    ? Ref<Texture2DArray>()
+                    : agt->godotArraySuffixed(*m_session->tsrc(), "_s");
             for (const auto &d : kMatStrengthDefaults)
                 sm->set_shader_parameter(String(d.first.c_str()) + String("_strength"),
                         material_strength(String(d.first.c_str())));
@@ -2450,8 +2572,13 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
                 GoannaTexture *cgt = dynamic_cast<GoannaTexture *>(m_session->tsrc()->getTexture(name));
                 return cgt ? Ref<Texture2D>(cgt->godotTexture()) : Ref<Texture2D>();
             };
-            Ref<Texture2D> nrm_tex = lookup("_n");
-            Ref<Texture2D> spc_tex = lookup("_s");
+            Ref<Texture2D> nrm_tex;
+            Ref<Texture2D> spc_tex;
+			const char *no_pbr_env = getenv("GOANNA_NO_PBR");
+			if (!no_pbr_env || !*no_pbr_env) {
+                nrm_tex = lookup("_n");
+                spc_tex = lookup("_s");
+            }
             sm->set_shader_parameter("has_normal", nrm_tex.is_valid());
             sm->set_shader_parameter("has_spec", spc_tex.is_valid());
             if (nrm_tex.is_valid())
@@ -4848,12 +4975,27 @@ void GoannaClient::lodTakeSummaries(const Vector3 &around) {
                         if (code != 0) {
                             const content_t content = name_of(code, CONTENT_UNKNOWN);
                             const ContentFeatures &f = ndef->get(content);
-                            c.flags |= LodLevel::kFilled;
-                            if (f.visuals && f.visuals->solidness == 2)
-                                c.flags |= LodLevel::kOccludes;
-                            for (int d = 0; d < 6; ++d)
-                                c.face[d] = content;
-                            any_filled = true;
+                            // A summary carries node identities, not a promise
+                            // that every non-air identity has visible geometry.
+                            // In particular Mineclonia stores large volumes of
+                            // airlike barrier/structure nodes. Treating those as
+                            // cubes exposes their item/PBR texture at range even
+                            // though the near mesher correctly draws nothing.
+                            // Keep this classification in step with buildLodChain.
+                            const bool visible = f.drawtype != NDT_AIRLIKE;
+                            const bool solid = visible && f.visuals &&
+                                    f.visuals->solidness == 2;
+                            const bool filled = visible && (solid ||
+                                    (f.visuals && f.visuals->visual_solidness >= 1) ||
+                                    f.isLiquid());
+                            if (filled) {
+                                c.flags |= LodLevel::kFilled;
+                                if (solid)
+                                    c.flags |= LodLevel::kOccludes;
+                                for (int d = 0; d < 6; ++d)
+                                    c.face[d] = content;
+                                any_filled = true;
+                            }
                         }
                         const bool has_liquid =
                                 (r[rLiquidMask + ci / 8] & (1u << (ci % 8))) != 0;
@@ -5747,6 +5889,7 @@ void GoannaClient::lodPublishRegion(const LodRegionKey &key, LodRegion &r, const
         arrays.resize(Mesh::ARRAY_MAX);
         arrays[Mesh::ARRAY_VERTEX] = verts;
         arrays[Mesh::ARRAY_NORMAL] = norms;
+		arrays[Mesh::ARRAY_TANGENT] = node_tangents(verts, norms, uvs, idx);
         arrays[Mesh::ARRAY_TEX_UV] = uvs;
         arrays[Mesh::ARRAY_TEX_UV2] = uv2s;
         arrays[Mesh::ARRAY_COLOR] = cols;
@@ -6507,6 +6650,7 @@ int GoannaClient::poll_blocks(int max_blocks) {
             arrays.resize(Mesh::ARRAY_MAX);
             arrays[Mesh::ARRAY_VERTEX] = acc.verts;
             arrays[Mesh::ARRAY_NORMAL] = acc.norms;
+			arrays[Mesh::ARRAY_TANGENT] = node_tangents(acc.verts, acc.norms, acc.uvs, acc.idx);
             arrays[Mesh::ARRAY_TEX_UV] = acc.uvs;
             arrays[Mesh::ARRAY_COLOR] = acc.cols;
             arrays[Mesh::ARRAY_TEX_UV2] = acc.uv2s;
@@ -6536,6 +6680,7 @@ int GoannaClient::poll_blocks(int max_blocks) {
             arrays.resize(Mesh::ARRAY_MAX);
             arrays[Mesh::ARRAY_VERTEX] = acc.verts;
             arrays[Mesh::ARRAY_NORMAL] = acc.norms;
+			arrays[Mesh::ARRAY_TANGENT] = node_tangents(acc.verts, acc.norms, acc.uvs, acc.idx);
             arrays[Mesh::ARRAY_TEX_UV] = acc.uvs;
             arrays[Mesh::ARRAY_COLOR] = acc.cols;
             arrays[Mesh::ARRAY_TEX_UV2] = acc.uv2s;
@@ -6658,6 +6803,8 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("poll_blocks", "max_blocks"), &GoannaClient::poll_blocks);
     ClassDB::bind_method(D_METHOD("block_mesh_count"), &GoannaClient::block_mesh_count);
     ClassDB::bind_method(D_METHOD("material_count"), &GoannaClient::material_count);
+    ClassDB::bind_method(D_METHOD("material_diagnostics", "texture_name"),
+            &GoannaClient::material_diagnostics, DEFVAL(String()));
     ClassDB::bind_method(D_METHOD("set_player_pose", "pos", "pitch_deg", "yaw_deg"),
             &GoannaClient::set_player_pose);
     ClassDB::bind_method(D_METHOD("server_player_position"), &GoannaClient::server_player_position);

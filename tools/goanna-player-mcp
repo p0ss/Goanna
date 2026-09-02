@@ -1,0 +1,62 @@
+#!/usr/bin/env python3
+"""MCP wrapper for Goanna's experimental read-only player endpoint."""
+import json
+import os
+import socket
+import sys
+
+TOOLS = [
+    {"name": "goanna_player_hello", "description": "Discover the player protocol, subject and read-only capabilities.",
+     "inputSchema": {"type": "object", "properties": {}}},
+    {"name": "goanna_player_observe", "description": "Observe synchronized local player state. This tool cannot act or invoke developer commands.",
+     "inputSchema": {"type": "object", "properties": {"since_event": {"type": "integer", "minimum": 0}}}},
+]
+
+def query(command, args):
+    host = os.environ.get("GOANNA_PLAYER_AGENT_HOST", "127.0.0.1")
+    port = int(os.environ.get("GOANNA_PLAYER_AGENT_PORT", "30850"))
+    request = json.dumps({"id": 1, "cmd": command, "args": args}) + "\n"
+    with socket.create_connection((host, port), timeout=5) as peer:
+        peer.sendall(request.encode())
+        data = b""
+        while b"\n" not in data:
+            chunk = peer.recv(65536)
+            if not chunk:
+                raise RuntimeError("endpoint closed without replying")
+            data += chunk
+    reply = json.loads(data.split(b"\n", 1)[0])
+    if not reply.get("ok"):
+        raise RuntimeError(reply.get("error", "request failed"))
+    return reply["result"]
+
+def respond(identifier, result=None, error=None):
+    message = {"jsonrpc": "2.0", "id": identifier}
+    message["error" if error else "result"] = error or result
+    print(json.dumps(message), flush=True)
+
+for line in sys.stdin:
+    try:
+        message = json.loads(line)
+        method = message.get("method")
+        if method == "initialize":
+            result = {"protocolVersion": "2025-06-18", "capabilities": {"tools": {}},
+                      "serverInfo": {"name": "goanna-player", "version": "0.1.0"}}
+        elif method == "tools/list":
+            result = {"tools": TOOLS}
+        elif method == "tools/call":
+            name = message.get("params", {}).get("name")
+            arguments = message.get("params", {}).get("arguments", {})
+            commands = {"goanna_player_hello": "hello", "goanna_player_observe": "observe"}
+            if name not in commands:
+                raise RuntimeError("unknown tool %s" % name)
+            value = query(commands[name], arguments)
+            result = {"content": [{"type": "text", "text": json.dumps(value)}]}
+        else:
+            if "id" not in message:
+                continue
+            raise RuntimeError("unknown method %s" % method)
+        if "id" in message:
+            respond(message["id"], result=result)
+    except Exception as error:
+        if 'message' in locals() and "id" in message:
+            respond(message["id"], error={"code": -32000, "message": str(error)})

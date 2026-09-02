@@ -25,6 +25,23 @@ import shutil
 import sys
 
 
+def mod_name(mod_dir):
+    """A Luanti mod name for this directory.
+
+    Luanti rejects a mod whose name is not [a-z0-9_] outright: it refuses the
+    mod at load and, because a worldmod that fails to load stops the server
+    starting, the whole world with it. This used to be the directory's own
+    basename, so deploying to anything hyphenated (baked/pack-mineclonia-v2,
+    which is what the bake directories are actually called) wrote
+    "name = pack-mineclonia-v2" and produced a world no server would open:
+    ModError, "Only characters [a-z0-9_] are allowed".
+    """
+    base = os.path.basename(os.path.normpath(mod_dir)).lower()
+    name = "".join(c if c.isalnum() or c == "_" else "_" for c in base)
+    # A leading digit is legal in a mod name; an empty one is not.
+    return name or "goanna_pbr"
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--baked", required=True, help="a tools/pbr_bake.py --out directory")
@@ -42,7 +59,7 @@ def main():
     os.makedirs(textures, exist_ok=True)
     if not os.path.exists(os.path.join(args.mod, "mod.conf")):
         with open(os.path.join(args.mod, "mod.conf"), "w") as f:
-            f.write("name = %s\n" % os.path.basename(os.path.normpath(args.mod)))
+            f.write("name = %s\n" % mod_name(args.mod))
     if not os.path.exists(os.path.join(args.mod, "init.lua")):
         with open(os.path.join(args.mod, "init.lua"), "w") as f:
             f.write("-- Textures only: overrides the game's own art with "

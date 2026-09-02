@@ -26,7 +26,9 @@ small vendored worldmod and is called out separately below.
 | zlib | system library | dynamic | zlib licence |
 | godot-cpp | `godot-cpp/`, submodule on branch 4.5 | static | MIT, Copyright (c) 2017-present Godot Engine contributors |
 | Terrain Diffusion for Luanti runtime | `project/vendor/terrain_diffusion` | deployed as an optional worldmod | MIT, Copyright (c) 2026 p0ss |
-| Terrain Diffusion default output | optional [versioned download](https://github.com/p0ss/terrain-diffusion-luanti/releases/tag/default-1m-v1) | copied from the shared cache into new local worlds | generated data from MIT-licensed generator and model |
+| Terrain Diffusion default output | optional [versioned download](https://github.com/p0ss/terrain-diffusion-luanti/releases/tag/default-1m-v3) | copied from the shared cache into new local worlds | generated data from MIT-licensed generator and model |
+| Goanna Minetest Game PBR materials | `pbr_packs/minetest_game/` | served by default in local Minetest Game worlds | derivative material maps; per-mod source terms and attribution are recorded in the pack |
+| Goanna Mineclonia PBR materials | `pbr_packs/mineclonia/` | served by default in local Mineclonia worlds | derivative textures and material maps; Mineclonia media terms and per-mod attribution are recorded in the pack |
 
 ## Optional Terrain Diffusion runtime
 

@@ -24,6 +24,7 @@ var port_edit: LineEdit
 var name_edit: LineEdit
 var pass_edit: LineEdit
 var connect_button: Button
+var join_pbr_option: OptionButton
 # new game
 var game_option: OptionButton
 var world_option: OptionButton
@@ -31,6 +32,7 @@ var world_edit: LineEdit
 var generator_option: OptionButton
 var creative_check: CheckBox
 var damage_check: CheckBox
+var pbr_option: OptionButton
 var host_check: CheckBox
 var hosting_box: VBoxContainer
 var server_name_edit: LineEdit
@@ -51,13 +53,36 @@ var _pending_terrain_start := false
 var server  # GoannaLocalServer (local_server.gd)
 var server_deadline := 0.0
 var showcase_launch := false
+# The graphics benchmark's world and one of its own camera poses, so the menu
+# backdrop and the calibration scene cannot drift apart: see
+# tools/bench_plans/graphics.json, whose "close" scene is this position and
+# aim, and whose "structures" entry is what put the village there.
+# SHOWCASE_YAW is that scene's aim converted to main.gd's convention
+# (main.gd:1209, yaw = atan2(-d.x, -d.z) in degrees).
+#
+# The "close" pose and not that plan's wider "vista" one, for the same reason
+# the backdrop keeps a small view range: this stands in the village with its
+# subject about nine nodes away, so it is worth looking at as soon as the
+# nearest blocks arrive. Vista looks at the village from 54 up and 46 away,
+# which needs most of the scene streamed and meshed before it is anything but
+# fog, and a menu that takes that long to become presentable is worse than a
+# plain one however good the eventual frame is.
+const BACKGROUND_PATH := "res://menu_background.png"
+const SHOWCASE_WORLD := "test_world"
+const SHOWCASE_POS := Vector3(-100, 30.6, 340)
+const SHOWCASE_YAW := -116.6
 
 func _ready() -> void:
 	set_process(false)
 	# The real-world backdrop is the normal menu. Keep screenshot automation
 	# and recovery on machines without Luanti deterministic, and allow an
 	# explicit opt-out for low-power or offline launches.
-	showcase_launch = OS.get_environment("GOANNA_NO_SHOWCASE") == "" \
+	# The menu's backdrop is a still now (see _build_frame), so the live
+	# showcase is off unless it is asked for. It stays in the code because it
+	# is what takes the still: tools/menu-background.sh drives this same path
+	# with GOANNA_SHOWCASE=1 to sit the camera at the village and capture it.
+	showcase_launch = OS.get_environment("GOANNA_SHOWCASE_LIVE") != "" \
+			and OS.get_environment("GOANNA_NO_SHOWCASE") == "" \
 			and OS.get_environment("GOANNA_MENU_SHOT") == ""
 	if OS.get_environment("GOANNA_MENU") == "":
 		for v in SKIP_VARS:
@@ -74,10 +99,36 @@ func _ready() -> void:
 		var gw := OS.get_environment("GOANNA_LOCAL_TEST").split(":")
 		_show_new_game()
 		await get_tree().process_frame
-		for i in game_option.item_count:
-			if game_option.get_item_text(i) == gw[0]:
-				game_option.select(i)
-		world_edit.text = gw[1] if gw.size() > 1 else "sp_test"
+		var wanted_world: String = gw[1] if gw.size() > 1 else "sp_test"
+		var existing_index := -1
+		for i in world_option.item_count:
+			if world_option.get_item_text(i) == wanted_world:
+				existing_index = i
+				break
+		if existing_index >= 0:
+			# Existing worlds own their game. Select through the same path as the
+			# UI so an automated run cannot rewrite a world's gameid from gw[0].
+			world_option.select(existing_index)
+			_on_world_selected(existing_index)
+		else:
+			for i in game_option.item_count:
+				if game_option.get_item_text(i) == gw[0]:
+					game_option.select(i)
+					break
+			world_edit.text = wanted_world
+		# Exercise the real Start Game texture-pack handoff. Previously the
+		# local launch harness could only test Bundled/Standard: selecting an
+		# existing world above deliberately restores that world's old boolean
+		# PBR flag and overwrites every installed-pack selection. Accept the same
+		# graphics id stored by the UI (for example
+		# "pack:/path/to/craft_and_ruin_pbr") after that restoration.
+		var test_graphics := OS.get_environment("GOANNA_LOCAL_TEST_GRAPHICS")
+		if test_graphics != "":
+			for i in pbr_option.item_count:
+				var md: Dictionary = pbr_option.get_item_metadata(i)
+				if str(md.get("id", "")) == test_graphics:
+					pbr_option.select(i)
+					break
 		_on_start_local()
 		return
 	if OS.get_environment("GOANNA_MENU_SHOT") != "":
@@ -106,16 +157,55 @@ func _ready() -> void:
 
 var _panel_box: VBoxContainer
 
+
+# The still is loaded rather than preloaded so a missing or not yet imported
+# file degrades to the plain background instead of failing the whole scene.
+# Reading the png directly covers a source checkout whose import step has not
+# run; load() covers an exported build, where only the imported form ships.
+func _background_texture() -> Texture2D:
+	# ResourceLoader.exists first: *.import is not committed (see .gitignore),
+	# so on a checkout that has not been imported yet load() would print a "no
+	# loader found" error every launch before the fallback below succeeds.
+	if ResourceLoader.exists(BACKGROUND_PATH):
+		var res := load(BACKGROUND_PATH) as Texture2D
+		if res != null:
+			return res
+	var img := Image.new()
+	if img.load(ProjectSettings.globalize_path(BACKGROUND_PATH)) != OK:
+		return null
+	return ImageTexture.create_from_image(img)
+
 func _build_frame() -> void:
+	# A still of the benchmark village, captured at full settings by
+	# tools/menu-background.sh, rather than a live session behind the menu.
+	#
+	# The live backdrop could not be all three of the things it was for. It
+	# booted a Luanti server and streamed a world, so it was never quick; it
+	# was looked at long before the near mesh arrived, so it showed the far
+	# tier, which draws no fences, lamps or flowers at all and renders leaves
+	# as solid cubes; and it grabbed the mouse from the menu in front of it.
+	# A picture of the settled scene has none of those problems and is the
+	# same view, so this is the higher fidelity option as well as the faster
+	# one. Retake it with the script when the scene or the art changes.
+	var shot := _background_texture()
+	if shot != null:
+		var art := TextureRect.new()
+		art.texture = shot
+		art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		art.set_anchors_preset(Control.PRESET_FULL_RECT)
+		add_child(art)
 	var bg := ColorRect.new()
-	bg.color = Color(0.03, 0.04, 0.06, 0.10 if showcase_launch else 1.0)
+	# Over the still, a wash dark enough to keep the panel legible; over
+	# nothing, the plain background this always had.
+	bg.color = Color(0.03, 0.04, 0.06, 0.12 if shot != null else 1.0)
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 	var centre := CenterContainer.new()
 	centre.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(centre)
 	var panel := PanelContainer.new()
-	if showcase_launch:
+	if shot != null:
 		var panel_style := StyleBoxFlat.new()
 		panel_style.bg_color = Color(0.035, 0.05, 0.08, 0.91)
 		panel_style.border_color = Color(0.55, 0.68, 0.82, 0.42)
@@ -130,7 +220,7 @@ func _build_frame() -> void:
 	_panel_box = VBoxContainer.new()
 	_panel_box.add_theme_constant_override("separation", 12)
 	_panel_box.custom_minimum_size = Vector2(440, 0)
-	if showcase_launch:
+	if shot != null:
 		_panel_box.custom_minimum_size = Vector2(360, 0)
 	margin.add_child(_panel_box)
 
@@ -140,16 +230,26 @@ func _start_showcase() -> void:
 		_fail("Mineclonia showcase unavailable: no Luanti server was found.")
 		return
 	server = LocalServer.new()
+	# The world the graphics benchmark calibrates against
+	# (tools/bench_plans/graphics.json), rather than a scene kept only for this
+	# backdrop: that plan is run often enough to notice when the village stops
+	# looking right, which a menu backdrop nobody measures is not.
+	#
+	# creative and damage are deliberately test_world's own current world.mt
+	# values rather than what a showcase would otherwise ask for. start_config
+	# rewrites those two keys (_write_world_options in local_server.gd), so
+	# asking for anything else would edit the benchmark's world every time
+	# someone opened the menu, and the calibration would drift underneath it.
 	var err: String = server.start_config({
-		"gameid": "mineclonia", "world": "treetree",
+		"gameid": "mineclonia", "world": SHOWCASE_WORLD,
 		"player_name": _local_player_name(), "creative": false,
-		"damage": false, "mods": [], "host": false,
+		"damage": true, "mods": [], "host": false,
 		"server_name": "Goanna Showcase", "server_description": "",
 		"password": "", "announce": false, "max_users": 1})
 	if err != "":
 		_fail(err)
 		return
-	status_label.text = "Preparing the TreeTree showcase ..."
+	status_label.text = "Preparing the village showcase ..."
 	server_deadline = _now() + 30.0
 	set_process(true)
 
@@ -386,6 +486,56 @@ func _settings_row(box: VBoxContainer, row: Array, cfg: ConfigFile) -> void:
 	var label := Label.new()
 	label.text = str(row[3])
 	box.add_child(label)
+	if kind == "pack":
+		# The same dropdown the in-game panel builds (ui/game_ui.gd): the packs
+		# the detected Luanti install carries, by name, plus Other for a
+		# directory outside it. Stored as the absolute path either way, which is
+		# what main.gd hands to set_texture_path. Empty means the server's own
+		# art, which is what the client reports as "no texture pack set".
+		var picker := OptionButton.new()
+		var pe := LineEdit.new()
+		var data_dir: String = LocalServer.data_dir_or_empty()
+		var packs_dir := data_dir.path_join("textures") if data_dir != "" else ""
+		var packs: Array = LocalServer.list_texture_packs(data_dir) if data_dir != "" else []
+		var current := str(cfg.get_value("settings", key, ""))
+		picker.add_item("None")
+		picker.set_item_metadata(0, "")
+		for pack_name in packs:
+			picker.add_item(str(pack_name))
+			picker.set_item_metadata(picker.item_count - 1, packs_dir.path_join(str(pack_name)))
+		picker.add_item("Other")
+		picker.set_item_metadata(picker.item_count - 1, null)
+		var other_index := picker.item_count - 1
+		var want := current.simplify_path()
+		var selected := other_index if want != "" else 0
+		if want != "":
+			for i in picker.item_count:
+				var md = picker.get_item_metadata(i)
+				if md != null and str(md) != "" and str(md).simplify_path() == want:
+					selected = i
+					break
+		picker.select(selected)
+		box.add_child(picker)
+		pe.text = current
+		pe.placeholder_text = "/path/to/pack"
+		pe.visible = selected == other_index
+		pe.text_changed.connect(func(t: String) -> void: _save_setting_text(key, t))
+		box.add_child(pe)
+		picker.item_selected.connect(func(i: int) -> void:
+			var md = picker.get_item_metadata(i)
+			pe.visible = md == null
+			if md == null:
+				# Keep whatever was typed; a stray click should not drop a path.
+				pe.grab_focus()
+				return
+			pe.text = str(md)
+			_save_setting_text(key, str(md)))
+		var kd := Label.new()
+		kd.text = str(row[4])
+		kd.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		kd.modulate = Color(1, 1, 1, 0.55)
+		box.add_child(kd)
+		return
 	if kind == "path":
 		# A folder, not a number: stored as a string, and the only setting in
 		# the table that is. Empty means the server's own art, which is what
@@ -566,6 +716,23 @@ func _show_new_game() -> void:
 	damage_check.text = "Enable damage"
 	damage_check.button_pressed = true
 	world_page.add_child(damage_check)
+	var pbr_label := Label.new()
+	pbr_label.text = "Materials"
+	world_page.add_child(pbr_label)
+	pbr_option = OptionButton.new()
+	pbr_option.add_item("Bundled PBR (recommended)")
+	pbr_option.set_item_metadata(0, {"id": "bundled", "path": "", "pbr": true})
+	var local_packs_dir := _local_data_dir.path_join("textures")
+	for pack_name in LocalServer.list_texture_packs(_local_data_dir):
+		var pack_path := local_packs_dir.path_join(str(pack_name))
+		pbr_option.add_item("PBR — " + str(pack_name))
+		pbr_option.set_item_metadata(pbr_option.item_count - 1,
+				{"id": "pack:" + pack_path, "path": pack_path, "pbr": true})
+	pbr_option.add_item("Standard — no PBR")
+	pbr_option.set_item_metadata(pbr_option.item_count - 1,
+			{"id": "standard", "path": "", "pbr": false})
+	pbr_option.tooltip_text = "Installed packs layer over the bundled game materials, filling uncovered textures from the bundled set."
+	world_page.add_child(pbr_option)
 	var compatibility := Label.new()
 	compatibility.text = "Terrain Diffusion uses any game's registered biomes. Mineclonia currently has the fullest vegetation support."
 	compatibility.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -640,6 +807,13 @@ func _show_new_game() -> void:
 	cfg.load(CFG_PATH)
 	world_edit.text = str(cfg.get_value("local", "world", "my_world"))
 	var last_game := str(cfg.get_value("local", "game", ""))
+	var remembered_graphics := str(cfg.get_value("local", "graphics",
+			"bundled" if bool(cfg.get_value("local", "pbr_materials", true)) else "standard"))
+	for i in pbr_option.item_count:
+		var pbr_md: Dictionary = pbr_option.get_item_metadata(i)
+		if str(pbr_md.get("id", "")) == remembered_graphics:
+			pbr_option.select(i)
+			break
 	for i in game_option.item_count:
 		if str(game_option.get_item_metadata(i)) == last_game:
 			game_option.select(i)
@@ -701,6 +875,12 @@ func _on_world_selected(index: int) -> void:
 	generator_option.select(1 if bool(options.get("terrain_diffusion", false)) else 0)
 	creative_check.button_pressed = bool(options.get("creative", false))
 	damage_check.button_pressed = bool(options.get("damage", true))
+	var scripted_pbr := bool(options.get("pbr_materials", true))
+	for i in pbr_option.item_count:
+		var scripted_md: Dictionary = pbr_option.get_item_metadata(i)
+		if str(scripted_md.get("id", "")) == ("bundled" if scripted_pbr else "standard"):
+			pbr_option.select(i)
+			break
 	var selected_mods: Array = options.get("mods", [])
 	for mod in mod_checks:
 		(mod_checks[mod] as CheckBox).button_pressed = selected_mods.has(mod)
@@ -872,6 +1052,8 @@ func _on_start_local() -> void:
 		cfg.set_value("local", "game", game)
 		cfg.set_value("local", "terrain_diffusion", terrain_diffusion)
 		cfg.set_value("local", "world", world)
+		cfg.set_value("local", "pbr_materials", _local_pbr_enabled())
+		cfg.set_value("local", "graphics", str(_local_pbr_selection().get("id", "bundled")))
 		cfg.set_value("local_host", "enabled", host_check.button_pressed)
 		cfg.set_value("local_host", "name", server_name_edit.text)
 		cfg.set_value("local_host", "description", server_description_edit.text)
@@ -883,7 +1065,8 @@ func _on_start_local() -> void:
 	var public_announce := host_check.button_pressed and announce_check.button_pressed
 	var launch := {"gameid": game, "world": world, "player_name": _local_player_name(),
 		"terrain_diffusion": terrain_diffusion, "creative": creative_check.button_pressed,
-		"damage": damage_check.button_pressed, "mods": enabled_mods,
+		"damage": damage_check.button_pressed, "pbr_materials": _local_pbr_enabled(),
+		"mods": enabled_mods,
 		"host": host_check.button_pressed, "server_name": server_name_edit.text.strip_edges(),
 		"server_description": server_description_edit.text.strip_edges(),
 		"password": server_password_edit.text, "announce": public_announce,
@@ -931,17 +1114,46 @@ func _process(_delta: float) -> void:
 			OS.set_environment("GOANNA_SP_PID", str(server.pid))
 			OS.set_environment("GOANNA_SP_MATCH", server.world_path)
 			OS.set_environment("GOANNA_SHOWCASE", "1")
-			OS.set_environment("GOANNA_SHOWCASE_X", "25.3")
-			# The bake v2 waterline sits at y 1 here (water from -4 up, air
-			# from 2); the old -3.2 was measured against the previous bake
-			# and put the menu backdrop four metres under water. 2.0 stands
-			# the eye (plus 1.6) a couple of metres above the surface.
-			OS.set_environment("GOANNA_SHOWCASE_Y", "2.0")
-			OS.set_environment("GOANNA_SHOWCASE_Z", "-115.8")
-			OS.set_environment("GOANNA_SHOWCASE_YAW", "-90")
+			OS.set_environment("GOANNA_SHOWCASE_X", str(SHOWCASE_POS.x))
+			OS.set_environment("GOANNA_SHOWCASE_Y", str(SHOWCASE_POS.y))
+			OS.set_environment("GOANNA_SHOWCASE_Z", str(SHOWCASE_POS.z))
+			OS.set_environment("GOANNA_SHOWCASE_YAW", str(SHOWCASE_YAW))
 			OS.set_environment("GOANNA_TOD", "0.24")
+			# A small bubble, entirely near meshed, and no far field at all.
+			#
+			# What a village looks like is its fences, lanterns, flowers and grass,
+			# and none of those exist in the far tier: goanna_lod.cpp only draws a
+			# node it calls "filled", which is a solid, a cube-shaped thing like
+			# leaves, or a liquid. A fence or a lantern is a nodebox with solidness
+			# zero and fails that test, so it is not drawn at all, and leaves pass
+			# it only as solid cubes. A backdrop served from far tiers is therefore
+			# a bare frame of the village with blocky trees, which is exactly how
+			# this looked: 219 blocks near meshed against 558 far, half a minute
+			# in, with distant terrain still generating.
+			#
+			# So the three knobs are set for one job, getting the near mesh close
+			# to the camera published quickly:
+			#   view range decides what the server streams, so it is small;
+			#   detail distance decides whether what arrived is near meshed rather
+			#     than summarised, so it is above the view range, never below;
+			#   far distance is off, because a far field the camera never looks at
+			#     still competes for the same streaming and meshing budget.
+			# Detail is forced upward here, unlike the values this replaces: the
+			# failure was a backdrop quietly rendering below what the player asked
+			# for, and a short horizon is free in a street where buildings occlude
+			# the distance anyway.
+			# Measured, so these are not a guess:
+			#   far off entirely leaves the near bubble floating in void, with
+			#     stray logs and sheep hanging in an empty sky, because the far
+			#     field is what draws everything past the streamed radius;
+			#   far on, at any distance, draws the village from summaries until
+			#     the near mesh catches up, and a summary has no fences or lamps.
+			# So the far field stays, at the modest distance this always used, and
+			# only the detail radius is raised: that is the one change here that
+			# is free, since it decides whether blocks already in hand are meshed
+			# properly rather than how many are asked for.
 			OS.set_environment("GOANNA_VIEW_RANGE", "18")
-			OS.set_environment("GOANNA_LOD", "18")
+			OS.set_environment("GOANNA_LOD", "32")
 			OS.set_environment("GOANNA_FAR_DISTANCE", "384")
 			var world_scene := preload("res://main.tscn").instantiate()
 			add_child(world_scene)
@@ -954,6 +1166,15 @@ func _process(_delta: float) -> void:
 		# The game this world runs, so main.gd can pick per game defaults
 		# (the bundled texture map today) without being told by the player.
 		OS.set_environment("GOANNA_GAME", server.gameid)
+		# The bundled worldmod supplies the base game's fallback materials. An
+		# installed style pack is a client-side overlay, so Craft and Ruin can
+		# replace its own albedo/companions while uncovered nodes retain the
+		# bundled Mineclonia set.
+		var local_graphics := _local_pbr_selection()
+		OS.set_environment("GOANNA_PACK", str(local_graphics.get("path", "")))
+		OS.set_environment("GOANNA_PACK_SET", "1")
+		OS.set_environment("GOANNA_NO_PBR", "" if bool(local_graphics.get("pbr", true)) else "1")
+		OS.set_environment("GOANNA_PBR_SET", "1")
 		# the game scene stops this server on exit
 		OS.set_environment("GOANNA_SP_PID", str(server.pid))
 		OS.set_environment("GOANNA_SP_MATCH", server.world_path)
@@ -994,11 +1215,40 @@ func _show_join() -> void:
 	name_edit = _labelled_edit(grid, "Player name", "")
 	pass_edit = _labelled_edit(grid, "Password", "")
 	pass_edit.secret = true
+	var pbr_label := Label.new()
+	pbr_label.text = "Graphics"
+	grid.add_child(pbr_label)
+	join_pbr_option = OptionButton.new()
+	join_pbr_option.add_item("PBR — server materials (recommended)")
+	join_pbr_option.set_item_metadata(0, {"id": "server", "path": "", "pbr": true})
+	join_pbr_option.add_item("Standard — no PBR")
+	join_pbr_option.set_item_metadata(1, {"id": "standard", "path": "", "pbr": false})
+	join_pbr_option.add_item("Bundled Minetest Game PBR")
+	join_pbr_option.set_item_metadata(2, {"id": "minetest_game",
+		"path": LocalServer.bundled_pbr_texture_path("minetest_game"), "pbr": true})
+	join_pbr_option.add_item("Bundled Mineclonia PBR")
+	join_pbr_option.set_item_metadata(3, {"id": "mineclonia",
+		"path": LocalServer.bundled_pbr_texture_path("mineclonia"), "pbr": true})
+	var data_dir := LocalServer.data_dir_or_empty()
+	var packs_dir := data_dir.path_join("textures") if data_dir != "" else ""
+	var join_packs: Array = LocalServer.list_texture_packs(data_dir) if data_dir != "" else []
+	for pack_name in join_packs:
+		var pack_path := packs_dir.path_join(str(pack_name))
+		join_pbr_option.add_item("PBR — " + str(pack_name))
+		join_pbr_option.set_item_metadata(join_pbr_option.item_count - 1,
+			{"id": "pack:" + pack_path, "path": pack_path, "pbr": true})
+	grid.add_child(join_pbr_option)
 	var cfg := ConfigFile.new()
 	if cfg.load(CFG_PATH) == OK:
 		host_edit.text = str(cfg.get_value("server", "host", ""))
 		port_edit.text = str(cfg.get_value("server", "port", ""))
 		name_edit.text = str(cfg.get_value("player", "name", ""))
+		var remembered_pbr := str(cfg.get_value("server", "graphics", "server"))
+		for i in join_pbr_option.item_count:
+			var md: Dictionary = join_pbr_option.get_item_metadata(i)
+			if str(md.get("id", "")) == remembered_pbr:
+				join_pbr_option.select(i)
+				break
 	if OS.get_environment("GOANNA_PORT") != "":
 		port_edit.text = OS.get_environment("GOANNA_PORT")
 	status_label.text = "On a server that allows registration, a new name is registered with this password."
@@ -1147,12 +1397,24 @@ func _on_connect() -> void:
 	cfg.set_value("server", "host", host)
 	cfg.set_value("server", "port", port_text)
 	cfg.set_value("player", "name", pname)
+	var graphics: Dictionary = join_pbr_option.get_item_metadata(join_pbr_option.selected)
+	var graphics_id := str(graphics.get("id", "server"))
+	var texture_path := str(graphics.get("path", ""))
+	var use_pbr := bool(graphics.get("pbr", true))
+	cfg.set_value("server", "graphics", graphics_id)
 	cfg.save(CFG_PATH)
 	OS.set_environment("GOANNA_HOST", host)
 	OS.set_environment("GOANNA_PORT", port_text)
 	OS.set_environment("GOANNA_NAME", pname)
 	# A remote server's game is not known here; do not inherit a local one.
 	OS.set_environment("GOANNA_GAME", "")
+	OS.set_environment("GOANNA_PACK", texture_path)
+	OS.set_environment("GOANNA_PACK_SET", "1")
+	# A server may bundle companions itself. An empty texture-pack path alone
+	# therefore cannot mean "off": explicitly prevent the renderer from using
+	# server-supplied _n and _s maps for this choice.
+	OS.set_environment("GOANNA_NO_PBR", "" if use_pbr else "1")
+	OS.set_environment("GOANNA_PBR_SET", "1")
 	OS.set_environment("GOANNA_PASS", pass_edit.text)
 	OS.set_environment("GOANNA_SP_PID", "")
 	connect_button.disabled = true
@@ -1171,6 +1433,14 @@ func _labelled_edit(grid: GridContainer, label_text: String, placeholder: String
 	edit.custom_minimum_size = Vector2(260, 0)
 	grid.add_child(edit)
 	return edit
+
+func _local_pbr_enabled() -> bool:
+	return bool(_local_pbr_selection().get("pbr", true))
+
+func _local_pbr_selection() -> Dictionary:
+	if pbr_option == null or pbr_option.item_count == 0:
+		return {"id": "bundled", "path": "", "pbr": true}
+	return pbr_option.get_item_metadata(pbr_option.selected)
 
 func _now() -> float:
 	return Time.get_ticks_msec() / 1000.0

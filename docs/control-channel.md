@@ -1,8 +1,13 @@
-# The control channel
+# The game development control channel
 
 A loopback socket into a running client, so it can be driven and questioned
 while it runs instead of being relaunched for every question. It is a
 development aid, not a feature, and it is off unless you switch it on.
+
+This is Goanna's privileged **game development interface**. It is intentionally
+separate from the constrained player agent interface described in
+`docs/agent-interfaces.md`. Commands such as `eval`, `run`, teleport and
+arbitrary method calls must never be exposed through the player interface.
 
 ## Why
 
@@ -45,6 +50,9 @@ tools/goanna-control tp 10 65 -20
 tools/goanna-control time 0.5
 tools/goanna-control set light_sun 2.0
 tools/goanna-control shot /tmp/a.png
+tools/goanna-control inspect target=materials
+tools/goanna-control inspect target=materials texture=default_stone.png
+tools/goanna-control inspect target=scene depth=2 limit=100
 ```
 
 The port is not inferred at either end, and on a machine running more than
@@ -82,6 +90,7 @@ overlapping camera moves would each photograph the other's pose.
 | `ping` | Liveness, and how long the client has been up. |
 | `label <text>` | What this session is testing. Shown on screen; see below. |
 | `status` | Session state, camera pose, block, entity and media counts. |
+| `inspect target=<kind>` | Structured scene, render, material, sky, entity, inventory or node data. |
 | `tp x y z` | Teleport through the server, then wait for the blocks to arrive. |
 | `pose x y z pitch= yaw=` | Place the camera. No server move, so use it for viewpoints, not for travel. |
 | `look x y z` | Aim the camera at a point. |
@@ -234,6 +243,18 @@ with:
 ```sh
 claude mcp add goanna /path/to/goanna/tools/goanna-mcp
 ```
+
+The preferred read tool is `goanna_inspect`. Its `capabilities` target
+identifies the interface as `goanna-dev/0.1` and lists the stable observation
+targets. These cover the common diagnostic questions directly; `goanna_run`
+remains the privileged escape hatch for a one-off investigation.
+
+For a PBR release check, pass a game texture filename to the `materials`
+target. `resolved` reports whether the albedo, `_n` and `_s` files were found
+through the active Luanti texture source and their dimensions. `built` reports
+how many rendered array materials actually have normal and specular arrays
+bound. This distinguishes an enabled slider from a pack that is genuinely
+loaded and connected to the shader.
 
 It speaks MCP over stdin and stdout as newline delimited JSON-RPC, with
 nothing outside the standard library, so there is nothing to install.

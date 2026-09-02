@@ -263,6 +263,8 @@ varying vec3 v_nodelight;
 varying float v_stale;
 varying vec3 v_world;
 varying vec3 v_wnormal;
+varying vec3 v_wtangent;
+varying vec3 v_wbinormal;
 
 // Goanna: per node tiling, so a field of sand or a cliff face stops being
 // the same sixteen pixels repeated to the horizon.

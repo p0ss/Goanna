@@ -12,6 +12,10 @@
 extends CanvasLayer
 
 const FormspecScript := preload("res://ui/formspec.gd")
+# Only to list the texture packs the detected Luanti install already carries,
+# for the Texture pack setting. The same read only borrowing the Content
+# screen does: Goanna does not install packs, it offers what is already there.
+const LocalServer := preload("res://local_server.gd")
 
 const HUD_ELEM_IMAGE := 0
 const HUD_ELEM_TEXT := 1
@@ -675,6 +679,9 @@ func _open_pause_menu() -> void:
 # immediately (auto-bump and bevel re-mesh; motes start or stop) and is saved
 # to user://goanna.cfg, reapplied on the next connect.
 const SETTINGS_CFG := "user://goanna.cfg"
+# Setting kinds whose value is text rather than a number. They are
+# saved and read as strings and never go through _apply_setting.
+const TEXT_SETTING_KINDS := ["path", "pack"]
 # [tab, key, type, label, description, (min, max, step) for sliders]
 const SETTINGS := [
 	["Controls", "mantle", "toggle", "Mantle single blocks", "Step up onto single-block ledges automatically, like autojump."],
@@ -687,7 +694,6 @@ const SETTINGS := [
 	["Controls", "mouse_sensitivity", "slider", "Mouse sensitivity", "How far the view turns per mouse movement.", 0.02, 0.5, 0.01],
 	["Controls", "invert_mouse", "toggle", "Invert mouse", "Push the mouse forward to look up instead of down."],
 	["Controls", "view_bobbing", "slider", "View bobbing", "How much the camera bobs as you walk.", 0.0, 1.5, 0.1],
-	["Video", "texture_pack", "path", "Texture pack", "A folder of image files used instead of the server's own art, LabPBR _n and _s companions included. Takes effect the next time you connect."],
 	["Video", "solid_ice", "toggle", "Solid ice", "Draw ice as opaque instead of slightly see-through. Ice is translucent, which makes it sort against waterfalls and other water badly and flicker. Opaque loses the see-through and fixes that."],
 	["Video", "auto_bump", "slider", "Auto bump", "Fake surface relief from texture brightness.", 0.0, 1.0, 0.05],
 	["Material", "mat_normal", "slider", "Normal strength", "How much of the pack's surface relief to apply. Packs are authored for other art at other resolutions, and a normal map meant for 64 pixel textures reads as smeared blotches on 16 pixel ones. Lower this first if a pack looks muddy.", 0.0, 2.0, 0.05],
@@ -916,6 +922,12 @@ func _load_apply_settings() -> void:
 	var seeded := false
 	for entry in SETTINGS:
 		var key: String = entry[1]
+		# Text valued settings hold a path, not a number. Nothing here can
+		# apply one (whoever wants it reads the file itself: main.gd hands
+		# texture_pack to set_texture_path before connect_to), and there is
+		# no default worth seeding. Read as a float, one silently became 0.
+		if str(entry[2]) in TEXT_SETTING_KINDS:
+			continue
 		# "settings" is the current section; "video" is the pre-tabs one.
 		var found := false
 		for section in ["settings", "video"]:
@@ -923,7 +935,7 @@ func _load_apply_settings() -> void:
 				_apply_setting(key, float(cfg.get_value(section, key)))
 				found = true
 				break
-		if not found and str(entry[2]) != "path":
+		if not found:
 			# Write the value the client is actually running with. The main
 			# menu's settings screen has no client to ask, so without this it
 			# would have to guess a default and would show the wrong state for
@@ -1136,7 +1148,80 @@ func _build_setting_row(page: VBoxContainer, entry: Array) -> void:
 	name_label.add_theme_font_size_override("font_size", 17)
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(name_label)
-	if kind == "path":
+	if kind == "pack":
+		# Installed packs by name, because someone who has just installed one
+		# from ContentDB knows what it is called and not the absolute path
+		# Luanti unpacked it to. The stored value is still that path, which is
+		# what main.gd hands to set_texture_path: this picks a path, it does
+		# not change what a pack is or how one is loaded.
+		#
+		# "Other" keeps the typed field, and is not a fallback for a missing
+		# install: a bake under baked/ is a directory of the right shape that
+		# no Luanti install carries, and pointing at one is how every pack in
+		# this repository is tried before it is packaged.
+		var picker := OptionButton.new()
+		var edit := LineEdit.new()
+		# Changing this in a running session writes the setting and nothing else:
+		# see set_texture_path's own contract, and the reason behind it, which is
+		# that the server's media exists only in SourceImageCache. Dropping that
+		# to re-read a pack would throw away every texture the server sent with
+		# no way to ask for them again short of reconnecting. So the honest thing
+		# is to say so at the moment of the change rather than leave the control
+		# looking broken: it saved, it just cannot repaint a world already built.
+		var note := Label.new()
+		note.text = "Saved. Rejoin the world to see it."
+		note.add_theme_font_size_override("font_size", 13)
+		note.modulate = Color(1, 0.85, 0.4)
+		note.visible = false
+		var data_dir: String = LocalServer.data_dir_or_empty()
+		var packs_dir := data_dir.path_join("textures") if data_dir != "" else ""
+		var packs: Array = LocalServer.list_texture_packs(data_dir) if data_dir != "" else []
+		var current := _setting_text(key)
+		picker.add_item("None")
+		picker.set_item_metadata(0, "")
+		for pack_name in packs:
+			picker.add_item(str(pack_name))
+			picker.set_item_metadata(picker.item_count - 1, packs_dir.path_join(str(pack_name)))
+		picker.add_item("Other")
+		# The one item with no path of its own: null is what marks it, so a
+		# pack that happens to be called "Other" is still selected by its path.
+		picker.set_item_metadata(picker.item_count - 1, null)
+		var other_index := picker.item_count - 1
+		# simplify_path so a trailing slash or a "." segment in the saved value
+		# still matches the pack it names rather than falling through to Other.
+		var want := current.simplify_path()
+		var selected := other_index if want != "" else 0
+		if want != "":
+			for i in picker.item_count:
+				var md = picker.get_item_metadata(i)
+				if md != null and str(md) != "" and str(md).simplify_path() == want:
+					selected = i
+					break
+		picker.select(selected)
+		picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(picker)
+		edit.text = current
+		edit.placeholder_text = "/path/to/pack"
+		edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		edit.visible = selected == other_index
+		edit.text_submitted.connect(func(t: String) -> void:
+			_save_setting_text(key, t.strip_edges())
+			note.visible = true)
+		edit.focus_exited.connect(func() -> void: _save_setting_text(key, edit.text.strip_edges()))
+		row.add_child(edit)
+		row.add_child(note)
+		picker.item_selected.connect(func(i: int) -> void:
+			var md = picker.get_item_metadata(i)
+			edit.visible = md == null
+			if md == null:
+				# Leave whatever is already typed alone and let the field save it;
+				# clearing it here would silently drop a path on a stray click.
+				edit.grab_focus()
+				return
+			edit.text = str(md)
+			_save_setting_text(key, str(md))
+			note.visible = true)
+	elif kind == "path":
 		# A directory, typed rather than picked: it is set once and it has to
 		# be read before connect_to, so it takes effect on the next connection
 		# rather than now. Saved to goanna.cfg like the rest; main.gd reads it

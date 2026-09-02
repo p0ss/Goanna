@@ -146,6 +146,10 @@ public:
     int poll_blocks(int max_blocks);
     int block_mesh_count() const { return (int)m_near_blocks.size(); }
     int material_count() const { return (int)m_materials.size(); }
+    // Release diagnostics for texture packs: what companion files resolve
+    // through Luanti's active texture source, and what built materials have
+    // actually bound them. An enabled slider alone does not prove either.
+    godot::Dictionary material_diagnostics(const godot::String &texture_name = "") const;
 
     // Camera/player pose in Godot space; reported to the server so it
     // streams blocks around us. Position in nodes.

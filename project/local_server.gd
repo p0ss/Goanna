@@ -31,16 +31,21 @@ const TERRAIN_DIFFUSION_FILES := [
 	"tdl_terrain.lua", "tdl_mapgen.lua", "settingtypes.txt", "mod.conf", "LICENSE",
 ]
 const GOANNA_SERVER_MOD_FILES := ["init.lua", "mod.conf", "settingtypes.txt", "README.md"]
-const DEFAULT_TERRAIN_ID := "tdl-default-1m-v2"
-const DEFAULT_TERRAIN_URL := "https://github.com/p0ss/terrain-diffusion-luanti/releases/download/default-1m-v2/tdl-default-1m-v2.zip"
-const DEFAULT_TERRAIN_SHA256 := "8e90adba10d62ffac135004813f4c96cfbdf78dbda1ab8d77220ea2af7e529d9"
-const DEFAULT_TERRAIN_DOWNLOAD_BYTES := 71201860
+const PBR_GAME_DIRS := {
+	"minetest": "minetest_game",
+	"minetest_game": "minetest_game",
+	"mineclonia": "mineclonia",
+}
+const DEFAULT_TERRAIN_ID := "tdl-default-1m-v3"
+const DEFAULT_TERRAIN_URL := "https://github.com/p0ss/terrain-diffusion-luanti/releases/download/default-1m-v3/tdl-default-1m-v3.zip"
+const DEFAULT_TERRAIN_SHA256 := "0c9b1bbfef7549dd550251dc0d90480ae6cd4639adcf227f7b62c273be4c84a2"
+const DEFAULT_TERRAIN_DOWNLOAD_BYTES := 86228311
 const DEFAULT_TERRAIN_I0 := 74
 const DEFAULT_TERRAIN_J0 := 74
 const DEFAULT_TERRAIN_TILES := 16
-# The v2 bake records a showcase origin near a coast with several biome
+# The v3 bake records a wooded, gentle origin near several biome
 # transitions. Coordinates are model pixels in (i, j) order.
-const DEFAULT_TERRAIN_SHOWCASE_SPAWN := [41172, 40364]
+const DEFAULT_TERRAIN_SHOWCASE_SPAWN := [41644, 40532]
 
 # Where Luanti keeps games and worlds, and how to invoke its server.
 # Returns {} if no server could be found.
@@ -166,7 +171,8 @@ static func world_gameid(data_dir: String, worldname: String) -> String:
 
 static func world_options(data_dir: String, worldname: String) -> Dictionary:
 	var result := {"gameid": world_gameid(data_dir, worldname), "creative": false,
-		"damage": true, "mods": [], "terrain_diffusion": terrain_diffusion_ready(data_dir, worldname)}
+		"damage": true, "mods": [], "pbr_materials": true,
+		"terrain_diffusion": terrain_diffusion_ready(data_dir, worldname)}
 	var path := data_dir.path_join("worlds").path_join(worldname).path_join("world.mt")
 	var f := FileAccess.open(path, FileAccess.READ)
 	if f == null:
@@ -179,6 +185,8 @@ static func world_options(data_dir: String, worldname: String) -> Dictionary:
 			result["creative"] = value == "true"
 		elif key == "enable_damage":
 			result["damage"] = value != "false"
+		elif key == "load_mod_goanna_pbr":
+			result["pbr_materials"] = value != "false"
 		elif key.begins_with("load_mod_") and value != "false":
 			(result["mods"] as Array).append(key.trim_prefix("load_mod_"))
 	return result
@@ -198,6 +206,12 @@ static func delete_world_recoverably(data_dir: String, worldname: String) -> Str
 static func data_dir_or_empty() -> String:
 	var env := detect()
 	return env["data_dir"] if not env.is_empty() else ""
+
+static func bundled_pbr_texture_path(game: String) -> String:
+	if not PBR_GAME_DIRS.has(game):
+		return ""
+	return ProjectSettings.globalize_path("res://../pbr_packs").path_join(
+		str(PBR_GAME_DIRS[game])).path_join("textures")
 
 # A Terrain Diffusion world carries its own generated tile cache. The default
 # bake is downloaded once into a shared content cache, then copied into each
@@ -221,6 +235,28 @@ static func _copy_resource_file(src: String, dst: String) -> bool:
 	if output == null:
 		return false
 	output.store_buffer(input.get_buffer(input.get_length()))
+	return true
+
+static func _copy_resource_tree(src: String, dst: String) -> bool:
+	var source := DirAccess.open(src)
+	if source == null:
+		return false
+	DirAccess.make_dir_recursive_absolute(dst)
+	source.list_dir_begin()
+	var name := source.get_next()
+	while name != "":
+		if not name.begins_with("."):
+			var from := src.path_join(name)
+			var to := dst.path_join(name)
+			if source.current_is_dir():
+				if not _copy_resource_tree(from, to):
+					source.list_dir_end()
+					return false
+			elif not _copy_resource_file(from, to):
+				source.list_dir_end()
+				return false
+		name = source.get_next()
+	source.list_dir_end()
 	return true
 
 static func default_terrain_cache_dir() -> String:
@@ -299,6 +335,8 @@ func _write_world_options(world: String, options: Dictionary) -> String:
 	var mods: Array = options.get("mods", [])
 	for mod in mods:
 		values["load_mod_" + str(mod)] = "true"
+	values["load_mod_goanna_pbr"] = "true" if bool(options.get("pbr_materials", true)) \
+		and PBR_GAME_DIRS.has(str(options.get("gameid", ""))) else "false"
 	var kept: PackedStringArray = []
 	if FileAccess.file_exists(path):
 		for line in FileAccess.get_file_as_string(path).split("\n"):
@@ -366,6 +404,16 @@ func _install_server_mod(world: String) -> String:
 			return "The bundled Goanna server mod is missing %s." % filename
 	return ""
 
+func _install_pbr_mod(world: String, game: String) -> String:
+	if not PBR_GAME_DIRS.has(game):
+		return ""
+	var pack_dir := str(PBR_GAME_DIRS[game])
+	var src := ProjectSettings.globalize_path("res://../pbr_packs").path_join(pack_dir)
+	var dst := world.path_join("worldmods").path_join("goanna_pbr")
+	if not _copy_resource_tree(src, dst):
+		return "The bundled PBR material pack for %s is incomplete." % game
+	return ""
+
 
 func start(gameid_: String, worldname: String, player_name: String = "player",
 		terrain_diffusion: bool = false) -> String:
@@ -377,6 +425,7 @@ func start_config(options: Dictionary) -> String:
 	var worldname := str(options.get("world", ""))
 	var player_name := str(options.get("player_name", "player"))
 	var terrain_diffusion := bool(options.get("terrain_diffusion", false))
+	var pbr_materials := bool(options.get("pbr_materials", true))
 	var env := detect()
 	if env.is_empty():
 		return "No Luanti server found. Install Luanti (or the org.luanti.luanti flatpak), or set GOANNA_SERVER_CMD."
@@ -474,7 +523,7 @@ func start_config(options: Dictionary) -> String:
 			# Reconstruct each native 30 m sample onto thirty 1 m nodes. Pin this
 			# so a global Luanti preference cannot make the world coarser.
 			cf.store_string("tdl_nodes_per_pixel = 30\n")
-			# v2 is baked around a deliberate multi-biome showcase spawn, so keep
+			# v3 is baked around a deliberate multi-biome showcase spawn, so keep
 			# climate aligned with the terrain rather than stretching it.
 			cf.store_string("tdl_climate_stretch = 1\n")
 		# Three asynchronous area streams keep a flying local player supplied;
@@ -532,6 +581,10 @@ func start_config(options: Dictionary) -> String:
 	var server_mod_error := _install_server_mod(world_path)
 	if server_mod_error != "":
 		return server_mod_error
+	if pbr_materials and PBR_GAME_DIRS.has(gameid):
+		var pbr_error := _install_pbr_mod(world_path, gameid)
+		if pbr_error != "":
+			return pbr_error
 	var argv := Array(_argv)
 	argv.append_array([
 		"--world", world_path,
