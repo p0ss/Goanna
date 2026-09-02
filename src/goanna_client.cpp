@@ -5044,6 +5044,7 @@ void GoannaClient::lodTakeSummaries(const Vector3 &around) {
                     }
                 }
             buildLodMipLevels(ch, first_level);
+            buildLodTerrainSurface(ndef, ch, first_level);
             // Not stored: a summary is what the server holds now, not a
             // memory of what it once sent, so it is not marked stale
             // (docs/launch-target.md, R1). The chain is still known.

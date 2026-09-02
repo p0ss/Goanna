@@ -2159,7 +2159,7 @@ func _apply_sky() -> void:
 			"night_sky", "night_horizon", "bgcolor",
 			"fog_sun_tint", "fog_moon_tint", "fog_color"], kcol)
 	var clouds_now: Dictionary = _smooth_colour_set(st["clouds"], clouds_smoothed,
-			["color_bright", "density", "height", "thickness"], kcol) \
+			["color_bright", "color_ambient", "color_shadow", "density", "height", "thickness"], kcol) \
 			if st.has("clouds") else {}
 	var e := env.environment
 	var elev: float = sun_dir.y  # 1 = overhead, <0 below horizon
@@ -2472,6 +2472,19 @@ func _apply_sky() -> void:
 	var cdim: float = lerp(1.0, 0.16, cloud_night)
 	ccol = Color(ccol.r * cdim, ccol.g * cdim, ccol.b * cdim, ccol.a)
 	sky_mat.set_shader_parameter("cloud_color", ccol)
+	# The packet carries an ambient cloud colour for exactly the face seen
+	# from beneath. Feed it to the march as retained/multiple-scattered light,
+	# separately from the directly lit colour. Keep a modest fraction of the
+	# bright colour as a floor because some games send a transparent-black
+	# ambient value inherited from the old flat cloud renderer.
+	var camb_server: Color = clouds.get("color_ambient", ccol)
+	camb_server = Color(camb_server.r * cdim, camb_server.g * cdim,
+			camb_server.b * cdim, 1.0)
+	var camb_floor := Color(ccol.r * 0.22, ccol.g * 0.22, ccol.b * 0.22, 1.0)
+	var camb_cloud := Color(maxf(camb_server.r, camb_floor.r),
+			maxf(camb_server.g, camb_floor.g), maxf(camb_server.b, camb_floor.b), 1.0)
+	sky_mat.set_shader_parameter("cloud_ambient_color",
+			Vector3(camb_cloud.r, camb_cloud.g, camb_cloud.b))
 	# The beam the deck is lit by, premultiplied: the same hue script as the
 	# land and the halo, at the deck's own strength. This is what makes the
 	# undersides near a rising sun the second brightest thing in the frame

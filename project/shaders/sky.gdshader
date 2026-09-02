@@ -24,6 +24,12 @@ uniform float star_opacity = 0.0;
 uniform vec4 star_color : source_color = vec4(0.92, 0.92, 1.0, 1.0);
 uniform float star_density = 0.35;
 uniform vec4 cloud_color : source_color = vec4(1.0, 1.0, 1.0, 0.9);
+// Diffuse light retained by the droplets after many scattering events. The
+// server supplies this separately from the directly lit cloud colour. It is
+// additive radiance, not another tint to multiply by a dark sky: doing the
+// latter made an optically thick deck converge to black when viewed from
+// underneath at night or under overcast.
+uniform vec3 cloud_ambient_color : source_color = vec3(0.16);
 // The transmitted sun, per layer, premultiplied hue times strength, from
 // SkyDirector via main.gd: cloud_beam is the beam at the deck's own
 // horizon-relative altitude, air_beam the one the dome's high air
@@ -398,7 +404,13 @@ void sky() {
 					// golden valley, which is the one face of the deck the
 					// player is usually looking at.
 					vec3 under = goanna_sun_glow * (1.2 * exp(-hf * 3.0));
-					vec3 s = cloud_color.rgb * (csun * (light * phase) + amb + under);
+					// Direct beam and ground bounce take the cloud albedo. The
+					// diffuse term is light already recycled through the cloud and
+					// therefore adds in its own colour. Retain a small share of the
+					// surrounding sky for altitude variation, but never use that
+					// dark sky as a second multiplier on the server's ambient cloud.
+					vec3 diffuse = cloud_ambient_color + amb * 0.18;
+					vec3 s = cloud_color.rgb * (csun * (light * phase) + under) + diffuse;
 					float a = 1.0 - exp(-dens * sigma * dt);
 					acc += T * s * a;
 					T *= 1.0 - a;

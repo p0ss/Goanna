@@ -175,6 +175,41 @@ void testIsolatedVoxelHasAllSixFaces() {
     expect(underside, "isolated voxel has no lower face");
 }
 
+void testConnectedGroundFollowsAValley() {
+    BlockLodChain valley = airChain();
+    LodLevel &lv = valley.level[BlockLodChain::levelForCell(4)];
+    // A four-node floor everywhere, with a second layer on the two valley
+    // walls. Binary voxel mips draw the underside of that upper layer as a
+    // lid; the terrain surface must instead descend through the middle.
+    for (int z = 0; z < 4; ++z)
+        for (int x = 0; x < 4; ++x) {
+            fillCell(lv.at(x, 0, z), CONTENT_UNKNOWN);
+            if (x == 0 || x == 3)
+                fillCell(lv.at(x, 1, z), CONTENT_UNKNOWN);
+        }
+    NodeDefManager ndef;
+    buildLodTerrainSurface(&ndef, valley, BlockLodChain::levelForCell(4));
+    expect(lv.terrainAt(0, 1) == 8 && lv.terrainAt(1, 1) == 4 &&
+                    lv.terrainAt(2, 1) == 4 && lv.terrainAt(3, 1) == 8,
+            "terrain surface closed a valley instead of following its floor");
+
+    LodRegionSpec spec;
+    spec.origin = v3s16(0, 0, 0);
+    spec.blocks = 1;
+    spec.cell = 4;
+    spec.member = [](v3s16 bp) { return bp == v3s16(0, 0, 0); };
+    spec.chain = [&](v3s16 bp) -> const BlockLodChain * {
+        return bp == v3s16(0, 0, 0) ? &valley : nullptr;
+    };
+    spec.drawn_cell = [](v3s16 bp) { return bp == v3s16(0, 0, 0) ? 4 : -1; };
+    LodTileCache tiles;
+    const LodRegionMesh mesh = meshLodRegion(spec, &ndef, nullptr, nullptr, tiles);
+    expect(mesh.surface_cells == 16, "connected valley was not emitted as terrain surface");
+    for (const LodSurface &surface : mesh.surfaces)
+        for (const v3f &normal : surface.nrm)
+            expect(normal.Y > -0.99f, "terrain valley emitted a horizontal underside lid");
+}
+
 void testCellOneTreeBoundary() {
     BlockLodChain tree = fineAirChain();
     LodLevel &fine = tree.level[BlockLodChain::levelForCell(1)];
@@ -341,6 +376,7 @@ int main() {
     testLiquidSurfaceHeightSurvivesMip();
     testLiquidIsAnEnvelopeOverSolid();
     testIsolatedVoxelHasAllSixFaces();
+    testConnectedGroundFollowsAValley();
     testCellOneTreeBoundary();
     testCellOneMeetsCellFourWithoutOverlap();
     testUnknownFrontierIsClosed();

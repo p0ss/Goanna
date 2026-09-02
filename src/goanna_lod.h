@@ -140,6 +140,13 @@ void buildLodChain(const NodeDefManager *ndef, MapBlock *block, BlockLodChain &o
 // stored blocks, so changing source cannot change the shape of the mip.
 void buildLodMipLevels(BlockLodChain &out, int first_level);
 
+// Recover the connected ground surface from a volumetric chain. Coarse
+// occupancy remains available for caves, islands and overhangs, but the run
+// of solid cells connected to a mapblock's floor is marked kTerrain and gets
+// a per-column height for the surface mesher. Cell 1 stays volumetric because
+// its dense cells are compacted after construction.
+void buildLodTerrainSurface(const NodeDefManager *ndef, BlockLodChain &out, int first_level);
+
 // Compact an already-built dense cell-1 level into the sparse exact boundary
 // representation. Public for focused regression tests; normal callers use
 // buildLodChain, which invokes it after deriving the coarser mips.

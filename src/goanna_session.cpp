@@ -1256,16 +1256,55 @@ void GoannaSession::send(NetworkPacket &pkt, bool reliable) {
 
 void GoannaSession::threadMain() {
     try {
-        Address addr;
-        addr.Resolve(m_host.c_str());
+        Address addr, fallback_addr;
+        addr.Resolve(m_host.c_str(), &fallback_addr);
         addr.setPort(m_port);
-        m_con.reset(con::createMTP(CONNECTION_TIMEOUT, addr.isIPv6(), this));
-        setState(SessionState::Connecting, "connecting to " + m_host);
-        m_con->Connect(addr);
+        fallback_addr.setPort(m_port);
+        auto connect = [&](const Address &target, bool fallback) {
+            // Address::Resolve may return one IPv6 and one IPv4 address. A
+            // machine can have IPv6 configured well enough for getaddrinfo's
+            // AI_ADDRCONFIG test while its route to the Internet is broken.
+            // Recreate the UDP transport because its address family is fixed
+            // at construction, then try the other family just as Luanti's
+            // Game::connectToServer does.
+            m_con.reset(con::createMTP(CONNECTION_TIMEOUT, target.isIPv6(), this));
+            setState(SessionState::Connecting, std::string(fallback ? "trying alternate address for " :
+                    "connecting to ") + m_host);
+            infostream << "goanna: connecting to ";
+            target.print(infostream);
+            infostream << std::endl;
+            m_con->Connect(target);
+        };
+        connect(addr, false);
 
         auto last_pos = std::chrono::steady_clock::now();
+        const auto connect_started = last_pos;
         bool init_sent = false;
+        bool tried_fallback = false;
+        int media_stall_retries = 0;
+        size_t media_have_at_last_stall = 0;
         while (m_running) {
+            const auto now = std::chrono::steady_clock::now();
+            const float connecting_for =
+                    std::chrono::duration<float>(now - connect_started).count();
+            // Luanti waits 1.8 seconds before trying the resolver's second
+            // result. Only switch before the UDP handshake succeeds: once a
+            // peer exists, authentication/content errors belong to that
+            // server and must be reported rather than disguised as routing.
+            if (!init_sent && !tried_fallback && connecting_for > 1.8f) {
+                tried_fallback = true;
+                if (fallback_addr.isValid())
+                    connect(fallback_addr, true);
+            }
+            // The transport's own timeout is deliberately longer because it
+            // also governs established peers. Give the connection screen the
+            // same finite ten-second failure that the Luanti client gives its
+            // initial handshake.
+            if (!init_sent && connecting_for > 10.0f) {
+                setState(SessionState::Error, "connection timed out");
+                m_running = false;
+                break;
+            }
             if (!init_sent && m_con->Connected()) {
                 sendInit();
                 init_sent = true;
@@ -1293,17 +1332,50 @@ void GoannaSession::threadMain() {
                 {
                     std::lock_guard<std::mutex> lk(m_media_mutex);
                     last = m_media_last_arrival;
-                    have = m_media.size();
                     want = m_media_wanted.size();
+                    for (const auto &wanted : m_media_wanted)
+                        if (m_media.count(wanted.first))
+                            ++have;
                 }
                 const float quiet = std::chrono::duration<float>(
                         std::chrono::steady_clock::now() - last).count();
                 if (quiet > 30.0f) {
-                    warningstream << "goanna: no media for " << (int)quiet << " s ("
-                                  << have << " of " << want
-                                  << " received); proceeding without the rest" << std::endl;
-                    m_media_done = true;
-                    maybeReady();
+                    // Progress since the previous silent window earns a fresh
+                    // retry allowance. Three failures means three requests in
+                    // a row produced no additional announced file.
+                    if (have > media_have_at_last_stall)
+                        media_stall_retries = 0;
+                    media_have_at_last_stall = have;
+                    std::vector<std::string> missing;
+                    {
+                        std::lock_guard<std::mutex> lk(m_media_mutex);
+                        for (const auto &wanted : m_media_wanted)
+                            if (!m_media.count(wanted.first))
+                                missing.push_back(wanted.first);
+                        // This retry is now the latest activity. Without
+                        // moving the timestamp, the loop would send all
+                        // retries in consecutive 20 ms iterations.
+                        m_media_last_arrival = std::chrono::steady_clock::now();
+                    }
+                    if (missing.empty()) {
+                        m_media_done = true;
+                        maybeReady();
+                    } else if (media_stall_retries < 3) {
+                        ++media_stall_retries;
+                        warningstream << "goanna: no media for " << (int)quiet << " s ("
+                                      << have << " of " << want << " received); retrying "
+                                      << missing.size() << " missing files, attempt "
+                                      << media_stall_retries << " of 3" << std::endl;
+                        setState(SessionState::Definitions, "media download stalled; retrying " +
+                                std::to_string(missing.size()) + " missing files (" +
+                                std::to_string(media_stall_retries) + "/3)");
+                        requestMedia(missing);
+                    } else {
+                        setState(SessionState::Error, "media download stalled: " +
+                                std::to_string(have) + " of " + std::to_string(want) +
+                                " files received; reconnect to try again");
+                        m_running = false;
+                    }
                 }
             }
             SessionState st;
@@ -2114,7 +2186,12 @@ void GoannaSession::onMedia(NetworkPacket &pkt) {
             m_media[name] = std::move(data);
             m_media_last_arrival = std::chrono::steady_clock::now();
         }
-        have = m_media.size();
+        // Count completion against the announcement, not every file the
+        // server happened to send. An unsolicited file must not stand in for
+        // a missing model or texture and let content preparation begin early.
+        for (const auto &wanted : m_media_wanted)
+            if (m_media.count(wanted.first))
+                ++have;
         want = m_media_wanted.size();
     }
     {

@@ -131,6 +131,18 @@ struct ContentClass {
 
 } // namespace
 
+static bool lodIsVegetation(const NodeDefManager *ndef, content_t c) {
+    static const char *const groups[] = {"tree", "leaves", "cactus", "bamboo", "plant", "flora",
+            "sapling", "flower", "mushroom", "fruit", "vines"};
+    if (!ndef || c == CONTENT_AIR || c == CONTENT_IGNORE)
+        return false;
+    const ContentFeatures &f = ndef->get(c);
+    for (const char *group : groups)
+        if (itemgroup_get(f.groups, group) > 0)
+            return true;
+    return false;
+}
+
 void buildLodChain(const NodeDefManager *ndef, MapBlock *block, BlockLodChain &out, int min_level) {
     const int N = MAP_BLOCKSIZE;
     for (LodLevel &lv : out.level)
@@ -263,6 +275,7 @@ void buildLodChain(const NodeDefManager *ndef, MapBlock *block, BlockLodChain &o
                 // voxel occupies its complete cell, including its lower face.
             }
     buildLodMipLevels(out, min_level);
+    buildLodTerrainSurface(ndef, out, min_level);
     if (cell == 1)
         compactLodFineBoundary(out);
 }
@@ -337,6 +350,44 @@ void buildLodMipLevels(BlockLodChain &out, int first_level) {
                             coarse.flags |= LodLevel::kOccludes;
                     }
                 }
+    }
+}
+
+void buildLodTerrainSurface(const NodeDefManager *ndef, BlockLodChain &out, int first_level) {
+    first_level = std::clamp(first_level, 0, BlockLodChain::kLevels - 1);
+    for (int level = first_level; level < BlockLodChain::kLevels; ++level) {
+        LodLevel &lv = out.level[level];
+        if (!lv.built())
+            continue;
+        // The exact cell-1 level is compacted to sparse boundary records, and
+        // the surface pass needs random access to the dense level. It is also
+        // already exact, so replacing it with a height surface buys nothing.
+        if (lv.cell == 1) {
+            lv.terrain.clear();
+            continue;
+        }
+        for (LodLevel::Cell &c : lv.cells)
+            c.flags &= ~LodLevel::kTerrain;
+        lv.terrain.assign((size_t)lv.n * lv.n, 0);
+        for (int z = 0; z < lv.n; ++z)
+            for (int x = 0; x < lv.n; ++x) {
+                int top = 0;
+                for (int y = 0; y < lv.n; ++y) {
+                    LodLevel::Cell &c = lv.at(x, y, z);
+                    // Only a solid run rooted at the block floor is ground.
+                    // Air ends the run; anything above it remains a box, so
+                    // an island or bridge cannot drape a terrain sheet down
+                    // to the valley below. Vegetation ends it too, keeping a
+                    // trunk from raising the land to its canopy.
+                    if (!(c.flags & LodLevel::kKnown) || !(c.flags & LodLevel::kFilled) ||
+                            lodIsVegetation(ndef, c.face[0]))
+                        break;
+                    c.flags |= LodLevel::kTerrain;
+                    const int within = c.top > 0 && c.top < lv.cell ? c.top : lv.cell;
+                    top = y * lv.cell + within;
+                }
+                lv.terrain[(size_t)z * lv.n + x] = (uint8_t)top;
+            }
     }
 }
 
