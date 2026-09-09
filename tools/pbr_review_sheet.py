@@ -31,6 +31,19 @@ def channel(path, index):
     return Image.open(path).convert("RGBA").getchannel(index).convert("RGB")
 
 
+def metal_panel(path):
+    """LabPBR writes a dielectric's F0 as 10 of 255, so the raw G channel of a
+    correct stone or glass map is 4 per cent grey and reads on a sheet exactly
+    like a map with nothing in it. Draw the decision instead: metal texels
+    white, dielectric a legible mid grey, so a reviewer can tell "no metal
+    here" from "something went wrong".
+    """
+    import numpy as np
+    g = np.asarray(Image.open(path).convert("RGBA"))[..., 1]
+    panel = np.where(g >= 229, 245, 70).astype("uint8")
+    return Image.fromarray(panel, "L").convert("RGB")
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--baked", required=True)
@@ -53,7 +66,8 @@ def main():
                                                 item.get("warnings", []))
     stems = [path.name[:-len("_n.png")] for path in baked.glob("*_n.png")]
     stems = sorted(stems, key=lambda stem: (priority.get(stem, 2), stem))[:args.limit]
-    labels = ("source", "generated albedo", "normal", "height", "smoothness", "metal/F0")
+    labels = ("source", "generated albedo", "normal", "height", "smoothness",
+              "metal (white) / dielectric")
     tile, label_h, title_h = args.tile, 42, 38
     width = len(labels) * tile
     height = title_h + len(stems) * (tile + label_h)
@@ -72,7 +86,7 @@ def main():
             Image.open(albedo).convert("RGBA") if albedo.exists() else
                 (Image.open(source).convert("RGBA") if source else Image.new("RGB", (1, 1))),
             Image.open(normal).convert("RGB"), channel(normal, 3),
-            channel(spec, 0), channel(spec, 1),
+            channel(spec, 0), metal_panel(spec),
         ]
         for column, image in enumerate(images):
             sheet.paste(fit(image, tile), (column * tile, y))
