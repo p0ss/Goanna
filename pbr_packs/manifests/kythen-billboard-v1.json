@@ -1,0 +1,6652 @@
+[
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_hearth": 1,
+      "snappy": 3
+    },
+    "light_source": 9,
+    "liquid_viscosity": 0,
+    "name": "kythen:moana_candlenut_lamp",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_moana_candlenut_lamp.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:norse_fell_sward",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_norse_fell_sward.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "kythen_gather": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:norse_juniper_mat",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_norse_juniper_mat.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "allfaces_optional",
+    "groups": {
+      "flammable": 2,
+      "leaves": 1,
+      "slot_foliage": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:khmer_flooded_forest_canopy",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_khmer_flooded_forest.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "allfaces_optional",
+    "groups": {
+      "flammable": 2,
+      "leaves": 1,
+      "slot_foliage": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:khmer_sugar_palm_crown",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_khmer_sugar_palm_crown.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_flax_1",
+    "tiles": [
+      "kythen_norse_flax.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_flax_2",
+    "tiles": [
+      "kythen_norse_flax.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_flax_3",
+    "tiles": [
+      "kythen_norse_flax.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_flax_4",
+    "tiles": [
+      "kythen_norse_flax.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_nettle_2",
+    "tiles": [
+      "kythen_norse_nettle_stand.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_nettle_3",
+    "tiles": [
+      "kythen_norse_nettle_stand.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_angelica_1",
+    "tiles": [
+      "kythen_norse_angelica_stand.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_angelica_2",
+    "tiles": [
+      "kythen_norse_angelica_stand.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_angelica_3",
+    "tiles": [
+      "kythen_norse_angelica_stand.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_angelica_4",
+    "tiles": [
+      "kythen_norse_angelica_stand.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_woad_2",
+    "tiles": [
+      "kythen_norse_woad.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_woad_3",
+    "tiles": [
+      "kythen_norse_woad.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_woad_4",
+    "tiles": [
+      "kythen_norse_woad.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_downy_birch_1",
+    "tiles": [
+      "kythen_norse_birch_scrub.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_downy_birch_3",
+    "tiles": [
+      "kythen_norse_birch_scrub.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_downy_birch_4",
+    "tiles": [
+      "kythen_norse_birch_scrub.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_rowan_1",
+    "tiles": [
+      "kythen_norse_rowan_scrub.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_rowan_3",
+    "tiles": [
+      "kythen_norse_rowan_scrub.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_juniper_1",
+    "tiles": [
+      "kythen_norse_juniper_mat.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_juniper_2",
+    "tiles": [
+      "kythen_norse_juniper_mat.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_scots_pine_1",
+    "tiles": [
+      "kythen_norse_pine_scrub.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_scots_pine_3",
+    "tiles": [
+      "kythen_norse_pine_scrub.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_heather_3",
+    "tiles": [
+      "kythen_norse_heather.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_crowberry_1",
+    "tiles": [
+      "kythen_norse_berry_heath.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_crowberry_3",
+    "tiles": [
+      "kythen_norse_berry_heath.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_kelp_1",
+    "tiles": [
+      "kythen_norse_kelp_bed.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "kythen_gather": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:norse_standing_meadow",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_norse_meadow_sward.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_managed": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:norse_cut_meadow",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_norse_cut_meadow.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "kythen_gather": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:norse_heather",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_norse_heather.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "kythen_gather": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:norse_berry_heath",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_norse_berry_heath.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_madder_1",
+    "tiles": [
+      "kythen_norse_madder.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "kythen_gather": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:norse_cotton_grass",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_norse_cotton_grass.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:firecountry_tussock_cover",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_firecountry_mitchell_tussock.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "kythen_gather": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:norse_birch_scrub",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_norse_birch_scrub.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:firecountry_spinifex_cover",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_firecountry_spinifex.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_madder_4",
+    "tiles": [
+      "kythen_norse_madder.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "kythen_gather": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:norse_rowan_scrub",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_norse_rowan_scrub.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:firecountry_scarp_fern_cover",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_firecountry_scarp_fern.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "kythen_gather": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:norse_pine_scrub",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_norse_pine_scrub.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "kythen_gather": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:siku_dwarf_willow",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_siku_dwarf_willow.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "kythen_gather": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:siku_sedge_tussock",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_siku_sedge_tussock.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "kythen_gather": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:siku_mountain_sorrel",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_siku_sorrel.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "normal",
+    "groups": {
+      "slot_station": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:habesha_scraping_board",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_habesha_enset_leaf.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_mitteleuropa_plant_grape_2",
+    "tiles": [
+      "kythen_mitteleuropa_grape.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_mitteleuropa_plant_grape_6",
+    "tiles": [
+      "kythen_mitteleuropa_grape.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "normal",
+    "groups": {
+      "slot_pen": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:habesha_thorn_kraal",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_habesha_enset_leaf.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "kythen_gather": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:moana_kava",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_moana_kava.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "flora": 1,
+      "kythen_gather": 1,
+      "kythen_stacked_plant": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:moana_paper_mulberry",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_moana_paper_mulberry.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "normal",
+    "groups": {
+      "crumbly": 3,
+      "slot_ground_wild": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:habesha_covenant_floor",
+    "sound_footstep": "kythen_dirt_footstep",
+    "tiles": [
+      "kythen_habesha_coffee_leaf.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:habesha_tussock_cover",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_habesha_tussock_grass.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:habesha_adey_abeba_cover",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_habesha_adey_abeba.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "flora": 1,
+      "kythen_stacked_plant": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:habesha_lobelia_cover",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_habesha_lobelia.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "flora": 1,
+      "kythen_gather": 1,
+      "kythen_stacked_plant": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:habesha_enset_cover",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_habesha_enset_leaf.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:moana_beach_scrub",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_moana_beach_scrub.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "kythen_gather": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:habesha_coffee_cover",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_habesha_coffee_leaf.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:habesha_grove_fern_cover",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_habesha_grove_fern.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:moana_sea_grass",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_moana_sea_grass.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:habesha_gesho_cover",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_habesha_gesho.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "flora": 1,
+      "kythen_stacked_plant": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:moana_swamp_sedge",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_moana_swamp_sedge.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "kythen_gather": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:moana_taro_stand",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_moana_taro_leaf.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "flora": 1,
+      "kythen_gather": 1,
+      "kythen_stacked_plant": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:moana_banana_stand",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_moana_banana_leaf.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_decoration": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:moana_shell_string",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_moana_shell_inlay.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_native_millet_2",
+    "tiles": [
+      "kythen_firecountry_native_millet.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_native_millet_3",
+    "tiles": [
+      "kythen_firecountry_native_millet.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:mitteleuropa_heather",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_mitteleuropa_heather.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_kangaroo_grass_2",
+    "tiles": [
+      "kythen_firecountry_kangaroo_grass.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:mitteleuropa_sedge",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_mitteleuropa_sedge.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:mitteleuropa_forest_fern",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_mitteleuropa_forest_fern.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_barley_grass_1",
+    "tiles": [
+      "kythen_firecountry_barley_grass.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_barley_grass_2",
+    "tiles": [
+      "kythen_firecountry_barley_grass.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_yam_daisy_1",
+    "tiles": [
+      "kythen_firecountry_yam_daisy.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_yam_daisy_2",
+    "tiles": [
+      "kythen_firecountry_yam_daisy.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_yam_daisy_3",
+    "tiles": [
+      "kythen_firecountry_yam_daisy.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_yam_daisy_4",
+    "tiles": [
+      "kythen_firecountry_yam_daisy.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_yam_1",
+    "tiles": [
+      "kythen_firecountry_yam.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_yam_2",
+    "tiles": [
+      "kythen_firecountry_yam.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:khmer_bunded_rice",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_khmer_bunded_rice.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "flora": 1,
+      "kythen_gather": 1,
+      "kythen_stacked_plant": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:khmer_deepwater_rice",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_khmer_deepwater_rice.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:khmer_house_garden",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_khmer_house_garden.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "flora": 1,
+      "kythen_gather": 1,
+      "kythen_stacked_plant": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:khmer_sugarcane",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_khmer_sugarcane.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "flora": 1,
+      "kythen_gather": 1,
+      "kythen_stacked_plant": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:khmer_pepper_vine",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_khmer_pepper_vine.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "flora": 1,
+      "kythen_stacked_plant": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:khmer_rattan_cane",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_khmer_rattan.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:khmer_forest_fern",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_khmer_forest_fern.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:firecountry_burnt_stubble_cover",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_firecountry_burnt_stubble.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "kythen_gather": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:firecountry_barley_grass_cover",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_firecountry_barley_grass.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "flora": 1,
+      "kythen_stacked_plant": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:mitteleuropa_reed",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_mitteleuropa_reed.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:mitteleuropa_bog_myrtle",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_mitteleuropa_bog_myrtle.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:mitteleuropa_heath_herbs",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_mitteleuropa_heath_herbs.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:mitteleuropa_fir_woodrush",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_mitteleuropa_fir_woodrush.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "kythen_gather": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:firecountry_kangaroo_grass_cover",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_firecountry_kangaroo_grass.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:mitteleuropa_marsh_rosemary",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_mitteleuropa_marsh_rosemary.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:mitteleuropa_bog_cotton",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_mitteleuropa_bog_cotton.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:mitteleuropa_litter_meadow",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_mitteleuropa_litter_meadow.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:mitteleuropa_flood_line_herbs",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_mitteleuropa_flood_line_herbs.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:mitteleuropa_ground_ivy",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_mitteleuropa_ground_ivy.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:mitteleuropa_sand_sedge",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_mitteleuropa_sand_sedge.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_madder_3",
+    "tiles": [
+      "kythen_norse_madder.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_madder_2",
+    "tiles": [
+      "kythen_norse_madder.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_kelp_3",
+    "tiles": [
+      "kythen_norse_kelp_bed.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_kelp_2",
+    "tiles": [
+      "kythen_norse_kelp_bed.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_cotton_grass_3",
+    "tiles": [
+      "kythen_norse_cotton_grass.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_cotton_grass_2",
+    "tiles": [
+      "kythen_norse_cotton_grass.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_cotton_grass_1",
+    "tiles": [
+      "kythen_norse_cotton_grass.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_crowberry_4",
+    "tiles": [
+      "kythen_norse_berry_heath.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_crowberry_2",
+    "tiles": [
+      "kythen_norse_berry_heath.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_heather_2",
+    "tiles": [
+      "kythen_norse_heather.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_heather_1",
+    "tiles": [
+      "kythen_norse_heather.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_scots_pine_4",
+    "tiles": [
+      "kythen_norse_pine_scrub.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_scots_pine_2",
+    "tiles": [
+      "kythen_norse_pine_scrub.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_juniper_3",
+    "tiles": [
+      "kythen_norse_juniper_mat.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_rowan_4",
+    "tiles": [
+      "kythen_norse_rowan_scrub.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_rowan_2",
+    "tiles": [
+      "kythen_norse_rowan_scrub.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_downy_birch_2",
+    "tiles": [
+      "kythen_norse_birch_scrub.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_woad_1",
+    "tiles": [
+      "kythen_norse_woad.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_nettle_1",
+    "tiles": [
+      "kythen_norse_nettle_stand.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "kythen_gather": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:firecountry_pigweed_cover",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_firecountry_pigweed.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_barley_3",
+    "tiles": [
+      "kythen_norse_barley.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_meadow_grass_1",
+    "tiles": [
+      "kythen_norse_meadow_sward.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "flora": 1,
+      "kythen_stacked_plant": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:habesha_giant_heath_cover",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_habesha_giant_heath.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_moana_plant_arrowroot_3",
+    "tiles": [
+      "kythen_moana_arrowroot.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_moana_plant_arrowroot_1",
+    "tiles": [
+      "kythen_moana_arrowroot.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_moana_plant_paper_mulberry_3",
+    "tiles": [
+      "kythen_moana_paper_mulberry.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "flora": 1,
+      "kythen_stacked_plant": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:moana_yam_stand",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_moana_yam.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_moana_plant_kava_5",
+    "tiles": [
+      "kythen_moana_kava.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "flora": 1,
+      "kythen_stacked_plant": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:moana_sugarcane_stand",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_moana_sugarcane.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_moana_plant_kava_3",
+    "tiles": [
+      "kythen_moana_kava.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_moana_plant_kava_1",
+    "tiles": [
+      "kythen_moana_kava.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_moana_plant_sugarcane_2",
+    "tiles": [
+      "kythen_moana_sugarcane.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_moana_plant_sugarcane_1",
+    "tiles": [
+      "kythen_moana_sugarcane.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "flora": 1,
+      "kythen_stacked_plant": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:firecountry_rank_stand_cover",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_firecountry_rank_stand.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "kythen_gather": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:firecountry_pituri_cover",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_firecountry_pituri_bush.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_moana_plant_banana_5",
+    "tiles": [
+      "kythen_moana_banana_leaf.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_moana_plant_banana_3",
+    "tiles": [
+      "kythen_moana_banana_leaf.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_moana_plant_banana_1",
+    "tiles": [
+      "kythen_moana_banana_leaf.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_mitteleuropa_plant_rye_2",
+    "tiles": [
+      "kythen_mitteleuropa_rye.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_moana_plant_giant_swamp_taro_3",
+    "tiles": [
+      "kythen_moana_giant_swamp_taro.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_moana_plant_giant_swamp_taro_2",
+    "tiles": [
+      "kythen_moana_giant_swamp_taro.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_moana_plant_giant_swamp_taro_1",
+    "tiles": [
+      "kythen_moana_giant_swamp_taro.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:mitteleuropa_peas",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_mitteleuropa_peas.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_moana_plant_taro_3",
+    "tiles": [
+      "kythen_moana_taro_leaf.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_moana_plant_taro_2",
+    "tiles": [
+      "kythen_moana_taro_leaf.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_moana_plant_taro_1",
+    "tiles": [
+      "kythen_moana_taro_leaf.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_moana_plant_yam_5",
+    "tiles": [
+      "kythen_moana_yam.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_moana_plant_yam_4",
+    "tiles": [
+      "kythen_moana_yam.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_mitteleuropa_plant_peas_4",
+    "tiles": [
+      "kythen_mitteleuropa_peas.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_moana_plant_yam_2",
+    "tiles": [
+      "kythen_moana_yam.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:habesha_teff",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_habesha_teff.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_mitteleuropa_plant_grape_5",
+    "tiles": [
+      "kythen_mitteleuropa_grape.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_mitteleuropa_plant_grape_4",
+    "tiles": [
+      "kythen_mitteleuropa_grape.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_mitteleuropa_plant_grape_3",
+    "tiles": [
+      "kythen_mitteleuropa_grape.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_pigweed_2",
+    "tiles": [
+      "kythen_firecountry_pigweed.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_bush_bean_4",
+    "tiles": [
+      "kythen_firecountry_bush_bean.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_cordage_grass_3",
+    "tiles": [
+      "kythen_firecountry_cordage_grass.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:habesha_barley",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_habesha_barley.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_stimulant_leaf_4",
+    "tiles": [
+      "kythen_firecountry_pituri_bush.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_storm_plant_2",
+    "tiles": [
+      "kythen_firecountry_storm_plant.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:habesha_wheat",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_habesha_wheat.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:mitteleuropa_rye",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_mitteleuropa_rye.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:habesha_faba",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_habesha_faba.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_spinifex_1",
+    "tiles": [
+      "kythen_firecountry_spinifex.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_mitteleuropa_plant_lentils_3",
+    "tiles": [
+      "kythen_mitteleuropa_lentils.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "flora": 1,
+      "kythen_stacked_plant": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:habesha_sorghum",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_habesha_sorghum.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_spinifex_4",
+    "tiles": [
+      "kythen_firecountry_spinifex.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:habesha_sesame",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_habesha_sesame.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_mitteleuropa_plant_lentils_1",
+    "tiles": [
+      "kythen_mitteleuropa_lentils.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_mitteleuropa_plant_broad_beans_4",
+    "tiles": [
+      "kythen_mitteleuropa_broad_beans.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:habesha_niger",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_habesha_niger.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_mitteleuropa_plant_broad_beans_2",
+    "tiles": [
+      "kythen_mitteleuropa_broad_beans.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:habesha_kale",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_habesha_kale.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:habesha_cotton",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_habesha_cotton.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_mitteleuropa_plant_oats_3",
+    "tiles": [
+      "kythen_mitteleuropa_oats.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_sorghum_4",
+    "tiles": [
+      "kythen_habesha_sorghum.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "kythen_gather": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:mitteleuropa_henbane",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_mitteleuropa_henbane.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_niger_1",
+    "tiles": [
+      "kythen_habesha_niger.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:mitteleuropa_madder",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_mitteleuropa_madder.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_enset_1",
+    "tiles": [
+      "kythen_habesha_enset_leaf.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_mitteleuropa_plant_barley_2",
+    "tiles": [
+      "kythen_mitteleuropa_barley.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:mitteleuropa_barley",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_mitteleuropa_barley.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:mitteleuropa_oats",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_mitteleuropa_oats.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_coffee_2",
+    "tiles": [
+      "kythen_habesha_coffee_leaf.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:mitteleuropa_broad_beans",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_mitteleuropa_broad_beans.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:mitteleuropa_lentils",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_mitteleuropa_lentils.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:norse_flax",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_norse_flax.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_moana_plant_yam_1",
+    "tiles": [
+      "kythen_moana_yam.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_euphorbia_3",
+    "tiles": [
+      "kythen_habesha_euphorbia.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:norse_woad",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_norse_woad.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_khmer_plant_bunded_rice_2",
+    "tiles": [
+      "kythen_khmer_bunded_rice.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_moana_plant_yam_3",
+    "tiles": [
+      "kythen_moana_yam.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:norse_madder",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_norse_madder.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_khmer_plant_deepwater_rice_3",
+    "tiles": [
+      "kythen_khmer_deepwater_rice.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "flora": 1,
+      "kythen_gather": 1,
+      "kythen_stacked_plant": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:mitteleuropa_grape",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_mitteleuropa_grape.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_mitteleuropa_plant_peas_2",
+    "tiles": [
+      "kythen_mitteleuropa_peas.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_khmer_plant_house_garden_3",
+    "tiles": [
+      "kythen_khmer_house_garden.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_moana_plant_taro_4",
+    "tiles": [
+      "kythen_moana_taro_leaf.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_moana_plant_giant_swamp_taro_4",
+    "tiles": [
+      "kythen_moana_giant_swamp_taro.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_khmer_plant_sugarcane_4",
+    "tiles": [
+      "kythen_khmer_sugarcane.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_khmer_plant_pepper_vine_1",
+    "tiles": [
+      "kythen_khmer_pepper_vine.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_khmer_plant_pepper_vine_2",
+    "tiles": [
+      "kythen_khmer_pepper_vine.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_mitteleuropa_plant_rye_1",
+    "tiles": [
+      "kythen_mitteleuropa_rye.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_khmer_plant_pepper_vine_3",
+    "tiles": [
+      "kythen_khmer_pepper_vine.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_khmer_plant_sugarcane_3",
+    "tiles": [
+      "kythen_khmer_sugarcane.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_khmer_plant_sugarcane_2",
+    "tiles": [
+      "kythen_khmer_sugarcane.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_khmer_plant_sugarcane_1",
+    "tiles": [
+      "kythen_khmer_sugarcane.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:khmer_gathered_herbs",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_khmer_gathered_herbs.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_khmer_plant_lotus_3",
+    "tiles": [
+      "kythen_khmer_lotus.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:mitteleuropa_meadow_grass",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_mitteleuropa_meadow_grass.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_khmer_plant_lotus_1",
+    "tiles": [
+      "kythen_khmer_lotus.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_mitteleuropa_plant_rye_3",
+    "tiles": [
+      "kythen_mitteleuropa_rye.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_mitteleuropa_plant_rye_4",
+    "tiles": [
+      "kythen_mitteleuropa_rye.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "normal",
+    "groups": {
+      "crumbly": 3,
+      "slot_ground_top": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:norse_meadow_turf",
+    "sound_footstep": "kythen_dirt_footstep",
+    "tiles": [
+      "kythen_norse_meadow_sward.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_mitteleuropa_plant_peas_1",
+    "tiles": [
+      "kythen_mitteleuropa_peas.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "normal",
+    "groups": {
+      "crumbly": 3,
+      "slot_ground_top": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:norse_heath_ground",
+    "sound_footstep": "kythen_dirt_footstep",
+    "tiles": [
+      "kythen_norse_heather.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_khmer_plant_deepwater_rice_4",
+    "tiles": [
+      "kythen_khmer_deepwater_rice.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_mitteleuropa_plant_peas_3",
+    "tiles": [
+      "kythen_mitteleuropa_peas.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "normal",
+    "groups": {
+      "slot_scaffold": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:khmer_bamboo_scaffold",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_khmer_bamboo.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_khmer_plant_deepwater_rice_1",
+    "tiles": [
+      "kythen_khmer_deepwater_rice.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_khmer_plant_bunded_rice_5",
+    "tiles": [
+      "kythen_khmer_bunded_rice.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_khmer_plant_bunded_rice_4",
+    "tiles": [
+      "kythen_khmer_bunded_rice.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_khmer_plant_bunded_rice_3",
+    "tiles": [
+      "kythen_khmer_bunded_rice.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_mitteleuropa_plant_henbane_1",
+    "tiles": [
+      "kythen_mitteleuropa_henbane.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_khmer_plant_bunded_rice_1",
+    "tiles": [
+      "kythen_khmer_bunded_rice.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_mitteleuropa_plant_henbane_2",
+    "tiles": [
+      "kythen_mitteleuropa_henbane.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_euphorbia_2",
+    "tiles": [
+      "kythen_habesha_euphorbia.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_mitteleuropa_plant_henbane_3",
+    "tiles": [
+      "kythen_mitteleuropa_henbane.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_cotton_3",
+    "tiles": [
+      "kythen_habesha_cotton.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_cotton_2",
+    "tiles": [
+      "kythen_habesha_cotton.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_mitteleuropa_plant_madder_1",
+    "tiles": [
+      "kythen_mitteleuropa_madder.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_mitteleuropa_plant_madder_2",
+    "tiles": [
+      "kythen_mitteleuropa_madder.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_kale_1",
+    "tiles": [
+      "kythen_habesha_kale.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_coffee_5",
+    "tiles": [
+      "kythen_habesha_coffee_leaf.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_mitteleuropa_plant_madder_3",
+    "tiles": [
+      "kythen_mitteleuropa_madder.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_coffee_3",
+    "tiles": [
+      "kythen_habesha_coffee_leaf.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_mitteleuropa_plant_madder_4",
+    "tiles": [
+      "kythen_mitteleuropa_madder.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_mitteleuropa_plant_barley_1",
+    "tiles": [
+      "kythen_mitteleuropa_barley.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_enset_5",
+    "tiles": [
+      "kythen_habesha_enset_leaf.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_enset_4",
+    "tiles": [
+      "kythen_habesha_enset_leaf.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_mitteleuropa_plant_barley_3",
+    "tiles": [
+      "kythen_mitteleuropa_barley.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_niger_3",
+    "tiles": [
+      "kythen_habesha_niger.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_niger_2",
+    "tiles": [
+      "kythen_habesha_niger.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_mitteleuropa_plant_barley_4",
+    "tiles": [
+      "kythen_mitteleuropa_barley.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_sesame_3",
+    "tiles": [
+      "kythen_habesha_sesame.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_sesame_1",
+    "tiles": [
+      "kythen_habesha_sesame.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_mitteleuropa_plant_oats_1",
+    "tiles": [
+      "kythen_mitteleuropa_oats.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_sorghum_3",
+    "tiles": [
+      "kythen_habesha_sorghum.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_mitteleuropa_plant_oats_2",
+    "tiles": [
+      "kythen_mitteleuropa_oats.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_faba_3",
+    "tiles": [
+      "kythen_habesha_faba.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_faba_2",
+    "tiles": [
+      "kythen_habesha_faba.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:habesha_everlasting_cover",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_habesha_everlasting.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_faba_1",
+    "tiles": [
+      "kythen_habesha_faba.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_wheat_4",
+    "tiles": [
+      "kythen_habesha_wheat.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_mitteleuropa_plant_oats_4",
+    "tiles": [
+      "kythen_mitteleuropa_oats.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_wheat_2",
+    "tiles": [
+      "kythen_habesha_wheat.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:habesha_frost_mat_cover",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_habesha_frost_mat.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_mitteleuropa_plant_broad_beans_1",
+    "tiles": [
+      "kythen_mitteleuropa_broad_beans.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_barley_4",
+    "tiles": [
+      "kythen_habesha_barley.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_barley_3",
+    "tiles": [
+      "kythen_habesha_barley.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "flora": 1,
+      "kythen_gather": 1,
+      "kythen_stacked_plant": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:habesha_euphorbia_cover",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_habesha_euphorbia.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_mitteleuropa_plant_broad_beans_3",
+    "tiles": [
+      "kythen_mitteleuropa_broad_beans.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:habesha_gorge_aloe_cover",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_habesha_gorge_aloe.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_teff_2",
+    "tiles": [
+      "kythen_habesha_teff.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_mitteleuropa_plant_lentils_2",
+    "tiles": [
+      "kythen_mitteleuropa_lentils.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:habesha_thorn_scrub_cover",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_habesha_thorn_scrub.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_spinifex_3",
+    "tiles": [
+      "kythen_firecountry_spinifex.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_mitteleuropa_plant_lentils_4",
+    "tiles": [
+      "kythen_mitteleuropa_lentils.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_storm_plant_3",
+    "tiles": [
+      "kythen_firecountry_storm_plant.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_storm_plant_1",
+    "tiles": [
+      "kythen_firecountry_storm_plant.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_stimulant_leaf_2",
+    "tiles": [
+      "kythen_firecountry_pituri_bush.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_stimulant_leaf_1",
+    "tiles": [
+      "kythen_firecountry_pituri_bush.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:mitteleuropa_onion_garlic",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_mitteleuropa_onion_garlic.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_cordage_grass_2",
+    "tiles": [
+      "kythen_firecountry_cordage_grass.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_cordage_grass_1",
+    "tiles": [
+      "kythen_firecountry_cordage_grass.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_mitteleuropa_plant_onion_garlic_1",
+    "tiles": [
+      "kythen_mitteleuropa_onion_garlic.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_flood_fern_3",
+    "tiles": [
+      "kythen_firecountry_flood_fern.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_mitteleuropa_plant_onion_garlic_2",
+    "tiles": [
+      "kythen_mitteleuropa_onion_garlic.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_mitteleuropa_plant_onion_garlic_3",
+    "tiles": [
+      "kythen_mitteleuropa_onion_garlic.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_bush_bean_3",
+    "tiles": [
+      "kythen_firecountry_bush_bean.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_bush_bean_2",
+    "tiles": [
+      "kythen_firecountry_bush_bean.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_mitteleuropa_plant_onion_garlic_4",
+    "tiles": [
+      "kythen_mitteleuropa_onion_garlic.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_pigweed_3",
+    "tiles": [
+      "kythen_firecountry_pigweed.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_mitteleuropa_plant_grape_1",
+    "tiles": [
+      "kythen_mitteleuropa_grape.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_yam_3",
+    "tiles": [
+      "kythen_firecountry_yam.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_barley_grass_4",
+    "tiles": [
+      "kythen_firecountry_barley_grass.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_barley_grass_3",
+    "tiles": [
+      "kythen_firecountry_barley_grass.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_kangaroo_grass_4",
+    "tiles": [
+      "kythen_firecountry_kangaroo_grass.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_kangaroo_grass_3",
+    "tiles": [
+      "kythen_firecountry_kangaroo_grass.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_kangaroo_grass_1",
+    "tiles": [
+      "kythen_firecountry_kangaroo_grass.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_native_millet_4",
+    "tiles": [
+      "kythen_firecountry_native_millet.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_native_millet_1",
+    "tiles": [
+      "kythen_firecountry_native_millet.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_meadow_grass_2",
+    "tiles": [
+      "kythen_norse_meadow_sward.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_meadow_grass_3",
+    "tiles": [
+      "kythen_norse_meadow_sward.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_barley_1",
+    "tiles": [
+      "kythen_norse_barley.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_barley_2",
+    "tiles": [
+      "kythen_norse_barley.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:norse_bog_myrtle",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_norse_bog_myrtle.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_barley_4",
+    "tiles": [
+      "kythen_norse_barley.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_norse_plant_barley_5",
+    "tiles": [
+      "kythen_norse_barley.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:norse_deer_sedge",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_norse_deer_sedge.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:siku_moss_campion",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_siku_moss_hummock.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:siku_bilberry",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_siku_crowberry_heath.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:siku_willow_herb",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_siku_sorrel.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "kythen_gather": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:siku_cloudberry",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_siku_sorrel.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "kythen_gather": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:siku_labrador_tea",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_siku_crowberry_heath.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:siku_kelp_bed",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_siku_kelp_wrack.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "kythen_gather": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:siku_kelp_wrack",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_siku_kelp_wrack.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "kythen_gather": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:siku_scurvy_grass",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_siku_sorrel.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:siku_arctic_poppy",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_siku_sorrel.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "kythen_gather": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:siku_saxifrage",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_siku_sorrel.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "kythen_gather": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:siku_bearberry",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_siku_crowberry_heath.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "attached_node": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:siku_moss_hummock",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_siku_moss_hummock.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "kythen_gather": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:siku_arctic_cotton",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_siku_cotton_grass.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "kythen_gather": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:siku_crowberry_heath",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_siku_crowberry_heath.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:norse_dwarf_willow",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_norse_dwarf_willow.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "kythen_gather": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:norse_kelp_bed",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_norse_kelp_bed.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "kythen_gather": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:norse_angelica_stand",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_norse_angelica_stand.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "kythen_gather": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:norse_nettle_stand",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_norse_nettle_stand.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:moana_mangrove_shoots",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_moana_mangrove_shoots.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "flora": 1,
+      "kythen_gather": 1,
+      "kythen_stacked_plant": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:moana_giant_swamp_taro",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_moana_giant_swamp_taro.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "kythen_gather": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:khmer_lotus_cover",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_khmer_lotus.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:khmer_sedge_cover",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_khmer_sedge.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "flora": 1,
+      "kythen_stacked_plant": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:khmer_reed_cover",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_khmer_reed.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_enset_6",
+    "tiles": [
+      "kythen_habesha_enset_leaf.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_enset_7",
+    "tiles": [
+      "kythen_habesha_enset_leaf.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_coffee_1",
+    "tiles": [
+      "kythen_habesha_coffee_leaf.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_coffee_4",
+    "tiles": [
+      "kythen_habesha_coffee_leaf.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_kale_2",
+    "tiles": [
+      "kythen_habesha_kale.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_kale_3",
+    "tiles": [
+      "kythen_habesha_kale.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_cotton_1",
+    "tiles": [
+      "kythen_habesha_cotton.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "flora": 1,
+      "kythen_stacked_plant": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:firecountry_grass_tree_crown",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_firecountry_grass_tree_skirt.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_cotton_4",
+    "tiles": [
+      "kythen_habesha_cotton.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_euphorbia_1",
+    "tiles": [
+      "kythen_habesha_euphorbia.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_yam_4",
+    "tiles": [
+      "kythen_firecountry_yam.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "kythen_gather": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:firecountry_native_millet_cover",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_firecountry_native_millet.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_pigweed_1",
+    "tiles": [
+      "kythen_firecountry_pigweed.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "kythen_gather": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:firecountry_cordage_grass_cover",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_firecountry_cordage_grass.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "normal",
+    "groups": {
+      "slot_pen": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:khmer_fish_corral",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_khmer_bamboo.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:firecountry_storm_plant_cover",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_firecountry_storm_plant.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_pigweed_4",
+    "tiles": [
+      "kythen_firecountry_pigweed.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "kythen_gather": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:firecountry_yam_daisy_cover",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_firecountry_yam_daisy.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_bush_bean_1",
+    "tiles": [
+      "kythen_firecountry_bush_bean.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "kythen_gather": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:firecountry_bush_bean_cover",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_firecountry_bush_bean.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_khmer_plant_deepwater_rice_2",
+    "tiles": [
+      "kythen_khmer_deepwater_rice.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:mitteleuropa_bilberry",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_mitteleuropa_bilberry.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "kythen_gather": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:firecountry_flood_fern_cover",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_firecountry_flood_fern.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_moana_plant_banana_2",
+    "tiles": [
+      "kythen_moana_banana_leaf.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_flood_fern_1",
+    "tiles": [
+      "kythen_firecountry_flood_fern.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_flood_fern_2",
+    "tiles": [
+      "kythen_firecountry_flood_fern.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_khmer_plant_house_garden_1",
+    "tiles": [
+      "kythen_khmer_house_garden.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_moana_plant_banana_4",
+    "tiles": [
+      "kythen_moana_banana_leaf.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_khmer_plant_house_garden_2",
+    "tiles": [
+      "kythen_khmer_house_garden.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:firecountry_native_tobacco_cover",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_firecountry_native_tobacco.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_flood_fern_4",
+    "tiles": [
+      "kythen_firecountry_flood_fern.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "flora": 1,
+      "kythen_stacked_plant": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:firecountry_underwood_cover",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_firecountry_underwood.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_cordage_grass_4",
+    "tiles": [
+      "kythen_firecountry_cordage_grass.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "flora": 1,
+      "kythen_stacked_plant": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:firecountry_lignum_cover",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_firecountry_lignum.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_khmer_plant_lotus_2",
+    "tiles": [
+      "kythen_khmer_lotus.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:firecountry_wild_melon_cover",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_firecountry_wild_melon.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_stimulant_leaf_3",
+    "tiles": [
+      "kythen_firecountry_pituri_bush.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:firecountry_nettle_cover",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_firecountry_nettle_scrub.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:firecountry_broadleaf_grass_cover",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_firecountry_broadleaf_grass.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_storm_plant_4",
+    "tiles": [
+      "kythen_firecountry_storm_plant.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_firecountry_plant_spinifex_2",
+    "tiles": [
+      "kythen_firecountry_spinifex.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_moana_plant_sugarcane_3",
+    "tiles": [
+      "kythen_moana_sugarcane.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_moana_plant_sugarcane_4",
+    "tiles": [
+      "kythen_moana_sugarcane.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_moana_plant_kava_2",
+    "tiles": [
+      "kythen_moana_kava.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_moana_plant_kava_4",
+    "tiles": [
+      "kythen_moana_kava.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_teff_1",
+    "tiles": [
+      "kythen_habesha_teff.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_moana_plant_paper_mulberry_1",
+    "tiles": [
+      "kythen_moana_paper_mulberry.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_teff_3",
+    "tiles": [
+      "kythen_habesha_teff.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_moana_plant_paper_mulberry_2",
+    "tiles": [
+      "kythen_moana_paper_mulberry.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_teff_4",
+    "tiles": [
+      "kythen_habesha_teff.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_barley_1",
+    "tiles": [
+      "kythen_habesha_barley.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_moana_plant_paper_mulberry_4",
+    "tiles": [
+      "kythen_moana_paper_mulberry.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_barley_2",
+    "tiles": [
+      "kythen_habesha_barley.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_wheat_1",
+    "tiles": [
+      "kythen_habesha_wheat.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_wheat_3",
+    "tiles": [
+      "kythen_habesha_wheat.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_moana_plant_arrowroot_2",
+    "tiles": [
+      "kythen_moana_arrowroot.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_sorghum_1",
+    "tiles": [
+      "kythen_habesha_sorghum.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "flora": 1,
+      "kythen_stacked_plant": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:khmer_bamboo_brake",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_khmer_bamboo.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_sorghum_2",
+    "tiles": [
+      "kythen_habesha_sorghum.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "flora": 1,
+      "kythen_stacked_plant": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:khmer_macaranga_scrub",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_khmer_macaranga.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "kythen_gather": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:moana_arrowroot_stand",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_moana_arrowroot.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "flora": 1,
+      "kythen_stacked_plant": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:firecountry_yam",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_firecountry_yam.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "flora": 1,
+      "kythen_stacked_plant": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:khmer_flooded_forest_understorey",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_khmer_flooded_forest.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_sesame_2",
+    "tiles": [
+      "kythen_habesha_sesame.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "flora": 1,
+      "kythen_stacked_plant": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:khmer_wild_grain_sward",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_khmer_paddy_green.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:moana_fern_understorey",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_moana_fern_understorey.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:khmer_cardamom_cover",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_khmer_cardamom.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:moana_wild_taro",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_moana_wild_taro.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:khmer_sugar_palm_stand",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_khmer_sugar_palm_crown.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:moana_ti_and_ginger",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_moana_ti_and_ginger.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:moana_beach_vine",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_moana_beach_vine.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_enset_2",
+    "tiles": [
+      "kythen_habesha_enset_leaf.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "normal",
+    "groups": {
+      "slot_decoration": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:norse_hay_rick",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_norse_cut_meadow.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "nodebox",
+    "groups": {
+      "flora": 1,
+      "kythen_crop": 1,
+      "not_in_creative_inventory": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:crop_habesha_plant_enset_3",
+    "tiles": [
+      "kythen_habesha_enset_leaf.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "flora": 1,
+      "kythen_stacked_plant": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:firecountry_bulrush_cover",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_firecountry_bulrush.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:moana_reef_limu",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_moana_reef_limu.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:firecountry_green_pick_cover",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_firecountry_green_pick_shoots.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:moana_nama",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_moana_nama.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:norse_barley",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_norse_barley.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "flora": 1,
+      "slot_ground_cover": 1,
+      "snappy": 3
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "kythen:moana_wild_swamp_taro",
+    "sound_footstep": "kythen_grass_footstep",
+    "tiles": [
+      "kythen_moana_wild_swamp_taro.png"
+    ]
+  }
+]

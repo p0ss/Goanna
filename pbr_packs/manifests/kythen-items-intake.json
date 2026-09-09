@@ -1,0 +1,5954 @@
+[
+	{
+		"name" : "",
+		"textures" : 
+		[
+			"kythen_hand.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_hull",
+		"textures" : 
+		[
+			"kythen_norse_item_hull.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_sisters_appeased",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_sisters_appeased.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_helmet",
+		"textures" : 
+		[
+			"kythen_norse_item_helmet.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_portable_wealth",
+		"textures" : 
+		[
+			"kythen_norse_item_portable_wealth.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_onion",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_onion.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_apple",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_apple.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_eider_down",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_walnut",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_walnut.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_marten_fur",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_marten_fur.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_eider_egg",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_bone_and_antler",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_bone_and_antler.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_eider_meat",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_ewes_milk",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_ewes_milk.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_eggs",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_eggs.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_mutton_and_kid",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_mutton_and_kid.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_poultry",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_poultry.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_river_fish",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_river_fish.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_snow_goose_egg",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_demesne_render",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_demesne_render.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_rye_pottage",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_rye_pottage.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_snow_goose_down",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_bean_pottage",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_bean_pottage.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_wildfowl_and_game",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_wildfowl_and_game.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_ptarmigan_meat",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_walrus_and_oil",
+		"textures" : 
+		[
+			"kythen_norse_item_walrus_and_oil.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_roast_seabird",
+		"textures" : 
+		[
+			"kythen_norse_item_roast_seabird.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_arctic_fox_pelt",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_reindeer",
+		"textures" : 
+		[
+			"kythen_norse_item_reindeer.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_pork",
+		"textures" : 
+		[
+			"kythen_norse_item_pork.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_fox",
+		"textures" : 
+		[
+			"kythen_norse_item_fox.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_arctic_fox_meat",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_salmon",
+		"textures" : 
+		[
+			"kythen_norse_item_salmon.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_herring",
+		"textures" : 
+		[
+			"kythen_norse_item_herring.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_angelica_and_dulse",
+		"textures" : 
+		[
+			"kythen_norse_item_angelica_and_dulse.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_summer_butter",
+		"textures" : 
+		[
+			"kythen_norse_item_summer_butter.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_arctic_hare_meat",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_arctic_hare_pelt",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_sampot",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_outer_cloth",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_patterned_both_ends",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_sparsely_patterned",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_wholly_patterned",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_womans_ornament",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_white_thread",
+		"textures" : 
+		[
+			"kythen_khmer_item_white_thread.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_yellow_robe",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_dancer_dress",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_the_kings_iron",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_kala_over_the_door",
+		"textures" : 
+		[
+			"kythen_khmer_carved_sandstone.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_direction_god",
+		"textures" : 
+		[
+			"kythen_khmer_carved_sandstone.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_colonnette",
+		"textures" : 
+		[
+			"kythen_khmer_carved_sandstone.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_dvarapala",
+		"textures" : 
+		[
+			"kythen_khmer_carved_sandstone.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_apsara_relief",
+		"textures" : 
+		[
+			"kythen_khmer_carved_sandstone.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_garuda_frieze",
+		"textures" : 
+		[
+			"kythen_khmer_carved_sandstone.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_free_standing_god",
+		"textures" : 
+		[
+			"kythen_khmer_carved_sandstone.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_the_stele",
+		"textures" : 
+		[
+			"kythen_khmer_carved_sandstone.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_inner_atigi",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_outer_qulittaq",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_amauti",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_kamiit",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_gut_parka",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_qiviut_underlayer",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_laterite_block",
+		"textures" : 
+		[
+			"kythen_khmer_item_laterite_block.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_sandstone_block",
+		"textures" : 
+		[
+			"kythen_khmer_item_sandstone_block.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_hauled_block",
+		"textures" : 
+		[
+			"kythen_khmer_item_hauled_block.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_carved_relief",
+		"textures" : 
+		[
+			"kythen_khmer_item_carved_relief.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_brick",
+		"textures" : 
+		[
+			"kythen_khmer_item_brick.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_lime",
+		"textures" : 
+		[
+			"kythen_khmer_item_lime.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_lead_sheet",
+		"textures" : 
+		[
+			"kythen_khmer_item_lead_sheet.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_hardwood_timber",
+		"textures" : 
+		[
+			"kythen_khmer_item_hardwood_timber.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_ivory",
+		"textures" : 
+		[
+			"kythen_siku_ivory.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_soapstone",
+		"textures" : 
+		[
+			"kythen_siku_soapstone.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_native_copper",
+		"textures" : 
+		[
+			"kythen_siku_native_copper.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_sky_iron",
+		"textures" : 
+		[
+			"kythen_siku_meteoric_iron.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_sealskin",
+		"textures" : 
+		[
+			"kythen_siku_sealskin.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_caribou_hide",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_gut_skin",
+		"textures" : 
+		[
+			"kythen_siku_gut_skin.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_sinew",
+		"textures" : 
+		[
+			"kythen_siku_sinew.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_blubber",
+		"textures" : 
+		[
+			"kythen_siku_blubber.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_crowberry",
+		"textures" : 
+		[
+			"kythen_siku_sorrel.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_kigutanginnaq",
+		"textures" : 
+		[
+			"kythen_siku_sorrel.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_sorrel",
+		"textures" : 
+		[
+			"kythen_siku_sorrel.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_kelp",
+		"textures" : 
+		[
+			"kythen_siku_kelp_wrack.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_walia_ibex_horn",
+		"textures" : 
+		[
+			"kythen_habesha_yield_horn.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_highland_wolf_pelt",
+		"textures" : 
+		[
+			"kythen_habesha_yield_pelt.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_bamboo_cane",
+		"textures" : 
+		[
+			"kythen_khmer_item_bamboo_cane.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_kapok_cloth",
+		"textures" : 
+		[
+			"kythen_khmer_item_kapok_cloth.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_paddy",
+		"textures" : 
+		[
+			"kythen_khmer_item_paddy.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_husked_rice",
+		"textures" : 
+		[
+			"kythen_khmer_item_husked_rice.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_salt",
+		"textures" : 
+		[
+			"kythen_khmer_item_salt.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_curd",
+		"textures" : 
+		[
+			"kythen_khmer_item_curd.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_ghee",
+		"textures" : 
+		[
+			"kythen_khmer_item_ghee.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_honey",
+		"textures" : 
+		[
+			"kythen_khmer_item_honey.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_palm_sugar",
+		"textures" : 
+		[
+			"kythen_khmer_item_palm_sugar.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_mung_bean",
+		"textures" : 
+		[
+			"kythen_khmer_item_mung_bean.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_areca_nut",
+		"textures" : 
+		[
+			"kythen_khmer_item_areca_nut.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_ringed_seal_blubber",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_beeswax",
+		"textures" : 
+		[
+			"kythen_khmer_item_beeswax.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_gamboge",
+		"textures" : 
+		[
+			"kythen_khmer_item_gamboge.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_lakawood",
+		"textures" : 
+		[
+			"kythen_khmer_item_lakawood.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_ringed_seal_sealskin",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_resin_chortuc",
+		"textures" : 
+		[
+			"kythen_khmer_item_resin_chortuc.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_kingfisher_feather",
+		"textures" : 
+		[
+			"kythen_khmer_item_kingfisher_feather.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_ivory",
+		"textures" : 
+		[
+			"kythen_khmer_item_ivory.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_worked_hide",
+		"textures" : 
+		[
+			"kythen_khmer_item_worked_hide.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_gold",
+		"textures" : 
+		[
+			"kythen_khmer_item_gold.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_harp_seal_blubber",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_sacred_iron",
+		"textures" : 
+		[
+			"kythen_khmer_item_sacred_iron.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_dilly_bag",
+		"textures" : 
+		[
+			"kythen_firecountry_item_dilly_bag.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_harp_seal_sealskin",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_bark_canoe",
+		"textures" : 
+		[
+			"kythen_firecountry_item_bark_canoe.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_deerskin_page",
+		"textures" : 
+		[
+			"kythen_khmer_item_deerskin_page.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_walrus_meat",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_ochre_cake",
+		"textures" : 
+		[
+			"kythen_firecountry_item_ochre_cake.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_raw_leaf",
+		"textures" : 
+		[
+			"kythen_firecountry_item_raw_leaf.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_blessed_medicine",
+		"textures" : 
+		[
+			"kythen_khmer_item_blessed_medicine.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_sun_height_stone",
+		"textures" : 
+		[
+			"kythen_firecountry_item_sun_height_stone.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_single_stone",
+		"textures" : 
+		[
+			"kythen_khmer_item_single_stone.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_great_candle",
+		"textures" : 
+		[
+			"kythen_khmer_item_great_candle.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_travel_fire",
+		"textures" : 
+		[
+			"kythen_khmer_item_travel_fire.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_plank_boat",
+		"textures" : 
+		[
+			"kythen_khmer_item_plank_boat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_the_bone",
+		"textures" : 
+		[
+			"kythen_firecountry_item_the_bone.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_possum_cord",
+		"textures" : 
+		[
+			"kythen_firecountry_item_possum_cord.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_the_ten_items",
+		"textures" : 
+		[
+			"kythen_khmer_item_the_ten_items.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_bowhead_bone",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_the_gods_meal",
+		"textures" : 
+		[
+			"kythen_khmer_item_the_gods_meal.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_the_gathered_meal",
+		"textures" : 
+		[
+			"kythen_khmer_item_the_gathered_meal.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_bowhead_baleen",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_bowhead_blubber",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_bowhead_meat",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:shared_sharpened_stick",
+		"textures" : 
+		[
+			"kythen_shared_item_sharpened_stick.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_rock_tripe",
+		"textures" : 
+		[
+			"kythen_siku_sorrel.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_tea_leaf",
+		"textures" : 
+		[
+			"kythen_siku_sorrel.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_lamp_wick",
+		"textures" : 
+		[
+			"kythen_siku_cotton_grass.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_boot_grass",
+		"textures" : 
+		[
+			"kythen_siku_sedge_tussock.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_willow_scrub",
+		"textures" : 
+		[
+			"kythen_siku_dwarf_willow.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_bone_needle",
+		"textures" : 
+		[
+			"kythen_siku_whale_bone.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_indicator",
+		"textures" : 
+		[
+			"kythen_siku_cotton_grass.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_snow_goggles",
+		"textures" : 
+		[
+			"kythen_siku_antler.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_sealskin_line",
+		"textures" : 
+		[
+			"kythen_siku_sealskin.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_qulliq_lamp",
+		"textures" : 
+		[
+			"kythen_siku_soapstone.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_ukkusik",
+		"textures" : 
+		[
+			"kythen_siku_soapstone.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_qajaq",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_iglu_lining",
+		"textures" : 
+		[
+			"kythen_siku_skin_lining.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_amulet",
+		"textures" : 
+		[
+			"kythen_siku_ivory.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_carved_figure",
+		"textures" : 
+		[
+			"kythen_siku_ivory.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_qilaut_frame",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_dried_meat",
+		"textures" : 
+		[
+			"kythen_siku_caribou_hide.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_dried_char",
+		"textures" : 
+		[
+			"kythen_siku_sinew.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_igunaq",
+		"textures" : 
+		[
+			"kythen_siku_blubber.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_maktaaq",
+		"textures" : 
+		[
+			"kythen_siku_blubber.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_the_first_share",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_igunaq_share",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_boiled_share",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_maktaaq_cubes",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_stomach_share",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_blood_soup",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_dried_and_dipped",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_berries_under_oil",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_sorrel_in_oil",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_akutaq",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_char_off_the_weir",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_the_qaggiq_meal",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_the_travelling_meal",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_rendered_broth",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_possum_fur",
+		"textures" : 
+		[
+			"kythen_firecountry_yield_fur.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_bandicoot_meat",
+		"textures" : 
+		[
+			"kythen_firecountry_yield_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_river_fish_flesh",
+		"textures" : 
+		[
+			"kythen_firecountry_yield_flesh.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_freshwater_crayfish_flesh",
+		"textures" : 
+		[
+			"kythen_firecountry_yield_flesh.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_red_deer_antler",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_antler.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_temple_pigeon_carcass",
+		"textures" : 
+		[
+			"kythen_khmer_yield_carcass.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_plough_ox_horn",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_horn.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_echidna_meat",
+		"textures" : 
+		[
+			"kythen_firecountry_yield_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_carrion_eagle_judgement",
+		"textures" : 
+		[
+			"kythen_khmer_yield_judgement.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_goat_horn",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_horn.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_elephant_trained_mount",
+		"textures" : 
+		[
+			"kythen_khmer_yield_trained_mount.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_sand_lizard_meat",
+		"textures" : 
+		[
+			"kythen_firecountry_yield_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_sheep_fleece",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_fleece.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_cockatoo_meat",
+		"textures" : 
+		[
+			"kythen_firecountry_yield_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_sheep_milk",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_milk.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_carpet_snake_meat",
+		"textures" : 
+		[
+			"kythen_firecountry_yield_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_goat_milk",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_milk.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_hen_eggs",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_eggs.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_sheep_meat",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_goat_meat",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_hen_meat",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_goose_meat",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_humped_ox_dung",
+		"textures" : 
+		[
+			"kythen_habesha_yield_dung.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_eel_flesh",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_flesh.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_hoe",
+		"textures" : 
+		[
+			"kythen_khmer_item_hoe.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_salmon_flesh",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_flesh.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_split_plank",
+		"textures" : 
+		[
+			"kythen_khmer_item_split_plank.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_river_shoal_flesh",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_flesh.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_war_shield",
+		"textures" : 
+		[
+			"kythen_khmer_item_war_shield.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_highland_bee_honey",
+		"textures" : 
+		[
+			"kythen_habesha_yield_honey.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_highland_bee_wax",
+		"textures" : 
+		[
+			"kythen_habesha_yield_wax.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_aurochs_meat",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_brown_bear_meat",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_beaver_meat",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_boar_meat",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_red_deer_meat",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_soft_shelled_turtle_flesh",
+		"textures" : 
+		[
+			"kythen_khmer_yield_flesh.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_roe_deer_meat",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_capercaillie_meat",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_crane_meat",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_honeybee_honey",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_honey.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_pig_tusk",
+		"textures" : 
+		[
+			"kythen_moana_yield_tusk.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_sea_turtle_shell",
+		"textures" : 
+		[
+			"kythen_moana_yield_shell.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_palolo_worm_swarm",
+		"textures" : 
+		[
+			"kythen_moana_yield_swarm.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_humpback_whale_meat",
+		"textures" : 
+		[
+			"kythen_moana_yield_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_hammerstone",
+		"textures" : 
+		[
+			"kythen_siku_gneiss.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_pana",
+		"textures" : 
+		[
+			"kythen_siku_whale_bone.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_whale_bone",
+		"textures" : 
+		[
+			"kythen_siku_whale_bone.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_antler",
+		"textures" : 
+		[
+			"kythen_siku_antler.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_ulu",
+		"textures" : 
+		[
+			"kythen_siku_meteoric_iron.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_slate",
+		"textures" : 
+		[
+			"kythen_siku_gneiss.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_kiligvak",
+		"textures" : 
+		[
+			"kythen_siku_antler.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_bow_drill",
+		"textures" : 
+		[
+			"kythen_siku_driftwood.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_driftwood",
+		"textures" : 
+		[
+			"kythen_siku_driftwood.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_scraper",
+		"textures" : 
+		[
+			"kythen_siku_antler.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_toggling_head",
+		"textures" : 
+		[
+			"kythen_siku_ivory.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_qimmiq_meat",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_nauligaq",
+		"textures" : 
+		[
+			"kythen_siku_driftwood.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_qarjuk",
+		"textures" : 
+		[
+			"kythen_siku_antler.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_naulaq",
+		"textures" : 
+		[
+			"kythen_siku_driftwood.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "unknown",
+		"textures" : 
+		[
+			"unknown_item.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_cow_hide",
+		"textures" : 
+		[
+			"kythen_norse_yield_hide.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_sheep_tallow",
+		"textures" : 
+		[
+			"kythen_norse_yield_tallow.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_cow_horn",
+		"textures" : 
+		[
+			"kythen_norse_yield_horn.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_raven_raven_feather",
+		"textures" : 
+		[
+			"kythen_norse_yield_raven_feather.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_waist_barkcloth",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_waist_mat",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_ragged_mourning_mat",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_fine_mats_worn",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_the_dead_of_rank",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_wolf_pelt",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_barkcloth_road",
+		"textures" : 
+		[
+			"kythen_moana_barkcloth.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_bearded_seal_hide",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_drinking_nut",
+		"textures" : 
+		[
+			"kythen_moana_item_drinking_nut.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_coconut_husk",
+		"textures" : 
+		[
+			"kythen_moana_item_coconut_husk.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_sennit_braid",
+		"textures" : 
+		[
+			"kythen_moana_item_sennit_braid.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_bast_strip",
+		"textures" : 
+		[
+			"kythen_moana_item_bast_strip.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_sawn_timber",
+		"textures" : 
+		[
+			"kythen_moana_item_sawn_timber.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_skyr",
+		"textures" : 
+		[
+			"kythen_norse_item_skyr.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_syra",
+		"textures" : 
+		[
+			"kythen_norse_item_syra.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_butter",
+		"textures" : 
+		[
+			"kythen_norse_item_butter.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_cheese",
+		"textures" : 
+		[
+			"kythen_norse_item_cheese.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_shark_noose",
+		"textures" : 
+		[
+			"kythen_moana_item_shark_noose.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_soured_sheeps_head",
+		"textures" : 
+		[
+			"kythen_norse_item_soured_sheeps_head.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_coral_abrader",
+		"textures" : 
+		[
+			"kythen_moana_item_coral_abrader.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_fresh_mutton",
+		"textures" : 
+		[
+			"kythen_norse_item_fresh_mutton.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_feast_beef",
+		"textures" : 
+		[
+			"kythen_norse_item_feast_beef.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_blood",
+		"textures" : 
+		[
+			"kythen_norse_item_blood.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_adze_stone",
+		"textures" : 
+		[
+			"kythen_moana_item_adze_stone.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_sheepskin",
+		"textures" : 
+		[
+			"kythen_norse_item_sheepskin.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_sealskin",
+		"textures" : 
+		[
+			"kythen_norse_item_sealskin.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_shell_scraper",
+		"textures" : 
+		[
+			"kythen_moana_item_shell_scraper.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_seal_oil",
+		"textures" : 
+		[
+			"kythen_norse_item_seal_oil.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_octopus_stick",
+		"textures" : 
+		[
+			"kythen_moana_item_octopus_stick.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_dried_fish",
+		"textures" : 
+		[
+			"kythen_norse_item_dried_fish.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_seabird_egg",
+		"textures" : 
+		[
+			"kythen_norse_item_seabird_egg.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_paddle_spade",
+		"textures" : 
+		[
+			"kythen_moana_item_paddle_spade.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_walrus_ivory",
+		"textures" : 
+		[
+			"kythen_norse_item_walrus_ivory.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_walrus_hide_rope",
+		"textures" : 
+		[
+			"kythen_norse_item_walrus_hide_rope.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_hand_spear",
+		"textures" : 
+		[
+			"kythen_firecountry_item_hand_spear.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_ale",
+		"textures" : 
+		[
+			"kythen_norse_item_ale.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_shell_hoe",
+		"textures" : 
+		[
+			"kythen_moana_item_shell_hoe.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_war_club",
+		"textures" : 
+		[
+			"kythen_moana_item_war_club.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_spear",
+		"textures" : 
+		[
+			"kythen_moana_item_spear.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_flatbread",
+		"textures" : 
+		[
+			"kythen_norse_item_flatbread.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_lichen_porridge",
+		"textures" : 
+		[
+			"kythen_norse_item_lichen_porridge.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_angelica",
+		"textures" : 
+		[
+			"kythen_norse_item_angelica.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_dulse",
+		"textures" : 
+		[
+			"kythen_norse_item_dulse.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_berries",
+		"textures" : 
+		[
+			"kythen_norse_item_berries.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_salt",
+		"textures" : 
+		[
+			"kythen_norse_item_salt.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_tallow_lamp",
+		"textures" : 
+		[
+			"kythen_norse_item_tallow_lamp.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_turf_block",
+		"textures" : 
+		[
+			"kythen_norse_item_turf_block.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_birch_bark",
+		"textures" : 
+		[
+			"kythen_norse_item_birch_bark.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_charcoal",
+		"textures" : 
+		[
+			"kythen_norse_item_charcoal.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_bog_ore_lump",
+		"textures" : 
+		[
+			"kythen_norse_item_bog_ore_lump.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_pine_tar",
+		"textures" : 
+		[
+			"kythen_norse_item_pine_tar.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_wool_fleece",
+		"textures" : 
+		[
+			"kythen_norse_item_wool_fleece.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_dyed_cloth",
+		"textures" : 
+		[
+			"kythen_norse_item_dyed_cloth.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_barrel",
+		"textures" : 
+		[
+			"kythen_norse_item_barrel.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_soapstone_pot",
+		"textures" : 
+		[
+			"kythen_norse_item_soapstone_pot.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_loom_weight",
+		"textures" : 
+		[
+			"kythen_norse_item_loom_weight.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_drinking_horn",
+		"textures" : 
+		[
+			"kythen_norse_item_drinking_horn.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_antler_comb",
+		"textures" : 
+		[
+			"kythen_norse_item_antler_comb.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_rune_stick",
+		"textures" : 
+		[
+			"kythen_norse_item_rune_stick.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_white_stork_feather",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_feather.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_raven_feather",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_feather.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_eagle_owl_feather",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_feather.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_goose_quill",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_quill.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_hen_feather",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_feather.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_reef_fish_flesh",
+		"textures" : 
+		[
+			"kythen_moana_yield_flesh.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_shark_tooth",
+		"textures" : 
+		[
+			"kythen_moana_yield_tooth.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_black_carp_flesh",
+		"textures" : 
+		[
+			"kythen_khmer_yield_flesh.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_octopus_flesh",
+		"textures" : 
+		[
+			"kythen_moana_yield_flesh.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_ngatu",
+		"textures" : 
+		[
+			"kythen_moana_item_ngatu.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_crocodile_flesh",
+		"textures" : 
+		[
+			"kythen_khmer_yield_flesh.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_famous_mat",
+		"textures" : 
+		[
+			"kythen_moana_item_famous_mat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_crocodile_hide",
+		"textures" : 
+		[
+			"kythen_khmer_yield_hide.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_kava_strainer",
+		"textures" : 
+		[
+			"kythen_moana_item_kava_strainer.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_seabird_colony_eggs",
+		"textures" : 
+		[
+			"kythen_moana_yield_eggs.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_kava_root",
+		"textures" : 
+		[
+			"kythen_moana_item_kava_root.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_wild_cattle_meat",
+		"textures" : 
+		[
+			"kythen_khmer_yield_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_seabird_colony_flight_line",
+		"textures" : 
+		[
+			"kythen_moana_yield_flight_line.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_medicine_bundle",
+		"textures" : 
+		[
+			"kythen_moana_item_medicine_bundle.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_water_buffalo_milk",
+		"textures" : 
+		[
+			"kythen_khmer_yield_milk.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_oracle_club",
+		"textures" : 
+		[
+			"kythen_moana_item_oracle_club.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_coconut_crab_flesh",
+		"textures" : 
+		[
+			"kythen_moana_yield_flesh.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_yam",
+		"textures" : 
+		[
+			"kythen_moana_item_yam.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_water_buffalo_draught",
+		"textures" : 
+		[
+			"kythen_khmer_yield_draught.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_taro",
+		"textures" : 
+		[
+			"kythen_moana_item_taro.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_sweet_potato",
+		"textures" : 
+		[
+			"kythen_moana_item_sweet_potato.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_sugarcane",
+		"textures" : 
+		[
+			"kythen_moana_item_sugarcane.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_muntjac_venison",
+		"textures" : 
+		[
+			"kythen_khmer_yield_venison.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_arrowroot",
+		"textures" : 
+		[
+			"kythen_moana_item_arrowroot.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_pig_meat",
+		"textures" : 
+		[
+			"kythen_moana_yield_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_banana",
+		"textures" : 
+		[
+			"kythen_moana_item_banana.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_muntjac_skin",
+		"textures" : 
+		[
+			"kythen_khmer_yield_skin.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_breadfruit",
+		"textures" : 
+		[
+			"kythen_moana_item_breadfruit.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_sago_starch",
+		"textures" : 
+		[
+			"kythen_moana_item_sago_starch.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_reef_fish",
+		"textures" : 
+		[
+			"kythen_moana_item_reef_fish.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_lagoon_fish",
+		"textures" : 
+		[
+			"kythen_moana_item_lagoon_fish.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_pelagic_fish",
+		"textures" : 
+		[
+			"kythen_moana_item_pelagic_fish.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_shellfish",
+		"textures" : 
+		[
+			"kythen_moana_item_shellfish.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_octopus",
+		"textures" : 
+		[
+			"kythen_moana_item_octopus.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_sea_worm_cake",
+		"textures" : 
+		[
+			"kythen_moana_item_sea_worm_cake.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_sheep_sheepskin",
+		"textures" : 
+		[
+			"kythen_norse_yield_sheepskin.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_candlenut_kernel",
+		"textures" : 
+		[
+			"kythen_moana_item_candlenut_kernel.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_leaf_parcel",
+		"textures" : 
+		[
+			"kythen_moana_item_leaf_parcel.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_horse_horse_head",
+		"textures" : 
+		[
+			"kythen_norse_yield_horse_head.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_pig_bristle",
+		"textures" : 
+		[
+			"kythen_norse_yield_bristle.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_first_fruits_yam",
+		"textures" : 
+		[
+			"kythen_moana_item_first_fruits_yam.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_red_deer_deer_hide",
+		"textures" : 
+		[
+			"kythen_norse_yield_deer_hide.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_red_deer_antler",
+		"textures" : 
+		[
+			"kythen_norse_yield_antler.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_turtle_from_the_pen",
+		"textures" : 
+		[
+			"kythen_moana_item_turtle_from_the_pen.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_reindeer_reindeer_hide",
+		"textures" : 
+		[
+			"kythen_norse_yield_reindeer_hide.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_chicken_and_root",
+		"textures" : 
+		[
+			"kythen_moana_item_chicken_and_root.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_whale_feast",
+		"textures" : 
+		[
+			"kythen_moana_item_whale_feast.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_seal_blubber",
+		"textures" : 
+		[
+			"kythen_norse_yield_blubber.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_seal_sealskin",
+		"textures" : 
+		[
+			"kythen_norse_yield_sealskin.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_walrus_hide",
+		"textures" : 
+		[
+			"kythen_norse_yield_hide.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_cod_fresh_cod",
+		"textures" : 
+		[
+			"kythen_norse_yield_fresh_cod.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_the_berserk_pair_their_gear",
+		"textures" : 
+		[
+			"kythen_norse_yield_their_gear.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_timber",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_timber.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_iron_bloom",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_iron_bloom.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_ringed_seal_gut",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_parchment",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_parchment.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_iron_gall_ink",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_iron_gall_ink.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_relic",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_relic.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_blessed_water",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_blessed_water.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_boar_hide",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_hide.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_red_deer_hide",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_hide.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_roe_deer_hide",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_hide.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_plough_ox_meat",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_plough_ox_hide",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_hide.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_vadmal_ell",
+		"textures" : 
+		[
+			"kythen_norse_item_vadmal_ell.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_hacksilver",
+		"textures" : 
+		[
+			"kythen_norse_item_hacksilver.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_cut_dirham",
+		"textures" : 
+		[
+			"kythen_norse_item_cut_dirham.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_judgement",
+		"textures" : 
+		[
+			"kythen_norse_item_judgement.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_the_law_said_over",
+		"textures" : 
+		[
+			"kythen_norse_item_the_law_said_over.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_goat_skin",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_skin.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_sworn_oath",
+		"textures" : 
+		[
+			"kythen_norse_item_sworn_oath.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_hay",
+		"textures" : 
+		[
+			"kythen_norse_item_hay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_milk",
+		"textures" : 
+		[
+			"kythen_norse_item_milk.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_girdle",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_small_cloak",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_stone_in_the_bough",
+		"textures" : 
+		[
+			"kythen_firecountry_sandstone.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_retraced_outline",
+		"textures" : 
+		[
+			"kythen_firecountry_made_earth.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_firestick",
+		"textures" : 
+		[
+			"kythen_firecountry_item_firestick.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_threshed_head",
+		"textures" : 
+		[
+			"kythen_firecountry_item_threshed_head.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_pit_seed",
+		"textures" : 
+		[
+			"kythen_firecountry_item_pit_seed.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_winnowed_seed",
+		"textures" : 
+		[
+			"kythen_firecountry_item_winnowed_seed.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_bark_sheet",
+		"textures" : 
+		[
+			"kythen_firecountry_item_bark_sheet.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_grinding_slab",
+		"textures" : 
+		[
+			"kythen_firecountry_item_grinding_slab.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_seed_flour",
+		"textures" : 
+		[
+			"kythen_firecountry_item_seed_flour.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_fibre",
+		"textures" : 
+		[
+			"kythen_firecountry_item_fibre.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_cord",
+		"textures" : 
+		[
+			"kythen_firecountry_item_cord.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_seine",
+		"textures" : 
+		[
+			"kythen_firecountry_item_seine.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_hoop_net",
+		"textures" : 
+		[
+			"kythen_firecountry_item_hoop_net.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_basket_trap",
+		"textures" : 
+		[
+			"kythen_firecountry_item_basket_trap.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_noose_line",
+		"textures" : 
+		[
+			"kythen_firecountry_item_noose_line.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_chicken_meat",
+		"textures" : 
+		[
+			"kythen_moana_yield_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_shark_flesh",
+		"textures" : 
+		[
+			"kythen_moana_yield_flesh.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_bonito_flesh",
+		"textures" : 
+		[
+			"kythen_moana_yield_flesh.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_cow_blood",
+		"textures" : 
+		[
+			"kythen_norse_yield_blood.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_sheep_sheeps_head",
+		"textures" : 
+		[
+			"kythen_norse_yield_sheeps_head.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_walrus_walrus_meat",
+		"textures" : 
+		[
+			"kythen_norse_yield_walrus_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_walrus_oil",
+		"textures" : 
+		[
+			"kythen_norse_yield_oil.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_whale_whale_meat",
+		"textures" : 
+		[
+			"kythen_norse_yield_whale_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_herring_herring",
+		"textures" : 
+		[
+			"kythen_norse_yield_herring.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_salmon_salmon",
+		"textures" : 
+		[
+			"kythen_norse_yield_salmon.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_cow_beef",
+		"textures" : 
+		[
+			"kythen_norse_yield_beef.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_lemming_skin",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_goat_milk",
+		"textures" : 
+		[
+			"kythen_norse_yield_milk.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_eider_eider_egg",
+		"textures" : 
+		[
+			"kythen_norse_yield_eider_egg.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_snowy_owl_meat",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_raven_feather",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_polar_bear_hide",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_polar_bear_meat",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_polar_bear_fat",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_polar_bear_liver",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_the_draught",
+		"textures" : 
+		[
+			"kythen_firecountry_item_the_draught.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_tuber",
+		"textures" : 
+		[
+			"kythen_firecountry_item_tuber.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_sporocarp",
+		"textures" : 
+		[
+			"kythen_firecountry_item_sporocarp.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_ash_bread",
+		"textures" : 
+		[
+			"kythen_firecountry_item_ash_bread.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_kangaroo_meat",
+		"textures" : 
+		[
+			"kythen_firecountry_yield_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_emu_meat",
+		"textures" : 
+		[
+			"kythen_firecountry_yield_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_emu_egg",
+		"textures" : 
+		[
+			"kythen_firecountry_yield_egg.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_emu_sinew",
+		"textures" : 
+		[
+			"kythen_firecountry_yield_sinew.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_emu_feather",
+		"textures" : 
+		[
+			"kythen_firecountry_yield_feather.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_waterbird_meat",
+		"textures" : 
+		[
+			"kythen_firecountry_yield_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_waterbird_down",
+		"textures" : 
+		[
+			"kythen_firecountry_yield_down.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_possum_pelt",
+		"textures" : 
+		[
+			"kythen_firecountry_yield_pelt.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_wallaby_hide",
+		"textures" : 
+		[
+			"kythen_firecountry_yield_hide.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_aurochs_hide",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_hide.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_wisent_hide",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_hide.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_black_swan_meat",
+		"textures" : 
+		[
+			"kythen_firecountry_yield_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_black_swan_egg",
+		"textures" : 
+		[
+			"kythen_firecountry_yield_egg.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_black_swan_down",
+		"textures" : 
+		[
+			"kythen_firecountry_yield_down.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_echidna_quill",
+		"textures" : 
+		[
+			"kythen_firecountry_yield_quill.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_carpet_snake_skin",
+		"textures" : 
+		[
+			"kythen_firecountry_yield_skin.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_cockatoo_feather",
+		"textures" : 
+		[
+			"kythen_firecountry_yield_feather.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_kangaroo_hide",
+		"textures" : 
+		[
+			"kythen_firecountry_yield_hide.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_shamma",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_flying_fox_meat",
+		"textures" : 
+		[
+			"kythen_moana_yield_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_gabi",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_mateb",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_megapode_meat",
+		"textures" : 
+		[
+			"kythen_moana_yield_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_priest_white",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_lifuka_pigeon_meat",
+		"textures" : 
+		[
+			"kythen_moana_yield_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_eua_rail_meat",
+		"textures" : 
+		[
+			"kythen_moana_yield_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_kangaroo_sinew",
+		"textures" : 
+		[
+			"kythen_firecountry_yield_sinew.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_neck_tapper_green_club",
+		"textures" : 
+		[
+			"kythen_firecountry_yield_green_club.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_cup_bearers_the_draught",
+		"textures" : 
+		[
+			"kythen_firecountry_yield_the_draught.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_gelada_pelt",
+		"textures" : 
+		[
+			"kythen_habesha_yield_pelt.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_fat_tailed_sheep_wool",
+		"textures" : 
+		[
+			"kythen_habesha_yield_wool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_wool_yarn",
+		"textures" : 
+		[
+			"kythen_norse_item_wool_yarn.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_infant_grave_goods",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_infant_grave_goods.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_mail",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_mail.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:shared_stick",
+		"textures" : 
+		[
+			"kythen_shared_item_stick.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_unaaq",
+		"textures" : 
+		[
+			"kythen_siku_whale_bone.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_narwhal_meat",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_silver_penny",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_silver_penny.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_seal_seal_meat",
+		"textures" : 
+		[
+			"kythen_norse_yield_seal_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_goat_goatskin",
+		"textures" : 
+		[
+			"kythen_norse_yield_goatskin.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_eua_rail_cry",
+		"textures" : 
+		[
+			"kythen_moana_yield_cry.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_land_crab_flesh",
+		"textures" : 
+		[
+			"kythen_moana_yield_flesh.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_walia_ibex_meat",
+		"textures" : 
+		[
+			"kythen_habesha_yield_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_coffee_cherry",
+		"textures" : 
+		[
+			"kythen_habesha_item_coffee_cherry.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_foreknowledge",
+		"textures" : 
+		[
+			"kythen_norse_item_foreknowledge.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_hlaut",
+		"textures" : 
+		[
+			"kythen_norse_item_hlaut.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_seabird_eggs",
+		"textures" : 
+		[
+			"kythen_norse_item_seabird_eggs.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_reindeer_reindeer_meat",
+		"textures" : 
+		[
+			"kythen_norse_yield_reindeer_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_goat_kid",
+		"textures" : 
+		[
+			"kythen_norse_yield_kid.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_flatbread_and_butter",
+		"textures" : 
+		[
+			"kythen_norse_item_flatbread_and_butter.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_walrus_hide",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_iron_rivet",
+		"textures" : 
+		[
+			"kythen_norse_item_iron_rivet.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_iron_bloom",
+		"textures" : 
+		[
+			"kythen_norse_item_iron_bloom.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_bowhead_maktaaq",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_soured_stores",
+		"textures" : 
+		[
+			"kythen_norse_item_soured_stores.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_palm_sheath",
+		"textures" : 
+		[
+			"kythen_moana_item_palm_sheath.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_womens_digging_stick",
+		"textures" : 
+		[
+			"kythen_moana_item_womens_digging_stick.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_barbed_spear",
+		"textures" : 
+		[
+			"kythen_firecountry_item_barbed_spear.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_woollen_cloth",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_woollen_cloth.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_jagged_spear",
+		"textures" : 
+		[
+			"kythen_firecountry_item_jagged_spear.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_reed_spear",
+		"textures" : 
+		[
+			"kythen_firecountry_item_reed_spear.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_murre_egg",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_dressed_stone",
+		"textures" : 
+		[
+			"kythen_habesha_item_dressed_stone.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_bone_hook",
+		"textures" : 
+		[
+			"kythen_moana_item_bone_hook.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_axe_blank",
+		"textures" : 
+		[
+			"kythen_firecountry_item_axe_blank.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_charcoal",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_charcoal.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_digging_stick",
+		"textures" : 
+		[
+			"kythen_firecountry_item_digging_stick.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_lotus_root",
+		"textures" : 
+		[
+			"kythen_khmer_item_lotus_root.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_shell_scraper",
+		"textures" : 
+		[
+			"kythen_firecountry_item_shell_scraper.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_merit",
+		"textures" : 
+		[
+			"kythen_khmer_item_merit.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_muller",
+		"textures" : 
+		[
+			"kythen_firecountry_item_muller.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_narwhal_maktaaq",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_narwhal_tusk",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_faba_bean",
+		"textures" : 
+		[
+			"kythen_habesha_item_faba_bean.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_pandanus_leaf",
+		"textures" : 
+		[
+			"kythen_moana_item_pandanus_leaf.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_struck_coin",
+		"textures" : 
+		[
+			"kythen_habesha_item_struck_coin.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_pine_marten_pelt",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_pelt.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_plough_ox_draught",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_draught.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_sour_leaf",
+		"textures" : 
+		[
+			"kythen_khmer_item_sour_leaf.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_beluga_maktaaq",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_hazelnut",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_hazelnut.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_scythe",
+		"textures" : 
+		[
+			"kythen_norse_item_scythe.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_wolf_pelt",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_pelt.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_iron_billet",
+		"textures" : 
+		[
+			"kythen_norse_item_iron_billet.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_hay_rake",
+		"textures" : 
+		[
+			"kythen_norse_item_hay_rake.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_seabird_feather",
+		"textures" : 
+		[
+			"kythen_norse_yield_feather.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_pig_bristle",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_bristle.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_lever_beam",
+		"textures" : 
+		[
+			"kythen_norse_item_lever_beam.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_mail",
+		"textures" : 
+		[
+			"kythen_norse_item_mail.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_bean",
+		"textures" : 
+		[
+			"kythen_firecountry_item_bean.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_three_sisters_knives",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_three_sisters_knives.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_eider_down",
+		"textures" : 
+		[
+			"kythen_norse_item_eider_down.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_boar_bristle",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_bristle.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_fat_tailed_sheep_meat",
+		"textures" : 
+		[
+			"kythen_habesha_yield_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_humped_ox_meat",
+		"textures" : 
+		[
+			"kythen_habesha_yield_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_bearded_seal_meat",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_wasting_loaf",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_wasting_loaf.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_bat_and_bird",
+		"textures" : 
+		[
+			"kythen_moana_item_bat_and_bird.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_sill_beam",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_sill_beam.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_golden_window",
+		"textures" : 
+		[
+			"kythen_khmer_gold_leaf.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_bushbuck_hide",
+		"textures" : 
+		[
+			"kythen_habesha_yield_hide.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_mane_and_cape",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_smoked_eel",
+		"textures" : 
+		[
+			"kythen_firecountry_item_smoked_eel.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_kapok_fibre",
+		"textures" : 
+		[
+			"kythen_khmer_item_kapok_fibre.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_freshwater_mussel_shell",
+		"textures" : 
+		[
+			"kythen_firecountry_yield_shell.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_antler",
+		"textures" : 
+		[
+			"kythen_norse_item_antler.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_wool_sail",
+		"textures" : 
+		[
+			"kythen_norse_item_wool_sail.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_beluga_meat",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_the_feast",
+		"textures" : 
+		[
+			"kythen_norse_item_the_feast.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_mens_digging_stick",
+		"textures" : 
+		[
+			"kythen_moana_item_mens_digging_stick.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_hafted_adze",
+		"textures" : 
+		[
+			"kythen_moana_item_hafted_adze.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_war_lance",
+		"textures" : 
+		[
+			"kythen_khmer_item_war_lance.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_green_club",
+		"textures" : 
+		[
+			"kythen_firecountry_item_green_club.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_club",
+		"textures" : 
+		[
+			"kythen_firecountry_item_club.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_ground_axe",
+		"textures" : 
+		[
+			"kythen_firecountry_item_ground_axe.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_axe",
+		"textures" : 
+		[
+			"kythen_habesha_item_axe.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_skyr_with_berries",
+		"textures" : 
+		[
+			"kythen_norse_item_skyr_with_berries.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_broadaxe",
+		"textures" : 
+		[
+			"kythen_norse_item_broadaxe.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_lion_mane",
+		"textures" : 
+		[
+			"kythen_habesha_yield_mane.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_iron_chisel",
+		"textures" : 
+		[
+			"kythen_habesha_item_iron_chisel.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_adze",
+		"textures" : 
+		[
+			"kythen_norse_item_adze.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_blunt_chisel",
+		"textures" : 
+		[
+			"kythen_habesha_item_blunt_chisel.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_colobus_cape_pelt",
+		"textures" : 
+		[
+			"kythen_habesha_yield_cape_pelt.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_spoon_auger",
+		"textures" : 
+		[
+			"kythen_norse_item_spoon_auger.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_lion_hide",
+		"textures" : 
+		[
+			"kythen_habesha_yield_hide.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_draw_knife",
+		"textures" : 
+		[
+			"kythen_norse_item_draw_knife.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_spear",
+		"textures" : 
+		[
+			"kythen_habesha_item_spear.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_spear",
+		"textures" : 
+		[
+			"kythen_norse_item_spear.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_fat_tailed_sheep_hide",
+		"textures" : 
+		[
+			"kythen_habesha_yield_hide.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_curved_sword",
+		"textures" : 
+		[
+			"kythen_habesha_item_curved_sword.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_war_axe",
+		"textures" : 
+		[
+			"kythen_norse_item_war_axe.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_sword",
+		"textures" : 
+		[
+			"kythen_norse_item_sword.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_reforged_sword",
+		"textures" : 
+		[
+			"kythen_norse_item_reforged_sword.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_the_sword_in_the_howe",
+		"textures" : 
+		[
+			"kythen_norse_item_the_sword_in_the_howe.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_seax",
+		"textures" : 
+		[
+			"kythen_norse_item_seax.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_hammerstone",
+		"textures" : 
+		[
+			"kythen_firecountry_item_hammerstone.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_bow",
+		"textures" : 
+		[
+			"kythen_norse_item_bow.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_garlic",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_garlic.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_wolf_killer",
+		"textures" : 
+		[
+			"kythen_siku_baleen.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_iron_tool",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_iron_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_spear",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_spear.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_qimmiq_haulage",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_pitiksi",
+		"textures" : 
+		[
+			"kythen_siku_antler.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_kakivak",
+		"textures" : 
+		[
+			"kythen_siku_antler.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_blanda",
+		"textures" : 
+		[
+			"kythen_norse_item_blanda.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_charcoal",
+		"textures" : 
+		[
+			"kythen_habesha_item_charcoal.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_savik",
+		"textures" : 
+		[
+			"kythen_siku_meteoric_iron.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_horse_horse_meat",
+		"textures" : 
+		[
+			"kythen_norse_yield_horse_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_mountain_nyala_meat",
+		"textures" : 
+		[
+			"kythen_habesha_yield_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_scroll_case",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_mountain_nyala_hide",
+		"textures" : 
+		[
+			"kythen_habesha_yield_hide.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_stone_flake",
+		"textures" : 
+		[
+			"kythen_siku_gneiss.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_wanderer",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_bushbuck_meat",
+		"textures" : 
+		[
+			"kythen_habesha_yield_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_sea_turtle_meat",
+		"textures" : 
+		[
+			"kythen_moana_yield_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_the_single_stone",
+		"textures" : 
+		[
+			"kythen_khmer_sandstone_good.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_mosquito_net",
+		"textures" : 
+		[
+			"kythen_khmer_item_mosquito_net.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_lammergeier_quill",
+		"textures" : 
+		[
+			"kythen_habesha_yield_quill.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_arctic_fox_fox_pelt",
+		"textures" : 
+		[
+			"kythen_norse_yield_fox_pelt.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_thick_billed_raven_feather",
+		"textures" : 
+		[
+			"kythen_habesha_yield_feather.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_fish_oil",
+		"textures" : 
+		[
+			"kythen_khmer_item_fish_oil.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_carp_flesh",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_flesh.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_hyena_hide",
+		"textures" : 
+		[
+			"kythen_habesha_yield_hide.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_firewood",
+		"textures" : 
+		[
+			"kythen_moana_item_firewood.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_salt_pan",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_salt_pan.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_humped_ox_milk",
+		"textures" : 
+		[
+			"kythen_habesha_yield_milk.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_elephant_ivory",
+		"textures" : 
+		[
+			"kythen_khmer_yield_ivory.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_humped_ox_hide",
+		"textures" : 
+		[
+			"kythen_habesha_yield_hide.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_brown_bear_pelt",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_pelt.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_wild_cattle_hide",
+		"textures" : 
+		[
+			"kythen_khmer_yield_hide.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_beaver_pelt",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_pelt.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_wildcat_pelt",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_pelt.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_quill_and_down",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_quill_and_down.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_crane_feather",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_feather.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_aurochs_bone",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_bone.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_fleece",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_fleece.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_fast_board",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_fast_board.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_wisent_meat",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_iron_bar",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_iron_bar.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_honeycomb",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_honeycomb.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_quarried_slab",
+		"textures" : 
+		[
+			"kythen_moana_item_quarried_slab.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_the_worm_slab",
+		"textures" : 
+		[
+			"kythen_moana_item_the_worm_slab.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_honeybee_wax",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_wax.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_mans_dress",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_mail_and_helm",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_volva_staff",
+		"textures" : 
+		[
+			"kythen_norse_item_volva_staff.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_muskox_qiviut",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_the_amulet_coat",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_arctic_fox_fox_meat",
+		"textures" : 
+		[
+			"kythen_norse_yield_fox_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_berries_in_oil",
+		"textures" : 
+		[
+			"kythen_siku_blubber.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_seal_oil",
+		"textures" : 
+		[
+			"kythen_siku_blubber.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_short_finned_eel_flesh",
+		"textures" : 
+		[
+			"kythen_firecountry_yield_flesh.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_wallaby_meat",
+		"textures" : 
+		[
+			"kythen_firecountry_yield_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_debtera_cape",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_leaf_greens",
+		"textures" : 
+		[
+			"kythen_firecountry_item_leaf_greens.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_sheepskin_unreceived",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_netela",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_ard_share",
+		"textures" : 
+		[
+			"kythen_habesha_item_ard_share.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_lynx_pelt",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_pelt.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_kocho",
+		"textures" : 
+		[
+			"kythen_habesha_item_kocho.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_seabird_seabird_egg",
+		"textures" : 
+		[
+			"kythen_norse_yield_seabird_egg.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_forest_mast",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_forest_mast.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_teff_grain",
+		"textures" : 
+		[
+			"kythen_habesha_item_teff_grain.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_barley_grain",
+		"textures" : 
+		[
+			"kythen_habesha_item_barley_grain.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_seabird_seabird",
+		"textures" : 
+		[
+			"kythen_norse_yield_seabird.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_wheat_grain",
+		"textures" : 
+		[
+			"kythen_habesha_item_wheat_grain.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_sorghum_grain",
+		"textures" : 
+		[
+			"kythen_habesha_item_sorghum_grain.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_snowy_owl_feather",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_sesame_seed",
+		"textures" : 
+		[
+			"kythen_habesha_item_sesame_seed.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_niger_seed",
+		"textures" : 
+		[
+			"kythen_habesha_item_niger_seed.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_incense_resin",
+		"textures" : 
+		[
+			"kythen_habesha_item_incense_resin.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_sheep_mutton",
+		"textures" : 
+		[
+			"kythen_norse_yield_mutton.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_bulla",
+		"textures" : 
+		[
+			"kythen_habesha_item_bulla.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_amicho",
+		"textures" : 
+		[
+			"kythen_habesha_item_amicho.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_capercaillie_feather",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_feather.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_fresh_fish",
+		"textures" : 
+		[
+			"kythen_khmer_item_fresh_fish.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_basket_load",
+		"textures" : 
+		[
+			"kythen_khmer_item_basket_load.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_cow_milk",
+		"textures" : 
+		[
+			"kythen_norse_yield_milk.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_sesame_oil",
+		"textures" : 
+		[
+			"kythen_khmer_item_sesame_oil.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_cardamom",
+		"textures" : 
+		[
+			"kythen_khmer_item_cardamom.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_teff_straw",
+		"textures" : 
+		[
+			"kythen_habesha_item_teff_straw.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_dung_cake",
+		"textures" : 
+		[
+			"kythen_habesha_item_dung_cake.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_cleared_land",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_cleared_land.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_brushwood",
+		"textures" : 
+		[
+			"kythen_habesha_item_brushwood.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_bower_bird_playground",
+		"textures" : 
+		[
+			"kythen_firecountry_yield_playground.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_withy_bundle",
+		"textures" : 
+		[
+			"kythen_habesha_item_withy_bundle.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_squared_timber",
+		"textures" : 
+		[
+			"kythen_habesha_item_squared_timber.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_rubble_stone",
+		"textures" : 
+		[
+			"kythen_habesha_item_rubble_stone.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_quiet_house",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_quiet_house.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_gruit_botanicals",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_gruit_botanicals.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_cotton_cloth",
+		"textures" : 
+		[
+			"kythen_habesha_item_cotton_cloth.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_boundary_claim",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_boundary_claim.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_iron_bloom",
+		"textures" : 
+		[
+			"kythen_habesha_item_iron_bloom.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_ore",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_ore.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_charter",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_charter.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_tanned_leather",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_tanned_leather.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_neck_yoke",
+		"textures" : 
+		[
+			"kythen_habesha_item_neck_yoke.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_pig_pork",
+		"textures" : 
+		[
+			"kythen_norse_yield_pork.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_sickle",
+		"textures" : 
+		[
+			"kythen_habesha_item_sickle.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_turtle_net",
+		"textures" : 
+		[
+			"kythen_moana_item_turtle_net.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_coconut_meat",
+		"textures" : 
+		[
+			"kythen_moana_item_coconut_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_bamboo_scraper",
+		"textures" : 
+		[
+			"kythen_habesha_item_bamboo_scraper.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_sail_mat",
+		"textures" : 
+		[
+			"kythen_moana_item_sail_mat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_roast_pig",
+		"textures" : 
+		[
+			"kythen_moana_item_roast_pig.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_fresh_cod",
+		"textures" : 
+		[
+			"kythen_norse_item_fresh_cod.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_seabird",
+		"textures" : 
+		[
+			"kythen_norse_item_seabird.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_structural_timber",
+		"textures" : 
+		[
+			"kythen_norse_item_structural_timber.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_parchment",
+		"textures" : 
+		[
+			"kythen_habesha_item_parchment.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_iron_tool",
+		"textures" : 
+		[
+			"kythen_norse_item_iron_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_reed_pen",
+		"textures" : 
+		[
+			"kythen_habesha_item_reed_pen.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_black_ink",
+		"textures" : 
+		[
+			"kythen_habesha_item_black_ink.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_barley_grain",
+		"textures" : 
+		[
+			"kythen_norse_item_barley_grain.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_vermilion_ink",
+		"textures" : 
+		[
+			"kythen_habesha_item_vermilion_ink.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_seal_meat",
+		"textures" : 
+		[
+			"kythen_norse_item_seal_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_book_boards",
+		"textures" : 
+		[
+			"kythen_habesha_item_book_boards.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_ringed_seal_sinew",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_magic_scroll",
+		"textures" : 
+		[
+			"kythen_habesha_item_magic_scroll.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_harp_seal_meat",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_walrus_blubber",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_walrus_ivory",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_tuuq",
+		"textures" : 
+		[
+			"kythen_siku_antler.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_freshwater_turtle_meat",
+		"textures" : 
+		[
+			"kythen_firecountry_yield_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_pig_hide",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_hide.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_inked_bee_charm",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_inked_bee_charm.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_raiding_crew_what_was_portable",
+		"textures" : 
+		[
+			"kythen_norse_yield_what_was_portable.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_muskox_meat",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_arctic_char_flesh",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_sistrum",
+		"textures" : 
+		[
+			"kythen_habesha_item_sistrum.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_arctic_cod_flesh",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_donation",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_donation.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_murre_meat",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_perpetual_memoria",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_perpetual_memoria.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_snow_goose_meat",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_ringed_seal_meat",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_murre_skin",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_salt_bar",
+		"textures" : 
+		[
+			"kythen_habesha_item_salt_bar.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_chicken_eggs",
+		"textures" : 
+		[
+			"kythen_moana_yield_eggs.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_hennil_staff",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_hennil_staff.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_shark_and_bonito",
+		"textures" : 
+		[
+			"kythen_moana_item_shark_and_bonito.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_folk_ward",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_folk_ward.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_soured_blood_sausage",
+		"textures" : 
+		[
+			"kythen_norse_item_soured_blood_sausage.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_whale",
+		"textures" : 
+		[
+			"kythen_norse_item_whale.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_dried_fish_with_butter",
+		"textures" : 
+		[
+			"kythen_norse_item_dried_fish_with_butter.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_barley_porridge",
+		"textures" : 
+		[
+			"kythen_norse_item_barley_porridge.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_eider_eggs",
+		"textures" : 
+		[
+			"kythen_norse_item_eider_eggs.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_madder_dye",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_madder_dye.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_horse_flesh",
+		"textures" : 
+		[
+			"kythen_norse_item_horse_flesh.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_seed_grain",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_seed_grain.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_euphorbia_cutting",
+		"textures" : 
+		[
+			"kythen_habesha_item_euphorbia_cutting.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_kid_milk_porridge",
+		"textures" : 
+		[
+			"kythen_norse_item_kid_milk_porridge.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_neck_cord",
+		"textures" : 
+		[
+			"kythen_habesha_item_neck_cord.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_straw",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_straw.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_injera",
+		"textures" : 
+		[
+			"kythen_habesha_item_injera.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_milled_flour",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_milled_flour.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:habesha_kocho_bread",
+		"textures" : 
+		[
+			"kythen_habesha_item_kocho_bread.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_licensed_flour",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_licensed_flour.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_smoked_mutton",
+		"textures" : 
+		[
+			"kythen_norse_item_smoked_mutton.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_venison",
+		"textures" : 
+		[
+			"kythen_norse_item_venison.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_red_deer_venison",
+		"textures" : 
+		[
+			"kythen_norse_yield_venison.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_captive",
+		"textures" : 
+		[
+			"kythen_norse_item_captive.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_rye_bread",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_rye_bread.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_pig",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_pig.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_trap_withy",
+		"textures" : 
+		[
+			"kythen_moana_item_trap_withy.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_sheep_wool",
+		"textures" : 
+		[
+			"kythen_norse_yield_wool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_pig_meat",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_meat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_carp",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_carp.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_blessed_water",
+		"textures" : 
+		[
+			"kythen_khmer_item_blessed_water.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_pond_fish",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_pond_fish.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_beluga_blubber",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:firecountry_freshwater_turtle_shell",
+		"textures" : 
+		[
+			"kythen_firecountry_yield_shell.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_alms_grain",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_alms_grain.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:khmer_temple_goat_carcass",
+		"textures" : 
+		[
+			"kythen_khmer_yield_carcass.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_famine_relief",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_famine_relief.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_caribou_meat",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_humpback_whale_tooth_ivory",
+		"textures" : 
+		[
+			"kythen_moana_yield_tooth_ivory.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_ringfort",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_ringfort.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_caribou_antler",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:moana_megapode_eggs",
+		"textures" : 
+		[
+			"kythen_moana_yield_eggs.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_sheep_milk",
+		"textures" : 
+		[
+			"kythen_norse_yield_milk.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_mediated_terms",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_mediated_terms.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_horse_horsehair",
+		"textures" : 
+		[
+			"kythen_norse_yield_horsehair.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_caribou_sinew",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_eider_eider_down",
+		"textures" : 
+		[
+			"kythen_norse_yield_eider_down.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_raven_omen",
+		"textures" : 
+		[
+			"kythen_norse_yield_omen.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_the_berserk_pair_the_crash",
+		"textures" : 
+		[
+			"kythen_norse_yield_the_crash.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_caribou_stomach",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:norse_raiding_crew_the_terms",
+		"textures" : 
+		[
+			"kythen_norse_yield_the_terms.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_red_painted_pottery",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_red_painted_pottery.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_bearded_seal_blubber",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_bearded_seal_sinew",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_wax",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_wax.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_gruit_ale",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_gruit_ale.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_sheep_skin",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_yield_skin.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_muskox_hide",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:mitteleuropa_processional_cross",
+		"textures" : 
+		[
+			"kythen_mitteleuropa_item_processional_cross.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "kythen:siku_muskox_horn",
+		"textures" : 
+		[
+			"kythen_tool.png"
+		],
+		"wield_scale" : 1
+	}
+]

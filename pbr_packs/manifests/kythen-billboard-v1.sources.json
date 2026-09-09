@@ -1,0 +1,824 @@
+{
+  "kythen_firecountry_barley_grass": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_firecountry_barley_grass.png"
+  },
+  "kythen_firecountry_broadleaf_grass": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_firecountry_broadleaf_grass.png"
+  },
+  "kythen_firecountry_bulrush": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_firecountry_bulrush.png"
+  },
+  "kythen_firecountry_burnt_stubble": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_firecountry_burnt_stubble.png"
+  },
+  "kythen_firecountry_bush_bean": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_firecountry_bush_bean.png"
+  },
+  "kythen_firecountry_cordage_grass": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_firecountry_cordage_grass.png"
+  },
+  "kythen_firecountry_flood_fern": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_firecountry_flood_fern.png"
+  },
+  "kythen_firecountry_grass_tree_skirt": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_firecountry_grass_tree_skirt.png"
+  },
+  "kythen_firecountry_green_pick_shoots": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_firecountry_green_pick_shoots.png"
+  },
+  "kythen_firecountry_kangaroo_grass": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_firecountry_kangaroo_grass.png"
+  },
+  "kythen_firecountry_lignum": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_firecountry_lignum.png"
+  },
+  "kythen_firecountry_mitchell_tussock": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_firecountry_mitchell_tussock.png"
+  },
+  "kythen_firecountry_native_millet": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_firecountry_native_millet.png"
+  },
+  "kythen_firecountry_native_tobacco": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_firecountry_native_tobacco.png"
+  },
+  "kythen_firecountry_nettle_scrub": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_firecountry_nettle_scrub.png"
+  },
+  "kythen_firecountry_pigweed": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_firecountry_pigweed.png"
+  },
+  "kythen_firecountry_pituri_bush": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_firecountry_pituri_bush.png"
+  },
+  "kythen_firecountry_rank_stand": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_firecountry_rank_stand.png"
+  },
+  "kythen_firecountry_scarp_fern": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_firecountry_scarp_fern.png"
+  },
+  "kythen_firecountry_spinifex": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_firecountry_spinifex.png"
+  },
+  "kythen_firecountry_storm_plant": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_firecountry_storm_plant.png"
+  },
+  "kythen_firecountry_underwood": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_firecountry_underwood.png"
+  },
+  "kythen_firecountry_wild_melon": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_firecountry_wild_melon.png"
+  },
+  "kythen_firecountry_yam": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_firecountry_yam.png"
+  },
+  "kythen_firecountry_yam_daisy": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_firecountry_yam_daisy.png"
+  },
+  "kythen_habesha_adey_abeba": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_habesha_adey_abeba.png"
+  },
+  "kythen_habesha_barley": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_habesha_barley.png"
+  },
+  "kythen_habesha_coffee_leaf": {
+    "class": "soil",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_habesha_coffee_leaf.png"
+  },
+  "kythen_habesha_cotton": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_habesha_cotton.png"
+  },
+  "kythen_habesha_enset_leaf": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_habesha_enset_leaf.png"
+  },
+  "kythen_habesha_euphorbia": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_habesha_euphorbia.png"
+  },
+  "kythen_habesha_everlasting": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_habesha_everlasting.png"
+  },
+  "kythen_habesha_faba": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_habesha_faba.png"
+  },
+  "kythen_habesha_frost_mat": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_habesha_frost_mat.png"
+  },
+  "kythen_habesha_gesho": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_habesha_gesho.png"
+  },
+  "kythen_habesha_giant_heath": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_habesha_giant_heath.png"
+  },
+  "kythen_habesha_gorge_aloe": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_habesha_gorge_aloe.png"
+  },
+  "kythen_habesha_grove_fern": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_habesha_grove_fern.png"
+  },
+  "kythen_habesha_kale": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_habesha_kale.png"
+  },
+  "kythen_habesha_lobelia": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_habesha_lobelia.png"
+  },
+  "kythen_habesha_niger": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_habesha_niger.png"
+  },
+  "kythen_habesha_sesame": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_habesha_sesame.png"
+  },
+  "kythen_habesha_sorghum": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_habesha_sorghum.png"
+  },
+  "kythen_habesha_teff": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_habesha_teff.png"
+  },
+  "kythen_habesha_thorn_scrub": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_habesha_thorn_scrub.png"
+  },
+  "kythen_habesha_tussock_grass": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_habesha_tussock_grass.png"
+  },
+  "kythen_habesha_wheat": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_habesha_wheat.png"
+  },
+  "kythen_khmer_bamboo": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_khmer_bamboo.png"
+  },
+  "kythen_khmer_bunded_rice": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_khmer_bunded_rice.png"
+  },
+  "kythen_khmer_cardamom": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_khmer_cardamom.png"
+  },
+  "kythen_khmer_deepwater_rice": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_khmer_deepwater_rice.png"
+  },
+  "kythen_khmer_flooded_forest": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_khmer_flooded_forest.png"
+  },
+  "kythen_khmer_forest_fern": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_khmer_forest_fern.png"
+  },
+  "kythen_khmer_gathered_herbs": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_khmer_gathered_herbs.png"
+  },
+  "kythen_khmer_house_garden": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_khmer_house_garden.png"
+  },
+  "kythen_khmer_lotus": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_khmer_lotus.png"
+  },
+  "kythen_khmer_macaranga": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_khmer_macaranga.png"
+  },
+  "kythen_khmer_paddy_green": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_khmer_paddy_green.png"
+  },
+  "kythen_khmer_pepper_vine": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_khmer_pepper_vine.png"
+  },
+  "kythen_khmer_rattan": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_khmer_rattan.png"
+  },
+  "kythen_khmer_reed": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_khmer_reed.png"
+  },
+  "kythen_khmer_sedge": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_khmer_sedge.png"
+  },
+  "kythen_khmer_sugar_palm_crown": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_khmer_sugar_palm_crown.png"
+  },
+  "kythen_khmer_sugarcane": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_khmer_sugarcane.png"
+  },
+  "kythen_mitteleuropa_barley": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_mitteleuropa_barley.png"
+  },
+  "kythen_mitteleuropa_bilberry": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_mitteleuropa_bilberry.png"
+  },
+  "kythen_mitteleuropa_bog_cotton": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_mitteleuropa_bog_cotton.png"
+  },
+  "kythen_mitteleuropa_bog_myrtle": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_mitteleuropa_bog_myrtle.png"
+  },
+  "kythen_mitteleuropa_broad_beans": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_mitteleuropa_broad_beans.png"
+  },
+  "kythen_mitteleuropa_fir_woodrush": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_mitteleuropa_fir_woodrush.png"
+  },
+  "kythen_mitteleuropa_flood_line_herbs": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_mitteleuropa_flood_line_herbs.png"
+  },
+  "kythen_mitteleuropa_forest_fern": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_mitteleuropa_forest_fern.png"
+  },
+  "kythen_mitteleuropa_grape": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_mitteleuropa_grape.png"
+  },
+  "kythen_mitteleuropa_ground_ivy": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_mitteleuropa_ground_ivy.png"
+  },
+  "kythen_mitteleuropa_heath_herbs": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_mitteleuropa_heath_herbs.png"
+  },
+  "kythen_mitteleuropa_heather": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_mitteleuropa_heather.png"
+  },
+  "kythen_mitteleuropa_henbane": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_mitteleuropa_henbane.png"
+  },
+  "kythen_mitteleuropa_lentils": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_mitteleuropa_lentils.png"
+  },
+  "kythen_mitteleuropa_litter_meadow": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_mitteleuropa_litter_meadow.png"
+  },
+  "kythen_mitteleuropa_madder": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_mitteleuropa_madder.png"
+  },
+  "kythen_mitteleuropa_marsh_rosemary": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_mitteleuropa_marsh_rosemary.png"
+  },
+  "kythen_mitteleuropa_meadow_grass": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_mitteleuropa_meadow_grass.png"
+  },
+  "kythen_mitteleuropa_oats": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_mitteleuropa_oats.png"
+  },
+  "kythen_mitteleuropa_onion_garlic": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_mitteleuropa_onion_garlic.png"
+  },
+  "kythen_mitteleuropa_peas": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_mitteleuropa_peas.png"
+  },
+  "kythen_mitteleuropa_reed": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_mitteleuropa_reed.png"
+  },
+  "kythen_mitteleuropa_rye": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_mitteleuropa_rye.png"
+  },
+  "kythen_mitteleuropa_sand_sedge": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_mitteleuropa_sand_sedge.png"
+  },
+  "kythen_mitteleuropa_sedge": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_mitteleuropa_sedge.png"
+  },
+  "kythen_moana_arrowroot": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_moana_arrowroot.png"
+  },
+  "kythen_moana_banana_leaf": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_moana_banana_leaf.png"
+  },
+  "kythen_moana_beach_scrub": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_moana_beach_scrub.png"
+  },
+  "kythen_moana_beach_vine": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_moana_beach_vine.png"
+  },
+  "kythen_moana_candlenut_lamp": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_moana_candlenut_lamp.png"
+  },
+  "kythen_moana_fern_understorey": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_moana_fern_understorey.png"
+  },
+  "kythen_moana_giant_swamp_taro": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_moana_giant_swamp_taro.png"
+  },
+  "kythen_moana_kava": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_moana_kava.png"
+  },
+  "kythen_moana_mangrove_shoots": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_moana_mangrove_shoots.png"
+  },
+  "kythen_moana_nama": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_moana_nama.png"
+  },
+  "kythen_moana_paper_mulberry": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_moana_paper_mulberry.png"
+  },
+  "kythen_moana_reef_limu": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_moana_reef_limu.png"
+  },
+  "kythen_moana_sea_grass": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_moana_sea_grass.png"
+  },
+  "kythen_moana_shell_inlay": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_moana_shell_inlay.png"
+  },
+  "kythen_moana_sugarcane": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_moana_sugarcane.png"
+  },
+  "kythen_moana_swamp_sedge": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_moana_swamp_sedge.png"
+  },
+  "kythen_moana_taro_leaf": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_moana_taro_leaf.png"
+  },
+  "kythen_moana_ti_and_ginger": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_moana_ti_and_ginger.png"
+  },
+  "kythen_moana_wild_swamp_taro": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_moana_wild_swamp_taro.png"
+  },
+  "kythen_moana_wild_taro": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_moana_wild_taro.png"
+  },
+  "kythen_moana_yam": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_moana_yam.png"
+  },
+  "kythen_norse_angelica_stand": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_norse_angelica_stand.png"
+  },
+  "kythen_norse_barley": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_norse_barley.png"
+  },
+  "kythen_norse_berry_heath": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_norse_berry_heath.png"
+  },
+  "kythen_norse_birch_scrub": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_norse_birch_scrub.png"
+  },
+  "kythen_norse_bog_myrtle": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_norse_bog_myrtle.png"
+  },
+  "kythen_norse_cotton_grass": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_norse_cotton_grass.png"
+  },
+  "kythen_norse_cut_meadow": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_norse_cut_meadow.png"
+  },
+  "kythen_norse_deer_sedge": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_norse_deer_sedge.png"
+  },
+  "kythen_norse_dwarf_willow": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_norse_dwarf_willow.png"
+  },
+  "kythen_norse_fell_sward": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_norse_fell_sward.png"
+  },
+  "kythen_norse_flax": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_norse_flax.png"
+  },
+  "kythen_norse_heather": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_norse_heather.png"
+  },
+  "kythen_norse_juniper_mat": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_norse_juniper_mat.png"
+  },
+  "kythen_norse_kelp_bed": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_norse_kelp_bed.png"
+  },
+  "kythen_norse_madder": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_norse_madder.png"
+  },
+  "kythen_norse_meadow_sward": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_norse_meadow_sward.png"
+  },
+  "kythen_norse_nettle_stand": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_norse_nettle_stand.png"
+  },
+  "kythen_norse_pine_scrub": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_norse_pine_scrub.png"
+  },
+  "kythen_norse_rowan_scrub": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_norse_rowan_scrub.png"
+  },
+  "kythen_norse_woad": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_norse_woad.png"
+  },
+  "kythen_siku_cotton_grass": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_siku_cotton_grass.png"
+  },
+  "kythen_siku_crowberry_heath": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_siku_crowberry_heath.png"
+  },
+  "kythen_siku_dwarf_willow": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_siku_dwarf_willow.png"
+  },
+  "kythen_siku_kelp_wrack": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_siku_kelp_wrack.png"
+  },
+  "kythen_siku_moss_hummock": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_siku_moss_hummock.png"
+  },
+  "kythen_siku_sedge_tussock": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_siku_sedge_tussock.png"
+  },
+  "kythen_siku_sorrel": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "kythen",
+    "source": "mods/kythen/textures/kythen_siku_sorrel.png"
+  }
+}

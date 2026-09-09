@@ -214,10 +214,20 @@ CLASS_SSS = {"leaves": 0.5, "ice": 0.35, "snow": 0.2}
 # footstep is the only place that reaches the prompt as well as the class.
 def classify_node(d):
     fs = d.get("sound_footstep") or ""
-    if fs.startswith("default_") and fs.endswith("_footstep"):
-        token = fs[len("default_"):-len("_footstep")]
-        if token in FOOTSTEP_CLASS:
-            return FOOTSTEP_CLASS[token]
+    if fs.endswith("_footstep"):
+        body = fs[:-len("_footstep")]
+        # Minetest Game and Mineclonia namespace these as default_<material>,
+        # but a game with its own sound set is just as informative: Kythen's
+        # kythen_grass_footstep says grass as plainly as default_grass_footstep
+        # does. Try the whole remainder after a default_ prefix first, since
+        # that keeps multi word tokens intact, then the token before _footstep.
+        candidates = []
+        if body.startswith("default_"):
+            candidates.append(body[len("default_"):])
+        candidates.append(body.rsplit("_", 1)[-1])
+        for token in candidates:
+            if token in FOOTSTEP_CLASS:
+                return FOOTSTEP_CLASS[token]
     if "snow" in fs:
         return "snow"
     if "cloth" in fs:
