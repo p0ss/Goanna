@@ -253,6 +253,7 @@ public:
     godot::Array take_sounds();
     godot::PackedInt32Array take_stopped_sounds();
     godot::PackedStringArray media_names();
+    godot::PackedStringArray announced_media_names();
     // Particle spawners the server asked for since the last call, the ids
     // it cancelled, and one-shot particles.
     godot::Array take_particle_spawners();

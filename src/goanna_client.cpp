@@ -1732,6 +1732,15 @@ PackedStringArray GoannaClient::media_names() {
     return out;
 }
 
+PackedStringArray GoannaClient::announced_media_names() {
+    PackedStringArray out;
+    if (!m_session)
+        return out;
+    for (const auto &n : m_session->announcedMediaNames())
+        out.push_back(String::utf8(n.c_str()));
+    return out;
+}
+
 String GoannaClient::node_name_at(const Vector3 &pos) {
     if (!m_session)
         return String();
@@ -6814,6 +6823,7 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("take_stopped_sounds"), &GoannaClient::take_stopped_sounds);
     ClassDB::bind_method(D_METHOD("media_bytes", "name"), &GoannaClient::media_bytes);
     ClassDB::bind_method(D_METHOD("media_names"), &GoannaClient::media_names);
+    ClassDB::bind_method(D_METHOD("announced_media_names"), &GoannaClient::announced_media_names);
     ClassDB::bind_method(D_METHOD("take_particle_spawners"), &GoannaClient::take_particle_spawners);
     ClassDB::bind_method(D_METHOD("take_deleted_spawners"), &GoannaClient::take_deleted_spawners);
     ClassDB::bind_method(D_METHOD("take_dug_nodes"), &GoannaClient::take_dug_nodes);

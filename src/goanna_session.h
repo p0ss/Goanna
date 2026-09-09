@@ -264,6 +264,7 @@ public:
     std::vector<u32> takeDeletedSpawners();
     std::vector<ParticleEvent> takeParticles();
     std::vector<std::string> mediaNames() const;
+    std::vector<std::string> announcedMediaNames() const;
     // Raw bytes of a received media file (sounds are .ogg), empty if absent.
     bool mediaBytes(const std::string &name, std::string &out) const { return getMedia(name, out); }
     // A node's own sound: kind is "footstep", "dig" or "dug".

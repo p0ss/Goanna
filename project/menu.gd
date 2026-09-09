@@ -12,6 +12,7 @@ extends Control
 
 const CFG_PATH := "user://goanna.cfg"
 const LocalServer := preload("res://local_server.gd")
+const AssetUpdater := preload("res://asset_updater.gd")
 const SKIP_VARS := ["GOANNA_HOST", "GOANNA_NAME", "GOANNA_SHOT", "GOANNA_SMOKE",
 	"GOANNA_WALKTEST", "GOANNA_TOGGLETEST", "GOANNA_ANIMPROBE", "GOANNA_MOBTEST",
 	"GOANNA_USETEST", "GOANNA_MINETEST", "GOANNA_DIGDOWNTEST", "GOANNA_MANTLETEST"]
@@ -73,6 +74,7 @@ const SHOWCASE_POS := Vector3(-100, 30.6, 340)
 const SHOWCASE_YAW := -116.6
 
 func _ready() -> void:
+	AssetUpdater.install_bootstrap()
 	set_process(false)
 	# The real-world backdrop is the normal menu. Keep screenshot automation
 	# and recovery on machines without Luanti deterministic, and allow an
@@ -720,15 +722,15 @@ func _show_new_game() -> void:
 	pbr_label.text = "Materials"
 	world_page.add_child(pbr_label)
 	pbr_option = OptionButton.new()
-	pbr_option.add_item("Bundled PBR (recommended)")
+	pbr_option.add_item("PBR materials (recommended)")
 	pbr_option.set_item_metadata(0, {"id": "bundled", "path": "", "pbr": true})
 	var local_packs_dir := _local_data_dir.path_join("textures")
 	for pack_name in LocalServer.list_texture_packs(_local_data_dir):
 		var pack_path := local_packs_dir.path_join(str(pack_name))
-		pbr_option.add_item("PBR — " + str(pack_name))
+		pbr_option.add_item("PBR: " + str(pack_name))
 		pbr_option.set_item_metadata(pbr_option.item_count - 1,
 				{"id": "pack:" + pack_path, "path": pack_path, "pbr": true})
-	pbr_option.add_item("Standard — no PBR")
+	pbr_option.add_item("Standard, no PBR")
 	pbr_option.set_item_metadata(pbr_option.item_count - 1,
 			{"id": "standard", "path": "", "pbr": false})
 	pbr_option.tooltip_text = "Installed packs layer over the bundled game materials, filling uncovered textures from the bundled set."
@@ -1219,22 +1221,23 @@ func _show_join() -> void:
 	pbr_label.text = "Graphics"
 	grid.add_child(pbr_label)
 	join_pbr_option = OptionButton.new()
-	join_pbr_option.add_item("PBR — server materials (recommended)")
+	join_pbr_option.add_item("PBR: server materials (recommended)")
 	join_pbr_option.set_item_metadata(0, {"id": "server", "path": "", "pbr": true})
-	join_pbr_option.add_item("Standard — no PBR")
+	join_pbr_option.add_item("Standard, no PBR")
 	join_pbr_option.set_item_metadata(1, {"id": "standard", "path": "", "pbr": false})
-	join_pbr_option.add_item("Bundled Minetest Game PBR")
-	join_pbr_option.set_item_metadata(2, {"id": "minetest_game",
-		"path": LocalServer.bundled_pbr_texture_path("minetest_game"), "pbr": true})
-	join_pbr_option.add_item("Bundled Mineclonia PBR")
-	join_pbr_option.set_item_metadata(3, {"id": "mineclonia",
-		"path": LocalServer.bundled_pbr_texture_path("mineclonia"), "pbr": true})
+	for game_pack in [["minetest_game", "Installed Minetest Game PBR"],
+			["mineclonia", "Installed Mineclonia PBR"]]:
+		var asset_path := LocalServer.bundled_pbr_texture_path(str(game_pack[0]))
+		if asset_path != "":
+			join_pbr_option.add_item(str(game_pack[1]))
+			join_pbr_option.set_item_metadata(join_pbr_option.item_count - 1,
+				{"id": game_pack[0], "path": asset_path, "pbr": true})
 	var data_dir := LocalServer.data_dir_or_empty()
 	var packs_dir := data_dir.path_join("textures") if data_dir != "" else ""
 	var join_packs: Array = LocalServer.list_texture_packs(data_dir) if data_dir != "" else []
 	for pack_name in join_packs:
 		var pack_path := packs_dir.path_join(str(pack_name))
-		join_pbr_option.add_item("PBR — " + str(pack_name))
+		join_pbr_option.add_item("PBR: " + str(pack_name))
 		join_pbr_option.set_item_metadata(join_pbr_option.item_count - 1,
 			{"id": "pack:" + pack_path, "path": pack_path, "pbr": true})
 	grid.add_child(join_pbr_option)

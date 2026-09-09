@@ -14,7 +14,7 @@ added only when it does not leave visible gaps or consume the frame budget.
   occlusion.
 - Terrain Diffusion integration with a versioned downloadable default bake.
 - Godot lighting, Luanti light attributes, material defaults and authored
-  LabPBR overrides.
+  LabPBR overrides, with independently versioned asset bundles.
 - FPS/position/performance diagnostics and local Start Game/Join Game flows.
 
 ## Current priorities

@@ -1,0 +1,24 @@
+{
+  "schema": "org.goanna.asset-recipe/v1",
+  "id": "org.goanna.minetest-game.terrain",
+  "version": "1.0.0",
+  "tranche": "terrain",
+  "games": ["minetest", "minetest_game"],
+  "source": {
+    "package": "Luanti/minetest_game",
+    "release": "38214",
+    "archive_sha256": "5b364f6b0cf31ec336319492e14106d932eb86b65a91ded99f4b25f4876519dc"
+  },
+  "pipeline": {
+    "version": "1",
+    "manifest": "pbr_packs/manifests/minetest-game-terrain-intake.json",
+    "quality_gate": "tools/check-pbr-quality.py"
+  },
+  "release": {
+    "texture_pairs": 85,
+    "rejected": ["default_obsidian_glass_detail", "farming_soil_wet_side"],
+    "archive": "org.goanna.minetest-game.terrain-1.0.0.zip",
+    "bytes": 5403213,
+    "sha256": "8f8c37faf48340af590773b8f37ba16488bd4bd94a205cb89d47c530dfe8e195"
+  }
+}

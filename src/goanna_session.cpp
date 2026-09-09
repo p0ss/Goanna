@@ -2500,6 +2500,15 @@ std::vector<std::string> GoannaSession::mediaNames() const {
     return out;
 }
 
+std::vector<std::string> GoannaSession::announcedMediaNames() const {
+    std::lock_guard<std::mutex> lk(m_media_mutex);
+    std::vector<std::string> out;
+    out.reserve(m_media_wanted.size());
+    for (const auto &kv : m_media_wanted)
+        out.push_back(kv.first);
+    return out;
+}
+
 std::vector<s32> GoannaSession::takeStoppedSounds() {
     std::lock_guard<std::mutex> lk(m_sound_mutex);
     std::vector<s32> out;

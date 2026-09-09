@@ -703,6 +703,7 @@ const SETTINGS := [
 	["Material", "mat_emission", "slider", "Emission strength", "How brightly the pack's glowing surfaces glow.", 0.0, 8.0, 0.25],
 	["Material", "mat_detail", "slider", "Surface detail", "Breaks up the repeat on natural surfaces: sand, stone, gravel, soil and snow are drawn from a grid of randomly shifted copies of their own tile rather than the same one every node. 0 is the plain tile and costs nothing; 1 is one extra texture read along cell borders only. Man made surfaces are left alone, and the far tiers never pay for it.", 0.0, 2.0, 0.25],
 	["Material", "mat_sss", "slider", "Leaf translucency", "Light coming through leaves and ice from behind.", 0.0, 1.0, 0.05],
+	["Material", "asset_updates", "toggle", "Automatic enhanced materials", "Download verified material bundles used by servers you join. New assets activate the next time you connect."],
 	["Video", "bevel", "slider", "Edge bevel", "Chamfer the exposed edges of solid nodes.", 0.0, 0.15, 0.01],
 	["Video", "motes", "slider", "Ambient motes", "Drifting specks over leaves, flowers and sand.", 0.0, 4.0, 0.25],
 	["Video", "view_range", "slider", "View distance", "How much world to ask the server for, in blocks of 16 nodes. Most servers cap this near 12, so higher values may change nothing.", 4.0, 40.0, 1.0],
@@ -763,7 +764,7 @@ const LOCAL_KEYS := ["mouse_sensitivity", "invert_mouse", "view_bobbing", "fov",
 	"gui_scale", "max_fps", "vsync", "fullscreen", "damage_flash", "show_fps", "show_position", "terrain_occlusion", "player_effect_particles", "volume", "muted",
 	"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao",
 	"light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality",
-	"light_ssil", "screen_space_detail", "shadow_detail"]
+	"light_ssil", "screen_space_detail", "shadow_detail", "asset_updates"]
 var settings_menu: Control
 var advanced_open := false      # Advanced graphics settings, kept across reopens
 
@@ -843,6 +844,7 @@ func _local_value(key: String) -> float:
 			return float(m.get(key)) if m != null else 1.0
 		"volume": return audio.volume if audio != null else 0.8
 		"muted": return 1.0 if (audio != null and audio.muted) else 0.0
+		"asset_updates": return 1.0
 	return 0.0
 
 func _apply_setting(key: String, value: float) -> void:

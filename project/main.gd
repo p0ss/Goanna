@@ -1,5 +1,7 @@
 extends Node3D
 
+const AssetUpdater := preload("res://asset_updater.gd")
+
 var client: GoannaClient
 var ui: CanvasLayer
 var cam: Camera3D
@@ -578,6 +580,9 @@ func _ready() -> void:
 	# settings/texture_pack; GOANNA_PACK overrides it for a headless run.
 	# Either way it has to be set before connect_to, because texture requests
 	# start as soon as the session does.
+	# Install the embedded core before resolving the pack path, so a first run
+	# gets its baseline materials on its first connection, not its second.
+	AssetUpdater.install_bootstrap()
 	var pack := OS.get_environment("GOANNA_PACK")
 	# Join Game always sets GOANNA_PACK_SET, including for its explicit None.
 	# An empty GOANNA_PACK without that marker means no command-line override
@@ -658,6 +663,9 @@ func _ready() -> void:
 		connect_title.text = "Connecting"
 		connect_detail.text = "%s:%d as %s" % [host, port, pname]
 	client.connect_to(host, port, pname, OS.get_environment("GOANNA_PASS"))
+	var asset_updater := AssetUpdater.new()
+	asset_updater.client = client
+	add_child(asset_updater)
 	if OS.get_environment("GOANNA_TOD") != "":
 		client.set_time_of_day_override(float(OS.get_environment("GOANNA_TOD")))
 	# GOANNA_CONTROL=<port>: open the loopback command channel, so the client
