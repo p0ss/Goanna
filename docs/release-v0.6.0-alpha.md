@@ -40,7 +40,7 @@ On the reference RTX 3090 at 2560×1371, settled live sweeps measured:
 
 | Profile | Vista by day | Village at night | Frame-time change vs Ultra |
 | --- | ---: | ---: | ---: |
-| Ultra | control | control | — |
+| Ultra | control | control | - |
 | High | 104 FPS | 123 FPS | -21% / -24% |
 | Medium | 157 FPS | 172 FPS | -47% / -46% |
 

@@ -108,7 +108,7 @@ implements an alternative simulation path.
 
 ## Roadmap
 
-### R0 — Freeze the boundary
+### R0: Freeze the boundary
 
 - Name the current channel the game development interface.
 - Publish this authority and non-goal document.
@@ -117,7 +117,7 @@ implements an alternative simulation path.
 
 Deliverable: protocol examples and schema tests, no autonomous agent.
 
-### R1 — Read-only actor
+### R1: Read-only actor
 
 - Add a separate endpoint and wrapper.
 - Negotiate capabilities.
@@ -133,7 +133,7 @@ provides `hello` and `observe`, while `tools/goanna-player-mcp` exposes the
 same read-only operations to an agent host. It is independent of
 `GOANNA_CONTROL`; enabling it does not enable the privileged developer API.
 
-### R2 — Embodied actor actions
+### R2: Embodied actor actions
 
 - Add movement, look, interaction, inventory, chat and wait.
 - Attach actions to observation sequences and reject stale targets.
@@ -142,7 +142,7 @@ same read-only operations to an agent host. It is independent of
 Deliverable: a scripted policy can play through ordinary mechanics. Planning,
 memory and autonomous goal selection remain external.
 
-### R3 — Game extension seam
+### R3: Game extension seam
 
 - Let a server/game advertise additional observation and action schemas over
   a mod channel.
@@ -152,7 +152,7 @@ memory and autonomous goal selection remain external.
 Deliverable: Goanna can carry game-specific agency without knowing Kythen's
 simulation types.
 
-### R4 — Director pilot
+### R4: Director pilot
 
 - Map a small Kythen T2 subset to the extension seam.
 - Route accepted intentions through Kythen's existing behaviour hierarchy.
