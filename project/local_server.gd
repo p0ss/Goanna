@@ -8,10 +8,13 @@
 # the server or the game.
 #
 # It finds the server the way a packager would: a luantiserver/minetestserver
-# or luanti/minetest --server on PATH, else the org.luanti.luanti flatpak.
-# GOANNA_SERVER_CMD overrides the argv prefix (space separated).
+# or luanti/minetest --server on PATH and in the standard system game paths,
+# then Snap or the org.luanti.luanti Flatpak. GOANNA_SERVER_CMD overrides the
+# argv prefix (space separated).
 extends RefCounted
 class_name GoannaLocalServer
+
+const AssetStore := preload("res://asset_store.gd")
 
 var pid := -1
 var port := 0
@@ -51,20 +54,59 @@ const DEFAULT_TERRAIN_SHOWCASE_SPAWN := [41644, 40532]
 # Returns {} if no server could be found.
 static func detect() -> Dictionary:
 	var home := OS.get_environment("HOME")
+	var data_dir := _user_data_dir(home)
 	var override := OS.get_environment("GOANNA_SERVER_CMD")
 	if override != "":
 		var parts := override.split(" ", false)
-		return {"argv": parts, "data_dir": home.path_join(".minetest")}
+		return {"argv": parts, "data_dir": data_dir}
 	for cmd in ["luantiserver", "minetestserver"]:
-		if _which(cmd):
-			return {"argv": PackedStringArray([cmd]), "data_dir": home.path_join(".minetest")}
+		var executable := _find_executable(cmd)
+		if executable != "":
+			return {"argv": PackedStringArray([executable]), "data_dir": data_dir}
 	for cmd in ["luanti", "minetest"]:
-		if _which(cmd):
-			return {"argv": PackedStringArray([cmd, "--server"]), "data_dir": home.path_join(".minetest")}
+		var executable := _find_executable(cmd)
+		if executable != "":
+			return {"argv": PackedStringArray([executable, "--server"]), "data_dir": data_dir}
+	# Snap's wrapper is normally added to an interactive shell's PATH, but that
+	# is not guaranteed for programs launched by COSMIC or another desktop.
+	var snap_luanti := "/snap/bin/luanti"
+	if FileAccess.file_exists(snap_luanti):
+		return {"argv": PackedStringArray([snap_luanti, "--server"]),
+			"data_dir": home.path_join("snap/luanti/current/.minetest")}
 	if _which("flatpak") and _flatpak_installed("org.luanti.luanti"):
 		return {"argv": PackedStringArray(["flatpak", "run", "--command=luanti", "org.luanti.luanti", "--server"]),
 			"data_dir": home.path_join(".var/app/org.luanti.luanti/.minetest")}
 	return {}
+
+static func _user_data_dir(home: String) -> String:
+	# Match Luanti itself. The explicit Goanna name is useful with a custom
+	# server command; MINETEST_USER_PATH remains supported for older installs.
+	for variable in ["GOANNA_SERVER_DATA_DIR", "LUANTI_USER_PATH", "MINETEST_USER_PATH"]:
+		var value := OS.get_environment(variable)
+		if value != "":
+			return value
+	return home.path_join(".minetest")
+
+static func _find_executable(cmd: String) -> String:
+	# Debian and Ubuntu deliberately install games in /usr/games. Desktop
+	# sessions, notably COSMIC, do not necessarily give launched applications
+	# the same PATH as an interactive shell, so never rely on `which` alone.
+	var out: Array = []
+	if OS.execute("which", [cmd], out) == 0 and not out.is_empty():
+		var resolved := str(out[0]).strip_edges()
+		if resolved != "":
+			return resolved
+	return _find_executable_in_dirs(cmd, [
+		"/usr/games", "/usr/local/games", "/usr/bin", "/usr/local/bin",
+		"/usr/libexec/luanti", "/app/bin",
+	])
+
+static func _find_executable_in_dirs(cmd: String, directories: Array) -> String:
+	for directory in directories:
+		var candidate := str(directory).path_join(cmd)
+		if FileAccess.file_exists(candidate):
+			return candidate
+	return ""
 
 static func _which(cmd: String) -> bool:
 	var out: Array = []
@@ -210,8 +252,14 @@ static func data_dir_or_empty() -> String:
 static func bundled_pbr_texture_path(game: String) -> String:
 	if not PBR_GAME_DIRS.has(game):
 		return ""
-	return ProjectSettings.globalize_path("res://../pbr_packs").path_join(
+	var installed := AssetStore.profile_texture_path(game)
+	if installed != "":
+		return installed
+	# Transitional development fallback. Release archives no longer contain
+	# pbr_packs; installed versioned bundles are the production path.
+	var legacy := ProjectSettings.globalize_path("res://../pbr_packs").path_join(
 		str(PBR_GAME_DIRS[game])).path_join("textures")
+	return legacy if DirAccess.dir_exists_absolute(legacy) else ""
 
 # A Terrain Diffusion world carries its own generated tile cache. The default
 # bake is downloaded once into a shared content cache, then copied into each
@@ -407,8 +455,22 @@ func _install_server_mod(world: String) -> String:
 func _install_pbr_mod(world: String, game: String) -> String:
 	if not PBR_GAME_DIRS.has(game):
 		return ""
+	var installed := AssetStore.profile_texture_path(game)
+	if installed != "":
+		var installed_dst := world.path_join("worldmods").path_join("goanna_pbr")
+		if not _copy_resource_tree(installed, installed_dst.path_join("textures")):
+			return "The installed PBR asset profile for %s is incomplete." % game
+		var init := FileAccess.open(installed_dst.path_join("init.lua"), FileAccess.WRITE)
+		var conf := FileAccess.open(installed_dst.path_join("mod.conf"), FileAccess.WRITE)
+		if init == null or conf == null:
+			return "Could not install the PBR material worldmod for %s." % game
+		init.store_string("-- Versioned Goanna material assets; textures only.\n")
+		conf.store_string("name = goanna_pbr\ntitle = Goanna PBR materials\n")
+		return ""
 	var pack_dir := str(PBR_GAME_DIRS[game])
 	var src := ProjectSettings.globalize_path("res://../pbr_packs").path_join(pack_dir)
+	if not DirAccess.dir_exists_absolute(src):
+		return "Install a Goanna PBR asset bundle for %s before enabling materials." % game
 	var dst := world.path_join("worldmods").path_join("goanna_pbr")
 	if not _copy_resource_tree(src, dst):
 		return "The bundled PBR material pack for %s is incomplete." % game

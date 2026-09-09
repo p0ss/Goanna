@@ -67,6 +67,13 @@ Godot --headless --path project \
   --script res://tests/local_server_terrain_diffusion.gd
 ```
 
+Local server discovery (including system game paths outside the desktop
+session's `PATH`) can be checked with:
+
+```sh
+godot --headless --path project --script res://tests/local_server_discovery.gd
+```
+
 Use `git diff --check` and the style checker before submitting. Visual
 fixtures and deterministic capture conventions are described in
 [validation.md](validation.md), [building.md](building.md) and
