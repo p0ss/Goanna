@@ -165,6 +165,64 @@ Sizing, by what happens to those ~57k lines:
   threading is unproblematic (session thread + Godot main thread with two
   mutexes). The sizing above holds or is pessimistic.
 
+## Log since v0.6.1-alpha (2026-09-02)
+
+The 0.5 and 0.6 series were released without a section here. What they
+contain is in `docs/release-v0.6.0-alpha.md` and
+`docs/release-v0.6.1-alpha.md`; this section does not reconstruct them after
+the fact.
+
+- The community PBR bake was lost and rebuilt, 2026-09-09. The staging root
+  had been `/tmp`, which is tmpfs on this box, so the reboot of 2026-09-07
+  took the extracted sources, every composed map and the log of a run that
+  was most of the way through. `tools/pbr_stage_sources.py` now rebuilds the
+  sources from `pbr_packs/COMMUNITY_LOCK.json`, refusing any archive whose
+  hash does not match the lock the licence audit was written against, and
+  the overnight queue works from `~/.local/share/goanna-pbr-audit`.
+
+- The generation had survived on ordinary disk, because ComfyUI keeps every
+  image it produces. `pbr_bake.py --reuse-outputs` composes from a previous
+  run's saved detail pass and Chord maps and generates only the gaps: 644 of
+  947 textures came back that way at about 0.7 s each against 31 s to
+  generate, and a reused `br_carpet_0` is byte identical to a fresh bake of
+  the same stem at seed 1. The full queue then ran 13:26 to 15:53, against
+  the six to seven hours a bare re-bake would have cost.
+
+- The acceptance gate was measuring the fill it had asked for. It averaged
+  whole images, including the neutral written into transparent cut-outs, and
+  `NEUTRAL_S` alone is smoother than a foliage sprite's reviewed maximum, so
+  60 of 72 community billboards failed as too smooth while their material
+  texels sat at 0.10 to 0.12 against a 0.15 band. Masking the statistics to
+  the texels the source authored, which the colour drift check had always
+  done, removed 59 false failures and uncovered 31 real ones: maps whose
+  height never reaches its high reference inside the art, satisfied until
+  then by the fill's own 255. That second half was a bake defect, since the
+  height range was taken over the whole generated image including whatever
+  the model invented in the cut-out, and it is now taken over the opaque
+  texels.
+
+- Three reviewed judgements, on the evidence the gate produced. Glass,
+  stained glass and covellite are dielectric at `terrain-v1.1`: the leaded
+  edge and submetallic lustre arguments are true of real materials and not
+  of dark pixel art, where a metal read renders near black. A reviewed metal
+  or mixed material is allowed to be dark, so flint and steel, the muskets
+  and the flashlights now warn instead of failing. Four near transparent
+  tint overlays left the community terrain tranche rather than being
+  rebaked, which takes it to 205.
+
+- After all of that, recomposed in ten minutes with no GPU: 943 textures
+  checked, 0 failed, 229 warned, of which 225 are wrap seam warnings and 6
+  are dark art carrying reviewed metalness. Nothing here is a release
+  claim. The gate is half the acceptance test and the failures-first review
+  sheets under each stage have not been looked at by a person, no bundle has
+  been built from these maps, and `README.md` is unchanged.
+
+- Far region skirts wound both Z faces the same way once the mesher's Z
+  mirroring is accounted for, so back face culling opened repeated
+  horizontal cracks through terraced far hillsides. Fixed and covered by a
+  `goanna_lod_test` case. Not yet observed against a server: the test
+  asserts the winding, not the picture.
+
 ## Log since v0.4.1-alpha (2026-08-30)
 
 Verified on a local Mineclonia server on Luanti 5.17.0 with Godot 4.5.1 and
