@@ -1388,7 +1388,13 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                     // is (bottom a, bottom b, top b, top a), which for +X and
                     // +Z reads clockwise from outside as 0,2,1 0,3,2 and for
                     // -X and -Z the other way.
-                    if (e == 0 || e == 2) {
+                    // +X starts along the same edge direction as the box
+                    // mesher and -X starts reversed. After mirroring Z,
+                    // +Z starts like the box mesher while -Z is reversed.
+                    // The old e==0||e==2 split wound both Z skirts inward,
+                    // so back-face culling opened repeated horizontal cracks
+                    // through every terraced far hillside.
+                    if (e == 0 || e == 3) {
                         for (u32 i : {0u, 2u, 1u, 0u, 3u, 2u})
                             ss.idx.push_back(sbase + i);
                     } else {

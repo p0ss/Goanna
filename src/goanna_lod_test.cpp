@@ -210,6 +210,48 @@ void testConnectedGroundFollowsAValley() {
             expect(normal.Y > -0.99f, "terrain valley emitted a horizontal underside lid");
 }
 
+void testTerrainSkirtsFaceOutwardOnBothAxes() {
+    BlockLodChain slope = airChain();
+    LodLevel &lv = slope.level[BlockLodChain::levelForCell(4)];
+    // Changing height in both horizontal directions produces all four skirt
+    // orientations. Their triangles must use the same clockwise-from-outside
+    // convention as the ordinary coarse voxel faces after Z is mirrored.
+    for (int z = 0; z < 4; ++z)
+        for (int x = 0; x < 4; ++x) {
+            fillCell(lv.at(x, 0, z), CONTENT_UNKNOWN);
+            if (x + z >= 3)
+                fillCell(lv.at(x, 1, z), CONTENT_UNKNOWN);
+        }
+    NodeDefManager ndef;
+    buildLodTerrainSurface(&ndef, slope, BlockLodChain::levelForCell(4));
+    LodRegionSpec spec;
+    spec.origin = v3s16(0, 0, 0);
+    spec.blocks = 1;
+    spec.cell = 4;
+    spec.member = [](v3s16 bp) { return bp == v3s16(0, 0, 0); };
+    spec.chain = [&](v3s16 bp) -> const BlockLodChain * {
+        return bp == v3s16(0, 0, 0) ? &slope : nullptr;
+    };
+    spec.drawn_cell = [](v3s16 bp) { return bp == v3s16(0, 0, 0) ? 4 : -1; };
+    LodTileCache tiles;
+    const LodRegionMesh mesh = meshLodRegion(spec, &ndef, nullptr, nullptr, tiles);
+    int x_faces = 0, z_faces = 0;
+    for (const LodSurface &surface : mesh.surfaces)
+        for (size_t i = 0; i + 2 < surface.idx.size(); i += 3) {
+            const u32 ia = surface.idx[i], ib = surface.idx[i + 1], ic = surface.idx[i + 2];
+            const v3f normal = surface.nrm[ia];
+            if (std::fabs(normal.Y) > 0.01f)
+                continue;
+            x_faces += std::fabs(normal.X) > 0.99f ? 1 : 0;
+            z_faces += std::fabs(normal.Z) > 0.99f ? 1 : 0;
+            const v3f ab = surface.pos[ib] - surface.pos[ia];
+            const v3f ac = surface.pos[ic] - surface.pos[ia];
+            expect(ab.crossProduct(ac).dotProduct(normal) < 0.0f,
+                    "terrain skirt was wound inward and will be back-face culled");
+        }
+    expect(x_faces > 0 && z_faces > 0, "skirt winding fixture did not cover both axes");
+}
+
 void testCellOneTreeBoundary() {
     BlockLodChain tree = fineAirChain();
     LodLevel &fine = tree.level[BlockLodChain::levelForCell(1)];
@@ -377,6 +419,7 @@ int main() {
     testLiquidIsAnEnvelopeOverSolid();
     testIsolatedVoxelHasAllSixFaces();
     testConnectedGroundFollowsAValley();
+    testTerrainSkirtsFaceOutwardOnBothAxes();
     testCellOneTreeBoundary();
     testCellOneMeetsCellFourWithoutOverlap();
     testUnknownFrontierIsClosed();
