@@ -16,7 +16,13 @@ construction.
       -> DeepBump colour to normals, on stage 2's result, which needs the
          resolution to say anything: on a raw 16 px tile it returns a
          nearly flat map
+      -> Chord roughness and metalness estimation, retained per pixel but
+         recentered onto a physically sensible material-class baseline
       -> <name>_n.png beside the texture, LabPBR channel order
+
+Full-resolution hybrid specular maps are the default. Pass --flat-spec only
+for a deliberately homogeneous/fast bake; it reduces smoothness and metalness
+to one class-derived value for the entire texture.
 
 The default is a single coherent upscale of the texture as it is, nothing
 replicated. An earlier version of this replicated the source three by
@@ -46,9 +52,11 @@ Needs ComfyUI running (see comfyui/GOANNA-SETUP.md) and DeepBump checked out.
 """
 
 import argparse
+import fnmatch
 import io
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -97,7 +105,7 @@ CHORD_NEGATIVE = ("flat lighting, even illumination, text, watermark, border, "
 FOOTSTEP_CLASS = {
     "hard": "stone", "wood": "wood", "metal": "metal", "grass": "leaves",
     "dirt": "soil", "glass": "glass", "sand": "sand", "gravel": "gravel",
-    "ice": "ice",
+    "ice": "ice", "snow": "snow", "cloth": "cloth",
 }
 GROUP_CLASS = {
     "material_stone": "stone", "material_wood": "wood", "material_glass": "glass",
@@ -129,10 +137,60 @@ CLASS_SPEC = {
     "leaves": (0.30, 0.04, False), "glass": (0.92, 0.04, False),
     "sand": (0.08, 0.04, False), "gravel": (0.10, 0.04, False),
     "snow": (0.35, 0.04, False), "ice": (0.88, 0.04, False),
-    "soil": (0.05, 0.04, False), "metal": (0.55, 1.0, True),
+    "soil": (0.05, 0.04, False), "metal": (0.40, 1.0, True),
     "cloth": (0.08, 0.04, False),
 }
 DEFAULT_SPEC = (0.20, 0.04, False)  # matches tools/pbr_pack.py's own dull default
+
+# Height occupies only a material-appropriate part of the byte range. A raw
+# DeepBump integration has arbitrary offset and amplitude; stretching every
+# material to 0..255 makes painted steel as deep as rubble and lets one outlier
+# pixel determine the other 65,535. Values are depth below 255 (the neutral
+# surface), after robust percentile normalisation.
+CLASS_HEIGHT_DEPTH = {
+    "stone": 0.55, "wood": 0.42, "leaves": 0.16, "glass": 0.10,
+    "sand": 0.28, "gravel": 0.48, "snow": 0.22, "ice": 0.12,
+    "soil": 0.38, "metal": 0.18, "cloth": 0.16,
+}
+DEFAULT_HEIGHT_DEPTH = 0.30
+
+
+def load_classification_review(path, stems=()):
+    if not path:
+        return {}
+    with open(path) as f:
+        document = json.load(f)
+    textures = document.get("textures")
+    if textures is None and ("rules" in document or "entries" in document):
+        textures = {}
+        # Rules are ordered from broad to specific. Later matches refine the
+        # record assembled by earlier family defaults; exact entries win last.
+        for stem in stems:
+            record = {}
+            for rule in document.get("rules", []):
+                if fnmatch.fnmatchcase(stem, rule.get("match", "")):
+                    record.update({key: value for key, value in rule.items()
+                                   if key != "match"})
+            if record:
+                textures[stem] = record
+        stem_set = set(stems)
+        for stem, record in document.get("entries", {}).items():
+            if not stem_set or stem in stem_set:
+                textures.setdefault(stem, {}).update(record)
+    if textures is None:
+        textures = document
+    if not isinstance(textures, dict):
+        raise ValueError("classification review must contain a textures object")
+    return textures
+
+
+def physical_class(name):
+    """Map review vocabulary onto the classes understood by the bake."""
+    return {
+        "organic": "leaves", "skin": "leaves", "fur": "leaves",
+        "scales": "leaves", "feathers": "leaves", "ceramic": "stone",
+        "plastic": "default", "mixed": "default",
+    }.get(name, name)
 
 # Subsurface scattering by class, LabPBR's B channel above 65/255 (see
 # nodes_array.gdshader's BACKLIGHT decode). Only classes translucent enough
@@ -373,7 +431,7 @@ def prompt_for(stem, classes):
     cls = classes.get(stem)
     parts = [PROMPT]
     if cls:
-        parts.append(CLASS_PROMPT[cls])
+        parts.append(CLASS_PROMPT.get(cls, "material surface"))
     hint = name_hint(stem)
     if hint and hint.lower() not in PROMPT.lower():
         parts.append(hint)
@@ -543,6 +601,65 @@ def run_workflow_named(server, wf, node_ids, timeout=300):
     return result
 
 
+# ComfyUI's SaveImage keeps every image a run generated, and that directory
+# is on ordinary disk. The composed _n/_s maps were not: they were staged
+# under /tmp, which is tmpfs on the development box, so the reboot of
+# 2026-09-07 lost a night's composition while all of its generation survived.
+# A reuse reads those saved images back rather than paying for them again.
+REUSE_TAGS = ("upscale", "detail", "chord_basecolor", "chord_normal",
+              "chord_roughness", "chord_metalness")
+REUSE_RE = re.compile(r"^goanna_(?P<stem>.+)_(?P<tag>%s)_(?P<counter>\d+)_\.png$"
+                      % "|".join(REUSE_TAGS))
+# chord_workflow's SaveImage node ids, so a reused set can stand in for what
+# run_workflow_named returns.
+CHORD_NODE_TAGS = {"4": "chord_basecolor", "5": "chord_normal",
+                   "6": "chord_roughness", "7": "chord_metalness"}
+
+
+def load_reuse_index(directory):
+    """Index a previous run's saved images by (stem, pass).
+
+    ComfyUI numbers repeated saves, so a directory baked into twice holds
+    both _00001_ and _00002_ of the same pass. The highest number is the most
+    recent generation and is the one taken. A stem whose own name ends in one
+    of the pass words would be read wrongly; none of the admitted manifests
+    contains one.
+    """
+    index = {}
+    for name in os.listdir(directory):
+        match = REUSE_RE.match(name)
+        if not match:
+            continue
+        key = (match.group("stem"), match.group("tag"))
+        counter = int(match.group("counter"))
+        if key not in index or index[key][0] < counter:
+            index[key] = (counter, os.path.join(directory, name))
+    return {key: value[1] for key, value in index.items()}
+
+
+def reuse_image(index, stem, tag):
+    path = index.get((stem, tag))
+    if not path:
+        return None
+    return Image.open(path).convert("RGB")
+
+
+def reuse_chord_maps(index, stem, node_ids):
+    """The saved equivalent of run_workflow_named on a chord workflow.
+
+    All or nothing: a half-present set is regenerated rather than mixed with
+    fresh maps, because the estimation reads one image and its outputs only
+    mean anything together.
+    """
+    result = {}
+    for node_id in node_ids:
+        image = reuse_image(index, stem, CHORD_NODE_TAGS[node_id])
+        if image is None:
+            return None
+        result[node_id] = image
+    return result
+
+
 def generate_pass(args, prompt, src_img, w, h, target_w, target_h, denoise, strength,
         use_tile, filename_prefix):
     """One img2img/tile-ControlNet pass: replicate 3x3 and crop the centre
@@ -646,7 +763,8 @@ def ao_from_height(height_img, strength=1.0, radius_px=6, directions=8, wrap=Tru
     return np.clip(1.0 - occ * strength * 4.0, 0.0, 1.0)
 
 
-def pack_deepbump_normal(normal_img, height_img, n_path, wrap=True):
+def pack_deepbump_normal(normal_img, height_img, n_path, stem=None, classes=None,
+        reviews=None, wrap=True, source_alpha=None):
     """DeepBump's own colour_to_normals output carries a real tangent RG,
     but its B is DeepBump's own Z component, not ambient occlusion, and it
     writes nothing meaningful to A. Replace B with real AO computed from a
@@ -658,6 +776,31 @@ def pack_deepbump_normal(normal_img, height_img, n_path, wrap=True):
     n = np.asarray(normal_img.convert("RGB"), dtype=np.uint8)
     h, w = n.shape[:2]
     height_resized = height_img.resize((w, h))
+    raw_height = np.asarray(height_resized.convert("L"), dtype=np.float32)
+    # Take the range from the texels the source actually authored. A
+    # generation has to invent something inside a cut-out, and when that
+    # invention is the tallest thing in the image the visible art normalises
+    # to well under the neutral reference: 185 to 239 across the 31 overlays
+    # and items that failed the gate for it. mask_transparent_regions then
+    # writes the fill's own 255 over those texels, so the file looked like it
+    # had a high reference while the material did not.
+    sample = raw_height
+    if source_alpha is not None:
+        mask = np.asarray(source_alpha.resize((w, h), Image.NEAREST)) >= 128
+        if mask.any():
+            sample = raw_height[mask]
+    low, high = np.percentile(sample, (2.0, 98.0))
+    if high - low < 1.0:
+        encoded_height = np.full_like(raw_height, 255.0)
+    else:
+        normalised = np.clip((raw_height - low) / (high - low), 0.0, 1.0)
+        material = (classes or {}).get(stem)
+        review = (reviews or {}).get(stem, {})
+        depth = review.get("relief_strength",
+                CLASS_HEIGHT_DEPTH.get(material, DEFAULT_HEIGHT_DEPTH))
+        depth = min(max(float(depth), 0.0), 1.0)
+        encoded_height = 255.0 - (1.0 - normalised) * depth * 255.0
+    height_resized = Image.fromarray(encoded_height.astype(np.uint8), "L")
     ao = ao_from_height(height_resized, wrap=wrap)
     nmap = np.zeros((h, w, 4), dtype=np.uint8)
     nmap[..., 0:2] = n[..., 0:2]
@@ -686,7 +829,8 @@ DIELECTRIC_F0 = 10  # matches tools/pbr_pack.py's own convention
 METAL_THRESHOLD = 0.5
 
 
-def pack_hybrid_spec(roughness_img, metalness_img, stem, classes, s_path, size):
+def pack_hybrid_spec(roughness_img, metalness_img, stem, classes, s_path, size,
+        reviews=None):
     """_s from both sources, which is what neither single path gives.
 
     Chord estimates roughness and metalness per pixel from the image, so R and
@@ -720,9 +864,16 @@ def pack_hybrid_spec(roughness_img, metalness_img, stem, classes, s_path, size):
     # glossy stone is exactly the "everything is shiny" failure this is
     # supposed to fix. So the mean is moved back onto the class value and only
     # the deviation around it is Chord's.
+    review = (reviews or {}).get(stem, {})
     class_smooth, _, class_is_metal = CLASS_SPEC.get(cls, DEFAULT_SPEC)
+    smooth_min = float(review.get("smoothness_min", 0.0))
+    smooth_max = float(review.get("smoothness_max", 1.0))
+    if smooth_min > smooth_max:
+        smooth_min, smooth_max = smooth_max, smooth_min
+    if "smoothness_min" in review or "smoothness_max" in review:
+        class_smooth = (smooth_min + smooth_max) * 0.5
     smooth = (1.0 - rough)
-    smooth = np.clip(class_smooth + (smooth - smooth.mean()), 0.0, 1.0)
+    smooth = np.clip(class_smooth + (smooth - smooth.mean()), smooth_min, smooth_max)
     smap[..., 0] = np.clip(smooth * 255.0, 0, 255).astype(np.uint8)
     # The class table still gets a veto on metalness: Chord reads gold ore's
     # flecks as metal and the stone around them as not, which is right, but it
@@ -730,7 +881,11 @@ def pack_hybrid_spec(roughness_img, metalness_img, stem, classes, s_path, size):
     # metal cannot have metal pixels.
     raw_metal = float((metal > METAL_THRESHOLD).mean())
     g = np.where(metal > METAL_THRESHOLD, 255, DIELECTRIC_F0).astype(np.uint8)
-    if class_is_metal and not (g == 255).any():
+    metal_policy = review.get("metalness_policy")
+    if metal_policy == "none":
+        g[:] = DIELECTRIC_F0
+    elif (metal_policy == "predominant" or
+            (metal_policy is None and class_is_metal)) and not (g == 255).any():
         # Chord returned metalness below threshold across the whole of
         # default_gold_block, which would demote a solid gold block to a
         # dielectric: worse than the constant it replaced. Where the class says
@@ -822,13 +977,26 @@ FLAT_SPEC_SIZE = 4  # a flat colour reads the same whatever size the texture
 # Godot loads it, wasted VRAM for information that is, provably, four bytes.
 
 
-def write_class_spec(stem, classes, s_path):
+def write_class_spec(stem, classes, s_path, source=None):
     """A flat _s from CLASS_SPEC and CLASS_SSS, the DeepBump path's fallback
     when there is no authored companion and no per-pixel estimation to draw
     on. See FLAT_SPEC_SIZE for why this ignores the texture's own size.
     """
     cls = classes.get(stem)
     smoothness, f0, metal = CLASS_SPEC.get(cls, DEFAULT_SPEC)
+    # Full metalness is physically meaningful only when the colour texture is
+    # authored as reflectance. Most community art is diffuse-shaded pixel art;
+    # a dark source used as metallic F0 loses its diffuse lobe and turns nearly
+    # black. Preserve those as moderately smooth dielectrics instead.
+    if metal and source is not None:
+        import numpy as np
+        rgba = np.asarray(source.convert("RGBA"), dtype=np.float32) / 255.0
+        opaque = rgba[..., 3] >= 0.5
+        luminance = (rgba[..., :3] * (0.2126, 0.7152, 0.0722)).sum(axis=2)
+        if not opaque.any() or float(luminance[opaque].mean()) < 0.35:
+            metal = False
+            smoothness = min(smoothness, 0.32)
+            f0 = 0.04
     g = 255 if metal else int(round(min(f0, 229.0 / 255.0) * 255))
     sss = CLASS_SSS.get(cls, 0.0)
     b = int(round(65 + sss * 190)) if sss > 0.0 else 0
@@ -955,6 +1123,12 @@ def main():
             help="JSON dump from tools/goanna_itemdef_dump.lua, adding items to the run's "
                  "scope. Combines with --nodedefs and --entitydefs rather than replacing "
                  "them.")
+    ap.add_argument("--classification-review", default="",
+            help="versioned reviewed material-intent JSON; overrides inferred classes, "
+                 "smoothness bounds, metalness policy and relief strength per texture")
+    ap.add_argument("--treatment", default="",
+            help="comma-separated reviewed treatments to bake (for example terrain or "
+                 "billboard,item); unreviewed textures are excluded when this is set")
     ap.add_argument("--replicate-3x3", action="store_true",
             help="upscale by replicating the source 3x3 and cropping the centre tile out "
                  "afterwards, instead of the default single-image upscale. Checked by hand "
@@ -965,13 +1139,16 @@ def main():
                  "grid produces a grid, not a texture. With --nodedefs, restricts itself to "
                  "load_repeating_tile_stems' guess at genuinely shared material; without "
                  "one, applies to every square 8-64px source. Off by default.")
-    ap.add_argument("--chord-spec", action="store_true",
-            help="per pixel smoothness and metalness from ComfyUI-Chord, packed into _s "
-                 "R and G, while _n stays DeepBump's and _s B/A stay on the class table. "
-                 "Without it every _s channel is one constant per texture, so a furnace "
-                 "front cannot have glowing bits and every plank in the game has the same "
-                 "gloss. Unlike --chord this keeps leaf translucency and emission, which "
-                 "pack_chord_maps zeroes.")
+    spec_mode = ap.add_mutually_exclusive_group()
+    spec_mode.add_argument("--chord-spec", dest="chord_spec", action="store_true",
+            default=True,
+            help="generate full-resolution, per-pixel smoothness and metalness with "
+                 "ComfyUI-Chord (the default). _n stays DeepBump's and _s B/A stay on "
+                 "the class table, preserving material-appropriate translucency")
+    spec_mode.add_argument("--flat-spec", dest="chord_spec", action="store_false",
+            help="use the legacy fast path: one class-derived smoothness/metalness value "
+                 "for the whole texture. Intended only for deliberately homogeneous "
+                 "materials or environments without the Chord model")
     ap.add_argument("--chord", action="store_true",
             help="use ComfyUI-Chord for normal/roughness/metalness instead of DeepBump "
                  "(needs chord_v1.safetensors installed; see comfyui/GOANNA-SETUP.md)")
@@ -1018,6 +1195,16 @@ def main():
                  "--detail-denoise actually invents material detail instead of being held "
                  "to stage 1's output as tightly as stage 1 was held to the source")
     ap.add_argument("--steps", type=int, default=20)
+    ap.add_argument("--reuse-outputs", default="",
+            help="a previous run's ComfyUI output directory. Any texture whose "
+                 "detail pass was saved there is composed from it instead of "
+                 "being generated again, and its Chord maps are reused with it. "
+                 "A texture the directory does not cover is generated normally, "
+                 "so an interrupted run can be finished rather than repeated. "
+                 "Nothing records which settings produced a saved image, so this "
+                 "is for resuming the same queue: point it at a run baked with "
+                 "different sizes, prompts or --replicate-3x3 and it will "
+                 "compose maps those settings would not have produced.")
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--only", default="", help="comma separated texture stems")
     ap.add_argument("--limit", type=int, default=0)
@@ -1066,6 +1253,10 @@ def main():
     os.makedirs(args.out, exist_ok=True)
     only = set(x.strip() for x in args.only.split(",") if x.strip())
     classes = load_classes(args.nodedefs) if args.nodedefs else {}
+    reviews = load_classification_review(args.classification_review, classes)
+    for stem, review in reviews.items():
+        if review.get("primary_material"):
+            classes[stem] = physical_class(review["primary_material"])
     # Walking the game directory for square 8-64px PNGs also catches item
     # icons, GUI art and mob textures: on Mineclonia that's 1178 of 2199
     # candidates, over half, none of them drawn tiled. Restrict to genuine
@@ -1098,11 +1289,17 @@ def main():
 
     todo = {}
     skipped_out_of_scope = 0
+    wanted_treatments = {value.strip() for value in args.treatment.split(",")
+                         if value.strip()}
     for root, _, files in os.walk(args.game):
         for f in files:
             if not is_node_texture(f):
                 continue
             stem = f[:-4]
+            if wanted_treatments and reviews.get(stem, {}).get("treatment") \
+                    not in wanted_treatments:
+                skipped_out_of_scope += 1
+                continue
             if only:
                 if stem not in only:
                     continue
@@ -1112,6 +1309,11 @@ def main():
             todo.setdefault(stem, os.path.join(root, f))
 
     names = sorted(todo)
+    reuse = load_reuse_index(args.reuse_outputs) if args.reuse_outputs else {}
+    if args.reuse_outputs:
+        covered = sum(1 for stem in names if (stem, "detail") in reuse)
+        print("%d of %d textures have a saved detail pass to reuse"
+              % (covered, len(names)))
     write_attribution(args.game, args.out, todo)
     if args.limit:
         names = names[:args.limit]
@@ -1158,10 +1360,22 @@ def main():
             else:
                 target_w, target_h = w * args.scale, h * args.scale
 
+            # A reused detail pass replaces both generation stages: stage 1
+            # exists only to condition stage 2, and everything downstream
+            # reads stage 2. The saved image is what ComfyUI decoded, before
+            # the centre crop a tiled generation gets below, so the crop is
+            # repeated here rather than assumed.
+            native = reuse_image(reuse, stem, "detail") if reuse else None
+            if native is not None and use_tile:
+                third = native.size[0] // 3
+                native = native.crop((third, third, third * 2, third * 2))
+            reused = native is not None
+
             # Stage 1: structural upscale, conditioned on the source itself,
             # low denoise so the output stays the same texture.
-            structure = generate_pass(args, prompt, composited, w, h, target_w, target_h,
-                    args.denoise, args.strength, use_tile, run + "/goanna_" + stem + "_upscale")
+            if not reused:
+                structure = generate_pass(args, prompt, composited, w, h, target_w, target_h,
+                        args.denoise, args.strength, use_tile, run + "/goanna_" + stem + "_upscale")
 
             # Stage 2: a fresh regeneration conditioned on stage 1's own
             # output (so the tile ControlNet is holding the upscale's
@@ -1175,18 +1389,23 @@ def main():
             # here: everything derived from it wants the real detail, not an
             # average of it. The downscale to target_w/target_h happens once,
             # at the end, after the normal map has been taken.
-            native = generate_pass(args, prompt, structure, target_w, target_h,
-                    0, 0, args.detail_denoise, args.detail_strength,
-                    use_tile, run + "/goanna_" + stem + "_detail")
+            if not reused:
+                native = generate_pass(args, prompt, structure, target_w, target_h,
+                        0, 0, args.detail_denoise, args.detail_strength,
+                        use_tile, run + "/goanna_" + stem + "_detail")
             centre = native
 
             sdst = os.path.join(args.out, stem + "_s.png")
             if args.chord:
-                centre_name = upload_image(args.server, centre, "goanna_%s_final.png" % stem)
-                chord_out = run_workflow_named(args.server,
-                        chord_workflow(centre_name, args.chord_ckpt,
-                                run + "/goanna_" + stem + "_chord"),
-                        ["5", "6", "7"])
+                chord_out = reuse_chord_maps(reuse, stem, ["5", "6", "7"]) \
+                        if reused else None
+                if chord_out is None:
+                    centre_name = upload_image(args.server, centre,
+                            "goanna_%s_final.png" % stem)
+                    chord_out = run_workflow_named(args.server,
+                            chord_workflow(centre_name, args.chord_ckpt,
+                                    run + "/goanna_" + stem + "_chord"),
+                            ["5", "6", "7"])
                 pack_chord_maps(chord_out["5"], chord_out["6"], chord_out["7"], dst, sdst)
             else:
                 # DeepBump runs at --bump-size, not at the native generation
@@ -1212,28 +1431,32 @@ def main():
                 if nrm_img.size != (target_w, target_h):
                     nrm_img = nrm_img.resize((target_w, target_h), Image.BICUBIC)
                     hgt_img = hgt_img.resize((target_w, target_h), Image.BICUBIC)
-                pack_deepbump_normal(nrm_img, hgt_img, dst, wrap=use_tile)
+                pack_deepbump_normal(nrm_img, hgt_img, dst, stem, classes, reviews,
+                        wrap=use_tile, source_alpha=src.split()[3])
                 os.remove(tmp)
                 os.remove(raw_normal)
                 os.remove(height_tmp)
                 if args.chord_spec:
                     # _n stays DeepBump's, above. Only _s comes from Chord,
                     # and only its R and G; see pack_hybrid_spec.
-                    centre_name = upload_image(args.server, native,
-                            "goanna_%s_final.png" % stem)
-                    chord_out = run_workflow_named(args.server,
-                            chord_workflow(centre_name, args.chord_ckpt,
-                                    run + "/goanna_" + stem + "_chord"),
-                            ["6", "7"])
+                    chord_out = reuse_chord_maps(reuse, stem, ["6", "7"]) \
+                            if reused else None
+                    if chord_out is None:
+                        centre_name = upload_image(args.server, native,
+                                "goanna_%s_final.png" % stem)
+                        chord_out = run_workflow_named(args.server,
+                                chord_workflow(centre_name, args.chord_ckpt,
+                                        run + "/goanna_" + stem + "_chord"),
+                                ["6", "7"])
                     pack_hybrid_spec(chord_out["6"], chord_out["7"], stem, classes,
-                            sdst, (target_w, target_h))
+                            sdst, (target_w, target_h), reviews)
                 else:
-                    write_class_spec(stem, classes, sdst)
-            # write_class_spec's output is flat at FLAT_SPEC_SIZE, not at
-            # target_w/target_h, so there is no per-pixel correspondence to
-            # the source's alpha left to mask; only pass sdst through for
-            # pack_chord_maps' real per-pixel result.
-            mask_transparent_regions(src, target_w, target_h, dst, sdst if args.chord else None)
+                    write_class_spec(stem, classes, sdst, src)
+            # A Chord or hybrid spec map has per-pixel correspondence to the
+            # source and can preserve transparent cut-outs. The explicit
+            # --flat-spec fallback does not.
+            mask_transparent_regions(src, target_w, target_h, dst,
+                    sdst if (args.chord or args.chord_spec) else None)
             # Neither DeepBump nor the class-spec packer above ever calls
             # into ComfyUI, so without this the finished _n/_s never appear
             # next to goanna_upscale_*/goanna_detail_* in ComfyUI's own
@@ -1273,8 +1496,9 @@ def main():
                 albedo = restore_alpha(src, albedo)
                 albedo.save(os.path.join(args.out, stem + "_albedo.png"))
             done += 1
-            print("  [%d/%d] %-34s %-6s seam %.2f | %s" %
-                    (i, len(names), stem, "tile" if use_tile else "single", seam,
+            print("  [%d/%d] %-34s %-6s%s seam %.2f | %s" %
+                    (i, len(names), stem, "tile" if use_tile else "single",
+                     " reused" if reused else "", seam,
                      channel_summary(dst, sdst)))
         except Exception as e:  # keep going; one bad texture is not the run
             failed += 1
