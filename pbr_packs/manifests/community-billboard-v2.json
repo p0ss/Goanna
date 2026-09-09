@@ -1,0 +1,99 @@
+[
+  {
+    "drawtype": "normal",
+    "groups": {
+      "wood": 1
+    },
+    "sound_footstep": "default_wood_footstep",
+    "tiles": [
+      "naturalbiomes__banana_tree_sapling.png"
+    ]
+  },
+  {
+    "drawtype": "normal",
+    "groups": {
+      "flora": 1
+    },
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "jeija_power_plant.png",
+      "naturalbiomes__banana_leaf.png",
+      "naturalbiomes_adler_yellowflower.png",
+      "naturalbiomes_alpine_grass1.png",
+      "naturalbiomes_alpine_grass2.png",
+      "naturalbiomes_alpine_grass3.png",
+      "naturalbiomes_alpine_mushroom.png",
+      "naturalbiomes_bambooforest_groundgrass.png",
+      "naturalbiomes_bambooforest_groundgrass2.png",
+      "naturalbiomes_beach_grass.png",
+      "naturalbiomes_beach_grass2.png",
+      "naturalbiomes_beach_grass3.png",
+      "naturalbiomes_bushland_blackberry_sapling.png",
+      "naturalbiomes_bushland_grass.png",
+      "naturalbiomes_bushland_grass2.png",
+      "naturalbiomes_bushland_grass3.png",
+      "naturalbiomes_bushland_grass4.png",
+      "naturalbiomes_bushland_grass5.png",
+      "naturalbiomes_bushland_grass6.png",
+      "naturalbiomes_bushland_grass7.png",
+      "naturalbiomes_bushland_hazelnut_sapling.png",
+      "naturalbiomes_bushland_wildrose_sapling.png",
+      "naturalbiomes_heath_grass.png",
+      "naturalbiomes_heath_grass2.png",
+      "naturalbiomes_heath_grass3.png",
+      "naturalbiomes_heath_heatherflower.png",
+      "naturalbiomes_heath_heatherflower2.png",
+      "naturalbiomes_heath_heatherflower2node.png",
+      "naturalbiomes_heath_heatherflower3.png",
+      "naturalbiomes_heath_heatherflower3node.png",
+      "naturalbiomes_heath_heatherflower4.png",
+      "naturalbiomes_heath_heatherflower4node.png",
+      "naturalbiomes_heath_heatherflowernode.png",
+      "naturalbiomes_heath_swampgrass.png",
+      "naturalbiomes_heath_swampgrass2.png",
+      "naturalbiomes_mediterran_flower1.png",
+      "naturalbiomes_mediterran_flower2.png",
+      "naturalbiomes_mediterran_flower3.png",
+      "naturalbiomes_mediterran_grass.png",
+      "naturalbiomes_mediterran_grass2.png",
+      "naturalbiomes_outbackgrass.png",
+      "naturalbiomes_outbackgrass2.png",
+      "naturalbiomes_outbackgrass3.png",
+      "naturalbiomes_outbackgrass4.png",
+      "naturalbiomes_outbackgrass5.png",
+      "naturalbiomes_outbackgrass6.png",
+      "naturalbiomes_savannagrass.png",
+      "naturalbiomes_savannagrass2.png",
+      "naturalbiomes_savannagrass3.png",
+      "naturalbiomes_savannagrasssmall.png"
+    ]
+  },
+  {
+    "drawtype": "normal",
+    "groups": {},
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "jeija_torches_off.png",
+      "jeija_torches_on.png",
+      "naturalbiomes_alderswamp_reedbrown.png",
+      "naturalbiomes_alderswamp_reeds.png",
+      "naturalbiomes_alderswamp_reeds2.png",
+      "naturalbiomes_alderswamp_reeds3.png",
+      "naturalbiomes_alderswamp_sapling.png",
+      "naturalbiomes_alpine_cowberry_sapling.png",
+      "naturalbiomes_alpine_dandelion.png",
+      "naturalbiomes_alpine_edelweiss.png",
+      "naturalbiomes_alpine_pine1_sapling.png",
+      "naturalbiomes_alpine_pine2_sapling.png",
+      "naturalbiomes_bambooforest_bamboo_sapling.png",
+      "naturalbiomes_heath_birch_sapling.png",
+      "naturalbiomes_heath_juniper_sapling.png",
+      "naturalbiomes_heath_willow_sapling.png",
+      "naturalbiomes_mediterran_olive_sapling.png",
+      "naturalbiomes_mediterran_pine_sapling.png",
+      "naturalbiomes_outbackeukaplyptus_sapling.png",
+      "naturalbiomes_savannaacaia_sapling.png",
+      "naturalbiomes_savannapalm_sapling.png"
+    ]
+  }
+]

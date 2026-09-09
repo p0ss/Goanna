@@ -1,0 +1,1528 @@
+{
+  "craftguide_book": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_craftguide/craftguide_book.png"
+  },
+  "crimson_hyphae_wood": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_crimson/crimson_hyphae_wood.png"
+  },
+  "default_acacia_wood": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_core/default_acacia_wood.png"
+  },
+  "default_book": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_books/default_book.png"
+  },
+  "default_clay": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_core/default_clay.png"
+  },
+  "default_clay_lump": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_core/default_clay_lump.png"
+  },
+  "default_cobble": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_core/default_cobble.png"
+  },
+  "default_gold_block": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_core/default_gold_block.png"
+  },
+  "default_gunpowder": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_mobitems/default_gunpowder.png"
+  },
+  "default_junglewood": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_core/default_junglewood.png"
+  },
+  "default_ladder": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_core/default_ladder.png"
+  },
+  "default_mossycobble": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_core/default_mossycobble.png"
+  },
+  "default_obsidian": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_core/default_obsidian.png"
+  },
+  "default_sand": {
+    "class": "sand",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_core/default_sand.png"
+  },
+  "default_stone_brick": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_core/default_stone_brick.png"
+  },
+  "default_wood": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_core/default_wood.png"
+  },
+  "extra_mobs_strider": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      64,
+      128
+    ],
+    "source": "textures/mobs_mc/extra_mobs_strider.png"
+  },
+  "extra_mobs_strider_cold": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      64,
+      128
+    ],
+    "source": "textures/mobs_mc/extra_mobs_strider_cold.png"
+  },
+  "extra_mobs_zoglin": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      128,
+      64
+    ],
+    "source": "textures/mobs_mc/extra_mobs_zoglin.png"
+  },
+  "extra_mobs_zombified_piglin": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      64,
+      64
+    ],
+    "source": "textures/mobs_mc/extra_mobs_zombified_piglin.png"
+  },
+  "mcl_armor_boots_leather": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      64,
+      32
+    ],
+    "source": "textures/mcl_armor/mcl_armor_boots_leather.png"
+  },
+  "mcl_armor_chestplate_leather": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      64,
+      32
+    ],
+    "source": "textures/mcl_armor/mcl_armor_chestplate_leather.png"
+  },
+  "mcl_armor_elytra": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      64,
+      32
+    ],
+    "source": "textures/mcl_armor/mcl_armor_elytra.png"
+  },
+  "mcl_armor_helmet_leather": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      64,
+      32
+    ],
+    "source": "textures/mcl_armor/mcl_armor_helmet_leather.png"
+  },
+  "mcl_armor_inv_boots_leather": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_armor/mcl_armor_inv_boots_leather.png"
+  },
+  "mcl_armor_inv_chestplate_leather": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_armor/mcl_armor_inv_chestplate_leather.png"
+  },
+  "mcl_armor_inv_elytra": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_armor/mcl_armor_inv_elytra.png"
+  },
+  "mcl_armor_inv_helmet_leather": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_armor/mcl_armor_inv_helmet_leather.png"
+  },
+  "mcl_armor_inv_leggings_leather": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_armor/mcl_armor_inv_leggings_leather.png"
+  },
+  "mcl_armor_leggings_leather": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      64,
+      32
+    ],
+    "source": "textures/mcl_armor/mcl_armor_leggings_leather.png"
+  },
+  "mcl_boats_acacia_boat": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_boats/mcl_boats_acacia_boat.png"
+  },
+  "mcl_boats_acacia_chest_boat": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_boats/mcl_boats_acacia_chest_boat.png"
+  },
+  "mcl_boats_bamboo_boat": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_boats/mcl_boats_bamboo_boat.png"
+  },
+  "mcl_boats_bamboo_chest_boat": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_boats/mcl_boats_bamboo_chest_boat.png"
+  },
+  "mcl_boats_birch_boat": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_boats/mcl_boats_birch_boat.png"
+  },
+  "mcl_boats_birch_chest_boat": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_boats/mcl_boats_birch_chest_boat.png"
+  },
+  "mcl_boats_cherry_blossom_boat": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_boats/mcl_boats_cherry_blossom_boat.png"
+  },
+  "mcl_boats_cherry_blossom_chest_boat": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_boats/mcl_boats_cherry_blossom_chest_boat.png"
+  },
+  "mcl_boats_dark_oak_boat": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_boats/mcl_boats_dark_oak_boat.png"
+  },
+  "mcl_boats_dark_oak_chest_boat": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_boats/mcl_boats_dark_oak_chest_boat.png"
+  },
+  "mcl_boats_jungle_boat": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_boats/mcl_boats_jungle_boat.png"
+  },
+  "mcl_boats_jungle_chest_boat": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_boats/mcl_boats_jungle_chest_boat.png"
+  },
+  "mcl_boats_mangrove_boat": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_boats/mcl_boats_mangrove_boat.png"
+  },
+  "mcl_boats_mangrove_chest_boat": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_boats/mcl_boats_mangrove_chest_boat.png"
+  },
+  "mcl_boats_oak_boat": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_boats/mcl_boats_oak_boat.png"
+  },
+  "mcl_boats_oak_chest_boat": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_boats/mcl_boats_oak_chest_boat.png"
+  },
+  "mcl_boats_spruce_boat": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_boats/mcl_boats_spruce_boat.png"
+  },
+  "mcl_boats_spruce_chest_boat": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_boats/mcl_boats_spruce_chest_boat.png"
+  },
+  "mcl_boats_texture_bamboo_boat": {
+    "class": "stone",
+    "collisions": [
+      "textures/mcl_boats/mcl_boats_texture_bamboo_boat.png"
+    ],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      128,
+      64
+    ],
+    "source": "mcl_boats_texture_bamboo_boat.png"
+  },
+  "mcl_book_book_empty_slot": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_books/mcl_book_book_empty_slot.png"
+  },
+  "mcl_books_book_writable": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_books/mcl_books_book_writable.png"
+  },
+  "mcl_books_book_written": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_books/mcl_books_book_written.png"
+  },
+  "mcl_bossbars": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      70,
+      182
+    ],
+    "source": "textures/mcl_bossbars/mcl_bossbars.png"
+  },
+  "mcl_bossbars_empty": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      70,
+      182
+    ],
+    "source": "textures/mcl_bossbars/mcl_bossbars_empty.png"
+  },
+  "mcl_campfires_campfire_inv": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_campfires/mcl_campfires_campfire_inv.png"
+  },
+  "mcl_campfires_soul_campfire_inv": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_campfires/mcl_campfires_soul_campfire_inv.png"
+  },
+  "mcl_cherry_blossom_planks": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_cherry_blossom/mcl_cherry_blossom_planks.png"
+  },
+  "mcl_core_bedrock": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_core/mcl_core_bedrock.png"
+  },
+  "mcl_core_crying_obsidian": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_core/mcl_core_crying_obsidian.png"
+  },
+  "mcl_core_granite_smooth": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_core/mcl_core_granite_smooth.png"
+  },
+  "mcl_core_planks_big_oak": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_core/mcl_core_planks_big_oak.png"
+  },
+  "mcl_core_planks_birch": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_core/mcl_core_planks_birch.png"
+  },
+  "mcl_core_planks_spruce": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_core/mcl_core_planks_spruce.png"
+  },
+  "mcl_core_red_sand": {
+    "class": "sand",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_core/mcl_core_red_sand.png"
+  },
+  "mcl_core_red_sandstone_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_core/mcl_core_red_sandstone_bottom.png"
+  },
+  "mcl_core_red_sandstone_carved": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_core/mcl_core_red_sandstone_carved.png"
+  },
+  "mcl_core_red_sandstone_normal": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_core/mcl_core_red_sandstone_normal.png"
+  },
+  "mcl_core_red_sandstone_smooth": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_core/mcl_core_red_sandstone_smooth.png"
+  },
+  "mcl_core_red_sandstone_top": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_core/mcl_core_red_sandstone_top.png"
+  },
+  "mcl_core_sandstone_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_core/mcl_core_sandstone_bottom.png"
+  },
+  "mcl_core_sandstone_carved": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_core/mcl_core_sandstone_carved.png"
+  },
+  "mcl_core_sandstone_normal": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_core/mcl_core_sandstone_normal.png"
+  },
+  "mcl_core_sandstone_smooth": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_core/mcl_core_sandstone_smooth.png"
+  },
+  "mcl_core_sandstone_top": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_core/mcl_core_sandstone_top.png"
+  },
+  "mcl_core_stonebrick_carved": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_core/mcl_core_stonebrick_carved.png"
+  },
+  "mcl_core_stonebrick_cracked": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_core/mcl_core_stonebrick_cracked.png"
+  },
+  "mcl_core_stonebrick_mossy": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_core/mcl_core_stonebrick_mossy.png"
+  },
+  "mcl_crimson_crimson_fence": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_crimson/mcl_crimson_crimson_fence.png"
+  },
+  "mcl_crimson_warped_fence": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_crimson/mcl_crimson_warped_fence.png"
+  },
+  "mcl_enchanting_book_enchanted": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_enchanting/mcl_enchanting_book_enchanted.png"
+  },
+  "mcl_end_ender_eye": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_end/mcl_end_ender_eye.png"
+  },
+  "mcl_end_endframe_eye": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_end/mcl_end_endframe_eye.png"
+  },
+  "mcl_farming_sweet_berry": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_farming/mcl_farming_sweet_berry.png"
+  },
+  "mcl_farming_sweet_berry_bush_0": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_farming/mcl_farming_sweet_berry_bush_0.png"
+  },
+  "mcl_farming_sweet_berry_bush_1": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_farming/mcl_farming_sweet_berry_bush_1.png"
+  },
+  "mcl_farming_sweet_berry_bush_2": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_farming/mcl_farming_sweet_berry_bush_2.png"
+  },
+  "mcl_farming_sweet_berry_bush_3": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_farming/mcl_farming_sweet_berry_bush_3.png"
+  },
+  "mcl_inventory_hotbar": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      182,
+      22
+    ],
+    "source": "textures/mcl_inventory/mcl_inventory_hotbar.png"
+  },
+  "mcl_inventory_hotbar_selected": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      24,
+      24
+    ],
+    "source": "textures/mcl_inventory/mcl_inventory_hotbar_selected.png"
+  },
+  "mcl_mangrove_fence": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_mangrove/mcl_mangrove_fence.png"
+  },
+  "mcl_mangrove_fence_gate": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_mangrove/mcl_mangrove_fence_gate.png"
+  },
+  "mcl_mangrove_planks": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_mangrove/mcl_mangrove_planks.png"
+  },
+  "mcl_mobitems_blaze_powder": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_mobitems/mcl_mobitems_blaze_powder.png"
+  },
+  "mcl_mobitems_blaze_rod": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_mobitems/mcl_mobitems_blaze_rod.png"
+  },
+  "mcl_mobitems_heart_of_the_sea": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_mobitems/mcl_mobitems_heart_of_the_sea.png"
+  },
+  "mcl_mobitems_heart_of_the_sea_split": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_mobitems/mcl_mobitems_heart_of_the_sea_split.png"
+  },
+  "mcl_mobitems_horse_armor_leather": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      128,
+      128
+    ],
+    "source": "textures/mcl_mobitems/mcl_mobitems_horse_armor_leather.png"
+  },
+  "mcl_mobitems_leather_horse_armor": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_mobitems/mcl_mobitems_leather_horse_armor.png"
+  },
+  "mcl_mobitems_magma_cream": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_mobitems/mcl_mobitems_magma_cream.png"
+  },
+  "mcl_mobitems_nautilus_shell": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_mobitems/mcl_mobitems_nautilus_shell.png"
+  },
+  "mcl_nether_glowstone_dust": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_nether/mcl_nether_glowstone_dust.png"
+  },
+  "mcl_observers_observer_back": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/REDSTONE/mcl_observers/mcl_observers_observer_back.png"
+  },
+  "mcl_observers_observer_back_lit": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/REDSTONE/mcl_observers/mcl_observers_observer_back_lit.png"
+  },
+  "mcl_observers_observer_front": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/REDSTONE/mcl_observers/mcl_observers_observer_front.png"
+  },
+  "mcl_observers_observer_side": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/REDSTONE/mcl_observers/mcl_observers_observer_side.png"
+  },
+  "mcl_observers_observer_top": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/REDSTONE/mcl_observers/mcl_observers_observer_top.png"
+  },
+  "mcl_portals_endframe_eye": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_portals/mcl_portals_endframe_eye.png"
+  },
+  "mcl_stairs_gold_block_slab": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mclx_stairs/mcl_stairs_gold_block_slab.png"
+  },
+  "mcl_sus_nodes_suspicious_overlay": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_sus_nodes/mcl_sus_nodes_suspicious_overlay.png"
+  },
+  "mcl_sus_nodes_suspicious_overlay_1": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_sus_nodes/mcl_sus_nodes_suspicious_overlay_1.png"
+  },
+  "mcl_sus_nodes_suspicious_overlay_2": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_sus_nodes/mcl_sus_nodes_suspicious_overlay_2.png"
+  },
+  "mcl_sus_nodes_suspicious_overlay_3": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_sus_nodes/mcl_sus_nodes_suspicious_overlay_3.png"
+  },
+  "mcl_throwing_ender_pearl": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_throwing/mcl_throwing_ender_pearl.png"
+  },
+  "mcl_totems_totem": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_totems/mcl_totems_totem.png"
+  },
+  "mcl_totems_totem_wieldview": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_totems/mcl_totems_totem_wieldview.png"
+  },
+  "mcl_walls_cobble_mossy_wall_side": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_walls/mcl_walls_cobble_mossy_wall_side.png"
+  },
+  "mcl_walls_cobble_mossy_wall_top": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_walls/mcl_walls_cobble_mossy_wall_top.png"
+  },
+  "mcl_walls_cobble_wall_side": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_walls/mcl_walls_cobble_wall_side.png"
+  },
+  "mcl_walls_cobble_wall_top": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_walls/mcl_walls_cobble_wall_top.png"
+  },
+  "mobs_mc_iron_golem": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      128,
+      128
+    ],
+    "source": "textures/mobs_mc/mobs_mc_iron_golem.png"
+  },
+  "mobs_mc_iron_golem_crack_high": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      128,
+      128
+    ],
+    "source": "textures/mobs_mc/mobs_mc_iron_golem_crack_high.png"
+  },
+  "mobs_mc_iron_golem_crack_low": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      128,
+      128
+    ],
+    "source": "textures/mobs_mc/mobs_mc_iron_golem_crack_low.png"
+  },
+  "mobs_mc_iron_golem_crack_medium": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      128,
+      128
+    ],
+    "source": "textures/mobs_mc/mobs_mc_iron_golem_crack_medium.png"
+  },
+  "mobs_mc_spawn_icon_iron_golem": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      32,
+      32
+    ],
+    "source": "textures/mobs_mc/mobs_mc_spawn_icon_iron_golem.png"
+  },
+  "mobs_mc_villager_profession_farmer": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      64,
+      64
+    ],
+    "source": "textures/mobs_mc/mobs_mc_villager_profession_farmer.png"
+  },
+  "mobs_mc_villager_profession_fisherman": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      64,
+      64
+    ],
+    "source": "textures/mobs_mc/mobs_mc_villager_profession_fisherman.png"
+  },
+  "warped_hyphae_wood": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC-BY-SA-4.0",
+    "package": "pixel_imperfection",
+    "release": 35281,
+    "size": [
+      16,
+      16
+    ],
+    "source": "textures/mcl_crimson/warped_hyphae_wood.png"
+  }
+}

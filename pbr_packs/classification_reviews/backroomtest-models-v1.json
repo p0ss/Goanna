@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "review_version": "backroomtest-models-v1",
+  "textures": {
+    "clive": {
+      "source_package": "backroomtest",
+      "primary_material": "skin",
+      "secondary_materials": [
+        "cloth",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.38,
+      "relief_strength": 0.22,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.9,
+      "rationale": "Primary humanoid UV atlas; preserve face, clothing boundaries and UV islands.",
+      "review_required": false,
+      "risks": [
+        "uv_atlas",
+        "do_not_tile"
+      ]
+    },
+    "clive_overlay": {
+      "source_package": "backroomtest",
+      "primary_material": "cloth",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.04,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.18,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.78,
+      "rationale": "Humanoid overlay atlas; bake and review registered against clive.png so relief does not detach from the base skin.",
+      "review_required": true,
+      "risks": [
+        "uv_atlas",
+        "do_not_tile",
+        "rendered_model_review"
+      ]
+    },
+    "humanoid": {
+      "source_package": "backroomtest",
+      "primary_material": "mixed",
+      "secondary_materials": [
+        "skin",
+        "cloth"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.38,
+      "relief_strength": 0.2,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.78,
+      "rationale": "Generic humanoid UV atlas with painted skin and clothing; requires turntable review.",
+      "review_required": true,
+      "risks": [
+        "uv_atlas",
+        "do_not_tile",
+        "rendered_model_review"
+      ]
+    }
+  }
+}
+

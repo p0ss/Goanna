@@ -1,0 +1,10 @@
+{
+  "br_ladder_steel_0": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "backroomtest",
+    "release": 36294,
+    "source": "mods/packs/backrooms/textures/nodes/br_ladder_steel_0.png"
+  }
+}

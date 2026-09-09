@@ -1,0 +1,5018 @@
+{
+  "beds_bed": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "beds_bed.png"
+  },
+  "beds_bed_fancy": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "beds_bed_fancy.png"
+  },
+  "beds_bed_foot": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "beds_bed_foot.png"
+  },
+  "beds_bed_head": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "beds_bed_head.png"
+  },
+  "beds_bed_side1": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "beds_bed_side1.png"
+  },
+  "beds_bed_side2": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "beds_bed_side2.png"
+  },
+  "beds_bed_side_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      256
+    ],
+    "source": "beds_bed_side_bottom.png"
+  },
+  "beds_bed_side_bottom_r": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      256
+    ],
+    "source": "beds_bed_side_bottom_r.png"
+  },
+  "beds_bed_side_top": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      256
+    ],
+    "source": "beds_bed_side_top.png"
+  },
+  "beds_bed_side_top_r": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      256
+    ],
+    "source": "beds_bed_side_top_r.png"
+  },
+  "beds_bed_top1": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "beds_bed_top1.png"
+  },
+  "beds_bed_top2": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "beds_bed_top2.png"
+  },
+  "beds_bed_top_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "beds_bed_top_bottom.png"
+  },
+  "beds_bed_top_top": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "beds_bed_top_top.png"
+  },
+  "binoculars_binoculars": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "binoculars_binoculars.png"
+  },
+  "boat_inventory": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "boat_inventory.png"
+  },
+  "boat_wield": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "boat_wield.png"
+  },
+  "boats_inventory": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "boats_inventory.png"
+  },
+  "boats_wield": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "boats_wield.png"
+  },
+  "bones_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "bones_bottom.png"
+  },
+  "bones_front": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "bones_front.png"
+  },
+  "bones_rear": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "bones_rear.png"
+  },
+  "bones_side": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "bones_side.png"
+  },
+  "bones_top": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "bones_top.png"
+  },
+  "bubble": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "bubble.png"
+  },
+  "bucket": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "bucket.png"
+  },
+  "bucket_lava": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "bucket_lava.png"
+  },
+  "bucket_river_water": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "bucket_river_water.png"
+  },
+  "bucket_snow": {
+    "class": "snow",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "bucket_snow.png"
+  },
+  "bucket_water": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "bucket_water.png"
+  },
+  "butterflies_butterfly_red": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "butterflies_butterfly_red.png"
+  },
+  "butterflies_butterfly_violet": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "butterflies_butterfly_violet.png"
+  },
+  "butterflies_butterfly_white": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "butterflies_butterfly_white.png"
+  },
+  "carts_cart": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      256,
+      256
+    ],
+    "source": "carts_cart.png"
+  },
+  "carts_cart_front": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "carts_cart_front.png"
+  },
+  "carts_cart_side": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "carts_cart_side.png"
+  },
+  "carts_cart_top": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "carts_cart_top.png"
+  },
+  "carts_rail_crossing": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "carts_rail_crossing.png"
+  },
+  "carts_rail_crossing_brk": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "carts_rail_crossing_brk.png"
+  },
+  "carts_rail_crossing_pwr": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "carts_rail_crossing_pwr.png"
+  },
+  "carts_rail_curved": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "carts_rail_curved.png"
+  },
+  "carts_rail_curved_brk": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "carts_rail_curved_brk.png"
+  },
+  "carts_rail_curved_pwr": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "carts_rail_curved_pwr.png"
+  },
+  "carts_rail_straight": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "carts_rail_straight.png"
+  },
+  "carts_rail_straight_brk": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "carts_rail_straight_brk.png"
+  },
+  "carts_rail_straight_pwr": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "carts_rail_straight_pwr.png"
+  },
+  "carts_rail_t_junction": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "carts_rail_t_junction.png"
+  },
+  "carts_rail_t_junction_brk": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "carts_rail_t_junction_brk.png"
+  },
+  "carts_rail_t_junction_pwr": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "carts_rail_t_junction_pwr.png"
+  },
+  "character": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      512,
+      256
+    ],
+    "source": "character.png"
+  },
+  "default_acacia_bush_sapling": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_acacia_bush_sapling.png"
+  },
+  "default_acacia_bush_stem": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_acacia_bush_stem.png"
+  },
+  "default_acacia_leaves": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_acacia_leaves.png"
+  },
+  "default_acacia_leaves_simple": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_acacia_leaves_simple.png"
+  },
+  "default_acacia_sapling": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_acacia_sapling.png"
+  },
+  "default_acacia_tree": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_acacia_tree.png"
+  },
+  "default_acacia_tree_top": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_acacia_tree_top.png"
+  },
+  "default_acacia_wood": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_acacia_wood.png"
+  },
+  "default_apple": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_apple.png"
+  },
+  "default_aspen_leaves": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_aspen_leaves.png"
+  },
+  "default_aspen_sapling": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_aspen_sapling.png"
+  },
+  "default_aspen_tree": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_aspen_tree.png"
+  },
+  "default_aspen_tree_top": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_aspen_tree_top.png"
+  },
+  "default_aspen_wood": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_aspen_wood.png"
+  },
+  "default_blueberries": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_blueberries.png"
+  },
+  "default_blueberry_bush_leaves": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_blueberry_bush_leaves.png"
+  },
+  "default_blueberry_bush_sapling": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_blueberry_bush_sapling.png"
+  },
+  "default_blueberry_overlay": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_blueberry_overlay.png"
+  },
+  "default_book": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_book.png"
+  },
+  "default_book_written": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_book_written.png"
+  },
+  "default_bookshelf": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_bookshelf.png"
+  },
+  "default_bookshelf_slot": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_bookshelf_slot.png"
+  },
+  "default_brick": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_brick.png"
+  },
+  "default_bronze_block": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_bronze_block.png"
+  },
+  "default_bronze_ingot": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_bronze_ingot.png"
+  },
+  "default_bush_sapling": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_bush_sapling.png"
+  },
+  "default_bush_stem": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_bush_stem.png"
+  },
+  "default_cactus_side": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_cactus_side.png"
+  },
+  "default_cactus_top": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_cactus_top.png"
+  },
+  "default_chest_front": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_chest_front.png"
+  },
+  "default_chest_lock": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_chest_lock.png"
+  },
+  "default_chest_side": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_chest_side.png"
+  },
+  "default_chest_top": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_chest_top.png"
+  },
+  "default_clay": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_clay.png"
+  },
+  "default_clay_brick": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_clay_brick.png"
+  },
+  "default_clay_lump": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_clay_lump.png"
+  },
+  "default_coal_block": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_coal_block.png"
+  },
+  "default_coal_lump": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_coal_lump.png"
+  },
+  "default_cobble": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_cobble.png"
+  },
+  "default_coniferous_litter": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_coniferous_litter.png"
+  },
+  "default_coniferous_litter_side": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_coniferous_litter_side.png"
+  },
+  "default_copper_block": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_copper_block.png"
+  },
+  "default_copper_ingot": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_copper_ingot.png"
+  },
+  "default_copper_lump": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_copper_lump.png"
+  },
+  "default_coral_brown": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_coral_brown.png"
+  },
+  "default_coral_cyan": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_coral_cyan.png"
+  },
+  "default_coral_green": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_coral_green.png"
+  },
+  "default_coral_orange": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_coral_orange.png"
+  },
+  "default_coral_pink": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_coral_pink.png"
+  },
+  "default_coral_skeleton": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_coral_skeleton.png"
+  },
+  "default_craft_guide": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_craft_guide.png"
+  },
+  "default_desert_cobble": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_desert_cobble.png"
+  },
+  "default_desert_sand": {
+    "class": "sand",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_desert_sand.png"
+  },
+  "default_desert_sandstone": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_desert_sandstone.png"
+  },
+  "default_desert_sandstone_block": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_desert_sandstone_block.png"
+  },
+  "default_desert_sandstone_brick": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_desert_sandstone_brick.png"
+  },
+  "default_desert_stone": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_desert_stone.png"
+  },
+  "default_desert_stone_block": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_desert_stone_block.png"
+  },
+  "default_desert_stone_brick": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_desert_stone_brick.png"
+  },
+  "default_diamond": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_diamond.png"
+  },
+  "default_diamond_block": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_diamond_block.png"
+  },
+  "default_dirt": {
+    "class": "soil",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_dirt.png"
+  },
+  "default_dry_grass": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_dry_grass.png"
+  },
+  "default_dry_grass_1": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_dry_grass_1.png"
+  },
+  "default_dry_grass_2": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_dry_grass_2.png"
+  },
+  "default_dry_grass_3": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_dry_grass_3.png"
+  },
+  "default_dry_grass_4": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_dry_grass_4.png"
+  },
+  "default_dry_grass_5": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_dry_grass_5.png"
+  },
+  "default_dry_grass_side": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_dry_grass_side.png"
+  },
+  "default_dry_shrub": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_dry_shrub.png"
+  },
+  "default_emergent_jungle_sapling": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_emergent_jungle_sapling.png"
+  },
+  "default_fence_acacia_wood": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_fence_acacia_wood.png"
+  },
+  "default_fence_aspen_wood": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_fence_aspen_wood.png"
+  },
+  "default_fence_junglewood": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_fence_junglewood.png"
+  },
+  "default_fence_overlay": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_fence_overlay.png"
+  },
+  "default_fence_pine_wood": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_fence_pine_wood.png"
+  },
+  "default_fence_rail_acacia_wood": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_fence_rail_acacia_wood.png"
+  },
+  "default_fence_rail_aspen_wood": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_fence_rail_aspen_wood.png"
+  },
+  "default_fence_rail_junglewood": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_fence_rail_junglewood.png"
+  },
+  "default_fence_rail_overlay": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_fence_rail_overlay.png"
+  },
+  "default_fence_rail_pine_wood": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_fence_rail_pine_wood.png"
+  },
+  "default_fence_rail_wood": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_fence_rail_wood.png"
+  },
+  "default_fence_wood": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_fence_wood.png"
+  },
+  "default_fern_1": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_fern_1.png"
+  },
+  "default_fern_2": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_fern_2.png"
+  },
+  "default_fern_3": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_fern_3.png"
+  },
+  "default_flint": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_flint.png"
+  },
+  "default_furnace_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_furnace_bottom.png"
+  },
+  "default_furnace_fire_bg": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_furnace_fire_bg.png"
+  },
+  "default_furnace_fire_fg": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_furnace_fire_fg.png"
+  },
+  "default_furnace_front": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_furnace_front.png"
+  },
+  "default_furnace_front_active": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      512
+    ],
+    "source": "default_furnace_front_active.png"
+  },
+  "default_furnace_side": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_furnace_side.png"
+  },
+  "default_furnace_top": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_furnace_top.png"
+  },
+  "default_glass": {
+    "class": "glass",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_glass.png"
+  },
+  "default_gold_block": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_gold_block.png"
+  },
+  "default_gold_ingot": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_gold_ingot.png"
+  },
+  "default_gold_lump": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_gold_lump.png"
+  },
+  "default_grass": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_grass.png"
+  },
+  "default_grass_1": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_grass_1.png"
+  },
+  "default_grass_2": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_grass_2.png"
+  },
+  "default_grass_3": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_grass_3.png"
+  },
+  "default_grass_4": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_grass_4.png"
+  },
+  "default_grass_5": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_grass_5.png"
+  },
+  "default_grass_side": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_grass_side.png"
+  },
+  "default_gravel": {
+    "class": "gravel",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_gravel.png"
+  },
+  "default_ice": {
+    "class": "ice",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_ice.png"
+  },
+  "default_iron_lump": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_iron_lump.png"
+  },
+  "default_item_smoke": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_item_smoke.png"
+  },
+  "default_junglegrass": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      128
+    ],
+    "source": "default_junglegrass.png"
+  },
+  "default_jungleleaves": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_jungleleaves.png"
+  },
+  "default_jungleleaves_simple": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_jungleleaves_simple.png"
+  },
+  "default_junglesapling": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_junglesapling.png"
+  },
+  "default_jungletree": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_jungletree.png"
+  },
+  "default_jungletree_top": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_jungletree_top.png"
+  },
+  "default_junglewood": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_junglewood.png"
+  },
+  "default_kelp": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_kelp.png"
+  },
+  "default_key": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_key.png"
+  },
+  "default_key_skeleton": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_key_skeleton.png"
+  },
+  "default_ladder": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_ladder.png"
+  },
+  "default_ladder_steel": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_ladder_steel.png"
+  },
+  "default_ladder_wood": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_ladder_wood.png"
+  },
+  "default_lava": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_lava.png"
+  },
+  "default_leaves": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_leaves.png"
+  },
+  "default_leaves_simple": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_leaves_simple.png"
+  },
+  "default_marram_grass_1": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_marram_grass_1.png"
+  },
+  "default_marram_grass_2": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_marram_grass_2.png"
+  },
+  "default_marram_grass_3": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_marram_grass_3.png"
+  },
+  "default_mese_block": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_mese_block.png"
+  },
+  "default_mese_crystal": {
+    "class": "glass",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_mese_crystal.png"
+  },
+  "default_mese_crystal_fragment": {
+    "class": "glass",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_mese_crystal_fragment.png"
+  },
+  "default_mese_post_light_side": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_mese_post_light_side.png"
+  },
+  "default_mese_post_light_side_dark": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_mese_post_light_side_dark.png"
+  },
+  "default_mese_post_light_top": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      32,
+      32
+    ],
+    "source": "default_mese_post_light_top.png"
+  },
+  "default_meselamp": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_meselamp.png"
+  },
+  "default_mineral_coal": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_mineral_coal.png"
+  },
+  "default_mineral_copper": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_mineral_copper.png"
+  },
+  "default_mineral_diamond": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_mineral_diamond.png"
+  },
+  "default_mineral_gold": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_mineral_gold.png"
+  },
+  "default_mineral_iron": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_mineral_iron.png"
+  },
+  "default_mineral_mese": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_mineral_mese.png"
+  },
+  "default_mineral_tin": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_mineral_tin.png"
+  },
+  "default_moss": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_moss.png"
+  },
+  "default_moss_side": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_moss_side.png"
+  },
+  "default_mossycobble": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_mossycobble.png"
+  },
+  "default_obsidian": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_obsidian.png"
+  },
+  "default_obsidian_block": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_obsidian_block.png"
+  },
+  "default_obsidian_brick": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_obsidian_brick.png"
+  },
+  "default_obsidian_glass": {
+    "class": "glass",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_obsidian_glass.png"
+  },
+  "default_obsidian_shard": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_obsidian_shard.png"
+  },
+  "default_paper": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_paper.png"
+  },
+  "default_papyrus": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_papyrus.png"
+  },
+  "default_permafrost": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_permafrost.png"
+  },
+  "default_pine_bush_sapling": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_pine_bush_sapling.png"
+  },
+  "default_pine_bush_stem": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_pine_bush_stem.png"
+  },
+  "default_pine_needles": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_pine_needles.png"
+  },
+  "default_pine_sapling": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_pine_sapling.png"
+  },
+  "default_pine_tree": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_pine_tree.png"
+  },
+  "default_pine_tree_top": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_pine_tree_top.png"
+  },
+  "default_pine_wood": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_pine_wood.png"
+  },
+  "default_rainforest_litter": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_rainforest_litter.png"
+  },
+  "default_rainforest_litter_side": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_rainforest_litter_side.png"
+  },
+  "default_river_water": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_river_water.png"
+  },
+  "default_sand": {
+    "class": "sand",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_sand.png"
+  },
+  "default_sandstone": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_sandstone.png"
+  },
+  "default_sandstone_block": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_sandstone_block.png"
+  },
+  "default_sandstone_brick": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_sandstone_brick.png"
+  },
+  "default_sapling": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_sapling.png"
+  },
+  "default_sign": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_sign.png"
+  },
+  "default_sign_steel": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_sign_steel.png"
+  },
+  "default_sign_wall_steel": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_sign_wall_steel.png"
+  },
+  "default_sign_wall_wood": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_sign_wall_wood.png"
+  },
+  "default_sign_wood": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_sign_wood.png"
+  },
+  "default_silver_sand": {
+    "class": "sand",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_silver_sand.png"
+  },
+  "default_silver_sandstone": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_silver_sandstone.png"
+  },
+  "default_silver_sandstone_block": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_silver_sandstone_block.png"
+  },
+  "default_silver_sandstone_brick": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_silver_sandstone_brick.png"
+  },
+  "default_skeleton_key": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_skeleton_key.png"
+  },
+  "default_snow": {
+    "class": "snow",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_snow.png"
+  },
+  "default_snow_side": {
+    "class": "snow",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_snow_side.png"
+  },
+  "default_snowball": {
+    "class": "snow",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_snowball.png"
+  },
+  "default_steel_block": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_steel_block.png"
+  },
+  "default_steel_ingot": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_steel_ingot.png"
+  },
+  "default_stick": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_stick.png"
+  },
+  "default_stone": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_stone.png"
+  },
+  "default_stone_block": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_stone_block.png"
+  },
+  "default_stone_brick": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_stone_brick.png"
+  },
+  "default_stones": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_stones.png"
+  },
+  "default_tin_block": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_tin_block.png"
+  },
+  "default_tin_ingot": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_tin_ingot.png"
+  },
+  "default_tin_lump": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "default_tin_lump.png"
+  },
+  "default_tool_bronzeaxe": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_tool_bronzeaxe.png"
+  },
+  "default_tool_bronzepick": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_tool_bronzepick.png"
+  },
+  "default_tool_bronzeshovel": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_tool_bronzeshovel.png"
+  },
+  "default_tool_bronzesword": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_tool_bronzesword.png"
+  },
+  "default_tool_diamondaxe": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_tool_diamondaxe.png"
+  },
+  "default_tool_diamondpick": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_tool_diamondpick.png"
+  },
+  "default_tool_diamondshovel": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_tool_diamondshovel.png"
+  },
+  "default_tool_diamondsword": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_tool_diamondsword.png"
+  },
+  "default_tool_meseaxe": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_tool_meseaxe.png"
+  },
+  "default_tool_mesepick": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_tool_mesepick.png"
+  },
+  "default_tool_meseshovel": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_tool_meseshovel.png"
+  },
+  "default_tool_mesesword": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_tool_mesesword.png"
+  },
+  "default_tool_steelaxe": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_tool_steelaxe.png"
+  },
+  "default_tool_steelpick": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_tool_steelpick.png"
+  },
+  "default_tool_steelshovel": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_tool_steelshovel.png"
+  },
+  "default_tool_steelsword": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_tool_steelsword.png"
+  },
+  "default_tool_stoneaxe": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_tool_stoneaxe.png"
+  },
+  "default_tool_stonepick": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_tool_stonepick.png"
+  },
+  "default_tool_stoneshovel": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_tool_stoneshovel.png"
+  },
+  "default_tool_stonesword": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_tool_stonesword.png"
+  },
+  "default_tool_woodaxe": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_tool_woodaxe.png"
+  },
+  "default_tool_woodpick": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_tool_woodpick.png"
+  },
+  "default_tool_woodshovel": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_tool_woodshovel.png"
+  },
+  "default_tool_woodsword": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_tool_woodsword.png"
+  },
+  "default_torch_animated": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      8,
+      64
+    ],
+    "source": "default_torch_animated.png"
+  },
+  "default_torch_on_floor": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_torch_on_floor.png"
+  },
+  "default_tree": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_tree.png"
+  },
+  "default_tree_top": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_tree_top.png"
+  },
+  "default_water": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_water.png"
+  },
+  "default_wood": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "default_wood.png"
+  },
+  "doors_door_glass": {
+    "class": "glass",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      304,
+      256
+    ],
+    "source": "doors_door_glass.png"
+  },
+  "doors_door_obsidian_glass": {
+    "class": "glass",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      304,
+      256
+    ],
+    "source": "doors_door_obsidian_glass.png"
+  },
+  "doors_door_steel": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      152,
+      128
+    ],
+    "source": "doors_door_steel.png"
+  },
+  "doors_door_wood": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      152,
+      128
+    ],
+    "source": "doors_door_wood.png"
+  },
+  "doors_item_glass": {
+    "class": "glass",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "doors_item_glass.png"
+  },
+  "doors_item_obsidian_glass": {
+    "class": "glass",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "doors_item_obsidian_glass.png"
+  },
+  "doors_item_steel": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "doors_item_steel.png"
+  },
+  "doors_item_wood": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "doors_item_wood.png"
+  },
+  "doors_trapdoor": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "doors_trapdoor.png"
+  },
+  "doors_trapdoor_side": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "doors_trapdoor_side.png"
+  },
+  "doors_trapdoor_steel": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "doors_trapdoor_steel.png"
+  },
+  "doors_trapdoor_steel_side": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "doors_trapdoor_steel_side.png"
+  },
+  "doors_wood": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      128
+    ],
+    "source": "doors_wood.png"
+  },
+  "doors_wood_a": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "doors_wood_a.png"
+  },
+  "doors_wood_b": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "doors_wood_b.png"
+  },
+  "dye_black": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "dye_black.png"
+  },
+  "dye_blue": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "dye_blue.png"
+  },
+  "dye_brown": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "dye_brown.png"
+  },
+  "dye_cyan": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "dye_cyan.png"
+  },
+  "dye_dark_green": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "dye_dark_green.png"
+  },
+  "dye_dark_grey": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "dye_dark_grey.png"
+  },
+  "dye_green": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "dye_green.png"
+  },
+  "dye_grey": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "dye_grey.png"
+  },
+  "dye_magenta": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "dye_magenta.png"
+  },
+  "dye_orange": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "dye_orange.png"
+  },
+  "dye_pink": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "dye_pink.png"
+  },
+  "dye_red": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "dye_red.png"
+  },
+  "dye_violet": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "dye_violet.png"
+  },
+  "dye_white": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "dye_white.png"
+  },
+  "dye_yellow": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "dye_yellow.png"
+  },
+  "farming_bread": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "farming_bread.png"
+  },
+  "farming_cotton": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "farming_cotton.png"
+  },
+  "farming_cotton_1": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "farming_cotton_1.png"
+  },
+  "farming_cotton_2": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "farming_cotton_2.png"
+  },
+  "farming_cotton_3": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "farming_cotton_3.png"
+  },
+  "farming_cotton_4": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "farming_cotton_4.png"
+  },
+  "farming_cotton_5": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "farming_cotton_5.png"
+  },
+  "farming_cotton_6": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "farming_cotton_6.png"
+  },
+  "farming_cotton_7": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "farming_cotton_7.png"
+  },
+  "farming_cotton_8": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "farming_cotton_8.png"
+  },
+  "farming_cotton_seed": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "farming_cotton_seed.png"
+  },
+  "farming_desert_sand_soil": {
+    "class": "soil",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      127,
+      128
+    ],
+    "source": "farming_desert_sand_soil.png"
+  },
+  "farming_desert_sand_soil_wet": {
+    "class": "soil",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      127,
+      128
+    ],
+    "source": "farming_desert_sand_soil_wet.png"
+  },
+  "farming_desert_sand_soil_wet_side": {
+    "class": "soil",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      127,
+      128
+    ],
+    "source": "farming_desert_sand_soil_wet_side.png"
+  },
+  "farming_flour": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "farming_flour.png"
+  },
+  "farming_soil": {
+    "class": "soil",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "farming_soil.png"
+  },
+  "farming_soil_wet": {
+    "class": "soil",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "farming_soil_wet.png"
+  },
+  "farming_soil_wet_side": {
+    "class": "soil",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "farming_soil_wet_side.png"
+  },
+  "farming_straw": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "farming_straw.png"
+  },
+  "farming_string": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "farming_string.png"
+  },
+  "farming_tool_bronzehoe": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "farming_tool_bronzehoe.png"
+  },
+  "farming_tool_diamondhoe": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "farming_tool_diamondhoe.png"
+  },
+  "farming_tool_mesehoe": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "farming_tool_mesehoe.png"
+  },
+  "farming_tool_steelhoe": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "farming_tool_steelhoe.png"
+  },
+  "farming_tool_stonehoe": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "farming_tool_stonehoe.png"
+  },
+  "farming_tool_woodhoe": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "farming_tool_woodhoe.png"
+  },
+  "farming_wheat": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "farming_wheat.png"
+  },
+  "farming_wheat_1": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "farming_wheat_1.png"
+  },
+  "farming_wheat_2": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "farming_wheat_2.png"
+  },
+  "farming_wheat_3": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "farming_wheat_3.png"
+  },
+  "farming_wheat_4": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "farming_wheat_4.png"
+  },
+  "farming_wheat_5": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "farming_wheat_5.png"
+  },
+  "farming_wheat_6": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "farming_wheat_6.png"
+  },
+  "farming_wheat_7": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "farming_wheat_7.png"
+  },
+  "farming_wheat_8": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "farming_wheat_8.png"
+  },
+  "farming_wheat_seed": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "farming_wheat_seed.png"
+  },
+  "fire_basic_flame": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "fire_basic_flame.png"
+  },
+  "fire_basic_flame_animated": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      512
+    ],
+    "source": "fire_basic_flame_animated.png"
+  },
+  "fire_flint_steel": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "fire_flint_steel.png"
+  },
+  "fireflies_bottle": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "fireflies_bottle.png"
+  },
+  "fireflies_bottle_animated": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      128
+    ],
+    "source": "fireflies_bottle_animated.png"
+  },
+  "fireflies_bugnet": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "fireflies_bugnet.png"
+  },
+  "fireflies_firefly": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "fireflies_firefly.png"
+  },
+  "fireflies_firefly_animated": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      512
+    ],
+    "source": "fireflies_firefly_animated.png"
+  },
+  "flowers_dandelion_white": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "flowers_dandelion_white.png"
+  },
+  "flowers_dandelion_yellow": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "flowers_dandelion_yellow.png"
+  },
+  "flowers_geranium": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "flowers_geranium.png"
+  },
+  "flowers_mushroom_brown": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "flowers_mushroom_brown.png"
+  },
+  "flowers_mushroom_red": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "flowers_mushroom_red.png"
+  },
+  "flowers_rose": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "flowers_rose.png"
+  },
+  "flowers_tulip": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "flowers_tulip.png"
+  },
+  "flowers_tulip_black": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "flowers_tulip_black.png"
+  },
+  "flowers_viola": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "flowers_viola.png"
+  },
+  "flowers_waterlily": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "flowers_waterlily.png"
+  },
+  "flowers_waterlily_bottom": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "flowers_waterlily_bottom.png"
+  },
+  "heart": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "heart.png"
+  },
+  "map_mapping_kit": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "map_mapping_kit.png"
+  },
+  "moon": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "moon.png"
+  },
+  "screenshot": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      371,
+      371
+    ],
+    "source": "screenshot.png"
+  },
+  "screwdriver": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "screwdriver.png"
+  },
+  "smoke_puff": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "smoke_puff.png"
+  },
+  "stairs_glass_outer_stairside": {
+    "class": "glass",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "stairs_glass_outer_stairside.png"
+  },
+  "stairs_glass_split": {
+    "class": "glass",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "stairs_glass_split.png"
+  },
+  "stairs_glass_stairside": {
+    "class": "glass",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "stairs_glass_stairside.png"
+  },
+  "stairs_obsidian_glass_outer_stairside": {
+    "class": "glass",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "stairs_obsidian_glass_outer_stairside.png"
+  },
+  "stairs_obsidian_glass_split": {
+    "class": "glass",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "stairs_obsidian_glass_split.png"
+  },
+  "stairs_obsidian_glass_stairside": {
+    "class": "glass",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "stairs_obsidian_glass_stairside.png"
+  },
+  "sun": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "sun.png"
+  },
+  "sunrisebg": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      512,
+      85
+    ],
+    "source": "sunrisebg.png"
+  },
+  "tnt_blast": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "tnt_blast.png"
+  },
+  "tnt_boom": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "tnt_boom.png"
+  },
+  "tnt_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "tnt_bottom.png"
+  },
+  "tnt_gunpowder_burning_crossing_animated": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      256
+    ],
+    "source": "tnt_gunpowder_burning_crossing_animated.png"
+  },
+  "tnt_gunpowder_burning_curved_animated": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      256
+    ],
+    "source": "tnt_gunpowder_burning_curved_animated.png"
+  },
+  "tnt_gunpowder_burning_straight_animated": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      256
+    ],
+    "source": "tnt_gunpowder_burning_straight_animated.png"
+  },
+  "tnt_gunpowder_burning_t_junction_animated": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      256
+    ],
+    "source": "tnt_gunpowder_burning_t_junction_animated.png"
+  },
+  "tnt_gunpowder_crossing": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "tnt_gunpowder_crossing.png"
+  },
+  "tnt_gunpowder_curved": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "tnt_gunpowder_curved.png"
+  },
+  "tnt_gunpowder_inventory": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "tnt_gunpowder_inventory.png"
+  },
+  "tnt_gunpowder_straight": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "tnt_gunpowder_straight.png"
+  },
+  "tnt_gunpowder_t_junction": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "tnt_gunpowder_t_junction.png"
+  },
+  "tnt_side": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "tnt_side.png"
+  },
+  "tnt_smoke": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "tnt_smoke.png"
+  },
+  "tnt_tnt_stick": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "tnt_tnt_stick.png"
+  },
+  "tnt_top": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "tnt_top.png"
+  },
+  "tnt_top_burning": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "tnt_top_burning.png"
+  },
+  "tnt_top_burning_animated": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      256
+    ],
+    "source": "tnt_top_burning_animated.png"
+  },
+  "unknown_item": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "unknown_item.png"
+  },
+  "unknown_node": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "unknown_node.png"
+  },
+  "unknown_object": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "unknown_object.png"
+  },
+  "vessels_drinking_glass": {
+    "class": "glass",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "vessels_drinking_glass.png"
+  },
+  "vessels_drinking_glass_inv": {
+    "class": "glass",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "vessels_drinking_glass_inv.png"
+  },
+  "vessels_glass_bottle": {
+    "class": "glass",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      60,
+      64
+    ],
+    "source": "vessels_glass_bottle.png"
+  },
+  "vessels_glass_bottle_inv": {
+    "class": "glass",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      60,
+      64
+    ],
+    "source": "vessels_glass_bottle_inv.png"
+  },
+  "vessels_glass_fragments": {
+    "class": "glass",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "vessels_glass_fragments.png"
+  },
+  "vessels_shelf": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "vessels_shelf.png"
+  },
+  "vessels_shelf_slot": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "vessels_shelf_slot.png"
+  },
+  "vessels_steel_bottle": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "vessels_steel_bottle.png"
+  },
+  "vessels_steel_bottle_inv": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      64,
+      64
+    ],
+    "source": "vessels_steel_bottle_inv.png"
+  },
+  "wieldhand": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "wieldhand.png"
+  },
+  "wool_black": {
+    "class": "cloth",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "wool_black.png"
+  },
+  "wool_blue": {
+    "class": "cloth",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "wool_blue.png"
+  },
+  "wool_brown": {
+    "class": "cloth",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "wool_brown.png"
+  },
+  "wool_cyan": {
+    "class": "cloth",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "wool_cyan.png"
+  },
+  "wool_dark_green": {
+    "class": "cloth",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "wool_dark_green.png"
+  },
+  "wool_dark_grey": {
+    "class": "cloth",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "wool_dark_grey.png"
+  },
+  "wool_green": {
+    "class": "cloth",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "wool_green.png"
+  },
+  "wool_grey": {
+    "class": "cloth",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "wool_grey.png"
+  },
+  "wool_magenta": {
+    "class": "cloth",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "wool_magenta.png"
+  },
+  "wool_orange": {
+    "class": "cloth",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "wool_orange.png"
+  },
+  "wool_pink": {
+    "class": "cloth",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "wool_pink.png"
+  },
+  "wool_red": {
+    "class": "cloth",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "wool_red.png"
+  },
+  "wool_violet": {
+    "class": "cloth",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "wool_violet.png"
+  },
+  "wool_white": {
+    "class": "cloth",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "wool_white.png"
+  },
+  "wool_yellow": {
+    "class": "cloth",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "wool_yellow.png"
+  },
+  "xpanes_bar": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "xpanes_bar.png"
+  },
+  "xpanes_bar_top": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC0-1.0",
+    "package": "drummyfish",
+    "release": 834,
+    "size": [
+      128,
+      128
+    ],
+    "source": "xpanes_bar_top.png"
+  }
+}

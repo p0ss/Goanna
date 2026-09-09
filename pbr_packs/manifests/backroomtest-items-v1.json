@@ -1,0 +1,41 @@
+[
+  {
+    "drawtype": "normal",
+    "groups": {
+      "metal": 1
+    },
+    "sound_footstep": "default_metal_footstep",
+    "tiles": [
+      "aom_wrench.png",
+      "br_key_2.png",
+      "br_key_3.png",
+      "br_key_4.png",
+      "br_key_tool.png"
+    ]
+  },
+  {
+    "drawtype": "normal",
+    "groups": {},
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "aom_admin_tools_camera.png",
+      "aom_admin_tools_fill.png",
+      "aom_admin_tools_paint.png",
+      "aom_admin_tools_ruler.png",
+      "aom_admin_tools_teleport_to.png",
+      "aom_admin_tools_util.png",
+      "br_can_base.png",
+      "br_canned_beans_0.png",
+      "br_canned_beans_1.png",
+      "br_canned_fruit_0.png",
+      "br_canned_fruit_1.png",
+      "br_carton_banana_juice.png",
+      "br_carton_orange_juice.png",
+      "br_duct_tape.png",
+      "br_flashlight.png",
+      "br_flashlight_off.png",
+      "br_rag.png",
+      "br_use_when_stuck.png"
+    ]
+  }
+]

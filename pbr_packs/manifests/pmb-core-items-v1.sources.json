@@ -1,0 +1,722 @@
+{
+  "aom_admin_tools_camera": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_packs/aom_admin_tools/textures/aom_admin_tools_camera.png"
+  },
+  "aom_admin_tools_fill": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_packs/aom_admin_tools/textures/aom_admin_tools_fill.png"
+  },
+  "aom_admin_tools_paint": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_packs/aom_admin_tools/textures/aom_admin_tools_paint.png"
+  },
+  "aom_admin_tools_ruler": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_packs/aom_admin_tools/textures/aom_admin_tools_ruler.png"
+  },
+  "aom_admin_tools_teleport_to": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_packs/aom_admin_tools/textures/aom_admin_tools_teleport_to.png"
+  },
+  "aom_admin_tools_util": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_packs/aom_admin_tools/textures/aom_admin_tools_util.png"
+  },
+  "aom_animal_meat": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_entities/aom_animals/textures/aom_animal_meat.png"
+  },
+  "aom_baked_potato": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_core/aom_food/textures/aom_baked_potato.png"
+  },
+  "aom_bow_0": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_packs/aom_bow/textures/aom_bow_0.png"
+  },
+  "aom_bronze_axe": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_craftitems/aom_tools/textures/aom_bronze_axe.png"
+  },
+  "aom_bronze_bar": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_craftitems/aom_items/textures/aom_bronze_bar.png"
+  },
+  "aom_bronze_nugget": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_craftitems/aom_items/textures/aom_bronze_nugget.png"
+  },
+  "aom_bronze_pickaxe": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_craftitems/aom_tools/textures/aom_bronze_pickaxe.png"
+  },
+  "aom_bronze_sheet": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_craftitems/aom_items/textures/aom_bronze_sheet.png"
+  },
+  "aom_charcoal": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_craftitems/aom_items/textures/aom_charcoal.png"
+  },
+  "aom_clay_ball": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_craftitems/aom_items/textures/aom_clay_ball.png"
+  },
+  "aom_coal": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_craftitems/aom_items/textures/aom_coal.png"
+  },
+  "aom_cooked_animal_meat": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_core/aom_food/textures/aom_cooked_animal_meat.png"
+  },
+  "aom_copper_bar": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_craftitems/aom_items/textures/aom_copper_bar.png"
+  },
+  "aom_copper_nugget": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_craftitems/aom_items/textures/aom_copper_nugget.png"
+  },
+  "aom_copper_sheet": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_craftitems/aom_items/textures/aom_copper_sheet.png"
+  },
+  "aom_diamond": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_craftitems/aom_items/textures/aom_diamond.png"
+  },
+  "aom_diamond_axe": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_craftitems/aom_tools/textures/aom_diamond_axe.png"
+  },
+  "aom_diamond_pickaxe": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_craftitems/aom_tools/textures/aom_diamond_pickaxe.png"
+  },
+  "aom_elemental_core_magma": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_entities/aom_elementals/textures/aom_elemental_core_magma.png"
+  },
+  "aom_elemental_core_stone": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_entities/aom_elementals/textures/aom_elemental_core_stone.png"
+  },
+  "aom_explosives_dynamite": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_packs/aom_explosives/textures/aom_explosives_dynamite.png"
+  },
+  "aom_flax_bundle": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_nodes/aom_flora/textures/aom_flax_bundle.png"
+  },
+  "aom_flint_and_steel": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_packs/aom_fire/textures/aom_flint_and_steel.png"
+  },
+  "aom_glowroot": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_nodes/aom_flora/textures/aom_glowroot.png"
+  },
+  "aom_glowroot_soup": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_core/aom_food/textures/aom_glowroot_soup.png"
+  },
+  "aom_gold_bar": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_craftitems/aom_items/textures/aom_gold_bar.png"
+  },
+  "aom_gold_gilding": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_packs/aom_fengold/textures/aom_gold_gilding.png"
+  },
+  "aom_gold_nugget": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_craftitems/aom_items/textures/aom_gold_nugget.png"
+  },
+  "aom_gold_sheet": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_craftitems/aom_items/textures/aom_gold_sheet.png"
+  },
+  "aom_hammer_iron_hammer": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_packs/aom_hammer/textures/aom_hammer_iron_hammer.png"
+  },
+  "aom_ignis_nugget": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_craftitems/aom_items/textures/aom_ignis_nugget.png"
+  },
+  "aom_iron_axe": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_craftitems/aom_tools/textures/aom_iron_axe.png"
+  },
+  "aom_iron_bar": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_craftitems/aom_items/textures/aom_iron_bar.png"
+  },
+  "aom_iron_nugget": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_craftitems/aom_items/textures/aom_iron_nugget.png"
+  },
+  "aom_iron_pickaxe": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_craftitems/aom_tools/textures/aom_iron_pickaxe.png"
+  },
+  "aom_iron_sheet": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_craftitems/aom_items/textures/aom_iron_sheet.png"
+  },
+  "aom_items_gunpowder": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_craftitems/aom_items/textures/aom_items_gunpowder.png"
+  },
+  "aom_items_nitrite": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_craftitems/aom_items/textures/aom_items_nitrite.png"
+  },
+  "aom_items_sulphur": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_craftitems/aom_items/textures/aom_items_sulphur.png"
+  },
+  "aom_lantern_iron": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_packs/aom_lantern/textures/aom_lantern_iron.png"
+  },
+  "aom_lapis": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_craftitems/aom_items/textures/aom_lapis.png"
+  },
+  "aom_longship_bronze_nails": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_packs/aom_longship/textures/aom_longship_bronze_nails.png"
+  },
+  "aom_longship_hull_planks": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_packs/aom_longship/textures/aom_longship_hull_planks.png"
+  },
+  "aom_mushroom_soup": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_core/aom_food/textures/aom_mushroom_soup.png"
+  },
+  "aom_muskets_blunderbuss": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_packs/aom_muskets/textures/aom_muskets_blunderbuss.png"
+  },
+  "aom_muskets_blunderbuss_loaded": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_packs/aom_muskets/textures/aom_muskets_blunderbuss_loaded.png"
+  },
+  "aom_muskets_mechanism": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_packs/aom_muskets/textures/aom_muskets_mechanism.png"
+  },
+  "aom_muskets_pistol": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_packs/aom_muskets/textures/aom_muskets_pistol.png"
+  },
+  "aom_muskets_pistol_loaded": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_packs/aom_muskets/textures/aom_muskets_pistol_loaded.png"
+  },
+  "aom_muskets_rifle": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_packs/aom_muskets/textures/aom_muskets_rifle.png"
+  },
+  "aom_muskets_rifle_loading": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_packs/aom_muskets/textures/aom_muskets_rifle_loading.png"
+  },
+  "aom_plant_fibre": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_craftitems/aom_items/textures/aom_plant_fibre.png"
+  },
+  "aom_pumpkin_cooked": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_core/aom_food/textures/aom_pumpkin_cooked.png"
+  },
+  "aom_pumpkin_soup": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_core/aom_food/textures/aom_pumpkin_soup.png"
+  },
+  "aom_rope_coil": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_nodes/aom_rope/textures/aom_rope_coil.png"
+  },
+  "aom_stick": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_craftitems/aom_items/textures/aom_stick.png"
+  },
+  "aom_stone_axe": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_craftitems/aom_tools/textures/aom_stone_axe.png"
+  },
+  "aom_stone_pickaxe": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_craftitems/aom_tools/textures/aom_stone_pickaxe.png"
+  },
+  "aom_tin_bar": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_craftitems/aom_items/textures/aom_tin_bar.png"
+  },
+  "aom_tin_nugget": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_craftitems/aom_items/textures/aom_tin_nugget.png"
+  },
+  "aom_tin_sheet": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_craftitems/aom_items/textures/aom_tin_sheet.png"
+  },
+  "aom_underworld_cortite": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_packs/aom_underworld/textures/aom_underworld_cortite.png"
+  },
+  "aom_underworld_cortite_rod": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_packs/aom_underworld/textures/aom_underworld_cortite_rod.png"
+  },
+  "aom_underworld_cortite_sceptre": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_packs/aom_underworld/textures/aom_underworld_cortite_sceptre.png"
+  },
+  "aom_underworld_lava_coral_bulb": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_packs/aom_underworld/textures/aom_underworld_lava_coral_bulb.png"
+  },
+  "aom_underworld_mythril": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_packs/aom_underworld/textures/aom_underworld_mythril.png"
+  },
+  "aom_underworld_mythril_hammer": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_packs/aom_underworld/textures/aom_underworld_mythril_hammer.png"
+  },
+  "aom_underworld_mythril_pickaxe": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_packs/aom_underworld/textures/aom_underworld_mythril_pickaxe.png"
+  },
+  "aom_underworld_mythril_strand": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_packs/aom_underworld/textures/aom_underworld_mythril_strand.png"
+  },
+  "aom_warpberry_gold": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_nodes/aom_flora/textures/aom_warpberry_gold.png"
+  },
+  "aom_warpberry_purple": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_nodes/aom_flora/textures/aom_warpberry_purple.png"
+  },
+  "aom_wire_welder": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_packs/aom_machines/textures/aom_wire_welder.png"
+  },
+  "aom_wire_wirecutters": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_packs/aom_machines/textures/aom_wire_wirecutters.png"
+  },
+  "aom_wolf_fang": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_entities/aom_animals/textures/aom_wolf_fang.png"
+  },
+  "aom_wolf_pelt": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_entities/aom_animals/textures/aom_wolf_pelt.png"
+  },
+  "aom_wooden_bowl": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_craftitems/aom_items/textures/aom_wooden_bowl.png"
+  },
+  "aom_wooden_bucket": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_craftitems/aom_items/textures/aom_wooden_bucket.png"
+  },
+  "aom_wooden_bucket_water": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_craftitems/aom_items/textures/aom_wooden_bucket_water.png"
+  },
+  "aom_wooden_cup": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_craftitems/aom_items/textures/aom_wooden_cup.png"
+  },
+  "aom_wooden_cup_water": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_craftitems/aom_items/textures/aom_wooden_cup_water.png"
+  },
+  "aom_wrench": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_packs/aom_wrench/textures/aom_wrench.png"
+  },
+  "sum_airship": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_packs/sum_airship/textures/sum_airship.png"
+  },
+  "sum_airship_canvas": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_packs/sum_airship/textures/sum_airship_canvas.png"
+  },
+  "sum_airship_hull": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_packs/sum_airship/textures/sum_airship_hull.png"
+  }
+}

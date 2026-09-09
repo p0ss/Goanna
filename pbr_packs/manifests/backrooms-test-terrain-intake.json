@@ -1,0 +1,41 @@
+[
+  {
+    "drawtype": "normal",
+    "groups": {},
+    "sound_footstep": "default_cloth_footstep",
+    "tiles": [
+      "br_carpet_0.png",
+      "br_wallpaper_0.png"
+    ]
+  },
+  {
+    "drawtype": "normal",
+    "groups": {},
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "br_barrier.png",
+      "br_ceiling_light_0.png",
+      "br_ceiling_light_1.png",
+      "br_ceiling_tiles_0.png",
+      "br_degrotator.png",
+      "br_drawers_0.png",
+      "br_emergency_light_0.png",
+      "br_emergency_light_0_side.png",
+      "br_fire_alarm.png",
+      "br_fridge_0.png",
+      "br_locker_top_0.png",
+      "br_oven_0.png",
+      "br_power_socket.png",
+      "br_sign_exclaim.png",
+      "br_sign_exit.png",
+      "br_sign_exit_side.png",
+      "br_sign_no_entry.png",
+      "br_sign_phone.png",
+      "br_sign_x.png",
+      "br_tiles_0.png",
+      "br_tiles_1.png",
+      "br_tiles_2.png",
+      "br_white.png"
+    ]
+  }
+]

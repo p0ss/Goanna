@@ -1,0 +1,520 @@
+{
+  "schema_version": 1,
+  "review_version": "pmb-core-models-v1",
+  "textures": {
+    "aom_animals_pipslug": {
+      "source_package": "pmb_core",
+      "primary_material": "skin",
+      "secondary_materials": [
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.12,
+      "smoothness_max": 0.48,
+      "relief_strength": 0.25,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.9,
+      "rationale": "Pipslug creature UV atlas; preserve painted features and atlas islands.",
+      "review_required": false,
+      "risks": [
+        "uv_atlas",
+        "do_not_tile"
+      ]
+    },
+    "aom_animals_pipslug_spit": {
+      "source_package": "pmb_core",
+      "primary_material": "organic",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.15,
+      "smoothness_max": 0.55,
+      "relief_strength": 0.12,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.78,
+      "rationale": "Small projectile-model texture; keep relief very shallow and review at model scale.",
+      "review_required": true,
+      "risks": [
+        "uv_atlas",
+        "do_not_tile",
+        "rendered_model_review"
+      ]
+    },
+    "aom_deer": {
+      "source_package": "pmb_core",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.32,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.9,
+      "rationale": "Deer fur UV atlas; preserve eyes, markings and seams.",
+      "review_required": false,
+      "risks": [
+        "uv_atlas",
+        "do_not_tile"
+      ]
+    },
+    "aom_wolf": {
+      "source_package": "pmb_core",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.9,
+      "rationale": "Wolf fur UV atlas; preserve eyes, markings and seams.",
+      "review_required": false,
+      "risks": [
+        "uv_atlas",
+        "do_not_tile"
+      ]
+    },
+    "aom_elemental_magma": {
+      "source_package": "pmb_core",
+      "primary_material": "mixed",
+      "secondary_materials": [
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.08,
+      "smoothness_max": 0.42,
+      "relief_strength": 0.55,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.78,
+      "rationale": "Magma elemental UV atlas; emissive-looking paint must not become metallic and needs rendered review.",
+      "review_required": true,
+      "risks": [
+        "uv_atlas",
+        "do_not_tile",
+        "rendered_model_review"
+      ]
+    },
+    "aom_elemental_stone": {
+      "source_package": "pmb_core",
+      "primary_material": "mixed",
+      "secondary_materials": [
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.04,
+      "smoothness_max": 0.28,
+      "relief_strength": 0.58,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.78,
+      "rationale": "Stone elemental UV atlas with strong rocky relief; protect atlas seams.",
+      "review_required": true,
+      "risks": [
+        "uv_atlas",
+        "do_not_tile",
+        "rendered_model_review"
+      ]
+    },
+    "aom_elemental_core_magma": {
+      "source_package": "pmb_core",
+      "primary_material": "mixed",
+      "secondary_materials": [
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.08,
+      "smoothness_max": 0.4,
+      "relief_strength": 0.4,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.78,
+      "rationale": "Elemental core sub-material used with the model; review registration and emissive appearance.",
+      "review_required": true,
+      "risks": [
+        "uv_atlas",
+        "do_not_tile",
+        "rendered_model_review"
+      ]
+    },
+    "aom_elemental_core_stone": {
+      "source_package": "pmb_core",
+      "primary_material": "mixed",
+      "secondary_materials": [
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.04,
+      "smoothness_max": 0.26,
+      "relief_strength": 0.45,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.78,
+      "rationale": "Elemental stone-core sub-material; review registration with the parent atlas.",
+      "review_required": true,
+      "risks": [
+        "uv_atlas",
+        "do_not_tile",
+        "rendered_model_review"
+      ]
+    },
+    "aom_fenn": {
+      "source_package": "pmb_core",
+      "primary_material": "mixed",
+      "secondary_materials": [
+        "skin",
+        "cloth",
+        "wood"
+      ],
+      "metalness_policy": "partial",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.45,
+      "relief_strength": 0.26,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.78,
+      "rationale": "Fenn humanoid atlas mixes skin, cloth and equipment; any metalness requires an explicit mask.",
+      "review_required": true,
+      "risks": [
+        "uv_atlas",
+        "do_not_tile",
+        "rendered_model_review"
+      ]
+    },
+    "aom_fenn_spear": {
+      "source_package": "pmb_core",
+      "primary_material": "mixed",
+      "secondary_materials": [
+        "wood",
+        "metal"
+      ],
+      "metalness_policy": "partial",
+      "smoothness_min": 0.08,
+      "smoothness_max": 0.5,
+      "relief_strength": 0.28,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.78,
+      "rationale": "Spear model texture mixes shaft and point; mask metal and preserve narrow UV layout.",
+      "review_required": true,
+      "risks": [
+        "uv_atlas",
+        "do_not_tile",
+        "rendered_model_review"
+      ]
+    },
+    "aom_goblins_goblin": {
+      "source_package": "pmb_core",
+      "primary_material": "mixed",
+      "secondary_materials": [
+        "skin",
+        "cloth"
+      ],
+      "metalness_policy": "partial",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.45,
+      "relief_strength": 0.28,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.78,
+      "rationale": "Goblin UV atlas mixes skin, clothing and equipment; material regions require masks.",
+      "review_required": true,
+      "risks": [
+        "uv_atlas",
+        "do_not_tile",
+        "rendered_model_review"
+      ]
+    },
+    "aom_kelar": {
+      "source_package": "pmb_core",
+      "primary_material": "skin",
+      "secondary_materials": [
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.08,
+      "smoothness_max": 0.4,
+      "relief_strength": 0.3,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.78,
+      "rationale": "Kelar creature UV atlas; preserve painted facial features and review unknown biological surface.",
+      "review_required": true,
+      "risks": [
+        "uv_atlas",
+        "do_not_tile",
+        "rendered_model_review"
+      ]
+    },
+    "aom_kelar_rock": {
+      "source_package": "pmb_core",
+      "primary_material": "mixed",
+      "secondary_materials": [
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.04,
+      "smoothness_max": 0.26,
+      "relief_strength": 0.5,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.78,
+      "rationale": "Rock projectile/model texture; strong mineral relief but no tiling.",
+      "review_required": true,
+      "risks": [
+        "uv_atlas",
+        "do_not_tile",
+        "rendered_model_review"
+      ]
+    },
+    "aom_seelie_shrine": {
+      "source_package": "pmb_core",
+      "primary_material": "mixed",
+      "secondary_materials": [
+        "wood",
+        "metal"
+      ],
+      "metalness_policy": "partial",
+      "smoothness_min": 0.07,
+      "smoothness_max": 0.48,
+      "relief_strength": 0.3,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.78,
+      "rationale": "Shrine model atlas mixes constructed materials; requires per-region material review.",
+      "review_required": true,
+      "risks": [
+        "uv_atlas",
+        "do_not_tile",
+        "rendered_model_review"
+      ]
+    },
+    "aom_seelie_shrine_orb": {
+      "source_package": "pmb_core",
+      "primary_material": "mixed",
+      "secondary_materials": [
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.12,
+      "smoothness_max": 0.55,
+      "relief_strength": 0.12,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.78,
+      "rationale": "Orb model texture; preserve luminous paint and avoid invented metallic response.",
+      "review_required": true,
+      "risks": [
+        "uv_atlas",
+        "do_not_tile",
+        "rendered_model_review"
+      ]
+    },
+    "aom_nolan": {
+      "source_package": "pmb_core",
+      "primary_material": "mixed",
+      "secondary_materials": [
+        "skin",
+        "cloth"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.38,
+      "relief_strength": 0.22,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.78,
+      "rationale": "Humanoid UV atlas combining skin and clothing; review on the target player model.",
+      "review_required": true,
+      "risks": [
+        "uv_atlas",
+        "do_not_tile",
+        "rendered_model_review"
+      ]
+    },
+    "aom_tim": {
+      "source_package": "pmb_core",
+      "primary_material": "mixed",
+      "secondary_materials": [
+        "skin",
+        "cloth"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.38,
+      "relief_strength": 0.22,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.78,
+      "rationale": "Humanoid UV atlas combining skin and clothing; review on the target player model.",
+      "review_required": true,
+      "risks": [
+        "uv_atlas",
+        "do_not_tile",
+        "rendered_model_review"
+      ]
+    },
+    "clive": {
+      "source_package": "pmb_core",
+      "primary_material": "skin",
+      "secondary_materials": [
+        "cloth",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.38,
+      "relief_strength": 0.22,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.9,
+      "rationale": "Primary humanoid UV atlas; preserve face, clothing boundaries and UV islands.",
+      "review_required": false,
+      "risks": [
+        "uv_atlas",
+        "do_not_tile"
+      ]
+    },
+    "clive_overlay": {
+      "source_package": "pmb_core",
+      "primary_material": "cloth",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.04,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.18,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.78,
+      "rationale": "Humanoid overlay atlas; review registered against clive.png.",
+      "review_required": true,
+      "risks": [
+        "uv_atlas",
+        "do_not_tile",
+        "rendered_model_review"
+      ]
+    },
+    "humanoid": {
+      "source_package": "pmb_core",
+      "primary_material": "mixed",
+      "secondary_materials": [
+        "skin",
+        "cloth"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.38,
+      "relief_strength": 0.2,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.78,
+      "rationale": "Generic humanoid UV atlas with painted skin and clothing.",
+      "review_required": true,
+      "risks": [
+        "uv_atlas",
+        "do_not_tile",
+        "rendered_model_review"
+      ]
+    },
+    "aom_longship": {
+      "source_package": "pmb_core",
+      "primary_material": "mixed",
+      "secondary_materials": [
+        "wood",
+        "cloth",
+        "metal"
+      ],
+      "metalness_policy": "partial",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.48,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.78,
+      "rationale": "Large vehicle UV atlas mixing hull, sail and fittings; requires explicit metal mask and full-model review.",
+      "review_required": true,
+      "risks": [
+        "uv_atlas",
+        "do_not_tile",
+        "rendered_model_review"
+      ]
+    },
+    "sum_airship_texture": {
+      "source_package": "pmb_core",
+      "primary_material": "mixed",
+      "secondary_materials": [
+        "cloth",
+        "wood",
+        "metal"
+      ],
+      "metalness_policy": "partial",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.5,
+      "relief_strength": 0.28,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.78,
+      "rationale": "Airship UV atlas mixes canvas, hull and fittings; require material masks and turntable review.",
+      "review_required": true,
+      "risks": [
+        "uv_atlas",
+        "do_not_tile",
+        "rendered_model_review"
+      ]
+    },
+    "aom_underworld_coral_bug": {
+      "source_package": "pmb_core",
+      "primary_material": "organic",
+      "secondary_materials": [
+        "skin"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.08,
+      "smoothness_max": 0.42,
+      "relief_strength": 0.3,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.88,
+      "rationale": "Underworld coral-bug creature UV atlas; preserve painted features and atlas islands without edge wrapping.",
+      "review_required": false,
+      "risks": [
+        "uv_atlas",
+        "do_not_tile"
+      ]
+    },
+    "gm_windmills_rocket": {
+      "source_package": "pmb_core",
+      "primary_material": "metal",
+      "secondary_materials": [
+        "mixed"
+      ],
+      "metalness_policy": "predominant",
+      "smoothness_min": 0.2,
+      "smoothness_max": 0.62,
+      "relief_strength": 0.18,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.84,
+      "rationale": "Rocket model UV texture is predominantly painted metal; preserve panel markings and do not treat flame/smoke effect sprites as part of this atlas.",
+      "review_required": true,
+      "risks": [
+        "uv_atlas",
+        "do_not_tile",
+        "rendered_model_review",
+        "dark_metal_guard"
+      ]
+    }
+  }
+}

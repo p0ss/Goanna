@@ -1,0 +1,22 @@
+[
+  {
+    "drawtype": "normal",
+    "groups": {},
+    "sound_footstep": "default_cloth_footstep",
+    "tiles": [
+      "br_carpet_0.png",
+      "br_wallpaper_0.png"
+    ]
+  },
+  {
+    "drawtype": "normal",
+    "groups": {},
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "br_ceiling_tiles_0.png",
+      "br_tiles_0.png",
+      "br_tiles_1.png",
+      "br_tiles_2.png"
+    ]
+  }
+]

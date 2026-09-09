@@ -1,0 +1,962 @@
+{
+  "advtrains_boiler": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains/textures/advtrains_boiler.png"
+  },
+  "advtrains_chimney": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains/textures/advtrains_chimney.png"
+  },
+  "advtrains_copytool": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains/textures/advtrains_copytool.png"
+  },
+  "advtrains_driver_cab": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains/textures/advtrains_driver_cab.png"
+  },
+  "advtrains_track_swlcr_45": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains_train_track/textures/advtrains_track_swlcr_45.png"
+  },
+  "advtrains_trackworker": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains/textures/advtrains_trackworker.png"
+  },
+  "advtrains_wheel": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains/textures/advtrains_wheel.png"
+  },
+  "animalia_beef_cooked": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_beef_cooked.png"
+  },
+  "animalia_beef_raw": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_beef_raw.png"
+  },
+  "animalia_cat_toy": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_cat_toy.png"
+  },
+  "animalia_feather": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_feather.png"
+  },
+  "animalia_guano_bucket": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_guano_bucket.png"
+  },
+  "animalia_lasso": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_lasso.png"
+  },
+  "animalia_leather": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_leather.png"
+  },
+  "animalia_libri_animalia": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_libri_animalia.png"
+  },
+  "animalia_milk_bucket": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_milk_bucket.png"
+  },
+  "animalia_mutton_cooked": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_mutton_cooked.png"
+  },
+  "animalia_mutton_raw": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_mutton_raw.png"
+  },
+  "animalia_nametag": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_nametag.png"
+  },
+  "animalia_net": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_net.png"
+  },
+  "animalia_pelt_bear": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_pelt_bear.png"
+  },
+  "animalia_porkchop_cooked": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_porkchop_cooked.png"
+  },
+  "animalia_porkchop_raw": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_porkchop_raw.png"
+  },
+  "animalia_poultry_cooked": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_poultry_cooked.png"
+  },
+  "animalia_poultry_raw": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_poultry_raw.png"
+  },
+  "animalia_rat_cooked": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_rat_cooked.png"
+  },
+  "animalia_rat_raw": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_rat_raw.png"
+  },
+  "animalia_saddle": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_saddle.png"
+  },
+  "animalia_shears": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_shears.png"
+  },
+  "animalia_venison_cooked": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_venison_cooked.png"
+  },
+  "animalia_venison_raw": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_venison_raw.png"
+  },
+  "at_il_tool": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains_interlocking/textures/at_il_tool.png"
+  },
+  "atlatc_pcnaming": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains_luaautomation/textures/atlatc_pcnaming.png"
+  },
+  "drwho_screwdriver": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains/textures/drwho_screwdriver.png"
+  },
+  "jeija_fpga_programmer": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_fpga/textures/jeija_fpga_programmer.png"
+  },
+  "jeija_power_plant": {
+    "class": "organic",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_powerplant/textures/jeija_power_plant.png"
+  },
+  "jeija_torches_off": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_torch/textures/jeija_torches_off.png"
+  },
+  "jeija_torches_on": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_torch/textures/jeija_torches_on.png"
+  },
+  "mesecons_fiber": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_materials/textures/mesecons_fiber.png"
+  },
+  "mesecons_glue": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_materials/textures/mesecons_glue.png"
+  },
+  "moreblocks_sweeper": {
+    "class": "stone",
+    "collisions": [],
+    "package": "moreblocks",
+    "source": "moreblocks/moreblocks/textures/moreblocks_sweeper.png"
+  },
+  "morelights_bulb": {
+    "class": "stone",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights/textures/morelights_bulb.png"
+  },
+  "naturalbiomes_Bambooforest_bamboo_leaves": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_Bambooforest_bamboo_leaves.png"
+  },
+  "naturalbiomes__banana_leaf": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes__banana_leaf.png"
+  },
+  "naturalbiomes__banana_tree_sapling": {
+    "class": "wood",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes__banana_tree_sapling.png"
+  },
+  "naturalbiomes__fresholives": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes__fresholives.png"
+  },
+  "naturalbiomes_adler_yellowflower": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_adler_yellowflower.png"
+  },
+  "naturalbiomes_alderswamp_alder_leaves": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_alderswamp_alder_leaves.png"
+  },
+  "naturalbiomes_alderswamp_reedbrown": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_alderswamp_reedbrown.png"
+  },
+  "naturalbiomes_alderswamp_reeds": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_alderswamp_reeds.png"
+  },
+  "naturalbiomes_alderswamp_reeds2": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_alderswamp_reeds2.png"
+  },
+  "naturalbiomes_alderswamp_reeds3": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_alderswamp_reeds3.png"
+  },
+  "naturalbiomes_alderswamp_sapling": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_alderswamp_sapling.png"
+  },
+  "naturalbiomes_alpine_cowberry_fruit": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_alpine_cowberry_fruit.png"
+  },
+  "naturalbiomes_alpine_cowberry_leaves": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_alpine_cowberry_leaves.png"
+  },
+  "naturalbiomes_alpine_cowberry_sapling": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_alpine_cowberry_sapling.png"
+  },
+  "naturalbiomes_alpine_cowberry_stem": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_alpine_cowberry_stem.png"
+  },
+  "naturalbiomes_alpine_dandelion": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_alpine_dandelion.png"
+  },
+  "naturalbiomes_alpine_edelweiss": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_alpine_edelweiss.png"
+  },
+  "naturalbiomes_alpine_grass1": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_alpine_grass1.png"
+  },
+  "naturalbiomes_alpine_grass2": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_alpine_grass2.png"
+  },
+  "naturalbiomes_alpine_grass3": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_alpine_grass3.png"
+  },
+  "naturalbiomes_alpine_mushroom": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_alpine_mushroom.png"
+  },
+  "naturalbiomes_alpine_pine1_leaves": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_alpine_pine1_leaves.png"
+  },
+  "naturalbiomes_alpine_pine1_sapling": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_alpine_pine1_sapling.png"
+  },
+  "naturalbiomes_alpine_pine2_leaves": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_alpine_pine2_leaves.png"
+  },
+  "naturalbiomes_alpine_pine2_sapling": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_alpine_pine2_sapling.png"
+  },
+  "naturalbiomes_bambooforest_bamboo_sapling": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_bambooforest_bamboo_sapling.png"
+  },
+  "naturalbiomes_bambooforest_bamboo_trunksmall": {
+    "class": "wood",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_bambooforest_bamboo_trunksmall.png"
+  },
+  "naturalbiomes_bambooforest_groundgrass": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_bambooforest_groundgrass.png"
+  },
+  "naturalbiomes_bambooforest_groundgrass2": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_bambooforest_groundgrass2.png"
+  },
+  "naturalbiomes_banana_bunch": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_banana_bunch.png"
+  },
+  "naturalbiomes_banana_single": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_banana_single.png"
+  },
+  "naturalbiomes_beach_bush_leaves": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_beach_bush_leaves.png"
+  },
+  "naturalbiomes_beach_bush_stem": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_beach_bush_stem.png"
+  },
+  "naturalbiomes_beach_grass": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_beach_grass.png"
+  },
+  "naturalbiomes_beach_grass2": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_beach_grass2.png"
+  },
+  "naturalbiomes_beach_grass3": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_beach_grass3.png"
+  },
+  "naturalbiomes_bushland_blackberries": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_bushland_blackberries.png"
+  },
+  "naturalbiomes_bushland_blackberry_leaves": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_bushland_blackberry_leaves.png"
+  },
+  "naturalbiomes_bushland_blackberry_leaves2": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_bushland_blackberry_leaves2.png"
+  },
+  "naturalbiomes_bushland_blackberry_sapling": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_bushland_blackberry_sapling.png"
+  },
+  "naturalbiomes_bushland_blackberry_stem": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_bushland_blackberry_stem.png"
+  },
+  "naturalbiomes_bushland_deadbush_leaves": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_bushland_deadbush_leaves.png"
+  },
+  "naturalbiomes_bushland_grass": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_bushland_grass.png"
+  },
+  "naturalbiomes_bushland_grass2": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_bushland_grass2.png"
+  },
+  "naturalbiomes_bushland_grass3": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_bushland_grass3.png"
+  },
+  "naturalbiomes_bushland_grass4": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_bushland_grass4.png"
+  },
+  "naturalbiomes_bushland_grass5": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_bushland_grass5.png"
+  },
+  "naturalbiomes_bushland_grass6": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_bushland_grass6.png"
+  },
+  "naturalbiomes_bushland_grass7": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_bushland_grass7.png"
+  },
+  "naturalbiomes_bushland_hazelnut": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_bushland_hazelnut.png"
+  },
+  "naturalbiomes_bushland_hazelnut_cracked": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_bushland_hazelnut_cracked.png"
+  },
+  "naturalbiomes_bushland_hazelnut_leaves": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_bushland_hazelnut_leaves.png"
+  },
+  "naturalbiomes_bushland_hazelnut_leaves2": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_bushland_hazelnut_leaves2.png"
+  },
+  "naturalbiomes_bushland_hazelnut_sapling": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_bushland_hazelnut_sapling.png"
+  },
+  "naturalbiomes_bushland_hazelnut_stem": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_bushland_hazelnut_stem.png"
+  },
+  "naturalbiomes_bushland_wildrose": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_bushland_wildrose.png"
+  },
+  "naturalbiomes_bushland_wildrose_leaves": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_bushland_wildrose_leaves.png"
+  },
+  "naturalbiomes_bushland_wildrose_leaves2": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_bushland_wildrose_leaves2.png"
+  },
+  "naturalbiomes_bushland_wildrose_sapling": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_bushland_wildrose_sapling.png"
+  },
+  "naturalbiomes_bushland_wildrose_stem": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_bushland_wildrose_stem.png"
+  },
+  "naturalbiomes_coconut": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_coconut.png"
+  },
+  "naturalbiomes_coconut_slice": {
+    "class": "ice",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_coconut_slice.png"
+  },
+  "naturalbiomes_heath_birch_leaves": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_heath_birch_leaves.png"
+  },
+  "naturalbiomes_heath_birch_sapling": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_heath_birch_sapling.png"
+  },
+  "naturalbiomes_heath_grass": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_heath_grass.png"
+  },
+  "naturalbiomes_heath_grass2": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_heath_grass2.png"
+  },
+  "naturalbiomes_heath_grass3": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_heath_grass3.png"
+  },
+  "naturalbiomes_heath_heatherflower": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_heath_heatherflower.png"
+  },
+  "naturalbiomes_heath_heatherflower2": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_heath_heatherflower2.png"
+  },
+  "naturalbiomes_heath_heatherflower2node": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_heath_heatherflower2node.png"
+  },
+  "naturalbiomes_heath_heatherflower3": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_heath_heatherflower3.png"
+  },
+  "naturalbiomes_heath_heatherflower3node": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_heath_heatherflower3node.png"
+  },
+  "naturalbiomes_heath_heatherflower4": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_heath_heatherflower4.png"
+  },
+  "naturalbiomes_heath_heatherflower4node": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_heath_heatherflower4node.png"
+  },
+  "naturalbiomes_heath_heatherflowernode": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_heath_heatherflowernode.png"
+  },
+  "naturalbiomes_heath_juniper_leaves": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_heath_juniper_leaves.png"
+  },
+  "naturalbiomes_heath_juniper_sapling": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_heath_juniper_sapling.png"
+  },
+  "naturalbiomes_heath_swampgrass": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_heath_swampgrass.png"
+  },
+  "naturalbiomes_heath_swampgrass2": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_heath_swampgrass2.png"
+  },
+  "naturalbiomes_heath_willow_leaves": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_heath_willow_leaves.png"
+  },
+  "naturalbiomes_heath_willow_leaves2": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_heath_willow_leaves2.png"
+  },
+  "naturalbiomes_heath_willow_sapling": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_heath_willow_sapling.png"
+  },
+  "naturalbiomes_mediterran_cypress_leavese": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_mediterran_cypress_leavese.png"
+  },
+  "naturalbiomes_mediterran_cypress_stem": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_mediterran_cypress_stem.png"
+  },
+  "naturalbiomes_mediterran_flower1": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_mediterran_flower1.png"
+  },
+  "naturalbiomes_mediterran_flower2": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_mediterran_flower2.png"
+  },
+  "naturalbiomes_mediterran_flower3": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_mediterran_flower3.png"
+  },
+  "naturalbiomes_mediterran_grass": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_mediterran_grass.png"
+  },
+  "naturalbiomes_mediterran_grass2": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_mediterran_grass2.png"
+  },
+  "naturalbiomes_mediterran_olive_leaves": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_mediterran_olive_leaves.png"
+  },
+  "naturalbiomes_mediterran_olive_sapling": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_mediterran_olive_sapling.png"
+  },
+  "naturalbiomes_mediterran_pine_leaves": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_mediterran_pine_leaves.png"
+  },
+  "naturalbiomes_mediterran_pine_sapling": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_mediterran_pine_sapling.png"
+  },
+  "naturalbiomes_outback_bush_stem": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_outback_bush_stem.png"
+  },
+  "naturalbiomes_outbackbush_leaves": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_outbackbush_leaves.png"
+  },
+  "naturalbiomes_outbackeukalyptus_leaves": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_outbackeukalyptus_leaves.png"
+  },
+  "naturalbiomes_outbackeukaplyptus_sapling": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_outbackeukaplyptus_sapling.png"
+  },
+  "naturalbiomes_outbackgrass": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_outbackgrass.png"
+  },
+  "naturalbiomes_outbackgrass2": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_outbackgrass2.png"
+  },
+  "naturalbiomes_outbackgrass3": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_outbackgrass3.png"
+  },
+  "naturalbiomes_outbackgrass4": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_outbackgrass4.png"
+  },
+  "naturalbiomes_outbackgrass5": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_outbackgrass5.png"
+  },
+  "naturalbiomes_outbackgrass6": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_outbackgrass6.png"
+  },
+  "naturalbiomes_savannaacacia_leaves": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_savannaacacia_leaves.png"
+  },
+  "naturalbiomes_savannaacaia_sapling": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_savannaacaia_sapling.png"
+  },
+  "naturalbiomes_savannagrass": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_savannagrass.png"
+  },
+  "naturalbiomes_savannagrass2": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_savannagrass2.png"
+  },
+  "naturalbiomes_savannagrass3": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_savannagrass3.png"
+  },
+  "naturalbiomes_savannagrasssmall": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_savannagrasssmall.png"
+  },
+  "naturalbiomes_savannapalm_leaves": {
+    "class": "organic",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_savannapalm_leaves.png"
+  },
+  "naturalbiomes_savannapalm_sapling": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_savannapalm_sapling.png"
+  },
+  "nether_lightstaff": {
+    "class": "stone",
+    "collisions": [],
+    "package": "nether",
+    "source": "nether/nether/textures/nether_lightstaff.png"
+  },
+  "nether_nether_ingot": {
+    "class": "stone",
+    "collisions": [],
+    "package": "nether",
+    "source": "nether/nether/textures/nether_nether_ingot.png"
+  },
+  "nether_nether_lump": {
+    "class": "stone",
+    "collisions": [],
+    "package": "nether",
+    "source": "nether/nether/textures/nether_nether_lump.png"
+  },
+  "nether_tool_netheraxe": {
+    "class": "stone",
+    "collisions": [],
+    "package": "nether",
+    "source": "nether/nether/textures/nether_tool_netheraxe.png"
+  },
+  "nether_tool_netherpick": {
+    "class": "stone",
+    "collisions": [],
+    "package": "nether",
+    "source": "nether/nether/textures/nether_tool_netherpick.png"
+  },
+  "nether_tool_nethershovel": {
+    "class": "stone",
+    "collisions": [],
+    "package": "nether",
+    "source": "nether/nether/textures/nether_tool_nethershovel.png"
+  },
+  "nether_tool_nethersword": {
+    "class": "stone",
+    "collisions": [],
+    "package": "nether",
+    "source": "nether/nether/textures/nether_tool_nethersword.png"
+  }
+}

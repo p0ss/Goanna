@@ -1,0 +1,1043 @@
+{
+  "schema_version": 1,
+  "review_version": "terrain-v1.1",
+  "reviewed_manifests": [
+    "pbr_packs/manifests/community-cleared-terrain-overnight.sources.json",
+    "pbr_packs/manifests/too-many-stones-terrain-intake.sources.json"
+  ],
+  "resolution": "Apply rules in array order; every matching later rule overrides earlier fields. Entries override rules. Globs match texture stems with fnmatch semantics.",
+  "rules": [
+    {
+      "match": "tms_*",
+      "source_package": "too_many_stones",
+      "primary_material": "stone",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.12,
+      "smoothness_max": 0.38,
+      "relief_strength": 0.62,
+      "treatment": "terrain",
+      "tiles": true,
+      "confidence": 0.96,
+      "rationale": "The package's registered-node set consists of natural rock and mineral-derived masonry; use a dry dielectric stone baseline.",
+      "review_required": false
+    },
+    {
+      "match": "tms_*_cobble",
+      "source_package": "too_many_stones",
+      "primary_material": "stone",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.08,
+      "smoothness_max": 0.28,
+      "relief_strength": 0.82,
+      "treatment": "terrain",
+      "tiles": true,
+      "confidence": 0.99,
+      "rationale": "Cobble variants require the strongest joint and aggregate relief and a rough surface.",
+      "review_required": false
+    },
+    {
+      "match": "tms_*_brick",
+      "source_package": "too_many_stones",
+      "primary_material": "stone",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.12,
+      "smoothness_max": 0.34,
+      "relief_strength": 0.66,
+      "treatment": "terrain",
+      "tiles": true,
+      "confidence": 0.99,
+      "rationale": "Cut mineral brick remains dielectric; emphasize joints without inflating face noise.",
+      "review_required": false
+    },
+    {
+      "match": "tms_*_cracked_brick",
+      "source_package": "too_many_stones",
+      "primary_material": "stone",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.08,
+      "smoothness_max": 0.28,
+      "relief_strength": 0.78,
+      "treatment": "terrain",
+      "tiles": true,
+      "confidence": 0.99,
+      "rationale": "Cracked masonry is rougher and needs deeper fracture relief than intact brick.",
+      "review_required": false
+    },
+    {
+      "match": "tms_*_block",
+      "source_package": "too_many_stones",
+      "primary_material": "stone",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.2,
+      "smoothness_max": 0.48,
+      "relief_strength": 0.38,
+      "treatment": "terrain",
+      "tiles": true,
+      "confidence": 0.96,
+      "rationale": "Crafted mineral blocks read as dressed or polished stone, with restrained surface relief.",
+      "review_required": false
+    },
+    {
+      "match": "tms_*_tile",
+      "source_package": "too_many_stones",
+      "primary_material": "stone",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.22,
+      "smoothness_max": 0.5,
+      "relief_strength": 0.42,
+      "treatment": "terrain",
+      "tiles": true,
+      "confidence": 0.98,
+      "rationale": "Cut tile faces are smoother than raw rock but still dielectric.",
+      "review_required": false
+    },
+    {
+      "match": "tms_*_budding",
+      "source_package": "too_many_stones",
+      "primary_material": "stone",
+      "secondary_materials": [
+        "glass"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.24,
+      "smoothness_max": 0.56,
+      "relief_strength": 0.7,
+      "treatment": "terrain",
+      "tiles": true,
+      "confidence": 0.9,
+      "rationale": "Budding mineral faces combine a rock matrix with smoother crystalline protrusions.",
+      "review_required": true
+    },
+    {
+      "match": "tms_*agate*",
+      "source_package": "too_many_stones",
+      "primary_material": "stone",
+      "secondary_materials": [
+        "glass"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.32,
+      "smoothness_max": 0.62,
+      "relief_strength": 0.3,
+      "treatment": "terrain",
+      "tiles": true,
+      "confidence": 0.9,
+      "rationale": "Agate is non-metallic and commonly presents a smooth waxy/polished face; avoid metallic colour loss.",
+      "review_required": false
+    },
+    {
+      "match": "tms_*amber*",
+      "source_package": "too_many_stones",
+      "primary_material": "organic",
+      "secondary_materials": [
+        "glass"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.4,
+      "smoothness_max": 0.7,
+      "relief_strength": 0.22,
+      "treatment": "terrain",
+      "tiles": true,
+      "confidence": 0.94,
+      "rationale": "Amber is fossil resin, not stone or metal; preserve its smooth translucent-looking character without treating it as glass geometry.",
+      "review_required": false
+    },
+    {
+      "match": "tms_*quartz*",
+      "source_package": "too_many_stones",
+      "primary_material": "stone",
+      "secondary_materials": [
+        "glass"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.3,
+      "smoothness_max": 0.62,
+      "relief_strength": 0.34,
+      "treatment": "terrain",
+      "tiles": true,
+      "confidence": 0.94,
+      "rationale": "Quartz-family minerals are smooth crystalline dielectrics, not metals.",
+      "review_required": false
+    },
+    {
+      "match": "tms_*fluorite*",
+      "source_package": "too_many_stones",
+      "primary_material": "stone",
+      "secondary_materials": [
+        "glass"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.3,
+      "smoothness_max": 0.62,
+      "relief_strength": 0.34,
+      "treatment": "terrain",
+      "tiles": true,
+      "confidence": 0.94,
+      "rationale": "Fluorite-family minerals are crystalline dielectrics with restrained relief.",
+      "review_required": false
+    },
+    {
+      "match": "tms_*amethyst*",
+      "source_package": "too_many_stones",
+      "primary_material": "stone",
+      "secondary_materials": [
+        "glass"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.3,
+      "smoothness_max": 0.62,
+      "relief_strength": 0.34,
+      "treatment": "terrain",
+      "tiles": true,
+      "confidence": 0.94,
+      "rationale": "Amethyst is crystalline quartz and must remain non-metallic.",
+      "review_required": false
+    },
+    {
+      "match": "tms_*pyrite*",
+      "source_package": "too_many_stones",
+      "primary_material": "stone",
+      "secondary_materials": [
+        "metal"
+      ],
+      "metalness_policy": "partial",
+      "smoothness_min": 0.3,
+      "smoothness_max": 0.62,
+      "relief_strength": 0.42,
+      "treatment": "terrain",
+      "tiles": true,
+      "confidence": 0.82,
+      "rationale": "Pyrite has a metallic lustre but occurs as mineral crystals/matrix; derive metalness selectively rather than darkening the whole tile.",
+      "review_required": true
+    },
+    {
+      "match": "tms_*galena*",
+      "source_package": "too_many_stones",
+      "primary_material": "stone",
+      "secondary_materials": [
+        "metal"
+      ],
+      "metalness_policy": "partial",
+      "smoothness_min": 0.3,
+      "smoothness_max": 0.64,
+      "relief_strength": 0.42,
+      "treatment": "terrain",
+      "tiles": true,
+      "confidence": 0.84,
+      "rationale": "Galena's metallic lustre warrants selective conductive response, while gangue/joints remain dielectric.",
+      "review_required": true
+    },
+    {
+      "match": "tms_*covellite*",
+      "source_package": "too_many_stones",
+      "primary_material": "stone",
+      "secondary_materials": [
+        "metal"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.28,
+      "smoothness_max": 0.6,
+      "relief_strength": 0.44,
+      "treatment": "terrain",
+      "tiles": true,
+      "confidence": 0.78,
+      "rationale": "Covellite presents a submetallic lustre as a mineral, but this art is dark diffuse pixel art and a metal read renders it near black in Forward+. The rock is not the texture; metalness is refused.",
+      "review_required": false
+    },
+    {
+      "match": "glass_stained*",
+      "source_package": "glass_stained",
+      "primary_material": "glass",
+      "secondary_materials": [
+        "metal"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.62,
+      "smoothness_max": 0.9,
+      "relief_strength": 0.14,
+      "treatment": "terrain",
+      "tiles": true,
+      "confidence": 0.96,
+      "rationale": "Coloured glass panes are smooth dielectrics. The decorative bars and edges may be lead, but Chord cannot separate a leaded edge from a dark pane texel and placed metal on near black glass, which renders as a black mirror; metalness is refused for the family rather than guessed per pixel.",
+      "review_required": false
+    },
+    {
+      "match": "stainedglass*",
+      "source_package": "stainedglass",
+      "primary_material": "glass",
+      "secondary_materials": [
+        "metal"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.62,
+      "smoothness_max": 0.9,
+      "relief_strength": 0.12,
+      "treatment": "terrain",
+      "tiles": true,
+      "confidence": 0.97,
+      "rationale": "Stained glass is smooth dielectric glass. Its optional leaded edge detail is not separable from dark glass texels by estimation, and the metal read landed on the dark panes, so the family is dielectric.",
+      "review_required": false
+    },
+    {
+      "match": "naturalbiomes*",
+      "source_package": "naturalbiomes",
+      "primary_material": "stone",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.08,
+      "smoothness_max": 0.34,
+      "relief_strength": 0.62,
+      "treatment": "terrain",
+      "tiles": true,
+      "confidence": 0.78,
+      "rationale": "Fallback for Natural Biomes rock and masonry surfaces; more specific organic and soil rules follow.",
+      "review_required": false
+    },
+    {
+      "match": "naturalbiomes*trunk*",
+      "source_package": "naturalbiomes",
+      "primary_material": "wood",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.08,
+      "smoothness_max": 0.3,
+      "relief_strength": 0.7,
+      "treatment": "terrain",
+      "tiles": true,
+      "confidence": 0.98,
+      "rationale": "Tree trunk bark and cut ends are rough dielectric wood.",
+      "review_required": false
+    },
+    {
+      "match": "naturalbiomes*wood*",
+      "source_package": "naturalbiomes",
+      "primary_material": "wood",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.12,
+      "smoothness_max": 0.36,
+      "relief_strength": 0.56,
+      "treatment": "terrain",
+      "tiles": true,
+      "confidence": 0.98,
+      "rationale": "Crafted wood faces use moderate grain relief and no metalness.",
+      "review_required": false
+    },
+    {
+      "match": "naturalbiomes*litter*",
+      "source_package": "naturalbiomes",
+      "primary_material": "soil",
+      "secondary_materials": [
+        "leaves",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.04,
+      "smoothness_max": 0.24,
+      "relief_strength": 0.62,
+      "treatment": "terrain",
+      "tiles": true,
+      "confidence": 0.98,
+      "rationale": "Forest-floor litter is a rough soil/leaf composite, not stone.",
+      "review_required": false
+    },
+    {
+      "match": "naturalbiomes*reed_bundle*",
+      "source_package": "naturalbiomes",
+      "primary_material": "organic",
+      "secondary_materials": [
+        "wood"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.06,
+      "smoothness_max": 0.24,
+      "relief_strength": 0.58,
+      "treatment": "terrain",
+      "tiles": true,
+      "confidence": 0.94,
+      "rationale": "Bound reeds are dry fibrous vegetation used as a solid node surface.",
+      "review_required": false
+    },
+    {
+      "match": "naturalbiomes*waterlily*",
+      "source_package": "naturalbiomes",
+      "primary_material": "leaves",
+      "secondary_materials": [
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.1,
+      "smoothness_max": 0.38,
+      "relief_strength": 0.16,
+      "treatment": "billboard",
+      "tiles": false,
+      "confidence": 0.99,
+      "rationale": "Waterlily artwork is an alpha-card plant and leaked into the terrain intake; silhouette preservation is authoritative.",
+      "review_required": true
+    },
+    {
+      "match": "naturalbiomes*beach_sand",
+      "source_package": "naturalbiomes",
+      "primary_material": "sand",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.04,
+      "smoothness_max": 0.22,
+      "relief_strength": 0.34,
+      "treatment": "terrain",
+      "tiles": true,
+      "confidence": 0.99,
+      "rationale": "Loose beach sand requires low-frequency shallow relief and high roughness.",
+      "review_required": false
+    },
+    {
+      "match": "animalia_crate*",
+      "source_package": "animalia",
+      "primary_material": "wood",
+      "secondary_materials": [
+        "metal"
+      ],
+      "metalness_policy": "partial",
+      "smoothness_min": 0.1,
+      "smoothness_max": 0.36,
+      "relief_strength": 0.56,
+      "treatment": "terrain",
+      "tiles": true,
+      "confidence": 0.93,
+      "rationale": "Wooden crate faces may contain minor fasteners but are predominantly rough wood.",
+      "review_required": false
+    },
+    {
+      "match": "animalia_guano",
+      "source_package": "animalia",
+      "primary_material": "organic",
+      "secondary_materials": [
+        "soil"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.04,
+      "smoothness_max": 0.22,
+      "relief_strength": 0.48,
+      "treatment": "terrain",
+      "tiles": true,
+      "confidence": 0.99,
+      "rationale": "Guano is a rough organic deposit, not stone.",
+      "review_required": false
+    },
+    {
+      "match": "animalia_nest",
+      "source_package": "animalia",
+      "primary_material": "organic",
+      "secondary_materials": [
+        "wood",
+        "leaves"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.04,
+      "smoothness_max": 0.22,
+      "relief_strength": 0.66,
+      "treatment": "terrain",
+      "tiles": true,
+      "confidence": 0.99,
+      "rationale": "Nest material is interwoven dry plant fibre and twigs.",
+      "review_required": false
+    },
+    {
+      "match": "nether_*",
+      "source_package": "nether",
+      "primary_material": "stone",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.06,
+      "smoothness_max": 0.3,
+      "relief_strength": 0.7,
+      "treatment": "terrain",
+      "tiles": true,
+      "confidence": 0.96,
+      "rationale": "Basalt, rack and nether brick are rough dielectric volcanic or masonry surfaces.",
+      "review_required": false
+    },
+    {
+      "match": "nether_*glowstone*",
+      "source_package": "nether",
+      "primary_material": "stone",
+      "secondary_materials": [
+        "glass"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.18,
+      "smoothness_max": 0.48,
+      "relief_strength": 0.5,
+      "treatment": "terrain",
+      "tiles": true,
+      "confidence": 0.85,
+      "rationale": "Luminous mineral is still non-metallic; retain crystalline smoothness without making it plastic.",
+      "review_required": true
+    },
+    {
+      "match": "moreblocks_*",
+      "source_package": "moreblocks",
+      "primary_material": "stone",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.1,
+      "smoothness_max": 0.38,
+      "relief_strength": 0.52,
+      "treatment": "terrain",
+      "tiles": true,
+      "confidence": 0.72,
+      "rationale": "Fallback for Moreblocks masonry; specific glass, wood, metal and object rules follow.",
+      "review_required": false
+    },
+    {
+      "match": "moreblocks_*glass*",
+      "source_package": "moreblocks",
+      "primary_material": "glass",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.66,
+      "smoothness_max": 0.92,
+      "relief_strength": 0.08,
+      "treatment": "terrain",
+      "tiles": true,
+      "confidence": 0.99,
+      "rationale": "Clean/trap-box glass should stay smooth and neutral in transparent pixels.",
+      "review_required": false
+    },
+    {
+      "match": "moreblocks_wood_*",
+      "source_package": "moreblocks",
+      "primary_material": "wood",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.12,
+      "smoothness_max": 0.36,
+      "relief_strength": 0.5,
+      "treatment": "terrain",
+      "tiles": true,
+      "confidence": 0.99,
+      "rationale": "Wood tiles are dielectric dressed timber.",
+      "review_required": false
+    },
+    {
+      "match": "moreblocks_iron_checker",
+      "source_package": "moreblocks",
+      "primary_material": "metal",
+      "secondary_materials": [],
+      "metalness_policy": "predominant",
+      "smoothness_min": 0.3,
+      "smoothness_max": 0.58,
+      "relief_strength": 0.42,
+      "treatment": "terrain",
+      "tiles": true,
+      "confidence": 0.99,
+      "rationale": "Iron checker plate is an exposed metal surface with raised tread.",
+      "review_required": false
+    },
+    {
+      "match": "moreblocks_circular_saw_*",
+      "source_package": "moreblocks",
+      "primary_material": "mixed",
+      "secondary_materials": [
+        "metal",
+        "wood"
+      ],
+      "metalness_policy": "partial",
+      "smoothness_min": 0.08,
+      "smoothness_max": 0.5,
+      "relief_strength": 0.46,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.9,
+      "rationale": "Circular-saw artwork is object-specific rather than a repeating terrain material.",
+      "review_required": true
+    },
+    {
+      "match": "moreblocks_sweeper",
+      "source_package": "moreblocks",
+      "primary_material": "mixed",
+      "secondary_materials": [
+        "wood",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.06,
+      "smoothness_max": 0.3,
+      "relief_strength": 0.46,
+      "treatment": "item",
+      "tiles": false,
+      "confidence": 0.94,
+      "rationale": "Sweeper artwork is a tool/item rather than a repeating terrain material.",
+      "review_required": true
+    },
+    {
+      "match": "advtrains_*",
+      "source_package": "advtrains",
+      "primary_material": "metal",
+      "secondary_materials": [
+        "plastic",
+        "glass"
+      ],
+      "metalness_policy": "predominant",
+      "smoothness_min": 0.22,
+      "smoothness_max": 0.58,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.84,
+      "rationale": "Train components, wheels and signal parts are object/mesh skins, not tileable terrain surfaces.",
+      "review_required": true
+    },
+    {
+      "match": "advtrains_hud_*",
+      "source_package": "advtrains",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.0,
+      "relief_strength": 0.0,
+      "treatment": "gui",
+      "tiles": false,
+      "confidence": 1.0,
+      "rationale": "HUD symbols leaked into the terrain selector and must not receive PBR maps.",
+      "review_required": true
+    },
+    {
+      "match": "at_il_*",
+      "source_package": "advtrains",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.0,
+      "relief_strength": 0.0,
+      "treatment": "gui",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "Interlocking route/tool/marker artwork is operational UI or editor iconography, not terrain.",
+      "review_required": true
+    },
+    {
+      "match": "atlatc_*",
+      "source_package": "advtrains",
+      "primary_material": "mixed",
+      "secondary_materials": [
+        "metal",
+        "plastic"
+      ],
+      "metalness_policy": "partial",
+      "smoothness_min": 0.16,
+      "smoothness_max": 0.5,
+      "relief_strength": 0.3,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.86,
+      "rationale": "Lua-controller and operation-panel faces are composite machine surfaces and should not tile.",
+      "review_required": true
+    },
+    {
+      "match": "drwho_screwdriver",
+      "source_package": "advtrains",
+      "primary_material": "metal",
+      "secondary_materials": [
+        "plastic"
+      ],
+      "metalness_policy": "partial",
+      "smoothness_min": 0.2,
+      "smoothness_max": 0.55,
+      "relief_strength": 0.24,
+      "treatment": "item",
+      "tiles": false,
+      "confidence": 0.99,
+      "rationale": "Inventory/tool art leaked into terrain intake.",
+      "review_required": true
+    },
+    {
+      "match": "pipeworks_*",
+      "source_package": "pipeworks",
+      "primary_material": "metal",
+      "secondary_materials": [
+        "plastic",
+        "glass"
+      ],
+      "metalness_policy": "partial",
+      "smoothness_min": 0.26,
+      "smoothness_max": 0.62,
+      "relief_strength": 0.3,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.86,
+      "rationale": "Tube strips and endcaps are UV-aligned machine geometry, not repeating terrain; material varies between metal and transparent/coloured tube sections.",
+      "review_required": true
+    },
+    {
+      "match": "pipeworks_tube_connection_metallic",
+      "source_package": "pipeworks",
+      "primary_material": "metal",
+      "secondary_materials": [],
+      "metalness_policy": "predominant",
+      "smoothness_min": 0.32,
+      "smoothness_max": 0.62,
+      "relief_strength": 0.3,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.99,
+      "rationale": "Explicit metallic tube connector.",
+      "review_required": false
+    },
+    {
+      "match": "pipeworks_tube_connection_wooden",
+      "source_package": "pipeworks",
+      "primary_material": "wood",
+      "secondary_materials": [
+        "metal"
+      ],
+      "metalness_policy": "partial",
+      "smoothness_min": 0.12,
+      "smoothness_max": 0.4,
+      "relief_strength": 0.44,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.99,
+      "rationale": "Explicit wooden connector with possible hardware.",
+      "review_required": false
+    },
+    {
+      "match": "lantern_*",
+      "source_package": "lanterns",
+      "primary_material": "metal",
+      "secondary_materials": [
+        "glass"
+      ],
+      "metalness_policy": "partial",
+      "smoothness_min": 0.25,
+      "smoothness_max": 0.58,
+      "relief_strength": 0.28,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.95,
+      "rationale": "Lantern faces combine a metal frame and glass and are placement-specific object skins.",
+      "review_required": true
+    },
+    {
+      "match": "morelights_*",
+      "source_package": "morelights",
+      "primary_material": "mixed",
+      "secondary_materials": [
+        "metal",
+        "glass",
+        "plastic"
+      ],
+      "metalness_policy": "partial",
+      "smoothness_min": 0.22,
+      "smoothness_max": 0.7,
+      "relief_strength": 0.24,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.88,
+      "rationale": "Lamp, bulb and fixture artwork is a composite object skin; classifying it wholesale as stone caused plastic-looking bakes.",
+      "review_required": true
+    },
+    {
+      "match": "morelights_metal_*",
+      "source_package": "morelights",
+      "primary_material": "metal",
+      "secondary_materials": [],
+      "metalness_policy": "predominant",
+      "smoothness_min": 0.28,
+      "smoothness_max": 0.58,
+      "relief_strength": 0.22,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.99,
+      "rationale": "Explicit fixture metal swatches.",
+      "review_required": false
+    },
+    {
+      "match": "morelights_*glass*",
+      "source_package": "morelights",
+      "primary_material": "glass",
+      "secondary_materials": [
+        "metal"
+      ],
+      "metalness_policy": "partial",
+      "smoothness_min": 0.62,
+      "smoothness_max": 0.9,
+      "relief_strength": 0.1,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "Fixture glass remains a smooth dielectric; only framing pixels may be metallic.",
+      "review_required": true
+    },
+    {
+      "match": "jeija_*",
+      "source_package": "mesecons",
+      "primary_material": "mixed",
+      "secondary_materials": [
+        "stone",
+        "metal",
+        "plastic"
+      ],
+      "metalness_policy": "partial",
+      "smoothness_min": 0.12,
+      "smoothness_max": 0.5,
+      "relief_strength": 0.38,
+      "treatment": "terrain",
+      "tiles": true,
+      "confidence": 0.74,
+      "rationale": "Fallback for circuitry and machine-node faces; avoid the former all-stone assumption and preserve conductive components selectively.",
+      "review_required": true
+    },
+    {
+      "match": "jeija_pressure_plate_stone_*",
+      "source_package": "mesecons",
+      "primary_material": "stone",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.1,
+      "smoothness_max": 0.34,
+      "relief_strength": 0.46,
+      "treatment": "terrain",
+      "tiles": true,
+      "confidence": 0.99,
+      "rationale": "Explicit stone pressure-plate surface.",
+      "review_required": false
+    },
+    {
+      "match": "jeija_pressure_plate_wood_*",
+      "source_package": "mesecons",
+      "primary_material": "wood",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.12,
+      "smoothness_max": 0.36,
+      "relief_strength": 0.44,
+      "treatment": "terrain",
+      "tiles": true,
+      "confidence": 0.99,
+      "rationale": "Explicit wooden pressure-plate surface.",
+      "review_required": false
+    },
+    {
+      "match": "jeija_insulated_wire_*",
+      "source_package": "mesecons",
+      "primary_material": "plastic",
+      "secondary_materials": [
+        "metal"
+      ],
+      "metalness_policy": "partial",
+      "smoothness_min": 0.25,
+      "smoothness_max": 0.56,
+      "relief_strength": 0.3,
+      "treatment": "terrain",
+      "tiles": true,
+      "confidence": 0.96,
+      "rationale": "Insulating sheath is dielectric; only exposed conductive elements should be metallic.",
+      "review_required": true
+    },
+    {
+      "match": "jeija_lightstone_*",
+      "source_package": "mesecons",
+      "primary_material": "glass",
+      "secondary_materials": [
+        "stone"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.38,
+      "smoothness_max": 0.7,
+      "relief_strength": 0.24,
+      "treatment": "terrain",
+      "tiles": true,
+      "confidence": 0.93,
+      "rationale": "Coloured luminous face reads as glass/mineral diffuser rather than generic stone.",
+      "review_required": true
+    },
+    {
+      "match": "jeija_wall_lever_*",
+      "source_package": "mesecons",
+      "primary_material": "mixed",
+      "secondary_materials": [
+        "metal",
+        "stone",
+        "plastic"
+      ],
+      "metalness_policy": "partial",
+      "smoothness_min": 0.14,
+      "smoothness_max": 0.5,
+      "relief_strength": 0.36,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.96,
+      "rationale": "Lever parts and indicator artwork are object-specific composite surfaces.",
+      "review_required": true
+    },
+    {
+      "match": "mesecons_noteblock",
+      "source_package": "mesecons",
+      "primary_material": "wood",
+      "secondary_materials": [
+        "metal"
+      ],
+      "metalness_policy": "partial",
+      "smoothness_min": 0.12,
+      "smoothness_max": 0.38,
+      "relief_strength": 0.46,
+      "treatment": "terrain",
+      "tiles": true,
+      "confidence": 0.9,
+      "rationale": "Noteblock cabinet is predominantly wood with small hardware.",
+      "review_required": true
+    },
+    {
+      "match": "mesecons_stickyblocks_sticky",
+      "source_package": "mesecons",
+      "primary_material": "organic",
+      "secondary_materials": [
+        "plastic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.08,
+      "smoothness_max": 0.34,
+      "relief_strength": 0.38,
+      "treatment": "terrain",
+      "tiles": true,
+      "confidence": 0.88,
+      "rationale": "Adhesive face should be dielectric and mildly smooth, never stone or metal.",
+      "review_required": true
+    }
+  ],
+  "entries": {
+    "advtrains_platform": {
+      "source_package": "advtrains",
+      "primary_material": "mixed",
+      "secondary_materials": [
+        "plastic",
+        "ceramic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.12,
+      "smoothness_max": 0.42,
+      "relief_strength": 0.08,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.96,
+      "rationale": "Visual inspection shows a sparse yellow platform-edge marking/UV strip with transparency, not a masonry terrain face.",
+      "review_required": true
+    },
+    "advtrains_platform_diag": {
+      "source_package": "advtrains",
+      "primary_material": "mixed",
+      "secondary_materials": [
+        "plastic",
+        "ceramic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.12,
+      "smoothness_max": 0.42,
+      "relief_strength": 0.08,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.94,
+      "rationale": "Diagonal platform marking is geometry-specific painted/ceramic edge artwork and must not tile.",
+      "review_required": true
+    },
+    "advtrains_copytool": {
+      "source_package": "advtrains",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.0,
+      "relief_strength": 0.0,
+      "treatment": "item",
+      "tiles": false,
+      "confidence": 1.0,
+      "rationale": "Tool/inventory icon leaked into terrain intake and should not be baked as a world tile.",
+      "review_required": true
+    },
+    "advtrains_trackworker": {
+      "source_package": "advtrains",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.0,
+      "relief_strength": 0.0,
+      "treatment": "item",
+      "tiles": false,
+      "confidence": 0.99,
+      "rationale": "Track-worker tool icon is not a material surface.",
+      "review_required": true
+    },
+    "moreblocks_empty_shelf": {
+      "source_package": "moreblocks",
+      "primary_material": "wood",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.12,
+      "smoothness_max": 0.36,
+      "relief_strength": 0.52,
+      "treatment": "terrain",
+      "tiles": true,
+      "confidence": 0.98,
+      "rationale": "Empty shelf is clearly dressed wood, not stone.",
+      "review_required": false
+    },
+    "moreblocks_rope": {
+      "source_package": "moreblocks",
+      "primary_material": "organic",
+      "secondary_materials": [
+        "cloth"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.04,
+      "smoothness_max": 0.2,
+      "relief_strength": 0.58,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.99,
+      "rationale": "Rope is twisted fibre and geometry-specific.",
+      "review_required": true
+    },
+    "moreblocks_trap_box": {
+      "source_package": "moreblocks",
+      "primary_material": "wood",
+      "secondary_materials": [
+        "metal"
+      ],
+      "metalness_policy": "partial",
+      "smoothness_min": 0.12,
+      "smoothness_max": 0.4,
+      "relief_strength": 0.46,
+      "treatment": "terrain",
+      "tiles": true,
+      "confidence": 0.9,
+      "rationale": "Trap-box housing reads as wood with hardware rather than stone.",
+      "review_required": true
+    },
+    "nether_geode": {
+      "source_package": "nether",
+      "primary_material": "stone",
+      "secondary_materials": [
+        "glass"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.22,
+      "smoothness_max": 0.56,
+      "relief_strength": 0.66,
+      "treatment": "terrain",
+      "tiles": true,
+      "confidence": 0.9,
+      "rationale": "Geode combines rough rock matrix and smoother crystal cavities.",
+      "review_required": true
+    }
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "packages": {
+    "backroomtest": {
+      "decision": "eligible",
+      "evidence": "Release 36294 root licence explicitly places media under CC-BY-4.0.",
+      "media_license": "CC-BY-4.0"
+    },
+    "baunilha": {
+      "decision": "eligible",
+      "evidence": "Release 37613 includes LICENSE.txt containing CC-BY-SA-4.0.",
+      "media_license": "CC-BY-SA-4.0"
+    },
+    "craft_and_ruin": {
+      "decision": "excluded",
+      "evidence": "ContentDB and the upstream repository declare GPL-3.0-only media; project policy excludes GPL-derived asset bundles."
+    },
+    "darkage": {
+      "decision": "excluded",
+      "evidence": "Archive LICENSE.txt is MIT but does not clearly scope that licence to media; ContentDB declares CC0-1.0. The mismatch is unresolved."
+    },
+    "mesecons": {
+      "decision": "eligible",
+      "evidence": "mesecons/LICENSE.txt: The CC-BY-SA-3.0 license applies to textures and any other content in this project which is not source code.",
+      "media_license": "CC-BY-SA-3.0"
+    },
+    "drummyfish": {
+      "decision": "eligible",
+      "evidence": "Release 834 README explicitly declares the texture pack and its incorporated works CC0-1.0.",
+      "media_license": "CC0-1.0"
+    },
+    "hand_painted_expanded": {
+      "decision": "eligible",
+      "evidence": "Release 35538 contains the complete CC0-1.0 legal code and identifies the pack as CC0.",
+      "media_license": "CC0-1.0"
+    },
+    "lessdirt": {
+      "decision": "eligible",
+      "evidence": "Release 13232 LICENCE.txt provides per-family CC-BY-SA provenance; derivatives must retain the applicable share-alike version.",
+      "media_license": "CC-BY-SA-3.0/4.0 per file"
+    },
+    "pixel_imperfection": {
+      "decision": "eligible",
+      "evidence": "Release 35281 includes CC-BY-SA-4.0 legal text and upstream artwork credits.",
+      "media_license": "CC-BY-SA-4.0"
+    },
+    "pmb_core": {
+      "decision": "eligible",
+      "evidence": "Release 38636 root licence explicitly places media under CC-BY-4.0.",
+      "media_license": "CC-BY-4.0"
+    },
+    "polygonia": {
+      "decision": "pending",
+      "evidence": "ContentDB declares CC-BY-SA-4.0, but release 17862 contains no licence or attribution file; do not redistribute derivatives until archive evidence is resolved."
+    },
+    "realism_512": {
+      "decision": "excluded",
+      "evidence": "ContentDB declares EUPL-1.2 media; project policy excludes EUPL-derived asset bundles."
+    },
+    "rpg16": {
+      "decision": "eligible",
+      "evidence": "Release 20357 contains CC-BY-SA-4.0 legal text.",
+      "media_license": "CC-BY-SA-4.0"
+    },
+    "soothing32": {
+      "decision": "eligible",
+      "evidence": "Release 30230 contains CC-BY-SA-4.0 legal text.",
+      "media_license": "CC-BY-SA-4.0"
+    },
+    "too_many_stones": {
+      "decision": "eligible",
+      "evidence": "too_many_stones/LICENSE.txt explicitly places textures under MIT, copyright JoeEnderman 2022; LGPL code and geode code are separately scoped.",
+      "media_license": "MIT"
+    }
+  }
+}

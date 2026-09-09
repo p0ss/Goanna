@@ -1,0 +1,770 @@
+{
+  "advtrains_across": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains/textures/advtrains_across.png"
+  },
+  "advtrains_boiler": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains/textures/advtrains_boiler.png"
+  },
+  "advtrains_chimney": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains/textures/advtrains_chimney.png"
+  },
+  "advtrains_copytool": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains/textures/advtrains_copytool.png"
+  },
+  "advtrains_couple": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains/textures/advtrains_couple.png"
+  },
+  "advtrains_discouple": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains/textures/advtrains_discouple.png"
+  },
+  "advtrains_driver_cab": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains/textures/advtrains_driver_cab.png"
+  },
+  "advtrains_dtrack_rail": {
+    "class": "metal",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains_train_track/textures/advtrains_dtrack_rail.png"
+  },
+  "advtrains_platform": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains/textures/advtrains_platform.png"
+  },
+  "advtrains_platform_diag": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains/textures/advtrains_platform_diag.png"
+  },
+  "advtrains_signals_japan_mast": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains_signals_japan/textures/advtrains_signals_japan_mast.png"
+  },
+  "advtrains_signals_ks_head": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains_signals_ks/textures/advtrains_signals_ks_head.png"
+  },
+  "advtrains_signals_ks_mast": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains_signals_ks/textures/advtrains_signals_ks_mast.png"
+  },
+  "advtrains_signals_ks_sign_8": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains_signals_ks/textures/advtrains_signals_ks_sign_8.png"
+  },
+  "advtrains_signals_ks_sign_lf7": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains_signals_ks/textures/advtrains_signals_ks_sign_lf7.png"
+  },
+  "advtrains_signals_ks_sign_off": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains_signals_ks/textures/advtrains_signals_ks_sign_off.png"
+  },
+  "advtrains_signals_ks_sign_zs10": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains_signals_ks/textures/advtrains_signals_ks_sign_zs10.png"
+  },
+  "advtrains_signals_ks_signpost": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains_signals_ks/textures/advtrains_signals_ks_signpost.png"
+  },
+  "advtrains_trackworker": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains/textures/advtrains_trackworker.png"
+  },
+  "advtrains_wheel": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains/textures/advtrains_wheel.png"
+  },
+  "atlatc_luacontroller_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains_luaautomation/textures/atlatc_luacontroller_bottom.png"
+  },
+  "atlatc_luacontroller_sides": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains_luaautomation/textures/atlatc_luacontroller_sides.png"
+  },
+  "atlatc_luacontroller_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains_luaautomation/textures/atlatc_luacontroller_top.png"
+  },
+  "atlatc_oppanel": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains_luaautomation/textures/atlatc_oppanel.png"
+  },
+  "atlatc_pcnaming": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains_luaautomation/textures/atlatc_pcnaming.png"
+  },
+  "drwho_screwdriver": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains/textures/drwho_screwdriver.png"
+  },
+  "jeija_wall_lever_back_edges": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_walllever/textures/jeija_wall_lever_back_edges.png"
+  },
+  "jeija_wall_lever_front": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_walllever/textures/jeija_wall_lever_front.png"
+  },
+  "jeija_wall_lever_front_bump": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_walllever/textures/jeija_wall_lever_front_bump.png"
+  },
+  "jeija_wall_lever_lever_light_off": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_walllever/textures/jeija_wall_lever_lever_light_off.png"
+  },
+  "jeija_wall_lever_lever_light_on": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_walllever/textures/jeija_wall_lever_lever_light_on.png"
+  },
+  "lantern_ceilingmounted": {
+    "class": "stone",
+    "collisions": [],
+    "package": "lanterns",
+    "source": "lanterns/lanterns/textures/lantern_ceilingmounted.png"
+  },
+  "lantern_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "lanterns",
+    "source": "lanterns/lanterns/textures/lantern_side.png"
+  },
+  "lantern_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "lanterns",
+    "source": "lanterns/lanterns/textures/lantern_top.png"
+  },
+  "lantern_wallmounted": {
+    "class": "stone",
+    "collisions": [],
+    "package": "lanterns",
+    "source": "lanterns/lanterns/textures/lantern_wallmounted.png"
+  },
+  "moreblocks_circular_saw_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "moreblocks",
+    "source": "moreblocks/moreblocks/textures/moreblocks_circular_saw_bottom.png"
+  },
+  "moreblocks_circular_saw_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "moreblocks",
+    "source": "moreblocks/moreblocks/textures/moreblocks_circular_saw_side.png"
+  },
+  "moreblocks_circular_saw_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "moreblocks",
+    "source": "moreblocks/moreblocks/textures/moreblocks_circular_saw_top.png"
+  },
+  "moreblocks_rope": {
+    "class": "stone",
+    "collisions": [],
+    "package": "moreblocks",
+    "source": "moreblocks/moreblocks/textures/moreblocks_rope.png"
+  },
+  "moreblocks_sweeper": {
+    "class": "stone",
+    "collisions": [],
+    "package": "moreblocks",
+    "source": "moreblocks/moreblocks/textures/moreblocks_sweeper.png"
+  },
+  "morelights_bulb": {
+    "class": "stone",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights/textures/morelights_bulb.png"
+  },
+  "morelights_extras_blocklight": {
+    "class": "stone",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights_extras/textures/morelights_extras_blocklight.png"
+  },
+  "morelights_extras_f_block": {
+    "class": "stone",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights_extras/textures/morelights_extras_f_block.png"
+  },
+  "morelights_extras_stairlight": {
+    "class": "stone",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights_extras/textures/morelights_extras_stairlight.png"
+  },
+  "morelights_metal_dark": {
+    "class": "metal",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights/textures/morelights_metal_dark.png"
+  },
+  "morelights_metal_dark_32": {
+    "class": "metal",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights/textures/morelights_metal_dark_32.png"
+  },
+  "morelights_metal_light": {
+    "class": "metal",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights/textures/morelights_metal_light.png"
+  },
+  "morelights_metal_light_32": {
+    "class": "metal",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights/textures/morelights_metal_light_32.png"
+  },
+  "morelights_modern_barlight": {
+    "class": "stone",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights_modern/textures/morelights_modern_barlight.png"
+  },
+  "morelights_modern_block": {
+    "class": "stone",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights_modern/textures/morelights_modern_block.png"
+  },
+  "morelights_modern_canlight": {
+    "class": "stone",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights_modern/textures/morelights_modern_canlight.png"
+  },
+  "morelights_modern_pathlight": {
+    "class": "stone",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights_modern/textures/morelights_modern_pathlight.png"
+  },
+  "morelights_modern_post": {
+    "class": "stone",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights_modern/textures/morelights_modern_post.png"
+  },
+  "morelights_modern_smallblock": {
+    "class": "stone",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights_modern/textures/morelights_modern_smallblock.png"
+  },
+  "morelights_modern_tablelamp_d": {
+    "class": "stone",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights_modern/textures/morelights_modern_tablelamp_d.png"
+  },
+  "morelights_modern_tablelamp_l": {
+    "class": "stone",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights_modern/textures/morelights_modern_tablelamp_l.png"
+  },
+  "morelights_modern_tablelamp_o": {
+    "class": "stone",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights_modern/textures/morelights_modern_tablelamp_o.png"
+  },
+  "morelights_modern_walllamp": {
+    "class": "stone",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights_modern/textures/morelights_modern_walllamp.png"
+  },
+  "morelights_vintage_block_frame": {
+    "class": "stone",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights_vintage/textures/morelights_vintage_block_frame.png"
+  },
+  "morelights_vintage_block_glass": {
+    "class": "glass",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights_vintage/textures/morelights_vintage_block_glass.png"
+  },
+  "morelights_vintage_brass_32": {
+    "class": "metal",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights_vintage/textures/morelights_vintage_brass_32.png"
+  },
+  "morelights_vintage_chandelier": {
+    "class": "stone",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights_vintage/textures/morelights_vintage_chandelier.png"
+  },
+  "morelights_vintage_hangingbulb": {
+    "class": "stone",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights_vintage/textures/morelights_vintage_hangingbulb.png"
+  },
+  "morelights_vintage_lantern_frame": {
+    "class": "stone",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights_vintage/textures/morelights_vintage_lantern_frame.png"
+  },
+  "morelights_vintage_lantern_glass": {
+    "class": "glass",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights_vintage/textures/morelights_vintage_lantern_glass.png"
+  },
+  "morelights_vintage_oillamp": {
+    "class": "stone",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights_vintage/textures/morelights_vintage_oillamp.png"
+  },
+  "naturalbiomes_alderswamp_waterlily": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_alderswamp_waterlily.png"
+  },
+  "naturalbiomes_alderswamp_waterlily_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_alderswamp_waterlily_bottom.png"
+  },
+  "pipeworks_accelerator_tube_end": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_accelerator_tube_end.png"
+  },
+  "pipeworks_accelerator_tube_noctr": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_accelerator_tube_noctr.png"
+  },
+  "pipeworks_accelerator_tube_plain": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_accelerator_tube_plain.png"
+  },
+  "pipeworks_accelerator_tube_short": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_accelerator_tube_short.png"
+  },
+  "pipeworks_broken_tube_end": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_broken_tube_end.png"
+  },
+  "pipeworks_broken_tube_plain": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_broken_tube_plain.png"
+  },
+  "pipeworks_broken_tube_short": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_broken_tube_short.png"
+  },
+  "pipeworks_crossing_tube_end": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_crossing_tube_end.png"
+  },
+  "pipeworks_crossing_tube_noctr": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_crossing_tube_noctr.png"
+  },
+  "pipeworks_crossing_tube_plain": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_crossing_tube_plain.png"
+  },
+  "pipeworks_crossing_tube_short": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_crossing_tube_short.png"
+  },
+  "pipeworks_detector_tube_plain": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_detector_tube_plain.png"
+  },
+  "pipeworks_digiline_detector_tube_plain": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_digiline_detector_tube_plain.png"
+  },
+  "pipeworks_lua_tube_port_burnt": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_lua_tube_port_burnt.png"
+  },
+  "pipeworks_mese_sand_tube_end": {
+    "class": "sand",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_mese_sand_tube_end.png"
+  },
+  "pipeworks_mese_sand_tube_noctr": {
+    "class": "sand",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_mese_sand_tube_noctr.png"
+  },
+  "pipeworks_mese_sand_tube_plain": {
+    "class": "sand",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_mese_sand_tube_plain.png"
+  },
+  "pipeworks_mese_sand_tube_short": {
+    "class": "sand",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_mese_sand_tube_short.png"
+  },
+  "pipeworks_mese_tube_end": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_mese_tube_end.png"
+  },
+  "pipeworks_mese_tube_noctr_1": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_mese_tube_noctr_1.png"
+  },
+  "pipeworks_mese_tube_noctr_2": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_mese_tube_noctr_2.png"
+  },
+  "pipeworks_mese_tube_noctr_3": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_mese_tube_noctr_3.png"
+  },
+  "pipeworks_mese_tube_noctr_4": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_mese_tube_noctr_4.png"
+  },
+  "pipeworks_mese_tube_noctr_5": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_mese_tube_noctr_5.png"
+  },
+  "pipeworks_mese_tube_noctr_6": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_mese_tube_noctr_6.png"
+  },
+  "pipeworks_mese_tube_plain_1": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_mese_tube_plain_1.png"
+  },
+  "pipeworks_mese_tube_plain_2": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_mese_tube_plain_2.png"
+  },
+  "pipeworks_mese_tube_plain_3": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_mese_tube_plain_3.png"
+  },
+  "pipeworks_mese_tube_plain_4": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_mese_tube_plain_4.png"
+  },
+  "pipeworks_mese_tube_plain_5": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_mese_tube_plain_5.png"
+  },
+  "pipeworks_mese_tube_plain_6": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_mese_tube_plain_6.png"
+  },
+  "pipeworks_mese_tube_short": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_mese_tube_short.png"
+  },
+  "pipeworks_one_way_tube_side": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_one_way_tube_side.png"
+  },
+  "pipeworks_one_way_tube_top": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_one_way_tube_top.png"
+  },
+  "pipeworks_pane_embedded_tube_ends": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_pane_embedded_tube_ends.png"
+  },
+  "pipeworks_pane_embedded_tube_sides": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_pane_embedded_tube_sides.png"
+  },
+  "pipeworks_sand_tube_end": {
+    "class": "sand",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_sand_tube_end.png"
+  },
+  "pipeworks_sand_tube_noctr": {
+    "class": "sand",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_sand_tube_noctr.png"
+  },
+  "pipeworks_sand_tube_plain": {
+    "class": "sand",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_sand_tube_plain.png"
+  },
+  "pipeworks_sand_tube_short": {
+    "class": "sand",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_sand_tube_short.png"
+  },
+  "pipeworks_tag_tube_end": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_tag_tube_end.png"
+  },
+  "pipeworks_tag_tube_noctr_1": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_tag_tube_noctr_1.png"
+  },
+  "pipeworks_tag_tube_noctr_2": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_tag_tube_noctr_2.png"
+  },
+  "pipeworks_tag_tube_noctr_3": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_tag_tube_noctr_3.png"
+  },
+  "pipeworks_tag_tube_noctr_4": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_tag_tube_noctr_4.png"
+  },
+  "pipeworks_tag_tube_noctr_5": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_tag_tube_noctr_5.png"
+  },
+  "pipeworks_tag_tube_noctr_6": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_tag_tube_noctr_6.png"
+  },
+  "pipeworks_tag_tube_plain_1": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_tag_tube_plain_1.png"
+  },
+  "pipeworks_tag_tube_plain_2": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_tag_tube_plain_2.png"
+  },
+  "pipeworks_tag_tube_short": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_tag_tube_short.png"
+  },
+  "pipeworks_teleport_tube_end": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_teleport_tube_end.png"
+  },
+  "pipeworks_teleport_tube_noctr": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_teleport_tube_noctr.png"
+  },
+  "pipeworks_teleport_tube_plain": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_teleport_tube_plain.png"
+  },
+  "pipeworks_teleport_tube_short": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_teleport_tube_short.png"
+  },
+  "pipeworks_tube_connection_metallic": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_tube_connection_metallic.png"
+  },
+  "pipeworks_tube_connection_wooden": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_tube_connection_wooden.png"
+  },
+  "pipeworks_tube_end": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_tube_end.png"
+  },
+  "pipeworks_tube_noctr": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_tube_noctr.png"
+  },
+  "pipeworks_tube_plain": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_tube_plain.png"
+  },
+  "pipeworks_tube_short": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_tube_short.png"
+  }
+}

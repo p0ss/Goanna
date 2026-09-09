@@ -1,0 +1,194 @@
+[
+  {
+    "drawtype": "normal",
+    "groups": {},
+    "sound_footstep": "",
+    "tiles": [
+      "aom_animals_pipslug.png"
+    ]
+  },
+  {
+    "drawtype": "normal",
+    "groups": {},
+    "sound_footstep": "",
+    "tiles": [
+      "aom_animals_pipslug_spit.png"
+    ]
+  },
+  {
+    "drawtype": "normal",
+    "groups": {},
+    "sound_footstep": "",
+    "tiles": [
+      "aom_deer.png"
+    ]
+  },
+  {
+    "drawtype": "normal",
+    "groups": {},
+    "sound_footstep": "",
+    "tiles": [
+      "aom_wolf.png"
+    ]
+  },
+  {
+    "drawtype": "normal",
+    "groups": {},
+    "sound_footstep": "",
+    "tiles": [
+      "aom_elemental_magma.png"
+    ]
+  },
+  {
+    "drawtype": "normal",
+    "groups": {},
+    "sound_footstep": "",
+    "tiles": [
+      "aom_elemental_stone.png"
+    ]
+  },
+  {
+    "drawtype": "normal",
+    "groups": {},
+    "sound_footstep": "",
+    "tiles": [
+      "aom_elemental_core_magma.png"
+    ]
+  },
+  {
+    "drawtype": "normal",
+    "groups": {},
+    "sound_footstep": "",
+    "tiles": [
+      "aom_elemental_core_stone.png"
+    ]
+  },
+  {
+    "drawtype": "normal",
+    "groups": {},
+    "sound_footstep": "",
+    "tiles": [
+      "aom_fenn.png"
+    ]
+  },
+  {
+    "drawtype": "normal",
+    "groups": {},
+    "sound_footstep": "",
+    "tiles": [
+      "aom_fenn_spear.png"
+    ]
+  },
+  {
+    "drawtype": "normal",
+    "groups": {},
+    "sound_footstep": "",
+    "tiles": [
+      "aom_goblins_goblin.png"
+    ]
+  },
+  {
+    "drawtype": "normal",
+    "groups": {},
+    "sound_footstep": "",
+    "tiles": [
+      "aom_kelar.png"
+    ]
+  },
+  {
+    "drawtype": "normal",
+    "groups": {},
+    "sound_footstep": "",
+    "tiles": [
+      "aom_kelar_rock.png"
+    ]
+  },
+  {
+    "drawtype": "normal",
+    "groups": {},
+    "sound_footstep": "",
+    "tiles": [
+      "aom_seelie_shrine.png"
+    ]
+  },
+  {
+    "drawtype": "normal",
+    "groups": {},
+    "sound_footstep": "",
+    "tiles": [
+      "aom_seelie_shrine_orb.png"
+    ]
+  },
+  {
+    "drawtype": "normal",
+    "groups": {},
+    "sound_footstep": "",
+    "tiles": [
+      "aom_nolan.png"
+    ]
+  },
+  {
+    "drawtype": "normal",
+    "groups": {},
+    "sound_footstep": "",
+    "tiles": [
+      "aom_tim.png"
+    ]
+  },
+  {
+    "drawtype": "normal",
+    "groups": {},
+    "sound_footstep": "",
+    "tiles": [
+      "clive.png"
+    ]
+  },
+  {
+    "drawtype": "normal",
+    "groups": {},
+    "sound_footstep": "",
+    "tiles": [
+      "clive_overlay.png"
+    ]
+  },
+  {
+    "drawtype": "normal",
+    "groups": {},
+    "sound_footstep": "",
+    "tiles": [
+      "humanoid.png"
+    ]
+  },
+  {
+    "drawtype": "normal",
+    "groups": {},
+    "sound_footstep": "",
+    "tiles": [
+      "aom_longship.png"
+    ]
+  },
+  {
+    "drawtype": "normal",
+    "groups": {},
+    "sound_footstep": "",
+    "tiles": [
+      "sum_airship_texture.png"
+    ]
+  },
+  {
+    "drawtype": "normal",
+    "groups": {},
+    "sound_footstep": "",
+    "tiles": [
+      "aom_underworld_coral_bug.png"
+    ]
+  },
+  {
+    "drawtype": "normal",
+    "groups": {},
+    "sound_footstep": "",
+    "tiles": [
+      "gm_windmills_rocket.png"
+    ]
+  }
+]

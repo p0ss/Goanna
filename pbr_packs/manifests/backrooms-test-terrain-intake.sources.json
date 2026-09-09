@@ -1,0 +1,152 @@
+{
+  "br_carpet_0": {
+    "class": "cloth",
+    "collisions": [],
+    "package": "backroomtest",
+    "source": "backroomtest/backroomtest/mods/packs/backrooms/textures/nodes/br_carpet_0.png"
+  },
+  "br_barrier": {
+    "class": "stone",
+    "collisions": [],
+    "package": "backroomtest",
+    "source": "backroomtest/backroomtest/mods/packs/backrooms/textures/nodes/br_barrier.png"
+  },
+  "br_ceiling_light_0": {
+    "class": "stone",
+    "collisions": [],
+    "package": "backroomtest",
+    "source": "backroomtest/backroomtest/mods/packs/backrooms/textures/nodes/br_ceiling_light_0.png"
+  },
+  "br_ceiling_light_1": {
+    "class": "stone",
+    "collisions": [],
+    "package": "backroomtest",
+    "source": "backroomtest/backroomtest/mods/packs/backrooms/textures/nodes/br_ceiling_light_1.png"
+  },
+  "br_ceiling_tiles_0": {
+    "class": "stone",
+    "collisions": [],
+    "package": "backroomtest",
+    "source": "backroomtest/backroomtest/mods/packs/backrooms/textures/nodes/br_ceiling_tiles_0.png"
+  },
+  "br_degrotator": {
+    "class": "stone",
+    "collisions": [],
+    "package": "backroomtest",
+    "source": "backroomtest/backroomtest/mods/packs/backrooms/textures/nodes/br_degrotator.png"
+  },
+  "br_drawers_0": {
+    "class": "stone",
+    "collisions": [],
+    "package": "backroomtest",
+    "source": "backroomtest/backroomtest/mods/packs/backrooms/textures/nodes/br_drawers_0.png"
+  },
+  "br_emergency_light_0": {
+    "class": "stone",
+    "collisions": [],
+    "package": "backroomtest",
+    "source": "backroomtest/backroomtest/mods/packs/backrooms/textures/nodes/br_emergency_light_0.png"
+  },
+  "br_emergency_light_0_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "backroomtest",
+    "source": "backroomtest/backroomtest/mods/packs/backrooms/textures/nodes/br_emergency_light_0_side.png"
+  },
+  "br_fire_alarm": {
+    "class": "stone",
+    "collisions": [],
+    "package": "backroomtest",
+    "source": "backroomtest/backroomtest/mods/packs/backrooms/textures/nodes/br_fire_alarm.png"
+  },
+  "br_fridge_0": {
+    "class": "stone",
+    "collisions": [],
+    "package": "backroomtest",
+    "source": "backroomtest/backroomtest/mods/packs/backrooms/textures/nodes/br_fridge_0.png"
+  },
+  "br_locker_top_0": {
+    "class": "stone",
+    "collisions": [],
+    "package": "backroomtest",
+    "source": "backroomtest/backroomtest/mods/packs/backrooms/textures/nodes/br_locker_top_0.png"
+  },
+  "br_oven_0": {
+    "class": "stone",
+    "collisions": [],
+    "package": "backroomtest",
+    "source": "backroomtest/backroomtest/mods/packs/backrooms/textures/nodes/br_oven_0.png"
+  },
+  "br_power_socket": {
+    "class": "stone",
+    "collisions": [],
+    "package": "backroomtest",
+    "source": "backroomtest/backroomtest/mods/packs/backrooms/textures/nodes/br_power_socket.png"
+  },
+  "br_sign_exclaim": {
+    "class": "stone",
+    "collisions": [],
+    "package": "backroomtest",
+    "source": "backroomtest/backroomtest/mods/packs/backrooms/textures/nodes/br_sign_exclaim.png"
+  },
+  "br_sign_exit": {
+    "class": "stone",
+    "collisions": [],
+    "package": "backroomtest",
+    "source": "backroomtest/backroomtest/mods/packs/backrooms/textures/nodes/br_sign_exit.png"
+  },
+  "br_sign_exit_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "backroomtest",
+    "source": "backroomtest/backroomtest/mods/packs/backrooms/textures/nodes/br_sign_exit_side.png"
+  },
+  "br_sign_no_entry": {
+    "class": "stone",
+    "collisions": [],
+    "package": "backroomtest",
+    "source": "backroomtest/backroomtest/mods/packs/backrooms/textures/nodes/br_sign_no_entry.png"
+  },
+  "br_sign_phone": {
+    "class": "stone",
+    "collisions": [],
+    "package": "backroomtest",
+    "source": "backroomtest/backroomtest/mods/packs/backrooms/textures/nodes/br_sign_phone.png"
+  },
+  "br_sign_x": {
+    "class": "stone",
+    "collisions": [],
+    "package": "backroomtest",
+    "source": "backroomtest/backroomtest/mods/packs/backrooms/textures/nodes/br_sign_x.png"
+  },
+  "br_tiles_0": {
+    "class": "stone",
+    "collisions": [],
+    "package": "backroomtest",
+    "source": "backroomtest/backroomtest/mods/packs/backrooms/textures/nodes/br_tiles_0.png"
+  },
+  "br_tiles_1": {
+    "class": "stone",
+    "collisions": [],
+    "package": "backroomtest",
+    "source": "backroomtest/backroomtest/mods/packs/backrooms/textures/nodes/br_tiles_1.png"
+  },
+  "br_tiles_2": {
+    "class": "stone",
+    "collisions": [],
+    "package": "backroomtest",
+    "source": "backroomtest/backroomtest/mods/packs/backrooms/textures/nodes/br_tiles_2.png"
+  },
+  "br_wallpaper_0": {
+    "class": "cloth",
+    "collisions": [],
+    "package": "backroomtest",
+    "source": "backroomtest/backroomtest/mods/packs/backrooms/textures/nodes/br_wallpaper_0.png"
+  },
+  "br_white": {
+    "class": "stone",
+    "collisions": [],
+    "package": "backroomtest",
+    "source": "backroomtest/backroomtest/mods/packs/backrooms/textures/effects/br_white.png"
+  }
+}

@@ -1,0 +1,27 @@
+[
+  {
+    "drawtype": "normal",
+    "groups": {},
+    "sound_footstep": "",
+    "tiles": [
+      "clive.png"
+    ]
+  },
+  {
+    "drawtype": "normal",
+    "groups": {},
+    "sound_footstep": "",
+    "tiles": [
+      "clive_overlay.png"
+    ]
+  },
+  {
+    "drawtype": "normal",
+    "groups": {},
+    "sound_footstep": "",
+    "tiles": [
+      "humanoid.png"
+    ]
+  }
+]
+

@@ -1,0 +1,4852 @@
+{
+  "advtrains_across": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains/textures/advtrains_across.png"
+  },
+  "advtrains_boiler": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains/textures/advtrains_boiler.png"
+  },
+  "advtrains_chimney": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains/textures/advtrains_chimney.png"
+  },
+  "advtrains_copytool": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains/textures/advtrains_copytool.png"
+  },
+  "advtrains_couple": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains/textures/advtrains_couple.png"
+  },
+  "advtrains_discouple": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains/textures/advtrains_discouple.png"
+  },
+  "advtrains_driver_cab": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains/textures/advtrains_driver_cab.png"
+  },
+  "advtrains_dtrack_rail": {
+    "class": "metal",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains_train_track/textures/advtrains_dtrack_rail.png"
+  },
+  "advtrains_hud_arrow": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains/textures/advtrains_hud_arrow.png"
+  },
+  "advtrains_hud_atc": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains/textures/advtrains_hud_atc.png"
+  },
+  "advtrains_hud_lzb": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains/textures/advtrains_hud_lzb.png"
+  },
+  "advtrains_hud_shunt": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains/textures/advtrains_hud_shunt.png"
+  },
+  "advtrains_platform": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains/textures/advtrains_platform.png"
+  },
+  "advtrains_platform_diag": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains/textures/advtrains_platform_diag.png"
+  },
+  "advtrains_signals_japan_mast": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains_signals_japan/textures/advtrains_signals_japan_mast.png"
+  },
+  "advtrains_signals_ks_head": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains_signals_ks/textures/advtrains_signals_ks_head.png"
+  },
+  "advtrains_signals_ks_mast": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains_signals_ks/textures/advtrains_signals_ks_mast.png"
+  },
+  "advtrains_signals_ks_sign_8": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains_signals_ks/textures/advtrains_signals_ks_sign_8.png"
+  },
+  "advtrains_signals_ks_sign_lf7": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains_signals_ks/textures/advtrains_signals_ks_sign_lf7.png"
+  },
+  "advtrains_signals_ks_sign_off": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains_signals_ks/textures/advtrains_signals_ks_sign_off.png"
+  },
+  "advtrains_signals_ks_sign_zs10": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains_signals_ks/textures/advtrains_signals_ks_sign_zs10.png"
+  },
+  "advtrains_signals_ks_signpost": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains_signals_ks/textures/advtrains_signals_ks_signpost.png"
+  },
+  "advtrains_trackworker": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains/textures/advtrains_trackworker.png"
+  },
+  "advtrains_wheel": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains/textures/advtrains_wheel.png"
+  },
+  "animalia_crate": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_crate.png"
+  },
+  "animalia_crate_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_crate_side.png"
+  },
+  "animalia_guano": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/nodes/animalia_guano.png"
+  },
+  "animalia_nest": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/nodes/animalia_nest.png"
+  },
+  "at_il_route_end": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains_interlocking/textures/at_il_route_end.png"
+  },
+  "at_il_route_lock": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains_interlocking/textures/at_il_route_lock.png"
+  },
+  "at_il_route_lock_edit": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains_interlocking/textures/at_il_route_lock_edit.png"
+  },
+  "at_il_route_set": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains_interlocking/textures/at_il_route_set.png"
+  },
+  "at_il_route_start": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains_interlocking/textures/at_il_route_start.png"
+  },
+  "at_il_signal_ip": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains_interlocking/textures/at_il_signal_ip.png"
+  },
+  "at_il_tcb_marker": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains_interlocking/textures/at_il_tcb_marker.png"
+  },
+  "at_il_tcb_node": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains_interlocking/textures/at_il_tcb_node.png"
+  },
+  "at_il_tool": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains_interlocking/textures/at_il_tool.png"
+  },
+  "at_il_turnout_free": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains_interlocking/textures/at_il_turnout_free.png"
+  },
+  "atlatc_luacontroller_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains_luaautomation/textures/atlatc_luacontroller_bottom.png"
+  },
+  "atlatc_luacontroller_sides": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains_luaautomation/textures/atlatc_luacontroller_sides.png"
+  },
+  "atlatc_luacontroller_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains_luaautomation/textures/atlatc_luacontroller_top.png"
+  },
+  "atlatc_oppanel": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains_luaautomation/textures/atlatc_oppanel.png"
+  },
+  "atlatc_pcnaming": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains_luaautomation/textures/atlatc_pcnaming.png"
+  },
+  "baked_clay_brown": {
+    "class": "stone",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/baked_clay_brown.png"
+  },
+  "baked_clay_grey": {
+    "class": "stone",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/baked_clay_grey.png"
+  },
+  "baked_clay_orange": {
+    "class": "stone",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/baked_clay_orange.png"
+  },
+  "baked_clay_red": {
+    "class": "stone",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/baked_clay_red.png"
+  },
+  "basic_materials_brass_block": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/basic_materials/textures/basic_materials_brass_block.png"
+  },
+  "basic_materials_cement_block": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/basic_materials/textures/basic_materials_cement_block.png"
+  },
+  "basic_materials_chain_brass": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/basic_materials/textures/basic_materials_chain_brass.png"
+  },
+  "basic_materials_chain_steel": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/basic_materials/textures/basic_materials_chain_steel.png"
+  },
+  "basic_materials_concrete_block": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/basic_materials/textures/basic_materials_concrete_block.png"
+  },
+  "chess_draw_repeat3": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/chess_draw_repeat3.png"
+  },
+  "chess_resign": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/chess_resign.png"
+  },
+  "chess_turn_black": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/chess_turn_black.png"
+  },
+  "chess_turn_white": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/chess_turn_white.png"
+  },
+  "chessboard_sides": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/chessboard_sides.png"
+  },
+  "chessboard_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/chessboard_top.png"
+  },
+  "compost_compost": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/compost/textures/compost_compost.png"
+  },
+  "compost_garden_soil": {
+    "class": "soil",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/compost/textures/compost_garden_soil.png"
+  },
+  "cottages_beds_bed_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "cottages",
+    "source": "cottages/cottages/textures/cottages_beds_bed_side.png"
+  },
+  "cottages_beds_bed_side_top_l": {
+    "class": "stone",
+    "collisions": [],
+    "package": "cottages",
+    "source": "cottages/cottages/textures/cottages_beds_bed_side_top_l.png"
+  },
+  "cottages_beds_bed_side_top_r": {
+    "class": "stone",
+    "collisions": [],
+    "package": "cottages",
+    "source": "cottages/cottages/textures/cottages_beds_bed_side_top_r.png"
+  },
+  "cottages_beds_bed_top_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "cottages",
+    "source": "cottages/cottages/textures/cottages_beds_bed_top_bottom.png"
+  },
+  "cottages_beds_bed_top_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "cottages",
+    "source": "cottages/cottages/textures/cottages_beds_bed_top_top.png"
+  },
+  "cottages_clay": {
+    "class": "stone",
+    "collisions": [],
+    "package": "cottages",
+    "source": "cottages/cottages/textures/cottages_clay.png"
+  },
+  "cottages_darkage_straw": {
+    "class": "stone",
+    "collisions": [],
+    "package": "cottages",
+    "source": "cottages/cottages/textures/cottages_darkage_straw.png"
+  },
+  "cottages_darkage_straw_bale": {
+    "class": "stone",
+    "collisions": [],
+    "package": "cottages",
+    "source": "cottages/cottages/textures/cottages_darkage_straw_bale.png"
+  },
+  "cottages_feldweg": {
+    "class": "stone",
+    "collisions": [],
+    "package": "cottages",
+    "source": "cottages/cottages/textures/cottages_feldweg.png"
+  },
+  "cottages_feldweg_ecke": {
+    "class": "stone",
+    "collisions": [],
+    "package": "cottages",
+    "source": "cottages/cottages/textures/cottages_feldweg_ecke.png"
+  },
+  "cottages_feldweg_edges": {
+    "class": "stone",
+    "collisions": [],
+    "package": "cottages",
+    "source": "cottages/cottages/textures/cottages_feldweg_edges.png"
+  },
+  "cottages_feldweg_end": {
+    "class": "stone",
+    "collisions": [],
+    "package": "cottages",
+    "source": "cottages/cottages/textures/cottages_feldweg_end.png"
+  },
+  "cottages_feldweg_kreuzung": {
+    "class": "stone",
+    "collisions": [],
+    "package": "cottages",
+    "source": "cottages/cottages/textures/cottages_feldweg_kreuzung.png"
+  },
+  "cottages_feldweg_surface": {
+    "class": "stone",
+    "collisions": [],
+    "package": "cottages",
+    "source": "cottages/cottages/textures/cottages_feldweg_surface.png"
+  },
+  "cottages_feldweg_t-kreuzung": {
+    "class": "stone",
+    "collisions": [],
+    "package": "cottages",
+    "source": "cottages/cottages/textures/cottages_feldweg_t-kreuzung.png"
+  },
+  "cottages_glass_pane": {
+    "class": "glass",
+    "collisions": [],
+    "package": "cottages",
+    "source": "cottages/cottages/textures/cottages_glass_pane.png"
+  },
+  "cottages_homedecor_shingles_asphalt": {
+    "class": "stone",
+    "collisions": [],
+    "package": "cottages",
+    "source": "cottages/cottages/textures/cottages_homedecor_shingles_asphalt.png"
+  },
+  "cottages_homedecor_shingles_terracotta": {
+    "class": "stone",
+    "collisions": [],
+    "package": "cottages",
+    "source": "cottages/cottages/textures/cottages_homedecor_shingles_terracotta.png"
+  },
+  "cottages_homedecor_shingles_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "cottages",
+    "source": "cottages/cottages/textures/cottages_homedecor_shingles_wood.png"
+  },
+  "cottages_junglewood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "cottages",
+    "source": "cottages/cottages/textures/cottages_junglewood.png"
+  },
+  "cottages_minimal_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "cottages",
+    "source": "cottages/cottages/textures/cottages_minimal_wood.png"
+  },
+  "cottages_pitchfork": {
+    "class": "stone",
+    "collisions": [],
+    "package": "cottages",
+    "source": "cottages/cottages/textures/cottages_pitchfork.png"
+  },
+  "cottages_reet": {
+    "class": "stone",
+    "collisions": [],
+    "package": "cottages",
+    "source": "cottages/cottages/textures/cottages_reet.png"
+  },
+  "cottages_rope": {
+    "class": "stone",
+    "collisions": [],
+    "package": "cottages",
+    "source": "cottages/cottages/textures/cottages_rope.png"
+  },
+  "cottages_slate": {
+    "class": "stone",
+    "collisions": [],
+    "package": "cottages",
+    "source": "cottages/cottages/textures/cottages_slate.png"
+  },
+  "cottages_sleepingmat": {
+    "class": "stone",
+    "collisions": [],
+    "package": "cottages",
+    "source": "cottages/cottages/textures/cottages_sleepingmat.png"
+  },
+  "cottages_steel_block": {
+    "class": "metal",
+    "collisions": [],
+    "package": "cottages",
+    "source": "cottages/cottages/textures/cottages_steel_block.png"
+  },
+  "cottages_stone": {
+    "class": "stone",
+    "collisions": [],
+    "package": "cottages",
+    "source": "cottages/cottages/textures/cottages_stone.png"
+  },
+  "cottages_wagonwheel": {
+    "class": "stone",
+    "collisions": [],
+    "package": "cottages",
+    "source": "cottages/cottages/textures/cottages_wagonwheel.png"
+  },
+  "cottages_wool": {
+    "class": "cloth",
+    "collisions": [],
+    "package": "cottages",
+    "source": "cottages/cottages/textures/cottages_wool.png"
+  },
+  "doclib_book": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/doclib/textures/doclib_book.png"
+  },
+  "drwho_screwdriver": {
+    "class": "stone",
+    "collisions": [],
+    "package": "advtrains",
+    "source": "advtrains/advtrains/advtrains/textures/drwho_screwdriver.png"
+  },
+  "ebiomes_afzelia_tree": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_afzelia_tree.png"
+  },
+  "ebiomes_afzelia_tree_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_afzelia_tree_top.png"
+  },
+  "ebiomes_afzelia_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_afzelia_wood.png"
+  },
+  "ebiomes_alder_tree": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_alder_tree.png"
+  },
+  "ebiomes_alder_tree_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_alder_tree_top.png"
+  },
+  "ebiomes_alder_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_alder_wood.png"
+  },
+  "ebiomes_ash_tree": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_ash_tree.png"
+  },
+  "ebiomes_ash_tree_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_ash_tree_top.png"
+  },
+  "ebiomes_ash_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_ash_wood.png"
+  },
+  "ebiomes_beech_tree": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_beech_tree.png"
+  },
+  "ebiomes_beech_tree_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_beech_tree_top.png"
+  },
+  "ebiomes_beech_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_beech_wood.png"
+  },
+  "ebiomes_birch_tree": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_birch_tree.png"
+  },
+  "ebiomes_birch_tree_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_birch_tree_top.png"
+  },
+  "ebiomes_birch_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_birch_wood.png"
+  },
+  "ebiomes_chestnut_tree": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_chestnut_tree.png"
+  },
+  "ebiomes_chestnut_tree_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_chestnut_tree_top.png"
+  },
+  "ebiomes_chestnut_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_chestnut_wood.png"
+  },
+  "ebiomes_cypress_tree": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_cypress_tree.png"
+  },
+  "ebiomes_cypress_tree_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_cypress_tree_top.png"
+  },
+  "ebiomes_cypress_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_cypress_wood.png"
+  },
+  "ebiomes_desert_sand_with_debris": {
+    "class": "sand",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_desert_sand_with_debris.png"
+  },
+  "ebiomes_downy_birch_tree": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_downy_birch_tree.png"
+  },
+  "ebiomes_downy_birch_tree_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_downy_birch_tree_top.png"
+  },
+  "ebiomes_downy_birch_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_downy_birch_wood.png"
+  },
+  "ebiomes_forest_litter": {
+    "class": "stone",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_forest_litter.png"
+  },
+  "ebiomes_forest_litter_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_forest_litter_side.png"
+  },
+  "ebiomes_hornbeam_tree": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_hornbeam_tree.png"
+  },
+  "ebiomes_hornbeam_tree_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_hornbeam_tree_top.png"
+  },
+  "ebiomes_hornbeam_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_hornbeam_wood.png"
+  },
+  "ebiomes_japanese_rainforest_litter": {
+    "class": "stone",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_japanese_rainforest_litter.png"
+  },
+  "ebiomes_japanese_rainforest_litter_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_japanese_rainforest_litter_side.png"
+  },
+  "ebiomes_limba_black_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_limba_black_wood.png"
+  },
+  "ebiomes_limba_tree": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_limba_tree.png"
+  },
+  "ebiomes_limba_tree_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_limba_tree_top.png"
+  },
+  "ebiomes_limba_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_limba_wood.png"
+  },
+  "ebiomes_maple_tree_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_maple_tree_top.png"
+  },
+  "ebiomes_maple_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_maple_wood.png"
+  },
+  "ebiomes_mizunara_tree_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_mizunara_tree_top.png"
+  },
+  "ebiomes_mizunara_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_mizunara_wood.png"
+  },
+  "ebiomes_oak_tree_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_oak_tree_top.png"
+  },
+  "ebiomes_oak_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_oak_wood.png"
+  },
+  "ebiomes_olive_tree_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_olive_tree_top.png"
+  },
+  "ebiomes_olive_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_olive_wood.png"
+  },
+  "ebiomes_pear_tree_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_pear_tree_top.png"
+  },
+  "ebiomes_pear_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_pear_wood.png"
+  },
+  "ebiomes_quince_tree_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_quince_tree_top.png"
+  },
+  "ebiomes_quince_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_quince_wood.png"
+  },
+  "ebiomes_sand_with_debris": {
+    "class": "sand",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_sand_with_debris.png"
+  },
+  "ebiomes_siri_tree_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_siri_tree_top.png"
+  },
+  "ebiomes_siri_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_siri_wood.png"
+  },
+  "ebiomes_stoneoak_tree": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_stoneoak_tree.png"
+  },
+  "ebiomes_stoneoak_tree_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_stoneoak_tree_top.png"
+  },
+  "ebiomes_stoneoak_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_stoneoak_wood.png"
+  },
+  "ebiomes_sugi_tree_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_sugi_tree_top.png"
+  },
+  "ebiomes_sugi_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_sugi_wood.png"
+  },
+  "ebiomes_tamarind_tree_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_tamarind_tree_top.png"
+  },
+  "ebiomes_tamarind_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_tamarind_wood.png"
+  },
+  "ebiomes_willow_tree_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_willow_tree_top.png"
+  },
+  "ebiomes_willow_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ebiomes",
+    "source": "ebiomes/ebiomes/textures/ebiomes_willow_wood.png"
+  },
+  "ethereal_bamboo_floor": {
+    "class": "stone",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/ethereal_bamboo_floor.png"
+  },
+  "ethereal_banana_trunk": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/ethereal_banana_trunk.png"
+  },
+  "ethereal_banana_trunk_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/ethereal_banana_trunk_top.png"
+  },
+  "ethereal_blue_marble": {
+    "class": "stone",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/ethereal_blue_marble.png"
+  },
+  "ethereal_blue_marble_brick": {
+    "class": "stone",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/ethereal_blue_marble_brick.png"
+  },
+  "ethereal_blue_marble_tile": {
+    "class": "stone",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/ethereal_blue_marble_tile.png"
+  },
+  "ethereal_brick_ice": {
+    "class": "ice",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/ethereal_brick_ice.png"
+  },
+  "ethereal_brick_snow": {
+    "class": "snow",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/ethereal_brick_snow.png"
+  },
+  "ethereal_charcoal_block": {
+    "class": "stone",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/ethereal_charcoal_block.png"
+  },
+  "ethereal_crystal_block": {
+    "class": "glass",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/ethereal_crystal_block.png"
+  },
+  "ethereal_dry_dirt": {
+    "class": "soil",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/ethereal_dry_dirt.png"
+  },
+  "ethereal_etherium_ore": {
+    "class": "stone",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/ethereal_etherium_ore.png"
+  },
+  "ethereal_frost_tree": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/ethereal_frost_tree.png"
+  },
+  "ethereal_frost_tree_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/ethereal_frost_tree_top.png"
+  },
+  "ethereal_glostone": {
+    "class": "stone",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/ethereal_glostone.png"
+  },
+  "ethereal_mushroom_trunk": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/ethereal_mushroom_trunk.png"
+  },
+  "ethereal_mushroom_trunk_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/ethereal_mushroom_trunk_top.png"
+  },
+  "ethereal_olive_trunk": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/ethereal_olive_trunk.png"
+  },
+  "ethereal_olive_trunk_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/ethereal_olive_trunk_top.png"
+  },
+  "ethereal_paper_wall": {
+    "class": "stone",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/ethereal_paper_wall.png"
+  },
+  "ethereal_redwood_leaves": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/ethereal_redwood_leaves.png"
+  },
+  "ethereal_redwood_trunk": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/ethereal_redwood_trunk.png"
+  },
+  "ethereal_redwood_trunk_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/ethereal_redwood_trunk_top.png"
+  },
+  "ethereal_sakura_trunk": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/ethereal_sakura_trunk.png"
+  },
+  "ethereal_sakura_trunk_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/ethereal_sakura_trunk_top.png"
+  },
+  "ethereal_scorched_tree": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/ethereal_scorched_tree.png"
+  },
+  "ethereal_scorched_tree_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/ethereal_scorched_tree_top.png"
+  },
+  "ethereal_slime_block": {
+    "class": "stone",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/ethereal_slime_block.png"
+  },
+  "ethereal_sponge": {
+    "class": "stone",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/ethereal_sponge.png"
+  },
+  "ethereal_sponge_wet": {
+    "class": "stone",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/ethereal_sponge_wet.png"
+  },
+  "ethereal_willow_trunk": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/ethereal_willow_trunk.png"
+  },
+  "ethereal_willow_trunk_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/ethereal_willow_trunk_top.png"
+  },
+  "ethereal_yellow_tree": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/ethereal_yellow_tree.png"
+  },
+  "ethereal_yellow_tree_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/ethereal_yellow_tree_top.png"
+  },
+  "everness_bamboo_block_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_bamboo_block_side.png"
+  },
+  "everness_bamboo_block_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_bamboo_block_top.png"
+  },
+  "everness_coral_desert_stone_block": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_coral_desert_stone_block.png"
+  },
+  "everness_coral_desert_stone_brick": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_coral_desert_stone_brick.png"
+  },
+  "everness_coral_forest_deep_ocean_lantern_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_coral_forest_deep_ocean_lantern_bottom.png"
+  },
+  "everness_coral_forest_deep_ocean_lantern_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_coral_forest_deep_ocean_lantern_top.png"
+  },
+  "everness_coral_sandstone": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_coral_sandstone.png"
+  },
+  "everness_coral_sandstone_brick": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_coral_sandstone_brick.png"
+  },
+  "everness_coral_sandstone_carved_1": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_coral_sandstone_carved_1.png"
+  },
+  "everness_coral_sandstone_chiseled": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_coral_sandstone_chiseled.png"
+  },
+  "everness_coral_white_sandstone": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_coral_white_sandstone.png"
+  },
+  "everness_coral_white_sandstone_brick": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_coral_white_sandstone_brick.png"
+  },
+  "everness_coral_white_sandstone_pillar": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_coral_white_sandstone_pillar.png"
+  },
+  "everness_crystal_block_cyan": {
+    "class": "glass",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_crystal_block_cyan.png"
+  },
+  "everness_crystal_block_cyan_top": {
+    "class": "glass",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_crystal_block_cyan_top.png"
+  },
+  "everness_crystal_block_orange": {
+    "class": "glass",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_crystal_block_orange.png"
+  },
+  "everness_crystal_block_orange_top": {
+    "class": "glass",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_crystal_block_orange_top.png"
+  },
+  "everness_crystal_block_purple": {
+    "class": "glass",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_crystal_block_purple.png"
+  },
+  "everness_crystal_block_purple_top": {
+    "class": "glass",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_crystal_block_purple_top.png"
+  },
+  "everness_crystal_cave_dirt": {
+    "class": "soil",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_crystal_cave_dirt.png"
+  },
+  "everness_crystal_cave_dirt_side": {
+    "class": "soil",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_crystal_cave_dirt_side.png"
+  },
+  "everness_crystal_cave_dirt_top": {
+    "class": "soil",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_crystal_cave_dirt_top.png"
+  },
+  "everness_crystal_cluster_side": {
+    "class": "glass",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_crystal_cluster_side.png"
+  },
+  "everness_crystal_cluster_top": {
+    "class": "glass",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_crystal_cluster_top.png"
+  },
+  "everness_crystal_cobble": {
+    "class": "glass",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_crystal_cobble.png"
+  },
+  "everness_crystal_coral_dark_block": {
+    "class": "glass",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_crystal_coral_dark_block.png"
+  },
+  "everness_crystal_coral_light_block": {
+    "class": "glass",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_crystal_coral_light_block.png"
+  },
+  "everness_crystal_dirt": {
+    "class": "soil",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_crystal_dirt.png"
+  },
+  "everness_crystal_forest_deep_ocean_coral_1": {
+    "class": "glass",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_crystal_forest_deep_ocean_coral_1.png"
+  },
+  "everness_crystal_forest_deep_ocean_coral_2": {
+    "class": "glass",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_crystal_forest_deep_ocean_coral_2.png"
+  },
+  "everness_crystal_forest_deep_ocean_coral_3": {
+    "class": "glass",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_crystal_forest_deep_ocean_coral_3.png"
+  },
+  "everness_crystal_forest_deep_ocean_coral_plant_1": {
+    "class": "glass",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_crystal_forest_deep_ocean_coral_plant_1.png"
+  },
+  "everness_crystal_forest_deep_ocean_coral_plant_2": {
+    "class": "glass",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_crystal_forest_deep_ocean_coral_plant_2.png"
+  },
+  "everness_crystal_forest_deep_ocean_coral_plant_3": {
+    "class": "glass",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_crystal_forest_deep_ocean_coral_plant_3.png"
+  },
+  "everness_crystal_forest_deep_ocean_sand": {
+    "class": "sand",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_crystal_forest_deep_ocean_sand.png"
+  },
+  "everness_crystal_forest_deep_ocean_sand_with_crack": {
+    "class": "sand",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_crystal_forest_deep_ocean_sand_with_crack.png"
+  },
+  "everness_crystal_forest_deep_ocean_sandstone_block": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_crystal_forest_deep_ocean_sandstone_block.png"
+  },
+  "everness_crystal_forest_deep_ocean_sandstone_brick": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_crystal_forest_deep_ocean_sandstone_brick.png"
+  },
+  "everness_crystal_forest_moon": {
+    "class": "glass",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_crystal_forest_moon.png"
+  },
+  "everness_crystal_forest_sun": {
+    "class": "glass",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_crystal_forest_sun.png"
+  },
+  "everness_crystal_grass_side": {
+    "class": "glass",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_crystal_grass_side.png"
+  },
+  "everness_crystal_megalith_side_1": {
+    "class": "glass",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_crystal_megalith_side_1.png"
+  },
+  "everness_crystal_megalith_side_2": {
+    "class": "glass",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_crystal_megalith_side_2.png"
+  },
+  "everness_crystal_megalith_side_3": {
+    "class": "glass",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_crystal_megalith_side_3.png"
+  },
+  "everness_crystal_megalith_side_4": {
+    "class": "glass",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_crystal_megalith_side_4.png"
+  },
+  "everness_crystal_megalith_side_5": {
+    "class": "glass",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_crystal_megalith_side_5.png"
+  },
+  "everness_crystal_megalith_top": {
+    "class": "glass",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_crystal_megalith_top.png"
+  },
+  "everness_crystal_mossy_cobble": {
+    "class": "glass",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_crystal_mossy_cobble.png"
+  },
+  "everness_crystal_sand": {
+    "class": "sand",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_crystal_sand.png"
+  },
+  "everness_crystal_sandstone": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_crystal_sandstone.png"
+  },
+  "everness_crystal_sandstone_brick": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_crystal_sandstone_brick.png"
+  },
+  "everness_crystal_sandstone_chiseled": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_crystal_sandstone_chiseled.png"
+  },
+  "everness_crystal_stone": {
+    "class": "glass",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_crystal_stone.png"
+  },
+  "everness_crystal_stone_brick": {
+    "class": "glass",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_crystal_stone_brick.png"
+  },
+  "everness_crystal_tree_top": {
+    "class": "glass",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_crystal_tree_top.png"
+  },
+  "everness_crystal_wood": {
+    "class": "glass",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_crystal_wood.png"
+  },
+  "everness_cursed_lands_deep_ocean_sand_brick": {
+    "class": "sand",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_cursed_lands_deep_ocean_sand_brick.png"
+  },
+  "everness_cursed_lands_deep_ocean_sandblock": {
+    "class": "sand",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_cursed_lands_deep_ocean_sandblock.png"
+  },
+  "everness_cursed_sandstone_block": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_cursed_sandstone_block.png"
+  },
+  "everness_cursed_sandstone_brick": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_cursed_sandstone_brick.png"
+  },
+  "everness_deep_ocean_sandstone_block": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_deep_ocean_sandstone_block.png"
+  },
+  "everness_deep_ocean_sandstone_brick": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_deep_ocean_sandstone_brick.png"
+  },
+  "everness_door_crystal_wood_item": {
+    "class": "glass",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_door_crystal_wood_item.png"
+  },
+  "everness_door_trapdoor_crystal_wood": {
+    "class": "glass",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_door_trapdoor_crystal_wood.png"
+  },
+  "everness_door_trapdoor_crystal_wood_side": {
+    "class": "glass",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_door_trapdoor_crystal_wood_side.png"
+  },
+  "everness_door_trapdoor_cursed_wood_side": {
+    "class": "wood",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_door_trapdoor_cursed_wood_side.png"
+  },
+  "everness_door_trapdoor_lava_tree_wood_side": {
+    "class": "wood",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_door_trapdoor_lava_tree_wood_side.png"
+  },
+  "everness_door_trapdoor_palm_wood_side": {
+    "class": "wood",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_door_trapdoor_palm_wood_side.png"
+  },
+  "everness_dry_bamboo_block_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_dry_bamboo_block_side.png"
+  },
+  "everness_dry_bamboo_block_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_dry_bamboo_block_top.png"
+  },
+  "everness_fence_crystal_wood": {
+    "class": "glass",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_fence_crystal_wood.png"
+  },
+  "everness_fence_rail_bamboo_wood": {
+    "class": "metal",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_fence_rail_bamboo_wood.png"
+  },
+  "everness_fence_rail_coral_wood": {
+    "class": "metal",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_fence_rail_coral_wood.png"
+  },
+  "everness_fence_rail_crystal_wood": {
+    "class": "glass",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_fence_rail_crystal_wood.png"
+  },
+  "everness_fence_rail_dry_wood": {
+    "class": "metal",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_fence_rail_dry_wood.png"
+  },
+  "everness_fence_rail_lava_tree_wood": {
+    "class": "metal",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_fence_rail_lava_tree_wood.png"
+  },
+  "everness_fence_rail_palm_wood": {
+    "class": "metal",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_fence_rail_palm_wood.png"
+  },
+  "everness_forsaken_tundra_cobblestone": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_forsaken_tundra_cobblestone.png"
+  },
+  "everness_icecobble": {
+    "class": "ice",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_icecobble.png"
+  },
+  "everness_mineral_cobblestone": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_mineral_cobblestone.png"
+  },
+  "everness_mineral_cobblestone_under": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_mineral_cobblestone_under.png"
+  },
+  "everness_mineral_sandstone": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_mineral_sandstone.png"
+  },
+  "everness_mineral_sandstone_block": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_mineral_sandstone_block.png"
+  },
+  "everness_mineral_sandstone_brick": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_mineral_sandstone_brick.png"
+  },
+  "everness_mineral_sandstone_brick_block": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_mineral_sandstone_brick_block.png"
+  },
+  "everness_mineral_sandstone_brick_block_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_mineral_sandstone_brick_block_top.png"
+  },
+  "everness_mineral_stone_block": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_mineral_stone_block.png"
+  },
+  "everness_mineral_stone_brick": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_mineral_stone_brick.png"
+  },
+  "everness_mineral_stone_brick_with_growth": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_mineral_stone_brick_with_growth.png"
+  },
+  "everness_pyrite_block_slab_brick": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_pyrite_block_slab_brick.png"
+  },
+  "everness_pyriteblock_brick": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_pyriteblock_brick.png"
+  },
+  "everness_quartz_block_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_quartz_block_bottom.png"
+  },
+  "everness_quartz_block_chiseled_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_quartz_block_chiseled_top.png"
+  },
+  "everness_quartz_block_lines_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_quartz_block_lines_top.png"
+  },
+  "everness_quartz_block_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_quartz_block_side.png"
+  },
+  "everness_quartz_block_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_quartz_block_top.png"
+  },
+  "everness_soul_sandstone": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_soul_sandstone.png"
+  },
+  "everness_soul_sandstone_veined_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_soul_sandstone_veined_side.png"
+  },
+  "everness_soul_sandstone_veined_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_soul_sandstone_veined_top.png"
+  },
+  "everness_trapdoor_cursed_steel_bar_side": {
+    "class": "metal",
+    "collisions": [],
+    "package": "everness",
+    "source": "everness/everness/textures/everness_trapdoor_cursed_steel_bar_side.png"
+  },
+  "fachwerk_beam_1": {
+    "class": "stone",
+    "collisions": [],
+    "package": "fachwerk",
+    "source": "fachwerk/fachwerk/textures/fachwerk_beam_1.png"
+  },
+  "fachwerk_beam_2": {
+    "class": "stone",
+    "collisions": [],
+    "package": "fachwerk",
+    "source": "fachwerk/fachwerk/textures/fachwerk_beam_2.png"
+  },
+  "fachwerk_cross": {
+    "class": "stone",
+    "collisions": [],
+    "package": "fachwerk",
+    "source": "fachwerk/fachwerk/textures/fachwerk_cross.png"
+  },
+  "glass_stained_1": {
+    "class": "glass",
+    "collisions": [],
+    "package": "glass_stained",
+    "source": "glass_stained/glass_stained/textures/glass_stained_1.png"
+  },
+  "glass_stained_10": {
+    "class": "glass",
+    "collisions": [],
+    "package": "glass_stained",
+    "source": "glass_stained/glass_stained/textures/glass_stained_10.png"
+  },
+  "glass_stained_11": {
+    "class": "glass",
+    "collisions": [],
+    "package": "glass_stained",
+    "source": "glass_stained/glass_stained/textures/glass_stained_11.png"
+  },
+  "glass_stained_12": {
+    "class": "glass",
+    "collisions": [],
+    "package": "glass_stained",
+    "source": "glass_stained/glass_stained/textures/glass_stained_12.png"
+  },
+  "glass_stained_13": {
+    "class": "glass",
+    "collisions": [],
+    "package": "glass_stained",
+    "source": "glass_stained/glass_stained/textures/glass_stained_13.png"
+  },
+  "glass_stained_14": {
+    "class": "glass",
+    "collisions": [],
+    "package": "glass_stained",
+    "source": "glass_stained/glass_stained/textures/glass_stained_14.png"
+  },
+  "glass_stained_15": {
+    "class": "glass",
+    "collisions": [],
+    "package": "glass_stained",
+    "source": "glass_stained/glass_stained/textures/glass_stained_15.png"
+  },
+  "glass_stained_16": {
+    "class": "glass",
+    "collisions": [],
+    "package": "glass_stained",
+    "source": "glass_stained/glass_stained/textures/glass_stained_16.png"
+  },
+  "glass_stained_17": {
+    "class": "glass",
+    "collisions": [],
+    "package": "glass_stained",
+    "source": "glass_stained/glass_stained/textures/glass_stained_17.png"
+  },
+  "glass_stained_18": {
+    "class": "glass",
+    "collisions": [],
+    "package": "glass_stained",
+    "source": "glass_stained/glass_stained/textures/glass_stained_18.png"
+  },
+  "glass_stained_2": {
+    "class": "glass",
+    "collisions": [],
+    "package": "glass_stained",
+    "source": "glass_stained/glass_stained/textures/glass_stained_2.png"
+  },
+  "glass_stained_3": {
+    "class": "glass",
+    "collisions": [],
+    "package": "glass_stained",
+    "source": "glass_stained/glass_stained/textures/glass_stained_3.png"
+  },
+  "glass_stained_4": {
+    "class": "glass",
+    "collisions": [],
+    "package": "glass_stained",
+    "source": "glass_stained/glass_stained/textures/glass_stained_4.png"
+  },
+  "glass_stained_5": {
+    "class": "glass",
+    "collisions": [],
+    "package": "glass_stained",
+    "source": "glass_stained/glass_stained/textures/glass_stained_5.png"
+  },
+  "glass_stained_6": {
+    "class": "glass",
+    "collisions": [],
+    "package": "glass_stained",
+    "source": "glass_stained/glass_stained/textures/glass_stained_6.png"
+  },
+  "glass_stained_7": {
+    "class": "glass",
+    "collisions": [],
+    "package": "glass_stained",
+    "source": "glass_stained/glass_stained/textures/glass_stained_7.png"
+  },
+  "glass_stained_8": {
+    "class": "glass",
+    "collisions": [],
+    "package": "glass_stained",
+    "source": "glass_stained/glass_stained/textures/glass_stained_8.png"
+  },
+  "glass_stained_9": {
+    "class": "glass",
+    "collisions": [],
+    "package": "glass_stained",
+    "source": "glass_stained/glass_stained/textures/glass_stained_9.png"
+  },
+  "glass_stained_bar_fancy": {
+    "class": "glass",
+    "collisions": [],
+    "package": "glass_stained",
+    "source": "glass_stained/glass_stained/textures/glass_stained_bar_fancy.png"
+  },
+  "glass_stained_edge": {
+    "class": "glass",
+    "collisions": [],
+    "package": "glass_stained",
+    "source": "glass_stained/glass_stained/textures/glass_stained_edge.png"
+  },
+  "glooptest_tool_steelhammer": {
+    "class": "metal",
+    "collisions": [],
+    "package": "cottages",
+    "source": "cottages/cottages/textures/glooptest_tool_steelhammer.png"
+  },
+  "goblins_blood": {
+    "class": "stone",
+    "collisions": [],
+    "package": "goblins",
+    "source": "goblins/goblins/textures/goblins_blood.png"
+  },
+  "goblins_exclam": {
+    "class": "stone",
+    "collisions": [],
+    "package": "goblins",
+    "source": "goblins/goblins/textures/goblins_exclam.png"
+  },
+  "goblins_goblin_bone": {
+    "class": "stone",
+    "collisions": [],
+    "package": "goblins",
+    "source": "goblins/goblins/textures/goblins_goblin_bone.png"
+  },
+  "goblins_goblin_bone_meaty": {
+    "class": "stone",
+    "collisions": [],
+    "package": "goblins",
+    "source": "goblins/goblins/textures/goblins_goblin_bone_meaty.png"
+  },
+  "goblins_heart_g2": {
+    "class": "stone",
+    "collisions": [],
+    "package": "goblins",
+    "source": "goblins/goblins/textures/goblins_heart_g2.png"
+  },
+  "goblins_lightning": {
+    "class": "stone",
+    "collisions": [],
+    "package": "goblins",
+    "source": "goblins/goblins/textures/goblins_lightning.png"
+  },
+  "goblins_negative": {
+    "class": "stone",
+    "collisions": [],
+    "package": "goblins",
+    "source": "goblins/goblins/textures/goblins_negative.png"
+  },
+  "hammer_layout": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/hammer_layout.png"
+  },
+  "hive_bee": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/hive_bee.png"
+  },
+  "hive_layout": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/hive_layout.png"
+  },
+  "hyperloop_booking": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/hyperloop/textures/hyperloop_booking.png"
+  },
+  "hyperloop_elevator": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/hyperloop/textures/hyperloop_elevator.png"
+  },
+  "hyperloop_elevator_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/hyperloop/textures/hyperloop_elevator_bottom.png"
+  },
+  "hyperloop_elevator_dark": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/hyperloop/textures/hyperloop_elevator_dark.png"
+  },
+  "hyperloop_elevator_dark_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/hyperloop/textures/hyperloop_elevator_dark_top.png"
+  },
+  "hyperloop_elevator_door": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/hyperloop/textures/hyperloop_elevator_door.png"
+  },
+  "hyperloop_elevator_door_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/hyperloop/textures/hyperloop_elevator_door_top.png"
+  },
+  "hyperloop_elevator_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/hyperloop/textures/hyperloop_elevator_top.png"
+  },
+  "hyperloop_lcd": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/hyperloop/textures/hyperloop_lcd.png"
+  },
+  "hyperloop_seat-side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/hyperloop/textures/hyperloop_seat-side.png"
+  },
+  "hyperloop_seat-top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/hyperloop/textures/hyperloop_seat-top.png"
+  },
+  "hyperloop_sign": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/hyperloop/textures/hyperloop_sign.png"
+  },
+  "hyperloop_sign_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/hyperloop/textures/hyperloop_sign_top.png"
+  },
+  "hyperloop_skin": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/hyperloop/textures/hyperloop_skin.png"
+  },
+  "hyperloop_skin_door": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/hyperloop/textures/hyperloop_skin_door.png"
+  },
+  "hyperloop_tube": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/hyperloop/textures/hyperloop_tube.png"
+  },
+  "hyperloop_tube_closed": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/hyperloop/textures/hyperloop_tube_closed.png"
+  },
+  "hyperloop_tube_locked": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/hyperloop/textures/hyperloop_tube_locked.png"
+  },
+  "hyperloop_tube_open": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/hyperloop/textures/hyperloop_tube_open.png"
+  },
+  "hyperloop_tube_wifi": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/hyperloop/textures/hyperloop_tube_wifi.png"
+  },
+  "hyperloop_waypoint": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/hyperloop/textures/hyperloop_waypoint.png"
+  },
+  "jeija_commandblock_off": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_commandblock/textures/jeija_commandblock_off.png"
+  },
+  "jeija_commandblock_on": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_commandblock/textures/jeija_commandblock_on.png"
+  },
+  "jeija_delayer": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_delayer/textures/jeija_delayer.png"
+  },
+  "jeija_fpga_programmer": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_fpga/textures/jeija_fpga_programmer.png"
+  },
+  "jeija_fpga_sides": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_fpga/textures/jeija_fpga_sides.png"
+  },
+  "jeija_fpga_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_fpga/textures/jeija_fpga_top.png"
+  },
+  "jeija_gate_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_delayer/textures/jeija_gate_side.png"
+  },
+  "jeija_gate_side_output_off": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_delayer/textures/jeija_gate_side_output_off.png"
+  },
+  "jeija_gate_side_output_on": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_delayer/textures/jeija_gate_side_output_on.png"
+  },
+  "jeija_ghoststone": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_random/textures/jeija_ghoststone.png"
+  },
+  "jeija_hydro_turbine_sides_off": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_hydroturbine/textures/jeija_hydro_turbine_sides_off.png"
+  },
+  "jeija_hydro_turbine_sides_on": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_hydroturbine/textures/jeija_hydro_turbine_sides_on.png"
+  },
+  "jeija_hydro_turbine_top_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_hydroturbine/textures/jeija_hydro_turbine_top_bottom.png"
+  },
+  "jeija_hydro_turbine_turbine_top_bottom_off": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_hydroturbine/textures/jeija_hydro_turbine_turbine_top_bottom_off.png"
+  },
+  "jeija_insulated_wire_sides_off": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_insulated/textures/jeija_insulated_wire_sides_off.png"
+  },
+  "jeija_insulated_wire_sides_on": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_insulated/textures/jeija_insulated_wire_sides_on.png"
+  },
+  "jeija_lightstone_blue_off": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_lightstone/textures/jeija_lightstone_blue_off.png"
+  },
+  "jeija_lightstone_blue_on": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_lightstone/textures/jeija_lightstone_blue_on.png"
+  },
+  "jeija_lightstone_cyan_off": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_lightstone/textures/jeija_lightstone_cyan_off.png"
+  },
+  "jeija_lightstone_cyan_on": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_lightstone/textures/jeija_lightstone_cyan_on.png"
+  },
+  "jeija_lightstone_darkgray_off": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_lightstone/textures/jeija_lightstone_darkgray_off.png"
+  },
+  "jeija_lightstone_darkgray_on": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_lightstone/textures/jeija_lightstone_darkgray_on.png"
+  },
+  "jeija_lightstone_gray_off": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_lightstone/textures/jeija_lightstone_gray_off.png"
+  },
+  "jeija_lightstone_gray_on": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_lightstone/textures/jeija_lightstone_gray_on.png"
+  },
+  "jeija_lightstone_green_off": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_lightstone/textures/jeija_lightstone_green_off.png"
+  },
+  "jeija_lightstone_green_on": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_lightstone/textures/jeija_lightstone_green_on.png"
+  },
+  "jeija_lightstone_magenta_off": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_lightstone/textures/jeija_lightstone_magenta_off.png"
+  },
+  "jeija_lightstone_magenta_on": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_lightstone/textures/jeija_lightstone_magenta_on.png"
+  },
+  "jeija_lightstone_orange_off": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_lightstone/textures/jeija_lightstone_orange_off.png"
+  },
+  "jeija_lightstone_orange_on": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_lightstone/textures/jeija_lightstone_orange_on.png"
+  },
+  "jeija_lightstone_pink_off": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_lightstone/textures/jeija_lightstone_pink_off.png"
+  },
+  "jeija_lightstone_pink_on": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_lightstone/textures/jeija_lightstone_pink_on.png"
+  },
+  "jeija_lightstone_red_off": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_lightstone/textures/jeija_lightstone_red_off.png"
+  },
+  "jeija_lightstone_red_on": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_lightstone/textures/jeija_lightstone_red_on.png"
+  },
+  "jeija_lightstone_violet_off": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_lightstone/textures/jeija_lightstone_violet_off.png"
+  },
+  "jeija_lightstone_violet_on": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_lightstone/textures/jeija_lightstone_violet_on.png"
+  },
+  "jeija_lightstone_white_off": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_lightstone/textures/jeija_lightstone_white_off.png"
+  },
+  "jeija_lightstone_white_on": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_lightstone/textures/jeija_lightstone_white_on.png"
+  },
+  "jeija_lightstone_yellow_off": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_lightstone/textures/jeija_lightstone_yellow_off.png"
+  },
+  "jeija_lightstone_yellow_on": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_lightstone/textures/jeija_lightstone_yellow_on.png"
+  },
+  "jeija_meselamp": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_lamp/textures/jeija_meselamp.png"
+  },
+  "jeija_movestone_arrows": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_movestones/textures/jeija_movestone_arrows.png"
+  },
+  "jeija_movestone_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_movestones/textures/jeija_movestone_side.png"
+  },
+  "jeija_pressure_plate_stone_off": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_pressureplates/textures/jeija_pressure_plate_stone_off.png"
+  },
+  "jeija_pressure_plate_stone_off_edges": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_pressureplates/textures/jeija_pressure_plate_stone_off_edges.png"
+  },
+  "jeija_pressure_plate_stone_on": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_pressureplates/textures/jeija_pressure_plate_stone_on.png"
+  },
+  "jeija_pressure_plate_stone_on_edges": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_pressureplates/textures/jeija_pressure_plate_stone_on_edges.png"
+  },
+  "jeija_pressure_plate_wood_off": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_pressureplates/textures/jeija_pressure_plate_wood_off.png"
+  },
+  "jeija_pressure_plate_wood_off_edges": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_pressureplates/textures/jeija_pressure_plate_wood_off_edges.png"
+  },
+  "jeija_pressure_plate_wood_on": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_pressureplates/textures/jeija_pressure_plate_wood_on.png"
+  },
+  "jeija_pressure_plate_wood_on_edges": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_pressureplates/textures/jeija_pressure_plate_wood_on_edges.png"
+  },
+  "jeija_removestone": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_random/textures/jeija_removestone.png"
+  },
+  "jeija_sticky_movestone": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_movestones/textures/jeija_sticky_movestone.png"
+  },
+  "jeija_wall_lever_back_edges": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_walllever/textures/jeija_wall_lever_back_edges.png"
+  },
+  "jeija_wall_lever_front": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_walllever/textures/jeija_wall_lever_front.png"
+  },
+  "jeija_wall_lever_front_bump": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_walllever/textures/jeija_wall_lever_front_bump.png"
+  },
+  "jeija_wall_lever_lever_light_off": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_walllever/textures/jeija_wall_lever_lever_light_off.png"
+  },
+  "jeija_wall_lever_lever_light_on": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_walllever/textures/jeija_wall_lever_lever_light_on.png"
+  },
+  "lantern_ceilingmounted": {
+    "class": "stone",
+    "collisions": [],
+    "package": "lanterns",
+    "source": "lanterns/lanterns/textures/lantern_ceilingmounted.png"
+  },
+  "lantern_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "lanterns",
+    "source": "lanterns/lanterns/textures/lantern_side.png"
+  },
+  "lantern_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "lanterns",
+    "source": "lanterns/lanterns/textures/lantern_top.png"
+  },
+  "lantern_wallmounted": {
+    "class": "stone",
+    "collisions": [],
+    "package": "lanterns",
+    "source": "lanterns/lanterns/textures/lantern_wallmounted.png"
+  },
+  "mcl_mangrove_log": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/mcl_mangrove_log.png"
+  },
+  "mcl_mangrove_log_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/mcl_mangrove_log_top.png"
+  },
+  "mese_layout": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/mese_layout.png"
+  },
+  "mesecons_noteblock": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_noteblock/textures/mesecons_noteblock.png"
+  },
+  "mesecons_stickyblocks_sticky": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mesecons",
+    "source": "mesecons/mesecons/mesecons_stickyblocks/textures/mesecons_stickyblocks_sticky.png"
+  },
+  "minecart_appl_cart_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/minecart/textures/minecart_appl_cart_top.png"
+  },
+  "minecart_appl_hopper_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/minecart/textures/minecart_appl_hopper_top.png"
+  },
+  "minecart_pusher_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/minecart/textures/minecart_pusher_top.png"
+  },
+  "minecart_terminal_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/minecart/textures/minecart_terminal_side.png"
+  },
+  "minecart_terminal_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/minecart/textures/minecart_terminal_top.png"
+  },
+  "moreblocks_circular_saw_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "moreblocks",
+    "source": "moreblocks/moreblocks/textures/moreblocks_circular_saw_bottom.png"
+  },
+  "moreblocks_circular_saw_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "moreblocks",
+    "source": "moreblocks/moreblocks/textures/moreblocks_circular_saw_side.png"
+  },
+  "moreblocks_circular_saw_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "moreblocks",
+    "source": "moreblocks/moreblocks/textures/moreblocks_circular_saw_top.png"
+  },
+  "moreblocks_clean_glass": {
+    "class": "glass",
+    "collisions": [],
+    "package": "moreblocks",
+    "source": "moreblocks/moreblocks/textures/moreblocks_clean_glass.png"
+  },
+  "moreblocks_clean_glass_detail": {
+    "class": "glass",
+    "collisions": [],
+    "package": "moreblocks",
+    "source": "moreblocks/moreblocks/textures/moreblocks_clean_glass_detail.png"
+  },
+  "moreblocks_coal_checker": {
+    "class": "stone",
+    "collisions": [],
+    "package": "moreblocks",
+    "source": "moreblocks/moreblocks/textures/moreblocks_coal_checker.png"
+  },
+  "moreblocks_empty_shelf": {
+    "class": "stone",
+    "collisions": [],
+    "package": "moreblocks",
+    "source": "moreblocks/moreblocks/textures/moreblocks_empty_shelf.png"
+  },
+  "moreblocks_iron_checker": {
+    "class": "metal",
+    "collisions": [],
+    "package": "moreblocks",
+    "source": "moreblocks/moreblocks/textures/moreblocks_iron_checker.png"
+  },
+  "moreblocks_rope": {
+    "class": "stone",
+    "collisions": [],
+    "package": "moreblocks",
+    "source": "moreblocks/moreblocks/textures/moreblocks_rope.png"
+  },
+  "moreblocks_split_stone_tile": {
+    "class": "stone",
+    "collisions": [],
+    "package": "moreblocks",
+    "source": "moreblocks/moreblocks/textures/moreblocks_split_stone_tile.png"
+  },
+  "moreblocks_split_stone_tile_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "moreblocks",
+    "source": "moreblocks/moreblocks/textures/moreblocks_split_stone_tile_top.png"
+  },
+  "moreblocks_sweeper": {
+    "class": "stone",
+    "collisions": [],
+    "package": "moreblocks",
+    "source": "moreblocks/moreblocks/textures/moreblocks_sweeper.png"
+  },
+  "moreblocks_trap_box": {
+    "class": "stone",
+    "collisions": [],
+    "package": "moreblocks",
+    "source": "moreblocks/moreblocks/textures/moreblocks_trap_box.png"
+  },
+  "moreblocks_trap_box_glass": {
+    "class": "glass",
+    "collisions": [],
+    "package": "moreblocks",
+    "source": "moreblocks/moreblocks/textures/moreblocks_trap_box_glass.png"
+  },
+  "moreblocks_wood_tile": {
+    "class": "wood",
+    "collisions": [],
+    "package": "moreblocks",
+    "source": "moreblocks/moreblocks/textures/moreblocks_wood_tile.png"
+  },
+  "moreblocks_wood_tile_center": {
+    "class": "wood",
+    "collisions": [],
+    "package": "moreblocks",
+    "source": "moreblocks/moreblocks/textures/moreblocks_wood_tile_center.png"
+  },
+  "moreblocks_wood_tile_offset": {
+    "class": "wood",
+    "collisions": [],
+    "package": "moreblocks",
+    "source": "moreblocks/moreblocks/textures/moreblocks_wood_tile_offset.png"
+  },
+  "morelights_bulb": {
+    "class": "stone",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights/textures/morelights_bulb.png"
+  },
+  "morelights_extras_blocklight": {
+    "class": "stone",
+    "collisions": [
+      "techage_modpack"
+    ],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights_extras/textures/morelights_extras_blocklight.png"
+  },
+  "morelights_extras_f_block": {
+    "class": "stone",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights_extras/textures/morelights_extras_f_block.png"
+  },
+  "morelights_extras_stairlight": {
+    "class": "stone",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights_extras/textures/morelights_extras_stairlight.png"
+  },
+  "morelights_metal_dark": {
+    "class": "metal",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights/textures/morelights_metal_dark.png"
+  },
+  "morelights_metal_dark_32": {
+    "class": "metal",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights/textures/morelights_metal_dark_32.png"
+  },
+  "morelights_metal_light": {
+    "class": "metal",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights/textures/morelights_metal_light.png"
+  },
+  "morelights_metal_light_32": {
+    "class": "metal",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights/textures/morelights_metal_light_32.png"
+  },
+  "morelights_modern_barlight": {
+    "class": "stone",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights_modern/textures/morelights_modern_barlight.png"
+  },
+  "morelights_modern_block": {
+    "class": "stone",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights_modern/textures/morelights_modern_block.png"
+  },
+  "morelights_modern_canlight": {
+    "class": "stone",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights_modern/textures/morelights_modern_canlight.png"
+  },
+  "morelights_modern_pathlight": {
+    "class": "stone",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights_modern/textures/morelights_modern_pathlight.png"
+  },
+  "morelights_modern_post": {
+    "class": "stone",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights_modern/textures/morelights_modern_post.png"
+  },
+  "morelights_modern_smallblock": {
+    "class": "stone",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights_modern/textures/morelights_modern_smallblock.png"
+  },
+  "morelights_modern_tablelamp_d": {
+    "class": "stone",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights_modern/textures/morelights_modern_tablelamp_d.png"
+  },
+  "morelights_modern_tablelamp_l": {
+    "class": "stone",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights_modern/textures/morelights_modern_tablelamp_l.png"
+  },
+  "morelights_modern_tablelamp_o": {
+    "class": "stone",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights_modern/textures/morelights_modern_tablelamp_o.png"
+  },
+  "morelights_modern_walllamp": {
+    "class": "stone",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights_modern/textures/morelights_modern_walllamp.png"
+  },
+  "morelights_vintage_block_frame": {
+    "class": "stone",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights_vintage/textures/morelights_vintage_block_frame.png"
+  },
+  "morelights_vintage_block_glass": {
+    "class": "glass",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights_vintage/textures/morelights_vintage_block_glass.png"
+  },
+  "morelights_vintage_brass_32": {
+    "class": "metal",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights_vintage/textures/morelights_vintage_brass_32.png"
+  },
+  "morelights_vintage_chandelier": {
+    "class": "stone",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights_vintage/textures/morelights_vintage_chandelier.png"
+  },
+  "morelights_vintage_hangingbulb": {
+    "class": "stone",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights_vintage/textures/morelights_vintage_hangingbulb.png"
+  },
+  "morelights_vintage_lantern_frame": {
+    "class": "stone",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights_vintage/textures/morelights_vintage_lantern_frame.png"
+  },
+  "morelights_vintage_lantern_glass": {
+    "class": "glass",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights_vintage/textures/morelights_vintage_lantern_glass.png"
+  },
+  "morelights_vintage_oillamp": {
+    "class": "stone",
+    "collisions": [],
+    "package": "morelights",
+    "source": "morelights/morelights/morelights_vintage/textures/morelights_vintage_oillamp.png"
+  },
+  "moretrees_birch_trunk": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/moretrees_birch_trunk.png"
+  },
+  "moretrees_birch_trunk_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/moretrees_birch_trunk_top.png"
+  },
+  "moretrees_palm_leaves": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/moretrees_palm_leaves.png"
+  },
+  "moretrees_palm_trunk": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/moretrees_palm_trunk.png"
+  },
+  "moretrees_palm_trunk_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "ethereal",
+    "source": "ethereal/ethereal/textures/moretrees_palm_trunk_top.png"
+  },
+  "mtg_lava": {
+    "class": "stone",
+    "collisions": [],
+    "package": "goblins",
+    "source": "goblins/goblins/textures/mtg_lava.png"
+  },
+  "naturalbiomes__banana_trunk": {
+    "class": "wood",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes__banana_trunk.png"
+  },
+  "naturalbiomes__banana_trunk_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes__banana_trunk_top.png"
+  },
+  "naturalbiomes__banana_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes__banana_wood.png"
+  },
+  "naturalbiomes_adler_reed_bundle": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_adler_reed_bundle.png"
+  },
+  "naturalbiomes_adler_reed_bundle_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_adler_reed_bundle_top.png"
+  },
+  "naturalbiomes_alderswamp_alder_trunk": {
+    "class": "wood",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_alderswamp_alder_trunk.png"
+  },
+  "naturalbiomes_alderswamp_alder_trunk_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_alderswamp_alder_trunk_top.png"
+  },
+  "naturalbiomes_alderswamp_alder_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_alderswamp_alder_wood.png"
+  },
+  "naturalbiomes_alderswamp_dirt": {
+    "class": "soil",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_alderswamp_dirt.png"
+  },
+  "naturalbiomes_alderswamp_litter": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_alderswamp_litter.png"
+  },
+  "naturalbiomes_alderswamp_litter_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_alderswamp_litter_side.png"
+  },
+  "naturalbiomes_alderswamp_waterlily": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_alderswamp_waterlily.png"
+  },
+  "naturalbiomes_alderswamp_waterlily_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_alderswamp_waterlily_bottom.png"
+  },
+  "naturalbiomes_alpine_litter": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_alpine_litter.png"
+  },
+  "naturalbiomes_alpine_litter_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_alpine_litter_side.png"
+  },
+  "naturalbiomes_alpine_pine1_trunk_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_alpine_pine1_trunk_top.png"
+  },
+  "naturalbiomes_alpine_pine1_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_alpine_pine1_wood.png"
+  },
+  "naturalbiomes_alpine_pine2_trunk_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_alpine_pine2_trunk_top.png"
+  },
+  "naturalbiomes_alpine_pine2_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_alpine_pine2_wood.png"
+  },
+  "naturalbiomes_alpine_rock": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_alpine_rock.png"
+  },
+  "naturalbiomes_alpine_rock_brick": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_alpine_rock_brick.png"
+  },
+  "naturalbiomes_bambooforest_bamboo_trunk": {
+    "class": "wood",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_bambooforest_bamboo_trunk.png"
+  },
+  "naturalbiomes_bambooforest_bamboo_trunk_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_bambooforest_bamboo_trunk_top.png"
+  },
+  "naturalbiomes_bambooforest_bamboo_wood2": {
+    "class": "wood",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_bambooforest_bamboo_wood2.png"
+  },
+  "naturalbiomes_bambooforest_litter": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_bambooforest_litter.png"
+  },
+  "naturalbiomes_bambooforest_litter_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_bambooforest_litter_side.png"
+  },
+  "naturalbiomes_bambooforest_rock": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_bambooforest_rock.png"
+  },
+  "naturalbiomes_bambooforest_rock_brick": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_bambooforest_rock_brick.png"
+  },
+  "naturalbiomes_beach_rock": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_beach_rock.png"
+  },
+  "naturalbiomes_beach_rock_brick": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_beach_rock_brick.png"
+  },
+  "naturalbiomes_beach_sand": {
+    "class": "sand",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_beach_sand.png"
+  },
+  "naturalbiomes_heath_birch_trunk": {
+    "class": "wood",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_heath_birch_trunk.png"
+  },
+  "naturalbiomes_heath_birch_trunk_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_heath_birch_trunk_top.png"
+  },
+  "naturalbiomes_heath_birch_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_heath_birch_wood.png"
+  },
+  "naturalbiomes_heath_juniper_trunk": {
+    "class": "wood",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_heath_juniper_trunk.png"
+  },
+  "naturalbiomes_heath_juniper_trunk_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_heath_juniper_trunk_top.png"
+  },
+  "naturalbiomes_heath_juniper_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_heath_juniper_wood.png"
+  },
+  "naturalbiomes_heath_litter": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_heath_litter.png"
+  },
+  "naturalbiomes_heath_litter_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_heath_litter_side.png"
+  },
+  "naturalbiomes_heath_litter_side2": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_heath_litter_side2.png"
+  },
+  "naturalbiomes_heath_litter_side3": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_heath_litter_side3.png"
+  },
+  "naturalbiomes_heath_willow_trunk": {
+    "class": "wood",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_heath_willow_trunk.png"
+  },
+  "naturalbiomes_heath_willow_trunk_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_heath_willow_trunk_top.png"
+  },
+  "naturalbiomes_heath_willow_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_heath_willow_wood.png"
+  },
+  "naturalbiomes_mediterran_litte_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_mediterran_litte_side.png"
+  },
+  "naturalbiomes_mediterran_litter": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_mediterran_litter.png"
+  },
+  "naturalbiomes_mediterran_olive_trunk_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_mediterran_olive_trunk_top.png"
+  },
+  "naturalbiomes_mediterran_olive_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_mediterran_olive_wood.png"
+  },
+  "naturalbiomes_mediterran_pine_trunk_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_mediterran_pine_trunk_top.png"
+  },
+  "naturalbiomes_mediterran_pine_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_mediterran_pine_wood.png"
+  },
+  "naturalbiomes_mediterran_rock_brick": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_mediterran_rock_brick.png"
+  },
+  "naturalbiomes_outback_eukalyptus_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_outback_eukalyptus_wood.png"
+  },
+  "naturalbiomes_outback_rock_brick": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_outback_rock_brick.png"
+  },
+  "naturalbiomes_outbackeukalyptus_trunk_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_outbackeukalyptus_trunk_top.png"
+  },
+  "naturalbiomes_outbacklitter_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_outbacklitter_side.png"
+  },
+  "naturalbiomes_savannaacacia_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_savannaacacia_wood.png"
+  },
+  "naturalbiomes_savannaacaia_trunk_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_savannaacaia_trunk_top.png"
+  },
+  "naturalbiomes_savannalitter_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_savannalitter_side.png"
+  },
+  "naturalbiomes_savannapalm_trunk_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_savannapalm_trunk_top.png"
+  },
+  "naturalbiomes_savannapalm_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "naturalbiomes",
+    "source": "naturalbiomes/naturalbiomes/textures/naturalbiomes_savannapalm_wood.png"
+  },
+  "nether_basalt": {
+    "class": "stone",
+    "collisions": [],
+    "package": "nether",
+    "source": "nether/nether/textures/nether_basalt.png"
+  },
+  "nether_basalt_chiselled_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "nether",
+    "source": "nether/nether/textures/nether_basalt_chiselled_side.png"
+  },
+  "nether_basalt_chiselled_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "nether",
+    "source": "nether/nether/textures/nether_basalt_chiselled_top.png"
+  },
+  "nether_basalt_hewn": {
+    "class": "stone",
+    "collisions": [],
+    "package": "nether",
+    "source": "nether/nether/textures/nether_basalt_hewn.png"
+  },
+  "nether_basalt_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "nether",
+    "source": "nether/nether/textures/nether_basalt_side.png"
+  },
+  "nether_brick": {
+    "class": "stone",
+    "collisions": [],
+    "package": "nether",
+    "source": "nether/nether/textures/nether_brick.png"
+  },
+  "nether_brick_compressed": {
+    "class": "stone",
+    "collisions": [],
+    "package": "nether",
+    "source": "nether/nether/textures/nether_brick_compressed.png"
+  },
+  "nether_brick_cracked": {
+    "class": "stone",
+    "collisions": [],
+    "package": "nether",
+    "source": "nether/nether/textures/nether_brick_cracked.png"
+  },
+  "nether_brick_deep": {
+    "class": "stone",
+    "collisions": [],
+    "package": "nether",
+    "source": "nether/nether/textures/nether_brick_deep.png"
+  },
+  "nether_geode": {
+    "class": "stone",
+    "collisions": [],
+    "package": "nether",
+    "source": "nether/nether/textures/nether_geode.png"
+  },
+  "nether_glowstone": {
+    "class": "stone",
+    "collisions": [],
+    "package": "nether",
+    "source": "nether/nether/textures/nether_glowstone.png"
+  },
+  "nether_glowstone_deep": {
+    "class": "stone",
+    "collisions": [],
+    "package": "nether",
+    "source": "nether/nether/textures/nether_glowstone_deep.png"
+  },
+  "nether_rack": {
+    "class": "stone",
+    "collisions": [],
+    "package": "nether",
+    "source": "nether/nether/textures/nether_rack.png"
+  },
+  "nether_rack_deep": {
+    "class": "stone",
+    "collisions": [],
+    "package": "nether",
+    "source": "nether/nether/textures/nether_rack_deep.png"
+  },
+  "nether_sand": {
+    "class": "sand",
+    "collisions": [],
+    "package": "nether",
+    "source": "nether/nether/textures/nether_sand.png"
+  },
+  "pipeworks_accelerator_tube_end": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_accelerator_tube_end.png"
+  },
+  "pipeworks_accelerator_tube_noctr": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_accelerator_tube_noctr.png"
+  },
+  "pipeworks_accelerator_tube_plain": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_accelerator_tube_plain.png"
+  },
+  "pipeworks_accelerator_tube_short": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_accelerator_tube_short.png"
+  },
+  "pipeworks_broken_tube_end": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_broken_tube_end.png"
+  },
+  "pipeworks_broken_tube_plain": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_broken_tube_plain.png"
+  },
+  "pipeworks_broken_tube_short": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_broken_tube_short.png"
+  },
+  "pipeworks_crossing_tube_end": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_crossing_tube_end.png"
+  },
+  "pipeworks_crossing_tube_noctr": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_crossing_tube_noctr.png"
+  },
+  "pipeworks_crossing_tube_plain": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_crossing_tube_plain.png"
+  },
+  "pipeworks_crossing_tube_short": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_crossing_tube_short.png"
+  },
+  "pipeworks_detector_tube_plain": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_detector_tube_plain.png"
+  },
+  "pipeworks_digiline_detector_tube_plain": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_digiline_detector_tube_plain.png"
+  },
+  "pipeworks_lua_tube_port_burnt": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_lua_tube_port_burnt.png"
+  },
+  "pipeworks_mese_sand_tube_end": {
+    "class": "sand",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_mese_sand_tube_end.png"
+  },
+  "pipeworks_mese_sand_tube_noctr": {
+    "class": "sand",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_mese_sand_tube_noctr.png"
+  },
+  "pipeworks_mese_sand_tube_plain": {
+    "class": "sand",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_mese_sand_tube_plain.png"
+  },
+  "pipeworks_mese_sand_tube_short": {
+    "class": "sand",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_mese_sand_tube_short.png"
+  },
+  "pipeworks_mese_tube_end": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_mese_tube_end.png"
+  },
+  "pipeworks_mese_tube_noctr_1": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_mese_tube_noctr_1.png"
+  },
+  "pipeworks_mese_tube_noctr_2": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_mese_tube_noctr_2.png"
+  },
+  "pipeworks_mese_tube_noctr_3": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_mese_tube_noctr_3.png"
+  },
+  "pipeworks_mese_tube_noctr_4": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_mese_tube_noctr_4.png"
+  },
+  "pipeworks_mese_tube_noctr_5": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_mese_tube_noctr_5.png"
+  },
+  "pipeworks_mese_tube_noctr_6": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_mese_tube_noctr_6.png"
+  },
+  "pipeworks_mese_tube_plain_1": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_mese_tube_plain_1.png"
+  },
+  "pipeworks_mese_tube_plain_2": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_mese_tube_plain_2.png"
+  },
+  "pipeworks_mese_tube_plain_3": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_mese_tube_plain_3.png"
+  },
+  "pipeworks_mese_tube_plain_4": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_mese_tube_plain_4.png"
+  },
+  "pipeworks_mese_tube_plain_5": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_mese_tube_plain_5.png"
+  },
+  "pipeworks_mese_tube_plain_6": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_mese_tube_plain_6.png"
+  },
+  "pipeworks_mese_tube_short": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_mese_tube_short.png"
+  },
+  "pipeworks_one_way_tube_side": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_one_way_tube_side.png"
+  },
+  "pipeworks_one_way_tube_top": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_one_way_tube_top.png"
+  },
+  "pipeworks_pane_embedded_tube_ends": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_pane_embedded_tube_ends.png"
+  },
+  "pipeworks_pane_embedded_tube_sides": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_pane_embedded_tube_sides.png"
+  },
+  "pipeworks_sand_tube_end": {
+    "class": "sand",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_sand_tube_end.png"
+  },
+  "pipeworks_sand_tube_noctr": {
+    "class": "sand",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_sand_tube_noctr.png"
+  },
+  "pipeworks_sand_tube_plain": {
+    "class": "sand",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_sand_tube_plain.png"
+  },
+  "pipeworks_sand_tube_short": {
+    "class": "sand",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_sand_tube_short.png"
+  },
+  "pipeworks_tag_tube_end": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_tag_tube_end.png"
+  },
+  "pipeworks_tag_tube_noctr_1": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_tag_tube_noctr_1.png"
+  },
+  "pipeworks_tag_tube_noctr_2": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_tag_tube_noctr_2.png"
+  },
+  "pipeworks_tag_tube_noctr_3": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_tag_tube_noctr_3.png"
+  },
+  "pipeworks_tag_tube_noctr_4": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_tag_tube_noctr_4.png"
+  },
+  "pipeworks_tag_tube_noctr_5": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_tag_tube_noctr_5.png"
+  },
+  "pipeworks_tag_tube_noctr_6": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_tag_tube_noctr_6.png"
+  },
+  "pipeworks_tag_tube_plain_1": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_tag_tube_plain_1.png"
+  },
+  "pipeworks_tag_tube_plain_2": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_tag_tube_plain_2.png"
+  },
+  "pipeworks_tag_tube_short": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_tag_tube_short.png"
+  },
+  "pipeworks_teleport_tube_end": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_teleport_tube_end.png"
+  },
+  "pipeworks_teleport_tube_noctr": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_teleport_tube_noctr.png"
+  },
+  "pipeworks_teleport_tube_plain": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_teleport_tube_plain.png"
+  },
+  "pipeworks_teleport_tube_short": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_teleport_tube_short.png"
+  },
+  "pipeworks_tube_connection_metallic": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_tube_connection_metallic.png"
+  },
+  "pipeworks_tube_connection_wooden": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_tube_connection_wooden.png"
+  },
+  "pipeworks_tube_end": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_tube_end.png"
+  },
+  "pipeworks_tube_noctr": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_tube_noctr.png"
+  },
+  "pipeworks_tube_plain": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_tube_plain.png"
+  },
+  "pipeworks_tube_short": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pipeworks",
+    "source": "pipeworks/pipeworks/textures/pipeworks_tube_short.png"
+  },
+  "signs_bot_base_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/signs_bot/textures/signs_bot_base_top.png"
+  },
+  "signs_bot_bot_flap_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/signs_bot/textures/signs_bot_bot_flap_top.png"
+  },
+  "signs_bot_chest_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/signs_bot/textures/signs_bot_chest_side.png"
+  },
+  "signs_bot_chest_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/signs_bot/textures/signs_bot_chest_top.png"
+  },
+  "signs_bot_extender_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/signs_bot/textures/signs_bot_extender_side.png"
+  },
+  "signs_bot_robot_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/signs_bot/textures/signs_bot_robot_bottom.png"
+  },
+  "signs_bot_robot_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/signs_bot/textures/signs_bot_robot_top.png"
+  },
+  "signs_bot_torch_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/signs_bot/textures/signs_bot_torch_bottom.png"
+  },
+  "signs_bot_torch_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/signs_bot/textures/signs_bot_torch_top.png"
+  },
+  "stainedglass_black": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_black.png"
+  },
+  "stainedglass_blue": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_blue.png"
+  },
+  "stainedglass_brown": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_brown.png"
+  },
+  "stainedglass_cyan": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_cyan.png"
+  },
+  "stainedglass_dark_green": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_dark_green.png"
+  },
+  "stainedglass_dark_grey": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_dark_grey.png"
+  },
+  "stainedglass_detail_black": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_detail_black.png"
+  },
+  "stainedglass_detail_blue": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_detail_blue.png"
+  },
+  "stainedglass_detail_brown": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_detail_brown.png"
+  },
+  "stainedglass_detail_cyan": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_detail_cyan.png"
+  },
+  "stainedglass_detail_dark_green": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_detail_dark_green.png"
+  },
+  "stainedglass_detail_dark_grey": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_detail_dark_grey.png"
+  },
+  "stainedglass_detail_green": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_detail_green.png"
+  },
+  "stainedglass_detail_grey": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_detail_grey.png"
+  },
+  "stainedglass_detail_magenta": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_detail_magenta.png"
+  },
+  "stainedglass_detail_orange": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_detail_orange.png"
+  },
+  "stainedglass_detail_pink": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_detail_pink.png"
+  },
+  "stainedglass_detail_red": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_detail_red.png"
+  },
+  "stainedglass_detail_violet": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_detail_violet.png"
+  },
+  "stainedglass_detail_white": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_detail_white.png"
+  },
+  "stainedglass_detail_yellow": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_detail_yellow.png"
+  },
+  "stainedglass_green": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_green.png"
+  },
+  "stainedglass_grey": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_grey.png"
+  },
+  "stainedglass_magenta": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_magenta.png"
+  },
+  "stainedglass_orange": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_orange.png"
+  },
+  "stainedglass_pane_edge_black": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_pane_edge_black.png"
+  },
+  "stainedglass_pane_edge_blue": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_pane_edge_blue.png"
+  },
+  "stainedglass_pane_edge_brown": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_pane_edge_brown.png"
+  },
+  "stainedglass_pane_edge_cyan": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_pane_edge_cyan.png"
+  },
+  "stainedglass_pane_edge_dark_green": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_pane_edge_dark_green.png"
+  },
+  "stainedglass_pane_edge_dark_grey": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_pane_edge_dark_grey.png"
+  },
+  "stainedglass_pane_edge_green": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_pane_edge_green.png"
+  },
+  "stainedglass_pane_edge_grey": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_pane_edge_grey.png"
+  },
+  "stainedglass_pane_edge_magenta": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_pane_edge_magenta.png"
+  },
+  "stainedglass_pane_edge_orange": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_pane_edge_orange.png"
+  },
+  "stainedglass_pane_edge_pink": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_pane_edge_pink.png"
+  },
+  "stainedglass_pane_edge_red": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_pane_edge_red.png"
+  },
+  "stainedglass_pane_edge_violet": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_pane_edge_violet.png"
+  },
+  "stainedglass_pane_edge_white": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_pane_edge_white.png"
+  },
+  "stainedglass_pane_edge_yellow": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_pane_edge_yellow.png"
+  },
+  "stainedglass_pink": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_pink.png"
+  },
+  "stainedglass_red": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_red.png"
+  },
+  "stainedglass_violet": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_violet.png"
+  },
+  "stainedglass_white": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_white.png"
+  },
+  "stainedglass_yellow": {
+    "class": "glass",
+    "collisions": [],
+    "package": "stainedglass",
+    "source": "stainedglass/stainedglass/textures/stainedglass_yellow.png"
+  },
+  "ta4_jetpack_mat_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/ta4_jetpack/textures/ta4_jetpack_mat_side.png"
+  },
+  "ta4_jetpack_mat_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/ta4_jetpack/textures/ta4_jetpack_mat_top.png"
+  },
+  "techage_appl_electric_gen_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_appl_electric_gen_side.png"
+  },
+  "techage_appl_electric_gen_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_appl_electric_gen_top.png"
+  },
+  "techage_appl_hole_pipe": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_appl_hole_pipe.png"
+  },
+  "techage_appl_hole_ta5_pipe1": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_appl_hole_ta5_pipe1.png"
+  },
+  "techage_appl_hole_ta5_pipe2": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_appl_hole_ta5_pipe2.png"
+  },
+  "techage_appl_hole_tube": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_appl_hole_tube.png"
+  },
+  "techage_appl_oilexplorer": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_appl_oilexplorer.png"
+  },
+  "techage_appl_oilexplorer_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_appl_oilexplorer_top.png"
+  },
+  "techage_appl_recipeblock": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_appl_recipeblock.png"
+  },
+  "techage_appl_tele_pipe": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_appl_tele_pipe.png"
+  },
+  "techage_appl_tele_tube": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_appl_tele_tube.png"
+  },
+  "techage_appl_tes_core": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_appl_tes_core.png"
+  },
+  "techage_ash_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_ash_side.png"
+  },
+  "techage_basalt_glass": {
+    "class": "glass",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_basalt_glass.png"
+  },
+  "techage_basalt_glass2": {
+    "class": "glass",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_basalt_glass2.png"
+  },
+  "techage_chest_cart_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_chest_cart_bottom.png"
+  },
+  "techage_chest_cart_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_chest_cart_side.png"
+  },
+  "techage_chest_cart_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_chest_cart_top.png"
+  },
+  "techage_coal_boiler_mesh_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_coal_boiler_mesh_top.png"
+  },
+  "techage_collider_detector_core": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_collider_detector_core.png"
+  },
+  "techage_collider_magnet_tube": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_collider_magnet_tube.png"
+  },
+  "techage_collider_tube": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_collider_tube.png"
+  },
+  "techage_collider_tube_open": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_collider_tube_open.png"
+  },
+  "techage_compressed_gravel": {
+    "class": "gravel",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_compressed_gravel.png"
+  },
+  "techage_concrete": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_concrete.png"
+  },
+  "techage_filling_metal": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_filling_metal.png"
+  },
+  "techage_frame_ta2_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_frame_ta2_bottom.png"
+  },
+  "techage_frame_ta2_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_frame_ta2_top.png"
+  },
+  "techage_frame_ta3_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_frame_ta3_bottom.png"
+  },
+  "techage_frame_ta3_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_frame_ta3_top.png"
+  },
+  "techage_frame_ta4_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_frame_ta4_bottom.png"
+  },
+  "techage_frame_ta4_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_frame_ta4_top.png"
+  },
+  "techage_frame_ta5_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_frame_ta5_top.png"
+  },
+  "techage_frame_waterpump_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_frame_waterpump_top.png"
+  },
+  "techage_framexl_ta3_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_framexl_ta3_top.png"
+  },
+  "techage_gaspipe": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_gaspipe.png"
+  },
+  "techage_gaspipe_hole": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_gaspipe_hole.png"
+  },
+  "techage_gaspipe_hole2": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_gaspipe_hole2.png"
+  },
+  "techage_gaspipe_knee": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_gaspipe_knee.png"
+  },
+  "techage_gaspipe_knee2": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_gaspipe_knee2.png"
+  },
+  "techage_gaspipe_valve_closed": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_gaspipe_valve_closed.png"
+  },
+  "techage_gaspipe_valve_hole": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_gaspipe_valve_hole.png"
+  },
+  "techage_gaspipe_valve_open": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_gaspipe_valve_open.png"
+  },
+  "techage_iron_block": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_iron_block.png"
+  },
+  "techage_junglewood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_junglewood.png"
+  },
+  "techage_junglewood_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_junglewood_top.png"
+  },
+  "techage_liquid_filter_filler_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_liquid_filter_filler_bottom.png"
+  },
+  "techage_mill_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_mill_side.png"
+  },
+  "techage_oil_tower_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_oil_tower_top.png"
+  },
+  "techage_power_pole_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_power_pole_top.png"
+  },
+  "techage_power_terminal_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_power_terminal_side.png"
+  },
+  "techage_power_terminal_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_power_terminal_top.png"
+  },
+  "techage_reactor_filler_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_reactor_filler_side.png"
+  },
+  "techage_reactor_filler_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_reactor_filler_top.png"
+  },
+  "techage_reactor_stand_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_reactor_stand_bottom.png"
+  },
+  "techage_reactor_stand_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_reactor_stand_side.png"
+  },
+  "techage_reactor_stand_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_reactor_stand_top.png"
+  },
+  "techage_rotor_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_rotor_top.png"
+  },
+  "techage_server2_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_server2_side.png"
+  },
+  "techage_server2_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_server2_top.png"
+  },
+  "techage_server_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_server_side.png"
+  },
+  "techage_server_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_server_top.png"
+  },
+  "techage_signaltower_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_signaltower_top.png"
+  },
+  "techage_solar_cell_mini_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_solar_cell_mini_bottom.png"
+  },
+  "techage_solar_cell_mini_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_solar_cell_mini_side.png"
+  },
+  "techage_solar_cell_mini_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_solar_cell_mini_top.png"
+  },
+  "techage_solar_module_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_solar_module_bottom.png"
+  },
+  "techage_solar_module_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_solar_module_top.png"
+  },
+  "techage_steam_pipe": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_steam_pipe.png"
+  },
+  "techage_steel_tiles": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_steel_tiles.png"
+  },
+  "techage_steel_tiles_side": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_steel_tiles_side.png"
+  },
+  "techage_steel_tiles_top": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_steel_tiles_top.png"
+  },
+  "techage_steel_tiles_top2": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_steel_tiles_top2.png"
+  },
+  "techage_ta5_gaspipe": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_ta5_gaspipe.png"
+  },
+  "techage_ta5_gaspipe_hole2": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_ta5_gaspipe_hole2.png"
+  },
+  "techage_ta5_gaspipe_knee": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_ta5_gaspipe_knee.png"
+  },
+  "techage_ta5_gaspipe_knee2": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_ta5_gaspipe_knee2.png"
+  },
+  "techage_tank_cart_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_tank_cart_bottom.png"
+  },
+  "techage_tank_cart_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_tank_cart_side.png"
+  },
+  "techage_tank_cart_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_tank_cart_top.png"
+  },
+  "techage_terminal1_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_terminal1_bottom.png"
+  },
+  "techage_terminal1_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_terminal1_side.png"
+  },
+  "techage_terminal1_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_terminal1_top.png"
+  },
+  "techage_terminal2_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_terminal2_side.png"
+  },
+  "techage_terminal2_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_terminal2_top.png"
+  },
+  "techage_top_ta4": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_top_ta4.png"
+  },
+  "techage_tube_hole": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_tube_hole.png"
+  },
+  "techage_tube_hole2": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_tube_hole2.png"
+  },
+  "techage_tube_knee": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_tube_knee.png"
+  },
+  "techage_tube_knee2": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_tube_knee2.png"
+  },
+  "techage_tube_tube": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_tube_tube.png"
+  },
+  "techage_tubeta4_hole2": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_tubeta4_hole2.png"
+  },
+  "techage_tubeta4_knee": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_tubeta4_knee.png"
+  },
+  "techage_tubeta4_knee2": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_tubeta4_knee2.png"
+  },
+  "techage_tubeta4_tube": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_tubeta4_tube.png"
+  },
+  "techage_weight_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_weight_bottom.png"
+  },
+  "techage_weight_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techage/textures/techage_weight_side.png"
+  },
+  "techpack_stairway_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techpack_stairway/textures/techpack_stairway_bottom.png"
+  },
+  "techpack_stairway_lattice": {
+    "class": "ice",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techpack_stairway/textures/techpack_stairway_lattice.png"
+  },
+  "techpack_stairway_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/techpack_stairway/textures/techpack_stairway_side.png"
+  },
+  "tubelib2_conn": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/tubelib2/textures/tubelib2_conn.png"
+  },
+  "tubelib2_hole": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/tubelib2/textures/tubelib2_hole.png"
+  },
+  "tubelib2_source": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/tubelib2/textures/tubelib2_source.png"
+  },
+  "tubelib2_tele": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/tubelib2/textures/tubelib2_tele.png"
+  },
+  "tubelib2_tube": {
+    "class": "metal",
+    "collisions": [],
+    "package": "techage_modpack",
+    "source": "techage_modpack/techage_modpack/tubelib2/textures/tubelib2_tube.png"
+  },
+  "worktable_anvil": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/worktable_anvil.png"
+  },
+  "worktable_saw": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/worktable_saw.png"
+  },
+  "xdecor_baricade": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_baricade.png"
+  },
+  "xdecor_barrel_sides": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_barrel_sides.png"
+  },
+  "xdecor_barrel_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_barrel_top.png"
+  },
+  "xdecor_book_open": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_book_open.png"
+  },
+  "xdecor_bowl": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_bowl.png"
+  },
+  "xdecor_bowl_soup": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_bowl_soup.png"
+  },
+  "xdecor_cabinet_sides": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_cabinet_sides.png"
+  },
+  "xdecor_cobweb": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_cobweb.png"
+  },
+  "xdecor_empty_shelf": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_empty_shelf.png"
+  },
+  "xdecor_enchantment_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_enchantment_bottom.png"
+  },
+  "xdecor_enchantment_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_enchantment_side.png"
+  },
+  "xdecor_enchantment_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_enchantment_top.png"
+  },
+  "xdecor_enderchest_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_enderchest_side.png"
+  },
+  "xdecor_enderchest_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_enderchest_top.png"
+  },
+  "xdecor_half_cabinet_sides": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_half_cabinet_sides.png"
+  },
+  "xdecor_hammer": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_hammer.png"
+  },
+  "xdecor_hive_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_hive_side.png"
+  },
+  "xdecor_hive_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_hive_top.png"
+  },
+  "xdecor_itemframe": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_itemframe.png"
+  },
+  "xdecor_ivy": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_ivy.png"
+  },
+  "xdecor_mailbox": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_mailbox.png"
+  },
+  "xdecor_mailbox_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_mailbox_bottom.png"
+  },
+  "xdecor_mailbox_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_mailbox_side.png"
+  },
+  "xdecor_mailbox_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_mailbox_top.png"
+  },
+  "xdecor_multishelf": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_multishelf.png"
+  },
+  "xdecor_painting_empty": {
+    "class": "metal",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_painting_empty.png"
+  },
+  "xdecor_rooster": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_rooster.png"
+  },
+  "xdecor_rope": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_rope.png"
+  },
+  "xdecor_rusty_bar": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_rusty_bar.png"
+  },
+  "xdecor_rusty_bar_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_rusty_bar_top.png"
+  },
+  "xdecor_stone_tile": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_stone_tile.png"
+  },
+  "xdecor_tatami": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_tatami.png"
+  },
+  "xdecor_trampoline": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_trampoline.png"
+  },
+  "xdecor_trampoline_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_trampoline_bottom.png"
+  },
+  "xdecor_trampoline_sides": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_trampoline_sides.png"
+  },
+  "xdecor_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_wood.png"
+  },
+  "xdecor_wood_frame": {
+    "class": "wood",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_wood_frame.png"
+  },
+  "xdecor_wood_frame_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_wood_frame_top.png"
+  },
+  "xdecor_wood_tile": {
+    "class": "wood",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_wood_tile.png"
+  },
+  "xdecor_woodframed_glass": {
+    "class": "glass",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_woodframed_glass.png"
+  },
+  "xdecor_woodframed_glass_cube": {
+    "class": "glass",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_woodframed_glass_cube.png"
+  },
+  "xdecor_woodframed_glass_detail": {
+    "class": "glass",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_woodframed_glass_detail.png"
+  },
+  "xdecor_woodframed_glass_outer_stairside": {
+    "class": "glass",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_woodframed_glass_outer_stairside.png"
+  },
+  "xdecor_woodframed_glass_split": {
+    "class": "glass",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_woodframed_glass_split.png"
+  },
+  "xdecor_woodframed_glass_stairside": {
+    "class": "glass",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_woodframed_glass_stairside.png"
+  },
+  "xdecor_workbench_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_workbench_bottom.png"
+  },
+  "xdecor_workbench_sides": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_workbench_sides.png"
+  },
+  "xdecor_workbench_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "xdecor",
+    "source": "xdecor/xdecor/textures/xdecor_workbench_top.png"
+  }
+}

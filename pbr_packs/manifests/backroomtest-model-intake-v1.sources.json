@@ -1,0 +1,41 @@
+{
+  "clive": {
+    "class": "skin",
+    "collisions": [],
+    "package": "backroomtest",
+    "source": "mods/player/br_player_model/textures/clive.png",
+    "source_package": "backroomtest",
+    "author": "Sumi, SumianVoice",
+    "media_license": "CC-BY-4.0",
+    "licence_evidence": "mods/player/br_player_model/LICENSE",
+    "release": 36294,
+    "archive_sha256": "0f03774bea8f31761f7480d34350a853957f07318cb1b28e9afa40504eddcbcd",
+    "contentdb": "https://content.luanti.org/packages/Sumianvoice/backroomtest/"
+  },
+  "clive_overlay": {
+    "class": "cloth",
+    "collisions": [],
+    "package": "backroomtest",
+    "source": "mods/player/br_player_model/textures/clive_overlay.png",
+    "source_package": "backroomtest",
+    "author": "Sumi, SumianVoice",
+    "media_license": "CC-BY-4.0",
+    "licence_evidence": "mods/player/br_player_model/LICENSE",
+    "release": 36294,
+    "archive_sha256": "0f03774bea8f31761f7480d34350a853957f07318cb1b28e9afa40504eddcbcd",
+    "contentdb": "https://content.luanti.org/packages/Sumianvoice/backroomtest/"
+  },
+  "humanoid": {
+    "class": "mixed",
+    "collisions": [],
+    "package": "backroomtest",
+    "source": "mods/player/br_player_model/textures/humanoid.png",
+    "source_package": "backroomtest",
+    "author": "Sumi, SumianVoice",
+    "media_license": "CC-BY-4.0",
+    "licence_evidence": "mods/player/br_player_model/LICENSE",
+    "release": 36294,
+    "archive_sha256": "0f03774bea8f31761f7480d34350a853957f07318cb1b28e9afa40504eddcbcd",
+    "contentdb": "https://content.luanti.org/packages/Sumianvoice/backroomtest/"
+  }
+}

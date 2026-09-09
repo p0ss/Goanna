@@ -1,0 +1,830 @@
+{
+  "aom_bedrock": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_bedrock.png"
+  },
+  "aom_charcoal_block": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_wood/textures/aom_charcoal_block.png"
+  },
+  "aom_clay": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_soil/textures/aom_clay.png"
+  },
+  "aom_crafters_crafting_bench": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_crafters/textures/aom_crafters_crafting_bench.png"
+  },
+  "aom_dirt": {
+    "class": "soil",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_soil/textures/aom_dirt.png"
+  },
+  "aom_dirt_mud": {
+    "class": "soil",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_soil/textures/aom_dirt_mud.png"
+  },
+  "aom_fengold_stone_brick_gold": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_fengold/textures/aom_fengold_stone_brick_gold.png"
+  },
+  "aom_fengold_stone_ornate_gold": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_fengold/textures/aom_fengold_stone_ornate_gold.png"
+  },
+  "aom_fengold_stone_ornate_gold_top": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_fengold/textures/aom_fengold_stone_ornate_gold_top.png"
+  },
+  "aom_fengold_stone_pillar_gold": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_fengold/textures/aom_fengold_stone_pillar_gold.png"
+  },
+  "aom_fengold_stone_pillar_gold_top": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_fengold/textures/aom_fengold_stone_pillar_gold_top.png"
+  },
+  "aom_forest_dirt": {
+    "class": "soil",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_soil/textures/aom_forest_dirt.png"
+  },
+  "aom_forest_dirt_side": {
+    "class": "soil",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_soil/textures/aom_forest_dirt_side.png"
+  },
+  "aom_furniture_player_beacon_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_furniture/textures/aom_furniture_player_beacon_bottom.png"
+  },
+  "aom_furniture_player_beacon_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_furniture/textures/aom_furniture_player_beacon_side.png"
+  },
+  "aom_furniture_player_beacon_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_furniture/textures/aom_furniture_player_beacon_top.png"
+  },
+  "aom_glass_frame": {
+    "class": "glass",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_glass/textures/aom_glass_frame.png"
+  },
+  "aom_grass_snow_side": {
+    "class": "snow",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_soil/textures/aom_grass_snow_side.png"
+  },
+  "aom_gravel": {
+    "class": "gravel",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_soil/textures/aom_gravel.png"
+  },
+  "aom_hot_coals": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_wood/textures/aom_hot_coals.png"
+  },
+  "aom_ice": {
+    "class": "ice",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_liquids/textures/aom_ice.png"
+  },
+  "aom_loose_stone": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_loose_stone.png"
+  },
+  "aom_mirecaves_mirestone_brick": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_mirecaves/textures/aom_mirecaves_mirestone_brick.png"
+  },
+  "aom_mirecaves_mirestone_brick_fine": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_mirecaves/textures/aom_mirecaves_mirestone_brick_fine.png"
+  },
+  "aom_mirecaves_mirestone_brick_ornate": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_mirecaves/textures/aom_mirecaves_mirestone_brick_ornate.png"
+  },
+  "aom_mirecaves_mirestone_brick_pillar": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_mirecaves/textures/aom_mirecaves_mirestone_brick_pillar.png"
+  },
+  "aom_mirecaves_mirestone_brick_pillar_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_mirecaves/textures/aom_mirecaves_mirestone_brick_pillar_top.png"
+  },
+  "aom_mirecaves_nolmer": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_mirecaves/textures/aom_mirecaves_nolmer.png"
+  },
+  "aom_mirecaves_nolmer_stem": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_mirecaves/textures/aom_mirecaves_nolmer_stem.png"
+  },
+  "aom_mirecaves_nolmer_stem_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_mirecaves/textures/aom_mirecaves_nolmer_stem_top.png"
+  },
+  "aom_mirecaves_stone": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_mirecaves/textures/aom_mirecaves_stone.png"
+  },
+  "aom_obsidian": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_obsidian.png"
+  },
+  "aom_pumpkin_1_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_flora/textures/aom_pumpkin_1_bottom.png"
+  },
+  "aom_pumpkin_1_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_flora/textures/aom_pumpkin_1_side.png"
+  },
+  "aom_pumpkin_1_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_flora/textures/aom_pumpkin_1_top.png"
+  },
+  "aom_pumpkin_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_flora/textures/aom_pumpkin_bottom.png"
+  },
+  "aom_pumpkin_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_flora/textures/aom_pumpkin_side.png"
+  },
+  "aom_pumpkin_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_flora/textures/aom_pumpkin_top.png"
+  },
+  "aom_sand": {
+    "class": "sand",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_soil/textures/aom_sand.png"
+  },
+  "aom_seelie_shrine": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_entities/aom_seelie/textures/aom_seelie_shrine.png"
+  },
+  "aom_snow": {
+    "class": "snow",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_soil/textures/aom_snow.png"
+  },
+  "aom_stone_brick": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_brick.png"
+  },
+  "aom_stone_brick_fine": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_brick_fine.png"
+  },
+  "aom_stone_brick_long_end_left": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_brick_long_end_left.png"
+  },
+  "aom_stone_brick_long_end_right": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_brick_long_end_right.png"
+  },
+  "aom_stone_brick_long_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_brick_long_top.png"
+  },
+  "aom_stone_brick_ornate": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_brick_ornate.png"
+  },
+  "aom_stone_brick_pillar": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_brick_pillar.png"
+  },
+  "aom_stone_brick_pillar_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_brick_pillar_top.png"
+  },
+  "aom_stone_brick_ruin": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_brick_ruin.png"
+  },
+  "aom_stone_cobble": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_cobble.png"
+  },
+  "aom_stone_granite": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_granite.png"
+  },
+  "aom_stone_granite_brick": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_granite_brick.png"
+  },
+  "aom_stone_granite_brick_fine": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_granite_brick_fine.png"
+  },
+  "aom_stone_granite_brick_long_end_left": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_granite_brick_long_end_left.png"
+  },
+  "aom_stone_granite_brick_long_end_right": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_granite_brick_long_end_right.png"
+  },
+  "aom_stone_granite_brick_long_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_granite_brick_long_top.png"
+  },
+  "aom_stone_granite_brick_ornate": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_granite_brick_ornate.png"
+  },
+  "aom_stone_granite_brick_pillar": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_granite_brick_pillar.png"
+  },
+  "aom_stone_granite_brick_pillar_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_granite_brick_pillar_top.png"
+  },
+  "aom_stone_granite_cobble": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_granite_cobble.png"
+  },
+  "aom_stone_ignis_block": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_ignis_block.png"
+  },
+  "aom_stone_ironstone": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_ironstone.png"
+  },
+  "aom_stone_ironstone_brick": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_ironstone_brick.png"
+  },
+  "aom_stone_ironstone_brick_fine": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_ironstone_brick_fine.png"
+  },
+  "aom_stone_ironstone_brick_long_end_left": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_ironstone_brick_long_end_left.png"
+  },
+  "aom_stone_ironstone_brick_long_end_right": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_ironstone_brick_long_end_right.png"
+  },
+  "aom_stone_ironstone_brick_long_top": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_ironstone_brick_long_top.png"
+  },
+  "aom_stone_ironstone_brick_ornate": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_ironstone_brick_ornate.png"
+  },
+  "aom_stone_ironstone_brick_pillar": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_ironstone_brick_pillar.png"
+  },
+  "aom_stone_ironstone_brick_pillar_top": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_ironstone_brick_pillar_top.png"
+  },
+  "aom_stone_ironstone_cobble": {
+    "class": "metal",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_ironstone_cobble.png"
+  },
+  "aom_stone_limestone": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_limestone.png"
+  },
+  "aom_stone_limestone_brick": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_limestone_brick.png"
+  },
+  "aom_stone_limestone_brick_fine": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_limestone_brick_fine.png"
+  },
+  "aom_stone_limestone_brick_long_end_left": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_limestone_brick_long_end_left.png"
+  },
+  "aom_stone_limestone_brick_long_end_right": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_limestone_brick_long_end_right.png"
+  },
+  "aom_stone_limestone_brick_long_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_limestone_brick_long_top.png"
+  },
+  "aom_stone_limestone_brick_ornate": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_limestone_brick_ornate.png"
+  },
+  "aom_stone_limestone_brick_pillar": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_limestone_brick_pillar.png"
+  },
+  "aom_stone_limestone_brick_pillar_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_limestone_brick_pillar_top.png"
+  },
+  "aom_stone_limestone_cobble": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_limestone_cobble.png"
+  },
+  "aom_stone_obsidian_brick": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_obsidian_brick.png"
+  },
+  "aom_stone_obsidian_brick_fine": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_obsidian_brick_fine.png"
+  },
+  "aom_stone_obsidian_brick_long_end_left": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_obsidian_brick_long_end_left.png"
+  },
+  "aom_stone_obsidian_brick_long_end_right": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_obsidian_brick_long_end_right.png"
+  },
+  "aom_stone_obsidian_brick_long_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_obsidian_brick_long_top.png"
+  },
+  "aom_stone_obsidian_brick_ornate": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_obsidian_brick_ornate.png"
+  },
+  "aom_stone_obsidian_brick_pillar": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_obsidian_brick_pillar.png"
+  },
+  "aom_stone_obsidian_brick_pillar_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_obsidian_brick_pillar_top.png"
+  },
+  "aom_stone_sandstone": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_sandstone.png"
+  },
+  "aom_stone_sandstone_brick": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_sandstone_brick.png"
+  },
+  "aom_stone_sandstone_brick_fine": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_sandstone_brick_fine.png"
+  },
+  "aom_stone_sandstone_brick_long_end_left": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_sandstone_brick_long_end_left.png"
+  },
+  "aom_stone_sandstone_brick_long_end_right": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_sandstone_brick_long_end_right.png"
+  },
+  "aom_stone_sandstone_brick_long_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_sandstone_brick_long_top.png"
+  },
+  "aom_stone_sandstone_brick_ornate": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_sandstone_brick_ornate.png"
+  },
+  "aom_stone_sandstone_brick_pillar": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_sandstone_brick_pillar.png"
+  },
+  "aom_stone_sandstone_brick_pillar_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_sandstone_brick_pillar_top.png"
+  },
+  "aom_stone_sandstone_cobble": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_sandstone_cobble.png"
+  },
+  "aom_stone_stone": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_stone/textures/aom_stone_stone.png"
+  },
+  "aom_terracotta_base": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_nodes/aom_terracotta/textures/aom_terracotta_base.png"
+  },
+  "aom_transit_core": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_transit/textures/aom_transit_core.png"
+  },
+  "aom_transit_obsidian_dais": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_transit/textures/aom_transit_obsidian_dais.png"
+  },
+  "aom_transit_obsidian_dais_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_transit/textures/aom_transit_obsidian_dais_side.png"
+  },
+  "aom_transit_spire": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_transit/textures/aom_transit_spire.png"
+  },
+  "aom_underworld_arlior": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_underworld/textures/aom_underworld_arlior.png"
+  },
+  "aom_underworld_arlior_brick": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_underworld/textures/aom_underworld_arlior_brick.png"
+  },
+  "aom_underworld_arlior_brick_fine": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_underworld/textures/aom_underworld_arlior_brick_fine.png"
+  },
+  "aom_underworld_arlior_brick_lamp": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_underworld/textures/aom_underworld_arlior_brick_lamp.png"
+  },
+  "aom_underworld_arlior_brick_ornate": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_underworld/textures/aom_underworld_arlior_brick_ornate.png"
+  },
+  "aom_underworld_arlior_brick_ornate_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_underworld/textures/aom_underworld_arlior_brick_ornate_top.png"
+  },
+  "aom_underworld_arlior_growth": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_underworld/textures/aom_underworld_arlior_growth.png"
+  },
+  "aom_underworld_arlior_growth_purple": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_underworld/textures/aom_underworld_arlior_growth_purple.png"
+  },
+  "aom_underworld_arlioran_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_underworld/textures/aom_underworld_arlioran_side.png"
+  },
+  "aom_underworld_arlioran_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_underworld/textures/aom_underworld_arlioran_top.png"
+  },
+  "aom_underworld_ash": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_underworld/textures/aom_underworld_ash.png"
+  },
+  "aom_underworld_cortite_ore": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_underworld/textures/aom_underworld_cortite_ore.png"
+  },
+  "aom_underworld_glowrock": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_underworld/textures/aom_underworld_glowrock.png"
+  },
+  "aom_underworld_lava_brick": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_underworld/textures/aom_underworld_lava_brick.png"
+  },
+  "aom_underworld_lava_brick_coral": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_underworld/textures/aom_underworld_lava_brick_coral.png"
+  },
+  "aom_underworld_lava_brick_fine": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_underworld/textures/aom_underworld_lava_brick_fine.png"
+  },
+  "aom_underworld_lava_brick_ornate": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_underworld/textures/aom_underworld_lava_brick_ornate.png"
+  },
+  "aom_underworld_lava_brick_pillar": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_underworld/textures/aom_underworld_lava_brick_pillar.png"
+  },
+  "aom_underworld_lava_brick_pillar_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_underworld/textures/aom_underworld_lava_brick_pillar_top.png"
+  },
+  "aom_underworld_lava_coral": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_underworld/textures/aom_underworld_lava_coral.png"
+  },
+  "aom_underworld_lava_coral_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_underworld/textures/aom_underworld_lava_coral_side.png"
+  },
+  "aom_underworld_lava_coral_sparse": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_underworld/textures/aom_underworld_lava_coral_sparse.png"
+  },
+  "aom_underworld_lava_coral_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_underworld/textures/aom_underworld_lava_coral_top.png"
+  },
+  "aom_underworld_lava_rock": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_underworld/textures/aom_underworld_lava_rock.png"
+  },
+  "aom_underworld_lava_rock_coral": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_underworld/textures/aom_underworld_lava_rock_coral.png"
+  },
+  "aom_underworld_mythril_ore": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_underworld/textures/aom_underworld_mythril_ore.png"
+  },
+  "aom_underworld_mythrite": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_underworld/textures/aom_underworld_mythrite.png"
+  },
+  "aom_underworld_mythrite_brick": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_underworld/textures/aom_underworld_mythrite_brick.png"
+  },
+  "aom_underworld_mythrite_brick_fine": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_underworld/textures/aom_underworld_mythrite_brick_fine.png"
+  },
+  "aom_underworld_mythrite_brick_pillar": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_underworld/textures/aom_underworld_mythrite_brick_pillar.png"
+  },
+  "aom_underworld_mythrite_brick_pillar_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_underworld/textures/aom_underworld_mythrite_brick_pillar_top.png"
+  },
+  "aom_underworld_mythrite_lamp": {
+    "class": "stone",
+    "collisions": [],
+    "package": "pmb_core",
+    "source": "pmb_core/pmb_core/mods/aom_packs/aom_underworld/textures/aom_underworld_mythrite_lamp.png"
+  }
+}

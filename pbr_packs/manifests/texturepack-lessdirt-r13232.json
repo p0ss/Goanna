@@ -1,0 +1,86 @@
+[
+  {
+    "drawtype": "glasslike",
+    "groups": {},
+    "name": "goanna_intake:lessdirt_glass",
+    "sound_footstep": "default_glass_footstep",
+    "tiles": [
+      "ethereal_grass_crystal_side.png",
+      "ethereal_grass_crystal_top.png"
+    ]
+  },
+  {
+    "drawtype": "plantlike",
+    "groups": {
+      "flora": 1
+    },
+    "name": "goanna_intake:lessdirt_organic",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "default_dry_grass.png",
+      "default_dry_grass_side.png",
+      "default_grass.png",
+      "default_grass_side.png",
+      "default_moss.png",
+      "default_moss_side.png",
+      "ethereal_grass_bamboo_side.png",
+      "ethereal_grass_bamboo_top.png",
+      "ethereal_grass_cold_side.png",
+      "ethereal_grass_cold_top.png",
+      "ethereal_grass_fiery_side.png",
+      "ethereal_grass_fiery_top.png",
+      "ethereal_grass_gray_side.png",
+      "ethereal_grass_gray_top.png",
+      "ethereal_grass_grove_side.png",
+      "ethereal_grass_grove_top.png",
+      "ethereal_grass_jungle_side.png",
+      "ethereal_grass_jungle_top.png",
+      "ethereal_grass_mushroom_side.png",
+      "ethereal_grass_mushroom_top.png",
+      "ethereal_grass_prairie_side.png",
+      "ethereal_grass_prairie_top.png",
+      "mcl_core_grass_block_side_overlay.png",
+      "mcl_core_grass_block_top.png",
+      "mcl_core_grass_path_side.png",
+      "mcl_core_grass_path_top.png"
+    ]
+  },
+  {
+    "drawtype": "normal",
+    "groups": {},
+    "name": "goanna_intake:lessdirt_soil",
+    "sound_footstep": "default_dirt_footstep",
+    "tiles": [
+      "mcl_core_dirt_podzol_side.png",
+      "mcl_core_dirt_podzol_top.png"
+    ]
+  },
+  {
+    "drawtype": "normal",
+    "groups": {},
+    "name": "goanna_intake:lessdirt_snow",
+    "sound_footstep": "default_snow_footstep",
+    "tiles": [
+      "default_snow_side.png",
+      "mcl_core_grass_side_snowed.png",
+      "mcldefault_snow.png",
+      "mtgdefault_snow.png"
+    ]
+  },
+  {
+    "drawtype": "normal",
+    "groups": {},
+    "name": "goanna_intake:lessdirt_stone",
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "default_coniferous_litter.png",
+      "default_coniferous_litter_side.png",
+      "default_rainforest_litter.png",
+      "default_rainforest_litter_side.png",
+      "default_stones.png",
+      "default_stones_side.png",
+      "mcl_core_mycelium_side.png",
+      "mcl_core_mycelium_top.png"
+    ]
+  }
+]

@@ -1,0 +1,20 @@
+{
+  "review_version": "backroomtest-billboards-v1",
+  "schema_version": 1,
+  "textures": {
+    "br_ladder_steel_0": {
+      "confidence": 0.9,
+      "metalness_policy": "predominant",
+      "primary_material": "metal",
+      "rationale": "In-world climbable cutout, not an inventory icon; preserve alpha edges and keep relief restrained.",
+      "relief_strength": 0.16,
+      "review_required": false,
+      "secondary_materials": [],
+      "smoothness_max": 0.52,
+      "smoothness_min": 0.2,
+      "source_package": "backroomtest",
+      "tiles": false,
+      "treatment": "billboard"
+    }
+  }
+}

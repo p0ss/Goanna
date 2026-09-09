@@ -1,0 +1,524 @@
+{
+  "default_acacia_tree": {
+    "class": "wood",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_acacia_tree.png"
+  },
+  "default_acacia_tree_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_acacia_tree_top.png"
+  },
+  "default_acacia_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_acacia_wood.png"
+  },
+  "default_aspen_tree": {
+    "class": "wood",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_aspen_tree.png"
+  },
+  "default_aspen_tree_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_aspen_tree_top.png"
+  },
+  "default_aspen_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_aspen_wood.png"
+  },
+  "default_brick": {
+    "class": "stone",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_brick.png"
+  },
+  "default_bronze_block": {
+    "class": "metal",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_bronze_block.png"
+  },
+  "default_clay": {
+    "class": "stone",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_clay.png"
+  },
+  "default_coal_block": {
+    "class": "stone",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_coal_block.png"
+  },
+  "default_cobble": {
+    "class": "stone",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_cobble.png"
+  },
+  "default_coniferous_litter": {
+    "class": "stone",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_coniferous_litter.png"
+  },
+  "default_coniferous_litter_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_coniferous_litter_side.png"
+  },
+  "default_copper_block": {
+    "class": "metal",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_copper_block.png"
+  },
+  "default_coral_brown": {
+    "class": "stone",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_coral_brown.png"
+  },
+  "default_coral_orange": {
+    "class": "stone",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_coral_orange.png"
+  },
+  "default_coral_skeleton": {
+    "class": "stone",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_coral_skeleton.png"
+  },
+  "default_desert_cobble": {
+    "class": "stone",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_desert_cobble.png"
+  },
+  "default_desert_sand": {
+    "class": "sand",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_desert_sand.png"
+  },
+  "default_desert_sandstone": {
+    "class": "stone",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_desert_sandstone.png"
+  },
+  "default_desert_sandstone_block": {
+    "class": "stone",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_desert_sandstone_block.png"
+  },
+  "default_desert_sandstone_brick": {
+    "class": "stone",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_desert_sandstone_brick.png"
+  },
+  "default_desert_stone": {
+    "class": "stone",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_desert_stone.png"
+  },
+  "default_desert_stone_block": {
+    "class": "stone",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_desert_stone_block.png"
+  },
+  "default_desert_stone_brick": {
+    "class": "stone",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_desert_stone_brick.png"
+  },
+  "default_diamond_block": {
+    "class": "stone",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_diamond_block.png"
+  },
+  "default_dirt": {
+    "class": "soil",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_dirt.png"
+  },
+  "default_dry_dirt": {
+    "class": "soil",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_dry_dirt.png"
+  },
+  "default_furnace_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_furnace_bottom.png"
+  },
+  "default_furnace_front": {
+    "class": "stone",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_furnace_front.png"
+  },
+  "default_furnace_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_furnace_side.png"
+  },
+  "default_furnace_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_furnace_top.png"
+  },
+  "default_glass": {
+    "class": "glass",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_glass.png"
+  },
+  "default_glass_detail": {
+    "class": "glass",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_glass_detail.png"
+  },
+  "default_gold_block": {
+    "class": "metal",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_gold_block.png"
+  },
+  "default_gravel": {
+    "class": "gravel",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_gravel.png"
+  },
+  "default_ice": {
+    "class": "ice",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_ice.png"
+  },
+  "default_jungletree": {
+    "class": "wood",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_jungletree.png"
+  },
+  "default_jungletree_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_jungletree_top.png"
+  },
+  "default_junglewood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_junglewood.png"
+  },
+  "default_mese_block": {
+    "class": "stone",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_mese_block.png"
+  },
+  "default_meselamp": {
+    "class": "stone",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_meselamp.png"
+  },
+  "default_mineral_coal": {
+    "class": "stone",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_mineral_coal.png"
+  },
+  "default_mineral_copper": {
+    "class": "metal",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_mineral_copper.png"
+  },
+  "default_mineral_diamond": {
+    "class": "stone",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_mineral_diamond.png"
+  },
+  "default_mineral_gold": {
+    "class": "metal",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_mineral_gold.png"
+  },
+  "default_mineral_iron": {
+    "class": "metal",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_mineral_iron.png"
+  },
+  "default_mineral_mese": {
+    "class": "stone",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_mineral_mese.png"
+  },
+  "default_mineral_tin": {
+    "class": "metal",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_mineral_tin.png"
+  },
+  "default_obsidian": {
+    "class": "stone",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_obsidian.png"
+  },
+  "default_obsidian_block": {
+    "class": "stone",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_obsidian_block.png"
+  },
+  "default_obsidian_brick": {
+    "class": "stone",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_obsidian_brick.png"
+  },
+  "default_obsidian_glass": {
+    "class": "glass",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_obsidian_glass.png"
+  },
+  "default_obsidian_glass_detail": {
+    "class": "glass",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_obsidian_glass_detail.png"
+  },
+  "default_permafrost": {
+    "class": "stone",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_permafrost.png"
+  },
+  "default_pine_tree": {
+    "class": "wood",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_pine_tree.png"
+  },
+  "default_pine_tree_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_pine_tree_top.png"
+  },
+  "default_pine_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_pine_wood.png"
+  },
+  "default_rainforest_litter": {
+    "class": "stone",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_rainforest_litter.png"
+  },
+  "default_rainforest_litter_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_rainforest_litter_side.png"
+  },
+  "default_sand": {
+    "class": "sand",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_sand.png"
+  },
+  "default_sandstone": {
+    "class": "stone",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_sandstone.png"
+  },
+  "default_sandstone_block": {
+    "class": "stone",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_sandstone_block.png"
+  },
+  "default_sandstone_brick": {
+    "class": "stone",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_sandstone_brick.png"
+  },
+  "default_silver_sand": {
+    "class": "sand",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_silver_sand.png"
+  },
+  "default_silver_sandstone": {
+    "class": "stone",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_silver_sandstone.png"
+  },
+  "default_silver_sandstone_block": {
+    "class": "stone",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_silver_sandstone_block.png"
+  },
+  "default_silver_sandstone_brick": {
+    "class": "stone",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_silver_sandstone_brick.png"
+  },
+  "default_snow": {
+    "class": "snow",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_snow.png"
+  },
+  "default_snow_side": {
+    "class": "snow",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_snow_side.png"
+  },
+  "default_steel_block": {
+    "class": "metal",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_steel_block.png"
+  },
+  "default_stone": {
+    "class": "stone",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_stone.png"
+  },
+  "default_stone_block": {
+    "class": "stone",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_stone_block.png"
+  },
+  "default_stone_brick": {
+    "class": "stone",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_stone_brick.png"
+  },
+  "default_stones": {
+    "class": "stone",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_stones.png"
+  },
+  "default_stones_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_stones_side.png"
+  },
+  "default_tin_block": {
+    "class": "metal",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_tin_block.png"
+  },
+  "default_tree": {
+    "class": "wood",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_tree.png"
+  },
+  "default_tree_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_tree_top.png"
+  },
+  "default_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/default/textures/default_wood.png"
+  },
+  "farming_desert_sand_soil": {
+    "class": "soil",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/farming/textures/farming_desert_sand_soil.png"
+  },
+  "farming_desert_sand_soil_wet": {
+    "class": "soil",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/farming/textures/farming_desert_sand_soil_wet.png"
+  },
+  "farming_desert_sand_soil_wet_side": {
+    "class": "soil",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/farming/textures/farming_desert_sand_soil_wet_side.png"
+  },
+  "farming_soil": {
+    "class": "soil",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/farming/textures/farming_soil.png"
+  },
+  "farming_soil_wet": {
+    "class": "soil",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/farming/textures/farming_soil_wet.png"
+  },
+  "farming_soil_wet_side": {
+    "class": "soil",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/farming/textures/farming_soil_wet_side.png"
+  },
+  "farming_straw": {
+    "class": "stone",
+    "collisions": [],
+    "package": "minetest_game",
+    "source": "minetest_game/mods/farming/textures/farming_straw.png"
+  }
+}

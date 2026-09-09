@@ -1,0 +1,154 @@
+[
+  {
+    "drawtype": "normal",
+    "groups": {},
+    "sound_footstep": "default_metal_footstep",
+    "tiles": [
+      "default_bronze_block.png",
+      "default_copper_block.png",
+      "default_gold_block.png",
+      "default_mineral_copper.png",
+      "default_mineral_gold.png",
+      "default_mineral_iron.png",
+      "default_mineral_tin.png",
+      "default_steel_block.png",
+      "default_tin_block.png"
+    ]
+  },
+  {
+    "drawtype": "glasslike",
+    "groups": {},
+    "sound_footstep": "default_glass_footstep",
+    "tiles": [
+      "default_glass.png",
+      "default_glass_detail.png",
+      "default_obsidian_glass.png",
+      "default_obsidian_glass_detail.png"
+    ]
+  },
+  {
+    "drawtype": "normal",
+    "groups": {
+      "wood": 1
+    },
+    "sound_footstep": "default_wood_footstep",
+    "tiles": [
+      "default_acacia_tree.png",
+      "default_acacia_tree_top.png",
+      "default_acacia_wood.png",
+      "default_aspen_tree.png",
+      "default_aspen_tree_top.png",
+      "default_aspen_wood.png",
+      "default_jungletree.png",
+      "default_jungletree_top.png",
+      "default_junglewood.png",
+      "default_pine_tree.png",
+      "default_pine_tree_top.png",
+      "default_pine_wood.png",
+      "default_tree.png",
+      "default_tree_top.png",
+      "default_wood.png"
+    ]
+  },
+  {
+    "drawtype": "normal",
+    "groups": {},
+    "sound_footstep": "default_sand_footstep",
+    "tiles": [
+      "default_desert_sand.png",
+      "default_sand.png",
+      "default_silver_sand.png"
+    ]
+  },
+  {
+    "drawtype": "normal",
+    "groups": {},
+    "sound_footstep": "default_gravel_footstep",
+    "tiles": [
+      "default_gravel.png"
+    ]
+  },
+  {
+    "drawtype": "normal",
+    "groups": {},
+    "sound_footstep": "default_dirt_footstep",
+    "tiles": [
+      "default_dirt.png",
+      "default_dry_dirt.png",
+      "farming_desert_sand_soil.png",
+      "farming_desert_sand_soil_wet.png",
+      "farming_desert_sand_soil_wet_side.png",
+      "farming_soil.png",
+      "farming_soil_wet.png",
+      "farming_soil_wet_side.png"
+    ]
+  },
+  {
+    "drawtype": "normal",
+    "groups": {},
+    "sound_footstep": "default_snow_footstep",
+    "tiles": [
+      "default_snow.png",
+      "default_snow_side.png"
+    ]
+  },
+  {
+    "drawtype": "normal",
+    "groups": {},
+    "sound_footstep": "default_ice_footstep",
+    "tiles": [
+      "default_ice.png"
+    ]
+  },
+  {
+    "drawtype": "normal",
+    "groups": {},
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "default_brick.png",
+      "default_clay.png",
+      "default_coal_block.png",
+      "default_cobble.png",
+      "default_coniferous_litter.png",
+      "default_coniferous_litter_side.png",
+      "default_coral_brown.png",
+      "default_coral_orange.png",
+      "default_coral_skeleton.png",
+      "default_desert_cobble.png",
+      "default_desert_sandstone.png",
+      "default_desert_sandstone_block.png",
+      "default_desert_sandstone_brick.png",
+      "default_desert_stone.png",
+      "default_desert_stone_block.png",
+      "default_desert_stone_brick.png",
+      "default_diamond_block.png",
+      "default_furnace_bottom.png",
+      "default_furnace_front.png",
+      "default_furnace_side.png",
+      "default_furnace_top.png",
+      "default_mese_block.png",
+      "default_meselamp.png",
+      "default_mineral_coal.png",
+      "default_mineral_diamond.png",
+      "default_mineral_mese.png",
+      "default_obsidian.png",
+      "default_obsidian_block.png",
+      "default_obsidian_brick.png",
+      "default_permafrost.png",
+      "default_rainforest_litter.png",
+      "default_rainforest_litter_side.png",
+      "default_sandstone.png",
+      "default_sandstone_block.png",
+      "default_sandstone_brick.png",
+      "default_silver_sandstone.png",
+      "default_silver_sandstone_block.png",
+      "default_silver_sandstone_brick.png",
+      "default_stone.png",
+      "default_stone_block.png",
+      "default_stone_brick.png",
+      "default_stones.png",
+      "default_stones_side.png",
+      "farming_straw.png"
+    ]
+  }
+]

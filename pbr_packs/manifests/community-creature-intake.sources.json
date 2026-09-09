@@ -1,0 +1,836 @@
+{
+  "animalia_angelfish": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/fish/animalia_angelfish.png"
+  },
+  "animalia_bat_1": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/bat/animalia_bat_1.png"
+  },
+  "animalia_bat_2": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/bat/animalia_bat_2.png"
+  },
+  "animalia_bat_3": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/bat/animalia_bat_3.png"
+  },
+  "animalia_bear_grizzly": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/bear/animalia_bear_grizzly.png"
+  },
+  "animalia_beef_cooked": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_beef_cooked.png"
+  },
+  "animalia_beef_raw": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_beef_raw.png"
+  },
+  "animalia_blue_tang": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/fish/animalia_blue_tang.png"
+  },
+  "animalia_bluebird": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/birds/animalia_bluebird.png"
+  },
+  "animalia_bull_frog": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/frog/animalia_bull_frog.png"
+  },
+  "animalia_cardinal": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/birds/animalia_cardinal.png"
+  },
+  "animalia_cat_1": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/cat/animalia_cat_1.png"
+  },
+  "animalia_cat_2": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/cat/animalia_cat_2.png"
+  },
+  "animalia_cat_3": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/cat/animalia_cat_3.png"
+  },
+  "animalia_cat_4": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/cat/animalia_cat_4.png"
+  },
+  "animalia_cat_5": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/cat/animalia_cat_5.png"
+  },
+  "animalia_cat_6": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/cat/animalia_cat_6.png"
+  },
+  "animalia_cat_7": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/cat/animalia_cat_7.png"
+  },
+  "animalia_cat_8": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/cat/animalia_cat_8.png"
+  },
+  "animalia_cat_9": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/cat/animalia_cat_9.png"
+  },
+  "animalia_cat_ash": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/cat/animalia_cat_ash.png"
+  },
+  "animalia_cat_birch": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/cat/animalia_cat_birch.png"
+  },
+  "animalia_cat_toy": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_cat_toy.png"
+  },
+  "animalia_chicken_1": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/chicken/animalia_chicken_1.png"
+  },
+  "animalia_chicken_2": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/chicken/animalia_chicken_2.png"
+  },
+  "animalia_chicken_3": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/chicken/animalia_chicken_3.png"
+  },
+  "animalia_chicken_child": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/chicken/animalia_chicken_child.png"
+  },
+  "animalia_clownfish": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/fish/animalia_clownfish.png"
+  },
+  "animalia_cow_1": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/cow/animalia_cow_1.png"
+  },
+  "animalia_cow_2": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/cow/animalia_cow_2.png"
+  },
+  "animalia_cow_3": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/cow/animalia_cow_3.png"
+  },
+  "animalia_cow_4": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/cow/animalia_cow_4.png"
+  },
+  "animalia_cow_5": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/cow/animalia_cow_5.png"
+  },
+  "animalia_cow_udder": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/cow/animalia_cow_udder.png"
+  },
+  "animalia_crate": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_crate.png"
+  },
+  "animalia_crate_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_crate_side.png"
+  },
+  "animalia_dart_frog_1": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/frog/animalia_dart_frog_1.png"
+  },
+  "animalia_dart_frog_2": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/frog/animalia_dart_frog_2.png"
+  },
+  "animalia_dart_frog_3": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/frog/animalia_dart_frog_3.png"
+  },
+  "animalia_egg_fragment": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/animalia_egg_fragment.png"
+  },
+  "animalia_feather": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_feather.png"
+  },
+  "animalia_form_horse_bg": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/formspecs/animalia_form_horse_bg.png"
+  },
+  "animalia_fox_1": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/fox/animalia_fox_1.png"
+  },
+  "animalia_goldfinch": {
+    "class": "metal",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/birds/animalia_goldfinch.png"
+  },
+  "animalia_guano": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/nodes/animalia_guano.png"
+  },
+  "animalia_guano_bucket": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_guano_bucket.png"
+  },
+  "animalia_horse_1": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/horse/animalia_horse_1.png"
+  },
+  "animalia_horse_2": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/horse/animalia_horse_2.png"
+  },
+  "animalia_horse_3": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/horse/animalia_horse_3.png"
+  },
+  "animalia_horse_4": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/horse/animalia_horse_4.png"
+  },
+  "animalia_horse_5": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/horse/animalia_horse_5.png"
+  },
+  "animalia_horse_pattern_1": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/horse/animalia_horse_pattern_1.png"
+  },
+  "animalia_horse_pattern_2": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/horse/animalia_horse_pattern_2.png"
+  },
+  "animalia_horse_pattern_3": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/horse/animalia_horse_pattern_3.png"
+  },
+  "animalia_horse_saddle": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/horse/animalia_horse_saddle.png"
+  },
+  "animalia_lasso": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_lasso.png"
+  },
+  "animalia_lasso_entity": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/animalia_lasso_entity.png"
+  },
+  "animalia_leather": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_leather.png"
+  },
+  "animalia_libri_animalia": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_libri_animalia.png"
+  },
+  "animalia_libri_bg": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/formspecs/libri/animalia_libri_bg.png"
+  },
+  "animalia_libri_health_fg": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/formspecs/libri/animalia_libri_health_fg.png"
+  },
+  "animalia_libri_info_fg": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/formspecs/libri/animalia_libri_info_fg.png"
+  },
+  "animalia_milk_bucket": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_milk_bucket.png"
+  },
+  "animalia_mutton_cooked": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_mutton_cooked.png"
+  },
+  "animalia_mutton_raw": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_mutton_raw.png"
+  },
+  "animalia_nametag": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_nametag.png"
+  },
+  "animalia_nest": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/nodes/animalia_nest.png"
+  },
+  "animalia_net": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_net.png"
+  },
+  "animalia_opossum": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/opossum/animalia_opossum.png"
+  },
+  "animalia_owl": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/owl/animalia_owl.png"
+  },
+  "animalia_pelt_bear": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_pelt_bear.png"
+  },
+  "animalia_pig_1": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/pig/animalia_pig_1.png"
+  },
+  "animalia_pig_2": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/pig/animalia_pig_2.png"
+  },
+  "animalia_pig_3": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/pig/animalia_pig_3.png"
+  },
+  "animalia_pig_tusks": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/pig/animalia_pig_tusks.png"
+  },
+  "animalia_porkchop_cooked": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_porkchop_cooked.png"
+  },
+  "animalia_porkchop_raw": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_porkchop_raw.png"
+  },
+  "animalia_poultry_cooked": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_poultry_cooked.png"
+  },
+  "animalia_poultry_raw": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_poultry_raw.png"
+  },
+  "animalia_rat_1": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/rat/animalia_rat_1.png"
+  },
+  "animalia_rat_2": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/rat/animalia_rat_2.png"
+  },
+  "animalia_rat_3": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/rat/animalia_rat_3.png"
+  },
+  "animalia_rat_cooked": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_rat_cooked.png"
+  },
+  "animalia_rat_raw": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_rat_raw.png"
+  },
+  "animalia_reindeer": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/reindeer/animalia_reindeer.png"
+  },
+  "animalia_reindeer_calf": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/reindeer/animalia_reindeer_calf.png"
+  },
+  "animalia_rooster_1": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/chicken/animalia_rooster_1.png"
+  },
+  "animalia_rooster_2": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/chicken/animalia_rooster_2.png"
+  },
+  "animalia_rooster_3": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/chicken/animalia_rooster_3.png"
+  },
+  "animalia_saddle": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_saddle.png"
+  },
+  "animalia_shears": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_shears.png"
+  },
+  "animalia_sheep": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/sheep/animalia_sheep.png"
+  },
+  "animalia_sheep_wool": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/sheep/animalia_sheep_wool.png"
+  },
+  "animalia_tadpole": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/frog/animalia_tadpole.png"
+  },
+  "animalia_tied_lasso_entity": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/animalia_tied_lasso_entity.png"
+  },
+  "animalia_tree_frog": {
+    "class": "wood",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/frog/animalia_tree_frog.png"
+  },
+  "animalia_turkey_chick": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/turkey/animalia_turkey_chick.png"
+  },
+  "animalia_turkey_hen": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/turkey/animalia_turkey_hen.png"
+  },
+  "animalia_turkey_tom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/turkey/animalia_turkey_tom.png"
+  },
+  "animalia_venison_cooked": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_venison_cooked.png"
+  },
+  "animalia_venison_raw": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/items/animalia_venison_raw.png"
+  },
+  "animalia_wolf_1": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/wolf/animalia_wolf_1.png"
+  },
+  "animalia_wolf_2": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/wolf/animalia_wolf_2.png"
+  },
+  "animalia_wolf_3": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/wolf/animalia_wolf_3.png"
+  },
+  "animalia_wolf_4": {
+    "class": "stone",
+    "collisions": [],
+    "package": "animalia",
+    "source": "animalia/animalia/textures/wolf/animalia_wolf_4.png"
+  },
+  "goblins_blood": {
+    "class": "stone",
+    "collisions": [],
+    "package": "goblins",
+    "source": "goblins/goblins/textures/goblins_blood.png"
+  },
+  "goblins_exclam": {
+    "class": "stone",
+    "collisions": [],
+    "package": "goblins",
+    "source": "goblins/goblins/textures/goblins_exclam.png"
+  },
+  "goblins_goblin_bone": {
+    "class": "stone",
+    "collisions": [],
+    "package": "goblins",
+    "source": "goblins/goblins/textures/goblins_goblin_bone.png"
+  },
+  "goblins_goblin_bone_meaty": {
+    "class": "stone",
+    "collisions": [],
+    "package": "goblins",
+    "source": "goblins/goblins/textures/goblins_goblin_bone_meaty.png"
+  },
+  "goblins_goblin_coal1": {
+    "class": "stone",
+    "collisions": [],
+    "package": "goblins",
+    "source": "goblins/goblins/textures/goblins_goblin_coal1.png"
+  },
+  "goblins_goblin_coal2": {
+    "class": "stone",
+    "collisions": [],
+    "package": "goblins",
+    "source": "goblins/goblins/textures/goblins_goblin_coal2.png"
+  },
+  "goblins_goblin_cobble1": {
+    "class": "stone",
+    "collisions": [],
+    "package": "goblins",
+    "source": "goblins/goblins/textures/goblins_goblin_cobble1.png"
+  },
+  "goblins_goblin_cobble2": {
+    "class": "stone",
+    "collisions": [],
+    "package": "goblins",
+    "source": "goblins/goblins/textures/goblins_goblin_cobble2.png"
+  },
+  "goblins_goblin_copper1": {
+    "class": "metal",
+    "collisions": [],
+    "package": "goblins",
+    "source": "goblins/goblins/textures/goblins_goblin_copper1.png"
+  },
+  "goblins_goblin_copper2": {
+    "class": "metal",
+    "collisions": [],
+    "package": "goblins",
+    "source": "goblins/goblins/textures/goblins_goblin_copper2.png"
+  },
+  "goblins_goblin_diamond1": {
+    "class": "stone",
+    "collisions": [],
+    "package": "goblins",
+    "source": "goblins/goblins/textures/goblins_goblin_diamond1.png"
+  },
+  "goblins_goblin_diamond2": {
+    "class": "stone",
+    "collisions": [],
+    "package": "goblins",
+    "source": "goblins/goblins/textures/goblins_goblin_diamond2.png"
+  },
+  "goblins_goblin_digger": {
+    "class": "stone",
+    "collisions": [],
+    "package": "goblins",
+    "source": "goblins/goblins/textures/goblins_goblin_digger.png"
+  },
+  "goblins_goblin_dog": {
+    "class": "stone",
+    "collisions": [],
+    "package": "goblins",
+    "source": "goblins/goblins/textures/goblins_goblin_dog.png"
+  },
+  "goblins_goblin_fungler1": {
+    "class": "stone",
+    "collisions": [],
+    "package": "goblins",
+    "source": "goblins/goblins/textures/goblins_goblin_fungler1.png"
+  },
+  "goblins_goblin_fungler2": {
+    "class": "stone",
+    "collisions": [],
+    "package": "goblins",
+    "source": "goblins/goblins/textures/goblins_goblin_fungler2.png"
+  },
+  "goblins_goblin_gold1": {
+    "class": "metal",
+    "collisions": [],
+    "package": "goblins",
+    "source": "goblins/goblins/textures/goblins_goblin_gold1.png"
+  },
+  "goblins_goblin_gold2": {
+    "class": "metal",
+    "collisions": [],
+    "package": "goblins",
+    "source": "goblins/goblins/textures/goblins_goblin_gold2.png"
+  },
+  "goblins_goblin_hoarder": {
+    "class": "stone",
+    "collisions": [],
+    "package": "goblins",
+    "source": "goblins/goblins/textures/goblins_goblin_hoarder.png"
+  },
+  "goblins_goblin_iron1": {
+    "class": "metal",
+    "collisions": [],
+    "package": "goblins",
+    "source": "goblins/goblins/textures/goblins_goblin_iron1.png"
+  },
+  "goblins_goblin_iron2": {
+    "class": "metal",
+    "collisions": [],
+    "package": "goblins",
+    "source": "goblins/goblins/textures/goblins_goblin_iron2.png"
+  },
+  "goblins_goblin_snuffer": {
+    "class": "stone",
+    "collisions": [],
+    "package": "goblins",
+    "source": "goblins/goblins/textures/goblins_goblin_snuffer.png"
+  },
+  "goblins_heart_g2": {
+    "class": "stone",
+    "collisions": [],
+    "package": "goblins",
+    "source": "goblins/goblins/textures/goblins_heart_g2.png"
+  },
+  "goblins_lightning": {
+    "class": "stone",
+    "collisions": [],
+    "package": "goblins",
+    "source": "goblins/goblins/textures/goblins_lightning.png"
+  },
+  "goblins_molten_gold_flowing_animated": {
+    "class": "metal",
+    "collisions": [],
+    "package": "goblins",
+    "source": "goblins/goblins/textures/goblins_molten_gold_flowing_animated.png"
+  },
+  "goblins_molten_gold_source_animated": {
+    "class": "metal",
+    "collisions": [],
+    "package": "goblins",
+    "source": "goblins/goblins/textures/goblins_molten_gold_source_animated.png"
+  },
+  "goblins_mushroom_brown": {
+    "class": "organic",
+    "collisions": [],
+    "package": "goblins",
+    "source": "goblins/goblins/textures/goblins_mushroom_brown.png"
+  },
+  "goblins_mushroom_brown2": {
+    "class": "organic",
+    "collisions": [],
+    "package": "goblins",
+    "source": "goblins/goblins/textures/goblins_mushroom_brown2.png"
+  },
+  "goblins_mushroom_brown3": {
+    "class": "organic",
+    "collisions": [],
+    "package": "goblins",
+    "source": "goblins/goblins/textures/goblins_mushroom_brown3.png"
+  },
+  "goblins_mushroom_brown4": {
+    "class": "organic",
+    "collisions": [],
+    "package": "goblins",
+    "source": "goblins/goblins/textures/goblins_mushroom_brown4.png"
+  },
+  "goblins_negative": {
+    "class": "stone",
+    "collisions": [],
+    "package": "goblins",
+    "source": "goblins/goblins/textures/goblins_negative.png"
+  },
+  "mtg_grass_1": {
+    "class": "organic",
+    "collisions": [],
+    "package": "goblins",
+    "source": "goblins/goblins/textures/mtg_grass_1.png"
+  },
+  "mtg_lava": {
+    "class": "stone",
+    "collisions": [],
+    "package": "goblins",
+    "source": "goblins/goblins/textures/mtg_lava.png"
+  },
+  "mtg_moss": {
+    "class": "organic",
+    "collisions": [],
+    "package": "goblins",
+    "source": "goblins/goblins/textures/mtg_moss.png"
+  }
+}

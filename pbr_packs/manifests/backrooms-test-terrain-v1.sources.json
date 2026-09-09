@@ -1,0 +1,38 @@
+{
+  "br_carpet_0": {
+    "class": "cloth",
+    "collisions": [],
+    "package": "backroomtest",
+    "source": "backroomtest/backroomtest/mods/packs/backrooms/textures/nodes/br_carpet_0.png"
+  },
+  "br_ceiling_tiles_0": {
+    "class": "stone",
+    "collisions": [],
+    "package": "backroomtest",
+    "source": "backroomtest/backroomtest/mods/packs/backrooms/textures/nodes/br_ceiling_tiles_0.png"
+  },
+  "br_tiles_0": {
+    "class": "stone",
+    "collisions": [],
+    "package": "backroomtest",
+    "source": "backroomtest/backroomtest/mods/packs/backrooms/textures/nodes/br_tiles_0.png"
+  },
+  "br_tiles_1": {
+    "class": "stone",
+    "collisions": [],
+    "package": "backroomtest",
+    "source": "backroomtest/backroomtest/mods/packs/backrooms/textures/nodes/br_tiles_1.png"
+  },
+  "br_tiles_2": {
+    "class": "stone",
+    "collisions": [],
+    "package": "backroomtest",
+    "source": "backroomtest/backroomtest/mods/packs/backrooms/textures/nodes/br_tiles_2.png"
+  },
+  "br_wallpaper_0": {
+    "class": "cloth",
+    "collisions": [],
+    "package": "backroomtest",
+    "source": "backroomtest/backroomtest/mods/packs/backrooms/textures/nodes/br_wallpaper_0.png"
+  }
+}

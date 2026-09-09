@@ -1,0 +1,90 @@
+{
+  "aom_crude_ladder": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_nodes/aom_wood/textures/aom_crude_ladder.png"
+  },
+  "aom_pumpkin_plant": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_nodes/aom_flora/textures/aom_pumpkin_plant.png"
+  },
+  "aom_pumpkin_plant_dead": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_nodes/aom_flora/textures/aom_pumpkin_plant_dead.png"
+  },
+  "aom_rope": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_nodes/aom_rope/textures/aom_rope.png"
+  },
+  "aom_rope_chain": {
+    "class": "wood",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_nodes/aom_rope/textures/aom_rope_chain.png"
+  },
+  "aom_underworld_arlior_fola": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_packs/aom_underworld/textures/aom_underworld_arlior_fola.png"
+  },
+  "aom_underworld_arlior_mushroom_blue": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_packs/aom_underworld/textures/aom_underworld_arlior_mushroom_blue.png"
+  },
+  "aom_underworld_arlior_stem": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_packs/aom_underworld/textures/aom_underworld_arlior_stem.png"
+  },
+  "aom_warpberry_bush": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_nodes/aom_flora/textures/aom_warpberry_bush.png"
+  },
+  "aom_warpberry_bush_fruit": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_nodes/aom_flora/textures/aom_warpberry_bush_fruit.png"
+  },
+  "aom_warpberry_stem": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "pmb_core",
+    "release": 38636,
+    "source": "mods/aom_nodes/aom_flora/textures/aom_warpberry_stem.png"
+  }
+}

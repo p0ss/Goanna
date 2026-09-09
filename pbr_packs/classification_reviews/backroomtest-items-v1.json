@@ -1,0 +1,379 @@
+{
+  "review_version": "backroomtest-items-v1",
+  "schema_version": 1,
+  "textures": {
+    "aom_admin_tools_camera": {
+      "confidence": 0.88,
+      "metalness_policy": "partial",
+      "primary_material": "mixed",
+      "rationale": "Inventory/wield icon separated from the billboard tranche; transparent pixels are silhouette padding and maps must affect only opaque artwork.",
+      "relief_strength": 0.2,
+      "review_required": true,
+      "secondary_materials": [
+        "metal",
+        "organic"
+      ],
+      "smoothness_max": 0.42,
+      "smoothness_min": 0.06,
+      "source_package": "backroomtest",
+      "tiles": false,
+      "treatment": "item"
+    },
+    "aom_admin_tools_fill": {
+      "confidence": 0.88,
+      "metalness_policy": "partial",
+      "primary_material": "mixed",
+      "rationale": "Inventory/wield icon separated from the billboard tranche; transparent pixels are silhouette padding and maps must affect only opaque artwork.",
+      "relief_strength": 0.2,
+      "review_required": true,
+      "secondary_materials": [
+        "metal",
+        "organic"
+      ],
+      "smoothness_max": 0.42,
+      "smoothness_min": 0.06,
+      "source_package": "backroomtest",
+      "tiles": false,
+      "treatment": "item"
+    },
+    "aom_admin_tools_paint": {
+      "confidence": 0.88,
+      "metalness_policy": "partial",
+      "primary_material": "mixed",
+      "rationale": "Inventory/wield icon separated from the billboard tranche; transparent pixels are silhouette padding and maps must affect only opaque artwork.",
+      "relief_strength": 0.2,
+      "review_required": true,
+      "secondary_materials": [
+        "metal",
+        "organic"
+      ],
+      "smoothness_max": 0.42,
+      "smoothness_min": 0.06,
+      "source_package": "backroomtest",
+      "tiles": false,
+      "treatment": "item"
+    },
+    "aom_admin_tools_ruler": {
+      "confidence": 0.88,
+      "metalness_policy": "partial",
+      "primary_material": "mixed",
+      "rationale": "Inventory/wield icon separated from the billboard tranche; transparent pixels are silhouette padding and maps must affect only opaque artwork.",
+      "relief_strength": 0.2,
+      "review_required": true,
+      "secondary_materials": [
+        "metal",
+        "organic"
+      ],
+      "smoothness_max": 0.42,
+      "smoothness_min": 0.06,
+      "source_package": "backroomtest",
+      "tiles": false,
+      "treatment": "item"
+    },
+    "aom_admin_tools_teleport_to": {
+      "confidence": 0.88,
+      "metalness_policy": "partial",
+      "primary_material": "mixed",
+      "rationale": "Inventory/wield icon separated from the billboard tranche; transparent pixels are silhouette padding and maps must affect only opaque artwork.",
+      "relief_strength": 0.2,
+      "review_required": true,
+      "secondary_materials": [
+        "metal",
+        "organic"
+      ],
+      "smoothness_max": 0.42,
+      "smoothness_min": 0.06,
+      "source_package": "backroomtest",
+      "tiles": false,
+      "treatment": "item"
+    },
+    "aom_admin_tools_util": {
+      "confidence": 0.88,
+      "metalness_policy": "partial",
+      "primary_material": "mixed",
+      "rationale": "Inventory/wield icon separated from the billboard tranche; transparent pixels are silhouette padding and maps must affect only opaque artwork.",
+      "relief_strength": 0.2,
+      "review_required": true,
+      "secondary_materials": [
+        "metal",
+        "organic"
+      ],
+      "smoothness_max": 0.42,
+      "smoothness_min": 0.06,
+      "source_package": "backroomtest",
+      "tiles": false,
+      "treatment": "item"
+    },
+    "aom_wrench": {
+      "confidence": 0.88,
+      "metalness_policy": "predominant",
+      "primary_material": "metal",
+      "rationale": "Inventory/wield icon separated from the billboard tranche; transparent pixels are silhouette padding and maps must affect only opaque artwork.",
+      "relief_strength": 0.22,
+      "review_required": false,
+      "secondary_materials": [],
+      "smoothness_max": 0.52,
+      "smoothness_min": 0.2,
+      "source_package": "backroomtest",
+      "tiles": false,
+      "treatment": "item"
+    },
+    "br_can_base": {
+      "confidence": 0.88,
+      "metalness_policy": "partial",
+      "primary_material": "mixed",
+      "rationale": "Inventory/wield icon separated from the billboard tranche; transparent pixels are silhouette padding and maps must affect only opaque artwork.",
+      "relief_strength": 0.2,
+      "review_required": true,
+      "secondary_materials": [
+        "metal",
+        "organic"
+      ],
+      "smoothness_max": 0.42,
+      "smoothness_min": 0.06,
+      "source_package": "backroomtest",
+      "tiles": false,
+      "treatment": "item"
+    },
+    "br_canned_beans_0": {
+      "confidence": 0.88,
+      "metalness_policy": "partial",
+      "primary_material": "mixed",
+      "rationale": "Inventory/wield icon separated from the billboard tranche; transparent pixels are silhouette padding and maps must affect only opaque artwork.",
+      "relief_strength": 0.2,
+      "review_required": true,
+      "secondary_materials": [
+        "metal",
+        "organic"
+      ],
+      "smoothness_max": 0.42,
+      "smoothness_min": 0.06,
+      "source_package": "backroomtest",
+      "tiles": false,
+      "treatment": "item"
+    },
+    "br_canned_beans_1": {
+      "confidence": 0.88,
+      "metalness_policy": "partial",
+      "primary_material": "mixed",
+      "rationale": "Inventory/wield icon separated from the billboard tranche; transparent pixels are silhouette padding and maps must affect only opaque artwork.",
+      "relief_strength": 0.2,
+      "review_required": true,
+      "secondary_materials": [
+        "metal",
+        "organic"
+      ],
+      "smoothness_max": 0.42,
+      "smoothness_min": 0.06,
+      "source_package": "backroomtest",
+      "tiles": false,
+      "treatment": "item"
+    },
+    "br_canned_fruit_0": {
+      "confidence": 0.88,
+      "metalness_policy": "partial",
+      "primary_material": "mixed",
+      "rationale": "Inventory/wield icon separated from the billboard tranche; transparent pixels are silhouette padding and maps must affect only opaque artwork.",
+      "relief_strength": 0.2,
+      "review_required": true,
+      "secondary_materials": [
+        "metal",
+        "organic"
+      ],
+      "smoothness_max": 0.42,
+      "smoothness_min": 0.06,
+      "source_package": "backroomtest",
+      "tiles": false,
+      "treatment": "item"
+    },
+    "br_canned_fruit_1": {
+      "confidence": 0.88,
+      "metalness_policy": "partial",
+      "primary_material": "mixed",
+      "rationale": "Inventory/wield icon separated from the billboard tranche; transparent pixels are silhouette padding and maps must affect only opaque artwork.",
+      "relief_strength": 0.2,
+      "review_required": true,
+      "secondary_materials": [
+        "metal",
+        "organic"
+      ],
+      "smoothness_max": 0.42,
+      "smoothness_min": 0.06,
+      "source_package": "backroomtest",
+      "tiles": false,
+      "treatment": "item"
+    },
+    "br_carton_banana_juice": {
+      "confidence": 0.88,
+      "metalness_policy": "partial",
+      "primary_material": "mixed",
+      "rationale": "Inventory/wield icon separated from the billboard tranche; transparent pixels are silhouette padding and maps must affect only opaque artwork.",
+      "relief_strength": 0.2,
+      "review_required": true,
+      "secondary_materials": [
+        "metal",
+        "organic"
+      ],
+      "smoothness_max": 0.42,
+      "smoothness_min": 0.06,
+      "source_package": "backroomtest",
+      "tiles": false,
+      "treatment": "item"
+    },
+    "br_carton_orange_juice": {
+      "confidence": 0.88,
+      "metalness_policy": "partial",
+      "primary_material": "mixed",
+      "rationale": "Inventory/wield icon separated from the billboard tranche; transparent pixels are silhouette padding and maps must affect only opaque artwork.",
+      "relief_strength": 0.2,
+      "review_required": true,
+      "secondary_materials": [
+        "metal",
+        "organic"
+      ],
+      "smoothness_max": 0.42,
+      "smoothness_min": 0.06,
+      "source_package": "backroomtest",
+      "tiles": false,
+      "treatment": "item"
+    },
+    "br_duct_tape": {
+      "confidence": 0.88,
+      "metalness_policy": "partial",
+      "primary_material": "mixed",
+      "rationale": "Inventory/wield icon separated from the billboard tranche; transparent pixels are silhouette padding and maps must affect only opaque artwork.",
+      "relief_strength": 0.2,
+      "review_required": true,
+      "secondary_materials": [
+        "metal",
+        "organic"
+      ],
+      "smoothness_max": 0.42,
+      "smoothness_min": 0.06,
+      "source_package": "backroomtest",
+      "tiles": false,
+      "treatment": "item"
+    },
+    "br_flashlight": {
+      "confidence": 0.88,
+      "metalness_policy": "partial",
+      "primary_material": "mixed",
+      "rationale": "Inventory/wield icon separated from the billboard tranche; transparent pixels are silhouette padding and maps must affect only opaque artwork.",
+      "relief_strength": 0.2,
+      "review_required": true,
+      "secondary_materials": [
+        "metal",
+        "organic"
+      ],
+      "smoothness_max": 0.42,
+      "smoothness_min": 0.06,
+      "source_package": "backroomtest",
+      "tiles": false,
+      "treatment": "item"
+    },
+    "br_flashlight_off": {
+      "confidence": 0.88,
+      "metalness_policy": "partial",
+      "primary_material": "mixed",
+      "rationale": "Inventory/wield icon separated from the billboard tranche; transparent pixels are silhouette padding and maps must affect only opaque artwork.",
+      "relief_strength": 0.2,
+      "review_required": true,
+      "secondary_materials": [
+        "metal",
+        "organic"
+      ],
+      "smoothness_max": 0.42,
+      "smoothness_min": 0.06,
+      "source_package": "backroomtest",
+      "tiles": false,
+      "treatment": "item"
+    },
+    "br_key_2": {
+      "confidence": 0.88,
+      "metalness_policy": "predominant",
+      "primary_material": "metal",
+      "rationale": "Inventory/wield icon separated from the billboard tranche; transparent pixels are silhouette padding and maps must affect only opaque artwork.",
+      "relief_strength": 0.22,
+      "review_required": false,
+      "secondary_materials": [],
+      "smoothness_max": 0.52,
+      "smoothness_min": 0.2,
+      "source_package": "backroomtest",
+      "tiles": false,
+      "treatment": "item"
+    },
+    "br_key_3": {
+      "confidence": 0.88,
+      "metalness_policy": "predominant",
+      "primary_material": "metal",
+      "rationale": "Inventory/wield icon separated from the billboard tranche; transparent pixels are silhouette padding and maps must affect only opaque artwork.",
+      "relief_strength": 0.22,
+      "review_required": false,
+      "secondary_materials": [],
+      "smoothness_max": 0.52,
+      "smoothness_min": 0.2,
+      "source_package": "backroomtest",
+      "tiles": false,
+      "treatment": "item"
+    },
+    "br_key_4": {
+      "confidence": 0.88,
+      "metalness_policy": "predominant",
+      "primary_material": "metal",
+      "rationale": "Inventory/wield icon separated from the billboard tranche; transparent pixels are silhouette padding and maps must affect only opaque artwork.",
+      "relief_strength": 0.22,
+      "review_required": false,
+      "secondary_materials": [],
+      "smoothness_max": 0.52,
+      "smoothness_min": 0.2,
+      "source_package": "backroomtest",
+      "tiles": false,
+      "treatment": "item"
+    },
+    "br_key_tool": {
+      "confidence": 0.88,
+      "metalness_policy": "predominant",
+      "primary_material": "metal",
+      "rationale": "Inventory/wield icon separated from the billboard tranche; transparent pixels are silhouette padding and maps must affect only opaque artwork.",
+      "relief_strength": 0.22,
+      "review_required": false,
+      "secondary_materials": [],
+      "smoothness_max": 0.52,
+      "smoothness_min": 0.2,
+      "source_package": "backroomtest",
+      "tiles": false,
+      "treatment": "item"
+    },
+    "br_rag": {
+      "confidence": 0.88,
+      "metalness_policy": "none",
+      "primary_material": "organic",
+      "rationale": "Inventory/wield icon separated from the billboard tranche; transparent pixels are silhouette padding and maps must affect only opaque artwork.",
+      "relief_strength": 0.16,
+      "review_required": false,
+      "secondary_materials": [],
+      "smoothness_max": 0.18,
+      "smoothness_min": 0.03,
+      "source_package": "backroomtest",
+      "tiles": false,
+      "treatment": "item"
+    },
+    "br_use_when_stuck": {
+      "confidence": 0.88,
+      "metalness_policy": "partial",
+      "primary_material": "mixed",
+      "rationale": "Inventory/wield icon separated from the billboard tranche; transparent pixels are silhouette padding and maps must affect only opaque artwork.",
+      "relief_strength": 0.2,
+      "review_required": true,
+      "secondary_materials": [
+        "metal",
+        "organic"
+      ],
+      "smoothness_max": 0.42,
+      "smoothness_min": 0.06,
+      "source_package": "backroomtest",
+      "tiles": false,
+      "treatment": "item"
+    }
+  }
+}

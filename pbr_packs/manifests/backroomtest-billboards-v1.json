@@ -1,0 +1,12 @@
+[
+  {
+    "drawtype": "normal",
+    "groups": {
+      "metal": 1
+    },
+    "sound_footstep": "default_metal_footstep",
+    "tiles": [
+      "br_ladder_steel_0.png"
+    ]
+  }
+]

@@ -1,0 +1,2868 @@
+{
+  "schema_version": 1,
+  "review_version": "models-v1",
+  "textures": {
+    "animalia_angelfish": {
+      "source_package": "animalia",
+      "primary_material": "scales",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.2,
+      "smoothness_max": 0.55,
+      "relief_strength": 0.24,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling fish/amphibian UV atlas with smooth skin or scales; keep relief shallow and preserve painted markings and atlas boundaries.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_bat_1": {
+      "source_package": "animalia",
+      "primary_material": "organic",
+      "secondary_materials": [
+        "organic",
+        "cloth"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.08,
+      "smoothness_max": 0.42,
+      "relief_strength": 0.28,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling creature/entity UV atlas; preserve UV islands and painted features, with no edge wrapping or tile seam processing.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_bat_2": {
+      "source_package": "animalia",
+      "primary_material": "organic",
+      "secondary_materials": [
+        "organic",
+        "cloth"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.08,
+      "smoothness_max": 0.42,
+      "relief_strength": 0.28,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling creature/entity UV atlas; preserve UV islands and painted features, with no edge wrapping or tile seam processing.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_bat_3": {
+      "source_package": "animalia",
+      "primary_material": "organic",
+      "secondary_materials": [
+        "organic",
+        "cloth"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.08,
+      "smoothness_max": 0.42,
+      "relief_strength": 0.28,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling creature/entity UV atlas; preserve UV islands and painted features, with no edge wrapping or tile seam processing.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_bear_grizzly": {
+      "source_package": "animalia",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_beef_cooked": {
+      "source_package": "animalia",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    },
+    "animalia_beef_raw": {
+      "source_package": "animalia",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    },
+    "animalia_blue_tang": {
+      "source_package": "animalia",
+      "primary_material": "scales",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.2,
+      "smoothness_max": 0.55,
+      "relief_strength": 0.24,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling fish/amphibian UV atlas with smooth skin or scales; keep relief shallow and preserve painted markings and atlas boundaries.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_bluebird": {
+      "source_package": "animalia",
+      "primary_material": "feathers",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.08,
+      "smoothness_max": 0.4,
+      "relief_strength": 0.3,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling bird UV atlas dominated by feathers; preserve feather silhouettes, painted eyes, atlas islands, and any alpha cutouts.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "transparent_or_cutout_possible",
+        "uv_atlas"
+      ]
+    },
+    "animalia_bull_frog": {
+      "source_package": "animalia",
+      "primary_material": "scales",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.2,
+      "smoothness_max": 0.55,
+      "relief_strength": 0.24,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling fish/amphibian UV atlas with smooth skin or scales; keep relief shallow and preserve painted markings and atlas boundaries.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_cardinal": {
+      "source_package": "animalia",
+      "primary_material": "feathers",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.08,
+      "smoothness_max": 0.4,
+      "relief_strength": 0.3,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling bird UV atlas dominated by feathers; preserve feather silhouettes, painted eyes, atlas islands, and any alpha cutouts.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "transparent_or_cutout_possible",
+        "uv_atlas"
+      ]
+    },
+    "animalia_cat_1": {
+      "source_package": "animalia",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_cat_2": {
+      "source_package": "animalia",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_cat_3": {
+      "source_package": "animalia",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_cat_4": {
+      "source_package": "animalia",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_cat_5": {
+      "source_package": "animalia",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_cat_6": {
+      "source_package": "animalia",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_cat_7": {
+      "source_package": "animalia",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_cat_8": {
+      "source_package": "animalia",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_cat_9": {
+      "source_package": "animalia",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_cat_ash": {
+      "source_package": "animalia",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_cat_birch": {
+      "source_package": "animalia",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_cat_toy": {
+      "source_package": "animalia",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    },
+    "animalia_chicken_1": {
+      "source_package": "animalia",
+      "primary_material": "feathers",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.08,
+      "smoothness_max": 0.4,
+      "relief_strength": 0.3,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling bird UV atlas dominated by feathers; preserve feather silhouettes, painted eyes, atlas islands, and any alpha cutouts.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "transparent_or_cutout_possible",
+        "uv_atlas"
+      ]
+    },
+    "animalia_chicken_2": {
+      "source_package": "animalia",
+      "primary_material": "feathers",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.08,
+      "smoothness_max": 0.4,
+      "relief_strength": 0.3,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling bird UV atlas dominated by feathers; preserve feather silhouettes, painted eyes, atlas islands, and any alpha cutouts.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "transparent_or_cutout_possible",
+        "uv_atlas"
+      ]
+    },
+    "animalia_chicken_3": {
+      "source_package": "animalia",
+      "primary_material": "feathers",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.08,
+      "smoothness_max": 0.4,
+      "relief_strength": 0.3,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling bird UV atlas dominated by feathers; preserve feather silhouettes, painted eyes, atlas islands, and any alpha cutouts.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "transparent_or_cutout_possible",
+        "uv_atlas"
+      ]
+    },
+    "animalia_chicken_child": {
+      "source_package": "animalia",
+      "primary_material": "feathers",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.08,
+      "smoothness_max": 0.4,
+      "relief_strength": 0.3,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling bird UV atlas dominated by feathers; preserve feather silhouettes, painted eyes, atlas islands, and any alpha cutouts.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "transparent_or_cutout_possible",
+        "uv_atlas"
+      ]
+    },
+    "animalia_clownfish": {
+      "source_package": "animalia",
+      "primary_material": "scales",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.2,
+      "smoothness_max": 0.55,
+      "relief_strength": 0.24,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling fish/amphibian UV atlas with smooth skin or scales; keep relief shallow and preserve painted markings and atlas boundaries.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_cow_1": {
+      "source_package": "animalia",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_cow_2": {
+      "source_package": "animalia",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_cow_3": {
+      "source_package": "animalia",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_cow_4": {
+      "source_package": "animalia",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_cow_5": {
+      "source_package": "animalia",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_cow_udder": {
+      "source_package": "animalia",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_crate": {
+      "source_package": "animalia",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    },
+    "animalia_crate_side": {
+      "source_package": "animalia",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    },
+    "animalia_dart_frog_1": {
+      "source_package": "animalia",
+      "primary_material": "scales",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.2,
+      "smoothness_max": 0.55,
+      "relief_strength": 0.24,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling fish/amphibian UV atlas with smooth skin or scales; keep relief shallow and preserve painted markings and atlas boundaries.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_dart_frog_2": {
+      "source_package": "animalia",
+      "primary_material": "scales",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.2,
+      "smoothness_max": 0.55,
+      "relief_strength": 0.24,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling fish/amphibian UV atlas with smooth skin or scales; keep relief shallow and preserve painted markings and atlas boundaries.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_dart_frog_3": {
+      "source_package": "animalia",
+      "primary_material": "scales",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.2,
+      "smoothness_max": 0.55,
+      "relief_strength": 0.24,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling fish/amphibian UV atlas with smooth skin or scales; keep relief shallow and preserve painted markings and atlas boundaries.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_egg_fragment": {
+      "source_package": "animalia",
+      "primary_material": "organic",
+      "secondary_materials": [
+        "organic",
+        "cloth"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.08,
+      "smoothness_max": 0.42,
+      "relief_strength": 0.28,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling creature/entity UV atlas; preserve UV islands and painted features, with no edge wrapping or tile seam processing.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "transparent_or_cutout_possible",
+        "uv_atlas"
+      ]
+    },
+    "animalia_feather": {
+      "source_package": "animalia",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "not_model_skin",
+        "transparent_or_cutout_possible",
+        "uv_atlas"
+      ]
+    },
+    "animalia_form_horse_bg": {
+      "source_package": "animalia",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    },
+    "animalia_fox_1": {
+      "source_package": "animalia",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_goldfinch": {
+      "source_package": "animalia",
+      "primary_material": "metal",
+      "secondary_materials": [
+        "skin",
+        "cloth"
+      ],
+      "metalness_policy": "partial",
+      "smoothness_min": 0.18,
+      "smoothness_max": 0.62,
+      "relief_strength": 0.24,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.7,
+      "rationale": "Non-tiling goblin UV atlas with metallic/mineral equipment or body regions mixed with skin/cloth; metalness must be masked, never inferred across the atlas.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "mixed_material_mask_required",
+        "transparent_or_cutout_possible",
+        "uv_atlas"
+      ]
+    },
+    "animalia_guano": {
+      "source_package": "animalia",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    },
+    "animalia_guano_bucket": {
+      "source_package": "animalia",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    },
+    "animalia_horse_1": {
+      "source_package": "animalia",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_horse_2": {
+      "source_package": "animalia",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_horse_3": {
+      "source_package": "animalia",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_horse_4": {
+      "source_package": "animalia",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_horse_5": {
+      "source_package": "animalia",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_horse_pattern_1": {
+      "source_package": "animalia",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_horse_pattern_2": {
+      "source_package": "animalia",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_horse_pattern_3": {
+      "source_package": "animalia",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_horse_saddle": {
+      "source_package": "animalia",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "partial",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_lasso": {
+      "source_package": "animalia",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    },
+    "animalia_lasso_entity": {
+      "source_package": "animalia",
+      "primary_material": "organic",
+      "secondary_materials": [
+        "organic",
+        "cloth"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.08,
+      "smoothness_max": 0.42,
+      "relief_strength": 0.28,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling creature/entity UV atlas; preserve UV islands and painted features, with no edge wrapping or tile seam processing.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "transparent_or_cutout_possible",
+        "uv_atlas"
+      ]
+    },
+    "animalia_leather": {
+      "source_package": "animalia",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    },
+    "animalia_libri_animalia": {
+      "source_package": "animalia",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    },
+    "animalia_libri_bg": {
+      "source_package": "animalia",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    },
+    "animalia_libri_health_fg": {
+      "source_package": "animalia",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    },
+    "animalia_libri_info_fg": {
+      "source_package": "animalia",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    },
+    "animalia_milk_bucket": {
+      "source_package": "animalia",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    },
+    "animalia_mutton_cooked": {
+      "source_package": "animalia",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    },
+    "animalia_mutton_raw": {
+      "source_package": "animalia",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    },
+    "animalia_nametag": {
+      "source_package": "animalia",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    },
+    "animalia_nest": {
+      "source_package": "animalia",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    },
+    "animalia_net": {
+      "source_package": "animalia",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    },
+    "animalia_opossum": {
+      "source_package": "animalia",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_owl": {
+      "source_package": "animalia",
+      "primary_material": "feathers",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.08,
+      "smoothness_max": 0.4,
+      "relief_strength": 0.3,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling bird UV atlas dominated by feathers; preserve feather silhouettes, painted eyes, atlas islands, and any alpha cutouts.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "transparent_or_cutout_possible",
+        "uv_atlas"
+      ]
+    },
+    "animalia_pelt_bear": {
+      "source_package": "animalia",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    },
+    "animalia_pig_1": {
+      "source_package": "animalia",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_pig_2": {
+      "source_package": "animalia",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_pig_3": {
+      "source_package": "animalia",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_pig_tusks": {
+      "source_package": "animalia",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_porkchop_cooked": {
+      "source_package": "animalia",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    },
+    "animalia_porkchop_raw": {
+      "source_package": "animalia",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    },
+    "animalia_poultry_cooked": {
+      "source_package": "animalia",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    },
+    "animalia_poultry_raw": {
+      "source_package": "animalia",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    },
+    "animalia_rat_1": {
+      "source_package": "animalia",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_rat_2": {
+      "source_package": "animalia",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_rat_3": {
+      "source_package": "animalia",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_rat_cooked": {
+      "source_package": "animalia",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    },
+    "animalia_rat_raw": {
+      "source_package": "animalia",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    },
+    "animalia_reindeer": {
+      "source_package": "animalia",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_reindeer_calf": {
+      "source_package": "animalia",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_rooster_1": {
+      "source_package": "animalia",
+      "primary_material": "feathers",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.08,
+      "smoothness_max": 0.4,
+      "relief_strength": 0.3,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling bird UV atlas dominated by feathers; preserve feather silhouettes, painted eyes, atlas islands, and any alpha cutouts.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "transparent_or_cutout_possible",
+        "uv_atlas"
+      ]
+    },
+    "animalia_rooster_2": {
+      "source_package": "animalia",
+      "primary_material": "feathers",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.08,
+      "smoothness_max": 0.4,
+      "relief_strength": 0.3,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling bird UV atlas dominated by feathers; preserve feather silhouettes, painted eyes, atlas islands, and any alpha cutouts.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "transparent_or_cutout_possible",
+        "uv_atlas"
+      ]
+    },
+    "animalia_rooster_3": {
+      "source_package": "animalia",
+      "primary_material": "feathers",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.08,
+      "smoothness_max": 0.4,
+      "relief_strength": 0.3,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling bird UV atlas dominated by feathers; preserve feather silhouettes, painted eyes, atlas islands, and any alpha cutouts.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "transparent_or_cutout_possible",
+        "uv_atlas"
+      ]
+    },
+    "animalia_saddle": {
+      "source_package": "animalia",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    },
+    "animalia_shears": {
+      "source_package": "animalia",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    },
+    "animalia_sheep": {
+      "source_package": "animalia",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_sheep_wool": {
+      "source_package": "animalia",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_tadpole": {
+      "source_package": "animalia",
+      "primary_material": "scales",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.2,
+      "smoothness_max": 0.55,
+      "relief_strength": 0.24,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling fish/amphibian UV atlas with smooth skin or scales; keep relief shallow and preserve painted markings and atlas boundaries.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_tied_lasso_entity": {
+      "source_package": "animalia",
+      "primary_material": "organic",
+      "secondary_materials": [
+        "organic",
+        "cloth"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.08,
+      "smoothness_max": 0.42,
+      "relief_strength": 0.28,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling creature/entity UV atlas; preserve UV islands and painted features, with no edge wrapping or tile seam processing.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "transparent_or_cutout_possible",
+        "uv_atlas"
+      ]
+    },
+    "animalia_tree_frog": {
+      "source_package": "animalia",
+      "primary_material": "scales",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.2,
+      "smoothness_max": 0.55,
+      "relief_strength": 0.24,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling fish/amphibian UV atlas with smooth skin or scales; keep relief shallow and preserve painted markings and atlas boundaries.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_turkey_chick": {
+      "source_package": "animalia",
+      "primary_material": "feathers",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.08,
+      "smoothness_max": 0.4,
+      "relief_strength": 0.3,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling bird UV atlas dominated by feathers; preserve feather silhouettes, painted eyes, atlas islands, and any alpha cutouts.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "transparent_or_cutout_possible",
+        "uv_atlas"
+      ]
+    },
+    "animalia_turkey_hen": {
+      "source_package": "animalia",
+      "primary_material": "feathers",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.08,
+      "smoothness_max": 0.4,
+      "relief_strength": 0.3,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling bird UV atlas dominated by feathers; preserve feather silhouettes, painted eyes, atlas islands, and any alpha cutouts.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "transparent_or_cutout_possible",
+        "uv_atlas"
+      ]
+    },
+    "animalia_turkey_tom": {
+      "source_package": "animalia",
+      "primary_material": "feathers",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.08,
+      "smoothness_max": 0.4,
+      "relief_strength": 0.3,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling bird UV atlas dominated by feathers; preserve feather silhouettes, painted eyes, atlas islands, and any alpha cutouts.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "transparent_or_cutout_possible",
+        "uv_atlas"
+      ]
+    },
+    "animalia_venison_cooked": {
+      "source_package": "animalia",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    },
+    "animalia_venison_raw": {
+      "source_package": "animalia",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    },
+    "animalia_wolf_1": {
+      "source_package": "animalia",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_wolf_2": {
+      "source_package": "animalia",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_wolf_3": {
+      "source_package": "animalia",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "animalia_wolf_4": {
+      "source_package": "animalia",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "goblins_blood": {
+      "source_package": "goblins",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    },
+    "goblins_exclam": {
+      "source_package": "goblins",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    },
+    "goblins_goblin_bone": {
+      "source_package": "goblins",
+      "primary_material": "mixed",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.08,
+      "smoothness_max": 0.42,
+      "relief_strength": 0.28,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.7,
+      "rationale": "Non-tiling stylised goblin UV atlas mixing mineral/bone treatment with organic skin; preserve painted UV islands and avoid global material assumptions.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "mixed_material_mask_required",
+        "uv_atlas"
+      ]
+    },
+    "goblins_goblin_bone_meaty": {
+      "source_package": "goblins",
+      "primary_material": "mixed",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.08,
+      "smoothness_max": 0.42,
+      "relief_strength": 0.28,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.7,
+      "rationale": "Non-tiling stylised goblin UV atlas mixing mineral/bone treatment with organic skin; preserve painted UV islands and avoid global material assumptions.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "mixed_material_mask_required",
+        "uv_atlas"
+      ]
+    },
+    "goblins_goblin_coal1": {
+      "source_package": "goblins",
+      "primary_material": "mixed",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.08,
+      "smoothness_max": 0.42,
+      "relief_strength": 0.28,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.7,
+      "rationale": "Non-tiling stylised goblin UV atlas mixing mineral/bone treatment with organic skin; preserve painted UV islands and avoid global material assumptions.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "mixed_material_mask_required",
+        "uv_atlas"
+      ]
+    },
+    "goblins_goblin_coal2": {
+      "source_package": "goblins",
+      "primary_material": "mixed",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.08,
+      "smoothness_max": 0.42,
+      "relief_strength": 0.28,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.7,
+      "rationale": "Non-tiling stylised goblin UV atlas mixing mineral/bone treatment with organic skin; preserve painted UV islands and avoid global material assumptions.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "mixed_material_mask_required",
+        "uv_atlas"
+      ]
+    },
+    "goblins_goblin_cobble1": {
+      "source_package": "goblins",
+      "primary_material": "mixed",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.08,
+      "smoothness_max": 0.42,
+      "relief_strength": 0.28,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.7,
+      "rationale": "Non-tiling stylised goblin UV atlas mixing mineral/bone treatment with organic skin; preserve painted UV islands and avoid global material assumptions.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "mixed_material_mask_required",
+        "uv_atlas"
+      ]
+    },
+    "goblins_goblin_cobble2": {
+      "source_package": "goblins",
+      "primary_material": "mixed",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.08,
+      "smoothness_max": 0.42,
+      "relief_strength": 0.28,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.7,
+      "rationale": "Non-tiling stylised goblin UV atlas mixing mineral/bone treatment with organic skin; preserve painted UV islands and avoid global material assumptions.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "mixed_material_mask_required",
+        "uv_atlas"
+      ]
+    },
+    "goblins_goblin_copper1": {
+      "source_package": "goblins",
+      "primary_material": "metal",
+      "secondary_materials": [
+        "skin",
+        "cloth"
+      ],
+      "metalness_policy": "partial",
+      "smoothness_min": 0.18,
+      "smoothness_max": 0.62,
+      "relief_strength": 0.24,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.7,
+      "rationale": "Non-tiling goblin UV atlas with metallic/mineral equipment or body regions mixed with skin/cloth; metalness must be masked, never inferred across the atlas.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "mixed_material_mask_required",
+        "uv_atlas"
+      ]
+    },
+    "goblins_goblin_copper2": {
+      "source_package": "goblins",
+      "primary_material": "metal",
+      "secondary_materials": [
+        "skin",
+        "cloth"
+      ],
+      "metalness_policy": "partial",
+      "smoothness_min": 0.18,
+      "smoothness_max": 0.62,
+      "relief_strength": 0.24,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.7,
+      "rationale": "Non-tiling goblin UV atlas with metallic/mineral equipment or body regions mixed with skin/cloth; metalness must be masked, never inferred across the atlas.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "mixed_material_mask_required",
+        "uv_atlas"
+      ]
+    },
+    "goblins_goblin_diamond1": {
+      "source_package": "goblins",
+      "primary_material": "metal",
+      "secondary_materials": [
+        "skin",
+        "cloth"
+      ],
+      "metalness_policy": "partial",
+      "smoothness_min": 0.18,
+      "smoothness_max": 0.62,
+      "relief_strength": 0.24,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.7,
+      "rationale": "Non-tiling goblin UV atlas with metallic/mineral equipment or body regions mixed with skin/cloth; metalness must be masked, never inferred across the atlas.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "mixed_material_mask_required",
+        "uv_atlas"
+      ]
+    },
+    "goblins_goblin_diamond2": {
+      "source_package": "goblins",
+      "primary_material": "metal",
+      "secondary_materials": [
+        "skin",
+        "cloth"
+      ],
+      "metalness_policy": "partial",
+      "smoothness_min": 0.18,
+      "smoothness_max": 0.62,
+      "relief_strength": 0.24,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.7,
+      "rationale": "Non-tiling goblin UV atlas with metallic/mineral equipment or body regions mixed with skin/cloth; metalness must be masked, never inferred across the atlas.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "mixed_material_mask_required",
+        "uv_atlas"
+      ]
+    },
+    "goblins_goblin_digger": {
+      "source_package": "goblins",
+      "primary_material": "skin",
+      "secondary_materials": [
+        "organic",
+        "cloth"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.08,
+      "smoothness_max": 0.42,
+      "relief_strength": 0.28,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling creature/entity UV atlas; preserve UV islands and painted features, with no edge wrapping or tile seam processing.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "goblins_goblin_dog": {
+      "source_package": "goblins",
+      "primary_material": "fur",
+      "secondary_materials": [
+        "skin",
+        "organic"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.05,
+      "smoothness_max": 0.35,
+      "relief_strength": 0.34,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling animal UV atlas dominated by fur/hair with painted facial features; use restrained relief and preserve eyes, markings, seams, and overlay registration.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "goblins_goblin_fungler1": {
+      "source_package": "goblins",
+      "primary_material": "skin",
+      "secondary_materials": [
+        "organic",
+        "cloth"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.08,
+      "smoothness_max": 0.42,
+      "relief_strength": 0.28,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling creature/entity UV atlas; preserve UV islands and painted features, with no edge wrapping or tile seam processing.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "goblins_goblin_fungler2": {
+      "source_package": "goblins",
+      "primary_material": "skin",
+      "secondary_materials": [
+        "organic",
+        "cloth"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.08,
+      "smoothness_max": 0.42,
+      "relief_strength": 0.28,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling creature/entity UV atlas; preserve UV islands and painted features, with no edge wrapping or tile seam processing.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "goblins_goblin_gold1": {
+      "source_package": "goblins",
+      "primary_material": "metal",
+      "secondary_materials": [
+        "skin",
+        "cloth"
+      ],
+      "metalness_policy": "partial",
+      "smoothness_min": 0.18,
+      "smoothness_max": 0.62,
+      "relief_strength": 0.24,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.7,
+      "rationale": "Non-tiling goblin UV atlas with metallic/mineral equipment or body regions mixed with skin/cloth; metalness must be masked, never inferred across the atlas.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "mixed_material_mask_required",
+        "uv_atlas"
+      ]
+    },
+    "goblins_goblin_gold2": {
+      "source_package": "goblins",
+      "primary_material": "metal",
+      "secondary_materials": [
+        "skin",
+        "cloth"
+      ],
+      "metalness_policy": "partial",
+      "smoothness_min": 0.18,
+      "smoothness_max": 0.62,
+      "relief_strength": 0.24,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.7,
+      "rationale": "Non-tiling goblin UV atlas with metallic/mineral equipment or body regions mixed with skin/cloth; metalness must be masked, never inferred across the atlas.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "mixed_material_mask_required",
+        "uv_atlas"
+      ]
+    },
+    "goblins_goblin_hoarder": {
+      "source_package": "goblins",
+      "primary_material": "skin",
+      "secondary_materials": [
+        "organic",
+        "cloth"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.08,
+      "smoothness_max": 0.42,
+      "relief_strength": 0.28,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling creature/entity UV atlas; preserve UV islands and painted features, with no edge wrapping or tile seam processing.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "goblins_goblin_iron1": {
+      "source_package": "goblins",
+      "primary_material": "metal",
+      "secondary_materials": [
+        "skin",
+        "cloth"
+      ],
+      "metalness_policy": "partial",
+      "smoothness_min": 0.18,
+      "smoothness_max": 0.62,
+      "relief_strength": 0.24,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.7,
+      "rationale": "Non-tiling goblin UV atlas with metallic/mineral equipment or body regions mixed with skin/cloth; metalness must be masked, never inferred across the atlas.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "mixed_material_mask_required",
+        "uv_atlas"
+      ]
+    },
+    "goblins_goblin_iron2": {
+      "source_package": "goblins",
+      "primary_material": "metal",
+      "secondary_materials": [
+        "skin",
+        "cloth"
+      ],
+      "metalness_policy": "partial",
+      "smoothness_min": 0.18,
+      "smoothness_max": 0.62,
+      "relief_strength": 0.24,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.7,
+      "rationale": "Non-tiling goblin UV atlas with metallic/mineral equipment or body regions mixed with skin/cloth; metalness must be masked, never inferred across the atlas.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "mixed_material_mask_required",
+        "uv_atlas"
+      ]
+    },
+    "goblins_goblin_snuffer": {
+      "source_package": "goblins",
+      "primary_material": "skin",
+      "secondary_materials": [
+        "organic",
+        "cloth"
+      ],
+      "metalness_policy": "none",
+      "smoothness_min": 0.08,
+      "smoothness_max": 0.42,
+      "relief_strength": 0.28,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.82,
+      "rationale": "Non-tiling creature/entity UV atlas; preserve UV islands and painted features, with no edge wrapping or tile seam processing.",
+      "review_required": false,
+      "risks": [
+        "do_not_tile",
+        "uv_atlas"
+      ]
+    },
+    "goblins_heart_g2": {
+      "source_package": "goblins",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    },
+    "goblins_lightning": {
+      "source_package": "goblins",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    },
+    "goblins_molten_gold_flowing_animated": {
+      "source_package": "goblins",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "mixed_material_mask_required",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    },
+    "goblins_molten_gold_source_animated": {
+      "source_package": "goblins",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "mixed_material_mask_required",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    },
+    "goblins_mushroom_brown": {
+      "source_package": "goblins",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    },
+    "goblins_mushroom_brown2": {
+      "source_package": "goblins",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    },
+    "goblins_mushroom_brown3": {
+      "source_package": "goblins",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    },
+    "goblins_mushroom_brown4": {
+      "source_package": "goblins",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    },
+    "goblins_negative": {
+      "source_package": "goblins",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    },
+    "mtg_grass_1": {
+      "source_package": "goblins",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    },
+    "mtg_lava": {
+      "source_package": "goblins",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    },
+    "mtg_moss": {
+      "source_package": "goblins",
+      "primary_material": "mixed",
+      "secondary_materials": [],
+      "metalness_policy": "none",
+      "smoothness_min": 0.0,
+      "smoothness_max": 0.25,
+      "relief_strength": 0.0,
+      "treatment": "model_skin",
+      "tiles": false,
+      "confidence": 0.98,
+      "rationale": "False positive: source path/name identifies an item, UI, node, effect, liquid, or plant texture rather than a model skin; exclude from creature UV-atlas bake.",
+      "review_required": true,
+      "risks": [
+        "do_not_tile",
+        "not_model_skin",
+        "uv_atlas"
+      ]
+    }
+  }
+}

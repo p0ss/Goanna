@@ -1,0 +1,186 @@
+{
+  "aom_admin_tools_camera": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "backroomtest",
+    "release": 36294,
+    "source": "mods/packs/aom_admin_tools/textures/aom_admin_tools_camera.png"
+  },
+  "aom_admin_tools_fill": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "backroomtest",
+    "release": 36294,
+    "source": "mods/packs/aom_admin_tools/textures/aom_admin_tools_fill.png"
+  },
+  "aom_admin_tools_paint": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "backroomtest",
+    "release": 36294,
+    "source": "mods/packs/aom_admin_tools/textures/aom_admin_tools_paint.png"
+  },
+  "aom_admin_tools_ruler": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "backroomtest",
+    "release": 36294,
+    "source": "mods/packs/aom_admin_tools/textures/aom_admin_tools_ruler.png"
+  },
+  "aom_admin_tools_teleport_to": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "backroomtest",
+    "release": 36294,
+    "source": "mods/packs/aom_admin_tools/textures/aom_admin_tools_teleport_to.png"
+  },
+  "aom_admin_tools_util": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "backroomtest",
+    "release": 36294,
+    "source": "mods/packs/aom_admin_tools/textures/aom_admin_tools_util.png"
+  },
+  "aom_wrench": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "backroomtest",
+    "release": 36294,
+    "source": "mods/packs/aom_wrench/textures/aom_wrench.png"
+  },
+  "br_can_base": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "backroomtest",
+    "release": 36294,
+    "source": "mods/packs/backrooms/textures/items/br_can_base.png"
+  },
+  "br_canned_beans_0": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "backroomtest",
+    "release": 36294,
+    "source": "mods/packs/backrooms/textures/items/br_canned_beans_0.png"
+  },
+  "br_canned_beans_1": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "backroomtest",
+    "release": 36294,
+    "source": "mods/packs/backrooms/textures/items/br_canned_beans_1.png"
+  },
+  "br_canned_fruit_0": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "backroomtest",
+    "release": 36294,
+    "source": "mods/packs/backrooms/textures/items/br_canned_fruit_0.png"
+  },
+  "br_canned_fruit_1": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "backroomtest",
+    "release": 36294,
+    "source": "mods/packs/backrooms/textures/items/br_canned_fruit_1.png"
+  },
+  "br_carton_banana_juice": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "backroomtest",
+    "release": 36294,
+    "source": "mods/packs/backrooms/textures/items/br_carton_banana_juice.png"
+  },
+  "br_carton_orange_juice": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "backroomtest",
+    "release": 36294,
+    "source": "mods/packs/backrooms/textures/items/br_carton_orange_juice.png"
+  },
+  "br_duct_tape": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "backroomtest",
+    "release": 36294,
+    "source": "mods/packs/backrooms/textures/items/br_duct_tape.png"
+  },
+  "br_flashlight": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "backroomtest",
+    "release": 36294,
+    "source": "mods/packs/backrooms/textures/items/br_flashlight.png"
+  },
+  "br_flashlight_off": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "backroomtest",
+    "release": 36294,
+    "source": "mods/packs/backrooms/textures/items/br_flashlight_off.png"
+  },
+  "br_key_2": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "backroomtest",
+    "release": 36294,
+    "source": "mods/packs/backrooms/textures/items/br_key_2.png"
+  },
+  "br_key_3": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "backroomtest",
+    "release": 36294,
+    "source": "mods/packs/backrooms/textures/items/br_key_3.png"
+  },
+  "br_key_4": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "backroomtest",
+    "release": 36294,
+    "source": "mods/packs/backrooms/textures/items/br_key_4.png"
+  },
+  "br_key_tool": {
+    "class": "metal",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "backroomtest",
+    "release": 36294,
+    "source": "mods/packs/backrooms/textures/items/br_key_tool.png"
+  },
+  "br_rag": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "backroomtest",
+    "release": 36294,
+    "source": "mods/packs/backrooms/textures/items/br_rag.png"
+  },
+  "br_use_when_stuck": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-4.0",
+    "package": "backroomtest",
+    "release": 36294,
+    "source": "mods/packs/backrooms/textures/items/br_use_when_stuck.png"
+  }
+}

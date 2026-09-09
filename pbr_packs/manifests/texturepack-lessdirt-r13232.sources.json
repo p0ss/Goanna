@@ -1,0 +1,506 @@
+{
+  "default_coniferous_litter": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
+    "package": "lessdirt",
+    "release": 13232,
+    "size": [
+      16,
+      16
+    ],
+    "source": "default/default_coniferous_litter.png"
+  },
+  "default_coniferous_litter_side": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
+    "package": "lessdirt",
+    "release": 13232,
+    "size": [
+      16,
+      16
+    ],
+    "source": "default/default_coniferous_litter_side.png"
+  },
+  "default_dry_grass": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
+    "package": "lessdirt",
+    "release": 13232,
+    "size": [
+      16,
+      16
+    ],
+    "source": "default/default_dry_grass.png"
+  },
+  "default_dry_grass_side": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
+    "package": "lessdirt",
+    "release": 13232,
+    "size": [
+      16,
+      16
+    ],
+    "source": "default/default_dry_grass_side.png"
+  },
+  "default_grass": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
+    "package": "lessdirt",
+    "release": 13232,
+    "size": [
+      16,
+      16
+    ],
+    "source": "default/default_grass.png"
+  },
+  "default_grass_side": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
+    "package": "lessdirt",
+    "release": 13232,
+    "size": [
+      16,
+      16
+    ],
+    "source": "default/default_grass_side.png"
+  },
+  "default_moss": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
+    "package": "lessdirt",
+    "release": 13232,
+    "size": [
+      16,
+      16
+    ],
+    "source": "default/default_moss.png"
+  },
+  "default_moss_side": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
+    "package": "lessdirt",
+    "release": 13232,
+    "size": [
+      16,
+      16
+    ],
+    "source": "default/default_moss_side.png"
+  },
+  "default_rainforest_litter": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
+    "package": "lessdirt",
+    "release": 13232,
+    "size": [
+      16,
+      16
+    ],
+    "source": "default/default_rainforest_litter.png"
+  },
+  "default_rainforest_litter_side": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
+    "package": "lessdirt",
+    "release": 13232,
+    "size": [
+      16,
+      16
+    ],
+    "source": "default/default_rainforest_litter_side.png"
+  },
+  "default_snow_side": {
+    "class": "snow",
+    "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
+    "package": "lessdirt",
+    "release": 13232,
+    "size": [
+      16,
+      16
+    ],
+    "source": "default/default_snow_side.png"
+  },
+  "default_stones": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
+    "package": "lessdirt",
+    "release": 13232,
+    "size": [
+      16,
+      16
+    ],
+    "source": "default/default_stones.png"
+  },
+  "default_stones_side": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
+    "package": "lessdirt",
+    "release": 13232,
+    "size": [
+      16,
+      16
+    ],
+    "source": "default/default_stones_side.png"
+  },
+  "ethereal_grass_bamboo_side": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
+    "package": "lessdirt",
+    "release": 13232,
+    "size": [
+      16,
+      16
+    ],
+    "source": "ethereal/ethereal_grass_bamboo_side.png"
+  },
+  "ethereal_grass_bamboo_top": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
+    "package": "lessdirt",
+    "release": 13232,
+    "size": [
+      16,
+      16
+    ],
+    "source": "ethereal/ethereal_grass_bamboo_top.png"
+  },
+  "ethereal_grass_cold_side": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
+    "package": "lessdirt",
+    "release": 13232,
+    "size": [
+      16,
+      16
+    ],
+    "source": "ethereal/ethereal_grass_cold_side.png"
+  },
+  "ethereal_grass_cold_top": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
+    "package": "lessdirt",
+    "release": 13232,
+    "size": [
+      16,
+      16
+    ],
+    "source": "ethereal/ethereal_grass_cold_top.png"
+  },
+  "ethereal_grass_crystal_side": {
+    "class": "glass",
+    "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
+    "package": "lessdirt",
+    "release": 13232,
+    "size": [
+      16,
+      16
+    ],
+    "source": "ethereal/ethereal_grass_crystal_side.png"
+  },
+  "ethereal_grass_crystal_top": {
+    "class": "glass",
+    "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
+    "package": "lessdirt",
+    "release": 13232,
+    "size": [
+      16,
+      16
+    ],
+    "source": "ethereal/ethereal_grass_crystal_top.png"
+  },
+  "ethereal_grass_fiery_side": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
+    "package": "lessdirt",
+    "release": 13232,
+    "size": [
+      16,
+      16
+    ],
+    "source": "ethereal/ethereal_grass_fiery_side.png"
+  },
+  "ethereal_grass_fiery_top": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
+    "package": "lessdirt",
+    "release": 13232,
+    "size": [
+      16,
+      16
+    ],
+    "source": "ethereal/ethereal_grass_fiery_top.png"
+  },
+  "ethereal_grass_gray_side": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
+    "package": "lessdirt",
+    "release": 13232,
+    "size": [
+      16,
+      16
+    ],
+    "source": "ethereal/ethereal_grass_gray_side.png"
+  },
+  "ethereal_grass_gray_top": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
+    "package": "lessdirt",
+    "release": 13232,
+    "size": [
+      16,
+      16
+    ],
+    "source": "ethereal/ethereal_grass_gray_top.png"
+  },
+  "ethereal_grass_grove_side": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
+    "package": "lessdirt",
+    "release": 13232,
+    "size": [
+      16,
+      16
+    ],
+    "source": "ethereal/ethereal_grass_grove_side.png"
+  },
+  "ethereal_grass_grove_top": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
+    "package": "lessdirt",
+    "release": 13232,
+    "size": [
+      16,
+      16
+    ],
+    "source": "ethereal/ethereal_grass_grove_top.png"
+  },
+  "ethereal_grass_jungle_side": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
+    "package": "lessdirt",
+    "release": 13232,
+    "size": [
+      16,
+      16
+    ],
+    "source": "ethereal/ethereal_grass_jungle_side.png"
+  },
+  "ethereal_grass_jungle_top": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
+    "package": "lessdirt",
+    "release": 13232,
+    "size": [
+      16,
+      16
+    ],
+    "source": "ethereal/ethereal_grass_jungle_top.png"
+  },
+  "ethereal_grass_mushroom_side": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
+    "package": "lessdirt",
+    "release": 13232,
+    "size": [
+      16,
+      16
+    ],
+    "source": "ethereal/ethereal_grass_mushroom_side.png"
+  },
+  "ethereal_grass_mushroom_top": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
+    "package": "lessdirt",
+    "release": 13232,
+    "size": [
+      16,
+      16
+    ],
+    "source": "ethereal/ethereal_grass_mushroom_top.png"
+  },
+  "ethereal_grass_prairie_side": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
+    "package": "lessdirt",
+    "release": 13232,
+    "size": [
+      16,
+      16
+    ],
+    "source": "ethereal/ethereal_grass_prairie_side.png"
+  },
+  "ethereal_grass_prairie_top": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
+    "package": "lessdirt",
+    "release": 13232,
+    "size": [
+      16,
+      16
+    ],
+    "source": "ethereal/ethereal_grass_prairie_top.png"
+  },
+  "mcl_core_dirt_podzol_side": {
+    "class": "soil",
+    "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
+    "package": "lessdirt",
+    "release": 13232,
+    "size": [
+      16,
+      16
+    ],
+    "source": "mcl_core/mcl_core_dirt_podzol_side.png"
+  },
+  "mcl_core_dirt_podzol_top": {
+    "class": "soil",
+    "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
+    "package": "lessdirt",
+    "release": 13232,
+    "size": [
+      16,
+      16
+    ],
+    "source": "mcl_core/mcl_core_dirt_podzol_top.png"
+  },
+  "mcl_core_grass_block_side_overlay": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
+    "package": "lessdirt",
+    "release": 13232,
+    "size": [
+      16,
+      16
+    ],
+    "source": "mcl_core/mcl_core_grass_block_side_overlay.png"
+  },
+  "mcl_core_grass_block_top": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
+    "package": "lessdirt",
+    "release": 13232,
+    "size": [
+      16,
+      16
+    ],
+    "source": "mcl_core/mcl_core_grass_block_top.png"
+  },
+  "mcl_core_grass_path_side": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
+    "package": "lessdirt",
+    "release": 13232,
+    "size": [
+      16,
+      16
+    ],
+    "source": "mcl_core/mcl_core_grass_path_side.png"
+  },
+  "mcl_core_grass_path_top": {
+    "class": "organic",
+    "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
+    "package": "lessdirt",
+    "release": 13232,
+    "size": [
+      16,
+      16
+    ],
+    "source": "mcl_core/mcl_core_grass_path_top.png"
+  },
+  "mcl_core_grass_side_snowed": {
+    "class": "snow",
+    "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
+    "package": "lessdirt",
+    "release": 13232,
+    "size": [
+      16,
+      16
+    ],
+    "source": "mcl_core/mcl_core_grass_side_snowed.png"
+  },
+  "mcl_core_mycelium_side": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
+    "package": "lessdirt",
+    "release": 13232,
+    "size": [
+      16,
+      16
+    ],
+    "source": "mcl_core/mcl_core_mycelium_side.png"
+  },
+  "mcl_core_mycelium_top": {
+    "class": "stone",
+    "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
+    "package": "lessdirt",
+    "release": 13232,
+    "size": [
+      16,
+      16
+    ],
+    "source": "mcl_core/mcl_core_mycelium_top.png"
+  },
+  "mcldefault_snow": {
+    "class": "snow",
+    "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
+    "package": "lessdirt",
+    "release": 13232,
+    "size": [
+      16,
+      16
+    ],
+    "source": "mcl_core/mcldefault_snow.png"
+  },
+  "mtgdefault_snow": {
+    "class": "snow",
+    "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
+    "package": "lessdirt",
+    "release": 13232,
+    "size": [
+      16,
+      16
+    ],
+    "source": "default/mtgdefault_snow.png"
+  }
+}

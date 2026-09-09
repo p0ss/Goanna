@@ -1,0 +1,270 @@
+{
+  "packages": {
+    "backroomtest": {
+      "archive_sha256": "0f03774bea8f31761f7480d34350a853957f07318cb1b28e9afa40504eddcbcd",
+      "contentdb": "https://content.luanti.org/packages/Sumianvoice/backroomtest/",
+      "declared_media_license": "CC-BY-4.0",
+      "release": 36294,
+      "repository": "https://codeberg.org/SumianVoice/backroomtest.git"
+    },
+    "baunilha": {
+      "archive_sha256": "4be81af2c0a6d8cdfb517aae9c73b1b63010863f89614800c3fea9285f6d1205",
+      "contentdb": "https://content.luanti.org/packages/Mirtilo/baunilha/",
+      "declared_media_license": "CC-BY-SA-4.0",
+      "release": 37613,
+      "repository": "https://codeberg.org/mirtilo/Baunilha.git"
+    },
+    "advtrains": {
+      "archive_sha256": "c311fbb8f6a4aca15efb908168cd51f59d83a8fa1ff2be95d819afd30fe2c856",
+      "contentdb": "https://content.luanti.org/packages/orwell/advtrains/",
+      "declared_media_license": "CC-BY-SA-3.0",
+      "release": 36169,
+      "repository": "https://git.bananach.space/advtrains.git"
+    },
+    "animalia": {
+      "archive_sha256": "edbdfd2cb57e255e4810d279f3107fc9759244b99e6bd7a944bac8f5ec5038a2",
+      "contentdb": "https://content.luanti.org/packages/ElCeejo/animalia/",
+      "declared_media_license": "MIT",
+      "release": 34128,
+      "repository": "https://github.com/ElCeejo/animalia"
+    },
+    "asuna": {
+      "archive_sha256": "5a66c23130c34768d7b8afaf861b9399bec28a4555acf72f2cae3a8a29a18f4b",
+      "contentdb": "https://content.luanti.org/packages/EmptyStar/asuna/",
+      "declared_media_license": "CC-BY-SA-4.0",
+      "release": 31816,
+      "repository": "https://github.com/asuna-mt/asuna"
+    },
+    "castle_lighting": {
+      "archive_sha256": "65ce5d37b031087375579ecbbfc71ddf26d23b80c4f7e60f35aee564ffc8abdc",
+      "contentdb": "https://content.luanti.org/packages/FaceDeer/castle_lighting/",
+      "declared_media_license": "MIT",
+      "release": 22100,
+      "repository": "https://github.com/minetest-mods/castle_lighting"
+    },
+    "castle_masonry": {
+      "archive_sha256": "be41ba5aa521cc480ed9fc716f7008c1129d806a00d1f4d667c61f64485f272d",
+      "contentdb": "https://content.luanti.org/packages/FaceDeer/castle_masonry/",
+      "declared_media_license": "MIT",
+      "release": 38008,
+      "repository": "https://github.com/minetest-mods/castle_masonry"
+    },
+    "caverealms": {
+      "archive_sha256": "90859e1e4a5d83ef306c6a636e74066e17bbc6a62a2d811ee0185b49217d19ea",
+      "contentdb": "https://content.luanti.org/packages/HeroOfTheWinds/caverealms/",
+      "declared_media_license": "WTFPL",
+      "release": 38,
+      "repository": "https://github.com/HeroOfTheWinds/minetest-caverealms"
+    },
+    "cottages": {
+      "archive_sha256": "a948fa118dcb5f651a7f5dbdf102530c941c16bd78afd61288a12156e493b1be",
+      "contentdb": "https://content.luanti.org/packages/Sokomine/cottages/",
+      "declared_media_license": "CC-BY-SA-3.0",
+      "release": 22105,
+      "repository": "https://github.com/Sokomine/cottages"
+    },
+    "darkage": {
+      "archive_sha256": "4c225df76c633c688538cb7774987c1583a551ab51759e470871bc5fa2b269f4",
+      "contentdb": "https://content.luanti.org/packages/addi/darkage/",
+      "declared_media_license": "CC0-1.0",
+      "release": 33518,
+      "repository": "https://github.com/adrido/darkage"
+    },
+    "drummyfish": {
+      "archive_sha256": "eff185a1ad3eb92eb62fd437126b7cae82140401d2e92e24f68574d7e5032b70",
+      "contentdb": "https://content.luanti.org/packages/drummyfish/drummyfish/",
+      "declared_media_license": "CC0-1.0",
+      "release": 834,
+      "repository": "https://gitlab.com/drummyfish/minetest-texturepack"
+    },
+    "dungeonsplus": {
+      "archive_sha256": "ba2b10c243c56fd05e2e5cfe7056267e7d3ec8a77b66a5ea44f0db49832ba3fc",
+      "contentdb": "https://content.luanti.org/packages/EmptyStar/dungeonsplus/",
+      "declared_media_license": "MIT",
+      "release": 31815,
+      "repository": "https://github.com/EmptyStar/dungeonsplus"
+    },
+    "ebiomes": {
+      "archive_sha256": "0e6d6c84a914b3df7ca641294da7b3a92815b47acdf6e55ba536adf4e01b80c4",
+      "contentdb": "https://content.luanti.org/packages/CowboyLv/ebiomes/",
+      "declared_media_license": "CC-BY-SA-3.0",
+      "release": 36480,
+      "repository": "https://github.com/CowboyLva/ebiomes.git"
+    },
+    "ethereal": {
+      "archive_sha256": "8f438c876758c8ccd9df72e54c24939bc39b55ebf020aa7ee155f1b800fa7b80",
+      "contentdb": "https://content.luanti.org/packages/TenPlus1/ethereal/",
+      "declared_media_license": "CC-BY-SA-3.0",
+      "release": 38555,
+      "repository": "https://codeberg.org/tenplus1/ethereal"
+    },
+    "everness": {
+      "archive_sha256": "43f2bdbf655240bd0e1cf0324966f0356c8e4086e030af38c07b896239958a1b",
+      "contentdb": "https://content.luanti.org/packages/SaKeL/everness/",
+      "declared_media_license": "CC-BY-SA-4.0",
+      "release": 38587,
+      "repository": "https://bitbucket.org/minetest_gamers/everness/src/master/"
+    },
+    "fachwerk": {
+      "archive_sha256": "9553da819bc7a7657ca081f791d7a2bb1af8fdc6825e5f3a074960aa38ddae39",
+      "contentdb": "https://content.luanti.org/packages/jbb/fachwerk/",
+      "declared_media_license": "CC-BY-SA-3.0",
+      "release": 12912,
+      "repository": "https://github.com/JBBgameich/fachwerk"
+    },
+    "glass_stained": {
+      "archive_sha256": "defc08c8f31045fc51b5b7a7acbca40b0e85a21770ae57c2bb304cdf66dc9dc0",
+      "contentdb": "https://content.luanti.org/packages/v-rob/glass_stained/",
+      "declared_media_license": "CC-BY-SA-3.0",
+      "release": 6066,
+      "repository": "https://github.com/v-rob/glass_stained"
+    },
+    "goblins": {
+      "archive_sha256": "7db9f7236cc8b134f56b0438c0f1363e027d7133908c077b6aa42cabe6825b78",
+      "contentdb": "https://content.luanti.org/packages/FreeLikeGNU/goblins/",
+      "declared_media_license": "CC-BY-SA-3.0",
+      "release": 32959,
+      "repository": "https://gitlab.com/freelikegnu/goblins"
+    },
+    "lanterns": {
+      "archive_sha256": "d094d021cc1511407afd463022598bbb2aefa7709b02dab72b89c1e075ac6df9",
+      "contentdb": "https://content.luanti.org/packages/gergelypolonkai/lanterns/",
+      "declared_media_license": "CC-BY-SA-4.0",
+      "release": 33978,
+      "repository": "https://gitea.polonkai.eu/gergely/minetest-lanterns"
+    },
+    "lessdirt": {
+      "archive_sha256": "5c0bf16f54e30d3ea3f42af2d45e77336c8b958de4dc104bca7135e498d25e0b",
+      "contentdb": "https://content.luanti.org/packages/DrFrankenstone/lessdirt/",
+      "declared_media_license": "CC-BY-SA-3.0",
+      "release": 13232,
+      "repository": "https://github.com/Treer/LessDirt.git"
+    },
+    "mcl_decor": {
+      "archive_sha256": "22bf1fa366323b13a16bc351bed62752d7f10fbfaf23c517e3ad0cd29b5047f2",
+      "contentdb": "https://content.luanti.org/packages/EmoryNB/mcl_decor/",
+      "declared_media_license": "CC-BY-SA-4.0",
+      "release": 35460,
+      "repository": "https://codeberg.org/EmoryNB/mcl_decor"
+    },
+    "mesecons": {
+      "archive_sha256": "3cba17a2811f0ef191d1ea817cc3233aad94d847d8b83ba0ad55afbc9df20a9f",
+      "contentdb": "https://content.luanti.org/packages/Jeija/mesecons/",
+      "declared_media_license": "LGPL-3.0-only",
+      "release": 37244,
+      "repository": "https://github.com/minetest-mods/mesecons"
+    },
+    "minetest_game": {
+      "archive_sha256": "5b364f6b0cf31ec336319492e14106d932eb86b65a91ded99f4b25f4876519dc",
+      "contentdb": "https://content.luanti.org/packages/Luanti/minetest_game/",
+      "declared_media_license": "CC-BY-SA-3.0",
+      "release": 38214,
+      "repository": "https://github.com/luanti-org/minetest_game"
+    },
+    "moreblocks": {
+      "archive_sha256": "1dbdcd0a903b1c49fbb873219e7f869b72600cf78fca3658916100ff889b8085",
+      "contentdb": "https://content.luanti.org/packages/Calinou/moreblocks/",
+      "declared_media_license": "Zlib",
+      "release": 37721,
+      "repository": "https://github.com/minetest-mods/moreblocks"
+    },
+    "morelights": {
+      "archive_sha256": "13bee465bdf6c940ea1599a1aef3554320ebb288a097f5304136b956e26819a2",
+      "contentdb": "https://content.luanti.org/packages/random_geek/morelights/",
+      "declared_media_license": "CC-BY-SA-4.0",
+      "release": 16081,
+      "repository": "https://github.com/random-geek/morelights"
+    },
+    "naturalbiomes": {
+      "archive_sha256": "016f84bd5d16e1f53930e83399e5b0b7d03a1205a13dc527bb976251d2e3f244",
+      "contentdb": "https://content.luanti.org/packages/Liil/naturalbiomes/",
+      "declared_media_license": "MIT",
+      "release": 17269,
+      "repository": "https://github.com/Skandarella/naturalbiomes.git"
+    },
+    "pixel_imperfection": {
+      "archive_sha256": "8e6c29dcf0ba1949fe5859decf2762c5f998620c24a6d68b8ccdcfa2b167a20f",
+      "contentdb": "https://content.luanti.org/packages/bramaudi/pixel_imperfection/",
+      "declared_media_license": "CC-BY-SA-4.0",
+      "release": 35281,
+      "repository": "https://codeberg.org/bramaudi/pixel_imperfection"
+    },
+    "pmb_core": {
+      "archive_sha256": "d14ab4e0e8ac1d5638bd96784da82618a730eaab7f047a24b44b4b740a3c96b1",
+      "contentdb": "https://content.luanti.org/packages/Sumianvoice/pmb_core/",
+      "declared_media_license": "CC-BY-4.0",
+      "release": 38636,
+      "repository": "https://codeberg.org/Age_of_Mending/Age_of_Mending.git"
+    },
+    "rpg16": {
+      "archive_sha256": "b80faa1cc2284bdda4e391c866e7a061d59c29a6cf3a32f23cb699a915954865",
+      "contentdb": "https://content.luanti.org/packages/Hugues%20Ross/rpg16/",
+      "declared_media_license": "CC-BY-SA-4.0",
+      "release": 20357,
+      "repository": "https://codeberg.org/HuguesRoss/rpg16"
+    },
+    "soothing32": {
+      "archive_sha256": "43515608b9f23d19b1e10460ffba0c725516c2ec2c6298305114400f8198e006",
+      "contentdb": "https://content.luanti.org/packages/Zughy/soothing32/",
+      "declared_media_license": "CC-BY-SA-4.0",
+      "release": 30230,
+      "repository": "https://gitlab.com/zughy-friends-minetest/soothing-32"
+    },
+    "hand_painted_expanded": {
+      "archive_sha256": "13ca5184178ad34db78fed1464cd52372a3a582afbd142f7ad03e11ee770adce",
+      "contentdb": "https://content.luanti.org/packages/shaft/hand_painted_expanded/",
+      "declared_media_license": "CC0-1.0",
+      "release": 35538,
+      "repository": "https://gitgud.io/blut/hand_painted_expanded"
+    },
+    "nether": {
+      "archive_sha256": "9090172624b6fedc00d282a2d04c822cb8794df053d6d6ba6d37f7fe2a1f3b47",
+      "contentdb": "https://content.luanti.org/packages/PilzAdam/nether/",
+      "declared_media_license": "CC-BY-SA-3.0",
+      "release": 33531,
+      "repository": "https://github.com/minetest-mods/nether"
+    },
+    "pipeworks": {
+      "archive_sha256": "b155bf3fb1a174064de8411007d0948502102cdbf0753b3c844c97a6cba8cad7",
+      "contentdb": "https://content.luanti.org/packages/mt-mods/pipeworks/",
+      "declared_media_license": "CC-BY-SA-4.0",
+      "release": 38429,
+      "repository": "https://github.com/mt-mods/pipeworks"
+    },
+    "stainedglass": {
+      "archive_sha256": "b91198c7655d19a6cd7b86ef6a942d0ce770ec3fb83fb030ec0ddf353ff601b8",
+      "contentdb": "https://content.luanti.org/packages/alerikaisattera/stainedglass/",
+      "declared_media_license": "CC0-1.0",
+      "release": 32908,
+      "repository": "https://gitlab.com/alerikaisattera/stainedglass"
+    },
+    "techage_modpack": {
+      "archive_sha256": "4ebe8bdccf1ce34987e2c63cd3db3a4ddcf9ffd01bbdb01caf124f1dded6d13d",
+      "contentdb": "https://content.luanti.org/packages/joe7575/techage_modpack/",
+      "declared_media_license": "CC-BY-SA-3.0",
+      "release": 35862,
+      "repository": "https://github.com/joe7575/techage_modpack.git"
+    },
+    "too_many_stones": {
+      "archive_sha256": "30b6c30fc30f4f6932186615f47397885bd6254f7c246db4d3a0593a5dd98a34",
+      "contentdb": "https://content.luanti.org/packages/JoeEnderman/too_many_stones/",
+      "declared_media_license": "MIT",
+      "release": 34209,
+      "repository": "https://gitlab.com/TheOnlyJoeEnderman/Too_Many_Stones"
+    },
+    "voxelibre": {
+      "archive_sha256": "51ea9242aabb1f29575abbfb599c79bcde9435616ea097c0582e11ac1b2b279d",
+      "contentdb": "https://content.luanti.org/packages/Wuzzy/mineclone2/",
+      "declared_media_license": "CC-BY-SA-4.0",
+      "release": 38585,
+      "repository": "https://git.minetest.land/VoxeLibre/VoxeLibre"
+    },
+    "xdecor": {
+      "archive_sha256": "eb333b34c53f9a34a9bc92fb3b150d6e7e8e1cf14e54107f8bcd58c60809d7ab",
+      "contentdb": "https://content.luanti.org/packages/Wuzzy/xdecor/",
+      "declared_media_license": "CC-BY-4.0",
+      "release": 35166,
+      "repository": "https://codeberg.org/Wuzzy/xdecor-libre"
+    }
+  }
+}

@@ -1,0 +1,31 @@
+[
+  {
+    "drawtype": "normal",
+    "groups": {
+      "flora": 1
+    },
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "aom_pumpkin_plant.png",
+      "aom_pumpkin_plant_dead.png",
+      "aom_underworld_arlior_fola.png",
+      "aom_underworld_arlior_mushroom_blue.png",
+      "aom_underworld_arlior_stem.png",
+      "aom_warpberry_bush.png",
+      "aom_warpberry_bush_fruit.png",
+      "aom_warpberry_stem.png"
+    ]
+  },
+  {
+    "drawtype": "normal",
+    "groups": {
+      "wood": 1
+    },
+    "sound_footstep": "default_wood_footstep",
+    "tiles": [
+      "aom_crude_ladder.png",
+      "aom_rope.png",
+      "aom_rope_chain.png"
+    ]
+  }
+]
