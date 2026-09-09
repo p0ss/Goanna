@@ -1633,12 +1633,12 @@
       "review_required": true
     },
     "kythen_glass": {
-      "primary_material": "stone",
+      "primary_material": "glass",
       "secondary_materials": [],
       "metalness_policy": "none",
-      "smoothness_min": 0.048,
-      "smoothness_max": 0.18,
-      "relief_strength": 0.55,
+      "smoothness_min": 0.368,
+      "smoothness_max": 0.95,
+      "relief_strength": 0.1,
       "treatment": "terrain",
       "tiles": true,
       "confidence": 0.7,
@@ -1646,12 +1646,12 @@
       "review_required": true
     },
     "kythen_glass_detail": {
-      "primary_material": "stone",
+      "primary_material": "glass",
       "secondary_materials": [],
       "metalness_policy": "none",
-      "smoothness_min": 0.048,
-      "smoothness_max": 0.18,
-      "relief_strength": 0.55,
+      "smoothness_min": 0.368,
+      "smoothness_max": 0.95,
+      "relief_strength": 0.1,
       "treatment": "terrain",
       "tiles": true,
       "confidence": 0.7,

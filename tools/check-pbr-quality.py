@@ -106,7 +106,11 @@ def inspect(stem, normal_path, spec_path, material, source=None, albedo=None,
                   "leaves": 0.42, "metal": 0.62}.get(material, 0.65))
     if metrics["mean_smoothness"] > max_smooth and material not in ("glass", "ice"):
         failures.append("surface is too smooth for material class %s" % material)
-    if metrics["seam_energy"] > 3.0:
+    # Opposite edges only need to meet on art that repeats. Warning that a
+    # plant sprite's left and right edges differ describes the sprite, not a
+    # defect: it was 190 of the warnings across the two billboard tranches,
+    # every one of them on a texture the review marks as not tiling.
+    if metrics["seam_energy"] > 3.0 and review.get("tiles") is not False:
         warnings.append("visible wrap seam likely")
     if source:
         src = np.asarray(Image.open(source).convert("RGBA"))

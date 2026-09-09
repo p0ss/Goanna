@@ -212,7 +212,16 @@ CLASS_SSS = {"leaves": 0.5, "ice": 0.35, "snow": 0.2}
 # reported no metal and was right about the image it was given. The furnace
 # came out identical to a bush in the metalness channel. Fixing it at the
 # footstep is the only place that reaches the prompt as well as the class.
+# A glasslike drawtype names its material outright. A footstep sound does
+# not: a game with one hard footstep under stone, brick and glass alike
+# (Kythen) would otherwise bake its windows as rough stone, which is what
+# happened to kythen_glass before this.
+GLASSY_DRAWTYPES = {"glasslike", "glasslike_framed", "glasslike_framed_optional"}
+
+
 def classify_node(d):
+    if (d.get("drawtype") or "") in GLASSY_DRAWTYPES:
+        return "glass"
     fs = d.get("sound_footstep") or ""
     if fs.endswith("_footstep"):
         body = fs[:-len("_footstep")]
@@ -1331,7 +1340,7 @@ def main():
         print("%d out-of-scope textures skipped" % skipped_out_of_scope)
     print("%d textures to bake" % len(names))
 
-    done = skipped = skipped_animation = failed = 0
+    done = skipped = skipped_animation = skipped_empty = failed = 0
     for i, stem in enumerate(names, 1):
         dst = os.path.join(args.out, stem + "_n.png")
         sdst_done = os.path.join(args.out, stem + "_s.png")
@@ -1348,6 +1357,16 @@ def main():
         try:
             src = Image.open(todo[stem]).convert("RGBA")
             w, h = src.size
+            # Clear glass is often drawn as nothing at all: kythen_glass.png is
+            # 16 by 16 of pure transparency. There is no material to derive
+            # from it, and baking it anyway produces a map made entirely of the
+            # neutral fill, which then fails the gate for a drift measured
+            # against art that does not exist.
+            if src.getchannel("A").getextrema()[1] < 128:
+                skipped_empty += 1
+                print("  [%d/%d] %-34s skipped, no opaque texels" %
+                        (i, len(names), stem))
+                continue
             if is_animation_strip(w, h):
                 skipped_animation += 1
                 print("  [%d/%d] %-34s skipped, animation strip %dx%d" %
@@ -1514,8 +1533,10 @@ def main():
             failed += 1
             print("  [%d/%d] %-34s FAILED %s" % (i, len(names), stem, str(e)[:120]))
 
-    print("baked %d, skipped %d (%d animation strips), failed %d" %
-            (done, skipped + skipped_animation, skipped_animation, failed))
+    print("baked %d, skipped %d (%d animation strips, %d with no opaque "
+          "texels), failed %d" %
+            (done, skipped + skipped_animation + skipped_empty,
+             skipped_animation, skipped_empty, failed))
     return 1 if failed and not done else 0
 
 
