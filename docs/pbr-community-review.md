@@ -32,6 +32,14 @@ selected image under an accepted media licence. `pbr_packs/MEDIA_POLICY.json`
 is the machine-readable allow/deny list and `tools/check-pbr-licenses.py`
 enforces it against both the source lock and reviewed per-file ledgers.
 
+Where the package-level notice is mixed, the summary string in
+`pbr_packs/MEDIA_AUDIT.json` does not qualify anything on its own. The gate
+resolves that package from the exact `media_license` recorded against each
+selected file in its intake manifest under `pbr_packs/manifests/`, and fails
+the package if the mapping is missing, if any selected file has no exact
+licence, or if any recorded licence is outside the accepted set. A rejected
+package-level licence still fails before the mapping is consulted.
+
 The current audit groups are:
 
 | Package group | State | Reason |
@@ -43,6 +51,7 @@ The current audit groups are:
 | VoxeLibre | per-file audit required | It is a game-scale source with multiple media notices; only the 72 currently uncovered candidates are relevant. |
 | Asuna | provenance-filtered audit | It aggregates many mods. Files without a nearest owning-mod notice are excluded, and already audited standalone sources are not re-imported through Asuna. |
 | Minetest Game | archive-wide plus per-mod attribution | Release 38214 is pinned; its LGPL code is irrelevant to the separately CC BY-SA 3.0 media. Its terrain tranche contains 87 solid-node surfaces. |
+| Less Dirt | per-file mapping recorded | Release 13232 carries per-family CC BY-SA notices, so the archive-wide string is a summary. Its 42 selected files are each recorded CC BY-SA 3.0 at intake. |
 
 ## Automated acceptance gate
 
