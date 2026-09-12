@@ -551,9 +551,13 @@ static Ref<Image> inferEmissionMaskImage(video::IImage *image) {
             float mask = std::clamp((lum - threshold) / (1.0f - threshold), 0.0f, 1.0f);
             mask *= mask;
             size_t i = (size_t)(y * w + x) * 4;
-            dst[i + 0] = (uint8_t)std::clamp(r * mask * 255.0f, 0.0f, 255.0f);
-            dst[i + 1] = (uint8_t)std::clamp(g * mask * 255.0f, 0.0f, 255.0f);
-            dst[i + 2] = (uint8_t)std::clamp(b * mask * 255.0f, 0.0f, 255.0f);
+            // The material samples emission as sRGB. Attenuating encoded RGB
+            // here applied the mask a second time through the sRGB transfer,
+            // leaving lantern panels almost dark without incident lamp light.
+            Color glow = (Color(r, g, b).srgb_to_linear() * mask).linear_to_srgb();
+            dst[i + 0] = (uint8_t)std::clamp(glow.r * 255.0f, 0.0f, 255.0f);
+            dst[i + 1] = (uint8_t)std::clamp(glow.g * 255.0f, 0.0f, 255.0f);
+            dst[i + 2] = (uint8_t)std::clamp(glow.b * 255.0f, 0.0f, 255.0f);
             dst[i + 3] = 255;
         }
     return Image::create_from_data(w, h, false, Image::FORMAT_RGBA8, data);
