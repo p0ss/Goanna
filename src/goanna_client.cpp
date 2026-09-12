@@ -6511,11 +6511,11 @@ int GoannaClient::poll_blocks(int max_blocks) {
                     if (vlit != vertex_light.end() && vlit->second.size() == nv)
                         vl_tab = &vlit->second;
                 }
-                MaterialKey key = keyForIrr(buf->getMaterial(), nv ? v[0].Aux : 0);
-                // Which node a face belongs to: step half a node back along the
-                // outward normal from the face centre and you are inside it.
-                // Used for the glow split below and for the block semantic ID
-                // in UV2.y (docs/mesh-attributes.md), which is per node.
+                MaterialKey key = keyForIrr(buf->getMaterial(),
+                        v[0].Aux & GOANNA_VERTEX_TEXTURE_MASK);
+                // Approximate ownership for the semantic ID in UV2.y. Light
+                // source ownership is explicit mesh metadata instead: this
+                // half-node step can leave a thin torch/lantern's own cell.
                 auto owner_content = [&](const u16 *tri) -> content_t {
                     if (!gnd)
                         return CONTENT_IGNORE;
@@ -6542,8 +6542,7 @@ int GoannaClient::poll_blocks(int max_blocks) {
                 for (u32 t = 0; t + 2 < ni; t += 3) {
                     const u16 tri[3] = { idx16[t], idx16[t + 1], idx16[t + 2] };
                     const content_t owner = owner_content(tri);
-                    const bool glows = !glow_casts && gnd && owner != CONTENT_IGNORE &&
-                            gnd->get(owner).light_source > 0;
+                    const bool glows = !glow_casts && (v[tri[0]].Aux & GOANNA_VERTEX_GLOWS);
                     const int g = glows ? 1 : 0;
                     const float block_id = owner == CONTENT_IGNORE ? 0.0f : (float)mtable.blockOf(owner);
                     SurfAccum &tacc = g ? glow_groups[key.hash()] : groups[key.hash()];
@@ -6570,7 +6569,8 @@ int GoannaClient::poll_blocks(int max_blocks) {
                         // pack reads as mc_Entity.x, from the classifier's
                         // block column for the owning node. 0 is the correct
                         // failure: unremarkable, not wrong.
-                        tacc.uv2s.push_back(Vector2(tacc.is_array ? (float)v[sv].Aux : 0.0f, block_id));
+                        tacc.uv2s.push_back(Vector2(tacc.is_array ?
+                                (float)(v[sv].Aux & GOANNA_VERTEX_TEXTURE_MASK) : 0.0f, block_id));
                         // Luanti node coordinates, which is what the field
                         // wants: the mirrored z above is Godot's convention.
                         // GOANNA_NO_VERTEX_LIGHT=1 skips the sample and writes

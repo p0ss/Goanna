@@ -83,6 +83,15 @@ they mean.
 
 ## The block semantic ID
 
+Light-source ownership is carried separately through the CPU mesher. A
+Goanna tile flag prevents emitting and non-emitting nodes from batching
+together even when they share a texture. MapBlockMesh transfers it into the
+high bit of Irrlicht's `Aux`; Godot conversion strips that bit from texture
+indices and sends the emitting faces to the lamp-excluded caster layer.
+This avoids guessing shadow ownership from a triangle's position, which
+fails for thin and oversized torch models. No Godot vertex attribute is
+added, and the sun still receives these meshes as shadow casters.
+
 `UV2.y` holds an integer, as a float, naming what kind of thing the surface
 is: 0 for unclassified, and otherwise an index into a table Goanna keeps.
 `docs/pbr-plan.md` step 2 fills it from the same nodedef read that assigns a

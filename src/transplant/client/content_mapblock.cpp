@@ -14,7 +14,9 @@
 // what keeps ice and the water under it from putting two faces in one plane,
 // and such a node in turn draws no sideways face against a liquid source at
 // its own level, because that face is wholly submerged and sorted over the
-// nearer water surface. Otherwise verbatim.
+// nearer water surface. Tiles also carry explicit light-source ownership
+// through batching, so thin torch meshes cannot shadow their own lights.
+// Otherwise verbatim.
 
 #include <cmath>
 #include "content_mapblock.h"
@@ -86,6 +88,21 @@ static const auto &quad_indices = quad_indices_02;
 
 const std::string MapblockMeshGenerator::raillike_groupname = "connect_to_raillike";
 
+// Preserve the actual source node, including thin/oversized flame meshes.
+// TileLayer equality includes flags, so a glowing node cannot merge with a
+// non-glowing node that happens to use the same texture.
+static_assert((GOANNA_TILE_GLOWS & (MATERIAL_FLAG_BACKFACE_CULLING |
+		MATERIAL_FLAG_CRACK | MATERIAL_FLAG_ANIMATION |
+		MATERIAL_FLAG_TILEABLE_HORIZONTAL | MATERIAL_FLAG_TILEABLE_VERTICAL)) == 0);
+static void markLightSource(TileSpec &tile, bool glows)
+{
+	for (auto &layer : tile.layers) {
+		layer.material_flags &= ~GOANNA_TILE_GLOWS;
+		if (glows)
+			layer.material_flags |= GOANNA_TILE_GLOWS;
+	}
+}
+
 MapblockMeshGenerator::MapblockMeshGenerator(MeshMakeData *input, MeshCollector *output):
 	data(input),
 	collector(output),
@@ -112,12 +129,14 @@ void MapblockMeshGenerator::useTile(TileSpec *tile_ret, int index, u8 set_flags,
 void MapblockMeshGenerator::getTile(int index, TileSpec *tile_ret)
 {
 	getNodeTileN(cur_node.n, cur_node.p, index, data, *tile_ret);
+	markLightSource(*tile_ret, cur_node.f->light_source != 0);
 }
 
 // Returns a tile, ready for use, rotated according to the node facedir.
 void MapblockMeshGenerator::getTile(v3s16 direction, TileSpec *tile_ret)
 {
 	getNodeTile(cur_node.n, cur_node.p, direction, data, *tile_ret);
+	markLightSource(*tile_ret, cur_node.f->light_source != 0);
 }
 
 // Returns a special tile, ready for use, non-rotated.
@@ -125,6 +144,7 @@ void MapblockMeshGenerator::getSpecialTile(int index, TileSpec *tile_ret, bool a
 {
 	const ContentFeatures &f = *cur_node.f;
 	*tile_ret = f.visuals->special_tiles[index];
+	markLightSource(*tile_ret, f.light_source != 0);
 	TileLayer *top_layer = nullptr;
 
 	for (auto &layernum : tile_ret->layers) {

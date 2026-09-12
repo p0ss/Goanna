@@ -3,6 +3,15 @@
 
 #pragma once
 
+#include <cstdint>
+
+// Carry light-source ownership through tile batching, then in Irrlicht's
+// CPU-only vertex Aux field. The remaining bits retain the texture index.
+// These flags are stripped before the Godot mesh attributes are written.
+constexpr uint8_t GOANNA_TILE_GLOWS = 0x80;
+constexpr uint16_t GOANNA_VERTEX_GLOWS = 0x8000;
+constexpr uint16_t GOANNA_VERTEX_TEXTURE_MASK = 0x7fff;
+
 // Switches consulted by the transplanted meshing code.
 // When true, Luanti's baked vertex lighting and directional face shading are
 // bypassed (vertex colour = tile colour only) so Godot lights the world.

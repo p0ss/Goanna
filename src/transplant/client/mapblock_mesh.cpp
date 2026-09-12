@@ -680,6 +680,14 @@ MapBlockMesh::MapBlockMesh(Client *client, MeshMakeData *data):
 			// Note that the buffer index matters, so 'continue' is forbidden here.
 			assert(!p.empty());
 
+			// Keep the source flag after collector batching. Aux's lower bits
+			// remain the texture-array index; Godot conversion removes the flag.
+			for (auto &vertex : p.vertices) {
+				assert((vertex.Aux & GOANNA_VERTEX_GLOWS) == 0);
+				if (p.layer.material_flags & GOANNA_TILE_GLOWS)
+					vertex.Aux |= GOANNA_VERTEX_GLOWS;
+			}
+
 			// Generate animation data
 			if (p.layer.material_flags & MATERIAL_FLAG_ANIMATION) {
 				// Add to MapBlockMesh in order to animate these tiles
