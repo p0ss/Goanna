@@ -97,6 +97,26 @@ floor's hue, so the banks are visible weather for the dawn to pierce
 rather than something the dawn creates. Calibrated on the fixture:
 `0.24 * night`; 0.03 was invisible, 0.9 was moonlit milk.
 
+## Continuous local fog
+
+Local fog composites at full strength over both geometry and the sky.
+A reduced `volumetric_fog_sky_affect` made a lit mist bank abruptly change
+at a terrain silhouette. Raising that value alone obscured the sunset
+clouds, because the Environment's uniform density also filled the zenith.
+The air density now lives in `atmosphere_volume.gdshader`, with a smooth
+32-node exponential falloff above the local surface and the existing lower
+fade. Valley mist and local cloud bodies retain their own density fields.
+Clear-night mist is thinner and scatters the incident light with a neutral
+albedo; otherwise the old dense, night-coloured medium extinguished the sky.
+Twilight keeps its established mist density. The distant depth-fog ramp
+remains separate; this does not replace the far terrain geometry or soften
+its level-of-detail silhouettes.
+
+At deep night, the Appearance night control adds a faint blue upper sky in
+linear light. The visible sky and its ambient/SDFGI radiance share that
+contribution; the night horizon colour, exposure, contrast and saturation
+are unchanged. The control is gated outside the protected twilight interval.
+
 ## The fixture
 
 `project/dawn_sweep.tscn` renders the real shaders over a boxy stand-in

@@ -17,6 +17,11 @@ shader_type fog;
 uniform vec3 atmosphere_color : source_color = vec3(0.72, 0.80, 0.90);
 uniform float mist_level = 64.0;
 uniform float mist_density : hint_range(0.0, 0.1) = 0.012;
+// Clear-air scattering belongs near the surface. A uniform Environment
+// density also fills the zenith, forcing an incorrect partial sky composite
+// to keep the clouds visible. Fade smoothly with height instead.
+uniform float air_density = 0.0;
+uniform vec3 air_albedo : source_color = vec3(1.0, 0.98, 0.95);
 uniform vec2 weather_offset = vec2(0.0);
 uniform float quality : hint_range(0.0, 1.0) = 1.0;
 uniform float cloud_level = 120.0;
@@ -117,10 +122,14 @@ void fog() {
 		cloud = cloud_density * profile * smoothstep(threshold, threshold + 0.18, shape);
 	}
 
-	float total = mist + cloud;
+	float air_height = smoothstep(mist_level - 72.0, mist_level - 32.0, p.y)
+			* exp(-max(p.y - (mist_level - 18.0), 0.0) / 32.0);
+	float air = air_density * air_height;
+	float total = mist + cloud + air;
 	DENSITY = total;
 	ALBEDO = total > 0.00001 ?
-			(atmosphere_color * mist + cloud_albedo * cloud) / total : atmosphere_color;
+			(atmosphere_color * mist + cloud_albedo * cloud + air_albedo * air)
+			/ total : atmosphere_color;
 	// The mist share glows with the night floor; the cloud share takes the
 	// ground bounce on its underside, fading out by the crown.
 	float base_share = clamp(1.0 - (p.y - (cloud_level - half_cloud))

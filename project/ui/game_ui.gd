@@ -717,6 +717,9 @@ const SETTINGS := [
 	["Video", "show_body", "toggle", "Show own body", "See your own body and held item when you look down."],
 	["Video", "show_fps", "toggle", "Performance counter", "Show FPS and the renderer counts that help distinguish graphics load from terrain streaming."],
 	["Video", "show_position", "toggle", "World position", "Show your current world coordinates."],
+	["Appearance", "look_strength", "slider", "Natural look", "Adds depth to high daylight and enables the night sky lighting control. Dawn and sunset keep their existing colour treatment. 0 restores the original grade and sky lighting.", 0.0, 1.0, 0.05],
+	["Appearance", "night_visibility", "slider", "Night visibility", "A faint blue upper sky provides cool ambient and bounced light in exposed areas. Keeps the existing night grading and horizon colour. 0 restores the original sky. Works with Natural look.", 0.0, 1.0, 0.05],
+	["Appearance", "bloom_strength", "slider", "Bloom", "Glow around bright light sources, relative to the world's lighting. 0 removes the glow.", 0.0, 2.0, 0.05],
 	["Lighting", "light_sun", "slider", "Sunlight", "Strength of direct sun and moon light.", 0.0, 4.0, 0.1],
 	["Lighting", "light_ambient", "slider", "Ambient light", "Sky light filling shadowed surfaces.", 0.0, 3.0, 0.05],
 	["Lighting", "light_sdfgi", "slider", "Bounced light", "Strength of global illumination bouncing off surfaces.", 0.0, 4.0, 0.1],
@@ -757,14 +760,15 @@ const SIMPLE_KEYS := ["texture_pack", "view_range", "far_distance",
 
 # Tabs that are entirely player preference rather than graphics quality, so
 # they are shown whole and have no Advanced half.
-const PLAIN_TABS := ["Controls", "Audio", "Display"]
+const PLAIN_TABS := ["Controls", "Appearance", "Audio", "Display"]
 
 # Settings handled here rather than through the client (window, camera, UI).
 const LOCAL_KEYS := ["mouse_sensitivity", "invert_mouse", "view_bobbing", "fov",
 	"gui_scale", "max_fps", "vsync", "fullscreen", "damage_flash", "show_fps", "show_position", "terrain_occlusion", "player_effect_particles", "volume", "muted",
 	"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao",
 	"light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality",
-	"light_ssil", "screen_space_detail", "shadow_detail", "asset_updates"]
+	"light_ssil", "screen_space_detail", "shadow_detail", "asset_updates",
+	"look_strength", "night_visibility", "bloom_strength"]
 var settings_menu: Control
 var advanced_open := false      # Advanced graphics settings, kept across reopens
 
@@ -814,7 +818,7 @@ func _apply_local(key: String, value: float, on: bool) -> void:
 		"show_position":
 			show_position = on
 			hud.queue_redraw()
-		"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao", "light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality", "light_ssil", "screen_space_detail", "shadow_detail":
+		"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao", "light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality", "light_ssil", "screen_space_detail", "shadow_detail", "look_strength", "night_visibility", "bloom_strength":
 			var ml := _main_node()
 			if ml != null:
 				ml.set(key, value)
@@ -840,7 +844,7 @@ func _local_value(key: String) -> float:
 		"terrain_occlusion": return 1.0 if get_tree().root.use_occlusion_culling else 0.0
 		"player_effect_particles": return 1.0 if player_effect_particles else 0.0
 		"show_position": return 1.0 if show_position else 0.0
-		"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao", "light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality", "light_ssil", "screen_space_detail", "shadow_detail":
+		"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao", "light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality", "light_ssil", "screen_space_detail", "shadow_detail", "look_strength", "night_visibility", "bloom_strength":
 			return float(m.get(key)) if m != null else 1.0
 		"volume": return audio.volume if audio != null else 0.8
 		"muted": return 1.0 if (audio != null and audio.muted) else 0.0

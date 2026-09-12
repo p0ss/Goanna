@@ -1,6 +1,8 @@
 extends Node3D
 
 const AssetUpdater := preload("res://asset_updater.gd")
+const LookGrade := preload("res://look_grade.gd")
+var look_grade := LookGrade.new()
 
 var client: GoannaClient
 var ui: CanvasLayer
@@ -102,6 +104,10 @@ var shadow_detail := 2.0
 var light_white := 4.0
 # Base exposure; the server's exposure_correction multiplies it in _apply_sky.
 var light_exposure := 0.46
+# Appearance controls are independent of the hardware quality profiles.
+var look_strength := 1.0
+var night_visibility := 0.5
+var bloom_strength := 1.0
 # Sky fill strength: Luanti's sky light added by the node shaders as a flat
 # fill in the horizon colour (nodes_array_common.gdshaderinc). 0 turns it off.
 var light_fill := 0.4
@@ -2195,6 +2201,7 @@ func _apply_sky() -> void:
 	# The land's daylight, keyed to its own horizon: with a ridge in front
 	# of the sun, day arrives at the crest, not at the astronomical rise.
 	var day: float = land["day"]
+	var look_weights := LookGrade.weights(elev, look_strength)
 	sun.light_color = SkyDirector.beam_tint(elev)
 	# Hold the sun through the golden hour. Its energy used to follow `day`
 	# alone, which is near zero exactly when the sky peaks pink, so the
@@ -2235,12 +2242,19 @@ func _apply_sky() -> void:
 	# Servers send a fairly desaturated zenith (Mineclonia's day_sky is
 	# 0.53,0.53,0.59), which the vanilla client renders flat. Deepen the
 	# zenith while keeping the server's hue and leaving the horizon pale, so
-	# the sky has the gradient a real one does. A look choice, like drawing
-	# real shadows: black night skies are unaffected (saturating black is a
-	# no-op).
+	# the sky has a visible gradient. The night contribution is added
+	# separately below, outside the established twilight interval.
 	var zenith := top
 	zenith.s = maxf(zenith.s, 0.42)
 	zenith.v = minf(zenith.v, 0.92)
+	# A dim blue upper sky is a light source as well as a visible backdrop.
+	# Its radiance reaches exposed surfaces through ambient/SDFGI, retaining
+	# occlusion and bounce. Keep the horizon and the colour grade unchanged.
+	# The astronomical night weight excludes the entire twilight interval.
+	if str(sky["type"]) == "regular":
+		var night_air := Color(0.10, 0.20, 0.42) * (look_weights.y * night_visibility)
+		zenith = (zenith.srgb_to_linear() + night_air).linear_to_srgb()
+		zenith.a = 1.0
 	sky_mat.set_shader_parameter("sky_top", zenith)
 	sky_mat.set_shader_parameter("sky_horizon", hor)
 	# The water surface reflects the sky wherever its screen space ray runs off
@@ -2300,6 +2314,11 @@ func _apply_sky() -> void:
 	# the dawn to pierce rather than something the dawn creates. The glow is
 	# scaled well under the floor: lit air, not a light source.
 	mist_cycle = lerpf(0.7, 1.6, clampf(land["night"] + land["dawn"] * 0.6, 0.0, 1.0))
+	# With the volume now composited fully over sky, the old dense night
+	# banks extinguished the stars. Keep clear-night mist sparse; dawn's
+	# established banks and cloud lighting retain their existing density.
+	var deep_night := LookGrade.weights(elev, 1.0).y
+	mist_cycle *= lerpf(1.0, 0.25, deep_night)
 	if atmosphere_mat:
 		# 0.24 out of the fixture was an aurora on a live night (reported
 		# 2026-08-30: "never seen fog light up a mountain like that"). The
@@ -2364,7 +2383,11 @@ func _apply_sky() -> void:
 	# extension decays with tw_k itself, so deep night keeps its floor.
 	# The fill lights the land, so its carriers are the land's own bands:
 	# under a ridge the golden fill waits for the crest with everything else.
-	var fill: Color = hor.lerp(Color(hor.v, hor.v, hor.v), 0.5) * (light_fill * day) \
+	# Daylight shaping starts outside twilight. Keep the established night
+	# fill and grade: a global low-tone lift also exposes the distant horizon
+	# and weakens the contrast between lamps and their surroundings.
+	var fill: Color = hor.lerp(Color(hor.v, hor.v, hor.v), 0.5) \
+			* (light_fill * day * lerpf(1.0, 0.55, look_weights.x)) \
 			+ hor.lerp(tw_col, 0.6 * tw_k) \
 			* (light_fill * 0.9 * maxf(land["dawn"], 0.45 * tw_k) * (1.0 - day)) \
 			+ night_col.lerp(tw_col, 0.35 * tw_k) * (0.10 * light_fill * land["night"])
@@ -2543,7 +2566,10 @@ func _apply_sky() -> void:
 		# already snapped back to blue.
 		sky_mat.set_shader_parameter("haze_twilight", maxf(dawn, dome["tw"]))
 		if atmosphere_mat:
-			atmosphere_mat.set_shader_parameter("atmosphere_color", fog_col)
+			# A night-coloured scattering albedo darkened the already dim
+			# incident sky a second time, making the mist absorb like smoke.
+			atmosphere_mat.set_shader_parameter("atmosphere_color",
+					fog_col.lerp(Color(0.92, 0.96, 1.0), deep_night))
 		# How far there is actually something to see, which is not how far we
 		# are permitted to draw. The live range is always there; past it the
 		# far field reaches only as far as the store and the server's
@@ -2731,8 +2757,18 @@ func _apply_sky() -> void:
 	var lighting: Dictionary = st["lighting"]
 	# Server saturation on top of our base grade, not instead of it.
 	e.adjustment_saturation = clamp(1.12 * float(lighting["saturation"]), 0.0, 2.0)
+	# The LUT shapes high daylight only. Night and twilight retain their
+	# original contrast, saturation and black level, including the horizon.
+	e.adjustment_contrast = 1.05
+	e.adjustment_color_correction = look_grade.correction(look_weights.x)
 	e.tonemap_exposure = clamp(light_exposure * (1.0 + float(lighting["exposure_correction"]) * 0.25), 0.1, 3.0)
-	e.glow_intensity = clamp(0.3 + float(lighting["bloom_intensity"]) * 2.0, 0.0, 2.0)
+	e.glow_intensity = clamp(0.3 + float(lighting["bloom_intensity"]) * 2.0, 0.0, 2.0) * bloom_strength
+	# A pack with a final stage owns its exposure and grade.
+	if iris and iris.has_final() and iris.get_bridge_colour():
+		e.adjustment_color_correction = null
+		e.adjustment_contrast = 1.0
+		e.adjustment_saturation = 1.0
+		e.tonemap_exposure = 1.0
 	# --- light shafts, and the air they are shafts in ---
 	# Luanti's volumetric_light_strength is the server asking for god rays,
 	# 0 to 1. Take it the way shadow_intensity is taken above, as a floor on
@@ -2755,10 +2791,17 @@ func _apply_sky() -> void:
 		air *= (0.6 + 1.4 * vol) * light_shafts
 		e.volumetric_fog_enabled = atmosphere_quality > 0.01 and (atmosphere_mat != null or air > 0.0004)
 		if e.volumetric_fog_enabled:
-			e.volumetric_fog_density = air
+			# One medium must composite equally over terrain and empty sky.
+			# Bound clear air by height in the volume, rather than weakening
+			# its sky contribution (which cuts banks off at a hill silhouette).
+			e.volumetric_fog_density = 0.0 if atmosphere_mat else air
+			if atmosphere_mat:
+				atmosphere_mat.set_shader_parameter("air_density", air)
 			# The air scatters the sun's own colour, which is what makes a
 			# dawn shaft warm and a noon one white.
 			e.volumetric_fog_albedo = Color(1.0, 0.98, 0.95).lerp(sky["fog_sun_tint"], 0.5 * land["dawn"])
+			if atmosphere_mat:
+				atmosphere_mat.set_shader_parameter("air_albedo", e.volumetric_fog_albedo)
 			e.volumetric_fog_anisotropy = 0.8
 			# The volume is a fixed grid of froxels stretched over this range,
 			# so range is bought with resolution: at 160 nodes the near field
@@ -2780,16 +2823,7 @@ func _apply_sky() -> void:
 			e.volumetric_fog_ambient_inject = 0.9
 			e.volumetric_fog_emission_energy = 0.0
 			e.volumetric_fog_gi_inject = 0.4
-			# The volume must also composite against the sky or a cloud has depth
-			# only where terrain happens to be behind it, the exact hill-shaped
-			# overlay failure. Full influence previously flattened the dome because
-			# uniform air occupied every froxel. A partial composite preserves the
-			# gradient while making sparse cloud/mist density visible in open sky
-			# and joins the land and sky through the same participating medium.
-			# 0.55 laid the froxel medium over the whole dome and greyed the
-			# sky into permanent overcast; most of the sky is above the
-			# volume and should stay the sky's own colour.
-			e.volumetric_fog_sky_affect = 0.30 * atmosphere_quality
+			e.volumetric_fog_sky_affect = 1.0
 		# The shaft is the lamp's contribution to the volume, so this is the
 		# knob that decides how much shaft there is, as against how much haze.
 		# Scaled by how much of the sun the deck lets through: the raymarched

@@ -74,6 +74,13 @@ session's `PATH`) can be checked with:
 godot --headless --path project --script res://tests/local_server_discovery.gd
 ```
 
+The Appearance grade's twilight and night bypass, its curve endpoints and
+monotonicity, and its texture cache are checked with:
+
+```sh
+godot --headless --path project --script res://tests/look_grade.gd
+```
+
 Use `git diff --check` and the style checker before submitting. Visual
 fixtures and deterministic capture conventions are described in
 [validation.md](validation.md), [building.md](building.md) and

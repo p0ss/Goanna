@@ -77,6 +77,13 @@ Goanna's important visual systems are adjustable while connected:
 - Material settings control normals, roughness, specular, emission, bevels and
   surface detail.
 - Lighting settings control SDFGI, ambient light, lamps, shadows and shafts.
+- The Appearance tab has Natural look, Night visibility and Bloom controls.
+  Natural look adds depth in high daylight; night, dawn and sunset keep their
+  existing grade. Night visibility defaults to 0.5 and adds a faint blue
+  upper sky, supplying cool ambient and bounced light through the existing
+  lighting system. It leaves the horizon colour and night grade unchanged;
+  zero restores the original sky. These preferences are independent of the
+  graphics quality profile.
 - Volumetric atmosphere controls the local valley-mist volume; set it to zero
   to disable that froxel cost on slower hardware. The raymarched cumulus
   stay in the sky pass and share the terrain's sun, twilight and
