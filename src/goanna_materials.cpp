@@ -274,6 +274,15 @@ void buildMaterialTable(const NodeDefManager *ndef,
         case 4: ++out.by_name; break;
         default: ++out.unclassed; break;
         }
+        auto tree = f.groups.find("tree");
+        if (tree != f.groups.end() && tree->second > 0 &&
+                f.name.find("stripped") == std::string::npos) {
+            for (int i = 2; i < 6; ++i) {
+                std::string base = tileBaseName(f.tiledef[i].name);
+                if (!base.empty() && base != "blank.png")
+                    out.bark_textures.insert(base);
+            }
+        }
         // Tiles: the six faces and their overlays; special tiles (flowing
         // liquid) count too, they are textures a node shows.
         std::map<std::string, int> block_votes;

@@ -2406,7 +2406,8 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
                 const MaterialTable &mtable = m_session->materialTable();
                 const auto &lnames = agt->layerNames();
                 PackedInt32Array classes;
-                PackedFloat32Array coarse;
+                PackedFloat32Array coarse, roughness_floor;
+                roughness_floor.resize((int)lnames.size());
                 classes.resize((int)lnames.size());
                 coarse.resize((int)lnames.size());
                 for (size_t i = 0; i < lnames.size(); ++i) {
@@ -2414,10 +2415,12 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
                     if (plain.empty())
                         plain = lnames[i];
                     classes[(int)i] = (int)mtable.textureClass(plain);
+                    roughness_floor[(int)i] = mtable.bark_textures.count(plain) ? 0.82f : 0.0f;
                     coarse[(int)i] = m_session->tsrc()->textureCoarseness(lnames[i]);
                 }
                 sm->set_shader_parameter("layer_class", classes);
                 sm->set_shader_parameter("layer_coarse", coarse);
+                sm->set_shader_parameter("layer_roughness_floor", roughness_floor);
                 if (getenv("GOANNA_DEBUG_PBR")) {
                     int n = (int)std::min<size_t>(lnames.size(), 4);
                     for (int i = 0; i < n; ++i)

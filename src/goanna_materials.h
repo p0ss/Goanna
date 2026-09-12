@@ -25,6 +25,7 @@
 #include <cstdint>
 #include <map>
 #include <string>
+#include <unordered_set>
 #include <unordered_map>
 #include <vector>
 
@@ -75,6 +76,9 @@ struct MaterialTable {
     // material path already does, so a texture a plain node shares with a
     // hidden glowing variant does not glow.
     std::unordered_map<std::string, float> texture_emission;
+    // Side textures of unstripped tree nodes: dry bark is rough even where
+    // a supplied smoothness map gives it polished patches.
+    std::unordered_set<std::string> bark_textures;
     std::vector<std::string> block_names; // [0] is ""
     // Coverage, for the audit: how many nodes got a class by each signal.
     int nodes = 0, by_footstep = 0, by_group = 0, by_drawtype = 0, by_name = 0, unclassed = 0;

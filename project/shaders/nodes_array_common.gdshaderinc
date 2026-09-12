@@ -244,6 +244,9 @@ uniform int layer_class[256];
 // it is alone, which is a fact about the world and not about its texture.
 // The real rule wants the mesher to say how far the same node runs.
 uniform float layer_coarse[256];
+// Material identity limits dry bark's polished patches. Applied before rain
+// so wet bark can still change, and after LOD so it stays rough at distance.
+uniform float layer_roughness_floor[256];
 uniform float detail_max_coarse : hint_range(0.0, 1.0) = 0.35;
 // Surface detail: how much of the per class treatment runs. 0 is the plain
 // single sample this shader has always done, which is what the far tiers and
@@ -351,9 +354,10 @@ vec2 goanna_surface_uv(vec3 world, vec3 wnormal) {
 	return world.xy;
 }
 
-// Which classes want stochastic tiling. Wood and brickwork are ruled out by
-// the method itself, whose author warns that parallel lines distort; glass,
-// metal and cloth are man made and are meant to repeat.
+// Only unstructured granular materials may shift per node. Stone also
+// includes brickwork and cut masonry: the image coarseness heuristic cannot
+// reliably recognise mortar courses, and shifting them breaks tile seams.
+// Preserve their authored UVs, as for wood, glass, metal and cloth.
 bool goanna_class_is_granular(int cls) {
-	return cls == 1 || cls == 5 || cls == 6 || cls == 7 || cls == 9;
+	return cls == 5 || cls == 6 || cls == 7 || cls == 9;
 }

@@ -146,6 +146,9 @@ void fragment() {
 		RIM_TINT = 0.35;
 	}
 
+	// Dry bark retains diffuse relief without polished highlights.
+	ROUGHNESS = max(ROUGHNESS, layer_roughness_floor[layer]);
+
 	// Rain wets what the sky can reach; the full account is in
 	// nodes_array.gdshader beside the same block.
 	if (goanna_wetness > 0.001) {

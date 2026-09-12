@@ -189,6 +189,9 @@ void fragment() {
 		RIM_TINT = 0.35;
 	}
 
+	// Dry bark retains diffuse relief without polished highlights.
+	ROUGHNESS = max(ROUGHNESS, layer_roughness_floor[layer]);
+
 	// Rain wets what the sky can reach: up facing surfaces with strong sky
 	// light darken and go glossy, so a shower leaves the ground gleaming,
 	// while anything under a roof keeps its dry look; the sky light channel
