@@ -82,7 +82,7 @@ void fragment() {
 		// up to 64/255 and subsurface scattering above it. Godot's SPECULAR
 		// defines F0 = 0.08 * SPECULAR, hence the divide.
 		float sm = sp.r;
-		ROUGHNESS = mix(0.9, clamp((1.0 - sm) * (1.0 - sm), 0.04, 1.0), roughness_strength);
+		ROUGHNESS = mix(0.9, clamp(1.0 - sm, 0.04, 1.0), roughness_strength);
 		METALLIC = sp.g >= 0.898 ? 1.0 : 0.0;
 		SPECULAR = clamp((sp.g >= 0.898 ? 0.5 : sp.g / 0.08) * specular_strength, 0.0, 1.0);
 		if (sp.a < 0.999)

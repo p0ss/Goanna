@@ -1,0 +1,259 @@
+{
+  "budget": 16,
+  "camera": [
+    -72.0,
+    30.5,
+    334.0
+  ],
+  "lights": [
+    {
+      "energy": 4.0,
+      "pos": [
+        -69.0,
+        28.9950008392334,
+        335.0
+      ],
+      "shadow": true
+    },
+    {
+      "energy": 4.0,
+      "pos": [
+        -76.0,
+        28.9950008392334,
+        335.0
+      ],
+      "shadow": true
+    },
+    {
+      "energy": 4.0,
+      "pos": [
+        -69.0,
+        28.9950008392334,
+        328.0
+      ],
+      "shadow": true
+    },
+    {
+      "energy": 4.0,
+      "pos": [
+        -67.3499984741211,
+        26.25,
+        336.0
+      ],
+      "shadow": true
+    },
+    {
+      "energy": 4.0,
+      "pos": [
+        -76.0,
+        28.9950008392334,
+        328.0
+      ],
+      "shadow": true
+    },
+    {
+      "energy": 4.0,
+      "pos": [
+        -77.6500015258789,
+        26.25,
+        336.0
+      ],
+      "shadow": true
+    },
+    {
+      "energy": 4.0,
+      "pos": [
+        -67.3499984741211,
+        26.25,
+        327.0
+      ],
+      "shadow": true
+    },
+    {
+      "energy": 4.0,
+      "pos": [
+        -77.6500015258789,
+        26.25,
+        327.0
+      ],
+      "shadow": true
+    },
+    {
+      "energy": 4.0,
+      "pos": [
+        -71.0,
+        32.78125,
+        333.0
+      ],
+      "shadow": true
+    },
+    {
+      "energy": 4.0,
+      "pos": [
+        -74.0,
+        32.78125,
+        333.0
+      ],
+      "shadow": true
+    },
+    {
+      "energy": 4.0,
+      "pos": [
+        -71.0,
+        32.78125,
+        330.0
+      ],
+      "shadow": true
+    },
+    {
+      "energy": 4.0,
+      "pos": [
+        -74.0,
+        32.78125,
+        330.0
+      ],
+      "shadow": true
+    },
+    {
+      "energy": 4.0,
+      "pos": [
+        -79.0,
+        25.78125,
+        344.0
+      ],
+      "shadow": true
+    },
+    {
+      "energy": 4.0,
+      "pos": [
+        -72.0,
+        25.78125,
+        339.0
+      ],
+      "shadow": true
+    },
+    {
+      "energy": 4.0,
+      "pos": [
+        -70.0,
+        23.9950008392334,
+        343.0
+      ],
+      "shadow": true
+    },
+    {
+      "energy": 4.0,
+      "pos": [
+        -83.0,
+        25.71875,
+        331.0
+      ],
+      "shadow": true
+    }
+  ],
+  "render": {
+    "block_meshes": 466,
+    "blocks_meshed_last": 0,
+    "blocks_queued": 0,
+    "draw_calls": 7959,
+    "entities": 161,
+    "entities_ms": 0.410493752717187,
+    "far_areas_complete": 423,
+    "far_areas_empty": 75,
+    "far_areas_partial": 186,
+    "far_areas_requested": 684,
+    "far_blocks": 134991,
+    "far_extent": 1008,
+    "far_grant": 1024,
+    "far_ray_yield": 0.0,
+    "far_reach": 1040,
+    "far_remote": 131855,
+    "far_requests_inflight": 4,
+    "light_churn": 0,
+    "light_pool": 16,
+    "lights_in_range": 70,
+    "lights_ms": 0.0214128707157962,
+    "lod_building": 0,
+    "lod_chain_ms": 0.16005541536345,
+    "lod_chain_queue": 0,
+    "lod_chains": 134991,
+    "lod_chains_built_last": 0,
+    "lod_faces": 786234,
+    "lod_far_scan_ms": 0.0210945727202583,
+    "lod_frozen_regions": 0,
+    "lod_handoff_far": 0,
+    "lod_handoff_to_near": 0,
+    "lod_ms": 2.54119038025077,
+    "lod_partial": 0,
+    "lod_quads": 610453,
+    "lod_regions": 1103,
+    "lod_regions_built_last": 0,
+    "lod_regions_dirty": 0,
+    "lod_request_ms": 0.00404083128204692,
+    "lod_retier_queue": 0,
+    "lod_summary_ms": 0.00609367633194111,
+    "lod_surfaces": 5558,
+    "lod_tier_scan_ms": 3.50536011251767e-05,
+    "lod_tiers": {},
+    "lod_update_ms": 0.0513690039864714,
+    "lod_worst_ms": 546.39552,
+    "materials": 67,
+    "mesh_ms": 0.000573143264840915,
+    "mesh_q_coverage": 0,
+    "mesh_q_near": 0,
+    "mesh_q_structure": 0,
+    "mesh_queued": 0,
+    "mesh_ready": 0,
+    "mesh_rejected": 0,
+    "mesh_running": 0,
+    "mesh_threads": 8,
+    "mote_pool": 32,
+    "motes_ms": 0.0,
+    "near_batch_ms": 8.09999527854967,
+    "near_batch_worst_ms": 112.772315,
+    "near_regions": 33,
+    "near_regions_built_last": 0,
+    "near_source_surfaces": 2687,
+    "near_surfaces": 474,
+    "objects": 8061,
+    "occluder_regions": 13,
+    "occluder_swap_ms": 0.0154211770886603,
+    "occluder_swaps": 25,
+    "occluder_triangles": 3756,
+    "occluder_worst_ms": 0.041177,
+    "occlusion_enabled": true,
+    "poll_blocks_ms": 3.87644899316621e-05,
+    "poll_lock_ms": 2.62639836742117e-05,
+    "poll_lod_ms": 0.514630954744343,
+    "poll_max_ms": 10.060663,
+    "poll_near_ms": 0.00110182505286564,
+    "poll_queue_ms": 0.000215373710934536,
+    "primitives": 17389990,
+    "render_cpu_draw_ms": 0.0,
+    "render_cpu_setup_ms": 0.018,
+    "render_gpu_ms": 0.0,
+    "resident_blocks": 535,
+    "sched_boot": 0,
+    "sched_cone": 1.0,
+    "sched_cover": 0,
+    "sched_head": 0,
+    "sched_head_class": "idle",
+    "sched_maintain": 0,
+    "sched_nearest": 0,
+    "sched_oldest_ms": 0.0,
+    "sched_refine": 0,
+    "sched_stale": 0,
+    "sched_stale_band": 0,
+    "shadow_draw_calls": 5732,
+    "shadow_primitives": 15129789,
+    "stats_ms": 0.14876808090903,
+    "store_blocks": 3671,
+    "store_mb": 10.5722999572754,
+    "upload_ms": 2.25433209100004,
+    "video_mem_mb": 1441.57904052734,
+    "vis_draw_calls": 2218,
+    "vis_objects": 2218,
+    "vis_primitives": 2259983
+  },
+  "wetness": 0.0
+}

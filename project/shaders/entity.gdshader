@@ -80,7 +80,7 @@ void fragment() {
 		// The same decode as the authored path below, from the class's own
 		// constants rather than from a texture. An iron pickaxe is not rough
 		// plastic, and until this it was shaded as exactly that.
-		ROUGHNESS = mix(1.0, clamp((1.0 - class_smoothness) * (1.0 - class_smoothness), 0.04, 1.0),
+		ROUGHNESS = mix(1.0, clamp(1.0 - class_smoothness, 0.04, 1.0),
 				roughness_strength);
 		METALLIC = class_metal;
 		SPECULAR = clamp((class_metal > 0.5 ? 0.5 : class_f0 / 0.08) * specular_strength, 0.0, 1.0);
@@ -98,7 +98,7 @@ void fragment() {
 	if (has_spec) {
 		vec4 sp = texture(spec_tex, UV);
 		float sm = sp.r;
-		ROUGHNESS = mix(1.0, clamp((1.0 - sm) * (1.0 - sm), 0.04, 1.0), roughness_strength);
+		ROUGHNESS = mix(1.0, clamp(1.0 - sm, 0.04, 1.0), roughness_strength);
 		METALLIC = sp.g >= 0.898 ? 1.0 : 0.0;
 		SPECULAR = clamp((sp.g >= 0.898 ? 0.5 : sp.g / 0.08) * specular_strength, 0.0, 1.0);
 		if (sp.a < 0.999)

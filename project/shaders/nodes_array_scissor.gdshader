@@ -108,7 +108,7 @@ void fragment() {
 		float sm = sp.r;
 		// Toward 1.0, the unlit-looking fully rough default, so 0 gives back
 		// exactly what a node with no companion gets.
-		ROUGHNESS = mix(1.0, clamp((1.0 - sm) * (1.0 - sm), 0.04, 1.0), roughness_strength);
+		ROUGHNESS = mix(1.0, clamp(1.0 - sm, 0.04, 1.0), roughness_strength);
 		METALLIC = sp.g >= 0.898 ? 1.0 : 0.0;
 		SPECULAR = clamp((sp.g >= 0.898 ? 0.5 : sp.g / 0.08) * specular_strength, 0.0, 1.0);
 		if (sp.a < 0.999)

@@ -181,6 +181,6 @@ void fragment() {
 	ALPHA = clamp(tex.a + 0.2 + 0.6 * refl_mix, 0.0, 1.0);
 	// The _s answers for the light pass too: frost scatters the sun where a
 	// slick keeps its highlight tight.
-	ROUGHNESS = has_spec ? clamp((1.0 - sm) * (1.0 - sm), 0.04, 1.0) : roughness;
+	ROUGHNESS = has_spec ? clamp(1.0 - sm, 0.04, 1.0) : roughness;
 	SPECULAR = has_spec ? clamp(texture(spec_tex, UV).g / 0.08, 0.0, 1.0) : 0.6;
 }

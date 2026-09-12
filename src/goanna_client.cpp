@@ -2697,24 +2697,37 @@ void GoannaClient::harvestLights(v3s16 bp, MapBlock *block) {
             continue;
         NodeLight l;
         l.pos = Vector3(bp.X * MAP_BLOCKSIZE + x, bp.Y * MAP_BLOCKSIZE + y, -(bp.Z * MAP_BLOCKSIZE + z));
-        // A light at the node centre sits inside its own mesh (a lantern's
-        // cage, a glowing cube), so the moment its shadow map turns on it
-        // occludes itself and appears to switch off. Nudge it into the first
-        // open neighbour: below first (hanging lanterns), then above (floor
-        // lamps), then the sides. If everything is solid it is genuinely
-        // enclosed and staying dark is correct.
-        {
-            static const v3s16 nudge_dirs[6] = {
-                {0, -1, 0}, {0, 1, 0}, {1, 0, 0}, {-1, 0, 0}, {0, 0, 1}, {0, 0, -1}};
-            v3s16 npos(bp.X * MAP_BLOCKSIZE + x, bp.Y * MAP_BLOCKSIZE + y, bp.Z * MAP_BLOCKSIZE + z);
-            for (const v3s16 &d : nudge_dirs) {
-                MapNode nb = m_session->map().getNode(npos + d);
-                if (nb.getContent() == CONTENT_IGNORE)
-                    continue;
-                if (ndef->get(nb).visuals->solidness != 2) {
-                    l.pos += Vector3(d.X, d.Y, -d.Z) * 0.6f;
-                    break;
-                }
+        // Emissive geometry is excluded by the lamp shadow caster mask.
+        // The old 0.6-node escape offset therefore detached the light from
+        // its visible source for no benefit. Torches use the upper part of
+        // their oriented selection box. A lantern uses its body box, keeping
+        // the source inside its glass rather than at the node's origin/chain.
+        l.node_pos = l.pos;
+        auto torch = f.groups.find("torch");
+        if (f.drawtype == NDT_TORCHLIKE ||
+                (torch != f.groups.end() && torch->second > 0)) {
+            std::vector<aabb3f> boxes;
+            n.getSelectionBoxes(ndef, &boxes);
+            if (!boxes.empty()) {
+                aabb3f box = boxes[0];
+                for (size_t i = 1; i < boxes.size(); ++i)
+                    box.addInternalBox(boxes[i]);
+                v3f tip = box.getCenter() / BS;
+                tip.Y = (box.MaxEdge.Y - 0.12f * box.getExtent().Y) / BS;
+                l.pos += Vector3(tip.X, tip.Y, -tip.Z);
+            }
+        } else if (itemgroup_get(f.groups, "lantern") > 0) {
+            std::vector<aabb3f> boxes;
+            n.getSelectionBoxes(ndef, &boxes);
+            if (!boxes.empty()) {
+                auto volume = [](const aabb3f &b) {
+                    v3f e = b.getExtent();
+                    return e.X * e.Y * e.Z;
+                };
+                const auto body = std::max_element(boxes.begin(), boxes.end(),
+                        [&](const aabb3f &a, const aabb3f &b) { return volume(a) < volume(b); });
+                v3f centre = body->getCenter() / BS;
+                l.pos += Vector3(centre.X, centre.Y, -centre.Z);
             }
         }
         l.level = f.light_source / 14.0f;
@@ -3107,19 +3120,28 @@ Array GoannaClient::entity_list() {
 
 void GoannaClient::update_lights(const Vector3 &around, int max_lights) {
     auto t0 = clock_t_::now();
+    static const bool no_light_shadows = getenv("GOANNA_NO_LIGHT_SHADOWS") != nullptr;
+    const bool shadowed_pool = !no_light_shadows && m_shadow_lamps > 0;
+    // An unshadowed point light passes through walls. Strong normal maps then
+    // turn that leaked diffuse light into bright grooves on the inside face,
+    // even with specular disabled. Share admission and shadows: every active
+    // direct lamp gets a map, including while it fades out. Outside this pool,
+    // the existing propagated node-light fallback supplies distant lighting.
+    if (shadowed_pool)
+        max_lights = std::min(max_lights, m_shadow_lamps);
 
     // A lamp's identity is where it is. Node aligned positions make the
     // rounding exact, so this key is stable for as long as the lamp exists and
     // survives the pool being rebuilt.
     auto key_of = [](const NodeLight *l) {
-        return ((int64_t)llroundf(l->pos.x) * 73856093LL) ^
-                ((int64_t)llroundf(l->pos.y) * 19349663LL) ^
-                ((int64_t)llroundf(l->pos.z) * 83492791LL);
+        return ((int64_t)llroundf(l->node_pos.x) * 73856093LL) ^
+                ((int64_t)llroundf(l->node_pos.y) * 19349663LL) ^
+                ((int64_t)llroundf(l->node_pos.z) * 83492791LL);
     };
     // Steeper than linear so a level-2 firefly bush is a soft glow while a
-    // level-14 torch keeps its old brightness.
+    // level-14 torch gets the full calibrated energy.
     auto range_of = [](float level) { return 3.0f + 11.0f * level; };
-    auto energy_of = [](float level) { return 5.5f * std::pow(level, 1.6f); };
+    auto energy_of = [](float level) { return 4.0f * std::pow(level, 1.6f); };
 
     struct Cand {
         const NodeLight *l;
@@ -3311,41 +3333,6 @@ void GoannaClient::update_lights(const Vector3 &around, int max_lights) {
         }
     }
 
-    // Which of those cast shadows, decided with its own hysteresis.
-    //
-    // Only the nearest few can: an omni shadow is a cube map and costs six
-    // depth passes. Choosing them by rank every frame, with no memory, means
-    // two lamps either side of the boundary swap shadow casting the moment
-    // their order flips, which a step or two does.
-    //
-    // The budget matters more than it looks. A lantern is a solid node, so it
-    // occludes its own light upward: with a shadow map the eave directly above
-    // it is dark, and without one the light passes through the lantern block
-    // and the eave glows. A lamp crossing the budget therefore does not merely
-    // lose a shadow, it starts lighting surfaces it should not reach at all.
-    const size_t SHADOW_COUNT = (size_t)std::max(0, m_shadow_lamps);
-    // GOANNA_SHADOW_KEEP: the rank a shadow caster may fall to before losing
-    // its shadow. Setting it equal to SHADOW_COUNT removes the hysteresis and
-    // restores rank-per-frame behaviour, which is how this was measured.
-    const size_t KEEP_RANK = getenv("GOANNA_SHADOW_KEEP")
-            ? (size_t)atoi(getenv("GOANNA_SHADOW_KEEP")) : SHADOW_COUNT * 7 / 4;
-    std::set<int64_t> next_shadowed;
-    size_t rank = 0;
-    for (size_t i = 0; i < all.size() && next_shadowed.size() < SHADOW_COUNT; ++i) {
-        if (!held.count(all[i].key))
-            continue;
-        if (rank < KEEP_RANK && m_light_shadowed.count(all[i].key))
-            next_shadowed.insert(all[i].key);
-        ++rank;
-    }
-    for (size_t i = 0; i < all.size() && next_shadowed.size() < SHADOW_COUNT; ++i)
-        if (held.count(all[i].key))
-            next_shadowed.insert(all[i].key);
-    m_light_shadowed.swap(next_shadowed);
-
-    // GOANNA_NO_LIGHT_SHADOWS=1 keeps the lights but takes their shadows away,
-    // so "is it the lights" and "is it their shadow maps" stay separable.
-    static const bool no_light_shadows = getenv("GOANNA_NO_LIGHT_SHADOWS") != nullptr;
     // Admission and eviction ramp rather than step. Even a perfectly stable
     // pool has to drop a lamp eventually, and a lamp that vanishes between one
     // frame and the next is visible as a jump in the lighting of everything it
@@ -3422,11 +3409,13 @@ void GoannaClient::update_lights(const Vector3 &around, int max_lights) {
             ol->set_param(Light3D::PARAM_RANGE, want_range);
         if (ol->get_param(Light3D::PARAM_ENERGY) != want_energy)
             ol->set_param(Light3D::PARAM_ENERGY, want_energy);
+        // Keep pools of lamplight distinct. A shallower falloff fills the
+        // dark gaps between sources and flattens the room's lighting.
         if (ol->get_param(Light3D::PARAM_ATTENUATION) != 1.5f)
             ol->set_param(Light3D::PARAM_ATTENUATION, 1.5f);
         if (!ol->is_visible())
             ol->set_visible(true);
-        const bool want_shadow = !no_light_shadows && m_light_shadowed.count(slot.key) != 0;
+        const bool want_shadow = shadowed_pool;
         if (ol->has_shadow() != want_shadow)
             ol->set_shadow(want_shadow);
     }

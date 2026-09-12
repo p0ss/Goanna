@@ -923,9 +923,6 @@ private:
     // Texture ids belonging to nodes drawn as a liquid that are not one. See
     // buildFakeLiquidTextures.
     std::set<u32> m_fake_liquid_tex;
-    // Lights that currently cast shadows, kept between frames so the set does
-    // not churn as their distance order changes. See update_lights.
-    std::set<int64_t> m_light_shadowed;
     bool m_fake_liquid_built = false;
 	// Stable depth wins by default. Transparent ice is still available as a
 	// setting, but whole-mapblock alpha sorting makes freezing water flicker.
@@ -956,7 +953,7 @@ private:
     bool m_always_fly_fast = false;
 
     std::unique_ptr<EntityRenderer> m_entities;
-    struct NodeLight { godot::Vector3 pos; float level; godot::Color color; };
+    struct NodeLight { godot::Vector3 pos, node_pos; float level; godot::Color color; };
     std::map<v3s16, std::vector<NodeLight>> m_block_lights;
     std::vector<godot::OmniLight3D *> m_light_pool;
     // Which light currently owns each pool slot, so a lamp keeps the same
@@ -974,10 +971,9 @@ private:
         float flicker_phase = 0.0f;
     };
     std::vector<LightSlot> m_light_slot;
-    // How many node lights may cast a shadow at once. An omni shadow is a cube
-    // map, so this is the expensive knob, but too low a budget is visible:
-    // a lantern is a solid node and occludes its own upward light, so one that
-    // loses its shadow lights the eave directly above it through itself.
+    // Shared budget for direct node lights and their shadow maps. A low
+    // budget can drop visible room lighting as the camera moves; see the
+    // lantern-room review. Zero explicitly enables unshadowed lamp lighting.
     int m_shadow_lamps = 16;
     bool m_light_flicker = true;
     int m_lights_in_range = 0;

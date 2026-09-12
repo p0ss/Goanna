@@ -77,6 +77,9 @@ Goanna's important visual systems are adjustable while connected:
 - Material settings control normals, roughness, specular, emission, bevels and
   surface detail.
 - Lighting settings control SDFGI, ambient light, lamps, shadows and shafts.
+  With lamp shadows enabled, their budget also limits direct lamp count so
+  excess lamps cannot shine through walls. Distant lighting uses propagated
+  block light. Zero shadow-casting lamps explicitly disables lamp shadows.
 - The Appearance tab has Natural look, Night visibility and Bloom controls.
   Natural look adds depth in high daylight; night, dawn and sunset keep their
   existing grade. Night visibility defaults to 0.5 and adds a faint blue

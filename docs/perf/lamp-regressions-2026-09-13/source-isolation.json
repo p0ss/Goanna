@@ -1,0 +1,189 @@
+[
+  {
+    "path": "/root/Main/@GoannaClient@2/@OmniLight3D@58",
+    "pos": [
+      -72.0,
+      26.0,
+      339.0
+    ],
+    "shadow": false,
+    "roi_mean": 0.0,
+    "id": 0
+  },
+  {
+    "path": "/root/Main/@GoannaClient@2/@OmniLight3D@59",
+    "pos": [
+      -70.0,
+      23.9950008392334,
+      343.0
+    ],
+    "shadow": false,
+    "roi_mean": 0.0,
+    "id": 1
+  },
+  {
+    "path": "/root/Main/@GoannaClient@2/@OmniLight3D@60",
+    "pos": [
+      -83.0,
+      26.0,
+      331.0
+    ],
+    "shadow": true,
+    "roi_mean": 0.0,
+    "id": 2
+  },
+  {
+    "path": "/root/Main/@GoannaClient@2/@OmniLight3D@61",
+    "pos": [
+      -79.0,
+      26.0,
+      344.0
+    ],
+    "shadow": false,
+    "roi_mean": 0.0,
+    "id": 3
+  },
+  {
+    "path": "/root/Main/@GoannaClient@2/@OmniLight3D@67",
+    "pos": [
+      -71.0,
+      33.0,
+      333.0
+    ],
+    "shadow": true,
+    "roi_mean": 0.596078431372549,
+    "id": 4
+  },
+  {
+    "path": "/root/Main/@GoannaClient@2/@OmniLight3D@68",
+    "pos": [
+      -74.0,
+      33.0,
+      333.0
+    ],
+    "shadow": true,
+    "roi_mean": 0.36052287581699344,
+    "id": 5
+  },
+  {
+    "path": "/root/Main/@GoannaClient@2/@OmniLight3D@69",
+    "pos": [
+      -69.0,
+      28.9950008392334,
+      335.0
+    ],
+    "shadow": false,
+    "roi_mean": 0.38300653594771245,
+    "id": 6
+  },
+  {
+    "path": "/root/Main/@GoannaClient@2/@OmniLight3D@70",
+    "pos": [
+      -76.0,
+      28.9950008392334,
+      335.0
+    ],
+    "shadow": true,
+    "roi_mean": 0.07777777777777778,
+    "id": 7
+  },
+  {
+    "path": "/root/Main/@GoannaClient@2/@OmniLight3D@71",
+    "pos": [
+      -71.0,
+      33.0,
+      330.0
+    ],
+    "shadow": true,
+    "roi_mean": 1.7317647058823529,
+    "id": 8
+  },
+  {
+    "path": "/root/Main/@GoannaClient@2/@OmniLight3D@72",
+    "pos": [
+      -74.0,
+      33.0,
+      330.0
+    ],
+    "shadow": true,
+    "roi_mean": 1.109281045751634,
+    "id": 9
+  },
+  {
+    "path": "/root/Main/@GoannaClient@2/@OmniLight3D@73",
+    "pos": [
+      -67.3499984741211,
+      26.25,
+      336.0
+    ],
+    "shadow": false,
+    "roi_mean": 0.05947712418300653,
+    "id": 10
+  },
+  {
+    "path": "/root/Main/@GoannaClient@2/@OmniLight3D@74",
+    "pos": [
+      -69.0,
+      28.9950008392334,
+      328.0
+    ],
+    "shadow": false,
+    "roi_mean": 21.377254901960786,
+    "id": 11
+  },
+  {
+    "path": "/root/Main/@GoannaClient@2/@OmniLight3D@75",
+    "pos": [
+      -77.6500015258789,
+      26.25,
+      336.0
+    ],
+    "shadow": true,
+    "roi_mean": 0.0,
+    "id": 12
+  },
+  {
+    "path": "/root/Main/@GoannaClient@2/@OmniLight3D@76",
+    "pos": [
+      -76.0,
+      28.9950008392334,
+      328.0
+    ],
+    "shadow": true,
+    "roi_mean": 2.168061002178649,
+    "id": 13
+  },
+  {
+    "path": "/root/Main/@GoannaClient@2/@OmniLight3D@77",
+    "pos": [
+      -67.3499984741211,
+      26.25,
+      327.0
+    ],
+    "shadow": false,
+    "roi_mean": 13.606492374727669,
+    "id": 14
+  },
+  {
+    "path": "/root/Main/@GoannaClient@2/@OmniLight3D@78",
+    "pos": [
+      -77.6500015258789,
+      26.25,
+      327.0
+    ],
+    "shadow": true,
+    "roi_mean": 0.0,
+    "id": 15
+  },
+  {
+    "path": "/root/Main/@GoannaClient@2/@OmniLight3D@125",
+    "pos": [
+      -83.0,
+      26.0,
+      337.0
+    ],
+    "shadow": false,
+    "roi_mean": 0.0,
+    "id": 16
+  }
+]

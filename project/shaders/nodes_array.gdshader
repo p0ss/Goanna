@@ -129,11 +129,12 @@ void fragment() {
 	float porosity = 0.35;
 	if (has_spec) {
 		vec4 sp = textureGrad(spec_array, vec3(tile_uv, float(layer)), uv_dx, uv_dy);
-		// LabPBR: R is perceptual smoothness, roughness = (1 - smoothness)^2
+		// Godot expects perceptual roughness; its BRDF squares this itself.
+		// LabPBR R is perceptual smoothness, so invert without squaring here.
 		float sm = sp.r;
 		// Toward 1.0, the unlit-looking fully rough default, so 0 gives back
 		// exactly what a node with no companion gets.
-		ROUGHNESS = mix(1.0, clamp((1.0 - sm) * (1.0 - sm), 0.04, 1.0), roughness_strength);
+		ROUGHNESS = mix(1.0, clamp(1.0 - sm, 0.04, 1.0), roughness_strength);
 		// G below 229/255 is dielectric F0, at or above it is a metal index
 		METALLIC = sp.g >= 0.898 ? 1.0 : 0.0;
 		// Godot's SPECULAR is not F0: it defines F0 = 0.08 * SPECULAR, so the
