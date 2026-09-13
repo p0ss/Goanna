@@ -110,6 +110,16 @@ checked with:
 godot --headless --path project --script res://tests/terrain_catalogue.gd
 ```
 
+Point it at a downloaded world as well to check the published archive
+unpacks to the tile window its catalogue entry claims, which is the step
+between a verified download and a world that loads:
+
+```sh
+GOANNA_TEST_TERRAIN_ARCHIVE=/path/to/tdl-default-1m-v4.zip \
+GOANNA_TEST_TERRAIN_ID=tdl-default-1m-v4 \
+godot --headless --path project --script res://tests/terrain_catalogue.gd
+```
+
 Use `git diff --check` and the style checker before submitting. Visual
 fixtures and deterministic capture conventions are described in
 [validation.md](validation.md), [building.md](building.md) and

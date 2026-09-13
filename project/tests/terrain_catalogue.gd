@@ -54,5 +54,37 @@ func _init() -> void:
 	if load("res://menu.gd") == null:
 		_fail("menu.gd did not load")
 		return
+	# Optional: point GOANNA_TEST_TERRAIN_ARCHIVE at a downloaded world to check
+	# the archive itself unpacks to the tile window its catalogue entry claims.
+	# Off by default, because it needs a file this repository does not carry.
+	var archive := OS.get_environment("GOANNA_TEST_TERRAIN_ARCHIVE")
+	if archive != "":
+		var wanted := OS.get_environment("GOANNA_TEST_TERRAIN_ID")
+		var entry := LocalServer.terrain_world(wanted)
+		if entry.is_empty():
+			_fail("GOANNA_TEST_TERRAIN_ID %s is not in the catalogue" % [wanted])
+			return
+		var zip := ZIPReader.new()
+		if zip.open(archive) != OK:
+			_fail("could not open %s" % [archive])
+			return
+		var staging := ProjectSettings.globalize_path(
+				"user://terrain-archive-test-%d" % OS.get_process_id())
+		for name in zip.get_files():
+			if name.ends_with("/"):
+				continue
+			var target := staging.path_join(name)
+			DirAccess.make_dir_recursive_absolute(target.get_base_dir())
+			var out := FileAccess.open(target, FileAccess.WRITE)
+			if out == null:
+				_fail("could not write %s" % [target])
+				return
+			out.store_buffer(zip.read_file(name))
+			out = null
+		zip.close()
+		if not LocalServer.terrain_dir_valid(staging, entry):
+			_fail("%s did not unpack to the tile window the catalogue claims" % [wanted])
+			return
+		print("terrain archive: %s unpacked and matches its catalogue entry" % [wanted])
 	print("terrain catalogue: PASS, %d worlds, default %s" % [worlds.size(), default_id])
 	quit()
