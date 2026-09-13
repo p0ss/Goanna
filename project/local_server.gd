@@ -274,16 +274,27 @@ static func data_dir_or_empty() -> String:
 	return env["data_dir"] if not env.is_empty() else ""
 
 static func bundled_pbr_texture_path(game: String) -> String:
-	if not PBR_GAME_DIRS.has(game):
-		return ""
+	# An installed profile decides on its own, without consulting
+	# PBR_GAME_DIRS. That map names only the packs carried in this
+	# repository, and a game can have bundles without being in it: art whose
+	# licence is clear for part of a game is still worth shipping for that
+	# part, and a node with no companion map simply keeps the server's own
+	# texture. Partial coverage is an answer, not a failure.
 	var installed := AssetStore.profile_texture_path(game)
 	if installed != "":
 		return installed
+	if not PBR_GAME_DIRS.has(game):
+		return ""
 	# Transitional development fallback. Release archives no longer contain
 	# pbr_packs; installed versioned bundles are the production path.
 	var legacy := ProjectSettings.globalize_path("res://../pbr_packs").path_join(
 		str(PBR_GAME_DIRS[game])).path_join("textures")
 	return legacy if DirAccess.dir_exists_absolute(legacy) else ""
+
+# Whether this game has any PBR art at all, from either source. Used to decide
+# if the material worldmod is worth loading.
+static func pbr_art_available(game: String) -> bool:
+	return bundled_pbr_texture_path(game) != ""
 
 # A Terrain Diffusion world carries its own generated tile cache. The default
 # bake is downloaded once into a shared content cache, then copied into each
@@ -426,7 +437,7 @@ func _write_world_options(world: String, options: Dictionary) -> String:
 	for mod in mods:
 		values["load_mod_" + str(mod)] = "true"
 	values["load_mod_goanna_pbr"] = "true" if bool(options.get("pbr_materials", true)) \
-		and PBR_GAME_DIRS.has(str(options.get("gameid", ""))) else "false"
+		and pbr_art_available(str(options.get("gameid", ""))) else "false"
 	var kept: PackedStringArray = []
 	if FileAccess.file_exists(path):
 		for line in FileAccess.get_file_as_string(path).split("\n"):
@@ -495,8 +506,6 @@ func _install_server_mod(world: String) -> String:
 	return ""
 
 func _install_pbr_mod(world: String, game: String) -> String:
-	if not PBR_GAME_DIRS.has(game):
-		return ""
 	var installed := AssetStore.profile_texture_path(game)
 	if installed != "":
 		var installed_dst := world.path_join("worldmods").path_join("goanna_pbr")
@@ -508,6 +517,8 @@ func _install_pbr_mod(world: String, game: String) -> String:
 			return "Could not install the PBR material worldmod for %s." % game
 		init.store_string("-- Versioned Goanna material assets; textures only.\n")
 		conf.store_string("name = goanna_pbr\ntitle = Goanna PBR materials\n")
+		return ""
+	if not PBR_GAME_DIRS.has(game):
 		return ""
 	var pack_dir := str(PBR_GAME_DIRS[game])
 	var src := ProjectSettings.globalize_path("res://../pbr_packs").path_join(pack_dir)
@@ -695,7 +706,7 @@ func start_config(options: Dictionary) -> String:
 	var server_mod_error := _install_server_mod(world_path)
 	if server_mod_error != "":
 		return server_mod_error
-	if pbr_materials and PBR_GAME_DIRS.has(gameid):
+	if pbr_materials and pbr_art_available(gameid):
 		var pbr_error := _install_pbr_mod(world_path, gameid)
 		if pbr_error != "":
 			return pbr_error

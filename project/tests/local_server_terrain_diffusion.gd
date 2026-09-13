@@ -6,6 +6,7 @@
 extends SceneTree
 
 const LocalServer := preload("res://local_server.gd")
+const AssetStore := preload("res://asset_store.gd")
 var failures := 0
 
 
@@ -94,7 +95,37 @@ func _initialize() -> void:
 	_assert(world_settings.contains("enable_damage = false"), "damage setting was not persisted")
 	_assert(world_settings.contains("load_mod_test_mod = true"), "enabled mod was not persisted")
 	_assert(world_settings.contains("load_mod_goanna_pbr = false"),
-		"unsupported games did not disable the bundled PBR mod")
+		"a game with no PBR art of any kind did not disable the material mod")
+
+	# A game with no bundled pack, but with an installed asset profile, must
+	# still get its materials. Asuna is the case: only part of its art has a
+	# licence clear enough to redistribute, so only part of it is baked, and a
+	# partial profile has to reach the world rather than being refused for not
+	# being one of the packs this repository carries.
+	var partial_game := "asuna"
+	_assert(not LocalServer.PBR_GAME_DIRS.has(partial_game),
+		"this check needs a game that has no bundled pack")
+	_assert(not LocalServer.pbr_art_available(partial_game),
+		"a game with neither a pack nor a profile should report no art")
+	# Point the asset store at this run's temp directory first. Without it the
+	# check writes a profile into the real one, and a bogus profile there
+	# makes an actual install believe the game has materials it does not.
+	OS.set_environment("GOANNA_ASSET_ROOT", base.path_join("asset-store"))
+	var profile := AssetStore.root().path_join("profiles").path_join(
+			partial_game).path_join("textures")
+	DirAccess.make_dir_recursive_absolute(profile)
+	var one := FileAccess.open(profile.path_join("default_dirt_n.png"), FileAccess.WRITE)
+	one.store_8(0)
+	one = null
+	_assert(LocalServer.pbr_art_available(partial_game),
+		"an installed profile was ignored because the game has no bundled pack")
+	var partial_world := base.path_join("worlds").path_join("partial_test")
+	DirAccess.make_dir_recursive_absolute(partial_world)
+	_assert(server._install_pbr_mod(partial_world, partial_game) == "",
+		"a partial profile could not be deployed")
+	_assert(FileAccess.file_exists(partial_world.path_join(
+			"worldmods/goanna_pbr/textures/default_dirt_n.png")),
+		"the partial profile's one texture did not reach the world")
 	_assert(LocalServer.world_options(base, "default_test").get("terrain_diffusion", false),
 		"structured world reader lost the terrain generator")
 	_assert(LocalServer.delete_world_recoverably(base, "default_test") == "",
