@@ -33,18 +33,30 @@ python3 tools/pbr_bundle.py build \
   --tranche terrain --game minetest --game minetest_game \
   --source-package Luanti/minetest_game --source-release 38214 \
   --source-sha256 5b364f... --pipeline-version 1 \
-  --output dist/assets/org.goanna.minetest-game.terrain-1.0.0.zip \
-  --catalogue dist/assets/catalogue.json
+  --output dist/assets/org.goanna.minetest-game.terrain-1.0.0.zip
 python3 tools/pbr_bundle.py verify dist/assets/org.goanna.minetest-game.terrain-1.0.0.zip
 python3 tools/pbr_bundle.py install \
   dist/assets/org.goanna.minetest-game.terrain-1.0.0.zip \
   --root "$XDG_DATA_HOME/Goanna/content/goanna-assets"
 ```
 
-Packagers publish `asset_bundles/catalogue.json` beside its named archives and
-set the public catalogue URL in their distribution/update channel. A local or
-CI install can use `tools/pbr_bundle.py`; downloaded archives use the same
-checks in `project/asset_store.gd`.
+`asset_bundles/catalogue.json` is the one catalogue. It is tracked, and it is
+the file clients read, so it is written by pointing it at wherever the
+archives are published rather than by hand:
+
+```sh
+python3 tools/pbr_bundle.py catalogue dist/assets/*.zip \
+  --output asset_bundles/catalogue.json \
+  --base-url https://github.com/p0ss/Goanna/releases/download/assets-2026.09.1
+```
+
+That rereads each archive and re-derives its hash, size and `provides` list,
+and it leaves rows alone for bundles it was not given, so an epoch that
+changes two bundles re-points two rows and every other bundle keeps pointing
+at the release it was published in. An unchanged bundle is never re-uploaded.
+
+A local or CI install can use `tools/pbr_bundle.py`; downloaded archives use
+the same checks in `project/asset_store.gd`.
 
 The player archive embeds a stable core bundle under `assets/`. Goanna installs
 it before resolving the first connection's material profile. When automatic
@@ -63,9 +75,35 @@ popular.
 
 GitHub distribution groups changed individual bundles into a periodic draft
 release rather than making one release per mod. Run
-`tools/publish-assets.sh OWNER/goanna-assets assets-YYYY.MM.N`; inspect the
-draft and publish it as immutable. The public catalogue URL is the release
-asset URL ending in `/catalogue.json`, supplied to packaged clients as
-`catalogue_url` in `project/bootstrap_assets.json` (the
-`GOANNA_ASSET_CATALOGUE_URL` environment variable overrides it for testing).
-Relative bundle URLs then resolve beside it.
+`tools/publish-assets.sh p0ss/Goanna assets-YYYY.MM.N`; inspect the draft and
+publish it as immutable.
+
+Assets share the client's repository. Two things keep that from being
+confusing. The release carries archives only, never the catalogue, so there
+is no second copy to diverge from the tracked one. And an epoch is published
+as a pre-release, which GitHub excludes from a repository's latest release,
+so asking for the latest Goanna still returns a client rather than a pile of
+textures. Splitting the assets into their own repository later changes only
+the `--base-url` given to `pbr_bundle.py catalogue` and the URL below.
+
+Clients read the catalogue from the repository at
+
+```
+https://raw.githubusercontent.com/p0ss/Goanna/main/asset_bundles/catalogue.json
+```
+
+supplied to packaged clients as `catalogue_url` in
+`project/bootstrap_assets.json` (the `GOANNA_ASSET_CATALOGUE_URL` environment
+variable overrides it for testing). Bundle URLs in it are absolute, so a
+client that already has the file needs nothing else to find an archive, and a
+new epoch reaches an installed client as soon as that one small file changes
+on the default branch. The archives themselves stay immutable at their tag
+with their hashes, so the moving pointer costs no integrity: `asset_store.gd`
+refuses an archive whose SHA-256 does not match before reading anything out
+of it.
+
+Nothing else checks that the catalogue and a release agree, and the failure
+is silent, so `tools/check-asset-catalogue.py` gates the upload. It fails an
+archive the catalogue does not name, a catalogued URL that points at a
+different tag from the one being published, a catalogued URL left relative,
+and a size or hash that disagrees with the file on disk.

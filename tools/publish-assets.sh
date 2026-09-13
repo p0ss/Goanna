@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # Publish one immutable asset epoch. Individual bundles remain update units;
 # one GitHub release groups the files operationally.
+#
+# The release carries archives only. The catalogue that indexes them is
+# asset_bundles/catalogue.json, served from the repository, so clients see a
+# new epoch by refetching one small tracked file rather than by being rebuilt.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -11,7 +15,8 @@ if [ -z "$REPOSITORY" ] || [ -z "$TAG" ]; then
     exit 2
 fi
 
-test -f asset_bundles/catalogue.json
+CATALOGUE=asset_bundles/catalogue.json
+test -f "$CATALOGUE"
 shopt -s nullglob
 BUNDLES=(dist/assets/*.zip)
 if [ "${#BUNDLES[@]}" -eq 0 ]; then
@@ -22,14 +27,23 @@ for bundle in "${BUNDLES[@]}"; do
     python3 tools/pbr_bundle.py verify "$bundle"
 done
 
+# Nothing else checks that the catalogue and the release agree, and the
+# failure is silent: an archive the catalogue does not name is not a broken
+# download, it is a bundle no client can discover. Point the catalogue at
+# this tag first with `pbr_bundle.py catalogue --base-url`.
+python3 tools/check-asset-catalogue.py --catalogue "$CATALOGUE" \
+    --repository "$REPOSITORY" --tag "$TAG" --archives "${BUNDLES[@]}"
+
 # A new epoch is created once. Re-running before publication may replace the
 # draft files; published immutable releases intentionally reject mutation.
+# --prerelease keeps an epoch out of the repository's "latest release", which
+# is how the client's own releases stay findable in the same repository.
 if ! gh release view "$TAG" --repo "$REPOSITORY" >/dev/null 2>&1; then
-    gh release create "$TAG" --repo "$REPOSITORY" --draft \
+    gh release create "$TAG" --repo "$REPOSITORY" --draft --prerelease \
         --title "Goanna assets ${TAG#assets-}" \
-        --notes "Versioned enhanced-material bundles and catalogue."
+        --notes "Versioned enhanced-material bundles. They are indexed by asset_bundles/catalogue.json in this repository, not by a file on this release."
 fi
-gh release upload "$TAG" --repo "$REPOSITORY" --clobber \
-    asset_bundles/catalogue.json "${BUNDLES[@]}"
+gh release upload "$TAG" --repo "$REPOSITORY" --clobber "${BUNDLES[@]}"
 echo "Draft asset epoch ready: https://github.com/$REPOSITORY/releases/tag/$TAG"
-echo "Publish it after setting catalogue URLs to this tag and re-running the integrity checks."
+echo "It is a pre-release, so it cannot become the repository's latest release."
+echo "Publish the draft, then commit $CATALOGUE so clients can see these bundles."

@@ -1,6 +1,6 @@
 {
   "schema": "org.goanna.asset-bootstrap/v1",
-  "catalogue_url": "",
+  "catalogue_url": "https://raw.githubusercontent.com/p0ss/Goanna/main/asset_bundles/catalogue.json",
   "bundles": [
     {
       "file": "org.goanna.minetest-game.terrain-1.0.0.zip",

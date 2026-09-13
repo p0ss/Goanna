@@ -94,6 +94,14 @@ GOANNA_TEST_ASSET_SHA256=$(python3 -c "import json;print([b for b in \
 godot --headless --path project --script res://tests/asset_store_install.gd
 ```
 
+The catalogue wiring, that `catalogue_url` is absolute and that every bundle
+URL is absolute so nothing has to resolve against the catalogue's own
+location, is checked with:
+
+```sh
+godot --headless --path project --script res://tests/asset_catalogue.gd
+```
+
 Use `git diff --check` and the style checker before submitting. Visual
 fixtures and deterministic capture conventions are described in
 [validation.md](validation.md), [building.md](building.md) and

@@ -93,24 +93,64 @@ def build(args):
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_bytes(archive_data)
-    entry = {
-        "id": args.id, "version": args.version, "games": manifest["games"],
-        "tranche": args.tranche, "url": args.url or output.name,
-        "bytes": len(archive_data), "sha256": digest(archive_data),
-        "provides": stems,
+    # Building does not write the catalogue. Where a bundle is published is
+    # not known until it is published, and letting build guess produced a
+    # relative url that only resolved while the catalogue sat beside the
+    # archives. Run the catalogue command with --base-url instead.
+    print(f"built {output}: {len(stems)} pairs, {len(archive_data)} bytes, "
+          f"sha256 {digest(archive_data)}")
+
+
+def catalogue_entry(path, base_url):
+    """One catalogue row, derived from a built archive rather than restated.
+
+    read_bundle re-checks the manifest and every payload hash, so a row can
+    only describe an archive that is actually intact.
+    """
+    archive = Path(path)
+    blob = archive.read_bytes()
+    manifest, files = read_bundle(archive)
+    url = archive.name
+    if base_url:
+        url = base_url.rstrip("/") + "/" + archive.name
+    return {
+        "id": manifest["id"], "version": manifest["version"],
+        "games": manifest["games"], "tranche": manifest["tranche"],
+        "url": url, "bytes": len(blob), "sha256": digest(blob),
+        "provides": validate_pairs(files),
     }
-    if args.catalogue:
-        catalogue_path = Path(args.catalogue)
-        catalogue = {"schema": CATALOGUE_SCHEMA, "bundles": []}
-        if catalogue_path.exists():
-            catalogue = json.loads(catalogue_path.read_text())
-        catalogue["bundles"] = [row for row in catalogue.get("bundles", [])
-                                if row.get("id") != args.id or row.get("version") != args.version]
-        catalogue["bundles"].append(entry)
-        catalogue["bundles"].sort(key=lambda row: (row["id"], row["version"]))
-        catalogue_path.parent.mkdir(parents=True, exist_ok=True)
-        catalogue_path.write_bytes(canonical_json(catalogue))
-    print(f"built {output}: {len(stems)} pairs, {len(archive_data)} bytes, sha256 {entry['sha256']}")
+
+
+def merge_entry(catalogue, entry):
+    catalogue["bundles"] = [row for row in catalogue.get("bundles", [])
+                            if row.get("id") != entry["id"]
+                            or row.get("version") != entry["version"]]
+    catalogue["bundles"].append(entry)
+    catalogue["bundles"].sort(key=lambda row: (row["id"], row["version"]))
+    return catalogue
+
+
+def catalogue(args):
+    """Point the catalogue at where these archives are published.
+
+    Entries for bundles not named here are left alone, so an epoch that
+    changes two bundles re-points two rows and the rest keep pointing at the
+    release they were published in. That is what makes an unchanged bundle
+    free to leave alone rather than re-uploaded.
+    """
+    path = Path(args.output)
+    data = {"schema": CATALOGUE_SCHEMA, "bundles": []}
+    if path.exists():
+        data = json.loads(path.read_text())
+        if data.get("schema") != CATALOGUE_SCHEMA:
+            raise ValueError("unsupported catalogue schema")
+    for name in args.archives:
+        entry = catalogue_entry(name, args.base_url)
+        merge_entry(data, entry)
+        print(f"catalogued {entry['id']} {entry['version']} -> {entry['url']}")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(canonical_json(data))
+    print(f"wrote {path}: {len(data['bundles'])} bundles")
 
 
 def read_bundle(path):
@@ -227,13 +267,18 @@ def main():
     build_p.add_argument("--source-sha256", required=True)
     build_p.add_argument("--pipeline-version", required=True)
     build_p.add_argument("--output", required=True)
-    build_p.add_argument("--catalogue")
-    build_p.add_argument("--url")
     build_p.set_defaults(func=build)
     verify_p = commands.add_parser("verify")
     verify_p.add_argument("bundle")
     verify_p.add_argument("--sha256")
     verify_p.set_defaults(func=verify)
+    catalogue_p = commands.add_parser("catalogue")
+    catalogue_p.add_argument("archives", nargs="+")
+    catalogue_p.add_argument("--output", required=True)
+    catalogue_p.add_argument("--base-url",
+                             help="published directory the archives sit in; "
+                                  "entries become absolute URLs beneath it")
+    catalogue_p.set_defaults(func=catalogue)
     install_p = commands.add_parser("install")
     install_p.add_argument("bundle")
     install_p.add_argument("--root", required=True)

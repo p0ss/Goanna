@@ -147,7 +147,7 @@
       ],
       "sha256": "654e5f9f30c245d4b8aa183c86f63fec4c381d5bd6da04c53c6c21fb5461d3dd",
       "tranche": "billboard",
-      "url": "org.goanna.kythen.billboard-1.0.0.zip",
+      "url": "https://github.com/p0ss/Goanna/releases/download/assets-2026.09.1/org.goanna.kythen.billboard-1.0.0.zip",
       "version": "1.0.0"
     },
     {
@@ -644,7 +644,7 @@
       ],
       "sha256": "1ff6bc5815f5ed3bedf0471ee5b94e4b5b3ffec86d7ef8ec5a8876486d37ecdf",
       "tranche": "item",
-      "url": "org.goanna.kythen.item-1.0.0.zip",
+      "url": "https://github.com/p0ss/Goanna/releases/download/assets-2026.09.1/org.goanna.kythen.item-1.0.0.zip",
       "version": "1.0.0"
     },
     {
@@ -943,7 +943,7 @@
       ],
       "sha256": "f1c01748192de98821a917385c0a89b0cd5afe1fa8d318195c7c57bb64a08f10",
       "tranche": "terrain",
-      "url": "org.goanna.kythen.terrain-1.0.0.zip",
+      "url": "https://github.com/p0ss/Goanna/releases/download/assets-2026.09.1/org.goanna.kythen.terrain-1.0.0.zip",
       "version": "1.0.0"
     },
     {
@@ -1042,7 +1042,7 @@
       ],
       "sha256": "78e28a22f15488ebd2e56c53b53dd94dfea011acc078c372d523165fc990affd",
       "tranche": "terrain",
-      "url": "org.goanna.minetest-game.terrain-1.0.0.zip",
+      "url": "https://github.com/p0ss/Goanna/releases/download/assets-2026.09.1/org.goanna.minetest-game.terrain-1.0.0.zip",
       "version": "1.0.0"
     }
   ],
