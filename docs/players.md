@@ -31,10 +31,13 @@ remote server without a local Luanti installation.
 ## Starting a game
 
 Start Game lets you select an existing world or create one. New worlds can
-choose the installed game's default generator or Terrain Diffusion. Terrain
-Diffusion's default 1 m world downloads a versioned bake once, verifies it,
-and caches it for later worlds. Generated data belongs to each world and is
-not overwritten when the shared cache changes.
+choose the installed game's default generator or one of several Terrain
+Diffusion worlds. Each is a whole 62 km world at a metre a node; they differ
+in where they are, not in how detailed they are, and the picker shows a map
+and a size for each. The one you choose downloads once, is verified against
+its published hash, and is kept for later worlds; choosing a second world
+does not discard the first. Generated data belongs to each world and is not
+overwritten when the shared cache changes.
 
 Do not select Terrain Diffusion for an existing populated conventional world.
 The launcher rejects that combination because old mapblocks would remain and

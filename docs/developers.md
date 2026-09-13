@@ -102,6 +102,14 @@ location, is checked with:
 godot --headless --path project --script res://tests/asset_catalogue.gd
 ```
 
+The terrain world catalogue that the world picker is built from, including
+that every world has a usable hash, size, tile window and bundled preview, is
+checked with:
+
+```sh
+godot --headless --path project --script res://tests/terrain_catalogue.gd
+```
+
 Use `git diff --check` and the style checker before submitting. Visual
 fixtures and deterministic capture conventions are described in
 [validation.md](validation.md), [building.md](building.md) and

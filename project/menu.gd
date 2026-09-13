@@ -31,6 +31,8 @@ var game_option: OptionButton
 var world_option: OptionButton
 var world_edit: LineEdit
 var generator_option: OptionButton
+var terrain_preview: TextureRect
+var terrain_description: Label
 var creative_check: CheckBox
 var damage_check: CheckBox
 var pbr_option: OptionButton
@@ -50,6 +52,9 @@ var start_button: Button
 var terrain_download_label: Label
 var terrain_http: HTTPRequest
 var _terrain_archive_path := ""
+# Which world the in-flight download is for. The selection can change
+# while it runs, and the hash must be checked against what was asked for.
+var _terrain_downloading := ""
 var _pending_terrain_start := false
 var server  # GoannaLocalServer (local_server.gd)
 var server_deadline := 0.0
@@ -701,12 +706,26 @@ func _show_new_game() -> void:
 	generator_option = OptionButton.new()
 	generator_option.add_item("Game default")
 	generator_option.set_item_metadata(0, "default")
-	generator_option.add_item("Terrain Diffusion, default 1 m world")
-	generator_option.set_item_metadata(1, "terrain_default")
+	# One entry per catalogued world. Each is a whole 62 km world at a metre a
+	# node; they differ in where they are, not in how detailed they are.
+	for world in LocalServer.terrain_worlds():
+		generator_option.add_item("Terrain Diffusion: %s" % str(world.get("label", world.get("id", ""))))
+		generator_option.set_item_metadata(generator_option.item_count - 1,
+				"terrain:" + str(world.get("id", "")))
 	generator_option.add_item("Terrain Diffusion, generate new (setup required)")
-	generator_option.set_item_metadata(2, "terrain_generate")
-	generator_option.set_item_disabled(2, true)
+	generator_option.set_item_metadata(generator_option.item_count - 1, "terrain_generate")
+	generator_option.set_item_disabled(generator_option.item_count - 1, true)
 	grid.add_child(generator_option)
+	terrain_preview = TextureRect.new()
+	terrain_preview.custom_minimum_size = Vector2(288, 288)
+	terrain_preview.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	terrain_preview.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	terrain_preview.visible = false
+	world_page.add_child(terrain_preview)
+	terrain_description = Label.new()
+	terrain_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	terrain_description.visible = false
+	world_page.add_child(terrain_description)
 	terrain_download_label = Label.new()
 	terrain_download_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	terrain_download_label.modulate = Color(1, 1, 1, 0.6)
@@ -874,7 +893,15 @@ func _on_world_selected(index: int) -> void:
 		if str(game_option.get_item_metadata(i)) == gid:
 			game_option.select(i)
 			break
-	generator_option.select(1 if bool(options.get("terrain_diffusion", false)) else 0)
+	var saved_terrain := str(options.get("terrain_world", ""))
+	if saved_terrain == "" and bool(options.get("terrain_diffusion", false)):
+		saved_terrain = LocalServer.default_terrain_id()
+	generator_option.select(0)
+	if saved_terrain != "":
+		for i in range(generator_option.item_count):
+			if str(generator_option.get_item_metadata(i)) == "terrain:" + saved_terrain:
+				generator_option.select(i)
+				break
 	creative_check.button_pressed = bool(options.get("creative", false))
 	damage_check.button_pressed = bool(options.get("damage", true))
 	var scripted_pbr := bool(options.get("pbr_materials", true))
@@ -888,19 +915,39 @@ func _on_world_selected(index: int) -> void:
 		(mod_checks[mod] as CheckBox).button_pressed = selected_mods.has(mod)
 	_refresh_terrain_download_state()
 
+# The catalogue id behind the current selection, or "" when the selection is
+# not one of the downloadable worlds.
+func _selected_terrain_id() -> String:
+	if not is_instance_valid(generator_option) or generator_option.selected < 0:
+		return ""
+	var meta := str(generator_option.get_item_metadata(generator_option.selected))
+	return meta.substr(8) if meta.begins_with("terrain:") else ""
+
 func _refresh_terrain_download_state() -> void:
 	if not is_instance_valid(terrain_download_label) or not is_instance_valid(generator_option):
 		return
-	var wants_default := str(generator_option.get_item_metadata(generator_option.selected)) == "terrain_default"
-	terrain_download_label.visible = wants_default and not generator_option.disabled
-	if not wants_default:
+	var id := _selected_terrain_id()
+	var world := LocalServer.terrain_world(id) if id != "" else {}
+	var shown := not world.is_empty() and not generator_option.disabled
+	terrain_download_label.visible = shown
+	if is_instance_valid(terrain_preview):
+		terrain_preview.visible = shown
+	if is_instance_valid(terrain_description):
+		terrain_description.visible = shown
+	if not shown:
 		return
-	if LocalServer.default_terrain_cached():
-		terrain_download_label.text = "Default terrain is downloaded and ready."
+	if is_instance_valid(terrain_description):
+		terrain_description.text = str(world.get("description", ""))
+	if is_instance_valid(terrain_preview):
+		var art := str(world.get("preview", ""))
+		terrain_preview.texture = load(art) if art != "" and ResourceLoader.exists(art) else null
+	if LocalServer.terrain_cached(id):
+		terrain_download_label.text = "%s is downloaded and ready." % str(world.get("label", id))
 		if is_instance_valid(start_button):
 			start_button.text = "Start"
 	else:
-		terrain_download_label.text = "One-time download required: %.1f MB. It will be reused by future worlds." % (LocalServer.DEFAULT_TERRAIN_DOWNLOAD_BYTES / 1000000.0)
+		terrain_download_label.text = "One-time download: %.1f MB. It is kept for later worlds." % (
+				int(world.get("bytes", 0)) / 1000000.0)
 		if is_instance_valid(start_button):
 			start_button.text = "Download & Start"
 
@@ -909,13 +956,20 @@ func _start_terrain_download() -> void:
 		return
 	var downloads := ProjectSettings.globalize_path("user://content/downloads")
 	DirAccess.make_dir_recursive_absolute(downloads)
-	_terrain_archive_path = downloads.path_join(LocalServer.DEFAULT_TERRAIN_ID + ".zip.part")
+	var id := _selected_terrain_id()
+	var world := LocalServer.terrain_world(id)
+	if world.is_empty():
+		_pending_terrain_start = false
+		_fail("No terrain world is selected.")
+		return
+	_terrain_downloading = id
+	_terrain_archive_path = downloads.path_join(id + ".zip.part")
 	DirAccess.remove_absolute(_terrain_archive_path)
 	terrain_http = HTTPRequest.new()
 	terrain_http.download_file = _terrain_archive_path
 	add_child(terrain_http)
 	terrain_http.request_completed.connect(_on_terrain_download_completed)
-	var err := terrain_http.request(LocalServer.DEFAULT_TERRAIN_URL)
+	var err := terrain_http.request(str(world.get("url", "")))
 	if err != OK:
 		terrain_http.queue_free()
 		terrain_http = null
@@ -939,14 +993,15 @@ func _on_terrain_download_completed(result: int, code: int,
 		start_button.disabled = false
 		_fail("Terrain download failed (HTTP %d). Check your connection and try again." % code)
 		return
+	var world := LocalServer.terrain_world(_terrain_downloading)
 	var actual_hash := FileAccess.get_sha256(_terrain_archive_path)
-	if actual_hash.to_lower() != LocalServer.DEFAULT_TERRAIN_SHA256:
+	if actual_hash.to_lower() != str(world.get("sha256", "")):
 		DirAccess.remove_absolute(_terrain_archive_path)
 		_pending_terrain_start = false
 		start_button.disabled = false
 		_fail("Terrain download failed its integrity check and was discarded.")
 		return
-	var install_error := _extract_default_terrain(_terrain_archive_path)
+	var install_error := _extract_terrain_world(_terrain_archive_path, _terrain_downloading)
 	DirAccess.remove_absolute(_terrain_archive_path)
 	if install_error != "":
 		_pending_terrain_start = false
@@ -954,19 +1009,19 @@ func _on_terrain_download_completed(result: int, code: int,
 		_fail(install_error)
 		return
 	_refresh_terrain_download_state()
-	status_label.text = "Terrain Diffusion default world downloaded."
+	status_label.text = "%s downloaded." % str(world.get("label", _terrain_downloading))
 	start_button.disabled = false
 	if _pending_terrain_start:
 		_pending_terrain_start = false
 		call_deferred("_on_start_local")
 
-func _extract_default_terrain(archive_path: String) -> String:
+func _extract_terrain_world(archive_path: String, id: String) -> String:
 	var zip := ZIPReader.new()
 	if zip.open(archive_path) != OK:
 		return "The downloaded terrain archive could not be opened."
 	var parent := ProjectSettings.globalize_path("user://content")
 	DirAccess.make_dir_recursive_absolute(parent)
-	var staging := parent.path_join(".%s-install-%d" % [LocalServer.DEFAULT_TERRAIN_ID, OS.get_process_id()])
+	var staging := parent.path_join(".%s-install-%d" % [id, OS.get_process_id()])
 	DirAccess.make_dir_recursive_absolute(staging)
 	for entry in zip.get_files():
 		var clean := entry.replace("\\", "/").simplify_path()
@@ -984,9 +1039,9 @@ func _extract_default_terrain(archive_path: String) -> String:
 			return "Could not write the downloaded terrain cache."
 		output.store_buffer(zip.read_file(entry))
 	zip.close()
-	if not LocalServer.default_terrain_dir_valid(staging):
+	if not LocalServer.terrain_dir_valid(staging, LocalServer.terrain_world(id)):
 		return "The downloaded terrain archive is incomplete."
-	var destination := LocalServer.default_terrain_cache_dir()
+	var destination := LocalServer.terrain_cache_dir(id)
 	if DirAccess.dir_exists_absolute(destination):
 		var old := destination + ".invalid-%d" % int(Time.get_unix_time_from_system())
 		if DirAccess.rename_absolute(destination, old) != OK:
@@ -1016,7 +1071,8 @@ func _confirm_delete_world() -> void:
 func _on_start_local() -> void:
 	var game := str(game_option.get_item_metadata(game_option.selected))
 	var generator := str(generator_option.get_item_metadata(generator_option.selected))
-	var terrain_diffusion := generator.begins_with("terrain_")
+	var terrain_world_id := generator.substr(8) if generator.begins_with("terrain:") else ""
+	var terrain_diffusion := terrain_world_id != ""
 	var existing: Dictionary = world_option.get_item_metadata(world_option.selected)
 	var world := str(existing.get("name", "")) if not existing.is_empty() else world_edit.text.strip_edges()
 	# A world belongs to the game that made it. Loading it under another
@@ -1038,7 +1094,7 @@ func _on_start_local() -> void:
 		if not ptext.is_valid_int() or int(ptext) < 1 or int(ptext) > 65535:
 			_fail("Hosting port must be between 1 and 65535.")
 			return
-	if existing.is_empty() and generator == "terrain_default" and not LocalServer.default_terrain_cached():
+	if existing.is_empty() and terrain_world_id != "" and not LocalServer.terrain_cached(terrain_world_id):
 		_pending_terrain_start = true
 		_start_terrain_download()
 		return
@@ -1053,6 +1109,7 @@ func _on_start_local() -> void:
 		cfg.load(CFG_PATH)
 		cfg.set_value("local", "game", game)
 		cfg.set_value("local", "terrain_diffusion", terrain_diffusion)
+		cfg.set_value("local", "terrain_world", terrain_world_id)
 		cfg.set_value("local", "world", world)
 		cfg.set_value("local", "pbr_materials", _local_pbr_enabled())
 		cfg.set_value("local", "graphics", str(_local_pbr_selection().get("id", "bundled")))
@@ -1066,7 +1123,8 @@ func _on_start_local() -> void:
 	server = LocalServer.new()
 	var public_announce := host_check.button_pressed and announce_check.button_pressed
 	var launch := {"gameid": game, "world": world, "player_name": _local_player_name(),
-		"terrain_diffusion": terrain_diffusion, "creative": creative_check.button_pressed,
+		"terrain_diffusion": terrain_diffusion, "terrain_world": terrain_world_id,
+		"creative": creative_check.button_pressed,
 		"damage": damage_check.button_pressed, "pbr_materials": _local_pbr_enabled(),
 		"mods": enabled_mods,
 		"host": host_check.button_pressed, "server_name": server_name_edit.text.strip_edges(),

@@ -1,0 +1,102 @@
+{
+  "schema": "org.goanna.terrain-catalogue/v1",
+  "default": "tdl-default-1m-v4",
+  "worlds": [
+    {
+      "id": "tdl-default-1m-v4",
+      "label": "Broken Coast",
+      "description": "The world Goanna has always shipped, trimmed to the part you can reach. A cold bay under a snowy range, with forest along the water.",
+      "url": "https://github.com/p0ss/terrain-diffusion-luanti/releases/download/worlds-2026.09.1/tdl-default-1m-v4.zip",
+      "sha256": "f02bdf794819c8c05b3eea3a9b1e0538a6a858cdcd3f9d7daf4171f7f22bad4a",
+      "bytes": 9645257,
+      "tile_i0": 79,
+      "tile_j0": 77,
+      "tiles": 5,
+      "spawn_px": [
+        41644,
+        40532
+      ],
+      "preview": "res://terrain_previews/tdl-default-1m-v4.png"
+    },
+    {
+      "id": "tdl-bay-1m-v1",
+      "label": "Broken Bay",
+      "description": "Sea on one side, a snow range on the other, with a dry strip and forest between them. The most varied of the set.",
+      "url": "https://github.com/p0ss/terrain-diffusion-luanti/releases/download/worlds-2026.09.1/tdl-bay-1m-v1.zip",
+      "sha256": "92808f81499011c1dfc62dab4975764ca93729fcb91198cd12d1753f6fc101c4",
+      "bytes": 8124766,
+      "tile_i0": 37,
+      "tile_j0": 58,
+      "tiles": 5,
+      "spawn_px": [
+        20185,
+        30945
+      ],
+      "preview": "res://terrain_previews/tdl-bay-1m-v1.png"
+    },
+    {
+      "id": "tdl-warmcoast-1m-v1",
+      "label": "Warm Coast",
+      "description": "Low warm headlands, wide bays and scattered islands. No snow anywhere, and the gentlest ground to build on.",
+      "url": "https://github.com/p0ss/terrain-diffusion-luanti/releases/download/worlds-2026.09.1/tdl-warmcoast-1m-v1.zip",
+      "sha256": "09f675e538c0baf12cd3c99a1c5d29bd9fc2686e1536f71891b59a9326be8d83",
+      "bytes": 6347893,
+      "tile_i0": 107,
+      "tile_j0": 107,
+      "tiles": 5,
+      "spawn_px": [
+        55989,
+        55955
+      ],
+      "preview": "res://terrain_previews/tdl-warmcoast-1m-v1.png"
+    },
+    {
+      "id": "tdl-forestbay-1m-v1",
+      "label": "Forest Inlet",
+      "description": "A deep forested inlet with wooded ridges running down to the water.",
+      "url": "https://github.com/p0ss/terrain-diffusion-luanti/releases/download/worlds-2026.09.1/tdl-forestbay-1m-v1.zip",
+      "sha256": "744c3e00c70542d480f191826efc77acb63e19b4a5bf910e97827ca4641a0b2c",
+      "bytes": 7313228,
+      "tile_i0": 37,
+      "tile_j0": 156,
+      "tiles": 5,
+      "spawn_px": [
+        20281,
+        81343
+      ],
+      "preview": "res://terrain_previews/tdl-forestbay-1m-v1.png"
+    },
+    {
+      "id": "tdl-snowisland-1m-v1",
+      "label": "Snow Island",
+      "description": "A single snow-capped island in open sea, ringed by smaller ones.",
+      "url": "https://github.com/p0ss/terrain-diffusion-luanti/releases/download/worlds-2026.09.1/tdl-snowisland-1m-v1.zip",
+      "sha256": "2c8c0b0a1afeb6ee4e8d46b4071d34d6a895bb6631887704806e005ccab781cc",
+      "bytes": 6630155,
+      "tile_i0": 79,
+      "tile_j0": 163,
+      "tiles": 5,
+      "spawn_px": [
+        41724,
+        84746
+      ],
+      "preview": "res://terrain_previews/tdl-snowisland-1m-v1.png"
+    },
+    {
+      "id": "tdl-alpine-1m-v1",
+      "label": "High Basin",
+      "description": "A dry basin under a 7,500 m wall of ice and rock. Almost no coast, and the highest ground in the set.",
+      "url": "https://github.com/p0ss/terrain-diffusion-luanti/releases/download/worlds-2026.09.1/tdl-alpine-1m-v1.zip",
+      "sha256": "fa74b83ace96de494bde6a7f5ed658def6a68a1911166d1641f2d1220ccc1071",
+      "bytes": 11715462,
+      "tile_i0": 93,
+      "tile_j0": 58,
+      "tiles": 5,
+      "spawn_px": [
+        48896,
+        30976
+      ],
+      "preview": "res://terrain_previews/tdl-alpine-1m-v1.png"
+    }
+  ]
+}

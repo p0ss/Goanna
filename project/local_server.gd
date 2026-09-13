@@ -39,16 +39,40 @@ const PBR_GAME_DIRS := {
 	"minetest_game": "minetest_game",
 	"mineclonia": "mineclonia",
 }
-const DEFAULT_TERRAIN_ID := "tdl-default-1m-v3"
-const DEFAULT_TERRAIN_URL := "https://github.com/p0ss/terrain-diffusion-luanti/releases/download/default-1m-v3/tdl-default-1m-v3.zip"
-const DEFAULT_TERRAIN_SHA256 := "0c9b1bbfef7549dd550251dc0d90480ae6cd4639adcf227f7b62c273be4c84a2"
-const DEFAULT_TERRAIN_DOWNLOAD_BYTES := 86228311
-const DEFAULT_TERRAIN_I0 := 74
-const DEFAULT_TERRAIN_J0 := 74
-const DEFAULT_TERRAIN_TILES := 16
-# The v3 bake records a wooded, gentle origin near several biome
-# transitions. Coordinates are model pixels in (i, j) order.
-const DEFAULT_TERRAIN_SHOWCASE_SPAWN := [41644, 40532]
+# The worlds the player can choose between, and where to fetch each. These
+# used to be one world in seven constants; they are data now because there is
+# more than one. Each entry carries its own tile window and spawn, because a
+# world is only the tiles it actually ships.
+const TERRAIN_CATALOGUE := "res://terrain_worlds.json"
+const TERRAIN_CATALOGUE_SCHEMA := "org.goanna.terrain-catalogue/v1"
+static var _terrain_cache: Dictionary = {}
+
+static func terrain_catalogue() -> Dictionary:
+	if not _terrain_cache.is_empty():
+		return _terrain_cache
+	var parsed = JSON.parse_string(FileAccess.get_file_as_string(TERRAIN_CATALOGUE))
+	if parsed is not Dictionary or str(parsed.get("schema", "")) != TERRAIN_CATALOGUE_SCHEMA:
+		push_warning("Terrain world catalogue is missing or not %s." % TERRAIN_CATALOGUE_SCHEMA)
+		return {}
+	_terrain_cache = parsed
+	return _terrain_cache
+
+# Every world, in catalogue order, for the world-creation list.
+static func terrain_worlds() -> Array:
+	var catalogue := terrain_catalogue()
+	return catalogue.get("worlds", []) if not catalogue.is_empty() else []
+
+static func default_terrain_id() -> String:
+	var catalogue := terrain_catalogue()
+	return str(catalogue.get("default", "")) if not catalogue.is_empty() else ""
+
+# One world by id. Returns {} for an id the catalogue does not list, which is
+# how an old goanna.cfg naming a retired world is handled.
+static func terrain_world(id: String) -> Dictionary:
+	for world in terrain_worlds():
+		if world is Dictionary and str(world.get("id", "")) == id:
+			return world
+	return {}
 
 # Where Luanti keeps games and worlds, and how to invoke its server.
 # Returns {} if no server could be found.
@@ -307,48 +331,66 @@ static func _copy_resource_tree(src: String, dst: String) -> bool:
 	source.list_dir_end()
 	return true
 
-static func default_terrain_cache_dir() -> String:
-	return ProjectSettings.globalize_path("user://content").path_join(DEFAULT_TERRAIN_ID)
+# Each world caches under its own id, so choosing a second one does not
+# discard the first and worlds already created keep the cache they were built
+# from.
+static func terrain_cache_dir(id: String) -> String:
+	return ProjectSettings.globalize_path("user://content").path_join(id)
 
-static func default_terrain_dir_valid(src: String) -> bool:
-	if not FileAccess.file_exists(src.path_join("manifest.json")):
+# Complete means every tile the world's own manifest window names, not a fixed
+# 16x16: a five tile world is whole with twenty five files.
+static func terrain_dir_valid(src: String, world: Dictionary) -> bool:
+	if world.is_empty() or not FileAccess.file_exists(src.path_join("manifest.json")):
 		return false
-	for ti in range(DEFAULT_TERRAIN_I0, DEFAULT_TERRAIN_I0 + DEFAULT_TERRAIN_TILES):
-		for tj in range(DEFAULT_TERRAIN_J0, DEFAULT_TERRAIN_J0 + DEFAULT_TERRAIN_TILES):
+	var i0 := int(world.get("tile_i0", 0))
+	var j0 := int(world.get("tile_j0", 0))
+	var n := int(world.get("tiles", 0))
+	if n <= 0:
+		return false
+	for ti in range(i0, i0 + n):
+		for tj in range(j0, j0 + n):
 			if not FileAccess.file_exists(src.path_join("tiles").path_join(
 					"t_%d_%d.bin" % [ti, tj])):
 				return false
 	return true
 
-static func default_terrain_cached() -> bool:
-	return default_terrain_dir_valid(default_terrain_cache_dir())
+static func terrain_cached(id: String) -> bool:
+	var world := terrain_world(id)
+	return terrain_dir_valid(terrain_cache_dir(id), world)
 
 static func _conf_value(value: Variant) -> String:
 	return str(value).replace("\r", " ").replace("\n", " ").strip_edges()
 
-# Materialise the cached 1 m-per-node template inside a new world.
-func _install_default_terrain(world: String, source := "") -> String:
-	var src: String = source if source != "" else default_terrain_cache_dir()
-	var dst := world.path_join("terrain_diffusion")
+# Materialise one cached 1 m-per-node world inside a new Luanti world.
+func _install_terrain_world(world_dir: String, id: String, source := "") -> String:
+	var world := terrain_world(id)
+	if world.is_empty():
+		return "Unknown terrain world '%s'." % id
+	var src: String = source if source != "" else terrain_cache_dir(id)
+	var dst := world_dir.path_join("terrain_diffusion")
 	DirAccess.make_dir_recursive_absolute(dst.path_join("tiles"))
 	if not _copy_resource_file(src.path_join("manifest.json"), dst.path_join("manifest.json")):
-		return "Download the Terrain Diffusion default world before starting this world."
+		return "Download the %s world before starting this world." % str(world.get("label", id))
 	# Keep the shared release cache immutable; customise only this world's copy.
 	if source == "":
 		var manifest_path := dst.path_join("manifest.json")
 		var manifest_data = JSON.parse_string(FileAccess.get_file_as_string(manifest_path))
 		if manifest_data is Dictionary:
-			manifest_data["spawn_px"] = DEFAULT_TERRAIN_SHOWCASE_SPAWN.duplicate()
+			manifest_data["spawn_px"] = Array(world.get("spawn_px", [])).duplicate()
 			var rewritten := FileAccess.open(manifest_path, FileAccess.WRITE)
 			if rewritten == null:
 				return "Could not write the Terrain Diffusion world manifest."
 			rewritten.store_string(JSON.stringify(manifest_data, "  "))
-	for ti in range(DEFAULT_TERRAIN_I0, DEFAULT_TERRAIN_I0 + DEFAULT_TERRAIN_TILES):
-		for tj in range(DEFAULT_TERRAIN_J0, DEFAULT_TERRAIN_J0 + DEFAULT_TERRAIN_TILES):
+	var i0 := int(world.get("tile_i0", 0))
+	var j0 := int(world.get("tile_j0", 0))
+	var n := int(world.get("tiles", 0))
+	for ti in range(i0, i0 + n):
+		for tj in range(j0, j0 + n):
 			var filename := "t_%d_%d.bin" % [ti, tj]
 			if not _copy_resource_file(src.path_join("tiles").path_join(filename),
 					dst.path_join("tiles").path_join(filename)):
-				return "The cached Terrain Diffusion default world is incomplete (%s is missing)." % filename
+				return "The cached %s world is incomplete (%s is missing)." % [
+						str(world.get("label", id)), filename]
 	return ""
 
 func _initialise_terrain_diffusion_world(world: String, worldname: String,
@@ -478,15 +520,20 @@ func _install_pbr_mod(world: String, game: String) -> String:
 
 
 func start(gameid_: String, worldname: String, player_name: String = "player",
-		terrain_diffusion: bool = false) -> String:
+		terrain_world_id: String = "") -> String:
 	return start_config({"gameid": gameid_, "world": worldname, "player_name": player_name,
-		"terrain_diffusion": terrain_diffusion})
+		"terrain_world": terrain_world_id})
 
 func start_config(options: Dictionary) -> String:
 	gameid = str(options.get("gameid", ""))
 	var worldname := str(options.get("world", ""))
 	var player_name := str(options.get("player_name", "player"))
-	var terrain_diffusion := bool(options.get("terrain_diffusion", false))
+	# Which world, not merely whether. An older goanna.cfg says only true, so
+	# that still means the catalogue's default rather than an error.
+	var terrain_world_id := str(options.get("terrain_world", ""))
+	if terrain_world_id == "" and bool(options.get("terrain_diffusion", false)):
+		terrain_world_id = default_terrain_id()
+	var terrain_diffusion := terrain_world_id != ""
 	var pbr_materials := bool(options.get("pbr_materials", true))
 	var env := detect()
 	if env.is_empty():
@@ -499,9 +546,9 @@ func start_config(options: Dictionary) -> String:
 		if not terrain_diffusion_ready(_data_dir, worldname):
 			if world_has_generated_map(_data_dir, worldname):
 				return "Terrain Diffusion cannot be applied to the populated world '%s': its existing map would remain as a second stacked landscape. Create an empty world with a new name instead." % worldname
-			var default_error := _install_default_terrain(world_path)
-			if default_error != "":
-				return default_error
+			var install_world_error := _install_terrain_world(world_path, terrain_world_id)
+			if install_world_error != "":
+				return install_world_error
 		var initialise_error := _initialise_terrain_diffusion_world(world_path, worldname, gameid)
 		if initialise_error != "":
 			return initialise_error

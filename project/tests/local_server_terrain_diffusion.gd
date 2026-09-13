@@ -41,26 +41,47 @@ func _initialize() -> void:
 		"bundled Minetest Game PBR material was not deployed")
 	var default_world := base.path_join("worlds").path_join("default_test")
 	DirAccess.make_dir_recursive_absolute(default_world)
-	var cached_bake := base.path_join("content").path_join(LocalServer.DEFAULT_TERRAIN_ID)
+	# Build the cache for whichever world the catalogue calls the default, using
+	# that world's own tile window rather than a fixed one.
+	var default_id := LocalServer.default_terrain_id()
+	_assert(default_id != "", "the terrain catalogue names no default world")
+	var default_entry := LocalServer.terrain_world(default_id)
+	_assert(not default_entry.is_empty(), "the catalogue default is not in the catalogue")
+	var cached_bake := base.path_join("content").path_join(default_id)
 	DirAccess.make_dir_recursive_absolute(cached_bake.path_join("tiles"))
 	var cached_manifest := FileAccess.open(cached_bake.path_join("manifest.json"), FileAccess.WRITE)
 	cached_manifest.store_string("{\"format\":4}")
 	cached_manifest = null
-	for ti in range(LocalServer.DEFAULT_TERRAIN_I0,
-			LocalServer.DEFAULT_TERRAIN_I0 + LocalServer.DEFAULT_TERRAIN_TILES):
-		for tj in range(LocalServer.DEFAULT_TERRAIN_J0,
-				LocalServer.DEFAULT_TERRAIN_J0 + LocalServer.DEFAULT_TERRAIN_TILES):
+	var i0 := int(default_entry.get("tile_i0", 0))
+	var j0 := int(default_entry.get("tile_j0", 0))
+	var span := int(default_entry.get("tiles", 0))
+	for ti in range(i0, i0 + span):
+		for tj in range(j0, j0 + span):
 			var tile := FileAccess.open(cached_bake.path_join("tiles/t_%d_%d.bin" % [ti, tj]),
 					FileAccess.WRITE)
 			tile.store_8(0)
 			tile = null
-	_assert(LocalServer.default_terrain_dir_valid(cached_bake), "downloaded bake was not recognised")
-	_assert(server._install_default_terrain(default_world, cached_bake) == "", "default bake deployment failed")
+	_assert(LocalServer.terrain_dir_valid(cached_bake, default_entry),
+		"downloaded bake was not recognised")
+	# A tile the world does not contain must make the cache incomplete, or the
+	# check would pass for any directory with a manifest in it.
+	DirAccess.remove_absolute(cached_bake.path_join("tiles/t_%d_%d.bin" % [i0, j0]))
+	_assert(not LocalServer.terrain_dir_valid(cached_bake, default_entry),
+		"a cache missing a tile was accepted")
+	var restored := FileAccess.open(cached_bake.path_join("tiles/t_%d_%d.bin" % [i0, j0]),
+			FileAccess.WRITE)
+	restored.store_8(0)
+	restored = null
+	_assert(server._install_terrain_world(default_world, default_id, cached_bake) == "",
+		"default bake deployment failed")
+	_assert(server._install_terrain_world(default_world, "no-such-world", cached_bake) != "",
+		"an unknown world id was accepted")
 	_assert(server._initialise_terrain_diffusion_world(default_world, "default_test") == "",
 		"default world metadata initialisation failed")
 	_assert(FileAccess.file_exists(default_world.path_join("terrain_diffusion/manifest.json")),
 		"default manifest was not deployed")
-	_assert(FileAccess.file_exists(default_world.path_join("terrain_diffusion/tiles/t_84_80.bin")),
+	_assert(FileAccess.file_exists(default_world.path_join(
+			"terrain_diffusion/tiles/t_%d_%d.bin" % [i0, j0])),
 		"default tile was not deployed")
 	_assert(FileAccess.get_file_as_string(default_world.path_join("map_meta.txt"))
 		.contains("mg_name = singlenode"), "default world was not set to singlenode")
