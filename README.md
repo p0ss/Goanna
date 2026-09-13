@@ -28,7 +28,8 @@ remaining connected to an ordinary Luanti world.
   occlusion-aware rendering.
 - Optional Terrain Diffusion worlds with a downloadable 1 m-per-node default
   bake.
-- LabPBR material maps and an experimental Iris screen-space shader pipeline.
+- LabPBR material maps, with optional hash-verified material bundles, and
+  an experimental Iris screen-space shader pipeline.
 - Local-game hosting through an ordinary Luanti server on localhost.
 
 ## Try it

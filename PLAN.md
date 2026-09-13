@@ -223,6 +223,43 @@ the fact.
   `goanna_lod_test` case. Not yet observed against a server: the test
   asserts the winding, not the picture.
 
+- A correctly audited community source could not pass the licence gate,
+  2026-09-13. `lessdirt` declares CC BY-SA per file, which is the case
+  `docs/pbr-community-review.md` says needs a per-file mapping, and the
+  mapping already existed: `pbr_texturepack_intake.py` records an exact
+  licence against every selected file. The gate now resolves any package
+  whose summary is not a single accepted licence from those records, and
+  fails it if the mapping is missing, if a file carries no exact licence, or
+  if any recorded licence is outside the accepted set. A rejected
+  package-level licence still fails first, so this is narrower than the check
+  it replaces, not wider.
+
+- Enhanced materials are distributed from this repository, 2026-09-13.
+  `asset_bundles/catalogue.json` is tracked and served raw from the default
+  branch, with absolute URLs into the epoch's release assets, so a shipped
+  client sees new bundles by refetching one small file rather than by being
+  rebuilt. The release carries archives only and is published as a
+  pre-release, so there is no second catalogue to diverge and an asset epoch
+  cannot become the repository's latest release. Building no longer writes a
+  catalogue, since its default wrote a relative URL that only resolved in the
+  arrangement being removed, and `tools/check-asset-catalogue.py` refuses to
+  publish a release the catalogue does not name. That last failure had
+  already happened: the tracked catalogue listed one bundle while four were
+  built. **Not yet observed**: no client has downloaded a bundle from a
+  served catalogue. What is checked is local, that an archive installs under
+  its recorded hash and is refused under the superseded one.
+
+- Published art no longer names the baking machine, 2026-09-13. Every bundle
+  ships an `ATTRIBUTION.md` whose first paragraph gave the absolute path the
+  source game was installed at. `pbr_bake.py` now names the game instead, and
+  all four bundles were rebuilt with byte-identical texture payloads.
+
+- The default-look work is a checkpoint, not an overhaul, 2026-09-13. Two
+  review passes were rejected; `docs/default-look.md` records what landed and
+  what is still open, including that the daylight treatment is too slight to
+  claim and that the shared lamp/shadow budget can drop visible room lighting
+  as the camera moves.
+
 ## Log since v0.4.1-alpha (2026-08-30)
 
 Verified on a local Mineclonia server on Luanti 5.17.0 with Godot 4.5.1 and
