@@ -309,16 +309,21 @@ first place to look.
 | Space | Jump, or ascend while flying |
 | Shift | Sneak, or descend while flying |
 | E | Aux1, which is fast movement if the server grants it |
-| F | Toggle between walking and a free flying camera |
+| F | Toggle the free camera, in your own local game only |
 | Ctrl | Move faster, while flying |
 
 Walking uses Luanti's own `LocalPlayer` and collision code, so speeds,
 gravity, step height and sneak behaviour are the server's, not an
 approximation.
 
-Flying is a debug camera. It is not the game's `fly` privilege, it does not
-ask the server for anything, and it moves the player position the server
-sees, exactly as walking does.
+Flying is a debug camera, and the note above that it moves the player the
+server sees was wrong. `step_player` is the only thing that moves the player,
+and it does not run at all while the camera is flying: the camera leaves the
+body behind and passes through terrain, so it sees what the player could not
+walk to. That is reach no vanilla client has, which is the one thing Goanna
+must not hand a player on someone else's server, so F is accepted only when
+this client started the server itself. It is still not the game's `fly`
+privilege and still asks the server for nothing.
 
 ## Automated runs
 
