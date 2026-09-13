@@ -18,7 +18,7 @@
     "texture_pairs": 85,
     "rejected": ["default_obsidian_glass_detail", "farming_soil_wet_side"],
     "archive": "org.goanna.minetest-game.terrain-1.0.0.zip",
-    "bytes": 5403213,
-    "sha256": "8f8c37faf48340af590773b8f37ba16488bd4bd94a205cb89d47c530dfe8e195"
+    "bytes": 5403176,
+    "sha256": "78e28a22f15488ebd2e56c53b53dd94dfea011acc078c372d523165fc990affd"
   }
 }
