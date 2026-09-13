@@ -34,12 +34,12 @@ Two companion images per texture, eight channels in total.
 
 | Channel | Meaning |
 | --- | --- |
-| R | Perceptual smoothness, so roughness is `(1 - smoothness)` squared |
+| R | Perceptual smoothness, so the GGX roughness is `(1 - smoothness)` squared |
 | G | 0 to 229 linear F0, 230 to 254 a predefined metal, 255 albedo as F0 |
 | B | 0 to 64 porosity, 65 to 255 subsurface scattering |
 | A | Emission, 0 to 254 for none to full, 255 meaning no emission at all |
 
-Two of these are worth calling out because they are easy to get wrong.
+Three of these are worth calling out because they are easy to get wrong.
 
 The green channel of the normal map points **down**, which is usually called
 the DirectX convention, against the Y up that glTF specifies and that most
@@ -55,6 +55,14 @@ surface is either porous or subsurface scattering, never both, and the split
 sits at 64. In the pack we test against, leaves, grass, ice, obsidian and
 diamond are authored as scattering, while dirt, stone, sand and logs sit in
 the porosity range.
+
+The red channel is perceptual and so is Godot's `ROUGHNESS`, which Godot
+squares itself to reach the GGX roughness. The shaders therefore write
+`1 - smoothness` and must not square it first. Squaring it here as well
+takes the exponent to four and reads every surface with a `_s` map as
+polished; Goanna did exactly that until September 2026. The distant
+material averages in `GoannaTexture::layerSpecMeans` are averaged in the
+same space the shaders write, so the two must be changed together.
 
 ## What Goanna decodes today
 
@@ -87,7 +95,7 @@ diverge at the edges in both directions, so neither is a superset.
 
 | LabPBR | glTF 2.0 | Notes |
 | --- | --- | --- |
-| Smoothness, `_s` R | `roughnessFactor` or roughness texture | `roughness = (1 - smoothness)` squared |
+| Smoothness, `_s` R | `roughnessFactor` or roughness texture | The GGX roughness is `(1 - smoothness)` squared. glTF's `roughnessFactor` is perceptual, like Godot's `ROUGHNESS`, so it carries `1 - smoothness` |
 | F0 and metal, `_s` G | `metallicFactor` or metallic texture | glTF has no metal table. Its model matches the LabPBR 255 case, albedo as F0 |
 | Material AO, `_n` B | `occlusionTexture` | Direct equivalent |
 | Normal, `_n` RG | `normalTexture` | **glTF specifies Y up, LabPBR stores Y down.** Whether a flip is needed depends on the mesh's V direction |
