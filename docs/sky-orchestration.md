@@ -132,7 +132,7 @@ so early frames have no clouds.
 
 `src/goanna_horizon.cpp` bakes a cylindrical panorama of every terrain
 column the client knows about: the snapshot (top surface and resolved
-tile colour per block column, from the chains' coarsest level) is
+tile colour per block column, from the finest retained chain data) is
 extracted on the main thread, a worker marches it into albedo and
 distance images, and `main.gd` hands them to the sky shader. The dome
 composites it after the discs (a far mountain hides a rising sun) and
@@ -143,6 +143,13 @@ perspective dissolves toward the same directional air as the haze band.
 Rebaked when the camera moves about a hundred nodes or on a slow clock.
 `GOANNA_HORIZON=0` disables it; `GOANNA_HORIZON_R0` forces the inner
 radius, which is how it is A/B'd against terrain that is actually drawn.
+
+The shoreline correction uses exact boundary records when available and
+the finest summary level otherwise. Liquid keeps its independent surface
+height and material. Using the coarsest cell ceiling inflated low shores
+into 16-node walls. Extraction has a two millisecond slice budget as well
+as its chain-count limit. Horizontal sampling is still one height per
+mapblock column; this is not a volumetric representation of distant land.
 
 By default it fills directions the far field knows about but has not
 built or has holes in, since the chain radius equals the far draw

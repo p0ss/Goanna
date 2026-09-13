@@ -8,15 +8,16 @@ a cylinder of full-detail blocks beneath the camera.
 This is an incremental change to the region renderer. Coverage gaps and
 visible changes between resolutions are not fully solved. The
 [flight report](perf/terrain-surface-2026-09-13/report.md) records the
-current result and its limits.
+earlier ramp-based checkpoint and its limits.
 
 ## Shape and boundaries
 
-Shared corners select a measured column height in a consistent order.
-They do not average the surrounding heights: that prototype rounded
-ridges into a blanket and was rejected. Fine edges interpolate the
-coarser neighbour's anchors. Surface normals follow the resulting planes.
-Cliffs retain vertical edge faces, and ground stays below known water.
+Ground tops remain horizontal. Differences in column height have vertical
+faces, including at resolution boundaries. Both averaging heights and
+connecting measured anchors with ramps changed voxel ridges into a soft
+blanket, so neither is used. Ground stays below known water. The exterior
+surface avoids drawing buried voxel boxes, but it preserves stepped
+silhouettes. Coarse steps and abrupt detail changes still need refinement.
 
 Detailed neighbours contribute immutable occupancy data to boundary
 construction without becoming members of the far mesh. Boundary faces

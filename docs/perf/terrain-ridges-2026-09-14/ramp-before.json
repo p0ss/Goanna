@@ -1,0 +1,22 @@
+{
+  "blocks_meshed": 118,
+  "camera": [
+    643.061096191406,
+    530.882629394531,
+    -31.1182994842529
+  ],
+  "deviations": {
+    "time_of_day_override": [
+      -1.0,
+      0.5
+    ]
+  },
+  "path": "/tmp/goanna-horizon-shore/ramp-before.png",
+  "pitch": -20.0,
+  "size": [
+    1600,
+    900
+  ],
+  "time_of_day": 0.502541661262512,
+  "yaw": 310.49
+}

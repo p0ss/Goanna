@@ -73,6 +73,37 @@ void testSparseCaptureBounds() {
             "sparse capture differs from the complete three-dimensional bounds");
 }
 
+void testHorizonUsesSurfaceHeight() {
+    BlockLodChain shore = fineAirChain();
+    LodLevel &fine = shore.level[0];
+    fillCell(fine.at(0, 0, 0), 100);
+    buildLodMipLevels(shore, 0);
+    expect(lodHorizonTop(shore).height == 1, "shore rose to the 16-node block ceiling");
+    compactLodFineBoundary(shore);
+    expect(lodHorizonTop(shore).height == 1, "compacted shore lost its exact height");
+
+    BlockLodChain sea = airChain();
+    LodLevel::Cell &water = sea.level[2].at(0, 0, 0);
+    water.flags |= LodLevel::kLiquid;
+    water.liquid = 101;
+    water.liquid_top = 1;
+    water.liquid_param2 = 7;
+    buildLodMipLevels(sea, 2);
+    LodTopSample top = lodHorizonTop(sea);
+    expect(top.height == 1 && top.content == 101 && top.param2 == 7,
+            "liquid-only horizon lost its height or material");
+    fillCell(water, 100);
+    buildLodMipLevels(sea, 2);
+    top = lodHorizonTop(sea);
+    expect(top.height == 1 && top.content == 101, "mixed seabed became a horizon wall");
+
+    fillCell(sea.level[2].at(1, 2, 1), 102);
+    buildLodMipLevels(sea, 2);
+    top = lodHorizonTop(sea);
+    expect(top.height == 12 && top.content == 102, "higher known land lost its silhouette");
+    expect(lodHorizonTop(airChain()).height == 0, "known air invented a horizon");
+}
+
 void testProjectedDetailIncludesAltitudeAndResolution() {
     const float radius = 512.0f, focal = 640.0f;
     expect(lodProjectedTier(v3f(0, 40, 0), 0, true, radius, focal) == 0,
@@ -338,43 +369,56 @@ void testGroundSurfaceJoins(bool mixed) {
     };
     const LodRegionMesh fine = mesh_at(v3s16(-2, 0, -1));
     const LodRegionMesh other = mesh_at(v3s16(-1, 0, -1));
-    auto boundary = [](const LodRegionMesh &mesh) {
-        std::map<float, float> heights;
+    auto top_at = [](const LodRegionMesh &mesh, float x, float z) {
         for (const LodSurface &sf : mesh.surfaces)
-            for (size_t i = 0; i < sf.pos.size(); ++i) {
-                const v3f &p = sf.pos[i];
-                if (std::fabs(p.X + 16.0f) > 0.001f || sf.nrm[i].Y < 0.1f)
+            for (size_t i = 0; i + 3 < sf.pos.size(); i += 4) {
+                if (sf.nrm[i].Y < 0.99f)
                     continue;
-                auto previous = heights.find(p.Z);
-                if (previous != heights.end())
-                    expect(std::fabs(previous->second - p.Y) < 0.001f,
-                            "adjacent terrain quads disagree at a shared corner");
-                heights[p.Z] = p.Y;
+                float xmin = sf.pos[i].X, xmax = xmin, zmin = sf.pos[i].Z, zmax = zmin;
+                for (int j = 0; j < 4; ++j) {
+                    expect(std::fabs(sf.pos[i + j].Y - sf.pos[i].Y) < 0.001f,
+                            "terrain top introduced a diagonal ramp");
+                    xmin = std::min(xmin, sf.pos[i + j].X);
+                    xmax = std::max(xmax, sf.pos[i + j].X);
+                    zmin = std::min(zmin, sf.pos[i + j].Z);
+                    zmax = std::max(zmax, sf.pos[i + j].Z);
+                }
+                if (x > xmin && x < xmax && z > zmin && z < zmax)
+                    return sf.pos[i].Y;
             }
-        return heights;
+        expect(false, "terrain top missing beside the region boundary");
+        return 0.0f;
     };
-    const auto a = boundary(fine), b = boundary(other);
-    expect(a.size() == 5 && b.size() == (mixed ? 3 : 5), "surface boundary is incomplete");
-    for (auto [z, y] : a) {
-        auto hi = b.lower_bound(z);
-        expect(hi != b.end(), "surface boundary did not reach the fine edge");
-        float target = hi->second;
-        if (hi->first != z) {
-            expect(hi != b.begin(), "surface boundary starts after the fine edge");
-            auto lo = std::prev(hi);
-            const float t = (z - lo->first) / (hi->first - lo->first);
-            target = lo->second * (1 - t) + hi->second * t;
+    for (float z = 1.0f; z < 16.0f; z += 2.0f) {
+        const float a = top_at(fine, -17.0f, z), b = top_at(other, -15.0f, z);
+        for (float y = std::min(a, b) + 0.25f; y < std::max(a, b); y += 0.5f) {
+            bool closed = false;
+            for (const LodRegionMesh *mesh : {&fine, &other})
+                for (const LodSurface &sf : mesh->surfaces)
+                    for (size_t i = 0; i + 3 < sf.pos.size(); i += 4) {
+                        if (std::fabs(sf.nrm[i].X) < 0.99f || std::fabs(sf.pos[i].X + 16) > 0.001f)
+                            continue;
+                        float ymin = sf.pos[i].Y, ymax = ymin, zmin = sf.pos[i].Z, zmax = zmin;
+                        for (int j = 1; j < 4; ++j) {
+                            ymin = std::min(ymin, sf.pos[i + j].Y);
+                            ymax = std::max(ymax, sf.pos[i + j].Y);
+                            zmin = std::min(zmin, sf.pos[i + j].Z);
+                            zmax = std::max(zmax, sf.pos[i + j].Z);
+                        }
+                        closed |= y >= ymin && y <= ymax && z >= zmin && z <= zmax;
+                    }
+            if (!closed)
+                std::cerr << "seam mixed=" << mixed << " z=" << z << " y=" << y
+                        << " sides=" << a << "," << b << "\n";
+            expect(closed, "vertical height difference has an open region seam");
         }
-        expect(std::fabs(y - target) < 0.001f, "ground has an open seam between regions");
     }
-    // Continuous slopes contain no internal vertical risers. This fixture
-    // has neighbours on every horizontal edge, so no frontier skirt is due.
-    expect(fine.skirts == 0, "continuous hillside still has terrace risers");
-    bool slope_normal = false;
+    expect(fine.skirts > 0, "hillside lost its vertical steps");
     for (const LodSurface &sf : fine.surfaces)
         for (const v3f &normal : sf.nrm)
-            slope_normal |= normal.Y > 0.1f && normal.Y < 0.999f;
-    expect(slope_normal, "sloping ground is still lit as horizontal plates");
+            expect(std::fabs(normal.X) > 0.999f || std::fabs(normal.Y) > 0.999f ||
+                    std::fabs(normal.Z) > 0.999f, "terrain introduced a diagonal ridge normal");
+
 }
 
 void testFarApronReachesDetailedGround() {
@@ -705,6 +749,7 @@ void testTierBoundaryUsesDrawnOccupancy() {
 
 int main() {
     testSparseCaptureBounds();
+    testHorizonUsesSurfaceHeight();
     testProjectedDetailIncludesAltitudeAndResolution();
     testRecursiveVoxelMip();
     testLiquidSurfaceHeightSurvivesMip();

@@ -2018,28 +2018,18 @@ bool GoannaClient::horizonExtractSlice(int budget) {
     const MaterialTable *materials = &m_session->materialTable();
     auto it = m_lod_chains.lower_bound(m_horizon_extract_cursor);
     int visited = 0;
-    while (it != m_lod_chains.end() && visited < budget) {
+    const auto started = clock_t_::now();
+    while (it != m_lod_chains.end() && visited < budget && ms_since(started) < 2.0) {
         ++visited;
         const v3s16 bp = it->first;
         const BlockLodChain *chain = it->second.get();
         ++it;
-        const LodLevel *lv = chain->forCell(MAP_BLOCKSIZE);
-        if (!lv || lv->cells.empty())
+        const LodTopSample top = lodHorizonTop(*chain);
+        if (top.height == 0)
             continue;
-        const LodLevel::Cell &c = lv->cells[0];
-        if (!(c.flags & LodLevel::kFilled))
-            continue;
-        content_t content = c.face[0];
-        uint8_t p2 = c.param2[0];
-        if ((content == CONTENT_AIR || content == CONTENT_IGNORE) &&
-                c.liquid != CONTENT_AIR) {
-            content = c.liquid;
-            p2 = c.liquid_param2;
-        }
-        if (content == CONTENT_AIR || content == CONTENT_IGNORE)
-            continue;
-        const int top_in = (c.top == 0 || c.top >= MAP_BLOCKSIZE) ? MAP_BLOCKSIZE : c.top;
-        const int16_t top_y = (int16_t)(bp.Y * MAP_BLOCKSIZE + top_in - 1);
+        const content_t content = top.content;
+        const uint8_t p2 = top.param2;
+        const int16_t top_y = (int16_t)(bp.Y * MAP_BLOCKSIZE + top.height - 1);
         const uint32_t key = HorizonSnapshot::key(bp.X, bp.Z);
         auto &col = m_horizon_pending.columns[key];
         if (col.top_y != -32768 && col.top_y >= top_y)

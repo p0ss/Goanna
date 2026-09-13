@@ -152,6 +152,15 @@ struct BlockLodChain {
     bool liquidAt(int cell, int x, int y, int z) const;
 };
 
+// Highest visible sample in a block, using its finest retained data. Height
+// is the upper boundary in local nodes, not the coarsest cell's ceiling.
+struct LodTopSample {
+    int height = 0;
+    content_t content = CONTENT_AIR;
+    uint8_t param2 = 0;
+};
+LodTopSample lodHorizonTop(const BlockLodChain &chain);
+
 // Build a three-dimensional voxel mip chain from the nodes. A full block can
 // retain cell 1, so the mesher emits its exact exposed voxel boundary: thin
 // trunks, leaves, cave walls and island undersides all remain on the node

@@ -601,6 +601,9 @@ func start_config(options: Dictionary) -> String:
 		# launched: there is no one to be unfair to, so far rendering is
 		# granted here, over the goanna:v1 channel the server mod installed
 		# below provides. docs/far-rendering.md, "the server decides".
+		# Luanti disables mod channels by default. The grant cannot reach the
+		# client unless the transport carrying it is enabled too.
+		cf.store_string("enable_mod_channels = true\n")
 		cf.store_string("goanna_far_rendering = true\n")
 		# The player's own Far draw distance setting is the grant, floored at
 		# the old conservative bound. It is their machine paying for the

@@ -1,0 +1,38 @@
+{
+  "blocks_meshed": 118,
+  "blocks_received": 916,
+  "camera": [
+    643.061096191406,
+    530.882629394531,
+    -31.1182994842529
+  ],
+  "camera_fov": 110.003227233887,
+  "entities": 1,
+  "fly": true,
+  "item_defs": 7130,
+  "materials": 28,
+  "media_announced": 5678,
+  "media_received": 5678,
+  "message": "TOSERVER_CLIENT_READY sent",
+  "node_defs": 4096,
+  "node_lights": 0,
+  "pitch": -20.0,
+  "player_pos": [
+    643.060974121094,
+    530.881958007812,
+    -31.1180000305176
+  ],
+  "precipitation": 0.0,
+  "proto_ver": 52,
+  "resident_blocks": 909,
+  "ser_ver": 29,
+  "server_position": [
+    643.060974121094,
+    530.881958007812,
+    -31.1180000305176
+  ],
+  "state": "ready",
+  "time_of_day": 0.502541661262512,
+  "time_of_day_override": 0.5,
+  "yaw": 310.49
+}
