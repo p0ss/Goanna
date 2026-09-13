@@ -332,7 +332,8 @@ void BlockStore::evictToCap() {
     }
 }
 
-bool BlockStore::get(v3s16 bp, uint8_t &ser_ver, std::string &payload, uint32_t *stamp) {
+bool BlockStore::get(v3s16 bp, uint8_t &ser_ver, std::string &payload, uint32_t *stamp,
+        size_t max_bytes) {
     std::lock_guard<std::mutex> lk(m_mutex);
     if (m_dir.empty())
         return false;
@@ -340,7 +341,8 @@ bool BlockStore::get(v3s16 bp, uint8_t &ser_ver, std::string &payload, uint32_t 
     if (!r)
         return false;
     const Entry &en = r->index[slotOf(bp)];
-    if (!en.length)
+    if (!en.length || (max_bytes && en.length > max_bytes) || en.offset < kIndexBytes ||
+            (uint64_t)en.offset + en.length > r->file_size)
         return false;
     payload.resize(en.length);
     fseek(r->f, (long)en.offset, SEEK_SET);
@@ -373,6 +375,31 @@ bool BlockStore::regionMask(v3s16 region, std::vector<uint8_t> &bits) {
     for (int i = 0; i < kSlots; ++i)
         if (r->index[i].length)
             bits[i >> 3] |= (uint8_t)(1u << (i & 7));
+    return true;
+}
+
+bool BlockStore::tryRegionMask(v3s16 region, std::vector<uint8_t> &bits) {
+    std::unique_lock<std::mutex> lk(m_mutex, std::try_to_lock);
+    if (!lk.owns_lock()) return false;
+    auto it = m_regions.find(region);
+    bits.clear();
+    if (it == m_regions.end()) return true;
+    if (!it->second.loaded) return false;
+    bits.assign(kSlots / 8, 0);
+    for (int i = 0; i < kSlots; ++i)
+        if (it->second.index[i].length)
+            bits[i >> 3] |= (uint8_t)(1u << (i & 7));
+    return true;
+}
+
+bool BlockStore::tryHas(v3s16 bp, bool &present) {
+    std::unique_lock<std::mutex> lk(m_mutex, std::try_to_lock);
+    if (!lk.owns_lock()) return false;
+    auto it = m_regions.find(regionOf(bp));
+    present = false;
+    if (it == m_regions.end()) return true;
+    if (!it->second.loaded) return false;
+    present = it->second.index[slotOf(bp)].length != 0;
     return true;
 }
 

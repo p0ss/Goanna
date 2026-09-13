@@ -35,6 +35,7 @@
 #include "goanna_light.h"
 #include "goanna_mesher.h" // MapBlockMesh, for the near ready cache
 #include "goanna_lod.h"
+#include "goanna_lod_storage.h"
 #include "goanna_mesh_pool.h"
 #include "goanna_schedule.h"
 #include "irrlichttypes_bloated.h"
@@ -528,6 +529,7 @@ private:
     // within noise on frame time and within five megabytes of video memory.
     // main.gd raises it further on a machine that reports itself capable.
     int m_lod_distance = 20;
+    float m_lod_focal_pixels = 640.0f;
     int m_lod_cell = 4;
     // The smoothed surface reads as melted terrain wherever the far field
     // meets a cliff or a coastline (docs/far-rendering.md, "Terraces or
@@ -617,11 +619,17 @@ private:
     // means erasing the entry and building a new one, never writing through
     // one that is already in the map. See goanna_mesh_pool.h.
     std::map<v3s16, std::shared_ptr<const BlockLodChain>> m_lod_chains;
-    // Chains are built a few per poll inside a time budget, never inside a
-    // region build: a coarse region touches thousands of blocks, and building
-    // their chains in one poll was the frame stall of the first version. A
-    // region builds with the chains that exist and is dirtied again as the
-    // rest arrive, so terrain fills in progressively.
+    LodStorage m_lod_storage;
+    struct LodLoad { uint64_t ticket = 0, revision = 0; };
+    std::map<v3s16, LodLoad> m_lod_loads;
+    std::deque<LodStorage::Result> m_lod_cached_summaries;
+    std::deque<v3s16> m_lod_primed_regions;
+    uint64_t m_lod_load_ticket = 0;
+    void lodStartStorage();
+    void lodCollectChains();
+    // Chain requests are admitted a few per poll. A bounded worker reads
+    // prepared storage or derives a hierarchy from immutable source nodes.
+    // Regions keep their previous coverage until validated results arrive.
     std::deque<v3s16> m_lod_chain_queue;
     std::set<v3s16> m_lod_chain_queued;
     std::map<v3s16, std::set<LodRegionKey>> m_lod_chain_waiters;
@@ -632,7 +640,8 @@ private:
     // once and not again until something arrives for them, or a region that
     // touches one rebuilds every quarter second for nothing.
     std::set<v3s16> m_lod_chain_missing;
-    void lodEnqueueChain(const v3s16 &bp);
+    std::set<LodRegionKey> m_lod_chain_retry_regions;
+    bool lodEnqueueChain(const v3s16 &bp);
     LodTileCache m_lod_tiles;
     // Mesh workers. Far regions are captured on this thread, meshed on those,
     // and published back here. Started with the client and stopped before the
@@ -781,6 +790,7 @@ private:
     // reply was generated; anything less is retried once the delay below has
     // passed, and `asked` is when it last went out.
     struct FarAsk {
+        uint64_t cache_ticket = 0;
         std::chrono::steady_clock::time_point asked;
         bool complete = false;
         // Progress in the most recent answer. A partly generated area can
@@ -847,7 +857,7 @@ private:
     int lodRegionBlocks(int tier) const;
     LodRegionKey lodRegionFor(int tier, const v3s16 &bp) const;
     // All of these are called with the session's mapLock() held.
-    const BlockLodChain *lodChain(v3s16 bp);
+    bool lodRequestChain(v3s16 bp, bool replace_summary = false);
     void lodMarkDirty(const LodRegionKey &key);
     // lodMarkDirty, and record that what is on screen is now wrong rather
     // than merely old. Call this wherever a block leaves a region.
@@ -868,8 +878,8 @@ private:
     // rebuild's answer was thrown away the moment it reached the pool.
     int lodRegionPriority(const LodRegionKey &key, const LodRegion &r) const;
     // Capture what a worker needs to mesh this region, main thread. Uses the
-    // same lookups the synchronous path does, side effects included, so a
-    // chain that is missing is still asked for here.
+    // known chains by spatial rows. Known layout blocks still register a
+    // waiter if their chain has not arrived; unknown space stays unknown.
     void lodCaptureRegion(const LodRegionKey &key, const LodRegionSpec &exact,
             const LodRegionSpec &coarse, LodRegionSnapshot &out);
     // Turn a finished LodRegionMesh into the region's ArrayMesh and put it on
@@ -923,13 +933,14 @@ private:
     // Texture ids belonging to nodes drawn as a liquid that are not one. See
     // buildFakeLiquidTextures.
     std::set<u32> m_fake_liquid_tex;
+    std::set<u32> m_ice_tex;
     bool m_fake_liquid_built = false;
-	// Stable depth wins by default. Transparent ice is still available as a
-	// setting, but whole-mapblock alpha sorting makes freezing water flicker.
-	bool m_solid_ice = true;
+	// A separate background view supplies transmission while ice writes depth.
+	// Solid ice skips that extra view while retaining the frosted material.
+	bool m_solid_ice = false;
     void buildFakeLiquidTextures();
 
-    godot::Ref<godot::Shader> m_sh_water, m_sh_leaves, m_sh_plants, m_sh_glass, m_sh_array,
+    godot::Ref<godot::Shader> m_sh_water, m_sh_leaves, m_sh_plants, m_sh_glass, m_sh_ice, m_sh_array,
             m_sh_array_scissor;
     bool m_shaders_loaded = false;
     // Relief inferred from a texture's own brightness, for every texture a

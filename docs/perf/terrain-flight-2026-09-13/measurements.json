@@ -1,0 +1,156 @@
+{
+  "coastal": {
+    "phases": {
+      "move_early": {
+        "bound": "main-thread",
+        "bound_share": 0.914647201946472,
+        "cpu_ms_median": 0.799999952316284,
+        "distance_m": 4097.57080078125,
+        "fps_mean": 46.5889227601819,
+        "frames": 10275,
+        "gpu_ms_median": 3.04800009727478,
+        "hitches": 1639,
+        "hitches_per_min": 445.893397979201,
+        "low01_ms": 185.434101867676,
+        "low1_ms": 102.231961194207,
+        "max_ms": 240.671005249023,
+        "median_ms": 14.8839998245239,
+        "p999_ms": 150.205993652344,
+        "p99_ms": 82.2919998168945,
+        "seconds": 220.545988,
+        "stability": 6.86858118781768
+      },
+      "steady": {
+        "bound": "main-thread",
+        "bound_share": 0.999566724436742,
+        "cpu_ms_median": 0.690000057220459,
+        "distance_m": 0.0,
+        "fps_mean": 38.2856565491622,
+        "frames": 2308,
+        "gpu_ms_median": 3.11899995803833,
+        "hitches": 767,
+        "hitches_per_min": 763.390777466396,
+        "low01_ms": 135.354000091553,
+        "low1_ms": 82.3872604370117,
+        "max_ms": 184.832000732422,
+        "median_ms": 16.30299949646,
+        "p999_ms": 84.9520034790039,
+        "p99_ms": 73.318000793457,
+        "seconds": 60.283673,
+        "stability": 5.05350321914083
+      }
+    },
+    "max_server_error_m": 12.941370012191324,
+    "counters": {
+      "primitives": {
+        "median": 156072.0,
+        "max": 515448
+      },
+      "vis_primitives": {
+        "median": 154250.0,
+        "max": 513636
+      },
+      "shadow_primitives": {
+        "median": 432.0,
+        "max": 432
+      },
+      "lod_quads": {
+        "median": 262564.5,
+        "max": 315351
+      },
+      "block_meshes": {
+        "median": 0.0,
+        "max": 0
+      },
+      "lod_regions_dirty": {
+        "median": 149.0,
+        "max": 413
+      },
+      "poll_lod_ms": {
+        "median": 15.3223031809008,
+        "max": 35.7284826592031
+      },
+      "render_gpu_ms": {
+        "median": 3.112999916076665,
+        "max": 10.2659997940063
+      }
+    }
+  },
+  "ridge": {
+    "phases": {
+      "move_early": {
+        "bound": "main-thread",
+        "bound_share": 0.936045314109166,
+        "cpu_ms_median": 0.693000018596649,
+        "distance_m": 4012.66674804688,
+        "fps_mean": 43.9910852767913,
+        "frames": 9710,
+        "gpu_ms_median": 2.89800000190735,
+        "hitches": 1835,
+        "hitches_per_min": 498.807259420672,
+        "low01_ms": 252.575559828016,
+        "low1_ms": 121.664567927724,
+        "max_ms": 309.329010009766,
+        "median_ms": 15.7489995956421,
+        "p999_ms": 187.628005981445,
+        "p99_ms": 78.931999206543,
+        "seconds": 220.726539,
+        "stability": 7.72522516042163
+      },
+      "steady": {
+        "bound": "gpu",
+        "bound_share": 0.897527678348456,
+        "cpu_ms_median": 0.48199999332428,
+        "distance_m": 0.0,
+        "fps_mean": 199.389555589013,
+        "frames": 12013,
+        "gpu_ms_median": 2.74399995803833,
+        "hitches": 552,
+        "hitches_per_min": 549.719643811547,
+        "low01_ms": 81.2393347422282,
+        "low1_ms": 65.1143167813619,
+        "max_ms": 192.520004272461,
+        "median_ms": 3.27800011634827,
+        "p999_ms": 68.1119995117188,
+        "p99_ms": 60.3720016479492,
+        "seconds": 60.248893,
+        "stability": 19.8640373612616
+      }
+    },
+    "max_server_error_m": 13.830984747839837,
+    "counters": {
+      "primitives": {
+        "median": 240289.5,
+        "max": 962890
+      },
+      "vis_primitives": {
+        "median": 192854.5,
+        "max": 673615
+      },
+      "shadow_primitives": {
+        "median": 44779.0,
+        "max": 287847
+      },
+      "lod_quads": {
+        "median": 88636.0,
+        "max": 138775
+      },
+      "block_meshes": {
+        "median": 818.0,
+        "max": 1116
+      },
+      "lod_regions_dirty": {
+        "median": 102.5,
+        "max": 296
+      },
+      "poll_lod_ms": {
+        "median": 13.793701593865649,
+        "max": 43.8058978195728
+      },
+      "render_gpu_ms": {
+        "median": 2.94700002670288,
+        "max": 6.88399982452393
+      }
+    }
+  }
+}

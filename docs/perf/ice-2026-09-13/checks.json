@@ -1,0 +1,42 @@
+{
+  "edge_triangles": 66,
+  "gpu": "NVIDIA GeForce RTX 3090",
+  "ice_meshes": 9,
+  "solid": false,
+  "waterline": [
+    {
+      "transmission": true,
+      "underwater": true,
+      "y": 78.8
+    },
+    {
+      "transmission": true,
+      "underwater": true,
+      "y": 79.3
+    },
+    {
+      "transmission": true,
+      "underwater": true,
+      "y": 79.49
+    },
+    {
+      "transmission": true,
+      "underwater": false,
+      "y": 79.51
+    },
+    {
+      "transmission": true,
+      "underwater": false,
+      "y": 79.8
+    },
+    {
+      "transmission": true,
+      "underwater": false,
+      "y": 80.2
+    }
+  ],
+  "away": {
+    "transmission": false,
+    "update_mode": 0
+  }
+}

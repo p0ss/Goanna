@@ -341,6 +341,8 @@ func _ready() -> void:
 	shaft_quad.material_override = shaft_mat
 	shaft_quad.custom_aabb = AABB(Vector3(-5e8, -5e8, -5e8), Vector3(1e9, 1e9, 1e9))
 	shaft_quad.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# Screen effects belong to the final camera, not the ice background view.
+	shaft_quad.layers = 8
 	cam.add_child(shaft_quad)
 	_report_fov()
 	# And again whenever the window changes shape: the horizontal angle grows
@@ -513,6 +515,9 @@ func _ready() -> void:
 	e.fog_aerial_perspective = 0.12
 	env.environment = e
 	add_child(env)
+	var ice_transmission := preload("res://ice_transmission.gd").new()
+	add_child(ice_transmission)
+	ice_transmission.initialise(cam, e, client)
 	_apply_screen_space()
 	# One world-sized fog volume supplies spatial density to the environment's
 	# froxel grid. It adds no scene geometry or per-cloud objects: valleys and

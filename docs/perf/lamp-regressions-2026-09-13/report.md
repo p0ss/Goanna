@@ -1,4 +1,4 @@
-# Lamp regressions — 13 September 2026
+# Lamp regressions, 13 September 2026
 
 These are diagnostic fixes following the rejected visual review, not a completed default-look overhaul.
 

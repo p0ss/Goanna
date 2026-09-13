@@ -1,0 +1,12 @@
+{
+  "false": {
+    "capture_gpu_ms": 0.0,
+    "frame_ms": 5.517,
+    "main_gpu_ms": 5.31300020217896
+  },
+  "true": {
+    "capture_gpu_ms": 2.2260000705719,
+    "frame_ms": 7.816,
+    "main_gpu_ms": 5.44000005722046
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "binary_sha256": "46e06d0838225f6071517b7b4485d4cfef7165b1e551ea81e5dbfc50280d8f15",
+  "server_configuration": "name = terrainreview\ncreative_mode = true\nenable_damage = false\nserver_announce = false\nmax_block_send_distance = 16\nmax_simultaneous_block_sends_per_client = 16\nserver_unload_unused_data_timeout = 60\ngoanna_far_summary_cache_areas = 1024\ngoanna_far_log_stats = true\ngoanna_far_rendering = true\ngoanna_far_rendering_distance = 4096\ngoanna_far_provider_distance = 4096\ngoanna_far_pregenerate = false\ntdl_nodes_per_pixel = 30\ntdl_climate_stretch = 1\ndefault_privs = interact, shout, fly, fast, noclip, teleport, give, settime\nanticheat_flags = digging,interaction,nomovement\ntime_speed = 0\n",
+  "start": {
+    "blocks_meshed": 304,
+    "blocks_received": 26499,
+    "camera": [
+      -4000.0,
+      572.0,
+      -4000.0
+    ],
+    "camera_fov": 110.003227233887,
+    "entities": 3,
+    "fly": true,
+    "item_defs": 5481,
+    "materials": 16,
+    "media_announced": 5902,
+    "media_received": 5902,
+    "message": "TOSERVER_CLIENT_READY sent",
+    "node_defs": 4096,
+    "node_lights": 0,
+    "pitch": -18.0,
+    "player_pos": [
+      0.0,
+      550.0,
+      0.0
+    ],
+    "precipitation": 0.0,
+    "proto_ver": 52,
+    "resident_blocks": 629,
+    "ser_ver": 29,
+    "server_position": [
+      0.0,
+      550.0,
+      0.0
+    ],
+    "state": "ready",
+    "time_of_day": 0.5,
+    "time_of_day_override": 0.5,
+    "yaw": 0.0
+  },
+  "server_probe": {
+    "position": {
+      "x": -4000,
+      "y": 572,
+      "z": 4000
+    },
+    "time_us": 111318597994
+  },
+  "note": "Ultra copied graphics, no GOANNA_PERF, existing frame recorder. Warm client cache; isolated world generates terrain during flight. Server position sampled directly in a disposable world mod."
+}

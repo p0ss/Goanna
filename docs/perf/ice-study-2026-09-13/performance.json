@@ -1,0 +1,14 @@
+{
+  "accepted": {
+    "active": true,
+    "capture_gpu_ms": 3.16400003433228,
+    "frame_ms": 8.725,
+    "main_gpu_ms": 6.25099992752075
+  },
+  "procedural": {
+    "active": true,
+    "capture_gpu_ms": 2.28800010681152,
+    "frame_ms": 8.817,
+    "main_gpu_ms": 6.4210000038147
+  }
+}

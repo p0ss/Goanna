@@ -2,6 +2,7 @@
 // Copyright (C) 2026 the Goanna contributors
 
 #include "goanna_client.h"
+#include <sstream>
 
 #include <godot_cpp/classes/array_mesh.hpp>
 #include <godot_cpp/classes/array_occluder3d.hpp>
@@ -123,6 +124,7 @@ PackedFloat32Array node_tangents(const PackedVector3Array &verts,
 // Light-emitting faces sit outside node lights' shadow caster mask. The sun
 // still sees this layer.
 const uint32_t GLOW_LAYER = 1u << 1;
+const uint32_t ICE_LAYER = 1u << 2;
 
 // Two resolutions can contribute to one regional ArrayMesh. Append matching
 // texture surfaces instead of leaving a cell-1 shell and cell-4 fallback as
@@ -840,7 +842,7 @@ int GoannaClient::prune_blocks(int radius) {
             m_block_tier[bp] = tier;
             m_far_blocks.insert(bp);
             if (m_near_blocks.count(bp))
-                handoff_nodes.insert(bp);
+                m_lod_handoff_near.insert(bp);
         }
         // Bypass the normal 250 ms dirty-region debounce. A region with a
         // ready chain retires its exact mesh inside lodBuildRegion; otherwise
@@ -906,18 +908,11 @@ void GoannaClient::set_auto_bump(float strength) {
             m_session->invalidateBlock(kv.first);
     }
 }
-// Ice and its like are translucent because their texture says so, which puts
-// them in the transparent pass, where Godot sorts whole objects by centre
-// distance. A mapblock sized sheet of ice can therefore sort in front of a
-// waterfall it is behind, and flip as the camera moves. Opaque puts them in
-// the opaque pass, where depth decides per pixel and there is no order to get
-// wrong. It is a trade rather than a fix, so it is a setting: you stop seeing
-// the water under the ice. Rebuilds materials immediately, like auto bump, so
-// it can be judged by dragging the toggle rather than by restarting.
 void GoannaClient::set_shadow_lamps(int n) {
     m_shadow_lamps = std::max(0, std::min(64, n));
 }
 
+// Keep the frosted material in both modes; this only changes transmission.
 void GoannaClient::set_solid_ice(bool on) {
     if (on == m_solid_ice)
         return;
@@ -933,6 +928,7 @@ bool GoannaClient::solid_ice() const { return m_solid_ice; }
 
 GoannaClient::~GoannaClient() {
     // Before the session and the tile cache go.
+    m_lod_storage.stop();
     m_mesh_pool.stop();
     if (m_horizon_thread.joinable())
         m_horizon_thread.join();
@@ -1090,6 +1086,11 @@ Dictionary GoannaClient::material_diagnostics(const String &texture_name) const 
 
 void GoannaClient::connect_to(const String &host, int port, const String &player_name,
         const String &password) {
+    m_lod_storage.stop();
+    m_lod_loads.clear();
+    m_lod_cached_summaries.clear();
+    m_lod_primed_regions.clear();
+    m_mesh_pool.stop();
     // Luanti's base texture pack lives in the luanti/ checkout next to project/.
     String share = ProjectSettings::get_singleton()->globalize_path("res://../luanti");
     GoannaSession::setSharePath(share.utf8().get_data());
@@ -1099,6 +1100,7 @@ void GoannaClient::connect_to(const String &host, int port, const String &player
     // pack reuse shader materials still bound to the first pack's arrays.
     m_materials.clear();
     m_fake_liquid_tex.clear();
+    m_ice_tex.clear();
     m_fake_liquid_built = false;
     m_session = std::make_unique<GoannaSession>();
     // The camera is created before connect_to(), so _report_fov() normally
@@ -1133,6 +1135,7 @@ void GoannaClient::connect_to(const String &host, int port, const String &player
     m_lod_chain_queue.clear();
     m_lod_chain_queued.clear();
     m_lod_chain_waiters.clear();
+    m_lod_chain_retry_regions.clear();
     m_lod_handoff_near.clear();
     m_lod_handoff_far.clear();
     m_lod_handoff_to_near.clear();
@@ -1172,6 +1175,10 @@ void GoannaClient::connect_to(const String &host, int port, const String &player
 }
 
 void GoannaClient::disconnect_from_server() {
+    m_lod_storage.stop();
+    m_lod_loads.clear();
+    m_lod_cached_summaries.clear();
+    m_lod_primed_regions.clear();
     // Jobs hold the session's node definitions, texture source and material
     // table by raw pointer, so no worker may be running when it goes.
     m_mesh_pool.stop();
@@ -2301,7 +2308,8 @@ MaterialKey GoannaClient::keyForIrr(const video::SMaterial &m, u16 layer) {
 //
 // ContentFeatures has both halves of the answer already, so collect the tile
 // textures of every node that draws as a liquid and is not one, and keep them
-// off the water shader.
+// off the water shader. The same scan records ice-group textures, including
+// games whose transparent ice uses a glass drawtype.
 void GoannaClient::buildFakeLiquidTextures() {
     if (m_fake_liquid_built || !m_session)
         return;
@@ -2315,16 +2323,19 @@ void GoannaClient::buildFakeLiquidTextures() {
         const ContentFeatures &f = ndef->get((content_t)c);
         if (f.name.empty() || f.name == "unknown")
             continue;
-        if (f.drawtype != NDT_LIQUID && f.drawtype != NDT_FLOWINGLIQUID)
-            continue;
-        if (f.liquid_type != LIQUID_NONE)
+        const bool fake_liquid = (f.drawtype == NDT_LIQUID || f.drawtype == NDT_FLOWINGLIQUID)
+                && f.liquid_type == LIQUID_NONE;
+        const bool ice = itemgroup_get(f.groups, "ice") > 0;
+        if (!fake_liquid && !ice)
             continue;
         for (const auto &tdef : f.tiledef) {
             if (tdef.name.empty())
                 continue;
             u32 id = m_session->tsrc()->getTextureId(tdef.name);
-            if (id)
+            if (id && fake_liquid)
                 m_fake_liquid_tex.insert(id);
+            if (id && ice)
+                m_ice_tex.insert(id);
         }
     }
     if (getenv("GOANNA_DEBUG_WHITE"))
@@ -2343,6 +2354,7 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
         m_sh_leaves = rl->load("res://shaders/waving_leaves.gdshader");
         m_sh_plants = rl->load("res://shaders/waving_plants.gdshader");
         m_sh_glass = rl->load("res://shaders/glass.gdshader");
+        m_sh_ice = rl->load("res://shaders/ice.gdshader");
         m_sh_array = rl->load("res://shaders/nodes_array.gdshader");
         m_sh_array_scissor = rl->load("res://shaders/nodes_array_scissor.gdshader");
     }
@@ -2510,21 +2522,18 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
     }
 
     // --- shader variants by Luanti material type ---
+    buildFakeLiquidTextures();
     Ref<Shader> sh;
     switch (mtype) {
     case TILE_MATERIAL_LIQUID_TRANSPARENT:
     case TILE_MATERIAL_WAVING_LIQUID_TRANSPARENT:
     case TILE_MATERIAL_WAVING_LIQUID_BASIC:
-        // ice and its like draw as liquids without being one; see
-        // buildFakeLiquidTextures. They are alpha blended solid blocks, which
-        // is what glass.gdshader is for and what its own header has always
-        // said it was for; the drawtype is the only reason they never reached
-        // it. Refraction and a low roughness are most of what separates ice
-        // from a sheet of tinted water. GOANNA_SOLID_ICE wants the plain
-        // opaque material instead, so leave that path alone.
-        buildFakeLiquidTextures();
+        // A solid using the liquid drawtype needs a frozen surface, not
+        // water animation or glass's screen-space refraction.
         if (!m_fake_liquid_tex.count(key.texture_id))
             sh = m_sh_water;
+        else if (m_ice_tex.count(key.texture_id))
+            sh = m_sh_ice;
         else if (!m_solid_ice)
             sh = m_sh_glass;
         break;
@@ -2538,14 +2547,16 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
         // (glass, ice, stained glass). Double-sided alpha-blend tiles are
         // plants, leaves and the like: the glass shader's screen mix and
         // specular make them read white, so they take the standard path.
-        if (key.backface_culling)
+        if (m_ice_tex.count(key.texture_id))
+            sh = m_sh_ice;
+        else if (key.backface_culling)
             sh = m_sh_glass;
         break;
     default:
         break;
     }
     if (getenv("GOANNA_DEBUG_WHITE") && sh.is_valid())
-        UtilityFunctions::print((sh == m_sh_glass ? "GLASS " : sh == m_sh_plants ? "PLANTS " : sh == m_sh_leaves ? "LEAVES " : "WATER "),
+        UtilityFunctions::print((sh == m_sh_ice ? "ICE " : sh == m_sh_glass ? "GLASS " : sh == m_sh_plants ? "PLANTS " : sh == m_sh_leaves ? "LEAVES " : "WATER "),
                 "'", String(m_session->tsrc()->getTextureName(key.texture_id).c_str()), "' mtype=", (int)mtype,
                 " cull=", key.backface_culling, " texvalid=", tex.is_valid());
     if (sh.is_valid() && tex.is_valid() && emissive == 0) {
@@ -2553,6 +2564,8 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
         sm.instantiate();
         sm->set_shader(sh);
         sm->set_shader_parameter("albedo_tex", tex);
+        if (sh == m_sh_ice)
+            sm->set_shader_parameter("solid", m_solid_ice);
         bool waving = (mtype == TILE_MATERIAL_WAVING_LIQUID_TRANSPARENT ||
                 mtype == TILE_MATERIAL_WAVING_LIQUID_BASIC || mtype == TILE_MATERIAL_WAVING_LEAVES ||
                 mtype == TILE_MATERIAL_WAVING_PLANTS);
@@ -2571,7 +2584,7 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
         // mirror. Foliage was left out of this until now, so a pack's maps
         // reached the ground and the walls and stopped at the treeline, and
         // every mat_ slider moved one and not the other.
-        if (sh == m_sh_glass || sh == m_sh_leaves || sh == m_sh_plants) {
+        if (sh == m_sh_glass || sh == m_sh_ice || sh == m_sh_leaves || sh == m_sh_plants) {
             std::string base = m_session->tsrc()->getTextureName(key.texture_id);
             base = base.substr(0, base.find('^'));
             const size_t dotpos = base.rfind('.');
@@ -2600,7 +2613,7 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
             // The settings panel's mat_ channels, so a slider reaches
             // foliage as well as terrain. Glass has its own fixed response
             // and is left alone.
-            if (sh == m_sh_leaves || sh == m_sh_plants) {
+            if (sh == m_sh_ice || sh == m_sh_leaves || sh == m_sh_plants) {
                 for (const char *ch : {"normal", "ao", "roughness", "specular",
                                        "sss", "emission"})
                     sm->set_shader_parameter(String(ch) + String("_strength"),
@@ -2947,6 +2960,19 @@ Dictionary GoannaClient::render_stats() {
     d["lod_far_scan_ms"] = m_ms_lod_far_scan;
     d["lod_chain_ms"] = m_ms_lod_chain;
     d["lod_chains_built_last"] = m_lod_chains_built_last;
+    const auto storage = m_lod_storage.stats();
+    d["lod_storage_hits"] = (int64_t)storage.hits;
+    d["lod_storage_misses"] = (int64_t)storage.misses;
+    d["lod_summary_cache_hits"] = (int64_t)storage.summary_hits;
+    d["lod_summary_cache_writes"] = (int64_t)storage.summary_writes;
+    d["lod_storage_built"] = (int64_t)storage.built;
+    d["lod_storage_errors"] = (int64_t)storage.errors;
+    d["lod_storage_rejected"] = (int64_t)storage.rejected;
+    d["lod_storage_queued"] = storage.queued;
+    d["lod_storage_ready"] = storage.ready;
+    d["lod_storage_active"] = storage.active;
+    d["lod_storage_pending"] = (int64_t)m_lod_loads.size();
+    d["lod_storage_retry_regions"] = (int64_t)m_lod_chain_retry_regions.size();
     d["lod_retier_queue"] = m_lod_retier_pending ? 1 : 0;
     d["poll_max_ms"] = std::max(m_ms_poll_max, m_ms_poll_max_last);
     d["poll_lock_ms"] = m_ms_poll_lock;
@@ -3815,89 +3841,127 @@ int GoannaClient::lodTierFor(const v3s16 &bp, const Vector3 &around, bool live) 
         return 0;
     Vector3 centre((bp.X + 0.5f) * MAP_BLOCKSIZE, (bp.Y + 0.5f) * MAP_BLOCKSIZE,
             -(bp.Z + 0.5f) * MAP_BLOCKSIZE);
-    const float d = Vector2(centre.x - around.x, centre.z - around.z).length();
     auto cur = m_block_tier.find(bp);
     const int current = cur == m_block_tier.end() ? 0 : cur->second;
-    const int tiers = lodTierCount();
-    const float first = (float)m_lod_distance * MAP_BLOCKSIZE;
-    // Residency is a data-source fact, not a presentation level. It promises
-    // full detail only inside the configured detail radius. A local server
-    // may send 32--40 mapblocks; keeping all of those at tier zero produced
-    // 11 million primitives while the actual far field was only ~13k quads.
-    // Outside this floor, live blocks enter the same atomic handoff as stored
-    // blocks, so server range can improve knowledge without defeating LOD.
-    // A live block inside the detail radius belongs to near. If it has not
-    // arrived, however, keep the far fallback: server streaming coverage is
-    // not a solid disc and reserving the whole radius for data we do not have
-    // opens the circular moat seen while flying. lodBeginNearHandoff retires
-    // that fallback only after the regional near mesh is actually published.
-    if (live && d <= first)
-        return 0;
-    // Coarse bands double from a capped base, not from the detail distance.
-    // They used to double from `first` itself, so raising detail from 12 to
-    // 32 blocks also pushed cell 4 geometry out to a kilometre and the
-    // cell 16 tier past a 4096 grant entirely: measured at 10M primitives
-    // and 15k draws on the diffusion world. Detail buys the near field;
-    // the far ladder keeps its own scale. At the old default of 12 the cap
-    // changes nothing.
-    const float base = std::min(first, 256.0f);
-    auto threshold = [&](int t) {
-        return std::max(first, base * (float)(1 << (t - 1)));
-    };
-    int desired = 1;
-    for (int t = 1; t < tiers; ++t)
-        if (d > threshold(t + 1))
-            desired = t + 1;
-    if (desired < current && current >= 1 && d > threshold(current) * 0.85f)
-        return current;
-    return desired;
+    const Vector3 delta = centre - around;
+    return goanna::lodProjectedTier(v3f(delta.x, delta.y, delta.z), current, live,
+            (float)m_lod_distance * MAP_BLOCKSIZE, m_lod_focal_pixels);
 }
 
-const BlockLodChain *GoannaClient::lodChain(v3s16 bp) {
-    auto it = m_lod_chains.find(bp);
-    if (it != m_lod_chains.end())
-        return it->second.get();
-    if (!m_session)
-        return nullptr;
-    MapBlock *b = m_session->getBlock(bp);
-    if (b) {
-        // Tier zero is already represented by the exact near mesh. Its
-        // serialized source is in BlockStore, so deriving a second exact LOD
-        // hierarchy now only stalls block polling. It will be derived lazily
-        // after this block leaves the live set and a far region asks for it.
-        auto tier = m_block_tier.find(bp);
-        if (tier != m_block_tier.end() && tier->second <= 0)
-            return nullptr;
-        const auto t_chain = clock_t_::now();
-        auto owned = std::make_shared<BlockLodChain>();
-        // Full blocks retain their exact node boundary. Summaries begin at
-        // cell 4, but data we have actually received must not be needlessly
-        // reduced to the summary's resolution.
-        buildLodChain(m_session->nodeDefs(), b, *owned, BlockLodChain::levelForCell(1));
-        ema(m_ms_lod_chain, ms_since(t_chain));
-        ++m_lod_chains_built_last;
-        const BlockLodChain *built = owned.get();
-        m_lod_chains[bp] = std::move(owned);
-        return built;
+void GoannaClient::lodStartStorage() {
+    if (m_lod_storage.running() || !m_session || !m_session->contentPrepared())
+        return;
+    GoannaSession *session = m_session.get();
+    BlockStore *store = session->store();
+    const std::string directory = store ? store->directory() + "/lod-v1" : "";
+    m_lod_storage.start(directory, session->terrainDefinitions(),
+            [store](v3s16 bp, std::string &source) {
+                uint8_t version = 0;
+                if (!store || !store->get(bp, version, source)) return false;
+                source.insert(source.begin(), (char)version);
+                return true;
+            },
+            [session](v3s16 bp, const std::string &source) {
+                if (source.empty()) return std::shared_ptr<BlockLodChain>();
+                MapBlock block(bp, session);
+                std::istringstream input(source.substr(1), std::ios::binary);
+                block.deSerialize(input, (uint8_t)source[0], false);
+                block.deSerializeNetworkSpecific(input);
+                auto chain = std::make_shared<BlockLodChain>();
+                buildLodChain(session->nodeDefs(), &block, *chain);
+                return chain;
+            },
+            [store](v3s16 region) {
+                std::vector<uint8_t> mask;
+                if (store) store->regionMask(region, mask);
+            });
+}
+
+bool GoannaClient::lodRequestChain(v3s16 bp, bool replace_summary) {
+    if ((!replace_summary && m_lod_chains.count(bp)) || m_lod_loads.count(bp)) return true;
+    if (!m_session || !m_lod_storage.running()) return false;
+    const uint64_t revision = m_session->blockRevision(bp);
+    const uint64_t ticket = ++m_lod_load_ticket;
+    LodStorage::LiveBuild live;
+    if (MapBlock *block = m_session->getBlock(bp)) {
+        // Copy only immutable nodes while holding the map lock. Classification,
+        // lighting reduction and all five LOD levels are worker work.
+        auto nodes = std::make_shared<std::vector<MapNode>>();
+        nodes->reserve(4096);
+        for (int z = 0; z < 16; ++z)
+            for (int y = 0; y < 16; ++y)
+                for (int x = 0; x < 16; ++x)
+                    nodes->push_back(block->getNodeNoCheck(x, y, z));
+        const NodeDefManager *ndef = m_session->nodeDefs();
+        live = [nodes, ndef, bp] {
+            MapBlock copy(bp, nullptr);
+            size_t i = 0;
+            for (int z = 0; z < 16; ++z)
+                for (int y = 0; y < 16; ++y)
+                    for (int x = 0; x < 16; ++x)
+                        copy.setNodeNoCheck(x, y, z, (*nodes)[i++]);
+            auto chain = std::make_shared<BlockLodChain>();
+            buildLodChain(ndef, &copy, *chain);
+            return chain;
+        };
+    } else if (m_session->farRenderingGrant() <= 0) {
+        m_lod_chain_missing.insert(bp);
+        return true;
     }
-    // Not live: the store, if the server has granted far rendering. This is
-    // the one seam between the live range and what was seen before: the
-    // chain is the same shape either way, and the block itself is let go as
-    // soon as the chain is built.
-    if (m_session->farRenderingGrant() <= 0)
-        return nullptr;
-    std::unique_ptr<MapBlock> stored = m_session->loadStoredBlock(bp);
-    if (!stored)
-        return nullptr;
-    const auto t_chain = clock_t_::now();
-    auto owned = std::make_shared<BlockLodChain>();
-    buildLodChain(m_session->nodeDefs(), stored.get(), *owned, BlockLodChain::levelForCell(1));
-    ema(m_ms_lod_chain, ms_since(t_chain));
-    ++m_lod_chains_built_last;
-    owned->stored = true;
-    const BlockLodChain *built = owned.get();
-    m_lod_chains[bp] = std::move(owned);
-    return built;
+    const int priority = viewPriority().of(goanna::ViewPriority::kCoverage,
+            goanna::godotCentreOfBlock(bp, MAP_BLOCKSIZE)) % goanna::ViewPriority::kClassStride;
+    if (!m_lod_storage.request(bp, ticket, priority, std::move(live))) return false;
+    m_lod_loads[bp] = {ticket, revision};
+    return true;
+}
+
+void GoannaClient::lodCollectChains() {
+    if (!m_session) return;
+    const auto start = clock_t_::now();
+    LodStorage::Result result;
+    int count = 0;
+    while (count < 16 && ms_since(start) < 2.0 && m_lod_storage.next(result)) {
+        ++count;
+        if (result.primed) {
+            m_lod_primed_regions.push_back(result.pos);
+            m_far_dirty = true;
+            continue;
+        }
+        if (result.summary) {
+            if (!result.message.empty()) m_lod_cached_summaries.push_back(std::move(result));
+            continue;
+        }
+        auto pending = m_lod_loads.find(result.pos);
+        if (pending == m_lod_loads.end() || pending->second.ticket != result.ticket) continue;
+        const uint64_t revision = pending->second.revision;
+        m_lod_loads.erase(pending);
+        if (revision != m_session->blockRevision(result.pos)) {
+            lodEnqueueChain(result.pos);
+            continue;
+        }
+        const bool wanted = m_lod_member.count(result.pos) ||
+                m_lod_chain_waiters.count(result.pos);
+        if (!wanted) continue;
+        if (result.chain) {
+            // An arriving summary may be replaced by exact source data, but
+            // a newer live chain always wins over an older asynchronous read.
+            auto old = m_lod_chains.find(result.pos);
+            if (old == m_lod_chains.end() || old->second->summary) {
+                m_lod_chains[result.pos] = std::move(result.chain);
+                m_far_remote.erase(result.pos);
+                lodDirtyAround(result.pos, nullptr);
+            }
+            ++m_lod_chains_built_last;
+        } else {
+            m_lod_chain_missing.insert(result.pos);
+        }
+        auto waiters = m_lod_chain_waiters.find(result.pos);
+        if (waiters != m_lod_chain_waiters.end()) {
+            for (const LodRegionKey &key : waiters->second)
+                if (m_lod_regions.count(key)) lodMarkDirty(key);
+            m_lod_chain_waiters.erase(waiters);
+        }
+    }
 }
 
 void GoannaClient::set_store_path(const String &root) {
@@ -4085,12 +4149,26 @@ void GoannaClient::lodUpdateFar(const Vector3 &around) {
     if (m_far_store_cursor >= cube)
         m_far_store_cursor = 0;
     const int64_t scan_end = std::min(cube, m_far_store_cursor + kStoreScanRegions);
-    for (int64_t idx = m_far_store_cursor; idx < scan_end; ++idx) {
-                const int rx = lo.X + (int)(idx % span_x);
-                const int ry = lo.Y + (int)((idx / span_x) % span_y);
-                const int rz = lo.Z + (int)(idx / (span_x * span_y));
-                if (!m_session->storedRegionMask(v3s16(rx, ry, rz), bits))
+    // Revisit a newly loaded index immediately, rather than waiting for the
+    // rotating cube scan to reach it again many seconds later.
+    const int64_t primed = (int64_t)m_lod_primed_regions.size();
+    for (int64_t item = -primed; item < scan_end - m_far_store_cursor; ++item) {
+                const int64_t idx = m_far_store_cursor + std::max<int64_t>(0, item);
+                v3s16 region(lo.X + (int)(idx % span_x),
+                        lo.Y + (int)((idx / span_x) % span_y),
+                        lo.Z + (int)(idx / (span_x * span_y)));
+                if (item < 0) {
+                    region = m_lod_primed_regions.front();
+                    m_lod_primed_regions.pop_front();
+                }
+                const int rx = region.X, ry = region.Y, rz = region.Z;
+                BlockStore *store = m_session->store();
+                if (!store) continue;
+                if (!store->tryRegionMask(region, bits)) {
+                    m_lod_storage.prime(region);
                     continue;
+                }
+                if (bits.empty()) continue;
                 for (int i = 0; i < BlockStore::kSlots; ++i) {
                     if (!(bits[i >> 3] & (1u << (i & 7))))
                         continue;
@@ -4112,8 +4190,10 @@ void GoannaClient::lodUpdateFar(const Vector3 &around) {
                     if (m_far_blocks.count(bp) && !replace_summary)
                         continue;
                     if (replace_summary) {
-                        m_lod_chains.erase(chained);
-                        m_far_remote.erase(bp);
+                        // Keep the old summary visible until the exact
+                        // stored source has actually finished loading.
+                        if (!m_lod_chain_missing.count(bp)) lodRequestChain(bp, true);
+                        continue;
                     }
                     const int tier = lodTierFor(bp, around, false);
                     if (tier < 1)
@@ -4737,6 +4817,13 @@ void GoannaClient::lodRequestSummaries(const v3s16 &centre, int radius) {
         m_far_requested[pk.origin].asked = clock_t_::now();
         m_far_pending[pk.origin] = clock_t_::now();
         m_far_inflight = (int)m_far_pending.size();
+        // Cache reads are provisional. Always refresh through the server,
+        // even when the cached area used to be complete.
+        FarAsk &ask = m_far_requested[pk.origin];
+        if (!ask.answered && ask.cache_ticket == 0) {
+            const uint64_t ticket = ++m_lod_load_ticket;
+            if (m_lod_storage.requestSummary(pk.origin, ticket, 0)) ask.cache_ticket = ticket;
+        }
         m_session->requestFarSummary(pk.origin, kEdge, 16);
         if (getenv("GOANNA_DEBUG_LOD"))
             UtilityFunctions::print("LOD far: asked for area ", pk.origin.X, ",", pk.origin.Y, ",",
@@ -4760,7 +4847,21 @@ void GoannaClient::lodTakeSummaries(const Vector3 &around) {
     // Record offsets.
     enum { rFlags = 0, rContent = 1, rLiquidTop = 65, rDay = 81, rNight = 82,
         rLiquid = 83, rLiquidMask = 84 };
-    for (const std::string &msg : m_session->takeFarSummaries()) {
+    struct Reply { std::string message; uint64_t ticket = 0; };
+    std::vector<Reply> replies;
+    for (auto &msg : m_session->takeFarSummaries()) replies.push_back({std::move(msg), 0});
+    while (!m_lod_cached_summaries.empty()) {
+        auto &result = m_lod_cached_summaries.front();
+        auto ask = m_far_requested.find(result.pos);
+        if (ask != m_far_requested.end() && ask->second.cache_ticket == result.ticket)
+            replies.push_back({"farsum " + m_session->playerName() + " " + result.message, result.ticket});
+        m_lod_cached_summaries.pop_front();
+    }
+    for (const Reply &reply : replies) {
+        const std::string &msg = reply.message;
+        const bool cached = reply.ticket != 0;
+        if (cached && (m_session->farRenderingGrant() <= 0 || !m_session->farSummariesOffered()))
+            continue;
         // "farsum <who> <ver> <cell> <ox> <oy> <oz> <edge> ..."; a mod
         // channel has no unicast, so every client sees every reply and takes
         // its own.
@@ -4787,8 +4888,14 @@ void GoannaClient::lodTakeSummaries(const Vector3 &around) {
         // replies freed slots this client's asks were still using, and a
         // silently dropped ask never freed its slot at all (the sweep in
         // lodRequestSummaries now times those out one by one).
-        m_far_pending.erase(v3s16(ox, oy, oz));
-        m_far_inflight = (int)m_far_pending.size();
+        const v3s16 origin(ox, oy, oz);
+        if (cached) {
+            auto ask = m_far_requested.find(origin);
+            if (ask == m_far_requested.end() || ask->second.cache_ticket != reply.ticket) continue;
+        } else {
+            m_far_pending.erase(origin);
+            m_far_inflight = (int)m_far_pending.size();
+        }
         if (cell != 16 || edge <= 0 || edge > 16)
             continue;
         const size_t bar = msg.find('|', off);
@@ -4832,6 +4939,12 @@ void GoannaClient::lodTakeSummaries(const Vector3 &around) {
         const size_t total = (size_t)edge * edge * edge;
         if (blob.size() < total * kRecordSize)
             continue;
+        if (!cached) {
+            m_far_requested[origin].cache_ticket = 0; // late disk reads cannot replace this reply
+            const size_t name_end = msg.find(' ', 7);
+            if (name_end != std::string::npos)
+                m_lod_storage.saveSummary(origin, msg.substr(name_end + 1));
+        }
         // Record the ask even for a reply nobody asked for, which is how the
         // mod hands over an area its pregeneration has just finished, and
         // count how much of it the server actually had. Every record
@@ -4892,7 +5005,7 @@ void GoannaClient::lodTakeSummaries(const Vector3 &around) {
         else if (ask.stalled_replies < 255)
             ++ask.stalled_replies;
         ask.asked = clock_t_::now();
-        ask.complete = complete_records == total;
+        ask.complete = !cached && complete_records == total;
         ask.available_records = (uint16_t)std::min<size_t>(available_records, UINT16_MAX);
         ask.complete_records = (uint16_t)std::min<size_t>(complete_records, UINT16_MAX);
         ask.answered = true;
@@ -4948,6 +5061,7 @@ void GoannaClient::lodTakeSummaries(const Vector3 &around) {
             };
             auto ch_owned = std::make_shared<BlockLodChain>();
             BlockLodChain &ch = *ch_owned;
+            ch.surface_shell = (r[rFlags] & 32) != 0;
             for (LodLevel &lv : ch.level)
                 lv = LodLevel();
             ch.fine_available = false;
@@ -5012,8 +5126,18 @@ void GoannaClient::lodTakeSummaries(const Vector3 &around) {
 			// They are useful protocol evidence, not drawable objects. Retaining a
 			// chain for each one grew a 4 km height field past a million blocks and
 			// made retiering dominate the main thread despite an idle renderer.
-			if (!any_filled)
-				continue;
+            if (!any_filled) {
+                // Known empty supersedes an older cached summary. Unknown
+                // records above deliberately keep their provisional cover.
+                auto old = m_lod_chains.find(bp);
+                if (old != m_lod_chains.end() && old->second->summary) {
+                    lodForget(bp);
+                    m_far_remote.erase(bp);
+                    m_far_blocks.erase(bp);
+                    m_block_tier.erase(bp);
+                }
+                continue;
+            }
 			// The wire only has one light pair for the block. Applying its
             // maximum to every occupied cell made the interior of hills as
             // bright as their tops. Reconstruct the useful part of sky light
@@ -5046,10 +5170,9 @@ void GoannaClient::lodTakeSummaries(const Vector3 &around) {
                 }
             buildLodMipLevels(ch, first_level);
             buildLodTerrainSurface(ndef, ch, first_level);
-            // Not stored: a summary is what the server holds now, not a
-            // memory of what it once sent, so it is not marked stale
-            // (docs/launch-target.md, R1). The chain is still known.
-            ch.stored = false;
+            // A disk summary is provisional. A fresh server reply restores
+            // its current-source shading and supersedes the cached chain.
+            ch.stored = cached;
             ch.summary = true;
             m_lod_chains[bp] = std::move(ch_owned);
             m_lod_chain_missing.erase(bp);
@@ -5134,19 +5257,21 @@ void GoannaClient::lodDirtyAround(const v3s16 &bp, const LodRegionKey *except) {
     }
 }
 
-void GoannaClient::lodEnqueueChain(const v3s16 &bp) {
-    auto tier = m_block_tier.find(bp);
-    // The exact near mesh owns a tier 0 block, so it needs no chain to
-    // draw; but box occluders read the chain's fine occlusion bits, and
-    // without near coverage the box mode emitted almost nothing (measured
-    // 2026-08-31: 3.5k box triangles against 537k mesh-cut at the vista)
-    // while the mesh-cut construction it replaces was about 45 per cent of
-    // the flying hitch rate on a same-client A/B.
-    if (tier != m_block_tier.end() && tier->second <= 0 && !m_occluder_boxes)
-        return;
-    if (m_lod_chains.count(bp) || m_lod_chain_missing.count(bp) || !m_lod_chain_queued.insert(bp).second)
-        return;
+bool GoannaClient::lodEnqueueChain(const v3s16 &bp) {
+    if (m_lod_chains.count(bp) || m_lod_loads.count(bp) || m_lod_chain_missing.count(bp) ||
+            m_lod_chain_queued.count(bp)) return true;
+    // Most cells in a far region's 3D halo have no stored source at all.
+    // The in-memory index can answer that without disk or a blocking lock;
+    // sending every absent cell through a worker overwhelms any queue.
+    if (m_session && !m_session->getBlock(bp)) {
+        BlockStore *store = m_session->store();
+        bool present = false;
+        if (!store || (store->tryHas(bp, present) && !present)) return true;
+    }
+    if (m_lod_chain_queue.size() >= 4096) return false;
+    m_lod_chain_queued.insert(bp);
     m_lod_chain_queue.push_back(bp);
+    return true;
 }
 
 void GoannaClient::lodDropHandoffCount(const LodRegionKey &key) {
@@ -5274,6 +5399,7 @@ void GoannaClient::lodFinishNearHandoff(const v3s16 &bp) {
 }
 
 void GoannaClient::lodForget(const v3s16 &bp) {
+    m_lod_loads.erase(bp);
     m_lod_chains.erase(bp);
     lodAssign(bp, 0);
 }
@@ -5445,13 +5571,13 @@ void GoannaClient::lodBuildRegion(const LodRegionKey &key, LodRegion &r) {
         auto it = m_lod_chains.find(bp);
         if (it != m_lod_chains.end())
             return it->second.get();
-        auto tier = m_block_tier.find(bp);
-        if (tier != m_block_tier.end() && tier->second <= 0)
-            return nullptr; // near geometry owns it; close the LOD frontier
+        // Near-owned neighbours also need an immutable chain for the seam.
+        // This does not give them far membership or duplicate their mesh.
         // Not built yet: ask for it, and come back to this region when it is.
-        lodEnqueueChain(bp);
-        if (m_lod_chain_queued.count(bp))
+        const bool admitted = lodEnqueueChain(bp);
+        if (m_lod_chain_queued.count(bp) || m_lod_loads.count(bp))
             m_lod_chain_waiters[bp].insert(key);
+        if (!admitted) m_lod_chain_retry_regions.insert(key);
         return nullptr;
     };
     // Full and stored blocks retain an exact cell-1 occupancy level. Remote
@@ -5590,30 +5716,33 @@ void GoannaClient::lodCaptureRegion(const LodRegionKey &key, const LodRegionSpec
     const int margin = std::max(lodRegionMarginBlocks(exact.cell, exact.ao_radius),
             lodRegionMarginBlocks(coarse.cell, coarse.ao_radius));
     out.reset(exact.origin, exact.blocks, margin);
-    const int e = out.edge();
-    for (int z = 0; z < e; ++z)
-        for (int y = 0; y < e; ++y)
-            for (int x = 0; x < e; ++x) {
-                const v3s16 bp = exact.origin + v3s16((s16)(x - margin), (s16)(y - margin),
-                                                        (s16)(z - margin));
+    const v3s16 low = exact.origin - v3s16(margin, margin, margin);
+    auto describe = [&](v3s16 bp, LodRegionSnapshot::Entry &en) {
+        en.drawn_cell = exact.drawn_cell ? exact.drawn_cell(bp) : -1;
+        auto mit = m_lod_member.find(bp);
+        en.member = mit != m_lod_member.end() && mit->second == key;
+    };
+    // Most of a distant region's cube is air. Copy the retained immutable
+    // chains by spatial rows, avoiding three map lookups for every absent
+    // block. Empty entries retain the snapshot's explicit unknown default.
+    visitLodBox(m_lod_chains, low, out.edge(),
+            [&](v3s16 bp, const std::shared_ptr<const BlockLodChain> &chain) {
                 LodRegionSnapshot::Entry *en = out.at(bp);
-                if (!en)
-                    continue;
-                // Through the live lookups, so a chain that is missing is
-                // still asked for and this region still registers as waiting
-                // on it, exactly as the synchronous path did.
-                const BlockLodChain *ch = exact.chain ? exact.chain(bp) : nullptr;
-                if (ch) {
-                    auto it = m_lod_chains.find(bp);
-                    if (it != m_lod_chains.end())
-                        en->chain = it->second;
-                }
-                en->drawn_cell = exact.drawn_cell ? exact.drawn_cell(bp) : -1;
-                // Membership without the cell test: bind() adds that, and it
-                // differs between the exact and fallback passes.
-                auto mit = m_lod_member.find(bp);
-                en->member = mit != m_lod_member.end() && mit->second == key;
-            }
+                en->chain = chain;
+                describe(bp, *en);
+            });
+    // Known blocks whose chains are still loading must remain members and
+    // register a waiter. Skip already copied chains. Blocks outside the
+    // known layout are discovered by the bounded store/summary scans; their
+    // arrival dirties neighbouring meshes, including their occlusion halo.
+    visitLodBox(m_block_tier, low, out.edge(), [&](v3s16 bp, int) {
+        LodRegionSnapshot::Entry *en = out.at(bp);
+        if (en->chain)
+            return;
+        if (exact.chain)
+            exact.chain(bp);
+        describe(bp, *en);
+    });
 }
 
 // Gather one block's meshing input and queue it, main thread, map lock held.
@@ -6014,26 +6143,33 @@ void GoannaClient::lodPublishRegion(const LodRegionKey &key, LodRegion &r, const
 void GoannaClient::lodRebuild(double budget_ms) {
     m_lod_last_built = 0;
     m_lod_chains_built_last = 0;
+    lodStartStorage();
+    lodCollectChains();
     auto t0 = clock_t_::now();
-    // Chains first, inside half the budget. A chain that a region was
-    // waiting on dirties that region again.
-    while (!m_lod_chain_queue.empty() && ms_since(t0) < budget_ms * 0.5) {
+    // Admission only: disk reads and chain derivation run on the bounded
+    // storage worker. Pending is not missing; keep each region's waiters
+    // until its validated result actually arrives.
+    int admitted = 0;
+    while (!m_lod_chain_queue.empty() && admitted < 16 && ms_since(t0) < budget_ms * 0.5) {
         const v3s16 bp = m_lod_chain_queue.front();
         m_lod_chain_queue.pop_front();
-        m_lod_chain_queued.erase(bp);
-        // Only blocks that matter to a region: a neighbour of nothing drawn
-        // is a chain no one reads, and the store could supply millions.
+        if (!m_lod_chain_queued.erase(bp)) continue;
         const bool wanted = m_lod_member.count(bp) || m_lod_chain_waiters.count(bp);
-        const BlockLodChain *built = wanted ? lodChain(bp) : nullptr;
-        if (wanted && !built)
-            m_lod_chain_missing.insert(bp);
-        auto w = m_lod_chain_waiters.find(bp);
-        if (w != m_lod_chain_waiters.end()) {
-            if (built)
-                for (const LodRegionKey &k : w->second)
-                    if (m_lod_regions.count(k))
-                        lodMarkDirty(k);
-            m_lod_chain_waiters.erase(w);
+        if (!wanted) continue;
+        if (!lodRequestChain(bp)) {
+            lodEnqueueChain(bp);
+            break;
+        }
+        if (m_lod_chain_missing.count(bp)) m_lod_chain_waiters.erase(bp);
+        ++admitted;
+    }
+    if (m_lod_chain_queue.size() < 2048) {
+        int retried = 0;
+        while (!m_lod_chain_retry_regions.empty() && retried++ < 4) {
+            auto it = m_lod_chain_retry_regions.begin();
+            const LodRegionKey key = *it;
+            m_lod_chain_retry_regions.erase(it);
+            if (m_lod_regions.count(key)) lodMarkDirty(key);
         }
     }
     if (m_lod_regions.empty())
@@ -6087,6 +6223,10 @@ void GoannaClient::lodRebuild(double budget_ms) {
 // Drop every region and chain and requeue every block: the tier layout
 // changed under them.
 void GoannaClient::lodReset() {
+    m_lod_storage.clear();
+    m_lod_loads.clear();
+    m_lod_cached_summaries.clear();
+    m_lod_primed_regions.clear();
     // Every queued capture describes the layout that just changed. Jobs
     // already running finish and are dropped by the generation test on the
     // way out; they hold their chains by shared_ptr, so clearing the map
@@ -6113,6 +6253,7 @@ void GoannaClient::lodReset() {
     m_lod_chain_queue.clear();
     m_lod_chain_queued.clear();
     m_lod_chain_waiters.clear();
+    m_lod_chain_retry_regions.clear();
     m_lod_handoff_near.clear();
     m_lod_handoff_to_near.clear();
     // These as well: the regions they name were just freed, and a new
@@ -6136,6 +6277,20 @@ void GoannaClient::lodReset() {
 
 int GoannaClient::update_lod(const Vector3 &around, int max_rebuild) {
     const auto t_update = clock_t_::now();
+    if (Viewport *viewport = get_viewport()) {
+        const Vector2 size = viewport->get_visible_rect().size;
+        // m_view_fov is the diagonal camera angle used for the server cone.
+        // Its matching pixel diagonal gives the same focal length as either
+        // projection axis. It must not be treated as a vertical FOV.
+        const float focal = 0.5f * size.length() /
+                std::tan(m_view_fov * 3.14159265358979323846f / 360.0f);
+        if (std::isfinite(focal) && focal > 0.0f &&
+                std::fabs(focal - m_lod_focal_pixels) > 1.0f) {
+            m_lod_focal_pixels = focal;
+            m_lod_retier_pending = true;
+            m_lod_retier_cursor = v3s16(-32768, -32768, -32768);
+        }
+    }
     // Moving is as much a reason to shut the view cone as turning is: what is
     // in front of the player is changing either way. Half a mapblock, which a
     // walking player crosses in about two seconds and a standing one never.
@@ -6386,7 +6541,8 @@ int GoannaClient::poll_blocks(int max_blocks) {
         // block. Do not synchronously derive a second exact hierarchy for a
         // block about to receive an exact near mesh: cell-1 made this poll
         // take 90--127 ms while streaming. If it later leaves the live set,
-        // lodChain() derives the sparse hierarchy lazily from BlockStore.
+        // The storage worker derives or reloads its hierarchy when needed.
+        m_lod_loads.erase(bp); // invalidate any older asynchronous result
         m_lod_chains.erase(bp); // discard an older summary/store view
         m_lod_chain_queued.erase(bp); // stale deque entries are harmless
         m_lod_chain_waiters.erase(bp);
@@ -6396,7 +6552,12 @@ int GoannaClient::poll_blocks(int max_blocks) {
         m_far_remote.erase(bp);
         m_block_queued_at.erase(bp); // reached the front: aging starts over
         if (tier >= 1) {
-            nearDrop(bp);
+            // A live block moving out of the near radius used to disappear
+            // before its asynchronous chain and far mesh were ready. Keep
+            // the published near mesh until lodPublishRegion installs its
+            // replacement, as the stored-block handoff already does.
+            if (m_near_blocks.count(bp))
+                m_lod_handoff_near.insert(bp);
             lodAssign(bp, tier);
             m_block_tier[bp] = tier;
             ++done;
@@ -6623,6 +6784,10 @@ int GoannaClient::poll_blocks(int max_blocks) {
                 // indices were emitted per triangle above
             }
         }
+        Ref<ArrayMesh> ice_mesh;
+        ice_mesh.instantiate();
+        int ice_si = 0;
+        buildFakeLiquidTextures();
         auto keep_regional = [&](SurfAccum &acc, bool glow) {
             NearSurface surface;
             surface.key = acc.key;
@@ -6658,6 +6823,14 @@ int GoannaClient::poll_blocks(int max_blocks) {
             arrays[Mesh::ARRAY_TEX_UV2] = acc.uv2s;
             arrays[Mesh::ARRAY_CUSTOM0] = acc.custom0;
             arrays[Mesh::ARRAY_INDEX] = acc.idx;
+            // The transmission camera excludes only translucent ice. Keep
+            // it separate from water and plants sharing this mapblock.
+            if (m_ice_tex.count(acc.key.texture_id)) {
+                ice_mesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays,
+                        TypedArray<Array>(), Dictionary(), kNodeSurfaceFlags);
+                ice_mesh->surface_set_material(ice_si++, materialFor(acc.key));
+                continue;
+            }
             mesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays, TypedArray<Array>(),
                     Dictionary(), kNodeSurfaceFlags);
             if (si == 0 && getenv("GOANNA_DEBUG_PBR"))
@@ -6693,9 +6866,9 @@ int GoannaClient::poll_blocks(int max_blocks) {
             gmesh->surface_set_material(gsi++, materialFor(acc.key));
         }
         // A block of nothing but region-batched or glowing surfaces still
-        // has geometry, so all three destinations have to be empty before it
+        // has geometry, so all destinations have to be empty before it
         // is thrown away.
-        if (near_block.surfaces.empty() && si == 0 && gsi == 0) {
+        if (near_block.surfaces.empty() && si == 0 && gsi == 0 && ice_si == 0) {
             if (getenv("GOANNA_DEBUG_BLOCKS") && m_near_blocks.count(bp))
                 UtilityFunctions::print("block FREED (empty mesh): ", bp.X, ",", bp.Y, ",", bp.Z);
             nearDrop(bp);
@@ -6717,13 +6890,20 @@ int GoannaClient::poll_blocks(int max_blocks) {
         }
         nearDrop(bp);
         MeshInstance3D *mi = nullptr;
-        if (si > 0 || gsi > 0) {
+        if (si > 0 || gsi > 0 || ice_si > 0) {
             mi = memnew(MeshInstance3D);
             add_child(mi);
             near_block.special_node = mi;
         }
         if (si > 0)
             mi->set_mesh(mesh);
+        if (ice_si > 0) {
+            MeshInstance3D *ice = memnew(MeshInstance3D);
+            ice->set_layer_mask(ICE_LAYER);
+            mi->add_child(ice);
+            ice->set_mesh(ice_mesh);
+            ice->add_to_group("goanna_ice");
+        }
         // The glow mesh hangs off the block mesh rather than being tracked
         // beside it, so every place that frees a block frees this too and none
         // of them had to learn about it.

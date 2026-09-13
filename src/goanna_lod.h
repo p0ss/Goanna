@@ -12,7 +12,7 @@
 // light, what is seen from each side, and how lit the air in them is. Regions
 // of blocks at one tier are then meshed from those chains alone, never from
 // the nodes, which is what lets a tier be rebuilt cheaply and is the shape the
-// local store will persist at rung 5.
+// prepared store persists (goanna_lod_storage.h).
 //
 // No Godot types: the client converts the output to arrays. The occupancy
 // tracer is the one in goanna_occlusion.h, run against a field at the tier's
@@ -34,6 +34,29 @@ class NodeDefManager;
 
 namespace goanna {
 
+// Estimate the distance at which a node becomes too small for the full mesh.
+// The configured radius remains an upper limit; projection and altitude can
+// reduce it. Kept independent of Godot for projection regression tests.
+float lodDetailRadius(float configured_nodes, float focal_pixels);
+int lodProjectedTier(v3f relative_block_centre, int current, bool live,
+        float configured_nodes, float focal_pixels);
+
+// Ordered block maps use X/Y/Z order. Seek each row instead of probing every
+// absent block in a three-dimensional capture volume on the main thread.
+template <typename Map, typename Visit>
+void visitLodBox(const Map &map, v3s16 low, int edge, Visit visit) {
+    const int high_z = (int)low.Z + edge;
+    for (int x = low.X; x < (int)low.X + edge; ++x)
+        for (int y = low.Y; y < (int)low.Y + edge; ++y) {
+            auto it = map.lower_bound(v3s16(x, y, low.Z));
+            while (it != map.end() && it->first.X == x && it->first.Y == y &&
+                    it->first.Z < high_z) {
+                visit(it->first, it->second);
+                ++it;
+            }
+        }
+}
+
 class GoannaTextureSource;
 struct MaterialTable;
 
@@ -44,9 +67,8 @@ struct LodLevel {
         kOccludes = 2, // enough solid nodes to block light: traced against
         kLit = 4,      // has nodes light propagates through, so day/night mean something
         kKnown = 8,    // at least one node that is not CONTENT_IGNORE
-        // Legacy heightfield marker. Protocol-v5 summaries and chains built
-        // by buildLodChain leave it unset, so every occupied coarse voxel is
-        // handled by the six-face box mesher.
+        // Solid run connected to the mapblock floor. Coarse chains retain
+        // this surface alongside occupancy for caves and overhangs.
         kTerrain = 16,
         // Liquid exists independently of solid occupancy. It is rendered as
         // an exterior surface envelope, never as a transparent filled box.
@@ -74,9 +96,8 @@ struct LodLevel {
     int cell = 0; // nodes per cell
     int n = 0;    // cells per axis, MAP_BLOCKSIZE / cell
     std::vector<Cell> cells;
-    // Optional legacy per-column height data. The volumetric path keeps this
-    // empty, which disables the old surface pass and leaves all occupied
-    // cells to the six-face voxel mesher.
+    // Optional per-column ground height, preserved in prepared storage.
+    // An absent surface does not imply that the occupancy is known empty.
     std::vector<uint8_t> terrain;
     Cell &at(int x, int y, int z) { return cells[((size_t)z * n + y) * n + x]; }
     const Cell &at(int x, int y, int z) const { return cells[((size_t)z * n + y) * n + x]; }
@@ -107,6 +128,9 @@ struct BlockLodChain {
     // Built from a server summary rather than from nodes. A later summary of
     // the same block replaces it; a chain from nodes is never replaced by one.
     bool summary = false;
+    // Server provider data is an exterior height shell. Omitted interior
+    // cells do not describe caves, unlike an ordinary volumetric summary.
+    bool surface_shell = false;
     // 1 -> 0, 2 -> 1, 4 -> 2, 8 -> 3, 16 -> 4; -1 otherwise.
     static int levelForCell(int cell);
     static int cellForLevel(int level) { return 1 << level; }

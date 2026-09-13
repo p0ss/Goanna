@@ -1,0 +1,22 @@
+{
+  "blocks_meshed": 0,
+  "camera": [
+    0.0,
+    550.0,
+    0.0
+  ],
+  "deviations": {
+    "time_of_day_override": [
+      -1.0,
+      0.5
+    ]
+  },
+  "path": "/tmp/goanna-terrain-flight/verified-flight/returned-held.png",
+  "pitch": -18.0,
+  "size": [
+    1600,
+    900
+  ],
+  "time_of_day": 0.5,
+  "yaw": 180.0
+}

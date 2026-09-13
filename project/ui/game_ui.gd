@@ -694,7 +694,7 @@ const SETTINGS := [
 	["Controls", "mouse_sensitivity", "slider", "Mouse sensitivity", "How far the view turns per mouse movement.", 0.02, 0.5, 0.01],
 	["Controls", "invert_mouse", "toggle", "Invert mouse", "Push the mouse forward to look up instead of down."],
 	["Controls", "view_bobbing", "slider", "View bobbing", "How much the camera bobs as you walk.", 0.0, 1.5, 0.1],
-	["Video", "solid_ice", "toggle", "Solid ice", "Draw ice as opaque instead of slightly see-through. Ice is translucent, which makes it sort against waterfalls and other water badly and flicker. Opaque loses the see-through and fixes that."],
+	["Video", "solid_ice", "toggle", "Solid ice", "Remove transparency from frosted ice to reduce graphics cost. Both modes keep submerged faces and surface lighting."],
 	["Video", "auto_bump", "slider", "Auto bump", "Fake surface relief from texture brightness.", 0.0, 1.0, 0.05],
 	["Material", "mat_normal", "slider", "Normal strength", "How much of the pack's surface relief to apply. Packs are authored for other art at other resolutions, and a normal map meant for 64 pixel textures reads as smeared blotches on 16 pixel ones. Lower this first if a pack looks muddy.", 0.0, 2.0, 0.05],
 	["Material", "mat_ao", "slider", "Occlusion strength", "How much of the pack's baked in shading to apply. 0 leaves Godot's own corner shading to do it alone.", 0.0, 1.0, 0.05],

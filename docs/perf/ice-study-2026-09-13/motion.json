@@ -1,0 +1,479 @@
+[
+  {
+    "blocks_meshed": 1090,
+    "camera": [
+      -2.0585412979126,
+      81.5,
+      5.41491222381592
+    ],
+    "deviations": {
+      "far_distance": [
+        512.0,
+        128.0
+      ],
+      "fov": [
+        70.0,
+        75.0
+      ],
+      "light_flicker": [
+        1.0,
+        0.0
+      ],
+      "max_fps": [
+        240.0,
+        60.0
+      ],
+      "night_visibility": [
+        0.0,
+        0.5
+      ],
+      "shaders_reloaded": [
+        "res://shaders/ice.gdshader"
+      ],
+      "show_body": [
+        1.0,
+        0.0
+      ],
+      "time_of_day_override": [
+        -1.0,
+        0.5
+      ],
+      "vsync": [
+        1.0,
+        0.0
+      ]
+    },
+    "path": "/var/home/poss/Documents/Code/Godot/goanna/docs/perf/ice-study-2026-09-13/motion-0.png",
+    "pitch": 0.0,
+    "size": [
+      1600,
+      900
+    ],
+    "time_of_day": 0.5,
+    "yaw": 35.0
+  },
+  {
+    "blocks_meshed": 1090,
+    "camera": [
+      -1.84743142127991,
+      81.5,
+      5.26011991500854
+    ],
+    "deviations": {
+      "far_distance": [
+        512.0,
+        128.0
+      ],
+      "fov": [
+        70.0,
+        75.0
+      ],
+      "light_flicker": [
+        1.0,
+        0.0
+      ],
+      "max_fps": [
+        240.0,
+        60.0
+      ],
+      "night_visibility": [
+        0.0,
+        0.5
+      ],
+      "shaders_reloaded": [
+        "res://shaders/ice.gdshader"
+      ],
+      "show_body": [
+        1.0,
+        0.0
+      ],
+      "time_of_day_override": [
+        -1.0,
+        0.5
+      ],
+      "vsync": [
+        1.0,
+        0.0
+      ]
+    },
+    "path": "/var/home/poss/Documents/Code/Godot/goanna/docs/perf/ice-study-2026-09-13/motion-1.png",
+    "pitch": 0.0,
+    "size": [
+      1600,
+      900
+    ],
+    "time_of_day": 0.5,
+    "yaw": 37.5
+  },
+  {
+    "blocks_meshed": 1090,
+    "camera": [
+      -1.64327430725098,
+      81.5,
+      5.096266746521
+    ],
+    "deviations": {
+      "far_distance": [
+        512.0,
+        128.0
+      ],
+      "fov": [
+        70.0,
+        75.0
+      ],
+      "light_flicker": [
+        1.0,
+        0.0
+      ],
+      "max_fps": [
+        240.0,
+        60.0
+      ],
+      "night_visibility": [
+        0.0,
+        0.5
+      ],
+      "shaders_reloaded": [
+        "res://shaders/ice.gdshader"
+      ],
+      "show_body": [
+        1.0,
+        0.0
+      ],
+      "time_of_day_override": [
+        -1.0,
+        0.5
+      ],
+      "vsync": [
+        1.0,
+        0.0
+      ]
+    },
+    "path": "/var/home/poss/Documents/Code/Godot/goanna/docs/perf/ice-study-2026-09-13/motion-2.png",
+    "pitch": 0.0,
+    "size": [
+      1600,
+      900
+    ],
+    "time_of_day": 0.5,
+    "yaw": 40.0
+  },
+  {
+    "blocks_meshed": 1090,
+    "camera": [
+      -1.44645869731903,
+      81.5,
+      4.92366409301758
+    ],
+    "deviations": {
+      "far_distance": [
+        512.0,
+        128.0
+      ],
+      "fov": [
+        70.0,
+        75.0
+      ],
+      "light_flicker": [
+        1.0,
+        0.0
+      ],
+      "max_fps": [
+        240.0,
+        60.0
+      ],
+      "night_visibility": [
+        0.0,
+        0.5
+      ],
+      "shaders_reloaded": [
+        "res://shaders/ice.gdshader"
+      ],
+      "show_body": [
+        1.0,
+        0.0
+      ],
+      "time_of_day_override": [
+        -1.0,
+        0.5
+      ],
+      "vsync": [
+        1.0,
+        0.0
+      ]
+    },
+    "path": "/var/home/poss/Documents/Code/Godot/goanna/docs/perf/ice-study-2026-09-13/motion-3.png",
+    "pitch": 0.0,
+    "size": [
+      1600,
+      900
+    ],
+    "time_of_day": 0.5,
+    "yaw": 42.5
+  },
+  {
+    "blocks_meshed": 1090,
+    "camera": [
+      -1.25735926628113,
+      81.5,
+      4.74264049530029
+    ],
+    "deviations": {
+      "far_distance": [
+        512.0,
+        128.0
+      ],
+      "fov": [
+        70.0,
+        75.0
+      ],
+      "light_flicker": [
+        1.0,
+        0.0
+      ],
+      "max_fps": [
+        240.0,
+        60.0
+      ],
+      "night_visibility": [
+        0.0,
+        0.5
+      ],
+      "shaders_reloaded": [
+        "res://shaders/ice.gdshader"
+      ],
+      "show_body": [
+        1.0,
+        0.0
+      ],
+      "time_of_day_override": [
+        -1.0,
+        0.5
+      ],
+      "vsync": [
+        1.0,
+        0.0
+      ]
+    },
+    "path": "/var/home/poss/Documents/Code/Godot/goanna/docs/perf/ice-study-2026-09-13/motion-4.png",
+    "pitch": 0.0,
+    "size": [
+      1600,
+      900
+    ],
+    "time_of_day": 0.5,
+    "yaw": 45.0
+  },
+  {
+    "blocks_meshed": 1090,
+    "camera": [
+      -1.07633602619171,
+      81.5,
+      4.55354118347168
+    ],
+    "deviations": {
+      "far_distance": [
+        512.0,
+        128.0
+      ],
+      "fov": [
+        70.0,
+        75.0
+      ],
+      "light_flicker": [
+        1.0,
+        0.0
+      ],
+      "max_fps": [
+        240.0,
+        60.0
+      ],
+      "night_visibility": [
+        0.0,
+        0.5
+      ],
+      "shaders_reloaded": [
+        "res://shaders/ice.gdshader"
+      ],
+      "show_body": [
+        1.0,
+        0.0
+      ],
+      "time_of_day_override": [
+        -1.0,
+        0.5
+      ],
+      "vsync": [
+        1.0,
+        0.0
+      ]
+    },
+    "path": "/var/home/poss/Documents/Code/Godot/goanna/docs/perf/ice-study-2026-09-13/motion-5.png",
+    "pitch": 0.0,
+    "size": [
+      1600,
+      900
+    ],
+    "time_of_day": 0.5,
+    "yaw": 47.5
+  },
+  {
+    "blocks_meshed": 1090,
+    "camera": [
+      -0.903733313083649,
+      81.5,
+      4.35672569274902
+    ],
+    "deviations": {
+      "far_distance": [
+        512.0,
+        128.0
+      ],
+      "fov": [
+        70.0,
+        75.0
+      ],
+      "light_flicker": [
+        1.0,
+        0.0
+      ],
+      "max_fps": [
+        240.0,
+        60.0
+      ],
+      "night_visibility": [
+        0.0,
+        0.5
+      ],
+      "shaders_reloaded": [
+        "res://shaders/ice.gdshader"
+      ],
+      "show_body": [
+        1.0,
+        0.0
+      ],
+      "time_of_day_override": [
+        -1.0,
+        0.5
+      ],
+      "vsync": [
+        1.0,
+        0.0
+      ]
+    },
+    "path": "/var/home/poss/Documents/Code/Godot/goanna/docs/perf/ice-study-2026-09-13/motion-6.png",
+    "pitch": 0.0,
+    "size": [
+      1600,
+      900
+    ],
+    "time_of_day": 0.5,
+    "yaw": 50.0
+  },
+  {
+    "blocks_meshed": 1090,
+    "camera": [
+      -0.739879965782166,
+      81.5,
+      4.15256834030151
+    ],
+    "deviations": {
+      "far_distance": [
+        512.0,
+        128.0
+      ],
+      "fov": [
+        70.0,
+        75.0
+      ],
+      "light_flicker": [
+        1.0,
+        0.0
+      ],
+      "max_fps": [
+        240.0,
+        60.0
+      ],
+      "night_visibility": [
+        0.0,
+        0.5
+      ],
+      "shaders_reloaded": [
+        "res://shaders/ice.gdshader"
+      ],
+      "show_body": [
+        1.0,
+        0.0
+      ],
+      "time_of_day_override": [
+        -1.0,
+        0.5
+      ],
+      "vsync": [
+        1.0,
+        0.0
+      ]
+    },
+    "path": "/var/home/poss/Documents/Code/Godot/goanna/docs/perf/ice-study-2026-09-13/motion-7.png",
+    "pitch": 0.0,
+    "size": [
+      1600,
+      900
+    ],
+    "time_of_day": 0.5,
+    "yaw": 52.5
+  },
+  {
+    "blocks_meshed": 1090,
+    "camera": [
+      -0.585087716579437,
+      81.5,
+      3.9414587020874
+    ],
+    "deviations": {
+      "far_distance": [
+        512.0,
+        128.0
+      ],
+      "fov": [
+        70.0,
+        75.0
+      ],
+      "light_flicker": [
+        1.0,
+        0.0
+      ],
+      "max_fps": [
+        240.0,
+        60.0
+      ],
+      "night_visibility": [
+        0.0,
+        0.5
+      ],
+      "shaders_reloaded": [
+        "res://shaders/ice.gdshader"
+      ],
+      "show_body": [
+        1.0,
+        0.0
+      ],
+      "time_of_day_override": [
+        -1.0,
+        0.5
+      ],
+      "vsync": [
+        1.0,
+        0.0
+      ]
+    },
+    "path": "/var/home/poss/Documents/Code/Godot/goanna/docs/perf/ice-study-2026-09-13/motion-8.png",
+    "pitch": 0.0,
+    "size": [
+      1600,
+      900
+    ],
+    "time_of_day": 0.5,
+    "yaw": 55.0
+  }
+]

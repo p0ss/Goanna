@@ -186,7 +186,10 @@ end
 
 -- One block's record, or nil if the block is not generated. Protocol
 -- version 7, 2026-08-26, 92 bytes:
---   flags (16 has emerged data, 8 all nodes emerged/record complete)
+--   flags (16 has data, 8 record complete, 32 provider surface shell)
+-- The optional surface-shell bit leaves the version-7 record size unchanged.
+-- Older clients ignore it. Only provider records may omit buried interiors
+-- without implying caves; real voxel summaries never set this bit.
 --   64 coarse contents, indexed (z * 4 + y) * 4 + x:
 --       0 known air, 1..254 one based into the area's name list,
 --       255 unknown (only possible at a partially emerged frontier)
@@ -457,6 +460,23 @@ local function load_area(ax, ay, az)
 					a.dirty = true
 					settled[key] = nil
 					settled_dirty = true
+				else
+					-- The persisted provenance lets old cached provider records
+					-- gain the shell flag without regenerating the terrain or
+					-- confusing real voxel records with height samples.
+					local records, changed = {}, false
+					for i = 0, AREA_BLOCKS - 1 do
+						local rec = a.blob:sub(i * REC + 1, (i + 1) * REC)
+						if a.synth[i] and rec:byte(1) % 64 < 32 then
+							rec = string.char(rec:byte(1) + 32) .. rec:sub(2)
+							changed = true
+						end
+						records[#records + 1] = rec
+					end
+					if changed then
+						a.blob = table.concat(records)
+						a.dirty = true
+					end
 				end
 			end
 		end
@@ -655,7 +675,7 @@ local function synthesise_area(a)
 				for c = 0, 63 do
 					if contents[c] == 255 then complete = false break end
 				end
-				local parts = {string.char(16 + (complete and 8 or 0))}
+				local parts = {string.char(32 + 16 + (complete and 8 or 0))}
 				for c = 0, 63 do parts[#parts + 1] = string.char(contents[c]) end
 				for b = 0, 15 do
 					local packed = 0

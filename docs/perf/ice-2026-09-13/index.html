@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<title>Ice rendering review</title>
+<style>body{background:#151c24;color:#edf5ff;font:16px/1.5 system-ui;max-width:1600px;margin:24px auto;padding:0 20px}img{display:block;width:100%;height:auto}p{max-width:90ch}button,select{padding:10px;margin:6px 6px 12px 0;background:#293b4f;color:white;border:1px solid #668099;border-radius:4px}button[aria-pressed=true]{background:#376f91}a{color:#a0dfff}h2{margin-top:28px}</style>
+<h1>Ice: faces, transmission and relief</h1>
+<p>Live Mineclonia test pool, Luanti 5.17.0 and Godot 4.5.1 Forward+. These are controlled geometry/material diagnostics, not a natural landscape showcase. <a href="../../ice-rendering.md">Implementation, validation and limitations</a>.</p>
+<h2>Matched camera comparisons</h2>
+<p>Camera and server time match. Clouds evolved between captures; use these to compare ice geometry and material, not grading. Before is the previous default with Solid ice enabled; after is the revised default with transmission.</p>
+<select id="scene" onchange="update()"><option value="above">Above the pool</option><option value="side">Underwater edge</option><option value="below">Under the sheet</option><option value="edge">Waterline from above</option></select>
+<button id="before" onclick="stage='before';update()">Before</button><button id="after" onclick="stage='after';update()">After</button>
+<p id="caption"></p><img id="pair" src="side-after.png" alt="Revised submerged ice edge">
+<h2>Current material close-ups</h2>
+<p>These two views show the revised material only.</p>
+<button onclick="document.getElementById('close').src='relief-close-after.png'">Rough face and transmission</button><button onclick="document.getElementById('close').src='top-close-after.png'">Frozen surface relief</button>
+<img id="close" src="relief-close-after.png" alt="Current ice surface relief">
+<h2>Current waterline sweep</h2>
+<p>The water surface is at y=79.5. These frames check the ice edge while moving through that surface. At y=79.49/79.51 a camera-clipping band remains on the water surface; the ice geometry checks do not claim to fix that artifact.</p>
+<div id="sweep-buttons"></div><p id="height"></p><img id="sweep" src="waterline-79.49.png" alt="Ice edge just below the waterline">
+<p>The edge contains all 66 triangles across its 33-node width. <a href="checks.json">Geometry and activation checks</a>. The extra background view cost about 2.2 ms GPU time in the fixed pool test on an RTX 3090; <a href="performance.json">measurement</a>. Solid ice skips that view. Multi-layer volume refraction and distant ice are outside this pass.</p>
+<script>
+let stage='after';
+const scene=document.getElementById('scene');scene.value='side';
+function update(){document.getElementById('pair').src=scene.value+'-'+stage+'.png';document.getElementById('caption').textContent=scene.options[scene.selectedIndex].text+' / '+stage;for(const s of ['before','after'])document.getElementById(s).setAttribute('aria-pressed',s===stage)}
+for(const y of ['78.8','79.3','79.49','79.51','79.8','80.2']){const b=document.createElement('button');b.textContent='y='+y;b.onclick=()=>{document.getElementById('sweep').src='waterline-'+y+'.png';document.getElementById('height').textContent=Number(y)<79.5?'Underwater, y='+y:'Above water, y='+y};document.getElementById('sweep-buttons').appendChild(b)}update();
+</script></html>

@@ -43,6 +43,7 @@ add_library(goanna SHARED
     src/goanna_mesh_pool.cpp
     src/goanna_light.cpp
     src/goanna_lod.cpp
+    src/goanna_lod_storage.cpp
     src/goanna_horizon.cpp
     src/goanna_materials.cpp
     src/goanna_store.cpp
@@ -81,6 +82,10 @@ target_link_libraries(goanna_light_test PRIVATE luanti_core)
 add_executable(goanna_lod_test EXCLUDE_FROM_ALL src/goanna_lod_test.cpp)
 target_include_directories(goanna_lod_test PRIVATE src)
 target_link_libraries(goanna_lod_test PRIVATE goanna luanti_core)
+
+add_executable(goanna_lod_storage_test EXCLUDE_FROM_ALL src/goanna_lod_storage_test.cpp)
+target_include_directories(goanna_lod_storage_test PRIVATE src)
+target_link_libraries(goanna_lod_storage_test PRIVATE goanna luanti_core)
 
 # The one scheduling rule every queue shares: the Z mirror crossing into
 # Godot space, class bands, and a view cone that weights rather than filters.

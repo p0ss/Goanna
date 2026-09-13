@@ -153,6 +153,7 @@ public:
     // start(); empty leaves the store off.
     void setStoreRoot(const std::string &root) { m_store_root = root; }
     BlockStore *store() { return m_store.get(); }
+    uint64_t terrainDefinitions() const { return m_terrain_definitions; }
     // A block from the store, deserialised into a block of its own that is
     // not in the map, or nullptr. Caller holds mapLock(); content must be
     // prepared, because the node names resolve through the nodedef.
@@ -456,11 +457,14 @@ private:
     uint16_t m_port = 30000;
     std::string m_name, m_password;
     std::string m_store_root;
+    std::string m_store_directory;
     std::unique_ptr<BlockStore> m_store;
+    uint64_t m_terrain_definitions = 0; // published before contentPrepared()
     // Blocks edited since they were stored (ADDNODE, REMOVENODE); written
     // back when they are pruned or the session stops, so an edit survives
     // in the store rather than the block as first received.
     std::set<v3s16> m_store_dirty;
+    std::set<v3s16> m_store_pending; // received block being written outside mapLock()
     void saveBlockToStore(MapBlock *b); // caller holds mapLock()
 
     std::unique_ptr<con::IConnection> m_con;

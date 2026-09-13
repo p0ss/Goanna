@@ -1,0 +1,322 @@
+Godot Engine v4.5.1.stable.official.f62fdbde1 - https://godotengine.org
+Vulkan 1.4.341 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 3090
+
+hardware: 16 cores, NVIDIA GeForce RTX 3090 (discrete), profile ultra
+goanna: extension loaded
+luanti core 5.16.1-goanna-5ebd9b579
+no texture pack set (settings panel, or GOANNA_PACK)
+connecting to 127.0.0.1:30563 as terrainreview
+control: listening on 127.0.0.1:30863
+[  0.1s] definitions | authenticated; waiting for definitions | media 622/5902 | blocks recv 0 meshed 0 | mats 0 | res 0 | lights 0
+WARNING: Enhanced-material catalogue could not be downloaded; continuing without updates.
+     at: push_warning (core/variant/variant_utility.cpp:1034)
+     GDScript backtrace (most recent call first):
+         [0] _on_catalogue (res://asset_updater.gd:73)
+[  1.1s] definitions | authenticated; waiting for definitions | media 2729/5902 | blocks recv 0 meshed 0 | mats 0 | res 0 | lights 0
+[  2.1s] definitions | authenticated; waiting for definitions | media 3756/5902 | blocks recv 0 meshed 0 | mats 0 | res 0 | lights 0
+Goanna texture pack: path='' native=0 mapped=0 default_cobble=16x16
+camera placed at (-4000.0, 573.6, -4000.0)
+bench: connect at 5.94s (far reach 0, 0 block meshes)
+[  3.3s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 48 meshed 0 | mats 2 | res 32 | lights 0 | player (-4000.0, 571.8961, -4000.0) ground=false | pointed nothing  dig=false prog=0.00 crack=-1
+[  4.3s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 259 meshed 0 | mats 3 | res 200 | lights 0 | player (-4000.0, 559.7383, -4000.0) ground=false | pointed nothing  dig=false prog=0.00 crack=-1
+[  5.3s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 429 meshed 15 | mats 7 | res 335 | lights 0 | player (-4000.0, 526.7013, -4000.0) ground=false | pointed nothing  dig=false prog=0.00 crack=-1
+[  6.3s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 622 meshed 95 | mats 8 | res 470 | lights 0 | player (-4000.0, 472.8298, -4000.0) ground=false | pointed nothing  dig=false prog=0.00 crack=-1
+bench: playable at 9.54s (far reach 3168, 113 block meshes)
+[  7.3s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 726 meshed 126 | mats 8 | res 550 | lights 0 | player (-4000.0, 431.5, -4000.0) ground=true | pointed nothing  dig=false prog=0.00 crack=-1
+[  8.3s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 905 meshed 126 | mats 8 | res 658 | lights 0 | player (-4000.0, 431.5, -4000.0) ground=true | pointed nothing  dig=false prog=0.00 crack=-1
+[  9.3s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 905 meshed 126 | mats 8 | res 658 | lights 0 | player (-4000.0, 431.5, -4000.0) ground=true | pointed nothing  dig=false prog=0.00 crack=-1
+[ 10.3s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 905 meshed 126 | mats 8 | res 658 | lights 0 | player (-4000.0, 431.5, -4000.0) ground=true | pointed nothing  dig=false prog=0.00 crack=-1
+[ 11.3s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 905 meshed 126 | mats 8 | res 658 | lights 0 | player (-4000.0, 431.5, -4000.0) ground=true | pointed nothing  dig=false prog=0.00 crack=-1
+[ 12.3s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 905 meshed 126 | mats 8 | res 658 | lights 0 | player (-4000.0, 431.5, -4000.0) ground=true | pointed nothing  dig=false prog=0.00 crack=-1
+[ 13.3s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 905 meshed 126 | mats 8 | res 658 | lights 0 | player (-4000.0, 431.5, -4000.0) ground=true | pointed nothing  dig=false prog=0.00 crack=-1
+[ 14.3s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 905 meshed 126 | mats 8 | res 658 | lights 0 | player (-4000.0, 431.5, -4000.0) ground=true | pointed nothing  dig=false prog=0.00 crack=-1
+[ 15.3s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 905 meshed 126 | mats 8 | res 658 | lights 0 | player (-4000.0, 431.5, -4000.0) ground=true | pointed nothing  dig=false prog=0.00 crack=-1
+[ 16.3s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 905 meshed 126 | mats 8 | res 658 | lights 0 | player (-4000.0, 431.5, -4000.0) ground=true | pointed nothing  dig=false prog=0.00 crack=-1
+[ 17.3s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 905 meshed 126 | mats 8 | res 658 | lights 0 | player (-4000.0, 431.5, -4000.0) ground=true | pointed nothing  dig=false prog=0.00 crack=-1
+[ 18.3s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 905 meshed 126 | mats 8 | res 658 | lights 0 | player (-4000.0, 431.5, -4000.0) ground=true | pointed nothing  dig=false prog=0.00 crack=-1
+[ 19.3s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 905 meshed 126 | mats 8 | res 658 | lights 0 | player (-4000.0, 431.5, -4000.0) ground=true | pointed nothing  dig=false prog=0.00 crack=-1
+[ 20.3s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 905 meshed 126 | mats 8 | res 658 | lights 0 | player (-4000.0, 431.5, -4000.0) ground=true | pointed nothing  dig=false prog=0.00 crack=-1
+[ 21.3s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 905 meshed 126 | mats 8 | res 658 | lights 0 | player (-4000.0, 431.5, -4000.0) ground=true | pointed nothing  dig=false prog=0.00 crack=-1
+[ 22.3s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 906 meshed 126 | mats 8 | res 658 | lights 0 | player (-4000.0, 431.5, -4000.0) ground=true | pointed nothing  dig=false prog=0.00 crack=-1
+[ 23.3s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 906 meshed 126 | mats 8 | res 658 | lights 0 | player (-4000.0, 431.5, -4000.0) ground=true | pointed nothing  dig=false prog=0.00 crack=-1
+[ 24.3s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 906 meshed 126 | mats 8 | res 658 | lights 0 | player (-4000.0, 431.5, -4000.0) ground=true | pointed nothing  dig=false prog=0.00 crack=-1
+[ 25.3s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 907 meshed 126 | mats 8 | res 658 | lights 0 | player (-4000.0, 431.5, -4000.0) ground=true | pointed nothing  dig=false prog=0.00 crack=-1
+[ 26.3s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 907 meshed 126 | mats 8 | res 658 | lights 0 | player (-4000.0, 431.5, -4000.0) ground=true | pointed nothing  dig=false prog=0.00 crack=-1
+[ 27.3s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 907 meshed 14 | mats 8 | res 658 | lights 0
+[ 28.3s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 1112 meshed 14 | mats 8 | res 804 | lights 0
+[ 29.3s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 1220 meshed 14 | mats 8 | res 871 | lights 0
+[ 30.3s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 1220 meshed 14 | mats 8 | res 871 | lights 0
+[ 31.3s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 1220 meshed 14 | mats 8 | res 871 | lights 0
+[ 32.3s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 1220 meshed 14 | mats 8 | res 871 | lights 0
+[ 33.3s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 1220 meshed 14 | mats 8 | res 871 | lights 0
+[ 34.3s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 1220 meshed 14 | mats 8 | res 871 | lights 0
+[ 35.3s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 1220 meshed 14 | mats 8 | res 871 | lights 0
+[ 36.3s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 1220 meshed 14 | mats 8 | res 871 | lights 0
+[ 37.3s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 1220 meshed 13 | mats 8 | res 871 | lights 0
+[ 38.3s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 1343 meshed 6 | mats 8 | res 994 | lights 0
+[ 39.3s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 1468 meshed 0 | mats 8 | res 1119 | lights 0
+[ 40.3s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 1597 meshed 0 | mats 8 | res 1248 | lights 0
+[ 41.3s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 1712 meshed 0 | mats 8 | res 1363 | lights 0
+[ 42.3s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 1858 meshed 0 | mats 8 | res 1414 | lights 0
+[ 43.3s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 1955 meshed 0 | mats 8 | res 1511 | lights 0
+[ 44.4s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 2120 meshed 0 | mats 8 | res 1092 | lights 0
+[ 45.4s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 2224 meshed 0 | mats 8 | res 1188 | lights 0
+[ 46.4s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 2370 meshed 0 | mats 8 | res 1015 | lights 0
+[ 47.4s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 2486 meshed 0 | mats 8 | res 1131 | lights 0
+[ 48.4s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 2630 meshed 0 | mats 8 | res 1007 | lights 0
+[ 49.4s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 2786 meshed 2 | mats 8 | res 1160 | lights 0
+[ 50.4s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 2915 meshed 5 | mats 8 | res 1046 | lights 0
+[ 51.4s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 3046 meshed 5 | mats 8 | res 1177 | lights 0
+[ 52.4s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 3180 meshed 5 | mats 8 | res 1054 | lights 0
+[ 53.4s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 3299 meshed 8 | mats 8 | res 1173 | lights 0
+[ 54.4s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 3507 meshed 12 | mats 8 | res 1115 | lights 0
+[ 55.4s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 3641 meshed 12 | mats 8 | res 1238 | lights 0
+[ 56.4s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 3787 meshed 11 | mats 8 | res 1104 | lights 0
+[ 57.4s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 3891 meshed 8 | mats 8 | res 1208 | lights 0
+[ 58.4s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 4036 meshed 6 | mats 8 | res 1072 | lights 0
+[ 59.4s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 4191 meshed 10 | mats 8 | res 1223 | lights 0
+[ 60.4s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 4340 meshed 10 | mats 8 | res 1110 | lights 0
+[ 61.4s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 4470 meshed 10 | mats 8 | res 1240 | lights 0
+[ 62.4s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 4620 meshed 7 | mats 8 | res 1094 | lights 0
+[ 63.4s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 4750 meshed 4 | mats 8 | res 1222 | lights 0
+[ 64.4s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 4941 meshed 5 | mats 8 | res 1120 | lights 0
+[ 65.4s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 5061 meshed 5 | mats 8 | res 1240 | lights 0
+[ 66.4s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 5217 meshed 1 | mats 8 | res 1126 | lights 0
+[ 67.4s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 5318 meshed 1 | mats 8 | res 1227 | lights 0
+[ 68.4s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 5463 meshed 1 | mats 8 | res 1073 | lights 0
+[ 69.5s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 5561 meshed 1 | mats 8 | res 1171 | lights 0
+[ 70.5s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 5721 meshed 1 | mats 8 | res 1074 | lights 0
+[ 71.5s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 5841 meshed 1 | mats 8 | res 1193 | lights 0
+[ 72.5s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 5984 meshed 1 | mats 8 | res 1035 | lights 0
+[ 73.5s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 6099 meshed 0 | mats 8 | res 1150 | lights 0
+[ 74.5s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 6261 meshed 0 | mats 8 | res 1015 | lights 0
+[ 75.5s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 6485 meshed 4 | mats 8 | res 1207 | lights 0
+[ 76.5s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 6637 meshed 4 | mats 8 | res 1334 | lights 0
+[ 77.5s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 6731 meshed 3 | mats 8 | res 1414 | lights 0
+[ 78.5s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 6859 meshed 0 | mats 8 | res 1481 | lights 0
+[ 79.5s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 7015 meshed 0 | mats 8 | res 1596 | lights 0
+[ 80.5s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 7208 meshed 0 | mats 8 | res 1495 | lights 0
+[ 81.5s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 7269 meshed 0 | mats 8 | res 1545 | lights 0
+[ 82.5s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 7468 meshed 0 | mats 8 | res 1525 | lights 0
+[ 83.5s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 7692 meshed 0 | mats 8 | res 1726 | lights 0
+[ 84.5s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 7845 meshed 0 | mats 8 | res 1543 | lights 0
+[ 85.5s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 8022 meshed 0 | mats 8 | res 1717 | lights 0
+[ 86.5s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 8152 meshed 0 | mats 8 | res 1416 | lights 0
+[ 87.5s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 8344 meshed 0 | mats 8 | res 1608 | lights 0
+[ 88.5s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 8491 meshed 0 | mats 8 | res 1347 | lights 0
+[ 89.5s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 8653 meshed 0 | mats 8 | res 1509 | lights 0
+[ 90.5s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 8799 meshed 0 | mats 8 | res 1241 | lights 0
+[ 91.6s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 8992 meshed 0 | mats 8 | res 1433 | lights 0
+[ 92.6s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 9122 meshed 0 | mats 8 | res 1216 | lights 0
+[ 93.6s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 9282 meshed 0 | mats 8 | res 1374 | lights 0
+[ 94.6s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 9406 meshed 0 | mats 8 | res 1184 | lights 0
+[ 95.6s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 9576 meshed 0 | mats 8 | res 1354 | lights 0
+[ 96.6s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 9694 meshed 0 | mats 8 | res 1140 | lights 0
+[ 97.6s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 9902 meshed 0 | mats 8 | res 1346 | lights 0
+[ 98.6s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 10078 meshed 0 | mats 8 | res 1215 | lights 0
+[ 99.6s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 10221 meshed 0 | mats 8 | res 1358 | lights 0
+[100.6s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 10354 meshed 0 | mats 8 | res 1179 | lights 0
+[101.6s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 10532 meshed 0 | mats 8 | res 1357 | lights 0
+[102.6s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 10671 meshed 0 | mats 8 | res 1179 | lights 0
+[103.6s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 10841 meshed 0 | mats 8 | res 1348 | lights 0
+[104.6s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 10959 meshed 0 | mats 8 | res 1174 | lights 0
+[105.6s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 11090 meshed 0 | mats 8 | res 1305 | lights 0
+[106.6s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 11187 meshed 0 | mats 8 | res 1067 | lights 0
+[107.6s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 11290 meshed 0 | mats 8 | res 1170 | lights 0
+[108.6s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 11431 meshed 0 | mats 8 | res 996 | lights 0
+[109.6s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 11578 meshed 0 | mats 8 | res 1143 | lights 0
+[110.6s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 11676 meshed 0 | mats 8 | res 935 | lights 0
+[111.6s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 11820 meshed 0 | mats 8 | res 1079 | lights 0
+[112.7s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 11916 meshed 0 | mats 8 | res 925 | lights 0
+[113.7s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12076 meshed 0 | mats 8 | res 1085 | lights 0
+[114.7s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12183 meshed 0 | mats 8 | res 967 | lights 0
+[115.7s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12403 meshed 0 | mats 8 | res 1155 | lights 0
+[116.7s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[117.7s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[118.7s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[119.7s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[120.7s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[121.7s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[122.7s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[123.7s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[124.7s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[125.7s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[126.7s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[127.7s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[128.7s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[129.7s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[130.7s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[131.7s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[132.7s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[133.7s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[134.7s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[135.7s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[136.7s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[137.7s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[138.7s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[139.7s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[140.7s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[141.7s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[142.7s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[143.7s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[144.7s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[145.7s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[146.8s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[147.8s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[148.8s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[149.8s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[150.8s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[151.8s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[152.8s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[153.8s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[154.8s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[155.8s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[156.8s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[157.8s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[158.8s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[159.8s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[160.8s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[161.8s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[162.8s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[163.8s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[164.8s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[165.8s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[166.8s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[167.8s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[168.8s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[169.8s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[170.8s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[171.8s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[172.8s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[173.8s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[174.9s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[175.9s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[176.9s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[177.9s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[178.9s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[179.9s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[180.9s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[181.9s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[182.9s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[183.9s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[184.9s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[185.9s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[186.9s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[187.9s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[188.9s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[189.9s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[190.9s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[191.9s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[192.9s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[193.9s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[194.9s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[195.9s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[196.9s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[197.9s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[198.9s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[199.9s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[200.9s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[201.9s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[202.9s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[203.9s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[204.9s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[205.9s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[206.9s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[207.9s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[208.9s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[209.9s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[210.9s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[212.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[213.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[214.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[215.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[216.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[217.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[218.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[219.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[220.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[221.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[222.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[223.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[224.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[225.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[226.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[227.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[228.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[229.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[230.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[231.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[232.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[233.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[234.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[235.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[236.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[237.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[238.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[239.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[240.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[241.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[242.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[243.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12584 meshed 0 | mats 8 | res 1274 | lights 0
+[244.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12679 meshed 1 | mats 8 | res 1336 | lights 0
+[245.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12848 meshed 1 | mats 8 | res 1489 | lights 0
+[246.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12848 meshed 1 | mats 8 | res 1489 | lights 0
+[247.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 12961 meshed 5 | mats 8 | res 1568 | lights 0
+[248.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13104 meshed 5 | mats 8 | res 1656 | lights 0
+[249.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13220 meshed 20 | mats 8 | res 1723 | lights 0
+[250.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13264 meshed 20 | mats 8 | res 1747 | lights 0
+[251.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13368 meshed 64 | mats 8 | res 1804 | lights 0
+[252.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13421 meshed 64 | mats 8 | res 1831 | lights 0
+[253.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13488 meshed 110 | mats 8 | res 1864 | lights 0
+[254.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13524 meshed 110 | mats 8 | res 1881 | lights 0
+[255.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13553 meshed 165 | mats 8 | res 1888 | lights 0
+[256.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13582 meshed 170 | mats 8 | res 1901 | lights 0
+[257.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13582 meshed 212 | mats 8 | res 1879 | lights 0
+[258.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13589 meshed 212 | mats 8 | res 1886 | lights 0
+[259.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13600 meshed 212 | mats 8 | res 1862 | lights 0
+[260.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13600 meshed 212 | mats 8 | res 1862 | lights 0
+[261.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13600 meshed 212 | mats 8 | res 1862 | lights 0
+[262.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13600 meshed 212 | mats 8 | res 1862 | lights 0
+[263.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13600 meshed 212 | mats 8 | res 1862 | lights 0
+[264.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13600 meshed 212 | mats 8 | res 1862 | lights 0
+[265.0s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13600 meshed 212 | mats 8 | res 1862 | lights 0
+[266.1s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13600 meshed 212 | mats 8 | res 1862 | lights 0
+[267.1s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13600 meshed 212 | mats 8 | res 1862 | lights 0
+[268.1s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13600 meshed 212 | mats 8 | res 1862 | lights 0
+[269.1s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13600 meshed 212 | mats 8 | res 1862 | lights 0
+[270.1s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13600 meshed 212 | mats 8 | res 1862 | lights 0
+[271.1s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13600 meshed 212 | mats 8 | res 1862 | lights 0
+[272.1s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13600 meshed 212 | mats 8 | res 1862 | lights 0
+[273.1s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13600 meshed 212 | mats 8 | res 1862 | lights 0
+[274.1s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13600 meshed 212 | mats 8 | res 1862 | lights 0
+[275.1s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13600 meshed 212 | mats 8 | res 1862 | lights 0
+[276.1s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13600 meshed 212 | mats 8 | res 1862 | lights 0
+[277.1s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13600 meshed 192 | mats 8 | res 1862 | lights 0
+[278.1s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13601 meshed 192 | mats 8 | res 1863 | lights 0
+[279.1s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13601 meshed 127 | mats 8 | res 1863 | lights 0
+[280.1s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13602 meshed 127 | mats 8 | res 1863 | lights 0
+[281.1s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13602 meshed 73 | mats 8 | res 1862 | lights 0
+[282.1s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13602 meshed 73 | mats 8 | res 1862 | lights 0
+[283.1s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13604 meshed 21 | mats 8 | res 1851 | lights 0
+[284.1s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13609 meshed 21 | mats 8 | res 1856 | lights 0
+[285.1s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13609 meshed 21 | mats 8 | res 1811 | lights 0
+[286.1s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13609 meshed 21 | mats 8 | res 1811 | lights 0
+[287.1s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13609 meshed 21 | mats 8 | res 1811 | lights 0
+[288.1s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13609 meshed 21 | mats 8 | res 1811 | lights 0
+[289.1s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13609 meshed 21 | mats 8 | res 1811 | lights 0
+[290.1s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13609 meshed 21 | mats 8 | res 1811 | lights 0
+[291.1s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13609 meshed 21 | mats 8 | res 1811 | lights 0
+[292.1s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13609 meshed 21 | mats 8 | res 1811 | lights 0
+[293.1s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13609 meshed 21 | mats 8 | res 1811 | lights 0
+[294.1s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13609 meshed 21 | mats 8 | res 1811 | lights 0
+[295.1s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13609 meshed 21 | mats 8 | res 1811 | lights 0
+[296.1s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13609 meshed 21 | mats 8 | res 1811 | lights 0
+[297.1s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13609 meshed 21 | mats 8 | res 1811 | lights 0
+[298.1s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13609 meshed 21 | mats 8 | res 1811 | lights 0
+[299.1s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13609 meshed 21 | mats 8 | res 1811 | lights 0
+[300.1s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13609 meshed 21 | mats 8 | res 1811 | lights 0
+[301.1s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13609 meshed 21 | mats 8 | res 1811 | lights 0
+[302.1s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13609 meshed 21 | mats 8 | res 1811 | lights 0
+[303.1s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13609 meshed 21 | mats 8 | res 1811 | lights 0
+[304.1s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13609 meshed 21 | mats 8 | res 1811 | lights 0
+[305.1s] ready | TOSERVER_CLIENT_READY sent | media 5902/5902 | blocks recv 13609 meshed 21 | mats 8 | res 1811 | lights 0

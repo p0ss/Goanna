@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Goanna procedural ice study</title>
+<style>
+:root{color-scheme:dark;font:17px/1.5 system-ui;background:#111b24;color:#e7eef3}
+body{max-width:1280px;margin:32px auto;padding:0 20px}h1,h2{line-height:1.2}
+p{max-width:85ch}a{color:#8edbff}section{margin:40px 0}button{padding:7px 16px}
+.compare{position:relative;aspect-ratio:16/9;--split:50%;background:#080d12}
+.compare img{position:absolute;width:100%;height:100%;object-fit:contain}
+.compare .before{clip-path:inset(0 calc(100% - var(--split)) 0 0)}
+.compare:after{content:"";position:absolute;left:var(--split);top:0;bottom:0;border-left:2px solid white;pointer-events:none}
+.label{position:absolute;top:12px;background:#08121dde;padding:5px 10px;border-radius:4px;font-size:14px}
+.left{left:12px}.right{right:12px}input[type=range]{width:100%;margin:14px 0}
+.motion{display:block;width:100%;aspect-ratio:16/9;object-fit:contain}small{color:#becbd5}
+</style>
+<h1>Ice with an internal structure</h1>
+<p>Live Mineclonia material study in a disposable pool, rendered with Godot 4.5.1 Forward+.
+The baseline is the rough, transparent ice accepted in the previous pass.
+The procedural material adds internal fractures, cloudy regions, sparse air pockets and blue absorption,
+while retaining that surface's rough glints and depth ordering with water.</p>
+<p>Each pair uses one frozen scene and swaps only the ice shader. Camera, sky, lighting and grading
+are identical within the pair. Water continues to animate. The two taller pillars use opaque
+packed and blue ice and retain their existing materials; the lake sheet and shorter pillar use the new shader.</p>
+<p><strong>Scope:</strong> this is a bounded optical layer, not measured iceberg thickness or nested refraction.
+The known camera-clipping band exactly at the waterline remains. These pool views do not establish landscape performance.</p>
+<section><h2>Formation close-up</h2>
+<div class="compare" id="relief-close"><img src="relief-close-procedural.png" alt="Procedural ice: Formation close-up" loading="lazy">
+<img class="before" src="relief-close-accepted.png" alt="Previously accepted ice: Formation close-up" loading="lazy">
+<span class="label left">Previously accepted</span><span class="label right">Procedural</span></div>
+<label>Compare <input type="range" min="0" max="100" value="50" aria-label="Comparison split for Formation close-up" oninput="document.getElementById('relief-close').style.setProperty('--split',this.value+'%')"></label>
+<small>Full images: <a href="relief-close-accepted.png">accepted</a> / <a href="relief-close-procedural.png">procedural</a>.
+Camera and shader metadata: <a href="relief-close-accepted.json">accepted</a> / <a href="relief-close-procedural.json">procedural</a>.</small></section>
+<section><h2>Lake surface and rough highlights</h2>
+<div class="compare" id="top-close"><img src="top-close-procedural.png" alt="Procedural ice: Lake surface and rough highlights" loading="lazy">
+<img class="before" src="top-close-accepted.png" alt="Previously accepted ice: Lake surface and rough highlights" loading="lazy">
+<span class="label left">Previously accepted</span><span class="label right">Procedural</span></div>
+<label>Compare <input type="range" min="0" max="100" value="50" aria-label="Comparison split for Lake surface and rough highlights" oninput="document.getElementById('top-close').style.setProperty('--split',this.value+'%')"></label>
+<small>Full images: <a href="top-close-accepted.png">accepted</a> / <a href="top-close-procedural.png">procedural</a>.
+Camera and shader metadata: <a href="top-close-accepted.json">accepted</a> / <a href="top-close-procedural.json">procedural</a>.</small></section>
+<section><h2>Whole pool</h2>
+<div class="compare" id="above"><img src="above-procedural.png" alt="Procedural ice: Whole pool" loading="lazy">
+<img class="before" src="above-accepted.png" alt="Previously accepted ice: Whole pool" loading="lazy">
+<span class="label left">Previously accepted</span><span class="label right">Procedural</span></div>
+<label>Compare <input type="range" min="0" max="100" value="50" aria-label="Comparison split for Whole pool" oninput="document.getElementById('above').style.setProperty('--split',this.value+'%')"></label>
+<small>Full images: <a href="above-accepted.png">accepted</a> / <a href="above-procedural.png">procedural</a>.
+Camera and shader metadata: <a href="above-accepted.json">accepted</a> / <a href="above-procedural.json">procedural</a>.</small></section>
+<section><h2>Lake edge above water</h2>
+<div class="compare" id="edge"><img src="edge-procedural.png" alt="Procedural ice: Lake edge above water" loading="lazy">
+<img class="before" src="edge-accepted.png" alt="Previously accepted ice: Lake edge above water" loading="lazy">
+<span class="label left">Previously accepted</span><span class="label right">Procedural</span></div>
+<label>Compare <input type="range" min="0" max="100" value="50" aria-label="Comparison split for Lake edge above water" oninput="document.getElementById('edge').style.setProperty('--split',this.value+'%')"></label>
+<small>Full images: <a href="edge-accepted.png">accepted</a> / <a href="edge-procedural.png">procedural</a>.
+Camera and shader metadata: <a href="edge-accepted.json">accepted</a> / <a href="edge-procedural.json">procedural</a>.</small></section>
+<section><h2>Lake edge below water</h2>
+<div class="compare" id="side"><img src="side-procedural.png" alt="Procedural ice: Lake edge below water" loading="lazy">
+<img class="before" src="side-accepted.png" alt="Previously accepted ice: Lake edge below water" loading="lazy">
+<span class="label left">Previously accepted</span><span class="label right">Procedural</span></div>
+<label>Compare <input type="range" min="0" max="100" value="50" aria-label="Comparison split for Lake edge below water" oninput="document.getElementById('side').style.setProperty('--split',this.value+'%')"></label>
+<small>Full images: <a href="side-accepted.png">accepted</a> / <a href="side-procedural.png">procedural</a>.
+Camera and shader metadata: <a href="side-accepted.json">accepted</a> / <a href="side-procedural.json">procedural</a>.</small></section>
+<section><h2>Underside of the sheet</h2>
+<div class="compare" id="below"><img src="below-procedural.png" alt="Procedural ice: Underside of the sheet" loading="lazy">
+<img class="before" src="below-accepted.png" alt="Previously accepted ice: Underside of the sheet" loading="lazy">
+<span class="label left">Previously accepted</span><span class="label right">Procedural</span></div>
+<label>Compare <input type="range" min="0" max="100" value="50" aria-label="Comparison split for Underside of the sheet" oninput="document.getElementById('below').style.setProperty('--split',this.value+'%')"></label>
+<small>Full images: <a href="below-accepted.png">accepted</a> / <a href="below-procedural.png">procedural</a>.
+Camera and shader metadata: <a href="below-accepted.json">accepted</a> / <a href="below-procedural.json">procedural</a>.</small></section>
+<section><h2>Move around the formation</h2>
+<p>Nine rendered camera positions around the same ice. Scrub to inspect how the internal fractures move relative to the rough surface. This shows the procedural material only.</p>
+<img class="motion" id="orbit" src="motion-4.png" alt="Procedural ice viewed around a short camera orbit">
+<label>Camera position <input id="orbit-range" type="range" min="0" max="8" value="4" oninput="showFrame(+this.value)"></label>
+<button id="play" type="button" onclick="togglePlay()">Play orbit</button> <a href="motion.json">Camera metadata</a></section>
+<section><h2>Verification and limits</h2>
+<p>A fresh launch generated both 3D volumes and rendered the final material without shader replacements.
+The submerged sheet edge retains all 66 triangles. Above-water and underwater views passed;
+Solid ice and facing away both disable the extra background view.
+<a href="cold-checks.json">Checks and capture metadata</a>.
+Fresh-launch captures: <a href="cold-close.png">close-up</a>, <a href="cold-above.png">above water</a>,
+<a href="cold-below.png">below water</a>, <a href="solid-ice.png">Solid ice option</a>.</p>
+<p>One 120-frame edge-view sample on an RTX 3090 at 1600x900 measured 8.73 ms median frame time
+with the accepted material and 8.82 ms with the procedural material. Main-view GPU times were 6.25 and 6.42 ms.
+The separate capture varied between runs, so this is a fixture result, not an exact isolated shader cost.
+<a href="performance.json">Timing data</a>.</p>
+<p>The shader samples 1.15 nodes of optical depth along the face normal. It does not trace the actual
+exit face of the ice, so thin sheets and thick formations still share that approximation.
+Fracture detail is limited by the volume resolution and 24 samples; close views can expose the sampling.
+Surface relief remains shading, and its retained texture-derived facets repeat with the tile.</p>
+<p>Compared source snapshots: <a href="accepted.gdshader">accepted</a>, <a href="procedural.gdshader">procedural</a>.
+<a href="../../ice-rendering.md">Implementation notes</a>.</p></section>
+<script>
+let frame=4,direction=1,timer=null;
+for(let i=0;i<9;i++){const im=new Image();im.src=`motion-${i}.png`;}
+function showFrame(i){frame=i;document.getElementById('orbit').src=`motion-${i}.png`;document.getElementById('orbit-range').value=i;}
+function togglePlay(){if(timer){clearInterval(timer);timer=null;document.getElementById('play').textContent='Play orbit';}
+else{timer=setInterval(()=>{if(frame===8)direction=-1;if(frame===0)direction=1;showFrame(frame+direction);},180);document.getElementById('play').textContent='Pause orbit';}}
+</script></html>

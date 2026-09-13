@@ -1,0 +1,56 @@
+{
+  "disturbed_deg": 0.0,
+  "disturbed_m": 0.0,
+  "frames": 19505,
+  "label": "terrain-storage-revisit",
+  "overflowed": false,
+  "phases": {
+    "move_early": {
+      "bound": "main-thread",
+      "bound_share": 0.58778353277371,
+      "cpu_ms_median": 0.474999994039536,
+      "distance_m": 1505.08264160156,
+      "fps_mean": 139.905166336223,
+      "frames": 11198,
+      "gpu_ms_median": 2.58899998664856,
+      "hitches": 840,
+      "hitches_per_min": 629.685692386645,
+      "low01_ms": 39.4494545676491,
+      "low1_ms": 31.1494865245647,
+      "max_ms": 45.0750007629395,
+      "median_ms": 5.40100002288818,
+      "p999_ms": 36.056999206543,
+      "p99_ms": 26.9220008850098,
+      "seconds": 80.039932,
+      "stability": 5.76735537725614
+    },
+    "steady": {
+      "bound": "gpu",
+      "bound_share": 0.891631547260686,
+      "cpu_ms_median": 0.412000000476837,
+      "distance_m": 0.0,
+      "fps_mean": 274.697995931757,
+      "frames": 8305,
+      "gpu_ms_median": 2.72699999809265,
+      "hitches": 69,
+      "hitches_per_min": 136.935545232688,
+      "low01_ms": 41.7838745117188,
+      "low1_ms": 15.1101445002728,
+      "max_ms": 214.190994262695,
+      "median_ms": 3.06200003623962,
+      "p999_ms": 14.4099998474121,
+      "p99_ms": 10.7530002593994,
+      "seconds": 30.233202,
+      "stability": 4.93473034664926
+    }
+  },
+  "stamps": {
+    "boot_s": 0.955,
+    "connect_blocks": 0,
+    "connect_far_reach": 0,
+    "connect_s": 5.942,
+    "playable_blocks": 113,
+    "playable_far_reach": 3168,
+    "playable_s": 9.538
+  }
+}

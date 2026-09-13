@@ -1,0 +1,22 @@
+{
+  "blocks_meshed": 304,
+  "camera": [
+    -4000.0,
+    572.315551757812,
+    -4003.84814453125
+  ],
+  "deviations": {
+    "time_of_day_override": [
+      -1.0,
+      0.5
+    ]
+  },
+  "path": "/tmp/goanna-terrain-flight/ridge-flight/outbound-0.png",
+  "pitch": -18.0,
+  "size": [
+    1600,
+    900
+  ],
+  "time_of_day": 0.5,
+  "yaw": 0.0
+}

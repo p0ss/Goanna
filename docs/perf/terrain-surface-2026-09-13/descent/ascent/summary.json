@@ -1,0 +1,37 @@
+{
+  "disturbed_deg": 0.0,
+  "disturbed_m": 0.0,
+  "frames": 4008,
+  "label": "terrain-ascent",
+  "overflowed": false,
+  "phases": {
+    "move_early": {
+      "bound": "gpu",
+      "bound_share": 0.954080359371101,
+      "cpu_ms_median": 0.532000005245209,
+      "distance_m": 107.001808166504,
+      "fps_mean": 265.205027577815,
+      "frames": 4007,
+      "gpu_ms_median": 3.3199999332428,
+      "hitches": 17,
+      "hitches_per_min": 67.5091410355306,
+      "low01_ms": 46.9137492179871,
+      "low1_ms": 14.9019748926163,
+      "max_ms": 67.0309982299805,
+      "median_ms": 3.49399995803833,
+      "p999_ms": 14.0679998397827,
+      "p99_ms": 10.0139999389648,
+      "seconds": 15.109065,
+      "stability": 4.26501862380755
+    }
+  },
+  "stamps": {
+    "boot_s": 0.955,
+    "connect_blocks": 0,
+    "connect_far_reach": 0,
+    "connect_s": 5.942,
+    "playable_blocks": 113,
+    "playable_far_reach": 3168,
+    "playable_s": 9.538
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "blocks_meshed": 212,
+  "camera": [
+    -4000.0,
+    465.0,
+    -4000.0
+  ],
+  "deviations": {
+    "time_of_day_override": [
+      -1.0,
+      0.5
+    ]
+  },
+  "path": "/var/home/poss/Documents/Code/Godot/goanna/docs/perf/terrain-surface-2026-09-13/descent/low-held.png",
+  "pitch": -35.0,
+  "size": [
+    1600,
+    900
+  ],
+  "time_of_day": 0.5,
+  "yaw": 180.0
+}

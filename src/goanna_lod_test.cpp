@@ -9,6 +9,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
+#include <map>
 
 using namespace goanna;
 
@@ -49,6 +50,49 @@ void fillCell(LodLevel::Cell &cell, content_t content, bool occludes = true) {
     cell.flags |= LodLevel::kFilled | (occludes ? LodLevel::kOccludes : 0);
     for (content_t &face : cell.face)
         face = content;
+}
+
+void testSparseCaptureBounds() {
+    std::map<v3s16, int> field;
+    for (int x = -7; x <= 7; ++x)
+        for (int y = -7; y <= 7; ++y)
+            for (int z = -7; z <= 7; ++z)
+                if ((x + y + z) % 3 == 0)
+                    field.emplace(v3s16(x, y, z), x * 100 + y * 10 + z);
+    const v3s16 low(-4, -3, -2);
+    std::map<v3s16, int> visited, expected;
+    visitLodBox(field, low, 5, [&](v3s16 bp, int value) {
+        expect(visited.emplace(bp, value).second, "sparse capture visited a block twice");
+    });
+    for (const auto &entry : field) {
+        const v3s16 d = entry.first - low;
+        if (d.X >= 0 && d.Y >= 0 && d.Z >= 0 && d.X < 5 && d.Y < 5 && d.Z < 5)
+            expected.insert(entry);
+    }
+    expect(!expected.empty() && visited == expected,
+            "sparse capture differs from the complete three-dimensional bounds");
+}
+
+void testProjectedDetailIncludesAltitudeAndResolution() {
+    const float radius = 512.0f, focal = 640.0f;
+    expect(lodProjectedTier(v3f(0, 40, 0), 0, true, radius, focal) == 0,
+            "close terrain lost full detail");
+    expect(lodProjectedTier(v3f(0, 300, 0), 0, true, radius, focal) == 2,
+            "high-altitude terrain stayed in the near cylinder");
+    expect(lodProjectedTier(v3f(300, 0, 0), 0, true, radius, focal) == 2,
+            "altitude and horizontal distance do not share the projection rule");
+    expect(lodProjectedTier(v3f(300, 0, 0), 0, true, radius, focal * 2) == 1,
+            "higher display resolution did not retain more detail");
+    expect(lodProjectedTier(v3f(0, 0, 0), 0, false, radius, focal) == 1,
+            "missing live data suppressed the far fallback");
+    expect(lodProjectedTier(v3f(130, 0, 0), 1, true, radius, focal) == 1,
+            "near boundary has no return hysteresis");
+    expect(lodProjectedTier(v3f(110, 0, 0), 1, true, radius, focal) == 0,
+            "approaching terrain did not regain full detail");
+    expect(lodProjectedTier(v3f(100, 0, 0), 0, true, 64, focal * 4) == 1,
+            "projection exceeded the configured detail radius");
+    expect(lodProjectedTier(v3f(0, 1000, 0), 3, true, 0, focal) == 0,
+            "disabled LOD still reduced detail");
 }
 
 void testRecursiveVoxelMip() {
@@ -252,6 +296,252 @@ void testTerrainSkirtsFaceOutwardOnBothAxes() {
     expect(x_faces > 0 && z_faces > 0, "skirt winding fixture did not cover both axes");
 }
 
+// Ground on both sides of negative block coordinates exercises the region
+// margin and fine/coarse alignment independently of a live world fixture.
+void testGroundSurfaceJoins(bool mixed) {
+    NodeDefManager ndef;
+    std::map<v3s16, BlockLodChain> field;
+    for (int bz = -2; bz <= 1; ++bz)
+        for (int bx = -3; bx <= 1; ++bx) {
+            BlockLodChain ch = airChain();
+            LodLevel &lv = ch.level[BlockLodChain::levelForCell(4)];
+            for (int z = 0; z < 4; ++z)
+                for (int x = 0; x < 4; ++x) {
+                    const int height = 3 + (bx + 2) * 2 + x / 2 + (z >= 2 ? 2 : 0);
+                    for (int y = 0; y * 4 < height; ++y) {
+                        fillCell(lv.at(x, y, z), CONTENT_UNKNOWN);
+                        const int top = height - y * 4;
+                        lv.at(x, y, z).top = top < 4 ? top : 0;
+                    }
+                }
+            buildLodMipLevels(ch, BlockLodChain::levelForCell(4));
+            buildLodTerrainSurface(&ndef, ch, BlockLodChain::levelForCell(4));
+            field.emplace(v3s16(bx, 0, bz), std::move(ch));
+        }
+    auto chain = [&](v3s16 bp) -> const BlockLodChain * {
+        auto it = field.find(bp);
+        return it == field.end() ? nullptr : &it->second;
+    };
+    auto drawn = [&](v3s16 bp) {
+        return chain(bp) ? (mixed && bp.X >= -1 ? 8 : 4) : -1;
+    };
+    auto mesh_at = [&](v3s16 origin) {
+        LodRegionSpec spec;
+        spec.origin = origin;
+        spec.blocks = 1;
+        spec.cell = drawn(origin);
+        spec.member = [=](v3s16 bp) { return bp == origin; };
+        spec.chain = chain;
+        spec.drawn_cell = drawn;
+        LodTileCache tiles;
+        return meshLodRegion(spec, &ndef, nullptr, nullptr, tiles);
+    };
+    const LodRegionMesh fine = mesh_at(v3s16(-2, 0, -1));
+    const LodRegionMesh other = mesh_at(v3s16(-1, 0, -1));
+    auto boundary = [](const LodRegionMesh &mesh) {
+        std::map<float, float> heights;
+        for (const LodSurface &sf : mesh.surfaces)
+            for (size_t i = 0; i < sf.pos.size(); ++i) {
+                const v3f &p = sf.pos[i];
+                if (std::fabs(p.X + 16.0f) > 0.001f || sf.nrm[i].Y < 0.1f)
+                    continue;
+                auto previous = heights.find(p.Z);
+                if (previous != heights.end())
+                    expect(std::fabs(previous->second - p.Y) < 0.001f,
+                            "adjacent terrain quads disagree at a shared corner");
+                heights[p.Z] = p.Y;
+            }
+        return heights;
+    };
+    const auto a = boundary(fine), b = boundary(other);
+    expect(a.size() == 5 && b.size() == (mixed ? 3 : 5), "surface boundary is incomplete");
+    for (auto [z, y] : a) {
+        auto hi = b.lower_bound(z);
+        expect(hi != b.end(), "surface boundary did not reach the fine edge");
+        float target = hi->second;
+        if (hi->first != z) {
+            expect(hi != b.begin(), "surface boundary starts after the fine edge");
+            auto lo = std::prev(hi);
+            const float t = (z - lo->first) / (hi->first - lo->first);
+            target = lo->second * (1 - t) + hi->second * t;
+        }
+        expect(std::fabs(y - target) < 0.001f, "ground has an open seam between regions");
+    }
+    // Continuous slopes contain no internal vertical risers. This fixture
+    // has neighbours on every horizontal edge, so no frontier skirt is due.
+    expect(fine.skirts == 0, "continuous hillside still has terrace risers");
+    bool slope_normal = false;
+    for (const LodSurface &sf : fine.surfaces)
+        for (const v3f &normal : sf.nrm)
+            slope_normal |= normal.Y > 0.1f && normal.Y < 0.999f;
+    expect(slope_normal, "sloping ground is still lit as horizontal plates");
+}
+
+void testFarApronReachesDetailedGround() {
+    NodeDefManager ndef;
+    BlockLodChain far = airChain();
+    for (int z = 0; z < 4; ++z)
+        for (int x = 0; x < 4; ++x)
+            for (int y = 0; y < 3; ++y)
+                fillCell(far.level[2].at(x, y, z), CONTENT_UNKNOWN);
+    buildLodTerrainSurface(&ndef, far, 2);
+    BlockLodChain near = fineAirChain();
+    for (int z = 0; z < 16; ++z)
+        for (int x = 0; x < 16; ++x)
+            fillCell(near.level[0].at(x, 0, z), CONTENT_UNKNOWN);
+    buildLodMipLevels(near, 0);
+    buildLodTerrainSurface(&ndef, near, 0);
+    compactLodFineBoundary(near);
+    LodRegionSpec spec;
+    spec.blocks = 1;
+    spec.cell = 4;
+    spec.member = [](v3s16 bp) { return bp == v3s16(0, 0, 0); };
+    spec.chain = [&](v3s16 bp) -> const BlockLodChain * {
+        if (bp == v3s16(0, 0, 0)) return &far;
+        if (bp == v3s16(1, 0, 0)) return &near;
+        return nullptr;
+    };
+    spec.drawn_cell = [](v3s16 bp) {
+        if (bp == v3s16(0, 0, 0)) return 4;
+        if (bp == v3s16(1, 0, 0)) return 0;
+        return -1;
+    };
+    LodTileCache tiles;
+    const auto mesh = meshLodRegion(spec, &ndef, nullptr, nullptr, tiles);
+    float lowest = 1000, highest = -1000;
+    for (const LodSurface &sf : mesh.surfaces)
+        for (size_t i = 0; i < sf.pos.size(); ++i)
+            if (sf.nrm[i].X > 0.99f && std::fabs(sf.pos[i].X - 16.0f) < 0.001f) {
+                lowest = std::min(lowest, sf.pos[i].Y);
+                highest = std::max(highest, sf.pos[i].Y);
+            }
+    expect(lowest <= 1.0f && highest >= 12.0f,
+            "far boundary apron stopped above the detailed neighbour's ground");
+}
+
+void testProviderShellIsGroundButVoxelSlabIsNot() {
+    NodeDefManager ndef;
+    BlockLodChain shell = airChain();
+    LodLevel &lv = shell.level[BlockLodChain::levelForCell(4)];
+    // A provider sends the visible skin and omits buried cells. The same
+    // occupancy in an ordinary voxel summary is a genuinely floating slab.
+    for (int z = 0; z < 4; ++z)
+        for (int x = 0; x < 4; ++x)
+            fillCell(lv.at(x, 2, z), CONTENT_UNKNOWN);
+    buildLodMipLevels(shell, BlockLodChain::levelForCell(4));
+    BlockLodChain slab = shell;
+    shell.surface_shell = true;
+    buildLodTerrainSurface(&ndef, shell, BlockLodChain::levelForCell(4));
+    buildLodTerrainSurface(&ndef, slab, BlockLodChain::levelForCell(4));
+    expect(shell.level[2].terrainAt(1, 1) == 12, "provider shell did not retain its ground height");
+    expect(slab.level[2].terrainAt(1, 1) == 0, "voxel slab was mistaken for provider ground");
+    expect(!(shell.level[2].at(1, 0, 1).flags & LodLevel::kFilled),
+            "provider presentation invented filled voxel occupancy");
+    LodRegionSpec spec;
+    spec.blocks = 1;
+    spec.cell = 4;
+    spec.member = [](v3s16 bp) { return bp == v3s16(0, 0, 0); };
+    spec.chain = [&](v3s16 bp) -> const BlockLodChain * {
+        return bp == v3s16(0, 0, 0) ? &shell : nullptr;
+    };
+    spec.drawn_cell = [](v3s16 bp) { return bp == v3s16(0, 0, 0) ? 4 : -1; };
+    LodTileCache tiles;
+    const auto mesh = meshLodRegion(spec, &ndef, nullptr, nullptr, tiles);
+    expect(mesh.surface_cells == 16, "provider skin fell back to floating voxel boxes");
+    for (const LodSurface &sf : mesh.surfaces)
+        for (const v3f &normal : sf.nrm)
+            expect(normal.Y >= 0.0f, "provider ground emitted an underside lid");
+}
+
+void testSurfaceRetainsMeasuredRidgeHeight() {
+    NodeDefManager ndef;
+    BlockLodChain ch = airChain();
+    LodLevel &lv = ch.level[BlockLodChain::levelForCell(4)];
+    for (int z = 0; z < 4; ++z)
+        for (int x = 0; x < 4; ++x)
+            fillCell(lv.at(x, 0, z), CONTENT_UNKNOWN);
+    fillCell(lv.at(1, 1, 1), CONTENT_UNKNOWN);
+    fillCell(lv.at(1, 2, 1), CONTENT_UNKNOWN);
+    buildLodTerrainSurface(&ndef, ch, BlockLodChain::levelForCell(4));
+    LodRegionSpec spec;
+    spec.blocks = 1;
+    spec.cell = 4;
+    spec.member = [](v3s16 bp) { return bp == v3s16(0, 0, 0); };
+    spec.chain = [&](v3s16 bp) -> const BlockLodChain * {
+        return bp.Y == 0 ? &ch : nullptr;
+    };
+    spec.drawn_cell = [](v3s16 bp) { return bp.Y == 0 ? 4 : -1; };
+    LodTileCache tiles;
+    const LodRegionMesh mesh = meshLodRegion(spec, &ndef, nullptr, nullptr, tiles);
+    float peak = 0;
+    for (const LodSurface &sf : mesh.surfaces)
+        for (const v3f &p : sf.pos)
+            peak = std::max(peak, p.Y);
+    expect(std::fabs(peak - 12.0f) < 0.001f,
+            "surface averaging erased the measured ridge height");
+}
+
+void testGroundCannotCoverShallowWater() {
+    NodeDefManager ndef;
+    BlockLodChain ch = airChain();
+    LodLevel &lv = ch.level[BlockLodChain::levelForCell(4)];
+    for (int z = 0; z < 4; ++z)
+        for (int x = 0; x < 4; ++x) {
+            LodLevel::Cell &c = lv.at(x, 0, z);
+            fillCell(c, CONTENT_UNKNOWN);
+            c.flags |= LodLevel::kLiquid;
+            c.liquid = CONTENT_UNKNOWN;
+            c.liquid_top = 3;
+        }
+    buildLodMipLevels(ch, BlockLodChain::levelForCell(4));
+    buildLodTerrainSurface(&ndef, ch, BlockLodChain::levelForCell(4));
+    for (int cell : {4, 8, 16}) {
+        LodRegionSpec spec;
+        spec.blocks = 1;
+        spec.cell = cell;
+        spec.member = [](v3s16 bp) { return bp == v3s16(0, 0, 0); };
+        spec.chain = [&](v3s16 bp) -> const BlockLodChain * {
+            return bp.Y == 0 ? &ch : nullptr;
+        };
+        spec.drawn_cell = [=](v3s16 bp) { return bp.Y == 0 ? cell : -1; };
+        LodTileCache tiles;
+        const LodRegionMesh mesh = meshLodRegion(spec, &ndef, nullptr, nullptr, tiles);
+        bool water = false, ground = false;
+        for (const LodSurface &sf : mesh.surfaces)
+            for (size_t i = 0; i < sf.pos.size(); ++i) {
+                if (sf.nrm[i].Y < 0.1f)
+                    continue;
+                expect(sf.pos[i].Y <= 3.001f, "coarse ground rose above shallow water");
+                water |= std::fabs(sf.pos[i].Y - 3.0f) < 0.001f;
+                ground |= sf.pos[i].Y < 2.9f;
+            }
+        expect(water && ground, "shallow water lost its envelope or opaque seabed");
+    }
+}
+
+void testSurfaceKeepsFloatingRockAtCoarseResolution() {
+    NodeDefManager ndef;
+    BlockLodChain ch = airChain();
+    LodLevel &lv = ch.level[BlockLodChain::levelForCell(4)];
+    // A rock suspended above known air must not become a forest canopy or a
+    // sheet draped down to the block floor at the cell-8 rung.
+    fillCell(lv.at(0, 2, 0), CONTENT_UNKNOWN);
+    buildLodMipLevels(ch, BlockLodChain::levelForCell(4));
+    buildLodTerrainSurface(&ndef, ch, BlockLodChain::levelForCell(4));
+    LodRegionSpec spec;
+    spec.blocks = 1;
+    spec.cell = 8;
+    spec.member = [](v3s16 bp) { return bp == v3s16(0, 0, 0); };
+    spec.chain = [&](v3s16 bp) -> const BlockLodChain * {
+        return bp == v3s16(0, 0, 0) ? &ch : nullptr;
+    };
+    spec.drawn_cell = [](v3s16 bp) { return bp == v3s16(0, 0, 0) ? 8 : -1; };
+    LodTileCache tiles;
+    const LodRegionMesh mesh = meshLodRegion(spec, &ndef, nullptr, nullptr, tiles);
+    expect(mesh.surface_cells == 0, "floating rock became a terrain or canopy surface");
+    expect(mesh.faces == 6, "floating rock lost its closed volumetric boundary");
+}
+
 void testCellOneTreeBoundary() {
     BlockLodChain tree = fineAirChain();
     LodLevel &fine = tree.level[BlockLodChain::levelForCell(1)];
@@ -414,12 +704,21 @@ void testTierBoundaryUsesDrawnOccupancy() {
 } // namespace
 
 int main() {
+    testSparseCaptureBounds();
+    testProjectedDetailIncludesAltitudeAndResolution();
     testRecursiveVoxelMip();
     testLiquidSurfaceHeightSurvivesMip();
     testLiquidIsAnEnvelopeOverSolid();
     testIsolatedVoxelHasAllSixFaces();
     testConnectedGroundFollowsAValley();
     testTerrainSkirtsFaceOutwardOnBothAxes();
+    testGroundSurfaceJoins(false);
+    testGroundSurfaceJoins(true);
+    testFarApronReachesDetailedGround();
+    testProviderShellIsGroundButVoxelSlabIsNot();
+    testSurfaceRetainsMeasuredRidgeHeight();
+    testGroundCannotCoverShallowWater();
+    testSurfaceKeepsFloatingRockAtCoarseResolution();
     testCellOneTreeBoundary();
     testCellOneMeetsCellFourWithoutOverlap();
     testUnknownFrontierIsClosed();

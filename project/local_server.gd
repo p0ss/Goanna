@@ -660,7 +660,9 @@ func start_config(options: Dictionary) -> String:
 		# disagreement looks exactly like a hard streaming limit. Keep digging
 		# and interaction checks, but let this single player's movement be the
 		# streaming centre. A public server must make its own trust decision.
-		cf.store_string("anticheat_flags = digging,interaction\n")
+		# Flag settings inherit omitted flags from Luanti's defaults. Merely
+		# leaving movement out keeps it enabled and the streaming centre behind.
+		cf.store_string("anticheat_flags = digging,interaction,nomovement\n")
 		# default_privs applies at first join only, so a player created in an
 		# earlier world keeps what they had. Naming the player as the server's
 		# admin gives them the privs priv on every world, old or new, so

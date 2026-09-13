@@ -47,13 +47,20 @@ public:
     bool open(const std::string &dir, uint64_t cap_bytes);
     void close();
     bool isOpen() const { return !m_dir.empty(); }
+    const std::string &directory() const { return m_dir; }
 
     void put(v3s16 bp, uint8_t ser_ver, const std::string &payload, uint32_t stamp);
-    bool get(v3s16 bp, uint8_t &ser_ver, std::string &payload, uint32_t *stamp = nullptr);
+    bool get(v3s16 bp, uint8_t &ser_ver, std::string &payload, uint32_t *stamp = nullptr,
+            size_t max_bytes = 0);
     bool has(v3s16 bp);
     // Which blocks of a region exist: 4096 bits, slot = (z * 16 + y) * 16 + x
     // in block coordinates relative to the region. False if no such file.
     bool regionMask(v3s16 region, std::vector<uint8_t> &bits);
+    // Main-thread lookup: never waits on disk or on a writer. False asks the
+    // caller to prime this index on its I/O worker and retry later. A missing
+    // region is a ready, empty mask, so it needs no disk access.
+    bool tryRegionMask(v3s16 region, std::vector<uint8_t> &bits);
+    bool tryHas(v3s16 bp, bool &present);
 
     static v3s16 regionOf(v3s16 bp);
     static int slotOf(v3s16 bp);

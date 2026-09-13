@@ -1,0 +1,56 @@
+{
+  "blocks_meshed": 1049,
+  "camera": [
+    -3.0,
+    76.5,
+    8.0
+  ],
+  "deviations": {
+    "far_distance": [
+      512.0,
+      128.0
+    ],
+    "fov": [
+      70.0,
+      75.0
+    ],
+    "light_flicker": [
+      1.0,
+      0.0
+    ],
+    "max_fps": [
+      240.0,
+      60.0
+    ],
+    "night_visibility": [
+      0.0,
+      0.5
+    ],
+    "shaders_reloaded": [
+      "res://shaders/ice.gdshader"
+    ],
+    "show_body": [
+      1.0,
+      0.0
+    ],
+    "time_of_day_override": [
+      -1.0,
+      0.5
+    ],
+    "vsync": [
+      1.0,
+      0.0
+    ]
+  },
+  "path": "/var/home/poss/Documents/Code/Godot/goanna/docs/perf/ice-study-2026-09-13/below-procedural.png",
+  "pitch": 23.0,
+  "size": [
+    1600,
+    900
+  ],
+  "time_of_day": 0.5,
+  "yaw": 0.0,
+  "material": "procedural",
+  "shader_sha256": "3d44060274e1904f8bebbfa0bce5761cf12e85d59bfb5051995de4dbe174d2be",
+  "method": "Only ice shader code swapped in frozen scene; water animation continues"
+}

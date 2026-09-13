@@ -17,6 +17,37 @@
 
 namespace goanna {
 
+float lodDetailRadius(float configured_nodes, float focal_pixels) {
+    // Five pixels per node at the full-detail boundary. The first two-node
+    // approximation then spans ten pixels, including its small features.
+    return std::min(configured_nodes, std::max(32.0f, focal_pixels / 5.0f));
+}
+
+int lodProjectedTier(v3f relative_block_centre, int current, bool live,
+        float configured_nodes, float focal_pixels) {
+    if (configured_nodes <= 0.0f)
+        return 0;
+    // Distance to the block bounds includes altitude. Preserve full detail
+    // at close boundaries even when the block centre is further away.
+    const float half = 0.5f * MAP_BLOCKSIZE;
+    const v3f delta(std::max(0.0f, std::fabs(relative_block_centre.X) - half),
+            std::max(0.0f, std::fabs(relative_block_centre.Y) - half),
+            std::max(0.0f, std::fabs(relative_block_centre.Z) - half));
+    const float distance = delta.getLength();
+    const float first = lodDetailRadius(configured_nodes, focal_pixels);
+    auto threshold = [&](int tier) { return first * (float)(1 << (tier - 1)); };
+    int desired = live && distance <= first ? 0 : 1;
+    for (int tier = 2; tier < BlockLodChain::kLevels; ++tier)
+        if (distance > threshold(tier))
+            desired = tier;
+    // The return threshold is inside the outward threshold. It applies at
+    // the near join too, so hovering there cannot alternate representations.
+    if (current >= 1 && current < BlockLodChain::kLevels && desired < current &&
+            distance > 0.85f * threshold(current))
+        return current;
+    return desired;
+}
+
 // How many bits are set in a 64 bit word.
 //
 // __builtin_popcountll is a GCC and Clang extension and MSVC does not have
@@ -380,8 +411,11 @@ void buildLodTerrainSurface(const NodeDefManager *ndef, BlockLodChain &out, int 
                     // to the valley below. Vegetation ends it too, keeping a
                     // trunk from raising the land to its canopy.
                     if (!(c.flags & LodLevel::kKnown) || !(c.flags & LodLevel::kFilled) ||
-                            lodIsVegetation(ndef, c.face[0]))
+                            lodIsVegetation(ndef, c.face[0])) {
+                        if (out.surface_shell)
+                            continue;
                         break;
+                    }
                     c.flags |= LodLevel::kTerrain;
                     const int within = c.top > 0 && c.top < lv.cell ? c.top : lv.cell;
                     top = y * lv.cell + within;
@@ -829,19 +863,13 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
     };
 
     // -----------------------------------------------------------------------
-    // Legacy ground-heightfield surface.
+    // Connected ground surface, recovered from the occupancy hierarchy.
     //
-    // Older chains carried a terrain height per block in every cell column:
-    // the highest filled node that is not vegetation. The highest block in the
-    // column that holds one carries the column's surface, and this region
-    // draws that surface for every column whose surface block is a member,
-    // as one quad per cell over the heights at the cell's four corners. A
-    // corner's height is the mean of the surfaces of the columns around it
-    // that are drawn at this same cell size and are not water; water keeps
-    // its own level, so a sea is flat to the shore. Both regions either side
-    // of a boundary compute a shared corner from the same columns, since each
-    // reads a block of margin, so the surface is seamless across regions of
-    // one tier without either knowing about the other.
+    // The highest connected ground sample supplies each column's surface.
+    // Corners use shared measured anchors, with linear joins onto coarser
+    // edges. Averaging those samples rounded off the terrain's ridges.
+    // Independent liquid envelopes keep water flat and the seabed below it.
+    // Each region reads a margin so neighbours can reproduce shared edges.
     //
     // Where a cell's edge does not meet a neighbour that agrees with it, at a
     // hole, the shore, a block drawn at another tier or at full detail, or
@@ -849,18 +877,17 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
     // seen under the surface. The ground cells themselves emit no box faces
     // below; the box pass draws only what is not ground, which is the
     // vegetation and anything else the chain could not class as terrain.
-    // Protocol-v5 and live/store volumetric chains leave `terrain` empty and
-    // never set kTerrain, so this pass emits nothing and the box pass below
-    // meshes all occupied voxels, including undersides.
+    // Only floor-connected ground enters this pass. Other occupancy remains
+    // volumetric in the box pass, including cave walls and island undersides.
     //
     // This replaces the staircase a heightfield costs when it is drawn as
     // boxes (docs/far-rendering.md, "Strips, and what the merge can and
     // cannot do"): a slope is two triangles a cell, there are no risers to
     // merge, and the normals follow the ground.
-    bool has_legacy_surface = false;
+    bool has_ground_surface = false;
     for (const LodLevel *lv : levels)
-        has_legacy_surface |= lv && !lv->terrain.empty();
-    if (has_legacy_surface) {
+        has_ground_surface |= lv && !lv->terrain.empty();
+    if (has_ground_surface) {
         const int margin = mb * cpb; // cells of margin each side, horizontally
         const int W = n + 2 * margin;
         struct Column {
@@ -871,6 +898,7 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
             bool canopy = false;  // the surface is a forest roof, not ground
             int drawn_at = -1;    // cell size the surface block is drawn at
             float h = 0.0f;       // absolute node height of the surface
+            float water_h = -32768.0f; // independent liquid envelope, if known
             int gy = 0;           // region cell y of the surface cell
             const LodLevel::Cell *top = nullptr; // the surface cell
             const LodLevel::Cell *above = nullptr;
@@ -883,163 +911,150 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                 return nullptr;
             return &cols[(size_t)iz * W + ix];
         };
+        // Both sides of a resolution seam must identify the same ground,
+        // floating geometry, canopy and water. A second, reduced column
+        // reader used to disagree at islands and shallow shores.
+        auto readColumn = [&](int gx, int gz, int sample_cell,
+                const std::vector<const LodLevel *> &mips, Column &col) {
+            const int samples_per_block = MAP_BLOCKSIZE / sample_cell;
+            const int sample_margin = mb * samples_per_block;
+            const int bx = (gx + sample_margin) / samples_per_block;
+            const int bz = (gz + sample_margin) / samples_per_block;
+            const int lx = (gx + sample_margin) % samples_per_block;
+            const int lz = (gz + sample_margin) % samples_per_block;
+            for (int by = B - 1; by >= 0 && !col.has; --by) {
+                const size_t bi = ((size_t)bz * B + by) * B + bx;
+                const LodLevel *lv = mips[bi];
+                if (!lv)
+                    continue;
+                for (int wy = samples_per_block - 1; wy >= 0; --wy) {
+                    const LodLevel::Cell &wc = lv->at(lx, wy, lz);
+                    if (wc.flags & LodLevel::kLiquid) {
+                        const int top = wc.liquid_top > 0 ? wc.liquid_top : sample_cell;
+                        col.water_h = std::max(col.water_h,
+                                (float)(origin_nodes.Y + (by - mb) * MAP_BLOCKSIZE +
+                                        wy * sample_cell + top));
+                        break;
+                    }
+                }
+                int th = lv->terrainAt(lx, lz);
+                // At the coarser tiers a forest is its roof: the highest
+                // vegetation cell in the column, if it stands above the
+                // ground, is the surface, with the canopy's colour. A
+                // forest seen from a few hundred nodes is a green roof
+                // rolling with the land, not a pile of cubes, which is
+                // what boxes at 8 and 16 nodes made of it. At the finest
+                // far tier the trees stay boxes, since there they are
+                // still individual trees.
+                bool canopy = false;
+                if (sample_cell >= 8) {
+                    for (int ty = samples_per_block - 1; ty >= 0 && ty * sample_cell + 1 > th; --ty) {
+                        const LodLevel::Cell &vc = lv->at(lx, ty, lz);
+                        if ((vc.flags & LodLevel::kFilled) && !(vc.flags & LodLevel::kTerrain) &&
+                                lodIsVegetation(ndef, vc.face[0])) {
+                            const int within = vc.top > 0 && vc.top < sample_cell ?
+                                    vc.top : sample_cell;
+                            const int vh = ty * sample_cell + within;
+                            if (vh > th) {
+                                th = vh;
+                                canopy = true;
+                            }
+                            break;
+                        }
+                    }
+                }
+                if (th <= 0)
+                    continue;
+                // The highest block with ground is the surface only if
+                // the ground is under it: the block below filled to its
+                // ceiling, or this block filled to its own. A run with
+                // air beneath it is an overhang or a floating island,
+                // and taking its top as the surface draped the
+                // heightfield from its rim down to the real ground as a
+                // cone (reported as a sky island "rendering weirdly").
+                // Such a run is left to the box pass, and the search
+                // goes on down. A block below that is not known keeps
+                // the old answer rather than punching a hole at the
+                // frontier.
+                if (!canopy && th < MAP_BLOCKSIZE && by > 0 &&
+                        !(chains[bi] && chains[bi]->surface_shell)) {
+                    const size_t below = ((size_t)bz * B + (by - 1)) * B + bx;
+                    const LodLevel *lb = mips[below];
+                    // Below half, not merely below the ceiling. The coarse
+                    // tiers carry the mean of their wire heights, so under
+                    // any slope the block below reads a little short of
+                    // full, and requiring a full ceiling walked whole
+                    // columns of ordinary mountainside into the floating
+                    // case until nothing was left to draw: the see
+                    // through hills. A real island or overhang has next
+                    // to nothing under it and still qualifies.
+                    if (lb && lb->terrainAt(lx, lz) * 2 < MAP_BLOCKSIZE) {
+                        if (sample_cell == cell)
+                            floatAt(bi, lx, lz) = 1;
+                        continue;
+                    }
+                }
+                col.has = true;
+                col.canopy = canopy;
+                col.same = drawn[bi] == sample_cell;
+                col.drawn_at = drawn[bi];
+                col.own = member[bi] != 0;
+                col.is_stored = stored[bi] != 0;
+                col.h = (float)(origin_nodes.Y + (by - mb) * MAP_BLOCKSIZE + th);
+                if (!canopy && col.water_h > -32768.0f)
+                    col.h = std::min(col.h, col.water_h - 0.5f);
+                const int ty = (th - 1) / sample_cell;
+                col.gy = (by - mb) * samples_per_block + ty;
+                col.top = &lv->at(lx, ty, lz);
+                col.above = sample_cell == cell ? cellAt(gx, col.gy + 1, gz) : nullptr;
+                const content_t tc = col.top->face[0];
+                if (tc != CONTENT_AIR && tc != CONTENT_IGNORE) {
+                    const ContentFeatures &f = ndef->get(tc);
+                    col.water = !canopy && f.isLiquid();
+                }
+            }
+        };
         for (int gz = -margin; gz < n + margin; ++gz)
             for (int gx = -margin; gx < n + margin; ++gx) {
                 Column &col = *colAt(gx, gz);
-                const int bx = (gx + margin) / cpb, bz = (gz + margin) / cpb;
-                const int lx = (gx + margin) % cpb, lz = (gz + margin) % cpb;
-                for (int by = B - 1; by >= 0 && !col.has; --by) {
-                    const size_t bi = ((size_t)bz * B + by) * B + bx;
-                    const LodLevel *lv = levels[bi];
-                    if (!lv)
-                        continue;
-                    int th = lv->terrainAt(lx, lz);
-                    // At the coarser tiers a forest is its roof: the highest
-                    // vegetation cell in the column, if it stands above the
-                    // ground, is the surface, with the canopy's colour. A
-                    // forest seen from a few hundred nodes is a green roof
-                    // rolling with the land, not a pile of cubes, which is
-                    // what boxes at 8 and 16 nodes made of it. At the finest
-                    // far tier the trees stay boxes, since there they are
-                    // still individual trees.
-                    bool canopy = false;
-                    if (cell >= 8) {
-                        for (int ty = cpb - 1; ty >= 0 && ty * cell + 1 > th; --ty) {
-                            const LodLevel::Cell &vc = lv->at(lx, ty, lz);
-                            if ((vc.flags & LodLevel::kFilled) && !(vc.flags & LodLevel::kTerrain)) {
-                                const int vh = ty * cell + (vc.top > 0 && vc.top < cell ? vc.top : cell);
-                                if (vh > th) {
-                                    th = vh;
-                                    canopy = true;
-                                }
-                                break;
-                            }
-                        }
-                    }
-                    if (th <= 0)
-                        continue;
-                    // The highest block with ground is the surface only if
-                    // the ground is under it: the block below filled to its
-                    // ceiling, or this block filled to its own. A run with
-                    // air beneath it is an overhang or a floating island,
-                    // and taking its top as the surface draped the
-                    // heightfield from its rim down to the real ground as a
-                    // cone (reported as a sky island "rendering weirdly").
-                    // Such a run is left to the box pass, and the search
-                    // goes on down. A block below that is not known keeps
-                    // the old answer rather than punching a hole at the
-                    // frontier.
-                    if (!canopy && th < MAP_BLOCKSIZE && by > 0) {
-                        const size_t below = ((size_t)bz * B + (by - 1)) * B + bx;
-                        const LodLevel *lb = levels[below];
-                        // Below half, not merely below the ceiling. The coarse
-                        // tiers carry the mean of their wire heights, so under
-                        // any slope the block below reads a little short of
-                        // full, and requiring a full ceiling walked whole
-                        // columns of ordinary mountainside into the floating
-                        // case until nothing was left to draw: the see
-                        // through hills. A real island or overhang has next
-                        // to nothing under it and still qualifies.
-                        if (lb && lb->terrainAt(lx, lz) * 2 < MAP_BLOCKSIZE) {
-                            floatAt(bi, lx, lz) = 1;
-                            continue;
-                        }
-                    }
-                    col.has = true;
-                    col.canopy = canopy;
-                    if (canopy)
-                        canopy_cols[(size_t)(gz + canopy_margin) * canopy_w + (gx + canopy_margin)] = 1;
-                    col.same = drawn[bi] == cell;
-                    col.drawn_at = drawn[bi];
-                    col.own = member[bi] != 0;
-                    col.is_stored = stored[bi] != 0;
-                    col.h = (float)(origin_nodes.Y + (by - mb) * MAP_BLOCKSIZE + th);
-                    const int ty = (th - 1) / cell;
-                    col.gy = (by - mb) * cpb + ty;
-                    col.top = &lv->at(lx, ty, lz);
-                    col.above = cellAt(gx, col.gy + 1, gz);
-                    const content_t tc = col.top->face[0];
-                    if (tc != CONTENT_AIR && tc != CONTENT_IGNORE) {
-                        const ContentFeatures &f = ndef->get(tc);
-                        col.water = !canopy && f.isLiquid();
+                readColumn(gx, gz, cell, levels, col);
+                if (col.canopy)
+                    canopy_cols[(size_t)(gz + canopy_margin) * canopy_w +
+                            (gx + canopy_margin)] = 1;
+            }
+        // Anchor corners to a measured column, in a fixed world-grid order.
+        // Averaging four columns rounded off ridges and spread every step
+        // across a wide, inflated-looking band. Shared anchors instead form
+        // piecewise planes through the samples. A large height discontinuity
+        // remains a cliff, closed by the edge pass rather than a long ramp.
+        auto anchorCorner = [](auto at, int cx, int cz, float ref, int step, float &h) {
+            const float window = 3.0f * step;
+            bool found = false;
+            for (int dz = 0; dz >= -1 && !found; --dz)
+                for (int dx = 0; dx >= -1; --dx) {
+                    const auto *c = at(cx + dx, cz + dz);
+                    if (c && c->has && c->same && !c->water &&
+                            std::fabs(c->h - ref) <= window) {
+                        h = c->h;
+                        found = true;
+                        break;
                     }
                 }
-            }
-        // Close the one cell gaps in the forest roof. A clearing of a single
-        // cell dropped the canopy surface ten nodes to the ground and back,
-        // and a stand of trees at a shallow angle read as a roof full of
-        // holes. A column whose surface is ground, with canopy on at least
-        // three of its four sides standing above it, joins the roof at the
-        // lowest of those neighbours; a real clearing, two cells or wider,
-        // keeps its ground. Decided from the filled grid and applied after,
-        // so the order of the pass cannot cascade, and the margin columns
-        // are computed the same way by the regions either side.
-        if (cell >= 8) {
-            struct Join {
-                int ix, iz;
-                const Column *from;
-            };
-            std::vector<Join> joins;
-            for (int gz = -margin + 1; gz < n + margin - 1; ++gz)
-                for (int gx = -margin + 1; gx < n + margin - 1; ++gx) {
-                    Column &col = *colAt(gx, gz);
-                    if (!col.has || col.canopy || col.water)
-                        continue;
-                    static const int dxs[4] = {1, -1, 0, 0};
-                    static const int dzs[4] = {0, 0, 1, -1};
-                    int roof = 0;
-                    const Column *low = nullptr;
-                    for (int e = 0; e < 4; ++e) {
-                        const Column *nc = colAt(gx + dxs[e], gz + dzs[e]);
-                        if (nc && nc->has && nc->canopy && nc->h > col.h + 2.0f &&
-                                nc->h - col.h < 3.0f * (float)cell) {
-                            ++roof;
-                            if (!low || nc->h < low->h)
-                                low = nc;
-                        }
-                    }
-                    if (roof >= 3)
-                        joins.push_back(Join{gx + margin, gz + margin, low});
-                }
-            for (const Join &j : joins) {
-                Column &col = cols[(size_t)j.iz * W + j.ix];
-                col.canopy = true;
-                col.water = false;
-                col.h = j.from->h;
-                col.top = j.from->top;
-                col.above = j.from->above;
-                canopy_cols[(size_t)j.iz * canopy_w + j.ix] = 1;
-            }
-        }
-
-        // Corner height: mean of the same tier, non water columns around it,
-        // and only of the ones within reach of the asking cell's own height.
-        // Averaging across a cliff drew ramps: a spire's top blended with
-        // the water sixty nodes below it, and a stand of tall jungle trees
-        // over a bay became sails draped between the trunks. Within three
-        // cells of relief the ground is a slope and averages; past that it
-        // is a cliff, the cell keeps its own edge, the neighbours keep
-        // theirs, and the disagreement grows a skirt, which is what a cliff
-        // is. ref is the asking cell's height, so both triangles of one
-        // quad agree, and the region either side of a boundary computes the
-        // same corner for the same cell.
-        const float cliff_window = 3.0f * (float)cell;
-        auto cornerLand = [&](int cx, int cz, float ref, float &h) -> bool {
-            float sum = 0.0f;
-            int k = 0;
+            if (!found)
+                return false;
+            // Clamp both resolutions by the same independent liquid data.
+            // A coarse filled cell is not evidence that its seabed reaches
+            // the ceiling; it may contain shallow water above the solid.
             for (int dz = -1; dz <= 0; ++dz)
                 for (int dx = -1; dx <= 0; ++dx) {
-                    const Column *c = colAt(cx + dx, cz + dz);
-                    if (c && c->has && c->same && !c->water &&
-                            std::fabs(c->h - ref) <= cliff_window) {
-                        sum += c->h;
-                        ++k;
-                    }
+                    const auto *wet = at(cx + dx, cz + dz);
+                    if (wet && wet->water_h > -32768.0f && ref - wet->water_h <= window)
+                        h = std::min(h, wet->water_h - 0.5f);
                 }
-            if (!k)
-                return false;
-            h = sum / (float)k;
             return true;
+        };
+        auto cornerLand = [&](int cx, int cz, float ref, float &h) {
+            return anchorCorner(colAt, cx, cz, ref, cell, h);
         };
         // -------------------------------------------------------------------
         // Stitching onto a coarser tier. Where this tier meets the next one
@@ -1047,9 +1062,8 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
         // and the edge reads as a step, a ring at a fixed distance from the
         // camera that both sides skirt. So the finer side adopts the coarser
         // side's heights along that edge: at a corner that is also a corner
-        // of the coarse grid, what the coarse region computes there (the
-        // mean of the coarse columns around it that are drawn at the coarse
-        // cell, which excludes this side); halfway along a coarse edge, the
+        // of the coarse grid, the anchor the coarse region selects there;
+        // halfway along a coarse edge, the
         // midpoint of its two ends, which is what the coarse quad's straight
         // edge passes through. The coarse side keeps its skirt, which then
         // hangs under this surface unseen, and this side drops its own.
@@ -1058,9 +1072,8 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
         // level, so both sides see the same data, and this region's margin
         // of one block reaches one coarse cell past its edge, which is all a
         // boundary corner needs.
-        struct Column2 {
-            bool done = false, has = false, same = false, water = false;
-            float h = 0.0f;
+        struct Column2 : Column {
+            bool done = false;
         };
         const int cpb2 = cell2 ? MAP_BLOCKSIZE / cell2 : 0;
         const int margin2 = mb * cpb2;
@@ -1077,45 +1090,12 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
             if (col.done)
                 return &col;
             col.done = true;
-            const int bx = ix / cpb2, bz = iz / cpb2;
-            const int lx = ix % cpb2, lz = iz % cpb2;
-            for (int by = B - 1; by >= 0; --by) {
-                const size_t bi = ((size_t)bz * B + by) * B + bx;
-                const LodLevel *lv = levels2[bi];
-                if (!lv)
-                    continue;
-                const int th = lv->terrainAt(lx, lz);
-                if (th <= 0)
-                    continue;
-                col.has = true;
-                col.same = drawn[bi] == cell2;
-                col.h = (float)(origin_nodes.Y + (by - mb) * MAP_BLOCKSIZE + th);
-                const LodLevel::Cell &top = lv->at(lx, (th - 1) / cell2, lz);
-                const content_t tc = top.face[0];
-                if (tc != CONTENT_AIR && tc != CONTENT_IGNORE)
-                    col.water = ndef->get(tc).isLiquid();
-                break;
-            }
+            readColumn(cx2, cz2, cell2, levels2, col);
             return &col;
         };
         // What the coarse region computes at one of its corners.
-        auto cornerCoarse = [&](int cx2, int cz2, float ref, float &h) -> bool {
-            float sum = 0.0f;
-            int k = 0;
-            const float window2 = 3.0f * (float)(cell2 ? cell2 : cell);
-            for (int dz = -1; dz <= 0; ++dz)
-                for (int dx = -1; dx <= 0; ++dx) {
-                    const Column2 *c = col2At(cx2 + dx, cz2 + dz);
-                    if (c && c->has && c->same && !c->water &&
-                            std::fabs(c->h - ref) <= window2) {
-                        sum += c->h;
-                        ++k;
-                    }
-                }
-            if (!k)
-                return false;
-            h = sum / (float)k;
-            return true;
+        auto cornerCoarse = [&](int cx2, int cz2, float ref, float &h) {
+            return anchorCorner(col2At, cx2, cz2, ref, cell2, h);
         };
         // A fine corner lies on the boundary with the coarser tier when any
         // of the four fine columns around it is drawn at the coarser cell.
@@ -1166,13 +1146,21 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
             const Column *c = colAt(gx, gz);
             if (!c || !c->has || !c->same)
                 return false;
-            // Flat cells at their own height, with risers between them, the
-            // way the blocks underneath actually step. This was a choice
-            // against a surface whose corners were averaged with its
-            // neighbours, from when the far tiers were a heightfield and the
-            // hills in them sloped. The summaries carry Y occupancy now, so
-            // the smoothed alternative described ground that is not there.
-            out[0] = out[1] = out[2] = out[3] = c->h;
+            // Ground uses the same shared-corner surface at every far rung.
+            // Intermediate resolution must not turn a hillside into giant
+            // voxel steps. Water retains its measured horizontal envelope.
+            const int xs[4] = {gx, gx + 1, gx + 1, gx};
+            const int zs[4] = {gz, gz, gz + 1, gz + 1};
+            for (int i = 0; i < 4; ++i) {
+                out[i] = c->h;
+                if (c->water)
+                    continue;
+                if (onCoarseEdge(xs[i], zs[i]) &&
+                        stitchedHeight(xs[i], zs[i], c->h, out[i]))
+                    continue;
+                cornerLand(xs[i], zs[i], c->h, out[i]);
+
+            }
             return true;
         };
         // The coarse neighbour's surface along the edge of a fine cell: true
@@ -1198,6 +1186,35 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
         // plates standing on every mountainside (reported as distant hills
         // that "look like dominoes"). Where the neighbour is unknown, one
         // cell, which hides the underside at the frontier from most angles.
+        // Detailed neighbours are captured for boundary evidence even
+        // though the far pass never owns or draws them. Read their exact
+        // column top so an apron cannot end above the real voxel surface.
+        auto nearHeight = [&](int nx, int nz, float ref, float &height) {
+            const int sx = nx + mb * MAP_BLOCKSIZE;
+            const int sz = nz + mb * MAP_BLOCKSIZE;
+            if (sx < 0 || sz < 0 || sx >= B * MAP_BLOCKSIZE || sz >= B * MAP_BLOCKSIZE)
+                return false;
+            const int bx = sx / MAP_BLOCKSIZE, bz = sz / MAP_BLOCKSIZE;
+            const int lx = sx % MAP_BLOCKSIZE, lz = sz % MAP_BLOCKSIZE;
+            for (int by = B - 1; by >= 0; --by) {
+                const size_t bi = ((size_t)bz * B + by) * B + bx;
+                const BlockLodChain *ch = chains[bi];
+                if (drawn[bi] != 0 || !ch || !ch->hasCell(1))
+                    continue;
+                for (int y = MAP_BLOCKSIZE - 1; y >= 0; --y) {
+                    const float top = (float)(origin_nodes.Y +
+                            (by - mb) * MAP_BLOCKSIZE + y + 1);
+                    if (top > ref + cell || !ch->filledAt(1, lx, y, lz))
+                        continue;
+                    const LodLevel::Cell *c = ch->cellAt(1, lx, y, lz);
+                    if (c && lodIsVegetation(ndef, c->face[0]))
+                        continue;
+                    height = top;
+                    return true;
+                }
+            }
+            return false;
+        };
         const float skirt_min = 0.5f * (float)cell;
         const float skirt_unknown = (float)cell;
         auto lightOf = [&](const Column &c, uint8_t &day, uint8_t &night) {
@@ -1263,8 +1280,13 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                 for (int i = 0; i < 4; ++i) {
                     // Godot space: z mirrored.
                     const v3f p(ox + cxs[i], hs[i], -(oz + czs[i]));
-                    v3f nrm(0, 1, 0);   // flat, to match the terraced cells above
-                    nrm.Z = -nrm.Z;
+                    // Bilinear patch derivative at this corner. The normal
+                    // follows the land instead of lighting every slope as
+                    // a horizontal plate. Z is mirrored into Godot space.
+                    const float dx = (i < 2 ? hs[1] - hs[0] : hs[2] - hs[3]) / cell;
+                    const float dz = (i == 0 || i == 3 ? hs[3] - hs[0] : hs[2] - hs[1]) / cell;
+                    v3f nrm(-dx, 1.0f, dz);
+                    nrm.normalize();
                     uint8_t ao = 255;
                     if (trace)
                         ao = quant16((int)std::lround(traceOcclusion(occ,
@@ -1356,6 +1378,23 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                         if (quadHeights(ngx, ngz, nq)) {
                             const float nlow = std::min(std::min(nq[0], nq[1]), std::min(nq[2], nq[3]));
                             bottom = std::min(std::min(ah, bh) - skirt_min, nlow - 1.0f);
+                        }
+                    }
+                    const Column *neighbour = colAt(ngx, ngz);
+                    if (neighbour && neighbour->has) {
+                        // This includes another resolution and near-owned
+                        // ground, which quadHeights deliberately excludes.
+                        bottom = std::min(bottom, neighbour->h - cell - 1.0f);
+                    }
+                    if (neighbour && neighbour->drawn_at == 0) {
+                        for (int along = 0; along < cell; ++along) {
+                            const int nx = e == 0 ? ngx * cell :
+                                    e == 1 ? (ngx + 1) * cell - 1 : gx * cell + along;
+                            const int nz = e == 2 ? ngz * cell :
+                                    e == 3 ? (ngz + 1) * cell - 1 : gz * cell + along;
+                            float height;
+                            if (nearHeight(nx, nz, neighbour->h, height))
+                                bottom = std::min(bottom, height - 1.0f);
                         }
                     }
                     v3f q[4] = {
@@ -1456,7 +1495,8 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                         const size_t bi = ((size_t)bz * B + by) * B + bx;
                         if (!floatAt(bi, g[0] % cpb, g[2] % cpb))
                             continue;
-                    } else if (!liquid_face && canopyAt(g[0], g[2])) {
+                    } else if (!liquid_face && canopyAt(g[0], g[2]) &&
+                            lodIsVegetation(ndef, c->face[0])) {
                         // Vegetation under a canopy surface is inside the
                         // roof the surface pass drew.
                         continue;

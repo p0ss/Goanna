@@ -13,6 +13,7 @@
 // its definition.
 
 #include "goanna_session.h"
+#include "goanna_lod_storage.h"
 
 #include <ctime>
 
@@ -185,6 +186,7 @@ void GoannaSession::start(const std::string &host, uint16_t port, const std::str
             if (!isalnum((unsigned char)c) && c != '.' && c != '-')
                 c = '_';
         dir = m_store_root + "/" + dir + "_" + std::to_string(port);
+        m_store_directory = dir;
         uint64_t cap = 512ull << 20;
         if (const char *mb = std::getenv("GOANNA_STORE_CAP_MB"))
             cap = (uint64_t)std::max(1, atoi(mb)) << 20;
@@ -1557,8 +1559,9 @@ int GoannaSession::pruneDistantBlocks(int radius) {
         v3s16 centre((s16)std::floor(pp.X / MAP_BLOCKSIZE),
                 (s16)std::floor(pp.Y / MAP_BLOCKSIZE),
                 (s16)std::floor(pp.Z / MAP_BLOCKSIZE));
-        gone = m_map->blocksBeyond(centre, radius);
-        for (const v3s16 &bp : gone) {
+        const auto candidates = m_map->blocksBeyond(centre, radius);
+        for (const v3s16 &bp : candidates) {
+            if (m_store_pending.count(bp)) continue;
             // An edited block goes back to the store before it goes, so the
             // store holds the world as last seen rather than as first sent.
             if (m_store && m_store_dirty.count(bp)) {
@@ -1566,6 +1569,7 @@ int GoannaSession::pruneDistantBlocks(int radius) {
                 m_store_dirty.erase(bp);
             }
             m_map->dropBlock(bp);
+            gone.push_back(bp);
         }
     }
     if (!gone.empty())
@@ -2088,6 +2092,21 @@ void GoannaSession::onNodeDef(NetworkPacket &pkt) {
         decompressZstd(tmp_is, tmp_os);
     else
         decompressZlib(tmp_is, tmp_os);
+    // Content IDs are connection-specific. Persisted derived records may
+    // only reuse them with the same complete definition mapping and rules.
+    m_terrain_definitions = terrainFingerprint(std::to_string(proto) + ":" + tmp_os.str());
+    if (m_store) {
+        // Network mapblocks contain numeric content IDs, not a durable name
+        // table. Old caches without a definition binding cannot safely be
+        // interpreted after a game changes that mapping. Leave them intact;
+        // new traffic populates the correctly bound namespace.
+        std::ostringstream suffix;
+        suffix << "/nodes-v1-" << std::hex << m_terrain_definitions;
+        uint64_t cap = 512ull << 20;
+        if (const char *mb = std::getenv("GOANNA_STORE_CAP_MB"))
+            cap = (uint64_t)std::max(1, atoi(mb)) << 20;
+        if (!m_store->open(m_store_directory + suffix.str(), cap)) m_store.reset();
+    }
     m_nodedef->deSerialize(tmp_os, proto);
     m_nodedef_received = true;
     {
@@ -2544,7 +2563,7 @@ void GoannaSession::onBlockData(NetworkPacket &pkt) {
     std::istringstream istr(datastring, std::ios_base::binary);
     u8 ser_ver = stats().ser_ver;
 
-    std::lock_guard<std::mutex> lk(m_map_mutex);
+    std::unique_lock<std::mutex> lk(m_map_mutex);
     MapSector *sector = m_map->emergeSector(v2s16(p.X, p.Z));
     MapBlock *block = sector->getBlockNoCreateNoEx(p.Y);
     // The server re-sends already-loaded blocks; only re-mesh when something
@@ -2559,8 +2578,8 @@ void GoannaSession::onBlockData(NetworkPacket &pkt) {
     // Luanti serialises, so this is a write of what was received and nothing
     // more. docs/far-rendering.md rung 5.
     if (m_store) {
-        m_store->put(p, ser_ver, datastring, (uint32_t)time(nullptr));
         m_store_dirty.erase(p);
+        m_store_pending.insert(p);
     }
     bool changed = is_new || hashBlockNodes(block) != old_hash;
     if (changed) {
@@ -2581,6 +2600,16 @@ void GoannaSession::onBlockData(NetworkPacket &pkt) {
     {
         std::lock_guard<std::mutex> lk2(m_stats_mutex);
         m_stats.blocks_received++;
+    }
+    lk.unlock();
+    // The session already runs off the main thread. Keep disk flushes and
+    // region compaction outside the map lock as well, so rendering does not
+    // wait for them indirectly. Pruning retains this block until its source
+    // write finishes; edits arriving meanwhile keep their dirty marker.
+    if (m_store) {
+        m_store->put(p, ser_ver, datastring, (uint32_t)time(nullptr));
+        lk.lock();
+        m_store_pending.erase(p);
     }
 }
 
