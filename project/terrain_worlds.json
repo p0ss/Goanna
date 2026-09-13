@@ -7,14 +7,14 @@
       "label": "Broken Coast",
       "description": "The world Goanna has always shipped, trimmed to the part you can reach. A cold bay under a snowy range, with forest along the water.",
       "url": "https://github.com/p0ss/terrain-diffusion-luanti/releases/download/worlds-2026.09.1/tdl-default-1m-v4.zip",
-      "sha256": "f02bdf794819c8c05b3eea3a9b1e0538a6a858cdcd3f9d7daf4171f7f22bad4a",
-      "bytes": 9645257,
+      "sha256": "78c7c104259fa498daf8114a1451243c88c7567c61a2447f014f5c32451d750c",
+      "bytes": 7211866,
       "tile_i0": 79,
-      "tile_j0": 77,
+      "tile_j0": 79,
       "tiles": 5,
       "spawn_px": [
-        41644,
-        40532
+        41580,
+        41490
       ],
       "preview": "res://terrain_previews/tdl-default-1m-v4.png"
     },
