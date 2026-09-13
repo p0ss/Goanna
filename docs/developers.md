@@ -81,6 +81,19 @@ monotonicity, and its texture cache are checked with:
 godot --headless --path project --script res://tests/look_grade.gd
 ```
 
+An asset bundle's archive hash, payload hashes and composed profile are
+checked by installing one into a scratch root. It names the bundle and the
+hash it must match, so it also demonstrates that a superseded hash is
+refused:
+
+```sh
+GOANNA_TEST_ASSET_BUNDLE=dist/assets/org.goanna.minetest-game.terrain-1.0.0.zip \
+GOANNA_TEST_ASSET_SHA256=$(python3 -c "import json;print([b for b in \
+  json.load(open('asset_bundles/catalogue.json'))['bundles'] \
+  if b['id']=='org.goanna.minetest-game.terrain'][0]['sha256'])") \
+godot --headless --path project --script res://tests/asset_store_install.gd
+```
+
 Use `git diff --check` and the style checker before submitting. Visual
 fixtures and deterministic capture conventions are described in
 [validation.md](validation.md), [building.md](building.md) and
