@@ -24,7 +24,7 @@ func _initialize() -> void:
 	var server := LocalServer.new()
 	_assert(LocalServer.terrain_diffusion_ready(base, "test"), "prepared world was not detected")
 	_assert(server._prepare_terrain_diffusion_meta(world) == "", "map metadata preparation failed")
-	_assert(server._install_terrain_diffusion(world) == "", "runtime deployment failed")
+	_assert(server._install_terrain_diffusion(world, base, "mineclonia") == "", "runtime deployment failed")
 	_assert(server._install_server_mod(world) == "", "Goanna server mod deployment failed")
 	_assert(server._install_pbr_mod(world, "minetest") == "", "Minetest Game PBR deployment failed")
 	var prepared := FileAccess.get_file_as_string(world.path_join("map_meta.txt"))
@@ -149,6 +149,35 @@ func _initialize() -> void:
 	old_map = null
 	_assert(LocalServer.world_has_generated_map(base, "populated"),
 		"populated-world guard did not detect an existing map database")
+
+	# A game that ships its own Terrain Diffusion must keep it. World mods
+	# override game mods of the same name, so deploying the bundled runtime
+	# into such a world replaced the game's copy and silently reverted
+	# whatever it had fixed.
+	var own_game := "ships_its_own"
+	var own_mod := base.path_join("games").path_join(own_game).path_join(
+			"mods").path_join("terrain_diffusion")
+	DirAccess.make_dir_recursive_absolute(own_mod)
+	var own_init := FileAccess.open(own_mod.path_join("init.lua"), FileAccess.WRITE)
+	own_init.store_string("-- the game's own runtime\n")
+	own_init = null
+	_assert(LocalServer.game_terrain_diffusion_path(base, own_game) == own_mod,
+		"a game's own Terrain Diffusion was not found")
+	_assert(LocalServer.game_terrain_diffusion_path(base, "mineclonia") == "",
+		"a game with no copy of its own was reported as having one")
+	var own_world := base.path_join("worlds").path_join("own_test")
+	DirAccess.make_dir_recursive_absolute(own_world)
+	# Start from a world an earlier launch already wrote the bundle into, which
+	# is what every existing world looks like.
+	_assert(server._install_terrain_diffusion(own_world, base, "mineclonia") == "",
+		"the bundled runtime could not be staged for the removal check")
+	_assert(FileAccess.file_exists(own_world.path_join(
+		"worldmods/terrain_diffusion/init.lua")), "staging did not deploy the bundle")
+	_assert(server._install_terrain_diffusion(own_world, base, own_game) == "",
+		"deferring to the game's own runtime reported an error")
+	_assert(not DirAccess.dir_exists_absolute(own_world.path_join(
+		"worldmods/terrain_diffusion")),
+		"a stale bundled runtime was left overriding the game's own")
 	if failures == 0:
 		print("local server Terrain Diffusion: PASS")
 		quit(0)

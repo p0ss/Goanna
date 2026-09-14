@@ -36,6 +36,10 @@ local ROCK = {
 }
 local SCREE = "mcl_core:gravel"
 
+-- The game's trees, plants and ground cover. Off leaves bare terrain, which
+-- is what this mod produced before tdl_decorate.lua existed.
+local place_decorations = core.settings:get_bool("tdl_place_decorations", true)
+
 local use_palette = core.settings:get_bool("tdl_use_game_biomes", true)
 local palette_count = 0
 if use_palette and tdl_palette then
@@ -176,90 +180,25 @@ local data_buffer = {}
 -- grid carries a one node margin so slope can be taken from it rather than from
 -- four more tile lookups per column, which was most of the cost.
 
--- What grows where. Density is the chance of a tree per column, so its square
--- root is the mean spacing: 0.006 puts trees about thirteen nodes apart, which
--- at a metre a node leaves gaps between the canopies. Anything much above 0.01
--- closes the canopy into one unbroken roof of leaves.
-local FLORA = {
-        forest       = {tree = "oak",    density = 0.006, cover = "mcl_flowers:tallgrass",      cover_chance = 0.28},
-        plains       = {                 density = 0.0004, cover = "mcl_flowers:tallgrass",      cover_chance = 0.30},
-        savanna      = {tree = "acacia", density = 0.0015, cover = "mcl_flowers:tall_dry_grass", cover_chance = 0.24},
-        jungle       = {tree = "jungle", density = 0.013, cover = "mcl_flowers:fern",           cover_chance = 0.35},
-        swamp        = {tree = "oak",    density = 0.004, cover = "mcl_flowers:tallgrass",      cover_chance = 0.32},
-        taiga        = {tree = "spruce", density = 0.007, cover = "mcl_flowers:fern",           cover_chance = 0.14},
-        snowy_taiga  = {tree = "spruce", density = 0.0035},
-        snowy_plains = {},
-        grove        = {                 density = 0.001, cover = "mcl_flowers:short_dry_grass", cover_chance = 0.10},
-        desert       = {cactus = true,   density = 0.0016, cover = "mcl_core:deadbush",         cover_chance = 0.012},
-        badlands     = {cactus = true,   density = 0.0010, cover = "mcl_core:deadbush",         cover_chance = 0.020},
-}
-
--- Node names differ between games and between versions of the same game, and a
--- mapgen that refuses to load because one species is missing is no use to
--- anyone. Anything absent is reported once and skipped.
-local function content_or_nil(name)
-        local id = first_content(name)
-        if not id then
-                core.log("warning", "[terrain_diffusion] no node " .. name .. ", skipping it")
-        end
-        return id
-end
-
-local flora_ids = {}
-for material, flora in pairs(FLORA) do
-        local entry = {density = flora.density or 0, cover_chance = flora.cover_chance or 0}
-        if flora.tree then
-                entry.trunk = content_or_nil("mcl_trees:tree_" .. flora.tree)
-                entry.leaves = content_or_nil("mcl_trees:leaves_" .. flora.tree)
-                entry.shape = flora.tree
-                if not (entry.trunk and entry.leaves) then
-                        entry.trunk, entry.leaves = nil, nil
-                        entry.density = 0
-                end
-        end
-        if flora.cactus then
-                entry.cactus = content_or_nil("mcl_core:cactus")
-        end
-        if flora.cover then
-                entry.cover = content_or_nil(flora.cover)
-        end
-        flora_ids[material] = entry
-end
-
-local SOIL = {}
-for _, name in ipairs({"mcl_core:dirt_with_grass", "mcl_core:podzol",
-                       "mcl_core:coarse_dirt", "mcl_core:sand", "mcl_core:redsand"}) do
-        local id = content_or_nil(name)
-        if id then SOIL[id] = true end
-end
-
--- Trees have to be decided the same way from either side of a chunk boundary or
--- they get sliced in half, so this is a hash of the position rather than a
--- random number: every chunk that can see a tree agrees it is there.
+-- What grows where is the game's to say. Every game publishes it through
+-- core.register_decoration, and tdl_decorate.lua places what it finds against
+-- the biome tdl_palette chose for the column.
 --
--- It has to be a nonlinear one. Multiply and add modulo something is affine in
--- x, so along any row the values come out as an arithmetic progression, and
--- thresholding an arithmetic progression picks positions at a regular interval.
--- The first version of this planted the trees in tidy diagonal rows. Squaring
--- is what breaks that, and the modulus is 2^24 so the squares stay inside what
--- a double holds exactly. The low bits of a square are poorly distributed, so
--- the result comes off the top of the word.
-local HASH_M = 16777216
+-- What used to be here was a table of nine species with Mineclonia's node
+-- names written into it, which is why a world in any other game came up bare:
+-- not one of those names resolved, so not one plant was placed, while the
+-- hundreds the game itself had registered were never asked for.
 
-local function hash01(x, z, salt)
-        local h = (x * 92837111 + z * 689287499 + salt * 283923481) % HASH_M
-        h = (h * h + 12345) % HASH_M
-        h = (h * 65539 + 1013904223) % HASH_M
-        h = (h * h + 87178291) % HASH_M
-        return (math.floor(h / 256) % 65536) / 65536
-end
 
--- Canopies reach this far, so heights and materials are worked out this far
--- outside the chunk as well.
-local TREE_MARGIN = 4
+-- Heights and materials were worked out four columns outside the chunk so a
+-- tree rooted just beyond it still got its canopy drawn inside. Decorations
+-- are the game's now and are placed only within the chunk, the same as the
+-- engine places them, so the widened area costs work and buys nothing.
+local COLUMN_MARGIN = 0
 
 local raw_height = {}
 local heights = {}
+local present = {}
 local slopes = {}
 local materials = {}
 local grounds = {}
@@ -271,93 +210,13 @@ local sqrt = math.sqrt
 local min = math.min
 local max = math.max
 
--- Writes one node, but only if it is inside the chunk. Anything outside is the
--- neighbouring chunk's business and it will draw the same tree.
-local function put(data, area, minp, maxp, x, y, z, content, overwrite_air_only)
-        if x < minp.x or x > maxp.x or z < minp.z or z > maxp.z
-                or y < minp.y or y > maxp.y then
-                return
-        end
-        local vi = area:index(x, y, z)
-        if overwrite_air_only and data[vi] ~= c_air then
-                return
-        end
-        data[vi] = content
-end
-
-local function place_tree(data, area, minp, maxp, x, base, z, entry, roll)
-        local shape = entry.shape
-        local trunk, leaves = entry.trunk, entry.leaves
-
-        local height
-        if shape == "spruce" then
-                height = 7 + floor(roll * 6)
-        elseif shape == "jungle" then
-                height = 8 + floor(roll * 8)
-        elseif shape == "acacia" then
-                height = 5 + floor(roll * 3)
-        else
-                height = 4 + floor(roll * 3)
-        end
-
-        for y = base, base + height do
-                put(data, area, minp, maxp, x, y, z, trunk)
-        end
-
-        local top = base + height
-        if shape == "spruce" then
-                -- Layered cone, wide at the bottom and closing to a point.
-                local layer = 0
-                for y = top - height + 2, top do
-                        local radius = 2 - floor(layer / 2) % 3
-                        if radius > 0 then
-                                for dx = -radius, radius do
-                                        for dz = -radius, radius do
-                                                if dx * dx + dz * dz <= radius * radius + 1 then
-                                                        put(data, area, minp, maxp,
-                                                                x + dx, y, z + dz, leaves, true)
-                                                end
-                                        end
-                                end
-                        end
-                        layer = layer + 1
-                end
-                put(data, area, minp, maxp, x, top + 1, z, leaves, true)
-        elseif shape == "acacia" then
-                -- Flat crown on a bare trunk.
-                for dx = -3, 3 do
-                        for dz = -3, 3 do
-                                if dx * dx + dz * dz <= 10 then
-                                        put(data, area, minp, maxp, x + dx, top, z + dz, leaves, true)
-                                        if dx * dx + dz * dz <= 4 then
-                                                put(data, area, minp, maxp, x + dx, top + 1, z + dz, leaves, true)
-                                        end
-                                end
-                        end
-                end
-        else
-                for dy = -2, 1 do
-                        local radius = (dy <= -1) and 2 or 1
-                        for dx = -radius, radius do
-                                for dz = -radius, radius do
-                                        if dx * dx + dz * dz <= radius * radius + 1 then
-                                                put(data, area, minp, maxp,
-                                                        x + dx, top + dy, z + dz, leaves, true)
-                                        end
-                                end
-                        end
-                end
-        end
-end
 
 core.register_on_generated(function(vmanip, minp, maxp, blockseed)
         local side_x = maxp.x - minp.x + 1
         local side_y = maxp.y - minp.y + 1
         local side_z = maxp.z - minp.z + 1
 
-        -- Everything below works over the chunk plus a canopy's reach, so a tree
-        -- rooted just outside still gets its branches drawn inside.
-        local m = TREE_MARGIN
+        local m = COLUMN_MARGIN
         local wide_x = side_x + 2 * m
         local wide_z = side_z + 2 * m
         local raw_x = wide_x + 2
@@ -374,6 +233,8 @@ core.register_on_generated(function(vmanip, minp, maxp, blockseed)
         local dither = dither_map:get_2d_map_flat(noise_at, dither_buffer)
 
         -- Pass one: raw elevation over the wide area plus one, for slope.
+        for name in pairs(present) do present[name] = nil end
+
         local at = 1
         for z = minp.z - m - 1, maxp.z + m + 1 do
                 for x = minp.x - m - 1, maxp.x + m + 1 do
@@ -440,10 +301,25 @@ core.register_on_generated(function(vmanip, minp, maxp, blockseed)
                                         end
                                 end
 
-                                if elevation < level - MAX_INVENTED_DEPTH then
-                                        -- Well below the water's own level:
-                                        -- this is the interior of a lake or
-                                        -- the sea, not its edge. "Distance to
+                                if distance <= tdl.manifest.native_resolution
+                                        and elevation < level - MAX_INVENTED_DEPTH then
+                                        -- Well below the water's own level and
+                                        -- actually at it: this is the interior
+                                        -- of a lake or the sea, not its edge.
+                                        -- The distance test is the whole of it.
+                                        -- The water plane is a field over every
+                                        -- cell holding whatever level is
+                                        -- nearest, so depth on its own only
+                                        -- asks "am I below something wet within
+                                        -- 800 m", and downhill is the ordinary
+                                        -- state of ground. A lake on a shoulder
+                                        -- poured its level into every valley
+                                        -- under it: 92 per cent of flooded
+                                        -- cells were not at water, a median
+                                        -- 379 m from it, and one column stood
+                                        -- 437 m tall. Being far below the level
+                                        -- argues against being in the water,
+                                        -- not for it. "Distance to
                                         -- water" reads zero out here just as
                                         -- it does right at the shoreline,
                                         -- since it cannot see past its own
@@ -559,9 +435,15 @@ core.register_on_generated(function(vmanip, minp, maxp, blockseed)
                         if use_palette then
                                 local temp, precip = tdl_classify.adjust(detailed,
                                         climate[1], climate[3])
-                                grounds[index] = tdl_palette.pick(
+                                local entry = tdl_palette.pick(
                                         tdl_palette.heat(temp),
-                                        tdl_palette.humidity(precip), surface)
+                                        tdl_palette.humidity(tdl_classify.aridity(
+                                                temp, climate[2], precip)), surface)
+                                grounds[index] = entry
+                                -- Which biomes the chunk actually holds, so the
+                                -- decoration pass can ignore the hundreds that
+                                -- were never going to match here.
+                                if entry then present[entry.name] = true end
                         end
                 end
         end
@@ -660,40 +542,18 @@ core.register_on_generated(function(vmanip, minp, maxp, blockseed)
                 end
         end
 
-        -- Pass four: plant it. Rooted anywhere in the wide area, drawn only where
-        -- it falls inside the chunk.
-        for iz = 1, wide_z do
-                for ix = 1, wide_x do
-                        local index = (iz - 1) * wide_x + ix
-                        local entry = flora_ids[materials[index]]
-                        if entry then
-                                local x = minp.x - m + ix - 1
-                                local z = minp.z - m + iz - 1
-                                local surface = heights[index]
-                                local plantable = surface > sea_level
-                                        and not water_levels[index]
-                                        and slopes[index] < 0.5
-
-                                if plantable and surface >= minp.y - 24 and surface <= maxp.y then
-                                        local roll = hash01(x, z, 7)
-                                        if entry.density > 0 and roll < entry.density then
-                                                local shade = hash01(x, z, 13)
-                                                if entry.trunk then
-                                                        place_tree(data, area, minp, maxp,
-                                                                x, surface + 1, z, entry, shade)
-                                                elseif entry.cactus then
-                                                        for y = surface + 1, surface + 1 + floor(shade * 3) do
-                                                                put(data, area, minp, maxp,
-                                                                        x, y, z, entry.cactus)
-                                                        end
-                                                end
-                                        elseif entry.cover and hash01(x, z, 29) < entry.cover_chance then
-                                                put(data, area, minp, maxp,
-                                                        x, surface + 1, z, entry.cover, true)
-                                        end
-                                end
-                        end
-                end
+        -- Pass four: the game's own decorations, against the biome this mod
+        -- chose for each column. tdl_decorate.lua carries the why.
+        local decorated = nil
+        if place_decorations and use_palette and not tdl_decorate.unkeyed_only() then
+                decorated = tdl_decorate.place(data, area, minp, maxp, blockseed, {
+                        margin = m,
+                        wide_x = wide_x,
+                        heights = heights,
+                        water_levels = water_levels,
+                        grounds = grounds,
+                        present = present,
+                })
         end
 
         vmanip:set_data(data)
@@ -703,6 +563,20 @@ core.register_on_generated(function(vmanip, minp, maxp, blockseed)
         -- singlenode mapgen never fills in, so they land correctly without this
         -- mod knowing anything about them.
         core.generate_ores(vmanip, minp, maxp)
+
+        if decorated then
+                -- Schematics and L-system trees, which the engine writes
+                -- through the VoxelManip and so could not run while the node
+                -- buffer was out on loan.
+                tdl_decorate.flush(vmanip, decorated)
+        elseif place_decorations then
+                -- Nothing this mod can improve on: either the game keys none of
+                -- its decorations to a biome, or it registered no biomes for
+                -- the ground either, so the engine's own pass is both correct
+                -- and faster. It skips the biome test when there is no biome
+                -- map, which is exactly right when no decoration asked for one.
+                core.generate_decorations(vmanip, minp, maxp)
+        end
 end)
 
 core.log("action", "[terrain_diffusion] mapgen ready, " ..

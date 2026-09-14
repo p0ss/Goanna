@@ -29,11 +29,15 @@ var _data_dir := ""
 var send_distance := 32
 # How far the local server grants far rendering, in nodes (docs/far-rendering.md).
 var far_distance := 1024
+# Named one by one because an exported build cannot list a res:// directory.
+# A runtime file missing from this list is not deployed and the mod fails to
+# load on the register_mapgen_script call for it, so add new ones here.
 const TERRAIN_DIFFUSION_FILES := [
 	"init.lua", "tdl_far.lua", "tdl_palette.lua", "tdl_biomes.lua",
-	"tdl_terrain.lua", "tdl_mapgen.lua", "settingtypes.txt", "mod.conf", "LICENSE",
+	"tdl_terrain.lua", "tdl_decorate.lua", "tdl_mapgen.lua",
+	"settingtypes.txt", "mod.conf", "LICENSE",
 ]
-const GOANNA_SERVER_MOD_FILES := ["init.lua", "surface_material.lua", "mod.conf", "settingtypes.txt", "README.md"]
+const GOANNA_SERVER_MOD_FILES := ["init.lua", "surface.lua", "surface_material.lua", "mod.conf", "settingtypes.txt", "README.md"]
 const PBR_GAME_DIRS := {
 	"minetest": "minetest_game",
 	"minetest_game": "minetest_game",
@@ -454,9 +458,68 @@ func _write_world_options(world: String, options: Dictionary) -> String:
 	output.store_string("\n".join(kept) + "\n")
 	return ""
 
-func _install_terrain_diffusion(world: String) -> String:
-	var src := "res://vendor/terrain_diffusion"
+# Where a game keeps its own Terrain Diffusion, or "" if it has none. Kythen
+# ships one at `mods/terrain_diffusion`, diverged from the bundled runtime and
+# carrying files the bundle has never heard of.
+static func game_terrain_diffusion_path(data_dir: String, gameid: String) -> String:
+	if gameid == "":
+		return ""
+	for base_entry in [data_dir.path_join("games"),
+			"/var/lib/flatpak/app/org.luanti.luanti/current/active/files/share/luanti/games"]:
+		var base := str(base_entry)
+		var mods := base.path_join(gameid).path_join("mods")
+		var direct := mods.path_join("terrain_diffusion")
+		if FileAccess.file_exists(direct.path_join("init.lua")):
+			return direct
+		# A game may carry it inside a modpack, which is one directory deeper.
+		var d := DirAccess.open(mods)
+		if d == null:
+			continue
+		d.list_dir_begin()
+		var name := d.get_next()
+		while name != "":
+			if d.current_is_dir() and not name.begins_with("."):
+				var nested := mods.path_join(name).path_join("terrain_diffusion")
+				if FileAccess.file_exists(nested.path_join("init.lua")):
+					d.list_dir_end()
+					return nested
+			name = d.get_next()
+		d.list_dir_end()
+	return ""
+
+static func _remove_tree(path: String) -> void:
+	var d := DirAccess.open(path)
+	if d == null:
+		return
+	d.list_dir_begin()
+	var name := d.get_next()
+	while name != "":
+		if not name.begins_with("."):
+			var entry := path.path_join(name)
+			if d.current_is_dir():
+				_remove_tree(entry)
+			else:
+				DirAccess.remove_absolute(entry)
+		name = d.get_next()
+	d.list_dir_end()
+	DirAccess.remove_absolute(path)
+
+# Luanti adds game mods first and world mods second, and on a name clash the
+# later one wins: "Will not load: <gamemod>, Overridden by: <worldmod>". So
+# installing the bundled runtime into a game that ships its own silently
+# replaced it, and Kythen's copy, which places the game's registered
+# decorations, never ran. Defer to the game and take the stale copy with us,
+# because a world from an earlier launch already has one sitting in worldmods.
+func _install_terrain_diffusion(world: String, data_dir: String, gameid: String) -> String:
 	var dst := world.path_join("worldmods").path_join("terrain_diffusion")
+	var theirs := game_terrain_diffusion_path(data_dir, gameid)
+	if theirs != "":
+		if DirAccess.dir_exists_absolute(dst):
+			_remove_tree(dst)
+			print("[goanna] removed the bundled Terrain Diffusion from worldmods")
+		print("[goanna] %s ships its own Terrain Diffusion at %s, using that" % [gameid, theirs])
+		return ""
+	var src := "res://vendor/terrain_diffusion"
 	DirAccess.make_dir_recursive_absolute(dst)
 	for filename in TERRAIN_DIFFUSION_FILES:
 		if not _copy_resource_file(src.path_join(filename), dst.path_join(filename)):
@@ -566,7 +629,7 @@ func start_config(options: Dictionary) -> String:
 		var prepare_error := _prepare_terrain_diffusion_meta(world_path)
 		if prepare_error != "":
 			return prepare_error
-		var install_error := _install_terrain_diffusion(world_path)
+		var install_error := _install_terrain_diffusion(world_path, _data_dir, gameid)
 		if install_error != "":
 			return install_error
 	var world_options_error := _write_world_options(world_path, options)

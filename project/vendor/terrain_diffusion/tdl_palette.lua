@@ -17,8 +17,10 @@ local entries = {}
 
 -- Luanti's heat and humidity are both nominally 0 to 100, which the installed
 -- games agree on: medians land near 45 and 50 in Asuna, Minetest Game and
--- Mineclonia alike. Mapping onto that is a choice, and this one puts 10 C and
--- 1000 mm a year in the middle of the range, which is temperate.
+-- Mineclonia alike. Mapping onto that is a choice, and this one puts 10 C in
+-- the middle of the range, which is temperate. Measured against Asuna's 133
+-- biomes, which run from heat -1 to 98 with a median of 48, this world asks for
+-- a median of 46.
 function tdl_palette.heat(temp_c)
         local heat = (temp_c + 10) * 2.5
         if heat < 0 then return 0 end
@@ -26,9 +28,25 @@ function tdl_palette.heat(temp_c)
         return heat
 end
 
-function tdl_palette.humidity(precip_mm)
-        local humidity = precip_mm / 20
-        if humidity < 0 then return 0 end
+-- Humidity comes from the aridity index, not from the rainfall. Reading the
+-- millimetres put this world's median at 18 while the games place their biomes
+-- around 52, so nearly every column landed in the dry corner of the biome cloud
+-- and the classifier's forests and taigas came out as desert, mesa and savanna.
+-- Measured in Asuna: 133 biomes spanning humidity 3 to 99 with a median of 52,
+-- asked for a median of 18.
+--
+-- The index is what makes the two halves of this mod agree. classify.material
+-- keys its own forest, grove and desert thresholds to it, so the palette now
+-- reads the number the classifier already decided the place by.
+--
+-- The constant puts the UNEP bands across the range the games use: hyper-arid
+-- at 0.05 lands near 10, the semi-arid edge at 0.2 near 31, dry sub-humid at
+-- 0.5 near 53, humid at 0.65 near 59, and a wet tropical 2.0 near 82. It
+-- saturates rather than clipping, so a rainforest and a swamp stay apart at the
+-- top of the range instead of both reading 100.
+function tdl_palette.humidity(aridity)
+        if aridity <= 0 then return 0 end
+        local humidity = 100 * aridity / (aridity + 0.45)
         if humidity > 100 then return 100 end
         return humidity
 end

@@ -44,6 +44,20 @@ function classify.adjust(elevation, temp, precip)
                 math.max(0, precip) * (1 + orographic * altitude / 2000)
 end
 
+-- The aridity index: rainfall against what the heat could evaporate. This is
+-- the number every tree decision below is keyed to, and the one the palette
+-- needs as well, because rainfall on its own does not say whether a place is
+-- wet. Four hundred millimetres is a damp heath at five degrees and desert at
+-- thirty, and a palette that reads the millimetres calls both of them desert.
+--
+-- Takes temperature and precipitation already adjusted for height.
+function classify.aridity(temp, t_season, precip)
+        local t_std = t_season / 100
+        local t_eff = math.max(0, temp + 0.5 * t_std)
+        local pet = math.max(250, 250 + 25 * t_eff + 0.7 * t_eff * t_eff)
+        return math.max(0, precip) / math.max(1, pet)
+end
+
 -- Returns a material name. Mapping to nodes happens in the mapgen script, so
 -- this file stays free of any particular game's node names.
 function classify.material(elevation, slope, temp, t_season, precip, p_cv,
@@ -58,9 +72,7 @@ function classify.material(elevation, slope, temp, t_season, precip, p_cv,
         temp, precip = classify.adjust(elevation, temp, precip)
         local altitude = math.max(0, elevation)
         local t_std = t_season / 100
-        local t_eff = math.max(0, temp + 0.5 * t_std)
-        local pet = math.max(250, 250 + 25 * t_eff + 0.7 * t_eff * t_eff)
-        local aridity = precip / math.max(1, pet)
+        local aridity = classify.aridity(temp, t_season, precip)
         local season_penalty = 1 - 0.35 * math.min(1, p_cv / 100)
         local tree_moisture = aridity * season_penalty
 

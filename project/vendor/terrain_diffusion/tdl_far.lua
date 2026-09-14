@@ -53,7 +53,52 @@ local ROCK = {
         default  = "mcl_core:stone",
 }
 local SCREE = "mcl_core:gravel"
-local WATER = "mcl_core:water_source"
+local function first_node(...)
+        for _, name in ipairs({...}) do
+                if core.registered_nodes[name] then return name end
+        end
+        return "air"
+end
+local STONE = first_node("mcl_core:stone", "default:stone")
+local WATER = first_node("mcl_core:water_source", "default:water_source")
+SCREE = first_node(SCREE, "default:gravel", STONE)
+local SAND = first_node("mcl_core:sand", "default:sand", STONE)
+-- Include the provider code, bake manifest, coordinate settings and game
+-- palette in the persistent tile namespace. Bake replacements must change
+-- their manifest identity, as the world catalogue packages already do.
+local function stable(value)
+        if type(value) ~= "table" then return core.serialize(value) end
+        local keys, parts = {}, {}
+        for key in pairs(value) do keys[#keys + 1] = key end
+        table.sort(keys, function(a, b) return tostring(a) < tostring(b) end)
+        for _, key in ipairs(keys) do
+                parts[#parts + 1] = stable(key) .. "=" .. stable(value[key])
+        end
+        return "{" .. table.concat(parts, ";") .. "}"
+end
+local function surface_revision()
+        local identity = {stable(tdl.manifest)}
+        local keys = core.settings:get_names()
+        table.sort(keys)
+        for _, key in ipairs(keys) do
+                if key:sub(1, 4) == "tdl_" then
+                        identity[#identity + 1] = key .. "=" .. core.settings:get(key)
+                end
+        end
+        identity[#identity + 1] = stable(core.registered_biomes)
+        -- tdl_biomes.lua, not "tdl_classify.lua": the classifier is defined in
+        -- the former and there has never been a file by the latter name, so
+        -- io.open returned nil and every change to how a climate is read
+        -- left the persisted tiles looking current.
+        for _, file in ipairs({"tdl_far.lua", "tdl_terrain.lua", "tdl_biomes.lua", "tdl_palette.lua"}) do
+                local source = io.open(core.get_modpath("terrain_diffusion") .. "/" .. file, "rb")
+                if source then
+                        identity[#identity + 1] = source:read("*a")
+                        source:close()
+                end
+        end
+        return table.concat(identity, "\n")
+end
 
 local sea_level = tdl.sea_level
 local min_drainage_km2 = tdl.min_drainage_km2
@@ -69,7 +114,7 @@ local MAX_INVENTED_DEPTH = 24
 -- rather than just the interior of whatever it is part of.
 local SHORE_DEPTH = 4
 
-goanna_register_far_surface(function(x, z)
+local function surface_provider(x, z)
         local fi, fj = tdl.node_to_pixel(x, z)
         local elevation = tdl.elevation_at(fi, fj)
         local east = tdl.elevation_at(fi, fj + 1)
@@ -89,16 +134,17 @@ goanna_register_far_surface(function(x, z)
         if use_palette and tdl_palette then
                 local at, ap = tdl_classify.adjust(elevation, temp, precip)
                 local entry = tdl_palette.pick(tdl_palette.heat(at),
-                        tdl_palette.humidity(ap), tdl.surface_y(elevation))
+                        tdl_palette.humidity(tdl_classify.aridity(at, t_season, ap)),
+                        tdl.surface_y(elevation))
                 if entry then
                         top, side = entry.top_name, entry.filler_name
                 end
         end
         if not top then
                 local m = MATERIALS[material] or MATERIALS.stony
-                top, side = m.top, m.filler
+                top, side = first_node(m.top, STONE), first_node(m.filler, STONE)
         end
-        local rock = ROCK[material] or ROCK.default
+        local rock = first_node(ROCK[material] or ROCK.default, STONE)
         if slope > 0.84 then
                 top, side = rock, rock
         elseif slope > 0.58 then
@@ -113,11 +159,22 @@ goanna_register_far_surface(function(x, z)
         if distance < 400 then
                 local level = tdl.water_surface_at(fi, fj)
 
-                if elevation < level - MAX_INVENTED_DEPTH then
+                if distance <= tdl.manifest.native_resolution
+                                and elevation < level - MAX_INVENTED_DEPTH then
                         -- The interior of a lake or the sea, not its edge:
                         -- "distance to water" cannot see past its own
                         -- surface, so it reads zero out here too. Flood it
                         -- and leave the ground and its material alone.
+                        --
+                        -- The distance test carries this, not the depth. The
+                        -- water plane holds whatever level is nearest for
+                        -- every cell, so depth alone asks "am I below
+                        -- something wet nearby", which downhill ground always
+                        -- is: see docs/fixes/perched-water.md, where it put
+                        -- lakes hundreds of metres up a hillside. tdl_mapgen
+                        -- carries the same guard and the two have to agree, or
+                        -- the horizon holds water the ground does not and it
+                        -- drains as you walk to it.
                         water_y = tdl.surface_y(level)
                 else
                         local catchment = math.max(1, tdl.drainage_at(fi, fj))
@@ -144,8 +201,8 @@ goanna_register_far_surface(function(x, z)
                         end
                 end
                 if shore then
-                        top = slope > 0.35 and "mcl_core:gravel" or "mcl_core:sand"
-                        side = "mcl_core:sand"
+                        top = slope > 0.35 and SCREE or SAND
+                        side = SAND
                 end
         end
         local surface = tdl.surface_y(elevation)
@@ -156,6 +213,10 @@ goanna_register_far_surface(function(x, z)
                 water_y = sea_level
         end
         return surface, top, water_y, side
-end, {water = WATER})
+end
+
+core.register_on_mods_loaded(function()
+        goanna_register_far_surface(surface_provider, {water = WATER, revision = surface_revision()})
+end)
 
 core.log("action", "[terrain_diffusion] far surface registered with the Goanna server mod")

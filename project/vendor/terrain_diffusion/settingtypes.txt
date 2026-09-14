@@ -53,3 +53,9 @@ tdl_orographic (Orographic rainfall) float 0.5 0.0 3.0
 #    works with the engine mapgens. Turn it off to use this mod's own node
 #    names, which are Mineclonia's.
 tdl_use_game_biomes (Use the game's own biomes) bool true
+
+#    Place the trees, plants and ground cover the game registers, against the
+#    biome this mod chose for each column. Off leaves bare terrain. The engine
+#    cannot do this itself here: it matches a decoration's biomes against the
+#    mapgen's biome map, and a singlenode mapgen fills none.
+tdl_place_decorations (Place the game's decorations) bool true
