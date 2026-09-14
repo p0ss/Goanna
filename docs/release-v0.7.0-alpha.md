@@ -54,6 +54,50 @@ server it is a cheat. It is now accepted only on a server this client started
 for itself. The documentation previously claimed flying moved the player
 position the server sees, which was false.
 
+## Decorations, trees and grass
+
+A Terrain Diffusion world used to generate bare ground. Luanti's
+`core.generate_decorations()` matches a decoration's biomes against the
+mapgen's biome map, and a singlenode mapgen fills no biome map, so every
+decoration either failed its biome test or landed wherever its `place_on`
+matched, putting spruce, jungle and acacia on one field. The vendored runtime
+now places the game's own registered decorations itself, honouring the
+`sidelen`, `fill_ratio` and noise parameters each game declares, so a world
+gets that game's trees and ground cover where that game would put them.
+
+The runtime also defers to a game's own copy. Luanti loads game mods before
+world mods and the later level wins on a name clash, so installing the
+bundled copy into every world silently overrode a game that ships its own,
+diverged version. Goanna now looks for the game's copy first and removes a
+stale bundled one left by an earlier launch.
+
+Distant trees keep their detail and their canopy surface materials rather
+than flattening into the far terrain.
+
+Procedural grass is new and optional, off by default, under Video as
+"Procedural grass": dense wind-swept ground cover that bends around players
+and animals, with close-up tracing bounded so it does not run away with the
+frame.
+
+## Water that stays in its valley
+
+A river could stand hundreds of metres above the ground. The mapgen decided a
+column was the interior of a lake from being within 800 m of water and more
+than 24 m below its level, but the water plane is a field holding whatever
+level is nearest, not a mask of where water is, so the test really asked "am
+I below something wet within 800 m" and downhill is the ordinary state of
+ground. A lake on a shoulder poured its level into every valley beneath it:
+92 per cent of flooded cells were not at water, a median 379 m from it, and
+one column stood 437 m tall. Flooding now requires actually being at the
+water, which drops spurious flooding from 2.9 per cent of land to 0.24 per
+cent while keeping every genuine lake and sea interior.
+
+A companion fix on the bake side, so it needs a world baked after it, stops
+narrow streams sitting above their valley: depression filling is a routing
+device rather than a physical surface, so an ordinary channel now takes the
+unfilled ground while lakes keep the filled basin they genuinely occupy. The
+worlds published with this release were baked before that change.
+
 ## Ice, and what is under the water
 
 Ice has procedural internal fractures and depth-writing transmission, drawn

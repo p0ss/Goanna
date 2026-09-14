@@ -10,7 +10,7 @@ the grass volume. Each patch extended 0.9 nodes in every horizontal direction,
 and even weak actor influence selected a 17×17 blade search at every grid step.
 Visible bending was not necessary to incur that search cost.
 
-The optimized shader:
+The optimised shader:
 
 - Expands each patch only as far as its actual maximum actor influence needs.
 - Bounds the blade search by the ray segment's height and possible bending.
@@ -23,12 +23,12 @@ state, improved from **103.20 to 12.38 ms**. At root height `(6,79.65,0)`, it
 improved from **76.50 to 9.59 ms**. These use 60 GPU samples after 45 warm frames
 per case; artifacts are in `build/grass-review/close/{before,height-bounds}`.
 
-A separate comparison alternated original and optimized shader code while
+A separate comparison alternated original and optimised shader code while
 holding the scene updates still. Six camera/actor/wind poses were captured with
 interaction explicitly disabled and with a full-strength actor at root height.
 This distinguishes the general tracing improvement from actor search savings.
 
-| Camera / interaction | Original GPU ms | Optimized GPU ms |
+| Camera / interaction | Original GPU ms | Optimised GPU ms |
 | --- | ---: | ---: |
 | Inside, interaction disabled, pose 0 | 17.76 | 10.27 |
 | Inside, full-strength actor, pose 0 | 107.16 | 34.96 |
@@ -56,4 +56,4 @@ The comparison restores the shader from the workspace afterward. It captures
 24 GPU samples after 20 warm frames for each variant; output is under
 `build/grass-review/close/validation`. The saved graphics toggle regression also
 passes with zero failures. The separate water/grass transparency issue is not
-addressed by this optimization.
+addressed by this optimisation.

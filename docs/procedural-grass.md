@@ -14,7 +14,7 @@ edges. Disabling it restores the antialiasing settings that were active before
 it was enabled; an existing 8× MSAA setting is preserved.
 
 `GOANNA_GRASS=1` remains a development startup default. A saved choice takes
-precedence. The isolated review launcher can test ordinary settings behavior
+precedence. The isolated review launcher can test ordinary settings behaviour
 without the environment default:
 
 ```sh
@@ -33,7 +33,7 @@ ray segments outside a blade's enclosing cylinder before solving intersections.
 Blade density, length, wind, edge compositing, and the distance transition are
 retained. See [close-up measurements](perf/procedural-grass-close-2026-09-14.md).
 
-The toggle regression checks default-off behavior in both menu and client,
+The toggle regression checks default-off behaviour in both menu and client,
 repeated on/off changes on existing near and LOD meshes, retention of base
 terrain, and restoration of antialiasing:
 
