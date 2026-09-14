@@ -76,14 +76,21 @@ int lodProjectedTier(v3f relative_block_centre, int current, bool live,
             std::max(0.0f, std::fabs(relative_block_centre.Z) - half));
     const float distance = delta.getLength();
     const float first = lodDetailRadius(configured_nodes, focal_pixels);
-    auto threshold = [&](int tier) { return first * (float)(1 << (tier - 1)); };
+    // Full near meshes and cached node-detail meshes have separate ranges.
+    // Keep the latter while a node is still visibly larger than a pixel;
+    // the old five-pixel boundary discarded trunks and crown openings early.
+    const float fine = std::max(first, std::min(configured_nodes * 2.0f,
+            std::max(32.0f, focal_pixels / 1.5f)));
+    auto threshold = [&](int tier) {
+        return tier == 1 ? first : fine * (float)(1 << (tier - 2));
+    };
     int desired = live && distance <= first ? 0 : 1;
-    for (int tier = 2; tier < BlockLodChain::kLevels; ++tier)
+    for (int tier = 2; tier <= BlockLodChain::kLevels; ++tier)
         if (distance > threshold(tier))
             desired = tier;
     // The return threshold is inside the outward threshold. It applies at
     // the near join too, so hovering there cannot alternate representations.
-    if (current >= 1 && current < BlockLodChain::kLevels && desired < current &&
+    if (current >= 1 && current <= BlockLodChain::kLevels && desired < current &&
             distance > 0.85f * threshold(current))
         return current;
     return desired;
@@ -113,6 +120,44 @@ static inline int popcount64(uint64_t v) {
 // Luanti's tile order, which is also the face order here: +Y, -Y, +X, -X,
 // +Z, -Z. Luanti coordinates; the z mirror happens when a vertex is emitted.
 static const int DIRS[6][3] = {{0, 1, 0}, {0, -1, 0}, {1, 0, 0}, {-1, 0, 0}, {0, 0, 1}, {0, 0, -1}};
+
+// Project the occupied children onto a face. Each column votes with its
+// outermost material; a buried opaque trunk must not repaint a leafy crown.
+// Keep content and palette index together, and resolve equal areas in a
+// stable scan order. Occupancy and lighting are reduced independently.
+template <typename Sample>
+static void reduceFace(int edge, int face, Sample sample,
+        content_t &content, uint8_t &param2) {
+    struct Vote { content_t content; uint8_t param2; int count; };
+    std::array<Vote, MAP_BLOCKSIZE * MAP_BLOCKSIZE> votes;
+    int count = 0;
+    for (int v = 0; v < edge; ++v)
+        for (int u = 0; u < edge; ++u)
+            for (int depth = 0; depth < edge; ++depth) {
+                const int along = face % 2 ? depth : edge - 1 - depth;
+                const int x = face < 2 ? u : face < 4 ? along : u;
+                const int y = face < 2 ? along : v;
+                const int z = face < 2 ? v : face < 4 ? u : along;
+                content_t c = CONTENT_AIR;
+                uint8_t p2 = 0;
+                if (!sample(x, y, z, c, p2))
+                    continue;
+                int i = 0;
+                while (i < count && (votes[i].content != c || votes[i].param2 != p2))
+                    ++i;
+                if (i == count)
+                    votes[count++] = {c, p2, 0};
+                ++votes[i].count;
+                break;
+            }
+    int best = 0;
+    for (int i = 0; i < count; ++i)
+        if (votes[i].count >= best) {
+            content = votes[i].content;
+            param2 = votes[i].param2;
+            best = votes[i].count;
+        }
+}
 
 int BlockLodChain::levelForCell(int cell) {
     switch (cell) {
@@ -203,7 +248,7 @@ struct ContentClass {
 
 } // namespace
 
-static bool lodIsVegetation(const NodeDefManager *ndef, content_t c) {
+bool lodIsVegetation(const NodeDefManager *ndef, content_t c) {
     static const char *const groups[] = {"tree", "leaves", "cactus", "bamboo", "plant", "flora",
             "sapling", "flower", "mushroom", "fruit", "vines"};
     if (!ndef || c == CONTENT_AIR || c == CONTENT_IGNORE)
@@ -291,10 +336,11 @@ void buildLodChain(const NodeDefManager *ndef, MapBlock *block, BlockLodChain &o
                 LodLevel::Cell &dst = base.cells[((size_t)cz * n + cy) * n + cx];
                 const NodeInfo *chosen = nullptr, *chosen_liquid = nullptr;
                 int chosen_score = -1, known = 0, lit = 0, liquid_top = 0;
+                int filled = 0;
                 uint8_t day = 0, night = 0;
                 const int x0 = cx * cell, y0 = cy * cell, z0 = cz * cell;
-                // Stable z/y/x order and >= on ties match the server summary
-                // reducer: opaque wins over non-opaque, then the last corner.
+                // Track opaque occupancy independently of the visible face
+                // materials chosen below. A buried solid still blocks light.
                 for (int z = z0; z < z0 + cell; ++z)
                     for (int y = y0; y < y0 + cell; ++y)
                         for (int x = x0; x < x0 + cell; ++x) {
@@ -309,6 +355,7 @@ void buildLodChain(const NodeDefManager *ndef, MapBlock *block, BlockLodChain &o
                             }
                             if (!(ni.flags & nFilled))
                                 continue;
+                            ++filled;
                             if (ni.flags & nLiquid) {
                                 liquid_top = std::max(liquid_top, y - y0 + 1);
                                 chosen_liquid = &ni;
@@ -339,9 +386,24 @@ void buildLodChain(const NodeDefManager *ndef, MapBlock *block, BlockLodChain &o
                     if (chosen->flags & nSolid)
                         dst.flags |= LodLevel::kOccludes;
                     for (int d = 0; d < 6; ++d) {
-                        dst.face[d] = chosen->c;
-                        dst.param2[d] = chosen->p2;
+                        if (cell == 1) {
+                            dst.face[d] = chosen->c;
+                            dst.param2[d] = chosen->p2;
+                            continue;
+                        }
+                        reduceFace(cell, d, [&](int x, int y, int z, content_t &c, uint8_t &p2) {
+                            const NodeInfo &ni = info[((size_t)(z0 + z) * N + y0 + y) * N + x0 + x];
+                            if (!(ni.flags & nFilled) || (ni.flags & nLiquid)) return false;
+                            c = ni.c;
+                            p2 = ni.p2;
+                            return true;
+                        }, dst.face[d], dst.param2[d]);
                     }
+                    // Against the cell's whole volume, not against the nodes
+                    // that happened to be known: a cell half outside a loaded
+                    // block is half empty as far as anything drawing it knows.
+                    const int volume = cell * cell * cell;
+                    dst.coverage = (uint8_t)std::min(255, (filled * 255 + volume / 2) / volume);
                 }
                 // Non-liquids and a liquid filling the cell keep top=0: the
                 // voxel occupies its complete cell, including its lower face.
@@ -354,6 +416,7 @@ void buildLodChain(const NodeDefManager *ndef, MapBlock *block, BlockLodChain &o
 
 void buildLodMipLevels(BlockLodChain &out, int first_level) {
     first_level = std::clamp(first_level, 0, BlockLodChain::kLevels - 1);
+    const LodLevel &material_source = out.level[first_level];
     for (int level = first_level + 1; level < BlockLodChain::kLevels; ++level) {
         const LodLevel &src = out.level[level - 1];
         if (!src.built())
@@ -369,6 +432,7 @@ void buildLodMipLevels(BlockLodChain &out, int first_level) {
                     LodLevel::Cell &coarse = dst.cells[((size_t)z * dst.n + y) * dst.n + x];
                     const LodLevel::Cell *chosen = nullptr, *chosen_liquid = nullptr;
                     int chosen_score = -1, chosen_liquid_top = -1, known = 0, lit = 0;
+                    int coverage_sum = 0;
                     uint8_t day = 0, night = 0;
                     for (int dz = 0; dz < 2; ++dz)
                         for (int dy = 0; dy < 2; ++dy)
@@ -390,6 +454,7 @@ void buildLodMipLevels(BlockLodChain &out, int first_level) {
                                         chosen_liquid_top = liquid_top;
                                     }
                                 }
+                                coverage_sum += c.coverage;
                                 if (c.flags & LodLevel::kFilled) {
                                     const int score = (c.flags & LodLevel::kOccludes) ? 2 : 1;
                                     if (score >= chosen_score) {
@@ -414,12 +479,29 @@ void buildLodMipLevels(BlockLodChain &out, int first_level) {
                     }
                     if (chosen) {
                         for (int d = 0; d < 6; ++d) {
-                            coarse.face[d] = chosen->face[d];
-                            coarse.param2[d] = chosen->param2[d];
+                            // Vote from the finest available surface. Voting
+                            // repeatedly on winners exaggerates thin borders
+                            // until they consume a whole face at the last mip.
+                            const int edge = dst.cell / material_source.cell;
+                            reduceFace(edge, d, [&](int dx, int dy, int dz, content_t &content, uint8_t &p2) {
+                                const auto &c = material_source.at(x * edge + dx, y * edge + dy, z * edge + dz);
+                                if ((c.flags & (LodLevel::kKnown | LodLevel::kFilled)) !=
+                                        (LodLevel::kKnown | LodLevel::kFilled)) return false;
+                                content = c.face[d];
+                                p2 = c.param2[d];
+                                return true;
+                            }, coarse.face[d], coarse.param2[d]);
                         }
                         coarse.flags |= LodLevel::kFilled;
                         if (chosen->flags & LodLevel::kOccludes)
                             coarse.flags |= LodLevel::kOccludes;
+                        // Mean over the children that are known. An unknown
+                        // child is not evidence of sky, so it neither fills
+                        // the parent nor thins it: leaving it out of the
+                        // divisor keeps a half streamed crown as dense as the
+                        // half that has arrived, and it fills in as it does.
+                        coarse.coverage = (uint8_t)std::min(255,
+                                (coverage_sum + known / 2) / std::max(1, known));
                     }
                 }
     }

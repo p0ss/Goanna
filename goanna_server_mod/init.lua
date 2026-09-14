@@ -204,10 +204,11 @@ end
 -- stays at v3's block granularity until replies are chunked.
 --
 -- A coarse cell chooses a representative from its 4 cubed nodes: any filled
--- node keeps the cell occupied, opaque wins over non-opaque, and ties use a
--- stable z/y/x scan order. The client uses the same rule on live/store nodes
--- and recursively for cell 8 and 16, so changing source or tier does not
--- reinterpret a heightfield. Most importantly Y is never discarded.
+-- node keeps the cell occupied. Its material represents the visible top
+-- area, so a trunk buried in a crown cannot repaint that crown as wood.
+-- The client retains separate materials for all six faces on live/store
+-- nodes; this compact wire format has room for only the top representative.
+local surface_material = dofile(core.get_modpath(core.get_current_modname()) .. "/surface_material.lua")
 local function block_summary(bx, by, bz, names, name_index)
 	local pmin = vector.new(bx * 16, by * 16, bz * 16)
 	local pmax = vector.add(pmin, 15)
@@ -248,7 +249,7 @@ local function block_summary(bx, by, bz, names, name_index)
 		for cy = 0, 3 do
 			for cx = 0, 3 do
 				local ci = (cz * 4 + cy) * 4 + cx
-				local chosen, chosen_score, chosen_liquid = nil, -1, nil
+				local chosen_liquid = nil
 				local liquid_top = 0
 				local cell_known, day, night = false, 0, 0
 				for z = pmin.z + cz * 4, pmin.z + cz * 4 + 3 do
@@ -267,11 +268,6 @@ local function block_summary(bx, by, bz, names, name_index)
 										liquid_top = math.max(liquid_top,
 											y - (pmin.y + cy * 4) + 1)
 										chosen_liquid, block_liquid = cid, cid
-									else
-										local score = c.solid and 2 or 1
-										if score >= chosen_score then
-											chosen, chosen_score = cid, score
-										end
 									end
 								end
 							else
@@ -280,6 +276,12 @@ local function block_summary(bx, by, bz, names, name_index)
 						end
 					end
 				end
+				local chosen = surface_material(4, function(x, y, z)
+					local cid = data[area:index(pmin.x + cx * 4 + x,
+						pmin.y + cy * 4 + y, pmin.z + cz * 4 + z)]
+					local c = classify(cid)
+					if c.filled and not c.liquid then return cid end
+				end)
 				contents[ci] = not cell_known and 255 or idx_of(chosen)
 				liquid_cells[ci] = chosen_liquid ~= nil
 				liquid_tops[ci] = chosen_liquid and liquid_top < 4 and liquid_top or 0
@@ -357,11 +359,10 @@ end
 local REC = 92
 local AREA = 8
 local AREA_BLOCKS = AREA * AREA * AREA
--- Protocol v7, provider-shell schema 1. The wire layout did not change, but
--- old provider records materialised every buried block in a 128-node slab.
--- Keep their persistent cache separate so a restart cannot resurrect that
--- million-block interior after the visible-shell fix.
-local STORE_KEY = "fs7s1:"
+-- Protocol v7, reducer schema 2. Keep old opaque-winner materials and old
+-- buried provider interiors out of the persistent summary cache. The wire
+-- layout is unchanged; only the meaning of its representative has improved.
+local STORE_KEY = "fs7s2:"
 local EMPTY_BLOB = string.rep("\0", REC * AREA_BLOCKS)
 local EMPTY_RECORD = string.rep("\0", REC)
 local cache_limit = conf_num("goanna_far_summary_cache_areas", 4096)

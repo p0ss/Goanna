@@ -22,7 +22,7 @@ namespace {
 // Fixed bounds precede every allocation. The schema stores fields explicitly,
 // never compiler struct layouts or pointers. Change the version when the
 // reducer's meaning changes, even if the byte layout remains compatible.
-constexpr uint32_t kSchema = 2;
+constexpr uint32_t kSchema = 4;  // materials represent visible faces, not buried opaque nodes
 constexpr size_t kMaxRecord = 256 * 1024;
 constexpr size_t kMaxSummary = 1024 * 1024;
 struct Writer {
@@ -34,6 +34,7 @@ struct Writer {
         for (auto v : c.face) put(v, 2);
         for (auto v : c.param2) put(v, 1);
         put(c.day, 1); put(c.night, 1); put(c.flags, 1); put(c.top, 1);
+        put(c.coverage, 1);
         put(c.liquid, 2); put(c.liquid_param2, 1); put(c.liquid_top, 1);
     }
 };
@@ -51,6 +52,7 @@ struct Reader {
         for (auto &v : c.face) v = (content_t)get(2);
         for (auto &v : c.param2) v = (uint8_t)get(1);
         c.day = get(1); c.night = get(1); c.flags = get(1); c.top = get(1);
+        c.coverage = get(1);
         c.liquid = get(2); c.liquid_param2 = get(1); c.liquid_top = get(1);
         if (c.flags > 63 || c.top > edge || c.liquid_top > edge)
             throw std::runtime_error("invalid terrain cell");
@@ -66,14 +68,14 @@ std::string packSummary(const std::string &message, uint64_t definitions) {
     compressed.resize(n);
     Writer header;
     header.bytes = "GLDS";
-    header.put(1, 4); header.put(definitions, 8); header.put(message.size(), 4);
+    header.put(2, 4); header.put(definitions, 8); header.put(message.size(), 4);
     header.put(terrainFingerprint(compressed), 8);
     return header.bytes + compressed;
 }
 std::string unpackSummary(const std::string &record, uint64_t definitions) {
     if (record.size() < 28 || record.compare(0, 4, "GLDS")) return {};
     Reader r{record, 4};
-    if (r.get(4) != 1 || r.get(8) != definitions) return {};
+    if (r.get(4) != 2 || r.get(8) != definitions) return {};
     const size_t size = r.get(4);
     const uint64_t hash = r.get(8);
     if (!size || size > kMaxSummary || terrainFingerprint(record.substr(r.at)) != hash) return {};

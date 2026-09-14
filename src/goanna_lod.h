@@ -76,14 +76,26 @@ struct LodLevel {
     };
     struct Cell {
         // Representative content for each side, in Luanti's tile order
-        // (+Y, -Y, +X, -X, +Z, -Z). Volumetric mips currently put the same
-        // representative in all six entries. CONTENT_AIR means none.
+        // (+Y, -Y, +X, -X, +Z, -Z), chosen from each face's visible area.
+        // CONTENT_AIR means none.
         content_t face[6] = {CONTENT_AIR, CONTENT_AIR, CONTENT_AIR, CONTENT_AIR, CONTENT_AIR, CONTENT_AIR};
         // That node's param2, for palette coloured nodes (biome grass).
         uint8_t param2[6] = {0, 0, 0, 0, 0, 0};
         // Mean decoded light of the lit nodes in the cell. Valid when kLit.
         uint8_t day = 255, night = 0;
         uint8_t flags = 0;
+        // How much of the cell is actually filled, 0 to 255, where 255 is
+        // every node. Meaningful only with kFilled, and 0 without it.
+        //
+        // Occupancy alone cannot tell a canopy from a cliff. The reducer keeps
+        // a parent occupied if any child is, so at cell 16 a crown that is a
+        // sixth leaves and the rest sky is stored, meshed and shaded exactly
+        // like solid rock: the "single leaf made a cliff, and a jungle canopy
+        // became a wall of cubes" in docs/far-rendering.md. A fill threshold
+        // once stood in for this and went out with the volumetric reducer.
+        // This is the fraction that threshold was reaching for, kept rather
+        // than decided, so the mesher and the shader can use it as openness.
+        uint8_t coverage = 0;
         // Legacy solid partial-height support. Zero means a volumetric solid
         // occupies the complete cell, including its lower face.
         uint8_t top = 0;
@@ -166,6 +178,10 @@ LodTopSample lodHorizonTop(const BlockLodChain &chain);
 // trunks, leaves, cave walls and island undersides all remain on the node
 // grid. Every occupied cell remains a voxel at coarser levels; terrain is not
 // reconstructed from a heightfield.
+// Whether a content id is part of a plant: the group list the far tiers and
+// the tree detector share, so what meshes as canopy is what labels as canopy.
+bool lodIsVegetation(const NodeDefManager *ndef, content_t c);
+
 void buildLodChain(const NodeDefManager *ndef, MapBlock *block, BlockLodChain &out, int min_level = 0);
 
 // Build every level above first_level from its 2 by 2 by 2 children. Summary

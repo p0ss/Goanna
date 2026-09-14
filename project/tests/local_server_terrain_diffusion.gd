@@ -37,6 +37,14 @@ func _initialize() -> void:
 	for filename in LocalServer.GOANNA_SERVER_MOD_FILES:
 		_assert(FileAccess.file_exists(world.path_join("worldmods/goanna_server_mod").path_join(filename)),
 			"Goanna server mod file was not deployed: " + filename)
+	# Check the source bundle as well as the install list: iterating only that
+	# list passed when init.lua's new surface_material.lua dependency was absent.
+	for filename in DirAccess.get_files_at("res://vendor/goanna_server_mod"):
+		if filename.ends_with(".lua"):
+			_assert(FileAccess.get_file_as_string(world.path_join(
+					"worldmods/goanna_server_mod").path_join(filename)) ==
+					FileAccess.get_file_as_string("res://vendor/goanna_server_mod/" + filename),
+				"Goanna Lua module was omitted or differs from the bundle: " + filename)
 	_assert(FileAccess.file_exists(world.path_join(
 		"worldmods/goanna_pbr/textures/default_stone_n.png")),
 		"bundled Minetest Game PBR material was not deployed")

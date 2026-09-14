@@ -44,6 +44,9 @@ add_library(goanna SHARED
     src/goanna_light.cpp
     src/goanna_lod.cpp
     src/goanna_lod_storage.cpp
+    src/goanna_trees.cpp
+    src/goanna_tree_atlas.cpp
+    src/goanna_tree_render.cpp
     src/goanna_horizon.cpp
     src/goanna_materials.cpp
     src/goanna_grass.cpp
@@ -80,6 +83,10 @@ target_include_directories(goanna_light_test PRIVATE src)
 target_link_libraries(goanna_light_test PRIVATE luanti_core)
 
 # Coarse voxel topology: recursive XYZ mips and exposed lower faces.
+add_executable(goanna_trees_test EXCLUDE_FROM_ALL src/goanna_trees_test.cpp src/goanna_trees.cpp src/goanna_tree_atlas.cpp)
+target_include_directories(goanna_trees_test PRIVATE src)
+target_link_libraries(goanna_trees_test PRIVATE luanti_core)
+
 add_executable(goanna_lod_test EXCLUDE_FROM_ALL src/goanna_lod_test.cpp)
 target_include_directories(goanna_lod_test PRIVATE src)
 target_link_libraries(goanna_lod_test PRIVATE goanna luanti_core)

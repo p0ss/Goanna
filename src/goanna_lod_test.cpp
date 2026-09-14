@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 #include "goanna_lod.h"
+#include "goanna_tree_render.h"
 
 #include "mapblock.h"
 #include "nodedef.h"
@@ -108,14 +109,26 @@ void testProjectedDetailIncludesAltitudeAndResolution() {
     const float radius = 512.0f, focal = 640.0f;
     expect(lodProjectedTier(v3f(0, 40, 0), 0, true, radius, focal) == 0,
             "close terrain lost full detail");
-    expect(lodProjectedTier(v3f(0, 300, 0), 0, true, radius, focal) == 2,
+    expect(lodProjectedTier(v3f(0, 300, 0), 0, true, radius, focal) == 1,
             "high-altitude terrain stayed in the near cylinder");
-    expect(lodProjectedTier(v3f(300, 0, 0), 0, true, radius, focal) == 2,
+    expect(lodProjectedTier(v3f(300, 0, 0), 0, true, radius, focal) == 1,
             "altitude and horizontal distance do not share the projection rule");
-    expect(lodProjectedTier(v3f(300, 0, 0), 0, true, radius, focal * 2) == 1,
+    expect(lodProjectedTier(v3f(600, 0, 0), 0, true, radius, focal) == 2,
+            "two-node band did not begin beyond the one-node silhouette band");
+    expect(lodProjectedTier(v3f(600, 0, 0), 0, true, radius, focal * 2) == 1,
             "higher display resolution did not retain more detail");
     expect(lodProjectedTier(v3f(0, 0, 0), 0, false, radius, focal) == 1,
             "missing live data suppressed the far fallback");
+    expect(lodProjectedTier(v3f(300, 0, 0), 0, false, radius, focal) == 1,
+            "visited terrain lost its one-node far band");
+    expect(lodProjectedTier(v3f(900, 0, 0), 0, false, radius, focal) == 3,
+            "four-node band arrived before the finer bands");
+    expect(lodProjectedTier(v3f(4000, 0, 0), 0, false, radius, focal) == 5,
+            "the coarsest retained rung became unreachable");
+    expect(lodProjectedTier(v3f(420, 0, 0), 2, false, radius, focal) == 2,
+            "fine far boundary has no return hysteresis");
+    expect(lodProjectedTier(v3f(350, 0, 0), 2, false, radius, focal) == 1,
+            "returning to the fine far band failed");
     expect(lodProjectedTier(v3f(130, 0, 0), 1, true, radius, focal) == 1,
             "near boundary has no return hysteresis");
     expect(lodProjectedTier(v3f(110, 0, 0), 1, true, radius, focal) == 0,
@@ -144,6 +157,42 @@ void testRecursiveVoxelMip() {
     expect(coarse.flags & LodLevel::kOccludes, "opaque child did not win");
     expect(coarse.face[0] == 101, "mip chose the wrong representative");
     expect(coarse.top == 0, "mip voxel does not occupy its complete cell");
+}
+
+void testMipMaterialsFollowExposedFaces() {
+    BlockLodChain ch = fineAirChain();
+    auto &fine = ch.level[0];
+    // A trunk enclosed by leaves above and on every side, with an exposed
+    // wooden underside. Check every mip, including the single block cell.
+    for (int z = 0; z < 16; ++z)
+        for (int y = 0; y < 16; ++y)
+            for (int x = 0; x < 16; ++x) {
+                const bool leaf = y == 15 || x == 0 || x == 15 || z == 0 || z == 15;
+                auto &c = fine.at(x, y, z);
+                fillCell(c, leaf ? 100 : 101, !leaf);
+                c.coverage = 255;
+                for (auto &p2 : c.param2) p2 = leaf ? 7 : 3;
+            }
+    buildLodMipLevels(ch, 0);
+    for (int level = 1; level < BlockLodChain::kLevels; ++level) {
+        const auto &lv = ch.level[level];
+        for (int z = 0; z < lv.n; ++z)
+            for (int x = 0; x < lv.n; ++x) {
+                const auto &c = lv.at(x, lv.n - 1, z);
+                expect(c.face[0] == 100 && c.param2[0] == 7,
+                        "buried wood replaced a leaf top or lost its palette");
+            }
+    }
+    const auto &whole = ch.level[4].at(0, 0, 0);
+    expect(whole.face[1] == 101, "exposed wooden underside was replaced with leaves");
+    for (int d = 2; d < 6; ++d)
+        expect(whole.face[d] == 100, "buried wood replaced a leafy side");
+
+    ch = fineAirChain();
+    fillCell(ch.level[0].at(5, 7, 6), 101);
+    buildLodMipLevels(ch, 0);
+    expect(ch.level[4].at(0, 0, 0).face[0] == 101,
+            "an exposed log lost its wood top");
 }
 
 void testLiquidSurfaceHeightSurvivesMip() {
@@ -747,11 +796,134 @@ void testTierBoundaryUsesDrawnOccupancy() {
 
 } // namespace
 
+// A canopy and a cliff are both "occupied" and the reducer keeps them both, so
+// what separates them at range is how much of the cell they fill. See the note
+// on LodLevel::Cell::coverage.
+void testCoverageSeparatesCanopyFromRock() {
+    auto chainWith = [](int filled_of_eight) {
+        BlockLodChain ch;
+        LodLevel &lv = ch.level[BlockLodChain::levelForCell(4)];
+        lv.cell = 4;
+        lv.n = 4;
+        lv.cells.assign(64, LodLevel::Cell());
+        for (LodLevel::Cell &c : lv.cells)
+            c.flags = LodLevel::kKnown;
+        // The eight cell-4 voxels under one cell-8 cell, filling as many as
+        // asked. A summary cannot report a partial cell-4, so each filled one
+        // is solid and openness is entirely a matter of how many there are.
+        int placed = 0;
+        for (int dz = 0; dz < 2; ++dz)
+            for (int dy = 0; dy < 2; ++dy)
+                for (int dx = 0; dx < 2; ++dx) {
+                    if (placed++ >= filled_of_eight)
+                        continue;
+                    LodLevel::Cell &c = lv.at(dx, dy, dz);
+                    fillCell(c, 100);
+                    c.coverage = 255;
+                }
+        buildLodMipLevels(ch, BlockLodChain::levelForCell(4));
+        return ch;
+    };
+
+    const LodLevel &solid = chainWith(8).level[BlockLodChain::levelForCell(8)];
+    expect(solid.at(0, 0, 0).flags & LodLevel::kFilled, "solid cell-8 should be filled");
+    expect(solid.at(0, 0, 0).coverage == 255, "eight of eight should read completely full");
+
+    const LodLevel &sparse = chainWith(1).level[BlockLodChain::levelForCell(8)];
+    expect(sparse.at(0, 0, 0).flags & LodLevel::kFilled,
+            "a sparse cell is still occupied: coverage informs drawing, it does not gate it");
+    expect(sparse.at(0, 0, 0).coverage == 32,
+            "one of eight should read an eighth full, not full");
+
+    // And it survives the next reduction rather than being rounded back to
+    // solid, which is where the wall of cubes actually appeared.
+    const LodLevel &coarser = chainWith(1).level[BlockLodChain::levelForCell(16)];
+    expect(coarser.at(0, 0, 0).coverage > 0 && coarser.at(0, 0, 0).coverage < 32,
+            "cell 16 should thin further, one filled voxel in sixty-four");
+
+    // An unknown neighbour is not sky. A half streamed crown keeps the density
+    // of the half that arrived instead of being averaged towards empty.
+    BlockLodChain partial;
+    LodLevel &lv = partial.level[BlockLodChain::levelForCell(4)];
+    lv.cell = 4;
+    lv.n = 4;
+    lv.cells.assign(64, LodLevel::Cell());
+    LodLevel::Cell &only = lv.at(0, 0, 0);
+    only.flags = LodLevel::kKnown;
+    fillCell(only, 100);
+    only.coverage = 255;
+    buildLodMipLevels(partial, BlockLodChain::levelForCell(4));
+    expect(partial.level[BlockLodChain::levelForCell(8)].at(0, 0, 0).coverage == 255,
+            "the one known child should set the parent, not one eighth of it");
+}
+
+
+// The join between the far field's occupancy and the tree detector: a tree
+// standing in a chain has to come out at the place it actually stands, in
+// nodes, with its own height. This is the newest code in the path and the part
+// with the most arithmetic between two coordinate systems.
+void testTreeLayerFindsATreeInAChain() {
+    NodeDefManager ndef;
+    ContentFeatures trunk_def;
+    trunk_def.name = "test:trunk";
+    trunk_def.groups["tree"] = 1;
+    const content_t c_trunk = ndef.set("test:trunk", trunk_def);
+    ContentFeatures leaf_def;
+    leaf_def.name = "test:leaves";
+    leaf_def.groups["leaves"] = 1;
+    const content_t c_leaf = ndef.set("test:leaves", leaf_def);
+
+    auto chain = std::make_shared<BlockLodChain>();
+    LodLevel &lv = chain->level[BlockLodChain::levelForCell(4)];
+    lv.cell = 4;
+    lv.n = 4;
+    lv.cells.assign(64, LodLevel::Cell());
+    for (LodLevel::Cell &c : lv.cells)
+        c.flags = LodLevel::kKnown | LodLevel::kLit;
+    auto put = [&](int x, int y, int z, content_t content, bool solid) {
+        LodLevel::Cell &c = lv.at(x, y, z);
+        c.flags |= LodLevel::kFilled | (solid ? LodLevel::kOccludes : 0);
+        for (content_t &f : c.face)
+            f = content;
+        c.day = 200;
+    };
+    // A stem of two voxels with three of crown on top, at voxel x 1, z 1 of
+    // block 0, which is node 4 to 7 on both axes.
+    put(1, 0, 1, c_trunk, true);
+    put(1, 1, 1, c_trunk, true);
+    put(1, 2, 1, c_leaf, false);
+    put(0, 2, 1, c_leaf, false);
+    put(2, 2, 1, c_leaf, false);
+
+    std::map<v3s16, std::shared_ptr<const BlockLodChain>> chains;
+    chains[v3s16(0, 0, 0)] = chain;
+
+    TreeLayer layer;
+    expect(layer.update(chains, &ndef, v3s16(0, 0, 0), 4), "a new tree should be a change");
+    const std::vector<TreeDraw> &trees = layer.trees();
+    expect(trees.size() == 1, "one tree in the chain, one tree out");
+    const TreeDraw &t = trees[0];
+    // Voxel 1 of a 4 node cell is nodes 4 to 7, so its middle is 6.
+    expect(std::abs(t.base.X - 6.0f) < 0.01f && std::abs(t.base.Z - 6.0f) < 0.01f,
+            "the tree stands where the trunk voxel is, in nodes");
+    expect(std::abs(t.base.Y - 0.0f) < 0.01f, "on the foot of the stem");
+    expect(std::abs(t.height - 12.0f) < 0.01f, "three voxels tall is twelve nodes");
+    expect(t.day_top > 100, "and it carries the light it was standing in");
+    expect(layer.atlas().used() == 1, "and took one slot");
+
+    // Running again over the same chains must not churn: the far field calls
+    // this every couple of seconds and rebuilding a county each time would
+    // cost more than the trees do.
+    expect(!layer.update(chains, &ndef, v3s16(0, 0, 0), 4),
+            "unchanged chains should report no change");
+}
+
 int main() {
     testSparseCaptureBounds();
     testHorizonUsesSurfaceHeight();
     testProjectedDetailIncludesAltitudeAndResolution();
     testRecursiveVoxelMip();
+    testMipMaterialsFollowExposedFaces();
     testLiquidSurfaceHeightSurvivesMip();
     testLiquidIsAnEnvelopeOverSolid();
     testIsolatedVoxelHasAllSixFaces();
@@ -768,6 +940,8 @@ int main() {
     testCellOneMeetsCellFourWithoutOverlap();
     testUnknownFrontierIsClosed();
     testTierBoundaryUsesDrawnOccupancy();
+    testCoverageSeparatesCanopyFromRock();
+    testTreeLayerFindsATreeInAChain();
     std::cout << "goanna_lod_test: ok\n";
     return 0;
 }
