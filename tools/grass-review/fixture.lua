@@ -68,3 +68,35 @@ core.register_chatcommand("grass_actor", {
         return true,"Grass interaction mover spawned"
     end,
 })
+
+-- Permanent soil keeps the water comparison independent of the game's
+-- grass-decay ABM. The geometry straddles both X and Y mapblock boundaries.
+core.register_node("grass_review:water_test_grass", {
+    description="Grass water review soil",
+    tiles=core.registered_nodes["default:dirt_with_grass"].tiles,
+    groups={soil=1,cracky=1},
+})
+core.register_chatcommand("grass_water", {
+    privs={server=true},
+    params="[dry]",
+    func=function(_, param)
+        local minp,maxp={x=10,y=124,z=-8},{x=22,y=132,z=4}
+        local vm=core.get_voxel_manip(minp,maxp)
+        local emin,emax=vm:get_emerged_area()
+        local area=VoxelArea:new({MinEdge=emin,MaxEdge=emax})
+        local data=vm:get_data()
+        local soil=core.get_content_id("grass_review:water_test_grass")
+        for z=minp.z,maxp.z do for y=minp.y,maxp.y do for x=minp.x,maxp.x do
+            local pool=x>=13 and x<=19 and z>=-5 and z<=1
+            local top=pool and 126 or 128
+            local content=air
+            if y<top then content=dirt elseif y==top then content=soil end
+            if pool and y>top and y<=128 and param~="dry" then content=water end
+            data[area:index(x,y,z)]=content
+        end end end
+        vm:set_data(data)
+        vm:calc_lighting()
+        vm:write_to_map()
+        return true,"Grass/water review pool at 16,128,-2"
+    end,
+})

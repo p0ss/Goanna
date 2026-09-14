@@ -17,10 +17,13 @@
 
 using namespace godot;
 
-void goanna::append_grass(const Ref<ArrayMesh> &mesh, bool lod, Node *owner) {
+void goanna::append_grass(const Ref<ArrayMesh> &mesh, bool lod, Node *owner,
+        const GrassWaterQuery &submerged, int cell) {
     // Remember the coordinate convention even when disabled, so the saved
     // graphics option can add grass to already-published terrain in place.
     mesh->set_meta("goanna_grass_lod", lod);
+    cell = mesh->get_meta("goanna_grass_cell", std::max(1, cell));
+    mesh->set_meta("goanna_grass_cell", cell);
     if (!(bool)owner->get_meta("goanna_grass_enabled", false)) return;
     PackedVector3Array vertices;
     PackedColorArray colours;
@@ -31,7 +34,14 @@ void goanna::append_grass(const Ref<ArrayMesh> &mesh, bool lod, Node *owner) {
     // A top quad arrives as two triangles with the same rectangular bounds.
     std::set<std::array<float, 6>> seen;
     const int source_count = mesh->get_surface_count();
-    for (int s = 0; s < source_count; ++s) {
+    const bool cached = mesh->has_meta("goanna_grass_dry_patches");
+    if (cached) {
+        const PackedFloat32Array saved = mesh->get_meta("goanna_grass_dry_patches");
+        for (int i = 0; i + 10 < saved.size(); i += 11)
+            patches.push_back({saved[i],saved[i+1],saved[i+2],saved[i+3],saved[i+4],
+                    Color(saved[i+5],saved[i+6],saved[i+7],saved[i+8]),saved[i+9],saved[i+10]});
+    }
+    for (int s = 0; !cached && s < source_count; ++s) {
         Ref<Material> material = mesh->surface_get_material(s);
         if (material.is_null() || !material->has_meta("goanna_grass_layers")) continue;
         const Dictionary layers = material->get_meta("goanna_grass_layers");
@@ -65,6 +75,25 @@ void goanna::append_grass(const Ref<ArrayMesh> &mesh, bool lod, Node *owner) {
                     std::ceil(z1+offset-0.0001f)-offset,p.y,col,sky,ao});
         }
     }
+    if (!cached && submerged) {
+        std::vector<Patch> dry;
+        // Greedy terrain quads can span both wet soil and a dry bank. Split at
+        // the source voxel resolution before merging, including across blocks.
+        for (const Patch &p : patches) {
+            for (float z = p.z0; z < p.z1; z += cell)
+                for (float x = p.x0; x < p.x1; x += cell) {
+                    Patch part = p;
+                    part.x0 = x; part.z0 = z;
+                    part.x1 = std::min(x + cell, p.x1);
+                    part.z1 = std::min(z + cell, p.z1);
+                    const float offset = lod ? 0.0f : 0.5f;
+                    if (!submerged((int)std::floor((x+part.x1)*0.5f+offset),
+                            p.y+offset, (int)std::floor(-(z+part.z1)*0.5f+offset)))
+                        dry.push_back(part);
+                }
+        }
+        patches = std::move(dry);
+    }
     // Merge coplanar equal-colour patches in two sorted passes. This keeps
     // volume overdraw proportional to terrain shape, not to individual nodes.
     for (bool along_z : {false,true}) {
@@ -85,6 +114,15 @@ void goanna::append_grass(const Ref<ArrayMesh> &mesh, bool lod, Node *owner) {
             merged.push_back(p);
         }
         patches=std::move(merged);
+    }
+    if (!cached) {
+        // Keep eligibility with the published geometry: toggling the setting
+        // must not restore wet patches after their source blocks are unloaded.
+        PackedFloat32Array saved;
+        for (const Patch &p : patches)
+            for (float f : {p.x0,p.z0,p.x1,p.z1,p.y,p.col.r,p.col.g,p.col.b,p.col.a,p.sky,p.ao})
+                saved.push_back(f);
+        mesh->set_meta("goanna_grass_dry_patches", saved);
     }
     for (const Patch &p : patches) {
             const float x0=p.x0,z0=p.z0,x1=p.x1,z1=p.z1;

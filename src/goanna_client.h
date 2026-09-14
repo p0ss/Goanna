@@ -393,6 +393,8 @@ protected:
     static void _bind_methods();
 
 private:
+    // Live callers hold the session map lock; cached LOD callers use chains only.
+    bool grassSubmerged(int x, float root_boundary, int z, bool live) const;
     void harvestLights(v3s16 bp, MapBlock *block);
     void harvestMotes(v3s16 bp, MapBlock *block);
     void ensureMoteMaterials();

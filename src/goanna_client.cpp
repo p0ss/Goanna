@@ -187,9 +187,37 @@ bool GoannaClient::procedural_grass() const {
     return get_meta("goanna_grass_enabled", false);
 }
 
+bool GoannaClient::grassSubmerged(int x, float root_boundary, int z, bool live) const {
+    const int y = (int)std::floor(root_boundary + 0.0001f);
+    if (x < -32768 || x > 32767 || y < -32768 || y > 32767 || z < -32768 || z > 32767)
+        return false;
+    const v3s16 pos(x, y, z);
+    if (live && m_session && m_session->nodeDefs()) {
+        const MapNode node = m_session->map().getNode(pos);
+        if (node.getContent() != CONTENT_IGNORE)
+            return m_session->nodeDefs()->get(node).isLiquid();
+    }
+    const v3s16 bp = getNodeBlockPos(pos);
+    auto it = m_lod_chains.find(bp);
+    if (it == m_lod_chains.end()) return false;
+    const int lx = x - bp.X * MAP_BLOCKSIZE;
+    const int ly = y - bp.Y * MAP_BLOCKSIZE;
+    const int lz = z - bp.Z * MAP_BLOCKSIZE;
+    for (int cell = 1; cell <= MAP_BLOCKSIZE; cell *= 2) {
+        const auto *c = it->second->cellAt(cell, lx/cell, ly/cell, lz/cell);
+        if (!c) continue;
+        const float top = bp.Y * MAP_BLOCKSIZE + (ly/cell)*cell +
+                (c->liquid_top ? c->liquid_top : cell);
+        return (c->flags & LodLevel::kLiquid) && top > root_boundary + 0.0001f;
+    }
+    return false;
+}
+
 void GoannaClient::set_procedural_grass(bool enabled) {
     if (enabled == procedural_grass()) return;
     set_meta("goanna_grass_enabled", enabled);
+    std::unique_lock<std::mutex> map_lock;
+    if (enabled && m_session) map_lock = std::unique_lock<std::mutex>(m_session->mapLock());
     // Terrain mesh uploads are main-thread operations. Update the published
     // meshes directly; future near/LOD/baked uploads read the same switch.
     // Removing the surface also removes its rendering cost when switched off.
@@ -203,7 +231,12 @@ void GoannaClient::set_procedural_grass(bool enabled) {
             if (material.is_valid() && material->has_meta("goanna_grass_volume"))
                 mesh->surface_remove(s);
         }
-        if (enabled) goanna::append_grass(mesh, mesh->get_meta("goanna_grass_lod"), this);
+        if (enabled) {
+            const bool lod = mesh->get_meta("goanna_grass_lod");
+            goanna::append_grass(mesh, lod, this, [this, lod](int x, float y, int z) {
+                return grassSubmerged(x, y, z, !lod);
+            });
+        }
     }
 }
 
@@ -550,7 +583,16 @@ void GoannaClient::nearPublishBatch(const v3s16 &key, NearRegion &region,
                     Dictionary(), kNodeSurfaceFlags);
             mesh->surface_set_material(si++, materialFor(acc.key));
         }
-        if (!glow) goanna::append_grass(mesh, false, this);
+        if (!glow) {
+            // Nonempty batches publish worker output outside the map lock.
+            // Empty inline retirements can already hold it and need no reads.
+            std::unique_lock<std::mutex> map_lock;
+            if (!groups.empty() && m_session && procedural_grass())
+                map_lock = std::unique_lock<std::mutex>(m_session->mapLock());
+            goanna::append_grass(mesh, false, this, [this](int x, float y, int z) {
+                return grassSubmerged(x, y, z, true);
+            });
+        }
         return mesh;
     };
     Ref<ArrayMesh> mesh = build_mesh(false);
@@ -6103,7 +6145,9 @@ void GoannaClient::lodPublishRegion(const LodRegionKey &key, LodRegion &r, const
             mesh->surface_set_material(si, mat);
         ++si;
     }
-    goanna::append_grass(mesh, true, this);
+    goanna::append_grass(mesh, true, this, [this](int x, float y, int z) {
+        return grassSubmerged(x, y, z, false);
+    }, std::max(1, std::min(exact_cell_used, coarse_cell_used)));
     if (!r.node) {
         r.node = memnew(MeshInstance3D);
         // Far tiers cast no shadows. The directional map only covers 200
