@@ -40,6 +40,13 @@ the package if the mapping is missing, if any selected file has no exact
 licence, or if any recorded licence is outside the accepted set. A rejected
 package-level licence still fails before the mapping is consulted.
 
+Not yet under the gate: the bundled Mineclonia pack predates the source lock,
+so it has no pinned release, no archive hash and no audit row, and
+`check-pbr-licenses.py` iterates the lock and therefore never sees it. Its
+terms are clean on inspection, with `LEGAL.md` separating GPLv3 code from
+media that is CC BY-SA 4.0 (Pixel Perfection and Pixel Perfection Legacy)
+with CC0 menu images, but clean on inspection is not the same as checked.
+
 The current audit groups are:
 
 | Package group | State | Reason |
@@ -49,7 +56,7 @@ The current audit groups are:
 | Cottages, Ebiomes, Ethereal, Everness, Fachwerk, Goblins, `mcl_decor`, Techage, X-Decor | per-file audit required | Their notices identify multiple authors, licences, imported works or submods. |
 | Darkage | excluded | ContentDB declares CC0 media while the archive contains an MIT notice without a clear media scope; it is absent from every intake manifest. |
 | VoxeLibre | per-file audit required | It is a game-scale source with multiple media notices; only the 72 currently uncovered candidates are relevant. |
-| Asuna | provenance-filtered audit | It aggregates many mods. Files without a nearest owning-mod notice are excluded, and already audited standalone sources are not re-imported through Asuna. |
+| Asuna | excluded | Its own LICENSE opens "this game as a whole is released under GPLv3", because it aggregates GPL works. ContentDB's CC BY-SA 4.0 label is the corroborating metadata that cannot stand in for that. It does enumerate every included work with its licence file, so a work may still be admitted through its own upstream package. |
 | Minetest Game | archive-wide plus per-mod attribution | Release 38214 is pinned; its LGPL code is irrelevant to the separately CC BY-SA 3.0 media. Its terrain tranche contains 87 solid-node surfaces. |
 | Less Dirt | per-file mapping recorded | Release 13232 carries per-family CC BY-SA notices, so the archive-wide string is a summary. Its 42 selected files are each recorded CC BY-SA 3.0 at intake. |
 

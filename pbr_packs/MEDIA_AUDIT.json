@@ -1,5 +1,10 @@
 {
   "packages": {
+    "asuna": {
+      "decision": "excluded",
+      "evidence": "The pinned archive's own LICENSE opens \"this game as a whole is released under GPLv3\", because it aggregates GPL works. ContentDB labels it CC BY-SA 4.0, which is the corroborating metadata the review policy says cannot stand in for the notice inside the archive. The archive does enumerate every included work with its own licence file, so individual works may still be admitted on their own provenance, through their own upstream package rather than through Asuna.",
+      "media_license": "GPL-3.0"
+    },
     "backroomtest": {
       "decision": "eligible",
       "evidence": "Release 36294 root licence explicitly places media under CC-BY-4.0.",
@@ -18,11 +23,6 @@
       "decision": "excluded",
       "evidence": "Archive LICENSE.txt is MIT but does not clearly scope that licence to media; ContentDB declares CC0-1.0. The mismatch is unresolved."
     },
-    "mesecons": {
-      "decision": "eligible",
-      "evidence": "mesecons/LICENSE.txt: The CC-BY-SA-3.0 license applies to textures and any other content in this project which is not source code.",
-      "media_license": "CC-BY-SA-3.0"
-    },
     "drummyfish": {
       "decision": "eligible",
       "evidence": "Release 834 README explicitly declares the texture pack and its incorporated works CC0-1.0.",
@@ -37,6 +37,11 @@
       "decision": "eligible",
       "evidence": "Release 13232 LICENCE.txt provides per-family CC-BY-SA provenance; derivatives must retain the applicable share-alike version.",
       "media_license": "CC-BY-SA-3.0/4.0 per file"
+    },
+    "mesecons": {
+      "decision": "eligible",
+      "evidence": "mesecons/LICENSE.txt: The CC-BY-SA-3.0 license applies to textures and any other content in this project which is not source code.",
+      "media_license": "CC-BY-SA-3.0"
     },
     "pixel_imperfection": {
       "decision": "eligible",
