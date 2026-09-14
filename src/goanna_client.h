@@ -297,6 +297,8 @@ public:
     // Auto-bump strength: normal maps derived from diffuse luminance. 0 = off.
     // Rebuilds world materials so the change takes effect immediately.
     // Block edge bevel width as a fraction of a node (0 = off). Re-meshes.
+    void set_procedural_grass(bool enabled);
+    bool procedural_grass() const;
     void set_bevel(float width);
     float bevel() const;
     void set_auto_bump(float strength);

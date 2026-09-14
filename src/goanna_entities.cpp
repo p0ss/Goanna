@@ -588,6 +588,36 @@ void EntityRenderer::rebuildVisual(GoannaSession &session, GoannaActiveObject &o
     en.visual_version = obj.visualVersion();
 }
 
+PackedVector4Array EntityRenderer::grass_interactors(GoannaSession &session) const {
+    std::vector<std::pair<float,Vector4>> nearby;
+    const auto &objects=session.objects();
+    Vector3 eye;
+    if (session.player()) {
+        const auto p=session.player()->getPosition();
+        eye=Vector3(p.X/BS,p.Y/BS,-p.Z/BS);
+    }
+    for (const auto &kv : m_nodes) {
+        if (!kv.second.root || !kv.second.root->is_visible()) continue;
+        auto it=objects.find(kv.first);
+        if (it==objects.end()) continue;
+        const auto &obj=*it->second;
+        const auto &props=obj.props();
+        if (!props.physical && !obj.isLocalPlayer() && obj.name().empty()) continue;
+        if (props.visual==OBJECTVISUAL_WIELDITEM) continue;
+        Vector3 foot=kv.second.root->get_position();
+        foot.y+=props.collisionbox.MinEdge.Y;
+        const float distance=foot.distance_squared_to(eye);
+        if (distance>48.0f*48.0f) continue;
+        const auto size=props.collisionbox.getExtent();
+        const float radius=std::clamp(std::max(size.X,size.Z)*0.5f+0.4f,0.45f,1.8f);
+        nearby.emplace_back(distance,Vector4(foot.x,foot.y,foot.z,radius));
+    }
+    std::sort(nearby.begin(),nearby.end(),[](const auto &a,const auto &b){ return a.first<b.first; });
+    PackedVector4Array result;
+    for (size_t i=0;i<std::min<size_t>(8,nearby.size());++i) result.push_back(nearby[i].second);
+    return result;
+}
+
 Array EntityRenderer::positions() const {
     Array a;
     for (auto &kv : m_nodes)

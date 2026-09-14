@@ -2,6 +2,7 @@
 // Copyright (C) 2026 the Goanna contributors
 
 #include "goanna_client.h"
+#include "goanna_grass.h"
 #include <sstream>
 
 #include <godot_cpp/classes/array_mesh.hpp>
@@ -163,6 +164,8 @@ void appendLodMesh(goanna::LodRegionMesh &dst, goanna::LodRegionMesh &&src) {
 namespace goanna {
 
 GoannaClient::GoannaClient() {
+    const char *grass = std::getenv("GOANNA_GRASS");
+    set_meta("goanna_grass_enabled", grass && std::string(grass) == "1");
     const char *ab = std::getenv("GOANNA_AUTO_BUMP");
     if (ab)
         m_auto_bump = (float)atof(ab);
@@ -178,6 +181,30 @@ GoannaClient::GoannaClient() {
     const char *bd = std::getenv("GOANNA_BODY");
     if (bd)
         m_show_body = atoi(bd) != 0;
+}
+
+bool GoannaClient::procedural_grass() const {
+    return get_meta("goanna_grass_enabled", false);
+}
+
+void GoannaClient::set_procedural_grass(bool enabled) {
+    if (enabled == procedural_grass()) return;
+    set_meta("goanna_grass_enabled", enabled);
+    // Terrain mesh uploads are main-thread operations. Update the published
+    // meshes directly; future near/LOD/baked uploads read the same switch.
+    // Removing the surface also removes its rendering cost when switched off.
+    for (int i = 0; i < get_child_count(); ++i) {
+        auto *instance = Object::cast_to<MeshInstance3D>(get_child(i));
+        if (!instance) continue;
+        Ref<ArrayMesh> mesh = instance->get_mesh();
+        if (mesh.is_null() || !mesh->has_meta("goanna_grass_lod")) continue;
+        for (int s = mesh->get_surface_count() - 1; s >= 0; --s) {
+            Ref<Material> material = mesh->surface_get_material(s);
+            if (material.is_valid() && material->has_meta("goanna_grass_volume"))
+                mesh->surface_remove(s);
+        }
+        if (enabled) goanna::append_grass(mesh, mesh->get_meta("goanna_grass_lod"), this);
+    }
 }
 
 void GoannaClient::set_bevel(float width) {
@@ -523,6 +550,7 @@ void GoannaClient::nearPublishBatch(const v3s16 &key, NearRegion &region,
                     Dictionary(), kNodeSurfaceFlags);
             mesh->surface_set_material(si++, materialFor(acc.key));
         }
+        if (!glow) goanna::append_grass(mesh, false, this);
         return mesh;
     };
     Ref<ArrayMesh> mesh = build_mesh(false);
@@ -2409,6 +2437,7 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
                 const auto &lnames = agt->layerNames();
                 PackedInt32Array classes;
                 PackedFloat32Array coarse, roughness_floor;
+                Dictionary grass_layers;
                 roughness_floor.resize((int)lnames.size());
                 classes.resize((int)lnames.size());
                 coarse.resize((int)lnames.size());
@@ -2419,7 +2448,14 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
                     classes[(int)i] = (int)mtable.textureClass(plain);
                     roughness_floor[(int)i] = mtable.bark_textures.count(plain) ? 0.82f : 0.0f;
                     coarse[(int)i] = m_session->tsrc()->textureCoarseness(lnames[i]);
+                    // Ground top textures identified from normal soil nodes.
+                    if (mtable.grass_top_textures.count(plain)) {
+                        const auto avg = m_session->tsrc()->getTextureAverageColor(lnames[i]);
+                        grass_layers[(int)i] = Color(avg.getRed()/255.0f,
+                                avg.getGreen()/255.0f, avg.getBlue()/255.0f, 1.0f);
+                    }
                 }
+                sm->set_meta("goanna_grass_layers", grass_layers);
                 sm->set_shader_parameter("layer_class", classes);
                 sm->set_shader_parameter("layer_coarse", coarse);
                 sm->set_shader_parameter("layer_roughness_floor", roughness_floor);
@@ -2772,6 +2808,8 @@ void GoannaClient::sync_entities(double dt) {
     if (dt > 0.1) dt = 0.1;
     m_session->stepObjects((float)dt);
     m_entities->sync(*m_session, (float)dt, Vector3());
+    if (procedural_grass() && has_meta("goanna_grass_material"))
+        goanna::update_grass_interactors(this,m_entities->grass_interactors(*m_session));
     ema(m_ms_entities, ms_since(t0));
 }
 
@@ -6077,6 +6115,7 @@ void GoannaClient::lodPublishRegion(const LodRegionKey &key, LodRegion &r, const
             mesh->surface_set_material(si, mat);
         ++si;
     }
+    goanna::append_grass(mesh, true, this);
     if (!r.node) {
         r.node = memnew(MeshInstance3D);
         // Far tiers cast no shadows. The directional map only covers 200
@@ -7042,6 +7081,8 @@ void GoannaClient::_bind_methods() {
             &GoannaClient::model_preview);
     ClassDB::bind_method(D_METHOD("set_time_of_day_override", "tod"), &GoannaClient::set_time_of_day_override);
     ClassDB::bind_method(D_METHOD("is_underwater", "eye"), &GoannaClient::is_underwater);
+    ClassDB::bind_method(D_METHOD("set_procedural_grass", "enabled"), &GoannaClient::set_procedural_grass);
+    ClassDB::bind_method(D_METHOD("procedural_grass"), &GoannaClient::procedural_grass);
     ClassDB::bind_method(D_METHOD("set_bevel", "width"), &GoannaClient::set_bevel);
     ClassDB::bind_method(D_METHOD("bevel"), &GoannaClient::bevel);
     ClassDB::bind_method(D_METHOD("set_auto_bump", "strength"), &GoannaClient::set_auto_bump);

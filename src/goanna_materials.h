@@ -79,6 +79,8 @@ struct MaterialTable {
     // Side textures of unstripped tree nodes: dry bark is rough even where
     // a supplied smoothness map gives it polished patches.
     std::unordered_set<std::string> bark_textures;
+    // Grass-bearing top textures of normal soil nodes, excluding plant sprites.
+    std::unordered_set<std::string> grass_top_textures;
     std::vector<std::string> block_names; // [0] is ""
     // Coverage, for the audit: how many nodes got a class by each signal.
     int nodes = 0, by_footstep = 0, by_group = 0, by_drawtype = 0, by_name = 0, unclassed = 0;

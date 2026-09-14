@@ -694,6 +694,7 @@ const SETTINGS := [
 	["Controls", "mouse_sensitivity", "slider", "Mouse sensitivity", "How far the view turns per mouse movement.", 0.02, 0.5, 0.01],
 	["Controls", "invert_mouse", "toggle", "Invert mouse", "Push the mouse forward to look up instead of down."],
 	["Controls", "view_bobbing", "slider", "View bobbing", "How much the camera bobs as you walk.", 0.0, 1.5, 0.1],
+	["Video", "procedural_grass", "toggle", "Procedural grass", "Dense, wind-swept grass that bends around players and animals. Improves edge smoothing and increases graphics cost."],
 	["Video", "solid_ice", "toggle", "Solid ice", "Remove transparency from frosted ice to reduce graphics cost. Both modes keep submerged faces and surface lighting."],
 	["Video", "auto_bump", "slider", "Auto bump", "Fake surface relief from texture brightness.", 0.0, 1.0, 0.05],
 	["Material", "mat_normal", "slider", "Normal strength", "How much of the pack's surface relief to apply. Packs are authored for other art at other resolutions, and a normal map meant for 64 pixel textures reads as smeared blotches on 16 pixel ones. Lower this first if a pack looks muddy.", 0.0, 2.0, 0.05],
@@ -754,7 +755,7 @@ const GraphicsProfiles := preload("res://graphics_profiles.gd")
 #
 # The Video tab also carries the profile picker, which is what actually moves
 # the settings a profile is about (project/graphics_profiles.gd).
-const SIMPLE_KEYS := ["texture_pack", "view_range", "far_distance",
+const SIMPLE_KEYS := ["procedural_grass", "texture_pack", "view_range", "far_distance",
 	"damage_flash", "show_body", "show_fps", "show_position",
 	"player_effect_particles"]
 
@@ -763,7 +764,7 @@ const SIMPLE_KEYS := ["texture_pack", "view_range", "far_distance",
 const PLAIN_TABS := ["Controls", "Appearance", "Audio", "Display"]
 
 # Settings handled here rather than through the client (window, camera, UI).
-const LOCAL_KEYS := ["mouse_sensitivity", "invert_mouse", "view_bobbing", "fov",
+const LOCAL_KEYS := ["procedural_grass", "mouse_sensitivity", "invert_mouse", "view_bobbing", "fov",
 	"gui_scale", "max_fps", "vsync", "fullscreen", "damage_flash", "show_fps", "show_position", "terrain_occlusion", "player_effect_particles", "volume", "muted",
 	"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao",
 	"light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality",
@@ -778,6 +779,9 @@ func _main_node() -> Node:
 # Window/camera/UI settings that Goanna applies directly, not via the client.
 func _apply_local(key: String, value: float, on: bool) -> void:
 	match key:
+		"procedural_grass":
+			var m := _main_node()
+			if m: m.set_procedural_grass(on)
 		"mouse_sensitivity":
 			var m := _main_node()
 			if m: m.mouse_sensitivity = value
@@ -831,6 +835,7 @@ func _apply_local(key: String, value: float, on: bool) -> void:
 func _local_value(key: String) -> float:
 	var m := _main_node()
 	match key:
+		"procedural_grass": return 1.0 if (m and m.client.procedural_grass()) else 0.0
 		"mouse_sensitivity": return m.mouse_sensitivity if m else 0.15
 		"invert_mouse": return 1.0 if (m and m.invert_mouse) else 0.0
 		"view_bobbing": return m.view_bobbing if m else 1.0

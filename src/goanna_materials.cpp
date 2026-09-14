@@ -274,6 +274,12 @@ void buildMaterialTable(const NodeDefManager *ndef,
         case 4: ++out.by_name; break;
         default: ++out.unclassed; break;
         }
+        const std::string top = tileBaseName(f.tiledef[0].name);
+        auto soil = f.groups.find("soil");
+        if (f.drawtype == NDT_NORMAL && soil != f.groups.end() && soil->second > 0 &&
+                top.find("grass") != std::string::npos &&
+                top.find("snow") == std::string::npos && top.find("path") == std::string::npos)
+            out.grass_top_textures.insert(top);
         auto tree = f.groups.find("tree");
         if (tree != f.groups.end() && tree->second > 0 &&
                 f.name.find("stripped") == std::string::npos) {

@@ -46,6 +46,7 @@ add_library(goanna SHARED
     src/goanna_lod_storage.cpp
     src/goanna_horizon.cpp
     src/goanna_materials.cpp
+    src/goanna_grass.cpp
     src/goanna_store.cpp
     src/goanna_occlusion.cpp
     src/goanna_models.cpp

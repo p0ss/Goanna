@@ -11,6 +11,7 @@
 
 #include <cstdint>
 #include <map>
+#include <godot_cpp/variant/packed_vector4_array.hpp>
 #include <memory>
 #include <string>
 #include <vector>
@@ -43,6 +44,8 @@ public:
     int count() const { return (int)m_nodes.size(); }
     // Positions (Godot space) of visible entities, for tests/UI.
     godot::Array positions() const;
+    // Up to eight nearby physical actors, at collision-box foot height.
+    godot::PackedVector4Array grass_interactors(GoannaSession &session) const;
     // One Dictionary per visible entity: id, name, position, visual, mesh,
     // frame (animation frame, or -1). Caller holds session.mapLock().
     godot::Array list(GoannaSession &session) const;

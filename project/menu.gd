@@ -600,6 +600,8 @@ func _settings_row(box: VBoxContainer, row: Array, cfg: ConfigFile) -> void:
 # rather than at zero, and the row says it is not recorded yet, because a
 # confident wrong number is worse than an obvious placeholder.
 func _settings_default(row: Array) -> float:
+	if str(row[1]) == "procedural_grass":
+		return 0.0
 	if str(row[2]) == "toggle":
 		return 1.0
 	return float(row[5]) + (float(row[6]) - float(row[5])) * 0.5

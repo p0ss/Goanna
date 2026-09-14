@@ -4,6 +4,10 @@ const AssetUpdater := preload("res://asset_updater.gd")
 const LookGrade := preload("res://look_grade.gd")
 var look_grade := LookGrade.new()
 
+var grass_aa_active := false
+var grass_previous_msaa := Viewport.MSAA_DISABLED
+var grass_previous_screen_aa := Viewport.SCREEN_SPACE_AA_DISABLED
+
 var client: GoannaClient
 var ui: CanvasLayer
 var cam: Camera3D
@@ -251,6 +255,27 @@ const VISUAL_TESTS := {
 	},
 }
 
+func set_procedural_grass(on: bool) -> void:
+	var viewport := get_viewport()
+	if on and not grass_aa_active:
+		grass_previous_msaa = viewport.msaa_3d
+		grass_previous_screen_aa = viewport.screen_space_aa
+		viewport.msaa_3d = maxi(viewport.msaa_3d, Viewport.MSAA_4X) as Viewport.MSAA
+		if viewport.screen_space_aa == Viewport.SCREEN_SPACE_AA_DISABLED:
+			viewport.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA
+	elif not on and grass_aa_active:
+		viewport.msaa_3d = grass_previous_msaa
+		viewport.screen_space_aa = grass_previous_screen_aa
+	grass_aa_active = on
+	client.set_procedural_grass(on)
+
+func _exit_tree() -> void:
+	# The window survives scene changes. Release the AA owned by this game
+	# before the menu or the next connection establishes its own baseline.
+	if grass_aa_active:
+		get_viewport().msaa_3d = grass_previous_msaa
+		get_viewport().screen_space_aa = grass_previous_screen_aa
+
 func _ready() -> void:
 	showcase_mode = OS.get_environment("GOANNA_SHOWCASE") != ""
 	add_to_group("goanna_main")  # game_ui updates look controls through this group
@@ -286,6 +311,7 @@ func _ready() -> void:
 	if OS.get_environment("GOANNA_SHADOW_LAMPS") != "":
 		client.set_shadow_lamps(int(OS.get_environment("GOANNA_SHADOW_LAMPS")))
 	add_child(client)
+	set_procedural_grass(client.procedural_grass())
 	_apply_hardware_defaults()
 	# In-game UI (HUD, chat, inventory, formspecs, pause menu): project/ui/.
 	# Guarded, because a script error anywhere in the UI leaves this node
