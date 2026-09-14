@@ -40,11 +40,14 @@ add_library(goanna SHARED
     src/goanna_client.cpp
     src/goanna_session.cpp
     src/goanna_mesher.cpp
+    src/goanna_radial_form.cpp
     src/goanna_mesh_pool.cpp
     src/goanna_light.cpp
     src/goanna_lod.cpp
     src/goanna_lod_storage.cpp
     src/goanna_horizon.cpp
+    src/goanna_surface.cpp
+    src/goanna_client_surface.cpp
     src/goanna_materials.cpp
     src/goanna_grass.cpp
     src/goanna_store.cpp
@@ -107,6 +110,16 @@ add_executable(goanna_mesh_pool_test EXCLUDE_FROM_ALL
 )
 target_include_directories(goanna_mesh_pool_test PRIVATE src)
 target_link_libraries(goanna_mesh_pool_test PRIVATE luanti_core)
+
+# Sub node form. Mostly a check that this and the Lua in Kythen bake the same
+# authored shapes: they disagreeing is a block that changes shape on connect,
+# which no screenshot of either half would show. Pure arithmetic, so it links
+# nothing.
+add_executable(goanna_radial_form_test EXCLUDE_FROM_ALL
+    src/goanna_radial_form_test.cpp
+    src/goanna_radial_form.cpp
+)
+target_include_directories(goanna_radial_form_test PRIVATE src)
 # transplanted client files use bare includes ("mapblock_mesh.h") that must
 # resolve to Luanti's originals; goanna's own headers come first.
 set_source_files_properties(
@@ -131,3 +144,7 @@ set_target_properties(goanna PROPERTIES
     OUTPUT_NAME "goanna.${GOANNA_PLATFORM}.${GODOTCPP_TARGET}.${GOANNA_ARCH}"
     PREFIX "lib"
 )
+
+add_executable(goanna_surface_test EXCLUDE_FROM_ALL src/goanna_surface_test.cpp)
+target_include_directories(goanna_surface_test PRIVATE src)
+target_link_libraries(goanna_surface_test PRIVATE goanna luanti_core)

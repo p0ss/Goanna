@@ -30,10 +30,6 @@ end
 dofile(modpath .. "/tdl_terrain.lua")
 dofile(modpath .. "/tdl_biomes.lua")
 dofile(modpath .. "/tdl_palette.lua")
--- Also in the main environment: the far field answers which trees stand in a
--- chunk it is never going to generate, and that runs here, not on an emerge
--- thread.
-dofile(modpath .. "/tdl_decorate.lua")
 
 -- These run in the mapgen environment, one copy per emerge thread, in order.
 core.register_mapgen_script(modpath .. "/tdl_terrain.lua")

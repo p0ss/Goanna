@@ -282,7 +282,11 @@ int GoannaSession::farRenderingGrant() const {
     auto p = opts.find("far_provider_distance");
     if (p != opts.end())
         dist = std::max(dist, atoi(p->second.c_str()));
-    return std::clamp(dist, 0, 4096);
+    // The tiled surface has a bounded horizontal footprint. The former
+    // unconditional 4096 clamp silently defeated the launcher's 8192 grant.
+    auto surface = opts.find("surface_tiles");
+    const int cap = surface != opts.end() && surface->second == "1" ? 8192 : 4096;
+    return std::clamp(dist, 0, cap);
 }
 
 SessionStats GoannaSession::stats() const {
@@ -521,11 +525,34 @@ bool GoannaSession::farSummariesOffered() const {
 
 // key=value lines, one per line. Deliberately not JSON: the payload is a
 // handful of flags and numbers, and this needs no parser on either side.
+void GoannaSession::requestSurface(const std::string &revision, int step, int x, int z) {
+    if (!m_con) return;
+    NetworkPacket pkt(TOSERVER_MODCHANNEL_MSG, 0);
+    pkt << std::string(kGoannaChannel) << ("surface? 1 " + revision + " " +
+            std::to_string(step) + " " + std::to_string(x) + " " + std::to_string(z));
+    send(pkt);
+}
+
+std::vector<std::string> GoannaSession::takeSurfaces() {
+    std::lock_guard<std::mutex> lk(m_server_opts_mutex);
+    std::vector<std::string> out;
+    out.swap(m_surfaces);
+    return out;
+}
+
 void GoannaSession::onModChannelMsg(NetworkPacket &pkt) {
     std::string channel, sender, message;
     pkt >> channel >> sender >> message;
     if (channel != kGoannaChannel)
         return;
+    // Only server-authored messages may grant capabilities or supply terrain.
+    if (!sender.empty()) return;
+    if (message.compare(0, 8, "surface ") == 0) {
+        std::lock_guard<std::mutex> lk(m_server_opts_mutex);
+        if (message.size() <= 16384 && m_surfaces.size() < 32)
+            m_surfaces.push_back(std::move(message));
+        return;
+    }
     // Far summary replies are their own stream, consumed by the client.
     if (message.compare(0, 7, "farsum ") == 0) {
         std::lock_guard<std::mutex> lk(m_server_opts_mutex);

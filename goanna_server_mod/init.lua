@@ -564,9 +564,12 @@ end
 --     opts.water: node name of the water (default "mcl_core:water_source")
 -- Nothing here generates or changes the world, and the server decides to
 -- offer it; the client asks for the same summaries as before.
+local register_surface_tiles = dofile(core.get_modpath(core.get_current_modname()) ..
+		"/surface.lua")(channel, far_enabled, far_provider_distance, storage)
 local far_provider_water = "mcl_core:water_source"
 function goanna_register_far_surface(fn, opts)
 	far_provider = fn
+	register_surface_tiles(fn, opts)
 	if opts and opts.water then
 		far_provider_water = opts.water
 	end

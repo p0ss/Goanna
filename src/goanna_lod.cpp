@@ -1686,6 +1686,18 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
     return out;
 }
 
+LodTileCache::Entry lodSurfaceTile(LodTileCache &cache, const NodeDefManager *ndef,
+        GoannaTextureSource *tsrc, const MaterialTable *materials, content_t c, int side) {
+    auto te = tileFor(cache, ndef, tsrc, materials, c, side);
+    if (!te.tile_has_color && ndef->get(c).visuals) {
+        video::SColor colour;
+        ndef->get(c).visuals->getColor(0, &colour);
+        te.tint = colour.color | 0xff000000;
+    }
+    te.fallback = mulColour(te.fallback, te.tint);
+    return te;
+}
+
 u32 lodFlatColour(LodTileCache &cache, const NodeDefManager *ndef,
         GoannaTextureSource *tsrc, const MaterialTable *materials,
         content_t c, uint8_t param2) {

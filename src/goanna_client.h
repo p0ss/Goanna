@@ -33,6 +33,7 @@
 
 #include "goanna_entities.h"
 #include "goanna_horizon.h"
+#include "goanna_surface.h"
 #include "goanna_light.h"
 #include "goanna_mesher.h" // MapBlockMesh, for the near ready cache
 #include "goanna_lod.h"
@@ -426,6 +427,7 @@ private:
         godot::MeshInstance3D *node = nullptr;
         godot::MeshInstance3D *glow_node = nullptr;
         godot::OccluderInstance3D *occluder_node = nullptr;
+        std::set<v3s16> published_members;
         std::set<v3s16> members;
         bool dirty = false;
         // dirty_at is the FIRST invalidation since the last build (the
@@ -593,6 +595,34 @@ private:
         int published_exact_cell = 0;
         int published_coarse_cell = 0;
     };
+    // Direct baked terrain has no mapblock or mip-chain intermediates.
+    goanna::SurfaceTiles m_surface_tiles;
+    std::map<goanna::SurfaceKey, std::chrono::steady_clock::time_point> m_surface_pending;
+    std::string m_surface_revision;
+    struct SurfaceRegion { LodRegion region; uint64_t signature = 0; };
+    std::map<goanna::SurfaceKey, SurfaceRegion> m_surface_regions, m_surface_staged;
+    std::unique_ptr<goanna::SurfaceJob> m_surface_ready;
+    std::vector<goanna::SurfaceKey> m_surface_uploads;
+    std::vector<std::pair<uint64_t, godot::MeshInstance3D *>> m_surface_retired;
+    uint64_t m_surface_retired_serial = 0;
+    int m_surface_quads = 0;
+    double m_surface_first_ms = -1, m_surface_overview_ms = -1;
+    std::chrono::steady_clock::time_point m_surface_started;
+    bool m_surface_published = false;
+    uint64_t m_surface_generation = 0;
+    bool m_surface_building = false;
+    int m_surface_received = 0, m_surface_reach = 0, m_surface_wanted = 0;
+    int m_surface_cells = 0, m_surface_covered = 0;
+    uint64_t m_surface_signature = 0, m_surface_input_signature = 0;
+    uint64_t m_surface_source_revision = 0;
+    bool m_surface_uploading = false;
+    std::chrono::steady_clock::time_point m_surface_mesh_time;
+    std::chrono::steady_clock::time_point m_surface_scan;
+    void surfaceUpdate();
+    void surfaceClear();
+    void surfacePublish();
+    void surfaceRetire(godot::MeshInstance3D *&node);
+    bool surfaceOffered() const;
     std::map<LodRegionKey, LodRegion> m_lod_regions;
     std::map<v3s16, LodRegionKey> m_lod_member; // which region draws a block
     // A tier change crosses region ownership. The new region may take several

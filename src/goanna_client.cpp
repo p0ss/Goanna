@@ -562,6 +562,8 @@ void GoannaClient::nearPublishBatch(const v3s16 &key, NearRegion &region,
         std::vector<NearBatchGroup> &groups, PackedVector3Array &occ_verts,
         PackedInt32Array &occ_idx, const std::vector<v3s16> &members) {
     auto t0 = clock_t_::now();
+    ++m_surface_source_revision;
+    region.published_members = std::set<v3s16>(members.begin(), members.end());
     auto build_mesh = [&](bool glow) -> Ref<ArrayMesh> {
         Ref<ArrayMesh> mesh;
         mesh.instantiate();
@@ -608,6 +610,7 @@ void GoannaClient::nearPublishBatch(const v3s16 &key, NearRegion &region,
     const AABB region_bounds(region_min,
             Vector3(region_edge + 2.0f, region_edge + 2.0f, region_edge + 2.0f));
     auto apply = [&](MeshInstance3D *&node, const Ref<ArrayMesh> &next, bool glow) {
+        if (!glow) surfaceRetire(node);
         if (next->get_surface_count() == 0) {
             if (node) {
                 node->queue_free();
@@ -1161,6 +1164,7 @@ void GoannaClient::connect_to(const String &host, int port, const String &player
     m_lod_cached_summaries.clear();
     m_lod_primed_regions.clear();
     m_mesh_pool.stop();
+    surfaceClear();
     // Luanti's base texture pack lives in the luanti/ checkout next to project/.
     String share = ProjectSettings::get_singleton()->globalize_path("res://../luanti");
     GoannaSession::setSharePath(share.utf8().get_data());
@@ -3120,6 +3124,20 @@ Dictionary GoannaClient::render_stats() {
     d["lod_handoff_far"] = (int)m_lod_handoff_far.size();
     d["far_blocks"] = (int)m_far_blocks.size();
     d["far_remote"] = (int)m_far_remote.size();
+    d["surface_offered"] = surfaceOffered();
+    d["surface_tiles"] = (int)m_surface_tiles.size();
+    d["surface_received"] = m_surface_received;
+    d["surface_wanted"] = m_surface_wanted;
+    d["surface_inflight"] = (int)m_surface_pending.size();
+    d["surface_reach"] = m_surface_published ? m_surface_reach : 0;
+    d["surface_cells"] = m_surface_cells;
+    d["surface_covered"] = m_surface_covered;
+    d["surface_quads"] = m_surface_quads;
+    d["surface_uploads"] = (int)m_surface_uploads.size();
+    d["surface_retired"] = (int)m_surface_retired.size();
+    d["surface_building"] = m_surface_building;
+    d["surface_first_ms"] = m_surface_first_ms;
+    d["surface_overview_ms"] = m_surface_overview_ms;
     d["far_grant"] = m_session ? m_session->farRenderingGrant() : 0;
     d["far_extent"] = m_far_extent;
     d["far_reach"] = m_far_reach;
@@ -3764,6 +3782,7 @@ void GoannaClient::set_mesh_threads(int threads) {
     if (threads == m_mesh_threads)
         return;
     m_mesh_threads = threads;
+    surfaceClear();
     if (!m_session)
         return; // applied on the next connect
     std::vector<v3s16> retry_near;
@@ -3991,7 +4010,8 @@ void GoannaClient::lodCollectChains() {
             continue;
         }
         const bool wanted = m_lod_member.count(result.pos) ||
-                m_lod_chain_waiters.count(result.pos);
+                m_lod_chain_waiters.count(result.pos) ||
+                (!m_surface_revision.empty() && m_far_blocks.count(result.pos));
         if (!wanted) continue;
         if (result.chain) {
             // An arriving summary may be replaced by exact source data, but
@@ -4000,6 +4020,9 @@ void GoannaClient::lodCollectChains() {
             if (old == m_lod_chains.end() || old->second->summary) {
                 m_lod_chains[result.pos] = std::move(result.chain);
                 m_far_remote.erase(result.pos);
+                if (!m_surface_revision.empty() && m_far_blocks.count(result.pos) &&
+                        !m_lod_member.count(result.pos))
+                    lodAssign(result.pos, lodTierFor(result.pos, m_lod_centre, false));
                 lodDirtyAround(result.pos, nullptr);
             }
             ++m_lod_chains_built_last;
@@ -4083,7 +4106,7 @@ void GoannaClient::lodUpdateFar(const Vector3 &around) {
     // until someone thought to raise it. An explicit choice, env var or
     // settings panel, still wins.
     if (!m_far_distance_explicit && grant > 0 && grant != m_far_distance) {
-        m_far_distance = std::clamp(grant, 0, 4096);
+        m_far_distance = std::clamp(grant, 0, 8192);
         m_far_dirty = true;
     }
     if (m_lod_distance <= 0 || grant <= 0 || m_store_root.is_empty()) {
@@ -4096,6 +4119,8 @@ void GoannaClient::lodUpdateFar(const Vector3 &around) {
         }
         return;
     }
+    // Stored, actually visited geometry still refines the baked surface.
+    // Only synthetic summary requests are limited to the local join below.
     const int dist = std::min(grant, m_far_distance);
     const int radius = std::max(1, dist / MAP_BLOCKSIZE);
     // The mesh horizon in block units, for lodAssign and the reach
@@ -4136,6 +4161,16 @@ void GoannaClient::lodUpdateFar(const Vector3 &around) {
                 m_far_remote.erase(*it);
                 it = m_far_blocks.erase(it);
             } else {
+                // A former local provider shell can remain cached after a
+                // flight. The direct surface replaces its distant geometry;
+                // genuine stored voxels retain their ordinary far range.
+                auto chain = m_lod_chains.find(*it);
+                if (!m_surface_revision.empty() && chain != m_lod_chains.end() &&
+                        chain->second->surface_shell) {
+                    const bool draw = int64_t(d.X) * d.X + int64_t(d.Z) * d.Z <= 32 * 32;
+                    if (draw != (m_lod_member.count(*it) != 0))
+                        lodAssign(*it, lodTierFor(*it, around, false));
+                }
                 ++it;
             }
         }
@@ -4507,6 +4542,7 @@ void GoannaClient::lodUpdateFar(const Vector3 &around) {
 // chains exactly as stored blocks do (docs/far-rendering.md). Areas are
 // asked for nearest first, a few in flight, and never asked twice.
 void GoannaClient::lodRequestSummaries(const v3s16 &centre, int radius) {
+    if (surfaceOffered()) radius = std::min(radius, 512 / MAP_BLOCKSIZE);
     if (!m_session || !m_session->farSummariesOffered())
         return;
 	constexpr int kEdge = 8; // blocks per area side
@@ -5356,6 +5392,13 @@ void GoannaClient::lodAssign(const v3s16 &bp, int tier) {
         beyond_mesh = dx * dx + dz * dz >
                 (int64_t)m_far_mesh_radius * m_far_mesh_radius;
     }
+    if (tier > 0 && !m_surface_revision.empty()) {
+        auto chain = m_lod_chains.find(bp);
+        if (chain != m_lod_chains.end() && chain->second->surface_shell) {
+            const int64_t dx = bp.X - m_far_centre.X, dz = bp.Z - m_far_centre.Z;
+            beyond_mesh = beyond_mesh || dx * dx + dz * dz > 32 * 32;
+        }
+    }
     if (beyond_mesh) {
         lodEnqueueChain(bp);
         tier = -1;
@@ -5586,7 +5629,8 @@ void GoannaClient::lodBuildRegion(const LodRegionKey &key, LodRegion &r) {
     r.dirty = false;
     if (r.members.empty() || !m_session) {
         if (r.node) {
-            r.node->queue_free();
+            surfaceRetire(r.node);
+            if (r.node) r.node->queue_free();
             r.node = nullptr;
         }
         r.faces = r.quads = r.surfaces = 0;
@@ -5922,6 +5966,17 @@ void GoannaClient::lodCollectMeshes() {
                 m_near_regions.erase(it);
             continue;
         }
+        if (done.key.kind == MeshJobKey::kSurface) {
+            if (done.generation != m_surface_generation) continue;
+            m_surface_ready.reset(static_cast<SurfaceJob *>(done.job.release()));
+            m_surface_uploads.clear();
+            for (const auto &kv : m_surface_ready->chunks) {
+                const auto old = m_surface_regions.find(kv.first);
+                if (old == m_surface_regions.end() || old->second.signature != kv.second.signature)
+                    m_surface_uploads.push_back(kv.first);
+            }
+            continue;
+        }
         if (done.key.kind != MeshJobKey::kLodRegion)
             continue;
         if (published >= m_lod_publish_budget) {
@@ -5959,6 +6014,7 @@ void GoannaClient::lodCollectMeshes() {
 
 void GoannaClient::lodPublishRegion(const LodRegionKey &key, LodRegion &r, const LodRegionMesh &lm,
         std::chrono::steady_clock::time_point t0, int exact_cell_used, int coarse_cell_used) {
+    if (!m_surface_uploading) ++m_surface_source_revision;
     r.building = false;
     r.stale = false; // what is about to be on screen is current again
     r.faces = lm.faces;
@@ -6023,7 +6079,8 @@ void GoannaClient::lodPublishRegion(const LodRegionKey &key, LodRegion &r, const
     }
     if (lm.empty()) {
         if (r.node) {
-            r.node->queue_free();
+            surfaceRetire(r.node);
+            if (r.node) r.node->queue_free();
             r.node = nullptr;
         }
         // Empty is still a valid published result when the captured region
@@ -6148,6 +6205,7 @@ void GoannaClient::lodPublishRegion(const LodRegionKey &key, LodRegion &r, const
     goanna::append_grass(mesh, true, this, [this](int x, float y, int z) {
         return grassSubmerged(x, y, z, false);
     }, std::max(1, std::min(exact_cell_used, coarse_cell_used)));
+    surfaceRetire(r.node);
     if (!r.node) {
         r.node = memnew(MeshInstance3D);
         // Far tiers cast no shadows. The directional map only covers 200
@@ -6284,6 +6342,7 @@ void GoannaClient::lodRebuild(double budget_ms) {
 // Drop every region and chain and requeue every block: the tier layout
 // changed under them.
 void GoannaClient::lodReset() {
+    surfaceClear();
     m_lod_storage.clear();
     m_lod_loads.clear();
     m_lod_cached_summaries.clear();
@@ -6364,6 +6423,7 @@ int GoannaClient::update_lod(const Vector3 &around, int max_rebuild) {
     // Put finished regions on screen before queueing more, so a worker that
     // has already done the work is not left holding it for another frame.
     lodCollectMeshes();
+    surfaceUpdate();
     if (!m_session || m_lod_distance <= 0)
         return 0;
     const v3s16 centre((s16)std::floor(around.x / MAP_BLOCKSIZE),

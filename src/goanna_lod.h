@@ -260,6 +260,9 @@ struct LodTileCache {
     std::map<u32, Entry> entries; // key content * 6 + side
 };
 
+LodTileCache::Entry lodSurfaceTile(LodTileCache &cache, const NodeDefManager *ndef,
+        GoannaTextureSource *tsrc, const MaterialTable *materials, content_t c, int side);
+
 // The flat average colour (0xAARRGGBB) of a node's top tile, tint and
 // palette applied: what the horizon bake paints a distant column with.
 // Takes the tile cache's own lock, like every tileFor caller.

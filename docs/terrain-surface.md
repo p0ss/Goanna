@@ -73,3 +73,11 @@ the main thread; meshing and prepared-data loading run on workers.
   proof that every asynchronous transition remains covered under load.
 - Main-thread publication and some capture work remain, and resident
   terrain memory is not globally bounded by the prepared cache limits.
+
+## Direct baked terrain
+
+TDL providers with a revision identity can also serve compact 2D surface
+tiles. The client fills the coarse horizon before refining local shape,
+without expanding the bake into mapblock summaries. See
+[the baked terrain contract](baked-terrain.md) for the protocol, cache identity,
+publication rules and current limits.

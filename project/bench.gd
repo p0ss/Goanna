@@ -43,7 +43,8 @@ const DEFAULT_CAPACITY := 400000
 const ZERO_KEYS := ["mesh_queued", "mesh_running", "mesh_ready",
 	"lod_regions_dirty", "lod_chain_queue", "lod_building",
 	"lod_storage_queued", "lod_storage_ready", "lod_storage_active",
-	"lod_storage_pending", "lod_storage_retry_regions"]
+	"lod_storage_pending", "lod_storage_retry_regions",
+	"surface_inflight", "surface_building", "surface_uploads", "surface_retired"]
 
 # Queues going quiet is necessary but not sufficient. The scheduler can run
 # out of work while the picture is still resolving: bounced light is still

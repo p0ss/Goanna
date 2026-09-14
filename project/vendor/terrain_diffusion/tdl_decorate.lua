@@ -173,7 +173,6 @@ local function prepare(def, order)
         elseif kind == "schematic" then
                 if not def.schematic then return nil end
                 deco.kind = "schematic"
-                deco.tree = true
                 deco.schematic = def.schematic
                 deco.rotation = def.rotation or "0"
                 deco.replacements = def.replacements
@@ -182,7 +181,6 @@ local function prepare(def, order)
         elseif kind == "lsystem" then
                 if not def.treedef then return nil end
                 deco.kind = "lsystem"
-                deco.tree = true
                 deco.treedef = def.treedef
         else
                 return nil
@@ -299,16 +297,7 @@ end
 
 -- Decoration::canPlaceDecoration, against the chunk as this mod generated it.
 -- `y` is the node the decoration stands on, not the decoration itself.
-local function can_place(deco, data, area, x, y, z, ctx)
-        if ctx and ctx.top_at then
-                -- Deriving rather than generating: the only thing known about
-                -- the column is the node the palette would put on top of it,
-                -- which is exactly what place_on is tested against anyway.
-                -- spawn_by needs neighbours that do not exist yet and is
-                -- skipped, so a derived tree may stand where a generated one
-                -- would have been refused for want of company.
-                return deco.place_on[ctx.top_at(x, z)] or false
-        end
+local function can_place(deco, data, area, x, y, z)
         local vi = area:index(x, y, z)
         if not deco.place_on[data[vi]] then
                 return false
@@ -355,7 +344,7 @@ end
 
 local function place_simple(deco, ps, ctx, x, y, z, ceiling)
         local data, area = ctx.data, ctx.area
-        if not can_place(deco, data, area, x, y, z, ctx) then
+        if not can_place(deco, data, area, x, y, z) then
                 return
         end
         local content = deco.nodes[ps:next(1, #deco.nodes)]
@@ -397,7 +386,7 @@ end
 -- tree does not see one placed beside it a moment earlier; the engine has the
 -- same blind spot within a single decoration.
 local function defer_structure(deco, ps, ctx, x, y, z, ceiling)
-        if not can_place(deco, ctx.data, ctx.area, x, y, z, ctx) then
+        if not can_place(deco, ctx.data, ctx.area, x, y, z) then
                 return
         end
         local at = y
@@ -423,9 +412,7 @@ local function defer_structure(deco, ps, ctx, x, y, z, ceiling)
 end
 
 local function emit(deco, ps, ctx, x, y, z, ceiling)
-        if ctx.sink then
-                ctx.sink(deco, ps, x, y, z, ceiling)
-        elseif deco.kind == "simple" then
+        if deco.kind == "simple" then
                 place_simple(deco, ps, ctx, x, y, z, ceiling)
         else
                 defer_structure(deco, ps, ctx, x, y, z, ceiling)
@@ -436,32 +423,18 @@ local function try_column(deco, ps, ctx, x, z)
         local index = (z - ctx.minp.z + ctx.margin) * ctx.wide_x
                 + (x - ctx.minp.x + ctx.margin) + 1
 
-        local tally = ctx.tally
-        if tally then tally.drawn = tally.drawn + 1 end
         if deco.biomes then
                 local entry = ctx.grounds[index]
                 if not entry or not deco.biomes[entry.name] then
-                        if tally then tally.biome = tally.biome + 1 end
                         return
                 end
         end
 
-        -- all_floors is not only a cave flag. Games put it on ordinary trees so
+        -- all_floors is not only a cave flag: games put it on ordinary trees so
         -- they also grow on overhangs and floating islands, and the ground is
-        -- simply one of the floors: 445 of Asuna's schematic decorations carry
-        -- it, which is nearly all of them. Treating it as "cave decoration,
-        -- skip when deriving" threw away every tree in the chunk.
-        --
-        -- So a derived run takes the one floor it knows, the terrain surface,
-        -- and falls through to the heightmap path below. A decoration that
-        -- wants ceilings only has none at the surface and is dropped.
-        local derived_floor = ctx.top_at and (deco.all_floors or deco.all_ceilings)
-        if derived_floor and not deco.all_floors then
-                if tally then tally.caves = (tally.caves or 0) + 1 end
-                return
-        end
-
-        if (deco.all_floors or deco.all_ceilings) and not derived_floor then
+        -- simply one of the floors. 445 of Asuna's schematic decorations carry
+        -- it, which is nearly all of them.
+        if deco.all_floors or deco.all_ceilings then
                 local floors, ceilings = {}, {}
                 surfaces_in_column(ctx.data, ctx.area, x, z,
                         ctx.minp.y, ctx.maxp.y, floors, ceilings)
@@ -486,21 +459,12 @@ local function try_column(deco, ps, ctx, x, z)
         if deco.liquid_surface then
                 y = ctx.water_levels[index]
                 if not y then
-                        if tally then tally.dry = (tally.dry or 0) + 1 end
                         return
                 end
         else
                 y = ctx.heights[index]
         end
         if y < deco.y_min or y > deco.y_max or y < ctx.minp.y or y > ctx.maxp.y then
-                if tally then tally.range = tally.range + 1 end
-                return
-        end
-        if ctx.sink and not can_place(deco, ctx.data, ctx.area, x, y, z, ctx) then
-                -- The sink does not test the ground itself, so it is tested
-                -- here. The generating path tests inside place_simple and
-                -- defer_structure instead, where the node data is to hand.
-                if tally then tally.ground = tally.ground + 1 end
                 return
         end
         emit(deco, ps, ctx, x, y, z, false)
@@ -544,9 +508,6 @@ local function place_one(deco, ctx, blockseed, carea)
         -- correlated, which is the difference between a mixed wood and every
         -- species of it stacked in one spot.
         local ps = PcgRandom(blockseed + 53 + deco.order * 7919)
-        if ctx.trees_only and not deco.tree then
-                return
-        end
 
         for z0 = 0, carea - 1, sidelen do
                 for x0 = 0, carea - 1, sidelen do
@@ -668,75 +629,6 @@ function tdl_decorate.place(data, area, minp, maxp, blockseed, columns)
         end
 
         return ctx
-end
-
--- Which trees this mod will put in a box, worked out without generating it.
---
--- This is the far field's whole reason for existing: a horizon nobody has
--- visited has no blocks to read, and the impostors need to know where the
--- trees are anyway. It runs the same selection the mapgen runs, over the same
--- seed, so a tree derived here is the tree that will be there when the chunk
--- is eventually generated.
---
--- `columns` is the same shape tdl_decorate.place takes, plus `top_at(x, z)`
--- giving the content id the palette would lay on that column. Returns a list
--- of {x, y, z, trunk, leaves, height, radius}.
-function tdl_decorate.trees_in(minp, maxp, columns)
-        if not tdl_decorate.load() then
-                return {}
-        end
-        local carea = maxp.x - minp.x + 1
-        if maxp.z - minp.z + 1 ~= carea then
-                return {}
-        end
-
-        local out = {}
-        local ctx = {
-                minp = minp,
-                maxp = maxp,
-                margin = columns.margin,
-                wide_x = columns.wide_x,
-                heights = columns.heights,
-                water_levels = columns.water_levels,
-                grounds = columns.grounds,
-                top_at = columns.top_at,
-                trees_only = true,
-                tally = {drawn = 0, biome = 0, range = 0, ground = 0, cands = 0},
-                sink = function(deco, ps, x, y, z, ceiling)
-                        if ceiling then return end
-                        local size = deco.kind == "schematic" and schematic_size(deco)
-                        -- An L-system tree has no schematic to measure, and a
-                        -- schematic that would not read gets the same default:
-                        -- something tree shaped rather than nothing, because
-                        -- the position is the part that has to be right.
-                        local height = size and size.y or 8
-                        local width = size and math.max(size.x, size.z) or 5
-                        out[#out + 1] = {
-                                x = x,
-                                y = y + (deco.place_offset_y or 0),
-                                z = z,
-                                trunk = deco.trunk_name or "",
-                                leaves = deco.leaves_name or "",
-                                height = height,
-                                radius = width / 2,
-                        }
-                end,
-        }
-
-        local list = candidates_for(columns.present)
-        local trees = 0
-        for i = 1, #list do
-                if list[i].tree then trees = trees + 1 end
-        end
-        ctx.tally.cands = trees
-        for i = 1, #list do
-                local deco = list[i]
-                if maxp.y >= deco.y_min and deco.y_max >= minp.y then
-                        place_one(deco, ctx, tdl_decorate.chunk_seed(minp), carea)
-                end
-        end
-        tdl_decorate.last_tally = ctx.tally
-        return out
 end
 
 -- Everything that had to wait for the node buffer to go back.

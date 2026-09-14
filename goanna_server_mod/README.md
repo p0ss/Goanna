@@ -234,3 +234,11 @@ validator, one that understands the model it authorises and still rejects
 teleports and flight. Until that exists, treat this setting as suitable only
 for a server whose operator has decided movement validation does not matter to
 them, and say so plainly rather than presenting it as a feature toggle.
+
+## Direct baked terrain
+
+TDL providers with a revision identity can also serve compact 2D surface
+tiles. The client fills the coarse horizon before refining local shape,
+without expanding the bake into mapblock summaries. See
+`docs/baked-terrain.md` in the Goanna repository for the protocol, cache
+identity, publication rules and current limits.

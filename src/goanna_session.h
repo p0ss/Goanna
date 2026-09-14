@@ -169,6 +169,8 @@ public:
     void requestFarSummary(v3s16 origin_blocks, int edge_blocks, int cell);
     // Raw summary replies, consumed by the client on the main thread.
     std::vector<std::string> takeFarSummaries();
+    void requestSurface(const std::string &revision, int step, int x, int z);
+    std::vector<std::string> takeSurfaces();
     std::mutex &mapLock() { return m_map_mutex; }
     const NodeDefManager *nodeDefs() const { return m_nodedef; }
     GoannaMap &map() { return *m_map; }
@@ -492,6 +494,7 @@ private:
     u16 m_wield_index = 0;
     int m_crack_animation_length = -1;
 
+    std::vector<std::string> m_surfaces;
     std::vector<std::string> m_far_summaries; // raw farsum messages, under m_server_opts_mutex
     // Settings a paired server mod announced over the goanna mod channel. Empty
     // against a server without the mod, which is the ordinary case and renders

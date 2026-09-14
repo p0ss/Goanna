@@ -1645,6 +1645,10 @@ func wait_for_streaming() -> void:
 			last = n
 			last_change = Time.get_ticks_msec()
 		var now := Time.get_ticks_msec()
+		var stats: Dictionary = client.render_stats()
+		for key in ["surface_inflight", "surface_building", "surface_uploads", "surface_retired"]:
+			if int(stats.get(key, 0)) > 0:
+				last_change = now
 		if now - t0 > 3000 and now - last_change > 2000:
 			break
 	print("blocks meshed at rest: ", last, " after ",
@@ -1954,7 +1958,10 @@ func _update_environment_extras() -> void:
 	# The horizon bake: ask again when the camera has drifted or the clock
 	# has run down; collect whatever a worker finished. The inner radius
 	# tracks the drawn edge so the panorama begins where meshes end.
-	if horizon_enabled and client.has_method("horizon_bake_request"):
+	var baked_surface := bool(client.render_stats().get("surface_offered", false))
+	if baked_surface:
+		sky_mat.set_shader_parameter("horizon_on", 0.0)
+	if horizon_enabled and not baked_surface and client.has_method("horizon_bake_request"):
 		horizon_bake_timer -= get_process_delta_time()
 		var hp := cam.global_position
 		if horizon_bake_timer <= 0.0 or hp.distance_to(horizon_bake_pos) > 96.0:
@@ -2641,7 +2648,7 @@ func _apply_sky() -> void:
 			# has a begin and an end, so it can have both: the haze opens
 			# where the sparse directions run out and closes where the rich
 			# ones do.
-			var far_extent: float = float(stats.get("far_extent", 0))
+			var far_extent: float = maxf(float(stats.get("far_extent", 0)), float(stats.get("surface_reach", 0)))
 			var far_reach: float = maxf(far_extent, float(stats.get("far_reach", 0)))
 			draw_nodes = clampf(far_reach, live_nodes, maxf(live_nodes, cap))
 			haze_from = clampf(far_extent, live_nodes, draw_nodes)

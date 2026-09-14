@@ -247,9 +247,9 @@ func _process(delta: float) -> void:
 		# is allowed to go, and says nothing once it has.
 		var rs: Dictionary = client.render_stats()
 		render_stats_cache = rs
-		var far: int = int(rs.get("far_remote", 0))
+		var far: int = int(rs.get("surface_tiles", 0)) if rs.get("surface_offered", false) else int(rs.get("far_remote", 0))
 		var grant: int = int(rs.get("far_grant", 0))
-		var extent: int = int(rs.get("far_extent", 0))
+		var extent: int = maxi(int(rs.get("far_extent", 0)), int(rs.get("surface_reach", 0)))
 		var reached: bool = grant <= 0 or extent >= int(0.9 * float(mini(grant,
 				int(client.far_distance()) if client.has_method("far_distance") else grant)))
 		if far != far_hint_last:
@@ -1966,7 +1966,7 @@ func _draw_hud() -> void:
 	if far_hint_alpha > 0.0:
 		var f := hud.get_theme_default_font()
 		var fs := int(15 * hud_scale)
-		var text := "Generating distant terrain (%d cells so far)" % far_hint_last
+		var text := "Loading distant terrain (%d tiles)" % far_hint_last if render_stats_cache.get("surface_offered", false) else "Generating distant terrain (%d cells so far)" % far_hint_last
 		var w := f.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 		var pos := Vector2((vs.x - w) / 2.0, 28.0 * hud_scale)
 		hud.draw_string_outline(f, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 3,
