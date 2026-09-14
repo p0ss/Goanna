@@ -42,8 +42,6 @@
 #include <CMeshBuffer.h>
 #include <SMaterial.h>
 #include <godot_cpp/classes/project_settings.hpp>
-#include <godot_cpp/classes/box_mesh.hpp>
-#include <godot_cpp/classes/multi_mesh.hpp>
 #include <godot_cpp/classes/resource_loader.hpp>
 #include <godot_cpp/classes/shader_material.hpp>
 #include <godot_cpp/variant/utility_functions.hpp>
@@ -168,12 +166,6 @@ namespace goanna {
 GoannaClient::GoannaClient() {
     const char *grass = std::getenv("GOANNA_GRASS");
     set_meta("goanna_grass_enabled", grass && std::string(grass) == "1");
-    // Off until the far field can say where trees are well enough to draw
-    // them. At four node voxels it can only resolve a tree standing on its
-    // own, and a forest came out as a handful of enormous lumps. GOANNA_TREES=1
-    // turns it on.
-    if (const char *tr = std::getenv("GOANNA_TREES"))
-        m_trees_enabled = !(tr[0] == '0' && tr[1] == '\0');
     const char *ab = std::getenv("GOANNA_AUTO_BUMP");
     if (ab)
         m_auto_bump = (float)atof(ab);
@@ -1168,11 +1160,6 @@ void GoannaClient::connect_to(const String &host, int port, const String &player
     m_lod_regions.clear();
     m_lod_member.clear();
     m_lod_chains.clear();
-    // Trees are built from those chains and share their lifetime. Left alone
-    // they would keep standing where a world that is no longer loaded had them.
-    m_trees.clear();
-    if (m_tree_node)
-        m_tree_node->get_multimesh()->set_instance_count(0);
     m_lod_chain_queue.clear();
     m_lod_chain_queued.clear();
     m_lod_chain_waiters.clear();
@@ -4045,111 +4032,6 @@ void GoannaClient::set_far_mesh_distance(int nodes) {
 // chains. Rescans when the player crosses a block boundary or every two
 // seconds, and lets go of what has passed out of range. Caller holds the map
 // lock.
-// Impostor trees for the far field. Runs on the same two second cadence as the
-// rest of lodUpdateFar, because a tree does not move and a rebuild is only
-// needed when the chains under it change.
-void GoannaClient::treeUpdate(v3s16 centre, int radius) {
-    if (!m_trees_enabled || !m_session)
-        return;
-    const NodeDefManager *ndef = m_session->nodeDefs();
-    if (!ndef)
-        return;
-
-    // The colour of a node as the horizon bake paints it, which is what the
-    // far tiers already use, so an impostor and the ground it stands on are
-    // coloured from the same place.
-    if (!m_tree_colour_set) {
-        m_tree_colour_set = true;
-        m_trees.setColourFn([this, ndef](content_t c) -> uint32_t {
-            return lodFlatColour(m_lod_tiles, ndef, m_session->tsrc(),
-                    &m_session->materialTable(), c, 0);
-        });
-    }
-
-    if (!m_trees.update(m_lod_chains, ndef, centre, radius))
-        return;
-
-    const std::vector<TreeDraw> &trees = m_trees.trees();
-    if (!m_tree_node) {
-        m_tree_node = memnew(MultiMeshInstance3D);
-        add_child(m_tree_node);
-        Ref<MultiMesh> mm;
-        mm.instantiate();
-        mm->set_transform_format(MultiMesh::TRANSFORM_3D);
-        mm->set_use_colors(true);
-        mm->set_use_custom_data(true);
-        Ref<BoxMesh> box;
-        box.instantiate();
-        // A unit box scaled per instance: the march works in object space and
-        // needs that space to be the atlas slot's own 0 to 1.
-        box->set_size(Vector3(1, 1, 1));
-        mm->set_mesh(box);
-        m_tree_node->set_multimesh(mm);
-        m_tree_material.instantiate();
-        m_tree_material->set_shader(ResourceLoader::get_singleton()->load(
-                "res://shaders/tree_impostor.gdshader"));
-        m_tree_node->set_material_override(m_tree_material);
-        // Godot culls a MultiMesh by bounds it computes from the instances,
-        // and a tree box is small against the spread of a forest.
-        m_tree_node->set_extra_cull_margin(256.0f);
-    }
-
-    const TreeAtlas &atlas = m_trees.atlas();
-    if (m_trees.atlasChanged() || m_tree_atlas.is_null()) {
-        const v3s16 size = atlas.size();
-        TypedArray<Image> slices;
-        const std::vector<uint32_t> &voxels = atlas.voxels();
-        for (int z = 0; z < size.Z; ++z) {
-            PackedByteArray bytes;
-            bytes.resize((int64_t)size.X * size.Y * 4);
-            uint8_t *w = bytes.ptrw();
-            for (int y = 0; y < size.Y; ++y)
-                for (int x = 0; x < size.X; ++x) {
-                    const uint32_t v = voxels[((size_t)z * size.Y + y) * size.X + x];
-                    const size_t o = ((size_t)y * size.X + x) * 4;
-                    w[o + 0] = (uint8_t)(v >> 16);
-                    w[o + 1] = (uint8_t)(v >> 8);
-                    w[o + 2] = (uint8_t)(v);
-                    w[o + 3] = (uint8_t)(v >> 24);
-                }
-            slices.append(Image::create_from_data(size.X, size.Y, false,
-                    Image::FORMAT_RGBA8, bytes));
-        }
-        Ref<ImageTexture3D> tex;
-        tex.instantiate();
-        tex->create(Image::FORMAT_RGBA8, size.X, size.Y, size.Z, false, slices);
-        m_tree_atlas = tex;
-        m_trees.clearAtlasChanged();
-        m_tree_material->set_shader_parameter("atlas", m_tree_atlas);
-        m_tree_material->set_shader_parameter("atlas_voxels",
-                Vector3(size.X, size.Y, size.Z));
-        const v3s16 slot = atlas.slotSize();
-        m_tree_material->set_shader_parameter("slot_voxels",
-                Vector3(slot.X, slot.Y, slot.Z));
-    }
-
-    Ref<MultiMesh> mm = m_tree_node->get_multimesh();
-    mm->set_instance_count((int)trees.size());
-    const int columns = atlas.columns();
-    for (size_t i = 0; i < trees.size(); ++i) {
-        const TreeDraw &t = trees[i];
-        Basis basis;
-        basis = basis.scaled(Vector3(t.radius * 2.0f, t.height, t.radius * 2.0f));
-        // Luanti's z runs the other way from Godot's, the same flip the rest
-        // of the client applies when it places anything from block space. It
-        // mirrors each tree's own crown along with its position, which is
-        // invisible: a mirrored oak is an oak, and every tree is turned to a
-        // random angle anyway.
-        const Vector3 at(t.base.X, t.base.Y + t.height * 0.5f, -t.base.Z);
-        mm->set_instance_transform((int)i, Transform3D(basis, at));
-        mm->set_instance_custom_data((int)i, Color(
-                (float)(t.slot % columns), (float)(t.slot / columns), t.yaw, 0.0f));
-        mm->set_instance_color((int)i, Color(
-                t.day_base / 255.0f, t.day_top / 255.0f,
-                t.night_base / 255.0f, t.night_top / 255.0f));
-    }
-}
-
 void GoannaClient::lodUpdateFar(const Vector3 &around) {
     if (!m_session)
         return;
@@ -4187,7 +4069,6 @@ void GoannaClient::lodUpdateFar(const Vector3 &around) {
     m_far_centre = centre;
     m_far_radius = radius;
     m_far_last = clock_t_::now();
-    treeUpdate(centre, radius);
     // Out of range, or now live: let go. Swept a bounded slice per rescan
     // rather than in full: at a 4096 grant the retained set runs to half a
     // million blocks, and walking every one of them under the map lock every
@@ -6374,11 +6255,6 @@ void GoannaClient::lodReset() {
     m_lod_regions.clear();
     m_lod_member.clear();
     m_lod_chains.clear();
-    // Trees are built from those chains and share their lifetime. Left alone
-    // they would keep standing where a world that is no longer loaded had them.
-    m_trees.clear();
-    if (m_tree_node)
-        m_tree_node->get_multimesh()->set_instance_count(0);
     {
         // Workers resolve tiles through this cache; take their lock.
         std::lock_guard<std::mutex> tile_lock(m_lod_tiles.mutex);

@@ -248,7 +248,7 @@ struct ContentClass {
 
 } // namespace
 
-bool lodIsVegetation(const NodeDefManager *ndef, content_t c) {
+static bool lodIsVegetation(const NodeDefManager *ndef, content_t c) {
     static const char *const groups[] = {"tree", "leaves", "cactus", "bamboo", "plant", "flora",
             "sapling", "flower", "mushroom", "fruit", "vines"};
     if (!ndef || c == CONTENT_AIR || c == CONTENT_IGNORE)

@@ -178,10 +178,6 @@ LodTopSample lodHorizonTop(const BlockLodChain &chain);
 // trunks, leaves, cave walls and island undersides all remain on the node
 // grid. Every occupied cell remains a voxel at coarser levels; terrain is not
 // reconstructed from a heightfield.
-// Whether a content id is part of a plant: the group list the far tiers and
-// the tree detector share, so what meshes as canopy is what labels as canopy.
-bool lodIsVegetation(const NodeDefManager *ndef, content_t c);
-
 void buildLodChain(const NodeDefManager *ndef, MapBlock *block, BlockLodChain &out, int min_level = 0);
 
 // Build every level above first_level from its 2 by 2 by 2 children. Summary

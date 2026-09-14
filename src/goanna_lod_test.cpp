@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 #include "goanna_lod.h"
-#include "goanna_tree_render.h"
 
 #include "mapblock.h"
 #include "nodedef.h"
@@ -858,66 +857,6 @@ void testCoverageSeparatesCanopyFromRock() {
 }
 
 
-// The join between the far field's occupancy and the tree detector: a tree
-// standing in a chain has to come out at the place it actually stands, in
-// nodes, with its own height. This is the newest code in the path and the part
-// with the most arithmetic between two coordinate systems.
-void testTreeLayerFindsATreeInAChain() {
-    NodeDefManager ndef;
-    ContentFeatures trunk_def;
-    trunk_def.name = "test:trunk";
-    trunk_def.groups["tree"] = 1;
-    const content_t c_trunk = ndef.set("test:trunk", trunk_def);
-    ContentFeatures leaf_def;
-    leaf_def.name = "test:leaves";
-    leaf_def.groups["leaves"] = 1;
-    const content_t c_leaf = ndef.set("test:leaves", leaf_def);
-
-    auto chain = std::make_shared<BlockLodChain>();
-    LodLevel &lv = chain->level[BlockLodChain::levelForCell(4)];
-    lv.cell = 4;
-    lv.n = 4;
-    lv.cells.assign(64, LodLevel::Cell());
-    for (LodLevel::Cell &c : lv.cells)
-        c.flags = LodLevel::kKnown | LodLevel::kLit;
-    auto put = [&](int x, int y, int z, content_t content, bool solid) {
-        LodLevel::Cell &c = lv.at(x, y, z);
-        c.flags |= LodLevel::kFilled | (solid ? LodLevel::kOccludes : 0);
-        for (content_t &f : c.face)
-            f = content;
-        c.day = 200;
-    };
-    // A stem of two voxels with three of crown on top, at voxel x 1, z 1 of
-    // block 0, which is node 4 to 7 on both axes.
-    put(1, 0, 1, c_trunk, true);
-    put(1, 1, 1, c_trunk, true);
-    put(1, 2, 1, c_leaf, false);
-    put(0, 2, 1, c_leaf, false);
-    put(2, 2, 1, c_leaf, false);
-
-    std::map<v3s16, std::shared_ptr<const BlockLodChain>> chains;
-    chains[v3s16(0, 0, 0)] = chain;
-
-    TreeLayer layer;
-    expect(layer.update(chains, &ndef, v3s16(0, 0, 0), 4), "a new tree should be a change");
-    const std::vector<TreeDraw> &trees = layer.trees();
-    expect(trees.size() == 1, "one tree in the chain, one tree out");
-    const TreeDraw &t = trees[0];
-    // Voxel 1 of a 4 node cell is nodes 4 to 7, so its middle is 6.
-    expect(std::abs(t.base.X - 6.0f) < 0.01f && std::abs(t.base.Z - 6.0f) < 0.01f,
-            "the tree stands where the trunk voxel is, in nodes");
-    expect(std::abs(t.base.Y - 0.0f) < 0.01f, "on the foot of the stem");
-    expect(std::abs(t.height - 12.0f) < 0.01f, "three voxels tall is twelve nodes");
-    expect(t.day_top > 100, "and it carries the light it was standing in");
-    expect(layer.atlas().used() == 1, "and took one slot");
-
-    // Running again over the same chains must not churn: the far field calls
-    // this every couple of seconds and rebuilding a county each time would
-    // cost more than the trees do.
-    expect(!layer.update(chains, &ndef, v3s16(0, 0, 0), 4),
-            "unchanged chains should report no change");
-}
-
 int main() {
     testSparseCaptureBounds();
     testHorizonUsesSurfaceHeight();
@@ -941,7 +880,6 @@ int main() {
     testUnknownFrontierIsClosed();
     testTierBoundaryUsesDrawnOccupancy();
     testCoverageSeparatesCanopyFromRock();
-    testTreeLayerFindsATreeInAChain();
     std::cout << "goanna_lod_test: ok\n";
     return 0;
 }

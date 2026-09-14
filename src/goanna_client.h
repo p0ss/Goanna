@@ -14,9 +14,7 @@
 
 #include <godot_cpp/classes/array_mesh.hpp>
 #include <godot_cpp/classes/array_occluder3d.hpp>
-#include <godot_cpp/classes/image_texture3d.hpp>
 #include <godot_cpp/classes/mesh_instance3d.hpp>
-#include <godot_cpp/classes/multi_mesh_instance3d.hpp>
 #include <godot_cpp/classes/shader_material.hpp>
 #include <godot_cpp/classes/occluder_instance3d.hpp>
 #include <godot_cpp/classes/omni_light3d.hpp>
@@ -38,7 +36,6 @@
 #include "goanna_light.h"
 #include "goanna_mesher.h" // MapBlockMesh, for the near ready cache
 #include "goanna_lod.h"
-#include "goanna_tree_render.h"
 #include "goanna_lod_storage.h"
 #include "goanna_mesh_pool.h"
 #include "goanna_schedule.h"
@@ -857,17 +854,6 @@ private:
     bool m_far_dirty = true;
     void lodUpdateFar(const godot::Vector3 &around);
 
-    // Impostor trees. Deliberately outside the region machinery: a region is a
-    // mesh of the ground and rebuilding one is expensive, while trees are
-    // sparse and want to be one draw call for the whole view. See
-    // src/goanna_tree_render.h. Off with GOANNA_TREES=0.
-    void treeUpdate(v3s16 centre, int radius);
-    TreeLayer m_trees;
-    godot::MultiMeshInstance3D *m_tree_node = nullptr;
-    godot::Ref<godot::ImageTexture3D> m_tree_atlas;
-    godot::Ref<godot::ShaderMaterial> m_tree_material;
-    bool m_trees_enabled = false;
-    bool m_tree_colour_set = false;
     void lodRequestSummaries(const v3s16 &centre, int radius);
     void lodTakeSummaries(const godot::Vector3 &around);
     int lodTierCount() const;
