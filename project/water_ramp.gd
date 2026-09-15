@@ -22,7 +22,10 @@ extends Node3D
 # PROBE_OUT=/dir saves water_ramp.png; WATER_OUT=/path.json the numbers.
 # GOANNA_WATER_TEX is the water tile (default: Mineclonia's animation strip,
 # first frame, from the game as installed; failing that a flat blue).
-# GOANNA_BAKED_DIR is the pack, for the sand.
+# GOANNA_BAKED_DIR is the pack, for the sand. GOANNA_WATER_BED=nodes builds
+# the bed from node cubes on nodes_array.gdshader with the pack's sand set,
+# the way the world draws it, instead of a plain box; GOANNA_MAT then
+# reaches the bed's material (parallax=0 switches the march off).
 #
 # Run: PROBE_OUT=/tmp/w godot --path project water_ramp.tscn
 
@@ -199,12 +202,27 @@ func _ready() -> void:
 		sand.albedo_color = Color(0.85, 0.78, 0.6)
 	sand.roughness = 1.0
 	var total_w := STRIP_W * (DEPTHS.size() + 1)
+	var node_bed := OS.get_environment("GOANNA_WATER_BED") == "nodes"
+	var node_mat: ShaderMaterial = null
+	if node_bed:
+		node_mat = _node_material(baked, "default_sand")
 	# The dry strip stands above the waterline; each wet strip's bed is a box
 	# whose top is at minus the depth, and the water sheet at 0 covers them.
 	var strips := DEPTHS.duplicate()
 	strips.push_front(-0.2)
+	var cube := _cube_mesh()
 	for i in strips.size():
 		var top: float = -strips[i]
+		if node_bed and node_mat != null:
+			# One layer of cubes whose tops sit at the strip's depth.
+			for cx in int(STRIP_W):
+				for cz in int(STRIP_L):
+					var c := MeshInstance3D.new()
+					c.mesh = cube
+					c.material_override = node_mat
+					c.position = Vector3(i * STRIP_W + cx + 0.5, top - 0.5, cz - STRIP_L * 0.5 + 0.5)
+					add_child(c)
+			continue
 		var box := BoxMesh.new()
 		box.size = Vector3(STRIP_W, 10.0, STRIP_L)
 		var mi := MeshInstance3D.new()
@@ -269,6 +287,58 @@ func _ready() -> void:
 		if f:
 			f.store_string(JSON.stringify(results, "  "))
 	get_tree().quit()
+
+
+# The world's node material for one stem, as material_ramp.gd builds it.
+func _node_material(dir: String, stem: String) -> ShaderMaterial:
+	var sm := ShaderMaterial.new()
+	sm.shader = load("res://shaders/nodes_array.gdshader")
+	for pair in [[".png", "albedo_array"], ["_n.png", "normal_array"], ["_s.png", "spec_array"]]:
+		var img := Image.new()
+		if img.load(dir.path_join(stem + pair[0])) != OK:
+			if pair[0] == ".png":
+				return null
+			continue
+		if img.get_format() != Image.FORMAT_RGBA8:
+			img.convert(Image.FORMAT_RGBA8)
+		img.generate_mipmaps()
+		var arr := Texture2DArray.new()
+		arr.create_from_images([img])
+		sm.set_shader_parameter(pair[1], arr)
+		if pair[0] == "_n.png":
+			sm.set_shader_parameter("has_normal", true)
+		if pair[0] == "_s.png":
+			sm.set_shader_parameter("has_spec", true)
+	for pair in OS.get_environment("GOANNA_MAT").split(",", false):
+		var kv := pair.split("=")
+		if kv.size() == 2:
+			sm.set_shader_parameter(kv[0].strip_edges() + "_strength", float(kv[1]))
+	return sm
+
+
+# A node cube with the world's vertex layout, sky light full.
+func _cube_mesh() -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	st.set_custom_format(0, SurfaceTool.CUSTOM_RGBA8_UNORM)
+	var faces := [
+		[Vector3.UP, [Vector3(-0.5, 0.5, -0.5), Vector3(0.5, 0.5, -0.5), Vector3(0.5, 0.5, 0.5), Vector3(-0.5, 0.5, 0.5)]],
+		[Vector3.RIGHT, [Vector3(0.5, 0.5, 0.5), Vector3(0.5, 0.5, -0.5), Vector3(0.5, -0.5, -0.5), Vector3(0.5, -0.5, 0.5)]],
+		[Vector3.LEFT, [Vector3(-0.5, 0.5, -0.5), Vector3(-0.5, 0.5, 0.5), Vector3(-0.5, -0.5, 0.5), Vector3(-0.5, -0.5, -0.5)]],
+		[Vector3.BACK, [Vector3(-0.5, 0.5, 0.5), Vector3(0.5, 0.5, 0.5), Vector3(0.5, -0.5, 0.5), Vector3(-0.5, -0.5, 0.5)]],
+		[Vector3.FORWARD, [Vector3(0.5, 0.5, -0.5), Vector3(-0.5, 0.5, -0.5), Vector3(-0.5, -0.5, -0.5), Vector3(0.5, -0.5, -0.5)]],
+	]
+	var uvs := [Vector2(0, 0), Vector2(1, 0), Vector2(1, 1), Vector2(0, 1)]
+	for f in faces:
+		for tri in [[0, 1, 2], [0, 2, 3]]:
+			for i in tri:
+				st.set_normal(f[0])
+				st.set_uv(uvs[i])
+				st.set_uv2(Vector2(0, 0))
+				st.set_color(Color.WHITE)
+				st.set_custom(0, Color(0.0, 1.0, 1.0, 1.0))
+				st.add_vertex(f[1][i])
+	return st.commit()
 
 
 func _report(label: String, p: Dictionary) -> void:

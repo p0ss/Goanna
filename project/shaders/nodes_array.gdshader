@@ -98,6 +98,10 @@ void fragment() {
 	// far tiers never pay for it.
 	vec2 tuv_dx = dFdx(tile_uv);
 	vec2 tuv_dy = dFdy(tile_uv);
+	// Position derivatives here too, outside any branch: a derivative
+	// inside flow that not every pixel of the quad takes is undefined.
+	vec3 dpx = dFdx(v_world);
+	vec3 dpy = dFdy(v_world);
 	float self_shadow = 1.0;
 	float pom = 0.0;
 	if (has_normal && parallax_strength > 0.001 && flatten < 0.999) {
@@ -106,8 +110,6 @@ void fragment() {
 				* (1.0 - flatten) * parallax_strength;
 	}
 	if (pom > 0.001) {
-		vec3 dpx = dFdx(v_world);
-		vec3 dpy = dFdy(v_world);
 		float det = tuv_dx.x * tuv_dy.y - tuv_dy.x * tuv_dx.y;
 		// A quad straddling a node boundary sees the per node shift as a
 		// derivative and gets a basis of nothing; those pixels stay flat.
