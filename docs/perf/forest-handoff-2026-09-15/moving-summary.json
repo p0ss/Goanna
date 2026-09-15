@@ -1,0 +1,37 @@
+{
+  "disturbed_deg": 0.0,
+  "disturbed_m": 0.0,
+  "frames": 5425,
+  "label": "forest-current-motion",
+  "overflowed": false,
+  "phases": {
+    "move_full": {
+      "bound": "main-thread",
+      "bound_share": 0.819690265486726,
+      "cpu_ms_median": 1.49100005626678,
+      "distance_m": 1502.71496582031,
+      "fps_mean": 72.05529574408,
+      "frames": 5424,
+      "gpu_ms_median": 4.04300022125244,
+      "hitches": 543,
+      "hitches_per_min": 432.810017577826,
+      "low01_ms": 109.740802001953,
+      "low1_ms": 50.7238706659388,
+      "max_ms": 249.447006225586,
+      "median_ms": 12.0209999084473,
+      "p999_ms": 62.8610000610352,
+      "p99_ms": 39.4249992370605,
+      "seconds": 75.275522,
+      "stability": 4.21960494569962
+    }
+  },
+  "stamps": {
+    "boot_s": 439.204,
+    "connect_blocks": 51,
+    "connect_far_reach": 544,
+    "connect_s": 439.269,
+    "playable_blocks": 132,
+    "playable_far_reach": 768,
+    "playable_s": 456.611
+  }
+}

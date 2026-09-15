@@ -57,6 +57,8 @@ void visitLodBox(const Map &map, v3s16 low, int edge, Visit visit) {
         }
 }
 
+bool lodIsVegetation(const NodeDefManager *ndef, content_t content);
+
 class GoannaTextureSource;
 struct MaterialTable;
 
@@ -212,8 +214,12 @@ struct LodSurface {
     std::vector<uint8_t> custom0; // block light, sky light, occlusion, freshness
     std::vector<u32> idx;
 };
+// Upward ground faces actually emitted by a mesh, in unshifted Luanti nodes.
+// Source occupancy alone cannot prove that a replacement covers the preview.
+struct LodGroundPatch {int x=0,z=0,size=1;float height=0;};
 struct LodRegionMesh {
     std::vector<LodSurface> surfaces;
+    std::vector<LodGroundPatch> ground;
     int faces = 0; // cell faces before merging
     int quads = 0; // after
     // Ground cells drawn as part of the connected surface, and the skirts
@@ -261,7 +267,7 @@ struct LodTileCache {
 };
 
 LodTileCache::Entry lodSurfaceTile(LodTileCache &cache, const NodeDefManager *ndef,
-        GoannaTextureSource *tsrc, const MaterialTable *materials, content_t c, int side);
+        GoannaTextureSource *tsrc, const MaterialTable *materials, content_t c, int side, uint8_t param2 = 0);
 
 // The flat average colour (0xAARRGGBB) of a node's top tile, tint and
 // palette applied: what the horizon bake paints a distant column with.

@@ -1,0 +1,9 @@
+{
+  "native_sha256": "9469f6093e674749c8f9ee1e4a45304d7767642a7e14a23830c4cf8a8b04af1f",
+  "samples": 23,
+  "max_fine_scan_ms": 0.730009,
+  "max_fine_candidates": 701354,
+  "scheduler_limits_pass": true,
+  "near_ready_final": 0,
+  "lod_chain_queue_final": 0
+}

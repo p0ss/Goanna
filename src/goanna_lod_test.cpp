@@ -676,6 +676,43 @@ void testCellOneTreeBoundary() {
     expect(std::abs(max_y - 3.0f) < 0.001f, "cell-1 tree height was quantised");
 }
 
+void testCellOneGroundBoundary() {
+    auto ground=fineAirChain();
+    auto &fine=ground.level[0];
+    for (int z=0;z<16;++z) for (int x=0;x<16;++x)
+        fillCell(fine.at(x,0,z),CONTENT_UNKNOWN);
+    NodeDefManager ndef;
+    buildLodTerrainSurface(&ndef,ground,0);
+    expect(fine.terrain.empty(),"one-node ground must use its exact voxel boundary");
+    compactLodFineBoundary(ground);
+    auto air=fineAirChain();
+    LodRegionSpec spec;
+    spec.origin=v3s16(0,0,0);spec.blocks=1;spec.cell=1;
+    spec.member=[](v3s16 p){return p==v3s16(0,0,0);};
+    spec.chain=[&](v3s16 p){return p==v3s16(0,0,0)?&ground:&air;};
+    spec.drawn_cell=[](v3s16 p){return p==v3s16(0,0,0)?1:-1;};
+    LodTileCache tiles;
+    auto mesh=meshLodRegion(spec,&ndef,nullptr,nullptr,tiles);
+    float top_area=0;
+    for (const auto &surface:mesh.surfaces)
+        for (size_t i=0;i<surface.pos.size();i+=4)
+            if (surface.nrm[i].Y>0.9f)
+                top_area+=(surface.pos[i+1]-surface.pos[i]).crossProduct(
+                        surface.pos[i+3]-surface.pos[i]).getLength();
+    expect(std::abs(top_area-256)<0.01f,"compacted one-node ground lost its top faces");
+    size_t coverage=0;
+    for (const auto &patch:mesh.ground) coverage+=patch.size*patch.size;
+    expect(coverage==256,"ground footprint differs from emitted top faces");
+    auto buried=fineAirChain();
+    for (auto &c:buried.level[0].cells) fillCell(c,CONTENT_UNKNOWN);
+    buildLodMipLevels(buried,0);buildLodTerrainSurface(&ndef,buried,0);
+    compactLodFineBoundary(buried);
+    spec.chain=[&](v3s16 p){return p==v3s16(0,0,0)||p==v3s16(0,1,0)?&buried:&air;};
+    spec.drawn_cell=[](v3s16 p){return p==v3s16(0,0,0)||p==v3s16(0,1,0)?1:-1;};
+    mesh=meshLodRegion(spec,&ndef,nullptr,nullptr,tiles);
+    expect(mesh.ground.empty(),"buried block claimed coverage without a visible ground face");
+}
+
 void testCellOneMeetsCellFourWithoutOverlap() {
     BlockLodChain coarse = airChain();
     fillCell(coarse.level[BlockLodChain::levelForCell(4)].at(3, 0, 0), CONTENT_UNKNOWN);
@@ -876,6 +913,7 @@ int main() {
     testGroundCannotCoverShallowWater();
     testSurfaceKeepsFloatingRockAtCoarseResolution();
     testCellOneTreeBoundary();
+    testCellOneGroundBoundary();
     testCellOneMeetsCellFourWithoutOverlap();
     testUnknownFrontierIsClosed();
     testTierBoundaryUsesDrawnOccupancy();

@@ -248,7 +248,7 @@ struct ContentClass {
 
 } // namespace
 
-static bool lodIsVegetation(const NodeDefManager *ndef, content_t c) {
+bool lodIsVegetation(const NodeDefManager *ndef, content_t c) {
     static const char *const groups[] = {"tree", "leaves", "cactus", "bamboo", "plant", "flora",
             "sapling", "flower", "mushroom", "fruit", "vines"};
     if (!ndef || c == CONTENT_AIR || c == CONTENT_IGNORE)
@@ -1281,6 +1281,8 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                 // Horizontal top, clockwise seen from above in Godot.
                 for (u32 i : {0u, 2u, 1u, 0u, 3u, 2u})
                     sf.idx.push_back(base + i);
+                if (!col.canopy && !col.water)
+                    out.ground.push_back({origin_nodes.X+gx*cell,origin_nodes.Z+gz*cell,cell,hs[0]});
                 ++out.surface_cells;
                 ++out.faces;
                 ++out.quads;
@@ -1515,6 +1517,21 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                     const content_t content = liquid_face ? c->liquid : c->face[d];
                     if (content == CONTENT_AIR || content == CONTENT_IGNORE)
                         continue;
+                    if (d==0 && cell==1 && !liquid_face && !lodIsVegetation(ndef,content)) {
+                        const int bx=g[0]/cpb+mb,by=g[1]/cpb+mb,bz=g[2]/cpb+mb;
+                        const auto *ch=chains[((size_t)bz*B+by)*B+bx];
+                        const int lx=g[0]%cpb,lz=g[2]%cpb;
+                        bool connected=true;
+                        for (int y=0;y<=g[1]%cpb;++y) {
+                            const auto *below=ch->cellAt(1,lx,y,lz);
+                            if (!ch->filledAt(1,lx,y,lz) ||
+                                    (below && lodIsVegetation(ndef,below->face[0]))) {
+                                connected=false;break;
+                            }
+                        }
+                        if (connected) out.ground.push_back({origin_nodes.X+g[0],
+                                origin_nodes.Z+g[2],1,float(origin_nodes.Y+g[1]+h_self)});
+                    }
                     const LodTileCache::Entry &te = tileFor(tiles, ndef, tsrc, materials, content,
                             liquid_face ? 0 : d);
                     fk.texture_id = te.texture_id;
@@ -1687,11 +1704,11 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
 }
 
 LodTileCache::Entry lodSurfaceTile(LodTileCache &cache, const NodeDefManager *ndef,
-        GoannaTextureSource *tsrc, const MaterialTable *materials, content_t c, int side) {
+        GoannaTextureSource *tsrc, const MaterialTable *materials, content_t c, int side, uint8_t param2) {
     auto te = tileFor(cache, ndef, tsrc, materials, c, side);
     if (!te.tile_has_color && ndef->get(c).visuals) {
         video::SColor colour;
-        ndef->get(c).visuals->getColor(0, &colour);
+        ndef->get(c).visuals->getColor(param2, &colour);
         te.tint = colour.color | 0xff000000;
     }
     te.fallback = mulColour(te.fallback, te.tint);

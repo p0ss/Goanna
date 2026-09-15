@@ -34,10 +34,10 @@ var far_distance := 1024
 # load on the register_mapgen_script call for it, so add new ones here.
 const TERRAIN_DIFFUSION_FILES := [
 	"init.lua", "tdl_far.lua", "tdl_palette.lua", "tdl_biomes.lua",
-	"tdl_terrain.lua", "tdl_decorate.lua", "tdl_mapgen.lua",
+	"tdl_terrain.lua", "tdl_decorate.lua", "tdl_forest.lua", "tdl_column.lua", "tdl_mapgen.lua",
 	"settingtypes.txt", "mod.conf", "LICENSE",
 ]
-const GOANNA_SERVER_MOD_FILES := ["init.lua", "surface.lua", "surface_material.lua", "mod.conf", "settingtypes.txt", "README.md"]
+const GOANNA_SERVER_MOD_FILES := ["init.lua", "surface.lua", "fine.lua", "surface_material.lua", "mod.conf", "settingtypes.txt", "README.md"]
 const PBR_GAME_DIRS := {
 	"minetest": "minetest_game",
 	"minetest_game": "minetest_game",

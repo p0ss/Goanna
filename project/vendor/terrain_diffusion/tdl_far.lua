@@ -12,11 +12,9 @@
 -- comes back as a summary, and replaces it with the real block's summary
 -- when the block is generated. Nothing here writes to the world.
 --
--- What the sample leaves out, against the generated terrain: the detail
--- noise (a few metres on a slope, nothing on a plain), the dither, the rock
--- noise that makes the soil line ragged, caves, and the trees. At four nodes
--- a cell and hundreds of nodes away, none of that is visible; the trees
--- arrive when the blocks do.
+-- Ground samples are deliberately coarse. The tiled path also carries a
+-- separate forest preview, using the decoration runtime and game schematics.
+-- Cached/generated voxel meshes replace it where published coverage exists.
 
 if not (tdl and tdl.available and tdl_classify) then
         return
@@ -86,11 +84,31 @@ local function surface_revision()
                 end
         end
         identity[#identity + 1] = stable(core.registered_biomes)
+        identity[#identity + 1] = stable(core.registered_decorations)
+        -- A schematic can change without its registered filename changing.
+        -- Include file contents as well as the decoration definitions.
+        local schematics = {}
+        for _, deco in pairs(core.registered_decorations) do
+                if type(deco.schematic) == "string" then schematics[deco.schematic] = true end
+        end
+        local paths = {}
+        for path in pairs(schematics) do paths[#paths + 1] = path end
+        table.sort(paths)
+        for _, path in ipairs(paths) do
+                local file = io.open(path, "rb")
+                if file then
+                        identity[#identity + 1] = path .. "=" .. core.sha1(file:read("*a"))
+                        file:close()
+                end
+        end
+
+        identity[#identity + 1] = tostring(core.get_mapgen_setting("seed"))
+        identity[#identity + 1] = tostring(core.get_mapgen_setting("chunksize"))
         -- tdl_biomes.lua, not "tdl_classify.lua": the classifier is defined in
         -- the former and there has never been a file by the latter name, so
         -- io.open returned nil and every change to how a climate is read
         -- left the persisted tiles looking current.
-        for _, file in ipairs({"tdl_far.lua", "tdl_terrain.lua", "tdl_biomes.lua", "tdl_palette.lua"}) do
+        for _, file in ipairs({"tdl_far.lua", "tdl_terrain.lua", "tdl_biomes.lua", "tdl_palette.lua", "tdl_decorate.lua", "tdl_forest.lua", "tdl_column.lua"}) do
                 local source = io.open(core.get_modpath("terrain_diffusion") .. "/" .. file, "rb")
                 if source then
                         identity[#identity + 1] = source:read("*a")
@@ -114,7 +132,7 @@ local MAX_INVENTED_DEPTH = 24
 -- rather than just the interior of whatever it is part of.
 local SHORE_DEPTH = 4
 
-local function surface_provider(x, z)
+local function coarse_surface(x, z)
         local fi, fj = tdl.node_to_pixel(x, z)
         local elevation = tdl.elevation_at(fi, fj)
         local east = tdl.elevation_at(fi, fj + 1)
@@ -130,14 +148,14 @@ local function surface_provider(x, z)
         -- Same palette the mapgen uses, so the horizon is made of the same
         -- nodes as the ground you reach when you walk to it. Falls back to the
         -- table above when the game registers no biomes.
-        local top, side
+        local top, side, biome
         if use_palette and tdl_palette then
                 local at, ap = tdl_classify.adjust(elevation, temp, precip)
                 local entry = tdl_palette.pick(tdl_palette.heat(at),
                         tdl_palette.humidity(tdl_classify.aridity(at, t_season, ap)),
                         tdl.surface_y(elevation))
                 if entry then
-                        top, side = entry.top_name, entry.filler_name
+                        top, side, biome = entry.top_name, entry.filler_name, entry
                 end
         end
         if not top then
@@ -212,11 +230,20 @@ local function surface_provider(x, z)
         if surface < sea_level and (not water_y or water_y < sea_level) then
                 water_y = sea_level
         end
-        return surface, top, water_y, side
+        return surface, top, water_y, side, biome
+end
+
+local function surface_provider(x, z, step)
+        -- Nearby summaries and forest geometry need the mapgen's actual root
+        -- height. Omitting its small-scale relief can bury an entire crown in
+        -- the preview ground, even though tree placement itself is correct.
+        if not step or step <= 16 then return tdl_column.at(x, z) end
+        return coarse_surface(x, z)
 end
 
 core.register_on_mods_loaded(function()
-        goanna_register_far_surface(surface_provider, {water = WATER, revision = surface_revision()})
+        local forest = dofile(core.get_modpath("terrain_diffusion") .. "/tdl_forest.lua")(tdl_column.at, coarse_surface)
+        goanna_register_far_surface(surface_provider, {water = WATER, revision = surface_revision(), forest = forest})
 end)
 
 core.log("action", "[terrain_diffusion] far surface registered with the Goanna server mod")

@@ -164,6 +164,8 @@ public:
     int farRenderingGrant() const;
     // Whether the server mod answers far summary requests at all.
     bool farSummariesOffered() const;
+    void requestFineBlock(v3s16 position, uint64_t token);
+    std::vector<std::string> takeFineBlocks();
     const std::string &playerName() const { return m_name; }
     // Ask the server for a far area summary (block coords, edge in blocks).
     void requestFarSummary(v3s16 origin_blocks, int edge_blocks, int cell);
@@ -495,6 +497,7 @@ private:
     int m_crack_animation_length = -1;
 
     std::vector<std::string> m_surfaces;
+    std::vector<std::string> m_fine_blocks;
     std::vector<std::string> m_far_summaries; // raw farsum messages, under m_server_opts_mutex
     // Settings a paired server mod announced over the goanna mod channel. Empty
     // against a server without the mod, which is the ordinary case and renders

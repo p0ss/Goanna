@@ -34,6 +34,12 @@ func _initialize() -> void:
 	for filename in LocalServer.TERRAIN_DIFFUSION_FILES:
 		_assert(FileAccess.file_exists(world.path_join("worldmods/terrain_diffusion").path_join(filename)),
 			"runtime file was not deployed: " + filename)
+	for filename in DirAccess.get_files_at("res://vendor/terrain_diffusion"):
+		if filename.ends_with(".lua"):
+			_assert(FileAccess.get_file_as_string(world.path_join(
+					"worldmods/terrain_diffusion").path_join(filename)) ==
+					FileAccess.get_file_as_string("res://vendor/terrain_diffusion/" + filename),
+				"TDL Lua module was omitted or differs from the bundle: " + filename)
 	for filename in LocalServer.GOANNA_SERVER_MOD_FILES:
 		_assert(FileAccess.file_exists(world.path_join("worldmods/goanna_server_mod").path_join(filename)),
 			"Goanna server mod file was not deployed: " + filename)

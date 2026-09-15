@@ -373,6 +373,7 @@ local storage = core.get_mod_storage()
 -- rejected when the mapgen that made them is no longer installed. Providers
 -- register during mod loading, before any player can request an area.
 local far_provider = nil
+local far_provider_revision = ""
 local settled = {}
 local settled_dirty = false
 
@@ -427,7 +428,7 @@ local function load_area(ax, ay, az)
 	}
 	local s = storage:get_string(STORE_KEY .. key)
 	if s ~= "" then
-		local csv, b64, synth_csv = s:match("^([^|]*)|([^|]*)|?(.*)$")
+		local csv, b64, synth_csv, provider_revision = s:match("^([^|]*)|([^|]*)|?([^|]*)|?(.*)$")
 		local blob = b64 and core.decode_base64(b64)
 		if blob and #blob == REC * AREA_BLOCKS then
 			a.blob = blob
@@ -449,7 +450,7 @@ local function load_area(ax, ay, az)
 				-- emerged world data. Keeping them after that provider is removed
 				-- makes its old terrain reappear whenever the real blocks leave
 				-- the client's near field.
-				if not far_provider then
+				if not far_provider or (provider_revision or "") ~= far_provider_revision then
 					for i in pairs(a.synth) do
 						if record_known(a.blob, i) then
 							a.known = a.known - 1
@@ -496,7 +497,7 @@ local function save_area(a)
 	end
 	storage:set_string(STORE_KEY .. a.key,
 			table.concat(a.names, ",") .. "|" .. core.encode_base64(a.blob) .. "|" ..
-			table.concat(synth, ","))
+			table.concat(synth, ",") .. "|" .. far_provider_revision)
 	a.dirty = false
 	a.saved = now()
 end
@@ -566,9 +567,11 @@ end
 -- offer it; the client asks for the same summaries as before.
 local register_surface_tiles = dofile(core.get_modpath(core.get_current_modname()) ..
 		"/surface.lua")(channel, far_enabled, far_provider_distance, storage)
+dofile(core.get_modpath(core.get_current_modname()) .. "/fine.lua")(channel, far_enabled, far_provider_distance)
 local far_provider_water = "mcl_core:water_source"
 function goanna_register_far_surface(fn, opts)
 	far_provider = fn
+	far_provider_revision = opts and opts.revision and core.sha1(opts.revision) or ""
 	register_surface_tiles(fn, opts)
 	if opts and opts.water then
 		far_provider_water = opts.water

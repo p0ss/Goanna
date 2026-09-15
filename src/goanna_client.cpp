@@ -138,6 +138,7 @@ const uint32_t ICE_LAYER = 1u << 2;
 // texture surfaces instead of leaving a cell-1 shell and cell-4 fallback as
 // separate scene objects (and therefore separate draw calls).
 void appendLodMesh(goanna::LodRegionMesh &dst, goanna::LodRegionMesh &&src) {
+    dst.ground.insert(dst.ground.end(),src.ground.begin(),src.ground.end());
     dst.faces += src.faces;
     dst.quads += src.quads;
     dst.surface_cells += src.surface_cells;
@@ -1168,6 +1169,7 @@ void GoannaClient::connect_to(const String &host, int port, const String &player
         const String &password) {
     m_lod_storage.stop();
     m_lod_loads.clear();
+    fineClear();
     m_lod_cached_summaries.clear();
     m_lod_primed_regions.clear();
     m_mesh_pool.stop();
@@ -1258,6 +1260,7 @@ void GoannaClient::connect_to(const String &host, int port, const String &player
 void GoannaClient::disconnect_from_server() {
     m_lod_storage.stop();
     m_lod_loads.clear();
+    fineClear();
     m_lod_cached_summaries.clear();
     m_lod_primed_regions.clear();
     // Jobs hold the session's node definitions, texture source and material
@@ -3053,6 +3056,15 @@ Dictionary GoannaClient::render_stats() {
     d["lod_storage_ready"] = storage.ready;
     d["lod_storage_active"] = storage.active;
     d["lod_storage_pending"] = (int64_t)m_lod_loads.size();
+    d["fine_candidates"] = (int64_t)m_fine_states.size();
+    d["fine_pending"]=(int64_t)m_fine_pending.size();
+    // Last completed bounded sweep, rather than another whole-world walk
+    // every time the HUD or recorder asks for statistics.
+    d["fine_ready"]=m_fine_ready_sample;
+    d["fine_scan_ms"]=m_ms_fine_scan;
+    d["fine_scan_entries"]=m_fine_scan_entries;
+    d["near_ready"]=(int64_t)m_near_ready.size();
+    d["surface_waiting"]=(int64_t)m_surface_waiting.size();
     d["lod_storage_retry_regions"] = (int64_t)m_lod_chain_retry_regions.size();
     d["lod_retier_queue"] = m_lod_retier_pending ? 1 : 0;
     d["poll_max_ms"] = std::max(m_ms_poll_max, m_ms_poll_max_last);
@@ -3140,6 +3152,8 @@ Dictionary GoannaClient::render_stats() {
     d["surface_cells"] = m_surface_cells;
     d["surface_covered"] = m_surface_covered;
     d["surface_quads"] = m_surface_quads;
+    d["surface_forest_quads"] = m_surface_forest_quads;
+    d["surface_forest_columns"] = m_surface_forest_columns;
     d["surface_uploads"] = (int)m_surface_uploads.size();
     d["surface_retired"] = (int)m_surface_retired.size();
     d["surface_building"] = m_surface_building;
@@ -3921,8 +3935,15 @@ int GoannaClient::lodTierFor(const v3s16 &bp, const Vector3 &around, bool live) 
     auto cur = m_block_tier.find(bp);
     const int current = cur == m_block_tier.end() ? 0 : cur->second;
     const Vector3 delta = centre - around;
-    return goanna::lodProjectedTier(v3f(delta.x, delta.y, delta.z), current, live,
+    int tier = goanna::lodProjectedTier(v3f(delta.x, delta.y, delta.z), current, live,
             (float)m_lod_distance * MAP_BLOCKSIZE, m_lod_focal_pixels);
+    if (surfaceOffered() && fineOffered()) {
+        const float dx = std::max(0.0f, std::abs((float)delta.x)-8.0f);
+        const float dz = std::max(0.0f, std::abs((float)delta.z)-8.0f);
+        const int cell = goanna::surfaceForestCell(std::sqrt(dx*dx+dz*dz));
+        if (cell <= 4) tier = std::min(tier, cell == 1 ? 1 : cell == 2 ? 2 : 3);
+    }
+    return tier;
 }
 
 void GoannaClient::lodStartStorage() {
@@ -4010,8 +4031,13 @@ void GoannaClient::lodCollectChains() {
         }
         auto pending = m_lod_loads.find(result.pos);
         if (pending == m_lod_loads.end() || pending->second.ticket != result.ticket) continue;
+        const uint64_t fine_token = pending->second.fine_token;
+        const uint64_t fine_fingerprint = pending->second.fine_fingerprint;
         const uint64_t revision = pending->second.revision;
         m_lod_loads.erase(pending);
+        auto fine = m_fine_states.find(result.pos);
+        if (fine_token && (fine == m_fine_states.end() || fine->second.token != fine_token ||
+                m_near_blocks.count(result.pos))) continue;
         if (revision != m_session->blockRevision(result.pos)) {
             lodEnqueueChain(result.pos);
             continue;
@@ -4021,14 +4047,19 @@ void GoannaClient::lodCollectChains() {
                 (!m_surface_revision.empty() && m_far_blocks.count(result.pos));
         if (!wanted) continue;
         if (result.chain) {
-            // An arriving summary may be replaced by exact source data, but
-            // a newer live chain always wins over an older asynchronous read.
+            // Fresh server nodes may replace retained data outside the near
+            // field. The revision check above protects newer live updates.
             auto old = m_lod_chains.find(result.pos);
-            if (old == m_lod_chains.end() || old->second->summary) {
+            if (old == m_lod_chains.end() || old->second->summary || fine_token) {
+                if (fine_token) {
+                    fine->second.fingerprint=fine_fingerprint;
+                    fine->second.applied=result.chain;
+                }
                 m_lod_chains[result.pos] = std::move(result.chain);
-                m_far_remote.erase(result.pos);
+                if (fine_token) m_block_tier[result.pos]=lodTierFor(result.pos,m_lod_centre,false);
+                if (!fine_token) m_far_remote.erase(result.pos);
                 if (!m_surface_revision.empty() && m_far_blocks.count(result.pos) &&
-                        !m_lod_member.count(result.pos))
+                        (fine_token || !m_lod_member.count(result.pos)))
                     lodAssign(result.pos, lodTierFor(result.pos, m_lod_centre, false));
                 lodDirtyAround(result.pos, nullptr);
             }
@@ -5135,6 +5166,13 @@ void GoannaClient::lodTakeSummaries(const Vector3 &around) {
                 continue; // no emerged data: stays unknown, never invented
             const v3s16 bp(ox + (int)(i % edge), oy + (int)((i / edge) % edge),
                     oz + (int)(i / (edge * edge)));
+            if (fineOffered() && !(r[rFlags] & 32) && (r[rFlags] & 8)) {
+                auto inserted = m_fine_states.try_emplace(bp);
+                if (!cached && !inserted.second && inserted.first->second.token &&
+                        !inserted.first->second.pending)
+                    inserted.first->second.asked = {};
+                m_far_blocks.insert(bp); // known air also replaces a predicted crown
+            }
             if (m_session->getBlock(bp))
                 continue; // live: known better
             if (m_near_blocks.count(bp))
@@ -5147,7 +5185,7 @@ void GoannaClient::lodTakeSummaries(const Vector3 &around) {
                 // and how a changed block reaches a client that is offered
                 // its area again.
                 auto old = m_lod_chains.find(bp);
-                if (old != m_lod_chains.end() && !old->second->summary)
+                if (old != m_lod_chains.end() && (!old->second->summary || old->second->fine_available))
                     continue;
             }
             auto name_of = [&](uint8_t idx, content_t fallback) -> content_t {
@@ -5317,6 +5355,7 @@ void GoannaClient::lodTakeSummaries(const Vector3 &around) {
 
 void GoannaClient::lodMarkDirty(const LodRegionKey &key) {
     LodRegion &r = m_lod_regions[key];
+    r.priority_members_valid = false;
     ++r.state_revision;
     if (!r.dirty) {
         r.dirty = true;
@@ -5405,6 +5444,14 @@ void GoannaClient::lodAssign(const v3s16 &bp, int tier) {
             const int64_t dx = bp.X - m_far_centre.X, dz = bp.Z - m_far_centre.Z;
             beyond_mesh = beyond_mesh || dx * dx + dz * dz > 32 * 32;
         }
+    }
+    // A coarse actual summary must not replace a finer forest preview.
+    // Keep it as discovery data until the detailed block has been meshed.
+    if (tier > 0 && tier < 3 && fineOffered() && surfaceOffered()) {
+        auto chain = m_lod_chains.find(bp);
+        if (chain != m_lod_chains.end() && chain->second->summary &&
+                !chain->second->surface_shell && !chain->second->hasCell(1))
+            beyond_mesh = true;
     }
     if (beyond_mesh) {
         lodEnqueueChain(bp);
@@ -5613,12 +5660,21 @@ int GoannaClient::lodRegionPriority(const LodRegionKey &key, const LodRegion &r)
     // frontier fills horizontally, but a stale slab overhead is urgent.
     vp.vertical = 2.0f;
     bool missing = !r.published || r.published_partial;
-    if (!missing)
-        for (const v3s16 &bp : r.members)
-            if (!r.published_members.count(bp)) {
-                missing = true;
-                break;
-            }
+    if (!missing) {
+        // Membership changes on invalidation/publication, not on every
+        // scheduling poll. A wide loaded world otherwise repeats hundreds
+        // of thousands of set lookups each frame while waiting on workers.
+        if (!r.priority_members_valid) {
+            r.priority_members_missing = false;
+            for (const v3s16 &bp : r.members)
+                if (!r.published_members.count(bp)) {
+                    r.priority_members_missing = true;
+                    break;
+                }
+            r.priority_members_valid = true;
+        }
+        missing = r.priority_members_missing;
+    }
     const int wanted_exact = std::min(lodCellFor(key.tier), 1 << std::max(0, key.tier - 1));
     const int wanted_coarse = lodCellFor(key.tier);
     const bool refining = r.published && !missing &&
@@ -5643,6 +5699,9 @@ void GoannaClient::lodBuildRegion(const LodRegionKey &key, LodRegion &r) {
         r.faces = r.quads = r.surfaces = 0;
         r.published = false;
         r.published_members.clear();
+        r.published_chains.clear();
+        r.published_ground.clear();
+        ++m_surface_source_revision;
         r.published_partial = false;
         r.published_exact_cell = 0;
         r.published_coarse_cell = 0;
@@ -6021,7 +6080,18 @@ void GoannaClient::lodCollectMeshes() {
 
 void GoannaClient::lodPublishRegion(const LodRegionKey &key, LodRegion &r, const LodRegionMesh &lm,
         std::chrono::steady_clock::time_point t0, int exact_cell_used, int coarse_cell_used) {
-    if (!m_surface_uploading) ++m_surface_source_revision;
+    r.priority_members_valid = false;
+    if (!m_surface_uploading) {
+        ++m_surface_source_revision;
+        r.published_ground=lm.ground;
+        r.published_chains.clear();
+        for (const auto &bp:r.members) {
+            auto it=m_lod_chains.find(bp);
+            auto owner=m_lod_member.find(bp);
+            if (it!=m_lod_chains.end() && owner!=m_lod_member.end() && owner->second==key)
+                r.published_chains[bp]=it->second;
+        }
+    }
     r.building = false;
     r.stale = false; // what is about to be on screen is current again
     r.faces = lm.faces;
@@ -6244,6 +6314,7 @@ void GoannaClient::lodPublishRegion(const LodRegionKey &key, LodRegion &r, const
         add_child(r.node);
     }
     r.node->set_mesh(mesh);
+    surfaceStage(r.node);
     r.published = true;
     r.published_members = r.members;
     r.published_partial = lm.partial;
@@ -6352,6 +6423,7 @@ void GoannaClient::lodReset() {
     surfaceClear();
     m_lod_storage.clear();
     m_lod_loads.clear();
+    fineClear();
     m_lod_cached_summaries.clear();
     m_lod_primed_regions.clear();
     // Every queued capture describes the layout that just changed. Jobs
@@ -6477,6 +6549,7 @@ int GoannaClient::update_lod(const Vector3 &around, int max_rebuild) {
     std::lock_guard<std::mutex> lk(m_session->mapLock());
     const auto t_summaries = clock_t_::now();
     lodTakeSummaries(around);
+    fineUpdate();
     ema(m_ms_lod_summaries, ms_since(t_summaries));
     // Keep the summary requests in flight. lodUpdateFar only runs every two
     // seconds when the player stands still, and one request per run was the
@@ -6655,8 +6728,10 @@ int GoannaClient::poll_blocks(int max_blocks) {
             continue;
         }
         MapBlock *block = m_session->getBlock(bp);
-        if (!block)
+        if (!block) {
+            m_near_ready.erase(bp); // a finished job can outlive residency
             continue;
+        }
         if (std::getenv("GOANNA_DEBUG_CONTENT") && !m_session->contentPrepared()) {
             static int early = 0;
             if (++early % 25 == 1)
@@ -6680,6 +6755,11 @@ int GoannaClient::poll_blocks(int max_blocks) {
         m_far_remote.erase(bp);
         m_block_queued_at.erase(bp); // reached the front: aging starts over
         if (tier >= 1) {
+            // A near worker may finish after this block has moved into LOD
+            // range. Consume its ready result here too: otherwise it is put
+            // back into `fresh` every frame, repeatedly discarding and
+            // rebuilding the same unchanged LOD chain even while stationary.
+            m_near_ready.erase(bp);
             // A live block moving out of the near radius used to disappear
             // before its asynchronous chain and far mesh were ready. Keep
             // the published near mesh until lodPublishRegion installs its

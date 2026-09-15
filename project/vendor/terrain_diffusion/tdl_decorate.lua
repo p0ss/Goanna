@@ -420,6 +420,15 @@ local function emit(deco, ps, ctx, x, y, z, ceiling)
 end
 
 local function try_column(deco, ps, ctx, x, z)
+        if ctx.preview then
+                local c = ctx.preview(x,z)
+                if deco.biomes and (not c.biome or not deco.biomes[c.biome.name]) then return end
+                if deco.all_ceilings and not deco.all_floors then return end
+                local y = deco.liquid_surface and c.water or c.y
+                if not y or y < ctx.minp.y or y > ctx.maxp.y or y < deco.y_min or y > deco.y_max then return end
+                defer_structure(deco, ps, ctx, x, y, z, false)
+                return
+        end
         local index = (z - ctx.minp.z + ctx.margin) * ctx.wide_x
                 + (x - ctx.minp.x + ctx.margin) + 1
 
@@ -658,4 +667,57 @@ function tdl_decorate.flush(vmanip, ctx)
                         pcall(core.spawn_tree_on_vmanip, vmanip, pos, deco.treedef)
                 end
         end
+end
+
+-- Read-only surface prediction uses the same candidate order, density noise,
+-- RNG stream, biome restrictions, ground checks and rotation as place(). Cave
+-- floors are intentionally absent from the exterior preview.
+function tdl_decorate.preview(minp,maxp,present,column,accept,pause)
+        if not tdl_decorate.load() then return {} end
+        local area = {index=function(_,x,y,z) return x..":"..y..":"..z end}
+        local data=setmetatable({}, {__index=function(_,key)
+                local x,y,z=key:match("^([%-0-9]+):([%-0-9]+):([%-0-9]+)$")
+                x,y,z=tonumber(x),tonumber(y),tonumber(z)
+                local c=column(x,z)
+                local name = y==c.y and c.top or y<c.y and c.side or
+                        (c.water and y<=c.water and "mapgen_water_source") or "air"
+                return core.get_content_id(name)
+        end})
+        local ctx={data=data,area=area,minp=minp,maxp=maxp,deferred={},preview=column}
+        for _,deco in ipairs(candidates_for(present)) do
+                if accept(deco) and maxp.y>=deco.y_min and deco.y_max>=minp.y then
+                        place_one(deco,ctx,tdl_decorate.chunk_seed(minp),maxp.x-minp.x+1)
+                end
+                pause()
+        end
+        return ctx.deferred
+end
+
+-- Statistical canopy reduction uses the same biome, ground and density fields
+-- as placement, avoiding full per-node forest generation at kilometre scales.
+function tdl_decorate.canopy(x,z,column,accept)
+        if not tdl_decorate.load() then return {} end
+        local c=column(x,z)
+        local present=c.biome and {[c.biome.name]=true} or {}
+        local out={}
+        for _,deco in ipairs(candidates_for(present)) do
+                local p=accept(deco)
+                if p and (not deco.all_ceilings or deco.all_floors) and
+                                c.y>=deco.y_min and c.y<=deco.y_max and
+                                deco.place_on[core.get_content_id(c.top)] and
+                                (not c.water or c.water<=c.y) then
+                        local sidelen=deco.sidelen
+                        local size=16*(tonumber(core.get_mapgen_setting("chunksize")) or 5)
+                        local off=16*math.floor(size/32)
+                        local cx=math.floor((x+off)/size)*size-off
+                        local cz=math.floor((z+off)/size)*size-off
+                        if size % sidelen ~= 0 then sidelen=size end
+                        local nx=cx+math.floor((x-cx)/sidelen)*sidelen+sidelen/2
+                        local nz=cz+math.floor((z-cz)/sidelen)*sidelen+sidelen/2
+                        local noise=noise_for(deco)
+                        local density=noise and noise:get_2d({x=nx,y=nz}) or deco.fill_ratio
+                        if density>0 then out[#out+1]={deco=deco,prototype=p,density=density} end
+                end
+        end
+        return out
 end

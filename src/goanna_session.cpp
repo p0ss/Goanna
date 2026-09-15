@@ -285,7 +285,7 @@ int GoannaSession::farRenderingGrant() const {
     // The tiled surface has a bounded horizontal footprint. The former
     // unconditional 4096 clamp silently defeated the launcher's 8192 grant.
     auto surface = opts.find("surface_tiles");
-    const int cap = surface != opts.end() && surface->second == "1" ? 8192 : 4096;
+    const int cap = surface != opts.end() && (surface->second == "1" || surface->second == "2") ? 8192 : 4096;
     return std::clamp(dist, 0, cap);
 }
 
@@ -517,6 +517,19 @@ std::vector<std::string> GoannaSession::takeFarSummaries() {
     return out;
 }
 
+void GoannaSession::requestFineBlock(v3s16 p,uint64_t token) {
+    if(!m_con) return;
+    NetworkPacket packet(TOSERVER_MODCHANNEL_MSG,0);
+    packet << std::string(kGoannaChannel) << ("farfine? 1 "+std::to_string(token)+" "+
+            std::to_string(p.X)+" "+std::to_string(p.Y)+" "+std::to_string(p.Z));
+    send(packet);
+}
+std::vector<std::string> GoannaSession::takeFineBlocks() {
+    std::lock_guard<std::mutex> lock(m_server_opts_mutex);
+    std::vector<std::string> out;
+    out.swap(m_fine_blocks);return out;
+}
+
 bool GoannaSession::farSummariesOffered() const {
     auto opts = serverOptions();
     auto it = opts.find("far_summaries");
@@ -528,7 +541,10 @@ bool GoannaSession::farSummariesOffered() const {
 void GoannaSession::requestSurface(const std::string &revision, int step, int x, int z) {
     if (!m_con) return;
     NetworkPacket pkt(TOSERVER_MODCHANNEL_MSG, 0);
-    pkt << std::string(kGoannaChannel) << ("surface? 1 " + revision + " " +
+    const auto options = serverOptions();
+    const auto capability = options.find("surface_tiles");
+    const std::string version = capability != options.end() && capability->second == "2" ? "2" : "1";
+    pkt << std::string(kGoannaChannel) << ("surface? " + version + " " + revision + " " +
             std::to_string(step) + " " + std::to_string(x) + " " + std::to_string(z));
     send(pkt);
 }
@@ -547,9 +563,14 @@ void GoannaSession::onModChannelMsg(NetworkPacket &pkt) {
         return;
     // Only server-authored messages may grant capabilities or supply terrain.
     if (!sender.empty()) return;
-    if (message.compare(0, 8, "surface ") == 0) {
+    if (message.compare(0,8,"farfine ")==0 || message.compare(0,16,"farfine_changed ")==0) {
+        std::lock_guard<std::mutex> lock(m_server_opts_mutex);
+        if(message.size()<=65535 && m_fine_blocks.size()<128) m_fine_blocks.push_back(std::move(message));
+        return;
+    }
+    if (message.compare(0, 8, "surface ") == 0 || message.compare(0,13,"surface_part ")==0) {
         std::lock_guard<std::mutex> lk(m_server_opts_mutex);
-        if (message.size() <= 16384 && m_surfaces.size() < 32)
+        if (message.size() <= 65535 && m_surfaces.size() < 32)
             m_surfaces.push_back(std::move(message));
         return;
     }

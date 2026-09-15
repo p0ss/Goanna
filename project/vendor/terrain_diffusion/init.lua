@@ -30,17 +30,20 @@ end
 dofile(modpath .. "/tdl_terrain.lua")
 dofile(modpath .. "/tdl_biomes.lua")
 dofile(modpath .. "/tdl_palette.lua")
+dofile(modpath .. "/tdl_column.lua")
 
 -- These run in the mapgen environment, one copy per emerge thread, in order.
 core.register_mapgen_script(modpath .. "/tdl_terrain.lua")
 core.register_mapgen_script(modpath .. "/tdl_biomes.lua")
 core.register_mapgen_script(modpath .. "/tdl_palette.lua")
+core.register_mapgen_script(modpath .. "/tdl_column.lua")
 core.register_mapgen_script(modpath .. "/tdl_decorate.lua")
 core.register_mapgen_script(modpath .. "/tdl_mapgen.lua")
 
 -- Goanna clients draw terrain past the send distance from summaries; on this
 -- world the ground can be answered from the tiles without generating it. See
 -- tdl_far.lua. Needs goanna_server_mod loaded first, hence optional_depends.
+dofile(modpath .. "/tdl_decorate.lua")
 dofile(modpath .. "/tdl_far.lua")
 
 if not tdl.available then

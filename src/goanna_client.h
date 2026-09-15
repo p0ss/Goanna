@@ -591,12 +591,17 @@ private:
         // part of a region after new members arrive, so node existence alone
         // is not evidence that coverage is complete.
         std::set<v3s16> published_members;
+        std::map<v3s16, std::shared_ptr<const BlockLodChain>> published_chains;
+        mutable bool priority_members_valid = false;
+        mutable bool priority_members_missing = false;
+        std::vector<goanna::LodGroundPatch> published_ground;
         bool published_partial = false;
         int published_exact_cell = 0;
         int published_coarse_cell = 0;
     };
     // Direct baked terrain has no mapblock or mip-chain intermediates.
     goanna::SurfaceTiles m_surface_tiles;
+    goanna::SurfaceAssembler m_surface_assembler;
     std::map<goanna::SurfaceKey, std::chrono::steady_clock::time_point> m_surface_pending;
     std::string m_surface_revision;
     struct SurfaceRegion { LodRegion region; uint64_t signature = 0; };
@@ -605,7 +610,10 @@ private:
     std::vector<goanna::SurfaceKey> m_surface_uploads;
     std::vector<std::pair<uint64_t, godot::MeshInstance3D *>> m_surface_retired;
     uint64_t m_surface_retired_serial = 0;
+    std::map<uint64_t,uint64_t> m_surface_waiting; // publication serial -> Godot object ID
+    void surfaceStage(godot::MeshInstance3D *node);
     int m_surface_quads = 0;
+    int m_surface_forest_quads = 0, m_surface_forest_columns = 0;
     double m_surface_first_ms = -1, m_surface_overview_ms = -1;
     std::chrono::steady_clock::time_point m_surface_started;
     bool m_surface_published = false;
@@ -655,7 +663,23 @@ private:
     // one that is already in the map. See goanna_mesh_pool.h.
     std::map<v3s16, std::shared_ptr<const BlockLodChain>> m_lod_chains;
     LodStorage m_lod_storage;
-    struct LodLoad { uint64_t ticket = 0, revision = 0; };
+    struct LodLoad { uint64_t ticket = 0, revision = 0, fine_token = 0, fine_fingerprint = 0; };
+    struct FineState {
+        uint64_t token = 0, fingerprint = 0, node_revision = 0;
+        std::weak_ptr<const BlockLodChain> applied;
+        bool pending = false;
+        std::chrono::steady_clock::time_point asked{};
+    };
+    std::map<v3s16, FineState> m_fine_states;
+    std::set<v3s16> m_fine_pending;
+    v3s16 m_fine_cursor = v3s16(-32768, -32768, -32768);
+    int m_fine_ready_sample = 0, m_fine_scan_ready = 0, m_fine_scan_entries = 0;
+    double m_ms_fine_scan = 0;
+    uint64_t m_fine_serial = 0;
+    std::chrono::steady_clock::time_point m_fine_scan{};
+    bool fineOffered() const;
+    void fineUpdate();
+    void fineClear();
     std::map<v3s16, LodLoad> m_lod_loads;
     std::deque<LodStorage::Result> m_lod_cached_summaries;
     std::deque<v3s16> m_lod_primed_regions;
