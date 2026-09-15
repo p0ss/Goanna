@@ -38,6 +38,10 @@ extends Node3D
 # Knobs, the same as lighting_chart.gd: GOANNA_SUN, GOANNA_SDFGI,
 # GOANNA_SSAO, GOANNA_WHITE, GOANNA_EXPOSURE, GOANNA_TONEMAP, GOANNA_MAT,
 # GOANNA_TIMES="noon,glint", GOANNA_BAKED_DIR and GOANNA_VARIED_DIR.
+# GOANNA_WALL=stem is the cost measurement: one face of that stem fills
+# the whole frame at an oblique angle, the worst case for the parallax
+# march since every pixel runs it, and the GPU frame time is printed with
+# parallax off, the march alone, and the march with its self shadow.
 # GOANNA_RAMP_STEMS="a,b,c" replaces the pack row's stems (labels are the
 # stems), for looking at a batch the table above does not list. An entry
 # "side+top" dresses a cube the way the world dresses a log: the first
@@ -353,6 +357,9 @@ func _ready() -> void:
 	for row in ROW_Z:
 		cubes[row] = []
 	close_up = OS.get_environment("GOANNA_CLOSE") != ""
+	if OS.get_environment("GOANNA_WALL") != "":
+		await _wall_cost(OS.get_environment("GOANNA_WALL"), mesh)
+		return
 	if close_up:
 		# Four to a row, rows stepping back and up so every top face and
 		# front face is in view, the camera low and near.
@@ -407,6 +414,47 @@ func _ready() -> void:
 	cam.current = true
 	_apply_gain()
 	await _run_cases()
+
+
+# A wall of the stem's cubes filling the frame, seen at about forty
+# degrees, the sun low so the self shadow has work to do. GPU time is the
+# viewport's own measurement averaged over sixty frames per setting.
+func _wall_cost(stem: String, mesh: ArrayMesh) -> void:
+	var mat := _packed(baked_dir, stem)
+	if mat == null:
+		get_tree().quit()
+		return
+	for x in range(-8, 9):
+		for y in range(0, 12):
+			_place(mesh, mat, Vector3(x, y + 0.5, 0.0))
+	cam = Camera3D.new()
+	cam.fov = 50
+	cam.position = Vector3(0.0, 4.0, 3.2)
+	add_child(cam)
+	cam.look_at(Vector3(1.5, 5.0, 0.0), Vector3.UP)
+	cam.current = true
+	_apply_gain()
+	_apply_case(CASES["low"], Vector3.ZERO)
+	var vp := get_viewport().get_viewport_rid()
+	RenderingServer.viewport_set_measure_render_time(vp, true)
+	var settings := [["parallax off", 0.0, 0.0], ["march only", 1.0, 0.0], ["march and shadow", 1.0, 1.0]]
+	for setting in settings:
+		mat.set_shader_parameter("parallax_strength", setting[1])
+		mat.set_shader_parameter("parallax_shadow_strength", setting[2])
+		for i in 30:
+			await get_tree().process_frame
+		var gpu := 0.0
+		var cpu := 0.0
+		for i in 60:
+			await get_tree().process_frame
+			gpu += RenderingServer.viewport_get_measured_render_time_gpu(vp)
+			cpu += RenderingServer.viewport_get_measured_render_time_cpu(vp)
+		print("WALL %s %-18s gpu %.2f ms cpu %.2f ms" % [stem, setting[0], gpu / 60.0, cpu / 60.0])
+		var dir := OS.get_environment("PROBE_OUT")
+		if dir != "":
+			await RenderingServer.frame_post_draw
+			get_viewport().get_texture().get_image().save_png(dir.path_join("wall_%s.png" % (setting[0] as String).replace(" ", "_")))
+	get_tree().quit()
 
 
 func _apply_gain() -> void:
