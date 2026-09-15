@@ -76,6 +76,9 @@ const CASES := {
 	"noon": {"sun": 0.999},
 	"afternoon": {"sun": 0.40},
 	"glint": {"sun": 0.40, "mirror": true},
+	# Low sun from the camera's right, for parallax self shadow: joints
+	# should go dark on their sunward wall and bright on the far one.
+	"low": {"sun": 0.18, "azimuth": 1.0},
 }
 
 # Mineclonia's sky, the same dump lighting_chart.gd uses.
@@ -475,6 +478,9 @@ func _apply_case(c: Dictionary, probe: Vector3) -> void:
 		var to_cam := (cam.position - (probe + Vector3(0, 0.5, 0))).normalized()
 		sun_dir = Vector3(-to_cam.x, to_cam.y, -to_cam.z).normalized()
 		elev = sun_dir.y
+	elif c.has("azimuth"):
+		var hz := sqrt(maxf(1.0 - elev * elev, 0.0))
+		sun_dir = Vector3(hz * c["azimuth"], elev, hz * 0.25).normalized()
 	else:
 		var h := sqrt(maxf(1.0 - elev * elev, 0.0)) / 0.403
 		sun_dir = Vector3(0.35 * h, elev, 0.2 * h).normalized()
@@ -497,6 +503,7 @@ func _apply_case(c: Dictionary, probe: Vector3) -> void:
 	sky_mat.set_shader_parameter("radiance_floor", Vector3.ZERO)
 	sky_mat.set_shader_parameter("sun_dir", sun_dir)
 	sky_mat.set_shader_parameter("moon_dir", -sun_dir)
+	RenderingServer.global_shader_parameter_set("goanna_sun_dir", sun_dir)
 	sky_mat.set_shader_parameter("sun_visible", true)
 	sky_mat.set_shader_parameter("moon_visible", false)
 	sky_mat.set_shader_parameter("sun_size", 0.045)

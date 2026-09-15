@@ -36,6 +36,21 @@ uniform float roughness_strength : hint_range(0.0, 1.0) = 1.0;
 uniform float specular_strength : hint_range(0.0, 2.0) = 1.0;
 uniform float emission_strength : hint_range(0.0, 8.0) = 4.0;
 uniform float sss_strength : hint_range(0.0, 1.0) = 1.0;
+// Parallax occlusion from the _n height channel (nodes_array.gdshader only;
+// the scissor variant leaves cut-outs flat). How deep the height map's full
+// range is comes from the class (goanna_class_depth below), because LabPBR
+// carries no depth scale and one depth for every material turned sand's
+// grain into fur: a mortar joint is a tenth of a node, a sand grain a
+// hundredth. parallax_depth scales that table. The march stops at parallax_range nodes from the eye and
+// hands the relief back to the normal map, which carries it until the far
+// flatten trades it for roughness. The self shadow marches from the hit
+// point toward goanna_sun_dir through the same height field and takes the
+// sun off the texel where the surface is in its own way.
+uniform float parallax_strength : hint_range(0.0, 1.0) = 1.0;
+uniform float parallax_depth : hint_range(0.0, 4.0) = 1.0;
+uniform float parallax_range : hint_range(0.0, 256.0) = 40.0;
+uniform float parallax_shadow_strength : hint_range(0.0, 1.0) = 0.85;
+global uniform vec3 goanna_sun_dir;
 
 // Per vertex node light and occlusion, packed into CUSTOM0 by
 // GoannaClient::update_blocks: r is Luanti's block light (torches, lava), g is
@@ -358,6 +373,30 @@ vec2 goanna_surface_uv(vec3 world, vec3 wnormal) {
 // includes brickwork and cut masonry: the image coarseness heuristic cannot
 // reliably recognise mortar courses, and shifting them breaks tile seams.
 // Preserve their authored UVs, as for wood, glass, metal and cloth.
+// Depth of the height map's full range, in nodes, by material class. The
+// classes are src/goanna_materials.h's: 0 none, 1 stone, 2 wood, 3 leaves,
+// 4 glass, 5 sand, 6 gravel, 7 snow, 8 ice, 9 soil, 10 metal, 11 cloth.
+// Real relief, not map amplitude: an authored map and a baked one both span
+// the byte, and what differs between a cobble and a beach is how far that
+// byte reaches into the node.
+float goanna_class_depth(int cls) {
+	if (cls == 1 || cls == 6)
+		return 0.08;
+	if (cls == 9)
+		return 0.045;
+	if (cls == 2)
+		return 0.03;
+	if (cls == 3)
+		return 0.05;
+	if (cls == 7 || cls == 8)
+		return 0.02;
+	if (cls == 5 || cls == 11 || cls == 10)
+		return 0.01;
+	if (cls == 4)
+		return 0.0;
+	return 0.04;
+}
+
 bool goanna_class_is_granular(int cls) {
 	return cls == 5 || cls == 6 || cls == 7 || cls == 9;
 }

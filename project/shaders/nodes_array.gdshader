@@ -86,6 +86,92 @@ void fragment() {
 	if (tiled)
 		tile_uv = goanna_node_uv(UV, goanna_node_of(v_world, v_wnormal),
 				float(textureSize(albedo_array, 0).x), detail_turn);
+	// Parallax occlusion. The tile coordinate is moved to where the eye ray
+	// really meets the height field, so every read below (albedo, normal,
+	// material) is of the texel actually seen, and a joint's far wall hides
+	// behind its near lip the way a real one does. The basis for it is the
+	// world space extent of one unit of tile coordinate, solved from the
+	// screen derivatives of position against those of the tile coordinate:
+	// that is exact inside a node whatever turn and shift goanna_node_uv
+	// applied, and asks nothing of the mesh's tangent convention. Faded out
+	// with distance, and off wherever the far flatten has started, so the
+	// far tiers never pay for it.
+	vec2 tuv_dx = dFdx(tile_uv);
+	vec2 tuv_dy = dFdy(tile_uv);
+	float self_shadow = 1.0;
+	float pom = 0.0;
+	if (has_normal && parallax_strength > 0.001 && flatten < 0.999) {
+		float eye_dist = length(v_world - CAMERA_POSITION_WORLD);
+		pom = (1.0 - smoothstep(parallax_range * 0.5, parallax_range, eye_dist))
+				* (1.0 - flatten) * parallax_strength;
+	}
+	if (pom > 0.001) {
+		vec3 dpx = dFdx(v_world);
+		vec3 dpy = dFdy(v_world);
+		float det = tuv_dx.x * tuv_dy.y - tuv_dy.x * tuv_dx.y;
+		// A quad straddling a node boundary sees the per node shift as a
+		// derivative and gets a basis of nothing; those pixels stay flat.
+		if (abs(det) > 1e-12) {
+			vec3 d_tu = (dpx * tuv_dy.y - dpy * tuv_dx.y) / det;
+			vec3 d_tv = (dpy * tuv_dx.x - dpx * tuv_dy.x) / det;
+			float lu = max(dot(d_tu, d_tu), 1e-8);
+			float lv = max(dot(d_tv, d_tv), 1e-8);
+			vec3 view_w = normalize(CAMERA_POSITION_WORLD - v_world);
+			float vn = max(dot(view_w, v_wnormal), 0.08);
+			vec3 vt = view_w - v_wnormal * dot(view_w, v_wnormal);
+			// Tile units the visible point shifts per unit of normalised
+			// depth: down the eye ray, so against the view's tangent part.
+			float depth = goanna_class_depth(cls) * parallax_depth * pom;
+			vec2 slope = vec2(dot(vt, d_tu) / lu, dot(vt, d_tv) / lv) * (depth / vn);
+			// More steps the flatter the view, where the ray runs furthest
+			// across the tile before it lands.
+			int steps = int(mix(22.0, 8.0, vn));
+			float dd = 1.0 / float(steps);
+			float d = 0.0;
+			float d_prev = 0.0;
+			vec2 uv = tile_uv;
+			float h = 1.0 - textureGrad(normal_array, vec3(uv, float(layer)), uv_dx, uv_dy).a;
+			float h_prev = h;
+			for (int i = 0; i < 24; i++) {
+				if (i >= steps || d >= h)
+					break;
+				d_prev = d;
+				h_prev = h;
+				d += dd;
+				uv = tile_uv - slope * d;
+				h = 1.0 - textureGrad(normal_array, vec3(uv, float(layer)), uv_dx, uv_dy).a;
+			}
+			// The hit lies between the last two samples: intersect the ray
+			// with the chord between them.
+			float below = d - h;
+			float above = h_prev - d_prev;
+			float w = below / max(below + above, 1e-5);
+			float d_hit = mix(d, d_prev, w);
+			tile_uv = tile_uv - slope * d_hit;
+
+			// Self shadow: from the hit, climb toward the sun through the
+			// same field. Where the surface stands above the climbing ray
+			// the texel is in its own shade. Only the sun; the moon and
+			// lamps are left to the normal map.
+			float sn = dot(goanna_sun_dir, v_wnormal);
+			if (parallax_shadow_strength > 0.001 && goanna_sun_dir.y > 0.02 && sn > 0.05) {
+				vec3 st = goanna_sun_dir - v_wnormal * sn;
+				vec2 sslope = vec2(dot(st, d_tu) / lu, dot(st, d_tv) / lv) * (depth / sn);
+				float blocked = 0.0;
+				float k = 0.0;
+				float dk = d_hit / 8.0;
+				for (int i = 0; i < 8; i++) {
+					k += dk;
+					vec2 suv = tile_uv + sslope * k;
+					float hs = 1.0 - textureGrad(normal_array, vec3(suv, float(layer)), uv_dx, uv_dy).a;
+					// how far the surface here stands above the ray
+					blocked = max(blocked, (d_hit - k) - hs);
+				}
+				self_shadow = 1.0 - clamp(blocked * 6.0, 0.0, 1.0)
+						* parallax_shadow_strength * pom;
+			}
+		}
+	}
 	tile = textureGrad(albedo_array, vec3(tile_uv, float(layer)), uv_dx, uv_dy);
 	ALBEDO = (tile * COLOR).rgb;
 	if (v_stale > 0.001)
@@ -215,6 +301,18 @@ void fragment() {
 	float occ = mix(1.0, v_nodelight.b, vertex_ao_strength);
 	AO = clamp(pack_ao * occ * sky_vis, 0.0, 1.0);
 	AO_LIGHT_AFFECT = vertex_ao_light_strength;
+	// The parallax self shadow is a shadow, so it has to reach direct light,
+	// which only AO_LIGHT_AFFECT can do. Godot scales direct light by
+	// mix(1, AO, AO_LIGHT_AFFECT); folding the shadow into AO and raising
+	// the affect to (1 - shadow) / (1 - AO) makes that product exactly the
+	// shadow wherever AO is at or above it, and the ambient path pays only
+	// the shadow on top of the occlusion it already had.
+	if (self_shadow < 0.999) {
+		AO = clamp(AO * self_shadow, 0.0, 1.0);
+		AO_LIGHT_AFFECT = clamp(max(vertex_ao_light_strength,
+				(1.0 - self_shadow) / max(1.0 - AO, 1e-3)), 0.0, 1.0);
+		SPECULAR *= self_shadow;
+	}
 	// The fill is emission so that the sun's shadow does not darken it: it is
 	// the light the sky light channel says reaches here, see the include.
 	// Emission is also outside Godot's AO path, and the fill is most of the

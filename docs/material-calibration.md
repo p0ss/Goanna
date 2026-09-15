@@ -145,3 +145,48 @@ step there is rounding the region silhouettes before the distance field
 None of this reaches the distant view, where texel detail is under a
 pixel and what makes a reference hillside read as a surface is variation
 between blocks. That is a shader question and is not started.
+
+## Parallax occlusion and self shadow
+
+Shown at the close-up, even the authored sets read crisp but flat: a
+normal map shades a surface, it does not put depth in it. Godot has no
+tessellation, so the depth is read in the fragment. `nodes_array.gdshader`
+now marches the eye ray through the `_n` height channel and moves the tile
+coordinate to where the ray meets the surface, so the albedo, the normal
+and the material are all read at the texel actually seen, and then climbs
+from that point toward `goanna_sun_dir` through the same field to find
+whether the texel is in its own shade. The shadow reaches direct light by
+folding into `AO` with `AO_LIGHT_AFFECT` raised to `(1 - shadow) / (1 -
+AO)`, which makes Godot's direct light scale exactly the shadow wherever
+the occlusion is at or above it, and the specular is scaled by it too.
+
+Two things about it that were not obvious:
+
+- The tangent basis is solved from the screen derivatives of world
+  position against those of the tile coordinate, after the per node turn
+  and shift. That is exact inside a node whatever `goanna_node_uv` did, and
+  it asks nothing of the mesh's tangent convention, which this shader has
+  a history with (see the green flip note in the decode).
+- LabPBR carries no depth scale, and one depth for every material turned
+  sand into fur: a sand grain's height byte spans the same range as a
+  cobble joint's. Depth comes from the class (`goanna_class_depth` in the
+  include): a tenth of a node for stone and gravel, a hundredth for sand,
+  cloth and metal, `parallax_depth` scaling the table. The better answer
+  is to measure each map's own depth in the client from the ratio of its
+  normal slope to its height gradient, the way `pack_normal_gain` is
+  measured, and pass it per layer; that is C++ and waits for a clean tree.
+
+The march fades out over the second half of `parallax_range` (40 nodes)
+and hands the relief back to the normal map, which the far flatten later
+trades for roughness, so the relief has a continuous story from the eye to
+the horizon. Within range it costs up to 24 height reads for the march
+and 8 for the shadow per fragment; not measured against the benchmark
+yet. The scissor variant (leaves, plants) is untouched, and the moon and
+lamps cast no self shadow.
+
+On the close-up the bake with parallax is the embossing with depth, which
+is worse; the authored sets with parallax are surfaces. Sand is sand and
+snow is snow at any angle, planks are boards, and the stony three show
+real joints with sun on one wall and shade on the other, still with the
+square silhouettes noted above. The ramp's `low` case (sun at 0.18 from
+the camera's right) is the one to judge the self shadow on.
