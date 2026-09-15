@@ -88,12 +88,22 @@ def main():
     height = lib.normalise01(height, 0.5, 99.5)
     print(f"height sd {height.std():.3f}")
 
-    # Smoothness follows height on the stone; the ore rides higher again on
-    # top of that, since a crystal face wears smoother than the rock around
-    # it. pack() moves the mean to the class level, the spread is ours.
+    # Lapis is not a metal: it passes f0 instead of metal_mask, the crystal's
+    # own dielectric reflectance at normal incidence, above the matrix's
+    # 0.04, with smoothness raised, a crystal face wears smoother than the
+    # rock around it, but nowhere near the cut gems' polish. pack() moves
+    # the mean of the WHOLE image onto the stone class level, so the matrix
+    # component is recentred to zero before the ore is dropped in: that
+    # leaves the shift room to carry the ore up near 0.6 instead of the
+    # boost being swallowed by the matrix's own share of the mean.
     rough_noise = lib.fbm(lib.SIZE, base_cells=20, octaves=3, seed=13)
-    smooth = 0.5 * height + 0.55 * rough_noise + ore_t * 0.3
+    matrix_smooth = 0.5 * height + 0.55 * rough_noise
+    matrix_smooth = matrix_smooth - matrix_smooth[~ore_present_hi].mean()
+    ore_smooth = 0.71 + facet * 0.5
+    smooth = np.where(ore_present_hi, ore_smooth, matrix_smooth)
     print(f"pre pack smooth sd {smooth.std():.3f}")
+
+    f0 = np.where(ore_present_hi, 0.06, lib.DIELECTRIC_F0 / 255.0)
 
     # Nearest upscale keeps the matrix and ore edges the height field lines
     # up with.
@@ -101,12 +111,15 @@ def main():
 
     normal_strength = 40
     m = lib.pack(STEM, out_dir, albedo, height, smooth, CLS,
-            normal_strength=normal_strength)
+            normal_strength=normal_strength, f0=f0)
     print(f"normal_strength={normal_strength}")
     for k, v in m.items():
         print(f"  {k} = {v:.4f}")
     for line in lib.check(m, CLS):
         print(line)
+    s_back = np.asarray(lib.Image.open(str(out_dir) + "/" + STEM + "_s.png").convert("RGBA")).astype(np.float32) / 255.0
+    print(f"ore texel smoothness after packing: mean {s_back[..., 0][ore_present_hi].mean():.3f} "
+          f"(want about 0.6), F0 byte mean {(s_back[..., 1][ore_present_hi] * 255).mean():.1f} (want about 15)")
     lib.preview(out_dir, STEM, str(out_dir) + "/" + STEM + "_preview.png")
 
 

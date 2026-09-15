@@ -102,6 +102,16 @@ python3 tools/pbr_author/default_cobble.py /tmp/authored
   body of glowstone, a pumpkin's cut face). Everything else leaves it
   unset. The shader multiplies the albedo by it, so the glow has the art's
   colour.
+- **Reflective minerals pass `f0` or `metal_mask`** to `pack`: a metal ore
+  vein is `metal_mask` on its texels with high smoothness (the shader
+  reflects the sky through the albedo colour), a gem is `f0` on its texels
+  (diamond 0.17, emerald 0.16) with smoothness near 0.9. The matrix around
+  them stays at the class level.
+- **Flat where the art is flat.** Dressed stone, paper, book spines, a
+  plank panel with an engraved motif: thin joints and shallow lines on a
+  face held nearly flat with `lib.band`, never domes per region and never
+  the cobble recipe. The first furniture pass gave a furnace cobble lumps,
+  TNT concrete grain and book spines the shape of chocolate blocks.
 - **Cut-outs (doors, trapdoors, ladders, torches, rails) draw through the
   scissor shader**, which decodes the normal and specular maps but does not
   run the parallax march. Author them the same way; the relief will read

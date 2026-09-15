@@ -85,22 +85,34 @@ def main():
     height = lib.normalise01(height, 0.5, 99.5)
     print(f"height sd {height.std():.3f}")
 
-    # Native gold burnishes smooth where it is exposed; the boost is a
-    # clear step up from the matrix, well short of a cut gem.
+    # Native gold is a metal: the nugget gets metal_mask, so the shader
+    # reflects the sky through the albedo colour there, and its own
+    # smoothness is set high, burnished, with only the nugget's own bump
+    # noise left as texture. pack() moves the mean of the WHOLE image onto
+    # the stone class level, so the matrix component is recentred to zero
+    # before the nugget is dropped in: that leaves the shift room to carry
+    # the nugget up near 0.85 to 0.9 instead of the boost being swallowed
+    # by the matrix's own share of the mean.
     rough_noise = lib.fbm(lib.SIZE, base_cells=20, octaves=3, seed=13)
-    smooth = 0.5 * height + 0.55 * rough_noise + ore_t * 0.35
+    matrix_smooth = 0.5 * height + 0.55 * rough_noise
+    matrix_smooth = matrix_smooth - matrix_smooth[~ore_present_hi].mean() - 0.05
+    ore_smooth = 1.05 + bump * 0.15
+    smooth = np.where(ore_present_hi, ore_smooth, matrix_smooth)
     print(f"pre pack smooth sd {smooth.std():.3f}")
 
     albedo = lib.upscale(src[..., :3])
 
     normal_strength = 38
     m = lib.pack(STEM, out_dir, albedo, height, smooth, CLS,
-            normal_strength=normal_strength)
+            normal_strength=normal_strength, metal_mask=ore_present_hi)
     print(f"normal_strength={normal_strength}")
     for k, v in m.items():
         print(f"  {k} = {v:.4f}")
     for line in lib.check(m, CLS):
         print(line)
+    s_back = np.asarray(lib.Image.open(str(out_dir) + "/" + STEM + "_s.png").convert("RGBA")).astype(np.float32) / 255.0
+    print(f"ore texel smoothness after packing: mean {s_back[..., 0][ore_present_hi].mean():.3f} "
+          f"(want 0.85 to 0.90), metal G mean {s_back[..., 1][ore_present_hi].mean():.3f} (want 1.0)")
     lib.preview(out_dir, STEM, str(out_dir) + "/" + STEM + "_preview.png")
 
 

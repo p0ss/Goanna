@@ -91,23 +91,37 @@ def main():
     height = lib.normalise01(height, 0.5, 99.5)
     print(f"height sd {height.std():.3f}")
 
-    # Diamond is the smoothest thing in the fleet: a cut gem face, much
-    # smoother than the matrix around it, with the facet edges themselves
-    # carried into the spread through the height term.
+    # Diamond is not a metal: it passes f0 instead of metal_mask, the gem's
+    # own dielectric reflectance at normal incidence, well above the
+    # matrix's 0.04, with smoothness set high, a cut face rather than a
+    # mirror texture, the facet edges themselves carried into the spread.
+    # pack() moves the mean of the WHOLE image onto the stone class level,
+    # so the matrix component is recentred to zero before the gem is
+    # dropped in: that leaves the shift room to carry the gem up near 0.9
+    # instead of the boost being swallowed by the matrix's own share of
+    # the mean.
     rough_noise = lib.fbm(lib.SIZE, base_cells=20, octaves=3, seed=13)
-    smooth = 0.5 * height + 0.55 * rough_noise + ore_t * 0.50
+    matrix_smooth = 0.5 * height + 0.55 * rough_noise
+    matrix_smooth = matrix_smooth - matrix_smooth[~ore_present_hi].mean() - 0.16
+    ore_smooth = 1.10 + facet * 0.8 + sparkle * 0.2
+    smooth = np.where(ore_present_hi, ore_smooth, matrix_smooth)
     print(f"pre pack smooth sd {smooth.std():.3f}")
+
+    f0 = np.where(ore_present_hi, 0.17, lib.DIELECTRIC_F0 / 255.0)
 
     albedo = lib.upscale(src[..., :3])
 
     normal_strength = 38
     m = lib.pack(STEM, out_dir, albedo, height, smooth, CLS,
-            normal_strength=normal_strength)
+            normal_strength=normal_strength, f0=f0)
     print(f"normal_strength={normal_strength}")
     for k, v in m.items():
         print(f"  {k} = {v:.4f}")
     for line in lib.check(m, CLS):
         print(line)
+    s_back = np.asarray(lib.Image.open(str(out_dir) + "/" + STEM + "_s.png").convert("RGBA")).astype(np.float32) / 255.0
+    print(f"ore texel smoothness after packing: mean {s_back[..., 0][ore_present_hi].mean():.3f} "
+          f"(want about 0.9), F0 byte mean {(s_back[..., 1][ore_present_hi] * 255).mean():.1f} (want about 43)")
     lib.preview(out_dir, STEM, str(out_dir) + "/" + STEM + "_preview.png")
 
 

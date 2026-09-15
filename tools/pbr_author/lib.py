@@ -286,7 +286,7 @@ def sss_byte(cls):
 # --- packing ---------------------------------------------------------------
 
 def pack(stem, out_dir, albedo, height, smoothness, cls, normal_strength,
-        metal_mask=None, ao_radius=6, keep_mean=True, emission=None):
+        metal_mask=None, ao_radius=6, keep_mean=True, emission=None, f0=None):
     """Write <stem>.png, <stem>_n.png and <stem>_s.png. albedo is RGB or
     RGBA float at SIZE; height and smoothness are SIZE x SIZE floats.
     The smoothness mean is moved onto the class level unless keep_mean is
@@ -295,7 +295,11 @@ def pack(stem, out_dir, albedo, height, smoothness, cls, normal_strength,
     of how much each texel glows (the lit coals of a furnace, the body of
     glowstone); it goes to the _s alpha as LabPBR has it, 255 for none and
     0 to 254 for the strength, which nodes_array.gdshader reads as
-    EMISSION = ALBEDO * strength * emission_strength."""
+    EMISSION = ALBEDO * strength * emission_strength. f0, when given, is
+    a SIZE x SIZE float of dielectric reflectance at normal incidence for
+    texels that are not metal (water 0.02, most things 0.04, diamond 0.17,
+    emerald 0.16), written to the _s green byte as LabPBR's linear F0 up
+    to 229; metal texels keep their metal byte."""
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     height = np.clip(height, 0.0, 1.0).astype(np.float32)
@@ -309,13 +313,23 @@ def pack(stem, out_dir, albedo, height, smoothness, cls, normal_strength,
 
     level, _, is_metal = class_spec(cls)
     sm = np.clip(smoothness, 0.0, 1.0).astype(np.float32)
-    if keep_mean:
-        sm = np.clip(sm - sm.mean() + level, 0.0, 0.9)
-    s = np.zeros((SIZE, SIZE, 4), dtype=np.float32)
-    s[..., 0] = sm
     if metal_mask is None:
         metal_mask = np.full((SIZE, SIZE), bool(is_metal))
-    s[..., 1] = np.where(metal_mask, 255.0, float(DIELECTRIC_F0)) / 255.0
+    if keep_mean:
+        # The class level is the matrix's, so the mean is taken over the
+        # ordinary texels: a metal vein or a gem sitting at 0.9 must not
+        # drag the stone around it down to make the whole map average out.
+        base = ~metal_mask
+        if f0 is not None:
+            base = base & (np.asarray(f0, dtype=np.float32) <= 0.05)
+        ref = float(sm[base].mean()) if base.any() else float(sm.mean())
+        sm = np.clip(sm - ref + level, 0.0, 0.95)
+    s = np.zeros((SIZE, SIZE, 4), dtype=np.float32)
+    s[..., 0] = sm
+    diel = np.full((SIZE, SIZE), float(DIELECTRIC_F0), dtype=np.float32)
+    if f0 is not None:
+        diel = np.clip(np.asarray(f0, dtype=np.float32) * 255.0, 0.0, 229.0)
+    s[..., 1] = np.where(metal_mask, 255.0, diel) / 255.0
     s[..., 2] = sss_byte(cls) / 255.0
     if emission is None:
         s[..., 3] = 1.0

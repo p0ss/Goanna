@@ -101,14 +101,29 @@ def main():
 
     albedo = lib.upscale(src[..., :3])
 
+    # Subtly emissive: the ore texels glow a little, brighter at their
+    # reddest, the way an activated redstone vein reads even when nothing
+    # else lights it. The matrix stays at zero, which pack() encodes as no
+    # emission at all (alpha 255).
+    red_cast = albedo[..., 0] - albedo[..., 1]
+    ore_red = red_cast[ore_present_hi]
+    lo, hi = float(ore_red.min()), float(ore_red.max())
+    redness = np.clip((red_cast - lo) / max(hi - lo, 1e-6), 0.0, 1.0)
+    emission = np.where(ore_present_hi, 0.25 + 0.15 * redness, 0.0)
+    print(f"emission on ore: mean {emission[ore_present_hi].mean():.3f}, "
+          f"max {emission[ore_present_hi].max():.3f} (want 0.25 base, 0.4 at the reddest)")
+
     normal_strength = 36
     m = lib.pack(STEM, out_dir, albedo, height, smooth, CLS,
-            normal_strength=normal_strength)
+            normal_strength=normal_strength, emission=emission)
     print(f"normal_strength={normal_strength}")
     for k, v in m.items():
         print(f"  {k} = {v:.4f}")
     for line in lib.check(m, CLS):
         print(line)
+    s_back = np.asarray(lib.Image.open(str(out_dir) + "/" + STEM + "_s.png").convert("RGBA")).astype(np.float32) / 255.0
+    print(f"ore texel A after packing: mean {s_back[..., 3][ore_present_hi].mean():.3f} "
+          f"(want below 1.0), matrix A mean {s_back[..., 3][~ore_present_hi].mean():.3f} (want 1.0)")
     lib.preview(out_dir, STEM, str(out_dir) + "/" + STEM + "_preview.png")
 
 
