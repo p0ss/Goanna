@@ -22,12 +22,38 @@ STEM = "default_stone_brick"
 CLS = "stone"
 
 
-def label_body(mortar_mask):
+def label_blocks(mortar_mask):
     """Connected components of the texels that are not mortar, 4 connected
-    and wrapped, so each block (however its silhouette is cut by the
-    mortar) gets its own id. Mortar texels stay unlabelled (-1), one shared
-    group, since the joint reads as one material wherever it sits."""
+    and wrapped: a block is whatever the mortar encloses. The lower course
+    here has only one joint column (7) running its whole body height, and
+    one cut around a closed loop does not open it: flood filled and
+    wrapped as normal, columns 0 to 6 and 8 to 15 stay joined by going the
+    long way round through the tile seam, leaving what should be two
+    blocks reading as a single slab with a slit down the middle instead of
+    a joint. Where a course has exactly one such full height column, this
+    also cuts the flood fill at the tile's own left and right seam, giving
+    the two blocks the art's own docstring describes. The upper course has
+    no full height column at all (it is genuinely one wide flagstone) so
+    this never touches it, and a course with two or more columns already
+    separates correctly without any of this."""
     h, w = mortar_mask.shape
+    full_rows = [r for r in range(h) if mortar_mask[r].all()]
+    seam_cut_rows = set()
+    if full_rows:
+        fr = sorted(full_rows)
+        for i in range(len(fr)):
+            r0, r1 = fr[i], fr[(i + 1) % len(fr)]
+            body = []
+            r = (r0 + 1) % h
+            while r != r1:
+                body.append(r)
+                r = (r + 1) % h
+            if not body:
+                continue
+            full_cols = [c for c in range(w) if all(mortar_mask[r, c] for r in body)]
+            if len(full_cols) == 1:
+                seam_cut_rows.update(body)
+
     labels = np.full((h, w), -1, dtype=int)
     next_id = 0
     for y in range(h):
@@ -40,6 +66,10 @@ def label_body(mortar_mask):
                 cy, cx = stack.pop()
                 for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
                     ny, nx = (cy + dy) % h, (cx + dx) % w
+                    if dy == 0 and cy in seam_cut_rows and abs(nx - cx) != 1:
+                        continue  # this course's one joint needs the tile
+                                  # seam as its second cut, or it never
+                                  # separates the two blocks either side
                     if mortar_mask[ny, nx] or labels[ny, nx] >= 0:
                         continue
                     labels[ny, nx] = next_id
@@ -52,15 +82,6 @@ def main():
     out_dir = sys.argv[1]
     src = lib.load_source(STEM)
 
-    # The art tiles, but its two joints (row 7 and row 15; column 7 and
-    # column 15) sit hard against the array's own row and column zero, so
-    # the seam checker's wrap-edge sample lands right on a real mortar to
-    # block edge and reads it as a failure to tile, the same trap
-    # default_cobble.py documents. Rolling first only chooses which texel
-    # the wrapped array calls (0, 0); the closed loop, and the surface it
-    # describes, are unchanged.
-    src = np.roll(src, (5, 5), axis=(0, 1))
-
     rgb = src[..., :3]
     lum = lib.luminance(rgb)
     print(f"{STEM}: lum min {lum.min():.3f} max {lum.max():.3f} mean {lum.mean():.3f}")
@@ -72,24 +93,41 @@ def main():
     for r in range(16):
         print(r, "".join("#" if mortar_mask[r, c] else "." for c in range(16)))
 
-    labels, n_blocks = label_body(mortar_mask)
+    labels, n_blocks = label_blocks(mortar_mask)
     sizes = [int((labels == i).sum()) for i in range(n_blocks)]
     print(f"blocks found: {n_blocks}, sizes {sizes}")
 
     # Target height per block: the block's own mean brightness sets how far
     # it rises above the joint floor, the way a lighter block in the art
-    # catches more of the light. Mortar sits near the groove floor.
+    # catches more of the light. Mortar sits near the groove floor. The
+    # normalising range comes from the whole dressed face, not from the
+    # two or three block means found here: the seam cut above can split a
+    # course into two blocks whose means differ by a whisker, and
+    # stretching that whisker across the full range would invent a height
+    # step the art never drew, sitting right at the tile's own seam where
+    # there is no groove to carry it.
     block_lum = np.array([lum[labels == i].mean() for i in range(n_blocks)])
-    lo, hi = block_lum.min(), block_lum.max()
+    lo, hi = lum[~mortar_mask].min(), lum[~mortar_mask].max()
     block_target = 0.55 + 0.35 * (block_lum - lo) / max(hi - lo, 1e-6)
     target_dict = {-1: 0.08}
     for i in range(n_blocks):
         target_dict[i] = float(block_target[i])
 
-    labels_hi = lib.warp_labels(labels, amp=2.5, cells=10, seed=21)
-    edges = lib.region_edges(labels_hi)
+    # High res joint geometry straight from the mask: a nearest upscale is
+    # exact, so the column 7 joint (or any other) still runs the whole
+    # course height at 256 px and meets the mortar rows above and below by
+    # construction, rather than by way of a warped label lookup.
+    mortar_hi = np.repeat(np.repeat(mortar_mask, 16, axis=0), 16, axis=1)
+    labels_hi = np.repeat(np.repeat(labels, 16, axis=0), 16, axis=1)
+
     max_dist = 5  # groove half width in 256 map texels, a real mortar joint
-    dist = lib.distance_to_edge(edges, max_dist=max_dist)
+    dist = lib.distance_to_edge(mortar_hi.astype(np.float32), max_dist=max_dist)
+    # A little coherent wobble on the groove's own edge, not on which side
+    # of it a texel is: the taper can widen or narrow locally so the joint
+    # looks dressed by hand, but a mortar texel stays a mortar texel, so
+    # the joint can never pinch shut or drift off the row it belongs to.
+    wobble = lib.fbm(lib.SIZE, base_cells=36, octaves=2, seed=26) * 1.3
+    dist = np.where(mortar_hi, 0.0, np.clip(dist + wobble, 0.0, max_dist))
     t = np.clip(dist / max_dist, 0.0, 1.0)
     t = t * t * (3 - 2 * t)  # smoothstep: broad flat block tops, sharp fall to the joint
 

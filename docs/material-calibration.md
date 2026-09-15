@@ -229,3 +229,19 @@ What the review caught, for the next fleet:
 The far look is unchanged by all of this: texel detail is under a pixel
 past a few dozen nodes and what makes a hillside read there is variation
 between blocks, which is a shader question still not started.
+
+The user's review of the first fleet found five defects, each traced to
+the script rather than the art and fixed the same day: sandstone beds
+were domed per dash and stopped partway (now a per row profile), stone
+brick's lower course joint was a slit because one cut never separates a
+wrapped ring (the flood fill now cuts at the tile seam when a course has
+exactly one joint), brick's joint geometry came from warped brick labels
+rather than the mortar mask, the polished stones were speckled by crystal
+noise at stone's parallax depth (the crystal is now in the smoothness
+only, and their tilt sits at 21 degrees by choice), and mossy cobble was a
+Voronoi jigsaw (now cobble's own segmentation). The log tops had radial
+cracks converging on the pith, which read as a pinch; they now start a
+third of the way out and are shallow. The ramp takes "side+top" entries so
+a log renders with bark on its sides and the cut face on its ends, the way
+the world dresses it, since a single stem wrapped around all six faces
+had the cut on the sides too.

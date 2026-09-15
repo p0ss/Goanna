@@ -39,7 +39,9 @@ extends Node3D
 # GOANNA_SSAO, GOANNA_WHITE, GOANNA_EXPOSURE, GOANNA_TONEMAP, GOANNA_MAT,
 # GOANNA_TIMES="noon,glint", GOANNA_BAKED_DIR and GOANNA_VARIED_DIR.
 # GOANNA_RAMP_STEMS="a,b,c" replaces the pack row's stems (labels are the
-# stems), for looking at a batch the table above does not list.
+# stems), for looking at a batch the table above does not list. An entry
+# "side+top" dresses a cube the way the world dresses a log: the first
+# stem on the four sides, the second on the top and bottom.
 # GOANNA_CLOSE=1 is the close up layout: the pack row alone, four cubes to
 # a row, the camera near enough that a cube is about 300 pixels wide, which
 # is the scale at which relief, occlusion and roughness variation can be
@@ -232,7 +234,7 @@ func _pack_gain() -> float:
 # A node sized cube with the world's vertex layout, as lighting_chart.gd
 # builds it: UV per face, UV2 layer 0, white vertex colour, CUSTOM0 block
 # light 0, sky light 255, occlusion 255.
-func _cube_mesh() -> ArrayMesh:
+func _cube_mesh(which: String = "all") -> ArrayMesh:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	st.set_custom_format(0, SurfaceTool.CUSTOM_RGBA8_UNORM)
@@ -248,6 +250,11 @@ func _cube_mesh() -> ArrayMesh:
 	for f in faces:
 		var nrm: Vector3 = f[0]
 		var c: Array = f[1]
+		var vertical: bool = absf(nrm.y) > 0.5
+		if which == "ends" and not vertical:
+			continue
+		if which == "sides" and vertical:
+			continue
 		for tri in [[0, 1, 2], [0, 2, 3]]:
 			for i in tri:
 				st.set_normal(nrm)
@@ -276,7 +283,8 @@ func _ready() -> void:
 	if OS.get_environment("GOANNA_RAMP_STEMS") != "":
 		materials = []
 		for st in OS.get_environment("GOANNA_RAMP_STEMS").split(",", false):
-			materials.append([st.strip_edges(), st.strip_edges()])
+			var parts := st.strip_edges().split("+")
+			materials.append([parts[0], parts[0], parts[1] if parts.size() > 1 else ""])
 	light_sun = _envf("GOANNA_SUN", light_sun)
 	strengths = _strengths()
 
@@ -355,8 +363,15 @@ func _ready() -> void:
 				continue
 			var r := i / 4
 			var c := i % 4
-			cubes["pack"].append([label, _place(mesh, mat,
-					Vector3((c - 1.5) * 1.3, 0.5 + r * 1.15, -r * 1.3))])
+			var at := Vector3((c - 1.5) * 1.3, 0.5 + r * 1.15, -r * 1.3)
+			var end_stem: String = materials[i][2] if materials[i].size() > 2 else ""
+			if end_stem != "":
+				var end_mat := _packed(baked_dir, end_stem)
+				if end_mat != null:
+					_place(_cube_mesh("ends"), end_mat, at)
+					cubes["pack"].append([label, _place(_cube_mesh("sides"), mat, at)])
+					continue
+			cubes["pack"].append([label, _place(mesh, mat, at)])
 		cam = Camera3D.new()
 		cam.fov = 40
 		cam.position = Vector3(0.0, 3.4, 5.2)

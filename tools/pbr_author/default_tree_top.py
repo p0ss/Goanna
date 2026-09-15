@@ -131,15 +131,15 @@ def main():
     crack_n = 5
     rng = np.random.default_rng(SEED + 21)
     crack_angles = rng.uniform(0, 2 * np.pi, crack_n)
-    crack_len = rng.uniform(0.55, 0.95, crack_n)
+    crack_len = rng.uniform(0.6, 0.9, crack_n)
     crack_width = np.radians(6.0)
     r_max = SIZE / 2 - ring_max_dist * 2
     cracks = np.zeros((SIZE, SIZE), dtype=np.float32)
     for a, cl in zip(crack_angles, crack_len):
         d = np.angle(np.exp(1j * (theta - a)))
-        radial_mask = smoothstep(r / (0.12 * r_max)) * (1 - smoothstep((r - cl * r_max) / (0.15 * r_max)))
+        radial_mask = smoothstep((r - 0.35 * r_max) / (0.15 * r_max)) * (1 - smoothstep((r - cl * r_max) / (0.15 * r_max)))
         cracks += np.exp(-(d / crack_width) ** 2) * radial_mask
-    crack_amp = 0.10
+    crack_amp = 0.04
     layout = layout - crack_amp * cracks * interior_fade
 
     # Bark grain on the ring band, sharing default_tree.py's vertical fibre

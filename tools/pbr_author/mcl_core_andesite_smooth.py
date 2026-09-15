@@ -9,6 +9,17 @@ column 1 (0.518, with column 0 a milder 0.486) sit above the overall mean
 every other row and column staying within 0.42 to 0.46. A light lip top
 and left, a shadowed rebate bottom and right, the same shallow bevel the
 other two smooth stones draw.
+
+An earlier version of this script put full strength crystal noise and a
+pore layer into the height field on top of the bevel. The bake gives the
+stone class the parallax depth of a mortar joint, so on a face that should
+be nearly flat, that turned every pore into a visible pit and the bevel
+read as a frame around a pitted surface rather than the edge of a polished
+slab. A polished crystalline face varies in gloss between the crystal
+grains and the matrix around them, not in height, so the crystal texture
+now lives in the smoothness field and the height keeps only a few percent
+of the range for crystal and pore relief, the bevel carrying almost all of
+the real shape.
 """
 import sys
 
@@ -70,24 +81,36 @@ def main():
         target_map[labels_hi == lbl] = val
     layout = baseline + (target_map - baseline) * t
 
-    # Only faint crystal texture: fine, dense grain so its slope still
-    # carries real tilt even though its own height amplitude is small, and
-    # sparser pores from the polish missing a pit here and there.
-    grain = lib.fbm(lib.SIZE, base_cells=44, octaves=3, seed=82, gain=0.55) * 0.05
-    pores = lib.blur(lib.white_noise(lib.SIZE, seed=83), 1) * 0.035
-    height = lib.normalise01(layout + grain + pores, 0.5, 99.5)
+    # The crystal pattern and the polish pores: kept here at a small
+    # fraction of the height range (aiming for a few percent, see the
+    # measurement printed below) so the body reads as flat stone with the
+    # bevel carrying almost all of the real shape. Denser grain than the
+    # old, unclipped version (130 cells rather than 44): a face this flat
+    # still needs to tile without a visible step at the wrap join, and
+    # finer grain gives the interior of the tile its own small texel to
+    # texel variation to measure that step against, without needing a
+    # bigger height amplitude to get there.
+    crystal = lib.fbm(lib.SIZE, base_cells=130, octaves=3, seed=82, gain=0.55)
+    pores = lib.blur(lib.white_noise(lib.SIZE, seed=83), 1)
+    height = lib.normalise01(layout + crystal * 0.014 + pores * 0.009, 0.5, 99.5)
     print(f"height sd {height.std():.3f}")
+    body = height[labels_hi == 0]
+    print(f"body (flat region only) height sd {body.std():.4f}, "
+          f"range {body.max() - body.min():.4f} of the full 0..1 height")
 
     # Smoothness follows the same regions as height, not height's own
     # value, so it stays periodic without any fold: the polished flat body
     # and its lit lip are both the dressed face and stay smooth, the
-    # rebate at the shadowed edge catches dust and stays rougher.
+    # rebate at the shadowed edge catches dust and stays rougher. The
+    # crystal pattern lives here now rather than in height: a polished
+    # crystalline face varies in gloss between crystal and matrix without
+    # varying in height, so the same crystal field drives gloss instead.
     smooth_target = {0: 0.65, 1: 0.65, 2: 0.35}
     smooth_target_map = np.zeros_like(labels_hi, dtype=np.float32)
     for lbl, val in smooth_target.items():
         smooth_target_map[labels_hi == lbl] = val
     rough_noise = lib.fbm(lib.SIZE, base_cells=20, octaves=3, seed=84)
-    smooth = 0.5 + (smooth_target_map - 0.5) * t + 0.3 * rough_noise
+    smooth = 0.5 + (smooth_target_map - 0.5) * t + 0.22 * crystal + 0.10 * rough_noise
     print(f"pre pack smooth sd {smooth.std():.3f}")
 
     albedo = lib.upscale(src[..., :3])
@@ -101,6 +124,15 @@ def main():
     lines = lib.check(m, CLS)
     for line in lines:
         print(line)
+    # The tilt target of 28 to 40 degrees was written for rough stone, a
+    # cobble or a gravel with real structure across the whole face. A
+    # polished slab that is flat bar its bevel cannot reach that without
+    # putting the crystal and pore speckle back into height, which is the
+    # defect this rework removes, so the tilt above is reported, not
+    # chased.
+    print("note tilt target is for rough stone; a polished slab flat bar "
+          "its bevel will not reach it without speckle, so it is reported "
+          "above, not chased")
     lib.preview(out_dir, STEM, str(out_dir) + "/" + STEM + "_preview.png")
     return lines
 

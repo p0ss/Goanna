@@ -4,19 +4,22 @@ The 16 px art has 27 distinct shades, far more than default_cobble's own
 six: this is not a recolour with a separate moss layer laid on top, it is
 one continuous mottled surface, moss tint blended in per texel at varying
 strength. Subtracting the green (greenness = G - avg(R, B)) finds the moss:
-a soft patch of raised, positive greenness covering about 18 percent of the
-tile, roughly rows 3 to 9 and columns 2 to 9, that also reads as darker
-luminance than the bare stone under it (moss is a darker material than the
-grey rock here, not a lighter one). Running lib.segments on the de-mossed
-proxy (R + B) / 2 still will not find default_cobble's stones: even with
-tolerance down at 0.03 it returns about a hundred regions, almost all one
-to a few texels, because the shading is a smooth gradient with no colour
-cliff between one stone and the next the way the mortar cliff in
-default_stone_brick has. The stones this texture draws have to be built,
-not found: a wrapped Voronoi cellular pattern gives the same rounded,
-irregular, roughly cobble sized footprint lib.segments would have handed
-over if the art still had one, and each cell's own height still comes from
-the art, the mean of the de-mossed proxy under it.
+a soft patch of raised, positive greenness covering about 30 percent of the
+tile, that also reads as darker luminance than the bare stone under it
+(moss is a darker material than the grey rock here, not a lighter one).
+
+Running lib.segments on the de-mossed proxy (R + B) / 2 at the same
+tolerance default_cobble.py uses (0.03) does find default_cobble's kind of
+layout after all: about a hundred regions, mostly one to a few texels,
+which is the same shape of result cobble's own 83 regions has (a couple of
+dozen middling chips and a long tail of single texel flecks), not the
+handful of large cells a first look at the number might suggest. An
+earlier version of this script judged that "too fragmented" and fell back
+to a wrapped Voronoi partition instead, which gave every stone a straight
+edged, jigsaw silhouette instead of the rounded, irregular one
+lib.warp_labels and lib.distance_to_edge build from a segment map. The
+segments are what the art draws; used the way default_cobble.py uses them,
+they give the same kind of stones.
 """
 import sys
 
@@ -26,28 +29,6 @@ import lib
 
 STEM = "default_mossycobble"
 CLS = "stone"
-
-
-def voronoi_labels(size, n_seeds, seed):
-    """A wrapped Voronoi partition of a size x size grid into n_seeds
-    cells, rounded and irregular the way lib.segments would hand back
-    cobble's own stones if this art still drew them with hard edges."""
-    rng = np.random.default_rng(seed)
-    sy = rng.uniform(0, size, n_seeds)
-    sx = rng.uniform(0, size, n_seeds)
-    yy, xx = np.mgrid[0:size, 0:size]
-    labels = np.zeros((size, size), dtype=int)
-    best = np.full((size, size), np.inf)
-    for i in range(n_seeds):
-        dy = np.abs(yy - sy[i])
-        dy = np.minimum(dy, size - dy)
-        dx = np.abs(xx - sx[i])
-        dx = np.minimum(dx, size - dx)
-        d = dy * dy + dx * dx
-        closer = d < best
-        best = np.where(closer, d, best)
-        labels = np.where(closer, i, labels)
-    return labels
 
 
 def main():
@@ -64,23 +45,24 @@ def main():
 
     proxy_val = (rgb[..., 0] + rgb[..., 2]) / 2.0  # de-mossed brightness
     proxy_rgb = np.stack([proxy_val] * 3, axis=-1)
-    labels_check, n_check = lib.segments(proxy_rgb, tolerance=0.03)
-    sizes_check = sorted(np.bincount(labels_check.ravel()).tolist(), reverse=True)
-    print(f"segments on de-mossed proxy, tolerance 0.03: n={n_check}, "
-          f"largest sizes {sizes_check[:8]} of 256 (too fragmented to use as stones)")
 
-    # A dozen middling stones, the size default_cobble's own docstring
-    # describes for the art this texture is built from.
-    n_stones = 13
-    labels = voronoi_labels(16, n_stones, seed=51)
+    # Segment the de-mossed proxy exactly as default_cobble.py segments its
+    # own art: the moss tint is gone, so what is left is shading steps
+    # between one stone and the next, the same kind of signal cobble's own
+    # mortar to stone cliff gives lib.segments, just without a cliff as
+    # wide, hence the same tolerance and a result the same shape as
+    # cobble's own (a long tail of small regions, not a few big ones).
+    tolerance = 0.03
+    labels, n_stones = lib.segments(proxy_rgb, tolerance=tolerance)
+    sizes = np.bincount(labels.ravel())
+    print(f"segments: n={n_stones} tolerance={tolerance}")
+    print("region sizes:", sorted(sizes.tolist(), reverse=True))
+
     stone_lum = np.array([proxy_val[labels == i].mean() for i in range(n_stones)])
-    sizes = [int((labels == i).sum()) for i in range(n_stones)]
-    print(f"stones: {n_stones}, sizes {sizes}")
-
-    lo, hi = stone_lum.min(), stone_lum.max()
+    lo, hi = proxy_val.min(), proxy_val.max()
     target = 0.55 + 0.35 * (stone_lum - lo) / max(hi - lo, 1e-6)
 
-    labels_hi = lib.warp_labels(labels, amp=3.0, cells=10, seed=52)
+    labels_hi = lib.warp_labels(labels)
     edges = lib.region_edges(labels_hi)
     max_dist = 5  # groove half width in 256 map texels
     dist = lib.distance_to_edge(edges, max_dist=max_dist)
@@ -91,14 +73,15 @@ def main():
     layout = target_map * t
 
     # Each stone a slightly convex dome; the taper alone saturates flat in
-    # the middle of a stone, a wide slow bulge rounds that off.
-    crown = lib.fbm(lib.SIZE, base_cells=5, octaves=2, seed=53) * 0.06
+    # the middle of a stone, a wide slow bulge rounds that off, matching
+    # default_cobble's own crown.
+    crown = lib.fbm(lib.SIZE, base_cells=4, octaves=2, seed=61) * 0.05
     layout = layout + crown * t
 
     # Sub texel structure: stone grain a couple of texels across, sparse
     # pores about half a texel across, matching default_cobble's own.
-    grain = lib.fbm(lib.SIZE, base_cells=32, octaves=3, seed=54, gain=0.55) * 0.05
-    pores = lib.blur(lib.white_noise(lib.SIZE, seed=55), 1) * 0.05
+    grain = lib.fbm(lib.SIZE, base_cells=32, octaves=3, seed=62, gain=0.55) * 0.05
+    pores = lib.blur(lib.white_noise(lib.SIZE, seed=63), 1) * 0.05
 
     # The moss layer: a soft, organic patch, not a texel hard mask, so the
     # 16 px greenness is normalised, upscaled keeping its own edges, then
@@ -118,13 +101,17 @@ def main():
     # Smoothness follows height: joints stay rough, dome tops wear smooth.
     # Moss is soft and matte regardless of what it sits on, so it pulls
     # smoothness down wherever it grows, over a joint or over a stone top.
-    rough_noise = lib.fbm(lib.SIZE, base_cells=16, octaves=3, seed=56)
+    rough_noise = lib.fbm(lib.SIZE, base_cells=16, octaves=3, seed=64)
     smooth = 0.55 * height + 0.55 * rough_noise - 0.3 * moss_amount
     print(f"pre pack smooth sd {smooth.std():.3f}")
 
     albedo = lib.upscale(src[..., :3])
 
-    normal_strength = 30
+    # Close to default_cobble's own strength, so the two blocks read as
+    # the same stone with and without moss on it; a touch under it because
+    # the moss bump adds its own relief on top of the stone's, and at 12
+    # even the tilt runs just past the stone class ceiling.
+    normal_strength = 11
     m = lib.pack(STEM, out_dir, albedo, height, smooth, CLS,
             normal_strength=normal_strength)
     print(f"normal_strength={normal_strength}")

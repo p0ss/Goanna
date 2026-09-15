@@ -20,11 +20,37 @@ STEM = "default_brick"
 CLS = "stone"
 
 
-def label_body(mortar_mask):
+def label_bricks(mortar_mask):
     """Connected components of the texels that are not mortar, 4 connected
-    and wrapped, so each brick (however the mortar cuts its silhouette)
-    gets its own id. Mortar texels stay unlabelled (-1), one shared group."""
+    and wrapped: a brick is whatever the mortar encloses. One wrinkle: a
+    course (the band between one full mortar row and the next) that has
+    only a single joint column running its whole body height cannot be
+    split by that column alone, because one cut around a closed loop does
+    not open it, it only leaves a slit. Such a course is also cut at the
+    tile's own left and right seam, giving the two bricks the art actually
+    draws instead of one slab with a joint that never reaches the edge. A
+    course with two or more full height joints (every course this art
+    draws has two or three) already separates properly under an ordinary
+    wrapped flood fill, so this only ever changes behaviour where it has
+    to."""
     h, w = mortar_mask.shape
+    full_rows = [r for r in range(h) if mortar_mask[r].all()]
+    seam_cut_rows = set()
+    if full_rows:
+        fr = sorted(full_rows)
+        for i in range(len(fr)):
+            r0, r1 = fr[i], fr[(i + 1) % len(fr)]
+            body = []
+            r = (r0 + 1) % h
+            while r != r1:
+                body.append(r)
+                r = (r + 1) % h
+            if not body:
+                continue
+            full_cols = [c for c in range(w) if all(mortar_mask[r, c] for r in body)]
+            if len(full_cols) == 1:
+                seam_cut_rows.update(body)
+
     labels = np.full((h, w), -1, dtype=int)
     next_id = 0
     for y in range(h):
@@ -37,6 +63,10 @@ def label_body(mortar_mask):
                 cy, cx = stack.pop()
                 for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
                     ny, nx = (cy + dy) % h, (cx + dx) % w
+                    if dy == 0 and cy in seam_cut_rows and abs(nx - cx) != 1:
+                        continue  # this course's one joint needs the tile
+                                  # seam as its second cut, or it never
+                                  # separates the two bricks either side
                     if mortar_mask[ny, nx] or labels[ny, nx] >= 0:
                         continue
                     labels[ny, nx] = next_id
@@ -59,24 +89,43 @@ def main():
     for r in range(16):
         print(r, "".join("#" if mortar_mask[r, c] else "." for c in range(16)))
 
-    labels, n_bricks = label_body(mortar_mask)
+    labels, n_bricks = label_bricks(mortar_mask)
     sizes = [int((labels == i).sum()) for i in range(n_bricks)]
     print(f"bricks found: {n_bricks}, sizes {sizes}")
 
     # Target height per brick: its own mean brightness sets how far it
     # rises above the joint floor, a lighter fired brick catching more
-    # light than a darker one. Mortar sits near the groove floor.
+    # light than a darker one. Mortar sits near the groove floor. The
+    # normalising range comes from the whole fired face, not from the
+    # handful of brick means found here: two bricks a kiln fired almost
+    # the same shade must stay almost the same height, and stretching
+    # their tiny mean to mean gap across the full range (as normalising
+    # against just the nine brick means would do) invents a difference
+    # the art does not draw.
     brick_lum = np.array([lum[labels == i].mean() for i in range(n_bricks)])
-    lo, hi = brick_lum.min(), brick_lum.max()
+    lo, hi = lum[~mortar_mask].min(), lum[~mortar_mask].max()
     brick_target = 0.55 + 0.35 * (brick_lum - lo) / max(hi - lo, 1e-6)
     target_dict = {-1: 0.08}
     for i in range(n_bricks):
         target_dict[i] = float(brick_target[i])
 
-    labels_hi = lib.warp_labels(labels, amp=2.5, cells=10, seed=31)
-    edges = lib.region_edges(labels_hi)
+    # High res joint geometry straight from the mask: a nearest upscale is
+    # exact, so a joint that runs the whole course height in the art still
+    # runs the whole course height at 256 px and meets the mortar rows
+    # above and below by construction, rather than by way of a warped
+    # label lookup that can lose track of a joint only a texel wide.
+    mortar_hi = np.repeat(np.repeat(mortar_mask, 16, axis=0), 16, axis=1)
+    labels_hi = np.repeat(np.repeat(labels, 16, axis=0), 16, axis=1)
+
     max_dist = 4  # groove half width in 256 map texels, courses only 3 texels tall
-    dist = lib.distance_to_edge(edges, max_dist=max_dist)
+    dist = lib.distance_to_edge(mortar_hi.astype(np.float32), max_dist=max_dist)
+    # A little coherent wobble on the groove's own edge, not on which side
+    # of it a texel is: it can widen or narrow the taper locally so the
+    # joint looks hand struck rather than ruled, but a mortar texel is
+    # always a mortar texel, so the joint can never pinch shut or drift
+    # off the row it belongs to.
+    wobble = lib.fbm(lib.SIZE, base_cells=40, octaves=2, seed=36) * 1.2
+    dist = np.where(mortar_hi, 0.0, np.clip(dist + wobble, 0.0, max_dist))
     t = np.clip(dist / max_dist, 0.0, 1.0)
     t = t * t * (3 - 2 * t)  # smoothstep: flat brick tops, sharp fall to the joint
 

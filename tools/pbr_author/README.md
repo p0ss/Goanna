@@ -57,6 +57,24 @@ python3 tools/pbr_author/default_cobble.py /tmp/authored
   and side, sandstone's three faces: build them from the same ideas and
   the same noise seeds where they share material, so the block reads as
   one thing.
+- **Masonry is built from its mortar.** Find the mortar texels by shade
+  and let the joints be that mask, continuous into the mortar rows above
+  and below; the bricks are whatever the mortar encloses, wrapped. Never
+  find bricks by connected components (a narrow end brick that continues
+  across the wrap becomes a standalone sliver) and never roll the art (a
+  bevel drawn on the tile's edge moves into the middle of the block). If
+  the seam measure reads high with a joint on the wrap, report the number;
+  do not move the joint.
+- **Strata are a profile, not regions.** Bedded rock (sandstone) takes its
+  beds from a per row mean of the art, continuous across the tile, with the
+  art's dashes as detail on the profile, or the beds come out as ledges
+  that stop partway.
+- **Polished faces are flat.** A polished stone's crystal texture goes into
+  the smoothness field, not the height; with the class depth of stone every
+  pore becomes a pit and the face reads as speckled.
+- **No Voronoi.** If the art will not segment at one tolerance, try
+  another; a partition invented by the script is a jigsaw of straight
+  edged pieces that nobody laid.
 - **Structure below the texel.** Inside each 16 px texel there are 256
   texels of the map. That is where grain, pores, scratches and chips live,
   from `lib.fbm`, `lib.white_noise` and `lib.blur`, at the scale the
