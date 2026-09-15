@@ -379,22 +379,28 @@ vec2 goanna_surface_uv(vec3 world, vec3 wnormal) {
 // Real relief, not map amplitude: an authored map and a baked one both span
 // the byte, and what differs between a cobble and a beach is how far that
 // byte reaches into the node.
+// Judged on the close-up ramp with the authored sets: at 0.08 the stone
+// class turned cobble and gravel into rubble and brick joints into caves;
+// 0.045 is where a joint reads as a joint. The frames the look was settled
+// on ran at 0.04 for everything.
 float goanna_class_depth(int cls) {
-	if (cls == 1 || cls == 6)
-		return 0.08;
-	if (cls == 9)
+	if (cls == 1)
 		return 0.045;
-	if (cls == 2)
-		return 0.03;
-	if (cls == 3)
+	if (cls == 6)
 		return 0.05;
+	if (cls == 9)
+		return 0.035;
+	if (cls == 2)
+		return 0.025;
+	if (cls == 3)
+		return 0.04;
 	if (cls == 7 || cls == 8)
 		return 0.02;
 	if (cls == 5 || cls == 11 || cls == 10)
 		return 0.01;
 	if (cls == 4)
 		return 0.0;
-	return 0.04;
+	return 0.035;
 }
 
 bool goanna_class_is_granular(int cls) {
