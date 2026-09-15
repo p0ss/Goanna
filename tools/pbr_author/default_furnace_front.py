@@ -1,14 +1,16 @@
 """Hand authored LabPBR height and smoothness for default_furnace_front.
 
-The same grey cobble face as default_furnace_side, but with a mouth cut
-into it: rows 8 to 13, columns 5 to 10 are far darker than any cobble shade
-elsewhere on the face (0.092 to 0.360 against 0.263 to 0.681), a clean
-rectangle. Inside it, rows 8 to 10 are flat black (0.092 throughout, the
-firebox interior) and rows 11 to 13 mix five different shades in a scatter
-(0.092, 0.173, 0.239, 0.313, 0.360), a grate over an ash floor. Row 14
-returns straight to ordinary cobble brightness, so the mouth is exactly
-those six rows deep and six columns wide, not a gradient fading into the
-stone.
+The same flat, grain-only dressed stone face as default_furnace_side (see
+that module for the joint network and why it is built flat rather than
+domed), but with a mouth cut into it: rows 8 to 13, columns 5 to 10 are far
+darker than any stone shade elsewhere on the face (0.092 to 0.360 against
+0.263 to 0.681), a clean rectangle. Inside it, rows 8 to 10 are flat black
+(0.092 throughout, the firebox interior) and rows 11 to 13 mix five
+different shades in a scatter (0.092, 0.173, 0.239, 0.313, 0.360), a grate
+over an ash floor. Row 14 returns straight to ordinary stone brightness, so
+the mouth is exactly those six rows deep and six columns wide, not a
+gradient fading into the stone. The mouth stays a real, deep recess against
+the now much flatter body around it.
 """
 import sys
 
@@ -63,8 +65,10 @@ def carve_mouth(height, box, core, grate, floor=0.06, grate_level=0.22):
 def build(stem, active_emission_stem=None):
     out_dir = sys.argv[1]
     src = lib.load_source(stem)
-    height, smooth = body.build_body(stem, src, seed_base=20)
-    height = lib.normalise01(height, 0.5, 99.5)
+    # Same flat, grain-only masonry body as the side, at the side's own
+    # joint threshold: outside the mouth this is the same stone face, so it
+    # should read as the same material rather than getting its own layout.
+    height, smooth = body.build_body(stem, src, body.SIDE_MORTAR_THRESH)
 
     lum = lib.luminance(src[..., :3])
     box, core, grate = mouth_masks(lum)

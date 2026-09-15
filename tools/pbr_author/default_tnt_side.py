@@ -6,14 +6,19 @@ the stick; the rest is the wrapping paper itself, and there each row
 repeats its own four column shades every four texels (row 0 goes 8, 4, 5,
 9; row 4 goes 8, 5, 6, A; and so on, all nine wrap rows the same period,
 different shades), a stack of vertical creases running the paper wraps a
-cylinder in. The label's own lum values are almost binary: four close
-cream shades, 0.677 to 0.852, for its background, and two much darker
-ones, 0.217 and 0.314, for the TNT mark printed on it, nothing between.
+cylinder in.
 
-The wrap's crease shading is read straight from the art as height, since
-the art already draws the fold by shading it; the label sits a hair below
-that as its own flat plane, with the printed mark recessed a touch further
-into it.
+The first pass read that shading straight into height and added a fibre
+and pore grain on top, which read as concrete rather than paper: paper
+does not have aggregate texture, only the fold. This rebuild throws the
+grain away and builds the fold itself, a gentle cosine ridge at the art's
+own four texel period, held in a narrow lib.band so the relief stays a
+texel or two, never a slab's worth. The label sits a hair below that as
+its own flat plane, the printed mark (the art's two darkest label shades,
+0.217 and 0.314, nothing between them and the cream background) recessed
+a hair further still. Smoothness is independent noise, not derived from
+the fold, since a paper crease does not collect any more dust than the
+flat either side of it.
 """
 import sys
 
@@ -26,62 +31,76 @@ CLS = "wood"
 SIZE = lib.SIZE
 LABEL_ROWS = list(range(5, 12))
 
+FOLD_PERIOD_TEXELS = 4     # the art's own column repeat
+FOLD_HALF_WIDTH = 0.05     # a texel or two of relief, not a slab
+LABEL_BELOW = 0.15         # the label sits this far below the wrap's centre
+TEXT_RECESS = 0.12         # the printed mark, further again
+TEXT_LUM_MAX = 0.40        # the two darkest label shades only
+EDGE_GROOVE = 0.35         # a real, glued seam where the label meets the wrap
+EDGE_CHAMFER = 1           # one texel: a scored line, not a bevel
 
-def main():
-    out_dir = sys.argv[1]
-    src = lib.load_source(STEM)
+SMOOTH_SEED = 115
+
+
+def paper_fold(size=SIZE, period_texels=FOLD_PERIOD_TEXELS, phase_texels=1.0):
+    """A gentle cosine ridge across the columns, one cycle per
+    period_texels source texels, matching the art's own fold rhythm.
+    Constant down each column, since the crease runs the height of the
+    wrap. phase_texels shifts the peak to sit near the art's own brightest
+    column rather than at texel 0."""
+    period_map = period_texels * 16
+    phase_map = phase_texels * 16
+    x = np.arange(size, dtype=np.float32)
+    wave = np.cos(2 * np.pi * (x - phase_map) / period_map)
+    return np.broadcast_to(wave[None, :], (size, size)).copy()
+
+
+def build(stem, label_rows=LABEL_ROWS):
+    src = lib.load_source(stem)
     rgb = src[..., :3]
     lum = lib.luminance(rgb)
-    print(f"{STEM}: lum min {lum.min():.3f} max {lum.max():.3f} mean {lum.mean():.3f}")
-    print("row means:", np.round(lum.mean(axis=1), 3).tolist())
+    print(f"{stem}: lum min {lum.min():.3f} max {lum.max():.3f} mean {lum.mean():.3f}")
 
     label_row = np.zeros((16, 16), dtype=bool)
-    label_row[LABEL_ROWS, :] = True
+    label_row[label_rows, :] = True
     label_hi = lib.upscale(label_row.astype(np.float32), smooth=False)
     label_t = lib.blur(label_hi, 3)
     print(f"label rows: {int(label_row[:, 0].sum())} of 16")
 
-    # The wrap: its own shading is the fold, upscaled and smoothed a touch
-    # so the pixel grid does not show through as a second, false crease.
-    lum_hi = lib.upscale(lum, smooth=False)
-    wrap_layout = 0.35 + 0.45 * lib.blur(lum_hi, 2)
+    fold = lib.band(paper_fold(), half_width=FOLD_HALF_WIDTH)
 
-    # The label: a flat plane a hair below the wrap's own mean level, the
-    # printed mark recessed further still. text_hi comes from the art's own
-    # two darkest label shades, not a separate mask, since nothing else on
-    # the label is that dark.
-    text_mask = lum < 0.40
-    text_hi = lib.upscale((text_mask & label_row).astype(np.float32), smooth=False)
+    text_mask = (lum < TEXT_LUM_MAX) & label_row
+    text_hi = lib.upscale(text_mask.astype(np.float32), smooth=False)
     text_hi = lib.blur(text_hi, 1)
-    label_layout = 0.42 - 0.30 * text_hi
+    label_plane = (0.5 - LABEL_BELOW) - TEXT_RECESS * text_hi
 
-    layout = wrap_layout * (1 - label_t) + label_layout * label_t
+    height = fold * (1 - label_t) + label_plane * label_t
 
-    # A scored line where the label's own edge overlaps the wrap: real
-    # occlusion for a real seam, not just the shading either side of it.
+    # A scored line right at the label's own edge, where it is glued down
+    # over the wrap: real occlusion for a real seam, not just the shading
+    # either side of it.
     label_edge = lib.region_edges(label_hi > 0.5)
-    edge_dist = lib.distance_to_edge(label_edge, max_dist=3)
-    edge_groove = np.clip(1.0 - edge_dist / 3, 0.0, 1.0)
-    layout = layout - 0.12 * edge_groove
-
-    # Paper fibre: fine, mostly isotropic noise, a slight lengthwise streak
-    # since paper this thin still shows a grain from how it was cut.
-    fibre = lib.fbm(SIZE, base_cells=30, octaves=3, seed=111, gain=0.55) * 0.05
-    pores = lib.blur(lib.white_noise(SIZE, seed=112), 1) * 0.03
-    layout = layout + fibre + pores
-
-    height = lib.normalise01(layout, 0.5, 99.5)
+    edge_dist = lib.distance_to_edge(label_edge, max_dist=EDGE_CHAMFER)
+    edge_groove = np.clip(1.0 - edge_dist / EDGE_CHAMFER, 0.0, 1.0)
+    height = height - EDGE_GROOVE * edge_groove
     print(f"height sd {height.std():.3f}")
 
-    # Smoothness: the label paper is a touch smoother than the coarser
-    # wrapping paper, the printed mark rougher still where the ink sits.
-    rough_noise = lib.fbm(SIZE, base_cells=20, octaves=3, seed=113, gain=0.55)
-    smooth = 0.3 * label_t - 0.15 * text_hi + 0.5 * rough_noise
+    # Smoothness: even and fairly matte, not tied to the fold (a crease is
+    # not dustier than the flat paper either side of it). The material's
+    # own slight variation, plus a touch more sheen on the printed label.
+    smooth_noise = lib.fbm(SIZE, base_cells=24, octaves=3, seed=SMOOTH_SEED, gain=0.55)
+    smooth = 0.5 + 0.4 * smooth_noise + 0.05 * label_t
     print(f"pre pack smooth sd {smooth.std():.3f}")
 
     albedo = lib.upscale(src[..., :3])
+    return height, smooth, albedo
 
-    normal_strength = 20.0
+
+def main():
+    out_dir = sys.argv[1]
+    height, smooth, albedo = build(STEM)
+
+    normal_strength = 10.0
     m = lib.pack(STEM, out_dir, albedo, height, smooth, CLS,
             normal_strength=normal_strength)
     print(f"normal_strength={normal_strength}")

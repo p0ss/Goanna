@@ -7,15 +7,17 @@ art; the game already draws the same picture on both faces.
 
 The art is a plank panel with a narrow lighter trim across the very top two
 rows (row means 0.618 and 0.570, against 0.29 to 0.48 for the rest) and, in
-the fourteen rows below that, a busy carved motif of crossed tool shapes.
-Segmenting the panel at tolerance 0.1 gives one big background region (153
-texels, mean lum 0.335, the plain plank) and two elongated regions sitting
-across the vertical middle (28 texels at 0.466 and 16 texels at 0.43,
-together tracing an hourglass that widens at rows 5 to 6 and narrows above
-and below it, the crossed saw and square of the classic workbench front)
-plus a scatter of small, much darker regions (down to 0.253) threaded
-through that shape, its engraved linework. The trim rows are their own
-region at tolerance 0.1 as well, exactly rows 0 and 1, 32 texels.
+the fourteen rows below that, a motif drawn in darker lines threaded
+through a slightly lighter silhouette (an hourglass shape, 28 texels at
+0.466 and 16 texels at 0.43 against a 0.335 background, the outline of a
+hanging handle rather than anything with a face). The first pass read the
+lighter silhouette as a raised tool and gave it a metal F0, which is why
+it looked like a steel head bolted to the panel. There is nothing raised
+here: this rebuild keeps the panel flat throughout, plank grain only,
+including the lighter hourglass silhouette itself (its colour is paint,
+not height), and engraves only the art's own darkest texels (down to
+0.253, well below the 0.335 background) as shallow grooves, since a
+carved line is cut into the wood, not built up on top of it.
 """
 import sys
 
@@ -26,9 +28,17 @@ import lib
 STEM = "crafting_workbench_front"
 CLS = "wood"
 SIZE = lib.SIZE
-SEG_TOLERANCE = 0.1
-TOOL_LUM_MIN = 0.40
-LINE_LUM_MAX = 0.30
+
+PANEL_HALF_WIDTH = 0.12   # the panel: flat, plank grain only
+LINE_LUM_MAX = 0.30       # the art's own dark lines, below the background
+LINE_DEPTH = 0.15         # a real, if shallow, engraved groove
+LINE_CHAMFER = 1          # one texel: a scored line, not a bevel
+TRIM_LEVEL = 0.68         # proud of the panel by a couple of texels
+TRIM_GRAIN_AMP = 0.05
+
+PANEL_GRAIN_SEED = 51     # shared with the top and side
+PORE_SEED = 52
+ROUGH_SEED = 53
 
 
 def build(stem):
@@ -37,35 +47,16 @@ def build(stem):
     lum = lib.luminance(rgb)
     print(f"{stem}: lum min {lum.min():.3f} max {lum.max():.3f} mean {lum.mean():.3f}")
 
-    labels, n = lib.segments(rgb, tolerance=SEG_TOLERANCE)
-    sizes = np.bincount(labels.ravel())
-    region_lum = np.array([lum[labels == i].mean() for i in range(n)])
-    print(f"segments: n={n} tolerance={SEG_TOLERANCE}")
-    print("region sizes:", sorted(sizes.tolist(), reverse=True)[:10])
-
     # The trim is exactly rows 0 and 1, found by row position rather than by
-    # region id: it is a straight machined edge (the top lip of the panel
+    # shade: it is a straight machined edge (the top lip of the panel
     # frame), not something a warp should soften.
     trim_row = np.zeros((16, 16), dtype=bool)
     trim_row[0:2, :] = True
     print(f"trim rows: {int(trim_row.sum())} texels")
 
     interior = ~trim_row
-    tool_region = interior & (region_lum[labels] >= TOOL_LUM_MIN)
-    line_region = interior & (region_lum[labels] < LINE_LUM_MAX)
-    print(f"tool texels: {int(tool_region.sum())}, engraved line texels: {int(line_region.sum())}")
-
-    # Warp only the tool silhouette: it is a hand carved emblem, not a
-    # machined joint, so its edge gets the organic treatment cobble stones
-    # get. The trim's own edge is handled separately below, by row position,
-    # because a lip along the top of a panel is straight.
-    tool_id = np.where(tool_region, 1, 0)
-    tool_hi = lib.warp_labels(tool_id, amp=2.5, seed=41)
-    tool_edge = lib.region_edges(tool_hi)
-    tool_dist = lib.distance_to_edge(tool_edge, max_dist=4)
-    tool_t = np.clip(tool_dist / 4, 0.0, 1.0)
-    tool_t = tool_t * tool_t * (3 - 2 * tool_t)
-    tool_mask_hi = tool_hi > 0
+    line_region = interior & (lum < LINE_LUM_MAX)
+    print(f"engraved line texels: {int(line_region.sum())}")
 
     # The trim's edge, blurred across the row 1 to row 2 join so the step
     # reads as a lip rather than a cliff. lib.blur wraps, so this stays
@@ -74,53 +65,43 @@ def build(stem):
     trim_hi = lib.upscale(trim_row.astype(np.float32), smooth=False)
     trim_t = lib.blur(trim_hi, 3)
 
-    panel_level = 0.30
-    tool_level = 0.52 + 0.06 * np.where(tool_mask_hi, 1.0, 0.0)
-    trim_level = 0.78
+    # The panel: flat throughout, plank grain only. The hourglass motif's
+    # own lighter paint is not built into the height at all, only its
+    # darkest lines are, as a shallow engraved groove.
+    panel_grain = (lib.fbm(SIZE, base_cells=20, octaves=3, seed=PANEL_GRAIN_SEED, gain=0.55) * 0.7
+            + lib.blur(lib.white_noise(SIZE, seed=PORE_SEED), 1) * 0.3)
+    panel_height = lib.band(panel_grain, half_width=PANEL_HALF_WIDTH)
 
-    layout = panel_level * (1 - tool_t) + tool_level * tool_t
-    layout = layout * (1 - trim_t) + trim_level * trim_t
-
-    # An incised outline right at the tool's silhouette, the way a carved
-    # emblem is scored around its own edge before the relief is raised;
-    # without it the tool fades into the panel by shading alone and the
-    # joint the panel needs never gets deep enough for real occlusion.
-    outline = np.clip(1.0 - tool_dist / 1.5, 0.0, 1.0)
-    layout = layout - 0.16 * outline * (1 - trim_t)
-
-    # The engraved linework threaded through the tool shape: fine grooves,
-    # scored a little below whatever they sit on rather than a separate
-    # height band, since that is what a scribed line on a carving is.
     line_hi = lib.upscale(line_region.astype(np.float32), smooth=False)
-    line_hi = lib.blur(line_hi, 1)
-    layout = layout - 0.20 * line_hi * (1 - trim_t)
+    line_dist = lib.distance_to_edge(line_hi, max_dist=LINE_CHAMFER)
+    line_dist = np.where(line_hi > 0.5, 0.0, line_dist)
+    line_t = np.clip(line_dist / LINE_CHAMFER, 0.0, 1.0)
+    line_t = line_t * line_t * (3 - 2 * line_t)
+    panel_height = panel_height * line_t + (panel_height.mean() - LINE_DEPTH) * (1 - line_t)
+    line_hi = lib.blur(line_hi, 2)
 
-    # Plank grain, shared with the top and side by using the same seeds:
-    # subtle here since the carved motif carries most of the relief.
-    grain = lib.fbm(SIZE, base_cells=20, octaves=3, seed=51, gain=0.55) * 0.05
-    pores = lib.blur(lib.white_noise(SIZE, seed=52), 1) * 0.03
+    trim_height = TRIM_LEVEL + lib.fbm(SIZE, base_cells=20, octaves=3,
+            seed=PANEL_GRAIN_SEED, gain=0.55) * TRIM_GRAIN_AMP
 
-    height = lib.normalise01(layout + grain + pores, 0.5, 99.5)
+    height = panel_height * (1 - trim_t) + trim_height * trim_t
     print(f"height sd {height.std():.3f}")
 
-    # Smoothness: the trim wears smoothest (a hand's edge), the tool heads
-    # read as steel and take their own flat sheen from the metal F0 rather
-    # than this map's spread, the panel is duller and the engraved lines
-    # collect grime and stay roughest of all.
-    rough_noise = lib.fbm(SIZE, base_cells=18, octaves=3, seed=53)
-    smooth = 0.35 * trim_t + 0.35 * tool_t * (1 - trim_t) + 0.4 * rough_noise
-    smooth = smooth - 0.15 * line_hi * (1 - trim_t)
+    # Smoothness: the trim wears smoothest (a hand's edge), the panel duller,
+    # the engraved lines collect grime and stay roughest of all. Weighted
+    # toward the material's own two dimensional grain rather than the
+    # trim's row-only band, which on its own has no texture across the
+    # columns at all and so reads (correctly) as a hard step wherever it
+    # is compared against; the grain's real texture is what makes that
+    # step tile properly.
+    rough_noise = lib.fbm(SIZE, base_cells=18, octaves=3, seed=ROUGH_SEED)
+    smooth = 0.5 + 0.5 * rough_noise + 0.10 * trim_t - 0.08 * line_hi * (1 - trim_t)
     print(f"pre pack smooth sd {smooth.std():.3f}")
 
     albedo = lib.upscale(src[..., :3])
 
-    # Tool heads read as steel: metal F0 on the raised, undarkened part of
-    # the warped tool silhouette only, not the engraved lines cut into it.
-    metal_mask = tool_mask_hi & (line_hi < 0.4) & (trim_t < 0.5)
-
-    normal_strength = 16.0
+    normal_strength = 14.0
     m = lib.pack(stem, sys.argv[1], albedo, height, smooth, CLS,
-            normal_strength=normal_strength, metal_mask=metal_mask)
+            normal_strength=normal_strength)
     print(f"normal_strength={normal_strength}")
     for k, v in m.items():
         print(f"  {k} = {v:.4f}")

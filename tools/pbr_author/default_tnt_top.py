@@ -8,8 +8,9 @@ lum 0.19 (near black, 0.128 and 0.173, wrapped, 4 connected) fall into one
 group of 12 touching texels at rows 7 to 10, columns 4 to 9, against
 nineteen other dark texels under that same threshold that are all on their
 own, no neighbour within lum 0.19 of them. That one cluster is the fuse
-hole; the rest is the wrap's own weather, built the same way as the side,
-straight from the art's own shading.
+hole; the rest is the wrap's own paper, built the same cosine fold as
+default_tnt_side rather than the fibre and pore grain the first pass gave
+it, which read as concrete. See default_tnt_side.py for the fold and why.
 """
 import sys
 
@@ -17,10 +18,14 @@ import numpy as np
 
 import lib
 
+import default_tnt_side as side
+
 STEM = "default_tnt_top"
 CLS = "wood"
 SIZE = lib.SIZE
 HOLE_LUM_MAX = 0.19
+HOLE_FLOOR = 0.08
+HOLE_CHAMFER = 2
 
 
 def find_hole(lum):
@@ -62,36 +67,30 @@ def main():
     ys, xs = np.where(hole)
     print("hole rows", sorted(set(ys.tolist())), "cols", sorted(set(xs.tolist())))
 
-    # The wrap and its weather, read straight from the art as default_tnt_side
-    # reads its own wrap, the same seeds so the two faces match.
-    lum_hi = lib.upscale(lum, smooth=False)
-    layout = 0.35 + 0.45 * lib.blur(lum_hi, 2)
+    # The paper: the same cosine fold as the side, held in the same narrow
+    # band, no grain noise.
+    fold = lib.band(side.paper_fold(), half_width=side.FOLD_HALF_WIDTH)
 
     # The fuse hole: burned or drilled, not cut straight, so its edge gets
     # the organic warp a hand made opening gets rather than a machined one.
     hole_hi = lib.warp_labels(hole.astype(int), amp=2.0, seed=121)
     edge = lib.region_edges(hole_hi)
-    max_dist = 3
-    dist = lib.distance_to_edge(edge, max_dist=max_dist)
+    dist = lib.distance_to_edge(edge, max_dist=HOLE_CHAMFER)
     wall = np.where(hole_hi > 0, 0.0, dist)
-    wall_t = np.clip(wall / max_dist, 0.0, 1.0)
+    wall_t = np.clip(wall / HOLE_CHAMFER, 0.0, 1.0)
     wall_t = wall_t * wall_t * (3 - 2 * wall_t)
-    layout = layout * wall_t + 0.08 * (1 - wall_t)
-
-    fibre = lib.fbm(SIZE, base_cells=30, octaves=3, seed=111, gain=0.55) * 0.05
-    pores = lib.blur(lib.white_noise(SIZE, seed=112), 1) * 0.03
-    layout = layout + fibre * wall_t + pores * wall_t
-
-    height = lib.normalise01(layout, 0.5, 99.5)
+    height = fold * wall_t + HOLE_FLOOR * (1 - wall_t)
     print(f"height sd {height.std():.3f}")
 
-    rough_noise = lib.fbm(SIZE, base_cells=20, octaves=3, seed=113, gain=0.55)
-    smooth = 0.4 * (1 - wall_t) + 0.5 * rough_noise
+    # Smoothness: even and matte like the side, the fuse hole's burned rim
+    # rougher.
+    smooth_noise = lib.fbm(SIZE, base_cells=24, octaves=3, seed=side.SMOOTH_SEED, gain=0.55)
+    smooth = 0.5 + 0.4 * smooth_noise - 0.25 * (1 - wall_t)
     print(f"pre pack smooth sd {smooth.std():.3f}")
 
     albedo = lib.upscale(src[..., :3])
 
-    normal_strength = 24.0
+    normal_strength = 14.0
     m = lib.pack(STEM, out_dir, albedo, height, smooth, CLS,
             normal_strength=normal_strength)
     print(f"normal_strength={normal_strength}")

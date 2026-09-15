@@ -1,16 +1,34 @@
 """Hand authored LabPBR height and smoothness for default_furnace_side.
 
-The art is a rough grey cobble face, nine shades running 0.263 to 0.681 in
-even steps of about 0.04 to 0.05: unlike default_cobble there is no single
-wide gap marking a mortar shade apart from the stone (default_cobble's
-mortar sits 0.068 below its lightest stone shade with every other step
-under 0.043; here the largest gap between neighbouring shades is 0.036, no
-bigger than several others). So this is one continuous rough stone, no
-separate mortar material, built the same segment, warp, dome way as
-default_cobble regardless: segmenting at tolerance 0.06 gives 44 regions,
-from a 74 texel field down to single texels, and the darkest quarter of
-them by mean brightness stand in for the mortar a cobble face always has
-between its stones, low targets rather than a shade apart.
+The art is a rough grey dressed stone face, nine shades running 0.263 to
+0.681. The first pass read it with default_cobble's segment and dome
+recipe and gave the ramp lumps: rounded chips where the art draws flat
+dressed blocks with thin dark joints between them. This rebuild finds the
+joints the way default_stone_brick.py finds mortar, by shade, and holds
+everything else flat.
+
+The darkest shade alone is a scatter of single texels, not a joint; the two
+darkest together (up to lum 0.351) still do not close a line. Only at the
+three darkest shades (up to lum 0.407, a wide cut but this art draws no
+clean gap between mortar and stone the way default_cobble does) does row 2
+come back as a full width line, wrapping cleanly into row 15 the way a
+dressed course really would. That is the joint network used here: whatever
+that threshold marks, thin and chamfered a couple of texels deep, and
+nothing else. The blocks it encloses are not domed or individually
+targeted by their own brightness; they are one flat face in a narrow
+lib.band, carrying only fine stone grain, because that is what the art
+actually draws between the joints.
+
+default_furnace_top (and default_furnace_bottom, the same file) is a
+single stone slab, not dressed courses: no threshold here closes a line
+short of swallowing most of the face, so its own darkest shade is kept as
+sparse weathered flecks rather than forced into a joint that is not there.
+
+default_furnace_front cuts its mouth into this same body (see
+default_furnace_front.py), and default_furnace_front_active is the lit
+version of the front. All five faces use the same GRAIN_SEED, PORE_SEED
+and VARIATION_SEED, so the stone reads as one material regardless of which
+side is in view.
 """
 import sys
 
@@ -21,70 +39,75 @@ import lib
 STEM = "default_furnace_side"
 CLS = "stone"
 SIZE = lib.SIZE
-SEG_TOLERANCE = 0.06
+
+BAND_HALF_WIDTH = 0.15   # the block faces: flat, per README's "flat where
+                          # the art is flat" rule, not stretched to the
+                          # class's full mortar-joint depth
+JOINT_CHAMFER = 3        # map texels of soft edge on the joint recess
+JOINT_FLOOR = 0.16       # the joint sits this far below the block band,
+                          # a couple of texels once normal_strength scales it
+
+SIDE_MORTAR_THRESH = 0.407   # three darkest shades: see module docstring
+
+GRAIN_SEED = 80
+PORE_SEED = 81
+VARIATION_SEED = 82
 
 
-def build_body(stem, src, seed_base):
-    """The cobble stone body: returns (height, smooth, region info) so the
-    front script can reuse it and cut its opening into the same body."""
+def stone_grain():
+    """Fine stone grain, fixed seeds shared by every furnace face so the
+    material reads as one thing regardless of which side is in view."""
+    grain = lib.fbm(SIZE, base_cells=40, octaves=3, seed=GRAIN_SEED, gain=0.55)
+    pores = lib.blur(lib.white_noise(SIZE, seed=PORE_SEED), 1)
+    return grain * 0.7 + pores * 0.3
+
+
+def joint_recess(mask, block):
+    """Carve a thin, chamfered recess into an already flat block field
+    wherever mask (16 px, bool) marks the art's darkest line. mask decides
+    where the joint sits; JOINT_CHAMFER decides how wide its soft edge is,
+    so a wide dark patch in the art still reads as a groove, not a trench."""
+    mask_hi = np.repeat(np.repeat(mask, 16, axis=0), 16, axis=1).astype(np.float32)
+    dist = lib.distance_to_edge(mask_hi, max_dist=JOINT_CHAMFER)
+    dist = np.where(mask_hi > 0.5, 0.0, dist)
+    t = np.clip(dist / JOINT_CHAMFER, 0.0, 1.0)
+    t = t * t * (3 - 2 * t)  # smoothstep: flat block, sharp fall to the joint
+    return block * t + JOINT_FLOOR * (1 - t)
+
+
+def build_body(stem, src, mortar_thresh):
+    """The dressed stone body: a flat face in a narrow band, its only
+    relief fine stone grain, with the art's darkest shade carved in as a
+    thin chamfered joint. mortar_thresh is picked per face from where the
+    art's own darkest line actually forms; see the callers."""
     rgb = src[..., :3]
     lum = lib.luminance(rgb)
     print(f"{stem}: lum min {lum.min():.3f} max {lum.max():.3f} mean {lum.mean():.3f}")
 
-    labels, n = lib.segments(rgb, tolerance=SEG_TOLERANCE)
-    sizes = np.bincount(labels.ravel())
-    region_lum = np.array([lum[labels == i].mean() for i in range(n)])
-    print(f"segments: n={n} tolerance={SEG_TOLERANCE}")
-    print("region sizes:", sorted(sizes.tolist(), reverse=True)[:12])
+    mask = lum <= mortar_thresh
+    print(f"joint texels: {int(mask.sum())} of 256 at thresh {mortar_thresh:.3f}")
 
-    # No natural mortar gap (see docstring), so the darkest quarter of the
-    # regions, weighted by how much of the face they cover, stand in for it.
-    order = np.argsort(region_lum)
-    covered = 0
-    mortar = np.zeros(n, dtype=bool)
-    total = sizes.sum()
-    for i in order:
-        if covered >= total * 0.22:
-            break
-        mortar[i] = True
-        covered += sizes[i]
-    print(f"mortar-equivalent regions: {int(mortar.sum())} of {n}, "
-          f"{int(sizes[mortar].sum())} texels of 256")
+    block = lib.band(stone_grain(), half_width=BAND_HALF_WIDTH)
+    height = joint_recess(mask, block)
 
-    lo, hi = region_lum[~mortar].min(), region_lum[~mortar].max()
-    target = np.where(mortar, 0.08, 0.55 + 0.35 * (region_lum - lo) / max(hi - lo, 1e-6))
-
-    labels_hi = lib.warp_labels(labels, seed=61 + seed_base)
-    edges = lib.region_edges(labels_hi)
-    max_dist = 5
-    dist = lib.distance_to_edge(edges, max_dist=max_dist)
-    t = np.clip(dist / max_dist, 0.0, 1.0)
-    t = t * t * (3 - 2 * t)
-    layout = target[labels_hi] * t
-
-    crown = lib.fbm(SIZE, base_cells=4, octaves=2, seed=62 + seed_base) * 0.05
-    layout = layout + crown * t
-
-    grain = lib.fbm(SIZE, base_cells=32, octaves=3, seed=63 + seed_base, gain=0.55) * 0.05
-    pores = lib.blur(lib.white_noise(SIZE, seed=64 + seed_base), 1) * 0.05
-    height = layout + grain + pores
-
-    rough_noise = lib.fbm(SIZE, base_cells=16, octaves=3, seed=65 + seed_base)
-    smooth = 0.55 * lib.normalise01(height, 0.5, 99.5) + 0.55 * rough_noise
+    # Roughness follows height: the joint gathers dust and stays rough, the
+    # dressed face is what wears smooth. The stone's own patchy variation
+    # rides on top; pack() moves the mean, the spread is ours.
+    variation = lib.fbm(SIZE, base_cells=20, octaves=3, seed=VARIATION_SEED, gain=0.55)
+    smooth = 0.6 * height + 0.5 * variation
     return height, smooth
 
 
 def main():
     out_dir = sys.argv[1]
     src = lib.load_source(STEM)
-    height, smooth = build_body(STEM, src, seed_base=0)
-    height = lib.normalise01(height, 0.5, 99.5)
+    height, smooth = build_body(STEM, src, SIDE_MORTAR_THRESH)
     print(f"height sd {height.std():.3f}")
     print(f"pre pack smooth sd {smooth.std():.3f}")
 
     albedo = lib.upscale(src[..., :3])
 
-    normal_strength = 14
+    normal_strength = 16
     m = lib.pack(STEM, out_dir, albedo, height, smooth, CLS,
             normal_strength=normal_strength)
     print(f"normal_strength={normal_strength}")

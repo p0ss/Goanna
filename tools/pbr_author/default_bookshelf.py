@@ -9,14 +9,21 @@ horizontal boards and two end posts, in the shape of a capital H: it splits
 the face into two six row compartments, rows 1 to 6 and rows 9 to 14, each
 its own row of books between the posts.
 
-Segmenting the whole face at tolerance 0.05 (138 regions) never merges a
-frame texel into a book region or the reverse, since the two palettes never
-come within 0.05 of each other; the frame rows and posts come back as their
-own large, clean regions. Inside the compartments the regions are mostly
-one or two texels, book covers a few texels wide with their own highlight
-and shadow shade, and the very darkest shade band, 0.092 to 0.150, appears
-only as thin, scattered marks between them: not one material, the crease
-where two spines meet and the shadow line down the near side of a spine.
+The very darkest shade band inside the compartments, 0.092 to 0.150,
+appears only as thin, scattered marks: not one material, the crease where
+two spines meet and the shadow line down the near side of a spine. The
+first pass segmented the whole face by colour and gave each little
+highlight or shadow patch inside a spine its own region, warped and domed
+the way a cobble chip is, which is why the spines read as chunks rather
+than books: a spine's own internal shading is not a second material.
+
+This rebuild finds only the crease, by shade the same way
+default_stone_brick.py finds mortar, and holds everything else, frame
+included, flat. A spine gets a hairline recess at the crease and, across
+the width between two creases, at most a faint convex crown; nothing else
+raises or domes it. The frame sits proud of the spines by a couple of
+texels, an ordinary plank board, and covers take a little more sheen than
+the frame does.
 """
 import sys
 
@@ -27,8 +34,21 @@ import lib
 STEM = "default_bookshelf"
 CLS = "wood"
 SIZE = lib.SIZE
-SEG_TOLERANCE = 0.05
 CREASE_LUM_MAX = 0.16
+
+SPINE_HALF_WIDTH = 0.10   # the spine faces: flat, fine cover grain only
+CROWN_DIST = 20           # map texels over which a spine's faint crown rises
+CROWN_AMP = 0.035         # at most a faint convexity, never a dome
+RECESS_DIST = 2           # the hairline crease itself: one texel wide, soft
+CREASE_FLOOR = 0.30       # recessed a little below the spine band
+
+FRAME_LEVEL = 0.72        # proud of the spine band by a couple of texels
+FRAME_GRAIN_AMP = 0.05
+
+GRAIN_SEED = 83
+PORE_SEED = 84
+FRAME_GRAIN_SEED = 51     # shared with mcl_books_bookshelf_top's own plank
+ROUGH_SEED = 53
 
 
 def frame_mask_lowres():
@@ -44,70 +64,49 @@ def main():
     rgb = src[..., :3]
     lum = lib.luminance(rgb)
     print(f"{STEM}: lum min {lum.min():.3f} max {lum.max():.3f} mean {lum.mean():.3f}")
-    print("row means:", np.round(lum.mean(axis=1), 3).tolist())
 
     frame = frame_mask_lowres()
-    print(f"frame texels: {int(frame.sum())} of 256")
+    crease = (~frame) & (lum < CREASE_LUM_MAX)
+    print(f"frame texels: {int(frame.sum())} of 256, crease texels: {int(crease.sum())}")
 
-    labels, n = lib.segments(rgb, tolerance=SEG_TOLERANCE)
-    sizes = np.bincount(labels.ravel())
-    region_lum = np.array([lum[labels == i].mean() for i in range(n)])
-    frame_share = np.array([frame[labels == i].mean() for i in range(n)])
-    is_frame_region = frame_share > 0.5
-    print(f"segments: n={n} tolerance={SEG_TOLERANCE}, "
-          f"{int(is_frame_region.sum())} frame regions, {int((~is_frame_region).sum())} book regions")
+    frame_hi = lib.upscale(frame.astype(np.float32), smooth=False)
+    crease_hi = lib.upscale(crease.astype(np.float32), smooth=False)
 
-    crease = (~is_frame_region) & (region_lum < CREASE_LUM_MAX)
-    print(f"crease regions: {int(crease.sum())}, "
-          f"{int(sizes[crease].sum())} texels of {int(sizes[~is_frame_region].sum())} book texels")
+    # A faint crown, peaking midway between one crease and the next: this
+    # is the only curvature a spine gets, capped well short of a dome.
+    dist_crown = lib.distance_to_edge(crease_hi, max_dist=CROWN_DIST)
+    dist_crown = np.where(crease_hi > 0.5, 0.0, dist_crown)
+    crown_t = np.clip(dist_crown / CROWN_DIST, 0.0, 1.0)
+    crown_t = crown_t * crown_t * (3 - 2 * crown_t)
 
-    book = ~is_frame_region & ~crease
-    lo, hi = region_lum[book].min(), region_lum[book].max()
-    book_target = 0.42 + 0.28 * (region_lum - lo) / max(hi - lo, 1e-6)
+    # The crease itself: much narrower than the crown, a scored hairline.
+    dist_recess = lib.distance_to_edge(crease_hi, max_dist=RECESS_DIST)
+    dist_recess = np.where(crease_hi > 0.5, 0.0, dist_recess)
+    recess_t = np.clip(dist_recess / RECESS_DIST, 0.0, 1.0)
+    recess_t = recess_t * recess_t * (3 - 2 * recess_t)
 
-    # Book chips get a light, organic warp: a spine's own edge is not
-    # machined straight the way a masonry joint is, it is a worn page edge.
-    # The frame keeps its rectilinear shape, an ordinary plank board, by
-    # going up at native resolution with no warp at all.
-    frame_hi = np.repeat(np.repeat(is_frame_region[labels], 16, axis=0), 16, axis=1)
+    cover_grain = (lib.fbm(SIZE, base_cells=40, octaves=3, seed=GRAIN_SEED, gain=0.55) * 0.7
+            + lib.blur(lib.white_noise(SIZE, seed=PORE_SEED), 1) * 0.3)
+    spine_band = lib.band(cover_grain, half_width=SPINE_HALF_WIDTH)
+    spine_height = spine_band + CROWN_AMP * crown_t
+    spine_height = spine_height * recess_t + CREASE_FLOOR * (1 - recess_t)
 
-    labels_hi = lib.warp_labels(labels, amp=1.5, seed=81)
-    crease_hi = crease[labels_hi]
-    edges = lib.region_edges(labels_hi)
-    max_dist = 3  # a crease between books, not a masonry groove
-    dist = lib.distance_to_edge(edges, max_dist=max_dist)
-    t = np.clip(dist / max_dist, 0.0, 1.0)
-    t = t * t * (3 - 2 * t)
+    frame_grain = lib.fbm(SIZE, base_cells=20, octaves=3, seed=FRAME_GRAIN_SEED, gain=0.55)
+    frame_height = FRAME_LEVEL + frame_grain * FRAME_GRAIN_AMP
 
-    crease_level = 0.20
-    target_hi = np.where(crease_hi, crease_level, book_target[labels_hi])
-    book_layout = target_hi * t + crease_level * (1 - t)
-
-    frame_level = 0.68
-    frame_grain = lib.fbm(SIZE, base_cells=20, octaves=3, seed=51, gain=0.55) * 0.06
-    frame_layout = frame_level + frame_grain
-
-    frame_t = lib.blur(frame_hi.astype(np.float32), 2)
-    layout = book_layout * (1 - frame_t) + frame_layout * frame_t
-
-    # Paper texture on the book spines: a fine, slightly directional
-    # scratch, the grain a page edge shows end on.
-    paper = lib.blur(lib.white_noise(SIZE, seed=82), 1) * 0.03
-    layout = layout + paper * (1 - frame_t)
-
-    height = lib.normalise01(layout, 0.5, 99.5)
+    frame_t = lib.blur(frame_hi, 2)
+    height = spine_height * (1 - frame_t) + frame_height * frame_t
     print(f"height sd {height.std():.3f}")
 
-    # Smoothness: the frame is a plank, worn smoother than paper; book
-    # covers are matte, their own patchy variation on top, the creases
-    # between them collect dust and stay roughest of all.
-    rough_noise = lib.fbm(SIZE, base_cells=18, octaves=3, seed=53)
-    smooth = 0.35 * frame_t + 0.35 * t * (1 - frame_t) + 0.4 * rough_noise
+    # Smoothness: covers take a little more sheen than the frame, the
+    # crease collecting dust and staying roughest of all.
+    rough_noise = lib.fbm(SIZE, base_cells=18, octaves=3, seed=ROUGH_SEED)
+    smooth = 0.5 + 0.3 * rough_noise + 0.12 * (1 - frame_t) - 0.15 * (1 - recess_t)
     print(f"pre pack smooth sd {smooth.std():.3f}")
 
     albedo = lib.upscale(src[..., :3])
 
-    normal_strength = 12.0
+    normal_strength = 16.0
     m = lib.pack(STEM, out_dir, albedo, height, smooth, CLS,
             normal_strength=normal_strength)
     print(f"normal_strength={normal_strength}")
