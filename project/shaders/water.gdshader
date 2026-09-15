@@ -64,6 +64,16 @@ uniform float refraction = 0.006;
 // as a bottomless blue void; these keep a bed visible ten or so nodes down
 // through a teal shift, which is roughly what clear real water does.
 uniform vec3 absorption = vec3(0.45, 0.11, 0.05);
+// How much of the tile's colour the water column itself throws back, as an
+// albedo the sun and sky then light. Water is dark: a clear column returns
+// a few percent of what falls on it, and everything else you see in it is
+// either the bed, transmitted, or the sky, reflected. The old body was the
+// tile at half strength, lit by the full sun, which made every lake a
+// painted blue floor brighter than the reflection could ever be, and the
+// bed seen through it was lit a second time on the way out. Measured on
+// project/water_ramp.tscn, 2026-09-15: deep water sat at 0.7 of the dry
+// sand's luma and 0.45 saturation against the sand's 0.27.
+uniform float body_gain : hint_range(0.0, 1.0) = 0.35;
 uniform bool waving = true;
 uniform bool reflections = true;
 // Goanna: 1.0 while the eye is in a liquid, set by GoannaClient. Seen from
@@ -218,12 +228,14 @@ void fragment() {
 	vec3 seen = texture(screen_tex, ruv).rgb;
 
 	vec3 trans = exp(-absorption * thick);
-	vec3 deep_col = tex.rgb * 0.5;
-	vec3 body = mix(deep_col, seen, trans);
-	// The tile's own colour is what makes water read as water rather than as
-	// tinted glass, but over a sandy shallow it is just a veil over the sand,
-	// so let the shore keep more of what is under it.
-	body = mix(body, tex.rgb * 0.85, 0.22 * (1.0 - 0.75 * shallow));
+	// Two things come up out of the water and they are lit differently. The
+	// bed, seen through the column, was lit when the opaque pass drew it and
+	// arrives here as radiance: it goes out as emission, attenuated, and is
+	// not shaded again. The column's own scatter is the tile's colour, dim,
+	// and that is the one part the lamp lights; it is what is left where the
+	// column has absorbed the bed away, so it takes the share the bed lost.
+	vec3 transmitted = seen * trans;
+	vec3 scatter = tex.rgb * 0.5 * body_gain * (1.0 - trans);
 
 	// Face on you see into the water, grazing you see the world reflected.
 	float fres = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 5.0);
@@ -319,10 +331,11 @@ void fragment() {
 	// drove the surface to black at exactly the grazing angles that fill the
 	// view when you are under it.
 	float refl_mix = do_reflect ? refl_amount : 0.0;
-	ALBEDO = body * (1.0 - refl_mix);
-	// Reflected light is light that never entered the water, so it must not
-	// be shaded a second time by the lamp that already lit what it came from.
-	EMISSION = reflected * refl_mix;
+	ALBEDO = scatter * (1.0 - refl_mix);
+	// Reflected light is light that never entered the water, and the bed's
+	// light has already been through the lamp once, so neither is shaded
+	// again here.
+	EMISSION = transmitted * (1.0 - refl_mix) + reflected * refl_mix;
 	ALPHA = clamp(0.9 + 0.1 * fres, 0.0, 1.0);
 	METALLIC = 0.0;
 	SPECULAR = 0.4 + 0.6 * fres;

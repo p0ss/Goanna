@@ -260,6 +260,28 @@ the fact.
   claim and that the shared lamp/shadow budget can drop visible room lighting
   as the camera moves.
 
+- Material calibration, 2026-09-15. Feedback on Mineclonia in full sun
+  said "plastic", and the guess behind it was missing normal and albedo
+  maps. Two new offline fixtures measure the renderer instead of guessing:
+  `project/material_ramp.tscn` (a roughness and metalness ramp beside the
+  pack's core sets, with the sun swept to each column's mirror direction)
+  and `project/water_ramp.tscn` (water over sand at five depths beside dry
+  sand). Findings in `docs/material-calibration.md`: the pack's terrain
+  shows almost no specular in daylight, spreading its roughness maps
+  (`tools/pbr_spec_variance.py`, new) moves nothing by more than a count in
+  the sun, a dielectric loses the sun glint above smoothness 230, and no
+  surface can show a mirror because nothing but the sky is there to
+  reflect. What did measure wrong was the water: the bed seen through it
+  was lit twice and the deep body was a half strength tile under the full
+  sun, so deep water sat at seven tenths of the dry sand's brightness.
+  `water.gdshader` now sends the transmitted bed out as emission and lights
+  only a dim scatter term; deep water fell to a third to a half of the sand
+  from thirty degrees and converges on the reflected sky from twelve.
+  Fixture only: no Mineclonia server was up and the tree carried another
+  session's C++. The saturation question (ACES plus 1.15 on top, against
+  reference frames at half the saturation) is deliberately left for after
+  these three.
+
 ## Log since v0.4.1-alpha (2026-08-30)
 
 Verified on a local Mineclonia server on Luanti 5.17.0 with Godot 4.5.1 and
