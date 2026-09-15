@@ -89,6 +89,13 @@ const CASES := {
 	# Low sun from the camera's right, for parallax self shadow: joints
 	# should go dark on their sunward wall and bright on the far one.
 	"low": {"sun": 0.18, "azimuth": 1.0},
+	# From the camera's right, low, on the sun's other side: the two sun
+	# cases together say whether a bump lights on the side the sun is on
+	# along both tile axes.
+	"low_south": {"sun": 0.18, "azimuth": -1.0},
+	# No sun, a lamp at the camera: how a cave or a night village is lit,
+	# which is where the user found grooves reading as outlines.
+	"lamp": {"sun": -0.5, "lamp": true},
 }
 
 # Mineclonia's sky, the same dump lighting_chart.gd uses.
@@ -117,6 +124,7 @@ var light_ambient := 0.42
 var cubes := {} # row -> [[label, MeshInstance3D]]
 var close_up := false
 var pack_tilts := [] # per loaded texture, mean of |xy|^2, the client's measure
+var lamp: OmniLight3D
 var pack_materials := []
 var results := {}
 var strengths := {}
@@ -299,6 +307,12 @@ func _cube_mesh(which: String = "all") -> ArrayMesh:
 		[Vector3.FORWARD, [Vector3(0.5, 0.5, -0.5), Vector3(-0.5, 0.5, -0.5), Vector3(-0.5, -0.5, -0.5), Vector3(0.5, -0.5, -0.5)]],
 	]
 	var uvs := [Vector2(0, 0), Vector2(1, 0), Vector2(1, 1), Vector2(0, 1)]
+	# GOANNA_RAMP_TANGENTS=mesher writes tangents the way the world's mesher
+	# does (goanna_client.cpp: t along the UV gradient, handedness from the
+	# sign of cross(n, t) against the bitangent); anything else lets
+	# SurfaceTool's mikktspace do it. The two can disagree on the sign, and
+	# that sign is which way a normal map's green points.
+	var mesher := OS.get_environment("GOANNA_RAMP_TANGENTS") == "mesher"
 	for f in faces:
 		var nrm: Vector3 = f[0]
 		var c: Array = f[1]
@@ -307,6 +321,14 @@ func _cube_mesh(which: String = "all") -> ArrayMesh:
 			continue
 		if which == "sides" and vertical:
 			continue
+		var tangent := Plane(Vector3.ZERO, 0.0)
+		if mesher:
+			# Corner 0 is uv (0,0), corner 1 (1,0), corner 3 (0,1).
+			var dpdu: Vector3 = c[1] - c[0]
+			var dpdv: Vector3 = c[3] - c[0]
+			var t := dpdu.normalized()
+			var w := 1.0 if nrm.cross(t).dot(dpdv) >= 0.0 else -1.0
+			tangent = Plane(t, w)
 		for tri in [[0, 1, 2], [0, 2, 3]]:
 			for i in tri:
 				st.set_normal(nrm)
@@ -314,7 +336,11 @@ func _cube_mesh(which: String = "all") -> ArrayMesh:
 				st.set_uv2(Vector2(0, 0))
 				st.set_color(Color.WHITE)
 				st.set_custom(0, Color(0.0, 1.0, 1.0, 1.0))
+				if mesher:
+					st.set_tangent(tangent)
 				st.add_vertex(c[i])
+	if not mesher:
+		st.generate_tangents()
 	return st.commit()
 
 
@@ -609,7 +635,19 @@ func _apply_case(c: Dictionary, probe: Vector3) -> void:
 	var warm: float = 1.0 - smoothstep(0.0, 0.32, elev)
 	sun.light_color = Color(1.0, 0.98, 0.94).lerp(Color(1.0, 0.62, 0.32), warm)
 	sun.light_energy = lerp(0.0, light_sun, day)
+	sun.visible = sun.light_energy > 0.01
 	sun.shadow_opacity = 0.85
+	if lamp == null:
+		lamp = OmniLight3D.new()
+		lamp.light_color = Color(1.0, 0.85, 0.6)
+		lamp.omni_range = 12.0
+		lamp.omni_attenuation = 1.2
+		lamp.shadow_enabled = true
+		add_child(lamp)
+	lamp.visible = c.get("lamp", false)
+	lamp.light_energy = 6.0 if lamp.visible else 0.0
+	if lamp.visible:
+		lamp.position = cam.position + Vector3(0.6, -0.4, 0.0)
 	var zenith: Color = SKY["day_sky"]
 	zenith.s = maxf(zenith.s, 0.42)
 	zenith.v = minf(zenith.v, 0.92)
