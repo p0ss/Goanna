@@ -327,7 +327,9 @@ func _cube_mesh(which: String = "all") -> ArrayMesh:
 			var dpdu: Vector3 = c[1] - c[0]
 			var dpdv: Vector3 = c[3] - c[0]
 			var t := dpdu.normalized()
-			var w := 1.0 if nrm.cross(t).dot(dpdv) >= 0.0 else -1.0
+			# The sign as the mesher now writes it (goanna_client.cpp), after
+			# the fix: minus where cross(n, t) runs with the bitangent.
+			var w := -1.0 if nrm.cross(t).dot(dpdv) >= 0.0 else 1.0
 			tangent = Plane(t, w)
 		for tri in [[0, 1, 2], [0, 2, 3]]:
 			for i in tri:
