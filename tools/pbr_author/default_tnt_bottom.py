@@ -46,7 +46,7 @@ def main():
 
     albedo = lib.upscale(src[..., :3])
 
-    normal_strength = 24.0
+    normal_strength = 8.0
     m = lib.pack(STEM, out_dir, albedo, height, smooth, CLS,
             normal_strength=normal_strength)
     print(f"normal_strength={normal_strength}")
