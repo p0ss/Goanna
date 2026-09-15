@@ -245,3 +245,48 @@ third of the way out and are shallow. The ramp takes "side+top" entries so
 a log renders with bark on its sides and the cut face on its ends, the way
 the world dresses it, since a single stem wrapped around all six faces
 had the cut on the sides too.
+
+## The second fleet: the built world
+
+With the surface set judged better under every setting, the authoring
+went to what a village is made of once you stand inside it: five
+subagents, one family each, for the furniture (crafting table, furnace
+and lit furnace, bookshelf, hay bale, TNT), the doors and cut-outs (wood
+and iron doors, trapdoors, ladder, rails, torch), the colour families
+(wool, terracotta, concrete, concrete powder, sixteen dyes each behind one
+module and a one line script per stem), and the stone variants with the
+glowing blocks (cracked, mossy and carved stone brick, carved and smooth
+sandstone, glowstone, pumpkins). About a hundred and twenty stems, all in
+`tools/pbr_author/`, `build_pack.py` skipping the family modules.
+
+Three things the packer and the ramp learnt from it:
+
+- `pack` takes an `emission` field, the art's bright texels as a 0..1
+  glow, written to the `_s` alpha as LabPBR has it. The lit furnace, the
+  torch, glowstone and the jack o'lantern use it; the shader multiplies
+  the albedo by it, so the glow keeps the art's colour.
+- A nearly flat material must not fill the height range. The shader gives
+  the full 0..1 range the depth of the class, so terracotta stretched to
+  the byte rendered as pumice on the ramp. `lib.band` holds such a field
+  in a narrow band about the middle; `normalise01` is for surfaces that
+  really have the class's depth.
+- The ramp now sets each cube's class from its maps, so the parallax
+  depth on the ramp is the world's. Every cube had been marching at class
+  none, which is half stone's depth and four times sand's; concrete powder
+  looked like grit and, once corrected, the stony blocks looked like
+  rubble at stone's own 0.08. The class depth table came down to 0.045 for
+  stone, which is where a joint reads as a joint and where the frames the
+  look was settled on had been.
+
+Manufactured blocks came out better than the natural surfaces did,
+because their art carries designed structure a script can honour:
+recessed door panels, rivets found as luminance peaks, a crafting grid
+read as saw kerfs, book spines as chips. The cut-outs draw through the
+scissor variant, which has no parallax march, so their relief reads from
+shading. The seam and tilt measures do not apply to a face that is mostly
+transparent or a door whose top and bottom edges differ by design, and
+those scripts say where they miss and why. The pack install into the
+tracked `pbr_packs/mineclonia` is still refused by the permission
+classifier; the standalone authored pack at
+`baked/authored-mineclonia/textures`, linked into the launcher's texture
+pack list as `mineclonia_authored`, carries the whole set.

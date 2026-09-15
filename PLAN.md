@@ -282,6 +282,21 @@ the fact.
   reference frames at half the saturation) is deliberately left for after
   these three.
 
+- Authored PBR pack, 2026-09-15 to 16. The plastic look turned out to be
+  structure, not specular: the bake embosses the pixel grid (median texel
+  tilt six degrees, occlusion never under 0.81). `tools/pbr_author/` now
+  holds a script per stem that builds height and smoothness fields from
+  the 16 px art, about a hundred and eighty stems across three fleets of
+  Sonnet subagents (surfaces, ores, furniture, doors and cut-outs, four
+  colour families, stone variants and glowing blocks), each batch judged
+  on the close-up ramp and reworked where the user's eye caught what the
+  metrics passed. The node shader gained parallax occlusion with self
+  shadow, under a millisecond a frame on a full screen wall, with depth
+  per material class. The authored pack lives beside the bake at
+  `baked/authored-mineclonia/textures` and in the launcher's texture pack
+  list; the shipped `pbr_packs/mineclonia` is unchanged pending the user's
+  install. Findings in `docs/material-calibration.md`.
+
 ## Log since v0.4.1-alpha (2026-08-30)
 
 Verified on a local Mineclonia server on Luanti 5.17.0 with Godot 4.5.1 and
