@@ -67,12 +67,12 @@ def build(stem):
     tool_t = tool_t * tool_t * (3 - 2 * tool_t)
     tool_mask_hi = tool_hi > 0
 
-    # The trim's edge, a smoothstep across the row 1 to row 2 join so the
-    # step reads as a lip rather than a cliff.
-    y = np.arange(SIZE)[:, None] / SIZE * 16.0
-    trim_t = np.clip((2.0 - y) / 1.2 + 0.5, 0.0, 1.0)
-    trim_t = trim_t * trim_t * (3 - 2 * trim_t)
-    trim_t = np.broadcast_to(trim_t, (SIZE, SIZE))
+    # The trim's edge, blurred across the row 1 to row 2 join so the step
+    # reads as a lip rather than a cliff. lib.blur wraps, so this stays
+    # correct where the trim sits right across the tile's own seam (its
+    # other edge, row 15 to row 0, is the wrap itself).
+    trim_hi = lib.upscale(trim_row.astype(np.float32), smooth=False)
+    trim_t = lib.blur(trim_hi, 3)
 
     panel_level = 0.30
     tool_level = 0.52 + 0.06 * np.where(tool_mask_hi, 1.0, 0.0)
@@ -81,12 +81,19 @@ def build(stem):
     layout = panel_level * (1 - tool_t) + tool_level * tool_t
     layout = layout * (1 - trim_t) + trim_level * trim_t
 
+    # An incised outline right at the tool's silhouette, the way a carved
+    # emblem is scored around its own edge before the relief is raised;
+    # without it the tool fades into the panel by shading alone and the
+    # joint the panel needs never gets deep enough for real occlusion.
+    outline = np.clip(1.0 - tool_dist / 1.5, 0.0, 1.0)
+    layout = layout - 0.16 * outline * (1 - trim_t)
+
     # The engraved linework threaded through the tool shape: fine grooves,
     # scored a little below whatever they sit on rather than a separate
     # height band, since that is what a scribed line on a carving is.
     line_hi = lib.upscale(line_region.astype(np.float32), smooth=False)
     line_hi = lib.blur(line_hi, 1)
-    layout = layout - 0.10 * line_hi * (1 - trim_t)
+    layout = layout - 0.20 * line_hi * (1 - trim_t)
 
     # Plank grain, shared with the top and side by using the same seeds:
     # subtle here since the carved motif carries most of the relief.

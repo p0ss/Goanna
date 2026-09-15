@@ -93,8 +93,12 @@ def build_side(stem, out_dir, seed, normal_strength):
     print("%s: shades %s" % (stem, sorted(set(np.round(lum.ravel(), 3).tolist()))))
 
     layout = _layout(lum)
-    grain = lib.fbm(SIZE, base_cells=20, octaves=3, seed=seed, gain=0.55) * 0.05
-    pores = lib.blur(lib.white_noise(SIZE, seed=seed + 1), 1) * 0.02
+    # The side is mostly one flat plank face (thirteen of its sixteen
+    # columns carry no shading at all), so the grain has to do more of the
+    # work here than on the front: a stronger amplitude than the front's,
+    # or the flat two thirds of the tile would sit dead level.
+    grain = lib.fbm(SIZE, base_cells=20, octaves=3, seed=seed, gain=0.55) * 0.18
+    pores = lib.blur(lib.white_noise(SIZE, seed=seed + 1), 1) * 0.08
     height = lib.normalise01(layout + grain + pores, 0.5, 99.5)
 
     smooth = _smoothness(lib.normalise01(layout), seed + 2)

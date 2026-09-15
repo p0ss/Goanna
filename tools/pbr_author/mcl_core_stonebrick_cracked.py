@@ -47,6 +47,7 @@ def main():
     mortar_mask[7, :] = True
     mortar_mask[15, :] = True
     mortar_mask[8:15, 7] = True
+    mortar_mask[0:4, 15] = True
     print(f"structural joint texels: {int(mortar_mask.sum())} of 256")
 
     labels, n_blocks = dsb.label_blocks(mortar_mask)

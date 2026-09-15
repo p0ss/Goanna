@@ -15,7 +15,7 @@ import mcl_doors_wood_family as family
 
 STEM = "mcl_doors_door_wood_side_upper"
 SEED = 4100
-NORMAL_STRENGTH = 6.0
+NORMAL_STRENGTH = 20.0
 
 
 def main(out_dir):
