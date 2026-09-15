@@ -226,6 +226,13 @@ void fragment() {
 	if (scene_distance(ruv, INV_PROJECTION_MATRIX) < here)
 		ruv = SCREEN_UV;
 	vec3 seen = texture(screen_tex, ruv).rgb;
+	// The bed goes out as emission now, unshaded and unclamped, so a bad
+	// pixel in the opaque pass (a NaN, or a sun disc at many times white)
+	// would come through as a coloured speck. Bounded here rather than
+	// trusted.
+	if (any(isnan(seen)) || any(isinf(seen)))
+		seen = vec3(0.0);
+	seen = min(seen, vec3(8.0));
 
 	vec3 trans = exp(-absorption * thick);
 	// Two things come up out of the water and they are lit differently. The
