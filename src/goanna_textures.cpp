@@ -220,7 +220,16 @@ Ref<Texture2DArray> GoannaTexture::godotArraySuffixed(GoannaTextureSource &src, 
     std::vector<float> authored_tilt, inferred_tilt;
     const MaterialTable *table = src.materialTable();
     for (size_t li = 0; li < m_layer_names.size(); ++li) {
-        const std::string &base = m_layer_names[li];
+        // A generated layer is named by its whole tile string, modifiers and
+        // all ("default_dirt.png^(overlay.png^[multiply:#5f9b3a)"), and the
+        // last dot in that is inside the modifier, so the companion name
+        // came out as garbage and the grass block's dirt side drew flat
+        // beside plain dirt. The companion belongs to the base image, the
+        // part before the first modifier, the same normalisation
+        // GoannaClient::tileBaseName applies for the material class.
+        const std::string &full = m_layer_names[li];
+        const size_t caret = full.find('^');
+        const std::string base = caret == std::string::npos ? full : full.substr(0, caret);
         size_t dotpos = base.rfind('.');
         std::string name = (dotpos == std::string::npos ? base : base.substr(0, dotpos)) + suffix +
                 (dotpos == std::string::npos ? std::string() : base.substr(dotpos));
