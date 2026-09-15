@@ -337,6 +337,14 @@ def pack(stem, out_dir, albedo, height, smoothness, cls, normal_strength,
             base = base & (np.asarray(f0, dtype=np.float32) <= 0.05)
         ref = float(sm[base].mean()) if base.any() else float(sm.mean())
         sm = np.clip(sm - ref + level, 0.0, 0.95)
+        # No isolated mirror texels on an ordinary surface. A scatter of
+        # smooth "dust" texels on sand each threw a pinpoint sun glint, and
+        # seen through water at a grazing sun those came out as coloured
+        # specks across the whole sea. Ordinary texels stay within a
+        # spread of the class level; metal, gems and the glassy classes
+        # keep what the script gave them.
+        if cls not in ("glass", "ice", "metal"):
+            sm = np.where(base, np.minimum(sm, level + 0.25), sm)
     s = np.zeros((SIZE, SIZE, 4), dtype=np.float32)
     s[..., 0] = sm
     diel = np.full((SIZE, SIZE), float(DIELECTRIC_F0), dtype=np.float32)
