@@ -290,3 +290,18 @@ tracked `pbr_packs/mineclonia` is still refused by the permission
 classifier; the standalone authored pack at
 `baked/authored-mineclonia/textures`, linked into the launcher's texture
 pack list as `mineclonia_authored`, carries the whole set.
+
+The second fleet's review found the same failure four times over:
+scripts reaching for domes and grain where the art wants flat faces and
+thin lines. The furnace got cobble lumps, TNT's paper a concrete grain,
+book spines the shape of chocolate blocks, and the crafting table's
+engraved motif was raised as a steel tool. All four were rebuilt as flat
+faces in a narrow band with joints, creases or lines recessed into them,
+and the rule is in the brief. The ores were reworked to be reflective,
+metal veins and gems carrying their own F0 through a new packer argument,
+and redstone glows at a quarter strength; the packer's smoothness mean is
+now taken over the ordinary texels so a vein at 0.9 no longer drags its
+matrix down. Grass plants, the grass path and the snowed side were added.
+The grass block side cannot take maps: the game draws it as the dirt side
+with an overlay composited on, and companions are looked up by the base
+name. Lava is a liquid on its own material and never reads these maps.
