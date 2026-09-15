@@ -83,7 +83,7 @@ def main():
 
     labels_hi = lib.warp_labels(labels)
     edges = lib.region_edges(labels_hi)
-    max_dist = 2  # cracks are a texel or two wide; a tight taper keeps them as lines, not blobs
+    max_dist = 4  # a soft shouldered crack; a tight one lit on both edges read as an edge filter
     dist = lib.distance_to_edge(edges, max_dist=max_dist)
     t = np.clip(dist / max_dist, 0.0, 1.0)
     t = t * t * (3 - 2 * t)  # smoothstep: rounds a square crack texel into a groove
@@ -111,6 +111,9 @@ def main():
     albedo = lib.upscale(src[..., :3])
 
     normal_strength = 46
+    # Held in a band scaled to the surface's real depth: full range
+    # domes read as rubble under a grazing lamp on the ramp.
+    height = lib.band(height, 0.18)
     m = lib.pack(STEM, out_dir, albedo, height, smooth, CLS,
             normal_strength=normal_strength)
     print(f"normal_strength={normal_strength}")

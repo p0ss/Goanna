@@ -81,6 +81,9 @@ def main():
     albedo = lib.upscale(src[..., :3])
 
     normal_strength = 45
+    # Held in a band scaled to the surface's real depth: full range
+    # domes read as rubble under a grazing lamp on the ramp.
+    height = lib.band(height, 0.22)
     m = lib.pack(STEM, out_dir, albedo, height, smooth, CLS,
             normal_strength=normal_strength)
     print(f"normal_strength={normal_strength}")

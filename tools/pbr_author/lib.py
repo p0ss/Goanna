@@ -233,7 +233,11 @@ def band(field, half_width=0.05, centre=0.5):
     cast slab, 0.5 a cobble. The field is standardised first so its own
     amplitude does not matter."""
     f = field.astype(np.float32)
-    f = (f - f.mean()) / max(float(f.std()), 1e-6)
+    f = f - f.mean()
+    # By range, not by standard deviation: a field that is mostly plateau
+    # with a few flecks has a small deviation, and dividing by it threw the
+    # flecks to the clip instead of into the band.
+    f = f / max(float(np.abs(f).max()), 1e-6)
     return np.clip(centre + half_width * f, 0.0, 1.0)
 
 
@@ -286,7 +290,8 @@ def sss_byte(cls):
 # --- packing ---------------------------------------------------------------
 
 def pack(stem, out_dir, albedo, height, smoothness, cls, normal_strength,
-        metal_mask=None, ao_radius=6, keep_mean=True, emission=None, f0=None):
+        metal_mask=None, ao_radius=6, keep_mean=True, emission=None, f0=None,
+        fine_detail=0.35):
     """Write <stem>.png, <stem>_n.png and <stem>_s.png. albedo is RGB or
     RGBA float at SIZE; height and smoothness are SIZE x SIZE floats.
     The smoothness mean is moved onto the class level unless keep_mean is
@@ -303,6 +308,14 @@ def pack(stem, out_dir, albedo, height, smoothness, cls, normal_strength,
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     height = np.clip(height, 0.0, 1.0).astype(np.float32)
+    # Texel scale relief is scaled down before anything is derived from
+    # the height. Under a grazing lamp in a cave every grain of noise
+    # became its own shadow and stone read as rubble; a one texel groove
+    # keeps this share of its depth, anything broader is untouched. Pass
+    # fine_detail=1.0 for a surface whose texel scale detail is the point.
+    if fine_detail < 0.999:
+        fine = height - blur(height, 1)
+        height = np.clip(height - (1.0 - fine_detail) * fine, 0.0, 1.0)
     xy = normal_from_height(height, normal_strength)
     ao = ao_from_height(height, ao_radius)
     n = np.zeros((SIZE, SIZE, 4), dtype=np.float32)

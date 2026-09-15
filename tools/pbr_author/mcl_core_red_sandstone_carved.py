@@ -42,7 +42,7 @@ def main():
     lo, hi = lum.min(), lum.max()
     region_target = 0.2 + 0.65 * (region_lum - lo) / max(hi - lo, 1e-6)
 
-    labels_hi = lib.warp_labels(labels, amp=2.0, seed=43, cells=14)
+    labels_hi = lib.warp_labels(labels, amp=0.0, seed=43, cells=14)
     edges = lib.region_edges(labels_hi)
     max_dist = 3
     dist = lib.distance_to_edge(edges, max_dist=max_dist)

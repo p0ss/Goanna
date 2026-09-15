@@ -114,6 +114,9 @@ def main():
           f"max {emission[ore_present_hi].max():.3f} (want 0.25 base, 0.4 at the reddest)")
 
     normal_strength = 36
+    # Held in a band scaled to the surface's real depth: full range
+    # domes read as rubble under a grazing lamp on the ramp.
+    height = lib.band(height, 0.2)
     m = lib.pack(STEM, out_dir, albedo, height, smooth, CLS,
             normal_strength=normal_strength, emission=emission)
     print(f"normal_strength={normal_strength}")

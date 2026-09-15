@@ -51,11 +51,11 @@ def main():
     grain_mask = region_lum > 0.53
     print(f"pit flecks: {int(pit.sum())}, grain flecks: {int(grain_mask.sum())}, "
           f"matrix flecks: {int(n - pit.sum() - grain_mask.sum())}")
-    target = np.where(pit, 0.15, np.where(grain_mask, 0.85, baseline))
+    target = np.where(pit, 0.34, np.where(grain_mask, 0.64, baseline))
 
     labels_hi = lib.warp_labels(labels)
     edges = lib.region_edges(labels_hi)
-    max_dist = 2  # flecks are one to six texels across; a tight taper keeps pits and grain distinct instead of blurring into one lump
+    max_dist = 5  # soft mounds and dishes, not outlined pieces: the tight taper read as a jigsaw under a lamp
     dist = lib.distance_to_edge(edges, max_dist=max_dist)
     t = np.clip(dist / max_dist, 0.0, 1.0)
     t = t * t * (3 - 2 * t)  # smoothstep: rounds a square fleck into a rounded pit or dome
@@ -80,6 +80,9 @@ def main():
     albedo = lib.upscale(src[..., :3])
 
     normal_strength = 40
+    # Held in a band scaled to the surface's real depth: full range
+    # domes read as rubble under a grazing lamp on the ramp.
+    height = lib.band(height, 0.15)
     m = lib.pack(STEM, out_dir, albedo, height, smooth, CLS,
             normal_strength=normal_strength)
     print(f"normal_strength={normal_strength}")

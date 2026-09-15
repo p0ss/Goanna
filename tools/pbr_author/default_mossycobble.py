@@ -112,6 +112,9 @@ def main():
     # the moss bump adds its own relief on top of the stone's, and at 12
     # even the tilt runs just past the stone class ceiling.
     normal_strength = 11
+    # Held in a band scaled to the surface's real depth: full range
+    # domes read as rubble under a grazing lamp on the ramp.
+    height = lib.band(height, 0.3)
     m = lib.pack(STEM, out_dir, albedo, height, smooth, CLS,
             normal_strength=normal_strength)
     print(f"normal_strength={normal_strength}")

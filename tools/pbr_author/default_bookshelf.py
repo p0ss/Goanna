@@ -36,7 +36,7 @@ CLS = "wood"
 SIZE = lib.SIZE
 CREASE_LUM_MAX = 0.16
 
-SPINE_HALF_WIDTH = 0.10   # the spine faces: flat, fine cover grain only
+SPINE_HALF_WIDTH = 0.04   # the spine faces: flat, fine cover grain only
 CROWN_DIST = 20           # map texels over which a spine's faint crown rises
 CROWN_AMP = 0.035         # at most a faint convexity, never a dome
 RECESS_DIST = 2           # the hairline crease itself: one texel wide, soft

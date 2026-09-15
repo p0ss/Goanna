@@ -29,7 +29,7 @@ STEM = "crafting_workbench_front"
 CLS = "wood"
 SIZE = lib.SIZE
 
-PANEL_HALF_WIDTH = 0.12   # the panel: flat, plank grain only
+PANEL_HALF_WIDTH = 0.05   # the panel: flat, plank grain only
 LINE_LUM_MAX = 0.30       # the art's own dark lines, below the background
 LINE_DEPTH = 0.15         # a real, if shallow, engraved groove
 LINE_CHAMFER = 1          # one texel: a scored line, not a bevel

@@ -78,6 +78,13 @@ python3 tools/pbr_author/default_cobble.py /tmp/authored
 - **Polished faces are flat.** A polished stone's crystal texture goes into
   the smoothness field, not the height; with the class depth of stone every
   pore becomes a pit and the face reads as speckled.
+- **Texel scale grain is scaled down by the packer** (`fine_detail`,
+  default 0.35): under a grazing lamp in a cave every grain became a
+  shadow and stone read as rubble. Keep grit for the roughness map, not
+  the height; pass `fine_detail=1.0` only where texel detail is the point.
+- **Do not warp dressed or manufactured art.** `lib.warp_labels` with any
+  amplitude turns the drawn squares of a cut stone into scribbles; use
+  amp 0 there and keep the warp for natural stone and soil.
 - **No Voronoi.** If the art will not segment at one tolerance, try
   another; a partition invented by the script is a jigsaw of straight
   edged pieces that nobody laid.

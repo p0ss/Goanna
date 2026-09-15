@@ -61,7 +61,7 @@ def run(stem, out_dir):
     # faint undulation into pumice. Ten percent of the range is a tile.
     field = 0.15 * mottle + 0.65 * ripple + 0.08 * pits + 0.12 * grain
     field = (field - field.mean()) / max(float(field.std()), 1e-6)
-    height = np.clip(0.5 + 0.05 * field, 0.0, 1.0)
+    height = lib.band(field, 0.12)
     print(f"height sd {height.std():.3f}")
 
     # Smoothness: fairly even, a little glossier on the raised parts than

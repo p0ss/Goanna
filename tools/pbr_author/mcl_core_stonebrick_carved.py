@@ -50,7 +50,7 @@ def main():
     # A small warp keeps the design's own silhouette (crisp edges asked
     # for) rather than default_cobble's rounded, organic one; the taper is
     # correspondingly narrow, a bevel rather than a groove.
-    labels_hi = lib.warp_labels(labels, amp=2.5, seed=31, cells=14)
+    labels_hi = lib.warp_labels(labels, amp=0.0, seed=31, cells=14)
     edges = lib.region_edges(labels_hi)
     max_dist = 3
     dist = lib.distance_to_edge(edges, max_dist=max_dist)
