@@ -114,7 +114,14 @@ PackedFloat32Array node_tangents(const PackedVector3Array &verts,
             t = axis.cross(n);
         }
         t.normalize();
-        const float handedness = n.cross(t).dot(bitan[(size_t)i]) < 0.0f ? -1.0f : 1.0f;
+        // Godot's binormal is cross(normal, tangent) times this sign and
+        // points along minus V, the way its own SurfaceTool writes it;
+        // the sign was the other way here, which turned every normal map
+        // upside down along a tile's V axis in play (a bump lit from
+        // below the sun) while the ramp, on SurfaceTool's tangents, showed
+        // them right. The probe in material_ramp.gd (probe_bump) tells the
+        // two apart.
+        const float handedness = n.cross(t).dot(bitan[(size_t)i]) < 0.0f ? 1.0f : -1.0f;
         out[i * 4] = t.x;
         out[i * 4 + 1] = t.y;
         out[i * 4 + 2] = t.z;
