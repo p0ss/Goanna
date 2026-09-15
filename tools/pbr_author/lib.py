@@ -223,6 +223,20 @@ def distance_to_edge(edge, max_dist=24):
     return d
 
 
+def band(field, half_width=0.05, centre=0.5):
+    """A height field held in a narrow band about the middle instead of
+    stretched to the full byte. The shader gives the full 0..1 range the
+    depth of the material's class (a mortar joint for stone), so a nearly
+    flat material that fills the range comes out as pumice: terracotta did,
+    at 0.05 of a node per texel of noise. half_width is the material's real
+    relief as a share of that class depth; 0.05 is a fired tile, 0.02 a
+    cast slab, 0.5 a cobble. The field is standardised first so its own
+    amplitude does not matter."""
+    f = field.astype(np.float32)
+    f = (f - f.mean()) / max(float(f.std()), 1e-6)
+    return np.clip(centre + half_width * f, 0.0, 1.0)
+
+
 def normalise01(field, lo_pct=0.5, hi_pct=99.5):
     lo, hi = np.percentile(field, (lo_pct, hi_pct))
     if hi - lo < 1e-6:
@@ -272,12 +286,16 @@ def sss_byte(cls):
 # --- packing ---------------------------------------------------------------
 
 def pack(stem, out_dir, albedo, height, smoothness, cls, normal_strength,
-        metal_mask=None, ao_radius=6, keep_mean=True):
+        metal_mask=None, ao_radius=6, keep_mean=True, emission=None):
     """Write <stem>.png, <stem>_n.png and <stem>_s.png. albedo is RGB or
     RGBA float at SIZE; height and smoothness are SIZE x SIZE floats.
     The smoothness mean is moved onto the class level unless keep_mean is
     False, because the level was chosen on purpose and the ramp compares
-    spread, not level."""
+    spread, not level. emission, when given, is a SIZE x SIZE float 0..1
+    of how much each texel glows (the lit coals of a furnace, the body of
+    glowstone); it goes to the _s alpha as LabPBR has it, 255 for none and
+    0 to 254 for the strength, which nodes_array.gdshader reads as
+    EMISSION = ALBEDO * strength * emission_strength."""
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     height = np.clip(height, 0.0, 1.0).astype(np.float32)
@@ -299,7 +317,11 @@ def pack(stem, out_dir, albedo, height, smoothness, cls, normal_strength,
         metal_mask = np.full((SIZE, SIZE), bool(is_metal))
     s[..., 1] = np.where(metal_mask, 255.0, float(DIELECTRIC_F0)) / 255.0
     s[..., 2] = sss_byte(cls) / 255.0
-    s[..., 3] = 1.0
+    if emission is None:
+        s[..., 3] = 1.0
+    else:
+        e = np.clip(emission, 0.0, 1.0).astype(np.float32)
+        s[..., 3] = np.where(e > 0.002, e * 254.0 / 255.0, 1.0)
     Image.fromarray((s * 255.0 + 0.5).astype(np.uint8), "RGBA").save(out_dir / (stem + "_s.png"))
 
     a = np.clip(albedo, 0.0, 1.0)
@@ -354,6 +376,7 @@ def metrics(out_dir, stem):
         "seam_n": seam_energy(n[..., :3]),
         "seam_s": seam_energy(s[..., 0]),
         "seam_albedo": seam_energy(a, 16),
+        "emissive_share": float((s[..., 3] < 0.999).mean()),
     }
 
 

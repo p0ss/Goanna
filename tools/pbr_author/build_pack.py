@@ -33,7 +33,10 @@ SKIP = {"lib.py", "build_pack.py", "__init__.py"}
 def scripts(stems):
     if stems:
         return [HERE / (s + ".py") for s in stems]
-    return sorted(p for p in HERE.glob("*.py") if p.name not in SKIP)
+    # Family modules carry run(stem) for their one line per stem scripts
+    # and are not stems themselves.
+    return sorted(p for p in HERE.glob("*.py")
+            if p.name not in SKIP and not p.name.endswith("_family.py"))
 
 
 def main():

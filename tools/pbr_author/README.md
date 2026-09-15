@@ -69,6 +69,12 @@ python3 tools/pbr_author/default_cobble.py /tmp/authored
   beds from a per row mean of the art, continuous across the tile, with the
   art's dashes as detail on the profile, or the beds come out as ledges
   that stop partway.
+- **Nearly flat materials must not fill the height range.** The shader
+  gives the full 0..1 range the depth of the class, a mortar joint for
+  stone, so a fired tile or a cast slab whose faint texture is stretched
+  to the byte by `lib.normalise01` renders as pumice. Use `lib.band` with a
+  small half width for those; `normalise01` is for surfaces that really
+  have the class's depth.
 - **Polished faces are flat.** A polished stone's crystal texture goes into
   the smoothness field, not the height; with the class depth of stone every
   pore becomes a pit and the face reads as speckled.
@@ -91,6 +97,18 @@ python3 tools/pbr_author/default_cobble.py /tmp/authored
   surface where the bake's soft upscale is better, `lib.load_baked_albedo`.
   Do not repaint it. Tinted textures (grass top, leaves) are greyscale by
   design; the game colours them.
+- **Glowing blocks pass `emission`** to `pack`: a 0..1 field of how much
+  each texel glows, taken from the art's bright texels (lit coals, the
+  body of glowstone, a pumpkin's cut face). Everything else leaves it
+  unset. The shader multiplies the albedo by it, so the glow has the art's
+  colour.
+- **Cut-outs (doors, trapdoors, ladders, torches, rails) draw through the
+  scissor shader**, which decodes the normal and specular maps but does not
+  run the parallax march. Author them the same way; the relief will read
+  from shading only.
+- **Families share one module.** Sixteen wools are one weave: write
+  `<family>_family.py` with a `run(stem)` and a one line `<stem>.py` per
+  colour that calls it, so `build_pack.py` still finds a script per stem.
 - **Text style of the repository applies** to the scripts: Australian
   English, no em dash, plain comments saying why.
 

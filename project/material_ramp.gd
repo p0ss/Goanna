@@ -200,8 +200,56 @@ func _packed(dir: String, stem: String) -> ShaderMaterial:
 	var mat := _shader_material(_array_from(alb),
 			_array_from(nrm) if nrm != null else null,
 			_array_from(spc) if spc != null else null)
+	# The material class decides the parallax depth (goanna_class_depth in
+	# the include), so a cube left at class 0 marches sand at four times
+	# the depth the world gives it. Read the class back out of the _s
+	# bytes the way tools/pbr_spec_variance.py does; the world's own
+	# classifier works from node groups and lands on the same classes.
+	if spc != null:
+		var classes := PackedInt32Array()
+		classes.resize(256)
+		classes.fill(_class_from_spec(spc, stem))
+		mat.set_shader_parameter("layer_class", classes)
 	pack_materials.append(mat)
 	return mat
+
+
+# src/goanna_materials.h's class numbers, from the packed bytes: G at 230
+# or more is metal, the B byte names a scattering class, and otherwise the
+# smoothness level is the class table's own.
+func _class_from_spec(spc: Image, stem: String) -> int:
+	var metal := 0
+	var sm := 0.0
+	var b := 0.0
+	var n := 0
+	for y in range(0, spc.get_height(), 4):
+		for x in range(0, spc.get_width(), 4):
+			var c := spc.get_pixel(x, y)
+			metal += 1 if c.g >= 0.898 else 0
+			sm += c.r
+			b += c.b
+			n += 1
+	if metal * 2 > n:
+		return 10
+	var sss := b / maxf(n, 1)
+	if sss > 0.26:
+		if sss > 0.6:
+			return 3
+		return 8 if sss > 0.48 else 7
+	for hint in [["wool", 11], ["plank", 2], ["log", 2], ["wood", 2], ["tree", 2],
+			["sand", 5], ["gravel", 6], ["dirt", 9], ["soil", 9], ["mud", 9],
+			["leaves", 3], ["snow", 7], ["ice", 8], ["glass", 4], ["powder", 5]]:
+		if stem.find(hint[0]) >= 0:
+			return hint[1]
+	var level := sm / maxf(n, 1)
+	var best := 0
+	var best_d := 1e9
+	for pair in [[0.12, 1], [0.22, 2], [0.92, 4], [0.08, 5], [0.10, 6], [0.05, 9], [0.20, 0]]:
+		var d: float = absf(level - pair[0])
+		if d < best_d:
+			best_d = d
+			best = pair[1]
+	return best
 
 
 # src/goanna_textures.cpp's per texture relief measure: the mean squared
