@@ -58,7 +58,7 @@ def main():
     target = np.where(gap, 0.08,
             0.55 + 0.40 * (region_lum - dlo) / max(dhi - dlo, 1e-6))
 
-    labels_hi = np.kron(labels, np.ones((16, 16), dtype=int))
+    labels_hi = lib.warp_labels(labels)
     edges = lib.region_edges(labels_hi)
     max_dist = 3  # pebbles are one to four texels across, a tight taper keeps each one a distinct small dome
     dist = lib.distance_to_edge(edges, max_dist=max_dist)

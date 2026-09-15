@@ -42,7 +42,7 @@ def main():
     # still cuts a region in two. That gives 31 regions: two large stones,
     # a dozen middling chips, and a scatter of single texel mortar pits and
     # highlight flecks. Not two, not two hundred.
-    tolerance = 0.06
+    tolerance = 0.03
     labels, n = lib.segments(rgb, tolerance=tolerance)
     sizes = np.bincount(labels.ravel())
     region_lum = np.array([lum[labels == i].mean() for i in range(n)])
@@ -60,7 +60,7 @@ def main():
     target = np.where(mortar, 0.05,
             0.55 + 0.35 * (region_lum - lo) / max(hi - lo, 1e-6))
 
-    labels_hi = np.kron(labels, np.ones((16, 16), dtype=int))
+    labels_hi = lib.warp_labels(labels)
     edges = lib.region_edges(labels_hi)
     max_dist = 5  # groove half width in 256 map texels, a few texels either side
     dist = lib.distance_to_edge(edges, max_dist=max_dist)
@@ -93,7 +93,7 @@ def main():
     # built to line up with; a soft upscale would blur that alignment away.
     albedo = lib.upscale(src[..., :3])
 
-    normal_strength = 22
+    normal_strength = 12
     m = lib.pack(STEM, out_dir, albedo, height, smooth, CLS,
             normal_strength=normal_strength)
     print(f"normal_strength={normal_strength}")

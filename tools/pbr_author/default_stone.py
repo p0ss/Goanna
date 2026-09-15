@@ -53,7 +53,7 @@ def main():
           f"matrix flecks: {int(n - pit.sum() - grain_mask.sum())}")
     target = np.where(pit, 0.15, np.where(grain_mask, 0.85, baseline))
 
-    labels_hi = np.kron(labels, np.ones((16, 16), dtype=int))
+    labels_hi = lib.warp_labels(labels)
     edges = lib.region_edges(labels_hi)
     max_dist = 2  # flecks are one to six texels across; a tight taper keeps pits and grain distinct instead of blurring into one lump
     dist = lib.distance_to_edge(edges, max_dist=max_dist)

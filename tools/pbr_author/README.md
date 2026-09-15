@@ -32,7 +32,9 @@ fields, so they agree with each other, and returns `metrics`. `check` prints
 pass or fail against the targets. `preview` writes a lit swatch for a person
 to look at; the script itself cannot see, so it prints the numbers and stops.
 
-Run with the output directory as the first argument:
+Run with the output directory as the first argument. Use a directory of
+your own; several scripts writing one directory is fine, but never clear
+it, another author may be writing there too.
 
 ```sh
 python3 tools/pbr_author/default_cobble.py /tmp/authored
@@ -42,10 +44,19 @@ python3 tools/pbr_author/default_cobble.py /tmp/authored
 
 - **Start from the art.** The 16 px source is the design: it says where the
   stones are, where the planks meet, what is light and what is dark. Use
-  `lib.segments` to find its regions and `lib.region_edges` and
-  `lib.distance_to_edge` to turn joints into grooves and regions into
-  domes. Do not invent a different layout; a player recognises the block by
-  its art and the relief has to sit on it.
+  `lib.segments` to find its regions, `lib.warp_labels` to bring the label
+  map up to size with rounded, irregular silhouettes (never `np.kron`: the
+  first stony sets used it and every dome carried the pixel grid), and
+  `lib.region_edges` and `lib.distance_to_edge` to turn joints into grooves
+  and regions into domes. Do not invent a different layout; a player
+  recognises the block by its art and the relief has to sit on it.
+- **Take the class from `lib.class_of(stem)`.** It is read back from the
+  bake, and it decides the smoothness level, the scattering byte, the tilt
+  target and the parallax depth in the shader.
+- **Faces of one block match.** A log's side and its top, a podzol's top
+  and side, sandstone's three faces: build them from the same ideas and
+  the same noise seeds where they share material, so the block reads as
+  one thing.
 - **Structure below the texel.** Inside each 16 px texel there are 256
   texels of the map. That is where grain, pores, scratches and chips live,
   from `lib.fbm`, `lib.white_noise` and `lib.blur`, at the scale the

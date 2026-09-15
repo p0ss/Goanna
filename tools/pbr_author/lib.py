@@ -50,7 +50,7 @@ import pbr_bake  # noqa: E402
 
 SIZE = 256
 GAME_TEXTURES = Path(os.environ.get("GOANNA_GAME_TEXTURES", os.path.expanduser(
-        "~/.var/app/org.luanti.luanti/.minetest/games/mineclone2/textures")))
+        "~/.var/app/org.luanti.luanti/.minetest/games/mineclonia")))
 PACK_TEXTURES = Path(os.environ.get("GOANNA_PACK_TEXTURES",
         str(Path(__file__).resolve().parent.parent.parent / "pbr_packs/mineclonia/textures")))
 DIELECTRIC_F0 = pbr_bake.DIELECTRIC_F0
@@ -58,11 +58,28 @@ DIELECTRIC_F0 = pbr_bake.DIELECTRIC_F0
 
 # --- inputs -----------------------------------------------------------------
 
+_source_index = None
+
+
+def source_path(stem):
+    """Where the game keeps this stem's art. GAME_TEXTURES may be a flat
+    directory (mineclone2 ships one) or a game root whose mods each carry a
+    textures directory (Mineclonia), so it is indexed once, recursively."""
+    global _source_index
+    if _source_index is None:
+        _source_index = {}
+        for p in sorted(GAME_TEXTURES.rglob("*.png")):
+            _source_index.setdefault(p.stem, p)
+    if stem not in _source_index:
+        raise FileNotFoundError("%s under %s" % (stem, GAME_TEXTURES))
+    return _source_index[stem]
+
+
 def load_source(stem):
-    """The game's own 16 px art, RGBA float 0..1, (16, 16, 4)."""
-    p = GAME_TEXTURES / (stem + ".png")
-    if not p.exists():
-        raise FileNotFoundError(p)
+    """The game's own 16 px art, RGBA float 0..1, (16, 16, 4). Larger art
+    (a 32 px animation strip, a 64 px painting) comes back at its own size;
+    a script should check the shape it gets."""
+    p = source_path(stem)
     return np.asarray(Image.open(p).convert("RGBA")).astype(np.float32) / 255.0
 
 
@@ -165,6 +182,25 @@ def segments(src_rgb, tolerance=0.06):
     return labels, n
 
 
+def warp_labels(labels, size=SIZE, amp=6.0, seed=7, cells=12):
+    """Upscale a 16 px label map to the map size with its region boundaries
+    bent, so a stone found in the art has a rounded, irregular silhouette
+    rather than the square outline of the texels it came from. Each map
+    texel looks up its label at a source position displaced by a tileable
+    noise field of amp texels. np.kron gives the square version; the first
+    authored stony sets used it and every dome carried the pixel grid."""
+    h, w = labels.shape
+    sy = size // h
+    sx = size // w
+    wy = fbm(size, cells, 2, seed) * amp
+    wx = fbm(size, cells, 2, seed + 31) * amp
+    ys = (np.arange(size)[:, None] + wy + 0.5) / sy
+    xs = (np.arange(size)[None, :] + wx + 0.5) / sx
+    iy = np.floor(ys).astype(int) % h
+    ix = np.floor(xs).astype(int) % w
+    return labels[iy, ix]
+
+
 def region_edges(labels_hi):
     """1 where a texel's neighbour (wrapped) has another label, else 0."""
     e = np.zeros(labels_hi.shape, dtype=np.float32)
@@ -211,6 +247,16 @@ def normal_from_height(height, strength):
 def ao_from_height(height, radius_px=6):
     img = Image.fromarray((np.clip(height, 0, 1) * 255.0 + 0.5).astype(np.uint8), "L")
     return np.clip(pbr_bake.ao_from_height(img, radius_px=radius_px, wrap=True), 0.0, 1.0).astype(np.float32)
+
+
+def class_of(stem):
+    """The bake's class for a stem, read back from its packed _s bytes and
+    its name, the way tools/pbr_spec_variance.py infers it. The class
+    decides the smoothness level, the scattering byte, the tilt target and
+    the parallax depth, so a script should take it from here rather than
+    guess."""
+    import pbr_spec_variance
+    return pbr_spec_variance.infer_class(stem, PACK_TEXTURES) or "default"
 
 
 def class_spec(cls):
@@ -323,9 +369,14 @@ def check(m, cls):
     lines.append("%s ao min %.2f (want <= 0.35 on jointed surfaces)" % ("ok  " if ok else "FAIL", m["ao_min"]))
     ok = m["smooth_sd"] >= 0.08
     lines.append("%s smoothness sd %.3f (want >= 0.08), mean %.3f" % ("ok  " if ok else "FAIL", m["smooth_sd"], m["smooth_mean"]))
-    for k in ("seam_n", "seam_s", "seam_albedo"):
+    for k in ("seam_n", "seam_s"):
         ok = m[k] <= 1.6
         lines.append("%s %s %.2f (want about 1, seamless)" % ("ok  " if ok else "FAIL", k, m[k]))
+    # The albedo is the game's art and its wrap is the art's own design: a
+    # plank joint on the tile edge is a step there on purpose. Reported so a
+    # script can prefer the bake's soft upscale when it is bad, never a
+    # failure, because nothing the script controls can change it.
+    lines.append("note seam_albedo %.2f (the art's own wrap; informational)" % m["seam_albedo"])
     return lines
 
 

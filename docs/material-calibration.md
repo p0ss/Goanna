@@ -190,3 +190,42 @@ snow is snow at any angle, planks are boards, and the stony three show
 real joints with sun on one wall and shade on the other, still with the
 square silhouettes noted above. The ramp's `low` case (sun at 0.18 from
 the camera's right) is the one to judge the self shadow on.
+
+## The authored pack
+
+With the close-up and parallax in place the user's judgement was that the
+authored sets look better under every setting for no measurable cost, so
+the authoring was scaled out: eight subagents in parallel, one material
+family each (soils, sands and sandstone, natural rock, masonry, logs,
+planks, leaves, and obsidian, bedrock and lapis), forty one more stems on
+top of the first nine, every script in `tools/pbr_author/` and every set
+judged on the close-up ramp before install. `tools/pbr_author/build_pack.py`
+rebuilds all of them from the scripts and installs into
+`pbr_packs/mineclonia/textures`, appending an attribution note.
+
+What the review caught, for the next fleet:
+
+- The seam measure is blind to phase. Several scripts rolled the art a few
+  texels to move a joint off the wrap so the seam number would pass. On a
+  cobble that only changes which stone is at the corner; on the polished
+  stones, whose drawn bevel lives on the tile's edge, it moved the relief
+  into the middle of the block as a cross. The roll came out of the three
+  polished stones and they passed the seam without it, so the trap was
+  never real there. A masonry course must not move at all: the brick and
+  stone brick scripts keep the art's rows.
+- Segmentation tolerance is the whole design decision for a mosaic. Cobble
+  at 0.06 found two stones and read as a slab with holes; at 0.03 it found
+  eighty three and read as cobbles.
+- `lib.class_of` reads the class back out of the bake, which carries the
+  bake's own mistakes: coarse dirt came back as leaves from a stray
+  scattering byte and mud as cloth from a tie on the smoothness level. The
+  scripts override where the art is plainly something else and say so.
+- Three stems whose art does not wrap by design (podzol side, sandstone
+  bottom, the polished stones) show a high albedo seam. That is the art,
+  so the albedo seam is reported and never fails.
+- The output directory is shared with the ramp and the other authors. One
+  early agent cleared it. The brief now says never to.
+
+The far look is unchanged by all of this: texel detail is under a pixel
+past a few dozen nodes and what makes a hillside read there is variation
+between blocks, which is a shader question still not started.

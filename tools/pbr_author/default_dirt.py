@@ -54,7 +54,7 @@ def main():
     lo, hi = region_lum.min(), region_lum.max()
     target = 0.15 + 0.65 * (region_lum - lo) / max(hi - lo, 1e-6)
 
-    labels_hi = np.kron(labels, np.ones((16, 16), dtype=int))
+    labels_hi = lib.warp_labels(labels)
     edges = lib.region_edges(labels_hi)
     max_dist = 4  # crown fade half width; regions are 16 to 96 hires texels wide
     dist = lib.distance_to_edge(edges, max_dist=max_dist)

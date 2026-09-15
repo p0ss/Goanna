@@ -38,6 +38,8 @@ extends Node3D
 # Knobs, the same as lighting_chart.gd: GOANNA_SUN, GOANNA_SDFGI,
 # GOANNA_SSAO, GOANNA_WHITE, GOANNA_EXPOSURE, GOANNA_TONEMAP, GOANNA_MAT,
 # GOANNA_TIMES="noon,glint", GOANNA_BAKED_DIR and GOANNA_VARIED_DIR.
+# GOANNA_RAMP_STEMS="a,b,c" replaces the pack row's stems (labels are the
+# stems), for looking at a batch the table above does not list.
 # GOANNA_CLOSE=1 is the close up layout: the pack row alone, four cubes to
 # a row, the camera near enough that a cube is about 300 pixels wide, which
 # is the scale at which relief, occlusion and roughness variation can be
@@ -54,6 +56,8 @@ extends Node3D
 # Run: PROBE_OUT=/tmp/ramp godot --path project material_ramp.tscn
 
 const STEPS := [0, 64, 128, 192, 230, 255]
+
+var materials := MATERIALS
 
 const MATERIALS := [
 	["stone", "default_stone"],
@@ -269,6 +273,10 @@ func _ready() -> void:
 	if baked_dir == "":
 		baked_dir = ProjectSettings.globalize_path("res://../baked/pack-mineclonia-v2/textures")
 	varied_dir = OS.get_environment("GOANNA_VARIED_DIR")
+	if OS.get_environment("GOANNA_RAMP_STEMS") != "":
+		materials = []
+		for st in OS.get_environment("GOANNA_RAMP_STEMS").split(",", false):
+			materials.append([st.strip_edges(), st.strip_edges()])
 	light_sun = _envf("GOANNA_SUN", light_sun)
 	strengths = _strengths()
 
@@ -326,7 +334,7 @@ func _ready() -> void:
 	var plain := StandardMaterial3D.new()
 	plain.albedo_color = Color(0.5, 0.5, 0.5)
 	plain.roughness = 1.0
-	var count := maxi(STEPS.size(), MATERIALS.size())
+	var count := maxi(STEPS.size(), materials.size())
 	var width := SPACING * (count + 1)
 	var cx := SPACING * (count - 1) * 0.5
 	var floor_box := BoxMesh.new()
@@ -340,9 +348,9 @@ func _ready() -> void:
 	if close_up:
 		# Four to a row, rows stepping back and up so every top face and
 		# front face is in view, the camera low and near.
-		for i in MATERIALS.size():
-			var label: String = MATERIALS[i][0]
-			var mat := _packed(baked_dir, MATERIALS[i][1])
+		for i in materials.size():
+			var label: String = materials[i][0]
+			var mat := _packed(baked_dir, materials[i][1])
 			if mat == null:
 				continue
 			var r := i / 4
@@ -364,14 +372,14 @@ func _ready() -> void:
 		var x := (i - (STEPS.size() - 1) * 0.5) * SPACING + cx
 		cubes["dielectric"].append(["sm%d" % s, _place(mesh, _synthetic(s, false), Vector3(x, 0.5, ROW_Z["dielectric"]))])
 		cubes["metal"].append(["sm%d" % s, _place(mesh, _synthetic(s, true), Vector3(x, 0.5, ROW_Z["metal"]))])
-	for i in MATERIALS.size():
-		var label: String = MATERIALS[i][0]
-		var mat := _packed(baked_dir, MATERIALS[i][1])
+	for i in materials.size():
+		var label: String = materials[i][0]
+		var mat := _packed(baked_dir, materials[i][1])
 		if mat == null:
 			continue
 		cubes["pack"].append([label, _place(mesh, mat, Vector3(i * SPACING, 0.5, ROW_Z["pack"]))])
 		if varied_dir != "":
-			var vmat := _packed(varied_dir, MATERIALS[i][1])
+			var vmat := _packed(varied_dir, materials[i][1])
 			if vmat != null:
 				cubes["pack"].append([label + "+var", _place(mesh, vmat,
 						Vector3(i * SPACING, 0.5, ROW_Z["pack"] + VARIED_DZ))])
@@ -410,7 +418,7 @@ func _run_cases() -> void:
 			# the outer columns sit degrees off it, and a smooth lobe is
 			# narrower than that, so the first version of this measured the
 			# layout rather than the roughness.
-			var columns := maxi(STEPS.size(), MATERIALS.size())
+			var columns := maxi(STEPS.size(), materials.size())
 			if close_up:
 				columns = cubes["pack"].size()
 			for col in columns:
@@ -462,7 +470,7 @@ func _run_cases() -> void:
 func _column_of(row: String, mi: MeshInstance3D) -> int:
 	if row == "pack":
 		return int(round(mi.position.x / SPACING))
-	var count := maxi(STEPS.size(), MATERIALS.size())
+	var count := maxi(STEPS.size(), materials.size())
 	var cx := SPACING * (count - 1) * 0.5
 	return int(round((mi.position.x - cx) / SPACING + (STEPS.size() - 1) * 0.5)) \
 			+ (count - STEPS.size()) / 2
