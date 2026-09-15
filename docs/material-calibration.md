@@ -96,3 +96,52 @@ the sun glint, so it stays.
 Confirmed only on the fixture. No Mineclonia server was up on the day, and
 the working tree carried another session's uncommitted C++, which the
 shared checkout rules say not to link for a measurement.
+
+## The close-up, and what plastic turned out to mean
+
+The wide ramp measures levels. The complaint was about structure, which
+the wide ramp cannot show: a cube forty pixels across has no texel detail
+left. `GOANNA_CLOSE=1` lays the pack row out four to a row with the camera
+near enough that a cube is about three hundred pixels wide, and the ramp
+applies the relief gain the client would (`GOANNA_NORMAL_GAIN` pins it),
+which for the Mineclonia bake is 2.86.
+
+Measured on the pack's normal maps, 2026-09-15: median texel tilt 5.9
+degrees over 400 maps, stone 12.6, cobble 12.4, grass top 7.9, and the
+occlusion channel never below 0.81 on any of them. A cobble with mortar
+has facets at forty to sixty degrees along every joint and occlusion under
+a third in the cracks. The bake's relief is the pixel grid embossed: each
+16 px source texel a plateau with a soft edge, and at the client's gain
+every texel outline becomes a ridge. That, not the specular level, is what
+reads as moulded plastic. A correct BSDF on a surface with no structure.
+
+Three sets of the same twelve stems were put on the close-up:
+
+- the bake as it is, at gain 2.86;
+- the bake lifted (`tools/pbr_relief_normalise.py`, new): tangent slope
+  scaled to a class target tilt, occlusion recomputed from the height
+  channel stretched to full range. Stone went 12.6 to 31.1 degrees and its
+  occlusion floor from 0.81 to 0.03. It looks like the bake, deeper: the
+  same embossed texel edges, more of them;
+- authored (`tools/pbr_author/`, new): one script per stem builds a
+  height field and a smoothness field from the game's 16 px art, deciding
+  what the surface is (which texels are one stone, where the mortar runs,
+  what the grain does inside a plank), and `lib.py` derives the normal,
+  the occlusion and the `_s` map from those two fields so they agree.
+  Written by three subagents against metric targets they could check
+  without seeing: mean tilt by class, occlusion floor, smoothness spread,
+  seam on every map.
+
+Judged by eye on the close-up: sand and snow are the clear wins, real
+grain and a soft crust where the bake had a plateau per texel. Planks
+read as boards with grain. Stone, dirt and gravel are better than the
+bake but still carry its signature, because the scripts dome each region
+of the art with a distance field on the nearest upscaled label map, so
+every dome has the square outline of the texels it came from. The next
+step there is rounding the region silhouettes before the distance field
+(a smooth upscale of each region mask, edges warped by noise), which is a
+`lib.py` change and a rerun, not new authoring.
+
+None of this reaches the distant view, where texel detail is under a
+pixel and what makes a reference hillside read as a surface is variation
+between blocks. That is a shader question and is not started.

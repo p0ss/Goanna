@@ -37,7 +37,16 @@ extends Node3D
 #
 # Knobs, the same as lighting_chart.gd: GOANNA_SUN, GOANNA_SDFGI,
 # GOANNA_SSAO, GOANNA_WHITE, GOANNA_EXPOSURE, GOANNA_TONEMAP, GOANNA_MAT,
-# GOANNA_TIMES="noon,glint", GOANNA_BAKED_DIR and GOANNA_VARIED_DIR. Only
+# GOANNA_TIMES="noon,glint", GOANNA_BAKED_DIR and GOANNA_VARIED_DIR.
+# GOANNA_CLOSE=1 is the close up layout: the pack row alone, four cubes to
+# a row, the camera near enough that a cube is about 300 pixels wide, which
+# is the scale at which relief, occlusion and roughness variation can be
+# seen at all. The wide layout above is for levels; this one is for
+# structure, and the same GOANNA_BAKED_DIR swap compares two packs.
+# GOANNA_NORMAL_GAIN is pack_normal_gain: unset, it is worked out from the
+# loaded set the way GoannaTextureArray does it (ninth decile of the per
+# texture tilt lifted to 55 degrees, capped at 4), so a flat pack is shown
+# lifted as the client would show it; a number pins it. Only
 # here: GOANNA_SUN_ANGLE, the sun's angular diameter in degrees (the real
 # sun is 0.53; main.gd leaves Godot's 0, a point, which is what makes the
 # smoothest steps lose the glint: the lobe is a needle that never lands).
@@ -93,6 +102,9 @@ var cam: Camera3D
 var light_sun := 1.0
 var light_ambient := 0.42
 var cubes := {} # row -> [[label, MeshInstance3D]]
+var close_up := false
+var pack_tilts := [] # per loaded texture, mean of |xy|^2, the client's measure
+var pack_materials := []
 var results := {}
 var strengths := {}
 
@@ -170,9 +182,44 @@ func _packed(dir: String, stem: String) -> ShaderMaterial:
 		return null
 	var nrm := _load_image(dir, stem + "_n.png")
 	var spc := _load_image(dir, stem + "_s.png")
-	return _shader_material(_array_from(alb),
+	if nrm != null:
+		pack_tilts.append(_tilt_var(nrm))
+	var mat := _shader_material(_array_from(alb),
 			_array_from(nrm) if nrm != null else null,
 			_array_from(spc) if spc != null else null)
+	pack_materials.append(mat)
+	return mat
+
+
+# src/goanna_textures.cpp's per texture relief measure: the mean squared
+# tangent slope, sampled on a stride so it stays quick.
+func _tilt_var(nrm: Image) -> float:
+	var acc := 0.0
+	var n := 0
+	for y in range(0, nrm.get_height(), 4):
+		for x in range(0, nrm.get_width(), 4):
+			var c := nrm.get_pixel(x, y)
+			var dx := c.r * 2.0 - 1.0
+			var dy := c.g * 2.0 - 1.0
+			acc += dx * dx + dy * dy
+			n += 1
+	return acc / maxf(n, 1)
+
+
+# The client's pack_normal_gain, from the set as loaded.
+func _pack_gain() -> float:
+	var v := OS.get_environment("GOANNA_NORMAL_GAIN")
+	if v != "":
+		return float(v)
+	if pack_tilts.size() < 8:
+		return 1.0
+	var t := pack_tilts.duplicate()
+	t.sort()
+	var p90: float = sqrt(t[int(t.size() * 0.9)])
+	var target := sin(deg_to_rad(55.0))
+	if p90 > 1e-4 and p90 < target:
+		return minf(4.0, target / p90)
+	return 1.0
 
 
 # A node sized cube with the world's vertex layout, as lighting_chart.gd
@@ -286,6 +333,28 @@ func _ready() -> void:
 	var mesh := _cube_mesh()
 	for row in ROW_Z:
 		cubes[row] = []
+	close_up = OS.get_environment("GOANNA_CLOSE") != ""
+	if close_up:
+		# Four to a row, rows stepping back and up so every top face and
+		# front face is in view, the camera low and near.
+		for i in MATERIALS.size():
+			var label: String = MATERIALS[i][0]
+			var mat := _packed(baked_dir, MATERIALS[i][1])
+			if mat == null:
+				continue
+			var r := i / 4
+			var c := i % 4
+			cubes["pack"].append([label, _place(mesh, mat,
+					Vector3((c - 1.5) * 1.3, 0.5 + r * 1.15, -r * 1.3))])
+		cam = Camera3D.new()
+		cam.fov = 40
+		cam.position = Vector3(0.0, 3.4, 5.2)
+		add_child(cam)
+		cam.look_at(Vector3(0.0, 1.5, -0.8), Vector3.UP)
+		cam.current = true
+		_apply_gain()
+		await _run_cases()
+		return
 	for i in STEPS.size():
 		var s: int = STEPS[i]
 		# centred under the pack row, which is the longer one
@@ -310,7 +379,18 @@ func _ready() -> void:
 	add_child(cam)
 	cam.look_at(Vector3(cx, 0.5, 0.0), Vector3.UP)
 	cam.current = true
+	_apply_gain()
+	await _run_cases()
 
+
+func _apply_gain() -> void:
+	var g := _pack_gain()
+	print("RAMP pack_normal_gain %.2f over %d relief maps" % [g, pack_tilts.size()])
+	for m in pack_materials:
+		m.set_shader_parameter("pack_normal_gain", g)
+
+
+func _run_cases() -> void:
 	var names: Array = CASES.keys()
 	if OS.get_environment("GOANNA_TIMES") != "":
 		names = Array(OS.get_environment("GOANNA_TIMES").split(",", false))
@@ -328,13 +408,18 @@ func _ready() -> void:
 			# narrower than that, so the first version of this measured the
 			# layout rather than the roughness.
 			var columns := maxi(STEPS.size(), MATERIALS.size())
+			if close_up:
+				columns = cubes["pack"].size()
 			for col in columns:
 				var probe := Vector3.ZERO
 				var picks := []
 				for row in cubes:
 					for entry in cubes[row]:
 						var mi: MeshInstance3D = entry[1]
-						if _column_of(row, mi) == col:
+						var here_col := _column_of(row, mi)
+						if close_up:
+							here_col = cubes[row].find(entry)
+						if here_col == col:
 							picks.append([row, entry[0], mi])
 							probe = mi.global_position
 				if picks.is_empty():
@@ -477,9 +562,9 @@ func _measure_cube(case_name: String, img: Image, row: String, label: String,
 		mi: MeshInstance3D, faces: Array) -> void:
 	var per: Dictionary = results[case_name]
 	for face in faces:
+		var half := (5 if face == "top" else 6) * (6 if close_up else 1)
 		var r: Dictionary = _patch(img, mi.global_position
-				+ (Vector3(0, 0.51, 0) if face == "top" else Vector3(0, 0, 0.51)),
-				5 if face == "top" else 6)
+				+ (Vector3(0, 0.51, 0) if face == "top" else Vector3(0, 0, 0.51)), half)
 		var rgb: Vector3 = r["rgb"]
 		print("RAMP %s %s %s %s rgb=%d,%d,%d luma=%.0f sd=%.1f max=%.0f" % [
 			case_name, row, label, face, rgb.x, rgb.y, rgb.z, r["luma"], r["sd"], r["max"]])
