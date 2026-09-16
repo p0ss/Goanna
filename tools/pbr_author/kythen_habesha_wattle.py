@@ -1,52 +1,35 @@
-"""Hand authored LabPBR height and smoothness for kythen_habesha_wattle,
-woven withies.
+"""Hand authored LabPBR height and smoothness for kythen_habesha_wattle, a
+woven wattle panel: withies woven over and under, a basket weave.
 
-The 32 px art has a clean period four pattern in both row means and column
-means: [0.19, 0.28, 0.30, 0.31] repeating eight times across both axes,
-identically. A withy runs as a rounded strand about three texels wide with
-a one texel dark gap where the weave dips under its neighbour, in both the
-horizontal and the vertical direction at once, which is exactly what a
-plain basket weave looks like seen face on.
+lib.class_of reads "leaves" for this stem (printed below, on the record).
+That reading does not fit what the 32 px art actually shows. Every one of
+its six colours is a warm brown (r > g > b throughout, luminance 0.123 to
+0.370), nothing green or leaf coloured at any point, and the row and
+column means both show the same sharp period 4 pattern: texels at row % 4
+== 0 sit at 0.183 to 0.194, then climb through three brighter steps to a
+local peak just before the next such row, and columns do exactly the same
+thing at col % 4 == 0. That is a crisp, regular grid of dark lines running
+both ways across the tile, eight cells by eight cells, not a scattered or
+organic pattern the way foliage art in this game reads elsewhere (compare
+kythen_habesha_fig_leaf or kythen_habesha_coffee_leaf, both irregular
+blotches, no grid). A geometric brown lattice is a woven panel, not
+leaves, so "wood" (tilt target 18 to 28) is used for pack and check below
+instead of class_of's reading, on the strength of the colour and the grid
+alone; wood's own smoothness level fits an oiled or weathered withy far
+better than the leaf class's would.
 
-Because the row and column statistics are identical, there is no signal in
-the art that says which strand goes over and which goes under at a given
-crossing (an actual over-under alternation would show up as different
-brightness on alternating crossings, and it does not here). Rather than
-invent an alternation the art does not draw, the two directions are built
-as two ridge fields, one varying only with y and one only with x, each
-tiling exactly on its own period, and combined with max() so both strands
-read continuously along their own length and a crossing reads as a
-slightly higher knot where two withies meet, which is what this art
-actually shows.
-
-IMPORTANT for the next person tempted to add a real over-under checkerboard
-here: it has been tried three times in this file's history and has failed
-the tile every time, for the same structural reason each time, whether the
-swap is a hard coefficient flip, a np.where on the strand fields themselves
-followed by a continuous blend, or a discrete trough mask on top of that
-blend. A checkerboard mask (cell_y + cell_x) % 2 changes value at a cell
-boundary that sits in the middle of the map, not only at the tile's own
-wrap edge, and whichever quantity is switched by that mask (a coefficient,
-which field plays "over", or which trough gets subtracted) generally holds
-a different value on the two sides of that swap, so the swap itself plants
-a discontinuity at every cell boundary. seam_n and seam_s measure exactly
-that kind of discontinuity, comparing the tile's wrap edge to its ordinary
-internal joins; they fail whether or not the wrap edge itself lands on a
-swap, because the metric is now dominated by the many non-wrap swaps
-scattered through the interior. The failures recorded while testing this
-file: a hard coefficient flip (seam_n 3.3 to 4.1), a np.where flip feeding
-a continuous blend (tilt overshot to 45 degrees, seam_n 2.9, seam_s 9.3),
-and a np.where flip plus a separate discrete trough subtraction (seam_n
-2.8, seam_s 2.8). max() of two independently periodic fields, used below,
-has no such swap anywhere and tiles cleanly on every attempt.
-
-max() alone left ao_min at 0.78 (want 0.35 or under): the "gap" phase, 0
-in both ridge fields, is already their shared floor, and normalise01 never
-pushed that floor low enough to read as a real hole. stamp_grid below adds
-one identical pit per weave cell, at the same phase (0, 0) every time, no
-checkerboard, no alternation, so it tiles for the same reason ridge()
-does: every cell gets the same treatment as every other, with nothing
-that differs on the two sides of any boundary, wrap included.
+The grid's cells (the 3 by 3 texel squares between the dark lines) carry
+no consistent brightness split between "over" and "under": grouping the
+32 cells into a checkerboard by (row band + column band) parity and
+comparing means gives 0.333 against 0.333, no difference at all. So the
+art draws the weave's grid, the withies' own edges, but not which strand
+passes over which at each crossing; that is invented here, the way the
+brief expects, using the standard basket weave rule (the strand direction
+alternates by cell parity) so the alternation is at least the real over
+under rule a basket follows, not an arbitrary choice. The grid lines
+themselves are straight, not warped: a regular, dressed period 4 lattice
+is a woven, manufactured surface, the same reasoning timber_laced.py gives
+for not warping its own lattice.
 """
 import sys
 
@@ -56,101 +39,148 @@ import lib
 
 GAME = "kythen"
 STEM = "kythen_habesha_wattle"
-CLS = lib.class_of(STEM, GAME)
 
 
-def ridge(phase):
-    """A single smooth lobe per period, 0 at the gap (phase 0) rising to 1
-    at the strand's rounded crown (phase 0.5) and back to 0 at the next
-    gap: one minus cosine is exactly periodic, so this tiles on its own."""
-    return 0.5 * (1.0 - np.cos(phase * 2 * np.pi))
+def smoothstep(t):
+    t = np.clip(t, 0.0, 1.0)
+    return t * t * (3 - 2 * t)
 
 
-def dome_stamp(radius, amp):
-    """A round bump (amp > 0) or pit (amp < 0), zero slope at its own rim,
-    the same stamp cast_bronze.py and fig_bark.py use for their own
-    localised relief."""
-    d = np.arange(-radius, radius + 1, dtype=np.float32)
-    dy, dx = np.meshgrid(d, d, indexing="ij")
-    r = np.sqrt(dx ** 2 + dy ** 2)
-    dome = np.where(r <= radius, 0.5 * (1.0 + np.cos(np.pi * np.clip(r, 0, radius) / radius)), 0.0)
-    return (amp * dome).astype(np.float32)
-
-
-def stamp_grid(size, period, radius, amp):
-    """One negative stamp per weave cell, at a fixed position within every
-    cell (no alternation, no checkerboard): every cell gets an identical
-    pit at phase (0, 0), where both ridge fields already sit at their own
-    floor, standing in for the real hole a weave has where a withy tucks
-    fully out of sight under its neighbour. Same location every period, so
-    this tiles exactly, the same reasoning the module docstring gives for
-    ridge() itself, with none of the mid-tile discontinuity a checkerboard
-    swap plants."""
-    field = np.zeros((size, size), dtype=np.float32)
-    stamp = dome_stamp(radius, amp)
-    for cy in range(0, size, period):
-        for cx in range(0, size, period):
-            ys_ = (np.arange(-radius, radius + 1) + cy) % size
-            xs_ = (np.arange(-radius, radius + 1) + cx) % size
-            idx = np.ix_(ys_, xs_)
-            field[idx] = np.minimum(field[idx], stamp)
-    return field
+def blur_axis(field, radius, axis):
+    if radius <= 0:
+        return field
+    k = 2 * radius + 1
+    acc = np.zeros_like(field)
+    for d in range(-radius, radius + 1):
+        acc += np.roll(field, d, axis=axis)
+    return acc / k
 
 
 def main():
     out_dir = sys.argv[1]
     src = lib.load_source(STEM, GAME)
-    print(f"{STEM}: art shape {src.shape}, class_of reads {CLS}")
-
+    print(f"{STEM}: art shape {src.shape}")
     rgb = src[..., :3]
     lum = lib.luminance(rgb)
     print(f"lum min {lum.min():.3f} max {lum.max():.3f} mean {lum.mean():.3f} sd {lum.std():.3f}")
-    print("unique shades:", sorted(set(np.round(lum.ravel(), 3).tolist())))
+    uniq = sorted(set(np.round(lum.ravel(), 3).tolist()))
+    print("unique shades:", uniq)
+    class_of_reads = lib.class_of(STEM, GAME)
+    print(f"lib.class_of reads: {class_of_reads} (overridden to 'wood' below, see module docstring)")
+
+    for tol in (0.03, 0.06, 0.1):
+        seg_labels, n = lib.segments(rgb, tolerance=tol)
+        sizes = sorted([int((seg_labels == i).sum()) for i in range(n)], reverse=True)
+        print(f"lib.segments tolerance {tol}: {n} regions, sizes {sizes[:10]}"
+              f"{' ...' if len(sizes) > 10 else ''}")
+
+    h, w = lum.shape
     print("row means:", np.round(lum.mean(axis=1), 3))
     print("col means:", np.round(lum.mean(axis=0), 3))
-    print("row and column stats match: a period four weave, symmetric in "
-          "both directions, with no over-under signal in the brightness")
+
+    r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
+    print(f"colour check: r>g everywhere {bool((r >= g).all())}, "
+          f"g>=b everywhere {bool((g >= b).all())} (a uniformly warm, brown palette)")
+
+    groove_row = (np.arange(h) % 4 == 0)
+    groove_col = (np.arange(w) % 4 == 0)
+    groove_mask = np.zeros((h, w), dtype=bool)
+    groove_mask[groove_row, :] = True
+    groove_mask[:, groove_col] = True
+    print(f"groove texels (row or col % 4 == 0): {int(groove_mask.sum())} of {groove_mask.size}, "
+          f"mean lum {lum[groove_mask].mean():.3f} versus {lum[~groove_mask].mean():.3f} elsewhere")
+
+    n_cells = h // 4
+    cell_lum = np.zeros((n_cells, n_cells))
+    for rb in range(n_cells):
+        for cb in range(n_cells):
+            rows = [rb * 4 + 1, rb * 4 + 2, rb * 4 + 3]
+            cols = [cb * 4 + 1, cb * 4 + 2, cb * 4 + 3]
+            cell_lum[rb, cb] = lum[np.ix_(rows, cols)].mean()
+    even = cell_lum[(np.add.outer(np.arange(n_cells), np.arange(n_cells)) % 2) == 0]
+    odd = cell_lum[(np.add.outer(np.arange(n_cells), np.arange(n_cells)) % 2) == 1]
+    print(f"checkerboard cell means: even parity {even.mean():.3f}, odd parity {odd.mean():.3f} "
+          "(no real difference: the over/under alternation is invented below, not read off the art)")
 
     SIZE = lib.SIZE
-    scale = SIZE // src.shape[0]
-    period_map = 4 * scale  # the art's own period four weave, at map scale
+    scale = SIZE // h
+    groove_hi = np.repeat(np.repeat(groove_mask, scale, axis=0), scale, axis=1)
 
-    ys = np.arange(SIZE)[:, None]
-    xs = np.arange(SIZE)[None, :]
-    phase_y = (ys % period_map) / period_map
-    phase_x = (xs % period_map) / period_map
+    # Cell parity decides which strand shows on top at that crossing, the
+    # standard basket weave rule: (row band + column band) even means the
+    # horizontal strand is uppermost there, odd means the vertical one is.
+    row_band = np.arange(SIZE) // (4 * scale)
+    col_band = np.arange(SIZE) // (4 * scale)
+    parity = (row_band[:, None] + col_band[None, :]) % 2
+    horizontal_on_top = parity == 0
 
-    h_strand = np.broadcast_to(ridge(phase_y), (SIZE, SIZE))
-    v_strand = np.broadcast_to(ridge(phase_x), (SIZE, SIZE))
-    weave = np.maximum(h_strand, v_strand * 0.92) * 0.5 + 0.3
+    over_level = 0.80
+    under_level = 0.60
+    strand_level = np.where(horizontal_on_top, over_level, under_level)
 
-    # A real hole at each crossing, not just a lower ridge: max() alone
-    # left ao_min at 0.78, because the "gap" phase 0 point is already the
-    # ridge fields' own floor and normalise01 never pushed it deep enough
-    # to self shadow. One identical pit per weave cell (stamp_grid, no
-    # checkerboard, see the module docstring for why that matters for the
-    # seam) gives every crossing a genuine dip down to where the withy
-    # actually disappears from view.
-    pit = stamp_grid(SIZE, period_map, radius=5, amp=-2.0)
-    weave = lib.normalise01(weave + pit, 0.5, 99.5)
+    # Straight, unwarped edges: a regular, dressed lattice, not natural
+    # stone, the same reasoning timber_laced.py gives for its own grid.
+    # A wide ramp with a little coherent wobble, the same trick
+    # timber_laced.py and default_stone_brick.py both use on their own
+    # joints, so the transition's steepest point does not land on the same
+    # row or column for every crossing: without it the wrap, where a row
+    # groove and a column groove both fall on row 0 and column 0 at once,
+    # reads as a much sharper step than an ordinary interior crossing.
+    edge = lib.region_edges(groove_hi.astype(int))
+    max_dist = 6
+    dist0 = lib.distance_to_edge(edge, max_dist=max_dist)
+    wobble = lib.fbm(SIZE, base_cells=48, octaves=2, seed=81) * 2.5
+    dist = np.where(groove_hi, 0.0, np.clip(dist0 + wobble, 0.0, max_dist))
+    t = smoothstep(dist / max_dist)
+    groove_level = 0.10
+    ramped = groove_level + (strand_level - groove_level) * t
+    layout = np.where(groove_hi, groove_level, ramped)
 
-    grain = lib.fbm(SIZE, base_cells=40, octaves=3, seed=601, gain=0.55) * 0.04
-    height = lib.normalise01(weave + grain, 0.5, 99.5)
+    # A very slight rounded cross section along each strand's own width,
+    # a withy is a rounded rod, not a flat ribbon, kept low: this is a
+    # dressed weave, not a cobble.
+    crown = lib.fbm(SIZE, base_cells=8, octaves=2, seed=82) * 0.03
+    layout = layout + crown * t
+
+    # Directional grain along each strand's own run: horizontal cells get
+    # grain blurred along x, vertical cells get grain blurred along y, the
+    # same blur_axis default_tree.py uses for bark, applied per cell.
+    grain_x_src = lib.fbm(SIZE, base_cells=24, octaves=3, seed=83, gain=0.55)
+    grain_y_src = lib.fbm(SIZE, base_cells=24, octaves=3, seed=84, gain=0.55)
+    grain_x = blur_axis(grain_x_src, 8, axis=1) * 0.04
+    grain_y = blur_axis(grain_y_src, 8, axis=0) * 0.04
+    grain = np.where(horizontal_on_top, grain_x, grain_y)
+
+    pores = lib.blur(lib.white_noise(SIZE, seed=85), 1) * 0.02
+
+    height = lib.normalise01(layout + grain + pores, 0.5, 99.5)
     print(f"height sd {height.std():.3f}")
 
-    rough_noise = lib.fbm(SIZE, base_cells=20, octaves=3, seed=602)
-    smooth = 0.5 * height + 0.5 * rough_noise
+    # Smoothness follows height: the groove gathers dust and stays rough,
+    # the strand tops are what hands and weather smooth, with the wood's
+    # own patchy variation riding on top.
+    rough_noise = lib.fbm(SIZE, base_cells=20, octaves=3, seed=86)
+    smooth = 0.55 * height + 0.45 * rough_noise
     print(f"pre pack smooth sd {smooth.std():.3f}")
 
     albedo = lib.upscale(src[..., :3])
 
-    normal_strength = 24
-    m = lib.pack(STEM, out_dir, albedo, height, smooth, CLS,
-            normal_strength=normal_strength, art_texels=src.shape[0])
-    print(f"normal_strength={normal_strength}")
+    normal_strength = 14
+    cls = "wood"
+    # The default fine_detail (0.35) damps the groove along with any texel
+    # scale grit, since the groove is only one art texel wide; that is
+    # real joint structure here, not rubble grain, so it keeps its depth
+    # with fine_detail 0.7 instead of the default, the way mcl_core_iron_ore
+    # keeps its own texel scale nodule detail at 1.0 for the same reason.
+    fine_detail = 0.7
+    m = lib.pack(STEM, out_dir, albedo, height, smooth, cls,
+            normal_strength=normal_strength, art_texels=src.shape[0],
+            fine_detail=fine_detail)
+    print(f"normal_strength={normal_strength}, fine_detail={fine_detail}, "
+          f"class used for pack/check: {cls}")
     for k, v in m.items():
         print(f"  {k} = {v:.4f}")
-    lines = lib.check(m, CLS)
+    lines = lib.check(m, cls)
     for line in lines:
         print(line)
     lib.preview(out_dir, STEM, str(out_dir) + "/" + STEM + "_preview.png")
