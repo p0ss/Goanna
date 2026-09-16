@@ -843,10 +843,8 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
             }
         }
         if (is_self && en.animator) {
-            // First-person arm. Goanna does not pose it any more than it has
-            // to: the game already does, and now that the dig key is reported
-            // it does it for a dig as well. All that is left here is a swing
-            // for a game that never touches the bone.
+            // The local mining clock poses the wield arm. Other interactions
+            // keep the game's animation and the existing fallback swing.
             float yaw = 0.0f, pitch = 0.0f;
             if (LocalPlayer *lp = session.player()) {
                 yaw = lp->getYaw();
@@ -861,12 +859,6 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
                     godot::UtilityFunctions::print("arm bone chosen: ", String(en.arm_bone.c_str()));
                 }
             }
-            // A game that poses this bone itself is already saying where the
-            // arm goes, and now that Goanna reports the dig key it says it for
-            // a dig too (Mineclonia switches to its mine animation and aims
-            // the arm down the look). Adding a swing of our own on top of that
-            // only overshoots, so the local swing is the fallback for games
-            // that leave the bone alone, not a second opinion.
             if (!en.arm_bone.empty()) {
                 // Degrees about the joint's pitch axis at the top of the
                 // swing, and how much of the look pitch the arm takes with it
@@ -884,10 +876,17 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
                 (void)arm_env;
                 // Everything scales with the swing, so at rest the arm is
                 // exactly where the model and the server left it.
-                float swing = m_arm_swing * (A[0] + A[1] * pitch);
-                if (obj.boneOverrides().count(en.arm_bone))
-                    swing = 0.0f;
-                en.animator->setJointRotationOverride(en.arm_bone, v3f(swing, 0, 0));
+                const auto &dig = session.interactState();
+                const bool mining = (dig.digging && dig.dig_time_complete < 100000) || dig.dig_impact;
+                const bool aimed = obj.boneOverrides().count(en.arm_bone) != 0;
+                float swing = aimed ? 0.0f : m_arm_swing * (A[0] + A[1] * pitch);
+                if (mining) {
+                    // The game owns aiming/rest scales; we own the single
+                    // lift/downstroke while mining. Contact is the aimed pose.
+                    swing = (aimed ? 0.0f : dig.swing * (A[0] + A[1] * pitch))
+                            + 90.0f + 45.0f * (1.0f - dig.swing);
+                }
+                en.animator->setJointRotationOverride(en.arm_bone, v3f(swing, 0, 0), mining);
             }
         }
         // skeletal animation: GenericCAO::updateAnimation, then a step

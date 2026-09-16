@@ -396,10 +396,29 @@ void ModelAnimator::step(float dt, std::map<std::string, BoneOverride> &override
     // animateJoints: local transforms for this frame, transition blending
     const auto &joints = mesh->getAllJoints();
     std::vector<scene::SkinnedMesh::SJoint::VariantTransform> locals = mesh->animateMesh(m_current_frame);
+    // The arm also inherits the baked punch's torso twist. Hold its ancestor
+    // chain as well as its subtree, leaving the legs/other arm animated.
+    // Do not blend these joints back through the previous punch pose.
+    std::vector<bool> mining_joints(joints.size(), false);
+    if (m_freeze_arm && m_rot_override_joint) {
+        if (m_arm_reference.empty()) m_arm_reference = mesh->animateMesh(0.0f);
+        std::optional<u16> parent = (u16)*m_rot_override_joint;
+        while (parent) {
+            mining_joints[*parent] = true;
+            parent = joints[*parent]->ParentJointID;
+        }
+        for (size_t i = 0; i < joints.size(); ++i) {
+            std::optional<u16> ancestor = (u16)i;
+            while (ancestor && *ancestor != *m_rot_override_joint)
+                ancestor = joints[*ancestor]->ParentJointID;
+            if (ancestor) mining_joints[i] = true;
+            if (mining_joints[i]) locals[i] = m_arm_reference[i];
+        }
+    }
     for (size_t i = 0; i < joints.size(); ++i) {
         if (auto *t = std::get_if<core::Transform>(&locals[i])) {
             // Transition: blend from the pose shown last step (copyOldTransforms).
-            if (m_transiting != 0.f && m_last_locals_valid[i])
+            if (m_transiting != 0.f && m_last_locals_valid[i] && !mining_joints[i])
                 *t = m_last_locals[i].interpolate(*t, m_transiting_blend);
             m_last_locals[i] = *t;
             m_last_locals_valid[i] = true;
@@ -513,7 +532,9 @@ bool ModelAnimator::hasJoint(const std::string &name) const {
     return m_model->skinned && m_model->skinned->getJointNumber(name).has_value();
 }
 
-void ModelAnimator::setJointRotationOverride(const std::string &name, const v3f &euler_deg) {
+void ModelAnimator::setJointRotationOverride(const std::string &name, const v3f &euler_deg, bool freeze_arm) {
+    if (!freeze_arm || name != m_rot_override_name) m_arm_reference.clear();
+    m_freeze_arm = freeze_arm;
     if (name != m_rot_override_name) {
         m_rot_override_name = name;
         m_rot_override_joint = m_model->skinned ? m_model->skinned->getJointNumber(name)

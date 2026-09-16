@@ -32,6 +32,7 @@
 #include "goanna_sky.h"
 #include "transplant/client/content_cao.h"
 #include "goanna_models.h"
+#include "goanna_mining_cycle.h"
 #include "hud_element.h"
 #include "inventory.h"
 #include "util/pointedthing.h"
@@ -216,10 +217,11 @@ public:
         v3f pos;
         std::string texture;   // the node's own tile, so the pieces match it
         u32 colour = 0xffffffff;
-        int count = 1;         // 16 when it breaks, 1 while it is being hit
+        v3f normal = v3f(0, 1, 0);
+        int count = 1;         // a burst per contact, larger on completion
     };
     std::vector<NodeDugEvent> takeDugNodes();
-    void queueDugParticles(v3s16 nodepos, const ContentFeatures &features, int count);
+    void queueDugParticles(v3s16 nodepos, const ContentFeatures &features, int count, const PointedThing &hit);
     std::vector<s32> takeStoppedSounds();
     // --- particles ---
     // A particle spawner the server asked for: a box of positions with
@@ -332,6 +334,8 @@ public:
     struct InteractState {
         PointedThing pointed;
         bool digging = false;
+        bool dig_impact = false;
+        float impact_progress = 0, swing = 0;
         float dig_time = 0, dig_time_complete = 0;
         int crack_level = -1;   // -1 none
         v3s16 crack_pos;
@@ -488,6 +492,7 @@ private:
     std::unique_ptr<LocalPlayer> m_player;
     std::map<u16, std::unique_ptr<GoannaActiveObject>> m_objects;
     InteractState m_interact;
+    goanna::MiningCycle m_mining_cycle;
     PointedThing m_pointed_old;
     float m_nodig_delay_timer = 0, m_repeat_place_timer = 0;
     float m_object_hit_delay_timer = 0;
@@ -545,7 +550,6 @@ private:
     std::vector<v3s16> m_preready_blocks;
     std::vector<SoundEvent> m_sounds;
     std::vector<NodeDugEvent> m_dug_nodes;
-    float m_dig_particle_timer = 0.0f;
     std::vector<ParticleSpawnerEvent> m_spawners;
     std::vector<u32> m_deleted_spawners;
     std::vector<ParticleEvent> m_particles;

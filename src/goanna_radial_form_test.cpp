@@ -232,11 +232,6 @@ void testImpactLocality() {
             int removed=0;
             for (int z=0;z<16;++z) for (int y=0;y<16;++y) for (int x=0;x<16;++x) {
                 const int index=z*256+y*16+x;
-                const float dx=(x+.5f)/16-.5f-hit[0];
-                const float dy=(y+.5f)/16-.5f-hit[1];
-                const float dz=(z+.5f)/16-.5f-hit[2];
-                const bool inside=dx*dx+dy*dy+dz*dz <= step*step*.08f*.08f+1e-9f;
-                check(!grid[index] == inside, "only subcubes inside the actual impact are removed");
                 check(previous[index] || !grid[index], "successive blows never regrow material");
                 if (!grid[index]) ++removed;
             }
@@ -255,13 +250,82 @@ void testImpactLocality() {
     }
 }
 
+void testInterpolatedControls() {
+    // Halfway between face, two edges and corner: four equal influences.
+    const auto mixed = strike(RadialForm(), .25f, .5f, .25f, .2f, AXIS_YP);
+    int changed = 0;
+    for (const auto &d : mixed.displacement) {
+        if (d.axis[1] > 0) ++changed;
+        check(d.axis[0] == 0 && d.axis[2] == 0, "top impact has no sideways displacement");
+    }
+    check(changed == 4, "off-centre impact updates four neighbouring controls");
+    check(std::fabs(formInset(mixed, AXIS_YP, .25f,.5f,.25f)-.2f)<1e-6f,
+            "interpolated depth at impact equals requested depth");
+    for (int f : {AXIS_XN,AXIS_XP,AXIS_YN,AXIS_ZN,AXIS_ZP})
+        check(formInset(mixed,f,.1f,.1f,.1f)==0, "unstruck faces keep their extents");
+    check(formSolid(mixed, -.49f,.49f,-.49f), "opposite corner remains intact");
+    const auto a = strike(RadialForm(), 0,.5f,0,.2f,AXIS_YP);
+    const auto b = strike(RadialForm(), .5f,.5f,0,.2f,AXIS_YP);
+    RadialForm average;
+    for (int i=0;i<26;++i) for (int axis=0;axis<3;++axis)
+        average.displacement[i].axis[axis] =
+            .5f*(a.displacement[i].axis[axis]+b.displacement[i].axis[axis]);
+    for (float x : {-.3f,0.f,.1f,.25f,.4f})
+        check(std::fabs(formInset(average,AXIS_YP,x,.5f,0) - .5f*(
+                formInset(a,AXIS_YP,x,.5f,0)+formInset(b,AXIS_YP,x,.5f,0)))<1e-6f,
+                "surface blends control values, rather than taking a union of cuts");
+    // Sweep across the former nearest-slot boundaries and the lattice seams.
+    for (int i=-499;i<500;++i) {
+        const float x=i*.001f;
+        auto left=strike(RadialForm(),x,.5f,.13f,.2f,AXIS_YP);
+        auto right=strike(RadialForm(),x+.001f,.5f,.13f,.2f,AXIS_YP);
+        for (float q : {-.4f,-.1f,0.f,.1f,.3f,.49f})
+            check(std::fabs(formInset(left,AXIS_YP,q,.5f,.13f)-
+                    formInset(right,AXIS_YP,q,.5f,.13f))<.003f,
+                    "moving the impact continuously changes the surface");
+    }
+    // Sharing an edge control must not make a later side strike erase top damage.
+    auto both=strike(mixed,.5f,.25f,.25f,.15f,AXIS_XP);
+    check(formInset(both,AXIS_YP,.25f,.5f,.25f)==formInset(mixed,AXIS_YP,.25f,.5f,.25f),
+            "adjacent face retains its deformation when a shared edge is struck");
+}
+
 void testDigFrameIndependence() {
     FormDig fine, coarse;
-    for (int i=1;i<=240;++i) fine.advance(i/240.f,.125f,.5f,0,.6f);
-    for (float progress : {.07f,.32f,.68f,1.f}) coarse.advance(progress,.125f,.5f,0,.6f);
+    for (int i=1;i<=240;++i) fine.advance(i/240.f,.125f,.5f,0);
+    for (float progress : {.07f,.32f,.68f,1.f}) coarse.advance(progress,.125f,.5f,0);
     check(formGrid(fine.form,16)==formGrid(coarse.form,16), "skipping dig stages preserves depth");
-    check(!coarse.advance(1.f,.125f,.5f,0,.6f), "holding the same progress adds no damage");
-    check(!coarse.advance(.5f,.125f,.5f,0,.6f), "earlier progress cannot undo a cut");
+    check(!coarse.advance(1.f,.125f,.5f,0), "holding the same progress adds no damage");
+    check(!coarse.advance(.5f,.125f,.5f,0), "earlier progress cannot undo a cut");
+    // Health, not surface depth: a half-health sand block is half material,
+    // while a harder block loses the same total volume in smaller contacts.
+    for (int blows : {2, 3, 8}) for (int face = 0; face < 6; ++face) {
+        FormDig dig;
+        dig.form.resolution = 16;
+        auto before = formGrid(dig.form,16);
+        for (int hit = 1; hit <= blows; ++hit) {
+            float p[3] = {.21f,-.12f,.34f};
+            p[face/2] = (face & 1) ? .5f : -.5f;
+            float damage = float(hit)/blows;
+            dig.advance(damage,p[0],p[1],p[2],face);
+            check(std::abs(formVolume(dig.form,16)-(1-damage)) < .015f,
+                    "visible material tracks remaining health on every face");
+            auto after = formGrid(dig.form,16);
+            for (size_t i=0;i<after.size();++i)
+                check(!after[i] || before[i], "a health-based impact cannot refill a cut");
+            before = after;
+        }
+    }
+    FormDig moved;
+    moved.form.resolution = 16;
+    moved.advance(.25f,.2f,.5f,.1f,AXIS_YP);
+    const auto before = formGrid(moved.form,16);
+    moved.advance(.5f,.5f,-.15f,.3f,AXIS_XP);
+    const auto after = formGrid(moved.form,16);
+    check(std::abs(formVolume(moved.form,16)-.5f)<.015f,
+            "changing impact face retains the cumulative health budget");
+    for (size_t i=0;i<after.size();++i)
+        check(!after[i] || before[i], "changing faces never restores removed material");
 }
 
 // Rasterise every emitted rectangle onto the oriented unit face lattice. Each
@@ -310,18 +374,20 @@ void testSurfaceCoverage() {
     check(formSurfaces(formGrid(RadialForm(),n),n,0,63).empty(), "buried pristine block emits nothing");
 }
 
-// Export the ACTUAL compact cuts and occupancy for the optional Lua parity
+// Export the actual displacement controls and occupancy for the optional Lua parity
 // check. No second C++ shape implementation or hand-maintained fixture.
 void dumpImpactCases() {
-    for (const auto &hit : std::vector<std::array<float,3>>{{0,.5f,0},{.125f,.5f,0},
-            {.49f,.5f,.49f},{-.5f,0,-.5f}}) {
+    std::vector<std::array<float,3>> hits = {{0,.5f,0},{.125f,.5f,0},
+            {.49f,.5f,.49f},{-.5f,0,-.5f}};
+    for (int i=-9;i<=9;++i) hits.push_back({i*.05f,.5f,.13f});
+    for (const auto &hit : hits) {
         RadialForm form;
         for (int step=0;step<5;++step) {
             form=strike(form,hit[0],hit[1],hit[2],.08f);
-            std::printf("{\"carve\":[");
+            std::printf("{\"hit\":[%.9g,%.9g,%.9g],\"step\":%d,\"displacement\":[",hit[0],hit[1],hit[2],step);
             bool first=true;
-            for (const auto &c:form.carve) if (c.radius>0) {
-                std::printf("%s[%.9g,%.9g,%.9g,%.9g]",first?"":",",c.x,c.y,c.z,c.radius);
+            for (const auto &c:form.displacement) {
+                std::printf("%s[%.9g,%.9g,%.9g]",first?"":",",c.axis[0],c.axis[1],c.axis[2]);
                 first=false;
             }
             std::printf("],\"grid\":\"");
@@ -338,6 +404,7 @@ int main(int argc, char **argv) {
         dumpImpactCases();
         return 0;
     }
+    testInterpolatedControls();
     testImpactLocality();
     testDigFrameIndependence();
     testSurfaceCoverage();

@@ -24,7 +24,7 @@ extern bool g_goanna_no_light;
 namespace goanna { struct RadialForm; }
 extern const goanna::RadialForm *g_goanna_carve;
 
-// Depth per fifth of a completed dig (legacy GOANNA_CARVE units); zero disables.
+// Legacy GOANNA_CARVE switch: positive enables health-based cuts; zero disables.
 extern float g_goanna_carve_depth;
 
 // Static review row at world Y/Z; disabled when Y is zero.

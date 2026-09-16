@@ -6,7 +6,7 @@
 // Compact authored forms and transient impact damage. The subcube grid is
 // reconstructed only while meshing; it is never stored per world node.
 // Authored box/extents/bore fields retain Kythen's existing bake semantics.
-// Impact cuts add at most one vector (centre + radius) per face, edge or corner.
+// Impacts deform a shared surface lattice: one vector per face, edge and corner.
 // The legacy 16-bit face word cannot encode arbitrary impact positions, and is
 // not implicitly read from ordinary nodes' lighting/facedir parameters.
 
@@ -40,11 +40,10 @@ struct FormBox {
     float x1, y1, z1, x2, y2, z2;
 };
 
-// A local subtraction, indexed by the nearest of the 26 surface directions.
-// Radius zero means unused. Keeping the impact point prevents damage snapping
-// to the centre of a face or opening a second dent at a control direction.
-struct FormCut {
-    float x = 0, y = 0, z = 0, radius = 0;
+// Inward displacement along each axis at a fixed surface lattice point.
+// Edge/corner controls are shared by adjacent faces; components remain independent.
+struct FormDisplacement {
+    float axis[3] = {0, 0, 0};
 };
 
 // Convex box planes, authored radial slices, and bores keep separate meanings.
@@ -70,9 +69,7 @@ struct RadialForm {
         0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
         0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f
     };
-    // Same primitive as Kythen normalise({carve={{x,y,z,r},...}}). The
-    // live driver bounds it to one vector per surface direction.
-    FormCut carve[FORM_PLANE_COUNT];
+    FormDisplacement displacement[FORM_PLANE_COUNT];
     int resolution = 8;
 
     RadialForm() {
@@ -88,16 +85,23 @@ uint16_t wordFromParams(uint8_t param1, uint8_t param2);
 // Add quantised face damage to a legacy word, saturating each face.
 uint16_t digWord(uint16_t base, FormAxis face, float progress);
 
-// A local spherical bite at the actual impact. Repeated blows deepen it;
-// nearby impacts in one slot merge conservatively so damage never regrows.
-RadialForm strike(const RadialForm &form, float px, float py, float pz, float depth);
+// Bilinear inward displacement on a face, using its four nearest lattice controls.
+// Faces use FormAxis order (-X,+X,-Y,+Y,-Z,+Z), not Luanti mesh face order.
+float formInset(const RadialForm &form, int face, float px, float py, float pz);
 
-// Fixed progress quanta catch up skipped frames without changing cut depth.
+// Distribute a blow across the nearest controls. face=-1 infers the cube face
+// from the hit position; live raycasts supply the actual normal at edge ties.
+RadialForm strike(const RadialForm &form, float px, float py, float pz,
+        float depth, int face = -1);
+
+// Remove the fraction of material corresponding to health lost at contacts.
 // The caller resets this when digging ends or the target changes.
 struct FormDig {
     RadialForm form;
-    int step = 0;
-    bool advance(float progress, float px, float py, float pz, float total_depth);
+    float applied_progress = 0;
+    float remaining_volume = 1;
+    int initial_cells = -1;
+    bool advance(float damage, float px, float py, float pz, int face = -1);
 };
 
 // One greedy rectangle of the exposed surface. Face order matches Luanti:

@@ -918,6 +918,12 @@ void GoannaSession::onShowFormspec(NetworkPacket &pkt) {
 // ---- interaction: Game::updatePointedThing / handleDigging / place, transplanted in spirit ----
 
 void GoannaSession::setWieldIndex(u16 index) {
+    if (index != m_wield_index && m_interact.digging) {
+        sendInteract(INTERACT_STOP_DIGGING, m_pointed_old);
+        m_interact.digging = false;
+        m_interact.dig_time = 0;
+        m_interact.crack_level = -1;
+    }
     m_wield_index = index;
     if (m_player)
         m_player->setWieldIndex(index);
@@ -983,6 +989,7 @@ void GoannaSession::selectObjects(const core::line3d<f32> &shootline, std::vecto
 void GoannaSession::stepInteract(float dtime, const InteractInput &in) {
     if (!m_player || !m_ready_sent)
         return;
+    m_interact.dig_impact = false;
     // wielded / hand items
     ItemStack selected_item, hand_item;
     if (InventoryList *main = m_inventory->getList("main"))
@@ -1056,26 +1063,60 @@ void GoannaSession::stepInteract(float dtime, const InteractInput &in) {
                         features.name.c_str(), tool_item.name.c_str(), params.diggable, params.time);
             if (!m_interact.digging) {
                 m_dig_instantly = m_interact.dig_time_complete == 0;
+                int chips = 1;
+                if (params.diggable && !m_dig_instantly) {
+                    const int effort = std::min(8, (int)std::round(params.time * 3));
+                    switch (goanna::classifyNode(m_nodedef, n.getContent())) {
+                    case goanna::MaterialClass::Stone:
+                    case goanna::MaterialClass::Metal: chips = 4 + effort; break;
+                    case goanna::MaterialClass::Wood: chips = 3 + effort / 2; break;
+                    case goanna::MaterialClass::Ice: chips = 4; break;
+                    case goanna::MaterialClass::Soil:
+                    case goanna::MaterialClass::Sand:
+                    case goanna::MaterialClass::Gravel: chips = 3; break;
+                    default: break;
+                    }
+                }
+                m_mining_cycle.reset(m_interact.dig_time_complete, chips);
+                m_interact.impact_progress = 0;
+                dtime = 0; // START is sent now; do not spend the preceding frame's time.
                 sendInteract(INTERACT_START_DIGGING, pointed);
                 m_interact.digging = true;
                 m_btn_down_for_dig = true;
             }
             int cal = crackAnimationLength();
-            float dig_index = m_dig_instantly ? cal : (float)cal * m_interact.dig_time / m_interact.dig_time_complete;
-            if (m_interact.dig_time_complete >= 100000.0f) {
-                m_interact.crack_level = -1;
-            } else if (dig_index < cal) {
-                m_interact.crack_level = (int)dig_index;
-                m_interact.crack_pos = nodepos;
-                // A node sheds a few pieces while it is being hit, not only
-                // when it gives way. Rate limited rather than per step, or a
-                // fast machine would throw far more of them than a slow one
-                // for the same swing.
-                m_dig_particle_timer -= dtime;
-                if (m_dig_particle_timer <= 0.0f) {
-                    m_dig_particle_timer = 0.1f;
-                    queueDugParticles(nodepos, features, 1);
+            const bool diggable = m_interact.dig_time_complete < 100000.0f;
+            if (diggable) m_interact.dig_time_complete = (float)m_mining_cycle.duration;
+            m_interact.dig_impact = diggable && m_mining_cycle.advance(dtime);
+            m_interact.dig_time = diggable ? (float)m_mining_cycle.elapsed : 0;
+            m_interact.impact_progress = diggable ? m_mining_cycle.progress() : 0;
+            m_interact.swing = diggable ? m_mining_cycle.pose(m_interact.dig_impact) : 0;
+            if (m_interact.dig_impact) {
+                const bool finished = m_mining_cycle.complete();
+                queueDugParticles(nodepos, features, finished ? 16 : 5, pointed);
+                const SoundSpec &spec = finished && !features.sound_dug.name.empty()
+                        ? features.sound_dug : features.sound_dig;
+                SoundEvent ev;
+                ev.name = spec.name;
+                ev.gain = spec.gain;
+                ev.pitch = spec.pitch;
+                if (ev.name == "__group") {
+                    ev.name = params.main_group.empty() ? "" : "default_dig_" + params.main_group;
+                    ev.gain = .5f;
                 }
+                if (!ev.name.empty()) {
+                    ev.positional = true;
+                    const v3f hit = pointed.intersection_point / BS;
+                    ev.pos = v3f(hit.X, hit.Y, -hit.Z);
+                    std::lock_guard<std::mutex> sl(m_sound_mutex);
+                    m_sounds.push_back(ev);
+                }
+            }
+            if (!diggable) {
+                m_interact.crack_level = -1;
+            } else if (!m_mining_cycle.complete()) {
+                m_interact.crack_level = (int)(cal * m_interact.impact_progress);
+                m_interact.crack_pos = nodepos;
             } else {
                 // Digging completed
                 m_interact.crack_level = -1;
@@ -1102,25 +1143,11 @@ void GoannaSession::stepInteract(float dtime, const InteractInput &in) {
                     queueBlockUpdate(kv.first);
                 queueBlocksAround(nodepos);
                 sendInteract(INTERACT_DIGGING_COMPLETED, pointed);
-                queueDugParticles(nodepos, features, 16);
-                if (!features.sound_dug.name.empty()) {
-                    SoundEvent ev;
-                    ev.name = features.sound_dug.name;
-                    ev.gain = features.sound_dug.gain;
-                    ev.pitch = features.sound_dug.pitch;
-                    ev.positional = true;
-                    ev.pos = v3f(nodepos.X, nodepos.Y, -nodepos.Z);
-                    std::lock_guard<std::mutex> sl(m_sound_mutex);
-                    m_sounds.push_back(ev);
-                }
                 if (std::getenv("GOANNA_DEBUG_DIG"))
                     fprintf(stderr, "goanna dig: COMPLETED %s after %.2fs\n",
                             features.name.c_str(), m_interact.dig_time_complete);
             }
-            if (m_interact.dig_time_complete < 100000.0f)
-                m_interact.dig_time += dtime;
-            else
-                m_interact.dig_time = 0;
+
         }
         // placing (Game::nodePlacement without prediction)
         if (place_now) {
@@ -2527,16 +2554,23 @@ void GoannaSession::onFadeSound(NetworkPacket &pkt) {
 // The pieces a node throws off, made from the node's own top tile so they are
 // recognisably bits of the thing that broke. Luanti's client does this itself
 // and so does this one; nothing about it goes over the network.
-void GoannaSession::queueDugParticles(v3s16 nodepos, const ContentFeatures &features, int count) {
+void GoannaSession::queueDugParticles(v3s16 nodepos, const ContentFeatures &features, int count, const PointedThing &hit) {
     if (!features.visuals)
         return;
-    const TileLayer &tl = features.visuals->tiles[0].layers[0];
+    const v3f normal = hit.intersection_normal;
+    const int face = normal.Y != 0 ? (normal.Y > 0 ? 0 : 1) :
+            normal.X != 0 ? (normal.X > 0 ? 2 : 3) : (normal.Z > 0 ? 4 : 5);
+    const TileLayer &tl = features.visuals->tiles[face].layers[0];
     if (!tl.texture_id)
         return;
     NodeDugEvent ev;
-    ev.pos = v3f(nodepos.X, nodepos.Y, -nodepos.Z);
+    const v3f point = hit.intersection_point / BS + normal * .045f;
+    ev.pos = v3f(point.X, point.Y, -point.Z);
+    ev.normal = v3f(normal.X, normal.Y, -normal.Z);
     ev.texture = tsrc()->imageName(tl.texture_id, tl.texture_layer_idx);
-    ev.colour = tl.has_color ? tl.color.color : 0xffffffff;
+    video::SColor colour = tl.color;
+    if (!tl.has_color) features.visuals->getColor(m_map->getNode(nodepos).param2, &colour);
+    ev.colour = colour.color;
     ev.count = count;
     if (ev.texture.empty())
         return;

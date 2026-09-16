@@ -29,7 +29,6 @@ var _players: Array = []              # free 3D voices
 var _players_flat: Array = []         # free non-positional voices
 var _by_server_id := {}               # server sound id -> player (for stop)
 var _foot_timer := 0.0
-var _was_digging := false
 
 func _ready() -> void:
 	for i in MAX_VOICES:
@@ -153,10 +152,9 @@ func _process(delta: float) -> void:
 	for id in client.take_stopped_sounds():
 		stop_server_sound(int(id))
 
-# Footsteps, and the sounds of digging and finishing a dig: the vanilla client
-# makes these itself from the node's definition, so Goanna does too.
+# Local footsteps. Mining sounds arrive in the session event queue at contact.
 func step_local(delta: float, moving: bool, on_ground: bool, stand_node: String,
-		pointed: Dictionary) -> void:
+		_pointed: Dictionary) -> void:
 	if moving and on_ground and stand_node != "":
 		_foot_timer -= delta
 		if _foot_timer <= 0.0:
@@ -164,11 +162,7 @@ func step_local(delta: float, moving: bool, on_ground: bool, stand_node: String,
 			_play_node_sound(stand_node, "footstep", 1.0)
 	else:
 		_foot_timer = 0.0
-	var digging := bool(pointed.get("digging", false))
-	var node_name := str(pointed.get("node_name", ""))
-	if digging and not _was_digging and node_name != "":
-		_play_node_sound(node_name, "dig", 0.8)
-	_was_digging = digging
+	# Mining sounds are queued by the session at hand contact.
 
 func node_dug(node_name: String) -> void:
 	_play_node_sound(node_name, "dug", 1.0)

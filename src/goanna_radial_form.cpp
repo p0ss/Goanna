@@ -11,7 +11,7 @@
 // Defined here rather than in the transplanted mesher, unlike g_goanna_bevel:
 // this is Goanna's own state and there is no reason to put it in upstream code.
 const goanna::RadialForm *g_goanna_carve = nullptr;
-// Legacy environment value is depth per fifth of a completed dig.
+// Legacy environment value: positive enables carving, zero disables it.
 float g_goanna_carve_depth = 0.12f;
 int g_goanna_carve_demo = 0;
 int g_goanna_carve_demo_z = 0;
@@ -23,8 +23,8 @@ namespace {
 constexpr float kR3 = 0.57735026918962576451f; // 1 / sqrt(3)
 constexpr float kR2b = 0.70710678118654752440f; // 1 / sqrt(2)
 
-// The twenty six plane directions, in the Lua's order: six faces, twelve edge
-// midpoints, eight corners. Both ends index this, so it must not be reordered.
+// Native control order: six faces, twelve edges, eight corners. Lua uses
+// named keys (its array order differs); the parity exporter maps these keys.
 const float kPlane[FORM_PLANE_COUNT][3] = {
     {-1.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f},
     {0.0f, -1.0f, 0.0f}, {0.0f, 1.0f, 0.0f},
@@ -52,8 +52,8 @@ float support(const float origin[3], float ux, float uy, float uz) {
 // Lua's DIG_DEPTH.
 constexpr float kDigDepth = 0.35f;
 
-// Preserve the authored radial field used by Kythen. Live impacts use local
-// subtraction vectors, so increasing sharpness is no longer a digging knob.
+// Preserve the authored radial field used by Kythen. Live impacts use interpolated
+// displacement vectors, so increasing sharpness is no longer a digging knob.
 constexpr int kPower = 12;
 
 constexpr int kDamageSteps = 3;
@@ -143,44 +143,146 @@ RadialForm formFromWord(uint16_t word) {
     return form;
 }
 
-RadialForm strike(const RadialForm &form, float px, float py, float pz, float depth) {
-    RadialForm out = form;
-    if (!(depth > 0.0f) || !std::isfinite(depth))
-        return out;
-    const float v[3] = {px - form.origin[0], py - form.origin[1], pz - form.origin[2]};
-    int slot = 0;
-    float best = -1e30f;
-    for (int i = 0; i < FORM_PLANE_COUNT; ++i) {
-        const float dot = v[0]*kPlane[i][0] + v[1]*kPlane[i][1] + v[2]*kPlane[i][2];
-        if (dot > best) { best = dot; slot = i; }
+namespace {
+// Cardinal hat functions on the fixed {-0.5, 0, 0.5} surface lattice.
+// Exactly four controls contribute inside a face quadrant. Their weights sum
+// to one, including across quadrant boundaries and at edges/corners.
+float surfaceWeight(int control, int face, const float p[3]) {
+    const int axis = face / 2;
+    const float sign = (face & 1) ? 1.0f : -1.0f;
+    if (kPlane[control][axis] * sign <= 0) return 0;
+    float weight = 1;
+    for (int a = 0; a < 3; ++a) {
+        if (a == axis) continue;
+        const float anchor = kPlane[control][a] == 0 ? 0 :
+                (kPlane[control][a] > 0 ? 0.5f : -0.5f);
+        weight *= std::max(0.0f, 1.0f - 2.0f * std::fabs(
+                std::clamp(p[a], -0.5f, 0.5f) - anchor));
     }
-    FormCut &cut = out.carve[slot];
-    if (cut.radius <= 0) {
-        cut = {px, py, pz, depth};
-    } else {
-        // Enclose the existing bite and a small new bite at the impact. Unlike
-        // moving an old dent to the latest hit, this can only remove material.
-        const float dx = px-cut.x, dy = py-cut.y, dz = pz-cut.z;
-        const float distance = std::sqrt(dx*dx + dy*dy + dz*dz);
-        const float radius = std::max(cut.radius + depth,
-                (distance + cut.radius + depth) * 0.5f);
-        const float shift = std::min(radius-cut.radius, distance);
-        if (distance > 1e-9f) {
-            cut.x += dx * shift / distance;
-            cut.y += dy * shift / distance;
-            cut.z += dz * shift / distance;
-        }
-        cut.radius = radius;
+    return weight;
+}
+}
+
+float formInset(const RadialForm &form, int face, float px, float py, float pz) {
+    if (face < 0 || face >= 6) return 0;
+    const float p[3] = {px, py, pz};
+    float inset = 0;
+    for (int i = 0; i < FORM_PLANE_COUNT; ++i) {
+        const float d = form.displacement[i].axis[face / 2];
+        if (d > 0) inset += surfaceWeight(i, face, p) * d;
+    }
+    return inset;
+}
+
+RadialForm strike(const RadialForm &form, float px, float py, float pz,
+        float depth, int face) {
+    RadialForm out = form;
+    if (!(depth > 0) || !std::isfinite(depth) || !std::isfinite(px) ||
+            !std::isfinite(py) || !std::isfinite(pz)) return out;
+    const float p[3] = {px, py, pz};
+    if (face < 0) {
+        int axis = 0;
+        for (int a = 1; a < 3; ++a)
+            if (std::fabs(p[a]) > std::fabs(p[axis])) axis = a;
+        face = 2 * axis + (p[axis] >= 0 ? 1 : 0);
+    }
+    if (face >= 6) return out;
+    float weights[FORM_PLANE_COUNT], squared = 0;
+    for (int i = 0; i < FORM_PLANE_COUNT; ++i) {
+        weights[i] = surfaceWeight(i, face, p);
+        squared += weights[i] * weights[i];
+    }
+    // The same interpolation reads and writes the field. Normalise by the
+    // squared weights so the requested depth is measured at the hit point,
+    // rather than weakening halfway between controls. Positive updates ensure
+    // moving a strike never refills previously removed material.
+    for (int i = 0; i < FORM_PLANE_COUNT; ++i) {
+        float &d = out.displacement[i].axis[face / 2];
+        d = std::min(1.0f, d + depth * weights[i] / squared);
     }
     return out;
 }
 
-bool FormDig::advance(float progress, float px, float py, float pz, float total_depth) {
-    const int next = std::min(16, static_cast<int>(clamp01(progress) * 16.0f + 1e-5f));
-    if (next <= step || !(total_depth > 0))
+bool FormDig::advance(float damage, float px, float py, float pz, int face) {
+    if (!std::isfinite(damage) || !std::isfinite(px) || !std::isfinite(py) || !std::isfinite(pz))
         return false;
-    form = strike(form, px, py, pz, total_depth * (next-step) / 16.0f);
-    step = next;
+    const float next = clamp01(damage);
+    if (next <= applied_progress) return false;
+    const float hit[3] = {px, py, pz};
+    if (face < 0) {
+        int axis = 0;
+        for (int a = 1; a < 3; ++a)
+            if (std::fabs(hit[a]) > std::fabs(hit[axis])) axis = a;
+        face = 2 * axis + (hit[axis] >= 0 ? 1 : 0);
+    }
+    if (face >= 6) return false;
+    const int axis = face / 2, u = (axis+1)%3, v = (axis+2)%3;
+    const float sign = (face & 1) ? 1.0f : -1.0f;
+    const int n = std::max(1, form.resolution);
+    const auto grid = formGrid(form, n);
+    const int occupied = (int)std::count(grid.begin(), grid.end(), true);
+    if (initial_cells < 0) initial_cells = occupied;
+    const int target = (int)std::round(initial_cells * (1.0f-next));
+
+    // Interpolated nearest controls lead the cut. A small continuous falloff
+    // across the struck face lets a large blow widen after those controls
+    // reach the back, instead of leaving most of a low-health cube untouched.
+    float weights[FORM_PLANE_COUNT] = {}, maximum = 0;
+    for (int i = 0; i < FORM_PLANE_COUNT; ++i) {
+        if (kPlane[i][axis] * sign <= 0) continue;
+        float distance2 = 0;
+        for (int a : {u, v}) {
+            const float anchor = kPlane[i][a] == 0 ? 0 : (kPlane[i][a] > 0 ? .5f : -.5f);
+            const float delta = std::clamp(hit[a], -.5f, .5f) - anchor;
+            distance2 += delta*delta;
+        }
+        weights[i] = surfaceWeight(i, face, hit) + .08f / (1.0f + 16.0f*distance2);
+        maximum = std::max(maximum, 1.0f / weights[i]);
+    }
+    // Cache face interpolation once per subcube column. Volume fitting only
+    // visits the still-solid cells and runs once per impact, never per frame.
+    struct Column {
+        float weights[FORM_PLANE_COUNT];
+        std::vector<float> depths;
+    };
+    std::vector<Column> columns;
+    for (int j = 0; j < n; ++j) for (int i = 0; i < n; ++i) {
+        Column col;
+        float p[3] = {};
+        p[u] = (i+.5f)/n-.5f;
+        p[v] = (j+.5f)/n-.5f;
+        for (int c = 0; c < FORM_PLANE_COUNT; ++c) col.weights[c] = surfaceWeight(c, face, p);
+        for (int k = 0; k < n; ++k) {
+            int index[3]; index[u] = i; index[v] = j; index[axis] = k;
+            if (grid[index[2]*n*n + index[1]*n + index[0]])
+                col.depths.push_back(.5f-sign*((k+.5f)/n-.5f));
+        }
+        if (!col.depths.empty()) columns.push_back(std::move(col));
+    }
+    auto remaining = [&](float amount) {
+        float inset[FORM_PLANE_COUNT];
+        for (int i = 0; i < FORM_PLANE_COUNT; ++i)
+            inset[i] = std::min(1.0f, form.displacement[i].axis[axis] + amount*weights[i]);
+        int count = 0;
+        for (const auto &col : columns) {
+            float depth = 0;
+            for (int i = 0; i < FORM_PLANE_COUNT; ++i) depth += col.weights[i]*inset[i];
+            for (float cell : col.depths) if (depth <= cell+1e-7f) ++count;
+        }
+        return count;
+    };
+    float lo = 0, hi = maximum;
+    for (int i = 0; i < 22; ++i) {
+        const float mid = (lo+hi)*.5f;
+        if (remaining(mid) > target) lo = mid;
+        else hi = mid;
+    }
+    // Whole subcubes make volume discrete; choose the closest available cut.
+    const float amount = std::abs(remaining(lo)-target) < std::abs(remaining(hi)-target) ? lo : hi;
+    remaining_volume = (float)remaining(amount) / (n*n*n);
+    for (int i = 0; i < FORM_PLANE_COUNT; ++i)
+        form.displacement[i].axis[axis] = std::min(1.0f, form.displacement[i].axis[axis] + amount*weights[i]);
+    applied_progress = next;
     return true;
 }
 
@@ -206,10 +308,10 @@ uint16_t digWord(uint16_t base, FormAxis face, float progress) {
 }
 
 bool formSolid(const RadialForm &form, float px, float py, float pz) {
-    for (const FormCut &cut : form.carve) {
-        if (cut.radius <= 0) continue;
-        const float dx = px-cut.x, dy = py-cut.y, dz = pz-cut.z;
-        if (dx*dx + dy*dy + dz*dz <= cut.radius*cut.radius + 1e-9f)
+    const float p[3] = {px, py, pz};
+    for (int face = 0; face < 6; ++face) {
+        const float sign = (face & 1) ? 1.0f : -1.0f;
+        if (sign * p[face / 2] > 0.5f - formInset(form, face, px, py, pz) + 1e-7f)
             return false;
     }
     const float vx = px - form.origin[0];

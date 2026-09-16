@@ -122,6 +122,10 @@ add_executable(goanna_radial_form_test EXCLUDE_FROM_ALL
     src/goanna_radial_form.cpp
 )
 target_include_directories(goanna_radial_form_test PRIVATE src)
+add_executable(goanna_mining_cycle_test EXCLUDE_FROM_ALL
+    src/goanna_mining_cycle_test.cpp src/goanna_radial_form.cpp)
+target_include_directories(goanna_mining_cycle_test PRIVATE src)
+
 # transplanted client files use bare includes ("mapblock_mesh.h") that must
 # resolve to Luanti's originals; goanna's own headers come first.
 set_source_files_properties(

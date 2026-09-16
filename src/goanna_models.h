@@ -115,7 +115,9 @@ public:
     // Relative rather than absolute because the model may bake a half turn
     // into the joint's rest (Mineclonia's character does, as a scale flip),
     // which an absolute pose silently mirrors.
-    void setJointRotationOverride(const std::string &name, const v3f &euler_deg);
+    // freeze_arm holds the arm subtree and ancestors at their reference frame,
+    // before applying server aiming and the local stroke.
+    void setJointRotationOverride(const std::string &name, const v3f &euler_deg, bool freeze_arm = false);
     bool hasJoint(const std::string &name) const;
 
 private:
@@ -133,6 +135,8 @@ private:
     std::optional<u32> m_rot_override_joint;
     std::string m_rot_override_name;
     v3f m_rot_override_euler;
+    bool m_freeze_arm = false;
+    std::vector<scene::SkinnedMesh::SJoint::VariantTransform> m_arm_reference;
 };
 
 // Irrlicht matrix (row vectors, left-handed) to a Godot transform, z mirrored.

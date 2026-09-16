@@ -1909,13 +1909,16 @@ func _shots(dir: String) -> void:
 
 # Per-frame environment extras: the cave head-light follows the camera, and
 # the fog switches to a dense underwater tint while the eye is submerged.
-# First-person arm swing: continuous chop while digging, a single bob on
-# place. The arm itself (and the item in its hand) is the body's right arm,
-# posed toward the camera by the renderer; this just drives the phase.
+# Mining uses the session contact clock; place and object punches retain
+# their independent gesture. The renderer poses the body's actual wield arm.
 func _update_wield(delta: float) -> void:
+	if bool(pointed.get("mining_swing", false)):
+		swing_t = 1.0
+		client.set_arm_swing(float(pointed.get("swing", 0.0)))
+		return
 	if swing_t < 1.0:
 		swing_t = minf(swing_t + delta * 3.4, 1.0)
-	elif wield_dig_active:
+	elif wield_dig_active and str(pointed.get("type", "")) == "object":
 		swing_t = 0.0
 	client.set_arm_swing(sin(swing_t * PI))
 

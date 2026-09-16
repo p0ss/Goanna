@@ -190,7 +190,7 @@ GoannaClient::GoannaClient() {
     const char *bd = std::getenv("GOANNA_BODY");
     if (bd)
         m_show_body = atoi(bd) != 0;
-    // Subnode cut depth per fifth of a complete dig. Zero turns carving
+    // Legacy carving switch. Zero turns carving
     // off entirely and the dig falls back to the crack overlay alone, which is
     // what makes an A/B shot of the same dig possible.
     const char *cv = std::getenv("GOANNA_CARVE");
@@ -1659,18 +1659,21 @@ Dictionary GoannaClient::step_interact(double dt, bool dig, bool place, bool pla
     const auto &st = m_session->interactState();
     const PointedThing &pt = st.pointed;
 
-    // Damage follows elapsed dig progress in fixed quanta. A skipped crack
-    // animation frame no longer drops a blow; a faster renderer adds none.
+    // Only contacts advance deformation; animation, sound and debris use the
+    // same session clock. Skipped frames coalesce contacts without losing depth.
     if (st.crack_level >= 0 && pt.type == POINTEDTHING_NODE && g_goanna_carve_depth > 0) {
-        if (st.crack_pos != m_carve_pos) {
+        if (st.crack_pos != m_carve_pos || st.impact_progress < m_carve.applied_progress) {
             m_carve = goanna::FormDig();
             m_carve.form.resolution = 16;
             m_carve_pos = st.crack_pos;
         }
         const v3f hit = pt.intersection_point / BS
                 - v3f((f32)m_carve_pos.X, (f32)m_carve_pos.Y, (f32)m_carve_pos.Z);
-        const float progress = st.dig_time_complete > 0 ? st.dig_time / st.dig_time_complete : 1;
-        if (m_carve.advance(progress, hit.X, hit.Y, hit.Z, g_goanna_carve_depth * 5))
+        const float progress = st.impact_progress;
+        const v3f normal = pt.intersection_normal;
+        const int face = normal.X != 0 ? (normal.X > 0 ? 1 : 0) :
+                normal.Y != 0 ? (normal.Y > 0 ? 3 : 2) : (normal.Z > 0 ? 5 : 4);
+        if (st.dig_impact && m_carve.advance(progress, hit.X, hit.Y, hit.Z, face))
             m_session->invalidateBlock(getNodeBlockPos(m_carve_pos));
         g_goanna_carve = &m_carve.form;
     } else if (g_goanna_carve) {
@@ -1694,6 +1697,12 @@ Dictionary GoannaClient::step_interact(double dt, bool dig, bool place, bool pla
             d["object_name"] = String::utf8(it->second->name().c_str());
     }
     d["digging"] = st.digging;
+    d["dig_impact"] = st.dig_impact;
+    d["impact_progress"] = st.impact_progress;
+    d["carve_volume"] = g_goanna_carve ? m_carve.remaining_volume :
+            (st.dig_impact && st.impact_progress >= 1 ? 0.0f : 1.0f);
+    d["mining_swing"] = (st.digging && st.dig_time_complete < 100000) || st.dig_impact;
+    d["swing"] = st.swing;
     d["progress"] = st.dig_time_complete > 0 && st.dig_time_complete < 100000.0f
             ? std::min(1.0f, st.dig_time / st.dig_time_complete) : 0.0f;
     d["crack_level"] = st.crack_level;
@@ -1818,6 +1827,7 @@ Array GoannaClient::take_dug_nodes() {
     for (auto &e : m_session->takeDugNodes()) {
         Dictionary d;
         d["pos"] = gv(e.pos);
+        d["normal"] = gv(e.normal);
         d["texture"] = String::utf8(e.texture.c_str());
         d["count"] = e.count;
         d["colour"] = Color(((e.colour >> 16) & 0xff) / 255.0f, ((e.colour >> 8) & 0xff) / 255.0f,

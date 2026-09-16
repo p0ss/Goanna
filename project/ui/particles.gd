@@ -315,20 +315,8 @@ func _add_spawner(ev: Dictionary) -> void:
 	if life_time > 0.0:
 		get_tree().create_timer(life_time + life).timeout.connect(func() -> void: _remove_spawner(id))
 
-# The pieces a node throws off while it is hit and when it breaks.
-#
-# The client makes these itself, as Luanti's own does: nothing is sent and
-# nothing is asked for. Sixteen on breaking and one per hit are vanilla's own
-# numbers, and the point of matching them is that a Goanna player sees the same
-# block break as everyone else rather than a better one.
-#
-# Each piece shows a random quarter of the node's own top tile, which is what
-# makes them read as bits of the thing that broke rather than as generic dust.
-# Godot has no per particle UV rectangle, but it does have particle animation
-# frames, so a four by four grid with the animation stopped and its offset
-# randomised gives every piece a different fixed patch. Vanilla picks a random
-# rectangle of up to a quarter of the texture, so a quarter grid is the same
-# size, just aligned.
+# A bounded burst of subcube-sized chips at each mining contact. Use a patch
+# of the struck face's tile, node tint and actual impact normal.
 func _node_pieces(ev: Dictionary) -> void:
 	var count := int(ev.get("count", 1))
 	if count <= 0 or _pieces.size() >= MAX_PIECES:
@@ -342,44 +330,37 @@ func _node_pieces(ev: Dictionary) -> void:
 
 	var mat := ParticleProcessMaterial.new()
 	mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
-	# Vanilla scatters the source point a quarter of a node about the centre.
-	mat.emission_box_extents = Vector3(0.25, 0.25, 0.25)
-	mat.direction = Vector3.UP
+	# Keep the burst at the contact, just outside the struck face.
+	mat.emission_box_extents = Vector3(0.035, 0.035, 0.035)
+	mat.direction = ((ev.get("normal", Vector3.UP) as Vector3) + Vector3.UP * 0.6).normalized()
 	# Vanilla throws each piece up to 3 up and 1.5 sideways, drawn separately
 	# per axis. A cone is not the same distribution but covers the same ground.
 	mat.spread = 45.0
 	mat.initial_velocity_min = 0.5
 	mat.initial_velocity_max = 3.4
 	mat.gravity = Vector3(0.0, -9.81, 0.0)
-	# Vanilla's piece is up to an eighth of a node across.
-	mat.scale_min = 0.15
-	mat.scale_max = 1.25
-	# Stop the animation and randomise where it starts, which turns the frame
-	# grid into a per particle choice of patch rather than a sequence.
-	mat.anim_speed_min = 0.0
-	mat.anim_speed_max = 0.0
-	mat.anim_offset_min = 0.0
-	mat.anim_offset_max = 1.0
+	mat.scale_min = 0.8
+	mat.scale_max = 1.3
+	mat.angle_min = 0.0
+	mat.angle_max = 360.0
+	mat.angular_velocity_min = 90.0
+	mat.angular_velocity_max = 260.0
+	mat.particle_flag_rotate_y = true
 
-	var quad := QuadMesh.new()
-	quad.size = Vector2(0.1, 0.1)
+	var chip := BoxMesh.new()
+	chip.size = Vector3.ONE / 16.0
 	var smat := StandardMaterial3D.new()
-	smat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	smat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
-	smat.alpha_scissor_threshold = 0.5
-	smat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
 	smat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
 	smat.albedo_texture = tex
-	smat.albedo_color = ev.get("colour", Color(1, 1, 1, 1))
-	smat.particles_anim_h_frames = 4
-	smat.particles_anim_v_frames = 4
-	smat.particles_anim_loop = false
-	smat.disable_receive_shadows = true
-	quad.material = smat
+	smat.albedo_color = ev.get("colour", Color.WHITE)
+	smat.roughness = 1.0
+	smat.uv1_scale = Vector3(0.0625, 0.0625, 1.0)
+	smat.uv1_offset = Vector3(randi_range(0,15)/16.0, randi_range(0,15)/16.0, 0)
+	chip.material = smat
 
 	var p := GPUParticles3D.new()
 	p.process_material = mat
-	p.draw_pass_1 = quad
+	p.draw_pass_1 = chip
 	p.amount = count
 	p.lifetime = 1.0
 	p.randomness = 1.0            # vanilla gives each piece 0 to 1 second
