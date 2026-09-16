@@ -20,7 +20,7 @@ if __name__ == "__main__":
     # The diamond lattice read as chain link on the ramp at any spacing;
     # ash is built like elm, interlacing furrows along the trunk, with its
     # own seed and a touch more depth for the diamond fissure character.
-    lines = fam.run(STEM, out_dir, mode="furrow", seed=2601 + 0 * 2201, normal_strength=22.0,
+    lines = fam.run(STEM, out_dir, mode="furrow", seed=2601, normal_strength=22.0,
             margin_frac=0.35, furrow_target=0.05, ridge_range=(0.35, 0.65),
             edge_dist=3, crown_amp=0.10, grain_amp=0.26, grain_radius=7,
             crack_amp=0.08, pore_amp=0.05, crack_count=7, crack_len=(6, 16),
