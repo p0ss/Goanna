@@ -303,6 +303,13 @@ the fact.
   player through the texture pack setting or a worldmod. Findings in
   `docs/material-calibration.md`.
 
+- Kythen authored, 2026-09-16 to 17. The playbook's first run on a second
+  game: 228 stems across the eight cultures in fifteen agent batches,
+  each reviewed on the close-up ramp under sun and lamp; two reworks. The
+  standalone pack sits beside the bake at `baked/authored-kythen/textures`
+  and in the launcher's texture pack list; a 1.1.0 terrain bundle is the
+  production path. Findings in `docs/material-calibration.md`.
+
 ## Log since v0.4.1-alpha (2026-08-30)
 
 Verified on a local Mineclonia server on Luanti 5.17.0 with Godot 4.5.1 and

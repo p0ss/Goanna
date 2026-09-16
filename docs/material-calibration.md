@@ -305,3 +305,22 @@ matrix down. Grass plants, the grass path and the snowed side were added.
 The grass block side cannot take maps: the game draws it as the dirt side
 with an overlay composited on, and companions are looked up by the base
 name. Lava is a liquid on its own material and never reads these maps.
+
+## Kythen
+
+The first game after Mineclonia, run to the playbook on 2026-09-16 and
+17: fifteen agents in two waves, batched by culture and family, 228 stems
+against the 286 the bake covered, every batch rendered on the close-up
+ramp under sun and lamp before commit. Kythen's art is 32 px, so a source
+texel is eight map texels, and the library scaled without change; the
+culture recipes in the game's own `materials.json` files gave the agents
+the layout of masonry and bark where the art alone was ambiguous. Three
+things came back into the library and the playbook: the smooth upscale
+now wraps, a sharp periodic feature that lands on the tile edge fools the
+seam measure and wants a wide taper plus a narrow kerf rather than a
+roll, and a soil's occlusion comes from a sparse flat floored hollow, not
+from its clods. Two reworks from review: ash bark's diamond lattice read
+as chain link and became furrows, and the Gondar rubble's recess read as
+a waffle and was banded. The standalone pack is
+`baked/authored-kythen/textures`, in the launcher's list as
+`kythen_authored`; the production path is a new terrain bundle version.
