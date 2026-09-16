@@ -18,7 +18,8 @@
 // drawSolidNode also draws the sub node carve in place of the cube while
 // g_goanna_carve is set and the node is the one the crack is on, so a dig
 // deforms the block it lands on rather than only cracking it
-// (goanna_radial_form.h).
+// (goanna_radial_form.h), and the cut faces clear MATERIAL_FLAG_CRACK so
+// they keep the tile's own material instead of a composited crack tile.
 // Otherwise verbatim.
 
 #include <cmath>
@@ -787,8 +788,14 @@ void MapblockMeshGenerator::drawSolidNode()
 			const MapNode nb = data->m_vmanip.getNodeNoEx(
 					blockpos_nodes + saved_p + tile_dirs[face]);
 			getTile(tile_dirs[face], &tiles[face]);
-			for (auto &layer : tiles[face].layers)
+			for (auto &layer : tiles[face].layers) {
 				layer.material_flags |= MATERIAL_FLAG_BACKFACE_CULLING;
+				// The missing geometry shows damage. A composited crack tile
+				// forces the 2D material fallback, dropping the original PBR
+				// arrays and material response on the very first mining frame.
+				// Keep the source tile/layer so cut faces share its material.
+				layer.material_flags &= ~MATERIAL_FLAG_CRACK;
+			}
 			lights[face] = getFaceLight(saved_n, nb, nodedef);
 			// These normal neighbours omit their side against the original
 			// solid node. IGNORE stays unknown; it is never invented as rock.

@@ -47,6 +47,9 @@ try:
     time.sleep(4)
     env=os.environ.copy()
     env.update(GOANNA_HOST='127.0.0.1',GOANNA_PORT='30579',GOANNA_NAME='digboundary',GOANNA_CONTROL='30879',GOANNA_VIEW_RANGE='5',GOANNA_TOD='0.5',GOANNA_DEBUG_ARM='1' if options.rhythm else '',GOANNA_BODY='1' if options.rhythm else '0',GOANNA_CARVE='0.12',GOANNA_NO_PBR='1',GOANNA_SDFGI='0',GOANNA_AMBIENT='2',GOANNA_BEVEL='0',XDG_DATA_HOME=str(SCRATCH/'profile'),XDG_CONFIG_HOME=str(SCRATCH/'config'))
+    if options.rhythm:
+        env.update(GOANNA_NO_PBR='', GOANNA_PBR_SET='1', GOANNA_PACK=str(ROOT/'pbr_packs/mineclonia/textures'), GOANNA_PACK_SET='1')
+        env.pop('GOANNA_NO_NORMAL', None)
     client=launch([str(ROOT.parent/'Godot_v4.5.1-stable_linux.x86_64'),'--path',str(ROOT/'project'),'--resolution','1280x720','--position','40,40'],'client.log',env)
     for _ in range(90):
         try:
@@ -67,6 +70,7 @@ try:
         impacts=[r for r in result if r.get('dig_impact')]
         assert len(impacts)==8,impacts
         assert [r['chips'] for r in impacts]==[5]*7+[16],impacts
+        assert all(r.get('pbr_retained') for r in impacts[:-1]),impacts
         assert all(r['swing']==1 and r['sounds']>=1 for r in impacts),impacts
         assert all(abs(r['carve_volume']-(1-r['impact_progress']))<.015 for r in impacts),impacts
         assert all(r['chips']==0 for r in result if not r.get('dig_impact')),result
