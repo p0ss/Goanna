@@ -32,6 +32,7 @@
 #include <godot_cpp/variant/packed_vector3_array.hpp>
 
 #include "goanna_entities.h"
+#include "goanna_radial_form.h"
 #include "goanna_horizon.h"
 #include "goanna_surface.h"
 #include "goanna_light.h"
@@ -401,6 +402,8 @@ private:
     void ensureMoteMaterials();
 
     std::unique_ptr<GoannaSession> m_session;
+    goanna::FormDig m_carve;
+    v3s16 m_carve_pos{-32768, -32768, -32768};
     godot::String m_texture_path; // see set_texture_path
     godot::String m_texture_map;  // see set_texture_map
     // Exact tier-0 geometry is cached per block on the CPU, then compatible

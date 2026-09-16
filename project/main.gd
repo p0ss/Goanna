@@ -1040,9 +1040,27 @@ func _process(delta: float) -> void:
 			pitch = -55.0
 			if absf(t - 3.0) < delta * 0.6:
 				_set_wield(4)
-			dig = t > 4.0 and t < 4.9
+			# The dig window is ours to set, not a constant to design tests
+			# around. GOANNA_DIGSECS holds the button down for that long, so a
+			# slow node can be watched through its whole dig instead of the
+			# test being narrowed to nodes that happen to finish in 0.9s.
+			var dig_secs := 0.9
+			if OS.get_environment("GOANNA_DIGSECS") != "":
+				dig_secs = float(OS.get_environment("GOANNA_DIGSECS"))
+			dig = t > 4.0 and t < 4.0 + dig_secs
 			plc_pressed = absf(t - 8.5) < delta * 0.6 or absf(t - 9.5) < delta * 0.6
 			plc = plc_pressed
+			# A shot every tenth of the window, so a long dig is a sequence
+			# rather than one frame. Named by percent so they sort.
+			if OS.get_environment("GOANNA_SHOT") != "" and dig_secs > 0.9:
+				for step in range(1, 11):
+					var at: float = 4.0 + dig_secs * float(step) / 10.0
+					if absf(t - at) < delta * 0.6:
+						await RenderingServer.frame_post_draw
+						get_viewport().get_texture().get_image().save_png(
+							OS.get_environment("GOANNA_SHOT").path_join(
+								"dig_%03d.png" % (step * 10)))
+						print("saved dig step ", step * 10)
 			if OS.get_environment("GOANNA_SHOT") != "" and absf(t - 4.45) < delta * 0.6:
 				await RenderingServer.frame_post_draw
 				get_viewport().get_texture().get_image().save_png(OS.get_environment("GOANNA_SHOT").path_join("dig_crack.png"))

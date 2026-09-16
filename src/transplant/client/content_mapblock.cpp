@@ -15,9 +15,14 @@
 // including submerged sides: the ice owns the water/ice interface.
 // Tiles also carry explicit light-source ownership
 // through batching, so thin torch meshes cannot shadow their own lights.
+// drawSolidNode also draws the sub node carve in place of the cube while
+// g_goanna_carve is set and the node is the one the crack is on, so a dig
+// deforms the block it lands on rather than only cracking it
+// (goanna_radial_form.h).
 // Otherwise verbatim.
 
 #include <cmath>
+#include <optional>
 #include "content_mapblock.h"
 #include "util/basic_macros.h"
 #include "util/numeric.h"
@@ -32,6 +37,7 @@
 #include "client/meshgen/collector.h"
 #include "goanna_luanti_client.h"
 #include "goanna_mesh_flags.h"
+#include "goanna_radial_form.h"
 
 // Goanna: directional face shading is Luanti's substitute for lighting; when
 // Godot lights the world it must not be baked in. Function-like macros do not
@@ -750,6 +756,87 @@ void MapblockMeshGenerator::drawSolidNode()
 		if (!data->m_smooth_lighting) {
 			lights[face] = getFaceLight(cur_node.n, neighbor, nodedef);
 		}
+	}
+	// The temporary cut and its neighbour reveals belong to ONE mesh. This
+	// makes publication/cancellation atomic even at mapblock boundaries: the
+	// neighbour keeps its ordinary mesh and we supply only its missing patches.
+	// All shape tests happen in node-local coordinates, before translation.
+	std::optional<goanna::RadialForm> demo;
+	const goanna::RadialForm *form = nullptr;
+	if (cur_node.f->drawtype == NDT_NORMAL) {
+		if (cur_node.p == data->m_crack_pos_relative && g_goanna_carve_depth > 0)
+			form = g_goanna_carve;
+		const v3s16 wp = blockpos_nodes + cur_node.p;
+		if (!form && g_goanna_carve_demo != 0 && wp.Y == g_goanna_carve_demo &&
+				wp.Z == g_goanna_carve_demo_z && wp.X >= 0 && wp.X < 8) {
+			demo.emplace();
+			demo->resolution = 16;
+			*demo = goanna::strike(*demo, 0.25f, 0.5f, 0.0f, wp.X * 0.08f);
+			form = &*demo;
+		}
+	}
+	if (form) {
+		const v3s16 saved_p = cur_node.p;
+		const v3f saved_origin = cur_node.origin;
+		const MapNode saved_n = cur_node.n;
+		const auto *saved_f = cur_node.f;
+		TileSpec backing_tiles[6];
+		u16 backing_lights[6] = {};
+		u8 backing = 0;
+		for (int face = 0; face < 6; ++face) {
+			const MapNode nb = data->m_vmanip.getNodeNoEx(
+					blockpos_nodes + saved_p + tile_dirs[face]);
+			getTile(tile_dirs[face], &tiles[face]);
+			for (auto &layer : tiles[face].layers)
+				layer.material_flags |= MATERIAL_FLAG_BACKFACE_CULLING;
+			lights[face] = getFaceLight(saved_n, nb, nodedef);
+			// These normal neighbours omit their side against the original
+			// solid node. IGNORE stays unknown; it is never invented as rock.
+			const auto &nf = nodedef->get(nb);
+			if (nb.getContent() == CONTENT_IGNORE || nb.getContent() == CONTENT_AIR ||
+					nf.drawtype != NDT_NORMAL)
+				continue;
+			backing |= 1 << face;
+			cur_node.p = saved_p + tile_dirs[face];
+			cur_node.n = nb;
+			cur_node.f = &nf;
+			getTile(tile_dirs[face ^ 1], &backing_tiles[face]);
+			for (auto &layer : backing_tiles[face].layers)
+				layer.material_flags |= MATERIAL_FLAG_BACKFACE_CULLING;
+			backing_lights[face] = getFaceLight(nb, saved_n, nodedef);
+			cur_node.p = saved_p;
+			cur_node.n = saved_n;
+			cur_node.f = saved_f;
+		}
+		const int n = form->resolution;
+		const auto surface = goanna::formSurfaces(goanna::formGrid(*form, n), n,
+				faces, backing);
+		for (const auto &quad : surface) {
+			const auto &b = quad.box;
+			aabb3f box(b.x1*BS, b.y1*BS, b.z1*BS, b.x2*BS, b.y2*BS, b.z2*BS);
+			box.MinEdge += saved_origin;
+			box.MaxEdge += saved_origin;
+			TileSpec face_tiles[6];
+			const int f = quad.face, nb = quad.backing;
+			face_tiles[f] = nb < 0 ? tiles[f] : backing_tiles[nb];
+			cur_node.p = saved_p + (nb < 0 ? v3s16(0,0,0) : tile_dirs[nb]);
+			// Node-aligned UVs: a small exposed patch uses the corresponding
+			// part of its owner's texture, never a whole texture per subcube.
+			f32 uv[24];
+			generateCuboidTextureCoords(aabb3f(b.x1*BS, b.y1*BS, b.z1*BS,
+					b.x2*BS, b.y2*BS, b.z2*BS), uv);
+			const u8 glow = nb < 0 ? saved_f->light_source : nodedef->get(
+					data->m_vmanip.getNodeNoEx(blockpos_nodes + cur_node.p)).light_source;
+			drawCuboid(box, face_tiles, 6, uv, (u8)(63 ^ (1 << f)),
+					[&](int face, video::S3DVertex vertices[4]) {
+				video::SColor color = encode_light(nb < 0 ? lights[face] : backing_lights[nb], glow);
+				if (!glow) applyFacesShading(color, vertices[0].Normal);
+				for (int j=0; j<4; ++j) vertices[j].Color = color;
+				return QuadDiagonal::Diag02;
+			});
+		}
+		cur_node.p = saved_p;
+		return;
 	}
 	if (!faces)
 		return;

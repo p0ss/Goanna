@@ -57,6 +57,7 @@
 #include <chrono>
 #include <godot_cpp/classes/rendering_server.hpp>
 #include "goanna_mesh_flags.h"
+#include "goanna_radial_form.h"
 #include "itemgroup.h"
 #include <godot_cpp/classes/quad_mesh.hpp>
 
@@ -189,6 +190,18 @@ GoannaClient::GoannaClient() {
     const char *bd = std::getenv("GOANNA_BODY");
     if (bd)
         m_show_body = atoi(bd) != 0;
+    // Subnode cut depth per fifth of a complete dig. Zero turns carving
+    // off entirely and the dig falls back to the crack overlay alone, which is
+    // what makes an A/B shot of the same dig possible.
+    const char *cv = std::getenv("GOANNA_CARVE");
+    if (cv)
+        g_goanna_carve_depth = (float)atof(cv);
+    const char *cd = std::getenv("GOANNA_CARVE_DEMO");
+    if (cd)
+        g_goanna_carve_demo = atoi(cd);
+    const char *cz = std::getenv("GOANNA_CARVE_DEMO_Z");
+    if (cz)
+        g_goanna_carve_demo_z = atoi(cz);
 }
 
 bool GoannaClient::procedural_grass() const {
@@ -1008,6 +1021,7 @@ void GoannaClient::set_solid_ice(bool on) {
 bool GoannaClient::solid_ice() const { return m_solid_ice; }
 
 GoannaClient::~GoannaClient() {
+    if (g_goanna_carve == &m_carve.form) g_goanna_carve = nullptr;
     // Before the session and the tile cache go.
     m_lod_storage.stop();
     m_mesh_pool.stop();
@@ -1258,6 +1272,9 @@ void GoannaClient::connect_to(const String &host, int port, const String &player
 }
 
 void GoannaClient::disconnect_from_server() {
+    if (g_goanna_carve == &m_carve.form) g_goanna_carve = nullptr;
+    m_carve = goanna::FormDig();
+    m_carve_pos = v3s16(-32768, -32768, -32768);
     m_lod_storage.stop();
     m_lod_loads.clear();
     fineClear();
@@ -1641,6 +1658,28 @@ Dictionary GoannaClient::step_interact(double dt, bool dig, bool place, bool pla
     m_session->stepInteract((float)dt, in);
     const auto &st = m_session->interactState();
     const PointedThing &pt = st.pointed;
+
+    // Damage follows elapsed dig progress in fixed quanta. A skipped crack
+    // animation frame no longer drops a blow; a faster renderer adds none.
+    if (st.crack_level >= 0 && pt.type == POINTEDTHING_NODE && g_goanna_carve_depth > 0) {
+        if (st.crack_pos != m_carve_pos) {
+            m_carve = goanna::FormDig();
+            m_carve.form.resolution = 16;
+            m_carve_pos = st.crack_pos;
+        }
+        const v3f hit = pt.intersection_point / BS
+                - v3f((f32)m_carve_pos.X, (f32)m_carve_pos.Y, (f32)m_carve_pos.Z);
+        const float progress = st.dig_time_complete > 0 ? st.dig_time / st.dig_time_complete : 1;
+        if (m_carve.advance(progress, hit.X, hit.Y, hit.Z, g_goanna_carve_depth * 5))
+            m_session->invalidateBlock(getNodeBlockPos(m_carve_pos));
+        g_goanna_carve = &m_carve.form;
+    } else if (g_goanna_carve) {
+        // The same replacement removes both cut geometry and neighbour reveals.
+        m_session->invalidateBlock(getNodeBlockPos(m_carve_pos));
+        g_goanna_carve = nullptr;
+        m_carve = goanna::FormDig();
+        m_carve_pos = v3s16(-32768, -32768, -32768);
+    }
     if (pt.type == POINTEDTHING_NODE) {
         d["type"] = "node";
         d["node"] = Vector3(pt.node_undersurface.X, pt.node_undersurface.Y, -pt.node_undersurface.Z);
