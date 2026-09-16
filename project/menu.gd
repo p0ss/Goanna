@@ -343,8 +343,12 @@ func _show_content() -> void:
 		_fail("No Luanti install found. Install Luanti, or the org.luanti.luanti flatpak, or set GOANNA_SERVER_CMD.")
 		screen.add_child(_button("Back", _show_main))
 		return
+	var game_names: Array = []
+	for g in LocalServer.list_games(data_dir):
+		var title := LocalServer.game_title(data_dir, str(g))
+		game_names.append(title if title == str(g) else "%s (%s)" % [title, g])
 	var sections := [
-		["Games", LocalServer.list_games(data_dir)],
+		["Games", game_names],
 		["Mods", LocalServer.list_mods(data_dir)],
 		["Texture packs", LocalServer.list_texture_packs(data_dir)],
 	]
@@ -699,7 +703,10 @@ func _show_new_game() -> void:
 	grid.add_child(glabel)
 	game_option = OptionButton.new()
 	for g in games:
-		game_option.add_item(g)
+		# Shown by title, because the directory name is the game id and the two
+		# can differ (VoxeLibre lives in mineclone2). The metadata stays the id,
+		# which is what the server is told.
+		game_option.add_item(LocalServer.game_title(_local_data_dir, g))
 		game_option.set_item_metadata(game_option.item_count - 1, g)
 	grid.add_child(game_option)
 	var gen_label := Label.new()

@@ -23,6 +23,27 @@ func _initialize() -> void:
 	_assert(LocalServer._find_executable_in_dirs("minetest", [games_dir]) == "",
 		"a missing compatibility executable was reported")
 
+	# A game whose title differs from its directory name, like VoxeLibre in
+	# mineclone2, must be listed by its id and named by its title.
+	var data_dir := base.path_join("data")
+	var game_dir := data_dir.path_join("games").path_join("mineclone2")
+	DirAccess.make_dir_recursive_absolute(game_dir)
+	var conf := FileAccess.open(game_dir.path_join("game.conf"), FileAccess.WRITE)
+	conf.store_string("title = VoxeLibre\ndescription = A game\n")
+	conf = null
+	DirAccess.make_dir_recursive_absolute(data_dir.path_join("games").path_join("untitled"))
+	var untitled := FileAccess.open(data_dir.path_join("games/untitled/game.conf"), FileAccess.WRITE)
+	untitled.store_string("description = No title line\n")
+	untitled = null
+	_assert(LocalServer.list_games(data_dir) == ["mineclone2", "untitled"],
+		"games were not listed by directory name")
+	_assert(LocalServer.game_title(data_dir, "mineclone2") == "VoxeLibre",
+		"the game.conf title was not read")
+	_assert(LocalServer.game_title(data_dir, "untitled") == "untitled",
+		"a game without a title did not fall back to its id")
+	_assert(LocalServer.game_title(data_dir, "absent") == "absent",
+		"a missing game did not fall back to its id")
+
 	if failures == 0:
 		print("local server discovery: PASS")
 		quit(0)

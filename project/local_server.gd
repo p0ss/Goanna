@@ -167,6 +167,25 @@ static func list_games(data_dir: String) -> Array:
 	games.sort()
 	return games
 
+# The name a game calls itself, from the `title` line of its game.conf, or
+# the directory name when there is none. The two differ more often than you
+# would think: VoxeLibre still lives in a directory called mineclone2 so that
+# old worlds keep loading, and a player who installed "VoxeLibre" from
+# ContentDB will not recognise it under that name.
+static func game_title(data_dir: String, gameid: String) -> String:
+	for base_entry in [data_dir.path_join("games"),
+			"/var/lib/flatpak/app/org.luanti.luanti/current/active/files/share/luanti/games"]:
+		var conf := str(base_entry).path_join(gameid).path_join("game.conf")
+		if not FileAccess.file_exists(conf):
+			continue
+		for line in FileAccess.get_file_as_string(conf).split("\n"):
+			if line.get_slice("=", 0).strip_edges() == "title":
+				var title := line.get_slice("=", 1).strip_edges()
+				if title != "":
+					return title
+		break
+	return gameid
+
 # Mods and texture packs the detected Luanti already has. Goanna does not
 # install content, it borrows whatever that install carries, so these are for
 # showing the player what Start Game can offer and nothing else.
