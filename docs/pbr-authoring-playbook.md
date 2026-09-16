@@ -113,7 +113,11 @@ For each batch that reports:
    - a rolled tile (a bevel on the edge moves into the block);
    - radial cracks meeting at a point (pinch);
    - one class chased for a face that is not that class (concrete and
-     polished stone under the stone tilt band).
+     polished stone under the stone tilt band);
+   - a sharp periodic feature whose phase puts a boundary exactly on the
+     tile edge reading as a seam failure though it tiles (the measure
+     dilutes the one wrap join against many flat inner joins): widen the
+     taper or offset a synthetic pattern half a period, never roll the art.
 3. Send the agent back with the verdicts and the causes, or fix the script
    yourself when it is a constant. Rerender. Only then commit the scripts.
 4. Commit with `git add` on the named files, not the directory: several

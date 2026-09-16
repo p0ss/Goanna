@@ -127,11 +127,36 @@ def load_baked_albedo(stem, game=DEFAULT_GAME):
 
 
 def upscale(img, size=SIZE, smooth=False):
-    """Nearest neighbour keeps the art's texel plateaus; smooth is bilinear."""
-    arr = (np.clip(img, 0, 1) * 255.0 + 0.5).astype(np.uint8)
-    mode = "RGBA" if arr.ndim == 3 and arr.shape[2] == 4 else ("RGB" if arr.ndim == 3 else "L")
-    im = Image.fromarray(arr, mode).resize((size, size), Image.BILINEAR if smooth else Image.NEAREST)
-    return np.asarray(im).astype(np.float32) / 255.0
+    """Nearest neighbour keeps the art's texel plateaus; smooth is bilinear
+    and wraps at the tile edge, which PIL's resize does not (a smooth
+    upscale of a periodic layout read a seam of about 8 on the ramp's
+    measure before this wrapped)."""
+    arr = np.clip(np.asarray(img, dtype=np.float32), 0.0, 1.0)
+    if not smooth:
+        a8 = (arr * 255.0 + 0.5).astype(np.uint8)
+        mode = "RGBA" if a8.ndim == 3 and a8.shape[2] == 4 else ("RGB" if a8.ndim == 3 else "L")
+        im = Image.fromarray(a8, mode).resize((size, size), Image.NEAREST)
+        return np.asarray(im).astype(np.float32) / 255.0
+    h, w = arr.shape[:2]
+    # Sample positions in source texels, texel centres at .5, wrapping.
+    ys = (np.arange(size) + 0.5) * h / size - 0.5
+    xs = (np.arange(size) + 0.5) * w / size - 0.5
+    y0 = np.floor(ys).astype(int)
+    x0 = np.floor(xs).astype(int)
+    fy = (ys - y0)[:, None]
+    fx = (xs - x0)[None, :]
+    y0 %= h
+    x0 %= w
+    y1 = (y0 + 1) % h
+    x1 = (x0 + 1) % w
+    if arr.ndim == 3:
+        fy = fy[..., None]
+        fx = fx[..., None]
+    a = arr[y0][:, x0]
+    b = arr[y0][:, x1]
+    c = arr[y1][:, x0]
+    d = arr[y1][:, x1]
+    return ((a * (1 - fx) + b * fx) * (1 - fy) + (c * (1 - fx) + d * fx) * fy).astype(np.float32)
 
 
 def luminance(rgb):
