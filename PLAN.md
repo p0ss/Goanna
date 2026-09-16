@@ -292,10 +292,16 @@ the fact.
   on the close-up ramp and reworked where the user's eye caught what the
   metrics passed. The node shader gained parallax occlusion with self
   shadow, under a millisecond a frame on a full screen wall, with depth
-  per material class. The authored pack lives beside the bake at
-  `baked/authored-mineclonia/textures` and in the launcher's texture pack
-  list; the shipped `pbr_packs/mineclonia` is unchanged pending the user's
-  install. Findings in `docs/material-calibration.md`.
+  per material class. The authored sets are installed into the
+  shipped `pbr_packs/mineclonia` (2026-09-16, a0eee77) at the user's
+  direction after review in play, and also sit in the launcher's texture
+  pack list as `mineclonia_authored`. Two client fixes came out of the
+  in-game review: the mesher's binormal handedness, which had every
+  normal map upside down along a tile's V axis, and the companion lookup
+  for composite tiles, which had the grass block's dirt side flat.
+  Mineclonia has no asset bundle in the catalogue yet; the pack reaches a
+  player through the texture pack setting or a worldmod. Findings in
+  `docs/material-calibration.md`.
 
 ## Log since v0.4.1-alpha (2026-08-30)
 
