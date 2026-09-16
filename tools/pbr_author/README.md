@@ -14,6 +14,16 @@ over the Mineclonia pack the mean texel tilt is six degrees and the
 occlusion never falls below 0.81. The look people call plastic is a correct
 BSDF on a surface with no structure on it.
 
+## Which game
+
+A script declares its game once, `GAME = "kythen"`, and passes it to
+`lib.load_source(stem, GAME)` and `lib.class_of(stem, GAME)`; a script with
+no declaration is Mineclonia's. `lib.GAMES` says where each game's art and
+bake are. Art sizes differ (Mineclonia 16 px, Kythen 32 px); every helper
+scales by the art's size, and `pack` takes `art_texels=src.shape[0]` for
+the seam measure. The playbook for running a fleet on a new game is
+`docs/pbr-authoring-playbook.md`.
+
 ## What a script does
 
 ```python

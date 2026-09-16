@@ -49,44 +49,80 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import pbr_bake  # noqa: E402
 
 SIZE = 256
-GAME_TEXTURES = Path(os.environ.get("GOANNA_GAME_TEXTURES", os.path.expanduser(
-        "~/.var/app/org.luanti.luanti/.minetest/games/mineclonia")))
-PACK_TEXTURES = Path(os.environ.get("GOANNA_PACK_TEXTURES",
-        str(Path(__file__).resolve().parent.parent.parent / "pbr_packs/mineclonia/textures")))
+REPO = Path(__file__).resolve().parent.parent.parent
+GAMES_DIR = Path(os.environ.get("GOANNA_GAMES_DIR", os.path.expanduser(
+        "~/.var/app/org.luanti.luanti/.minetest/games")))
+# Per game: where its art is (a game root, indexed recursively) and which
+# pack of packed _s files class_of reads the class back from. A script
+# names its game with GAME = "..." at module level and passes it to
+# load_source and class_of; the default keeps the Mineclonia scripts as
+# they were. GOANNA_GAME_TEXTURES and GOANNA_PACK_TEXTURES override the
+# default game's two paths, for a one off run.
+GAMES = {
+    "mineclonia": {
+        "art": Path(os.environ.get("GOANNA_GAME_TEXTURES", str(GAMES_DIR / "mineclonia"))),
+        "pack": Path(os.environ.get("GOANNA_PACK_TEXTURES", str(REPO / "pbr_packs/mineclonia/textures"))),
+        "install": REPO / "pbr_packs/mineclonia/textures",
+    },
+    "kythen": {
+        "art": GAMES_DIR / "kythen",
+        "pack": Path(os.path.expanduser("~/.local/share/goanna-pbr-audit/bakes/kythen-terrain-v1")),
+        "install": REPO / "pbr_packs/kythen/textures",
+    },
+    "minetest_game": {
+        "art": GAMES_DIR / "minetest_game",
+        "pack": REPO / "pbr_packs/minetest_game/textures",
+        "install": REPO / "pbr_packs/minetest_game/textures",
+    },
+}
+DEFAULT_GAME = "mineclonia"
+GAME_TEXTURES = GAMES[DEFAULT_GAME]["art"]
+PACK_TEXTURES = GAMES[DEFAULT_GAME]["pack"]
 DIELECTRIC_F0 = pbr_bake.DIELECTRIC_F0
 
 
 # --- inputs -----------------------------------------------------------------
 
-_source_index = None
+_source_index = {}
 
 
-def source_path(stem):
-    """Where the game keeps this stem's art. GAME_TEXTURES may be a flat
+def source_path(stem, game=DEFAULT_GAME):
+    """Where the game keeps this stem's art. The art path may be a flat
     directory (mineclone2 ships one) or a game root whose mods each carry a
-    textures directory (Mineclonia), so it is indexed once, recursively."""
-    global _source_index
-    if _source_index is None:
-        _source_index = {}
-        for p in sorted(GAME_TEXTURES.rglob("*.png")):
-            _source_index.setdefault(p.stem, p)
-    if stem not in _source_index:
-        raise FileNotFoundError("%s under %s" % (stem, GAME_TEXTURES))
-    return _source_index[stem]
+    textures directory (Mineclonia, Kythen), so it is indexed once per
+    game, recursively."""
+    root = GAMES[game]["art"]
+    if game not in _source_index:
+        idx = {}
+        for p in sorted(root.rglob("*.png")):
+            idx.setdefault(p.stem, p)
+        _source_index[game] = idx
+    idx = _source_index[game]
+    if stem not in idx:
+        raise FileNotFoundError("%s under %s" % (stem, root))
+    return idx[stem]
 
 
-def load_source(stem):
-    """The game's own 16 px art, RGBA float 0..1, (16, 16, 4). Larger art
-    (a 32 px animation strip, a 64 px painting) comes back at its own size;
-    a script should check the shape it gets."""
-    p = source_path(stem)
+def load_source(stem, game=DEFAULT_GAME):
+    """The game's own art, RGBA float 0..1, at its own size: 16 px for
+    Mineclonia, 32 px for most of Kythen. Every helper scales by the art's
+    size, so a script need not care, but a strip or a sheet (an animation,
+    a painting) comes back tall or wide and a script should check the
+    shape it gets."""
+    p = source_path(stem, game)
     return np.asarray(Image.open(p).convert("RGBA")).astype(np.float32) / 255.0
 
 
-def load_baked_albedo(stem):
+def art_size(stem, game=DEFAULT_GAME):
+    """Texels across the art, for the seam measure's join spacing."""
+    with Image.open(source_path(stem, game)) as im:
+        return im.width
+
+
+def load_baked_albedo(stem, game=DEFAULT_GAME):
     """The bake's 256 px albedo, RGB float, for a script that wants to keep
     it rather than upscale the source itself."""
-    p = PACK_TEXTURES / (stem + ".png")
+    p = GAMES[game]["pack"] / (stem + ".png")
     return np.asarray(Image.open(p).convert("RGB").resize((SIZE, SIZE), Image.LANCZOS)).astype(np.float32) / 255.0
 
 
@@ -267,14 +303,27 @@ def ao_from_height(height, radius_px=6):
     return np.clip(pbr_bake.ao_from_height(img, radius_px=radius_px, wrap=True), 0.0, 1.0).astype(np.float32)
 
 
-def class_of(stem):
+def class_of(stem, game=DEFAULT_GAME):
     """The bake's class for a stem, read back from its packed _s bytes and
     its name, the way tools/pbr_spec_variance.py infers it. The class
     decides the smoothness level, the scattering byte, the tilt target and
     the parallax depth, so a script should take it from here rather than
-    guess."""
+    guess. A game with no bake for the stem gets a guess from the name
+    alone, and the script should say what it settled on."""
     import pbr_spec_variance
-    return pbr_spec_variance.infer_class(stem, PACK_TEXTURES) or "default"
+    pack = GAMES[game]["pack"]
+    cls = pbr_spec_variance.infer_class(stem, pack) if pack.exists() else None
+    if cls is None:
+        for needle, c in pbr_spec_variance.NAME_HINTS:
+            if needle in stem:
+                return c
+        for needle, c in (("stone", "stone"), ("rock", "stone"), ("brick", "stone"),
+                ("clay", "soil"), ("earth", "soil"), ("moss", "leaves"), ("bark", "wood"),
+                ("grass", "leaves"), ("thatch", "leaves"), ("cobble", "stone")):
+            if needle in stem:
+                return c
+        return "default"
+    return cls
 
 
 def class_spec(cls):
@@ -291,7 +340,7 @@ def sss_byte(cls):
 
 def pack(stem, out_dir, albedo, height, smoothness, cls, normal_strength,
         metal_mask=None, ao_radius=6, keep_mean=True, emission=None, f0=None,
-        fine_detail=0.35):
+        fine_detail=0.35, art_texels=16):
     """Write <stem>.png, <stem>_n.png and <stem>_s.png. albedo is RGB or
     RGBA float at SIZE; height and smoothness are SIZE x SIZE floats.
     The smoothness mean is moved onto the class level unless keep_mean is
@@ -364,7 +413,7 @@ def pack(stem, out_dir, albedo, height, smoothness, cls, normal_strength,
         Image.fromarray((a * 255.0 + 0.5).astype(np.uint8), "RGBA").save(out_dir / (stem + ".png"))
     else:
         Image.fromarray((a[..., :3] * 255.0 + 0.5).astype(np.uint8), "RGB").save(out_dir / (stem + ".png"))
-    return metrics(out_dir, stem)
+    return metrics(out_dir, stem, art_texels)
 
 
 # --- judging ----------------------------------------------------------------
@@ -386,8 +435,9 @@ def seam_energy(arr, step=1):
     return float(wrap / max(inner, 1e-3))
 
 
-def metrics(out_dir, stem):
-    """Everything the targets above ask for, from the files as written."""
+def metrics(out_dir, stem, art_texels=16):
+    """Everything the targets above ask for, from the files as written.
+    art_texels is the art's width, for the albedo seam's join spacing."""
     out_dir = Path(out_dir)
     n = np.asarray(Image.open(out_dir / (stem + "_n.png")).convert("RGBA")).astype(np.float32) / 255.0
     s = np.asarray(Image.open(out_dir / (stem + "_s.png")).convert("RGBA")).astype(np.float32) / 255.0
@@ -410,7 +460,7 @@ def metrics(out_dir, stem):
         "albedo_lum_sd": float(luminance(a).std()),
         "seam_n": seam_energy(n[..., :3]),
         "seam_s": seam_energy(s[..., 0]),
-        "seam_albedo": seam_energy(a, 16),
+        "seam_albedo": seam_energy(a, max(1, SIZE // max(art_texels, 1))),
         "emissive_share": float((s[..., 3] < 0.999).mean()),
     }
 
