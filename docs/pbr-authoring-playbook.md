@@ -158,3 +158,32 @@ Every set is a derivative of the game's art. Read the game's licence files
 before authoring, and let `build_pack.py` write the attribution note.
 Mineclonia's art is CC BY-SA 4.0; Kythen's is under the repository that
 ships it. Never treat a generated or authored map as new art.
+
+## When the art is generated from a recipe
+
+Some games do not draw their art; they paint it from a recipe. Kythen's
+blocks come from `materials.json` files per culture, painted by its
+`tools/media/blocktex.py`: masonry with a course and a stone width, bark
+with a seeded meander field, rubble as a seeded partition, planks, thatch,
+weave, mat and mottle, each with a `surface` block naming smoothness,
+porosity and emission. For a game like that, do not author maps from the
+pictures. The recipe drew the relief and knows where the mortar is; a
+script reading the picture back is solving the inverse problem the recipe
+never had, and a fleet doing it is a second author of one thing.
+
+The pipeline for a recipe game is the recipe's own painter emitting a
+height and a smoothness field at map size from the same seeded layout it
+paints the albedo from, and `lib.pack` turning those into the set. The
+arithmetic recipes (masonry, planks, thatch, weave) scale to map size for
+free; the seeded ones (bark, rubble) redraw their field at map size. What
+the library holds is exactly what the painter lacks: the bevel profile, the
+narrow band for flat materials, the sparse hollow that gives a soil its
+occlusion, the texel grain damping, the class rules, the packing
+convention and the checks. Call it; do not carry a second packer. Judge
+the result on the ramp the same way, and retire the per stem scripts for
+every stem a recipe covers. A change to a recipe then changes the block
+and its relief together.
+
+The Kythen fleet of 2026-09-16 predates this section. Its 228 scripts
+stand until the painter emits maps, and the Siku batch, whose author read
+the recipes rather than the pictures, is the one to compare against.
