@@ -140,8 +140,23 @@ that media.
   release 37652, so `LEGAL.md` is the floor rather than the whole account.
   None of this is Luanti's own media licence, which covers only the engine's
   own assets.
+- `docs/perf/lava-cave-2026-09-17/` and `docs/perf/lava-fall-2026-09-18/`
+  show Minetest Game's default textures. Minetest Game's media are CC BY-SA
+  3.0, Copyright (C) 2010-2023 celeron55, Perttu Ahola and the other
+  contributors named in its `mods/default/license.txt`, with further authors
+  in each mod's own licence file.
 
-Both sets are reproduced here under those terms, for documentation.
+These are reproduced here under those terms, for documentation.
+
+`asset_bundles/stylised_lava*` is "Stylized lava" by Tarox, material 222 in
+the Material Maker website's library,
+<https://www.materialmaker.org/material?id=222>, released there under CC0
+1.0. The Material Maker export and its four input images are kept
+unchanged. `project/tests/bake_stylised_lava.gd` bakes them into lava tiles,
+and `docs/perf/lava-mineclonia-2026-09-18/stylised.png` is a render of the
+result. The library gives each material its own author and licence (CC0, CC
+BY or CC BY-SA), so any further Material Maker material needs its own entry
+here.
 
 ## Trademarks
 

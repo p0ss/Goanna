@@ -997,13 +997,15 @@ private:
     // buildFakeLiquidTextures.
     std::set<u32> m_fake_liquid_tex;
     std::set<u32> m_ice_tex;
+    struct LavaTile { u8 level; u32 surface_texture; };
+    std::map<u32, LavaTile> m_lava_tex; // source artwork shared by the liquid family
     bool m_fake_liquid_built = false;
 	// A separate background view supplies transmission while ice writes depth.
 	// Solid ice skips that extra view while retaining the frosted material.
 	bool m_solid_ice = false;
     void buildFakeLiquidTextures();
 
-    godot::Ref<godot::Shader> m_sh_water, m_sh_leaves, m_sh_plants, m_sh_glass, m_sh_ice, m_sh_array,
+    godot::Ref<godot::Shader> m_sh_water, m_sh_lava, m_sh_leaves, m_sh_plants, m_sh_glass, m_sh_ice, m_sh_array,
             m_sh_array_scissor;
     bool m_shaders_loaded = false;
     // Relief inferred from a texture's own brightness, for every texture a
@@ -1027,7 +1029,12 @@ private:
     bool m_always_fly_fast = false;
 
     std::unique_ptr<EntityRenderer> m_entities;
-    struct NodeLight { godot::Vector3 pos, node_pos; float level; godot::Color color; };
+    struct NodeLight {
+        godot::Vector3 pos, node_pos;
+        float level;
+        godot::Color color;
+        bool liquid = false;
+    };
     std::map<v3s16, std::vector<NodeLight>> m_block_lights;
     std::vector<godot::OmniLight3D *> m_light_pool;
     // Which light currently owns each pool slot, so a lamp keeps the same
@@ -1040,6 +1047,7 @@ private:
         godot::Color color;
         float level = 0.0f;
         float fade = 0.0f;
+        bool liquid = false;
         // A flame's own phase, so a village of torches does not pulse in
         // lockstep: derived once from the lamp's key, at admission.
         float flicker_phase = 0.0f;

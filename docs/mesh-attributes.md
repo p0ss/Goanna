@@ -20,10 +20,11 @@ meshers, both node array shaders and the LOD material in the same commit.
 | --- | --- | --- |
 | `ARRAY_VERTEX` | position in Godot space, nodes, world absolute | z is mirrored against Luanti's |
 | `ARRAY_NORMAL` | face normal, z mirrored | |
-| `ARRAY_TEX_UV` | tile UV | |
+| `ARRAY_TEX_UV` | tile UV | near lava exception below |
 | `ARRAY_TEX_UV2` | `x` array layer index, `y` block semantic ID | see below |
-| `ARRAY_COLOR` | tile tint only, never light | grass and foliage colourisation, `param2` colour |
+| `ARRAY_COLOR` | tile tint only, never light | grass and foliage colourisation, `param2` colour; near lava alpha exception below |
 | `ARRAY_CUSTOM0` | `RGBA8_UNORM`: block light, sky light, ambient occlusion, freshness | see below |
+| `ARRAY_CUSTOM1` | near lava only: `RGB_FLOAT` world displacement direction | absent on ordinary node meshes |
 | `ARRAY_INDEX` | triangles, Godot winding | |
 
 `ARRAY_CUSTOM0` is declared with
@@ -31,6 +32,22 @@ meshers, both node array shaders and the LOD material in the same commit.
 flags argument of `add_surface_from_arrays`, and its data is a
 `PackedByteArray` of four bytes per vertex. The shader reads it as `CUSTOM0`,
 a `vec4` already scaled to 0 to 1.
+
+### Dedicated lava surfaces
+
+Near lava uses the same arrays with material-specific interpretations:
+`ARRAY_TEX_UV` contains the continuous liquid velocity projected into the
+shader's world-space texture coordinates. `prepareLavaSurface` subdivides
+these surfaces and fills that field from the map; the lava shader samples
+its artwork from world position and does not use tangent data. `ARRAY_COLOR`
+keeps the tint in RGB; alpha carries crust coverage, tapering from one in
+the interior to zero at the outer liquid footprint. Lava is opaque, so this
+does not control transparency. Distant lava ignores this coverage. These meshes
+are kept outside regional batching. Distant lava ignores UV and uses slow
+convection only. The array shaders, water, and all other materials retain
+the ordinary tile UV contract. Near lava additionally carries `CUSTOM1`,
+a world-space direction from the gradient of liquid occupancy. Both faces
+at a corner receive the same direction, so raised falling crust stays joined.
 
 ## Why light is not in ARRAY_COLOR
 

@@ -361,6 +361,28 @@ the fact.
   anything on Windows itself, the Flathub install end to end, joining a 5.6
   server with Goanna, and the Pop!_OS machine the report came from.
 
+- Lava has its own material, 2026-09-17 to 18. Any real liquid with a
+  light level of 6 or more now draws with `lava.gdshader` and its source
+  tile's artwork, flowing and falling blocks included. Near lava is
+  subdivided to eight segments per node and carries a velocity field taken
+  from neighbouring liquid levels, continuous across mapblock borders, so
+  the art moves with the flow. Dark texels rise up to 0.14 nodes as crust
+  and the glow is the inverse of the same mask, so raised crust and bright
+  melt move together; the crust settles flat at the edge of a flow. The
+  mask's range is measured from the selected tile's own luminance, since
+  Mineclonia's darker tile rendered nearly black against a range tuned to
+  Minetest Game. Exposed lava lamps sit above the surface, 3.5 nodes apart,
+  at 2.5 times an ordinary lamp's energy for their light level and with no
+  specular. Distant lava keeps the artwork and glow without the
+  subdivision. Verified with Godot 4.5.1 on an
+  RTX 3090 by fixtures (zero changed pixels across a split surface, glow and
+  height coupled at two times) and captures from disposable Minetest Game
+  and Mineclonia caves; `docs/lava-material.md` has the numbers. The
+  stylised lava in `asset_bundles/` is Tarox's CC0 "Stylized lava" from the
+  Material Maker library. Not yet done: the cost of a large lava lake near
+  the player is not measured, a pack's separate flowing artwork is replaced
+  by the source artwork, and the full animation strip is not played.
+
 ## Log since v0.4.1-alpha (2026-08-30)
 
 Verified on a local Mineclonia server on Luanti 5.17.0 with Godot 4.5.1 and

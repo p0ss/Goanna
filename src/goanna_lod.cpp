@@ -701,6 +701,14 @@ LodTileCache::Entry tileFor(LodTileCache &cache, const NodeDefManager *ndef,
         u32 tid = l.texture_id;
         if (l.frames && !l.frames->empty())
             tid = (*l.frames)[0].texture_id;
+        else if (tid) {
+            // Static liquids can share an array with ordinary terrain. The
+            // water/lava shaders require this layer's own 2D image, just as
+            // the near material resolver does for special liquid shaders.
+            const std::string name = tsrc->imageName(tid, l.texture_layer_idx);
+            if (!name.empty())
+                tid = tsrc->getTextureId(name);
+        }
         GoannaTexture *gt = tsrc->goannaTexture(tid);
         if (gt && !gt->isArray()) {
             e.liquid = true;

@@ -38,6 +38,7 @@ include(cmake/luanti_core.cmake)
 add_library(goanna SHARED
     src/register_types.cpp
     src/goanna_client.cpp
+    src/goanna_lava.cpp
     src/goanna_session.cpp
     src/goanna_mesher.cpp
     src/goanna_radial_form.cpp

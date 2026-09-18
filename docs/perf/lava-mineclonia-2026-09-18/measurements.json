@@ -1,0 +1,68 @@
+{
+  "before": [
+    {
+      "time": 0,
+      "mean_display_luminance": 0.06125034724363309,
+      "bright_fraction": 0.018758620689655173
+    },
+    {
+      "time": 3,
+      "mean_display_luminance": 0.058828288988055,
+      "bright_fraction": 0.005471264367816092
+    },
+    {
+      "time": 6,
+      "mean_display_luminance": 0.06099366195176922,
+      "bright_fraction": 0.016735632183908045
+    },
+    {
+      "time": 9,
+      "mean_display_luminance": 0.058338061266621596,
+      "bright_fraction": 0.007931034482758621
+    }
+  ],
+  "calibrated": [
+    {
+      "time": 0,
+      "mean_display_luminance": 0.30767904719405004,
+      "bright_fraction": 0.5139310344827587
+    },
+    {
+      "time": 3,
+      "mean_display_luminance": 0.3274394712463376,
+      "bright_fraction": 0.6162988505747127
+    },
+    {
+      "time": 6,
+      "mean_display_luminance": 0.30769746742393506,
+      "bright_fraction": 0.5139770114942529
+    },
+    {
+      "time": 9,
+      "mean_display_luminance": 0.3231464031372549,
+      "bright_fraction": 0.6037241379310345
+    }
+  ],
+  "stylised": [
+    {
+      "time": 0,
+      "mean_display_luminance": 0.22300911129141313,
+      "bright_fraction": 0.4219080459770115
+    },
+    {
+      "time": 3,
+      "mean_display_luminance": 0.19742821396439036,
+      "bright_fraction": 0.40264367816091956
+    },
+    {
+      "time": 6,
+      "mean_display_luminance": 0.21920959507775525,
+      "bright_fraction": 0.4126896551724138
+    },
+    {
+      "time": 9,
+      "mean_display_luminance": 0.20300302582826232,
+      "bright_fraction": 0.40218390804597703
+    }
+  ]
+}

@@ -3,6 +3,7 @@
 
 #include "goanna_client.h"
 #include "goanna_grass.h"
+#include "goanna_lava.h"
 #include <sstream>
 
 #include <godot_cpp/classes/array_mesh.hpp>
@@ -284,6 +285,9 @@ v3s16 GoannaClient::nearRegionFor(const v3s16 &bp) const {
 }
 
 bool GoannaClient::nearCanBatch(const MaterialKey &key) const {
+    // Lava carries its continuous flow field and a subdivided surface.
+    if (m_lava_tex.count(key.texture_id))
+        return false;
     if (key.array_texture)
         return true;
     // Region-sized transparent objects sort as a unit, which is visibly
@@ -1198,6 +1202,7 @@ void GoannaClient::connect_to(const String &host, int port, const String &player
     m_materials.clear();
     m_fake_liquid_tex.clear();
     m_ice_tex.clear();
+    m_lava_tex.clear();
     m_fake_liquid_built = false;
     m_session = std::make_unique<GoannaSession>();
     // The camera is created before connect_to(), so _report_fov() normally
@@ -2399,6 +2404,8 @@ MaterialKey GoannaClient::keyForIrr(const video::SMaterial &m, u16 layer) {
         MaterialType mtype = m_session->shsrc().materialType(key.shader_id);
         bool wants_special_shader = mtype == TILE_MATERIAL_WAVING_LEAVES ||
                 mtype == TILE_MATERIAL_WAVING_PLANTS ||
+                mtype == TILE_MATERIAL_LIQUID_OPAQUE ||
+                mtype == TILE_MATERIAL_WAVING_LIQUID_OPAQUE ||
                 mtype == TILE_MATERIAL_LIQUID_TRANSPARENT ||
                 mtype == TILE_MATERIAL_WAVING_LIQUID_TRANSPARENT ||
                 mtype == TILE_MATERIAL_WAVING_LIQUID_BASIC ||
@@ -2455,7 +2462,8 @@ MaterialKey GoannaClient::keyForIrr(const video::SMaterial &m, u16 layer) {
 // ContentFeatures has both halves of the answer already, so collect the tile
 // textures of every node that draws as a liquid and is not one, and keep them
 // off the water shader. The same scan records ice-group textures, including
-// games whose transparent ice uses a glass drawtype.
+// games whose transparent ice uses a glass drawtype, and the resolved visual
+// tiles of luminous liquids for the lava shader.
 void GoannaClient::buildFakeLiquidTextures() {
     if (m_fake_liquid_built || !m_session)
         return;
@@ -2472,6 +2480,37 @@ void GoannaClient::buildFakeLiquidTextures() {
         const bool fake_liquid = (f.drawtype == NDT_LIQUID || f.drawtype == NDT_FLOWINGLIQUID)
                 && f.liquid_type == LIQUID_NONE;
         const bool ice = itemgroup_get(f.groups, "ice") > 0;
+        // Use the liquid definition and its light, never a texture filename.
+        // Resolved visual tiles include pack overrides and extracted animation
+        // frames; flowing tops/sides live in special_tiles, not tiledef.
+        if (f.isLiquid() && f.light_source >= 6 && f.visuals) {
+            auto resolved_texture = [&](const TileLayer &layer) -> u32 {
+                if (!layer.texture_id)
+                    return 0;
+                const std::string name = m_session->tsrc()->imageName(
+                        layer.texture_id, layer.texture_layer_idx);
+                return name.empty() ? 0 : m_session->tsrc()->getTextureId(name);
+            };
+            const auto &source = ndef->get(f.liquid_alternative_source_id);
+            const u32 source_texture = source.visuals
+                    ? resolved_texture(source.visuals->tiles[0].layers[0]) : 0;
+            auto note_lava = [&](const TileSpec &tile) {
+                for (const auto &layer : tile.layers) {
+                    const u32 id = resolved_texture(layer);
+                    const LavaTile lava{f.light_source,
+                            source_texture ? source_texture : id};
+                    if (id)
+                        m_lava_tex[id] = lava;
+                    if (layer.frames)
+                        for (const auto &frame : *layer.frames)
+                            m_lava_tex[frame.texture_id] = lava;
+                }
+            };
+            for (const auto &tile : f.visuals->tiles)
+                note_lava(tile);
+            for (const auto &tile : f.visuals->special_tiles)
+                note_lava(tile);
+        }
         if (!fake_liquid && !ice)
             continue;
         for (const auto &tdef : f.tiledef) {
@@ -2497,6 +2536,7 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
         m_shaders_loaded = true;
         ResourceLoader *rl = ResourceLoader::get_singleton();
         m_sh_water = rl->load("res://shaders/water.gdshader");
+        m_sh_lava = rl->load("res://shaders/lava.gdshader");
         m_sh_leaves = rl->load("res://shaders/waving_leaves.gdshader");
         m_sh_plants = rl->load("res://shaders/waving_plants.gdshader");
         m_sh_glass = rl->load("res://shaders/glass.gdshader");
@@ -2720,15 +2760,33 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
     default:
         break;
     }
+    const bool liquid_material = mtype == TILE_MATERIAL_LIQUID_OPAQUE ||
+            mtype == TILE_MATERIAL_LIQUID_TRANSPARENT ||
+            mtype == TILE_MATERIAL_WAVING_LIQUID_OPAQUE ||
+            mtype == TILE_MATERIAL_WAVING_LIQUID_TRANSPARENT ||
+            mtype == TILE_MATERIAL_WAVING_LIQUID_BASIC;
+    if (liquid_material && m_lava_tex.count(key.texture_id))
+        sh = m_sh_lava;
     if (getenv("GOANNA_DEBUG_WHITE") && sh.is_valid())
-        UtilityFunctions::print((sh == m_sh_ice ? "ICE " : sh == m_sh_glass ? "GLASS " : sh == m_sh_plants ? "PLANTS " : sh == m_sh_leaves ? "LEAVES " : "WATER "),
+        UtilityFunctions::print((sh == m_sh_lava ? "LAVA " : sh == m_sh_ice ? "ICE " : sh == m_sh_glass ? "GLASS " : sh == m_sh_plants ? "PLANTS " : sh == m_sh_leaves ? "LEAVES " : "WATER "),
                 "'", String(m_session->tsrc()->getTextureName(key.texture_id).c_str()), "' mtype=", (int)mtype,
                 " cull=", key.backface_culling, " texvalid=", tex.is_valid());
-    if (sh.is_valid() && tex.is_valid() && emissive == 0) {
+    if (sh.is_valid() && tex.is_valid() && (emissive == 0 || sh == m_sh_lava)) {
         Ref<ShaderMaterial> sm;
         sm.instantiate();
         sm->set_shader(sh);
         sm->set_shader_parameter("albedo_tex", tex);
+        if (sh == m_sh_lava) {
+            const LavaTile &lava = m_lava_tex.at(key.texture_id);
+            GoannaTexture *surface = m_session->tsrc()->goannaTexture(lava.surface_texture);
+            if (surface && surface->godotTexture().is_valid()) {
+                sm->set_shader_parameter("albedo_tex", surface->godotTexture());
+                configureLavaMaterial(sm, surface->image());
+            }
+            float level = lava.level / 14.0f;
+            sm->set_shader_parameter("emission_energy", 4.8f * level * level);
+            sm->set_shader_parameter("surface_geometry", true);
+        }
         if (sh == m_sh_ice)
             sm->set_shader_parameter("solid", m_solid_ice);
         bool waving = (mtype == TILE_MATERIAL_WAVING_LIQUID_TRANSPARENT ||
@@ -2881,6 +2939,39 @@ void GoannaClient::harvestLights(v3s16 bp, MapBlock *block) {
         // their oriented selection box. A lantern uses its body box, keeping
         // the source inside its glass rather than at the node's origin/chain.
         l.node_pos = l.pos;
+        l.liquid = f.isLiquid();
+        if (l.liquid) {
+            auto node_at = [&](v3s16 p) {
+                v3s16 bpos = getNodeBlockPos(p);
+                MapBlock *neighbour = m_session->getBlock(bpos);
+                return neighbour ? neighbour->getNodeNoCheck(p - bpos * MAP_BLOCKSIZE)
+                                 : MapNode(CONTENT_IGNORE);
+            };
+            const v3s16 p = bp * MAP_BLOCKSIZE + v3s16(x,y,z);
+            auto exposed = [&](v3s16 offset) {
+                MapNode other = node_at(p + offset);
+                const auto &of = ndef->get(other);
+                return other.getContent() != CONTENT_IGNORE && !of.walkable && !of.isLiquid();
+            };
+            // A lamp at the cell centre sits below the top of the bank.
+            // Put it just outside an exposed emitting surface. Buried liquid
+            // must not consume shadow slots or put lamps inside the terrain.
+            if (exposed(v3s16(0,1,0))) {
+                l.pos.y += 1.15f;
+            } else {
+                bool visible = false;
+                for (const auto &side : {v3s16(1,0,0), v3s16(-1,0,0),
+                        v3s16(0,0,1), v3s16(0,0,-1)}) {
+                    if (!exposed(side))
+                        continue;
+                    l.pos += Vector3(side.X * 0.65f, 0.15f, -side.Z * 0.65f);
+                    visible = true;
+                    break;
+                }
+                if (!visible)
+                    continue;
+            }
+        }
         auto torch = f.groups.find("torch");
         if (f.drawtype == NDT_TORCHLIKE ||
                 (torch != f.groups.end() && torch->second > 0)) {
@@ -2911,8 +3002,9 @@ void GoannaClient::harvestLights(v3s16 bp, MapBlock *block) {
         l.level = f.light_source / 14.0f;
         // colour from the node's first tile (torch textures average to warm orange)
         video::SColor c(255, 255, 220, 160);
-        if (f.visuals && f.visuals->tiles[0].layers[0].texture_id) {
-            const TileLayer &tl = f.visuals->tiles[0].layers[0];
+        if (f.visuals) {
+            const TileLayer &tl = f.drawtype == NDT_FLOWINGLIQUID
+                    ? f.visuals->special_tiles[0].layers[0] : f.visuals->tiles[0].layers[0];
             std::string tname = m_session->tsrc()->imageName(tl.texture_id, tl.texture_layer_idx);
             if (!tname.empty())
                 c = m_session->tsrc()->getTextureAverageColor(tname);
@@ -3391,8 +3483,7 @@ void GoannaClient::update_lights(const Vector3 &around, int max_lights) {
             // lamp's reach the camera is, so a lamp overhead beats one across
             // the room instead of drawing with it.
             float score = l.pos.distance_to(around) - range_of(l.level);
-            if (score < 64.0f)
-                all.push_back({ &l, key_of(&l), score });
+            all.push_back({ &l, key_of(&l), score });
         }
     m_lights_in_range = (int)all.size();
     m_light_churn = 0;
@@ -3401,6 +3492,44 @@ void GoannaClient::update_lights(const Vector3 &around, int max_lights) {
     // lamps constantly, and without a tie-break their order comes from however
     // the block map happened to iterate, so they can swap between frames with
     // nothing having moved.
+    std::sort(all.begin(), all.end(), [](const Cand &a, const Cand &b) {
+        return a.key < b.key;
+    });
+
+    // A pool has hundreds of emitting cells. Sixteen adjacent lamps waste
+    // the entire shadow budget on one small patch. Keep a spatially spread
+    // subset of exposed liquid lamps. Choose in world-key order BEFORE
+    // camera ranking/culling, or walking changes the emitting cells.
+    std::vector<Cand> spread;
+    std::map<v3s16, std::vector<Vector3>> liquid_cells;
+    for (const Cand &candidate : all) {
+        bool covered = false;
+        if (candidate.l->liquid) {
+            const Vector3 p = candidate.l->pos;
+            const v3s16 cell((s16)std::floor(p.x/4), (s16)std::floor(p.y/4), (s16)std::floor(p.z/4));
+            for (int z = -1; z <= 1 && !covered; ++z)
+                for (int y = -1; y <= 1 && !covered; ++y)
+                    for (int x = -1; x <= 1 && !covered; ++x) {
+                        auto found = liquid_cells.find(cell + v3s16(x,y,z));
+                        if (found == liquid_cells.end())
+                            continue;
+                        for (const Vector3 &kept : found->second)
+                            if (p.distance_squared_to(kept) < 12.25f) {
+                                covered = true;
+                                break;
+                            }
+                    }
+            if (!covered)
+                liquid_cells[cell].push_back(p);
+        }
+        if (!covered)
+            spread.push_back(candidate);
+    }
+    all.swap(spread);
+    all.erase(std::remove_if(all.begin(), all.end(), [](const Cand &c) {
+        return c.score >= 64.0f;
+    }), all.end());
+    m_lights_in_range = (int)all.size();
     std::sort(all.begin(), all.end(), [](const Cand &a, const Cand &b) {
         return a.score != b.score ? a.score < b.score : a.key < b.key;
     });
@@ -3545,6 +3674,12 @@ void GoannaClient::update_lights(const Vector3 &around, int max_lights) {
             // stop rather than swap a brighter lamp for a dimmer one.
             if (worst_rank <= i)
                 break;
+            // Nearby samples of one broad liquid emitter should not trade
+            // places for tiny camera-distance improvements. Keep ordinary
+            // newly placed torches' immediate admission unchanged.
+            if (all[i].l->liquid && holder[victim]->l->liquid &&
+                    holder[victim]->score - all[i].score < 2.0f)
+                continue;
             held.erase(holder[victim]->key);
             holder[victim] = &all[i];
             held.insert(all[i].key);
@@ -3583,6 +3718,7 @@ void GoannaClient::update_lights(const Vector3 &around, int max_lights) {
             slot.pos = c->l->pos;
             slot.color = c->l->color;
             slot.level = c->l->level;
+            slot.liquid = c->l->liquid;
             slot.fade = std::min(1.0f, slot.fade + FADE_STEP);
         } else if (slot.key) {
             slot.fade -= FADE_STEP;
@@ -3618,7 +3754,10 @@ void GoannaClient::update_lights(const Vector3 &around, int max_lights) {
         // scalar the shadow map does not care about, so the flicker term is
         // free to change it every frame regardless.
         const float want_range = range_of(slot.level);
-        const float want_energy = energy_of(slot.level) * slot.fade * flicker;
+        // Each spaced liquid lamp represents a patch of glowing surface.
+        // Compensate for the spacing so flat banks receive useful spill.
+        const float want_energy = energy_of(slot.level) * slot.fade * flicker
+                * (slot.liquid ? 2.5f : 1.0f);
         if (ol->get_position() != slot.pos)
             ol->set_position(slot.pos);
         if (ol->get_color() != slot.color)
@@ -3627,6 +3766,11 @@ void GoannaClient::update_lights(const Vector3 &around, int max_lights) {
             ol->set_param(Light3D::PARAM_RANGE, want_range);
         if (ol->get_param(Light3D::PARAM_ENERGY) != want_energy)
             ol->set_param(Light3D::PARAM_ENERGY, want_energy);
+        // A point lamp approximates a broad emitting patch. Its sharp
+        // specular hotspot otherwise slides across the cave as the eye moves.
+        const float want_specular = slot.liquid ? 0.0f : 1.0f;
+        if (ol->get_param(Light3D::PARAM_SPECULAR) != want_specular)
+            ol->set_param(Light3D::PARAM_SPECULAR, want_specular);
         // Keep pools of lamplight distinct. A shallower falloff fills the
         // dark gaps between sources and flattens the room's lighting.
         if (ol->get_param(Light3D::PARAM_ATTENUATION) != 1.5f)
@@ -6322,13 +6466,25 @@ void GoannaClient::lodPublishRegion(const LodRegionKey &key, LodRegion &r, const
                 Ref<ShaderMaterial> wm;
                 if (!m_shaders_loaded)
                     materialFor(MaterialKey()); // loads the shaders
+                buildFakeLiquidTextures();
                 GoannaTexture *wgt = m_session->tsrc()->goannaTexture(sf.texture_id);
                 if (m_sh_water.is_valid() && wgt && wgt->godotTexture().is_valid()) {
                     wm.instantiate();
-                    wm->set_shader(m_sh_water);
+                    const auto lava = m_lava_tex.find(sf.texture_id);
+                    wm->set_shader(lava != m_lava_tex.end() ? m_sh_lava : m_sh_water);
                     wm->set_shader_parameter("albedo_tex", wgt->godotTexture());
-                    wm->set_shader_parameter("waving", true);
-                    wm->set_shader_parameter("lod_flatten", true);
+                    if (lava != m_lava_tex.end()) {
+                        GoannaTexture *surface = m_session->tsrc()->goannaTexture(lava->second.surface_texture);
+                        if (surface && surface->godotTexture().is_valid()) {
+                            wm->set_shader_parameter("albedo_tex", surface->godotTexture());
+                            configureLavaMaterial(wm, surface->image());
+                        }
+                        float level = lava->second.level / 14.0f;
+                        wm->set_shader_parameter("emission_energy", 4.8f * level * level);
+                    } else {
+                        wm->set_shader_parameter("waving", true);
+                        wm->set_shader_parameter("lod_flatten", true);
+                    }
                 }
                 wit = m_lod_water.emplace(sf.texture_id, wm).first;
             }
@@ -7114,16 +7270,21 @@ int GoannaClient::poll_blocks(int max_blocks) {
             arrays[Mesh::ARRAY_TEX_UV2] = acc.uv2s;
             arrays[Mesh::ARRAY_CUSTOM0] = acc.custom0;
             arrays[Mesh::ARRAY_INDEX] = acc.idx;
+            uint64_t surface_flags = kNodeSurfaceFlags;
+            if (m_lava_tex.count(acc.key.texture_id)) {
+                prepareLavaSurface(arrays, *m_session);
+                surface_flags |= uint64_t(Mesh::ARRAY_CUSTOM_RGB_FLOAT) << Mesh::ARRAY_FORMAT_CUSTOM1_SHIFT;
+            }
             // The transmission camera excludes only translucent ice. Keep
             // it separate from water and plants sharing this mapblock.
             if (m_ice_tex.count(acc.key.texture_id)) {
                 ice_mesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays,
-                        TypedArray<Array>(), Dictionary(), kNodeSurfaceFlags);
+                        TypedArray<Array>(), Dictionary(), surface_flags);
                 ice_mesh->surface_set_material(ice_si++, materialFor(acc.key));
                 continue;
             }
             mesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays, TypedArray<Array>(),
-                    Dictionary(), kNodeSurfaceFlags);
+                    Dictionary(), surface_flags);
             if (si == 0 && getenv("GOANNA_DEBUG_PBR"))
                 UtilityFunctions::print("surface format: tangent=",
                         (bool)(mesh->surface_get_format(0) & Mesh::ARRAY_FORMAT_TANGENT),
@@ -7152,8 +7313,13 @@ int GoannaClient::poll_blocks(int max_blocks) {
             arrays[Mesh::ARRAY_TEX_UV2] = acc.uv2s;
             arrays[Mesh::ARRAY_CUSTOM0] = acc.custom0;
             arrays[Mesh::ARRAY_INDEX] = acc.idx;
+            uint64_t surface_flags = kNodeSurfaceFlags;
+            if (m_lava_tex.count(acc.key.texture_id)) {
+                prepareLavaSurface(arrays, *m_session);
+                surface_flags |= uint64_t(Mesh::ARRAY_CUSTOM_RGB_FLOAT) << Mesh::ARRAY_FORMAT_CUSTOM1_SHIFT;
+            }
             gmesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays, TypedArray<Array>(),
-                    Dictionary(), kNodeSurfaceFlags);
+                    Dictionary(), surface_flags);
             gmesh->surface_set_material(gsi++, materialFor(acc.key));
         }
         // A block of nothing but region-batched or glowing surfaces still
@@ -7183,6 +7349,7 @@ int GoannaClient::poll_blocks(int max_blocks) {
         MeshInstance3D *mi = nullptr;
         if (si > 0 || gsi > 0 || ice_si > 0) {
             mi = memnew(MeshInstance3D);
+            mi->set_extra_cull_margin(0.2f);
             add_child(mi);
             near_block.special_node = mi;
         }
@@ -7201,6 +7368,7 @@ int GoannaClient::poll_blocks(int max_blocks) {
         MeshInstance3D *gmi = nullptr;
         if (gsi > 0) {
             gmi = memnew(MeshInstance3D);
+            gmi->set_extra_cull_margin(0.2f);
             gmi->set_layer_mask(GLOW_LAYER);
             mi->add_child(gmi);
             gmi->set_mesh(gmesh);
