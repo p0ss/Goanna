@@ -17,7 +17,7 @@ remaining connected to an ordinary Luanti world.
 | Landscapes | Lighting and materials |
 | --- | --- |
 | ![Village and surrounding terrain](docs/village.png) | ![Dynamic lighting](docs/light.png) |
-| ![Underwater terrain](docs/underwater.png) | ![Lava and volcanic terrain](docs/lava.png) |
+| ![Underwater terrain](docs/underwater.png) | ![Lava falling into a cave](docs/lava.png) |
 
 ## Highlights
 
