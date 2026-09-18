@@ -201,11 +201,15 @@ the ordinary ecosystem.
 exception to it. Goanna finds Luanti on your machine, launches an ordinary
 unmodified server on localhost, and joins it over the ordinary protocol,
 exactly as if you had started the server yourself in another terminal. It
-looks for `luantiserver` or `minetestserver` on `PATH`, then `luanti` or
-`minetest --server`, then the `org.luanti.luanti` flatpak. Set
-`GOANNA_SERVER_CMD` to override the command. It enumerates the games you
-have installed, creates the world, waits for the port to open, and connects.
-Quitting or disconnecting shuts that server down.
+looks for every Luanti install on the machine (distribution packages,
+Flatpak, Snap, AppImages, unpacked builds; "finding Luanti" in
+`project/local_server.gd` lists where) and applies Luanti's own path rules to
+find each one's games and data. It uses the install the player chose on the
+menu's Luanti screen, or else the first that has a game, and remembers the
+choice in `goanna.cfg` under `[luanti]`. Set `GOANNA_SERVER_CMD` to override
+the command, and `GOANNA_SERVER_DATA_DIR` for its data directory. It
+enumerates the games that install has, creates the world, waits for the port
+to open, and connects. Quitting or disconnecting shuts that server down.
 
 So there is no singleplayer code path, no embedded engine and no private
 protocol. There is a server, it is Luanti's, and Goanna just started it for

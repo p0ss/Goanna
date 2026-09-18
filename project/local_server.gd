@@ -7,10 +7,10 @@
 # protocol, exactly as connecting to any other server. Nothing here modifies
 # the server or the game.
 #
-# It finds the server the way a packager would: a luantiserver/minetestserver
-# or luanti/minetest --server on PATH and in the standard system game paths,
-# then Snap or the org.luanti.luanti Flatpak. GOANNA_SERVER_CMD overrides the
-# argv prefix (space separated).
+# Which Luanti it runs is decided under "finding Luanti" below: every install
+# the machine seems to have, by Luanti's own path rules, with the player's
+# choice remembered. GOANNA_SERVER_CMD overrides the argv prefix (space
+# separated).
 extends RefCounted
 class_name GoannaLocalServer
 
@@ -78,94 +78,572 @@ static func terrain_world(id: String) -> Dictionary:
 			return world
 	return {}
 
-# Where Luanti keeps games and worlds, and how to invoke its server.
-# Returns {} if no server could be found.
+# --- finding Luanti ----------------------------------------------------------
+#
+# Start Game needs a Luanti server and Goanna has none of its own, so it has to
+# find the one the player already has. No platform keeps a register of that.
+# So this looks where each kind of packaging puts Luanti, then applies Luanti's
+# own path rules to whatever it finds: porting.cpp (initializePaths,
+# setSystemPaths) for the share and user directories, and content/subgames.cpp
+# (getAvailableGamePaths) for where games are looked for. Every install found
+# is kept, not only the first, because a machine can have more than one and
+# only the player knows which one their worlds are in. The menu lists them and
+# remembers the choice in goanna.cfg.
+#
+# The old lookup found a server and then looked for games only in
+# ~/.minetest/games, so on Debian and Ubuntu (and Pop!_OS, which uses Ubuntu's
+# archive) it found /usr/games/minetest and reported no games at all: Ubuntu
+# 24.04's minetest-data puts devtest and Minetest Game in
+# /usr/share/games/minetest/games.
+#
+# Where each kind lives, as checked against the packages themselves:
+#   Debian, Ubuntu    /usr/games/minetest, share /usr/share/games/minetest
+#   other Linux       /usr/bin/luanti, share /usr/share/luanti
+#   Flatpak           ~/.local/share/flatpak (user) or /var/lib/flatpak
+#                     (system). Its launcher sets the user path to
+#                     ~/.var/app/<id>/.minetest.
+#   Snap              /snap/bin/<name>, data ~/snap/<name>/current/.minetest
+#   AppImage          anywhere, data ~/.minetest
+#   Windows zip       anywhere. A RUN_IN_PLACE build, so its data is the
+#                     unpacked folder itself.
+#   Windows .exe      unpacks itself to %LOCALAPPDATA%\luanti\<version> and
+#                     keeps its data in %APPDATA%\Minetest
+#   macOS             Luanti.app, data ~/Library/Application Support/minetest
+# GOANNA_SERVER_CMD still overrides all of it (the server argv, space
+# separated, with GOANNA_SERVER_DATA_DIR for its data directory).
+
+const CFG_PATH := "user://goanna.cfg"
+const FLATPAK_IDS := ["org.luanti.luanti", "net.minetest.Minetest"]
+const FLATHUB_REPO := "https://dl.flathub.org/repo/flathub.flatpakrepo"
+const DOWNLOAD_PAGE := "https://www.luanti.org/downloads/"
+# Where Goanna unpacks a Luanti it installed itself.
+const OWN_LUANTI_DIR := "user://luanti"
+# The official Windows build that Install Luanti fetches. Pinned, with the
+# sha256 GitHub publishes for the asset, rather than "latest", because what is
+# downloaded is then run. 5.16.1 is the release Goanna's client core is built
+# from.
+const LUANTI_WINDOWS := {
+	"version": "5.16.1",
+	"url": "https://github.com/luanti-org/luanti/releases/download/5.16.1/luanti-5.16.1-win64.zip",
+	"sha256": "a70fd87e67cc236f250fca90e5cd30211f3e45937b107158b5367d6ee26aabb8",
+	"bytes": 17411102,
+}
+const _EXECUTABLE_NAMES := ["luantiserver", "minetestserver", "luanti", "minetest"]
+
+static var _installs: Array = []
+static var _scanned := false
+static var _chosen: Dictionary = {}
+
+# The install Start Game uses: GOANNA_SERVER_CMD if set, else the one the
+# player chose, else the first found that has a game, else the first found.
+# {} when there is none. The keys:
+#   kind         package, portable, appimage, snap, flatpak, goanna or custom
+#   key          what goanna.cfg remembers it by
+#   product      Luanti or Minetest, from the program's own name
+#   version      when the install says, else ""
+#   location     the program, or the flatpak's deployed files
+#   argv         the server command, before the per world arguments
+#   client_argv  Luanti's own client, to install games with; may be empty
+#   data_dir     Luanti's user path: worlds, mods, texture packs, games
+#   share_dir    Luanti's share path, when it can be seen from outside
+#   game_dirs    where games are looked for, in Luanti's order
+#   games        the game directories found there
 static func detect() -> Dictionary:
-	var home := OS.get_environment("HOME")
-	var data_dir := _user_data_dir(home)
-	var override := OS.get_environment("GOANNA_SERVER_CMD")
-	if override != "":
-		var parts := override.split(" ", false)
-		return {"argv": parts, "data_dir": data_dir}
-	for cmd in ["luantiserver", "minetestserver"]:
-		var executable := _find_executable(cmd)
-		if executable != "":
-			return {"argv": PackedStringArray([executable]), "data_dir": data_dir}
-	for cmd in ["luanti", "minetest"]:
-		var executable := _find_executable(cmd)
-		if executable != "":
-			return {"argv": PackedStringArray([executable, "--server"]), "data_dir": data_dir}
-	# Snap's wrapper is normally added to an interactive shell's PATH, but that
-	# is not guaranteed for programs launched by COSMIC or another desktop.
-	var snap_luanti := "/snap/bin/luanti"
-	if FileAccess.file_exists(snap_luanti):
-		return {"argv": PackedStringArray([snap_luanti, "--server"]),
-			"data_dir": home.path_join("snap/luanti/current/.minetest")}
-	if _which("flatpak") and _flatpak_installed("org.luanti.luanti"):
-		return {"argv": PackedStringArray(["flatpak", "run", "--command=luanti", "org.luanti.luanti", "--server"]),
-			"data_dir": home.path_join(".var/app/org.luanti.luanti/.minetest")}
+	var custom := _custom_install()
+	if not custom.is_empty():
+		_chosen = custom
+		return custom
+	_chosen = preferred(installs(), saved_choice())
+	return _chosen
+
+static func preferred(all: Array, wanted: String) -> Dictionary:
+	var saved := _find_key(all, wanted) if wanted != "" else {}
+	if not saved.is_empty():
+		return saved
+	for inst in all:
+		if not (inst["games"] as Array).is_empty():
+			return inst
+	return all[0] if not all.is_empty() else {}
+
+# Every install found, most preferred first. Scanned once per run, because the
+# menu asks often; pass rescan after the player installs or moves one.
+static func installs(rescan := false) -> Array:
+	if _scanned and not rescan:
+		return _installs
+	var ctx := _context()
+	_installs = scan_installs(ctx)
+	# One the player located by hand, somewhere the scan does not look. It is
+	# built again from its path every time, so one that has since been deleted
+	# drops out instead of being offered.
+	var wanted := saved_choice()
+	if wanted.begins_with("exe:") and _find_key(_installs, wanted).is_empty() \
+			and FileAccess.file_exists(wanted.substr(4)):
+		_add_install(_installs, _install_from_executable(wanted.substr(4), ctx))
+	_scanned = true
+	return _installs
+
+static func saved_choice() -> String:
+	var cfg := ConfigFile.new()
+	if cfg.load(CFG_PATH) != OK:
+		return ""
+	return str(cfg.get_value("luanti", "install", ""))
+
+# Remember `inst` as the one to use. Kept in the scan's list even when the scan
+# would not have found it, so the menu can show it.
+static func choose(inst: Dictionary) -> void:
+	var cfg := ConfigFile.new()
+	cfg.load(CFG_PATH)
+	cfg.set_value("luanti", "install", str(inst.get("key", "")))
+	cfg.save(CFG_PATH)
+	if _find_key(_installs, str(inst.get("key", ""))).is_empty():
+		_installs.append(inst)
+	_chosen = inst
+
+# What the player pointed at with Locate: a Luanti program, an AppImage, a
+# macOS .app, or a folder holding one (the Windows zip's folder, its bin/, a
+# source checkout). {} when there is no Luanti there. Only programs named like
+# Luanti's are accepted, because whatever is accepted gets run.
+static func install_at(path: String, ctx: Dictionary = {}) -> Dictionary:
+	if ctx.is_empty():
+		ctx = _context()
+	var windows := str(ctx["platform"]) == "Windows"
+	path = path.simplify_path()
+	if FileAccess.file_exists(path):
+		var lower := path.get_file().to_lower()
+		var stem := lower.trim_suffix(".exe") if windows else lower
+		if lower.ends_with(".appimage") or _EXECUTABLE_NAMES.has(stem):
+			return _install_from_executable(path, ctx)
+		return {}
+	if not DirAccess.dir_exists_absolute(path):
+		return {}
+	# The client first, so Open Luanti is available for what is chosen here.
+	for name in ["luanti", "minetest", "luantiserver", "minetestserver"]:
+		for dir in [path.path_join("bin"), path, path.path_join("Contents/MacOS")]:
+			var exe := _executable_in(dir, name, windows)
+			if exe != "":
+				return _install_from_executable(exe, ctx)
 	return {}
 
-static func _user_data_dir(home: String) -> String:
-	# Match Luanti itself. The explicit Goanna name is useful with a custom
-	# server command; MINETEST_USER_PATH remains supported for older installs.
-	for variable in ["GOANNA_SERVER_DATA_DIR", "LUANTI_USER_PATH", "MINETEST_USER_PATH"]:
-		var value := OS.get_environment(variable)
-		if value != "":
-			return value
-	return home.path_join(".minetest")
+# Where the scan looks on this machine, for the menu to show when it finds
+# nothing: the list a player needs to see to know why.
+static func search_places() -> PackedStringArray:
+	var ctx := _context()
+	var lines: PackedStringArray = []
+	lines.append("Programs named %s in: %s" % [", ".join(_EXECUTABLE_NAMES),
+		", ".join(PackedStringArray(_search_dirs(ctx)))])
+	for base in ctx["flatpak_bases"]:
+		lines.append("Flatpak (%s): %s" % [str(base[0]), str(base[1])])
+	if str(ctx["flatpak_command"]) == "" and str(ctx["platform"]) == "Linux":
+		lines.append("(no flatpak command found, so Flatpak installs cannot be run)")
+	if not (ctx["app_dirs"] as Array).is_empty():
+		lines.append("AppImages and apps in: " + ", ".join(PackedStringArray(ctx["app_dirs"])))
+	lines.append("Folders named luanti* or minetest* in: "
+		+ ", ".join(PackedStringArray(ctx["folder_bases"])))
+	return lines
 
-static func _find_executable(cmd: String) -> String:
-	# Debian and Ubuntu deliberately install games in /usr/games. Desktop
-	# sessions, notably COSMIC, do not necessarily give launched applications
-	# the same PATH as an interactive shell, so never rely on `which` alone.
-	var out: Array = []
-	if OS.execute("which", [cmd], out) == 0 and not out.is_empty():
-		var resolved := str(out[0]).strip_edges()
-		if resolved != "":
-			return resolved
-	return _find_executable_in_dirs(cmd, [
-		"/usr/games", "/usr/local/games", "/usr/bin", "/usr/local/bin",
-		"/usr/libexec/luanti", "/app/bin",
-	])
+# The machine as the scan sees it. Everything platform specific is decided
+# here, so scan_installs can be run against a made up machine in a test.
+static func _context() -> Dictionary:
+	var platform := OS.get_name()
+	if platform != "Windows" and platform != "macOS":
+		platform = "Linux" # the BSDs follow the same rules in porting.cpp
+	var windows := platform == "Windows"
+	var home := OS.get_environment("USERPROFILE" if windows else "HOME")
+	var env := {}
+	for key in ["PATH", "LUANTI_USER_PATH", "MINETEST_USER_PATH", "LUANTI_GAME_PATH",
+			"MINETEST_GAME_PATH", "MINETEST_SUBGAME_PATH", "APPDATA", "LOCALAPPDATA",
+			"ProgramFiles", "ProgramFiles(x86)", "ProgramData", "SystemDrive",
+			"XDG_DATA_HOME", "FLATPAK_USER_DIR", "FLATPAK_SYSTEM_DIR"]:
+		env[key] = OS.get_environment(key)
+	var own_dir := ProjectSettings.globalize_path(OWN_LUANTI_DIR)
+	# Desktop, Downloads and Documents are where an unpacked zip or a
+	# downloaded AppImage usually sits. The system reports them, which follows
+	# a folder moved into OneDrive on Windows.
+	var places: Array = []
+	for which in [OS.SYSTEM_DIR_DESKTOP, OS.SYSTEM_DIR_DOWNLOADS, OS.SYSTEM_DIR_DOCUMENTS]:
+		var place := OS.get_system_dir(which)
+		if place != "":
+			_append_unique(places, place)
+	var ctx := {"platform": platform, "home": home, "env": env, "own_dir": own_dir,
+		"system_dirs": [], "flatpak_bases": [], "flatpak_command": "",
+		"app_dirs": [], "folder_bases": []}
+	if windows:
+		var local := str(env["LOCALAPPDATA"])
+		var bases: Array = places.duplicate()
+		for base in [home, home.path_join("Games"), local, local.path_join("Programs"),
+				str(env["ProgramFiles"]), str(env["ProgramFiles(x86)"]),
+				str(env["SystemDrive"]) + "/Games", home.path_join("scoop/apps"),
+				str(env["ProgramData"]).path_join("chocolatey/lib"),
+				local.path_join("Microsoft/WinGet/Packages"), own_dir]:
+			# An unset variable leaves a relative or root relative path.
+			if base.is_absolute_path() and not base.begins_with("/"):
+				_append_unique(bases, base)
+		ctx["folder_bases"] = bases
+	elif platform == "macOS":
+		ctx["system_dirs"] = ["/opt/homebrew/bin", "/usr/local/bin"]
+		ctx["app_dirs"] = ["/Applications", home.path_join("Applications")]
+		ctx["folder_bases"] = [home, own_dir]
+	else:
+		# A desktop session need not give the programs it starts the PATH an
+		# interactive shell has (COSMIC did not), and Debian puts games in
+		# /usr/games on purpose, so PATH alone is never enough.
+		ctx["system_dirs"] = ["/usr/games", "/usr/local/games", "/usr/bin", "/usr/local/bin",
+			"/snap/bin", "/var/lib/snapd/snap/bin", home.path_join(".local/bin"),
+			home.path_join(".nix-profile/bin"), "/run/current-system/sw/bin",
+			"/home/linuxbrew/.linuxbrew/bin"]
+		var data_home := str(env["XDG_DATA_HOME"])
+		if data_home == "":
+			data_home = home.path_join(".local/share")
+		var user_base := str(env["FLATPAK_USER_DIR"])
+		var system_base := str(env["FLATPAK_SYSTEM_DIR"])
+		ctx["flatpak_bases"] = [
+			["user", user_base if user_base != "" else data_home.path_join("flatpak")],
+			["system", system_base if system_base != "" else "/var/lib/flatpak"]]
+		ctx["flatpak_command"] = _executable_on(["flatpak"], _path_dirs(env, false)
+			+ ["/usr/bin", "/usr/local/bin"], false)
+		var apps: Array = [home.path_join("Applications"), home.path_join(".local/bin"),
+			home.path_join("bin"), "/opt"]
+		for place in places:
+			_append_unique(apps, place)
+		ctx["app_dirs"] = apps
+		var bases: Array = [home, home.path_join("Games"), "/opt", own_dir]
+		for place in places:
+			_append_unique(bases, place)
+		ctx["folder_bases"] = bases
+	return ctx
 
-static func _find_executable_in_dirs(cmd: String, directories: Array) -> String:
-	for directory in directories:
-		var candidate := str(directory).path_join(cmd)
-		if FileAccess.file_exists(candidate):
-			return candidate
-	return ""
-
-static func _which(cmd: String) -> bool:
-	var out: Array = []
-	return OS.execute("which", [cmd], out) == 0
-
-static func _flatpak_installed(app: String) -> bool:
-	var out: Array = []
-	if OS.execute("flatpak", ["info", app], out) != 0:
-		return false
-	return true
-
-# Games installed for this Luanti (directories under <data>/games with a
-# game.conf), plus any the flatpak bundles that we can see.
-static func list_games(data_dir: String) -> Array:
-	var games: Array = []
-	for base in [data_dir.path_join("games"),
-			"/var/lib/flatpak/app/org.luanti.luanti/current/active/files/share/luanti/games"]:
-		var d := DirAccess.open(base)
+static func scan_installs(ctx: Dictionary) -> Array:
+	var found: Array = []
+	var windows := str(ctx["platform"]) == "Windows"
+	# Server only programs first: they need nothing from the desktop, and the
+	# client of the same install is merged into the same entry by _add_install.
+	for name in _EXECUTABLE_NAMES:
+		for dir in _search_dirs(ctx):
+			var exe := _executable_in(str(dir), name, windows)
+			if exe != "":
+				_add_install(found, _install_from_executable(exe, ctx))
+	for inst in _flatpak_installs(ctx):
+		_add_install(found, inst)
+	for dir in ctx["app_dirs"]:
+		var d := DirAccess.open(str(dir))
 		if d == null:
 			continue
-		d.list_dir_begin()
-		var name := d.get_next()
-		while name != "":
-			if d.current_is_dir() and not name.begins_with(".") and not games.has(name):
-				if FileAccess.file_exists(base.path_join(name).path_join("game.conf")) \
-						or FileAccess.file_exists(base.path_join(name).path_join("game.conf".to_lower())):
-					games.append(name)
-			name = d.get_next()
-		d.list_dir_end()
+		for name in d.get_files():
+			var lower := name.to_lower()
+			if lower.ends_with(".appimage") and (lower.contains("luanti") or lower.contains("minetest")):
+				_add_install(found, _install_from_executable(str(dir).path_join(name), ctx))
+		for name in d.get_directories():
+			var lower := name.to_lower()
+			if lower.ends_with(".app") and (lower.contains("luanti") or lower.contains("minetest")):
+				_add_install(found, install_at(str(dir).path_join(name), ctx))
+	# Unpacked builds: the Windows zip wherever it was extracted, the Windows
+	# .exe's own unpack directory, Scoop, Chocolatey and winget, a source
+	# checkout, and what Goanna installed itself. Only folders named luanti* or
+	# minetest* are opened, and at most two levels below them, so this is a
+	# handful of directory listings however full the disk is.
+	for base in ctx["folder_bases"]:
+		for folder in _subdirs(str(base)):
+			var lower := str(folder).get_file().to_lower()
+			if not (lower.begins_with("luanti") or lower.begins_with("minetest")):
+				continue
+			var roots: Array = [folder]
+			roots.append_array(_subdirs(str(folder)))
+			roots.append_array(_subdirs(str(folder).path_join("tools")))
+			for root in roots:
+				for name in _EXECUTABLE_NAMES:
+					var exe := _executable_in(str(root).path_join("bin"), name, windows)
+					if exe != "":
+						_add_install(found, _install_from_executable(exe, ctx))
+	return found
+
+# A program found on disk, turned into an install by Luanti's own rules.
+static func _install_from_executable(path: String, ctx: Dictionary) -> Dictionary:
+	var home := str(ctx["home"])
+	# A Snap's command is a link to /usr/bin/snap, so it is recognised by
+	# where it is before any link is followed.
+	var link_dir := path.get_base_dir()
+	if link_dir == "/snap/bin" or link_dir == "/var/lib/snapd/snap/bin":
+		var snap := path.get_file()
+		var snap_root := "/snap".path_join(snap).path_join("current")
+		var snap_share := _first_with_builtin([snap_root.path_join("usr/share/luanti"),
+			snap_root.path_join("usr/share/minetest"), snap_root.path_join("share/luanti"),
+			snap_root.path_join("share/minetest")])
+		return _make_install("snap", "exe:" + path, _product(snap), _version_in(snap_root),
+			path, PackedStringArray([path, "--server"]), PackedStringArray([path]),
+			home.path_join("snap").path_join(snap).path_join("current/.minetest"), snap_share, [])
+	# Luanti finds its share directory from where its binary really is
+	# (/proc/self/exe), so links are followed first.
+	var exe := _resolve_link(path)
+	var lower := exe.get_file().to_lower()
+	var appimage := lower.ends_with(".appimage")
+	var name := lower.trim_suffix(".exe")
+	var server_only := not appimage and name.ends_with("server")
+	var root := exe.get_base_dir().get_base_dir()
+	var kind := "package"
+	var share := ""
+	var data := ""
+	if appimage:
+		# Its share directory is inside the image, invisible until it runs.
+		kind = "appimage"
+		data = _default_user_dir(ctx)
+	elif _run_in_place(root):
+		# RUN_IN_PLACE, as the Windows zip and most source builds are: share and
+		# user are both the folder above bin/, and LUANTI_USER_PATH is ignored.
+		kind = "portable"
+		share = root
+		data = root
+	else:
+		# setSystemPaths: the compiled in share directory, then
+		# bin/../share/<project>, then bin/.. . Distributions compile in one
+		# of the first ones, so they are found without knowing it. Resources
+		# is a macOS bundle's.
+		share = _first_with_builtin([root.path_join("share/luanti"),
+			root.path_join("share/minetest"), root.path_join("share/games/luanti"),
+			root.path_join("share/games/minetest"), root.path_join("Resources"), root])
+		data = _default_user_dir(ctx)
+	var own_dir := str(ctx["own_dir"])
+	if own_dir != "" and exe.begins_with(own_dir):
+		kind = "goanna"
+	var argv := PackedStringArray([exe]) if server_only else PackedStringArray([exe, "--server"])
+	var client := PackedStringArray() if server_only else PackedStringArray([exe])
+	return _make_install(kind, "exe:" + exe, _product(name), _version_in(exe), exe, argv,
+		client, data, share, _env_game_dirs(ctx) if kind != "portable" else [])
+
+static func _flatpak_installs(ctx: Dictionary) -> Array:
+	var found: Array = []
+	var flatpak := str(ctx["flatpak_command"])
+	if flatpak == "":
+		return found # installed or not, it cannot be run
+	var home := str(ctx["home"])
+	for id in FLATPAK_IDS:
+		for base in ctx["flatpak_bases"]:
+			var scope := str(base[0])
+			var location := str(base[1]).path_join("app").path_join(id).path_join("current/active")
+			if not DirAccess.dir_exists_absolute(location.path_join("files")):
+				continue
+			var run := PackedStringArray([flatpak, "run", "--" + scope])
+			var argv := run.duplicate()
+			# Through the app's own launcher, which is what sets its user path.
+			argv.append_array(["--command=" + ("luanti" if id == "org.luanti.luanti" else "minetest"),
+				id, "--server"])
+			var client := run.duplicate()
+			client.append(id)
+			var share := _first_with_builtin([location.path_join("files/share/luanti"),
+				location.path_join("files/share/minetest")])
+			# The host's LUANTI_GAME_PATH names host paths the sandbox cannot
+			# see, so only the app's own two directories count.
+			found.append(_make_install("flatpak", "flatpak:%s:%s" % [id, scope],
+				_product(id), _metainfo_version(location, id), location, argv, client,
+				home.path_join(".var/app").path_join(id).path_join(".minetest"), share, []))
+	return found
+
+static func _make_install(kind: String, key: String, product: String, version: String,
+		location: String, argv: PackedStringArray, client_argv: PackedStringArray,
+		data_dir: String, share_dir: String, extra_game_dirs: Array) -> Dictionary:
+	var game_dirs: Array = []
+	if share_dir != "":
+		game_dirs.append(share_dir.path_join("games"))
+	_append_unique(game_dirs, data_dir.path_join("games"))
+	for dir in extra_game_dirs:
+		_append_unique(game_dirs, str(dir))
+	return {"kind": kind, "key": key, "product": product, "version": version,
+		"location": location, "argv": argv, "client_argv": client_argv,
+		"data_dir": data_dir, "share_dir": share_dir, "game_dirs": game_dirs,
+		"games": _games_in(game_dirs)}
+
+# The same install reached twice, as the server and the client of one package
+# or through two links, is one entry: the first one found, which is the server
+# only program when there is one, lending it the client's command.
+static func _add_install(found: Array, inst: Dictionary) -> void:
+	if inst.is_empty():
+		return
+	for existing in found:
+		if _same_install(existing, inst):
+			if (existing["client_argv"] as PackedStringArray).is_empty():
+				existing["client_argv"] = inst["client_argv"]
+			return
+	found.append(inst)
+
+static func _same_install(a: Dictionary, b: Dictionary) -> bool:
+	if str(a["data_dir"]) != str(b["data_dir"]):
+		return false
+	if str(a["share_dir"]) != "" or str(b["share_dir"]) != "":
+		return str(a["share_dir"]) == str(b["share_dir"])
+	return str(a["location"]) == str(b["location"])
+
+static func _custom_install() -> Dictionary:
+	var override := OS.get_environment("GOANNA_SERVER_CMD")
+	if override == "":
+		return {}
+	var ctx := _context()
+	var data := OS.get_environment("GOANNA_SERVER_DATA_DIR")
+	if data == "":
+		data = _default_user_dir(ctx)
+	return _make_install("custom", "cmd:" + override, "Luanti", "", override,
+		override.split(" ", false), PackedStringArray(), data, "", _env_game_dirs(ctx))
+
+static func _find_key(list: Array, key: String) -> Dictionary:
+	for inst in list:
+		if str(inst["key"]) == key:
+			return inst
+	return {}
+
+# Luanti's user path when nothing puts it beside the program.
+static func _default_user_dir(ctx: Dictionary) -> String:
+	var env: Dictionary = ctx["env"]
+	for variable in ["LUANTI_USER_PATH", "MINETEST_USER_PATH"]:
+		if str(env.get(variable, "")) != "":
+			return str(env[variable])
+	match str(ctx["platform"]):
+		"Windows":
+			return str(env.get("APPDATA", "")).path_join("Minetest")
+		"macOS":
+			return str(ctx["home"]).path_join("Library/Application Support/minetest")
+	return str(ctx["home"]).path_join(".minetest")
+
+# getSubgamePathEnv: the first of these that is set, as a path list.
+static func _env_game_dirs(ctx: Dictionary) -> Array:
+	var env: Dictionary = ctx["env"]
+	for variable in ["LUANTI_GAME_PATH", "MINETEST_GAME_PATH", "MINETEST_SUBGAME_PATH"]:
+		var value := str(env.get(variable, ""))
+		if value != "":
+			return Array(value.split(";" if str(ctx["platform"]) == "Windows" else ":", false))
+	return []
+
+static func _search_dirs(ctx: Dictionary) -> Array:
+	var dirs := _path_dirs(ctx["env"], str(ctx["platform"]) == "Windows")
+	for dir in ctx["system_dirs"]:
+		_append_unique(dirs, str(dir))
+	return dirs
+
+static func _path_dirs(env: Dictionary, windows: bool) -> Array:
+	var dirs: Array = []
+	for dir in str(env.get("PATH", "")).split(";" if windows else ":", false):
+		_append_unique(dirs, dir)
+	return dirs
+
+static func _executable_on(names: Array, dirs: Array, windows: bool) -> String:
+	for dir in dirs:
+		for name in names:
+			var exe := _executable_in(str(dir), str(name), windows)
+			if exe != "":
+				return exe
+	return ""
+
+static func _executable_in(dir: String, name: String, windows: bool) -> String:
+	if dir == "":
+		return ""
+	var candidate := dir.path_join(name + (".exe" if windows else ""))
+	return candidate if FileAccess.file_exists(candidate) else ""
+
+# A RUN_IN_PLACE build installs these two placeholders beside bin/, and no
+# other build does (Luanti's CMakeLists.txt, install() under RUN_IN_PLACE).
+static func _run_in_place(root: String) -> bool:
+	return DirAccess.dir_exists_absolute(root.path_join("builtin")) and (
+		FileAccess.file_exists(root.path_join("mods/mods_here.txt"))
+		or FileAccess.file_exists(root.path_join("textures/texture_packs_here.txt")))
+
+# Luanti recognises its share directory by its builtin/ subdirectory.
+static func _first_with_builtin(candidates: Array) -> String:
+	for dir in candidates:
+		if DirAccess.dir_exists_absolute(str(dir).path_join("builtin")):
+			return str(dir).simplify_path()
+	return ""
+
+static func _resolve_link(path: String) -> String:
+	for i in 8:
+		var d := DirAccess.open(path.get_base_dir())
+		if d == null or not d.is_link(path.get_file()):
+			return path
+		var target := d.read_link(path.get_file())
+		if not target.is_absolute_path():
+			target = path.get_base_dir().path_join(target)
+		path = target.simplify_path()
+	return path
+
+static func _subdirs(path: String) -> Array:
+	var d := DirAccess.open(path)
+	if d == null:
+		return []
+	var result: Array = []
+	for name in d.get_directories():
+		result.append(path.path_join(name))
+	return result
+
+static func _product(name: String) -> String:
+	return "Minetest" if name.to_lower().contains("minetest") else "Luanti"
+
+# A version written into the path, as the Windows zip, the Windows .exe's
+# unpack directory and AppImages have. A distribution package has none.
+static func _version_in(path: String) -> String:
+	var pattern := RegEx.new()
+	pattern.compile("(?:^|[-_/\\\\])(\\d+\\.\\d+\\.\\d+)(?=$|[-_/\\\\.])")
+	var found := pattern.search(path)
+	return found.get_string(1) if found != null else ""
+
+static func _metainfo_version(location: String, id: String) -> String:
+	for name in [id + ".metainfo.xml", id + ".appdata.xml"]:
+		var path := location.path_join("files/share/metainfo").path_join(name)
+		if not FileAccess.file_exists(path):
+			continue
+		var pattern := RegEx.new()
+		pattern.compile("<release[^>]*version=\"([^\"]+)\"")
+		var found := pattern.search(FileAccess.get_file_as_string(path))
+		if found != null:
+			return found.get_string(1)
+	return ""
+
+static func _append_unique(list: Array, value: String) -> void:
+	if value != "" and not list.has(value):
+		list.append(value)
+
+# Game directories under `game_dirs`, in Luanti's order: an id found twice is
+# the first one, as getAvailableGamePaths has it, and ids compare after
+# normalizeGameId, which drops a trailing _game. Listed by directory name,
+# which is what the server is told and what PBR_GAME_DIRS keys on.
+static func _games_in(game_dirs: Array) -> Array:
+	var games: Array = []
+	var seen := {}
+	for base in game_dirs:
+		var d := DirAccess.open(str(base))
+		if d == null:
+			continue
+		for name in d.get_directories():
+			if not FileAccess.file_exists(str(base).path_join(name).path_join("game.conf")):
+				continue
+			var id := name.trim_suffix("_game") if name != "_game" else name
+			if seen.has(id):
+				continue
+			seen[id] = true
+			games.append(name)
 	games.sort()
 	return games
+
+# Where games are looked for, for the helpers below that are handed only a
+# data directory: the chosen install's list when it is that install's,
+# otherwise the first scanned install with that data directory, otherwise the
+# data directory's own games/.
+static func _game_dirs(data_dir: String) -> Array:
+	if not _chosen.is_empty() and str(_chosen["data_dir"]) == data_dir:
+		return _chosen["game_dirs"]
+	var inst := {}
+	for candidate in _installs:
+		if str(candidate["data_dir"]) == data_dir:
+			inst = candidate
+			break
+	return inst["game_dirs"] if not inst.is_empty() else [data_dir.path_join("games")]
+
+static func _game_dir(data_dir: String, gameid: String) -> String:
+	for base in _game_dirs(data_dir):
+		var dir := str(base).path_join(gameid)
+		if FileAccess.file_exists(dir.path_join("game.conf")):
+			return dir
+	return ""
+
+# Games installed for this Luanti, in its share directory, its user path and
+# LUANTI_GAME_PATH.
+static func list_games(data_dir: String) -> Array:
+	return _games_in(_game_dirs(data_dir))
 
 # The name a game calls itself, from the `title` line of its game.conf, or
 # the directory name when there is none. The two differ more often than you
@@ -173,18 +651,109 @@ static func list_games(data_dir: String) -> Array:
 # old worlds keep loading, and a player who installed "VoxeLibre" from
 # ContentDB will not recognise it under that name.
 static func game_title(data_dir: String, gameid: String) -> String:
-	for base_entry in [data_dir.path_join("games"),
-			"/var/lib/flatpak/app/org.luanti.luanti/current/active/files/share/luanti/games"]:
-		var conf := str(base_entry).path_join(gameid).path_join("game.conf")
-		if not FileAccess.file_exists(conf):
-			continue
-		for line in FileAccess.get_file_as_string(conf).split("\n"):
-			if line.get_slice("=", 0).strip_edges() == "title":
-				var title := line.get_slice("=", 1).strip_edges()
-				if title != "":
-					return title
-		break
+	var dir := _game_dir(data_dir, gameid)
+	if dir == "":
+		return gameid
+	for line in FileAccess.get_file_as_string(dir.path_join("game.conf")).split("\n"):
+		if line.get_slice("=", 0).strip_edges() == "title":
+			var title := line.get_slice("=", 1).strip_edges()
+			if title != "":
+				return title
 	return gameid
+
+# How Install Luanti would install the Flathub build here, or {} when this
+# machine has no flatpak command. Into the system installation when Flathub is
+# already configured there, so the runtime is shared with the player's other
+# apps and any password prompt is the one a software centre would show;
+# otherwise into the user's own installation, which needs no password but
+# downloads its own copy of the runtime.
+static func flatpak_install_plan() -> Dictionary:
+	var flatpak := str(_context()["flatpak_command"])
+	if flatpak == "":
+		return {}
+	var system := false
+	var out: Array = []
+	if OS.execute(flatpak, ["remotes", "--system", "--columns=name"], out) == 0 and not out.is_empty():
+		for line in str(out[0]).split("\n"):
+			if line.strip_edges() == "flathub":
+				system = true
+	var steps: Array = []
+	if system:
+		steps.append([flatpak, "install", "--system", "-y", "flathub", FLATPAK_IDS[0]])
+	else:
+		steps.append([flatpak, "remote-add", "--user", "--if-not-exists", "flathub", FLATHUB_REPO])
+		steps.append([flatpak, "install", "--user", "-y", "flathub", FLATPAK_IDS[0]])
+	return {"scope": "system" if system else "user", "steps": steps}
+
+static func flatpak_available() -> bool:
+	return str(_context()["flatpak_command"]) != ""
+
+# Runs `steps` one after another without blocking the menu, their output going
+# to `log_path`. The exit status is written to `status_path` once they finish,
+# through a rename so that it is never read half written. Returns the pid.
+static func run_steps_in_background(steps: Array, log_path: String, status_path: String) -> int:
+	var commands: PackedStringArray = []
+	for step in steps:
+		var words: PackedStringArray = []
+		for word in step:
+			words.append(_shell_quote(str(word)))
+		commands.append(" ".join(words))
+	var script := "(%s) > %s 2>&1; echo $? > %s && mv %s %s" % [" && ".join(commands),
+		_shell_quote(log_path), _shell_quote(status_path + ".part"),
+		_shell_quote(status_path + ".part"), _shell_quote(status_path)]
+	return OS.create_process("/bin/sh", ["-c", script])
+
+static func _shell_quote(word: String) -> String:
+	return "'" + word.replace("'", "'\\''") + "'"
+
+# Unpacks the official Windows build, already downloaded to `archive_path`,
+# into `parent`. Checked against `expected_sha256` first, because it is going
+# to be run. An earlier install of the same version is kept rather than
+# replaced, since a portable build's worlds are inside it. Returns "" or an
+# error for the player.
+static func install_portable_archive(archive_path: String, expected_sha256: String,
+		parent: String) -> String:
+	if expected_sha256.length() != 64 \
+			or FileAccess.get_sha256(archive_path).to_lower() != expected_sha256.to_lower():
+		return "The Luanti download failed its integrity check and was discarded."
+	var zip := ZIPReader.new()
+	if zip.open(archive_path) != OK:
+		return "The Luanti download is not a readable ZIP archive."
+	DirAccess.make_dir_recursive_absolute(parent)
+	var staging := parent.path_join(".unpack-%d" % OS.get_process_id())
+	_remove_tree(staging)
+	var top := ""
+	for entry in zip.get_files():
+		var clean := entry.replace("\\", "/").simplify_path()
+		var first := clean.get_slice("/", 0)
+		if clean == "." or clean.begins_with("../") or clean.begins_with("/") \
+				or clean.contains(":") or (top != "" and first != top):
+			zip.close()
+			_remove_tree(staging)
+			return "The Luanti download is not laid out as expected, so it was not unpacked."
+		top = first
+		var destination := staging.path_join(clean)
+		if entry.ends_with("/"):
+			DirAccess.make_dir_recursive_absolute(destination)
+			continue
+		DirAccess.make_dir_recursive_absolute(destination.get_base_dir())
+		var output := FileAccess.open(destination, FileAccess.WRITE)
+		if output == null:
+			zip.close()
+			_remove_tree(staging)
+			return "Could not write %s." % destination
+		output.store_buffer(zip.read_file(entry))
+	zip.close()
+	if top == "" or not FileAccess.file_exists(staging.path_join(top).path_join("bin/luanti.exe")):
+		_remove_tree(staging)
+		return "The Luanti download has no bin/luanti.exe."
+	var destination := parent.path_join(top)
+	if not DirAccess.dir_exists_absolute(destination) \
+			and DirAccess.rename_absolute(staging.path_join(top), destination) != OK:
+		_remove_tree(staging)
+		return "Could not move Luanti into %s." % destination
+	_remove_tree(staging)
+	return ""
 
 # Mods and texture packs the detected Luanti already has. Goanna does not
 # install content, it borrows whatever that install carries, so these are for
@@ -483,8 +1052,7 @@ func _write_world_options(world: String, options: Dictionary) -> String:
 static func game_terrain_diffusion_path(data_dir: String, gameid: String) -> String:
 	if gameid == "":
 		return ""
-	for base_entry in [data_dir.path_join("games"),
-			"/var/lib/flatpak/app/org.luanti.luanti/current/active/files/share/luanti/games"]:
+	for base_entry in _game_dirs(data_dir):
 		var base := str(base_entry)
 		var mods := base.path_join(gameid).path_join("mods")
 		var direct := mods.path_join("terrain_diffusion")
@@ -630,7 +1198,7 @@ func start_config(options: Dictionary) -> String:
 	var pbr_materials := bool(options.get("pbr_materials", true))
 	var env := detect()
 	if env.is_empty():
-		return "No Luanti server found. Install Luanti (or the org.luanti.luanti flatpak), or set GOANNA_SERVER_CMD."
+		return "No Luanti install found. Choose, locate or install one from Start Game, or set GOANNA_SERVER_CMD."
 	_argv = env["argv"]
 	_data_dir = env["data_dir"]
 	world_path = _data_dir.path_join("worlds").path_join(worldname)
@@ -833,7 +1401,8 @@ func stop() -> void:
 	# The pid is the flatpak/launcher wrapper; the actual server runs in a
 	# sandbox under a different pid, so killing by the unique world path is
 	# what reliably stops it (and works for a native server too).
-	if world_path != "":
+	# Windows has no pkill and no wrapper: the pid is the server itself.
+	if world_path != "" and OS.get_name() != "Windows":
 		OS.execute("pkill", ["-f", world_path])
 	if pid > 0:
 		OS.kill(pid)

@@ -337,6 +337,30 @@ the fact.
   if under open sky; and the sky fill still takes the raw day bank, so a
   lamp lit cave takes a daylight fill that varies with the time of day.
 
+- Start Game finds Luanti where it is packaged, 2026-09-18. Reported from a
+  Pop!_OS machine with Luanti installed: Goanna said no game was installed.
+  The lookup found a server program and then looked for games only in
+  `~/.minetest/games`, plus one hard coded system Flatpak path. In an Ubuntu
+  24.04 container (Pop!_OS uses Ubuntu's archive), `minetest-server` is
+  Minetest 5.6.1 at `/usr/games/minetestserver` and its games are in
+  `/usr/share/games/minetest/games`, so that layout gave exactly that
+  message. The lookup now keeps every install it finds (packages, user and
+  system Flatpak, Snap, AppImages, the Windows zip and self-extracting
+  build, source checkouts) and finds each one's share and user directories
+  by Luanti's own rules in `porting.cpp` and `subgames.cpp`. A new Luanti
+  screen in the menu lists them, remembers the player's choice, locates one
+  by hand, installs the Flathub build on Linux or the pinned, hash-checked
+  official 5.16.1 zip on Windows, and opens Luanti's own client for
+  installing a game. Verified: in that container, with Godot 4.5.1, the scan
+  found the package and its two games and `start_config` brought the server
+  up with the Goanna server mod loaded (the mod warns that 5.6 has no
+  `register_on_mapblocks_changed`). On this machine the system Flatpak,
+  Luanti 5.17.0, is found with its eight games in 16 ms. The real 5.16.1
+  Windows zip unpacks on Linux and is recognised as a portable install.
+  `res://tests/local_server_discovery.gd` covers the layouts. Not verified:
+  anything on Windows itself, the Flathub install end to end, joining a 5.6
+  server with Goanna, and the Pop!_OS machine the report came from.
+
 ## Log since v0.4.1-alpha (2026-08-30)
 
 Verified on a local Mineclonia server on Luanti 5.17.0 with Godot 4.5.1 and

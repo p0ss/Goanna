@@ -28,6 +28,36 @@ Luanti is required only for Start Game. Goanna launches the Luanti server
 locally and connects through the normal protocol. Join Game can connect to a
 remote server without a local Luanti installation.
 
+### Which Luanti Start Game uses
+
+Goanna looks for Luanti where each kind of package puts it: distribution
+packages (Debian and Ubuntu keep their games under
+`/usr/share/games/minetest`), Flatpak (user and system installations), Snap,
+AppImages in the usual folders, and on Windows the unpacked zip or the
+self-extracting build. When it finds more than one, it uses the one you chose,
+or else the first that has a game. **Change** on the Start Game screen lists
+everything it found, with each install's games and data folder.
+
+If Goanna finds nothing, or the install it found has no games, Start Game
+opens that list instead of an error, with these options:
+
+- **Locate Luanti** takes the folder Luanti was unpacked into, its `bin`
+  folder, the Luanti program itself, or an AppImage.
+- **Install Luanti** installs the Flathub build on Linux (the confirmation
+  shows the exact `flatpak` commands first). On Windows it downloads the
+  official Luanti 5.16.1 zip from GitHub, checks it against the hash Goanna
+  carries, and unpacks it into Goanna's own data folder, where its worlds are
+  kept too. On macOS, or on Linux without Flatpak, use **Download page** or
+  your distribution's packages instead.
+- **Open Luanti** starts that install's own client. A freshly installed Luanti
+  has no games, and Goanna does not install them, so install one from
+  Luanti's Content tab, then press **Rescan**.
+- **Show where Goanna looked** lists every place it searched, for a bug
+  report when your install is still not found.
+
+Not yet tried on Windows itself: the Windows lookup and the Windows install
+have only been exercised against the real zip unpacked on Linux.
+
 ## Starting a game
 
 Start Game lets you select an existing world or create one. New worlds can

@@ -189,8 +189,9 @@ func _on_resize() -> void:
 func _exit_tree() -> void:
 	# The flatpak/launcher pid is not the sandboxed server, so kill by the
 	# unique world path (works for a native server too); the pid is a fallback.
+	# Windows has no pkill, and no wrapper either, so there the pid is enough.
 	var match_path := OS.get_environment("GOANNA_SP_MATCH")
-	if match_path != "":
+	if match_path != "" and OS.get_name() != "Windows":
 		OS.execute("pkill", ["-f", match_path])
 		OS.set_environment("GOANNA_SP_MATCH", "")
 	var pid := OS.get_environment("GOANNA_SP_PID")

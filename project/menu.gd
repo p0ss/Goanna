@@ -18,7 +18,7 @@ const SKIP_VARS := ["GOANNA_HOST", "GOANNA_NAME", "GOANNA_SHOT", "GOANNA_SMOKE",
 	"GOANNA_USETEST", "GOANNA_MINETEST", "GOANNA_DIGDOWNTEST", "GOANNA_MANTLETEST"]
 
 var screen: VBoxContainer
-var status_label: Label
+var status_label: RichTextLabel
 # join form
 var host_edit: LineEdit
 var port_edit: LineEdit
@@ -150,6 +150,8 @@ func _ready() -> void:
 			_show_settings()
 		elif want == "about":
 			_show_about()
+		elif want == "luanti":
+			_show_luanti()
 		await RenderingServer.frame_post_draw
 		await RenderingServer.frame_post_draw
 		if want == "join":
@@ -163,6 +165,7 @@ func _ready() -> void:
 # --- frame shared by all screens ---------------------------------------------
 
 var _panel_box: VBoxContainer
+var _screen_title := ""
 
 
 # The still is loaded rather than preloaded so a missing or not yet imported
@@ -283,6 +286,7 @@ func _stop_showcase() -> void:
 	showcase_launch = false
 
 func _new_screen(title: String, subtitle: String) -> void:
+	_screen_title = title
 	for c in _panel_box.get_children():
 		c.queue_free()
 	var t := Label.new()
@@ -304,7 +308,19 @@ func _new_screen(title: String, subtitle: String) -> void:
 	screen = VBoxContainer.new()
 	screen.add_theme_constant_override("separation", 8)
 	_panel_box.add_child(screen)
-	status_label = Label.new()
+	# A RichTextLabel rather than a Label so the text can be SELECTED. This line
+	# is where a failed start reports why, and a message you cannot copy is one
+	# you have to transcribe by hand into a bug report. Label offers no
+	# selection at all in Godot 4.
+	#
+	# bbcode stays off: an error message is arbitrary text and may contain
+	# square brackets (a mod name, a node position, a Lua table), which bbcode
+	# would eat or mangle. Off means it is shown exactly as it arrived.
+	status_label = RichTextLabel.new()
+	status_label.bbcode_enabled = false
+	status_label.selection_enabled = true
+	status_label.fit_content = true
+	status_label.scroll_active = false
 	status_label.modulate = Color(1, 1, 1, 0.6)
 	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_panel_box.add_child(status_label)
@@ -337,12 +353,13 @@ func _show_main() -> void:
 # Installing content is Luanti's own menu's job, and writing into another
 # application's data directories from here would be presumptuous.
 func _show_content() -> void:
-	_new_screen("Content", "What the Luanti install Goanna found already has. Goanna does not install content; use Luanti's own menu for that.")
-	var data_dir := LocalServer.data_dir_or_empty()
-	if data_dir == "":
-		_fail("No Luanti install found. Install Luanti, or the org.luanti.luanti flatpak, or set GOANNA_SERVER_CMD.")
-		screen.add_child(_button("Back", _show_main))
+	var inst := LocalServer.detect()
+	if inst.is_empty():
+		_show_luanti("No Luanti install was found, so there is no content to show.")
 		return
+	_new_screen("Content", "What the Luanti install Goanna found already has. Goanna does not install content; use Luanti's own menu for that.")
+	_luanti_row(inst)
+	var data_dir := str(inst["data_dir"])
 	var game_names: Array = []
 	for g in LocalServer.list_games(data_dir):
 		var title := LocalServer.game_title(data_dir, str(g))
@@ -378,6 +395,316 @@ func _show_content() -> void:
 			box.add_child(l)
 	status_label.text = data_dir
 	screen.add_child(_button("Back", _show_main))
+
+# --- Luanti ------------------------------------------------------------------
+
+# Goanna is not a standalone game: Start Game runs Luanti's own server and
+# joins it. This screen is where the player says which Luanti that is, points
+# at one the scan missed, or installs one. Start Game and Content open it by
+# themselves when there is nothing to run, instead of stopping at an error.
+#
+# Installing Luanti is offered, installing games is not: a game goes into
+# Luanti's own data directory, which is Luanti's menu's business (see
+# _show_content). So a Luanti with no games gets Open Luanti, which starts its
+# own client on its Content tab's doorstep.
+var luanti_http: HTTPRequest
+var _luanti_archive_path := ""
+var _luanti_install_pid := -1
+var _luanti_install_started := 0.0
+var _luanti_install_log := ""
+var _luanti_install_status := ""
+var _luanti_install_scope := ""
+
+func _show_luanti(reason := "", rescan := false) -> void:
+	_stop_showcase()
+	_new_screen("Luanti", "Start Game runs Luanti's own server and joins it, so it needs Luanti installed. Join Game does not.")
+	var all: Array = LocalServer.installs(rescan)
+	var chosen := LocalServer.detect()
+	if str(chosen.get("kind", "")) == "custom":
+		var note := Label.new()
+		note.text = "GOANNA_SERVER_CMD is set, so Start Game runs that and the choice below is not used."
+		note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		screen.add_child(note)
+	if all.is_empty():
+		var none := Label.new()
+		none.text = "No Luanti install was found on this computer."
+		screen.add_child(none)
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(600, 220)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.visible = not all.is_empty()
+	screen.add_child(scroll)
+	var list := VBoxContainer.new()
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(list)
+	var group := ButtonGroup.new()
+	for inst in all:
+		var pick := CheckBox.new()
+		pick.button_group = group
+		pick.text = _install_title(inst)
+		pick.button_pressed = str(inst["key"]) == str(chosen.get("key", ""))
+		pick.toggled.connect(func(on: bool) -> void:
+			if on:
+				LocalServer.choose(inst)
+				_show_luanti())
+		list.add_child(pick)
+		var detail := Label.new()
+		detail.text = _install_detail(inst)
+		detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		detail.modulate = Color(1, 1, 1, 0.55)
+		list.add_child(detail)
+	var actions := HFlowContainer.new()
+	actions.add_theme_constant_override("h_separation", 8)
+	actions.add_theme_constant_override("v_separation", 8)
+	screen.add_child(actions)
+	actions.add_child(_button("Locate Luanti ...", _locate_luanti))
+	var install_text := _install_luanti_text(all)
+	if install_text != "":
+		actions.add_child(_button(install_text, _confirm_install_luanti))
+	if not chosen.is_empty() and not (chosen["client_argv"] as PackedStringArray).is_empty():
+		actions.add_child(_button("Open Luanti", _open_luanti))
+	actions.add_child(_button("Rescan", func() -> void: _show_luanti("", true)))
+	actions.add_child(_button("Download page",
+		func() -> void: OS.shell_open(LocalServer.DOWNLOAD_PAGE)))
+	# Selectable, so a player whose Luanti is still not found can paste the
+	# list into a bug report.
+	var places := RichTextLabel.new()
+	places.bbcode_enabled = false
+	places.selection_enabled = true
+	places.custom_minimum_size = Vector2(0, 150)
+	places.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	places.modulate = Color(1, 1, 1, 0.55)
+	places.text = "\n".join(LocalServer.search_places())
+	places.visible = all.is_empty()
+	var show_places := CheckButton.new()
+	show_places.text = "Show where Goanna looked"
+	show_places.button_pressed = places.visible
+	show_places.toggled.connect(func(on: bool) -> void: places.visible = on)
+	screen.add_child(show_places)
+	screen.add_child(places)
+	screen.add_child(_button("Back", _show_main))
+	if reason != "":
+		_fail(reason)
+	elif chosen.is_empty():
+		_fail("Locate Luanti if it is installed somewhere Goanna does not look, or install it.")
+	elif (chosen["games"] as Array).is_empty():
+		_fail("%s has no games. Open Luanti, install a game from its Content tab, then Rescan." % _install_name(chosen))
+	else:
+		status_label.text = "Start Game uses %s." % _install_name(chosen)
+
+func _install_name(inst: Dictionary) -> String:
+	var version := str(inst.get("version", ""))
+	return str(inst.get("product", "Luanti")) + (" " + version if version != "" else "")
+
+func _install_title(inst: Dictionary) -> String:
+	var kinds := {"package": "installed program", "portable": "portable folder",
+		"appimage": "AppImage", "snap": "Snap", "flatpak": "Flatpak",
+		"goanna": "installed by Goanna", "custom": "GOANNA_SERVER_CMD"}
+	var kind := str(kinds.get(str(inst["kind"]), inst["kind"]))
+	if str(inst["kind"]) == "flatpak":
+		kind += ", " + str(inst["key"]).get_slice(":", 2)
+	var count := (inst["games"] as Array).size()
+	return "%s (%s), %s" % [_install_name(inst), kind,
+		"no games" if count == 0 else "%d game%s" % [count, "" if count == 1 else "s"]]
+
+func _install_detail(inst: Dictionary) -> String:
+	var lines: PackedStringArray = [str(inst["location"]), "Worlds and data: " + str(inst["data_dir"])]
+	var games: Array = inst["games"]
+	if not games.is_empty():
+		lines.append("Games: " + ", ".join(PackedStringArray(games)))
+	return "\n".join(lines)
+
+# One line naming the Luanti in use, and the way to change it.
+func _luanti_row(inst: Dictionary) -> void:
+	var row := HBoxContainer.new()
+	var label := Label.new()
+	label.text = "Using " + _install_title(inst)
+	label.modulate = Color(1, 1, 1, 0.7)
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	row.add_child(label)
+	row.add_child(_button("Change", _show_luanti))
+	screen.add_child(row)
+
+func _locate_luanti() -> void:
+	var dialog := FileDialog.new()
+	dialog.title = "Locate Luanti: its folder, or the luanti program"
+	# Godot's own file picker, because a native one cannot offer "a file or a
+	# folder": the Windows zip is naturally pointed at as a folder, an
+	# AppImage only as a file.
+	dialog.use_native_dialog = false
+	dialog.access = FileDialog.ACCESS_FILESYSTEM
+	dialog.file_mode = FileDialog.FILE_MODE_OPEN_ANY
+	var start := OS.get_system_dir(OS.SYSTEM_DIR_DOWNLOADS)
+	if start != "":
+		dialog.current_dir = start
+	dialog.file_selected.connect(_on_luanti_located)
+	dialog.dir_selected.connect(_on_luanti_located)
+	dialog.canceled.connect(dialog.queue_free)
+	add_child(dialog)
+	dialog.popup_centered_ratio(0.7)
+
+func _on_luanti_located(path: String) -> void:
+	var inst := LocalServer.install_at(path)
+	if inst.is_empty():
+		_show_luanti("There is no Luanti program at %s. Choose the folder Luanti was unpacked into, its bin folder, or the luanti program itself." % path)
+		return
+	LocalServer.choose(inst)
+	_show_luanti()
+
+func _open_luanti() -> void:
+	var argv: PackedStringArray = LocalServer.detect()["client_argv"]
+	if OS.create_process(argv[0], argv.slice(1)) <= 0:
+		_fail("Could not start %s." % argv[0])
+		return
+	status_label.modulate = Color(1, 1, 1, 0.7)
+	status_label.text = "Luanti is starting. Install a game from its Content tab, then come back and press Rescan."
+
+# What Install Luanti does here, as its button says it, or "" where Goanna
+# cannot do it and the download page is the answer (macOS, and Linux without
+# flatpak, where the distribution's own packages are the better route anyway),
+# or where what it would install is already in `all`.
+func _install_luanti_text(all: Array) -> String:
+	var windows := OS.get_name() == "Windows"
+	for inst in all:
+		var key := str(inst["key"])
+		if (windows and str(inst["kind"]) == "goanna") \
+				or (not windows and key.begins_with("flatpak:%s:" % LocalServer.FLATPAK_IDS[0])):
+			return ""
+	if windows:
+		return "Install Luanti %s (%.0f MB)" % [str(LocalServer.LUANTI_WINDOWS["version"]),
+			int(LocalServer.LUANTI_WINDOWS["bytes"]) / 1000000.0]
+	if OS.get_name() == "macOS":
+		return ""
+	return "Install Luanti from Flathub" if LocalServer.flatpak_available() else ""
+
+func _confirm_install_luanti() -> void:
+	if luanti_http != null or _luanti_install_pid > 0:
+		return
+	var dialog := ConfirmationDialog.new()
+	dialog.title = "Install Luanti"
+	dialog.ok_button_text = "Install"
+	var own := ProjectSettings.globalize_path(LocalServer.OWN_LUANTI_DIR)
+	if OS.get_name() == "Windows":
+		dialog.dialog_text = "Download the official Luanti %s for Windows from GitHub (%.1f MB), check it against the hash Goanna carries, and unpack it into:\n\n%s\n\nIt is a portable build, so its worlds are kept in that folder too." % [
+			str(LocalServer.LUANTI_WINDOWS["version"]),
+			int(LocalServer.LUANTI_WINDOWS["bytes"]) / 1000000.0, own]
+		dialog.confirmed.connect(_start_luanti_download)
+	else:
+		var plan := LocalServer.flatpak_install_plan()
+		if plan.is_empty():
+			_fail("The flatpak command was not found.")
+			return
+		var commands: PackedStringArray = []
+		for step in plan["steps"]:
+			commands.append(" ".join(PackedStringArray(step)))
+		var why := "Flathub is already set up for the whole system, so Luanti goes there and shares its runtime with your other Flatpak apps. Flatpak may ask for your password." \
+			if str(plan["scope"]) == "system" else \
+			"Flathub is not set up for the whole system, so Luanti goes into your own Flatpak installation. No password is needed, but the first install downloads the runtime Luanti needs, which is several hundred MB."
+		dialog.dialog_text = "Goanna will run:\n\n%s\n\n%s" % ["\n".join(commands), why]
+		dialog.confirmed.connect(func() -> void: _start_flatpak_install(plan))
+	dialog.canceled.connect(dialog.queue_free)
+	add_child(dialog)
+	dialog.popup_centered()
+
+func _start_flatpak_install(plan: Dictionary) -> void:
+	var dir := ProjectSettings.globalize_path(LocalServer.OWN_LUANTI_DIR)
+	DirAccess.make_dir_recursive_absolute(dir)
+	_luanti_install_log = dir.path_join("flatpak-install.log")
+	_luanti_install_status = dir.path_join("flatpak-install.status")
+	DirAccess.remove_absolute(_luanti_install_status)
+	_luanti_install_scope = str(plan["scope"])
+	_luanti_install_pid = LocalServer.run_steps_in_background(plan["steps"],
+		_luanti_install_log, _luanti_install_status)
+	if _luanti_install_pid <= 0:
+		_luanti_install_pid = -1
+		_fail("Could not start flatpak.")
+		return
+	_luanti_install_started = _now()
+	set_process(true)
+
+# The Flathub install or the Windows download, whichever is running, and true
+# while it still is. Progress is shown on the Luanti screen only, so it does
+# not talk over a world the player went on to start meanwhile.
+func _poll_luanti_install() -> bool:
+	var here := _screen_title == "Luanti"
+	if _luanti_install_pid > 0:
+		if FileAccess.file_exists(_luanti_install_status):
+			_finish_flatpak_install()
+			return false
+		if here:
+			status_label.modulate = Color(1, 1, 1, 0.7)
+			status_label.text = "Installing Luanti from Flathub, %d s so far. A first Flatpak install also downloads the runtime Luanti needs, which can take several minutes." % int(_now() - _luanti_install_started)
+		return true
+	if luanti_http != null:
+		if here:
+			status_label.modulate = Color(1, 1, 1, 0.7)
+			status_label.text = "Downloading Luanti: %.1f / %.1f MB" % [
+				luanti_http.get_downloaded_bytes() / 1000000.0,
+				int(LocalServer.LUANTI_WINDOWS["bytes"]) / 1000000.0]
+		return true
+	return false
+
+# The result is shown on the Luanti screen, unless the player has meanwhile
+# started a world, which is not interrupted for it.
+func _show_luanti_result(reason := "", rescan := false) -> void:
+	if server == null:
+		_show_luanti(reason, rescan)
+	elif rescan:
+		LocalServer.installs(true)
+
+func _finish_flatpak_install() -> void:
+	var code := FileAccess.get_file_as_string(_luanti_install_status).strip_edges()
+	_luanti_install_pid = -1
+	if code != "0":
+		var output := FileAccess.get_file_as_string(_luanti_install_log).strip_edges().split("\n")
+		var tail := "\n".join(output.slice(maxi(0, output.size() - 6)))
+		_show_luanti_result("The Flathub install failed (exit status %s). The end of its output:\n%s\nThe whole log is %s." % [code, tail, _luanti_install_log], true)
+		return
+	for inst in LocalServer.installs(true):
+		if str(inst["key"]) == "flatpak:%s:%s" % [LocalServer.FLATPAK_IDS[0], _luanti_install_scope]:
+			LocalServer.choose(inst)
+			break
+	_show_luanti_result()
+
+func _start_luanti_download() -> void:
+	var dir := ProjectSettings.globalize_path(LocalServer.OWN_LUANTI_DIR)
+	DirAccess.make_dir_recursive_absolute(dir)
+	_luanti_archive_path = dir.path_join("download.zip.part")
+	DirAccess.remove_absolute(_luanti_archive_path)
+	luanti_http = HTTPRequest.new()
+	luanti_http.download_file = _luanti_archive_path
+	add_child(luanti_http)
+	luanti_http.request_completed.connect(_on_luanti_downloaded)
+	if luanti_http.request(str(LocalServer.LUANTI_WINDOWS["url"])) != OK:
+		luanti_http.queue_free()
+		luanti_http = null
+		_fail("Could not start the Luanti download.")
+		return
+	set_process(true)
+
+func _on_luanti_downloaded(result: int, code: int, _headers: PackedStringArray,
+		_body: PackedByteArray) -> void:
+	var request := luanti_http
+	luanti_http = null
+	if is_instance_valid(request):
+		request.queue_free()
+	if result != HTTPRequest.RESULT_SUCCESS or code != 200:
+		DirAccess.remove_absolute(_luanti_archive_path)
+		_show_luanti_result("The Luanti download failed (HTTP %d). Check your connection and try again." % code)
+		return
+	var dir := ProjectSettings.globalize_path(LocalServer.OWN_LUANTI_DIR)
+	var error := LocalServer.install_portable_archive(_luanti_archive_path,
+		str(LocalServer.LUANTI_WINDOWS["sha256"]), dir)
+	DirAccess.remove_absolute(_luanti_archive_path)
+	if error != "":
+		_show_luanti_result(error)
+		return
+	var folder := str(LocalServer.LUANTI_WINDOWS["url"]).get_file().get_basename()
+	var inst := LocalServer.install_at(dir.path_join(folder))
+	if not inst.is_empty():
+		LocalServer.choose(inst)
+	_show_luanti_result("", true)
 
 # --- settings ----------------------------------------------------------------
 
@@ -641,10 +968,12 @@ Licence: LGPL-2.1-or-later, matching the Luanti client code it carries. godot-cp
 	grid.columns = 2
 	grid.add_theme_constant_override("h_separation", 12)
 	screen.add_child(grid)
-	var data_dir := LocalServer.data_dir_or_empty()
+	var luanti := LocalServer.detect()
+	var data_dir := str(luanti.get("data_dir", ""))
 	for row in [["Godot", Engine.get_version_info().get("string", "unknown")],
 			["Luanti core", "5.16.1"],
 			["Settings", CFG_PATH],
+			["Luanti", _install_title(luanti) if not luanti.is_empty() else "not found"],
 			["Luanti data", data_dir if data_dir != "" else "not found"]]:
 		var k := Label.new()
 		k.text = str(row[0])
@@ -662,14 +991,13 @@ func _show_new_game() -> void:
 	_new_screen("Start Game", "Choose a world, its game and map generator, or host it for other players.")
 	var env := LocalServer.detect()
 	if env.is_empty():
-		_fail("No Luanti server found. Install Luanti, or the org.luanti.luanti flatpak, or set GOANNA_SERVER_CMD.")
-		screen.add_child(_button("Back", _show_main))
+		_show_luanti("No Luanti install was found. Start Game needs one: choose, locate or install it here.")
 		return
-	var games: Array = LocalServer.list_games(env["data_dir"])
+	var games: Array = env["games"]
 	if games.is_empty():
-		_fail("No games are installed for Luanti. Install a game (devtest, Mineclonia, ...) first.")
-		screen.add_child(_button("Back", _show_main))
+		_show_luanti("%s has no games, so there is nothing to start. Open Luanti, install a game from its Content tab, then Rescan, or choose another install." % _install_name(env))
 		return
+	_luanti_row(env)
 	_local_data_dir = env["data_dir"]
 	var tabs := TabContainer.new()
 	tabs.custom_minimum_size = Vector2(650, 470)
@@ -1160,6 +1488,7 @@ func _on_start_local() -> void:
 	set_process(true)
 
 func _process(_delta: float) -> void:
+	var installing := _poll_luanti_install()
 	if terrain_http != null:
 		var downloaded := terrain_http.get_downloaded_bytes()
 		var total := terrain_http.get_body_size()
@@ -1169,7 +1498,8 @@ func _process(_delta: float) -> void:
 			status_label.text = "Downloading Terrain Diffusion default world: %.1f MB" % (downloaded / 1000000.0)
 		return
 	if server == null:
-		set_process(false)
+		if not installing:
+			set_process(false)
 		return
 	var st: String = server.poll_ready()
 	if st == "ready":
