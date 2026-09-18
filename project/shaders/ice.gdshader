@@ -127,6 +127,10 @@ void fragment() {
 		ALBEDO += vec3(0.24, 0.44, 0.52) * remaining;
 		transmittance = vec3(0.0);
 	}
-	EMISSION = texture(goanna_ice_background, SCREEN_UV).rgb * transmittance
-			* goanna_ice_transmission_ready;
+	// An inactive view may have no bound texture. Do not sample it and then
+	// multiply by zero: invalid/NaN texels can survive that multiplication.
+	EMISSION = vec3(0.0);
+	if (!solid && goanna_ice_transmission_ready > 0.5) {
+		EMISSION = texture(goanna_ice_background, SCREEN_UV).rgb * transmittance;
+	}
 }

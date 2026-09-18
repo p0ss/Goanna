@@ -36,6 +36,24 @@ occlusion_culling/use_occlusion_culling=true
 
 [shader_globals]
 
+; Keep ice bindings registered across world changes, like the other globals.
+goanna_ice_background={
+"type": "sampler2D",
+"value": ""
+}
+goanna_ice_transmission_ready={
+"type": "float",
+"value": 0.0
+}
+goanna_ice_fractures={
+"type": "sampler3D",
+"value": ""
+}
+goanna_ice_clouds={
+"type": "sampler3D",
+"value": ""
+}
+
 goanna_sky_fill={
 "type": "vec3",
 "value": Vector3(0, 0, 0)

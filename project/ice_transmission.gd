@@ -43,10 +43,8 @@ func initialise(view_camera: Camera3D, environment: Environment, game_client: No
 	client = game_client
 	fracture_texture = _make_volume(true)
 	cloud_texture = _make_volume(false)
-	RenderingServer.global_shader_parameter_add("goanna_ice_fractures",
-			RenderingServer.GLOBAL_VAR_TYPE_SAMPLER3D, fracture_texture)
-	RenderingServer.global_shader_parameter_add("goanna_ice_clouds",
-			RenderingServer.GLOBAL_VAR_TYPE_SAMPLER3D, cloud_texture)
+	RenderingServer.global_shader_parameter_set("goanna_ice_fractures", fracture_texture)
+	RenderingServer.global_shader_parameter_set("goanna_ice_clouds", cloud_texture)
 	background = SubViewport.new()
 	background.name = "IceBackground"
 	background.use_hdr_2d = true
@@ -60,10 +58,8 @@ func initialise(view_camera: Camera3D, environment: Environment, game_client: No
 	camera.current = true
 	capture_environment = source_environment.duplicate()
 	camera.environment = capture_environment
-	RenderingServer.global_shader_parameter_add("goanna_ice_background",
-			RenderingServer.GLOBAL_VAR_TYPE_SAMPLER2D, background.get_texture())
-	RenderingServer.global_shader_parameter_add("goanna_ice_transmission_ready",
-			RenderingServer.GLOBAL_VAR_TYPE_FLOAT, 0.0)
+	RenderingServer.global_shader_parameter_set("goanna_ice_background", background.get_texture())
+	RenderingServer.global_shader_parameter_set("goanna_ice_transmission_ready", 0.0)
 	process_priority = 100
 
 func _process(delta: float) -> void:
@@ -120,7 +116,10 @@ func _process(delta: float) -> void:
 	capture_environment.background_energy_multiplier = source_environment.background_energy_multiplier
 
 func _exit_tree() -> void:
-	RenderingServer.global_shader_parameter_remove("goanna_ice_fractures")
-	RenderingServer.global_shader_parameter_remove("goanna_ice_clouds")
-	RenderingServer.global_shader_parameter_remove("goanna_ice_background")
-	RenderingServer.global_shader_parameter_remove("goanna_ice_transmission_ready")
+	# Definitions belong to the application (project.godot); values belong to
+	# this world. Unbind before freeing the viewport/volumes, but keep the
+	# globals registered for shaders and materials retained across scene loads.
+	RenderingServer.global_shader_parameter_set("goanna_ice_transmission_ready", 0.0)
+	RenderingServer.global_shader_parameter_set("goanna_ice_background", null)
+	RenderingServer.global_shader_parameter_set("goanna_ice_fractures", null)
+	RenderingServer.global_shader_parameter_set("goanna_ice_clouds", null)
