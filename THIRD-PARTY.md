@@ -145,6 +145,13 @@ that media.
   3.0, Copyright (C) 2010-2023 celeron55, Perttu Ahola and the other
   contributors named in its `mods/default/license.txt`, with further authors
   in each mod's own licence file.
+- `docs/perf/baked-terrain-2026-09-14/` shows a world of the Asuna game
+  (release 31816). Asuna as a whole is GPL-3.0 and bundles other works under
+  their own licences, which its `LICENSE` lists with each one's licence file.
+  Its terrain textures come mainly from the Baunilha pack in
+  `asuna_textures`, original work by Mirtilo under CC BY-SA 4.0, with some
+  edited Minetest Game textures under CC BY-SA 3.0. The distant terrain in
+  these captures is drawn in each texture's average colour.
 
 These are reproduced here under those terms, for documentation.
 

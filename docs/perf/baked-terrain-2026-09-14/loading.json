@@ -1,0 +1,17 @@
+[
+  {
+    "run": "4 km cold surface cache, initial implementation",
+    "first_ms": 274.943908,
+    "overview_ms": 2834.121465
+  },
+  {
+    "run": "8 km expanded radius, partial warm cache",
+    "first_ms": 280.346201,
+    "overview_ms": 7798.039815
+  },
+  {
+    "run": "8 km cached restart, final implementation",
+    "first_ms": 207.703641,
+    "overview_ms": 1897.959973
+  }
+]
