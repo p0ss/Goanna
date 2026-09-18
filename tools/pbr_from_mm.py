@@ -65,7 +65,7 @@ def load(p, size, mode="L"):
     return np.asarray(im).astype(np.float32) / 255.0
 
 
-def convert(export_dir, material, stem, out_dir, size, flip_green):
+def convert(export_dir, material, stem, out_dir, size, flip_green, stretch_height=True):
     files = find(export_dir, material)
     if "albedo" not in files or "normal" not in files:
         return "missing %s" % ", ".join(c for c in ("albedo", "normal") if c not in files)
@@ -89,6 +89,15 @@ def convert(export_dir, material, stem, out_dir, size, flip_green):
     else:
         height = lib.normalise01(np.mean(albedo[..., :3], -1))
     emission = load(files["emission"], size) if "emission" in files else None
+    # Material Maker heights sit in whatever slice of the byte the graph
+    # produced (a brick wall in 13 to 38 of 255), and the client gives the
+    # whole byte the class depth, so a narrow map marches almost nothing.
+    # Stretch it to the byte, the way lib.band holds a flat material to a
+    # band from the other side.
+    if stretch_height:
+        lo, hi = np.percentile(height, 0.5), np.percentile(height, 99.5)
+        if hi - lo > 1e-3:
+            height = np.clip((height - lo) / (hi - lo), 0.0, 1.0)
 
     n = np.zeros((size, size, 4), np.float32)
     n[..., 0] = normal[..., 0]
@@ -119,13 +128,15 @@ def main():
     ap.add_argument("--size", type=int, default=256)
     ap.add_argument("--flip-green", action="store_false", dest="flip_green",
             help="do not flip green (export was DirectX style)")
+    ap.add_argument("--keep-height", action="store_false", dest="stretch_height",
+            help="keep the export's height range instead of stretching it to the byte")
     args = ap.parse_args()
     for pair in args.map.split(","):
         if "=" not in pair:
             continue
         material, stem = pair.split("=", 1)
         print("%-28s -> %-32s %s" % (material, stem,
-                convert(args.export_dir, material.strip(), stem.strip(), args.out, args.size, args.flip_green)))
+                convert(args.export_dir, material.strip(), stem.strip(), args.out, args.size, args.flip_green, args.stretch_height)))
 
 
 if __name__ == "__main__":
