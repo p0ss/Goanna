@@ -3,7 +3,7 @@
 // Copyright (C) 2010-2013 celeron55, Perttu Ahola <celeron55@gmail.com>
 //
 // Transplanted from luanti/src/client/content_cao.h (GenericCAO).
-// Goanna changes 2026-08, against Luanti 5.16.1: see content_cao.cpp.
+// Goanna changes 2026-09, against Luanti 5.17.0: see content_cao.cpp.
 
 #pragma once
 

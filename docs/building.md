@@ -25,7 +25,7 @@ list.
 | zlib | development headers | `find_package(ZLIB REQUIRED)`. |
 | Zstandard | library and headers, static preferred | The build fails with `zstd not found` if it is missing. |
 | git | any | The submodules are not optional. |
-| A Luanti server | 5.16.x | See "Connecting to a server" below. |
+| A Luanti server | 5.17.0 tested | See "Connecting to a server" below. |
 
 Debian and Ubuntu:
 
@@ -58,7 +58,7 @@ The submodules are large. Full history is around 170 MB;
 from. If you already cloned without them,
 `git submodule update --init --depth 1` does the same job.
 
-`luanti` is pinned to release 5.16.1 and `godot-cpp` tracks the 4.5 branch.
+`luanti` is pinned to release 5.17.0 and `godot-cpp` tracks the 4.5 branch.
 Both are used unmodified. Goanna does not patch either one, and if it ever
 needs to, that is a bug in Goanna. See `docs/transplanting.md`.
 
@@ -217,10 +217,13 @@ you.
 
 ### Running a server yourself
 
-Any ordinary Luanti 5.16.x server works, and you will want your own for
-anything beyond a quick look. Goanna connects over the ordinary protocol and
-asks for nothing special. The quickest option is Luanti's own Development
-Test game, which is small, ugly and exercises the basics:
+An ordinary Luanti 5.17.0 server works, and you will want your own for
+anything beyond a quick look. Goanna offers protocol versions 37 to 53, as
+Luanti 5.17's own client does, so older 5.x servers can negotiate a
+connection, but only 5.17.0 has been run since Goanna moved to it. Goanna
+connects over the ordinary protocol and asks for nothing special. The
+quickest option is Luanti's own Development Test game, which is small, ugly
+and exercises the basics:
 
 ```sh
 luantiserver --gameid devtest --worldname goanna_test --port 30000

@@ -1235,7 +1235,7 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                 const ContentFeatures &f = ndef->get(content);
                 if (f.visuals) {
                     video::SColor col;
-                    f.visuals->getColor(p2, &col);
+                    col = f.visuals->getColor(f, p2);
                     tint = col.color | 0xff000000;
                 }
             }
@@ -1553,7 +1553,7 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                         const ContentFeatures &f = ndef->get(content);
                         if (f.visuals) {
                             video::SColor col;
-                            f.visuals->getColor(liquid_face ? c->liquid_param2 : c->param2[d], &col);
+                            col = f.visuals->getColor(f, liquid_face ? c->liquid_param2 : c->param2[d]);
                             tint = col.color | 0xff000000;
                         }
                     }
@@ -1714,9 +1714,9 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
 LodTileCache::Entry lodSurfaceTile(LodTileCache &cache, const NodeDefManager *ndef,
         GoannaTextureSource *tsrc, const MaterialTable *materials, content_t c, int side, uint8_t param2) {
     auto te = tileFor(cache, ndef, tsrc, materials, c, side);
-    if (!te.tile_has_color && ndef->get(c).visuals) {
-        video::SColor colour;
-        ndef->get(c).visuals->getColor(param2, &colour);
+    const ContentFeatures &cf = ndef->get(c);
+    if (!te.tile_has_color && cf.visuals) {
+        const video::SColor colour = cf.visuals->getColor(cf, param2);
         te.tint = colour.color | 0xff000000;
     }
     te.fallback = mulColour(te.fallback, te.tint);
@@ -1734,7 +1734,7 @@ u32 lodFlatColour(LodTileCache &cache, const NodeDefManager *ndef,
         const ContentFeatures &f = ndef->get(c);
         if (f.visuals) {
             video::SColor col;
-            f.visuals->getColor(param2, &col);
+            col = f.visuals->getColor(f, param2);
             tint = col.color | 0xff000000;
         }
     }

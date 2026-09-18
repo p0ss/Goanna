@@ -17,7 +17,7 @@ small vendored worldmod and is called out separately below.
 | Component | Source | Linkage | Licence |
 | --- | --- | --- | --- |
 | Goanna | this repository | n/a | LGPL-2.1-or-later |
-| Luanti engine subset | `luanti/src`, submodule at 5.16.1 | static | LGPL-2.1-or-later |
+| Luanti engine subset | `luanti/src`, submodule at 5.17.0 | static | LGPL-2.1-or-later |
 | IrrlichtMt, CPU image classes only | `luanti/irr/src` | static | zlib licence, Copyright (C) 2002-2012 Nikolaus Gebhardt |
 | mini-gmp | `luanti/lib/gmp` | static | LGPL-3.0-or-later **or** GPL-2.0-or-later, Copyright 1991-2022 Free Software Foundation |
 | sha256 | `luanti/lib/sha256` | static | OpenSSL licence (the old, four clause form), Copyright (c) 1998-2011 The OpenSSL Project |

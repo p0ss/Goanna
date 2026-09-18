@@ -3,7 +3,7 @@
 // Copyright (C) 2025 cx384
 //
 // Transplanted from luanti/src/client/item_visuals_manager.cpp.
-// Goanna changes 2026-08, against Luanti 5.16.1: the Client is Goanna's
+// Goanna changes 2026-09, against Luanti 5.17.0: the Client is Goanna's
 // stand-in; else verbatim.
 
 #include "item_visuals_manager.h"

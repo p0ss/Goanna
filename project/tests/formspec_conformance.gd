@@ -89,6 +89,7 @@ func _run() -> void:
 	_test_table()
 	_test_hypertext()
 	_test_nothing_skipped()
+	_test_hypertip()
 	_test_prepend()
 	await _write_reference_shots()
 	if failures == 0:
@@ -728,6 +729,20 @@ func _test_nothing_skipped() -> void:
 	_check(not form.skipped.has("allow_close"), "direct allow_close header is parsed separately")
 	_check(not form.skipped.has("set_focus"), "direct set_focus header is parsed separately")
 	_check(_button_named(form, "Jump") != null, "button_key draws a button with its label")
+	_discard(form)
+
+
+# hypertip[], formspec version 11 (Luanti 5.17): shown as a plain tooltip.
+func _test_hypertip() -> void:
+	var spec := "formspec_version[11]size[8,6]button[1,1;2,1;tip;Tip]"
+	spec += "hypertip[tip;;10;tipname;<b>Bold</b> help]"
+	spec += "hypertip[4,1;2,1;;10;areaname;Area <style color=red>help</style>]"
+	var form := _new_form(spec)
+	_equal(form.skipped, {}, "hypertip is not skipped")
+	var tip_button := _button_named(form, "Tip")
+	_check(tip_button != null and tip_button.tooltip_text == "Bold help",
+		"named hypertip shows its text without markup")
+	_check(_control_with_tooltip(form, "Area help") != null, "area hypertip is built")
 	_discard(form)
 
 

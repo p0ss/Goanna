@@ -5,7 +5,7 @@
 //
 // Sun and moon path and the day/night ratio, in Goanna terms. The wicked
 // time of day and sky body position functions are copied from Luanti
-// 5.16.1 client/sky.cpp; each is marked at its definition.
+// 5.17.0 client/sky.cpp; each is marked at its definition.
 
 #include "goanna_sky.h"
 

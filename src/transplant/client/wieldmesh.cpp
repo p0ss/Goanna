@@ -3,7 +3,7 @@
 // Copyright (C) 2010-2014 celeron55, Perttu Ahola <celeron55@gmail.com>
 //
 // Transplanted from luanti/src/client/wieldmesh.cpp.
-// Goanna changes 2026-08, against Luanti 5.16.1: WieldMeshSceneNode is
+// Goanna changes 2026-09, against Luanti 5.17.0: WieldMeshSceneNode is
 // WieldMesh, keeping the mesh and its scale as plain state instead of a
 // child mesh scene node (no scene manager, no shadow renderer, no render());
 // texture filter settings are off (Goanna's materials filter); the Client
@@ -161,7 +161,9 @@ void getAdHocNodeShader(video::SMaterial &mat, IShaderSource *shdsrc,
 	if (mat.getTexture(0))
 		array_texture = mat.getTexture(0)->getType() == video::ETT_2D_ARRAY;
 
-	u32 shader_id = shdsrc->getShader(shader, type, NDT_NORMAL, array_texture);
+	ShaderFeatures features;
+	features.array_texture = array_texture;
+	u32 shader_id = shdsrc->getShader(shader, type, NDT_NORMAL, features);
 	mat.MaterialType = shdsrc->getShaderInfo(shader_id).material;
 }
 
@@ -363,7 +365,7 @@ static scene::SMesh *createGenericNodeMesh(Client *client, MapNode n,
 			buf->append(&p.vertices[0], p.vertices.size(),
 					&p.indices[0], p.indices.size());
 
-			// note: material type is left unset, overriden later
+			// note: material type is left unset, overridden later
 			p.layer.applyMaterialOptions(buf->Material, layer);
 
 			mesh->addMeshBuffer(buf.get());

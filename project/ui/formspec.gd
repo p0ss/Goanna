@@ -447,6 +447,10 @@ func _build() -> void:
 			var tooltip_parts := fs_split(el[1], ";")
 			if tooltip_parts.size() >= 2 and not tooltip_parts[0].contains(","):
 				tooltips[fs_unescape(tooltip_parts[0])] = fs_unescape(tooltip_parts[1])
+		elif el[0] == "hypertip":
+			var hypertip_parts := fs_split(el[1], ";")
+			if hypertip_parts.size() == 5 and not hypertip_parts[0].contains(","):
+				tooltips[fs_unescape(hypertip_parts[0])] = markup_plain(fs_unescape(hypertip_parts[4]))
 	# a fullscreen tint behind the form, if asked for
 	add_child(root)
 	building = true
@@ -538,6 +542,7 @@ func _build_element(name: String, params: String) -> void:
 		"listring": _listring(parts)
 		"listcolors": _listcolors(parts)
 		"tooltip": _tooltip(parts)
+		"hypertip": _hypertip(parts)
 		"model": _model(parts)
 		"scrollbar": _scrollbar(parts)
 		"scrollbaroptions": _scrollbaroptions(parts)
@@ -1035,6 +1040,27 @@ func _render_markup(rt: RichTextLabel, text: String) -> void:
 	while open_stack.size() > 0:
 		for _p in range(int(open_stack.pop_back())):
 			rt.pop()
+
+# Hypertext markup as plain text: tags dropped and escapes resolved, the way
+# _render_markup reads them. For hypertip[], which a plain tooltip shows.
+static func markup_plain(text: String) -> String:
+	var out := ""
+	var i := 0
+	var n := text.length()
+	while i < n:
+		var ch := text[i]
+		if ch == "\\" and i + 1 < n:
+			out += text[i + 1]
+			i += 2
+			continue
+		if ch == "<":
+			var close := _markup_tag_end(text, i)
+			if close >= 0:
+				i = close + 1
+				continue
+		out += ch
+		i += 1
+	return out
 
 # The index of the > that closes the tag opening at `start`, skipping any
 # inside a quoted attribute value. Returns -1 if the tag is never closed.
@@ -1774,6 +1800,31 @@ func _tooltip(parts: PackedStringArray) -> void:
 	_add(area, _pos(v), _geom(g))
 	# Keep the transparent tooltip region behind interactive controls. This
 	# preserves hover help over images without swallowing a button's clicks.
+	current_parent.move_child(area, 0)
+
+func _hypertip(parts: PackedStringArray) -> void:
+	# hypertip[element name;staticPos;width;name;text] or
+	# hypertip[x,y;w,h;staticPos;width;name;text], formspec version 11.
+	# Partial: Godot's tooltips are plain text, so the markup is stripped, and
+	# the static position and the width are not honoured.
+	if parts.size() == 5 and not parts[0].contains(","):
+		var target := fs_unescape(parts[0])
+		var text := markup_plain(fs_unescape(parts[4]))
+		tooltips[target] = text
+		if named_controls.has(target):
+			named_controls[target].tooltip_text = text
+		return
+	if parts.size() < 6:
+		return
+	var v := fs_split(parts[0], ",")
+	var g := fs_split(parts[1], ",")
+	if v.size() < 2 or g.size() < 2:
+		return
+	var area := Control.new()
+	area.tooltip_text = markup_plain(fs_unescape(parts[5]))
+	area.mouse_filter = Control.MOUSE_FILTER_STOP
+	_add(area, _pos(v), _geom(g))
+	# Behind interactive controls, as an area tooltip is.
 	current_parent.move_child(area, 0)
 
 # model[x,y;w,h;name;mesh;textures;rotation;continuous;mouse control;frame

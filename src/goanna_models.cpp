@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <optional>
 
 #include <godot_cpp/variant/packed_float32_array.hpp>
 #include <godot_cpp/variant/packed_int32_array.hpp>
@@ -31,8 +32,10 @@
 #include "goanna_luanti_client.h"
 #include "log.h"
 
-scene::IAnimatedMesh *Client::getMesh(const std::string &filename, bool cache) {
-    return m_models ? m_models->getMesh(filename, cache) : nullptr;
+scene::IAnimatedMesh *Client::getMesh(const std::string &filename, bool *is_shared) {
+    if (is_shared)
+        *is_shared = false;
+    return m_models ? m_models->getMesh(filename, false) : nullptr;
 }
 
 scene::IMeshManipulator *Client::getMeshManipulator() {
@@ -321,18 +324,34 @@ std::shared_ptr<GodotModel> buildGodotModel(scene::IAnimatedMesh *mesh) {
 
 // ---- animation -------------------------------------------------------------
 
+// Luanti 5.17 animates a skinned mesh by track. Goanna plays the first track
+// only, and does its own transition blending, so it always asks for track 0 at
+// full weight. A mesh with no tracks keeps its joints' own transforms.
+static float firstTrackEnd(const scene::SkinnedMesh *mesh) {
+    return mesh->getTrackCount() > 0 ? mesh->getMaxFrameNumber(0) : 0.0f;
+}
+
+static std::vector<scene::SkinnedMesh::SJoint::VariantTransform> animateFirstTrack(
+        const scene::SkinnedMesh *mesh, float frame) {
+    std::vector<scene::SkinnedMesh::AnimationProgress> progress;
+    if (mesh->getTrackCount() > 0)
+        progress.push_back({0, frame, 1.0f});
+    const std::vector<std::optional<core::Transform>> no_blend(mesh->getAllJoints().size());
+    return mesh->animateMesh(progress, no_blend);
+}
+
 ModelAnimator::ModelAnimator(std::shared_ptr<GodotModel> model) : m_model(std::move(model)) {
     size_t n = m_model->joint_count;
     m_last_locals.resize(n);
     m_last_locals_valid.assign(n, false);
     m_globals.resize(n);
     if (m_model->skinned)
-        m_end_frame = m_model->skinned->getMaxFrameNumber();
+        m_end_frame = firstTrackEnd(m_model->skinned);
 }
 
 // AnimatedMeshSceneNode::setFrameLoop
 void ModelAnimator::setFrameLoop(float begin, float end) {
-    const float max_frame = m_model->skinned ? m_model->skinned->getMaxFrameNumber() : 0;
+    const float max_frame = m_model->skinned ? firstTrackEnd(m_model->skinned) : 0;
     if (end < begin) {
         m_start_frame = std::clamp<float>(end, 0, max_frame);
         m_end_frame = std::clamp<float>(begin, m_start_frame, max_frame);
@@ -395,13 +414,13 @@ void ModelAnimator::step(float dt, std::map<std::string, BoneOverride> &override
 
     // animateJoints: local transforms for this frame, transition blending
     const auto &joints = mesh->getAllJoints();
-    std::vector<scene::SkinnedMesh::SJoint::VariantTransform> locals = mesh->animateMesh(m_current_frame);
+    std::vector<scene::SkinnedMesh::SJoint::VariantTransform> locals = animateFirstTrack(mesh, m_current_frame);
     // The arm also inherits the baked punch's torso twist. Hold its ancestor
     // chain as well as its subtree, leaving the legs/other arm animated.
     // Do not blend these joints back through the previous punch pose.
     std::vector<bool> mining_joints(joints.size(), false);
     if (m_freeze_arm && m_rot_override_joint) {
-        if (m_arm_reference.empty()) m_arm_reference = mesh->animateMesh(0.0f);
+        if (m_arm_reference.empty()) m_arm_reference = animateFirstTrack(mesh, 0.0f);
         std::optional<u16> parent = (u16)*m_rot_override_joint;
         while (parent) {
             mining_joints[*parent] = true;

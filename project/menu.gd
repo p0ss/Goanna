@@ -971,7 +971,7 @@ Licence: LGPL-2.1-or-later, matching the Luanti client code it carries. godot-cp
 	var luanti := LocalServer.detect()
 	var data_dir := str(luanti.get("data_dir", ""))
 	for row in [["Godot", Engine.get_version_info().get("string", "unknown")],
-			["Luanti core", "5.16.1"],
+			["Luanti core", "5.17.0"],
 			["Settings", CFG_PATH],
 			["Luanti", _install_title(luanti) if not luanti.is_empty() else "not found"],
 			["Luanti data", data_dir if data_dir != "" else "not found"]]:

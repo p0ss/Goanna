@@ -46,9 +46,10 @@ public:
     float getAnimationTime() const { return m_animation_time; }
     void setAnimationTime(float t) { m_animation_time = t; }
 
-    // Models from media through Goanna's ModelCache (Client::getMesh
-    // semantics: grabbed for the caller; uncached ones are freshly read).
-    scene::IAnimatedMesh *getMesh(const std::string &filename, bool cache = false);
+    // Models from media through Goanna's ModelCache, with Client::getMesh's
+    // 5.17 signature: grabbed for the caller. Goanna always reads a fresh
+    // mesh, so *is_shared is false and the caller need not copy it.
+    scene::IAnimatedMesh *getMesh(const std::string &filename, bool *is_shared = nullptr);
     scene::IMeshManipulator *getMeshManipulator();
 
     void showUpdateProgressTexture(void *args, float progress) {}

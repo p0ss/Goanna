@@ -3,18 +3,25 @@
 // Copyright (C) 2010-2013 celeron55, Perttu Ahola <celeron55@gmail.com>
 //
 // Transplanted from luanti/src/client/content_cao.cpp (GenericCAO).
-// Goanna changes 2026-08, against Luanti 5.16.1: no Irrlicht scene nodes,
+// Goanna changes 2026-09, against Luanti 5.17.0: no Irrlicht scene nodes,
 // so everything that built or updated a scene node is removed and replaced
 // by a state snapshot the Godot side reads (goanna_entities); movement uses
 // the transplanted collision code directly rather than ClientEnvironment;
 // the class is goanna::GoannaActiveObject. SmoothTranslator and its wrapped
 // variants, the init data and AO_CMD_* message parsing, position and
 // rotation interpolation, animation, bone overrides, attachment and texture
-// modifier handling are upstream code.
+// modifier handling are upstream code. Animation tracks (5.17.0): upstream
+// plays several at once by priority; this keeps only the first track, and
+// only when it is addressed by number, since resolving a track name needs
+// the mesh. AO_CMD_STOP_ANIMATION on it holds the first frame, where
+// upstream returns the joints to their rest transforms.
 
 #include "content_cao.h"
 
 #include <sstream>
+#include <variant>
+
+#include <AnimSpec.h>
 
 #include "constants.h"
 #include "log.h"
@@ -24,6 +31,27 @@
 #include "util/serialize.h"
 
 namespace goanna {
+
+// ---- track identifiers: copied from luanti/src/client/content_cao.cpp ----
+
+static scene::TrackId readTrackIdentifier(std::istringstream &is)
+{
+	// Possible formats:
+	// - Track number > 0, no track name
+	// - Track number = 0, track name follows
+	u16 track_number = readU16(is);
+	if (track_number > 0)
+		return (u16)(track_number - 1);
+	return deSerializeString16(is);
+}
+
+// Goanna: GenericCAO::resolveTrackId needs the mesh, which the state half
+// does not have. Only the first track, addressed by number, is played.
+static bool isFirstTrack(const scene::TrackId &track_id)
+{
+	const u16 *track_nr = std::get_if<u16>(&track_id);
+	return track_nr && *track_nr == 0;
+}
 
 // ---- SmoothTranslator: copied from luanti/src/client/content_cao.cpp ----
 
@@ -224,13 +252,41 @@ void GoannaActiveObject::processMessage(const std::string &data, LocalPlayer *lo
 			local_player->physics_override = phys;
 	} else if (cmd == AO_CMD_SET_ANIMATION) {
 		v2f range = readV2F32(is);
+		f32 speed = readF32(is);
+		f32 blend = readF32(is);
+		// these are sent inverted so we get true when the server sends nothing
+		bool loop = !readU8(is);
+		if (canRead(is)) {
+			// New animation API since 5.17.0
+			// Goanna: only the first track is played; priority and the
+			// starting frame are read and not used.
+			if (!isFirstTrack(readTrackIdentifier(is)))
+				return;
+			(void)readS32(is);
+			(void)readF32(is);
+		}
 		m_animation_range = range;
-		m_animation_speed = readF32(is);
-		m_animation_blend = readF32(is);
-		m_animation_loop = !readU8(is);
+		m_animation_speed = speed;
+		m_animation_blend = blend;
+		m_animation_loop = loop;
 		m_anim_version++;
 	} else if (cmd == AO_CMD_SET_ANIMATION_SPEED) {
-		m_animation_speed = readF32(is);
+		f32 new_fps = readF32(is);
+		if (canRead(is)) {
+			// New animation API since 5.17.0
+			if (!isFirstTrack(readTrackIdentifier(is)))
+				return;
+		}
+		m_animation_speed = new_fps;
+		m_anim_version++;
+	} else if (cmd == AO_CMD_STOP_ANIMATION) {
+		// New animation API since 5.17.0
+		// Goanna: stopping the first track holds its first frame, where
+		// upstream returns the joints to their rest transforms.
+		if (!isFirstTrack(readTrackIdentifier(is)))
+			return;
+		m_animation_range = v2f(0.0f, 0.0f);
+		m_animation_speed = 0.0f;
 		m_anim_version++;
 	} else if (cmd == AO_CMD_SET_BONE_POSITION) {
 		std::string bone = deSerializeString16(is);
@@ -323,7 +379,7 @@ void GoannaActiveObject::step(float dtime, Map *map, IGameDef *gamedef, const Go
 		box.MaxEdge *= BS;
 		v3f p_pos = m_position;
 		v3f p_velocity = m_velocity;
-		collisionMoveResult moveresult = collisionMoveSimple(map, gamedef, box, m_prop.stepheight, dtime,
+		CollisionMoveResult moveresult = collisionMoveSimple(map, gamedef, box, m_prop.stepheight, dtime,
 				&p_pos, &p_velocity, m_acceleration, nullptr, m_prop.collideWithObjects, m_prop.step_up_mode);
 		m_position = p_pos;
 		m_velocity = p_velocity;

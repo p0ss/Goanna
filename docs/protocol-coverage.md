@@ -1,7 +1,7 @@
 # Protocol coverage and the GDScript surface
 
-What Goanna's session currently handles from a Luanti server (5.16 wire
-format), and how the Godot side reads it via `GoannaClient`. Handlers are
+What Goanna's session currently handles from a Luanti server (5.17 wire
+format, protocol version 53), and how the Godot side reads it via `GoannaClient`. Handlers are
 transplanted from `Client::handleCommand_*` in
 `luanti/src/network/clientpackethandler.cpp`.
 
@@ -14,7 +14,7 @@ transplanted from `Client::handleCommand_*` in
 | ADDNODE / REMOVENODE | done, re-meshes affected blocks | automatic |
 | MOVEMENT / PRIVILEGES / MOVE_PLAYER | done, applied to the transplanted `LocalPlayer` | `step_player(...)` |
 | TIME_OF_DAY (+speed), SET_SKY/SUN/MOON/STARS, CLOUD_PARAMS, SET_LIGHTING, OVERRIDE_DAY_NIGHT_RATIO | done | `sky_state()`, `set_time_of_day_override(t)` |
-| ACTIVE_OBJECT_REMOVE_ADD / ACTIVE_OBJECT_MESSAGES | done (GenericCAO state transplanted); visuals: sprites, cubes, meshes (B3D, X, OBJ, glTF through Luanti's own loaders) with skeletal animation, bone overrides and bone attachments; item and wielditem entities through the transplanted wield mesh; node entity visuals are still placeholders | `sync_entities(dt)`, `entity_count()`, `entity_positions()`, `entity_list()` |
+| ACTIVE_OBJECT_REMOVE_ADD / ACTIVE_OBJECT_MESSAGES | done (GenericCAO state transplanted); visuals: sprites, cubes, meshes (B3D, X, OBJ, glTF through Luanti's own loaders) with skeletal animation (the first animation track only; the extra tracks 5.17 added are ignored), bone overrides and bone attachments; item and wielditem entities through the transplanted wield mesh; node entity visuals are still placeholders | `sync_entities(dt)`, `entity_count()`, `entity_positions()`, `entity_list()` |
 | PLAY_SOUND / STOP_SOUND / FADE_SOUND | done; local node sounds are also derived from node definitions; fades currently stop immediately and object-attached sounds do not yet follow their object | `take_sounds()`, `take_stopped_sounds()`, `node_sound(...)` |
 | SPAWN_PARTICLE / ADD_PARTICLESPAWNER / DELETE_PARTICLESPAWNER | fully read, partly drawn: every field of the current format is parsed and carried, and `docs/particle-coverage.md` says field by field what is drawn, what is approximated and what is not drawn yet | `take_particles()`, `take_particle_spawners()`, `take_deleted_spawners()` |
 | CHAT_MESSAGE / TOSERVER_CHAT_MESSAGE | done | `take_chat()`, `send_chat(msg)` |

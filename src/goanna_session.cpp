@@ -5,7 +5,7 @@
 // A Luanti client session, built on Luanti's own network layer, node and
 // item definition managers and MapBlock code.
 //
-// Parts derive from Luanti 5.16.1, restructured rather than copied whole:
+// Parts derive from Luanti 5.17.0, restructured rather than copied whole:
 // the packet handlers follow Client::handleCommand_* in
 // network/clientpackethandler.cpp; sendInit and startAuth follow
 // Client::sendInit and Client::startAuth in client/client.cpp; stepPlayer
@@ -741,6 +741,11 @@ void GoannaSession::onHudAdd(NetworkPacket &pkt) {
         pkt >> e.text2;
         if (!pkt.hasRemainingBytes()) break;
         pkt >> e.style;
+        if (!pkt.hasRemainingBytes()) break;
+        // >= 5.17.0-dev
+        u8 flags;
+        pkt >> flags;
+        e.hideable = flags % 2;
     } while (0);
     e.type = (HudElementType)type;
     std::lock_guard<std::mutex> lk(m_hud_mutex);
@@ -792,6 +797,7 @@ void GoannaSession::onHudChange(NetworkPacket &pkt) {
     case HUD_STAT_Z_INDEX: e.z_index = (s16)intdata; break;
     case HUD_STAT_TEXT2: e.text2 = sdata; break;
     case HUD_STAT_STYLE: e.style = intdata; break;
+    case HUD_STAT_HIDEABLE: e.hideable = intdata; break;
     default: break;
     }
     m_hud_version++;
@@ -847,7 +853,7 @@ void GoannaSession::onDetachedInventory(NetworkPacket &pkt) {
         inv = std::make_unique<Inventory>(m_itemdef);
     // this used to be the length of the following string, ignore it
     pkt.skip(2);
-    std::string contents(pkt.getRemainingString(), pkt.getRemainingBytes());
+    std::string contents(pkt.getRemainingNoCopy());
     std::istringstream is(contents, std::ios::binary);
     inv->deSerialize(is);
 }
@@ -943,7 +949,7 @@ void GoannaSession::onInventory(NetworkPacket &pkt) {
     if (stats().proto_ver > 51) {
         datastring = pkt.readLongString();
     } else {
-        datastring = std::string(pkt.getString(0), pkt.getSize());
+        datastring = std::string(pkt.getRemainingNoCopy());
     }
     std::istringstream is(datastring, std::ios_base::binary);
     std::lock_guard<std::mutex> lk(m_map_mutex);
@@ -1309,7 +1315,7 @@ void GoannaSession::onActiveObjectRemoveAdd(NetworkPacket &pkt) {
 
 // Client::handleCommand_ActiveObjectMessages, transplanted.
 void GoannaSession::onActiveObjectMessages(NetworkPacket &pkt) {
-    std::string datastring(pkt.getString(0), pkt.getSize());
+    std::string datastring(pkt.getRemainingNoCopy());
     std::istringstream is(datastring, std::ios_base::binary);
     std::lock_guard<std::mutex> lk(m_map_mutex);
     while (canRead(is)) {
@@ -2382,7 +2388,7 @@ static uint64_t hashBlockNodes(MapBlock *block) {
 static inline v3f toGodotVec(const v3f &v) { return v3f(v.X, v.Y, -v.Z); }
 
 void GoannaSession::onAddParticleSpawner(NetworkPacket &pkt) {
-    std::string datastring(pkt.getString(0), pkt.getSize());
+    std::string datastring(pkt.getRemainingNoCopy());
     std::istringstream is(datastring, std::ios_base::binary);
     ParticleSpawnerParameters p;
     p.amount = readU16(is);
@@ -2538,7 +2544,7 @@ void GoannaSession::onDeleteParticleSpawner(NetworkPacket &pkt) {
 }
 
 void GoannaSession::onSpawnParticle(NetworkPacket &pkt) {
-    std::string datastring(pkt.getString(0), pkt.getSize());
+    std::string datastring(pkt.getRemainingNoCopy());
     std::istringstream is(datastring, std::ios_base::binary);
     ParticleParameters p;
     p.deSerialize(is, stats().proto_ver);
@@ -2629,7 +2635,7 @@ void GoannaSession::queueDugParticles(v3s16 nodepos, const ContentFeatures &feat
     ev.normal = v3f(normal.X, normal.Y, -normal.Z);
     ev.texture = tsrc()->imageName(tl.texture_id, tl.texture_layer_idx);
     video::SColor colour = tl.color;
-    if (!tl.has_color) features.visuals->getColor(m_map->getNode(nodepos).param2, &colour);
+    if (!tl.has_color) colour = features.visuals->getColor(features, m_map->getNode(nodepos).param2);
     ev.colour = colour.color;
     ev.count = count;
     if (ev.texture.empty())
@@ -2701,7 +2707,7 @@ void GoannaSession::onBlockData(NetworkPacket &pkt) {
         return;
     v3s16 p;
     pkt >> p;
-    std::string datastring(pkt.getRemainingString(), pkt.getRemainingBytes());
+    std::string datastring(pkt.getRemainingNoCopy());
     std::istringstream istr(datastring, std::ios_base::binary);
     u8 ser_ver = stats().ser_ver;
 
@@ -2808,10 +2814,10 @@ void GoannaSession::onAddNode(NetworkPacket &pkt) {
     v3s16 p;
     pkt >> p;
     u8 ser_ver = stats().ser_ver;
-    auto *ptr = reinterpret_cast<const u8 *>(pkt.getRemainingString());
+    std::string_view str = pkt.getRemainingNoCopy();
     pkt.skip(MapNode::serializedLength(ser_ver));
     MapNode n;
-    n.deSerialize(ptr, ser_ver);
+    n.deSerialize((const u8 *)str.data(), ser_ver);
     bool keep_metadata = false;
     if (pkt.getRemainingBytes() >= 1)
         pkt >> keep_metadata;

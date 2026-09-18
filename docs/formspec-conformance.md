@@ -43,8 +43,14 @@ each with the omitted behaviour named in the manifest:
 - `button_key` draws an ordinary button. Goanna has no key binding capture.
 - `hypertext` renders tags, styles, images, items and actions, but not
   `hovercolor` or vertical alignment.
+- `hypertip` (formspec version 11, Luanti 5.17) shows its text in an
+  ordinary tooltip with the markup stripped. The static position, the width
+  and its `style[]` properties are ignored.
 - `style` and `style_type` apply colours, background images, borders, font
-  size and list slot geometry, but not the font family or sounds.
+  size and list slot geometry, but not the font family or sounds. The
+  `halign` and `valign` properties that formspec version 11 added for
+  `label[]`, `textarea[]` and `field[]` are not applied yet, so that text
+  stays left and top aligned.
 - `tablecolumns` ignores the per-column `padding` option.
 - `tooltip` ignores custom tooltip colours.
 

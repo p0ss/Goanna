@@ -3,7 +3,7 @@
 // Copyright (C) 2010-2014 celeron55, Perttu Ahola <celeron55@gmail.com>
 //
 // Transplanted from luanti/src/client/wieldmesh.h.
-// Goanna changes 2026-08, against Luanti 5.16.1: WieldMeshSceneNode is
+// Goanna changes 2026-09, against Luanti 5.17.0: WieldMeshSceneNode is
 // WieldMesh, plain state (mesh, scale, buffer info, colours) with no
 // Irrlicht scene node; the Godot side reads it. Everything else verbatim.
 

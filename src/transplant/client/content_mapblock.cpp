@@ -3,7 +3,7 @@
 // Copyright (C) 2010-2013 celeron55, Perttu Ahola <celeron55@gmail.com>
 //
 // Transplanted from luanti/src/client/content_mapblock.cpp.
-// Goanna changes 2026-08, against Luanti 5.16.1: compiles against Goanna's
+// Goanna changes 2026-09, against Luanti 5.17.0: compiles against Goanna's
 // Client stand-in (goanna_luanti_client.h instead of client.h); the
 // applyFacesShading calls are wrapped in a macro that skips them while
 // g_goanna_no_light is set, so directional face shading is not baked into
@@ -162,7 +162,7 @@ void MapblockMeshGenerator::getSpecialTile(int index, TileSpec *tile_ret, bool a
 			continue;
 		top_layer = layer;
 		if (!layer->has_color)
-			f.visuals->getColor(cur_node.n.param2, &layer->color);
+			layer->color = f.visuals->getColor(f, cur_node.n.param2);
 	}
 
 	if (apply_crack)
@@ -732,6 +732,35 @@ void MapblockMeshGenerator::drawSolidNode()
 			continue;
 		if (n2 == CONTENT_IGNORE)
 			continue;
+		// For a waving liquid source, keep the top face even when a solid node
+		// is directly above: wave animation can pull the surface down and expose
+		// a gap where the face was culled. Also keep backface culling off so the
+		// face is visible from below e.g. looking up from underwater.
+		// Submerged solids surrounded by liquid or other solid nodes on all sides are excluded.
+		bool liquid_needs_top_face = face == 0
+			&& cur_node.f->drawtype == NDT_LIQUID
+			&& cur_node.f->waving == 3
+			&& data->m_enable_waving_water;
+		if (liquid_needs_top_face) {
+			liquid_needs_top_face = false;
+			static const v3s16 h_dirs[4] = {
+				v3s16(1,0,0), v3s16(-1,0,0), v3s16(0,0,1), v3s16(0,0,-1)
+			};
+			for (const v3s16 &d : h_dirs) {
+				const ContentFeatures &f_side = nodedef->get(data->m_vmanip.getNodeNoEx(p2 + d));
+
+				bool side_is_translucent = !(f_side.visuals->solidness || f_side.visuals->visual_solidness);
+				bool side_is_same_flowing_liquid =
+					f_side.drawtype == NDT_FLOWINGLIQUID && cur_node.f->sameLiquidRender(f_side);
+
+				// Draw the top face as soon there's a translucent node diagonally above to
+				// avoid visual gaps in the liquid surface
+				if (side_is_translucent && !side_is_same_flowing_liquid) {
+					liquid_needs_top_face = true;
+					break;
+				}
+			}
+		}
 		if (n2 != CONTENT_AIR) {
 			const ContentFeatures &f2 = nodedef->get(n2);
 			// The other half of the same rule. Solidness is a property of the
@@ -741,7 +770,7 @@ void MapblockMeshGenerator::drawSolidNode()
 			const bool carved_neighbour = goanna::g_goanna_carve_block &&
 					goanna::g_goanna_carve_block->find(p2.X - blockpos_nodes.X,
 							p2.Y - blockpos_nodes.Y, p2.Z - blockpos_nodes.Z);
-			if (f2.visuals->solidness == 2 && !carved_neighbour)
+			if (f2.visuals->solidness == 2 && !liquid_needs_top_face && !carved_neighbour)
 				continue;
 			if (cur_node.f->drawtype == NDT_LIQUID) {
 				if (cur_node.f->sameLiquidRender(f2))
@@ -755,7 +784,8 @@ void MapblockMeshGenerator::drawSolidNode()
 				// liquid gives up its own.
 				if (!isFakeLiquid(*cur_node.f) && isFakeLiquid(f2))
 					continue;
-				backface_culling = f2.visuals->solidness || f2.visuals->visual_solidness;
+				backface_culling =
+					!liquid_needs_top_face && (f2.visuals->solidness || f2.visuals->visual_solidness);
 			}
 		}
 		faces |= 1 << face;

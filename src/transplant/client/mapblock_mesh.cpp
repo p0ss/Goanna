@@ -3,7 +3,7 @@
 // Copyright (C) 2010-2013 celeron55, Perttu Ahola <celeron55@gmail.com>
 //
 // Transplanted from luanti/src/client/mapblock_mesh.cpp.
-// Goanna changes 2026-08, against Luanti 5.16.1: no video driver (no
+// Goanna changes 2026-09, against Luanti 5.17.0: no video driver (no
 // hardware mapping hint, no minimap blocks); PartialMeshBuffer::draw() is a
 // no-op because nothing is drawn through Irrlicht; g_goanna_no_light is
 // defined here and, while set, encode_light() returns opaque white, which
@@ -352,7 +352,7 @@ void getNodeTileN(MapNode mn, const v3s16 &p, u8 tileindex, MeshMakeData *data, 
 		if (layer.empty())
 			continue;
 		if (!layer.has_color)
-			f.visuals->getColor(mn.param2, &(layer.color));
+			layer.color = f.visuals->getColor(f, mn.param2);
 		// Apply temporary crack
 		if (has_crack)
 			layer.material_flags |= MATERIAL_FLAG_CRACK;

@@ -26,6 +26,10 @@
     "status": "supported",
     "note": "Parsed and ignored, which is the whole behaviour on a non-Android client."
   },
+  "hypertip": {
+    "status": "partial",
+    "note": "Shown as a plain text tooltip: the markup is stripped, and the static position and width are ignored."
+  },
   "hypertext": {
     "status": "partial",
     "note": "Tags, styles, images, items and actions are rendered; hovercolor and vertical alignment are not."
@@ -57,11 +61,11 @@
   },
   "style": {
     "status": "partial",
-    "note": "Colours, background images, borders, font size and list slot geometry are applied; font family and sound are not."
+    "note": "Colours, background images, borders, font size and list slot geometry are applied; font family, sound, and the halign and valign of formspec version 11 are not."
   },
   "style_type": {
     "status": "partial",
-    "note": "Colours, background images, borders, font size and list slot geometry are applied; font family and sound are not."
+    "note": "Colours, background images, borders, font size and list slot geometry are applied; font family, sound, and the halign and valign of formspec version 11 are not."
   },
   "tabheader": {"status": "supported"},
   "table": {"status": "supported"},

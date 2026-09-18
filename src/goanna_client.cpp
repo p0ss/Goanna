@@ -1429,6 +1429,7 @@ Dictionary GoannaClient::hud_state() const {
         h["z_index"] = (int)e.z_index;
         h["text2"] = String::utf8(e.text2.c_str());
         h["style"] = (int)e.style;
+        h["hideable"] = e.hideable;
         elems.push_back(h);
     }
     d["elements"] = elems;
@@ -2020,7 +2021,7 @@ Color GoannaClient::ground_albedo(const Vector3 &center) {
             continue;
         const ContentFeatures &f = ndef->get(s.c);
         video::SColor pc(255, 255, 255, 255);
-        f.visuals->getColor(s.param2, &pc);
+        pc = f.visuals->getColor(f, s.param2);
         const float wt = f.isLiquid() ? 0.35f : 1.0f;
         r += (avg.getRed() / 255.0f) * (pc.getRed() / 255.0f) * wt;
         g += (avg.getGreen() / 255.0f) * (pc.getGreen() / 255.0f) * wt;
@@ -2295,8 +2296,11 @@ Dictionary GoannaClient::step_player(double dt, const Dictionary &keys, float pi
     }
     // Luanti: pitch positive = looking down; yaw matches Godot after z-mirror.
     PlayerControl &c = p->control;
-    c.direction_keys = ((bool)keys.get("up", false) & 1) | (((bool)keys.get("down", false) & 1) << 1) |
-            (((bool)keys.get("left", false) & 1) << 2) | (((bool)keys.get("right", false) & 1) << 3);
+    // Luanti 5.17 keeps each direction as an analogue amount; keys are 0 or 1.
+    c.up = (bool)keys.get("up", false) ? 1.0f : 0.0f;
+    c.down = (bool)keys.get("down", false) ? 1.0f : 0.0f;
+    c.left = (bool)keys.get("left", false) ? 1.0f : 0.0f;
+    c.right = (bool)keys.get("right", false) ? 1.0f : 0.0f;
     // Autojump sets a flag on the player; the vanilla client feeds it back in
     // as a jump press on the next frame (game.cpp: isKeyDown(JUMP) ||
     // player->getAutojump()). Without this the flag was set and ignored.
@@ -2320,7 +2324,7 @@ Dictionary GoannaClient::step_player(double dt, const Dictionary &keys, float pi
         m_session->stepPlayer((float)dt);
     if (std::getenv("GOANNA_DEBUG_MANTLE")) {
         static int n = 0;
-        if (dt > 0 && c.direction_keys != 0 && ++n % 20 == 0)
+        if (dt > 0 && (c.getKeysPressed() & 0xf) != 0 && ++n % 20 == 0)
             fprintf(stderr, "mantle in: ground=%d speed=%.2f jump=%d aj=%d pos=%.1f,%.2f,%.1f\n",
                     (int)p->touching_ground, p->control.movement_speed,
                     (int)p->control.jump, (int)p->getAutojump(),
@@ -3829,7 +3833,7 @@ void GoannaClient::harvestMotes(v3s16 bp, MapBlock *block) {
         // Without it the average reads brown/orange.
         if (f.visuals) {
             video::SColor pc(255, 255, 255, 255);
-            f.visuals->getColor(n.getParam2(), &pc);
+            pc = f.visuals->getColor(f, n.getParam2());
             c.set(255, c.getRed() * pc.getRed() / 255,
                     c.getGreen() * pc.getGreen() / 255,
                     c.getBlue() * pc.getBlue() / 255);

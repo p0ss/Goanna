@@ -3,7 +3,7 @@
 // Copyright (C) 2010-2013 celeron55, Perttu Ahola <celeron55@gmail.com>
 //
 // Transplanted from luanti/src/client/localplayer.cpp.
-// Goanna changes 2026-08, against Luanti 5.16.1: see localplayer.h.
+// Goanna changes 2026-09, against Luanti 5.17.0: see localplayer.h.
 // Movement maths is untouched.
 
 #include "transplant/localplayer.h"
@@ -323,7 +323,7 @@ void LocalPlayer::move(f32 dtime, Map *map,
 
 	StepUpMode step_up_mode = StepUpMode::LEGACY;
 
-	collisionMoveResult result = collisionMoveSimple(map, m_gamedef,
+	CollisionMoveResult result = collisionMoveSimple(map, m_gamedef,
 		m_collisionbox, player_stepheight, dtime,
 		&position, &m_speed, accel_f, nullptr, true, step_up_mode);
 
@@ -816,7 +816,7 @@ float LocalPlayer::getSlipFactor(Map *map, const v3f &speedH)
 }
 
 void LocalPlayer::handleAutojump(f32 dtime, Map *map,
-	const collisionMoveResult &result, v3f initial_position, v3f initial_speed)
+	const CollisionMoveResult &result, v3f initial_position, v3f initial_speed)
 {
 	PlayerSettings &player_settings = getPlayerSettings();
 	if (!player_settings.autojump)
@@ -874,7 +874,7 @@ void LocalPlayer::handleAutojump(f32 dtime, Map *map,
 	StepUpMode step_up_mode = StepUpMode::LEGACY;
 
 	// try at peak of jump, zero step height
-	collisionMoveResult jump_result = collisionMoveSimple(map, m_gamedef,
+	CollisionMoveResult jump_result = collisionMoveSimple(map, m_gamedef,
 		m_collisionbox, 0.0f, dtime, &jump_pos, &jump_speed, v3f(0.0f), nullptr, true,
 		step_up_mode);
 

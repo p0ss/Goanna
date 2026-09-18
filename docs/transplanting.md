@@ -106,12 +106,14 @@ reviewer will read.
 | `src/transplant/client/imagesource.cpp` | `src/client/imagesource.cpp` | Creates images through the video driver | Image creation and decoding go through `goanna_image_hooks.h`; otherwise verbatim |
 | `src/transplant/environment_raycast.cpp` | `src/environment.cpp` | `Environment::continueRaycast` needs an `Environment` (`getMap`, `getSelectedActiveObjects`) | Only `isPointableNode()` and `continueRaycast()` copied; a free function in namespace `goanna` taking `Map&` and an object-selection callback; body otherwise verbatim |
 | `src/luanti_shims.cpp` | `src/inventorymanager.cpp` | The whole file drags in the server environment and scripting | Two functions copied verbatim, nothing else |
-| `src/transplant/client/content_cao.h`, `.cpp` | `src/client/content_cao.{h,cpp}` | `GenericCAO` is built around Irrlicht scene nodes | No scene nodes; the state half of `GenericCAO` (init data and `AO_CMD_*` parsing, `SmoothTranslator`, animation, bone overrides, attachments, texture modifiers) kept as `goanna::GoannaActiveObject`, read by `goanna_entities`; movement calls the transplanted collision code rather than `ClientEnvironment` |
+| `src/transplant/client/content_cao.h`, `.cpp` | `src/client/content_cao.{h,cpp}` | `GenericCAO` is built around Irrlicht scene nodes | No scene nodes; the state half of `GenericCAO` (init data and `AO_CMD_*` parsing, `SmoothTranslator`, animation, bone overrides, attachments, texture modifiers) kept as `goanna::GoannaActiveObject`, read by `goanna_entities`; movement calls the transplanted collision code rather than `ClientEnvironment`; of the animation tracks added in 5.17.0, only the first, addressed by number, is played, and stopping it holds its first frame |
+| `src/transplant/client/wieldmesh.h`, `.cpp` | `src/client/wieldmesh.{h,cpp}` | `WieldMeshSceneNode` is an Irrlicht scene node | `WieldMeshSceneNode` becomes `WieldMesh`, keeping the mesh and its scale as plain state (no scene manager, no shadow renderer, no `render()`); texture filter settings are off, since Goanna's materials filter; the `Client` is Goanna's stand-in; the extrusion mesh cache and the item mesh builders are otherwise verbatim |
+| `src/transplant/client/item_visuals_manager.cpp` | `src/client/item_visuals_manager.cpp` | Reaches `Client` | The `Client` is Goanna's stand-in; otherwise verbatim |
 | `src/goanna_sky.cpp` | `src/client/sky.cpp` | Sky rendering is Irrlicht; only the maths is wanted | The wicked time of day and sky body position functions only, each marked at its definition. Also credits numzero |
 
 ## Tracking upstream
 
-`luanti/` is pinned to a release tag, currently 5.16.1. When it moves:
+`luanti/` is pinned to a release tag, currently 5.17.0. When it moves:
 
 1. Bump the submodule to the new tag on its own branch.
 2. Rebuild. Tier 1 files either compile or tell you what changed.

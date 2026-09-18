@@ -6,7 +6,7 @@
 // transplanted Luanti meshing code talks to.
 //
 // This file mixes Goanna original code with functions copied from Luanti
-// 5.16.1: the palette loader from client/texturesource.cpp, and getShader
+// 5.17.0: the palette loader from client/texturesource.cpp, and getShader
 // adapted from client/shader.cpp. Each is marked at its definition.
 
 #include "goanna_textures.h"
@@ -1003,16 +1003,20 @@ video::E_MATERIAL_TYPE GoannaShaderSource::baseMaterial(u32 id) const {
 } // namespace goanna
 
 // ---------------------------------------------------------------------------
-// Non-virtual helper declared in client/shader.h and defined in shader.cpp,
-// which Goanna does not compile. Copied from there, minus the skinning query.
+// Non-virtual helpers declared in client/shader.h and defined in shader.cpp,
+// which Goanna does not compile. Copied from there (5.17.0), minus the
+// skinning query, which asks the Irrlicht video driver for its joint limit.
+void ShaderFeatures::setConstants(ShaderConstants &consts) const {
+    if (array_texture)
+        consts["USE_ARRAY_TEXTURE"] = 1;
+}
+
 u32 IShaderSource::getShader(const std::string &name, MaterialType material_type,
-        NodeDrawType drawtype, bool array_texture, bool skinning) {
+        NodeDrawType drawtype, const ShaderFeatures &features) {
     ShaderConstants input_const;
     input_const["MATERIAL_TYPE"] = (int)material_type;
     (void)drawtype;
-    if (array_texture)
-        input_const["USE_ARRAY_TEXTURE"] = 1;
-    (void)skinning;
+    features.setConstants(input_const);
     video::E_MATERIAL_TYPE base_mat = video::EMT_SOLID;
     switch (material_type) {
     case TILE_MATERIAL_ALPHA:

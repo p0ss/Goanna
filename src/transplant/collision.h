@@ -3,7 +3,7 @@
 // Copyright (C) 2013 celeron55, Perttu Ahola <celeron55@gmail.com>
 //
 // Transplanted from luanti/src/collision.h.
-// Goanna changes 2026-08, against Luanti 5.16.1: the forward declaration of
+// Goanna changes 2026-09, against Luanti 5.17.0: the forward declaration of
 // Environment becomes Map, and collisionMoveSimple and
 // collision_check_intersection take a Map* instead of an Environment*.
 
@@ -44,9 +44,9 @@ struct CollisionInfo
 	v3f new_speed;
 };
 
-struct collisionMoveResult
+struct CollisionMoveResult
 {
-	collisionMoveResult() = default;
+	CollisionMoveResult() = default;
 
 	bool collides = false;
 	bool touching_ground = false;
@@ -59,7 +59,7 @@ struct collisionMoveResult
 extern bool g_collision_problems_encountered;
 
 /// @param self (optional) ActiveObject to ignore in the collision detection.
-collisionMoveResult collisionMoveSimple(Map *map, IGameDef *gamedef,
+CollisionMoveResult collisionMoveSimple(Map *map, IGameDef *gamedef,
 		const aabb3f &box_0,
 		f32 stepheight, f32 dtime,
 		v3f *pos_f, v3f *speed_f,
