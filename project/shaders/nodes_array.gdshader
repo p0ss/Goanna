@@ -123,18 +123,21 @@ void fragment() {
 			vec3 vt = view_w - v_wnormal * dot(view_w, v_wnormal);
 			// Tile units the visible point shifts per unit of normalised
 			// depth: down the eye ray, so against the view's tangent part.
-			float depth = goanna_class_depth(cls) * parallax_depth * pom;
+			float depth = (layer_depth[layer] > 0.0 ? layer_depth[layer] : goanna_class_depth(cls))
+					* parallax_depth * pom;
 			vec2 slope = vec2(dot(vt, d_tu) / lu, dot(vt, d_tv) / lv) * (depth / vn);
 			// More steps the flatter the view, where the ray runs furthest
 			// across the tile before it lands.
-			int steps = int(mix(22.0, 8.0, vn));
+			// A deeper march runs further across the tile and needs more
+			// samples to keep a joint's wall from tearing.
+			int steps = int(mix(22.0, 8.0, vn) * clamp(depth / 0.05, 1.0, 2.0));
 			float dd = 1.0 / float(steps);
 			float d = 0.0;
 			float d_prev = 0.0;
 			vec2 uv = tile_uv;
 			float h = 1.0 - textureGrad(normal_array, vec3(uv, float(layer)), uv_dx, uv_dy).a;
 			float h_prev = h;
-			for (int i = 0; i < 24; i++) {
+			for (int i = 0; i < 48; i++) {
 				if (i >= steps || d >= h)
 					break;
 				d_prev = d;

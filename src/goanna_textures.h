@@ -97,6 +97,15 @@ public:
     // which is also what a pack with no authored normals gets, because the
     // inference has its own strength.
     float normalGain() const { return m_normal_gain; }
+    // The relief depth each authored normal layer implies, as a fraction of
+    // a node: the normal's tangent slope in height units per texel over the
+    // height byte's gradient, at the median of the texels that have a
+    // gradient, over the tile's width in texels. The two come from one
+    // height field, so their ratio is that field's depth, and the parallax
+    // march then agrees with the shading about how deep the surface is. 0
+    // for a layer with no authored height, which the shader gives its
+    // class's depth.
+    const std::vector<float> &layerDepths() const { return m_layer_depth; }
     // Alpha is tracked per array layer as well as for the whole texture. A
     // solid stone layer may share an array with cut-out leaves, and treating
     // the whole array as transparent prevents the stone from being a safe
@@ -131,6 +140,7 @@ private:
     std::map<std::string, godot::Ref<godot::Texture2DArray>> m_godot_suffixed;
     std::vector<LayerSpec> m_layer_spec;
     std::vector<float> m_layer_normal_var;
+    std::vector<float> m_layer_depth;
     float m_normal_gain = 1.0f;
     std::map<std::string, bool> m_suffixed_missing;
     godot::Ref<godot::ImageTexture> m_godot;

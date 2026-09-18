@@ -13,6 +13,7 @@
 
 #include "client/texturepaths.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <fstream>
@@ -193,6 +194,36 @@ Ref<Texture2DArray> GoannaTexture::godotArray() {
     return m_godot_array;
 }
 
+
+// See layerDepths(): the median ratio of the normal's slope to the height's
+// gradient, over the tile width. Capped, because a map whose normals were
+// authored steeper than its height is real (the first fleet's stone reads
+// 16 cm) and the march past a tenth of a node reads the wrapped far side of
+// the tile on every edge.
+static float reliefDepth(const Ref<Image> &img) {
+    const int w = img->get_width(), h = img->get_height();
+    if (w < 8 || h < 8)
+        return 0.0f;
+    std::vector<float> ratios;
+    ratios.reserve((size_t)(w * h / 4));
+    for (int y = 0; y < h; y += 2)
+        for (int x = 0; x < w; x += 2) {
+            const Color c = img->get_pixel(x, y);
+            const float nx = c.r * 2.0f - 1.0f;
+            const float ny = c.g * 2.0f - 1.0f;
+            const float nz = std::sqrt(std::clamp(1.0f - nx * nx - ny * ny, 1e-4f, 1.0f));
+            const float gx = (img->get_pixel((x + 1) % w, y).a - img->get_pixel((x + w - 1) % w, y).a) * 0.5f;
+            const float gy = (img->get_pixel(x, (y + 1) % h).a - img->get_pixel(x, (y + h - 1) % h).a) * 0.5f;
+            const float g = std::fabs(gx) + std::fabs(gy);
+            if (g > 0.01f)
+                ratios.push_back((std::fabs(nx) + std::fabs(ny)) / nz / g);
+        }
+    if (ratios.size() < 100)
+        return 0.0f;
+    std::nth_element(ratios.begin(), ratios.begin() + (ptrdiff_t)(ratios.size() / 2), ratios.end());
+    return std::min(0.10f, ratios[ratios.size() / 2] / (float)w);
+}
+
 Ref<Texture2DArray> GoannaTexture::godotArraySuffixed(GoannaTextureSource &src, const char *suffix) {
     std::string key(suffix);
     auto miss = m_suffixed_missing.find(key);
@@ -207,9 +238,10 @@ Ref<Texture2DArray> GoannaTexture::godotArraySuffixed(GoannaTextureSource &src, 
     // no emission) rather than abandoning the whole bunch. Only if nothing at
     // all is authored is the companion reported as absent.
     const bool is_normal = key == "_n";
-    if (is_normal)
+    if (is_normal) {
         m_layer_normal_var.clear();
-    else
+        m_layer_depth.clear();
+    } else
         m_layer_spec.clear();
     TypedArray<Image> imgs;
     bool any = false;
@@ -326,6 +358,7 @@ Ref<Texture2DArray> GoannaTexture::godotArraySuffixed(GoannaTextureSource &src, 
             }
             m_layer_normal_var.push_back((float)var);
             (was_authored ? authored_tilt : inferred_tilt).push_back((float)var);
+            m_layer_depth.push_back(was_authored ? reliefDepth(img) : 0.0f);
         }
         if (!is_normal) {
             // The mean material response of this layer, converted per texel

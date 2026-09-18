@@ -2562,6 +2562,17 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
                 }
                 sm->set_meta("goanna_grass_layers", grass_layers);
                 sm->set_shader_parameter("layer_class", classes);
+                // Each map's own relief depth for the parallax march; a
+                // layer without authored height stays at 0 and takes the
+                // class table's depth in the shader.
+                if (nrm.is_valid()) {
+                    const auto &ld = agt->layerDepths();
+                    PackedFloat32Array depths;
+                    depths.resize((int)lnames.size());
+                    for (size_t i = 0; i < lnames.size(); ++i)
+                        depths[(int)i] = i < ld.size() ? ld[i] : 0.0f;
+                    sm->set_shader_parameter("layer_depth", depths);
+                }
                 sm->set_shader_parameter("layer_coarse", coarse);
                 sm->set_shader_parameter("layer_roughness_floor", roughness_floor);
                 if (getenv("GOANNA_DEBUG_PBR")) {

@@ -222,8 +222,42 @@ func _packed(dir: String, stem: String) -> ShaderMaterial:
 		classes.resize(256)
 		classes.fill(_class_from_spec(spc, stem))
 		mat.set_shader_parameter("layer_class", classes)
+	# The map's own depth, unless GOANNA_LAYER_DEPTH=table asks for the
+	# class table alone.
+	if nrm != null and OS.get_environment("GOANNA_LAYER_DEPTH") != "table":
+		var depths := PackedFloat32Array()
+		depths.resize(256)
+		var dep := _relief_depth(nrm)
+		depths.fill(dep)
+		mat.set_shader_parameter("layer_depth", depths)
+		print("relief depth %s %.3f" % [stem, dep])
 	pack_materials.append(mat)
 	return mat
+
+
+# The relief depth a map implies, as a fraction of the tile: the normal's
+# slope in height units per texel over the height byte's gradient, at the
+# median of the texels with a gradient, over the tile's width in texels.
+# Both come from one height field, so the ratio is the field's depth.
+func _relief_depth(nrm: Image) -> float:
+	var w := nrm.get_width()
+	var h := nrm.get_height()
+	var ratios := PackedFloat32Array()
+	for y in range(0, h, 2):
+		for x in range(0, w, 2):
+			var c := nrm.get_pixel(x, y)
+			var nx := c.r * 2.0 - 1.0
+			var ny := c.g * 2.0 - 1.0
+			var nz: float = sqrt(clamp(1.0 - nx * nx - ny * ny, 1e-4, 1.0))
+			var gx: float = (nrm.get_pixel((x + 1) % w, y).a - nrm.get_pixel((x + w - 1) % w, y).a) * 0.5
+			var gy: float = (nrm.get_pixel(x, (y + 1) % h).a - nrm.get_pixel(x, (y + h - 1) % h).a) * 0.5
+			var g: float = abs(gx) + abs(gy)
+			if g > 0.01:
+				ratios.append((abs(nx) + abs(ny)) / nz / g)
+	if ratios.size() < 100:
+		return 0.0
+	ratios.sort()
+	return ratios[ratios.size() / 2] / float(w)
 
 
 # src/goanna_materials.h's class numbers, from the packed bytes: G at 230
