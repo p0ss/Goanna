@@ -93,8 +93,8 @@ must accompany distribution; they are in `godot-cpp/LICENSE.md`.
 ## Shader code in this repository
 
 `project/shaders/` holds Goanna's own GDShader. None of it is linked into
-`libgoanna`, so it is not in the table above, but one method in it is
-adapted rather than invented and carries a licence with it.
+`libgoanna`, so it is not in the table above, but two pieces of it are
+adapted rather than invented and carry a licence with them.
 
 **`water.gdshader`, the wave field.** The sum of octaves, the drag term that
 shifts each octave by the slope of the ones before it, and the constants
@@ -108,6 +108,17 @@ projects are named in the file's own header as well as here. The code in
 `water.gdshader` is a rewrite against Godot's shading language rather than a
 copy: the surrounding absorption, refraction, screen space reflection and
 far tier handling are Goanna's.
+
+**`direct_light.gdshaderinc`, the direct light.** `goanna_direct_light` and
+the helpers it calls reproduce Godot Engine 4.5.1's `light_compute`
+(`servers/rendering/renderer_rd/shaders/scene_forward_lights_inc.glsl`) for
+the terms Goanna's node and entity shaders use, so that the sun and moon can
+be scaled by Luanti's sunlight per fragment. Godot Engine is MIT, Copyright
+(c) 2014-present Godot Engine contributors and (c) 2007-2014 Juan Linietsky,
+Ariel Manzur. The engine's source is not in this repository (only
+godot-cpp is), so the file's header carries the full copyright and
+permission notice. The sun gate and the analytic stand-in for Godot's DFG
+table are Goanna's.
 
 ## Media in this repository
 

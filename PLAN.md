@@ -310,6 +310,33 @@ the fact.
   and in the launcher's texture pack list; a 1.1.0 terrain bundle is the
   production path. Findings in `docs/material-calibration.md`.
 
+- The sun no longer shines into caves, 2026-09-18. Reported in play from a
+  Mineclonia lava cave at (-216, -48, 161): sunlit floor patches with
+  shadows cast the wrong way, and edges that flickered as they moved. The
+  sun's only occluder was the shadow map, and the server never sends the
+  ground above a cave (occlusion culling; 211 blocks were resident), so
+  nothing stood between the cave and the sky. The node, foliage and entity
+  shaders now carry their own `light()` (`direct_light.gdshaderinc`, Godot
+  4.5.1's `light_compute` reproduced) that scales every directional light
+  by Luanti's sunlight, read as day bank minus night bank the way
+  `encode_light` does, since the day bank also holds torch and lava light.
+  Measured on a copy of that world, Luanti 5.16.1, Godot 4.5.1: the cave
+  frame with the sun on now matches the sun switched off to within the
+  noise floor (0.80 against 0.75 mean difference). On a copy of test_world
+  at the beach the replacement matches Godot's own lighting on land to
+  within the noise floor in 16 pixel tiles (0.55 against 0.44 to 0.53, +0.2
+  of 255 brighter). The flicker was the sun and moon lights being turned
+  every frame, which draws every shadow caster again against a rotated
+  texel grid; they now move in 0.2 degree steps (`light_step_deg`). With
+  shader animation frozen and the clock driven one 60 fps frame at a time,
+  pixels reversing brightness on consecutive frames fell from 60,848 to
+  24,924 over 90 frames against 19,751 with the clock stopped, and land
+  away from the water reached that floor. Not yet done: water, glass, ice
+  and lava are not gated, and water still reflects the sky underground; an
+  entity with no `node_light`, which is every non-mesh visual, is lit as
+  if under open sky; and the sky fill still takes the raw day bank, so a
+  lamp lit cave takes a daylight fill that varies with the time of day.
+
 ## Log since v0.4.1-alpha (2026-08-30)
 
 Verified on a local Mineclonia server on Luanti 5.17.0 with Godot 4.5.1 and

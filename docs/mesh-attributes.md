@@ -67,6 +67,14 @@ they mean.
   3), which is what the vanilla client's own light is and what lifts a wall
   under open sky that Godot's GI leaves near black. The other half of
   `lmcoord`.
+
+  It is not sky alone. Luanti writes artificial light into both banks, so
+  beside a torch or lava this channel is lit however deep underground, and
+  it matches `CUSTOM0.r` there. The sun itself therefore reads `g - r`,
+  Luanti's own reading in `encode_light`: the direct light of the sun, the
+  moon and the bounce is gated by it in `direct_light.gdshaderinc`, which
+  is what keeps the sun out of a cave whose roof the server never sent. The
+  sky ambient and the sky fill above still take `g` as it stands.
 - **`CUSTOM0.b`, ambient occlusion.** 1.0 is unoccluded. Goanna's own
   hemisphere trace against node occupancy, described in
   `docs/far-rendering.md`. It multiplies into ambient and never into direct

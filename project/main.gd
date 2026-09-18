@@ -157,6 +157,23 @@ var ridge_h_smoothed := 0.0
 var ridge_d_smoothed := 0.0
 var cloud_horizon_smoothed := -0.20
 var ridge_override := -1.0
+# The sun and moon lights move in steps of this many degrees, not every
+# frame. A directional shadow map is drawn in the light's own frame, so
+# turning the light by a sliver draws every caster again against a slightly
+# rotated texel grid, and with the clock advancing that happened on every
+# frame: shadow edges crawled, and a soft edge read as a flickering one,
+# worst on a long low-sun shadow or one taken from a far cascade. Godot's
+# cascade stabilisation snaps the light's position to the texel grid, which
+# does nothing against rotation. Held still between steps an edge is steady,
+# and each step is one small move. At the default day length (time_speed 72)
+# Luanti's compressed day turns the sun 0.26 degrees a second, so 0.2 is a
+# step about every 0.8 seconds. The sky's own disc, the water's sun glint and
+# the light shafts stay on the continuous direction, goanna_sun_dir, as none
+# of them reads the shadow map. A var rather than a const so the control
+# channel can tune it.
+var light_step_deg := 0.2
+var sun_aimed := Vector3.ZERO
+var moon_aimed := Vector3.ZERO
 # The horizon bake (docs/sky-orchestration.md): when the last bake was
 # asked for and from where. Rebaked when the camera has moved far enough
 # for parallax to show or on a slow clock, whichever first.
@@ -2224,6 +2241,20 @@ func _ground_tint() -> Color:
 	return ground_tint
 
 
+# Aims a sun or moon light along dir once dir has moved light_step_deg from
+# where it last aimed, and returns where it now aims. See light_step_deg.
+func _aim_light(light: DirectionalLight3D, dir: Vector3, aimed: Vector3) -> Vector3:
+	if dir.length() <= 0.001:
+		return aimed
+	var d := dir.normalized()
+	if aimed != Vector3.ZERO and rad_to_deg(aimed.angle_to(d)) < light_step_deg:
+		return aimed
+	# At the zenith the direction is parallel to UP, so pick another up vector.
+	var up := Vector3.UP if absf(d.y) < 0.999 else Vector3.FORWARD
+	light.transform = Transform3D(Basis.looking_at(-d, up), Vector3.ZERO)
+	return d
+
+
 func _apply_sky() -> void:
 	var st: Dictionary = client.sky_state()
 	if st.is_empty() or not st.has("sun_direction"):
@@ -2259,13 +2290,9 @@ func _apply_sky() -> void:
 	var beam_cloud: Color = SkyDirector.beam(elev, e_cloud)
 	var beam_air: Color = SkyDirector.beam(elev, elev + SkyDirector.AIR_LIFT)
 	# --- sun and moon lights ---
-	# At the zenith the direction is parallel to UP, so pick another up vector.
-	if sun_dir.length() > 0.001:
-		var up := Vector3.UP if absf(sun_dir.y) < 0.999 else Vector3.FORWARD
-		sun.transform = Transform3D(Basis.looking_at(-sun_dir, up), Vector3.ZERO)
-	if moon_dir.length() > 0.001:
-		var up := Vector3.UP if absf(moon_dir.y) < 0.999 else Vector3.FORWARD
-		moon.transform = Transform3D(Basis.looking_at(-moon_dir, up), Vector3.ZERO)
+	# Stepped, not turned every frame: see light_step_deg.
+	sun_aimed = _aim_light(sun, sun_dir, sun_aimed)
+	moon_aimed = _aim_light(moon, moon_dir, moon_aimed)
 	# The land's daylight, keyed to its own horizon: with a ridge in front
 	# of the sun, day arrives at the crest, not at the astronomical rise.
 	var day: float = land["day"]

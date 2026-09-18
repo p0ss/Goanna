@@ -12,6 +12,7 @@ shader_type spatial;
 render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 
 #include "res://shaders/nodes_array_common.gdshaderinc"
+#include "res://shaders/direct_light.gdshaderinc"
 
 void vertex() {
 	// CUSTOM0 arrives as four bytes scaled to 0 to 1: block light, sky light,
@@ -140,11 +141,9 @@ void fragment() {
 	// Cloth catches the light along a grazing edge, which no LabPBR channel
 	// can say and which is most of what separates wool from painted stone.
 	// Godot's own rim term, so it stays inside the lighting the rest of the
-	// world is lit by. The class is the one already looked up above.
-	if (cls == 11) {
-		RIM = 0.6;
-		RIM_TINT = 0.35;
-	}
+	// world is lit by, carried to light() as RIM and RIM_TINT would be (see
+	// direct_light.gdshaderinc). The class is the one already looked up above.
+	v_rim = cls == 11 ? vec2(0.6, 0.35) : vec2(0.0);
 
 	// Dry bark retains diffuse relief without polished highlights.
 	ROUGHNESS = max(ROUGHNESS, layer_roughness_floor[layer]);
@@ -190,4 +189,7 @@ void fragment() {
 		ALBEDO = vec3(0.0);
 		EMISSION = v_nodelight * debug_nodelight_strength;
 	}
+	// Sun gate and F0 for light(), as in nodes_array.gdshader.
+	v_sun_gate = goanna_sun_gate(v_nodelight.g, v_nodelight.r);
+	v_specular = SPECULAR;
 }

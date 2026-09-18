@@ -58,6 +58,8 @@ uniform float class_f0 : hint_range(0.0, 1.0) = 0.04;
 uniform float class_metal : hint_range(0.0, 1.0) = 0.0;
 uniform float class_sss : hint_range(0.0, 1.0) = 0.0;
 
+#include "res://shaders/direct_light.gdshaderinc"
+
 void fragment() {
 	ALBEDO = texture(albedo, UV).rgb;
 	ROUGHNESS = 1.0;
@@ -90,11 +92,9 @@ void fragment() {
 	// Cloth catches the light along a grazing edge, which no channel LabPBR
 	// carries can say and which is most of what separates wool from painted
 	// stone. Godot's own rim term, so it stays inside the lighting the rest
-	// of the world is lit by rather than needing a light() of its own.
-	if (mat_class == 11) {
-		RIM = 0.6;
-		RIM_TINT = 0.35;
-	}
+	// of the world is lit by, carried to light() as RIM and RIM_TINT would be
+	// (see direct_light.gdshaderinc).
+	v_rim = mat_class == 11 ? vec2(0.6, 0.35) : vec2(0.0);
 	if (has_spec) {
 		vec4 sp = texture(spec_tex, UV);
 		float sm = sp.r;
@@ -108,4 +108,9 @@ void fragment() {
 			BACKLIGHT = ALBEDO * sss * sss_strength;
 		}
 	}
+	// No sun or moon where Luanti has no sunlight at the entity, and F0 for
+	// light(); see direct_light.gdshaderinc. An entity without node_light
+	// keeps the default (0, 1), full sky, as before.
+	v_sun_gate = goanna_sun_gate(node_light.y, node_light.x);
+	v_specular = SPECULAR;
 }
