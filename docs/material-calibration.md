@@ -367,3 +367,35 @@ Findings, 2026-09-18, on the close-up ramp under sun and lamp:
   and the planks' boards are sized for a wall, not a block, which is why
   this is a benchmark and not a pack to ship.
 
+## Depth from the map, not the class
+
+Measured 2026-09-18 after the user read every ramp sheet as flat. The
+maps' own normals imply 2 to 16 cm of relief (the normal's tangent slope
+over the height byte's gradient, at the median, over the tile width:
+authored stone 16 cm, cobble 5, dirt 6, planks 8, sand 1; the Material
+Maker sets 1 to 9), and the class table marched 1 to 5 cm, so the shading
+said one depth and the parallax another and the eye read the flatter
+one. The array build now measures that depth per authored layer
+(`reliefDepth` in `goanna_textures.cpp`, `layer_depth` in the shader) and
+the march uses it, capped at a tenth of a node because the first fleet's
+stone and stone brick were authored with normals steeper than their
+height and at 16 cm the march reads the wrapped far side of the tile on
+every edge. Authoring should set `normal_strength` from an intended
+depth, which is a library rule not yet written.
+
+Two things the running client showed that the ramp had not:
+
+- The client's pack gain, meant to lift a flat bake toward 55 degrees at
+  the ninth decile, reads the authored pack as flat (median 4.5 degrees,
+  p90 11.8 over 244 layers, because most manufactured blocks are held
+  nearly flat by `lib.band`) and applies its 4x ceiling in play. The
+  ramp runs at 1x. Every in-game judgement of the authored pack so far,
+  including the halving of the depth table after the cave review, was of
+  normals four times steeper than authored. The rule needs to leave a
+  pack with authored height alone, or the target needs to be a number an
+  authored pack can meet; not changed here.
+- The per layer depth was not observed in play. The opaque node
+  materials are not reachable from the scene tree through the control
+  channel, and the harness's posed camera came back rolled, so the
+  change is verified on the ramp and by the build only.
+
