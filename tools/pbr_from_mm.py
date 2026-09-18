@@ -42,7 +42,8 @@ CHANNELS = {
     "roughness": ("roughness", "rough"),
     "metallic": ("metallic", "metal", "metalness"),
     "ao": ("ao", "occlusion", "ambient_occlusion"),
-    "depth": ("depth", "height", "displacement"),
+    "depth": ("depth", "displacement"),
+    "height": ("height", "heightmap"),
     "emission": ("emission", "emissive"),
     "orm": ("orm",),
 }
@@ -79,8 +80,14 @@ def convert(export_dir, material, stem, out_dir, size, flip_green):
         rough = load(files["roughness"], size) if "roughness" in files else np.full((size, size), 0.8, np.float32)
         metal = load(files["metallic"], size) if "metallic" in files else np.zeros((size, size), np.float32)
         ao = load(files["ao"], size) if "ao" in files else np.ones((size, size), np.float32)
-    depth = load(files["depth"], size) if "depth" in files else None
-    height = (1.0 - depth) if depth is not None else lib.normalise01(np.mean(albedo[..., :3], -1))
+    # Godot 4 Standard writes a heightmap, white high, which is what the
+    # client stores; a depth export is the other way up.
+    if "height" in files:
+        height = load(files["height"], size)
+    elif "depth" in files:
+        height = 1.0 - load(files["depth"], size)
+    else:
+        height = lib.normalise01(np.mean(albedo[..., :3], -1))
     emission = load(files["emission"], size) if "emission" in files else None
 
     n = np.zeros((size, size, 4), np.float32)
