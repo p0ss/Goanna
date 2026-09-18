@@ -185,6 +185,10 @@ func _shader_material(alb: Texture2DArray, nrm: Texture2DArray, spc: Texture2DAr
 		sm.set_shader_parameter("spec_array", spc)
 	for k in strengths:
 		sm.set_shader_parameter(k + "_strength", strengths[k])
+	# GOANNA_PARALLAX_DEPTH scales the class depth table, to see what a
+	# deeper march would give before changing the table.
+	sm.set_shader_parameter("parallax_depth", _envf("GOANNA_PARALLAX_DEPTH", 1.0))
+	sm.set_shader_parameter("parallax_silhouette", _envf("GOANNA_PARALLAX_SILHOUETTE", 0.0))
 	return sm
 
 

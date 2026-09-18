@@ -50,6 +50,11 @@ uniform float parallax_strength : hint_range(0.0, 1.0) = 1.0;
 uniform float parallax_depth : hint_range(0.0, 4.0) = 1.0;
 uniform float parallax_range : hint_range(0.0, 256.0) = 40.0;
 uniform float parallax_shadow_strength : hint_range(0.0, 1.0) = 0.85;
+// Experimental: a march that leaves the node's tile through a face edge
+// discards the fragment, so joints and pits cut the block's silhouette.
+// Only right on a single node quad; a merged quad's inner boundaries are
+// not edges. Off by default.
+uniform float parallax_silhouette : hint_range(0.0, 1.0) = 0.0;
 global uniform vec3 goanna_sun_dir;
 
 // Per vertex node light and occlusion, packed into CUSTOM0 by

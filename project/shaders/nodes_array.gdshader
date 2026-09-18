@@ -149,6 +149,9 @@ void fragment() {
 			float above = h_prev - d_prev;
 			float w = below / max(below + above, 1e-5);
 			float d_hit = mix(d, d_prev, w);
+			if (parallax_silhouette > 0.5
+					&& any(notEqual(floor(UV - slope * d_hit), floor(UV))))
+				discard;
 			tile_uv = tile_uv - slope * d_hit;
 
 			// Self shadow: from the hit, climb toward the sun through the
