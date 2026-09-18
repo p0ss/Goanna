@@ -37,7 +37,7 @@ const TERRAIN_DIFFUSION_FILES := [
 	"tdl_terrain.lua", "tdl_decorate.lua", "tdl_forest.lua", "tdl_column.lua", "tdl_mapgen.lua",
 	"settingtypes.txt", "mod.conf", "LICENSE",
 ]
-const GOANNA_SERVER_MOD_FILES := ["init.lua", "surface.lua", "fine.lua", "surface_material.lua", "mod.conf", "settingtypes.txt", "README.md"]
+const GOANNA_SERVER_MOD_FILES := ["init.lua", "surface.lua", "fine.lua", "surface_material.lua", "damage.lua", "mod.conf", "settingtypes.txt", "README.md"]
 const PBR_GAME_DIRS := {
 	"minetest": "minetest_game",
 	"minetest_game": "minetest_game",
@@ -1266,6 +1266,13 @@ func start_config(options: Dictionary) -> String:
 		# client unless the transport carrying it is enabled too.
 		cf.store_string("enable_mod_channels = true\n")
 		cf.store_string("goanna_far_rendering = true\n")
+		# Shared dig damage, on for the same reason far rendering is: the
+		# player launched this server, so the operator deciding whether to
+		# trust a client's account of a block it is digging is the player
+		# themselves, and the only other people on it are ones they invited.
+		# Off remains the default for a server someone else is running, where
+		# that is a real question. goanna_server_mod/damage.lua has the trade.
+		cf.store_string("goanna_shared_dig_damage = true\n")
 		# The player's own Far draw distance setting is the grant, floored at
 		# the old conservative bound. It is their machine paying for the
 		# mapgen and the drawing, so how vast the vista gets is their call;

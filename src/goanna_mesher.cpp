@@ -3,6 +3,8 @@
 
 #include "goanna_mesher.h"
 
+#include "goanna_radial_form.h"
+
 #include "goanna_luanti_client.h"
 #include "goanna_session.h"
 #include "goanna_textures.h"
@@ -58,6 +60,16 @@ bool gatherMeshData(GoannaSession &session, MapBlock *block, MeshMakeData &data,
 }
 
 std::unique_ptr<MapBlockMesh> meshGathered(GoannaSession &session, MeshMakeData &data) {
+    // The carves the server has told us about for this block, snapshotted so
+    // content_mapblock can read them without touching the shared store: this
+    // runs on a mesh worker and several of them are live at once.
+    CarveSnapshot carves;
+    const v3s16 corner = data.m_blockpos * MAP_BLOCKSIZE;
+    carveSnapshot(corner.X, corner.Y, corner.Z, carves);
+    goanna::g_goanna_carve_block = carves.entries.empty() ? nullptr : &carves;
+    struct Clear {
+        ~Clear() { goanna::g_goanna_carve_block = nullptr; }
+    } clear_on_exit;
     return std::make_unique<MapBlockMesh>(session.meshClient(), &data);
 }
 

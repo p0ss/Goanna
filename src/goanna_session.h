@@ -168,6 +168,13 @@ public:
     void requestFineBlock(v3s16 position, uint64_t token);
     std::vector<std::string> takeFineBlocks();
     const std::string &playerName() const { return m_name; }
+    // Tell the server what this client carved, for the benefit of the other
+    // players. Ignored unless the server enabled goanna_shared_dig_damage.
+    void reportCarve(v3s16 pos, const std::string &bytes);
+    // Pull a stored carve out of a node's metadata into the carve store.
+    void takeCarveMetadata(v3s16 pos, NodeMetadata *meta);
+    // Every carve stored on a block that has just arrived.
+    void takeBlockCarves(v3s16 blockpos, MapBlock *block);
     // Ask the server for a far area summary (block coords, edge in blocks).
     void requestFarSummary(v3s16 origin_blocks, int edge_blocks, int cell);
     // Raw summary replies, consumed by the client on the main thread.

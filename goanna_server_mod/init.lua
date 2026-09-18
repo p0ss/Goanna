@@ -568,6 +568,13 @@ end
 local register_surface_tiles = dofile(core.get_modpath(core.get_current_modname()) ..
 		"/surface.lua")(channel, far_enabled, far_provider_distance, storage)
 dofile(core.get_modpath(core.get_current_modname()) .. "/fine.lua")(channel, far_enabled, far_provider_distance)
+-- Shared dig damage: whether one client's account of a block it is chipping at
+-- is relayed to everyone else. A Goanna client already carves what it digs on
+-- its own screen and needs nothing from a server to do it; this is only about
+-- the other players, which is the part a client cannot be taken at its word
+-- for. Off unless the operator says otherwise. See damage.lua.
+dofile(core.get_modpath(core.get_current_modname()) .. "/damage.lua")(
+		channel, conf_bool("goanna_shared_dig_damage", false))
 local far_provider_water = "mcl_core:water_source"
 function goanna_register_far_surface(fn, opts)
 	far_provider = fn

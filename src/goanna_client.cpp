@@ -1666,6 +1666,18 @@ Dictionary GoannaClient::step_interact(double dt, bool dig, bool place, bool pla
             m_carve = goanna::FormDig();
             m_carve.form.resolution = 16;
             m_carve_pos = st.crack_pos;
+            // RESUME FROM THE DAMAGE ALREADY ON THE BLOCK. Starting pristine
+            // threw away every earlier blow the moment a dig began: a block
+            // left half mined went visibly whole again as soon as it was
+            // struck, and only the blows from this dig showed. The stored
+            // carve is the truth about the node; this dig continues it.
+            goanna::RadialForm stored;
+            if (goanna::carveStoreGet(m_carve_pos.X, m_carve_pos.Y, m_carve_pos.Z,
+                    stored)) {
+                const int res = m_carve.form.resolution;
+                m_carve.form = stored;
+                m_carve.form.resolution = res;
+            }
         }
         const v3f hit = pt.intersection_point / BS
                 - v3f((f32)m_carve_pos.X, (f32)m_carve_pos.Y, (f32)m_carve_pos.Z);
@@ -1677,6 +1689,17 @@ Dictionary GoannaClient::step_interact(double dt, bool dig, bool place, bool pla
             m_session->invalidateBlock(getNodeBlockPos(m_carve_pos));
         g_goanna_carve = &m_carve.form;
     } else if (g_goanna_carve) {
+        // The dig is over, by breaking through or by letting go. Tell the
+        // server what was carved before dropping it, so the other players keep
+        // seeing it; a server without goanna_shared_dig_damage discards this
+        // and nothing here depends on an answer.
+        //
+        // On the END of the dig rather than every step: a carve is reported
+        // once, not sixteen times, and the only state worth sharing is the
+        // state it was left in.
+        const std::string bytes = goanna::encodeForm(m_carve.form);
+        if (!bytes.empty())
+            m_session->reportCarve(m_carve_pos, bytes);
         // The same replacement removes both cut geometry and neighbour reveals.
         m_session->invalidateBlock(getNodeBlockPos(m_carve_pos));
         g_goanna_carve = nullptr;

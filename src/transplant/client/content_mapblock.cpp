@@ -15,11 +15,14 @@
 // including submerged sides: the ice owns the water/ice interface.
 // Tiles also carry explicit light-source ownership
 // through batching, so thin torch meshes cannot shadow their own lights.
-// drawSolidNode also draws the sub node carve in place of the cube while
-// g_goanna_carve is set and the node is the one the crack is on, so a dig
-// deforms the block it lands on rather than only cracking it
-// (goanna_radial_form.h), and the cut faces clear MATERIAL_FLAG_CRACK so
-// they keep the tile's own material instead of a composited crack tile.
+// drawSolidNode also draws the sub node carve in place of the cube, so a dig
+// deforms the block it lands on rather than only cracking it: from the live
+// dig, from a carve the server has stored on the node, or from the demo row
+// (goanna_radial_form.h). A neighbour that is ITSELF carved counts as not
+// solid, for the face mask and for the backing faces alike, because solidness
+// is a property of the node DEFINITION and a damaged neighbour has holes of
+// its own. The cut faces clear MATERIAL_FLAG_CRACK so they keep the tile's own
+// material instead of a composited crack tile.
 // Otherwise verbatim.
 
 #include <cmath>
@@ -731,7 +734,14 @@ void MapblockMeshGenerator::drawSolidNode()
 			continue;
 		if (n2 != CONTENT_AIR) {
 			const ContentFeatures &f2 = nodedef->get(n2);
-			if (f2.visuals->solidness == 2)
+			// The other half of the same rule. Solidness is a property of the
+			// node DEFINITION, so a carved neighbour still claims to be solid
+			// and this node would omit its face against it. It must not: the
+			// neighbour has holes and something has to be seen through them.
+			const bool carved_neighbour = goanna::g_goanna_carve_block &&
+					goanna::g_goanna_carve_block->find(p2.X - blockpos_nodes.X,
+							p2.Y - blockpos_nodes.Y, p2.Z - blockpos_nodes.Z);
+			if (f2.visuals->solidness == 2 && !carved_neighbour)
 				continue;
 			if (cur_node.f->drawtype == NDT_LIQUID) {
 				if (cur_node.f->sameLiquidRender(f2))
@@ -767,6 +777,15 @@ void MapblockMeshGenerator::drawSolidNode()
 	if (cur_node.f->drawtype == NDT_NORMAL) {
 		if (cur_node.p == data->m_crack_pos_relative && g_goanna_carve_depth > 0)
 			form = g_goanna_carve;
+		// What the server has told us about this node, for every node that is
+		// not the one under this player's tool. That is what makes another
+		// player's mining visible, and what makes a block still look worn when
+		// its mapblock is re-meshed or reloaded. Snapshotted per block on a
+		// mesh worker, so this is a comparison and not a lock.
+		if (!form && goanna::g_goanna_carve_block) {
+			form = goanna::g_goanna_carve_block->find(
+					cur_node.p.X, cur_node.p.Y, cur_node.p.Z);
+		}
 		const v3s16 wp = blockpos_nodes + cur_node.p;
 		if (!form && g_goanna_carve_demo != 0 && wp.Y == g_goanna_carve_demo &&
 				wp.Z == g_goanna_carve_demo_z && wp.X >= 0 && wp.X < 8) {
@@ -803,6 +822,18 @@ void MapblockMeshGenerator::drawSolidNode()
 			if (nb.getContent() == CONTENT_IGNORE || nb.getContent() == CONTENT_AIR ||
 					nf.drawtype != NDT_NORMAL)
 				continue;
+			// A CARVED NEIGHBOUR IS NOT A WHOLE CUBE, so do not close this
+			// boundary with its face. Backing exists because an undamaged
+			// neighbour omits its own side against what it takes to be a solid
+			// node; a damaged one has holes of its own there, and drawing a
+			// full face for it invents material it no longer has. Two carved
+			// blocks side by side each did that for the other, leaving a sheet
+			// standing in the gap between them.
+			if (goanna::g_goanna_carve_block) {
+				const v3s16 np = saved_p + tile_dirs[face];
+				if (goanna::g_goanna_carve_block->find(np.X, np.Y, np.Z))
+					continue;
+			}
 			backing |= 1 << face;
 			cur_node.p = saved_p + tile_dirs[face];
 			cur_node.n = nb;

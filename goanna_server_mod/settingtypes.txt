@@ -92,3 +92,19 @@ goanna_source_movement (Source style movement) bool false
 goanna_source_movement_air_accel (Air acceleration) float 100.0 1.0 1000.0
 
 goanna_source_movement_max_air_speed (Max air speed) float 3.0 0.1 100.0
+
+#    Shared dig damage. A Goanna client already carves the block it is digging
+#    on its own screen, and needs nothing from a server to do that. With this
+#    on it also reports the carve, the server stores it on the node, and OTHER
+#    players see the same worn block.
+#
+#    That last step is the one thing here a client cannot be taken at its word
+#    for: a modified client could report a shape it never dug. Reports are
+#    limited to blocks within reach, capped in size and rate limited, but they
+#    are still the client's account. Nothing about the world's contents
+#    changes, and this is not dig progress: how long a block takes to break is
+#    a check the server enforces either way.
+#
+#    Reasonable for a world you host for yourself and people you know; not for
+#    a public server, which is why it is off.
+goanna_shared_dig_damage (Shared dig damage) bool false

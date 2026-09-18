@@ -11,6 +11,7 @@
 // not implicitly read from ordinary nodes' lighting/facedir parameters.
 
 #include <cstdint>
+#include <string>
 #include <vector>
 
 namespace goanna {
@@ -114,6 +115,59 @@ struct FormSurface {
 };
 std::vector<FormSurface> formSurfaces(const std::vector<bool> &grid, int n,
         uint8_t visible_boundary = 63, uint8_t backing_boundary = 0);
+
+// Sparse bytes for a form's per node damage, and the inverse. Empty for a
+// pristine node, which is what every untouched node in a world carries, so
+// decode treats empty, absent and unrecognised alike and returns a whole block
+// rather than failing.
+//
+// Must stay byte identical to mods/kythen/core/radial_form.lua's encode and
+// decode: the same node is written by one and read by the other. Pinned by
+// reference strings generated from the Lua, the same way the geometry is.
+//
+// Layout: a version byte, four bytes of control presence (twenty six bits,
+// lowest control first), then per present control one byte of axis presence and
+// one byte per present axis. Scalars quantise to a byte, which is finer than
+// the sixteen progress quanta a dig can express.
+std::string encodeForm(const RadialForm &form);
+RadialForm decodeForm(const std::string &bytes);
+
+// Carves the server has told this client about, for nodes it is not digging.
+//
+// Keyed by world node position. Written on the map thread as node metadata
+// arrives and read while meshing, which happens on several worker threads at
+// once, so the store takes a lock and the mesher never touches it directly:
+// gatherMeshData snapshots one block's worth under the lock, and that snapshot
+// is what content_mapblock reads. A lock in the per node inner loop would cost
+// more than the feature is worth.
+void carveStoreSet(int x, int y, int z, const RadialForm &form);
+void carveStoreClear(int x, int y, int z);
+// The carve stored at a position, if any. For resuming a dig on a block that
+// already carries damage: the stored form is the truth about the node and a
+// new dig continues it rather than starting the block over.
+bool carveStoreGet(int x, int y, int z, RadialForm &out);
+bool carveStoreEmpty();
+
+// One block's carves, snapshotted for meshing. Positions are node coordinates
+// relative to the block, so a lookup is a comparison and not arithmetic.
+struct CarveSnapshot {
+    struct Entry { int16_t x, y, z; RadialForm form; };
+    std::vector<Entry> entries;
+    const RadialForm *find(int x, int y, int z) const {
+        for (const Entry &e : entries) {
+            if (e.x == x && e.y == y && e.z == z) { return &e.form; }
+        }
+        return nullptr;
+    }
+};
+
+// Fill `out` with the carves inside the block whose low corner is the given
+// node position. Takes the store's lock once.
+void carveSnapshot(int block_x, int block_y, int block_z, CarveSnapshot &out);
+
+// The snapshot the current thread is meshing against, or null. Thread local
+// because several mesh workers run at once and each is on a different block.
+extern thread_local const CarveSnapshot *g_goanna_carve_block;
 
 // Is this point, in node local coordinates on [-0.5, 0.5], material?
 bool formSolid(const RadialForm &form, float px, float py, float pz);

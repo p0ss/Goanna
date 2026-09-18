@@ -13,6 +13,8 @@
 // its definition.
 
 #include "goanna_session.h"
+
+#include "goanna_radial_form.h"
 #include "goanna_lod_storage.h"
 
 #include <ctime>
@@ -493,6 +495,22 @@ void GoannaSession::joinGoannaChannel() {
     send(msg);
 }
 
+void GoannaSession::reportCarve(v3s16 pos, const std::string &bytes) {
+    if (!m_con)
+        return;
+    // Only the other players need this. This client already draws its own
+    // carve from its own memory of its own digging, and needs no server to do
+    // it; what goes over the wire is an account for everyone else, which is why
+    // the server may ignore it entirely (goanna_shared_dig_damage is off by
+    // default) and why nothing here depends on an answer.
+    std::string channel(kGoannaChannel);
+    std::string msg = "carve " + std::to_string(pos.X) + " " + std::to_string(pos.Y) +
+            " " + std::to_string(pos.Z) + " " + bytes;
+    NetworkPacket pkt(TOSERVER_MODCHANNEL_MSG, 0);
+    pkt << channel << msg;
+    send(pkt);
+}
+
 void GoannaSession::requestFarSummary(v3s16 origin_blocks, int edge_blocks, int cell) {
     if (!m_con)
         return;
@@ -847,11 +865,53 @@ void GoannaSession::onNodemetaChanged(NetworkPacket &pkt) {
     m_detached_version++;
     for (auto i = meta_updates_list.begin(); i != meta_updates_list.end(); ++i) {
         v3s16 pos = i->first;
+        // Goanna: a carve on this node, if the server is sharing them. Read
+        // before the metadata is handed over, because setNodeMetadata takes
+        // ownership and i->second is not ours to read afterwards.
+        takeCarveMetadata(pos, i->second);
         if (m_map->isValidPosition(pos) && m_map->setNodeMetadata(pos, i->second))
             continue; // Prevent from deleting metadata
         // Meta couldn't be set, unused metadata
         delete i->second;
     }
+}
+
+// Goanna: every carve stored on a block that has just arrived, into the carve
+// store. Map lock held.
+//
+// The goanna_carve key is the renderer's, not any one game's: goanna_server_mod
+// writes it when an operator has turned sharing on, and Kythen writes the same
+// key from its own server side damage. Whatever put it there, this and
+// takeCarveMetadata are what draw it.
+void GoannaSession::takeBlockCarves(v3s16 blockpos, MapBlock *block) {
+    if (!block)
+        return;
+    const v3s16 corner = blockpos * MAP_BLOCKSIZE;
+    for (const v3s16 &rel : block->m_node_metadata.getAllKeys()) {
+        NodeMetadata *meta = block->m_node_metadata.get(rel);
+        if (!meta)
+            continue;
+        const std::string bytes = meta->getString("goanna_carve");
+        const v3s16 at = corner + rel;
+        if (bytes.empty())
+            goanna::carveStoreClear(at.X, at.Y, at.Z);
+        else
+            goanna::carveStoreSet(at.X, at.Y, at.Z, goanna::decodeForm(bytes));
+    }
+}
+
+// Goanna: pull a stored carve out of a node's metadata into the carve store,
+// and re-mesh the block so it is drawn.
+void GoannaSession::takeCarveMetadata(v3s16 pos, NodeMetadata *meta) {
+    if (!meta)
+        return;
+    const std::string bytes = meta->getString("goanna_carve");
+    if (bytes.empty()) {
+        goanna::carveStoreClear(pos.X, pos.Y, pos.Z);
+    } else {
+        goanna::carveStoreSet(pos.X, pos.Y, pos.Z, goanna::decodeForm(bytes));
+    }
+    invalidateBlock(getNodeBlockPos(pos));
 }
 
 Inventory *GoannaSession::inventoryAt(const std::string &location) {
@@ -2663,6 +2723,13 @@ void GoannaSession::onBlockData(NetworkPacket &pkt) {
         m_store_dirty.erase(p);
         m_store_pending.insert(p);
     }
+    // Carves ride in the block's own metadata, so take them as it lands. This
+    // used to happen only in onNodemetaChanged, which fires for a node edited
+    // while you are watching and never for a block that arrives already
+    // carrying damage. The result was that damage survived until the mapblock
+    // cycled out of view and then quietly did not: the server still had it, the
+    // client simply never looked.
+    takeBlockCarves(p, block);
     bool changed = is_new || hashBlockNodes(block) != old_hash;
     if (changed) {
         queueBlockUpdate(p);

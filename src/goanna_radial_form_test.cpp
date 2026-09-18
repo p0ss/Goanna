@@ -14,6 +14,7 @@
 
 #include <cmath>
 #include <cstdio>
+#include <string>
 #include <algorithm>
 #include <array>
 #include <cstring>
@@ -397,6 +398,50 @@ void dumpImpactCases() {
     }
 }
 
+
+// The sparse per node codec, pinned to the Lua byte for byte. The same node is
+// written by one implementation and read by the other, so a difference here is
+// a block that changes shape when a different client looks at it. Strings
+// generated from mods/kythen/core/radial_form.lua.
+void testCodecMatchesTheLua() {
+    struct Case { const char *want; float x, z; };
+    const Case cases[] = {
+        {"010800000002a3", 0.0f, 0.0f},
+        {"010820020202de022502940237", 0.2f, 0.1f},
+    };
+    for (const Case &c : cases) {
+        RadialForm f;
+        for (int i = 0; i < 16; ++i) {
+            f = strike(f, c.x, 0.5f, c.z, 0.04f, AXIS_YP);
+        }
+        std::string got;
+        char buf[3];
+        for (unsigned char ch : encodeForm(f)) {
+            std::snprintf(buf, sizeof(buf), "%02x", ch);
+            got += buf;
+        }
+        char what[160];
+        std::snprintf(what, sizeof(what), "codec matches the Lua: %s", c.want);
+        check(got == c.want, what);
+        if (got != c.want) {
+            std::printf("      got  %s\n      want %s\n", got.c_str(), c.want);
+        }
+    }
+
+    // Pristine stores nothing, and nothing decodes to a whole block. Every node
+    // in every existing world carries no entry, so this is what makes turning
+    // persistence on safe rather than world rewriting.
+    check(encodeForm(RadialForm()).empty(), "a pristine node encodes to nothing");
+    check(formVolume(decodeForm(""), 8) == 1.0f, "empty decodes to a whole block");
+    check(formVolume(decodeForm("rubbish"), 8) == 1.0f, "rubbish decodes whole");
+
+    RadialForm f;
+    for (int i = 0; i < 16; ++i) { f = strike(f, 0.2f, 0.5f, 0.1f, 0.04f, AXIS_YP); }
+    const RadialForm back = decodeForm(encodeForm(f));
+    check(formBoxes(back, 16).size() == formBoxes(f, 16).size(),
+          "a round trip bakes identically at resolution 16");
+}
+
 } // namespace
 
 int main(int argc, char **argv) {
@@ -415,6 +460,7 @@ int main(int argc, char **argv) {
     testParamsRoundTrip();
     testGreedyBoxesCoverExactlyTheSolidCells();
     testTheBakeStaysCheap();
+    testCodecMatchesTheLua();
     testDiggingThroughOpensABore();
 
     if (g_failures != 0) {

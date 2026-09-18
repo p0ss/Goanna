@@ -6,6 +6,9 @@
 #include "goanna_mesh_flags.h"
 
 #include <cmath>
+#include <map>
+#include <mutex>
+#include <tuple>
 #include <algorithm>
 
 // Defined here rather than in the transplanted mesher, unlike g_goanna_bevel:
@@ -29,11 +32,19 @@ const float kPlane[FORM_PLANE_COUNT][3] = {
     {-1.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f},
     {0.0f, -1.0f, 0.0f}, {0.0f, 1.0f, 0.0f},
     {0.0f, 0.0f, -1.0f}, {0.0f, 0.0f, 1.0f},
+    // CORNERS BEFORE EDGES, matching mods/kythen/core/radial_form.lua's
+    // M.PLANES and this file's own FormAxis enum, which puts AXIS_NNN at six.
+    // They were the other way round, and nothing noticed for a long time:
+    // radiusAt takes a MIN over the planes, which is order free, and box and
+    // extents are keyed by index consistently within each implementation. Only
+    // something that crosses the boundary by index sees it, and the first thing
+    // to do so was the sparse codec, whose presence mask came out
+    // 08 02 02 02 here against 08 20 02 02 from the Lua.
+    {-kR3, -kR3, -kR3}, {-kR3, -kR3, kR3}, {-kR3, kR3, -kR3}, {-kR3, kR3, kR3},
+    {kR3, -kR3, -kR3}, {kR3, -kR3, kR3}, {kR3, kR3, -kR3}, {kR3, kR3, kR3},
     {-kR2b, -kR2b, 0.0f}, {-kR2b, kR2b, 0.0f}, {kR2b, -kR2b, 0.0f}, {kR2b, kR2b, 0.0f},
     {-kR2b, 0.0f, -kR2b}, {-kR2b, 0.0f, kR2b}, {kR2b, 0.0f, -kR2b}, {kR2b, 0.0f, kR2b},
     {0.0f, -kR2b, -kR2b}, {0.0f, -kR2b, kR2b}, {0.0f, kR2b, -kR2b}, {0.0f, kR2b, kR2b},
-    {-kR3, -kR3, -kR3}, {-kR3, -kR3, kR3}, {-kR3, kR3, -kR3}, {-kR3, kR3, kR3},
-    {kR3, -kR3, -kR3}, {kR3, -kR3, kR3}, {kR3, kR3, -kR3}, {kR3, kR3, kR3},
 };
 
 // How far the node's own boundary is from the origin along u: the support
@@ -284,6 +295,126 @@ bool FormDig::advance(float damage, float px, float py, float pz, int face) {
         form.displacement[i].axis[axis] = std::min(1.0f, form.displacement[i].axis[axis] + amount*weights[i]);
     applied_progress = next;
     return true;
+}
+
+namespace {
+constexpr uint8_t kEncodeVersion = 1;
+}
+
+namespace {
+std::mutex g_carve_store_lock;
+std::map<std::tuple<int, int, int>, RadialForm> g_carve_store;
+}
+
+thread_local const CarveSnapshot *g_goanna_carve_block = nullptr;
+
+void carveStoreSet(int x, int y, int z, const RadialForm &form) {
+    std::lock_guard<std::mutex> lock(g_carve_store_lock);
+    g_carve_store[std::make_tuple(x, y, z)] = form;
+}
+
+void carveStoreClear(int x, int y, int z) {
+    std::lock_guard<std::mutex> lock(g_carve_store_lock);
+    g_carve_store.erase(std::make_tuple(x, y, z));
+}
+
+bool carveStoreGet(int x, int y, int z, RadialForm &out) {
+    std::lock_guard<std::mutex> lock(g_carve_store_lock);
+    const auto it = g_carve_store.find(std::make_tuple(x, y, z));
+    if (it == g_carve_store.end())
+        return false;
+    out = it->second;
+    return true;
+}
+
+bool carveStoreEmpty() {
+    std::lock_guard<std::mutex> lock(g_carve_store_lock);
+    return g_carve_store.empty();
+}
+
+void carveSnapshot(int block_x, int block_y, int block_z, CarveSnapshot &out) {
+    out.entries.clear();
+    std::lock_guard<std::mutex> lock(g_carve_store_lock);
+    if (g_carve_store.empty()) { return; }
+    // MAP_BLOCKSIZE is 16, and the range reaches ONE NODE PAST the block on
+    // every side. The margin is not padding: a node decides whether to draw its
+    // boundary face by asking whether its neighbour is a whole cube, and a
+    // neighbour one node outside this block is exactly as able to be carved as
+    // one inside it. Without the margin, two carved nodes either side of a
+    // block boundary each invent a full face for the other.
+    const auto lo = g_carve_store.lower_bound(
+            std::make_tuple(block_x - 1, block_y - 1, block_z - 1));
+    const auto hi = g_carve_store.upper_bound(
+            std::make_tuple(block_x + 16, block_y + 16, block_z + 16));
+    for (auto it = lo; it != hi; ++it) {
+        const int x = std::get<0>(it->first);
+        const int y = std::get<1>(it->first);
+        const int z = std::get<2>(it->first);
+        if (x < block_x - 1 || x > block_x + 16) { continue; }
+        if (y < block_y - 1 || y > block_y + 16) { continue; }
+        if (z < block_z - 1 || z > block_z + 16) { continue; }
+        CarveSnapshot::Entry e;
+        e.x = static_cast<int16_t>(x - block_x);
+        e.y = static_cast<int16_t>(y - block_y);
+        e.z = static_cast<int16_t>(z - block_z);
+        e.form = it->second;
+        out.entries.push_back(e);
+    }
+}
+
+std::string encodeForm(const RadialForm &form) {
+    uint32_t mask = 0;
+    std::string body;
+    for (int i = 0; i < FORM_PLANE_COUNT; ++i) {
+        uint8_t axes = 0;
+        std::string vals;
+        for (int a = 0; a < 3; ++a) {
+            const float v = form.displacement[i].axis[a];
+            if (v > 0.0f) {
+                axes = static_cast<uint8_t>(axes | (1u << a));
+                const float q = v < 1.0f ? v : 1.0f;
+                vals.push_back(static_cast<char>(
+                        static_cast<int>(q * 255.0f + 0.5f)));
+            }
+        }
+        if (axes != 0) {
+            mask |= (1u << i);
+            body.push_back(static_cast<char>(axes));
+            body += vals;
+        }
+    }
+    if (mask == 0) { return std::string(); }
+    std::string out;
+    out.push_back(static_cast<char>(kEncodeVersion));
+    for (int b = 0; b < 4; ++b) {
+        out.push_back(static_cast<char>((mask >> (8 * b)) & 0xff));
+    }
+    return out + body;
+}
+
+RadialForm decodeForm(const std::string &bytes) {
+    RadialForm form;
+    if (bytes.size() < 5 ||
+            static_cast<uint8_t>(bytes[0]) != kEncodeVersion) {
+        return form;
+    }
+    uint32_t mask = 0;
+    for (int b = 0; b < 4; ++b) {
+        mask |= static_cast<uint32_t>(static_cast<uint8_t>(bytes[1 + b])) << (8 * b);
+    }
+    size_t at = 5;
+    for (int i = 0; i < FORM_PLANE_COUNT; ++i) {
+        if (!(mask & (1u << i))) { continue; }
+        if (at >= bytes.size()) { break; }
+        const uint8_t axes = static_cast<uint8_t>(bytes[at++]);
+        for (int a = 0; a < 3; ++a) {
+            if (!(axes & (1u << a))) { continue; }
+            if (at >= bytes.size()) { break; }
+            form.displacement[i].axis[a] =
+                    static_cast<uint8_t>(bytes[at++]) / 255.0f;
+        }
+    }
+    return form;
 }
 
 uint16_t wordFromParams(uint8_t param1, uint8_t param2) {
