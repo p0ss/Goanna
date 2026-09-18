@@ -120,13 +120,13 @@ const DOWNLOAD_PAGE := "https://www.luanti.org/downloads/"
 const OWN_LUANTI_DIR := "user://luanti"
 # The official Windows build that Install Luanti fetches. Pinned, with the
 # sha256 GitHub publishes for the asset, rather than "latest", because what is
-# downloaded is then run. 5.16.1 is the release Goanna's client core is built
+# downloaded is then run. 5.17.0 is the release Goanna's client core is built
 # from.
 const LUANTI_WINDOWS := {
-	"version": "5.16.1",
-	"url": "https://github.com/luanti-org/luanti/releases/download/5.16.1/luanti-5.16.1-win64.zip",
-	"sha256": "a70fd87e67cc236f250fca90e5cd30211f3e45937b107158b5367d6ee26aabb8",
-	"bytes": 17411102,
+	"version": "5.17.0",
+	"url": "https://github.com/luanti-org/luanti/releases/download/5.17.0/luanti-5.17.0-win64.zip",
+	"sha256": "3ce20c77f5c206a988d7a6b883439e2759e3cf67428c9dbcf99ecd2936da631c",
+	"bytes": 17539019,
 }
 const _EXECUTABLE_NAMES := ["luantiserver", "minetestserver", "luanti", "minetest"]
 

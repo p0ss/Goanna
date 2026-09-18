@@ -383,6 +383,36 @@ the fact.
   the player is not measured, a pack's separate flowing artwork is replaced
   by the source artwork, and the full animation strip is not played.
 
+- Luanti 5.17.0, 2026-09-19. The `luanti/` submodule moves from 5.16.1 to
+  5.17.0 (protocol version 53, formspec version 11) on the `luanti-5.17`
+  branch. The transplanted files were carried across by a three-way merge
+  against 5.16.1. Every conflict was in code Goanna had already removed,
+  except the new waving liquid top face in `content_mapblock.cpp`, which now
+  sits beside Goanna's carve and fake liquid rules. `content_cao` was ported
+  by hand: 5.17 animates several tracks at once, and Goanna plays only the
+  first, addressed by number, while `AO_CMD_STOP_ANIMATION` on it holds the
+  first frame. `goanna_models` animates through the per-track API. Direction
+  keys are now analogue amounts, `NetworkPacket` hands out a string view,
+  `getColor` returns its colour and HUD elements carry a `hideable` flag;
+  each is ported. One fault got past the compiler: `Client::getMesh` now
+  takes a `bool *is_shared`, Goanna's stand-in still took `bool cache`, and
+  the merged `node_visuals.cpp` passed a pointer that converted to true and
+  then read an uninitialised flag. The stand-in has the new signature.
+  `hypertip[]`, new in formspec version 11, shows as a plain text tooltip;
+  the version 11 `halign` and `valign` styles are not applied. Install
+  Luanti on Windows now fetches the 5.17.0 zip, whose hash matches the
+  digest GitHub publishes and which unpacks and is recognised on Linux.
+  Verified: the build, the native tests and the formspec, discovery, ice and
+  lava suites, and against a fresh Mineclonia world on the Luanti 5.17.0
+  Flatpak with Godot 4.5.1: protocol 53 negotiated, 3856 media received, 23
+  of 30 entities advancing their animation frames (the others were chests, a
+  spawner doll, two glow squid, which Mineclonia gives an empty animation
+  table, and an idle creeper), about 13 nodes walked in three seconds with
+  no drift after release, digs logged by the server, and 120 HUD elements
+  and the creative inventory formspec built with nothing skipped. Not
+  verified: any server older than 5.17.0, Windows itself, and a mod that
+  uses more than one animation track.
+
 ## Log since v0.4.1-alpha (2026-08-30)
 
 Verified on a local Mineclonia server on Luanti 5.17.0 with Godot 4.5.1 and

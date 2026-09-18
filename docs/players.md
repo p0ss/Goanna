@@ -45,7 +45,7 @@ opens that list instead of an error, with these options:
   folder, the Luanti program itself, or an AppImage.
 - **Install Luanti** installs the Flathub build on Linux (the confirmation
   shows the exact `flatpak` commands first). On Windows it downloads the
-  official Luanti 5.16.1 zip from GitHub, checks it against the hash Goanna
+  official Luanti 5.17.0 zip from GitHub, checks it against the hash Goanna
   carries, and unpacks it into Goanna's own data folder, where its worlds are
   kept too. On macOS, or on Linux without Flatpak, use **Download page** or
   your distribution's packages instead.
