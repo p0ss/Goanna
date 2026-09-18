@@ -18,6 +18,17 @@ project/shots/
 # world with tools/pbr_deploy.py rather than committing it.
 baked/
 
+# The Material Maker benchmark (docs/material-calibration.md): library
+# materials and their exports, an experiment kept locally and not shipped.
+# Each material has its own author and licence.
+asset_bundles/materials/
+asset_bundles/mm_out/
+asset_bundles/battered_metal*
+asset_bundles/pixel_lava*
+asset_bundles/sand.tres
+asset_bundles/sand_*
+asset_bundles/sandstone*
+
 # Editors and tooling
 .vscode/
 .idea/

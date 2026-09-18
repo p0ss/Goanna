@@ -329,8 +329,7 @@ a waffle and was banded. The standalone pack is
 
 A pack assembled from free Material Maker materials owes nothing to the
 bake or the authoring, so what it shows is the renderer. Fifty two
-materials from the Material Maker site (`asset_bundles/materials/`) were
-exported at 256 px with `tools/mm_export.py`, which runs the flatpak's
+materials from the Material Maker site were exported at 256 px with `tools/mm_export.py`, which runs the flatpak's
 runner headless with `tools/mm_export.gd` in place of the start scene
 because 1.7's own `--export-material` never opens the directory it tests.
 Fifty six sets came out (a few files hold two materials); seven were
@@ -341,6 +340,10 @@ actually binds, since a graph with no metallic input still writes a
 white blue channel. Twenty seven sets dressed Mineclonia's main blocks
 over the authored pack as `baked/mm-mineclonia/textures`, in the
 launcher's list as `mineclonia_mm`; `mm_map.txt` beside it is the map.
+The materials and exports stay in the maintainer's checkout under
+`asset_bundles/materials/` and `asset_bundles/mm_out/`, ignored by git: this
+was an experiment, not something to ship, and each library material carries
+its own author and licence.
 
 Findings, 2026-09-18, on the close-up ramp under sun and lamp:
 
