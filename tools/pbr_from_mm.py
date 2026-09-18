@@ -60,6 +60,26 @@ def find(export_dir, material):
     return found
 
 
+def material_bindings(tres):
+    """Which channels the exported material file reads from a texture, and
+    the scalar values it carries for the rest."""
+    bound = set()
+    scalars = {}
+    if not tres.exists():
+        return {"ao", "roughness", "metallic"}, scalars
+    for line in tres.read_text(errors="replace").splitlines():
+        line = line.strip()
+        for chan in ("ao", "roughness", "metallic"):
+            if line.startswith(chan + "_texture ="):
+                bound.add(chan)
+            elif line.startswith(chan + " ="):
+                try:
+                    scalars[chan] = float(line.split("=", 1)[1])
+                except ValueError:
+                    pass
+    return bound, scalars
+
+
 def load(p, size, mode="L"):
     im = Image.open(p).convert(mode).resize((size, size), Image.LANCZOS)
     return np.asarray(im).astype(np.float32) / 255.0
@@ -74,8 +94,14 @@ def convert(export_dir, material, stem, out_dir, size, flip_green, stretch_heigh
     albedo = load(files["albedo"], size, "RGBA")
     normal = load(files["normal"], size, "RGB")
     if "orm" in files:
+        # The ORM's channels only mean something where the material file
+        # binds them: a graph with no metallic input still writes a white
+        # blue channel, and the .tres then carries the scalar instead.
+        bound, scalars = material_bindings(Path(export_dir) / (material + ".tres"))
         orm = load(files["orm"], size, "RGB")
-        ao, rough, metal = orm[..., 0], orm[..., 1], orm[..., 2]
+        ao = orm[..., 0] if "ao" in bound else np.ones((size, size), np.float32)
+        rough = orm[..., 1] if "roughness" in bound else np.full((size, size), scalars.get("roughness", 0.8), np.float32)
+        metal = orm[..., 2] if "metallic" in bound else np.full((size, size), scalars.get("metallic", 0.0), np.float32)
     else:
         rough = load(files["roughness"], size) if "roughness" in files else np.full((size, size), 0.8, np.float32)
         metal = load(files["metallic"], size) if "metallic" in files else np.zeros((size, size), np.float32)

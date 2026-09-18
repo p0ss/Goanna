@@ -324,3 +324,46 @@ as chain link and became furrows, and the Gondar rubble's recess read as
 a waffle and was banded. The standalone pack is
 `baked/authored-kythen/textures`, in the launcher's list as
 `kythen_authored`; the production path is a new terrain bundle version.
+
+## The Material Maker benchmark
+
+A pack assembled from free Material Maker materials owes nothing to the
+bake or the authoring, so what it shows is the renderer. Fifty two
+materials from the Material Maker site (`asset_bundles/materials/`) were
+exported at 256 px with `tools/mm_export.py`, which runs the flatpak's
+runner headless with `tools/mm_export.gd` in place of the start scene
+because 1.7's own `--export-material` never opens the directory it tests.
+Fifty six sets came out (a few files hold two materials); seven were
+blank because their graphs no longer compile in 1.7, and two hung or had
+no Godot target. `tools/pbr_from_mm.py` packs a set into the client's
+pair, reading which of occlusion, roughness and metal the material file
+actually binds, since a graph with no metallic input still writes a
+white blue channel. Twenty seven sets dressed Mineclonia's main blocks
+over the authored pack as `baked/mm-mineclonia/textures`, in the
+launcher's list as `mineclonia_mm`; `mm_map.txt` beside it is the map.
+
+Findings, 2026-09-18, on the close-up ramp under sun and lamp:
+
+- The client renders third party PBR cleanly. Masonry, rock, soils, sand,
+  planks, bark and the hammered metals all read as their material; the
+  metals under the lamp are the strongest case for the spec path.
+- Displacement is the open problem, not the maps. Parallax never moves a
+  silhouette, so every cube edge stays a ruled line however deep the
+  joints. The class depth table is small (stone 0.045 of a block after
+  the halving), and a Material Maker height sits in a slice of the byte
+  (the sandstone bricks in 13 to 38 of 255), so at the table's depth those
+  sets showed almost nothing; the converter now stretches height to the
+  byte, and at three times the table (`GOANNA_PARALLAX_DEPTH=3`) their
+  mortar recesses like the authored sets'.
+- A silhouette cut (`parallax_silhouette`, off by default, ramp only)
+  discards a fragment whose march leaves the node's tile, so joints
+  notch the block's edge and a corner loses its sliver. It reads well on
+  the ramp. It is only right on a single node quad: a merged quad's
+  inner boundaries are not edges, so the world would need the quad's
+  extent from the mesher before it could turn on, and it can only cut
+  inward. Real outward displacement means subdividing faces in the
+  mesher and is not started.
+- Scale is the thing a generic material cannot know: the sand's grains
+  and the planks' boards are sized for a wall, not a block, which is why
+  this is a benchmark and not a pack to ship.
+

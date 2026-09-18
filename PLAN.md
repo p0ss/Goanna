@@ -568,6 +568,14 @@ an RTX 3090, unless marked otherwise.
   the rule that came out of it. Load and streaming-ceiling numbers for the
   tiers are therefore not claimed: they need a plan that hands every run an
   identical pre-warmed store, which the harness cannot yet do.
+- Material Maker materials as a renderer benchmark (2026-09-18): the
+  flatpak's own export is broken, so `tools/mm_export.py` runs it headless
+  with a replacement start script and exported 56 sets from the site's
+  free materials; 27 dress Mineclonia's main blocks as the `mineclonia_mm`
+  pack. They render cleanly, and showed that the parallax depth table is
+  small and that parallax never cuts a silhouette; a ramp only silhouette
+  cut is in the shader behind a uniform, off. `docs/material-calibration.md`
+  has the findings.
 
 ## Log since v0.4.0-alpha (2026-08-29)
 
