@@ -1929,6 +1929,25 @@ PackedStringArray GoannaClient::announced_media_names() {
     return out;
 }
 
+// NodeMetadataFormSource::resolveText for a node's own form: a whole
+// "${key}" becomes that key's value in the node's metadata, which is how an
+// MTG sign's field shows the sign's current text. `context` is the form's
+// "nodemeta:x,y,z" in Luanti coordinates; any other text or context comes
+// back unchanged.
+String GoannaClient::resolve_nodemeta_text(const String &context, const String &text) {
+    if (!m_session || !context.begins_with("nodemeta:"))
+        return text;
+    PackedStringArray p = context.substr(9).split(",");
+    if (p.size() != 3)
+        return text;
+    v3s16 np((s16)p[0].to_int(), (s16)p[1].to_int(), (s16)p[2].to_int());
+    std::lock_guard<std::mutex> lk(m_session->mapLock());
+    NodeMetadata *meta = m_session->map().getNodeMetadata(np);
+    if (!meta)
+        return text;
+    return String::utf8(meta->resolveString(text.utf8().get_data()).c_str());
+}
+
 String GoannaClient::node_name_at(const Vector3 &pos) {
     if (!m_session)
         return String();
@@ -7483,6 +7502,8 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("take_dug_nodes"), &GoannaClient::take_dug_nodes);
     ClassDB::bind_method(D_METHOD("take_particles"), &GoannaClient::take_particles);
     ClassDB::bind_method(D_METHOD("node_name_at", "pos"), &GoannaClient::node_name_at);
+    ClassDB::bind_method(D_METHOD("resolve_nodemeta_text", "context", "text"),
+            &GoannaClient::resolve_nodemeta_text);
     ClassDB::bind_method(D_METHOD("ground_albedo", "center"), &GoannaClient::ground_albedo);
     ClassDB::bind_method(D_METHOD("ground_height", "center"), &GoannaClient::ground_height);
     ClassDB::bind_method(D_METHOD("node_sound", "node_name", "kind"), &GoannaClient::node_sound);

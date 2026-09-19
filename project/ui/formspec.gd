@@ -107,6 +107,7 @@ var root: Control                    # the form panel
 var current_parent: Control
 var skipped := {}
 var screen_size := Vector2.ZERO     # the screen the form was laid out for
+var simple_field_count := 0         # field[name;label;default] elements so far
 
 # --- public -----------------------------------------------------------------
 
@@ -215,6 +216,7 @@ func _reset() -> void:
 	tooltip_box = null
 	tooltip_shown = {}
 	hover_name = ""
+	simple_field_count = 0
 
 static func _default_listcolors() -> Dictionary:
 	return {"slot_bg": DEFAULT_LIST_SLOT_BG, "slot_bg_h": DEFAULT_LIST_SLOT_BG_HOVER,
@@ -351,7 +353,11 @@ func _layout(screen: Vector2) -> void:
 	padding = Vector2(imgsize * 3.0 / 8.0, imgsize * 3.0 / 8.0)
 	var btn_h := imgsize * 15.0 / 13.0 * 0.35
 	var form_size: Vector2
-	if real_coordinates:
+	if not has_size:
+		# A form without size[] is only unpositioned fields and a Proceed
+		# button, in a 580 by 300 window until _build fits it to them.
+		form_size = Vector2(580, 300)
+	elif real_coordinates:
 		form_size = invsize * imgsize
 	else:
 		form_size = Vector2(padding.x * 2 + spacing.x * (invsize.x - 1.0) + imgsize,
@@ -387,13 +393,16 @@ func _geom(v: PackedStringArray) -> Vector2:
 		return Vector2(float(v[0]) * imgsize, float(v[1]) * imgsize)
 	return Vector2(float(v[0]) * spacing.x - (spacing.x - imgsize), float(v[1]) * spacing.y - (spacing.y - imgsize))
 
+# A button's rectangle relative to its position (parseButton). In the old
+# system the height is fixed at two button-heights, centred half the given
+# height in slots below y.
 func _btn_geom(v: PackedStringArray) -> Rect2:
-	# buttons in the old system: width in spacing units, fixed height
 	if real_coordinates:
 		return Rect2(Vector2.ZERO, _geom(v))
 	var w := float(v[0]) * spacing.x - (spacing.x - imgsize)
-	var h := imgsize * 15.0 / 13.0 * 0.35 * 2.0
-	return Rect2(Vector2(0, -h / 2.0), Vector2(w, h))
+	var btn_h := imgsize * 15.0 / 13.0 * 0.35
+	var slots := float(v[1]) if v.size() >= 2 else 0.0
+	return Rect2(Vector2(0, slots * imgsize / 2.0 - btn_h), Vector2(w, btn_h * 2.0))
 
 # The colour names parseColorString accepts: the CSS table in
 # luanti/src/util/string.cpp, which is not Godot's (Godot's green is lime).
@@ -573,14 +582,22 @@ func _build() -> void:
 	building = false
 	if skipped.size() > 0:
 		print("formspec: elements not rendered: ", skipped)
-	if not has_size and fields.size() > 0:
-		# text-only form: implicit Proceed button
+	if not has_size and simple_field_count > 0:
+		# regenerateGui: the window grows sixty pixels a field from 270,
+		# centred on the screen, and an unstyled Proceed button 140 wide sits
+		# under the fields.
+		var n := simple_field_count
+		root.size = Vector2(580, 270 + 60 * n)
+		root.position = (Vector2(screen_size.x / 2.0 - 290, screen_size.y / 2.0 - 150)).floor()
 		var b := Button.new()
-		b.text = "Proceed"
-		b.position = Vector2(root.size.x / 2 - 60, root.size.y - 40)
-		b.size = Vector2(120, 32)
+		current_parent = root
+		_add(b, Vector2(580 / 2.0 - 70, (n + 2) * 60.0), Vector2(140, _button_height() * 2.0))
+		var content := _button_content(b, "Proceed", false)
 		b.pressed.connect(func() -> void: submit({}, true))
-		root.add_child(b)
+		var none: Array = []
+		for i in 8:
+			none.append({})
+		_style_button(b, "", none, content)
 	# a bare form with only images and buttons still needs a background
 	if has_form_bgcolor:
 		var sb := StyleBoxFlat.new()
@@ -650,6 +667,20 @@ func _build_element(name: String, params: String) -> void:
 		_:
 			skipped[name] = skipped.get(name, 0) + 1
 
+# m_btn_height: a share of imgsize in a form with size[], and seven eighths of
+# a line of text in one without, which has no imgsize to speak of.
+func _button_height() -> float:
+	if has_size:
+		return imgsize * 15.0 / 13.0 * 0.35
+	return get_theme_default_font().get_height(_font_size()) * 0.875
+
+# m_form_src->resolveText: in a node's own form, a field default, hypertext
+# or hypertip that is a whole "${key}" shows that key of the node's metadata.
+func _resolve(text: String) -> String:
+	if item_source and item_source.has_method("resolve_text"):
+		return item_source.resolve_text(text)
+	return text
+
 func _add(c: Control, pos: Vector2, size: Vector2) -> void:
 	c.position = pos.floor()
 	c.size = size.floor()
@@ -662,13 +693,51 @@ func _register_named_control(name: String, control: Control) -> void:
 	control.set_meta("formspec_name", name)
 
 func _apply_focus() -> void:
-	if focus_name == "":
-		return
-	var target: Control = named_controls.get(focus_name)
-	if target == null:
-		target = fields.get(focus_name)
-	if target != null and (focus_force or not target.has_focus()):
-		target.grab_focus()
+	if focus_name != "":
+		var target: Control = named_controls.get(focus_name)
+		if target == null:
+			target = fields.get(focus_name)
+		if target != null and (focus_force or not target.has_focus()):
+			target.grab_focus()
+			return
+	_initial_focus()
+
+# GUIFormSpecMenu::setInitialFocus, when set_focus[] named nothing: the first
+# empty edit box, else the first edit box, else the first table, else the
+# last button. A focused button draws no ring, as upstream draws none until
+# the player navigates by keyboard.
+func _initial_focus() -> void:
+	var edits: Array = []
+	var tables: Array = []
+	var buttons: Array = []
+	for c in _form_controls(root):
+		if c is LineEdit or c is TextEdit:
+			edits.append(c)
+		elif c is Tree:
+			tables.append(c)
+		elif c is Button and not (c is CheckBox) and not (c is OptionButton):
+			buttons.append(c)
+	for e in edits:
+		if (e as Control).get("text") == "":
+			e.grab_focus()
+			return
+	if edits.size() > 0:
+		edits[0].grab_focus()
+	elif tables.size() > 0:
+		tables[0].grab_focus()
+	elif buttons.size() > 0:
+		var b: Button = buttons.back()
+		b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+		b.grab_focus()
+
+# The form's controls in the order they were built, depth first.
+static func _form_controls(node: Node) -> Array:
+	var out: Array = []
+	for child in node.get_children():
+		if child is Control:
+			out.append(child)
+			out.append_array(_form_controls(child))
+	return out
 
 func _container(parts: PackedStringArray) -> void:
 	var v := fs_split(parts[0], ",") if parts.size() >= 1 else PackedStringArray()
@@ -1229,7 +1298,7 @@ func _hypertext(parts: PackedStringArray) -> void:
 			m = m.substr(0, bar)
 		if m != "":
 			submit({hname: "action:" + m}, false))
-	_render_markup(rt, fs_unescape(parts[3]))
+	_render_markup(rt, fs_unescape(_resolve(parts[3])))
 
 # Walks Luanti's hypertext markup and drives the RichTextLabel directly
 # rather than translating to BBCode: <img> and <item> name client media and
@@ -1605,85 +1674,142 @@ func _offer_url(url: String) -> void:
 	dialog.confirmed.connect(dialog.queue_free)
 	dialog.popup_centered()
 
+# field[x,y;w,h;name;label;default], field[name;label;default],
+# pwdfield[x,y;w,h;name;label] and textarea[x,y;w,h;name;label;default]
+# (parseField, parsePwdField, parseTextArea). textarea shares parseField, so
+# three or four parts make it an unpositioned single line field too.
 func _field(parts: PackedStringArray, password: bool) -> void:
-	# field[x,y;w,h;name;label;default] or field[name;label;default]
-	var e := LineEdit.new()
-	e.secret = password
-	e.add_theme_font_size_override("font_size", _font_size())
-	var fname: String
-	var label: String
-	var def: String
-	if parts.size() >= 5:
-		var v := fs_split(parts[0], ",")
-		var g := fs_split(parts[1], ",")
-		if v.size() < 2 or g.size() < 1:
-			return
-		fname = fs_unescape(parts[2])
-		label = fs_unescape(parts[3])
-		def = fs_unescape(parts[4])
-		var r := _btn_geom(g)
-		var p := _pos(v) + r.position
-		if label != "":
-			var l := Label.new()
-			l.text = label
-			l.add_theme_font_size_override("font_size", _font_size())
-			l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			current_parent.add_child(l)
-			l.position = Vector2(p.x, p.y - _font_size() * 1.5).floor()
-		_add(e, p, r.size)
-	elif parts.size() >= 3:
-		fname = fs_unescape(parts[0])
-		label = fs_unescape(parts[1])
-		def = fs_unescape(parts[2])
-		var y := 40.0 + fields.size() * 60.0
-		if label != "":
-			var l := Label.new()
-			l.text = label
-			l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			current_parent.add_child(l)
-			l.position = Vector2(20, y - 24)
-		_add(e, Vector2(20, y), Vector2(root.size.x - 40, 32))
-	else:
+	if password:
+		if parts.size() == 4:
+			_text_field(parts, fs_unescape(parts[2]), fs_unescape_raw(parts[3]), "", false, true)
 		return
-	e.text = def
-	fields[fname] = e
-	_register_named_control(fname, e)
-	_apply_style(e, fname)
-	e.text_submitted.connect(func(_t: String) -> void:
-		var quit: bool = field_close_on_enter.get(fname, true)
-		submit({"key_enter": "true", "key_enter_field": fname}, quit))
+	if parts.size() == 3 or parts.size() == 4:
+		_simple_field(parts)
+	elif parts.size() == 5:
+		_text_field(parts, fs_unescape(parts[2]), fs_unescape_raw(parts[3]),
+			fs_unescape(_resolve(parts[4])), false, false)
 
 func _textarea(parts: PackedStringArray) -> void:
-	# textarea[x,y;w,h;name;label;default]
-	if parts.size() < 5:
-		return
+	if parts.size() == 3 or parts.size() == 4:
+		_simple_field(parts)
+	elif parts.size() == 5:
+		_text_field(parts, fs_unescape(parts[2]), fs_unescape_raw(parts[3]),
+			fs_unescape(_resolve(parts[4])), true, false)
+
+# A positioned field, password field or textarea. In real coordinates the
+# rectangle is the element's own. In the old system it starts without the
+# form padding; a field is two button-heights tall, centred on y plus half
+# its height in slots, and a textarea starts a button-height lower with its
+# height in slots less one gap.
+func _text_field(parts: PackedStringArray, fname: String, label: String, def: String,
+		multiline: bool, password: bool) -> void:
 	var v := fs_split(parts[0], ",")
 	var g := fs_split(parts[1], ",")
 	if v.size() < 2 or g.size() < 2:
 		return
-	var fname := fs_unescape(parts[2])
-	var label := fs_unescape(parts[3])
-	var p := _pos(v)
-	if label != "":
-		var l := Label.new()
-		l.text = label
-		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		current_parent.add_child(l)
-		l.position = Vector2(p.x, p.y - _font_size() * 1.5).floor()
-	if fname == "":
-		var rt := RichTextLabel.new()
-		rt.text = fs_unescape(parts[4])
-		rt.add_theme_font_size_override("normal_font_size", _font_size())
-		_add(rt, p, _geom(g))
+	var rect: Rect2
+	if real_coordinates:
+		rect = Rect2(_pos(v), _geom(g))
+	else:
+		var btn_h := imgsize * 15.0 / 13.0 * 0.35
+		var p := _pos(v) - padding
+		var w := float(g[0]) * spacing.x - (spacing.x - imgsize)
+		if multiline:
+			rect = Rect2(p.x, p.y + btn_h, w,
+				float(g[1]) * imgsize - (spacing.y - imgsize))
+		else:
+			rect = Rect2(p.x, p.y + float(g[1]) * imgsize / 2.0 - btn_h, w, btn_h * 2.0)
+	_create_text_field(rect, fname, label, def, multiline, password)
+
+# field[name;label;default]: one centred above another, three hundred pixels
+# wide, sixty apart (parseSimpleField).
+func _simple_field(parts: PackedStringArray) -> void:
+	var rect := Rect2(root.size.x / 2.0 - 150.0, (simple_field_count + 2) * 60.0, 300.0,
+		_button_height() * 2.0)
+	simple_field_count += 1
+	current_element = "field"
+	_create_text_field(rect, fs_unescape(parts[0]), fs_unescape_raw(parts[1]),
+		fs_unescape(_resolve(parts[2])), false, false)
+
+# createTextField. A field with no name is only its label, drawn in the
+# field's rectangle; a textarea with no name is read only, has no pane, and
+# shows its label as its text when it has no default. Otherwise the edit box
+# takes the field's style and its label sits above it, a line of text high,
+# in the same style.
+func _create_text_field(rect: Rect2, fname: String, label: String, def: String,
+		multiline: bool, password: bool) -> void:
+	var st := _style_for(fname, "default")
+	var colour := parse_color(String(st.get("textcolor", "")), Color.WHITE)
+	var size := _style_font_size(String(st.get("font_size", "")), _font_size())
+	if fname == "" and not multiline and not password:
+		var only := _rich_text(label, colour, size, st)
+		only.clip_contents = true
+		_add(only, rect.position, rect.size)
 		return
-	var e := TextEdit.new()
-	e.text = fs_unescape(parts[4])
-	e.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
-	e.add_theme_font_size_override("font_size", _font_size())
-	_add(e, p, _geom(g))
+	if fname == "" and multiline and def == "" and label != "":
+		def = strip_enriched(label)
+		label = ""
+	if label != "":
+		var font_h := get_theme_default_font().get_height(size)
+		var above := _rich_text(label, colour, size, st)
+		_add(above, rect.position - Vector2(0, font_h), Vector2(rect.size.x, font_h))
+	if fname == "" and multiline:
+		var reader := _rich_text(def, colour, size, st)
+		reader.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		reader.scroll_active = true
+		reader.horizontal_alignment = _style_halign(st)
+		reader.vertical_alignment = _style_valign(st)
+		_add(reader, rect.position, rect.size)
+		return
+	var e: Control
+	if multiline:
+		var te := TextEdit.new()
+		te.text = def
+		te.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
+		e = te
+	else:
+		var le := LineEdit.new()
+		le.secret = password
+		le.text = def
+		le.alignment = _style_halign(st)
+		e = le
+	e.add_theme_font_size_override("font_size", size)
+	_edit_box_look(e, multiline)
+	_add(e, rect.position, rect.size)
 	fields[fname] = e
 	_register_named_control(fname, e)
 	_apply_style(e, fname)
+	if e is LineEdit:
+		(e as LineEdit).text_submitted.connect(func(_t: String) -> void:
+			var quit: bool = field_close_on_enter.get(fname, true)
+			submit({"key_enter": "true", "key_enter_field": fname}, quit))
+
+# CGUIEditBox in Luanti's skin: a sunken pane in EGDC_EDITABLE grey that
+# turns EGDC_FOCUSED_EDITABLE green while focused. A textarea's
+# GUIEditBoxWithScrollBar fills with EGDC_WINDOW's translucent white instead,
+# focused or not. Text is white until textcolor says otherwise, and a
+# selection is EGDC_HIGH_LIGHT.
+func _edit_box_look(e: Control, multiline: bool) -> void:
+	var fill := Color8(255, 255, 255, 101) if multiline else Color8(128, 128, 128)
+	e.add_theme_stylebox_override("normal", _sunken_pane(fill))
+	e.add_theme_stylebox_override("focus",
+		StyleBoxEmpty.new() if multiline else _sunken_pane(Color8(96, 134, 49)))
+	e.add_theme_color_override("font_color", Color.WHITE)
+	e.add_theme_color_override("selection_color", Color8(70, 120, 50))
+
+# draw3DSunkenPane with Luanti's skin colours, whose shadow and highlight are
+# both near black: a filled rectangle inside a dark one pixel frame, with the
+# text kept a few pixels off it.
+static func _sunken_pane(fill: Color) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = fill
+	sb.set_border_width_all(1)
+	sb.border_color = Color8(0, 0, 0)
+	sb.content_margin_left = 4
+	sb.content_margin_right = 4
+	sb.content_margin_top = 2
+	sb.content_margin_bottom = 2
+	return sb
 
 func _fcoe(parts: PackedStringArray) -> void:
 	if parts.size() >= 2:
@@ -1726,14 +1852,16 @@ func _dropdown(parts: PackedStringArray) -> void:
 	var sel := int(parts[4]) - 1
 	if sel >= 0 and sel < o.item_count:
 		o.select(sel)
-	o.set_meta("index_event", parts.size() >= 6 and parts[5].strip_edges() == "true")
+	o.set_meta("index_event", parts.size() >= 6 and _is_yes(parts[5]))
 	o.add_theme_font_size_override("font_size", _font_size())
+	# parseDropDown: a width alone means one imgsize high in real
+	# coordinates; the old system ignores any height, measures the width in
+	# vertical spacings, and is two button-heights high.
 	var size: Vector2
-	if g.size() >= 2:
-		size = _geom(g)
+	if real_coordinates:
+		size = _geom(g) if g.size() >= 2 else Vector2(float(g[0]) * imgsize, imgsize)
 	else:
-		var r := _btn_geom(g)
-		size = r.size
+		size = Vector2(float(g[0]) * spacing.y, imgsize * 15.0 / 13.0 * 0.35 * 2.0)
 	_add(o, _pos(v), size)
 	fields[dname] = o
 	_register_named_control(dname, o)
@@ -1945,34 +2073,44 @@ static func _select_table_row(t: Tree, row: int) -> void:
 			return
 		item = item.get_next_in_tree()
 
+# tabheader[x,y;name;captions;current;transparent;draw_border], and in real
+# coordinates tabheader[x,y;h;...] or tabheader[x,y;w,h;...] (parseTabHeader).
+# The position is the header's bottom edge. It is two button-heights tall
+# unless given a height, and as wide as the form unless given a width. In
+# the old system the position is in spacings without the form padding.
 func _tabheader(parts: PackedStringArray) -> void:
-	# tabheader[x,y(;w,h);name;caption 1,caption 2,...;current_tab;transparent;draw_border]
-	if parts.size() < 4:
+	if parts.size() < 4 or parts.size() > 7 or parts.size() == 5 \
+			or (parts.size() == 7 and not real_coordinates):
 		return
 	var v := fs_split(parts[0], ",")
 	if v.size() < 2:
 		return
 	var idx := 1
-	var size := Vector2.ZERO
-	var g := fs_split(parts[1], ",")
-	if g.size() >= 2 and parts.size() >= 5 and not parts[2].contains(","):
-		# has geometry
-		size = _geom(g)
+	var btn_h := imgsize * 15.0 / 13.0 * 0.35
+	var size := Vector2(root.size.x, btn_h * 2.0)
+	if parts.size() == 7:
 		idx = 2
+		var g := fs_split(parts[1], ",")
+		if g.size() == 1:
+			size.y = float(g[0]) * imgsize
+		elif g.size() >= 2:
+			size = Vector2(float(g[0]), float(g[1])) * imgsize
 	var tname := fs_unescape(parts[idx])
 	var tb := TabBar.new()
 	for cap in fs_split(parts[idx + 1], ","):
 		tb.add_tab(fs_unescape(cap))
-	var cur := int(parts[idx + 2]) - 1 if parts.size() > idx + 2 else 0
+	var cur := int(parts[idx + 2]) - 1
 	if cur >= 0 and cur < tb.tab_count:
 		tb.current_tab = cur
 	tb.add_theme_font_size_override("font_size", _font_size())
-	var p := _pos(v)
-	if size == Vector2.ZERO:
-		size = Vector2(root.size.x - p.x, _font_size() * 2.2)
+	var p: Vector2
+	if real_coordinates:
+		p = _pos(v)
+	else:
+		p = (pos_offset + Vector2(float(v[0]), float(v[1]))) * spacing
 	current_parent.add_child(tb)
 	tb.position = Vector2(p.x, p.y - size.y).floor()
-	tb.size = size
+	tb.size = size.floor()
 	fields[tname] = tb
 	_register_named_control(tname, tb)
 	_apply_style(tb, tname)
@@ -2104,7 +2242,7 @@ func _hypertip(parts: PackedStringArray) -> void:
 		if s.size() != 2:
 			return
 		static_pos = _pos(s)
-	var tip := {"markup": fs_unescape_raw(parts[at + 3]),
+	var tip := {"markup": fs_unescape_raw(_resolve(parts[at + 3])),
 		"width": float(parts[at + 1]) * _font_size(), "static": static_pos,
 		"name": fs_unescape(parts[at + 2])}
 	if not area_mode:

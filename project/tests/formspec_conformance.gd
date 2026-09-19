@@ -50,6 +50,10 @@ class FakeItemSource extends Node:
 	func holding_stack() -> bool:
 		return holding
 
+	# Stands in for a node's metadata: one key is set.
+	func resolve_text(text: String) -> String:
+		return "Sign text" if text == "${text}" else text
+
 	# Stands in for the extension's model loader: one mesh is known, anything
 	# else is media that has not arrived and falls back to the placeholder.
 	func model_preview(mesh_name: String, _textures: PackedStringArray,
@@ -110,6 +114,10 @@ func _run() -> void:
 	_test_scroll_container()
 	_test_styles()
 	_test_labels()
+	_test_fields()
+	_test_button_geometry()
+	_test_initial_focus()
+	_test_sizeless_form()
 	_test_button_styles()
 	_test_table()
 	_test_hypertext()
@@ -201,7 +209,7 @@ func _test_controls_and_submission() -> void:
 	spec += "box[0.5,1;1,1;#224466]image[1.5,1;1,1;fixture.png]"
 	spec += "background[0,0;12,10;fixture.png;false]"
 	spec += "item_image[2.5,1;1,1;default:stone]"
-	spec += "field[0.5,3;3,0.8;name;Name;Ada]pwdfield[4,3;3,0.8;secret;Secret;key]"
+	spec += "field[0.5,3;3,0.8;name;Name;Ada]pwdfield[4,3;3,0.8;secret;Secret]"
 	spec += "textarea[0.5,4;3,1.5;notes;Notes;hello]"
 	spec += "checkbox[4,4;enabled;Enabled;true]"
 	spec += "dropdown[4,5;3,0.8;choice;red,green,blue;2;true]"
@@ -218,7 +226,7 @@ func _test_controls_and_submission() -> void:
 	_check(form.has_form_bgcolor, "form background colour is applied")
 	_equal(form.fields.size(), 7, "named field count")
 	_equal(form.collect_fields()["name"], "Ada", "line edit default")
-	_equal(form.collect_fields()["secret"], "key", "password field default")
+	_equal(form.collect_fields()["secret"], "", "a password field starts empty")
 	_equal(form.collect_fields()["enabled"], "true", "checkbox default")
 	_equal(form.collect_fields()["choice"], "2", "index-event dropdown default")
 	_equal(form.collect_fields()["rows"], "CHG:2", "text list default")
@@ -747,6 +755,126 @@ func _test_labels() -> void:
 			"an old-system label is centred 7/30 of a spacing below its y")
 	_check(_text_named(old, "Area") == null, "the old system has no area label")
 	_discard(old)
+
+
+# createTextField: the edit box colours of Luanti's skin, the field's style
+# reaching its label, halign on a field, and the unnamed forms, which are a
+# label and a read-only text.
+func _test_fields() -> void:
+	var spec := "formspec_version[11]size[10,9]"
+	spec += "style_type[field;textcolor=#323232;halign=center]"
+	spec += "field[1,1;4,0.8;name;Name;Ada]"
+	spec += "pwdfield[1,2.5;4,0.8;secret;Secret]"
+	spec += "textarea[1,4;4,1.5;notes;;hello]"
+	spec += "field[6,1;3,0.8;;Only a label;ignored]"
+	spec += "textarea[6,4;3,1.5;;Shown as text;]"
+	var form := _new_form(spec)
+	_check(form.skipped.is_empty(), "fields build with nothing skipped")
+	var name_field: LineEdit = form.fields["name"]
+	_equal((name_field.get_theme_stylebox("normal") as StyleBoxFlat).bg_color, Color8(128, 128, 128),
+		"a field is EGDC_EDITABLE grey")
+	_equal((name_field.get_theme_stylebox("focus") as StyleBoxFlat).bg_color, Color8(96, 134, 49),
+		"and EGDC_FOCUSED_EDITABLE green while focused")
+	_equal(name_field.get_theme_color("font_color"), Color.html("323232"), "textcolor reaches the field")
+	_equal(name_field.alignment, HORIZONTAL_ALIGNMENT_CENTER, "halign=center reaches the field")
+	var name_label := _text_named(form, "Name")
+	_check(name_label != null, "the field's label is drawn")
+	if name_label:
+		_equal(name_label.get_theme_color("default_color"), Color.html("323232"),
+			"the label takes the field's textcolor")
+		_check(name_label.position.y < name_field.position.y, "the label sits above the field")
+	var secret: LineEdit = form.fields["secret"]
+	_check(secret.secret, "pwdfield[x,y;w,h;name;label] is a password field")
+	var notes: TextEdit = form.fields["notes"]
+	_equal((notes.get_theme_stylebox("normal") as StyleBoxFlat).bg_color, Color8(255, 255, 255, 101),
+		"a textarea is EGDC_WINDOW's translucent white")
+	_check(not form.fields.has(""), "an unnamed field is not a field")
+	_check(_text_named(form, "Only a label") != null, "an unnamed field is only its label")
+	_check(_text_named(form, "ignored") == null, "and its default is not shown")
+	_check(_text_named(form, "Shown as text") != null,
+		"an unnamed textarea with no default shows its label as its text")
+	_discard(form)
+	# The old coordinate system places fields without the form padding.
+	var old := _new_form("size[8,6]field[1,1;3,1;f;;x]")
+	var f: LineEdit = old.fields["f"]
+	var btn_h: float = old.imgsize * 15.0 / 13.0 * 0.35
+	var expected := Vector2(old.spacing.x, old.spacing.y + old.imgsize / 2.0 - btn_h)
+	_check((f.position - expected).abs().x <= 1.0 and (f.position - expected).abs().y <= 1.0,
+		"an old-system field is centred on y plus half its height, without padding")
+	_discard(old)
+
+
+# parseButton and parseDropDown geometry: an old-system button is two
+# button-heights tall, centred half its height in slots below y; a dropdown
+# given only a width is one imgsize tall in real coordinates and measures its
+# width in vertical spacings in the old system.
+func _test_button_geometry() -> void:
+	var old := _new_form("size[8,6]button[1,1;2,1;b;B]dropdown[1,3;3;d;a,b;1]")
+	var btn_h: float = old.imgsize * 15.0 / 13.0 * 0.35
+	var b: Button = old.named_controls["b"]
+	var top: float = old.padding.y + old.spacing.y + old.imgsize / 2.0 - btn_h
+	_check(absf(b.position.y - top) <= 1.0, "an old-system button is centred half its height below y")
+	_check(absf(b.size.y - btn_h * 2.0) <= 1.0, "and two button-heights tall")
+	var d: OptionButton = old.fields["d"]
+	_check(absf(d.size.x - 3.0 * old.spacing.y) <= 1.0,
+		"an old-system dropdown's width is in vertical spacings")
+	_discard(old)
+	var real := _new_form("formspec_version[6]size[8,6]dropdown[1,1;3;d;a,b;1]")
+	var rd: OptionButton = real.fields["d"]
+	_equal(rd.size, (Vector2(3, 1) * real.imgsize).floor(),
+		"a dropdown given only a width is one imgsize tall")
+	_discard(real)
+	# parseTabHeader: the position is the bottom edge, in spacings without
+	# the padding in the old system, two button-heights tall and form wide.
+	var tabs := _new_form("size[8,6]tabheader[0,0;tabs;A,B;1]")
+	var tb: TabBar = tabs.fields["tabs"]
+	var tab_h: float = tabs.imgsize * 15.0 / 13.0 * 0.35 * 2.0
+	_check(absf(tb.position.x) <= 1.0 and absf(tb.position.y + tab_h) <= 1.0,
+		"an old-system tab header stands on its y, without the form padding")
+	_equal(tb.size.x, tabs.root.size.x, "and is as wide as the form")
+	_discard(tabs)
+
+
+# A form without size[], which is how Minetest Game's sign asks for its text:
+# a 580 pixel window, 270 high plus 60 a field, its fields 300 wide and 60
+# apart, and a Proceed button under them. The field shows the node's
+# metadata for a whole ${key}.
+func _test_sizeless_form() -> void:
+	var form := _new_form("field[text;;${text}]")
+	_equal(form.root.size, Vector2(580, 330), "a one-field sizeless form is 580 by 330")
+	var text: LineEdit = form.fields["text"]
+	_equal(text.position, Vector2(140, 120), "its field is centred, two rows down")
+	_equal(text.size.x, 300.0, "and three hundred pixels wide")
+	_equal(text.text, "Sign text", "a whole ${key} default shows the node's metadata")
+	var proceed := _button_named(form, "Proceed")
+	_check(proceed != null, "a sizeless form gets a Proceed button")
+	if proceed:
+		_equal(proceed.position, Vector2(220, 180), "under its fields, centred")
+		_equal(proceed.size.x, 140.0, "140 pixels wide")
+		var submissions: Array = []
+		form.fields_submitted.connect(func(fields: Dictionary, quit: bool) -> void:
+			submissions.append([fields, quit]))
+		proceed.pressed.emit()
+		_check(submissions.size() == 1 and submissions[0][1] and submissions[0][0].has("text"),
+			"Proceed sends the fields and closes the form")
+	_discard(form)
+
+
+# setInitialFocus: with no set_focus[], the first empty edit box, else the
+# first edit box, else the first table, else the last button.
+func _test_initial_focus() -> void:
+	var form := _new_form("formspec_version[6]size[8,6]field[1,1;3,0.8;a;;full]"
+		+ "field[1,3;3,0.8;b;;]button[1,5;2,1;x;X]")
+	_check(form.fields["b"].has_focus(), "the first empty edit box takes the focus")
+	_discard(form)
+	form = _new_form("formspec_version[6]size[8,6]field[1,1;3,0.8;a;;full]button[1,5;2,1;x;X]")
+	_check(form.fields["a"].has_focus(), "failing that, the first edit box")
+	_discard(form)
+	form = _new_form("formspec_version[6]size[8,6]button[1,1;2,1;x;X]button[1,3;2,1;y;Y]")
+	var last: Button = form.named_controls["y"]
+	_check(last.has_focus(), "with no edit box or table, the last button")
+	_check(last.get_theme_stylebox("focus") is StyleBoxEmpty, "and it draws no focus ring")
+	_discard(form)
 
 
 # GUIButton::setFromStyle, through the looks Godot draws. The shapes are the

@@ -273,6 +273,10 @@ public:
     godot::Array take_particles();
     // Name of the node at a Godot-space position, "" if unknown.
     godot::String node_name_at(const godot::Vector3 &pos);
+    // "${key}" in a node's own form, resolved from that node's metadata
+    // (NodeMetadataFormSource::resolveText). context is "nodemeta:x,y,z".
+    godot::String resolve_nodemeta_text(const godot::String &context,
+            const godot::String &text);
     godot::Color ground_albedo(const godot::Vector3 &center);
     float ground_height(const godot::Vector3 &center);
     // Per content average tile colour (0xAARGB bytes), alpha 0 for "no

@@ -1397,6 +1397,13 @@ func model_preview(mesh_name: String, textures: PackedStringArray, frame_loop: V
 		return {}
 	return client.model_preview(mesh_name, textures, frame_loop, speed)
 
+# "${key}" in a node's own form, from that node's metadata; any other form
+# has no metadata to resolve against and keeps its text.
+func resolve_text(text: String) -> String:
+	if form_context == "" or not client.has_method("resolve_nodemeta_text"):
+		return text
+	return client.resolve_nodemeta_text(form_context, text)
+
 # Whether a stack is on the cursor. The form shows no item tooltips while one
 # is, as GUIInventoryList hides them while an item is selected.
 func holding_stack() -> bool:
