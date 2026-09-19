@@ -1404,6 +1404,12 @@ func resolve_text(text: String) -> String:
 		return text
 	return client.resolve_nodemeta_text(form_context, text)
 
+# A form's style sound, played here and heard only here, as upstream's
+# m_sound_manager->playSound(0, ...) is.
+func play_form_sound(sound_name: String) -> void:
+	if audio != null:
+		audio.play(sound_name, 1.0, 1.0, false, null)
+
 # Whether a stack is on the cursor. The form shows no item tooltips while one
 # is, as GUIInventoryList hides them while an item is selected.
 func holding_stack() -> bool:

@@ -50,6 +50,11 @@ class FakeItemSource extends Node:
 	func holding_stack() -> bool:
 		return holding
 
+	var sounds: Array = []
+
+	func play_form_sound(sound_name: String) -> void:
+		sounds.append(sound_name)
+
 	# Stands in for a node's metadata: one key is set.
 	func resolve_text(text: String) -> String:
 		return "Sign text" if text == "${text}" else text
@@ -119,6 +124,7 @@ func _run() -> void:
 	_test_initial_focus()
 	_test_sizeless_form()
 	_test_button_styles()
+	_test_style_sound_font_model()
 	_test_table()
 	_test_list_look()
 	_test_hypertext()
@@ -875,6 +881,39 @@ func _test_initial_focus() -> void:
 	var last: Button = form.named_controls["y"]
 	_check(last.has_focus(), "with no edit box or table, the last button")
 	_check(last.get_theme_stylebox("focus") is StyleBoxEmpty, "and it draws no focus ring")
+	_discard(form)
+
+
+# The style properties that are not about looks: sound, played locally when
+# a button, checkbox, dropdown or tab is used; font on Godot's own controls;
+# and a model's bgcolor.
+func _test_style_sound_font_model() -> void:
+	var spec := "formspec_version[6]size[10,8]"
+	spec += "style[go;sound=click;font=mono,bold]button[0,0;2,1;go;Go]"
+	spec += "style_type[checkbox;sound=tick]checkbox[0,2;ok;OK;false]"
+	spec += "style[pick;sound=pop]dropdown[3,2;3,0.8;pick;a,b;1]"
+	spec += "style[tabs;sound=page]tabheader[0,5;tabs;One,Two;1]"
+	spec += "style_type[field;font=italic]field[4,0;3,0.8;f;;]"
+	spec += "style[preview;bgcolor=#ff0000]model[6,4;3,3;preview;character.b3d;skin.png]"
+	var form := _new_form(spec)
+	fixture_source.sounds.clear()
+	form.named_controls["go"].pressed.emit()
+	form.fields["ok"].toggled.emit(true)
+	form.fields["pick"].item_selected.emit(1)
+	form.fields["tabs"].tab_changed.emit(1)
+	_equal(fixture_source.sounds, ["click", "tick", "pop", "page"],
+		"each element plays its own style sound when used")
+	var label: Label = form.named_controls["go"].get_meta("content")["label"]
+	var bold := label.get_theme_font("font") as FontVariation
+	_check(bold != null and bold.variation_embolden > 0.0 and bold.base_font is SystemFont,
+		"font=mono,bold reaches the button label")
+	var italic := form.fields["f"].get_theme_font("font") as FontVariation
+	_check(italic != null and italic.variation_transform.y.x != 0.0, "font=italic reaches a field")
+	var back: ColorRect = null
+	for child in form.named_controls["preview"].get_children():
+		if child is ColorRect:
+			back = child
+	_check(back != null and back.color == Color.RED, "a model's bgcolor fills it")
 	_discard(form)
 
 

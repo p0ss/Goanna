@@ -380,6 +380,8 @@ static func _form_theme() -> Theme:
 		t.set_color("font_shadow_color", type, Color(0, 0, 0, 127.0 / 255.0))
 		t.set_constant("shadow_offset_x", type, 1)
 		t.set_constant("shadow_offset_y", type, 1)
+	# The mono face <mono>, font=mono and the font style property ask for.
+	t.set_font("mono_font", "RichTextLabel", _mono_font())
 	return t
 
 func _pos(v: PackedStringArray) -> Vector2:
@@ -1215,6 +1217,34 @@ func _rich_text(text: String, colour: Color, size: int, st: Dictionary) -> RichT
 	rt.set_meta("plain", strip_enriched(text))
 	return rt
 
+# The font style property as a Font for Godot's own controls: the form's
+# font, or a system monospace for mono, made bold or italic by variation.
+# Null for plain normal, which needs nothing changed.
+func _style_font(value: String) -> Font:
+	var opts := value.to_lower().replace(" ", "").split(",", false)
+	var mono := opts.has("mono")
+	var bold := opts.has("bold")
+	var italic := opts.has("italic")
+	if not (mono or bold or italic):
+		return null
+	var base: Font = _mono_font() if mono else get_theme_default_font()
+	if not (bold or italic):
+		return base
+	var fv := FontVariation.new()
+	fv.base_font = base
+	if bold:
+		fv.variation_embolden = 0.8
+	if italic:
+		fv.variation_transform = Transform2D(Vector2(1, 0), Vector2(0.2, 1), Vector2.ZERO)
+	return fv
+
+# Luanti's mono font is Cousine; Goanna asks the system for its monospace
+# face instead of carrying a font file.
+static func _mono_font() -> Font:
+	var sf := SystemFont.new()
+	sf.font_names = PackedStringArray(["monospace"])
+	return sf
+
 # The font style property: normal or mono, with bold and italic added.
 # Returns how many pushes the caller owes a pop.
 static func _push_style_font(rt: RichTextLabel, value: String) -> int:
@@ -1302,7 +1332,9 @@ func _hypertext(parts: PackedStringArray) -> void:
 	rt.set_meta("hovered_action", -1)
 	# <action> sends "action:<name>" under the element's own field name, and
 	# may carry a url, which is offered rather than opened (see _offer_url).
+	var sound := _style_sound(hname)
 	rt.meta_clicked.connect(func(meta: Variant) -> void:
+		_play_sound(sound)
 		var m: Dictionary = meta
 		if String(m.get("url", "")) != "":
 			_offer_url(String(m["url"]))
@@ -1734,10 +1766,23 @@ func _button_content(b: Button, label: String, with_image := true) -> Dictionary
 
 func _wire_button(b: Button, bname: String, label: String, exit: bool) -> void:
 	_register_named_control(bname, b)
+	var sound := _style_sound(bname)
 	b.pressed.connect(func() -> void:
+		_play_sound(sound)
 		if b.has_meta("url"):
 			_offer_url(String(b.get_meta("url")))
 		submit({bname: label}, exit))
+
+# The sound style property, read when the element is built: upstream keeps
+# it on the element's FieldSpec and plays it locally, not through the
+# server, when a button is pressed, a checkbox or dropdown changes, a tab is
+# chosen or a hypertext action is followed.
+func _style_sound(ename: String) -> String:
+	return String(_style_for(ename, "default").get("sound", ""))
+
+func _play_sound(sound: String) -> void:
+	if sound != "" and item_source and item_source.has_method("play_form_sound"):
+		item_source.play_form_sound(sound)
 
 # A button_url sends its fields like any other button and additionally offers
 # the address. In game, upstream asks first (showOpenURLDialog) rather than
@@ -1919,7 +1964,9 @@ func _checkbox(parts: PackedStringArray) -> void:
 	fields[cname] = c
 	_register_named_control(cname, c)
 	_apply_style(c, cname)
+	var sound := _style_sound(cname)
 	c.toggled.connect(func(_on: bool) -> void:
+		_play_sound(sound)
 		submit({cname: "true" if c.button_pressed else "false"}, false))
 
 func _dropdown(parts: PackedStringArray) -> void:
@@ -1951,7 +1998,9 @@ func _dropdown(parts: PackedStringArray) -> void:
 	fields[dname] = o
 	_register_named_control(dname, o)
 	_apply_style(o, dname)
+	var sound := _style_sound(dname)
 	o.item_selected.connect(func(_i: int) -> void:
+		_play_sound(sound)
 		var f := collect_fields()
 		submit({dname: f[dname]}, false))
 
@@ -2248,7 +2297,9 @@ func _tabheader(parts: PackedStringArray) -> void:
 	fields[tname] = tb
 	_register_named_control(tname, tb)
 	_apply_style(tb, tname)
+	var sound := _style_sound(tname)
 	tb.tab_changed.connect(func(i: int) -> void:
+		_play_sound(sound)
 		submit({tname: str(i + 1)}, false))
 
 func _list(parts: PackedStringArray) -> void:
@@ -2635,6 +2686,15 @@ func _model(parts: PackedStringArray) -> void:
 		or _is_yes(parts[7])
 	var c := FormspecModel.new()
 	c.setup(preview["node"], preview.get("aabb", AABB()), rotation_xy, spin, mouse_control)
+	# GUIScene::setStyles: bgcolor fills the element behind the model.
+	var st := _style_for(mname, "default")
+	if _has_style(st, "bgcolor"):
+		var back := ColorRect.new()
+		back.color = parse_color(String(st["bgcolor"]), Color.TRANSPARENT)
+		back.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		back.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		c.add_child(back)
+		c.move_child(back, 0)
 	_add(c, _pos(v), _geom(g))
 	_register_named_control(mname, c)
 
@@ -2842,6 +2902,10 @@ func _style_button(b: Button, _ename: String, states: Array, content: Dictionary
 	if _has_style(base, "font_size") and content["label"] != null:
 		(content["label"] as Label).add_theme_font_size_override("font_size",
 			_style_font_size(String(base["font_size"]), _font_size()))
+	if _has_style(base, "font") and content["label"] != null:
+		var f := _style_font(String(base["font"]))
+		if f != null:
+			(content["label"] as Label).add_theme_font_override("font", f)
 	b.set_meta("looks", _button_looks(b, states, 0, styled))
 	b.set_meta("content", content)
 	b.draw.connect(func() -> void: _sync_button_content(b))
@@ -3011,6 +3075,10 @@ func _apply_style(c: Control, ename: String) -> void:
 		c.add_theme_font_size_override(
 			"normal_font_size" if c is RichTextLabel else "font_size",
 			_style_font_size(String(base["font_size"]), base_font))
+	if _has_style(base, "font") and (c is LineEdit or c is TextEdit or c is ItemList or c is Tree):
+		var f := _style_font(String(base["font"]))
+		if f != null:
+			c.add_theme_font_override("font", f)
 	if _has_style(base, "textcolor"):
 		var col := parse_color(String(base["textcolor"]), Color.WHITE)
 		if c is LineEdit or c is TextEdit or c is Label:
