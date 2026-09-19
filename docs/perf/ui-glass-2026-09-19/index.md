@@ -122,19 +122,23 @@ game theme on the left and dark glass on the right, cropped to the form.
 | Barrel | `mcl_barrels:barrel_*` | Glass |
 | Shulker box | `mcl_chests:*_shulker_box_small` | Glass |
 | Ender chest | `mcl_chests:ender_chest_*` | Glass |
-| Villager trading | `mobs_mc:trading_formspec` | Half: the three trade slots stay light grey (see below) |
+| Villager trading | `mobs_mc:trading_formspec` | Half at `4d48e0b`: the three trade slots stayed light grey; glass since `4a84bb4` |
 | Written book | `mcl_books:written_book` | The game's own book, by the bespoke rule |
 | Book and quill | `mcl_books:writable_book` | The game's own book, by the bespoke rule |
 | Sign | | Not captured: the sweep could not open it |
 | Creative, 12 item tabs | (inventory) | Glass tabs, selected tab ringed |
-| Creative, rail tab | (inventory) | Half: the row of empty slot art below the items stays light grey |
+| Creative, rail tab | (inventory) | Half at `4d48e0b`: a row of empty slot art stayed light grey; glass since `4a84bb4` |
 | Creative, survival tab | (inventory) | Glass |
 
-The two halves are the same gap: slot art the game draws where no slot
-exists (a tab with fewer items than its grid, a trade list the client has
-no inventory for) was left as the game's art, because only art under a
-real slot was recognised as a slot frame. See the log in `PLAN.md` for
-whether it has been fixed since.
+The two halves were the same gap: slot art the game draws where no slot
+exists (a tab with fewer items than its grid, the trade slots, which have no
+list until a trade is chosen) was left as the game's art, because only art
+under a real slot was recognised as a slot frame. `4a84bb4` draws such art
+as an empty glass slot. It was checked live by reloading `formspec.gd` from
+`4a84bb4` into the running client (the rest of the client was `4d48e0b`),
+since no new client could be started: `sweep/villager_4a84bb4.jpg` and
+`sweep/creative_rail_4a84bb4.jpg`, taken at night because the server's
+clock had moved on.
 
 The Minetest Game forms were not swept (see "Not done").
 
