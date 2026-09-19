@@ -156,6 +156,7 @@ func _run() -> void:
 	_test_glass_chrome()
 	_test_glass_keeps_content()
 	_test_glass_slot_frames()
+	_test_glass_empty_slot_frames()
 	_test_glass_repeated_theme()
 	_test_glass_bespoke()
 	_test_glass_sends_the_same()
@@ -1739,6 +1740,55 @@ func _test_glass_slot_frames() -> void:
 		_check(mform.slots[0].framed and mform.slots[1].framed, "the hotbar row is framed")
 		_check(not mform.slots[2].framed and not mform.slots[3].framed, "the row below is not")
 	_discard(mform)
+
+# Slot art where no slot is, at the size the same texture framed a slot
+# elsewhere in the form: Mineclonia's creative tab with fewer items than its
+# grid, its trade slots before a trade is chosen. The game shows an empty
+# slot there, so glass draws an empty glass slot where the framed slots sit
+# inside their art. In the game theme the art stays.
+func _test_glass_empty_slot_frames() -> void:
+	var spec := "formspec_version[6]size[8,4]"
+	spec += "image[0.325,0.325;1.1,1.1;mcl_formspec_itemslot.png]"
+	spec += "image[1.575,0.325;1.1,1.1;mcl_formspec_itemslot.png]"
+	spec += "list[current_player;main;0.375,0.375;2,1;]"
+	# The list stops, the art goes on.
+	spec += "image[2.825,0.325;1.1,1.1;mcl_formspec_itemslot.png]"
+	# The same texture at another size is a picture, not an empty slot.
+	spec += "image[5,0.325;2,2;mcl_formspec_itemslot.png]"
+	var form := _new_form(spec, "conformance", MCL_THEME, "glass")
+	var frames := _image_with(form, "mcl_formspec_itemslot.png")
+	var hidden := 0
+	for f in frames:
+		if not f.visible:
+			hidden += 1
+	_equal(hidden, 3, "the two frames behind slots and the one past the list's end are hidden")
+	var empty: Array = []
+	for c in Formspec._form_controls(form.root):
+		if c.get_meta("glass_empty_slot", false):
+			empty.append(c)
+	_equal(empty.size(), 1, "one empty glass slot is drawn")
+	if empty.size() == 1 and form.slots.size() == 2:
+		var slot_rect: Rect2 = form.slots[1].get_global_rect()
+		var tile_rect: Rect2 = empty[0].get_global_rect()
+		_check(tile_rect.size.distance_to(slot_rect.size) < 1.5,
+			"the empty glass slot is the size of a real one")
+		_check(absf(tile_rect.position.y - slot_rect.position.y) < 1.5,
+			"and sits in its row as the real ones do")
+		_check(absf((tile_rect.position.x - slot_rect.position.x) - 1.25 * form.imgsize) < 1.5,
+			"one slot spacing along")
+	var big := 0
+	for f in frames:
+		if f.visible and f.size.x > form.imgsize * 1.5:
+			big += 1
+	_equal(big, 1, "the same texture at another size is kept")
+	_discard(form)
+	var game := _new_form(spec, "conformance", MCL_THEME, "game")
+	var shown := 0
+	for f in _image_with(game, "mcl_formspec_itemslot.png"):
+		if f.visible:
+			shown += 1
+	_equal(shown, 4, "the game theme keeps all the slot art")
+	_discard(game)
 
 # Mineclonia's creative inventory says no_prepend[] and writes the theme out
 # again with its background9 at a rectangle of its own, which becomes the

@@ -1160,6 +1160,7 @@ func _replace_slot_frames() -> void:
 	for s in slots:
 		if framed_lists.has(int(s.get_meta("list", 0))):
 			s.framed = true
+	_replace_empty_slot_frames(framing)
 	# A slot over a picture the form keeps (Mineclonia's trash can, anything
 	# drawn behind a list that is not a frame) is drawn see-through, as the
 	# game's own translucent slot colour would be, so the picture still shows.
@@ -1171,6 +1172,52 @@ func _replace_slot_frames() -> void:
 			if int(s.get_meta("seq", 0)) > int(img.get_meta("seq", 0)) \
 					and ir.has_point((s as Control).get_global_rect().get_center()):
 				s.over_art = true
+
+# The same slot art where no slot is: a creative tab with fewer items than
+# its grid, Mineclonia's trade slots before a trade is chosen. The game shows
+# an empty slot there, so dark glass shows an empty glass slot, placed inside
+# the art as the frames that did hold a slot place theirs. Only a texture
+# already replaced as a slot frame in this form, at the size it framed a
+# slot, counts, so a picture that merely shares a texture is kept.
+func _replace_empty_slot_frames(framing: Dictionary) -> void:
+	var looks := {}   # texture -> [frame size, slot offset and size as parts of it]
+	for img in framing:
+		if not img.get_meta("glass_replaced", false):
+			continue
+		var tex := String(img.get_meta("fs_image"))
+		if looks.has(tex):
+			continue
+		var ir: Rect2 = (img as Control).get_global_rect()
+		var sr: Rect2 = (framing[img][0] as Control).get_global_rect()
+		if ir.size.x <= 0.0 or ir.size.y <= 0.0:
+			continue
+		looks[tex] = [ir.size, (sr.position - ir.position) / ir.size, sr.size / ir.size]
+	if looks.is_empty():
+		return
+	for img in _form_controls(root):
+		if not (img as Control).has_meta("fs_image") or img.get_meta("glass_replaced", false) \
+				or framing.has(img):
+			continue
+		var look = looks.get(String(img.get_meta("fs_image")))
+		if look == null:
+			continue
+		var ir: Rect2 = (img as Control).get_global_rect()
+		if absf(ir.size.x - look[0].x) > 2.0 or absf(ir.size.y - look[0].y) > 2.0:
+			continue
+		var c := img as Control
+		var tile := GlassEmptySlot.new()
+		tile.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tile.position = c.position + c.size * (look[1] as Vector2)
+		tile.size = c.size * (look[2] as Vector2)
+		tile.set_meta("seq", c.get_meta("seq", 0))
+		tile.set_meta("glass_empty_slot", true)
+		c.add_sibling(tile)
+		c.visible = false
+		c.set_meta("glass_replaced", true)
+
+class GlassEmptySlot extends Control:
+	func _draw() -> void:
+		GlassStyle.draw_slot(self, Rect2(Vector2.ZERO, size), false, true)
 
 # One element, from the form itself or from the prepend. The headers a form
 # only accepts at its front are elements when a prepend uses them, which is
