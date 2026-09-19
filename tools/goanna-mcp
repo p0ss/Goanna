@@ -530,15 +530,20 @@ TOOLS = [
             "is always left out), and writes a JSON sidecar with the pose, the clock, the "
             "block count and the deviations. The reply includes what shotcheck.py makes of "
             "the frame. method=gamescope instead saves the whole virtual display as gamescope "
-            "composites it, overlay included; it is the only method for a vanilla instance, "
-            "and wait_ms gives a vanilla client time to load first.",
+            "composites it, overlay included. A vanilla instance is photographed from its "
+            "own nested X display (method=x11, falling back to gamescope); wait_ms gives it "
+            "time to load first.",
         "inputSchema": {
             "type": "object",
             "properties": {
                 "instance": INSTANCE,
                 "path": {"type": "string",
                          "description": "absolute PNG path. Defaults to a temporary file"},
-                "method": {"type": "string", "enum": ["viewport", "gamescope"]},
+                "method": {"type": "string", "enum": ["viewport", "gamescope", "x11"],
+                           "description": "viewport (Goanna's default), gamescope (the "
+                                          "composited virtual display) or x11 (the client "
+                                          "window's pixels from its nested X display; the "
+                                          "default for the vanilla client)"},
                 "wait_ms": {"type": "integer",
                             "description": "gamescope method: wait this long first"},
                 "settle": {"type": "boolean",
@@ -769,12 +774,12 @@ def call_tool(name, args, reg):
         if not path:
             LOG_DIR.mkdir(parents=True, exist_ok=True)
             path = str(LOG_DIR / ("shot-%s-%d.png" % (inst.id, int(time.time() * 1000))))
-        if inst.kind == "vanilla" or args.get("method") == "gamescope":
+        if inst.kind == "vanilla" or args.get("method") in ("gamescope", "x11"):
             if inst.kind not in ("goanna", "vanilla"):
-                raise ChannelError("method=gamescope needs a headless instance")
+                raise ChannelError("method=%s needs a headless instance" % args.get("method"))
             time.sleep(max(0, int(args.get("wait_ms", 0))) / 1000.0)
             try:
-                result = gh.screenshot(inst.id, path)
+                result = gh.screenshot(inst.id, path, method=args.get("method", "auto"))
             except gh.LaunchError as exc:
                 raise ChannelError(str(exc))
         else:

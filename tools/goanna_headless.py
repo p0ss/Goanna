@@ -627,16 +627,38 @@ def stop(ident, timeout=40.0):
     return {"id": ident, "stopped": stopped, "still_running": left, "status": rec.get("status")}
 
 
-def screenshot(ident, path, timeout=20.0):
-    """The whole virtual display as gamescope composites it, written by
-    gamescope itself. Works for any client, the vanilla one included."""
+def screenshot(ident, path, method="auto", timeout=20.0):
+    """A frame from an instance, by one of two routes, neither of which
+    touches the desktop.
+
+    gamescope: the virtual display as gamescope composites it, written by
+    gamescope itself on the instance's own control socket. It is the route
+    for Goanna, whose Vulkan frames go to gamescope directly.
+
+    x11: the client window's own pixels, read from the instance's nested X
+    server with ffmpeg's x11grab. It is the route for the vanilla client:
+    under software rendering gamescope's screenshot of it came back pure
+    black once it was in game, while its window held the frame.
+
+    auto is x11 for the vanilla client, falling back to gamescope, and
+    gamescope for Goanna."""
     rec = load(ident)
     if not alive(rec.get("gamescope_pid"), rec.get("gamescope_start")):
         raise LaunchError("instance %s has no running gamescope" % ident)
-    need("gamescopectl")
     path = pathlib.Path(path).expanduser().resolve()
     path.parent.mkdir(parents=True, exist_ok=True)
     path.unlink(missing_ok=True)
+    if method == "auto":
+        method = "x11" if rec.get("kind") == "vanilla" else "gamescope"
+        if method == "x11":
+            try:
+                return _x11_grab(rec, path)
+            except LaunchError as exc:
+                log("x11 grab failed (%s); trying gamescope" % exc)
+                method = "gamescope"
+    if method == "x11":
+        return _x11_grab(rec, path)
+    need("gamescopectl")
     _gamescopectl(rec, ["screenshot", str(path)])
     deadline = time.time() + timeout
     last = -1
@@ -644,11 +666,51 @@ def screenshot(ident, path, timeout=20.0):
         if path.exists():
             size = path.stat().st_size
             if size > 0 and size == last:
-                return {"id": ident, "path": str(path), "bytes": size,
+                return {"id": ident, "path": str(path), "bytes": size, "method": "gamescope",
                         "size": [rec["width"], rec["height"]]}
             last = size
         time.sleep(0.3)
     raise LaunchError("gamescope wrote no screenshot to %s within %gs" % (path, timeout))
+
+
+def _x11_grab(rec, path):
+    display = rec.get("display", "")
+    # Only ever the instance's own nested display. Reading pixels is not
+    # input, but the desktop's display is not ours to read either.
+    if not display or display in (":0", os.environ.get("DISPLAY", ":0")):
+        raise LaunchError("instance %s has no nested display of its own" % rec["id"])
+    need("xwininfo")
+    need("ffmpeg")
+    tree = subprocess.run(["xwininfo", "-display", display, "-root", "-tree"],
+                          capture_output=True, text=True, timeout=10).stdout
+    best = None
+    for line in tree.splitlines():
+        parts = line.split()
+        if len(parts) < 2 or not parts[0].startswith("0x") or '"' not in line:
+            continue
+        if "steamcompmgr" in line:
+            continue
+        geom = [p for p in parts if "x" in p and "+" in p and p[0].isdigit()]
+        if not geom:
+            continue
+        w, _, rest = geom[0].partition("x")
+        h = rest.split("+")[0]
+        area = int(w) * int(h)
+        if best is None or area > best[0]:
+            best = (area, parts[0], int(w), int(h))
+    if best is None:
+        raise LaunchError("no client window on %s" % display)
+    _, wid, w, h = best
+    proc = subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-f", "x11grab",
+                           "-window_id", wid, "-video_size", "%dx%d" % (w, h), "-i", display,
+                           "-frames:v", "1", str(path)],
+                          capture_output=True, text=True, timeout=30,
+                          stdin=subprocess.DEVNULL)
+    if proc.returncode != 0 or not path.exists():
+        raise LaunchError("x11grab of window %s on %s failed: %s"
+                          % (wid, display, proc.stderr.strip()[-300:]))
+    return {"id": rec["id"], "path": str(path), "bytes": path.stat().st_size, "method": "x11",
+            "window": wid, "size": [w, h]}
 
 
 def describe(rec):
@@ -667,7 +729,7 @@ USAGE = """usage:
                         [--label TEXT] [--env KEY=VALUE ...]
   goanna-headless vanilla [--server HOST:PORT] [--name NAME] [--password PW]
                         [--size WxH] [--software] [--set KEY=VALUE ...]
-  goanna-headless shot ID PATH
+  goanna-headless shot ID PATH [--method auto|gamescope|x11]
   goanna-headless stop ID
   goanna-headless list [--all]
   goanna-headless port-free N
@@ -730,7 +792,7 @@ def main(argv):
                                          software=opts.get("software", False),
                                          settings=opts["set"]))
         elif cmd == "shot":
-            out = screenshot(pos[0], pos[1])
+            out = screenshot(pos[0], pos[1], method=opts.get("method", "auto"))
         elif cmd == "stop":
             out = stop(pos[0])
         elif cmd == "list":

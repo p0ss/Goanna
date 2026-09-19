@@ -407,7 +407,7 @@ context whether or not it is used:
 | `goanna_view` | `teleport` through the server, or `position`, `look_at`, `pitch`, `yaw`, `fly`. |
 | `goanna_world` | Time, weather, spawn, give, chat. Reports what the server said and whether it refused. |
 | `goanna_settings` | Get, set or list everything in the settings panel. |
-| `goanna_shot` | Settle, capture, sidecar, and the shotcheck reading; `method=gamescope` for the composited virtual display, the only method for the vanilla client. |
+| `goanna_shot` | Settle, capture, sidecar, and the shotcheck reading; `method=gamescope` for the composited virtual display, `method=x11` for the window's own pixels, the default for the vanilla client. |
 | `goanna_ui` | tree, click, hover, type, scroll and key, as in the section above. |
 | `goanna_run` | A GDScript snippet in the client. The one that does not run out. |
 | `goanna_command` | Any channel command by name: `reload_shader`, `wait`, `help`. |
@@ -423,11 +423,19 @@ session. Registration does not need repeating, since it names the file.
 gamescope, joined straight to the server with `--go`, with a configuration
 file of its own under `~/.var/app/org.luanti.luanti/goanna-headless/`, so
 the owner's own client settings are never touched. The sandbox gets no
-Wayland socket, so it can only reach gamescope's X display. A frame is
-gamescope's own screenshot of the virtual display (`gamescopectl screenshot`,
-sent to that instance's gamescope socket and nobody else's), taken with
-`tools/goanna-headless shot <id> <path>` or `goanna_shot`. No window, key or
-pointer is involved.
+Wayland socket, so it can only reach gamescope's X display.
+
+A frame is taken with `tools/goanna-headless shot <id> <path>` or
+`goanna_shot`, by one of two routes, neither of which involves a window, a
+key or the pointer. `x11`, the default for the vanilla client, reads the
+client window's own pixels from the instance's nested X display with
+ffmpeg's `x11grab`, after finding the window with `xwininfo`; it refuses the
+desktop's display. `gamescope`, the default for Goanna, is gamescope's own
+screenshot of the virtual display (`gamescopectl screenshot`, sent to that
+instance's gamescope socket and nobody else's). Under `--software` the
+gamescope route showed the vanilla client's loading screens but returned
+pure black once it was in game, while `x11` returned the game; with the GPU
+neither route has been tried on the vanilla client yet.
 
 The vanilla client cannot be steered: it has no control channel, and
 nothing here types into it. It looks wherever the server puts it, so frame
