@@ -120,6 +120,7 @@ func _run() -> void:
 	_test_sizeless_form()
 	_test_button_styles()
 	_test_table()
+	_test_list_look()
 	_test_hypertext()
 	_test_nothing_skipped()
 	_test_tooltips()
@@ -1067,6 +1068,37 @@ func _test_hypertext() -> void:
 	var expected := Vector2(old.spacing.x, old.spacing.y + old.imgsize * 15.0 / 13.0 * 0.35)
 	_check((old_rt.position - expected).abs().x <= 1.0 and (old_rt.position - expected).abs().y <= 1.0,
 		"an old-system hypertext starts without the form padding, a button-height down")
+	_discard(old)
+
+
+# GUITable's look, which textlist[] and table[] share: near black, white text,
+# a green selection, no pane when transparent, a textlist item's #RRGGBB
+# colour and its ## escape, and tableoptions[] over the defaults.
+func _test_list_look() -> void:
+	var form := _new_form("formspec_version[6]size[10,8]"
+		+ "textlist[0,0;4,3;rows;#FF0000red,##FF0000plain,plain;1;false]"
+		+ "textlist[5,0;4,3;clear;a,b;0;true]"
+		+ "tableoptions[highlight=#0000ff]table[0,4;4,3;t;a,b;1]")
+	var rows: ItemList = form.fields["rows"]
+	_equal(rows.get_item_text(0), "red", "a colour prefix is not printed")
+	_equal(rows.get_item_custom_fg_color(0), Color.RED, "it colours its item")
+	_equal(rows.get_item_text(1), "FF0000plain", "## drops itself and keeps the rest from being a colour")
+	_equal((rows.get_theme_stylebox("panel") as StyleBoxFlat).bg_color, Color8(30, 30, 30),
+		"a textlist is EGDC_3D_HIGH_LIGHT's near black")
+	_equal((rows.get_theme_stylebox("selected") as StyleBoxFlat).bg_color, Color8(70, 120, 50),
+		"its selection is EGDC_HIGH_LIGHT green")
+	_equal(rows.get_theme_color("font_color"), Color.WHITE, "its text is white")
+	_check(form.fields["clear"].get_theme_stylebox("panel") is StyleBoxEmpty,
+		"a transparent textlist draws no pane")
+	var table: Tree = form.fields["t"]
+	_equal((table.get_theme_stylebox("selected") as StyleBoxFlat).bg_color, Color.BLUE,
+		"tableoptions[highlight] sets the table's selection")
+	_equal((table.get_theme_stylebox("panel") as StyleBoxFlat).bg_color, Color8(30, 30, 30),
+		"and the rest stays GUITable's default")
+	_discard(form)
+	var old := _new_form("size[8,6]textlist[1,1;3,2;l;a,b;0;false]")
+	_equal(old.fields["l"].size, Vector2(3.0 * old.spacing.x, 2.0 * old.spacing.y).floor(),
+		"an old-system textlist measures whole spacings")
 	_discard(old)
 
 

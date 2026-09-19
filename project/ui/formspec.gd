@@ -1955,8 +1955,11 @@ func _dropdown(parts: PackedStringArray) -> void:
 		var f := collect_fields()
 		submit({dname: f[dname]}, false))
 
+# textlist[x,y;w,h;name;items;selected;transparent] (parseTextList and
+# GUITable::setTextList). An item starting #RRGGBB is drawn in that colour;
+# a leading ## is dropped and keeps what follows from being read as one. In
+# the old system the size is in whole spacings.
 func _textlist(parts: PackedStringArray) -> void:
-	# textlist[x,y;w,h;name;items;selected;transparent]
 	if parts.size() < 4:
 		return
 	var v := fs_split(parts[0], ",")
@@ -1967,13 +1970,22 @@ func _textlist(parts: PackedStringArray) -> void:
 	var lname := fs_unescape(parts[2])
 	for it in fs_split(parts[3], ","):
 		var t := fs_unescape(it)
-		if t.begins_with("#") and t.length() >= 7:
+		var colour: Variant = null
+		if t.begins_with("##"):
+			t = t.substr(2)
+		elif t.begins_with("#") and t.length() >= 7 and _is_colour(t.substr(0, 7)):
+			colour = parse_color(t.substr(0, 7), Color.WHITE)
 			t = t.substr(7)
-		il.add_item(t)
+		var i := il.add_item(t)
+		if colour != null:
+			il.set_item_custom_fg_color(i, colour)
 	if parts.size() >= 5 and int(parts[4]) > 0 and int(parts[4]) <= il.item_count:
 		il.select(int(parts[4]) - 1)
 	il.add_theme_font_size_override("font_size", _font_size())
-	_add(il, _pos(v), _geom(g))
+	var transparent := parts.size() >= 6 and _is_yes(parts[5])
+	_table_look(il, Color8(30, 30, 30, 0) if transparent else Color8(30, 30, 30), not transparent,
+		Color.WHITE, Color8(70, 120, 50), Color.WHITE)
+	_add(il, _pos(v), _list_geom(g))
 	fields[lname] = il
 	_register_named_control(lname, il)
 	_apply_style(il, lname)
@@ -1981,6 +1993,49 @@ func _textlist(parts: PackedStringArray) -> void:
 		submit({lname: "CHG:" + str(i + 1)}, false))
 	il.item_activated.connect(func(i: int) -> void:
 		submit({lname: "DCL:" + str(i + 1)}, false))
+
+# textlist[] and table[] size: in the old system whole spacings, with no
+# gap taken off as other elements take it.
+func _list_geom(g: PackedStringArray) -> Vector2:
+	if real_coordinates:
+		return _geom(g)
+	return Vector2(float(g[0]) * spacing.x, float(g[1]) * spacing.y)
+
+# GUITable's look in Luanti's skin, which textlist[] and table[] share: a
+# sunken pane in EGDC_3D_HIGH_LIGHT's near black, or no pane at all, white
+# text, rows a line of text and four pixels high, and the selected row in
+# EGDC_HIGH_LIGHT green with EGDC_HIGH_LIGHT_TEXT. Nothing marks the row
+# under the pointer.
+func _table_look(c: Control, background: Color, border: bool, text: Color, highlight: Color,
+		highlight_text: Color) -> void:
+	var pane: StyleBox
+	if border:
+		pane = _sunken_pane(background)
+	elif background.a > 0.0:
+		var flat := StyleBoxFlat.new()
+		flat.bg_color = background
+		pane = flat
+	else:
+		pane = StyleBoxEmpty.new()
+	pane.content_margin_left = 1
+	pane.content_margin_right = 1
+	pane.content_margin_top = 1
+	pane.content_margin_bottom = 1
+	c.add_theme_stylebox_override("panel", pane)
+	c.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	var sel := StyleBoxFlat.new()
+	sel.bg_color = highlight
+	for key in ["selected", "selected_focus", "hovered_selected", "hovered_selected_focus"]:
+		c.add_theme_stylebox_override(key, sel)
+	for key in ["hovered", "cursor", "cursor_unfocused"]:
+		c.add_theme_stylebox_override(key, StyleBoxEmpty.new())
+	c.add_theme_color_override("font_color", text)
+	c.add_theme_color_override("font_hovered_color", text)
+	c.add_theme_color_override("font_selected_color", highlight_text)
+	c.add_theme_color_override("font_hovered_selected_color", highlight_text)
+	# GUITable draws no rule between rows.
+	c.add_theme_color_override("guide_color", Color.TRANSPARENT)
+	c.add_theme_constant_override("v_separation", 4)
 
 # tableoptions[opt 1;opt 2;...]: colours and border for every following table.
 func _tableoptions(parts: PackedStringArray) -> void:
@@ -2114,7 +2169,7 @@ func _table(parts: PackedStringArray) -> void:
 				if tex:
 					item.set_icon(ci, tex)
 
-	_add(t, _pos(v), _geom(g))
+	_add(t, _pos(v), _list_geom(g))
 	var sel := int(parts[4]) if parts.size() >= 5 and parts[4].strip_edges() != "" else 0
 	if sel > 0:
 		_select_table_row(t, sel)
@@ -2126,23 +2181,17 @@ func _table(parts: PackedStringArray) -> void:
 	t.item_activated.connect(func() -> void:
 		submit({tname: "DCL:" + str(_table_row(t))}, false))
 
+# GUITable::setTable's options over the skin's defaults: text colour,
+# background, border, highlight and highlight text.
 func _apply_table_options(t: Tree) -> void:
-	if table_options.is_empty():
-		return
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = parse_color(String(table_options.get("background", "#000000")), Color.BLACK)
-	if String(table_options.get("border", "true")) != "false":
-		sb.set_border_width_all(1)
-		sb.border_color = Color(1, 1, 1, 0.25)
-	t.add_theme_stylebox_override("panel", sb)
-	if table_options.has("highlight"):
-		var hl := StyleBoxFlat.new()
-		hl.bg_color = parse_color(String(table_options["highlight"]), Color("466432"))
-		t.add_theme_stylebox_override("selected", hl)
-		t.add_theme_stylebox_override("selected_focus", hl)
-	if table_options.has("highlight_text"):
-		t.add_theme_color_override("font_selected_color",
-			parse_color(String(table_options["highlight_text"]), Color.WHITE))
+	var border := true
+	if table_options.has("border"):
+		border = _is_yes(String(table_options["border"]))
+	_table_look(t,
+		parse_color(String(table_options.get("background", "")), Color8(30, 30, 30)), border,
+		parse_color(String(table_options.get("color", "")), Color.WHITE),
+		parse_color(String(table_options.get("highlight", "")), Color8(70, 120, 50)),
+		parse_color(String(table_options.get("highlight_text", "")), Color.WHITE))
 
 # The 1-based row the table reports, which is the row it was built from
 # rather than its position among the currently expanded items.
