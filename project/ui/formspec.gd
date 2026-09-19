@@ -168,18 +168,45 @@ func _show(spec: String, name: String, screen: Vector2, prepend: String, want_gl
 func restyle() -> void:
 	if last_show.is_empty() or root == null:
 		return
-	var kept := collect_fields()
+	var kept := {}
+	for n in fields:
+		var old: Control = fields[n]
+		if not is_instance_valid(old):
+			continue
+		if old is LineEdit or old is TextEdit:
+			kept[n] = old.get("text")
+		elif old is CheckBox:
+			kept[n] = (old as CheckBox).button_pressed
+		elif old is OptionButton:
+			kept[n] = (old as OptionButton).selected
+		elif old is ItemList:
+			kept[n] = (old as ItemList).get_selected_items()
+		elif old is ScrollBar:
+			kept[n] = (old as ScrollBar).value
 	show_formspec(last_show[0], last_show[1], last_show[2], last_show[3])
+	# Put back what the player changed, without the signals that would send
+	# it to the server again. A tab header is left as the form says: choosing
+	# a tab already went to the server, which answers with the form to show.
 	var was := building
 	building = true
 	for n in kept:
 		var c: Control = fields.get(n)
 		if c == null or not is_instance_valid(c):
 			continue
-		if c is LineEdit or c is TextEdit:
-			c.set("text", kept[n])
-		elif c is CheckBox:
-			(c as CheckBox).set_pressed_no_signal(kept[n] == "true")
+		var v: Variant = kept[n]
+		if (c is LineEdit or c is TextEdit) and v is String:
+			c.set("text", v)
+		elif c is CheckBox and v is bool:
+			(c as CheckBox).set_pressed_no_signal(v)
+		elif c is OptionButton and v is int and v < (c as OptionButton).item_count:
+			(c as OptionButton).select(v)
+		elif c is ItemList and v is PackedInt32Array:
+			for i in v:
+				if i < (c as ItemList).item_count:
+					(c as ItemList).select(i)
+		elif c is ScrollBar and v is float:
+			(c as ScrollBar).set_value_no_signal(float(kept[n]))
+			_apply_scroll(n)
 	building = was
 
 func refresh_lists() -> void:

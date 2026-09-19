@@ -14,8 +14,8 @@ styles, chosen under Settings, Appearance, Interface style:
   them. Goanna's own screens look as they did before the glass existed.
 
 The change applies at once, in the main menu and in game, with no restart.
-An open form is rebuilt in the new style and keeps whatever the player has
-typed into it. The setting is stored as `interface_style` (`glass` or
+An open form is rebuilt in the new style and keeps what the player has typed,
+ticked, chosen, selected and scrolled to, without sending anything. The setting is stored as `interface_style` (`glass` or
 `game`) in the `settings` section of `goanna.cfg`; the control channel's
 `set interface_style 1` and `0` switch it too.
 

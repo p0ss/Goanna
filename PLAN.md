@@ -479,7 +479,7 @@ the fact.
   below 4.5:1 against the glass's worst case are lifted towards white, so
   Mineclonia's `#313131` labels read `#bababa`. The hotbar gets clear glass
   that does not read the screen. `docs/interface-style.md` has the rule and
-  the numbers. Verified: the formspec suite, now 398 checks (81 new, on what
+  the numbers. Verified: the formspec suite, now 402 checks (85 new, on what
   glass replaces and keeps, the slot frame rule's edge cases, the repeated
   theme, a book, the same fields sent in both styles, and the contrast
   arithmetic); live on fresh Mineclonia and Minetest Game worlds on the

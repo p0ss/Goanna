@@ -1716,10 +1716,19 @@ func _test_glass_sends_the_same() -> void:
 	var sent_now: Array = []
 	live.fields_submitted.connect(func(f: Dictionary, _q: bool) -> void: sent_now.append(f))
 	(live.fields["name"] as LineEdit).text = "Quokka"
+	(live.fields["ready"] as CheckBox).set_pressed_no_signal(false)
+	(live.fields["colour"] as OptionButton).select(2)
+	(live.fields["pick"] as ItemList).select(0)
+	(live.fields["bar"] as ScrollBar).set_value_no_signal(700)
 	live.style = "game"
 	live.restyle()
 	_check(not live.glass, "restyle rebuilds in the new style")
 	_equal((live.fields["name"] as LineEdit).text, "Quokka", "keeping what was typed")
+	_check(not (live.fields["ready"] as CheckBox).button_pressed, "and what was ticked")
+	_equal((live.fields["colour"] as OptionButton).selected, 2, "and the dropdown's choice")
+	_equal((live.fields["pick"] as ItemList).get_selected_items(), PackedInt32Array([0]),
+		"and the list's selection")
+	_equal((live.fields["bar"] as ScrollBar).value, 700.0, "and the scrollbar's place")
 	_check(sent_now.is_empty(), "and sending nothing")
 	_discard(live)
 
