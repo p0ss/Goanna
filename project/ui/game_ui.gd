@@ -2116,7 +2116,7 @@ func _draw_hotbar(st: Dictionary, pos: Vector2, offset: Vector2, dir: int, align
 		if nm != "":
 			var icon := item_icon(it.get("icon_item", nm))
 			if icon:
-				hud.draw_texture_rect(icon, r.grow(-imgsz * 0.08), false)
+				hud.draw_texture_rect(icon, r, false)
 			var c: int = it.get("count", 0)
 			if c > 1:
 				var fs := int(imgsz * 0.32)
@@ -2252,7 +2252,7 @@ func _draw_hud_inventory(pos: Vector2, e: Dictionary) -> void:
 		if nm != "":
 			var icon := item_icon(items[i].get("icon_item", nm))
 			if icon:
-				hud.draw_texture_rect(icon, r.grow(-imgsz * 0.08), false)
+				hud.draw_texture_rect(icon, r, false)
 
 func _draw_waypoint(e: Dictionary) -> void:
 	var cam := get_viewport().get_camera_3d()
