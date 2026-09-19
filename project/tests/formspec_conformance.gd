@@ -1028,6 +1028,47 @@ func _test_hypertext() -> void:
 		"global color sets the element default")
 	_discard(form)
 
+	# The page settings of <global>, wherever it stands, the shape
+	# VoxeLibre's announcement title uses; white text and a three pixel
+	# margin by default; and an action drawn in its hovercolor, red unless
+	# the page says otherwise, while the pointer is on it.
+	form = _new_form("formspec_version[6]size[10,8]"
+		+ "hypertext[0,0;9,2;title;<big>Title</big><global halign=center valign=middle>]"
+		+ "hypertext[0,3;9,2;links;<global margin=10 hovercolor=#00ff00>"
+		+ "<action name=one>One</action> <action name=two>Two</action>]"
+		+ "hypertext[0,6;9,1;plain;Plain]")
+	var title: RichTextLabel = form.named_controls["title"]
+	_equal(title.horizontal_alignment, HORIZONTAL_ALIGNMENT_CENTER, "<global halign=center>")
+	_equal(title.vertical_alignment, VERTICAL_ALIGNMENT_CENTER, "<global valign=middle>")
+	var plain_rt: RichTextLabel = form.named_controls["plain"]
+	_equal(plain_rt.get_theme_color("default_color"), Color.WHITE, "hypertext is white by default")
+	_equal(plain_rt.get_theme_stylebox("normal").content_margin_left, 3.0,
+		"with a three pixel margin")
+	var links: RichTextLabel = form.named_controls["links"]
+	_equal(links.get_theme_stylebox("normal").content_margin_left, 10.0, "<global margin=10>")
+	_equal(links.get_meta("action_colours"), ["#0000FF", "#0000FF"], "actions are blue at rest")
+	form._render_markup(links, form.fs_unescape("<global margin=10 hovercolor=#00ff00>"
+		+ "<action name=one>One</action> <action name=two>Two</action>"), 1)
+	_equal(links.get_meta("action_colours"), ["#0000FF", "#00ff00"],
+		"the hovered action takes the page's hovercolor")
+	form._render_markup(plain_rt, "<action name=x>X</action>", 0)
+	_equal(plain_rt.get_meta("action_colours"), ["#FF0000"], "the default hovercolor is red")
+	var submitted: Array = []
+	form.fields_submitted.connect(func(fields: Dictionary, _quit: bool) -> void:
+		submitted.append(fields))
+	links.meta_clicked.emit({"index": 0, "name": "one", "url": ""})
+	_check(submitted.size() == 1 and submitted[0].get("links") == "action:one",
+		"clicking an action sends action:<name> under the element's name")
+	_discard(form)
+	# The old coordinate system places hypertext without the padding, a
+	# button-height lower.
+	var old := _new_form("size[8,6]hypertext[1,1;4,2;old;Old]")
+	var old_rt: RichTextLabel = old.named_controls["old"]
+	var expected := Vector2(old.spacing.x, old.spacing.y + old.imgsize * 15.0 / 13.0 * 0.35)
+	_check((old_rt.position - expected).abs().x <= 1.0 and (old_rt.position - expected).abs().y <= 1.0,
+		"an old-system hypertext starts without the form padding, a button-height down")
+	_discard(old)
+
 
 # tablecolumns[] declares the layout; color and indent columns consume a cell
 # each without being a column the player sees.

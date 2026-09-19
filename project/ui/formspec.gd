@@ -1270,44 +1270,76 @@ const MARKUP_TAGS := {
 	"right": {"halign": "right"},
 }
 const MARKUP_ROOT_SIZE := 16.0
+# The root tag's hovercolor, which every action inherits.
+const MARKUP_HOVER := "#FF0000"
 
-# hypertext[x,y;w,h;name;text]
+# hypertext[x,y;w,h;name;text] (parseHyperText): white text, no selection.
+# The old system starts it without the form padding, a button-height lower,
+# with its height in slots less one gap.
 func _hypertext(parts: PackedStringArray) -> void:
-	if parts.size() < 4:
+	if parts.size() != 4:
 		return
 	var v := fs_split(parts[0], ",")
 	var g := fs_split(parts[1], ",")
 	if v.size() < 2 or g.size() < 2:
 		return
+	var rect: Rect2
+	if real_coordinates:
+		rect = Rect2(_pos(v), _geom(g))
+	else:
+		var p := _pos(v) - padding
+		rect = Rect2(p.x, p.y + _button_height(), float(g[0]) * spacing.x - (spacing.x - imgsize),
+			float(g[1]) * imgsize - (spacing.y - imgsize))
 	var hname := fs_unescape(parts[2])
 	var rt := RichTextLabel.new()
 	rt.bbcode_enabled = false
 	rt.scroll_active = true
-	rt.selection_enabled = true
-	rt.add_theme_font_size_override("normal_font_size", _font_size())
-	rt.add_theme_color_override("default_color", Color.html("EEEEEE"))
-	_add(rt, _pos(v), _geom(g))
+	rt.selection_enabled = false
+	rt.add_theme_color_override("default_color", Color.WHITE)
+	_add(rt, rect.position, rect.size)
 	_register_named_control(hname, rt)
+	var text := fs_unescape(_resolve(parts[3]))
+	rt.set_meta("hovered_action", -1)
 	# <action> sends "action:<name>" under the element's own field name, and
 	# may carry a url, which is offered rather than opened (see _offer_url).
 	rt.meta_clicked.connect(func(meta: Variant) -> void:
-		var m := String(meta)
-		var bar := m.find("\u0001")
-		if bar >= 0:
-			_offer_url(m.substr(bar + 1))
-			m = m.substr(0, bar)
-		if m != "":
-			submit({hname: "action:" + m}, false))
-	_render_markup(rt, fs_unescape(_resolve(parts[3])))
+		var m: Dictionary = meta
+		if String(m.get("url", "")) != "":
+			_offer_url(String(m["url"]))
+		if String(m.get("name", "")) != "":
+			submit({hname: "action:" + String(m["name"])}, false))
+	# An action is drawn in its hovercolor while the pointer is on it
+	# (TextDrawer::draw), so the text is laid out again for that action.
+	rt.meta_hover_started.connect(func(meta: Variant) -> void:
+		var idx := int((meta as Dictionary).get("index", -1))
+		if idx != int(rt.get_meta("hovered_action")):
+			rt.set_meta("hovered_action", idx)
+			_render_markup.call_deferred(rt, text, idx))
+	rt.meta_hover_ended.connect(func(_meta: Variant) -> void:
+		if int(rt.get_meta("hovered_action")) != -1:
+			rt.set_meta("hovered_action", -1)
+			_render_markup.call_deferred(rt, text, -1))
+	_render_markup(rt, text, -1)
 
 # Walks Luanti's hypertext markup and drives the RichTextLabel directly
 # rather than translating to BBCode: <img> and <item> name client media and
-# item stacks, which BBCode has no way to address.
-func _render_markup(rt: RichTextLabel, text: String) -> void:
+# item stacks, which BBCode has no way to address. `hover` is the number of
+# the action under the pointer, counted in order of appearance, or -1.
+func _render_markup(rt: RichTextLabel, text: String, hover := -1) -> void:
+	if not is_instance_valid(rt):
+		return
+	rt.clear()
+	# The colour each action was drawn in, in order, for the suite to read.
+	rt.set_meta("action_colours", [])
 	var tags := {}
 	for k in MARKUP_TAGS:
 		tags[k] = (MARKUP_TAGS[k] as Dictionary).duplicate()
-	var open_stack: Array = []          # pops owed to each open tag
+	var root := _apply_markup_page(rt, _markup_page(text))
+	var stack: Array = [{"pops": 0, "style": root}]
+	if String(root["font"]) == "mono":
+		rt.push_mono()
+		stack[0]["pops"] = 1
+	var state := {"actions": 0, "hover": hover}
 	var i := 0
 	var run := ""
 	var n := text.length()
@@ -1329,34 +1361,88 @@ func _render_markup(rt: RichTextLabel, text: String) -> void:
 		if run != "":
 			rt.add_text(run)
 			run = ""
-		_markup_tag(rt, text.substr(i + 1, close - i - 1), tags, open_stack)
+		_markup_tag(rt, text.substr(i + 1, close - i - 1), tags, stack, state)
 		i = close + 1
 	if run != "":
 		rt.add_text(run)
-	while open_stack.size() > 0:
-		for _p in range(int(open_stack.pop_back())):
+	while stack.size() > 0:
+		for _p in int(stack.pop_back()["pops"]):
 			rt.pop()
 
-# Hypertext markup as plain text: tags dropped and escapes resolved, the way
-# _render_markup reads them. For hypertip[], which a plain tooltip shows.
-static func markup_plain(text: String) -> String:
-	var out := ""
+# The page settings <global> carries (ParsedText::globalTag), gathered from
+# the whole text wherever the tag stands, since upstream lays the page out
+# after it has parsed all of it.
+static func _markup_page(text: String) -> Dictionary:
+	var page := {}
 	var i := 0
-	var n := text.length()
-	while i < n:
-		var ch := text[i]
-		if ch == "\\" and i + 1 < n:
-			out += text[i + 1]
-			i += 2
+	while i < text.length():
+		var at := text.find("<", i)
+		if at < 0:
+			break
+		if at > 0 and text[at - 1] == "\\":
+			i = at + 1
 			continue
-		if ch == "<":
-			var close := _markup_tag_end(text, i)
-			if close >= 0:
-				i = close + 1
-				continue
-		out += ch
-		i += 1
-	return out
+		var close := _markup_tag_end(text, at)
+		if close < 0:
+			break
+		var body := text.substr(at + 1, close - at - 1).strip_edges()
+		var space := body.find(" ")
+		if space >= 0 and body.substr(0, space).to_lower() == "global":
+			var attrs := _markup_attrs(body.substr(space + 1))
+			for k in attrs:
+				page[k] = attrs[k]
+		i = close + 1
+	return page
+
+# Applies the page settings to the label and returns the root style every
+# span inherits. The margin, vertical alignment, background and horizontal
+# alignment belong to the page; the text colour, hover colour, size and font
+# change the root style, each only when valid, as parseGenericStyleAttr
+# checks them.
+func _apply_markup_page(rt: RichTextLabel, page: Dictionary) -> Dictionary:
+	var root := {"hovercolor": MARKUP_HOVER, "size": "16", "font": "normal"}
+	if page.has("color") and _is_colour(String(page["color"])):
+		rt.add_theme_color_override("default_color", parse_color(String(page["color"]), Color.WHITE))
+	if page.has("hovercolor") and _is_colour(String(page["hovercolor"])):
+		root["hovercolor"] = page["hovercolor"]
+	if page.has("size") and String(page["size"]).is_valid_int():
+		root["size"] = page["size"]
+	if page.get("font", "") in ["mono", "normal"]:
+		root["font"] = page["font"]
+	rt.add_theme_font_size_override("normal_font_size", _markup_size(String(root["size"])))
+	for key in ["bold_font_size", "italics_font_size", "bold_italics_font_size", "mono_font_size"]:
+		rt.add_theme_font_size_override(key, _markup_size(String(root["size"])))
+	match String(page.get("halign", "")):
+		"center":
+			rt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		"right":
+			rt.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		"justify":
+			rt.horizontal_alignment = HORIZONTAL_ALIGNMENT_FILL
+		_:
+			rt.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	match String(page.get("valign", "")):
+		"middle":
+			rt.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		"bottom":
+			rt.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+		_:
+			rt.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	var margin := HYPERTEXT_MARGIN
+	if String(page.get("margin", "")).is_valid_int():
+		margin = float(page["margin"])
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color.TRANSPARENT
+	var bg := String(page.get("background", ""))
+	if bg != "" and bg != "none" and _is_colour(bg):
+		sb.bg_color = parse_color(bg, Color.TRANSPARENT)
+	sb.content_margin_left = margin
+	sb.content_margin_right = margin
+	sb.content_margin_top = margin
+	sb.content_margin_bottom = margin
+	rt.add_theme_stylebox_override("normal", sb)
+	rt.set_meta("markup_margin", margin)
+	return root
 
 # The index of the > that closes the tag opening at `start`, skipping any
 # inside a quoted attribute value. Returns -1 if the tag is never closed.
@@ -1378,14 +1464,17 @@ static func _markup_tag_end(text: String, start: int) -> int:
 		i += 1
 	return -1
 
-# One tag body, without its angle brackets.
-func _markup_tag(rt: RichTextLabel, body: String, tags: Dictionary, open_stack: Array) -> void:
+# One tag body, without its angle brackets. `stack` holds, for each open
+# span, the pops it owes and the style in force inside it; the root style is
+# at the bottom and is never closed.
+func _markup_tag(rt: RichTextLabel, body: String, tags: Dictionary, stack: Array,
+		state: Dictionary) -> void:
 	body = body.strip_edges()
 	if body == "":
 		return
 	if body.begins_with("/"):
-		if open_stack.size() > 0:
-			for _p in range(int(open_stack.pop_back())):
+		if stack.size() > 1:
+			for _p in int(stack.pop_back()["pops"]):
 				rt.pop()
 		return
 	var space := body.find(" ")
@@ -1393,44 +1482,32 @@ func _markup_tag(rt: RichTextLabel, body: String, tags: Dictionary, open_stack: 
 	var attrs := _markup_attrs(body.substr(space + 1)) if space >= 0 else {}
 	match name:
 		"global":
-			# Applies to the element as a whole rather than to a span.
-			if attrs.has("color"):
-				rt.add_theme_color_override("default_color",
-					parse_color(String(attrs["color"]), Color.html("EEEEEE")))
-			if attrs.has("size"):
-				rt.add_theme_font_size_override("normal_font_size", _markup_size(String(attrs["size"])))
-			if attrs.has("background"):
-				var sb := StyleBoxFlat.new()
-				sb.bg_color = Color.TRANSPARENT if String(attrs["background"]) == "none" \
-					else parse_color(String(attrs["background"]), Color.TRANSPARENT)
-				if attrs.has("margin"):
-					var m := float(attrs["margin"])
-					sb.content_margin_left = m
-					sb.content_margin_right = m
-					sb.content_margin_top = m
-					sb.content_margin_bottom = m
-				rt.add_theme_stylebox_override("normal", sb)
+			# Page settings, already applied by _apply_markup_page.
 			return
 		"tag":
 			# Defines or redefines a tag, which later spans can then open.
 			var tname := String(attrs.get("name", "")).to_lower()
 			if tname != "":
-				var style: Dictionary = tags.get(tname, {}).duplicate()
+				var defined: Dictionary = tags.get(tname, {}).duplicate()
 				for k in ["color", "hovercolor", "size", "font"]:
 					if attrs.has(k):
-						style[k] = attrs[k]
-				tags[tname] = style
+						defined[k] = attrs[k]
+				tags[tname] = defined
 			return
 		"img", "item":
 			_markup_image(rt, name, attrs)
 			return
-	# An opening span: either a style tag or one of the defined tags.
+	var outer: Dictionary = stack.back()["style"]
+	# An opening span: either a style tag or one of the defined tags. An
+	# unknown tag renders as nothing, as upstream's parser does, but still
+	# takes a place on the stack so its closing tag pops only itself.
 	var style: Dictionary = attrs if name == "style" else tags.get(name, {})
 	if style.is_empty() and name != "style":
-		# An unknown tag renders as nothing, as upstream's parser does; keep
-		# the stack balanced so its closing tag does not pop someone else.
-		open_stack.append(0)
+		stack.append({"pops": 0, "style": outer})
 		return
+	var inner := outer.duplicate()
+	for k in style:
+		inner[k] = style[k]
 	var pushes := 0
 	if String(style.get("halign", "")) != "":
 		match String(style["halign"]):
@@ -1439,33 +1516,41 @@ func _markup_tag(rt: RichTextLabel, body: String, tags: Dictionary, open_stack: 
 			"justify": rt.push_paragraph(HORIZONTAL_ALIGNMENT_FILL)
 			_: rt.push_paragraph(HORIZONTAL_ALIGNMENT_LEFT)
 		pushes += 1
+	var colour := String(style.get("color", ""))
 	if name == "action":
-		var meta := String(attrs.get("name", ""))
-		if attrs.has("url"):
-			meta += "\u0001" + String(attrs["url"])
-		rt.push_meta(meta)
+		var index: int = state["actions"]
+		state["actions"] = index + 1
+		rt.push_meta({"index": index, "name": String(attrs.get("name", "")),
+			"url": String(attrs.get("url", ""))})
 		pushes += 1
-	if String(style.get("color", "")) != "":
-		rt.push_color(parse_color(String(style["color"]), Color.html("EEEEEE")))
+		if index == int(state["hover"]):
+			colour = String(inner.get("hovercolor", MARKUP_HOVER))
+		var drawn: Array = rt.get_meta("action_colours", [])
+		drawn.append(colour)
+		rt.set_meta("action_colours", drawn)
+	if colour != "" and _is_colour(colour):
+		rt.push_color(parse_color(colour, Color.WHITE))
 		pushes += 1
-	if String(style.get("size", "")) != "":
+	if String(style.get("size", "")).is_valid_int():
 		rt.push_font_size(_markup_size(String(style["size"])))
 		pushes += 1
-	if String(style.get("font", "")) == "mono":
-		var mono := rt.get_theme_font("mono_font")
-		if mono != null:
-			rt.push_font(mono)
+	match String(style.get("font", "")):
+		"mono":
+			rt.push_mono()
 			pushes += 1
-	if String(style.get("bold", "")) == "true":
+		"normal":
+			rt.push_font(rt.get_theme_font("normal_font"))
+			pushes += 1
+	if _is_yes(String(style.get("bold", ""))):
 		rt.push_bold()
 		pushes += 1
-	if String(style.get("italic", "")) == "true":
+	if _is_yes(String(style.get("italic", ""))):
 		rt.push_italics()
 		pushes += 1
-	if String(style.get("underline", "")) == "true":
+	if _is_yes(String(style.get("underline", ""))):
 		rt.push_underline()
 		pushes += 1
-	open_stack.append(pushes)
+	stack.append({"pops": pushes, "style": inner})
 
 # <img name=... width=... height=...> and the same for <item>, whose name is
 # an item string rather than a texture.
@@ -2416,14 +2501,16 @@ func _build_tooltip_box(tip: Dictionary) -> Control:
 				sbt.texture_margin_right = m.z
 				sbt.texture_margin_bottom = m.w
 				panel = sbt
+		# The markup's own margin, three pixels unless <global margin=...>
+		# says otherwise, lies inside the label's stylebox.
 		var width := maxf(float(tip["width"]), HYPERTEXT_MARGIN * 2.0 + 1.0)
 		rt.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		rt.position = Vector2(HYPERTEXT_MARGIN, HYPERTEXT_MARGIN)
-		rt.size = Vector2(width - HYPERTEXT_MARGIN * 2.0, 1)
+		rt.size = Vector2(width, 1)
 		_render_markup(rt, String(tip["markup"]))
-		var height := float(rt.get_content_height())
-		rt.size.y = height
-		box.size = Vector2(width, height + HYPERTEXT_MARGIN * 2.0).ceil()
+		var margin: float = rt.get_meta("markup_margin", HYPERTEXT_MARGIN)
+		var height := float(rt.get_content_height()) + margin * 2.0
+		rt.size = Vector2(width, height).ceil()
+		box.size = rt.size
 	else:
 		frame.set_border_width_all(1)
 		var font := get_theme_default_font()
