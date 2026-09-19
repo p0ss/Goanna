@@ -73,5 +73,12 @@ which server, which game and which Godot version when you record a result.
   `GoannaSession`.
 - The build output must land in `project/bin/`, where the `.gdextension`
   expects it.
+- Test clients run headless, through `tools/goanna-headless` or the MCP
+  server (`tools/goanna-mcp`), never as windows on the owner's desktop.
+  Never inject input into the owner's display (`DISPLAY=:0`,
+  `WAYLAND_DISPLAY=wayland-0`) with xdotool, ydotool or anything else: the
+  control channel's `ui_*` and `key` commands drive clients from inside.
+  Stop processes only by the PIDs you started, never by name. The rules are
+  in `docs/agent-interfaces.md`.
 - Commit messages: imperative, under 72 characters, no full stop, then a
   body explaining why. Sign off with `git commit -s`.
