@@ -13,6 +13,7 @@ extends Control
 const CFG_PATH := "user://goanna.cfg"
 const LocalServer := preload("res://local_server.gd")
 const AssetUpdater := preload("res://asset_updater.gd")
+const GlassStyle := preload("res://ui/glass_style.gd")
 const SKIP_VARS := ["GOANNA_HOST", "GOANNA_NAME", "GOANNA_SHOT", "GOANNA_SMOKE",
 	"GOANNA_WALKTEST", "GOANNA_TOGGLETEST", "GOANNA_ANIMPROBE", "GOANNA_MOBTEST",
 	"GOANNA_USETEST", "GOANNA_MINETEST", "GOANNA_DIGDOWNTEST", "GOANNA_MANTLETEST"]
@@ -96,6 +97,7 @@ func _ready() -> void:
 			if OS.get_environment(v) != "":
 				_go_to_game()
 				return
+	add_to_group(GlassStyle.GROUP)
 	_build_frame()
 	_show_main()
 	if showcase_launch:
@@ -173,6 +175,13 @@ var _screen_title := ""
 # Reading the png directly covers a source checkout whose import step has not
 # run; load() covers an exported build, where only the imported form ships.
 func _background_texture() -> Texture2D:
+	# Development aid: GOANNA_MENU_BACKDROP=<png> puts another picture behind
+	# the menu, so screenshots can show the panel over more than one scene.
+	var other := OS.get_environment("GOANNA_MENU_BACKDROP")
+	if other != "":
+		var picked := Image.new()
+		if picked.load(other) == OK:
+			return ImageTexture.create_from_image(picked)
 	# ResourceLoader.exists first: *.import is not committed (see .gitignore),
 	# so on a checkout that has not been imported yet load() would print a "no
 	# loader found" error every launch before the fallback below succeeds.
@@ -215,7 +224,12 @@ func _build_frame() -> void:
 	centre.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(centre)
 	var panel := PanelContainer.new()
-	if shot != null:
+	# Dark glass: the shared Theme dresses every control on every screen, and
+	# the panel is a pane of glass over the still.
+	theme = GlassStyle.theme() if GlassStyle.is_glass() else null
+	if GlassStyle.is_glass():
+		GlassStyle.back(panel)
+	elif shot != null:
 		var panel_style := StyleBoxFlat.new()
 		panel_style.bg_color = Color(0.035, 0.05, 0.08, 0.91)
 		panel_style.border_color = Color(0.55, 0.68, 0.82, 0.42)
@@ -233,6 +247,16 @@ func _build_frame() -> void:
 	if shot != null:
 		_panel_box.custom_minimum_size = Vector2(360, 0)
 	margin.add_child(_panel_box)
+
+# The interface style changed (Settings, Appearance): rebuild the frame in the
+# new style and come back to the settings screen, where the change was made.
+func interface_style_changed() -> void:
+	for c in get_children():
+		if c is CanvasItem and c != server:
+			remove_child(c)
+			c.queue_free()
+	_build_frame()
+	_show_settings()
 
 func _start_showcase() -> void:
 	var env := LocalServer.detect()
@@ -297,12 +321,12 @@ func _new_screen(title: String, subtitle: String) -> void:
 		var h := Label.new()
 		h.text = title
 		h.add_theme_font_size_override("font_size", 18)
-		h.modulate = Color(1, 1, 1, 0.85)
+		GlassStyle.tint_text(h, Color(1, 1, 1, 0.85))
 		_panel_box.add_child(h)
 	if subtitle != "":
 		var s := Label.new()
 		s.text = subtitle
-		s.modulate = Color(1, 1, 1, 0.6)
+		GlassStyle.tint_text(s, Color(1, 1, 1, 0.6))
 		s.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_panel_box.add_child(s)
 	screen = VBoxContainer.new()
@@ -321,7 +345,7 @@ func _new_screen(title: String, subtitle: String) -> void:
 	status_label.selection_enabled = true
 	status_label.fit_content = true
 	status_label.scroll_active = false
-	status_label.modulate = Color(1, 1, 1, 0.6)
+	GlassStyle.tint_text(status_label, Color(1, 1, 1, 0.6))
 	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_panel_box.add_child(status_label)
 
@@ -333,7 +357,7 @@ func _button(text: String, cb: Callable) -> Button:
 
 func _fail(msg: String) -> void:
 	status_label.text = msg
-	status_label.modulate = Color(1, 0.6, 0.5)
+	GlassStyle.tint_text(status_label, Color(1, 0.6, 0.5))
 
 # --- main screen -------------------------------------------------------------
 
@@ -385,13 +409,13 @@ func _show_content() -> void:
 		if (sec[1] as Array).is_empty():
 			var none := Label.new()
 			none.text = "    none"
-			none.modulate = Color(1, 1, 1, 0.5)
+			GlassStyle.tint_text(none, Color(1, 1, 1, 0.5))
 			box.add_child(none)
 			continue
 		for item in sec[1]:
 			var l := Label.new()
 			l.text = "    " + str(item)
-			l.modulate = Color(1, 1, 1, 0.8)
+			GlassStyle.tint_text(l, Color(1, 1, 1, 0.8))
 			box.add_child(l)
 	status_label.text = data_dir
 	screen.add_child(_button("Back", _show_main))
@@ -451,7 +475,7 @@ func _show_luanti(reason := "", rescan := false) -> void:
 		var detail := Label.new()
 		detail.text = _install_detail(inst)
 		detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		detail.modulate = Color(1, 1, 1, 0.55)
+		GlassStyle.tint_text(detail, Color(1, 1, 1, 0.55))
 		list.add_child(detail)
 	var actions := HFlowContainer.new()
 	actions.add_theme_constant_override("h_separation", 8)
@@ -473,7 +497,7 @@ func _show_luanti(reason := "", rescan := false) -> void:
 	places.selection_enabled = true
 	places.custom_minimum_size = Vector2(0, 150)
 	places.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	places.modulate = Color(1, 1, 1, 0.55)
+	GlassStyle.tint_text(places, Color(1, 1, 1, 0.55))
 	places.text = "\n".join(LocalServer.search_places())
 	places.visible = all.is_empty()
 	var show_places := CheckButton.new()
@@ -519,7 +543,7 @@ func _luanti_row(inst: Dictionary) -> void:
 	var row := HBoxContainer.new()
 	var label := Label.new()
 	label.text = "Using " + _install_title(inst)
-	label.modulate = Color(1, 1, 1, 0.7)
+	GlassStyle.tint_text(label, Color(1, 1, 1, 0.7))
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	row.add_child(label)
@@ -557,7 +581,7 @@ func _open_luanti() -> void:
 	if OS.create_process(argv[0], argv.slice(1)) <= 0:
 		_fail("Could not start %s." % argv[0])
 		return
-	status_label.modulate = Color(1, 1, 1, 0.7)
+	GlassStyle.tint_text(status_label, Color(1, 1, 1, 0.7))
 	status_label.text = "Luanti is starting. Install a game from its Content tab, then come back and press Rescan."
 
 # What Install Luanti does here, as its button says it, or "" where Goanna
@@ -633,12 +657,12 @@ func _poll_luanti_install() -> bool:
 			_finish_flatpak_install()
 			return false
 		if here:
-			status_label.modulate = Color(1, 1, 1, 0.7)
+			GlassStyle.tint_text(status_label, Color(1, 1, 1, 0.7))
 			status_label.text = "Installing Luanti from Flathub, %d s so far. A first Flatpak install also downloads the runtime Luanti needs, which can take several minutes." % int(_now() - _luanti_install_started)
 		return true
 	if luanti_http != null:
 		if here:
-			status_label.modulate = Color(1, 1, 1, 0.7)
+			GlassStyle.tint_text(status_label, Color(1, 1, 1, 0.7))
 			status_label.text = "Downloading Luanti: %.1f / %.1f MB" % [
 				luanti_http.get_downloaded_bytes() / 1000000.0,
 				int(LocalServer.LUANTI_WINDOWS["bytes"]) / 1000000.0]
@@ -760,7 +784,7 @@ func _menu_graphics_page(box: VBoxContainer, cfg: ConfigFile) -> void:
 	var picker := OptionButton.new()
 	var blurb := Label.new()
 	blurb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	blurb.modulate = Color(1, 1, 1, 0.72)
+	GlassStyle.tint_text(blurb, Color(1, 1, 1, 0.72))
 	var names: Array = GraphicsProfiles.ORDER.duplicate()
 	names.append("custom")
 	for i in names.size():
@@ -813,7 +837,7 @@ func _menu_graphics_page(box: VBoxContainer, cfg: ConfigFile) -> void:
 			group = tab
 			var sub := Label.new()
 			sub.text = tab
-			sub.modulate = Color(1, 1, 1, 0.6)
+			GlassStyle.tint_text(sub, Color(1, 1, 1, 0.6))
 			rest.add_child(sub)
 		_settings_row(rest, row, cfg)
 
@@ -824,6 +848,29 @@ func _settings_row(box: VBoxContainer, row: Array, cfg: ConfigFile) -> void:
 	var label := Label.new()
 	label.text = str(row[3])
 	box.add_child(label)
+	if kind == "choice":
+		# One of a few named values, stored as text. The interface style is the
+		# only one, and it applies straight away, here as in game.
+		var picker := OptionButton.new()
+		var current := str(cfg.get_value("settings", key, (row[5] as Array)[0][0]))
+		for choice in row[5]:
+			picker.add_item(str(choice[1]))
+			picker.set_item_metadata(picker.item_count - 1, str(choice[0]))
+			if str(choice[0]) == current:
+				picker.select(picker.item_count - 1)
+		picker.item_selected.connect(func(i: int) -> void:
+			var value := str(picker.get_item_metadata(i))
+			if key == GlassStyle.KEY:
+				GlassStyle.set_mode(value)
+			else:
+				_save_setting_text(key, value))
+		box.add_child(picker)
+		var cd := Label.new()
+		cd.text = str(row[4])
+		cd.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		GlassStyle.tint_text(cd, Color(1, 1, 1, 0.55))
+		box.add_child(cd)
+		return
 	if kind == "pack":
 		# The same dropdown the in-game panel builds (ui/game_ui.gd): the packs
 		# the detected Luanti install carries, by name, plus Other for a
@@ -871,7 +918,7 @@ func _settings_row(box: VBoxContainer, row: Array, cfg: ConfigFile) -> void:
 		var kd := Label.new()
 		kd.text = str(row[4])
 		kd.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		kd.modulate = Color(1, 1, 1, 0.55)
+		GlassStyle.tint_text(kd, Color(1, 1, 1, 0.55))
 		box.add_child(kd)
 		return
 	if kind == "path":
@@ -886,7 +933,7 @@ func _settings_row(box: VBoxContainer, row: Array, cfg: ConfigFile) -> void:
 		var pd := Label.new()
 		pd.text = str(row[4])
 		pd.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		pd.modulate = Color(1, 1, 1, 0.55)
+		GlassStyle.tint_text(pd, Color(1, 1, 1, 0.55))
 		box.add_child(pd)
 		return
 	var current: float = float(cfg.get_value("settings", key, _settings_default(row)))
@@ -922,7 +969,7 @@ func _settings_row(box: VBoxContainer, row: Array, cfg: ConfigFile) -> void:
 		# rather than presenting a guess as the current state.
 		desc.text += "\n(not recorded yet: join a world once, or set it here)"
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	desc.modulate = Color(1, 1, 1, 0.55)
+	GlassStyle.tint_text(desc, Color(1, 1, 1, 0.55))
 	box.add_child(desc)
 
 # Placeholder for a setting goanna.cfg has never carried, which happens only
@@ -955,7 +1002,7 @@ func _show_about() -> void:
 	_new_screen("About", "")
 	var body := Label.new()
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	body.modulate = Color(1, 1, 1, 0.85)
+	GlassStyle.tint_text(body, Color(1, 1, 1, 0.85))
 	body.text = """Goanna is a second client for Luanti servers: the same worlds and the same games, drawn with Godot 4 instead of Luanti's own renderer. It carries Luanti's client logic for networking, movement and node meshing, and replaces only what Irrlicht used to provide.
 
 Goanna is an independent project. It is not affiliated with, endorsed by or supported by the Luanti project. The name "Luanti" is used only to identify the software Goanna interoperates with.
@@ -977,7 +1024,7 @@ Licence: LGPL-2.1-or-later, matching the Luanti client code it carries. godot-cp
 			["Luanti data", data_dir if data_dir != "" else "not found"]]:
 		var k := Label.new()
 		k.text = str(row[0])
-		k.modulate = Color(1, 1, 1, 0.6)
+		GlassStyle.tint_text(k, Color(1, 1, 1, 0.6))
 		grid.add_child(k)
 		var v := Label.new()
 		v.text = str(row[1])
@@ -1065,7 +1112,7 @@ func _show_new_game() -> void:
 	world_page.add_child(terrain_description)
 	terrain_download_label = Label.new()
 	terrain_download_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	terrain_download_label.modulate = Color(1, 1, 1, 0.6)
+	GlassStyle.tint_text(terrain_download_label, Color(1, 1, 1, 0.6))
 	world_page.add_child(terrain_download_label)
 	creative_check = CheckBox.new()
 	creative_check.text = "Creative mode"
@@ -1094,7 +1141,7 @@ func _show_new_game() -> void:
 	var compatibility := Label.new()
 	compatibility.text = "Terrain Diffusion uses any game's registered biomes. Mineclonia currently has the fullest vegetation support."
 	compatibility.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	compatibility.modulate = Color(1, 1, 1, 0.55)
+	GlassStyle.tint_text(compatibility, Color(1, 1, 1, 0.55))
 	world_page.add_child(compatibility)
 
 	var mods_scroll := ScrollContainer.new()
@@ -1156,7 +1203,7 @@ func _show_new_game() -> void:
 	var warning := Label.new()
 	warning.text = "Announcing exposes the server publicly. Your network may also require port forwarding."
 	warning.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	warning.modulate = Color(1, 0.8, 0.55, 0.8)
+	GlassStyle.tint_text(warning, Color(1, 0.8, 0.55, 0.8))
 	hosting_box.add_child(warning)
 	hosting_box.visible = false
 	host_check.toggled.connect(func(on: bool) -> void: hosting_box.visible = on)
@@ -1314,7 +1361,7 @@ func _start_terrain_download() -> void:
 		_fail("Could not start the Terrain Diffusion download.")
 		return
 	start_button.disabled = true
-	status_label.modulate = Color(1, 1, 1, 0.7)
+	GlassStyle.tint_text(status_label, Color(1, 1, 1, 0.7))
 	status_label.text = "Downloading Terrain Diffusion default world ..."
 	set_process(true)
 
@@ -1482,7 +1529,7 @@ func _on_start_local() -> void:
 		_fail(err)
 		return
 	start_button.disabled = true
-	status_label.modulate = Color(1, 1, 1, 0.7)
+	GlassStyle.tint_text(status_label, Color(1, 1, 1, 0.7))
 	status_label.text = "Starting %s ..." % world
 	server_deadline = _now() + 20.0
 	set_process(true)
@@ -1749,7 +1796,7 @@ func _on_server_list(_result: int, code: int, _headers: PackedStringArray, body:
 		it.set_metadata(0, e)
 		shown += 1
 	status_label.text = "%d servers. Pick one to fill the fields below, or double click to join." % shown
-	status_label.modulate = Color(1, 1, 1, 0.6)
+	GlassStyle.tint_text(status_label, Color(1, 1, 1, 0.6))
 
 func _server_list_message(msg: String) -> void:
 	if not is_instance_valid(server_tree):
@@ -1771,7 +1818,7 @@ func _on_server_picked() -> void:
 	# Said plainly rather than left to be discovered at the loading screen: a
 	# large public server sends a great deal of media before it lets anyone in.
 	status_label.text = "%s. Joining a large server can take a while at the media step." % str(e.get("name", ""))
-	status_label.modulate = Color(1, 1, 1, 0.6)
+	GlassStyle.tint_text(status_label, Color(1, 1, 1, 0.6))
 
 func _on_connect() -> void:
 	var host := host_edit.text.strip_edges()
@@ -1818,7 +1865,7 @@ func _on_connect() -> void:
 	OS.set_environment("GOANNA_PASS", pass_edit.text)
 	OS.set_environment("GOANNA_SP_PID", "")
 	connect_button.disabled = true
-	status_label.modulate = Color(1, 1, 1, 0.7)
+	GlassStyle.tint_text(status_label, Color(1, 1, 1, 0.7))
 	status_label.text = "Connecting to %s:%s as %s" % [host, port_text, pname]
 	_go_to_game()
 

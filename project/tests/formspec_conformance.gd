@@ -143,6 +143,7 @@ func _run() -> void:
 	_test_glass_bespoke()
 	_test_glass_sends_the_same()
 	_test_glass_legibility()
+	_test_glass_setting()
 	await _write_reference_shots()
 	if failures == 0:
 		print("formspec conformance: PASS: ", checks, " checks")
@@ -1742,6 +1743,23 @@ func _test_glass_legibility() -> void:
 	var red := GlassStyle.ink(Color.RED)
 	_check(red.r > red.g and red.r > red.b, "a lifted colour keeps its hue")
 	_check(GlassStyle.PANEL_WORST < 0.1, "the glass is never brighter than a dark grey")
+
+# The player setting: two named choices in the Appearance tab, stored as text.
+func _test_glass_setting() -> void:
+	var row: Array = []
+	for entry in GameUi.SETTINGS:
+		if entry[1] == GlassStyle.KEY:
+			row = entry
+	_check(not row.is_empty(), "the interface style is a setting")
+	if not row.is_empty():
+		_equal(row[0], "Appearance", "in the Appearance tab")
+		_equal(row[2], "choice", "as a choice")
+		var values: Array = []
+		for choice in row[5]:
+			values.append(choice[0])
+		_equal(values, ["glass", "game"], "of dark glass, the default, and the game theme")
+	_check(GameUi.TEXT_SETTING_KINDS.has("choice"), "stored as text, not a number")
+
 
 func _colorrect_of(node: Node, colour: Color) -> ColorRect:
 	for candidate in _nodes_of_type(node, "ColorRect"):
