@@ -605,7 +605,7 @@ func _hide_window() -> void:
 
 # Through main.gd, which in test mode never takes the OS pointer.
 func _set_pointer_captured(on: bool) -> void:
-	var m := _main_node()
+	var m := _main_node() if is_inside_tree() else null
 	if m != null and m.has_method("set_pointer_captured"):
 		m.set_pointer_captured(on)
 	else:
