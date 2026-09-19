@@ -1030,30 +1030,158 @@ func _item_image(parts: PackedStringArray) -> void:
 	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_add(r, _pos(v), _geom(g))
 
+# label[x,y;text], and from formspec version 9 the area label
+# label[x,y;w,h;text], which the old coordinate system does not have
+# (parseLabel).
+#
+# A plain label is one element per line, each drawn from an EnrichedString
+# so colour escapes keep their colour. In real coordinates line i is centred
+# i half-imgsizes below y; in the old system the first line is centred on
+# (y + 7/30) spacings and each next one two fifths of a slot lower. An area
+# label wraps inside its rectangle, aligned by the halign and valign styles
+# of formspec version 11.
 func _label(parts: PackedStringArray, vertical: bool) -> void:
-	# label[x,y;text]
-	if parts.size() < 2:
+	if vertical:
+		_vertlabel(parts)
+		return
+	if parts.size() < 2 or (parts.size() > 2 and not real_coordinates) or parts.size() > 3:
 		return
 	var v := fs_split(parts[0], ",")
 	if v.size() < 2:
 		return
-	var l := Label.new()
-	var text := fs_unescape(parts[1])
-	if vertical:
-		var t := ""
-		for ch in text:
-			t += ch + "\n"
-		text = t
-	l.text = text
-	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	l.add_theme_font_size_override("font_size", _font_size())
+	var st := _style_for("", "default")
+	var colour := parse_color(String(st.get("textcolor", "")), Color.WHITE)
+	var size := _style_font_size(String(st.get("font_size", "")), _font_size())
 	var p := _pos(v)
-	current_parent.add_child(l)
-	# real coordinates: y is the vertical centre of the first line; in the
-	# old system the text is centred on the slot row starting at y
-	_apply_style(l, "")
-	var cy := p.y if real_coordinates else p.y + imgsize / 2.0
-	l.position = Vector2(p.x, cy - l.get_line_height() / 2.0).floor()
+	if parts.size() == 3:
+		var g := fs_split(parts[1], ",")
+		if g.size() < 2:
+			return
+		var area := _rich_text(fs_unescape_raw(parts[2]), colour, size, st)
+		area.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		area.clip_contents = true
+		area.horizontal_alignment = _style_halign(st)
+		area.vertical_alignment = _style_valign(st)
+		_add(area, p, _geom(g))
+		return
+	var btn_h := imgsize * 15.0 / 13.0 * 0.35
+	var font := get_theme_default_font()
+	var lines := fs_unescape_raw(parts[1]).split("\n")
+	var carried := ""
+	for i in lines.size():
+		# EnrichedString::getNextLine carries the colour in force at the end
+		# of a line into the next.
+		var line := carried + lines[i]
+		var runs := parse_enriched_runs(line, colour)
+		if runs.size() > 0:
+			carried = char(0x1b) + "(c@#" + (runs.back()["color"] as Color).to_html() + ")"
+		var width := font.get_string_size(strip_enriched(line), HORIZONTAL_ALIGNMENT_LEFT,
+			-1, size).x
+		var rect: Rect2
+		if real_coordinates:
+			rect = Rect2(p.x, p.y - imgsize / 2.0 + imgsize * i / 2.0, width, imgsize)
+		else:
+			var y := p.y + 7.0 / 30.0 * spacing.y + i * spacing.y * 2.0 / 5.0
+			rect = Rect2(p.x, y - btn_h, width, btn_h * 2.0)
+		var rt := _rich_text(line, colour, size, st)
+		rt.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		# A little slack, so rounding never clips the last glyph.
+		rect.size.x += 4.0
+		_add(rt, rect.position, rect.size)
+
+# vertlabel[x,y;text]: one character per line, centred in a column one
+# imgsize wide whose left edge is half an imgsize left of x in real
+# coordinates, and fifteen pixels wide from x in the old system
+# (parseVertLabel).
+func _vertlabel(parts: PackedStringArray) -> void:
+	if parts.size() != 2:
+		return
+	var v := fs_split(parts[0], ",")
+	if v.size() < 2:
+		return
+	var st := _style_for("", "default")
+	var colour := parse_color(String(st.get("textcolor", "")), Color.WHITE)
+	var size := _style_font_size(String(st.get("font_size", "")), _font_size())
+	var text := fs_unescape_raw(parts[1])
+	var column := ""
+	var count := 0
+	for run in parse_enriched_runs(text, colour):
+		for ch in String(run["text"]):
+			column += char(0x1b) + "(c@#" + (run["color"] as Color).to_html() + ")" + ch + "\n"
+			count += 1
+	var line_h := get_theme_default_font().get_height(size)
+	var p := _pos(v)
+	var rect: Rect2
+	if real_coordinates:
+		rect = Rect2(p.x - imgsize / 2.0, p.y, imgsize, line_h * count)
+	else:
+		var btn_h := imgsize * 15.0 / 13.0 * 0.35
+		var top := p.y + imgsize / 2.0 - btn_h
+		rect = Rect2(p.x, top, 15.0, line_h * (count + 1))
+	var rt := _rich_text(column.trim_suffix("\n"), colour, size, st)
+	rt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	rt.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_add(rt, rect.position, rect.size)
+
+# Form text drawn from an EnrichedString: colour escapes become colour runs
+# over `colour`, and the style's font picks mono, bold and italic.
+func _rich_text(text: String, colour: Color, size: int, st: Dictionary) -> RichTextLabel:
+	var rt := RichTextLabel.new()
+	rt.bbcode_enabled = false
+	rt.scroll_active = false
+	rt.selection_enabled = false
+	rt.autowrap_mode = TextServer.AUTOWRAP_OFF
+	rt.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rt.add_theme_font_size_override("normal_font_size", size)
+	for key in ["bold_font_size", "italics_font_size", "bold_italics_font_size", "mono_font_size"]:
+		rt.add_theme_font_size_override(key, size)
+	rt.add_theme_color_override("default_color", colour)
+	var pushes := _push_style_font(rt, String(st.get("font", "")))
+	for run in parse_enriched_runs(text, colour):
+		rt.push_color(run["color"])
+		rt.add_text(run["text"])
+		rt.pop()
+	for _i in pushes:
+		rt.pop()
+	rt.set_meta("plain", strip_enriched(text))
+	return rt
+
+# The font style property: normal or mono, with bold and italic added.
+# Returns how many pushes the caller owes a pop.
+static func _push_style_font(rt: RichTextLabel, value: String) -> int:
+	var opts := value.to_lower().replace(" ", "").split(",", false)
+	var pushes := 0
+	if opts.has("mono"):
+		rt.push_mono()
+		pushes += 1
+	if opts.has("bold") and opts.has("italic"):
+		rt.push_bold_italics()
+		pushes += 1
+	elif opts.has("bold"):
+		rt.push_bold()
+		pushes += 1
+	elif opts.has("italic"):
+		rt.push_italics()
+		pushes += 1
+	return pushes
+
+# get_halign and get_valign in guiFormSpecMenu.cpp: anything unknown is the
+# default, left and top.
+static func _style_halign(st: Dictionary) -> HorizontalAlignment:
+	match String(st.get("halign", "")):
+		"center":
+			return HORIZONTAL_ALIGNMENT_CENTER
+		"right":
+			return HORIZONTAL_ALIGNMENT_RIGHT
+	return HORIZONTAL_ALIGNMENT_LEFT
+
+static func _style_valign(st: Dictionary) -> VerticalAlignment:
+	match String(st.get("valign", "")):
+		"center":
+			return VERTICAL_ALIGNMENT_CENTER
+		"bottom":
+			return VERTICAL_ALIGNMENT_BOTTOM
+	return VERTICAL_ALIGNMENT_TOP
 
 # The default tag styles, from ParsedText::ParsedText in guiHyperText.cpp.
 # Sizes there are pixels against a 16 pixel root, so they are carried here as

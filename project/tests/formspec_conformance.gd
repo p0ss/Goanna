@@ -109,6 +109,7 @@ func _run() -> void:
 	_test_partial_elements()
 	_test_scroll_container()
 	_test_styles()
+	_test_labels()
 	_test_button_styles()
 	_test_table()
 	_test_hypertext()
@@ -697,6 +698,57 @@ func _test_styles() -> void:
 	_discard(form)
 
 
+# parseLabel: colour escapes kept, one element per line at upstream's
+# spacing, the old system's 7/30 offset, and the area label of formspec
+# version 9 with the halign and valign of version 11, the shape VoxeLibre's
+# announcement cards use.
+func _test_labels() -> void:
+	var esc := char(0x1b)
+	var runs: Array = Formspec.parse_enriched_runs(esc + "(c@#80ff20)12" + esc + "(c@#ffffff)", Color.BLACK)
+	_equal(runs.size(), 1, "a coloured label is one run")
+	_equal(runs[0]["color"], Color.html("80ff20"), "carrying its escape's colour")
+	var spec := "formspec_version[9]size[10,8]style_type[label;textcolor=#323232]"
+	spec += "label[1,1;Plain]"
+	spec += "label[1,2;" + esc + "(c@#80ff20)12" + esc + "(c@#ffffff)]"
+	spec += "label[1,3;One\nTwo]"
+	spec += "style_type[label;halign=center;valign=center]"
+	spec += "label[1,5;4,1;Centred area]"
+	var form := _new_form(spec)
+	_check(form.skipped.is_empty(), "labels build with nothing skipped")
+	var plain := _text_named(form, "Plain")
+	_check(plain != null, "a label is drawn as enriched text")
+	if plain:
+		_equal(plain.get_theme_color("default_color"), Color.html("323232"),
+			"style_type[label;textcolor] is the label's colour")
+		_equal(plain.position.y + plain.size.y / 2.0, form.imgsize,
+			"a real-coordinate label is centred on its y")
+	_check(_text_named(form, "12") != null, "a colour escape is not printed")
+	var one := _text_named(form, "One")
+	var two := _text_named(form, "Two")
+	_check(one != null and two != null, "each line of a label is its own element")
+	if one and two:
+		_equal(two.position.y - one.position.y, floorf(form.imgsize / 2.0),
+			"lines are half an imgsize apart in real coordinates")
+	var area := _text_named(form, "Centred area")
+	_check(area != null, "an area label shows its text, not its geometry")
+	if area:
+		_equal(area.size, (Vector2(4, 1) * form.imgsize).floor(), "an area label fills its rectangle")
+		_equal(area.horizontal_alignment, HORIZONTAL_ALIGNMENT_CENTER, "halign=center")
+		_equal(area.vertical_alignment, VERTICAL_ALIGNMENT_CENTER, "valign=center")
+		_check(area.autowrap_mode != TextServer.AUTOWRAP_OFF, "an area label wraps")
+	_discard(form)
+	# The old coordinate system: the 7/30 offset, and no area label.
+	var old := _new_form("size[8,6]label[0,0;Old]label[1,1;2,1;Area]")
+	var old_label := _text_named(old, "Old")
+	_check(old_label != null, "an old-system label builds")
+	if old_label:
+		_check(absf(old_label.position.y + old_label.size.y / 2.0
+			- (old.padding.y + 7.0 / 30.0 * old.spacing.y)) <= 1.0,
+			"an old-system label is centred 7/30 of a spacing below its y")
+	_check(_text_named(old, "Area") == null, "the old system has no area label")
+	_discard(old)
+
+
 # GUIButton::setFromStyle, through the looks Godot draws. The shapes are the
 # ones Mineclonia and VoxeLibre use: a prepend dressing every button and image
 # button in a nine-sliced texture with border=false, the skin editor's
@@ -1097,6 +1149,14 @@ func _colorrect_of(node: Node, colour: Color) -> ColorRect:
 func _button_named(node: Node, caption: String) -> Button:
 	for candidate in _nodes_of_type(node, "Button"):
 		if String(candidate.get_meta("label", candidate.text)) == caption:
+			return candidate
+	return null
+
+
+# Form text is a RichTextLabel carrying its plain text as meta.
+func _text_named(node: Node, text: String) -> RichTextLabel:
+	for candidate in _nodes_of_type(node, "RichTextLabel"):
+		if String(candidate.get_meta("plain", "")) == text:
 			return candidate
 	return null
 
