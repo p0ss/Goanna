@@ -2700,3 +2700,29 @@ edge and falls off as the camera pans away; nothing on the far side (the
 with the sun behind the camera sits at the noise floor); and
 `shaft_strength` is 0.0 from `time_of_day` 0.278 to 0.72, so noon costs
 nothing.
+
+### Animated tiles in the far tiers, 2026-09-19
+
+The note under rungs 2 and 3 that animated tiles have no array texture and
+fall back to a flat average colour is no longer true of every animated tile.
+Cube-like animated tiles (magma, prismarine, sea lantern and the like) now
+live in Goanna's own animation arrays, and `tileFor` in `goanna_lod.cpp`
+gives a far cell of one of them that array and its first frame's layer. The
+far material is the ordinary tier copy of the near array material, so the
+tile stays textured, picks its frame in the shader with the same clock as
+the near mesh, and flattens toward each frame's own average colour. The
+hand-off therefore has no texture to lose and no colour to jump to. Double
+sided and special shader tiles (fire, torches, plants, portals) keep the flat
+colour fallback, and water and lava stay on rung 6's materials.
+`docs/node-animation.md` has the rest.
+
+Checked on a fresh Mineclonia world (Luanti 5.17.0, Godot 4.5.1) by setting
+the LOD distance to one mapblock so a test wall 38 nodes away drew from a
+far tier, which the missing torches, lanterns and campfires confirm, since
+far cells draw only cubes. Its magma, sea lantern, prismarine and sculk were
+textured; between clock times 0.0 and 0.5 s the magma and sea lantern
+changed (8 and 11 per cent of their pixels) and the slower prismarine and
+sculk and the still netherrack and sand did not. With animation switched off
+and the tiers rebuilt, the same four cubes drew as flat colours. Not
+measured: the draw call cost at a real vista full of animated cubes, such as
+an ocean monument, which a fresh world did not have in reach.

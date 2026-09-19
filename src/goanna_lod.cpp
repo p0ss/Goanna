@@ -733,6 +733,17 @@ LodTileCache::Entry tileFor(LodTileCache &cache, const NodeDefManager *ndef,
                     name = names[l.texture_layer_idx];
             } else if (gt) {
                 name = tsrc->getTextureName(l.texture_id);
+                // An animated tile the near mesh draws from an animation
+                // array: the far tiers draw it from the same array and
+                // layer, so it is textured and keeps moving past the near
+                // range instead of turning into its first frame's average
+                // colour at the hand-off. The table is built before any
+                // block is meshed and never changes, so a worker may read it.
+                const NodeAnimation *anim = tsrc->nodeAnimation(l.texture_id);
+                if (anim && anim->array_id) {
+                    e.texture_id = anim->array_id;
+                    e.layer = anim->base_layer;
+                }
             }
         }
         if (!name.empty()) {
