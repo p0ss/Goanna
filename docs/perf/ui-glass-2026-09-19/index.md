@@ -126,7 +126,7 @@ game theme on the left and dark glass on the right, cropped to the form.
 | Written book | `mcl_books:written_book` | The game's own book, by the bespoke rule |
 | Book and quill | `mcl_books:writable_book` | The game's own book, by the bespoke rule |
 | Sign | | Not captured: the sweep could not open it |
-| Creative, 12 item tabs | (inventory) | Glass tabs, selected tab ringed |
+| Creative, the other 11 tabs, search included | (inventory) | Glass tabs, selected tab ringed |
 | Creative, rail tab | (inventory) | Half at `4d48e0b`: a row of empty slot art stayed light grey; glass since `4a84bb4` |
 | Creative, survival tab | (inventory) | Glass |
 
