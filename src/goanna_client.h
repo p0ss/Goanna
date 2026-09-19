@@ -49,6 +49,7 @@ class MapBlock;
 namespace goanna {
 
 class GoannaSession;
+struct NodeAnimation;
 
 // Root node of a Goanna session. Owns the transplanted Luanti client and
 // feeds what it produces (mapblock meshes, player pose) into the scene.
@@ -177,6 +178,26 @@ public:
 
     // Step and draw active objects (players, mobs, items).
     void sync_entities(double dt);
+    // Advance the node texture animation clock by one frame's dt, the way
+    // Luanti's Client::step advances m_animation_time (dt capped at
+    // DTIME_LIMIT, the clock wrapping at 60 seconds), publish it to the node
+    // shaders, and move every single image animated material onto the frame
+    // the clock now names. Call once per rendered frame.
+    void step_node_animation(double dt);
+    // Pin the clock, for a capture that has to show a known frame. Below 0
+    // hands it back to step_node_animation.
+    void set_node_animation_time(double seconds);
+    // Switch node animation off (every animated tile back on its first
+    // frame, drawn as it was before animation existed) or on again, and
+    // rebuild the near meshes and materials to match. A kill switch and an
+    // A/B lever; GOANNA_NO_NODE_ANIM=1 starts with it off.
+    void set_node_animation_enabled(bool on);
+    bool node_animation_enabled() const;
+    // What the animation is doing: the clock, how many animated tiles there
+    // are and by which path they are drawn, and for each single image
+    // material the frame it currently shows. The array path's frame is
+    // chosen in the shader; it is reported as the frame the same rule gives.
+    godot::Dictionary node_animation();
     int entity_count() const { return m_entities ? m_entities->count() : 0; }
     godot::Array entity_positions() const { return m_entities ? m_entities->positions() : godot::Array(); }
     godot::Array entity_list();
@@ -389,7 +410,11 @@ public:
     // straight from a Luanti SMaterial as the mesher leaves it.
     godot::Ref<godot::Material> materialFor(const MaterialKey &key);
     godot::Ref<godot::Material> materialForIrr(const video::SMaterial &m, u16 layer = 0);
-    MaterialKey keyForIrr(const video::SMaterial &m, u16 layer);
+    // layer_base, when given, receives what to add to the vertex's own array
+    // layer: nonzero only when an animated tile is redirected to the
+    // animation array that holds its frames, where its first frame sits at
+    // that layer.
+    MaterialKey keyForIrr(const video::SMaterial &m, u16 layer, u16 *layer_base = nullptr);
     // `live` says the server still owns the source block. It guarantees exact
     // presentation inside the detail radius, but beyond that source residency
     // must not defeat the distance ladder.
@@ -996,6 +1021,32 @@ private:
     void lodRebuild(double budget_ms);
     void lodReset();
     std::map<uint64_t, godot::Ref<godot::Material>> m_materials;
+    // Animated tiles that cannot be drawn from an animation array (double
+    // sided ones such as torches and fire, and those on the glass, ice,
+    // leaves or plants shaders) keep one shared material each, as every
+    // tile does, and have its textures moved to the current frame when the
+    // frame changes: MapBlockMesh::animate's texture swap, once per material
+    // rather than once per mesh buffer. Cleared with m_materials.
+    struct AnimatedMaterial {
+        godot::Ref<godot::Material> material;
+        const NodeAnimation *anim = nullptr;
+        u32 shown = 0; // texture id of the frame on the material now
+    };
+    std::vector<AnimatedMaterial> m_anim_materials;
+    void noteAnimatedMaterial(const MaterialKey &key, const godot::Ref<godot::Material> &material);
+    void showAnimationFrame(AnimatedMaterial &am, u32 frame_texture);
+    // The textures a glass, ice, leaves or plants material reads for a tile:
+    // its LabPBR companion by stem, cut to the same frame for an animation
+    // frame (GoannaTextureSource::companionImage).
+    godot::Ref<godot::Texture2D> companionTexture(u32 texture_id, const char *suffix);
+    void clearMaterials() {
+        m_materials.clear();
+        m_anim_materials.clear();
+    }
+    // The node animation clock, seconds in [0, 60) as Client::step keeps it,
+    // and a pinned value from set_node_animation_time (below 0 when free).
+    float m_node_anim_time = 0.0f;
+    float m_node_anim_pinned = -1.0f;
     std::map<std::string, float> m_mat_strength; // see set_material_strength
     // Texture ids belonging to nodes drawn as a liquid that are not one. See
     // buildFakeLiquidTextures.

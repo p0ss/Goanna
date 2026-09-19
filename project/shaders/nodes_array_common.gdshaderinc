@@ -288,6 +288,33 @@ uniform float detail_strength : hint_range(0.0, 2.0) = 1.0;
 // it per node reads as a woven quilt rather than as a dune.
 uniform float detail_turn : hint_range(0.0, 1.0) = 0.0;
 
+// Goanna: animated node tiles. An animation array (built by
+// GoannaTextureSource::buildNodeAnimations) holds each animated tile's frames
+// as consecutive layers, and the mesh points every face of the tile at its
+// first frame. For that layer, x is the number of frames and y the length of
+// one in milliseconds, as node_visuals worked them out
+// (TileAnimationParams::determineParams, integer milliseconds); for every
+// other layer, and every layer of an ordinary array, both are 0 and the
+// layer is drawn as it is. Same 256 layer cap as lod_avg_colour.
+uniform ivec2 layer_anim[256];
+// The client's animation clock in seconds, wrapping at 60 as Luanti's
+// Client::step wraps m_animation_time. GoannaClient::step_node_animation
+// sets it once a frame; 0 in a scene that never sets it, which is frame 0.
+global uniform float goanna_node_anim_time;
+
+// The layer to draw for this frame: AnimationInfo::getTexture's rule from
+// luanti/src/client/tile.cpp, frame = floor(time * 1000 / frame_ms) mod
+// frames, so every animated tile shows the frame a vanilla client would.
+// Everything the fragment reads per layer (albedo, the companions, the
+// class tables) then follows the frame.
+int goanna_anim_layer(int base) {
+	ivec2 anim = layer_anim[base];
+	if (anim.x < 2)
+		return base;
+	uint frame = uint(goanna_node_anim_time * 1000.0 / float(max(anim.y, 1))) % uint(anim.x);
+	return base + int(frame);
+}
+
 varying vec3 v_nodelight;
 varying float v_stale;
 varying vec3 v_world;

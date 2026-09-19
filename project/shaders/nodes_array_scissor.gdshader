@@ -34,8 +34,8 @@ void fragment() {
 	vec2 uv_dx = dFdx(UV);
 	vec2 uv_dy = dFdy(UV);
 	// The array layer, rounded rather than truncated; see the note on the
-	// same line in nodes_array.gdshader.
-	int layer = int(round(UV2.x));
+	// same line in nodes_array.gdshader, which also explains the animation.
+	int layer = goanna_anim_layer(int(round(UV2.x)));
 	// Flatten by camera distance. VERTEX is an absolute world position in
 	// Goanna's meshes, so length(VERTEX) measured distance from world zero and
 	// made the same hill change colour as the player crossed tier boundaries.

@@ -2002,6 +2002,12 @@ bool GoannaSession::prepareContentIfReady() {
         m_nodedef->setNodeRegistrationStatus(true);
         m_nodedef->runNodeResolveCallbacks();
         NodeVisuals::fillNodeVisuals(m_nodedef, m_mesh_client.get(), nullptr);
+        // Animated tiles: node_visuals has cut their frames into separate
+        // textures, as upstream does for MapBlockMesh::animate to swap
+        // between. Goanna packs those frames into arrays the node shader
+        // picks from by the clock instead, and needs the table before the
+        // first block is meshed with these visuals.
+        m_tsrc->buildNodeAnimations(m_nodedef);
         // Which textures belong to light-emitting nodes (emissive materials).
         // Materials are keyed by texture, and a texture can be shared between
         // a glowing node and a plain one (games register hidden light-emitting

@@ -34,14 +34,21 @@ transplanted from `Client::handleCommand_*` in
 NDT_MESH nodes go through the same loaders (`Client::getMesh` on the
 stand-in client), so `node_visuals` handles them as upstream does.
 
+Animated node tiles play with the vanilla client's timing, from the frames
+Luanti's `node_visuals` cuts: cube-like tiles from animation arrays whose
+frame the node shader picks, the rest by changing the frame on their one
+shared material. See [node animation](node-animation.md).
+
 ## Not yet
 - Node entity visuals and object collision. Item and wield-item visuals, the
   local player's wield hand and skeletal entities are implemented.
 - An entity Goanna does not draw (one the server made invisible) does not
   advance its animation, where the vanilla client animates it anyway, so a
   bone attachment on an invisible parent does not follow the animation.
-- Animated node textures. Luanti's mesher prepares their frames, but Goanna
-  currently draws the first frame only.
+- Animated inventory, wield and dropped item images, which still show their
+  first frame, and the animation strips of water and lava tiles, which their
+  own shaders replace. A node being dug shows its first frame under the
+  crack.
 - Batched particles and comprehensive testing of particle parameters; node
   metadata display, minimap data, camera packets (FOV, CAMERA), mod channels,
   client-side mods (SSCSM).

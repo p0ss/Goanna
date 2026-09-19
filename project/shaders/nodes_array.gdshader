@@ -55,7 +55,9 @@ void fragment() {
 	// itself; only the arrays indexed by hand below were affected, and they
 	// took the colour and the class of whichever tile happens to sit one
 	// layer back. See docs/far-rendering.md, "The far field's albedo".
-	int layer = int(round(UV2.x));
+	// An animated tile's face names its first frame; the clock picks the
+	// frame drawn (nodes_array_common.gdshaderinc, goanna_anim_layer).
+	int layer = goanna_anim_layer(int(round(UV2.x)));
 	// Flatten by camera distance. VERTEX is an absolute world position in
 	// Goanna's meshes, so length(VERTEX) measured distance from world zero and
 	// made the same hill change colour as the player crossed tier boundaries.

@@ -974,6 +974,9 @@ func _apply_hardware_defaults() -> void:
 
 func _process(delta: float) -> void:
 	t += delta
+	# Animated node tiles run on their own clock, as Luanti's Client::step
+	# keeps one, advanced here once per rendered frame.
+	client.step_node_animation(delta)
 	_apply_sky()
 	var s: Dictionary = client.status()
 	_update_connect_overlay(s)

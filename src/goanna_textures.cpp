@@ -19,6 +19,7 @@
 #include <fstream>
 #include <set>
 #include <sstream>
+#include <tuple>
 
 #include <godot_cpp/classes/image.hpp>
 #include <godot_cpp/variant/typed_array.hpp>
@@ -26,8 +27,10 @@
 
 #include "CImage.h"
 #include "client/imagefilters.h"
+#include "client/node_visuals.h"
 #include "goanna_image_hooks.h"
 #include "log.h"
+#include "nodedef.h"
 
 using namespace godot;
 
@@ -262,12 +265,12 @@ Ref<Texture2DArray> GoannaTexture::godotArraySuffixed(GoannaTextureSource &src, 
         const std::string &full = m_layer_names[li];
         const size_t caret = full.find('^');
         const std::string base = caret == std::string::npos ? full : full.substr(0, caret);
-        size_t dotpos = base.rfind('.');
-        std::string name = (dotpos == std::string::npos ? base : base.substr(0, dotpos)) + suffix +
-                (dotpos == std::string::npos ? std::string() : base.substr(dotpos));
+        // An animation frame takes the same frame of the companion strip, so
+        // the relief and the material move with the colour.
+        const std::string name = src.companionImage(full, suffix);
         Ref<Image> img;
         bool was_authored = false;
-        if (src.isKnownSourceImage(name)) {
+        if (!name.empty()) {
             GoannaTexture *gt = dynamic_cast<GoannaTexture *>(src.getTexture(name));
             if (gt && gt->image()) {
                 img = goanna_image_to_godot(gt->image());
@@ -624,6 +627,9 @@ GoannaTextureSource::GoannaTextureSource() {
     // id 0 is "no texture" like Luanti's TextureSource
     m_textures.push_back(std::make_unique<GoannaTexture>("", nullptr, 0));
     m_name_to_id[""] = 0;
+    const char *no_anim = std::getenv("GOANNA_NO_NODE_ANIM");
+    if (no_anim && *no_anim && std::string(no_anim) != "0")
+        m_node_anim_enabled.store(false);
 }
 
 GoannaTextureSource::~GoannaTextureSource() = default;
@@ -735,6 +741,166 @@ std::string GoannaTextureSource::imageName(u32 texture_id, u16 layer) {
     if (names.empty())
         return std::string();
     return names[layer < names.size() ? layer : 0];
+}
+
+std::string GoannaTextureSource::companionImage(const std::string &tile, const char *suffix) {
+    const size_t caret = tile.find('^');
+    const std::string base = caret == std::string::npos ? tile : tile.substr(0, caret);
+    const size_t dotpos = base.rfind('.');
+    const std::string name = (dotpos == std::string::npos ? base : base.substr(0, dotpos)) +
+            suffix + (dotpos == std::string::npos ? std::string() : base.substr(dotpos));
+    if (!isKnownSourceImage(name))
+        return std::string();
+    // The frame cut is the last modifier, as TileAnimationParams::getTextureModifer
+    // appends it, and nothing may follow it: a crack composite or a colourise
+    // after it is not something to apply to a normal map.
+    const size_t vpos = tile.rfind("^[verticalframe:");
+    const size_t spos = tile.rfind("^[sheet:");
+    size_t pos = std::string::npos;
+    if (vpos != std::string::npos)
+        pos = vpos;
+    if (spos != std::string::npos && (pos == std::string::npos || spos > pos))
+        pos = spos;
+    if (pos == std::string::npos || tile.find('^', pos + 1) != std::string::npos)
+        return name;
+    // Cut the frame only from a companion shaped like the strip it belongs
+    // to, at whatever resolution. A single still map, the usual thing for a
+    // pack to ship for an animated tile, is used whole for every frame.
+    const core::dimension2du strip = getTextureDimensions(tile.substr(0, pos));
+    const core::dimension2du comp = getTextureDimensions(name);
+    if (!strip.Width || !strip.Height || !comp.Width || !comp.Height)
+        return name;
+    if ((u64)comp.Width * strip.Height != (u64)comp.Height * strip.Width)
+        return name;
+    return name + tile.substr(pos);
+}
+
+void GoannaTextureSource::buildNodeAnimations(const NodeDefManager *ndef) {
+    if (!ndef)
+        return;
+    auto table = std::make_unique<NodeAnimationTable>();
+    // What goes into an animation array, grouped the way node_visuals groups
+    // its own arrays (by image size), and also by alpha, so an opaque
+    // animated block is not moved onto the scissor shader by a flame that
+    // happens to share its size.
+    struct Candidate {
+        u32 first = 0;
+        std::vector<std::string> names;
+    };
+    std::map<std::tuple<u32, u32, bool>, std::vector<Candidate>> groups;
+    size_t layers_seen = 0, double_sided = 0, special = 0, liquids = 0, too_long = 0;
+    auto note = [&](const TileLayer &layer) {
+        if (!layer.frames || layer.frames->size() < 2 || layer.animation_frame_count < 2)
+            return;
+        ++layers_seen;
+        const u32 first = (*layer.frames)[0].texture_id;
+        if (!first || table->count(first))
+            return;
+        NodeAnimation &anim = (*table)[first];
+        anim.frames = *layer.frames;
+        anim.frame_length_ms = layer.animation_frame_length_ms;
+        const bool culled = (layer.material_flags & MATERIAL_FLAG_BACKFACE_CULLING) != 0;
+        if (!arrayPathTile(layer.material_type, culled)) {
+            switch (layer.material_type) {
+            case TILE_MATERIAL_LIQUID_OPAQUE:
+            case TILE_MATERIAL_WAVING_LIQUID_OPAQUE:
+            case TILE_MATERIAL_LIQUID_TRANSPARENT:
+            case TILE_MATERIAL_WAVING_LIQUID_TRANSPARENT:
+            case TILE_MATERIAL_WAVING_LIQUID_BASIC:
+                ++liquids; // their own shaders animate them
+                break;
+            default:
+                ++(culled ? special : double_sided);
+            }
+            return;
+        }
+        // The array shader's per layer tables stop at 256, as the arrays do.
+        if (anim.frames.size() > 256) {
+            ++too_long;
+            return;
+        }
+        Candidate c;
+        c.first = first;
+        core::dimension2du dim;
+        bool alpha = false;
+        for (const FrameSpec &fr : anim.frames) {
+            GoannaTexture *gt = goannaTexture(fr.texture_id);
+            if (!gt || gt->isArray() || !gt->image())
+                return; // leave it on the single image path
+            if (c.names.empty())
+                dim = gt->image()->getDimension();
+            else if (gt->image()->getDimension() != dim)
+                return;
+            alpha = alpha || gt->hasAlpha();
+            c.names.push_back(getTextureName(fr.texture_id));
+        }
+        groups[std::make_tuple(dim.Width, dim.Height, alpha)].push_back(std::move(c));
+    };
+    for (u32 c = 0; c <= 0xffff; ++c) {
+        const ContentFeatures &f = ndef->get((content_t)c);
+        if (f.name.empty() || f.name == "unknown" || !f.visuals)
+            continue;
+        for (const TileSpec &tile : f.visuals->tiles)
+            for (const TileLayer &layer : tile.layers)
+                note(layer);
+        for (const TileSpec &tile : f.visuals->special_tiles)
+            for (const TileLayer &layer : tile.layers)
+                note(layer);
+    }
+    size_t arrays = 0, arrayed = 0;
+    for (auto &group : groups) {
+        std::vector<Candidate> &tiles = group.second;
+        size_t i = 0;
+        while (i < tiles.size()) {
+            // A bunch never splits a tile, because the shader finds every
+            // frame at base_layer plus the frame number.
+            std::vector<std::string> names;
+            std::vector<GoannaTexture::LayerAnim> anim;
+            size_t j = i;
+            while (j < tiles.size() && names.size() + tiles[j].names.size() <= 256) {
+                GoannaTexture::LayerAnim la;
+                la.frames = (u16)tiles[j].names.size();
+                la.frame_ms = (*table)[tiles[j].first].frame_length_ms;
+                anim.push_back(la);
+                anim.resize(anim.size() + tiles[j].names.size() - 1);
+                names.insert(names.end(), tiles[j].names.begin(), tiles[j].names.end());
+                ++j;
+            }
+            u32 id = 0;
+            video::ITexture *tex = addArrayTexture(names, &id);
+            if (tex && id) {
+                goannaTexture(id)->setLayerAnim(std::move(anim));
+                u16 base = 0;
+                for (size_t k = i; k < j; ++k) {
+                    NodeAnimation &a = (*table)[tiles[k].first];
+                    a.array_id = id;
+                    a.base_layer = base;
+                    base = (u16)(base + tiles[k].names.size());
+                    ++arrayed;
+                }
+                ++arrays;
+            }
+            i = j;
+        }
+    }
+    // Visible in Godot's own output, like the texture pack line, because
+    // which path each animated tile takes is the first thing to check when
+    // one does not move.
+    UtilityFunctions::print("Goanna node animation: ", (int64_t)table->size(), " tiles (",
+            (int64_t)layers_seen, " layers), ", (int64_t)arrayed, " in ", (int64_t)arrays,
+            " animation arrays, ", (int64_t)double_sided, " double sided and ",
+            (int64_t)special, " on special shaders change frame per material, ",
+            (int64_t)liquids, " liquids keep their own shaders, ", (int64_t)too_long,
+            " over 256 frames");
+    if (std::getenv("GOANNA_DEBUG_ANIM")) {
+        for (const auto &kv : *table)
+            fprintf(stderr, "goanna anim: %s frames=%zu ms=%u array=%u base=%u\n",
+                    getTextureName(kv.first).c_str(), kv.second.frames.size(),
+                    (unsigned)kv.second.frame_length_ms, kv.second.array_id,
+                    (unsigned)kv.second.base_layer);
+    }
+    m_node_anim.store(table.get(), std::memory_order_release);
+    m_node_anim_tables.push_back(std::move(table));
 }
 
 GoannaTexture *GoannaTextureSource::goannaTexture(u32 id) {

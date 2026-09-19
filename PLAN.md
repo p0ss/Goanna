@@ -482,6 +482,40 @@ the fact.
   `goanna_mining_cycle_test` fails 17 checks, from sources this work did not
   touch.
 
+- Animated node tiles, 2026-09-19. Tiles now play their frames with the
+  vanilla client's timing: one clock advanced once a rendered frame with
+  `dtime` capped at 2.5 s and wrapping at 60 s, as `Client::step` keeps it,
+  and upstream's frame rule from `AnimationInfo::getTexture`, with no per
+  node offset, which 5.17.0 no longer has. Cube-like tiles that the node
+  array shader draws go into Goanna's own animation arrays, built from the
+  frames `node_visuals` already cuts, each tile's frames as consecutive
+  layers; the shader adds the frame to the tile's first layer from a per
+  layer `layer_anim` table, so nothing changes per frame on the CPU and the
+  LabPBR companions follow the frame, cut from a pack's strip when it has
+  one. Double sided tiles and those on the glass, ice, leaves and plants
+  shaders keep their shared single image material, which gets the frame's
+  textures when the frame changes: `MapBlockMesh::animate`'s swap, once per
+  material. Water and lava keep their own shaders untouched. The far tiers
+  draw animation array tiles from the same arrays instead of a flat colour.
+  No transplanted file changed. `GOANNA_NO_NODE_ANIM=1` or
+  `set_node_animation_enabled(false)` turns it all off. Verified with Godot
+  4.5.1 on an RTX 3090 against the Luanti 5.17.0 Flatpak:
+  `tests/node_animation.gd` reads back the frame both array shaders draw at
+  eight clock times with 0 failures; on a fresh devtest world
+  `testnodes:anim` showed A, B, C and D at 0.5, 1.5, 2.5 and 3.5 s; on a
+  fresh Mineclonia world 41 animated tiles were found, 11 went into two
+  arrays, a wall of magma, sea lantern, prismarine, sculk, fire, kelp,
+  seagrass, torch, lanterns, campfires and portal changed where the frame
+  lengths say, all eleven single image materials reported the vanilla frame,
+  and the wall drawn from a far tier stayed textured and moving. In one
+  client at a fixed pose, animation on against off: 570 against 573 camera
+  draw calls, 61 against 64 materials, 13.45 against 13.59 ms median frame
+  time; the lava suite is unchanged. `docs/node-animation.md` has the rest.
+  Not done: animated inventory, wield and dropped item images, the strips
+  of water and lava tiles, a cracked node (it shows its first frame while
+  dug), and the look of sea lantern and magma now that they take the array
+  shader's material; no pack with per frame companions has been tried live.
+
 ## Log since v0.4.1-alpha (2026-08-30)
 
 Verified on a local Mineclonia server on Luanti 5.17.0 with Godot 4.5.1 and

@@ -13,10 +13,12 @@
 // - GoannaShaderSource: assigns ids per (material type, base material) so
 //   TileLayer.shader_id maps onto Godot material variants.
 
+#include <atomic>
 #include <map>
 #include <set>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include <godot_cpp/classes/image_texture.hpp>
@@ -28,9 +30,52 @@
 #include "client/tile.h"
 #include "goanna_materials.h"
 
+class NodeDefManager;
+
 namespace goanna {
 
 class GoannaTextureSource;
+
+// Whether a tile of this material type can be drawn from an array texture by
+// nodes_array.gdshader. That shader culls back faces and has no wind, liquid
+// or blending logic, so a double sided tile, a waving one, any liquid and a
+// culled alpha blended tile (glass) each keep their own shader and a single
+// image. GoannaClient::keyForIrr applies it per mesh buffer, and the
+// animation arrays below are built only for tiles it admits.
+inline bool arrayPathTile(MaterialType mtype, bool backface_culling) {
+    if (!backface_culling)
+        return false;
+    switch (mtype) {
+    case TILE_MATERIAL_WAVING_LEAVES:
+    case TILE_MATERIAL_WAVING_PLANTS:
+    case TILE_MATERIAL_LIQUID_OPAQUE:
+    case TILE_MATERIAL_WAVING_LIQUID_OPAQUE:
+    case TILE_MATERIAL_LIQUID_TRANSPARENT:
+    case TILE_MATERIAL_WAVING_LIQUID_TRANSPARENT:
+    case TILE_MATERIAL_WAVING_LIQUID_BASIC:
+    case TILE_MATERIAL_ALPHA:
+    case TILE_MATERIAL_PLAIN_ALPHA:
+        return false;
+    default:
+        return true;
+    }
+}
+
+// An animated node tile, as Luanti's node_visuals prepared it: the frames
+// (one texture each, cut from the tile's strip or sheet by createAnimationFrames)
+// and the length of one frame. Keyed by the first frame's texture id, which is
+// the texture the mesher puts on every buffer of the tile.
+struct NodeAnimation {
+    // A copy of TileLayer::frames, so upstream's AnimationInfo can pick the
+    // frame for a time exactly as MapBlockMesh::animate does.
+    std::vector<FrameSpec> frames;
+    u16 frame_length_ms = 0;
+    // The animation array holding every frame as consecutive layers, from
+    // base_layer on, or 0 if the tile is not drawn from one (see
+    // GoannaTextureSource::buildNodeAnimations).
+    u32 array_id = 0;
+    u16 base_layer = 0;
+};
 
 class GoannaTexture final : public video::ITexture {
 public:
@@ -113,6 +158,16 @@ public:
     bool layerHasAlpha(u16 layer) const {
         return layer >= m_layer_alpha.size() || m_layer_alpha[layer];
     }
+    // Animation arrays only: for the first layer of each tile, how many
+    // frames follow from it and how long each lasts, which the array shader
+    // reads as layer_anim to pick the frame for the clock. Every other layer,
+    // and every layer of an ordinary array, has zero frames and never moves.
+    struct LayerAnim {
+        u16 frames = 0;
+        u16 frame_ms = 0;
+    };
+    const std::vector<LayerAnim> &layerAnim() const { return m_layer_anim; }
+    void setLayerAnim(std::vector<LayerAnim> anim) { m_layer_anim = std::move(anim); }
     // Tangent-space normal map derived from the diffuse luminance ("auto
     // bump"): dark texels read as recessed, light as raised. Cached per
     // strength; regenerated when strength changes. Main thread only.
@@ -136,6 +191,7 @@ private:
     std::vector<video::IImage *> m_layers; // owned (ref); empty unless an array
     std::vector<std::string> m_layer_names;
     std::vector<bool> m_layer_alpha;
+    std::vector<LayerAnim> m_layer_anim;
     godot::Ref<godot::Texture2DArray> m_godot_array;
     std::map<std::string, godot::Ref<godot::Texture2DArray>> m_godot_suffixed;
     std::vector<LayerSpec> m_layer_spec;
@@ -202,6 +258,47 @@ public:
     // loadable image, so anything building a texture-modifier string (crack
     // overlays, inventory cubes) must resolve the layer first.
     std::string imageName(u32 texture_id, u16 layer = 0);
+    // The LabPBR companion a pack supplies for a tile (suffix "_n" or "_s"),
+    // as an image name to generate, or empty when there is none. The
+    // companion belongs to the base image, the part before the first
+    // modifier. A tile that is one frame of a strip or sheet ("x.png^[verticalframe:8:3",
+    // which is how node_visuals names an animation frame) gets the same frame
+    // cut from the companion when the companion is laid out like the base,
+    // and the whole companion otherwise, which is what a pack with one still
+    // map for an animated tile means.
+    std::string companionImage(const std::string &tile, const char *suffix);
+
+    // Animated node tiles (docs/node-animation.md). Built once node visuals
+    // are filled, on the thread that filled them, before anything is meshed
+    // with them: collects every animated TileLayer and packs the frames of
+    // the tiles the array shader can draw (arrayPathTile) into animation
+    // arrays, each tile's frames consecutive, grouped by frame size and by
+    // whether any frame has alpha. Read without a lock afterwards, from the
+    // main thread and from far mesh workers, so the finished table is
+    // published once through an atomic pointer and never changed.
+    void buildNodeAnimations(const NodeDefManager *ndef);
+    // The animation whose first frame is this texture, or nullptr. Also
+    // nullptr for every tile while animation is switched off
+    // (setNodeAnimationEnabled), which puts each animated tile back on its
+    // first frame exactly as before animation existed: the one switch for
+    // the array path, the per material frame swap and the far tiers.
+    const NodeAnimation *nodeAnimation(u32 first_frame_texture_id) const {
+        const auto *table = m_node_anim.load(std::memory_order_acquire);
+        if (!table || !m_node_anim_enabled.load(std::memory_order_relaxed))
+            return nullptr;
+        auto it = table->find(first_frame_texture_id);
+        return it == table->end() ? nullptr : &it->second;
+    }
+    using NodeAnimationTable = std::unordered_map<u32, NodeAnimation>;
+    const NodeAnimationTable *nodeAnimations() const {
+        return m_node_anim.load(std::memory_order_acquire);
+    }
+    // A kill switch and an A/B lever, off from the start with
+    // GOANNA_NO_NODE_ANIM=1. Meshes and materials built before a change keep
+    // what they were built with; GoannaClient::set_node_animation_enabled
+    // rebuilds them.
+    void setNodeAnimationEnabled(bool on) { m_node_anim_enabled.store(on); }
+    bool nodeAnimationEnabled() const { return m_node_anim_enabled.load(); }
 
     // The classifier's table (docs/pbr-plan.md step 2), owned by the session,
     // read when an array's companion layers are synthesised for textures a
@@ -226,6 +323,11 @@ private:
     std::map<std::string, u32> m_name_to_id;
     std::map<std::string, Palette> m_palettes;
     std::map<std::string, bool> m_known_source;
+    // Every table ever built stays alive with the source, so a reader holding
+    // a pointer from an earlier build cannot have it freed underneath it.
+    std::vector<std::unique_ptr<NodeAnimationTable>> m_node_anim_tables;
+    std::atomic<const NodeAnimationTable *> m_node_anim{nullptr};
+    std::atomic<bool> m_node_anim_enabled{true};
 };
 
 class GoannaShaderSource final : public IWritableShaderSource {
