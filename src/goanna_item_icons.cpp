@@ -16,6 +16,7 @@
 
 #include "client/item_visuals_manager.h"
 #include "goanna_luanti_client.h"
+#include "goanna_mesh_flags.h"
 #include "goanna_session.h"
 #include "goanna_textures.h"
 #include "inventory.h"
@@ -26,6 +27,10 @@
 #include <IMeshBuffer.h>
 
 using namespace godot;
+
+// Declared in goanna_mesh_flags.h; Goanna's own state, so defined here rather
+// than in the transplanted mesher.
+thread_local bool g_goanna_plain_solids = false;
 
 namespace goanna {
 

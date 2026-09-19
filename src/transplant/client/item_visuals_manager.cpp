@@ -4,7 +4,8 @@
 //
 // Transplanted from luanti/src/client/item_visuals_manager.cpp.
 // Goanna changes 2026-09, against Luanti 5.17.0: the Client is Goanna's
-// stand-in; else verbatim.
+// stand-in; createItemMesh runs with g_goanna_plain_solids set, so the item
+// mesh (which only the inventory draws) has no Goanna bevel; else verbatim.
 
 #include "item_visuals_manager.h"
 
@@ -12,6 +13,7 @@
 #include "goanna_luanti_client.h"
 #include "debug.h"
 #include "log.h"
+#include "goanna_mesh_flags.h"
 #include "texturesource.h"
 #include "itemdef.h"
 #include "inventory.h"
@@ -86,10 +88,12 @@ ItemVisualsManager::ItemVisuals *ItemVisualsManager::createItemVisuals( const It
 			inventory_overlay.animation, frame_length);
 	iv->inventory_overlay = AnimationInfo(&iv->frames_overlay, frame_length);
 
+	g_goanna_plain_solids = true; // Goanna: no bevel on an inventory mesh
 	createItemMesh(client, def,
 			iv->inventory_normal,
 			iv->inventory_overlay,
 			&(iv->item_mesh));
+	g_goanna_plain_solids = false;
 
 	iv->palette = tsrc->getPalette(def.palette_image);
 
