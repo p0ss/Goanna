@@ -38,21 +38,57 @@ Every element Luanti registers now builds something: the manifest holds no
 form leaves anything unrendered. What remains is a set of `partial` entries,
 each with the omitted behaviour named in the manifest:
 
-- `model` draws a labelled placeholder. A real preview needs a mesh from the
-  client media cache, which the UI cannot reach yet.
-- `button_key` draws an ordinary button. Goanna has no key binding capture.
-- `hypertext` renders tags, styles, images, items and actions, but not
-  `hovercolor` or vertical alignment.
-- `hypertip` (formspec version 11, Luanti 5.17) shows its text in an
-  ordinary tooltip with the markup stripped. The static position, the width
-  and its `style[]` properties are ignored.
-- `style` and `style_type` apply colours, background images, borders, font
-  size and list slot geometry, but not the font family or sounds. The
-  `halign` and `valign` properties that formspec version 11 added for
-  `label[]`, `textarea[]` and `field[]` are not applied yet, so that text
-  stays left and top aligned.
+- `button_key` captures the next key or mouse button and sends it in Luanti
+  5.17's `SYSTEM_SCANCODE_` and `MOUSE_BUTTON_` form, but only for the keys
+  in its table (letters, digits, punctuation, function, editing, arrow,
+  keypad and modifier keys); gamepad input is not captured and key names
+  are English. Luanti's own settings menu is the only known user, and
+  lua_api.md does not document the element.
+- `hypertext` renders tags, styles, images, items, actions with their
+  `hovercolor`, and the `<global>` page settings, but images and items do
+  not float, and items are not rotated.
+- `style` and `style_type` resolve and apply everything upstream does
+  (states, the deprecated per-state properties, tints, images, borders,
+  padding, `content_offset`, `font`, `font_size`, `sound`, and the version 11
+  `halign` and `valign`) except `noclip`, `alpha`, and alignment on an
+  editable `textarea[]`, which Godot's `TextEdit` cannot align. Goanna never
+  clips an element to the form, so something upstream would cut off at the
+  form's edge is still drawn. Fonts are the system's, not Luanti's Arimo
+  and Cousine.
 - `tablecolumns` ignores the per-column `padding` option.
-- `tooltip` ignores custom tooltip colours.
+
+## Compared with the vanilla client
+
+On 19 September 2026 the everyday forms of Mineclonia, VoxeLibre
+(`mineclone2`) and Minetest Game were shown side by side in Goanna and the
+vanilla client, both connected to the same Luanti 5.17.0 server (the
+Flatpak), at 1600 by 900, with Godot 4.5.1. A small server mod showed each
+game's own form to both players: a node's `on_rightclick` or its metadata
+formspec, an item's use callback, a villager's trade form, and the game's
+own `on_player_receive_fields` handlers for pages such as the creative
+inventory's tabs. The forms checked were the survival and creative
+inventories, furnace, chest, crafting table, anvil, enchanting table,
+villager trading, written book and skin editor in Mineclonia; the release
+announcements in VoxeLibre; and the creative inventory, furnace, chest and
+sign in Minetest Game. After the changes listed in `PLAN.md` for that date
+they match in layout, colour, button artwork, slot and item drawing, and
+text placement, with these differences left:
+
+- The font. Goanna draws with Godot's default face at about the same size,
+  which is wider than Luanti's Arimo, so a line that just fits upstream can
+  wrap or be cut short in Goanna (VoxeLibre's "Wielded lights" card).
+- Node item icons that are not cubes. Goanna composes a cube from the
+  node's tiles where the vanilla client renders the node's own mesh (an
+  anvil, a crafting table's side).
+- Scrollbars take Luanti's colours and square thumb but have no arrow
+  buttons. Tab headers, dropdowns and checkboxes keep Godot's look rather
+  than Luanti's skin.
+- Textlist rows are a little taller than GUITable's.
+- Goanna does not clip elements to the form, so anything a form places
+  outside itself without `noclip` is still drawn.
+- The vanilla client's tooltips were not captured, because the harness
+  cannot move that client's pointer; Goanna's tooltip look follows
+  `showTooltip` in the source.
 
 ## Reading the result
 

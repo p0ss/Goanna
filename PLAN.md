@@ -413,6 +413,53 @@ the fact.
   verified: any server older than 5.17.0, Windows itself, and a mod that
   uses more than one animation track.
 
+- Formspecs drawn as the vanilla client draws them, 2026-09-19. The game's
+  formspec prepend was being dropped: two commits recovered from a stale
+  session (577796e, a29dfbe) had removed `GoannaClient.formspec_prepend`
+  and the calls that passed it on, so every game form was a grey Godot
+  panel. It is wired again, with a suite check on the host side. Buttons
+  follow `GUIButton::setFromStyle`: `bgcolor` tints the `bgimg`,
+  `border=false` drops the pane but keeps the image (the recipe book, the
+  creative tabs and every themed button had lost their artwork), padding,
+  `bgimg_middle` and `content_offset` place a label that is now a child
+  with Luanti's text shadow, image buttons draw their image behind it, and
+  `item_image_button` takes `image_button`'s styles and its item's
+  description. Style lookup follows `getStyleForElement`, colour names are
+  Luanti's CSS table, and the `sound`, `font` and model `bgcolor`
+  properties apply. Tooltips are drawn by the form as `drawMenu` draws
+  them, in their own or the `listcolors[]` colours with colour escapes
+  kept; `hypertip[]` renders its markup at its width and static position.
+  Slots draw the item full size with upstream's wear bar and count, and
+  borders only when `listcolors[]` names one. Labels keep colour escapes,
+  and the area label of version 9 wraps with the version 11 alignment.
+  Fields are Luanti's grey and green edit boxes, a four-part `pwdfield[]`
+  works, a form without `size[]` is upstream's 580 pixel window, and a
+  node's own form resolves `${key}` from its metadata. Old-system buttons,
+  fields, dropdowns, tab headers and hypertext sit where upstream places
+  them, and the first empty edit box takes the focus. Hypertext gains
+  `<global>` alignment, margin and hover colours; textlists and tables get
+  GUITable's look; scrollbars Luanti's colours; backgrounds keep their
+  order behind everything else; `button_key[]` captures a key. `tooltip`,
+  `hypertip` and `model` are now supported in the coverage manifest;
+  `button_key`, `hypertext`, `style`, `style_type` and `tablecolumns` stay
+  partial, each naming what is missing. Verified: the formspec suite (317
+  checks), and side by side with the vanilla client on one Luanti 5.17.0
+  Flatpak server at 1600 by 900 with Godot 4.5.1, each form shown to both
+  players by a test mod: Mineclonia's survival and creative inventories,
+  furnace, chest, crafting table, anvil, enchanting table, villager
+  trading, written book and skin editor, VoxeLibre's release
+  announcements and creative inventory, and Minetest Game's creative
+  inventory, furnace, chest and sign. They now match in layout, colour,
+  button artwork, slots and text placement. Still different: Godot's
+  default font is wider than Luanti's Arimo, so a line that just fits
+  upstream can wrap; node icons that are not cubes; scrollbar arrows; tab
+  headers, dropdowns and checkboxes in Godot's look; no clipping to the
+  form; slightly taller textlist rows. Not verified: the vanilla client's
+  tooltips, which the harness cannot hover; hover colours, `sound`, `font`,
+  a model's `bgcolor` and `button_key`, which none of these games use; and
+  the Minetest Game sign through a real right click, whose text round trip
+  was exercised through an ordinary node metadata fields packet instead.
+
 ## Log since v0.4.1-alpha (2026-08-30)
 
 Verified on a local Mineclonia server on Luanti 5.17.0 with Godot 4.5.1 and

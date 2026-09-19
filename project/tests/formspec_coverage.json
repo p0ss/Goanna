@@ -12,7 +12,7 @@
   "button_exit": {"status": "supported"},
   "button_key": {
     "status": "partial",
-    "note": "Drawn as an ordinary button showing its label; it cannot capture a key binding."
+    "note": "Shows its key by name, captures the next key or mouse button when pressed and sends it as Luanti 5.17's SYSTEM_SCANCODE_ or MOUSE_BUTTON_ string, with Escape cancelling. Only keys in its table (letters, digits, punctuation, function, editing, arrow, keypad and modifier keys) are captured; gamepad buttons and axes are not, and key names are English."
   },
   "button_url": {"status": "supported"},
   "button_url_exit": {"status": "supported"},
@@ -27,12 +27,12 @@
     "note": "Parsed and ignored, which is the whole behaviour on a non-Android client."
   },
   "hypertip": {
-    "status": "partial",
-    "note": "Shown as a plain text tooltip: the markup is stripped, and the static position and width are ignored."
+    "status": "supported",
+    "note": "Drawn by the form as upstream draws it: the markup rendered at the given width in ems of the form's text, at the static position when one is given, with bgcolor, border and bgimg from style[] on its name."
   },
   "hypertext": {
     "status": "partial",
-    "note": "Tags, styles, images, items and actions are rendered; hovercolor and vertical alignment are not."
+    "note": "Tags, styles, images, items, actions with their hovercolor, and the <global> page settings (margin, halign, valign, background) are rendered; images and items do not float, and items are not rotated (angle, rotate)."
   },
   "image": {"status": "supported"},
   "image_button": {"status": "supported"},
@@ -44,8 +44,8 @@
   "listcolors": {"status": "supported"},
   "listring": {"status": "supported"},
   "model": {
-    "status": "partial",
-    "note": "The mesh is loaded with Luanti's own loaders, textured, posed at the frame loop and drawn in a SubViewport, honouring the initial rotation, continuous rotation, mouse control and a non-zero animation speed. A mesh whose media has not arrived falls back to a labelled placeholder. Style properties (noclip, bgcolor) are not applied."
+    "status": "supported",
+    "note": "The mesh is loaded with Luanti's own loaders, textured, posed at the frame loop and drawn in a SubViewport, honouring the initial rotation, continuous rotation, mouse control, a non-zero animation speed and style[] bgcolor. A mesh whose media has not arrived falls back to a labelled placeholder, where upstream draws nothing."
   },
   "pwdfield": {"status": "supported"},
   "real_coordinates": {"status": "supported"},
@@ -61,11 +61,11 @@
   },
   "style": {
     "status": "partial",
-    "note": "Colours, background images, borders, font size and list slot geometry are applied; font family, sound, and the halign and valign of formspec version 11 are not."
+    "note": "Resolved and applied as upstream does, states and deprecated per-state properties included: colours and tints, background and foreground images, borders, padding, content_offset, font and font_size, sound, list slot geometry, a model's bgcolor, a hypertip's look, and the halign and valign of formspec version 11 on area labels, fields and read-only textareas. Not applied: noclip (Goanna never clips an element to the form, so what upstream would cut off is still drawn), alpha, and halign and valign on an editable textarea, which Godot's TextEdit cannot align. Fonts are the system's, not Luanti's Arimo and Cousine."
   },
   "style_type": {
     "status": "partial",
-    "note": "Colours, background images, borders, font size and list slot geometry are applied; font family, sound, and the halign and valign of formspec version 11 are not."
+    "note": "As style: everything but noclip, alpha, and halign and valign on an editable textarea is applied, with the system's fonts in place of Luanti's."
   },
   "tabheader": {"status": "supported"},
   "table": {"status": "supported"},
@@ -77,8 +77,8 @@
   "textarea": {"status": "supported"},
   "textlist": {"status": "supported"},
   "tooltip": {
-    "status": "partial",
-    "note": "Named and area tooltips work, but custom tooltip colours are ignored."
+    "status": "supported",
+    "note": "Drawn by the form as GUIFormSpecMenu draws it: named and area tooltips in their own colours or the listcolors[] defaults, colour escapes kept, element tooltips after tooltip_show_delay's default of 400 ms."
   },
   "vertlabel": {"status": "supported"},
   "allow_close": {
