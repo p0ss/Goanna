@@ -86,6 +86,10 @@ goanna_lamp_reach={
 "type": "float",
 "value": 64.0
 }
+goanna_node_anim_time={
+"type": "float",
+"value": 0.0
+}
 goanna_sun_dir={
 "type": "vec3",
 "value": Vector3(0, 1, 0)

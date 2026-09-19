@@ -994,7 +994,7 @@ void GoannaClient::set_auto_bump(float strength) {
     if (strength == m_auto_bump)
         return;
     m_auto_bump = strength;
-    m_materials.clear();
+    clearMaterials();
     // The array path infers the same relief for layers with no authored _n
     // (docs/pbr-plan.md step 2), and its companions are cached per texture.
     if (m_session && m_session->tsrc())
@@ -1015,7 +1015,7 @@ void GoannaClient::set_solid_ice(bool on) {
     if (on == m_solid_ice)
         return;
     m_solid_ice = on;
-    m_materials.clear();
+    clearMaterials();
     if (m_session) {
         std::lock_guard<std::mutex> lk(m_session->mapLock());
         for (auto &kv : m_near_blocks)
@@ -1199,7 +1199,7 @@ void GoannaClient::connect_to(const String &host, int port, const String &player
     // Materials retain the outgoing session's texture objects. Texture ids
     // start over for each connection, so keeping this cache makes a later
     // pack reuse shader materials still bound to the first pack's arrays.
-    m_materials.clear();
+    clearMaterials();
     m_fake_liquid_tex.clear();
     m_ice_tex.clear();
     m_lava_tex.clear();
@@ -2357,7 +2357,9 @@ Ref<Material> GoannaClient::materialForIrr(const video::SMaterial &m, u16 layer)
     return materialFor(keyForIrr(m, layer));
 }
 
-MaterialKey GoannaClient::keyForIrr(const video::SMaterial &m, u16 layer) {
+MaterialKey GoannaClient::keyForIrr(const video::SMaterial &m, u16 layer, u16 *layer_base) {
+    if (layer_base)
+        *layer_base = 0;
     MaterialKey key;
     GoannaTexture *gt = dynamic_cast<GoannaTexture *>(m.getTexture(0));
     key.texture_id = gt ? gt->id() : 0;
@@ -2392,33 +2394,25 @@ MaterialKey GoannaClient::keyForIrr(const video::SMaterial &m, u16 layer) {
     key.shader_id = GoannaShaderSource::isShaderMaterial(m.MaterialType)
             ? GoannaShaderSource::shaderIdFromMaterial(m.MaterialType) : 0;
     key.backface_culling = m.BackfaceCulling;
+    // The array path covers the common case: an opaque, culled tile with no
+    // crack overlay. Anything else (a special shader, a double-sided plant, a
+    // tile being dug) resolves back to its own single image, so it is never
+    // sampled as if it were an array.
+    const bool cracked = m.getTexture(MapBlockMesh::TEXTURE_LAYER_CRACK) != nullptr;
+    // Waving leaves are backface-culled (they are cube-shaped, unlike waving
+    // plants), so culling alone does not rule them out, but
+    // nodes_array.gdshader has no wind logic at all: routing them through it
+    // silently drops the sway, which is how leaves ended up rendering still.
+    // materialFor() below picks the special per-material shader (leaves,
+    // plants, glass, water) whenever it is not an array, so arrayPathTile
+    // keeps those material types off the array path too.
+    const MaterialType mtype = m_session->shsrc().materialType(key.shader_id);
+    const bool array_tile = arrayPathTile(mtype, m.BackfaceCulling);
     if (gt && gt->isArray()) {
-        // The array path covers the common case: an opaque, culled tile with
-        // no crack overlay. Anything else (a special shader, a double-sided
-        // plant, a tile being dug) resolves back to its own single image, so
-        // it is never sampled as if it were an array.
-        bool cracked = m.getTexture(MapBlockMesh::TEXTURE_LAYER_CRACK) != nullptr;
-        // Waving leaves are backface-culled (they are cube-shaped, unlike
-        // waving plants), so the checks above do not rule them out, but
-        // nodes_array.gdshader has no wind logic at all: routing them
-        // through it silently drops the sway, which is how leaves ended up
-        // rendering still. materialFor() below picks the special per-material
-        // shader (leaves, plants, glass, water) whenever it is not an array,
-        // so keep those material types off the array path here too.
-        MaterialType mtype = m_session->shsrc().materialType(key.shader_id);
-        bool wants_special_shader = mtype == TILE_MATERIAL_WAVING_LEAVES ||
-                mtype == TILE_MATERIAL_WAVING_PLANTS ||
-                mtype == TILE_MATERIAL_LIQUID_OPAQUE ||
-                mtype == TILE_MATERIAL_WAVING_LIQUID_OPAQUE ||
-                mtype == TILE_MATERIAL_LIQUID_TRANSPARENT ||
-                mtype == TILE_MATERIAL_WAVING_LIQUID_TRANSPARENT ||
-                mtype == TILE_MATERIAL_WAVING_LIQUID_BASIC ||
-                ((mtype == TILE_MATERIAL_ALPHA || mtype == TILE_MATERIAL_PLAIN_ALPHA) &&
-                        m.BackfaceCulling);
         // Only commit to the array path if the Godot array actually built:
         // otherwise the key would name a texture with no 2D image behind it
         // and the tile would render untextured white.
-        bool array_ready = m.BackfaceCulling && !cracked && !wants_special_shader &&
+        bool array_ready = array_tile && !cracked &&
                 m_session->shsrc().usesArrayTexture(key.shader_id) &&
                 gt->godotArray().is_valid();
         if (array_ready) {
@@ -2437,6 +2431,22 @@ MaterialKey GoannaClient::keyForIrr(const video::SMaterial &m, u16 layer) {
                 size_t idx = layer < names.size() ? layer : 0;
                 key.texture_id = m_session->tsrc()->getTextureId(names[idx]);
             }
+        }
+    } else if (gt && layer_base && !key.composited && !cracked && array_tile) {
+        // An animated tile. Its buffers carry the first frame, a single
+        // image, because upstream keeps animated tiles out of its arrays and
+        // swaps the texture per frame. Draw it from the animation array
+        // holding its frames instead, where the shader picks the frame, so
+        // it merges with its neighbours and nothing changes per frame. Only
+        // for a caller that takes layer_base: one that cannot move the
+        // vertex layer keeps the single image, which animates by swapping.
+        const NodeAnimation *anim = m_session->tsrc()->nodeAnimation(gt->id());
+        GoannaTexture *agt = anim && anim->array_id
+                ? m_session->tsrc()->goannaTexture(anim->array_id) : nullptr;
+        if (agt && agt->godotArray().is_valid()) {
+            key.texture_id = anim->array_id;
+            key.array_texture = true;
+            *layer_base = anim->base_layer;
         }
     }
     if (getenv("GOANNA_DEBUG_CRACK") && m.getTexture(MapBlockMesh::TEXTURE_LAYER_CRACK)) {
@@ -2629,6 +2639,20 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
                 }
                 sm->set_meta("goanna_grass_layers", grass_layers);
                 sm->set_shader_parameter("layer_class", classes);
+                // An animation array's frame counts and lengths, which the
+                // shader turns into the frame to draw. An ordinary array
+                // leaves the uniform at zero and never animates.
+                // Godot fills an ivec2 array uniform from flat pairs.
+                const auto &lanim = agt->layerAnim();
+                if (!lanim.empty()) {
+                    PackedInt32Array anim;
+                    anim.resize((int)lanim.size() * 2);
+                    for (size_t i = 0; i < lanim.size(); ++i) {
+                        anim[(int)i * 2] = lanim[i].frames;
+                        anim[(int)i * 2 + 1] = lanim[i].frame_ms;
+                    }
+                    sm->set_shader_parameter("layer_anim", anim);
+                }
                 // Each map's own relief depth for the parallax march; a
                 // layer without authored height stays at 0 and takes the
                 // class table's depth in the shader.
@@ -2812,24 +2836,12 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
         // reached the ground and the walls and stopped at the treeline, and
         // every mat_ slider moved one and not the other.
         if (sh == m_sh_glass || sh == m_sh_ice || sh == m_sh_leaves || sh == m_sh_plants) {
-            std::string base = m_session->tsrc()->getTextureName(key.texture_id);
-            base = base.substr(0, base.find('^'));
-            const size_t dotpos = base.rfind('.');
-            const std::string stem = dotpos == std::string::npos ? base : base.substr(0, dotpos);
-            const std::string ext = dotpos == std::string::npos ? std::string() : base.substr(dotpos);
-            auto lookup = [&](const char *suffix) -> Ref<Texture2D> {
-                const std::string name = stem + suffix + ext;
-                if (stem.empty() || !m_session->tsrc()->isKnownSourceImage(name))
-                    return Ref<Texture2D>();
-                GoannaTexture *cgt = dynamic_cast<GoannaTexture *>(m_session->tsrc()->getTexture(name));
-                return cgt ? Ref<Texture2D>(cgt->godotTexture()) : Ref<Texture2D>();
-            };
             Ref<Texture2D> nrm_tex;
             Ref<Texture2D> spc_tex;
 			const char *no_pbr_env = getenv("GOANNA_NO_PBR");
 			if (!no_pbr_env || !*no_pbr_env) {
-                nrm_tex = lookup("_n");
-                spc_tex = lookup("_s");
+                nrm_tex = companionTexture(key.texture_id, "_n");
+                spc_tex = companionTexture(key.texture_id, "_s");
             }
             sm->set_shader_parameter("has_normal", nrm_tex.is_valid());
             sm->set_shader_parameter("has_spec", spc_tex.is_valid());
@@ -2848,6 +2860,9 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
             }
         }
         m_materials[key.hash()] = sm;
+        // Water and lava animate themselves; see noteAnimatedMaterial.
+        if (sh != m_sh_water && sh != m_sh_lava)
+            noteAnimatedMaterial(key, sm);
         return sm;
     }
 
@@ -2922,7 +2937,193 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
         mat->set_albedo(Color(0.9, 0.4, 0.9));
     }
     m_materials[key.hash()] = mat;
+    if (tex.is_valid())
+        noteAnimatedMaterial(key, mat);
     return mat;
+}
+
+// The texture of the frame a vanilla client draws for this tile at clock
+// time t: upstream's own AnimationInfo::getTexture (client/tile.cpp), as
+// MapBlockMesh::animate calls it. It takes a mutable pointer to the frames
+// but only reads through it.
+static u32 animationFrameAt(const NodeAnimation &anim, float t) {
+    AnimationInfo info(const_cast<std::vector<FrameSpec> *>(&anim.frames), anim.frame_length_ms);
+    GoannaTexture *now = dynamic_cast<GoannaTexture *>(info.getTexture(t));
+    return now ? now->id() : 0;
+}
+
+Ref<Texture2D> GoannaClient::companionTexture(u32 texture_id, const char *suffix) {
+    GoannaTextureSource *tsrc = m_session->tsrc();
+    const std::string name = tsrc->companionImage(tsrc->getTextureName(texture_id), suffix);
+    if (name.empty())
+        return Ref<Texture2D>();
+    GoannaTexture *cgt = dynamic_cast<GoannaTexture *>(tsrc->getTexture(name));
+    return cgt ? Ref<Texture2D>(cgt->godotTexture()) : Ref<Texture2D>();
+}
+
+void GoannaClient::noteAnimatedMaterial(const MaterialKey &key, const Ref<Material> &material) {
+    // A material keyed by an animated tile's first frame, that is not drawn
+    // from an animation array. A crack composite is a still image of one
+    // frame, and every liquid is left to its own shader: lava deliberately
+    // animates its source frame itself (docs/lava-material.md), and the
+    // water shader moves its own surface.
+    if (key.array_texture || key.composited || !m_session || material.is_null())
+        return;
+    const NodeAnimation *anim = m_session->tsrc()->nodeAnimation(key.texture_id);
+    if (!anim || anim->frames.size() < 2)
+        return;
+    switch (m_session->shsrc().materialType(key.shader_id)) {
+    case TILE_MATERIAL_LIQUID_OPAQUE:
+    case TILE_MATERIAL_WAVING_LIQUID_OPAQUE:
+    case TILE_MATERIAL_LIQUID_TRANSPARENT:
+    case TILE_MATERIAL_WAVING_LIQUID_TRANSPARENT:
+    case TILE_MATERIAL_WAVING_LIQUID_BASIC:
+        return;
+    default:
+        break;
+    }
+    AnimatedMaterial am;
+    am.material = material;
+    am.anim = anim;
+    am.shown = key.texture_id;
+    m_anim_materials.push_back(am);
+    // Straight onto the frame the clock names, so a material built mid
+    // animation does not show the first frame until the next change.
+    const u32 now = animationFrameAt(*anim, m_node_anim_time);
+    if (now && now != am.shown)
+        showAnimationFrame(m_anim_materials.back(), now);
+}
+
+void GoannaClient::showAnimationFrame(AnimatedMaterial &am, u32 frame_texture) {
+    GoannaTexture *fgt = m_session->tsrc()->goannaTexture(frame_texture);
+    Ref<ImageTexture> albedo = fgt ? fgt->godotTexture() : Ref<ImageTexture>();
+    if (albedo.is_null())
+        return;
+    am.shown = frame_texture;
+    // The same textures materialFor derives from a tile, derived from this
+    // frame instead: the colour, and for a standard material the inferred
+    // relief and the emission mask, both of which are cut from the colour.
+    if (StandardMaterial3D *std_mat = Object::cast_to<StandardMaterial3D>(am.material.ptr())) {
+        std_mat->set_texture(BaseMaterial3D::TEXTURE_ALBEDO, albedo);
+        if (std_mat->get_feature(BaseMaterial3D::FEATURE_NORMAL_MAPPING)) {
+            Ref<ImageTexture> nrm = fgt->godotNormal(m_auto_bump);
+            if (nrm.is_valid())
+                std_mat->set_texture(BaseMaterial3D::TEXTURE_NORMAL, nrm);
+        }
+        if (std_mat->get_feature(BaseMaterial3D::FEATURE_EMISSION)) {
+            Ref<ImageTexture> glow = fgt->godotEmissionMask();
+            std_mat->set_texture(BaseMaterial3D::TEXTURE_EMISSION,
+                    glow.is_valid() ? glow : albedo);
+        }
+        return;
+    }
+    if (ShaderMaterial *sm = Object::cast_to<ShaderMaterial>(am.material.ptr())) {
+        sm->set_shader_parameter("albedo_tex", albedo);
+        // A companion follows the frame where the pack has one per frame;
+        // where it has one still map, companionTexture returns that for
+        // every frame and setting it again changes nothing.
+        if ((bool)sm->get_shader_parameter("has_normal")) {
+            Ref<Texture2D> nrm = companionTexture(frame_texture, "_n");
+            if (nrm.is_valid())
+                sm->set_shader_parameter("normal_tex", nrm);
+        }
+        if ((bool)sm->get_shader_parameter("has_spec")) {
+            Ref<Texture2D> spc = companionTexture(frame_texture, "_s");
+            if (spc.is_valid())
+                sm->set_shader_parameter("spec_tex", spc);
+        }
+    }
+}
+
+void GoannaClient::step_node_animation(double dt) {
+    // Client::step: dtime capped at DTIME_LIMIT, the clock kept in [0, 60).
+    if (dt > DTIME_LIMIT)
+        dt = DTIME_LIMIT;
+    if (dt < 0.0)
+        dt = 0.0;
+    m_node_anim_time = m_node_anim_pinned >= 0.0f ? m_node_anim_pinned
+            : fmodf(m_node_anim_time + (float)dt, 60.0f);
+    RenderingServer::get_singleton()->global_shader_parameter_set(
+            "goanna_node_anim_time", m_node_anim_time);
+    for (AnimatedMaterial &am : m_anim_materials) {
+        const u32 now = animationFrameAt(*am.anim, m_node_anim_time);
+        if (now && now != am.shown)
+            showAnimationFrame(am, now);
+    }
+}
+
+void GoannaClient::set_node_animation_enabled(bool on) {
+    if (!m_session || !m_session->tsrc() || m_session->tsrc()->nodeAnimationEnabled() == on)
+        return;
+    m_session->tsrc()->setNodeAnimationEnabled(on);
+    // Materials were built for one path or the other, and near meshes carry
+    // the animation array's layers in UV2, so both are rebuilt, as
+    // set_auto_bump rebuilds them. The far tiers resolve tiles through
+    // their own cache: clearing it lets each region take the change when it
+    // next rebuilds, without throwing the whole far field away for a switch.
+    clearMaterials();
+    {
+        std::lock_guard<std::mutex> tile_lock(m_lod_tiles.mutex);
+        m_lod_tiles.entries.clear();
+    }
+    std::lock_guard<std::mutex> lk(m_session->mapLock());
+    for (auto &kv : m_near_blocks)
+        m_session->invalidateBlock(kv.first);
+}
+
+bool GoannaClient::node_animation_enabled() const {
+    return m_session && m_session->tsrc() && m_session->tsrc()->nodeAnimationEnabled();
+}
+
+void GoannaClient::set_node_animation_time(double seconds) {
+    m_node_anim_pinned = seconds < 0.0 ? -1.0f : fmodf((float)seconds, 60.0f);
+    step_node_animation(0.0);
+}
+
+Dictionary GoannaClient::node_animation() {
+    Dictionary out;
+    out["time"] = m_node_anim_time;
+    out["pinned"] = m_node_anim_pinned >= 0.0f;
+    out["enabled"] = node_animation_enabled();
+    if (!m_session)
+        return out;
+    GoannaTextureSource *tsrc = m_session->tsrc();
+    const auto *table = tsrc->nodeAnimations();
+    int in_arrays = 0;
+    Array tiles;
+    if (table) {
+        for (const auto &kv : *table) {
+            const NodeAnimation &a = kv.second;
+            const u32 now = animationFrameAt(a, m_node_anim_time);
+            int frame = 0;
+            for (size_t i = 0; i < a.frames.size(); ++i)
+                if (a.frames[i].texture_id == now)
+                    frame = (int)i;
+            Dictionary t;
+            t["texture"] = String(tsrc->getTextureName(kv.first).c_str());
+            t["frames"] = (int)a.frames.size();
+            t["frame_ms"] = (int)a.frame_length_ms;
+            t["frame"] = frame;
+            t["array"] = (int64_t)a.array_id;
+            t["base_layer"] = (int)a.base_layer;
+            tiles.push_back(t);
+            if (a.array_id)
+                ++in_arrays;
+        }
+    }
+    out["tiles"] = tiles;
+    out["tile_count"] = tiles.size();
+    out["in_arrays"] = in_arrays;
+    Array mats;
+    for (const AnimatedMaterial &am : m_anim_materials) {
+        Dictionary m;
+        m["first_frame"] = String(tsrc->getTextureName(am.anim->frames[0].texture_id).c_str());
+        m["shown"] = String(tsrc->getTextureName(am.shown).c_str());
+        m["class"] = am.material.is_valid() ? am.material->get_class() : String();
+        mats.push_back(m);
+    }
+    out["single_materials"] = mats;
+    return out;
 }
 
 void GoannaClient::harvestLights(v3s16 bp, MapBlock *block) {
@@ -7115,8 +7316,9 @@ int GoannaClient::poll_blocks(int max_blocks) {
                     if (vlit != vertex_light.end() && vlit->second.size() == nv)
                         vl_tab = &vlit->second;
                 }
+                u16 layer_base = 0;
                 MaterialKey key = keyForIrr(buf->getMaterial(),
-                        v[0].Aux & GOANNA_VERTEX_TEXTURE_MASK);
+                        v[0].Aux & GOANNA_VERTEX_TEXTURE_MASK, &layer_base);
                 // Approximate ownership for the semantic ID in UV2.y. Light
                 // source ownership is explicit mesh metadata instead: this
                 // half-node step can leave a thin torch/lantern's own cell.
@@ -7172,9 +7374,12 @@ int GoannaClient::poll_blocks(int max_blocks) {
                         // array layer, y the block semantic ID that an Iris
                         // pack reads as mc_Entity.x, from the classifier's
                         // block column for the owning node. 0 is the correct
-                        // failure: unremarkable, not wrong.
+                        // failure: unremarkable, not wrong. An animated
+                        // tile's layer is its first frame in the animation
+                        // array; the shader adds the frame.
                         tacc.uv2s.push_back(Vector2(tacc.is_array ?
-                                (float)(v[sv].Aux & GOANNA_VERTEX_TEXTURE_MASK) : 0.0f, block_id));
+                                (float)((v[sv].Aux & GOANNA_VERTEX_TEXTURE_MASK) + layer_base)
+                                : 0.0f, block_id));
                         // Luanti node coordinates, which is what the field
                         // wants: the mirrored z above is Godot's convention.
                         // GOANNA_NO_VERTEX_LIGHT=1 skips the sample and writes
@@ -7481,6 +7686,13 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("motes"), &GoannaClient::motes);
     ClassDB::bind_method(D_METHOD("update_motes", "around", "max_emitters"), &GoannaClient::update_motes);
     ClassDB::bind_method(D_METHOD("sync_entities", "dt"), &GoannaClient::sync_entities);
+    ClassDB::bind_method(D_METHOD("step_node_animation", "dt"), &GoannaClient::step_node_animation);
+    ClassDB::bind_method(D_METHOD("set_node_animation_time", "seconds"),
+            &GoannaClient::set_node_animation_time);
+    ClassDB::bind_method(D_METHOD("node_animation"), &GoannaClient::node_animation);
+    ClassDB::bind_method(D_METHOD("set_node_animation_enabled", "on"),
+            &GoannaClient::set_node_animation_enabled);
+    ClassDB::bind_method(D_METHOD("node_animation_enabled"), &GoannaClient::node_animation_enabled);
     ClassDB::bind_method(D_METHOD("take_chat"), &GoannaClient::take_chat);
     ClassDB::bind_method(D_METHOD("send_chat", "message"), &GoannaClient::send_chat);
     ClassDB::bind_method(D_METHOD("hp"), &GoannaClient::hp);
