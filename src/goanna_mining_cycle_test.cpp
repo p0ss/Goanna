@@ -37,17 +37,22 @@ int main() {
     }
     goanna::MiningCycle stone;
     stone.reset(1.333, 8);
-    check(stone.blows==8 && std::abs(stone.period-.65)<1e-6,"stone keeps eight deliberate chips rather than two destructive blows");
+    check(stone.blows==8 && std::abs(stone.period-goanna::kSwingPeriod)<1e-6,"stone keeps eight deliberate chips rather than two destructive blows");
     stone.advance(1.333);
-    check(!stone.complete() && stone.progress()==.25f,"the old whole-block timer cannot force early destruction");
+    check(!stone.complete() && stone.progress()<1.0f,"the old whole-block timer cannot force early destruction");
     goanna::MiningCycle stalled;
     stalled.reset(3);
     check(stalled.advance(2),"a stalled frame catches up contact");
-    check(stalled.landed==3,"missed contacts retain accumulated damage");
+    check(stalled.landed>1 && stalled.landed==(int)std::floor(2/stalled.period+goanna::kSwingLead),"missed contacts retain accumulated damage");
     check(!stalled.advance(0),"contact is not replayed without time advancing");
     stalled.reset(1);
     check(stalled.landed==0 && stalled.elapsed==0,"new target discards the previous cycle");
     check(!stalled.advance(.1),"new target does not inherit a pending contact");
+    goanna::MiningCycle first;
+    first.reset(1);
+    const float at_start=first.pose(false);
+    first.advance(.02);
+    check(first.pose(false)>at_start,"the first motion is the downstroke, not a wind-up");
     std::printf("Mining cycle: %d failures\n",failures);
     return failures?1:0;
 }

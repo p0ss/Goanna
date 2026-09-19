@@ -402,16 +402,31 @@ the fact.
   the version 11 `halign` and `valign` styles are not applied. Install
   Luanti on Windows now fetches the 5.17.0 zip, whose hash matches the
   digest GitHub publishes and which unpacks and is recognised on Linux.
-  Verified: the build, the native tests and the formspec, discovery, ice and
-  lava suites, and against a fresh Mineclonia world on the Luanti 5.17.0
-  Flatpak with Godot 4.5.1: protocol 53 negotiated, 3856 media received, 23
-  of 30 entities advancing their animation frames (the others were chests, a
-  spawner doll, two glow squid, which Mineclonia gives an empty animation
-  table, and an idle creeper), about 13 nodes walked in three seconds with
-  no drift after release, digs logged by the server, and 120 HUD elements
-  and the creative inventory formspec built with nothing skipped. Not
-  verified: any server older than 5.17.0, Windows itself, and a mod that
-  uses more than one animation track.
+  Verified: the build, the native tests (rebuilt, see the correction below)
+  and the formspec, discovery, ice and lava suites, and against a fresh
+  Mineclonia world on the Luanti 5.17.0 Flatpak with Godot 4.5.1: protocol
+  53 negotiated, 3856 media received, 23 of 30 entities advancing their
+  animation frames (the others were chests, a spawner doll, two glow squid,
+  which Mineclonia gives an empty animation table, and an idle creeper),
+  about 13 nodes walked in three seconds with no drift after release, digs
+  logged by the server, and 120 HUD elements and the creative inventory
+  formspec built with nothing skipped. Not verified: any server older than
+  5.17.0, Windows itself, and a mod that uses more than one animation track.
+
+- Correction, 2026-09-19: the native test runs recorded earlier today, in
+  the commit that sped up the tool swing (fcc9f72) and during the move to
+  5.17.0, ran stale binaries. The test targets are EXCLUDE_FROM_ALL, so
+  `cmake --build build` never rebuilds them; the binaries dated from 16
+  September. Built fresh, `goanna_mining_cycle_test` failed 17 checks, and
+  one of them was real: the faster swing started its clock 0.62 of a swing
+  in, so the dig completed, and was reported to the server, that much before
+  the tool time, earlier than a vanilla client ever reports a dig. The swing
+  still starts on its downstroke, but the blows are now spaced so the last
+  lands exactly at the tool time, and the clock starts at zero again. The
+  other checks encoded the old 0.65 second swing and now follow the
+  constants. Built fresh, all nine native tests pass
+  (`build/goanna_trees_test` is a leftover binary with no source). Not yet
+  seen in play against a server with digging anticheat.
 
 ## Log since v0.4.1-alpha (2026-08-30)
 
