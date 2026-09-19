@@ -218,6 +218,21 @@ static func back(parent: Control) -> Control:
 			s.size = parent.size)
 	return s
 
+# A piece of the game's window art that framed a tab or a model, redrawn as
+# a tile on the pane: a faint raised face, or a sunken one where the art was
+# dark, and the accent fill and ring when it was the selected tab.
+static func tile_box(dark: bool, selected: bool) -> StyleBoxFlat:
+	if selected:
+		return selected_box()
+	if dark:
+		return _box(Color(0, 0, 0, 0.30), RADIUS_SMALL, Color(1, 1, 1, 0.08), 1)
+	return _box(CONTROL_FILL, RADIUS_SMALL, CONTROL_BORDER, 1)
+
+# The chosen one of a row of tabs.
+static func selected_box() -> StyleBoxFlat:
+	var sb := _box(Color(ACCENT_FILL, 0.42), RADIUS_SMALL, ACCENT, 2)
+	return sb
+
 # One inventory slot on glass: the fill, and a rim that turns to the accent
 # under the pointer. Drawn by formspec.gd's slots and the hotbar.
 static var _slot_boxes: Array = []

@@ -37,7 +37,24 @@ class FakeItemSource extends Node:
 
 	func ui_texture(texture_name: String) -> Texture2D:
 		if not named_textures.has(texture_name):
-			named_textures[texture_name] = ImageTexture.create_from_image(texture.get_image())
+			var image := texture.get_image()
+			# "art_<grey>_<size>.png" stands in for a game's window art: a flat
+			# grey face with a one pixel darker edge.
+			if texture_name.begins_with("art_"):
+				var bits := texture_name.trim_suffix(".png").split("_")
+				var grey := int(bits[1]) / 255.0
+				var side := int(bits[2]) if bits.size() > 2 else 32
+				image = Image.create(side, side, false, Image.FORMAT_RGBA8)
+				image.fill(Color(grey * 0.6, grey * 0.6, grey * 0.6))
+				image.fill_rect(Rect2i(1, 1, side - 2, side - 2), Color(grey, grey, grey))
+			# "line_<size>.png" stands in for dark line art: a clear square
+			# with a dark cross through it, a few pixels wide.
+			elif texture_name.begins_with("line_"):
+				var side := int(texture_name.trim_suffix(".png").split("_")[1])
+				image = Image.create(side, side, false, Image.FORMAT_RGBA8)
+				image.fill_rect(Rect2i(side / 2 - 1, 2, 2, side - 4), Color8(25, 32, 34))
+				image.fill_rect(Rect2i(2, side / 2 - 1, side - 4, 2), Color8(25, 32, 34))
+			named_textures[texture_name] = ImageTexture.create_from_image(image)
 		return named_textures[texture_name]
 
 	func item_icon(_name: String) -> Texture2D:
@@ -142,6 +159,7 @@ func _run() -> void:
 	_test_glass_repeated_theme()
 	_test_glass_bespoke()
 	_test_glass_sends_the_same()
+	_test_glass_window_art()
 	_test_legacy_draw_order()
 	_test_glass_legibility()
 	_test_glass_setting()
@@ -1802,6 +1820,111 @@ func _test_glass_sends_the_same() -> void:
 	_equal((live.fields["bar"] as ScrollBar).value, 700.0, "and the scrollbar's place")
 	_check(sent_now.is_empty(), "and sending nothing")
 	_discard(live)
+
+# Window art of the form's own: a background of plain grey panel art is a
+# glass pane; grey art behind a tab or a model is a glass tile, and the one
+# lighter than its peers is the selected tab; grey art behind nothing, a
+# small swatch, and every picture stay.
+func _test_glass_window_art() -> void:
+	var spec := "formspec_version[6]size[12,10]no_prepend[]"
+	spec += "background9[0,1;12,8;art_198_42.png;false;7]"
+	# three tabs drawn as image[] behind item buttons, the second lighter
+	for i in 3:
+		var art := "art_202_64.png" if i == 1 else "art_158_64.png"
+		spec += "image[%s,0;1.5,1.44;%s]" % [0.2 + i * 1.6, art]
+		spec += "item_image_button[%s,0.24;1,1;default:stone;tab%d;]" % [0.44 + i * 1.6, i]
+	# three tabs drawn as buttons with art of their own, the third lighter
+	for i in 3:
+		var art := "art_202_64.png" if i == 2 else "art_158_64.png"
+		spec += "style[btab%d;border=false;bgimg=%s;bgimg_pressed=%s]" % [i, art, art]
+		spec += "button[%s,9;1.5,0.9;btab%d;]" % [5 + i * 1.6, i]
+	# a dark backing behind a model
+	spec += "image[1,2;2.25,2.83;art_12_42.png]"
+	spec += "model[1,2.1;2.2,2.7;player;character.b3d;skin.png;0,0]"
+	# a picture of a grid, framing nothing
+	spec += "image[5,2;3,2;art_180_128.png]"
+	# a small grey swatch as a button face
+	spec += "style[swatch;bgimg=art_128_16.png]button[9,2;1,1;swatch;]"
+	var form := _new_form(spec, "conformance", MCL_THEME, "glass")
+	_check(form.glass and not form.bespoke, "a form drawing its own grey panel is glass, not bespoke")
+	_check(_image_with(form, "art_198_42.png").is_empty(),
+		"its own plain panel background becomes glass")
+	_equal(_glass_panes(form.bg_layer).size(), 1, "one glass pane in its place")
+	var tabs := _image_with(form, "art_158_64.png") + _image_with(form, "art_202_64.png")
+	var hidden := 0
+	for t in tabs:
+		if not t.visible:
+			hidden += 1
+	_equal(hidden, 3, "tab art behind the tab buttons is replaced")
+	var selected: Array = []
+	for c in _nodes_of_type(form, "Control"):
+		if c.get_meta("art_selected", false):
+			selected.append(c)
+	_equal(selected.size(), 2, "one selected tab in each row")
+	var btab2: Button = form.named_controls["btab2"]
+	var btab0: Button = form.named_controls["btab0"]
+	_check(btab2.get_meta("art_selected", false), "the lighter button tab is the selected one")
+	_check(not btab0.get_meta("art_selected", false), "a darker one is not")
+	_check(not (btab0.get_theme_stylebox("normal") is StyleBoxTexture),
+		"a button's own plain art becomes a glass pane")
+	_check(not (btab0.get_theme_stylebox("normal") is StyleBoxEmpty),
+		"even with border=false, since the art was its face")
+	_check(btab0.get_meta("glass_backed", false),
+		"a tab outside the form's glass gets a pane of the same glass behind it")
+	var item: Button = form.named_controls["tab1"]
+	_equal(item.get_meta("content")["item"], fixture_source.item_icon("default:stone"),
+		"the tab's icon is kept")
+	var backing := _image_with(form, "art_12_42.png")
+	_check(backing.size() == 1 and not backing[0].visible, "a model's dark backing becomes a tile")
+	var picture := _image_with(form, "art_180_128.png")
+	_check(picture.size() == 1 and picture[0].visible, "grey art that frames nothing is kept")
+	var swatch: Button = form.named_controls["swatch"]
+	_check(swatch.get_theme_stylebox("normal") is StyleBoxTexture, "a small grey swatch is kept")
+	_discard(form)
+	var game := _new_form(spec, "conformance", MCL_THEME)
+	_equal(_image_with(game, "art_158_64.png").filter(func(c: Control) -> bool: return c.visible).size(),
+		2, "the game theme keeps every tab's art")
+	_discard(game)
+	# A frame much bigger than its slot becomes a tile of its own size; dark
+	# line art over a slot is drawn light; a neutral grey box is a sunken
+	# tile; line art over the whole form does not make it a painted page.
+	var more := "formspec_version[6]size[12,10]"
+	more += "background[0,0;12,10;line_48.png;true]"
+	more += "image[0.95,0.95;1.1,1.1;art_157_74.png]image[2.2,0.95;1.1,1.1;art_157_74.png]"
+	more += "list[current_player;main;1,1;2,1;]"
+	more += "image[4.8,0.8;1.4,1.4;art_157_74.png]list[current_player;main;5,1;1,1;2]"
+	more += "list[current_player;main;7,1;1,1;3]image[7,1;1,1;line_16.png]"
+	more += "box[1,4;3,2;#555555]box[5,4;3,2;#aa2222]box[1,7;6,0.03;#ffffff]"
+	var art := _new_form(more, "conformance", "", "glass")
+	_check(art.glass and not art.bespoke, "line art over the whole form is not a painted page")
+	var big: Array = _image_with(art, "art_157_74.png").filter(func(c: Control) -> bool:
+		return c.size.x > art.imgsize * 1.3)
+	_check(big.size() == 1 and not big[0].visible and big[0].get_meta("glass_replaced", false),
+		"a frame much bigger than its slot is replaced")
+	var tiles: Array = []
+	for c in _nodes_of_type(art, "Panel"):
+		if c.has_meta("window_art_lum") and c.size.x > art.imgsize * 1.3:
+			tiles.append(c)
+	_equal(tiles.size(), 1, "by a glass tile of its own size")
+	var line: Array = _image_with(art, "line_16.png")
+	var lit: Array = []
+	for c in _nodes_of_type(art, "TextureRect"):
+		if c.get_meta("glass_line_art", false):
+			lit.append(c)
+	_equal(line.size(), 0, "the dark line art over a slot is not drawn as it was")
+	_equal(lit.size(), 1, "it is drawn light")
+	if lit.size() == 1:
+		var px: Color = (lit[0].texture as Texture2D).get_image().get_pixel(8, 8)
+		_check(GlassStyle.luminance(px) > 0.5 and px.a > 0.9, "light, and as opaque as it was")
+	var grey_box: Array = []
+	for c in _nodes_of_type(art, "Panel"):
+		if c.get_meta("glass_box", false):
+			grey_box.append(c)
+	_equal(grey_box.size(), 1, "a neutral grey box becomes a sunken tile")
+	_check(_colorrect_of(art, Color.html("aa2222")) != null, "a coloured box stays")
+	_check(_colorrect_of(art, Color.WHITE) != null, "a thin light rule stays")
+	_discard(art)
+
 
 # A form older than version 3 draws in legacySortElements' order: boxes,
 # everything else, images, item images, lists, labels. Mineclonia's brewing

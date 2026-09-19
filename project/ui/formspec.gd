@@ -474,8 +474,9 @@ func _chrome() -> bool:
 func _ink(c: Color, surface := GlassStyle.PANEL_WORST) -> Color:
 	return GlassStyle.ink(c, surface) if glass else c
 
-# A form paints its own window when a background of its own, not the theme's,
-# covers nine tenths of the form or more.
+# A form paints its own window when a background of its own, not the theme's
+# and not plain window art, covers nine tenths of the form or more and is at
+# least half opaque: a book's page, not line art drawn over the game's panel.
 func _paints_own_window() -> bool:
 	if root == null or bg_layer == null:
 		return false
@@ -485,9 +486,32 @@ func _paints_own_window() -> bool:
 		if c.has_meta("glass_surface") or not (c is Control):
 			continue
 		var r := Rect2((c as Control).position, (c as Control).size)
-		if r.intersection(form).get_area() >= area * 0.9:
+		if r.intersection(form).get_area() >= area * 0.9 \
+				and _opaque_share(c.get("texture")) >= 0.5:
 			return true
 	return false
+
+# How much of a texture is opaque, 0 to 1: a book's page is nearly all of
+# it, the brewing stand's tubes, drawn over the game's panel, a twentieth.
+static func _opaque_share(tex: Texture2D) -> float:
+	if tex == null:
+		return 0.0
+	var img := tex.get_image()
+	if img == null or img.get_width() == 0:
+		return 0.0
+	img = img.duplicate()
+	if img.is_compressed():
+		img.decompress()
+	if maxi(img.get_width(), img.get_height()) > 64:
+		var sc := 64.0 / maxi(img.get_width(), img.get_height())
+		img.resize(maxi(int(img.get_width() * sc), 1), maxi(int(img.get_height() * sc), 1),
+			Image.INTERPOLATE_NEAREST)
+	var n := 0
+	for y in img.get_height():
+		for x in img.get_width():
+			if img.get_pixel(x, y).a >= 0.5:
+				n += 1
+	return float(n) / (img.get_width() * img.get_height())
 
 # --- layout maths (GUIFormSpecMenu::regenerateGui) ---------------------------
 
@@ -790,6 +814,10 @@ func _build() -> void:
 	building = false
 	if glass:
 		_replace_slot_frames()
+		_glass_window_art()
+		_glass_line_art()
+		_mark_selected_art()
+		_glass_back_outside()
 	if skipped.size() > 0:
 		print("formspec: elements not rendered: ", skipped)
 	if not has_size and simple_field_count > 0:
@@ -841,6 +869,239 @@ func _glass_window() -> void:
 	if not own_fullscreen:
 		fullscreen_bg = GlassStyle.BACKDROP
 
+static var _art_cache := {}
+
+# Whether a texture is plain window art: a panel, button or tab face rather
+# than a picture. It must be at least 24 pixels each way (node textures,
+# item icons and bars are smaller), nine tenths opaque, grey (no pixel's
+# channels more than 16 apart in nineteen of twenty pixels), and flat (one
+# colour, to four bits a channel, covering nine twentieths of it).
+# Mineclonia's slot, panel, tab and model backing art passes; its trash can
+# (a red cross), armour outlines (mostly clear), arrows and pictures do not.
+# Returns {art, lum}, lum being the mean relative luminance.
+static func _window_art(tex: Texture2D) -> Dictionary:
+	if tex == null:
+		return {"art": false, "lum": 0.0}
+	var key := tex.get_instance_id()
+	if _art_cache.has(key):
+		return _art_cache[key]
+	var out := {"art": false, "lum": 0.0}
+	var img := tex.get_image()
+	if img != null and img.get_width() >= 24 and img.get_height() >= 24:
+		img = img.duplicate()
+		if img.is_compressed():
+			img.decompress()
+		img.convert(Image.FORMAT_RGBA8)
+		if maxi(img.get_width(), img.get_height()) > 128:
+			var s := 128.0 / maxi(img.get_width(), img.get_height())
+			img.resize(maxi(int(img.get_width() * s), 1), maxi(int(img.get_height() * s), 1),
+				Image.INTERPOLATE_NEAREST)
+		var total := img.get_width() * img.get_height()
+		var opaque := 0
+		var grey := 0
+		var lum := 0.0
+		var counts := {}
+		for y in img.get_height():
+			for x in img.get_width():
+				var c := img.get_pixel(x, y)
+				if c.a < 0.5:
+					continue
+				opaque += 1
+				if maxf(c.r, maxf(c.g, c.b)) - minf(c.r, minf(c.g, c.b)) <= 16.0 / 255.0:
+					grey += 1
+				lum += GlassStyle.luminance(c)
+				var q := (c.r8 >> 4) << 8 | (c.g8 >> 4) << 4 | (c.b8 >> 4)
+				counts[q] = int(counts.get(q, 0)) + 1
+		if opaque > 0:
+			var mode := 0
+			for q in counts:
+				mode = maxi(mode, int(counts[q]))
+			out["lum"] = lum / opaque
+			out["art"] = opaque >= total * 0.9 and grey >= opaque * 0.95 and mode >= opaque * 0.45
+	_art_cache[key] = out
+	return out
+
+# Window art the form draws with image[] behind something the player uses:
+# the frame of a tab (Mineclonia's survival inventory tabs under their item
+# buttons) or of a model (the black backing of the player preview). The
+# image must be built before the element, hold the element's centre, and be
+# at most four times its area. It becomes a glass tile of the same
+# rectangle; window art that frames nothing, such as a picture of a
+# crafting grid on a help page, is kept.
+func _glass_window_art() -> void:
+	var framed: Array = []
+	for c in _form_controls(root):
+		if c is BaseButton or c is FormspecSlot or c is FormspecModel or c is LineEdit \
+				or c is TextEdit or c is OptionButton:
+			framed.append(c)
+	for img in _form_controls(root):
+		if not (img as Control).has_meta("fs_image") or not img.visible \
+				or img.get_meta("glass_replaced", false):
+			continue
+		var tex: Texture2D = img.get("texture")
+		var art := _window_art(tex)
+		if not bool(art["art"]):
+			continue
+		var ir: Rect2 = (img as Control).get_global_rect()
+		var frames := false
+		for e in framed:
+			var er: Rect2 = (e as Control).get_global_rect()
+			if int(e.get_meta("seq", 0)) > int(img.get_meta("seq", 0)) \
+					and ir.has_point(er.get_center()) \
+					and ir.get_area() <= er.get_area() * 4.0 + 1.0:
+				frames = true
+				break
+		if not frames:
+			continue
+		var tile := Panel.new()
+		tile.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tile.position = (img as Control).position
+		tile.size = (img as Control).size
+		var dark := float(art["lum"]) < 0.25
+		tile.add_theme_stylebox_override("panel", GlassStyle.tile_box(dark, false))
+		tile.set_meta("window_art_lum", float(art["lum"]))
+		tile.set_meta("tile_dark", dark)
+		img.get_parent().add_child(tile)
+		img.get_parent().move_child(tile, img.get_index() + 1)
+		img.visible = false
+		img.set_meta("glass_replaced", true)
+
+static var _line_art_cache := {}
+
+# Dark line art in or behind an inventory slot (Mineclonia's empty armour,
+# shield, banner, dye and template outlines) was drawn for a light grey slot
+# and nearly vanishes on glass. It is drawn light instead, its shading
+# inverted and its shape and transparency kept, as text colours are lifted.
+# A texture qualifies when it is between a fiftieth and three fifths opaque,
+# its opaque pixels grey and dark (mean relative luminance under 0.2).
+func _glass_line_art() -> void:
+	var slot_rects: Array = []
+	for s in slots:
+		if is_instance_valid(s):
+			slot_rects.append((s as Control).get_global_rect())
+	for img in _form_controls(root):
+		if not (img as Control).has_meta("fs_image") or not img.visible \
+				or img.get_meta("glass_replaced", false):
+			continue
+		var ir: Rect2 = (img as Control).get_global_rect()
+		var over := false
+		for sr in slot_rects:
+			if sr.has_point(ir.get_center()) or ir.has_point((sr as Rect2).get_center()):
+				over = true
+				break
+		if not over:
+			continue
+		var tex: Texture2D = img.get("texture")
+		var lit := _light_line_art(tex)
+		if lit != null:
+			img.set("texture", lit)
+			img.set_meta("glass_line_art", true)
+
+static func _light_line_art(tex: Texture2D) -> Texture2D:
+	if tex == null:
+		return null
+	var key := tex.get_instance_id()
+	if _line_art_cache.has(key):
+		return _line_art_cache[key]
+	var out: Texture2D = null
+	var img := tex.get_image()
+	if img != null and img.get_width() > 0:
+		img = img.duplicate()
+		if img.is_compressed():
+			img.decompress()
+		img.convert(Image.FORMAT_RGBA8)
+		var total := img.get_width() * img.get_height()
+		var opaque := 0
+		var grey := 0
+		var lum := 0.0
+		for y in img.get_height():
+			for x in img.get_width():
+				var c := img.get_pixel(x, y)
+				if c.a < 0.5:
+					continue
+				opaque += 1
+				if maxf(c.r, maxf(c.g, c.b)) - minf(c.r, minf(c.g, c.b)) <= 24.0 / 255.0:
+					grey += 1
+				lum += GlassStyle.luminance(c)
+		if opaque >= total * 0.02 and opaque <= total * 0.6 and grey >= opaque * 0.9 \
+				and lum / opaque < 0.2:
+			for y in img.get_height():
+				for x in img.get_width():
+					var c := img.get_pixel(x, y)
+					img.set_pixel(x, y, Color((1.0 - c.r) * 0.82, (1.0 - c.g) * 0.84,
+						(1.0 - c.b) * 0.88, c.a))
+			out = ImageTexture.create_from_image(img)
+	_line_art_cache[key] = out
+	return out
+
+# The piece of window art that is lighter than all the others of its size
+# is the selected one, as Mineclonia draws its chosen tab in lighter art than
+# the rest. In a group of two or more of the same size, a piece at least
+# 0.1 lighter (in relative luminance) than every other piece of the group is
+# drawn selected: an accent fill and ring. A group with no such piece, or
+# with more than half its pieces that light, has none.
+func _mark_selected_art() -> void:
+	var groups := {}
+	for c in _form_controls(root):
+		if not (c as Control).has_meta("window_art_lum") or not (c as Control).visible:
+			continue
+		var key := Vector2i(((c as Control).size / 4.0).round())
+		if not groups.has(key):
+			groups[key] = []
+		groups[key].append(c)
+	for key in groups:
+		var members: Array = groups[key]
+		if members.size() < 2:
+			continue
+		var chosen: Array = []
+		for m in members:
+			var lum := float(m.get_meta("window_art_lum"))
+			var lighter := true
+			for other in members:
+				if other != m and lum - float(other.get_meta("window_art_lum")) < 0.1:
+					lighter = false
+					break
+			if lighter:
+				chosen.append(m)
+		if chosen.is_empty() or chosen.size() * 2 > members.size():
+			continue
+		for m in chosen:
+			m.set_meta("art_selected", true)
+			if m is Button:
+				for look in ["normal", "hover", "pressed", "hover_pressed"]:
+					(m as Button).add_theme_stylebox_override(look, GlassStyle.selected_box())
+			elif m is Panel:
+				(m as Panel).add_theme_stylebox_override("panel",
+					GlassStyle.tile_box(bool(m.get_meta("tile_dark", false)), true))
+
+# Replaced window art that stands outside the form's glass, such as
+# Mineclonia's creative tabs above and below its window, gets a pane of the
+# same glass behind it, so that a tab is not a faint tile over the bare world.
+func _glass_back_outside() -> void:
+	var panes: Array = []
+	for p in bg_layer.get_children():
+		if p.has_meta("glass_surface"):
+			panes.append((p as Control).get_global_rect())
+	if panes.is_empty():
+		return
+	for c in _form_controls(root):
+		if not (c as Control).has_meta("window_art_lum") or not (c as Control).visible:
+			continue
+		var centre: Vector2 = (c as Control).get_global_rect().get_center()
+		var inside := false
+		for r in panes:
+			if (r as Rect2).has_point(centre):
+				inside = true
+				break
+		if inside:
+			continue
+		var pane := GlassStyle.surface()
+		pane.position = (c as Control).position
+		pane.size = (c as Control).size
+		c.get_parent().add_child(pane)
+		c.get_parent().move_child(pane, c.get_index())
+		c.set_meta("glass_backed", true)
+
 # Slot frames: a form's own image[] drawn behind an inventory slot to frame
 # it, as Mineclonia draws mcl_formspec_itemslot.png under every slot and
 # Minetest Game gui_hb_bg.png under its hotbar row. In dark glass the slot
@@ -848,8 +1109,9 @@ func _glass_window() -> void:
 # frame only when all of these hold, which keeps any image that says
 # something (the empty armour slot outlines, a trash can, a fuel hint):
 #   - it is built before the slot, so it lies behind it;
-#   - it contains the slot and is at most a quarter of a slot larger on
-#     each side;
+#   - it contains the slot and is at most an eighth of a slot larger on
+#     each side (a bigger frame, a furnace's large output slot, becomes a
+#     glass tile of its own size instead, in _glass_window_art);
 #   - the same texture frames at least two slots in this form.
 # A list with any framed slot is drawn in the lighter framed look, so a row
 # the game set apart from the others stays apart.
@@ -879,7 +1141,7 @@ func _replace_slot_frames() -> void:
 						continue
 					if not ir.grow(1.0).encloses(sr):
 						continue
-					if ir.size.x > sr.size.x * 1.5 + 1.0 or ir.size.y > sr.size.y * 1.5 + 1.0:
+					if ir.size.x > sr.size.x * 1.25 + 1.0 or ir.size.y > sr.size.y * 1.25 + 1.0:
 						continue
 					found.append(s)
 		if found.is_empty():
@@ -1404,9 +1666,12 @@ func _background(parts: PackedStringArray) -> void:
 	var auto_clip := parts.size() >= 4 and parts[3].strip_edges() == "true"
 	var middle := parts[4] if parts.size() >= 5 else ""
 	# In dark glass the theme's window art becomes a glass pane of the same
-	# rectangle.
-	var r: Control = GlassStyle.surface() if _chrome() else _texture_rect(tex, middle)
-	if _chrome():
+	# rectangle, and so does a background of the form's own that is plain
+	# window art (_window_art), such as a crafting guide that draws the
+	# game's panel itself.
+	var pane := _chrome() or (glass and tex != null and bool(_window_art(tex)["art"]))
+	var r: Control = GlassStyle.surface() if pane else _texture_rect(tex, middle)
+	if pane:
 		glass_panes += 1
 	if auto_clip:
 		# Fills the form, and the position, not the geometry, moves its
@@ -1500,10 +1765,27 @@ func _box(parts: PackedStringArray) -> void:
 		panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_add(panel, _pos(v), _geom(g))
 		return
+	var colour := parse_color(parts[2], Color(0, 0, 0, 0.5))
+	var size := _geom(g)
+	if glass and _grey_panel(colour, size):
+		# A form's own box of neutral grey, at least half a slot each way, is
+		# a panel (the recipe and pattern lists of Mineclonia's stonecutter
+		# and loom): a sunken glass tile. A coloured box, a light one, or a
+		# thin rule is content and stays.
+		var tile := Panel.new()
+		tile.add_theme_stylebox_override("panel", GlassStyle.tile_box(true, false))
+		tile.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tile.set_meta("glass_box", true)
+		_add(tile, _pos(v), size)
+		return
 	var c := ColorRect.new()
-	c.color = parse_color(parts[2], Color(0, 0, 0, 0.5))
+	c.color = colour
 	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_add(c, _pos(v), _geom(g))
+	_add(c, _pos(v), size)
+
+func _grey_panel(c: Color, size: Vector2) -> bool:
+	return c.a >= 0.5 and maxf(c.r, maxf(c.g, c.b)) - minf(c.r, minf(c.g, c.b)) <= 12.0 / 255.0 \
+		and GlassStyle.luminance(c) <= 0.5 and size.x >= imgsize * 0.5 and size.y >= imgsize * 0.5
 
 func _image(parts: PackedStringArray) -> void:
 	# image[x,y;texture] or image[x,y;w,h;texture;middle]
@@ -3669,7 +3951,16 @@ func _button_looks(b: Button, states: Array, focus: int, styled: bool) -> Array:
 		var bg: Texture2D = null
 		if _has_style(st, "bgimg") and item_source:
 			bg = item_source.ui_texture(String(st["bgimg"]))
-		if bg != null:
+		if bg != null and glass and bool(_window_art(bg)["art"]):
+			# A form's own button art that is plain window art, such as
+			# Mineclonia's creative inventory tabs: the button becomes a
+			# glass pane, and _mark_selected_art tells a lighter tab among
+			# its peers, which is how the art showed which tab is chosen.
+			b.set_meta("window_art_lum", float(_window_art(bg)["lum"]))
+			bg = null
+			box = GlassStyle.theme().get_stylebox(look[0], "Button")
+			middle = ""
+		elif bg != null:
 			var sbt := StyleBoxTexture.new()
 			sbt.texture = bg
 			sbt.modulate_color = tint
