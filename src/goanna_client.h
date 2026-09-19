@@ -246,6 +246,9 @@ public:
     // Node items without an inventory image return null (the UI keeps its
     // coloured-tile placeholder; a rendered node icon needs an offscreen pass).
     godot::Ref<godot::Texture2D> item_icon(const godot::String &item_name);
+    // The description in an item's definition, for an item string such as
+    // "mcl_core:stone 5": what item_image_button[] shows as its tooltip.
+    godot::String item_description(const godot::String &item_string);
     // Formspecs
     godot::String inventory_formspec() const;
     // The game's formspec prepend: its window theme, built behind every

@@ -1397,6 +1397,12 @@ func model_preview(mesh_name: String, textures: PackedStringArray, frame_loop: V
 		return {}
 	return client.model_preview(mesh_name, textures, frame_loop, speed)
 
+# The description in an item's definition, for item_image_button[]'s tooltip.
+func item_description(item_string: String) -> String:
+	if item_string == "" or not client.has_method("item_description"):
+		return ""
+	return client.item_description(item_string)
+
 func item_icon(item_name: String) -> Texture2D:
 	if item_name == "":
 		return null

@@ -30,11 +30,20 @@ class FakeItemSource extends Node:
 		image.fill(Color(0.2, 0.7, 0.35, 1.0))
 		texture = ImageTexture.create_from_image(image)
 
-	func ui_texture(_name: String) -> Texture2D:
-		return texture
+	# One texture per name, all alike, so a check can tell which name a
+	# control was given.
+	var named_textures := {}
+
+	func ui_texture(texture_name: String) -> Texture2D:
+		if not named_textures.has(texture_name):
+			named_textures[texture_name] = ImageTexture.create_from_image(texture.get_image())
+		return named_textures[texture_name]
 
 	func item_icon(_name: String) -> Texture2D:
 		return texture
+
+	func item_description(item_string: String) -> String:
+		return "Description of " + item_string.get_slice(" ", 0)
 
 	# Stands in for the extension's model loader: one mesh is known, anything
 	# else is media that has not arrived and falls back to the placeholder.
@@ -95,6 +104,7 @@ func _run() -> void:
 	_test_partial_elements()
 	_test_scroll_container()
 	_test_styles()
+	_test_button_styles()
 	_test_table()
 	_test_hypertext()
 	_test_nothing_skipped()
@@ -669,7 +679,7 @@ func _test_styles() -> void:
 		"style_type reaches an unnamed-in-style button")
 	_equal(named.get_theme_stylebox("hover").bg_color, Color.html("778899"),
 		"a hovered state selector reaches the hover stylebox")
-	_equal(plain.get_theme_color("font_color"), Color.html("ff0000"),
+	_equal(plain.get_meta("content")["label"].get_theme_color("font_color"), Color.html("ff0000"),
 		"textcolor from style_type")
 	# size=0.5 halves the slot, and spacing=0.25 is the gap added on top of it.
 	var slot: Control = form.slots[0]
@@ -678,6 +688,124 @@ func _test_styles() -> void:
 	_equal(form.slots[1].position.x - slot.position.x, floorf(form.imgsize * 0.75),
 		"style_type[list;spacing] sets the gap between slots")
 	_discard(form)
+
+
+# GUIButton::setFromStyle, through the looks Godot draws. The shapes are the
+# ones Mineclonia and VoxeLibre use: a prepend dressing every button and image
+# button in a nine-sliced texture with border=false, the skin editor's
+# transparent bgcolor over it, the creative inventory's tabs clearing it
+# again, and the skin tabs' content_offset.
+func _test_button_styles() -> void:
+	var spec := "formspec_version[6]size[12,10]"
+	spec += "style_type[button;border=false;bgimg=button9.png;bgimg_pressed=button9_pressed.png;bgimg_middle=2,2]"
+	spec += "style_type[image_button;border=false;bgimg=button9.png;bgimg_middle=2,2]"
+	spec += "button[0,0;3,1;themed;Themed]"
+	spec += "style[clear;bgcolor=#00000000]button[0,1.5;3,1;clear;Clear]"
+	spec += "style[tinted;bgcolor=#804020]button[0,3;3,1;tinted;Tinted]"
+	spec += "style[bare;border=false;bgimg=;bgimg_pressed=;bgcolor=red]button[0,4.5;3,1;bare;Bare]"
+	spec += "style[shifted;content_offset=16,0]button[0,6;3,1;shifted;Shifted]"
+	spec += "style[legacy;bgimg_hovered=hovered.png]button[0,7.5;3,1;legacy;Legacy]"
+	spec += "image_button[4,0;1,1;book.png;book;]"
+	spec += "style[padded;padding=4]image_button[4,1.5;2,2;book.png;padded;]"
+	spec += "image_button[4,4;1,1;up.png;own;;false;false;down.png]"
+	spec += "item_image_button[7,0;1,1;default:stone;themed_item;]"
+	spec += "style[tab;border=false;bgimg=;bgimg_pressed=]"
+	spec += "item_image_button[7,1.5;1,1;default:apple 3;tab;]"
+	var form := _new_form(spec)
+	var src := fixture_source
+	_check(form.skipped.is_empty(), "styled buttons build with nothing skipped")
+
+	# border=false drops the pane, never the bgimg, and the pressed look
+	# takes the deprecated bgimg_pressed.
+	var themed: Button = form.named_controls["themed"]
+	_check(not themed.flat, "border=false does not make the button flat")
+	var normal := themed.get_theme_stylebox("normal") as StyleBoxTexture
+	_check(normal != null and normal.texture == src.ui_texture("button9.png"),
+		"border=false still draws the bgimg")
+	if normal:
+		_equal(normal.texture_margin_left, 2.0, "bgimg_middle nine-slices the bgimg")
+	var pressed := themed.get_theme_stylebox("pressed") as StyleBoxTexture
+	_check(pressed != null and pressed.texture == src.ui_texture("button9_pressed.png"),
+		"bgimg_pressed becomes the pressed look")
+
+	# bgcolor tints the image rather than replacing it; alpha zero hides it,
+	# which is how the skin editor shows its models through the buttons.
+	var clear := form.named_controls["clear"].get_theme_stylebox("normal") as StyleBoxTexture
+	_check(clear != null and clear.modulate_color.a == 0.0, "a transparent bgcolor hides the bgimg")
+	var tinted: Button = form.named_controls["tinted"]
+	var tint := Formspec.parse_color("#804020", Color.WHITE)
+	_equal((tinted.get_theme_stylebox("normal") as StyleBoxTexture).modulate_color, tint,
+		"bgcolor tints the bgimg")
+	_equal((tinted.get_theme_stylebox("hover") as StyleBoxTexture).modulate_color,
+		Formspec._scale_rgb(tint, 1.25), "a default-state bgcolor is lightened when hovered")
+	_equal((tinted.get_theme_stylebox("pressed") as StyleBoxTexture).modulate_color,
+		Formspec._scale_rgb(tint, 0.85), "and darkened when pressed")
+	_check(form.named_controls["bare"].get_theme_stylebox("normal") is StyleBoxEmpty,
+		"with no bgimg and no border, a bgcolor has nothing to tint")
+	var legacy := form.named_controls["legacy"].get_theme_stylebox("hover") as StyleBoxTexture
+	_check(legacy != null and legacy.texture == src.ui_texture("hovered.png"),
+		"bgimg_hovered becomes the hovered look")
+
+	# content_offset=16,0 on top of bgimg_middle=2,2 moves the label 16
+	# pixels right without narrowing it, past the button's right edge.
+	var shifted: Button = form.named_controls["shifted"]
+	var shifted_label: Label = shifted.get_meta("content")["label"]
+	_equal(shifted_label.position, Vector2(18, 2), "content_offset moves the label")
+	_equal(shifted_label.size, shifted.size - Vector2(4, 4), "without resizing it")
+	_equal(shifted_label.get_theme_color("font_color"), Color.WHITE,
+		"a button label is white unless textcolor says otherwise")
+	_equal(shifted_label.get_theme_color("font_shadow_color"), Color(0, 0, 0, 127.0 / 255.0),
+		"and carries Luanti's half-alpha text shadow")
+
+	# An image button's image fills the content rectangle behind the label,
+	# inset by bgimg_middle and padding, and one pixel further when pressed.
+	var book: Button = form.named_controls["book"]
+	var book_image: NinePatchRect = book.get_meta("content")["image"]
+	_check(book_image.texture == src.ui_texture("book.png"), "image_button draws its texture")
+	_equal(book_image.position, Vector2(2, 2), "the image is inset by bgimg_middle")
+	_equal(book_image.size, book.size - Vector2(4, 4), "and fills the rest of the button")
+	_check(book.get_theme_stylebox("normal") is StyleBoxTexture,
+		"style_type[image_button] reaches an image button")
+	var padded: Button = form.named_controls["padded"]
+	var padded_image: NinePatchRect = padded.get_meta("content")["image"]
+	_equal(padded_image.position, Vector2(6, 6), "padding adds to bgimg_middle")
+	_equal(padded.get_meta("looks")[2]["rect"].position, Vector2(7, 7),
+		"the content moves one pixel down and right while pressed")
+
+	# The element's own texture, pressed texture and drawborder override the
+	# theme, as parseImageButton sets them on the style.
+	var own: Button = form.named_controls["own"]
+	_check(own.get_meta("content")["image"].texture == src.ui_texture("up.png"),
+		"image_button's texture parameter is the default fgimg")
+	_check(own.get_meta("looks")[2]["fg"] == src.ui_texture("down.png"),
+		"its pressed texture parameter is the pressed fgimg")
+	_check(own.get_theme_stylebox("normal") is StyleBoxTexture,
+		"drawborder=false still leaves the theme's bgimg")
+
+	# item_image_button takes image_button's styles and the item's
+	# description as its tooltip.
+	var themed_item: Button = form.named_controls["themed_item"]
+	_check(themed_item.get_theme_stylebox("normal") is StyleBoxTexture,
+		"item_image_button inherits style_type[image_button]")
+	_equal(themed_item.tooltip_text, "Description of default:stone",
+		"item_image_button shows the item's description")
+	var tab: Button = form.named_controls["tab"]
+	_check(tab.get_theme_stylebox("normal") is StyleBoxEmpty,
+		"clearing bgimg with border=false leaves the tab bare")
+	_check(tab.get_meta("content")["image"].texture == src.item_icon("default:apple"),
+		"the item fills the button")
+	_discard(form)
+
+	# The state rule is upstream's: a selector for focused+hovered also
+	# reaches the hovered+pressed look, because the two share a bit.
+	var states: Array = []
+	for i in 8:
+		states.append({})
+	states[Formspec.STATE_FOCUSED | Formspec.STATE_HOVERED] = {"bgcolor": "red"}
+	_check(Formspec._style_at(states, Formspec.STATE_HOVERED | Formspec.STATE_PRESSED).has("bgcolor"),
+		"state propagation shares bits the way getStyleFromStatePropagation does")
+	_check(not Formspec._style_at(states, Formspec.STATE_PRESSED).has("bgcolor"),
+		"and leaves a state with no shared bit alone")
 
 
 # hypertext markup drives the rich text label directly. The parse is checked
@@ -877,9 +1005,11 @@ func _colorrect_of(node: Node, colour: Color) -> ColorRect:
 	return null
 
 
+# A form button carries its label as a child, so it is found by the label
+# the renderer recorded rather than by Button.text.
 func _button_named(node: Node, caption: String) -> Button:
 	for candidate in _nodes_of_type(node, "Button"):
-		if candidate.text == caption:
+		if String(candidate.get_meta("label", candidate.text)) == caption:
 			return candidate
 	return null
 

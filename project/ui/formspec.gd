@@ -329,7 +329,19 @@ func _layout(screen: Vector2) -> void:
 	root.position = origin.floor()
 	root.size = form_size.floor()
 	root.mouse_filter = Control.MOUSE_FILTER_STOP
+	root.theme = _form_theme()
 	current_parent = root
+
+# Luanti draws every piece of form text with a shadow one pixel down and
+# right at half alpha: the font_shadow and font_shadow_alpha defaults, which
+# the font engine applies to labels, button labels and hypertext alike.
+static func _form_theme() -> Theme:
+	var t := Theme.new()
+	for type in ["Label", "RichTextLabel"]:
+		t.set_color("font_shadow_color", type, Color(0, 0, 0, 127.0 / 255.0))
+		t.set_constant("shadow_offset_x", type, 1)
+		t.set_constant("shadow_offset_y", type, 1)
+	return t
 
 func _pos(v: PackedStringArray) -> Vector2:
 	if real_coordinates:
@@ -1308,46 +1320,50 @@ func _button(parts: PackedStringArray, exit: bool, kind: String) -> void:
 	var b := Button.new()
 	var bname := fs_unescape(parts[2])
 	var label := fs_unescape(parts[3])
-	b.text = label
-	b.add_theme_font_size_override("font_size", _font_size())
 	var r := _btn_geom(g)
 	_add(b, _pos(v) + r.position, r.size)
 	if kind.begins_with("button_url") and parts.size() >= 5:
 		b.set_meta("url", fs_unescape(parts[4]))
+	var content := _button_content(b, label, false)
 	_wire_button(b, bname, label, exit)
-	_apply_style(b, bname)
+	_style_button(b, bname, _style_states(bname), content)
 
+# image_button[x,y;w,h;texture;name;label;noclip;drawborder;pressed texture]
+#
+# Built as parseImageButton builds it: the texture is the default state's
+# fgimg and the pressed texture the pressed state's, set over whatever the
+# theme said, and noclip and drawborder likewise override the theme for the
+# default state. Six parts is an error upstream and draws nothing.
 func _image_button(parts: PackedStringArray, exit: bool) -> void:
-	# image_button[x,y;w,h;texture;name;label;noclip;drawborder;pressed]
-	if parts.size() < 5:
+	if parts.size() < 5 or parts.size() == 6:
 		return
 	var v := fs_split(parts[0], ",")
 	var g := fs_split(parts[1], ",")
 	if v.size() < 2 or g.size() < 2:
 		return
 	var b := Button.new()
-	var tex: Texture2D = item_source.ui_texture(fs_unescape(parts[2])) if item_source else null
 	var bname := fs_unescape(parts[3])
-	var label := fs_unescape(parts[4]) if parts.size() >= 5 else ""
-	b.text = label
-	b.add_theme_font_size_override("font_size", _font_size())
-	if tex:
-		b.icon = tex
-		b.expand_icon = true
-		b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		b.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	var drawborder := parts.size() < 7 or parts[6].strip_edges() != "false"
-	if not drawborder:
-		b.flat = true
+	var label := fs_unescape(parts[4])
 	_add(b, _pos(v), _geom(g))
+	var states := _style_states(bname)
+	var image := fs_unescape(parts[2])
+	if image != "":
+		states[0]["fgimg"] = image
+	if parts.size() >= 8 and fs_unescape(parts[7]) != "":
+		states[STATE_PRESSED]["fgimg"] = fs_unescape(parts[7])
+	if parts.size() >= 7:
+		states[0]["noclip"] = parts[5].strip_edges()
+		states[0]["border"] = parts[6].strip_edges()
+	var content := _button_content(b, label)
 	_wire_button(b, bname, label, exit)
-	_apply_style(b, bname)
+	_style_button(b, bname, states, content)
 
-func _item_item_icon(item: String) -> Texture2D:
-	return item_source.item_icon(item) if item_source else null
-
+# item_image_button[x,y;w,h;item name;name;label]
+#
+# The item is drawn behind the label, filling the content area, and the
+# button's tooltip is the item's description, which parseItemImageButton
+# registers under the button's name before any tooltip[] can replace it.
 func _item_image_button(parts: PackedStringArray) -> void:
-	# item_image_button[x,y;w,h;item name;name;label]
 	if parts.size() < 5:
 		return
 	var v := fs_split(parts[0], ",")
@@ -1355,16 +1371,46 @@ func _item_image_button(parts: PackedStringArray) -> void:
 	if v.size() < 2 or g.size() < 2:
 		return
 	var b := Button.new()
+	var item := fs_unescape(parts[2])
 	var bname := fs_unescape(parts[3])
-	var label := fs_unescape(parts[4]) if parts.size() >= 5 else ""
-	b.text = label
-	b.icon = _item_item_icon(fs_unescape(parts[2]))
-	b.expand_icon = true
-	b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	b.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	var label := fs_unescape(parts[4])
 	_add(b, _pos(v), _geom(g))
+	var content := _button_content(b, label)
+	content["item"] = item_source.item_icon(item.get_slice(" ", 0)) if item_source else null
+	if not tooltips.has(bname) and item_source and item_source.has_method("item_description"):
+		var desc := String(item_source.item_description(item))
+		if desc != "":
+			b.tooltip_text = strip_enriched(desc)
 	_wire_button(b, bname, label, false)
-	_apply_style(b, bname)
+	_style_button(b, bname, _style_states(bname), content)
+
+# The children a GUIButton keeps: its label, a StaticText centred in the
+# content rectangle, and for GUIButtonImage and GUIButtonItemImage an image
+# sent to the back of it. Godot draws a button's own text under its children
+# and without Luanti's text shadow, so every button carries its label as a
+# child Label instead, and leaves its own text empty.
+func _button_content(b: Button, label: String, with_image := true) -> Dictionary:
+	var rect: NinePatchRect = null
+	if with_image:
+		# A nine-patch with no margins stretches the whole texture over the
+		# rectangle, which is how upstream scales it; fgimg_middle gives it
+		# some.
+		rect = NinePatchRect.new()
+		rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		b.add_child(rect)
+	var text: Label = null
+	if label != "":
+		text = Label.new()
+		text.text = label
+		text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		text.clip_text = true
+		text.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		text.add_theme_font_size_override("font_size", _font_size())
+		b.add_child(text)
+	b.set_meta("label", label)
+	return {"image": rect, "label": text}
 
 func _wire_button(b: Button, bname: String, label: String, exit: bool) -> void:
 	_register_named_control(bname, b)
@@ -1924,19 +1970,19 @@ func _model(parts: PackedStringArray) -> void:
 		var r := fs_split(parts[5], ",")
 		if r.size() >= 2:
 			rotation_xy = Vector2(float(r[0]), float(r[1]))
-	var spin := parts.size() >= 7 and _model_is_yes(parts[6])
+	var spin := parts.size() >= 7 and _is_yes(parts[6])
 	# Mouse control defaults to true, including when the field is left empty.
 	var mouse_control := parts.size() < 8 or parts[7].strip_edges() == "" \
-		or _model_is_yes(parts[7])
+		or _is_yes(parts[7])
 	var c := FormspecModel.new()
 	c.setup(preview["node"], preview.get("aabb", AABB()), rotation_xy, spin, mouse_control)
 	_add(c, _pos(v), _geom(g))
 	_register_named_control(mname, c)
 
 # is_yes in upstream's string.h: a yes, a true, or a number that is not zero.
-func _model_is_yes(s: String) -> bool:
+static func _is_yes(s: String) -> bool:
 	var t := s.strip_edges().to_lower()
-	return t == "y" or t == "yes" or t == "true" or (t.is_valid_int() and int(t) != 0)
+	return t == "y" or t == "yes" or t == "true" or (t.is_valid_float() and int(float(t)) != 0)
 
 # What model[] draws when the mesh is not available: a muted panel labelled
 # with the mesh name, so the element reads as a model that failed rather than
@@ -1970,87 +2016,125 @@ func _font_size() -> int:
 # Called by a slot; forwarded to the owner.
 # --- styles (style[] and style_type[]) --------------------------------------
 
-# Which type a style falls back to when the element's own type says nothing,
-# from "Supported Element Types" in lua_api.md.
-const STYLE_INHERITS := {
-	"button_exit": "button",
-	"image_button_exit": "image_button",
-	"pwdfield": "field",
-	"vertlabel": "label",
-	"animated_image": "image",
+# The type each builder asks the theme for, and the one parent type it falls
+# back to, exactly as the parse functions in guiFormSpecMenu.cpp call
+# getStyleForElement. image_button_exit is built by parseImageButton as a
+# plain image_button, and item_image_button takes image_button's styles, which
+# is how a game's style_type[image_button] also dresses its item buttons.
+const STYLE_LOOKUP := {
+	"button_exit": ["button_exit", "button"],
+	"button_url": ["button_url", "button"],
+	"button_url_exit": ["button_url_exit", "button"],
+	"button_key": ["button_key", "button"],
+	"image_button_exit": ["image_button", ""],
+	"item_image_button": ["item_image_button", "image_button"],
+	"animated_image": ["animated_image", "image"],
+	"pwdfield": ["pwdfield", "field"],
+	"vertlabel": ["vertlabel", "label"],
 }
 
-# The states each Godot visual counts as active. Upstream applies a style when
-# every state in its selector is active, so a pressed button is also hovered.
+# StyleSpec::State. A selector's states are OR'd into one mask.
+const STATE_FOCUSED := 1
+const STATE_HOVERED := 2
+const STATE_PRESSED := 4
+const STATE_BITS := {"default": 0, "focused": STATE_FOCUSED, "hovered": STATE_HOVERED,
+	"pressed": STATE_PRESSED}
+# The mask each named look reads. A pressed button is under the pointer, so
+# upstream's pressed look is hovered and pressed together.
 const STYLE_STATES := {
-	"default": [],
-	"hovered": ["hovered"],
-	"pressed": ["pressed", "hovered"],
-	"focused": ["focused"],
+	"default": 0,
+	"hovered": STATE_HOVERED,
+	"pressed": STATE_HOVERED | STATE_PRESSED,
+	"focused": STATE_FOCUSED,
 }
 
 # style[selector 1,selector 2,...;prop=value;...], and style_type[] with the
-# same shape. A selector is a name (or type) optionally followed by a colon
-# and a +-separated list of states.
+# same shape (GUIFormSpecMenu::parseStyle). A selector is a name or type,
+# optionally followed by a colon and a +-separated list of states. A property
+# without an = discards the whole element, and an unknown state discards that
+# selector, as upstream does. The deprecated _hovered and _pressed properties
+# become entries of their own for that state, pushed straight after the one
+# they came from.
 func _style(parts: PackedStringArray, by_type: bool) -> void:
-	if parts.size() < 1:
+	if parts.size() < 2:
 		return
 	var props := {}
 	for i in range(1, parts.size()):
-		var p := fs_unescape(parts[i])
+		var p := parts[i]
 		var eq := p.find("=")
 		if eq < 0:
-			continue
-		props[p.substr(0, eq).strip_edges().to_lower()] = p.substr(eq + 1).strip_edges()
-	if props.is_empty():
-		return
+			return
+		props[p.substr(0, eq).strip_edges().to_lower()] = fs_unescape(p.substr(eq + 1)).strip_edges()
+	var hover := {}
+	var press := {}
+	for key in ["bgcolor", "bgimg", "fgimg"]:
+		if props.has(key + "_hovered"):
+			hover[key] = props[key + "_hovered"]
+		if props.has(key + "_pressed"):
+			press[key] = props[key + "_pressed"]
 	var target := style_by_type if by_type else style_by_name
 	for raw in fs_split(parts[0], ","):
-		var sel := fs_unescape(raw).strip_edges()
-		if sel == "":
-			continue
-		var states := PackedStringArray()
+		var sel := raw.strip_edges()
+		var mask := 0
 		var colon := sel.find(":")
 		if colon >= 0:
-			for st in sel.substr(colon + 1).split("+", false):
-				states.append(st.strip_edges().to_lower())
-			sel = sel.substr(0, colon).strip_edges()
+			var names := sel.substr(colon + 1)
+			sel = sel.substr(0, colon)
+			if names == "":
+				continue
+			var valid := true
+			for st in names.split("+"):
+				if not STATE_BITS.has(st):
+					valid = false
+					break
+				mask |= int(STATE_BITS[st])
+			if not valid:
+				continue
 		if not target.has(sel):
 			target[sel] = []
-		target[sel].append({"states": states, "props": props})
+		target[sel].append({"mask": mask, "props": props})
+		if not hover.is_empty():
+			target[sel].append({"mask": STATE_HOVERED, "props": hover})
+		if not press.is_empty():
+			target[sel].append({"mask": STATE_PRESSED, "props": press})
 
-# The properties in force for one element in one visual state, merged in
-# upstream's precedence: every type in the inheritance chain under `*`, then
-# the name, with a later declaration beating an earlier one.
-func _style_for(ename: String, state: String) -> Dictionary:
-	var out := {}
+# GUIFormSpecMenu::getStyleForElement: one property set per state mask, each
+# built from `*` types, `*` names, the parent type, the type and then the
+# name, with a later declaration beating an earlier one.
+func _style_states(ename: String) -> Array:
+	var ret: Array = []
+	for i in 8:
+		ret.append({})
 	if style_by_name.is_empty() and style_by_type.is_empty():
-		return out
-	var active: Array = STYLE_STATES.get(state, [])
-	var chain: Array = ["*"]
-	var t := current_element
-	var parents: Array = []
-	while t != "":
-		parents.push_front(t)
-		t = str(STYLE_INHERITS.get(t, ""))
-	chain.append_array(parents)
-	for ty in chain:
-		_merge_style(out, style_by_type.get(ty, []), active)
-	for nm in ["*", ename]:
-		if nm != "":
-			_merge_style(out, style_by_name.get(nm, []), active)
+		return ret
+	var lookup: Array = STYLE_LOOKUP.get(current_element, [current_element, ""])
+	var sources: Array = [style_by_type.get("*", []), style_by_name.get("*", [])]
+	if String(lookup[1]) != "":
+		sources.append(style_by_type.get(lookup[1], []))
+	sources.append(style_by_type.get(lookup[0], []))
+	sources.append(style_by_name.get(ename, []))
+	for entries in sources:
+		for e in entries:
+			var d: Dictionary = ret[int(e["mask"])]
+			for k in e["props"]:
+				d[k] = e["props"][k]
+	return ret
+
+# StyleSpec::getStyleFromStatePropagation: the default state, then every mask
+# up to this one that shares a bit with it. That is upstream's rule, and it
+# is looser than "every state in the selector is active".
+static func _style_at(states: Array, state: int) -> Dictionary:
+	var out: Dictionary = (states[0] as Dictionary).duplicate()
+	for i in range(1, state + 1):
+		if (state & i) != 0:
+			var d: Dictionary = states[i]
+			for k in d:
+				out[k] = d[k]
 	return out
 
-func _merge_style(out: Dictionary, entries: Array, active: Array) -> void:
-	for e in entries:
-		var ok := true
-		for st in e["states"]:
-			if not active.has(st):
-				ok = false
-				break
-		if ok:
-			for k in e["props"]:
-				out[k] = e["props"][k]
+# The properties in force for one element in one named look.
+func _style_for(ename: String, state: String) -> Dictionary:
+	return _style_at(_style_states(ename), int(STYLE_STATES.get(state, 0)))
 
 # A style value that was set to nothing resets the property to its default,
 # so an empty string means "not set" everywhere below.
@@ -2068,80 +2152,214 @@ func _style_font_size(value: String, base: int) -> int:
 		return maxi(base + int(v), 1)
 	return maxi(int(v), 1)
 
-# The background for one button state: a nine-sliced or plain texture if the
-# style names one, a flat fill if it names a colour, nothing if it turned the
-# border off, and null to leave Godot's own theme alone.
-func _style_box(st: Dictionary, img_key: String, color_key: String) -> StyleBox:
-	if _has_style(st, img_key):
-		var tex: Texture2D = item_source.ui_texture(String(st[img_key])) if item_source else null
-		if tex:
-			var sb := StyleBoxTexture.new()
-			sb.texture = tex
-			var middle := String(st.get("bgimg_middle", ""))
+# The looks Godot draws a button in, and the state mask each one reads.
+const BUTTON_LOOKS := [["normal", 0], ["hover", STATE_HOVERED],
+	["pressed", STATE_HOVERED | STATE_PRESSED]]
+# The colour factors GUIButton applies to a bgcolor that only the default
+# state set (COLOR_HOVERED_MOD and COLOR_PRESSED_MOD in guiButton.cpp).
+const BUTTON_HOVER_MOD := 1.25
+const BUTTON_PRESS_MOD := 0.85
+
+# GUIButton::setFromStyle for one button. `states` is the per-mask property
+# set from _style_states, already carrying anything the element itself set;
+# `content` is the label, and for an image button the image, that
+# _button_content put inside it.
+#
+# What carries over, in upstream's terms: bgcolor tints the bgimg (and the
+# pane when there is no image); border=false drops the pane but never the
+# bgimg; bgimg_middle nine-slices the bgimg and, with padding, insets the
+# content; content_offset moves the content, which otherwise moves one pixel
+# down and right while pressed; textcolor colours the label, white by
+# default. A button its form does not style at all keeps Godot's own panel,
+# as upstream keeps the skin's bevelled pane.
+func _style_button(b: Button, _ename: String, states: Array, content: Dictionary) -> void:
+	b.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	var styled := false
+	for d in states:
+		if not (d as Dictionary).is_empty():
+			styled = true
+			break
+	var base: Dictionary = _style_at(states, 0)
+	if _has_style(base, "font_size") and content["label"] != null:
+		(content["label"] as Label).add_theme_font_size_override("font_size",
+			_style_font_size(String(base["font_size"]), _font_size()))
+	b.set_meta("looks", _button_looks(b, states, 0, styled))
+	b.set_meta("content", content)
+	b.draw.connect(func() -> void: _sync_button_content(b))
+	_sync_button_content(b)
+	# A focused state only exists upstream if the form asks for one; Godot
+	# draws focus as an overlay instead, so a styled button swaps its looks
+	# on focus and draws no overlay of its own.
+	if styled:
+		b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+		var uses_focus := false
+		for mask in 8:
+			if (mask & STATE_FOCUSED) != 0 and not (states[mask] as Dictionary).is_empty():
+				uses_focus = true
+		if uses_focus:
+			b.focus_entered.connect(func() -> void:
+				b.set_meta("looks", _button_looks(b, states, STATE_FOCUSED, true))
+				b.queue_redraw())
+			b.focus_exited.connect(func() -> void:
+				b.set_meta("looks", _button_looks(b, states, 0, true))
+				b.queue_redraw())
+
+# The three looks of one button, for one focus bit: the panel each look
+# draws, set on the button's theme when the form styles it, and the content
+# rectangle, foreground image and text colour _sync_button_content places.
+func _button_looks(b: Button, states: Array, focus: int, styled: bool) -> Array:
+	var looks: Array = []
+	for look in BUTTON_LOOKS:
+		var mask: int = int(look[1]) | focus
+		var st := _style_at(states, mask)
+		var own: Dictionary = states[mask]
+		var tint := Color.WHITE
+		var tinted := _has_style(st, "bgcolor")
+		if tinted:
+			tint = parse_color(String(st["bgcolor"]), Color.WHITE)
+			if not _has_style(own, "bgcolor"):
+				if (mask & STATE_PRESSED) != 0:
+					tint = _scale_rgb(tint, BUTTON_PRESS_MOD)
+				elif (mask & STATE_HOVERED) != 0:
+					tint = _scale_rgb(tint, BUTTON_HOVER_MOD)
+		var border := _is_yes(String(st["border"])) if _has_style(st, "border") else true
+		var middle := String(st.get("bgimg_middle", ""))
+		var box: StyleBox = null
+		var bg: Texture2D = null
+		if _has_style(st, "bgimg") and item_source:
+			bg = item_source.ui_texture(String(st["bgimg"]))
+		if bg != null:
+			var sbt := StyleBoxTexture.new()
+			sbt.texture = bg
+			sbt.modulate_color = tint
 			if middle != "":
-				var m := _middle_margins(middle, tex)
-				sb.texture_margin_left = m.x
-				sb.texture_margin_top = m.y
-				sb.texture_margin_right = m.z
-				sb.texture_margin_bottom = m.w
-			return sb
-	if _has_style(st, color_key):
-		var sb := StyleBoxFlat.new()
-		sb.bg_color = parse_color(String(st[color_key]), Color.TRANSPARENT)
-		return sb
-	if st.get("border", "") == "false":
-		return StyleBoxEmpty.new()
-	return null
+				var m := _middle_margins(middle, bg)
+				sbt.texture_margin_left = m.x
+				sbt.texture_margin_top = m.y
+				sbt.texture_margin_right = m.z
+				sbt.texture_margin_bottom = m.w
+			box = sbt
+		elif not border:
+			box = StyleBoxEmpty.new()
+		elif tinted:
+			var sbf := StyleBoxFlat.new()
+			sbf.bg_color = tint
+			box = sbf
+		if styled and box != null:
+			b.add_theme_stylebox_override(look[0], box)
+			if look[0] == "pressed":
+				b.add_theme_stylebox_override("hover_pressed", box)
+		# "Child padding and offset": the rectangle the label and image fill.
+		var pad := _style_rect(String(st.get("padding", "")))
+		var mid := _style_rect(middle)
+		var off := Vector2.ZERO
+		if _has_style(st, "content_offset"):
+			off = _style_vec2(String(st["content_offset"])).floor()
+		elif (mask & STATE_PRESSED) != 0:
+			off = Vector2(1, 1)
+		var tl := Vector2(pad[0] + mid[0], pad[1] + mid[1]) + off
+		var br := b.size + Vector2(pad[2] + mid[2], pad[3] + mid[3]) + off
+		var fg: Texture2D = null
+		if _has_style(st, "fgimg") and item_source:
+			fg = item_source.ui_texture(String(st["fgimg"]))
+		looks.append({"rect": Rect2(tl, br - tl), "fg": fg,
+			"fg_middle": String(st.get("fgimg_middle", "")),
+			"colour": parse_color(String(st.get("textcolor", "")), Color.WHITE)})
+	return looks
+
+# Places a button's label, and image if it has one, for the look Godot is
+# drawing. Connected to the button's draw signal, which fires on every change
+# of hover, press and focus.
+func _sync_button_content(b: Button) -> void:
+	var looks: Array = b.get_meta("looks", [])
+	var content: Dictionary = b.get_meta("content", {})
+	if looks.size() < 3 or content.is_empty():
+		return
+	var i := 0
+	match b.get_draw_mode():
+		BaseButton.DRAW_HOVER:
+			i = 1
+		BaseButton.DRAW_PRESSED, BaseButton.DRAW_HOVER_PRESSED:
+			i = 2
+	var look: Dictionary = looks[i]
+	var rect: Rect2 = look["rect"]
+	var image: NinePatchRect = content["image"]
+	if image != null:
+		var tex: Texture2D = content.get("item")
+		var margins := Vector4.ZERO
+		if tex == null:
+			tex = look["fg"]
+			if tex != null:
+				margins = _middle_margins(String(look["fg_middle"]), tex)
+		image.texture = tex
+		image.patch_margin_left = int(margins.x)
+		image.patch_margin_top = int(margins.y)
+		image.patch_margin_right = int(margins.z)
+		image.patch_margin_bottom = int(margins.w)
+		image.position = rect.position
+		image.size = rect.size
+	var label: Label = content["label"]
+	if label != null:
+		label.position = rect.position
+		label.size = rect.size
+		label.add_theme_color_override("font_color", look["colour"])
+
+# StyleSpec::parseRect: one value insets every side, two inset the sides and
+# the top and bottom, and four are the corners, the second pair counting from
+# the far edges. Returned as [left, top, right, bottom] with upstream's signs.
+static func _style_rect(value: String) -> Array:
+	var v := value.strip_edges()
+	if v == "":
+		return [0, 0, 0, 0]
+	var p := v.split(",")
+	match p.size():
+		1:
+			var x := int(float(p[0]))
+			return [x, x, -x, -x]
+		2:
+			var x := int(float(p[0]))
+			var y := int(float(p[1]))
+			return [x, y, -x, -y]
+		4:
+			return [int(float(p[0])), int(float(p[1])), int(float(p[2])), int(float(p[3]))]
+	return [0, 0, 0, 0]
+
+# StyleSpec::parseVector2f: "x,y", or one number for both.
+static func _style_vec2(value: String) -> Vector2:
+	var p := value.strip_edges().split(",")
+	if p.size() == 1:
+		return Vector2(float(p[0]), float(p[0]))
+	if p.size() == 2:
+		return Vector2(float(p[0]), float(p[1]))
+	return Vector2.ZERO
+
+# multiplyColorValue in guiButton.cpp: the colour channels scaled and clamped,
+# alpha untouched.
+static func _scale_rgb(c: Color, f: float) -> Color:
+	return Color(minf(c.r * f, 1.0), minf(c.g * f, 1.0), minf(c.b * f, 1.0), c.a)
 
 # Applies whatever style[] and style_type[] asked for to a built control. The
 # element type comes from current_element, so this stays a single call at the
-# end of each builder.
+# end of each builder. Buttons have their own, _style_button.
 func _apply_style(c: Control, ename: String) -> void:
 	if style_by_name.is_empty() and style_by_type.is_empty():
 		return
 	var base := _style_for(ename, "default")
-	if base.is_empty() and not (c is Button):
+	if base.is_empty():
 		return
 	var base_font := _font_size()
 	if _has_style(base, "font_size"):
 		c.add_theme_font_size_override(
 			"normal_font_size" if c is RichTextLabel else "font_size",
 			_style_font_size(String(base["font_size"]), base_font))
-	if c is Button:
-		var b := c as Button
-		for pair in [["normal", "default", "bgimg", "bgcolor"],
-				["hover", "hovered", "bgimg_hovered", "bgcolor_hovered"],
-				["pressed", "pressed", "bgimg_pressed", "bgcolor_pressed"],
-				["focus", "focused", "bgimg", "bgcolor"]]:
-			var st := _style_for(ename, pair[1])
-			# The legacy per-state properties name their own keys; the state
-			# selectors reuse the plain ones, so try both.
-			var sb := _style_box(st, pair[2], pair[3])
-			if sb == null and pair[1] != "default":
-				sb = _style_box(st, "bgimg", "bgcolor")
-			if sb != null:
-				b.add_theme_stylebox_override(pair[0], sb)
-			if _has_style(st, "textcolor"):
-				var key := "font_color"
-				match pair[1]:
-					"hovered": key = "font_hover_color"
-					"pressed": key = "font_pressed_color"
-					"focused": key = "font_focus_color"
-				b.add_theme_color_override(key, parse_color(String(st["textcolor"]), Color.WHITE))
-		if _has_style(base, "fgimg") and item_source:
-			var fg: Texture2D = item_source.ui_texture(String(base["fgimg"]))
-			if fg:
-				b.icon = fg
-				b.expand_icon = true
-				b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-				b.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		if base.get("border", "") == "false":
-			b.flat = true
-		return
 	if _has_style(base, "textcolor"):
 		var col := parse_color(String(base["textcolor"]), Color.WHITE)
 		if c is LineEdit or c is TextEdit or c is Label:
 			c.add_theme_color_override("font_color", col)
+		elif c is CheckBox:
+			for key in ["font_color", "font_hover_color", "font_pressed_color",
+					"font_hover_pressed_color", "font_focus_color"]:
+				c.add_theme_color_override(key, col)
 		elif c is TabBar:
 			c.add_theme_color_override("font_unselected_color", col)
 			c.add_theme_color_override("font_selected_color", col)

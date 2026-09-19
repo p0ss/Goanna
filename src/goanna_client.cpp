@@ -1518,6 +1518,18 @@ Ref<Texture2D> GoannaClient::texture(const String &name) {
     return gt->godotTexture();
 }
 
+String GoannaClient::item_description(const String &item_string) {
+    if (!m_session)
+        return String();
+    std::lock_guard<std::mutex> lk(m_session->mapLock());
+    IItemDefManager *idef = m_session->getItemDefManager();
+    ItemStack stack;
+    stack.deSerialize(item_string.utf8().get_data(), idef);
+    if (stack.name.empty())
+        return String();
+    return String::utf8(stack.getDefinition(idef).description.c_str());
+}
+
 Ref<Texture2D> GoannaClient::item_icon(const String &item_name) {
     if (!m_session)
         return Ref<Texture2D>();
@@ -7496,6 +7508,8 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("respawn"), &GoannaClient::respawn);
     ClassDB::bind_method(D_METHOD("texture", "name"), &GoannaClient::texture);
     ClassDB::bind_method(D_METHOD("item_icon", "item_name"), &GoannaClient::item_icon);
+    ClassDB::bind_method(D_METHOD("item_description", "item_string"),
+            &GoannaClient::item_description);
     ClassDB::bind_method(D_METHOD("inventory_formspec"), &GoannaClient::inventory_formspec);
     ClassDB::bind_method(D_METHOD("formspec_prepend"), &GoannaClient::formspec_prepend);
     ClassDB::bind_method(D_METHOD("take_shown_formspecs"), &GoannaClient::take_shown_formspecs);
