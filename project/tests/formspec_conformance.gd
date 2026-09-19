@@ -84,6 +84,7 @@ func _run() -> void:
 	fixture_source = FakeItemSource.new()
 	root.add_child(fixture_source)
 	_test_split_and_unescape()
+	_test_colours()
 	_test_layout_headers()
 	_test_controls_and_submission()
 	_test_inventory_and_listring()
@@ -138,6 +139,22 @@ func _test_split_and_unescape() -> void:
 		["one\\;still-one", "two"], "escaped separator")
 	_equal(Formspec.fs_unescape("one\\;still-one"), "one;still-one", "unescape")
 	_equal(Formspec.fs_unescape("left\\]right"), "left]right", "escaped closing bracket")
+
+
+# parseColorString: CSS names, not Godot's, in any case, with a one or two
+# digit alpha after a #, and hex in four lengths. Anything else falls back.
+func _test_colours() -> void:
+	var none := Color(0.1, 0.2, 0.3, 0.4)
+	_equal(Formspec.parse_color("green", none), Color.html("008000"), "green is CSS green")
+	_equal(Formspec.parse_color("Grey", none), Color.html("808080"), "names ignore case")
+	_equal(Formspec.parse_color("red#80", none), Color.html("ff000080"), "a two digit alpha")
+	_equal(Formspec.parse_color("red#8", none), Color.html("ff000088"), "a one digit alpha doubles")
+	_equal(Formspec.parse_color("#abc", none), Color.html("aabbcc"), "#RGB")
+	_equal(Formspec.parse_color("#abcd", none), Color.html("aabbccdd"), "#RGBA")
+	_equal(Formspec.parse_color("#11223344", none), Color.html("11223344"), "#RRGGBBAA")
+	_equal(Formspec.parse_color("ff0000", none), none, "bare hex is not a colour")
+	_equal(Formspec.parse_color("#12345", none), none, "five digits is not a colour")
+	_equal(Formspec.parse_color("notacolour", none), none, "an unknown name falls back")
 
 
 func _test_layout_headers() -> void:
