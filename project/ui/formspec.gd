@@ -760,6 +760,10 @@ func _build() -> void:
 	# the form asked for, and puts the formspec version back afterwards, so
 	# that a version 6 form does not drag the prepend into real coordinates
 	# (GUIFormSpecMenu::regenerateGui).
+	# Where the old draw order starts sorting (regenerateGui's
+	# legacy_sort_start): after the background layer, or after the prepend
+	# when the prepend was built at version 3 or later.
+	var sort_from := 1
 	if prepend_elements.size() > 0:
 		var real_backup := real_coordinates
 		var version_backup := formspec_version
@@ -769,6 +773,11 @@ func _build() -> void:
 			build_seq += 1
 			_build_element(el[0], el[1])
 		chrome_building = false
+		if formspec_version >= 3:
+			sort_from = root.get_child_count()
+		elif version_backup >= 3:
+			_legacy_sort(1)
+			sort_from = root.get_child_count()
 		formspec_version = version_backup
 		real_coordinates = real_backup
 	for el in pending_elements:
@@ -776,6 +785,8 @@ func _build() -> void:
 		chrome_building = glass and _repeats_theme(el[0], el[1])
 		_build_element(el[0], el[1])
 		chrome_building = false
+	if formspec_version < 3:
+		_legacy_sort(sort_from)
 	building = false
 	if glass:
 		_replace_slot_frames()
@@ -974,6 +985,36 @@ func _add(c: Control, pos: Vector2, size: Vector2) -> void:
 	c.position = pos.floor()
 	c.size = size.floor()
 	current_parent.add_child(c)
+	# Which element built it, in order, for the dark glass passes that ask
+	# what lies behind what, and its place in the old draw order.
+	c.set_meta("seq", build_seq)
+	c.set_meta("fs_prio", int(LEGACY_PRIORITY.get(current_element, 0)))
+
+# The draw order of a form older than formspec version 3
+# (GUIFormSpecMenu::legacySortElements, from the priorities each parse
+# function gives its FieldSpec): boxes, then everything else, then images,
+# item images and item buttons, lists, and labels on top. Mineclonia's
+# brewing stand frames its slots with images drawn after the lists, which
+# the old order puts back underneath.
+const LEGACY_PRIORITY := {"box": -2, "image": 1, "item_image": 2, "item_image_button": 2,
+	"list": 3, "label": 4}
+
+# Reorders the children of the form, from `first` on, by that priority,
+# keeping the build order among equals, as std::stable_sort keeps it.
+func _legacy_sort(first: int) -> void:
+	var kids: Array = []
+	var i := 0
+	for c in root.get_children():
+		if c.get_index() >= first:
+			kids.append([int(c.get_meta("fs_prio", 0)), i, c])
+		i += 1
+	kids.sort_custom(func(a: Array, b: Array) -> bool:
+		return a[0] < b[0] or (a[0] == b[0] and a[1] < b[1]))
+	for k in kids.size():
+		root.move_child(kids[k][2], first + k)
+		# What lies behind what is now the drawing order, not the build
+		# order, for the dark glass passes that ask.
+		kids[k][2].set_meta("seq", first + k)
 
 func _register_named_control(name: String, control: Control) -> void:
 	if name == "":

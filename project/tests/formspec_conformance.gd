@@ -142,6 +142,7 @@ func _run() -> void:
 	_test_glass_repeated_theme()
 	_test_glass_bespoke()
 	_test_glass_sends_the_same()
+	_test_legacy_draw_order()
 	_test_glass_legibility()
 	_test_glass_setting()
 	await _write_reference_shots()
@@ -1801,6 +1802,37 @@ func _test_glass_sends_the_same() -> void:
 	_equal((live.fields["bar"] as ScrollBar).value, 700.0, "and the scrollbar's place")
 	_check(sent_now.is_empty(), "and sending nothing")
 	_discard(live)
+
+# A form older than version 3 draws in legacySortElements' order: boxes,
+# everything else, images, item images, lists, labels. Mineclonia's brewing
+# stand builds its slot frame images after its lists and relies on it.
+func _test_legacy_draw_order() -> void:
+	var spec := "size[9,8.75]label[0,0;Title]list[current_player;main;0,1;2,1;]"
+	spec += "image[0,1;1,1;frame.png]image[1,1;1,1;frame.png]box[0,3;2,1;#ff0000]"
+	var form := _new_form(spec)
+	var frames := _image_with(form, "frame.png")
+	var slot: Control = form.slots[0]
+	var title := _text_named(form, "Title")
+	var box := _colorrect_of(form, Color.RED)
+	_check(frames.size() == 2 and frames[0].get_index() < slot.get_index(),
+		"an image built after a list is drawn under it")
+	_check(title != null and title.get_index() > slot.get_index(), "labels are drawn over lists")
+	_check(box != null and box.get_index() < frames[0].get_index(), "boxes are drawn under images")
+	_discard(form)
+	var v3 := _new_form("formspec_version[3]size[9,8]list[current_player;main;0,1;2,1;]"
+		+ "image[0,1;1,1;frame.png]")
+	_check(_image_with(v3, "frame.png")[0].get_index() > v3.slots[0].get_index(),
+		"version 3 and later draw in the order written")
+	_discard(v3)
+	# In dark glass those frames, now behind the slots, are slot frames.
+	var glassy := _new_form(spec, "conformance", MCL_THEME, "glass")
+	var hidden := 0
+	for f in _image_with(glassy, "frame.png"):
+		if not f.visible:
+			hidden += 1
+	_equal(hidden, 2, "frames sorted behind their slots are replaced in glass")
+	_discard(glassy)
+
 
 # The contrast arithmetic behind "text on glass is legible whatever the world
 # behind it is".
