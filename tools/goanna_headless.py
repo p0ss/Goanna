@@ -328,7 +328,7 @@ def _base_record(ident, kind, width, height, software):
 
 def start_goanna(project, control_port=None, host="127.0.0.1", port=30000, name="dev",
                  password="", width=1280, height=720, software=False, env=None, label="",
-                 ready_timeout=120.0):
+                 ready_timeout=120.0, meta=None):
     """Start Goanna from project (a checkout, a worktree or its project
     directory) in headless gamescope, with its control channel on
     control_port, and return once that channel answers."""
@@ -357,7 +357,7 @@ def start_goanna(project, control_port=None, host="127.0.0.1", port=30000, name=
         child_env.update({"VK_DRIVER_FILES": LAVAPIPE_ICD, "VK_ICD_FILENAMES": LAVAPIPE_ICD})
     child_env.update({str(k): str(v) for k, v in (env or {}).items()})
     rec.update(project=str(project), control_port=control_port, server="%s:%d" % (host, int(port)),
-               name=str(name), env=child_env,
+               name=str(name), env=child_env, meta=meta or {},
                argv=[godot, "--display-driver", "x11", "--resolution",
                      "%dx%d" % (int(width), int(height)), "--path", str(project)],
                client_log=str(pathlib.Path(rec["log_dir"]) / "output.log"))
@@ -377,7 +377,7 @@ def start_goanna(project, control_port=None, host="127.0.0.1", port=30000, name=
 
 
 def start_vanilla(host="127.0.0.1", port=30000, name="vanilla", password="", width=1280,
-                  height=720, software=False, settings=None, app=FLATPAK_APP):
+                  height=720, software=False, settings=None, app=FLATPAK_APP, meta=None):
     """Start the vanilla Luanti client (the Flatpak) in headless gamescope,
     joined straight to host:port, with a configuration file of its own so
     the owner's own client settings are never touched."""
@@ -407,6 +407,7 @@ def start_vanilla(host="127.0.0.1", port=30000, name="vanilla", password="", wid
         argv += ["--password-file", str(pw)]
     argv.append("--go")
     rec.update(server="%s:%d" % (host, int(port)), name=str(name), env={}, argv=argv,
+               meta=meta or {},
                client_log=str(home / "client.log"), config=str(home / "client.conf"))
     return _spawn(rec)
 

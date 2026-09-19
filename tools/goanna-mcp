@@ -5,8 +5,16 @@
 
 The channel is the interface and this is a wrapper over it, so everything
 here can be done from a shell with tools/goanna-control. What the wrapper
-adds is the session: starting the client, rebuilding and relaunching it
-after a C++ change, and handing back a shot already checked by shotcheck.
+adds is the session: starting clients, rebuilding and relaunching them after
+a C++ change, and handing back a shot already checked by shotcheck.
+
+Clients are instances. goanna_session start runs one from any checkout or
+worktree, headless by default (tools/goanna_headless.py: inside gamescope's
+headless backend, so no window, focus change or pointer grab reaches the
+desktop), and returns an instance id that every other tool takes. Several
+can run at once, each on its own control port, and every reply says which
+instance and port it acted on. start_vanilla runs the vanilla Luanti client
+the same way, for reference frames.
 
 It speaks MCP over stdin and stdout, as newline delimited JSON-RPC, with no
 dependencies beyond the standard library. Register it with:
@@ -14,24 +22,28 @@ dependencies beyond the standard library. Register it with:
     claude mcp add goanna /path/to/goanna/tools/goanna-mcp
 
 Nothing may print to stdout except protocol messages. Diagnostics go to
-stderr, and the client's own output goes to a log file.
+stderr, and the clients' own output goes to log files.
 """
 
 import json
 import os
 import pathlib
-import shutil
 import socket
 import subprocess
 import sys
 import tempfile
 import time
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+
+import goanna_headless as gh  # noqa: E402
+
 PROTOCOL = "2025-06-18"
 KNOWN_PROTOCOLS = {"2024-11-05", "2025-03-26", PROTOCOL}
 REPO = pathlib.Path(__file__).resolve().parent.parent
 LOG_DIR = pathlib.Path(os.environ.get("GOANNA_MCP_LOG_DIR",
                                       pathlib.Path(tempfile.gettempdir()) / "goanna-mcp"))
+DEFAULT_PORT = int(os.environ.get("GOANNA_CONTROL_PORT", gh.DEFAULT_CONTROL_PORT))
 
 
 def log(*parts):
@@ -50,7 +62,7 @@ class Channel:
 
     def __init__(self, host="127.0.0.1", port=None):
         self.host = host
-        self.port = int(port or os.environ.get("GOANNA_CONTROL_PORT", 30800))
+        self.port = int(port or DEFAULT_PORT)
 
     def up(self):
         try:
@@ -65,9 +77,8 @@ class Channel:
             sock = socket.create_connection((self.host, self.port), timeout=5.0)
         except OSError as exc:
             raise ChannelError(
-                "no control channel on %s:%d (%s). Start one with goanna_session "
-                "action=start, or launch the client yourself with GOANNA_CONTROL=1."
-                % (self.host, self.port, exc))
+                "no control channel on %s:%d (%s). Start a client with goanna_session "
+                "action=start." % (self.host, self.port, exc))
         with sock:
             sock.settimeout(timeout)
             sock.sendall(request.encode("utf-8"))
@@ -76,10 +87,11 @@ class Channel:
                 try:
                     chunk = sock.recv(65536)
                 except socket.timeout:
-                    raise ChannelError("the client did not reply within %gs; it may be "
-                                       "still streaming, or wedged" % timeout)
+                    raise ChannelError("the client on port %d did not reply within %gs; it "
+                                       "may be still streaming, or wedged" % (self.port, timeout))
                 if not chunk:
-                    raise ChannelError("the client closed the connection without replying")
+                    raise ChannelError("the client on port %d closed the connection without "
+                                       "replying" % self.port)
                 buf += chunk
         reply = json.loads(buf.split(b"\n", 1)[0].decode("utf-8"))
         if not reply.get("ok"):
@@ -87,164 +99,233 @@ class Channel:
         return reply.get("result")
 
 
-# --- the client process ------------------------------------------------------
+# --- instances ---------------------------------------------------------------
 
-class Session:
-    """Start, stop and rebuild the client. Held across calls, so a restart
-    can reuse whatever the last start was given."""
+class Instance:
+    """One client: a headless one from tools/goanna_headless.py, a windowed
+    one this server started, or one somebody else started that was attached
+    to by port. `owned` is whether this session may stop it."""
 
-    def __init__(self):
-        self.proc = None
-        self.log_path = None
-        self.args = {"host": "127.0.0.1", "port": 30000, "name": "dev",
-                     "password": "", "env": {}}
+    def __init__(self, ident, kind, control_port=None, owned=False, args=None, proc=None):
+        self.id = ident
+        self.kind = kind                # goanna, vanilla, window or attached
+        self.control_port = control_port
+        self.owned = owned
+        self.args = dict(args or {})    # what it was started with, for restart
+        self.proc = proc                # a windowed client's Popen
 
-    @staticmethod
-    def godot():
-        candidates = [os.environ.get("GODOT_BIN"), "godot", "godot4",
-                      str(REPO.parent / "Godot_v4.5.1-stable_linux.x86_64")]
-        for cand in candidates:
-            if not cand:
-                continue
-            found = shutil.which(cand) or (cand if os.access(cand, os.X_OK) else None)
-            if found:
-                return found
-        raise ChannelError("no Godot binary found; set GODOT_BIN")
+    @property
+    def channel(self):
+        if self.kind == "vanilla":
+            raise ChannelError("%s is the vanilla client, which has no control channel; "
+                               "goanna_shot and goanna_session stop are what it takes" % self.id)
+        return Channel(port=self.control_port)
 
-    @staticmethod
-    def diagnose(log_path):
-        """Turn an exit code into something worth reading. A client that
-        cannot open a display fails this way whenever the host trims the
-        environment it starts this server with, which is not obvious from
-        the exit code alone."""
-        try:
-            tail = pathlib.Path(log_path).read_text(errors="replace").strip().split("\n")[-20:]
-        except OSError:
-            return "the log could not be read"
-        text = "\n".join(tail)
-        if "Unable to create DisplayServer" in text or "X11 Display is not available" in text:
-            return ("the client could not open a display. Whatever started this MCP server "
-                    "did not pass DISPLAY, WAYLAND_DISPLAY and XDG_RUNTIME_DIR through; pass "
-                    "them in env, or start the client yourself with GOANNA_CONTROL=1. A shot "
-                    "needs a real display, so headless is not a way around it.\n" + text)
-        if "Can't open dynamic library" in text or "gdextension" in text.lower():
-            return ("the extension did not load; the build output has to land in "
-                    "project/bin/. Try goanna_session with build=true.\n" + text)
-        return text
+    def record(self):
+        if self.kind in ("goanna", "vanilla"):
+            try:
+                return gh.load(self.id)
+            except gh.LaunchError:
+                return None
+        return None
 
-    def build(self):
-        """cmake --build build, which is what a C++ change needs before a
-        relaunch can show it."""
-        proc = subprocess.run(["cmake", "--build", "build"], cwd=REPO,
-                              capture_output=True, text=True, timeout=1800)
-        out = (proc.stdout + proc.stderr).strip().split("\n")
-        if proc.returncode != 0:
-            raise ChannelError("the build failed:\n" + "\n".join(out[-25:]))
-        return {"built": True, "tail": out[-3:]}
+    def running(self):
+        rec = self.record()
+        if rec is not None:
+            return rec.get("status") in ("launching", "starting", "running")
+        if self.proc is not None:
+            return self.proc.poll() is None
+        return Channel(port=self.control_port).up()
 
-    def start(self, channel, host=None, port=None, name=None, password=None, env=None,
-              wait_ready=True):
-        if channel.up():
-            if self.proc is not None and self.proc.poll() is None:
-                raise ChannelError("this server's own client is already answering on port %d; "
-                                   "stop it first or use action=restart" % channel.port)
-            # A client this server did not start answers here: another
-            # session's. Every wrapper used to default to port 30800 and
-            # stop/restart sent quit at whatever answered, so sessions
-            # killed each other's clients mid-run and one benchmark
-            # silently measured the wrong client (both found 2026-08-31,
-            # the night it voided a run). Move to a free port instead and
-            # leave the other session's client alone.
-            for candidate in range(channel.port + 1, channel.port + 20):
-                if not Channel(channel.host, candidate).up():
-                    channel.port = candidate
-                    break
-            else:
-                raise ChannelError("every control port from %d to %d is taken; set "
-                                   "GOANNA_CONTROL_PORT" % (channel.port, channel.port + 19))
-        for key, value in (("host", host), ("port", port), ("name", name),
-                           ("password", password)):
-            if value is not None:
-                self.args[key] = value
-        if env:
-            self.args["env"] = dict(env)
-        LOG_DIR.mkdir(parents=True, exist_ok=True)
-        self.log_path = LOG_DIR / ("client-%d.log" % int(time.time()))
-        run_env = dict(os.environ)
-        run_env.update({k: str(v) for k, v in self.args["env"].items()})
-        run_env.update({
-            "GOANNA_CONTROL": str(channel.port),
-            "GOANNA_HOST": str(self.args["host"]),
-            "GOANNA_PORT": str(self.args["port"]),
-            "GOANNA_NAME": str(self.args["name"]),
-            "GOANNA_PASS": str(self.args["password"]),
-        })
-        handle = open(self.log_path, "w")
-        self.proc = subprocess.Popen([self.godot(), "--path", "project"], cwd=REPO,
-                                     env=run_env, stdout=handle, stderr=subprocess.STDOUT,
-                                     stdin=subprocess.DEVNULL, start_new_session=True)
-        deadline = time.time() + 120.0
-        while time.time() < deadline:
-            if self.proc.poll() is not None:
-                raise ChannelError("the client exited during startup (%d). Its log is %s\n%s"
-                                   % (self.proc.returncode, self.log_path,
-                                      self.diagnose(self.log_path)))
-            if channel.up():
-                break
-            time.sleep(0.5)
-        else:
-            raise ChannelError("the channel never opened. The log is %s\n%s"
-                               % (self.log_path, self.diagnose(self.log_path)))
-        out = {"pid": self.proc.pid, "log": str(self.log_path), "args": dict(self.args)}
-        if wait_ready:
-            # Connected and holding the definitions, rather than merely running.
-            out["wait"] = channel.send("wait", {
-                "expr": 'client.status()["state"] == "ready"', "timeout_ms": 180000})
-            out.update(channel.send("status"))
+    def label(self):
+        out = {"instance": self.id, "kind": self.kind}
+        if self.control_port:
+            out["control_port"] = self.control_port
         return out
 
-    def reap(self):
-        """Collect the child if it has exited on its own.
 
-        Only stop() ever polled the handle, so a client that quit by itself,
-        crashed, was told to quit over the control channel by something else,
-        or was killed, stayed a zombie for the life of this server: exited,
-        but never waited on. Two of them had been sitting in the process table
-        for hours. That is not merely untidy. Anything that asks whether the
-        client is running by looking for the process gets told yes, so a dead
-        client reads as a live one that has stopped answering, which is what
-        a frozen client looks like too. Hours went into that confusion today.
-        Poll wherever liveness is reported, and the kernel lets the entry go.
-        """
-        if self.proc is not None and self.proc.poll() is not None:
-            self.proc = None
+class Registry:
+    def __init__(self):
+        self.mine = {}
 
-    def stop(self, channel):
-        stopped = False
-        own = self.proc is not None and self.proc.poll() is None
-        if channel.up():
-            if not own:
-                # Not ours: another session's client (or one this server has
-                # lost track of). Quitting it killed other sessions' test
-                # runs; whoever owns it stops it, and a deliberate takeover
-                # is still possible with goanna_command cmd=quit.
-                return {"stopped": False,
-                        "note": "a client this server did not start is answering on "
-                                "port %d; leaving it alone" % channel.port}
-            channel.send("quit", timeout=30.0)
-            stopped = True
-            deadline = time.time() + 15.0
-            while time.time() < deadline and channel.up():
-                time.sleep(0.5)
-        if self.proc is not None and self.proc.poll() is None:
-            self.proc.terminate()
-            try:
-                self.proc.wait(timeout=10)
-            except subprocess.TimeoutExpired:
-                self.proc.kill()
-            stopped = True
-        self.proc = None
-        return {"stopped": stopped}
+    def add(self, inst):
+        self.mine[inst.id] = inst
+        return inst
+
+    def get(self, ident):
+        if ident in self.mine:
+            return self.mine[ident]
+        # A headless instance this server did not start, or started before a
+        # restart of this server: the launcher's records say what it is. It
+        # counts as ours when the same Claude session started it.
+        try:
+            rec = gh.load(ident)
+        except gh.LaunchError:
+            rec = None
+        if rec is not None:
+            return self.add(Instance(ident, rec.get("kind"), rec.get("control_port"),
+                                     owned=rec.get("started_by") == os.getppid(),
+                                     args=rec.get("meta")))
+        if ident.startswith("attached-") and ident[9:].isdigit():
+            return self.add(Instance(ident, "attached", int(ident[9:])))
+        raise ChannelError("no instance '%s'. goanna_session action=list shows what is "
+                           "running" % ident)
+
+    def pick(self, args, channel=True):
+        """The instance a tool call is about: the one named, or the only one
+        this session has running, or failing both a client somebody else
+        started on the default port."""
+        if args.get("instance"):
+            return self.get(str(args["instance"]))
+        live = [i for i in self.mine.values() if i.running()
+                and (not channel or i.kind != "vanilla")]
+        if len(live) == 1:
+            return live[0]
+        if len(live) > 1:
+            raise ChannelError("this session has %d clients running (%s); say which with "
+                               "instance" % (len(live), ", ".join(i.id for i in live)))
+        if channel and Channel(port=DEFAULT_PORT).up():
+            return self.add(Instance("attached-%d" % DEFAULT_PORT, "attached", DEFAULT_PORT))
+        others = [r["id"] for r in gh.list_records()
+                  if r.get("status") == "running" and r.get("id") not in self.mine]
+        raise ChannelError("this session has no client running. goanna_session action=start "
+                           "launches one headless and returns its instance id%s" % (
+                               "; running elsewhere, and usable by instance id: "
+                               + ", ".join(others) if others else ""))
+
+
+# --- starting and stopping ---------------------------------------------------
+
+def diagnose(log_path):
+    """Turn an exit into something worth reading."""
+    text = gh.tail(log_path, 25)
+    if "vkCreateDevice failed" in text or "Unable to create DisplayServer" in text:
+        return ("the client could not create a GPU device or a display. On this machine that "
+                "has meant the NVIDIA driver needs a reset (journalctl -k shows "
+                "NV_ERR_RESET_REQUIRED), which only a reboot clears; software=true renders "
+                "on the CPU instead.\n" + text)
+    if "Can't open dynamic library" in text or "gdextension" in text.lower():
+        return ("the extension did not load; the build output has to land in project/bin/. "
+                "Try goanna_session with build=true.\n" + text)
+    return text
+
+
+def build(project):
+    """cmake --build build in the checkout the project belongs to, which is
+    what a C++ change needs before a relaunch can show it."""
+    repo = gh.resolve_project(project).parent
+    proc = subprocess.run(["cmake", "--build", "build"], cwd=repo,
+                          capture_output=True, text=True, timeout=1800)
+    out = (proc.stdout + proc.stderr).strip().split("\n")
+    if proc.returncode != 0:
+        raise ChannelError("the build in %s failed:\n%s" % (repo, "\n".join(out[-25:])))
+    return {"built": str(repo), "tail": out[-3:]}
+
+
+def start_goanna(reg, args):
+    project = args.get("project") or str(REPO)
+    if args.get("build"):
+        built = build(project)
+    else:
+        built = None
+    control_port = args.get("control_port")
+    kw = dict(host=args.get("host", "127.0.0.1"), port=int(args.get("port", 30000)),
+              name=args.get("name", "dev"), password=args.get("password", ""))
+    env = dict(args.get("env") or {})
+    if args.get("headless", True):
+        try:
+            rec = gh.start_goanna(project, control_port=control_port,
+                                  width=int(args.get("width", 1280)),
+                                  height=int(args.get("height", 720)),
+                                  software=bool(args.get("software", False)), env=env,
+                                  label=args.get("label", ""),
+                                  meta=dict(args, project=project), **kw)
+        except gh.LaunchError as exc:
+            raise ChannelError(str(exc))
+        inst = reg.add(Instance(rec["id"], "goanna", rec["control_port"], owned=True,
+                                args=rec["meta"]))
+        out = {"record": gh.describe(rec)}
+    else:
+        inst = start_window(reg, project, control_port, kw, env, args)
+        out = {"pid": inst.proc.pid, "log": inst.args["log"],
+               "note": "a window on the desktop: only when the owner asked to watch one"}
+    if built:
+        out["build"] = built
+    ch = inst.channel
+    if args.get("wait_ready", True):
+        # Connected and holding the definitions, rather than merely running.
+        try:
+            out["wait"] = ch.send("wait", {"expr": 'client.status()["state"] == "ready"',
+                                           "timeout_ms": 180000}, timeout=200.0)
+        except ChannelError as exc:
+            out["wait"] = "not ready: %s" % exc
+        out["status"] = ch.send("status")
+    return inst, out
+
+
+def start_window(reg, project, control_port, kw, env, args):
+    """The old way: a window on the desktop. Only for when the owner has
+    asked to watch a client; test mode still keeps the pointer free."""
+    project = gh.resolve_project(project)
+    if control_port is None:
+        control_port = gh.free_control_port()
+    control_port = int(control_port)
+    if not gh.port_free(control_port):
+        raise ChannelError("control port %d is already in use" % control_port)
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+    log_path = LOG_DIR / ("window-%d-%d.log" % (control_port, int(time.time())))
+    run_env = dict(os.environ)
+    run_env.update({str(k): str(v) for k, v in env.items()})
+    run_env.update({"GOANNA_CONTROL": str(control_port), "GOANNA_NO_POINTER_CAPTURE": "1",
+                    "GOANNA_HOST": str(kw["host"]), "GOANNA_PORT": str(kw["port"]),
+                    "GOANNA_NAME": str(kw["name"]), "GOANNA_PASS": str(kw["password"])})
+    handle = open(log_path, "w")
+    proc = subprocess.Popen([gh.find_godot(project), "--path", str(project)], env=run_env,
+                            stdout=handle, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
+                            start_new_session=True)
+    inst = Instance("window-%d" % control_port, "window", control_port, owned=True,
+                    args=dict(args, project=str(project), log=str(log_path)), proc=proc)
+    deadline = time.time() + 120.0
+    while time.time() < deadline:
+        if proc.poll() is not None:
+            raise ChannelError("the client exited during startup (%d). Its log is %s\n%s"
+                               % (proc.returncode, log_path, diagnose(log_path)))
+        if Channel(port=control_port).up():
+            return reg.add(inst)
+        time.sleep(0.5)
+    proc.kill()
+    raise ChannelError("the channel never opened. The log is %s\n%s"
+                       % (log_path, diagnose(log_path)))
+
+
+def stop_instance(inst, force=False):
+    if not inst.owned and not force:
+        raise ChannelError("%s was not started by this session, so it is left alone. Whoever "
+                           "started it stops it; force=true takes it over deliberately."
+                           % inst.id)
+    if inst.kind in ("goanna", "vanilla"):
+        try:
+            return gh.stop(inst.id)
+        except gh.LaunchError as exc:
+            raise ChannelError(str(exc))
+    out = {"stopped": False}
+    ch = Channel(port=inst.control_port)
+    if ch.up():
+        ch.send("quit", timeout=30.0)
+        out["stopped"] = True
+        deadline = time.time() + 15.0
+        while time.time() < deadline and ch.up():
+            time.sleep(0.5)
+    if inst.proc is not None and inst.proc.poll() is None:
+        # Only the process this server started, by its own handle.
+        inst.proc.terminate()
+        try:
+            inst.proc.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            inst.proc.kill()
+            inst.proc.wait(timeout=5)
+        out["stopped"] = True
+    return out
 
 
 # --- tools -------------------------------------------------------------------
@@ -255,35 +336,65 @@ def vec(value, what):
     return {"x": float(value[0]), "y": float(value[1]), "z": float(value[2])}
 
 
+INSTANCE = {"type": "string",
+            "description": "the instance id goanna_session start returned. May be left out "
+                           "when this session has exactly one client running"}
+
 TOOLS = [
     {
         "name": "goanna_session",
         "description":
-            "Start, stop or restart the Goanna client that every other tool talks to. "
-            "A restart is the only way to see a C++ change, because the GDExtension is "
-            "not reloadable; pass build=true to run cmake first and to be told plainly "
-            "if it failed. A restart is also how a reading gets confirmed: a fresh "
-            "client has no deviations, so a number measured on it is a number the "
-            "committed code produces. Shaders, GDScript and settings do not need this.",
+            "Start, stop, restart, list or attach to clients. start runs Goanna from any "
+            "checkout or worktree (project), headless by default: inside gamescope's headless "
+            "backend, so nothing appears on the desktop and the pointer is never taken. It "
+            "returns an instance id that every other tool takes, and refuses a control_port "
+            "that is already in use (leave it out and a free one is chosen). start_vanilla "
+            "runs the vanilla Luanti client (the Flatpak) the same way, for reference frames "
+            "through goanna_shot. software=true renders on the CPU with no GPU context, "
+            "slowly. restart is the only way to see a C++ change, because the GDExtension is "
+            "not reloadable; pass build=true to run cmake first. A fresh client has no "
+            "deviations, so a number measured on it is one the committed code produces. stop "
+            "only stops clients this session started, unless force=true. Never drive the "
+            "desktop with xdotool or ydotool: goanna_ui does it inside the client.",
         "inputSchema": {
             "type": "object",
             "properties": {
-                "action": {"type": "string", "enum": ["status", "start", "stop", "restart"],
-                           "description": "status reports whether a client is answering"},
-                "build": {"type": "boolean",
-                          "description": "run cmake --build build first (start and restart)"},
+                "action": {"type": "string",
+                           "enum": ["status", "list", "start", "start_vanilla", "stop",
+                                    "restart", "attach"]},
+                "instance": INSTANCE,
+                "project": {"type": "string",
+                            "description": "a Goanna checkout or worktree, or its project "
+                                           "directory. Default: the checkout this server "
+                                           "is in"},
+                "control_port": {"type": "integer",
+                                 "description": "the client's control channel port; refused "
+                                                "if taken. For attach, the port to attach to"},
                 "host": {"type": "string", "description": "server to connect to, default 127.0.0.1"},
                 "port": {"type": "integer", "description": "server port, default 30000"},
                 "name": {"type": "string",
                          "description": "player name. Reuse one name across a comparison: "
-                                        "a fresh name spawns at a random point, so two "
-                                        "names photograph two different places"},
+                                        "a fresh name spawns at a random point"},
+                "password": {"type": "string"},
+                "width": {"type": "integer", "description": "default 1280"},
+                "height": {"type": "integer", "description": "default 720"},
+                "software": {"type": "boolean",
+                             "description": "render on lavapipe and llvmpipe, never the GPU. "
+                                            "Slow (about one frame a second for Goanna)"},
+                "headless": {"type": "boolean",
+                             "description": "default true. false opens a window on the "
+                                            "desktop: only when the owner asked to watch"},
+                "label": {"type": "string", "description": "the test overlay's first line"},
+                "build": {"type": "boolean",
+                          "description": "run cmake --build build first (start and restart)"},
+                "settings": {"type": "object",
+                             "description": "start_vanilla: extra client settings, key to value"},
                 "env": {"type": "object",
-                        "description": "extra environment variables for the launch: the "
-                                       "GOANNA_* ones that can only be set at startup, such "
-                                       "as GOANNA_SHADERPACK or GOANNA_PACK, and DISPLAY, "
-                                       "WAYLAND_DISPLAY and XDG_RUNTIME_DIR if whatever "
-                                       "started this server trimmed them away"},
+                        "description": "extra environment for the launch: the GOANNA_* "
+                                       "variables that can only be set at startup"},
+                "all": {"type": "boolean", "description": "list: include stopped instances"},
+                "force": {"type": "boolean",
+                          "description": "stop: also stop a client another session started"},
             },
             "required": ["action"],
         },
@@ -294,7 +405,7 @@ TOOLS = [
             "Where the client is and what it is holding: session state, camera pose, "
             "blocks received and meshed, entity count, time of day, and the deviations "
             "list. Start here when picking up a session you did not launch.",
-        "inputSchema": {"type": "object", "properties": {}},
+        "inputSchema": {"type": "object", "properties": {"instance": INSTANCE}},
     },
     {
         "name": "goanna_inspect",
@@ -308,9 +419,10 @@ TOOLS = [
         "inputSchema": {
             "type": "object",
             "properties": {
+                "instance": INSTANCE,
                 "target": {"type": "string", "enum": ["capabilities", "scene", "render",
-                                                              "materials", "sky", "entities",
-                                                              "inventory", "node"]},
+                                                      "materials", "sky", "entities",
+                                                      "inventory", "node"]},
                 "position": {"type": "array", "items": {"type": "number"},
                              "minItems": 3, "maxItems": 3,
                              "description": "[x, y, z], required for target=node"},
@@ -319,7 +431,9 @@ TOOLS = [
                 "limit": {"type": "integer", "minimum": 1, "maximum": 2000,
                           "description": "maximum scene nodes or entities returned"},
                 "texture": {"type": "string",
-                            "description": "for materials, a game texture filename such as default_stone.png; returns resolved albedo, _n and _s provenance"},
+                            "description": "for materials, a game texture filename such as "
+                                           "default_stone.png; returns resolved albedo, _n and "
+                                           "_s provenance"},
             },
             "required": ["target"],
         },
@@ -332,10 +446,12 @@ TOOLS = [
             "streaming has settled; use it to travel. position moves the camera alone "
             "without telling the server to move the player; use it for viewpoints around "
             "a place already streamed in. Combine with look_at, or set pitch and yaw "
-            "directly. Positions are Godot space, the same as GOANNA_VIEW.",
+            "directly. Positions are Godot space, the same as GOANNA_VIEW. In test mode "
+            "this is how the camera turns: the pointer is never captured.",
         "inputSchema": {
             "type": "object",
             "properties": {
+                "instance": INSTANCE,
                 "teleport": {"type": "array", "items": {"type": "number"},
                              "description": "[x, y, z] to move the player to, through the server"},
                 "position": {"type": "array", "items": {"type": "number"},
@@ -361,6 +477,7 @@ TOOLS = [
         "inputSchema": {
             "type": "object",
             "properties": {
+                "instance": INSTANCE,
                 "time": {"type": "number",
                          "description": "0 to 1, this client's clock only. Below 0 hands "
                                         "it back to the server"},
@@ -397,6 +514,7 @@ TOOLS = [
         "inputSchema": {
             "type": "object",
             "properties": {
+                "instance": INSTANCE,
                 "action": {"type": "string", "enum": ["get", "set", "list"]},
                 "key": {"type": "string"},
                 "value": {"type": "number"},
@@ -407,17 +525,22 @@ TOOLS = [
     {
         "name": "goanna_shot",
         "description":
-            "Capture a frame. Waits for block streaming to go quiet first, so the frame "
-            "is of the world rather than of the sky it had not loaded yet, hides the HUD, "
-            "and writes a JSON sidecar with the pose, the clock, the block count and the "
-            "deviations. The reply includes what shotcheck.py makes of the frame, which "
-            "is the check on whether it is the scene you meant to photograph. Needs a "
-            "real display: a headless client has no viewport to save.",
+            "Capture a frame. For Goanna the default waits for block streaming to go quiet, "
+            "hides the HUD (hide_ui=false keeps it, for a form or tooltip; the test overlay "
+            "is always left out), and writes a JSON sidecar with the pose, the clock, the "
+            "block count and the deviations. The reply includes what shotcheck.py makes of "
+            "the frame. method=gamescope instead saves the whole virtual display as gamescope "
+            "composites it, overlay included; it is the only method for a vanilla instance, "
+            "and wait_ms gives a vanilla client time to load first.",
         "inputSchema": {
             "type": "object",
             "properties": {
+                "instance": INSTANCE,
                 "path": {"type": "string",
                          "description": "absolute PNG path. Defaults to a temporary file"},
+                "method": {"type": "string", "enum": ["viewport", "gamescope"]},
+                "wait_ms": {"type": "integer",
+                            "description": "gamescope method: wait this long first"},
                 "settle": {"type": "boolean",
                            "description": "wait for streaming to go quiet, default true. "
                                           "false only when nothing has moved since the last shot"},
@@ -426,6 +549,66 @@ TOOLS = [
                                         "for effects that converge, such as bounced light"},
                 "hide_ui": {"type": "boolean"},
             },
+        },
+    },
+    {
+        "name": "goanna_ui",
+        "description":
+            "Use the client's UI from inside it: no OS pointer or keyboard is involved, so "
+            "nothing on the desktop moves. Every action is an InputEvent pushed through the "
+            "path an OS event takes, so a form sends what a player's click sends, and the "
+            "reply says what was hit, what fields the form sent and which slots it touched.\n"
+            "action=tree: the open form or menu (window none, inventory, form, pause_menu, "
+            "settings_menu, death_screen) with each named element's type, text, tooltip, "
+            "rectangle and state, inventory slots by list, and labels. Read it first.\n"
+            "action=click, hover or scroll take a target: name (a formspec element; add tab "
+            "for a tab header, a caption or a number from 1), slot ({list, index, location}), "
+            "item (the first visible slot holding it), text (a caption, a tab, a label, or "
+            "a named element's tooltip; nth when several match), or x and y. click also "
+            "takes button (left, right, middle), double, shift, ctrl, alt. hover waits ms "
+            "(default 600) and returns the tooltip. scroll takes amount in wheel notches, "
+            "negative for up.\n"
+            "action=type: name of a field (it is clicked first), text to type, clear to "
+            "empty it first, enter to press Enter after, which submits a formspec field.\n"
+            "action=key: key is a key name (Escape, I, E, 1, F5, Enter) or a game action "
+            "(inventory, menu, chat, forward, jump, sneak, aux1, hotbar1 to hotbar10, dig, "
+            "place); key_action is tap (default), press or release, with hold_ms between.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "instance": INSTANCE,
+                "action": {"type": "string",
+                           "enum": ["tree", "click", "hover", "type", "scroll", "key"]},
+                "name": {"type": "string"},
+                "tab": {"type": ["string", "integer"]},
+                "slot": {"type": "object",
+                         "properties": {"list": {"type": "string"},
+                                        "index": {"type": "integer"},
+                                        "location": {"type": "string"}}},
+                "item": {"type": "string"},
+                "text": {"type": "string"},
+                "nth": {"type": "integer"},
+                "max_ms": {"type": "integer",
+                           "description": "hover: give up waiting for a tooltip after this"},
+                "x": {"type": "number"},
+                "y": {"type": "number"},
+                "button": {"type": "string", "enum": ["left", "right", "middle"]},
+                "double": {"type": "boolean"},
+                "shift": {"type": "boolean"},
+                "ctrl": {"type": "boolean"},
+                "alt": {"type": "boolean"},
+                "ms": {"type": "integer"},
+                "amount": {"type": "integer"},
+                "clear": {"type": "boolean"},
+                "enter": {"type": "boolean"},
+                "key": {"type": "string"},
+                "key_action": {"type": "string", "enum": ["tap", "press", "release"]},
+                "hold_ms": {"type": "integer"},
+                "hidden": {"type": "boolean",
+                           "description": "tree: include hidden and scrolled out elements"},
+                "labels": {"type": "boolean", "description": "tree: include labels, default true"},
+            },
+            "required": ["action"],
         },
     },
     {
@@ -450,6 +633,7 @@ TOOLS = [
         "inputSchema": {
             "type": "object",
             "properties": {
+                "instance": INSTANCE,
                 "src": {"type": "string", "description": "the snippet, ending in a return"},
             },
             "required": ["src"],
@@ -466,6 +650,7 @@ TOOLS = [
         "inputSchema": {
             "type": "object",
             "properties": {
+                "instance": INSTANCE,
                 "cmd": {"type": "string", "description": "for example reload_shader, wait, help"},
                 "args": {"type": "object", "description": "that command's arguments"},
             },
@@ -488,40 +673,126 @@ def shotcheck(path):
     return text or None
 
 
-def call_tool(name, args, channel, session):
+UI_ACTIONS = {"tree": "ui_tree", "click": "ui_click", "hover": "ui_hover", "type": "ui_type",
+              "scroll": "ui_scroll", "key": "key"}
+UI_KEYS = ("name", "tab", "slot", "item", "text", "nth", "max_ms", "x", "y", "button", "double",
+           "shift", "ctrl", "alt", "ms", "amount", "clear", "enter", "key", "hold_ms",
+           "hidden", "labels")
+
+
+def session_tool(args, reg):
+    action = args.get("action", "status")
+    if action == "list":
+        out = []
+        for rec in gh.list_records():
+            if args.get("all") or rec.get("status") in ("launching", "starting", "running"):
+                row = gh.describe(rec)
+                row["this_session"] = rec.get("started_by") == os.getppid()
+                out.append(row)
+        for inst in reg.mine.values():
+            if inst.kind in ("window", "attached") and inst.running():
+                out.append(dict(inst.label(), this_session=inst.owned))
+        return None, {"instances": out}
+    if action == "start":
+        inst, out = start_goanna(reg, args)
+        return inst, out
+    if action == "start_vanilla":
+        try:
+            rec = gh.start_vanilla(host=args.get("host", "127.0.0.1"),
+                                   port=int(args.get("port", 30000)),
+                                   name=args.get("name", "vanilla"),
+                                   password=args.get("password", ""),
+                                   width=int(args.get("width", 1280)),
+                                   height=int(args.get("height", 720)),
+                                   software=bool(args.get("software", False)),
+                                   settings=args.get("settings"), meta=dict(args))
+        except gh.LaunchError as exc:
+            raise ChannelError(str(exc))
+        inst = reg.add(Instance(rec["id"], "vanilla", owned=True, args=rec["meta"]))
+        return inst, {"record": gh.describe(rec),
+                      "note": "loading takes a while, much longer with software=true; "
+                              "goanna_shot with wait_ms, or read client_log"}
+    if action == "attach":
+        port = int(args.get("control_port", DEFAULT_PORT))
+        if not Channel(port=port).up():
+            raise ChannelError("nothing answers on control port %d" % port)
+        inst = reg.add(Instance("attached-%d" % port, "attached", port))
+        return inst, {"attached": True, "status": inst.channel.send("status")}
+    if action == "stop":
+        inst = reg.pick(args, channel=False)
+        return inst, stop_instance(inst, force=bool(args.get("force")))
+    if action == "restart":
+        inst = reg.pick(args, channel=False)
+        if inst.kind not in ("goanna", "window"):
+            raise ChannelError("only a Goanna client this session started can be restarted")
+        again = dict(inst.args)
+        for key in ("build", "env", "project", "name", "host", "port", "label", "software"):
+            if key in args:
+                again[key] = args[key]
+        again["control_port"] = inst.control_port
+        again["headless"] = inst.kind == "goanna"
+        stopped = stop_instance(inst, force=bool(args.get("force")))
+        reg.mine.pop(inst.id, None)
+        deadline = time.time() + 20.0
+        while time.time() < deadline and not gh.port_free(inst.control_port):
+            time.sleep(0.5)
+        new, out = start_goanna(reg, again)
+        out["stopped"] = stopped
+        return new, out
+    if action == "status":
+        inst = reg.pick(args, channel=False)
+        out = {"running": inst.running(), "this_session": inst.owned}
+        rec = inst.record()
+        if rec is not None:
+            out["record"] = gh.describe(rec)
+        if inst.kind != "vanilla" and out["running"]:
+            try:
+                out["status"] = inst.channel.send("status")
+            except ChannelError as exc:
+                # A client that exited and one that is wedged both fail to
+                # answer, and they want opposite responses.
+                out["status"] = ("the process is alive but not answering on its control "
+                                 "channel: wedged rather than gone (%s). Look at it before "
+                                 "restarting; the overlay says what it was last asked." % exc)
+        return inst, out
+    raise ChannelError("unknown action '%s'" % action)
+
+
+def call_tool(name, args, reg):
+    """Returns (instance or None, result)."""
     if name == "goanna_session":
-        action = args.get("action", "status")
-        out = {}
-        if action == "status":
-            session.reap()
-            if not channel.up():
-                # Say which of the two it is. A client that exited and one that
-                # is wedged both fail to answer, and they want opposite
-                # responses: start a new one, or go and look at why the old one
-                # is stuck.
-                if session.proc is None:
-                    return {"running": False,
-                            "hint": "no client is answering; goanna_session action=start"}
-                return {"running": False, "pid": session.proc.pid,
-                        "hint": "the process is alive but not answering on the control "
-                                "channel: it is wedged rather than gone. Look at it before "
-                                "restarting, and see docs/control-channel.md for the "
-                                "overlay that says what it was last asked to do."}
-            return dict(channel.send("status"), running=True)
-        if action in ("start", "restart") and args.get("build"):
-            out.update(session.build())
-        if action in ("stop", "restart"):
-            out.update(session.stop(channel))
-        if action == "stop":
-            return out
-        if action in ("start", "restart"):
-            out.update(session.start(channel, host=args.get("host"), port=args.get("port"),
-                                     name=args.get("name"), env=args.get("env")))
-            return out
-        raise ChannelError("unknown action '%s'" % action)
+        return session_tool(args, reg)
+
+    if name == "goanna_shot":
+        inst = reg.pick(args, channel=False)
+        path = args.get("path")
+        if not path:
+            LOG_DIR.mkdir(parents=True, exist_ok=True)
+            path = str(LOG_DIR / ("shot-%s-%d.png" % (inst.id, int(time.time() * 1000))))
+        if inst.kind == "vanilla" or args.get("method") == "gamescope":
+            if inst.kind not in ("goanna", "vanilla"):
+                raise ChannelError("method=gamescope needs a headless instance")
+            time.sleep(max(0, int(args.get("wait_ms", 0))) / 1000.0)
+            try:
+                result = gh.screenshot(inst.id, path)
+            except gh.LaunchError as exc:
+                raise ChannelError(str(exc))
+        else:
+            shot = {"path": path}
+            for key in ("settle", "warm", "hide_ui"):
+                if key in args:
+                    shot[key] = args[key]
+            result = inst.channel.send("shot", shot, timeout=600.0)
+        checked = shotcheck(path)
+        if checked:
+            result["shotcheck"] = checked
+        return inst, result
+
+    inst = reg.pick(args)
+    ch = inst.channel
 
     if name == "goanna_status":
-        return dict(channel.send("status"), deviations=channel.send("deviations"))
+        return inst, dict(ch.send("status"), deviations=ch.send("deviations"))
 
     if name == "goanna_inspect":
         request = {"target": args.get("target", "capabilities")}
@@ -531,12 +802,12 @@ def call_tool(name, args, channel, session):
         for key in ("depth", "limit", "texture"):
             if key in args:
                 request[key] = args[key]
-        return channel.send("inspect", request)
+        return inst, ch.send("inspect", request)
 
     if name == "goanna_view":
         out = {}
         if "teleport" in args:
-            out["teleport"] = channel.send("tp", vec(args["teleport"], "teleport"))
+            out["teleport"] = ch.send("tp", vec(args["teleport"], "teleport"))
         pose = {}
         if "position" in args:
             pose.update(vec(args["position"], "position"))
@@ -544,67 +815,61 @@ def call_tool(name, args, channel, session):
             if key in args:
                 pose[key] = args[key]
         if pose:
-            out["pose"] = channel.send("pose", pose)
+            out["pose"] = ch.send("pose", pose)
         if "look_at" in args:
-            out["look"] = channel.send("look", vec(args["look_at"], "look_at"))
+            out["look"] = ch.send("look", vec(args["look_at"], "look_at"))
         if not out:
             raise ChannelError("goanna_view wants teleport, position, look_at, pitch, yaw or fly")
-        return out
+        return inst, out
 
     if name == "goanna_world":
         out = {}
         if "time" in args:
-            out["time"] = channel.send("time", {"tod": args["time"],
-                                                "server": bool(args.get("time_on_server"))})
+            out["time"] = ch.send("time", {"tod": args["time"],
+                                           "server": bool(args.get("time_on_server"))})
         if "weather" in args:
-            out["weather"] = channel.send("weather", {"kind": args["weather"],
-                                                      "fake": bool(args.get("fake_weather"))})
+            out["weather"] = ch.send("weather", {"kind": args["weather"],
+                                                 "fake": bool(args.get("fake_weather"))})
         if "give" in args:
-            out["give"] = channel.send("give", {"item": args["give"],
-                                                "count": int(args.get("count", 1))})
+            out["give"] = ch.send("give", {"item": args["give"],
+                                           "count": int(args.get("count", 1))})
         if "spawn" in args:
             spawn = {"name": args["spawn"], "count": int(args.get("count", 1))}
             if "at" in args:
                 spawn.update(vec(args["at"], "at"))
-            out["spawn"] = channel.send("spawn", spawn)
+            out["spawn"] = ch.send("spawn", spawn)
         if "chat" in args:
-            out["chat"] = channel.send("chat", {"text": args["chat"]})
+            out["chat"] = ch.send("chat", {"text": args["chat"]})
         if not out:
             raise ChannelError("goanna_world wants time, weather, give, spawn or chat")
-        return out
+        return inst, out
 
     if name == "goanna_settings":
         action = args.get("action")
         if action == "list":
-            return channel.send("settings")
+            return inst, ch.send("settings")
         if action == "get":
-            return channel.send("get", {"key": args.get("key", "")})
+            return inst, ch.send("get", {"key": args.get("key", "")})
         if action == "set":
             if "value" not in args:
                 raise ChannelError("set wants a value")
-            return channel.send("set", {"key": args.get("key", ""), "value": args["value"]})
+            return inst, ch.send("set", {"key": args.get("key", ""), "value": args["value"]})
         raise ChannelError("goanna_settings wants action get, set or list")
 
-    if name == "goanna_shot":
-        path = args.get("path")
-        if not path:
-            LOG_DIR.mkdir(parents=True, exist_ok=True)
-            path = str(LOG_DIR / ("shot-%d.png" % int(time.time() * 1000)))
-        shot = {"path": path}
-        for key in ("settle", "warm", "hide_ui"):
-            if key in args:
-                shot[key] = args[key]
-        result = channel.send("shot", shot, timeout=300.0)
-        checked = shotcheck(path)
-        if checked:
-            result["shotcheck"] = checked
-        return result
+    if name == "goanna_ui":
+        action = args.get("action", "tree")
+        if action not in UI_ACTIONS:
+            raise ChannelError("goanna_ui action is one of %s" % ", ".join(UI_ACTIONS))
+        request = {k: args[k] for k in UI_KEYS if k in args}
+        if "key_action" in args:
+            request["action"] = args["key_action"]
+        return inst, ch.send(UI_ACTIONS[action], request, timeout=300.0)
 
     if name == "goanna_run":
-        return channel.send("run", {"src": args.get("src", "")}, timeout=300.0)
+        return inst, ch.send("run", {"src": args.get("src", "")}, timeout=300.0)
 
     if name == "goanna_command":
-        return channel.send(args.get("cmd", ""), args.get("args") or {}, timeout=300.0)
+        return inst, ch.send(args.get("cmd", ""), args.get("args") or {}, timeout=300.0)
 
     raise ChannelError("no such tool '%s'" % name)
 
@@ -622,8 +887,7 @@ def reply(msg_id, result=None, error=None):
 
 
 def main():
-    channel = Channel()
-    session = Session()
+    reg = Registry()
     for line in sys.stdin:
         line = line.strip()
         if not line:
@@ -642,7 +906,7 @@ def main():
             reply(msg_id, {
                 "protocolVersion": asked if asked in KNOWN_PROTOCOLS else PROTOCOL,
                 "capabilities": {"tools": {}},
-                "serverInfo": {"name": "goanna", "version": "0.1.0"},
+                "serverInfo": {"name": "goanna", "version": "0.2.0"},
             })
         elif method == "tools/list":
             reply(msg_id, {"tools": TOOLS})
@@ -650,8 +914,13 @@ def main():
             name = params.get("name", "")
             args = params.get("arguments") or {}
             try:
-                result = call_tool(name, args, channel, session)
-                text = json.dumps(result, indent=2, default=str)
+                inst, result = call_tool(name, args, reg)
+                # Every reply says which client it came from: two sessions
+                # driving each other's clients through a shared port went
+                # unnoticed for a whole evening.
+                body = dict(inst.label(), result=result) if inst is not None \
+                    else {"result": result}
+                text = json.dumps(body, indent=2, default=str)
                 reply(msg_id, {"content": [{"type": "text", "text": text}]})
             except ChannelError as exc:
                 reply(msg_id, {"content": [{"type": "text", "text": str(exc)}],

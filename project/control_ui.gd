@@ -432,10 +432,15 @@ func _frames(n: int) -> void:
 	for i in maxi(1, n):
 		await tree.process_frame
 
-func _wait_ms(ms: int) -> void:
+# At least ms and at least `frames` frames: a client rendering on the CPU
+# draws about one frame a second, and a reply from the server, a rebuilt form
+# or a tooltip only shows up on a frame.
+func _wait_ms(ms: int, frames := 3) -> void:
 	var until := Time.get_ticks_msec() + ms
-	while Time.get_ticks_msec() < until:
+	var n := 0
+	while Time.get_ticks_msec() < until or n < frames:
 		await tree.process_frame
+		n += 1
 
 # What the form told the server, and which slots it acted on, while `body`
 # ran: listened to on formspec.gd's own signals, the ones game_ui sends from.
@@ -508,12 +513,19 @@ func ui_hover(a: Dictionary) -> Variant:
 		return where
 	var point: Vector2 = where["point"]
 	_move(point, 0, a)
-	# The form's own tooltip delay, and a little over for the frame it is
-	# built on.
+	# The form's own tooltip delay and a little over, then on until a tooltip
+	# shows or max_ms passes, since on a slow client the delay is counted in
+	# frames that are a second apart.
+	var t0 := Time.get_ticks_msec()
 	await _wait_ms(int(a.get("ms", 600)))
 	var out := {"target": where["target"], "point": _vec(point), "hit": _hit()}
 	if main.ui.window == main.ui.form:
+		var max_ms := int(a.get("max_ms", 5000))
+		while main.ui.form.describe()["tooltip"].is_empty() \
+				and Time.get_ticks_msec() - t0 < max_ms:
+			await tree.process_frame
 		out["tooltip"] = _tooltip_out(main.ui.form.describe()["tooltip"])
+		out["waited_ms"] = Time.get_ticks_msec() - t0
 	else:
 		var c: Control = main.get_viewport().gui_get_hovered_control()
 		out["tooltip"] = {"text": c.tooltip_text} if c != null and c.tooltip_text != "" else null
