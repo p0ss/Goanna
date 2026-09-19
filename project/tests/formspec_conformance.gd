@@ -30,11 +30,34 @@ class FakeItemSource extends Node:
 		image.fill(Color(0.2, 0.7, 0.35, 1.0))
 		texture = ImageTexture.create_from_image(image)
 
-	func ui_texture(_name: String) -> Texture2D:
-		return texture
+	# One texture per name, all alike, so a check can tell which name a
+	# control was given.
+	var named_textures := {}
+
+	func ui_texture(texture_name: String) -> Texture2D:
+		if not named_textures.has(texture_name):
+			named_textures[texture_name] = ImageTexture.create_from_image(texture.get_image())
+		return named_textures[texture_name]
 
 	func item_icon(_name: String) -> Texture2D:
 		return texture
+
+	func item_description(item_string: String) -> String:
+		return "Description of " + item_string.get_slice(" ", 0)
+
+	var holding := false
+
+	func holding_stack() -> bool:
+		return holding
+
+	var sounds: Array = []
+
+	func play_form_sound(sound_name: String) -> void:
+		sounds.append(sound_name)
+
+	# Stands in for a node's metadata: one key is set.
+	func resolve_text(text: String) -> String:
+		return "Sign text" if text == "${text}" else text
 
 	# Stands in for the extension's model loader: one mesh is known, anything
 	# else is media that has not arrived and falls back to the placeholder.
@@ -60,12 +83,20 @@ class FakeItemSource extends Node:
 # click, a drag or a double click.
 class FakeClient extends Node:
 	var actions: Array = []
+	var prepend := ""
+	var inventory_spec := ""
 
 	func inventory_action(action: String) -> void:
 		actions.append(action)
 
 	func inventory_state_at(_location: String) -> Dictionary:
 		return {}
+
+	func formspec_prepend() -> String:
+		return prepend
+
+	func inventory_formspec() -> String:
+		return inventory_spec
 
 
 func _initialize() -> void:
@@ -76,6 +107,7 @@ func _run() -> void:
 	fixture_source = FakeItemSource.new()
 	root.add_child(fixture_source)
 	_test_split_and_unescape()
+	_test_colours()
 	_test_layout_headers()
 	_test_controls_and_submission()
 	_test_inventory_and_listring()
@@ -86,11 +118,23 @@ func _run() -> void:
 	_test_partial_elements()
 	_test_scroll_container()
 	_test_styles()
+	_test_labels()
+	_test_fields()
+	_test_button_geometry()
+	_test_initial_focus()
+	_test_sizeless_form()
+	_test_button_styles()
+	_test_style_sound_font_model()
 	_test_table()
+	_test_list_look()
 	_test_hypertext()
 	_test_nothing_skipped()
+	_test_tooltips()
+	_test_button_key()
 	_test_hypertip()
 	_test_prepend()
+	_test_host_passes_prepend()
+	_test_background_order()
 	await _write_reference_shots()
 	if failures == 0:
 		print("formspec conformance: PASS: ", checks, " checks")
@@ -131,6 +175,22 @@ func _test_split_and_unescape() -> void:
 	_equal(Formspec.fs_unescape("left\\]right"), "left]right", "escaped closing bracket")
 
 
+# parseColorString: CSS names, not Godot's, in any case, with a one or two
+# digit alpha after a #, and hex in four lengths. Anything else falls back.
+func _test_colours() -> void:
+	var none := Color(0.1, 0.2, 0.3, 0.4)
+	_equal(Formspec.parse_color("green", none), Color.html("008000"), "green is CSS green")
+	_equal(Formspec.parse_color("Grey", none), Color.html("808080"), "names ignore case")
+	_equal(Formspec.parse_color("red#80", none), Color.html("ff000080"), "a two digit alpha")
+	_equal(Formspec.parse_color("red#8", none), Color.html("ff000088"), "a one digit alpha doubles")
+	_equal(Formspec.parse_color("#abc", none), Color.html("aabbcc"), "#RGB")
+	_equal(Formspec.parse_color("#abcd", none), Color.html("aabbccdd"), "#RGBA")
+	_equal(Formspec.parse_color("#11223344", none), Color.html("11223344"), "#RRGGBBAA")
+	_equal(Formspec.parse_color("ff0000", none), none, "bare hex is not a colour")
+	_equal(Formspec.parse_color("#12345", none), none, "five digits is not a colour")
+	_equal(Formspec.parse_color("notacolour", none), none, "an unknown name falls back")
+
+
 func _test_layout_headers() -> void:
 	var form := _new_form("formspec_version[6]size[8,6]position[0.25,0.75]"
 		+ "anchor[0,1]padding[0.1,0.1]real_coordinates[true]label[1,1;Header]"
@@ -158,7 +218,7 @@ func _test_controls_and_submission() -> void:
 	spec += "box[0.5,1;1,1;#224466]image[1.5,1;1,1;fixture.png]"
 	spec += "background[0,0;12,10;fixture.png;false]"
 	spec += "item_image[2.5,1;1,1;default:stone]"
-	spec += "field[0.5,3;3,0.8;name;Name;Ada]pwdfield[4,3;3,0.8;secret;Secret;key]"
+	spec += "field[0.5,3;3,0.8;name;Name;Ada]pwdfield[4,3;3,0.8;secret;Secret]"
 	spec += "textarea[0.5,4;3,1.5;notes;Notes;hello]"
 	spec += "checkbox[4,4;enabled;Enabled;true]"
 	spec += "dropdown[4,5;3,0.8;choice;red,green,blue;2;true]"
@@ -175,7 +235,7 @@ func _test_controls_and_submission() -> void:
 	_check(form.has_form_bgcolor, "form background colour is applied")
 	_equal(form.fields.size(), 7, "named field count")
 	_equal(form.collect_fields()["name"], "Ada", "line edit default")
-	_equal(form.collect_fields()["secret"], "key", "password field default")
+	_equal(form.collect_fields()["secret"], "", "a password field starts empty")
 	_equal(form.collect_fields()["enabled"], "true", "checkbox default")
 	_equal(form.collect_fields()["choice"], "2", "index-event dropdown default")
 	_equal(form.collect_fields()["rows"], "CHG:2", "text list default")
@@ -187,7 +247,8 @@ func _test_controls_and_submission() -> void:
 	_check(submit_button != null, "ordinary button is built")
 	if submit_button:
 		_check(submit_button.has_focus(), "set_focus targets a named button")
-		_equal(submit_button.tooltip_text, "Submit tooltip", "named tooltip")
+		_equal(form.tooltip_at(Vector2(-1, -1), submit_button, 1000).get("text"),
+			"Submit tooltip", "named tooltip")
 		submit_button.pressed.emit()
 		_equal(submissions.back()["fields"]["go"], "Submit", "button field value")
 		_check(not submissions.back()["quit"], "ordinary button keeps form open")
@@ -200,11 +261,11 @@ func _test_controls_and_submission() -> void:
 	name_field.text_submitted.emit(name_field.text)
 	_equal(submissions.back()["fields"]["key_enter_field"], "name", "enter field name")
 	_check(not submissions.back()["quit"], "field_close_on_enter false is honoured")
-	var area_tooltip := _control_with_tooltip(form, "Area tooltip")
-	_check(area_tooltip != null, "area tooltip is built")
-	if area_tooltip and submit_button:
-		_check(area_tooltip.get_index() < submit_button.get_index(),
-			"area tooltip stays behind interactive controls")
+	_equal(form.tooltip_areas.size(), 1, "area tooltip is built")
+	if form.tooltip_areas.size() == 1:
+		var area: Control = form.tooltip_areas[0]["area"]
+		_equal(area.mouse_filter, Control.MOUSE_FILTER_IGNORE,
+			"an area tooltip never takes a click from what lies under it")
 	_discard(form)
 
 
@@ -606,6 +667,13 @@ func _test_scroll_container() -> void:
 	var bar: ScrollBar = form.scrollbars["scroll"]
 	var mover: Control = form.scroll_containers["scroll"]
 	_check(bar is VScrollBar, "a vertical scrollbar builds a VScrollBar")
+	_equal((bar.get_theme_stylebox("scroll") as StyleBoxFlat).bg_color, Color8(230, 230, 230, 101),
+		"its track is EGDC_SCROLLBAR's translucent grey")
+	_equal((bar.get_theme_stylebox("grabber") as StyleBoxFlat).bg_color, Color8(62, 62, 62),
+		"and its thumb an opaque dark grey")
+	var grabber: StyleBox = bar.get_theme_stylebox("grabber")
+	_equal(grabber.content_margin_top + grabber.content_margin_bottom, bar.size.x,
+		"the thumb is never shorter than the bar is wide")
 	_equal(bar.min_value, 0.0, "scrollbar minimum from scrollbaroptions")
 	_check(bar.max_value - bar.page == 15.0, "scrollbar reaches the requested maximum")
 	_equal(bar.step, 1.0, "smallstep becomes the scrollbar step")
@@ -643,7 +711,7 @@ func _test_styles() -> void:
 		"style_type reaches an unnamed-in-style button")
 	_equal(named.get_theme_stylebox("hover").bg_color, Color.html("778899"),
 		"a hovered state selector reaches the hover stylebox")
-	_equal(plain.get_theme_color("font_color"), Color.html("ff0000"),
+	_equal(plain.get_meta("content")["label"].get_theme_color("font_color"), Color.html("ff0000"),
 		"textcolor from style_type")
 	# size=0.5 halves the slot, and spacing=0.25 is the gap added on top of it.
 	var slot: Control = form.slots[0]
@@ -652,6 +720,328 @@ func _test_styles() -> void:
 	_equal(form.slots[1].position.x - slot.position.x, floorf(form.imgsize * 0.75),
 		"style_type[list;spacing] sets the gap between slots")
 	_discard(form)
+
+
+# parseLabel: colour escapes kept, one element per line at upstream's
+# spacing, the old system's 7/30 offset, and the area label of formspec
+# version 9 with the halign and valign of version 11, the shape VoxeLibre's
+# announcement cards use.
+func _test_labels() -> void:
+	var esc := char(0x1b)
+	var runs: Array = Formspec.parse_enriched_runs(esc + "(c@#80ff20)12" + esc + "(c@#ffffff)", Color.BLACK)
+	_equal(runs.size(), 1, "a coloured label is one run")
+	_equal(runs[0]["color"], Color.html("80ff20"), "carrying its escape's colour")
+	var spec := "formspec_version[9]size[10,8]style_type[label;textcolor=#323232]"
+	spec += "label[1,1;Plain]"
+	spec += "label[1,2;" + esc + "(c@#80ff20)12" + esc + "(c@#ffffff)]"
+	spec += "label[1,3;One\nTwo]"
+	spec += "style_type[label;halign=center;valign=center]"
+	spec += "label[1,5;4,1;Centred area]"
+	var form := _new_form(spec)
+	_check(form.skipped.is_empty(), "labels build with nothing skipped")
+	var plain := _text_named(form, "Plain")
+	_check(plain != null, "a label is drawn as enriched text")
+	if plain:
+		_equal(plain.get_theme_color("default_color"), Color.html("323232"),
+			"style_type[label;textcolor] is the label's colour")
+		_equal(plain.position.y + plain.size.y / 2.0, form.imgsize,
+			"a real-coordinate label is centred on its y")
+	_check(_text_named(form, "12") != null, "a colour escape is not printed")
+	var one := _text_named(form, "One")
+	var two := _text_named(form, "Two")
+	_check(one != null and two != null, "each line of a label is its own element")
+	if one and two:
+		_equal(two.position.y - one.position.y, floorf(form.imgsize / 2.0),
+			"lines are half an imgsize apart in real coordinates")
+	var area := _text_named(form, "Centred area")
+	_check(area != null, "an area label shows its text, not its geometry")
+	if area:
+		_equal(area.size, (Vector2(4, 1) * form.imgsize).floor(), "an area label fills its rectangle")
+		_equal(area.horizontal_alignment, HORIZONTAL_ALIGNMENT_CENTER, "halign=center")
+		_equal(area.vertical_alignment, VERTICAL_ALIGNMENT_CENTER, "valign=center")
+		_check(area.autowrap_mode != TextServer.AUTOWRAP_OFF, "an area label wraps")
+	_discard(form)
+	# The old coordinate system: the 7/30 offset, and no area label.
+	var old := _new_form("size[8,6]label[0,0;Old]label[1,1;2,1;Area]")
+	var old_label := _text_named(old, "Old")
+	_check(old_label != null, "an old-system label builds")
+	if old_label:
+		_check(absf(old_label.position.y + old_label.size.y / 2.0
+			- (old.padding.y + 7.0 / 30.0 * old.spacing.y)) <= 1.0,
+			"an old-system label is centred 7/30 of a spacing below its y")
+	_check(_text_named(old, "Area") == null, "the old system has no area label")
+	_discard(old)
+
+
+# createTextField: the edit box colours of Luanti's skin, the field's style
+# reaching its label, halign on a field, and the unnamed forms, which are a
+# label and a read-only text.
+func _test_fields() -> void:
+	var spec := "formspec_version[11]size[10,9]"
+	spec += "style_type[field;textcolor=#323232;halign=center]"
+	spec += "field[1,1;4,0.8;name;Name;Ada]"
+	spec += "pwdfield[1,2.5;4,0.8;secret;Secret]"
+	spec += "textarea[1,4;4,1.5;notes;;hello]"
+	spec += "field[6,1;3,0.8;;Only a label;ignored]"
+	spec += "textarea[6,4;3,1.5;;Shown as text;]"
+	var form := _new_form(spec)
+	_check(form.skipped.is_empty(), "fields build with nothing skipped")
+	var name_field: LineEdit = form.fields["name"]
+	_equal((name_field.get_theme_stylebox("normal") as StyleBoxFlat).bg_color, Color8(128, 128, 128),
+		"a field is EGDC_EDITABLE grey")
+	_equal((name_field.get_theme_stylebox("focus") as StyleBoxFlat).bg_color, Color8(96, 134, 49),
+		"and EGDC_FOCUSED_EDITABLE green while focused")
+	_equal(name_field.get_theme_color("font_color"), Color.html("323232"), "textcolor reaches the field")
+	_equal(name_field.alignment, HORIZONTAL_ALIGNMENT_CENTER, "halign=center reaches the field")
+	var name_label := _text_named(form, "Name")
+	_check(name_label != null, "the field's label is drawn")
+	if name_label:
+		_equal(name_label.get_theme_color("default_color"), Color.html("323232"),
+			"the label takes the field's textcolor")
+		_check(name_label.position.y < name_field.position.y, "the label sits above the field")
+	var secret: LineEdit = form.fields["secret"]
+	_check(secret.secret, "pwdfield[x,y;w,h;name;label] is a password field")
+	var notes: TextEdit = form.fields["notes"]
+	_equal((notes.get_theme_stylebox("normal") as StyleBoxFlat).bg_color, Color8(255, 255, 255, 101),
+		"a textarea is EGDC_WINDOW's translucent white")
+	_check(not form.fields.has(""), "an unnamed field is not a field")
+	_check(_text_named(form, "Only a label") != null, "an unnamed field is only its label")
+	_check(_text_named(form, "ignored") == null, "and its default is not shown")
+	_check(_text_named(form, "Shown as text") != null,
+		"an unnamed textarea with no default shows its label as its text")
+	_discard(form)
+	# The old coordinate system places fields without the form padding.
+	var old := _new_form("size[8,6]field[1,1;3,1;f;;x]")
+	var f: LineEdit = old.fields["f"]
+	var btn_h: float = old.imgsize * 15.0 / 13.0 * 0.35
+	var expected := Vector2(old.spacing.x, old.spacing.y + old.imgsize / 2.0 - btn_h)
+	_check((f.position - expected).abs().x <= 1.0 and (f.position - expected).abs().y <= 1.0,
+		"an old-system field is centred on y plus half its height, without padding")
+	_discard(old)
+
+
+# parseButton and parseDropDown geometry: an old-system button is two
+# button-heights tall, centred half its height in slots below y; a dropdown
+# given only a width is one imgsize tall in real coordinates and measures its
+# width in vertical spacings in the old system.
+func _test_button_geometry() -> void:
+	var old := _new_form("size[8,6]button[1,1;2,1;b;B]dropdown[1,3;3;d;a,b;1]")
+	var btn_h: float = old.imgsize * 15.0 / 13.0 * 0.35
+	var b: Button = old.named_controls["b"]
+	var top: float = old.padding.y + old.spacing.y + old.imgsize / 2.0 - btn_h
+	_check(absf(b.position.y - top) <= 1.0, "an old-system button is centred half its height below y")
+	_check(absf(b.size.y - btn_h * 2.0) <= 1.0, "and two button-heights tall")
+	var d: OptionButton = old.fields["d"]
+	_check(absf(d.size.x - 3.0 * old.spacing.y) <= 1.0,
+		"an old-system dropdown's width is in vertical spacings")
+	_discard(old)
+	var real := _new_form("formspec_version[6]size[8,6]dropdown[1,1;3;d;a,b;1]")
+	var rd: OptionButton = real.fields["d"]
+	_equal(rd.size, (Vector2(3, 1) * real.imgsize).floor(),
+		"a dropdown given only a width is one imgsize tall")
+	_discard(real)
+	# parseTabHeader: the position is the bottom edge, in spacings without
+	# the padding in the old system, two button-heights tall and form wide.
+	var tabs := _new_form("size[8,6]tabheader[0,0;tabs;A,B;1]")
+	var tb: TabBar = tabs.fields["tabs"]
+	var tab_h: float = tabs.imgsize * 15.0 / 13.0 * 0.35 * 2.0
+	_check(absf(tb.position.x) <= 1.0 and absf(tb.position.y + tab_h) <= 1.0,
+		"an old-system tab header stands on its y, without the form padding")
+	_equal(tb.size.x, tabs.root.size.x, "and is as wide as the form")
+	_discard(tabs)
+
+
+# A form without size[], which is how Minetest Game's sign asks for its text:
+# a 580 pixel window, 270 high plus 60 a field, its fields 300 wide and 60
+# apart, and a Proceed button under them. The field shows the node's
+# metadata for a whole ${key}.
+func _test_sizeless_form() -> void:
+	var form := _new_form("field[text;;${text}]")
+	_equal(form.root.size, Vector2(580, 330), "a one-field sizeless form is 580 by 330")
+	var text: LineEdit = form.fields["text"]
+	_equal(text.position, Vector2(140, 120), "its field is centred, two rows down")
+	_equal(text.size.x, 300.0, "and three hundred pixels wide")
+	_equal(text.text, "Sign text", "a whole ${key} default shows the node's metadata")
+	var proceed := _button_named(form, "Proceed")
+	_check(proceed != null, "a sizeless form gets a Proceed button")
+	if proceed:
+		_equal(proceed.position, Vector2(220, 180), "under its fields, centred")
+		_equal(proceed.size.x, 140.0, "140 pixels wide")
+		var submissions: Array = []
+		form.fields_submitted.connect(func(fields: Dictionary, quit: bool) -> void:
+			submissions.append([fields, quit]))
+		proceed.pressed.emit()
+		_check(submissions.size() == 1 and submissions[0][1] and submissions[0][0].has("text"),
+			"Proceed sends the fields and closes the form")
+	_discard(form)
+
+
+# setInitialFocus: with no set_focus[], the first empty edit box, else the
+# first edit box, else the first table, else the last button.
+func _test_initial_focus() -> void:
+	var form := _new_form("formspec_version[6]size[8,6]field[1,1;3,0.8;a;;full]"
+		+ "field[1,3;3,0.8;b;;]button[1,5;2,1;x;X]")
+	_check(form.fields["b"].has_focus(), "the first empty edit box takes the focus")
+	_discard(form)
+	form = _new_form("formspec_version[6]size[8,6]field[1,1;3,0.8;a;;full]button[1,5;2,1;x;X]")
+	_check(form.fields["a"].has_focus(), "failing that, the first edit box")
+	_discard(form)
+	form = _new_form("formspec_version[6]size[8,6]button[1,1;2,1;x;X]button[1,3;2,1;y;Y]")
+	var last: Button = form.named_controls["y"]
+	_check(last.has_focus(), "with no edit box or table, the last button")
+	_check(last.get_theme_stylebox("focus") is StyleBoxEmpty, "and it draws no focus ring")
+	_discard(form)
+
+
+# The style properties that are not about looks: sound, played locally when
+# a button, checkbox, dropdown or tab is used; font on Godot's own controls;
+# and a model's bgcolor.
+func _test_style_sound_font_model() -> void:
+	var spec := "formspec_version[6]size[10,8]"
+	spec += "style[go;sound=click;font=mono,bold]button[0,0;2,1;go;Go]"
+	spec += "style_type[checkbox;sound=tick]checkbox[0,2;ok;OK;false]"
+	spec += "style[pick;sound=pop]dropdown[3,2;3,0.8;pick;a,b;1]"
+	spec += "style[tabs;sound=page]tabheader[0,5;tabs;One,Two;1]"
+	spec += "style_type[field;font=italic]field[4,0;3,0.8;f;;]"
+	spec += "style[preview;bgcolor=#ff0000]model[6,4;3,3;preview;character.b3d;skin.png]"
+	var form := _new_form(spec)
+	fixture_source.sounds.clear()
+	form.named_controls["go"].pressed.emit()
+	form.fields["ok"].toggled.emit(true)
+	form.fields["pick"].item_selected.emit(1)
+	form.fields["tabs"].tab_changed.emit(1)
+	_equal(fixture_source.sounds, ["click", "tick", "pop", "page"],
+		"each element plays its own style sound when used")
+	var label: Label = form.named_controls["go"].get_meta("content")["label"]
+	var bold := label.get_theme_font("font") as FontVariation
+	_check(bold != null and bold.variation_embolden > 0.0 and bold.base_font is SystemFont,
+		"font=mono,bold reaches the button label")
+	var italic := form.fields["f"].get_theme_font("font") as FontVariation
+	_check(italic != null and italic.variation_transform.y.x != 0.0, "font=italic reaches a field")
+	var back: ColorRect = null
+	for child in form.named_controls["preview"].get_children():
+		if child is ColorRect:
+			back = child
+	_check(back != null and back.color == Color.RED, "a model's bgcolor fills it")
+	_discard(form)
+
+
+# GUIButton::setFromStyle, through the looks Godot draws. The shapes are the
+# ones Mineclonia and VoxeLibre use: a prepend dressing every button and image
+# button in a nine-sliced texture with border=false, the skin editor's
+# transparent bgcolor over it, the creative inventory's tabs clearing it
+# again, and the skin tabs' content_offset.
+func _test_button_styles() -> void:
+	var spec := "formspec_version[6]size[12,10]"
+	spec += "style_type[button;border=false;bgimg=button9.png;bgimg_pressed=button9_pressed.png;bgimg_middle=2,2]"
+	spec += "style_type[image_button;border=false;bgimg=button9.png;bgimg_middle=2,2]"
+	spec += "button[0,0;3,1;themed;Themed]"
+	spec += "style[clear;bgcolor=#00000000]button[0,1.5;3,1;clear;Clear]"
+	spec += "style[tinted;bgcolor=#804020]button[0,3;3,1;tinted;Tinted]"
+	spec += "style[bare;border=false;bgimg=;bgimg_pressed=;bgcolor=red]button[0,4.5;3,1;bare;Bare]"
+	spec += "style[shifted;content_offset=16,0]button[0,6;3,1;shifted;Shifted]"
+	spec += "style[legacy;bgimg_hovered=hovered.png]button[0,7.5;3,1;legacy;Legacy]"
+	spec += "image_button[4,0;1,1;book.png;book;]"
+	spec += "style[padded;padding=4]image_button[4,1.5;2,2;book.png;padded;]"
+	spec += "image_button[4,4;1,1;up.png;own;;false;false;down.png]"
+	spec += "item_image_button[7,0;1,1;default:stone;themed_item;]"
+	spec += "style[tab;border=false;bgimg=;bgimg_pressed=]"
+	spec += "item_image_button[7,1.5;1,1;default:apple 3;tab;]"
+	var form := _new_form(spec)
+	var src := fixture_source
+	_check(form.skipped.is_empty(), "styled buttons build with nothing skipped")
+
+	# border=false drops the pane, never the bgimg, and the pressed look
+	# takes the deprecated bgimg_pressed.
+	var themed: Button = form.named_controls["themed"]
+	_check(not themed.flat, "border=false does not make the button flat")
+	var normal := themed.get_theme_stylebox("normal") as StyleBoxTexture
+	_check(normal != null and normal.texture == src.ui_texture("button9.png"),
+		"border=false still draws the bgimg")
+	if normal:
+		_equal(normal.texture_margin_left, 2.0, "bgimg_middle nine-slices the bgimg")
+	var pressed := themed.get_theme_stylebox("pressed") as StyleBoxTexture
+	_check(pressed != null and pressed.texture == src.ui_texture("button9_pressed.png"),
+		"bgimg_pressed becomes the pressed look")
+
+	# bgcolor tints the image rather than replacing it; alpha zero hides it,
+	# which is how the skin editor shows its models through the buttons.
+	var clear := form.named_controls["clear"].get_theme_stylebox("normal") as StyleBoxTexture
+	_check(clear != null and clear.modulate_color.a == 0.0, "a transparent bgcolor hides the bgimg")
+	var tinted: Button = form.named_controls["tinted"]
+	var tint := Formspec.parse_color("#804020", Color.WHITE)
+	_equal((tinted.get_theme_stylebox("normal") as StyleBoxTexture).modulate_color, tint,
+		"bgcolor tints the bgimg")
+	_equal((tinted.get_theme_stylebox("hover") as StyleBoxTexture).modulate_color,
+		Formspec._scale_rgb(tint, 1.25), "a default-state bgcolor is lightened when hovered")
+	_equal((tinted.get_theme_stylebox("pressed") as StyleBoxTexture).modulate_color,
+		Formspec._scale_rgb(tint, 0.85), "and darkened when pressed")
+	_check(form.named_controls["bare"].get_theme_stylebox("normal") is StyleBoxEmpty,
+		"with no bgimg and no border, a bgcolor has nothing to tint")
+	var legacy := form.named_controls["legacy"].get_theme_stylebox("hover") as StyleBoxTexture
+	_check(legacy != null and legacy.texture == src.ui_texture("hovered.png"),
+		"bgimg_hovered becomes the hovered look")
+
+	# content_offset=16,0 on top of bgimg_middle=2,2 moves the label 16
+	# pixels right without narrowing it, past the button's right edge.
+	var shifted: Button = form.named_controls["shifted"]
+	var shifted_label: Label = shifted.get_meta("content")["label"]
+	_equal(shifted_label.position, Vector2(18, 2), "content_offset moves the label")
+	_equal(shifted_label.size, shifted.size - Vector2(4, 4), "without resizing it")
+	_equal(shifted_label.get_theme_color("font_color"), Color.WHITE,
+		"a button label is white unless textcolor says otherwise")
+	_equal(shifted_label.get_theme_color("font_shadow_color"), Color(0, 0, 0, 127.0 / 255.0),
+		"and carries Luanti's half-alpha text shadow")
+
+	# An image button's image fills the content rectangle behind the label,
+	# inset by bgimg_middle and padding, and one pixel further when pressed.
+	var book: Button = form.named_controls["book"]
+	var book_image: NinePatchRect = book.get_meta("content")["image"]
+	_check(book_image.texture == src.ui_texture("book.png"), "image_button draws its texture")
+	_equal(book_image.position, Vector2(2, 2), "the image is inset by bgimg_middle")
+	_equal(book_image.size, book.size - Vector2(4, 4), "and fills the rest of the button")
+	_check(book.get_theme_stylebox("normal") is StyleBoxTexture,
+		"style_type[image_button] reaches an image button")
+	var padded: Button = form.named_controls["padded"]
+	var padded_image: NinePatchRect = padded.get_meta("content")["image"]
+	_equal(padded_image.position, Vector2(6, 6), "padding adds to bgimg_middle")
+	_equal(padded.get_meta("looks")[2]["rect"].position, Vector2(7, 7),
+		"the content moves one pixel down and right while pressed")
+
+	# The element's own texture, pressed texture and drawborder override the
+	# theme, as parseImageButton sets them on the style.
+	var own: Button = form.named_controls["own"]
+	_check(own.get_meta("content")["image"].texture == src.ui_texture("up.png"),
+		"image_button's texture parameter is the default fgimg")
+	_check(own.get_meta("looks")[2]["fg"] == src.ui_texture("down.png"),
+		"its pressed texture parameter is the pressed fgimg")
+	_check(own.get_theme_stylebox("normal") is StyleBoxTexture,
+		"drawborder=false still leaves the theme's bgimg")
+
+	# item_image_button takes image_button's styles and the item's
+	# description as its tooltip.
+	var themed_item: Button = form.named_controls["themed_item"]
+	_check(themed_item.get_theme_stylebox("normal") is StyleBoxTexture,
+		"item_image_button inherits style_type[image_button]")
+	_equal(form.tooltip_at(Vector2(-1, -1), themed_item, 1000).get("text"),
+		"Description of default:stone", "item_image_button shows the item's description")
+	var tab: Button = form.named_controls["tab"]
+	_check(tab.get_theme_stylebox("normal") is StyleBoxEmpty,
+		"clearing bgimg with border=false leaves the tab bare")
+	_check(tab.get_meta("content")["image"].texture == src.item_icon("default:apple"),
+		"the item fills the button")
+	_discard(form)
+
+	# The state rule is upstream's: a selector for focused+hovered also
+	# reaches the hovered+pressed look, because the two share a bit.
+	var states: Array = []
+	for i in 8:
+		states.append({})
+	states[Formspec.STATE_FOCUSED | Formspec.STATE_HOVERED] = {"bgcolor": "red"}
+	_check(Formspec._style_at(states, Formspec.STATE_HOVERED | Formspec.STATE_PRESSED).has("bgcolor"),
+		"state propagation shares bits the way getStyleFromStatePropagation does")
+	_check(not Formspec._style_at(states, Formspec.STATE_PRESSED).has("bgcolor"),
+		"and leaves a state with no shared bit alone")
 
 
 # hypertext markup drives the rich text label directly. The parse is checked
@@ -686,6 +1076,78 @@ func _test_hypertext() -> void:
 	_equal(rt.get_theme_color("default_color"), Color.html("112233"),
 		"global color sets the element default")
 	_discard(form)
+
+	# The page settings of <global>, wherever it stands, the shape
+	# VoxeLibre's announcement title uses; white text and a three pixel
+	# margin by default; and an action drawn in its hovercolor, red unless
+	# the page says otherwise, while the pointer is on it.
+	form = _new_form("formspec_version[6]size[10,8]"
+		+ "hypertext[0,0;9,2;title;<big>Title</big><global halign=center valign=middle>]"
+		+ "hypertext[0,3;9,2;links;<global margin=10 hovercolor=#00ff00>"
+		+ "<action name=one>One</action> <action name=two>Two</action>]"
+		+ "hypertext[0,6;9,1;plain;Plain]")
+	var title: RichTextLabel = form.named_controls["title"]
+	_equal(title.horizontal_alignment, HORIZONTAL_ALIGNMENT_CENTER, "<global halign=center>")
+	_equal(title.vertical_alignment, VERTICAL_ALIGNMENT_CENTER, "<global valign=middle>")
+	var plain_rt: RichTextLabel = form.named_controls["plain"]
+	_equal(plain_rt.get_theme_color("default_color"), Color.WHITE, "hypertext is white by default")
+	_equal(plain_rt.get_theme_stylebox("normal").content_margin_left, 3.0,
+		"with a three pixel margin")
+	var links: RichTextLabel = form.named_controls["links"]
+	_equal(links.get_theme_stylebox("normal").content_margin_left, 10.0, "<global margin=10>")
+	_equal(links.get_meta("action_colours"), ["#0000FF", "#0000FF"], "actions are blue at rest")
+	form._render_markup(links, form.fs_unescape("<global margin=10 hovercolor=#00ff00>"
+		+ "<action name=one>One</action> <action name=two>Two</action>"), 1)
+	_equal(links.get_meta("action_colours"), ["#0000FF", "#00ff00"],
+		"the hovered action takes the page's hovercolor")
+	form._render_markup(plain_rt, "<action name=x>X</action>", 0)
+	_equal(plain_rt.get_meta("action_colours"), ["#FF0000"], "the default hovercolor is red")
+	var submitted: Array = []
+	form.fields_submitted.connect(func(fields: Dictionary, _quit: bool) -> void:
+		submitted.append(fields))
+	links.meta_clicked.emit({"index": 0, "name": "one", "url": ""})
+	_check(submitted.size() == 1 and submitted[0].get("links") == "action:one",
+		"clicking an action sends action:<name> under the element's name")
+	_discard(form)
+	# The old coordinate system places hypertext without the padding, a
+	# button-height lower.
+	var old := _new_form("size[8,6]hypertext[1,1;4,2;old;Old]")
+	var old_rt: RichTextLabel = old.named_controls["old"]
+	var expected := Vector2(old.spacing.x, old.spacing.y + old.imgsize * 15.0 / 13.0 * 0.35)
+	_check((old_rt.position - expected).abs().x <= 1.0 and (old_rt.position - expected).abs().y <= 1.0,
+		"an old-system hypertext starts without the form padding, a button-height down")
+	_discard(old)
+
+
+# GUITable's look, which textlist[] and table[] share: near black, white text,
+# a green selection, no pane when transparent, a textlist item's #RRGGBB
+# colour and its ## escape, and tableoptions[] over the defaults.
+func _test_list_look() -> void:
+	var form := _new_form("formspec_version[6]size[10,8]"
+		+ "textlist[0,0;4,3;rows;#FF0000red,##FF0000plain,plain;1;false]"
+		+ "textlist[5,0;4,3;clear;a,b;0;true]"
+		+ "tableoptions[highlight=#0000ff]table[0,4;4,3;t;a,b;1]")
+	var rows: ItemList = form.fields["rows"]
+	_equal(rows.get_item_text(0), "red", "a colour prefix is not printed")
+	_equal(rows.get_item_custom_fg_color(0), Color.RED, "it colours its item")
+	_equal(rows.get_item_text(1), "FF0000plain", "## drops itself and keeps the rest from being a colour")
+	_equal((rows.get_theme_stylebox("panel") as StyleBoxFlat).bg_color, Color8(30, 30, 30),
+		"a textlist is EGDC_3D_HIGH_LIGHT's near black")
+	_equal((rows.get_theme_stylebox("selected") as StyleBoxFlat).bg_color, Color8(70, 120, 50),
+		"its selection is EGDC_HIGH_LIGHT green")
+	_equal(rows.get_theme_color("font_color"), Color.WHITE, "its text is white")
+	_check(form.fields["clear"].get_theme_stylebox("panel") is StyleBoxEmpty,
+		"a transparent textlist draws no pane")
+	var table: Tree = form.fields["t"]
+	_equal((table.get_theme_stylebox("selected") as StyleBoxFlat).bg_color, Color.BLUE,
+		"tableoptions[highlight] sets the table's selection")
+	_equal((table.get_theme_stylebox("panel") as StyleBoxFlat).bg_color, Color8(30, 30, 30),
+		"and the rest stays GUITable's default")
+	_discard(form)
+	var old := _new_form("size[8,6]textlist[1,1;3,2;l;a,b;0;false]")
+	_equal(old.fields["l"].size, Vector2(3.0 * old.spacing.x, 2.0 * old.spacing.y).floor(),
+		"an old-system textlist measures whole spacings")
+	_discard(old)
 
 
 # tablecolumns[] declares the layout; color and indent columns consume a cell
@@ -732,17 +1194,149 @@ func _test_nothing_skipped() -> void:
 	_discard(form)
 
 
-# hypertip[], formspec version 11 (Luanti 5.17): shown as a plain tooltip.
+# The form draws its own tooltip, as GUIFormSpecMenu does, so the rules are
+# upstream's: colours captured where each tooltip is parsed, olive and white
+# until listcolors[] says otherwise, element tooltips after a rest of
+# tooltip_show_delay, area and item tooltips at once, no item tooltip while a
+# stack is carried, and colour escapes kept.
+func _test_tooltips() -> void:
+	var spec := "formspec_version[6]size[10,8]"
+	spec += "button[0,0;2,1;early;Early]tooltip[early;Early help]"
+	spec += "listcolors[#111;#222;#333;#000000;#ffffff]"
+	spec += "button[0,1.5;2,1;late;Late]tooltip[late;Late help]"
+	spec += "button[0,3;2,1;own;Own]tooltip[own;Own help;#ff0000;#00ff00]"
+	spec += "button[0,4.5;2,1;tinted;Tinted]tooltip[tinted;" + char(0x1b) + "(c@#ffff00)Gold]"
+	spec += "tooltip[4,0;2,2;Area help]"
+	spec += "list[current_player;main;4,3;2,1;]"
+	var form := _new_form(spec)
+	var early: Button = form.named_controls["early"]
+	var late: Button = form.named_controls["late"]
+	var own: Button = form.named_controls["own"]
+	var nowhere := Vector2(-100, -100)
+	var tip: Dictionary = form.tooltip_at(nowhere, early, 1000)
+	_equal(tip.get("bg"), Formspec.DEFAULT_TOOLTIP_BG, "a tooltip before listcolors is olive")
+	_equal(tip.get("fg"), Color.WHITE, "with white text")
+	tip = form.tooltip_at(nowhere, late, 1000)
+	_equal(tip.get("bg"), Color.BLACK, "listcolors sets the colours of the tooltips after it")
+	tip = form.tooltip_at(nowhere, own, 1000)
+	_equal(tip.get("bg"), Color.RED, "a tooltip's own background colour")
+	_equal(tip.get("fg"), Color.GREEN, "and text colour")
+	_check(form.tooltip_at(nowhere, early, 100).is_empty(),
+		"an element's tooltip waits for tooltip_show_delay")
+	tip = form.tooltip_at(nowhere, form.named_controls["tinted"], 1000)
+	_check(String(tip.get("text")).contains(char(0x1b)), "colour escapes survive to the tooltip")
+	var area: Control = form.tooltip_areas[0]["area"]
+	tip = form.tooltip_at(area.get_global_rect().get_center(), null, 0)
+	_equal(tip.get("text"), "Area help", "an area tooltip shows at once")
+	# An item's own description, straight away, and not while carrying.
+	var slot: Control = form.slots[0]
+	tip = form.tooltip_at(slot.get_global_rect().get_center(), slot, 0)
+	_equal(tip.get("text"), "Stone", "a slot shows its item's description at once")
+	_equal(tip.get("bg"), Color.BLACK, "in the listcolors tooltip colours")
+	fixture_source.holding = true
+	_check(form.tooltip_at(slot.get_global_rect().get_center(), slot, 0).is_empty(),
+		"no item tooltip while a stack is carried")
+	fixture_source.holding = false
+	# The box: text centred, m_btn_height wider and five pixels taller than
+	# the text, framed in black, the escape's colour kept.
+	form._show_tooltip(form.tooltip_at(nowhere, form.named_controls["tinted"], 1000), Vector2(10, 10))
+	var box: Panel = form.tooltip_box
+	_check(box != null and box.visible, "the tooltip box is shown")
+	if box:
+		var frame := box.get_theme_stylebox("panel") as StyleBoxFlat
+		_check(frame != null and frame.border_width_left == 1 and frame.border_color == Color.BLACK,
+			"the box has a one pixel black frame")
+		var rt: RichTextLabel = box.get_child(0)
+		_equal(rt.get_parsed_text(), "Gold", "the box shows the text without its escape")
+		var btn_h: float = form.imgsize * 15.0 / 13.0 * 0.35
+		_check(box.size.x > btn_h and box.size.y > 5.0, "the box is padded around its text")
+		_equal(box.global_position, (Vector2(10, 10) + Vector2(btn_h, btn_h)).floor(),
+			"the box sits m_btn_height below and right of the pointer")
+	_discard(form)
+
+
+# GUIButtonKey: a key setting shown by the key's name, a click that starts
+# capturing, the next key or mouse button sent as the element's field in
+# Luanti 5.17's SYSTEM_SCANCODE_ and MOUSE_BUTTON_ form, Escape to cancel.
+func _test_button_key() -> void:
+	var form := _new_form("formspec_version[6]size[10,6]"
+		+ "button_key[1,1;3,0.8;jump;SYSTEM_SCANCODE_44]button_key[1,3;3,0.8;fwd;KEY_KEY_W]")
+	var jump: Button = form.named_controls["jump"]
+	var fwd: Button = form.named_controls["fwd"]
+	var jump_label: Label = jump.get_meta("content")["label"]
+	_equal(jump_label.text, "Space", "a scancode setting shows its key's name")
+	_equal(fwd.get_meta("content")["label"].text, "W", "an Irrlicht key name does too")
+	_equal(fwd.get_meta("key_value"), "SYSTEM_SCANCODE_26", "and is held as its scancode")
+	var sent: Array = []
+	form.fields_submitted.connect(func(fields: Dictionary, _quit: bool) -> void:
+		sent.append(fields))
+	jump.pressed.emit()
+	_equal(jump_label.text, "Press Button", "pressing it starts capturing")
+	var q := InputEventKey.new()
+	q.physical_keycode = KEY_Q
+	q.keycode = KEY_Q
+	q.pressed = true
+	form._input(q)
+	_check(sent.size() == 1 and sent[0].get("jump") == "SYSTEM_SCANCODE_20",
+		"the next key is sent as the element's field")
+	_equal(jump_label.text, "Q", "and shown by name")
+	jump.pressed.emit()
+	var escape := InputEventKey.new()
+	escape.keycode = KEY_ESCAPE
+	escape.physical_keycode = KEY_ESCAPE
+	escape.pressed = true
+	form._input(escape)
+	_equal(sent.size(), 1, "Escape cancels without sending")
+	_equal(jump_label.text, "Q", "and keeps the old key")
+	fwd.pressed.emit()
+	var right := InputEventMouseButton.new()
+	right.button_index = MOUSE_BUTTON_RIGHT
+	right.pressed = true
+	form._input(right)
+	_check(sent.size() == 2 and sent[1].get("fwd") == "MOUSE_BUTTON_3",
+		"a mouse button is captured in SDL's numbering")
+	_equal(fwd.get_meta("content")["label"].text, "Right Click", "and named")
+	var rshift := InputEventKey.new()
+	rshift.physical_keycode = KEY_SHIFT
+	rshift.keycode = KEY_SHIFT
+	rshift.location = KEY_LOCATION_RIGHT
+	rshift.pressed = true
+	fwd.pressed.emit()
+	form._input(rshift)
+	_equal(fwd.get_meta("key_value"), "SYSTEM_SCANCODE_229", "the right shift is told from the left")
+	_discard(form)
+
+
+# hypertip[], formspec version 11 (Luanti 5.17): markup in a tooltip, its
+# width in ems, and a static position when one is given.
 func _test_hypertip() -> void:
 	var spec := "formspec_version[11]size[8,6]button[1,1;2,1;tip;Tip]"
 	spec += "hypertip[tip;;10;tipname;<b>Bold</b> help]"
-	spec += "hypertip[4,1;2,1;;10;areaname;Area <style color=red>help</style>]"
+	spec += "style[pinned;bgcolor=#123456;border=false]"
+	spec += "hypertip[4,1;2,1;1,4;8;pinned;Area <style color=red>help</style>]"
+	spec += "button[1,3;2,1;both;Both]tooltip[both;Plain wins]hypertip[both;;10;x;Rich]"
 	var form := _new_form(spec)
 	_equal(form.skipped, {}, "hypertip is not skipped")
 	var tip_button := _button_named(form, "Tip")
-	_check(tip_button != null and tip_button.tooltip_text == "Bold help",
-		"named hypertip shows its text without markup")
-	_check(_control_with_tooltip(form, "Area help") != null, "area hypertip is built")
+	var nowhere := Vector2(-100, -100)
+	var tip: Dictionary = form.tooltip_at(nowhere, tip_button, 1000)
+	_equal(tip.get("markup"), "<b>Bold</b> help", "a named hypertip keeps its markup")
+	_equal(tip.get("width"), 10.0 * form._font_size(), "its width is in ems")
+	_equal(form.tooltip_at(nowhere, form.named_controls["both"], 1000).get("text"), "Plain wins",
+		"a tooltip beats a hypertip on the same element")
+	var area: Control = form.tooltip_areas[0]["area"]
+	tip = form.tooltip_at(area.get_global_rect().get_center(), null, 0)
+	_equal(tip.get("static"), Vector2(1, 4) * form.imgsize, "the static position is in form units")
+	form._show_tooltip(tip, area.get_global_rect().get_center())
+	var box: Panel = form.tooltip_box
+	_equal(box.global_position, form.root.global_position + Vector2(1, 4) * form.imgsize,
+		"a static hypertip stands where it was told, not at the pointer")
+	_equal(box.size.x, ceilf(8.0 * form._font_size()), "the box is as wide as the hypertip asks")
+	var frame := box.get_theme_stylebox("panel") as StyleBoxFlat
+	_check(frame.bg_color == Color.html("123456") and frame.border_width_left == 0,
+		"style[] on the hypertip's name sets its bgcolor and border")
+	var rt: RichTextLabel = box.get_child(0)
+	_equal(rt.get_parsed_text(), "Area help", "the markup is rendered, not printed")
 	_discard(form)
 
 
@@ -827,6 +1421,42 @@ func _test_prepend() -> void:
 	_discard(form)
 
 
+# Backgrounds share one layer at the back of the form, in the order given,
+# so a form's own background is drawn over the game theme's background9 and
+# under everything else: Mineclonia's villager trade level bar.
+func _test_background_order() -> void:
+	var form := _new_form("formspec_version[6]size[10,8]box[1,1;2,2;#ff0000]"
+		+ "background[1,1;3,1;bar.png]", "conformance", MINECLONIA_PREPEND)
+	var layer: Control = form.bg_layer
+	_equal(layer.get_index(), 0, "the background layer is the form's first child")
+	_equal(layer.get_child_count(), 2, "it holds the theme's background and the form's")
+	if layer.get_child_count() == 2:
+		_check(layer.get_child(0) is NinePatchRect, "the theme's background9 is first")
+		_equal(layer.get_child(1).texture, fixture_source.ui_texture("bar.png"),
+			"and the form's own background over it")
+	var box := _colorrect_of(form, Color.RED)
+	_check(box != null and box.get_parent() == form.root and box.get_index() > 0,
+		"everything else is in front of the layer")
+	_discard(form)
+
+
+# The renderer's prepend handling is no use unless the host hands the theme
+# over. That wiring in game_ui.gd was lost once, to a commit recovered from a
+# stale copy, and every form in every game went back to a plain grey panel
+# while _test_prepend above still passed.
+func _test_host_passes_prepend() -> void:
+	var ui := _new_inventory_ui({"main": []})
+	ui.fullscreen_tint = ColorRect.new()
+	ui.client.prepend = MINECLONIA_PREPEND
+	ui._show_server_formspec("formspec_version[6]size[10,8]label[1,1;Chest]", "mcl_chests:chest")
+	_equal(ui.form.prepend_elements.size(), 5, "a server form is built with the game's prepend")
+	ui.client.inventory_spec = "formspec_version[6]size[10,8]list[current_player;main;0.5,0.5;4,1;0]"
+	ui._open_inventory()
+	_equal(ui.form.prepend_elements.size(), 5, "the player's inventory is built with the game's prepend")
+	ui.fullscreen_tint.free()
+	_discard_inventory_ui(ui)
+
+
 func _colorrect_of(node: Node, colour: Color) -> ColorRect:
 	for candidate in _nodes_of_type(node, "ColorRect"):
 		if candidate.color.is_equal_approx(colour):
@@ -834,9 +1464,19 @@ func _colorrect_of(node: Node, colour: Color) -> ColorRect:
 	return null
 
 
+# A form button carries its label as a child, so it is found by the label
+# the renderer recorded rather than by Button.text.
 func _button_named(node: Node, caption: String) -> Button:
 	for candidate in _nodes_of_type(node, "Button"):
-		if candidate.text == caption:
+		if String(candidate.get_meta("label", candidate.text)) == caption:
+			return candidate
+	return null
+
+
+# Form text is a RichTextLabel carrying its plain text as meta.
+func _text_named(node: Node, text: String) -> RichTextLabel:
+	for candidate in _nodes_of_type(node, "RichTextLabel"):
+		if String(candidate.get_meta("plain", "")) == text:
 			return candidate
 	return null
 
@@ -844,13 +1484,6 @@ func _button_named(node: Node, caption: String) -> Button:
 func _label_named(node: Node, caption: String) -> Label:
 	for candidate in _nodes_of_type(node, "Label"):
 		if candidate.text == caption:
-			return candidate
-	return null
-
-
-func _control_with_tooltip(node: Node, tooltip: String) -> Control:
-	for candidate in _nodes_of_type(node, "Control"):
-		if candidate.tooltip_text == tooltip:
 			return candidate
 	return null
 

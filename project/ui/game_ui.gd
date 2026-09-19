@@ -413,7 +413,7 @@ func _ui_chest_test(delta: float) -> void:
 		other_inv_cache.clear()
 		form_is_inventory = false
 		form.show_formspec("size[8,9]list[context;main;0,0.3;8,4;]list[current_player;main;0,4.85;8,1;]list[current_player;main;0,6.08;8,3;8]listring[context;main]listring[current_player;main]",
-			"", get_viewport().get_visible_rect().size)
+			"", form.get_viewport_rect().size, _formspec_prepend())
 		fullscreen_tint.color = form.fullscreen_bg
 		_open_window(form)
 	if absf(t - 5.5) < delta * 0.6:
@@ -619,9 +619,15 @@ func _open_inventory() -> void:
 	form_is_inventory = true
 	other_inv_cache.clear()
 	form_context = ""
-	form.show_formspec(spec, "", get_viewport().get_visible_rect().size)
+	form.show_formspec(spec, "", form.get_viewport_rect().size, _formspec_prepend())
 	fullscreen_tint.color = form.fullscreen_bg
 	_open_window(form)
+
+# The game's window theme, sent once as TOCLIENT_FORMSPEC_PREPEND. Only
+# server formspecs get it: Goanna's own pause menu and settings screens are
+# ordinary Controls and are not formspecs at all.
+func _formspec_prepend() -> String:
+	return client.formspec_prepend() if client.has_method("formspec_prepend") else ""
 
 func _show_server_formspec(spec: String, formname: String) -> void:
 	if spec.strip_edges() == "":
@@ -631,7 +637,7 @@ func _show_server_formspec(spec: String, formname: String) -> void:
 		return
 	form_is_inventory = false
 	other_inv_cache.clear()
-	form.show_formspec(spec, formname, get_viewport().get_visible_rect().size)
+	form.show_formspec(spec, formname, form.get_viewport_rect().size, _formspec_prepend())
 	fullscreen_tint.color = form.fullscreen_bg
 	_open_window(form)
 
@@ -1391,6 +1397,30 @@ func model_preview(mesh_name: String, textures: PackedStringArray, frame_loop: V
 		return {}
 	return client.model_preview(mesh_name, textures, frame_loop, speed)
 
+# "${key}" in a node's own form, from that node's metadata; any other form
+# has no metadata to resolve against and keeps its text.
+func resolve_text(text: String) -> String:
+	if form_context == "" or not client.has_method("resolve_nodemeta_text"):
+		return text
+	return client.resolve_nodemeta_text(form_context, text)
+
+# A form's style sound, played here and heard only here, as upstream's
+# m_sound_manager->playSound(0, ...) is.
+func play_form_sound(sound_name: String) -> void:
+	if audio != null:
+		audio.play(sound_name, 1.0, 1.0, false, null)
+
+# Whether a stack is on the cursor. The form shows no item tooltips while one
+# is, as GUIInventoryList hides them while an item is selected.
+func holding_stack() -> bool:
+	return not selected.is_empty()
+
+# The description in an item's definition, for item_image_button[]'s tooltip.
+func item_description(item_string: String) -> String:
+	if item_string == "" or not client.has_method("item_description"):
+		return ""
+	return client.item_description(item_string)
+
 func item_icon(item_name: String) -> Texture2D:
 	if item_name == "":
 		return null
@@ -2084,9 +2114,9 @@ func _draw_hotbar(st: Dictionary, pos: Vector2, offset: Vector2, dir: int, align
 		var it: Dictionary = main[i]
 		var nm: String = it.get("name", "")
 		if nm != "":
-			var icon := item_icon(nm)
+			var icon := item_icon(it.get("icon_item", nm))
 			if icon:
-				hud.draw_texture_rect(icon, r.grow(-imgsz * 0.08), false)
+				hud.draw_texture_rect(icon, r, false)
 			var c: int = it.get("count", 0)
 			if c > 1:
 				var fs := int(imgsz * 0.32)
@@ -2220,9 +2250,9 @@ func _draw_hud_inventory(pos: Vector2, e: Dictionary) -> void:
 		hud.draw_rect(r, Color(0, 0, 0, 0.5))
 		var nm: String = items[i].get("name", "")
 		if nm != "":
-			var icon := item_icon(nm)
+			var icon := item_icon(items[i].get("icon_item", nm))
 			if icon:
-				hud.draw_texture_rect(icon, r.grow(-imgsz * 0.08), false)
+				hud.draw_texture_rect(icon, r, false)
 
 func _draw_waypoint(e: Dictionary) -> void:
 	var cam := get_viewport().get_camera_3d()

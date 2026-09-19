@@ -51,20 +51,29 @@ records every frame rather than one line a second, and reports medians, 1%
 lows, stability and what each frame was waiting on, against a noise floor it
 measures on the same machine in the same session.
 
-Native tests are built in `build/`:
+Native tests are built in `build/`. They are not part of the default build,
+so build each by name first (`cmake --build build --target <name>`), or the
+binary you run is missing or stale:
 
 ```sh
 ./build/goanna_lod_test
 ./build/goanna_mesh_pool_test
 ./build/goanna_light_test
+./build/goanna_item_icon_test
+./build/goanna_animation_test
 ```
 
-They are not part of the default build; build one by name first, for example
-`cmake --build build --target goanna_animation_test`. That one feeds the
-animation messages a Luanti 5.17 server sends, and the shorter ones an older
-server sends, through the transplanted active object and checks the joints
-the tracks pose: by priority, by name and by number, blended, and back at
-rest once stopped.
+`goanna_animation_test` feeds the animation messages a Luanti 5.17 server
+sends, and the shorter ones an older server sends, through the transplanted
+active object and checks the joints the tracks pose: by priority, by name
+and by number, blended, and back at rest once stopped.
+
+`goanna_item_icon_test` builds node definitions with no server, runs them
+through upstream's node visuals and item mesh, and checks the inventory icons
+Goanna draws from them: a mesh node on a texture atlas keeps its outline with
+no holes, where the old folded cube had 476 in the same test, and a cube,
+a slab and an alpha blended cube come out with vanilla's orientation,
+lighting and draw order.
 
 Godot integration checks can be run headlessly with the project's Godot
 binary, for example:

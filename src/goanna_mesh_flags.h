@@ -35,3 +35,10 @@ extern int g_goanna_carve_demo_z;
 // meshing code chamfers exposed edges of NDT_NORMAL nodes classified by group
 // (grass/dirt: horizontal edges; trees: vertical; sand/gravel/snow: both).
 extern float g_goanna_bevel;
+
+// Set by a thread while it builds an inventory item mesh (ItemVisualsManager
+// in the transplanted item_visuals_manager.cpp), so solid nodes come out
+// plain, without the bevel above: the icon a vanilla client draws is the
+// reference for an inventory icon (goanna_item_icons.h). Per thread, because
+// mapblocks are meshed on workers at the same time.
+extern thread_local bool g_goanna_plain_solids;

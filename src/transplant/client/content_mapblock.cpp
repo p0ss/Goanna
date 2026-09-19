@@ -9,7 +9,9 @@
 // g_goanna_no_light is set, so directional face shading is not baked into
 // vertex colours when Godot lights the world; and drawSolidNode can hand a
 // node to drawBeveledSolid, a Goanna addition that chamfers exposed edges
-// while g_goanna_bevel is above zero; and a liquid draws no face against a
+// while g_goanna_bevel is above zero, unless the thread building the mesh
+// has set g_goanna_plain_solids (an inventory item mesh, which is drawn
+// plain, as upstream draws it); and a liquid draws no face against a
 // node that is drawn as a liquid without being one (isFakeLiquid), which is
 // what keeps ice and the water under it from putting two faces in one plane,
 // including submerged sides: the ice owns the water/ice interface.
@@ -915,7 +917,7 @@ void MapblockMeshGenerator::drawSolidNode()
 	// quads; three-way corners are capped. Flat white vertex colour like the
 	// rest of Goanna (Godot lights it); the chamfer normals are what catch
 	// the light. Only NDT_NORMAL nodes are bevelled, never liquids.
-	if (g_goanna_bevel > 0.0f && cur_node.f->drawtype == NDT_NORMAL) {
+	if (g_goanna_bevel > 0.0f && !g_goanna_plain_solids && cur_node.f->drawtype == NDT_NORMAL) {
 		int mode = 0; // 1 = horizontal edges, 2 = vertical, 3 = both
 		const auto &groups = cur_node.f->groups;
 		const std::string &nm = cur_node.f->name;

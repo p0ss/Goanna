@@ -28,7 +28,7 @@ transplanted from `Client::handleCommand_*` in
 | DETACHED_INVENTORY / NODEMETA_CHANGED (and node metadata in BLOCKDATA) | done | `inventory_state_at("detached:<name>" or "nodemeta:x,y,z")`, `detached_inventory_names()` |
 | death screen (builtin's `__builtin:death` formspec, no dedicated packet since 5.9) | done | `respawn()` |
 | node formspecs (`Game::nodePlacement`: a right-clicked node whose metadata has a `formspec` opens it client-side unless sneaking) / TOSERVER_NODEMETA_FIELDS | done | shown formspecs carry `context: "nodemeta:x,y,z"`; `send_nodemeta_fields(context, formname, fields)`; `step_interact(..., sneak)` |
-| textures for UI (item icons, HUD images) | via the texture-modifier DSL; item icons resolve an item's inventory_image (node items without one return null, UI keeps its placeholder) | `texture(name) -> Texture2D`, `item_icon(item_name) -> Texture2D` |
+| textures for UI (item icons, HUD images) | via the texture-modifier DSL; item icons resolve an item's inventory_image, and a node item without one is its item mesh drawn as drawItemStack draws it (`src/goanna_item_icons.h`) | `texture(name) -> Texture2D`, `item_icon(item_name) -> Texture2D` |
 | INTERACT (dig start/stop/completed, place) / PLAYERITEM | done, raycast and dig timing from Luanti's own code | `step_interact(dt, dig, place, place_pressed)`, `set_wield_index(i)` |
 
 NDT_MESH nodes go through the same loaders (`Client::getMesh` on the

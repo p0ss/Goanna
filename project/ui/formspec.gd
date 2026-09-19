@@ -31,8 +31,14 @@ signal slot_double_clicked(location: String, listname: String, index: int)
 signal closed()
 
 const ELEM_SEP := "]"
-const DEFAULT_LIST_SLOT_BG := Color(0, 0, 0, 0.55)
-const DEFAULT_LIST_SLOT_BORDER := Color(1, 1, 1, 0.25)
+# GUIInventoryList::Options and the tooltip colours regenerateGui starts
+# from: opaque grey slots, lighter under the pointer, no border until
+# listcolors[] names one, and olive tooltips with white text.
+const DEFAULT_LIST_SLOT_BG := Color8(128, 128, 128)
+const DEFAULT_LIST_SLOT_BG_HOVER := Color8(192, 192, 192)
+const DEFAULT_LIST_SLOT_BORDER := Color8(0, 0, 0, 200)
+const DEFAULT_TOOLTIP_BG := Color8(110, 130, 60)
+const DEFAULT_TOOLTIP_FG := Color8(255, 255, 255)
 
 var item_source: Node                # game_ui.gd, see get_list_items / item_icon
 var formname := ""
@@ -52,10 +58,19 @@ var form_padding := Vector2(0.05, 0.05)
 var fullscreen_bg := Color(0, 0, 0, 0)
 var form_bgcolor := Color(0, 0, 0, 0)
 var has_form_bgcolor := false
-var listcolors := {"slot_bg": DEFAULT_LIST_SLOT_BG, "slot_bg_h": Color(0.4, 0.4, 0.4, 0.6),
-	"slot_border": DEFAULT_LIST_SLOT_BORDER, "tooltip_bg": Color(0.15, 0.15, 0.15, 0.95),
-	"tooltip_fg": Color(1, 1, 1)}
-var tooltips := {}                   # element name -> text
+# Shared by reference with every slot, so a listcolors[] after a list still
+# reaches it, as parseListColors updates the lists already parsed.
+var listcolors := _default_listcolors()
+# Tooltips, which the form draws itself as GUIFormSpecMenu does rather than
+# through Godot's per-control tooltips: those cannot show colour escapes or
+# markup on Godot's own controls, nor stand at a fixed position.
+var tooltips := {}                   # element name -> {text, bg, fg}
+var hypertips := {}                  # element name -> hypertip spec
+var tooltip_areas: Array = []        # [{area: Control, tip: spec}] in element order
+var tooltip_box: Control = null      # the one tooltip on screen
+var tooltip_shown := {}              # the spec tooltip_box was built for
+var hover_name := ""                 # the named element under the pointer
+var hover_since := 0                 # when the pointer reached it, in ms
 var list_rings: Array = []           # [{location, listname}]
 var fields := {}                     # name -> Control (LineEdit/TextEdit/CheckBox/OptionButton/ItemList)
 var field_close_on_enter := {}       # name -> bool
@@ -89,8 +104,11 @@ var pending_elements: Array = []     # parsed [name, params] awaiting layout
 var prepend_elements: Array = []     # parsed prepend [name, params]
 var enable_prepends := true          # cleared by no_prepend[]
 var root: Control                    # the form panel
+var bg_layer: Control                # every background[], first child of root
 var current_parent: Control
 var skipped := {}
+var screen_size := Vector2.ZERO     # the screen the form was laid out for
+var simple_field_count := 0         # field[name;label;default] elements so far
 
 # --- public -----------------------------------------------------------------
 
@@ -171,6 +189,7 @@ func _reset() -> void:
 	fullscreen_bg = Color(0, 0, 0, 0)
 	form_bgcolor = Color(0, 0, 0, 0)
 	has_form_bgcolor = false
+	listcolors = _default_listcolors()
 	tooltips.clear()
 	list_rings.clear()
 	fields.clear()
@@ -193,6 +212,18 @@ func _reset() -> void:
 	prepend_elements.clear()
 	enable_prepends = true
 	skipped.clear()
+	hypertips.clear()
+	tooltip_areas.clear()
+	tooltip_box = null
+	tooltip_shown = {}
+	hover_name = ""
+	simple_field_count = 0
+	key_capture = null
+
+static func _default_listcolors() -> Dictionary:
+	return {"slot_bg": DEFAULT_LIST_SLOT_BG, "slot_bg_h": DEFAULT_LIST_SLOT_BG_HOVER,
+		"slot_border": DEFAULT_LIST_SLOT_BORDER, "slot_border_on": false,
+		"tooltip_bg": DEFAULT_TOOLTIP_BG, "tooltip_fg": DEFAULT_TOOLTIP_FG}
 
 # scrollbaroptions[] defaults, from parseScrollBarOptions.
 static func _default_scrollbar_options() -> Dictionary:
@@ -219,6 +250,11 @@ static func fs_split(s: String, delim: String) -> PackedStringArray:
 	return out
 
 static func fs_unescape(s: String) -> String:
+	return strip_enriched(fs_unescape_raw(s))
+
+# unescape_string: the backslashes gone and colour escapes kept, for text
+# upstream draws as an EnrichedString.
+static func fs_unescape_raw(s: String) -> String:
 	var out := ""
 	var esc := false
 	for ch in s:
@@ -229,7 +265,7 @@ static func fs_unescape(s: String) -> String:
 			esc = true
 		else:
 			out += ch
-	return strip_enriched(out)
+	return out
 
 func _parse(spec: String) -> void:
 	for raw in fs_split(spec, ELEM_SEP):
@@ -303,6 +339,7 @@ func _parse_prepend(prepend: String) -> void:
 # --- layout maths (GUIFormSpecMenu::regenerateGui) ---------------------------
 
 func _layout(screen: Vector2) -> void:
+	screen_size = screen
 	var padded := Vector2(screen.x * (1.0 - form_padding.x * 2.0), screen.y * (1.0 - form_padding.y * 2.0))
 	var fitx: float
 	var fity: float
@@ -318,7 +355,11 @@ func _layout(screen: Vector2) -> void:
 	padding = Vector2(imgsize * 3.0 / 8.0, imgsize * 3.0 / 8.0)
 	var btn_h := imgsize * 15.0 / 13.0 * 0.35
 	var form_size: Vector2
-	if real_coordinates:
+	if not has_size:
+		# A form without size[] is only unpositioned fields and a Proceed
+		# button, in a 580 by 300 window until _build fits it to them.
+		form_size = Vector2(580, 300)
+	elif real_coordinates:
 		form_size = invsize * imgsize
 	else:
 		form_size = Vector2(padding.x * 2 + spacing.x * (invsize.x - 1.0) + imgsize,
@@ -329,7 +370,52 @@ func _layout(screen: Vector2) -> void:
 	root.position = origin.floor()
 	root.size = form_size.floor()
 	root.mouse_filter = Control.MOUSE_FILTER_STOP
+	root.theme = _form_theme()
 	current_parent = root
+
+# Luanti draws every piece of form text with a shadow one pixel down and
+# right at half alpha: the font_shadow and font_shadow_alpha defaults, which
+# the font engine applies to labels, button labels and hypertext alike.
+static func _form_theme() -> Theme:
+	var t := Theme.new()
+	for type in ["Label", "RichTextLabel"]:
+		t.set_color("font_shadow_color", type, Color(0, 0, 0, 127.0 / 255.0))
+		t.set_constant("shadow_offset_x", type, 1)
+		t.set_constant("shadow_offset_y", type, 1)
+	# The mono face <mono>, font=mono and the font style property ask for.
+	t.set_font("mono_font", "RichTextLabel", _mono_font())
+	# CGUIScrollBar in Luanti's skin: the track in EGDC_SCROLLBAR's
+	# translucent light grey, the thumb an opaque dark button pane, measured
+	# at (62, 62, 62) against the vanilla client, EGDS_SCROLLBAR_SIZE's 21
+	# pixels across. The form's own
+	# scrollbar[] takes it, and so do the bars inside hypertext, textareas
+	# and lists.
+	var track := StyleBoxFlat.new()
+	track.bg_color = Color8(230, 230, 230, 101)
+	var thumb := StyleBoxFlat.new()
+	thumb.bg_color = Color8(62, 62, 62)
+	thumb.set_border_width_all(1)
+	thumb.border_color = Color8(30, 30, 30)
+	for type in ["VScrollBar", "HScrollBar"]:
+		var across := track.duplicate() as StyleBoxFlat
+		# The thumb is never shorter than the bar is wide, as the vanilla
+		# client draws a small page as a square.
+		var square := thumb.duplicate() as StyleBoxFlat
+		if type == "VScrollBar":
+			across.content_margin_left = 10.5
+			across.content_margin_right = 10.5
+			square.content_margin_top = 10.5
+			square.content_margin_bottom = 10.5
+		else:
+			across.content_margin_top = 10.5
+			across.content_margin_bottom = 10.5
+			square.content_margin_left = 10.5
+			square.content_margin_right = 10.5
+		t.set_stylebox("scroll", type, across)
+		t.set_stylebox("scroll_focus", type, across)
+		for key in ["grabber", "grabber_highlight", "grabber_pressed"]:
+			t.set_stylebox(key, type, square)
+	return t
 
 func _pos(v: PackedStringArray) -> Vector2:
 	if real_coordinates:
@@ -342,44 +428,97 @@ func _geom(v: PackedStringArray) -> Vector2:
 		return Vector2(float(v[0]) * imgsize, float(v[1]) * imgsize)
 	return Vector2(float(v[0]) * spacing.x - (spacing.x - imgsize), float(v[1]) * spacing.y - (spacing.y - imgsize))
 
+# A button's rectangle relative to its position (parseButton). In the old
+# system the height is fixed at two button-heights, centred half the given
+# height in slots below y.
 func _btn_geom(v: PackedStringArray) -> Rect2:
-	# buttons in the old system: width in spacing units, fixed height
 	if real_coordinates:
 		return Rect2(Vector2.ZERO, _geom(v))
 	var w := float(v[0]) * spacing.x - (spacing.x - imgsize)
-	var h := imgsize * 15.0 / 13.0 * 0.35 * 2.0
-	return Rect2(Vector2(0, -h / 2.0), Vector2(w, h))
+	var btn_h := imgsize * 15.0 / 13.0 * 0.35
+	var slots := float(v[1]) if v.size() >= 2 else 0.0
+	return Rect2(Vector2(0, slots * imgsize / 2.0 - btn_h), Vector2(w, btn_h * 2.0))
 
+# The colour names parseColorString accepts: the CSS table in
+# luanti/src/util/string.cpp, which is not Godot's (Godot's green is lime).
+const NAMED_COLOURS := {
+	"aliceblue": 0xf0f8ff, "antiquewhite": 0xfaebd7, "aqua": 0x00ffff, "aquamarine": 0x7fffd4,
+	"azure": 0xf0ffff, "beige": 0xf5f5dc, "bisque": 0xffe4c4, "black": 0x000000,
+	"blanchedalmond": 0xffebcd, "blue": 0x0000ff, "blueviolet": 0x8a2be2, "brown": 0xa52a2a,
+	"burlywood": 0xdeb887, "cadetblue": 0x5f9ea0, "chartreuse": 0x7fff00, "chocolate": 0xd2691e,
+	"coral": 0xff7f50, "cornflowerblue": 0x6495ed, "cornsilk": 0xfff8dc, "crimson": 0xdc143c,
+	"cyan": 0x00ffff, "darkblue": 0x00008b, "darkcyan": 0x008b8b, "darkgoldenrod": 0xb8860b,
+	"darkgray": 0xa9a9a9, "darkgreen": 0x006400, "darkgrey": 0xa9a9a9, "darkkhaki": 0xbdb76b,
+	"darkmagenta": 0x8b008b, "darkolivegreen": 0x556b2f, "darkorange": 0xff8c00,
+	"darkorchid": 0x9932cc, "darkred": 0x8b0000, "darksalmon": 0xe9967a, "darkseagreen": 0x8fbc8f,
+	"darkslateblue": 0x483d8b, "darkslategray": 0x2f4f4f, "darkslategrey": 0x2f4f4f,
+	"darkturquoise": 0x00ced1, "darkviolet": 0x9400d3, "deeppink": 0xff1493,
+	"deepskyblue": 0x00bfff, "dimgray": 0x696969, "dimgrey": 0x696969, "dodgerblue": 0x1e90ff,
+	"firebrick": 0xb22222, "floralwhite": 0xfffaf0, "forestgreen": 0x228b22, "fuchsia": 0xff00ff,
+	"gainsboro": 0xdcdcdc, "ghostwhite": 0xf8f8ff, "gold": 0xffd700, "goldenrod": 0xdaa520,
+	"gray": 0x808080, "green": 0x008000, "greenyellow": 0xadff2f, "grey": 0x808080,
+	"honeydew": 0xf0fff0, "hotpink": 0xff69b4, "indianred": 0xcd5c5c, "indigo": 0x4b0082,
+	"ivory": 0xfffff0, "khaki": 0xf0e68c, "lavender": 0xe6e6fa, "lavenderblush": 0xfff0f5,
+	"lawngreen": 0x7cfc00, "lemonchiffon": 0xfffacd, "lightblue": 0xadd8e6,
+	"lightcoral": 0xf08080, "lightcyan": 0xe0ffff, "lightgoldenrodyellow": 0xfafad2,
+	"lightgray": 0xd3d3d3, "lightgreen": 0x90ee90, "lightgrey": 0xd3d3d3, "lightpink": 0xffb6c1,
+	"lightsalmon": 0xffa07a, "lightseagreen": 0x20b2aa, "lightskyblue": 0x87cefa,
+	"lightslategray": 0x778899, "lightslategrey": 0x778899, "lightsteelblue": 0xb0c4de,
+	"lightyellow": 0xffffe0, "lime": 0x00ff00, "limegreen": 0x32cd32, "linen": 0xfaf0e6,
+	"magenta": 0xff00ff, "maroon": 0x800000, "mediumaquamarine": 0x66cdaa, "mediumblue": 0x0000cd,
+	"mediumorchid": 0xba55d3, "mediumpurple": 0x9370db, "mediumseagreen": 0x3cb371,
+	"mediumslateblue": 0x7b68ee, "mediumspringgreen": 0x00fa9a, "mediumturquoise": 0x48d1cc,
+	"mediumvioletred": 0xc71585, "midnightblue": 0x191970, "mintcream": 0xf5fffa,
+	"mistyrose": 0xffe4e1, "moccasin": 0xffe4b5, "navajowhite": 0xffdead, "navy": 0x000080,
+	"oldlace": 0xfdf5e6, "olive": 0x808000, "olivedrab": 0x6b8e23, "orange": 0xffa500,
+	"orangered": 0xff4500, "orchid": 0xda70d6, "palegoldenrod": 0xeee8aa, "palegreen": 0x98fb98,
+	"paleturquoise": 0xafeeee, "palevioletred": 0xdb7093, "papayawhip": 0xffefd5,
+	"peachpuff": 0xffdab9, "peru": 0xcd853f, "pink": 0xffc0cb, "plum": 0xdda0dd,
+	"powderblue": 0xb0e0e6, "purple": 0x800080, "rebeccapurple": 0x663399, "red": 0xff0000,
+	"rosybrown": 0xbc8f8f, "royalblue": 0x4169e1, "saddlebrown": 0x8b4513, "salmon": 0xfa8072,
+	"sandybrown": 0xf4a460, "seagreen": 0x2e8b57, "seashell": 0xfff5ee, "sienna": 0xa0522d,
+	"silver": 0xc0c0c0, "skyblue": 0x87ceeb, "slateblue": 0x6a5acd, "slategray": 0x708090,
+	"slategrey": 0x708090, "snow": 0xfffafa, "springgreen": 0x00ff7f, "steelblue": 0x4682b4,
+	"tan": 0xd2b48c, "teal": 0x008080, "thistle": 0xd8bfd8, "tomato": 0xff6347,
+	"turquoise": 0x40e0d0, "violet": 0xee82ee, "wheat": 0xf5deb3, "white": 0xffffff,
+	"whitesmoke": 0xf5f5f5, "yellow": 0xffff00, "yellowgreen": 0x9acd32
+}
+
+# parseColorString in luanti/src/util/string.cpp: #RGB, #RGBA, #RRGGBB or
+# #RRGGBBAA, or a colour name, in any case, optionally followed by # and one
+# or two hex digits of alpha. Anything else is the fallback.
 static func parse_color(s: String, fallback: Color) -> Color:
 	s = s.strip_edges()
 	if s == "":
 		return fallback
 	if s.begins_with("#"):
 		var h := s.substr(1)
+		if not h.is_valid_hex_number():
+			return fallback
 		if h.length() == 3 or h.length() == 4:
 			var e := ""
 			for ch in h:
 				e += ch + ch
 			h = e
-		if h.length() == 6 or h.length() == 8:
-			return Color.html(h)
-		return fallback
-	if Color.html_is_valid(s):
-		return Color.html(s)
-	# named colours, a few common ones
-	var named := {"white": Color.WHITE, "black": Color.BLACK, "red": Color.RED, "green": Color.GREEN,
-		"blue": Color.BLUE, "yellow": Color.YELLOW, "gray": Color.GRAY, "grey": Color.GRAY,
-		"orange": Color.ORANGE, "cyan": Color.CYAN, "magenta": Color.MAGENTA}
+		if h.length() == 6:
+			h += "ff"
+		if h.length() != 8:
+			return fallback
+		return Color.hex(("0x" + h).hex_to_int())
 	var base := s
-	var alpha := 1.0
-	if s.contains("#"):
-		base = s.get_slice("#", 0)
-		alpha = ("0x" + s.get_slice("#", 1)).hex_to_int() / 255.0
-	if named.has(base):
-		var c: Color = named[base]
-		c.a = alpha
-		return c
-	return fallback
+	var alpha := "ff"
+	var sharp := s.find("#")
+	if sharp >= 0:
+		base = s.substr(0, sharp)
+		alpha = s.substr(sharp + 1)
+		if alpha.length() == 1:
+			alpha += alpha
+		if alpha.length() != 2 or not alpha.is_valid_hex_number():
+			return fallback
+	base = base.to_lower()
+	if not NAMED_COLOURS.has(base):
+		return fallback
+	return Color.hex((int(NAMED_COLOURS[base]) << 8) | ("0x" + alpha).hex_to_int())
 
 # Splits Luanti's enriched-text escape sequences into colour runs, for
 # anything that draws its own text instead of handing it to a Label:
@@ -440,19 +579,28 @@ static func strip_enriched(s: String) -> String:
 # --- building --------------------------------------------------------------
 
 func _build() -> void:
-	# Named tooltips apply regardless of whether they appear before or after
-	# their target element. Area tooltips still build in normal element order.
+	# Named tooltips are looked up by name when the pointer reaches the
+	# element, as m_tooltips is, so one may come before or after its element.
+	# Each keeps the colours in force where it was parsed: its own, or the
+	# listcolors[] defaults up to that point (parseTooltip).
+	var tip_bg := DEFAULT_TOOLTIP_BG
+	var tip_fg := DEFAULT_TOOLTIP_FG
 	for el in prepend_elements + pending_elements:
-		if el[0] == "tooltip":
-			var tooltip_parts := fs_split(el[1], ";")
-			if tooltip_parts.size() >= 2 and not tooltip_parts[0].contains(","):
-				tooltips[fs_unescape(tooltip_parts[0])] = fs_unescape(tooltip_parts[1])
-		elif el[0] == "hypertip":
-			var hypertip_parts := fs_split(el[1], ";")
-			if hypertip_parts.size() == 5 and not hypertip_parts[0].contains(","):
-				tooltips[fs_unescape(hypertip_parts[0])] = markup_plain(fs_unescape(hypertip_parts[4]))
+		var p := fs_split(el[1], ";")
+		if el[0] == "listcolors" and p.size() == 5:
+			tip_bg = parse_color(p[3], tip_bg)
+			tip_fg = parse_color(p[4], tip_fg)
+		elif el[0] == "tooltip" and not p[0].contains(",") and (p.size() == 2 or p.size() == 4):
+			if p.size() == 4 and not (_is_colour(p[2]) and _is_colour(p[3])):
+				continue
+			tooltips[fs_unescape(p[0])] = {"text": fs_unescape_raw(p[1]),
+				"bg": parse_color(p[2], tip_bg) if p.size() == 4 else tip_bg,
+				"fg": parse_color(p[3], tip_fg) if p.size() == 4 else tip_fg}
 	# a fullscreen tint behind the form, if asked for
 	add_child(root)
+	bg_layer = Control.new()
+	bg_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(bg_layer)
 	building = true
 	# The game's window theme first, so that it is behind the form's own
 	# elements. Upstream builds it with the old coordinate system whatever
@@ -472,14 +620,22 @@ func _build() -> void:
 	building = false
 	if skipped.size() > 0:
 		print("formspec: elements not rendered: ", skipped)
-	if not has_size and fields.size() > 0:
-		# text-only form: implicit Proceed button
+	if not has_size and simple_field_count > 0:
+		# regenerateGui: the window grows sixty pixels a field from 270,
+		# centred on the screen, and an unstyled Proceed button 140 wide sits
+		# under the fields.
+		var n := simple_field_count
+		root.size = Vector2(580, 270 + 60 * n)
+		root.position = (Vector2(screen_size.x / 2.0 - 290, screen_size.y / 2.0 - 150)).floor()
 		var b := Button.new()
-		b.text = "Proceed"
-		b.position = Vector2(root.size.x / 2 - 60, root.size.y - 40)
-		b.size = Vector2(120, 32)
+		current_parent = root
+		_add(b, Vector2(580 / 2.0 - 70, (n + 2) * 60.0), Vector2(140, _button_height() * 2.0))
+		var content := _button_content(b, "Proceed", false)
 		b.pressed.connect(func() -> void: submit({}, true))
-		root.add_child(b)
+		var none: Array = []
+		for i in 8:
+			none.append({})
+		_style_button(b, "", none, content)
 	# a bare form with only images and buttons still needs a background
 	if has_form_bgcolor:
 		var sb := StyleBoxFlat.new()
@@ -549,6 +705,20 @@ func _build_element(name: String, params: String) -> void:
 		_:
 			skipped[name] = skipped.get(name, 0) + 1
 
+# m_btn_height: a share of imgsize in a form with size[], and seven eighths of
+# a line of text in one without, which has no imgsize to speak of.
+func _button_height() -> float:
+	if has_size:
+		return imgsize * 15.0 / 13.0 * 0.35
+	return get_theme_default_font().get_height(_font_size()) * 0.875
+
+# m_form_src->resolveText: in a node's own form, a field default, hypertext
+# or hypertip that is a whole "${key}" shows that key of the node's metadata.
+func _resolve(text: String) -> String:
+	if item_source and item_source.has_method("resolve_text"):
+		return item_source.resolve_text(text)
+	return text
+
 func _add(c: Control, pos: Vector2, size: Vector2) -> void:
 	c.position = pos.floor()
 	c.size = size.floor()
@@ -559,17 +729,53 @@ func _register_named_control(name: String, control: Control) -> void:
 		return
 	named_controls[name] = control
 	control.set_meta("formspec_name", name)
-	if tooltips.has(name):
-		control.tooltip_text = tooltips[name]
 
 func _apply_focus() -> void:
-	if focus_name == "":
-		return
-	var target: Control = named_controls.get(focus_name)
-	if target == null:
-		target = fields.get(focus_name)
-	if target != null and (focus_force or not target.has_focus()):
-		target.grab_focus()
+	if focus_name != "":
+		var target: Control = named_controls.get(focus_name)
+		if target == null:
+			target = fields.get(focus_name)
+		if target != null and (focus_force or not target.has_focus()):
+			target.grab_focus()
+			return
+	_initial_focus()
+
+# GUIFormSpecMenu::setInitialFocus, when set_focus[] named nothing: the first
+# empty edit box, else the first edit box, else the first table, else the
+# last button. A focused button draws no ring, as upstream draws none until
+# the player navigates by keyboard.
+func _initial_focus() -> void:
+	var edits: Array = []
+	var tables: Array = []
+	var buttons: Array = []
+	for c in _form_controls(root):
+		if c is LineEdit or c is TextEdit:
+			edits.append(c)
+		elif c is Tree:
+			tables.append(c)
+		elif c is Button and not (c is CheckBox) and not (c is OptionButton):
+			buttons.append(c)
+	for e in edits:
+		if (e as Control).get("text") == "":
+			e.grab_focus()
+			return
+	if edits.size() > 0:
+		edits[0].grab_focus()
+	elif tables.size() > 0:
+		tables[0].grab_focus()
+	elif buttons.size() > 0:
+		var b: Button = buttons.back()
+		b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+		b.grab_focus()
+
+# The form's controls in the order they were built, depth first.
+static func _form_controls(node: Node) -> Array:
+	var out: Array = []
+	for child in node.get_children():
+		if child is Control:
+			out.append(child)
+			out.append_array(_form_controls(child))
+	return out
 
 func _container(parts: PackedStringArray) -> void:
 	var v := fs_split(parts[0], ",") if parts.size() >= 1 else PackedStringArray()
@@ -737,6 +943,17 @@ func _scrollbar(parts: PackedStringArray) -> void:
 	if not real_coordinates:
 		size = Vector2(float(g[0]) * spacing.x, float(g[1]) * spacing.y)
 	_add(bar, _pos(v), size)
+	# The thumb is never shorter than this bar is wide.
+	var across := size.x if vertical else size.y
+	var thumb := (bar.get_theme_stylebox("grabber") as StyleBox).duplicate()
+	if vertical:
+		thumb.content_margin_top = across / 2.0
+		thumb.content_margin_bottom = across / 2.0
+	else:
+		thumb.content_margin_left = across / 2.0
+		thumb.content_margin_right = across / 2.0
+	for key in ["grabber", "grabber_highlight", "grabber_pressed"]:
+		bar.add_theme_stylebox_override(key, thumb)
 	scrollbars[sname] = bar
 	fields[sname] = bar
 	_register_named_control(sname, bar)
@@ -787,11 +1004,16 @@ func _background(parts: PackedStringArray) -> void:
 		var out := Vector2(float(v[0]), float(v[1]))
 		if real_coordinates:
 			out = -out * imgsize
-		_add(r, -out, root.size + out * 2)
+		r.position = (-out).floor()
+		r.size = (root.size + out * 2).floor()
 	else:
-		_add(r, _pos(v), _geom(g))
-	# backgrounds go behind everything added so far
-	current_parent.move_child(r, 0)
+		r.position = _pos(v).floor()
+		r.size = _geom(g).floor()
+	# Every background goes to one layer at the back of the form, in the
+	# order the form gives them, as regenerateGui's background_parent keeps
+	# them: behind all other elements, but the game theme's background9
+	# still under a form's own backgrounds.
+	bg_layer.add_child(r)
 
 func _middle_margins(value: String, tex: Texture2D) -> Vector4:
 	if value.strip_edges() == "":
@@ -931,30 +1153,186 @@ func _item_image(parts: PackedStringArray) -> void:
 	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_add(r, _pos(v), _geom(g))
 
+# label[x,y;text], and from formspec version 9 the area label
+# label[x,y;w,h;text], which the old coordinate system does not have
+# (parseLabel).
+#
+# A plain label is one element per line, each drawn from an EnrichedString
+# so colour escapes keep their colour. In real coordinates line i is centred
+# i half-imgsizes below y; in the old system the first line is centred on
+# (y + 7/30) spacings and each next one two fifths of a slot lower. An area
+# label wraps inside its rectangle, aligned by the halign and valign styles
+# of formspec version 11.
 func _label(parts: PackedStringArray, vertical: bool) -> void:
-	# label[x,y;text]
-	if parts.size() < 2:
+	if vertical:
+		_vertlabel(parts)
+		return
+	if parts.size() < 2 or (parts.size() > 2 and not real_coordinates) or parts.size() > 3:
 		return
 	var v := fs_split(parts[0], ",")
 	if v.size() < 2:
 		return
-	var l := Label.new()
-	var text := fs_unescape(parts[1])
-	if vertical:
-		var t := ""
-		for ch in text:
-			t += ch + "\n"
-		text = t
-	l.text = text
-	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	l.add_theme_font_size_override("font_size", _font_size())
+	var st := _style_for("", "default")
+	var colour := parse_color(String(st.get("textcolor", "")), Color.WHITE)
+	var size := _style_font_size(String(st.get("font_size", "")), _font_size())
 	var p := _pos(v)
-	current_parent.add_child(l)
-	# real coordinates: y is the vertical centre of the first line; in the
-	# old system the text is centred on the slot row starting at y
-	_apply_style(l, "")
-	var cy := p.y if real_coordinates else p.y + imgsize / 2.0
-	l.position = Vector2(p.x, cy - l.get_line_height() / 2.0).floor()
+	if parts.size() == 3:
+		var g := fs_split(parts[1], ",")
+		if g.size() < 2:
+			return
+		var area := _rich_text(fs_unescape_raw(parts[2]), colour, size, st)
+		area.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		area.clip_contents = true
+		area.horizontal_alignment = _style_halign(st)
+		area.vertical_alignment = _style_valign(st)
+		_add(area, p, _geom(g))
+		return
+	var btn_h := imgsize * 15.0 / 13.0 * 0.35
+	var font := get_theme_default_font()
+	var lines := fs_unescape_raw(parts[1]).split("\n")
+	var carried := ""
+	for i in lines.size():
+		# EnrichedString::getNextLine carries the colour in force at the end
+		# of a line into the next.
+		var line := carried + lines[i]
+		var runs := parse_enriched_runs(line, colour)
+		if runs.size() > 0:
+			carried = char(0x1b) + "(c@#" + (runs.back()["color"] as Color).to_html() + ")"
+		var width := font.get_string_size(strip_enriched(line), HORIZONTAL_ALIGNMENT_LEFT,
+			-1, size).x
+		var rect: Rect2
+		if real_coordinates:
+			rect = Rect2(p.x, p.y - imgsize / 2.0 + imgsize * i / 2.0, width, imgsize)
+		else:
+			var y := p.y + 7.0 / 30.0 * spacing.y + i * spacing.y * 2.0 / 5.0
+			rect = Rect2(p.x, y - btn_h, width, btn_h * 2.0)
+		var rt := _rich_text(line, colour, size, st)
+		rt.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		# A little slack, so rounding never clips the last glyph.
+		rect.size.x += 4.0
+		_add(rt, rect.position, rect.size)
+
+# vertlabel[x,y;text]: one character per line, centred in a column one
+# imgsize wide whose left edge is half an imgsize left of x in real
+# coordinates, and fifteen pixels wide from x in the old system
+# (parseVertLabel).
+func _vertlabel(parts: PackedStringArray) -> void:
+	if parts.size() != 2:
+		return
+	var v := fs_split(parts[0], ",")
+	if v.size() < 2:
+		return
+	var st := _style_for("", "default")
+	var colour := parse_color(String(st.get("textcolor", "")), Color.WHITE)
+	var size := _style_font_size(String(st.get("font_size", "")), _font_size())
+	var text := fs_unescape_raw(parts[1])
+	var column := ""
+	var count := 0
+	for run in parse_enriched_runs(text, colour):
+		for ch in String(run["text"]):
+			column += char(0x1b) + "(c@#" + (run["color"] as Color).to_html() + ")" + ch + "\n"
+			count += 1
+	var line_h := get_theme_default_font().get_height(size)
+	var p := _pos(v)
+	var rect: Rect2
+	if real_coordinates:
+		rect = Rect2(p.x - imgsize / 2.0, p.y, imgsize, line_h * count)
+	else:
+		var btn_h := imgsize * 15.0 / 13.0 * 0.35
+		var top := p.y + imgsize / 2.0 - btn_h
+		rect = Rect2(p.x, top, 15.0, line_h * (count + 1))
+	var rt := _rich_text(column.trim_suffix("\n"), colour, size, st)
+	rt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	rt.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_add(rt, rect.position, rect.size)
+
+# Form text drawn from an EnrichedString: colour escapes become colour runs
+# over `colour`, and the style's font picks mono, bold and italic.
+func _rich_text(text: String, colour: Color, size: int, st: Dictionary) -> RichTextLabel:
+	var rt := RichTextLabel.new()
+	rt.bbcode_enabled = false
+	rt.scroll_active = false
+	rt.selection_enabled = false
+	rt.autowrap_mode = TextServer.AUTOWRAP_OFF
+	rt.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rt.add_theme_font_size_override("normal_font_size", size)
+	for key in ["bold_font_size", "italics_font_size", "bold_italics_font_size", "mono_font_size"]:
+		rt.add_theme_font_size_override(key, size)
+	rt.add_theme_color_override("default_color", colour)
+	var pushes := _push_style_font(rt, String(st.get("font", "")))
+	for run in parse_enriched_runs(text, colour):
+		rt.push_color(run["color"])
+		rt.add_text(run["text"])
+		rt.pop()
+	for _i in pushes:
+		rt.pop()
+	rt.set_meta("plain", strip_enriched(text))
+	return rt
+
+# The font style property as a Font for Godot's own controls: the form's
+# font, or a system monospace for mono, made bold or italic by variation.
+# Null for plain normal, which needs nothing changed.
+func _style_font(value: String) -> Font:
+	var opts := value.to_lower().replace(" ", "").split(",", false)
+	var mono := opts.has("mono")
+	var bold := opts.has("bold")
+	var italic := opts.has("italic")
+	if not (mono or bold or italic):
+		return null
+	var base: Font = _mono_font() if mono else get_theme_default_font()
+	if not (bold or italic):
+		return base
+	var fv := FontVariation.new()
+	fv.base_font = base
+	if bold:
+		fv.variation_embolden = 0.8
+	if italic:
+		fv.variation_transform = Transform2D(Vector2(1, 0), Vector2(0.2, 1), Vector2.ZERO)
+	return fv
+
+# Luanti's mono font is Cousine; Goanna asks the system for its monospace
+# face instead of carrying a font file.
+static func _mono_font() -> Font:
+	var sf := SystemFont.new()
+	sf.font_names = PackedStringArray(["monospace"])
+	return sf
+
+# The font style property: normal or mono, with bold and italic added.
+# Returns how many pushes the caller owes a pop.
+static func _push_style_font(rt: RichTextLabel, value: String) -> int:
+	var opts := value.to_lower().replace(" ", "").split(",", false)
+	var pushes := 0
+	if opts.has("mono"):
+		rt.push_mono()
+		pushes += 1
+	if opts.has("bold") and opts.has("italic"):
+		rt.push_bold_italics()
+		pushes += 1
+	elif opts.has("bold"):
+		rt.push_bold()
+		pushes += 1
+	elif opts.has("italic"):
+		rt.push_italics()
+		pushes += 1
+	return pushes
+
+# get_halign and get_valign in guiFormSpecMenu.cpp: anything unknown is the
+# default, left and top.
+static func _style_halign(st: Dictionary) -> HorizontalAlignment:
+	match String(st.get("halign", "")):
+		"center":
+			return HORIZONTAL_ALIGNMENT_CENTER
+		"right":
+			return HORIZONTAL_ALIGNMENT_RIGHT
+	return HORIZONTAL_ALIGNMENT_LEFT
+
+static func _style_valign(st: Dictionary) -> VerticalAlignment:
+	match String(st.get("valign", "")):
+		"center":
+			return VERTICAL_ALIGNMENT_CENTER
+		"bottom":
+			return VERTICAL_ALIGNMENT_BOTTOM
+	return VERTICAL_ALIGNMENT_TOP
 
 # The default tag styles, from ParsedText::ParsedText in guiHyperText.cpp.
 # Sizes there are pixels against a 16 pixel root, so they are carried here as
@@ -974,44 +1352,78 @@ const MARKUP_TAGS := {
 	"right": {"halign": "right"},
 }
 const MARKUP_ROOT_SIZE := 16.0
+# The root tag's hovercolor, which every action inherits.
+const MARKUP_HOVER := "#FF0000"
 
-# hypertext[x,y;w,h;name;text]
+# hypertext[x,y;w,h;name;text] (parseHyperText): white text, no selection.
+# The old system starts it without the form padding, a button-height lower,
+# with its height in slots less one gap.
 func _hypertext(parts: PackedStringArray) -> void:
-	if parts.size() < 4:
+	if parts.size() != 4:
 		return
 	var v := fs_split(parts[0], ",")
 	var g := fs_split(parts[1], ",")
 	if v.size() < 2 or g.size() < 2:
 		return
+	var rect: Rect2
+	if real_coordinates:
+		rect = Rect2(_pos(v), _geom(g))
+	else:
+		var p := _pos(v) - padding
+		rect = Rect2(p.x, p.y + _button_height(), float(g[0]) * spacing.x - (spacing.x - imgsize),
+			float(g[1]) * imgsize - (spacing.y - imgsize))
 	var hname := fs_unescape(parts[2])
 	var rt := RichTextLabel.new()
 	rt.bbcode_enabled = false
 	rt.scroll_active = true
-	rt.selection_enabled = true
-	rt.add_theme_font_size_override("normal_font_size", _font_size())
-	rt.add_theme_color_override("default_color", Color.html("EEEEEE"))
-	_add(rt, _pos(v), _geom(g))
+	rt.selection_enabled = false
+	rt.add_theme_color_override("default_color", Color.WHITE)
+	_add(rt, rect.position, rect.size)
 	_register_named_control(hname, rt)
+	var text := fs_unescape(_resolve(parts[3]))
+	rt.set_meta("hovered_action", -1)
 	# <action> sends "action:<name>" under the element's own field name, and
 	# may carry a url, which is offered rather than opened (see _offer_url).
+	var sound := _style_sound(hname)
 	rt.meta_clicked.connect(func(meta: Variant) -> void:
-		var m := String(meta)
-		var bar := m.find("\u0001")
-		if bar >= 0:
-			_offer_url(m.substr(bar + 1))
-			m = m.substr(0, bar)
-		if m != "":
-			submit({hname: "action:" + m}, false))
-	_render_markup(rt, fs_unescape(parts[3]))
+		_play_sound(sound)
+		var m: Dictionary = meta
+		if String(m.get("url", "")) != "":
+			_offer_url(String(m["url"]))
+		if String(m.get("name", "")) != "":
+			submit({hname: "action:" + String(m["name"])}, false))
+	# An action is drawn in its hovercolor while the pointer is on it
+	# (TextDrawer::draw), so the text is laid out again for that action.
+	rt.meta_hover_started.connect(func(meta: Variant) -> void:
+		var idx := int((meta as Dictionary).get("index", -1))
+		if idx != int(rt.get_meta("hovered_action")):
+			rt.set_meta("hovered_action", idx)
+			_render_markup.call_deferred(rt, text, idx))
+	rt.meta_hover_ended.connect(func(_meta: Variant) -> void:
+		if int(rt.get_meta("hovered_action")) != -1:
+			rt.set_meta("hovered_action", -1)
+			_render_markup.call_deferred(rt, text, -1))
+	_render_markup(rt, text, -1)
 
 # Walks Luanti's hypertext markup and drives the RichTextLabel directly
 # rather than translating to BBCode: <img> and <item> name client media and
-# item stacks, which BBCode has no way to address.
-func _render_markup(rt: RichTextLabel, text: String) -> void:
+# item stacks, which BBCode has no way to address. `hover` is the number of
+# the action under the pointer, counted in order of appearance, or -1.
+func _render_markup(rt: RichTextLabel, text: String, hover := -1) -> void:
+	if not is_instance_valid(rt):
+		return
+	rt.clear()
+	# The colour each action was drawn in, in order, for the suite to read.
+	rt.set_meta("action_colours", [])
 	var tags := {}
 	for k in MARKUP_TAGS:
 		tags[k] = (MARKUP_TAGS[k] as Dictionary).duplicate()
-	var open_stack: Array = []          # pops owed to each open tag
+	var root := _apply_markup_page(rt, _markup_page(text))
+	var stack: Array = [{"pops": 0, "style": root}]
+	if String(root["font"]) == "mono":
+		rt.push_mono()
+		stack[0]["pops"] = 1
+	var state := {"actions": 0, "hover": hover}
 	var i := 0
 	var run := ""
 	var n := text.length()
@@ -1033,34 +1445,88 @@ func _render_markup(rt: RichTextLabel, text: String) -> void:
 		if run != "":
 			rt.add_text(run)
 			run = ""
-		_markup_tag(rt, text.substr(i + 1, close - i - 1), tags, open_stack)
+		_markup_tag(rt, text.substr(i + 1, close - i - 1), tags, stack, state)
 		i = close + 1
 	if run != "":
 		rt.add_text(run)
-	while open_stack.size() > 0:
-		for _p in range(int(open_stack.pop_back())):
+	while stack.size() > 0:
+		for _p in int(stack.pop_back()["pops"]):
 			rt.pop()
 
-# Hypertext markup as plain text: tags dropped and escapes resolved, the way
-# _render_markup reads them. For hypertip[], which a plain tooltip shows.
-static func markup_plain(text: String) -> String:
-	var out := ""
+# The page settings <global> carries (ParsedText::globalTag), gathered from
+# the whole text wherever the tag stands, since upstream lays the page out
+# after it has parsed all of it.
+static func _markup_page(text: String) -> Dictionary:
+	var page := {}
 	var i := 0
-	var n := text.length()
-	while i < n:
-		var ch := text[i]
-		if ch == "\\" and i + 1 < n:
-			out += text[i + 1]
-			i += 2
+	while i < text.length():
+		var at := text.find("<", i)
+		if at < 0:
+			break
+		if at > 0 and text[at - 1] == "\\":
+			i = at + 1
 			continue
-		if ch == "<":
-			var close := _markup_tag_end(text, i)
-			if close >= 0:
-				i = close + 1
-				continue
-		out += ch
-		i += 1
-	return out
+		var close := _markup_tag_end(text, at)
+		if close < 0:
+			break
+		var body := text.substr(at + 1, close - at - 1).strip_edges()
+		var space := body.find(" ")
+		if space >= 0 and body.substr(0, space).to_lower() == "global":
+			var attrs := _markup_attrs(body.substr(space + 1))
+			for k in attrs:
+				page[k] = attrs[k]
+		i = close + 1
+	return page
+
+# Applies the page settings to the label and returns the root style every
+# span inherits. The margin, vertical alignment, background and horizontal
+# alignment belong to the page; the text colour, hover colour, size and font
+# change the root style, each only when valid, as parseGenericStyleAttr
+# checks them.
+func _apply_markup_page(rt: RichTextLabel, page: Dictionary) -> Dictionary:
+	var root := {"hovercolor": MARKUP_HOVER, "size": "16", "font": "normal"}
+	if page.has("color") and _is_colour(String(page["color"])):
+		rt.add_theme_color_override("default_color", parse_color(String(page["color"]), Color.WHITE))
+	if page.has("hovercolor") and _is_colour(String(page["hovercolor"])):
+		root["hovercolor"] = page["hovercolor"]
+	if page.has("size") and String(page["size"]).is_valid_int():
+		root["size"] = page["size"]
+	if page.get("font", "") in ["mono", "normal"]:
+		root["font"] = page["font"]
+	rt.add_theme_font_size_override("normal_font_size", _markup_size(String(root["size"])))
+	for key in ["bold_font_size", "italics_font_size", "bold_italics_font_size", "mono_font_size"]:
+		rt.add_theme_font_size_override(key, _markup_size(String(root["size"])))
+	match String(page.get("halign", "")):
+		"center":
+			rt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		"right":
+			rt.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		"justify":
+			rt.horizontal_alignment = HORIZONTAL_ALIGNMENT_FILL
+		_:
+			rt.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	match String(page.get("valign", "")):
+		"middle":
+			rt.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		"bottom":
+			rt.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+		_:
+			rt.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	var margin := HYPERTEXT_MARGIN
+	if String(page.get("margin", "")).is_valid_int():
+		margin = float(page["margin"])
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color.TRANSPARENT
+	var bg := String(page.get("background", ""))
+	if bg != "" and bg != "none" and _is_colour(bg):
+		sb.bg_color = parse_color(bg, Color.TRANSPARENT)
+	sb.content_margin_left = margin
+	sb.content_margin_right = margin
+	sb.content_margin_top = margin
+	sb.content_margin_bottom = margin
+	rt.add_theme_stylebox_override("normal", sb)
+	rt.set_meta("markup_margin", margin)
+	return root
 
 # The index of the > that closes the tag opening at `start`, skipping any
 # inside a quoted attribute value. Returns -1 if the tag is never closed.
@@ -1082,14 +1548,17 @@ static func _markup_tag_end(text: String, start: int) -> int:
 		i += 1
 	return -1
 
-# One tag body, without its angle brackets.
-func _markup_tag(rt: RichTextLabel, body: String, tags: Dictionary, open_stack: Array) -> void:
+# One tag body, without its angle brackets. `stack` holds, for each open
+# span, the pops it owes and the style in force inside it; the root style is
+# at the bottom and is never closed.
+func _markup_tag(rt: RichTextLabel, body: String, tags: Dictionary, stack: Array,
+		state: Dictionary) -> void:
 	body = body.strip_edges()
 	if body == "":
 		return
 	if body.begins_with("/"):
-		if open_stack.size() > 0:
-			for _p in range(int(open_stack.pop_back())):
+		if stack.size() > 1:
+			for _p in int(stack.pop_back()["pops"]):
 				rt.pop()
 		return
 	var space := body.find(" ")
@@ -1097,44 +1566,32 @@ func _markup_tag(rt: RichTextLabel, body: String, tags: Dictionary, open_stack: 
 	var attrs := _markup_attrs(body.substr(space + 1)) if space >= 0 else {}
 	match name:
 		"global":
-			# Applies to the element as a whole rather than to a span.
-			if attrs.has("color"):
-				rt.add_theme_color_override("default_color",
-					parse_color(String(attrs["color"]), Color.html("EEEEEE")))
-			if attrs.has("size"):
-				rt.add_theme_font_size_override("normal_font_size", _markup_size(String(attrs["size"])))
-			if attrs.has("background"):
-				var sb := StyleBoxFlat.new()
-				sb.bg_color = Color.TRANSPARENT if String(attrs["background"]) == "none" \
-					else parse_color(String(attrs["background"]), Color.TRANSPARENT)
-				if attrs.has("margin"):
-					var m := float(attrs["margin"])
-					sb.content_margin_left = m
-					sb.content_margin_right = m
-					sb.content_margin_top = m
-					sb.content_margin_bottom = m
-				rt.add_theme_stylebox_override("normal", sb)
+			# Page settings, already applied by _apply_markup_page.
 			return
 		"tag":
 			# Defines or redefines a tag, which later spans can then open.
 			var tname := String(attrs.get("name", "")).to_lower()
 			if tname != "":
-				var style: Dictionary = tags.get(tname, {}).duplicate()
+				var defined: Dictionary = tags.get(tname, {}).duplicate()
 				for k in ["color", "hovercolor", "size", "font"]:
 					if attrs.has(k):
-						style[k] = attrs[k]
-				tags[tname] = style
+						defined[k] = attrs[k]
+				tags[tname] = defined
 			return
 		"img", "item":
 			_markup_image(rt, name, attrs)
 			return
-	# An opening span: either a style tag or one of the defined tags.
+	var outer: Dictionary = stack.back()["style"]
+	# An opening span: either a style tag or one of the defined tags. An
+	# unknown tag renders as nothing, as upstream's parser does, but still
+	# takes a place on the stack so its closing tag pops only itself.
 	var style: Dictionary = attrs if name == "style" else tags.get(name, {})
 	if style.is_empty() and name != "style":
-		# An unknown tag renders as nothing, as upstream's parser does; keep
-		# the stack balanced so its closing tag does not pop someone else.
-		open_stack.append(0)
+		stack.append({"pops": 0, "style": outer})
 		return
+	var inner := outer.duplicate()
+	for k in style:
+		inner[k] = style[k]
 	var pushes := 0
 	if String(style.get("halign", "")) != "":
 		match String(style["halign"]):
@@ -1143,33 +1600,41 @@ func _markup_tag(rt: RichTextLabel, body: String, tags: Dictionary, open_stack: 
 			"justify": rt.push_paragraph(HORIZONTAL_ALIGNMENT_FILL)
 			_: rt.push_paragraph(HORIZONTAL_ALIGNMENT_LEFT)
 		pushes += 1
+	var colour := String(style.get("color", ""))
 	if name == "action":
-		var meta := String(attrs.get("name", ""))
-		if attrs.has("url"):
-			meta += "\u0001" + String(attrs["url"])
-		rt.push_meta(meta)
+		var index: int = state["actions"]
+		state["actions"] = index + 1
+		rt.push_meta({"index": index, "name": String(attrs.get("name", "")),
+			"url": String(attrs.get("url", ""))})
 		pushes += 1
-	if String(style.get("color", "")) != "":
-		rt.push_color(parse_color(String(style["color"]), Color.html("EEEEEE")))
+		if index == int(state["hover"]):
+			colour = String(inner.get("hovercolor", MARKUP_HOVER))
+		var drawn: Array = rt.get_meta("action_colours", [])
+		drawn.append(colour)
+		rt.set_meta("action_colours", drawn)
+	if colour != "" and _is_colour(colour):
+		rt.push_color(parse_color(colour, Color.WHITE))
 		pushes += 1
-	if String(style.get("size", "")) != "":
+	if String(style.get("size", "")).is_valid_int():
 		rt.push_font_size(_markup_size(String(style["size"])))
 		pushes += 1
-	if String(style.get("font", "")) == "mono":
-		var mono := rt.get_theme_font("mono_font")
-		if mono != null:
-			rt.push_font(mono)
+	match String(style.get("font", "")):
+		"mono":
+			rt.push_mono()
 			pushes += 1
-	if String(style.get("bold", "")) == "true":
+		"normal":
+			rt.push_font(rt.get_theme_font("normal_font"))
+			pushes += 1
+	if _is_yes(String(style.get("bold", ""))):
 		rt.push_bold()
 		pushes += 1
-	if String(style.get("italic", "")) == "true":
+	if _is_yes(String(style.get("italic", ""))):
 		rt.push_italics()
 		pushes += 1
-	if String(style.get("underline", "")) == "true":
+	if _is_yes(String(style.get("underline", ""))):
 		rt.push_underline()
 		pushes += 1
-	open_stack.append(pushes)
+	stack.append({"pops": pushes, "style": inner})
 
 # <img name=... width=... height=...> and the same for <item>, whose name is
 # an item string rather than a texture.
@@ -1258,46 +1723,192 @@ func _button(parts: PackedStringArray, exit: bool, kind: String) -> void:
 	var b := Button.new()
 	var bname := fs_unescape(parts[2])
 	var label := fs_unescape(parts[3])
-	b.text = label
-	b.add_theme_font_size_override("font_size", _font_size())
 	var r := _btn_geom(g)
 	_add(b, _pos(v) + r.position, r.size)
 	if kind.begins_with("button_url") and parts.size() >= 5:
 		b.set_meta("url", fs_unescape(parts[4]))
+	if kind == "button_key":
+		_key_button(b, bname, label)
+		return
+	var content := _button_content(b, label, false)
 	_wire_button(b, bname, label, exit)
-	_apply_style(b, bname)
+	_style_button(b, bname, _style_states(bname), content)
 
+# --- button_key (GUIButtonKey) ----------------------------------------------
+
+# The button whose next key or mouse button is being captured, or null.
+var key_capture: Button = null
+
+# button_key[x,y;w,h;name;key]: the key is a key setting string, which the
+# button shows by the key's name. Pressing it shows "Press Button" and takes
+# the next key or mouse button as its value, which goes to the server as the
+# element's field, a SYSTEM_SCANCODE_ or MOUSE_BUTTON_ string, as sendKey
+# and acceptInput send it. Escape stops capturing and keeps the old key.
+func _key_button(b: Button, bname: String, value: String) -> void:
+	var sym := _key_sym_of(value)
+	b.set_meta("key_value", sym)
+	var content := _button_content(b, _key_name_of(sym), false)
+	_register_named_control(bname, b)
+	var sound := _style_sound(bname)
+	b.pressed.connect(func() -> void:
+		if key_capture == b:
+			return
+		key_capture = b
+		var label: Label = content["label"]
+		if label:
+			label.text = "Press Button")
+	b.set_meta("key_send", func() -> void:
+		_play_sound(sound)
+		submit({bname: String(b.get_meta("key_value"))}, false))
+	_style_button(b, bname, _style_states(bname), content)
+
+# Ends a capture, keeping `sym` when given, and sends the form if it took a
+# new key.
+func _end_key_capture(sym: String) -> void:
+	var b := key_capture
+	key_capture = null
+	if b == null or not is_instance_valid(b):
+		return
+	if sym != "":
+		b.set_meta("key_value", sym)
+	var label: Label = b.get_meta("content", {}).get("label")
+	if label:
+		label.text = _key_name_of(String(b.get_meta("key_value")))
+	if sym != "":
+		(b.get_meta("key_send") as Callable).call()
+
+# While a key button captures, every key and mouse button goes to it first,
+# as the focused element gets events first in Irrlicht.
+func _capture_key(event: InputEvent) -> bool:
+	if event is InputEventKey and event.pressed and not event.echo:
+		var k := event as InputEventKey
+		if k.keycode == KEY_ESCAPE or k.physical_keycode == KEY_ESCAPE:
+			_end_key_capture("")
+		else:
+			_end_key_capture(_key_sym_of_event(k))
+		return true
+	if event is InputEventMouseButton and event.pressed:
+		var sdl: int = MOUSE_TO_SDL.get((event as InputEventMouseButton).button_index, 0)
+		if sdl == 0:
+			return false
+		_end_key_capture("MOUSE_BUTTON_%d" % sdl)
+		return true
+	return false
+
+# Godot's mouse buttons as SDL numbers them.
+const MOUSE_TO_SDL := {MOUSE_BUTTON_LEFT: 1, MOUSE_BUTTON_MIDDLE: 2, MOUSE_BUTTON_RIGHT: 3,
+	MOUSE_BUTTON_XBUTTON1: 4, MOUSE_BUTTON_XBUTTON2: 5}
+const SDL_MOUSE_NAMES := {1: "Left Click", 2: "Middle Click", 3: "Right Click", 4: "Mouse X1",
+	5: "Mouse X2"}
+
+# Keys as Luanti 5.17 knows them: [Godot physical key, SDL scancode (the USB
+# HID usage), Irrlicht key name as older settings wrote it, key name shown].
+static func _key_table() -> Array:
+	var t: Array = []
+	for i in 26:
+		var ch := char(65 + i)
+		t.append([KEY_A + i, 4 + i, "KEY_KEY_" + ch, ch])
+	for i in 9:
+		t.append([KEY_1 + i, 30 + i, "KEY_KEY_%d" % (i + 1), str(i + 1)])
+	t.append([KEY_0, 39, "KEY_KEY_0", "0"])
+	t.append_array([[KEY_ENTER, 40, "KEY_RETURN", "Return"], [KEY_ESCAPE, 41, "KEY_ESCAPE", "Escape"],
+		[KEY_BACKSPACE, 42, "KEY_BACK", "Backspace"], [KEY_TAB, 43, "KEY_TAB", "Tab"],
+		[KEY_SPACE, 44, "KEY_SPACE", "Space"], [KEY_MINUS, 45, "KEY_MINUS", "-"],
+		[KEY_EQUAL, 46, "KEY_PLUS", "="], [KEY_BRACKETLEFT, 47, "KEY_OEM_4", "["],
+		[KEY_BRACKETRIGHT, 48, "KEY_OEM_6", "]"], [KEY_BACKSLASH, 49, "KEY_OEM_5", "\\"],
+		[KEY_SEMICOLON, 51, "KEY_OEM_1", ";"], [KEY_APOSTROPHE, 52, "KEY_OEM_7", "'"],
+		[KEY_QUOTELEFT, 53, "KEY_OEM_3", "`"], [KEY_COMMA, 54, "KEY_COMMA", ","],
+		[KEY_PERIOD, 55, "KEY_PERIOD", "."], [KEY_SLASH, 56, "KEY_OEM_2", "/"],
+		[KEY_CAPSLOCK, 57, "KEY_CAPITAL", "Caps Lock"]])
+	for i in 12:
+		t.append([KEY_F1 + i, 58 + i, "KEY_F%d" % (i + 1), "F%d" % (i + 1)])
+	t.append_array([[KEY_INSERT, 73, "KEY_INSERT", "Insert"], [KEY_HOME, 74, "KEY_HOME", "Home"],
+		[KEY_PAGEUP, 75, "KEY_PRIOR", "Page Up"], [KEY_DELETE, 76, "KEY_DELETE", "Delete"],
+		[KEY_END, 77, "KEY_END", "End"], [KEY_PAGEDOWN, 78, "KEY_NEXT", "Page Down"],
+		[KEY_RIGHT, 79, "KEY_RIGHT", "Right"], [KEY_LEFT, 80, "KEY_LEFT", "Left"],
+		[KEY_DOWN, 81, "KEY_DOWN", "Down"], [KEY_UP, 82, "KEY_UP", "Up"]])
+	for i in 9:
+		t.append([KEY_KP_1 + i, 89 + i, "KEY_NUMPAD%d" % (i + 1), "Keypad %d" % (i + 1)])
+	t.append([KEY_KP_0, 98, "KEY_NUMPAD0", "Keypad 0"])
+	# Modifiers: the right hand ones are told apart by location below.
+	t.append_array([[KEY_CTRL, 224, "KEY_LCONTROL", "Left Control"],
+		[KEY_SHIFT, 225, "KEY_LSHIFT", "Left Shift"], [KEY_ALT, 226, "KEY_LMENU", "Left Alt"],
+		[-1, 228, "KEY_RCONTROL", "Right Control"], [-1, 229, "KEY_RSHIFT", "Right Shift"],
+		[-1, 230, "KEY_RMENU", "Right Alt"]])
+	return t
+
+static func _key_sym_of_event(k: InputEventKey) -> String:
+	var key := k.physical_keycode if k.physical_keycode != KEY_NONE else k.keycode
+	var right := k.location == KEY_LOCATION_RIGHT
+	for row in _key_table():
+		if int(row[0]) == int(key):
+			var code: int = row[1]
+			if right and code >= 224 and code <= 226:
+				code += 4
+			return "SYSTEM_SCANCODE_%d" % code
+	return ""
+
+# A key setting string as KeyPress stores it: SYSTEM_SCANCODE_ and
+# MOUSE_BUTTON_ strings as they are, an Irrlicht key name by its scancode.
+static func _key_sym_of(value: String) -> String:
+	var v := value.strip_edges()
+	if v.begins_with("SYSTEM_SCANCODE_") or v.begins_with("MOUSE_BUTTON_"):
+		return v
+	for row in _key_table():
+		if row[2] == v:
+			return "SYSTEM_SCANCODE_%d" % int(row[1])
+	return v
+
+# KeyPress::name: the key's name, or "Scancode: n" for one Goanna does not
+# know by name.
+static func _key_name_of(sym: String) -> String:
+	if sym.begins_with("SYSTEM_SCANCODE_"):
+		var code := sym.substr(16).to_int()
+		for row in _key_table():
+			if int(row[1]) == code:
+				return String(row[3])
+		return "Scancode: %d" % code
+	if sym.begins_with("MOUSE_BUTTON_"):
+		var n := sym.substr(13).to_int()
+		return String(SDL_MOUSE_NAMES.get(n, "Mouse Button %d" % n))
+	return sym
+
+# image_button[x,y;w,h;texture;name;label;noclip;drawborder;pressed texture]
+#
+# Built as parseImageButton builds it: the texture is the default state's
+# fgimg and the pressed texture the pressed state's, set over whatever the
+# theme said, and noclip and drawborder likewise override the theme for the
+# default state. Six parts is an error upstream and draws nothing.
 func _image_button(parts: PackedStringArray, exit: bool) -> void:
-	# image_button[x,y;w,h;texture;name;label;noclip;drawborder;pressed]
-	if parts.size() < 5:
+	if parts.size() < 5 or parts.size() == 6:
 		return
 	var v := fs_split(parts[0], ",")
 	var g := fs_split(parts[1], ",")
 	if v.size() < 2 or g.size() < 2:
 		return
 	var b := Button.new()
-	var tex: Texture2D = item_source.ui_texture(fs_unescape(parts[2])) if item_source else null
 	var bname := fs_unescape(parts[3])
-	var label := fs_unescape(parts[4]) if parts.size() >= 5 else ""
-	b.text = label
-	b.add_theme_font_size_override("font_size", _font_size())
-	if tex:
-		b.icon = tex
-		b.expand_icon = true
-		b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		b.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	var drawborder := parts.size() < 7 or parts[6].strip_edges() != "false"
-	if not drawborder:
-		b.flat = true
+	var label := fs_unescape(parts[4])
 	_add(b, _pos(v), _geom(g))
+	var states := _style_states(bname)
+	var image := fs_unescape(parts[2])
+	if image != "":
+		states[0]["fgimg"] = image
+	if parts.size() >= 8 and fs_unescape(parts[7]) != "":
+		states[STATE_PRESSED]["fgimg"] = fs_unescape(parts[7])
+	if parts.size() >= 7:
+		states[0]["noclip"] = parts[5].strip_edges()
+		states[0]["border"] = parts[6].strip_edges()
+	var content := _button_content(b, label)
 	_wire_button(b, bname, label, exit)
-	_apply_style(b, bname)
+	_style_button(b, bname, states, content)
 
-func _item_item_icon(item: String) -> Texture2D:
-	return item_source.item_icon(item) if item_source else null
-
+# item_image_button[x,y;w,h;item name;name;label]
+#
+# The item is drawn behind the label, filling the content area, and the
+# button's tooltip is the item's description, which parseItemImageButton
+# registers under the button's name before any tooltip[] can replace it.
 func _item_image_button(parts: PackedStringArray) -> void:
-	# item_image_button[x,y;w,h;item name;name;label]
 	if parts.size() < 5:
 		return
 	var v := fs_split(parts[0], ",")
@@ -1305,23 +1916,67 @@ func _item_image_button(parts: PackedStringArray) -> void:
 	if v.size() < 2 or g.size() < 2:
 		return
 	var b := Button.new()
+	var item := fs_unescape(parts[2])
 	var bname := fs_unescape(parts[3])
-	var label := fs_unescape(parts[4]) if parts.size() >= 5 else ""
-	b.text = label
-	b.icon = _item_item_icon(fs_unescape(parts[2]))
-	b.expand_icon = true
-	b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	b.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	var label := fs_unescape(parts[4])
 	_add(b, _pos(v), _geom(g))
+	var content := _button_content(b, label)
+	content["item"] = item_source.item_icon(item.get_slice(" ", 0)) if item_source else null
+	if not tooltips.has(bname) and item_source and item_source.has_method("item_description"):
+		var desc := String(item_source.item_description(item))
+		if desc != "":
+			tooltips[bname] = {"text": desc, "bg": listcolors["tooltip_bg"],
+				"fg": listcolors["tooltip_fg"]}
 	_wire_button(b, bname, label, false)
-	_apply_style(b, bname)
+	_style_button(b, bname, _style_states(bname), content)
+
+# The children a GUIButton keeps: its label, a StaticText centred in the
+# content rectangle, and for GUIButtonImage and GUIButtonItemImage an image
+# sent to the back of it. Godot draws a button's own text under its children
+# and without Luanti's text shadow, so every button carries its label as a
+# child Label instead, and leaves its own text empty.
+func _button_content(b: Button, label: String, with_image := true) -> Dictionary:
+	var rect: NinePatchRect = null
+	if with_image:
+		# A nine-patch with no margins stretches the whole texture over the
+		# rectangle, which is how upstream scales it; fgimg_middle gives it
+		# some.
+		rect = NinePatchRect.new()
+		rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		b.add_child(rect)
+	var text: Label = null
+	if label != "":
+		text = Label.new()
+		text.text = label
+		text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		text.clip_text = true
+		text.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		text.add_theme_font_size_override("font_size", _font_size())
+		b.add_child(text)
+	b.set_meta("label", label)
+	return {"image": rect, "label": text}
 
 func _wire_button(b: Button, bname: String, label: String, exit: bool) -> void:
 	_register_named_control(bname, b)
+	var sound := _style_sound(bname)
 	b.pressed.connect(func() -> void:
+		_play_sound(sound)
 		if b.has_meta("url"):
 			_offer_url(String(b.get_meta("url")))
 		submit({bname: label}, exit))
+
+# The sound style property, read when the element is built: upstream keeps
+# it on the element's FieldSpec and plays it locally, not through the
+# server, when a button is pressed, a checkbox or dropdown changes, a tab is
+# chosen or a hypertext action is followed.
+func _style_sound(ename: String) -> String:
+	return String(_style_for(ename, "default").get("sound", ""))
+
+func _play_sound(sound: String) -> void:
+	if sound != "" and item_source and item_source.has_method("play_form_sound"):
+		item_source.play_form_sound(sound)
 
 # A button_url sends its fields like any other button and additionally offers
 # the address. In game, upstream asks first (showOpenURLDialog) rather than
@@ -1343,85 +1998,142 @@ func _offer_url(url: String) -> void:
 	dialog.confirmed.connect(dialog.queue_free)
 	dialog.popup_centered()
 
+# field[x,y;w,h;name;label;default], field[name;label;default],
+# pwdfield[x,y;w,h;name;label] and textarea[x,y;w,h;name;label;default]
+# (parseField, parsePwdField, parseTextArea). textarea shares parseField, so
+# three or four parts make it an unpositioned single line field too.
 func _field(parts: PackedStringArray, password: bool) -> void:
-	# field[x,y;w,h;name;label;default] or field[name;label;default]
-	var e := LineEdit.new()
-	e.secret = password
-	e.add_theme_font_size_override("font_size", _font_size())
-	var fname: String
-	var label: String
-	var def: String
-	if parts.size() >= 5:
-		var v := fs_split(parts[0], ",")
-		var g := fs_split(parts[1], ",")
-		if v.size() < 2 or g.size() < 1:
-			return
-		fname = fs_unescape(parts[2])
-		label = fs_unescape(parts[3])
-		def = fs_unescape(parts[4])
-		var r := _btn_geom(g)
-		var p := _pos(v) + r.position
-		if label != "":
-			var l := Label.new()
-			l.text = label
-			l.add_theme_font_size_override("font_size", _font_size())
-			l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			current_parent.add_child(l)
-			l.position = Vector2(p.x, p.y - _font_size() * 1.5).floor()
-		_add(e, p, r.size)
-	elif parts.size() >= 3:
-		fname = fs_unescape(parts[0])
-		label = fs_unescape(parts[1])
-		def = fs_unescape(parts[2])
-		var y := 40.0 + fields.size() * 60.0
-		if label != "":
-			var l := Label.new()
-			l.text = label
-			l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			current_parent.add_child(l)
-			l.position = Vector2(20, y - 24)
-		_add(e, Vector2(20, y), Vector2(root.size.x - 40, 32))
-	else:
+	if password:
+		if parts.size() == 4:
+			_text_field(parts, fs_unescape(parts[2]), fs_unescape_raw(parts[3]), "", false, true)
 		return
-	e.text = def
-	fields[fname] = e
-	_register_named_control(fname, e)
-	_apply_style(e, fname)
-	e.text_submitted.connect(func(_t: String) -> void:
-		var quit: bool = field_close_on_enter.get(fname, true)
-		submit({"key_enter": "true", "key_enter_field": fname}, quit))
+	if parts.size() == 3 or parts.size() == 4:
+		_simple_field(parts)
+	elif parts.size() == 5:
+		_text_field(parts, fs_unescape(parts[2]), fs_unescape_raw(parts[3]),
+			fs_unescape(_resolve(parts[4])), false, false)
 
 func _textarea(parts: PackedStringArray) -> void:
-	# textarea[x,y;w,h;name;label;default]
-	if parts.size() < 5:
-		return
+	if parts.size() == 3 or parts.size() == 4:
+		_simple_field(parts)
+	elif parts.size() == 5:
+		_text_field(parts, fs_unescape(parts[2]), fs_unescape_raw(parts[3]),
+			fs_unescape(_resolve(parts[4])), true, false)
+
+# A positioned field, password field or textarea. In real coordinates the
+# rectangle is the element's own. In the old system it starts without the
+# form padding; a field is two button-heights tall, centred on y plus half
+# its height in slots, and a textarea starts a button-height lower with its
+# height in slots less one gap.
+func _text_field(parts: PackedStringArray, fname: String, label: String, def: String,
+		multiline: bool, password: bool) -> void:
 	var v := fs_split(parts[0], ",")
 	var g := fs_split(parts[1], ",")
 	if v.size() < 2 or g.size() < 2:
 		return
-	var fname := fs_unescape(parts[2])
-	var label := fs_unescape(parts[3])
-	var p := _pos(v)
-	if label != "":
-		var l := Label.new()
-		l.text = label
-		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		current_parent.add_child(l)
-		l.position = Vector2(p.x, p.y - _font_size() * 1.5).floor()
-	if fname == "":
-		var rt := RichTextLabel.new()
-		rt.text = fs_unescape(parts[4])
-		rt.add_theme_font_size_override("normal_font_size", _font_size())
-		_add(rt, p, _geom(g))
+	var rect: Rect2
+	if real_coordinates:
+		rect = Rect2(_pos(v), _geom(g))
+	else:
+		var btn_h := imgsize * 15.0 / 13.0 * 0.35
+		var p := _pos(v) - padding
+		var w := float(g[0]) * spacing.x - (spacing.x - imgsize)
+		if multiline:
+			rect = Rect2(p.x, p.y + btn_h, w,
+				float(g[1]) * imgsize - (spacing.y - imgsize))
+		else:
+			rect = Rect2(p.x, p.y + float(g[1]) * imgsize / 2.0 - btn_h, w, btn_h * 2.0)
+	_create_text_field(rect, fname, label, def, multiline, password)
+
+# field[name;label;default]: one centred above another, three hundred pixels
+# wide, sixty apart (parseSimpleField).
+func _simple_field(parts: PackedStringArray) -> void:
+	var rect := Rect2(root.size.x / 2.0 - 150.0, (simple_field_count + 2) * 60.0, 300.0,
+		_button_height() * 2.0)
+	simple_field_count += 1
+	current_element = "field"
+	_create_text_field(rect, fs_unescape(parts[0]), fs_unescape_raw(parts[1]),
+		fs_unescape(_resolve(parts[2])), false, false)
+
+# createTextField. A field with no name is only its label, drawn in the
+# field's rectangle; a textarea with no name is read only, has no pane, and
+# shows its label as its text when it has no default. Otherwise the edit box
+# takes the field's style and its label sits above it, a line of text high,
+# in the same style.
+func _create_text_field(rect: Rect2, fname: String, label: String, def: String,
+		multiline: bool, password: bool) -> void:
+	var st := _style_for(fname, "default")
+	var colour := parse_color(String(st.get("textcolor", "")), Color.WHITE)
+	var size := _style_font_size(String(st.get("font_size", "")), _font_size())
+	if fname == "" and not multiline and not password:
+		var only := _rich_text(label, colour, size, st)
+		only.clip_contents = true
+		_add(only, rect.position, rect.size)
 		return
-	var e := TextEdit.new()
-	e.text = fs_unescape(parts[4])
-	e.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
-	e.add_theme_font_size_override("font_size", _font_size())
-	_add(e, p, _geom(g))
+	if fname == "" and multiline and def == "" and label != "":
+		def = strip_enriched(label)
+		label = ""
+	if label != "":
+		var font_h := get_theme_default_font().get_height(size)
+		var above := _rich_text(label, colour, size, st)
+		_add(above, rect.position - Vector2(0, font_h), Vector2(rect.size.x, font_h))
+	if fname == "" and multiline:
+		var reader := _rich_text(def, colour, size, st)
+		reader.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		reader.scroll_active = true
+		reader.horizontal_alignment = _style_halign(st)
+		reader.vertical_alignment = _style_valign(st)
+		_add(reader, rect.position, rect.size)
+		return
+	var e: Control
+	if multiline:
+		var te := TextEdit.new()
+		te.text = def
+		te.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
+		e = te
+	else:
+		var le := LineEdit.new()
+		le.secret = password
+		le.text = def
+		le.alignment = _style_halign(st)
+		e = le
+	e.add_theme_font_size_override("font_size", size)
+	_edit_box_look(e, multiline)
+	_add(e, rect.position, rect.size)
 	fields[fname] = e
 	_register_named_control(fname, e)
 	_apply_style(e, fname)
+	if e is LineEdit:
+		(e as LineEdit).text_submitted.connect(func(_t: String) -> void:
+			var quit: bool = field_close_on_enter.get(fname, true)
+			submit({"key_enter": "true", "key_enter_field": fname}, quit))
+
+# CGUIEditBox in Luanti's skin: a sunken pane in EGDC_EDITABLE grey that
+# turns EGDC_FOCUSED_EDITABLE green while focused. A textarea's
+# GUIEditBoxWithScrollBar fills with EGDC_WINDOW's translucent white instead,
+# focused or not. Text is white until textcolor says otherwise, and a
+# selection is EGDC_HIGH_LIGHT.
+func _edit_box_look(e: Control, multiline: bool) -> void:
+	var fill := Color8(255, 255, 255, 101) if multiline else Color8(128, 128, 128)
+	e.add_theme_stylebox_override("normal", _sunken_pane(fill))
+	e.add_theme_stylebox_override("focus",
+		StyleBoxEmpty.new() if multiline else _sunken_pane(Color8(96, 134, 49)))
+	e.add_theme_color_override("font_color", Color.WHITE)
+	e.add_theme_color_override("selection_color", Color8(70, 120, 50))
+
+# draw3DSunkenPane with Luanti's skin colours, whose shadow and highlight are
+# both near black: a filled rectangle inside a dark one pixel frame, with the
+# text kept a few pixels off it.
+static func _sunken_pane(fill: Color) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = fill
+	sb.set_border_width_all(1)
+	sb.border_color = Color8(0, 0, 0)
+	sb.content_margin_left = 4
+	sb.content_margin_right = 4
+	sb.content_margin_top = 2
+	sb.content_margin_bottom = 2
+	return sb
 
 func _fcoe(parts: PackedStringArray) -> void:
 	if parts.size() >= 2:
@@ -1446,7 +2158,9 @@ func _checkbox(parts: PackedStringArray) -> void:
 	fields[cname] = c
 	_register_named_control(cname, c)
 	_apply_style(c, cname)
+	var sound := _style_sound(cname)
 	c.toggled.connect(func(_on: bool) -> void:
+		_play_sound(sound)
 		submit({cname: "true" if c.button_pressed else "false"}, false))
 
 func _dropdown(parts: PackedStringArray) -> void:
@@ -1464,24 +2178,31 @@ func _dropdown(parts: PackedStringArray) -> void:
 	var sel := int(parts[4]) - 1
 	if sel >= 0 and sel < o.item_count:
 		o.select(sel)
-	o.set_meta("index_event", parts.size() >= 6 and parts[5].strip_edges() == "true")
+	o.set_meta("index_event", parts.size() >= 6 and _is_yes(parts[5]))
 	o.add_theme_font_size_override("font_size", _font_size())
+	# parseDropDown: a width alone means one imgsize high in real
+	# coordinates; the old system ignores any height, measures the width in
+	# vertical spacings, and is two button-heights high.
 	var size: Vector2
-	if g.size() >= 2:
-		size = _geom(g)
+	if real_coordinates:
+		size = _geom(g) if g.size() >= 2 else Vector2(float(g[0]) * imgsize, imgsize)
 	else:
-		var r := _btn_geom(g)
-		size = r.size
+		size = Vector2(float(g[0]) * spacing.y, imgsize * 15.0 / 13.0 * 0.35 * 2.0)
 	_add(o, _pos(v), size)
 	fields[dname] = o
 	_register_named_control(dname, o)
 	_apply_style(o, dname)
+	var sound := _style_sound(dname)
 	o.item_selected.connect(func(_i: int) -> void:
+		_play_sound(sound)
 		var f := collect_fields()
 		submit({dname: f[dname]}, false))
 
+# textlist[x,y;w,h;name;items;selected;transparent] (parseTextList and
+# GUITable::setTextList). An item starting #RRGGBB is drawn in that colour;
+# a leading ## is dropped and keeps what follows from being read as one. In
+# the old system the size is in whole spacings.
 func _textlist(parts: PackedStringArray) -> void:
-	# textlist[x,y;w,h;name;items;selected;transparent]
 	if parts.size() < 4:
 		return
 	var v := fs_split(parts[0], ",")
@@ -1492,13 +2213,22 @@ func _textlist(parts: PackedStringArray) -> void:
 	var lname := fs_unescape(parts[2])
 	for it in fs_split(parts[3], ","):
 		var t := fs_unescape(it)
-		if t.begins_with("#") and t.length() >= 7:
+		var colour: Variant = null
+		if t.begins_with("##"):
+			t = t.substr(2)
+		elif t.begins_with("#") and t.length() >= 7 and _is_colour(t.substr(0, 7)):
+			colour = parse_color(t.substr(0, 7), Color.WHITE)
 			t = t.substr(7)
-		il.add_item(t)
+		var i := il.add_item(t)
+		if colour != null:
+			il.set_item_custom_fg_color(i, colour)
 	if parts.size() >= 5 and int(parts[4]) > 0 and int(parts[4]) <= il.item_count:
 		il.select(int(parts[4]) - 1)
 	il.add_theme_font_size_override("font_size", _font_size())
-	_add(il, _pos(v), _geom(g))
+	var transparent := parts.size() >= 6 and _is_yes(parts[5])
+	_table_look(il, Color8(30, 30, 30, 0) if transparent else Color8(30, 30, 30), not transparent,
+		Color.WHITE, Color8(70, 120, 50), Color.WHITE)
+	_add(il, _pos(v), _list_geom(g))
 	fields[lname] = il
 	_register_named_control(lname, il)
 	_apply_style(il, lname)
@@ -1506,6 +2236,49 @@ func _textlist(parts: PackedStringArray) -> void:
 		submit({lname: "CHG:" + str(i + 1)}, false))
 	il.item_activated.connect(func(i: int) -> void:
 		submit({lname: "DCL:" + str(i + 1)}, false))
+
+# textlist[] and table[] size: in the old system whole spacings, with no
+# gap taken off as other elements take it.
+func _list_geom(g: PackedStringArray) -> Vector2:
+	if real_coordinates:
+		return _geom(g)
+	return Vector2(float(g[0]) * spacing.x, float(g[1]) * spacing.y)
+
+# GUITable's look in Luanti's skin, which textlist[] and table[] share: a
+# sunken pane in EGDC_3D_HIGH_LIGHT's near black, or no pane at all, white
+# text, rows a line of text and four pixels high, and the selected row in
+# EGDC_HIGH_LIGHT green with EGDC_HIGH_LIGHT_TEXT. Nothing marks the row
+# under the pointer.
+func _table_look(c: Control, background: Color, border: bool, text: Color, highlight: Color,
+		highlight_text: Color) -> void:
+	var pane: StyleBox
+	if border:
+		pane = _sunken_pane(background)
+	elif background.a > 0.0:
+		var flat := StyleBoxFlat.new()
+		flat.bg_color = background
+		pane = flat
+	else:
+		pane = StyleBoxEmpty.new()
+	pane.content_margin_left = 1
+	pane.content_margin_right = 1
+	pane.content_margin_top = 1
+	pane.content_margin_bottom = 1
+	c.add_theme_stylebox_override("panel", pane)
+	c.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	var sel := StyleBoxFlat.new()
+	sel.bg_color = highlight
+	for key in ["selected", "selected_focus", "hovered_selected", "hovered_selected_focus"]:
+		c.add_theme_stylebox_override(key, sel)
+	for key in ["hovered", "cursor", "cursor_unfocused"]:
+		c.add_theme_stylebox_override(key, StyleBoxEmpty.new())
+	c.add_theme_color_override("font_color", text)
+	c.add_theme_color_override("font_hovered_color", text)
+	c.add_theme_color_override("font_selected_color", highlight_text)
+	c.add_theme_color_override("font_hovered_selected_color", highlight_text)
+	# GUITable draws no rule between rows.
+	c.add_theme_color_override("guide_color", Color.TRANSPARENT)
+	c.add_theme_constant_override("v_separation", 4)
 
 # tableoptions[opt 1;opt 2;...]: colours and border for every following table.
 func _tableoptions(parts: PackedStringArray) -> void:
@@ -1639,7 +2412,7 @@ func _table(parts: PackedStringArray) -> void:
 				if tex:
 					item.set_icon(ci, tex)
 
-	_add(t, _pos(v), _geom(g))
+	_add(t, _pos(v), _list_geom(g))
 	var sel := int(parts[4]) if parts.size() >= 5 and parts[4].strip_edges() != "" else 0
 	if sel > 0:
 		_select_table_row(t, sel)
@@ -1651,23 +2424,17 @@ func _table(parts: PackedStringArray) -> void:
 	t.item_activated.connect(func() -> void:
 		submit({tname: "DCL:" + str(_table_row(t))}, false))
 
+# GUITable::setTable's options over the skin's defaults: text colour,
+# background, border, highlight and highlight text.
 func _apply_table_options(t: Tree) -> void:
-	if table_options.is_empty():
-		return
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = parse_color(String(table_options.get("background", "#000000")), Color.BLACK)
-	if String(table_options.get("border", "true")) != "false":
-		sb.set_border_width_all(1)
-		sb.border_color = Color(1, 1, 1, 0.25)
-	t.add_theme_stylebox_override("panel", sb)
-	if table_options.has("highlight"):
-		var hl := StyleBoxFlat.new()
-		hl.bg_color = parse_color(String(table_options["highlight"]), Color("466432"))
-		t.add_theme_stylebox_override("selected", hl)
-		t.add_theme_stylebox_override("selected_focus", hl)
-	if table_options.has("highlight_text"):
-		t.add_theme_color_override("font_selected_color",
-			parse_color(String(table_options["highlight_text"]), Color.WHITE))
+	var border := true
+	if table_options.has("border"):
+		border = _is_yes(String(table_options["border"]))
+	_table_look(t,
+		parse_color(String(table_options.get("background", "")), Color8(30, 30, 30)), border,
+		parse_color(String(table_options.get("color", "")), Color.WHITE),
+		parse_color(String(table_options.get("highlight", "")), Color8(70, 120, 50)),
+		parse_color(String(table_options.get("highlight_text", "")), Color.WHITE))
 
 # The 1-based row the table reports, which is the row it was built from
 # rather than its position among the currently expanded items.
@@ -1683,38 +2450,50 @@ static func _select_table_row(t: Tree, row: int) -> void:
 			return
 		item = item.get_next_in_tree()
 
+# tabheader[x,y;name;captions;current;transparent;draw_border], and in real
+# coordinates tabheader[x,y;h;...] or tabheader[x,y;w,h;...] (parseTabHeader).
+# The position is the header's bottom edge. It is two button-heights tall
+# unless given a height, and as wide as the form unless given a width. In
+# the old system the position is in spacings without the form padding.
 func _tabheader(parts: PackedStringArray) -> void:
-	# tabheader[x,y(;w,h);name;caption 1,caption 2,...;current_tab;transparent;draw_border]
-	if parts.size() < 4:
+	if parts.size() < 4 or parts.size() > 7 or parts.size() == 5 \
+			or (parts.size() == 7 and not real_coordinates):
 		return
 	var v := fs_split(parts[0], ",")
 	if v.size() < 2:
 		return
 	var idx := 1
-	var size := Vector2.ZERO
-	var g := fs_split(parts[1], ",")
-	if g.size() >= 2 and parts.size() >= 5 and not parts[2].contains(","):
-		# has geometry
-		size = _geom(g)
+	var btn_h := imgsize * 15.0 / 13.0 * 0.35
+	var size := Vector2(root.size.x, btn_h * 2.0)
+	if parts.size() == 7:
 		idx = 2
+		var g := fs_split(parts[1], ",")
+		if g.size() == 1:
+			size.y = float(g[0]) * imgsize
+		elif g.size() >= 2:
+			size = Vector2(float(g[0]), float(g[1])) * imgsize
 	var tname := fs_unescape(parts[idx])
 	var tb := TabBar.new()
 	for cap in fs_split(parts[idx + 1], ","):
 		tb.add_tab(fs_unescape(cap))
-	var cur := int(parts[idx + 2]) - 1 if parts.size() > idx + 2 else 0
+	var cur := int(parts[idx + 2]) - 1
 	if cur >= 0 and cur < tb.tab_count:
 		tb.current_tab = cur
 	tb.add_theme_font_size_override("font_size", _font_size())
-	var p := _pos(v)
-	if size == Vector2.ZERO:
-		size = Vector2(root.size.x - p.x, _font_size() * 2.2)
+	var p: Vector2
+	if real_coordinates:
+		p = _pos(v)
+	else:
+		p = (pos_offset + Vector2(float(v[0]), float(v[1]))) * spacing
 	current_parent.add_child(tb)
 	tb.position = Vector2(p.x, p.y - size.y).floor()
-	tb.size = size
+	tb.size = size.floor()
 	fields[tname] = tb
 	_register_named_control(tname, tb)
 	_apply_style(tb, tname)
+	var sound := _style_sound(tname)
 	tb.tab_changed.connect(func(i: int) -> void:
+		_play_sound(sound)
 		submit({tname: str(i + 1)}, false))
 
 func _list(parts: PackedStringArray) -> void:
@@ -1769,63 +2548,286 @@ func _listring(parts: PackedStringArray) -> void:
 				seen[key] = true
 				list_rings.append({"location": s.location, "listname": s.listname})
 
+# listcolors[slot_bg_normal;slot_bg_hover;slot_border;tooltip_bgcolor;tooltip_fontcolor]
+#
+# parseListColors: four parts is an error, a border colour that parses turns
+# the slot borders on, and the tooltip colours become the default for every
+# tooltip parsed after this and for every item tooltip.
 func _listcolors(parts: PackedStringArray) -> void:
-	# listcolors[slot_bg_normal;slot_bg_hover;slot_border;tooltip_bgcolor;tooltip_fontcolor]
-	if parts.size() >= 2:
-		listcolors["slot_bg"] = parse_color(parts[0], listcolors["slot_bg"])
-		listcolors["slot_bg_h"] = parse_color(parts[1], listcolors["slot_bg_h"])
-	if parts.size() >= 3:
+	if parts.size() < 2 or parts.size() == 4:
+		return
+	listcolors["slot_bg"] = parse_color(parts[0], listcolors["slot_bg"])
+	listcolors["slot_bg_h"] = parse_color(parts[1], listcolors["slot_bg_h"])
+	if parts.size() >= 3 and _is_colour(parts[2]):
 		listcolors["slot_border"] = parse_color(parts[2], listcolors["slot_border"])
+		listcolors["slot_border_on"] = true
 	if parts.size() >= 5:
 		listcolors["tooltip_bg"] = parse_color(parts[3], listcolors["tooltip_bg"])
 		listcolors["tooltip_fg"] = parse_color(parts[4], listcolors["tooltip_fg"])
 
-func _tooltip(parts: PackedStringArray) -> void:
-	# tooltip[element name;text;bgcolor;fontcolor] or
-	# tooltip[x,y;w,h;text;bgcolor;fontcolor]
-	if parts.size() >= 2 and not parts[0].contains(","):
-		tooltips[fs_unescape(parts[0])] = fs_unescape(parts[1])
-		if named_controls.has(fs_unescape(parts[0])):
-			named_controls[fs_unescape(parts[0])].tooltip_text = fs_unescape(parts[1])
-		return
-	if parts.size() < 3:
-		return
-	var v := fs_split(parts[0], ",")
-	var g := fs_split(parts[1], ",")
-	if v.size() < 2 or g.size() < 2:
-		return
-	var area := Control.new()
-	area.tooltip_text = fs_unescape(parts[2])
-	area.mouse_filter = Control.MOUSE_FILTER_STOP
-	_add(area, _pos(v), _geom(g))
-	# Keep the transparent tooltip region behind interactive controls. This
-	# preserves hover help over images without swallowing a button's clicks.
-	current_parent.move_child(area, 0)
+# Whether parseColorString would accept this.
+static func _is_colour(s: String) -> bool:
+	var probe := Color(0.123, 0.456, 0.789, 0.321)
+	return parse_color(s, probe) != probe
 
-func _hypertip(parts: PackedStringArray) -> void:
-	# hypertip[element name;staticPos;width;name;text] or
-	# hypertip[x,y;w,h;staticPos;width;name;text], formspec version 11.
-	# Partial: Godot's tooltips are plain text, so the markup is stripped, and
-	# the static position and the width are not honoured.
-	if parts.size() == 5 and not parts[0].contains(","):
-		var target := fs_unescape(parts[0])
-		var text := markup_plain(fs_unescape(parts[4]))
-		tooltips[target] = text
-		if named_controls.has(target):
-			named_controls[target].tooltip_text = text
+# tooltip[element name;text;bgcolor;fontcolor] or
+# tooltip[x,y;w,h;text;bgcolor;fontcolor]
+#
+# The named form was gathered by _build. The area form is a hover rectangle
+# that takes no input, as upstream's hidden rect element takes none, with
+# its size in whole spacings in the old coordinate system (parseTooltip).
+func _tooltip(parts: PackedStringArray) -> void:
+	if not parts[0].contains(","):
 		return
-	if parts.size() < 6:
+	if parts.size() != 3 and parts.size() != 5:
 		return
 	var v := fs_split(parts[0], ",")
 	var g := fs_split(parts[1], ",")
 	if v.size() < 2 or g.size() < 2:
 		return
+	var bg: Color = listcolors["tooltip_bg"]
+	var fg: Color = listcolors["tooltip_fg"]
+	if parts.size() == 5:
+		if not (_is_colour(parts[3]) and _is_colour(parts[4])):
+			return
+		bg = parse_color(parts[3], bg)
+		fg = parse_color(parts[4], fg)
+	_add_tooltip_area(v, g, {"text": fs_unescape_raw(parts[2]), "bg": bg, "fg": fg})
+
+func _add_tooltip_area(v: PackedStringArray, g: PackedStringArray, tip: Dictionary) -> void:
 	var area := Control.new()
-	area.tooltip_text = markup_plain(fs_unescape(parts[5]))
-	area.mouse_filter = Control.MOUSE_FILTER_STOP
-	_add(area, _pos(v), _geom(g))
-	# Behind interactive controls, as an area tooltip is.
-	current_parent.move_child(area, 0)
+	area.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var size := _geom(g)
+	if not real_coordinates:
+		size = Vector2(float(g[0]) * spacing.x, float(g[1]) * spacing.y)
+	_add(area, _pos(v), size)
+	tooltip_areas.append({"area": area, "tip": tip})
+
+# hypertip[element name;staticPos;width;name;text] or
+# hypertip[x,y;w,h;staticPos;width;name;text], formspec version 11.
+#
+# Hypertext markup in a tooltip (parseHyperTip): width is in ems of the form
+# text, staticPos, when given, pins it to a spot in the form instead of the
+# pointer, and style[] on the hypertip's own name sets its bgcolor, border
+# and bgimg.
+func _hypertip(parts: PackedStringArray) -> void:
+	var area_mode := parts[0].contains(",")
+	var at := 2 if area_mode else 1
+	if parts.size() < at + 4:
+		return
+	var static_pos: Variant = null
+	if parts[at].strip_edges() != "":
+		var s := fs_split(parts[at], ",")
+		if s.size() != 2:
+			return
+		static_pos = _pos(s)
+	var tip := {"markup": fs_unescape_raw(_resolve(parts[at + 3])),
+		"width": float(parts[at + 1]) * _font_size(), "static": static_pos,
+		"name": fs_unescape(parts[at + 2])}
+	if not area_mode:
+		# Coloured and styled when first shown, from what is in force then,
+		# as upstream builds the element on first hover.
+		hypertips[fs_unescape(parts[0])] = tip
+		return
+	tip["style"] = _style_for(tip["name"], "default")
+	var v := fs_split(parts[0], ",")
+	var g := fs_split(parts[1], ",")
+	if v.size() < 2 or g.size() < 2:
+		return
+	tip["bg"] = listcolors["tooltip_bg"]
+	tip["fg"] = listcolors["tooltip_fg"]
+	tip["parent"] = current_parent
+	_add_tooltip_area(v, g, tip)
+
+# --- the tooltip (GUIFormSpecMenu::drawMenu, showTooltip, showHyperTip) -----
+
+# tooltip_show_delay's default: how long the pointer rests on an element
+# before that element's own tooltip appears. Area and item tooltips do not
+# wait.
+const TOOLTIP_DELAY_MS := 400
+# TextDrawer's default margin around hypertext.
+const HYPERTEXT_MARGIN := 3.0
+
+# The pointer as the last mouse event left it, in viewport coordinates:
+# upstream's m_pointer, kept from events so that input pushed into the
+# viewport moves it as a real mouse does.
+var pointer := Vector2(-1.0e6, -1.0e6)
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventMouse:
+		pointer = (event as InputEventMouse).position
+	if key_capture != null and is_visible_in_tree() and _capture_key(event):
+		get_viewport().set_input_as_handled()
+
+func _process(_delta: float) -> void:
+	if root == null or not is_visible_in_tree():
+		_hide_tooltip()
+		return
+	var vp := get_viewport()
+	var point := pointer
+	var hovered := vp.gui_get_hovered_control()
+	var name := _named_under(hovered)
+	var now := Time.get_ticks_msec()
+	if name != hover_name:
+		hover_name = name
+		hover_since = now
+	var tip := tooltip_at(point, hovered, now - hover_since)
+	if tip.is_empty():
+		_hide_tooltip()
+	else:
+		_show_tooltip(tip, point)
+
+# The formspec element a Godot control belongs to: the control itself or the
+# nearest parent registered under a name.
+func _named_under(c: Control) -> String:
+	while c != null and c != root and c != self:
+		if c.has_meta("formspec_name"):
+			return String(c.get_meta("formspec_name"))
+		c = c.get_parent() as Control
+	return ""
+
+func _holding_stack() -> bool:
+	return item_source != null and item_source.has_method("holding_stack") \
+		and item_source.holding_stack()
+
+# The tooltip standing at `point` (viewport coordinates) with `hovered` under
+# the pointer for `rested_ms`, or {}. drawMenu's order, later rules winning:
+# an area tooltip, an area hypertip, the stack in the slot under the pointer
+# unless one is being carried, then, once the pointer has rested on it, the
+# element's own tooltip or failing that its hypertip.
+func tooltip_at(point: Vector2, hovered: Control, rested_ms: int) -> Dictionary:
+	var tip := {}
+	for kind in ["text", "markup"]:
+		for entry in tooltip_areas:
+			var area: Control = entry["area"]
+			var t: Dictionary = entry["tip"]
+			if t.has(kind) and String(t[kind]) != "" and is_instance_valid(area) \
+					and area.is_visible_in_tree() and area.get_global_rect().has_point(point):
+				tip = t
+				break
+	if hovered is FormspecSlot and not _holding_stack():
+		var item: Dictionary = (hovered as FormspecSlot).item
+		if String(item.get("name", "")) != "":
+			var desc := String(item.get("description", ""))
+			tip = {"text": desc if desc != "" else String(item["name"]),
+				"bg": listcolors["tooltip_bg"], "fg": listcolors["tooltip_fg"]}
+	var name := _named_under(hovered)
+	if name != "" and rested_ms >= TOOLTIP_DELAY_MS:
+		if tooltips.has(name) and String(tooltips[name]["text"]) != "":
+			tip = tooltips[name]
+		elif hypertips.has(name):
+			var h: Dictionary = hypertips[name]
+			if not h.has("bg"):
+				h["bg"] = listcolors["tooltip_bg"]
+				h["fg"] = listcolors["tooltip_fg"]
+				h["parent"] = named_controls[name].get_parent() if named_controls.has(name) else root
+				var element := current_element
+				current_element = "hypertip"
+				h["style"] = _style_for(String(h["name"]), "default")
+				current_element = element
+			tip = h
+	return tip
+
+func _hide_tooltip() -> void:
+	if tooltip_box != null and is_instance_valid(tooltip_box):
+		tooltip_box.visible = false
+
+# showTooltip and showHyperTip: the box follows the pointer at m_btn_height
+# below and to the right of it, or stands at a hypertip's static position,
+# and is pulled back on screen when it would run off an edge.
+func _show_tooltip(tip: Dictionary, point: Vector2) -> void:
+	if tooltip_box == null or not is_instance_valid(tooltip_box) or tip != tooltip_shown:
+		if tooltip_box != null and is_instance_valid(tooltip_box):
+			tooltip_box.queue_free()
+		tooltip_box = _build_tooltip_box(tip)
+		tooltip_shown = tip
+	tooltip_box.visible = true
+	var size := tooltip_box.size
+	var screen := screen_size
+	var btn_h := imgsize * 15.0 / 13.0 * 0.35
+	var pos := point + Vector2(btn_h, btn_h)
+	if tip.has("markup"):
+		if tip["static"] != null:
+			pos = (tip["parent"] as Control).global_position + (tip["static"] as Vector2)
+		pos.x = minf(pos.x, screen.x - size.x)
+		pos.y = minf(pos.y, screen.y - size.y)
+	else:
+		var alt := screen - size - Vector2(btn_h, btn_h)
+		if alt.x < pos.x and alt.y < pos.y:
+			pos = Vector2(alt.x, screen.y - 2.0 * size.y - btn_h)
+		elif alt.x < pos.x:
+			pos.x = alt.x
+		elif alt.y < pos.y:
+			pos.y = alt.y
+	tooltip_box.global_position = pos.floor()
+
+# The box for one tooltip, added to the form so it draws over it. A plain
+# tooltip is its text, colour escapes and all, centred, with m_btn_height of
+# width and five pixels of height added and a black frame. A hypertip is its
+# markup laid out at its width, on the tooltip colours or its own style.
+func _build_tooltip_box(tip: Dictionary) -> Control:
+	var box := Panel.new()
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(box)
+	var rt := RichTextLabel.new()
+	rt.bbcode_enabled = false
+	rt.scroll_active = false
+	rt.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rt.autowrap_mode = TextServer.AUTOWRAP_OFF
+	rt.add_theme_font_size_override("normal_font_size", _font_size())
+	rt.add_theme_color_override("default_color", tip["fg"])
+	box.add_child(rt)
+	var frame := StyleBoxFlat.new()
+	frame.bg_color = tip["bg"]
+	frame.border_color = Color.BLACK
+	var panel: StyleBox = frame
+	if tip.has("markup"):
+		var st: Dictionary = tip["style"]
+		frame.bg_color = parse_color(String(st.get("bgcolor", "")), tip["bg"])
+		if not _has_style(st, "border") or _is_yes(String(st["border"])):
+			frame.set_border_width_all(1)
+		if _has_style(st, "bgimg") and item_source:
+			var tex: Texture2D = item_source.ui_texture(String(st["bgimg"]))
+			if tex:
+				var sbt := StyleBoxTexture.new()
+				sbt.texture = tex
+				var m := _middle_margins(String(st.get("bgimg_middle", "")), tex)
+				sbt.texture_margin_left = m.x
+				sbt.texture_margin_top = m.y
+				sbt.texture_margin_right = m.z
+				sbt.texture_margin_bottom = m.w
+				panel = sbt
+		# The markup's own margin, three pixels unless <global margin=...>
+		# says otherwise, lies inside the label's stylebox.
+		var width := maxf(float(tip["width"]), HYPERTEXT_MARGIN * 2.0 + 1.0)
+		rt.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		rt.size = Vector2(width, 1)
+		_render_markup(rt, String(tip["markup"]))
+		var margin: float = rt.get_meta("markup_margin", HYPERTEXT_MARGIN)
+		var height := float(rt.get_content_height()) + margin * 2.0
+		rt.size = Vector2(width, height).ceil()
+		box.size = rt.size
+	else:
+		frame.set_border_width_all(1)
+		var font := get_theme_default_font()
+		var fs := _font_size()
+		var lines := strip_enriched(String(tip["text"])).split("\n")
+		var text_w := 0.0
+		for line in lines:
+			text_w = maxf(text_w, font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x)
+		var text_h := font.get_height(fs) * lines.size()
+		rt.push_paragraph(HORIZONTAL_ALIGNMENT_CENTER)
+		for run in parse_enriched_runs(String(tip["text"]), tip["fg"]):
+			rt.push_color(run["color"])
+			rt.add_text(run["text"])
+			rt.pop()
+		rt.pop()
+		var btn_h := imgsize * 15.0 / 13.0 * 0.35
+		box.size = Vector2(text_w + btn_h, text_h + 5.0).ceil()
+		rt.size = Vector2(ceilf(text_w) + 2.0, ceilf(text_h))
+		rt.position = ((box.size - rt.size) / 2.0).floor()
+	box.add_theme_stylebox_override("panel", panel)
+	return box
 
 # model[x,y;w,h;name;mesh;textures;rotation;continuous;mouse control;frame
 # loop range;animation speed]
@@ -1876,19 +2878,28 @@ func _model(parts: PackedStringArray) -> void:
 		var r := fs_split(parts[5], ",")
 		if r.size() >= 2:
 			rotation_xy = Vector2(float(r[0]), float(r[1]))
-	var spin := parts.size() >= 7 and _model_is_yes(parts[6])
+	var spin := parts.size() >= 7 and _is_yes(parts[6])
 	# Mouse control defaults to true, including when the field is left empty.
 	var mouse_control := parts.size() < 8 or parts[7].strip_edges() == "" \
-		or _model_is_yes(parts[7])
+		or _is_yes(parts[7])
 	var c := FormspecModel.new()
 	c.setup(preview["node"], preview.get("aabb", AABB()), rotation_xy, spin, mouse_control)
+	# GUIScene::setStyles: bgcolor fills the element behind the model.
+	var st := _style_for(mname, "default")
+	if _has_style(st, "bgcolor"):
+		var back := ColorRect.new()
+		back.color = parse_color(String(st["bgcolor"]), Color.TRANSPARENT)
+		back.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		back.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		c.add_child(back)
+		c.move_child(back, 0)
 	_add(c, _pos(v), _geom(g))
 	_register_named_control(mname, c)
 
 # is_yes in upstream's string.h: a yes, a true, or a number that is not zero.
-func _model_is_yes(s: String) -> bool:
+static func _is_yes(s: String) -> bool:
 	var t := s.strip_edges().to_lower()
-	return t == "y" or t == "yes" or t == "true" or (t.is_valid_int() and int(t) != 0)
+	return t == "y" or t == "yes" or t == "true" or (t.is_valid_float() and int(float(t)) != 0)
 
 # What model[] draws when the mesh is not available: a muted panel labelled
 # with the mesh name, so the element reads as a model that failed rather than
@@ -1922,87 +2933,125 @@ func _font_size() -> int:
 # Called by a slot; forwarded to the owner.
 # --- styles (style[] and style_type[]) --------------------------------------
 
-# Which type a style falls back to when the element's own type says nothing,
-# from "Supported Element Types" in lua_api.md.
-const STYLE_INHERITS := {
-	"button_exit": "button",
-	"image_button_exit": "image_button",
-	"pwdfield": "field",
-	"vertlabel": "label",
-	"animated_image": "image",
+# The type each builder asks the theme for, and the one parent type it falls
+# back to, exactly as the parse functions in guiFormSpecMenu.cpp call
+# getStyleForElement. image_button_exit is built by parseImageButton as a
+# plain image_button, and item_image_button takes image_button's styles, which
+# is how a game's style_type[image_button] also dresses its item buttons.
+const STYLE_LOOKUP := {
+	"button_exit": ["button_exit", "button"],
+	"button_url": ["button_url", "button"],
+	"button_url_exit": ["button_url_exit", "button"],
+	"button_key": ["button_key", "button"],
+	"image_button_exit": ["image_button", ""],
+	"item_image_button": ["item_image_button", "image_button"],
+	"animated_image": ["animated_image", "image"],
+	"pwdfield": ["pwdfield", "field"],
+	"vertlabel": ["vertlabel", "label"],
 }
 
-# The states each Godot visual counts as active. Upstream applies a style when
-# every state in its selector is active, so a pressed button is also hovered.
+# StyleSpec::State. A selector's states are OR'd into one mask.
+const STATE_FOCUSED := 1
+const STATE_HOVERED := 2
+const STATE_PRESSED := 4
+const STATE_BITS := {"default": 0, "focused": STATE_FOCUSED, "hovered": STATE_HOVERED,
+	"pressed": STATE_PRESSED}
+# The mask each named look reads. A pressed button is under the pointer, so
+# upstream's pressed look is hovered and pressed together.
 const STYLE_STATES := {
-	"default": [],
-	"hovered": ["hovered"],
-	"pressed": ["pressed", "hovered"],
-	"focused": ["focused"],
+	"default": 0,
+	"hovered": STATE_HOVERED,
+	"pressed": STATE_HOVERED | STATE_PRESSED,
+	"focused": STATE_FOCUSED,
 }
 
 # style[selector 1,selector 2,...;prop=value;...], and style_type[] with the
-# same shape. A selector is a name (or type) optionally followed by a colon
-# and a +-separated list of states.
+# same shape (GUIFormSpecMenu::parseStyle). A selector is a name or type,
+# optionally followed by a colon and a +-separated list of states. A property
+# without an = discards the whole element, and an unknown state discards that
+# selector, as upstream does. The deprecated _hovered and _pressed properties
+# become entries of their own for that state, pushed straight after the one
+# they came from.
 func _style(parts: PackedStringArray, by_type: bool) -> void:
-	if parts.size() < 1:
+	if parts.size() < 2:
 		return
 	var props := {}
 	for i in range(1, parts.size()):
-		var p := fs_unescape(parts[i])
+		var p := parts[i]
 		var eq := p.find("=")
 		if eq < 0:
-			continue
-		props[p.substr(0, eq).strip_edges().to_lower()] = p.substr(eq + 1).strip_edges()
-	if props.is_empty():
-		return
+			return
+		props[p.substr(0, eq).strip_edges().to_lower()] = fs_unescape(p.substr(eq + 1)).strip_edges()
+	var hover := {}
+	var press := {}
+	for key in ["bgcolor", "bgimg", "fgimg"]:
+		if props.has(key + "_hovered"):
+			hover[key] = props[key + "_hovered"]
+		if props.has(key + "_pressed"):
+			press[key] = props[key + "_pressed"]
 	var target := style_by_type if by_type else style_by_name
 	for raw in fs_split(parts[0], ","):
-		var sel := fs_unescape(raw).strip_edges()
-		if sel == "":
-			continue
-		var states := PackedStringArray()
+		var sel := raw.strip_edges()
+		var mask := 0
 		var colon := sel.find(":")
 		if colon >= 0:
-			for st in sel.substr(colon + 1).split("+", false):
-				states.append(st.strip_edges().to_lower())
-			sel = sel.substr(0, colon).strip_edges()
+			var names := sel.substr(colon + 1)
+			sel = sel.substr(0, colon)
+			if names == "":
+				continue
+			var valid := true
+			for st in names.split("+"):
+				if not STATE_BITS.has(st):
+					valid = false
+					break
+				mask |= int(STATE_BITS[st])
+			if not valid:
+				continue
 		if not target.has(sel):
 			target[sel] = []
-		target[sel].append({"states": states, "props": props})
+		target[sel].append({"mask": mask, "props": props})
+		if not hover.is_empty():
+			target[sel].append({"mask": STATE_HOVERED, "props": hover})
+		if not press.is_empty():
+			target[sel].append({"mask": STATE_PRESSED, "props": press})
 
-# The properties in force for one element in one visual state, merged in
-# upstream's precedence: every type in the inheritance chain under `*`, then
-# the name, with a later declaration beating an earlier one.
-func _style_for(ename: String, state: String) -> Dictionary:
-	var out := {}
+# GUIFormSpecMenu::getStyleForElement: one property set per state mask, each
+# built from `*` types, `*` names, the parent type, the type and then the
+# name, with a later declaration beating an earlier one.
+func _style_states(ename: String) -> Array:
+	var ret: Array = []
+	for i in 8:
+		ret.append({})
 	if style_by_name.is_empty() and style_by_type.is_empty():
-		return out
-	var active: Array = STYLE_STATES.get(state, [])
-	var chain: Array = ["*"]
-	var t := current_element
-	var parents: Array = []
-	while t != "":
-		parents.push_front(t)
-		t = str(STYLE_INHERITS.get(t, ""))
-	chain.append_array(parents)
-	for ty in chain:
-		_merge_style(out, style_by_type.get(ty, []), active)
-	for nm in ["*", ename]:
-		if nm != "":
-			_merge_style(out, style_by_name.get(nm, []), active)
+		return ret
+	var lookup: Array = STYLE_LOOKUP.get(current_element, [current_element, ""])
+	var sources: Array = [style_by_type.get("*", []), style_by_name.get("*", [])]
+	if String(lookup[1]) != "":
+		sources.append(style_by_type.get(lookup[1], []))
+	sources.append(style_by_type.get(lookup[0], []))
+	sources.append(style_by_name.get(ename, []))
+	for entries in sources:
+		for e in entries:
+			var d: Dictionary = ret[int(e["mask"])]
+			for k in e["props"]:
+				d[k] = e["props"][k]
+	return ret
+
+# StyleSpec::getStyleFromStatePropagation: the default state, then every mask
+# up to this one that shares a bit with it. That is upstream's rule, and it
+# is looser than "every state in the selector is active".
+static func _style_at(states: Array, state: int) -> Dictionary:
+	var out: Dictionary = (states[0] as Dictionary).duplicate()
+	for i in range(1, state + 1):
+		if (state & i) != 0:
+			var d: Dictionary = states[i]
+			for k in d:
+				out[k] = d[k]
 	return out
 
-func _merge_style(out: Dictionary, entries: Array, active: Array) -> void:
-	for e in entries:
-		var ok := true
-		for st in e["states"]:
-			if not active.has(st):
-				ok = false
-				break
-		if ok:
-			for k in e["props"]:
-				out[k] = e["props"][k]
+# The properties in force for one element in one named look.
+func _style_for(ename: String, state: String) -> Dictionary:
+	return _style_at(_style_states(ename), int(STYLE_STATES.get(state, 0)))
 
 # A style value that was set to nothing resets the property to its default,
 # so an empty string means "not set" everywhere below.
@@ -2020,80 +3069,222 @@ func _style_font_size(value: String, base: int) -> int:
 		return maxi(base + int(v), 1)
 	return maxi(int(v), 1)
 
-# The background for one button state: a nine-sliced or plain texture if the
-# style names one, a flat fill if it names a colour, nothing if it turned the
-# border off, and null to leave Godot's own theme alone.
-func _style_box(st: Dictionary, img_key: String, color_key: String) -> StyleBox:
-	if _has_style(st, img_key):
-		var tex: Texture2D = item_source.ui_texture(String(st[img_key])) if item_source else null
-		if tex:
-			var sb := StyleBoxTexture.new()
-			sb.texture = tex
-			var middle := String(st.get("bgimg_middle", ""))
+# The looks Godot draws a button in, and the state mask each one reads.
+const BUTTON_LOOKS := [["normal", 0], ["hover", STATE_HOVERED],
+	["pressed", STATE_HOVERED | STATE_PRESSED]]
+# The colour factors GUIButton applies to a bgcolor that only the default
+# state set (COLOR_HOVERED_MOD and COLOR_PRESSED_MOD in guiButton.cpp).
+const BUTTON_HOVER_MOD := 1.25
+const BUTTON_PRESS_MOD := 0.85
+
+# GUIButton::setFromStyle for one button. `states` is the per-mask property
+# set from _style_states, already carrying anything the element itself set;
+# `content` is the label, and for an image button the image, that
+# _button_content put inside it.
+#
+# What carries over, in upstream's terms: bgcolor tints the bgimg (and the
+# pane when there is no image); border=false drops the pane but never the
+# bgimg; bgimg_middle nine-slices the bgimg and, with padding, insets the
+# content; content_offset moves the content, which otherwise moves one pixel
+# down and right while pressed; textcolor colours the label, white by
+# default. A button its form does not style at all keeps Godot's own panel,
+# as upstream keeps the skin's bevelled pane.
+func _style_button(b: Button, _ename: String, states: Array, content: Dictionary) -> void:
+	b.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	var styled := false
+	for d in states:
+		if not (d as Dictionary).is_empty():
+			styled = true
+			break
+	var base: Dictionary = _style_at(states, 0)
+	if _has_style(base, "font_size") and content["label"] != null:
+		(content["label"] as Label).add_theme_font_size_override("font_size",
+			_style_font_size(String(base["font_size"]), _font_size()))
+	if _has_style(base, "font") and content["label"] != null:
+		var f := _style_font(String(base["font"]))
+		if f != null:
+			(content["label"] as Label).add_theme_font_override("font", f)
+	b.set_meta("looks", _button_looks(b, states, 0, styled))
+	b.set_meta("content", content)
+	b.draw.connect(func() -> void: _sync_button_content(b))
+	_sync_button_content(b)
+	# A focused state only exists upstream if the form asks for one; Godot
+	# draws focus as an overlay instead, so a styled button swaps its looks
+	# on focus and draws no overlay of its own.
+	if styled:
+		b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+		var uses_focus := false
+		for mask in 8:
+			if (mask & STATE_FOCUSED) != 0 and not (states[mask] as Dictionary).is_empty():
+				uses_focus = true
+		if uses_focus:
+			b.focus_entered.connect(func() -> void:
+				b.set_meta("looks", _button_looks(b, states, STATE_FOCUSED, true))
+				b.queue_redraw())
+			b.focus_exited.connect(func() -> void:
+				b.set_meta("looks", _button_looks(b, states, 0, true))
+				b.queue_redraw())
+
+# The three looks of one button, for one focus bit: the panel each look
+# draws, set on the button's theme when the form styles it, and the content
+# rectangle, foreground image and text colour _sync_button_content places.
+func _button_looks(b: Button, states: Array, focus: int, styled: bool) -> Array:
+	var looks: Array = []
+	for look in BUTTON_LOOKS:
+		var mask: int = int(look[1]) | focus
+		var st := _style_at(states, mask)
+		var own: Dictionary = states[mask]
+		var tint := Color.WHITE
+		var tinted := _has_style(st, "bgcolor")
+		if tinted:
+			tint = parse_color(String(st["bgcolor"]), Color.WHITE)
+			if not _has_style(own, "bgcolor"):
+				if (mask & STATE_PRESSED) != 0:
+					tint = _scale_rgb(tint, BUTTON_PRESS_MOD)
+				elif (mask & STATE_HOVERED) != 0:
+					tint = _scale_rgb(tint, BUTTON_HOVER_MOD)
+		var border := _is_yes(String(st["border"])) if _has_style(st, "border") else true
+		var middle := String(st.get("bgimg_middle", ""))
+		var box: StyleBox = null
+		var bg: Texture2D = null
+		if _has_style(st, "bgimg") and item_source:
+			bg = item_source.ui_texture(String(st["bgimg"]))
+		if bg != null:
+			var sbt := StyleBoxTexture.new()
+			sbt.texture = bg
+			sbt.modulate_color = tint
 			if middle != "":
-				var m := _middle_margins(middle, tex)
-				sb.texture_margin_left = m.x
-				sb.texture_margin_top = m.y
-				sb.texture_margin_right = m.z
-				sb.texture_margin_bottom = m.w
-			return sb
-	if _has_style(st, color_key):
-		var sb := StyleBoxFlat.new()
-		sb.bg_color = parse_color(String(st[color_key]), Color.TRANSPARENT)
-		return sb
-	if st.get("border", "") == "false":
-		return StyleBoxEmpty.new()
-	return null
+				var m := _middle_margins(middle, bg)
+				sbt.texture_margin_left = m.x
+				sbt.texture_margin_top = m.y
+				sbt.texture_margin_right = m.z
+				sbt.texture_margin_bottom = m.w
+			box = sbt
+		elif not border:
+			box = StyleBoxEmpty.new()
+		elif tinted:
+			var sbf := StyleBoxFlat.new()
+			sbf.bg_color = tint
+			box = sbf
+		if styled and box != null:
+			b.add_theme_stylebox_override(look[0], box)
+			if look[0] == "pressed":
+				b.add_theme_stylebox_override("hover_pressed", box)
+		# "Child padding and offset": the rectangle the label and image fill.
+		var pad := _style_rect(String(st.get("padding", "")))
+		var mid := _style_rect(middle)
+		var off := Vector2.ZERO
+		if _has_style(st, "content_offset"):
+			off = _style_vec2(String(st["content_offset"])).floor()
+		elif (mask & STATE_PRESSED) != 0:
+			off = Vector2(1, 1)
+		var tl := Vector2(pad[0] + mid[0], pad[1] + mid[1]) + off
+		var br := b.size + Vector2(pad[2] + mid[2], pad[3] + mid[3]) + off
+		var fg: Texture2D = null
+		if _has_style(st, "fgimg") and item_source:
+			fg = item_source.ui_texture(String(st["fgimg"]))
+		looks.append({"rect": Rect2(tl, br - tl), "fg": fg,
+			"fg_middle": String(st.get("fgimg_middle", "")),
+			"colour": parse_color(String(st.get("textcolor", "")), Color.WHITE)})
+	return looks
+
+# Places a button's label, and image if it has one, for the look Godot is
+# drawing. Connected to the button's draw signal, which fires on every change
+# of hover, press and focus.
+func _sync_button_content(b: Button) -> void:
+	var looks: Array = b.get_meta("looks", [])
+	var content: Dictionary = b.get_meta("content", {})
+	if looks.size() < 3 or content.is_empty():
+		return
+	var i := 0
+	match b.get_draw_mode():
+		BaseButton.DRAW_HOVER:
+			i = 1
+		BaseButton.DRAW_PRESSED, BaseButton.DRAW_HOVER_PRESSED:
+			i = 2
+	var look: Dictionary = looks[i]
+	var rect: Rect2 = look["rect"]
+	var image: NinePatchRect = content["image"]
+	if image != null:
+		var tex: Texture2D = content.get("item")
+		var margins := Vector4.ZERO
+		if tex == null:
+			tex = look["fg"]
+			if tex != null:
+				margins = _middle_margins(String(look["fg_middle"]), tex)
+		image.texture = tex
+		image.patch_margin_left = int(margins.x)
+		image.patch_margin_top = int(margins.y)
+		image.patch_margin_right = int(margins.z)
+		image.patch_margin_bottom = int(margins.w)
+		image.position = rect.position
+		image.size = rect.size
+	var label: Label = content["label"]
+	if label != null:
+		label.position = rect.position
+		label.size = rect.size
+		label.add_theme_color_override("font_color", look["colour"])
+
+# StyleSpec::parseRect: one value insets every side, two inset the sides and
+# the top and bottom, and four are the corners, the second pair counting from
+# the far edges. Returned as [left, top, right, bottom] with upstream's signs.
+static func _style_rect(value: String) -> Array:
+	var v := value.strip_edges()
+	if v == "":
+		return [0, 0, 0, 0]
+	var p := v.split(",")
+	match p.size():
+		1:
+			var x := int(float(p[0]))
+			return [x, x, -x, -x]
+		2:
+			var x := int(float(p[0]))
+			var y := int(float(p[1]))
+			return [x, y, -x, -y]
+		4:
+			return [int(float(p[0])), int(float(p[1])), int(float(p[2])), int(float(p[3]))]
+	return [0, 0, 0, 0]
+
+# StyleSpec::parseVector2f: "x,y", or one number for both.
+static func _style_vec2(value: String) -> Vector2:
+	var p := value.strip_edges().split(",")
+	if p.size() == 1:
+		return Vector2(float(p[0]), float(p[0]))
+	if p.size() == 2:
+		return Vector2(float(p[0]), float(p[1]))
+	return Vector2.ZERO
+
+# multiplyColorValue in guiButton.cpp: the colour channels scaled and clamped,
+# alpha untouched.
+static func _scale_rgb(c: Color, f: float) -> Color:
+	return Color(minf(c.r * f, 1.0), minf(c.g * f, 1.0), minf(c.b * f, 1.0), c.a)
 
 # Applies whatever style[] and style_type[] asked for to a built control. The
 # element type comes from current_element, so this stays a single call at the
-# end of each builder.
+# end of each builder. Buttons have their own, _style_button.
 func _apply_style(c: Control, ename: String) -> void:
 	if style_by_name.is_empty() and style_by_type.is_empty():
 		return
 	var base := _style_for(ename, "default")
-	if base.is_empty() and not (c is Button):
+	if base.is_empty():
 		return
 	var base_font := _font_size()
 	if _has_style(base, "font_size"):
 		c.add_theme_font_size_override(
 			"normal_font_size" if c is RichTextLabel else "font_size",
 			_style_font_size(String(base["font_size"]), base_font))
-	if c is Button:
-		var b := c as Button
-		for pair in [["normal", "default", "bgimg", "bgcolor"],
-				["hover", "hovered", "bgimg_hovered", "bgcolor_hovered"],
-				["pressed", "pressed", "bgimg_pressed", "bgcolor_pressed"],
-				["focus", "focused", "bgimg", "bgcolor"]]:
-			var st := _style_for(ename, pair[1])
-			# The legacy per-state properties name their own keys; the state
-			# selectors reuse the plain ones, so try both.
-			var sb := _style_box(st, pair[2], pair[3])
-			if sb == null and pair[1] != "default":
-				sb = _style_box(st, "bgimg", "bgcolor")
-			if sb != null:
-				b.add_theme_stylebox_override(pair[0], sb)
-			if _has_style(st, "textcolor"):
-				var key := "font_color"
-				match pair[1]:
-					"hovered": key = "font_hover_color"
-					"pressed": key = "font_pressed_color"
-					"focused": key = "font_focus_color"
-				b.add_theme_color_override(key, parse_color(String(st["textcolor"]), Color.WHITE))
-		if _has_style(base, "fgimg") and item_source:
-			var fg: Texture2D = item_source.ui_texture(String(base["fgimg"]))
-			if fg:
-				b.icon = fg
-				b.expand_icon = true
-				b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-				b.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		if base.get("border", "") == "false":
-			b.flat = true
-		return
+	if _has_style(base, "font") and (c is LineEdit or c is TextEdit or c is ItemList or c is Tree):
+		var f := _style_font(String(base["font"]))
+		if f != null:
+			c.add_theme_font_override("font", f)
 	if _has_style(base, "textcolor"):
 		var col := parse_color(String(base["textcolor"]), Color.WHITE)
 		if c is LineEdit or c is TextEdit or c is Label:
 			c.add_theme_color_override("font_color", col)
+		elif c is CheckBox:
+			for key in ["font_color", "font_hover_color", "font_pressed_color",
+					"font_hover_pressed_color", "font_focus_color"]:
+				c.add_theme_color_override(key, col)
 		elif c is TabBar:
 			c.add_theme_color_override("font_unselected_color", col)
 			c.add_theme_color_override("font_selected_color", col)
@@ -2318,33 +3509,51 @@ class FormspecSlot extends Control:
 		mouse_entered.connect(func() -> void: hovered = true; queue_redraw())
 		mouse_exited.connect(func() -> void: hovered = false; queue_redraw())
 
+	# The form draws the item's tooltip itself (tooltip_at), from `item`.
 	func refresh() -> void:
 		item = form.item_source.get_list_item(location, listname, index) if form.item_source else {}
-		icon = form.item_source.item_icon(item.get("name", "")) if (form.item_source and item.get("name", "") != "") else null
-		tooltip_text = form.strip_enriched(String(item.get("description", ""))) if item.get("name", "") != "" else ""
-		if tooltip_text == "":
-			tooltip_text = item.get("name", "")
+		icon = form.item_source.item_icon(item.get("icon_item", item.get("name", ""))) if (form.item_source and item.get("name", "") != "") else null
 		queue_redraw()
 
+	# GUIInventoryList::draw and drawItemStack: the slot colour, a border
+	# only once listcolors[] has named one, a pixel outside the slot; the
+	# item filling the slot; a tool's wear bar; the count in the corner.
 	func _draw() -> void:
 		var r := Rect2(Vector2.ZERO, size)
 		draw_rect(r, colors["slot_bg_h"] if hovered else colors["slot_bg"])
-		draw_rect(r, colors["slot_border"], false, 1.0)
+		if colors.get("slot_border_on", false):
+			draw_rect(Rect2(Vector2(-0.5, -0.5), size + Vector2(1, 1)), colors["slot_border"],
+				false, 1.0)
 		if icon:
-			var pad := size * 0.1
-			draw_texture_rect(icon, Rect2(pad, size - pad * 2), false)
-		var count: int = item.get("count", 0)
-		if count > 1:
-			var fs := maxi(int(size.y * 0.3), 9)
-			var f := get_theme_default_font()
-			var txt := str(count)
-			var w := f.get_string_size(txt, HORIZONTAL_ALIGNMENT_RIGHT, -1, fs).x
-			draw_string(f, Vector2(size.x - w - 2, size.y - 3), txt, HORIZONTAL_ALIGNMENT_RIGHT, -1, fs, Color.WHITE)
+			draw_texture_rect(icon, r, false)
 		var wear: int = item.get("wear", 0)
-		if wear > 0:
-			var frac := 1.0 - wear / 65535.0
-			var bar := Rect2(Vector2(size.x * 0.1, size.y * 0.85), Vector2(size.x * 0.8 * frac, size.y * 0.08))
-			draw_rect(bar, Color(1.0 - frac, frac, 0.1))
+		if wear > 0 and int(item.get("type", ITEM_TOOL)) == ITEM_TOOL:
+			_draw_wear(wear / 65535.0)
+		var count: int = item.get("count", 0)
+		if count >= 2:
+			var f := get_theme_default_font()
+			var fs: int = form._font_size()
+			var txt := str(count)
+			var at := Vector2(size.x - f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x,
+				size.y - f.get_descent(fs))
+			draw_string(f, at + Vector2(1, 1), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs,
+				Color(0, 0, 0, 127.0 / 255.0))
+			draw_string(f, at, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color.WHITE)
+
+	# ItemType::ITEM_TOOL: only tools draw a wear bar.
+	const ITEM_TOOL := 3
+
+	# A sixteenth of the slot high, a sixteenth in from the sides and bottom,
+	# green through yellow to red as wear rises, black where it is used up.
+	func _draw_wear(w: float) -> void:
+		var h := size.y / 16.0
+		var pad := size / 16.0
+		var bar := Rect2(pad.x, size.y - pad.y - h, size.x - pad.x * 2.0, h)
+		var mid := w * bar.position.x + (1.0 - w) * bar.end.x
+		var level := mini(mini(floori(w * 600.0), 511) + 10, 511)
+		var colour := Color8(level, 255, 0) if level <= 255 else Color8(255, 511 - level, 0)
+		draw_rect(Rect2(bar.position, Vector2(mid - bar.position.x, h)), colour)
+		draw_rect(Rect2(Vector2(mid, bar.position.y), Vector2(bar.end.x - mid, h)), Color.BLACK)
 
 	# Which single button a motion event says is held. Left wins over right
 	# and right over middle, the order GUIFormSpecMenu tests them in.

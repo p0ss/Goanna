@@ -60,6 +60,8 @@ add_library(goanna SHARED
     src/goanna_textures.cpp
     src/goanna_sky.cpp
     src/goanna_entities.cpp
+    src/goanna_icon_raster.cpp
+    src/goanna_item_icons.cpp
     src/iris/iris_glsl.cpp
     src/iris/iris_pack.cpp
     src/iris/goanna_iris_effect.cpp
@@ -94,6 +96,16 @@ target_link_libraries(goanna_lod_test PRIVATE goanna luanti_core)
 add_executable(goanna_lod_storage_test EXCLUDE_FROM_ALL src/goanna_lod_storage_test.cpp)
 target_include_directories(goanna_lod_storage_test PRIVATE src)
 target_link_libraries(goanna_lod_storage_test PRIVATE goanna luanti_core)
+
+# Node item icons through upstream's node visuals and item mesh and Goanna's
+# rasteriser, from node definitions alone: a mesh node on an atlas must not
+# come out as a folded cube. Not built by default:
+# cmake --build build --target goanna_item_icon_test
+add_executable(goanna_item_icon_test EXCLUDE_FROM_ALL src/goanna_item_icon_test.cpp)
+target_include_directories(goanna_item_icon_test PRIVATE src)
+# godot-cpp only for the inline code its headers bring in; nothing in the
+# test calls into Godot, and the extension's own copy stays private to it.
+target_link_libraries(goanna_item_icon_test PRIVATE goanna luanti_core godot::cpp)
 
 # The one scheduling rule every queue shares: the Z mirror crossing into
 # Godot space, class bands, and a view cone that weights rather than filters.
