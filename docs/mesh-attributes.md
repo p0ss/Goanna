@@ -132,6 +132,12 @@ and is 0 on a surface whose material is not an array texture. Every node
 surface now carries `UV2` whether or not its material is an array, because
 the block ID has to be there either way.
 
+For an animated tile drawn from an animation array, `UV2.x` is the layer of
+the tile's first frame. The mesh never changes as the tile animates: the
+array shader adds the frame the clock names, from the material's
+`layer_anim` table, and reads everything per layer at the result. The far
+tiers write the same layer. See `docs/node-animation.md`.
+
 ## What the LOD mesher does with it
 
 The same, at lower resolution, which is the whole point.

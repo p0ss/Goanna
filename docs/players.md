@@ -135,8 +135,8 @@ horizon is limited by the server's send and generation distance.
 ## Current limitations
 
 The project is alpha quality. Known gaps include some dropped-item models,
-animated node textures, parts of particle behaviour, connected textures and
-the long tail of game-specific formspec and drawtype behaviour. Shader-pack
+animated inventory icons, parts of particle behaviour, connected textures
+and the long tail of game-specific formspec and drawtype behaviour. Shader-pack
 support currently covers the screen-space composite/final path, not the full
 world gbuffers pipeline.
 
