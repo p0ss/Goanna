@@ -217,6 +217,7 @@ func _reset() -> void:
 	tooltip_shown = {}
 	hover_name = ""
 	simple_field_count = 0
+	key_capture = null
 
 static func _default_listcolors() -> Dictionary:
 	return {"slot_bg": DEFAULT_LIST_SLOT_BG, "slot_bg_h": DEFAULT_LIST_SLOT_BG_HOVER,
@@ -1699,9 +1700,151 @@ func _button(parts: PackedStringArray, exit: bool, kind: String) -> void:
 	_add(b, _pos(v) + r.position, r.size)
 	if kind.begins_with("button_url") and parts.size() >= 5:
 		b.set_meta("url", fs_unescape(parts[4]))
+	if kind == "button_key":
+		_key_button(b, bname, label)
+		return
 	var content := _button_content(b, label, false)
 	_wire_button(b, bname, label, exit)
 	_style_button(b, bname, _style_states(bname), content)
+
+# --- button_key (GUIButtonKey) ----------------------------------------------
+
+# The button whose next key or mouse button is being captured, or null.
+var key_capture: Button = null
+
+# button_key[x,y;w,h;name;key]: the key is a key setting string, which the
+# button shows by the key's name. Pressing it shows "Press Button" and takes
+# the next key or mouse button as its value, which goes to the server as the
+# element's field, a SYSTEM_SCANCODE_ or MOUSE_BUTTON_ string, as sendKey
+# and acceptInput send it. Escape stops capturing and keeps the old key.
+func _key_button(b: Button, bname: String, value: String) -> void:
+	var sym := _key_sym_of(value)
+	b.set_meta("key_value", sym)
+	var content := _button_content(b, _key_name_of(sym), false)
+	_register_named_control(bname, b)
+	var sound := _style_sound(bname)
+	b.pressed.connect(func() -> void:
+		if key_capture == b:
+			return
+		key_capture = b
+		var label: Label = content["label"]
+		if label:
+			label.text = "Press Button")
+	b.set_meta("key_send", func() -> void:
+		_play_sound(sound)
+		submit({bname: String(b.get_meta("key_value"))}, false))
+	_style_button(b, bname, _style_states(bname), content)
+
+# Ends a capture, keeping `sym` when given, and sends the form if it took a
+# new key.
+func _end_key_capture(sym: String) -> void:
+	var b := key_capture
+	key_capture = null
+	if b == null or not is_instance_valid(b):
+		return
+	if sym != "":
+		b.set_meta("key_value", sym)
+	var label: Label = b.get_meta("content", {}).get("label")
+	if label:
+		label.text = _key_name_of(String(b.get_meta("key_value")))
+	if sym != "":
+		(b.get_meta("key_send") as Callable).call()
+
+# While a key button captures, every key and mouse button goes to it first,
+# as the focused element gets events first in Irrlicht.
+func _capture_key(event: InputEvent) -> bool:
+	if event is InputEventKey and event.pressed and not event.echo:
+		var k := event as InputEventKey
+		if k.keycode == KEY_ESCAPE or k.physical_keycode == KEY_ESCAPE:
+			_end_key_capture("")
+		else:
+			_end_key_capture(_key_sym_of_event(k))
+		return true
+	if event is InputEventMouseButton and event.pressed:
+		var sdl: int = MOUSE_TO_SDL.get((event as InputEventMouseButton).button_index, 0)
+		if sdl == 0:
+			return false
+		_end_key_capture("MOUSE_BUTTON_%d" % sdl)
+		return true
+	return false
+
+# Godot's mouse buttons as SDL numbers them.
+const MOUSE_TO_SDL := {MOUSE_BUTTON_LEFT: 1, MOUSE_BUTTON_MIDDLE: 2, MOUSE_BUTTON_RIGHT: 3,
+	MOUSE_BUTTON_XBUTTON1: 4, MOUSE_BUTTON_XBUTTON2: 5}
+const SDL_MOUSE_NAMES := {1: "Left Click", 2: "Middle Click", 3: "Right Click", 4: "Mouse X1",
+	5: "Mouse X2"}
+
+# Keys as Luanti 5.17 knows them: [Godot physical key, SDL scancode (the USB
+# HID usage), Irrlicht key name as older settings wrote it, key name shown].
+static func _key_table() -> Array:
+	var t: Array = []
+	for i in 26:
+		var ch := char(65 + i)
+		t.append([KEY_A + i, 4 + i, "KEY_KEY_" + ch, ch])
+	for i in 9:
+		t.append([KEY_1 + i, 30 + i, "KEY_KEY_%d" % (i + 1), str(i + 1)])
+	t.append([KEY_0, 39, "KEY_KEY_0", "0"])
+	t.append_array([[KEY_ENTER, 40, "KEY_RETURN", "Return"], [KEY_ESCAPE, 41, "KEY_ESCAPE", "Escape"],
+		[KEY_BACKSPACE, 42, "KEY_BACK", "Backspace"], [KEY_TAB, 43, "KEY_TAB", "Tab"],
+		[KEY_SPACE, 44, "KEY_SPACE", "Space"], [KEY_MINUS, 45, "KEY_MINUS", "-"],
+		[KEY_EQUAL, 46, "KEY_PLUS", "="], [KEY_BRACKETLEFT, 47, "KEY_OEM_4", "["],
+		[KEY_BRACKETRIGHT, 48, "KEY_OEM_6", "]"], [KEY_BACKSLASH, 49, "KEY_OEM_5", "\\"],
+		[KEY_SEMICOLON, 51, "KEY_OEM_1", ";"], [KEY_APOSTROPHE, 52, "KEY_OEM_7", "'"],
+		[KEY_QUOTELEFT, 53, "KEY_OEM_3", "`"], [KEY_COMMA, 54, "KEY_COMMA", ","],
+		[KEY_PERIOD, 55, "KEY_PERIOD", "."], [KEY_SLASH, 56, "KEY_OEM_2", "/"],
+		[KEY_CAPSLOCK, 57, "KEY_CAPITAL", "Caps Lock"]])
+	for i in 12:
+		t.append([KEY_F1 + i, 58 + i, "KEY_F%d" % (i + 1), "F%d" % (i + 1)])
+	t.append_array([[KEY_INSERT, 73, "KEY_INSERT", "Insert"], [KEY_HOME, 74, "KEY_HOME", "Home"],
+		[KEY_PAGEUP, 75, "KEY_PRIOR", "Page Up"], [KEY_DELETE, 76, "KEY_DELETE", "Delete"],
+		[KEY_END, 77, "KEY_END", "End"], [KEY_PAGEDOWN, 78, "KEY_NEXT", "Page Down"],
+		[KEY_RIGHT, 79, "KEY_RIGHT", "Right"], [KEY_LEFT, 80, "KEY_LEFT", "Left"],
+		[KEY_DOWN, 81, "KEY_DOWN", "Down"], [KEY_UP, 82, "KEY_UP", "Up"]])
+	for i in 9:
+		t.append([KEY_KP_1 + i, 89 + i, "KEY_NUMPAD%d" % (i + 1), "Keypad %d" % (i + 1)])
+	t.append([KEY_KP_0, 98, "KEY_NUMPAD0", "Keypad 0"])
+	# Modifiers: the right hand ones are told apart by location below.
+	t.append_array([[KEY_CTRL, 224, "KEY_LCONTROL", "Left Control"],
+		[KEY_SHIFT, 225, "KEY_LSHIFT", "Left Shift"], [KEY_ALT, 226, "KEY_LMENU", "Left Alt"],
+		[-1, 228, "KEY_RCONTROL", "Right Control"], [-1, 229, "KEY_RSHIFT", "Right Shift"],
+		[-1, 230, "KEY_RMENU", "Right Alt"]])
+	return t
+
+static func _key_sym_of_event(k: InputEventKey) -> String:
+	var key := k.physical_keycode if k.physical_keycode != KEY_NONE else k.keycode
+	var right := k.location == KEY_LOCATION_RIGHT
+	for row in _key_table():
+		if int(row[0]) == int(key):
+			var code: int = row[1]
+			if right and code >= 224 and code <= 226:
+				code += 4
+			return "SYSTEM_SCANCODE_%d" % code
+	return ""
+
+# A key setting string as KeyPress stores it: SYSTEM_SCANCODE_ and
+# MOUSE_BUTTON_ strings as they are, an Irrlicht key name by its scancode.
+static func _key_sym_of(value: String) -> String:
+	var v := value.strip_edges()
+	if v.begins_with("SYSTEM_SCANCODE_") or v.begins_with("MOUSE_BUTTON_"):
+		return v
+	for row in _key_table():
+		if row[2] == v:
+			return "SYSTEM_SCANCODE_%d" % int(row[1])
+	return v
+
+# KeyPress::name: the key's name, or "Scancode: n" for one Goanna does not
+# know by name.
+static func _key_name_of(sym: String) -> String:
+	if sym.begins_with("SYSTEM_SCANCODE_"):
+		var code := sym.substr(16).to_int()
+		for row in _key_table():
+			if int(row[1]) == code:
+				return String(row[3])
+		return "Scancode: %d" % code
+	if sym.begins_with("MOUSE_BUTTON_"):
+		var n := sym.substr(13).to_int()
+		return String(SDL_MOUSE_NAMES.get(n, "Mouse Button %d" % n))
+	return sym
 
 # image_button[x,y;w,h;texture;name;label;noclip;drawborder;pressed texture]
 #
@@ -2486,6 +2629,8 @@ var pointer := Vector2(-1.0e6, -1.0e6)
 func _input(event: InputEvent) -> void:
 	if event is InputEventMouse:
 		pointer = (event as InputEventMouse).position
+	if key_capture != null and is_visible_in_tree() and _capture_key(event):
+		get_viewport().set_input_as_handled()
 
 func _process(_delta: float) -> void:
 	if root == null or not is_visible_in_tree():

@@ -130,6 +130,7 @@ func _run() -> void:
 	_test_hypertext()
 	_test_nothing_skipped()
 	_test_tooltips()
+	_test_button_key()
 	_test_hypertip()
 	_test_prepend()
 	_test_host_passes_prepend()
@@ -1247,6 +1248,58 @@ func _test_tooltips() -> void:
 		_check(box.size.x > btn_h and box.size.y > 5.0, "the box is padded around its text")
 		_equal(box.global_position, (Vector2(10, 10) + Vector2(btn_h, btn_h)).floor(),
 			"the box sits m_btn_height below and right of the pointer")
+	_discard(form)
+
+
+# GUIButtonKey: a key setting shown by the key's name, a click that starts
+# capturing, the next key or mouse button sent as the element's field in
+# Luanti 5.17's SYSTEM_SCANCODE_ and MOUSE_BUTTON_ form, Escape to cancel.
+func _test_button_key() -> void:
+	var form := _new_form("formspec_version[6]size[10,6]"
+		+ "button_key[1,1;3,0.8;jump;SYSTEM_SCANCODE_44]button_key[1,3;3,0.8;fwd;KEY_KEY_W]")
+	var jump: Button = form.named_controls["jump"]
+	var fwd: Button = form.named_controls["fwd"]
+	var jump_label: Label = jump.get_meta("content")["label"]
+	_equal(jump_label.text, "Space", "a scancode setting shows its key's name")
+	_equal(fwd.get_meta("content")["label"].text, "W", "an Irrlicht key name does too")
+	_equal(fwd.get_meta("key_value"), "SYSTEM_SCANCODE_26", "and is held as its scancode")
+	var sent: Array = []
+	form.fields_submitted.connect(func(fields: Dictionary, _quit: bool) -> void:
+		sent.append(fields))
+	jump.pressed.emit()
+	_equal(jump_label.text, "Press Button", "pressing it starts capturing")
+	var q := InputEventKey.new()
+	q.physical_keycode = KEY_Q
+	q.keycode = KEY_Q
+	q.pressed = true
+	form._input(q)
+	_check(sent.size() == 1 and sent[0].get("jump") == "SYSTEM_SCANCODE_20",
+		"the next key is sent as the element's field")
+	_equal(jump_label.text, "Q", "and shown by name")
+	jump.pressed.emit()
+	var escape := InputEventKey.new()
+	escape.keycode = KEY_ESCAPE
+	escape.physical_keycode = KEY_ESCAPE
+	escape.pressed = true
+	form._input(escape)
+	_equal(sent.size(), 1, "Escape cancels without sending")
+	_equal(jump_label.text, "Q", "and keeps the old key")
+	fwd.pressed.emit()
+	var right := InputEventMouseButton.new()
+	right.button_index = MOUSE_BUTTON_RIGHT
+	right.pressed = true
+	form._input(right)
+	_check(sent.size() == 2 and sent[1].get("fwd") == "MOUSE_BUTTON_3",
+		"a mouse button is captured in SDL's numbering")
+	_equal(fwd.get_meta("content")["label"].text, "Right Click", "and named")
+	var rshift := InputEventKey.new()
+	rshift.physical_keycode = KEY_SHIFT
+	rshift.keycode = KEY_SHIFT
+	rshift.location = KEY_LOCATION_RIGHT
+	rshift.pressed = true
+	fwd.pressed.emit()
+	form._input(rshift)
+	_equal(fwd.get_meta("key_value"), "SYSTEM_SCANCODE_229", "the right shift is told from the left")
 	_discard(form)
 
 
