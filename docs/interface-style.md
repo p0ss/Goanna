@@ -64,6 +64,7 @@ the theme's `listcolors`, styles and `bgcolor`, with the theme's
 | Fields, text areas, dropdowns, check boxes, tab headers, scrollbars, text lists, tables | The glass `Theme`. Colours a form sets itself (`tableoptions`, a text list item's `#RRGGBB`) are kept. |
 | Tooltips and hypertips | Glass panes, unless a hypertip is styled with its own `bgcolor` or `bgimg`. |
 | `image[]` behind a slot, framing it closely, whose texture frames at least two slots in the form | A slot frame: hidden, and the slot draws its own glass tile. |
+| `image[]` with a slot frame's texture, at the size it framed a slot, with no slot on it | Hidden, and an empty glass slot drawn where a slot would sit in it. |
 | `image[]` of plain window art behind a slot, button, model or field it holds (a large output slot, a tab, the player preview's backing) | A glass tile of the same rectangle. |
 | Dark line art in or behind a slot (empty armour, shield, banner, dye and template outlines) | Kept, and drawn light. |
 | `box[]` of neutral grey, at least half a slot each way | A sunken glass tile. |
@@ -89,6 +90,13 @@ empty armour slot outlines (drawn over the slot, after the list), its trash
 can (the only slot framed with that texture) and anything much bigger than a
 slot, such as a furnace's large output slot, which becomes a glass tile of
 its own size instead.
+
+Once a texture is known as a slot frame, the same art at the same size with
+no slot on it is an empty slot the game draws where a list stops short: a
+creative tab with fewer items than its grid, or Mineclonia's trade slots
+before a trade is chosen, which have no list at all. It is drawn as an empty
+glass slot, placed inside the art as the framed slots are placed in theirs.
+The same texture at another size stays a picture.
 
 A list with any framed slot is drawn in a slightly lighter tile than a list
 with none, so Minetest Game's hotbar row stays set apart from the rows below

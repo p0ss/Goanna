@@ -111,7 +111,8 @@ It takes effect at once, in the main menu or in game.
   panels that blur the world behind them. The game's own pictures are kept:
   items, the empty armour slot outlines, progress arrows, player models,
   books and any screen a game draws with its own art. Only the plain window
-  parts, the grey panels, slot squares and button frames, are replaced.
+  parts, the grey panels, slot squares, tab and button frames, are
+  replaced; a tab keeps the game's icon, and the selected one is ringed.
   Dark text a game chose for its light panels is lightened so it can be read
   on the dark glass.
 - Game theme draws every form in the game's own window art, as the game's

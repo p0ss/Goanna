@@ -501,6 +501,62 @@ the fact.
   Mineclonia's creative tabs stay light grey because they are the game's
   own art.
 
+- Dark glass, second round, and form fields as upstream sends them,
+  2026-09-19. A review of the entry above (its screenshots were taken from
+  the main checkout, not this branch) led to these. Mineclonia's player
+  settings back arrow now returns to the inventory: every submission used
+  to carry every check box, text list, tab header and table in the form,
+  and that form's handler read the check boxes as changes, saved them as
+  the player's settings on the server and showed itself again. It was
+  broken in both styles and in an export of `5cfd7b9`, before the glass
+  existed. Fields now follow `GUIFormSpecMenu::acceptInput`: edit boxes,
+  password fields, dropdowns, scrollbars and animated images with every
+  event, anything else only with its own event, and a changed dropdown as
+  the only dropdown. Scrollbars gained `CGUIScrollBar`'s arrow buttons,
+  thumb size, thickness and wheel step, and no thumb when there is nothing
+  to scroll; small buttons keep their label centred, as the X revert
+  buttons on that form need. Forms older than version 3 are drawn in
+  upstream's legacy element order, which puts the brewing stand's items in
+  front of its art. Forms, menus, chat, tooltips and the hotbar frame are
+  now one pane: the same 12 pixel radius, rim and outline. Plain window
+  art that frames a slot, button, model or field (a large output slot, the
+  player preview's backing, Mineclonia's creative tabs) becomes a glass
+  tile, the lighter of a set of tabs is ringed as selected, tabs outside
+  the window get glass behind them, dark line art in slots is drawn light,
+  grey boxes become sunken tiles, and slot art with no slot on it (a short
+  creative tab, the trade slots before a trade is chosen) becomes an empty
+  glass slot. Verified: the formspec suite, 460 checks, including the field
+  semantics, an `image_button` with an empty label sending its name, the
+  scrollbar parts, the legacy order, window art, tabs and empty slot art;
+  the back arrow live on the fixed build in both styles and on the
+  `5cfd7b9` export; the vanilla Luanti 5.17.0 client showing the same form,
+  with the server replaying through Mineclonia's own handler the fields the
+  vanilla client sends for the arrow (back to the inventory) and the ones
+  Goanna used to send (the form again), the vanilla client not being
+  clicked; and a sweep of every Mineclonia form the test mod could reach
+  on a fresh world on the Luanti 5.17.0 Flatpak with Godot 4.5.1 at 1600 by
+  900, each captured in both styles with `4d48e0b`: survival inventory,
+  crafting guide, help, achievements, player settings, skin editor, chest,
+  furnace, blast furnace, smoker, crafting table, enchanting table, anvil,
+  loom, stonecutter, smithing table, grindstone, brewing stand, beacon,
+  hopper, dispenser, dropper, barrel, shulker box, ender chest, villager
+  trading and all 13 creative tabs are glass (the villager's trade slots
+  and the rail tab's spare row only after the empty slot change, checked by
+  reloading `formspec.gd` into the running client), and the two books keep
+  the game's art by the bespoke rule. The comparison sheets, contrast and
+  cost were retaken with default graphics
+  (`docs/perf/ui-glass-2026-09-19/`): interface text 9.1:1 or better over
+  snow, sky, sand and water, a forest, a cave and a night, quiet text
+  6.2:1, a lifted label 5.1:1, a slot's count 4.6:1; 0.07 to 0.11 ms more
+  a frame with a form, the pause menu or a tooltip up, and nothing
+  measurable with no window open. Not done, because the GPU faulted (Xid
+  51) at 17:38 and refused every new Vulkan context until a reboot: the
+  Minetest Game sweep and inventory recapture, the main menu recapture, and
+  the GPU cost on an idle GPU (these numbers are from the one client left
+  running, on a GPU a game shared at about 40 percent). Also not done: the
+  Mineclonia sign's text form, which the test mod could not open without a
+  server restart, and any click on the vanilla client.
+
 ## Log since v0.4.1-alpha (2026-08-30)
 
 Verified on a local Mineclonia server on Luanti 5.17.0 with Godot 4.5.1 and
