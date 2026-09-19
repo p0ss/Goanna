@@ -31,7 +31,36 @@
 -- client reporting a shape it never dug, on a block it was never near, to
 -- everyone else. Hence a reach check, a size cap and a rate limit, and hence
 -- off by default.
+--
+-- CARVE AUTHORITY. A client's own report, relayed here, is necessarily
+-- provisional: it is guessed ahead of the server's own gate on whether the
+-- blow was diggable at all (`core.get_dig_params`, the tool and the node's
+-- own groups), and a Goanna client has no way to know a game's own dig
+-- timing or wear rules in advance. A GAME that computes damage itself --
+-- Kythen's `form_damage.lua`, which derives it from those same server side
+-- checks and writes the result to the SAME `goanna_carve` metadata key this
+-- file writes -- is a second, authoritative writer of that key, and the two
+-- must not fight over it: whichever write lands last wins, so a client's
+-- provisional guess could overwrite the game's own authoritative answer with
+-- a shape the game itself never validated.
+--
+-- `core.settings:get("goanna_carve_authority") == "game"` is how a game
+-- says it owns this key. When it is set, this file stops relaying
+-- client reported carves entirely, whatever `goanna_shared_dig_damage`
+-- says: a client's own LOCAL prediction (see this file's own header, above)
+-- is unaffected, since that needs nothing from a server, but nothing here
+-- writes it to node metadata for other players to see, leaving that
+-- entirely to the game's own mod. The setting is the GAME's own, not this
+-- one's -- it is not declared in `settingtypes.txt` here, because a general
+-- purpose relay has no default opinion about who owns a specific game's own
+-- metadata, and a game that wants it sets it itself (Kythen's own game
+-- settings, not this mod's).
 return function(channel, enabled)
+	if core.settings:get("goanna_carve_authority") == "game" then
+		core.log("action", "[goanna] shared dig damage relay is off: "
+				.. "goanna_carve_authority=game, the game computes its own damage")
+		return
+	end
 	if not enabled then
 		return
 	end
