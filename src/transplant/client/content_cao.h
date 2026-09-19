@@ -16,9 +16,14 @@
 
 #include <cstdint>
 #include <map>
+#include <memory>
+#include <optional>
 #include <string>
 #include <unordered_set>
+#include <utility>
 #include <vector>
+
+#include <AnimSpec.h>
 
 #include "activeobject.h"
 #include "constants.h"
@@ -29,6 +34,9 @@
 class Map;
 class IGameDef;
 class LocalPlayer;
+namespace scene {
+class IAnimatedMesh;
+}
 
 namespace goanna {
 
@@ -47,6 +55,23 @@ struct SmoothTranslator {
 };
 struct SmoothTranslatorWrappedv3f : SmoothTranslator<v3f> {
     void translate(f32 dtime);
+};
+
+// Goanna: stands in for the scene::AnimatedMeshSceneNode GenericCAO keeps in
+// m_animated_meshnode, as far as animation goes: the mesh the renderer built
+// the object's visual from, which track ids are resolved against, and the
+// animation playing on it, which the renderer advances and poses the joints
+// from (AnimatedMeshSceneNode::OnAnimate). Main thread only.
+class AnimatedMeshNodeStandIn {
+public:
+    explicit AnimatedMeshNodeStandIn(scene::IAnimatedMesh *mesh) : m_mesh(mesh) {}
+    scene::IAnimatedMesh *getMesh() const { return m_mesh; }
+    scene::AnimSpec &getAnimation() { return m_anim; }
+    const scene::AnimSpec &getAnimation() const { return m_anim; }
+
+private:
+    scene::IAnimatedMesh *m_mesh;
+    scene::AnimSpec m_anim;
 };
 
 class GoannaActiveObject {
@@ -75,11 +100,30 @@ public:
     v3f rawPosition() const { return m_position; }
     const ObjectProperties &props() const { return m_prop; }
     const std::string &textureModifier() const { return m_current_texture_modifier; }
-    // animation
-    v2f animRange() const { return m_animation_range; }
-    float animSpeed() const { return m_animation_speed; }
-    float animBlend() const { return m_animation_blend; }
-    bool animLoop() const { return m_animation_loop; }
+    // Skeletal animation, by track (Luanti 5.17). processMessage runs on the
+    // session thread and has no mesh, so it queues AO_CMD_SET_ANIMATION,
+    // AO_CMD_SET_ANIMATION_SPEED and AO_CMD_STOP_ANIMATION; everything below
+    // runs on the main thread, under the session's map lock, from the
+    // renderer, which has the mesh.
+    //
+    // What GenericCAO::addToScene and the visual expiry in GenericCAO::step do
+    // for animation. The renderer calls this each time it builds the visual:
+    // with the mesh for a mesh visual, null for any other. The first call
+    // stands in for addToScene. The mesh must outlive the object.
+    void setAnimatedMesh(scene::IAnimatedMesh *mesh);
+    bool addedToScene() const { return m_added_to_scene; }
+    // Applies the queued animation commands, now that the tracks can be
+    // resolved. Does nothing before the first setAnimatedMesh.
+    void applyDeferredAnimation(LocalPlayer *local_player);
+    // AnimatedMeshSceneNode::getAnimation: what is playing on the mesh. Null
+    // without a mesh.
+    scene::AnimSpec *meshAnimation()
+    { return m_animated_meshnode ? &m_animated_meshnode->getAnimation() : nullptr; }
+    const scene::AnimSpec *meshAnimation() const
+    { return m_animated_meshnode ? &m_animated_meshnode->getAnimation() : nullptr; }
+    // The animation for all tracks as specified by the server.
+    const scene::AnimSpec &serverAnimation() const { return m_animation; }
+    size_t deferredAnimationCount() const { return deferred_animation_cmds.size(); }
     // sprite animation
     v2s16 spriteBasepos() const { return m_tx_basepos; }
     int spriteFrames() const { return m_anim_num_frames; }
@@ -106,6 +150,21 @@ public:
 private:
     void setAttachment(u16 parent_id, const std::string &bone, v3f position, v3f rotation, bool force_visible);
 
+    // An animation command processMessage read and could not apply yet.
+    struct DeferredAnimationCmd {
+        enum Kind : u8 { SET, SPEED, STOP } kind;
+        scene::TrackId track_id;
+        scene::TrackAnimSpec anim; // SET: the whole spec; SPEED: its fps
+    };
+    void deferAnimationCmd(DeferredAnimationCmd &&cmd);
+    // GenericCAO's, from luanti/src/client/content_cao.cpp; see the note there.
+    void applyTrackAnimation(scene::TrackId &&track_id, scene::TrackAnimSpec anim,
+            LocalPlayer *local_player);
+    void applyAnimationSpeed(const scene::TrackId &track_id, f32 new_fps);
+    void stopTrackAnimation(const scene::TrackId &track_id);
+    void updateAnimation(u16 track_nr);
+    std::optional<u16> resolveTrackId(const scene::TrackId &id, bool lax = false);
+
     u16 m_id;
     u8 m_type;
     std::string m_name;
@@ -126,10 +185,18 @@ private:
     int m_anim_num_frames = 1;
     float m_anim_framelength = 0.2f;
     // animation
-    v2f m_animation_range;
-    float m_animation_speed = 15.0f;
-    float m_animation_blend = 0.0f;
-    bool m_animation_loop = true;
+    /// The animation for all tracks as specified by the server.
+    /// This is usually what is used, unless overridden by a local player animation.
+    scene::AnimSpec m_animation;
+    /// For the local player CAO, animations may be overridden by the client
+    /// based on the in-game state of the local player (e.g. walking, digging, idling).
+    /// See also LocalPlayerAnimation (player.h), LocalPlayer::last_animation (localplayer.h).
+    bool m_local_player_animation = false;
+    // Upstream's deferred_set_animation_cmds, holding every animation
+    // command rather than only set_animation before addToScene.
+    std::vector<DeferredAnimationCmd> deferred_animation_cmds;
+    std::unique_ptr<AnimatedMeshNodeStandIn> m_animated_meshnode;
+    bool m_added_to_scene = false; // stands in for m_smgr being set
     std::map<std::string, BoneOverride> m_bone_override;
     // attachment
     u16 m_attachment_parent_id = 0;

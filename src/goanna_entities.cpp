@@ -242,11 +242,13 @@ static Skeleton3D *skinUnderSkeleton(const GodotModel &model,
 // OBJECTVISUAL_MESH: the model under a node scaled from mesh units (BS) by
 // visual_size; skinned models get a Skeleton3D with identity binds whose
 // bone poses are the skin matrices, so Godot does the skinning.
-bool EntityRenderer::buildMeshVisual(GoannaSession &session, GoannaActiveObject &obj, EntityNode &en) {
+bool EntityRenderer::buildMeshVisual(GoannaSession &session, GoannaActiveObject &obj, EntityNode &en,
+        scene::IAnimatedMesh **source) {
     const ObjectProperties &p = obj.props();
     std::shared_ptr<GodotModel> model = modelFor(session, p.mesh);
     if (!model)
         return false;
+    *source = model->source;
     Node3D *holder = memnew(Node3D);
     holder->set_scale(Vector3(p.visual_size.X, p.visual_size.Y, p.visual_size.Z) / BS);
     auto build_instance = [&]() {
@@ -276,7 +278,6 @@ bool EntityRenderer::buildMeshVisual(GoannaSession &session, GoannaActiveObject 
         };
         en.skeleton = skin_under_skeleton(mi);
         en.animator = std::make_unique<ModelAnimator>(model);
-        en.anim_range = Vector2(-1, -1); // apply the frame loop on the next sync
         if (obj.isLocalPlayer()) {
             en.animator->setShrinkJoint("Head");
             // The head is shrunk out of the lens, which also took it out of
@@ -360,13 +361,19 @@ Node3D *EntityRenderer::buildModelPreview(GoannaSession &session, const std::str
     // what upstream shows too, since animation speed defaults to zero.
     std::vector<String> bone_names = modelBoneNames(*model);
     Skeleton3D *sk = skinUnderSkeleton(*model, bone_names, mi, holder);
-    auto animator = std::make_unique<ModelAnimator>(model);
-    animator->setAnimationSpeed(speed);
-    animator->setFrameLoop(frame_begin, frame_end);
+    Preview preview;
+    preview.animator = std::make_unique<ModelAnimator>(model);
+    // GUIScene::setFrameLoop and setAnimationSpeed, which play track 0 and,
+    // unlike an active object's tracks, do not clamp the range to the
+    // track's length: an end past the last frame holds the last frame.
+    auto &track = preview.anim.tracks[0];
+    track.setFrameRange(frame_begin, frame_end);
+    track.cur_frame = track.fps >= 0 ? frame_begin : frame_end;
+    track.fps = speed;
     std::map<std::string, BoneOverride> no_overrides;
-    animator->step(0.0f, no_overrides, sk);
+    preview.animator->step(0.0f, preview.anim, no_overrides, sk);
     if (speed != 0.0f)
-        m_previews[(uint64_t)sk->get_instance_id()] = std::move(animator);
+        m_previews[(uint64_t)sk->get_instance_id()] = std::move(preview);
     return holder;
 }
 
@@ -382,7 +389,7 @@ void EntityRenderer::stepModelPreviews(float dt) {
             it = m_previews.erase(it);
             continue;
         }
-        it->second->step(dt, no_overrides, sk);
+        it->second.animator->step(dt, it->second.anim, no_overrides, sk);
         ++it;
     }
 }
@@ -491,7 +498,8 @@ void EntityRenderer::rebuildVisual(GoannaSession &session, GoannaActiveObject &o
     }
     en.skeleton = nullptr;
     en.shadow_skeleton = nullptr;
-    en.animator.reset();
+    std::unique_ptr<ModelAnimator> previous = std::move(en.animator);
+    scene::IAnimatedMesh *source = nullptr;
     const ObjectProperties &p = obj.props();
     std::string tex0 = p.textures.empty() ? "" : p.textures[0];
     if (!obj.textureModifier().empty() && !tex0.empty())
@@ -530,7 +538,7 @@ void EntityRenderer::rebuildVisual(GoannaSession &session, GoannaActiveObject &o
         break;
     }
     case OBJECTVISUAL_MESH:
-        if (buildMeshVisual(session, obj, en))
+        if (buildMeshVisual(session, obj, en, &source))
             break;
         // The placeholder below stands where the entity is, which for anything
         // else is helpful and for the local player is a magenta capsule around
@@ -566,6 +574,12 @@ void EntityRenderer::rebuildVisual(GoannaSession &session, GoannaActiveObject &o
     }
     if (en.visual)
         en.root->add_child(en.visual);
+    // What GenericCAO::addToScene, or its visual expiry, does for animation:
+    // the object's tracks now resolve against this mesh, and carry on from
+    // the frames they had reached if the mesh changed.
+    obj.setAnimatedMesh(source);
+    if (en.animator && previous)
+        en.animator->inheritPose(*previous);
     // nametag
     if (!p.nametag.empty()) {
         if (!en.nametag) {
@@ -643,7 +657,13 @@ Array EntityRenderer::list(GoannaSession &session) const {
         d["rotation_y"] = kv.second.root->get_rotation_degrees().y;
         d["visual"] = (int)obj.props().visual;
         d["mesh"] = String::utf8(obj.props().mesh.c_str());
-        d["frame"] = kv.second.animator ? kv.second.animator->frame() : -1.0f;
+        float frame = -1.0f;
+        if (const scene::AnimSpec *anim = obj.meshAnimation(); anim && kv.second.animator) {
+            auto track = anim->tracks.find(0);
+            if (track != anim->tracks.end())
+                frame = track->second.cur_frame;
+        }
+        d["frame"] = frame;
         a.push_back(d);
     }
     return a;
@@ -751,8 +771,14 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
         en.root->set_visible(visible);
         if (!visible)
             continue;
-        if (en.visual_version != obj.visualVersion())
+        // An object the renderer has not added to the scene yet is rebuilt
+        // even if its visual version matches the node's: a removed object's
+        // id can come back as a new object before the next sync.
+        if (en.visual_version != obj.visualVersion() || !obj.addedToScene())
             rebuildVisual(session, obj, en);
+        // The animation commands processMessage queued, which needed the
+        // mesh this visual was built from to resolve their tracks.
+        obj.applyDeferredAnimation(session.player());
         // "Show own body" hides the copy the camera sees, not the whole
         // entity: the shadow-only copy stays, so a player who does not want
         // to see their own legs still has a shadow to judge the sun by.
@@ -889,24 +915,13 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
                 en.animator->setJointRotationOverride(en.arm_bone, v3f(swing, 0, 0), mining);
             }
         }
-        // skeletal animation: GenericCAO::updateAnimation, then a step
+        // skeletal animation: AnimatedMeshSceneNode::OnAnimate on the tracks
+        // playing on the object's mesh
         if (en.animator) {
-            // Only a range change restarts the frame loop. Servers resend
-            // set_animation_speed and bone positions many times a second for a
-            // moving mob, each bumping animVersion; re-applying setFrameLoop on
-            // every bump reset the frame to the range start and made the
-            // animation jitter. Speed, blend and loop are idempotent, so apply
-            // them each frame without touching the current frame.
-            v2f range = obj.animRange();
-            Vector2 vr(range.X, range.Y);
-            if (en.anim_range != vr) {
-                en.animator->setFrameLoop(range.X, range.Y);
-                en.anim_range = vr;
-            }
-            en.animator->setAnimationSpeed(obj.animSpeed());
-            en.animator->setTransitionTime(obj.animBlend());
-            en.animator->setLoopMode(obj.animLoop());
-            en.animator->step(dt, obj.boneOverridesMut(), en.skeleton, en.shadow_skeleton);
+            scene::AnimSpec none;
+            scene::AnimSpec *anim = obj.meshAnimation();
+            en.animator->step(dt, anim ? *anim : none, obj.boneOverridesMut(), en.skeleton,
+                    en.shadow_skeleton);
         }
         // sprite frame animation
         const ObjectProperties &p = obj.props();

@@ -22,10 +22,10 @@ into the `luanti_core` static library. Nothing is copied and nothing is
 edited. The network layer, serialisation, node and item definitions, MapBlock
 and Map, inventory and metadata, the SRP authentication stack, the raycast
 and object properties, and the CPU-only parts of Irrlicht that the meshing
-and model code need (`CImage`, colour conversion, `SkinnedMesh`, the B3D,
-X, OBJ and glTF mesh loaders and the mesh manipulator, behind a stub scene
-manager) all come across this way. The list in `cmake/luanti_core.cmake` is the inventory for
-this tier.
+and model code need (`CImage`, colour conversion, `SkinnedMesh` and the
+`AnimSpec` animation track state, the B3D, X, OBJ and glTF mesh loaders and
+the mesh manipulator, behind a stub scene manager) all come across this way.
+The list in `cmake/luanti_core.cmake` is the inventory for this tier.
 
 If a file can be compiled from the submodule, compile it from the submodule.
 Adding a file to the list in `cmake/luanti_core.cmake` costs nothing at merge
@@ -106,7 +106,7 @@ reviewer will read.
 | `src/transplant/client/imagesource.cpp` | `src/client/imagesource.cpp` | Creates images through the video driver | Image creation and decoding go through `goanna_image_hooks.h`; otherwise verbatim |
 | `src/transplant/environment_raycast.cpp` | `src/environment.cpp` | `Environment::continueRaycast` needs an `Environment` (`getMap`, `getSelectedActiveObjects`) | Only `isPointableNode()` and `continueRaycast()` copied; a free function in namespace `goanna` taking `Map&` and an object-selection callback; body otherwise verbatim |
 | `src/luanti_shims.cpp` | `src/inventorymanager.cpp` | The whole file drags in the server environment and scripting | Two functions copied verbatim, nothing else |
-| `src/transplant/client/content_cao.h`, `.cpp` | `src/client/content_cao.{h,cpp}` | `GenericCAO` is built around Irrlicht scene nodes | No scene nodes; the state half of `GenericCAO` (init data and `AO_CMD_*` parsing, `SmoothTranslator`, animation, bone overrides, attachments, texture modifiers) kept as `goanna::GoannaActiveObject`, read by `goanna_entities`; movement calls the transplanted collision code rather than `ClientEnvironment`; of the animation tracks added in 5.17.0, only the first, addressed by number, is played, and stopping it holds its first frame |
+| `src/transplant/client/content_cao.h`, `.cpp` | `src/client/content_cao.{h,cpp}` | `GenericCAO` is built around Irrlicht scene nodes | No scene nodes; the state half of `GenericCAO` (init data and `AO_CMD_*` parsing, `SmoothTranslator`, animation, bone overrides, attachments, texture modifiers) kept as `goanna::GoannaActiveObject`, read by `goanna_entities`; movement calls the transplanted collision code rather than `ClientEnvironment`; resolving an animation track needs the mesh, which only the renderer has, so `processMessage` queues `AO_CMD_SET_ANIMATION`, `AO_CMD_SET_ANIMATION_SPEED` and `AO_CMD_STOP_ANIMATION` and the renderer applies them, the rest of the speed and stop handlers moved unchanged into functions of their own; a queue for an object the renderer does not draw is kept short by dropping commands a later one on the same track supersedes; `AnimatedMeshNodeStandIn` takes the place of the scene node's mesh and animation; a rebuild that keeps the mesh is not a visual expiry; `applyTrackAnimation` takes the `LocalPlayer` as a parameter |
 | `src/transplant/client/wieldmesh.h`, `.cpp` | `src/client/wieldmesh.{h,cpp}` | `WieldMeshSceneNode` is an Irrlicht scene node | `WieldMeshSceneNode` becomes `WieldMesh`, keeping the mesh and its scale as plain state (no scene manager, no shadow renderer, no `render()`); texture filter settings are off, since Goanna's materials filter; the `Client` is Goanna's stand-in; the extrusion mesh cache and the item mesh builders are otherwise verbatim |
 | `src/transplant/client/item_visuals_manager.cpp` | `src/client/item_visuals_manager.cpp` | Reaches `Client` | The `Client` is Goanna's stand-in; otherwise verbatim |
 | `src/goanna_sky.cpp` | `src/client/sky.cpp` | Sky rendering is Irrlicht; only the maths is wanted | The wicked time of day and sky body position functions only, each marked at its definition. Also credits numzero |

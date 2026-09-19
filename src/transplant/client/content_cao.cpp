@@ -10,18 +10,32 @@
 // the class is goanna::GoannaActiveObject. SmoothTranslator and its wrapped
 // variants, the init data and AO_CMD_* message parsing, position and
 // rotation interpolation, animation, bone overrides, attachment and texture
-// modifier handling are upstream code. Animation tracks (5.17.0): upstream
-// plays several at once by priority; this keeps only the first track, and
-// only when it is addressed by number, since resolving a track name needs
-// the mesh. AO_CMD_STOP_ANIMATION on it holds the first frame, where
-// upstream returns the joints to their rest transforms.
+// modifier handling are upstream code. Animation tracks (5.17.0): resolving
+// a track id needs the mesh, which only the renderer has, on the main
+// thread. So processMessage reads AO_CMD_SET_ANIMATION,
+// AO_CMD_SET_ANIMATION_SPEED and AO_CMD_STOP_ANIMATION exactly as upstream
+// does and queues them, where upstream queues only set_animation and only
+// before addToScene; the renderer applies the queue through
+// applyTrackAnimation, applyAnimationSpeed and stopTrackAnimation, the last
+// two holding the rest of upstream's handlers unchanged. A long queue for an
+// object the renderer does not draw drops the commands a later one on the
+// same track makes irrelevant. AnimatedMeshNodeStandIn takes the place of
+// m_animated_meshnode; setAnimatedMesh is the animation half of addToScene
+// and of the visual expiry in step, and a rebuild that keeps the mesh (Goanna
+// rebuilds for texture changes, upstream does not) leaves the animation
+// playing. applyTrackAnimation takes the LocalPlayer as a parameter. The
+// renderer advances the animation and poses the joints (goanna_animation,
+// goanna_models).
 
 #include "content_cao.h"
 
+#include <algorithm>
+#include <cassert>
 #include <sstream>
 #include <variant>
 
 #include <AnimSpec.h>
+#include <IAnimatedMesh.h>
 
 #include "constants.h"
 #include "log.h"
@@ -43,14 +57,6 @@ static scene::TrackId readTrackIdentifier(std::istringstream &is)
 	if (track_number > 0)
 		return (u16)(track_number - 1);
 	return deSerializeString16(is);
-}
-
-// Goanna: GenericCAO::resolveTrackId needs the mesh, which the state half
-// does not have. Only the first track, addressed by number, is played.
-static bool isFirstTrack(const scene::TrackId &track_id)
-{
-	const u16 *track_nr = std::get_if<u16>(&track_id);
-	return track_nr && *track_nr == 0;
 }
 
 // ---- SmoothTranslator: copied from luanti/src/client/content_cao.cpp ----
@@ -251,42 +257,51 @@ void GoannaActiveObject::processMessage(const std::string &data, LocalPlayer *lo
 		if (m_is_local_player && local_player)
 			local_player->physics_override = phys;
 	} else if (cmd == AO_CMD_SET_ANIMATION) {
+		// Read animation
+		scene::TrackAnimSpec anim;
 		v2f range = readV2F32(is);
-		f32 speed = readF32(is);
-		f32 blend = readF32(is);
+		anim.fps = readF32(is);
+		anim.blend_duration = readF32(is);
 		// these are sent inverted so we get true when the server sends nothing
-		bool loop = !readU8(is);
+		anim.loop = !readU8(is);
+
+		scene::TrackId track_id = (u16) 0;
+		std::optional<f32> cur_frame;
 		if (canRead(is)) {
 			// New animation API since 5.17.0
-			// Goanna: only the first track is played; priority and the
-			// starting frame are read and not used.
-			if (!isFirstTrack(readTrackIdentifier(is)))
-				return;
-			(void)readS32(is);
-			(void)readF32(is);
+			track_id = readTrackIdentifier(is);
+			anim.priority = readS32(is);
+			cur_frame = std::max(0.0f, readF32(is));
 		}
-		m_animation_range = range;
-		m_animation_speed = speed;
-		m_animation_blend = blend;
-		m_animation_loop = loop;
+
+		anim.setFrameRange(range.X, range.Y);
+		anim.cur_frame = cur_frame.value_or(anim.fps >= 0 ? anim.min_frame : anim.max_frame);
+
+		// Also clamps cur_frame & max_frame to the track max frame number in the mesh
+		// Goanna: queued for the renderer, which has the mesh
+		deferAnimationCmd({DeferredAnimationCmd::SET, std::move(track_id), anim});
 		m_anim_version++;
 	} else if (cmd == AO_CMD_SET_ANIMATION_SPEED) {
+		// Note: Init message list never contains this command, so it need not apply to deferred animations
 		f32 new_fps = readF32(is);
+		scene::TrackId track_id = (u16) 0;
 		if (canRead(is)) {
 			// New animation API since 5.17.0
-			if (!isFirstTrack(readTrackIdentifier(is)))
-				return;
+			track_id = readTrackIdentifier(is);
 		}
-		m_animation_speed = new_fps;
+
+		// Goanna: queued as well, since the renderer may not have drawn this
+		// object yet; the rest of this handler is applyAnimationSpeed
+		scene::TrackAnimSpec speed;
+		speed.fps = new_fps;
+		deferAnimationCmd({DeferredAnimationCmd::SPEED, std::move(track_id), speed});
 		m_anim_version++;
 	} else if (cmd == AO_CMD_STOP_ANIMATION) {
 		// New animation API since 5.17.0
-		// Goanna: stopping the first track holds its first frame, where
-		// upstream returns the joints to their rest transforms.
-		if (!isFirstTrack(readTrackIdentifier(is)))
-			return;
-		m_animation_range = v2f(0.0f, 0.0f);
-		m_animation_speed = 0.0f;
+		auto track_id = readTrackIdentifier(is);
+
+		// Goanna: queued; the rest of this handler is stopTrackAnimation
+		deferAnimationCmd({DeferredAnimationCmd::STOP, std::move(track_id), {}});
 		m_anim_version++;
 	} else if (cmd == AO_CMD_SET_BONE_POSITION) {
 		std::string bone = deSerializeString16(is);
@@ -358,6 +373,206 @@ void GoannaActiveObject::processMessage(const std::string &data, LocalPlayer *lo
 	} else {
 		warningstream << "goanna: unknown active object command " << (int)cmd << std::endl;
 	}
+}
+
+// ---- animation tracks: from luanti/src/client/content_cao.cpp ----
+
+// Goanna: the renderer applies the queue each frame it draws the object, so it
+// stays a few commands long and replays exactly what arrived. An object it
+// does not draw never has its queue applied, so past this length a set or a
+// stop drops the queued commands on the same track id, and a speed change the
+// queued speed changes, none of which can affect the result any more.
+static constexpr size_t MAX_DEFERRED_ANIMATION_CMDS = 64;
+
+void GoannaActiveObject::deferAnimationCmd(DeferredAnimationCmd &&cmd)
+{
+	auto &cmds = deferred_animation_cmds;
+	if (cmds.size() >= MAX_DEFERRED_ANIMATION_CMDS) {
+		cmds.erase(std::remove_if(cmds.begin(), cmds.end(),
+				[&](const DeferredAnimationCmd &queued) {
+					return queued.track_id == cmd.track_id &&
+							(cmd.kind != DeferredAnimationCmd::SPEED ||
+							queued.kind == DeferredAnimationCmd::SPEED);
+				}), cmds.end());
+	}
+	cmds.push_back(std::move(cmd));
+}
+
+// Goanna: the commands processMessage queued, in the order they arrived.
+// Before the first setAnimatedMesh they wait, as upstream's
+// deferred_set_animation_cmds wait for addToScene.
+void GoannaActiveObject::applyDeferredAnimation(LocalPlayer *local_player)
+{
+	if (!m_added_to_scene)
+		return;
+	std::vector<DeferredAnimationCmd> cmds;
+	cmds.swap(deferred_animation_cmds);
+	for (auto &cmd : cmds) {
+		switch (cmd.kind) {
+		case DeferredAnimationCmd::SET:
+			applyTrackAnimation(std::move(cmd.track_id), cmd.anim, local_player);
+			break;
+		case DeferredAnimationCmd::SPEED:
+			applyAnimationSpeed(cmd.track_id, cmd.anim.fps);
+			break;
+		case DeferredAnimationCmd::STOP:
+			stopTrackAnimation(cmd.track_id);
+			break;
+		}
+	}
+}
+
+// Goanna: the animation half of GenericCAO::addToScene and of the visual
+// expiry in GenericCAO::step. A rebuild with the same mesh is not an expiry.
+void GoannaActiveObject::setAnimatedMesh(scene::IAnimatedMesh *mesh)
+{
+	if (m_added_to_scene &&
+			(m_animated_meshnode ? m_animated_meshnode->getMesh() : nullptr) == mesh)
+		return;
+
+	if (m_animated_meshnode) {
+		// Preserve current frames of playing animations
+		// TODO might want to preserve bone transformation matrices in the future
+		const auto &anim = m_animated_meshnode->getAnimation();
+		for (const auto &[track_nr, track] : anim.tracks) {
+			m_animation.tracks[track_nr].cur_frame = track.cur_frame;
+		}
+	}
+
+	// removeFromScene(false); addToScene(...)
+	m_animated_meshnode.reset();
+	if (mesh)
+		m_animated_meshnode = std::make_unique<AnimatedMeshNodeStandIn>(mesh);
+	m_added_to_scene = true;
+
+	if (m_animated_meshnode && m_animated_meshnode->getMesh()) {
+		for (auto it = m_animation.tracks.begin(); it != m_animation.tracks.end();) {
+			const auto track_nr = it->first;
+			if (track_nr < m_animated_meshnode->getMesh()->getTrackCount()) {
+				it->second.clamp(m_animated_meshnode->getMesh()->getMaxFrameNumber(track_nr));
+				++it;
+			} else {
+				it = m_animation.tracks.erase(it);
+			}
+		}
+		m_animated_meshnode->getAnimation() = m_animation; // Restore animation
+	}
+}
+
+void GoannaActiveObject::updateAnimation(u16 track_nr)
+{
+	if (!m_animated_meshnode)
+		return;
+
+	if (m_local_player_animation) {
+		// Reset local player animation override
+		m_local_player_animation = false;
+		m_animated_meshnode->getAnimation() = m_animation;
+		return;
+	}
+
+	m_animated_meshnode->getAnimation().tracks[track_nr] = m_animation.tracks[track_nr];
+}
+
+std::optional<u16> GoannaActiveObject::resolveTrackId(const scene::TrackId &track_id, bool lax)
+{
+	if (!m_animated_meshnode)
+		return std::nullopt;
+
+	const auto *mesh = m_animated_meshnode->getMesh();
+
+	if (const auto *track_name = std::get_if<std::string>(&track_id)) {
+		if (const std::optional<u16> opt = mesh->getTrackNumber(*track_name))
+			return *opt;
+		warningstream << "Track name " << track_name << " not found in mesh " << m_prop.mesh << std::endl;
+		return std::nullopt;
+	}
+
+	u16 track_nr = std::get<u16>(track_id);
+	u16 max_track_nr = mesh->getTrackCount();
+	if (track_nr >= max_track_nr) {
+		if (!lax) {
+			if (track_nr == 0) {
+				warningstream << "Tried to change animation of mesh " << m_prop.mesh
+					<< ", but mesh has no predefined animations" << std::endl;
+			} else {
+				// 1-indexed track number for consistency with Lua API
+				warningstream << "Track number " << (track_nr + 1) << " out of bounds for mesh "
+					<< m_prop.mesh << " (max: " << max_track_nr << ")" << std::endl;
+			}
+		}
+		return std::nullopt;
+	}
+
+	return track_nr;
+}
+
+void GoannaActiveObject::applyTrackAnimation(scene::TrackId &&track_id, scene::TrackAnimSpec anim,
+		LocalPlayer *local_player)
+{
+	// Goanna: reached only through applyDeferredAnimation, once the renderer
+	// has added the object to the scene; the deferral upstream does here
+	// while m_smgr is unset is processMessage's queue.
+
+	// HACK pre-5.17.0 servers send such animations unconditionally for objects at init,
+	// including static objects
+	const bool lax = anim.min_frame == 0.0f && anim.max_frame == 0.0f &&
+			track_id == scene::TrackId((u16) 0);
+	const auto track_nr = resolveTrackId(track_id, lax);
+	if (!track_nr)
+		return;
+
+	if (m_animated_meshnode) {
+		anim.clamp(m_animated_meshnode->getMesh()->getMaxFrameNumber(*track_nr));
+	}
+
+	// Update stored animation in either case.
+	// This becomes relevant if local animations are left unspecified,
+	// in which case the stored animation is reapplied.
+	m_animation.tracks[*track_nr] = anim;
+	if (!m_is_local_player) {
+		updateAnimation(*track_nr);
+	} else {
+		const auto &local_anims = local_player->local_animations;
+		bool is_known = track_nr == 0 && std::any_of(local_anims.begin(), local_anims.end(),
+				[&](v2f range) {
+					return anim.min_frame == range.X && anim.max_frame == range.Y;
+				});
+		// Apply the animation if it is not a known local animation
+		if (!is_known) {
+			updateAnimation(*track_nr);
+		}
+	}
+}
+
+// Goanna: the rest of processMessage's AO_CMD_SET_ANIMATION_SPEED handler.
+void GoannaActiveObject::applyAnimationSpeed(const scene::TrackId &track_id, f32 new_fps)
+{
+		auto track_nr_opt = resolveTrackId(track_id);
+		if (!track_nr_opt)
+			return;
+		u16 track_nr = *track_nr_opt;
+
+		auto it = m_animation.tracks.find(track_nr);
+		if (it != m_animation.tracks.end()) {
+			it->second.fps = new_fps;
+			m_animated_meshnode->getAnimation().tracks[track_nr].fps = new_fps;
+		}
+}
+
+// Goanna: the rest of processMessage's AO_CMD_STOP_ANIMATION handler.
+void GoannaActiveObject::stopTrackAnimation(const scene::TrackId &track_id)
+{
+		auto track_nr_opt = resolveTrackId(track_id);
+		if (!track_nr_opt)
+			return;
+		u16 track_nr = *track_nr_opt;
+
+		auto it = m_animation.tracks.find(track_nr);
+		if (it != m_animation.tracks.end()) {
+			m_animation.tracks.erase(it);
+			m_animated_meshnode->getAnimation().tracks.erase(track_nr);
+		}
 }
 
 // Motion part of GenericCAO::step, transplanted.

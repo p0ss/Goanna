@@ -59,6 +59,13 @@ Native tests are built in `build/`:
 ./build/goanna_light_test
 ```
 
+They are not part of the default build; build one by name first, for example
+`cmake --build build --target goanna_animation_test`. That one feeds the
+animation messages a Luanti 5.17 server sends, and the shorter ones an older
+server sends, through the transplanted active object and checks the joints
+the tracks pose: by priority, by name and by number, blended, and back at
+rest once stopped.
+
 Godot integration checks can be run headlessly with the project's Godot
 binary, for example:
 

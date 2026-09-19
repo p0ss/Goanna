@@ -7,7 +7,8 @@
 // readers, compiled CPU-only from the submodule) behind a stub scene manager,
 // a cache of loaded meshes by media name, conversion of an Irrlicht mesh to a
 // Godot ArrayMesh with bones and weights, and a per-instance animator that
-// drives SkinnedMesh's own keyframe evaluation into skeleton bone poses.
+// drives SkinnedMesh's own keyframe evaluation (through goanna_animation)
+// into skeleton bone poses.
 //
 // Coordinates: mesh units are Luanti world units (BS = 10 per node), z is
 // mirrored into Godot's right-handed space, index order is kept.
@@ -15,6 +16,7 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -23,8 +25,11 @@
 #include <godot_cpp/variant/transform3d.hpp>
 
 #include "irrlichttypes_bloated.h"
+#include <AnimSpec.h>
 #include <IAnimatedMesh.h>
 #include <SkinnedMesh.h>
+
+#include "goanna_animation.h"
 
 struct BoneOverride;
 namespace scene {
@@ -70,6 +75,9 @@ private:
 struct GodotModel {
     godot::Ref<godot::ArrayMesh> mesh;
     std::vector<u32> texture_slots; // per surface: index into ObjectProperties::textures
+    // The Irrlicht mesh this was built from (grabbed), which an active
+    // object resolves its animation track names against.
+    scene::IAnimatedMesh *source = nullptr;
     // Skinned meshes only: the SkinnedMesh (grabbed) and the skeleton layout.
     // Bones 0..joint_count-1 take skin matrices (global * inverse bind);
     // joints with rigidly attached buffers get an extra bone taking the
@@ -86,23 +94,32 @@ struct GodotModel {
 // Builds a Godot model from an Irrlicht mesh (does not take a reference).
 std::shared_ptr<GodotModel> buildGodotModel(scene::IAnimatedMesh *mesh);
 
-// Per-instance animation state for a skinned GodotModel: the frame loop of
-// Irrlicht's AnimatedMeshSceneNode (buildFrameNr, transitions), Luanti's bone
-// overrides, and the resulting bone poses.
+// Per-instance animation state for a skinned GodotModel: what Irrlicht's
+// AnimatedMeshSceneNode does each frame (advance the tracks, pose the joints
+// from them in priority order, blend from last frame's pose), Luanti's bone
+// overrides, Goanna's first-person posing, and the resulting bone poses. The
+// tracks themselves belong to the caller: an active object's, or a model[]
+// preview's.
 class ModelAnimator {
 public:
     explicit ModelAnimator(std::shared_ptr<GodotModel> model);
-    void setFrameLoop(float begin, float end);
-    void setAnimationSpeed(float fps);
-    void setLoopMode(bool loop) { m_looping = loop; }
-    void setTransitionTime(float seconds);
-    float frame() const { return m_current_frame; }
-    // Advances by dt seconds, applies overrides (their dtime_passed advances,
-    // finished identity overrides are erased) and writes bone poses.
+    // AnimatedMeshSceneNode::OnAnimate: advances anim by dt seconds, poses
+    // the joints from its tracks, applies overrides (their dtime_passed
+    // advances, finished identity overrides are erased) and writes bone poses.
     // With a shrink joint set, unshrunk (when given) receives the same pose
     // without the shrink, for the shadow-only copy of the model.
-    void step(float dt, std::map<std::string, BoneOverride> &overrides, godot::Skeleton3D *skeleton,
-            godot::Skeleton3D *unshrunk = nullptr);
+    void step(float dt, scene::AnimSpec &anim, std::map<std::string, BoneOverride> &overrides,
+            godot::Skeleton3D *skeleton, godot::Skeleton3D *unshrunk = nullptr);
+    // The joints' local transforms the last step's tracks produced, before
+    // bone overrides and Goanna's first-person posing (upstream's
+    // PreTransSaves, which the next blend starts from). Nothing for a joint
+    // that keeps a matrix; empty before the first step.
+    const OldJointTransforms &animatedLocals() const { return m_old_transforms; }
+    // A rebuilt visual of the same model carries on from the pose the old
+    // one last showed, so a blend in progress is not cut short. Upstream
+    // does not rebuild its scene node for the changes Goanna rebuilds for.
+    void inheritPose(const ModelAnimator &previous);
+    const GodotModel &model() const { return *m_model; }
     // Global transform (mesh space, Godot handedness) of a named joint after
     // the last step; false if unknown.
     bool jointGlobal(const std::string &name, godot::Transform3D &out) const;
@@ -122,21 +139,14 @@ public:
 
 private:
     std::shared_ptr<GodotModel> m_model;
-    float m_start_frame = 0, m_end_frame = 0, m_current_frame = 0;
-    float m_fps = 0.025f; // frames per millisecond, as Irrlicht keeps it
-    bool m_looping = true;
-    u32 m_transition_time_ms = 0;
-    float m_transiting = 0, m_transiting_blend = 0;
-    std::vector<core::Transform> m_last_locals;
-    std::vector<bool> m_last_locals_valid;
-    void beginTransition();
+    OldJointTransforms m_old_transforms;
     std::vector<core::matrix4> m_globals;
     std::optional<u32> m_shrink_joint;
     std::optional<u32> m_rot_override_joint;
     std::string m_rot_override_name;
     v3f m_rot_override_euler;
     bool m_freeze_arm = false;
-    std::vector<scene::SkinnedMesh::SJoint::VariantTransform> m_arm_reference;
+    JointTransforms m_arm_reference;
 };
 
 // Irrlicht matrix (row vectors, left-handed) to a Godot transform, z mirrored.

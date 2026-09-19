@@ -55,6 +55,7 @@ add_library(goanna SHARED
     src/goanna_grass.cpp
     src/goanna_store.cpp
     src/goanna_occlusion.cpp
+    src/goanna_animation.cpp
     src/goanna_models.cpp
     src/goanna_textures.cpp
     src/goanna_sky.cpp
@@ -126,6 +127,20 @@ target_include_directories(goanna_radial_form_test PRIVATE src)
 add_executable(goanna_mining_cycle_test EXCLUDE_FROM_ALL
     src/goanna_mining_cycle_test.cpp src/goanna_radial_form.cpp)
 target_include_directories(goanna_mining_cycle_test PRIVATE src)
+
+# Luanti 5.17's animation tracks without Godot: AO_CMD_* animation messages
+# through the transplanted active object, tracks resolved against a mesh by
+# number and by name, and the joints they pose, by priority, blended, and
+# back at rest once stopped.
+add_executable(goanna_animation_test EXCLUDE_FROM_ALL
+    src/goanna_animation_test.cpp
+    src/goanna_animation.cpp
+    src/transplant/client/content_cao.cpp
+    src/transplant/collision.cpp
+    src/transplant/localplayer.cpp
+    src/luanti_shims.cpp)
+target_include_directories(goanna_animation_test PRIVATE src)
+target_link_libraries(goanna_animation_test PRIVATE luanti_core)
 
 # transplanted client files use bare includes ("mapblock_mesh.h") that must
 # resolve to Luanti's originals; goanna's own headers come first.
