@@ -1204,6 +1204,8 @@ void GoannaClient::connect_to(const String &host, int port, const String &player
     m_ice_tex.clear();
     m_lava_tex.clear();
     m_fake_liquid_built = false;
+    // Icon jobs point into the outgoing session's meshes and images.
+    m_item_icons.clear();
     m_session = std::make_unique<GoannaSession>();
     // The camera is created before connect_to(), so _report_fov() normally
     // arrives before the session. Apply the retained cone before the first
@@ -1293,6 +1295,7 @@ void GoannaClient::disconnect_from_server() {
     m_near_generation.clear();
     m_block_queued_at.clear();
     nearClear();
+    m_item_icons.clear();
     m_session.reset();
 }
 
@@ -1538,7 +1541,14 @@ Ref<Texture2D> GoannaClient::item_icon(const String &item_name) {
         return Ref<Texture2D>();
     std::lock_guard<std::mutex> lk(m_session->mapLock());
     IItemDefManager *idef = m_session->getItemDefManager();
-    ItemStack stack(item_name.utf8().get_data(), 1, 0, idef);
+    // A bare name or a whole item string; the metadata of the latter can
+    // carry a colour, which the node item icon below honours.
+    ItemStack stack;
+    try {
+        stack.deSerialize(item_name.utf8().get_data(), idef);
+    } catch (std::exception &) {
+        return Ref<Texture2D>();
+    }
     if (stack.name.empty())
         return Ref<Texture2D>();
     ItemImageDef img = stack.getInventoryImage(idef);
@@ -1549,38 +1559,57 @@ Ref<Texture2D> GoannaClient::item_icon(const String &item_name) {
             tex = def.inventory_image.name;
     }
     if (tex.empty()) {
-        // Node item with no flat inventory image. Compose an isometric cube
-        // icon with Luanti's own [inventorycube modifier (builtin's
-        // core.inventorycube: top, left, right, with ^ escaped as &), which
-        // runs entirely in the image pipeline: no offscreen 3D pass, and it
-        // caches like any other generated texture. Tile order is
-        // +Y,-Y,+X,-X,+Z,-Z, so top/left/right are tiles 0, 3 and 4.
-        const ContentFeatures &f = m_session->nodeDefs()->get(stack.name);
-        if (f.visuals) {
-            auto tile_name = [&](int i) {
-                const TileLayer &tl = f.visuals->tiles[i].layers[0];
-                std::string n = tl.texture_id
-                        ? m_session->tsrc()->imageName(tl.texture_id, tl.texture_layer_idx)
-                        : std::string();
-                std::replace(n.begin(), n.end(), '^', '&');
-                return n;
-            };
-            std::string top = tile_name(0), left = tile_name(3), right = tile_name(4);
-            if (left.empty()) left = top;
-            if (right.empty()) right = left;
-            if (!top.empty() && f.drawtype != NDT_AIRLIKE)
-                tex = "[inventorycube{" + top + "{" + left + "{" + right;
-            else
-                tex = top;
-        }
+        // A node item with no inventory image: drawItemStack draws its item
+        // mesh, and so does this, whatever its drawtype. Folding tiles into
+        // an [inventorycube read a mesh node's texture atlas as cube faces
+        // (Mineclonia's chest came out as a see-through box), took a faced
+        // node's side where upstream shows its front, and lost overlay tiles
+        // and colours; a plain cube drawn both ways differs too (the mesh is
+        // drawn smaller, with its own shading), which is why cubes come this
+        // way as well.
+        return m_item_icons.icon(*m_session, stack);
     }
-    if (tex.empty())
-        return Ref<Texture2D>();
     u32 id = m_session->tsrc()->getTextureId(tex);
     GoannaTexture *gt = m_session->tsrc()->goannaTexture(id);
     if (!gt)
         return Ref<Texture2D>();
     return gt->godotTexture();
+}
+
+void GoannaClient::flush_item_icons() {
+    m_item_icons.flush();
+}
+
+Dictionary GoannaClient::item_icon_stats() const {
+    return m_item_icons.stats();
+}
+
+void GoannaClient::_on_frame_pre_draw() {
+    // Size icons for the slot a formspec lays out on this window, then draw
+    // whatever was asked for since the last frame, so a form built this
+    // frame is drawn complete.
+    const auto t0 = std::chrono::steady_clock::now();
+    if (is_inside_tree()) {
+        Vector2 vs = get_viewport()->get_visible_rect().size;
+        m_item_icons.setSize(goanna::itemIconSizeFor(std::min(vs.x, vs.y)));
+    }
+    m_item_icons.flush();
+    m_item_icons.countFrame(std::chrono::duration<double, std::milli>(
+            std::chrono::steady_clock::now() - t0).count());
+}
+
+void GoannaClient::_notification(int p_what) {
+    RenderingServer *rs = RenderingServer::get_singleton();
+    if (!rs)
+        return;
+    Callable cb = callable_mp(this, &GoannaClient::_on_frame_pre_draw);
+    if (p_what == NOTIFICATION_ENTER_TREE) {
+        if (!rs->is_connected("frame_pre_draw", cb))
+            rs->connect("frame_pre_draw", cb);
+    } else if (p_what == NOTIFICATION_EXIT_TREE) {
+        if (rs->is_connected("frame_pre_draw", cb))
+            rs->disconnect("frame_pre_draw", cb);
+    }
 }
 
 String GoannaClient::inventory_formspec() const {
@@ -7532,6 +7561,8 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("respawn"), &GoannaClient::respawn);
     ClassDB::bind_method(D_METHOD("texture", "name"), &GoannaClient::texture);
     ClassDB::bind_method(D_METHOD("item_icon", "item_name"), &GoannaClient::item_icon);
+    ClassDB::bind_method(D_METHOD("flush_item_icons"), &GoannaClient::flush_item_icons);
+    ClassDB::bind_method(D_METHOD("item_icon_stats"), &GoannaClient::item_icon_stats);
     ClassDB::bind_method(D_METHOD("item_description", "item_string"),
             &GoannaClient::item_description);
     ClassDB::bind_method(D_METHOD("inventory_formspec"), &GoannaClient::inventory_formspec);

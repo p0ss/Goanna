@@ -1196,12 +1196,14 @@ func _process(delta: float) -> void:
 				else:
 					print("item_mesh ", nm, ": surfaces=", m.get_surface_count(), " aabb=", m.get_aabb().size, " scale=", im["scale"])
 		# GOANNA_ICONTEST="dir=item,item": save item_icon() results, for
-		# checking inventory icons (node items composite an isometric cube).
+		# checking inventory icons (node items are drawn from their item mesh,
+		# queued until the frame is drawn, hence the flush before reading).
 		if OS.get_environment("GOANNA_ICONTEST") != "" and int(t) == 3:
 			var spec := OS.get_environment("GOANNA_ICONTEST").split("=")
 			for nm in spec[1].split(","):
 				var img: Image = null
 				var itex: Texture2D = client.item_icon(nm)
+				client.flush_item_icons()
 				if itex != null:
 					img = itex.get_image()
 				if img == null:

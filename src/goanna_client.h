@@ -34,6 +34,7 @@
 #include "goanna_entities.h"
 #include "goanna_radial_form.h"
 #include "goanna_horizon.h"
+#include "goanna_item_icons.h"
 #include "goanna_surface.h"
 #include "goanna_light.h"
 #include "goanna_mesher.h" // MapBlockMesh, for the near ready cache
@@ -241,11 +242,21 @@ public:
     // Texture (ImageTexture) for a Luanti texture string (item icons, HUD images);
     // null if unavailable. Goes through the texture-modifier DSL.
     godot::Ref<godot::Texture2D> texture(const godot::String &name);
-    // Inventory icon for an item name: its inventory_image texture if it has
-    // one (tools, most items), else the item's own texture; null if unknown.
-    // Node items without an inventory image return null (the UI keeps its
-    // coloured-tile placeholder; a rendered node icon needs an offscreen pass).
+    // Inventory icon for an item name, or a whole item string ("name count
+    // wear metadata"), whose metadata can set the colour. An item with an
+    // inventory image gets that image. A node item without one gets its
+    // item mesh drawn as the vanilla client draws it in a slot (see
+    // goanna_item_icons.h): the texture is returned at once and filled in
+    // before the frame is drawn. Null if unknown, or if the node's visuals
+    // are not built yet.
     godot::Ref<godot::Texture2D> item_icon(const godot::String &item_name);
+    // Draw any node item icons still queued now, instead of at the next
+    // frame; for a caller that reads an icon's pixels straight away.
+    void flush_item_icons();
+    // What the node item icons have cost so far: see ItemIconCache::stats.
+    godot::Dictionary item_icon_stats() const;
+    // RenderingServer's frame_pre_draw: size and draw the queued icons.
+    void _on_frame_pre_draw();
     // The description in an item's definition, for an item string such as
     // "mcl_core:stone 5": what item_image_button[] shows as its tooltip.
     godot::String item_description(const godot::String &item_string);
@@ -404,6 +415,7 @@ public:
 
 protected:
     static void _bind_methods();
+    void _notification(int p_what);
 
 private:
     // Live callers hold the session map lock; cached LOD callers use chains only.
@@ -1040,6 +1052,9 @@ private:
     bool m_always_fly_fast = false;
 
     std::unique_ptr<EntityRenderer> m_entities;
+    // Node item icons. Cleared before any session goes, because its jobs
+    // point into that session's item meshes and images.
+    goanna::ItemIconCache m_item_icons;
     struct NodeLight {
         godot::Vector3 pos, node_pos;
         float level;

@@ -59,6 +59,8 @@ add_library(goanna SHARED
     src/goanna_textures.cpp
     src/goanna_sky.cpp
     src/goanna_entities.cpp
+    src/goanna_icon_raster.cpp
+    src/goanna_item_icons.cpp
     src/iris/iris_glsl.cpp
     src/iris/iris_pack.cpp
     src/iris/goanna_iris_effect.cpp

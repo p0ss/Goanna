@@ -54,6 +54,11 @@ public:
     // source image names, so a caller that cannot use an array (a special
     // shader, an animated or cracked tile) can fall back to a single layer.
     bool isArray() const { return !m_layers.empty(); }
+    // The CPU image of one array layer, or nullptr past the end.
+    video::IImage *layerImage(u32 layer) const {
+        return layer < m_layers.size() ? m_layers[layer] : nullptr;
+    }
+    u32 layerCount() const { return (u32)m_layers.size(); }
     godot::Ref<godot::Texture2DArray> godotArray();
     // LabPBR companion arrays: the same layers with a "_n" (normal, AO,
     // height) or "_s" (smoothness, F0, porosity, emission) suffix, built only
