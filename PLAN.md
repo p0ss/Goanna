@@ -488,8 +488,12 @@ the fact.
   hovering, a search typed and entered (the server filtered the list), a
   torch stack moved between hotbar slots (the server's inventory showed
   it), and shots taken both from the viewport and through gamescope. A
-  client told to quit took its gamescope and Xwayland down with it, and
-  KWin listed no Goanna, Luanti or gamescope window at any point. All of it
+  pushed left button dug with the form closed while the OS pointer stayed
+  free, and a device 0 press and motion, standing in for a real pointer,
+  neither dug nor turned the camera. A client told to quit took its
+  gamescope and Xwayland down with it. KWin, asked over D-Bus while the
+  clients ran and again after, listed no Goanna, Luanti or gamescope
+  window, and nothing was typed or clicked on the desktop. All of it
   ran with `--software` (lavapipe and llvmpipe), at about one frame a
   second, because the GPU was unavailable: at 17:38:35 the NVIDIA driver
   logged Xid 51 and Xid 154 and refused every new Vulkan device with
@@ -504,7 +508,10 @@ the fact.
   route for it. Not working or not verified: the vanilla client with the
   GPU; framing the vanilla client, which cannot be steered and looks
   wherever the server puts it; picking from a dropdown's list; and dragging
-  a stack with the button held, which has no command.
+  a stack with the button held, which has no command. Found on the way:
+  while a field is being edited, Goanna's first Escape only ends the
+  editing (Godot's `LineEdit` takes `ui_cancel`) and a second one closes
+  the form; what the vanilla client does there was not checked.
 
 ## Log since v0.4.1-alpha (2026-08-30)
 
