@@ -149,26 +149,27 @@ night. The tile is nearly opaque, so it looks the same whatever the world
 behind, and its brightness sits between the darkest and lightest items, so
 both keep some contrast against it; the numbers are below.
 
-Measured on 19 September 2026 from Goanna 1600 by 900 captures of the
-Mineclonia survival inventory and the settings screen, with Luanti 5.17.0
-(Flatpak), Mineclonia and Godot 4.5.1, the form's content hidden so only
-the glass remained, and everything within 6 pixels of a pane's rounded edge
-(the rim hairline) left out. Each row is the lower of the two screens:
+Measured on 19 September 2026 from Goanna 1600 by 900 captures (`4d48e0b`,
+default graphics) of the Mineclonia survival inventory and the settings
+screen, with Luanti 5.17.0 (Flatpak), Mineclonia and Godot 4.5.1, the form's
+content hidden so only the glass remained, and everything within 6 pixels of
+a pane's rounded edge (the rim hairline) left out. Each row is the lower of
+the two screens:
 
 | Background | Brightest glass | Interface text | Quiet text | `#313131` label, lifted | Hovered button | Count, slot | Count, hovered slot |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Snow at noon | 0.056 | 9.1:1 | 6.3:1 | 5.1:1 | 6.4:1 | 4.6:1 | 5.1:1 |
+| Snow at noon | 0.056 | 9.1:1 | 6.2:1 | 5.1:1 | 6.4:1 | 4.6:1 | 5.1:1 |
 | Open sky at noon | 0.051 | 9.5:1 | 6.6:1 | 5.3:1 | 6.6:1 | 4.6:1 | 5.1:1 |
-| Sand and water at noon | 0.052 | 9.4:1 | 6.5:1 | 5.3:1 | 6.6:1 | 4.6:1 | 5.1:1 |
-| Forest at noon | 0.029 | 12.1:1 | 8.4:1 | 6.8:1 | 8.3:1 | 4.7:1 | 5.2:1 |
-| Cave, one torch | 0.024 | 13.0:1 | 9.0:1 | 7.3:1 | 8.9:1 | 4.8:1 | 5.3:1 |
-| Snow at midnight | 0.020 | 13.7:1 | 9.5:1 | 7.7:1 | 9.4:1 | 4.8:1 | 5.3:1 |
+| Sand and water at noon | 0.054 | 9.3:1 | 6.4:1 | 5.2:1 | 6.5:1 | 4.6:1 | 5.1:1 |
+| Forest at noon | 0.030 | 12.1:1 | 8.3:1 | 6.8:1 | 8.3:1 | 4.7:1 | 5.2:1 |
+| Cave, one torch | 0.020 | 13.8:1 | 9.5:1 | 7.7:1 | 9.4:1 | 4.8:1 | 5.3:1 |
+| Snow at midnight | 0.019 | 13.8:1 | 9.6:1 | 7.8:1 | 9.5:1 | 4.8:1 | 5.3:1 |
 
 Slot contents are a trade rather than a gain. Against Mineclonia's light
 grey slot, dark and mid tone items (black wool, coal, dirt, logs, stone)
 stand out less on the glass tile and light ones (snow, quartz, white wool,
 ingots) stand out more; by the mean luminance of the item against the tile,
-10 of 19 items measured are less distinct and 9 more.
+12 of 21 items measured are less distinct and 9 more.
 `docs/perf/ui-glass-2026-09-19/index.md` has the table and the frames.
 
 ## Cost
@@ -180,16 +181,19 @@ variant that does not read the screen, so play with no window open costs
 nothing extra. A tooltip copies the screen a second time, under itself only,
 so that its frost is the form beneath it.
 
-Measured on the same day at 1600 by 900 on an RTX 3090 that other
-processes kept 96 to 99 percent busy, with
-`viewport_get_measured_render_time_gpu` over 240 frames and the two styles
-alternated four times: a Mineclonia chest
-open costs 0.08 ms more in dark glass (2.24 against 2.32 ms), Minetest
-Game's inventory 0.07 ms, the inventory with an item tooltip up 0.10 ms,
-and play with no window open 0.01 ms, which is within the noise. At a time
-when the other processes nearly doubled every frame, the chest cost 0.36 ms
-more, and hiding the panes brought it back to the game theme's figure, so
-that is the screen copy and blur under load.
+Measured on the same day with `4d48e0b` and Goanna's default graphics at
+1600 by 900 on an RTX 3090, with `viewport_get_measured_render_time_gpu`
+over 240 frames and the two styles alternated four times: the Mineclonia
+survival inventory open costs 0.11 ms more in dark glass (6.28 against
+6.40 ms), a chest 0.07 ms, the inventory with an item tooltip up 0.09 ms,
+the pause menu 0.08 ms, and play with no window open nothing measurable.
+The GPU was not idle: a game shared it at about 40 percent, and it had
+faulted (Xid 51) shortly before, though the client measured kept running
+normally. An idle GPU was not measured. Earlier, with reduced graphics and
+other processes keeping the GPU 96 to 99 percent busy, the chest cost
+0.36 ms more when that load nearly doubled every frame, and hiding the panes
+brought it back to the game theme's figure, so that is the screen copy and
+blur under load.
 
 ## What does not work
 

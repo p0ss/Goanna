@@ -80,9 +80,10 @@ text placement, with these differences left:
 - Node item icons that are not cubes. Goanna composes a cube from the
   node's tiles where the vanilla client renders the node's own mesh (an
   anvil, a crafting table's side).
-- Scrollbars take Luanti's colours and square thumb but have no arrow
-  buttons. Tab headers, dropdowns and checkboxes keep Godot's look rather
-  than Luanti's skin.
+- Scrollbars take Luanti's colours, square thumb and arrow buttons, sized
+  and placed as `CGUIScrollBar` places them (since 19 September 2026, from
+  a side by side of Mineclonia's player settings form). Tab headers,
+  dropdowns and checkboxes keep Godot's look rather than Luanti's skin.
 - Textlist rows are a little taller than GUITable's.
 - Goanna does not clip elements to the form, so anything a form places
   outside itself without `noclip` is still drawn.
