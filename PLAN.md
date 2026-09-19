@@ -460,6 +460,52 @@ the fact.
   the Minetest Game sign through a real right click, whose text round trip
   was exercised through an ordinary node metadata fields packet instead.
 
+- Test clients off the owner's desktop, 2026-09-19. Agents testing Goanna
+  had been opening client windows in front of the owner's work, taking the
+  focus and grabbing the mouse, once during a video call, and one tried to
+  move a client's pointer with xdotool. Three things change. Test mode
+  (`GOANNA_CONTROL`, or `GOANNA_NO_POINTER_CAPTURE=1`) never captures the
+  OS pointer and asks for no focus: every capture in `main.gd` and
+  `game_ui.gd` goes through one function that, in test mode, keeps the
+  state inside the client, and only mouse input pushed in by the control
+  channel counts as captured. The control channel gains `ui_tree`,
+  `ui_click`, `ui_hover`, `ui_type`, `ui_scroll` and `key`, which push
+  InputEvents through `Input.parse_input_event` so forms send what a
+  player's click sends, with read-only introspection in `formspec.gd`. And
+  `tools/goanna-headless` (shared with the MCP server as
+  `tools/goanna_headless.py`) runs Goanna from any checkout or worktree, or
+  the vanilla Luanti Flatpak, inside gamescope's headless backend, refuses
+  a control port already in use, and stops gamescope, which outlives its
+  child and ignores SIGTERM, by PID when the client exits or when asked.
+  `tools/goanna-mcp` runs any number of these as instances, and every reply
+  names the instance and port. The rules are in `docs/agent-interfaces.md`
+  and `CLAUDE.md`. Verified against a Luanti 5.17.0 Flatpak server on a
+  fresh Mineclonia world with Godot 4.5.1, through the MCP server: two
+  Goanna instances at once on control ports 30851 and 30852, a third start
+  on 30851 refused; the creative inventory opened with `key`, read with
+  `ui_tree`, a tab pressed by element name and another by its tooltip text
+  (the server answered each with the rebuilt tab), a slot's tooltip read by
+  hovering, a search typed and entered (the server filtered the list), a
+  torch stack moved between hotbar slots (the server's inventory showed
+  it), and shots taken both from the viewport and through gamescope. A
+  client told to quit took its gamescope and Xwayland down with it, and
+  KWin listed no Goanna, Luanti or gamescope window at any point. All of it
+  ran with `--software` (lavapipe and llvmpipe), at about one frame a
+  second, because the GPU was unavailable: at 17:38:35 the NVIDIA driver
+  logged Xid 51 and Xid 154 and refused every new Vulkan device with
+  `NV_ERR_RESET_REQUIRED` until a reboot. That came within a minute of two
+  headless gamescope sessions starting, this work's first probe and another
+  agent's, after a single headless run at 17:21 had been fine; the cause is
+  not known, so two GPU instances at once is an open risk to verify after
+  the reboot, not a result. The vanilla client (the same Flatpak, 800 by
+  450, software) joined and was photographed in game from its own window on
+  the nested X display with ffmpeg's `x11grab`; gamescope's screenshot of it
+  showed the loading screens and then only black, so `x11` is the default
+  route for it. Not working or not verified: the vanilla client with the
+  GPU; framing the vanilla client, which cannot be steered and looks
+  wherever the server puts it; picking from a dropdown's list; and dragging
+  a stack with the button held, which has no command.
+
 ## Log since v0.4.1-alpha (2026-08-30)
 
 Verified on a local Mineclonia server on Luanti 5.17.0 with Godot 4.5.1 and
