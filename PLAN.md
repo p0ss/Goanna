@@ -413,6 +413,60 @@ the fact.
   verified: any server older than 5.17.0, Windows itself, and a mod that
   uses more than one animation track.
 
+- Animation tracks, 2026-09-19. Entities play every animation track a
+  Luanti 5.17 server sends, where the move to 5.17.0 kept only the first:
+  several at once, ordered by priority, addressed by number or by a name
+  resolved against the mesh, each with its own start frame, speed, loop and
+  blend, and a stopped track leaves its joints at rest instead of holding
+  its first frame. The transplanted active object keeps GenericCAO's own
+  track state and functions. A track name needs the mesh, which only the
+  renderer has, so `processMessage` queues the animation commands and the
+  renderer applies them, and a new `goanna_animation` poses the joints the
+  way `AnimatedMeshSceneNode` does, replacing `ModelAnimator`'s single frame
+  loop. Frames carry across a mesh change, and a texture change no longer
+  restarts anything. The first-person body plays a game's
+  `set_local_animation` ranges from the local controls, as the vanilla
+  client does for a visible local player, so on Minetest Game its legs walk
+  while W is held although Goanna still reports no movement keys. Mineclonia
+  sets none, so nothing changes there. A model[] preview left at its
+  default frame loop now plays once and holds its last frame, because
+  5.17's `GUIScene` no longer clamps the loop to the model's length; Goanna
+  used to loop it. `entity_animation(id)`, through the control channel's
+  `call`, reports an entity's tracks and joint poses. Verified with Godot
+  4.5.1: `goanna_animation_test`, which feeds the messages of both 5.17 and
+  older servers through the transplanted object and checks the joints for
+  priority, names and numbers, start frame, per track speed, stop to rest,
+  blend, mesh changes and the queue bound, and fails with the priority
+  order inverted or the queue bound removed. Against the Luanti 5.17.0
+  Flatpak: a fresh devtest world with a throwaway probe mesh, where the
+  higher priority of two tracks on one joint owned it, by name and by
+  number, stopping every track put the joint back at rest, pausing one
+  track left another running, a start frame of 1.5 held, a paused frame
+  survived a mesh swap and a mesh without the tracks dropped them; the
+  same world with devtest's own multi-track fixture, both named tracks
+  playing, one paused while the other ran, frames kept across its model
+  swap; a fresh Mineclonia world, where 27 of 54 visible entities advanced
+  their first track over two seconds, the rest being items, wield items,
+  chests and a spawner doll with no track, a spider's eyes, idle creepers
+  and a sheep on one-frame ranges, and five entities that arrived between
+  the samples, and where digging played the server's mining range on the
+  body; and a fresh Minetest Game world, where the body walked and dug from
+  its local animations. Against a Luanti 5.10.0 server (Debian's package,
+  in a container, protocol 46) with Minetest Game: the old `set_animation`
+  and `set_animation_frame_speed` messages played, paused and resumed the
+  first track, an entity never given an animation held frame 0 of the
+  (0, 0) animation older servers send at init, and the local walk played.
+  A preview built through `model_preview` held its last frame from about
+  7.3 seconds while one with an explicit loop kept looping. Not verified:
+  Windows; any server between 5.10 and 5.17; the model[] change in a real
+  formspec; the blend by eye. Upstream blends from the pose shown the frame
+  before, by the fraction of the blend time elapsed, so at 60 fps a four
+  second blend reaches its target within about a second; Goanna reproduces
+  that rather than a linear blend. Still wrong: an entity the server makes
+  invisible does not animate, where the vanilla client animates it anyway.
+  `goanna_mining_cycle_test` fails 17 checks, from sources this work did not
+  touch.
+
 ## Log since v0.4.1-alpha (2026-08-30)
 
 Verified on a local Mineclonia server on Luanti 5.17.0 with Godot 4.5.1 and
