@@ -69,6 +69,18 @@ var speed := 12.0
 var mouse_sensitivity := 0.15
 var invert_mouse := false
 var view_bobbing := 1.0        # walk-cycle camera bob, 0 = off
+# Test mode, for a client that something other than a person is driving. It
+# never takes the pointer and asks for no focus, so a test run cannot take the
+# desktop away from whoever is sitting at it: test clients grabbing the mouse
+# in the middle of the owner's video call is why it exists. It is on whenever
+# the control channel is (GOANNA_CONTROL), or with GOANNA_NO_POINTER_CAPTURE=1.
+# Capture is then kept here instead of being asked of the OS, and only input
+# pushed in through the control channel, which carries CONTROL_DEVICE, counts
+# as captured: a real pointer passing over the window never turns the camera
+# or digs. See docs/control-channel.md.
+const CONTROL_DEVICE := 0x60A7
+var test_mode := false
+var _virtual_capture := false
 # Lighting levels, seeded from GOANNA_SUN/AMBIENT/SDFGI/SSAO/WHITE/EXPOSURE/
 # SKY_FILL and then settable live from the Lighting settings tab. The values
 # are the recipe settled on project/lighting_chart.tscn on 2026-08-21
@@ -294,6 +306,14 @@ func _exit_tree() -> void:
 		get_viewport().screen_space_aa = grass_previous_screen_aa
 
 func _ready() -> void:
+	test_mode = OS.get_environment("GOANNA_CONTROL") != "" \
+			or OS.get_environment("GOANNA_NO_POINTER_CAPTURE") not in ["", "0"]
+	if test_mode:
+		# Best effort only: the window was mapped before any script ran, and a
+		# window manager may already have focused it. This stops Godot asking
+		# for focus again later. The launcher in tools/goanna-headless is the
+		# real answer, because its windows never reach the desktop at all.
+		get_window().set_flag(Window.FLAG_NO_FOCUS, true)
 	showcase_mode = OS.get_environment("GOANNA_SHOWCASE") != ""
 	add_to_group("goanna_main")  # game_ui updates look controls through this group
 	var cfg := ConfigFile.new()
@@ -753,17 +773,32 @@ func _ready() -> void:
 			add_child(bench)
 		else:
 			push_error("GOANNA_BENCH is set but bench.gd is not in this build")
-	# A control session is usually unattended, and grabbing the pointer there
-	# takes the mouse away from whoever is watching. Escape still toggles it.
+	# In test mode (a control session, which is usually unattended) this only
+	# records the capture, and the OS pointer is left alone: see test_mode.
 	#
 	# The showcase is the menu's backdrop, not a session anyone is playing: the
 	# pointer belongs to the menu in front of it. Capturing it here is what made
 	# the menu feel broken, because the cursor vanished the moment the backdrop
 	# finished connecting and every click after that went to a camera nobody
 	# was driving.
-	if OS.get_environment("GOANNA_SHOT") == "" and OS.get_environment("GOANNA_CONTROL") == "" \
-			and not showcase_mode:
-		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	if OS.get_environment("GOANNA_SHOT") == "" and not showcase_mode:
+		set_pointer_captured(true)
+
+# Whether mouse input steers the game rather than the UI. Normally that is the
+# OS pointer being captured. In test mode it is the recorded capture, and only
+# for input the control channel pushed in (see test_mode).
+func pointer_captured(event: InputEvent = null) -> bool:
+	if test_mode:
+		return _virtual_capture and (event == null or event.device == CONTROL_DEVICE)
+	return Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED
+
+# Take the pointer for play, or give it back. Every capture in the game goes
+# through here (game_ui.gd included), so test mode is kept in one place.
+func set_pointer_captured(on: bool) -> void:
+	if test_mode:
+		_virtual_capture = on
+		return
+	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED if on else Input.MOUSE_MODE_VISIBLE)
 
 # Bob the camera along a walk cycle while moving on the ground: vertical at
 # twice the stride frequency, a gentle side sway at the stride frequency,
@@ -789,7 +824,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	# mouse motion turn the view at all.
 	if bench != null and bench.owns_input():
 		return
-	if event is InputEventMouseButton and Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
+	if event is InputEventMouseButton and pointer_captured(event):
 		if event.button_index == MOUSE_BUTTON_LEFT:
 			dig_down = event.pressed
 		elif event.button_index == MOUSE_BUTTON_RIGHT:
@@ -810,12 +845,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			_set_wield(slot)
 	if event is InputEventKey and event.pressed and event.keycode == KEY_0 and _hotbar_count() > 9:
 		_set_wield(9)
-	if event is InputEventMouseMotion and Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
+	if event is InputEventMouseMotion and pointer_captured(event):
 		yaw -= event.relative.x * mouse_sensitivity
 		var dy: float = event.relative.y * mouse_sensitivity * (1.0 if invert_mouse else -1.0)
 		pitch = clamp(pitch + dy, -89, 89)
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
-		Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE if Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED else Input.MOUSE_MODE_CAPTURED)
+		set_pointer_captured(not pointer_captured())
 	# The free camera is not the game's fly privilege. It stops step_player
 	# running at all, so the camera leaves the player's body behind and passes
 	# through terrain: it sees what no vanilla client can reach, which is the
@@ -1465,13 +1500,14 @@ var _click_sent := false
 func _click_test() -> bool:
 	if OS.get_environment("GOANNA_CLICKTEST") == "":
 		return false
-	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	set_pointer_captured(true)
 	pitch = -80.0
 	if int(t) == 3 and not _click_sent:
 		_click_sent = true
 		var ev := InputEventMouseButton.new()
 		ev.button_index = MOUSE_BUTTON_LEFT
 		ev.pressed = true
+		ev.device = CONTROL_DEVICE
 		Input.parse_input_event(ev)
 		print("clicktest: injected left-down; mouse_mode=", Input.get_mouse_mode())
 	if absf(t - round(t)) < get_process_delta_time() * 0.6:

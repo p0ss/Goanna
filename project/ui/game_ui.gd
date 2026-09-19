@@ -309,7 +309,12 @@ func _ui_shot_hook(delta: float) -> void:
 # would take, printing the main list before and after.
 func warp_mouse_for_shot() -> void:
 	var vs := get_viewport().get_visible_rect().size
-	Input.warp_mouse(vs * 0.5 + Vector2(40, 40))
+	# A pushed motion event rather than Input.warp_mouse, which moves the
+	# desktop's own pointer.
+	var ev := InputEventMouseMotion.new()
+	ev.position = vs * 0.5 + Vector2(40, 40)
+	ev.global_position = ev.position
+	Input.parse_input_event(ev)
 
 func _ui_move_test(delta: float) -> void:
 	if OS.get_environment("GOANNA_UI_TEST") == "drag":
@@ -541,14 +546,14 @@ func _open_chat(prefix: String) -> void:
 	chat_input.grab_focus()
 	chat_input.caret_column = prefix.length()
 	chat_history_pos = chat_history.size()
-	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+	_set_pointer_captured(false)
 	_rebuild_chat()
 
 func _close_chat() -> void:
 	chat_open = false
 	chat_input.visible = false
 	chat_input.release_focus()
-	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	_set_pointer_captured(true)
 
 func _on_chat_submit(text: String) -> void:
 	if text.strip_edges() != "":
@@ -573,7 +578,7 @@ func _open_window(c: Control) -> void:
 	window = c
 	fullscreen_tint.visible = true
 	c.visible = true
-	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+	_set_pointer_captured(false)
 
 func _close_window() -> void:
 	if window == null or window == death_screen:
@@ -596,7 +601,15 @@ func _hide_window() -> void:
 	fullscreen_tint.visible = false
 	fullscreen_tint.color = Color(0, 0, 0, 0)
 	if OS.get_environment("GOANNA_SHOT") == "":
-		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+		_set_pointer_captured(true)
+
+# Through main.gd, which in test mode never takes the OS pointer.
+func _set_pointer_captured(on: bool) -> void:
+	var m := _main_node()
+	if m != null and m.has_method("set_pointer_captured"):
+		m.set_pointer_captured(on)
+	else:
+		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED if on else Input.MOUSE_MODE_VISIBLE)
 
 # Open the player's own inventory, or close it if it is already the window
 # showing. Does nothing while a different window (a server formspec, the
@@ -2061,7 +2074,10 @@ func _draw_cursor_stack() -> void:
 	if selected.is_empty() or window != form or form == null:
 		return
 	var icon := item_icon(selected.get("name", ""))
-	var m := cursor_ctl.get_local_mouse_position()
+	# Where the last mouse event left the pointer, which formspec.gd keeps, so
+	# a click pushed in by the control channel carries the stack from there
+	# rather than from wherever the OS pointer happens to be.
+	var m: Vector2 = cursor_ctl.get_global_transform().affine_inverse() * form.pointer
 	var s: float = form.imgsize * 0.8
 	if icon:
 		cursor_ctl.draw_texture_rect(icon, Rect2(m - Vector2(s, s) / 2.0, Vector2(s, s)), false)
