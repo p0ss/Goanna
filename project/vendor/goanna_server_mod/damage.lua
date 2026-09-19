@@ -70,8 +70,10 @@ return function(channel, enabled)
 	-- reason. Renaming it is a protocol change.
 	local KEY = "goanna_carve"
 
-	-- A carve is at most a version byte, four of control mask, and twenty-six
-	-- controls of one axis byte plus three scalars: 1 + 4 + 26 * 4 = 109.
+	-- A v3 carve is at most a version byte, a header byte, four of control
+	-- mask, and twenty-six controls of one field byte plus two scalars:
+	-- 1 + 1 + 4 + 26 * 3 = 84. The old v1 layout reached 109, so 128 still
+	-- covers either.
 	local MAX_BYTES = 128
 
 	-- How far from a player a carve may land, in nodes. A client may only
@@ -112,10 +114,18 @@ return function(channel, enabled)
 		if channel_name ~= "goanna:v1" or sender == "" then
 			return
 		end
-		local x, y, z, payload = message:match("^carve (%-?%d+) (%-?%d+) (%-?%d+) (.*)$")
-		if not x then
+		-- The payload is HEX. Luanti hands this message to Lua through
+		-- lua_pushstring, which stops at the first zero byte, and the carve
+		-- codec's presence mask nearly always contains one: sent raw, a carve
+		-- arrived as its first three bytes and was stored that way. A report
+		-- that is not whole hex is not a carve.
+		local x, y, z, hex = message:match("^carve (%-?%d+) (%-?%d+) (%-?%d+) (%x*)$")
+		if not x or #hex % 2 ~= 0 then
 			return
 		end
+		local payload = hex:gsub("%x%x", function(pair)
+			return string.char(tonumber(pair, 16))
+		end)
 		local pos = { x = tonumber(x), y = tonumber(y), z = tonumber(z) }
 		if #payload > MAX_BYTES then
 			core.log("warning", ("[goanna] carve from %s at %s is %d bytes, over the %d limit")
