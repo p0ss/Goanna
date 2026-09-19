@@ -104,6 +104,7 @@ var pending_elements: Array = []     # parsed [name, params] awaiting layout
 var prepend_elements: Array = []     # parsed prepend [name, params]
 var enable_prepends := true          # cleared by no_prepend[]
 var root: Control                    # the form panel
+var bg_layer: Control                # every background[], first child of root
 var current_parent: Control
 var skipped := {}
 var screen_size := Vector2.ZERO     # the screen the form was laid out for
@@ -597,6 +598,9 @@ func _build() -> void:
 				"fg": parse_color(p[3], tip_fg) if p.size() == 4 else tip_fg}
 	# a fullscreen tint behind the form, if asked for
 	add_child(root)
+	bg_layer = Control.new()
+	bg_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(bg_layer)
 	building = true
 	# The game's window theme first, so that it is behind the form's own
 	# elements. Upstream builds it with the old coordinate system whatever
@@ -1000,11 +1004,16 @@ func _background(parts: PackedStringArray) -> void:
 		var out := Vector2(float(v[0]), float(v[1]))
 		if real_coordinates:
 			out = -out * imgsize
-		_add(r, -out, root.size + out * 2)
+		r.position = (-out).floor()
+		r.size = (root.size + out * 2).floor()
 	else:
-		_add(r, _pos(v), _geom(g))
-	# backgrounds go behind everything added so far
-	current_parent.move_child(r, 0)
+		r.position = _pos(v).floor()
+		r.size = _geom(g).floor()
+	# Every background goes to one layer at the back of the form, in the
+	# order the form gives them, as regenerateGui's background_parent keeps
+	# them: behind all other elements, but the game theme's background9
+	# still under a form's own backgrounds.
+	bg_layer.add_child(r)
 
 func _middle_margins(value: String, tex: Texture2D) -> Vector4:
 	if value.strip_edges() == "":

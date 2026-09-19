@@ -134,6 +134,7 @@ func _run() -> void:
 	_test_hypertip()
 	_test_prepend()
 	_test_host_passes_prepend()
+	_test_background_order()
 	await _write_reference_shots()
 	if failures == 0:
 		print("formspec conformance: PASS: ", checks, " checks")
@@ -1417,6 +1418,25 @@ func _test_prepend() -> void:
 		(Vector2(1, 1) * scoped.imgsize).floor(),
 		"real_coordinates inside a prepend applies to the prepend")
 	_discard(scoped)
+	_discard(form)
+
+
+# Backgrounds share one layer at the back of the form, in the order given,
+# so a form's own background is drawn over the game theme's background9 and
+# under everything else: Mineclonia's villager trade level bar.
+func _test_background_order() -> void:
+	var form := _new_form("formspec_version[6]size[10,8]box[1,1;2,2;#ff0000]"
+		+ "background[1,1;3,1;bar.png]", "conformance", MINECLONIA_PREPEND)
+	var layer: Control = form.bg_layer
+	_equal(layer.get_index(), 0, "the background layer is the form's first child")
+	_equal(layer.get_child_count(), 2, "it holds the theme's background and the form's")
+	if layer.get_child_count() == 2:
+		_check(layer.get_child(0) is NinePatchRect, "the theme's background9 is first")
+		_equal(layer.get_child(1).texture, fixture_source.ui_texture("bar.png"),
+			"and the form's own background over it")
+	var box := _colorrect_of(form, Color.RED)
+	_check(box != null and box.get_parent() == form.root and box.get_index() > 0,
+		"everything else is in front of the layer")
 	_discard(form)
 
 
