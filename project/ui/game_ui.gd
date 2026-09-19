@@ -12,6 +12,7 @@
 extends CanvasLayer
 
 const FormspecScript := preload("res://ui/formspec.gd")
+const GlassStyle := preload("res://ui/glass_style.gd")
 # Only to list the texture packs the detected Luanti install already carries,
 # for the Texture pack setting. The same read only borrowing the Content
 # screen does: Goanna does not install packs, it offers what is already there.
@@ -96,9 +97,21 @@ var last_hp := -1
 var far_hint_last := -1
 var far_hint_changed_at := 0.0
 var far_hint_alpha := 0.0
+# Dark glass panes that sit behind HUD drawing: the hotbar's, placed from the
+# rectangle _draw_hotbar last drew in, and chat's, shown while it is open.
+var hotbar_glass: Control
+var hotbar_rect := Rect2()
+var chat_glass: Control
 
 func _ready() -> void:
 	layer = 10
+	add_to_group(GlassStyle.GROUP)
+	# Before the HUD, so that the hotbar is drawn on its glass. Clear glass:
+	# the hotbar is up for the whole game, and frost would cost a screen copy
+	# every frame of it.
+	hotbar_glass = GlassStyle.surface(false)
+	hotbar_glass.visible = false
+	add_child(hotbar_glass)
 	hud = Control.new()
 	hud.set_anchors_preset(Control.PRESET_FULL_RECT)
 	hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -118,6 +131,9 @@ func _ready() -> void:
 	fullscreen_tint.gui_input.connect(_on_outside_click)
 	add_child(fullscreen_tint)
 
+	chat_glass = GlassStyle.surface()
+	chat_glass.visible = false
+	add_child(chat_glass)
 	chat_box = VBoxContainer.new()
 	chat_box.position = Vector2(12, 12)
 	chat_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -130,6 +146,8 @@ func _ready() -> void:
 
 	form = FormspecScript.new()
 	form.item_source = self
+	form.style = GlassStyle.mode()
+	chat_input.theme = GlassStyle.theme() if GlassStyle.is_glass() else null
 	form.visible = false
 	form.set_anchors_preset(Control.PRESET_FULL_RECT)
 	form.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -273,6 +291,7 @@ func _process(delta: float) -> void:
 				stand = client.node_name_at((mv["pos"] as Vector3) + Vector3(0, -0.5, 0))
 			audio.step_local(delta, Vector2(sp.x, sp.z).length() > 0.5,
 				bool(mv.get("on_ground", false)), stand, m.pointed)
+	_place_glass()
 	hud.queue_redraw()
 	if cursor_ctl != null:
 		cursor_ctl.queue_redraw()
@@ -281,6 +300,23 @@ func _process(delta: float) -> void:
 	_ui_chest_test(delta)
 	_ui_craft_test(delta)
 	_ui_chat_hook(delta)
+
+# The HUD's glass panes follow what they back: the hotbar's the rectangle the
+# last HUD draw put the hotbar in, chat's the history and the input line
+# while chat is open. Neither shows in the game theme.
+func _place_glass() -> void:
+	var glass := GlassStyle.is_glass()
+	hotbar_glass.visible = glass and hotbar_rect.size.x > 0.0
+	if hotbar_glass.visible:
+		hotbar_glass.position = hotbar_rect.position
+		hotbar_glass.size = hotbar_rect.size
+	chat_glass.visible = glass and chat_open
+	if chat_glass.visible:
+		var r := Rect2(chat_box.position, chat_box.size)
+		r = r.merge(Rect2(chat_input.position, chat_input.size))
+		r = r.grow(8.0)
+		chat_glass.position = r.position
+		chat_glass.size = r.size
 
 # Development aid: GOANNA_UI_SHOT=<dir> saves the HUD, the inventory, chat
 # and the pause menu at fixed times, then quits.
@@ -572,8 +608,35 @@ func _open_window(c: Control) -> void:
 		window.visible = false
 	window = c
 	fullscreen_tint.visible = true
+	if c != form:
+		fullscreen_tint.color = GlassStyle.BACKDROP if GlassStyle.is_glass() else Color(0, 0, 0, 0)
 	c.visible = true
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+
+# The interface style changed, from the settings screen or the control
+# channel. Everything built in the old style is built again: an open form
+# keeps what the player has typed into it, and the settings screen reopens
+# where it was.
+func interface_style_changed() -> void:
+	form.style = GlassStyle.mode()
+	chat_input.theme = GlassStyle.theme() if GlassStyle.is_glass() else null
+	if window == form and form.visible:
+		form.restyle()
+		fullscreen_tint.color = form.fullscreen_bg
+	var was_pause := window != null and window == pause_menu
+	var was_death := window != null and window == death_screen
+	for old in [pause_menu, death_screen]:
+		if old != null and is_instance_valid(old):
+			old.queue_free()
+	pause_menu = null
+	death_screen = null
+	if was_pause:
+		_open_pause_menu()
+	elif was_death:
+		_show_death_screen()
+	elif window != null and window == settings_menu:
+		_open_settings()
+	hud.queue_redraw()
 
 func _close_window() -> void:
 	if window == null or window == death_screen:
@@ -688,8 +751,9 @@ func _open_pause_menu() -> void:
 const SETTINGS_CFG := "user://goanna.cfg"
 # Setting kinds whose value is text rather than a number. They are
 # saved and read as strings and never go through _apply_setting.
-const TEXT_SETTING_KINDS := ["path", "pack"]
-# [tab, key, type, label, description, (min, max, step) for sliders]
+const TEXT_SETTING_KINDS := ["path", "pack", "choice"]
+# [tab, key, type, label, description, (min, max, step) for sliders,
+# ([[stored value, name shown], ...]) for a choice]
 const SETTINGS := [
 	["Controls", "mantle", "toggle", "Mantle single blocks", "Step up onto single-block ledges automatically, like autojump."],
 	["Controls", "aux1_descends", "toggle", "Aux1 descends", "Use the Aux1 key to go down while flying or climbing."],
@@ -725,6 +789,7 @@ const SETTINGS := [
 	["Video", "show_body", "toggle", "Show own body", "See your own body and held item when you look down."],
 	["Video", "show_fps", "toggle", "Performance counter", "Show FPS and the renderer counts that help distinguish graphics load from terrain streaming."],
 	["Video", "show_position", "toggle", "World position", "Show your current world coordinates."],
+	["Appearance", "interface_style", "choice", "Interface style", "Dark glass draws Goanna's menus and every game form on dark translucent panels that blur the world behind them. The game's own pictures, item art and books are kept. Game theme draws forms in the game's own window art, as its authors made them, and Goanna's menus as they were before. Changes apply at once.", [["glass", "Dark glass"], ["game", "Game theme"]]],
 	["Appearance", "look_strength", "slider", "Natural look", "Adds depth to high daylight and enables the night sky lighting control. Dawn and sunset keep their existing colour treatment. 0 restores the original grade and sky lighting.", 0.0, 1.0, 0.05],
 	["Appearance", "night_visibility", "slider", "Night visibility", "A faint blue upper sky provides cool ambient and bounced light in exposed areas. Keeps the existing night grading and horizon colour. 0 restores the original sky. Works with Natural look.", 0.0, 1.0, 0.05],
 	["Appearance", "bloom_strength", "slider", "Bloom", "Glow around bright light sources, relative to the world's lighting. 0 removes the glow.", 0.0, 2.0, 0.05],
@@ -865,6 +930,11 @@ func _local_value(key: String) -> float:
 
 func _apply_setting(key: String, value: float) -> void:
 	var on := value > 0.5
+	if key == GlassStyle.KEY:
+		# Text in goanna.cfg; as a number, for the control channel's set, 1 is
+		# dark glass and 0 the game theme.
+		GlassStyle.set_mode(GlassStyle.GLASS if on else GlassStyle.GAME)
+		return
 	if key in LOCAL_KEYS:
 		_apply_local(key, value, on)
 		return
@@ -893,6 +963,8 @@ func _apply_setting(key: String, value: float) -> void:
 				client.set_material_strength(key.substr(4), value)
 
 func _setting_value(key: String, fallback: float) -> float:
+	if key == GlassStyle.KEY:
+		return 1.0 if GlassStyle.is_glass() else 0.0
 	if key in LOCAL_KEYS:
 		return _local_value(key)
 	match key:
@@ -985,11 +1057,18 @@ func _build_settings() -> Control:
 	centre.set_anchors_preset(Control.PRESET_FULL_RECT)
 	centre.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var panel := PanelContainer.new()
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.11, 0.12, 0.14, 0.96)
-	sb.set_corner_radius_all(10)
-	sb.set_content_margin_all(28)
-	panel.add_theme_stylebox_override("panel", sb)
+	if GlassStyle.is_glass():
+		centre.theme = GlassStyle.theme()
+		var sb := StyleBoxEmpty.new()
+		sb.set_content_margin_all(28)
+		panel.add_theme_stylebox_override("panel", sb)
+		GlassStyle.back(panel)
+	else:
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Color(0.11, 0.12, 0.14, 0.96)
+		sb.set_corner_radius_all(10)
+		sb.set_content_margin_all(28)
+		panel.add_theme_stylebox_override("panel", sb)
 	centre.add_child(panel)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 18)
@@ -1041,6 +1120,28 @@ func _build_settings() -> Control:
 	add_child(centre)
 	return centre
 
+# One of a few named values, stored as text: the interface style. It applies
+# at once, like the other settings on this screen.
+func _build_choice_row(row: VBoxContainer, entry: Array) -> void:
+	var key: String = entry[1]
+	var picker := OptionButton.new()
+	var current := _setting_text(key)
+	if current == "":
+		current = str((entry[5] as Array)[0][0])
+	for choice in entry[5]:
+		picker.add_item(str(choice[1]))
+		picker.set_item_metadata(picker.item_count - 1, str(choice[0]))
+		if str(choice[0]) == current:
+			picker.select(picker.item_count - 1)
+	picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	picker.item_selected.connect(func(i: int) -> void:
+		var value := str(picker.get_item_metadata(i))
+		if key == GlassStyle.KEY:
+			GlassStyle.set_mode(value)
+		else:
+			_save_setting_text(key, value))
+	row.add_child(picker)
+
 func _setting_text(key: String) -> String:
 	var cfg := ConfigFile.new()
 	if cfg.load("user://goanna.cfg") == OK:
@@ -1064,7 +1165,7 @@ func _build_graphics_page(page: VBoxContainer) -> void:
 	var blurb := Label.new()
 	blurb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	blurb.add_theme_font_size_override("font_size", 13)
-	blurb.modulate = Color(1, 1, 1, 0.72)
+	GlassStyle.tint_text(blurb, Color(1, 1, 1, 0.72))
 	var names: Array = GraphicsProfiles.ORDER.duplicate()
 	names.append("custom")
 	for i in names.size():
@@ -1109,7 +1210,7 @@ func _build_graphics_page(page: VBoxContainer) -> void:
 			var note := Label.new()
 			note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			note.add_theme_font_size_override("font_size", 13)
-			note.modulate = Color(1, 0.85, 0.55)
+			GlassStyle.tint_text(note, Color(1, 0.85, 0.55))
 			note.text = ("This machine is a %s one, and %d of these settings are "
 					+ "below what that profile would give it. Settings are saved "
 					+ "on the first run and never raised again afterwards, so an "
@@ -1143,7 +1244,7 @@ func _build_graphics_page(page: VBoxContainer) -> void:
 			var sub := Label.new()
 			sub.text = tab
 			sub.add_theme_font_size_override("font_size", 15)
-			sub.modulate = Color(1, 1, 1, 0.6)
+			GlassStyle.tint_text(sub, Color(1, 1, 1, 0.6))
 			rest.add_child(sub)
 		_build_setting_row(rest, entry)
 
@@ -1189,7 +1290,7 @@ func _build_setting_row(page: VBoxContainer, entry: Array) -> void:
 		var note := Label.new()
 		note.text = "Saved. Rejoin the world to see it."
 		note.add_theme_font_size_override("font_size", 13)
-		note.modulate = Color(1, 0.85, 0.4)
+		GlassStyle.tint_text(note, Color(1, 0.85, 0.4))
 		note.visible = false
 		var data_dir: String = LocalServer.data_dir_or_empty()
 		var packs_dir := data_dir.path_join("textures") if data_dir != "" else ""
@@ -1239,6 +1340,8 @@ func _build_setting_row(page: VBoxContainer, entry: Array) -> void:
 			edit.text = str(md)
 			_save_setting_text(key, str(md))
 			note.visible = true)
+	elif kind == "choice":
+		_build_choice_row(row, entry)
 	elif kind == "path":
 		# A directory, typed rather than picked: it is set once and it has to
 		# be read before connect_to, so it takes effect on the next connection
@@ -1281,7 +1384,7 @@ func _build_setting_row(page: VBoxContainer, entry: Array) -> void:
 		row.add_child(srow)
 	var desc := Label.new()
 	desc.text = entry[4]
-	desc.modulate = Color(1, 1, 1, 0.5)
+	GlassStyle.tint_text(desc, Color(1, 1, 1, 0.5))
 	desc.add_theme_font_size_override("font_size", 13)
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	row.add_child(desc)
@@ -1311,6 +1414,9 @@ func _build_menu(title: String, entries: Array) -> Control:
 	centre.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var panel := PanelContainer.new()
 	centre.add_child(panel)
+	if GlassStyle.is_glass():
+		centre.theme = GlassStyle.theme()
+		GlassStyle.back(panel)
 	var margin := MarginContainer.new()
 	for side in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
 		margin.add_theme_constant_override(side, 24)
@@ -1328,6 +1434,8 @@ func _build_menu(title: String, entries: Array) -> Control:
 		var b := Button.new()
 		b.text = e[0]
 		b.pressed.connect(e[1])
+		if GlassStyle.is_glass():
+			b.custom_minimum_size = Vector2(0, 38)
 		box.add_child(b)
 	centre.visible = false
 	add_child(centre)
@@ -1993,6 +2101,7 @@ func _draw_performance_overlay(vs: Vector2) -> void:
 func _draw_hud() -> void:
 	if client == null:
 		return
+	hotbar_rect = Rect2()
 	var vs := hud.size
 	if far_hint_alpha > 0.0:
 		var f := hud.get_theme_default_font()
@@ -2092,10 +2201,15 @@ func _draw_hotbar(st: Dictionary, pos: Vector2, offset: Vector2, dir: int, align
 	p.x += (align.x - 1.0) * width * 0.5
 	p.y += (align.y - 1.0) * height * 0.5
 	p = p.floor()
-	var hb_img := ui_texture(st.get("hotbar_image", ""))
+	# Dark glass: the game's hotbar and selection art give way to a glass
+	# strip (hotbar_glass, placed from hotbar_rect) and glass slots, the
+	# selected one ringed in the accent.
+	var glass := GlassStyle.is_glass()
+	hotbar_rect = Rect2(p - Vector2(pad, pad) / 2.0, Vector2(width, height) + Vector2(pad, pad))
+	var hb_img: Texture2D = null if glass else ui_texture(st.get("hotbar_image", ""))
 	if hb_img:
-		hud.draw_texture_rect(hb_img, Rect2(p - Vector2(pad, pad) / 2.0, Vector2(width, height) + Vector2(pad, pad)), false)
-	var sel_img := ui_texture(st.get("hotbar_selected_image", ""))
+		hud.draw_texture_rect(hb_img, hotbar_rect, false)
+	var sel_img: Texture2D = null if glass else ui_texture(st.get("hotbar_selected_image", ""))
 	for i in count:
 		var step: Vector2
 		match dir:
@@ -2104,9 +2218,11 @@ func _draw_hotbar(st: Dictionary, pos: Vector2, offset: Vector2, dir: int, align
 			HUD_DIR_BOTTOM_TOP: step = Vector2(pad, pad + (count - 1 - i) * full)
 			_: step = Vector2(pad + i * full, pad)
 		var r := Rect2(p + step, Vector2(imgsz, imgsz))
-		if not hb_img:
+		if glass:
+			GlassStyle.draw_slot(hud, r.grow(pad * 0.5) if i == wield else r, i == wield, false)
+		elif not hb_img:
 			hud.draw_rect(r, Color(0, 0, 0, 0.5))
-		if i == wield:
+		if i == wield and not glass:
 			if sel_img:
 				hud.draw_texture_rect(sel_img, r.grow(pad), false)
 			else:

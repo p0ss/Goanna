@@ -87,9 +87,10 @@ text placement, with these differences left:
   Game), and by the code its overlay too. Glass looks framed because Goanna
   defaults `connected_glass` on; the vanilla client with the same setting
   draws the same icon.
-- Scrollbars take Luanti's colours and square thumb but have no arrow
-  buttons. Tab headers, dropdowns and checkboxes keep Godot's look rather
-  than Luanti's skin.
+- Scrollbars take Luanti's colours, square thumb and arrow buttons, sized
+  and placed as `CGUIScrollBar` places them (since 19 September 2026, from
+  a side by side of Mineclonia's player settings form). Tab headers,
+  dropdowns and checkboxes keep Godot's look rather than Luanti's skin.
 - Textlist rows are a little taller than GUITable's.
 - Goanna does not clip elements to the form, so anything a form places
   outside itself without `noclip` is still drawn.
@@ -123,6 +124,20 @@ keeps the prepend in its own element list and builds it first, under the same
 rules; `_test_prepend` covers all three parts. Goanna's own pause menu and
 settings screens are ordinary Godot Controls, not formspecs, so the prepend
 never reaches them.
+
+## Interface style
+
+Everything above describes the game theme, which is one of the two interface
+styles a player can choose. The other, dark glass and the default, replaces
+the game's window chrome (the prepend's backgrounds and `bgcolor`,
+`listcolors`, the prepend's button art and text colours, slot frame images)
+with Goanna's glass panes and keeps the form's content art. The rule, and
+why it is written the way it is, is in `docs/interface-style.md`. The
+renderer is the same in both styles: layout, parsing, field submission and
+inventory handling do not change, and `_test_glass_sends_the_same` checks
+that a form sends the same fields in either. The suite builds its parity
+fixtures in the game theme, and the `_test_glass_` checks build forms in
+dark glass to check what is replaced and what is kept.
 
 When Luanti adds or removes a registered element, the source check fails
 until the manifest is updated. New support should update the renderer, the
