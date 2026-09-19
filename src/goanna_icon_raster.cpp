@@ -1,5 +1,12 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (C) 2026 the Goanna contributors
+// Copyright (C) 2010-2013 celeron55, Perttu Ahola <celeron55@gmail.com>
+// Copyright (C) 2024 cx384
+//
+// The inventory shading here re-expresses Luanti code: applyShadeFactor and
+// colorizeMeshBuffer's light from client/mesh.cpp, the projection and light
+// of gui/drawItemStack.cpp, and the texel and alpha rules of
+// client/shaders/inventory_shader. Each is marked at its definition.
 
 // See goanna_icon_raster.h. The references for every rule below are
 // luanti/src/gui/drawItemStack.cpp (projection, light, draw order),
