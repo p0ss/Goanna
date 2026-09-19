@@ -101,6 +101,26 @@ The performance overlay can show FPS, draw calls, object and triangle counts,
 terrain queues, occlusion and world position. It is useful when reporting a
 performance or streaming problem.
 
+## Interface style
+
+Settings, Appearance, Interface style chooses how menus and game forms look.
+It takes effect at once, in the main menu or in game.
+
+- Dark glass, the default, draws Goanna's menus, chat, the hotbar and every
+  game form (inventories, chests, furnaces and the rest) on dark translucent
+  panels that blur the world behind them. The game's own pictures are kept:
+  items, the empty armour slot outlines, progress arrows, player models,
+  books and any screen a game draws with its own art. Only the plain window
+  parts, the grey panels, slot squares and button frames, are replaced.
+  Dark text a game chose for its light panels is lightened so it can be read
+  on the dark glass.
+- Game theme draws every form in the game's own window art, as the game's
+  authors made it and as Luanti's own client shows it, and Goanna's menus as
+  they were before the glass.
+
+Neither choice changes what a form does or sends to the server. Details, and
+what is not handled yet, are in [interface-style.md](interface-style.md).
+
 ## Rendering options
 
 Goanna's important visual systems are adjustable while connected:

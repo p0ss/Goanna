@@ -460,6 +460,47 @@ the fact.
   the Minetest Game sign through a real right click, whose text round trip
   was exercised through an ordinary node metadata fields packet instead.
 
+- Dark glass interface style, 2026-09-19. Settings, Appearance, Interface
+  style chooses between Dark glass, the default, and Game theme, and
+  applies at once in the main menu and in game (an open form is rebuilt
+  and keeps what was typed). In dark glass the main menu, pause menu,
+  settings, chat and every server form sit on panes that blur and darken
+  the world behind them through a soft luminance ceiling, with a rim, a
+  slight edge bend and a shadow, and one Godot Theme dresses every
+  control. In forms the game's window chrome is replaced and its content
+  kept: the prepend's backgrounds become glass panes of the same
+  rectangles, its `bgcolor`, every `listcolors` and the prepend's button
+  art and text colours are dropped, `image[]` slot frames (behind a slot,
+  framing it, the texture framing two slots or more) give way to glass slot
+  tiles, and every other image, item, model, box and form background is
+  kept; a form that paints its own window, a book, keeps the game theme
+  whole. The theme is recognised when a form repeats it under
+  `no_prepend[]`, as Mineclonia's creative inventory does. Text colours
+  below 4.5:1 against the glass's worst case are lifted towards white, so
+  Mineclonia's `#313131` labels read `#bababa`. The hotbar gets clear glass
+  that does not read the screen. `docs/interface-style.md` has the rule and
+  the numbers. Verified: the formspec suite, now 398 checks (81 new, on what
+  glass replaces and keeps, the slot frame rule's edge cases, the repeated
+  theme, a book, the same fields sent in both styles, and the contrast
+  arithmetic); live on fresh Mineclonia and Minetest Game worlds on the
+  Luanti 5.17.0 Flatpak with Godot 4.5.1 at 1600 by 900, Mineclonia's
+  survival and creative inventories, chest, furnace and crafting table,
+  Minetest Game's inventory, and Goanna's main menu, pause menu and
+  settings, each captured in both styles over a bright day, a forest and a
+  cave (`docs/perf/ui-glass-2026-09-19/`); measured contrast of text on the
+  glass alone over snow, open sky, sand and water, a forest, a cave and a
+  night: 9.1:1 or better for interface text, 6.3:1 for quiet text, 5.1:1
+  for a lifted label, 4.6:1 for a slot's count; and the GPU cost, 0.07 to
+  0.10 ms a frame with a form open (0.36 ms under a heavier load from other
+  processes on the same RTX 3090) and nothing measurable with no window
+  open. Not verified: VoxeLibre and other games, other GPUs and
+  resolutions, dropdowns, tables and hypertext photographed in glass, and
+  the in-game settings dropdown clicked by hand. Known to be worse than the
+  game theme: dark and mid tone items stand out less on the glass slot tile
+  than on Mineclonia's light grey slot (light items stand out more), and
+  Mineclonia's creative tabs stay light grey because they are the game's
+  own art.
+
 ## Log since v0.4.1-alpha (2026-08-30)
 
 Verified on a local Mineclonia server on Luanti 5.17.0 with Godot 4.5.1 and

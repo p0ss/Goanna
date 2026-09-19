@@ -117,6 +117,20 @@ rules; `_test_prepend` covers all three parts. Goanna's own pause menu and
 settings screens are ordinary Godot Controls, not formspecs, so the prepend
 never reaches them.
 
+## Interface style
+
+Everything above describes the game theme, which is one of the two interface
+styles a player can choose. The other, dark glass and the default, replaces
+the game's window chrome (the prepend's backgrounds and `bgcolor`,
+`listcolors`, the prepend's button art and text colours, slot frame images)
+with Goanna's glass panes and keeps the form's content art. The rule, and
+why it is written the way it is, is in `docs/interface-style.md`. The
+renderer is the same in both styles: layout, parsing, field submission and
+inventory handling do not change, and `_test_glass_sends_the_same` checks
+that a form sends the same fields in either. The suite builds its parity
+fixtures in the game theme, and the `_test_glass_` checks build forms in
+dark glass to check what is replaced and what is kept.
+
 When Luanti adds or removes a registered element, the source check fails
 until the manifest is updated. New support should update the renderer, the
 status and an appropriate Godot fixture in the same change. Luanti's

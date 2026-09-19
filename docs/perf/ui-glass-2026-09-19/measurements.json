@@ -1,0 +1,606 @@
+{
+ "contrast_backgrounds": [
+  {
+   "capture": "mcl_survival_beach",
+   "worst": 0.0519,
+   "p99.9": 0.0519,
+   "text": 9.4414,
+   "text_dim": 6.5148,
+   "label_313131_as_bababa": 5.3098,
+   "button_hover_text": 6.5931,
+   "slot_hover_count": 5.1229,
+   "slot_framed_count": 4.6318
+  },
+  {
+   "capture": "mcl_survival_cave",
+   "worst": 0.0218,
+   "p99.9": 0.0206,
+   "text": 13.3903,
+   "text_dim": 9.2396,
+   "label_313131_as_bababa": 7.5307,
+   "button_hover_text": 9.1532,
+   "slot_hover_count": 5.2673,
+   "slot_framed_count": 4.7926
+  },
+  {
+   "capture": "mcl_survival_forest",
+   "worst": 0.0285,
+   "p99.9": 0.0264,
+   "text": 12.2544,
+   "text_dim": 8.4559,
+   "label_313131_as_bababa": 6.8918,
+   "button_hover_text": 8.3769,
+   "slot_hover_count": 5.2278,
+   "slot_framed_count": 4.7485
+  },
+  {
+   "capture": "mcl_survival_night",
+   "worst": 0.0202,
+   "p99.9": 0.0202,
+   "text": 13.697,
+   "text_dim": 9.4513,
+   "label_313131_as_bababa": 7.7032,
+   "button_hover_text": 9.3718,
+   "slot_hover_count": 5.2779,
+   "slot_framed_count": 4.8044
+  },
+  {
+   "capture": "mcl_survival_sky",
+   "worst": 0.0513,
+   "p99.9": 0.0482,
+   "text": 9.4977,
+   "text_dim": 6.5537,
+   "label_313131_as_bababa": 5.3415,
+   "button_hover_text": 6.6277,
+   "slot_hover_count": 5.1252,
+   "slot_framed_count": 4.6343
+  },
+  {
+   "capture": "mcl_survival_snow",
+   "worst": 0.054,
+   "p99.9": 0.0524,
+   "text": 9.2466,
+   "text_dim": 6.3804,
+   "label_313131_as_bababa": 5.2002,
+   "button_hover_text": 6.4736,
+   "slot_hover_count": 5.1149,
+   "slot_framed_count": 4.6229
+  },
+  {
+   "capture": "settings_beach",
+   "worst": 0.0507,
+   "p99.9": 0.0506,
+   "text": 9.5487,
+   "text_dim": 6.5889,
+   "label_313131_as_bababa": 5.3702,
+   "button_hover_text": 6.659,
+   "slot_hover_count": 5.1272,
+   "slot_framed_count": 4.6366
+  },
+  {
+   "capture": "settings_cave",
+   "worst": 0.024,
+   "p99.9": 0.0218,
+   "text": 13.0075,
+   "text_dim": 8.9755,
+   "label_313131_as_bababa": 7.3154,
+   "button_hover_text": 8.8863,
+   "slot_hover_count": 5.2541,
+   "slot_framed_count": 4.7777
+  },
+  {
+   "capture": "settings_forest",
+   "worst": 0.0293,
+   "p99.9": 0.0264,
+   "text": 12.1335,
+   "text_dim": 8.3724,
+   "label_313131_as_bababa": 6.8239,
+   "button_hover_text": 8.2968,
+   "slot_hover_count": 5.2236,
+   "slot_framed_count": 4.7437
+  },
+  {
+   "capture": "settings_night",
+   "worst": 0.0202,
+   "p99.9": 0.0196,
+   "text": 13.697,
+   "text_dim": 9.4513,
+   "label_313131_as_bababa": 7.7032,
+   "button_hover_text": 9.3718,
+   "slot_hover_count": 5.2779,
+   "slot_framed_count": 4.8044
+  },
+  {
+   "capture": "settings_sky",
+   "worst": 0.0463,
+   "p99.9": 0.0446,
+   "text": 9.9919,
+   "text_dim": 6.8947,
+   "label_313131_as_bababa": 5.6194,
+   "button_hover_text": 6.9325,
+   "slot_hover_count": 5.1448,
+   "slot_framed_count": 4.6561
+  },
+  {
+   "capture": "settings_snow",
+   "worst": 0.0557,
+   "p99.9": 0.054,
+   "text": 9.103,
+   "text_dim": 6.2813,
+   "label_313131_as_bababa": 5.1195,
+   "button_hover_text": 6.3857,
+   "slot_hover_count": 5.1089,
+   "slot_framed_count": 4.6163
+  }
+ ],
+ "comparison_sheet_glass": [
+  {
+   "capture": "mcl_chest_cave",
+   "worst": 0.0216,
+   "p99.9": 0.02,
+   "text": 13.4428,
+   "text_dim": 9.2759,
+   "label_313131_as_bababa": 7.5602,
+   "button_hover_text": 9.1904,
+   "slot_hover_count": 5.2691,
+   "slot_framed_count": 4.7946
+  },
+  {
+   "capture": "mcl_chest_day",
+   "worst": 0.0484,
+   "p99.9": 0.0481,
+   "text": 9.7812,
+   "text_dim": 6.7493,
+   "label_313131_as_bababa": 5.5009,
+   "button_hover_text": 6.8022,
+   "slot_hover_count": 5.1365,
+   "slot_framed_count": 4.6469
+  },
+  {
+   "capture": "mcl_chest_forest",
+   "worst": 0.0295,
+   "p99.9": 0.0274,
+   "text": 12.1001,
+   "text_dim": 8.3494,
+   "label_313131_as_bababa": 6.8051,
+   "button_hover_text": 8.2748,
+   "slot_hover_count": 5.2224,
+   "slot_framed_count": 4.7424
+  },
+  {
+   "capture": "mcl_creative_cave",
+   "worst": 0.0226,
+   "p99.9": 0.0207,
+   "text": 13.2506,
+   "text_dim": 9.1433,
+   "label_313131_as_bababa": 7.4521,
+   "button_hover_text": 9.0551,
+   "slot_hover_count": 5.2625,
+   "slot_framed_count": 4.7872
+  },
+  {
+   "capture": "mcl_creative_day",
+   "worst": 0.0485,
+   "p99.9": 0.0471,
+   "text": 9.7687,
+   "text_dim": 6.7406,
+   "label_313131_as_bababa": 5.4939,
+   "button_hover_text": 6.7945,
+   "slot_hover_count": 5.136,
+   "slot_framed_count": 4.6463
+  },
+  {
+   "capture": "mcl_creative_forest",
+   "worst": 0.035,
+   "p99.9": 0.0315,
+   "text": 11.3153,
+   "text_dim": 7.8078,
+   "label_313131_as_bababa": 6.3637,
+   "button_hover_text": 7.7648,
+   "slot_hover_count": 5.1944,
+   "slot_framed_count": 4.7112
+  },
+  {
+   "capture": "mcl_furnace_cave",
+   "worst": 0.0216,
+   "p99.9": 0.0197,
+   "text": 13.4428,
+   "text_dim": 9.2759,
+   "label_313131_as_bababa": 7.5602,
+   "button_hover_text": 9.1904,
+   "slot_hover_count": 5.2691,
+   "slot_framed_count": 4.7946
+  },
+  {
+   "capture": "mcl_furnace_day",
+   "worst": 0.0484,
+   "p99.9": 0.0481,
+   "text": 9.7812,
+   "text_dim": 6.7493,
+   "label_313131_as_bababa": 5.5009,
+   "button_hover_text": 6.8022,
+   "slot_hover_count": 5.1365,
+   "slot_framed_count": 4.6469
+  },
+  {
+   "capture": "mcl_furnace_forest",
+   "worst": 0.0295,
+   "p99.9": 0.0274,
+   "text": 12.1001,
+   "text_dim": 8.3494,
+   "label_313131_as_bababa": 6.8051,
+   "button_hover_text": 8.2748,
+   "slot_hover_count": 5.2224,
+   "slot_framed_count": 4.7424
+  },
+  {
+   "capture": "mcl_survival_cave",
+   "worst": 0.0216,
+   "p99.9": 0.0204,
+   "text": 13.4428,
+   "text_dim": 9.2759,
+   "label_313131_as_bababa": 7.5602,
+   "button_hover_text": 9.1904,
+   "slot_hover_count": 5.2691,
+   "slot_framed_count": 4.7946
+  },
+  {
+   "capture": "mcl_survival_day",
+   "worst": 0.0482,
+   "p99.9": 0.0481,
+   "text": 9.7929,
+   "text_dim": 6.7574,
+   "label_313131_as_bababa": 5.5075,
+   "button_hover_text": 6.8094,
+   "slot_hover_count": 5.137,
+   "slot_framed_count": 4.6474
+  },
+  {
+   "capture": "mcl_survival_forest",
+   "worst": 0.0293,
+   "p99.9": 0.0272,
+   "text": 12.1335,
+   "text_dim": 8.3724,
+   "label_313131_as_bababa": 6.8239,
+   "button_hover_text": 8.2968,
+   "slot_hover_count": 5.2236,
+   "slot_framed_count": 4.7437
+  },
+  {
+   "capture": "mcl_table_cave",
+   "worst": 0.0216,
+   "p99.9": 0.0198,
+   "text": 13.4428,
+   "text_dim": 9.2759,
+   "label_313131_as_bababa": 7.5602,
+   "button_hover_text": 9.1904,
+   "slot_hover_count": 5.2691,
+   "slot_framed_count": 4.7946
+  },
+  {
+   "capture": "mcl_table_day",
+   "worst": 0.0484,
+   "p99.9": 0.0481,
+   "text": 9.7812,
+   "text_dim": 6.7493,
+   "label_313131_as_bababa": 5.5009,
+   "button_hover_text": 6.8022,
+   "slot_hover_count": 5.1365,
+   "slot_framed_count": 4.6469
+  },
+  {
+   "capture": "mcl_table_forest",
+   "worst": 0.0293,
+   "p99.9": 0.0273,
+   "text": 12.1335,
+   "text_dim": 8.3724,
+   "label_313131_as_bababa": 6.8239,
+   "button_hover_text": 8.2968,
+   "slot_hover_count": 5.2236,
+   "slot_framed_count": 4.7437
+  },
+  {
+   "capture": "pause_cave",
+   "worst": 0.0264,
+   "p99.9": 0.0255,
+   "text": 12.5853,
+   "text_dim": 8.6841,
+   "label_313131_as_bababa": 7.0779,
+   "button_hover_text": 8.5983,
+   "slot_hover_count": 5.2394,
+   "slot_framed_count": 4.7614
+  },
+  {
+   "capture": "pause_day",
+   "worst": 0.0529,
+   "p99.9": 0.0516,
+   "text": 9.3507,
+   "text_dim": 6.4522,
+   "label_313131_as_bababa": 5.2588,
+   "button_hover_text": 6.5374,
+   "slot_hover_count": 5.1192,
+   "slot_framed_count": 4.6277
+  },
+  {
+   "capture": "pause_forest",
+   "worst": 0.0322,
+   "p99.9": 0.0306,
+   "text": 11.7006,
+   "text_dim": 8.0737,
+   "label_313131_as_bababa": 6.5804,
+   "button_hover_text": 8.0133,
+   "slot_hover_count": 5.2082,
+   "slot_framed_count": 4.7266
+  },
+  {
+   "capture": "settings_cave",
+   "worst": 0.024,
+   "p99.9": 0.0211,
+   "text": 13.0075,
+   "text_dim": 8.9755,
+   "label_313131_as_bababa": 7.3154,
+   "button_hover_text": 8.8863,
+   "slot_hover_count": 5.2541,
+   "slot_framed_count": 4.7777
+  },
+  {
+   "capture": "settings_day",
+   "worst": 0.0481,
+   "p99.9": 0.0479,
+   "text": 9.8039,
+   "text_dim": 6.765,
+   "label_313131_as_bababa": 5.5137,
+   "button_hover_text": 6.8162,
+   "slot_hover_count": 5.1374,
+   "slot_framed_count": 4.6479
+  },
+  {
+   "capture": "settings_forest",
+   "worst": 0.0293,
+   "p99.9": 0.0271,
+   "text": 12.1335,
+   "text_dim": 8.3724,
+   "label_313131_as_bababa": 6.8239,
+   "button_hover_text": 8.2968,
+   "slot_hover_count": 5.2236,
+   "slot_framed_count": 4.7437
+  }
+ ],
+ "slot_icon_contrast": {
+  "mcl_core:cobble": {
+   "day/game": 2.0975,
+   "day/glass": 1.2159,
+   "forest/game": 2.0975,
+   "forest/glass": 1.1504,
+   "cave/game": 2.0975,
+   "cave/glass": 1.1338
+  },
+  "mcl_torches:torch": {
+   "day/game": 2.4408,
+   "day/glass": 1.4331,
+   "forest/game": 2.4408,
+   "forest/glass": 1.3551,
+   "cave/game": 2.4408,
+   "cave/glass": 1.3551
+  },
+  "mcl_core:apple": {
+   "day/game": 2.3892,
+   "day/glass": 1.4585,
+   "forest/game": 2.3892,
+   "forest/glass": 1.2915,
+   "cave/game": 2.3892,
+   "cave/glass": 1.293
+  },
+  "mcl_core:iron_ingot": {
+   "day/game": 1.0915,
+   "day/glass": 1.5976,
+   "forest/game": 1.0915,
+   "forest/glass": 1.7268,
+   "cave/game": 1.0915,
+   "cave/glass": 1.7268
+  },
+  "mcl_core:gold_ingot": {
+   "day/game": 1.0698,
+   "day/glass": 1.63,
+   "forest/game": 1.0698,
+   "forest/glass": 1.6847,
+   "cave/game": 1.0698,
+   "cave/glass": 1.8641
+  },
+  "mcl_redstone:redstone": {
+   "day/game": 4.2471,
+   "day/glass": 2.4355,
+   "forest/game": 4.2471,
+   "forest/glass": 2.3564,
+   "cave/game": 4.2471,
+   "cave/glass": 2.2984
+  },
+  "mcl_trees:tree_oak": {
+   "day/game": 2.6457,
+   "day/glass": 1.524,
+   "forest/game": 2.6457,
+   "forest/glass": 1.4783,
+   "cave/game": 2.6457,
+   "cave/glass": 1.4409
+  },
+  "mcl_core:sand": {
+   "day/game": 1.0694,
+   "day/glass": 1.6307,
+   "forest/game": 1.0694,
+   "forest/glass": 1.663,
+   "cave/game": 1.0694,
+   "cave/glass": 1.8075
+  },
+  "mcl_farming:bread": {
+   "day/game": 1.1712,
+   "day/glass": 2.0423,
+   "forest/game": 1.1712,
+   "forest/glass": 2.1045,
+   "cave/game": 1.1712,
+   "cave/glass": 2.1666
+  },
+  "mcl_tools:sword_diamond": {
+   "day/game": 1.0544,
+   "day/glass": 1.6606,
+   "forest/game": 1.0544,
+   "forest/glass": 1.7525,
+   "cave/game": 1.0544,
+   "cave/glass": 1.7545
+  },
+  "mcl_core:coal_lump": {
+   "day/game": 4.7131,
+   "day/glass": 2.7028,
+   "forest/game": 4.7131,
+   "forest/glass": 2.6121,
+   "cave/game": 4.7131,
+   "cave/glass": 2.5477
+  },
+  "mcl_tools:pick_iron": {
+   "day/game": 2.0381,
+   "day/glass": 1.1688,
+   "forest/game": 2.0381,
+   "forest/glass": 1.1162,
+   "cave/game": 2.0381,
+   "cave/glass": 1.1109
+  },
+  "mcl_core:snowblock": {
+   "day/game": 1.4942,
+   "day/glass": 2.6043,
+   "forest/game": 1.4942,
+   "forest/glass": 2.6948,
+   "cave/game": 1.4942,
+   "cave/glass": 2.7629
+  },
+  "mcl_nether:quartz": {
+   "day/game": 1.0266,
+   "day/glass": 1.6952,
+   "forest/game": 1.0266,
+   "forest/glass": 1.7776,
+   "cave/game": 1.0266,
+   "cave/glass": 1.7981
+  },
+  "mcl_core:diamond": {
+   "day/game": 1.274,
+   "day/glass": 2.2217,
+   "forest/game": 1.274,
+   "forest/glass": 2.3228,
+   "cave/game": 1.274,
+   "cave/glass": 2.3569
+  },
+  "mcl_wool:black": {
+   "day/game": 5.6124,
+   "day/glass": 3.2185,
+   "forest/game": 5.6124,
+   "forest/glass": 3.1105,
+   "cave/game": 5.6124,
+   "cave/glass": 3.0338
+  },
+  "mcl_wool:white": {
+   "day/game": 1.1869,
+   "day/glass": 2.0697,
+   "forest/game": 1.1869,
+   "forest/glass": 2.1416,
+   "cave/game": 1.1869,
+   "cave/glass": 2.1957
+  },
+  "mcl_core:dirt": {
+   "day/game": 2.9797,
+   "day/glass": 1.7087,
+   "forest/game": 2.9797,
+   "forest/glass": 1.6514,
+   "cave/game": 2.9797,
+   "cave/glass": 1.6107
+  },
+  "mcl_core:stone": {
+   "day/game": 1.9655,
+   "day/glass": 1.1357,
+   "forest/game": 1.9655,
+   "forest/glass": 1.0893,
+   "cave/game": 1.9655,
+   "cave/glass": 1.0625
+  }
+ },
+ "gpu": {
+  "resolution": [
+   1600,
+   900
+  ],
+  "gpu": "NVIDIA GeForce RTX 3090, shared with other processes at 96 to 99 percent utilisation",
+  "method": "viewport_get_measured_render_time_gpu, mean of 240 frames, game theme and dark glass alternated four times",
+  "mineclonia_chest_open_ms": {
+   "game": [
+    2.262,
+    2.244,
+    2.223,
+    2.213
+   ],
+   "glass": [
+    2.322,
+    2.323,
+    2.296,
+    2.322
+   ]
+  },
+  "mineclonia_chest_open_heavier_load_ms": {
+   "game": [
+    11.39,
+    11.395,
+    11.445,
+    11.394
+   ],
+   "glass": [
+    11.78,
+    11.796,
+    11.724,
+    11.764
+   ],
+   "glass_without_panes": [
+    11.44,
+    11.402,
+    11.377
+   ]
+  },
+  "minetest_game_inventory_open_ms": {
+   "game": [
+    3.135,
+    3.103,
+    3.139,
+    3.147
+   ],
+   "glass": [
+    3.214,
+    3.203,
+    3.2,
+    3.187
+   ]
+  },
+  "minetest_game_item_tooltip_ms": {
+   "game": [
+    2.231,
+    1.879,
+    2.202,
+    2.19
+   ],
+   "glass": [
+    2.197,
+    2.19,
+    2.254,
+    2.24
+   ]
+  },
+  "minetest_game_no_window_ms": {
+   "game": [
+    3.076,
+    3.088,
+    3.099,
+    3.092
+   ],
+   "glass": [
+    3.102,
+    3.09,
+    3.111,
+    3.094
+   ]
+  }
+ }
+}

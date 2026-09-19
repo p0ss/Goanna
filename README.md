@@ -24,6 +24,8 @@ remaining connected to an ordinary Luanti world.
 - Modern Godot lighting, shadows, materials and sky rendering.
 - Luanti-compatible movement, interaction, inventory, formspecs, entities,
   sounds and particles.
+- Menus and game forms on dark translucent glass by default, or in each
+  game's own form art (Settings, Appearance, Interface style).
 - Multi-tier distant terrain with local persistence, server summaries and
   occlusion-aware rendering.
 - Optional Terrain Diffusion worlds with a downloadable 1 m-per-node default

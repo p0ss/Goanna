@@ -134,6 +134,8 @@ fixtures and deterministic capture conventions are described in
 - [Mesh attributes](mesh-attributes.md): the vertex data contract.
 - [Control channel](control-channel.md) and [capabilities](capabilities.md):
   optional server-authorised features.
+- [Interface style](interface-style.md): the dark glass style, the rule for
+  what in a form is chrome and what is content, legibility and cost.
 - [Protocol coverage](protocol-coverage.md): transplanted protocol support.
 - [Transplanting](transplanting.md): how Luanti source changes are tracked.
 - [Iris compatibility](iris-compat.md): shader-pack boundary and status.
