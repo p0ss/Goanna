@@ -21,6 +21,40 @@ This interface is unsuitable for gameplay agents. Loopback binding is useful
 protection against remote access, but it does not turn `eval`, `run` or
 arbitrary method calls into safe player capabilities.
 
+Its UI commands (`ui_tree`, `ui_click`, `ui_hover`, `ui_type`, `ui_scroll`,
+`key`) belong to it too. They push input events inside the client and read
+the open form, which is test tooling, and they send the server nothing a
+player's own clicks would not send. They are not a player agent action
+vocabulary.
+
+### Rules for test clients
+
+Agents testing Goanna have taken over the owner's desktop while the owner
+was using it: clients opened in front of their work, took the focus and
+grabbed the mouse, once in the middle of a video call, and an agent tried to
+move a client's pointer with xdotool. So:
+
+- Test clients run headless, through `tools/goanna-headless` or the MCP
+  server (`goanna_session action=start`, headless by default), inside
+  gamescope's headless backend. A window on the desktop only when the owner
+  has asked to watch one.
+- Never inject input into the owner's display (`DISPLAY=:0`,
+  `WAYLAND_DISPLAY=wayland-0`, or whatever the desktop's are) with xdotool,
+  ydotool or anything else. Drive clients from inside, with the control
+  channel's UI commands. The vanilla client is not driven at all; it is
+  framed from the server side and photographed through gamescope.
+- Stop processes only by the PIDs you started, or through the launcher,
+  which checks each PID against its recorded start time. Never by name:
+  `pkill goanna`, `pkill -f luanti` and `killall gamescope` hit other
+  agents' clients and the owner's own game.
+- Give every client its own control port and server port. The launcher
+  refuses a control port that is taken; do not work around it.
+- Leave nothing running: stop every client, server and gamescope you
+  started before finishing.
+
+The launcher and the MCP server are described in `docs/control-channel.md`,
+under "Starting it" and "Driving it from an agent".
+
 ## 2. Player agent interface
 
 The player agent interface represents an ordinary participant in a world. The

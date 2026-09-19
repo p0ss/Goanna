@@ -1,0 +1,16 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: LGPL-2.1-or-later
+# Copyright (C) 2026 the Goanna contributors
+"""Run Goanna or the vanilla Luanti client inside headless gamescope, where
+no window, focus change or pointer grab can reach the desktop. The work is
+in tools/goanna_headless.py, which tools/goanna-mcp shares; run with no
+arguments for usage."""
+
+import pathlib
+import sys
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+
+import goanna_headless  # noqa: E402
+
+sys.exit(goanna_headless.main(sys.argv))
