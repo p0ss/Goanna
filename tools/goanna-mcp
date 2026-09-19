@@ -731,6 +731,16 @@ def session_tool(args, reg):
         if inst.kind not in ("goanna", "window"):
             raise ChannelError("only a Goanna client this session started can be restarted")
         again = dict(inst.args)
+        rec = inst.record() or {}
+        # A client started from the command line has no MCP arguments on
+        # record; take what the launcher recorded instead.
+        host, _, port = str(rec.get("server", "")).rpartition(":")
+        for key, value in (("project", rec.get("project")), ("name", rec.get("name")),
+                           ("host", host or None), ("port", int(port) if port else None),
+                           ("width", rec.get("width")), ("height", rec.get("height")),
+                           ("software", rec.get("software"))):
+            if value is not None and key not in again:
+                again[key] = value
         for key in ("build", "env", "project", "name", "host", "port", "label", "software"):
             if key in args:
                 again[key] = args[key]

@@ -212,7 +212,10 @@ def ports_in_use_by_records():
     return out
 
 
-def free_control_port(start=DEFAULT_CONTROL_PORT, span=100):
+def free_control_port(start=DEFAULT_CONTROL_PORT + 1, span=100):
+    """A free port from 30801 up. 30800 itself is left alone: every tool
+    that is not told a port talks to it, so a headless client there would
+    be driven by commands meant for somebody else's."""
     taken = ports_in_use_by_records()
     for port in range(start, start + span):
         if port not in taken and port_free(port):
@@ -265,7 +268,10 @@ def list_records():
         except (OSError, ValueError):
             continue
         # A supervisor killed outright never wrote "stopped"; say what is true.
-        if rec.get("status") in ("starting", "running") \
+        # One still launching has no PIDs yet, so give it a minute first.
+        young = time.time() - float(rec.get("created", 0)) < 60.0
+        if rec.get("status") in ("launching", "starting", "running") \
+                and not (young and rec.get("status") != "running") \
                 and not alive(rec.get("supervisor_pid"), rec.get("supervisor_start")) \
                 and not alive(rec.get("child_pid"), rec.get("child_start")):
             rec["status"] = "stopped"

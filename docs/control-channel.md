@@ -46,10 +46,12 @@ the GPU as usual, but no window reaches the desktop, nothing takes the focus
 and nothing grabs the mouse. The command returns once the control channel
 answers, with an instance id (`goanna-30851`), the PIDs and the log. It
 refuses a control port that is already in use; leave `--control-port` out
-and a free one is chosen. `tools/goanna-headless list` shows every instance
-on the machine, `stop goanna-30851` stops one, and `shot goanna-30851
-/tmp/a.png` saves the virtual display as gamescope composites it. The MCP
-server below does all of this as tools. The rules that go with it are in
+and a free one from 30801 up is chosen, leaving 30800, which every tool
+talks to when not told a port, to clients started by hand.
+`tools/goanna-headless list` shows every instance on the machine, `stop
+goanna-30851` stops one, and `shot goanna-30851 /tmp/a.png` saves the
+virtual display as gamescope composites it. The MCP server below does all
+of this as tools. The rules that go with it are in
 `docs/agent-interfaces.md`.
 
 `--software` renders on lavapipe and llvmpipe and never opens a GPU context.
