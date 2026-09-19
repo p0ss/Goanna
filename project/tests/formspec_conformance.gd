@@ -60,12 +60,20 @@ class FakeItemSource extends Node:
 # click, a drag or a double click.
 class FakeClient extends Node:
 	var actions: Array = []
+	var prepend := ""
+	var inventory_spec := ""
 
 	func inventory_action(action: String) -> void:
 		actions.append(action)
 
 	func inventory_state_at(_location: String) -> Dictionary:
 		return {}
+
+	func formspec_prepend() -> String:
+		return prepend
+
+	func inventory_formspec() -> String:
+		return inventory_spec
 
 
 func _initialize() -> void:
@@ -91,6 +99,7 @@ func _run() -> void:
 	_test_nothing_skipped()
 	_test_hypertip()
 	_test_prepend()
+	_test_host_passes_prepend()
 	await _write_reference_shots()
 	if failures == 0:
 		print("formspec conformance: PASS: ", checks, " checks")
@@ -825,6 +834,23 @@ func _test_prepend() -> void:
 		"real_coordinates inside a prepend applies to the prepend")
 	_discard(scoped)
 	_discard(form)
+
+
+# The renderer's prepend handling is no use unless the host hands the theme
+# over. That wiring in game_ui.gd was lost once, to a commit recovered from a
+# stale copy, and every form in every game went back to a plain grey panel
+# while _test_prepend above still passed.
+func _test_host_passes_prepend() -> void:
+	var ui := _new_inventory_ui({"main": []})
+	ui.fullscreen_tint = ColorRect.new()
+	ui.client.prepend = MINECLONIA_PREPEND
+	ui._show_server_formspec("formspec_version[6]size[10,8]label[1,1;Chest]", "mcl_chests:chest")
+	_equal(ui.form.prepend_elements.size(), 5, "a server form is built with the game's prepend")
+	ui.client.inventory_spec = "formspec_version[6]size[10,8]list[current_player;main;0.5,0.5;4,1;0]"
+	ui._open_inventory()
+	_equal(ui.form.prepend_elements.size(), 5, "the player's inventory is built with the game's prepend")
+	ui.fullscreen_tint.free()
+	_discard_inventory_ui(ui)
 
 
 func _colorrect_of(node: Node, colour: Color) -> ColorRect:

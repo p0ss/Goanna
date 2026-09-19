@@ -413,7 +413,7 @@ func _ui_chest_test(delta: float) -> void:
 		other_inv_cache.clear()
 		form_is_inventory = false
 		form.show_formspec("size[8,9]list[context;main;0,0.3;8,4;]list[current_player;main;0,4.85;8,1;]list[current_player;main;0,6.08;8,3;8]listring[context;main]listring[current_player;main]",
-			"", get_viewport().get_visible_rect().size)
+			"", form.get_viewport_rect().size, _formspec_prepend())
 		fullscreen_tint.color = form.fullscreen_bg
 		_open_window(form)
 	if absf(t - 5.5) < delta * 0.6:
@@ -619,9 +619,15 @@ func _open_inventory() -> void:
 	form_is_inventory = true
 	other_inv_cache.clear()
 	form_context = ""
-	form.show_formspec(spec, "", get_viewport().get_visible_rect().size)
+	form.show_formspec(spec, "", form.get_viewport_rect().size, _formspec_prepend())
 	fullscreen_tint.color = form.fullscreen_bg
 	_open_window(form)
+
+# The game's window theme, sent once as TOCLIENT_FORMSPEC_PREPEND. Only
+# server formspecs get it: Goanna's own pause menu and settings screens are
+# ordinary Controls and are not formspecs at all.
+func _formspec_prepend() -> String:
+	return client.formspec_prepend() if client.has_method("formspec_prepend") else ""
 
 func _show_server_formspec(spec: String, formname: String) -> void:
 	if spec.strip_edges() == "":
@@ -631,7 +637,7 @@ func _show_server_formspec(spec: String, formname: String) -> void:
 		return
 	form_is_inventory = false
 	other_inv_cache.clear()
-	form.show_formspec(spec, formname, get_viewport().get_visible_rect().size)
+	form.show_formspec(spec, formname, form.get_viewport_rect().size, _formspec_prepend())
 	fullscreen_tint.color = form.fullscreen_bg
 	_open_window(form)
 

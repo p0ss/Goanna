@@ -1572,6 +1572,10 @@ String GoannaClient::inventory_formspec() const {
     return m_session ? String::utf8(m_session->inventoryFormspec().c_str()) : String();
 }
 
+String GoannaClient::formspec_prepend() const {
+    return m_session ? String::utf8(m_session->formspecPrepend().c_str()) : String();
+}
+
 Array GoannaClient::take_shown_formspecs() {
     Array out;
     if (!m_session)
@@ -7493,6 +7497,7 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("texture", "name"), &GoannaClient::texture);
     ClassDB::bind_method(D_METHOD("item_icon", "item_name"), &GoannaClient::item_icon);
     ClassDB::bind_method(D_METHOD("inventory_formspec"), &GoannaClient::inventory_formspec);
+    ClassDB::bind_method(D_METHOD("formspec_prepend"), &GoannaClient::formspec_prepend);
     ClassDB::bind_method(D_METHOD("take_shown_formspecs"), &GoannaClient::take_shown_formspecs);
     ClassDB::bind_method(D_METHOD("send_inventory_fields", "formname", "fields"), &GoannaClient::send_inventory_fields);
     ClassDB::bind_method(D_METHOD("set_wield_index", "index"), &GoannaClient::set_wield_index);

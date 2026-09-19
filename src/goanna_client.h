@@ -248,6 +248,10 @@ public:
     godot::Ref<godot::Texture2D> item_icon(const godot::String &item_name);
     // Formspecs
     godot::String inventory_formspec() const;
+    // The game's formspec prepend: its window theme, built behind every
+    // server sent form that does not say no_prepend[]. Empty until the
+    // server sends one.
+    godot::String formspec_prepend() const;
     godot::Array take_shown_formspecs(); // [{formspec, formname}]
     void send_inventory_fields(const godot::String &formname, const godot::Dictionary &fields);
 
