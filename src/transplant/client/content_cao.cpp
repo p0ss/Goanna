@@ -23,9 +23,10 @@
 // m_animated_meshnode; setAnimatedMesh is the animation half of addToScene
 // and of the visual expiry in step, and a rebuild that keeps the mesh (Goanna
 // rebuilds for texture changes, upstream does not) leaves the animation
-// playing. applyTrackAnimation takes the LocalPlayer as a parameter. The
-// renderer advances the animation and poses the joints (goanna_animation,
-// goanna_models).
+// playing. The local player functions take the LocalPlayer as a parameter,
+// and its settings and privileges stand in for g_settings and
+// checkLocalPrivilege. The renderer advances the animation and poses the
+// joints (goanna_animation, goanna_models).
 
 #include "content_cao.h"
 
@@ -459,6 +460,65 @@ void GoannaActiveObject::setAnimatedMesh(scene::IAnimatedMesh *mesh)
 	}
 }
 
+// Goanna: the local player part of GenericCAO::step, from "if (m_is_visible)"
+// to setLocalPlayerAnimation. The position and rotation half is not here: the
+// renderer places the body from the LocalPlayer itself.
+void GoannaActiveObject::stepLocalPlayerAnimation(LocalPlayer *player)
+{
+	if (m_is_local_player && player) {
+		// Goanna: the renderer calls this while it draws the body, which
+		// stands in for m_is_visible
+		{
+			const PlayerControl &controls = player->getPlayerControl();
+			f32 new_speed = player->local_animation_speed;
+
+			bool walking = false;
+			if (controls.movement_speed > 0.001f) {
+				new_speed *= controls.movement_speed;
+				walking = true;
+			}
+
+			LocalPlayerAnimation new_anim = LocalPlayerAnimation::NO_ANIM;
+
+			// increase speed if using fast or flying fast
+			// Goanna: the player's settings mirror g_settings, and its
+			// privilege flags stand in for checkLocalPrivilege
+			const PlayerSettings &player_settings = player->getPlayerSettings();
+			if((player_settings.fast_move &&
+					player->privileges.fast) &&
+					(controls.aux1 ||
+					(!player->touching_ground &&
+					player_settings.free_move &&
+					player->privileges.fly)))
+			{
+				new_speed *= 1.5;
+			}
+			// slowdown speed if sneaking
+			if (controls.sneak && walking)
+				new_speed /= 2;
+
+			if (walking && (controls.dig || controls.place)) {
+				new_anim = LocalPlayerAnimation::WD_ANIM;
+			} else if (walking) {
+				new_anim = LocalPlayerAnimation::WALK_ANIM;
+			} else if (controls.dig || controls.place) {
+				new_anim = LocalPlayerAnimation::DIG_ANIM;
+			}
+
+			if (m_attachment_parent_id != 0) {
+				// If attached: Idle animation only
+				new_anim = LocalPlayerAnimation::NO_ANIM;
+			}
+
+			if (new_anim == LocalPlayerAnimation::NO_ANIM) {
+				new_speed = player->local_animation_speed;
+			}
+
+			setLocalPlayerAnimation(new_anim, new_speed, player);
+		}
+	}
+}
+
 void GoannaActiveObject::updateAnimation(u16 track_nr)
 {
 	if (!m_animated_meshnode)
@@ -472,6 +532,40 @@ void GoannaActiveObject::updateAnimation(u16 track_nr)
 	}
 
 	m_animated_meshnode->getAnimation().tracks[track_nr] = m_animation.tracks[track_nr];
+}
+
+void GoannaActiveObject::setLocalPlayerAnimation(LocalPlayerAnimation local_anim, float speed,
+		LocalPlayer *player)
+{
+	if (!m_animated_meshnode || m_animated_meshnode->getMesh()->getTrackCount() == 0)
+		return;
+
+	assert(m_is_local_player);
+
+	if (local_anim == player->last_animation &&
+			speed == player->last_animation_speed)
+		return; // no change
+
+	v2f range = player->local_animations[static_cast<u8>(local_anim)];
+	if (range == v2f()) {
+		if (m_local_player_animation) {
+			// Reset local player animation override
+			m_local_player_animation = false;
+			m_animated_meshnode->getAnimation() = m_animation;
+		}
+		return; // animation not defined, stick to current animation
+	}
+
+	scene::TrackAnimSpec anim;
+	anim.setFrameRange(range.X, range.Y);
+	anim.fps = speed;
+	anim.cur_frame = anim.fps >= 0 ? anim.min_frame : anim.max_frame;
+
+	m_local_player_animation = true;
+	m_animated_meshnode->getAnimation() = scene::AnimSpec{{{0, anim}}};
+
+	player->last_animation = local_anim;
+	player->last_animation_speed = speed;
 }
 
 std::optional<u16> GoannaActiveObject::resolveTrackId(const scene::TrackId &track_id, bool lax)

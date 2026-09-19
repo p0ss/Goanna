@@ -1654,6 +1654,10 @@ Dictionary GoannaClient::step_interact(double dt, bool dig, bool place, bool pla
     // local player digging and no game ever played its mining animation on the
     // body, which is most of why the first-person arm looked wrong in a dig.
     m_session->setPlayerKeys(dig, place);
+    // The same two buttons as the vanilla client's PlayerControl holds them,
+    // which the local player's own dig animation reads.
+    p->control.dig = dig;
+    p->control.place = place;
     in.eye_pos_bs = p->getPosition() + p->getEyeOffset();
     // Luanti camera direction from pitch/yaw (Camera::update)
     float pitch = p->getPitch(), yaw = p->getYaw();

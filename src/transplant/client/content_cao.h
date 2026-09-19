@@ -38,6 +38,8 @@ namespace scene {
 class IAnimatedMesh;
 }
 
+enum class LocalPlayerAnimation : u8;
+
 namespace goanna {
 
 // Copied from luanti/src/client/content_cao.h (LGPL-2.1-or-later).
@@ -115,6 +117,10 @@ public:
     // Applies the queued animation commands, now that the tracks can be
     // resolved. Does nothing before the first setAnimatedMesh.
     void applyDeferredAnimation(LocalPlayer *local_player);
+    // The local player part of GenericCAO::step: its own idle, walk and dig
+    // animations. Upstream runs it while the model is visible; Goanna, while
+    // the first-person body is drawn.
+    void stepLocalPlayerAnimation(LocalPlayer *local_player);
     // AnimatedMeshSceneNode::getAnimation: what is playing on the mesh. Null
     // without a mesh.
     scene::AnimSpec *meshAnimation()
@@ -123,6 +129,7 @@ public:
     { return m_animated_meshnode ? &m_animated_meshnode->getAnimation() : nullptr; }
     // The animation for all tracks as specified by the server.
     const scene::AnimSpec &serverAnimation() const { return m_animation; }
+    bool localPlayerAnimationActive() const { return m_local_player_animation; }
     size_t deferredAnimationCount() const { return deferred_animation_cmds.size(); }
     // sprite animation
     v2s16 spriteBasepos() const { return m_tx_basepos; }
@@ -163,6 +170,8 @@ private:
     void applyAnimationSpeed(const scene::TrackId &track_id, f32 new_fps);
     void stopTrackAnimation(const scene::TrackId &track_id);
     void updateAnimation(u16 track_nr);
+    void setLocalPlayerAnimation(LocalPlayerAnimation local_anim, float speed,
+            LocalPlayer *player);
     std::optional<u16> resolveTrackId(const scene::TrackId &id, bool lax = false);
 
     u16 m_id;

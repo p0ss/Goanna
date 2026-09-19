@@ -464,6 +464,31 @@ void GoannaSession::onPlayerSpeed(NetworkPacket &pkt) {
         m_player->addVelocity(added_vel);
 }
 
+// Client::handleCommand_LocalPlayerAnimations: the idle, walk, dig and
+// walk-while-digging ranges set_local_animation gives the player's own model,
+// which GoannaActiveObject::stepLocalPlayerAnimation plays.
+void GoannaSession::onLocalPlayerAnimations(NetworkPacket &pkt) {
+    const u16 proto_ver = stats().proto_ver;
+    std::lock_guard<std::mutex> lk(m_map_mutex);
+    LocalPlayer *player = m_player.get();
+    if (!player)
+        return;
+
+    for (int i = 0; i < 4; ++i) {
+        if (proto_ver >= 46) {
+            pkt >> player->local_animations[i];
+        } else {
+            v2s32 local_animation;
+            pkt >> local_animation;
+            player->local_animations[i] = v2f::from(local_animation);
+        }
+    }
+
+    pkt >> player->local_animation_speed;
+
+    player->last_animation = LocalPlayerAnimation::NO_ANIM;
+}
+
 // ---- in-game data: chat, HUD, inventory, formspecs (Client::handleCommand_* transplanted) ----
 
 std::vector<GoannaSession::ChatLine> GoannaSession::takeChat() {
@@ -2078,6 +2103,7 @@ void GoannaSession::handle(NetworkPacket &pkt) {
     case TOCLIENT_CHAT_MESSAGE: onChatMessage(pkt); break;
     case TOCLIENT_HP: onHP(pkt); break;
     case TOCLIENT_PLAYER_SPEED: onPlayerSpeed(pkt); break;
+    case TOCLIENT_LOCAL_PLAYER_ANIMATIONS: onLocalPlayerAnimations(pkt); break;
     case TOCLIENT_BREATH: onBreath(pkt); break;
     case TOCLIENT_HUDADD: onHudAdd(pkt); break;
     case TOCLIENT_HUDCHANGE: onHudChange(pkt); break;

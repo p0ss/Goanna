@@ -452,6 +452,7 @@ private:
     void onChatMessage(NetworkPacket &pkt);
     void onHP(NetworkPacket &pkt);
     void onPlayerSpeed(NetworkPacket &pkt);
+    void onLocalPlayerAnimations(NetworkPacket &pkt);
     // Client-side fall damage (ClientEnvironment::step) -> TOSERVER_DAMAGE.
     void applyFallDamage(const std::vector<CollisionInfo> &collisions);
     void sendDamage(u16 damage);

@@ -24,6 +24,10 @@
 #include "activeobject.h"
 #include "client/mapblock_mesh.h"
 #include "client/node_visuals.h"
+#include "content/mods.h"
+#include "gamedef.h"
+#include "itemdef.h"
+#include "player.h"
 #include "settings.h"
 #include "transplant/client/content_cao.h"
 #include "transplant/localplayer.h"
@@ -467,6 +471,89 @@ void testQueueBound() {
     mesh->drop();
 }
 
+// A stand-in game for the LocalPlayer, which only needs an item definition
+// manager for its inventory.
+class TestGameDef : public IGameDef {
+public:
+    IItemDefManager *getItemDefManager() override { return m_idef; }
+    const NodeDefManager *getNodeDefManager() override { return nullptr; }
+    ICraftDefManager *getCraftDefManager() override { return nullptr; }
+    u16 allocateUnknownNodeId(const std::string &) override { return 0; }
+    const std::vector<ModSpec> &getMods() const override { return m_mods; }
+    const ModSpec *getModSpec(const std::string &) const override { return nullptr; }
+    ModStorageDatabase *getModStorageDatabase() override { return nullptr; }
+    bool joinModChannel(const std::string &) override { return false; }
+    bool leaveModChannel(const std::string &) override { return false; }
+    bool sendModChannelMessage(const std::string &, const std::string &) override { return false; }
+    ModChannel *getModChannel(const std::string &) override { return nullptr; }
+    bool isClient() override { return true; }
+
+private:
+    IItemDefManager *m_idef = createItemDefManager();
+    std::vector<ModSpec> m_mods;
+};
+
+std::string localPlayerInit(const std::string &name) {
+    std::ostringstream os(std::ios::binary);
+    writeU8(os, 1);
+    os << serializeString16(name);
+    writeU8(os, 1); // is_player
+    writeU16(os, 1);
+    writeV3F32(os, v3f(0, 0, 0));
+    writeV3F32(os, v3f(0, 0, 0));
+    writeU16(os, 20);
+    writeU8(os, 0); // no init messages
+    return os.str();
+}
+
+// set_local_animation: the local player plays its own idle, walk and dig
+// ranges on track 1 from its controls, a server animation with one of those
+// ranges on track 1 does not interrupt it, and any other server animation
+// does.
+void testLocalPlayerAnimations() {
+    TestGameDef gamedef;
+    LocalPlayer player(&gamedef, "singleplayer");
+    player.local_animations = {v2f(0, 3), v2f(4, 7), v2f(8, 9), v2f(9, 10)};
+    player.local_animation_speed = 30.0f;
+    scene::SkinnedMesh *mesh = buildMesh();
+    Rig r(mesh);
+    r.player = &player;
+    r.obj.initialize(localPlayerInit("singleplayer"), &player);
+    check(r.obj.isLocalPlayer(), "the object is the local player");
+    r.attach();
+
+    r.send(setAnimation({4, 7, 30}, std::nullopt));
+    r.step(0.0f);
+    check(r.track(0) == nullptr, "a server animation with the local walk range is not applied");
+    check(r.obj.serverAnimation().tracks.count(0) == 1, "but it is remembered");
+
+    player.control.movement_speed = 1.0f;
+    r.obj.stepLocalPlayerAnimation(&player);
+    check(r.obj.localPlayerAnimationActive(), "walking plays the local walk animation");
+    check(r.track(0) && nearf(r.track(0)->min_frame, 4) && nearf(r.track(0)->fps, 30),
+            "on track 1, at the local speed");
+    check(player.last_animation == LocalPlayerAnimation::WALK_ANIM, "and the player remembers it");
+
+    player.control.movement_speed = 0.0f;
+    player.control.dig = true;
+    r.obj.stepLocalPlayerAnimation(&player);
+    check(r.track(0) && nearf(r.track(0)->min_frame, 8), "digging plays the dig range");
+    player.control.dig = false;
+
+    r.send(setAnimation({1, 2, 5}, num(3)));
+    r.step(0.0f);
+    check(!r.obj.localPlayerAnimationActive(), "any other server animation ends the local one");
+    check(r.track(0) && nearf(r.track(0)->min_frame, 4), "and brings back what the server set");
+    check(r.track(2) != nullptr, "including the new track");
+
+    player.local_animations = {};
+    player.last_animation = LocalPlayerAnimation::NO_ANIM;
+    player.control.movement_speed = 1.0f;
+    r.obj.stepLocalPlayerAnimation(&player);
+    check(!r.obj.localPlayerAnimationActive(), "with no local animations the server's stay");
+    mesh->drop();
+}
+
 void setUpSettings() {
     Settings *defaults = Settings::createLayer(SL_DEFAULTS);
     for (const char *k : {"free_move", "pitch_move", "fast_move", "continuous_forward",
@@ -490,6 +577,7 @@ int main() {
     testOlderServerInitOnStaticMesh();
     testQueueOrder();
     testQueueBound();
+    testLocalPlayerAnimations();
     if (g_failures) {
         std::printf("%d animation check(s) failed\n", g_failures);
         return 1;

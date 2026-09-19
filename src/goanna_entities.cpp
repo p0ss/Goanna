@@ -915,6 +915,10 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
                 en.animator->setJointRotationOverride(en.arm_bone, v3f(swing, 0, 0), mining);
             }
         }
+        // The local player's own idle, walk and dig animations, which the
+        // vanilla client plays whenever it shows the player's model.
+        if (is_self)
+            obj.stepLocalPlayerAnimation(session.player());
         // skeletal animation: AnimatedMeshSceneNode::OnAnimate on the tracks
         // playing on the object's mesh
         if (en.animator) {
