@@ -31,8 +31,14 @@ signal slot_double_clicked(location: String, listname: String, index: int)
 signal closed()
 
 const ELEM_SEP := "]"
-const DEFAULT_LIST_SLOT_BG := Color(0, 0, 0, 0.55)
-const DEFAULT_LIST_SLOT_BORDER := Color(1, 1, 1, 0.25)
+# GUIInventoryList::Options and the tooltip colours regenerateGui starts
+# from: opaque grey slots, lighter under the pointer, no border until
+# listcolors[] names one, and olive tooltips with white text.
+const DEFAULT_LIST_SLOT_BG := Color8(128, 128, 128)
+const DEFAULT_LIST_SLOT_BG_HOVER := Color8(192, 192, 192)
+const DEFAULT_LIST_SLOT_BORDER := Color8(0, 0, 0, 200)
+const DEFAULT_TOOLTIP_BG := Color8(110, 130, 60)
+const DEFAULT_TOOLTIP_FG := Color8(255, 255, 255)
 
 var item_source: Node                # game_ui.gd, see get_list_items / item_icon
 var formname := ""
@@ -52,10 +58,19 @@ var form_padding := Vector2(0.05, 0.05)
 var fullscreen_bg := Color(0, 0, 0, 0)
 var form_bgcolor := Color(0, 0, 0, 0)
 var has_form_bgcolor := false
-var listcolors := {"slot_bg": DEFAULT_LIST_SLOT_BG, "slot_bg_h": Color(0.4, 0.4, 0.4, 0.6),
-	"slot_border": DEFAULT_LIST_SLOT_BORDER, "tooltip_bg": Color(0.15, 0.15, 0.15, 0.95),
-	"tooltip_fg": Color(1, 1, 1)}
-var tooltips := {}                   # element name -> text
+# Shared by reference with every slot, so a listcolors[] after a list still
+# reaches it, as parseListColors updates the lists already parsed.
+var listcolors := _default_listcolors()
+# Tooltips, which the form draws itself as GUIFormSpecMenu does rather than
+# through Godot's per-control tooltips: those cannot show colour escapes or
+# markup on Godot's own controls, nor stand at a fixed position.
+var tooltips := {}                   # element name -> {text, bg, fg}
+var hypertips := {}                  # element name -> hypertip spec
+var tooltip_areas: Array = []        # [{area: Control, tip: spec}] in element order
+var tooltip_box: Control = null      # the one tooltip on screen
+var tooltip_shown := {}              # the spec tooltip_box was built for
+var hover_name := ""                 # the named element under the pointer
+var hover_since := 0                 # when the pointer reached it, in ms
 var list_rings: Array = []           # [{location, listname}]
 var fields := {}                     # name -> Control (LineEdit/TextEdit/CheckBox/OptionButton/ItemList)
 var field_close_on_enter := {}       # name -> bool
@@ -91,6 +106,7 @@ var enable_prepends := true          # cleared by no_prepend[]
 var root: Control                    # the form panel
 var current_parent: Control
 var skipped := {}
+var screen_size := Vector2.ZERO     # the screen the form was laid out for
 
 # --- public -----------------------------------------------------------------
 
@@ -171,6 +187,7 @@ func _reset() -> void:
 	fullscreen_bg = Color(0, 0, 0, 0)
 	form_bgcolor = Color(0, 0, 0, 0)
 	has_form_bgcolor = false
+	listcolors = _default_listcolors()
 	tooltips.clear()
 	list_rings.clear()
 	fields.clear()
@@ -193,6 +210,16 @@ func _reset() -> void:
 	prepend_elements.clear()
 	enable_prepends = true
 	skipped.clear()
+	hypertips.clear()
+	tooltip_areas.clear()
+	tooltip_box = null
+	tooltip_shown = {}
+	hover_name = ""
+
+static func _default_listcolors() -> Dictionary:
+	return {"slot_bg": DEFAULT_LIST_SLOT_BG, "slot_bg_h": DEFAULT_LIST_SLOT_BG_HOVER,
+		"slot_border": DEFAULT_LIST_SLOT_BORDER, "slot_border_on": false,
+		"tooltip_bg": DEFAULT_TOOLTIP_BG, "tooltip_fg": DEFAULT_TOOLTIP_FG}
 
 # scrollbaroptions[] defaults, from parseScrollBarOptions.
 static func _default_scrollbar_options() -> Dictionary:
@@ -219,6 +246,11 @@ static func fs_split(s: String, delim: String) -> PackedStringArray:
 	return out
 
 static func fs_unescape(s: String) -> String:
+	return strip_enriched(fs_unescape_raw(s))
+
+# unescape_string: the backslashes gone and colour escapes kept, for text
+# upstream draws as an EnrichedString.
+static func fs_unescape_raw(s: String) -> String:
 	var out := ""
 	var esc := false
 	for ch in s:
@@ -229,7 +261,7 @@ static func fs_unescape(s: String) -> String:
 			esc = true
 		else:
 			out += ch
-	return strip_enriched(out)
+	return out
 
 func _parse(spec: String) -> void:
 	for raw in fs_split(spec, ELEM_SEP):
@@ -303,6 +335,7 @@ func _parse_prepend(prepend: String) -> void:
 # --- layout maths (GUIFormSpecMenu::regenerateGui) ---------------------------
 
 func _layout(screen: Vector2) -> void:
+	screen_size = screen
 	var padded := Vector2(screen.x * (1.0 - form_padding.x * 2.0), screen.y * (1.0 - form_padding.y * 2.0))
 	var fitx: float
 	var fity: float
@@ -502,17 +535,23 @@ static func strip_enriched(s: String) -> String:
 # --- building --------------------------------------------------------------
 
 func _build() -> void:
-	# Named tooltips apply regardless of whether they appear before or after
-	# their target element. Area tooltips still build in normal element order.
+	# Named tooltips are looked up by name when the pointer reaches the
+	# element, as m_tooltips is, so one may come before or after its element.
+	# Each keeps the colours in force where it was parsed: its own, or the
+	# listcolors[] defaults up to that point (parseTooltip).
+	var tip_bg := DEFAULT_TOOLTIP_BG
+	var tip_fg := DEFAULT_TOOLTIP_FG
 	for el in prepend_elements + pending_elements:
-		if el[0] == "tooltip":
-			var tooltip_parts := fs_split(el[1], ";")
-			if tooltip_parts.size() >= 2 and not tooltip_parts[0].contains(","):
-				tooltips[fs_unescape(tooltip_parts[0])] = fs_unescape(tooltip_parts[1])
-		elif el[0] == "hypertip":
-			var hypertip_parts := fs_split(el[1], ";")
-			if hypertip_parts.size() == 5 and not hypertip_parts[0].contains(","):
-				tooltips[fs_unescape(hypertip_parts[0])] = markup_plain(fs_unescape(hypertip_parts[4]))
+		var p := fs_split(el[1], ";")
+		if el[0] == "listcolors" and p.size() == 5:
+			tip_bg = parse_color(p[3], tip_bg)
+			tip_fg = parse_color(p[4], tip_fg)
+		elif el[0] == "tooltip" and not p[0].contains(",") and (p.size() == 2 or p.size() == 4):
+			if p.size() == 4 and not (_is_colour(p[2]) and _is_colour(p[3])):
+				continue
+			tooltips[fs_unescape(p[0])] = {"text": fs_unescape_raw(p[1]),
+				"bg": parse_color(p[2], tip_bg) if p.size() == 4 else tip_bg,
+				"fg": parse_color(p[3], tip_fg) if p.size() == 4 else tip_fg}
 	# a fullscreen tint behind the form, if asked for
 	add_child(root)
 	building = true
@@ -621,8 +660,6 @@ func _register_named_control(name: String, control: Control) -> void:
 		return
 	named_controls[name] = control
 	control.set_meta("formspec_name", name)
-	if tooltips.has(name):
-		control.tooltip_text = tooltips[name]
 
 func _apply_focus() -> void:
 	if focus_name == "":
@@ -1380,7 +1417,8 @@ func _item_image_button(parts: PackedStringArray) -> void:
 	if not tooltips.has(bname) and item_source and item_source.has_method("item_description"):
 		var desc := String(item_source.item_description(item))
 		if desc != "":
-			b.tooltip_text = strip_enriched(desc)
+			tooltips[bname] = {"text": desc, "bg": listcolors["tooltip_bg"],
+				"fg": listcolors["tooltip_fg"]}
 	_wire_button(b, bname, label, false)
 	_style_button(b, bname, _style_states(bname), content)
 
@@ -1865,63 +1903,282 @@ func _listring(parts: PackedStringArray) -> void:
 				seen[key] = true
 				list_rings.append({"location": s.location, "listname": s.listname})
 
+# listcolors[slot_bg_normal;slot_bg_hover;slot_border;tooltip_bgcolor;tooltip_fontcolor]
+#
+# parseListColors: four parts is an error, a border colour that parses turns
+# the slot borders on, and the tooltip colours become the default for every
+# tooltip parsed after this and for every item tooltip.
 func _listcolors(parts: PackedStringArray) -> void:
-	# listcolors[slot_bg_normal;slot_bg_hover;slot_border;tooltip_bgcolor;tooltip_fontcolor]
-	if parts.size() >= 2:
-		listcolors["slot_bg"] = parse_color(parts[0], listcolors["slot_bg"])
-		listcolors["slot_bg_h"] = parse_color(parts[1], listcolors["slot_bg_h"])
-	if parts.size() >= 3:
+	if parts.size() < 2 or parts.size() == 4:
+		return
+	listcolors["slot_bg"] = parse_color(parts[0], listcolors["slot_bg"])
+	listcolors["slot_bg_h"] = parse_color(parts[1], listcolors["slot_bg_h"])
+	if parts.size() >= 3 and _is_colour(parts[2]):
 		listcolors["slot_border"] = parse_color(parts[2], listcolors["slot_border"])
+		listcolors["slot_border_on"] = true
 	if parts.size() >= 5:
 		listcolors["tooltip_bg"] = parse_color(parts[3], listcolors["tooltip_bg"])
 		listcolors["tooltip_fg"] = parse_color(parts[4], listcolors["tooltip_fg"])
 
-func _tooltip(parts: PackedStringArray) -> void:
-	# tooltip[element name;text;bgcolor;fontcolor] or
-	# tooltip[x,y;w,h;text;bgcolor;fontcolor]
-	if parts.size() >= 2 and not parts[0].contains(","):
-		tooltips[fs_unescape(parts[0])] = fs_unescape(parts[1])
-		if named_controls.has(fs_unescape(parts[0])):
-			named_controls[fs_unescape(parts[0])].tooltip_text = fs_unescape(parts[1])
-		return
-	if parts.size() < 3:
-		return
-	var v := fs_split(parts[0], ",")
-	var g := fs_split(parts[1], ",")
-	if v.size() < 2 or g.size() < 2:
-		return
-	var area := Control.new()
-	area.tooltip_text = fs_unescape(parts[2])
-	area.mouse_filter = Control.MOUSE_FILTER_STOP
-	_add(area, _pos(v), _geom(g))
-	# Keep the transparent tooltip region behind interactive controls. This
-	# preserves hover help over images without swallowing a button's clicks.
-	current_parent.move_child(area, 0)
+# Whether parseColorString would accept this.
+static func _is_colour(s: String) -> bool:
+	var probe := Color(0.123, 0.456, 0.789, 0.321)
+	return parse_color(s, probe) != probe
 
-func _hypertip(parts: PackedStringArray) -> void:
-	# hypertip[element name;staticPos;width;name;text] or
-	# hypertip[x,y;w,h;staticPos;width;name;text], formspec version 11.
-	# Partial: Godot's tooltips are plain text, so the markup is stripped, and
-	# the static position and the width are not honoured.
-	if parts.size() == 5 and not parts[0].contains(","):
-		var target := fs_unescape(parts[0])
-		var text := markup_plain(fs_unescape(parts[4]))
-		tooltips[target] = text
-		if named_controls.has(target):
-			named_controls[target].tooltip_text = text
+# tooltip[element name;text;bgcolor;fontcolor] or
+# tooltip[x,y;w,h;text;bgcolor;fontcolor]
+#
+# The named form was gathered by _build. The area form is a hover rectangle
+# that takes no input, as upstream's hidden rect element takes none, with
+# its size in whole spacings in the old coordinate system (parseTooltip).
+func _tooltip(parts: PackedStringArray) -> void:
+	if not parts[0].contains(","):
 		return
-	if parts.size() < 6:
+	if parts.size() != 3 and parts.size() != 5:
 		return
 	var v := fs_split(parts[0], ",")
 	var g := fs_split(parts[1], ",")
 	if v.size() < 2 or g.size() < 2:
 		return
+	var bg: Color = listcolors["tooltip_bg"]
+	var fg: Color = listcolors["tooltip_fg"]
+	if parts.size() == 5:
+		if not (_is_colour(parts[3]) and _is_colour(parts[4])):
+			return
+		bg = parse_color(parts[3], bg)
+		fg = parse_color(parts[4], fg)
+	_add_tooltip_area(v, g, {"text": fs_unescape_raw(parts[2]), "bg": bg, "fg": fg})
+
+func _add_tooltip_area(v: PackedStringArray, g: PackedStringArray, tip: Dictionary) -> void:
 	var area := Control.new()
-	area.tooltip_text = markup_plain(fs_unescape(parts[5]))
-	area.mouse_filter = Control.MOUSE_FILTER_STOP
-	_add(area, _pos(v), _geom(g))
-	# Behind interactive controls, as an area tooltip is.
-	current_parent.move_child(area, 0)
+	area.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var size := _geom(g)
+	if not real_coordinates:
+		size = Vector2(float(g[0]) * spacing.x, float(g[1]) * spacing.y)
+	_add(area, _pos(v), size)
+	tooltip_areas.append({"area": area, "tip": tip})
+
+# hypertip[element name;staticPos;width;name;text] or
+# hypertip[x,y;w,h;staticPos;width;name;text], formspec version 11.
+#
+# Hypertext markup in a tooltip (parseHyperTip): width is in ems of the form
+# text, staticPos, when given, pins it to a spot in the form instead of the
+# pointer, and style[] on the hypertip's own name sets its bgcolor, border
+# and bgimg.
+func _hypertip(parts: PackedStringArray) -> void:
+	var area_mode := parts[0].contains(",")
+	var at := 2 if area_mode else 1
+	if parts.size() < at + 4:
+		return
+	var static_pos: Variant = null
+	if parts[at].strip_edges() != "":
+		var s := fs_split(parts[at], ",")
+		if s.size() != 2:
+			return
+		static_pos = _pos(s)
+	var tip := {"markup": fs_unescape_raw(parts[at + 3]),
+		"width": float(parts[at + 1]) * _font_size(), "static": static_pos,
+		"name": fs_unescape(parts[at + 2])}
+	if not area_mode:
+		# Coloured and styled when first shown, from what is in force then,
+		# as upstream builds the element on first hover.
+		hypertips[fs_unescape(parts[0])] = tip
+		return
+	tip["style"] = _style_for(tip["name"], "default")
+	var v := fs_split(parts[0], ",")
+	var g := fs_split(parts[1], ",")
+	if v.size() < 2 or g.size() < 2:
+		return
+	tip["bg"] = listcolors["tooltip_bg"]
+	tip["fg"] = listcolors["tooltip_fg"]
+	tip["parent"] = current_parent
+	_add_tooltip_area(v, g, tip)
+
+# --- the tooltip (GUIFormSpecMenu::drawMenu, showTooltip, showHyperTip) -----
+
+# tooltip_show_delay's default: how long the pointer rests on an element
+# before that element's own tooltip appears. Area and item tooltips do not
+# wait.
+const TOOLTIP_DELAY_MS := 400
+# TextDrawer's default margin around hypertext.
+const HYPERTEXT_MARGIN := 3.0
+
+# The pointer as the last mouse event left it, in viewport coordinates:
+# upstream's m_pointer, kept from events so that input pushed into the
+# viewport moves it as a real mouse does.
+var pointer := Vector2(-1.0e6, -1.0e6)
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventMouse:
+		pointer = (event as InputEventMouse).position
+
+func _process(_delta: float) -> void:
+	if root == null or not is_visible_in_tree():
+		_hide_tooltip()
+		return
+	var vp := get_viewport()
+	var point := pointer
+	var hovered := vp.gui_get_hovered_control()
+	var name := _named_under(hovered)
+	var now := Time.get_ticks_msec()
+	if name != hover_name:
+		hover_name = name
+		hover_since = now
+	var tip := tooltip_at(point, hovered, now - hover_since)
+	if tip.is_empty():
+		_hide_tooltip()
+	else:
+		_show_tooltip(tip, point)
+
+# The formspec element a Godot control belongs to: the control itself or the
+# nearest parent registered under a name.
+func _named_under(c: Control) -> String:
+	while c != null and c != root and c != self:
+		if c.has_meta("formspec_name"):
+			return String(c.get_meta("formspec_name"))
+		c = c.get_parent() as Control
+	return ""
+
+func _holding_stack() -> bool:
+	return item_source != null and item_source.has_method("holding_stack") \
+		and item_source.holding_stack()
+
+# The tooltip standing at `point` (viewport coordinates) with `hovered` under
+# the pointer for `rested_ms`, or {}. drawMenu's order, later rules winning:
+# an area tooltip, an area hypertip, the stack in the slot under the pointer
+# unless one is being carried, then, once the pointer has rested on it, the
+# element's own tooltip or failing that its hypertip.
+func tooltip_at(point: Vector2, hovered: Control, rested_ms: int) -> Dictionary:
+	var tip := {}
+	for kind in ["text", "markup"]:
+		for entry in tooltip_areas:
+			var area: Control = entry["area"]
+			var t: Dictionary = entry["tip"]
+			if t.has(kind) and String(t[kind]) != "" and is_instance_valid(area) \
+					and area.is_visible_in_tree() and area.get_global_rect().has_point(point):
+				tip = t
+				break
+	if hovered is FormspecSlot and not _holding_stack():
+		var item: Dictionary = (hovered as FormspecSlot).item
+		if String(item.get("name", "")) != "":
+			var desc := String(item.get("description", ""))
+			tip = {"text": desc if desc != "" else String(item["name"]),
+				"bg": listcolors["tooltip_bg"], "fg": listcolors["tooltip_fg"]}
+	var name := _named_under(hovered)
+	if name != "" and rested_ms >= TOOLTIP_DELAY_MS:
+		if tooltips.has(name) and String(tooltips[name]["text"]) != "":
+			tip = tooltips[name]
+		elif hypertips.has(name):
+			var h: Dictionary = hypertips[name]
+			if not h.has("bg"):
+				h["bg"] = listcolors["tooltip_bg"]
+				h["fg"] = listcolors["tooltip_fg"]
+				h["parent"] = named_controls[name].get_parent() if named_controls.has(name) else root
+				var element := current_element
+				current_element = "hypertip"
+				h["style"] = _style_for(String(h["name"]), "default")
+				current_element = element
+			tip = h
+	return tip
+
+func _hide_tooltip() -> void:
+	if tooltip_box != null and is_instance_valid(tooltip_box):
+		tooltip_box.visible = false
+
+# showTooltip and showHyperTip: the box follows the pointer at m_btn_height
+# below and to the right of it, or stands at a hypertip's static position,
+# and is pulled back on screen when it would run off an edge.
+func _show_tooltip(tip: Dictionary, point: Vector2) -> void:
+	if tooltip_box == null or not is_instance_valid(tooltip_box) or tip != tooltip_shown:
+		if tooltip_box != null and is_instance_valid(tooltip_box):
+			tooltip_box.queue_free()
+		tooltip_box = _build_tooltip_box(tip)
+		tooltip_shown = tip
+	tooltip_box.visible = true
+	var size := tooltip_box.size
+	var screen := screen_size
+	var btn_h := imgsize * 15.0 / 13.0 * 0.35
+	var pos := point + Vector2(btn_h, btn_h)
+	if tip.has("markup"):
+		if tip["static"] != null:
+			pos = (tip["parent"] as Control).global_position + (tip["static"] as Vector2)
+		pos.x = minf(pos.x, screen.x - size.x)
+		pos.y = minf(pos.y, screen.y - size.y)
+	else:
+		var alt := screen - size - Vector2(btn_h, btn_h)
+		if alt.x < pos.x and alt.y < pos.y:
+			pos = Vector2(alt.x, screen.y - 2.0 * size.y - btn_h)
+		elif alt.x < pos.x:
+			pos.x = alt.x
+		elif alt.y < pos.y:
+			pos.y = alt.y
+	tooltip_box.global_position = pos.floor()
+
+# The box for one tooltip, added to the form so it draws over it. A plain
+# tooltip is its text, colour escapes and all, centred, with m_btn_height of
+# width and five pixels of height added and a black frame. A hypertip is its
+# markup laid out at its width, on the tooltip colours or its own style.
+func _build_tooltip_box(tip: Dictionary) -> Control:
+	var box := Panel.new()
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(box)
+	var rt := RichTextLabel.new()
+	rt.bbcode_enabled = false
+	rt.scroll_active = false
+	rt.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rt.autowrap_mode = TextServer.AUTOWRAP_OFF
+	rt.add_theme_font_size_override("normal_font_size", _font_size())
+	rt.add_theme_color_override("default_color", tip["fg"])
+	box.add_child(rt)
+	var frame := StyleBoxFlat.new()
+	frame.bg_color = tip["bg"]
+	frame.border_color = Color.BLACK
+	var panel: StyleBox = frame
+	if tip.has("markup"):
+		var st: Dictionary = tip["style"]
+		frame.bg_color = parse_color(String(st.get("bgcolor", "")), tip["bg"])
+		if not _has_style(st, "border") or _is_yes(String(st["border"])):
+			frame.set_border_width_all(1)
+		if _has_style(st, "bgimg") and item_source:
+			var tex: Texture2D = item_source.ui_texture(String(st["bgimg"]))
+			if tex:
+				var sbt := StyleBoxTexture.new()
+				sbt.texture = tex
+				var m := _middle_margins(String(st.get("bgimg_middle", "")), tex)
+				sbt.texture_margin_left = m.x
+				sbt.texture_margin_top = m.y
+				sbt.texture_margin_right = m.z
+				sbt.texture_margin_bottom = m.w
+				panel = sbt
+		var width := maxf(float(tip["width"]), HYPERTEXT_MARGIN * 2.0 + 1.0)
+		rt.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		rt.position = Vector2(HYPERTEXT_MARGIN, HYPERTEXT_MARGIN)
+		rt.size = Vector2(width - HYPERTEXT_MARGIN * 2.0, 1)
+		_render_markup(rt, String(tip["markup"]))
+		var height := float(rt.get_content_height())
+		rt.size.y = height
+		box.size = Vector2(width, height + HYPERTEXT_MARGIN * 2.0).ceil()
+	else:
+		frame.set_border_width_all(1)
+		var font := get_theme_default_font()
+		var fs := _font_size()
+		var lines := strip_enriched(String(tip["text"])).split("\n")
+		var text_w := 0.0
+		for line in lines:
+			text_w = maxf(text_w, font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x)
+		var text_h := font.get_height(fs) * lines.size()
+		rt.push_paragraph(HORIZONTAL_ALIGNMENT_CENTER)
+		for run in parse_enriched_runs(String(tip["text"]), tip["fg"]):
+			rt.push_color(run["color"])
+			rt.add_text(run["text"])
+			rt.pop()
+		rt.pop()
+		var btn_h := imgsize * 15.0 / 13.0 * 0.35
+		box.size = Vector2(text_w + btn_h, text_h + 5.0).ceil()
+		rt.size = Vector2(ceilf(text_w) + 2.0, ceilf(text_h))
+		rt.position = ((box.size - rt.size) / 2.0).floor()
+	box.add_theme_stylebox_override("panel", panel)
+	return box
 
 # model[x,y;w,h;name;mesh;textures;rotation;continuous;mouse control;frame
 # loop range;animation speed]
@@ -2584,33 +2841,51 @@ class FormspecSlot extends Control:
 		mouse_entered.connect(func() -> void: hovered = true; queue_redraw())
 		mouse_exited.connect(func() -> void: hovered = false; queue_redraw())
 
+	# The form draws the item's tooltip itself (tooltip_at), from `item`.
 	func refresh() -> void:
 		item = form.item_source.get_list_item(location, listname, index) if form.item_source else {}
 		icon = form.item_source.item_icon(item.get("name", "")) if (form.item_source and item.get("name", "") != "") else null
-		tooltip_text = form.strip_enriched(String(item.get("description", ""))) if item.get("name", "") != "" else ""
-		if tooltip_text == "":
-			tooltip_text = item.get("name", "")
 		queue_redraw()
 
+	# GUIInventoryList::draw and drawItemStack: the slot colour, a border
+	# only once listcolors[] has named one, a pixel outside the slot; the
+	# item filling the slot; a tool's wear bar; the count in the corner.
 	func _draw() -> void:
 		var r := Rect2(Vector2.ZERO, size)
 		draw_rect(r, colors["slot_bg_h"] if hovered else colors["slot_bg"])
-		draw_rect(r, colors["slot_border"], false, 1.0)
+		if colors.get("slot_border_on", false):
+			draw_rect(Rect2(Vector2(-0.5, -0.5), size + Vector2(1, 1)), colors["slot_border"],
+				false, 1.0)
 		if icon:
-			var pad := size * 0.1
-			draw_texture_rect(icon, Rect2(pad, size - pad * 2), false)
-		var count: int = item.get("count", 0)
-		if count > 1:
-			var fs := maxi(int(size.y * 0.3), 9)
-			var f := get_theme_default_font()
-			var txt := str(count)
-			var w := f.get_string_size(txt, HORIZONTAL_ALIGNMENT_RIGHT, -1, fs).x
-			draw_string(f, Vector2(size.x - w - 2, size.y - 3), txt, HORIZONTAL_ALIGNMENT_RIGHT, -1, fs, Color.WHITE)
+			draw_texture_rect(icon, r, false)
 		var wear: int = item.get("wear", 0)
-		if wear > 0:
-			var frac := 1.0 - wear / 65535.0
-			var bar := Rect2(Vector2(size.x * 0.1, size.y * 0.85), Vector2(size.x * 0.8 * frac, size.y * 0.08))
-			draw_rect(bar, Color(1.0 - frac, frac, 0.1))
+		if wear > 0 and int(item.get("type", ITEM_TOOL)) == ITEM_TOOL:
+			_draw_wear(wear / 65535.0)
+		var count: int = item.get("count", 0)
+		if count >= 2:
+			var f := get_theme_default_font()
+			var fs: int = form._font_size()
+			var txt := str(count)
+			var at := Vector2(size.x - f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x,
+				size.y - f.get_descent(fs))
+			draw_string(f, at + Vector2(1, 1), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs,
+				Color(0, 0, 0, 127.0 / 255.0))
+			draw_string(f, at, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color.WHITE)
+
+	# ItemType::ITEM_TOOL: only tools draw a wear bar.
+	const ITEM_TOOL := 3
+
+	# A sixteenth of the slot high, a sixteenth in from the sides and bottom,
+	# green through yellow to red as wear rises, black where it is used up.
+	func _draw_wear(w: float) -> void:
+		var h := size.y / 16.0
+		var pad := size / 16.0
+		var bar := Rect2(pad.x, size.y - pad.y - h, size.x - pad.x * 2.0, h)
+		var mid := w * bar.position.x + (1.0 - w) * bar.end.x
+		var level := mini(mini(floori(w * 600.0), 511) + 10, 511)
+		var colour := Color8(level, 255, 0) if level <= 255 else Color8(255, 511 - level, 0)
+		draw_rect(Rect2(bar.position, Vector2(mid - bar.position.x, h)), colour)
+		draw_rect(Rect2(Vector2(mid, bar.position.y), Vector2(bar.end.x - mid, h)), Color.BLACK)
 
 	# Which single button a motion event says is held. Left wins over right
 	# and right over middle, the order GUIFormSpecMenu tests them in.

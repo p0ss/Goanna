@@ -1457,7 +1457,10 @@ static Dictionary inventoryLists(Inventory *inv, IItemDefManager *idef) {
             it["wear"] = (int)st.wear;
             if (!st.name.empty() && idef) {
                 const ItemDefinition &def = st.getDefinition(idef);
-                it["description"] = String::utf8(def.description.c_str());
+                // The stack's own description when its metadata sets one
+                // (a named or enchanted item), as GUIInventoryList's tooltip
+                // reads it.
+                it["description"] = String::utf8(st.getDescription(idef).c_str());
                 it["inventory_image"] = String::utf8(def.inventory_image.name.c_str());
                 it["stack_max"] = (int)def.stack_max;
                 it["type"] = (int)def.type;

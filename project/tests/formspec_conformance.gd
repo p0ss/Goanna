@@ -45,6 +45,11 @@ class FakeItemSource extends Node:
 	func item_description(item_string: String) -> String:
 		return "Description of " + item_string.get_slice(" ", 0)
 
+	var holding := false
+
+	func holding_stack() -> bool:
+		return holding
+
 	# Stands in for the extension's model loader: one mesh is known, anything
 	# else is media that has not arrived and falls back to the placeholder.
 	func model_preview(mesh_name: String, _textures: PackedStringArray,
@@ -108,6 +113,7 @@ func _run() -> void:
 	_test_table()
 	_test_hypertext()
 	_test_nothing_skipped()
+	_test_tooltips()
 	_test_hypertip()
 	_test_prepend()
 	_test_host_passes_prepend()
@@ -223,7 +229,8 @@ func _test_controls_and_submission() -> void:
 	_check(submit_button != null, "ordinary button is built")
 	if submit_button:
 		_check(submit_button.has_focus(), "set_focus targets a named button")
-		_equal(submit_button.tooltip_text, "Submit tooltip", "named tooltip")
+		_equal(form.tooltip_at(Vector2(-1, -1), submit_button, 1000).get("text"),
+			"Submit tooltip", "named tooltip")
 		submit_button.pressed.emit()
 		_equal(submissions.back()["fields"]["go"], "Submit", "button field value")
 		_check(not submissions.back()["quit"], "ordinary button keeps form open")
@@ -236,11 +243,11 @@ func _test_controls_and_submission() -> void:
 	name_field.text_submitted.emit(name_field.text)
 	_equal(submissions.back()["fields"]["key_enter_field"], "name", "enter field name")
 	_check(not submissions.back()["quit"], "field_close_on_enter false is honoured")
-	var area_tooltip := _control_with_tooltip(form, "Area tooltip")
-	_check(area_tooltip != null, "area tooltip is built")
-	if area_tooltip and submit_button:
-		_check(area_tooltip.get_index() < submit_button.get_index(),
-			"area tooltip stays behind interactive controls")
+	_equal(form.tooltip_areas.size(), 1, "area tooltip is built")
+	if form.tooltip_areas.size() == 1:
+		var area: Control = form.tooltip_areas[0]["area"]
+		_equal(area.mouse_filter, Control.MOUSE_FILTER_IGNORE,
+			"an area tooltip never takes a click from what lies under it")
 	_discard(form)
 
 
@@ -787,8 +794,8 @@ func _test_button_styles() -> void:
 	var themed_item: Button = form.named_controls["themed_item"]
 	_check(themed_item.get_theme_stylebox("normal") is StyleBoxTexture,
 		"item_image_button inherits style_type[image_button]")
-	_equal(themed_item.tooltip_text, "Description of default:stone",
-		"item_image_button shows the item's description")
+	_equal(form.tooltip_at(Vector2(-1, -1), themed_item, 1000).get("text"),
+		"Description of default:stone", "item_image_button shows the item's description")
 	var tab: Button = form.named_controls["tab"]
 	_check(tab.get_theme_stylebox("normal") is StyleBoxEmpty,
 		"clearing bgimg with border=false leaves the tab bare")
@@ -886,17 +893,97 @@ func _test_nothing_skipped() -> void:
 	_discard(form)
 
 
-# hypertip[], formspec version 11 (Luanti 5.17): shown as a plain tooltip.
+# The form draws its own tooltip, as GUIFormSpecMenu does, so the rules are
+# upstream's: colours captured where each tooltip is parsed, olive and white
+# until listcolors[] says otherwise, element tooltips after a rest of
+# tooltip_show_delay, area and item tooltips at once, no item tooltip while a
+# stack is carried, and colour escapes kept.
+func _test_tooltips() -> void:
+	var spec := "formspec_version[6]size[10,8]"
+	spec += "button[0,0;2,1;early;Early]tooltip[early;Early help]"
+	spec += "listcolors[#111;#222;#333;#000000;#ffffff]"
+	spec += "button[0,1.5;2,1;late;Late]tooltip[late;Late help]"
+	spec += "button[0,3;2,1;own;Own]tooltip[own;Own help;#ff0000;#00ff00]"
+	spec += "button[0,4.5;2,1;tinted;Tinted]tooltip[tinted;" + char(0x1b) + "(c@#ffff00)Gold]"
+	spec += "tooltip[4,0;2,2;Area help]"
+	spec += "list[current_player;main;4,3;2,1;]"
+	var form := _new_form(spec)
+	var early: Button = form.named_controls["early"]
+	var late: Button = form.named_controls["late"]
+	var own: Button = form.named_controls["own"]
+	var nowhere := Vector2(-100, -100)
+	var tip: Dictionary = form.tooltip_at(nowhere, early, 1000)
+	_equal(tip.get("bg"), Formspec.DEFAULT_TOOLTIP_BG, "a tooltip before listcolors is olive")
+	_equal(tip.get("fg"), Color.WHITE, "with white text")
+	tip = form.tooltip_at(nowhere, late, 1000)
+	_equal(tip.get("bg"), Color.BLACK, "listcolors sets the colours of the tooltips after it")
+	tip = form.tooltip_at(nowhere, own, 1000)
+	_equal(tip.get("bg"), Color.RED, "a tooltip's own background colour")
+	_equal(tip.get("fg"), Color.GREEN, "and text colour")
+	_check(form.tooltip_at(nowhere, early, 100).is_empty(),
+		"an element's tooltip waits for tooltip_show_delay")
+	tip = form.tooltip_at(nowhere, form.named_controls["tinted"], 1000)
+	_check(String(tip.get("text")).contains(char(0x1b)), "colour escapes survive to the tooltip")
+	var area: Control = form.tooltip_areas[0]["area"]
+	tip = form.tooltip_at(area.get_global_rect().get_center(), null, 0)
+	_equal(tip.get("text"), "Area help", "an area tooltip shows at once")
+	# An item's own description, straight away, and not while carrying.
+	var slot: Control = form.slots[0]
+	tip = form.tooltip_at(slot.get_global_rect().get_center(), slot, 0)
+	_equal(tip.get("text"), "Stone", "a slot shows its item's description at once")
+	_equal(tip.get("bg"), Color.BLACK, "in the listcolors tooltip colours")
+	fixture_source.holding = true
+	_check(form.tooltip_at(slot.get_global_rect().get_center(), slot, 0).is_empty(),
+		"no item tooltip while a stack is carried")
+	fixture_source.holding = false
+	# The box: text centred, m_btn_height wider and five pixels taller than
+	# the text, framed in black, the escape's colour kept.
+	form._show_tooltip(form.tooltip_at(nowhere, form.named_controls["tinted"], 1000), Vector2(10, 10))
+	var box: Panel = form.tooltip_box
+	_check(box != null and box.visible, "the tooltip box is shown")
+	if box:
+		var frame := box.get_theme_stylebox("panel") as StyleBoxFlat
+		_check(frame != null and frame.border_width_left == 1 and frame.border_color == Color.BLACK,
+			"the box has a one pixel black frame")
+		var rt: RichTextLabel = box.get_child(0)
+		_equal(rt.get_parsed_text(), "Gold", "the box shows the text without its escape")
+		var btn_h: float = form.imgsize * 15.0 / 13.0 * 0.35
+		_check(box.size.x > btn_h and box.size.y > 5.0, "the box is padded around its text")
+		_equal(box.global_position, (Vector2(10, 10) + Vector2(btn_h, btn_h)).floor(),
+			"the box sits m_btn_height below and right of the pointer")
+	_discard(form)
+
+
+# hypertip[], formspec version 11 (Luanti 5.17): markup in a tooltip, its
+# width in ems, and a static position when one is given.
 func _test_hypertip() -> void:
 	var spec := "formspec_version[11]size[8,6]button[1,1;2,1;tip;Tip]"
 	spec += "hypertip[tip;;10;tipname;<b>Bold</b> help]"
-	spec += "hypertip[4,1;2,1;;10;areaname;Area <style color=red>help</style>]"
+	spec += "style[pinned;bgcolor=#123456;border=false]"
+	spec += "hypertip[4,1;2,1;1,4;8;pinned;Area <style color=red>help</style>]"
+	spec += "button[1,3;2,1;both;Both]tooltip[both;Plain wins]hypertip[both;;10;x;Rich]"
 	var form := _new_form(spec)
 	_equal(form.skipped, {}, "hypertip is not skipped")
 	var tip_button := _button_named(form, "Tip")
-	_check(tip_button != null and tip_button.tooltip_text == "Bold help",
-		"named hypertip shows its text without markup")
-	_check(_control_with_tooltip(form, "Area help") != null, "area hypertip is built")
+	var nowhere := Vector2(-100, -100)
+	var tip: Dictionary = form.tooltip_at(nowhere, tip_button, 1000)
+	_equal(tip.get("markup"), "<b>Bold</b> help", "a named hypertip keeps its markup")
+	_equal(tip.get("width"), 10.0 * form._font_size(), "its width is in ems")
+	_equal(form.tooltip_at(nowhere, form.named_controls["both"], 1000).get("text"), "Plain wins",
+		"a tooltip beats a hypertip on the same element")
+	var area: Control = form.tooltip_areas[0]["area"]
+	tip = form.tooltip_at(area.get_global_rect().get_center(), null, 0)
+	_equal(tip.get("static"), Vector2(1, 4) * form.imgsize, "the static position is in form units")
+	form._show_tooltip(tip, area.get_global_rect().get_center())
+	var box: Panel = form.tooltip_box
+	_equal(box.global_position, form.root.global_position + Vector2(1, 4) * form.imgsize,
+		"a static hypertip stands where it was told, not at the pointer")
+	_equal(box.size.x, ceilf(8.0 * form._font_size()), "the box is as wide as the hypertip asks")
+	var frame := box.get_theme_stylebox("panel") as StyleBoxFlat
+	_check(frame.bg_color == Color.html("123456") and frame.border_width_left == 0,
+		"style[] on the hypertip's name sets its bgcolor and border")
+	var rt: RichTextLabel = box.get_child(0)
+	_equal(rt.get_parsed_text(), "Area help", "the markup is rendered, not printed")
 	_discard(form)
 
 
@@ -1017,13 +1104,6 @@ func _button_named(node: Node, caption: String) -> Button:
 func _label_named(node: Node, caption: String) -> Label:
 	for candidate in _nodes_of_type(node, "Label"):
 		if candidate.text == caption:
-			return candidate
-	return null
-
-
-func _control_with_tooltip(node: Node, tooltip: String) -> Control:
-	for candidate in _nodes_of_type(node, "Control"):
-		if candidate.tooltip_text == tooltip:
 			return candidate
 	return null
 
