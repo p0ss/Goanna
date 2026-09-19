@@ -1,0 +1,138 @@
+{
+ "t_before_1": {
+  "first_open_build_ms": 170.054,
+  "first_open_to_drawn_ms": 199.716,
+  "reopen_build_ms": 32.417,
+  "cached_item_icon_call_us": 0.7473,
+  "icon_hook_steady": {},
+  "stats_after": {},
+  "icons_cached_by_ui_after": 1558
+ },
+ "t_after_1": {
+  "first_open_build_ms": 79.589,
+  "first_open_to_drawn_ms": 120.764,
+  "reopen_build_ms": 32.432,
+  "cached_item_icon_call_us": 1.1612,
+  "icon_hook_steady": {
+   "frames": 558,
+   "ms_per_frame": 0.00060047132616489
+  },
+  "stats_after": {
+   "build_ms": 19.677672,
+   "drawn": 782,
+   "flushes": 1,
+   "frame_ms": 11.837497,
+   "frames": 1125,
+   "icons": 782,
+   "last_flush_count": 782,
+   "last_flush_ms": 11.112308,
+   "pending": 0,
+   "raster_ms": 8.613169,
+   "size": 64,
+   "upload_ms": 2.499069
+  },
+  "icons_cached_by_ui_after": 1574
+ },
+ "t_before_2": {
+  "first_open_build_ms": 177.962,
+  "first_open_to_drawn_ms": 207.27,
+  "reopen_build_ms": 32.786,
+  "cached_item_icon_call_us": 0.6957,
+  "icon_hook_steady": {},
+  "stats_after": {},
+  "icons_cached_by_ui_after": 1558
+ },
+ "t_after_2": {
+  "first_open_build_ms": 82.579,
+  "first_open_to_drawn_ms": 124.435,
+  "reopen_build_ms": 33.263,
+  "cached_item_icon_call_us": 1.069,
+  "icon_hook_steady": {
+   "frames": 558,
+   "ms_per_frame": 0.000632098566308262
+  },
+  "stats_after": {
+   "build_ms": 20.294612,
+   "drawn": 782,
+   "flushes": 1,
+   "frame_ms": 11.324315,
+   "frames": 1139,
+   "icons": 782,
+   "last_flush_count": 782,
+   "last_flush_ms": 10.583887,
+   "pending": 0,
+   "raster_ms": 8.108282,
+   "size": 64,
+   "upload_ms": 2.475464
+  },
+  "icons_cached_by_ui_after": 1574
+ },
+ "mcl_new": {
+  "first_open_build_ms": 88.764,
+  "first_open_to_drawn_ms": 134.82,
+  "reopen_build_ms": 37.552,
+  "cached_item_icon_call_us": 1.0526,
+  "icon_hook_steady": {
+   "frames": 558,
+   "ms_per_frame": 0.000870878136200712
+  },
+  "stats_after": {
+   "build_ms": 23.145246,
+   "drawn": 782,
+   "flushes": 1,
+   "frame_ms": 13.893757,
+   "frames": 1106,
+   "icons": 782,
+   "last_flush_count": 782,
+   "last_flush_ms": 13.007143,
+   "pending": 0,
+   "raster_ms": 8.990056,
+   "size": 54,
+   "upload_ms": 4.016886
+  },
+  "icons_cached_by_ui_after": 1574
+ },
+ "mcl_old": {
+  "first_open_build_ms": 174.498,
+  "first_open_to_drawn_ms": 207.542,
+  "reopen_build_ms": 35.769,
+  "cached_item_icon_call_us": 0.6853,
+  "icon_hook_steady": {},
+  "stats_after": {},
+  "icons_cached_by_ui_after": 1558
+ },
+ "mtg_new": {
+  "first_open_build_ms": 21.423,
+  "first_open_to_drawn_ms": 28.057,
+  "reopen_build_ms": 7.307,
+  "cached_item_icon_call_us": 1.1361,
+  "icon_hook_steady": {
+   "frames": 558,
+   "ms_per_frame": 0.000907831541218638
+  },
+  "stats_after": {
+   "build_ms": 0.329717,
+   "drawn": 8,
+   "flushes": 1,
+   "frame_ms": 1.493101,
+   "frames": 1104,
+   "icons": 8,
+   "last_flush_count": 8,
+   "last_flush_ms": 0.517401,
+   "pending": 0,
+   "raster_ms": 0.489519,
+   "size": 54,
+   "upload_ms": 0.027862
+  },
+  "icons_cached_by_ui_after": 32
+ },
+ "mtg_old": {
+  "first_open_build_ms": 22.043,
+  "first_open_to_drawn_ms": 28.315,
+  "reopen_build_ms": 5.776,
+  "cached_item_icon_call_us": 0.7147,
+  "icon_hook_steady": {},
+  "stats_after": {},
+  "icons_cached_by_ui_after": 32
+ }
+}

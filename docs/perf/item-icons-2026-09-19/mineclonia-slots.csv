@@ -1,0 +1,61 @@
+item,icon,vanilla_vs_before,vanilla_vs_after,vanilla_connected_glass_vs_after
+mcl_chests:chest,mesh,10.7,0.8,0.8
+mcl_chests:trapped_chest,mesh,10.8,0.0,0.0
+mcl_chests:ender_chest,mesh,11.8,0.0,0.0
+mcl_anvils:anvil,mesh,11.1,0.0,0.0
+mcl_anvils:anvil_damage_2,mesh,11.3,0.0,0.0
+mcl_enchanting:table,mesh,17.0,0.0,0.0
+mcl_furnaces:furnace,mesh,13.0,0.0,0.0
+mcl_crafting_table:crafting_table,mesh,10.2,0.0,0.0
+mcl_lectern:lectern,mesh,10.7,0.1,0.1
+mcl_grindstone:grindstone,mesh,57.0,0.0,0.0
+mcl_composters:composter,mesh,10.6,0.0,0.0
+mcl_barrels:barrel_closed,mesh,6.7,0.0,0.0
+mcl_stairs:stair_cobble,mesh,12.9,0.8,0.8
+mcl_stairs:stair_oak,mesh,12.1,0.0,0.0
+mcl_stairs:slab_stone,mesh,21.3,0.0,0.0
+mcl_stairs:slab_oak,mesh,14.1,0.0,0.0
+mcl_blackstone:wall,mesh,20.1,0.0,0.0
+mcl_deepslate:tuffwall,mesh,9.3,0.0,0.0
+mcl_doors:trapdoor_oak,mesh,10.2,0.0,0.0
+mcl_doors:iron_trapdoor,mesh,33.6,0.0,0.0
+mcl_pressureplates:pressure_plate_oak_off,mesh,15.6,0.0,0.0
+mcl_lush_caves:moss_carpet,mesh,15.0,0.0,0.0
+mcl_core:snow,mesh,70.7,0.0,0.0
+mcl_core:grass_path,mesh,7.2,0.0,0.0
+mcl_core:glass,mesh,16.4,10.0,0.9
+mcl_core:ice,mesh,12.1,0.1,0.1
+mcl_core:slimeblock,mesh,4.4,0.0,0.0
+mcl_honey:honey_block,mesh,12.5,0.1,0.1
+mcl_core:cactus,mesh,17.5,0.0,0.0
+mcl_end:end_rod,mesh,49.4,0.0,0.0
+mcl_end:dragon_egg,mesh,16.2,0.0,0.0
+mcl_heads:creeper,mesh,12.7,0.0,0.0
+mcl_heads:steve,mesh,19.8,0.1,0.1
+mcl_end:chorus_flower,mesh,12.1,0.0,0.0
+mcl_daylight_detector:daylight_detector,mesh,34.8,0.0,0.0
+mcl_pottery_sherds:pot,mesh,7.2,0.0,0.0
+mcl_core:stone,mesh,8.3,0.8,0.8
+mcl_core:dirt,mesh,5.0,0.0,0.0
+mcl_core:dirt_with_grass,mesh,16.3,0.0,0.0
+mcl_core:cobble,mesh,7.9,0.0,0.0
+mcl_core:sand,mesh,9.9,0.0,0.0
+mcl_farming:pumpkin_face,mesh,10.9,0.0,0.0
+mcl_tnt:tnt,mesh,11.9,0.0,0.0
+mcl_books:bookshelf,mesh,10.9,0.0,0.0
+mcl_farming:hay_block,mesh,12.6,0.0,0.0
+mcl_core:mycelium,mesh,6.4,0.0,0.0
+mcl_crimson:crimson_nylium,mesh,7.3,0.0,0.0
+mcl_trees:tree_oak,mesh,8.9,0.0,0.0
+meta: mcl_core:stone tinted,mesh,30.6,0.8,0.8
+meta: mcl_core:glass tinted,mesh,13.3,4.0,0.0
+meta: mcl_chests:chest tinted,mesh,16.5,0.0,0.0
+meta: mcl_stairs:stair_cobble tinted,mesh,23.5,0.0,0.0
+item_image 1x1 a,mesh,11.0,0.0,0.0
+item_image 1x1 b,mesh,7.2,0.0,0.0
+item_image 1x1 c,mesh,14.7,0.0,0.0
+item_image 2x2 a,mesh,11.1,1.6,1.6
+item_image_button a,mesh,25.3,13.6,13.6
+item_image_button b,mesh,18.0,15.2,15.2
+item_image_button d,mesh,25.3,12.5,12.5
+item_image_button 2x2 c,mesh,21.2,13.6,13.6

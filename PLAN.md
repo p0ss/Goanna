@@ -460,6 +460,94 @@ the fact.
   the Minetest Game sign through a real right click, whose text round trip
   was exercised through an ordinary node metadata fields packet instead.
 
+- Node items without an inventory image are drawn as their item mesh, as the
+  vanilla client draws them, 2026-09-19. `item_icon()` used to fold tiles 0,
+  3 and 4 into an `[inventorycube`. That read a mesh node's texture atlas as
+  cube faces (Mineclonia's chest came out as a see-through box of atlas
+  scraps), drew anvils, stairs, slabs, walls, trapdoors and carpets as full
+  cubes, showed a furnace's side where vanilla shows its front, and lost
+  overlay tiles and tile colours. Now upstream's `ItemVisualsManager` builds
+  the item mesh (the transplanted `createItemMesh`, already turned to the
+  inventory angle) and `src/goanna_icon_raster.cpp` draws it the way
+  `drawItemStack` does: orthographic, two units across the slot;
+  `colorizeMeshBuffer`'s light, ambient 0.5 plus a fixed direction; the
+  inventory shader's nearest texel times vertex colour, in sRGB as upstream
+  does it; its three alpha modes; GL's clockwise front faces and depth test;
+  and depth writes for alpha blended materials, which vanilla has in game
+  because `CSceneManager::drawAll` turns `AllowZWriteOnTransparent` on and
+  nothing turns it off. That is a small software rasteriser rather than a
+  SubViewport, chosen because it keeps the maths exactly upstream's, gives a
+  finished image with no GPU readback, and runs under `--headless`, where
+  the native test can reach it. `item_icon()` queues; the queue is drawn at
+  `frame_pre_draw` across threads, before the frame that asked for it is
+  drawn. Icons are drawn at the slot size a form lays out when it fits the
+  window (54 pixels at 1600 by 900), redrawn in place when that changes, and
+  keyed by item, overlay and the stack's base colour: inventory lists now
+  carry an `icon_item` string with any colour or image metadata, which list
+  slots, the hotbar and the HUD inventory pass on. Plain cubes take the same
+  path, on evidence: the folded cube is bigger (it touches the image edges,
+  where the mesh spans 85% of the slot), shaded differently and faced
+  differently, and in list slots the mesh path matches vanilla pixel for
+  pixel. The item
+  mesh is built without Goanna's bevel, through a per thread
+  `g_goanna_plain_solids` that the transplanted `item_visuals_manager.cpp`
+  sets and `content_mapblock.cpp` reads. Hotbar and HUD inventory icons fill
+  the image rectangle as `Hud::drawItem` hands it to `drawItemStack`,
+  instead of an 8% inset that made them smaller than vanilla's.
+
+- Verified: `goanna_item_icon_test`, new, 26 checks from node definitions
+  alone (an OBJ mesh node on an atlas with a transparent quadrant has no
+  holes inside its outline, where the folded cube of the same atlas has 476;
+  a faced cube shows top, front and +x at the shades worked out by hand from
+  upstream's formula; a slab keeps its outline; a stack colour tints; an
+  alpha blended cube shows vanilla's draw order layering), each check seen
+  to fail with its rule broken; the formspec suite, 317 checks; the style
+  check. Then side by side with the vanilla client on one Luanti 5.17.0
+  Flatpak server per game, fresh worlds, 1600 by 900, Godot 4.5.1, a test
+  mod showing both players one opaque form of up to 48 items in list slots,
+  most of them node items without an inventory image, four stacks tinted by
+  metadata, `item_image[]` and `item_image_button[]`, plus the creative
+  inventory and hotbars. Mean absolute difference per
+  cell, 0 to 255, crops aligned to within two pixels, glass compared with
+  vanilla running `connected_glass` as Goanna does: in Mineclonia every list
+  slot, tinted stack and 1x1 `item_image` is at 0.9 or below, where before
+  they were 4.4 to 70.7, and the 0.8 cases are the slot border inside the
+  crop; in Minetest Game every node icon slot is at 0.8 or below except
+  lava, against 5.0 to 28.6 before. Frames and per cell numbers are in
+  `docs/perf/item-icons-2026-09-19/`.
+
+- Cost, Mineclonia's creative inventory (the scrolling form of about 1840 items,
+  782 of them node items without an image), first open in a settled world,
+  RelWithDebInfo build, 16 core machine with an RTX 3090: 170 to 178 ms to build
+  the form before, 80 to 89 ms after; first frame drawn at 200 to 208 ms before,
+  121 to 135 ms after. Of that, building 782 icon jobs takes 20 to 23 ms and
+  drawing them 10.6 to 13 ms (rasterising 8.1 to 9.0 ms across 16 threads,
+  upload 2.5 to 4.0 ms). Two earlier samples each, taken while the world was
+  still streaming in, put the old path at 576 and 669 ms and the new one at 85
+  and 138 ms; each `item_icon()` call takes the map lock, which the session
+  thread holds while it handles blocks, but that cause was not measured.
+  Reopening costs 32 to 38 ms either way, since the UI keeps its own icon cache.
+  Steady state, the frame hook costs under 1 microsecond a frame when nothing is
+  queued, and a cached `item_icon()` call from GDScript about 1 microsecond.
+  Minetest Game's paged creative inventory has 8 node icons a page; it opens in
+  about 21 ms before and after.
+
+- Still different from vanilla: glass looks framed because Goanna defaults
+  `connected_glass` on (vanilla with the same setting draws the same icon);
+  animated node tiles show their first frame, so Minetest Game's lava
+  differs; a 2x2 `item_image[]` is the slot icon scaled up, where vanilla
+  draws the mesh at 108 pixels; the hotbar scales the 54 pixel icon down to
+  48 unfiltered, where vanilla draws at 48; flat inventory images ignore a
+  stack's colour metadata (the test form's tinted torch and snowball in
+  Minetest Game: vanilla tints them, Goanna does not), and by the code its
+  overlay too, which would leave Mineclonia's dyed candles undyed, not
+  checked in game; the new `icon_item` string would let `item_icon()` fix
+  that; the stack on the cursor still passes only its name;
+  `inventory_items_animations` is not supported. Not verified: VoxeLibre;
+  texture packs larger than 16 pixels, where vanilla may pick a mip level;
+  a window resize was checked only through the control channel (the same
+  texture went from 54 to 43 pixels and back), not by dragging.
+
 ## Log since v0.4.1-alpha (2026-08-30)
 
 Verified on a local Mineclonia server on Luanti 5.17.0 with Godot 4.5.1 and

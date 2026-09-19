@@ -77,9 +77,16 @@ text placement, with these differences left:
 - The font. Goanna draws with Godot's default face at about the same size,
   which is wider than Luanti's Arimo, so a line that just fits upstream can
   wrap or be cut short in Goanna (VoxeLibre's "Wielded lights" card).
-- Node item icons that are not cubes. Goanna composes a cube from the
-  node's tiles where the vanilla client renders the node's own mesh (an
-  anvil, a crafting table's side).
+- Item icons, in a few narrow cases. Node items without an inventory
+  image are now drawn from their item mesh as the vanilla client draws them
+  (`PLAN.md`, 2026-09-19), at the slot size a form uses when it fits the
+  window; a larger `item_image[]` is that icon scaled up, where the vanilla
+  client draws the mesh at the larger size. Animated node tiles (Minetest
+  Game's lava) show their first frame. A flat inventory image ignores the
+  colour a stack's metadata sets (seen with a tinted torch in Minetest
+  Game), and by the code its overlay too. Glass looks framed because Goanna
+  defaults `connected_glass` on; the vanilla client with the same setting
+  draws the same icon.
 - Scrollbars take Luanti's colours and square thumb but have no arrow
   buttons. Tab headers, dropdowns and checkboxes keep Godot's look rather
   than Luanti's skin.

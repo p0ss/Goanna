@@ -1,0 +1,59 @@
+item,icon,vanilla_vs_before,vanilla_vs_after,vanilla_connected_glass_vs_after
+default:chest,mesh,12.4,0.8,0.8
+default:chest_locked,mesh,12.4,0.0,0.0
+default:furnace,mesh,12.1,0.0,0.0
+default:bookshelf,mesh,18.6,0.0,0.0
+default:glass,mesh,19.4,13.8,0.1
+default:obsidian_glass,mesh,6.7,4.6,0.0
+default:ladder_wood,flat,3.6,3.6,3.6
+default:fence_wood,flat,2.2,2.2,2.2
+default:fence_rail_wood,flat,0.5,0.5,0.5
+default:mese_post_light,mesh,19.1,0.0,0.0
+default:cactus,mesh,16.5,0.0,0.0
+default:papyrus,flat,3.8,3.8,3.8
+stairs:stair_wood,mesh,15.9,0.8,0.8
+stairs:stair_inner_cobble,mesh,10.0,0.0,0.0
+stairs:stair_outer_stone,mesh,11.2,0.0,0.0
+stairs:slab_stone,mesh,12.1,0.0,0.0
+stairs:slab_wood,mesh,18.1,0.0,0.0
+walls:cobble,mesh,10.3,0.0,0.0
+doors:trapdoor,flat,2.5,2.5,2.5
+doors:trapdoor_steel,flat,4.6,4.6,4.6
+doors:gate_wood_closed,mesh,18.6,0.0,0.0
+xpanes:pane_flat,flat,7.8,7.8,7.8
+xpanes:bar_flat,flat,4.3,4.3,4.3
+carts:rail,flat,5.3,5.3,5.3
+default:snow,flat,3.5,3.5,3.5
+default:ice,mesh,12.9,0.0,0.0
+default:water_source,mesh,5.9,0.0,0.0
+default:lava_source,mesh,17.9,3.9,3.9
+default:river_water_source,mesh,7.8,0.0,0.0
+default:leaves,mesh,8.9,0.0,0.0
+default:stone,mesh,5.8,0.0,0.0
+default:dirt,mesh,6.3,0.0,0.0
+default:dirt_with_grass,mesh,5.0,0.0,0.0
+default:cobble,mesh,7.7,0.0,0.0
+default:sand,mesh,11.3,0.0,0.0
+default:tree,mesh,8.1,0.0,0.0
+default:torch,flat,1.6,1.6,1.6
+default:sign_wall_wood,flat,2.0,2.0,2.0
+farming:soil,mesh,6.6,0.0,0.0
+farming:straw,mesh,12.9,0.0,0.0
+beds:bed_bottom,flat,1.8,1.8,1.8
+vessels:shelf,mesh,21.5,0.0,0.0
+wool:red,mesh,9.4,0.0,0.0
+default:dirt_with_snow,mesh,13.5,0.0,0.0
+default:permafrost_with_moss,mesh,7.2,0.0,0.0
+default:coral_brown,mesh,18.5,0.0,0.0
+meta: default:torch tinted,flat,5.2,5.2,5.2
+meta: default:snow tinted,flat,27.5,27.5,27.5
+meta: default:chest tinted,mesh,28.6,0.0,0.0
+meta: stairs:stair_wood tinted,mesh,19.5,0.0,0.0
+item_image 1x1 a,mesh,10.8,0.0,0.0
+item_image 1x1 b,mesh,18.0,0.0,0.0
+item_image 1x1 c,mesh,15.6,0.0,0.0
+item_image 2x2 a,mesh,9.7,3.0,3.0
+item_image_button a,mesh,19.0,9.4,9.4
+item_image_button b,mesh,25.6,9.4,9.4
+item_image_button d,mesh,24.9,24.3,19.9
+item_image_button 2x2 c,mesh,22.8,14.5,14.5
