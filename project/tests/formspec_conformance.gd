@@ -6,6 +6,7 @@ extends SceneTree
 
 const Formspec := preload("res://ui/formspec.gd")
 const GameUi := preload("res://ui/game_ui.gd")
+const GlassStyle := preload("res://ui/glass_style.gd")
 
 var checks := 0
 var failures := 0
@@ -135,6 +136,13 @@ func _run() -> void:
 	_test_prepend()
 	_test_host_passes_prepend()
 	_test_background_order()
+	_test_glass_chrome()
+	_test_glass_keeps_content()
+	_test_glass_slot_frames()
+	_test_glass_repeated_theme()
+	_test_glass_bespoke()
+	_test_glass_sends_the_same()
+	_test_glass_legibility()
 	await _write_reference_shots()
 	if failures == 0:
 		print("formspec conformance: PASS: ", checks, " checks")
@@ -144,9 +152,10 @@ func _run() -> void:
 		quit(1)
 
 
-func _new_form(spec: String, formname := "conformance", prepend := "") -> Control:
+func _new_form(spec: String, formname := "conformance", prepend := "", style := "game") -> Control:
 	var form := Formspec.new()
 	form.item_source = fixture_source
+	form.style = style
 	root.add_child(form)
 	form.show_formspec(spec, formname, Vector2(1200, 800), prepend)
 	return form
@@ -1456,6 +1465,283 @@ func _test_host_passes_prepend() -> void:
 	ui.fullscreen_tint.free()
 	_discard_inventory_ui(ui)
 
+
+# --- the dark glass interface style (ui/glass_style.gd) ----------------------
+
+# Mineclonia's whole window theme, as mcl_formspec_prepend sends it.
+const MCL_THEME := (
+	"listcolors[#9990;#FFF7;#FFF0;#000;#FFF]"
+	+ "style_type[image_button;border=false;bgimg=mcl_inventory_button9.png;"
+	+ "bgimg_pressed=mcl_inventory_button9_pressed.png;bgimg_middle=2,2]"
+	+ "style_type[button;border=false;bgimg=mcl_inventory_button9.png;"
+	+ "bgimg_pressed=mcl_inventory_button9_pressed.png;bgimg_middle=2,2]"
+	+ "style_type[field;textcolor=#323232]"
+	+ "style_type[label;textcolor=#323232]"
+	+ "style_type[checkbox;textcolor=#323232]"
+	+ "bgcolor[#00000000;true]"
+	+ "background9[1,1;1,1;mcl_base_textures_background9.png;true;7]")
+
+# A cut down Mineclonia survival inventory: slot frames drawn behind the
+# lists, an empty armour slot outline drawn over one, the crafting arrow, a
+# coloured label, an image button, a themed button and a field.
+static func _mcl_inventory_spec() -> String:
+	var esc := char(0x1b)
+	var s := "formspec_version[6]size[11.75,10.9]"
+	s += "image[0.325,0.325;1.1,1.1;mcl_formspec_itemslot.png]"
+	s += "image[0.325,1.575;1.1,1.1;mcl_formspec_itemslot.png]"
+	s += "list[current_player;armor;0.375,0.375;1,2;1]"
+	s += "image[0.375,0.375;1,1;mcl_inventory_empty_armor_slot_helmet.png]"
+	s += "image[9.125,1;1,1;crafting_formspec_arrow.png]"
+	s += "label[6.61,0.5;" + esc + "(c@#313131)Crafting" + esc + "(c@)]"
+	s += "image_button[6.575,4.075;1.1,1.1;craftguide_book.png;__mcl_craftguide;]"
+	s += "button[1,9.2;3,0.8;go;Go]"
+	s += "field[5,9.2;3,0.8;search;;]"
+	s += "image[0.325,5.525;1.1,1.1;mcl_formspec_itemslot.png]"
+	s += "image[1.575,5.525;1.1,1.1;mcl_formspec_itemslot.png]"
+	s += "list[current_player;main;0.375,5.575;2,1;]"
+	# One of a kind, so a hint rather than a frame: Mineclonia's trash can.
+	s += "image[3.325,5.525;1.1,1.1;crafting_creative_trash.png]"
+	s += "list[detached:test;store;3.375,5.575;1,1;]"
+	# Far bigger than the slot it lies behind: a picture, not a frame.
+	s += "image[5,5;3,3;mcl_inventory_background9.png]"
+	s += "list[current_player;main;5.5,5.5;1,1;4]"
+	# The frame texture with no slot on it.
+	s += "image[9,6;1,1;mcl_formspec_itemslot.png]"
+	return s
+
+func _image_with(form: Node, texture_name: String) -> Array:
+	var out: Array = []
+	var tex: Texture2D = fixture_source.ui_texture(texture_name)
+	for c in _nodes_of_type(form, "TextureRect") + _nodes_of_type(form, "NinePatchRect"):
+		if c.texture == tex:
+			out.append(c)
+	return out
+
+func _glass_panes(form: Node) -> Array:
+	var out: Array = []
+	for c in _nodes_of_type(form, "Control"):
+		if c.has_meta("glass_surface"):
+			out.append(c)
+	return out
+
+# The prepend's window chrome is replaced: its background9 by a glass pane,
+# its bgcolor and listcolors ignored, its button art and text colour dropped.
+func _test_glass_chrome() -> void:
+	var form := _new_form(_mcl_inventory_spec(), "conformance", MCL_THEME, "glass")
+	_check(form.glass and not form.bespoke, "a themed form is drawn in dark glass")
+	_check(form.skipped.is_empty(), "a glass form builds with nothing skipped")
+	_check(_image_with(form, "mcl_base_textures_background9.png").is_empty(),
+		"the theme's background9 is not drawn in dark glass")
+	var panes := _glass_panes(form.bg_layer)
+	_equal(panes.size(), 1, "one glass pane stands in for the theme's background")
+	if panes.size() == 1:
+		_equal(panes[0].get_index(), 0, "the pane is at the back of the form")
+		_equal(panes[0].size, form.root.size + Vector2(2, 2), "and fills it as auto_clip did")
+	_check(form.root.get_theme_stylebox("panel") is StyleBoxEmpty,
+		"the form's own panel is not drawn under the glass")
+	_equal(form.listcolors["slot_bg"], Formspec.DEFAULT_LIST_SLOT_BG,
+		"the theme's listcolors are not applied")
+	_equal(form.fullscreen_bg, GlassStyle.BACKDROP, "the theme's full screen colour gives way")
+	var go := _button_named(form, "Go")
+	_check(go != null and not go.has_theme_stylebox_override("normal"),
+		"a themed button without art of its own takes the glass button")
+	if go:
+		_check(go.get_theme_stylebox("normal") is StyleBoxFlat, "which is the glass Theme's")
+		_check(GlassStyle.luminance(go.get_meta("content")["label"].get_theme_color("font_color")) > 0.5,
+			"the theme's dark text colour is not applied to it")
+	var book: Button = form.named_controls.get("__mcl_craftguide")
+	_check(book != null and not (book.get_theme_stylebox("normal") is StyleBoxTexture),
+		"an image button loses the theme's button art")
+	if book:
+		_equal(book.get_meta("content")["image"].texture, fixture_source.ui_texture("craftguide_book.png"),
+			"and keeps its own image")
+	var search: LineEdit = form.fields.get("search")
+	_check(search != null and GlassStyle.luminance(search.get_theme_color("font_color")) > 0.5,
+		"a field does not take the theme's dark text colour")
+	var crafting := _text_named(form, "Crafting")
+	_check(crafting != null, "the coloured label builds")
+	if crafting:
+		var drawn: Color = crafting.get_meta("colours")[0]
+		_check(drawn != Color.html("313131"), "its dark colour escape is lifted on glass")
+		_check(GlassStyle.contrast(GlassStyle.luminance(drawn), GlassStyle.PANEL_WORST) >= 4.5,
+			"to at least 4.5:1 against the brightest the glass gets")
+	var tip_owner: Button = form.named_controls.get("go")
+	form._show_tooltip({"text": "Help", "bg": Formspec.DEFAULT_TOOLTIP_BG,
+		"fg": Formspec.DEFAULT_TOOLTIP_FG}, Vector2(10, 10))
+	var box: Control = form.tooltip_box
+	_check(box != null and not _glass_panes(box).is_empty(), "a tooltip is a glass pane")
+	_check(box != null and not _nodes_of_type(box, "BackBufferCopy").is_empty(),
+		"which copies the screen again, so it frosts the form beneath it")
+	_check(tip_owner != null, "the tooltip test found its button")
+	# The same form in the game theme keeps all of it.
+	var game := _new_form(_mcl_inventory_spec(), "conformance", MCL_THEME)
+	_check(not game.glass, "the game theme is not glass")
+	_check(not _image_with(game, "mcl_base_textures_background9.png").is_empty(),
+		"the game theme draws the theme's background9")
+	_check(_glass_panes(game).is_empty(), "and no glass")
+	_equal(game.listcolors["slot_bg"], Formspec.parse_color("#9990", Color.BLACK),
+		"and applies the theme's listcolors")
+	_discard(game)
+	_discard(form)
+
+# Content stays: pictures, item art, hints over slots, a model, a box, and a
+# form's own background, which sits over the glass pane.
+func _test_glass_keeps_content() -> void:
+	var spec := _mcl_inventory_spec()
+	spec += "background[6,6;3,2;mcl_villager_level_bar.png]"
+	spec += "item_image[8,8;1,1;default:apple]"
+	spec += "model[9,7;2,3;player;character.b3d;skin.png;0,0]"
+	spec += "box[10,1;1,1;#ff0000]"
+	var form := _new_form(spec, "conformance", MCL_THEME, "glass")
+	var hint := _image_with(form, "mcl_inventory_empty_armor_slot_helmet.png")
+	_check(hint.size() == 1 and hint[0].visible, "an empty slot's outline drawn over it is kept")
+	var arrow := _image_with(form, "crafting_formspec_arrow.png")
+	_check(arrow.size() == 1 and arrow[0].visible, "the crafting arrow is kept")
+	var own := _image_with(form, "mcl_villager_level_bar.png")
+	_check(own.size() == 1, "a form's own background is kept")
+	if own.size() == 1:
+		_check(own[0].get_index() > _glass_panes(form.bg_layer)[0].get_index(),
+			"in front of the glass pane")
+	_check(not _nodes_of_type(form, "SubViewportContainer").is_empty(), "a model is kept")
+	_check(_colorrect_of(form, Color.RED) != null, "a box is kept")
+	_discard(form)
+
+# The slot frame rule: an image behind a slot, framing it, whose texture
+# frames more than one slot, is window chrome; anything else is content.
+func _test_glass_slot_frames() -> void:
+	var form := _new_form(_mcl_inventory_spec(), "conformance", MCL_THEME, "glass")
+	var frames := _image_with(form, "mcl_formspec_itemslot.png")
+	var hidden := 0
+	var spare: Control = null
+	for f in frames:
+		if not f.visible:
+			hidden += 1
+			_check(f.get_meta("glass_replaced", false), "a hidden frame is marked replaced")
+		else:
+			spare = f
+	_equal(hidden, 4, "every slot frame behind a slot is replaced by the glass slot")
+	_check(spare != null, "the frame texture with no slot on it is kept")
+	var trash := _image_with(form, "crafting_creative_trash.png")
+	_check(trash.size() == 1 and trash[0].visible, "a one of a kind image behind a slot is kept")
+	var big := _image_with(form, "mcl_inventory_background9.png")
+	_check(big.size() == 1 and big[0].visible, "an image much bigger than the slot is kept")
+	var framed := 0
+	for s in form.slots:
+		if s.framed:
+			framed += 1
+	_equal(framed, 4, "the slots of the framed lists are drawn framed")
+	var over_art: Array = []
+	for s in form.slots:
+		if s.over_art:
+			over_art.append(s.listname)
+	_equal(over_art, ["store", "main"],
+		"only the slots over a kept picture are see-through: the trash can and the big image")
+	_discard(form)
+	# Minetest Game marks its hotbar row with gui_hb_bg.png under exactly
+	# that row: it keeps a look of its own.
+	var mtg := "size[8,9]image[0,4.7;1,1;gui_hb_bg.png]image[1,4.7;1,1;gui_hb_bg.png]"
+	mtg += "list[current_player;main;0,4.7;2,1;]list[current_player;main;0,5.85;2,1;8]"
+	var mform := _new_form(mtg, "conformance",
+		"bgcolor[#080808BB;true]listcolors[#00000069;#5A5A5A;#141318;#30434C;#FFF]"
+		+ "background9[5,5;1,1;gui_formbg.png;true;10]", "glass")
+	_equal(mform.slots.size(), 4, "both Minetest Game rows build")
+	if mform.slots.size() == 4:
+		_check(mform.slots[0].framed and mform.slots[1].framed, "the hotbar row is framed")
+		_check(not mform.slots[2].framed and not mform.slots[3].framed, "the row below is not")
+	_discard(mform)
+
+# Mineclonia's creative inventory says no_prepend[] and writes the theme out
+# again with its background9 at a rectangle of its own, which becomes the
+# glass pane's rectangle.
+func _test_glass_repeated_theme() -> void:
+	var spec := "formspec_version[6]size[13,11.43]no_prepend[]"
+	spec += MCL_THEME.replace("background9[1,1;1,1;mcl_base_textures_background9.png;true;7]", "")
+	spec += "background9[0,1.34;13,8.75;mcl_base_textures_background9.png;;7]"
+	spec += "button[1,10.5;3,0.8;go;Go]"
+	spec += "list[current_player;main;0.375,2;2,1;]"
+	var form := _new_form(spec, "conformance", MCL_THEME, "glass")
+	_check(form.prepend_elements.is_empty(), "no_prepend builds no prepend")
+	_check(_image_with(form, "mcl_base_textures_background9.png").is_empty(),
+		"the repeated theme background9 is not drawn")
+	var panes := _glass_panes(form.bg_layer)
+	_equal(panes.size(), 1, "it becomes one glass pane")
+	if panes.size() == 1:
+		_equal(panes[0].position, (Vector2(0, 1.34) * form.imgsize).floor(),
+			"at the background9's position")
+		_equal(panes[0].size, (Vector2(13, 8.75) * form.imgsize).floor(), "and size")
+	_equal(form.listcolors["slot_bg"], Formspec.DEFAULT_LIST_SLOT_BG,
+		"the repeated listcolors are not applied")
+	var go := _button_named(form, "Go")
+	_check(go != null and not go.has_theme_stylebox_override("normal"),
+		"the repeated button style is dropped")
+	_discard(form)
+
+# A form that paints its own window, a book, keeps the game theme whole, text
+# colours included: they were chosen for the page.
+func _test_glass_bespoke() -> void:
+	var spec := "size[8,9]background[-0.5,-0.5;9,10;mcl_books_book_bg.png]"
+	spec += "label[1,1;Page one]button_exit[3,8;2,1;done;Done]"
+	var form := _new_form(spec, "conformance", MCL_THEME, "glass")
+	_check(form.bespoke and not form.glass, "a book is not drawn in glass")
+	_equal(_image_with(form, "mcl_books_book_bg.png").size(), 1, "its page is drawn")
+	_check(_glass_panes(form).is_empty(), "with no glass")
+	var page := _text_named(form, "Page one")
+	_check(page != null and page.get_meta("colours")[0] == Color.html("323232"),
+		"its text keeps the theme's colour")
+	_discard(form)
+
+# The style is presentation only: the same form sends the same fields.
+func _test_glass_sends_the_same() -> void:
+	var spec := "formspec_version[6]size[10,8]"
+	spec += "field[0.5,0.5;3,0.8;name;Name;Wombat]"
+	spec += "checkbox[4,0.8;ready;Ready;true]"
+	spec += "dropdown[4,2;3,0.8;colour;red,green,blue;2;false]"
+	spec += "textlist[0.5,2;3,2;pick;one,two,#ff0000three;2]"
+	spec += "tabheader[0.5,5;tabs;A,B,C;3;false;true]"
+	spec += "scrollbar[9,1;0.5,5;vertical;bar;400]"
+	spec += "button[0.5,6.5;3,0.8;send;Send]"
+	var sent := {}
+	for style in ["game", "glass"]:
+		var form := _new_form(spec, "conformance", MCL_THEME, style)
+		var got: Array = []
+		form.fields_submitted.connect(func(f: Dictionary, _q: bool) -> void: got.append(f))
+		(_button_named(form, "Send") as Button).pressed.emit()
+		sent[style] = [form.collect_fields(), got]
+		_discard(form)
+	_equal(sent["glass"][0], sent["game"][0], "a glass form collects the same fields")
+	_equal(sent["glass"][1], sent["game"][1], "and a button sends the same fields")
+	# Changing style with a form open keeps what was typed and sends nothing.
+	var live := _new_form(spec, "conformance", MCL_THEME, "glass")
+	var sent_now: Array = []
+	live.fields_submitted.connect(func(f: Dictionary, _q: bool) -> void: sent_now.append(f))
+	(live.fields["name"] as LineEdit).text = "Quokka"
+	live.style = "game"
+	live.restyle()
+	_check(not live.glass, "restyle rebuilds in the new style")
+	_equal((live.fields["name"] as LineEdit).text, "Quokka", "keeping what was typed")
+	_check(sent_now.is_empty(), "and sending nothing")
+	_discard(live)
+
+# The contrast arithmetic behind "text on glass is legible whatever the world
+# behind it is".
+func _test_glass_legibility() -> void:
+	var worst: float = GlassStyle.PANEL_WORST
+	for c in [GlassStyle.TEXT, GlassStyle.TEXT_DIM]:
+		_check(GlassStyle.contrast(GlassStyle.luminance(c), worst) >= 4.5,
+			"interface text %s reaches 4.5:1 on the brightest glass" % c.to_html(false))
+	_check(GlassStyle.contrast(GlassStyle.luminance(GlassStyle.TEXT), GlassStyle.control_worst()) >= 4.5,
+		"button text reaches 4.5:1 on a hovered button over the brightest glass")
+	for fill in [GlassStyle.SLOT_FILL, GlassStyle.SLOT_FILL_FRAMED, GlassStyle.SLOT_HOVER]:
+		_check(GlassStyle.contrast(1.0, GlassStyle.worst_under(fill)) >= 4.5,
+			"a slot's white count reaches 4.5:1 on its tile")
+	for hex in ["313131", "323232", "0000ff", "ff0000", "00ff00", "555555", "7f3f00"]:
+		var inked := GlassStyle.ink(Color.html(hex))
+		_check(GlassStyle.contrast(GlassStyle.luminance(inked), worst) >= 4.5,
+			"#%s is made legible on glass" % hex)
+	_equal(GlassStyle.ink(Color.WHITE), Color.WHITE, "a colour already legible is unchanged")
+	var red := GlassStyle.ink(Color.RED)
+	_check(red.r > red.g and red.r > red.b, "a lifted colour keeps its hue")
+	_check(GlassStyle.PANEL_WORST < 0.1, "the glass is never brighter than a dark grey")
 
 func _colorrect_of(node: Node, colour: Color) -> ColorRect:
 	for candidate in _nodes_of_type(node, "ColorRect"):

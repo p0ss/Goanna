@@ -31,6 +31,7 @@ signal slot_double_clicked(location: String, listname: String, index: int)
 signal closed()
 
 const ELEM_SEP := "]"
+const GlassStyle := preload("res://ui/glass_style.gd")
 # GUIInventoryList::Options and the tooltip colours regenerateGui starts
 # from: opaque grey slots, lighter under the pointer, no border until
 # listcolors[] names one, and olive tooltips with white text.
@@ -110,22 +111,76 @@ var skipped := {}
 var screen_size := Vector2.ZERO     # the screen the form was laid out for
 var simple_field_count := 0         # field[name;label;default] elements so far
 
+# The interface style (ui/glass_style.gd). The host sets `style` before
+# show_formspec; "game" draws the game's own window art, which is the
+# renderer's parity mode and its default here. `glass` is whether this form
+# is actually drawn in dark glass, which a form that paints its own window
+# is not (see _paints_own_window). docs/interface-style.md has the rule for
+# what is chrome and what is content.
+var style := GlassStyle.GAME
+var glass := false
+var bespoke := false                 # glass was asked for and the form paints its own window
+# While an element of the game's window theme builds: the prepend itself, or
+# a form element that repeats it (see _repeats_theme).
+var chrome_building := false
+var theme_signatures := {}           # every prepend element, as written
+var theme_textures := {}             # textures the prepend's backgrounds use
+var glass_panes := 0                 # glass panes built where the theme had a background
+var own_fullscreen := false          # the form itself set a full screen colour
+var build_seq := 0                   # the element being built, counted from 1
+var last_show: Array = []            # show_formspec's arguments, for restyle()
+
 # --- public -----------------------------------------------------------------
 
 # `prepend` is the game's window theme, from TOCLIENT_FORMSPEC_PREPEND. It is
 # built behind the form unless the form asked for no_prepend[], which is why
 # it is parsed after the form and not simply glued in front of it.
 func show_formspec(spec: String, name: String, screen: Vector2, prepend := "") -> void:
+	last_show = [spec, name, screen, prepend]
+	_show(spec, name, screen, prepend, style == GlassStyle.GLASS)
+	if glass and _paints_own_window():
+		# A book, a map, a game's bespoke screen: the form draws its own
+		# window, and its text and controls are made for that art, so all of
+		# it keeps the game's look.
+		_show(spec, name, screen, prepend, false)
+		bespoke = true
+
+func _show(spec: String, name: String, screen: Vector2, prepend: String, want_glass: bool) -> void:
 	formname = name
+	# Out of the tree at once, not at the end of the frame, so that a form
+	# built twice in one frame (restyle, or a book first tried in glass)
+	# never has the old controls standing behind the new.
 	for c in get_children():
+		remove_child(c)
 		c.queue_free()
 	_reset()
+	glass = want_glass
 	_parse(spec)
+	_theme_reference(prepend)
 	if enable_prepends:
 		_parse_prepend(prepend)
 	_layout(screen)
 	_build()
 	refresh_lists()
+
+# Builds the open form again in the current `style`, keeping what the player
+# has typed, ticked or chosen. Nothing is sent to the server.
+func restyle() -> void:
+	if last_show.is_empty() or root == null:
+		return
+	var kept := collect_fields()
+	show_formspec(last_show[0], last_show[1], last_show[2], last_show[3])
+	var was := building
+	building = true
+	for n in kept:
+		var c: Control = fields.get(n)
+		if c == null or not is_instance_valid(c):
+			continue
+		if c is LineEdit or c is TextEdit:
+			c.set("text", kept[n])
+		elif c is CheckBox:
+			(c as CheckBox).set_pressed_no_signal(kept[n] == "true")
+	building = was
 
 func refresh_lists() -> void:
 	for s in slots:
@@ -219,6 +274,14 @@ func _reset() -> void:
 	hover_name = ""
 	simple_field_count = 0
 	key_capture = null
+	glass = false
+	bespoke = false
+	chrome_building = false
+	theme_signatures.clear()
+	theme_textures.clear()
+	glass_panes = 0
+	own_fullscreen = false
+	build_seq = 0
 
 static func _default_listcolors() -> Dictionary:
 	return {"slot_bg": DEFAULT_LIST_SLOT_BG, "slot_bg_h": DEFAULT_LIST_SLOT_BG_HOVER,
@@ -336,6 +399,64 @@ func _parse_prepend(prepend: String) -> void:
 			_:
 				prepend_elements.append([name, e.substr(br + 1)])
 
+# What the game's window theme is made of, noted whether or not this form
+# uses the prepend, so that the dark glass style can recognise the theme when
+# a form repeats it by hand. Mineclonia's creative inventory says
+# no_prepend[] and then writes the same listcolors, styles and bgcolor
+# itself, with the theme's background9 at a rectangle of its own.
+func _theme_reference(prepend: String) -> void:
+	for raw in fs_split(prepend, ELEM_SEP):
+		var e := raw.strip_edges()
+		var br := e.find("[")
+		if br < 0:
+			continue
+		var name := e.substr(0, br).strip_edges()
+		var params := e.substr(br + 1)
+		theme_signatures[_signature(name, params)] = true
+		if name == "background" or name == "background9":
+			var p := fs_split(params, ";")
+			if p.size() >= 3:
+				theme_textures[fs_unescape(p[2]).strip_edges()] = true
+
+static func _signature(name: String, params: String) -> String:
+	return name + "[" + params.replace(" ", "").replace("\t", "").replace("\n", "")
+
+# Whether a form element is the game's window theme written out again: the
+# same element as one in the prepend, or a background or background9 drawn
+# with a texture the prepend's own backgrounds use.
+func _repeats_theme(name: String, params: String) -> bool:
+	if theme_signatures.has(_signature(name, params)):
+		return true
+	if name == "background" or name == "background9":
+		var p := fs_split(params, ";")
+		return p.size() >= 3 and theme_textures.has(fs_unescape(p[2]).strip_edges())
+	return false
+
+# True while the element being built is window chrome that the dark glass
+# style replaces.
+func _chrome() -> bool:
+	return glass and chrome_building
+
+# A text colour as it is drawn: unchanged in the game theme, and lifted where
+# needed to stay legible on dark glass (GlassStyle.ink).
+func _ink(c: Color, surface := GlassStyle.PANEL_WORST) -> Color:
+	return GlassStyle.ink(c, surface) if glass else c
+
+# A form paints its own window when a background of its own, not the theme's,
+# covers nine tenths of the form or more.
+func _paints_own_window() -> bool:
+	if root == null or bg_layer == null:
+		return false
+	var form := Rect2(Vector2.ZERO, root.size)
+	var area := maxf(form.get_area(), 1.0)
+	for c in bg_layer.get_children():
+		if c.has_meta("glass_surface") or not (c is Control):
+			continue
+		var r := Rect2((c as Control).position, (c as Control).size)
+		if r.intersection(form).get_area() >= area * 0.9:
+			return true
+	return false
+
 # --- layout maths (GUIFormSpecMenu::regenerateGui) ---------------------------
 
 func _layout(screen: Vector2) -> void:
@@ -370,7 +491,7 @@ func _layout(screen: Vector2) -> void:
 	root.position = origin.floor()
 	root.size = form_size.floor()
 	root.mouse_filter = Control.MOUSE_FILTER_STOP
-	root.theme = _form_theme()
+	root.theme = GlassStyle.form_theme(_mono_font()) if glass else _form_theme()
 	current_parent = root
 
 # Luanti draws every piece of form text with a shadow one pixel down and
@@ -587,7 +708,7 @@ func _build() -> void:
 	var tip_fg := DEFAULT_TOOLTIP_FG
 	for el in prepend_elements + pending_elements:
 		var p := fs_split(el[1], ";")
-		if el[0] == "listcolors" and p.size() == 5:
+		if el[0] == "listcolors" and p.size() == 5 and not glass:
 			tip_bg = parse_color(p[3], tip_bg)
 			tip_fg = parse_color(p[4], tip_fg)
 		elif el[0] == "tooltip" and not p[0].contains(",") and (p.size() == 2 or p.size() == 4):
@@ -611,13 +732,21 @@ func _build() -> void:
 		var real_backup := real_coordinates
 		var version_backup := formspec_version
 		real_coordinates = false
+		chrome_building = true
 		for el in prepend_elements:
+			build_seq += 1
 			_build_element(el[0], el[1])
+		chrome_building = false
 		formspec_version = version_backup
 		real_coordinates = real_backup
 	for el in pending_elements:
+		build_seq += 1
+		chrome_building = glass and _repeats_theme(el[0], el[1])
 		_build_element(el[0], el[1])
+		chrome_building = false
 	building = false
+	if glass:
+		_replace_slot_frames()
 	if skipped.size() > 0:
 		print("formspec: elements not rendered: ", skipped)
 	if not has_size and simple_field_count > 0:
@@ -637,7 +766,9 @@ func _build() -> void:
 			none.append({})
 		_style_button(b, "", none, content)
 	# a bare form with only images and buttons still needs a background
-	if has_form_bgcolor:
+	if glass:
+		_glass_window()
+	elif has_form_bgcolor:
 		var sb := StyleBoxFlat.new()
 		sb.bg_color = form_bgcolor
 		root.add_theme_stylebox_override("panel", sb)
@@ -647,6 +778,94 @@ func _build() -> void:
 		sb.set_corner_radius_all(int(imgsize * 0.08))
 		root.add_theme_stylebox_override("panel", sb)
 	_apply_focus()
+
+# --- the dark glass style ----------------------------------------------------
+
+# The form's window in dark glass. Where the theme drew a background, a glass
+# pane already stands in its place (_background). Otherwise the whole form is
+# glass, unless the form itself asked for no panel with a transparent
+# bgcolor[] of its own. The game's full screen colour gives way to a light
+# dim; one the form set itself is kept.
+func _glass_window() -> void:
+	root.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+	var no_panel := has_form_bgcolor and form_bgcolor.a <= 0.0
+	if glass_panes == 0 and not no_panel:
+		var pane := GlassStyle.surface()
+		pane.size = root.size
+		bg_layer.add_child(pane)
+		bg_layer.move_child(pane, 0)
+		glass_panes += 1
+	if not own_fullscreen:
+		fullscreen_bg = GlassStyle.BACKDROP
+
+# Slot frames: a form's own image[] drawn behind an inventory slot to frame
+# it, as Mineclonia draws mcl_formspec_itemslot.png under every slot and
+# Minetest Game gui_hb_bg.png under its hotbar row. In dark glass the slot
+# draws its own glass frame, so the image is hidden. An image counts as a
+# frame only when all of these hold, which keeps any image that says
+# something (the empty armour slot outlines, a trash can, a fuel hint):
+#   - it is built before the slot, so it lies behind it;
+#   - it contains the slot and is at most a quarter of a slot larger on
+#     each side;
+#   - the same texture frames at least two slots in this form.
+# A list with any framed slot is drawn in the lighter framed look, so a row
+# the game set apart from the others stays apart.
+func _replace_slot_frames() -> void:
+	if slots.is_empty():
+		return
+	var buckets := {}
+	for s in slots:
+		var r: Rect2 = (s as Control).get_global_rect()
+		var key := Vector2i((r.get_center() / 8.0).round())
+		if not buckets.has(key):
+			buckets[key] = []
+		buckets[key].append(s)
+	var framing := {}   # image -> slots it frames
+	var per_texture := {}
+	for img in _form_controls(root):
+		if not (img as Control).has_meta("fs_image"):
+			continue
+		var ir: Rect2 = (img as Control).get_global_rect()
+		var centre := Vector2i((ir.get_center() / 8.0).round())
+		var found: Array = []
+		for dx in [-1, 0, 1]:
+			for dy in [-1, 0, 1]:
+				for s in buckets.get(centre + Vector2i(dx, dy), []):
+					var sr: Rect2 = (s as Control).get_global_rect()
+					if int(s.get_meta("seq", 0)) <= int(img.get_meta("seq", 0)):
+						continue
+					if not ir.grow(1.0).encloses(sr):
+						continue
+					if ir.size.x > sr.size.x * 1.5 + 1.0 or ir.size.y > sr.size.y * 1.5 + 1.0:
+						continue
+					found.append(s)
+		if found.is_empty():
+			continue
+		framing[img] = found
+		var tex := String(img.get_meta("fs_image"))
+		per_texture[tex] = int(per_texture.get(tex, 0)) + found.size()
+	var framed_lists := {}
+	for img in framing:
+		if int(per_texture[String(img.get_meta("fs_image"))]) < 2:
+			continue
+		img.visible = false
+		img.set_meta("glass_replaced", true)
+		for s in framing[img]:
+			framed_lists[int(s.get_meta("list", 0))] = true
+	for s in slots:
+		if framed_lists.has(int(s.get_meta("list", 0))):
+			s.framed = true
+	# A slot over a picture the form keeps (Mineclonia's trash can, anything
+	# drawn behind a list that is not a frame) is drawn see-through, as the
+	# game's own translucent slot colour would be, so the picture still shows.
+	for img in _form_controls(root):
+		if not (img as Control).has_meta("fs_image") or img.get_meta("glass_replaced", false):
+			continue
+		var ir: Rect2 = (img as Control).get_global_rect()
+		for s in slots:
+			if int(s.get_meta("seq", 0)) > int(img.get_meta("seq", 0)) \
+					and ir.has_point((s as Control).get_global_rect().get_center()):
+				s.over_art = true
 
 # One element, from the form itself or from the prepend. The headers a form
 # only accepts at its front are elements when a prepend uses them, which is
@@ -970,6 +1189,12 @@ func _scrollbar(parts: PackedStringArray) -> void:
 
 func _bgcolor(parts: PackedStringArray) -> void:
 	# bgcolor[color;fullscreen;fbgcolor]
+	if _chrome():
+		# The theme's window colour is what the glass replaces.
+		return
+	if glass and parts.size() >= 2 and parts[1].strip_edges() in ["true", "both"] \
+			or glass and parts.size() >= 3 and parts[2].strip_edges() != "":
+		own_fullscreen = true
 	if parts.size() >= 1 and parts[0].strip_edges() != "":
 		form_bgcolor = parse_color(parts[0], Color(0.13, 0.13, 0.13, 0.9))
 		has_form_bgcolor = true
@@ -991,11 +1216,15 @@ func _background(parts: PackedStringArray) -> void:
 	if v.size() < 2 or g.size() < 2:
 		return
 	var tex: Texture2D = item_source.ui_texture(fs_unescape(parts[2])) if item_source else null
-	if tex == null:
+	if tex == null and not _chrome():
 		return
 	var auto_clip := parts.size() >= 4 and parts[3].strip_edges() == "true"
 	var middle := parts[4] if parts.size() >= 5 else ""
-	var r := _texture_rect(tex, middle)
+	# In dark glass the theme's window art becomes a glass pane of the same
+	# rectangle.
+	var r: Control = GlassStyle.surface() if _chrome() else _texture_rect(tex, middle)
+	if _chrome():
+		glass_panes += 1
 	if auto_clip:
 		# Fills the form, and the position, not the geometry, moves its
 		# edges: raw pixels outward in the old coordinate system, imgsize
@@ -1114,6 +1343,9 @@ func _image(parts: PackedStringArray) -> void:
 			return
 		size = _geom(g)
 	_add(r, _pos(v), size)
+	# For _replace_slot_frames: which texture, and when it was built.
+	r.set_meta("fs_image", fs_unescape(parts[texture_index]).strip_edges())
+	r.set_meta("seq", build_seq)
 
 func _animated_image(parts: PackedStringArray) -> void:
 	# animated_image[x,y;w,h;name;texture;frame_count;frame_duration;frame_start]
@@ -1258,12 +1490,17 @@ func _rich_text(text: String, colour: Color, size: int, st: Dictionary) -> RichT
 	rt.add_theme_font_size_override("normal_font_size", size)
 	for key in ["bold_font_size", "italics_font_size", "bold_italics_font_size", "mono_font_size"]:
 		rt.add_theme_font_size_override(key, size)
-	rt.add_theme_color_override("default_color", colour)
+	rt.add_theme_color_override("default_color", _ink(colour))
 	var pushes := _push_style_font(rt, String(st.get("font", "")))
+	var drawn: Array = []
 	for run in parse_enriched_runs(text, colour):
-		rt.push_color(run["color"])
+		var c := _ink(run["color"])
+		drawn.append(c)
+		rt.push_color(c)
 		rt.add_text(run["text"])
 		rt.pop()
+	# The colours the runs were drawn in, for the suite to read.
+	rt.set_meta("colours", drawn)
 	for _i in pushes:
 		rt.pop()
 	rt.set_meta("plain", strip_enriched(text))
@@ -1485,8 +1722,13 @@ static func _markup_page(text: String) -> Dictionary:
 # checks them.
 func _apply_markup_page(rt: RichTextLabel, page: Dictionary) -> Dictionary:
 	var root := {"hovercolor": MARKUP_HOVER, "size": "16", "font": "normal"}
+	# A page with a background of its own keeps the colours chosen for it; on
+	# glass they are made legible (_markup_ink).
+	var own_bg := String(page.get("background", ""))
+	rt.set_meta("own_background", own_bg != "" and own_bg != "none" and _is_colour(own_bg))
 	if page.has("color") and _is_colour(String(page["color"])):
-		rt.add_theme_color_override("default_color", parse_color(String(page["color"]), Color.WHITE))
+		rt.add_theme_color_override("default_color",
+			_markup_ink(rt, parse_color(String(page["color"]), Color.WHITE)))
 	if page.has("hovercolor") and _is_colour(String(page["hovercolor"])):
 		root["hovercolor"] = page["hovercolor"]
 	if page.has("size") and String(page["size"]).is_valid_int():
@@ -1527,6 +1769,9 @@ func _apply_markup_page(rt: RichTextLabel, page: Dictionary) -> Dictionary:
 	rt.add_theme_stylebox_override("normal", sb)
 	rt.set_meta("markup_margin", margin)
 	return root
+
+func _markup_ink(rt: RichTextLabel, c: Color) -> Color:
+	return c if bool(rt.get_meta("own_background", false)) else _ink(c)
 
 # The index of the > that closes the tag opening at `start`, skipping any
 # inside a quoted attribute value. Returns -1 if the tag is never closed.
@@ -1613,7 +1858,7 @@ func _markup_tag(rt: RichTextLabel, body: String, tags: Dictionary, stack: Array
 		drawn.append(colour)
 		rt.set_meta("action_colours", drawn)
 	if colour != "" and _is_colour(colour):
-		rt.push_color(parse_color(colour, Color.WHITE))
+		rt.push_color(_markup_ink(rt, parse_color(colour, Color.WHITE)))
 		pushes += 1
 	if String(style.get("size", "")).is_valid_int():
 		rt.push_font_size(_markup_size(String(style["size"])))
@@ -2114,6 +2359,9 @@ func _create_text_field(rect: Rect2, fname: String, label: String, def: String,
 # focused or not. Text is white until textcolor says otherwise, and a
 # selection is EGDC_HIGH_LIGHT.
 func _edit_box_look(e: Control, multiline: bool) -> void:
+	if glass:
+		# The glass Theme's edit box, on the form's root.
+		return
 	var fill := Color8(255, 255, 255, 101) if multiline else Color8(128, 128, 128)
 	e.add_theme_stylebox_override("normal", _sunken_pane(fill))
 	e.add_theme_stylebox_override("focus",
@@ -2221,13 +2469,16 @@ func _textlist(parts: PackedStringArray) -> void:
 			t = t.substr(7)
 		var i := il.add_item(t)
 		if colour != null:
-			il.set_item_custom_fg_color(i, colour)
+			il.set_item_custom_fg_color(i, _ink(colour))
 	if parts.size() >= 5 and int(parts[4]) > 0 and int(parts[4]) <= il.item_count:
 		il.select(int(parts[4]) - 1)
 	il.add_theme_font_size_override("font_size", _font_size())
 	var transparent := parts.size() >= 6 and _is_yes(parts[5])
-	_table_look(il, Color8(30, 30, 30, 0) if transparent else Color8(30, 30, 30), not transparent,
-		Color.WHITE, Color8(70, 120, 50), Color.WHITE)
+	if glass:
+		_glass_table_look(il, {"transparent": transparent})
+	else:
+		_table_look(il, Color8(30, 30, 30, 0) if transparent else Color8(30, 30, 30),
+			not transparent, Color.WHITE, Color8(70, 120, 50), Color.WHITE)
 	_add(il, _pos(v), _list_geom(g))
 	fields[lname] = il
 	_register_named_control(lname, il)
@@ -2279,6 +2530,41 @@ func _table_look(c: Control, background: Color, border: bool, text: Color, highl
 	# GUITable draws no rule between rows.
 	c.add_theme_color_override("guide_color", Color.TRANSPARENT)
 	c.add_theme_constant_override("v_separation", 4)
+
+# A textlist or table in dark glass: the glass Theme's pane and rows, with
+# whatever the form itself chose on top. A form that gives its own background
+# keeps its own text colours, which were chosen for it; otherwise they are
+# made legible on the glass.
+func _glass_table_look(c: Control, own: Dictionary) -> void:
+	c.add_theme_constant_override("v_separation", 4)
+	var has_bg := own.has("background")
+	if has_bg:
+		var flat := StyleBoxFlat.new()
+		flat.bg_color = parse_color(String(own["background"]), Color.TRANSPARENT)
+		flat.set_corner_radius_all(int(GlassStyle.RADIUS_SMALL))
+		flat.set_content_margin_all(1)
+		c.add_theme_stylebox_override("panel", flat)
+	elif bool(own.get("transparent", false)) \
+			or (own.has("border") and not _is_yes(String(own["border"]))):
+		var none := StyleBoxEmpty.new()
+		none.set_content_margin_all(1)
+		c.add_theme_stylebox_override("panel", none)
+	if own.has("highlight"):
+		var sel := StyleBoxFlat.new()
+		sel.bg_color = parse_color(String(own["highlight"]), GlassStyle.SELECTION)
+		sel.set_corner_radius_all(4)
+		for key in ["selected", "selected_focus", "hovered_selected", "hovered_selected_focus"]:
+			c.add_theme_stylebox_override(key, sel)
+	if own.has("color"):
+		var text := parse_color(String(own["color"]), GlassStyle.TEXT)
+		if not has_bg:
+			text = _ink(text)
+		c.add_theme_color_override("font_color", text)
+		c.add_theme_color_override("font_hovered_color", text)
+	if own.has("highlight_text"):
+		var hl := parse_color(String(own["highlight_text"]), Color.WHITE)
+		c.add_theme_color_override("font_selected_color", hl)
+		c.add_theme_color_override("font_hovered_selected_color", hl)
 
 # tableoptions[opt 1;opt 2;...]: colours and border for every following table.
 func _tableoptions(parts: PackedStringArray) -> void:
@@ -2403,10 +2689,12 @@ func _table(parts: PackedStringArray) -> void:
 				"right": item.set_text_alignment(ci, HORIZONTAL_ALIGNMENT_RIGHT)
 			if opts.has("tooltip"):
 				item.set_tooltip_text(ci, String(opts["tooltip"]))
+			var own_bg := table_options.has("background")
 			if has_pending:
-				item.set_custom_color(ci, pending)
+				item.set_custom_color(ci, pending if own_bg else _ink(pending))
 			elif table_options.has("color"):
-				item.set_custom_color(ci, parse_color(String(table_options["color"]), Color.WHITE))
+				var cc := parse_color(String(table_options["color"]), Color.WHITE)
+				item.set_custom_color(ci, cc if own_bg else _ink(cc))
 			if String(icons[ci]) != "" and item_source:
 				var tex: Texture2D = item_source.ui_texture(String(icons[ci]))
 				if tex:
@@ -2427,6 +2715,13 @@ func _table(parts: PackedStringArray) -> void:
 # GUITable::setTable's options over the skin's defaults: text colour,
 # background, border, highlight and highlight text.
 func _apply_table_options(t: Tree) -> void:
+	if glass:
+		var own := {}
+		for key in ["background", "border", "color", "highlight", "highlight_text"]:
+			if table_options.has(key):
+				own[key] = table_options[key]
+		_glass_table_look(t, own)
+		return
 	var border := true
 	if table_options.has("border"):
 		border = _is_yes(String(table_options["border"]))
@@ -2534,6 +2829,8 @@ func _list(parts: PackedStringArray) -> void:
 			s.setup(self, loc, lname, i, listcolors)
 			s.mouse_filter = Control.MOUSE_FILTER_STOP
 			_add(s, base + Vector2(col, row) * slot_spacing, slot_size)
+			s.set_meta("seq", build_seq)
+			s.set_meta("list", build_seq)
 			slots.append(s)
 
 func _listring(parts: PackedStringArray) -> void:
@@ -2555,6 +2852,10 @@ func _listring(parts: PackedStringArray) -> void:
 # tooltip parsed after this and for every item tooltip.
 func _listcolors(parts: PackedStringArray) -> void:
 	if parts.size() < 2 or parts.size() == 4:
+		return
+	if glass:
+		# Slot and tooltip colours are window chrome whoever sets them: in
+		# dark glass every slot and tooltip is drawn in the glass look.
 		return
 	listcolors["slot_bg"] = parse_color(parts[0], listcolors["slot_bg"])
 	listcolors["slot_bg_h"] = parse_color(parts[1], listcolors["slot_bg_h"])
@@ -2775,12 +3076,19 @@ func _build_tooltip_box(tip: Dictionary) -> Control:
 	rt.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	rt.autowrap_mode = TextServer.AUTOWRAP_OFF
 	rt.add_theme_font_size_override("normal_font_size", _font_size())
-	rt.add_theme_color_override("default_color", tip["fg"])
+	rt.add_theme_color_override("default_color", _ink(tip["fg"]))
 	box.add_child(rt)
 	var frame := StyleBoxFlat.new()
 	frame.bg_color = tip["bg"]
 	frame.border_color = Color.BLACK
 	var panel: StyleBox = frame
+	# In dark glass a tooltip is a small pane of glass, unless it is a
+	# hypertip the form styled with a colour or image of its own.
+	var glass_tip := glass
+	if tip.has("markup"):
+		var own: Dictionary = tip["style"]
+		if _has_style(own, "bgcolor") or _has_style(own, "bgimg"):
+			glass_tip = false
 	if tip.has("markup"):
 		var st: Dictionary = tip["style"]
 		frame.bg_color = parse_color(String(st.get("bgcolor", "")), tip["bg"])
@@ -2818,14 +3126,31 @@ func _build_tooltip_box(tip: Dictionary) -> Control:
 		var text_h := font.get_height(fs) * lines.size()
 		rt.push_paragraph(HORIZONTAL_ALIGNMENT_CENTER)
 		for run in parse_enriched_runs(String(tip["text"]), tip["fg"]):
-			rt.push_color(run["color"])
+			rt.push_color(_ink(run["color"]))
 			rt.add_text(run["text"])
 			rt.pop()
 		rt.pop()
 		var btn_h := imgsize * 15.0 / 13.0 * 0.35
 		box.size = Vector2(text_w + btn_h, text_h + 5.0).ceil()
+		if glass_tip:
+			# A little more room than Luanti's box, for the rounded corners.
+			box.size += Vector2(12, 6)
 		rt.size = Vector2(ceilf(text_w) + 2.0, ceilf(text_h))
 		rt.position = ((box.size - rt.size) / 2.0).floor()
+	if glass_tip:
+		panel = StyleBoxEmpty.new()
+		# The screen is copied again under the tooltip, so its frost is the
+		# form beneath it rather than the world behind the form.
+		var copy := BackBufferCopy.new()
+		copy.copy_mode = BackBufferCopy.COPY_MODE_RECT
+		copy.rect = Rect2(Vector2.ONE * -GlassStyle.GlassSurface.MARGIN,
+			box.size + Vector2.ONE * GlassStyle.GlassSurface.MARGIN * 2.0)
+		box.add_child(copy)
+		box.move_child(copy, 0)
+		var pane := GlassStyle.surface(GlassStyle.RADIUS_SMALL, 0.55, 0.8)
+		pane.size = box.size
+		box.add_child(pane)
+		box.move_child(pane, 1)
 	box.add_theme_stylebox_override("panel", panel)
 	return box
 
@@ -2948,6 +3273,13 @@ const STYLE_LOOKUP := {
 	"vertlabel": ["vertlabel", "label"],
 }
 
+# The style properties that belong to the game's window art. When the theme
+# sets them, dark glass drops them; when a form sets them for one of its own
+# elements, they are kept.
+const CHROME_STYLE_PROPS := ["bgcolor", "bgcolor_hovered", "bgcolor_pressed", "bgimg",
+	"bgimg_hovered", "bgimg_pressed", "bgimg_middle", "border", "textcolor", "padding",
+	"colors", "bordercolors", "borderwidths"]
+
 # StyleSpec::State. A selector's states are OR'd into one mask.
 const STATE_FOCUSED := 1
 const STATE_HOVERED := 2
@@ -2980,6 +3312,14 @@ func _style(parts: PackedStringArray, by_type: bool) -> void:
 		if eq < 0:
 			return
 		props[p.substr(0, eq).strip_edges().to_lower()] = fs_unescape(p.substr(eq + 1)).strip_edges()
+	if _chrome():
+		# The theme's styles lose what only paints the window (panes, tints,
+		# borders, the text colour chosen to suit them) and keep what sets
+		# size, spacing, font, sound and alignment.
+		for key in CHROME_STYLE_PROPS:
+			props.erase(key)
+		if props.is_empty():
+			return
 	var hover := {}
 	var press := {}
 	for key in ["bgcolor", "bgimg", "fgimg"]:
@@ -3160,6 +3500,9 @@ func _button_looks(b: Button, states: Array, focus: int, styled: bool) -> Array:
 			box = sbt
 		elif not border:
 			box = StyleBoxEmpty.new()
+		elif tinted and glass:
+			# The form's own colour, as a tinted glass button.
+			box = _glass_tinted_button(tint)
 		elif tinted:
 			var sbf := StyleBoxFlat.new()
 			sbf.bg_color = tint
@@ -3181,10 +3524,28 @@ func _button_looks(b: Button, states: Array, focus: int, styled: bool) -> Array:
 		var fg: Texture2D = null
 		if _has_style(st, "fgimg") and item_source:
 			fg = item_source.ui_texture(String(st["fgimg"]))
+		var colour := parse_color(String(st.get("textcolor", "")), Color.WHITE)
+		if glass and bg == null:
+			# On glass, not on the game's own button art, whose text colour
+			# was chosen for that art.
+			var under := GlassStyle.control_worst()
+			if box is StyleBoxFlat:
+				under = GlassStyle.worst_under((box as StyleBoxFlat).bg_color)
+			colour = _ink(colour, under)
 		looks.append({"rect": Rect2(tl, br - tl), "fg": fg,
 			"fg_middle": String(st.get("fgimg_middle", "")),
-			"colour": parse_color(String(st.get("textcolor", "")), Color.WHITE)})
+			"colour": colour})
 	return looks
+
+# A button a form coloured with bgcolor[] of its own, in dark glass: the
+# colour kept, as a translucent pane with the glass button's shape and rim.
+static func _glass_tinted_button(tint: Color) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(tint, tint.a * 0.7)
+	sb.border_color = Color(tint.lightened(0.35), 0.8)
+	sb.set_border_width_all(1)
+	sb.set_corner_radius_all(int(GlassStyle.RADIUS_SMALL))
+	return sb
 
 # Places a button's label, and image if it has one, for the look Godot is
 # drawing. Connected to the button's draw signal, which fires on every change
@@ -3276,7 +3637,7 @@ func _apply_style(c: Control, ename: String) -> void:
 		if f != null:
 			c.add_theme_font_override("font", f)
 	if _has_style(base, "textcolor"):
-		var col := parse_color(String(base["textcolor"]), Color.WHITE)
+		var col := _ink(parse_color(String(base["textcolor"]), Color.WHITE))
 		if c is LineEdit or c is TextEdit or c is Label:
 			c.add_theme_color_override("font_color", col)
 		elif c is CheckBox:
@@ -3492,6 +3853,11 @@ class FormspecSlot extends Control:
 	var hovered := false
 	var icon: Texture2D
 	var item := {}
+	# Dark glass only: the game framed this slot's list with slot art of its
+	# own, or put a picture behind this slot that the form keeps
+	# (formspec.gd, _replace_slot_frames).
+	var framed := false
+	var over_art := false
 
 	func setup(f: Control, loc: String, lname: String, i: int, cols: Dictionary) -> void:
 		form = f
@@ -3518,10 +3884,13 @@ class FormspecSlot extends Control:
 	# item filling the slot; a tool's wear bar; the count in the corner.
 	func _draw() -> void:
 		var r := Rect2(Vector2.ZERO, size)
-		draw_rect(r, colors["slot_bg_h"] if hovered else colors["slot_bg"])
-		if colors.get("slot_border_on", false):
-			draw_rect(Rect2(Vector2(-0.5, -0.5), size + Vector2(1, 1)), colors["slot_border"],
-				false, 1.0)
+		if form.glass:
+			GlassStyle.draw_slot(self, r, hovered, framed, over_art)
+		else:
+			draw_rect(r, colors["slot_bg_h"] if hovered else colors["slot_bg"])
+			if colors.get("slot_border_on", false):
+				draw_rect(Rect2(Vector2(-0.5, -0.5), size + Vector2(1, 1)), colors["slot_border"],
+					false, 1.0)
 		if icon:
 			draw_texture_rect(icon, r, false)
 		var wear: int = item.get("wear", 0)
