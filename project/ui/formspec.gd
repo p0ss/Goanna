@@ -214,7 +214,16 @@ func refresh_lists() -> void:
 		if is_instance_valid(s):
 			s.refresh()
 
-func collect_fields() -> Dictionary:
+# The fields every submission carries, as GUIFormSpecMenu::acceptInput sends
+# them: the elements whose FieldSpec is built with send set, which are edit
+# boxes and password fields, dropdowns, scrollbars and animated images.
+# Buttons, check boxes, tab headers, text lists and tables are sent only by
+# the event they cause (submit's `extra`), never along with another's. A form
+# that reads a check box's field as "the player changed this" would otherwise
+# see every check box change whenever any button is pressed, which is what
+# kept Mineclonia's player settings form from ever going back to the
+# inventory.
+func collect_fields(dropdowns := true) -> Dictionary:
 	var out := {}
 	for n in fields:
 		var c: Control = fields[n]
@@ -226,29 +235,25 @@ func collect_fields() -> Dictionary:
 			out[n] = c.text
 		elif c is TextEdit:
 			out[n] = c.text
-		elif c is CheckBox:
-			out[n] = "true" if c.button_pressed else "false"
 		elif c is OptionButton:
-			var ob := c as OptionButton
-			var i: int = ob.selected
-			if ob.get_meta("index_event", false):
-				out[n] = str(i + 1)
-			else:
-				out[n] = ob.get_item_text(i) if i >= 0 else ""
-		elif c is ItemList:
-			var sel: PackedInt32Array = (c as ItemList).get_selected_items()
-			out[n] = ("CHG:" + str(sel[0] + 1)) if sel.size() > 0 else ""
-		elif c is TabBar:
-			out[n] = str((c as TabBar).current_tab + 1)
+			if dropdowns and (c as OptionButton).selected >= 0:
+				out[n] = _dropdown_value(c as OptionButton)
 		elif c is ScrollBar:
 			out[n] = "VAL:" + str(int((c as ScrollBar).value))
-		elif c is Tree:
-			var row := _table_row(c as Tree)
-			out[n] = ("CHG:" + str(row)) if row > 0 else ""
 	return out
 
-func submit(extra: Dictionary, quit: bool) -> void:
-	var f := collect_fields()
+# A dropdown's field: its 1-based index when the form asked for index events,
+# otherwise the text of the chosen item.
+static func _dropdown_value(ob: OptionButton) -> String:
+	var i: int = ob.selected
+	if ob.get_meta("index_event", false):
+		return str(i + 1)
+	return ob.get_item_text(i) if i >= 0 else ""
+
+# `extra` is what the event itself sends. A changed dropdown is the one
+# dropdown upstream sends with it, so `dropdowns` is false for that event.
+func submit(extra: Dictionary, quit: bool, dropdowns := true) -> void:
+	var f := collect_fields(dropdowns)
 	for k in extra:
 		f[k] = extra[k]
 	if quit:
@@ -1093,9 +1098,9 @@ func _scroll_container_wheel(sname: String, event: InputEvent) -> void:
 	if bar == null:
 		return
 	if event.button_index == MOUSE_BUTTON_WHEEL_UP:
-		bar.value -= bar.step
+		bar.value -= bar.custom_step
 	elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-		bar.value += bar.step
+		bar.value += bar.custom_step
 	else:
 		return
 	get_viewport().set_input_as_handled()
@@ -1171,35 +1176,80 @@ func _scrollbar(parts: PackedStringArray) -> void:
 	var sname := fs_unescape(parts[3])
 	var bar: ScrollBar = VScrollBar.new() if vertical else HScrollBar.new()
 	var lo: int = scrollbar_options["min"]
-	var hi: int = scrollbar_options["max"]
-	# Godot's Range reserves `page` at the top of its span, so the reachable
-	# values are [min_value, max_value - page]. Adding the thumb to the max is
-	# what keeps the value range the [min, max] the formspec asked for, and it
-	# leaves the thumb spanning thumbsize units of the bar, as documented.
-	bar.page = float(scrollbar_options["thumbsize"])
-	bar.min_value = lo
-	bar.max_value = maxf(float(hi) + bar.page, float(lo) + bar.page)
-	bar.step = maxf(float(scrollbar_options["smallstep"]), 1.0)
-	bar.value = clampf(float(int(parts[4])), lo, maxf(hi, lo))
-	# max == min disables the scrollbar (scrollbaroptions documentation).
-	if hi == lo:
-		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		bar.modulate = Color(1, 1, 1, 0.4)
+	var hi: int = maxi(scrollbar_options["max"], lo)
 	var size := _geom(g)
 	if not real_coordinates:
 		size = Vector2(float(g[0]) * spacing.x, float(g[1]) * spacing.y)
 	_add(bar, _pos(v), size)
-	# The thumb is never shorter than this bar is wide.
-	var across := size.x if vertical else size.y
+	var across := floorf(size.x if vertical else size.y)
+	var along := floorf(size.y if vertical else size.x)
+	# CGUIScrollBar::refreshControls: arrow buttons as square as the bar is
+	# thick at both ends, shown when asked for, hidden when asked, and by
+	# default only on a bar at least four times as long as it is thick.
+	var arrows := String(scrollbar_options["arrows"])
+	var show_arrows := arrows == "show" or (arrows != "hide" and along >= across * 4.0)
+	var border := across if show_arrows else 0.0
+	# setPosRaw: the thumb is thumbsize parts of max - min + 1 of the room
+	# between the arrows, never shorter than the bar is thick (or half its
+	# length), never longer than that room.
+	var thumb_area := maxf(along - border * 2.0, 1.0)
+	var thumb_min := minf(across, along / 2.0)
+	var span := hi - lo
+	var draw_h := clampf(thumb_area * float(scrollbar_options["thumbsize"]) / float(span + 1),
+		thumb_min, thumb_area)
+	# Godot's Range reserves `page` at the top of its span and draws the
+	# thumb page / (max - min) of the track, so the page that gives
+	# upstream's thumb is solved for, and the reachable values stay the
+	# [min, max] the formspec asked for.
+	var page := 1.0
+	if span > 0:
+		page = draw_h * span / maxf(thumb_area - draw_h, 0.001)
+	bar.min_value = lo
+	bar.max_value = hi + page
+	bar.page = page
+	bar.step = 1.0
+	bar.custom_step = maxf(float(scrollbar_options["smallstep"]), 1.0)
+	bar.set_meta("smallstep", bar.custom_step)
+	bar.value = clampf(float(int(parts[4])), lo, hi)
 	var thumb := (bar.get_theme_stylebox("grabber") as StyleBox).duplicate()
 	if vertical:
-		thumb.content_margin_top = across / 2.0
-		thumb.content_margin_bottom = across / 2.0
+		thumb.content_margin_top = thumb_min / 2.0
+		thumb.content_margin_bottom = thumb_min / 2.0
 	else:
-		thumb.content_margin_left = across / 2.0
-		thumb.content_margin_right = across / 2.0
+		thumb.content_margin_left = thumb_min / 2.0
+		thumb.content_margin_right = thumb_min / 2.0
+	if span == 0:
+		# max == min: upstream draws the track and no thumb, and the arrows
+		# greyed out, and the bar takes no input.
+		thumb = StyleBoxEmpty.new()
+		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	for key in ["grabber", "grabber_highlight", "grabber_pressed"]:
 		bar.add_theme_stylebox_override(key, thumb)
+	# The theme's track is as thick as EGDS_SCROLLBAR_SIZE, which is right for
+	# the bars inside lists and text areas; a scrollbar[] is as thick as the
+	# form says, so its own track asks for no thickness at all.
+	var track := (bar.get_theme_stylebox("scroll") as StyleBox).duplicate()
+	if vertical:
+		track.content_margin_left = 0
+		track.content_margin_right = 0
+	else:
+		track.content_margin_top = 0
+		track.content_margin_bottom = 0
+	bar.add_theme_stylebox_override("scroll", track)
+	bar.add_theme_stylebox_override("scroll_focus", track)
+	bar.size = Vector2(size.x, size.y).floor()
+	_scrollbar_arrows(bar, vertical, int(across) if show_arrows else 0, span > 0)
+	# The wheel moves a scrollbar by its small step, as CGUIScrollBar does.
+	bar.gui_input.connect(func(event: InputEvent) -> void:
+		if event is InputEventMouseButton and event.pressed:
+			var dir := 0
+			if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+				dir = -1
+			elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+				dir = 1
+			if dir != 0:
+				bar.value += dir * bar.custom_step
+				bar.accept_event())
 	scrollbars[sname] = bar
 	fields[sname] = bar
 	_register_named_control(sname, bar)
@@ -1213,6 +1263,71 @@ func _scrollbar(parts: PackedStringArray) -> void:
 			submit({sname: "CHG:" + str(int(bar.value))}, false))
 	if scroll_containers.has(sname):
 		_link_scroll(sname)
+
+static var _arrow_cache := {}
+
+# The arrow buttons at a scrollbar's ends, `size` pixels square, or none for
+# 0. In the game theme they are Luanti's skin: a dark button pane with a
+# light triangle, grey when the bar is disabled. In dark glass, a chevron on
+# the track.
+func _scrollbar_arrows(bar: ScrollBar, vertical: bool, size: int, enabled: bool) -> void:
+	if size <= 0:
+		# Godot's own scrollbar icons are empty, so there are no buttons.
+		return
+	var looks := {"": 0, "_highlight": 1, "_pressed": 2}
+	for end in ["decrement", "increment"]:
+		var dir: String
+		if vertical:
+			dir = "up" if end == "decrement" else "down"
+		else:
+			dir = "left" if end == "decrement" else "right"
+		for suffix in looks:
+			bar.add_theme_icon_override(end + suffix,
+				_arrow_texture(size, dir, glass, enabled, int(looks[suffix])))
+
+static func _arrow_texture(size: int, dir: String, glassy: bool, enabled: bool, state: int) -> Texture2D:
+	var key := "%d|%s|%s|%s|%d" % [size, dir, glassy, enabled, state]
+	if _arrow_cache.has(key):
+		return _arrow_cache[key]
+	var img := Image.create(size, size, false, Image.FORMAT_RGBA8)
+	var symbol: Color
+	if glassy:
+		img.fill(Color(1, 1, 1, [0.0, 0.08, 0.16][state]))
+		symbol = Color(GlassStyle.TEXT_DIM, 1.0 if enabled else 0.35)
+	else:
+		img.fill(Color8(30, 30, 30))
+		var face: Color = [Color8(62, 62, 62), Color8(78, 78, 78), Color8(50, 50, 50)][state]
+		img.fill_rect(Rect2i(1, 1, size - 2, size - 2), face)
+		symbol = Color8(230, 230, 230) if enabled else Color8(130, 130, 130)
+	# A triangle pointing `dir`, in the middle third of the square.
+	var s := float(size)
+	var lo := s * 0.3
+	var hi := s * 0.7
+	for y in size:
+		for x in size:
+			var px := x + 0.5
+			var py := y + 0.5
+			var along: float
+			var across: float
+			match dir:
+				"up":
+					along = hi - py
+					across = absf(px - s / 2.0)
+				"down":
+					along = py - lo
+					across = absf(px - s / 2.0)
+				"left":
+					along = hi - px
+					across = absf(py - s / 2.0)
+				_:
+					along = px - lo
+					across = absf(py - s / 2.0)
+			var depth := hi - lo
+			if along >= 0.0 and along <= depth and across <= (depth - along) * 0.9:
+				img.set_pixel(x, y, symbol)
+	var tex := ImageTexture.create_from_image(img)
+	_arrow_cache[key] = tex
+	return tex
 
 func _bgcolor(parts: PackedStringArray) -> void:
 	# bgcolor[color;fullscreen;fbgcolor]
@@ -2470,8 +2585,7 @@ func _dropdown(parts: PackedStringArray) -> void:
 	var sound := _style_sound(dname)
 	o.item_selected.connect(func(_i: int) -> void:
 		_play_sound(sound)
-		var f := collect_fields()
-		submit({dname: f[dname]}, false))
+		submit({dname: _dropdown_value(o)}, false, false))
 
 # textlist[x,y;w,h;name;items;selected;transparent] (parseTextList and
 # GUITable::setTextList). An item starting #RRGGBB is drawn in that colour;
@@ -3607,8 +3721,13 @@ func _sync_button_content(b: Button) -> void:
 		image.size = rect.size
 	var label: Label = content["label"]
 	if label != null:
-		label.position = rect.position
 		label.size = rect.size
+		# A Label cannot be shorter than a line of its text, and grows down
+		# from where it is put; GUIButton centres its text on the button
+		# whatever the button's size, so a button smaller than a line (the
+		# quarter-slot "X" revert buttons of Mineclonia's player settings)
+		# keeps its text centred on it rather than hanging below.
+		label.position = rect.position + ((rect.size - label.size) / 2.0).floor()
 		label.add_theme_color_override("font_color", look["colour"])
 
 # StyleSpec::parseRect: one value insets every side, two inset the sides and

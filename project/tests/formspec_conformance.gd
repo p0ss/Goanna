@@ -246,9 +246,11 @@ func _test_controls_and_submission() -> void:
 	_equal(form.fields.size(), 7, "named field count")
 	_equal(form.collect_fields()["name"], "Ada", "line edit default")
 	_equal(form.collect_fields()["secret"], "", "a password field starts empty")
-	_equal(form.collect_fields()["enabled"], "true", "checkbox default")
 	_equal(form.collect_fields()["choice"], "2", "index-event dropdown default")
-	_equal(form.collect_fields()["rows"], "CHG:2", "text list default")
+	# acceptInput sends a check box, text list or tab header only with the
+	# event it caused, never along with another element's.
+	for quiet in ["enabled", "rows", "tabs"]:
+		_check(not form.collect_fields().has(quiet), "%s is not sent with every event" % quiet)
 
 	var submissions: Array = []
 	form.fields_submitted.connect(func(fields: Dictionary, quit: bool) -> void:
@@ -262,6 +264,41 @@ func _test_controls_and_submission() -> void:
 		submit_button.pressed.emit()
 		_equal(submissions.back()["fields"]["go"], "Submit", "button field value")
 		_check(not submissions.back()["quit"], "ordinary button keeps form open")
+		var others: Array = []
+		for k in submissions.back()["fields"]:
+			if k in ["enabled", "rows", "tabs", "picture", "item"]:
+				others.append(k)
+		_equal(others, [], "a button press sends no check box, list, tab header or other button")
+	var check: CheckBox = form.fields["enabled"]
+	check.button_pressed = false
+	_equal(submissions.back()["fields"].get("enabled"), "false", "a check box sends itself when changed")
+	_check(not submissions.back()["fields"].has("go"), "and not the button pressed before it")
+	var drop: OptionButton = form.fields["choice"]
+	drop.select(0)
+	drop.item_selected.emit(0)
+	_equal(submissions.back()["fields"].get("choice"), "1", "a changed dropdown sends itself")
+	var tabs: TabBar = form.fields["tabs"]
+	tabs.current_tab = 1
+	_equal(submissions.back()["fields"].get("tabs"), "2", "a tab header sends itself when chosen")
+	_check(not submissions.back()["fields"].has("enabled"), "without the check box")
+	# An image button with no label still sends its field, as an empty
+	# string: Mineclonia's back arrow in its player settings is one.
+	var picture: Button = form.named_controls["picture"]
+	form.submit({}, false)
+	var before: int = submissions.size()
+	var bare := _new_form("formspec_version[6]size[6,4]"
+		+ "image_button[0.5,0.5;1.1,1.1;fixture.png;__mcl_inventory;]"
+		+ "checkbox[2,1;setting;Setting;true]")
+	var bare_sent: Array = []
+	bare.fields_submitted.connect(func(f: Dictionary, _q: bool) -> void: bare_sent.append(f))
+	(bare.named_controls["__mcl_inventory"] as Button).pressed.emit()
+	_equal(bare_sent.size(), 1, "an image button with an empty label submits")
+	if bare_sent.size() == 1:
+		_check(bare_sent[0].has("__mcl_inventory"), "its field is sent")
+		_equal(bare_sent[0].get("__mcl_inventory"), "", "with an empty value")
+		_check(not bare_sent[0].has("setting"), "and without the form's check box")
+	_discard(bare)
+	_check(picture != null and submissions.size() == before, "the harness button lookup works")
 	var exit_button := _button_named(form, "Leave")
 	_check(exit_button != null, "exit button is built")
 	if exit_button:
@@ -686,7 +723,7 @@ func _test_scroll_container() -> void:
 		"the thumb is never shorter than the bar is wide")
 	_equal(bar.min_value, 0.0, "scrollbar minimum from scrollbaroptions")
 	_check(bar.max_value - bar.page == 15.0, "scrollbar reaches the requested maximum")
-	_equal(bar.step, 1.0, "smallstep becomes the scrollbar step")
+	_equal(bar.custom_step, 1.0, "smallstep becomes the step the wheel and arrows take")
 	_equal(mover.position.y, 0.0, "mover starts unscrolled")
 	# One scroll unit moves the contents up by factor * imgsize, and the sign
 	# is upstream's: a positive factor scrolls the content out of the top.
@@ -695,7 +732,39 @@ func _test_scroll_container() -> void:
 	_equal(mover.position.y, expected, "mover follows the scrollbar by value times factor")
 	_check(mover.get_parent().clip_contents, "scroll container clips its contents")
 	_equal(form.collect_fields()["scroll"], "VAL:4", "scrollbar reports its value")
+	_equal(bar.get_theme_icon("decrement").get_width(), 0, "arrows=hide draws no arrow buttons")
 	_discard(form)
+	# CGUIScrollBar: arrows=show puts square arrow buttons at both ends, the
+	# thumb is thumbsize parts of max - min + 1 of the room between them, and
+	# a bar whose max equals its min has no thumb and takes no input (the
+	# sliders and the empty page scrollbar of Mineclonia's player settings).
+	var bars := _new_form("formspec_version[6]size[10,10]"
+		+ "scrollbaroptions[thumbsize=1;arrows=show;smallstep=1;min=1;max=3]"
+		+ "scrollbar[1,1;4,0.25;horizontal;slider;2]"
+		+ "scrollbaroptions[min=0;max=0;arrows=default]"
+		+ "scrollbar[9,1;0.25,8;vertical;page;0]")
+	var slider: ScrollBar = bars.scrollbars["slider"]
+	var across := slider.size.y
+	_equal(slider.get_theme_icon("decrement").get_width(), int(across), "a left arrow as square as the bar")
+	_equal(slider.get_theme_icon("increment").get_width(), int(across), "and a right one")
+	var room := slider.size.x - across * 2.0
+	_check(is_equal_approx(slider.page / (slider.max_value - slider.min_value), (room / 3.0) / room),
+		"the thumb is a third of the room between the arrows")
+	_check(is_equal_approx(slider.max_value - slider.page, 3.0), "the slider reaches its max")
+	var page: ScrollBar = bars.scrollbars["page"]
+	_check(page.get_theme_stylebox("grabber") is StyleBoxEmpty, "a bar with max = min has no thumb")
+	_equal(page.mouse_filter, Control.MOUSE_FILTER_IGNORE, "and takes no input")
+	_equal(page.get_theme_icon("increment").get_width(), int(page.size.x),
+		"arrows=default shows arrows on a bar four times as long as it is thick")
+	_discard(bars)
+	# GUIButton centres its text on the button even when the button is
+	# smaller than a line of it: Mineclonia's quarter-slot "X" revert buttons.
+	var tiny := _new_form("formspec_version[6]size[10,10]button[0.5,0.5;0.25,0.25;__reset__x;X]")
+	var x_button := _button_named(tiny, "X")
+	var x_label: Label = x_button.get_meta("content")["label"]
+	_check(absf((x_label.position + x_label.size / 2.0).y - x_button.size.y / 2.0) <= 1.0,
+		"a button's text stays centred on a button smaller than the text")
+	_discard(tiny)
 
 
 # style[] and style_type[] resolve by type with the inheritance chain, by
@@ -1185,7 +1254,8 @@ func _test_table() -> void:
 	_check(second != null, "an indent column nests the row it precedes")
 	_equal(second.get_text(0), "beta", "second row content")
 	_check(tree.hide_folding, "indent without a tree column shows no folding arrows")
-	_equal(form.collect_fields()["rows"], "CHG:2", "table reports the selected row")
+	_equal(Formspec._table_row(tree), 2, "the table's selected row is the second")
+	_check(not form.collect_fields().has("rows"), "a table is sent only with its own event")
 	_discard(form)
 
 
