@@ -180,6 +180,10 @@ public:
     int entity_count() const { return m_entities ? m_entities->count() : 0; }
     godot::Array entity_positions() const { return m_entities ? m_entities->positions() : godot::Array(); }
     godot::Array entity_list();
+    // Read-only animation diagnostic for one entity: tracks playing and as the
+    // server set them, and each joint's pose from them against its rest pose.
+    // A development aid for the control channel, not for the player agent.
+    godot::Dictionary entity_animation(int id);
     // Frame-time telemetry: where the client's own time goes, and what the
     // renderer is being asked to draw. Milliseconds are exponential moving
     // averages so the numbers are readable rather than jittering per frame.

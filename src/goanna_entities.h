@@ -24,6 +24,7 @@
 #include <godot_cpp/classes/skeleton3d.hpp>
 #include <godot_cpp/classes/sprite3d.hpp>
 #include <godot_cpp/classes/standard_material3d.hpp>
+#include <godot_cpp/variant/dictionary.hpp>
 
 #include "irrlichttypes_bloated.h"
 #include "goanna_models.h"
@@ -50,6 +51,11 @@ public:
     // frame (the frame of animation track 1, as the Lua API numbers tracks,
     // or -1 when it is not playing). Caller holds session.mapLock().
     godot::Array list(GoannaSession &session) const;
+    // Read-only animation diagnostic for one entity: the tracks playing on
+    // its mesh and the ones the server set, and each joint's local transform
+    // from the last step's tracks next to its rest transform. Empty if the
+    // entity is unknown. Caller holds session.mapLock().
+    godot::Dictionary animation(GoannaSession &session, u16 id) const;
     // Build an item's wield mesh (Luanti's own wieldmesh code) as an
     // ArrayMesh; null if the item has no mesh. out_scale receives the wield
     // scale in Godot units. Caller holds session.mapLock(); main thread.

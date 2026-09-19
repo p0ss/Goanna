@@ -5,7 +5,9 @@
 
 #include "goanna_materials.h"
 
+#include <algorithm>
 #include <set>
+#include <variant>
 #include <vector>
 #include <godot_cpp/variant/utility_functions.hpp>
 
@@ -667,6 +669,90 @@ Array EntityRenderer::list(GoannaSession &session) const {
         a.push_back(d);
     }
     return a;
+}
+
+// One animation track for the diagnostic, numbered from 1 as the Lua API
+// numbers them.
+static Dictionary trackInfo(u16 track_nr, const scene::TrackAnimSpec &t) {
+    Dictionary d;
+    d["track"] = (int)track_nr + 1;
+    d["min_frame"] = t.min_frame;
+    d["max_frame"] = t.max_frame;
+    d["frame"] = t.cur_frame;
+    d["fps"] = t.fps;
+    d["loop"] = t.loop;
+    d["priority"] = t.priority;
+    d["blend"] = t.blend_duration;
+    d["blend_progress"] = t.blend_progress;
+    return d;
+}
+
+static Array trackList(const scene::AnimSpec &anim) {
+    std::vector<u16> order;
+    for (const auto &kv : anim.tracks)
+        order.push_back(kv.first);
+    std::sort(order.begin(), order.end());
+    Array a;
+    for (u16 nr : order)
+        a.push_back(trackInfo(nr, anim.tracks.at(nr)));
+    return a;
+}
+
+// A joint's local transform in the mesh's own (Irrlicht) terms: translation
+// in mesh units, rotation as the stored quaternion's euler angles in degrees.
+static void putTransform(Dictionary &d, const char *prefix, const core::Transform &t) {
+    v3f euler;
+    t.rotation.toEuler(euler);
+    euler *= core::RADTODEG;
+    d[String(prefix) + "position"] = Vector3(t.translation.X, t.translation.Y, t.translation.Z);
+    d[String(prefix) + "rotation"] = Vector3(euler.X, euler.Y, euler.Z);
+    d[String(prefix) + "scale"] = Vector3(t.scale.X, t.scale.Y, t.scale.Z);
+}
+
+static bool sameTransform(const core::Transform &a, const core::Transform &b) {
+    const float eps = 1e-4f;
+    // q and -q are the same rotation
+    return a.translation.getDistanceFrom(b.translation) < eps &&
+            a.scale.getDistanceFrom(b.scale) < eps &&
+            std::fabs(std::fabs(a.rotation.dotProduct(b.rotation)) - 1.0f) < eps;
+}
+
+Dictionary EntityRenderer::animation(GoannaSession &session, u16 id) const {
+    Dictionary d;
+    auto oit = session.objects().find(id);
+    if (oit == session.objects().end())
+        return d;
+    const GoannaActiveObject &obj = *oit->second;
+    d["id"] = (int)id;
+    d["mesh"] = String::utf8(obj.props().mesh.c_str());
+    d["added_to_scene"] = obj.addedToScene();
+    d["queued_commands"] = (int)obj.deferredAnimationCount();
+    d["local_player_animation"] = obj.localPlayerAnimationActive();
+    d["server_tracks"] = trackList(obj.serverAnimation());
+    const scene::AnimSpec *anim = obj.meshAnimation();
+    d["tracks"] = anim ? trackList(*anim) : Array();
+    Array joints;
+    auto nit = m_nodes.find(id);
+    if (nit != m_nodes.end() && nit->second.animator && nit->second.animator->model().skinned) {
+        const ModelAnimator &animator = *nit->second.animator;
+        const auto &mesh_joints = animator.model().skinned->getAllJoints();
+        const OldJointTransforms &posed = animator.animatedLocals();
+        for (size_t i = 0; i < mesh_joints.size(); ++i) {
+            Dictionary j;
+            const auto &name = mesh_joints[i]->Name;
+            j["name"] = String::utf8(name ? name->c_str() : "");
+            const auto *rest = std::get_if<core::Transform>(&mesh_joints[i]->transform);
+            if (rest)
+                putTransform(j, "rest_", *rest);
+            if (i < posed.size() && posed[i]) {
+                putTransform(j, "", *posed[i]);
+                j["at_rest"] = rest && sameTransform(*posed[i], *rest);
+            }
+            joints.push_back(j);
+        }
+    }
+    d["joints"] = joints;
+    return d;
 }
 
 // Which of the model's arms is the one a first-person player thinks of as

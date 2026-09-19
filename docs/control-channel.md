@@ -146,6 +146,20 @@ while y > int(p.y) - 20:
 return {"node": "nothing found"}'
 ```
 
+### Reading an entity's animation
+
+`call entity_animation args=[<id>]` says what an entity's skeleton is doing,
+for checking animation against what the server sent. Ids come from
+`inspect target=entities`. `tracks` is what plays on the mesh, numbered from
+1 as the Lua API numbers them, each with its frame, speed, range, priority,
+loop flag and blend progress. `server_tracks` is what the server last set,
+which differs from `tracks` while the local player's own animations play.
+`joints` gives each joint's local transform as the tracks alone left it,
+before bone overrides and Goanna's first-person posing, beside its rest
+transform and an `at_rest` flag. Transforms are in the mesh's own terms:
+mesh units, and Irrlicht's handedness rather than Godot's. It reads and
+changes nothing.
+
 ## The overlay, so a watching human knows what is going on
 
 A window that is not moving looks the same whether the client is wedged, the
