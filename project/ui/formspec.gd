@@ -173,6 +173,48 @@ func submit(extra: Dictionary, quit: bool) -> void:
 		f["quit"] = "true"
 	fields_submitted.emit(f, quit)
 
+# --- introspection, read only ------------------------------------------------
+
+# The form as the control channel's ui_tree reports it (docs/control-channel.md):
+# every named element with its formspec type, every inventory slot with its
+# stack, and the tooltip on screen. `visible` is false for anything hidden or
+# scrolled out of its scroll_container. Nothing here changes the form.
+func describe() -> Dictionary:
+	var elements: Array = []
+	for n in named_controls:
+		var c: Control = named_controls[n]
+		if is_instance_valid(c):
+			elements.append({"name": n, "type": String(c.get_meta("formspec_type", "")),
+				"control": c, "visible": shown_rect(c).has_area(),
+				"tooltip": String(tooltips.get(n, {}).get("text", ""))})
+	var list_slots: Array = []
+	for s in slots:
+		if is_instance_valid(s):
+			list_slots.append({"location": s.location, "listname": s.listname,
+				"index": s.index, "item": s.item, "control": s,
+				"visible": shown_rect(s).has_area()})
+	var tip := {}
+	if tooltip_box != null and is_instance_valid(tooltip_box) and tooltip_box.visible:
+		tip = tooltip_shown.duplicate()
+		tip["rect"] = tooltip_box.get_global_rect()
+	return {"formname": formname, "formspec_version": formspec_version,
+		"allow_close": allow_close, "rect": root.get_global_rect() if root else Rect2(),
+		"elements": elements, "slots": list_slots, "tooltip": tip, "hovered": hover_name}
+
+# The part of a control the player can see: its rectangle cut by every
+# clipping ancestor, such as a scroll_container's clipper, or an empty one
+# when it is hidden.
+func shown_rect(c: Control) -> Rect2:
+	if not c.is_visible_in_tree():
+		return Rect2()
+	var r := c.get_global_rect()
+	var p := c.get_parent() as Control
+	while p != null:
+		if p.clip_contents:
+			r = r.intersection(p.get_global_rect())
+		p = p.get_parent() as Control
+	return r
+
 # --- parsing ---------------------------------------------------------------
 
 func _reset() -> void:
@@ -729,6 +771,7 @@ func _register_named_control(name: String, control: Control) -> void:
 		return
 	named_controls[name] = control
 	control.set_meta("formspec_name", name)
+	control.set_meta("formspec_type", current_element)  # for describe()
 
 func _apply_focus() -> void:
 	if focus_name != "":

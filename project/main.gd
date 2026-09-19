@@ -74,10 +74,10 @@ var view_bobbing := 1.0        # walk-cycle camera bob, 0 = off
 # desktop away from whoever is sitting at it: test clients grabbing the mouse
 # in the middle of the owner's video call is why it exists. It is on whenever
 # the control channel is (GOANNA_CONTROL), or with GOANNA_NO_POINTER_CAPTURE=1.
-# Capture is then kept here instead of being asked of the OS, and only input
-# pushed in through the control channel, which carries CONTROL_DEVICE, counts
-# as captured: a real pointer passing over the window never turns the camera
-# or digs. See docs/control-channel.md.
+# Capture is then kept here instead of being asked of the OS, and only mouse
+# input pushed in through the control channel, which carries CONTROL_DEVICE,
+# counts as captured: a real pointer passing over the window never turns the
+# camera or digs. See docs/control-channel.md.
 const CONTROL_DEVICE := 0x60A7
 var test_mode := false
 var _virtual_capture := false

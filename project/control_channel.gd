@@ -65,6 +65,12 @@ const COMMANDS := {
 	"bench": "start / mark / stop / summary / stamps: the frame recorder",
 	"route": "mode / points / speed / loop: fly or walk a fixed path",
 	"quit": "disconnect and close the client",
+	"ui_tree": "the open form or menu: elements, slots, labels, rectangles, state",
+	"ui_click": "name / tab / slot / item / text / x,y, button, double: click it",
+	"ui_hover": "the same targets, ms: rest the pointer there, return the tooltip",
+	"ui_type": "name, text, clear, enter: click into a field and type",
+	"ui_scroll": "the same targets, amount: wheel notches, negative is up",
+	"key": "key (Escape, I, 1) or action (inventory, hotbar3, dig), action tap|press|release",
 }
 
 var main: Node						# the goanna_main node, set before add_child
@@ -77,6 +83,7 @@ var _baseline := {}					# settings key -> value before the first command
 var _tod := -1.0					# our own copy: the client does not read it back
 var _reloaded := []					# shaders hot loaded since launch, a deviation
 var _port := 0
+var _ui: RefCounted				# control_ui.gd, the ui_* and key commands
 # The test overlay's state, read by ui/game_ui.gd. `label` says what this
 # session is for, set with the label command or GOANNA_TEST_LABEL at launch;
 # the rest is kept by _run so a watcher can tell a hung client from a waiting
@@ -107,6 +114,9 @@ func _ready() -> void:
 		get_tree().quit(3)
 		return
 	print("control: listening on 127.0.0.1:%d" % _port)
+	_ui = (load("res://control_ui.gd") as GDScript).new()
+	_ui.main = main
+	_ui.tree = get_tree()
 	label = OS.get_environment("GOANNA_TEST_LABEL")
 	# So ui/game_ui.gd can find us for the overlay without main.gd having to
 	# hold a reference, and without the overlay existing at all in a build
@@ -362,6 +372,18 @@ func _dispatch(cmd: String, a: Dictionary) -> Variant:
 			return _bench(a)
 		"route":
 			return _route(a)
+		"ui_tree":
+			return _ui.ui_tree(a)
+		"ui_click":
+			return await _ui.ui_click(a)
+		"ui_hover":
+			return await _ui.ui_hover(a)
+		"ui_type":
+			return await _ui.ui_type(a)
+		"ui_scroll":
+			return await _ui.ui_scroll(a)
+		"key":
+			return await _ui.key(a)
 		"quit":
 			_client().disconnect_from_server()
 			_quit_soon()
@@ -381,7 +403,10 @@ func _inspect(a: Dictionary) -> Variant:
 					"sky", "entities", "inventory", "node"],
 				"mutating_commands": ["tp", "pose", "look", "fly", "time",
 					"weather", "spawn", "give", "chat", "set", "reload_shader",
-					"call", "eval", "run", "bench", "route", "quit"],
+					"call", "eval", "run", "bench", "route", "quit", "ui_click",
+					"ui_hover", "ui_type", "ui_scroll", "key"],
+				"ui_commands": ["ui_tree", "ui_click", "ui_hover", "ui_type",
+					"ui_scroll", "key"],
 				"privileged": true,
 			}
 		"scene":
@@ -599,12 +624,16 @@ func _shot(a: Dictionary) -> Variant:
 	if main.ui != null and bool(a.get("hide_ui", true)):
 		ui_was = main.ui.visible
 		main.ui.visible = false
+	# A shot that keeps the UI, because a form or a tooltip is the subject,
+	# still leaves the test overlay out: it is for a person watching.
+	remove_from_group("goanna_control")
 	for i in maxi(0, int(a.get("warm", 8))):
 		_client().poll_blocks(64)
 		await get_tree().process_frame
 	await RenderingServer.frame_post_draw
 	var img := get_viewport().get_texture().get_image()
 	var err := img.save_png(path)
+	add_to_group("goanna_control")
 	if main.ui != null:
 		main.ui.visible = ui_was
 	if err != OK:
