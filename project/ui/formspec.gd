@@ -397,16 +397,23 @@ static func _form_theme() -> Theme:
 	thumb.border_color = Color8(30, 30, 30)
 	for type in ["VScrollBar", "HScrollBar"]:
 		var across := track.duplicate() as StyleBoxFlat
+		# The thumb is never shorter than the bar is wide, as the vanilla
+		# client draws a small page as a square.
+		var square := thumb.duplicate() as StyleBoxFlat
 		if type == "VScrollBar":
 			across.content_margin_left = 10.5
 			across.content_margin_right = 10.5
+			square.content_margin_top = 10.5
+			square.content_margin_bottom = 10.5
 		else:
 			across.content_margin_top = 10.5
 			across.content_margin_bottom = 10.5
+			square.content_margin_left = 10.5
+			square.content_margin_right = 10.5
 		t.set_stylebox("scroll", type, across)
 		t.set_stylebox("scroll_focus", type, across)
 		for key in ["grabber", "grabber_highlight", "grabber_pressed"]:
-			t.set_stylebox(key, type, thumb)
+			t.set_stylebox(key, type, square)
 	return t
 
 func _pos(v: PackedStringArray) -> Vector2:
@@ -932,6 +939,17 @@ func _scrollbar(parts: PackedStringArray) -> void:
 	if not real_coordinates:
 		size = Vector2(float(g[0]) * spacing.x, float(g[1]) * spacing.y)
 	_add(bar, _pos(v), size)
+	# The thumb is never shorter than this bar is wide.
+	var across := size.x if vertical else size.y
+	var thumb := (bar.get_theme_stylebox("grabber") as StyleBox).duplicate()
+	if vertical:
+		thumb.content_margin_top = across / 2.0
+		thumb.content_margin_bottom = across / 2.0
+	else:
+		thumb.content_margin_left = across / 2.0
+		thumb.content_margin_right = across / 2.0
+	for key in ["grabber", "grabber_highlight", "grabber_pressed"]:
+		bar.add_theme_stylebox_override(key, thumb)
 	scrollbars[sname] = bar
 	fields[sname] = bar
 	_register_named_control(sname, bar)

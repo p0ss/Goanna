@@ -670,6 +670,9 @@ func _test_scroll_container() -> void:
 		"its track is EGDC_SCROLLBAR's translucent grey")
 	_equal((bar.get_theme_stylebox("grabber") as StyleBoxFlat).bg_color, Color8(62, 62, 62),
 		"and its thumb an opaque dark grey")
+	var grabber: StyleBox = bar.get_theme_stylebox("grabber")
+	_equal(grabber.content_margin_top + grabber.content_margin_bottom, bar.size.x,
+		"the thumb is never shorter than the bar is wide")
 	_equal(bar.min_value, 0.0, "scrollbar minimum from scrollbaroptions")
 	_check(bar.max_value - bar.page == 15.0, "scrollbar reaches the requested maximum")
 	_equal(bar.step, 1.0, "smallstep becomes the scrollbar step")
