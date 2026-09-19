@@ -1654,6 +1654,10 @@ Dictionary GoannaClient::step_interact(double dt, bool dig, bool place, bool pla
     // local player digging and no game ever played its mining animation on the
     // body, which is most of why the first-person arm looked wrong in a dig.
     m_session->setPlayerKeys(dig, place);
+    // The same two buttons as the vanilla client's PlayerControl holds them,
+    // which the local player's own dig animation reads.
+    p->control.dig = dig;
+    p->control.place = place;
     in.eye_pos_bs = p->getPosition() + p->getEyeOffset();
     // Luanti camera direction from pitch/yaw (Camera::update)
     float pitch = p->getPitch(), yaw = p->getYaw();
@@ -3430,6 +3434,13 @@ Array GoannaClient::entity_list() {
         return Array();
     std::lock_guard<std::mutex> lk(m_session->mapLock());
     return m_entities->list(*m_session);
+}
+
+Dictionary GoannaClient::entity_animation(int id) {
+    if (!m_session || !m_entities || id < 0 || id > 65535)
+        return Dictionary();
+    std::lock_guard<std::mutex> lk(m_session->mapLock());
+    return m_entities->animation(*m_session, (u16)id);
 }
 
 void GoannaClient::update_lights(const Vector3 &around, int max_lights) {
@@ -7503,6 +7514,7 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("entity_count"), &GoannaClient::entity_count);
     ClassDB::bind_method(D_METHOD("entity_positions"), &GoannaClient::entity_positions);
     ClassDB::bind_method(D_METHOD("entity_list"), &GoannaClient::entity_list);
+    ClassDB::bind_method(D_METHOD("entity_animation", "id"), &GoannaClient::entity_animation);
     ClassDB::bind_method(D_METHOD("render_stats"), &GoannaClient::render_stats);
     ClassDB::bind_method(D_METHOD("set_show_body", "show"), &GoannaClient::set_show_body);
     ClassDB::bind_method(D_METHOD("set_arm_swing", "s"), &GoannaClient::set_arm_swing);

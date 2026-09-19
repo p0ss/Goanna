@@ -1855,8 +1855,10 @@ func _model(parts: PackedStringArray) -> void:
 	if parts.size() >= 5:
 		for t in fs_split(parts[4], ","):
 			textures.append(fs_unescape(t))
-	# The frame loop defaults to every frame the model has; the extension
-	# clamps an infinite end to the last one, as AnimatedMeshSceneNode does.
+	# The frame loop defaults to 0 to infinity, as upstream's does. Luanti
+	# 5.17's GUIScene does not clamp it to the model's length, so a model left
+	# at the default plays through once and holds its last frame; the
+	# extension does the same.
 	var loop := Vector2(0.0, INF)
 	if parts.size() >= 9:
 		var f := fs_split(parts[8], ",")

@@ -115,6 +115,32 @@ Confirmed by reading the animation frame while digging: the local player's
 frame goes from about 3 (standing) to about 193 (mining) while the button is
 held and back to 3 when it is released.
 
+## 2026-09-19, the game's own local animations
+
+A game can give the player's own model animations that the client plays
+from its own controls: `player:set_local_animation(idle, walk, dig,
+walk_while_dig, speed)`, which arrives as TOCLIENT_LOCAL_PLAYER_ANIMATIONS.
+The vanilla client plays them whenever it shows the local player's model,
+which for it means third person, and does not interrupt them with a server
+animation on the first track that uses one of the same frame ranges. Goanna
+ignored the packet, so the body only ever played what the server sent.
+
+Goanna now handles it, and the body plays those animations whenever it is
+drawn, through upstream's own `setLocalPlayerAnimation` and the local player
+part of `GenericCAO::step` in `src/transplant/client/content_cao.cpp`. The
+dig and place buttons are recorded in the player's controls for it, as the
+vanilla client records them.
+
+This matters because Goanna still reports no movement keys to the server, so
+a game that animates walking from `get_player_control()` never tells the
+body to walk. Minetest Game's `player_api` sets local animations, so on a
+fresh Minetest Game world (Luanti 5.17.0 Flatpak, Godot 4.5.1) the body now
+plays its walk range, frames 168 to 187, while W is held, although the
+server's own animation is still standing, and its dig range, 189 to 198,
+while digging; the same held against a Luanti 5.10.0 server. Mineclonia sets
+no local animations, so nothing changes there: the body stands while
+walking, and digging plays the server's mining range, 189 to 198, as before.
+
 ## The magenta shape at the hand
 
 Reported separately, and not reproduced here: a large flat magenta shape
@@ -167,7 +193,9 @@ On Mineclonia the game does drive it, so this only shows on games that do
 not.
 
 Goanna still reports no movement or sneak keys, so a game cannot see the
-local player walking or sneaking from the keypress field. Sneak in
+local player walking or sneaking from the keypress field, and a game that
+animates walking that way and sets no local animations, as Mineclonia does,
+shows a body standing still while you walk. Sneak in
 particular changes eye height and player properties on Mineclonia, so
 sending it is a behaviour change rather than a rendering fix and was left
 out of this work.

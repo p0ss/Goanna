@@ -186,11 +186,15 @@ Transform3D toGodotTransform(const core::matrix4 &m) {
 GodotModel::~GodotModel() {
     if (skinned)
         skinned->drop();
+    if (source)
+        source->drop();
 }
 
 std::shared_ptr<GodotModel> buildGodotModel(scene::IAnimatedMesh *mesh) {
     auto model = std::make_shared<GodotModel>();
     model->mesh.instantiate();
+    mesh->grab();
+    model->source = mesh;
     auto *skinned = dynamic_cast<scene::SkinnedMesh *>(mesh);
     if (skinned) {
         skinned->grab();
@@ -324,103 +328,44 @@ std::shared_ptr<GodotModel> buildGodotModel(scene::IAnimatedMesh *mesh) {
 
 // ---- animation -------------------------------------------------------------
 
-// Luanti 5.17 animates a skinned mesh by track. Goanna plays the first track
-// only, and does its own transition blending, so it always asks for track 0 at
-// full weight. A mesh with no tracks keeps its joints' own transforms.
-static float firstTrackEnd(const scene::SkinnedMesh *mesh) {
-    return mesh->getTrackCount() > 0 ? mesh->getMaxFrameNumber(0) : 0.0f;
-}
-
-static std::vector<scene::SkinnedMesh::SJoint::VariantTransform> animateFirstTrack(
-        const scene::SkinnedMesh *mesh, float frame) {
-    std::vector<scene::SkinnedMesh::AnimationProgress> progress;
-    if (mesh->getTrackCount() > 0)
-        progress.push_back({0, frame, 1.0f});
-    const std::vector<std::optional<core::Transform>> no_blend(mesh->getAllJoints().size());
-    return mesh->animateMesh(progress, no_blend);
+// The pose the first-person arm is held at while mining: the first frame of
+// the first track, or the rest pose on a mesh with no tracks.
+static JointTransforms firstFramePose(const scene::SkinnedMesh &mesh) {
+    scene::AnimSpec first;
+    if (mesh.getTrackCount() > 0)
+        first.tracks[0] = scene::TrackAnimSpec{};
+    return animateTracks(mesh, first, OldJointTransforms(mesh.getAllJoints().size()));
 }
 
 ModelAnimator::ModelAnimator(std::shared_ptr<GodotModel> model) : m_model(std::move(model)) {
     size_t n = m_model->joint_count;
-    m_last_locals.resize(n);
-    m_last_locals_valid.assign(n, false);
+    m_old_transforms.assign(n, std::nullopt);
     m_globals.resize(n);
-    if (m_model->skinned)
-        m_end_frame = firstTrackEnd(m_model->skinned);
 }
 
-// AnimatedMeshSceneNode::setFrameLoop
-void ModelAnimator::setFrameLoop(float begin, float end) {
-    const float max_frame = m_model->skinned ? firstTrackEnd(m_model->skinned) : 0;
-    if (end < begin) {
-        m_start_frame = std::clamp<float>(end, 0, max_frame);
-        m_end_frame = std::clamp<float>(begin, m_start_frame, max_frame);
-    } else {
-        m_start_frame = std::clamp<float>(begin, 0, max_frame);
-        m_end_frame = std::clamp<float>(end, m_start_frame, max_frame);
-    }
-    m_current_frame = m_fps < 0 ? m_end_frame : m_start_frame;
-    beginTransition();
+void ModelAnimator::inheritPose(const ModelAnimator &previous) {
+    if (previous.m_model == m_model)
+        m_old_transforms = previous.m_old_transforms;
 }
 
-void ModelAnimator::setAnimationSpeed(float fps) {
-    m_fps = fps * 0.001f;
-}
-
-void ModelAnimator::setTransitionTime(float seconds) {
-    m_transition_time_ms = (u32)core::floor32(seconds * 1000.0f);
-}
-
-// AnimatedMeshSceneNode::beginTransition, reached through setCurrentFrame
-void ModelAnimator::beginTransition() {
-    if (m_transition_time_ms != 0)
-        m_transiting = core::reciprocal((f32)m_transition_time_ms);
-    m_transiting_blend = 0.f;
-}
-
-void ModelAnimator::step(float dt, std::map<std::string, BoneOverride> &overrides, Skeleton3D *skeleton,
-        Skeleton3D *unshrunk) {
+void ModelAnimator::step(float dt, scene::AnimSpec &anim, std::map<std::string, BoneOverride> &overrides,
+        Skeleton3D *skeleton, Skeleton3D *unshrunk) {
     scene::SkinnedMesh *mesh = m_model->skinned;
     if (!mesh)
         return;
-    const u32 time_ms = (u32)(dt * 1000.0f);
 
-    // AnimatedMeshSceneNode::buildFrameNr
-    if (m_transiting != 0.f) {
-        m_transiting_blend += (f32)time_ms * m_transiting;
-        if (m_transiting_blend > 1.f) {
-            m_transiting = 0.f;
-            m_transiting_blend = 0.f;
-        }
-    }
-    if (m_start_frame == m_end_frame) {
-        m_current_frame = m_start_frame;
-    } else if (m_looping) {
-        m_current_frame += time_ms * m_fps;
-        if (m_fps > 0.f) {
-            if (m_current_frame > m_end_frame)
-                m_current_frame = m_start_frame + fmodf(m_current_frame - m_start_frame, m_end_frame - m_start_frame);
-        } else {
-            if (m_current_frame < m_start_frame)
-                m_current_frame = m_end_frame - fmodf(m_end_frame - m_current_frame, m_end_frame - m_start_frame);
-        }
-    } else {
-        m_current_frame += time_ms * m_fps;
-        if (m_fps > 0.f)
-            m_current_frame = std::min(m_current_frame, m_end_frame);
-        else
-            m_current_frame = std::max(m_current_frame, m_start_frame);
-    }
-
-    // animateJoints: local transforms for this frame, transition blending
+    // AnimatedMeshSceneNode::OnAnimate: advance every track, then
+    // animateJoints: local transforms for this frame, each track blending
+    // from the pose shown last step.
+    anim.advance(dt);
     const auto &joints = mesh->getAllJoints();
-    std::vector<scene::SkinnedMesh::SJoint::VariantTransform> locals = animateFirstTrack(mesh, m_current_frame);
+    JointTransforms locals = animateTracks(*mesh, anim, m_old_transforms);
     // The arm also inherits the baked punch's torso twist. Hold its ancestor
     // chain as well as its subtree, leaving the legs/other arm animated.
-    // Do not blend these joints back through the previous punch pose.
-    std::vector<bool> mining_joints(joints.size(), false);
     if (m_freeze_arm && m_rot_override_joint) {
-        if (m_arm_reference.empty()) m_arm_reference = animateFirstTrack(mesh, 0.0f);
+        if (m_arm_reference.empty())
+            m_arm_reference = firstFramePose(*mesh);
+        std::vector<bool> mining_joints(joints.size(), false);
         std::optional<u16> parent = (u16)*m_rot_override_joint;
         while (parent) {
             mining_joints[*parent] = true;
@@ -434,17 +379,9 @@ void ModelAnimator::step(float dt, std::map<std::string, BoneOverride> &override
             if (mining_joints[i]) locals[i] = m_arm_reference[i];
         }
     }
-    for (size_t i = 0; i < joints.size(); ++i) {
-        if (auto *t = std::get_if<core::Transform>(&locals[i])) {
-            // Transition: blend from the pose shown last step (copyOldTransforms).
-            if (m_transiting != 0.f && m_last_locals_valid[i] && !mining_joints[i])
-                *t = m_last_locals[i].interpolate(*t, m_transiting_blend);
-            m_last_locals[i] = *t;
-            m_last_locals_valid[i] = true;
-        } else {
-            m_last_locals_valid[i] = false;
-        }
-    }
+    // copyOldTransforms: the pose to blend from next step, taken before the
+    // bone overrides, as upstream takes it.
+    keepOldTransforms(locals, m_old_transforms);
 
     // GenericCAO's OnAnimate callback: bone overrides on the joint transforms.
     // BoneSceneNode keeps rotations inverted relative to Euler input; mirrored
@@ -466,7 +403,6 @@ void ModelAnimator::step(float dt, std::map<std::string, BoneOverride> &override
                 t->translation = props.getPosition(t->translation);
                 t->rotation = core::quaternion(props.getRotationEulerDeg(euler) * core::DEGTORAD).makeInverse();
                 t->scale = props.getScale(t->scale);
-                m_last_locals[*jn] = *t;
             }
         }
         ++it;

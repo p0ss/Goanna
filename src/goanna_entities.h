@@ -24,6 +24,7 @@
 #include <godot_cpp/classes/skeleton3d.hpp>
 #include <godot_cpp/classes/sprite3d.hpp>
 #include <godot_cpp/classes/standard_material3d.hpp>
+#include <godot_cpp/variant/dictionary.hpp>
 
 #include "irrlichttypes_bloated.h"
 #include "goanna_models.h"
@@ -47,8 +48,14 @@ public:
     // Up to eight nearby physical actors, at collision-box foot height.
     godot::PackedVector4Array grass_interactors(GoannaSession &session) const;
     // One Dictionary per visible entity: id, name, position, visual, mesh,
-    // frame (animation frame, or -1). Caller holds session.mapLock().
+    // frame (the frame of animation track 1, as the Lua API numbers tracks,
+    // or -1 when it is not playing). Caller holds session.mapLock().
     godot::Array list(GoannaSession &session) const;
+    // Read-only animation diagnostic for one entity: the tracks playing on
+    // its mesh and the ones the server set, and each joint's local transform
+    // from the last step's tracks next to its rest transform. Empty if the
+    // entity is unknown. Caller holds session.mapLock().
+    godot::Dictionary animation(GoannaSession &session, u16 id) const;
     // Build an item's wield mesh (Luanti's own wieldmesh code) as an
     // ArrayMesh; null if the item has no mesh. out_scale receives the wield
     // scale in Godot units. Caller holds session.mapLock(); main thread.
@@ -90,8 +97,6 @@ private:
         std::unique_ptr<ModelAnimator> animator;
         std::string arm_bone; // first-person arm, chosen by which side it shows on
         uint32_t visual_version = 0;
-        uint32_t anim_version = 0;
-        godot::Vector2 anim_range = godot::Vector2(-1, -1); // last applied frame loop
         std::string textures_key;
         float sprite_time = 0;
         int sprite_frame = 0;
@@ -106,7 +111,9 @@ private:
     // coin toss. Caller holds session.mapLock().
     std::string chooseArmBone(GoannaSession &session, u16 self_id, const EntityNode &en, float yaw) const;
     void rebuildVisual(GoannaSession &session, GoannaActiveObject &obj, EntityNode &en);
-    bool buildMeshVisual(GoannaSession &session, GoannaActiveObject &obj, EntityNode &en);
+    // source receives the Irrlicht mesh the visual was built from.
+    bool buildMeshVisual(GoannaSession &session, GoannaActiveObject &obj, EntityNode &en,
+            scene::IAnimatedMesh **source);
     bool buildItemVisual(GoannaSession &session, GoannaActiveObject &obj, EntityNode &en);
     std::shared_ptr<GodotModel> modelFor(GoannaSession &session, const std::string &name);
     godot::Ref<godot::StandardMaterial3D> materialForTexture(GoannaSession &session,
@@ -137,7 +144,11 @@ private:
     // Animated model[] previews, keyed by their skeleton's instance id so a
     // formspec that has been freed can be recognised without a dangling
     // pointer. The UI owns the nodes; this owns only the animation state.
-    std::map<uint64_t, std::unique_ptr<ModelAnimator>> m_previews;
+    struct Preview {
+        std::unique_ptr<ModelAnimator> animator;
+        scene::AnimSpec anim; // GUIScene's: track 0 only
+    };
+    std::map<uint64_t, Preview> m_previews;
     godot::Ref<godot::Shader> m_sh_entity; // res://shaders/entity.gdshader, loaded once
     godot::Ref<godot::Shader> m_sh_entity_scissor; // its alpha scissor variant
     bool m_show_body = true;

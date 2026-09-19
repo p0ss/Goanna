@@ -93,9 +93,10 @@ set(LUANTI_CORE_SRCS
 list(TRANSFORM LUANTI_CORE_SRCS PREPEND "${LUANTI_SRC}/")
 
 # Irrlicht CPU-only image support (no driver, no GL)
-# CPU-only Irrlicht sources: images, skinned meshes and the model loaders
-# (B3D, X, OBJ, glTF) plus the mesh manipulator and in-memory files.
-set(IRR_CPU_SRCS CImage.cpp CColorConverter.cpp os.cpp SkinnedMesh.cpp WeightBuffer.cpp HWBuffer.cpp
+# CPU-only Irrlicht sources: images, skinned meshes, their animation track
+# state (AnimSpec) and the model loaders (B3D, X, OBJ, glTF) plus the mesh
+# manipulator and in-memory files.
+set(IRR_CPU_SRCS CImage.cpp CColorConverter.cpp os.cpp SkinnedMesh.cpp AnimSpec.cpp WeightBuffer.cpp HWBuffer.cpp
     CB3DMeshFileLoader.cpp CXMeshFileLoader.cpp COBJMeshFileLoader.cpp CGLTFMeshFileLoader.cpp
     CMeshManipulator.cpp CMemoryFile.cpp)
 list(TRANSFORM IRR_CPU_SRCS PREPEND "${LUANTI_DIR}/irr/src/")
