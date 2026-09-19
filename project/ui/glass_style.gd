@@ -103,8 +103,8 @@ const POPUP_BORDER := Color(1, 1, 1, 0.14)
 # world still shows through the glass.
 const BACKDROP := Color(0, 0, 0, 0.16)
 
-const RADIUS := 14.0          # panels
-const RADIUS_SMALL := 8.0     # tooltips, controls
+const RADIUS := 12.0          # every glass pane
+const RADIUS_SMALL := 8.0     # controls on a pane
 const RADIUS_SLOT := 4
 
 # --- contrast ------------------------------------------------------------------
@@ -191,16 +191,22 @@ static func tint_text(c: Control, colour: Color) -> void:
 
 # --- surfaces ------------------------------------------------------------------
 
-static func surface(radius := RADIUS, opaque := 0.0, shadow := 1.0) -> Control:
+# The one pane of glass every surface is made of: server forms, Goanna's
+# menus and settings, tooltips, chat and the hotbar. One radius, one rim and
+# outline, one shadow, one tint. `frost` false gives the same pane without
+# the blur, for the hotbar, which is up all game; that is the only way two
+# panes differ.
+static func surface(frost := true) -> Control:
 	var s := GlassSurface.new()
-	s.radius = radius
-	s.opaque = opaque
-	s.shadow = shadow
+	s.radius = RADIUS
+	s.opaque = 0.0
+	s.shadow = 1.0
+	s.frost = frost
 	return s
 
 # Puts a glass pane behind everything in `parent`, filling it.
-static func back(parent: Control, radius := RADIUS, opaque := 0.0) -> Control:
-	var s := surface(radius, opaque)
+static func back(parent: Control) -> Control:
+	var s := surface()
 	s.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	parent.add_child(s)
 	parent.move_child(s, 0)

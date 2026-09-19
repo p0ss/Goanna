@@ -109,8 +109,7 @@ func _ready() -> void:
 	# Before the HUD, so that the hotbar is drawn on its glass. Clear glass:
 	# the hotbar is up for the whole game, and frost would cost a screen copy
 	# every frame of it.
-	hotbar_glass = GlassStyle.surface(10.0, 0.0, 0.6)
-	hotbar_glass.frost = false
+	hotbar_glass = GlassStyle.surface(false)
 	hotbar_glass.visible = false
 	add_child(hotbar_glass)
 	hud = Control.new()
@@ -132,7 +131,7 @@ func _ready() -> void:
 	fullscreen_tint.gui_input.connect(_on_outside_click)
 	add_child(fullscreen_tint)
 
-	chat_glass = GlassStyle.surface(GlassStyle.RADIUS_SMALL + 2.0)
+	chat_glass = GlassStyle.surface()
 	chat_glass.visible = false
 	add_child(chat_glass)
 	chat_box = VBoxContainer.new()

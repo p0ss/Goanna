@@ -46,9 +46,10 @@ uniform float saturation = 1.2;
 // it reaches in pixels. Text contrast is worked out with it included.
 uniform float sheen = 0.02;
 uniform float sheen_reach = 28.0;
-// The hairline just inside the edge: brighter where the edge faces up.
+// The hairline just inside the edge, an outline all round that is brighter
+// where the edge faces up.
 uniform float rim_top = 0.32;
-uniform float rim_bottom = 0.07;
+uniform float rim_bottom = 0.16;
 // How many pixels the edge bends the view behind it, fading inwards over
 // refraction_reach pixels.
 uniform float refraction = 8.0;

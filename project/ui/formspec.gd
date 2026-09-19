@@ -3329,7 +3329,7 @@ func _build_tooltip_box(tip: Dictionary) -> Control:
 			box.size + Vector2.ONE * GlassStyle.GlassSurface.MARGIN * 2.0)
 		box.add_child(copy)
 		box.move_child(copy, 0)
-		var pane := GlassStyle.surface(GlassStyle.RADIUS_SMALL, 0.55, 0.8)
+		var pane := GlassStyle.surface()
 		pane.size = box.size
 		box.add_child(pane)
 		box.move_child(pane, 1)
