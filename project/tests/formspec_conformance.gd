@@ -665,6 +665,10 @@ func _test_scroll_container() -> void:
 	var bar: ScrollBar = form.scrollbars["scroll"]
 	var mover: Control = form.scroll_containers["scroll"]
 	_check(bar is VScrollBar, "a vertical scrollbar builds a VScrollBar")
+	_equal((bar.get_theme_stylebox("scroll") as StyleBoxFlat).bg_color, Color8(230, 230, 230, 101),
+		"its track is EGDC_SCROLLBAR's translucent grey")
+	_equal((bar.get_theme_stylebox("grabber") as StyleBoxFlat).bg_color, Color8(62, 62, 62),
+		"and its thumb an opaque dark grey")
 	_equal(bar.min_value, 0.0, "scrollbar minimum from scrollbaroptions")
 	_check(bar.max_value - bar.page == 15.0, "scrollbar reaches the requested maximum")
 	_equal(bar.step, 1.0, "smallstep becomes the scrollbar step")

@@ -382,6 +382,30 @@ static func _form_theme() -> Theme:
 		t.set_constant("shadow_offset_y", type, 1)
 	# The mono face <mono>, font=mono and the font style property ask for.
 	t.set_font("mono_font", "RichTextLabel", _mono_font())
+	# CGUIScrollBar in Luanti's skin: the track in EGDC_SCROLLBAR's
+	# translucent light grey, the thumb an opaque dark button pane, measured
+	# at (62, 62, 62) against the vanilla client, EGDS_SCROLLBAR_SIZE's 21
+	# pixels across. The form's own
+	# scrollbar[] takes it, and so do the bars inside hypertext, textareas
+	# and lists.
+	var track := StyleBoxFlat.new()
+	track.bg_color = Color8(230, 230, 230, 101)
+	var thumb := StyleBoxFlat.new()
+	thumb.bg_color = Color8(62, 62, 62)
+	thumb.set_border_width_all(1)
+	thumb.border_color = Color8(30, 30, 30)
+	for type in ["VScrollBar", "HScrollBar"]:
+		var across := track.duplicate() as StyleBoxFlat
+		if type == "VScrollBar":
+			across.content_margin_left = 10.5
+			across.content_margin_right = 10.5
+		else:
+			across.content_margin_top = 10.5
+			across.content_margin_bottom = 10.5
+		t.set_stylebox("scroll", type, across)
+		t.set_stylebox("scroll_focus", type, across)
+		for key in ["grabber", "grabber_highlight", "grabber_pressed"]:
+			t.set_stylebox(key, type, thumb)
 	return t
 
 func _pos(v: PackedStringArray) -> Vector2:
