@@ -3510,7 +3510,7 @@ class FormspecSlot extends Control:
 	# The form draws the item's tooltip itself (tooltip_at), from `item`.
 	func refresh() -> void:
 		item = form.item_source.get_list_item(location, listname, index) if form.item_source else {}
-		icon = form.item_source.item_icon(item.get("name", "")) if (form.item_source and item.get("name", "") != "") else null
+		icon = form.item_source.item_icon(item.get("icon_item", item.get("name", ""))) if (form.item_source and item.get("name", "") != "") else null
 		queue_redraw()
 
 	# GUIInventoryList::draw and drawItemStack: the slot colour, a border

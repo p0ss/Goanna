@@ -2114,7 +2114,7 @@ func _draw_hotbar(st: Dictionary, pos: Vector2, offset: Vector2, dir: int, align
 		var it: Dictionary = main[i]
 		var nm: String = it.get("name", "")
 		if nm != "":
-			var icon := item_icon(nm)
+			var icon := item_icon(it.get("icon_item", nm))
 			if icon:
 				hud.draw_texture_rect(icon, r.grow(-imgsz * 0.08), false)
 			var c: int = it.get("count", 0)
@@ -2250,7 +2250,7 @@ func _draw_hud_inventory(pos: Vector2, e: Dictionary) -> void:
 		hud.draw_rect(r, Color(0, 0, 0, 0.5))
 		var nm: String = items[i].get("name", "")
 		if nm != "":
-			var icon := item_icon(nm)
+			var icon := item_icon(items[i].get("icon_item", nm))
 			if icon:
 				hud.draw_texture_rect(icon, r.grow(-imgsz * 0.08), false)
 

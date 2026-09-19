@@ -1446,6 +1446,22 @@ Dictionary GoannaClient::hud_state() const {
     return d;
 }
 
+// What to hand item_icon() for this stack: its name, or, when its metadata
+// can change the picture (the colour and palette index keys drawItemStack
+// reads, and the inventory image and overlay keys ItemStack reads), the item
+// string with that metadata, so tinted candles and the like are told apart.
+// Count and wear never change an icon and are left out.
+static String iconItemString(const ItemStack &st) {
+    const ItemStackMetadata &m = st.metadata;
+    if (m.getString("color").empty() && m.getString("palette_index").empty() &&
+            m.getString("inventory_image").empty() && m.getString("inventory_overlay").empty())
+        return String::utf8(st.name.c_str());
+    ItemStack one = st;
+    one.count = 1;
+    one.wear = 0;
+    return String::utf8(one.getItemString().c_str());
+}
+
 static Dictionary inventoryLists(Inventory *inv, IItemDefManager *idef) {
     Dictionary lists;
     if (!inv)
@@ -1465,6 +1481,7 @@ static Dictionary inventoryLists(Inventory *inv, IItemDefManager *idef) {
                 // reads it.
                 it["description"] = String::utf8(st.getDescription(idef).c_str());
                 it["inventory_image"] = String::utf8(def.inventory_image.name.c_str());
+                it["icon_item"] = iconItemString(st);
                 it["stack_max"] = (int)def.stack_max;
                 it["type"] = (int)def.type;
             }
