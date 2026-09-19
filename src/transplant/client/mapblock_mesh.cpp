@@ -8,7 +8,12 @@
 // no-op because nothing is drawn through Irrlicht; g_goanna_no_light is
 // defined here and, while set, encode_light() returns opaque white, which
 // disables Luanti's baked vertex lighting; transparent buffers keep their
-// indices (upstream draws them from m_transparent_triangles instead);
+// indices (upstream draws them from m_transparent_triangles instead); a
+// crack tile carrying GOANNA_PERSISTENT_CRACK (a stored carve's own crack
+// stage, not the node currently being dug) bakes its level directly instead
+// of registering into m_crack_materials for animate() to fill in later, so
+// several persistently damaged nodes in one mapblock keep their own distinct
+// stage rather than all reading whatever level the live dig last stamped;
 // everything else is verbatim.
 
 #include "mapblock_mesh.h"
@@ -712,10 +717,20 @@ MapBlockMesh::MapBlockMesh(Client *client, MeshMakeData *data):
 			if (p.layer.material_flags & MATERIAL_FLAG_CRACK) {
 				auto *t = m_tsrc->getTextureForMesh("crack_anylength.png");
 				material.setTexture(TEXTURE_LAYER_CRACK, t);
-				material.MaterialTypeParam =
-					packCrackMaterialParam(-1, MYMAX(1, p.layer.scale));
+				if (p.layer.material_flags & GOANNA_PERSISTENT_CRACK) {
+					// Goanna: a stored carve's own crack stage, baked once
+					// here rather than deferred: see GOANNA_PERSISTENT_CRACK's
+					// own comment for why animate()'s single level cannot
+					// serve every damaged node in a block at once.
+					const int level = (p.layer.material_flags & GOANNA_CRACK_HEAVY) ? 4 : 1;
+					material.MaterialTypeParam =
+						packCrackMaterialParam(level, MYMAX(1, p.layer.scale));
+				} else {
+					material.MaterialTypeParam =
+						packCrackMaterialParam(-1, MYMAX(1, p.layer.scale));
 
-				m_crack_materials.emplace_back(layer, i);
+					m_crack_materials.emplace_back(layer, i);
+				}
 			}
 
 			// Add to buffer

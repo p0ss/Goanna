@@ -12,25 +12,27 @@ int main() {
             goanna::MiningCycle cycle;
             cycle.reset(duration);
             goanna::FormDig dig;
+            dig.beginCube();
+            const auto cube_solid = [](float, float, float) { return true; };
             int contacts=0;
             double time=0;
             while (!cycle.complete()) {
-                auto before=goanna::formGrid(dig.form,16);
+                auto before=goanna::formGridDamaged(cube_solid, dig.baseline, dig.damage, 16);
                 bool contact=cycle.advance(1.0/fps);
                 time+=1.0/fps;
                 if (contact) {
                     ++contacts;
                     check(cycle.pose(true)==1,"contact is the end of the downstroke");
-                    check(dig.advance(cycle.progress(),.2f,.5f,.13f),"every blow advances deformation");
+                    check(dig.advance(cycle.progress(),.2f,.5f,.13f,0.f,1.f,0.f),"every blow advances deformation");
                 } else {
-                    check(before==goanna::formGrid(dig.form,16),"no deformation during wind-up");
+                    check(before==goanna::formGridDamaged(cube_solid, dig.baseline, dig.damage, 16),"no deformation during wind-up");
                 }
                 check(cycle.pose(contact)>=0 && cycle.pose(contact)<=1,"bounded hand pose");
             }
             check(contacts==cycle.blows,"one contact per stroke at each frame rate");
             check(time+1e-6>=duration,"never completes before server tool time");
             check(time<std::max(.24,duration)+1.0/fps+1e-5,"no extra final swing delay");
-            auto result=goanna::formGrid(dig.form,16);
+            auto result=goanna::formGridDamaged(cube_solid, dig.baseline, dig.damage, 16);
             if(reference.empty()) reference=result;
             check(result==reference,"frame rate cannot change the final deformation");
         }

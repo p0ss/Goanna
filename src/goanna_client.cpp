@@ -1025,7 +1025,7 @@ void GoannaClient::set_solid_ice(bool on) {
 bool GoannaClient::solid_ice() const { return m_solid_ice; }
 
 GoannaClient::~GoannaClient() {
-    if (g_goanna_carve == &m_carve.form) g_goanna_carve = nullptr;
+    if (g_goanna_carve == &m_carve.damage) g_goanna_carve = nullptr;
     // Before the session and the tile cache go.
     m_lod_storage.stop();
     m_mesh_pool.stop();
@@ -1279,7 +1279,7 @@ void GoannaClient::connect_to(const String &host, int port, const String &player
 }
 
 void GoannaClient::disconnect_from_server() {
-    if (g_goanna_carve == &m_carve.form) g_goanna_carve = nullptr;
+    if (g_goanna_carve == &m_carve.damage) g_goanna_carve = nullptr;
     m_carve = goanna::FormDig();
     m_carve_pos = v3s16(-32768, -32768, -32768);
     m_lod_storage.stop();
@@ -1739,30 +1739,44 @@ Dictionary GoannaClient::step_interact(double dt, bool dig, bool place, bool pla
     if (st.crack_level >= 0 && pt.type == POINTEDTHING_NODE && g_goanna_carve_depth > 0) {
         if (st.crack_pos != m_carve_pos || st.impact_progress < m_carve.applied_progress) {
             m_carve = goanna::FormDig();
-            m_carve.form.resolution = 16;
             m_carve_pos = st.crack_pos;
             // RESUME FROM THE DAMAGE ALREADY ON THE BLOCK. Starting pristine
             // threw away every earlier blow the moment a dig began: a block
             // left half mined went visibly whole again as soon as it was
             // struck, and only the blows from this dig showed. The stored
             // carve is the truth about the node; this dig continues it.
-            goanna::RadialForm stored;
-            if (goanna::carveStoreGet(m_carve_pos.X, m_carve_pos.Y, m_carve_pos.Z,
-                    stored)) {
-                const int res = m_carve.form.resolution;
-                m_carve.form = stored;
-                m_carve.form.resolution = res;
+            goanna::carveStoreGet(m_carve_pos.X, m_carve_pos.Y, m_carve_pos.Z, m_carve.damage);
+            // The base shape this dig carves from: a plain cube for an
+            // ordinary solid node, or the target's own resolved boxes for a
+            // nodebox one. Live neighbour connections are NOT replicated
+            // here (that scan lives in drawNodeboxNode); this is an
+            // approximation for the PREDICTION only, while digging. The
+            // stored carve, once meshed, always uses the true connected
+            // shape.
+            const MapNode target = m_session->map().getNode(m_carve_pos);
+            const ContentFeatures &target_f = m_session->nodeDefs()->get(target);
+            if (target_f.drawtype == NDT_NODEBOX) {
+                std::vector<aabb3f> boxes;
+                target.getNodeBoxes(m_session->nodeDefs(), &boxes, 0);
+                std::vector<goanna::FormBox> local_boxes;
+                local_boxes.reserve(boxes.size());
+                for (const aabb3f &b : boxes) {
+                    local_boxes.push_back({b.MinEdge.X / BS, b.MinEdge.Y / BS, b.MinEdge.Z / BS,
+                            b.MaxEdge.X / BS, b.MaxEdge.Y / BS, b.MaxEdge.Z / BS});
+                }
+                m_carve.beginBoxes(local_boxes, 8);
+            } else {
+                m_carve.beginCube();
             }
         }
         const v3f hit = pt.intersection_point / BS
                 - v3f((f32)m_carve_pos.X, (f32)m_carve_pos.Y, (f32)m_carve_pos.Z);
         const float progress = st.impact_progress;
         const v3f normal = pt.intersection_normal;
-        const int face = normal.X != 0 ? (normal.X > 0 ? 1 : 0) :
-                normal.Y != 0 ? (normal.Y > 0 ? 3 : 2) : (normal.Z > 0 ? 5 : 4);
-        if (st.dig_impact && m_carve.advance(progress, hit.X, hit.Y, hit.Z, face))
+        if (st.dig_impact && m_carve.advance(progress, hit.X, hit.Y, hit.Z,
+                normal.X, normal.Y, normal.Z))
             m_session->invalidateBlock(getNodeBlockPos(m_carve_pos));
-        g_goanna_carve = &m_carve.form;
+        g_goanna_carve = &m_carve.damage;
     } else if (g_goanna_carve) {
         // The dig is over, by breaking through or by letting go. Tell the
         // server what was carved before dropping it, so the other players keep
@@ -1772,7 +1786,7 @@ Dictionary GoannaClient::step_interact(double dt, bool dig, bool place, bool pla
         // On the END of the dig rather than every step: a carve is reported
         // once, not sixteen times, and the only state worth sharing is the
         // state it was left in.
-        const std::string bytes = goanna::encodeForm(m_carve.form);
+        const std::string bytes = goanna::encodeForm(m_carve.damage);
         if (!bytes.empty())
             m_session->reportCarve(m_carve_pos, bytes);
         // The same replacement removes both cut geometry and neighbour reveals.

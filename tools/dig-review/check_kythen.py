@@ -1,40 +1,97 @@
 #!/usr/bin/env python3
-"""Compare native displacement fields AND strikes with the Kythen Lua bake."""
+"""Check Goanna's v3 damage port against a live Kythen checkout.
+
+`goanna_radial_form_test` is pinned to `tools/dig-review/reference_v3.json`,
+a copy of what Kythen's own `tools/dig-review/generate_reference.lua`
+produces from `mods/kythen/core/radial_form.lua`. That copy is GENERATED and
+committed so the test needs no Kythen checkout to run; this script is the
+other half, for when one is available: it re-runs the real generator against
+a live Kythen tree, so a check here is against the Lua ITSELF, not against
+whatever was last copied over, and it says plainly whether the committed copy
+has drifted.
+
+Usage:
+    tools/dig-review/check_kythen.py /path/to/Kythen
+    tools/dig-review/check_kythen.py /path/to/Kythen --update
+
+Kythen is read only here, as everywhere else in this repository: nothing in
+this script writes to it. `--update` overwrites Goanna's OWN committed copy
+with the fresh output when it differs; without it, a stale copy is reported
+and left alone.
+"""
 import argparse
-import json
 import subprocess
+import sys
+import tempfile
 from pathlib import Path
 
-ap = argparse.ArgumentParser(description=__doc__)
-ap.add_argument('kythen', type=Path)
-ap.add_argument('--binary', default='build/goanna_radial_form_test')
-ap.add_argument('--lua-file', type=Path)
-a = ap.parse_args()
-cases = [json.loads(line) for line in subprocess.check_output(
-    [a.binary, '--dump-impacts'], text=True).splitlines()]
-# Native order is faces/edges/corners; Lua uses keys, not positional indices.
-keys = ['xn','xp','yn','yp','zn','zp','xnyn','xnyp','xpyn','xpyp',
-        'xnzn','xnzp','xpzn','xpzp','ynzn','ynzp','ypzn','ypzp',
-        'nnn','nnp','npn','npp','pnn','pnp','ppn','ppp']
-source = 'local F=dofile(' + json.dumps(str(a.lua_file or
-    a.kythen/'mods/kythen/core/radial_form.lua')) + ')\n'
-source += '''local function dump(f)
-local g=F.grid(f,16)
-for z=0,15 do for y=0,15 do for x=0,15 do
-io.write(g[z][y][x] and "1" or "0") end end end
-io.write("\\n")
-end
-'''
-for case in cases:
-    controls = ','.join('%s={x=%.9g,y=%.9g,z=%.9g}' % (key, *d)
-                        for key, d in zip(keys, case['displacement']))
-    source += 'dump(F.normalise({displacement={' + controls + '}}))\n'
-    hit = ','.join('%.9g' % x for x in case['hit'])
-    source += ('do local f=F.normalise({}); for i=1,%d do '
-               'f=F.strike(f,%s,0.08) end; dump(f) end\n') % (case['step']+1, hit)
-result = subprocess.check_output(['luajit', '-'], input=source, text=True).splitlines()
-assert len(result) == 2*len(cases), (len(result), len(cases))
-for i, case in enumerate(cases):
-    for j, mode in enumerate(['stored field', 'strike operator']):
-        assert result[2*i+j] == case['grid'], f'case {i}: {mode} differs from Kythen'
-print(f'{len(cases)} impact states: all 4096 subcubes agree for fields and strikes')
+GOANNA_ROOT = Path(__file__).resolve().parents[2]
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__,
+            formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument('kythen', type=Path, help='path to a Kythen checkout (read only)')
+    ap.add_argument('--generator', default='tools/dig-review/generate_reference.lua',
+            help='Kythen-relative path to the reference generator')
+    ap.add_argument('--committed', default='tools/dig-review/reference_v3.json',
+            help='Goanna-relative path to the committed reference copy')
+    ap.add_argument('--binary', default='build/goanna_radial_form_test',
+            help='Goanna-relative path to the built native test')
+    ap.add_argument('--update', action='store_true',
+            help="overwrite the committed copy when it is stale (Kythen stays untouched either way)")
+    a = ap.parse_args()
+
+    generator = a.kythen / a.generator
+    if not generator.is_file():
+        sys.exit(f'{generator} does not exist: is --kythen a Kythen checkout, '
+                'and is it on a branch with the v3 damage rule (form/damage or later)?')
+
+    print(f'Running {a.generator} from {a.kythen} through luajit...')
+    result = subprocess.run(['luajit', str(generator)], cwd=a.kythen,
+            capture_output=True, text=True)
+    if result.returncode != 0:
+        sys.exit(f'generate_reference.lua failed:\n{result.stderr}')
+    fresh = result.stdout
+
+    committed_path = GOANNA_ROOT / a.committed
+    committed = committed_path.read_text() if committed_path.is_file() else None
+    stale = committed != fresh
+
+    with tempfile.NamedTemporaryFile('w', suffix='.json', delete=False) as f:
+        f.write(fresh)
+        fresh_path = Path(f.name)
+
+    binary_path = GOANNA_ROOT / a.binary
+    if not binary_path.is_file():
+        sys.exit(f'{binary_path} does not exist. Build it first: '
+                'cmake --build build --target goanna_radial_form_test')
+    print('Running the native port against the FRESH reference (not the committed copy)...')
+    test = subprocess.run([str(binary_path), str(fresh_path)])
+
+    if stale:
+        if committed is None:
+            print(f'{a.committed} does not exist yet.')
+        else:
+            print(f'{a.committed} is STALE: it differs from what {a.kythen} '
+                    'generates right now.')
+        if a.update:
+            committed_path.write_text(fresh)
+            print(f'Updated {a.committed} from the fresh generator output. '
+                    'Review the diff before committing it: it is generated, never hand edited.')
+        else:
+            print(f'Re-run with --update to refresh it, or copy it yourself: '
+                    f'cp {fresh_path} {committed_path}')
+    else:
+        print(f'{a.committed} matches {a.kythen} exactly.')
+
+    if test.returncode != 0:
+        sys.exit('goanna_radial_form_test FAILED against the fresh reference: '
+                'the C++ port itself has drifted from radial_form.lua, not just the committed copy.')
+    if stale and not a.update:
+        sys.exit(1)
+    print('check_kythen: the native port matches Kythen, and the committed reference is current.')
+
+
+if __name__ == '__main__':
+    main()
