@@ -27,7 +27,7 @@ import pbr_bake
 #             255 - (1 - normalised) * depth * 255. The top of the byte is the
 #             neutral surface and the field occupies the class's share of the
 #             range below it, so max is 255 and the span is CLASS_HEIGHT_DEPTH.
-#   authored  tools/pbr_author/lib.py, pack, line 420: the author's 0 deep to
+#   authored  tools/pbr_author/lib.py, pack, line 457: the author's 0 deep to
 #             1 high field straight into the byte. Neither end is reserved,
 #             and the depth is applied at draw time instead, by
 #             goanna_class_depth in nodes_array_common.gdshaderinc.
