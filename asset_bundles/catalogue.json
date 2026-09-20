@@ -947,7 +947,7 @@
       "version": "1.1.0"
     },
     {
-      "bytes": 103775723,
+      "bytes": 95266771,
       "games": [
         "mineclonia"
       ],
@@ -1966,10 +1966,8 @@
         "xpanes_top_glass_green",
         "xpanes_top_glass_light_blue",
         "xpanes_top_glass_lime",
-        "xpanes_top_glass_magenta",
         "xpanes_top_glass_natural",
         "xpanes_top_glass_orange",
-        "xpanes_top_glass_pink",
         "xpanes_top_glass_purple",
         "xpanes_top_glass_red",
         "xpanes_top_glass_silver",
@@ -1977,7 +1975,7 @@
         "xpanes_top_glass_yellow",
         "xpanes_top_iron"
       ],
-      "sha256": "9aba7b7ec8c89788790bfdc58fde3b4760b9b8b39cd03ce251ef0843f2c707d0",
+      "sha256": "7cdab9cde37f3854e515aa807c2935ae81af871a6ffefbfba9619dc585cb9ae6",
       "tranche": "pack",
       "url": "https://github.com/p0ss/Goanna/releases/download/assets-2026.09.2/org.goanna.mineclonia.pack-1.0.0.zip",
       "version": "1.0.0"

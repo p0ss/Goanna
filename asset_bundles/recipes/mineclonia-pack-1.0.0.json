@@ -1,0 +1,42 @@
+{
+  "schema": "org.goanna.asset-recipe/v1",
+  "id": "org.goanna.mineclonia.pack",
+  "version": "1.0.0",
+  "tranche": "pack",
+  "games": ["mineclonia"],
+  "source": {
+    "package": "ryvnf/mineclonia",
+    "release": "38561",
+    "archive_sha256": "abeacf4e202d6e01a63119a36b46751eb6abfd42948a0b06e1ba8f63fb849e59"
+  },
+  "pipeline": {
+    "version": "3",
+    "manifest": "pbr_packs/manifests/mineclonia-terrain-v1.json",
+    "billboard_manifest": "pbr_packs/manifests/mineclonia-billboard-v1.json",
+    "classification_review": "pbr_packs/classification_reviews/mineclonia-v1.json",
+    "quality_gate": "tools/check-pbr-quality.py",
+    "authored": "tools/pbr_author/, 177 of the 1021 stems",
+    "note": "Generation reused from the 2026-08-20 queue; every map was composed again on 2026-09-20 under the current height encoding and this review."
+  },
+  "release": {
+    "texture_pairs": 1021,
+    "rejected": [],
+    "known_failures": [
+      "default_clay",
+      "default_dirt",
+      "default_rail",
+      "default_rail_crossing",
+      "default_rail_curved",
+      "default_rail_t_junction",
+      "jeija_torches_on",
+      "mcl_core_coarse_dirt",
+      "mcl_core_dirt_podzol_side",
+      "mcl_core_dirt_podzol_top",
+      "mcl_flowers_double_plant_grass_top"
+    ],
+    "known_failures_note": "These eleven ship. Each fails one rule, surface is too smooth for its material class, by between 0.3 and 27 per cent of a band the classification review itself describes as the pipeline's defaults rather than a per texture judgement. The five soil ones are the authored path's keep_mean clipping at zero and so lifting the mean it was setting; the rails, the torch and the grass top are near misses or a class derived from a footstep sound. Rejecting them would leave dirt, clay, podzol and rails with no maps beside neighbours that have them, which is a worse picture than the overshoot.",
+    "archive": "org.goanna.mineclonia.pack-1.0.0.zip",
+    "bytes": 95266771,
+    "sha256": "7cdab9cde37f3854e515aa807c2935ae81af871a6ffefbfba9619dc585cb9ae6"
+  }
+}

@@ -21,7 +21,7 @@ Licensing here is per mod and sometimes per file, so this lists the
 mod each baked texture was read from and that mod's own licence
 files. Read those, not just the game wide ones: a single mod can
 declare several media licences with per file attributions under
-them. 86 mods contributed.
+them. 91 mods contributed.
 
 ### `mods/ENTITIES/mcl_minecarts` (28 textures)
 
@@ -64,6 +64,11 @@ them. 86 mods contributed.
 
 - no licence file of its own; falls back to the game wide terms
 - textures: mesecons_piston_back, mesecons_piston_bottom, mesecons_piston_on_front, mesecons_piston_pusher_back, mesecons_piston_pusher_bottom, mesecons_piston_pusher_front, mesecons_piston_pusher_front_sticky, mesecons_piston_pusher_left, mesecons_piston_pusher_right, mesecons_piston_pusher_top
+
+### `mods/ITEMS/REDSTONE/mcl_redstone` (3 textures)
+
+- no licence file of its own; falls back to the game wide terms
+- textures: redstone_redstone_block, redstone_redstone_dust_dot, redstone_redstone_dust_line0
 
 ### `mods/ITEMS/REDSTONE/mcl_redstone_lamp` (2 textures)
 
@@ -115,10 +120,10 @@ them. 86 mods contributed.
 - licence file: `mods/ITEMS/mcl_beacons/CREDITS.md`
 - textures: beacon_UV
 
-### `mods/ITEMS/mcl_beds` (16 textures)
+### `mods/ITEMS/mcl_beds` (23 textures)
 
 - licence file: `mods/ITEMS/mcl_beds/license.txt`
-- textures: mcl_beds_bed_black, mcl_beds_bed_blue, mcl_beds_bed_brown, mcl_beds_bed_cyan, mcl_beds_bed_green, mcl_beds_bed_grey, mcl_beds_bed_light_blue, mcl_beds_bed_lime, mcl_beds_bed_magenta, mcl_beds_bed_orange, mcl_beds_bed_pink, mcl_beds_bed_purple, mcl_beds_bed_red, mcl_beds_bed_silver, mcl_beds_bed_white, mcl_beds_bed_yellow
+- textures: mcl_beds_bed_black, mcl_beds_bed_blue, mcl_beds_bed_brown, mcl_beds_bed_cyan, mcl_beds_bed_green, mcl_beds_bed_grey, mcl_beds_bed_light_blue, mcl_beds_bed_lime, mcl_beds_bed_magenta, mcl_beds_bed_orange, mcl_beds_bed_pink, mcl_beds_bed_purple, mcl_beds_bed_red, mcl_beds_bed_silver, mcl_beds_bed_white, mcl_beds_bed_yellow, respawn_anchor_bottom, respawn_anchor_side0, respawn_anchor_side1, respawn_anchor_side2, respawn_anchor_side3, respawn_anchor_side4, respawn_anchor_top_off
 
 ### `mods/ITEMS/mcl_beehives` (9 textures)
 
@@ -220,10 +225,10 @@ them. 86 mods contributed.
 - no licence file of its own; falls back to the game wide terms
 - textures: crafting_workbench_front, crafting_workbench_side, crafting_workbench_top
 
-### `mods/ITEMS/mcl_crimson` (21 textures)
+### `mods/ITEMS/mcl_crimson` (33 textures)
 
 - no licence file of its own; falls back to the game wide terms
-- textures: crimson_hyphae, crimson_hyphae_side, crimson_hyphae_wood, crimson_nylium, crimson_roots, farming_crimson_fungus, farming_warped_fungus, mcl_crimson_crimson_door_bottom, mcl_crimson_crimson_door_top, mcl_crimson_crimson_fence, mcl_crimson_crimson_trapdoor, mcl_crimson_crimson_trapdoor_side, mcl_crimson_warped_door_bottom, mcl_crimson_warped_door_top, mcl_crimson_warped_fence, mcl_crimson_warped_trapdoor, mcl_crimson_warped_trapdoor_side, mcl_crimson_weeping_vines, mcl_doors_door_crimson_side_upper, mcl_doors_door_warped_side_upper, nether_sprouts
+- textures: crimson_hyphae, crimson_hyphae_side, crimson_hyphae_wood, crimson_nylium, crimson_roots, farming_crimson_fungus, farming_warped_fungus, mcl_crimson_crimson_door_bottom, mcl_crimson_crimson_door_top, mcl_crimson_crimson_fence, mcl_crimson_crimson_trapdoor, mcl_crimson_crimson_trapdoor_side, mcl_crimson_warped_door_bottom, mcl_crimson_warped_door_top, mcl_crimson_warped_fence, mcl_crimson_warped_trapdoor, mcl_crimson_warped_trapdoor_side, mcl_crimson_weeping_vines, mcl_doors_door_crimson_side_upper, mcl_doors_door_warped_side_upper, nether_sprouts, shroomlight, stripped_crimson_stem_side, stripped_crimson_stem_top, stripped_warped_stem_side, stripped_warped_stem_top, twisting_vines_plant, warped_hyphae, warped_hyphae_side, warped_hyphae_wood, warped_nylium, warped_roots, warped_wart_block
 
 ### `mods/ITEMS/mcl_deepslate` (26 textures)
 
@@ -235,10 +240,10 @@ them. 86 mods contributed.
 - no licence file of its own; falls back to the game wide terms
 - textures: doors_trapdoor, doors_trapdoor_side, doors_trapdoor_steel, doors_trapdoor_steel_side, mcl_doors_door_acacia_lower, mcl_doors_door_acacia_side_lower, mcl_doors_door_acacia_side_upper, mcl_doors_door_acacia_upper, mcl_doors_door_birch_lower, mcl_doors_door_birch_side_lower, mcl_doors_door_birch_side_upper, mcl_doors_door_birch_upper, mcl_doors_door_dark_oak_lower, mcl_doors_door_dark_oak_side_lower, mcl_doors_door_dark_oak_side_upper, mcl_doors_door_dark_oak_upper, mcl_doors_door_iron_lower, mcl_doors_door_iron_side_lower, mcl_doors_door_iron_side_upper, mcl_doors_door_iron_upper, mcl_doors_door_jungle_lower, mcl_doors_door_jungle_side_lower, mcl_doors_door_jungle_side_upper, mcl_doors_door_jungle_upper, mcl_doors_door_spruce_lower, mcl_doors_door_spruce_side_lower, mcl_doors_door_spruce_side_upper, mcl_doors_door_spruce_upper, mcl_doors_door_wood_lower, mcl_doors_door_wood_side_lower, mcl_doors_door_wood_side_upper, mcl_doors_door_wood_upper, mcl_doors_trapdoor_acacia, mcl_doors_trapdoor_acacia_side, mcl_doors_trapdoor_birch, mcl_doors_trapdoor_birch_side, mcl_doors_trapdoor_dark_oak, mcl_doors_trapdoor_dark_oak_side, mcl_doors_trapdoor_jungle, mcl_doors_trapdoor_jungle_side, mcl_doors_trapdoor_spruce, mcl_doors_trapdoor_spruce_side
 
-### `mods/ITEMS/mcl_dripstone` (3 textures)
+### `mods/ITEMS/mcl_dripstone` (6 textures)
 
 - no licence file of its own; falls back to the game wide terms
-- textures: dripstone_block, pointed_dripstone_base, pointed_dripstone_frustum
+- textures: dripstone_block, pointed_dripstone_base, pointed_dripstone_frustum, pointed_dripstone_middle, pointed_dripstone_tip, pointed_dripstone_tip_merge
 
 ### `mods/ITEMS/mcl_enchanting` (3 textures)
 
@@ -371,6 +376,11 @@ them. 86 mods contributed.
 - no licence file of its own; falls back to the game wide terms
 - textures: mcl_pale_oak_chiseled_resin_bricks, mcl_pale_oak_door_bottom, mcl_pale_oak_door_top, mcl_pale_oak_eyeblossom, mcl_pale_oak_eyeblossom_open, mcl_pale_oak_hanging_moss, mcl_pale_oak_hanging_moss_tip, mcl_pale_oak_leaves, mcl_pale_oak_log, mcl_pale_oak_log_top, mcl_pale_oak_moss, mcl_pale_oak_planks, mcl_pale_oak_resin_block, mcl_pale_oak_resin_brick_block, mcl_pale_oak_sapling_pale_oak, mcl_pale_oak_trapdoor, mcl_pale_oak_trapdoor_side, mcl_stripped_pale_oak_log_side, mcl_stripped_pale_oak_log_top
 
+### `mods/ITEMS/mcl_panes` (17 textures)
+
+- no licence file of its own; falls back to the game wide terms
+- textures: xpanes_pane_iron, xpanes_top_glass_black, xpanes_top_glass_blue, xpanes_top_glass_brown, xpanes_top_glass_cyan, xpanes_top_glass_gray, xpanes_top_glass_green, xpanes_top_glass_light_blue, xpanes_top_glass_lime, xpanes_top_glass_natural, xpanes_top_glass_orange, xpanes_top_glass_purple, xpanes_top_glass_red, xpanes_top_glass_silver, xpanes_top_glass_white, xpanes_top_glass_yellow, xpanes_top_iron
+
 ### `mods/ITEMS/mcl_portals` (4 textures)
 
 - licence file: `mods/ITEMS/mcl_portals/CREDITS.md`
@@ -381,6 +391,11 @@ them. 86 mods contributed.
 
 - no licence file of its own; falls back to the game wide terms
 - textures: mcl_pottery_sherds_pot_bottom, mcl_pottery_sherds_pot_side, mcl_pottery_sherds_pot_top
+
+### `mods/ITEMS/mcl_powder_snow` (1 textures)
+
+- no licence file of its own; falls back to the game wide terms
+- textures: powder_snow
 
 ### `mods/ITEMS/mcl_raw_ores` (2 textures)
 
@@ -396,6 +411,11 @@ them. 86 mods contributed.
 
 - no licence file of its own; falls back to the game wide terms
 - textures: mcl_smithing_table_bottom, mcl_smithing_table_front, mcl_smithing_table_side, mcl_smithing_table_top
+
+### `mods/ITEMS/mcl_smoker` (4 textures)
+
+- no licence file of its own; falls back to the game wide terms
+- textures: smoker_bottom, smoker_front, smoker_side, smoker_top
 
 ### `mods/ITEMS/mcl_sponges` (3 textures)
 
@@ -422,6 +442,11 @@ them. 86 mods contributed.
 - no licence file of its own; falls back to the game wide terms
 - textures: mcl_tools_heavy_core_bottom, mcl_tools_heavy_core_side, mcl_tools_heavy_core_top
 
+### `mods/ITEMS/mcl_trial_spawners` (9 textures)
+
+- no licence file of its own; falls back to the game wide terms
+- textures: trialspawner_bottom, trialspawner_bottom_ominous, trialspawner_bottom_on, trialspawner_side, trialspawner_side_ominous, trialspawner_side_on, trialspawner_top, trialspawner_top_ominous, trialspawner_top_on
+
 ### `mods/ITEMS/mcl_vaults` (19 textures)
 
 - no licence file of its own; falls back to the game wide terms
@@ -432,10 +457,10 @@ them. 86 mods contributed.
 - no licence file of its own; falls back to the game wide terms
 - textures: mcl_walls_cobble_mossy_wall_side, mcl_walls_cobble_mossy_wall_top, mcl_walls_cobble_wall_side, mcl_walls_cobble_wall_top
 
-### `mods/ITEMS/mcl_wool` (2 textures)
+### `mods/ITEMS/mcl_wool` (16 textures)
 
 - no licence file of its own; falls back to the game wide terms
-- textures: mcl_wool_light_blue, mcl_wool_lime
+- textures: mcl_wool_light_blue, mcl_wool_lime, wool_black, wool_blue, wool_brown, wool_cyan, wool_dark_green, wool_dark_grey, wool_grey, wool_magenta, wool_orange, wool_pink, wool_red, wool_violet, wool_white, wool_yellow
 
 ### `mods/ITEMS/mclx_fences` (2 textures)
 
@@ -452,13 +477,13 @@ them. 86 mods contributed.
 - no licence file of its own; falls back to the game wide terms
 - textures: mcl_levelgen_jigsaw_block_bottom, mcl_levelgen_jigsaw_block_side_north, mcl_levelgen_jigsaw_block_side_south, mcl_levelgen_jigsaw_block_top, mcl_levelgen_structure_block_corner_side, mcl_levelgen_structure_block_corner_top, mcl_levelgen_structure_block_data_side, mcl_levelgen_structure_block_data_top, mcl_levelgen_structure_block_load_side, mcl_levelgen_structure_block_load_top, mcl_levelgen_structure_block_save_side, mcl_levelgen_structure_block_save_top
 
-### `mods/MAPGEN/mcl_villages` (32 textures)
+### `mods/MAPGEN/mcl_villages` (48 textures)
 
 - no licence file of its own; falls back to the game wide terms
-- textures: bush_1, bush_2, bush_3, bush_4, bush_5, bush_6, bush_7, bush_8, flower_1, flower_2, flower_3, flower_4, flower_5, flower_6, flower_7, flower_8, gourd_1, gourd_2, gourd_3, gourd_4, gourd_5, gourd_6, gourd_7, gourd_8, grain_1, grain_2, grain_3, grain_4, grain_5, grain_6, grain_7, grain_8
+- textures: bush_1, bush_2, bush_3, bush_4, bush_5, bush_6, bush_7, bush_8, flower_1, flower_2, flower_3, flower_4, flower_5, flower_6, flower_7, flower_8, gourd_1, gourd_2, gourd_3, gourd_4, gourd_5, gourd_6, gourd_7, gourd_8, grain_1, grain_2, grain_3, grain_4, grain_5, grain_6, grain_7, grain_8, root_1, root_2, root_3, root_4, root_5, root_6, root_7, root_8, tree_1, tree_2, tree_3, tree_4, tree_5, tree_6, tree_7, tree_8
 
 
-## Authored sets, 2026-09-16
+## Authored sets, 2026-09-20
 
 The following textures were rebuilt by tools/pbr_author/ from the
 same game art: the albedo is that art upscaled without repainting,
