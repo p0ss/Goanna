@@ -5,6 +5,7 @@ import sys
 
 import kythen_leaf_family as fam
 
+GAME = "kythen"
 STEM = "kythen_firecountry_osier_leaf"
 
 if __name__ == "__main__":

@@ -7,6 +7,7 @@ import sys
 
 import kythen_mitteleuropa_leaf_family as fam
 
+GAME = "kythen"
 STEM = "kythen_mitteleuropa_juniper_leaf"
 
 if __name__ == "__main__":

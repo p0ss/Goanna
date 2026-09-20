@@ -4,6 +4,7 @@ import sys
 
 import kythen_siku_ice_family as fam
 
+GAME = "kythen"
 STEM = "kythen_siku_clear_ice"
 
 if __name__ == "__main__":

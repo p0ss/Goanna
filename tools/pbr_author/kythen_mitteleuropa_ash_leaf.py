@@ -6,6 +6,7 @@ import sys
 
 import kythen_mitteleuropa_leaf_family as fam
 
+GAME = "kythen"
 STEM = "kythen_mitteleuropa_ash_leaf"
 ASPECT = 2.2
 

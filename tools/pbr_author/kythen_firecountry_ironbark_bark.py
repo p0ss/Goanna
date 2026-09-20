@@ -8,6 +8,7 @@ import sys
 
 import kythen_bark_family as fam
 
+GAME = "kythen"
 STEM = "kythen_firecountry_ironbark_bark"
 
 if __name__ == "__main__":

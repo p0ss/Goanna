@@ -13,6 +13,7 @@ import sys
 
 import kythen_mitteleuropa_bark_family as fam
 
+GAME = "kythen"
 STEM = "kythen_mitteleuropa_ash_bark"
 
 if __name__ == "__main__":

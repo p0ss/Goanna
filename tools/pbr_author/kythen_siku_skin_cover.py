@@ -4,6 +4,7 @@ import sys
 
 import kythen_siku_skin_family as fam
 
+GAME = "kythen"
 STEM = "kythen_siku_skin_cover"
 
 if __name__ == "__main__":
