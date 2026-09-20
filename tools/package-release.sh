@@ -45,6 +45,21 @@ mkdir -p "$STAGE"
 "$GODOT_BIN" --headless --path project --export-debug "$PRESET"
 test -f "$STAGE/$EXE" || { echo "export did not produce $STAGE/$EXE" >&2; exit 1; }
 
+# The presets export all_resources, so anything left lying about under
+# project/ goes into the pack. 0.9.0 nearly shipped 77 MB of test
+# screenshots out of project/shots, which is gitignored and so invisible in
+# git status. A pack that size is a mistake, not growth, so stop rather than
+# quietly double what a player downloads.
+PCK_MAX="${GOANNA_PCK_MAX:-16777216}"
+PCK_BYTES=$(stat -c %s "$STAGE/Goanna.pck" 2>/dev/null || echo 0)
+if [ "$PCK_BYTES" -gt "$PCK_MAX" ]; then
+    echo "Goanna.pck is $PCK_BYTES bytes, past the $PCK_MAX byte limit." >&2
+    echo "Something under project/ is being swept into the export. Look for" >&2
+    echo "test output first, then re-run with GOANNA_PCK_MAX set higher if" >&2
+    echo "the growth is real." >&2
+    exit 1
+fi
+
 # res://../luanti resolves relative to the executable, so the texture pack
 # has to sit one level above wherever the exported files end up. Nest the
 # export under Goanna/ inside the package so the layout works after unzip:
