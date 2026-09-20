@@ -118,6 +118,14 @@ location, is checked with:
 godot --headless --path project --script res://tests/asset_catalogue.gd
 ```
 
+Which bundles a media announcement queues, including that a name two games
+both use (Mineclonia and Minetest Game share about thirty `default_*` stems)
+queues neither of them, is checked with a stub client, so it needs no server:
+
+```sh
+godot --headless --path project --script res://tests/asset_updater.gd
+```
+
 The terrain world catalogue that the world picker is built from, including
 that every world has a usable hash, size, tile window and bundled preview, is
 checked with:

@@ -66,6 +66,18 @@ filename stems are matched against each catalogue entry's `provides` list
 while ordinary server media continues downloading. Missing whole bundles
 are downloaded and become active on the next connection; failure is non-fatal.
 
+A stem only counts when the catalogue agrees on which game it belongs to.
+Mineclonia and Minetest Game both ship a `default_cobble`, so that name says
+nothing about which of them the server is running, and a bundle is never
+queued on it. Tranches of one game may share a name legitimately, and there
+the answer is not in doubt, so a stem is discounted only when the bundles
+providing it have no game in common. This is the only filter available: a
+remote server's game is unknown at the launcher, so `menu.gd` leaves
+`GOANNA_GAME` empty for a remote join, and `installed_for_game` can do no more
+than ignore a bundle that has already been downloaded. A bundle whose every
+stem is shared in this way can never be asked for. That is a fault in the
+catalogue rather than in a connection, so the updater warns and names it.
+
 Periodic updates first refresh the source lock, then regenerate tranche
 manifests, bake into staging, run the quality and licence gates, visually
 review failures-first sheets, and finally create a new bundle version. The
