@@ -147,7 +147,18 @@ static func install_archive(archive_path: String, expected_sha256: String,
 			normals[relative.trim_suffix("_n.png")] = true
 		elif relative.begins_with("textures/") and relative.ends_with("_s.png"):
 			materials[relative.trim_suffix("_s.png")] = true
-	if normals.is_empty() or normals.keys() != materials.keys() \
+	# Sorted, because a Dictionary's keys come out in insertion order and the
+	# two lists are filled from the ledger's own order. A stem that is a
+	# prefix of another stem lands in a different place in each: the ledger
+	# sorts mcl_bamboo_bamboo_n.png before mcl_bamboo_bamboo_plank_n.png, and
+	# mcl_bamboo_bamboo_s.png after mcl_bamboo_bamboo_plank_s.png, since the
+	# suffix letter is what breaks the tie. Comparing the arrays as they came
+	# rejected a bundle whose pairs are all present.
+	var normal_stems := normals.keys()
+	var material_stems := materials.keys()
+	normal_stems.sort()
+	material_stems.sort()
+	if normals.is_empty() or normal_stems != material_stems \
 			or normals.size() != int(manifest.get("texture_pairs", -1)):
 		return "The asset bundle has incomplete normal/material pairs."
 	var destination := base.path_join(str(manifest.id)).path_join(str(manifest.version))

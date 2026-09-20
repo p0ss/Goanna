@@ -45,6 +45,10 @@ func _init() -> void:
 	if error != "":
 		_fail(error)
 		return
+	error = _prefix_stems(root)
+	if error != "":
+		_fail(error)
+		return
 	print("asset store: PASS")
 	quit()
 
@@ -100,3 +104,47 @@ func _build_archive(build: String) -> String:
 		packer.close_file()
 	packer.close()
 	return archive
+
+
+# A stem that is a prefix of another stem, which is how the Mineclonia pack
+# is named: mcl_bamboo_bamboo beside mcl_bamboo_bamboo_plank. The ledger is
+# sorted, so the _n files put the short stem first and the _s files put it
+# last, and a pair check that compares the two key lists as they arrive
+# rejects a bundle whose 1021 pairs are all present. It did.
+func _prefix_stems(root: String) -> String:
+	var build := root + "-prefix"
+	var names := ["textures/bamboo_n.png", "textures/bamboo_plank_n.png",
+		"textures/bamboo_plank_s.png", "textures/bamboo_s.png"]
+	DirAccess.make_dir_recursive_absolute(build.path_join("textures"))
+	var files := []
+	for relative in names:
+		var payload := ("goanna test payload for %s" % relative).to_utf8_buffer()
+		var texture := FileAccess.open(build.path_join(relative), FileAccess.WRITE)
+		if texture == null:
+			return "could not write %s" % relative
+		texture.store_buffer(payload)
+		texture = null
+		files.append({"path": relative, "bytes": payload.size(),
+			"sha256": FileAccess.get_sha256(build.path_join(relative))})
+	var manifest := {"schema": AssetStore.SCHEMA, "id": "org.goanna.test.prefix",
+		"version": "1.0.0", "games": ["prefix"], "texture_pairs": 2, "files": files}
+	var archive := build.path_join("org.goanna.test.prefix-1.0.0.zip")
+	var packer := ZIPPacker.new()
+	if packer.open(archive) != OK:
+		return "could not open the prefix archive for writing"
+	packer.start_file("manifest.json")
+	packer.write_file(JSON.stringify(manifest).to_utf8_buffer())
+	packer.close_file()
+	for relative in names:
+		packer.start_file(relative)
+		packer.write_file(FileAccess.get_file_as_bytes(build.path_join(relative)))
+		packer.close_file()
+	packer.close()
+	var digest := FileAccess.get_sha256(archive)
+	var error := AssetStore.install_archive(archive, digest, root)
+	if error != "":
+		return "a bundle whose stems share a prefix was refused: %s" % error
+	if not FileAccess.file_exists(
+			root.path_join("org.goanna.test.prefix/1.0.0/textures/bamboo_n.png")):
+		return "the prefix bundle installed without its textures"
+	return ""
