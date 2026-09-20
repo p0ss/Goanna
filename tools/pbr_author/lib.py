@@ -22,6 +22,9 @@ Conventions, all fixed here so a per stem script cannot get them wrong:
   smoothness float array 0..1; _s R. F0 byte 10 (dielectric) unless the
              class is metal, B is the class scattering byte (leaves, ice,
              snow) or 0, A is 255 (no emission).
+  cut-out    where the art draws nothing (source alpha under 128) both
+             maps are forced to the bake's neutral, after every field is
+             derived. See cutout_mask.
   size       256, the bake's map size, so a set drops into the pack.
   marker     _n and _s carry a goanna_pipeline=authored PNG text chunk, so
              tools/check-pbr-quality.py measures the height above by the
@@ -385,9 +388,33 @@ def pipeline_chunk():
     return info
 
 
+def cutout_mask(albedo, alpha=None):
+    """Which texels of a map the art does not draw, or None when it fills
+    the tile.
+
+    tools/pbr_bake.py's mask_transparent_regions puts a neutral default in
+    exactly these texels of everything the bake writes, because a node's
+    cut-out (a torch's air, a rail's gaps) never had material there to
+    infer a surface from, and tools/check-pbr-quality.py holds both
+    pipelines to it. The rule is the bake's: the source's own alpha byte
+    under 128, nearest sampled to the map's size. It is read here from the
+    alpha a script upscaled into the albedo, which is that same alpha at
+    SIZE, quantised the way pack() is about to write it. alpha overrides
+    that, for a script whose albedo is RGB although its art is a cut-out.
+    """
+    if alpha is None and np.ndim(albedo) == 3 and np.shape(albedo)[2] == 4:
+        alpha = albedo[..., 3]
+    if alpha is None:
+        return None
+    byte = (np.clip(np.asarray(alpha, dtype=np.float32), 0.0, 1.0)
+            * 255.0 + 0.5).astype(np.uint8)
+    mask = byte < 128
+    return mask if mask.any() else None
+
+
 def pack(stem, out_dir, albedo, height, smoothness, cls, normal_strength,
         metal_mask=None, ao_radius=6, keep_mean=True, emission=None, f0=None,
-        fine_detail=0.35, art_texels=16):
+        fine_detail=0.35, art_texels=16, alpha=None):
     """Write <stem>.png, <stem>_n.png and <stem>_s.png. albedo is RGB or
     RGBA float at SIZE; height and smoothness are SIZE x SIZE floats.
     The smoothness mean is moved onto the class level unless keep_mean is
@@ -400,9 +427,19 @@ def pack(stem, out_dir, albedo, height, smoothness, cls, normal_strength,
     a SIZE x SIZE float of dielectric reflectance at normal incidence for
     texels that are not metal (water 0.02, most things 0.04, diamond 0.17,
     emerald 0.16), written to the _s green byte as LabPBR's linear F0 up
-    to 229; metal texels keep their metal byte."""
+    to 229; metal texels keep their metal byte. alpha, when given, is the
+    source's alpha at SIZE for a cut-out whose albedo is RGB; a script
+    that upscales the art as RGBA need not pass it. See cutout_mask."""
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
+    # Texels the art does not draw are neutralised in both maps after
+    # everything is derived, never before: the fields are built across the
+    # whole tile so that a drawn texel beside a hole gets the slope and the
+    # occlusion it would have had, and only the holes themselves are
+    # overwritten. This is tools/pbr_bake.py's mask_transparent_regions,
+    # applied to the authored path, and the constants are that function's
+    # own so the two cannot drift apart.
+    cutout = cutout_mask(albedo, alpha)
     height = np.clip(height, 0.0, 1.0).astype(np.float32)
     # Texel scale relief is scaled down before anything is derived from
     # the height. Under a grazing lamp in a cave every grain of noise
@@ -418,7 +455,10 @@ def pack(stem, out_dir, albedo, height, smoothness, cls, normal_strength,
     n[..., :2] = xy * 0.5 + 0.5
     n[..., 2] = ao
     n[..., 3] = height
-    Image.fromarray((n * 255.0 + 0.5).astype(np.uint8), "RGBA").save(
+    n8 = (n * 255.0 + 0.5).astype(np.uint8)
+    if cutout is not None:
+        n8[cutout] = pbr_bake.NEUTRAL_N
+    Image.fromarray(n8, "RGBA").save(
             out_dir / (stem + "_n.png"), pnginfo=pipeline_chunk())
 
     level, _, is_metal = class_spec(cls)
@@ -454,7 +494,16 @@ def pack(stem, out_dir, albedo, height, smoothness, cls, normal_strength,
     else:
         e = np.clip(emission, 0.0, 1.0).astype(np.float32)
         s[..., 3] = np.where(e > 0.002, e * 254.0 / 255.0, 1.0)
-    Image.fromarray((s * 255.0 + 0.5).astype(np.uint8), "RGBA").save(
+    s8 = (s * 255.0 + 0.5).astype(np.uint8)
+    # The bake masks _s as well as _n wherever the spec map has per texel
+    # correspondence to the source, and skips it only for its flat class
+    # spec, which is one constant colour at FLAT_SPEC_SIZE with nothing to
+    # line up against the art. An authored _s is per texel at the map's own
+    # size, so it is the case the bake does mask: no smoothness, no F0, no
+    # scattering and no emission are carried in a hole.
+    if cutout is not None:
+        s8[cutout] = pbr_bake.NEUTRAL_S
+    Image.fromarray(s8, "RGBA").save(
             out_dir / (stem + "_s.png"), pnginfo=pipeline_chunk())
 
     a = np.clip(albedo, 0.0, 1.0)

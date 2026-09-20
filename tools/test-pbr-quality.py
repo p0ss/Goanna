@@ -169,6 +169,82 @@ class PbrQualityTest(unittest.TestCase):
                                  self.root / "marked_s.png", "stone")
         self.assertEqual(report["pipeline"], quality.AUTHORED)
 
+    def cut_out_source(self, size=16):
+        """16 px art whose left half is a hole, the shape a cut-out has."""
+        art = np.zeros((size, size, 4), dtype=np.uint8)
+        art[..., :3] = 128
+        art[..., 3] = 255
+        art[:, : size // 2, 3] = 0
+        path = self.root / "cut.png"
+        Image.fromarray(art, "RGBA").save(path)
+        return path
+
+    def test_author_library_neutralises_a_cut_out(self):
+        # tools/pbr_bake.py's mask_transparent_regions puts the bake's
+        # neutral in the texels a source draws nothing in, and the gate
+        # holds the authored maps to the same rule. The same fields packed
+        # twice, once behind a cut-out and once behind art that fills the
+        # tile, must differ in the holes and nowhere else.
+        size = author.SIZE
+        ramp = np.tile(np.linspace(0.0, 1.0, size, dtype=np.float32), (size, 1))
+        solid = np.full((size, size, 4), 0.5, dtype=np.float32)
+        solid[..., 3] = 1.0
+        cut = solid.copy()
+        cut[:, : size // 2, 3] = 0.0
+        author.pack("solid", self.root, solid, ramp, ramp, "stone", 8.0)
+        author.pack("cut", self.root, cut, ramp, ramp, "stone", 8.0)
+        hole = np.zeros((size, size), dtype=bool)
+        hole[:, : size // 2] = True
+        for suffix, neutral in (("_n.png", bake.NEUTRAL_N),
+                                ("_s.png", bake.NEUTRAL_S)):
+            filled = np.asarray(
+                Image.open(self.root / ("solid" + suffix)).convert("RGBA"))
+            masked = np.asarray(
+                Image.open(self.root / ("cut" + suffix)).convert("RGBA"))
+            neutral = np.array(neutral, dtype=np.uint8)
+            self.assertTrue((masked[hole] == neutral).all())
+            # The fields are derived across the whole tile before anything
+            # is masked, so a drawn texel beside a hole keeps the slope and
+            # the occlusion it had. Byte identical, not merely close.
+            self.assertTrue((masked[~hole] == filled[~hole]).all())
+            # And the holes were carrying something else before the mask,
+            # so the assertion above is not passing on an accident.
+            self.assertFalse((filled[hole] == neutral).all())
+        report = quality.inspect("cut", self.root / "cut_n.png",
+                                 self.root / "cut_s.png", "stone",
+                                 str(self.cut_out_source()))
+        self.assertNotIn("transparent pixels are not neutral in the normal map",
+                         report["failures"])
+
+    def test_author_library_takes_a_cut_out_from_an_explicit_alpha(self):
+        # A script that upscales its art as RGB has no alpha in the albedo
+        # for pack to read, so it passes the source's own instead.
+        size = author.SIZE
+        ramp = np.tile(np.linspace(0.0, 1.0, size, dtype=np.float32), (size, 1))
+        rgb = np.full((size, size, 3), 0.5, dtype=np.float32)
+        alpha = np.ones((size, size), dtype=np.float32)
+        alpha[:, : size // 2] = 0.0
+        author.pack("rgb_art", self.root, rgb, ramp, ramp, "stone", 8.0,
+                    alpha=alpha)
+        normal = np.asarray(
+            Image.open(self.root / "rgb_art_n.png").convert("RGBA"))
+        hole = np.zeros((size, size), dtype=bool)
+        hole[:, : size // 2] = True
+        self.assertTrue((normal[hole] ==
+                         np.array(bake.NEUTRAL_N, dtype=np.uint8)).all())
+
+    def test_author_library_leaves_art_that_fills_the_tile_alone(self):
+        size = author.SIZE
+        ramp = np.tile(np.linspace(0.0, 1.0, size, dtype=np.float32), (size, 1))
+        opaque = np.full((size, size, 4), 0.5, dtype=np.float32)
+        opaque[..., 3] = 1.0
+        author.pack("opaque", self.root, opaque, ramp, ramp, "stone", 8.0)
+        author.pack("three", self.root, opaque[..., :3], ramp, ramp, "stone", 8.0)
+        for suffix in ("_n.png", "_s.png"):
+            self.assertEqual(
+                (self.root / ("opaque" + suffix)).read_bytes(),
+                (self.root / ("three" + suffix)).read_bytes())
+
     def test_review_rules_are_ordered_and_exact_entries_win(self):
         path = self.root / "review.json"
         path.write_text(json.dumps({
