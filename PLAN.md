@@ -165,143 +165,11 @@ Sizing, by what happens to those ~57k lines:
   threading is unproblematic (session thread + Godot main thread with two
   mutexes). The sizing above holds or is pessimistic.
 
-## Log since v0.6.1-alpha (2026-09-02)
+## Log since v0.8.0-alpha (2026-09-16)
 
-The 0.5 and 0.6 series were released without a section here. What they
-contain is in `docs/release-v0.6.0-alpha.md` and
-`docs/release-v0.6.1-alpha.md`; this section does not reconstruct them after
-the fact.
-
-- The community PBR bake was lost and rebuilt, 2026-09-09. The staging root
-  had been `/tmp`, which is tmpfs on this box, so the reboot of 2026-09-07
-  took the extracted sources, every composed map and the log of a run that
-  was most of the way through. `tools/pbr_stage_sources.py` now rebuilds the
-  sources from `pbr_packs/COMMUNITY_LOCK.json`, refusing any archive whose
-  hash does not match the lock the licence audit was written against, and
-  the overnight queue works from `~/.local/share/goanna-pbr-audit`.
-
-- The generation had survived on ordinary disk, because ComfyUI keeps every
-  image it produces. `pbr_bake.py --reuse-outputs` composes from a previous
-  run's saved detail pass and Chord maps and generates only the gaps: 644 of
-  947 textures came back that way at about 0.7 s each against 31 s to
-  generate, and a reused `br_carpet_0` is byte identical to a fresh bake of
-  the same stem at seed 1. The full queue then ran 13:26 to 15:53, against
-  the six to seven hours a bare re-bake would have cost.
-
-- The acceptance gate was measuring the fill it had asked for. It averaged
-  whole images, including the neutral written into transparent cut-outs, and
-  `NEUTRAL_S` alone is smoother than a foliage sprite's reviewed maximum, so
-  60 of 72 community billboards failed as too smooth while their material
-  texels sat at 0.10 to 0.12 against a 0.15 band. Masking the statistics to
-  the texels the source authored, which the colour drift check had always
-  done, removed 59 false failures and uncovered 31 real ones: maps whose
-  height never reaches its high reference inside the art, satisfied until
-  then by the fill's own 255. That second half was a bake defect, since the
-  height range was taken over the whole generated image including whatever
-  the model invented in the cut-out, and it is now taken over the opaque
-  texels.
-
-- Three reviewed judgements, on the evidence the gate produced. Glass,
-  stained glass and covellite are dielectric at `terrain-v1.1`: the leaded
-  edge and submetallic lustre arguments are true of real materials and not
-  of dark pixel art, where a metal read renders near black. A reviewed metal
-  or mixed material is allowed to be dark, so flint and steel, the muskets
-  and the flashlights now warn instead of failing. Four near transparent
-  tint overlays left the community terrain tranche rather than being
-  rebaked, which takes it to 205.
-
-- After all of that, recomposed in ten minutes with no GPU: 943 textures
-  checked, 0 failed, 229 warned, of which 225 are wrap seam warnings and 6
-  are dark art carrying reviewed metalness. Nothing here is a release
-  claim. The gate is half the acceptance test and the failures-first review
-  sheets under each stage have not been looked at by a person, no bundle has
-  been built from these maps, and `README.md` is unchanged.
-
-- Far region skirts wound both Z faces the same way once the mesher's Z
-  mirroring is accounted for, so back face culling opened repeated
-  horizontal cracks through terraced far hillsides. Fixed and covered by a
-  `goanna_lod_test` case. Not yet observed against a server: the test
-  asserts the winding, not the picture.
-
-- A correctly audited community source could not pass the licence gate,
-  2026-09-13. `lessdirt` declares CC BY-SA per file, which is the case
-  `docs/pbr-community-review.md` says needs a per-file mapping, and the
-  mapping already existed: `pbr_texturepack_intake.py` records an exact
-  licence against every selected file. The gate now resolves any package
-  whose summary is not a single accepted licence from those records, and
-  fails it if the mapping is missing, if a file carries no exact licence, or
-  if any recorded licence is outside the accepted set. A rejected
-  package-level licence still fails first, so this is narrower than the check
-  it replaces, not wider.
-
-- Enhanced materials are distributed from this repository, 2026-09-13.
-  `asset_bundles/catalogue.json` is tracked and served raw from the default
-  branch, with absolute URLs into the epoch's release assets, so a shipped
-  client sees new bundles by refetching one small file rather than by being
-  rebuilt. The release carries archives only and is published as a
-  pre-release, so there is no second catalogue to diverge and an asset epoch
-  cannot become the repository's latest release. Building no longer writes a
-  catalogue, since its default wrote a relative URL that only resolved in the
-  arrangement being removed, and `tools/check-asset-catalogue.py` refuses to
-  publish a release the catalogue does not name. That last failure had
-  already happened: the tracked catalogue listed one bundle while four were
-  built. **Not yet observed**: no client has downloaded a bundle from a
-  served catalogue. What is checked is local, that an archive installs under
-  its recorded hash and is refused under the superseded one.
-
-- Published art no longer names the baking machine, 2026-09-13. Every bundle
-  ships an `ATTRIBUTION.md` whose first paragraph gave the absolute path the
-  source game was installed at. `pbr_bake.py` now names the game instead, and
-  all four bundles were rebuilt with byte-identical texture payloads.
-
-- The default-look work is a checkpoint, not an overhaul, 2026-09-13. Two
-  review passes were rejected; `docs/default-look.md` records what landed and
-  what is still open, including that the daylight treatment is too slight to
-  claim and that the shared lamp/shadow budget can drop visible room lighting
-  as the camera moves.
-
-- Material calibration, 2026-09-15. Feedback on Mineclonia in full sun
-  said "plastic", and the guess behind it was missing normal and albedo
-  maps. Two new offline fixtures measure the renderer instead of guessing:
-  `project/material_ramp.tscn` (a roughness and metalness ramp beside the
-  pack's core sets, with the sun swept to each column's mirror direction)
-  and `project/water_ramp.tscn` (water over sand at five depths beside dry
-  sand). Findings in `docs/material-calibration.md`: the pack's terrain
-  shows almost no specular in daylight, spreading its roughness maps
-  (`tools/pbr_spec_variance.py`, new) moves nothing by more than a count in
-  the sun, a dielectric loses the sun glint above smoothness 230, and no
-  surface can show a mirror because nothing but the sky is there to
-  reflect. What did measure wrong was the water: the bed seen through it
-  was lit twice and the deep body was a half strength tile under the full
-  sun, so deep water sat at seven tenths of the dry sand's brightness.
-  `water.gdshader` now sends the transmitted bed out as emission and lights
-  only a dim scatter term; deep water fell to a third to a half of the sand
-  from thirty degrees and converges on the reflected sky from twelve.
-  Fixture only: no Mineclonia server was up and the tree carried another
-  session's C++. The saturation question (ACES plus 1.15 on top, against
-  reference frames at half the saturation) is deliberately left for after
-  these three.
-
-- Authored PBR pack, 2026-09-15 to 16. The plastic look turned out to be
-  structure, not specular: the bake embosses the pixel grid (median texel
-  tilt six degrees, occlusion never under 0.81). `tools/pbr_author/` now
-  holds a script per stem that builds height and smoothness fields from
-  the 16 px art, about a hundred and eighty stems across three fleets of
-  Sonnet subagents (surfaces, ores, furniture, doors and cut-outs, four
-  colour families, stone variants and glowing blocks), each batch judged
-  on the close-up ramp and reworked where the user's eye caught what the
-  metrics passed. The node shader gained parallax occlusion with self
-  shadow, under a millisecond a frame on a full screen wall, with depth
-  per material class. The authored sets are installed into the
-  shipped `pbr_packs/mineclonia` (2026-09-16, a0eee77) at the user's
-  direction after review in play, and also sit in the launcher's texture
-  pack list as `mineclonia_authored`. Two client fixes came out of the
-  in-game review: the mesher's binormal handedness, which had every
-  normal map upside down along a tile's V axis, and the companion lookup
-  for composite tiles, which had the grass block's dirt side flat.
-  Mineclonia has no asset bundle in the catalogue yet; the pack reaches a
-  player through the texture pack setting or a worldmod. Findings in
-  `docs/material-calibration.md`.
+The v0.8.0-alpha tag is `3f476b4`, 2026-09-16 22:39 +1000. The Kythen
+authoring run below straddles that date: its first commit landed seven
+minutes after the tag, so the whole run sits in this section.
 
 - Kythen authored, 2026-09-16 to 17. The playbook's first run on a second
   game: 228 stems across the eight cultures in fifteen agent batches,
@@ -382,6 +250,40 @@ the fact.
   Material Maker library. Not yet done: the cost of a large lava lake near
   the player is not measured, a pack's separate flowing artwork is replaced
   by the source artwork, and the full animation strip is not played.
+
+- Ice keeps its shader globals across a change of world, 2026-09-18 to 19.
+  The ice renderer added its four global uniforms when a world started and
+  removed them when it ended, while the shader and its materials stay cached
+  between worlds, so the next world's ice bound to globals that were no
+  longer there. They are declared in `project.godot` now, like the other
+  globals, and the renderer only sets and clears their values. The shader
+  also stops sampling the transmission background unless it is ready and the
+  ice is not solid, since an unbound texture can return NaN and NaN survives
+  being multiplied by zero. Verified: `tests/ice_reload.gd` builds the ice
+  renderer three times around one retained material, and loads two and three
+  match the first with zero changed pixels on Godot 4.5.1. Not yet observed
+  leaving and rejoining a world with ice in play.
+
+- Dig damage shared between players, 2026-09-18 to 19. A Goanna client has
+  always carved the block it digs on its own screen. With
+  `goanna_shared_dig_damage` on, the client also reports the carve when a dig
+  ends, the server mod's `damage.lua` stores it in the node's metadata under
+  `goanna_carve`, and every Goanna client draws what it finds there. That is
+  the one step where a client's account is trusted, so the server checks
+  reach, caps the size and rate limits reports, and the setting is off by
+  default; a server started from Goanna's own menu turns it on, since the
+  operator there is the player. Dig progress is untouched, and the server
+  still enforces how long a block takes to break. Three faults from play are
+  fixed with it: a block with stored damage started whole again when struck,
+  damage vanished after a dozen or so blocks because carves were read only
+  when a node changed in view and are now read from each block as it arrives,
+  and two carved blocks side by side each closed the gap with a full face for
+  the other. `content_mapblock.cpp` is touched, and its header note and
+  inventory row are updated. Not done: carved nodes lose their bevel, and
+  explosions leave no damage. The maintainer saw carves persist in play on a
+  Goanna-launched server before those three fixes. The fixes themselves are
+  built and unit tested but not seen in play, and no run with a second client
+  is recorded.
 
 - Luanti 5.17.0, 2026-09-19. The `luanti/` submodule moves from 5.16.1 to
   5.17.0 (protocol version 53, formspec version 11) on the `luanti-5.17`
@@ -800,6 +702,201 @@ the fact.
   while a field is being edited, Goanna's first Escape only ends the
   editing (Godot's `LineEdit` takes `ui_cancel`) and a second one closes
   the form; what the vanilla client does there was not checked.
+
+- Freeminer servers, 2026-09-19. Whether Goanna can join them had not been
+  checked. `docs/freeminer-plan.md` answers it from Freeminer's current
+  master (`5d2c77028`, merged with Luanti 5.17.0) and from a locally built
+  server, rather than from the project's old documentation. A default
+  Freeminer build speaks Luanti's protocol on its main port and negotiates
+  protocol 53 with a Luanti 5.17.0 client; Goanna on the `luanti-5.17` branch
+  joined it with devtest and Mineclonia, with no code change, and its own far
+  field worked there through `goanna_server_mod`. What Freeminer adds (far
+  view over its own msgpack commands, 32-bit positions at protocol 148, wind
+  physics) needs a second protocol path or a build against Freeminer's
+  GPL-3.0-or-later tree, so the plan recommends documenting the working case
+  and nothing more yet, and says what would change that. Found on the way:
+  the Freeminer server crashes on fresh worlds with several emerge threads,
+  reproduced with the stock Luanti client and no Goanna mod, and clean with
+  one thread. No Goanna code changed.
+
+- Sub node damage measured from the node's own shape, 2026-09-19 to 20. The
+  v1 model measured a dig as an inset from the cube's six faces, so a blow on
+  a thin moss layer or a ramp's slope could land past the shape's real
+  surface and remove nothing. Kythen's `mods/kythen/core/radial_form.lua`
+  (commit 809475f, branch `form/damage`) replaced that with damage measured
+  from the shape's own derived carve centre and present position, a delta and
+  crater pair per control, a strike gated by both the struck normal and the
+  hit's own direction, a six connected flood fill so a pit cannot leave
+  floating fragments, and a crack stage tied to connected volume against the
+  shape's own pristine volume. That rule is ported into
+  `goanna_radial_form.{h,cpp}` and the v1 displacement model is removed: one
+  damage model, not two. A node's own resolved boxes feed the same rule,
+  which is what a Kythen mound or a Mineclonia slab or stair arrives as over
+  the ordinary protocol, so no node type channel is needed, and solid nodes
+  and nodeboxes both draw their carve from the live dig or from a carve the
+  server has stored. A stored carve now earns a persistent crack stage on
+  every damaged node rather than only the one under this player's tool, in
+  two visible states rather than the full five frames, because the
+  transplanted material flags have two bits spare. A reported carve is hex
+  encoded over the mod channel: Luanti hands such a message to Lua as a C
+  string, the codec's header and mask bytes make a zero byte common, and the
+  stored carve was being truncated there. A game can claim the
+  `goanna_carve` key with `goanna_carve_authority=game`, and the relay then
+  does not run at all, so a client's guess cannot overwrite a game's
+  validated answer; local dig prediction is untouched. Verified:
+  `goanna_radial_form_test`, rewritten against
+  `tools/dig-review/reference_v3.json`, a copy of Kythen's own generator
+  output, passes 7083 checks matching centroid, present position, delta,
+  crater, connected occupancy cell for cell, stage and the encoded wire bytes
+  byte for byte, and `check_kythen.py` re-runs that generator against a live
+  Kythen checkout to show whether the copy or the port has drifted. The hex
+  fault was found in `tools/dig-review`'s own live dig screenshots, where a
+  punched cube showed no visible carve under `goanna_shared_dig_damage` and
+  carved correctly after the fix. Not verified: which server, game and Godot
+  version that was, a game claiming the authority key, and any run with a
+  second client.
+
+## Log since v0.6.1-alpha (2026-09-02), covering v0.7.0-alpha and v0.8.0-alpha
+
+The 0.5 and 0.6 series were released without a section here. What they
+contain is in `docs/release-v0.6.0-alpha.md` and
+`docs/release-v0.6.1-alpha.md`; this section does not reconstruct them after
+the fact.
+
+v0.7.0-alpha (2026-09-14) and v0.8.0-alpha (2026-09-16) were then tagged
+without a section of their own, so what follows is two release cycles under
+one heading, ending at the v0.8.0-alpha tag.
+
+- The community PBR bake was lost and rebuilt, 2026-09-09. The staging root
+  had been `/tmp`, which is tmpfs on this box, so the reboot of 2026-09-07
+  took the extracted sources, every composed map and the log of a run that
+  was most of the way through. `tools/pbr_stage_sources.py` now rebuilds the
+  sources from `pbr_packs/COMMUNITY_LOCK.json`, refusing any archive whose
+  hash does not match the lock the licence audit was written against, and
+  the overnight queue works from `~/.local/share/goanna-pbr-audit`.
+
+- The generation had survived on ordinary disk, because ComfyUI keeps every
+  image it produces. `pbr_bake.py --reuse-outputs` composes from a previous
+  run's saved detail pass and Chord maps and generates only the gaps: 644 of
+  947 textures came back that way at about 0.7 s each against 31 s to
+  generate, and a reused `br_carpet_0` is byte identical to a fresh bake of
+  the same stem at seed 1. The full queue then ran 13:26 to 15:53, against
+  the six to seven hours a bare re-bake would have cost.
+
+- The acceptance gate was measuring the fill it had asked for. It averaged
+  whole images, including the neutral written into transparent cut-outs, and
+  `NEUTRAL_S` alone is smoother than a foliage sprite's reviewed maximum, so
+  60 of 72 community billboards failed as too smooth while their material
+  texels sat at 0.10 to 0.12 against a 0.15 band. Masking the statistics to
+  the texels the source authored, which the colour drift check had always
+  done, removed 59 false failures and uncovered 31 real ones: maps whose
+  height never reaches its high reference inside the art, satisfied until
+  then by the fill's own 255. That second half was a bake defect, since the
+  height range was taken over the whole generated image including whatever
+  the model invented in the cut-out, and it is now taken over the opaque
+  texels.
+
+- Three reviewed judgements, on the evidence the gate produced. Glass,
+  stained glass and covellite are dielectric at `terrain-v1.1`: the leaded
+  edge and submetallic lustre arguments are true of real materials and not
+  of dark pixel art, where a metal read renders near black. A reviewed metal
+  or mixed material is allowed to be dark, so flint and steel, the muskets
+  and the flashlights now warn instead of failing. Four near transparent
+  tint overlays left the community terrain tranche rather than being
+  rebaked, which takes it to 205.
+
+- After all of that, recomposed in ten minutes with no GPU: 943 textures
+  checked, 0 failed, 229 warned, of which 225 are wrap seam warnings and 6
+  are dark art carrying reviewed metalness. Nothing here is a release
+  claim. The gate is half the acceptance test and the failures-first review
+  sheets under each stage have not been looked at by a person, no bundle has
+  been built from these maps, and `README.md` is unchanged.
+
+- Far region skirts wound both Z faces the same way once the mesher's Z
+  mirroring is accounted for, so back face culling opened repeated
+  horizontal cracks through terraced far hillsides. Fixed and covered by a
+  `goanna_lod_test` case. Not yet observed against a server: the test
+  asserts the winding, not the picture.
+
+- A correctly audited community source could not pass the licence gate,
+  2026-09-13. `lessdirt` declares CC BY-SA per file, which is the case
+  `docs/pbr-community-review.md` says needs a per-file mapping, and the
+  mapping already existed: `pbr_texturepack_intake.py` records an exact
+  licence against every selected file. The gate now resolves any package
+  whose summary is not a single accepted licence from those records, and
+  fails it if the mapping is missing, if a file carries no exact licence, or
+  if any recorded licence is outside the accepted set. A rejected
+  package-level licence still fails first, so this is narrower than the check
+  it replaces, not wider.
+
+- Enhanced materials are distributed from this repository, 2026-09-13.
+  `asset_bundles/catalogue.json` is tracked and served raw from the default
+  branch, with absolute URLs into the epoch's release assets, so a shipped
+  client sees new bundles by refetching one small file rather than by being
+  rebuilt. The release carries archives only and is published as a
+  pre-release, so there is no second catalogue to diverge and an asset epoch
+  cannot become the repository's latest release. Building no longer writes a
+  catalogue, since its default wrote a relative URL that only resolved in the
+  arrangement being removed, and `tools/check-asset-catalogue.py` refuses to
+  publish a release the catalogue does not name. That last failure had
+  already happened: the tracked catalogue listed one bundle while four were
+  built. **Not yet observed**: no client has downloaded a bundle from a
+  served catalogue. What is checked is local, that an archive installs under
+  its recorded hash and is refused under the superseded one.
+
+- Published art no longer names the baking machine, 2026-09-13. Every bundle
+  ships an `ATTRIBUTION.md` whose first paragraph gave the absolute path the
+  source game was installed at. `pbr_bake.py` now names the game instead, and
+  all four bundles were rebuilt with byte-identical texture payloads.
+
+- The default-look work is a checkpoint, not an overhaul, 2026-09-13. Two
+  review passes were rejected; `docs/default-look.md` records what landed and
+  what is still open, including that the daylight treatment is too slight to
+  claim and that the shared lamp/shadow budget can drop visible room lighting
+  as the camera moves.
+
+- Material calibration, 2026-09-15. Feedback on Mineclonia in full sun
+  said "plastic", and the guess behind it was missing normal and albedo
+  maps. Two new offline fixtures measure the renderer instead of guessing:
+  `project/material_ramp.tscn` (a roughness and metalness ramp beside the
+  pack's core sets, with the sun swept to each column's mirror direction)
+  and `project/water_ramp.tscn` (water over sand at five depths beside dry
+  sand). Findings in `docs/material-calibration.md`: the pack's terrain
+  shows almost no specular in daylight, spreading its roughness maps
+  (`tools/pbr_spec_variance.py`, new) moves nothing by more than a count in
+  the sun, a dielectric loses the sun glint above smoothness 230, and no
+  surface can show a mirror because nothing but the sky is there to
+  reflect. What did measure wrong was the water: the bed seen through it
+  was lit twice and the deep body was a half strength tile under the full
+  sun, so deep water sat at seven tenths of the dry sand's brightness.
+  `water.gdshader` now sends the transmitted bed out as emission and lights
+  only a dim scatter term; deep water fell to a third to a half of the sand
+  from thirty degrees and converges on the reflected sky from twelve.
+  Fixture only: no Mineclonia server was up and the tree carried another
+  session's C++. The saturation question (ACES plus 1.15 on top, against
+  reference frames at half the saturation) is deliberately left for after
+  these three.
+
+- Authored PBR pack, 2026-09-15 to 16. The plastic look turned out to be
+  structure, not specular: the bake embosses the pixel grid (median texel
+  tilt six degrees, occlusion never under 0.81). `tools/pbr_author/` now
+  holds a script per stem that builds height and smoothness fields from
+  the 16 px art, about a hundred and eighty stems across three fleets of
+  Sonnet subagents (surfaces, ores, furniture, doors and cut-outs, four
+  colour families, stone variants and glowing blocks), each batch judged
+  on the close-up ramp and reworked where the user's eye caught what the
+  metrics passed. The node shader gained parallax occlusion with self
+  shadow, under a millisecond a frame on a full screen wall, with depth
+  per material class. The authored sets are installed into the
+  shipped `pbr_packs/mineclonia` (2026-09-16, a0eee77) at the user's
+  direction after review in play, and also sit in the launcher's texture
+  pack list as `mineclonia_authored`. Two client fixes came out of the
+  in-game review: the mesher's binormal handedness, which had every
+  normal map upside down along a tile's V axis, and the companion lookup
+  for composite tiles, which had the grass block's dirt side flat.
+  Mineclonia has no asset bundle in the catalogue yet; the pack reaches a
+  player through the texture pack setting or a worldmod. Findings in
+  `docs/material-calibration.md`.
 
 ## Log since v0.4.1-alpha (2026-08-30)
 
