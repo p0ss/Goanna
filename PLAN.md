@@ -756,6 +756,84 @@ minutes after the tag, so the whole run sits in this section.
   version that was, a game claiming the authority key, and any run with a
   second client.
 
+- Cutting v0.9.0-alpha, 2026-09-20. The release itself turned up five
+  defects, three of them in work that had already shipped.
+
+  The asset epoch the catalogue pointed at had never been published.
+  `assets-2026.09.1` sat as an untagged draft, so every bundle URL in
+  `asset_bundles/catalogue.json` answered 404 and no client could install
+  anything. `tools/publish-assets.sh` creates the release with `--draft`
+  and prints a reminder to publish it by hand, which is the step that was
+  missed on 2026-09-13. Everything is now in `assets-2026.09.2`, published,
+  and all five URLs answer 200.
+
+  Mineclonia's maps are a bundle: `org.goanna.mineclonia.pack` 1.0.0, 1021
+  pairs, 95 MB, companions only, no albedo. One bundle rather than Kythen's
+  three, because that split comes from three bake stages driven by nodedef
+  manifests and Mineclonia had no manifest at all until this release. It
+  does not make the authored look a default on a remote join: the Join Game
+  screen defaults to a choice whose pack path is empty, and a pack cannot
+  be handed over after connect, so a player still picks Installed
+  Mineclonia PBR. A world hosted in Goanna does serve the maps with no
+  setting touched.
+
+  The shipped pack was a stale bake. `CLASS_HEIGHT_DEPTH` and the height
+  encoding landed 2026-09-09; 839 of the pack's 846 baked stems were
+  written in August and overran an envelope that did not exist then. Nobody
+  knew because `tools/check-pbr-quality.py` measured every authored map by
+  the bake's convention too, and reported 1016 of 1023 failures, which read
+  as noise. The gate now reads a `goanna_pipeline=authored` PNG chunk that
+  `tools/pbr_author/lib.py` writes, and measures an authored height field by
+  its own rule; baked corpora report identically before and after. The
+  re-bake itself was a recompose: every generation from the 2026-08-20
+  ComfyUI queue survived on Pockets, so 1021 stems cost minutes rather than
+  the seven hours a fresh bake would. Terrain and billboard both report 0
+  failed.
+
+  Three smaller faults on the way. `tools/pbr_author/lib.py` never
+  neutralised a cut-out's transparent texels where the bake does, so 20
+  Mineclonia and 32 Kythen sprites carried authored fields in texels the
+  art does not draw. 57 Kythen scripts that delegate to a family module
+  never declared `GAME`, so a Mineclonia run built them and installed
+  `kythen_` stems into the Mineclonia pack. And `project/shots`, 99 MB of
+  gitignored test screenshots, was being swept into `Goanna.pck` by
+  `export_filter=all_resources`: the first 0.9.0 package was 150 MB against
+  0.8.0's 77 MB.
+
+  The client could not install a bundle at all. `AssetStore.install_archive`
+  compared its `_n` and `_s` stem dictionaries with `keys() != keys()`,
+  which compares arrays in order, and the sorted ledger puts a stem that is
+  a prefix of another stem in a different position in each list
+  (`mcl_bamboo_bamboo` before `mcl_bamboo_bamboo_plank` among normals,
+  after it among materials). A fresh profile joining a Mineclonia server
+  fetched the whole 95 MB archive and threw it away. This had never fired
+  because no client had ever downloaded a bundle.
+
+  Verified after the fixes, on a Luanti 5.17.0 Flatpak server, Mineclonia,
+  Godot 4.5.1: a fresh profile joined, fetched the archive from the
+  published catalogue, checked its hash, installed 1021 pairs and composed
+  `profiles/mineclonia/textures`, 2042 files, with nothing in the log. That
+  is the first bundle install there has ever been. The Linux package was
+  built and connected to the same server, media 5902 of 5902, blocks
+  meshed, player on the ground.
+
+  Not done, and worth picking up. Eleven of the 1021 maps ship with a
+  quality failure, five of them soil where `lib.pack`'s `keep_mean` clips
+  at zero and lifts the mean it was setting, the rest near misses on bands
+  the classification review calls defaults rather than judgements;
+  `asset_bundles/recipes/mineclonia-pack-1.0.0.json` names them. Kythen's
+  authored set still has the cut-out fault and three scripts
+  (`kythen_moana_lava_lichen`, `kythen_moana_peat_moss`,
+  `kythen_norse_lichen_ground`) hand `pack` an RGB albedo, so those nodes
+  draw as solid squares. `lib.metrics` measures over holes, so
+  `build_pack.py --check` now prints failures on cut-outs that are reading
+  the neutral fill. And `tools/goanna-headless start` failed twice today:
+  gamescope and Godot come up, then a zenity dialogue appears inside the
+  nested display and the client exits before the control channel opens
+  (`~/.cache/goanna-headless/goanna-30870-20260920-170019/output.log`).
+  Nothing reached the desktop. The plain `--headless` client is unaffected,
+  which is what every measurement here used.
+
 ## Log since v0.6.1-alpha (2026-09-02), covering v0.7.0-alpha and v0.8.0-alpha
 
 The 0.5 and 0.6 series were released without a section here. What they
