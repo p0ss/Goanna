@@ -23,6 +23,9 @@ Conventions, all fixed here so a per stem script cannot get them wrong:
              class is metal, B is the class scattering byte (leaves, ice,
              snow) or 0, A is 255 (no emission).
   size       256, the bake's map size, so a set drops into the pack.
+  marker     _n and _s carry a goanna_pipeline=authored PNG text chunk, so
+             tools/check-pbr-quality.py measures the height above by the
+             rule it is built to rather than the bake's. See PIPELINE_KEY.
 
 Targets the ramp is judged on (tools/pbr_author/README.md has the why):
 
@@ -43,12 +46,24 @@ import sys
 from pathlib import Path
 
 import numpy as np
-from PIL import Image
+from PIL import Image, PngImagePlugin
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import pbr_bake  # noqa: E402
 
 SIZE = 256
+# Every map this module writes carries a PNG text chunk naming the pipeline
+# that made it, because the two pipelines encode the _n alpha differently and
+# a reader cannot tell them apart from the bytes without guessing.
+# tools/pbr_bake.py writes height as a class sized depth below a neutral 255;
+# pack() below writes the authored field across the whole byte and leaves the
+# depth to the shader's own class table (goanna_class_depth in
+# project/shaders/nodes_array_common.gdshaderinc). tools/check-pbr-quality.py
+# reads the chunk and picks the height rules from it. The chunk travels with
+# the file: build_pack.py installs by copying bytes and tools/pbr_bundle.py
+# stores the same bytes in the archive.
+PIPELINE_KEY = "goanna_pipeline"
+PIPELINE = "authored"
 REPO = Path(__file__).resolve().parent.parent.parent
 GAMES_DIR = Path(os.environ.get("GOANNA_GAMES_DIR", os.path.expanduser(
         "~/.var/app/org.luanti.luanti/.minetest/games")))
@@ -363,6 +378,13 @@ def sss_byte(cls):
 
 # --- packing ---------------------------------------------------------------
 
+def pipeline_chunk():
+    """The PNG text chunk that marks a map as authored. See PIPELINE_KEY."""
+    info = PngImagePlugin.PngInfo()
+    info.add_text(PIPELINE_KEY, PIPELINE)
+    return info
+
+
 def pack(stem, out_dir, albedo, height, smoothness, cls, normal_strength,
         metal_mask=None, ao_radius=6, keep_mean=True, emission=None, f0=None,
         fine_detail=0.35, art_texels=16):
@@ -396,7 +418,8 @@ def pack(stem, out_dir, albedo, height, smoothness, cls, normal_strength,
     n[..., :2] = xy * 0.5 + 0.5
     n[..., 2] = ao
     n[..., 3] = height
-    Image.fromarray((n * 255.0 + 0.5).astype(np.uint8), "RGBA").save(out_dir / (stem + "_n.png"))
+    Image.fromarray((n * 255.0 + 0.5).astype(np.uint8), "RGBA").save(
+            out_dir / (stem + "_n.png"), pnginfo=pipeline_chunk())
 
     level, _, is_metal = class_spec(cls)
     sm = np.clip(smoothness, 0.0, 1.0).astype(np.float32)
@@ -431,7 +454,8 @@ def pack(stem, out_dir, albedo, height, smoothness, cls, normal_strength,
     else:
         e = np.clip(emission, 0.0, 1.0).astype(np.float32)
         s[..., 3] = np.where(e > 0.002, e * 254.0 / 255.0, 1.0)
-    Image.fromarray((s * 255.0 + 0.5).astype(np.uint8), "RGBA").save(out_dir / (stem + "_s.png"))
+    Image.fromarray((s * 255.0 + 0.5).astype(np.uint8), "RGBA").save(
+            out_dir / (stem + "_s.png"), pnginfo=pipeline_chunk())
 
     a = np.clip(albedo, 0.0, 1.0)
     if a.ndim == 3 and a.shape[2] == 4:

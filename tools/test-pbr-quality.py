@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 
 import numpy as np
-from PIL import Image
+from PIL import Image, PngImagePlugin
 
 
 TOOLS = Path(__file__).parent
@@ -21,6 +21,11 @@ spec = importlib.util.spec_from_file_location("pbr_bake", TOOLS / "pbr_bake.py")
 bake = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(bake)
 
+spec = importlib.util.spec_from_file_location("pbr_author_lib",
+                                              TOOLS / "pbr_author" / "lib.py")
+author = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(author)
+
 
 class PbrQualityTest(unittest.TestCase):
     def setUp(self):
@@ -30,18 +35,27 @@ class PbrQualityTest(unittest.TestCase):
     def tearDown(self):
         self.temp.cleanup()
 
-    def maps(self, smooth=31, metal=10, transparent_bad=False):
+    def maps(self, smooth=31, metal=10, transparent_bad=False, height=None,
+             sloped=False, authored=False):
         normal = np.zeros((16, 16, 4), dtype=np.uint8)
         normal[..., :2] = 128
         normal[..., 2] = 255
-        normal[..., 3] = np.linspace(115, 255, 16, dtype=np.uint8)[None, :]
+        if height is None:
+            height = np.linspace(115, 255, 16, dtype=np.uint8)
+        normal[..., 3] = np.asarray(height, dtype=np.uint8)[None, :]
+        if sloped:
+            normal[..., 0] = np.linspace(60, 200, 16, dtype=np.uint8)[None, :]
         if transparent_bad:
             normal[0, 0] = (20, 20, 20, 20)
         spec_map = np.zeros((4, 4, 4), dtype=np.uint8)
         spec_map[...] = (smooth, metal, 0, 255)
+        info = None
+        if authored:
+            info = PngImagePlugin.PngInfo()
+            info.add_text(quality.PIPELINE_KEY, quality.AUTHORED)
         npath, spath = self.root / "tile_n.png", self.root / "tile_s.png"
-        Image.fromarray(normal, "RGBA").save(npath)
-        Image.fromarray(spec_map, "RGBA").save(spath)
+        Image.fromarray(normal, "RGBA").save(npath, pnginfo=info)
+        Image.fromarray(spec_map, "RGBA").save(spath, pnginfo=info)
         return npath, spath
 
     def test_plastic_stone_is_rejected(self):
@@ -104,6 +118,56 @@ class PbrQualityTest(unittest.TestCase):
                               out, (8, 8), review)
         packed = np.asarray(Image.open(out).convert("RGBA"))
         self.assertEqual(set(np.unique(packed[..., 1])), {10})
+
+    def test_authored_height_is_measured_by_the_authored_rule(self):
+        # lib.band holds a cast slab's relief in a narrow band about the
+        # middle of the byte and leaves the depth to the shader's class
+        # table, so the field neither reaches the bake's neutral 255 nor
+        # stays inside the bake's class envelope. Both are true of the same
+        # bytes; only the marker says which rule they were written to.
+        band = np.linspace(96, 160, 16, dtype=np.uint8)
+        npath, spath = self.maps(height=band)
+        baked = quality.inspect("tile", npath, spath, "metal")
+        self.assertEqual(baked["pipeline"], quality.BAKED)
+        self.assertTrue(any("neutral/high" in item for item in baked["failures"]))
+        self.assertTrue(any("depth envelope" in item for item in baked["failures"]))
+        npath, spath = self.maps(height=band, authored=True)
+        authored = quality.inspect("tile", npath, spath, "metal")
+        self.assertEqual(authored["pipeline"], quality.AUTHORED)
+        self.assertEqual(authored["failures"], [])
+
+    def test_crushed_authored_height_still_fails(self):
+        # Half the tile pinned at 0 and half at 255 is a field that ran off
+        # both ends of the byte. The relief between them is gone and the
+        # marker does not bring it back.
+        crushed = np.array([0] * 8 + [255] * 8, dtype=np.uint8)
+        report = quality.inspect("tile", *self.maps(height=crushed,
+                                                    authored=True), "stone")
+        self.assertTrue(any("crushed against the byte rails" in item
+                            for item in report["failures"]))
+
+    def test_flat_authored_height_under_relief_still_fails(self):
+        # An authored normal is derived from the authored height, so a normal
+        # with slope over a height with none is a packing fault, whatever
+        # depth the class asks for.
+        flat = np.full(16, 128, dtype=np.uint8)
+        report = quality.inspect("tile", *self.maps(height=flat, sloped=True,
+                                                    authored=True), "stone")
+        self.assertTrue(any("effectively flat" in item
+                            for item in report["failures"]))
+
+    def test_author_library_marks_the_maps_it_writes(self):
+        size = author.SIZE
+        height = np.tile(np.linspace(0.0, 1.0, size, dtype=np.float32), (size, 1))
+        smoothness = np.full((size, size), 0.12, dtype=np.float32)
+        albedo = np.full((size, size, 3), 0.5, dtype=np.float32)
+        author.pack("marked", self.root, albedo, height, smoothness, "stone", 8.0)
+        for suffix in ("_n.png", "_s.png"):
+            self.assertEqual(quality.pipeline_of(self.root / ("marked" + suffix)),
+                             quality.AUTHORED)
+        report = quality.inspect("marked", self.root / "marked_n.png",
+                                 self.root / "marked_s.png", "stone")
+        self.assertEqual(report["pipeline"], quality.AUTHORED)
 
     def test_review_rules_are_ordered_and_exact_entries_win(self):
         path = self.root / "review.json"
