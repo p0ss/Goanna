@@ -157,8 +157,15 @@ func _download_next() -> void:
 	var downloads := AssetStore.root().path_join("downloads")
 	DirAccess.make_dir_recursive_absolute(downloads)
 	var target := downloads.path_join("%s-%s.zip.part" % [_current.id, _current.version])
-	_http.request_completed.disconnect(_on_catalogue)
-	_http.request_completed.connect(_on_bundle)
+	# _on_bundle calls this again for the next bundle in the queue, by which
+	# time the catalogue handler is long gone and this one is already on, so
+	# both sides have to be idempotent: Godot pushes an error for
+	# disconnecting a connection that is not there and for connecting one
+	# that already is. A Kythen server queues three bundles at once.
+	if _http.request_completed.is_connected(_on_catalogue):
+		_http.request_completed.disconnect(_on_catalogue)
+	if not _http.request_completed.is_connected(_on_bundle):
+		_http.request_completed.connect(_on_bundle)
 	_http.download_file = target
 	_current["target"] = target
 	var url := str(_current.url)
