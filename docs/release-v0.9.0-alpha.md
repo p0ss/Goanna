@@ -58,9 +58,13 @@ actually has.
   1021 normal and material map pairs, 95 MB, 177 of them authored by hand
   and the rest baked. Goanna asks for a bundle by itself once a server
   announces art the bundle covers. Every map was composed again for this
-  release: the shipped pack was the bake of August, written before the
-  height encoding the shader now expects, and 839 of its baked stems
-  overran it. The asset epoch the 0.8.0 catalogue pointed at was never
+  release, and the first attempt at that was wrong: the bake had been
+  pre-multiplying its height field by the material depth that
+  `nodes_array.gdshader` applies again at draw time, so composing to that
+  convention halved the relief of every baked stem, and the quality gate
+  agreed because it enforced the same convention. Both now write the
+  field across the byte and apply the depth once. The asset epoch the
+  0.8.0 catalogue pointed at was never
   published, so until now every bundle URL answered 404 and no client could
   install one; the catalogue now names `assets-2026.09.2`, which is
   published, and Kythen terrain moves to 1.1.0 with it. Watched working

@@ -834,6 +834,44 @@ minutes after the tag, so the whole run sits in this section.
   Nothing reached the desktop. The plain `--headless` client is unaffected,
   which is what every measurement here used.
 
+- Correction, 2026-09-20, same evening. The entry above calls the shipped
+  pack a stale bake and the re-bake a fix. It was the other way round. The
+  maps of August filled the height byte; `pack_deepbump_normal` began
+  pre-multiplying that byte by the material's depth on 2026-09-09, and
+  `nodes_array.gdshader` applies the same depth again at draw time
+  (`h = 1.0 - a`, then `goanna_class_depth(cls) * parallax_depth`), so the
+  encoding the gate was enforcing applied it twice. Composing 844 stems to
+  it took `mcl_copper_block` from a height span of 255 to 46 and flattened
+  the world, which the maintainer saw within the hour of the release:
+  "it still doesn't have the authored ones as default". The authored 177
+  were untouched throughout, which is exactly why the difference read as
+  the authored pack being off.
+
+  The analysis that taught the gate the two encodings had said plainly that
+  the bake's pre-attenuation is a second application of the same table and
+  left it alone as out of scope. I read that and shipped anyway. The lesson
+  is not about the encoding: a gate reporting 0 failed says the art matches
+  the rule the gate holds, and when the rule itself is the thing in
+  question, that number is worth nothing. The evidence that mattered was
+  four lines of shader and a height span, and both were available before
+  the bundle went out.
+
+  Fixed: the bake writes the field across the byte, the gate's two height
+  rules are gone (they existed only to describe the doubled convention) and
+  both pipelines are now measured by one rule, the two tests that asserted
+  the old encoding assert the new one, and every baked map is composed
+  again. Authored stems are byte identical; 844 baked ones move.
+  `default_stone`, which a September re-bake had already flattened to 89 to
+  161, is back to 0 to 255. The gate still reports the same 11 smoothness
+  failures and no height failure on either pipeline.
+
+  Still to do: `org.goanna.mineclonia.pack` 1.0.0, published this evening
+  and installed on at least one machine, carries the flattened maps and
+  needs a 1.1.0 in a new epoch. And damaged blocks read as low resolution
+  because `crack_anylength.png` is 16 by 160 and `draw_crack` scales one
+  16 px stage over a 256 px base; an authored crack in the pack would fix
+  it, since the pack overrides by filename.
+
 ## Log since v0.6.1-alpha (2026-09-02), covering v0.7.0-alpha and v0.8.0-alpha
 
 The 0.5 and 0.6 series were released without a section here. What they
