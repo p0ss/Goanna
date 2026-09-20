@@ -1,0 +1,5253 @@
+[
+	{
+		"name" : "",
+		"textures" : 
+		[
+			"wieldhand.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobs:spawn_stick",
+		"textures" : 
+		[
+			"default_stick.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_end:crystal",
+		"textures" : 
+		[
+			"mcl_end_crystal_item.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_boats:boat_oak_chest",
+		"textures" : 
+		[
+			"mcl_boats_oak_chest_boat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:silence",
+		"textures" : 
+		[
+			"silence_armor_trim_smithing_template.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_boats:boat_acacia_chest",
+		"textures" : 
+		[
+			"mcl_boats_acacia_chest_boat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_boats:boat_birch_chest",
+		"textures" : 
+		[
+			"mcl_boats_birch_chest_boat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:turtle_master_lingering",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_boats:boat_jungle_chest",
+		"textures" : 
+		[
+			"mcl_boats_jungle_chest_boat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_boats:boat_mangrove_chest",
+		"textures" : 
+		[
+			"mcl_boats_mangrove_chest_boat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_boats:boat_spruce_chest",
+		"textures" : 
+		[
+			"mcl_boats_spruce_chest_boat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_pottery_sherds:heartbreak",
+		"textures" : 
+		[
+			"mcl_pottery_sherds_heartbreak.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobitems:glow_ink_sac",
+		"textures" : 
+		[
+			"extra_mobs_glow_ink_sac.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_bows:crossbow_loaded",
+		"textures" : 
+		[
+			"mcl_bows_crossbow_3.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_bows:crossbow_enchanted",
+		"textures" : 
+		[
+			"mcl_bows_crossbow.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_bows:crossbow_loaded_enchanted",
+		"textures" : 
+		[
+			"mcl_bows_crossbow_3.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_armor:chestplate_netherite",
+		"textures" : 
+		[
+			"mcl_armor_inv_chestplate_netherite.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:leggings_netherite",
+		"textures" : 
+		[
+			"mcl_armor_inv_leggings_netherite.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:boots_netherite",
+		"textures" : 
+		[
+			"mcl_armor_inv_boots_netherite.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:fermented_spider_eye",
+		"textures" : 
+		[
+			"mcl_potions_spider_eye_fermented.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:helmet_netherite",
+		"textures" : 
+		[
+			"mcl_armor_inv_helmet_netherite.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_throwing:ender_pearl",
+		"textures" : 
+		[
+			"mcl_throwing_ender_pearl.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_tools:pick_iron",
+		"textures" : 
+		[
+			"default_tool_steelpick.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_tools:sword_iron",
+		"textures" : 
+		[
+			"default_tool_steelsword.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_armor:helmet_iron",
+		"textures" : 
+		[
+			"mcl_armor_inv_helmet_iron.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:weakness_arrow",
+		"textures" : 
+		[
+			"mcl_bows_arrow_inv.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:boots_iron",
+		"textures" : 
+		[
+			"mcl_armor_inv_boots_iron.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:eye",
+		"textures" : 
+		[
+			"eye_armor_trim_smithing_template.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_core:paper",
+		"textures" : 
+		[
+			"default_paper.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_maps:empty_map",
+		"textures" : 
+		[
+			"mcl_maps_map_empty.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_compass:compass",
+		"textures" : 
+		[
+			"mcl_compass_compass_01.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_farming:wheat_item",
+		"textures" : 
+		[
+			"farming_wheat_harvested.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobitems:string",
+		"textures" : 
+		[
+			"mcl_mobitems_string.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:sentry",
+		"textures" : 
+		[
+			"sentry_armor_trim_smithing_template.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:slow_falling_splash",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobitems:nautilus_shell",
+		"textures" : 
+		[
+			"mcl_mobitems_nautilus_shell.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:slow_falling_lingering",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_bows:bow_0",
+		"textures" : 
+		[
+			"mcl_bows_bow_0.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_bows:bow_1",
+		"textures" : 
+		[
+			"mcl_bows_bow_1.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_potions:slow_falling_arrow",
+		"textures" : 
+		[
+			"mcl_bows_arrow_inv.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_paintings:painting",
+		"textures" : 
+		[
+			"mcl_paintings_painting.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_bows:crossbow_0",
+		"textures" : 
+		[
+			"mcl_bows_crossbow_0.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_bows:crossbow_1",
+		"textures" : 
+		[
+			"mcl_bows_crossbow_1.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_bows:crossbow_2",
+		"textures" : 
+		[
+			"mcl_bows_crossbow_2.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_potions:turtle_master",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:chestplate_copper",
+		"textures" : 
+		[
+			"mcl_armor_inv_chestplate_copper.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:turtle_master_splash",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:dragon_breath",
+		"textures" : 
+		[
+			"mcl_potions_dragon_breath.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:awkward",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:weakness",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:mundane",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:thick",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:healing",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:night_vision",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:swiftness",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:fire_resistance",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_fishing:pufferfish_raw",
+		"textures" : 
+		[
+			"mcl_fishing_pufferfish_raw.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:water_breathing",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:poison",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:leaping",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:slow_falling",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:infestation",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:oozing",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:weaving",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:wind_charged",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:harming",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:slowness",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:invisibility",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:luck",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:bad_luck",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:night_vision_splash",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:night_vision_lingering",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:night_vision_arrow",
+		"textures" : 
+		[
+			"mcl_bows_arrow_inv.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_shields:shield_red",
+		"textures" : 
+		[
+			"mcl_shield_48.png"
+		],
+		"wield_scale" : 2
+	},
+	{
+		"name" : "mcl_banners:banner_item_magenta",
+		"textures" : 
+		[
+			"mcl_banners_item_base_48.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_shields:shield_green",
+		"textures" : 
+		[
+			"mcl_shield_48.png"
+		],
+		"wield_scale" : 2
+	},
+	{
+		"name" : "mcl_shields:shield_black",
+		"textures" : 
+		[
+			"mcl_shield_48.png"
+		],
+		"wield_scale" : 2
+	},
+	{
+		"name" : "mcl_shields:shield_brown",
+		"textures" : 
+		[
+			"mcl_shield_48.png"
+		],
+		"wield_scale" : 2
+	},
+	{
+		"name" : "mcl_shields:shield_lime",
+		"textures" : 
+		[
+			"mcl_shield_48.png"
+		],
+		"wield_scale" : 2
+	},
+	{
+		"name" : "mcl_shields:shield_pink",
+		"textures" : 
+		[
+			"mcl_shield_48.png"
+		],
+		"wield_scale" : 2
+	},
+	{
+		"name" : "mcl_nether:netherite_ingot",
+		"textures" : 
+		[
+			"mcl_nether_netherite_ingot.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_shields:shield_purple",
+		"textures" : 
+		[
+			"mcl_shield_48.png"
+		],
+		"wield_scale" : 2
+	},
+	{
+		"name" : "mcl_nether:netherite_scrap",
+		"textures" : 
+		[
+			"mcl_nether_netherite_scrap.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_tools:sword_diamond",
+		"textures" : 
+		[
+			"default_tool_diamondsword.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_armor:helmet_diamond",
+		"textures" : 
+		[
+			"mcl_armor_inv_helmet_diamond.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:leggings_diamond",
+		"textures" : 
+		[
+			"mcl_armor_inv_leggings_diamond.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:boots_diamond",
+		"textures" : 
+		[
+			"mcl_armor_inv_boots_diamond.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_shields:shield_yellow",
+		"textures" : 
+		[
+			"mcl_shield_48.png"
+		],
+		"wield_scale" : 2
+	},
+	{
+		"name" : "mcl_armor:snout",
+		"textures" : 
+		[
+			"snout_armor_trim_smithing_template.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_nether:netherite_upgrade_template",
+		"textures" : 
+		[
+			"mcl_nether_netherite_upgrade_template.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_nether:nether_wart_item",
+		"textures" : 
+		[
+			"mcl_nether_nether_wart.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:rib",
+		"textures" : 
+		[
+			"rib_armor_trim_smithing_template.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_flowers:pink_petals",
+		"textures" : 
+		[
+			"mcl_cherry_blossom_pink_petals.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_banners:banner_item_cyan",
+		"textures" : 
+		[
+			"mcl_banners_item_base_48.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_banners:banner_item_white",
+		"textures" : 
+		[
+			"mcl_banners_item_base_48.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:compat_potion",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:compat_arrow",
+		"textures" : 
+		[
+			"mcl_bows_arrow_inv.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:awkward_splash",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:awkward_lingering",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:mundane_splash",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobitems:warped_fungus_on_a_stick",
+		"textures" : 
+		[
+			"mcl_mobitems_warped_fungus_on_a_stick.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:mundane_lingering",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_banners:banner_item_light_blue",
+		"textures" : 
+		[
+			"mcl_banners_item_base_48.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:thick_splash",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:thick_lingering",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_spyglass:spyglass",
+		"textures" : 
+		[
+			"mcl_spyglass.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:healing_splash",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:healing_arrow",
+		"textures" : 
+		[
+			"mcl_bows_arrow_inv.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:harming_splash",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_sculk:echo_shard",
+		"textures" : 
+		[
+			"mcl_sculk_echo_shard.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:harming_lingering",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_totems:totem",
+		"textures" : 
+		[
+			"mcl_totems_totem.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_core:charcoal_lump",
+		"textures" : 
+		[
+			"mcl_core_charcoal.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:helmet_chain_enchanted",
+		"textures" : 
+		[
+			"mcl_armor_inv_helmet_chain.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_tools:sword_iron_enchanted",
+		"textures" : 
+		[
+			"default_tool_steelsword.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_armor:leggings_iron_enchanted",
+		"textures" : 
+		[
+			"mcl_armor_inv_leggings_iron.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_tools:pick_iron_enchanted",
+		"textures" : 
+		[
+			"default_tool_steelpick.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_shields:shield_black_enchanted",
+		"textures" : 
+		[
+			"mcl_shield_48.png"
+		],
+		"wield_scale" : 2
+	},
+	{
+		"name" : "mcl_armor:chestplate_diamond_enchanted",
+		"textures" : 
+		[
+			"mcl_armor_inv_chestplate_diamond.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_tools:shovel_diamond_enchanted",
+		"textures" : 
+		[
+			"default_tool_diamondshovel.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_armor:elytra_enchanted",
+		"textures" : 
+		[
+			"mcl_armor_inv_elytra.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:leggings_netherite_enchanted",
+		"textures" : 
+		[
+			"mcl_armor_inv_leggings_netherite.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:boots_netherite_enchanted",
+		"textures" : 
+		[
+			"mcl_armor_inv_boots_netherite.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:chestplate_leather_enchanted",
+		"textures" : 
+		[
+			"mcl_armor_inv_chestplate_leather.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_shields:shield_red_enchanted",
+		"textures" : 
+		[
+			"mcl_shield_48.png"
+		],
+		"wield_scale" : 2
+	},
+	{
+		"name" : "mcl_armor:leggings_leather_enchanted",
+		"textures" : 
+		[
+			"mcl_armor_inv_leggings_leather.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_banners:banner_item_purple",
+		"textures" : 
+		[
+			"mcl_banners_item_base_48.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_banners:banner_item_lime",
+		"textures" : 
+		[
+			"mcl_banners_item_base_48.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_dyes:magenta",
+		"textures" : 
+		[
+			"mcl_dye.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_dyes:light_blue",
+		"textures" : 
+		[
+			"mcl_dye.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_banners:pattern_skull",
+		"textures" : 
+		[
+			"mcl_banners_pattern_skull.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_dyes:lime",
+		"textures" : 
+		[
+			"mcl_dye.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_banners:pattern_thing",
+		"textures" : 
+		[
+			"mcl_banners_pattern_thing.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_dyes:cyan",
+		"textures" : 
+		[
+			"mcl_dye.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_banners:pattern_flower",
+		"textures" : 
+		[
+			"mcl_banners_pattern_flower.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:helmet_netherite_enchanted",
+		"textures" : 
+		[
+			"mcl_armor_inv_helmet_netherite.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_dyes:silver",
+		"textures" : 
+		[
+			"mcl_dye.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:boots_leather_enchanted",
+		"textures" : 
+		[
+			"mcl_armor_inv_boots_leather.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_banners:pattern_creeper",
+		"textures" : 
+		[
+			"mcl_banners_pattern_creeper.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:chestplate_netherite_enchanted",
+		"textures" : 
+		[
+			"mcl_armor_inv_chestplate_netherite.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:helmet_leather_enchanted",
+		"textures" : 
+		[
+			"mcl_armor_inv_helmet_leather.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_shields:shield_green_enchanted",
+		"textures" : 
+		[
+			"mcl_shield_48.png"
+		],
+		"wield_scale" : 2
+	},
+	{
+		"name" : "mcl_armor:boots_copper_enchanted",
+		"textures" : 
+		[
+			"mcl_armor_inv_boots_copper.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_tools:pick_copper_enchanted",
+		"textures" : 
+		[
+			"mcl_copper_tool_pick.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_banners:pattern_bricks",
+		"textures" : 
+		[
+			"mcl_banners_pattern_bricks.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:leggings_gold_enchanted",
+		"textures" : 
+		[
+			"mcl_armor_inv_leggings_gold.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_raw_ores:raw_gold",
+		"textures" : 
+		[
+			"mcl_raw_ores_raw_gold.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_banners:pattern_globe",
+		"textures" : 
+		[
+			"mcl_banners_pattern_globe.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:chestplate_gold_enchanted",
+		"textures" : 
+		[
+			"mcl_armor_inv_chestplate_gold.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_tools:axe_copper_enchanted",
+		"textures" : 
+		[
+			"mcl_copper_tool_axe.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_tools:shovel_netherite_enchanted",
+		"textures" : 
+		[
+			"default_tool_netheriteshovel.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "screwdriver:screwdriver_enchanted",
+		"textures" : 
+		[
+			"screwdriver.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_farming:hoe_diamond_enchanted",
+		"textures" : 
+		[
+			"farming_tool_diamondhoe.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_farming:hoe_gold_enchanted",
+		"textures" : 
+		[
+			"farming_tool_goldhoe.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_tools:axe_diamond_enchanted",
+		"textures" : 
+		[
+			"default_tool_diamondaxe.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_farming:hoe_stone_enchanted",
+		"textures" : 
+		[
+			"farming_tool_stonehoe.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_tools:axe_gold_enchanted",
+		"textures" : 
+		[
+			"default_tool_goldaxe.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_tools:pick_gold_enchanted",
+		"textures" : 
+		[
+			"default_tool_goldpick.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_farming:hoe_wood_enchanted",
+		"textures" : 
+		[
+			"farming_tool_woodhoe.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_banners:pattern_curly_border",
+		"textures" : 
+		[
+			"mcl_banners_pattern_curly_border.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_fire:flint_and_steel_enchanted",
+		"textures" : 
+		[
+			"mcl_fire_flint_and_steel.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_tools:shovel_gold_enchanted",
+		"textures" : 
+		[
+			"default_tool_goldshovel.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_shields:shield_grey_enchanted",
+		"textures" : 
+		[
+			"mcl_shield_48.png"
+		],
+		"wield_scale" : 2
+	},
+	{
+		"name" : "mcl_tools:sword_gold_enchanted",
+		"textures" : 
+		[
+			"default_tool_goldsword.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_bows:bow_enchanted",
+		"textures" : 
+		[
+			"mcl_bows_bow.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_fishing:fishing_rod_enchanted",
+		"textures" : 
+		[
+			"mcl_fishing_fishing_rod.png"
+		],
+		"wield_scale" : 1.5
+	},
+	{
+		"name" : "mcl_tools:shovel_copper_enchanted",
+		"textures" : 
+		[
+			"mcl_copper_tool_shovel.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_farming:hoe_copper_enchanted",
+		"textures" : 
+		[
+			"mcl_copper_tool_hoe.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_tools:sword_wood_enchanted",
+		"textures" : 
+		[
+			"default_tool_woodsword.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_tridents:trident_enchanted",
+		"textures" : 
+		[
+			"mcl_tridents_trident_item.png",
+			"blank.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_farming:hoe_iron_enchanted",
+		"textures" : 
+		[
+			"farming_tool_steelhoe.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_tools:axe_iron_enchanted",
+		"textures" : 
+		[
+			"default_tool_steelaxe.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_bows:bow_2_enchanted",
+		"textures" : 
+		[
+			"mcl_bows_bow_2.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_tools:axe_netherite_enchanted",
+		"textures" : 
+		[
+			"default_tool_netheriteaxe.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_tools:shovel_stone_enchanted",
+		"textures" : 
+		[
+			"default_tool_stoneshovel.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_tools:sword_stone_enchanted",
+		"textures" : 
+		[
+			"default_tool_stonesword.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_shields:shield_cyan_enchanted",
+		"textures" : 
+		[
+			"mcl_shield_48.png"
+		],
+		"wield_scale" : 2
+	},
+	{
+		"name" : "mcl_tools:shovel_wood_enchanted",
+		"textures" : 
+		[
+			"default_tool_woodshovel.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_shields:shield_magenta_enchanted",
+		"textures" : 
+		[
+			"mcl_shield_48.png"
+		],
+		"wield_scale" : 2
+	},
+	{
+		"name" : "mcl_tools:sword_copper_enchanted",
+		"textures" : 
+		[
+			"mcl_copper_tool_sword.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_shields:shield_orange_enchanted",
+		"textures" : 
+		[
+			"mcl_shield_48.png"
+		],
+		"wield_scale" : 2
+	},
+	{
+		"name" : "mcl_tools:shovel_iron_enchanted",
+		"textures" : 
+		[
+			"default_tool_steelshovel.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_shields:shield_silver_enchanted",
+		"textures" : 
+		[
+			"mcl_shield_48.png"
+		],
+		"wield_scale" : 2
+	},
+	{
+		"name" : "mcl_tools:shears_enchanted",
+		"textures" : 
+		[
+			"default_tool_shears.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_shields:shield_light_blue_enchanted",
+		"textures" : 
+		[
+			"mcl_shield_48.png"
+		],
+		"wield_scale" : 2
+	},
+	{
+		"name" : "mcl_attachments:attachment_dbg_tool",
+		"textures" : 
+		[
+			"default_stick.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_tools:pick_stone_enchanted",
+		"textures" : 
+		[
+			"default_tool_stonepick.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_shields:shield_blue_enchanted",
+		"textures" : 
+		[
+			"mcl_shield_48.png"
+		],
+		"wield_scale" : 2
+	},
+	{
+		"name" : "mcl_tools:pick_wood_enchanted",
+		"textures" : 
+		[
+			"default_tool_woodpick.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_shields:shield_white_enchanted",
+		"textures" : 
+		[
+			"mcl_shield_48.png"
+		],
+		"wield_scale" : 2
+	},
+	{
+		"name" : "mcl_tools:axe_stone_enchanted",
+		"textures" : 
+		[
+			"default_tool_stoneaxe.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_mobitems:warped_fungus_on_a_stick_enchanted",
+		"textures" : 
+		[
+			"mcl_mobitems_warped_fungus_on_a_stick.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_tools:axe_wood_enchanted",
+		"textures" : 
+		[
+			"default_tool_woodaxe.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_shields:shield_yellow_enchanted",
+		"textures" : 
+		[
+			"mcl_shield_48.png"
+		],
+		"wield_scale" : 2
+	},
+	{
+		"name" : "mcl_tools:mace_enchanted",
+		"textures" : 
+		[
+			"mcl_tools_mace.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_armor:boots_diamond_enchanted",
+		"textures" : 
+		[
+			"mcl_armor_inv_boots_diamond.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_tools:pick_netherite_enchanted",
+		"textures" : 
+		[
+			"default_tool_netheritepick.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_armor:leggings_diamond_enchanted",
+		"textures" : 
+		[
+			"mcl_armor_inv_leggings_diamond.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:helmet_diamond_enchanted",
+		"textures" : 
+		[
+			"mcl_armor_inv_helmet_diamond.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_minecarts:hopper_minecart",
+		"textures" : 
+		[
+			"mcl_minecarts_minecart_hopper.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_sus_nodes:brush_enchanted",
+		"textures" : 
+		[
+			"mcl_sus_nodes_brush.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_tools:sword_diamond_enchanted",
+		"textures" : 
+		[
+			"default_tool_diamondsword.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_dripstone:pointed_dripstone",
+		"textures" : 
+		[
+			"pointed_dripstone_tip.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_tools:sword_netherite_enchanted",
+		"textures" : 
+		[
+			"default_tool_netheritesword.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_shields:shield_purple_enchanted",
+		"textures" : 
+		[
+			"mcl_shield_48.png"
+		],
+		"wield_scale" : 2
+	},
+	{
+		"name" : "mcl_tools:pick_diamond_enchanted",
+		"textures" : 
+		[
+			"default_tool_diamondpick.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_shields:shield_pink_enchanted",
+		"textures" : 
+		[
+			"mcl_shield_48.png"
+		],
+		"wield_scale" : 2
+	},
+	{
+		"name" : "mcl_shields:shield_lime_enchanted",
+		"textures" : 
+		[
+			"mcl_shield_48.png"
+		],
+		"wield_scale" : 2
+	},
+	{
+		"name" : "mcl_shields:shield_brown_enchanted",
+		"textures" : 
+		[
+			"mcl_shield_48.png"
+		],
+		"wield_scale" : 2
+	},
+	{
+		"name" : "mcl_armor:boots_gold_enchanted",
+		"textures" : 
+		[
+			"mcl_armor_inv_boots_gold.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:helmet_gold_enchanted",
+		"textures" : 
+		[
+			"mcl_armor_inv_helmet_gold.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:chestplate_chain_enchanted",
+		"textures" : 
+		[
+			"mcl_armor_inv_chestplate_chain.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:leggings_chain_enchanted",
+		"textures" : 
+		[
+			"mcl_armor_inv_leggings_chain.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:chestplate_copper_enchanted",
+		"textures" : 
+		[
+			"mcl_armor_inv_chestplate_copper.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:boots_chain_enchanted",
+		"textures" : 
+		[
+			"mcl_armor_inv_boots_chain.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_bows:crossbow_2_enchanted",
+		"textures" : 
+		[
+			"mcl_bows_crossbow_2.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_bows:crossbow_1_enchanted",
+		"textures" : 
+		[
+			"mcl_bows_crossbow_1.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_bows:crossbow_0_enchanted",
+		"textures" : 
+		[
+			"mcl_bows_crossbow_0.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_armor:leggings_copper_enchanted",
+		"textures" : 
+		[
+			"mcl_armor_inv_leggings_copper.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_bows:bow_1_enchanted",
+		"textures" : 
+		[
+			"mcl_bows_bow_1.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_bows:bow_0_enchanted",
+		"textures" : 
+		[
+			"mcl_bows_bow_0.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_armor:boots_iron_enchanted",
+		"textures" : 
+		[
+			"mcl_armor_inv_boots_iron.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:helmet_copper_enchanted",
+		"textures" : 
+		[
+			"mcl_armor_inv_helmet_copper.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:helmet_iron_enchanted",
+		"textures" : 
+		[
+			"mcl_armor_inv_helmet_iron.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:chestplate_iron_enchanted",
+		"textures" : 
+		[
+			"mcl_armor_inv_chestplate_iron.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_minecarts:tnt_minecart",
+		"textures" : 
+		[
+			"mcl_minecarts_minecart_tnt.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_compass:compass_lodestone",
+		"textures" : 
+		[
+			"mcl_compass_compass_01.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_banners:banner_item_pink",
+		"textures" : 
+		[
+			"mcl_banners_item_base_48.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_boats:boat_cherry_blossom_chest",
+		"textures" : 
+		[
+			"mcl_boats_cherry_blossom_chest_boat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_boats:boat_cherry_blossom",
+		"textures" : 
+		[
+			"mcl_boats_cherry_blossom_boat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_amethyst:amethyst_shard",
+		"textures" : 
+		[
+			"mcl_amethyst_amethyst_shard.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_ocean:kelp",
+		"textures" : 
+		[
+			"mcl_ocean_kelp_item.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_buckets:bucket_tropical_fish",
+		"textures" : 
+		[
+			"tropical_fish_bucket.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:river_water",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_buckets:bucket_cod",
+		"textures" : 
+		[
+			"cod_bucket.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_banners:banner_item_green",
+		"textures" : 
+		[
+			"mcl_banners_item_base_48.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_buckets:bucket_axolotl",
+		"textures" : 
+		[
+			"axolotl_bucket.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_ocean:dried_kelp",
+		"textures" : 
+		[
+			"mcl_ocean_dried_kelp.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_buckets:bucket_salmon",
+		"textures" : 
+		[
+			"salmon_bucket.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_buckets:bucket_river_water",
+		"textures" : 
+		[
+			"bucket_river_water.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_buckets:bucket_pufferfish",
+		"textures" : 
+		[
+			"pufferfish_bucket.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_powder_snow:bucket_powder_snow",
+		"textures" : 
+		[
+			"bucket_powder_snow.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_buckets:bucket_lava",
+		"textures" : 
+		[
+			"bucket_lava.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_cocoas:cocoa_beans",
+		"textures" : 
+		[
+			"mcl_cocoas_cocoa_beans.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_boats:boat_acacia",
+		"textures" : 
+		[
+			"mcl_boats_acacia_boat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobitems:nametag",
+		"textures" : 
+		[
+			"mcl_mobitems_nametag.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_core:coal_lump",
+		"textures" : 
+		[
+			"default_coal_lump.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_core:lapis",
+		"textures" : 
+		[
+			"mcl_core_lapis.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_core:gold_ingot",
+		"textures" : 
+		[
+			"default_gold_ingot.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_minecarts:chest_minecart",
+		"textures" : 
+		[
+			"mcl_minecarts_minecart_chest.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_shields:shield_white",
+		"textures" : 
+		[
+			"mcl_shield_48.png"
+		],
+		"wield_scale" : 2
+	},
+	{
+		"name" : "mcl_shields:shield_blue",
+		"textures" : 
+		[
+			"mcl_shield_48.png"
+		],
+		"wield_scale" : 2
+	},
+	{
+		"name" : "mcl_shields:shield_light_blue",
+		"textures" : 
+		[
+			"mcl_shield_48.png"
+		],
+		"wield_scale" : 2
+	},
+	{
+		"name" : "mcl_shields:shield_silver",
+		"textures" : 
+		[
+			"mcl_shield_48.png"
+		],
+		"wield_scale" : 2
+	},
+	{
+		"name" : "mcl_shields:shield_orange",
+		"textures" : 
+		[
+			"mcl_shield_48.png"
+		],
+		"wield_scale" : 2
+	},
+	{
+		"name" : "mcl_shields:shield_magenta",
+		"textures" : 
+		[
+			"mcl_shield_48.png"
+		],
+		"wield_scale" : 2
+	},
+	{
+		"name" : "mcl_farming:carrot_item",
+		"textures" : 
+		[
+			"farming_carrot.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_shields:shield_cyan",
+		"textures" : 
+		[
+			"mcl_shield_48.png"
+		],
+		"wield_scale" : 2
+	},
+	{
+		"name" : "mcl_farming:beetroot_item",
+		"textures" : 
+		[
+			"mcl_farming_beetroot.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobitems:carrot_on_a_stick",
+		"textures" : 
+		[
+			"mcl_mobitems_carrot_on_a_stick.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobitems:carrot_on_a_stick_enchanted",
+		"textures" : 
+		[
+			"mcl_mobitems_carrot_on_a_stick.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mushrooms:mushroom_stew",
+		"textures" : 
+		[
+			"farming_mushroom_stew.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_core:bowl",
+		"textures" : 
+		[
+			"mcl_core_bowl.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_tools:axe_netherite",
+		"textures" : 
+		[
+			"default_tool_netheriteaxe.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_minecarts:minecart",
+		"textures" : 
+		[
+			"mcl_minecarts_minecart_normal.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_boats:boat_pale_oak",
+		"textures" : 
+		[
+			"mcl_boats_pale_oak_boat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_farming:hoe_iron",
+		"textures" : 
+		[
+			"farming_tool_steelhoe.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_farming:hoe_copper",
+		"textures" : 
+		[
+			"mcl_copper_tool_hoe.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_boats:boat_pale_oak_chest",
+		"textures" : 
+		[
+			"mcl_boats_pale_oak_chest_boat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_pale_oak:resin_clump",
+		"textures" : 
+		[
+			"mcl_pale_oak_resin_clump.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_pale_oak:resin_brick",
+		"textures" : 
+		[
+			"mcl_pale_oak_resin_brick.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_banners:banner_item_black",
+		"textures" : 
+		[
+			"mcl_banners_item_base_48.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobs:pathfinder_stick",
+		"textures" : 
+		[
+			"default_stick.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobs:pathfinder_liquid_stick",
+		"textures" : 
+		[
+			"default_stick.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobs:pathfinder_edge_stick",
+		"textures" : 
+		[
+			"default_stick.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobs:pathfinder_dump_stick",
+		"textures" : 
+		[
+			"default_stick.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_jukebox:record_13",
+		"textures" : 
+		[
+			"mcl_jukebox_record_13.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_jukebox:record_wait",
+		"textures" : 
+		[
+			"mcl_jukebox_record_wait.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_jukebox:record_blocks",
+		"textures" : 
+		[
+			"mcl_jukebox_record_blocks.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_jukebox:record_far",
+		"textures" : 
+		[
+			"mcl_jukebox_record_far.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_jukebox:record_chirp",
+		"textures" : 
+		[
+			"mcl_jukebox_record_chirp.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_jukebox:record_strad",
+		"textures" : 
+		[
+			"mcl_jukebox_record_strad.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_jukebox:record_mall",
+		"textures" : 
+		[
+			"mcl_jukebox_record_mall.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_boats:boat_bamboo",
+		"textures" : 
+		[
+			"mcl_boats_bamboo_boat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_minecarts:command_block_minecart",
+		"textures" : 
+		[
+			"mcl_minecarts_minecart_command_block.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_minecarts:furnace_minecart",
+		"textures" : 
+		[
+			"mcl_minecarts_minecart_furnace.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_boats:boat_bamboo_chest",
+		"textures" : 
+		[
+			"mcl_boats_bamboo_chest_boat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_pottery_sherds:brewer",
+		"textures" : 
+		[
+			"mcl_pottery_sherds_brewer.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_pottery_sherds:flow",
+		"textures" : 
+		[
+			"mcl_pottery_sherds_flow.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_pottery_sherds:burn",
+		"textures" : 
+		[
+			"mcl_pottery_sherds_burn.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_dyes:blue",
+		"textures" : 
+		[
+			"mcl_dye.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_dyes:green",
+		"textures" : 
+		[
+			"mcl_dye.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_dyes:black",
+		"textures" : 
+		[
+			"mcl_dye.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_dyes:white",
+		"textures" : 
+		[
+			"mcl_dye.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_dyes:pink",
+		"textures" : 
+		[
+			"mcl_dye.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_dyes:purple",
+		"textures" : 
+		[
+			"mcl_dye.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_dyes:red",
+		"textures" : 
+		[
+			"mcl_dye.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_dyes:yellow",
+		"textures" : 
+		[
+			"mcl_dye.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_dyes:grey",
+		"textures" : 
+		[
+			"mcl_dye.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_pottery_sherds:shelter",
+		"textures" : 
+		[
+			"mcl_pottery_sherds_shelter.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_charges:wind_charge",
+		"textures" : 
+		[
+			"mcl_charges_wind_charge.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_pottery_sherds:explorer",
+		"textures" : 
+		[
+			"mcl_pottery_sherds_explorer.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_pottery_sherds:sheaf",
+		"textures" : 
+		[
+			"mcl_pottery_sherds_sheaf.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_pottery_sherds:friend",
+		"textures" : 
+		[
+			"mcl_pottery_sherds_friend.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_banners:banner_item_brown",
+		"textures" : 
+		[
+			"mcl_banners_item_base_48.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_dyes:brown",
+		"textures" : 
+		[
+			"mcl_dye.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_lush_caves:glow_berry",
+		"textures" : 
+		[
+			"mcl_lush_caves_glow_berries.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_ocean:seagrass",
+		"textures" : 
+		[
+			"mcl_ocean_seagrass_item.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_pottery_sherds:heart",
+		"textures" : 
+		[
+			"mcl_pottery_sherds_heart.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_pottery_sherds:howl",
+		"textures" : 
+		[
+			"mcl_pottery_sherds_howl.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_pottery_sherds:miner",
+		"textures" : 
+		[
+			"mcl_pottery_sherds_miner.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_pottery_sherds:snort",
+		"textures" : 
+		[
+			"mcl_pottery_sherds_snort.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_pottery_sherds:mourner",
+		"textures" : 
+		[
+			"mcl_pottery_sherds_mourner.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_pottery_sherds:guster",
+		"textures" : 
+		[
+			"mcl_pottery_sherds_guster.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_pottery_sherds:plenty",
+		"textures" : 
+		[
+			"mcl_pottery_sherds_plenty.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_pottery_sherds:prize",
+		"textures" : 
+		[
+			"mcl_pottery_sherds_prize.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_vaults:ominous_trial_key",
+		"textures" : 
+		[
+			"mcl_vaults_ominous_trial_key.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_pottery_sherds:archer",
+		"textures" : 
+		[
+			"mcl_pottery_sherds_archer.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_boats:boat_dark_oak_chest",
+		"textures" : 
+		[
+			"mcl_boats_dark_oak_chest_boat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_pottery_sherds:arms_up",
+		"textures" : 
+		[
+			"mcl_pottery_sherds_arms_up.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_pottery_sherds:blade",
+		"textures" : 
+		[
+			"mcl_pottery_sherds_blade.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_pottery_sherds:scrape",
+		"textures" : 
+		[
+			"mcl_pottery_sherds_scrape.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_boats:boat_birch",
+		"textures" : 
+		[
+			"mcl_boats_birch_boat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:fire_resistance_plus_splash",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:fire_resistance_plus_lingering",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:fire_resistance_plus_arrow",
+		"textures" : 
+		[
+			"mcl_bows_arrow_inv.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:water_breathing_plus",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:water_breathing_plus_splash",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:water_breathing_plus_lingering",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:water_breathing_plus_arrow",
+		"textures" : 
+		[
+			"mcl_bows_arrow_inv.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:invisibility_plus",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:invisibility_plus_splash",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:invisibility_plus_lingering",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:invisibility_plus_arrow",
+		"textures" : 
+		[
+			"mcl_bows_arrow_inv.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:regeneration_plus",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "unknown",
+		"textures" : 
+		[
+			"unknown_item.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:regeneration_plus_splash",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:regeneration_plus_lingering",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:regeneration_plus_arrow",
+		"textures" : 
+		[
+			"mcl_bows_arrow_inv.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:poison_plus",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:poison_plus_splash",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:poison_plus_lingering",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_core:sugar",
+		"textures" : 
+		[
+			"mcl_core_sugar.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:withering_plus",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:withering_plus_splash",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:withering_plus_lingering",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:withering_plus_arrow",
+		"textures" : 
+		[
+			"mcl_bows_arrow_inv.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:leaping_plus",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:leaping_plus_splash",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:leaping_plus_lingering",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:leaping_plus_arrow",
+		"textures" : 
+		[
+			"mcl_bows_arrow_inv.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:invisibility_lingering",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:slowness_plus_lingering",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:slowness_plus_arrow",
+		"textures" : 
+		[
+			"mcl_bows_arrow_inv.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:invisibility_arrow",
+		"textures" : 
+		[
+			"mcl_bows_arrow_inv.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:swiftness_plus",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:swiftness_plus_lingering",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:swiftness_plus_arrow",
+		"textures" : 
+		[
+			"mcl_bows_arrow_inv.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:night_vision_plus",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:night_vision_plus_splash",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:night_vision_plus_lingering",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:night_vision_plus_arrow",
+		"textures" : 
+		[
+			"mcl_bows_arrow_inv.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:water_breathing_splash",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_books:written_book",
+		"textures" : 
+		[
+			"mcl_books_book_written.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_books:writable_book",
+		"textures" : 
+		[
+			"mcl_books_book_writable.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:water_breathing_lingering",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobitems:porkchop",
+		"textures" : 
+		[
+			"mcl_mobitems_porkchop_raw.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:water_breathing_arrow",
+		"textures" : 
+		[
+			"mcl_bows_arrow_inv.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:water_lingering",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_fishing:salmon_cooked",
+		"textures" : 
+		[
+			"mcl_fishing_salmon_cooked.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_fishing:salmon_raw",
+		"textures" : 
+		[
+			"mcl_fishing_salmon_raw.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:fire_resistance_splash",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_fishing:fish_cooked",
+		"textures" : 
+		[
+			"mcl_fishing_fish_cooked.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_fishing:fishing_rod",
+		"textures" : 
+		[
+			"mcl_fishing_fishing_rod.png"
+		],
+		"wield_scale" : 1.5
+	},
+	{
+		"name" : "mcl_throwing:egg",
+		"textures" : 
+		[
+			"mcl_throwing_egg.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_throwing:snowball",
+		"textures" : 
+		[
+			"mcl_throwing_snowball.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobitems:diamond_horse_armor",
+		"textures" : 
+		[
+			"mcl_mobitems_diamond_horse_armor.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:fire_resistance_lingering",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_fireworks:rocket_2",
+		"textures" : 
+		[
+			"mcl_fireworks_rocket.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobitems:gold_horse_armor",
+		"textures" : 
+		[
+			"mcl_mobitems_gold_horse_armor.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobitems:iron_horse_armor",
+		"textures" : 
+		[
+			"mcl_mobitems_iron_horse_armor.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_fireworks:rocket_1",
+		"textures" : 
+		[
+			"mcl_fireworks_rocket.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobitems:copper_horse_armor",
+		"textures" : 
+		[
+			"mcl_mobitems_copper_horse_armor.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobitems:leather_horse_armor",
+		"textures" : 
+		[
+			"mcl_mobitems_leather_horse_armor.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:fire_resistance_arrow",
+		"textures" : 
+		[
+			"mcl_bows_arrow_inv.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobitems:heart_of_the_sea",
+		"textures" : 
+		[
+			"mcl_mobitems_heart_of_the_sea.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobitems:gunpowder",
+		"textures" : 
+		[
+			"default_gunpowder.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobitems:rabbit_stew",
+		"textures" : 
+		[
+			"mcl_mobitems_rabbit_stew.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_copper:raw_copper",
+		"textures" : 
+		[
+			"mcl_copper_raw.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobitems:saddle",
+		"textures" : 
+		[
+			"mcl_mobitems_saddle.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobitems:rabbit_foot",
+		"textures" : 
+		[
+			"mcl_mobitems_rabbit_foot.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_fireworks:rocket_3",
+		"textures" : 
+		[
+			"mcl_fireworks_rocket.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobitems:rabbit_hide",
+		"textures" : 
+		[
+			"mcl_mobitems_rabbit_hide.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobitems:feather",
+		"textures" : 
+		[
+			"mcl_mobitems_feather.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobitems:leather",
+		"textures" : 
+		[
+			"mcl_mobitems_leather.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobitems:nether_star",
+		"textures" : 
+		[
+			"mcl_mobitems_nether_star.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobitems:ghast_tear",
+		"textures" : 
+		[
+			"mcl_mobitems_ghast_tear.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobitems:magma_cream",
+		"textures" : 
+		[
+			"mcl_mobitems_magma_cream.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:strength_splash",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_farming:potato_item",
+		"textures" : 
+		[
+			"farming_potato.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobitems:breeze_rod",
+		"textures" : 
+		[
+			"mcl_mobitems_breeze_rod.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobitems:blaze_rod",
+		"textures" : 
+		[
+			"mcl_mobitems_blaze_rod.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobitems:ink_sac",
+		"textures" : 
+		[
+			"mcl_mobitems_ink_sac.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobitems:bone",
+		"textures" : 
+		[
+			"mcl_mobitems_bone.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobitems:spider_eye",
+		"textures" : 
+		[
+			"mcl_mobitems_spider_eye.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobitems:milk_bucket",
+		"textures" : 
+		[
+			"mcl_mobitems_bucket_milk.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:strength_lingering",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobitems:cooked_chicken",
+		"textures" : 
+		[
+			"mcl_mobitems_chicken_cooked.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobitems:rabbit",
+		"textures" : 
+		[
+			"mcl_mobitems_rabbit_raw.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobitems:cooked_porkchop",
+		"textures" : 
+		[
+			"mcl_mobitems_porkchop_cooked.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobitems:cooked_mutton",
+		"textures" : 
+		[
+			"mcl_mobitems_mutton_cooked.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobitems:cooked_rabbit",
+		"textures" : 
+		[
+			"mcl_mobitems_rabbit_cooked.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobitems:chicken",
+		"textures" : 
+		[
+			"mcl_mobitems_chicken_raw.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:strength_arrow",
+		"textures" : 
+		[
+			"mcl_bows_arrow_inv.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobitems:cooked_beef",
+		"textures" : 
+		[
+			"mcl_mobitems_beef_cooked.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:spire",
+		"textures" : 
+		[
+			"spire_armor_trim_smithing_template.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobitems:mutton",
+		"textures" : 
+		[
+			"mcl_mobitems_mutton_raw.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobitems:rotten_flesh",
+		"textures" : 
+		[
+			"mcl_mobitems_rotten_flesh.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_maps:filled_map",
+		"textures" : 
+		[
+			"mcl_maps_map_filled.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_shields:shield_enchanted",
+		"textures" : 
+		[
+			"mcl_shield_48.png"
+		],
+		"wield_scale" : 2
+	},
+	{
+		"name" : "mcl_jukebox:record_mellohi",
+		"textures" : 
+		[
+			"mcl_jukebox_record_mellohi.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_nether:glowstone_dust",
+		"textures" : 
+		[
+			"mcl_nether_glowstone_dust.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_shields:shield_grey",
+		"textures" : 
+		[
+			"mcl_shield_48.png"
+		],
+		"wield_scale" : 2
+	},
+	{
+		"name" : "mcl_nether:netherbrick",
+		"textures" : 
+		[
+			"mcl_nether_netherbrick.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_copper:copper_nugget",
+		"textures" : 
+		[
+			"mcl_copper_nugget.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_copper:copper_ingot",
+		"textures" : 
+		[
+			"mcl_copper_ingot.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_enchanting:book_enchanted",
+		"textures" : 
+		[
+			"mcl_enchanting_book_enchanted.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_books:book",
+		"textures" : 
+		[
+			"default_book.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_end:ender_eye",
+		"textures" : 
+		[
+			"mcl_end_ender_eye.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_farming:sweet_berry",
+		"textures" : 
+		[
+			"mcl_farming_sweet_berry.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_farming:beetroot_soup",
+		"textures" : 
+		[
+			"mcl_farming_beetroot_soup.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_farming:beetroot_seeds",
+		"textures" : 
+		[
+			"mcl_farming_beetroot_seeds.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_farming:potato_item_poison",
+		"textures" : 
+		[
+			"farming_potato_poison.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_farming:potato_item_baked",
+		"textures" : 
+		[
+			"farming_potato_baked.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobitems:blaze_powder",
+		"textures" : 
+		[
+			"mcl_mobitems_blaze_powder.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_farming:carrot_item_gold",
+		"textures" : 
+		[
+			"farming_carrot_gold.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_farming:melon_item",
+		"textures" : 
+		[
+			"farming_melon.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_farming:melon_seeds",
+		"textures" : 
+		[
+			"mcl_farming_melon_seeds.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_farming:pumpkin_pie",
+		"textures" : 
+		[
+			"mcl_farming_pumpkin_pie.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_farming:pumpkin_seeds",
+		"textures" : 
+		[
+			"mcl_farming_pumpkin_seeds.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_farming:bread",
+		"textures" : 
+		[
+			"farming_bread.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_farming:cookie",
+		"textures" : 
+		[
+			"farming_cookie.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_farming:wheat_seeds",
+		"textures" : 
+		[
+			"mcl_farming_wheat_seeds.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_farming:hoe_wood",
+		"textures" : 
+		[
+			"farming_tool_woodhoe.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_farming:hoe_stone",
+		"textures" : 
+		[
+			"farming_tool_stonehoe.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_farming:hoe_diamond",
+		"textures" : 
+		[
+			"farming_tool_diamondhoe.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_potions:weakness_lingering",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:weakness_splash",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_clock:clock",
+		"textures" : 
+		[
+			"mcl_clock_clock_31.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:swiftness_plus_splash",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:healing_2",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:healing_2_splash",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:healing_2_lingering",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:healing_2_arrow",
+		"textures" : 
+		[
+			"mcl_bows_arrow_inv.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:harming_2",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:harming_2_splash",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:harming_2_lingering",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:harming_2_arrow",
+		"textures" : 
+		[
+			"mcl_bows_arrow_inv.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:swiftness_2",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:swiftness_2_splash",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:swiftness_2_lingering",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:swiftness_2_arrow",
+		"textures" : 
+		[
+			"mcl_bows_arrow_inv.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:slowness_2",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:slowness_2_splash",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:slowness_2_lingering",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:slowness_2_arrow",
+		"textures" : 
+		[
+			"mcl_bows_arrow_inv.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:leaping_2",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:leaping_2_splash",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:leaping_2_lingering",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:leaping_2_arrow",
+		"textures" : 
+		[
+			"mcl_bows_arrow_inv.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:withering_2",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:withering_2_splash",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:withering_2_lingering",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:withering_2_arrow",
+		"textures" : 
+		[
+			"mcl_bows_arrow_inv.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:poison_2",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:poison_2_splash",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:poison_2_lingering",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:poison_2_arrow",
+		"textures" : 
+		[
+			"mcl_bows_arrow_inv.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:regeneration_2",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:regeneration_2_splash",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:regeneration_2_lingering",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:regeneration_2_arrow",
+		"textures" : 
+		[
+			"mcl_bows_arrow_inv.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:turtle_master_arrow",
+		"textures" : 
+		[
+			"mcl_bows_arrow_inv.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:harming_arrow",
+		"textures" : 
+		[
+			"mcl_bows_arrow_inv.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:luck_splash",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:luck_lingering",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:luck_arrow",
+		"textures" : 
+		[
+			"mcl_bows_arrow_inv.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:swiftness_splash",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:bad_luck_splash",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:swiftness_lingering",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:bad_luck_lingering",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:swiftness_arrow",
+		"textures" : 
+		[
+			"mcl_bows_arrow_inv.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:bad_luck_arrow",
+		"textures" : 
+		[
+			"mcl_bows_arrow_inv.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_tools:axe_copper",
+		"textures" : 
+		[
+			"mcl_copper_tool_axe.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_tools:pick_copper",
+		"textures" : 
+		[
+			"mcl_copper_tool_pick.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_potions:infestation_splash",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:infestation_lingering",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:infestation_arrow",
+		"textures" : 
+		[
+			"mcl_bows_arrow_inv.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_tools:shovel_diamond",
+		"textures" : 
+		[
+			"default_tool_diamondshovel.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_potions:leaping_splash",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_banners:banner_item_grey",
+		"textures" : 
+		[
+			"mcl_banners_item_base_48.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:wayfinder",
+		"textures" : 
+		[
+			"wayfinder_armor_trim_smithing_template.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:oozing_splash",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:coast",
+		"textures" : 
+		[
+			"coast_armor_trim_smithing_template.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:leaping_lingering",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_core:clay_lump",
+		"textures" : 
+		[
+			"default_clay_lump.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobitems:beef",
+		"textures" : 
+		[
+			"mcl_mobitems_beef_raw.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:dune",
+		"textures" : 
+		[
+			"dune_armor_trim_smithing_template.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:flow",
+		"textures" : 
+		[
+			"flow_armor_trim_smithing_template.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_core:brick",
+		"textures" : 
+		[
+			"default_clay_brick.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:oozing_lingering",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:leaping_arrow",
+		"textures" : 
+		[
+			"mcl_bows_arrow_inv.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:vex",
+		"textures" : 
+		[
+			"vex_armor_trim_smithing_template.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:ward",
+		"textures" : 
+		[
+			"ward_armor_trim_smithing_template.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:bolt",
+		"textures" : 
+		[
+			"bolt_armor_trim_smithing_template.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:tide",
+		"textures" : 
+		[
+			"tide_armor_trim_smithing_template.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:helmet_leather",
+		"textures" : 
+		[
+			"mcl_armor_inv_helmet_leather.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:oozing_arrow",
+		"textures" : 
+		[
+			"mcl_bows_arrow_inv.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:boots_leather",
+		"textures" : 
+		[
+			"mcl_armor_inv_boots_leather.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:leggings_leather",
+		"textures" : 
+		[
+			"mcl_armor_inv_leggings_leather.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:chestplate_leather",
+		"textures" : 
+		[
+			"mcl_armor_inv_chestplate_leather.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:elytra",
+		"textures" : 
+		[
+			"mcl_armor_inv_elytra.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:chestplate_diamond",
+		"textures" : 
+		[
+			"mcl_armor_inv_chestplate_diamond.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:withering",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:leggings_iron",
+		"textures" : 
+		[
+			"mcl_armor_inv_leggings_iron.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:chestplate_iron",
+		"textures" : 
+		[
+			"mcl_armor_inv_chestplate_iron.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:helmet_copper",
+		"textures" : 
+		[
+			"mcl_armor_inv_helmet_copper.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:boots_copper",
+		"textures" : 
+		[
+			"mcl_armor_inv_boots_copper.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:withering_splash",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:leggings_copper",
+		"textures" : 
+		[
+			"mcl_armor_inv_leggings_copper.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:helmet_chain",
+		"textures" : 
+		[
+			"mcl_armor_inv_helmet_chain.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:boots_chain",
+		"textures" : 
+		[
+			"mcl_armor_inv_boots_chain.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:leggings_chain",
+		"textures" : 
+		[
+			"mcl_armor_inv_leggings_chain.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:weaving_splash",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:chestplate_chain",
+		"textures" : 
+		[
+			"mcl_armor_inv_chestplate_chain.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:helmet_gold",
+		"textures" : 
+		[
+			"mcl_armor_inv_helmet_gold.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:withering_lingering",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:boots_gold",
+		"textures" : 
+		[
+			"mcl_armor_inv_boots_gold.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:leggings_gold",
+		"textures" : 
+		[
+			"mcl_armor_inv_leggings_gold.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:chestplate_gold",
+		"textures" : 
+		[
+			"mcl_armor_inv_chestplate_gold.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:weaving_lingering",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "doc_identifier:identifier_solid",
+		"textures" : 
+		[
+			"doc_identifier_identifier.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:withering_arrow",
+		"textures" : 
+		[
+			"mcl_bows_arrow_inv.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "doc_identifier:identifier_liquid",
+		"textures" : 
+		[
+			"doc_identifier_identifier_liquid.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:weaving_arrow",
+		"textures" : 
+		[
+			"mcl_bows_arrow_inv.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:wind_charged_splash",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_boats:boat_mangrove",
+		"textures" : 
+		[
+			"mcl_boats_mangrove_boat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:wind_charged_lingering",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:water",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:wind_charged_arrow",
+		"textures" : 
+		[
+			"mcl_bows_arrow_inv.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_fishing:clownfish_raw",
+		"textures" : 
+		[
+			"mcl_fishing_clownfish_raw.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:regeneration_splash",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:poison_splash",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:regeneration_lingering",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:regeneration_arrow",
+		"textures" : 
+		[
+			"mcl_bows_arrow_inv.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:invisibility_splash",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_farming:hoe_netherite",
+		"textures" : 
+		[
+			"farming_tool_netheritehoe.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_farming:hoe_netherite_enchanted",
+		"textures" : 
+		[
+			"farming_tool_netheritehoe.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_mobitems:shulker_shell",
+		"textures" : 
+		[
+			"mcl_mobitems_shulker_shell.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_flowers:leaf_litter",
+		"textures" : 
+		[
+			"mcl_flowers_leaf_litter.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_flowers:wildflowers",
+		"textures" : 
+		[
+			"mcl_flowers_wildflower.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_sus_stew:stew",
+		"textures" : 
+		[
+			"sus_stew.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:speckled_melon",
+		"textures" : 
+		[
+			"mcl_potions_melon_speckled.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:water_splash",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:slowness_plus_splash",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:slowness_plus",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:poison_plus_arrow",
+		"textures" : 
+		[
+			"mcl_bows_arrow_inv.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:fire_resistance_plus",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:strength",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:regeneration",
+		"textures" : 
+		[
+			"mcl_potions_potion_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_banners:pattern_piglin",
+		"textures" : 
+		[
+			"mcl_banners_pattern_piglin.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:slowness_lingering",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_tools:pick_diamond",
+		"textures" : 
+		[
+			"default_tool_diamondpick.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_banners:banner_item_yellow",
+		"textures" : 
+		[
+			"mcl_banners_item_base_48.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_experience:bottle",
+		"textures" : 
+		[
+			"mcl_experience_bottle.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_nether:quartz",
+		"textures" : 
+		[
+			"mcl_nether_quartz.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_end:chorus_fruit",
+		"textures" : 
+		[
+			"mcl_end_chorus_fruit.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_boats:boat_dark_oak",
+		"textures" : 
+		[
+			"mcl_boats_dark_oak_boat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_end:chorus_fruit_popped",
+		"textures" : 
+		[
+			"mcl_end_chorus_fruit_popped.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_mobitems:slimeball",
+		"textures" : 
+		[
+			"mcl_mobitems_slimeball.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_ocean:prismarine_shard",
+		"textures" : 
+		[
+			"mcl_ocean_prismarine_shard.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_tools:sword_netherite",
+		"textures" : 
+		[
+			"default_tool_netheritesword.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_tools:shovel_netherite",
+		"textures" : 
+		[
+			"default_tool_netheriteshovel.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_tools:pick_netherite",
+		"textures" : 
+		[
+			"default_tool_netheritepick.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_totems:totem_wielded",
+		"textures" : 
+		[
+			"mcl_totems_totem.png",
+			"mcl_totems_totem_wieldview.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_banners:banner_item_red",
+		"textures" : 
+		[
+			"mcl_banners_item_base_48.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_sus_nodes:brush",
+		"textures" : 
+		[
+			"mcl_sus_nodes_brush.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_boats:boat_jungle",
+		"textures" : 
+		[
+			"mcl_boats_jungle_boat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_compass:compass_recovery",
+		"textures" : 
+		[
+			"mcl_compass_recovery_compass_01.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_boats:boat_spruce",
+		"textures" : 
+		[
+			"mcl_boats_spruce_boat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_boats:boat_oak",
+		"textures" : 
+		[
+			"mcl_boats_oak_boat.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_banners:banner_item_blue",
+		"textures" : 
+		[
+			"mcl_banners_item_base_48.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_vaults:trial_key",
+		"textures" : 
+		[
+			"mcl_vaults_trial_key.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "screwdriver:screwdriver",
+		"textures" : 
+		[
+			"screwdriver.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_bone_meal:bone_meal",
+		"textures" : 
+		[
+			"mcl_bone_meal_bone_meal.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_tools:mace",
+		"textures" : 
+		[
+			"mcl_tools_mace.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_tools:axe_wood",
+		"textures" : 
+		[
+			"default_tool_woodaxe.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_tools:axe_stone",
+		"textures" : 
+		[
+			"default_tool_stoneaxe.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_tools:pick_wood",
+		"textures" : 
+		[
+			"default_tool_woodpick.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_tools:pick_stone",
+		"textures" : 
+		[
+			"default_tool_stonepick.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_tools:shears",
+		"textures" : 
+		[
+			"default_tool_shears.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_tools:shovel_iron",
+		"textures" : 
+		[
+			"default_tool_steelshovel.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_tools:sword_copper",
+		"textures" : 
+		[
+			"mcl_copper_tool_sword.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_tools:shovel_wood",
+		"textures" : 
+		[
+			"default_tool_woodshovel.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_tools:sword_stone",
+		"textures" : 
+		[
+			"default_tool_stonesword.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_tools:shovel_stone",
+		"textures" : 
+		[
+			"default_tool_stoneshovel.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_tools:axe_diamond",
+		"textures" : 
+		[
+			"default_tool_diamondaxe.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_tools:axe_iron",
+		"textures" : 
+		[
+			"default_tool_steelaxe.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_honey:honeycomb",
+		"textures" : 
+		[
+			"mcl_honey_honeycomb.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_honey:honey_bottle",
+		"textures" : 
+		[
+			"mcl_honey_honey_bottle.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:glass_bottle",
+		"textures" : 
+		[
+			"mcl_potions_potion_bottle.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_core:stick",
+		"textures" : 
+		[
+			"default_stick.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_tools:sword_wood",
+		"textures" : 
+		[
+			"default_tool_woodsword.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_tools:shovel_copper",
+		"textures" : 
+		[
+			"mcl_copper_tool_shovel.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_tools:sword_gold",
+		"textures" : 
+		[
+			"default_tool_goldsword.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_dyes:orange",
+		"textures" : 
+		[
+			"mcl_dye.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_core:iron_nugget",
+		"textures" : 
+		[
+			"mcl_core_iron_nugget.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_core:flint",
+		"textures" : 
+		[
+			"default_flint.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_fire:fire_charge",
+		"textures" : 
+		[
+			"mcl_fire_fire_charge.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_fire:flint_and_steel",
+		"textures" : 
+		[
+			"mcl_fire_flint_and_steel.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_core:gold_nugget",
+		"textures" : 
+		[
+			"mcl_core_gold_nugget.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_tools:axe_gold",
+		"textures" : 
+		[
+			"default_tool_goldaxe.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_farming:hoe_gold",
+		"textures" : 
+		[
+			"farming_tool_goldhoe.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_tools:pick_gold",
+		"textures" : 
+		[
+			"default_tool_goldpick.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_tools:shovel_gold",
+		"textures" : 
+		[
+			"default_tool_goldshovel.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_bows:arrow",
+		"textures" : 
+		[
+			"mcl_bows_arrow_inv.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:poison_arrow",
+		"textures" : 
+		[
+			"mcl_bows_arrow_inv.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_core:iron_ingot",
+		"textures" : 
+		[
+			"default_steel_ingot.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:ominous",
+		"textures" : 
+		[
+			"mcl_potions_ominous_potion.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_shields:shield",
+		"textures" : 
+		[
+			"mcl_shield_48.png"
+		],
+		"wield_scale" : 2
+	},
+	{
+		"name" : "mcl_bows:bow",
+		"textures" : 
+		[
+			"mcl_bows_bow.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_bows:crossbow",
+		"textures" : 
+		[
+			"mcl_bows_crossbow.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_core:apple_gold",
+		"textures" : 
+		[
+			"mcl_core_apple_golden.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_banners:pattern_guster",
+		"textures" : 
+		[
+			"mcl_banners_pattern_guster.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_tridents:trident",
+		"textures" : 
+		[
+			"mcl_tridents_trident_item.png",
+			"blank.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:slowness_arrow",
+		"textures" : 
+		[
+			"mcl_bows_arrow_inv.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_core:apple_gold_enchanted",
+		"textures" : 
+		[
+			"mcl_core_apple_golden.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_ocean:prismarine_crystals",
+		"textures" : 
+		[
+			"mcl_ocean_prismarine_crystals.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_pottery_sherds:danger",
+		"textures" : 
+		[
+			"mcl_pottery_sherds_danger.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_core:apple",
+		"textures" : 
+		[
+			"default_apple.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_core:emerald",
+		"textures" : 
+		[
+			"mcl_core_emerald.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_pottery_sherds:angler",
+		"textures" : 
+		[
+			"mcl_pottery_sherds_angler.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_raw_ores:raw_iron",
+		"textures" : 
+		[
+			"mcl_raw_ores_raw_iron.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_core:diamond",
+		"textures" : 
+		[
+			"default_diamond.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_buckets:bucket_water",
+		"textures" : 
+		[
+			"bucket_water.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_pottery_sherds:skull",
+		"textures" : 
+		[
+			"mcl_pottery_sherds_skull.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_buckets:bucket_empty",
+		"textures" : 
+		[
+			"bucket.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_armor:wild",
+		"textures" : 
+		[
+			"wild_armor_trim_smithing_template.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_banners:pattern_flow",
+		"textures" : 
+		[
+			"mcl_banners_pattern_flow.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_bows:bow_2",
+		"textures" : 
+		[
+			"mcl_bows_bow_2.png"
+		],
+		"wield_scale" : 1.8
+	},
+	{
+		"name" : "mcl_banners:banner_item_orange",
+		"textures" : 
+		[
+			"mcl_banners_item_base_48.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_banners:banner_item_silver",
+		"textures" : 
+		[
+			"mcl_banners_item_base_48.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:healing_lingering",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:slowness_splash",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_potions:poison_lingering",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		],
+		"wield_scale" : 1
+	},
+	{
+		"name" : "mcl_fishing:fish_raw",
+		"textures" : 
+		[
+			"mcl_fishing_fish_raw.png"
+		],
+		"wield_scale" : 1
+	}
+]

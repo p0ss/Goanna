@@ -1,0 +1,5674 @@
+{
+  "beacon_UV": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_beacons",
+    "source": "mods/ITEMS/mcl_beacons/textures/beacon_UV.png"
+  },
+  "blast_furnace_front": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_blast_furnace",
+    "source": "mods/ITEMS/mcl_blast_furnace/textures/blast_furnace_front.png"
+  },
+  "blast_furnace_front_on": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_blast_furnace",
+    "source": "mods/ITEMS/mcl_blast_furnace/textures/blast_furnace_front_on.png"
+  },
+  "blast_furnace_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_blast_furnace",
+    "source": "mods/ITEMS/mcl_blast_furnace/textures/blast_furnace_side.png"
+  },
+  "blast_furnace_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_blast_furnace",
+    "source": "mods/ITEMS/mcl_blast_furnace/textures/blast_furnace_top.png"
+  },
+  "bush_1": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/bush_1.png"
+  },
+  "bush_2": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/bush_2.png"
+  },
+  "bush_3": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/bush_3.png"
+  },
+  "bush_4": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/bush_4.png"
+  },
+  "bush_5": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/bush_5.png"
+  },
+  "bush_6": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/bush_6.png"
+  },
+  "bush_7": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/bush_7.png"
+  },
+  "bush_8": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/bush_8.png"
+  },
+  "cake_bottom": {
+    "class": "cloth",
+    "collisions": [],
+    "package": "mcl_cake",
+    "source": "mods/ITEMS/mcl_cake/textures/cake_bottom.png"
+  },
+  "cake_inner": {
+    "class": "cloth",
+    "collisions": [],
+    "package": "mcl_cake",
+    "source": "mods/ITEMS/mcl_cake/textures/cake_inner.png"
+  },
+  "cake_side": {
+    "class": "cloth",
+    "collisions": [],
+    "package": "mcl_cake",
+    "source": "mods/ITEMS/mcl_cake/textures/cake_side.png"
+  },
+  "cake_top": {
+    "class": "cloth",
+    "collisions": [],
+    "package": "mcl_cake",
+    "source": "mods/ITEMS/mcl_cake/textures/cake_top.png"
+  },
+  "cartography_table_side1": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_cartography_table",
+    "source": "mods/ITEMS/mcl_cartography_table/textures/cartography_table_side1.png"
+  },
+  "cartography_table_side2": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_cartography_table",
+    "source": "mods/ITEMS/mcl_cartography_table/textures/cartography_table_side2.png"
+  },
+  "cartography_table_side3": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_cartography_table",
+    "source": "mods/ITEMS/mcl_cartography_table/textures/cartography_table_side3.png"
+  },
+  "cartography_table_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_cartography_table",
+    "source": "mods/ITEMS/mcl_cartography_table/textures/cartography_table_top.png"
+  },
+  "character": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_player",
+    "source": "mods/PLAYER/mcl_player/textures/character.png"
+  },
+  "crafting_workbench_front": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_crafting_table",
+    "source": "mods/ITEMS/mcl_crafting_table/textures/crafting_workbench_front.png"
+  },
+  "crafting_workbench_side": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_crafting_table",
+    "source": "mods/ITEMS/mcl_crafting_table/textures/crafting_workbench_side.png"
+  },
+  "crafting_workbench_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_crafting_table",
+    "source": "mods/ITEMS/mcl_crafting_table/textures/crafting_workbench_top.png"
+  },
+  "crimson_hyphae": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_crimson",
+    "source": "mods/ITEMS/mcl_crimson/textures/crimson_hyphae.png"
+  },
+  "crimson_hyphae_side": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_crimson",
+    "source": "mods/ITEMS/mcl_crimson/textures/crimson_hyphae_side.png"
+  },
+  "crimson_hyphae_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_crimson",
+    "source": "mods/ITEMS/mcl_crimson/textures/crimson_hyphae_wood.png"
+  },
+  "crimson_nylium": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_crimson",
+    "source": "mods/ITEMS/mcl_crimson/textures/crimson_nylium.png"
+  },
+  "default_acacia_leaves": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/default_acacia_leaves.png"
+  },
+  "default_acacia_tree": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/default_acacia_tree.png"
+  },
+  "default_acacia_tree_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/default_acacia_tree_top.png"
+  },
+  "default_acacia_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/default_acacia_wood.png"
+  },
+  "default_bookshelf": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_books",
+    "source": "mods/ITEMS/mcl_books/textures/default_bookshelf.png"
+  },
+  "default_brick": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/default_brick.png"
+  },
+  "default_clay": {
+    "class": "soil",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/default_clay.png"
+  },
+  "default_coal_block": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/default_coal_block.png"
+  },
+  "default_cobble": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/default_cobble.png"
+  },
+  "default_diamond_block": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/default_diamond_block.png"
+  },
+  "default_dirt": {
+    "class": "soil",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/default_dirt.png"
+  },
+  "default_furnace_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_furnaces",
+    "source": "mods/ITEMS/mcl_furnaces/textures/default_furnace_bottom.png"
+  },
+  "default_furnace_front": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_furnaces",
+    "source": "mods/ITEMS/mcl_furnaces/textures/default_furnace_front.png"
+  },
+  "default_furnace_front_active": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_furnaces",
+    "source": "mods/ITEMS/mcl_furnaces/textures/default_furnace_front_active.png"
+  },
+  "default_furnace_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_furnaces",
+    "source": "mods/ITEMS/mcl_furnaces/textures/default_furnace_side.png"
+  },
+  "default_furnace_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_furnaces",
+    "source": "mods/ITEMS/mcl_furnaces/textures/default_furnace_top.png"
+  },
+  "default_glass": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/default_glass.png"
+  },
+  "default_glass_detail": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/default_glass_detail.png"
+  },
+  "default_gold_block": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/default_gold_block.png"
+  },
+  "default_gravel": {
+    "class": "gravel",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/default_gravel.png"
+  },
+  "default_ice": {
+    "class": "ice",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/default_ice.png"
+  },
+  "default_jungleleaves": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/default_jungleleaves.png"
+  },
+  "default_jungletree": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/default_jungletree.png"
+  },
+  "default_jungletree_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/default_jungletree_top.png"
+  },
+  "default_junglewood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/default_junglewood.png"
+  },
+  "default_leaves": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/default_leaves.png"
+  },
+  "default_mossycobble": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/default_mossycobble.png"
+  },
+  "default_obsidian": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/default_obsidian.png"
+  },
+  "default_sand": {
+    "class": "sand",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/default_sand.png"
+  },
+  "default_snow": {
+    "class": "snow",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/default_snow.png"
+  },
+  "default_steel_block": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/default_steel_block.png"
+  },
+  "default_stone": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/default_stone.png"
+  },
+  "default_stone_brick": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/default_stone_brick.png"
+  },
+  "default_tnt_bottom": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_tnt",
+    "source": "mods/ITEMS/mcl_tnt/textures/default_tnt_bottom.png"
+  },
+  "default_tnt_side": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_tnt",
+    "source": "mods/ITEMS/mcl_tnt/textures/default_tnt_side.png"
+  },
+  "default_tnt_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_tnt",
+    "source": "mods/ITEMS/mcl_tnt/textures/default_tnt_top.png"
+  },
+  "default_torch_on_floor_animated": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_torches",
+    "source": "mods/ITEMS/mcl_torches/textures/default_torch_on_floor_animated.png"
+  },
+  "default_tree": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/default_tree.png"
+  },
+  "default_tree_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/default_tree_top.png"
+  },
+  "default_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/default_wood.png"
+  },
+  "doors_trapdoor": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_doors",
+    "source": "mods/ITEMS/mcl_doors/textures/doors_trapdoor.png"
+  },
+  "doors_trapdoor_side": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_doors",
+    "source": "mods/ITEMS/mcl_doors/textures/doors_trapdoor_side.png"
+  },
+  "doors_trapdoor_steel": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_doors",
+    "source": "mods/ITEMS/mcl_doors/textures/doors_trapdoor_steel.png"
+  },
+  "doors_trapdoor_steel_side": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_doors",
+    "source": "mods/ITEMS/mcl_doors/textures/doors_trapdoor_steel_side.png"
+  },
+  "dripstone_block": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_dripstone",
+    "source": "mods/ITEMS/mcl_dripstone/textures/dripstone_block.png"
+  },
+  "farming_melon_side": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_farming",
+    "source": "mods/ITEMS/mcl_farming/textures/farming_melon_side.png"
+  },
+  "farming_melon_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_farming",
+    "source": "mods/ITEMS/mcl_farming/textures/farming_melon_top.png"
+  },
+  "farming_pumpkin_face": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_farming",
+    "source": "mods/ITEMS/mcl_farming/textures/farming_pumpkin_face.png"
+  },
+  "farming_pumpkin_face_light": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_farming",
+    "source": "mods/ITEMS/mcl_farming/textures/farming_pumpkin_face_light.png"
+  },
+  "farming_pumpkin_side": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_farming",
+    "source": "mods/ITEMS/mcl_farming/textures/farming_pumpkin_side.png"
+  },
+  "farming_pumpkin_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_farming",
+    "source": "mods/ITEMS/mcl_farming/textures/farming_pumpkin_top.png"
+  },
+  "fletching_table_bottom": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_fletching_table",
+    "source": "mods/ITEMS/mcl_fletching_table/textures/fletching_table_bottom.png"
+  },
+  "fletching_table_front": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_fletching_table",
+    "source": "mods/ITEMS/mcl_fletching_table/textures/fletching_table_front.png"
+  },
+  "fletching_table_side": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_fletching_table",
+    "source": "mods/ITEMS/mcl_fletching_table/textures/fletching_table_side.png"
+  },
+  "fletching_table_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_fletching_table",
+    "source": "mods/ITEMS/mcl_fletching_table/textures/fletching_table_top.png"
+  },
+  "flower_1": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/flower_1.png"
+  },
+  "flower_2": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/flower_2.png"
+  },
+  "flower_3": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/flower_3.png"
+  },
+  "flower_4": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/flower_4.png"
+  },
+  "flower_5": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/flower_5.png"
+  },
+  "flower_6": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/flower_6.png"
+  },
+  "flower_7": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/flower_7.png"
+  },
+  "flower_8": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/flower_8.png"
+  },
+  "flowers_waterlily": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_flowers",
+    "source": "mods/ITEMS/mcl_flowers/textures/flowers_waterlily.png"
+  },
+  "gourd_1": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/gourd_1.png"
+  },
+  "gourd_2": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/gourd_2.png"
+  },
+  "gourd_3": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/gourd_3.png"
+  },
+  "gourd_4": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/gourd_4.png"
+  },
+  "gourd_5": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/gourd_5.png"
+  },
+  "gourd_6": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/gourd_6.png"
+  },
+  "gourd_7": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/gourd_7.png"
+  },
+  "gourd_8": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/gourd_8.png"
+  },
+  "grain_1": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/grain_1.png"
+  },
+  "grain_2": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/grain_2.png"
+  },
+  "grain_3": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/grain_3.png"
+  },
+  "grain_4": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/grain_4.png"
+  },
+  "grain_5": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/grain_5.png"
+  },
+  "grain_6": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/grain_6.png"
+  },
+  "grain_7": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/grain_7.png"
+  },
+  "grain_8": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/grain_8.png"
+  },
+  "grindstone_front": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_grindstone",
+    "source": "mods/ITEMS/mcl_grindstone/textures/grindstone_front.png"
+  },
+  "grindstone_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_grindstone",
+    "source": "mods/ITEMS/mcl_grindstone/textures/grindstone_side.png"
+  },
+  "grindstone_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_grindstone",
+    "source": "mods/ITEMS/mcl_grindstone/textures/grindstone_top.png"
+  },
+  "hardened_clay": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/hardened_clay.png"
+  },
+  "hardened_clay_stained_black": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/hardened_clay_stained_black.png"
+  },
+  "hardened_clay_stained_blue": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/hardened_clay_stained_blue.png"
+  },
+  "hardened_clay_stained_brown": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/hardened_clay_stained_brown.png"
+  },
+  "hardened_clay_stained_cyan": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/hardened_clay_stained_cyan.png"
+  },
+  "hardened_clay_stained_green": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/hardened_clay_stained_green.png"
+  },
+  "hardened_clay_stained_grey": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/hardened_clay_stained_grey.png"
+  },
+  "hardened_clay_stained_light_blue": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/hardened_clay_stained_light_blue.png"
+  },
+  "hardened_clay_stained_lime": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/hardened_clay_stained_lime.png"
+  },
+  "hardened_clay_stained_magenta": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/hardened_clay_stained_magenta.png"
+  },
+  "hardened_clay_stained_orange": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/hardened_clay_stained_orange.png"
+  },
+  "hardened_clay_stained_pink": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/hardened_clay_stained_pink.png"
+  },
+  "hardened_clay_stained_purple": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/hardened_clay_stained_purple.png"
+  },
+  "hardened_clay_stained_red": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/hardened_clay_stained_red.png"
+  },
+  "hardened_clay_stained_silver": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/hardened_clay_stained_silver.png"
+  },
+  "hardened_clay_stained_white": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/hardened_clay_stained_white.png"
+  },
+  "hardened_clay_stained_yellow": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/hardened_clay_stained_yellow.png"
+  },
+  "jeija_commandblock_off": {
+    "class": "stone",
+    "collisions": [
+      "mcl_pressureplates"
+    ],
+    "package": "mcl_commandblock",
+    "source": "mods/ITEMS/REDSTONE/mcl_commandblock/textures/jeija_commandblock_off.png"
+  },
+  "jeija_lightstone_gray_off": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_redstone_lamp",
+    "source": "mods/ITEMS/REDSTONE/mcl_redstone_lamp/textures/jeija_lightstone_gray_off.png"
+  },
+  "jeija_lightstone_gray_on": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_redstone_lamp",
+    "source": "mods/ITEMS/REDSTONE/mcl_redstone_lamp/textures/jeija_lightstone_gray_on.png"
+  },
+  "jeija_solar_panel": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_daylight_detector",
+    "source": "mods/ITEMS/REDSTONE/mcl_daylight_detector/textures/jeija_solar_panel.png"
+  },
+  "jeija_solar_panel_inverted": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_daylight_detector",
+    "source": "mods/ITEMS/REDSTONE/mcl_daylight_detector/textures/jeija_solar_panel_inverted.png"
+  },
+  "jeija_solar_panel_side": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_daylight_detector",
+    "source": "mods/ITEMS/REDSTONE/mcl_daylight_detector/textures/jeija_solar_panel_side.png"
+  },
+  "jeija_torches_off": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_redstone_torch",
+    "source": "mods/ITEMS/REDSTONE/mcl_redstone_torch/textures/jeija_torches_off.png"
+  },
+  "jeija_torches_on": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_redstone_torch",
+    "source": "mods/ITEMS/REDSTONE/mcl_redstone_torch/textures/jeija_torches_on.png"
+  },
+  "lodestone_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_compass",
+    "source": "mods/ITEMS/mcl_compass/textures/lodestone_bottom.png"
+  },
+  "lodestone_side1": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_compass",
+    "source": "mods/ITEMS/mcl_compass/textures/lodestone_side1.png"
+  },
+  "lodestone_side2": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_compass",
+    "source": "mods/ITEMS/mcl_compass/textures/lodestone_side2.png"
+  },
+  "lodestone_side3": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_compass",
+    "source": "mods/ITEMS/mcl_compass/textures/lodestone_side3.png"
+  },
+  "lodestone_side4": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_compass",
+    "source": "mods/ITEMS/mcl_compass/textures/lodestone_side4.png"
+  },
+  "lodestone_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_compass",
+    "source": "mods/ITEMS/mcl_compass/textures/lodestone_top.png"
+  },
+  "loom_bottom": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_loom",
+    "source": "mods/ITEMS/mcl_loom/textures/loom_bottom.png"
+  },
+  "loom_front": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_loom",
+    "source": "mods/ITEMS/mcl_loom/textures/loom_front.png"
+  },
+  "loom_side": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_loom",
+    "source": "mods/ITEMS/mcl_loom/textures/loom_side.png"
+  },
+  "loom_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_loom",
+    "source": "mods/ITEMS/mcl_loom/textures/loom_top.png"
+  },
+  "mcl_amethyst_amethyst_block": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_amethyst",
+    "source": "mods/ITEMS/mcl_amethyst/textures/mcl_amethyst_amethyst_block.png"
+  },
+  "mcl_amethyst_budding_amethyst": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_amethyst",
+    "source": "mods/ITEMS/mcl_amethyst/textures/mcl_amethyst_budding_amethyst.png"
+  },
+  "mcl_amethyst_calcite_block": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_amethyst",
+    "source": "mods/ITEMS/mcl_amethyst/textures/mcl_amethyst_calcite_block.png"
+  },
+  "mcl_amethyst_tinted_glass": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_amethyst",
+    "source": "mods/ITEMS/mcl_amethyst/textures/mcl_amethyst_tinted_glass.png"
+  },
+  "mcl_anvils_anvil_base": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_anvils",
+    "source": "mods/ITEMS/mcl_anvils/textures/mcl_anvils_anvil_base.png"
+  },
+  "mcl_anvils_anvil_side": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_anvils",
+    "source": "mods/ITEMS/mcl_anvils/textures/mcl_anvils_anvil_side.png"
+  },
+  "mcl_anvils_anvil_top_damaged_0": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_anvils",
+    "source": "mods/ITEMS/mcl_anvils/textures/mcl_anvils_anvil_top_damaged_0.png"
+  },
+  "mcl_anvils_anvil_top_damaged_1": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_anvils",
+    "source": "mods/ITEMS/mcl_anvils/textures/mcl_anvils_anvil_top_damaged_1.png"
+  },
+  "mcl_anvils_anvil_top_damaged_2": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_anvils",
+    "source": "mods/ITEMS/mcl_anvils/textures/mcl_anvils_anvil_top_damaged_2.png"
+  },
+  "mcl_backstone_quartz_bricks": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_blackstone",
+    "source": "mods/ITEMS/mcl_blackstone/textures/mcl_backstone_quartz_bricks.png"
+  },
+  "mcl_bamboo_bamboo": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_bamboo",
+    "source": "mods/ITEMS/mcl_bamboo/textures/mcl_bamboo_bamboo.png"
+  },
+  "mcl_bamboo_bamboo_block": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_bamboo",
+    "source": "mods/ITEMS/mcl_bamboo/textures/mcl_bamboo_bamboo_block.png"
+  },
+  "mcl_bamboo_bamboo_block_stripped": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_bamboo",
+    "source": "mods/ITEMS/mcl_bamboo/textures/mcl_bamboo_bamboo_block_stripped.png"
+  },
+  "mcl_bamboo_bamboo_bottom": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_bamboo",
+    "source": "mods/ITEMS/mcl_bamboo/textures/mcl_bamboo_bamboo_bottom.png"
+  },
+  "mcl_bamboo_bamboo_bottom_stripped": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_bamboo",
+    "source": "mods/ITEMS/mcl_bamboo/textures/mcl_bamboo_bamboo_bottom_stripped.png"
+  },
+  "mcl_bamboo_bamboo_fpm": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_bamboo",
+    "source": "mods/ITEMS/mcl_bamboo/textures/mcl_bamboo_bamboo_fpm.png"
+  },
+  "mcl_bamboo_bamboo_plank": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_bamboo",
+    "source": "mods/ITEMS/mcl_bamboo/textures/mcl_bamboo_bamboo_plank.png"
+  },
+  "mcl_bamboo_bamboo_plank_mosaic": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_bamboo",
+    "source": "mods/ITEMS/mcl_bamboo/textures/mcl_bamboo_bamboo_plank_mosaic.png"
+  },
+  "mcl_bamboo_door_bottom": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_bamboo",
+    "source": "mods/ITEMS/mcl_bamboo/textures/mcl_bamboo_door_bottom.png"
+  },
+  "mcl_bamboo_door_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_bamboo",
+    "source": "mods/ITEMS/mcl_bamboo/textures/mcl_bamboo_door_top.png"
+  },
+  "mcl_bamboo_fence_bamboo": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_bamboo",
+    "source": "mods/ITEMS/mcl_bamboo/textures/mcl_bamboo_fence_bamboo.png"
+  },
+  "mcl_bamboo_fence_gate_bamboo": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_bamboo",
+    "source": "mods/ITEMS/mcl_bamboo/textures/mcl_bamboo_fence_gate_bamboo.png"
+  },
+  "mcl_bamboo_leaf_big": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_bamboo",
+    "source": "mods/ITEMS/mcl_bamboo/textures/mcl_bamboo_leaf_big.png"
+  },
+  "mcl_bamboo_leaf_small": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_bamboo",
+    "source": "mods/ITEMS/mcl_bamboo/textures/mcl_bamboo_leaf_small.png"
+  },
+  "mcl_bamboo_scaffolding_side": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_bamboo",
+    "source": "mods/ITEMS/mcl_bamboo/textures/mcl_bamboo_scaffolding_side.png"
+  },
+  "mcl_bamboo_scaffolding_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_bamboo",
+    "source": "mods/ITEMS/mcl_bamboo/textures/mcl_bamboo_scaffolding_top.png"
+  },
+  "mcl_bamboo_trapdoor_side": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_bamboo",
+    "source": "mods/ITEMS/mcl_bamboo/textures/mcl_bamboo_trapdoor_side.png"
+  },
+  "mcl_banners_fallback_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_banners",
+    "source": "mods/ITEMS/mcl_banners/textures/mcl_banners_fallback_wood.png"
+  },
+  "mcl_barrels_barrel_bottom": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_barrels",
+    "source": "mods/ITEMS/mcl_barrels/textures/mcl_barrels_barrel_bottom.png"
+  },
+  "mcl_barrels_barrel_side": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_barrels",
+    "source": "mods/ITEMS/mcl_barrels/textures/mcl_barrels_barrel_side.png"
+  },
+  "mcl_barrels_barrel_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_barrels",
+    "source": "mods/ITEMS/mcl_barrels/textures/mcl_barrels_barrel_top.png"
+  },
+  "mcl_barrels_barrel_top_open": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_barrels",
+    "source": "mods/ITEMS/mcl_barrels/textures/mcl_barrels_barrel_top_open.png"
+  },
+  "mcl_beds_bed_black": {
+    "class": "cloth",
+    "collisions": [],
+    "package": "mcl_beds",
+    "source": "mods/ITEMS/mcl_beds/textures/mcl_beds_bed_black.png"
+  },
+  "mcl_beds_bed_blue": {
+    "class": "cloth",
+    "collisions": [],
+    "package": "mcl_beds",
+    "source": "mods/ITEMS/mcl_beds/textures/mcl_beds_bed_blue.png"
+  },
+  "mcl_beds_bed_brown": {
+    "class": "cloth",
+    "collisions": [],
+    "package": "mcl_beds",
+    "source": "mods/ITEMS/mcl_beds/textures/mcl_beds_bed_brown.png"
+  },
+  "mcl_beds_bed_cyan": {
+    "class": "cloth",
+    "collisions": [],
+    "package": "mcl_beds",
+    "source": "mods/ITEMS/mcl_beds/textures/mcl_beds_bed_cyan.png"
+  },
+  "mcl_beds_bed_green": {
+    "class": "cloth",
+    "collisions": [],
+    "package": "mcl_beds",
+    "source": "mods/ITEMS/mcl_beds/textures/mcl_beds_bed_green.png"
+  },
+  "mcl_beds_bed_grey": {
+    "class": "cloth",
+    "collisions": [],
+    "package": "mcl_beds",
+    "source": "mods/ITEMS/mcl_beds/textures/mcl_beds_bed_grey.png"
+  },
+  "mcl_beds_bed_light_blue": {
+    "class": "cloth",
+    "collisions": [],
+    "package": "mcl_beds",
+    "source": "mods/ITEMS/mcl_beds/textures/mcl_beds_bed_light_blue.png"
+  },
+  "mcl_beds_bed_lime": {
+    "class": "cloth",
+    "collisions": [],
+    "package": "mcl_beds",
+    "source": "mods/ITEMS/mcl_beds/textures/mcl_beds_bed_lime.png"
+  },
+  "mcl_beds_bed_magenta": {
+    "class": "cloth",
+    "collisions": [],
+    "package": "mcl_beds",
+    "source": "mods/ITEMS/mcl_beds/textures/mcl_beds_bed_magenta.png"
+  },
+  "mcl_beds_bed_orange": {
+    "class": "cloth",
+    "collisions": [],
+    "package": "mcl_beds",
+    "source": "mods/ITEMS/mcl_beds/textures/mcl_beds_bed_orange.png"
+  },
+  "mcl_beds_bed_pink": {
+    "class": "cloth",
+    "collisions": [],
+    "package": "mcl_beds",
+    "source": "mods/ITEMS/mcl_beds/textures/mcl_beds_bed_pink.png"
+  },
+  "mcl_beds_bed_purple": {
+    "class": "cloth",
+    "collisions": [],
+    "package": "mcl_beds",
+    "source": "mods/ITEMS/mcl_beds/textures/mcl_beds_bed_purple.png"
+  },
+  "mcl_beds_bed_red": {
+    "class": "cloth",
+    "collisions": [],
+    "package": "mcl_beds",
+    "source": "mods/ITEMS/mcl_beds/textures/mcl_beds_bed_red.png"
+  },
+  "mcl_beds_bed_silver": {
+    "class": "cloth",
+    "collisions": [],
+    "package": "mcl_beds",
+    "source": "mods/ITEMS/mcl_beds/textures/mcl_beds_bed_silver.png"
+  },
+  "mcl_beds_bed_white": {
+    "class": "cloth",
+    "collisions": [],
+    "package": "mcl_beds",
+    "source": "mods/ITEMS/mcl_beds/textures/mcl_beds_bed_white.png"
+  },
+  "mcl_beds_bed_yellow": {
+    "class": "cloth",
+    "collisions": [],
+    "package": "mcl_beds",
+    "source": "mods/ITEMS/mcl_beds/textures/mcl_beds_bed_yellow.png"
+  },
+  "mcl_beehives_bee_nest_bottom": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_beehives",
+    "source": "mods/ITEMS/mcl_beehives/textures/mcl_beehives_bee_nest_bottom.png"
+  },
+  "mcl_beehives_bee_nest_front": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_beehives",
+    "source": "mods/ITEMS/mcl_beehives/textures/mcl_beehives_bee_nest_front.png"
+  },
+  "mcl_beehives_bee_nest_front_honey": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_beehives",
+    "source": "mods/ITEMS/mcl_beehives/textures/mcl_beehives_bee_nest_front_honey.png"
+  },
+  "mcl_beehives_bee_nest_side": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_beehives",
+    "source": "mods/ITEMS/mcl_beehives/textures/mcl_beehives_bee_nest_side.png"
+  },
+  "mcl_beehives_bee_nest_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_beehives",
+    "source": "mods/ITEMS/mcl_beehives/textures/mcl_beehives_bee_nest_top.png"
+  },
+  "mcl_beehives_beehive_end": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_beehives",
+    "source": "mods/ITEMS/mcl_beehives/textures/mcl_beehives_beehive_end.png"
+  },
+  "mcl_beehives_beehive_front": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_beehives",
+    "source": "mods/ITEMS/mcl_beehives/textures/mcl_beehives_beehive_front.png"
+  },
+  "mcl_beehives_beehive_front_honey": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_beehives",
+    "source": "mods/ITEMS/mcl_beehives/textures/mcl_beehives_beehive_front_honey.png"
+  },
+  "mcl_beehives_beehive_side": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_beehives",
+    "source": "mods/ITEMS/mcl_beehives/textures/mcl_beehives_beehive_side.png"
+  },
+  "mcl_bells_bell_ceiling": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_bells",
+    "source": "mods/ITEMS/mcl_bells/textures/mcl_bells_bell_ceiling.png"
+  },
+  "mcl_bells_bell_floor_front": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_bells",
+    "source": "mods/ITEMS/mcl_bells/textures/mcl_bells_bell_floor_front.png"
+  },
+  "mcl_bells_bell_floor_side": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_bells",
+    "source": "mods/ITEMS/mcl_bells/textures/mcl_bells_bell_floor_side.png"
+  },
+  "mcl_bells_bell_floor_top": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_bells",
+    "source": "mods/ITEMS/mcl_bells/textures/mcl_bells_bell_floor_top.png"
+  },
+  "mcl_bells_bell_wall": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_bells",
+    "source": "mods/ITEMS/mcl_bells/textures/mcl_bells_bell_wall.png"
+  },
+  "mcl_blackstone_basalt_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_blackstone",
+    "source": "mods/ITEMS/mcl_blackstone/textures/mcl_blackstone_basalt_side.png"
+  },
+  "mcl_blackstone_basalt_side_polished": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_blackstone",
+    "source": "mods/ITEMS/mcl_blackstone/textures/mcl_blackstone_basalt_side_polished.png"
+  },
+  "mcl_blackstone_basalt_smooth": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_blackstone",
+    "source": "mods/ITEMS/mcl_blackstone/textures/mcl_blackstone_basalt_smooth.png"
+  },
+  "mcl_blackstone_basalt_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_blackstone",
+    "source": "mods/ITEMS/mcl_blackstone/textures/mcl_blackstone_basalt_top.png"
+  },
+  "mcl_blackstone_basalt_top_polished": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_blackstone",
+    "source": "mods/ITEMS/mcl_blackstone/textures/mcl_blackstone_basalt_top_polished.png"
+  },
+  "mcl_blackstone_chiseled_polished": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_blackstone",
+    "source": "mods/ITEMS/mcl_blackstone/textures/mcl_blackstone_chiseled_polished.png"
+  },
+  "mcl_blackstone_gilded": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_blackstone",
+    "source": "mods/ITEMS/mcl_blackstone/textures/mcl_blackstone_gilded.png"
+  },
+  "mcl_blackstone_polished": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_blackstone",
+    "source": "mods/ITEMS/mcl_blackstone/textures/mcl_blackstone_polished.png"
+  },
+  "mcl_blackstone_polished_bricks": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_blackstone",
+    "source": "mods/ITEMS/mcl_blackstone/textures/mcl_blackstone_polished_bricks.png"
+  },
+  "mcl_blackstone_polished_bricks_cracked": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_blackstone",
+    "source": "mods/ITEMS/mcl_blackstone/textures/mcl_blackstone_polished_bricks_cracked.png"
+  },
+  "mcl_blackstone_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_blackstone",
+    "source": "mods/ITEMS/mcl_blackstone/textures/mcl_blackstone_side.png"
+  },
+  "mcl_blackstone_soul_soil": {
+    "class": "sand",
+    "collisions": [],
+    "package": "mcl_blackstone",
+    "source": "mods/ITEMS/mcl_blackstone/textures/mcl_blackstone_soul_soil.png"
+  },
+  "mcl_blackstone_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_blackstone",
+    "source": "mods/ITEMS/mcl_blackstone/textures/mcl_blackstone_top.png"
+  },
+  "mcl_books_bookshelf_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_books",
+    "source": "mods/ITEMS/mcl_books/textures/mcl_books_bookshelf_top.png"
+  },
+  "mcl_books_chiseled_bookshelf_side": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_books",
+    "source": "mods/ITEMS/mcl_books/textures/mcl_books_chiseled_bookshelf_side.png"
+  },
+  "mcl_books_chiseled_bookshelf_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_books",
+    "source": "mods/ITEMS/mcl_books/textures/mcl_books_chiseled_bookshelf_top.png"
+  },
+  "mcl_brewing_rack": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_brewing",
+    "source": "mods/ITEMS/mcl_brewing/textures/mcl_brewing_rack.png"
+  },
+  "mcl_brewing_rack_bottle": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_brewing",
+    "source": "mods/ITEMS/mcl_brewing/textures/mcl_brewing_rack_bottle.png"
+  },
+  "mcl_brewing_stand": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_brewing",
+    "source": "mods/ITEMS/mcl_brewing/textures/mcl_brewing_stand.png"
+  },
+  "mcl_campfires_campfire_fire": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_campfires",
+    "source": "mods/ITEMS/mcl_campfires/textures/mcl_campfires_campfire_fire.png"
+  },
+  "mcl_campfires_log": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_campfires",
+    "source": "mods/ITEMS/mcl_campfires/textures/mcl_campfires_log.png"
+  },
+  "mcl_campfires_soul_campfire_fire": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_campfires",
+    "source": "mods/ITEMS/mcl_campfires/textures/mcl_campfires_soul_campfire_fire.png"
+  },
+  "mcl_candles_candle": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_candles",
+    "source": "mods/ITEMS/mcl_candles/textures/mcl_candles_candle.png"
+  },
+  "mcl_candles_flames": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_candles",
+    "source": "mods/ITEMS/mcl_candles/textures/mcl_candles_flames.png"
+  },
+  "mcl_cauldrons_cauldron_inner": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_cauldrons",
+    "source": "mods/ITEMS/mcl_cauldrons/textures/mcl_cauldrons_cauldron_inner.png"
+  },
+  "mcl_cauldrons_cauldron_side": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_cauldrons",
+    "source": "mods/ITEMS/mcl_cauldrons/textures/mcl_cauldrons_cauldron_side.png"
+  },
+  "mcl_cherry_blossom_door_bottom": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_cherry_blossom",
+    "source": "mods/ITEMS/mcl_cherry_blossom/textures/mcl_cherry_blossom_door_bottom.png"
+  },
+  "mcl_cherry_blossom_door_bottom_side": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_cherry_blossom",
+    "source": "mods/ITEMS/mcl_cherry_blossom/textures/mcl_cherry_blossom_door_bottom_side.png"
+  },
+  "mcl_cherry_blossom_door_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_cherry_blossom",
+    "source": "mods/ITEMS/mcl_cherry_blossom/textures/mcl_cherry_blossom_door_top.png"
+  },
+  "mcl_cherry_blossom_door_top_side": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_cherry_blossom",
+    "source": "mods/ITEMS/mcl_cherry_blossom/textures/mcl_cherry_blossom_door_top_side.png"
+  },
+  "mcl_cherry_blossom_leaves": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_cherry_blossom",
+    "source": "mods/ITEMS/mcl_cherry_blossom/textures/mcl_cherry_blossom_leaves.png"
+  },
+  "mcl_cherry_blossom_log": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_cherry_blossom",
+    "source": "mods/ITEMS/mcl_cherry_blossom/textures/mcl_cherry_blossom_log.png"
+  },
+  "mcl_cherry_blossom_log_stripped": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_cherry_blossom",
+    "source": "mods/ITEMS/mcl_cherry_blossom/textures/mcl_cherry_blossom_log_stripped.png"
+  },
+  "mcl_cherry_blossom_log_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_cherry_blossom",
+    "source": "mods/ITEMS/mcl_cherry_blossom/textures/mcl_cherry_blossom_log_top.png"
+  },
+  "mcl_cherry_blossom_log_top_stripped": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_cherry_blossom",
+    "source": "mods/ITEMS/mcl_cherry_blossom/textures/mcl_cherry_blossom_log_top_stripped.png"
+  },
+  "mcl_cherry_blossom_pink_petals": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_cherry_blossom",
+    "source": "mods/ITEMS/mcl_cherry_blossom/textures/mcl_cherry_blossom_pink_petals.png"
+  },
+  "mcl_cherry_blossom_planks": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_cherry_blossom",
+    "source": "mods/ITEMS/mcl_cherry_blossom/textures/mcl_cherry_blossom_planks.png"
+  },
+  "mcl_cherry_blossom_trapdoor": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_cherry_blossom",
+    "source": "mods/ITEMS/mcl_cherry_blossom/textures/mcl_cherry_blossom_trapdoor.png"
+  },
+  "mcl_cherry_blossom_trapdoor_side": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_cherry_blossom",
+    "source": "mods/ITEMS/mcl_cherry_blossom/textures/mcl_cherry_blossom_trapdoor_side.png"
+  },
+  "mcl_chests_ender": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_chests",
+    "source": "mods/ITEMS/mcl_chests/textures/mcl_chests_ender.png"
+  },
+  "mcl_chests_normal": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_chests",
+    "source": "mods/ITEMS/mcl_chests/textures/mcl_chests_normal.png"
+  },
+  "mcl_chests_trapped": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_chests",
+    "source": "mods/ITEMS/mcl_chests/textures/mcl_chests_trapped.png"
+  },
+  "mcl_cocoas_cocoa_stage_0": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_cocoas",
+    "source": "mods/ITEMS/mcl_cocoas/textures/mcl_cocoas_cocoa_stage_0.png"
+  },
+  "mcl_cocoas_cocoa_stage_1": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_cocoas",
+    "source": "mods/ITEMS/mcl_cocoas/textures/mcl_cocoas_cocoa_stage_1.png"
+  },
+  "mcl_cocoas_cocoa_stage_2": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_cocoas",
+    "source": "mods/ITEMS/mcl_cocoas/textures/mcl_cocoas_cocoa_stage_2.png"
+  },
+  "mcl_colorblocks_concrete_black": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_concrete_black.png"
+  },
+  "mcl_colorblocks_concrete_blue": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_concrete_blue.png"
+  },
+  "mcl_colorblocks_concrete_brown": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_concrete_brown.png"
+  },
+  "mcl_colorblocks_concrete_cyan": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_concrete_cyan.png"
+  },
+  "mcl_colorblocks_concrete_green": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_concrete_green.png"
+  },
+  "mcl_colorblocks_concrete_grey": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_concrete_grey.png"
+  },
+  "mcl_colorblocks_concrete_light_blue": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_concrete_light_blue.png"
+  },
+  "mcl_colorblocks_concrete_lime": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_concrete_lime.png"
+  },
+  "mcl_colorblocks_concrete_magenta": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_concrete_magenta.png"
+  },
+  "mcl_colorblocks_concrete_orange": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_concrete_orange.png"
+  },
+  "mcl_colorblocks_concrete_pink": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_concrete_pink.png"
+  },
+  "mcl_colorblocks_concrete_powder_black": {
+    "class": "sand",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_concrete_powder_black.png"
+  },
+  "mcl_colorblocks_concrete_powder_blue": {
+    "class": "sand",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_concrete_powder_blue.png"
+  },
+  "mcl_colorblocks_concrete_powder_brown": {
+    "class": "sand",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_concrete_powder_brown.png"
+  },
+  "mcl_colorblocks_concrete_powder_cyan": {
+    "class": "sand",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_concrete_powder_cyan.png"
+  },
+  "mcl_colorblocks_concrete_powder_green": {
+    "class": "sand",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_concrete_powder_green.png"
+  },
+  "mcl_colorblocks_concrete_powder_grey": {
+    "class": "sand",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_concrete_powder_grey.png"
+  },
+  "mcl_colorblocks_concrete_powder_light_blue": {
+    "class": "sand",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_concrete_powder_light_blue.png"
+  },
+  "mcl_colorblocks_concrete_powder_lime": {
+    "class": "sand",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_concrete_powder_lime.png"
+  },
+  "mcl_colorblocks_concrete_powder_magenta": {
+    "class": "sand",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_concrete_powder_magenta.png"
+  },
+  "mcl_colorblocks_concrete_powder_orange": {
+    "class": "sand",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_concrete_powder_orange.png"
+  },
+  "mcl_colorblocks_concrete_powder_pink": {
+    "class": "sand",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_concrete_powder_pink.png"
+  },
+  "mcl_colorblocks_concrete_powder_purple": {
+    "class": "sand",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_concrete_powder_purple.png"
+  },
+  "mcl_colorblocks_concrete_powder_red": {
+    "class": "sand",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_concrete_powder_red.png"
+  },
+  "mcl_colorblocks_concrete_powder_silver": {
+    "class": "sand",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_concrete_powder_silver.png"
+  },
+  "mcl_colorblocks_concrete_powder_white": {
+    "class": "sand",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_concrete_powder_white.png"
+  },
+  "mcl_colorblocks_concrete_powder_yellow": {
+    "class": "sand",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_concrete_powder_yellow.png"
+  },
+  "mcl_colorblocks_concrete_purple": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_concrete_purple.png"
+  },
+  "mcl_colorblocks_concrete_red": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_concrete_red.png"
+  },
+  "mcl_colorblocks_concrete_silver": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_concrete_silver.png"
+  },
+  "mcl_colorblocks_concrete_white": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_concrete_white.png"
+  },
+  "mcl_colorblocks_concrete_yellow": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_concrete_yellow.png"
+  },
+  "mcl_colorblocks_glazed_terracotta_black": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_glazed_terracotta_black.png"
+  },
+  "mcl_colorblocks_glazed_terracotta_blue": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_glazed_terracotta_blue.png"
+  },
+  "mcl_colorblocks_glazed_terracotta_brown": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_glazed_terracotta_brown.png"
+  },
+  "mcl_colorblocks_glazed_terracotta_cyan": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_glazed_terracotta_cyan.png"
+  },
+  "mcl_colorblocks_glazed_terracotta_green": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_glazed_terracotta_green.png"
+  },
+  "mcl_colorblocks_glazed_terracotta_grey": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_glazed_terracotta_grey.png"
+  },
+  "mcl_colorblocks_glazed_terracotta_light_blue": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_glazed_terracotta_light_blue.png"
+  },
+  "mcl_colorblocks_glazed_terracotta_lime": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_glazed_terracotta_lime.png"
+  },
+  "mcl_colorblocks_glazed_terracotta_magenta": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_glazed_terracotta_magenta.png"
+  },
+  "mcl_colorblocks_glazed_terracotta_orange": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_glazed_terracotta_orange.png"
+  },
+  "mcl_colorblocks_glazed_terracotta_pink": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_glazed_terracotta_pink.png"
+  },
+  "mcl_colorblocks_glazed_terracotta_purple": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_glazed_terracotta_purple.png"
+  },
+  "mcl_colorblocks_glazed_terracotta_red": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_glazed_terracotta_red.png"
+  },
+  "mcl_colorblocks_glazed_terracotta_silver": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_glazed_terracotta_silver.png"
+  },
+  "mcl_colorblocks_glazed_terracotta_white": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_glazed_terracotta_white.png"
+  },
+  "mcl_colorblocks_glazed_terracotta_yellow": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_colorblocks",
+    "source": "mods/ITEMS/mcl_colorblocks/textures/mcl_colorblocks_glazed_terracotta_yellow.png"
+  },
+  "mcl_comparators_ends_off": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_comparators",
+    "source": "mods/ITEMS/REDSTONE/mcl_comparators/textures/mcl_comparators_ends_off.png"
+  },
+  "mcl_comparators_ends_on": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_comparators",
+    "source": "mods/ITEMS/REDSTONE/mcl_comparators/textures/mcl_comparators_ends_on.png"
+  },
+  "mcl_comparators_off": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_comparators",
+    "source": "mods/ITEMS/REDSTONE/mcl_comparators/textures/mcl_comparators_off.png"
+  },
+  "mcl_comparators_on": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_comparators",
+    "source": "mods/ITEMS/REDSTONE/mcl_comparators/textures/mcl_comparators_on.png"
+  },
+  "mcl_comparators_sides_off": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_comparators",
+    "source": "mods/ITEMS/REDSTONE/mcl_comparators/textures/mcl_comparators_sides_off.png"
+  },
+  "mcl_comparators_sides_on": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_comparators",
+    "source": "mods/ITEMS/REDSTONE/mcl_comparators/textures/mcl_comparators_sides_on.png"
+  },
+  "mcl_composter_bottom": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_composters",
+    "source": "mods/ITEMS/mcl_composters/textures/mcl_composter_bottom.png"
+  },
+  "mcl_composter_compost": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_composters",
+    "source": "mods/ITEMS/mcl_composters/textures/mcl_composter_compost.png"
+  },
+  "mcl_composter_ready": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_composters",
+    "source": "mods/ITEMS/mcl_composters/textures/mcl_composter_ready.png"
+  },
+  "mcl_composter_side": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_composters",
+    "source": "mods/ITEMS/mcl_composters/textures/mcl_composter_side.png"
+  },
+  "mcl_conduit_conduit_node": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_conduits",
+    "source": "mods/ITEMS/mcl_conduits/textures/mcl_conduit_conduit_node.png"
+  },
+  "mcl_copper_block": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_block.png"
+  },
+  "mcl_copper_block_bulb_off": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_block_bulb_off.png"
+  },
+  "mcl_copper_block_bulb_off_powered": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_block_bulb_off_powered.png"
+  },
+  "mcl_copper_block_bulb_on": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_block_bulb_on.png"
+  },
+  "mcl_copper_block_bulb_on_powered": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_block_bulb_on_powered.png"
+  },
+  "mcl_copper_block_chiseled": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_block_chiseled.png"
+  },
+  "mcl_copper_block_cut": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_block_cut.png"
+  },
+  "mcl_copper_block_grate": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_block_grate.png"
+  },
+  "mcl_copper_block_raw": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_block_raw.png"
+  },
+  "mcl_copper_chain": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_chain.png"
+  },
+  "mcl_copper_chain_exposed": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_chain_exposed.png"
+  },
+  "mcl_copper_chain_oxidized": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_chain_oxidized.png"
+  },
+  "mcl_copper_chain_weathered": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_chain_weathered.png"
+  },
+  "mcl_copper_door_bottom": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_door_bottom.png"
+  },
+  "mcl_copper_door_exposed_bottom": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_door_exposed_bottom.png"
+  },
+  "mcl_copper_door_exposed_top": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_door_exposed_top.png"
+  },
+  "mcl_copper_door_oxidized_bottom": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_door_oxidized_bottom.png"
+  },
+  "mcl_copper_door_oxidized_top": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_door_oxidized_top.png"
+  },
+  "mcl_copper_door_top": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_door_top.png"
+  },
+  "mcl_copper_door_weathered_bottom": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_door_weathered_bottom.png"
+  },
+  "mcl_copper_door_weathered_top": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_door_weathered_top.png"
+  },
+  "mcl_copper_exposed": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_exposed.png"
+  },
+  "mcl_copper_exposed_bulb_off": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_exposed_bulb_off.png"
+  },
+  "mcl_copper_exposed_bulb_off_powered": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_exposed_bulb_off_powered.png"
+  },
+  "mcl_copper_exposed_bulb_on": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_exposed_bulb_on.png"
+  },
+  "mcl_copper_exposed_bulb_on_powered": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_exposed_bulb_on_powered.png"
+  },
+  "mcl_copper_exposed_chiseled": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_exposed_chiseled.png"
+  },
+  "mcl_copper_exposed_cut": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_exposed_cut.png"
+  },
+  "mcl_copper_exposed_grate": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_exposed_grate.png"
+  },
+  "mcl_copper_lantern": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_lantern.png"
+  },
+  "mcl_copper_lantern_exposed": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_lantern_exposed.png"
+  },
+  "mcl_copper_lantern_oxidized": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_lantern_oxidized.png"
+  },
+  "mcl_copper_lantern_weathered": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_lantern_weathered.png"
+  },
+  "mcl_copper_oxidized": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_oxidized.png"
+  },
+  "mcl_copper_oxidized_bulb_off": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_oxidized_bulb_off.png"
+  },
+  "mcl_copper_oxidized_bulb_off_powered": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_oxidized_bulb_off_powered.png"
+  },
+  "mcl_copper_oxidized_bulb_on": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_oxidized_bulb_on.png"
+  },
+  "mcl_copper_oxidized_bulb_on_powered": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_oxidized_bulb_on_powered.png"
+  },
+  "mcl_copper_oxidized_chiseled": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_oxidized_chiseled.png"
+  },
+  "mcl_copper_oxidized_cut": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_oxidized_cut.png"
+  },
+  "mcl_copper_oxidized_grate": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_oxidized_grate.png"
+  },
+  "mcl_copper_pane": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_pane.png"
+  },
+  "mcl_copper_pane_exposed": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_pane_exposed.png"
+  },
+  "mcl_copper_pane_oxidized": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_pane_oxidized.png"
+  },
+  "mcl_copper_pane_top": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_pane_top.png"
+  },
+  "mcl_copper_pane_top_exposed": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_pane_top_exposed.png"
+  },
+  "mcl_copper_pane_top_oxidized": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_pane_top_oxidized.png"
+  },
+  "mcl_copper_pane_top_weathered": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_pane_top_weathered.png"
+  },
+  "mcl_copper_pane_weathered": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_pane_weathered.png"
+  },
+  "mcl_copper_torch_animated": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_torch_animated.png"
+  },
+  "mcl_copper_trapdoor": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_trapdoor.png"
+  },
+  "mcl_copper_trapdoor_exposed": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_trapdoor_exposed.png"
+  },
+  "mcl_copper_trapdoor_exposed_side": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_trapdoor_exposed_side.png"
+  },
+  "mcl_copper_trapdoor_oxidized": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_trapdoor_oxidized.png"
+  },
+  "mcl_copper_trapdoor_oxidized_side": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_trapdoor_oxidized_side.png"
+  },
+  "mcl_copper_trapdoor_side": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_trapdoor_side.png"
+  },
+  "mcl_copper_trapdoor_weathered": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_trapdoor_weathered.png"
+  },
+  "mcl_copper_trapdoor_weathered_side": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_trapdoor_weathered_side.png"
+  },
+  "mcl_copper_weathered": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_weathered.png"
+  },
+  "mcl_copper_weathered_bulb_off": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_weathered_bulb_off.png"
+  },
+  "mcl_copper_weathered_bulb_off_powered": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_weathered_bulb_off_powered.png"
+  },
+  "mcl_copper_weathered_bulb_on": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_weathered_bulb_on.png"
+  },
+  "mcl_copper_weathered_bulb_on_powered": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_weathered_bulb_on_powered.png"
+  },
+  "mcl_copper_weathered_chiseled": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_weathered_chiseled.png"
+  },
+  "mcl_copper_weathered_cut": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_weathered_cut.png"
+  },
+  "mcl_copper_weathered_grate": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_copper",
+    "source": "mods/ITEMS/mcl_copper/textures/mcl_copper_weathered_grate.png"
+  },
+  "mcl_core_andesite": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_andesite.png"
+  },
+  "mcl_core_andesite_smooth": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_andesite_smooth.png"
+  },
+  "mcl_core_barrier": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_barrier.png"
+  },
+  "mcl_core_bedrock": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_bedrock.png"
+  },
+  "mcl_core_bone_block_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_bone_block_side.png"
+  },
+  "mcl_core_bone_block_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_bone_block_top.png"
+  },
+  "mcl_core_cactus_bottom": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_cactus_bottom.png"
+  },
+  "mcl_core_cactus_side": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_cactus_side.png"
+  },
+  "mcl_core_cactus_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_cactus_top.png"
+  },
+  "mcl_core_coal_ore": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_coal_ore.png"
+  },
+  "mcl_core_coarse_dirt": {
+    "class": "soil",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_coarse_dirt.png"
+  },
+  "mcl_core_diamond_ore": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_diamond_ore.png"
+  },
+  "mcl_core_diorite": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_diorite.png"
+  },
+  "mcl_core_diorite_smooth": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_diorite_smooth.png"
+  },
+  "mcl_core_dirt_podzol_side": {
+    "class": "soil",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_dirt_podzol_side.png"
+  },
+  "mcl_core_dirt_podzol_top": {
+    "class": "soil",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_dirt_podzol_top.png"
+  },
+  "mcl_core_emerald_block": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_emerald_block.png"
+  },
+  "mcl_core_emerald_ore": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_emerald_ore.png"
+  },
+  "mcl_core_frosted_ice_0": {
+    "class": "ice",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_frosted_ice_0.png"
+  },
+  "mcl_core_frosted_ice_1": {
+    "class": "ice",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_frosted_ice_1.png"
+  },
+  "mcl_core_frosted_ice_2": {
+    "class": "ice",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_frosted_ice_2.png"
+  },
+  "mcl_core_frosted_ice_3": {
+    "class": "ice",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_frosted_ice_3.png"
+  },
+  "mcl_core_glass_black": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_glass_black.png"
+  },
+  "mcl_core_glass_black_detail": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_glass_black_detail.png"
+  },
+  "mcl_core_glass_blue": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_glass_blue.png"
+  },
+  "mcl_core_glass_blue_detail": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_glass_blue_detail.png"
+  },
+  "mcl_core_glass_brown": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_glass_brown.png"
+  },
+  "mcl_core_glass_brown_detail": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_glass_brown_detail.png"
+  },
+  "mcl_core_glass_cyan": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_glass_cyan.png"
+  },
+  "mcl_core_glass_cyan_detail": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_glass_cyan_detail.png"
+  },
+  "mcl_core_glass_gray": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_glass_gray.png"
+  },
+  "mcl_core_glass_gray_detail": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_glass_gray_detail.png"
+  },
+  "mcl_core_glass_green": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_glass_green.png"
+  },
+  "mcl_core_glass_green_detail": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_glass_green_detail.png"
+  },
+  "mcl_core_glass_light_blue": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_glass_light_blue.png"
+  },
+  "mcl_core_glass_light_blue_detail": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_glass_light_blue_detail.png"
+  },
+  "mcl_core_glass_lime": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_glass_lime.png"
+  },
+  "mcl_core_glass_lime_detail": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_glass_lime_detail.png"
+  },
+  "mcl_core_glass_magenta": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_glass_magenta.png"
+  },
+  "mcl_core_glass_magenta_detail": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_glass_magenta_detail.png"
+  },
+  "mcl_core_glass_orange": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_glass_orange.png"
+  },
+  "mcl_core_glass_orange_detail": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_glass_orange_detail.png"
+  },
+  "mcl_core_glass_pink": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_glass_pink.png"
+  },
+  "mcl_core_glass_pink_detail": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_glass_pink_detail.png"
+  },
+  "mcl_core_glass_purple": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_glass_purple.png"
+  },
+  "mcl_core_glass_purple_detail": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_glass_purple_detail.png"
+  },
+  "mcl_core_glass_red": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_glass_red.png"
+  },
+  "mcl_core_glass_red_detail": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_glass_red_detail.png"
+  },
+  "mcl_core_glass_silver": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_glass_silver.png"
+  },
+  "mcl_core_glass_silver_detail": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_glass_silver_detail.png"
+  },
+  "mcl_core_glass_white": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_glass_white.png"
+  },
+  "mcl_core_glass_white_detail": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_glass_white_detail.png"
+  },
+  "mcl_core_glass_yellow": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_glass_yellow.png"
+  },
+  "mcl_core_glass_yellow_detail": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_glass_yellow_detail.png"
+  },
+  "mcl_core_glow_lichen": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_glow_lichen.png"
+  },
+  "mcl_core_gold_ore": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_gold_ore.png"
+  },
+  "mcl_core_granite": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_granite.png"
+  },
+  "mcl_core_granite_smooth": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_granite_smooth.png"
+  },
+  "mcl_core_grass_block_top": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_grass_block_top.png"
+  },
+  "mcl_core_grass_path_side": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_grass_path_side.png"
+  },
+  "mcl_core_grass_path_top": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_grass_path_top.png"
+  },
+  "mcl_core_grass_side_snowed": {
+    "class": "snow",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_grass_side_snowed.png"
+  },
+  "mcl_core_ice_blue": {
+    "class": "ice",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_ice_blue.png"
+  },
+  "mcl_core_ice_packed": {
+    "class": "ice",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_ice_packed.png"
+  },
+  "mcl_core_iron_ore": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_iron_ore.png"
+  },
+  "mcl_core_lapis_block": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_lapis_block.png"
+  },
+  "mcl_core_lapis_ore": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_lapis_ore.png"
+  },
+  "mcl_core_leaves_big_oak": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_leaves_big_oak.png"
+  },
+  "mcl_core_leaves_birch": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_leaves_birch.png"
+  },
+  "mcl_core_leaves_spruce": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_leaves_spruce.png"
+  },
+  "mcl_core_log_big_oak": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_log_big_oak.png"
+  },
+  "mcl_core_log_big_oak_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_log_big_oak_top.png"
+  },
+  "mcl_core_log_birch": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_log_birch.png"
+  },
+  "mcl_core_log_birch_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_log_birch_top.png"
+  },
+  "mcl_core_log_spruce": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_log_spruce.png"
+  },
+  "mcl_core_log_spruce_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_log_spruce_top.png"
+  },
+  "mcl_core_mycelium_side": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_mycelium_side.png"
+  },
+  "mcl_core_mycelium_top": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_mycelium_top.png"
+  },
+  "mcl_core_planks_big_oak": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_planks_big_oak.png"
+  },
+  "mcl_core_planks_birch": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_planks_birch.png"
+  },
+  "mcl_core_planks_spruce": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_planks_spruce.png"
+  },
+  "mcl_core_red_sand": {
+    "class": "sand",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_red_sand.png"
+  },
+  "mcl_core_red_sandstone_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_red_sandstone_bottom.png"
+  },
+  "mcl_core_red_sandstone_carved": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_red_sandstone_carved.png"
+  },
+  "mcl_core_red_sandstone_normal": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_red_sandstone_normal.png"
+  },
+  "mcl_core_red_sandstone_smooth": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_red_sandstone_smooth.png"
+  },
+  "mcl_core_red_sandstone_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_red_sandstone_top.png"
+  },
+  "mcl_core_redstone_ore": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_redstone_ore.png"
+  },
+  "mcl_core_sandstone_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_sandstone_bottom.png"
+  },
+  "mcl_core_sandstone_carved": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_sandstone_carved.png"
+  },
+  "mcl_core_sandstone_normal": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_sandstone_normal.png"
+  },
+  "mcl_core_sandstone_smooth": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_sandstone_smooth.png"
+  },
+  "mcl_core_sandstone_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_sandstone_top.png"
+  },
+  "mcl_core_slime": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_slime.png"
+  },
+  "mcl_core_stonebrick_carved": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_stonebrick_carved.png"
+  },
+  "mcl_core_stonebrick_cracked": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_stonebrick_cracked.png"
+  },
+  "mcl_core_stonebrick_mossy": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_stonebrick_mossy.png"
+  },
+  "mcl_core_stripped_acacia_side": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_stripped_acacia_side.png"
+  },
+  "mcl_core_stripped_acacia_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_stripped_acacia_top.png"
+  },
+  "mcl_core_stripped_birch_side": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_stripped_birch_side.png"
+  },
+  "mcl_core_stripped_birch_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_stripped_birch_top.png"
+  },
+  "mcl_core_stripped_dark_oak_side": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_stripped_dark_oak_side.png"
+  },
+  "mcl_core_stripped_dark_oak_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_stripped_dark_oak_top.png"
+  },
+  "mcl_core_stripped_jungle_side": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_stripped_jungle_side.png"
+  },
+  "mcl_core_stripped_jungle_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_stripped_jungle_top.png"
+  },
+  "mcl_core_stripped_oak_side": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_stripped_oak_side.png"
+  },
+  "mcl_core_stripped_oak_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_stripped_oak_top.png"
+  },
+  "mcl_core_stripped_spruce_side": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_stripped_spruce_side.png"
+  },
+  "mcl_core_stripped_spruce_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_stripped_spruce_top.png"
+  },
+  "mcl_crimson_crimson_door_bottom": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_crimson",
+    "source": "mods/ITEMS/mcl_crimson/textures/mcl_crimson_crimson_door_bottom.png"
+  },
+  "mcl_crimson_crimson_door_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_crimson",
+    "source": "mods/ITEMS/mcl_crimson/textures/mcl_crimson_crimson_door_top.png"
+  },
+  "mcl_crimson_crimson_fence": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_crimson",
+    "source": "mods/ITEMS/mcl_crimson/textures/mcl_crimson_crimson_fence.png"
+  },
+  "mcl_crimson_crimson_trapdoor": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_crimson",
+    "source": "mods/ITEMS/mcl_crimson/textures/mcl_crimson_crimson_trapdoor.png"
+  },
+  "mcl_crimson_crimson_trapdoor_side": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_crimson",
+    "source": "mods/ITEMS/mcl_crimson/textures/mcl_crimson_crimson_trapdoor_side.png"
+  },
+  "mcl_crimson_warped_door_bottom": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_crimson",
+    "source": "mods/ITEMS/mcl_crimson/textures/mcl_crimson_warped_door_bottom.png"
+  },
+  "mcl_crimson_warped_door_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_crimson",
+    "source": "mods/ITEMS/mcl_crimson/textures/mcl_crimson_warped_door_top.png"
+  },
+  "mcl_crimson_warped_fence": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_crimson",
+    "source": "mods/ITEMS/mcl_crimson/textures/mcl_crimson_warped_fence.png"
+  },
+  "mcl_crimson_warped_trapdoor": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_crimson",
+    "source": "mods/ITEMS/mcl_crimson/textures/mcl_crimson_warped_trapdoor.png"
+  },
+  "mcl_crimson_warped_trapdoor_side": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_crimson",
+    "source": "mods/ITEMS/mcl_crimson/textures/mcl_crimson_warped_trapdoor_side.png"
+  },
+  "mcl_deepslate": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_deepslate",
+    "source": "mods/ITEMS/mcl_deepslate/textures/mcl_deepslate.png"
+  },
+  "mcl_deepslate_bricks": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_deepslate",
+    "source": "mods/ITEMS/mcl_deepslate/textures/mcl_deepslate_bricks.png"
+  },
+  "mcl_deepslate_bricks_cracked": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_deepslate",
+    "source": "mods/ITEMS/mcl_deepslate/textures/mcl_deepslate_bricks_cracked.png"
+  },
+  "mcl_deepslate_chiseled": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_deepslate",
+    "source": "mods/ITEMS/mcl_deepslate/textures/mcl_deepslate_chiseled.png"
+  },
+  "mcl_deepslate_coal_ore": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_deepslate",
+    "source": "mods/ITEMS/mcl_deepslate/textures/mcl_deepslate_coal_ore.png"
+  },
+  "mcl_deepslate_cobbled": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_deepslate",
+    "source": "mods/ITEMS/mcl_deepslate/textures/mcl_deepslate_cobbled.png"
+  },
+  "mcl_deepslate_copper_ore": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_deepslate",
+    "source": "mods/ITEMS/mcl_deepslate/textures/mcl_deepslate_copper_ore.png"
+  },
+  "mcl_deepslate_diamond_ore": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_deepslate",
+    "source": "mods/ITEMS/mcl_deepslate/textures/mcl_deepslate_diamond_ore.png"
+  },
+  "mcl_deepslate_emerald_ore": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_deepslate",
+    "source": "mods/ITEMS/mcl_deepslate/textures/mcl_deepslate_emerald_ore.png"
+  },
+  "mcl_deepslate_gold_ore": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_deepslate",
+    "source": "mods/ITEMS/mcl_deepslate/textures/mcl_deepslate_gold_ore.png"
+  },
+  "mcl_deepslate_iron_ore": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_deepslate",
+    "source": "mods/ITEMS/mcl_deepslate/textures/mcl_deepslate_iron_ore.png"
+  },
+  "mcl_deepslate_lapis_ore": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_deepslate",
+    "source": "mods/ITEMS/mcl_deepslate/textures/mcl_deepslate_lapis_ore.png"
+  },
+  "mcl_deepslate_polished": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_deepslate",
+    "source": "mods/ITEMS/mcl_deepslate/textures/mcl_deepslate_polished.png"
+  },
+  "mcl_deepslate_redstone_ore": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_deepslate",
+    "source": "mods/ITEMS/mcl_deepslate/textures/mcl_deepslate_redstone_ore.png"
+  },
+  "mcl_deepslate_reinforced": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_deepslate",
+    "source": "mods/ITEMS/mcl_deepslate/textures/mcl_deepslate_reinforced.png"
+  },
+  "mcl_deepslate_reinforced_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_deepslate",
+    "source": "mods/ITEMS/mcl_deepslate/textures/mcl_deepslate_reinforced_bottom.png"
+  },
+  "mcl_deepslate_reinforced_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_deepslate",
+    "source": "mods/ITEMS/mcl_deepslate/textures/mcl_deepslate_reinforced_top.png"
+  },
+  "mcl_deepslate_tiles": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_deepslate",
+    "source": "mods/ITEMS/mcl_deepslate/textures/mcl_deepslate_tiles.png"
+  },
+  "mcl_deepslate_tiles_cracked": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_deepslate",
+    "source": "mods/ITEMS/mcl_deepslate/textures/mcl_deepslate_tiles_cracked.png"
+  },
+  "mcl_deepslate_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_deepslate",
+    "source": "mods/ITEMS/mcl_deepslate/textures/mcl_deepslate_top.png"
+  },
+  "mcl_deepslate_tuff": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_deepslate",
+    "source": "mods/ITEMS/mcl_deepslate/textures/mcl_deepslate_tuff.png"
+  },
+  "mcl_deepslate_tuff_bricks": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_deepslate",
+    "source": "mods/ITEMS/mcl_deepslate/textures/mcl_deepslate_tuff_bricks.png"
+  },
+  "mcl_deepslate_tuff_chiseled": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_deepslate",
+    "source": "mods/ITEMS/mcl_deepslate/textures/mcl_deepslate_tuff_chiseled.png"
+  },
+  "mcl_deepslate_tuff_chiseled_bricks": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_deepslate",
+    "source": "mods/ITEMS/mcl_deepslate/textures/mcl_deepslate_tuff_chiseled_bricks.png"
+  },
+  "mcl_deepslate_tuff_chiseled_bricks_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_deepslate",
+    "source": "mods/ITEMS/mcl_deepslate/textures/mcl_deepslate_tuff_chiseled_bricks_top.png"
+  },
+  "mcl_deepslate_tuff_chiseled_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_deepslate",
+    "source": "mods/ITEMS/mcl_deepslate/textures/mcl_deepslate_tuff_chiseled_top.png"
+  },
+  "mcl_deepslate_tuff_polished": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_deepslate",
+    "source": "mods/ITEMS/mcl_deepslate/textures/mcl_deepslate_tuff_polished.png"
+  },
+  "mcl_dispensers_dispenser_front_horizontal": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_dispensers",
+    "source": "mods/ITEMS/REDSTONE/mcl_dispensers/textures/mcl_dispensers_dispenser_front_horizontal.png"
+  },
+  "mcl_dispensers_dispenser_front_vertical": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_dispensers",
+    "source": "mods/ITEMS/REDSTONE/mcl_dispensers/textures/mcl_dispensers_dispenser_front_vertical.png"
+  },
+  "mcl_doors_door_acacia_lower": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_doors",
+    "source": "mods/ITEMS/mcl_doors/textures/mcl_doors_door_acacia_lower.png"
+  },
+  "mcl_doors_door_acacia_side_lower": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_doors",
+    "source": "mods/ITEMS/mcl_doors/textures/mcl_doors_door_acacia_side_lower.png"
+  },
+  "mcl_doors_door_acacia_side_upper": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_doors",
+    "source": "mods/ITEMS/mcl_doors/textures/mcl_doors_door_acacia_side_upper.png"
+  },
+  "mcl_doors_door_acacia_upper": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_doors",
+    "source": "mods/ITEMS/mcl_doors/textures/mcl_doors_door_acacia_upper.png"
+  },
+  "mcl_doors_door_birch_lower": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_doors",
+    "source": "mods/ITEMS/mcl_doors/textures/mcl_doors_door_birch_lower.png"
+  },
+  "mcl_doors_door_birch_side_lower": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_doors",
+    "source": "mods/ITEMS/mcl_doors/textures/mcl_doors_door_birch_side_lower.png"
+  },
+  "mcl_doors_door_birch_side_upper": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_doors",
+    "source": "mods/ITEMS/mcl_doors/textures/mcl_doors_door_birch_side_upper.png"
+  },
+  "mcl_doors_door_birch_upper": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_doors",
+    "source": "mods/ITEMS/mcl_doors/textures/mcl_doors_door_birch_upper.png"
+  },
+  "mcl_doors_door_crimson_side_upper": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_crimson",
+    "source": "mods/ITEMS/mcl_crimson/textures/mcl_doors_door_crimson_side_upper.png"
+  },
+  "mcl_doors_door_dark_oak_lower": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_doors",
+    "source": "mods/ITEMS/mcl_doors/textures/mcl_doors_door_dark_oak_lower.png"
+  },
+  "mcl_doors_door_dark_oak_side_lower": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_doors",
+    "source": "mods/ITEMS/mcl_doors/textures/mcl_doors_door_dark_oak_side_lower.png"
+  },
+  "mcl_doors_door_dark_oak_side_upper": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_doors",
+    "source": "mods/ITEMS/mcl_doors/textures/mcl_doors_door_dark_oak_side_upper.png"
+  },
+  "mcl_doors_door_dark_oak_upper": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_doors",
+    "source": "mods/ITEMS/mcl_doors/textures/mcl_doors_door_dark_oak_upper.png"
+  },
+  "mcl_doors_door_iron_lower": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_doors",
+    "source": "mods/ITEMS/mcl_doors/textures/mcl_doors_door_iron_lower.png"
+  },
+  "mcl_doors_door_iron_side_lower": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_doors",
+    "source": "mods/ITEMS/mcl_doors/textures/mcl_doors_door_iron_side_lower.png"
+  },
+  "mcl_doors_door_iron_side_upper": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_doors",
+    "source": "mods/ITEMS/mcl_doors/textures/mcl_doors_door_iron_side_upper.png"
+  },
+  "mcl_doors_door_iron_upper": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_doors",
+    "source": "mods/ITEMS/mcl_doors/textures/mcl_doors_door_iron_upper.png"
+  },
+  "mcl_doors_door_jungle_lower": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_doors",
+    "source": "mods/ITEMS/mcl_doors/textures/mcl_doors_door_jungle_lower.png"
+  },
+  "mcl_doors_door_jungle_side_lower": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_doors",
+    "source": "mods/ITEMS/mcl_doors/textures/mcl_doors_door_jungle_side_lower.png"
+  },
+  "mcl_doors_door_jungle_side_upper": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_doors",
+    "source": "mods/ITEMS/mcl_doors/textures/mcl_doors_door_jungle_side_upper.png"
+  },
+  "mcl_doors_door_jungle_upper": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_doors",
+    "source": "mods/ITEMS/mcl_doors/textures/mcl_doors_door_jungle_upper.png"
+  },
+  "mcl_doors_door_spruce_lower": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_doors",
+    "source": "mods/ITEMS/mcl_doors/textures/mcl_doors_door_spruce_lower.png"
+  },
+  "mcl_doors_door_spruce_side_lower": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_doors",
+    "source": "mods/ITEMS/mcl_doors/textures/mcl_doors_door_spruce_side_lower.png"
+  },
+  "mcl_doors_door_spruce_side_upper": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_doors",
+    "source": "mods/ITEMS/mcl_doors/textures/mcl_doors_door_spruce_side_upper.png"
+  },
+  "mcl_doors_door_spruce_upper": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_doors",
+    "source": "mods/ITEMS/mcl_doors/textures/mcl_doors_door_spruce_upper.png"
+  },
+  "mcl_doors_door_warped_side_upper": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_crimson",
+    "source": "mods/ITEMS/mcl_crimson/textures/mcl_doors_door_warped_side_upper.png"
+  },
+  "mcl_doors_door_wood_lower": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_doors",
+    "source": "mods/ITEMS/mcl_doors/textures/mcl_doors_door_wood_lower.png"
+  },
+  "mcl_doors_door_wood_side_lower": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_doors",
+    "source": "mods/ITEMS/mcl_doors/textures/mcl_doors_door_wood_side_lower.png"
+  },
+  "mcl_doors_door_wood_side_upper": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_doors",
+    "source": "mods/ITEMS/mcl_doors/textures/mcl_doors_door_wood_side_upper.png"
+  },
+  "mcl_doors_door_wood_upper": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_doors",
+    "source": "mods/ITEMS/mcl_doors/textures/mcl_doors_door_wood_upper.png"
+  },
+  "mcl_doors_trapdoor_acacia": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_doors",
+    "source": "mods/ITEMS/mcl_doors/textures/mcl_doors_trapdoor_acacia.png"
+  },
+  "mcl_doors_trapdoor_acacia_side": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_doors",
+    "source": "mods/ITEMS/mcl_doors/textures/mcl_doors_trapdoor_acacia_side.png"
+  },
+  "mcl_doors_trapdoor_birch": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_doors",
+    "source": "mods/ITEMS/mcl_doors/textures/mcl_doors_trapdoor_birch.png"
+  },
+  "mcl_doors_trapdoor_birch_side": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_doors",
+    "source": "mods/ITEMS/mcl_doors/textures/mcl_doors_trapdoor_birch_side.png"
+  },
+  "mcl_doors_trapdoor_dark_oak": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_doors",
+    "source": "mods/ITEMS/mcl_doors/textures/mcl_doors_trapdoor_dark_oak.png"
+  },
+  "mcl_doors_trapdoor_dark_oak_side": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_doors",
+    "source": "mods/ITEMS/mcl_doors/textures/mcl_doors_trapdoor_dark_oak_side.png"
+  },
+  "mcl_doors_trapdoor_jungle": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_doors",
+    "source": "mods/ITEMS/mcl_doors/textures/mcl_doors_trapdoor_jungle.png"
+  },
+  "mcl_doors_trapdoor_jungle_side": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_doors",
+    "source": "mods/ITEMS/mcl_doors/textures/mcl_doors_trapdoor_jungle_side.png"
+  },
+  "mcl_doors_trapdoor_spruce": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_doors",
+    "source": "mods/ITEMS/mcl_doors/textures/mcl_doors_trapdoor_spruce.png"
+  },
+  "mcl_doors_trapdoor_spruce_side": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_doors",
+    "source": "mods/ITEMS/mcl_doors/textures/mcl_doors_trapdoor_spruce_side.png"
+  },
+  "mcl_droppers_dropper_front_horizontal": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_dispensers",
+    "source": "mods/ITEMS/REDSTONE/mcl_dispensers/textures/mcl_droppers_dropper_front_horizontal.png"
+  },
+  "mcl_droppers_dropper_front_vertical": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_dispensers",
+    "source": "mods/ITEMS/REDSTONE/mcl_dispensers/textures/mcl_droppers_dropper_front_vertical.png"
+  },
+  "mcl_enchanting_table_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_enchanting",
+    "source": "mods/ITEMS/mcl_enchanting/textures/mcl_enchanting_table_bottom.png"
+  },
+  "mcl_enchanting_table_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_enchanting",
+    "source": "mods/ITEMS/mcl_enchanting/textures/mcl_enchanting_table_side.png"
+  },
+  "mcl_enchanting_table_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_enchanting",
+    "source": "mods/ITEMS/mcl_enchanting/textures/mcl_enchanting_table_top.png"
+  },
+  "mcl_end_chorus_flower": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_end",
+    "source": "mods/ITEMS/mcl_end/textures/mcl_end_chorus_flower.png"
+  },
+  "mcl_end_chorus_flower_dead": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_end",
+    "source": "mods/ITEMS/mcl_end/textures/mcl_end_chorus_flower_dead.png"
+  },
+  "mcl_end_chorus_plant": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_end",
+    "source": "mods/ITEMS/mcl_end/textures/mcl_end_chorus_plant.png"
+  },
+  "mcl_end_dragon_egg": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_end",
+    "source": "mods/ITEMS/mcl_end/textures/mcl_end_dragon_egg.png"
+  },
+  "mcl_end_end_bricks": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_end",
+    "source": "mods/ITEMS/mcl_end/textures/mcl_end_end_bricks.png"
+  },
+  "mcl_end_end_rod_bottom": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_end",
+    "source": "mods/ITEMS/mcl_end/textures/mcl_end_end_rod_bottom.png"
+  },
+  "mcl_end_end_rod_side": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_end",
+    "source": "mods/ITEMS/mcl_end/textures/mcl_end_end_rod_side.png"
+  },
+  "mcl_end_end_rod_top": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_end",
+    "source": "mods/ITEMS/mcl_end/textures/mcl_end_end_rod_top.png"
+  },
+  "mcl_end_end_stone": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_end",
+    "source": "mods/ITEMS/mcl_end/textures/mcl_end_end_stone.png"
+  },
+  "mcl_end_purpur_block": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_end",
+    "source": "mods/ITEMS/mcl_end/textures/mcl_end_purpur_block.png"
+  },
+  "mcl_end_purpur_pillar": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_end",
+    "source": "mods/ITEMS/mcl_end/textures/mcl_end_purpur_pillar.png"
+  },
+  "mcl_end_purpur_pillar_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_end",
+    "source": "mods/ITEMS/mcl_end/textures/mcl_end_purpur_pillar_top.png"
+  },
+  "mcl_farming_farmland_dry": {
+    "class": "soil",
+    "collisions": [],
+    "package": "mcl_farming",
+    "source": "mods/ITEMS/mcl_farming/textures/mcl_farming_farmland_dry.png"
+  },
+  "mcl_farming_farmland_wet": {
+    "class": "soil",
+    "collisions": [],
+    "package": "mcl_farming",
+    "source": "mods/ITEMS/mcl_farming/textures/mcl_farming_farmland_wet.png"
+  },
+  "mcl_farming_hayblock_side": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_farming",
+    "source": "mods/ITEMS/mcl_farming/textures/mcl_farming_hayblock_side.png"
+  },
+  "mcl_farming_hayblock_top": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_farming",
+    "source": "mods/ITEMS/mcl_farming/textures/mcl_farming_hayblock_top.png"
+  },
+  "mcl_farming_melon_stem_connected": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_farming",
+    "source": "mods/ITEMS/mcl_farming/textures/mcl_farming_melon_stem_connected.png"
+  },
+  "mcl_farming_pumpkin_stem_connected": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_farming",
+    "source": "mods/ITEMS/mcl_farming/textures/mcl_farming_pumpkin_stem_connected.png"
+  },
+  "mcl_fences_fence_acacia": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_fences",
+    "source": "mods/ITEMS/mcl_fences/textures/mcl_fences_fence_acacia.png"
+  },
+  "mcl_fences_fence_big_oak": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_fences",
+    "source": "mods/ITEMS/mcl_fences/textures/mcl_fences_fence_big_oak.png"
+  },
+  "mcl_fences_fence_birch": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_fences",
+    "source": "mods/ITEMS/mcl_fences/textures/mcl_fences_fence_birch.png"
+  },
+  "mcl_fences_fence_gate_big_oak": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_fences",
+    "source": "mods/ITEMS/mcl_fences/textures/mcl_fences_fence_gate_big_oak.png"
+  },
+  "mcl_fences_fence_gate_nether_brick": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mclx_fences",
+    "source": "mods/ITEMS/mclx_fences/textures/mcl_fences_fence_gate_nether_brick.png"
+  },
+  "mcl_fences_fence_jungle": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_fences",
+    "source": "mods/ITEMS/mcl_fences/textures/mcl_fences_fence_jungle.png"
+  },
+  "mcl_fences_fence_nether_brick": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_fences",
+    "source": "mods/ITEMS/mcl_fences/textures/mcl_fences_fence_nether_brick.png"
+  },
+  "mcl_fences_fence_oak": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_fences",
+    "source": "mods/ITEMS/mcl_fences/textures/mcl_fences_fence_oak.png"
+  },
+  "mcl_fences_fence_red_nether_brick": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mclx_fences",
+    "source": "mods/ITEMS/mclx_fences/textures/mcl_fences_fence_red_nether_brick.png"
+  },
+  "mcl_fences_fence_spruce": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_fences",
+    "source": "mods/ITEMS/mcl_fences/textures/mcl_fences_fence_spruce.png"
+  },
+  "mcl_flowerpots_cactus": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_flowerpots",
+    "source": "mods/ITEMS/mcl_flowerpots/textures/mcl_flowerpots_cactus.png"
+  },
+  "mcl_flowerpots_flowerpot": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_flowerpots",
+    "source": "mods/ITEMS/mcl_flowerpots/textures/mcl_flowerpots_flowerpot.png"
+  },
+  "mcl_flowers_double_plant_sunflower_back": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_flowers",
+    "source": "mods/ITEMS/mcl_flowers/textures/mcl_flowers_double_plant_sunflower_back.png"
+  },
+  "mcl_flowers_double_plant_sunflower_bottom": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_flowers",
+    "source": "mods/ITEMS/mcl_flowers/textures/mcl_flowers_double_plant_sunflower_bottom.png"
+  },
+  "mcl_flowers_double_plant_sunflower_front": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_flowers",
+    "source": "mods/ITEMS/mcl_flowers/textures/mcl_flowers_double_plant_sunflower_front.png"
+  },
+  "mcl_flowers_leaf_litter": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_flowers",
+    "source": "mods/ITEMS/mcl_flowers/textures/mcl_flowers_leaf_litter.png"
+  },
+  "mcl_flowers_tall_dry_grass": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_flowers",
+    "source": "mods/ITEMS/mcl_flowers/textures/mcl_flowers_tall_dry_grass.png"
+  },
+  "mcl_flowers_wildflower": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_flowers",
+    "source": "mods/ITEMS/mcl_flowers/textures/mcl_flowers_wildflower.png"
+  },
+  "mcl_flowers_wildflower_stem": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_flowers",
+    "source": "mods/ITEMS/mcl_flowers/textures/mcl_flowers_wildflower_stem.png"
+  },
+  "mcl_heads_creeper": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_heads",
+    "source": "mods/ITEMS/mcl_heads/textures/mcl_heads_creeper.png"
+  },
+  "mcl_heads_dragon": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_heads",
+    "source": "mods/ITEMS/mcl_heads/textures/mcl_heads_dragon.png"
+  },
+  "mcl_heads_piglin": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_heads",
+    "source": "mods/ITEMS/mcl_heads/textures/mcl_heads_piglin.png"
+  },
+  "mcl_heads_skeleton": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_heads",
+    "source": "mods/ITEMS/mcl_heads/textures/mcl_heads_skeleton.png"
+  },
+  "mcl_heads_steve": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_heads",
+    "source": "mods/ITEMS/mcl_heads/textures/mcl_heads_steve.png"
+  },
+  "mcl_heads_wither_skeleton": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_heads",
+    "source": "mods/ITEMS/mcl_heads/textures/mcl_heads_wither_skeleton.png"
+  },
+  "mcl_heads_zombie": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_heads",
+    "source": "mods/ITEMS/mcl_heads/textures/mcl_heads_zombie.png"
+  },
+  "mcl_honey_block_side": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_honey",
+    "source": "mods/ITEMS/mcl_honey/textures/mcl_honey_block_side.png"
+  },
+  "mcl_honey_honeycomb_block": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_honey",
+    "source": "mods/ITEMS/mcl_honey/textures/mcl_honey_honeycomb_block.png"
+  },
+  "mcl_hoppers_hopper_inside": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_hoppers",
+    "source": "mods/ITEMS/mcl_hoppers/textures/mcl_hoppers_hopper_inside.png"
+  },
+  "mcl_hoppers_hopper_outside": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_hoppers",
+    "source": "mods/ITEMS/mcl_hoppers/textures/mcl_hoppers_hopper_outside.png"
+  },
+  "mcl_itemframes_glow_item_frame_border": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_itemframes",
+    "source": "mods/ITEMS/mcl_itemframes/textures/mcl_itemframes_glow_item_frame_border.png"
+  },
+  "mcl_itemframes_itemframe_background": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_itemframes",
+    "source": "mods/ITEMS/mcl_itemframes/textures/mcl_itemframes_itemframe_background.png"
+  },
+  "mcl_jukebox_side": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_jukebox",
+    "source": "mods/ITEMS/mcl_jukebox/textures/mcl_jukebox_side.png"
+  },
+  "mcl_jukebox_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_jukebox",
+    "source": "mods/ITEMS/mcl_jukebox/textures/mcl_jukebox_top.png"
+  },
+  "mcl_lanterns_chain": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_lanterns",
+    "source": "mods/ITEMS/mcl_lanterns/textures/mcl_lanterns_chain.png"
+  },
+  "mcl_lanterns_lantern": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_lanterns",
+    "source": "mods/ITEMS/mcl_lanterns/textures/mcl_lanterns_lantern.png"
+  },
+  "mcl_lanterns_soul_lantern": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_lanterns",
+    "source": "mods/ITEMS/mcl_lanterns/textures/mcl_lanterns_soul_lantern.png"
+  },
+  "mcl_lectern_lectern": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_lectern",
+    "source": "mods/ITEMS/mcl_lectern/textures/mcl_lectern_lectern.png"
+  },
+  "mcl_levelgen_jigsaw_block_bottom": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_levelgen",
+    "source": "mods/MAPGEN/mcl_levelgen/textures/mcl_levelgen_jigsaw_block_bottom.png"
+  },
+  "mcl_levelgen_jigsaw_block_side_north": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_levelgen",
+    "source": "mods/MAPGEN/mcl_levelgen/textures/mcl_levelgen_jigsaw_block_side_north.png"
+  },
+  "mcl_levelgen_jigsaw_block_side_south": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_levelgen",
+    "source": "mods/MAPGEN/mcl_levelgen/textures/mcl_levelgen_jigsaw_block_side_south.png"
+  },
+  "mcl_levelgen_jigsaw_block_top": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_levelgen",
+    "source": "mods/MAPGEN/mcl_levelgen/textures/mcl_levelgen_jigsaw_block_top.png"
+  },
+  "mcl_levelgen_structure_block_corner_side": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_levelgen",
+    "source": "mods/MAPGEN/mcl_levelgen/textures/mcl_levelgen_structure_block_corner_side.png"
+  },
+  "mcl_levelgen_structure_block_corner_top": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_levelgen",
+    "source": "mods/MAPGEN/mcl_levelgen/textures/mcl_levelgen_structure_block_corner_top.png"
+  },
+  "mcl_levelgen_structure_block_data_side": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_levelgen",
+    "source": "mods/MAPGEN/mcl_levelgen/textures/mcl_levelgen_structure_block_data_side.png"
+  },
+  "mcl_levelgen_structure_block_data_top": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_levelgen",
+    "source": "mods/MAPGEN/mcl_levelgen/textures/mcl_levelgen_structure_block_data_top.png"
+  },
+  "mcl_levelgen_structure_block_load_side": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_levelgen",
+    "source": "mods/MAPGEN/mcl_levelgen/textures/mcl_levelgen_structure_block_load_side.png"
+  },
+  "mcl_levelgen_structure_block_load_top": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_levelgen",
+    "source": "mods/MAPGEN/mcl_levelgen/textures/mcl_levelgen_structure_block_load_top.png"
+  },
+  "mcl_levelgen_structure_block_save_side": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_levelgen",
+    "source": "mods/MAPGEN/mcl_levelgen/textures/mcl_levelgen_structure_block_save_side.png"
+  },
+  "mcl_levelgen_structure_block_save_top": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_levelgen",
+    "source": "mods/MAPGEN/mcl_levelgen/textures/mcl_levelgen_structure_block_save_top.png"
+  },
+  "mcl_lightning_rods_rod": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_lightning_rods",
+    "source": "mods/ITEMS/mcl_lightning_rods/textures/mcl_lightning_rods_rod.png"
+  },
+  "mcl_lightning_rods_rod_exposed": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_lightning_rods",
+    "source": "mods/ITEMS/mcl_lightning_rods/textures/mcl_lightning_rods_rod_exposed.png"
+  },
+  "mcl_lightning_rods_rod_oxidized": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_lightning_rods",
+    "source": "mods/ITEMS/mcl_lightning_rods/textures/mcl_lightning_rods_rod_oxidized.png"
+  },
+  "mcl_lightning_rods_rod_weathered": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_lightning_rods",
+    "source": "mods/ITEMS/mcl_lightning_rods/textures/mcl_lightning_rods_rod_weathered.png"
+  },
+  "mcl_lush_caves_azalea_flowering_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_lush_caves",
+    "source": "mods/ITEMS/mcl_lush_caves/textures/mcl_lush_caves_azalea_flowering_side.png"
+  },
+  "mcl_lush_caves_azalea_flowering_top": {
+    "class": "soil",
+    "collisions": [],
+    "package": "mcl_lush_caves",
+    "source": "mods/ITEMS/mcl_lush_caves/textures/mcl_lush_caves_azalea_flowering_top.png"
+  },
+  "mcl_lush_caves_azalea_leaves": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_lush_caves",
+    "source": "mods/ITEMS/mcl_lush_caves/textures/mcl_lush_caves_azalea_leaves.png"
+  },
+  "mcl_lush_caves_azalea_leaves_flowering": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_lush_caves",
+    "source": "mods/ITEMS/mcl_lush_caves/textures/mcl_lush_caves_azalea_leaves_flowering.png"
+  },
+  "mcl_lush_caves_azalea_plant": {
+    "class": "soil",
+    "collisions": [],
+    "package": "mcl_lush_caves",
+    "source": "mods/ITEMS/mcl_lush_caves/textures/mcl_lush_caves_azalea_plant.png"
+  },
+  "mcl_lush_caves_azalea_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_lush_caves",
+    "source": "mods/ITEMS/mcl_lush_caves/textures/mcl_lush_caves_azalea_side.png"
+  },
+  "mcl_lush_caves_azalea_top": {
+    "class": "soil",
+    "collisions": [],
+    "package": "mcl_lush_caves",
+    "source": "mods/ITEMS/mcl_lush_caves/textures/mcl_lush_caves_azalea_top.png"
+  },
+  "mcl_lush_caves_dripleaf_big": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_lush_caves",
+    "source": "mods/ITEMS/mcl_lush_caves/textures/mcl_lush_caves_dripleaf_big.png"
+  },
+  "mcl_lush_caves_dripleaf_small": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_lush_caves",
+    "source": "mods/ITEMS/mcl_lush_caves/textures/mcl_lush_caves_dripleaf_small.png"
+  },
+  "mcl_lush_caves_moss_block": {
+    "class": "soil",
+    "collisions": [],
+    "package": "mcl_lush_caves",
+    "source": "mods/ITEMS/mcl_lush_caves/textures/mcl_lush_caves_moss_block.png"
+  },
+  "mcl_lush_caves_moss_carpet": {
+    "class": "cloth",
+    "collisions": [],
+    "package": "mcl_lush_caves",
+    "source": "mods/ITEMS/mcl_lush_caves/textures/mcl_lush_caves_moss_carpet.png"
+  },
+  "mcl_lush_caves_rooted_dirt": {
+    "class": "soil",
+    "collisions": [],
+    "package": "mcl_lush_caves",
+    "source": "mods/ITEMS/mcl_lush_caves/textures/mcl_lush_caves_rooted_dirt.png"
+  },
+  "mcl_lush_caves_spore_blossom": {
+    "class": "soil",
+    "collisions": [],
+    "package": "mcl_lush_caves",
+    "source": "mods/ITEMS/mcl_lush_caves/textures/mcl_lush_caves_spore_blossom.png"
+  },
+  "mcl_lush_caves_spore_blossom_base": {
+    "class": "soil",
+    "collisions": [],
+    "package": "mcl_lush_caves",
+    "source": "mods/ITEMS/mcl_lush_caves/textures/mcl_lush_caves_spore_blossom_base.png"
+  },
+  "mcl_mangrove_door_bottom": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_mangrove",
+    "source": "mods/ITEMS/mcl_mangrove/textures/mcl_mangrove_door_bottom.png"
+  },
+  "mcl_mangrove_door_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_mangrove",
+    "source": "mods/ITEMS/mcl_mangrove/textures/mcl_mangrove_door_top.png"
+  },
+  "mcl_mangrove_fence": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_mangrove",
+    "source": "mods/ITEMS/mcl_mangrove/textures/mcl_mangrove_fence.png"
+  },
+  "mcl_mangrove_fence_gate": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_mangrove",
+    "source": "mods/ITEMS/mcl_mangrove/textures/mcl_mangrove_fence_gate.png"
+  },
+  "mcl_mangrove_leaves": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_mangrove",
+    "source": "mods/ITEMS/mcl_mangrove/textures/mcl_mangrove_leaves.png"
+  },
+  "mcl_mangrove_log": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_mangrove",
+    "source": "mods/ITEMS/mcl_mangrove/textures/mcl_mangrove_log.png"
+  },
+  "mcl_mangrove_log_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_mangrove",
+    "source": "mods/ITEMS/mcl_mangrove/textures/mcl_mangrove_log_top.png"
+  },
+  "mcl_mangrove_planks": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_mangrove",
+    "source": "mods/ITEMS/mcl_mangrove/textures/mcl_mangrove_planks.png"
+  },
+  "mcl_mangrove_propagule": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_mangrove",
+    "source": "mods/ITEMS/mcl_mangrove/textures/mcl_mangrove_propagule.png"
+  },
+  "mcl_mangrove_propagule_hanging": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_mangrove",
+    "source": "mods/ITEMS/mcl_mangrove/textures/mcl_mangrove_propagule_hanging.png"
+  },
+  "mcl_mangrove_roots_side": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_mangrove",
+    "source": "mods/ITEMS/mcl_mangrove/textures/mcl_mangrove_roots_side.png"
+  },
+  "mcl_mangrove_roots_top": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_mangrove",
+    "source": "mods/ITEMS/mcl_mangrove/textures/mcl_mangrove_roots_top.png"
+  },
+  "mcl_mangrove_trapdoor": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_mangrove",
+    "source": "mods/ITEMS/mcl_mangrove/textures/mcl_mangrove_trapdoor.png"
+  },
+  "mcl_mangrove_trapdoor_side": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_mangrove",
+    "source": "mods/ITEMS/mcl_mangrove/textures/mcl_mangrove_trapdoor_side.png"
+  },
+  "mcl_mud": {
+    "class": "sand",
+    "collisions": [],
+    "package": "mcl_mud",
+    "source": "mods/ITEMS/mcl_mud/textures/mcl_mud.png"
+  },
+  "mcl_mud_bricks": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_mud",
+    "source": "mods/ITEMS/mcl_mud/textures/mcl_mud_bricks.png"
+  },
+  "mcl_mud_packed_mud": {
+    "class": "soil",
+    "collisions": [],
+    "package": "mcl_mud",
+    "source": "mods/ITEMS/mcl_mud/textures/mcl_mud_packed_mud.png"
+  },
+  "mcl_mushrooms_mushroom_block_inside": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_mushrooms",
+    "source": "mods/ITEMS/mcl_mushrooms/textures/mcl_mushrooms_mushroom_block_inside.png"
+  },
+  "mcl_mushrooms_mushroom_block_skin_brown": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_mushrooms",
+    "source": "mods/ITEMS/mcl_mushrooms/textures/mcl_mushrooms_mushroom_block_skin_brown.png"
+  },
+  "mcl_mushrooms_mushroom_block_skin_red": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_mushrooms",
+    "source": "mods/ITEMS/mcl_mushrooms/textures/mcl_mushrooms_mushroom_block_skin_red.png"
+  },
+  "mcl_mushrooms_mushroom_block_skin_stem": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_mushrooms",
+    "source": "mods/ITEMS/mcl_mushrooms/textures/mcl_mushrooms_mushroom_block_skin_stem.png"
+  },
+  "mcl_nether_ancient_debris_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_nether",
+    "source": "mods/ITEMS/mcl_nether/textures/mcl_nether_ancient_debris_side.png"
+  },
+  "mcl_nether_ancient_debris_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_nether",
+    "source": "mods/ITEMS/mcl_nether/textures/mcl_nether_ancient_debris_top.png"
+  },
+  "mcl_nether_chiseled_nether_bricks": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_nether",
+    "source": "mods/ITEMS/mcl_nether/textures/mcl_nether_chiseled_nether_bricks.png"
+  },
+  "mcl_nether_cracked_nether_bricks": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_nether",
+    "source": "mods/ITEMS/mcl_nether/textures/mcl_nether_cracked_nether_bricks.png"
+  },
+  "mcl_nether_glowstone": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_nether",
+    "source": "mods/ITEMS/mcl_nether/textures/mcl_nether_glowstone.png"
+  },
+  "mcl_nether_gold_ore": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_nether",
+    "source": "mods/ITEMS/mcl_nether/textures/mcl_nether_gold_ore.png"
+  },
+  "mcl_nether_magma": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_nether",
+    "source": "mods/ITEMS/mcl_nether/textures/mcl_nether_magma.png"
+  },
+  "mcl_nether_nether_brick": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_nether",
+    "source": "mods/ITEMS/mcl_nether/textures/mcl_nether_nether_brick.png"
+  },
+  "mcl_nether_nether_wart_block": {
+    "class": "soil",
+    "collisions": [],
+    "package": "mcl_nether",
+    "source": "mods/ITEMS/mcl_nether/textures/mcl_nether_nether_wart_block.png"
+  },
+  "mcl_nether_netheriteblock": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_nether",
+    "source": "mods/ITEMS/mcl_nether/textures/mcl_nether_netheriteblock.png"
+  },
+  "mcl_nether_netherrack": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_nether",
+    "source": "mods/ITEMS/mcl_nether/textures/mcl_nether_netherrack.png"
+  },
+  "mcl_nether_quartz_block_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_nether",
+    "source": "mods/ITEMS/mcl_nether/textures/mcl_nether_quartz_block_bottom.png"
+  },
+  "mcl_nether_quartz_block_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_nether",
+    "source": "mods/ITEMS/mcl_nether/textures/mcl_nether_quartz_block_side.png"
+  },
+  "mcl_nether_quartz_block_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_nether",
+    "source": "mods/ITEMS/mcl_nether/textures/mcl_nether_quartz_block_top.png"
+  },
+  "mcl_nether_quartz_chiseled_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_nether",
+    "source": "mods/ITEMS/mcl_nether/textures/mcl_nether_quartz_chiseled_side.png"
+  },
+  "mcl_nether_quartz_chiseled_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_nether",
+    "source": "mods/ITEMS/mcl_nether/textures/mcl_nether_quartz_chiseled_top.png"
+  },
+  "mcl_nether_quartz_ore": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_nether",
+    "source": "mods/ITEMS/mcl_nether/textures/mcl_nether_quartz_ore.png"
+  },
+  "mcl_nether_quartz_pillar_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_nether",
+    "source": "mods/ITEMS/mcl_nether/textures/mcl_nether_quartz_pillar_side.png"
+  },
+  "mcl_nether_quartz_pillar_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_nether",
+    "source": "mods/ITEMS/mcl_nether/textures/mcl_nether_quartz_pillar_top.png"
+  },
+  "mcl_nether_red_nether_brick": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_nether",
+    "source": "mods/ITEMS/mcl_nether/textures/mcl_nether_red_nether_brick.png"
+  },
+  "mcl_nether_soul_sand": {
+    "class": "sand",
+    "collisions": [],
+    "package": "mcl_nether",
+    "source": "mods/ITEMS/mcl_nether/textures/mcl_nether_soul_sand.png"
+  },
+  "mcl_observers_observer_back": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_observers",
+    "source": "mods/ITEMS/REDSTONE/mcl_observers/textures/mcl_observers_observer_back.png"
+  },
+  "mcl_observers_observer_back_lit": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_observers",
+    "source": "mods/ITEMS/REDSTONE/mcl_observers/textures/mcl_observers_observer_back_lit.png"
+  },
+  "mcl_observers_observer_front": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_observers",
+    "source": "mods/ITEMS/REDSTONE/mcl_observers/textures/mcl_observers_observer_front.png"
+  },
+  "mcl_observers_observer_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_observers",
+    "source": "mods/ITEMS/REDSTONE/mcl_observers/textures/mcl_observers_observer_side.png"
+  },
+  "mcl_observers_observer_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_observers",
+    "source": "mods/ITEMS/REDSTONE/mcl_observers/textures/mcl_observers_observer_top.png"
+  },
+  "mcl_ocean_brain_coral_block": {
+    "class": "soil",
+    "collisions": [],
+    "package": "mcl_ocean",
+    "source": "mods/ITEMS/mcl_ocean/textures/mcl_ocean_brain_coral_block.png"
+  },
+  "mcl_ocean_bubble_coral_block": {
+    "class": "soil",
+    "collisions": [],
+    "package": "mcl_ocean",
+    "source": "mods/ITEMS/mcl_ocean/textures/mcl_ocean_bubble_coral_block.png"
+  },
+  "mcl_ocean_dead_brain_coral_block": {
+    "class": "soil",
+    "collisions": [],
+    "package": "mcl_ocean",
+    "source": "mods/ITEMS/mcl_ocean/textures/mcl_ocean_dead_brain_coral_block.png"
+  },
+  "mcl_ocean_dead_bubble_coral_block": {
+    "class": "soil",
+    "collisions": [],
+    "package": "mcl_ocean",
+    "source": "mods/ITEMS/mcl_ocean/textures/mcl_ocean_dead_bubble_coral_block.png"
+  },
+  "mcl_ocean_dead_fire_coral_block": {
+    "class": "soil",
+    "collisions": [],
+    "package": "mcl_ocean",
+    "source": "mods/ITEMS/mcl_ocean/textures/mcl_ocean_dead_fire_coral_block.png"
+  },
+  "mcl_ocean_dead_horn_coral_block": {
+    "class": "soil",
+    "collisions": [],
+    "package": "mcl_ocean",
+    "source": "mods/ITEMS/mcl_ocean/textures/mcl_ocean_dead_horn_coral_block.png"
+  },
+  "mcl_ocean_dead_tube_coral_block": {
+    "class": "soil",
+    "collisions": [],
+    "package": "mcl_ocean",
+    "source": "mods/ITEMS/mcl_ocean/textures/mcl_ocean_dead_tube_coral_block.png"
+  },
+  "mcl_ocean_dried_kelp_bottom": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_ocean",
+    "source": "mods/ITEMS/mcl_ocean/textures/mcl_ocean_dried_kelp_bottom.png"
+  },
+  "mcl_ocean_dried_kelp_side": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_ocean",
+    "source": "mods/ITEMS/mcl_ocean/textures/mcl_ocean_dried_kelp_side.png"
+  },
+  "mcl_ocean_dried_kelp_top": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_ocean",
+    "source": "mods/ITEMS/mcl_ocean/textures/mcl_ocean_dried_kelp_top.png"
+  },
+  "mcl_ocean_fire_coral_block": {
+    "class": "soil",
+    "collisions": [],
+    "package": "mcl_ocean",
+    "source": "mods/ITEMS/mcl_ocean/textures/mcl_ocean_fire_coral_block.png"
+  },
+  "mcl_ocean_horn_coral_block": {
+    "class": "soil",
+    "collisions": [],
+    "package": "mcl_ocean",
+    "source": "mods/ITEMS/mcl_ocean/textures/mcl_ocean_horn_coral_block.png"
+  },
+  "mcl_ocean_prismarine_anim": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_ocean",
+    "source": "mods/ITEMS/mcl_ocean/textures/mcl_ocean_prismarine_anim.png"
+  },
+  "mcl_ocean_prismarine_bricks": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_ocean",
+    "source": "mods/ITEMS/mcl_ocean/textures/mcl_ocean_prismarine_bricks.png"
+  },
+  "mcl_ocean_prismarine_dark": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_ocean",
+    "source": "mods/ITEMS/mcl_ocean/textures/mcl_ocean_prismarine_dark.png"
+  },
+  "mcl_ocean_sea_lantern": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_ocean",
+    "source": "mods/ITEMS/mcl_ocean/textures/mcl_ocean_sea_lantern.png"
+  },
+  "mcl_ocean_tube_coral_block": {
+    "class": "soil",
+    "collisions": [],
+    "package": "mcl_ocean",
+    "source": "mods/ITEMS/mcl_ocean/textures/mcl_ocean_tube_coral_block.png"
+  },
+  "mcl_pale_oak_chiseled_resin_bricks": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_pale_oak",
+    "source": "mods/ITEMS/mcl_pale_oak/textures/mcl_pale_oak_chiseled_resin_bricks.png"
+  },
+  "mcl_pale_oak_door_bottom": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_pale_oak",
+    "source": "mods/ITEMS/mcl_pale_oak/textures/mcl_pale_oak_door_bottom.png"
+  },
+  "mcl_pale_oak_door_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_pale_oak",
+    "source": "mods/ITEMS/mcl_pale_oak/textures/mcl_pale_oak_door_top.png"
+  },
+  "mcl_pale_oak_leaves": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_pale_oak",
+    "source": "mods/ITEMS/mcl_pale_oak/textures/mcl_pale_oak_leaves.png"
+  },
+  "mcl_pale_oak_log": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_pale_oak",
+    "source": "mods/ITEMS/mcl_pale_oak/textures/mcl_pale_oak_log.png"
+  },
+  "mcl_pale_oak_log_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_pale_oak",
+    "source": "mods/ITEMS/mcl_pale_oak/textures/mcl_pale_oak_log_top.png"
+  },
+  "mcl_pale_oak_moss": {
+    "class": "soil",
+    "collisions": [],
+    "package": "mcl_pale_oak",
+    "source": "mods/ITEMS/mcl_pale_oak/textures/mcl_pale_oak_moss.png"
+  },
+  "mcl_pale_oak_planks": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_pale_oak",
+    "source": "mods/ITEMS/mcl_pale_oak/textures/mcl_pale_oak_planks.png"
+  },
+  "mcl_pale_oak_resin_block": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_pale_oak",
+    "source": "mods/ITEMS/mcl_pale_oak/textures/mcl_pale_oak_resin_block.png"
+  },
+  "mcl_pale_oak_resin_brick_block": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_pale_oak",
+    "source": "mods/ITEMS/mcl_pale_oak/textures/mcl_pale_oak_resin_brick_block.png"
+  },
+  "mcl_pale_oak_trapdoor": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_pale_oak",
+    "source": "mods/ITEMS/mcl_pale_oak/textures/mcl_pale_oak_trapdoor.png"
+  },
+  "mcl_pale_oak_trapdoor_side": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_pale_oak",
+    "source": "mods/ITEMS/mcl_pale_oak/textures/mcl_pale_oak_trapdoor_side.png"
+  },
+  "mcl_portals_end_portal": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_portals",
+    "source": "mods/ITEMS/mcl_portals/textures/mcl_portals_end_portal.png"
+  },
+  "mcl_portals_endframe_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_portals",
+    "source": "mods/ITEMS/mcl_portals/textures/mcl_portals_endframe_bottom.png"
+  },
+  "mcl_portals_endframe_eye": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_portals",
+    "source": "mods/ITEMS/mcl_portals/textures/mcl_portals_endframe_eye.png"
+  },
+  "mcl_portals_endframe_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_portals",
+    "source": "mods/ITEMS/mcl_portals/textures/mcl_portals_endframe_side.png"
+  },
+  "mcl_portals_endframe_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_portals",
+    "source": "mods/ITEMS/mcl_portals/textures/mcl_portals_endframe_top.png"
+  },
+  "mcl_portals_portal": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_portals",
+    "source": "mods/ITEMS/mcl_portals/textures/mcl_portals_portal.png"
+  },
+  "mcl_pottery_sherds_pot_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_pottery_sherds",
+    "source": "mods/ITEMS/mcl_pottery_sherds/textures/mcl_pottery_sherds_pot_bottom.png"
+  },
+  "mcl_pottery_sherds_pot_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_pottery_sherds",
+    "source": "mods/ITEMS/mcl_pottery_sherds/textures/mcl_pottery_sherds_pot_side.png"
+  },
+  "mcl_pottery_sherds_pot_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_pottery_sherds",
+    "source": "mods/ITEMS/mcl_pottery_sherds/textures/mcl_pottery_sherds_pot_top.png"
+  },
+  "mcl_raw_ores_raw_gold_block": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_raw_ores",
+    "source": "mods/ITEMS/mcl_raw_ores/textures/mcl_raw_ores_raw_gold_block.png"
+  },
+  "mcl_raw_ores_raw_iron_block": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_raw_ores",
+    "source": "mods/ITEMS/mcl_raw_ores/textures/mcl_raw_ores_raw_iron_block.png"
+  },
+  "mcl_sculk_catalyst_bottom": {
+    "class": "soil",
+    "collisions": [],
+    "package": "mcl_sculk",
+    "source": "mods/ITEMS/mcl_sculk/textures/mcl_sculk_catalyst_bottom.png"
+  },
+  "mcl_sculk_catalyst_side": {
+    "class": "soil",
+    "collisions": [],
+    "package": "mcl_sculk",
+    "source": "mods/ITEMS/mcl_sculk/textures/mcl_sculk_catalyst_side.png"
+  },
+  "mcl_sculk_catalyst_top": {
+    "class": "soil",
+    "collisions": [],
+    "package": "mcl_sculk",
+    "source": "mods/ITEMS/mcl_sculk/textures/mcl_sculk_catalyst_top.png"
+  },
+  "mcl_sculk_sculk": {
+    "class": "soil",
+    "collisions": [],
+    "package": "mcl_sculk",
+    "source": "mods/ITEMS/mcl_sculk/textures/mcl_sculk_sculk.png"
+  },
+  "mcl_signs_hanging_sign_acacia": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_signs",
+    "source": "mods/ITEMS/mcl_signs/textures/mcl_signs_hanging_sign_acacia.png"
+  },
+  "mcl_signs_hanging_sign_bamboo": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_signs",
+    "source": "mods/ITEMS/mcl_signs/textures/mcl_signs_hanging_sign_bamboo.png"
+  },
+  "mcl_signs_hanging_sign_birch": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_signs",
+    "source": "mods/ITEMS/mcl_signs/textures/mcl_signs_hanging_sign_birch.png"
+  },
+  "mcl_signs_hanging_sign_cherry_blossom": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_signs",
+    "source": "mods/ITEMS/mcl_signs/textures/mcl_signs_hanging_sign_cherry_blossom.png"
+  },
+  "mcl_signs_hanging_sign_crimson": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_signs",
+    "source": "mods/ITEMS/mcl_signs/textures/mcl_signs_hanging_sign_crimson.png"
+  },
+  "mcl_signs_hanging_sign_dark_oak": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_signs",
+    "source": "mods/ITEMS/mcl_signs/textures/mcl_signs_hanging_sign_dark_oak.png"
+  },
+  "mcl_signs_hanging_sign_jungle": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_signs",
+    "source": "mods/ITEMS/mcl_signs/textures/mcl_signs_hanging_sign_jungle.png"
+  },
+  "mcl_signs_hanging_sign_mangrove": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_signs",
+    "source": "mods/ITEMS/mcl_signs/textures/mcl_signs_hanging_sign_mangrove.png"
+  },
+  "mcl_signs_hanging_sign_oak": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_signs",
+    "source": "mods/ITEMS/mcl_signs/textures/mcl_signs_hanging_sign_oak.png"
+  },
+  "mcl_signs_hanging_sign_pale_oak": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_signs",
+    "source": "mods/ITEMS/mcl_signs/textures/mcl_signs_hanging_sign_pale_oak.png"
+  },
+  "mcl_signs_hanging_sign_spruce": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_signs",
+    "source": "mods/ITEMS/mcl_signs/textures/mcl_signs_hanging_sign_spruce.png"
+  },
+  "mcl_signs_hanging_sign_warped": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_signs",
+    "source": "mods/ITEMS/mcl_signs/textures/mcl_signs_hanging_sign_warped.png"
+  },
+  "mcl_signs_sign_greyscale": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_signs",
+    "source": "mods/ITEMS/mcl_signs/textures/mcl_signs_sign_greyscale.png"
+  },
+  "mcl_skins_base_1_mask": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_skins",
+    "source": "mods/PLAYER/mcl_skins/textures/mcl_skins_base_1_mask.png"
+  },
+  "mcl_skins_character_1": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_skins",
+    "source": "mods/PLAYER/mcl_skins/textures/mcl_skins_character_1.png"
+  },
+  "mcl_smithing_table_bottom": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_smithing_table",
+    "source": "mods/ITEMS/mcl_smithing_table/textures/mcl_smithing_table_bottom.png"
+  },
+  "mcl_smithing_table_front": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_smithing_table",
+    "source": "mods/ITEMS/mcl_smithing_table/textures/mcl_smithing_table_front.png"
+  },
+  "mcl_smithing_table_side": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_smithing_table",
+    "source": "mods/ITEMS/mcl_smithing_table/textures/mcl_smithing_table_side.png"
+  },
+  "mcl_smithing_table_top": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_smithing_table",
+    "source": "mods/ITEMS/mcl_smithing_table/textures/mcl_smithing_table_top.png"
+  },
+  "mcl_sponges_sponge": {
+    "class": "soil",
+    "collisions": [],
+    "package": "mcl_sponges",
+    "source": "mods/ITEMS/mcl_sponges/textures/mcl_sponges_sponge.png"
+  },
+  "mcl_sponges_sponge_wet": {
+    "class": "soil",
+    "collisions": [],
+    "package": "mcl_sponges",
+    "source": "mods/ITEMS/mcl_sponges/textures/mcl_sponges_sponge_wet.png"
+  },
+  "mcl_sponges_sponge_wet_river_water": {
+    "class": "soil",
+    "collisions": [],
+    "package": "mcl_sponges",
+    "source": "mods/ITEMS/mcl_sponges/textures/mcl_sponges_sponge_wet_river_water.png"
+  },
+  "mcl_stairs_andesite_smooth_slab": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_stairs_andesite_smooth_slab.png"
+  },
+  "mcl_stairs_diorite_smooth_slab": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_stairs_diorite_smooth_slab.png"
+  },
+  "mcl_stairs_gold_block_slab": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mclx_stairs",
+    "source": "mods/ITEMS/mclx_stairs/textures/mcl_stairs_gold_block_slab.png"
+  },
+  "mcl_stairs_granite_smooth_slab": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_stairs_granite_smooth_slab.png"
+  },
+  "mcl_stairs_iron_block_slab": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mclx_stairs",
+    "source": "mods/ITEMS/mclx_stairs/textures/mcl_stairs_iron_block_slab.png"
+  },
+  "mcl_stairs_lapis_block_slab": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mclx_stairs",
+    "source": "mods/ITEMS/mclx_stairs/textures/mcl_stairs_lapis_block_slab.png"
+  },
+  "mcl_stairs_stone_slab_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_stairs",
+    "source": "mods/ITEMS/mcl_stairs/textures/mcl_stairs_stone_slab_side.png"
+  },
+  "mcl_stairs_stone_slab_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_stairs",
+    "source": "mods/ITEMS/mcl_stairs/textures/mcl_stairs_stone_slab_top.png"
+  },
+  "mcl_stonecutter_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_stonecutter",
+    "source": "mods/ITEMS/mcl_stonecutter/textures/mcl_stonecutter_bottom.png"
+  },
+  "mcl_stonecutter_saw": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_stonecutter",
+    "source": "mods/ITEMS/mcl_stonecutter/textures/mcl_stonecutter_saw.png"
+  },
+  "mcl_stonecutter_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_stonecutter",
+    "source": "mods/ITEMS/mcl_stonecutter/textures/mcl_stonecutter_side.png"
+  },
+  "mcl_stonecutter_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_stonecutter",
+    "source": "mods/ITEMS/mcl_stonecutter/textures/mcl_stonecutter_top.png"
+  },
+  "mcl_stripped_mangrove_log_side": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_mangrove",
+    "source": "mods/ITEMS/mcl_mangrove/textures/mcl_stripped_mangrove_log_side.png"
+  },
+  "mcl_stripped_mangrove_log_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_mangrove",
+    "source": "mods/ITEMS/mcl_mangrove/textures/mcl_stripped_mangrove_log_top.png"
+  },
+  "mcl_stripped_pale_oak_log_side": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_pale_oak",
+    "source": "mods/ITEMS/mcl_pale_oak/textures/mcl_stripped_pale_oak_log_side.png"
+  },
+  "mcl_stripped_pale_oak_log_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_pale_oak",
+    "source": "mods/ITEMS/mcl_pale_oak/textures/mcl_stripped_pale_oak_log_top.png"
+  },
+  "mcl_target_target_side": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_target",
+    "source": "mods/ITEMS/REDSTONE/mcl_target/textures/mcl_target_target_side.png"
+  },
+  "mcl_target_target_top": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_target",
+    "source": "mods/ITEMS/REDSTONE/mcl_target/textures/mcl_target_target_top.png"
+  },
+  "mcl_tools_heavy_core_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_tools",
+    "source": "mods/ITEMS/mcl_tools/textures/mcl_tools_heavy_core_bottom.png"
+  },
+  "mcl_tools_heavy_core_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_tools",
+    "source": "mods/ITEMS/mcl_tools/textures/mcl_tools_heavy_core_side.png"
+  },
+  "mcl_tools_heavy_core_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_tools",
+    "source": "mods/ITEMS/mcl_tools/textures/mcl_tools_heavy_core_top.png"
+  },
+  "mcl_vaults_vault_bottom": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_vaults",
+    "source": "mods/ITEMS/mcl_vaults/textures/mcl_vaults_vault_bottom.png"
+  },
+  "mcl_vaults_vault_front_ejecting": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_vaults",
+    "source": "mods/ITEMS/mcl_vaults/textures/mcl_vaults_vault_front_ejecting.png"
+  },
+  "mcl_vaults_vault_front_off": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_vaults",
+    "source": "mods/ITEMS/mcl_vaults/textures/mcl_vaults_vault_front_off.png"
+  },
+  "mcl_vaults_vault_front_on": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_vaults",
+    "source": "mods/ITEMS/mcl_vaults/textures/mcl_vaults_vault_front_on.png"
+  },
+  "mcl_vaults_vault_ominous_front_ejecting": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_vaults",
+    "source": "mods/ITEMS/mcl_vaults/textures/mcl_vaults_vault_ominous_front_ejecting.png"
+  },
+  "mcl_vaults_vault_ominous_front_off": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_vaults",
+    "source": "mods/ITEMS/mcl_vaults/textures/mcl_vaults_vault_ominous_front_off.png"
+  },
+  "mcl_vaults_vault_ominous_front_on": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_vaults",
+    "source": "mods/ITEMS/mcl_vaults/textures/mcl_vaults_vault_ominous_front_on.png"
+  },
+  "mcl_vaults_vault_ominous_side_ejecting": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_vaults",
+    "source": "mods/ITEMS/mcl_vaults/textures/mcl_vaults_vault_ominous_side_ejecting.png"
+  },
+  "mcl_vaults_vault_ominous_side_off": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_vaults",
+    "source": "mods/ITEMS/mcl_vaults/textures/mcl_vaults_vault_ominous_side_off.png"
+  },
+  "mcl_vaults_vault_ominous_side_on": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_vaults",
+    "source": "mods/ITEMS/mcl_vaults/textures/mcl_vaults_vault_ominous_side_on.png"
+  },
+  "mcl_vaults_vault_ominous_top_ejecting": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_vaults",
+    "source": "mods/ITEMS/mcl_vaults/textures/mcl_vaults_vault_ominous_top_ejecting.png"
+  },
+  "mcl_vaults_vault_ominous_top_off": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_vaults",
+    "source": "mods/ITEMS/mcl_vaults/textures/mcl_vaults_vault_ominous_top_off.png"
+  },
+  "mcl_vaults_vault_ominous_top_on": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_vaults",
+    "source": "mods/ITEMS/mcl_vaults/textures/mcl_vaults_vault_ominous_top_on.png"
+  },
+  "mcl_vaults_vault_side_ejecting": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_vaults",
+    "source": "mods/ITEMS/mcl_vaults/textures/mcl_vaults_vault_side_ejecting.png"
+  },
+  "mcl_vaults_vault_side_off": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_vaults",
+    "source": "mods/ITEMS/mcl_vaults/textures/mcl_vaults_vault_side_off.png"
+  },
+  "mcl_vaults_vault_side_on": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_vaults",
+    "source": "mods/ITEMS/mcl_vaults/textures/mcl_vaults_vault_side_on.png"
+  },
+  "mcl_vaults_vault_top_ejecting": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_vaults",
+    "source": "mods/ITEMS/mcl_vaults/textures/mcl_vaults_vault_top_ejecting.png"
+  },
+  "mcl_vaults_vault_top_off": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_vaults",
+    "source": "mods/ITEMS/mcl_vaults/textures/mcl_vaults_vault_top_off.png"
+  },
+  "mcl_vaults_vault_top_on": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_vaults",
+    "source": "mods/ITEMS/mcl_vaults/textures/mcl_vaults_vault_top_on.png"
+  },
+  "mcl_walls_cobble_mossy_wall_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_walls",
+    "source": "mods/ITEMS/mcl_walls/textures/mcl_walls_cobble_mossy_wall_side.png"
+  },
+  "mcl_walls_cobble_mossy_wall_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_walls",
+    "source": "mods/ITEMS/mcl_walls/textures/mcl_walls_cobble_mossy_wall_top.png"
+  },
+  "mcl_walls_cobble_wall_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_walls",
+    "source": "mods/ITEMS/mcl_walls/textures/mcl_walls_cobble_wall_side.png"
+  },
+  "mcl_walls_cobble_wall_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_walls",
+    "source": "mods/ITEMS/mcl_walls/textures/mcl_walls_cobble_wall_top.png"
+  },
+  "mcl_wool_light_blue": {
+    "class": "cloth",
+    "collisions": [],
+    "package": "mcl_wool",
+    "source": "mods/ITEMS/mcl_wool/textures/mcl_wool_light_blue.png"
+  },
+  "mcl_wool_lime": {
+    "class": "cloth",
+    "collisions": [],
+    "package": "mcl_wool",
+    "source": "mods/ITEMS/mcl_wool/textures/mcl_wool_lime.png"
+  },
+  "mesecons_delayer_end_locked_off": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_repeaters",
+    "source": "mods/ITEMS/REDSTONE/mcl_repeaters/textures/mesecons_delayer_end_locked_off.png"
+  },
+  "mesecons_delayer_end_locked_on": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_repeaters",
+    "source": "mods/ITEMS/REDSTONE/mcl_repeaters/textures/mesecons_delayer_end_locked_on.png"
+  },
+  "mesecons_delayer_ends_off": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_repeaters",
+    "source": "mods/ITEMS/REDSTONE/mcl_repeaters/textures/mesecons_delayer_ends_off.png"
+  },
+  "mesecons_delayer_ends_on": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_repeaters",
+    "source": "mods/ITEMS/REDSTONE/mcl_repeaters/textures/mesecons_delayer_ends_on.png"
+  },
+  "mesecons_delayer_front_locked_off": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_repeaters",
+    "source": "mods/ITEMS/REDSTONE/mcl_repeaters/textures/mesecons_delayer_front_locked_off.png"
+  },
+  "mesecons_delayer_front_locked_on": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_repeaters",
+    "source": "mods/ITEMS/REDSTONE/mcl_repeaters/textures/mesecons_delayer_front_locked_on.png"
+  },
+  "mesecons_delayer_locked_off": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_repeaters",
+    "source": "mods/ITEMS/REDSTONE/mcl_repeaters/textures/mesecons_delayer_locked_off.png"
+  },
+  "mesecons_delayer_locked_on": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_repeaters",
+    "source": "mods/ITEMS/REDSTONE/mcl_repeaters/textures/mesecons_delayer_locked_on.png"
+  },
+  "mesecons_delayer_off": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_repeaters",
+    "source": "mods/ITEMS/REDSTONE/mcl_repeaters/textures/mesecons_delayer_off.png"
+  },
+  "mesecons_delayer_on": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_repeaters",
+    "source": "mods/ITEMS/REDSTONE/mcl_repeaters/textures/mesecons_delayer_on.png"
+  },
+  "mesecons_delayer_sides_locked_off": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_repeaters",
+    "source": "mods/ITEMS/REDSTONE/mcl_repeaters/textures/mesecons_delayer_sides_locked_off.png"
+  },
+  "mesecons_delayer_sides_locked_on": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_repeaters",
+    "source": "mods/ITEMS/REDSTONE/mcl_repeaters/textures/mesecons_delayer_sides_locked_on.png"
+  },
+  "mesecons_delayer_sides_off": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_repeaters",
+    "source": "mods/ITEMS/REDSTONE/mcl_repeaters/textures/mesecons_delayer_sides_off.png"
+  },
+  "mesecons_delayer_sides_on": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_repeaters",
+    "source": "mods/ITEMS/REDSTONE/mcl_repeaters/textures/mesecons_delayer_sides_on.png"
+  },
+  "mesecons_noteblock": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_noteblock",
+    "source": "mods/ITEMS/REDSTONE/mcl_noteblock/textures/mesecons_noteblock.png"
+  },
+  "mesecons_piston_back": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_pistons",
+    "source": "mods/ITEMS/REDSTONE/mcl_pistons/textures/mesecons_piston_back.png"
+  },
+  "mesecons_piston_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_pistons",
+    "source": "mods/ITEMS/REDSTONE/mcl_pistons/textures/mesecons_piston_bottom.png"
+  },
+  "mesecons_piston_on_front": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_pistons",
+    "source": "mods/ITEMS/REDSTONE/mcl_pistons/textures/mesecons_piston_on_front.png"
+  },
+  "mesecons_piston_pusher_back": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_pistons",
+    "source": "mods/ITEMS/REDSTONE/mcl_pistons/textures/mesecons_piston_pusher_back.png"
+  },
+  "mesecons_piston_pusher_bottom": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_pistons",
+    "source": "mods/ITEMS/REDSTONE/mcl_pistons/textures/mesecons_piston_pusher_bottom.png"
+  },
+  "mesecons_piston_pusher_front": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_pistons",
+    "source": "mods/ITEMS/REDSTONE/mcl_pistons/textures/mesecons_piston_pusher_front.png"
+  },
+  "mesecons_piston_pusher_front_sticky": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_pistons",
+    "source": "mods/ITEMS/REDSTONE/mcl_pistons/textures/mesecons_piston_pusher_front_sticky.png"
+  },
+  "mesecons_piston_pusher_left": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_pistons",
+    "source": "mods/ITEMS/REDSTONE/mcl_pistons/textures/mesecons_piston_pusher_left.png"
+  },
+  "mesecons_piston_pusher_right": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_pistons",
+    "source": "mods/ITEMS/REDSTONE/mcl_pistons/textures/mesecons_piston_pusher_right.png"
+  },
+  "mesecons_piston_pusher_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_pistons",
+    "source": "mods/ITEMS/REDSTONE/mcl_pistons/textures/mesecons_piston_pusher_top.png"
+  },
+  "mob_spawner": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_mobspawners",
+    "source": "mods/ITEMS/mcl_mobspawners/textures/mob_spawner.png"
+  },
+  "mobs_mc_shulker_black": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mobs_mc",
+    "source": "mods/ENTITIES/mobs_mc/textures/mobs_mc_shulker_black.png"
+  },
+  "mobs_mc_shulker_blue": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mobs_mc",
+    "source": "mods/ENTITIES/mobs_mc/textures/mobs_mc_shulker_blue.png"
+  },
+  "mobs_mc_shulker_brown": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mobs_mc",
+    "source": "mods/ENTITIES/mobs_mc/textures/mobs_mc_shulker_brown.png"
+  },
+  "mobs_mc_shulker_cyan": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mobs_mc",
+    "source": "mods/ENTITIES/mobs_mc/textures/mobs_mc_shulker_cyan.png"
+  },
+  "mobs_mc_shulker_gray": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mobs_mc",
+    "source": "mods/ENTITIES/mobs_mc/textures/mobs_mc_shulker_gray.png"
+  },
+  "mobs_mc_shulker_green": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mobs_mc",
+    "source": "mods/ENTITIES/mobs_mc/textures/mobs_mc_shulker_green.png"
+  },
+  "mobs_mc_shulker_light_blue": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mobs_mc",
+    "source": "mods/ENTITIES/mobs_mc/textures/mobs_mc_shulker_light_blue.png"
+  },
+  "mobs_mc_shulker_lime": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mobs_mc",
+    "source": "mods/ENTITIES/mobs_mc/textures/mobs_mc_shulker_lime.png"
+  },
+  "mobs_mc_shulker_magenta": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mobs_mc",
+    "source": "mods/ENTITIES/mobs_mc/textures/mobs_mc_shulker_magenta.png"
+  },
+  "mobs_mc_shulker_orange": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mobs_mc",
+    "source": "mods/ENTITIES/mobs_mc/textures/mobs_mc_shulker_orange.png"
+  },
+  "mobs_mc_shulker_pink": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mobs_mc",
+    "source": "mods/ENTITIES/mobs_mc/textures/mobs_mc_shulker_pink.png"
+  },
+  "mobs_mc_shulker_purple": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mobs_mc",
+    "source": "mods/ENTITIES/mobs_mc/textures/mobs_mc_shulker_purple.png"
+  },
+  "mobs_mc_shulker_red": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mobs_mc",
+    "source": "mods/ENTITIES/mobs_mc/textures/mobs_mc_shulker_red.png"
+  },
+  "mobs_mc_shulker_silver": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mobs_mc",
+    "source": "mods/ENTITIES/mobs_mc/textures/mobs_mc_shulker_silver.png"
+  },
+  "mobs_mc_shulker_white": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mobs_mc",
+    "source": "mods/ENTITIES/mobs_mc/textures/mobs_mc_shulker_white.png"
+  },
+  "mobs_mc_shulker_yellow": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mobs_mc",
+    "source": "mods/ENTITIES/mobs_mc/textures/mobs_mc_shulker_yellow.png"
+  },
+  "powder_snow": {
+    "class": "snow",
+    "collisions": [],
+    "package": "mcl_powder_snow",
+    "source": "mods/ITEMS/mcl_powder_snow/textures/powder_snow.png"
+  },
+  "redstone_redstone_block": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_redstone",
+    "source": "mods/ITEMS/REDSTONE/mcl_redstone/textures/redstone_redstone_block.png"
+  },
+  "redstone_redstone_dust_dot": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_redstone",
+    "source": "mods/ITEMS/REDSTONE/mcl_redstone/textures/redstone_redstone_dust_dot.png"
+  },
+  "redstone_redstone_dust_line0": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_redstone",
+    "source": "mods/ITEMS/REDSTONE/mcl_redstone/textures/redstone_redstone_dust_line0.png"
+  },
+  "respawn_anchor_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_beds",
+    "source": "mods/ITEMS/mcl_beds/textures/respawn_anchor_bottom.png"
+  },
+  "respawn_anchor_side0": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_beds",
+    "source": "mods/ITEMS/mcl_beds/textures/respawn_anchor_side0.png"
+  },
+  "respawn_anchor_side1": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_beds",
+    "source": "mods/ITEMS/mcl_beds/textures/respawn_anchor_side1.png"
+  },
+  "respawn_anchor_side2": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_beds",
+    "source": "mods/ITEMS/mcl_beds/textures/respawn_anchor_side2.png"
+  },
+  "respawn_anchor_side3": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_beds",
+    "source": "mods/ITEMS/mcl_beds/textures/respawn_anchor_side3.png"
+  },
+  "respawn_anchor_side4": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_beds",
+    "source": "mods/ITEMS/mcl_beds/textures/respawn_anchor_side4.png"
+  },
+  "respawn_anchor_top_off": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_beds",
+    "source": "mods/ITEMS/mcl_beds/textures/respawn_anchor_top_off.png"
+  },
+  "respawn_anchor_top_on": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_beds",
+    "source": "mods/ITEMS/mcl_beds/textures/respawn_anchor_top_on.png"
+  },
+  "root_1": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/root_1.png"
+  },
+  "root_2": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/root_2.png"
+  },
+  "root_3": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/root_3.png"
+  },
+  "root_4": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/root_4.png"
+  },
+  "root_5": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/root_5.png"
+  },
+  "root_6": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/root_6.png"
+  },
+  "root_7": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/root_7.png"
+  },
+  "root_8": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/root_8.png"
+  },
+  "shroomlight": {
+    "class": "soil",
+    "collisions": [],
+    "package": "mcl_crimson",
+    "source": "mods/ITEMS/mcl_crimson/textures/shroomlight.png"
+  },
+  "smoker_bottom": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_smoker",
+    "source": "mods/ITEMS/mcl_smoker/textures/smoker_bottom.png"
+  },
+  "smoker_front": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_smoker",
+    "source": "mods/ITEMS/mcl_smoker/textures/smoker_front.png"
+  },
+  "smoker_front_on": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_smoker",
+    "source": "mods/ITEMS/mcl_smoker/textures/smoker_front_on.png"
+  },
+  "smoker_side": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_smoker",
+    "source": "mods/ITEMS/mcl_smoker/textures/smoker_side.png"
+  },
+  "smoker_top": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_smoker",
+    "source": "mods/ITEMS/mcl_smoker/textures/smoker_top.png"
+  },
+  "soul_torch_on_floor_animated": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_blackstone",
+    "source": "mods/ITEMS/mcl_blackstone/textures/soul_torch_on_floor_animated.png"
+  },
+  "stripped_crimson_stem_side": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_crimson",
+    "source": "mods/ITEMS/mcl_crimson/textures/stripped_crimson_stem_side.png"
+  },
+  "stripped_crimson_stem_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_crimson",
+    "source": "mods/ITEMS/mcl_crimson/textures/stripped_crimson_stem_top.png"
+  },
+  "stripped_warped_stem_side": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_crimson",
+    "source": "mods/ITEMS/mcl_crimson/textures/stripped_warped_stem_side.png"
+  },
+  "stripped_warped_stem_top": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_crimson",
+    "source": "mods/ITEMS/mcl_crimson/textures/stripped_warped_stem_top.png"
+  },
+  "tree_1": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/tree_1.png"
+  },
+  "tree_2": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/tree_2.png"
+  },
+  "tree_3": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/tree_3.png"
+  },
+  "tree_4": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/tree_4.png"
+  },
+  "tree_5": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/tree_5.png"
+  },
+  "tree_6": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/tree_6.png"
+  },
+  "tree_7": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/tree_7.png"
+  },
+  "tree_8": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_villages",
+    "source": "mods/MAPGEN/mcl_villages/textures/tree_8.png"
+  },
+  "trialspawner_bottom": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_trial_spawners",
+    "source": "mods/ITEMS/mcl_trial_spawners/textures/trialspawner_bottom.png"
+  },
+  "trialspawner_bottom_ominous": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_trial_spawners",
+    "source": "mods/ITEMS/mcl_trial_spawners/textures/trialspawner_bottom_ominous.png"
+  },
+  "trialspawner_bottom_on": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_trial_spawners",
+    "source": "mods/ITEMS/mcl_trial_spawners/textures/trialspawner_bottom_on.png"
+  },
+  "trialspawner_side": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_trial_spawners",
+    "source": "mods/ITEMS/mcl_trial_spawners/textures/trialspawner_side.png"
+  },
+  "trialspawner_side_ominous": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_trial_spawners",
+    "source": "mods/ITEMS/mcl_trial_spawners/textures/trialspawner_side_ominous.png"
+  },
+  "trialspawner_side_on": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_trial_spawners",
+    "source": "mods/ITEMS/mcl_trial_spawners/textures/trialspawner_side_on.png"
+  },
+  "trialspawner_top": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_trial_spawners",
+    "source": "mods/ITEMS/mcl_trial_spawners/textures/trialspawner_top.png"
+  },
+  "trialspawner_top_ominous": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_trial_spawners",
+    "source": "mods/ITEMS/mcl_trial_spawners/textures/trialspawner_top_ominous.png"
+  },
+  "trialspawner_top_on": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_trial_spawners",
+    "source": "mods/ITEMS/mcl_trial_spawners/textures/trialspawner_top_on.png"
+  },
+  "warped_hyphae": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_crimson",
+    "source": "mods/ITEMS/mcl_crimson/textures/warped_hyphae.png"
+  },
+  "warped_hyphae_side": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_crimson",
+    "source": "mods/ITEMS/mcl_crimson/textures/warped_hyphae_side.png"
+  },
+  "warped_hyphae_wood": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_crimson",
+    "source": "mods/ITEMS/mcl_crimson/textures/warped_hyphae_wood.png"
+  },
+  "warped_nylium": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_crimson",
+    "source": "mods/ITEMS/mcl_crimson/textures/warped_nylium.png"
+  },
+  "warped_wart_block": {
+    "class": "soil",
+    "collisions": [],
+    "package": "mcl_crimson",
+    "source": "mods/ITEMS/mcl_crimson/textures/warped_wart_block.png"
+  },
+  "wool_black": {
+    "class": "cloth",
+    "collisions": [],
+    "package": "mcl_wool",
+    "source": "mods/ITEMS/mcl_wool/textures/wool_black.png"
+  },
+  "wool_blue": {
+    "class": "cloth",
+    "collisions": [],
+    "package": "mcl_wool",
+    "source": "mods/ITEMS/mcl_wool/textures/wool_blue.png"
+  },
+  "wool_brown": {
+    "class": "cloth",
+    "collisions": [],
+    "package": "mcl_wool",
+    "source": "mods/ITEMS/mcl_wool/textures/wool_brown.png"
+  },
+  "wool_cyan": {
+    "class": "cloth",
+    "collisions": [],
+    "package": "mcl_wool",
+    "source": "mods/ITEMS/mcl_wool/textures/wool_cyan.png"
+  },
+  "wool_dark_green": {
+    "class": "cloth",
+    "collisions": [],
+    "package": "mcl_wool",
+    "source": "mods/ITEMS/mcl_wool/textures/wool_dark_green.png"
+  },
+  "wool_dark_grey": {
+    "class": "cloth",
+    "collisions": [],
+    "package": "mcl_wool",
+    "source": "mods/ITEMS/mcl_wool/textures/wool_dark_grey.png"
+  },
+  "wool_grey": {
+    "class": "cloth",
+    "collisions": [],
+    "package": "mcl_wool",
+    "source": "mods/ITEMS/mcl_wool/textures/wool_grey.png"
+  },
+  "wool_magenta": {
+    "class": "cloth",
+    "collisions": [],
+    "package": "mcl_wool",
+    "source": "mods/ITEMS/mcl_wool/textures/wool_magenta.png"
+  },
+  "wool_orange": {
+    "class": "cloth",
+    "collisions": [],
+    "package": "mcl_wool",
+    "source": "mods/ITEMS/mcl_wool/textures/wool_orange.png"
+  },
+  "wool_pink": {
+    "class": "cloth",
+    "collisions": [],
+    "package": "mcl_wool",
+    "source": "mods/ITEMS/mcl_wool/textures/wool_pink.png"
+  },
+  "wool_red": {
+    "class": "cloth",
+    "collisions": [],
+    "package": "mcl_wool",
+    "source": "mods/ITEMS/mcl_wool/textures/wool_red.png"
+  },
+  "wool_violet": {
+    "class": "cloth",
+    "collisions": [],
+    "package": "mcl_wool",
+    "source": "mods/ITEMS/mcl_wool/textures/wool_violet.png"
+  },
+  "wool_white": {
+    "class": "cloth",
+    "collisions": [],
+    "package": "mcl_wool",
+    "source": "mods/ITEMS/mcl_wool/textures/wool_white.png"
+  },
+  "wool_yellow": {
+    "class": "cloth",
+    "collisions": [],
+    "package": "mcl_wool",
+    "source": "mods/ITEMS/mcl_wool/textures/wool_yellow.png"
+  },
+  "xpanes_pane_iron": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_panes",
+    "source": "mods/ITEMS/mcl_panes/textures/xpanes_pane_iron.png"
+  },
+  "xpanes_top_glass_black": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_panes",
+    "source": "mods/ITEMS/mcl_panes/textures/xpanes_top_glass_black.png"
+  },
+  "xpanes_top_glass_blue": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_panes",
+    "source": "mods/ITEMS/mcl_panes/textures/xpanes_top_glass_blue.png"
+  },
+  "xpanes_top_glass_brown": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_panes",
+    "source": "mods/ITEMS/mcl_panes/textures/xpanes_top_glass_brown.png"
+  },
+  "xpanes_top_glass_cyan": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_panes",
+    "source": "mods/ITEMS/mcl_panes/textures/xpanes_top_glass_cyan.png"
+  },
+  "xpanes_top_glass_gray": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_panes",
+    "source": "mods/ITEMS/mcl_panes/textures/xpanes_top_glass_gray.png"
+  },
+  "xpanes_top_glass_green": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_panes",
+    "source": "mods/ITEMS/mcl_panes/textures/xpanes_top_glass_green.png"
+  },
+  "xpanes_top_glass_light_blue": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_panes",
+    "source": "mods/ITEMS/mcl_panes/textures/xpanes_top_glass_light_blue.png"
+  },
+  "xpanes_top_glass_lime": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_panes",
+    "source": "mods/ITEMS/mcl_panes/textures/xpanes_top_glass_lime.png"
+  },
+  "xpanes_top_glass_magenta": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_panes",
+    "source": "mods/ITEMS/mcl_panes/textures/xpanes_top_glass_magenta.png"
+  },
+  "xpanes_top_glass_natural": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_panes",
+    "source": "mods/ITEMS/mcl_panes/textures/xpanes_top_glass_natural.png"
+  },
+  "xpanes_top_glass_orange": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_panes",
+    "source": "mods/ITEMS/mcl_panes/textures/xpanes_top_glass_orange.png"
+  },
+  "xpanes_top_glass_pink": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_panes",
+    "source": "mods/ITEMS/mcl_panes/textures/xpanes_top_glass_pink.png"
+  },
+  "xpanes_top_glass_purple": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_panes",
+    "source": "mods/ITEMS/mcl_panes/textures/xpanes_top_glass_purple.png"
+  },
+  "xpanes_top_glass_red": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_panes",
+    "source": "mods/ITEMS/mcl_panes/textures/xpanes_top_glass_red.png"
+  },
+  "xpanes_top_glass_silver": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_panes",
+    "source": "mods/ITEMS/mcl_panes/textures/xpanes_top_glass_silver.png"
+  },
+  "xpanes_top_glass_white": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_panes",
+    "source": "mods/ITEMS/mcl_panes/textures/xpanes_top_glass_white.png"
+  },
+  "xpanes_top_glass_yellow": {
+    "class": "glass",
+    "collisions": [],
+    "package": "mcl_panes",
+    "source": "mods/ITEMS/mcl_panes/textures/xpanes_top_glass_yellow.png"
+  },
+  "xpanes_top_iron": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_panes",
+    "source": "mods/ITEMS/mcl_panes/textures/xpanes_top_iron.png"
+  }
+}

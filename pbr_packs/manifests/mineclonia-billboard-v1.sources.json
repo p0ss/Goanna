@@ -1,0 +1,770 @@
+{
+  "cactus_flower": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/cactus_flower.png"
+  },
+  "crimson_roots": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_crimson",
+    "source": "mods/ITEMS/mcl_crimson/textures/crimson_roots.png"
+  },
+  "default_acacia_sapling": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/default_acacia_sapling.png"
+  },
+  "default_dry_shrub": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/default_dry_shrub.png"
+  },
+  "default_junglesapling": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/default_junglesapling.png"
+  },
+  "default_ladder": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/default_ladder.png"
+  },
+  "default_rail": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_minecarts",
+    "source": "mods/ENTITIES/mcl_minecarts/textures/default_rail.png"
+  },
+  "default_rail_crossing": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_minecarts",
+    "source": "mods/ENTITIES/mcl_minecarts/textures/default_rail_crossing.png"
+  },
+  "default_rail_curved": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_minecarts",
+    "source": "mods/ENTITIES/mcl_minecarts/textures/default_rail_curved.png"
+  },
+  "default_rail_t_junction": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_minecarts",
+    "source": "mods/ENTITIES/mcl_minecarts/textures/default_rail_t_junction.png"
+  },
+  "default_sapling": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/default_sapling.png"
+  },
+  "farming_carrot_1": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_farming",
+    "source": "mods/ITEMS/mcl_farming/textures/farming_carrot_1.png"
+  },
+  "farming_carrot_2": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_farming",
+    "source": "mods/ITEMS/mcl_farming/textures/farming_carrot_2.png"
+  },
+  "farming_carrot_3": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_farming",
+    "source": "mods/ITEMS/mcl_farming/textures/farming_carrot_3.png"
+  },
+  "farming_carrot_4": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_farming",
+    "source": "mods/ITEMS/mcl_farming/textures/farming_carrot_4.png"
+  },
+  "farming_crimson_fungus": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_crimson",
+    "source": "mods/ITEMS/mcl_crimson/textures/farming_crimson_fungus.png"
+  },
+  "farming_mushroom_brown": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_mushrooms",
+    "source": "mods/ITEMS/mcl_mushrooms/textures/farming_mushroom_brown.png"
+  },
+  "farming_mushroom_red": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_mushrooms",
+    "source": "mods/ITEMS/mcl_mushrooms/textures/farming_mushroom_red.png"
+  },
+  "farming_warped_fungus": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_crimson",
+    "source": "mods/ITEMS/mcl_crimson/textures/farming_warped_fungus.png"
+  },
+  "fire_basic_flame_animated": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_fire",
+    "source": "mods/ITEMS/mcl_fire/textures/fire_basic_flame_animated.png"
+  },
+  "flowers_dandelion_yellow": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_flowers",
+    "source": "mods/ITEMS/mcl_flowers/textures/flowers_dandelion_yellow.png"
+  },
+  "flowers_tulip": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_flowers",
+    "source": "mods/ITEMS/mcl_flowers/textures/flowers_tulip.png"
+  },
+  "mcl_amethyst_amethyst_bud_large": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_amethyst",
+    "source": "mods/ITEMS/mcl_amethyst/textures/mcl_amethyst_amethyst_bud_large.png"
+  },
+  "mcl_amethyst_amethyst_bud_medium": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_amethyst",
+    "source": "mods/ITEMS/mcl_amethyst/textures/mcl_amethyst_amethyst_bud_medium.png"
+  },
+  "mcl_amethyst_amethyst_bud_small": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_amethyst",
+    "source": "mods/ITEMS/mcl_amethyst/textures/mcl_amethyst_amethyst_bud_small.png"
+  },
+  "mcl_amethyst_amethyst_cluster": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_amethyst",
+    "source": "mods/ITEMS/mcl_amethyst/textures/mcl_amethyst_amethyst_cluster.png"
+  },
+  "mcl_cherry_blossom_sapling": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_cherry_blossom",
+    "source": "mods/ITEMS/mcl_cherry_blossom/textures/mcl_cherry_blossom_sapling.png"
+  },
+  "mcl_core_papyrus": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_papyrus.png"
+  },
+  "mcl_core_sapling_big_oak": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_sapling_big_oak.png"
+  },
+  "mcl_core_sapling_birch": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_sapling_birch.png"
+  },
+  "mcl_core_sapling_spruce": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_sapling_spruce.png"
+  },
+  "mcl_core_vine": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_vine.png"
+  },
+  "mcl_core_web": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_core",
+    "source": "mods/ITEMS/mcl_core/textures/mcl_core_web.png"
+  },
+  "mcl_crimson_weeping_vines": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_crimson",
+    "source": "mods/ITEMS/mcl_crimson/textures/mcl_crimson_weeping_vines.png"
+  },
+  "mcl_farming_beetroot_0": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_farming",
+    "source": "mods/ITEMS/mcl_farming/textures/mcl_farming_beetroot_0.png"
+  },
+  "mcl_farming_beetroot_1": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_farming",
+    "source": "mods/ITEMS/mcl_farming/textures/mcl_farming_beetroot_1.png"
+  },
+  "mcl_farming_beetroot_2": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_farming",
+    "source": "mods/ITEMS/mcl_farming/textures/mcl_farming_beetroot_2.png"
+  },
+  "mcl_farming_beetroot_3": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_farming",
+    "source": "mods/ITEMS/mcl_farming/textures/mcl_farming_beetroot_3.png"
+  },
+  "mcl_farming_melon_stem_disconnected": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_farming",
+    "source": "mods/ITEMS/mcl_farming/textures/mcl_farming_melon_stem_disconnected.png"
+  },
+  "mcl_farming_potatoes_stage_0": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_farming",
+    "source": "mods/ITEMS/mcl_farming/textures/mcl_farming_potatoes_stage_0.png"
+  },
+  "mcl_farming_potatoes_stage_1": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_farming",
+    "source": "mods/ITEMS/mcl_farming/textures/mcl_farming_potatoes_stage_1.png"
+  },
+  "mcl_farming_potatoes_stage_2": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_farming",
+    "source": "mods/ITEMS/mcl_farming/textures/mcl_farming_potatoes_stage_2.png"
+  },
+  "mcl_farming_potatoes_stage_3": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_farming",
+    "source": "mods/ITEMS/mcl_farming/textures/mcl_farming_potatoes_stage_3.png"
+  },
+  "mcl_farming_pumpkin_stem_disconnected": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_farming",
+    "source": "mods/ITEMS/mcl_farming/textures/mcl_farming_pumpkin_stem_disconnected.png"
+  },
+  "mcl_farming_sweet_berry_bush_0": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_farming",
+    "source": "mods/ITEMS/mcl_farming/textures/mcl_farming_sweet_berry_bush_0.png"
+  },
+  "mcl_farming_sweet_berry_bush_1": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_farming",
+    "source": "mods/ITEMS/mcl_farming/textures/mcl_farming_sweet_berry_bush_1.png"
+  },
+  "mcl_farming_sweet_berry_bush_2": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_farming",
+    "source": "mods/ITEMS/mcl_farming/textures/mcl_farming_sweet_berry_bush_2.png"
+  },
+  "mcl_farming_sweet_berry_bush_3": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_farming",
+    "source": "mods/ITEMS/mcl_farming/textures/mcl_farming_sweet_berry_bush_3.png"
+  },
+  "mcl_farming_wheat_stage_0": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_farming",
+    "source": "mods/ITEMS/mcl_farming/textures/mcl_farming_wheat_stage_0.png"
+  },
+  "mcl_farming_wheat_stage_1": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_farming",
+    "source": "mods/ITEMS/mcl_farming/textures/mcl_farming_wheat_stage_1.png"
+  },
+  "mcl_farming_wheat_stage_2": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_farming",
+    "source": "mods/ITEMS/mcl_farming/textures/mcl_farming_wheat_stage_2.png"
+  },
+  "mcl_farming_wheat_stage_3": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_farming",
+    "source": "mods/ITEMS/mcl_farming/textures/mcl_farming_wheat_stage_3.png"
+  },
+  "mcl_farming_wheat_stage_4": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_farming",
+    "source": "mods/ITEMS/mcl_farming/textures/mcl_farming_wheat_stage_4.png"
+  },
+  "mcl_farming_wheat_stage_5": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_farming",
+    "source": "mods/ITEMS/mcl_farming/textures/mcl_farming_wheat_stage_5.png"
+  },
+  "mcl_farming_wheat_stage_6": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_farming",
+    "source": "mods/ITEMS/mcl_farming/textures/mcl_farming_wheat_stage_6.png"
+  },
+  "mcl_farming_wheat_stage_7": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_farming",
+    "source": "mods/ITEMS/mcl_farming/textures/mcl_farming_wheat_stage_7.png"
+  },
+  "mcl_flowers_allium": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_flowers",
+    "source": "mods/ITEMS/mcl_flowers/textures/mcl_flowers_allium.png"
+  },
+  "mcl_flowers_azure_bluet": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_flowers",
+    "source": "mods/ITEMS/mcl_flowers/textures/mcl_flowers_azure_bluet.png"
+  },
+  "mcl_flowers_blue_orchid": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_flowers",
+    "source": "mods/ITEMS/mcl_flowers/textures/mcl_flowers_blue_orchid.png"
+  },
+  "mcl_flowers_bush": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_flowers",
+    "source": "mods/ITEMS/mcl_flowers/textures/mcl_flowers_bush.png"
+  },
+  "mcl_flowers_cornflower": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_flowers",
+    "source": "mods/ITEMS/mcl_flowers/textures/mcl_flowers_cornflower.png"
+  },
+  "mcl_flowers_double_plant_fern_bottom": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_flowers",
+    "source": "mods/ITEMS/mcl_flowers/textures/mcl_flowers_double_plant_fern_bottom.png"
+  },
+  "mcl_flowers_double_plant_fern_top": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_flowers",
+    "source": "mods/ITEMS/mcl_flowers/textures/mcl_flowers_double_plant_fern_top.png"
+  },
+  "mcl_flowers_double_plant_grass_bottom": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_flowers",
+    "source": "mods/ITEMS/mcl_flowers/textures/mcl_flowers_double_plant_grass_bottom.png"
+  },
+  "mcl_flowers_double_plant_grass_top": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_flowers",
+    "source": "mods/ITEMS/mcl_flowers/textures/mcl_flowers_double_plant_grass_top.png"
+  },
+  "mcl_flowers_double_plant_paeonia_bottom": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_flowers",
+    "source": "mods/ITEMS/mcl_flowers/textures/mcl_flowers_double_plant_paeonia_bottom.png"
+  },
+  "mcl_flowers_double_plant_paeonia_top": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_flowers",
+    "source": "mods/ITEMS/mcl_flowers/textures/mcl_flowers_double_plant_paeonia_top.png"
+  },
+  "mcl_flowers_double_plant_rose_bottom": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_flowers",
+    "source": "mods/ITEMS/mcl_flowers/textures/mcl_flowers_double_plant_rose_bottom.png"
+  },
+  "mcl_flowers_double_plant_rose_top": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_flowers",
+    "source": "mods/ITEMS/mcl_flowers/textures/mcl_flowers_double_plant_rose_top.png"
+  },
+  "mcl_flowers_double_plant_syringa_bottom": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_flowers",
+    "source": "mods/ITEMS/mcl_flowers/textures/mcl_flowers_double_plant_syringa_bottom.png"
+  },
+  "mcl_flowers_double_plant_syringa_top": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_flowers",
+    "source": "mods/ITEMS/mcl_flowers/textures/mcl_flowers_double_plant_syringa_top.png"
+  },
+  "mcl_flowers_fern": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_flowers",
+    "source": "mods/ITEMS/mcl_flowers/textures/mcl_flowers_fern.png"
+  },
+  "mcl_flowers_firefly_bush": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_flowers",
+    "source": "mods/ITEMS/mcl_flowers/textures/mcl_flowers_firefly_bush.png"
+  },
+  "mcl_flowers_lily_of_the_valley": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_flowers",
+    "source": "mods/ITEMS/mcl_flowers/textures/mcl_flowers_lily_of_the_valley.png"
+  },
+  "mcl_flowers_oxeye_daisy": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_flowers",
+    "source": "mods/ITEMS/mcl_flowers/textures/mcl_flowers_oxeye_daisy.png"
+  },
+  "mcl_flowers_poppy": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_flowers",
+    "source": "mods/ITEMS/mcl_flowers/textures/mcl_flowers_poppy.png"
+  },
+  "mcl_flowers_short_dry_grass": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_flowers",
+    "source": "mods/ITEMS/mcl_flowers/textures/mcl_flowers_short_dry_grass.png"
+  },
+  "mcl_flowers_tallgrass": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_flowers",
+    "source": "mods/ITEMS/mcl_flowers/textures/mcl_flowers_tallgrass.png"
+  },
+  "mcl_flowers_tulip_pink": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_flowers",
+    "source": "mods/ITEMS/mcl_flowers/textures/mcl_flowers_tulip_pink.png"
+  },
+  "mcl_flowers_tulip_red": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_flowers",
+    "source": "mods/ITEMS/mcl_flowers/textures/mcl_flowers_tulip_red.png"
+  },
+  "mcl_flowers_tulip_white": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_flowers",
+    "source": "mods/ITEMS/mcl_flowers/textures/mcl_flowers_tulip_white.png"
+  },
+  "mcl_flowers_wither_rose": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_flowers",
+    "source": "mods/ITEMS/mcl_flowers/textures/mcl_flowers_wither_rose.png"
+  },
+  "mcl_lush_caves_cave_vines": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_lush_caves",
+    "source": "mods/ITEMS/mcl_lush_caves/textures/mcl_lush_caves_cave_vines.png"
+  },
+  "mcl_lush_caves_cave_vines_lit": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_lush_caves",
+    "source": "mods/ITEMS/mcl_lush_caves/textures/mcl_lush_caves_cave_vines_lit.png"
+  },
+  "mcl_lush_caves_hanging_roots": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_lush_caves",
+    "source": "mods/ITEMS/mcl_lush_caves/textures/mcl_lush_caves_hanging_roots.png"
+  },
+  "mcl_mangrove_propagule_item": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_mangrove",
+    "source": "mods/ITEMS/mcl_mangrove/textures/mcl_mangrove_propagule_item.png"
+  },
+  "mcl_minecarts_rail_activator": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_minecarts",
+    "source": "mods/ENTITIES/mcl_minecarts/textures/mcl_minecarts_rail_activator.png"
+  },
+  "mcl_minecarts_rail_activator_crossing": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_minecarts",
+    "source": "mods/ENTITIES/mcl_minecarts/textures/mcl_minecarts_rail_activator_crossing.png"
+  },
+  "mcl_minecarts_rail_activator_crossing_powered": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_minecarts",
+    "source": "mods/ENTITIES/mcl_minecarts/textures/mcl_minecarts_rail_activator_crossing_powered.png"
+  },
+  "mcl_minecarts_rail_activator_curved": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_minecarts",
+    "source": "mods/ENTITIES/mcl_minecarts/textures/mcl_minecarts_rail_activator_curved.png"
+  },
+  "mcl_minecarts_rail_activator_curved_powered": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_minecarts",
+    "source": "mods/ENTITIES/mcl_minecarts/textures/mcl_minecarts_rail_activator_curved_powered.png"
+  },
+  "mcl_minecarts_rail_activator_powered": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_minecarts",
+    "source": "mods/ENTITIES/mcl_minecarts/textures/mcl_minecarts_rail_activator_powered.png"
+  },
+  "mcl_minecarts_rail_activator_t_junction": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_minecarts",
+    "source": "mods/ENTITIES/mcl_minecarts/textures/mcl_minecarts_rail_activator_t_junction.png"
+  },
+  "mcl_minecarts_rail_activator_t_junction_powered": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_minecarts",
+    "source": "mods/ENTITIES/mcl_minecarts/textures/mcl_minecarts_rail_activator_t_junction_powered.png"
+  },
+  "mcl_minecarts_rail_detector": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_minecarts",
+    "source": "mods/ENTITIES/mcl_minecarts/textures/mcl_minecarts_rail_detector.png"
+  },
+  "mcl_minecarts_rail_detector_crossing": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_minecarts",
+    "source": "mods/ENTITIES/mcl_minecarts/textures/mcl_minecarts_rail_detector_crossing.png"
+  },
+  "mcl_minecarts_rail_detector_crossing_powered": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_minecarts",
+    "source": "mods/ENTITIES/mcl_minecarts/textures/mcl_minecarts_rail_detector_crossing_powered.png"
+  },
+  "mcl_minecarts_rail_detector_curved": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_minecarts",
+    "source": "mods/ENTITIES/mcl_minecarts/textures/mcl_minecarts_rail_detector_curved.png"
+  },
+  "mcl_minecarts_rail_detector_curved_powered": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_minecarts",
+    "source": "mods/ENTITIES/mcl_minecarts/textures/mcl_minecarts_rail_detector_curved_powered.png"
+  },
+  "mcl_minecarts_rail_detector_powered": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_minecarts",
+    "source": "mods/ENTITIES/mcl_minecarts/textures/mcl_minecarts_rail_detector_powered.png"
+  },
+  "mcl_minecarts_rail_detector_t_junction": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_minecarts",
+    "source": "mods/ENTITIES/mcl_minecarts/textures/mcl_minecarts_rail_detector_t_junction.png"
+  },
+  "mcl_minecarts_rail_detector_t_junction_powered": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_minecarts",
+    "source": "mods/ENTITIES/mcl_minecarts/textures/mcl_minecarts_rail_detector_t_junction_powered.png"
+  },
+  "mcl_minecarts_rail_golden": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_minecarts",
+    "source": "mods/ENTITIES/mcl_minecarts/textures/mcl_minecarts_rail_golden.png"
+  },
+  "mcl_minecarts_rail_golden_crossing": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_minecarts",
+    "source": "mods/ENTITIES/mcl_minecarts/textures/mcl_minecarts_rail_golden_crossing.png"
+  },
+  "mcl_minecarts_rail_golden_crossing_powered": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_minecarts",
+    "source": "mods/ENTITIES/mcl_minecarts/textures/mcl_minecarts_rail_golden_crossing_powered.png"
+  },
+  "mcl_minecarts_rail_golden_curved": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_minecarts",
+    "source": "mods/ENTITIES/mcl_minecarts/textures/mcl_minecarts_rail_golden_curved.png"
+  },
+  "mcl_minecarts_rail_golden_curved_powered": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_minecarts",
+    "source": "mods/ENTITIES/mcl_minecarts/textures/mcl_minecarts_rail_golden_curved_powered.png"
+  },
+  "mcl_minecarts_rail_golden_powered": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_minecarts",
+    "source": "mods/ENTITIES/mcl_minecarts/textures/mcl_minecarts_rail_golden_powered.png"
+  },
+  "mcl_minecarts_rail_golden_t_junction": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_minecarts",
+    "source": "mods/ENTITIES/mcl_minecarts/textures/mcl_minecarts_rail_golden_t_junction.png"
+  },
+  "mcl_minecarts_rail_golden_t_junction_powered": {
+    "class": "metal",
+    "collisions": [],
+    "package": "mcl_minecarts",
+    "source": "mods/ENTITIES/mcl_minecarts/textures/mcl_minecarts_rail_golden_t_junction_powered.png"
+  },
+  "mcl_nether_nether_wart_stage_0": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_nether",
+    "source": "mods/ITEMS/mcl_nether/textures/mcl_nether_nether_wart_stage_0.png"
+  },
+  "mcl_nether_nether_wart_stage_1": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_nether",
+    "source": "mods/ITEMS/mcl_nether/textures/mcl_nether_nether_wart_stage_1.png"
+  },
+  "mcl_nether_nether_wart_stage_2": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_nether",
+    "source": "mods/ITEMS/mcl_nether/textures/mcl_nether_nether_wart_stage_2.png"
+  },
+  "mcl_pale_oak_eyeblossom": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_pale_oak",
+    "source": "mods/ITEMS/mcl_pale_oak/textures/mcl_pale_oak_eyeblossom.png"
+  },
+  "mcl_pale_oak_eyeblossom_open": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_pale_oak",
+    "source": "mods/ITEMS/mcl_pale_oak/textures/mcl_pale_oak_eyeblossom_open.png"
+  },
+  "mcl_pale_oak_hanging_moss": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_pale_oak",
+    "source": "mods/ITEMS/mcl_pale_oak/textures/mcl_pale_oak_hanging_moss.png"
+  },
+  "mcl_pale_oak_hanging_moss_tip": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_pale_oak",
+    "source": "mods/ITEMS/mcl_pale_oak/textures/mcl_pale_oak_hanging_moss_tip.png"
+  },
+  "mcl_pale_oak_sapling_pale_oak": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_pale_oak",
+    "source": "mods/ITEMS/mcl_pale_oak/textures/mcl_pale_oak_sapling_pale_oak.png"
+  },
+  "mcl_sculk_vein": {
+    "class": "wood",
+    "collisions": [],
+    "package": "mcl_sculk",
+    "source": "mods/ITEMS/mcl_sculk/textures/mcl_sculk_vein.png"
+  },
+  "nether_sprouts": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_crimson",
+    "source": "mods/ITEMS/mcl_crimson/textures/nether_sprouts.png"
+  },
+  "pointed_dripstone_base": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_dripstone",
+    "source": "mods/ITEMS/mcl_dripstone/textures/pointed_dripstone_base.png"
+  },
+  "pointed_dripstone_frustum": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_dripstone",
+    "source": "mods/ITEMS/mcl_dripstone/textures/pointed_dripstone_frustum.png"
+  },
+  "pointed_dripstone_middle": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_dripstone",
+    "source": "mods/ITEMS/mcl_dripstone/textures/pointed_dripstone_middle.png"
+  },
+  "pointed_dripstone_tip": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_dripstone",
+    "source": "mods/ITEMS/mcl_dripstone/textures/pointed_dripstone_tip.png"
+  },
+  "pointed_dripstone_tip_merge": {
+    "class": "stone",
+    "collisions": [],
+    "package": "mcl_dripstone",
+    "source": "mods/ITEMS/mcl_dripstone/textures/pointed_dripstone_tip_merge.png"
+  },
+  "soul_fire_basic_flame_animated": {
+    "class": "default",
+    "collisions": [],
+    "package": "mcl_blackstone",
+    "source": "mods/ITEMS/mcl_blackstone/textures/soul_fire_basic_flame_animated.png"
+  },
+  "twisting_vines_plant": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_crimson",
+    "source": "mods/ITEMS/mcl_crimson/textures/twisting_vines_plant.png"
+  },
+  "warped_roots": {
+    "class": "leaves",
+    "collisions": [],
+    "package": "mcl_crimson",
+    "source": "mods/ITEMS/mcl_crimson/textures/warped_roots.png"
+  }
+}

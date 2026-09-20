@@ -1,0 +1,3790 @@
+[
+  {
+    "damage_per_second": 0,
+    "drawtype": "mesh",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "dig_by_piston": 1,
+      "dig_immediate": 3,
+      "flower_pot": 2,
+      "not_breaking_cactus": 1,
+      "not_in_creative_inventory": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowerpots:flower_pot_lily_of_the_valley",
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "mcl_flowerpots_flowerpot.png",
+      "mcl_flowers_lily_of_the_valley.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "mesh",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "dig_by_piston": 1,
+      "dig_immediate": 3,
+      "flower_pot": 2,
+      "not_breaking_cactus": 1,
+      "not_in_creative_inventory": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowerpots:flower_pot_poppy",
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "mcl_flowerpots_flowerpot.png",
+      "mcl_flowers_poppy.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "mesh",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "dig_by_piston": 1,
+      "dig_immediate": 3,
+      "flower_pot": 2,
+      "not_breaking_cactus": 1,
+      "not_in_creative_inventory": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowerpots:flower_pot_tulip_orange",
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "mcl_flowerpots_flowerpot.png",
+      "flowers_tulip.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "mesh",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "dig_by_piston": 1,
+      "dig_immediate": 3,
+      "flower_pot": 2,
+      "not_breaking_cactus": 1,
+      "not_in_creative_inventory": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowerpots:flower_pot_tulip_pink",
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "mcl_flowerpots_flowerpot.png",
+      "mcl_flowers_tulip_pink.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "mesh",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "dig_by_piston": 1,
+      "dig_immediate": 3,
+      "flower_pot": 2,
+      "not_breaking_cactus": 1,
+      "not_in_creative_inventory": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowerpots:flower_pot_tulip_red",
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "mcl_flowerpots_flowerpot.png",
+      "mcl_flowers_tulip_red.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "mesh",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "dig_by_piston": 1,
+      "dig_immediate": 3,
+      "flower_pot": 2,
+      "not_breaking_cactus": 1,
+      "not_in_creative_inventory": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowerpots:flower_pot_blue_orchid",
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "mcl_flowerpots_flowerpot.png",
+      "mcl_flowers_blue_orchid.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "mesh",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "dig_by_piston": 1,
+      "dig_immediate": 3,
+      "flower_pot": 2,
+      "not_breaking_cactus": 1,
+      "not_in_creative_inventory": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowerpots:flower_pot_cornflower",
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "mcl_flowerpots_flowerpot.png",
+      "mcl_flowers_cornflower.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "mesh",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "dig_by_piston": 1,
+      "dig_immediate": 3,
+      "flower_pot": 2,
+      "not_breaking_cactus": 1,
+      "not_in_creative_inventory": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowerpots:flower_pot_dandelion",
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "mcl_flowerpots_flowerpot.png",
+      "flowers_dandelion_yellow.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "mesh",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "dig_by_piston": 1,
+      "dig_immediate": 3,
+      "flower_pot": 2,
+      "not_breaking_cactus": 1,
+      "not_in_creative_inventory": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowerpots:flower_pot_wither_rose",
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "mcl_flowerpots_flowerpot.png",
+      "mcl_flowers_wither_rose.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "mesh",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "dig_by_piston": 1,
+      "dig_immediate": 3,
+      "flower_pot": 2,
+      "not_breaking_cactus": 1,
+      "not_in_creative_inventory": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowerpots:flower_pot_sapling_dark_oak",
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "mcl_flowerpots_flowerpot.png",
+      "mcl_core_sapling_big_oak.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "mesh",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "dig_by_piston": 1,
+      "dig_immediate": 3,
+      "flower_pot": 2,
+      "not_breaking_cactus": 1,
+      "not_in_creative_inventory": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowerpots:flower_pot_sapling_birch",
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "mcl_flowerpots_flowerpot.png",
+      "mcl_core_sapling_birch.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "mesh",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "dig_by_piston": 1,
+      "dig_immediate": 3,
+      "flower_pot": 2,
+      "not_breaking_cactus": 1,
+      "not_in_creative_inventory": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowerpots:flower_pot_oxeye_daisy",
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "mcl_flowerpots_flowerpot.png",
+      "mcl_flowers_oxeye_daisy.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "not_in_creative_inventory": 1,
+      "plant": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_farming:wheat_3",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_farming_wheat_stage_2.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "not_in_creative_inventory": 1,
+      "plant": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_farming:wheat_1",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_farming_wheat_stage_0.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "not_in_creative_inventory": 1,
+      "plant": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_farming:wheat_5",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_farming_wheat_stage_4.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "not_in_creative_inventory": 1,
+      "plant": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_farming:wheat_7",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_farming_wheat_stage_6.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "not_in_creative_inventory": 1,
+      "plant": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_farming:wheat",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_farming_wheat_stage_7.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "mesh",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "dig_by_piston": 1,
+      "dig_immediate": 3,
+      "flower_pot": 2,
+      "not_breaking_cactus": 1,
+      "not_in_creative_inventory": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowerpots:flower_pot_tulip_white",
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "mcl_flowerpots_flowerpot.png",
+      "mcl_flowers_tulip_white.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "compostability": 65,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "enderman_takable": 1,
+      "fire_encouragement": 60,
+      "fire_flammability": 100,
+      "flammable": 2,
+      "flower": 1,
+      "non_mycelium_plant": 1,
+      "place_flowerlike": 1,
+      "plant": 1,
+      "sus_stew_ingredient": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowers:blue_orchid",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_flowers_blue_orchid.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "biomecolor": 1,
+      "compostability": 30,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "fire_encouragement": 60,
+      "fire_flammability": 100,
+      "flammable": 3,
+      "grass_palette": 1,
+      "handy": 1,
+      "handy_dig": 2,
+      "non_mycelium_plant": 1,
+      "place_flowerlike": 2,
+      "plant": 1,
+      "shearsy": 1,
+      "shearsy_dig": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowers:bush",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_flowers_bush.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "compostability": 65,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "enderman_takable": 1,
+      "fire_encouragement": 60,
+      "fire_flammability": 100,
+      "flammable": 2,
+      "flower": 1,
+      "non_mycelium_plant": 1,
+      "place_flowerlike": 1,
+      "plant": 1,
+      "sus_stew_ingredient": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowers:cornflower",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_flowers_cornflower.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "compostability": 65,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "enderman_takable": 1,
+      "fire_encouragement": 60,
+      "fire_flammability": 100,
+      "flammable": 2,
+      "flower": 1,
+      "non_mycelium_plant": 1,
+      "place_flowerlike": 1,
+      "plant": 1,
+      "sus_stew_ingredient": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowers:dandelion",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "flowers_dandelion_yellow.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "biomecolor": 1,
+      "compostability": 50,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "double_plant": 1,
+      "fire_encouragement": 60,
+      "fire_flammability": 100,
+      "flammable": 2,
+      "flower": 1,
+      "handy": 1,
+      "handy_dig": 1,
+      "non_mycelium_plant": 1,
+      "place_flowerlike": 2,
+      "plant": 1,
+      "shearsy": 1,
+      "shearsy_dig": 1,
+      "supported_node": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowers:double_fern",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_flowers_double_plant_fern_bottom.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "biomecolor": 1,
+      "creative_breakable": 1,
+      "double_plant": 2,
+      "handy": 1,
+      "handy_dig": 1,
+      "not_in_creative_inventory": 1,
+      "shearsy": 1,
+      "shearsy_dig": 1,
+      "supported_node": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowers:double_fern_top",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_flowers_double_plant_fern_top.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "biomecolor": 1,
+      "compostability": 50,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "double_plant": 1,
+      "fire_encouragement": 60,
+      "fire_flammability": 100,
+      "flammable": 2,
+      "flower": 1,
+      "handy": 1,
+      "handy_dig": 1,
+      "non_mycelium_plant": 1,
+      "place_flowerlike": 2,
+      "plant": 1,
+      "shearsy": 1,
+      "shearsy_dig": 1,
+      "supported_node": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowers:double_grass",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_flowers_double_plant_grass_bottom.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "biomecolor": 1,
+      "creative_breakable": 1,
+      "double_plant": 2,
+      "handy": 1,
+      "handy_dig": 1,
+      "not_in_creative_inventory": 1,
+      "shearsy": 1,
+      "shearsy_dig": 1,
+      "supported_node": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowers:double_grass_top",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_flowers_double_plant_grass_top.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "compostability": 65,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "enderman_takable": 1,
+      "fire_encouragement": 60,
+      "fire_flammability": 100,
+      "flammable": 2,
+      "flower": 1,
+      "non_mycelium_plant": 1,
+      "place_flowerlike": 1,
+      "plant": 1,
+      "sus_stew_ingredient": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowers:eyeblossom",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_pale_oak_eyeblossom.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "compostability": 65,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "enderman_takable": 1,
+      "fire_encouragement": 60,
+      "fire_flammability": 100,
+      "flammable": 2,
+      "flower": 1,
+      "non_mycelium_plant": 1,
+      "place_flowerlike": 1,
+      "plant": 1,
+      "sus_stew_ingredient": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowers:eyeblossom_open",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_pale_oak_eyeblossom_open.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "biomecolor": 1,
+      "compostability": 65,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "fire_encouragement": 60,
+      "fire_flammability": 100,
+      "flammable": 3,
+      "grass_palette": 1,
+      "handy": 1,
+      "handy_dig": 2,
+      "non_mycelium_plant": 1,
+      "place_flowerlike": 2,
+      "plant": 1,
+      "shearsy": 1,
+      "shearsy_dig": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowers:fern",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_flowers_fern.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "biomecolor": 1,
+      "compostability": 30,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "fire_encouragement": 60,
+      "fire_flammability": 100,
+      "flammable": 3,
+      "grass_palette": 1,
+      "handy": 1,
+      "handy_dig": 2,
+      "non_mycelium_plant": 1,
+      "place_flowerlike": 2,
+      "plant": 1,
+      "shearsy": 1,
+      "shearsy_dig": 1
+    },
+    "light_source": 2,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowers:firefly_bush",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_flowers_firefly_bush.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "mesh",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "dig_by_piston": 1,
+      "dig_immediate": 3,
+      "flower_pot": 2,
+      "not_breaking_cactus": 1,
+      "not_in_creative_inventory": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowerpots:flower_pot_azure_bluet",
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "mcl_flowerpots_flowerpot.png",
+      "mcl_flowers_azure_bluet.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "signlike",
+    "groups": {
+      "attached_node": 1,
+      "axey": 1,
+      "axey_dig": 5,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "dig_by_piston": 1,
+      "handy": 1,
+      "handy_dig": 6,
+      "pathfinder_partial": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_core:ladder",
+    "sound_footstep": "default_wood_footstep",
+    "tiles": [
+      "default_ladder.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "compostability": 30,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "dig_by_piston": 1,
+      "dig_immediate": 3,
+      "fire_encouragement": 60,
+      "fire_flammability": 100,
+      "flammable": 3,
+      "non_mycelium_plant": 1,
+      "plant": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_core:cactus_flower",
+    "tiles": [
+      "cactus_flower.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "creative_breakable": 1,
+      "dig_by_trident": 1,
+      "dripstone_stage": 5,
+      "not_in_creative_inventory": 1,
+      "pathfinder_partial": 2,
+      "pickaxey": 1,
+      "pickaxey_dig_default": 11,
+      "pickaxey_dig_diamond": 11,
+      "pickaxey_dig_gold": 11,
+      "pickaxey_dig_iron": 11,
+      "pickaxey_dig_stone": 11,
+      "pickaxey_dig_wood": 11
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_dripstone:dripstone_top_base",
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "pointed_dripstone_base.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "creative_breakable": 1,
+      "dig_by_trident": 1,
+      "dripstone_stage": 3,
+      "not_in_creative_inventory": 1,
+      "pathfinder_partial": 2,
+      "pickaxey": 1,
+      "pickaxey_dig_default": 11,
+      "pickaxey_dig_diamond": 11,
+      "pickaxey_dig_gold": 11,
+      "pickaxey_dig_iron": 11,
+      "pickaxey_dig_stone": 11,
+      "pickaxey_dig_wood": 11
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_dripstone:dripstone_top_frustum",
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "pointed_dripstone_frustum.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "creative_breakable": 1,
+      "dig_by_trident": 1,
+      "dripstone_stage": 4,
+      "not_in_creative_inventory": 1,
+      "pathfinder_partial": 2,
+      "pickaxey": 1,
+      "pickaxey_dig_default": 11,
+      "pickaxey_dig_diamond": 11,
+      "pickaxey_dig_gold": 11,
+      "pickaxey_dig_iron": 11,
+      "pickaxey_dig_stone": 11,
+      "pickaxey_dig_wood": 11
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_dripstone:dripstone_top_middle",
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "pointed_dripstone_middle.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "creative_breakable": 1,
+      "dig_by_trident": 1,
+      "dripstone_stage": 2,
+      "not_in_creative_inventory": 1,
+      "pathfinder_partial": 2,
+      "pickaxey": 1,
+      "pickaxey_dig_default": 11,
+      "pickaxey_dig_diamond": 11,
+      "pickaxey_dig_gold": 11,
+      "pickaxey_dig_iron": 11,
+      "pickaxey_dig_stone": 11,
+      "pickaxey_dig_wood": 11
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_dripstone:dripstone_top_tip",
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "pointed_dripstone_tip.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "creative_breakable": 1,
+      "dig_by_trident": 1,
+      "dripstone_stage": 1,
+      "not_in_creative_inventory": 1,
+      "pathfinder_partial": 2,
+      "pickaxey": 1,
+      "pickaxey_dig_default": 11,
+      "pickaxey_dig_diamond": 11,
+      "pickaxey_dig_gold": 11,
+      "pickaxey_dig_iron": 11,
+      "pickaxey_dig_stone": 11,
+      "pickaxey_dig_wood": 11
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_dripstone:dripstone_top_tip_merge",
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "pointed_dripstone_tip_merge.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "beetroot": 4,
+      "creative_breakable": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "not_in_creative_inventory": 1,
+      "plant": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_farming:beetroot",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_farming_beetroot_3.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "not_in_creative_inventory": 1,
+      "plant": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_farming:beetroot_0",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_farming_beetroot_0.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "not_in_creative_inventory": 1,
+      "plant": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_farming:beetroot_1",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_farming_beetroot_1.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "not_in_creative_inventory": 1,
+      "plant": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_farming:beetroot_2",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_farming_beetroot_2.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "carrot": 8,
+      "creative_breakable": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "not_in_creative_inventory": 1,
+      "plant": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_farming:carrot",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "farming_carrot_4.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "carrot": 1,
+      "creative_breakable": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "not_in_creative_inventory": 1,
+      "plant": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_farming:carrot_1",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "farming_carrot_1.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "carrot": 2,
+      "creative_breakable": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "not_in_creative_inventory": 1,
+      "plant": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_farming:carrot_2",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "farming_carrot_1.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "carrot": 3,
+      "creative_breakable": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "not_in_creative_inventory": 1,
+      "plant": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_farming:carrot_3",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "farming_carrot_2.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "carrot": 4,
+      "creative_breakable": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "not_in_creative_inventory": 1,
+      "plant": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_farming:carrot_4",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "farming_carrot_2.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "carrot": 5,
+      "creative_breakable": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "not_in_creative_inventory": 1,
+      "plant": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_farming:carrot_5",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "farming_carrot_3.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "carrot": 6,
+      "creative_breakable": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "not_in_creative_inventory": 1,
+      "plant": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_farming:carrot_6",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "farming_carrot_3.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "carrot": 7,
+      "creative_breakable": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "not_in_creative_inventory": 1,
+      "plant": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_farming:carrot_7",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "farming_carrot_3.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "not_in_creative_inventory": 1,
+      "plant": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_farming:melontige_unconnect",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_farming_melon_stem_disconnected.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "not_in_creative_inventory": 1,
+      "plant": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_farming:potato",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_farming_potatoes_stage_3.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "not_in_creative_inventory": 1,
+      "plant": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_farming:potato_1",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_farming_potatoes_stage_0.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "not_in_creative_inventory": 1,
+      "plant": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_farming:potato_2",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_farming_potatoes_stage_0.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "not_in_creative_inventory": 1,
+      "plant": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_farming:potato_3",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_farming_potatoes_stage_1.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "not_in_creative_inventory": 1,
+      "plant": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_farming:potato_4",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_farming_potatoes_stage_1.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "not_in_creative_inventory": 1,
+      "plant": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_farming:potato_5",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_farming_potatoes_stage_2.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "not_in_creative_inventory": 1,
+      "plant": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_farming:potato_6",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_farming_potatoes_stage_2.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "not_in_creative_inventory": 1,
+      "plant": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_farming:potato_7",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_farming_potatoes_stage_2.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "not_in_creative_inventory": 1,
+      "plant": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_farming:pumpkintige_unconnect",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_farming_pumpkin_stem_disconnected.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "compostability": 30,
+      "creative_breakable": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "fire_encouragement": 60,
+      "fire_flammability": 20,
+      "flammable": 3,
+      "not_in_creative_inventory": 1,
+      "plant": 1,
+      "sweet_berry": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_farming:sweet_berry_bush_0",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_farming_sweet_berry_bush_0.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "compostability": 30,
+      "creative_breakable": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "fire_encouragement": 60,
+      "fire_flammability": 20,
+      "flammable": 3,
+      "not_in_creative_inventory": 1,
+      "plant": 1,
+      "sweet_berry": 1,
+      "sweet_berry_thorny": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_farming:sweet_berry_bush_1",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_farming_sweet_berry_bush_1.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "compostability": 30,
+      "creative_breakable": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "fire_encouragement": 60,
+      "fire_flammability": 20,
+      "flammable": 3,
+      "not_in_creative_inventory": 1,
+      "plant": 1,
+      "sweet_berry": 1,
+      "sweet_berry_thorny": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_farming:sweet_berry_bush_2",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_farming_sweet_berry_bush_2.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "compostability": 30,
+      "creative_breakable": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "fire_encouragement": 60,
+      "fire_flammability": 20,
+      "flammable": 3,
+      "not_in_creative_inventory": 1,
+      "plant": 1,
+      "sweet_berry": 1,
+      "sweet_berry_thorny": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_farming:sweet_berry_bush_3",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_farming_sweet_berry_bush_3.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "not_in_creative_inventory": 1,
+      "plant": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_farming:wheat_2",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_farming_wheat_stage_1.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "not_in_creative_inventory": 1,
+      "plant": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_farming:wheat_4",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_farming_wheat_stage_3.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "not_in_creative_inventory": 1,
+      "plant": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_farming:wheat_6",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_farming_wheat_stage_5.png"
+    ]
+  },
+  {
+    "damage_per_second": 1,
+    "drawtype": "firelike",
+    "groups": {
+      "creative_breakable": 1,
+      "destroys_items": 1,
+      "dig_by_piston": 1,
+      "dig_immediate": 3,
+      "fire": 1,
+      "not_in_creative_inventory": 1,
+      "set_on_fire": 8,
+      "unsticky": 1
+    },
+    "light_source": 14,
+    "liquid_viscosity": 0,
+    "name": "mcl_fire:eternal_fire",
+    "tiles": [
+      "fire_basic_flame_animated.png"
+    ]
+  },
+  {
+    "damage_per_second": 1,
+    "drawtype": "firelike",
+    "groups": {
+      "creative_breakable": 1,
+      "destroys_items": 1,
+      "dig_by_piston": 1,
+      "dig_immediate": 3,
+      "fire": 1,
+      "not_in_creative_inventory": 1,
+      "set_on_fire": 8,
+      "unsticky": 1
+    },
+    "light_source": 14,
+    "liquid_viscosity": 0,
+    "name": "mcl_fire:fire",
+    "tiles": [
+      "fire_basic_flame_animated.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "mesh",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "dig_by_piston": 1,
+      "dig_immediate": 3,
+      "flower_pot": 2,
+      "not_breaking_cactus": 1,
+      "not_in_creative_inventory": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowerpots:flower_pot_crimson_fungus",
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "mcl_flowerpots_flowerpot.png",
+      "farming_crimson_fungus.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "mesh",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "dig_by_piston": 1,
+      "dig_immediate": 3,
+      "flower_pot": 2,
+      "not_breaking_cactus": 1,
+      "not_in_creative_inventory": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowerpots:flower_pot_crimson_roots",
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "mcl_flowerpots_flowerpot.png",
+      "crimson_roots.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "mesh",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "dig_by_piston": 1,
+      "dig_immediate": 3,
+      "flower_pot": 2,
+      "not_breaking_cactus": 1,
+      "not_in_creative_inventory": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowerpots:flower_pot_deadbush",
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "mcl_flowerpots_flowerpot.png",
+      "default_dry_shrub.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "mesh",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "dig_by_piston": 1,
+      "dig_immediate": 3,
+      "flower_pot": 2,
+      "not_breaking_cactus": 1,
+      "not_in_creative_inventory": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowerpots:flower_pot_eyeblossom",
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "mcl_flowerpots_flowerpot.png",
+      "mcl_pale_oak_eyeblossom.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "mesh",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "dig_by_piston": 1,
+      "dig_immediate": 3,
+      "flower_pot": 2,
+      "not_breaking_cactus": 1,
+      "not_in_creative_inventory": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowerpots:flower_pot_eyeblossom_open",
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "mcl_flowerpots_flowerpot.png",
+      "mcl_pale_oak_eyeblossom_open.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "mesh",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "dig_by_piston": 1,
+      "dig_immediate": 3,
+      "flower_pot": 2,
+      "not_breaking_cactus": 1,
+      "not_in_creative_inventory": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowerpots:flower_pot_fern",
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "mcl_flowerpots_flowerpot.png",
+      "mcl_flowers_fern.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "mesh",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "dig_by_piston": 1,
+      "dig_immediate": 3,
+      "flower_pot": 2,
+      "not_breaking_cactus": 1,
+      "not_in_creative_inventory": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowerpots:flower_pot_mushroom_brown",
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "mcl_flowerpots_flowerpot.png",
+      "farming_mushroom_brown.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "mesh",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "dig_by_piston": 1,
+      "dig_immediate": 3,
+      "flower_pot": 2,
+      "not_breaking_cactus": 1,
+      "not_in_creative_inventory": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowerpots:flower_pot_sapling_acacia",
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "mcl_flowerpots_flowerpot.png",
+      "default_acacia_sapling.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "signlike",
+    "groups": {
+      "axey": 1,
+      "axey_dig": 3,
+      "compostability": 50,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "fire_encouragement": 15,
+      "fire_flammability": 100,
+      "flammable": 2,
+      "handy": 1,
+      "handy_dig": 4,
+      "shearsy": 1,
+      "shearsy_dig": 3,
+      "swordy": 1,
+      "swordy_dig": 2,
+      "unsticky": 1,
+      "vinelike_node": 4
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_core:vine",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_core_vine.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "mesh",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "dig_by_piston": 1,
+      "dig_immediate": 3,
+      "flower_pot": 2,
+      "not_breaking_cactus": 1,
+      "not_in_creative_inventory": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowerpots:flower_pot_sapling_jungle",
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "mcl_flowerpots_flowerpot.png",
+      "default_junglesapling.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "mesh",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "dig_by_piston": 1,
+      "dig_immediate": 3,
+      "flower_pot": 2,
+      "not_breaking_cactus": 1,
+      "not_in_creative_inventory": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowerpots:flower_pot_sapling_oak",
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "mcl_flowerpots_flowerpot.png",
+      "default_sapling.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "mesh",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "dig_by_piston": 1,
+      "dig_immediate": 3,
+      "flower_pot": 2,
+      "not_breaking_cactus": 1,
+      "not_in_creative_inventory": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowerpots:flower_pot_sapling_pale_oak",
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "mcl_flowerpots_flowerpot.png",
+      "mcl_pale_oak_sapling_pale_oak.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "mesh",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "dig_by_piston": 1,
+      "dig_immediate": 3,
+      "flower_pot": 2,
+      "not_breaking_cactus": 1,
+      "not_in_creative_inventory": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowerpots:flower_pot_warped_fungus",
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "mcl_flowerpots_flowerpot.png",
+      "farming_warped_fungus.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "mesh",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "dig_by_piston": 1,
+      "dig_immediate": 3,
+      "flower_pot": 2,
+      "not_breaking_cactus": 1,
+      "not_in_creative_inventory": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowerpots:flower_pot_warped_roots",
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "mcl_flowerpots_flowerpot.png",
+      "warped_roots.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "compostability": 65,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "enderman_takable": 1,
+      "fire_encouragement": 60,
+      "fire_flammability": 100,
+      "flammable": 2,
+      "flower": 1,
+      "non_mycelium_plant": 1,
+      "place_flowerlike": 1,
+      "plant": 1,
+      "sus_stew_ingredient": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowers:allium",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_flowers_allium.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "compostability": 65,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "enderman_takable": 1,
+      "fire_encouragement": 60,
+      "fire_flammability": 100,
+      "flammable": 2,
+      "flower": 1,
+      "non_mycelium_plant": 1,
+      "place_flowerlike": 1,
+      "plant": 1,
+      "sus_stew_ingredient": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowers:azure_bluet",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_flowers_azure_bluet.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "compostability": 30,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 0,
+      "dig_immediate": 3,
+      "flower": 1,
+      "non_mycelium_plant": 1,
+      "plant": 1,
+      "sapling": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_mangrove:propagule",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_mangrove_propagule_item.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "fire_encouragement": 60,
+      "fire_flammability": 100,
+      "flammable": 3,
+      "handy": 1,
+      "handy_dig": 2,
+      "non_mycelium_plant": 1,
+      "plant": 1,
+      "shearsy": 1,
+      "shearsy_dig": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_core:deadbush",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "default_dry_shrub.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "biomecolor": 1,
+      "compostability": 50,
+      "craftitem": 1,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "dig_by_piston": 1,
+      "dig_immediate": 3,
+      "non_mycelium_plant": 1,
+      "plant": 1,
+      "unsticky": 1,
+      "vinelike_node": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_core:reeds",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_core_papyrus.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "compostability": 65,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "enderman_takable": 1,
+      "mushroom": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_mushrooms:mushroom_red",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "farming_mushroom_red.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "compostability": 65,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "enderman_takable": 1,
+      "shearsy": 1,
+      "shearsy_dig": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_crimson:crimson_roots",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "crimson_roots.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "compostability": 65,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "enderman_takable": 1,
+      "shearsy": 1,
+      "shearsy_dig": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_crimson:warped_roots",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "warped_roots.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "compostability": 65,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "enderman_takable": 1,
+      "mushroom": 1
+    },
+    "light_source": 1,
+    "liquid_viscosity": 0,
+    "name": "mcl_crimson:warped_fungus",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "farming_warped_fungus.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "compostability": 50,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "shearsy": 1,
+      "shearsy_dig": 1,
+      "vinelike_node": 2
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_crimson:weeping_vines",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_crimson_weeping_vines.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "handy": 1,
+      "handy_dig": 2,
+      "not_in_creative_inventory": 1,
+      "plant": 1,
+      "vinelike_node": 2
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_lush_caves:cave_vines",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_lush_caves_cave_vines.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "not_in_creative_inventory": 1,
+      "plant": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_nether:nether_wart",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_nether_nether_wart_stage_2.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "not_in_creative_inventory": 1,
+      "plant": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_nether:nether_wart_0",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_nether_nether_wart_stage_0.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "not_in_creative_inventory": 1,
+      "plant": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_nether:nether_wart_1",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_nether_nether_wart_stage_1.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "not_in_creative_inventory": 1,
+      "plant": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_nether:nether_wart_2",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_nether_nether_wart_stage_1.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 4,
+      "compostability": 30,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "fire_encouragement": 5,
+      "fire_flammability": 100,
+      "pale_hanging_moss": 1,
+      "shearsy": 1,
+      "shearsy_dig": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_pale_oak:hanging_moss",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_pale_oak_hanging_moss.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 4,
+      "compostability": 30,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "fire_encouragement": 5,
+      "fire_flammability": 100,
+      "not_in_creative_inventory": 1,
+      "pale_hanging_moss": 1,
+      "shearsy": 1,
+      "shearsy_dig": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_pale_oak:hanging_moss_tip",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_pale_oak_hanging_moss_tip.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "raillike",
+    "groups": {
+      "attached_node": 1,
+      "connect_to_raillike": 1,
+      "creative_breakable": 1,
+      "handy": 1,
+      "handy_dig": 10,
+      "no_spawning_inside": 1,
+      "pickaxey": 1,
+      "pickaxey_dig_default": 5,
+      "pickaxey_dig_diamond": 5,
+      "pickaxey_dig_gold": 5,
+      "pickaxey_dig_iron": 5,
+      "pickaxey_dig_stone": 5,
+      "pickaxey_dig_wood": 5,
+      "rail": 1,
+      "transport": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_minecarts:rail",
+    "sound_footstep": "default_metal_footstep",
+    "tiles": [
+      "default_rail.png",
+      "default_rail_curved.png",
+      "default_rail_t_junction.png",
+      "default_rail_crossing.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "raillike",
+    "groups": {
+      "attached_node": 1,
+      "connect_to_raillike": 1,
+      "creative_breakable": 1,
+      "handy": 1,
+      "handy_dig": 10,
+      "no_spawning_inside": 1,
+      "pickaxey": 1,
+      "pickaxey_dig_default": 5,
+      "pickaxey_dig_diamond": 5,
+      "pickaxey_dig_gold": 5,
+      "pickaxey_dig_iron": 5,
+      "pickaxey_dig_stone": 5,
+      "pickaxey_dig_wood": 5,
+      "rail": 1,
+      "redstone_init": 1,
+      "transport": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_minecarts:activator_rail",
+    "sound_footstep": "default_metal_footstep",
+    "tiles": [
+      "mcl_minecarts_rail_activator.png",
+      "mcl_minecarts_rail_activator_curved.png",
+      "mcl_minecarts_rail_activator_t_junction.png",
+      "mcl_minecarts_rail_activator_crossing.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "raillike",
+    "groups": {
+      "attached_node": 1,
+      "connect_to_raillike": 1,
+      "creative_breakable": 1,
+      "handy": 1,
+      "handy_dig": 10,
+      "no_spawning_inside": 1,
+      "pickaxey": 1,
+      "pickaxey_dig_default": 5,
+      "pickaxey_dig_diamond": 5,
+      "pickaxey_dig_gold": 5,
+      "pickaxey_dig_iron": 5,
+      "pickaxey_dig_stone": 5,
+      "pickaxey_dig_wood": 5,
+      "rail": 1,
+      "transport": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_minecarts:detector_rail",
+    "sound_footstep": "default_metal_footstep",
+    "tiles": [
+      "mcl_minecarts_rail_detector.png",
+      "mcl_minecarts_rail_detector_curved.png",
+      "mcl_minecarts_rail_detector_t_junction.png",
+      "mcl_minecarts_rail_detector_crossing.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "raillike",
+    "groups": {
+      "attached_node": 1,
+      "connect_to_raillike": 1,
+      "creative_breakable": 1,
+      "handy": 1,
+      "handy_dig": 10,
+      "no_spawning_inside": 1,
+      "pickaxey": 1,
+      "pickaxey_dig_default": 5,
+      "pickaxey_dig_diamond": 5,
+      "pickaxey_dig_gold": 5,
+      "pickaxey_dig_iron": 5,
+      "pickaxey_dig_stone": 5,
+      "pickaxey_dig_wood": 5,
+      "rail": 1,
+      "redstone_init": 1,
+      "transport": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_minecarts:golden_rail",
+    "sound_footstep": "default_metal_footstep",
+    "tiles": [
+      "mcl_minecarts_rail_golden.png",
+      "mcl_minecarts_rail_golden_curved.png",
+      "mcl_minecarts_rail_golden_t_junction.png",
+      "mcl_minecarts_rail_golden_crossing.png"
+    ]
+  },
+  {
+    "damage_per_second": 2,
+    "drawtype": "firelike",
+    "groups": {
+      "creative_breakable": 1,
+      "destroys_items": 1,
+      "dig_by_piston": 1,
+      "dig_immediate": 3,
+      "fire": 1,
+      "not_in_creative_inventory": 1,
+      "set_on_fire": 8,
+      "soul_firelike": 1
+    },
+    "light_source": 10,
+    "liquid_viscosity": 0,
+    "name": "mcl_blackstone:soul_fire",
+    "tiles": [
+      "soul_fire_basic_flame_animated.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "compostability": 50,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "shearsy": 1,
+      "shearsy_dig": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_crimson:nether_sprouts",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "nether_sprouts.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "compostability": 50,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "shearsy": 1,
+      "shearsy_dig": 1,
+      "vinelike_node": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_crimson:twisting_vines",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "twisting_vines_plant.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "mesh",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "dig_by_piston": 1,
+      "dig_immediate": 3,
+      "flower_pot": 2,
+      "not_breaking_cactus": 1,
+      "not_in_creative_inventory": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowerpots:flower_pot_sapling_cherry_blossom",
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "mcl_flowerpots_flowerpot.png",
+      "mcl_cherry_blossom_sapling.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "compostability": 30,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "non_mycelium_plant": 1,
+      "plant": 1,
+      "sapling": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_trees:sapling_cherry_blossom",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_cherry_blossom_sapling.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "dig_by_piston": 1,
+      "pickaxey": 1,
+      "pickaxey_dig_default": 11,
+      "pickaxey_dig_diamond": 11,
+      "pickaxey_dig_gold": 11,
+      "pickaxey_dig_iron": 11,
+      "pickaxey_dig_stone": 11,
+      "pickaxey_dig_wood": 11,
+      "unsticky": 1
+    },
+    "light_source": 5,
+    "liquid_viscosity": 0,
+    "name": "mcl_amethyst:amethyst_cluster",
+    "sound_footstep": "mcl_amethyst_amethyst_walk",
+    "tiles": [
+      "mcl_amethyst_amethyst_cluster.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "amethyst_buds": 1,
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "dig_by_piston": 1,
+      "pickaxey": 1,
+      "pickaxey_dig_default": 11,
+      "pickaxey_dig_diamond": 11,
+      "pickaxey_dig_gold": 11,
+      "pickaxey_dig_iron": 11,
+      "pickaxey_dig_stone": 11,
+      "pickaxey_dig_wood": 11,
+      "unsticky": 1
+    },
+    "light_source": 2,
+    "liquid_viscosity": 0,
+    "name": "mcl_amethyst:medium_amethyst_bud",
+    "sound_footstep": "mcl_amethyst_amethyst_walk",
+    "tiles": [
+      "mcl_amethyst_amethyst_bud_medium.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "amethyst_buds": 1,
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "dig_by_piston": 1,
+      "pickaxey": 1,
+      "pickaxey_dig_default": 11,
+      "pickaxey_dig_diamond": 11,
+      "pickaxey_dig_gold": 11,
+      "pickaxey_dig_iron": 11,
+      "pickaxey_dig_stone": 11,
+      "pickaxey_dig_wood": 11,
+      "unsticky": 1
+    },
+    "light_source": 4,
+    "liquid_viscosity": 0,
+    "name": "mcl_amethyst:large_amethyst_bud",
+    "sound_footstep": "mcl_amethyst_amethyst_walk",
+    "tiles": [
+      "mcl_amethyst_amethyst_bud_large.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "amethyst_buds": 1,
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "dig_by_piston": 1,
+      "pickaxey": 1,
+      "pickaxey_dig_default": 11,
+      "pickaxey_dig_diamond": 11,
+      "pickaxey_dig_gold": 11,
+      "pickaxey_dig_iron": 11,
+      "pickaxey_dig_stone": 11,
+      "pickaxey_dig_wood": 11,
+      "unsticky": 1
+    },
+    "light_source": 1,
+    "liquid_viscosity": 0,
+    "name": "mcl_amethyst:small_amethyst_bud",
+    "sound_footstep": "mcl_amethyst_amethyst_walk",
+    "tiles": [
+      "mcl_amethyst_amethyst_bud_small.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "compostability": 65,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "double_plant": 1,
+      "fire_encouragement": 60,
+      "fire_flammability": 100,
+      "flammable": 2,
+      "flower": 1,
+      "non_mycelium_plant": 1,
+      "place_flowerlike": 1,
+      "plant": 1,
+      "supported_node": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowers:lilac",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_flowers_double_plant_syringa_bottom.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "creative_breakable": 1,
+      "double_plant": 2,
+      "handy": 1,
+      "handy_dig": 1,
+      "not_in_creative_inventory": 1,
+      "shearsy": 1,
+      "shearsy_dig": 1,
+      "supported_node": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowers:lilac_top",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_flowers_double_plant_syringa_top.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "compostability": 65,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "enderman_takable": 1,
+      "fire_encouragement": 60,
+      "fire_flammability": 100,
+      "flammable": 2,
+      "flower": 1,
+      "non_mycelium_plant": 1,
+      "place_flowerlike": 1,
+      "plant": 1,
+      "sus_stew_ingredient": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowers:lily_of_the_valley",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_flowers_lily_of_the_valley.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "compostability": 65,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "enderman_takable": 1,
+      "fire_encouragement": 60,
+      "fire_flammability": 100,
+      "flammable": 2,
+      "flower": 1,
+      "non_mycelium_plant": 1,
+      "place_flowerlike": 1,
+      "plant": 1,
+      "sus_stew_ingredient": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowers:oxeye_daisy",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_flowers_oxeye_daisy.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "compostability": 65,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "double_plant": 1,
+      "fire_encouragement": 60,
+      "fire_flammability": 100,
+      "flammable": 2,
+      "flower": 1,
+      "non_mycelium_plant": 1,
+      "place_flowerlike": 1,
+      "plant": 1,
+      "supported_node": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowers:peony",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_flowers_double_plant_paeonia_bottom.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "creative_breakable": 1,
+      "double_plant": 2,
+      "handy": 1,
+      "handy_dig": 1,
+      "not_in_creative_inventory": 1,
+      "shearsy": 1,
+      "shearsy_dig": 1,
+      "supported_node": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowers:peony_top",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_flowers_double_plant_paeonia_top.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "compostability": 65,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "enderman_takable": 1,
+      "fire_encouragement": 60,
+      "fire_flammability": 100,
+      "flammable": 2,
+      "flower": 1,
+      "non_mycelium_plant": 1,
+      "place_flowerlike": 1,
+      "plant": 1,
+      "sus_stew_ingredient": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowers:poppy",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_flowers_poppy.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "compostability": 65,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "double_plant": 1,
+      "fire_encouragement": 60,
+      "fire_flammability": 100,
+      "flammable": 2,
+      "flower": 1,
+      "non_mycelium_plant": 1,
+      "place_flowerlike": 1,
+      "plant": 1,
+      "supported_node": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowers:rose_bush",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_flowers_double_plant_rose_bottom.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "creative_breakable": 1,
+      "double_plant": 2,
+      "handy": 1,
+      "handy_dig": 1,
+      "not_in_creative_inventory": 1,
+      "shearsy": 1,
+      "shearsy_dig": 1,
+      "supported_node": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowers:rose_bush_top",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_flowers_double_plant_rose_top.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "biomecolor": 1,
+      "compostability": 30,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "fire_encouragement": 60,
+      "fire_flammability": 100,
+      "flammable": 3,
+      "grass_palette": 1,
+      "handy": 1,
+      "handy_dig": 2,
+      "non_mycelium_plant": 1,
+      "place_flowerlike": 2,
+      "plant": 1,
+      "shearsy": 1,
+      "shearsy_dig": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowers:short_dry_grass",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_flowers_short_dry_grass.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "biomecolor": 1,
+      "compostability": 30,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "fire_encouragement": 60,
+      "fire_flammability": 100,
+      "flammable": 3,
+      "grass_palette": 1,
+      "handy": 1,
+      "handy_dig": 2,
+      "non_mycelium_plant": 1,
+      "place_flowerlike": 2,
+      "plant": 1,
+      "shearsy": 1,
+      "shearsy_dig": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowers:tallgrass",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_flowers_tallgrass.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "compostability": 65,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "enderman_takable": 1,
+      "fire_encouragement": 60,
+      "fire_flammability": 100,
+      "flammable": 2,
+      "flower": 1,
+      "non_mycelium_plant": 1,
+      "place_flowerlike": 1,
+      "plant": 1,
+      "sus_stew_ingredient": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowers:tulip_orange",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "flowers_tulip.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "compostability": 65,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "enderman_takable": 1,
+      "fire_encouragement": 60,
+      "fire_flammability": 100,
+      "flammable": 2,
+      "flower": 1,
+      "non_mycelium_plant": 1,
+      "place_flowerlike": 1,
+      "plant": 1,
+      "sus_stew_ingredient": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowers:tulip_pink",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_flowers_tulip_pink.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "compostability": 65,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "enderman_takable": 1,
+      "fire_encouragement": 60,
+      "fire_flammability": 100,
+      "flammable": 2,
+      "flower": 1,
+      "non_mycelium_plant": 1,
+      "place_flowerlike": 1,
+      "plant": 1,
+      "sus_stew_ingredient": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowers:tulip_red",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_flowers_tulip_red.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "compostability": 65,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "enderman_takable": 1,
+      "fire_encouragement": 60,
+      "fire_flammability": 100,
+      "flammable": 2,
+      "flower": 1,
+      "non_mycelium_plant": 1,
+      "place_flowerlike": 1,
+      "plant": 1,
+      "sus_stew_ingredient": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowers:tulip_white",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_flowers_tulip_white.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "compostability": 65,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "enderman_takable": 1,
+      "fire_encouragement": 60,
+      "fire_flammability": 100,
+      "flammable": 2,
+      "flower": 1,
+      "non_mycelium_plant": 1,
+      "place_flowerlike": 1,
+      "plant": 1,
+      "sus_stew_ingredient": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowers:wither_rose",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_flowers_wither_rose.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "raillike",
+    "groups": {
+      "attached_node": 1,
+      "connect_to_raillike": 1,
+      "creative_breakable": 1,
+      "handy": 1,
+      "handy_dig": 10,
+      "no_spawning_inside": 1,
+      "not_in_creative_inventory": 1,
+      "pickaxey": 1,
+      "pickaxey_dig_default": 5,
+      "pickaxey_dig_diamond": 5,
+      "pickaxey_dig_gold": 5,
+      "pickaxey_dig_iron": 5,
+      "pickaxey_dig_stone": 5,
+      "pickaxey_dig_wood": 5,
+      "rail": 1,
+      "redstone_get_power": 1,
+      "transport": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_minecarts:detector_rail_on",
+    "sound_footstep": "default_metal_footstep",
+    "tiles": [
+      "mcl_minecarts_rail_detector_powered.png",
+      "mcl_minecarts_rail_detector_curved_powered.png",
+      "mcl_minecarts_rail_detector_t_junction_powered.png",
+      "mcl_minecarts_rail_detector_crossing_powered.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "raillike",
+    "groups": {
+      "attached_node": 1,
+      "connect_to_raillike": 1,
+      "creative_breakable": 1,
+      "handy": 1,
+      "handy_dig": 10,
+      "no_spawning_inside": 1,
+      "not_in_creative_inventory": 1,
+      "pickaxey": 1,
+      "pickaxey_dig_default": 5,
+      "pickaxey_dig_diamond": 5,
+      "pickaxey_dig_gold": 5,
+      "pickaxey_dig_iron": 5,
+      "pickaxey_dig_stone": 5,
+      "pickaxey_dig_wood": 5,
+      "rail": 1,
+      "redstone_init": 1,
+      "transport": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_minecarts:activator_rail_on",
+    "sound_footstep": "default_metal_footstep",
+    "tiles": [
+      "mcl_minecarts_rail_activator_powered.png",
+      "mcl_minecarts_rail_activator_curved_powered.png",
+      "mcl_minecarts_rail_activator_t_junction_powered.png",
+      "mcl_minecarts_rail_activator_crossing_powered.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "raillike",
+    "groups": {
+      "attached_node": 1,
+      "connect_to_raillike": 1,
+      "creative_breakable": 1,
+      "handy": 1,
+      "handy_dig": 10,
+      "no_spawning_inside": 1,
+      "not_in_creative_inventory": 1,
+      "pickaxey": 1,
+      "pickaxey_dig_default": 5,
+      "pickaxey_dig_diamond": 5,
+      "pickaxey_dig_gold": 5,
+      "pickaxey_dig_iron": 5,
+      "pickaxey_dig_stone": 5,
+      "pickaxey_dig_wood": 5,
+      "rail": 1,
+      "redstone_init": 1,
+      "transport": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_minecarts:golden_rail_on",
+    "sound_footstep": "default_metal_footstep",
+    "tiles": [
+      "mcl_minecarts_rail_golden_powered.png",
+      "mcl_minecarts_rail_golden_curved_powered.png",
+      "mcl_minecarts_rail_golden_t_junction_powered.png",
+      "mcl_minecarts_rail_golden_crossing_powered.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "handy": 1,
+      "handy_dig": 2,
+      "not_in_creative_inventory": 1,
+      "plant": 1,
+      "vinelike_node": 2
+    },
+    "light_source": 14,
+    "liquid_viscosity": 0,
+    "name": "mcl_lush_caves:cave_vines_lit",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_lush_caves_cave_vines_lit.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 4,
+      "compostability": 30,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "fire_encouragement": 30,
+      "fire_flammability": 60,
+      "flammable": 2,
+      "handy": 1,
+      "handy_dig": 2,
+      "plant": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_lush_caves:hanging_roots",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_lush_caves_hanging_roots.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "compostability": 65,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "enderman_takable": 1,
+      "mushroom": 1
+    },
+    "light_source": 1,
+    "liquid_viscosity": 0,
+    "name": "mcl_crimson:crimson_fungus",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "farming_crimson_fungus.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "compostability": 30,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "non_mycelium_plant": 1,
+      "plant": 1,
+      "sapling": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_trees:sapling_pale_oak",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_pale_oak_sapling_pale_oak.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "creative_breakable": 1,
+      "dig_by_trident": 1,
+      "dripstone_stage": 1,
+      "fall_damage_add_percent": 100,
+      "not_in_creative_inventory": 1,
+      "pathfinder_partial": 2,
+      "pickaxey": 1,
+      "pickaxey_dig_default": 11,
+      "pickaxey_dig_diamond": 11,
+      "pickaxey_dig_gold": 11,
+      "pickaxey_dig_iron": 11,
+      "pickaxey_dig_stone": 11,
+      "pickaxey_dig_wood": 11
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_dripstone:dripstone_bottom_tip_merge",
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "pointed_dripstone_tip_merge.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "creative_breakable": 1,
+      "dig_by_trident": 1,
+      "dripstone_stage": 2,
+      "fall_damage_add_percent": 100,
+      "not_in_creative_inventory": 1,
+      "pathfinder_partial": 2,
+      "pickaxey": 1,
+      "pickaxey_dig_default": 11,
+      "pickaxey_dig_diamond": 11,
+      "pickaxey_dig_gold": 11,
+      "pickaxey_dig_iron": 11,
+      "pickaxey_dig_stone": 11,
+      "pickaxey_dig_wood": 11
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_dripstone:dripstone_bottom_tip",
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "pointed_dripstone_tip.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "creative_breakable": 1,
+      "dig_by_trident": 1,
+      "dripstone_stage": 3,
+      "fall_damage_add_percent": 100,
+      "not_in_creative_inventory": 1,
+      "pathfinder_partial": 2,
+      "pickaxey": 1,
+      "pickaxey_dig_default": 11,
+      "pickaxey_dig_diamond": 11,
+      "pickaxey_dig_gold": 11,
+      "pickaxey_dig_iron": 11,
+      "pickaxey_dig_stone": 11,
+      "pickaxey_dig_wood": 11
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_dripstone:dripstone_bottom_frustum",
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "pointed_dripstone_frustum.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "creative_breakable": 1,
+      "dig_by_trident": 1,
+      "dripstone_stage": 4,
+      "fall_damage_add_percent": 100,
+      "not_in_creative_inventory": 1,
+      "pathfinder_partial": 2,
+      "pickaxey": 1,
+      "pickaxey_dig_default": 11,
+      "pickaxey_dig_diamond": 11,
+      "pickaxey_dig_gold": 11,
+      "pickaxey_dig_iron": 11,
+      "pickaxey_dig_stone": 11,
+      "pickaxey_dig_wood": 11
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_dripstone:dripstone_bottom_middle",
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "pointed_dripstone_middle.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "creative_breakable": 1,
+      "dig_by_trident": 1,
+      "dripstone_stage": 5,
+      "fall_damage_add_percent": 100,
+      "not_in_creative_inventory": 1,
+      "pathfinder_partial": 2,
+      "pickaxey": 1,
+      "pickaxey_dig_default": 11,
+      "pickaxey_dig_diamond": 11,
+      "pickaxey_dig_gold": 11,
+      "pickaxey_dig_iron": 11,
+      "pickaxey_dig_stone": 11,
+      "pickaxey_dig_wood": 11
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_dripstone:dripstone_bottom_base",
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "pointed_dripstone_base.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "breaking_cactus": 1,
+      "brewing_ingredient": 1,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "disable_jump": 1,
+      "fake_liquid": 1,
+      "shearsy_cobweb": 1,
+      "shearsy_cobweb_dig": 1,
+      "swordy_cobweb": 1,
+      "swordy_cobweb_dig": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_core:cobweb",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_core_web.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "mesh",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "dig_by_piston": 1,
+      "dig_immediate": 3,
+      "flower_pot": 2,
+      "not_breaking_cactus": 1,
+      "not_in_creative_inventory": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowerpots:flower_pot_mushroom_red",
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "mcl_flowerpots_flowerpot.png",
+      "farming_mushroom_red.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "compostability": 65,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "enderman_takable": 1,
+      "mushroom": 1,
+      "unsticky": 1
+    },
+    "light_source": 1,
+    "liquid_viscosity": 0,
+    "name": "mcl_mushrooms:mushroom_brown",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "farming_mushroom_brown.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "compostability": 30,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "non_mycelium_plant": 1,
+      "plant": 1,
+      "sapling": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_trees:sapling_oak",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "default_sapling.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "compostability": 30,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "non_mycelium_plant": 1,
+      "plant": 1,
+      "sapling": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_trees:sapling_spruce",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_core_sapling_spruce.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "compostability": 30,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "non_mycelium_plant": 1,
+      "plant": 1,
+      "sapling": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_trees:sapling_birch",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_core_sapling_birch.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "compostability": 30,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "non_mycelium_plant": 1,
+      "plant": 1,
+      "sapling": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_trees:sapling_dark_oak",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "mcl_core_sapling_big_oak.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "compostability": 30,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "non_mycelium_plant": 1,
+      "plant": 1,
+      "sapling": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_trees:sapling_acacia",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "default_acacia_sapling.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "plantlike",
+    "groups": {
+      "attached_node": 1,
+      "compostability": 30,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "dig_immediate": 3,
+      "non_mycelium_plant": 1,
+      "plant": 1,
+      "sapling": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_trees:sapling_jungle",
+    "sound_footstep": "default_grass_footstep",
+    "tiles": [
+      "default_junglesapling.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "signlike",
+    "groups": {
+      "axey": 1,
+      "axey_dig": 3,
+      "creative_breakable": 1,
+      "deco_block": 1,
+      "destroy_by_lava_flow": 1,
+      "dig_by_piston": 1,
+      "dig_by_water": 1,
+      "handy": 1,
+      "handy_dig": 4,
+      "sculk": 1,
+      "shearsy": 1,
+      "shearsy_dig": 3,
+      "swordy": 1,
+      "swordy_dig": 2
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_sculk:vein",
+    "sound_footstep": "mcl_sculk_block",
+    "tiles": [
+      "mcl_sculk_vein.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "mesh",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "dig_by_piston": 1,
+      "dig_immediate": 3,
+      "flower_pot": 2,
+      "not_breaking_cactus": 1,
+      "not_in_creative_inventory": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowerpots:flower_pot_allium",
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "mcl_flowerpots_flowerpot.png",
+      "mcl_flowers_allium.png"
+    ]
+  },
+  {
+    "damage_per_second": 0,
+    "drawtype": "mesh",
+    "groups": {
+      "attached_node": 1,
+      "creative_breakable": 1,
+      "dig_by_piston": 1,
+      "dig_immediate": 3,
+      "flower_pot": 2,
+      "not_breaking_cactus": 1,
+      "not_in_creative_inventory": 1,
+      "unsticky": 1
+    },
+    "light_source": 0,
+    "liquid_viscosity": 0,
+    "name": "mcl_flowerpots:flower_pot_sapling_spruce",
+    "sound_footstep": "default_hard_footstep",
+    "tiles": [
+      "mcl_flowerpots_flowerpot.png",
+      "mcl_core_sapling_spruce.png"
+    ]
+  }
+]

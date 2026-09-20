@@ -1,0 +1,1052 @@
+[
+	{
+		"name" : "mcl_potions:infestation_splash_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"mesh" : "mcl_tridents_trident.obj",
+		"name" : "mcl_tridents:trident_clip",
+		"textures" : 
+		[
+			"mcl_tridents_trident_entity_clip.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"name" : "mcl_potions:infestation_lingering_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"name" : "mcl_attachments:interceptor",
+		"textures" : 
+		[
+			"mcl_core_glass_green.png"
+		],
+		"visual" : "cube"
+	},
+	{
+		"name" : "mcl_potions:water_breathing_splash_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"mesh" : "mcl_bows_arrow.b3d",
+		"name" : "mcl_potions:infestation_arrow_entity",
+		"textures" : 
+		[
+			"mcl_bows_arrow.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"name" : "mcl_potions:water_breathing_lingering_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"mesh" : "mcl_minecarts_minecart_block.b3d",
+		"name" : "mcl_minecarts:furnace_minecart",
+		"textures" : 
+		[
+			"default_furnace_top.png",
+			"default_furnace_front.png",
+			"default_furnace_side.png",
+			"mcl_minecarts_minecart.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"name" : "mcl_fishing:bobber_entity",
+		"textures" : 
+		[
+			"mcl_fishing_bobber.png"
+		]
+	},
+	{
+		"name" : "mcl_potions:leaping_splash_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"mesh" : "mcl_bows_arrow.b3d",
+		"name" : "mcl_potions:water_breathing_arrow_entity",
+		"textures" : 
+		[
+			"mcl_bows_arrow.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"name" : "mcl_potions:water_splash_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"name" : "mcl_potions:oozing_splash_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"name" : "mobs_mc:wither_skull",
+		"textures" : 
+		[
+			"mobs_mc_wither_projectile.png"
+		],
+		"visual" : "cube"
+	},
+	{
+		"name" : "mcl_potions:water_lingering_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"name" : "mcl_potions:oozing_lingering_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"mesh" : "mcl_bows_arrow.b3d",
+		"name" : "mcl_potions:leaping_arrow_entity",
+		"textures" : 
+		[
+			"mcl_bows_arrow.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"name" : "mcl_potions:fire_resistance_splash_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"mesh" : "mcl_bows_arrow.b3d",
+		"name" : "mcl_potions:oozing_arrow_entity",
+		"textures" : 
+		[
+			"mcl_bows_arrow.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"name" : "mcl_potions:fire_resistance_lingering_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"name" : "mcl_potions:withering_splash_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"mesh" : "mcl_bows_arrow.b3d",
+		"name" : "mcl_potions:fire_resistance_arrow_entity",
+		"textures" : 
+		[
+			"mcl_bows_arrow.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"name" : "mcl_potions:weaving_splash_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"name" : "mcl_potions:withering_lingering_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"mesh" : "mobs_mc_spider.b3d",
+		"name" : "mobs_mc:spider_eyes",
+		"textures" : 
+		[
+			"mobs_mc_spider_eyes.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"name" : "mcl_potions:weaving_lingering_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"mesh" : "mcl_bows_arrow.b3d",
+		"name" : "mcl_potions:withering_arrow_entity",
+		"textures" : 
+		[
+			"mcl_bows_arrow.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"name" : "mcl_potions:strength_splash_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"mesh" : "pumpkin_head.obj",
+		"name" : "mcl_farming:pumpkin_face_light",
+		"textures" : 
+		[
+			"mcl_farming_pumpkin_face_light.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"mesh" : "mcl_bows_arrow.b3d",
+		"name" : "mcl_potions:weaving_arrow_entity",
+		"textures" : 
+		[
+			"mcl_bows_arrow.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"name" : "mcl_potions:strength_lingering_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"name" : "mobs_mc:wither_skull_strong",
+		"textures" : 
+		[
+			"mobs_mc_wither_projectile_strong.png"
+		],
+		"visual" : "cube"
+	},
+	{
+		"name" : "mcl_potions:poison_splash_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"mesh" : "mcl_bows_arrow.b3d",
+		"name" : "mcl_potions:strength_arrow_entity",
+		"textures" : 
+		[
+			"mcl_bows_arrow.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"mesh" : "mcl_shield.obj",
+		"name" : "mcl_shields:shield_entity",
+		"textures" : 
+		[
+			"mcl_shield_base_nopattern.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"name" : "mcl_potions:wind_charged_splash_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"mesh" : "mcl_bows_arrow.b3d",
+		"name" : "mcl_potions:poison_arrow_entity",
+		"textures" : 
+		[
+			"mcl_bows_arrow.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"mesh" : "mcl_elytra_entity.obj",
+		"name" : "mcl_armor:elytra_entity",
+		"textures" : 
+		[
+			"blank.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"name" : "mcl_boats:seat",
+		"textures" : 
+		[
+			"blank.png"
+		],
+		"visual" : "sprite"
+	},
+	{
+		"name" : "mcl_potions:regeneration_splash_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"mesh" : "mcl_end_crystal.b3d",
+		"name" : "mcl_end:crystal",
+		"textures" : 
+		[
+			"mcl_end_crystal.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"name" : "mcl_potions:regeneration_lingering_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"mesh" : "mcl_bows_arrow.b3d",
+		"name" : "mcl_potions:regeneration_arrow_entity",
+		"textures" : 
+		[
+			"mcl_bows_arrow.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"name" : "mcl_potions:awkward_splash_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"name" : "mcl_potions:turtle_master_splash_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"name" : "mobs_mc:dragon_piece",
+		"textures" : 
+		[
+			"mcl_core_glass_green.png"
+		],
+		"visual" : "cube"
+	},
+	{
+		"name" : "mcl_potions:healing_splash_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"name" : "mcl_experience:bottle",
+		"textures" : 
+		[
+			"mcl_experience_bottle.png"
+		]
+	},
+	{
+		"mesh" : "amc_banner_hanging.b3d",
+		"name" : "mcl_banners:hanging_banner",
+		"textures" : 
+		[
+			"mcl_banners_banner_base.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"mesh" : "mcl_minecarts_minecart_block.b3d",
+		"name" : "mcl_minecarts:tnt_minecart",
+		"textures" : 
+		[
+			"default_tnt_top.png",
+			"default_tnt_bottom.png",
+			"default_tnt_side.png",
+			"mcl_minecarts_minecart.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"name" : "mcl_potions:harming_splash_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"name" : "mcl_experience:orb",
+		"textures" : 
+		[
+			"mcl_experience_orb.png"
+		],
+		"visual" : "sprite"
+	},
+	{
+		"mesh" : "mcl_boats_boat.b3d",
+		"name" : "mcl_boats:boat",
+		"textures" : 
+		[
+			"mcl_boats_texture_oak_boat.png",
+			"blank.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"mesh" : "mcl_boats_boat.b3d",
+		"name" : "mcl_boats:chest_boat",
+		"textures" : 
+		[
+			"mcl_boats_texture_oak_boat.png",
+			"mcl_chests_normal.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"mesh" : "mcl_bells_bell.b3d",
+		"name" : "mcl_bells:bell_ent",
+		"textures" : 
+		[
+			"mcl_bells_bell_uv_bell.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"mesh" : "mcl_minecarts_minecart_chest.b3d",
+		"name" : "mcl_minecarts:chest_minecart",
+		"textures" : 
+		[
+			"mcl_chests_normal.png",
+			"mcl_minecarts_minecart.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"mesh" : "mcl_heads_dragon_floor.obj",
+		"name" : "mcl_heads:dragon",
+		"textures" : 
+		[
+			"mcl_heads_dragon.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"name" : "mcl_potions:weakness_splash_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"name" : "mcl_potions:weakness_lingering_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"name" : "mobs_mc:dragon_effect_cloud",
+		"textures" : 
+		[
+			"blank.png"
+		],
+		"visual" : "cube"
+	},
+	{
+		"mesh" : "mcl_bows_arrow.b3d",
+		"name" : "mcl_potions:weakness_arrow_entity",
+		"textures" : 
+		[
+			"mcl_bows_arrow.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"name" : "mcl_potions:slow_falling_splash_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"name" : "mcl_potions:slow_falling_lingering_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"name" : "mcl_paintings:painting",
+		"textures" : 
+		[
+			"mcl_paintings_frame.png"
+		],
+		"visual" : "cube"
+	},
+	{
+		"mesh" : "mcl_bows_arrow.b3d",
+		"name" : "mcl_potions:slow_falling_arrow_entity",
+		"textures" : 
+		[
+			"mcl_bows_arrow.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"mesh" : "mobs_mc_shulkerbullet.b3d",
+		"name" : "mobs_mc:shulkerbullet",
+		"textures" : 
+		[
+			"mobs_mc_shulkerbullet.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"mesh" : "mcl_enchanting_book.b3d",
+		"name" : "mcl_enchanting:book",
+		"textures" : 
+		[
+			"mcl_enchanting_book_entity.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"name" : "mcl_throwing:snowball_entity",
+		"textures" : 
+		[
+			"mcl_throwing_snowball.png"
+		]
+	},
+	{
+		"mesh" : "3d_armor_entity.obj",
+		"name" : "mcl_armor_stand:armor_entity",
+		"textures" : 
+		[
+			"blank.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"name" : "mobs_mc:dragon_fireball",
+		"textures" : 
+		[
+			"mobs_mc_dragon_fireball.png"
+		],
+		"visual" : "sprite"
+	},
+	{
+		"mesh" : "amc_banner.b3d",
+		"name" : "mcl_raids:ominous_banner",
+		"textures" : 
+		[
+			"mcl_banners_banner_base.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"mesh" : "mcl_minecarts_minecart_hopper.b3d",
+		"name" : "mcl_minecarts:hopper_minecart",
+		"textures" : 
+		[
+			"mcl_hoppers_hopper_inside.png",
+			"mcl_minecarts_minecart.png",
+			"mcl_hoppers_hopper_outside.png",
+			"mcl_hoppers_hopper_top.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"mesh" : "mcl_minecarts_minecart_block.b3d",
+		"name" : "mcl_minecarts:command_block_minecart",
+		"textures" : 
+		[
+			"jeija_commandblock_off.png",
+			"mcl_minecarts_minecart.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"mesh" : "mcl_minecarts_minecart.b3d",
+		"name" : "mcl_minecarts:minecart",
+		"textures" : 
+		[
+			"mcl_minecarts_minecart.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"mesh" : "mcl_heads_piglin_floor.obj",
+		"name" : "mcl_heads:piglin",
+		"textures" : 
+		[
+			"mcl_heads_piglin.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"mesh" : "amc_banner.b3d",
+		"name" : "mcl_banners:standing_banner",
+		"textures" : 
+		[
+			"mcl_banners_banner_base.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"name" : "mcl_itemframes:item",
+		"textures" : 
+		[
+			"blank.png"
+		],
+		"visual" : "wielditem"
+	},
+	{
+		"mesh" : "wind_charge.obj",
+		"name" : "mcl_charges:wind_charge_flying",
+		"textures" : 
+		[
+			"mcl_charges_wind_charge_entity.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"name" : "mcl_fishing:flying_bobber_entity",
+		"textures" : 
+		[
+			"mcl_fishing_bobber.png"
+		]
+	},
+	{
+		"name" : "mcl_potions:bad_luck_splash_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"mesh" : "mobs_mc_llama_spit.b3d",
+		"name" : "mobs_mc:llama_spit",
+		"textures" : 
+		[
+			"mobs_mc_llama_spit.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"name" : "mcl_potions:turtle_master_lingering_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"name" : "mcl_potions:harming_lingering_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"mesh" : "mcl_bows_arrow.b3d",
+		"name" : "mcl_potions:turtle_master_arrow_entity",
+		"textures" : 
+		[
+			"mcl_bows_arrow.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"mesh" : "mcl_bows_arrow.b3d",
+		"name" : "mcl_potions:invisibility_arrow_entity",
+		"textures" : 
+		[
+			"mcl_bows_arrow.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"mesh" : "mcl_bows_arrow.b3d",
+		"name" : "mcl_potions:harming_arrow_entity",
+		"textures" : 
+		[
+			"mcl_bows_arrow.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"name" : "mcl_potions:leaping_lingering_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"mesh" : "mcl_bows_arrow.b3d",
+		"name" : "mcl_potions:slowness_arrow_entity",
+		"textures" : 
+		[
+			"mcl_bows_arrow.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"name" : "mcl_potions:mundane_splash_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"name" : "mobs_mc:blaze_fireball",
+		"textures" : 
+		[
+			"mcl_fire_fire_charge.png"
+		],
+		"visual" : "sprite"
+	},
+	{
+		"mesh" : "pumpkin_head.obj",
+		"name" : "mcl_farming:pumpkin_face",
+		"textures" : 
+		[
+			"mcl_farming_pumpkin_face.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"name" : "mcl_potions:poison_lingering_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"name" : "mcl_potions:thick_splash_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"name" : "mcl_potions:mundane_lingering_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"name" : "mcl_potions:awkward_lingering_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"name" : "mcl_potions:luck_splash_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"name" : "mcl_potions:night_vision_splash_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"mesh" : "mcl_bows_arrow.b3d",
+		"name" : "mcl_potions:healing_arrow_entity",
+		"textures" : 
+		[
+			"mcl_bows_arrow.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"name" : "mcl_potions:invisibility_splash_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"name" : "mcl_dripstone:vengeful_dripstone",
+		"textures" : 
+		[
+			"pointed_dripstone_tip.png"
+		],
+		"visual" : "upright_sprite"
+	},
+	{
+		"name" : "mobs_mc:fireball",
+		"textures" : 
+		[
+			"mcl_fire_fire_charge.png"
+		],
+		"visual" : "sprite"
+	},
+	{
+		"name" : "mcl_potions:night_vision_lingering_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"name" : "mcl_end:ender_eye",
+		"textures" : 
+		[
+			"mcl_end_ender_eye.png"
+		]
+	},
+	{
+		"name" : "mcl_potions:thick_lingering_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"name" : "mcl_potions:healing_lingering_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"mesh" : "mcl_bows_arrow.b3d",
+		"name" : "mcl_potions:luck_arrow_entity",
+		"textures" : 
+		[
+			"mcl_bows_arrow.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"name" : "mcl_potions:slowness_splash_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"name" : "mcl_end:crystal_beam",
+		"textures" : 
+		[
+			"mcl_end_crystal_beam.png",
+			"blank.png"
+		],
+		"visual" : "cube"
+	},
+	{
+		"name" : "mcl_potions:swiftness_splash_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"mesh" : "mcl_bows_arrow.b3d",
+		"name" : "mcl_potions:bad_luck_arrow_entity",
+		"textures" : 
+		[
+			"mcl_bows_arrow.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"name" : "mcl_throwing:egg_entity",
+		"textures" : 
+		[
+			"mcl_throwing_egg.png"
+		]
+	},
+	{
+		"name" : "mcl_throwing:ender_pearl_entity",
+		"textures" : 
+		[
+			"mcl_throwing_ender_pearl.png"
+		]
+	},
+	{
+		"name" : "mcl_potions:luck_lingering_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"name" : "mcl_potions:wind_charged_lingering_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"mesh" : "mcl_end_crystal.b3d",
+		"name" : "mcl_conduits:conduit",
+		"textures" : 
+		[
+			"mcl_conduit_conduit.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"mesh" : "mcl_bows_arrow.b3d",
+		"name" : "mcl_potions:night_vision_arrow_entity",
+		"textures" : 
+		[
+			"mcl_bows_arrow.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"name" : "mcl_potions:swiftness_lingering_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"name" : "mcl_potions:bad_luck_lingering_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"mesh" : "mcl_tridents_trident.obj",
+		"name" : "mcl_tridents:trident",
+		"textures" : 
+		[
+			"mcl_tridents_trident_entity.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"mesh" : "mcl_bows_arrow.b3d",
+		"name" : "mcl_bows:arrow_entity",
+		"textures" : 
+		[
+			"mcl_bows_arrow.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"name" : "mcl_attachments:outline",
+		"textures" : 
+		[
+			"mcl_levelgen_schematic_border_checkers.png"
+		],
+		"visual" : "cube"
+	},
+	{
+		"mesh" : "mcl_bows_arrow.b3d",
+		"name" : "mcl_potions:swiftness_arrow_entity",
+		"textures" : 
+		[
+			"mcl_bows_arrow.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"mesh" : "mobs_mc_evoker_fangs.b3d",
+		"name" : "mobs_mc:evoker_fangs",
+		"textures" : 
+		[
+			"mobs_mc_evoker_fangs.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"mesh" : "mcl_bows_arrow.b3d",
+		"name" : "mcl_potions:wind_charged_arrow_entity",
+		"textures" : 
+		[
+			"mcl_bows_arrow.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"mesh" : "mobs_mc_spider.b3d",
+		"name" : "mobs_mc:ender_eyes",
+		"textures" : 
+		[
+			"mobs_mc_enderman_eyes.png"
+		],
+		"visual" : "mesh"
+	},
+	{
+		"name" : "mcl_levelgen:structure_outline",
+		"textures" : 
+		[
+			"mcl_levelgen_schematic_border_checkers.png"
+		],
+		"visual" : "cube"
+	},
+	{
+		"name" : "mcl_tnt:tnt",
+		"textures" : 
+		[
+			"default_tnt_top.png",
+			"default_tnt_bottom.png",
+			"default_tnt_side.png"
+		],
+		"visual" : "cube"
+	},
+	{
+		"name" : "mcl_potions:invisibility_lingering_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	},
+	{
+		"name" : "mcl_burning:fire",
+		"textures" : 
+		[
+			"mcl_burning_entity_flame_animated.png"
+		],
+		"visual" : "upright_sprite"
+	},
+	{
+		"name" : "mcl_potions:slowness_lingering_flying",
+		"textures" : 
+		[
+			"mcl_potions_splash_overlay.png"
+		]
+	}
+]
