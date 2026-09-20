@@ -17,14 +17,23 @@
 // including submerged sides: the ice owns the water/ice interface.
 // Tiles also carry explicit light-source ownership
 // through batching, so thin torch meshes cannot shadow their own lights.
-// drawSolidNode also draws the sub node carve in place of the cube, so a dig
-// deforms the block it lands on rather than only cracking it: from the live
-// dig, from a carve the server has stored on the node, or from the demo row
-// (goanna_radial_form.h). A neighbour that is ITSELF carved counts as not
-// solid, for the face mask and for the backing faces alike, because solidness
-// is a property of the node DEFINITION and a damaged neighbour has holes of
-// its own. The cut faces clear MATERIAL_FLAG_CRACK so they keep the tile's own
-// material instead of a composited crack tile.
+// drawSolidNode and drawNodeboxNode both draw the sub node carve in place of
+// their ordinary geometry, so a dig deforms the block it lands on rather than
+// only cracking it: from the live dig, from a carve the server has stored on
+// the node, or (drawSolidNode only) from the demo row (goanna_radial_form.h).
+// drawSolidNode's base shape is a plain cube; drawNodeboxNode's is the node's
+// own resolved boxes (getNodeBoxes, already resolved for its live
+// connections), so a connected mound carves from whatever shape its
+// neighbours actually leave it. A neighbour that is ITSELF carved counts as
+// not solid, for the face mask and for the backing faces alike, on the solid
+// path (nodeboxes do not reveal a neighbour's own face through a hole; see
+// drawNodeboxNode's own comment), because solidness is a property of the node
+// DEFINITION and a damaged neighbour has holes of its own. The cut faces
+// clear MATERIAL_FLAG_CRACK so they keep the tile's own material instead of a
+// composited crack tile; markCrackStage instead SETS it, with
+// GOANNA_PERSISTENT_CRACK, on a stored (not currently being dug) carve's own
+// outer faces, so a worked block still reads as worked once the dig that made
+// it that way is over.
 // Otherwise verbatim.
 
 #include <cmath>
@@ -111,6 +120,25 @@ static void markLightSource(TileSpec &tile, bool glows)
 		layer.material_flags &= ~GOANNA_TILE_GLOWS;
 		if (glows)
 			layer.material_flags |= GOANNA_TILE_GLOWS;
+	}
+}
+
+// A stored carve's own crack stage (see GOANNA_PERSISTENT_CRACK's own
+// comment for why this is not the same path as the live dig's crack, and why
+// it is only two visible states rather than the full five). `stage` is
+// `formStage`'s result, 0 (pristine, nothing marked) to `kCrackFrames - 1`.
+static void markCrackStage(TileSpec &tile, int stage)
+{
+	if (stage <= 0)
+		return;
+	for (auto &layer : tile.layers) {
+		if (layer.empty())
+			continue;
+		layer.material_flags |= MATERIAL_FLAG_CRACK | GOANNA_PERSISTENT_CRACK;
+		if (stage >= goanna::kCrackFrames / 2 + 1)
+			layer.material_flags |= GOANNA_CRACK_HEAVY;
+		else
+			layer.material_flags &= ~GOANNA_CRACK_HEAVY;
 	}
 }
 
@@ -804,8 +832,22 @@ void MapblockMeshGenerator::drawSolidNode()
 	// makes publication/cancellation atomic even at mapblock boundaries: the
 	// neighbour keeps its ordinary mesh and we supply only its missing patches.
 	// All shape tests happen in node-local coordinates, before translation.
-	std::optional<goanna::RadialForm> demo;
-	const goanna::RadialForm *form = nullptr;
+	//
+	// A plain cube is the base shape here: `formBaselineForCube()` is closed
+	// form (no march), so nothing about the node's own registration is
+	// needed to damage it. See `drawNodeboxNode` for the same idea over a
+	// node's own resolved boxes instead.
+	std::optional<goanna::FormDamage> demo;
+	const goanna::FormDamage *form = nullptr;
+	// A stored carve on a node NOT under this player's own tool gets a
+	// persistent crack stage (see markCrackStage): the live dig keeps
+	// MATERIAL_FLAG_CRACK cleared on every carve tile (kept exactly as
+	// commit 049a6e0 left it, PBR over a crack overlay, because the missing
+	// geometry already shows that damage), but nothing else marks a stored
+	// carve as damaged at all otherwise, and a block worked by someone else,
+	// or in an earlier session, would look untouched until struck again.
+	bool crack_stage_stored = false;
+	int crack_stage = 0;
 	if (cur_node.f->drawtype == NDT_NORMAL) {
 		if (cur_node.p == data->m_crack_pos_relative && g_goanna_carve_depth > 0)
 			form = g_goanna_carve;
@@ -817,13 +859,20 @@ void MapblockMeshGenerator::drawSolidNode()
 		if (!form && goanna::g_goanna_carve_block) {
 			form = goanna::g_goanna_carve_block->find(
 					cur_node.p.X, cur_node.p.Y, cur_node.p.Z);
+			if (form) {
+				crack_stage_stored = true;
+				crack_stage = goanna::formStage(!form->empty(), 1.0f,
+						goanna::formVolumeDamaged([](float, float, float) { return true; },
+								goanna::formBaselineForCube(), *form, form->resolution));
+			}
 		}
 		const v3s16 wp = blockpos_nodes + cur_node.p;
 		if (!form && g_goanna_carve_demo != 0 && wp.Y == g_goanna_carve_demo &&
 				wp.Z == g_goanna_carve_demo_z && wp.X >= 0 && wp.X < 8) {
 			demo.emplace();
 			demo->resolution = 16;
-			*demo = goanna::strike(*demo, 0.25f, 0.5f, 0.0f, wp.X * 0.08f);
+			*demo = goanna::formStrike(goanna::formBaselineForCube(), *demo,
+					0.25f, 0.5f, 0.0f, wp.X * 0.08f, 0.0f, 1.0f, 0.0f);
 			form = &*demo;
 		}
 	}
@@ -847,6 +896,8 @@ void MapblockMeshGenerator::drawSolidNode()
 				// Keep the source tile/layer so cut faces share its material.
 				layer.material_flags &= ~MATERIAL_FLAG_CRACK;
 			}
+			if (crack_stage_stored)
+				markCrackStage(tiles[face], crack_stage);
 			lights[face] = getFaceLight(saved_n, nb, nodedef);
 			// These normal neighbours omit their side against the original
 			// solid node. IGNORE stays unknown; it is never invented as rock.
@@ -879,8 +930,10 @@ void MapblockMeshGenerator::drawSolidNode()
 			cur_node.f = saved_f;
 		}
 		const int n = form->resolution;
-		const auto surface = goanna::formSurfaces(goanna::formGrid(*form, n), n,
-				faces, backing);
+		const auto surface = goanna::formSurfaces(
+				goanna::formGridDamaged([](float, float, float) { return true; },
+						goanna::formBaselineForCube(), *form, n),
+				n, faces, backing);
 		for (const auto &quad : surface) {
 			const auto &b = quad.box;
 			aabb3f box(b.x1*BS, b.y1*BS, b.z1*BS, b.x2*BS, b.y2*BS, b.z2*BS);
@@ -2167,6 +2220,74 @@ void MapblockMeshGenerator::drawNodeboxNode()
 
 	std::vector<aabb3f> boxes;
 	cur_node.n.getNodeBoxes(nodedef, &boxes, neighbors_set);
+
+	// Goanna: a carve on a nodebox drawn node replaces its ordinary boxes
+	// with its own damaged surface. The base shape is these very boxes,
+	// already resolved for THIS node's own live connections
+	// (`neighbors_set`, just above), so a connected mound carves from
+	// whatever shape its neighbours actually leave it, not from some
+	// registered default. See drawSolidNode for the same idea over a plain
+	// cube, and goanna_radial_form.h's own header for why one baseline
+	// derivation (`formBaselineFromBoxes`) serves both.
+	{
+		const goanna::FormDamage *carve = nullptr;
+		bool carve_stored = false;
+		if (cur_node.p == data->m_crack_pos_relative && g_goanna_carve_depth > 0)
+			carve = g_goanna_carve;
+		if (!carve && goanna::g_goanna_carve_block) {
+			carve = goanna::g_goanna_carve_block->find(cur_node.p.X, cur_node.p.Y, cur_node.p.Z);
+			carve_stored = carve != nullptr;
+		}
+		if (carve) {
+			std::vector<goanna::FormBox> local_boxes;
+			local_boxes.reserve(boxes.size());
+			for (const aabb3f &b : boxes) {
+				local_boxes.push_back({b.MinEdge.X / BS, b.MinEdge.Y / BS, b.MinEdge.Z / BS,
+						b.MaxEdge.X / BS, b.MaxEdge.Y / BS, b.MaxEdge.Z / BS});
+			}
+			const goanna::FormBaseline baseline = goanna::formBaselineFromBoxes(local_boxes);
+			const auto base_solid = [&local_boxes](float x, float y, float z) {
+				return goanna::pointInBoxes(local_boxes, x, y, z);
+			};
+			const int n = carve->resolution;
+			const auto grid = goanna::formGridDamaged(base_solid, baseline, *carve, n);
+			// A solid neighbour hides this boundary the same way it hides an
+			// undamaged box's own face: `solid_neighbors`'s bit order
+			// (+Y,-Y,+X,-X,+Z,-Z, from `nodebox_tile_dirs`) already matches
+			// `formSurfaces`'s own. Revealing a NEIGHBOUR's own face through
+			// a hole (`drawSolidNode`'s `backing`) is not done here: a
+			// nodebox shape is rarely a whole node's worth of material to
+			// begin with, so the common case a hole would open onto is air,
+			// which needs nothing drawn for it.
+			const u8 visible_boundary = static_cast<u8>(~solid_neighbors & 0x3f);
+			const auto surface = goanna::formSurfaces(grid, n, visible_boundary, 0);
+			const int stage = carve_stored
+					? goanna::formStage(!carve->empty(), goanna::formVolumeDamaged(
+							base_solid, baseline, goanna::FormDamage(), n),
+							goanna::formVolumeDamaged(base_solid, baseline, *carve, n))
+					: 0;
+			for (const auto &quad : surface) {
+				const auto &b = quad.box;
+				aabb3f box(b.x1 * BS, b.y1 * BS, b.z1 * BS, b.x2 * BS, b.y2 * BS, b.z2 * BS);
+				TileSpec face_tiles[6];
+				face_tiles[quad.face] = tiles[quad.face];
+				for (auto &layer : face_tiles[quad.face].layers) {
+					// The missing geometry already shows the damage; keep
+					// the source tile's material rather than a composited
+					// crack tile (see commit 049a6e0, the same fix
+					// drawSolidNode carries).
+					layer.material_flags &= ~MATERIAL_FLAG_CRACK;
+				}
+				if (carve_stored)
+					markCrackStage(face_tiles[quad.face], stage);
+				f32 txc[24];
+				generateCuboidTextureCoords(box, txc);
+				drawAutoLightedCuboid(box, face_tiles, 6, txc,
+						static_cast<u8>(63 ^ (1 << quad.face)));
+			}
+			return;
+		}
+	}
 
 	std::vector<u8> masks;
 	masks.reserve(boxes.size());

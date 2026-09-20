@@ -529,8 +529,21 @@ void GoannaSession::reportCarve(v3s16 pos, const std::string &bytes) {
     // the server may ignore it entirely (goanna_shared_dig_damage is off by
     // default) and why nothing here depends on an answer.
     std::string channel(kGoannaChannel);
+    // HEX, not the raw bytes. Luanti hands a mod channel message to Lua with
+    // lua_pushstring (script/cpp_api/s_modchannels.cpp), which stops at the
+    // first zero byte, and the carve codec's presence mask almost always has
+    // one: a v3 carve arrived at the server as its first three bytes and was
+    // stored that way. goanna_server_mod/damage.lua decodes the hex back into
+    // the bytes it stores; node metadata itself carries zero bytes fine.
+    static const char kHex[] = "0123456789abcdef";
+    std::string hex;
+    hex.reserve(bytes.size() * 2);
+    for (unsigned char c : bytes) {
+        hex.push_back(kHex[c >> 4]);
+        hex.push_back(kHex[c & 0xf]);
+    }
     std::string msg = "carve " + std::to_string(pos.X) + " " + std::to_string(pos.Y) +
-            " " + std::to_string(pos.Z) + " " + bytes;
+            " " + std::to_string(pos.Z) + " " + hex;
     NetworkPacket pkt(TOSERVER_MODCHANNEL_MSG, 0);
     pkt << channel << msg;
     send(pkt);
