@@ -63,7 +63,12 @@ actually has.
   overran it. The asset epoch the 0.8.0 catalogue pointed at was never
   published, so until now every bundle URL answered 404 and no client could
   install one; the catalogue now names `assets-2026.09.2`, which is
-  published, and Kythen terrain moves to 1.1.0 with it. Three limits worth
+  published, and Kythen terrain moves to 1.1.0 with it. Watched working
+  on 20 September: a client with a fresh profile joined a Mineclonia
+  world on a Luanti 5.17.0 server, fetched the archive from the
+  published catalogue, checked it against its recorded hash, installed
+  1021 pairs and composed its profile, with nothing in the log. That is
+  the first time any client has installed a bundle. Three limits worth
   knowing. A bundle carries material maps only, so the art stays the
   server's own rather than the 256 px upscale the authored texture pack
   carries. A world hosted in Goanna serves those maps with no setting to
