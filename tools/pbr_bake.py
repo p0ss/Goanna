@@ -818,12 +818,14 @@ def pack_deepbump_normal(normal_img, height_img, n_path, stem=None, classes=None
         encoded_height = np.full_like(raw_height, 255.0)
     else:
         normalised = np.clip((raw_height - low) / (high - low), 0.0, 1.0)
-        material = (classes or {}).get(stem)
-        review = (reviews or {}).get(stem, {})
-        depth = review.get("relief_strength",
-                CLASS_HEIGHT_DEPTH.get(material, DEFAULT_HEIGHT_DEPTH))
-        depth = min(max(float(depth), 0.0), 1.0)
-        encoded_height = 255.0 - (1.0 - normalised) * depth * 255.0
+        # The field owns the whole byte, exactly as tools/pbr_author/lib.py
+        # writes it. The material's depth is applied once, at draw time:
+        # nodes_array.gdshader reads h = 1.0 - a and marches
+        # goanna_class_depth(cls) * parallax_depth. Pre-multiplying the byte
+        # by that same depth here applied it twice and flattened everything
+        # baked between 2026-09-09 and 2026-09-20: copper's height span went
+        # from 255 to 46 and the relief went with it.
+        encoded_height = normalised * 255.0
     height_resized = Image.fromarray(encoded_height.astype(np.uint8), "L")
     ao = ao_from_height(height_resized, wrap=wrap)
     nmap = np.zeros((h, w, 4), dtype=np.uint8)

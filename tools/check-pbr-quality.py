@@ -23,16 +23,12 @@ import pbr_bake
 # chunk. The two pipelines put different things in the _n alpha, so the gate
 # has to know which it is holding before it can measure the height at all:
 #
-#   baked     tools/pbr_bake.py, pack_deepbump_normal, line 826:
-#             255 - (1 - normalised) * depth * 255. The top of the byte is the
-#             neutral surface and the field occupies the class's share of the
-#             range below it, so max is 255 and the span is CLASS_HEIGHT_DEPTH.
-#   authored  tools/pbr_author/lib.py, pack, line 457: the author's 0 deep to
-#             1 high field straight into the byte. Neither end is reserved,
-#             and the depth is applied at draw time instead, by
-#             goanna_class_depth in nodes_array_common.gdshaderinc.
-#
-# Nothing else about a map differs, so only the height rules split.
+# Both write the same thing: a 0 deep to 1 high field straight across the
+# byte, with the material's depth applied once at draw time by
+# goanna_class_depth in nodes_array_common.gdshaderinc. The bake
+# pre-multiplied by that depth from 2026-09-09 to 2026-09-20, which applied
+# it twice; the pipeline is still recorded per map, but the rules no longer
+# split on it.
 PIPELINE_KEY = "goanna_pipeline"
 AUTHORED = "authored"
 BAKED = "baked"
@@ -128,7 +124,6 @@ def inspect(stem, normal_path, spec_path, material, source=None, albedo=None,
         pbr_bake.CLASS_HEIGHT_DEPTH.get(
             material, pbr_bake.DEFAULT_HEIGHT_DEPTH))) * 255.0
     height_span = float(np.percentile(height_v, 98) - np.percentile(height_v, 2))
-    authored = pipeline == AUTHORED
     metrics = {
         "height_span": height_span,
         "height_rail_fraction": float(
@@ -143,27 +138,22 @@ def inspect(stem, normal_path, spec_path, material, source=None, albedo=None,
         failures.append("normal XY leaves the unit hemisphere")
     if metrics["normal_xy_bias"] > 0.22:
         failures.append("normal field has a strong directional bias")
-    if authored:
-        # The authored field owns the whole byte on purpose, so neither the
-        # neutral 255 reference nor the class depth envelope means anything
-        # here: lib.band deliberately holds a cast slab inside a few per cent
-        # about the middle, and lib.normalise01 deliberately fills the range,
-        # and both come out as the class's depth once the shader scales them.
-        # What is still true of a usable authored field is that it has not
-        # run off either end of the byte, which is where relief is lost and
-        # cannot be recovered.
-        if metrics["height_rail_fraction"] > 0.35:
-            failures.append("authored height is crushed against the byte rails")
-    else:
-        if height_v.max() < 245:
-            failures.append("height has no neutral/high reference")
-        if height_span > expected_depth + 12:
-            failures.append("height exceeds the material depth envelope")
+    # Both pipelines write the field across the whole byte and let the shader
+    # apply the material's depth once, so neither a neutral 255 reference nor
+    # a class depth envelope means anything: lib.band deliberately holds a
+    # cast slab inside a few per cent about the middle, lib.normalise01 and
+    # the bake's own normalise deliberately fill the range, and both come out
+    # as the class's depth once nodes_array.gdshader scales them. The bake
+    # pre-multiplied by that depth between 2026-09-09 and 2026-09-20, which
+    # applied it twice and cost the relief; these two rules were what made
+    # that look correct. What is still true of a usable field is that it has
+    # not run off either end of the byte, where relief is lost for good.
+    if metrics["height_rail_fraction"] > 0.35:
+        failures.append("height is crushed against the byte rails")
     # A height that says nothing where the normal says there is relief is a
-    # packing fault either way. The baked floor scales with the envelope the
-    # bake wrote to; an authored field has no envelope, so it only has to
-    # carry more than rounding.
-    flat_floor = 4.0 if authored else min(8.0, expected_depth * 0.15)
+    # packing fault. With no envelope to scale against, the floor is just
+    # more than rounding.
+    flat_floor = 4.0
     if slope_v.std() > 0.02 and height_span < flat_floor:
         failures.append("height is effectively flat despite normal relief")
     max_smooth = review.get("smoothness_max", {"stone": 0.25, "soil": 0.18, "sand": 0.20,

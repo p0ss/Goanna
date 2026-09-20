@@ -79,16 +79,22 @@ class PbrQualityTest(unittest.TestCase):
         report = quality.inspect("tile", npath, spath, "stone", source)
         self.assertTrue(any("transparent pixels" in item for item in report["failures"]))
 
-    def test_height_is_robustly_bounded_by_material(self):
+    def test_baked_height_fills_the_byte(self):
+        # The material's depth belongs to the shader, which applies it to
+        # 1 - a. A bake that pre-multiplied the byte by the same depth
+        # applied it twice and flattened every map written that way, so the
+        # encoded field has to span the byte, exactly as an authored one
+        # does, whatever the material is.
         normal = Image.new("RGB", (16, 16), (128, 128, 255))
         height = np.tile(np.arange(16, dtype=np.uint8), (16, 1)) * 16
         height[0, 0] = 255
-        out = self.root / "bounded_n.png"
-        bake.pack_deepbump_normal(normal, Image.fromarray(height, "L"), out,
-                                  "tile", {"tile": "metal"})
-        encoded = np.asarray(Image.open(out).convert("RGBA"))[..., 3]
-        self.assertGreaterEqual(int(encoded.min()), 255 - round(0.18 * 255) - 1)
-        self.assertEqual(int(encoded.max()), 255)
+        for material in ("metal", "stone", "soil"):
+            out = self.root / ("bounded_%s_n.png" % material)
+            bake.pack_deepbump_normal(normal, Image.fromarray(height, "L"), out,
+                                      "tile", {"tile": material})
+            encoded = np.asarray(Image.open(out).convert("RGBA"))[..., 3]
+            self.assertLessEqual(int(encoded.min()), 1)
+            self.assertEqual(int(encoded.max()), 255)
 
     def test_review_controls_full_resolution_spec_channels(self):
         roughness = Image.fromarray(np.tile(
@@ -119,18 +125,18 @@ class PbrQualityTest(unittest.TestCase):
         packed = np.asarray(Image.open(out).convert("RGBA"))
         self.assertEqual(set(np.unique(packed[..., 1])), {10})
 
-    def test_authored_height_is_measured_by_the_authored_rule(self):
+    def test_height_is_measured_the_same_way_whoever_wrote_it(self):
         # lib.band holds a cast slab's relief in a narrow band about the
         # middle of the byte and leaves the depth to the shader's class
-        # table, so the field neither reaches the bake's neutral 255 nor
-        # stays inside the bake's class envelope. Both are true of the same
-        # bytes; only the marker says which rule they were written to.
+        # table. A bake writes the same shape now. The marker still records
+        # which tool wrote a map, but it must not change the verdict: when
+        # the rules split on it, the gate failed 1016 of 1023 maps that were
+        # fine and hid a bake that was not.
         band = np.linspace(96, 160, 16, dtype=np.uint8)
         npath, spath = self.maps(height=band)
         baked = quality.inspect("tile", npath, spath, "metal")
         self.assertEqual(baked["pipeline"], quality.BAKED)
-        self.assertTrue(any("neutral/high" in item for item in baked["failures"]))
-        self.assertTrue(any("depth envelope" in item for item in baked["failures"]))
+        self.assertEqual(baked["failures"], [])
         npath, spath = self.maps(height=band, authored=True)
         authored = quality.inspect("tile", npath, spath, "metal")
         self.assertEqual(authored["pipeline"], quality.AUTHORED)
