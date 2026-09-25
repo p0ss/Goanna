@@ -450,9 +450,9 @@ def pack(stem, out_dir, albedo, height, smoothness, cls, normal_strength,
         fine_detail=0.35, art_texels=16, alpha=None):
     """Write <stem>.png, <stem>_n.png and <stem>_s.png. albedo is RGB or
     RGBA float at SIZE; height and smoothness are SIZE x SIZE floats.
-    The smoothness mean is moved onto the class level unless keep_mean is
-    False, because the level was chosen on purpose and the ramp compares
-    spread, not level. emission, when given, is a SIZE x SIZE float 0..1
+    The smoothness mean, over the ordinary texels the art draws, is moved
+    onto the class level unless keep_mean is False, because the level was
+    chosen on purpose and the ramp compares spread, not level. emission, when given, is a SIZE x SIZE float 0..1
     of how much each texel glows (the lit coals of a furnace, the body of
     glowstone); it goes to the _s alpha as LabPBR has it, 255 for none and
     0 to 254 for the strength, which nodes_array.gdshader reads as
@@ -505,6 +505,13 @@ def pack(stem, out_dir, albedo, height, smoothness, cls, normal_strength,
         base = ~metal_mask
         if f0 is not None:
             base = base & (np.asarray(f0, dtype=np.float32) <= 0.05)
+        # Nor is a cut-out's hole a texel of the surface: it is overwritten
+        # with the neutral fill below, and a script's hole floor, low and
+        # rough, held the mean down so that everything drawn sat well above
+        # the level. The torch and the tall grass top came out 0.2 and 0.17
+        # over it.
+        if cutout is not None and (base & ~cutout).any():
+            base = base & ~cutout
         ref = float(sm[base].mean()) if base.any() else float(sm.mean())
         # Only ever lowered: the ceiling's clip pulls a glassy class's mean
         # under its level, which the gate does not mind and which those
