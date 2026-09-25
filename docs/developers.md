@@ -105,7 +105,7 @@ hash it must match, so it also demonstrates that a superseded hash is
 refused:
 
 ```sh
-GOANNA_TEST_ASSET_BUNDLE=dist/assets/org.goanna.minetest-game.terrain-1.0.0.zip \
+GOANNA_TEST_ASSET_BUNDLE=dist/assets/org.goanna.minetest-game.terrain-1.1.0.zip \
 GOANNA_TEST_ASSET_SHA256=$(python3 -c "import json;print([b for b in \
   json.load(open('asset_bundles/catalogue.json'))['bundles'] \
   if b['id']=='org.goanna.minetest-game.terrain'][0]['sha256'])") \

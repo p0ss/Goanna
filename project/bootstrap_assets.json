@@ -3,8 +3,8 @@
   "catalogue_url": "https://raw.githubusercontent.com/p0ss/Goanna/main/asset_bundles/catalogue.json",
   "bundles": [
     {
-      "file": "org.goanna.minetest-game.terrain-1.0.0.zip",
-      "sha256": "78e28a22f15488ebd2e56c53b53dd94dfea011acc078c372d523165fc990affd"
+      "file": "org.goanna.minetest-game.terrain-1.1.0.zip",
+      "sha256": "15028a6a7fbc4673b7491b0b43dfc5990b259f1551f56942d5e5f9750f4c2799"
     }
   ]
 }
