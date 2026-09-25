@@ -1,0 +1,306 @@
+"""Texel extrusion: the authored look, one rule for every stem.
+
+The relief follows the art's own texel grid. Every source texel is a flat
+plateau with a one pixel chamfer, and nothing finer: no noise, no grain
+inside a texel, no rounded or warped outlines. The earlier authored sets
+reached for high definition surface detail, which reads out of place in a
+blocky world; this keeps the pixel art and makes it crisp.
+
+A texture is one or more materials. Inside a material the height comes
+from one of three modes:
+
+  shade  lighter is higher. A coarse level (a few quantised bands, so
+         similar neighbours merge into sub-blocks) plus a finer step from
+         each texel's exact shade, the detail harmonic, so panels of
+         different lightness never sit at one height. Texels much darker
+         than the material (plank gaps, cracks) sink as joints unless the
+         material says joints: false. Natural surfaces.
+  parts  every connected piece of the material is one solid height, and
+         pieces differ by their mean shade. Books on a shelf.
+  flat   the whole material is one height. A frame's beams.
+
+Which texel belongs to which material comes from, in order: the spec's
+grid (one character per texel, legend maps each character to a material
+and optionally a fixed height), then its palette map (hex colour to
+material), then the first material. Stems with no spec are one shade
+material of their class.
+
+Specs live in tools/pbr_author/specs/<game>/<stem>.json, one file per
+stem so authors working in parallel never edit the same file:
+
+  {
+    "materials": {
+      "stone": {"mode": "shade", "base": 0.25, "span": 0.5, "joints": false},
+      "coal":  {"mode": "shade", "base": 0.85, "span": 0.15, "detail": 0.2}
+    },
+    "palette": {"#1d1d1d": "coal"},
+    "grid": ["FFFF...", ...],            optional, one string per row
+    "legend": {"F": "frame", "a": {"material": "book", "h": 0.6}},
+    "class": "wood",                     optional class override
+    "strength": 16                       optional normal strength
+  }
+
+Material keys besides mode, base and span: detail (share of the span the
+per texel step takes, default 0.35), levels, joints, joint (how deep a
+joint sinks under the material's base, as a share of it), smooth
+(absolute smoothness 0..1, default the class level), smooth_spread,
+f0 (dielectric reflectance, diamond 0.17), metal (true for metal
+texels), emission (0..1 glow), emission_shade (glow follows the
+shade, lighter texels brighter).
+"""
+import json
+import sys
+from pathlib import Path
+
+import numpy as np
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import lib  # noqa: E402
+
+SPECS = Path(__file__).resolve().parent / "specs"
+
+# Per class: coarse levels, joint depth, normal strength (texels of the
+# 256 px map for the full 0..1 height; 25.6 is the client's 0.10 node
+# parallax cap), smoothness spread.
+CLASS_STYLE = {
+    "stone": (4, 0.55, 22, 0.10),
+    "cobble": (4, 0.60, 22, 0.10),
+    "gravel": (4, 0.40, 20, 0.10),
+    "wood": (3, 0.70, 16, 0.08),
+    "planks": (3, 0.70, 16, 0.08),
+    "dirt": (3, 0.40, 16, 0.08),
+    "sand": (3, 0.30, 10, 0.06),
+    "leaves": (3, 0.50, 14, 0.08),
+}
+DEFAULT_STYLE = CLASS_STYLE["stone"]
+DETAIL = 0.35
+# Smoothness levels that differ from the bake's class table. The bake's
+# metal level (0.40) is cast iron; a block of steel or gold read dull
+# beside the extruded relief, so authored metal is polished unless a spec
+# says otherwise (weathered copper, a rusty anvil).
+CLASS_SMOOTH = {"metal": 0.78}
+
+
+def load_spec(stem, game=lib.DEFAULT_GAME):
+    p = SPECS / game / (stem + ".json")
+    return json.loads(p.read_text()) if p.exists() else {}
+
+
+def _rank01(v):
+    """Each value's rank among v, 0..1; equal shades share a rank."""
+    u, inv = np.unique(np.round(v, 4), return_inverse=True)
+    r = np.arange(len(u), dtype=np.float32) / max(len(u) - 1, 1)
+    return r[inv]
+
+
+def _levels(v, levels):
+    """Rank based bands, so each level holds a similar share of texels."""
+    edges = np.quantile(v, np.linspace(0, 1, levels + 1)[1:-1])
+    return np.digitize(v, edges).astype(np.float32) / max(levels - 1, 1)
+
+
+def _components(mask):
+    """Wrapped 4 connected components of a boolean 16 px mask."""
+    h, w = mask.shape
+    lab = -np.ones(mask.shape, dtype=int)
+    n = 0
+    for y in range(h):
+        for x in range(w):
+            if not mask[y, x] or lab[y, x] >= 0:
+                continue
+            stack = [(y, x)]
+            lab[y, x] = n
+            while stack:
+                cy, cx = stack.pop()
+                for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                    ny, nx = (cy + dy) % h, (cx + dx) % w
+                    if mask[ny, nx] and lab[ny, nx] < 0:
+                        lab[ny, nx] = n
+                        stack.append((ny, nx))
+            n += 1
+    return lab, n
+
+
+def _hex(rgb):
+    c = np.clip(np.round(rgb * 255.0), 0, 255).astype(int)
+    return "#%02x%02x%02x" % tuple(c)
+
+
+def assign(src, spec):
+    """Per texel material name and fixed height (nan where none), plus a
+    part id map for characters of the grid (each character one part)."""
+    h, w = src.shape[:2]
+    names = list(spec.get("materials", {}).keys()) or ["base"]
+    mat = np.full((h, w), names[0], dtype=object)
+    fixed = np.full((h, w), np.nan, dtype=np.float32)
+    part = -np.ones((h, w), dtype=int)
+    pal = {k.lower(): v for k, v in spec.get("palette", {}).items()}
+    if pal:
+        for y in range(h):
+            for x in range(w):
+                m = pal.get(_hex(src[y, x, :3]))
+                if m:
+                    mat[y, x] = m
+    grid = spec.get("grid")
+    if grid:
+        if len(grid) != h or any(len(r) != w for r in grid):
+            raise ValueError("grid must be %d rows of %d characters" % (h, w))
+        legend = spec.get("legend", {})
+        chars = sorted({c for r in grid for c in r})
+        for y in range(h):
+            for x in range(w):
+                c = grid[y][x]
+                e = legend.get(c)
+                if e is None:
+                    continue
+                if isinstance(e, str):
+                    e = {"material": e}
+                mat[y, x] = e["material"]
+                if "h" in e:
+                    fixed[y, x] = e["h"]
+                part[y, x] = chars.index(c)
+    unknown = set(mat.ravel()) - set(names)
+    if unknown:
+        raise ValueError("materials not declared: %s" % sorted(unknown))
+    return mat, fixed, part
+
+
+def heights(src, spec, cls):
+    """The 16 px height field (0..1), a 0..1 shade position for the
+    smoothness, the joint mask and the material map."""
+    levels_c, joint_c, _, _ = CLASS_STYLE.get(cls, DEFAULT_STYLE)
+    mats = spec.get("materials") or {"base": {"mode": "shade"}}
+    alpha = src[..., 3] if src.shape[-1] == 4 else np.ones(src.shape[:2], np.float32)
+    drawn = alpha >= 0.5
+    lum = lib.luminance(src[..., :3])
+    mat, fixed, part = assign(src, spec)
+    hgt = np.zeros(lum.shape, np.float32)
+    pos = np.full(lum.shape, 0.5, np.float32)
+    joints = np.zeros(lum.shape, bool)
+    for name, m in mats.items():
+        sel = drawn & (mat == name)
+        if not sel.any():
+            continue
+        mode = m.get("mode", "shade")
+        base = float(m.get("base", 0.35))
+        span = float(m.get("span", 0.65))
+        v = lum[sel]
+        if mode == "flat":
+            t = np.full(v.shape, 0.5, np.float32)
+        elif mode == "parts":
+            # A grid part is its character; otherwise a connected piece.
+            lab = np.where(part >= 0, part, -1)
+            if not (lab[sel] >= 0).all():
+                cl, _ = _components(sel)
+                lab = np.where(lab >= 0, lab, 1000 + cl)
+            t_map = np.zeros(lum.shape, np.float32)
+            ids = np.unique(lab[sel])
+            means = np.array([lum[sel & (lab == i)].mean() for i in ids])
+            r = _rank01(means) if len(ids) > 1 else np.full(1, 0.5)
+            for i, ri in zip(ids, r):
+                t_map[sel & (lab == i)] = ri
+            t = t_map[sel]
+        else:
+            detail = float(m.get("detail", DETAIL))
+            lv = int(m.get("levels", levels_c))
+            t = (1.0 - detail) * _levels(v, lv) + detail * _rank01(v)
+        hv = base + span * t
+        pos[sel] = t
+        if mode == "shade" and m.get("joints", True):
+            d = v < np.quantile(v, 0.5) - 1.5 * np.std(v)
+            hv = np.where(d, base * (1.0 - float(m.get("joint", joint_c))), hv)
+            jm = np.zeros(lum.shape, bool)
+            jm[sel] = d
+            joints |= jm
+        hgt[sel] = hv
+    f = ~np.isnan(fixed) & drawn
+    hgt[f] = fixed[f]
+    hgt[~drawn] = 0.0
+    return np.clip(hgt, 0.0, 1.0), pos, joints, mat
+
+
+def chamfer(h, px=1):
+    """A px wide bevel on every step (wrapped box blur), nothing more."""
+    out = h.copy()
+    for _ in range(px):
+        acc = np.zeros_like(out)
+        for dy in (-1, 0, 1):
+            for dx in (-1, 0, 1):
+                acc += np.roll(out, (dy, dx), axis=(0, 1))
+        out = acc / 9.0
+    return out
+
+
+def build(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, preview=True):
+    """Write the stem's three maps to out_dir and return lib's metrics."""
+    spec = load_spec(stem, game) if spec is None else spec
+    cls = spec.get("class") or lib.class_of(stem, game)
+    _, _, strength, spread = CLASS_STYLE.get(cls, DEFAULT_STYLE)
+    strength = float(spec.get("strength", strength))
+    src = lib.load_source(stem, game)
+    if src.shape[0] != src.shape[1]:
+        raise ValueError("%s is %dx%d; animated strips need their own path"
+                         % (stem, src.shape[1], src.shape[0]))
+    hgt, pos, joints, mat = heights(src, spec, cls)
+    n = lib.SIZE // src.shape[0]
+    up = lambda a: np.kron(a, np.ones((n, n), dtype=a.dtype))  # noqa: E731
+    hi = chamfer(up(hgt), 1)
+
+    level, _, is_metal = lib.class_spec(cls)
+    mats = spec.get("materials") or {"base": {}}
+    sm = np.zeros(hgt.shape, np.float32)
+    f0 = np.full(hgt.shape, lib.DIELECTRIC_F0 / 255.0, np.float32)
+    metal = np.full(hgt.shape, bool(is_metal))
+    glow = np.zeros(hgt.shape, np.float32)
+    for name, m in mats.items():
+        sel = mat == name
+        s0 = float(m.get("smooth", CLASS_SMOOTH.get(cls, level)))
+        sp = float(m.get("smooth_spread", spread))
+        # Raised faces a touch smoother (worn), no noise.
+        sm[sel] = s0 + sp * (pos[sel] - 0.5)
+        if "f0" in m:
+            f0[sel] = float(m["f0"])
+        if "metal" in m:
+            metal[sel] = bool(m["metal"])
+        g = float(m.get("emission", 0.0))
+        # emission_shade: the lighter texels glow and the darker ones less,
+        # so a glowing block keeps its pattern instead of washing to flat.
+        glow[sel] = g * pos[sel] ** 2 if m.get("emission_shade") else g
+    sm[joints] -= spread
+    emission = up(glow) if glow.max() > 0 else None
+    return lib.pack(stem, out_dir, lib.upscale(src), hi, np.clip(up(sm), 0.0, 1.0), cls,
+                    normal_strength=strength, metal_mask=up(metal), keep_mean=False,
+                    emission=emission, f0=up(f0), fine_detail=1.0,
+                    art_texels=src.shape[0])
+
+
+def palette_map(stem, game=lib.DEFAULT_GAME):
+    """Print the art's palette and a texel map of palette indices, for an
+    author writing a spec."""
+    src = lib.load_source(stem, game)
+    rgb = np.clip(np.round(src[..., :3] * 255.0), 0, 255).astype(int)
+    alpha = src[..., 3] if src.shape[-1] == 4 else np.ones(src.shape[:2])
+    cols, inv = np.unique(rgb.reshape(-1, 3), axis=0, return_inverse=True)
+    inv = inv.reshape(src.shape[:2])
+    lum = lib.luminance(cols / 255.0)
+    for i, c in enumerate(cols):
+        print("%3d #%02x%02x%02x lum %.2f n %d" % (i, *c, lum[i], (inv == i).sum()))
+    for y in range(src.shape[0]):
+        print(" ".join(" ." if alpha[y, x] < 0.5 else "%2d" % inv[y, x] for x in range(src.shape[1])))
+
+
+if __name__ == "__main__":
+    import argparse
+    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    ap.add_argument("out_dir")
+    ap.add_argument("stems", nargs="+")
+    ap.add_argument("--game", default=lib.DEFAULT_GAME)
+    ap.add_argument("--palette", action="store_true", help="print palette maps and stop")
+    a = ap.parse_args()
+    for s in a.stems:
+        if a.palette:
+            print("==", s)
+            palette_map(s, a.game)
+            continue
+        m = build(s, a.out_dir, a.game)
+        print(s, "ok")

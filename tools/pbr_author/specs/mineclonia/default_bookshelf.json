@@ -1,0 +1,95 @@
+{
+ "materials": {
+  "frame": {
+   "mode": "flat",
+   "base": 0.95,
+   "span": 0
+  },
+  "interior": {
+   "mode": "flat",
+   "base": 0.05,
+   "span": 0
+  },
+  "book_orange": {
+   "mode": "parts",
+   "base": 0.42,
+   "span": 0.25,
+   "smooth": 0.3
+  },
+  "book_purple": {
+   "mode": "parts",
+   "base": 0.44999999999999996,
+   "span": 0.25,
+   "smooth": 0.3
+  },
+  "book_green": {
+   "mode": "parts",
+   "base": 0.48,
+   "span": 0.25,
+   "smooth": 0.3
+  },
+  "book_red": {
+   "mode": "parts",
+   "base": 0.51,
+   "span": 0.25,
+   "smooth": 0.3
+  },
+  "book_grey": {
+   "mode": "parts",
+   "base": 0.54,
+   "span": 0.25,
+   "smooth": 0.3
+  },
+  "book_blue": {
+   "mode": "parts",
+   "base": 0.57,
+   "span": 0.25,
+   "smooth": 0.3
+  }
+ },
+ "palette": {
+  "#1d1d3b": "book_purple",
+  "#211915": "interior",
+  "#223817": "book_green",
+  "#24425e": "book_blue",
+  "#2c2c4f": "book_purple",
+  "#30241f": "interior",
+  "#304b22": "book_green",
+  "#325773": "book_blue",
+  "#325b1c": "book_green",
+  "#36365e": "book_purple",
+  "#39365b": "book_purple",
+  "#396685": "book_blue",
+  "#3d6c25": "book_green",
+  "#3e1511": "book_red",
+  "#3f3d35": "book_grey",
+  "#423429": "frame",
+  "#46782b": "book_green",
+  "#483a78": "book_purple",
+  "#4e3e30": "frame",
+  "#4f7e96": "book_blue",
+  "#57554b": "book_grey",
+  "#59221a": "book_red",
+  "#594637": "frame",
+  "#5f5096": "book_purple",
+  "#613316": "book_orange",
+  "#624b3b": "frame",
+  "#646356": "book_grey",
+  "#6e2b23": "book_red",
+  "#713c1a": "book_orange",
+  "#715644": "frame",
+  "#727063": "book_grey",
+  "#775b49": "frame",
+  "#7c3128": "book_red",
+  "#7c5f4c": "frame",
+  "#878476": "book_grey",
+  "#896a4e": "frame",
+  "#8d5129": "book_orange",
+  "#917052": "frame",
+  "#933828": "book_red",
+  "#9e7960": "frame",
+  "#a46136": "book_orange",
+  "#b67347": "book_orange",
+  "#cd8351": "book_orange"
+ }
+}
