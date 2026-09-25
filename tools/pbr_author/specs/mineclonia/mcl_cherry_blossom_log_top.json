@@ -1,0 +1,10 @@
+{
+ "materials": {
+  "bark": {"mode": "shade", "base": 0.35, "span": 0.4},
+  "face": {"mode": "shade", "base": 0.4, "span": 0.35}
+ },
+ "palette": {
+  "#a86f6c": "face", "#ba7b76": "face", "#d08681": "face",
+  "#e68f83": "face", "#ffa692": "face", "#ffb5a4": "face"
+ }
+}

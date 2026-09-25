@@ -1,0 +1,9 @@
+{
+ "materials": {
+  "bark": {"mode": "shade", "base": 0.3, "span": 0.45, "joints": false},
+  "growth": {"mode": "shade", "base": 0.78, "span": 0.15, "smooth": 0.35}
+ },
+ "palette": {
+  "#b14b3d": "growth", "#bf6546": "growth"
+ }
+}

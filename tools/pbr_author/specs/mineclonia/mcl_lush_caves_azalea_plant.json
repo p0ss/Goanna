@@ -1,0 +1,21 @@
+{
+ "class": "leaves",
+ "materials": {
+  "leaf": {
+   "mode": "shade",
+   "base": 0.35,
+   "span": 0.55
+  },
+  "twig": {
+   "mode": "shade",
+   "base": 0.1,
+   "span": 0.2
+  }
+ },
+ "palette": {
+  "#5e463f": "twig",
+  "#694f45": "twig",
+  "#7b5d4d": "twig",
+  "#896a52": "twig"
+ }
+}

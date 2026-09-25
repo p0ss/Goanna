@@ -1,0 +1,10 @@
+{
+ "class": "leaves",
+ "materials": {
+  "petal": {
+   "mode": "shade",
+   "base": 0.45,
+   "span": 0.2
+  }
+ }
+}

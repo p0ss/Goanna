@@ -1,0 +1,27 @@
+{
+ "class": "leaves",
+ "materials": {
+  "petal": {
+   "mode": "shade",
+   "base": 0.55,
+   "span": 0.4
+  },
+  "pod": {
+   "mode": "shade",
+   "base": 0.15,
+   "span": 0.35
+  }
+ },
+ "palette": {
+  "#c2457f": "petal",
+  "#c95a97": "petal",
+  "#d16aa9": "petal",
+  "#e07dc1": "petal",
+  "#bc8643": "pod",
+  "#dba746": "pod",
+  "#e8b943": "pod",
+  "#3a2e29": "pod",
+  "#47362c": "pod",
+  "#543f31": "pod"
+ }
+}

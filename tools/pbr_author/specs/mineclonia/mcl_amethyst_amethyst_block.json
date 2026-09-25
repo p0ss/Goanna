@@ -1,0 +1,13 @@
+{
+ "class": "stone",
+ "materials": {
+  "amethyst": {
+   "mode": "shade",
+   "base": 0.3,
+   "span": 0.6,
+   "smooth": 0.7,
+   "smooth_spread": 0.08,
+   "f0": 0.08
+  }
+ }
+}
