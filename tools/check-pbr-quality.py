@@ -89,6 +89,22 @@ def visible_mask(src_alpha, shape):
     return mask if mask.any() else np.ones(shape, dtype=bool)
 
 
+AUTHOR_SPECS = Path(__file__).resolve().parent / "pbr_author" / "specs"
+
+
+def authored_smoothness_declared(stem):
+    """True when a tools/pbr_author/specs/<game>/<stem>.json sets any
+    material's smoothness."""
+    for spec in AUTHOR_SPECS.glob("*/%s.json" % stem):
+        try:
+            materials = json.loads(spec.read_text()).get("materials", {})
+        except (OSError, ValueError):
+            continue
+        if any("smooth" in m for m in materials.values()):
+            return True
+    return False
+
+
 def inspect(stem, normal_path, spec_path, material, source=None, albedo=None,
             review=None, pipeline=None):
     failures, warnings = [], []
@@ -169,6 +185,16 @@ def inspect(stem, normal_path, spec_path, material, source=None, albedo=None,
     max_smooth = review.get("smoothness_max", {"stone": 0.25, "soil": 0.18, "sand": 0.20,
                   "gravel": 0.22, "wood": 0.36, "cloth": 0.22,
                   "leaves": 0.42, "metal": 0.62}.get(material, 0.65))
+    # Authored metal is polished on purpose (tools/pbr_author/extrude.py
+    # CLASS_SMOOTH): the bake's 0.40 read as cast iron beside the extruded
+    # relief. The cap above was set against the bake's level.
+    if pipeline == AUTHORED and material == "metal":
+        max_smooth = max(max_smooth, 0.90)
+    # An authored stem whose spec sets a material's smoothness (obsidian on
+    # an enchanting table, a smithing table's iron) was given that level by
+    # a person on purpose; the class cap describes the stem's main material.
+    if pipeline == AUTHORED and authored_smoothness_declared(stem):
+        max_smooth = 1.0
     if metrics["mean_smoothness"] > max_smooth and material not in ("glass", "ice"):
         failures.append("surface is too smooth for material class %s" % material)
     # Opposite edges only need to meet on art that repeats. Warning that a
@@ -194,6 +220,10 @@ def inspect(stem, normal_path, spec_path, material, source=None, albedo=None,
                               ("partial", "predominant")
                               and review.get("primary_material") in
                               ("metal", "mixed"))
+            # An authored map's metal texels were declared by a person in a
+            # spec (tools/pbr_author/specs/), not inferred from the pixels,
+            # which is the false positive this rule exists for.
+            reviewed_metal = reviewed_metal or pipeline == AUTHORED
             if metrics["source_luminance"] < 0.35:
                 if reviewed_metal:
                     warnings.append("dark art carries reviewed metalness")

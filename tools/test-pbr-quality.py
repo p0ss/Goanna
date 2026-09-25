@@ -125,6 +125,16 @@ class PbrQualityTest(unittest.TestCase):
         packed = np.asarray(Image.open(out).convert("RGBA"))
         self.assertEqual(set(np.unique(packed[..., 1])), {10})
 
+    def test_authored_metal_may_be_polished(self):
+        # tools/pbr_author/extrude.py polishes metal to 0.78; the bake's cap
+        # of 0.62 still holds for baked maps.
+        polished = round(0.78 * 255)
+        baked = quality.inspect("tile", *self.maps(smooth=polished, metal=255), "metal")
+        authored = quality.inspect("tile", *self.maps(smooth=polished, metal=255,
+                                                      authored=True), "metal")
+        self.assertIn("surface is too smooth for material class metal", baked["failures"])
+        self.assertNotIn("surface is too smooth for material class metal", authored["failures"])
+
     def test_height_is_measured_the_same_way_whoever_wrote_it(self):
         # lib.band holds a cast slab's relief in a narrow band about the
         # middle of the byte and leaves the depth to the shader's class
@@ -197,8 +207,12 @@ class PbrQualityTest(unittest.TestCase):
         solid[..., 3] = 1.0
         cut = solid.copy()
         cut[:, : size // 2, 3] = 0.0
-        author.pack("solid", self.root, solid, ramp, ramp, "stone", 8.0)
-        author.pack("cut", self.root, cut, ramp, ramp, "stone", 8.0)
+        # keep_mean off: since 90ddb3a the smoothness level is taken over
+        # drawn texels only, so a cut-out's drawn texels are levelled
+        # differently from a solid tile's on purpose. This test is about
+        # the mask, and the level is tested where it is set.
+        author.pack("solid", self.root, solid, ramp, ramp, "stone", 8.0, keep_mean=False)
+        author.pack("cut", self.root, cut, ramp, ramp, "stone", 8.0, keep_mean=False)
         hole = np.zeros((size, size), dtype=bool)
         hole[:, : size // 2] = True
         for suffix, neutral in (("_n.png", bake.NEUTRAL_N),

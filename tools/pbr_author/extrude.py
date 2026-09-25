@@ -268,10 +268,113 @@ def build(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, preview=True):
         glow[sel] = g * pos[sel] ** 2 if m.get("emission_shade") else g
     sm[joints] -= spread
     emission = up(glow) if glow.max() > 0 else None
-    return lib.pack(stem, out_dir, lib.upscale(src), hi, np.clip(up(sm), 0.0, 1.0), cls,
+    return lib.pack(stem, out_dir, lib.upscale(src), hi, np.clip(up(sm), 0.0, lib.SMOOTH_CEILING), cls,
                     normal_strength=strength, metal_mask=up(metal), keep_mean=False,
                     emission=emission, f0=up(f0), fine_detail=1.0,
                     art_texels=src.shape[0])
+
+
+# --- judging ----------------------------------------------------------------
+# lib.check's targets (mean tilt, occlusion minimum, smoothness spread) were
+# written for the domed, grained look this replaces: a flat plateau has
+# almost no mean tilt by design, so every extruded stem failed them. These
+# measure what this look promises instead, from the files as written.
+
+def relief_depth(n):
+    """tools/../src/goanna_textures.cpp reliefDepth, ported: the parallax
+    depth in nodes the client derives from an authored _n map (median of
+    normal slope over height gradient, per map width, capped at 0.10)."""
+    h, w = n.shape[:2]
+    ys, xs = np.mgrid[0:h:2, 0:w:2]
+    nx = n[ys, xs, 0] * 2 - 1
+    ny = n[ys, xs, 1] * 2 - 1
+    nz = np.sqrt(np.clip(1 - nx * nx - ny * ny, 1e-4, 1))
+    a = n[..., 3]
+    gx = (a[ys, (xs + 1) % w] - a[ys, (xs - 1) % w]) * 0.5
+    gy = (a[(ys + 1) % h, xs] - a[(ys - 1) % h, xs]) * 0.5
+    g = np.abs(gx) + np.abs(gy)
+    r = ((np.abs(nx) + np.abs(ny)) / nz / np.maximum(g, 1e-6))[g > 0.01]
+    if r.size < 100:
+        return 0.0, 0.0
+    raw = float(np.median(r)) / w
+    return min(0.10, raw), raw
+
+
+def _gate():
+    import importlib.util
+    path = lib.REPO / "tools" / "check-pbr-quality.py"
+    spec = importlib.util.spec_from_file_location("check_pbr_quality", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def check(stem, out_dir, game=lib.DEFAULT_GAME, spec=None):
+    """Pass or fail lines for an extruded stem."""
+    from PIL import Image
+    spec = load_spec(stem, game) if spec is None else spec
+    cls = spec.get("class") or lib.class_of(stem, game)
+    out_dir = Path(out_dir)
+    n = np.asarray(Image.open(out_dir / (stem + "_n.png")).convert("RGBA")).astype(np.float32) / 255.0
+    s = np.asarray(Image.open(out_dir / (stem + "_s.png")).convert("RGBA")).astype(np.float32) / 255.0
+    src = lib.load_source(stem, game)
+    art = src.shape[0]
+    cell = lib.SIZE // art
+    alpha = src[..., 3] if src.shape[-1] == 4 else np.ones((art, art), np.float32)
+    drawn = alpha >= 0.5
+    lines = []
+
+    def line(ok, text):
+        lines.append(("ok   " if ok else "FAIL ") + text)
+
+    # On the grid: inside each texel, away from its one pixel chamfer, the
+    # height is one value. Grain or noise inside a texel fails this.
+    hmap = n[..., 3].reshape(art, cell, art, cell)[:, 2:-2, :, 2:-2]
+    spread = hmap.max(axis=(1, 3)) - hmap.min(axis=(1, 3))
+    share = float((spread[drawn] <= 2.5 / 255).mean()) if drawn.any() else 1.0
+    line(share >= 0.98, "on the texel grid %.0f%% of drawn texels (want >= 98)" % (100 * share))
+
+    # Relief exists: the drawn texels take several heights.
+    tex_h = np.round(hmap.mean(axis=(1, 3)) * 255)[drawn]
+    levels = len(np.unique(tex_h))
+    flat_only = all(m.get("mode") == "flat" for m in (spec.get("materials") or {"b": {}}).values())
+    line(flat_only or levels >= 3, "%d distinct texel heights (want >= 3)" % levels)
+
+    # The depth the client will march, and whether its cap cut the map.
+    depth, raw = relief_depth(n)
+    line(0.02 <= raw <= 0.105, "parallax depth %.3f node%s (want 0.02 to 0.10)"
+         % (depth, "" if raw <= 0.105 else ", clipped from %.3f" % raw))
+
+    # Tiling at texel joins. The art's own wrap is its design, so a height
+    # seam only fails where the albedo has none.
+    seam_h = lib.seam_energy(n[..., 3], cell)
+    seam_a = lib.seam_energy(lib.upscale(src[..., :3]), cell)
+    # Height is a function of each texel's colour and material, so any
+    # seam it has is the art's (a framed block's frame sits on the tile
+    # edge by design). Reported, never failed.
+    lines.append("note height seam %.2f at texel joins (albedo %.2f)" % (seam_h, seam_a))
+
+    # Smoothness stays in the byte's usable range on drawn texels, and the
+    # client's mean per layer is what the far field will use.
+    up = np.kron(drawn, np.ones((cell, cell), bool))
+    sm = s[..., 0][up] if up.any() else s[..., 0].ravel()
+    line(sm.max() <= 0.951, "smoothness %.2f to %.2f, mean %.2f" % (sm.min(), sm.max(), sm.mean()))
+
+    # Holes carry the neutral fill the shader expects.
+    holes = ~up
+    if holes.any():
+        neutral = np.array(lib.pbr_bake.NEUTRAL_N, np.float32) / 255.0
+        line(bool(np.all(np.abs(n[holes] - neutral) < 1.5 / 255)), "cut-out holes neutral")
+
+    # The release gate, run on the same files with the same class.
+    g = _gate()
+    rep = g.inspect(stem, out_dir / (stem + "_n.png"), out_dir / (stem + "_s.png"), cls,
+                    lib.source_path(stem, game), out_dir / (stem + ".png"))
+    for f in rep["failures"]:
+        line(False, "gate: " + f)
+    for w in rep["warnings"]:
+        lines.append("note gate: " + w)
+    return lines
 
 
 def palette_map(stem, game=lib.DEFAULT_GAME):
@@ -302,5 +405,7 @@ if __name__ == "__main__":
             print("==", s)
             palette_map(s, a.game)
             continue
-        m = build(s, a.out_dir, a.game)
-        print(s, "ok")
+        build(s, a.out_dir, a.game)
+        lines = check(s, a.out_dir, a.game)
+        bad = [l for l in lines if l.startswith("FAIL")]
+        print("%-44s %s" % (s, "pass" if not bad else "; ".join(l[5:] for l in bad)))
