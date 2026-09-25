@@ -860,10 +860,13 @@ minutes after the tag, so the whole run sits in this section.
   rules are gone (they existed only to describe the doubled convention) and
   both pipelines are now measured by one rule, the two tests that asserted
   the old encoding assert the new one, and every baked map is composed
-  again. Authored stems are byte identical; 844 baked ones move.
-  `default_stone`, which a September re-bake had already flattened to 89 to
-  161, is back to 0 to 255. The gate still reports the same 11 smoothness
-  failures and no height failure on either pipeline.
+  again. Authored stems are byte identical; 844 baked ones move. The gate
+  still reports the same 11 smoothness failures and no height failure on
+  either pipeline. (Corrected 2026-09-25: this entry and 3c02257 also said
+  `default_stone` went from 89 to 161 back to 0 to 255. That was never true
+  of a shipped map. Mineclonia's `default_stone` is authored and is 89 to
+  161 by design; the 0 to 255 map was the bake's staging copy, which the
+  authored set overrides.)
 
   Still to do: `org.goanna.mineclonia.pack` 1.0.0, published this evening
   and installed on at least one machine, carries the flattened maps and
