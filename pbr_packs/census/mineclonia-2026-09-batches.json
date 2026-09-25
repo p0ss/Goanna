@@ -1,0 +1,4591 @@
+{
+ "meta": {
+  "schema": "goanna-pbr-census-batches/1",
+  "from": "mineclonia-2026-09.json",
+  "top": 350,
+  "cuts": {
+   "250": {
+    "after_batch": 34,
+    "stems": 253
+   },
+   "350": {
+    "after_batch": 48,
+    "stems": 355
+   }
+  },
+  "pulled_in_as_sibling_faces": [
+   "blast_furnace_front",
+   "farming_melon_top",
+   "mcl_anvils_anvil_base",
+   "mcl_anvils_anvil_top_damaged_0",
+   "mcl_bamboo_bamboo_bottom",
+   "mcl_bamboo_bamboo_fpm",
+   "mcl_bamboo_door_top",
+   "mcl_bamboo_leaf_big",
+   "mcl_bamboo_leaf_small",
+   "mcl_bamboo_scaffolding_top",
+   "mcl_beehives_bee_nest_bottom",
+   "mcl_beehives_bee_nest_front",
+   "mcl_beehives_bee_nest_front_honey",
+   "mcl_beehives_bee_nest_top",
+   "mcl_beehives_beehive_end",
+   "mcl_beehives_beehive_front",
+   "mcl_beehives_beehive_front_honey",
+   "mcl_bells_bell_floor_front",
+   "mcl_bells_bell_floor_side",
+   "mcl_bells_bell_floor_top",
+   "mcl_bells_bell_wall",
+   "mcl_blackstone_basalt_top_polished",
+   "mcl_books_chiseled_bookshelf_top",
+   "mcl_cauldrons_cauldron_inner",
+   "mcl_cherry_blossom_trapdoor",
+   "mcl_composter_compost",
+   "mcl_composter_ready",
+   "mcl_copper_pane_top",
+   "mcl_copper_pane_top_oxidized",
+   "mcl_copper_pane_top_weathered",
+   "mcl_copper_trapdoor_exposed",
+   "mcl_copper_trapdoor_oxidized",
+   "mcl_copper_trapdoor_weathered",
+   "mcl_core_bone_block_top",
+   "mcl_core_cactus_bottom",
+   "mcl_core_cactus_top",
+   "mcl_core_glass_magenta_detail",
+   "mcl_crimson_crimson_trapdoor",
+   "mcl_crimson_warped_trapdoor",
+   "mcl_deepslate_tuff_chiseled_bricks_top",
+   "mcl_deepslate_tuff_chiseled_top",
+   "mcl_doors_trapdoor_acacia",
+   "mcl_enchanting_table_bottom",
+   "mcl_enchanting_table_top",
+   "mcl_end_end_rod_bottom",
+   "mcl_end_end_rod_top",
+   "mcl_end_purpur_pillar_top",
+   "mcl_farming_farmland_dry",
+   "mcl_flowerpots_cactus",
+   "mcl_mangrove_propagule",
+   "mcl_mangrove_propagule_item",
+   "mcl_mangrove_trapdoor",
+   "mcl_nether_ancient_debris_top",
+   "mcl_nether_quartz_block_top",
+   "mcl_nether_quartz_chiseled_top",
+   "mcl_nether_quartz_pillar_top",
+   "mcl_ocean_dried_kelp_bottom",
+   "mcl_ocean_dried_kelp_top",
+   "mcl_pale_oak_trapdoor",
+   "mcl_pottery_sherds_pot_bottom",
+   "mcl_pottery_sherds_pot_top",
+   "mcl_sculk_catalyst_bottom",
+   "mcl_sculk_catalyst_top",
+   "mcl_stonecutter_bottom",
+   "mcl_stonecutter_top",
+   "smoker_bottom",
+   "smoker_front",
+   "smoker_top",
+   "xpanes_top_iron"
+  ]
+ },
+ "batches": [
+  {
+   "batch": 1,
+   "family": "natural rock",
+   "stems": [
+    {
+     "stem": "mcl_deepslate_top",
+     "rank_todo": 1,
+     "score": 35190.244,
+     "home_node": "mcl_deepslate:deepslate",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_end_end_stone",
+     "rank_todo": 4,
+     "score": 15429.477,
+     "home_node": "mcl_end:end_stone",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_blackstone_basalt_side",
+     "rank_todo": 9,
+     "score": 5581.025,
+     "home_node": "mcl_blackstone:basalt",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_blackstone_basalt_top",
+     "rank_todo": 36,
+     "score": 1347.652,
+     "home_node": "mcl_blackstone:basalt",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_deepslate_tuff",
+     "rank_todo": 10,
+     "score": 5145.451,
+     "home_node": "mcl_deepslate:tuff",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_blackstone_side",
+     "rank_todo": 24,
+     "score": 2058.661,
+     "home_node": "mcl_blackstone:blackstone",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_blackstone_top",
+     "rank_todo": 35,
+     "score": 1412.702,
+     "home_node": "mcl_blackstone:blackstone",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "dripstone_block",
+     "rank_todo": 25,
+     "score": 2020.95,
+     "home_node": "mcl_dripstone:dripstone_block",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    }
+   ],
+   "best_rank_todo": 1,
+   "median_rank_todo": 17.0,
+   "treatment": [
+    "natural stone: warp_labels allowed, domes from the art's regions, pores a few texels across"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/default_stone.py",
+    "tools/pbr_author/mcl_deepslate.py",
+    "tools/pbr_author/mcl_core_granite.py",
+    "tools/pbr_author/default_cobble.py"
+   ],
+   "cumulative_stems": 8,
+   "small": false
+  },
+  {
+   "batch": 2,
+   "family": "leaves",
+   "stems": [
+    {
+     "stem": "default_jungleleaves",
+     "rank_todo": 2,
+     "score": 18809.063,
+     "home_node": "mcl_trees:leaves_jungle",
+     "class": "leaves",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_pale_oak_leaves",
+     "rank_todo": 5,
+     "score": 14902.985,
+     "home_node": "mcl_trees:leaves_pale_oak",
+     "class": "leaves",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_mangrove_leaves",
+     "rank_todo": 11,
+     "score": 5030.106,
+     "home_node": "mcl_trees:leaves_mangrove",
+     "class": "leaves",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_flowers_leaf_litter",
+     "rank_todo": 16,
+     "score": 3477.597,
+     "home_node": "mcl_flowers:leaf_litter_3",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_cherry_blossom_leaves",
+     "rank_todo": 20,
+     "score": 2793.733,
+     "home_node": "mcl_trees:leaves_cherry_blossom",
+     "class": "leaves",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "default_acacia_leaves",
+     "rank_todo": 26,
+     "score": 1728.975,
+     "home_node": "mcl_trees:leaves_acacia",
+     "class": "leaves",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_lush_caves_azalea_leaves",
+     "rank_todo": 178,
+     "score": 278.991,
+     "home_node": "mcl_trees:leaves_azalea",
+     "class": "leaves",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_lush_caves_azalea_leaves_flowering",
+     "rank_todo": 211,
+     "score": 229.89,
+     "home_node": "mcl_trees:leaves_azalea_flowering",
+     "class": "leaves",
+     "pulled_in_as_sibling_face": false
+    }
+   ],
+   "best_rank_todo": 2,
+   "median_rank_todo": 18.0,
+   "treatment": [
+    "clumps of leaf blades at the leaves class, alpha kept from the art"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/default_leaves.py",
+    "tools/pbr_author/mcl_core_leaves_spruce.py"
+   ],
+   "cumulative_stems": 16,
+   "small": false
+  },
+  {
+   "batch": 3,
+   "family": "soils",
+   "stems": [
+    {
+     "stem": "mcl_lush_caves_moss_block",
+     "rank_todo": 3,
+     "score": 17954.121,
+     "home_node": "mcl_lush_caves:moss",
+     "class": "soil",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "warped_nylium",
+     "rank_todo": 19,
+     "score": 2875.808,
+     "home_node": "mcl_crimson:warped_nylium",
+     "class": "cloth",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_pale_oak_moss",
+     "rank_todo": 30,
+     "score": 1546.695,
+     "home_node": "mcl_pale_oak:pale_moss",
+     "class": "soil",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "crimson_nylium",
+     "rank_todo": 48,
+     "score": 1062.646,
+     "home_node": "mcl_crimson:crimson_nylium",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_lush_caves_moss_carpet",
+     "rank_todo": 50,
+     "score": 1031.633,
+     "home_node": "mcl_lush_caves:moss_carpet",
+     "class": "soil",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_farming_farmland_wet",
+     "rank_todo": 72,
+     "score": 557.728,
+     "home_node": "mcl_farming:soil_wet",
+     "class": "soil",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_farming_farmland_dry",
+     "rank_todo": 714,
+     "score": 3.879,
+     "home_node": "mcl_farming:soil",
+     "class": "soil",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_blackstone_soul_soil",
+     "rank_todo": 124,
+     "score": 350.845,
+     "home_node": "mcl_blackstone:soul_soil",
+     "class": "soil",
+     "pulled_in_as_sibling_face": false
+    }
+   ],
+   "best_rank_todo": 3,
+   "median_rank_todo": 49.0,
+   "treatment": [
+    "soil class: sparse hollows for occlusion, clods, no warp on the dressed faces; grass tops are greyscale by design"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/default_dirt.py",
+    "tools/pbr_author/mcl_core_dirt_podzol_top.py",
+    "tools/pbr_author/mcl_mud.py",
+    "tools/pbr_author/mcl_core_mycelium_top.py"
+   ],
+   "cumulative_stems": 24,
+   "small": false
+  },
+  {
+   "batch": 4,
+   "family": "logs and planks",
+   "stems": [
+    {
+     "stem": "default_jungletree",
+     "rank_todo": 6,
+     "score": 12324.77,
+     "home_node": "mcl_trees:tree_jungle",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "default_jungletree_top",
+     "rank_todo": 42,
+     "score": 1104.521,
+     "home_node": "mcl_trees:tree_jungle",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_pale_oak_log",
+     "rank_todo": 7,
+     "score": 6494.418,
+     "home_node": "mcl_trees:tree_pale_oak",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_pale_oak_log_top",
+     "rank_todo": 45,
+     "score": 1087.828,
+     "home_node": "mcl_trees:tree_pale_oak",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "default_junglewood",
+     "rank_todo": 13,
+     "score": 4327.224,
+     "home_node": "mcl_trees:wood_jungle",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_fences_fence_oak",
+     "rank_todo": 15,
+     "score": 3670.159,
+     "home_node": "mcl_fences:oak_fence",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_fences_fence_birch",
+     "rank_todo": 22,
+     "score": 2611.305,
+     "home_node": "mcl_fences:birch_fence",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    }
+   ],
+   "best_rank_todo": 6,
+   "median_rank_todo": 15,
+   "treatment": [
+    "bark as ridged fibre running the log's length, end grain as rings; planks as boards with grain along the board and a joint between"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/default_tree.py",
+    "tools/pbr_author/default_tree_top.py",
+    "tools/pbr_author/default_wood.py",
+    "tools/pbr_author/mcl_core_planks_spruce.py"
+   ],
+   "cumulative_stems": 31,
+   "small": false
+  },
+  {
+   "batch": 5,
+   "family": "flora cut-outs + organic blocks",
+   "stems": [
+    {
+     "stem": "mcl_core_vine",
+     "rank_todo": 8,
+     "score": 6342.236,
+     "home_node": "mcl_core:vine",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_lush_caves_cave_vines",
+     "rank_todo": 18,
+     "score": 2992.051,
+     "home_node": "mcl_lush_caves:cave_vines",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_lush_caves_dripleaf_big",
+     "rank_todo": 23,
+     "score": 2345.884,
+     "home_node": "mcl_lush_caves:dripleaf_big_stem",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_flowers_fern",
+     "rank_todo": 31,
+     "score": 1526.138,
+     "home_node": "mcl_flowers:fern",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_lush_caves_dripleaf_small",
+     "rank_todo": 34,
+     "score": 1419.094,
+     "home_node": "mcl_lush_caves:dripleaf_small",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_pale_oak_hanging_moss",
+     "rank_todo": 43,
+     "score": 1100.694,
+     "home_node": "mcl_pale_oak:hanging_moss",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_pale_oak_hanging_moss_tip",
+     "rank_todo": 56,
+     "score": 811.671,
+     "home_node": "mcl_pale_oak:hanging_moss_tip",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_pale_oak_resin_block",
+     "rank_todo": 343,
+     "score": 96.972,
+     "home_node": "mcl_pale_oak:block_of_resin",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    }
+   ],
+   "best_rank_todo": 8,
+   "median_rank_todo": 32.5,
+   "treatment": [
+    "cut-out billboards through the scissor shader, relief from shading only; keep the alpha",
+    "a bundle or a skin: fibres or cells at their own scale, never the stone recipe"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/mcl_flowers_tallgrass.py",
+    "tools/pbr_author/mcl_flowers_double_plant_grass_top.py",
+    "tools/pbr_author/mcl_farming_hayblock_side.py",
+    "tools/pbr_author/farming_pumpkin_side.py"
+   ],
+   "cumulative_stems": 39,
+   "small": false
+  },
+  {
+   "batch": 6,
+   "family": "ice and snow + sands and gravels + soils",
+   "stems": [
+    {
+     "stem": "default_ice",
+     "rank_todo": 12,
+     "score": 4362.67,
+     "home_node": "mcl_core:ice",
+     "class": "ice",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_core_ice_packed",
+     "rank_todo": 52,
+     "score": 960.852,
+     "home_node": "mcl_core:packed_ice",
+     "class": "ice",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_core_ice_blue",
+     "rank_todo": 236,
+     "score": 193.945,
+     "home_node": "mcl_core:blue_ice",
+     "class": "ice",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "powder_snow",
+     "rank_todo": 243,
+     "score": 191.5,
+     "home_node": "mcl_powder_snow:powder_snow",
+     "class": "snow",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_nether_soul_sand",
+     "rank_todo": 38,
+     "score": 1272.659,
+     "home_node": "mcl_nether:soul_sand",
+     "class": "sand",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_mud_packed_mud",
+     "rank_todo": 201,
+     "score": 242.431,
+     "home_node": "mcl_mud:packed_mud",
+     "class": "soil",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_lush_caves_rooted_dirt",
+     "rank_todo": 225,
+     "score": 202.145,
+     "home_node": "mcl_lush_caves:rooted_dirt",
+     "class": "soil",
+     "pulled_in_as_sibling_face": false
+    }
+   ],
+   "best_rank_todo": 12,
+   "median_rank_todo": 201,
+   "treatment": [
+    "nearly flat: snow at the snow class tilt, ice smooth with shallow cracks and bubbles in the smoothness",
+    "grains a texel or two across; sand under the sand tilt band",
+    "soil class: sparse hollows for occlusion, clods, no warp on the dressed faces; grass tops are greyscale by design"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/default_snow.py",
+    "tools/pbr_author/default_sand.py",
+    "tools/pbr_author/mcl_core_red_sand.py",
+    "tools/pbr_author/default_gravel.py",
+    "tools/pbr_author/default_dirt.py",
+    "tools/pbr_author/mcl_core_dirt_podzol_top.py",
+    "tools/pbr_author/mcl_mud.py",
+    "tools/pbr_author/mcl_core_mycelium_top.py"
+   ],
+   "cumulative_stems": 46,
+   "small": false
+  },
+  {
+   "batch": 7,
+   "family": "glowing blocks",
+   "stems": [
+    {
+     "stem": "mcl_lush_caves_cave_vines_lit",
+     "rank_todo": 14,
+     "score": 3877.199,
+     "home_node": "mcl_lush_caves:cave_vines_lit",
+     "class": "leaves",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "shroomlight",
+     "rank_todo": 195,
+     "score": 252.478,
+     "home_node": "mcl_crimson:shroomlight",
+     "class": "soil",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_end_end_rod_side",
+     "rank_todo": 319,
+     "score": 103.437,
+     "home_node": "mcl_end:end_rod",
+     "class": "ice",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_end_end_rod_bottom",
+     "rank_todo": 578,
+     "score": 25.859,
+     "home_node": "mcl_end:end_rod",
+     "class": "ice",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_end_end_rod_top",
+     "rank_todo": 579,
+     "score": 25.859,
+     "home_node": "mcl_end:end_rod",
+     "class": "ice",
+     "pulled_in_as_sibling_face": true
+    }
+   ],
+   "best_rank_todo": 14,
+   "median_rank_todo": 319,
+   "treatment": [
+    "emission field from the art's bright texels; the unlit matrix keeps its class; compare the pumpkin face and glowstone"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/mcl_nether_glowstone.py",
+    "tools/pbr_author/farming_pumpkin_face_light.py",
+    "tools/pbr_author/jeija_torches_on.py"
+   ],
+   "cumulative_stems": 51,
+   "small": false
+  },
+  {
+   "batch": 8,
+   "family": "organic blocks",
+   "stems": [
+    {
+     "stem": "warped_wart_block",
+     "rank_todo": 17,
+     "score": 3470.237,
+     "home_node": "mcl_crimson:warped_wart_block",
+     "class": "soil",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_nether_nether_wart_block",
+     "rank_todo": 21,
+     "score": 2667.753,
+     "home_node": "mcl_nether:nether_wart_block",
+     "class": "soil",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_ocean_brain_coral_block",
+     "rank_todo": 122,
+     "score": 352.88,
+     "home_node": "mcl_ocean:brain_coral",
+     "class": "soil",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_ocean_horn_coral_block",
+     "rank_todo": 137,
+     "score": 328.468,
+     "home_node": "mcl_ocean:horn_coral",
+     "class": "soil",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_mushrooms_mushroom_block_inside",
+     "rank_todo": 138,
+     "score": 328.348,
+     "home_node": "mcl_mushrooms:brown_mushroom_block_stem",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_mushrooms_mushroom_block_skin_stem",
+     "rank_todo": 209,
+     "score": 230.892,
+     "home_node": "mcl_mushrooms:brown_mushroom_block_stem",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_ocean_fire_coral_block",
+     "rank_todo": 141,
+     "score": 322.367,
+     "home_node": "mcl_ocean:fire_coral_fan",
+     "class": "soil",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_ocean_bubble_coral_block",
+     "rank_todo": 149,
+     "score": 313.236,
+     "home_node": "mcl_ocean:bubble_coral_fan",
+     "class": "soil",
+     "pulled_in_as_sibling_face": false
+    }
+   ],
+   "best_rank_todo": 17,
+   "median_rank_todo": 137.5,
+   "treatment": [
+    "a bundle or a skin: fibres or cells at their own scale, never the stone recipe"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/mcl_farming_hayblock_side.py",
+    "tools/pbr_author/farming_pumpkin_side.py"
+   ],
+   "cumulative_stems": 59,
+   "small": false
+  },
+  {
+   "batch": 9,
+   "family": "glass and panes + doors and trapdoors",
+   "stems": [
+    {
+     "stem": "default_glass",
+     "rank_todo": 27,
+     "score": 1712.45,
+     "home_node": "mcl_core:glass",
+     "class": "glass",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "default_glass_detail",
+     "rank_todo": 32,
+     "score": 1482.315,
+     "home_node": "mcl_core:glass",
+     "class": "glass",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_amethyst_tinted_glass",
+     "rank_todo": 232,
+     "score": 193.945,
+     "home_node": "mcl_amethyst:tinted_glass",
+     "class": "glass",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_crimson_warped_trapdoor_side",
+     "rank_todo": 317,
+     "score": 103.437,
+     "home_node": "mcl_doors:trapdoor_warped",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_crimson_warped_trapdoor",
+     "rank_todo": 442,
+     "score": 51.719,
+     "home_node": "mcl_doors:trapdoor_warped",
+     "class": "wood",
+     "pulled_in_as_sibling_face": true
+    }
+   ],
+   "best_rank_todo": 27,
+   "median_rank_todo": 232,
+   "treatment": [
+    "nearly flat: frame and streaks in lib.band, the pane itself smooth; no authored glass exists yet, so judge on the ramp with extra care",
+    "cut-out, scissor shader, no parallax: planks or plate held flat with lib.band, rails and hinges as shallow raised lines"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/default_obsidian.py",
+    "tools/pbr_author/doors_trapdoor_steel.py",
+    "tools/pbr_author/mcl_doors_wood_family.py",
+    "tools/pbr_author/doors_trapdoor_wood_family.py",
+    "tools/pbr_author/mcl_doors_iron_family.py"
+   ],
+   "cumulative_stems": 64,
+   "small": false
+  },
+  {
+   "batch": 10,
+   "family": "masonry and dressed stone",
+   "stems": [
+    {
+     "stem": "mcl_deepslate_tuff_bricks",
+     "rank_todo": 28,
+     "score": 1689.915,
+     "home_node": "mcl_deepslate:tuff_bricks",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_walls_cobble_wall_side",
+     "rank_todo": 29,
+     "score": 1547.054,
+     "home_node": "mcl_walls:cobble_0",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_walls_cobble_wall_top",
+     "rank_todo": 248,
+     "score": 183.699,
+     "home_node": "mcl_walls:cobble_0",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_nether_nether_brick",
+     "rank_todo": 40,
+     "score": 1216.019,
+     "home_node": "mcl_nether:nether_brick",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_core_red_sandstone_top",
+     "rank_todo": 59,
+     "score": 773.867,
+     "home_node": "mcl_core:redsandstonesmooth2",
+     "class": "sand",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_core_red_sandstone_normal",
+     "rank_todo": 65,
+     "score": 633.36,
+     "home_node": "mcl_core:redsandstone",
+     "class": "sand",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_stairs_stone_slab_top",
+     "rank_todo": 71,
+     "score": 558.985,
+     "home_node": "mcl_core:stone_smooth",
+     "class": "gravel",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_ocean_prismarine_bricks",
+     "rank_todo": 85,
+     "score": 467.867,
+     "home_node": "mcl_ocean:prismarine_brick",
+     "class": "gravel",
+     "pulled_in_as_sibling_face": false
+    }
+   ],
+   "best_rank_todo": 28,
+   "median_rank_todo": 62.0,
+   "treatment": [
+    "built from the mortar mask, never connected components; dressed faces held flat, no warp"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/default_stone_brick.py",
+    "tools/pbr_author/default_brick.py",
+    "tools/pbr_author/mcl_core_stonebrick_carved.py",
+    "tools/pbr_author/mcl_core_sandstone_normal.py"
+   ],
+   "cumulative_stems": 72,
+   "small": false
+  },
+  {
+   "batch": 11,
+   "family": "logs and planks",
+   "stems": [
+    {
+     "stem": "mcl_mangrove_log",
+     "rank_todo": 33,
+     "score": 1419.603,
+     "home_node": "mcl_trees:tree_mangrove",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_mangrove_log_top",
+     "rank_todo": 136,
+     "score": 329.052,
+     "home_node": "mcl_trees:tree_mangrove",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_fences_fence_spruce",
+     "rank_todo": 37,
+     "score": 1309.27,
+     "home_node": "mcl_fences:spruce_fence",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_mangrove_roots_side",
+     "rank_todo": 39,
+     "score": 1245.686,
+     "home_node": "mcl_mangrove:mangrove_roots",
+     "class": "leaves",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_mangrove_roots_top",
+     "rank_todo": 128,
+     "score": 348.469,
+     "home_node": "mcl_mangrove:mangrove_roots",
+     "class": "leaves",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_fences_fence_jungle",
+     "rank_todo": 41,
+     "score": 1123.427,
+     "home_node": "mcl_fences:jungle_fence",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_bamboo_bamboo_plank",
+     "rank_todo": 44,
+     "score": 1099.403,
+     "home_node": "mcl_stairs:stair_bamboo",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    }
+   ],
+   "best_rank_todo": 33,
+   "median_rank_todo": 41,
+   "treatment": [
+    "bark as ridged fibre running the log's length, end grain as rings; planks as boards with grain along the board and a joint between"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/default_tree.py",
+    "tools/pbr_author/default_tree_top.py",
+    "tools/pbr_author/default_wood.py",
+    "tools/pbr_author/mcl_core_planks_spruce.py"
+   ],
+   "cumulative_stems": 79,
+   "small": false
+  },
+  {
+   "batch": 12,
+   "family": "flora cut-outs",
+   "stems": [
+    {
+     "stem": "mcl_bamboo_bamboo",
+     "rank_todo": 46,
+     "score": 1086.227,
+     "home_node": "mcl_bamboo:bamboo_small",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_bamboo_leaf_big",
+     "rank_todo": 706,
+     "score": 5.416,
+     "home_node": "mcl_bamboo:bamboo_small_leafbig",
+     "class": "wood",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_bamboo_leaf_small",
+     "rank_todo": 707,
+     "score": 5.416,
+     "home_node": "mcl_bamboo:bamboo_small_leafsmall",
+     "class": "wood",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "twisting_vines_plant",
+     "rank_todo": 61,
+     "score": 684.126,
+     "home_node": "mcl_crimson:twisting_vines",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_lush_caves_spore_blossom",
+     "rank_todo": 63,
+     "score": 642.51,
+     "home_node": "mcl_lush_caves:spore_blossom",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_lush_caves_spore_blossom_base",
+     "rank_todo": 64,
+     "score": 642.51,
+     "home_node": "mcl_lush_caves:spore_blossom",
+     "class": "gravel",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_crimson_weeping_vines",
+     "rank_todo": 68,
+     "score": 572.673,
+     "home_node": "mcl_crimson:weeping_vines",
+     "class": "leaves",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_flowers_oxeye_daisy",
+     "rank_todo": 76,
+     "score": 513.733,
+     "home_node": "mcl_flowers:oxeye_daisy",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    }
+   ],
+   "best_rank_todo": 46,
+   "median_rank_todo": 66.0,
+   "treatment": [
+    "cut-out billboards through the scissor shader, relief from shading only; keep the alpha"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/mcl_flowers_tallgrass.py",
+    "tools/pbr_author/mcl_flowers_double_plant_grass_top.py"
+   ],
+   "cumulative_stems": 87,
+   "small": false
+  },
+  {
+   "batch": 13,
+   "family": "metals and gem blocks",
+   "stems": [
+    {
+     "stem": "mcl_amethyst_amethyst_block",
+     "rank_todo": 47,
+     "score": 1071.559,
+     "home_node": "mcl_amethyst:amethyst_block",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_copper_block",
+     "rank_todo": 53,
+     "score": 933.868,
+     "home_node": "mcl_copper:block_preserved",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_copper_oxidized",
+     "rank_todo": 54,
+     "score": 912.675,
+     "home_node": "mcl_copper:block_oxidized_preserved",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_copper_oxidized_cut",
+     "rank_todo": 60,
+     "score": 712.9,
+     "home_node": "mcl_copper:block_oxidized_cut",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_copper_block_cut",
+     "rank_todo": 66,
+     "score": 629.929,
+     "home_node": "mcl_copper:block_cut",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_copper_exposed_cut",
+     "rank_todo": 78,
+     "score": 505.013,
+     "home_node": "mcl_copper:block_exposed_cut",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_copper_weathered_cut",
+     "rank_todo": 79,
+     "score": 504.1,
+     "home_node": "mcl_copper:block_weathered_cut",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_amethyst_budding_amethyst",
+     "rank_todo": 105,
+     "score": 397.663,
+     "home_node": "mcl_amethyst:budding_amethyst_block",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    }
+   ],
+   "best_rank_todo": 47,
+   "median_rank_todo": 63.0,
+   "treatment": [
+    "polished or cast faces flat with lib.band; metal_mask and high smoothness on bare metal, patina and oxide rough; gems take f0"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/doors_trapdoor_steel.py",
+    "tools/pbr_author/mcl_doors_door_iron_lower.py"
+   ],
+   "cumulative_stems": 95,
+   "small": false
+  },
+  {
+   "batch": 14,
+   "family": "logs and planks",
+   "stems": [
+    {
+     "stem": "mcl_cherry_blossom_log",
+     "rank_todo": 49,
+     "score": 1037.863,
+     "home_node": "mcl_trees:tree_cherry_blossom",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_cherry_blossom_log_top",
+     "rank_todo": 163,
+     "score": 298.207,
+     "home_node": "mcl_trees:tree_cherry_blossom",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "warped_hyphae_side",
+     "rank_todo": 55,
+     "score": 867.041,
+     "home_node": "mcl_trees:tree_warped",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "warped_hyphae",
+     "rank_todo": 348,
+     "score": 93.321,
+     "home_node": "mcl_trees:tree_warped",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "default_acacia_tree",
+     "rank_todo": 58,
+     "score": 775.353,
+     "home_node": "mcl_trees:tree_acacia",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "default_acacia_tree_top",
+     "rank_todo": 260,
+     "score": 164.332,
+     "home_node": "mcl_trees:tree_acacia",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "crimson_hyphae_side",
+     "rank_todo": 62,
+     "score": 663.912,
+     "home_node": "mcl_trees:tree_crimson",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "crimson_hyphae",
+     "rank_todo": 350,
+     "score": 91.991,
+     "home_node": "mcl_trees:tree_crimson",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    }
+   ],
+   "best_rank_todo": 49,
+   "median_rank_todo": 112.5,
+   "treatment": [
+    "bark as ridged fibre running the log's length, end grain as rings; planks as boards with grain along the board and a joint between"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/default_tree.py",
+    "tools/pbr_author/default_tree_top.py",
+    "tools/pbr_author/default_wood.py",
+    "tools/pbr_author/mcl_core_planks_spruce.py"
+   ],
+   "cumulative_stems": 103,
+   "small": false
+  },
+  {
+   "batch": 15,
+   "family": "rails, ladders and bars",
+   "stems": [
+    {
+     "stem": "mcl_lanterns_chain",
+     "rank_todo": 51,
+     "score": 997.618,
+     "home_node": "mcl_lanterns:chain",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "xpanes_pane_iron",
+     "rank_todo": 75,
+     "score": 520.521,
+     "home_node": "mcl_panes:bar_flat",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "xpanes_top_iron",
+     "rank_todo": 414,
+     "score": 62.931,
+     "home_node": "mcl_panes:bar_flat",
+     "class": "wood",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_copper_chain_oxidized",
+     "rank_todo": 150,
+     "score": 311.228,
+     "home_node": "mcl_lanterns:copper_chain_oxidized_preserved",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_core_web",
+     "rank_todo": 179,
+     "score": 278.498,
+     "home_node": "mcl_core:cobweb",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_copper_chain",
+     "rank_todo": 189,
+     "score": 263.449,
+     "home_node": "mcl_lanterns:copper_chain",
+     "class": "leaves",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_copper_chain_exposed",
+     "rank_todo": 254,
+     "score": 170.008,
+     "home_node": "mcl_lanterns:copper_chain_exposed_preserved",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_copper_chain_weathered",
+     "rank_todo": 255,
+     "score": 169.702,
+     "home_node": "mcl_lanterns:copper_chain_weathered_preserved",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    }
+   ],
+   "best_rank_todo": 51,
+   "median_rank_todo": 184.0,
+   "treatment": [
+    "cut-out, scissor shader, no parallax: relief reads from shading only"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/default_rail_family.py",
+    "tools/pbr_author/default_ladder.py"
+   ],
+   "cumulative_stems": 111,
+   "small": false
+  },
+  {
+   "batch": 16,
+   "family": "doors and trapdoors",
+   "stems": [
+    {
+     "stem": "mcl_doors_trapdoor_spruce_side",
+     "rank_todo": 57,
+     "score": 793.397,
+     "home_node": "mcl_doors:trapdoor_spruce_open",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_doors_trapdoor_spruce",
+     "rank_todo": 87,
+     "score": 464.253,
+     "home_node": "mcl_doors:trapdoor_spruce_open",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_doors_trapdoor_birch_side",
+     "rank_todo": 92,
+     "score": 447.459,
+     "home_node": "mcl_doors:trapdoor_birch_open",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_doors_trapdoor_birch",
+     "rank_todo": 213,
+     "score": 223.73,
+     "home_node": "mcl_doors:trapdoor_birch_open",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_copper_trapdoor_side",
+     "rank_todo": 100,
+     "score": 413.749,
+     "home_node": "mcl_copper:trapdoor",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_copper_trapdoor",
+     "rank_todo": 222,
+     "score": 206.874,
+     "home_node": "mcl_copper:trapdoor",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_copper_door_top",
+     "rank_todo": 196,
+     "score": 248.249,
+     "home_node": "mcl_copper:door_t_1",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_copper_door_bottom",
+     "rank_todo": 258,
+     "score": 165.5,
+     "home_node": "mcl_copper:door_b_1",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    }
+   ],
+   "best_rank_todo": 57,
+   "median_rank_todo": 148.0,
+   "treatment": [
+    "cut-out, scissor shader, no parallax: planks or plate held flat with lib.band, rails and hinges as shallow raised lines"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/mcl_doors_wood_family.py",
+    "tools/pbr_author/doors_trapdoor_wood_family.py",
+    "tools/pbr_author/mcl_doors_iron_family.py"
+   ],
+   "cumulative_stems": 119,
+   "small": false
+  },
+  {
+   "batch": 17,
+   "family": "workstations and furniture",
+   "stems": [
+    {
+     "stem": "mcl_lectern_lectern",
+     "rank_todo": 67,
+     "score": 596.078,
+     "home_node": "mcl_lectern:lectern",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_hoppers_hopper_outside",
+     "rank_todo": 81,
+     "score": 484.862,
+     "home_node": "mcl_hoppers:hopper",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_hoppers_hopper_inside",
+     "rank_todo": 339,
+     "score": 96.972,
+     "home_node": "mcl_hoppers:hopper",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_jukebox_side",
+     "rank_todo": 82,
+     "score": 484.862,
+     "home_node": "mcl_jukebox:jukebox",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_jukebox_top",
+     "rank_todo": 340,
+     "score": 96.972,
+     "home_node": "mcl_jukebox:jukebox",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    }
+   ],
+   "best_rank_todo": 67,
+   "median_rank_todo": 82,
+   "treatment": [
+    "manufactured faces: flat panels in lib.band, thin joints, iron fittings with metal_mask; never the cobble recipe on a furnace"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/default_furnace_front.py",
+    "tools/pbr_author/crafting_workbench_front.py",
+    "tools/pbr_author/default_bookshelf.py",
+    "tools/pbr_author/default_tnt_side.py"
+   ],
+   "cumulative_stems": 124,
+   "small": false
+  },
+  {
+   "batch": 18,
+   "family": "logs and planks",
+   "stems": [
+    {
+     "stem": "default_acacia_wood",
+     "rank_todo": 69,
+     "score": 560.668,
+     "home_node": "mcl_trees:wood_acacia",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_cherry_blossom_planks",
+     "rank_todo": 73,
+     "score": 530.945,
+     "home_node": "mcl_trees:wood_cherry_blossom",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_pale_oak_planks",
+     "rank_todo": 74,
+     "score": 530.945,
+     "home_node": "mcl_trees:wood_pale_oak",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_mangrove_planks",
+     "rank_todo": 83,
+     "score": 482.459,
+     "home_node": "mcl_trees:wood_mangrove",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "crimson_hyphae_wood",
+     "rank_todo": 90,
+     "score": 448.955,
+     "home_node": "mcl_trees:wood_crimson",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "warped_hyphae_wood",
+     "rank_todo": 91,
+     "score": 448.955,
+     "home_node": "mcl_trees:wood_warped",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_fences_fence_big_oak",
+     "rank_todo": 94,
+     "score": 437.77,
+     "home_node": "mcl_fences:dark_oak_fence",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_bamboo_bamboo_plank_mosaic",
+     "rank_todo": 113,
+     "score": 367.134,
+     "home_node": "mcl_bamboo:bamboo_mosaic",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    }
+   ],
+   "best_rank_todo": 69,
+   "median_rank_todo": 86.5,
+   "treatment": [
+    "bark as ridged fibre running the log's length, end grain as rings; planks as boards with grain along the board and a joint between"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/default_tree.py",
+    "tools/pbr_author/default_tree_top.py",
+    "tools/pbr_author/default_wood.py",
+    "tools/pbr_author/mcl_core_planks_spruce.py"
+   ],
+   "cumulative_stems": 132,
+   "small": false
+  },
+  {
+   "batch": 19,
+   "family": "colour families",
+   "stems": [
+    {
+     "stem": "mcl_beds_bed_red",
+     "rank_todo": 70,
+     "score": 560.307,
+     "home_node": "mcl_beds:bed_red_bottom",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_core_glass_light_blue",
+     "rank_todo": 280,
+     "score": 142.783,
+     "home_node": "mcl_core:glass_light_blue",
+     "class": "glass",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_core_glass_light_blue_detail",
+     "rank_todo": 313,
+     "score": 103.651,
+     "home_node": "mcl_core:glass_light_blue",
+     "class": "glass",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_beds_bed_white",
+     "rank_todo": 281,
+     "score": 142.649,
+     "home_node": "mcl_beds:bed_white_bottom",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_core_glass_magenta",
+     "rank_todo": 294,
+     "score": 128.325,
+     "home_node": "mcl_core:glass_magenta",
+     "class": "glass",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_core_glass_magenta_detail",
+     "rank_todo": 368,
+     "score": 79.895,
+     "home_node": "mcl_core:glass_magenta",
+     "class": "glass",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_beds_bed_yellow",
+     "rank_todo": 322,
+     "score": 102.259,
+     "home_node": "mcl_beds:bed_yellow_bottom",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    }
+   ],
+   "best_rank_todo": 70,
+   "median_rank_todo": 294,
+   "treatment": [
+    "one <family>_family.py module with a run(stem) and a one line script per colour; the weave, the cast face or the fired face held flat"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/wool_family.py",
+    "tools/pbr_author/concrete_family.py",
+    "tools/pbr_author/hardened_clay_family.py"
+   ],
+   "cumulative_stems": 139,
+   "small": false
+  },
+  {
+   "batch": 20,
+   "family": "flora cut-outs",
+   "stems": [
+    {
+     "stem": "mcl_lush_caves_azalea_plant",
+     "rank_todo": 77,
+     "score": 508.362,
+     "home_node": "mcl_lush_caves:azalea",
+     "class": "gravel",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_lush_caves_azalea_side",
+     "rank_todo": 97,
+     "score": 415.057,
+     "home_node": "mcl_lush_caves:azalea",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_lush_caves_azalea_top",
+     "rank_todo": 99,
+     "score": 414.532,
+     "home_node": "mcl_lush_caves:azalea",
+     "class": "soil",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_flowers_wildflower_stem",
+     "rank_todo": 80,
+     "score": 487.003,
+     "home_node": "mcl_flowers:pink_petals_3",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_cherry_blossom_pink_petals",
+     "rank_todo": 151,
+     "score": 309.436,
+     "home_node": "mcl_flowers:pink_petals_3",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "warped_roots",
+     "rank_todo": 89,
+     "score": 452.73,
+     "home_node": "mcl_crimson:warped_roots",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_flowers_azure_bluet",
+     "rank_todo": 110,
+     "score": 372.106,
+     "home_node": "mcl_flowers:azure_bluet",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_flowers_cornflower",
+     "rank_todo": 111,
+     "score": 371.637,
+     "home_node": "mcl_flowers:cornflower",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    }
+   ],
+   "best_rank_todo": 77,
+   "median_rank_todo": 98.0,
+   "treatment": [
+    "cut-out billboards through the scissor shader, relief from shading only; keep the alpha"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/mcl_flowers_tallgrass.py",
+    "tools/pbr_author/mcl_flowers_double_plant_grass_top.py"
+   ],
+   "cumulative_stems": 147,
+   "small": false
+  },
+  {
+   "batch": 21,
+   "family": "workstations and furniture",
+   "stems": [
+    {
+     "stem": "mcl_composter_side",
+     "rank_todo": 84,
+     "score": 472.731,
+     "home_node": "mcl_composters:composter",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_composter_bottom",
+     "rank_todo": 293,
+     "score": 128.957,
+     "home_node": "mcl_composters:composter",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_composter_compost",
+     "rank_todo": 382,
+     "score": 75.423,
+     "home_node": "mcl_composters:composter_1",
+     "class": "wood",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_composter_ready",
+     "rank_todo": 657,
+     "score": 10.775,
+     "home_node": "mcl_composters:composter_ready",
+     "class": "wood",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_barrels_barrel_side",
+     "rank_todo": 98,
+     "score": 414.86,
+     "home_node": "mcl_barrels:barrel_closed",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_barrels_barrel_top",
+     "rank_todo": 303,
+     "score": 109.741,
+     "home_node": "mcl_barrels:barrel_closed",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_barrels_barrel_bottom",
+     "rank_todo": 334,
+     "score": 96.972,
+     "home_node": "mcl_barrels:barrel_closed",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    }
+   ],
+   "best_rank_todo": 84,
+   "median_rank_todo": 303,
+   "treatment": [
+    "manufactured faces: flat panels in lib.band, thin joints, iron fittings with metal_mask; never the cobble recipe on a furnace"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/default_furnace_front.py",
+    "tools/pbr_author/crafting_workbench_front.py",
+    "tools/pbr_author/default_bookshelf.py",
+    "tools/pbr_author/default_tnt_side.py"
+   ],
+   "cumulative_stems": 154,
+   "small": false
+  },
+  {
+   "batch": 22,
+   "family": "masonry and dressed stone",
+   "stems": [
+    {
+     "stem": "mcl_deepslate_bricks",
+     "rank_todo": 86,
+     "score": 467.418,
+     "home_node": "mcl_deepslate:deepslate_bricks",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_blackstone_polished",
+     "rank_todo": 88,
+     "score": 454.312,
+     "home_node": "mcl_blackstone:blackstone_polished",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_deepslate_cobbled",
+     "rank_todo": 96,
+     "score": 428.954,
+     "home_node": "mcl_deepslate:deepslate_cobbled",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_deepslate_tuff_polished",
+     "rank_todo": 101,
+     "score": 413.418,
+     "home_node": "mcl_deepslate:tuff_polished",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_deepslate_polished",
+     "rank_todo": 104,
+     "score": 397.943,
+     "home_node": "mcl_deepslate:deepslate_polished",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_blackstone_polished_bricks",
+     "rank_todo": 106,
+     "score": 387.16,
+     "home_node": "mcl_blackstone:blackstone_brick_polished",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_deepslate_tiles",
+     "rank_todo": 107,
+     "score": 387.16,
+     "home_node": "mcl_deepslate:deepslate_tiles",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_nether_red_nether_brick",
+     "rank_todo": 108,
+     "score": 387.16,
+     "home_node": "mcl_nether:red_nether_brick",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    }
+   ],
+   "best_rank_todo": 86,
+   "median_rank_todo": 102.5,
+   "treatment": [
+    "built from the mortar mask, never connected components; dressed faces held flat, no warp"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/default_stone_brick.py",
+    "tools/pbr_author/default_brick.py",
+    "tools/pbr_author/mcl_core_stonebrick_carved.py",
+    "tools/pbr_author/mcl_core_sandstone_normal.py"
+   ],
+   "cumulative_stems": 162,
+   "small": false
+  },
+  {
+   "batch": 23,
+   "family": "crops",
+   "stems": [
+    {
+     "stem": "farming_mushroom_red",
+     "rank_todo": 93,
+     "score": 439.833,
+     "home_node": "mcl_mushrooms:mushroom_red",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_cocoas_cocoa_stage_1",
+     "rank_todo": 95,
+     "score": 436.571,
+     "home_node": "mcl_cocoas:cocoa_2",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_cocoas_cocoa_stage_0",
+     "rank_todo": 102,
+     "score": 410.377,
+     "home_node": "mcl_cocoas:cocoa_1",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_farming_wheat_stage_0",
+     "rank_todo": 123,
+     "score": 352.145,
+     "home_node": "mcl_farming:wheat_1",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "farming_warped_fungus",
+     "rank_todo": 161,
+     "score": 300.132,
+     "home_node": "mcl_crimson:warped_fungus",
+     "class": "leaves",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "farming_mushroom_brown",
+     "rank_todo": 177,
+     "score": 281.051,
+     "home_node": "mcl_mushrooms:mushroom_brown",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_farming_potatoes_stage_0",
+     "rank_todo": 230,
+     "score": 195.173,
+     "home_node": "mcl_farming:potato_1",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "farming_crimson_fungus",
+     "rank_todo": 246,
+     "score": 187.122,
+     "home_node": "mcl_crimson:crimson_fungus",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    }
+   ],
+   "best_rank_todo": 93,
+   "median_rank_todo": 142.0,
+   "treatment": [
+    "cut-out billboards: stalks and leaves as shallow relief in shading"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/mcl_flowers_tallgrass.py"
+   ],
+   "cumulative_stems": 170,
+   "small": false
+  },
+  {
+   "batch": 24,
+   "family": "ores",
+   "stems": [
+    {
+     "stem": "mcl_nether_gold_ore",
+     "rank_todo": 103,
+     "score": 408.897,
+     "home_node": "mcl_blackstone:nether_gold",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_deepslate_lapis_ore",
+     "rank_todo": 125,
+     "score": 350.73,
+     "home_node": "mcl_deepslate:deepslate_with_lapis",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_nether_quartz_ore",
+     "rank_todo": 215,
+     "score": 216.217,
+     "home_node": "mcl_nether:quartz_ore",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_nether_ancient_debris_side",
+     "rank_todo": 224,
+     "score": 203.378,
+     "home_node": "mcl_nether:ancient_debris",
+     "class": "gravel",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_nether_ancient_debris_top",
+     "rank_todo": 490,
+     "score": 41.029,
+     "home_node": "mcl_nether:ancient_debris",
+     "class": "gravel",
+     "pulled_in_as_sibling_face": true
+    }
+   ],
+   "best_rank_todo": 103,
+   "median_rank_todo": 215,
+   "treatment": [
+    "stone matrix built as the host rock's script builds it; metal veins take metal_mask and high smoothness, gems take f0 (diamond 0.17, emerald 0.16) near 0.9 smoothness"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/mcl_core_iron_ore.py",
+    "tools/pbr_author/mcl_deepslate_diamond_ore.py",
+    "tools/pbr_author/mcl_core_coal_ore.py"
+   ],
+   "cumulative_stems": 175,
+   "small": false
+  },
+  {
+   "batch": 25,
+   "family": "metals and gem blocks",
+   "stems": [
+    {
+     "stem": "mcl_copper_block_grate",
+     "rank_todo": 109,
+     "score": 377.122,
+     "home_node": "mcl_copper:block_grate_preserved",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "default_steel_block",
+     "rank_todo": 112,
+     "score": 370.998,
+     "home_node": "mcl_core:ironblock",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "default_gold_block",
+     "rank_todo": 119,
+     "score": 358.307,
+     "home_node": "mcl_core:goldblock",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_core_lapis_block",
+     "rank_todo": 132,
+     "score": 338.85,
+     "home_node": "mcl_core:lapisblock",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_copper_block_chiseled",
+     "rank_todo": 145,
+     "score": 317.068,
+     "home_node": "mcl_copper:block_chiseled",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_copper_exposed",
+     "rank_todo": 147,
+     "score": 313.907,
+     "home_node": "mcl_copper:block_exposed_preserved",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_copper_weathered",
+     "rank_todo": 148,
+     "score": 313.907,
+     "home_node": "mcl_copper:block_weathered_preserved",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_copper_oxidized_grate",
+     "rank_todo": 164,
+     "score": 297.884,
+     "home_node": "mcl_copper:block_oxidized_grate",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    }
+   ],
+   "best_rank_todo": 109,
+   "median_rank_todo": 138.5,
+   "treatment": [
+    "polished or cast faces flat with lib.band; metal_mask and high smoothness on bare metal, patina and oxide rough; gems take f0"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/doors_trapdoor_steel.py",
+    "tools/pbr_author/mcl_doors_door_iron_lower.py"
+   ],
+   "cumulative_stems": 183,
+   "small": false
+  },
+  {
+   "batch": 26,
+   "family": "masonry and dressed stone",
+   "stems": [
+    {
+     "stem": "mcl_blackstone_basalt_smooth",
+     "rank_todo": 114,
+     "score": 365.193,
+     "home_node": "mcl_blackstone:basalt_smooth",
+     "class": "gravel",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_nether_quartz_block_bottom",
+     "rank_todo": 115,
+     "score": 360.616,
+     "home_node": "mcl_nether:quartz_smooth",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_mud_bricks",
+     "rank_todo": 117,
+     "score": 359.55,
+     "home_node": "mcl_mud:mud_bricks",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_end_end_bricks",
+     "rank_todo": 118,
+     "score": 358.798,
+     "home_node": "mcl_end:end_bricks",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_ocean_prismarine_dark",
+     "rank_todo": 126,
+     "score": 349.025,
+     "home_node": "mcl_ocean:prismarine_dark",
+     "class": "gravel",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_deepslate_bricks_cracked",
+     "rank_todo": 130,
+     "score": 339.403,
+     "home_node": "mcl_deepslate:deepslate_bricks_cracked",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_deepslate_tiles_cracked",
+     "rank_todo": 131,
+     "score": 339.403,
+     "home_node": "mcl_deepslate:deepslate_tiles_cracked",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_end_purpur_block",
+     "rank_todo": 165,
+     "score": 296.978,
+     "home_node": "mcl_end:purpur_block",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    }
+   ],
+   "best_rank_todo": 114,
+   "median_rank_todo": 122.0,
+   "treatment": [
+    "built from the mortar mask, never connected components; dressed faces held flat, no warp"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/default_stone_brick.py",
+    "tools/pbr_author/default_brick.py",
+    "tools/pbr_author/mcl_core_stonebrick_carved.py",
+    "tools/pbr_author/mcl_core_sandstone_normal.py"
+   ],
+   "cumulative_stems": 191,
+   "small": false
+  },
+  {
+   "batch": 27,
+   "family": "flora cut-outs",
+   "stems": [
+    {
+     "stem": "flowers_dandelion_yellow",
+     "rank_todo": 116,
+     "score": 360.061,
+     "home_node": "mcl_flowers:dandelion",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_flowers_poppy",
+     "rank_todo": 121,
+     "score": 356.542,
+     "home_node": "mcl_flowers:poppy",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_flowers_tulip_red",
+     "rank_todo": 127,
+     "score": 348.9,
+     "home_node": "mcl_flowers:tulip_red",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_flowers_double_plant_fern_bottom",
+     "rank_todo": 134,
+     "score": 335.869,
+     "home_node": "mcl_flowers:double_fern",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_flowers_double_plant_fern_top",
+     "rank_todo": 135,
+     "score": 331.336,
+     "home_node": "mcl_flowers:double_fern_top",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "flowers_waterlily",
+     "rank_todo": 144,
+     "score": 318.058,
+     "home_node": "mcl_flowers:waterlily",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "flowers_tulip",
+     "rank_todo": 146,
+     "score": 315.008,
+     "home_node": "mcl_flowers:tulip_orange",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_flowers_tulip_pink",
+     "rank_todo": 152,
+     "score": 307.324,
+     "home_node": "mcl_flowers:tulip_pink",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    }
+   ],
+   "best_rank_todo": 116,
+   "median_rank_todo": 134.5,
+   "treatment": [
+    "cut-out billboards through the scissor shader, relief from shading only; keep the alpha"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/mcl_flowers_tallgrass.py",
+    "tools/pbr_author/mcl_flowers_double_plant_grass_top.py"
+   ],
+   "cumulative_stems": 199,
+   "small": false
+  },
+  {
+   "batch": 28,
+   "family": "logs and planks",
+   "stems": [
+    {
+     "stem": "mcl_core_stripped_oak_side",
+     "rank_todo": 120,
+     "score": 357.834,
+     "home_node": "mcl_trees:bark_stripped_oak",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_core_stripped_spruce_side",
+     "rank_todo": 129,
+     "score": 344.991,
+     "home_node": "mcl_trees:bark_stripped_spruce",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_cherry_blossom_log_stripped",
+     "rank_todo": 153,
+     "score": 306.881,
+     "home_node": "mcl_trees:bark_stripped_cherry_blossom",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_core_stripped_acacia_side",
+     "rank_todo": 154,
+     "score": 306.881,
+     "home_node": "mcl_trees:bark_stripped_acacia",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_core_stripped_birch_side",
+     "rank_todo": 155,
+     "score": 306.881,
+     "home_node": "mcl_trees:bark_stripped_birch",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_core_stripped_dark_oak_side",
+     "rank_todo": 156,
+     "score": 306.881,
+     "home_node": "mcl_trees:bark_stripped_dark_oak",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_core_stripped_jungle_side",
+     "rank_todo": 157,
+     "score": 306.881,
+     "home_node": "mcl_trees:bark_stripped_jungle",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_stripped_mangrove_log_side",
+     "rank_todo": 158,
+     "score": 306.881,
+     "home_node": "mcl_trees:bark_stripped_mangrove",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    }
+   ],
+   "best_rank_todo": 120,
+   "median_rank_todo": 154.5,
+   "treatment": [
+    "bark as ridged fibre running the log's length, end grain as rings; planks as boards with grain along the board and a joint between"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/default_tree.py",
+    "tools/pbr_author/default_tree_top.py",
+    "tools/pbr_author/default_wood.py",
+    "tools/pbr_author/mcl_core_planks_spruce.py"
+   ],
+   "cumulative_stems": 207,
+   "small": false
+  },
+  {
+   "batch": 29,
+   "family": "workstations and furniture",
+   "stems": [
+    {
+     "stem": "mcl_anvils_anvil_side",
+     "rank_todo": 133,
+     "score": 337.264,
+     "home_node": "mcl_anvils:anvil",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_anvils_anvil_top_damaged_0",
+     "rank_todo": 363,
+     "score": 83.296,
+     "home_node": "mcl_anvils:anvil",
+     "class": "snow",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_anvils_anvil_base",
+     "rank_todo": 365,
+     "score": 81.457,
+     "home_node": "mcl_anvils:anvil",
+     "class": "metal",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mesecons_noteblock",
+     "rank_todo": 139,
+     "score": 324.952,
+     "home_node": "mcl_noteblock:noteblock",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "loom_side",
+     "rank_todo": 140,
+     "score": 322.733,
+     "home_node": "mcl_loom:loom",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "loom_top",
+     "rank_todo": 302,
+     "score": 111.113,
+     "home_node": "mcl_loom:loom",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "loom_front",
+     "rank_todo": 304,
+     "score": 107.578,
+     "home_node": "mcl_loom:loom",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "loom_bottom",
+     "rank_todo": 332,
+     "score": 96.972,
+     "home_node": "mcl_loom:loom",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    }
+   ],
+   "best_rank_todo": 133,
+   "median_rank_todo": 303.0,
+   "treatment": [
+    "manufactured faces: flat panels in lib.band, thin joints, iron fittings with metal_mask; never the cobble recipe on a furnace"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/default_furnace_front.py",
+    "tools/pbr_author/crafting_workbench_front.py",
+    "tools/pbr_author/default_bookshelf.py",
+    "tools/pbr_author/default_tnt_side.py"
+   ],
+   "cumulative_stems": 215,
+   "small": false
+  },
+  {
+   "batch": 30,
+   "family": "workstations and furniture",
+   "stems": [
+    {
+     "stem": "mcl_cauldrons_cauldron_side",
+     "rank_todo": 142,
+     "score": 322.007,
+     "home_node": "mcl_cauldrons:cauldron",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_cauldrons_cauldron_inner",
+     "rank_todo": 355,
+     "score": 86.508,
+     "home_node": "mcl_cauldrons:cauldron",
+     "class": "metal",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_flowerpots_flowerpot",
+     "rank_todo": 143,
+     "score": 320.771,
+     "home_node": "mcl_flowerpots:flower_pot_oxeye_daisy",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_bamboo_bamboo_fpm",
+     "rank_todo": 712,
+     "score": 4.193,
+     "home_node": "mcl_flowerpots:flower_pot_bamboo",
+     "class": "stone",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_flowerpots_cactus",
+     "rank_todo": 713,
+     "score": 4.193,
+     "home_node": "mcl_flowerpots:flower_pot_cactus",
+     "class": "wood",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_mangrove_propagule",
+     "rank_todo": 731,
+     "score": 2.097,
+     "home_node": "mcl_flowerpots:flower_pot_propagule",
+     "class": "wood",
+     "pulled_in_as_sibling_face": true
+    }
+   ],
+   "best_rank_todo": 142,
+   "median_rank_todo": 533.5,
+   "treatment": [
+    "manufactured faces: flat panels in lib.band, thin joints, iron fittings with metal_mask; never the cobble recipe on a furnace"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/default_furnace_front.py",
+    "tools/pbr_author/crafting_workbench_front.py",
+    "tools/pbr_author/default_bookshelf.py",
+    "tools/pbr_author/default_tnt_side.py"
+   ],
+   "cumulative_stems": 221,
+   "small": false
+  },
+  {
+   "batch": 31,
+   "family": "logs and planks",
+   "stems": [
+    {
+     "stem": "mcl_stripped_pale_oak_log_side",
+     "rank_todo": 159,
+     "score": 306.881,
+     "home_node": "mcl_trees:bark_stripped_pale_oak",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_bamboo_fence_bamboo",
+     "rank_todo": 181,
+     "score": 275.237,
+     "home_node": "mcl_fences:bamboo_fence",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "stripped_crimson_stem_side",
+     "rank_todo": 192,
+     "score": 256.977,
+     "home_node": "mcl_trees:bark_stripped_crimson",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "stripped_warped_stem_side",
+     "rank_todo": 193,
+     "score": 256.977,
+     "home_node": "mcl_trees:bark_stripped_warped",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_bamboo_bamboo_block",
+     "rank_todo": 250,
+     "score": 180.529,
+     "home_node": "mcl_trees:tree_bamboo",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_bamboo_bamboo_bottom",
+     "rank_todo": 353,
+     "score": 90.265,
+     "home_node": "mcl_trees:tree_bamboo",
+     "class": "stone",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_fences_fence_acacia",
+     "rank_todo": 295,
+     "score": 128.26,
+     "home_node": "mcl_fences:acacia_fence",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_core_stripped_oak_top",
+     "rank_todo": 299,
+     "score": 113.278,
+     "home_node": "mcl_trees:stripped_oak",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    }
+   ],
+   "best_rank_todo": 159,
+   "median_rank_todo": 221.5,
+   "treatment": [
+    "bark as ridged fibre running the log's length, end grain as rings; planks as boards with grain along the board and a joint between"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/default_tree.py",
+    "tools/pbr_author/default_tree_top.py",
+    "tools/pbr_author/default_wood.py",
+    "tools/pbr_author/mcl_core_planks_spruce.py"
+   ],
+   "cumulative_stems": 229,
+   "small": false
+  },
+  {
+   "batch": 32,
+   "family": "flora cut-outs",
+   "stems": [
+    {
+     "stem": "mcl_flowers_tulip_white",
+     "rank_todo": 160,
+     "score": 304.566,
+     "home_node": "mcl_flowers:tulip_white",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_flowers_allium",
+     "rank_todo": 175,
+     "score": 282.305,
+     "home_node": "mcl_flowers:allium",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_flowers_lily_of_the_valley",
+     "rank_todo": 176,
+     "score": 282.302,
+     "home_node": "mcl_flowers:lily_of_the_valley",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_core_papyrus",
+     "rank_todo": 187,
+     "score": 269.776,
+     "home_node": "mcl_core:reeds",
+     "class": "leaves",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "crimson_roots",
+     "rank_todo": 188,
+     "score": 268.91,
+     "home_node": "mcl_crimson:crimson_roots",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_flowers_blue_orchid",
+     "rank_todo": 191,
+     "score": 261.267,
+     "home_node": "mcl_flowers:blue_orchid",
+     "class": "leaves",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "default_dry_shrub",
+     "rank_todo": 205,
+     "score": 241.946,
+     "home_node": "mcl_core:deadbush",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_pale_oak_eyeblossom",
+     "rank_todo": 221,
+     "score": 210.612,
+     "home_node": "mcl_flowers:eyeblossom",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    }
+   ],
+   "best_rank_todo": 160,
+   "median_rank_todo": 187.5,
+   "treatment": [
+    "cut-out billboards through the scissor shader, relief from shading only; keep the alpha"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/mcl_flowers_tallgrass.py",
+    "tools/pbr_author/mcl_flowers_double_plant_grass_top.py"
+   ],
+   "cumulative_stems": 237,
+   "small": false
+  },
+  {
+   "batch": 33,
+   "family": "workstations and furniture",
+   "stems": [
+    {
+     "stem": "cartography_table_side3",
+     "rank_todo": 162,
+     "score": 299.417,
+     "home_node": "mcl_cartography_table:cartography_table",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "cartography_table_top",
+     "rank_todo": 321,
+     "score": 102.639,
+     "home_node": "mcl_cartography_table:cartography_table",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "cartography_table_side1",
+     "rank_todo": 324,
+     "score": 101.222,
+     "home_node": "mcl_cartography_table:cartography_table",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "cartography_table_side2",
+     "rank_todo": 325,
+     "score": 101.222,
+     "home_node": "mcl_cartography_table:cartography_table",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_smithing_table_side",
+     "rank_todo": 169,
+     "score": 295.128,
+     "home_node": "mcl_smithing_table:table",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_smithing_table_top",
+     "rank_todo": 327,
+     "score": 99.78,
+     "home_node": "mcl_smithing_table:table",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_smithing_table_front",
+     "rank_todo": 330,
+     "score": 98.376,
+     "home_node": "mcl_smithing_table:table",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_smithing_table_bottom",
+     "rank_todo": 344,
+     "score": 96.972,
+     "home_node": "mcl_smithing_table:table",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    }
+   ],
+   "best_rank_todo": 162,
+   "median_rank_todo": 324.5,
+   "treatment": [
+    "manufactured faces: flat panels in lib.band, thin joints, iron fittings with metal_mask; never the cobble recipe on a furnace"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/default_furnace_front.py",
+    "tools/pbr_author/crafting_workbench_front.py",
+    "tools/pbr_author/default_bookshelf.py",
+    "tools/pbr_author/default_tnt_side.py"
+   ],
+   "cumulative_stems": 245,
+   "small": false
+  },
+  {
+   "batch": 34,
+   "family": "masonry and dressed stone",
+   "stems": [
+    {
+     "stem": "mcl_stairs_stone_slab_side",
+     "rank_todo": 166,
+     "score": 296.825,
+     "home_node": "mcl_stairs:slab_stone",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_nether_quartz_block_side",
+     "rank_todo": 210,
+     "score": 230.309,
+     "home_node": "mcl_nether:quartz_block",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_nether_quartz_block_top",
+     "rank_todo": 430,
+     "score": 57.577,
+     "home_node": "mcl_nether:quartz_block",
+     "class": "stone",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_backstone_quartz_bricks",
+     "rank_todo": 233,
+     "score": 193.945,
+     "home_node": "mcl_blackstone:quartz_brick",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_blackstone_chiseled_polished",
+     "rank_todo": 234,
+     "score": 193.945,
+     "home_node": "mcl_blackstone:blackstone_chiseled_polished",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_blackstone_polished_bricks_cracked",
+     "rank_todo": 235,
+     "score": 193.945,
+     "home_node": "mcl_blackstone:blackstone_brick_polished_cracked",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_deepslate_chiseled",
+     "rank_todo": 238,
+     "score": 193.945,
+     "home_node": "mcl_deepslate:deepslate_chiseled",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_nether_chiseled_nether_bricks",
+     "rank_todo": 240,
+     "score": 193.945,
+     "home_node": "mcl_nether:chiseled_nether_brick",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    }
+   ],
+   "best_rank_todo": 166,
+   "median_rank_todo": 234.5,
+   "treatment": [
+    "built from the mortar mask, never connected components; dressed faces held flat, no warp"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/default_stone_brick.py",
+    "tools/pbr_author/default_brick.py",
+    "tools/pbr_author/mcl_core_stonebrick_carved.py",
+    "tools/pbr_author/mcl_core_sandstone_normal.py"
+   ],
+   "cumulative_stems": 253,
+   "small": false
+  },
+  {
+   "batch": 35,
+   "family": "metals and gem blocks",
+   "stems": [
+    {
+     "stem": "mcl_copper_exposed_grate",
+     "rank_todo": 167,
+     "score": 296.056,
+     "home_node": "mcl_copper:block_exposed_grate",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_copper_oxidized_chiseled",
+     "rank_todo": 168,
+     "score": 295.506,
+     "home_node": "mcl_copper:block_oxidized_chiseled",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_copper_weathered_chiseled",
+     "rank_todo": 170,
+     "score": 294.736,
+     "home_node": "mcl_copper:block_weathered_chiseled",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_copper_exposed_chiseled",
+     "rank_todo": 172,
+     "score": 290.917,
+     "home_node": "mcl_copper:block_exposed_chiseled",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_copper_weathered_grate",
+     "rank_todo": 173,
+     "score": 290.917,
+     "home_node": "mcl_copper:block_weathered_grate",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "default_coal_block",
+     "rank_todo": 186,
+     "score": 270.794,
+     "home_node": "mcl_core:coalblock",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "default_diamond_block",
+     "rank_todo": 198,
+     "score": 242.542,
+     "home_node": "mcl_core:diamondblock",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_copper_block_raw",
+     "rank_todo": 199,
+     "score": 242.431,
+     "home_node": "mcl_copper:block_raw",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    }
+   ],
+   "best_rank_todo": 167,
+   "median_rank_todo": 172.5,
+   "treatment": [
+    "polished or cast faces flat with lib.band; metal_mask and high smoothness on bare metal, patina and oxide rough; gems take f0"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/doors_trapdoor_steel.py",
+    "tools/pbr_author/mcl_doors_door_iron_lower.py"
+   ],
+   "cumulative_stems": 261,
+   "small": false
+  },
+  {
+   "batch": 36,
+   "family": "organic blocks",
+   "stems": [
+    {
+     "stem": "mcl_ocean_dead_brain_coral_block",
+     "rank_todo": 171,
+     "score": 293.49,
+     "home_node": "mcl_ocean:dead_brain_coral_block",
+     "class": "soil",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_ocean_tube_coral_block",
+     "rank_todo": 180,
+     "score": 277.678,
+     "home_node": "mcl_ocean:tube_coral",
+     "class": "soil",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_ocean_dead_bubble_coral_block",
+     "rank_todo": 182,
+     "score": 271.523,
+     "home_node": "mcl_ocean:dead_bubble_coral_block",
+     "class": "soil",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_ocean_dead_fire_coral_block",
+     "rank_todo": 183,
+     "score": 271.523,
+     "home_node": "mcl_ocean:dead_fire_coral_block",
+     "class": "soil",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_ocean_dead_horn_coral_block",
+     "rank_todo": 184,
+     "score": 271.523,
+     "home_node": "mcl_ocean:dead_horn_coral_block",
+     "class": "soil",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_ocean_dead_tube_coral_block",
+     "rank_todo": 185,
+     "score": 271.523,
+     "home_node": "mcl_ocean:dead_tube_coral_block",
+     "class": "soil",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_farming_pumpkin_stem_disconnected",
+     "rank_todo": 190,
+     "score": 262.366,
+     "home_node": "mcl_farming:pumpkin_1",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_sponges_sponge_wet",
+     "rank_todo": 197,
+     "score": 244.583,
+     "home_node": "mcl_sponges:sponge_wet",
+     "class": "soil",
+     "pulled_in_as_sibling_face": false
+    }
+   ],
+   "best_rank_todo": 171,
+   "median_rank_todo": 183.5,
+   "treatment": [
+    "a bundle or a skin: fibres or cells at their own scale, never the stone recipe"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/mcl_farming_hayblock_side.py",
+    "tools/pbr_author/farming_pumpkin_side.py"
+   ],
+   "cumulative_stems": 269,
+   "small": false
+  },
+  {
+   "batch": 37,
+   "family": "workstations and furniture",
+   "stems": [
+    {
+     "stem": "mcl_itemframes_itemframe_background",
+     "rank_todo": 174,
+     "score": 287.674,
+     "home_node": "mcl_itemframes:frame",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "smoker_side",
+     "rank_todo": 206,
+     "score": 239.128,
+     "home_node": "mcl_smoker:smoker",
+     "class": "gravel",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "smoker_top",
+     "rank_todo": 366,
+     "score": 80.437,
+     "home_node": "mcl_smoker:smoker",
+     "class": "stone",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "smoker_bottom",
+     "rank_todo": 381,
+     "score": 77.578,
+     "home_node": "mcl_smoker:smoker",
+     "class": "stone",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "smoker_front",
+     "rank_todo": 491,
+     "score": 40.92,
+     "home_node": "mcl_smoker:smoker",
+     "class": "stone",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "blast_furnace_side",
+     "rank_todo": 207,
+     "score": 236.945,
+     "home_node": "mcl_blast_furnace:blast_furnace",
+     "class": "gravel",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "blast_furnace_top",
+     "rank_todo": 267,
+     "score": 157.963,
+     "home_node": "mcl_blast_furnace:blast_furnace",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "blast_furnace_front",
+     "rank_todo": 494,
+     "score": 40.193,
+     "home_node": "mcl_blast_furnace:blast_furnace",
+     "class": "stone",
+     "pulled_in_as_sibling_face": true
+    }
+   ],
+   "best_rank_todo": 174,
+   "median_rank_todo": 316.5,
+   "treatment": [
+    "manufactured faces: flat panels in lib.band, thin joints, iron fittings with metal_mask; never the cobble recipe on a furnace"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/default_furnace_front.py",
+    "tools/pbr_author/crafting_workbench_front.py",
+    "tools/pbr_author/default_bookshelf.py",
+    "tools/pbr_author/default_tnt_side.py"
+   ],
+   "cumulative_stems": 277,
+   "small": false
+  },
+  {
+   "batch": 38,
+   "family": "natural rock + masonry and dressed stone",
+   "stems": [
+    {
+     "stem": "mcl_amethyst_calcite_block",
+     "rank_todo": 194,
+     "score": 254.874,
+     "home_node": "mcl_amethyst:calcite",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "pointed_dripstone_tip",
+     "rank_todo": 310,
+     "score": 104.305,
+     "home_node": "mcl_dripstone:dripstone_bottom_tip",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_fences_fence_red_nether_brick",
+     "rank_todo": 338,
+     "score": 96.972,
+     "home_node": "mcl_fences:red_nether_brick_fence",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_fences_fence_nether_brick",
+     "rank_todo": 347,
+     "score": 93.923,
+     "home_node": "mcl_fences:nether_brick_fence",
+     "class": "gravel",
+     "pulled_in_as_sibling_face": false
+    }
+   ],
+   "best_rank_todo": 194,
+   "median_rank_todo": 324.0,
+   "treatment": [
+    "natural stone: warp_labels allowed, domes from the art's regions, pores a few texels across",
+    "built from the mortar mask, never connected components; dressed faces held flat, no warp"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/default_stone.py",
+    "tools/pbr_author/mcl_deepslate.py",
+    "tools/pbr_author/mcl_core_granite.py",
+    "tools/pbr_author/default_cobble.py",
+    "tools/pbr_author/default_stone_brick.py",
+    "tools/pbr_author/default_brick.py",
+    "tools/pbr_author/mcl_core_stonebrick_carved.py",
+    "tools/pbr_author/mcl_core_sandstone_normal.py"
+   ],
+   "cumulative_stems": 281,
+   "small": true
+  },
+  {
+   "batch": 39,
+   "family": "metals and gem blocks",
+   "stems": [
+    {
+     "stem": "mcl_core_emerald_block",
+     "rank_todo": 200,
+     "score": 242.431,
+     "home_node": "mcl_core:emeraldblock",
+     "class": "gravel",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_nether_netheriteblock",
+     "rank_todo": 202,
+     "score": 242.431,
+     "home_node": "mcl_nether:netheriteblock",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_raw_ores_raw_gold_block",
+     "rank_todo": 203,
+     "score": 242.431,
+     "home_node": "mcl_raw_ores:raw_gold_block",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_raw_ores_raw_iron_block",
+     "rank_todo": 204,
+     "score": 242.431,
+     "home_node": "mcl_raw_ores:raw_iron_block",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_copper_block_bulb_off",
+     "rank_todo": 216,
+     "score": 214.147,
+     "home_node": "mcl_copper:bulb_off_preserved",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_copper_exposed_bulb_off",
+     "rank_todo": 217,
+     "score": 214.147,
+     "home_node": "mcl_copper:bulb_exposed_off_preserved",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_copper_oxidized_bulb_off",
+     "rank_todo": 218,
+     "score": 214.147,
+     "home_node": "mcl_copper:bulb_oxidized_off_preserved",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_copper_weathered_bulb_off",
+     "rank_todo": 219,
+     "score": 214.147,
+     "home_node": "mcl_copper:bulb_weathered_off_preserved",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    }
+   ],
+   "best_rank_todo": 200,
+   "median_rank_todo": 210.0,
+   "treatment": [
+    "polished or cast faces flat with lib.band; metal_mask and high smoothness on bare metal, patina and oxide rough; gems take f0"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/doors_trapdoor_steel.py",
+    "tools/pbr_author/mcl_doors_door_iron_lower.py"
+   ],
+   "cumulative_stems": 289,
+   "small": false
+  },
+  {
+   "batch": 40,
+   "family": "workstations and furniture",
+   "stems": [
+    {
+     "stem": "mcl_chests_normal",
+     "rank_todo": 208,
+     "score": 232.734,
+     "home_node": "mcl_chests:chest",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "fletching_table_front",
+     "rank_todo": 228,
+     "score": 196.128,
+     "home_node": "mcl_fletching_table:fletching_table",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "fletching_table_side",
+     "rank_todo": 229,
+     "score": 196.128,
+     "home_node": "mcl_fletching_table:fletching_table",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "fletching_table_top",
+     "rank_todo": 323,
+     "score": 101.339,
+     "home_node": "mcl_fletching_table:fletching_table",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "fletching_table_bottom",
+     "rank_todo": 331,
+     "score": 96.972,
+     "home_node": "mcl_fletching_table:fletching_table",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mob_spawner",
+     "rank_todo": 244,
+     "score": 190.713,
+     "home_node": "mcl_mobspawners:spawner",
+     "class": "snow",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_itemframes_glow_item_frame_border",
+     "rank_todo": 249,
+     "score": 183.488,
+     "home_node": "mcl_itemframes:glow_frame",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    }
+   ],
+   "best_rank_todo": 208,
+   "median_rank_todo": 244,
+   "treatment": [
+    "manufactured faces: flat panels in lib.band, thin joints, iron fittings with metal_mask; never the cobble recipe on a furnace"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/default_furnace_front.py",
+    "tools/pbr_author/crafting_workbench_front.py",
+    "tools/pbr_author/default_bookshelf.py",
+    "tools/pbr_author/default_tnt_side.py"
+   ],
+   "cumulative_stems": 296,
+   "small": false
+  },
+  {
+   "batch": 41,
+   "family": "doors and trapdoors",
+   "stems": [
+    {
+     "stem": "mcl_doors_trapdoor_jungle_side",
+     "rank_todo": 212,
+     "score": 228.488,
+     "home_node": "mcl_doors:trapdoor_jungle_open",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_doors_trapdoor_jungle",
+     "rank_todo": 298,
+     "score": 114.244,
+     "home_node": "mcl_doors:trapdoor_jungle_open",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_bamboo_trapdoor_side",
+     "rank_todo": 214,
+     "score": 222.018,
+     "home_node": "mcl_doors:trapdoor_bamboo_open",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_doors_trapdoor_dark_oak_side",
+     "rank_todo": 220,
+     "score": 213.516,
+     "home_node": "mcl_doors:trapdoor_dark_oak_open",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_doors_trapdoor_dark_oak",
+     "rank_todo": 306,
+     "score": 106.758,
+     "home_node": "mcl_doors:trapdoor_dark_oak_open",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_copper_trapdoor_oxidized_side",
+     "rank_todo": 265,
+     "score": 159.724,
+     "home_node": "mcl_copper:trapdoor_oxidized_open",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_copper_trapdoor_oxidized",
+     "rank_todo": 367,
+     "score": 79.927,
+     "home_node": "mcl_copper:trapdoor_oxidized_open",
+     "class": "metal",
+     "pulled_in_as_sibling_face": true
+    }
+   ],
+   "best_rank_todo": 212,
+   "median_rank_todo": 265,
+   "treatment": [
+    "cut-out, scissor shader, no parallax: planks or plate held flat with lib.band, rails and hinges as shallow raised lines"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/mcl_doors_wood_family.py",
+    "tools/pbr_author/doors_trapdoor_wood_family.py",
+    "tools/pbr_author/mcl_doors_iron_family.py"
+   ],
+   "cumulative_stems": 303,
+   "small": false
+  },
+  {
+   "batch": 42,
+   "family": "metals and gem blocks",
+   "stems": [
+    {
+     "stem": "mcl_amethyst_amethyst_cluster",
+     "rank_todo": 223,
+     "score": 203.641,
+     "home_node": "mcl_amethyst:amethyst_cluster",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_copper_block_bulb_off_powered",
+     "rank_todo": 261,
+     "score": 161.621,
+     "home_node": "mcl_copper:bulb_off_powered",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_copper_exposed_bulb_off_powered",
+     "rank_todo": 262,
+     "score": 161.621,
+     "home_node": "mcl_copper:bulb_exposed_off_powered",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_copper_oxidized_bulb_off_powered",
+     "rank_todo": 263,
+     "score": 161.621,
+     "home_node": "mcl_copper:bulb_oxidized_off_powered",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_copper_weathered_bulb_off_powered",
+     "rank_todo": 264,
+     "score": 161.621,
+     "home_node": "mcl_copper:bulb_weathered_off_powered",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "redstone_redstone_block",
+     "rank_todo": 345,
+     "score": 96.972,
+     "home_node": "mcl_redstone_torch:redstoneblock",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    }
+   ],
+   "best_rank_todo": 223,
+   "median_rank_todo": 262.5,
+   "treatment": [
+    "polished or cast faces flat with lib.band; metal_mask and high smoothness on bare metal, patina and oxide rough; gems take f0"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/doors_trapdoor_steel.py",
+    "tools/pbr_author/mcl_doors_door_iron_lower.py"
+   ],
+   "cumulative_stems": 309,
+   "small": false
+  },
+  {
+   "batch": 43,
+   "family": "flora cut-outs",
+   "stems": [
+    {
+     "stem": "mcl_flowers_wildflower",
+     "rank_todo": 226,
+     "score": 199.386,
+     "home_node": "mcl_flowers:wildflowers_1",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "cactus_flower",
+     "rank_todo": 227,
+     "score": 197.752,
+     "home_node": "mcl_core:cactus_flower",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_pale_oak_eyeblossom_open",
+     "rank_todo": 231,
+     "score": 194.702,
+     "home_node": "mcl_flowers:eyeblossom_open",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_end_chorus_plant",
+     "rank_todo": 253,
+     "score": 173.347,
+     "home_node": "mcl_end:chorus_plant",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_lush_caves_hanging_roots",
+     "rank_todo": 270,
+     "score": 156.137,
+     "home_node": "mcl_lush_caves:hanging_roots",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_lush_caves_azalea_flowering_side",
+     "rank_todo": 279,
+     "score": 142.84,
+     "home_node": "mcl_lush_caves:azalea_flowering",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_lush_caves_azalea_flowering_top",
+     "rank_todo": 282,
+     "score": 142.316,
+     "home_node": "mcl_lush_caves:azalea_flowering",
+     "class": "soil",
+     "pulled_in_as_sibling_face": false
+    }
+   ],
+   "best_rank_todo": 226,
+   "median_rank_todo": 253,
+   "treatment": [
+    "cut-out billboards through the scissor shader, relief from shading only; keep the alpha"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/mcl_flowers_tallgrass.py",
+    "tools/pbr_author/mcl_flowers_double_plant_grass_top.py"
+   ],
+   "cumulative_stems": 316,
+   "small": false
+  },
+  {
+   "batch": 44,
+   "family": "organic blocks",
+   "stems": [
+    {
+     "stem": "mcl_core_slime",
+     "rank_todo": 237,
+     "score": 193.945,
+     "home_node": "mcl_core:slimeblock",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_honey_block_side",
+     "rank_todo": 239,
+     "score": 193.945,
+     "home_node": "mcl_honey:honey_block",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_sponges_sponge",
+     "rank_todo": 242,
+     "score": 193.945,
+     "home_node": "mcl_sponges:sponge",
+     "class": "soil",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_mushrooms_mushroom_block_skin_brown",
+     "rank_todo": 245,
+     "score": 188.875,
+     "home_node": "mcl_mushrooms:brown_mushroom_block_cap_111111",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_ocean_dried_kelp_side",
+     "rank_todo": 251,
+     "score": 180.529,
+     "home_node": "mcl_ocean:dried_kelp_block",
+     "class": "leaves",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_ocean_dried_kelp_bottom",
+     "rank_todo": 486,
+     "score": 45.132,
+     "home_node": "mcl_ocean:dried_kelp_block",
+     "class": "leaves",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_ocean_dried_kelp_top",
+     "rank_todo": 487,
+     "score": 45.132,
+     "home_node": "mcl_ocean:dried_kelp_block",
+     "class": "leaves",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_mushrooms_mushroom_block_skin_red",
+     "rank_todo": 252,
+     "score": 174.254,
+     "home_node": "mcl_mushrooms:red_mushroom_block_cap_111111",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    }
+   ],
+   "best_rank_todo": 237,
+   "median_rank_todo": 248.0,
+   "treatment": [
+    "a bundle or a skin: fibres or cells at their own scale, never the stone recipe"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/mcl_farming_hayblock_side.py",
+    "tools/pbr_author/farming_pumpkin_side.py"
+   ],
+   "cumulative_stems": 324,
+   "small": false
+  },
+  {
+   "batch": 45,
+   "family": "masonry and dressed stone",
+   "stems": [
+    {
+     "stem": "mcl_nether_cracked_nether_bricks",
+     "rank_todo": 241,
+     "score": 193.945,
+     "home_node": "mcl_nether:cracked_nether_brick",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_pale_oak_resin_brick_block",
+     "rank_todo": 247,
+     "score": 184.248,
+     "home_node": "mcl_pale_oak:resin_brick_block",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_deepslate_tuff_chiseled",
+     "rank_todo": 259,
+     "score": 164.543,
+     "home_node": "mcl_deepslate:tuff_chiseled",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_deepslate_tuff_chiseled_top",
+     "rank_todo": 387,
+     "score": 68.177,
+     "home_node": "mcl_deepslate:tuff_chiseled",
+     "class": "stone",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_core_red_sandstone_bottom",
+     "rank_todo": 266,
+     "score": 158.55,
+     "home_node": "mcl_core:redsandstonesmooth",
+     "class": "sand",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_deepslate_tuff_chiseled_bricks",
+     "rank_todo": 276,
+     "score": 154.697,
+     "home_node": "mcl_deepslate:tuff_chiseled_bricks",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_deepslate_tuff_chiseled_bricks_top",
+     "rank_todo": 399,
+     "score": 64.648,
+     "home_node": "mcl_deepslate:tuff_chiseled_bricks",
+     "class": "stone",
+     "pulled_in_as_sibling_face": true
+    }
+   ],
+   "best_rank_todo": 241,
+   "median_rank_todo": 266,
+   "treatment": [
+    "built from the mortar mask, never connected components; dressed faces held flat, no warp"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/default_stone_brick.py",
+    "tools/pbr_author/default_brick.py",
+    "tools/pbr_author/mcl_core_stonebrick_carved.py",
+    "tools/pbr_author/mcl_core_sandstone_normal.py"
+   ],
+   "cumulative_stems": 331,
+   "small": false
+  },
+  {
+   "batch": 46,
+   "family": "workstations and furniture",
+   "stems": [
+    {
+     "stem": "mcl_stonecutter_side",
+     "rank_todo": 256,
+     "score": 169.503,
+     "home_node": "mcl_stonecutter:stonecutter",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_stonecutter_top",
+     "rank_todo": 359,
+     "score": 84.752,
+     "home_node": "mcl_stonecutter:stonecutter",
+     "class": "stone",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_stonecutter_bottom",
+     "rank_todo": 378,
+     "score": 77.578,
+     "home_node": "mcl_stonecutter:stonecutter",
+     "class": "gravel",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_chests_trapped",
+     "rank_todo": 269,
+     "score": 156.368,
+     "home_node": "mcl_chests:trapped_chest",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "grindstone_front",
+     "rank_todo": 271,
+     "score": 155.259,
+     "home_node": "mcl_grindstone:grindstone",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "grindstone_side",
+     "rank_todo": 272,
+     "score": 155.259,
+     "home_node": "mcl_grindstone:grindstone",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "grindstone_top",
+     "rank_todo": 273,
+     "score": 155.259,
+     "home_node": "mcl_grindstone:grindstone",
+     "class": "gravel",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_conduit_conduit_node",
+     "rank_todo": 274,
+     "score": 155.156,
+     "home_node": "mcl_conduits:conduit",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    }
+   ],
+   "best_rank_todo": 256,
+   "median_rank_todo": 272.5,
+   "treatment": [
+    "manufactured faces: flat panels in lib.band, thin joints, iron fittings with metal_mask; never the cobble recipe on a furnace"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/default_furnace_front.py",
+    "tools/pbr_author/crafting_workbench_front.py",
+    "tools/pbr_author/default_bookshelf.py",
+    "tools/pbr_author/default_tnt_side.py"
+   ],
+   "cumulative_stems": 339,
+   "small": false
+  },
+  {
+   "batch": 47,
+   "family": "organic blocks",
+   "stems": [
+    {
+     "stem": "mcl_core_bone_block_side",
+     "rank_todo": 257,
+     "score": 167.549,
+     "home_node": "mcl_core:bone_block",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_core_bone_block_top",
+     "rank_todo": 360,
+     "score": 84.584,
+     "home_node": "mcl_core:bone_block",
+     "class": "stone",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_core_cactus_side",
+     "rank_todo": 268,
+     "score": 156.644,
+     "home_node": "mcl_core:cactus",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_core_cactus_top",
+     "rank_todo": 513,
+     "score": 35.587,
+     "home_node": "mcl_core:cactus",
+     "class": "leaves",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_core_cactus_bottom",
+     "rank_todo": 525,
+     "score": 32.324,
+     "home_node": "mcl_core:cactus",
+     "class": "wood",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_honey_honeycomb_block",
+     "rank_todo": 275,
+     "score": 155.156,
+     "home_node": "mcl_honey:honeycomb_block",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "farming_melon_side",
+     "rank_todo": 283,
+     "score": 130.951,
+     "home_node": "mcl_farming:melon",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "farming_melon_top",
+     "rank_todo": 393,
+     "score": 65.087,
+     "home_node": "mcl_farming:melon",
+     "class": "wood",
+     "pulled_in_as_sibling_face": true
+    }
+   ],
+   "best_rank_todo": 257,
+   "median_rank_todo": 321.5,
+   "treatment": [
+    "a bundle or a skin: fibres or cells at their own scale, never the stone recipe"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/mcl_farming_hayblock_side.py",
+    "tools/pbr_author/farming_pumpkin_side.py"
+   ],
+   "cumulative_stems": 347,
+   "small": false
+  },
+  {
+   "batch": 48,
+   "family": "workstations and furniture",
+   "stems": [
+    {
+     "stem": "mcl_bells_bell_ceiling",
+     "rank_todo": 277,
+     "score": 153.714,
+     "home_node": "mcl_bells:bell_ceiling",
+     "class": "snow",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_bells_bell_wall",
+     "rank_todo": 439,
+     "score": 51.719,
+     "home_node": "mcl_bells:bell_wall",
+     "class": "metal",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_bells_bell_floor_front",
+     "rank_todo": 633,
+     "score": 17.24,
+     "home_node": "mcl_bells:bell",
+     "class": "wood",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_bells_bell_floor_side",
+     "rank_todo": 634,
+     "score": 17.24,
+     "home_node": "mcl_bells:bell",
+     "class": "leaves",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_bells_bell_floor_top",
+     "rank_todo": 635,
+     "score": 17.24,
+     "home_node": "mcl_bells:bell",
+     "class": "wood",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_sculk_catalyst_side",
+     "rank_todo": 278,
+     "score": 144.902,
+     "home_node": "mcl_sculk:catalyst",
+     "class": "soil",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_sculk_catalyst_top",
+     "rank_todo": 509,
+     "score": 38.175,
+     "home_node": "mcl_sculk:catalyst",
+     "class": "soil",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_sculk_catalyst_bottom",
+     "rank_todo": 526,
+     "score": 32.324,
+     "home_node": "mcl_sculk:catalyst",
+     "class": "soil",
+     "pulled_in_as_sibling_face": true
+    }
+   ],
+   "best_rank_todo": 277,
+   "median_rank_todo": 517.5,
+   "treatment": [
+    "manufactured faces: flat panels in lib.band, thin joints, iron fittings with metal_mask; never the cobble recipe on a furnace"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/default_furnace_front.py",
+    "tools/pbr_author/crafting_workbench_front.py",
+    "tools/pbr_author/default_bookshelf.py",
+    "tools/pbr_author/default_tnt_side.py"
+   ],
+   "cumulative_stems": 355,
+   "small": false
+  },
+  {
+   "batch": 49,
+   "family": "rails, ladders and bars",
+   "stems": [
+    {
+     "stem": "mcl_bamboo_scaffolding_side",
+     "rank_todo": 284,
+     "score": 129.297,
+     "home_node": "mcl_bamboo:scaffolding",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_bamboo_scaffolding_top",
+     "rank_todo": 396,
+     "score": 64.648,
+     "home_node": "mcl_bamboo:scaffolding",
+     "class": "wood",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_copper_pane_oxidized",
+     "rank_todo": 320,
+     "score": 102.834,
+     "home_node": "mcl_panes:copper_bar_oxidized_flat",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_copper_pane_top_oxidized",
+     "rank_todo": 604,
+     "score": 20.332,
+     "home_node": "mcl_panes:copper_bar_oxidized_flat",
+     "class": "wood",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_copper_pane_weathered",
+     "rank_todo": 326,
+     "score": 100.229,
+     "home_node": "mcl_panes:copper_bar_weathered_flat",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_copper_pane_top_weathered",
+     "rank_todo": 605,
+     "score": 20.292,
+     "home_node": "mcl_panes:copper_bar_weathered_flat",
+     "class": "wood",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_copper_pane",
+     "rank_todo": 328,
+     "score": 99.637,
+     "home_node": "mcl_panes:copper_bar_flat",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_copper_pane_top",
+     "rank_todo": 594,
+     "score": 21.171,
+     "home_node": "mcl_panes:copper_bar_flat",
+     "class": "wood",
+     "pulled_in_as_sibling_face": true
+    }
+   ],
+   "best_rank_todo": 284,
+   "median_rank_todo": 362.0,
+   "treatment": [
+    "cut-out, scissor shader, no parallax: relief reads from shading only"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/default_rail_family.py",
+    "tools/pbr_author/default_ladder.py"
+   ],
+   "cumulative_stems": 363,
+   "small": false
+  },
+  {
+   "batch": 50,
+   "family": "masonry and dressed stone",
+   "stems": [
+    {
+     "stem": "mcl_blackstone_basalt_side_polished",
+     "rank_todo": 285,
+     "score": 129.297,
+     "home_node": "mcl_blackstone:basalt_polished",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_blackstone_basalt_top_polished",
+     "rank_todo": 397,
+     "score": 64.648,
+     "home_node": "mcl_blackstone:basalt_polished",
+     "class": "stone",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_end_purpur_pillar",
+     "rank_todo": 288,
+     "score": 129.297,
+     "home_node": "mcl_end:purpur_pillar",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_end_purpur_pillar_top",
+     "rank_todo": 401,
+     "score": 64.648,
+     "home_node": "mcl_end:purpur_pillar",
+     "class": "stone",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_nether_quartz_chiseled_side",
+     "rank_todo": 290,
+     "score": 129.297,
+     "home_node": "mcl_nether:quartz_chiseled",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_nether_quartz_chiseled_top",
+     "rank_todo": 403,
+     "score": 64.648,
+     "home_node": "mcl_nether:quartz_chiseled",
+     "class": "stone",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_nether_quartz_pillar_side",
+     "rank_todo": 291,
+     "score": 129.297,
+     "home_node": "mcl_nether:quartz_pillar",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_nether_quartz_pillar_top",
+     "rank_todo": 404,
+     "score": 64.648,
+     "home_node": "mcl_nether:quartz_pillar",
+     "class": "stone",
+     "pulled_in_as_sibling_face": true
+    }
+   ],
+   "best_rank_todo": 285,
+   "median_rank_todo": 344.0,
+   "treatment": [
+    "built from the mortar mask, never connected components; dressed faces held flat, no warp"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/default_stone_brick.py",
+    "tools/pbr_author/default_brick.py",
+    "tools/pbr_author/mcl_core_stonebrick_carved.py",
+    "tools/pbr_author/mcl_core_sandstone_normal.py"
+   ],
+   "cumulative_stems": 371,
+   "small": false
+  },
+  {
+   "batch": 51,
+   "family": "doors and trapdoors",
+   "stems": [
+    {
+     "stem": "mcl_cherry_blossom_trapdoor_side",
+     "rank_todo": 286,
+     "score": 129.297,
+     "home_node": "mcl_doors:trapdoor_cherry_blossom",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_cherry_blossom_trapdoor",
+     "rank_todo": 398,
+     "score": 64.648,
+     "home_node": "mcl_doors:trapdoor_cherry_blossom",
+     "class": "wood",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_doors_trapdoor_acacia_side",
+     "rank_todo": 287,
+     "score": 129.297,
+     "home_node": "mcl_doors:trapdoor_acacia",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_doors_trapdoor_acacia",
+     "rank_todo": 400,
+     "score": 64.648,
+     "home_node": "mcl_doors:trapdoor_acacia",
+     "class": "wood",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_mangrove_trapdoor_side",
+     "rank_todo": 289,
+     "score": 129.297,
+     "home_node": "mcl_doors:trapdoor_mangrove",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_mangrove_trapdoor",
+     "rank_todo": 402,
+     "score": 64.648,
+     "home_node": "mcl_doors:trapdoor_mangrove",
+     "class": "wood",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_pale_oak_trapdoor_side",
+     "rank_todo": 292,
+     "score": 129.297,
+     "home_node": "mcl_doors:trapdoor_pale_oak",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_pale_oak_trapdoor",
+     "rank_todo": 405,
+     "score": 64.648,
+     "home_node": "mcl_doors:trapdoor_pale_oak",
+     "class": "wood",
+     "pulled_in_as_sibling_face": true
+    }
+   ],
+   "best_rank_todo": 286,
+   "median_rank_todo": 345.0,
+   "treatment": [
+    "cut-out, scissor shader, no parallax: planks or plate held flat with lib.band, rails and hinges as shallow raised lines"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/mcl_doors_wood_family.py",
+    "tools/pbr_author/doors_trapdoor_wood_family.py",
+    "tools/pbr_author/mcl_doors_iron_family.py"
+   ],
+   "cumulative_stems": 379,
+   "small": false
+  },
+  {
+   "batch": 52,
+   "family": "flora cut-outs",
+   "stems": [
+    {
+     "stem": "mcl_flowers_double_plant_syringa_bottom",
+     "rank_todo": 296,
+     "score": 115.618,
+     "home_node": "mcl_flowers:lilac",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_flowers_double_plant_syringa_top",
+     "rank_todo": 297,
+     "score": 115.541,
+     "home_node": "mcl_flowers:lilac_top",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_flowers_double_plant_paeonia_bottom",
+     "rank_todo": 307,
+     "score": 106.702,
+     "home_node": "mcl_flowers:peony",
+     "class": "leaves",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_flowers_double_plant_paeonia_top",
+     "rank_todo": 308,
+     "score": 106.684,
+     "home_node": "mcl_flowers:peony_top",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_flowers_double_plant_rose_bottom",
+     "rank_todo": 311,
+     "score": 103.809,
+     "home_node": "mcl_flowers:rose_bush",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_flowers_double_plant_rose_top",
+     "rank_todo": 312,
+     "score": 103.654,
+     "home_node": "mcl_flowers:rose_bush_top",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_mangrove_propagule_hanging",
+     "rank_todo": 349,
+     "score": 92.543,
+     "home_node": "mcl_mangrove:propagule_hanging_5",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_mangrove_propagule_item",
+     "rank_todo": 639,
+     "score": 15.516,
+     "home_node": "mcl_mangrove:propagule",
+     "class": "wood",
+     "pulled_in_as_sibling_face": true
+    }
+   ],
+   "best_rank_todo": 296,
+   "median_rank_todo": 309.5,
+   "treatment": [
+    "cut-out billboards through the scissor shader, relief from shading only; keep the alpha"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/mcl_flowers_tallgrass.py",
+    "tools/pbr_author/mcl_flowers_double_plant_grass_top.py"
+   ],
+   "cumulative_stems": 387,
+   "small": false
+  },
+  {
+   "batch": 53,
+   "family": "doors and trapdoors",
+   "stems": [
+    {
+     "stem": "mcl_copper_trapdoor_exposed_side",
+     "rank_todo": 300,
+     "score": 113.134,
+     "home_node": "mcl_copper:trapdoor_exposed_preserved",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_copper_trapdoor_exposed",
+     "rank_todo": 433,
+     "score": 56.567,
+     "home_node": "mcl_copper:trapdoor_exposed_preserved",
+     "class": "metal",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_copper_trapdoor_weathered_side",
+     "rank_todo": 301,
+     "score": 113.134,
+     "home_node": "mcl_copper:trapdoor_weathered_preserved",
+     "class": "metal",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_copper_trapdoor_weathered",
+     "rank_todo": 434,
+     "score": 56.567,
+     "home_node": "mcl_copper:trapdoor_weathered_preserved",
+     "class": "metal",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_bamboo_door_bottom",
+     "rank_todo": 315,
+     "score": 103.437,
+     "home_node": "mcl_doors:door_bamboo_b_1",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_bamboo_door_top",
+     "rank_todo": 570,
+     "score": 25.859,
+     "home_node": "mcl_doors:door_bamboo_t_1",
+     "class": "wood",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_crimson_crimson_trapdoor_side",
+     "rank_todo": 316,
+     "score": 103.437,
+     "home_node": "mcl_doors:trapdoor_crimson",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_crimson_crimson_trapdoor",
+     "rank_todo": 441,
+     "score": 51.719,
+     "home_node": "mcl_doors:trapdoor_crimson",
+     "class": "wood",
+     "pulled_in_as_sibling_face": true
+    }
+   ],
+   "best_rank_todo": 300,
+   "median_rank_todo": 374.5,
+   "treatment": [
+    "cut-out, scissor shader, no parallax: planks or plate held flat with lib.band, rails and hinges as shallow raised lines"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/mcl_doors_wood_family.py",
+    "tools/pbr_author/doors_trapdoor_wood_family.py",
+    "tools/pbr_author/mcl_doors_iron_family.py"
+   ],
+   "cumulative_stems": 395,
+   "small": false
+  },
+  {
+   "batch": 54,
+   "family": "workstations and furniture",
+   "stems": [
+    {
+     "stem": "mcl_pottery_sherds_pot_side",
+     "rank_todo": 305,
+     "score": 107.017,
+     "home_node": "mcl_pottery_sherds:pot",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_pottery_sherds_pot_top",
+     "rank_todo": 558,
+     "score": 27.778,
+     "home_node": "mcl_pottery_sherds:pot",
+     "class": "gravel",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_pottery_sherds_pot_bottom",
+     "rank_todo": 581,
+     "score": 25.859,
+     "home_node": "mcl_pottery_sherds:pot",
+     "class": "stone",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_beehives_bee_nest_side",
+     "rank_todo": 314,
+     "score": 103.508,
+     "home_node": "mcl_beehives:bee_nest",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_beehives_bee_nest_bottom",
+     "rank_todo": 514,
+     "score": 35.133,
+     "home_node": "mcl_beehives:bee_nest",
+     "class": "wood",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_beehives_bee_nest_top",
+     "rank_todo": 522,
+     "score": 33.982,
+     "home_node": "mcl_beehives:bee_nest_5",
+     "class": "wood",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_beehives_bee_nest_front",
+     "rank_todo": 557,
+     "score": 28.481,
+     "home_node": "mcl_beehives:bee_nest",
+     "class": "wood",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_beehives_bee_nest_front_honey",
+     "rank_todo": 702,
+     "score": 6.022,
+     "home_node": "mcl_beehives:bee_nest_5",
+     "class": "wood",
+     "pulled_in_as_sibling_face": true
+    }
+   ],
+   "best_rank_todo": 305,
+   "median_rank_todo": 539.5,
+   "treatment": [
+    "manufactured faces: flat panels in lib.band, thin joints, iron fittings with metal_mask; never the cobble recipe on a furnace"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/default_furnace_front.py",
+    "tools/pbr_author/crafting_workbench_front.py",
+    "tools/pbr_author/default_bookshelf.py",
+    "tools/pbr_author/default_tnt_side.py"
+   ],
+   "cumulative_stems": 403,
+   "small": false
+  },
+  {
+   "batch": 55,
+   "family": "logs and planks",
+   "stems": [
+    {
+     "stem": "mcl_core_stripped_spruce_top",
+     "rank_todo": 309,
+     "score": 106.589,
+     "home_node": "mcl_trees:stripped_spruce",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_fences_fence_gate_big_oak",
+     "rank_todo": 329,
+     "score": 98.423,
+     "home_node": "mcl_fences:dark_oak_fence_gate",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_bamboo_fence_gate_bamboo",
+     "rank_todo": 333,
+     "score": 96.972,
+     "home_node": "mcl_fences:bamboo_fence_gate",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_crimson_crimson_fence",
+     "rank_todo": 336,
+     "score": 96.972,
+     "home_node": "mcl_fences:crimson_fence",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_crimson_warped_fence",
+     "rank_todo": 337,
+     "score": 96.972,
+     "home_node": "mcl_fences:warped_fence",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_mangrove_fence",
+     "rank_todo": 341,
+     "score": 96.972,
+     "home_node": "mcl_fences:mangrove_fence",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_mangrove_fence_gate",
+     "rank_todo": 342,
+     "score": 96.972,
+     "home_node": "mcl_fences:mangrove_fence_gate",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    }
+   ],
+   "best_rank_todo": 309,
+   "median_rank_todo": 336,
+   "treatment": [
+    "bark as ridged fibre running the log's length, end grain as rings; planks as boards with grain along the board and a joint between"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/default_tree.py",
+    "tools/pbr_author/default_tree_top.py",
+    "tools/pbr_author/default_wood.py",
+    "tools/pbr_author/mcl_core_planks_spruce.py"
+   ],
+   "cumulative_stems": 410,
+   "small": false
+  },
+  {
+   "batch": 56,
+   "family": "workstations and furniture",
+   "stems": [
+    {
+     "stem": "mcl_enchanting_table_side",
+     "rank_todo": 318,
+     "score": 103.437,
+     "home_node": "mcl_enchanting:table",
+     "class": "stone",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_enchanting_table_bottom",
+     "rank_todo": 576,
+     "score": 25.859,
+     "home_node": "mcl_enchanting:table",
+     "class": "stone",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_enchanting_table_top",
+     "rank_todo": 577,
+     "score": 25.859,
+     "home_node": "mcl_enchanting:table",
+     "class": "gravel",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_books_chiseled_bookshelf_side",
+     "rank_todo": 335,
+     "score": 96.972,
+     "home_node": "mcl_books:chiseled_bookshelf",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_books_chiseled_bookshelf_top",
+     "rank_todo": 412,
+     "score": 64.648,
+     "home_node": "mcl_books:chiseled_bookshelf",
+     "class": "wood",
+     "pulled_in_as_sibling_face": true
+    }
+   ],
+   "best_rank_todo": 318,
+   "median_rank_todo": 412,
+   "treatment": [
+    "manufactured faces: flat panels in lib.band, thin joints, iron fittings with metal_mask; never the cobble recipe on a furnace"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/default_furnace_front.py",
+    "tools/pbr_author/crafting_workbench_front.py",
+    "tools/pbr_author/default_bookshelf.py",
+    "tools/pbr_author/default_tnt_side.py"
+   ],
+   "cumulative_stems": 415,
+   "small": false
+  },
+  {
+   "batch": 57,
+   "family": "workstations and furniture",
+   "stems": [
+    {
+     "stem": "mcl_beehives_beehive_side",
+     "rank_todo": 346,
+     "score": 96.972,
+     "home_node": "mcl_beehives:beehive",
+     "class": "wood",
+     "pulled_in_as_sibling_face": false
+    },
+    {
+     "stem": "mcl_beehives_beehive_end",
+     "rank_todo": 394,
+     "score": 64.648,
+     "home_node": "mcl_beehives:beehive",
+     "class": "wood",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_beehives_beehive_front",
+     "rank_todo": 560,
+     "score": 26.937,
+     "home_node": "mcl_beehives:beehive",
+     "class": "wood",
+     "pulled_in_as_sibling_face": true
+    },
+    {
+     "stem": "mcl_beehives_beehive_front_honey",
+     "rank_todo": 708,
+     "score": 5.387,
+     "home_node": "mcl_beehives:beehive_5",
+     "class": "wood",
+     "pulled_in_as_sibling_face": true
+    }
+   ],
+   "best_rank_todo": 346,
+   "median_rank_todo": 477.0,
+   "treatment": [
+    "manufactured faces: flat panels in lib.band, thin joints, iron fittings with metal_mask; never the cobble recipe on a furnace"
+   ],
+   "worked_examples": [
+    "tools/pbr_author/default_furnace_front.py",
+    "tools/pbr_author/crafting_workbench_front.py",
+    "tools/pbr_author/default_bookshelf.py",
+    "tools/pbr_author/default_tnt_side.py"
+   ],
+   "cumulative_stems": 419,
+   "small": true
+  }
+ ],
+ "extras": [
+  {
+   "item": "crack_anylength",
+   "what": "an authored crack texture in the pack, overriding the game's by filename",
+   "why": "Mineclonia's crack_anylength.png is 16 by 160 (ten 16 px stages), and draw_crack scales one stage over the 256 px base, so a damaged block shows 16 px cracks on a 256 px face",
+   "note": "not a node tile, so the census cannot rank it; every block a player digs shows it"
+  }
+ ],
+ "rework_known_failures": [
+  {
+   "stem": "default_clay",
+   "authored": true,
+   "rank_all": 31,
+   "score": 5451.821,
+   "family": "soils",
+   "why": "These eleven ship. Each fails one rule, surface is too smooth for its material class, by between 0.3 and 27 per cent of a band the classification review itself describes as the pipeline's defaults rather than a per texture judgement. The five soil ones are the authored path's keep_mean clipping at zero and so lifting the mean it was setting; the rails, the torch and the grass top are near misses or a class derived from a footstep sound. Rejecting them would leave dirt, clay, podzol and rails with no maps beside neighbours that have them, which is a worse picture than the overshoot."
+  },
+  {
+   "stem": "default_dirt",
+   "authored": true,
+   "rank_all": 4,
+   "score": 40747.512,
+   "family": "soils",
+   "why": "These eleven ship. Each fails one rule, surface is too smooth for its material class, by between 0.3 and 27 per cent of a band the classification review itself describes as the pipeline's defaults rather than a per texture judgement. The five soil ones are the authored path's keep_mean clipping at zero and so lifting the mean it was setting; the rails, the torch and the grass top are near misses or a class derived from a footstep sound. Rejecting them would leave dirt, clay, podzol and rails with no maps beside neighbours that have them, which is a worse picture than the overshoot."
+  },
+  {
+   "stem": "default_rail",
+   "authored": true,
+   "rank_all": 592,
+   "score": 48.793,
+   "family": "rails, ladders and bars",
+   "why": "These eleven ship. Each fails one rule, surface is too smooth for its material class, by between 0.3 and 27 per cent of a band the classification review itself describes as the pipeline's defaults rather than a per texture judgement. The five soil ones are the authored path's keep_mean clipping at zero and so lifting the mean it was setting; the rails, the torch and the grass top are near misses or a class derived from a footstep sound. Rejecting them would leave dirt, clay, podzol and rails with no maps beside neighbours that have them, which is a worse picture than the overshoot."
+  },
+  {
+   "stem": "default_rail_crossing",
+   "authored": true,
+   "rank_all": 513,
+   "score": 74.653,
+   "family": "rails, ladders and bars",
+   "why": "These eleven ship. Each fails one rule, surface is too smooth for its material class, by between 0.3 and 27 per cent of a band the classification review itself describes as the pipeline's defaults rather than a per texture judgement. The five soil ones are the authored path's keep_mean clipping at zero and so lifting the mean it was setting; the rails, the torch and the grass top are near misses or a class derived from a footstep sound. Rejecting them would leave dirt, clay, podzol and rails with no maps beside neighbours that have them, which is a worse picture than the overshoot."
+  },
+  {
+   "stem": "default_rail_curved",
+   "authored": true,
+   "rank_all": 593,
+   "score": 48.793,
+   "family": "rails, ladders and bars",
+   "why": "These eleven ship. Each fails one rule, surface is too smooth for its material class, by between 0.3 and 27 per cent of a band the classification review itself describes as the pipeline's defaults rather than a per texture judgement. The five soil ones are the authored path's keep_mean clipping at zero and so lifting the mean it was setting; the rails, the torch and the grass top are near misses or a class derived from a footstep sound. Rejecting them would leave dirt, clay, podzol and rails with no maps beside neighbours that have them, which is a worse picture than the overshoot."
+  },
+  {
+   "stem": "default_rail_t_junction",
+   "authored": true,
+   "rank_all": 594,
+   "score": 48.793,
+   "family": "rails, ladders and bars",
+   "why": "These eleven ship. Each fails one rule, surface is too smooth for its material class, by between 0.3 and 27 per cent of a band the classification review itself describes as the pipeline's defaults rather than a per texture judgement. The five soil ones are the authored path's keep_mean clipping at zero and so lifting the mean it was setting; the rails, the torch and the grass top are near misses or a class derived from a footstep sound. Rejecting them would leave dirt, clay, podzol and rails with no maps beside neighbours that have them, which is a worse picture than the overshoot."
+  },
+  {
+   "stem": "jeija_torches_on",
+   "authored": true,
+   "rank_all": 393,
+   "score": 116.367,
+   "family": "glowing blocks",
+   "why": "These eleven ship. Each fails one rule, surface is too smooth for its material class, by between 0.3 and 27 per cent of a band the classification review itself describes as the pipeline's defaults rather than a per texture judgement. The five soil ones are the authored path's keep_mean clipping at zero and so lifting the mean it was setting; the rails, the torch and the grass top are near misses or a class derived from a footstep sound. Rejecting them would leave dirt, clay, podzol and rails with no maps beside neighbours that have them, which is a worse picture than the overshoot."
+  },
+  {
+   "stem": "mcl_core_coarse_dirt",
+   "authored": true,
+   "rank_all": 99,
+   "score": 842.128,
+   "family": "soils",
+   "why": "These eleven ship. Each fails one rule, surface is too smooth for its material class, by between 0.3 and 27 per cent of a band the classification review itself describes as the pipeline's defaults rather than a per texture judgement. The five soil ones are the authored path's keep_mean clipping at zero and so lifting the mean it was setting; the rails, the torch and the grass top are near misses or a class derived from a footstep sound. Rejecting them would leave dirt, clay, podzol and rails with no maps beside neighbours that have them, which is a worse picture than the overshoot."
+  },
+  {
+   "stem": "mcl_core_dirt_podzol_side",
+   "authored": true,
+   "rank_all": 58,
+   "score": 1804.661,
+   "family": "soils",
+   "why": "These eleven ship. Each fails one rule, surface is too smooth for its material class, by between 0.3 and 27 per cent of a band the classification review itself describes as the pipeline's defaults rather than a per texture judgement. The five soil ones are the authored path's keep_mean clipping at zero and so lifting the mean it was setting; the rails, the torch and the grass top are near misses or a class derived from a footstep sound. Rejecting them would leave dirt, clay, podzol and rails with no maps beside neighbours that have them, which is a worse picture than the overshoot."
+  },
+  {
+   "stem": "mcl_core_dirt_podzol_top",
+   "authored": true,
+   "rank_all": 39,
+   "score": 4017.474,
+   "family": "soils",
+   "why": "These eleven ship. Each fails one rule, surface is too smooth for its material class, by between 0.3 and 27 per cent of a band the classification review itself describes as the pipeline's defaults rather than a per texture judgement. The five soil ones are the authored path's keep_mean clipping at zero and so lifting the mean it was setting; the rails, the torch and the grass top are near misses or a class derived from a footstep sound. Rejecting them would leave dirt, clay, podzol and rails with no maps beside neighbours that have them, which is a worse picture than the overshoot."
+  },
+  {
+   "stem": "mcl_flowers_double_plant_grass_top",
+   "authored": true,
+   "rank_all": 173,
+   "score": 374.346,
+   "family": "flora cut-outs",
+   "why": "These eleven ship. Each fails one rule, surface is too smooth for its material class, by between 0.3 and 27 per cent of a band the classification review itself describes as the pipeline's defaults rather than a per texture judgement. The five soil ones are the authored path's keep_mean clipping at zero and so lifting the mean it was setting; the rails, the torch and the grass top are near misses or a class derived from a footstep sound. Rejecting them would leave dirt, clay, podzol and rails with no maps beside neighbours that have them, which is a worse picture than the overshoot."
+  }
+ ]
+}
