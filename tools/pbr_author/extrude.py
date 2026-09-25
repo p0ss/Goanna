@@ -61,6 +61,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import lib  # noqa: E402
 
 SPECS = Path(__file__).resolve().parent / "specs"
+HERE_STEMS = Path(__file__).resolve().parent / "stems"
 
 # Per class: coarse levels, joint depth, normal strength (texels of the
 # 256 px map for the full 0..1 height; 25.6 is the client's 0.10 node
@@ -395,11 +396,24 @@ def release_class(stem, game):
         g = _gate()
         manifest, review = (str(lib.REPO / p) for p in RELEASE_CLASSES[game])
         classes = g.texture_classes(manifest)
-        for s, r in g.pbr_bake.load_classification_review(review, set(classes)).items():
+        # The release reads the review for every stem with source art, not
+        # only the manifest's; the game's stem list stands in for that.
+        listed = HERE_STEMS / (game + ".txt")
+        stems = set(classes) | (set(listed.read_text().split()) if listed.exists() else set())
+        reviews = g.pbr_bake.load_classification_review(review, stems)
+        for s, r in reviews.items():
             if r.get("primary_material"):
                 classes[s] = g.pbr_bake.physical_class(r["primary_material"])
-        _release_cache[game] = classes
-    return _release_cache[game].get(stem)
+        _release_cache[game] = (classes, reviews)
+    return _release_cache[game][0].get(stem)
+
+
+def release_review(stem, game):
+    """The classification review entry the release gate applies to a stem
+    (its smoothness bounds among other things), or None."""
+    if release_class(stem, game) is None and game not in _release_cache:
+        return None
+    return _release_cache.get(game, ({}, {}))[1].get(stem)
 
 
 def check(stem, out_dir, game=lib.DEFAULT_GAME, spec=None):
@@ -475,7 +489,8 @@ def check(stem, out_dir, game=lib.DEFAULT_GAME, spec=None):
     g = _gate()
     rep = g.inspect(stem, out_dir / (stem + "_n.png"), out_dir / (stem + "_s.png"),
                     release_class(stem, game) or cls,
-                    lib.source_path(stem, game), out_dir / (stem + ".png"))
+                    lib.source_path(stem, game), out_dir / (stem + ".png"),
+                    release_review(stem, game))
     for f in rep["failures"]:
         line(False, "gate: " + f)
     for w in rep["warnings"]:

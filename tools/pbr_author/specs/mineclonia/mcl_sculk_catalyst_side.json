@@ -1,3 +1,9 @@
 {
- "class": "stone"
+ "class": "stone",
+ "materials": {
+  "base": {
+   "mode": "shade",
+   "smooth": 0.12
+  }
+ }
 }
