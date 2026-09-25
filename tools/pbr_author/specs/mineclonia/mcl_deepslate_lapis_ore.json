@@ -1,0 +1,13 @@
+{
+ "class": "stone",
+ "materials": {
+  "stone": {"mode": "shade", "base": 0.2, "span": 0.4, "joints": false},
+  "lapis": {"mode": "shade", "base": 0.72, "span": 0.22, "detail": 0.3, "smooth": 0.5}
+ },
+ "palette": {
+  "#2e2d2d": "stone", "#323030": "stone", "#3a3838": "stone", "#413f3f": "stone",
+  "#454342": "stone", "#494746": "stone", "#514f4e": "stone",
+  "#1370c1": "lapis", "#185eb2": "lapis", "#1d51a5": "lapis", "#1e387f": "lapis",
+  "#1f4493": "lapis", "#2288cc": "lapis"
+ }
+}

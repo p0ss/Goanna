@@ -1,0 +1,5 @@
+{
+ "materials": {
+  "gold": {"mode": "shade", "smooth": 0.35}
+ }
+}

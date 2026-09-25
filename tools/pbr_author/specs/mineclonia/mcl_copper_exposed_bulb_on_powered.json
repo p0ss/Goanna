@@ -1,0 +1,10 @@
+{
+ "materials": {
+  "copper": {
+   "mode": "shade",
+   "smooth": 0.55,
+   "emission": 0.7,
+   "emission_shade": true
+  }
+ }
+}

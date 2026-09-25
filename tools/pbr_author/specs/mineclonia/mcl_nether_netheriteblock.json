@@ -1,0 +1,6 @@
+{
+ "class": "metal",
+ "materials": {
+  "netherite": {"mode": "shade", "base": 0.3, "span": 0.5, "metal": false, "smooth": 0.4}
+ }
+}

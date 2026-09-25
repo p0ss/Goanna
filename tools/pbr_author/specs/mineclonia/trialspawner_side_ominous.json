@@ -1,0 +1,52 @@
+{
+ "class": "metal",
+ "materials": {
+  "frame": {
+   "mode": "shade",
+   "base": 0.35,
+   "span": 0.25,
+   "joints": false,
+   "metal": false,
+   "smooth": 0.35
+  },
+  "cage": {
+   "mode": "shade",
+   "base": 0.15,
+   "span": 0.25,
+   "joints": false,
+   "metal": false,
+   "smooth": 0.4
+  },
+  "gem": {
+   "mode": "shade",
+   "base": 0.55,
+   "span": 0.15,
+   "joints": false,
+   "smooth": 0.6
+  },
+  "core": {
+   "mode": "shade",
+   "base": 0.35,
+   "span": 0.15,
+   "joints": false,
+   "smooth": 0.5
+  }
+ },
+ "palette": {
+  "#232323": "cage",
+  "#000000": "cage",
+  "#191919": "cage",
+  "#2c2c2c": "cage",
+  "#3d3d3d": "cage",
+  "#413b38": "cage",
+  "#524841": "frame",
+  "#60554b": "frame",
+  "#6d6052": "frame",
+  "#7a6d59": "frame",
+  "#677d76": "gem",
+  "#678680": "gem",
+  "#70918a": "gem",
+  "#512725": "core",
+  "#5c3d39": "core"
+ }
+}

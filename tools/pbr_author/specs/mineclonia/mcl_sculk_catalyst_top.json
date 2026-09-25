@@ -1,0 +1,8 @@
+{
+ "class": "stone",
+ "materials": {
+  "sculk": {"mode": "shade"},
+  "spark": {"mode": "flat", "base": 0.95, "span": 0, "emission": 0.9, "joints": false}
+ },
+ "palette": {"#075d67": "spark"}
+}

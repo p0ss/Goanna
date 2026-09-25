@@ -1,0 +1,13 @@
+{
+ "class": "stone",
+ "materials": {
+  "stone": {"mode": "shade", "base": 0.25, "span": 0.45, "joints": false},
+  "quartz": {"mode": "shade", "base": 0.75, "span": 0.2, "detail": 0.3, "smooth": 0.55}
+ },
+ "palette": {
+  "#542b21": "stone", "#662d28": "stone", "#772b28": "stone", "#7a2c29": "stone",
+  "#902d1e": "stone", "#a34332": "stone", "#ad5941": "stone",
+  "#706c66": "quartz", "#7e7471": "quartz", "#87807c": "quartz", "#938983": "quartz",
+  "#a59790": "quartz", "#baaba5": "quartz"
+ }
+}

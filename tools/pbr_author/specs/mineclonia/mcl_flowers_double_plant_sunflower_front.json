@@ -1,0 +1,25 @@
+{
+ "class": "leaves",
+ "materials": {
+  "petal": {
+   "mode": "shade",
+   "base": 0.5,
+   "span": 0.35
+  },
+  "centre": {
+   "mode": "shade",
+   "base": 0.55,
+   "span": 0.2,
+   "joints": false
+  }
+ },
+ "palette": {
+  "#efc143": "petal",
+  "#dd9939": "petal",
+  "#fcdd53": "petal",
+  "#af6d33": "petal",
+  "#33251e": "centre",
+  "#44352c": "centre",
+  "#5b4b3f": "centre"
+ }
+}

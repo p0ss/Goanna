@@ -1,0 +1,6 @@
+{
+ "class": "leaves",
+ "materials": {
+  "leaf": {"mode": "shade", "smooth": 0.15}
+ }
+}

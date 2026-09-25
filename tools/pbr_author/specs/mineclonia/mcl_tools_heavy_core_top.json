@@ -1,0 +1,6 @@
+{
+ "class": "metal",
+ "materials": {
+  "core": {"mode": "shade", "metal": false, "smooth": 0.4}
+ }
+}

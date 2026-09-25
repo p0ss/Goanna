@@ -1,0 +1,13 @@
+{
+ "class": "stone",
+ "materials": {
+  "stone": {"mode": "shade", "base": 0.35, "span": 0.55},
+  "opening": {"mode": "flat", "base": 0.08, "span": 0}
+ },
+ "palette": {
+  "#111111": "opening",
+  "#1c1c1c": "opening",
+  "#232323": "opening",
+  "#2c2c2c": "opening"
+ }
+}

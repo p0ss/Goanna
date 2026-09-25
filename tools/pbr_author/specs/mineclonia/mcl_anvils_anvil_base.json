@@ -3,8 +3,6 @@
  "materials": {
   "iron": {
    "mode": "shade",
-   "base": 0.35,
-   "span": 0.65,
    "metal": false,
    "smooth": 0.42
   }

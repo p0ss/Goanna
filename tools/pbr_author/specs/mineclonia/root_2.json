@@ -1,0 +1,27 @@
+{
+ "materials": {
+  "panel": {
+   "mode": "flat",
+   "base": 0.35
+  },
+  "icon": {
+   "mode": "shade",
+   "base": 0.55,
+   "span": 0.35,
+   "joints": false
+  }
+ },
+ "palette": {
+  "#2f4c23": "icon",
+  "#973b2d": "icon",
+  "#305a2c": "icon",
+  "#a94d39": "icon",
+  "#4b703d": "icon",
+  "#b05d3a": "icon",
+  "#597c46": "icon",
+  "#b56c40": "icon",
+  "#c87f4b": "icon",
+  "#d1925a": "icon",
+  "#dda769": "icon"
+ }
+}

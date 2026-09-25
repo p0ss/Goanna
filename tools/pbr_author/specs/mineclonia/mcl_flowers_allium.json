@@ -1,0 +1,35 @@
+{
+ "class": "leaves",
+ "materials": {
+  "stem": {
+   "mode": "shade",
+   "base": 0.12,
+   "span": 0.38
+  },
+  "flower": {
+   "mode": "shade",
+   "base": 0.55,
+   "span": 0.3,
+   "joints": false
+  }
+ },
+ "palette": {
+  "#116803": "stem",
+  "#1d4d1c": "stem",
+  "#397d1f": "stem",
+  "#3b542c": "stem",
+  "#438824": "stem",
+  "#776c9e": "flower",
+  "#a696c8": "flower",
+  "#988bb8": "flower",
+  "#9b8cbc": "flower",
+  "#9a8bb8": "flower",
+  "#8177a8": "flower",
+  "#a190c5": "flower",
+  "#b1a1d0": "flower",
+  "#9484b6": "flower",
+  "#867ea8": "flower",
+  "#a393c1": "flower",
+  "#a194bf": "flower"
+ }
+}

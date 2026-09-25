@@ -1,0 +1,7 @@
+{
+ "class": "metal",
+ "materials": {
+  "frame": {"mode": "shade", "base": 0.35, "span": 0.5, "smooth": 0.5,
+            "emission": 0.3, "emission_shade": true}
+ }
+}

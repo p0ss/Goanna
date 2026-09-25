@@ -1,0 +1,22 @@
+{
+ "class": "stone",
+ "materials": {
+  "stone": {"mode": "shade", "base": 0.35, "span": 0.5},
+  "pole": {"mode": "shade", "base": 0.25, "span": 0.3, "joints": false, "metal": false, "smooth": 0.4},
+  "fire": {"mode": "shade", "base": 0.6, "span": 0.35, "joints": false, "emission": 0.6, "emission_shade": true}
+ },
+ "palette": {
+  "#2c2c2c": "pole",
+  "#332a23": "pole",
+  "#333333": "pole",
+  "#3d3d3d": "pole",
+  "#443c34": "pole",
+  "#892000": "fire",
+  "#b72800": "fire",
+  "#bc2500": "fire",
+  "#d34f1f": "fire",
+  "#e24b10": "fire",
+  "#ff7200": "fire",
+  "#ff7803": "fire"
+ }
+}

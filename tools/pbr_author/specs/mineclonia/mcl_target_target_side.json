@@ -1,0 +1,25 @@
+{
+ "class": "wood",
+ "materials": {
+  "straw": {
+   "mode": "shade",
+   "base": 0.3,
+   "span": 0.5
+  },
+  "paint": {
+   "mode": "flat",
+   "base": 0.3,
+   "span": 0,
+   "smooth": 0.35
+  }
+ },
+ "palette": {
+  "#820d0d": "paint",
+  "#970303": "paint",
+  "#af2128": "paint",
+  "#680202": "paint",
+  "#d7272d": "paint",
+  "#ebe0c3": "paint",
+  "#ebd2b3": "paint"
+ }
+}

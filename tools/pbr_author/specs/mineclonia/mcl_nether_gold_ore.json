@@ -1,0 +1,13 @@
+{
+ "class": "stone",
+ "materials": {
+  "stone": {"mode": "shade", "base": 0.25, "span": 0.45, "joints": false},
+  "gold": {"mode": "shade", "base": 0.78, "span": 0.18, "detail": 0.3, "metal": true, "smooth": 0.6}
+ },
+ "palette": {
+  "#542b21": "stone", "#662d28": "stone", "#772b28": "stone", "#7a2c29": "stone",
+  "#902d1e": "stone", "#a34332": "stone", "#ad5941": "stone",
+  "#875612": "gold", "#a47822": "gold", "#ba8c2a": "gold", "#d4a735": "gold",
+  "#eac162": "gold", "#ffd884": "gold"
+ }
+}

@@ -1,0 +1,13 @@
+{
+ "class": "stone",
+ "materials": {
+  "stone": {"mode": "shade", "base": 0.2, "span": 0.4, "joints": false},
+  "emerald": {"mode": "shade", "base": 0.75, "span": 0.2, "detail": 0.3, "smooth": 0.5}
+ },
+ "palette": {
+  "#2e2d2d": "stone", "#323030": "stone", "#3a3838": "stone", "#413f3f": "stone",
+  "#454342": "stone", "#494746": "stone", "#514f4e": "stone", "#5a5856": "stone",
+  "#1b9958": "emerald", "#1c5b48": "emerald", "#1e7251": "emerald", "#1e8454": "emerald",
+  "#31bc6d": "emerald"
+ }
+}

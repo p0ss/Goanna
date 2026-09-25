@@ -1,0 +1,7 @@
+{
+ "class": "glass",
+ "materials": {
+  "core": {"mode": "shade", "base": 0.3, "span": 0.65, "joints": false, "smooth": 0.75,
+           "emission": 0.35, "emission_shade": true}
+ }
+}

@@ -1,0 +1,10 @@
+{
+ "materials": {
+  "copper": {
+   "mode": "shade",
+   "smooth": 0.28
+  }
+ },
+ "chamfer": 3,
+ "strength": 22
+}

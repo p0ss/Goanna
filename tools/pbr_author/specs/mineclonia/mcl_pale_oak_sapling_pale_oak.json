@@ -1,0 +1,29 @@
+{
+ "class": "leaves",
+ "materials": {
+  "leaf": {
+   "mode": "shade",
+   "base": 0.35,
+   "span": 0.5,
+   "smooth": 0.15
+  },
+  "trunk": {
+   "mode": "shade",
+   "base": 0.15,
+   "span": 0.3,
+   "smooth": 0.2
+  }
+ },
+ "palette": {
+  "#495550": "leaf",
+  "#55625d": "leaf",
+  "#626f6a": "leaf",
+  "#727c78": "leaf",
+  "#828c88": "leaf",
+  "#352c2d": "trunk",
+  "#403638": "trunk",
+  "#493b3e": "trunk",
+  "#554549": "trunk",
+  "#625256": "trunk"
+ }
+}

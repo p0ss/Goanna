@@ -1,0 +1,14 @@
+{
+ "materials": {
+  "copper": {"mode": "shade", "base": 0.35, "span": 0.45, "smooth": 0.4},
+  "bulb": {"mode": "shade", "base": 0.55, "span": 0.35, "joints": false,
+           "metal": false, "smooth": 0.5, "emission": 0.85, "emission_shade": true}
+ },
+ "palette": {
+  "#5f6542": "copper", "#686f48": "copper", "#6e755b": "copper", "#735c40": "copper",
+  "#788061": "copper", "#7c6648": "copper", "#818a67": "copper", "#856c54": "copper",
+  "#8f755a": "copper", "#909469": "copper", "#9a7d5e": "copper", "#aa8661": "copper",
+  "#932b26": "bulb", "#af2c23": "bulb", "#d13a30": "bulb", "#e36f39": "bulb",
+  "#f19f47": "bulb", "#f2c15c": "bulb", "#fdda83": "bulb"
+ }
+}

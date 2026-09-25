@@ -1,0 +1,18 @@
+{
+ "class": "stone",
+ "materials": {
+  "stone": {
+   "mode": "shade"
+  },
+  "torch": {
+   "mode": "flat",
+   "base": 0.85,
+   "span": 0,
+   "joints": false
+  }
+ },
+ "palette": {
+  "#381212": "torch",
+  "#4c1c1c": "torch"
+ }
+}

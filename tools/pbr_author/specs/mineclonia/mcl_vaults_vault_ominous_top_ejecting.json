@@ -1,0 +1,26 @@
+{
+ "materials": {
+  "frame": {
+   "mode": "shade",
+   "metal": false,
+   "smooth": 0.4
+  },
+  "glow": {
+   "mode": "shade",
+   "base": 0.4,
+   "span": 0.3,
+   "metal": false,
+   "smooth": 0.5,
+   "smooth_spread": 0.05,
+   "joints": false,
+   "emission": 0.7,
+   "emission_shade": true
+  }
+ },
+ "palette": {
+  "#515a60": "glow",
+  "#58676d": "glow",
+  "#5c7370": "glow",
+  "#678680": "glow"
+ }
+}

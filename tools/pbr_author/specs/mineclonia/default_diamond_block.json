@@ -1,0 +1,14 @@
+{
+ "materials": {
+  "diamond": {
+   "mode": "shade",
+   "base": 0.5,
+   "span": 0.1,
+   "smooth": 0.85,
+   "smooth_spread": 0.05,
+   "f0": 0.17,
+   "levels": 2,
+   "detail": 0.2
+  }
+ }
+}

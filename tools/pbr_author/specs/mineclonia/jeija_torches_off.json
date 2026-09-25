@@ -1,0 +1,36 @@
+{
+ "materials": {
+  "wood": {
+   "mode": "shade",
+   "base": 0.35,
+   "span": 0.5
+  },
+  "bracket": {
+   "mode": "shade",
+   "base": 0.55,
+   "span": 0.2,
+   "joints": false,
+   "metal": true
+  },
+  "glow": {
+   "mode": "shade",
+   "base": 0.4,
+   "span": 0.15,
+   "joints": false
+  }
+ },
+ "palette": {
+  "#232323": "bracket",
+  "#353535": "bracket",
+  "#494949": "bracket",
+  "#260c0c": "glow",
+  "#381212": "glow",
+  "#4c1c1c": "glow",
+  "#4a3c31": "wood",
+  "#514035": "wood",
+  "#5d493c": "wood",
+  "#675244": "wood",
+  "#715a47": "wood",
+  "#78604a": "wood"
+ }
+}

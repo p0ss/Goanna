@@ -1,0 +1,8 @@
+{
+ "class": "stone",
+ "materials": {
+  "mineral": {"mode": "shade", "base": 0.3, "span": 0.5, "joints": false}
+ },
+ "strength": 25,
+ "chamfer": 3
+}

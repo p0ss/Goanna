@@ -1,0 +1,12 @@
+{
+ "class": "stone",
+ "materials": {
+  "frame": {"mode": "shade", "base": 0.5, "span": 0.4},
+  "arrow": {"mode": "shade", "base": 0.12, "span": 0.15, "joints": false, "smooth": 0.35}
+ },
+ "palette": {
+  "#292b3a": "arrow", "#333144": "arrow", "#592c7f": "arrow", "#703c8e": "arrow",
+  "#6b6161": "frame", "#706c66": "frame", "#7e7471": "frame", "#87807c": "frame",
+  "#a59790": "frame", "#baaba5": "frame", "#c9bcb9": "frame"
+ }
+}

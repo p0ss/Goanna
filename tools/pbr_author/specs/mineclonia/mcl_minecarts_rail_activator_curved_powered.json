@@ -1,0 +1,56 @@
+{
+ "class": "wood",
+ "materials": {
+  "tie": {
+   "mode": "flat",
+   "base": 0.35,
+   "span": 0,
+   "smooth": 0.25
+  },
+  "rail": {
+   "mode": "flat",
+   "base": 0.95,
+   "span": 0,
+   "metal": true,
+   "smooth": 0.75
+  },
+  "mark": {
+   "mode": "flat",
+   "base": 0.85,
+   "span": 0,
+   "smooth": 0.3,
+   "emission": 0.8,
+   "emission_shade": false
+  }
+ },
+ "palette": {
+  "#232323": "rail",
+  "#242323": "rail",
+  "#2c2c2c": "rail",
+  "#353535": "rail",
+  "#363535": "rail",
+  "#363635": "rail",
+  "#3c3c3c": "rail",
+  "#3d3d3d": "rail",
+  "#3e3d3d": "rail",
+  "#494949": "rail",
+  "#604a3a": "tie",
+  "#62493a": "tie",
+  "#624b3b": "tie",
+  "#715644": "tie",
+  "#7a5b49": "tie",
+  "#7a5d4b": "tie",
+  "#7a5e4b": "tie",
+  "#7c5f4c": "tie",
+  "#800e0e": "mark",
+  "#810e0d": "mark",
+  "#820d0d": "mark",
+  "#820e0e": "mark",
+  "#940505": "mark",
+  "#950404": "mark",
+  "#960404": "mark",
+  "#9e7960": "tie"
+ },
+ "strength": 25,
+ "chamfer": 3
+}

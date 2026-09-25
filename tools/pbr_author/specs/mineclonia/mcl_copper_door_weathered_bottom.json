@@ -1,0 +1,10 @@
+{
+ "materials": {
+  "copper": {
+   "mode": "shade",
+   "base": 0.35,
+   "span": 0.6,
+   "smooth": 0.38
+  }
+ }
+}

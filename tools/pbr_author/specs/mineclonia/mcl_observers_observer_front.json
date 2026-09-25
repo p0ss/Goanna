@@ -1,0 +1,28 @@
+{
+ "class": "stone",
+ "materials": {
+  "stone": {
+   "mode": "shade",
+   "base": 0.35,
+   "span": 0.5
+  },
+  "lens": {
+   "mode": "flat",
+   "base": 0.15,
+   "span": 0,
+   "smooth": 0.15
+  },
+  "led": {
+   "mode": "flat",
+   "base": 0.55,
+   "span": 0,
+   "smooth": 0.4
+  }
+ },
+ "palette": {
+  "#292b3a": "lens",
+  "#333144": "lens",
+  "#d34141": "led",
+  "#b52b2b": "led"
+ }
+}

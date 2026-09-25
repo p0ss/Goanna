@@ -1,0 +1,30 @@
+{
+ "class": "stone",
+ "materials": {
+  "stone": {
+   "mode": "shade",
+   "base": 0.35,
+   "span": 0.5
+  },
+  "backing": {
+   "mode": "flat",
+   "base": 0.1,
+   "span": 0,
+   "smooth": 0.15
+  },
+  "led": {
+   "mode": "flat",
+   "base": 0.3,
+   "span": 0,
+   "smooth": 0.3
+  }
+ },
+ "palette": {
+  "#1c1c1c": "backing",
+  "#232323": "backing",
+  "#2c2c2c": "backing",
+  "#111111": "backing",
+  "#381212": "led",
+  "#4c1c1c": "led"
+ }
+}

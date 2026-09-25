@@ -1,0 +1,17 @@
+{
+ "class": "leaves",
+ "materials": {
+  "petal": {
+   "mode": "shade"
+  },
+  "eye": {
+   "mode": "flat",
+   "base": 0.55,
+   "emission": 0.6
+  }
+ },
+ "palette": {
+  "#ff7d32": "eye",
+  "#ffa54c": "eye"
+ }
+}

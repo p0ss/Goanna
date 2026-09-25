@@ -1,0 +1,40 @@
+{
+ "materials": {
+  "bg": {
+   "mode": "shade",
+   "base": 0.1,
+   "span": 0.12,
+   "joints": false
+  },
+  "trunk": {
+   "mode": "shade",
+   "base": 0.35,
+   "span": 0.2,
+   "joints": false
+  },
+  "leaf": {
+   "mode": "shade",
+   "base": 0.55,
+   "span": 0.3,
+   "detail": 0.3,
+   "joints": false
+  }
+ },
+ "palette": {
+  "#76686a": "bg",
+  "#7c7172": "bg",
+  "#877c7d": "bg",
+  "#908787": "bg",
+  "#9a9393": "bg",
+  "#a9a4a4": "bg",
+  "#3f3024": "trunk",
+  "#52402f": "trunk",
+  "#624d3a": "trunk",
+  "#6f5842": "trunk",
+  "#1c3c14": "leaf",
+  "#2e4f22": "leaf",
+  "#39622c": "leaf",
+  "#436f33": "leaf",
+  "#508242": "leaf"
+ }
+}

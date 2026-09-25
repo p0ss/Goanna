@@ -1,0 +1,11 @@
+{
+ "class": "dirt",
+ "materials": {
+  "icing": {"mode": "shade", "base": 0.75, "span": 0.2, "smooth": 0.5, "joints": false},
+  "cherry": {"mode": "flat", "base": 0.85, "span": 0.1, "smooth": 0.3}
+ },
+ "palette": {
+  "#d5d2cf": "icing", "#e5e2df": "icing", "#f1f0ed": "icing", "#fbfaf9": "icing",
+  "#ffffff": "icing", "#e83535": "cherry", "#ea1d1d": "cherry"
+ }
+}

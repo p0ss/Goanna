@@ -1,0 +1,6 @@
+{
+ "class": "ice",
+ "materials": {
+  "honey": {"mode": "shade", "smooth": 0.55}
+ }
+}

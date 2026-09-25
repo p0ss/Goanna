@@ -1,0 +1,35 @@
+{
+ "class": "metal",
+ "materials": {
+  "frame": {
+   "mode": "shade",
+   "base": 0.35,
+   "span": 0.25,
+   "joints": false,
+   "metal": false,
+   "smooth": 0.35
+  },
+  "cage": {
+   "mode": "shade",
+   "base": 0.15,
+   "span": 0.25,
+   "joints": false,
+   "metal": false,
+   "smooth": 0.4
+  }
+ },
+ "palette": {
+  "#232323": "cage",
+  "#000000": "cage",
+  "#191919": "cage",
+  "#2c2c2c": "cage",
+  "#353130": "cage",
+  "#3d3d3d": "cage",
+  "#413839": "cage",
+  "#413b38": "cage",
+  "#524841": "frame",
+  "#60554b": "frame",
+  "#6d6052": "frame",
+  "#7a6d59": "frame"
+ }
+}

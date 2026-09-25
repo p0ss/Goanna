@@ -1,0 +1,26 @@
+{
+ "class": "wood",
+ "materials": {
+  "frame": {
+   "mode": "flat",
+   "base": 0.3,
+   "span": 0,
+   "smooth": 0.35
+  },
+  "cell": {
+   "mode": "flat",
+   "base": 0.75,
+   "span": 0,
+   "smooth": 0.55
+  }
+ },
+ "palette": {
+  "#2c231b": "frame",
+  "#32281f": "frame",
+  "#372a21": "frame",
+  "#46362b": "frame",
+  "#d2c8ba": "cell",
+  "#dfd4c5": "cell",
+  "#ebdfce": "cell"
+ }
+}

@@ -1,0 +1,9 @@
+{
+ "materials": {
+  "frame": {
+   "mode": "shade",
+   "metal": false,
+   "smooth": 0.4
+  }
+ }
+}

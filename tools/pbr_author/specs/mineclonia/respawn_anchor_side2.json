@@ -1,0 +1,30 @@
+{
+ "class": "stone",
+ "materials": {
+  "obsidian": {
+   "mode": "shade",
+   "base": 0.25,
+   "span": 0.45,
+   "joints": false,
+   "smooth": 0.7,
+   "smooth_spread": 0.1
+  },
+  "crystal": {
+   "mode": "shade",
+   "base": 0.5,
+   "span": 0.3,
+   "joints": false,
+   "metal": false,
+   "smooth": 0.3,
+   "emission": 0.5,
+   "emission_shade": true
+  }
+ },
+ "palette": {
+  "#915e47": "crystal",
+  "#ba8150": "crystal",
+  "#dba053": "crystal",
+  "#f2d07b": "crystal",
+  "#f9eaca": "crystal"
+ }
+}
