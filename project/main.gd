@@ -739,6 +739,13 @@ func _ready() -> void:
 	client.connect_to(host, port, pname, OS.get_environment("GOANNA_PASS"))
 	var asset_updater := AssetUpdater.new()
 	asset_updater.client = client
+	asset_updater.server_address = "%s:%d" % [host, port]
+	# A pack is handed over before connecting, so maps that arrive during a
+	# session are not drawn until the next one. Say so rather than leave the
+	# player wondering why a download changed nothing.
+	asset_updater.bundle_installed.connect(func(_id: String) -> void:
+		if ui != null and ui.has_method("_add_chat_line"):
+			ui._add_chat_line("Enhanced materials for this game were installed. They apply from your next connection."))
 	add_child(asset_updater)
 	if OS.get_environment("GOANNA_TOD") != "":
 		client.set_time_of_day_override(float(OS.get_environment("GOANNA_TOD")))

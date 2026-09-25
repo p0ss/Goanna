@@ -4,7 +4,14 @@ extends Node
 const AssetStore := preload("res://asset_store.gd")
 const CFG_PATH := "user://goanna.cfg"
 
+signal bundle_installed(bundle_id: String)
+
 var client: Node
+# "host:port" of the server this session joined, set by main.gd. Empty for a
+# run that has no server to remember a game for.
+var server_address := ""
+# Where remembered games are kept; a test points it at a scratch file.
+var cfg_path := CFG_PATH
 var catalogue := {}
 var _catalogue_url := ""
 var _http: HTTPRequest
@@ -61,10 +68,55 @@ func _process(_delta: float) -> void:
 	for id in unreachable_bundles(catalogue.bundles, ambiguous):
 		push_warning(("Catalogue bundle %s provides no name that is its own, "
 			+ "so no announcement can ask for it.") % id)
-	for bundle in bundles_for_stems(catalogue.bundles, names, ambiguous):
+	var matched := bundles_for_stems(catalogue.bundles, names, ambiguous)
+	for bundle in matched:
 		if not _installed(bundle):
 			_queue.append(bundle)
+	var game := game_of(matched)
+	if game != "" and server_address != "":
+		remember_game(server_address, game, cfg_path)
 	_download_next()
+
+# The one game every matched bundle is for, or "" when they name none or
+# disagree. The protocol never tells a client the server's game, so this is
+# the only evidence a remote join has: the bundles its media asked for.
+static func game_of(bundles: Array) -> String:
+	var common := {}
+	var first := true
+	for bundle in bundles:
+		var games := {}
+		for g in bundle.get("games", []):
+			games[str(g)] = true
+		if first:
+			common = games
+			first = false
+			continue
+		for g in common.keys():
+			if not games.has(g):
+				common.erase(g)
+	return str(common.keys()[0]) if common.size() == 1 else ""
+
+# The game a server was last seen running, kept per address in goanna.cfg,
+# so Join Game can hand that game's installed materials to set_texture_path
+# before connecting, which is the only time a pack can be given.
+static func _server_key(address: String) -> String:
+	var key := ""
+	for c in address.to_lower():
+		key += c if (c >= "a" and c <= "z") or (c >= "0" and c <= "9") else "_"
+	return key
+
+static func remember_game(address: String, game: String, path := CFG_PATH) -> void:
+	var cfg := ConfigFile.new()
+	cfg.load(path)
+	if str(cfg.get_value("server_games", _server_key(address), "")) == game:
+		return
+	cfg.set_value("server_games", _server_key(address), game)
+	cfg.save(path)
+
+static func remembered_game(address: String, path := CFG_PATH) -> String:
+	var cfg := ConfigFile.new()
+	cfg.load(path)
+	return str(cfg.get_value("server_games", _server_key(address), ""))
 
 # Stems a bundle cannot be queued on, because the catalogue does not agree on
 # which game they belong to. Mineclonia and Minetest Game both ship a
@@ -181,6 +233,8 @@ func _on_bundle(result: int, code: int, _headers: PackedStringArray,
 		var error := AssetStore.install_archive(target, str(_current.sha256))
 		if error != "":
 			push_warning(error)
+		else:
+			bundle_installed.emit(str(_current.id))
 	else:
 		push_warning("Enhanced-material download failed; it will be retried on a later connection.")
 	if target != "":

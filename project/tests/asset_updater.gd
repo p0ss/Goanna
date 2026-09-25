@@ -31,7 +31,8 @@ func _init() -> void:
 	OS.set_environment("GOANNA_ASSET_ROOT", _root)
 	for check in [_shared_stems_queue_nothing, _one_game_may_have_tranches,
 			_a_lone_bundle_owns_every_stem, _unreachable_is_reported,
-			_installed_is_skipped, _real_catalogue_separates_its_games]:
+			_installed_is_skipped, _real_catalogue_separates_its_games,
+			_game_is_inferred, _game_is_remembered_per_server]:
 		var error: String = check.call()
 		if error != "":
 			_fail(error)
@@ -189,4 +190,42 @@ func _real_catalogue_separates_its_games() -> String:
 			if not shares:
 				return "%s queues %s, which serves %s" % [bundle.id, other.id,
 					other.get("games", [])]
+	return ""
+
+# Join Game can only hand a pack over before connecting, and the protocol
+# never names the server's game, so the game is inferred from the bundles the
+# announcement matched: one game when they agree, none when they do not.
+func _game_is_inferred() -> String:
+	var mcl := _bundle("mcl.pack", ["mineclonia"], ["mcl_a"])
+	var mcl_items := _bundle("mcl.items", ["mineclonia", "voxelibre"], ["mcl_b"])
+	var mtg := _bundle("mtg.terrain", ["minetest_game"], ["default_a"])
+	if AssetUpdater.game_of([mcl, mcl_items]) != "mineclonia":
+		return "two Mineclonia bundles did not agree on mineclonia"
+	if AssetUpdater.game_of([mcl, mtg]) != "":
+		return "bundles of two games were taken as one game"
+	if AssetUpdater.game_of([mcl_items]) != "":
+		return "a bundle for two games was taken as one of them"
+	if AssetUpdater.game_of([]) != "":
+		return "no bundles named a game"
+	return ""
+
+# The session records the game against the address it joined, in the file it
+# is given, and a second address is untouched.
+func _game_is_remembered_per_server() -> String:
+	var cfg_path := _root.path_join("goanna.cfg")
+	var updater := AssetUpdater.new()
+	updater.catalogue = _catalogue([_bundle("mcl.pack", ["mineclonia"], ["mcl_a"])])
+	updater.server_address = "play.example.org:30001"
+	updater.cfg_path = cfg_path
+	var stub := StubClient.new()
+	stub.media = _media(["mcl_a", "other"])
+	updater.client = stub
+	updater._process(0.0)
+	stub.free()
+	updater.free()
+	var seen := AssetUpdater.remembered_game("play.example.org:30001", cfg_path)
+	if seen != "mineclonia":
+		return "the joined server was remembered as %s, not mineclonia" % seen
+	if AssetUpdater.remembered_game("play.example.org:30000", cfg_path) != "":
+		return "another port on the same host inherited the game"
 	return ""

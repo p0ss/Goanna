@@ -1815,6 +1815,10 @@ func _on_server_picked() -> void:
 		return
 	host_edit.text = str(e.get("address", ""))
 	port_edit.text = str(int(e.get("port", 30000)))
+	# The public list says which game a server runs, which a direct address
+	# does not; kept so the first join there can already use its materials.
+	if str(e.get("gameid", "")) != "":
+		AssetUpdater.remember_game("%s:%s" % [host_edit.text, port_edit.text], str(e.gameid))
 	# Said plainly rather than left to be discovered at the loading screen: a
 	# large public server sends a great deal of media before it lets anyone in.
 	status_label.text = "%s. Joining a large server can take a while at the media step." % str(e.get("name", ""))
@@ -1848,6 +1852,13 @@ func _on_connect() -> void:
 	var graphics_id := str(graphics.get("id", "server"))
 	var texture_path := str(graphics.get("path", ""))
 	var use_pbr := bool(graphics.get("pbr", true))
+	# The default choice has no pack of its own. When this server's game is
+	# known, from the public list or from a previous session's media, its
+	# installed materials are used, as a world hosted in Goanna already does.
+	if graphics_id == "server" and texture_path == "":
+		var game := AssetUpdater.remembered_game("%s:%s" % [host, port_text])
+		if game != "":
+			texture_path = LocalServer.bundled_pbr_texture_path(game)
 	cfg.set_value("server", "graphics", graphics_id)
 	cfg.save(CFG_PATH)
 	OS.set_environment("GOANNA_HOST", host)
