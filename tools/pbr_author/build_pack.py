@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
-"""Run every authored script for a game and install the result into a pack.
+"""Build every authored set for a game and install the result into a pack.
 
   tools/pbr_author/build_pack.py [--game kythen] [--stems a,b] [--stage <dir>]
       [--install [<pack textures dir>]] [--check]
 
-A script belongs to the game it declares with GAME = "..." at module level;
+A game with a stem list, tools/pbr_author/stems/<game>.txt, is built by
+extrude.py: every listed stem through the texel extrusion rule and its
+spec, checked by extrude.check. Mineclonia is built this way.
+
+A game without one runs its per stem scripts, as Kythen still does. A script belongs to the game it declares with GAME = "..." at module level;
 one that declares none is Mineclonia's. Each tools/pbr_author/<stem>.py is
 run with the stage directory as its argument. A bare --install goes to the
 game's shipped pack (lib.GAMES). With --install the three files it wrote (albedo, _n, _s) replace
@@ -77,6 +81,19 @@ def main():
     stems = [s for s in args.stems.split(",") if s]
     done = []
     failed = []
+    stem_list = HERE / "stems" / (args.game + ".txt")
+    if stem_list.exists():
+        import extrude
+        for stem in stems or stem_list.read_text().split():
+            try:
+                extrude.build(stem, args.stage, args.game)
+                bad = [l[5:] for l in extrude.check(stem, args.stage, args.game)
+                       if l.startswith("FAIL")]
+            except Exception as e:  # noqa: BLE001 - reported per stem
+                bad = ["error: %s" % e]
+            print("%-44s %s" % (stem, "ok" if not bad else "FAIL " + "; ".join(bad)))
+            (failed if bad and (args.strict or bad[0].startswith("error")) else done).append(stem)
+        return install(args, done, failed)
     for script in scripts(stems, args.game):
         stem = script.stem
         if not script.exists():
@@ -104,6 +121,10 @@ def main():
         (done if ok or not args.strict else failed).append(stem)
         if not ok:
             failed.append(stem) if stem not in failed and args.strict else None
+    return install(args, done, failed)
+
+
+def install(args, done, failed):
     print("%d built, %d failed" % (len(done), len(failed)))
     if args.check or args.install is None:
         return

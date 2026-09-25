@@ -1,5 +1,21 @@
 # PBR authoring playbook
 
+## Mineclonia now uses one rule, not a fleet of scripts
+
+On 2026-09-25 the owner rejected the scripted look on review (high
+definition grain and domed stones, out of place in a blocky world) and
+chose crisp extrusion of the art's own texels instead. Mineclonia's 228
+authored stems are now built by `tools/pbr_author/extrude.py` from
+`tools/pbr_author/stems/mineclonia.txt`, with per stem specs in
+`tools/pbr_author/specs/mineclonia/` where one shaded material is wrong.
+`tools/pbr_author/README.md` explains the rule and the specs. A fleet for
+a new game now writes specs, not scripts: an agent per material family
+reads each stem's palette map and preview, writes a spec where the rule
+fails, and checks each with `extrude.check`. No GPU for the agents; the
+session running them renders the ramp one client at a time.
+
+The procedure below is the one Kythen's scripts were made with.
+
 How to give a Luanti game hand authored material maps with a fleet of
 agents, the way Mineclonia got its 177 sets on 2026-09-15 and 16. This is
 the operating procedure; `tools/pbr_author/README.md` is the brief the

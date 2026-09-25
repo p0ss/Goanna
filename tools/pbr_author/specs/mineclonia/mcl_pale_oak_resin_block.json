@@ -1,3 +1,9 @@
 {
- "class": "glass"
+ "class": "glass",
+ "materials": {
+  "resin": {
+   "mode": "shade",
+   "smooth": 0.82
+  }
+ }
 }

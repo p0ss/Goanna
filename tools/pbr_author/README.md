@@ -1,5 +1,43 @@
 # Hand authored LabPBR sets
 
+## Current: the texel extrusion rule (Mineclonia)
+
+Since 2026-09-26 Mineclonia's authored sets are not built by per stem
+scripts. `extrude.py` applies one rule to every stem listed in
+`stems/mineclonia.txt`: each source texel is a flat plateau with a one
+pixel chamfer, lighter is higher inside a material (a few coarse levels
+plus a smaller per texel step), very dark texels sink as joints. No noise,
+no grain inside a texel, no rounded or warped outlines. The owner chose
+this look over the domed, grained sets described below, which read as
+high definition detail out of place in a blocky world.
+
+A stem the rule gets wrong has a spec, `specs/mineclonia/<stem>.json`: it
+maps the art's palette colours (or a per texel character grid) to
+materials, each with a mode (`shade`, `parts` for pieces at one height
+each, `flat`), a height range, smoothness, reflectance, metal and glow.
+The docstring of `extrude.py` is the reference. Write a spec for mixed
+materials (ore veins proud of stone), manufactured parts (books, beams,
+rails), masonry (mortar is often lighter than the brick, so it needs its
+own low material), glow, near uniform art, and wrong classes: the class
+`lib.class_of` reads back from the bake falls to wood for any stem the
+bake left unclassified.
+
+```sh
+python3 tools/pbr_author/extrude.py --palette x <stem>   # palette and texel map
+python3 tools/pbr_author/extrude.py <out dir> <stem>...  # build and check
+python3 tools/pbr_author/build_pack.py --check           # every listed stem
+python3 tools/pbr_author/build_pack.py --install         # into the pack
+```
+
+`extrude.check` replaces `lib.check` for these sets: height one value
+inside each texel, several heights, the parallax depth the client derives
+between 0.02 and its 0.10 cap, and the release gate on the same files.
+Judge a change on the close-up ramp under afternoon, low sun and lamp.
+
+Everything below describes the per stem scripts Kythen still uses.
+
+## The per stem scripts (Kythen)
+
 One script per texture stem, `tools/pbr_author/<stem>.py`, building the
 height and smoothness fields for that surface from the game's own 16 px art
 and packing them with `lib.py`. This exists because the bake's relief is an
