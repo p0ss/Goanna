@@ -85,10 +85,27 @@ archive is reproducible from identical inputs. APIs, ineligible media and
 ambiguous per-file licences never enter a release merely because a package is
 popular.
 
+`build` and `verify` also refuse a pack whose baked height maps do not fill
+the height byte (`tools/check-pbr-height.py`): a median alpha span under 224
+of 255 across the `_n` maps not marked `goanna_pipeline=authored`. The shader
+applies each material's depth at draw time, so a bake that scaled the byte by
+that depth applied it twice. Mineclonia pack 1.0.0 went out that way, median
+span 77, and the per map quality gate reported nothing.
+
 GitHub distribution groups changed individual bundles into a periodic draft
 release rather than making one release per mod. Run
 `tools/publish-assets.sh p0ss/Goanna assets-YYYY.MM.N`; inspect the draft and
-publish it as immutable.
+publish it as immutable. A draft's URLs answer 404, and on 2026-09-13 an
+epoch was left as one for a week, so the script ends by printing the command
+that publishes it and the check to run afterwards:
+
+```sh
+python3 tools/check-asset-catalogue.py --live
+```
+
+That sends a HEAD request to every URL in the catalogue, following
+redirects, and fails on anything but a 200 whose size matches the catalogue.
+Commit the catalogue only once it passes.
 
 Assets share the client's repository. Two things keep that from being
 confusing. The release carries archives only, never the catalogue, so there

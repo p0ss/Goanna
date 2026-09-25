@@ -52,16 +52,18 @@ lows, stability and what each frame was waiting on, against a noise floor it
 measures on the same machine in the same session.
 
 Native tests are built in `build/`. They are not part of the default build,
-so build each by name first (`cmake --build build --target <name>`), or the
-binary you run is missing or stale:
+so `cmake --build build` never rebuilds them and a `./build/<test>` run can
+execute a binary days older than its sources. Build and run all of them
+with:
 
 ```sh
-./build/goanna_lod_test
-./build/goanna_mesh_pool_test
-./build/goanna_light_test
-./build/goanna_item_icon_test
-./build/goanna_animation_test
+cmake --build build --target check
 ```
+
+To run one, build it by name in the same command, for example
+`cmake --build build --target goanna_lod_test && ./build/goanna_lod_test`.
+A new test source must be added to `GOANNA_NATIVE_TESTS` in
+`CMakeLists.txt`; configuring fails until it is.
 
 `goanna_animation_test` feeds the animation messages a Luanti 5.17 server
 sends, and the shorter ones an older server sends, through the transplanted
@@ -108,6 +110,16 @@ GOANNA_TEST_ASSET_SHA256=$(python3 -c "import json;print([b for b in \
   json.load(open('asset_bundles/catalogue.json'))['bundles'] \
   if b['id']=='org.goanna.minetest-game.terrain'][0]['sha256'])") \
 godot --headless --path project --script res://tests/asset_store_install.gd
+```
+
+That needs a published bundle to hand. With nothing to hand, a small bundle
+built by `tools/pbr_bundle.py` from textures the test writes, with stems
+that are prefixes of one another, is installed into an empty store the way
+a downloaded one is, and the composed textures directory is checked file by
+file. It needs `python3` with Pillow:
+
+```sh
+godot --headless --path project --script res://tests/asset_bundle_install.gd
 ```
 
 The catalogue wiring, that `catalogue_url` is absolute and that every bundle

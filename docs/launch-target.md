@@ -43,15 +43,24 @@ were implemented.
 
 Each release candidate should include:
 
-1. Native unit tests and Godot integration tests passing.
+1. Native unit tests and Godot integration tests passing, the native tests
+   through `cmake --build build --target check` so none of them is a stale
+   binary, and `res://tests/asset_bundle_install.gd` among the Godot ones.
 2. A clean build from a fresh checkout with submodules.
-3. A short performance capture in an open landscape, a forest, a cave and an
+3. Every asset bundle the release relies on passing
+   `tools/pbr_bundle.py verify`, which includes the height fill check
+   (`tools/check-pbr-height.py`).
+4. After an asset epoch is published, `tools/check-asset-catalogue.py
+   --live` reporting a 200 of the catalogued size for every URL.
+5. A short performance capture in an open landscape, a forest, a cave and an
    underwater scene.
-4. A compatibility run against a normal Luanti server and the supported local
+6. A compatibility run against a normal Luanti server and the supported local
    game path.
-5. Screenshots or captures for any changed visual system, with the relevant
+7. Screenshots or captures for any changed visual system, with the relevant
    performance overlay enabled.
 
-The implementation details behind these checks live in
-[far-rendering.md](far-rendering.md), [pbr-plan.md](pbr-plan.md),
-[validation.md](validation.md) and [roadmap.md](roadmap.md).
+Items 1, 3 and 4 are described, with the defect each one exists for, under
+"Release checks" in [building.md](building.md). The implementation details
+behind the others live in [far-rendering.md](far-rendering.md),
+[pbr-plan.md](pbr-plan.md), [validation.md](validation.md) and
+[roadmap.md](roadmap.md).

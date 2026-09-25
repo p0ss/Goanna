@@ -423,6 +423,70 @@ tools/test-formspec.sh
 See [formspec conformance](formspec-conformance.md) for classifications,
 reference screenshots and instructions for extending the suite.
 
+## Release checks
+
+Cutting v0.9.0-alpha shipped four defects that nothing checked for: native
+tests that ran stale binaries, a client that threw away every bundle it
+downloaded, a bundle whose height maps had been flattened, and an asset
+epoch left as a draft so every catalogue URL answered 404. Each now has a
+check. Run all four for a release candidate. Each exits non-zero on failure.
+
+**Native tests, built first.**
+
+```sh
+cmake --build build --target check
+```
+
+The native test targets are `EXCLUDE_FROM_ALL`, so `cmake --build build`
+never rebuilds them, and running `./build/<test>` runs whatever binary is
+there, however old. `check` depends on every test, so the build system
+rebuilds whichever are stale and then runs them all from the repository
+root, stopping at the first failure. Configuring fails if a
+`src/goanna_*_test.cpp` has no entry in `GOANNA_NATIVE_TESTS` in
+`CMakeLists.txt`, so a new test cannot be left out of it. To run one test,
+build it by name in the same command:
+`cmake --build build --target goanna_lod_test && ./build/goanna_lod_test`.
+
+**A real bundle install.**
+
+```sh
+godot --headless --path project --script res://tests/asset_bundle_install.gd
+```
+
+Writes a few small textures, including `mcl_bamboo_bamboo` beside
+`mcl_bamboo_bamboo_plank` (a stem that is a prefix of another, which is what
+broke `AssetStore.install_archive`), packs them with `tools/pbr_bundle.py
+build`, and installs the archive into an empty store with the call
+`asset_updater.gd` makes on a finished download. It checks the composed
+`profiles/<game>/textures` file by file, and that nothing is left staged in
+the store. It needs `python3` with Pillow on `PATH`.
+
+**Height maps that fill the byte.**
+
+```sh
+python3 tools/check-pbr-height.py pbr_packs/mineclonia/textures dist/assets/*.zip
+```
+
+Fails a pack whose baked `_n` maps have a median alpha span under 224 of
+255. The shader applies each material's depth itself, so a bake that scaled
+the byte by it applied it twice; the per map quality gate could not see
+that. `tools/pbr_bundle.py build` and `verify` run it, and so does
+`tools/check-pbr-quality.py`, so it also runs inside
+`tools/publish-assets.sh`. Authored maps (PNG text chunk
+`goanna_pipeline=authored`) are reported separately and never fail it.
+
+**Published URLs answer.** After publishing an asset epoch:
+
+```sh
+python3 tools/check-asset-catalogue.py --live
+```
+
+Sends a HEAD request to every URL in `asset_bundles/catalogue.json`,
+following redirects, and fails on anything but a 200 whose size matches the
+catalogue. `tools/publish-assets.sh` prints this command, with the one that
+publishes the draft, as its last output. Commit the catalogue only after
+it passes.
+
 ## Troubleshooting
 
 **`zstd not found` during CMake configure.** Install the Zstandard

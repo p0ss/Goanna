@@ -872,6 +872,30 @@ minutes after the tag, so the whole run sits in this section.
   16 px stage over a 256 px base; an authored crack in the pack would fix
   it, since the pack overrides by filename.
 
+- Release checks, 2026-09-25. One check for each 0.9.0 fault that nothing
+  would have caught, described under "Release checks" in
+  `docs/building.md` and listed in `docs/launch-target.md`.
+  `cmake --build build --target check` builds every native test and then
+  runs it; built fresh here, all 11 pass. `tests/asset_bundle_install.gd`
+  installs an archive `tools/pbr_bundle.py` built, with prefix stems, into
+  an empty store through the updater's own call; it fails against the old
+  `keys() != keys()` comparison. `tools/check-pbr-height.py` runs in
+  `pbr_bundle.py build` and `verify` and in the quality gate: it passes
+  `pbr_packs/mineclonia/textures` and Mineclonia pack 1.1.0 (median span
+  255) and fails Mineclonia 1.0.0 (77), Kythen billboard 1.0.0 (41), Kythen
+  item 1.0.0 (77), Minetest Game terrain 1.0.0 (141), Kythen terrain 1.1.0
+  (205.5) and `pbr_packs/minetest_game/textures` (205). The last two were
+  not on the list of known flattened sets; both carry spans of 141, 108 and
+  41, which are stone, wood and leaves depths times 255.
+  `tools/check-asset-catalogue.py --live` found all five catalogued URLs
+  answering 200 at the catalogued size.
+
+  The install test also found that `AssetStore.install_archive` left its
+  unpacked `.bundle-*` staging copy in the store whenever it refused an
+  archive or was handed a version already installed, which
+  `install_bootstrap` does on every launch of a packaged client. The store
+  on the development machine held five, 5.7 MB each. It now removes them.
+
 ## Log since v0.6.1-alpha (2026-09-02), covering v0.7.0-alpha and v0.8.0-alpha
 
 The 0.5 and 0.6 series were released without a section here. What they
