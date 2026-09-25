@@ -412,6 +412,39 @@ def cutout_mask(albedo, alpha=None):
     return mask if mask.any() else None
 
 
+SMOOTH_CEILING = 0.95
+
+
+def _fits(values):
+    """True when no value needs the smoothness clip, so a plain shift
+    onto the level already puts the mean there."""
+    return values.size == 0 or (values.min() >= 0.0 and values.max() <= SMOOTH_CEILING)
+
+
+def _clipped_offset(deviation, level):
+    """The offset t for which clip(deviation + t, 0, SMOOTH_CEILING) has
+    mean level, by bisection (the clipped mean rises monotonically in t).
+
+    A plain shift of the deviation onto the level and then a clip is not
+    mean preserving: soil's level is 0.05 and a script's spread of 0.08 or
+    more puts up to two fifths of the texels below zero, so the clip raised
+    every Mineclonia soil to a mean of 0.09 to 0.11, over the quality
+    gate's 0.075, and the rougher the script made the recesses the smoother
+    the set came out. Shifting further down instead keeps the mean on the
+    level and the shape of everything above zero; the recesses that were
+    going to be clipped to fully rough still are."""
+    target = min(max(level, 0.0), SMOOTH_CEILING)
+    lo = -float(deviation.max())
+    hi = SMOOTH_CEILING - float(deviation.min())
+    for _ in range(60):
+        t = 0.5 * (lo + hi)
+        if np.clip(deviation + t, 0.0, SMOOTH_CEILING).mean() < target:
+            lo = t
+        else:
+            hi = t
+    return 0.5 * (lo + hi)
+
+
 def pack(stem, out_dir, albedo, height, smoothness, cls, normal_strength,
         metal_mask=None, ao_radius=6, keep_mean=True, emission=None, f0=None,
         fine_detail=0.35, art_texels=16, alpha=None):
@@ -473,7 +506,13 @@ def pack(stem, out_dir, albedo, height, smoothness, cls, normal_strength,
         if f0 is not None:
             base = base & (np.asarray(f0, dtype=np.float32) <= 0.05)
         ref = float(sm[base].mean()) if base.any() else float(sm.mean())
-        sm = np.clip(sm - ref + level, 0.0, 0.95)
+        # Only ever lowered: the ceiling's clip pulls a glassy class's mean
+        # under its level, which the gate does not mind and which those
+        # sets were judged with, so they keep the plain shift.
+        offset = level
+        if not _fits(sm[base] - ref + level):
+            offset = min(level, _clipped_offset(sm[base] - ref, level))
+        sm = np.clip(sm - ref + offset, 0.0, SMOOTH_CEILING)
         # No isolated mirror texels on an ordinary surface. A scatter of
         # smooth "dust" texels on sand each threw a pinpoint sun glint, and
         # seen through water at a grazing sun those came out as coloured
