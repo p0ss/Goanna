@@ -173,9 +173,14 @@ func _strengths() -> Dictionary:
 	return s
 
 
-func _shader_material(alb: Texture2DArray, nrm: Texture2DArray, spc: Texture2DArray) -> ShaderMaterial:
+func _shader_material(alb: Texture2DArray, nrm: Texture2DArray, spc: Texture2DArray,
+		cutout := false) -> ShaderMaterial:
 	var sm := ShaderMaterial.new()
-	sm.shader = load("res://shaders/nodes_array.gdshader")
+	# A cut-out (leaves, flowers, rails) draws in the world through the alpha
+	# tested variant, which cuts its holes and has no parallax march. Drawn
+	# opaque here, its holes showed as whatever colour sits under them.
+	sm.shader = load("res://shaders/nodes_array_scissor.gdshader" if cutout
+			else "res://shaders/nodes_array.gdshader")
 	sm.set_shader_parameter("albedo_array", alb)
 	sm.set_shader_parameter("has_normal", nrm != null)
 	sm.set_shader_parameter("has_spec", spc != null)
@@ -211,7 +216,8 @@ func _packed(dir: String, stem: String) -> ShaderMaterial:
 		pack_tilts.append(_tilt_var(nrm))
 	var mat := _shader_material(_array_from(alb),
 			_array_from(nrm) if nrm != null else null,
-			_array_from(spc) if spc != null else null)
+			_array_from(spc) if spc != null else null,
+			alb.detect_alpha() != Image.ALPHA_NONE)
 	# The material class decides the parallax depth (goanna_class_depth in
 	# the include), so a cube left at class 0 marches sand at four times
 	# the depth the world gives it. Read the class back out of the _s
