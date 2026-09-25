@@ -1,0 +1,10 @@
+{
+ "class": "glass",
+ "materials": {
+  "base": {"mode": "flat", "base": 0.3, "span": 0},
+  "rod": {"mode": "shade", "base": 0.5, "span": 0.5, "joints": false, "emission": 0.5, "emission_shade": true}
+ },
+ "palette": {
+  "#f9baa7": "rod", "#f9cab3": "rod", "#f9d5bd": "rod", "#fce2bd": "rod"
+ }
+}

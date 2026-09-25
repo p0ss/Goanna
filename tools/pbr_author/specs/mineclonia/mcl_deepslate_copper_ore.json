@@ -1,0 +1,14 @@
+{
+ "class": "stone",
+ "materials": {
+  "stone": {"mode": "shade", "base": 0.25, "span": 0.5, "joints": false},
+  "copper": {"mode": "shade", "base": 0.78, "span": 0.2, "detail": 0.3, "smooth": 0.55, "metal": true}
+ },
+ "palette": {
+  "#79402e": "copper",
+  "#854533": "copper",
+  "#934d39": "copper",
+  "#ab5942": "copper",
+  "#bf644a": "copper"
+ }
+}

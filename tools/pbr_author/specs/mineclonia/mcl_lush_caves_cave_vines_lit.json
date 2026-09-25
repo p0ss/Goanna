@@ -1,0 +1,9 @@
+{
+ "materials": {
+  "vine": {"mode": "shade", "base": 0.25, "span": 0.45},
+  "berry": {"mode": "shade", "base": 0.75, "span": 0.25, "joints": false, "emission": 0.75, "emission_shade": true}
+ },
+ "palette": {
+  "#d77330": "berry", "#e38a3b": "berry", "#e9a043": "berry", "#fac655": "berry"
+ }
+}

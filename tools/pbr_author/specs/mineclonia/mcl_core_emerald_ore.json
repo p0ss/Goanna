@@ -1,0 +1,38 @@
+{
+ "class": "stone",
+ "materials": {
+  "stone": {
+   "mode": "shade",
+   "base": 0.25,
+   "span": 0.5,
+   "joints": false
+  },
+  "emerald": {
+   "mode": "shade",
+   "base": 0.75,
+   "span": 0.2,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.8,
+   "smooth_spread": 0.05,
+   "f0": 0.16
+  }
+ },
+ "palette": {
+  "#0b4e07": "emerald",
+  "#0e5c0a": "emerald",
+  "#0f5f0d": "emerald",
+  "#126910": "emerald",
+  "#146e12": "emerald",
+  "#157113": "emerald",
+  "#20991d": "emerald",
+  "#219a1e": "emerald",
+  "#3eba38": "emerald",
+  "#40bc3a": "emerald",
+  "#6cd958": "emerald",
+  "#72dc5e": "emerald",
+  "#74dc60": "emerald",
+  "#78de64": "emerald",
+  "#79df65": "emerald"
+ }
+}

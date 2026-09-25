@@ -1,0 +1,12 @@
+{
+ "class": "stone",
+ "materials": {
+  "block": {"mode": "shade", "base": 0.55, "span": 0.4},
+  "joint": {"mode": "flat", "base": 0.15, "span": 0}
+ },
+ "palette": {
+  "#585656": "joint", "#6a5f55": "joint",
+  "#756b65": "block", "#7a7573": "block", "#857c7c": "block",
+  "#8a8681": "block", "#988e8b": "block", "#a09a96": "block"
+ }
+}

@@ -1,0 +1,11 @@
+{
+ "materials": {
+  "dirt": {"mode": "shade", "base": 0.05, "span": 0.35},
+  "podzol": {"mode": "shade", "base": 0.5, "span": 0.35, "joints": false}
+ },
+ "palette": {
+  "#5b493c": "dirt", "#685247": "dirt", "#6a533c": "dirt", "#775e52": "dirt", "#846b5c": "dirt",
+  "#4a3422": "podzol", "#4f3e32": "podzol", "#523a26": "podzol", "#5b4730": "podzol",
+  "#5c4330": "podzol", "#5f5535": "podzol"
+ }
+}

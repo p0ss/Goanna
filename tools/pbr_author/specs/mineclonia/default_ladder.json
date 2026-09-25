@@ -1,0 +1,9 @@
+{
+ "materials": {
+  "wood": {
+   "mode": "flat",
+   "base": 0.55,
+   "span": 0
+  }
+ }
+}

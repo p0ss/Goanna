@@ -1,0 +1,9 @@
+{
+ "materials": {
+  "leaf": {"mode": "shade", "base": 0.3, "span": 0.5},
+  "flower": {"mode": "shade", "base": 0.7, "span": 0.3, "joints": false}
+ },
+ "palette": {
+  "#c2457f": "flower", "#c95a97": "flower", "#d16aa9": "flower", "#e07dc1": "flower"
+ }
+}

@@ -1,4 +1,5 @@
 {
+ "class": "stone",
  "materials": {
   "stone": {
    "mode": "shade",

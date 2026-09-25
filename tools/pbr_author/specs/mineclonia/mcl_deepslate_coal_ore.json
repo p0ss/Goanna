@@ -1,5 +1,4 @@
 {
- "class": "stone",
  "materials": {
   "stone": {
    "mode": "shade",
@@ -16,10 +15,11 @@
   }
  },
  "palette": {
-  "#090808": "coal",
-  "#262523": "coal",
-  "#3a383d": "coal",
-  "#514b51": "coal",
-  "#594e47": "coal"
+  "#1e1716": "coal",
+  "#261f1d": "coal",
+  "#2c2622": "coal",
+  "#3a3330": "coal",
+  "#443f3b": "coal",
+  "#4d4a45": "coal"
  }
 }

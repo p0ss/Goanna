@@ -1,0 +1,30 @@
+{
+ "materials": {
+  "casing": {
+   "mode": "shade",
+   "base": 0.3,
+   "span": 0.5
+  },
+  "mark": {
+   "mode": "shade",
+   "base": 0.1,
+   "span": 0.15,
+   "joints": false
+  }
+ },
+ "palette": {
+  "#6b2a35": "casing",
+  "#7f2f39": "casing",
+  "#91343c": "casing",
+  "#a33539": "casing",
+  "#b73838": "casing",
+  "#c93f3a": "casing",
+  "#d8423a": "casing",
+  "#232020": "mark",
+  "#302b2a": "mark",
+  "#3d3634": "mark",
+  "#4c4341": "mark",
+  "#594e4a": "mark",
+  "#685b55": "mark"
+ }
+}

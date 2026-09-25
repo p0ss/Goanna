@@ -71,6 +71,15 @@ CLASS_STYLE = {
     "dirt": (3, 0.40, 16, 0.08),
     "sand": (3, 0.30, 10, 0.06),
     "leaves": (3, 0.50, 14, 0.08),
+    # Soil is dirt's style. Cloth, snow, ice and glass are soft or smooth
+    # and shallow; metal is worked flat with crisp detail. These fell back
+    # to stone's depth before, which made wool and snow as deep as rock.
+    "soil": (3, 0.40, 16, 0.08),
+    "cloth": (3, 0.30, 10, 0.05),
+    "snow": (3, 0.20, 8, 0.05),
+    "ice": (3, 0.30, 8, 0.04),
+    "glass": (2, 0.30, 10, 0.02),
+    "metal": (3, 0.50, 18, 0.06),
 }
 DEFAULT_STYLE = CLASS_STYLE["stone"]
 DETAIL = 0.35
@@ -342,8 +351,12 @@ def check(stem, out_dir, game=lib.DEFAULT_GAME, spec=None):
 
     # The depth the client will march, and whether its cap cut the map.
     depth, raw = relief_depth(n)
-    line(0.02 <= raw <= 0.105, "parallax depth %.3f node%s (want 0.02 to 0.10)"
-         % (depth, "" if raw <= 0.105 else ", clipped from %.3f" % raw))
+    # A stem that is all flat material (a single colour of concrete) has
+    # no relief on purpose, so only the cap applies to it.
+    line((flat_only or raw >= 0.02) and raw <= 0.105,
+         "parallax depth %.3f node%s (want 0.02 to 0.10%s)"
+         % (depth, "" if raw <= 0.105 else ", clipped from %.3f" % raw,
+            ", or none when all flat" if flat_only else ""))
 
     # Tiling at texel joins. The art's own wrap is its design, so a height
     # seam only fails where the albedo has none.
