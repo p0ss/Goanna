@@ -899,6 +899,31 @@ minutes after the tag, so the whole run sits in this section.
   `install_bootstrap` does on every launch of a packaged client. The store
   on the development machine held five, 5.7 MB each. It now removes them.
 
+- Asset epoch `assets-2026.09.3`, 2026-09-25. Every published bundle
+  carried the doubled height encoding except Kythen's authored stems, so
+  all five move: Mineclonia pack 1.1.0, Kythen billboard 1.1.0, item 1.1.0
+  and terrain 1.2.0, Minetest Game terrain 1.1.0. The four that were not
+  Mineclonia were composed again from their saved generations with no GPU
+  work, after the pre-fix compose was shown to rebuild each old bundle byte
+  for byte from the same inputs; authored stems and every `_s` map are
+  byte identical, and the quality gate reports what it did before. The
+  core bundle a package embeds is Minetest Game terrain 1.1.0. The epoch is
+  published and `check-asset-catalogue.py --live` found all five URLs
+  answering 200 at the catalogued sizes.
+
+  The default Join Game choice now uses the installed materials for the
+  server's game, remembered per address from the bundles its media matched
+  or from the public list's `gameid`. Verified on a fresh Mineclonia world
+  (release 38561) on the Luanti 5.17.0 Flatpak with Godot 4.5.1 headless,
+  a scratch profile, and this catalogue served locally, since clients read
+  the catalogue from `main`: the first join fetched pack 1.1.0 from the
+  published URL, installed it and composed 2042 files, and recorded the
+  server as Mineclonia; the menu's lookup then returned that profile for
+  that address and nothing for another; a second join with it loaded 2042
+  pack files and downloaded nothing. Not verified: the join through the
+  menu itself, the chat notice (the headless run has no chat panel), and
+  any machine but this one.
+
 ## Log since v0.6.1-alpha (2026-09-02), covering v0.7.0-alpha and v0.8.0-alpha
 
 The 0.5 and 0.6 series were released without a section here. What they
