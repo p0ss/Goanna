@@ -9,10 +9,11 @@ global uniform vec3 goanna_sky_fill;
 global uniform vec3 goanna_ground_fill;
 global uniform float goanna_wetness;
 uniform bool enabled = true;
-uniform float wind_strength : hint_range(0.0, 1.0) = 0.45;
+uniform float wind_strength : hint_range(0.0, 1.0) = 0.35;
+uniform vec2 wind_direction = vec2(1.0, 0.0);
 uniform int march_steps : hint_range(16, 128) = 64;
-uniform float detail_near = 35.0;
-uniform float detail_far = 95.0;
+uniform float detail_near = 25.0;
+uniform float detail_far = 65.0;
 uniform float clock_override = -1.0;
 uniform bool debug_iterations = false;
 uniform bool debug_bounds = false;
@@ -50,6 +51,29 @@ float grass_noise(vec2 p) {
         mix(grass_random(cell+ivec2(0,1)).x, grass_random(cell+ivec2(1,1)).x, f.x), f.y);
 }
 
+// Root-space variation crosses both voxel and mesh boundaries. A whole clump
+// can be short or tall, with independent lengths inside it (0.25..1.10 nodes).
+float grass_height_scale(vec2 anchor) {
+    return 0.64+0.16*sin(dot(anchor,vec2(0.73,0.31)))
+        +0.10*sin(dot(anchor,vec2(-0.29,0.67))+1.7);
+}
+float grass_height(vec2 anchor, float random_height) {
+    return grass_height_scale(anchor)*mix(0.65,1.22,random_height);
+}
+float grass_wind_reach() {
+    return 0.12+0.15*clamp(wind_strength,0.0,1.0);
+}
+vec2 grass_wind(vec2 anchor, float tm) {
+    vec2 direction=wind_direction/max(length(wind_direction),0.001);
+    // Travelling fronts remain coherent across patches; a second, oblique
+    // wave breaks up the parallel bands. Both use roots, never ray samples.
+    float front=sin(dot(anchor,direction)*0.55-tm*1.8);
+    float ripple=sin(dot(anchor,vec2(-direction.y,direction.x))*1.3
+        +dot(anchor,direction)*0.8-tm*2.7);
+    float gust=0.25+0.75*pow(0.5+0.5*front,2.0);
+    return direction*(0.13*gust+0.02*ripple)*clamp(wind_strength,0.0,1.0);
+}
+
 void vertex() {
     // Terrain tiers translate their meshes by half a node. Transform both
     // the root bounds and the proxy, so the hash field never restarts at LOD.
@@ -63,7 +87,7 @@ void vertex() {
     // Empty space around every block used to cover much of the screen when
     // the camera entered the grass. Only enlarge the volume where a nearby
     // actor can actually push a blade beyond its normal wind envelope.
-    patch_margin=0.11;
+    patch_margin=grass_wind_reach();
     if (interaction_enabled) {
         for (int i=0;i<8;i++) {
             if (i>=interaction_count) break;
@@ -71,7 +95,7 @@ void vertex() {
             float separation=distance(actor.xz,clamp(actor.xz,patch.xy,patch.zw));
             float weight=(1.0-smoothstep(0.0,actor.w,separation))*
                 (1.0-smoothstep(0.25,0.9,abs(lower.y-actor.y)));
-            patch_margin=max(patch_margin,0.11+1.1*sin(clamp(interaction_angle,0.0,0.8)*weight));
+            patch_margin=max(patch_margin,grass_wind_reach()+1.1*sin(clamp(interaction_angle,0.0,0.8)*weight));
         }
     }
     vec3 middle = vec3((CUSTOM0.x+CUSTOM0.z)*0.5,CUSTOM1.x+0.1,(CUSTOM0.y+CUSTOM0.w)*0.5);
@@ -101,18 +125,20 @@ vec3 grass_interaction(vec2 anchor) {
 // Rotate the complete curved blade about its planted root. An orthogonal
 // transform preserves every segment length and width; lowering the tip is
 // a result of bending, never a change to the blade's height parameter.
-vec3 grass_unbend(vec3 v, vec3 pressure) {
+mat3 grass_unbend(vec3 pressure) {
     float axis_length=length(pressure.xy);
-    if (pressure.z<0.0001 || axis_length<0.0001) return v;
-    vec3 axis=vec3(pressure.y,0.0,-pressure.x)/axis_length;
+    if (pressure.z<0.0001 || axis_length<0.0001) return mat3(1.0);
+    vec2 axis=vec2(pressure.y,-pressure.x)/axis_length;
     float angle=clamp(interaction_angle,0.0,0.8)*pressure.z;
-    float c=cos(angle),s=sin(angle);
-    return v*c-cross(axis,v)*s+axis*dot(axis,v)*(1.0-c);
+    float c=cos(angle),s=sin(angle),d=1.0-c;
+    return mat3(vec3(c+axis.x*axis.x*d,-axis.y*s,axis.x*axis.y*d),
+        vec3(axis.y*s,c,-axis.x*s),
+        vec3(axis.x*axis.y*d,axis.x*s,c+axis.y*axis.y*d));
 }
 
 int grass_neighbourhood(vec3 p) {
-    if (!interaction_enabled) return 1;
-    int radius=1;
+    int radius=int(ceil(grass_wind_reach()/0.12));
+    if (!interaction_enabled) return radius;
     for (int i=0;i<8;i++) {
         if (i>=interaction_count) break;
         vec4 actor=interaction_centres[i];
@@ -121,8 +147,8 @@ int grass_neighbourhood(vec3 p) {
         // A bent tip can reach far from its root, but the lower blade cannot.
         // Bound roots using this ray segment's height, including the complete
         // wind curve and blade width after rotation.
-        float reach=min(0.11+1.1*sin(angle),
-            max(p.y-root_light.x,0.0)*tan(angle)+0.11/cos(angle));
+        float reach=min(grass_wind_reach()+1.1*sin(angle),
+            max(p.y-root_light.x,0.0)*tan(angle)+grass_wind_reach()/cos(angle));
         if (weight>0.0001 && distance(p.xz,actor.xz)<actor.w+reach)
             radius=max(radius,int(ceil(reach/0.12)));
     }
@@ -133,7 +159,6 @@ float grass_distance(vec3 p, float tm) {
     const float spacing = 0.12;
     float y = p.y-root_light.x;
     if (y > 1.12) return (y-1.1)*0.55;
-    float gust = sin(dot(p.xz,vec2(0.17,0.11))-tm*1.7);
     ivec2 cell = ivec2(floor(p.xz / spacing));
     float result = 1.0;
     if (all(greaterThanEqual(p.xz,patch.xy)) && all(lessThan(p.xz,patch.zw))) {
@@ -148,15 +173,14 @@ float grass_distance(vec3 p, float tm) {
             vec4 rnd = grass_random(id);
             vec2 anchor = (vec2(id) + vec2(0.15) + rnd.xy*0.7)*spacing;
             if (any(lessThan(anchor, patch.xy)) || any(greaterThanEqual(anchor, patch.zw))) continue;
-            float height = 0.55 + 0.55*rnd.w;
+            float height = grass_height(anchor,rnd.w);
             vec3 pressure=grass_interaction(anchor);
-            if (pressure.z<0.0001 && (abs(x)>1 || abs(z)>1)) continue;
             vec3 centre=vec3(anchor.x,root_light.x,anchor.y);
-            vec3 local_p=centre+grass_unbend(p-centre,pressure);
+            vec3 local_p=centre+grass_unbend(pressure)*(p-centre);
             float local_y=local_p.y-root_light.x;
             float t = clamp(local_y/height, 0.0, 1.0);
             vec2 axis = normalize(vec2(rnd.z,rnd.x)*2.0-1.0+vec2(0.0001));
-            vec2 bend = axis*(0.045+0.025*rnd.x) + vec2(0.03,0.02)*gust*wind_strength;
+            vec2 bend = axis*(0.045+0.025*rnd.x) + grass_wind(anchor,tm);
 
             vec2 q = local_p.xz-anchor-bend*t*t;
             float width = (0.03+0.018*rnd.y)*(1.0-t)+0.001;
@@ -199,40 +223,61 @@ vec3 nearer_blade(vec3 a, vec3 b) {
 
 vec3 cell_intersection(vec3 origin, vec3 rd, ivec2 cell, float max_t, float footprint, float tm) {
     vec3 closest=vec3(1e20,0.0,0.0);
-    int radius=grass_neighbourhood(vec3(origin.x,max(origin.y,origin.y+rd.y*max_t),origin.z));
-    // Clamp the search before hashing: the neighbouring volume can overlap
-    // this ray, but only blades actually rooted in this patch belong here.
-    ivec2 lower=max(ivec2(-radius),ivec2(floor(patch.xy/0.12))-cell);
-    ivec2 upper=min(ivec2(radius),ivec2(floor(patch.zw/0.12))-cell);
+    vec3 segment_end=origin+rd*max_t;
+    vec2 segment_lo=min(origin.xz,segment_end.xz);
+    vec2 segment_hi=max(origin.xz,segment_end.xz);
+    float wind_reach=grass_wind_reach()+0.5*footprint/0.15;
+    float reach=wind_reach;
+    if (interaction_enabled) {
+        for (int i=0;i<8;i++) {
+            if (i>=interaction_count) break;
+            vec4 actor=interaction_centres[i];
+            float weight=1.0-smoothstep(0.25,0.9,abs(root_light.x-actor.y));
+            float angle=clamp(interaction_angle,0.0,0.8)*weight;
+            float actor_reach=min(wind_reach+1.1*sin(angle),
+                max(max(origin.y,segment_end.y)-root_light.x,0.0)*tan(angle)+wind_reach/cos(angle));
+            if (distance(actor.xz,clamp(actor.xz,segment_lo,segment_hi))<actor.w+actor_reach)
+                reach=max(reach,actor_reach);
+        }
+    }
+    // Traverse longer intervals and test each possible root once. Bent blades
+    // otherwise repeat the same large square search every twelve centimetres.
+    ivec2 lower=ivec2(floor(max(segment_lo-vec2(reach),patch.xy)/0.12))-cell;
+    ivec2 upper=ivec2(floor(min(segment_hi+vec2(reach),patch.zw)/0.12))-cell;
     for (int z=lower.y;z<=upper.y;z++) {
         for (int x=lower.x;x<=upper.x;x++) {
             ivec2 id=cell+ivec2(x,z);
             vec4 rnd=grass_random(id);
             vec2 anchor=(vec2(id)+vec2(0.15)+rnd.xy*0.7)*0.12;
             if (any(lessThan(anchor,patch.xy)) || any(greaterThanEqual(anchor,patch.zw))) continue;
-            float height=0.55+0.55*rnd.w;
             vec3 pressure=grass_interaction(anchor);
-            if (pressure.z<0.0001 && (abs(x)>1 || abs(z)>1)) continue;
             vec3 centre=vec3(anchor.x,root_light.x,anchor.y);
             float width=0.03+0.018*rnd.y;
-            vec3 local_origin=centre+grass_unbend(origin-centre,pressure);
-            vec3 local_rd=grass_unbend(rd,pressure);
+            mat3 unbend=grass_unbend(pressure);
+            vec3 local_origin=centre+unbend*(origin-centre);
+            vec3 local_rd=unbend*rd;
             // A cheap cylinder encloses the complete curved, filtered blade.
             // Reject ray segments outside it before evaluating wind or solving
             // the quadratic. Work in the unbent frame to retain full length.
             vec3 local_end=local_origin+local_rd*max_t;
             float low_y=min(local_origin.y,local_end.y)-root_light.x;
             float high_y=max(local_origin.y,local_end.y)-root_light.x;
-            if (low_y>height || high_y<0.0) continue;
+            if (low_y>1.1 || high_y<0.0) continue;
             float along=clamp(dot(anchor-local_origin.xz,local_rd.xz)/max(dot(local_rd.xz,local_rd.xz),1e-12),0.0,max_t);
             vec2 offset=local_origin.xz+local_rd.xz*along-anchor;
-            float reach=(0.07+0.036056*abs(wind_strength))*pow(clamp(high_y/height,0.0,1.0),2.0)
+            // Reject against the maximum blade first: clump height only needs
+            // evaluation for roots this ray can actually touch.
+            float envelope=0.07+0.15*clamp(wind_strength,0.0,1.0)
+                +width+0.001+0.5*footprint/0.15;
+            if (dot(offset,offset)>envelope*envelope) continue;
+            float height=grass_height(anchor,rnd.w);
+            if (low_y>height) continue;
+            float reach=(0.07+0.15*clamp(wind_strength,0.0,1.0))*pow(clamp(high_y/height,0.0,1.0),2.0)
                 +width+0.001+0.5*footprint/0.15;
             if (dot(offset,offset)>reach*reach) continue;
             vec2 axis=normalize(vec2(rnd.z,rnd.x)*2.0-1.0+vec2(0.0001));
             vec2 normal=vec2(-axis.y,axis.x);
-            float gust=sin(dot(anchor,vec2(0.17,0.11))-tm*1.7);
-            vec2 bend=axis*(0.045+0.025*rnd.x)+vec2(0.03,0.02)*gust*wind_strength;
+            vec2 bend=axis*(0.045+0.025*rnd.x)+grass_wind(anchor,tm);
             float h=(local_origin.y-root_light.x)/height;
             float dy=local_rd.y/height;
             float bn=dot(bend,normal);
@@ -282,8 +327,17 @@ void fragment() {
     // Once blades are unresolved, shade a continuous canopy using the same
     // world field. No repeating ground tile and no dense tracing at horizon.
     // A stable mean height, independent of which proxy exit face was drawn.
-    float canopy_height = 0.57;
-    float canopy_t = (root_light.x+canopy_height-ro.y)/safe_rd.y;
+    float canopy_t = (root_light.x+0.45-ro.y)/safe_rd.y;
+    // Follow the same broad height field at distance instead of flattening
+    // every block to one horizontal shelf. Two corrections suffice at LOD.
+    for (int i=0;i<2;i++) {
+        vec2 canopy_anchor=(ro+rd*canopy_t).xz;
+        // At grazing angles a height iteration can jump between wave crests.
+        // Flatten only the distant proxy there; resolved blades keep variation.
+        float canopy_height=mix(0.45,grass_height_scale(canopy_anchor)*0.78,
+            smoothstep(0.1,0.35,abs(rd.y)));
+        canopy_t=(root_light.x+canopy_height-ro.y)/safe_rd.y;
+    }
     vec3 canopy_p = ro+rd*canopy_t;
     bool canopy_valid = canopy_t >= start && canopy_t <= end &&
         all(greaterThanEqual(canopy_p.xz,patch.xy)) && all(lessThan(canopy_p.xz,patch.zw));
@@ -303,7 +357,8 @@ void fragment() {
             // The local neighbourhood changes at cell boundaries. An empty
             // margin must not return a long step that jumps over the first
             // rows of blades at a block edge.
-            vec2 cell_edge = (floor(p.xz/0.12)+step(vec2(0.0),rd.xz))*0.12;
+            float trace_cell=analytic_blades ? 0.96 : 0.12;
+            vec2 cell_edge = (floor(p.xz/trace_cell)+step(vec2(0.0),rd.xz))*trace_cell;
             vec2 crossing = (cell_edge-p.xz)/safe_rd.xz;
             crossing=mix(vec2(1e20),crossing,greaterThan(abs(rd.xz),vec2(0.000001)));
             footprint=max(0.0006,2.0*t/(VIEWPORT_SIZE.y*PROJECTION_MATRIX[1][1]));

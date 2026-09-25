@@ -32,11 +32,20 @@ toggling the graphics option preserves the published wet/dry mask. This removes
 the underwater meadow volumes that previously sorted incorrectly against water;
 it does not change the game's underwater plants or the general transparent pass.
 
-Close-up tracing bounds the visible grass volume to its actual wind/actor
-reach, limits the root search by blade height and actor influence, and rejects
-ray segments outside a blade's enclosing cylinder before solving intersections.
-Blade density, length, wind, edge compositing, and the distance transition are
-retained. See [close-up measurements](perf/procedural-grass-close-2026-09-14.md).
+Close-up tracing searches longer ray intervals, bounds candidate roots by
+wind/actor reach, and rejects empty space before evaluating individual blades.
+Height varies both within and across clumps, continuously across block boundaries.
+Travelling wind fronts follow cloud motion and strengthen with precipitation.
+The player's collision footprint parts the grass even with the first-person
+body hidden. Distant blades blend to a canopy over 25–65 nodes.
+See [measurements and validation limits](perf/procedural-grass-wind-2026-09-25.md).
+
+The live feature regression checks first-person interaction, body visibility,
+movement and rain-driven wind:
+
+```sh
+python3 tools/grass-review/features.py --port 30867
+```
 
 An isolated pool regression captures above-water and underwater views and checks
 the actual grass geometry while flooding, draining, toggling, and entering LOD:

@@ -7,13 +7,14 @@ import socket
 
 p = argparse.ArgumentParser(description=__doc__)
 p.add_argument('reference', type=Path)
+p.add_argument('--port', type=int, default=30867)
 p.add_argument('--out', type=Path, default=Path('build/grass-review/close/validation'))
 args = p.parse_args()
 out = args.out.resolve()
 out.mkdir(parents=True, exist_ok=True)
 
 def call(cmd, **params):
-    with socket.create_connection(('127.0.0.1', 30867), timeout=5) as s:
+    with socket.create_connection(('127.0.0.1', args.port), timeout=5) as s:
         s.settimeout(180)
         s.sendall((json.dumps(dict(id=1, cmd=cmd, args=params))+'\n').encode())
         reply = json.loads(s.makefile().readline())

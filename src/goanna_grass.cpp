@@ -130,8 +130,9 @@ void goanna::append_grass(const Ref<ArrayMesh> &mesh, bool lod, Node *owner,
             // Margin includes bent blades rooted inside this patch. Adjacent
             // patches can overlap in volume; real hit depth resolves visibility.
             for (int k = 0; k < 8; ++k) {
-                vertices.push_back(Vector3(k&1 ? x1+0.9f : x0-0.9f,
-                        p.y + (k&2 ? 1.24f : 0.002f), k&4 ? z1+0.9f : z0-0.9f));
+                // CPU culling must also enclose maximum storm + actor reach.
+                vertices.push_back(Vector3(k&1 ? x1+1.1f : x0-1.1f,
+                        p.y + (k&2 ? 1.24f : 0.002f), k&4 ? z1+1.1f : z0-1.1f));
                 colours.push_back(p.col);
                 for (float f : {x0, z0, x1, z1}) bounds.push_back(f);
                 for (float f : {p.y, p.sky, p.ao, 0.0f}) roots.push_back(f);

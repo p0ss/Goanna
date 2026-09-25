@@ -47,6 +47,7 @@ var wetness := 0.0
 var terrain_ref := 0.0
 var terrain_ref_set := false
 var cloud_speed := Vector2(-2.0, 0.0)
+var grass_wind := Vector2(0.35, 0.0)
 var cloud_height := 120.0
 var cloud_thickness := 16.0
 # Optical depth around the eye, sampled from the same local fog-volume field.
@@ -2674,6 +2675,17 @@ func _apply_sky() -> void:
 			if bool(sky.get("clouds", true)) else 0.0)
 	var cs: Vector2 = clouds["speed"]
 	cloud_speed = cs
+	# Cloud noise advances by +offset, so its visible motion is opposite cs.
+	# There is no protocol wind: cloud motion supplies direction and speed,
+	# while current precipitation strengthens gusts (wet ground can linger).
+	var wind_dir := -cs.normalized() if cs.length_squared() > 0.01 else Vector2.RIGHT
+	var wind_force := clampf(0.25 + cs.length() * 0.05 + storm_cover * 0.65, 0.25, 1.0)
+	grass_wind = grass_wind.lerp(wind_dir * wind_force,
+			1.0 - exp(-get_process_delta_time() / 3.0))
+	if client.has_meta("goanna_grass_material"):
+		var grass_material: ShaderMaterial = client.get_meta("goanna_grass_material")
+		grass_material.set_shader_parameter("wind_direction", grass_wind.normalized())
+		grass_material.set_shader_parameter("wind_strength", grass_wind.length())
 	cloud_height = float(clouds["height"])
 	cloud_thickness = maxf(float(clouds.get("thickness", 16.0)), 8.0)
 	sky_mat.set_shader_parameter("cloud_thickness", cloud_thickness)

@@ -611,12 +611,19 @@ PackedVector4Array EntityRenderer::grass_interactors(GoannaSession &session) con
     if (session.player()) {
         const auto p=session.player()->getPosition();
         eye=Vector3(p.X/BS,p.Y/BS,-p.Z/BS);
+        // The local body is hidden in first person. Its physical footprint
+        // still parts the grass, independently of the rendered actor list.
+        const auto &box=session.player()->getCollisionbox();
+        const auto size=box.getExtent()/BS;
+        const float radius=std::clamp(std::max(size.X,size.Z)*0.5f+0.4f,0.45f,1.8f);
+        nearby.emplace_back(-1.0f,Vector4(eye.x,eye.y+box.MinEdge.Y/BS,eye.z,radius));
     }
     for (const auto &kv : m_nodes) {
         if (!kv.second.root || !kv.second.root->is_visible()) continue;
         auto it=objects.find(kv.first);
         if (it==objects.end()) continue;
         const auto &obj=*it->second;
+        if (obj.isLocalPlayer()) continue; // Already reserved above, also in third person.
         const auto &props=obj.props();
         if (!props.physical && !obj.isLocalPlayer() && obj.name().empty()) continue;
         if (props.visual==OBJECTVISUAL_WIELDITEM) continue;
