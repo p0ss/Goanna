@@ -1,5 +1,14 @@
 {
+ "class": "stone",
  "materials": {
-  "tile": {"mode": "shade", "base": 0.35, "span": 0.35}
+  "glaze": {
+   "mode": "shade",
+   "base": 0.5,
+   "span": 0.1,
+   "levels": 2,
+   "detail": 0.2,
+   "joints": false,
+   "smooth": 0.65
+  }
  }
 }
