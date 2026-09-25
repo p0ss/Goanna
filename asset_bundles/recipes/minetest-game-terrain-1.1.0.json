@@ -1,0 +1,29 @@
+{
+  "schema": "org.goanna.asset-recipe/v1",
+  "id": "org.goanna.minetest-game.terrain",
+  "version": "1.1.0",
+  "tranche": "terrain",
+  "games": ["minetest", "minetest_game"],
+  "source": {
+    "package": "Luanti/minetest_game",
+    "release": "38214",
+    "archive_sha256": "5b364f6b0cf31ec336319492e14106d932eb86b65a91ded99f4b25f4876519dc"
+  },
+  "pipeline": {
+    "version": "2",
+    "manifest": "pbr_packs/manifests/minetest-game-terrain-intake.json",
+    "bake": "tools/pbr_bake.py --nodedefs <manifest> --flat-spec --bump-size 128 --keep-albedo --no-previews --reuse-outputs comfy-output/minetest-game-terrain-v2-final",
+    "quality_gate": "tools/check-pbr-quality.py",
+    "height_gate": "tools/check-pbr-height.py",
+    "note": "No new generation. The 85 maps were composed again on 2026-09-25 from the saved detail passes of the 2026-09-04 minetest-game-terrain-v2-final run, which reproduces 1.0.0 byte for byte under the code that made it. 1.0.0 carried the height scaled by the class depth, which the shader applies again; every _n map now spans the whole byte (1.0.0 median span 141, 42 under 128; now 255). The height range is also taken from the texels the source draws, which moves the _n of the 17 stems with transparent texels further. Every _s map is byte identical to 1.0.0."
+  },
+  "release": {
+    "texture_pairs": 85,
+    "rejected": ["default_obsidian_glass_detail", "farming_soil_wet_side"],
+    "known_failures": ["default_rainforest_litter_side"],
+    "known_failures_note": "Fails one rule, normal field has a strong directional bias. It failed the same rule in 1.0.0 and shipped there too.",
+    "archive": "org.goanna.minetest-game.terrain-1.1.0.zip",
+    "bytes": 6322653,
+    "sha256": "15028a6a7fbc4673b7491b0b43dfc5990b259f1551f56942d5e5f9750f4c2799"
+  }
+}

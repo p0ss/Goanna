@@ -1,0 +1,29 @@
+{
+  "schema": "org.goanna.asset-recipe/v1",
+  "id": "org.goanna.kythen.billboard",
+  "version": "1.1.0",
+  "tranche": "billboard",
+  "games": ["kythen"],
+  "source": {
+    "package": "p0ss/Kythen",
+    "release": "580035e",
+    "archive_sha256": "8c2eb51809802221313eb8ff93b6bd80eb00154c5b4510722d10b4364f4fdce8"
+  },
+  "pipeline": {
+    "version": "2",
+    "manifest": "pbr_packs/manifests/kythen-billboard-v1.json",
+    "classification_review": "pbr_packs/classification_reviews/kythen-v1.json",
+    "bake": "tools/run-kythen-bake.sh stage kythen-billboard-v1: --treatment billboard --chord-spec --bump-size 256 --keep-albedo --no-previews --reuse-outputs comfy-output/kythen-billboard-v1",
+    "quality_gate": "tools/check-pbr-quality.py",
+    "height_gate": "tools/check-pbr-height.py",
+    "note": "No new generation. The 137 maps were composed again on 2026-09-25 from the saved generation of the 2026-09-10 kythen-billboard-v1 run, against Kythen's tree at 580035e, which reproduces 1.0.0 byte for byte under the code that made it. The working Kythen checkout has since changed some art (kythen_siku_kelp_wrack among it), so the source must be 580035e, not the checkout. 1.0.0 carried the height scaled by the class depth, which the shader applies again; every _n map now spans the whole byte (1.0.0 median span 41, all 137 under 128; now 255). Every _s map is byte identical to 1.0.0."
+  },
+  "release": {
+    "texture_pairs": 137,
+    "rejected": [],
+    "known_failures": [],
+    "archive": "org.goanna.kythen.billboard-1.1.0.zip",
+    "bytes": 5346380,
+    "sha256": "167a93b659bcd7aeacb7f80e8f966a91605be3839523eea69ddab87ca7cc3310"
+  }
+}
