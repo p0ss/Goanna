@@ -402,3 +402,44 @@ Two things the running client showed that the ramp had not:
   channel, and the harness's posed camera came back rolled, so the
   change is verified on the ramp and by the build only.
 
+
+## The smoothness mean, 2026-09-25
+
+Eleven authored Mineclonia sets shipped in pack 1.0.0 as known failures of
+the quality gate's "too smooth for its class" rule. Three causes, none of
+them a judgement about the surface:
+
+- `lib.pack` put the mean on the class level by a plain shift and then
+  clipped at 0. Soil's level is 0.05, and a script with the spread the
+  targets ask for put up to two fifths of its texels below zero, so the
+  clip lifted default_dirt, default_clay, coarse dirt and both podzol faces
+  to 0.09 to 0.11 against the gate's 0.075. The offset is now solved so
+  the clipped mean lands on the level, and only ever lowered. Every set
+  whose shift clipped moved down onto its level (87 Mineclonia, 228
+  Kythen, `_s` only); stone and planks, which had sat 0.01 to 0.04 over
+  theirs, move by less than the ramp can show at these levels (see the
+  material ramp above).
+- The mean was taken over the whole tile, a cut-out's holes included,
+  though the holes are overwritten with the neutral fill afterwards. A low
+  rough hole floor held the mean down, so the torch and the tall grass top
+  drew 0.2 and 0.17 over their level. It is now taken over the drawn
+  texels; the leaves, plants, ladder, trapdoors and one door face moved
+  onto their level with them (17 Mineclonia, 54 Kythen).
+- The rails were packed as class metal with the steel in `metal_mask`, so
+  the level went to the texels that are not metal, the timber sleepers,
+  and lifted them and the steel to metal's 0.40. They are packed as wood
+  now, the way an ore is packed as stone with its veins as metal.
+
+After, the Mineclonia authored set passes the gate with no failures (it
+had 11), and `tools/check-pbr-height.py` passes. Kythen's authored set
+goes from 88 failing stems to 44; what is left is scripts that pack a
+different class from the one the classification review records (sand,
+gravel or snow scripts for stems reviewed as soil, metal for stone), which
+is a question per stem, not a packing fault. The previews of default_dirt
+and default_clay differ by under one count on average: the lift was
+invisible, which is why it went unnoticed.
+
+`lib.check`'s smoothness spread target (0.08) now fails for three
+Mineclonia and twenty five Kythen soils that the clip had been widening.
+A mean of 0.05 floored at zero leaves little room for that spread; the
+target, not the level, is the thing to revisit for soil.

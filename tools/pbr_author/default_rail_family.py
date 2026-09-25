@@ -65,7 +65,12 @@ def build(stem, out_dir, seed, normal_strength):
                        0.30 + 0.15 * (variation * 0.5 + 0.5)))
 
     albedo = lib.upscale(src)
-    m = lib.pack(stem, out_dir, albedo, height, smooth, "metal",
+    # The class pack() is given sets the level of the texels that are not
+    # metal, which here are the timber sleepers, so it is wood, the way an
+    # ore is packed as stone with its veins in metal_mask. Packed as metal
+    # the sleepers were lifted to metal's 0.40 and the steel with them,
+    # and the drawn track averaged over the review's metal ceiling of 0.6.
+    m = lib.pack(stem, out_dir, albedo, height, smooth, "wood",
             normal_strength=normal_strength, metal_mask=rail_hi)
     return m
 
