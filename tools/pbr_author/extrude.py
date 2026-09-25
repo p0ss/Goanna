@@ -245,6 +245,13 @@ def heights(src, spec, cls):
     return np.clip(hgt, 0.0, 1.0), pos, joints, mat
 
 
+def chamfer_px(spec, cell):
+    """The bevel width in map pixels: the spec's (default 1), but never
+    more than a quarter of a texel, so a 128 px atlas (the lectern, texels
+    two pixels wide) keeps flat tops at all."""
+    return min(int(spec.get("chamfer", 1)), cell // 4)
+
+
 def chamfer(h, px=1):
     """A px wide bevel on every step (wrapped box blur), nothing more."""
     out = h.copy()
@@ -272,7 +279,7 @@ def build(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, preview=True):
     up = lambda a: np.kron(a, np.ones((n, n), dtype=a.dtype))  # noqa: E731
     # A wider chamfer rounds a thin cut-out piece (a rail, a ladder rung)
     # so its edges catch the light; parallax cannot lift a cut-out's edge.
-    hi = chamfer(up(hgt), int(spec.get("chamfer", 1)))
+    hi = chamfer(up(hgt), chamfer_px(spec, n))
 
     level, _, is_metal = lib.class_spec(cls)
     mats = spec.get("materials") or {"base": CLASS_MATERIAL.get(cls, {})}
@@ -357,8 +364,10 @@ def check(stem, out_dir, game=lib.DEFAULT_GAME, spec=None):
 
     # On the grid: inside each texel, away from its one pixel chamfer, the
     # height is one value. Grain or noise inside a texel fails this.
-    edge = int(spec.get("chamfer", 1)) + 1
-    hmap = n[..., 3].reshape(art, cell, art, cell)[:, edge:-edge, :, edge:-edge]
+    # Leave at least one pixel of each texel to measure: a 64 px model
+    # atlas (a bed, the lectern) has texels only four map pixels wide.
+    edge = min(chamfer_px(spec, cell) + 1, (cell - 1) // 2)
+    hmap = n[..., 3].reshape(art, cell, art, cell)[:, edge:cell - edge, :, edge:cell - edge]
     spread = hmap.max(axis=(1, 3)) - hmap.min(axis=(1, 3))
     share = float((spread[drawn] <= 2.5 / 255).mean()) if drawn.any() else 1.0
     line(share >= 0.98, "on the texel grid %.0f%% of drawn texels (want >= 98)" % (100 * share))
