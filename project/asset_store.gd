@@ -112,6 +112,28 @@ static func install_archive(archive_path: String, expected_sha256: String,
 	var staging := base.path_join(".bundle-%d-%d" % [OS.get_process_id(),
 		int(Time.get_unix_time_from_system())])
 	DirAccess.make_dir_recursive_absolute(staging)
+	var error := _install_staged(zip, staging, base)
+	# Every path out of _install_staged but a successful activation leaves
+	# the unpacked copy behind: a refused bundle, and an installed version
+	# delivered again, which install_bootstrap does on every launch of a
+	# packaged client. Each left a hidden .bundle-* copy of the core bundle in
+	# the store, and nothing ever removed them.
+	if DirAccess.dir_exists_absolute(staging):
+		_remove_tree(staging)
+	return error
+
+static func _remove_tree(path: String) -> void:
+	var directory := DirAccess.open(path)
+	if directory == null:
+		return
+	directory.include_hidden = true
+	for name in directory.get_files():
+		DirAccess.remove_absolute(path.path_join(name))
+	for name in directory.get_directories():
+		_remove_tree(path.path_join(name))
+	DirAccess.remove_absolute(path)
+
+static func _install_staged(zip: ZIPReader, staging: String, base: String) -> String:
 	for entry in zip.get_files():
 		var clean := entry.replace("\\", "/").simplify_path()
 		if clean == "." or clean.begins_with("../") or clean.begins_with("/") \

@@ -46,4 +46,15 @@ fi
 gh release upload "$TAG" --repo "$REPOSITORY" --clobber "${BUNDLES[@]}"
 echo "Draft asset epoch ready: https://github.com/$REPOSITORY/releases/tag/$TAG"
 echo "It is a pre-release, so it cannot become the repository's latest release."
-echo "Publish the draft, then commit $CATALOGUE so clients can see these bundles."
+echo
+echo "NOT DONE YET. The epoch is a draft, and every URL on a draft answers 404."
+echo "On 2026-09-13 this step was missed and no client could install anything"
+echo "for a week. Publish it:"
+echo
+echo "  gh release edit $TAG --repo $REPOSITORY --draft=false"
+echo
+echo "then check that every catalogued URL answers 200 with the right size:"
+echo
+echo "  python3 tools/check-asset-catalogue.py --live --catalogue $CATALOGUE"
+echo
+echo "and only when that passes, commit $CATALOGUE so clients can see these bundles."

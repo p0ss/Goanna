@@ -182,3 +182,57 @@ set_target_properties(goanna PROPERTIES
 add_executable(goanna_surface_test EXCLUDE_FROM_ALL src/goanna_surface_test.cpp)
 target_include_directories(goanna_surface_test PRIVATE src)
 target_link_libraries(goanna_surface_test PRIVATE goanna luanti_core)
+
+# Every native test, built and then run by `cmake --build build --target
+# check`. The tests are EXCLUDE_FROM_ALL, so the default build never touches
+# them, and on 2026-09-19 a run of ./build/<test> executed binaries from 16
+# September against sources three days newer. A target that depends on each
+# test makes the build system, which knows every test's real inputs, decide
+# what is stale, rather than a person remembering to rebuild by name.
+set(GOANNA_NATIVE_TESTS
+    goanna_animation_test
+    goanna_horizon_test
+    goanna_item_icon_test
+    goanna_light_test
+    goanna_lod_storage_test
+    goanna_lod_test
+    goanna_mesh_pool_test
+    goanna_mining_cycle_test
+    goanna_radial_form_test
+    goanna_schedule_test
+    goanna_surface_test
+)
+
+# A test source with no entry above would build by name and never run under
+# check, which is the stale binary problem again in another form. An entry
+# with no source is the other half: build/goanna_trees_test outlived its
+# source, and anything that globbed build/ for tests would have run it.
+file(GLOB _goanna_test_sources RELATIVE "${CMAKE_SOURCE_DIR}/src"
+    "${CMAKE_SOURCE_DIR}/src/goanna_*_test.cpp")
+foreach(_source IN LISTS _goanna_test_sources)
+    string(REGEX REPLACE "\\.cpp$" "" _test "${_source}")
+    if(NOT _test IN_LIST GOANNA_NATIVE_TESTS)
+        message(FATAL_ERROR "src/${_source} is not in GOANNA_NATIVE_TESTS; "
+            "add it there so the check target builds and runs it")
+    endif()
+endforeach()
+
+set(_goanna_check_commands)
+foreach(_test IN LISTS GOANNA_NATIVE_TESTS)
+    if(NOT TARGET ${_test})
+        message(FATAL_ERROR "GOANNA_NATIVE_TESTS names ${_test}, which has no target")
+    endif()
+    list(APPEND _goanna_check_commands
+        COMMAND ${CMAKE_COMMAND} -E echo "== ${_test}"
+        COMMAND $<TARGET_FILE:${_test}>)
+endforeach()
+# Run from the repository root, where the tests have always been run from,
+# since some of them read Luanti's files by relative path. The first failing
+# test stops the target with its exit status.
+add_custom_target(check
+    ${_goanna_check_commands}
+    COMMAND ${CMAKE_COMMAND} -E echo "== all native tests passed"
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    USES_TERMINAL
+    VERBATIM)
+add_dependencies(check ${GOANNA_NATIVE_TESTS})
