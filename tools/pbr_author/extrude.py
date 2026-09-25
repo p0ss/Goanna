@@ -78,7 +78,11 @@ CLASS_STYLE = {
     # and shallow; metal is worked flat with crisp detail. These fell back
     # to stone's depth before, which made wool and snow as deep as rock.
     "soil": (3, 0.40, 16, 0.08),
-    "cloth": (3, 0.30, 6, 0.05),
+    # Cloth is shallow on purpose: nodes_array.gdshader gives class cloth
+    # a rim term read from the normal map, so every steep chamfer on wool
+    # lit up as a neon outline. At this strength the steps still shade
+    # but the rim stays on the block's own silhouette.
+    "cloth": (3, 0.30, 2, 0.05),
     "snow": (3, 0.20, 8, 0.05),
     "ice": (3, 0.30, 8, 0.04),
     "glass": (2, 0.30, 10, 0.02),
@@ -344,6 +348,31 @@ def _gate():
     return mod
 
 
+# The class list the release gate is run with, per game, so check() tests
+# a stem against the same class the release will (tools/run-pbr-overnight.sh
+# passes these). A spec's class can differ; then only a declared smoothness
+# lifts the release's cap.
+RELEASE_CLASSES = {
+    "mineclonia": ("pbr_packs/manifests/mineclonia-terrain-v1.json",
+                   "pbr_packs/classification_reviews/mineclonia-v1.json"),
+}
+_release_cache = {}
+
+
+def release_class(stem, game):
+    if game not in RELEASE_CLASSES:
+        return None
+    if game not in _release_cache:
+        g = _gate()
+        manifest, review = (str(lib.REPO / p) for p in RELEASE_CLASSES[game])
+        classes = g.texture_classes(manifest)
+        for s, r in g.pbr_bake.load_classification_review(review, set(classes)).items():
+            if r.get("primary_material"):
+                classes[s] = g.pbr_bake.physical_class(r["primary_material"])
+        _release_cache[game] = classes
+    return _release_cache[game].get(stem)
+
+
 def check(stem, out_dir, game=lib.DEFAULT_GAME, spec=None):
     """Pass or fail lines for an extruded stem."""
     from PIL import Image
@@ -375,16 +404,21 @@ def check(stem, out_dir, game=lib.DEFAULT_GAME, spec=None):
     # Relief exists: the drawn texels take several heights.
     tex_h = np.round(hmap.mean(axis=(1, 3)) * 255)[drawn]
     levels = len(np.unique(tex_h))
-    flat_only = all(m.get("mode") == "flat" for m in (spec.get("materials") or {"b": {}}).values())
-    line(flat_only or levels >= 3, "%d distinct texel heights (want >= 3)" % levels)
+    modes = [m.get("mode", "shade") for m in (spec.get("materials") or {"b": {}}).values()]
+    flat_only = all(m == "flat" for m in modes)
+    # Only a shaded material promises several heights; a plate of flat
+    # frame and solid panels (cut copper) has two on purpose.
+    line("shade" not in modes or levels >= 3, "%d distinct texel heights (want >= 3)" % levels)
 
     # The depth the client will march, and whether its cap cut the map.
     depth, raw = relief_depth(n)
     # A stem that is all flat material (a single colour of concrete) has
     # no relief on purpose, so only the cap applies to it.
-    line((flat_only or raw >= 0.02) and raw <= 0.105,
-         "parallax depth %.3f node%s (want 0.02 to 0.10%s)"
-         % (depth, "" if raw <= 0.105 else ", clipped from %.3f" % raw,
+    # Cloth is kept shallow so its rim term stays on the silhouette.
+    floor = 0.005 if cls == "cloth" else 0.02
+    line((flat_only or raw >= floor) and raw <= 0.105,
+         "parallax depth %.3f node%s (want %.3f to 0.10%s)"
+         % (depth, "" if raw <= 0.105 else ", clipped from %.3f" % raw, floor,
             ", or none when all flat" if flat_only else ""))
 
     # Tiling at texel joins. The art's own wrap is its design, so a height
@@ -410,7 +444,8 @@ def check(stem, out_dir, game=lib.DEFAULT_GAME, spec=None):
 
     # The release gate, run on the same files with the same class.
     g = _gate()
-    rep = g.inspect(stem, out_dir / (stem + "_n.png"), out_dir / (stem + "_s.png"), cls,
+    rep = g.inspect(stem, out_dir / (stem + "_n.png"), out_dir / (stem + "_s.png"),
+                    release_class(stem, game) or cls,
                     lib.source_path(stem, game), out_dir / (stem + ".png"))
     for f in rep["failures"]:
         line(False, "gate: " + f)

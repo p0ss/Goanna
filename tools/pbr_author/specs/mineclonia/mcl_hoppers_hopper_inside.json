@@ -1,0 +1,10 @@
+{
+ "class": "metal",
+ "materials": {
+  "iron": {
+   "mode": "shade",
+   "metal": false,
+   "smooth": 0.42
+  }
+ }
+}

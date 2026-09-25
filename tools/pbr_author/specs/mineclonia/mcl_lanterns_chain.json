@@ -1,7 +1,13 @@
 {
  "class": "metal",
  "materials": {
-  "iron": {"mode": "shade", "base": 0.35, "span": 0.55, "smooth": 0.3}
+  "iron": {
+   "mode": "shade",
+   "base": 0.35,
+   "span": 0.55,
+   "smooth": 0.42,
+   "metal": false
+  }
  },
  "strength": 20,
  "chamfer": 3

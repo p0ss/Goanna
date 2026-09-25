@@ -1,11 +1,34 @@
 {
  "materials": {
-  "panel": {"mode": "parts", "base": 0.55, "span": 0.3, "detail": 0.3, "metal": true, "smooth": 0.55},
-  "frame": {"mode": "flat", "base": 0.15, "span": 0, "metal": true, "smooth": 0.4}
+  "panel": {
+   "mode": "parts",
+   "base": 0.55,
+   "span": 0.3,
+   "detail": 0.0,
+   "metal": true,
+   "smooth": 0.55
+  },
+  "frame": {
+   "mode": "flat",
+   "base": 0.15,
+   "span": 0,
+   "metal": true,
+   "smooth": 0.4
+  }
  },
  "palette": {
-  "#574649": "frame", "#615253": "frame", "#64413c": "frame", "#6e4a43": "frame",
-  "#6a5d5e": "panel", "#726862": "panel", "#78524c": "panel", "#837970": "panel",
-  "#845c50": "panel", "#885d52": "panel", "#918479": "panel", "#996b5c": "panel", "#aa7565": "panel"
+  "#574649": "frame",
+  "#615253": "frame",
+  "#64413c": "frame",
+  "#6e4a43": "frame",
+  "#6a5d5e": "panel",
+  "#726862": "panel",
+  "#78524c": "panel",
+  "#837970": "panel",
+  "#845c50": "panel",
+  "#885d52": "panel",
+  "#918479": "panel",
+  "#996b5c": "panel",
+  "#aa7565": "panel"
  }
 }

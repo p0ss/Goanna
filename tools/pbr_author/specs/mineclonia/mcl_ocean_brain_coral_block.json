@@ -1,3 +1,9 @@
 {
- "class": "gravel"
+ "class": "gravel",
+ "materials": {
+  "base": {
+   "mode": "shade",
+   "smooth": 0.1
+  }
+ }
 }
