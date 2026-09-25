@@ -1,0 +1,29 @@
+{
+ "class": "wood",
+ "materials": {
+  "table": {
+   "mode": "shade",
+   "base": 0.3,
+   "span": 0.45
+  },
+  "tool": {
+   "mode": "shade",
+   "base": 0.8,
+   "span": 0.12,
+   "joints": false,
+   "smooth": 0.3
+  },
+  "steel": {
+   "mode": "shade",
+   "base": 0.82,
+   "span": 0.12,
+   "joints": false,
+   "smooth": 0.45
+  }
+ },
+ "palette": {
+  "#4d4d4d": "steel",
+  "#a0a0a0": "steel",
+  "#cdcdcd": "steel"
+ }
+}

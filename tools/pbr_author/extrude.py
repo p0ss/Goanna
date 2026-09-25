@@ -90,6 +90,8 @@ CLASS_STYLE = {
 }
 DEFAULT_STYLE = CLASS_STYLE["stone"]
 DETAIL = 0.35
+# Height range of a flat material's per texel micro texture (see heights).
+MICRO = 0.06
 # The material a stem with no spec gets, where the plain shaded rule is
 # wrong for the whole class. Wool's art is fine fibre noise over a few
 # shades; quantised into levels with joints it read as a circuit board, so
@@ -115,6 +117,17 @@ def _rank01(v):
     u, inv = np.unique(np.round(v, 4), return_inverse=True)
     r = np.arange(len(u), dtype=np.float32) / max(len(u) - 1, 1)
     return r[inv]
+
+
+def _micro(v, sel):
+    """0..1 per texel for a flat material: the rank of its shade where the
+    art has more than two, else a fixed hash of the texel's position, so
+    one colour concrete and a glass pane still vary texel to texel."""
+    if len(np.unique(np.round(v, 4))) > 2:
+        return _rank01(v)
+    ys, xs = np.nonzero(sel)
+    h = np.sin(xs * 12.9898 + ys * 78.233) * 43758.5453
+    return (h - np.floor(h)).astype(np.float32)
 
 
 def _levels(v, levels):
@@ -211,6 +224,16 @@ def heights(src, spec, cls):
         v = lum[sel]
         if mode == "flat":
             t = np.full(v.shape, 0.5, np.float32)
+            # Micro texture: a perfectly flat face read worse than the bake's
+            # soft noise (owner, 2026-09-26), so a flat material still steps
+            # a little per texel: by its own shades where it has several,
+            # by a fixed per texel pattern where the art is one colour. On
+            # the texel grid, never inside a texel. "micro": 0 turns it off.
+            micro = float(m.get("micro", MICRO))
+            centre = base + 0.5 * span
+            if micro > 0:
+                t = _micro(v, sel)
+            base, span = centre - 0.5 * micro, micro
         elif mode == "parts":
             # A grid part is its character; otherwise a connected piece.
             lab = np.where(part >= 0, part, -1)

@@ -1,0 +1,48 @@
+{
+ "class": "wood",
+ "materials": {
+  "table": {
+   "mode": "shade",
+   "base": 0.3,
+   "span": 0.45
+  },
+  "tool": {
+   "mode": "shade",
+   "base": 0.8,
+   "span": 0.12,
+   "joints": false,
+   "smooth": 0.3
+  },
+  "steel": {
+   "mode": "shade",
+   "base": 0.82,
+   "span": 0.12,
+   "joints": false,
+   "smooth": 0.45
+  }
+ },
+ "palette": {
+  "#5b3d12": "tool",
+  "#624014": "tool",
+  "#624214": "tool",
+  "#724e1a": "tool",
+  "#76511b": "tool",
+  "#7a4d1b": "tool",
+  "#9f9f9f": "steel",
+  "#aaaaaa": "steel",
+  "#b3b3b3": "steel",
+  "#c3c3c3": "steel",
+  "#c8c6c6": "steel",
+  "#dbdbdb": "steel",
+  "#dedede": "steel",
+  "#ececec": "steel",
+  "#eeeeee": "steel",
+  "#efefef": "steel",
+  "#f1f1f1": "steel",
+  "#f2f2f2": "steel",
+  "#f4f3f3": "steel",
+  "#fcfcfc": "steel",
+  "#fefefe": "steel",
+  "#ffffff": "steel"
+ }
+}
