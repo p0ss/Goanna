@@ -8,6 +8,7 @@ and only the height rules differ between them.
 """
 
 import argparse
+import importlib.util
 import json
 import sys
 from pathlib import Path
@@ -43,6 +44,15 @@ def pipeline_of(path):
     """
     with Image.open(path) as image:
         return AUTHORED if image.info.get(PIPELINE_KEY) == AUTHORED else BAKED
+
+
+def height_check():
+    """tools/check-pbr-height.py, whose name is not importable as it stands."""
+    spec = importlib.util.spec_from_file_location(
+        "check_pbr_height", Path(__file__).with_name("check-pbr-height.py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def texture_classes(path):
@@ -249,8 +259,15 @@ def main():
     failures = sum(bool(item["failures"]) for item in reports)
     warnings = sum(bool(item["warnings"]) for item in reports)
     authored = sum(item["pipeline"] == AUTHORED for item in reports)
+    # Every rule above looks at one map. This one looks at the directory: a
+    # bake that scaled every height byte by its class depth passes each map's
+    # rules and leaves the pack flat, which is how Mineclonia pack 1.0.0
+    # reported 0 failed. See tools/check-pbr-height.py.
+    fill = height_check()
+    height = fill.height_fill(fill.normal_maps(baked))
     summary = {"checked": len(reports), "failed": failures,
-               "warned": warnings, "authored": authored, "textures": reports}
+               "warned": warnings, "authored": authored,
+               "pack_failures": height["failures"], "textures": reports}
     if args.json:
         Path(args.json).write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n")
     for item in reports:
@@ -258,9 +275,13 @@ def main():
             print("FAIL %s: %s" % (item["stem"], message))
         for message in item["warnings"]:
             print("WARN %s: %s" % (item["stem"], message))
-    print("PBR quality: %d checked (%d authored, %d baked), %d failed, %d warned" %
-          (len(reports), authored, len(reports) - authored, failures, warnings))
-    return 1 if failures else 0
+    for message in height["failures"]:
+        print("FAIL pack: %s" % message)
+    print(fill.summary(baked, height))
+    print("PBR quality: %d checked (%d authored, %d baked), %d failed, %d warned, "
+          "%d pack failures" % (len(reports), authored, len(reports) - authored,
+                                failures, warnings, len(height["failures"])))
+    return 1 if failures or height["failures"] else 0
 
 
 if __name__ == "__main__":

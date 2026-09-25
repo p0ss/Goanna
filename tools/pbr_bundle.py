@@ -3,6 +3,7 @@
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import shutil
 import stat
@@ -13,6 +14,30 @@ from pathlib import Path, PurePosixPath
 SCHEMA = "org.goanna.asset-bundle/v1"
 CATALOGUE_SCHEMA = "org.goanna.asset-catalogue/v1"
 ZIP_TIME = (1980, 1, 1, 0, 0, 0)
+
+
+def _height_check():
+    spec = importlib.util.spec_from_file_location(
+        "check_pbr_height", Path(__file__).with_name("check-pbr-height.py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def require_height_fill(files, source):
+    """Refuse a pack whose baked maps do not fill the height byte.
+
+    The per map quality gate passed Mineclonia 1.0.0 while its baked maps
+    had been scaled by a class depth the shader applies again; this looks at
+    the pack as a whole. See tools/check-pbr-height.py.
+    """
+    check = _height_check()
+    maps = [(name, data) for name, data in sorted(files.items())
+            if name.endswith("_n.png")]
+    report = check.height_fill(maps)
+    print(check.summary(source, report))
+    if report["failures"]:
+        raise ValueError("; ".join(report["failures"]))
 
 
 def digest(data):
@@ -68,6 +93,7 @@ def build(args):
     accepted = accepted_stems(args.quality)
     files = payload(args.textures, accepted)
     stems = validate_pairs(files)
+    require_height_fill(files, args.textures)
     if args.attribution:
         files["ATTRIBUTION.md"] = Path(args.attribution).read_bytes()
     manifest = {
@@ -180,7 +206,8 @@ def read_bundle(path):
 
 
 def verify(args):
-    manifest, _ = read_bundle(args.bundle)
+    manifest, files = read_bundle(args.bundle)
+    require_height_fill(files, args.bundle)
     if args.sha256 and digest(Path(args.bundle).read_bytes()) != args.sha256.lower():
         raise ValueError("archive SHA-256 mismatch")
     print(f"verified {manifest['id']} {manifest['version']}: {manifest['texture_pairs']} pairs")
