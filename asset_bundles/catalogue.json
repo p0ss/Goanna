@@ -1,7 +1,7 @@
 {
   "bundles": [
     {
-      "bytes": 4690620,
+      "bytes": 5346380,
       "games": [
         "kythen"
       ],
@@ -145,13 +145,13 @@
         "kythen_siku_sedge_tussock",
         "kythen_siku_sorrel"
       ],
-      "sha256": "654e5f9f30c245d4b8aa183c86f63fec4c381d5bd6da04c53c6c21fb5461d3dd",
+      "sha256": "167a93b659bcd7aeacb7f80e8f966a91605be3839523eea69ddab87ca7cc3310",
       "tranche": "billboard",
-      "url": "https://github.com/p0ss/Goanna/releases/download/assets-2026.09.2/org.goanna.kythen.billboard-1.0.0.zip",
-      "version": "1.0.0"
+      "url": "https://github.com/p0ss/Goanna/releases/download/assets-2026.09.3/org.goanna.kythen.billboard-1.1.0.zip",
+      "version": "1.1.0"
     },
     {
-      "bytes": 20819430,
+      "bytes": 23438736,
       "games": [
         "kythen"
       ],
@@ -642,13 +642,13 @@
         "kythen_siku_native_copper",
         "kythen_tool"
       ],
-      "sha256": "1ff6bc5815f5ed3bedf0471ee5b94e4b5b3ffec86d7ef8ec5a8876486d37ecdf",
+      "sha256": "d84fb998124517263019de2b6bcd9e0b05290e0ce765fc0197c04d3812cbfb74",
       "tranche": "item",
-      "url": "https://github.com/p0ss/Goanna/releases/download/assets-2026.09.2/org.goanna.kythen.item-1.0.0.zip",
-      "version": "1.0.0"
+      "url": "https://github.com/p0ss/Goanna/releases/download/assets-2026.09.3/org.goanna.kythen.item-1.1.0.zip",
+      "version": "1.1.0"
     },
     {
-      "bytes": 52824859,
+      "bytes": 53663242,
       "games": [
         "kythen"
       ],
@@ -941,13 +941,13 @@
         "kythen_turf",
         "kythen_wood"
       ],
-      "sha256": "fa47143d9c5599fb89e2d95665249b231807addb74e0c97785f35006f0b9fb62",
+      "sha256": "8c00387d54326c59b325292dc7e8774e2736c219e6f2fcc44ef472d495155538",
       "tranche": "terrain",
-      "url": "https://github.com/p0ss/Goanna/releases/download/assets-2026.09.2/org.goanna.kythen.terrain-1.1.0.zip",
-      "version": "1.1.0"
+      "url": "https://github.com/p0ss/Goanna/releases/download/assets-2026.09.3/org.goanna.kythen.terrain-1.2.0.zip",
+      "version": "1.2.0"
     },
     {
-      "bytes": 95266771,
+      "bytes": 104280280,
       "games": [
         "mineclonia"
       ],
@@ -1975,13 +1975,13 @@
         "xpanes_top_glass_yellow",
         "xpanes_top_iron"
       ],
-      "sha256": "7cdab9cde37f3854e515aa807c2935ae81af871a6ffefbfba9619dc585cb9ae6",
+      "sha256": "6401b5fc046309062f381abd4f7511a485659bb1f2cd20b88e55d9313d78df4a",
       "tranche": "pack",
-      "url": "https://github.com/p0ss/Goanna/releases/download/assets-2026.09.2/org.goanna.mineclonia.pack-1.0.0.zip",
-      "version": "1.0.0"
+      "url": "https://github.com/p0ss/Goanna/releases/download/assets-2026.09.3/org.goanna.mineclonia.pack-1.1.0.zip",
+      "version": "1.1.0"
     },
     {
-      "bytes": 5403176,
+      "bytes": 6322653,
       "games": [
         "minetest",
         "minetest_game"
@@ -2074,10 +2074,10 @@
         "farming_soil_wet",
         "farming_straw"
       ],
-      "sha256": "78e28a22f15488ebd2e56c53b53dd94dfea011acc078c372d523165fc990affd",
+      "sha256": "15028a6a7fbc4673b7491b0b43dfc5990b259f1551f56942d5e5f9750f4c2799",
       "tranche": "terrain",
-      "url": "https://github.com/p0ss/Goanna/releases/download/assets-2026.09.2/org.goanna.minetest-game.terrain-1.0.0.zip",
-      "version": "1.0.0"
+      "url": "https://github.com/p0ss/Goanna/releases/download/assets-2026.09.3/org.goanna.minetest-game.terrain-1.1.0.zip",
+      "version": "1.1.0"
     }
   ],
   "schema": "org.goanna.asset-catalogue/v1"
