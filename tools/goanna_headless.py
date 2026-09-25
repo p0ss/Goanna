@@ -26,12 +26,14 @@ State lives in $XDG_RUNTIME_DIR/goanna-headless/<id>.json, so the MCP server
 (tools/goanna-mcp), this module's command line (tools/goanna-headless) and a
 second agent can all see which instances are running and on which ports.
 
-Two instances at once is expected to work but is something to verify, not
-something to assume: on 2026-09-19 the NVIDIA driver on the author's machine
-went into a reset-required state (Xid 51 and 154) within a minute of two
-headless gamescope sessions starting, and whether they caused it is not
-known. software=True renders on lavapipe and llvmpipe and never creates a
-GPU context, at a much lower frame rate.
+Two GPU instances at once are refused. Twice the NVIDIA driver on the
+author's machine went into a reset-required state (Xid 51 and 154) that
+lasted until a reboot, each time just after a headless gamescope started
+beside another game client: 2026-09-19 with two headless sessions, and
+2026-09-25 beside a windowed Godot. A GPU launch now checks nvidia-smi first
+(gpu_clients) and refuses while a Godot, gamescope or Luanti is listed;
+GOANNA_SHARED_GPU=1 overrides it. software=True renders on lavapipe and
+llvmpipe and never creates a GPU context, at a much lower frame rate.
 """
 
 import json
@@ -284,10 +286,51 @@ def list_records():
     return out
 
 
+# Processes whose presence on the GPU makes a second GPU instance unsafe. The
+# desktop's own clients (the compositor, browsers) are not on the list: every
+# recorded fault came from a game client beside a headless gamescope.
+GPU_GAME_CLIENTS = ("godot", "gamescope", "luanti", "minetest")
+
+
+def gpu_clients():
+    """Game clients the NVIDIA driver lists on the GPU, as (pid, name) pairs.
+
+    Twice a headless gamescope started beside another game client has put the
+    NVIDIA driver into a reset-required state (Xid 51 then 154) that lasts
+    until a reboot: 2026-09-19 with two headless gamescope sessions, and
+    2026-09-25 with a windowed Godot another agent had open. The cause is in
+    the driver, not in anything a caller can fix, so the only defence is not
+    to start a second instance. Empty where nvidia-smi is absent, since the
+    fault has only been seen on NVIDIA."""
+    if shutil.which("nvidia-smi") is None:
+        return []
+    try:
+        out = subprocess.run(["nvidia-smi", "--query-compute-apps=pid,process_name",
+                              "--format=csv,noheader"], capture_output=True, text=True,
+                             timeout=10).stdout
+    except (OSError, subprocess.SubprocessError):
+        return []
+    found = []
+    for line in out.splitlines():
+        pid, _, name = line.partition(",")
+        base = os.path.basename(name.strip().split()[0]) if name.strip() else ""
+        if any(word in base.lower() for word in GPU_GAME_CLIENTS):
+            found.append((int(pid), base))
+    return found
+
+
 def _spawn(rec, timeout=60.0):
     """Start the supervisor for a prepared record and wait until the client
     process exists inside gamescope, or until it fails."""
     need("gamescope")
+    if not rec.get("software") and os.environ.get("GOANNA_SHARED_GPU") != "1":
+        busy = gpu_clients()
+        if busy:
+            raise LaunchError(
+                "another game client is on the GPU (%s); starting a GPU instance beside "
+                "one has twice left the NVIDIA driver needing a reboot. Wait for it to "
+                "finish, use --software, or set GOANNA_SHARED_GPU=1 to accept the risk"
+                % ", ".join("%s pid %d" % (name, pid) for pid, name in busy))
     existing = None
     try:
         existing = load(rec["id"])
@@ -739,6 +782,7 @@ USAGE = """usage:
   goanna-headless stop ID
   goanna-headless list [--all]
   goanna-headless port-free N
+  goanna-headless gpu-free
 """
 
 
@@ -806,6 +850,11 @@ def main(argv):
                    if opts.get("all") or r.get("status") in ("launching", "starting", "running")]
         elif cmd == "port-free":
             out = {"port": int(pos[0]), "free": port_free(int(pos[0]))}
+        elif cmd == "gpu-free":
+            busy = gpu_clients()
+            print(json.dumps({"free": not busy,
+                              "clients": [{"pid": p, "name": n} for p, n in busy]}, indent=2))
+            return 0 if not busy else 1
         else:
             print(USAGE, file=sys.stderr)
             return 2

@@ -51,6 +51,16 @@ move a client's pointer with xdotool. So:
   refuses a control port that is taken; do not work around it.
 - Leave nothing running: stop every client, server and gamescope you
   started before finishing.
+- One game client on the GPU at a time. Twice a headless gamescope started
+  beside another game client has put the NVIDIA driver into a reset
+  required state (Xid 51 then 154) that lasts until the owner reboots:
+  2026-09-19 with two headless sessions, and 2026-09-25 with one beside a
+  windowed Godot another agent had open. Every Godot fixture, ramp and
+  client then fails with `vkCreateDevice` until the reboot. Before any GPU
+  render run `tools/goanna-headless gpu-free`, which exits 1 and names the
+  client while a Godot, gamescope or Luanti is on the GPU, and wait or use
+  `--software`. The launcher makes the same check itself and refuses; do
+  not set `GOANNA_SHARED_GPU=1` to get past it.
 
 The launcher and the MCP server are described in `docs/control-channel.md`,
 under "Starting it" and "Driving it from an agent".

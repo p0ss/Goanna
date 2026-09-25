@@ -78,7 +78,10 @@ which server, which game and which Godot version when you record a result.
   Never inject input into the owner's display (`DISPLAY=:0`,
   `WAYLAND_DISPLAY=wayland-0`) with xdotool, ydotool or anything else: the
   control channel's `ui_*` and `key` commands drive clients from inside.
-  Stop processes only by the PIDs you started, never by name. The rules are
-  in `docs/agent-interfaces.md`.
+  Stop processes only by the PIDs you started, never by name. One game
+  client on the GPU at a time: run `tools/goanna-headless gpu-free` before
+  any GPU render, since two at once has twice left the NVIDIA driver
+  needing a reboot. The rules are in `docs/agent-interfaces.md`, and
+  `AGENTS.md` repeats them for agents that do not read this file.
 - Commit messages: imperative, under 72 characters, no full stop, then a
   body explaining why. Sign off with `git commit -s`.
