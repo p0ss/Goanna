@@ -275,11 +275,16 @@ def build(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, preview=True):
     _, _, strength, spread = CLASS_STYLE.get(cls, DEFAULT_STYLE)
     strength = float(spec.get("strength", strength))
     src = lib.load_source(stem, game)
-    if src.shape[0] != src.shape[1]:
-        raise ValueError("%s is %dx%d; animated strips need their own path"
-                         % (stem, src.shape[1], src.shape[0]))
+    # The map is SIZE wide with square texels, so a vertical animation strip
+    # (16 x 64, four frames) comes out 256 x 1024 and the client cuts the
+    # same frame from it as from the colour (docs/node-animation.md), and a
+    # model atlas (a 64 x 32 sign) comes out 256 x 128. Levels are taken
+    # over the whole strip, so every frame of an animation shares them.
+    if lib.SIZE % src.shape[1]:
+        raise ValueError("%s is %d wide, which does not divide %d"
+                         % (stem, src.shape[1], lib.SIZE))
     hgt, pos, joints, mat = heights(src, spec, cls)
-    n = lib.SIZE // src.shape[0]
+    n = lib.SIZE // src.shape[1]
     up = lambda a: np.kron(a, np.ones((n, n), dtype=a.dtype))  # noqa: E731
     # A wider chamfer rounds a thin cut-out piece (a rail, a ladder rung)
     # so its edges catch the light; parallax cannot lift a cut-out's edge.
@@ -307,10 +312,11 @@ def build(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, preview=True):
         glow[sel] = g * pos[sel] ** 2 if m.get("emission_shade") else g
     sm[joints] -= spread
     emission = up(glow) if glow.max() > 0 else None
-    return lib.pack(stem, out_dir, lib.upscale(src), hi, np.clip(up(sm), 0.0, lib.SMOOTH_CEILING), cls,
+    albedo = np.kron(src, np.ones((n, n, 1), dtype=src.dtype))
+    return lib.pack(stem, out_dir, albedo, hi, np.clip(up(sm), 0.0, lib.SMOOTH_CEILING), cls,
                     normal_strength=strength, metal_mask=up(metal), keep_mean=False,
                     emission=emission, f0=up(f0), fine_detail=1.0,
-                    art_texels=src.shape[0])
+                    art_texels=src.shape[1])
 
 
 # --- judging ----------------------------------------------------------------
@@ -382,9 +388,9 @@ def check(stem, out_dir, game=lib.DEFAULT_GAME, spec=None):
     n = np.asarray(Image.open(out_dir / (stem + "_n.png")).convert("RGBA")).astype(np.float32) / 255.0
     s = np.asarray(Image.open(out_dir / (stem + "_s.png")).convert("RGBA")).astype(np.float32) / 255.0
     src = lib.load_source(stem, game)
-    art = src.shape[0]
+    rows, art = src.shape[:2]
     cell = lib.SIZE // art
-    alpha = src[..., 3] if src.shape[-1] == 4 else np.ones((art, art), np.float32)
+    alpha = src[..., 3] if src.shape[-1] == 4 else np.ones((rows, art), np.float32)
     drawn = alpha >= 0.5
     lines = []
 
@@ -396,7 +402,7 @@ def check(stem, out_dir, game=lib.DEFAULT_GAME, spec=None):
     # Leave at least one pixel of each texel to measure: a 64 px model
     # atlas (a bed, the lectern) has texels only four map pixels wide.
     edge = min(chamfer_px(spec, cell) + 1, (cell - 1) // 2)
-    hmap = n[..., 3].reshape(art, cell, art, cell)[:, edge:cell - edge, :, edge:cell - edge]
+    hmap = n[..., 3].reshape(rows, cell, art, cell)[:, edge:cell - edge, :, edge:cell - edge]
     spread = hmap.max(axis=(1, 3)) - hmap.min(axis=(1, 3))
     share = float((spread[drawn] <= 2.5 / 255).mean()) if drawn.any() else 1.0
     line(share >= 0.98, "on the texel grid %.0f%% of drawn texels (want >= 98)" % (100 * share))
@@ -424,7 +430,7 @@ def check(stem, out_dir, game=lib.DEFAULT_GAME, spec=None):
     # Tiling at texel joins. The art's own wrap is its design, so a height
     # seam only fails where the albedo has none.
     seam_h = lib.seam_energy(n[..., 3], cell)
-    seam_a = lib.seam_energy(lib.upscale(src[..., :3]), cell)
+    seam_a = lib.seam_energy(np.kron(src[..., :3], np.ones((cell, cell, 1), np.float32)), cell)
     # Height is a function of each texel's colour and material, so any
     # seam it has is the art's (a framed block's frame sits on the tile
     # edge by design). Reported, never failed.

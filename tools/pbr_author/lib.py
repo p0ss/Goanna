@@ -474,6 +474,9 @@ def pack(stem, out_dir, albedo, height, smoothness, cls, normal_strength,
     # own so the two cannot drift apart.
     cutout = cutout_mask(albedo, alpha)
     height = np.clip(height, 0.0, 1.0).astype(np.float32)
+    # The map takes the height field's shape: SIZE square for a tile, taller
+    # for an animation strip, wider for a model atlas (extrude.py).
+    shape = height.shape
     # Texel scale relief is scaled down before anything is derived from
     # the height. Under a grazing lamp in a cave every grain of noise
     # became its own shadow and stone read as rubble; a one texel groove
@@ -484,7 +487,7 @@ def pack(stem, out_dir, albedo, height, smoothness, cls, normal_strength,
         height = np.clip(height - (1.0 - fine_detail) * fine, 0.0, 1.0)
     xy = normal_from_height(height, normal_strength)
     ao = ao_from_height(height, ao_radius)
-    n = np.zeros((SIZE, SIZE, 4), dtype=np.float32)
+    n = np.zeros(shape + (4,), dtype=np.float32)
     n[..., :2] = xy * 0.5 + 0.5
     n[..., 2] = ao
     n[..., 3] = height
@@ -497,7 +500,7 @@ def pack(stem, out_dir, albedo, height, smoothness, cls, normal_strength,
     level, _, is_metal = class_spec(cls)
     sm = np.clip(smoothness, 0.0, 1.0).astype(np.float32)
     if metal_mask is None:
-        metal_mask = np.full((SIZE, SIZE), bool(is_metal))
+        metal_mask = np.full(shape, bool(is_metal))
     if keep_mean:
         # The class level is the matrix's, so the mean is taken over the
         # ordinary texels: a metal vein or a gem sitting at 0.9 must not
@@ -528,9 +531,9 @@ def pack(stem, out_dir, albedo, height, smoothness, cls, normal_strength,
         # keep what the script gave them.
         if cls not in ("glass", "ice", "metal"):
             sm = np.where(base, np.minimum(sm, level + 0.25), sm)
-    s = np.zeros((SIZE, SIZE, 4), dtype=np.float32)
+    s = np.zeros(shape + (4,), dtype=np.float32)
     s[..., 0] = sm
-    diel = np.full((SIZE, SIZE), float(DIELECTRIC_F0), dtype=np.float32)
+    diel = np.full(shape, float(DIELECTRIC_F0), dtype=np.float32)
     if f0 is not None:
         diel = np.clip(np.asarray(f0, dtype=np.float32) * 255.0, 0.0, 229.0)
     s[..., 1] = np.where(metal_mask, 255.0, diel) / 255.0
@@ -573,9 +576,11 @@ def seam_energy(arr, step=1):
     if a.ndim == 2:
         a = a[..., None]
     wrap = np.abs(a[0] - a[-1]).mean() + np.abs(a[:, 0] - a[:, -1]).mean()
-    joins = range(step, a.shape[0], step)
-    inner = np.mean([np.abs(a[j] - a[j - 1]).mean() + np.abs(a[:, j] - a[:, j - 1]).mean()
-            for j in joins])
+    # Rows and columns separately, so a map taller than it is wide (an
+    # animation strip) is measured along both its sides.
+    rows = [np.abs(a[j] - a[j - 1]).mean() for j in range(step, a.shape[0], step)]
+    cols = [np.abs(a[:, j] - a[:, j - 1]).mean() for j in range(step, a.shape[1], step)]
+    inner = (np.mean(rows) if rows else 0.0) + (np.mean(cols) if cols else 0.0)
     return float(wrap / max(inner, 1e-3))
 
 
