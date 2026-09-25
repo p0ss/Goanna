@@ -1,0 +1,12 @@
+{
+ "class": "metal",
+ "materials": {
+  "iron": {
+   "mode": "flat",
+   "base": 0.2,
+   "span": 0,
+   "metal": false,
+   "smooth": 0.4
+  }
+ }
+}

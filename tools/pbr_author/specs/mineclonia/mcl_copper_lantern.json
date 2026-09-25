@@ -1,0 +1,33 @@
+{
+ "class": "metal",
+ "materials": {
+  "cage": {
+   "mode": "shade",
+   "base": 0.35,
+   "span": 0.55,
+   "metal": true,
+   "smooth": 0.72
+  },
+  "glow": {
+   "mode": "shade",
+   "base": 0.4,
+   "span": 0.5,
+   "joints": false,
+   "emission": 0.85,
+   "emission_shade": true,
+   "smooth": 0.6
+  }
+ },
+ "palette": {
+  "#934d39": "cage",
+  "#ab5942": "cage",
+  "#bf644a": "cage",
+  "#59db77": "glow",
+  "#5a8100": "glow",
+  "#5cb83b": "glow",
+  "#60a31d": "glow",
+  "#64d266": "glow",
+  "#7cf0ae": "glow",
+  "#9bffd7": "glow"
+ }
+}

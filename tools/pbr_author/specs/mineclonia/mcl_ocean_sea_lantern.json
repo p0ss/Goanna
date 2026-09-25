@@ -1,0 +1,13 @@
+{
+ "class": "stone",
+ "materials": {
+  "glow": {
+   "mode": "shade",
+   "base": 0.3,
+   "span": 0.65,
+   "emission": 0.6,
+   "emission_shade": true,
+   "smooth": 0.55
+  }
+ }
+}

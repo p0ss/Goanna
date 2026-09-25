@@ -1,0 +1,26 @@
+{
+ "class": "stone",
+ "materials": {
+  "rock": {
+   "mode": "shade",
+   "base": 0.15,
+   "span": 0.3,
+   "smooth": 0.15
+  },
+  "lava": {
+   "mode": "shade",
+   "base": 0.55,
+   "span": 0.35,
+   "joints": false,
+   "emission": 0.9,
+   "emission_shade": true,
+   "smooth": 0.5
+  }
+ },
+ "palette": {
+  "#8b1408": "lava",
+  "#ac1b0b": "lava",
+  "#c6452c": "lava",
+  "#ee6014": "lava"
+ }
+}

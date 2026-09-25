@@ -1,0 +1,22 @@
+{
+ "class": "stone",
+ "materials": {
+  "stone": {
+   "mode": "shade"
+  },
+  "rivet": {
+   "mode": "flat",
+   "base": 0.85,
+   "span": 0,
+   "metal": true,
+   "smooth": 0.75,
+   "joints": false
+  }
+ },
+ "palette": {
+  "#075d67": "rivet",
+  "#081b24": "rivet",
+  "#0b2a32": "rivet",
+  "#0c3b47": "rivet"
+ }
+}

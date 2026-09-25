@@ -1,0 +1,13 @@
+{
+ "class": "leaves",
+ "materials": {
+  "grass": {
+   "mode": "shade",
+   "base": 0.3,
+   "span": 0.6,
+   "joints": false
+  }
+ },
+ "strength": 20,
+ "chamfer": 3
+}

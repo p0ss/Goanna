@@ -1,0 +1,14 @@
+{
+ "class": "wood",
+ "materials": {
+  "flame": {
+   "mode": "shade",
+   "base": 0.3,
+   "span": 0.55,
+   "joints": false,
+   "emission": 0.85,
+   "emission_shade": true,
+   "smooth": 0.3
+  }
+ }
+}

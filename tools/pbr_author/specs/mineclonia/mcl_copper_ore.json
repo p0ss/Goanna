@@ -1,0 +1,34 @@
+{
+ "class": "stone",
+ "materials": {
+  "stone": {
+   "mode": "shade",
+   "base": 0.25,
+   "span": 0.5,
+   "joints": false
+  },
+  "copper": {
+   "mode": "shade",
+   "base": 0.78,
+   "span": 0.2,
+   "detail": 0.3,
+   "smooth": 0.55,
+   "metal": true
+  }
+ },
+ "palette": {
+  "#552a1e": "copper",
+  "#552a1f": "copper",
+  "#552b20": "copper",
+  "#552e23": "copper",
+  "#562c20": "copper",
+  "#573025": "copper",
+  "#583026": "copper",
+  "#583228": "copper",
+  "#763e2d": "copper",
+  "#783f2d": "copper",
+  "#79402e": "copper",
+  "#834432": "copper",
+  "#854533": "copper"
+ }
+}

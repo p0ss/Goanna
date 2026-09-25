@@ -1,0 +1,30 @@
+{
+ "class": "stone",
+ "materials": {
+  "obsidian": {
+   "mode": "flat",
+   "base": 0.2,
+   "span": 0,
+   "smooth": 0.7,
+   "smooth_spread": 0.1
+  },
+  "tear_lo": {
+   "mode": "flat",
+   "base": 0.55,
+   "span": 0,
+   "emission": 0.7,
+   "smooth": 0.6
+  },
+  "tear_hi": {
+   "mode": "flat",
+   "base": 0.75,
+   "span": 0,
+   "emission": 0.9,
+   "smooth": 0.6
+  }
+ },
+ "palette": {
+  "#6006ab": "tear_lo",
+  "#8308e4": "tear_hi"
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "class": "stone",
+ "materials": {
+  "sculk": {
+   "mode": "shade",
+   "base": 0.05,
+   "span": 0.15,
+   "smooth": 0.15
+  },
+  "speck": {
+   "mode": "flat",
+   "base": 0.5,
+   "span": 0,
+   "joints": false,
+   "emission": 1.0,
+   "smooth": 0.6
+  }
+ },
+ "palette": {
+  "#075d67": "speck"
+ }
+}

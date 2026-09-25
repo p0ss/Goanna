@@ -1,0 +1,36 @@
+{
+ "class": "wood",
+ "materials": {
+  "wood": {
+   "mode": "shade",
+   "base": 0.3,
+   "span": 0.5
+  },
+  "soot": {
+   "mode": "shade",
+   "base": 0.5,
+   "span": 0.15,
+   "joints": false,
+   "metal": false,
+   "smooth": 0.3
+  },
+  "flame": {
+   "mode": "shade",
+   "base": 0.4,
+   "span": 0.45,
+   "joints": false,
+   "emission": 0.85,
+   "emission_shade": true,
+   "smooth": 0.3
+  }
+ },
+ "palette": {
+  "#232323": "soot",
+  "#353535": "soot",
+  "#494949": "soot",
+  "#2f5700": "flame",
+  "#305700": "flame",
+  "#459d27": "flame",
+  "#7feaa7": "flame"
+ }
+}

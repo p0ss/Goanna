@@ -1,0 +1,25 @@
+{
+ "class": "leaves",
+ "materials": {
+  "bush": {
+   "mode": "shade",
+   "base": 0.3,
+   "span": 0.55
+  },
+  "firefly": {
+   "mode": "shade",
+   "base": 0.6,
+   "span": 0.35,
+   "joints": false,
+   "emission": 1.0,
+   "emission_shade": true,
+   "smooth": 0.3
+  }
+ },
+ "palette": {
+  "#46552f": "firefly",
+  "#627643": "firefly",
+  "#88a35e": "firefly",
+  "#a4c372": "firefly"
+ }
+}
