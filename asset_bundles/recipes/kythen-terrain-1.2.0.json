@@ -1,0 +1,30 @@
+{
+  "schema": "org.goanna.asset-recipe/v1",
+  "id": "org.goanna.kythen.terrain",
+  "version": "1.2.0",
+  "tranche": "terrain",
+  "games": ["kythen"],
+  "source": {
+    "package": "p0ss/Kythen",
+    "release": "580035e",
+    "archive_sha256": "ee3f38cee9f12ee26ed5d33bece1534a90e11f081315a9d9213c58ed71a1a404"
+  },
+  "pipeline": {
+    "version": "3",
+    "manifest": "pbr_packs/manifests/kythen-terrain-v1.json",
+    "classification_review": "pbr_packs/classification_reviews/kythen-v1.json",
+    "bake": "tools/run-kythen-bake.sh stage kythen-terrain-v1: --treatment terrain --chord-spec --bump-size 128 --keep-albedo --no-previews --reuse-outputs comfy-output/kythen-terrain-v1",
+    "authored": "tools/pbr_author/, 228 of the 286 stems, byte identical to 1.1.0",
+    "quality_gate": "tools/check-pbr-quality.py",
+    "height_gate": "tools/check-pbr-height.py",
+    "note": "No new generation. The 58 baked stems (the Firecountry and Mitteleuropa bark and leaf sets, four Siku ice and three Siku skin sets, and kythen_norse_sphagnum) were composed again on 2026-09-25 from the saved generation of the 2026-09-10 kythen-terrain-v1 run, against Kythen's tree at 580035e, which reproduces their 1.1.0 bytes exactly under the code that made them. They carried the height scaled by the class depth, which the shader applies again, and now span the whole byte (median 102.5, 54 under 128; now 255). Their _s maps and all 228 authored sets are byte identical to 1.1.0. The authored maps predate the goanna_pipeline chunk, so the height gate counts all 286 as baked: median span 255, and the 32 under 128 are authored sets held shallow with lib.band on purpose."
+  },
+  "release": {
+    "texture_pairs": 286,
+    "rejected": [],
+    "known_failures_note": "110 stems fail tools/check-pbr-quality.py, all of them authored and all as in 1.1.0: surface too smooth for its class (69 soil, 8 stone, 2 leaves, 1 wood), transparent texels not neutral in the normal map (31) and one dark art marked metallic. No baked stem fails, before or after the recompose.",
+    "archive": "org.goanna.kythen.terrain-1.2.0.zip",
+    "bytes": 53663242,
+    "sha256": "8c00387d54326c59b325292dc7e8774e2736c219e6f2fcc44ef472d495155538"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "schema": "org.goanna.asset-recipe/v1",
+  "id": "org.goanna.kythen.item",
+  "version": "1.1.0",
+  "tranche": "item",
+  "games": ["kythen"],
+  "source": {
+    "package": "p0ss/Kythen",
+    "release": "580035e",
+    "archive_sha256": "8205c2b24c243b8f9de0b10151840ccf4a30e526b827025bf00332966e9bf6a1"
+  },
+  "pipeline": {
+    "version": "2",
+    "manifest": "pbr_packs/manifests/kythen-items-v1.json",
+    "classification_review": "pbr_packs/classification_reviews/kythen-v1.json",
+    "bake": "tools/run-kythen-bake.sh stage kythen-items-v1: --treatment item --chord-spec --bump-size 256 --keep-albedo --no-previews --reuse-outputs comfy-output/kythen-items-v1",
+    "quality_gate": "tools/check-pbr-quality.py",
+    "height_gate": "tools/check-pbr-height.py",
+    "note": "No new generation. The 484 maps were composed again on 2026-09-25 from the saved generation of the 2026-09-10 kythen-items-v1 run, against Kythen's tree at 580035e, which reproduces 1.0.0 byte for byte under the code that made it. 1.0.0 carried the height scaled by the class depth, which the shader applies again; every _n map now spans the whole byte (1.0.0 median span 77, all 484 under 128; now 255). Every _s map is byte identical to 1.0.0."
+  },
+  "release": {
+    "texture_pairs": 484,
+    "rejected": [],
+    "known_failures": [],
+    "archive": "org.goanna.kythen.item-1.1.0.zip",
+    "bytes": 23438736,
+    "sha256": "d84fb998124517263019de2b6bcd9e0b05290e0ce765fc0197c04d3812cbfb74"
+  }
+}
