@@ -4,7 +4,8 @@ Status: a design, written on 19 September 2026. Nothing in it is built. The only
 code is the throwaway probe in `tools/director-probe/`, which exists to check
 the engine and framework calls the design depends on. [What was
 verified](#what-was-verified) at the end says what ran, on which server and
-game, and what did not.
+game, and what did not. [Decisions](#decisions) records what the maintainer
+has settled since, including the scope of the first playtest.
 
 The director lets a language model run a Luanti world the way a game master runs
 a table. It watches what players do, stages encounters, offers quests whose
@@ -1186,6 +1187,58 @@ and are guesses.
    filter (3), the turn cycle and arbitration (3), per scope endpoints (2),
    Kythen institutional knowledge holders (4 to 6, in Kythen), and a fairness
    test with scripted factions before any models (2).
+
+## Decisions
+
+Settled by the maintainer on 19 and 25 September 2026. Where a decision
+answers an open question below, its number is given.
+
+- **Transport (1).** HTTP first, for the host's director. A seat is a fake
+  player that games count for beds and mob spawning, so it comes later, with
+  the private channel (2).
+- **Hosted worlds (3).** A host who enables the director and invites people
+  runs it for them too. Joiners are told a director is running and are offered
+  a way to opt out.
+- **Cost (7).** The host pays for the host's director. Which model plays the
+  game master and which the voices is still open.
+- **Kythen (8).** Yes to the hook changes: controllers with director
+  authority, recorded commands, speech through comprehension, no direct table
+  writes. Kythen wants a dozen or more directors, one per culture and perhaps
+  per village, acting as participants with scoped authority and fog of war,
+  under the host's director.
+
+### The first playtest
+
+The first release that carries the director is playtested on **Mineclonia**,
+on **one world launched from Goanna** with the host's director over HTTP.
+Testers join from their own machines. Kythen follows in the next release.
+
+In scope, from phase 1:
+
+- director core: settings, privilege, `/director` commands, the event ring
+  buffer, player and region summaries, the audit log, budgets, stop and undo;
+- the Mineclonia mcl_mobs adapter;
+- **encounters and pacing**: the pacing layer above, and encounters sized to
+  each player's gear;
+- **NPC voices and memory**: `speak`, and per player NPC memory;
+- the joiner notice and opt out;
+- the HTTP transport, the `local_server.gd` wiring and the MCP tools those
+  need.
+
+Out of scope for this playtest: quests and rewards (6), arcs across sessions,
+adapters other than Mineclonia's, the seat, and several factions. NPC memory
+has to hold for the length of a session. Surviving a restart is not a
+requirement yet.
+
+The playtest is written up in `PLAN.md` with the server, game, Godot version,
+model and number of testers, and nothing moves in `README.md` before then.
+
+Still open and needed before testers join: what the game master sees of
+other people's players (4), whether it reads public chat (5), and whether
+NPC memory may hold model written text (9). Proposed defaults: exact
+positions and gear, which the operator sees anyway, with testers told so;
+only lines addressed to an NPC; structured facts from events plus short
+model written lines under a length cap, in the audit log.
 
 ## Open questions
 
