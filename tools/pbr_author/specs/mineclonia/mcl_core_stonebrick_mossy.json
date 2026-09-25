@@ -1,14 +1,22 @@
 {
  "materials": {
   "stone": {
-   "mode": "shade",
-   "base": 0.35,
-   "span": 0.65
+   "mode": "parts",
+   "base": 0.55,
+   "span": 0.3,
+   "detail": 0.3
   },
   "mortar": {
    "mode": "flat",
-   "base": 0.12,
+   "base": 0.08,
    "span": 0
+  },
+  "moss": {
+   "mode": "shade",
+   "base": 0.72,
+   "span": 0.25,
+   "joints": false,
+   "smooth": 0.05
   }
  },
  "grid": [
@@ -31,5 +39,61 @@
  ],
  "legend": {
   "M": "mortar"
+ },
+ "class": "stone",
+ "palette": {
+  "#3d4c36": "moss",
+  "#3e5537": "moss",
+  "#404d3c": "moss",
+  "#42543c": "moss",
+  "#434e3f": "moss",
+  "#44553d": "moss",
+  "#45513d": "moss",
+  "#474f43": "moss",
+  "#47543c": "moss",
+  "#475441": "moss",
+  "#475b3f": "moss",
+  "#485443": "moss",
+  "#485b41": "moss",
+  "#4a5841": "moss",
+  "#4a5a44": "moss",
+  "#4b5148": "moss",
+  "#4b523f": "moss",
+  "#4b5746": "moss",
+  "#4b5943": "moss",
+  "#4f5746": "moss",
+  "#4f6945": "moss",
+  "#505b46": "moss",
+  "#515b4b": "moss",
+  "#515d4a": "moss",
+  "#515e4b": "moss",
+  "#52574f": "moss",
+  "#525c43": "moss",
+  "#525f4b": "moss",
+  "#52654b": "moss",
+  "#565a4b": "moss",
+  "#565e4f": "moss",
+  "#565f4e": "moss",
+  "#575f4b": "moss",
+  "#586251": "moss",
+  "#586352": "moss",
+  "#595f48": "moss",
+  "#595f52": "moss",
+  "#59654b": "moss",
+  "#596551": "moss",
+  "#596651": "moss",
+  "#5e6357": "moss",
+  "#5e6556": "moss",
+  "#606752": "moss",
+  "#61655b": "moss",
+  "#61685a": "moss",
+  "#62695b": "moss",
+  "#646d5b": "moss",
+  "#686d5f": "moss",
+  "#6c7064": "moss",
+  "#6c7365": "moss",
+  "#6d7464": "moss",
+  "#6e7864": "moss",
+  "#7b7f71": "moss"
  }
 }

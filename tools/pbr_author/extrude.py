@@ -16,7 +16,9 @@ from one of three modes:
          than the material (plank gaps, cracks) sink as joints unless the
          material says joints: false. Natural surfaces.
   parts  every connected piece of the material is one solid height, and
-         pieces differ by their mean shade. Books on a shelf.
+         pieces differ by their mean shade. Books on a shelf. A detail
+         share keeps a little of each texel's shade inside its piece
+         (stone bricks).
   flat   the whole material is one height. A frame's beams.
 
 Which texel belongs to which material comes from, in order: the spec's
@@ -37,7 +39,8 @@ stem so authors working in parallel never edit the same file:
     "grid": ["FFFF...", ...],            optional, one string per row
     "legend": {"F": "frame", "a": {"material": "book", "h": 0.6}},
     "class": "wood",                     optional class override
-    "strength": 16                       optional normal strength
+    "strength": 16,                      optional normal strength
+    "chamfer": 3                         optional bevel width in map pixels
   }
 
 Material keys besides mode, base and span: detail (share of the span the
@@ -75,7 +78,7 @@ CLASS_STYLE = {
     # and shallow; metal is worked flat with crisp detail. These fell back
     # to stone's depth before, which made wool and snow as deep as rock.
     "soil": (3, 0.40, 16, 0.08),
-    "cloth": (3, 0.30, 10, 0.05),
+    "cloth": (3, 0.30, 6, 0.05),
     "snow": (3, 0.20, 8, 0.05),
     "ice": (3, 0.30, 8, 0.04),
     "glass": (2, 0.30, 10, 0.02),
@@ -83,6 +86,14 @@ CLASS_STYLE = {
 }
 DEFAULT_STYLE = CLASS_STYLE["stone"]
 DETAIL = 0.35
+# The material a stem with no spec gets, where the plain shaded rule is
+# wrong for the whole class. Wool's art is fine fibre noise over a few
+# shades; quantised into levels with joints it read as a circuit board, so
+# cloth is a soft felt: a narrow range, two levels, no joints.
+CLASS_MATERIAL = {
+    "cloth": {"mode": "shade", "base": 0.4, "span": 0.25, "levels": 2,
+              "detail": 0.5, "joints": False},
+}
 # Smoothness levels that differ from the bake's class table. The bake's
 # metal level (0.40) is cast iron; a block of steel or gold read dull
 # beside the extruded relief, so authored metal is polished unless a spec
@@ -178,7 +189,7 @@ def heights(src, spec, cls):
     """The 16 px height field (0..1), a 0..1 shade position for the
     smoothness, the joint mask and the material map."""
     levels_c, joint_c, _, _ = CLASS_STYLE.get(cls, DEFAULT_STYLE)
-    mats = spec.get("materials") or {"base": {"mode": "shade"}}
+    mats = spec.get("materials") or {"base": CLASS_MATERIAL.get(cls, {"mode": "shade"})}
     alpha = src[..., 3] if src.shape[-1] == 4 else np.ones(src.shape[:2], np.float32)
     drawn = alpha >= 0.5
     lum = lib.luminance(src[..., :3])
@@ -209,6 +220,12 @@ def heights(src, spec, cls):
             for i, ri in zip(ids, r):
                 t_map[sel & (lab == i)] = ri
             t = t_map[sel]
+            # detail: a share of the span for each texel's own shade inside
+            # its piece, so a stone brick is one block with a little face
+            # texture rather than a flat tile. Default 0, a solid piece.
+            pd = float(m.get("detail", 0.0))
+            if pd > 0:
+                t = (1.0 - pd) * t + pd * _rank01(v)
         else:
             detail = float(m.get("detail", DETAIL))
             lv = int(m.get("levels", levels_c))
@@ -253,10 +270,12 @@ def build(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, preview=True):
     hgt, pos, joints, mat = heights(src, spec, cls)
     n = lib.SIZE // src.shape[0]
     up = lambda a: np.kron(a, np.ones((n, n), dtype=a.dtype))  # noqa: E731
-    hi = chamfer(up(hgt), 1)
+    # A wider chamfer rounds a thin cut-out piece (a rail, a ladder rung)
+    # so its edges catch the light; parallax cannot lift a cut-out's edge.
+    hi = chamfer(up(hgt), int(spec.get("chamfer", 1)))
 
     level, _, is_metal = lib.class_spec(cls)
-    mats = spec.get("materials") or {"base": {}}
+    mats = spec.get("materials") or {"base": CLASS_MATERIAL.get(cls, {})}
     sm = np.zeros(hgt.shape, np.float32)
     f0 = np.full(hgt.shape, lib.DIELECTRIC_F0 / 255.0, np.float32)
     metal = np.full(hgt.shape, bool(is_metal))
@@ -338,7 +357,8 @@ def check(stem, out_dir, game=lib.DEFAULT_GAME, spec=None):
 
     # On the grid: inside each texel, away from its one pixel chamfer, the
     # height is one value. Grain or noise inside a texel fails this.
-    hmap = n[..., 3].reshape(art, cell, art, cell)[:, 2:-2, :, 2:-2]
+    edge = int(spec.get("chamfer", 1)) + 1
+    hmap = n[..., 3].reshape(art, cell, art, cell)[:, edge:-edge, :, edge:-edge]
     spread = hmap.max(axis=(1, 3)) - hmap.min(axis=(1, 3))
     share = float((spread[drawn] <= 2.5 / 255).mean()) if drawn.any() else 1.0
     line(share >= 0.98, "on the texel grid %.0f%% of drawn texels (want >= 98)" % (100 * share))

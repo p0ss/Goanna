@@ -1,13 +1,14 @@
 {
  "materials": {
   "stone": {
-   "mode": "shade",
-   "base": 0.35,
-   "span": 0.65
+   "mode": "parts",
+   "base": 0.55,
+   "span": 0.3,
+   "detail": 0.3
   },
   "mortar": {
    "mode": "flat",
-   "base": 0.12,
+   "base": 0.08,
    "span": 0
   }
  },
@@ -31,5 +32,6 @@
  ],
  "legend": {
   "M": "mortar"
- }
+ },
+ "class": "stone"
 }
