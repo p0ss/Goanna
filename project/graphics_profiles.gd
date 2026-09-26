@@ -109,6 +109,8 @@ extends RefCounted
 # grants more.
 const PROFILES := {
 	"ultra": {
+		"light_sdfgi": 1.4,
+		"mat_parallax": 1.0,
 		"view_range": 16,
 		"lod_distance": 32,
 		"far_distance": -1,
@@ -120,6 +122,8 @@ const PROFILES := {
 		"light_ssil": 1.4,
 	},
 	"high": {
+		"light_sdfgi": 1.4,
+		"mat_parallax": 1.0,
 		"view_range": 12,
 		"lod_distance": 20,
 		"far_distance": 1024,
@@ -131,6 +135,8 @@ const PROFILES := {
 		"light_ssil": 1.4,
 	},
 	"medium": {
+		"light_sdfgi": 1.4,
+		"mat_parallax": 1.0,
 		"view_range": 8,
 		"lod_distance": 12,
 		"far_distance": 256,
@@ -141,12 +147,35 @@ const PROFILES := {
 		"shadow_detail": 1,
 		"light_ssil": 0,
 	},
+	# Low is the one tier that makes what it draws look worse, against the
+	# rule above, because integrated graphics (the Steam Deck's is roughly a
+	# twentieth of the RTX 3090 these numbers come from) cannot afford the
+	# two passes the other tiers keep: SDFGI, the only lighting setting that
+	# gates its own pass, and the parallax march through an authored pack.
+	# Neither has been measured on such hardware yet; the values are the
+	# cheapest the settings allow, to be raised once a Deck has been timed.
+	# The other tiers name both at their defaults so that leaving Low turns
+	# them back on.
+	"low": {
+		"light_sdfgi": 0.0,
+		"mat_parallax": 0.0,
+		"view_range": 6,
+		"lod_distance": 8,
+		"far_distance": 128,
+		"shadow_lamps": 0,
+		"light_pool": 32,
+		"terrain_occlusion": 1,
+		"screen_space_detail": 0,
+		"shadow_detail": 0,
+		"light_ssil": 0,
+	},
 }
 
 # Cheapest first, which is the order the picker shows.
-const ORDER := ["medium", "high", "ultra"]
+const ORDER := ["low", "medium", "high", "ultra"]
 
 const LABELS := {
+	"low": "Low",
 	"medium": "Medium",
 	"high": "High",
 	"ultra": "Ultra",
@@ -154,6 +183,7 @@ const LABELS := {
 }
 
 const BLURBS := {
+	"low": "Turns off bounced light and surface depth, and draws the least world. For handhelds such as the Steam Deck and other integrated graphics. Untested on real hardware.",
 	"medium": "Draws less world and lights fewer lamps. For integrated graphics, or when a bigger view costs more than it is worth.",
 	"high": "Most of the view distance and half the lamp shadows. The middle of the range, and the one to try first if Ultra will not hold a frame rate.",
 	"ultra": "As much world as the server will send and every lamp shadow the pool allows. What a discrete card with cores to spare should run.",
@@ -168,7 +198,10 @@ static func for_hardware(discrete: bool, cores: int) -> String:
 		return "ultra"
 	if discrete:
 		return "high"
-	return "medium"
+	# Integrated graphics start on Low: Medium keeps SDFGI and parallax,
+	# which a shared GPU the size of the Steam Deck's is not expected to
+	# afford. A capable integrated part can be raised by hand.
+	return "low"
 
 # The profile a set of current values corresponds to, or "custom".
 # Compared only on the keys a profile actually names, so a player who has

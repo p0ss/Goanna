@@ -22,6 +22,13 @@ reference. See `PLAN.md` for why the project made that choice.
 There is no Compatibility or Mobile renderer path, on purpose. Forward+ and
 Vulkan only.
 
+Integrated graphics start on the Low profile (2026-09-26): bounced light
+(SDFGI) and the parallax march through an authored pack are off, and it
+draws the least world. It exists for handhelds such as the Steam Deck.
+Nobody has run Goanna on a Deck or on any AMD graphics yet, so whether Low
+holds a playable frame rate there is unknown; it is the first thing to
+measure on one.
+
 ## Measured, not guessed
 
 These numbers come from one machine, so treat them as a single data point

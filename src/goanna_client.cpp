@@ -1062,6 +1062,11 @@ static const std::map<std::string, float> kMatStrengthDefaults = {
     // frames rather than only changing a look, which is why it is a slider
     // and not a constant: 0 is the plain single sample.
     {"detail", 1.0f},
+    // The parallax march through an authored pack's height
+    // (nodes_array.gdshader skips it entirely at 0). The other channel that
+    // costs frames: the Low graphics profile turns it off for integrated
+    // graphics such as the Steam Deck's.
+    {"parallax", 1.0f},
 };
 
 float GoannaClient::material_strength(const String &channel) const {
