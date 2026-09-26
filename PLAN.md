@@ -924,6 +924,18 @@ minutes after the tag, so the whole run sits in this section.
   menu itself, the chat notice (the headless run has no chat panel), and
   any machine but this one.
 
+- Game controller input, 2026-09-26. Upstream Luanti 5.17's SDL gamepad
+  layout, read through Godot's joypad input (`project/gamepad.gd`, an
+  autoload): the sticks and buttons fold into the same keys dictionary,
+  look angles and dig and place flags as the keyboard and mouse, and
+  `step_player` now reads a direction as an analogue amount rather than a
+  bool, which is what upstream's `PlayerControl` holds. Outside play the
+  left stick drives a cursor that pushes ordinary mouse events, so server
+  forms need no controller support of their own. Tested only headless on
+  Godot 4.5.1, with synthetic joypad events (`tests/gamepad.gd`). Not
+  verified: any real controller, a Steam Deck, or a server seeing analogue
+  movement. `docs/controller.md`.
+
 ## Log since v0.6.1-alpha (2026-09-02), covering v0.7.0-alpha and v0.8.0-alpha
 
 The 0.5 and 0.6 series were released without a section here. What they

@@ -989,6 +989,11 @@ func _save_setting(key: String, value: float) -> void:
 	cfg.load(CFG_PATH)  # keep the server and player sections
 	cfg.set_value("settings", key, value)
 	cfg.save(CFG_PATH)
+	# The controller already drives this menu, so its settings apply here
+	# rather than waiting for the next connect like the rest.
+	var pad := get_node_or_null("/root/Gamepad")
+	if pad != null and key.begins_with("pad_"):
+		pad.load_settings()
 
 func _save_setting_text(key: String, value: String) -> void:
 	var cfg := ConfigFile.new()

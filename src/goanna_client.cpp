@@ -2377,6 +2377,30 @@ Dictionary GoannaClient::horizon_bake_poll() {
     return d;
 }
 
+// How far one movement direction is held, from 0 to 1. A key arrives as a
+// bool; a controller stick (project/gamepad.gd) arrives as a float, already
+// past its deadzone. The type is tested rather than converted, because a
+// Variant holding an int or a bool does not convert to double reliably in
+// godot-cpp.
+static float movementAmount(const Dictionary &keys, const char *name) {
+    Variant v = keys.get(name, false);
+    float amount = 0.0f;
+    switch (v.get_type()) {
+    case Variant::BOOL:
+        amount = (bool)v ? 1.0f : 0.0f;
+        break;
+    case Variant::INT:
+        amount = (float)(int64_t)v;
+        break;
+    case Variant::FLOAT:
+        amount = (float)(double)v;
+        break;
+    default:
+        break;
+    }
+    return std::clamp(amount, 0.0f, 1.0f);
+}
+
 Dictionary GoannaClient::step_player(double dt, const Dictionary &keys, float pitch_deg, float yaw_deg) {
     Dictionary out;
     if (!m_session)
@@ -2403,11 +2427,13 @@ Dictionary GoannaClient::step_player(double dt, const Dictionary &keys, float pi
     }
     // Luanti: pitch positive = looking down; yaw matches Godot after z-mirror.
     PlayerControl &c = p->control;
-    // Luanti 5.17 keeps each direction as an analogue amount; keys are 0 or 1.
-    c.up = (bool)keys.get("up", false) ? 1.0f : 0.0f;
-    c.down = (bool)keys.get("down", false) ? 1.0f : 0.0f;
-    c.left = (bool)keys.get("left", false) ? 1.0f : 0.0f;
-    c.right = (bool)keys.get("right", false) ? 1.0f : 0.0f;
+    // Luanti 5.17 keeps each direction as an analogue amount; keys are 0 or 1
+    // and a controller stick anything between, as upstream's getAxisValue
+    // feeds PlayerControl.
+    c.up = movementAmount(keys, "up");
+    c.down = movementAmount(keys, "down");
+    c.left = movementAmount(keys, "left");
+    c.right = movementAmount(keys, "right");
     // Autojump sets a flag on the player; the vanilla client feeds it back in
     // as a jump press on the next frame (game.cpp: isKeyDown(JUMP) ||
     // player->getAutojump()). Without this the flag was set and ignored.
@@ -2419,8 +2445,10 @@ Dictionary GoannaClient::step_player(double dt, const Dictionary &keys, float pi
     setViewAngles(pitch_deg, yaw_deg);
     // Upstream seeds these from the joystick each frame (0 with no stick), then
     // setMovementFromKeys() only overrides them while a direction key is held,
-    // leaving them untouched otherwise. Goanna has no joystick and reuses the
-    // persistent control, so without this reset the last movement_speed sticks
+    // leaving them untouched otherwise. Goanna's stick arrives through the
+    // direction amounts above, which setMovementFromKeys turns into speed and
+    // direction as it does for keys. Goanna also reuses the persistent
+    // control, so without this reset the last movement_speed sticks
     // and the player keeps walking after the key is released.
     c.movement_speed = 0.0f;
     c.movement_direction = 0.0f;

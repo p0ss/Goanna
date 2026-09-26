@@ -65,6 +65,11 @@ may work, but the long tail of node drawtypes, animated textures, particles,
 formspecs and item models is still incomplete. Windows and macOS are not
 currently play-tested.
 
+Game controller support is in the code but has not been played with a
+controller, on a Steam Deck or anywhere else; only headless tests with
+synthetic events on Godot 4.5.1 have run. See
+[docs/controller.md](docs/controller.md).
+
 ## Documentation
 
 Player-facing documentation starts at [docs/players.md](docs/players.md).
@@ -80,6 +85,7 @@ The specialised references remain available for contributors:
 - [Iris compatibility](docs/iris-compat.md), [shader-pack testing](docs/shaderpack-testing.md)
 - [Transplanting Luanti code](docs/transplanting.md), [validation](docs/validation.md)
 - [Launch target](docs/launch-target.md), [roadmap](docs/roadmap.md)
+- [Game controllers](docs/controller.md), untested on hardware
 
 ## Contributing and licence
 

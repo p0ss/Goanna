@@ -777,6 +777,10 @@ const SETTINGS := [
 	["Controls", "repeat_place", "slider", "Place repeat delay", "Seconds a held place waits before repeating.", 0.0, 1.0, 0.05],
 	["Controls", "mouse_sensitivity", "slider", "Mouse sensitivity", "How far the view turns per mouse movement.", 0.02, 0.5, 0.01],
 	["Controls", "invert_mouse", "toggle", "Invert mouse", "Push the mouse forward to look up instead of down."],
+	["Controls", "pad_enabled", "toggle", "Game controller", "Play with a connected game controller, and move a cursor with it in menus and forms. Turn off if a controller you are not using sends stray input."],
+	["Controls", "pad_look_speed", "slider", "Controller look speed", "Degrees the view turns each second with the right stick pushed all the way.", 30.0, 400.0, 10.0],
+	["Controls", "pad_invert_y", "toggle", "Invert controller look", "Push the right stick forward to look down instead of up."],
+	["Controls", "pad_deadzone", "slider", "Controller deadzone", "How far a stick must move before it counts. Raise this if the view or the cursor drifts with the sticks at rest.", 0.05, 0.6, 0.05],
 	["Controls", "view_bobbing", "slider", "View bobbing", "How much the camera bobs as you walk.", 0.0, 1.5, 0.1],
 	["Video", "procedural_grass", "toggle", "Procedural grass", "Dense, wind-swept grass that bends around players and animals. Improves edge smoothing and increases graphics cost."],
 	["Video", "solid_ice", "toggle", "Solid ice", "Remove transparency from frosted ice to reduce graphics cost. Both modes keep submerged faces and surface lighting."],
@@ -851,6 +855,7 @@ const PLAIN_TABS := ["Controls", "Appearance", "Audio", "Display"]
 
 # Settings handled here rather than through the client (window, camera, UI).
 const LOCAL_KEYS := ["procedural_grass", "mouse_sensitivity", "invert_mouse", "view_bobbing", "fov",
+	"pad_enabled", "pad_look_speed", "pad_invert_y", "pad_deadzone",
 	"gui_scale", "max_fps", "vsync", "fullscreen", "damage_flash", "show_fps", "show_position", "terrain_occlusion", "player_effect_particles", "volume", "muted",
 	"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao",
 	"light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality",
@@ -861,6 +866,11 @@ var advanced_open := false      # Advanced graphics settings, kept across reopen
 
 func _main_node() -> Node:
 	return get_tree().get_first_node_in_group("goanna_main")
+
+# The Gamepad autoload (gamepad.gd), which keeps the controller settings
+# because the main menu uses the controller too.
+func _gamepad() -> Node:
+	return get_node_or_null("/root/Gamepad") if is_inside_tree() else null
 
 # Window/camera/UI settings that Goanna applies directly, not via the client.
 func _apply_local(key: String, value: float, on: bool) -> void:
@@ -877,6 +887,15 @@ func _apply_local(key: String, value: float, on: bool) -> void:
 		"view_bobbing":
 			var m := _main_node()
 			if m: m.view_bobbing = value
+		"pad_enabled", "pad_look_speed", "pad_invert_y", "pad_deadzone":
+			var pad := _gamepad()
+			if pad == null:
+				return
+			match key:
+				"pad_enabled": pad.set_enabled(on)
+				"pad_look_speed": pad.look_speed = value
+				"pad_invert_y": pad.invert_y = on
+				"pad_deadzone": pad.set_deadzone(value)
 		"fov":
 			var m := _main_node()
 			if m and m.get("cam") != null: m.cam.fov = value
@@ -925,6 +944,10 @@ func _local_value(key: String) -> float:
 		"mouse_sensitivity": return m.mouse_sensitivity if m else 0.15
 		"invert_mouse": return 1.0 if (m and m.invert_mouse) else 0.0
 		"view_bobbing": return m.view_bobbing if m else 1.0
+		"pad_enabled": return 1.0 if (_gamepad() == null or _gamepad().enabled) else 0.0
+		"pad_look_speed": return _gamepad().look_speed if _gamepad() != null else 170.0
+		"pad_invert_y": return 1.0 if (_gamepad() != null and _gamepad().invert_y) else 0.0
+		"pad_deadzone": return _gamepad().deadzone if _gamepad() != null else 0.15
 		"fov": return (m.cam.fov if (m and m.get("cam") != null) else 70.0)
 		"gui_scale": return gui_scale
 		"max_fps": return 240.0 if Engine.max_fps == 0 else float(Engine.max_fps)

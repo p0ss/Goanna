@@ -138,6 +138,13 @@ queues neither of them, is checked with a stub client, so it needs no server:
 godot --headless --path project --script res://tests/asset_updater.gd
 ```
 
+Controller input, from synthetic joypad events through to the keys handed
+to the client and the cursor's pushed mouse events, is checked with:
+
+```sh
+godot --headless --path project --script res://tests/gamepad.gd
+```
+
 The terrain world catalogue that the world picker is built from, including
 that every world has a usable hash, size, tile window and bundled preview, is
 checked with:
