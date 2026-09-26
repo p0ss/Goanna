@@ -220,9 +220,13 @@ overdraw through `nodes_array.gdshader` with and without it: 3.435 ms and
 
 ## What does not work yet
 
-- A node being dug shows its first frame with the crack on it, because the
-  crack is composited onto a still copy of the tile. The vanilla client keeps
-  animating a cracked tile.
+- A node being dug on one of the special shaders (glass, ice, leaves,
+  plants, liquids) shows its first frame with the crack on it, because the
+  crack is still composited onto a still copy of the tile there. The vanilla
+  client keeps animating a cracked tile. Array path tiles now keep their own
+  material and take the crack as a separate pass
+  (`shaders/crack_overlay.gdshader`), so an animated one should keep
+  animating while it is dug; that has not been seen in a running client.
 - Animated inventory, wield and dropped item images still show their first
   frame (`item_visuals_manager.cpp` asks the stand-in client for an
   animation time that nothing advances).

@@ -64,6 +64,14 @@ struct MaterialKey {
     // texture_id already names a generated image (a crack composite), so the
     // array fallback must not overwrite it with the plain layer.
     bool composited = false;
+    // The dig crack, drawn as a second pass over a cracked tile's own
+    // triangles by crack_overlay.gdshader, so the tile underneath keeps its
+    // array material. Keyed by frame and scale only, so every cracked tile
+    // shares one material per crack stage. texture_id is 0, or the alpha
+    // tested array whose holes the crack must not cover.
+    bool crack_overlay = false;
+    u8 crack_level = 0;
+    u8 crack_scale = 1;
     // A far tier's copy of an array material: the same shader and arrays,
     // with block light added as emission because the node lights do not
     // reach that far. See docs/far-rendering.md.
@@ -74,8 +82,15 @@ struct MaterialKey {
         // same cache slot, where whichever was built first won. Bits 18 to 23
         // were free; this takes one of them rather than disturbing the
         // existing layout.
-        return ((uint64_t)texture_id << 24) | ((uint64_t)(shader_id & 0xffff) << 2) |
+        //
+        // A crack overlay has no shader id of its own, so its stage and
+        // scale take the shader bits, and bit 20 keeps it apart from a real
+        // material that happens to share them.
+        const uint64_t shader_bits = crack_overlay
+                ? (((uint64_t)crack_scale << 8) | crack_level) : (shader_id & 0xffff);
+        return ((uint64_t)texture_id << 24) | (shader_bits << 2) |
                 (composited ? (uint64_t)1 << 18 : 0) | (lod ? (uint64_t)1 << 19 : 0) |
+                (crack_overlay ? (uint64_t)1 << 20 : 0) |
                 (backface_culling ? 2 : 0) | (array_texture ? 1 : 0);
     }
 };
@@ -432,11 +447,21 @@ public:
     // straight from a Luanti SMaterial as the mesher leaves it.
     godot::Ref<godot::Material> materialFor(const MaterialKey &key);
     godot::Ref<godot::Material> materialForIrr(const video::SMaterial &m, u16 layer = 0);
+    // materialFor's case for a key with crack_overlay set.
+    godot::Ref<godot::Material> crackOverlayMaterial(const MaterialKey &key);
     // layer_base, when given, receives what to add to the vertex's own array
     // layer: nonzero only when an animated tile is redirected to the
     // animation array that holds its frames, where its first frame sits at
     // that layer.
-    MaterialKey keyForIrr(const video::SMaterial &m, u16 layer, u16 *layer_base = nullptr);
+    //
+    // crack_overlay, when given, receives the key of the crack pass to draw
+    // over a cracked tile that stayed on the array path (crack_overlay set
+    // in it), and is left alone otherwise. A caller that cannot draw that
+    // second pass passes nothing and gets the crack composited into a one
+    // off single image instead, as does any cracked tile the array path
+    // cannot take.
+    MaterialKey keyForIrr(const video::SMaterial &m, u16 layer, u16 *layer_base = nullptr,
+            MaterialKey *crack_overlay = nullptr);
     // `live` says the server still owns the source block. It guarantees exact
     // presentation inside the detail radius, but beyond that source residency
     // must not defeat the distance ladder.
@@ -1084,7 +1109,7 @@ private:
     void buildFakeLiquidTextures();
 
     godot::Ref<godot::Shader> m_sh_water, m_sh_lava, m_sh_leaves, m_sh_plants, m_sh_glass, m_sh_ice, m_sh_array,
-            m_sh_array_scissor;
+            m_sh_array_scissor, m_sh_crack;
     bool m_shaders_loaded = false;
     // Relief inferred from a texture's own brightness, for every texture a
     // pack does not supply a normal map for. Only ever used where nothing is
