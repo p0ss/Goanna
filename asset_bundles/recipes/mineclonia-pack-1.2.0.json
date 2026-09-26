@@ -1,0 +1,31 @@
+{
+ "schema": "org.goanna.asset-recipe/v1",
+ "id": "org.goanna.mineclonia.pack",
+ "version": "1.2.0",
+ "tranche": "pack",
+ "games": [
+  "mineclonia"
+ ],
+ "source": {
+  "package": "ryvnf/mineclonia",
+  "release": "38561",
+  "archive_sha256": "abeacf4e202d6e01a63119a36b46751eb6abfd42948a0b06e1ba8f63fb849e59"
+ },
+ "pipeline": {
+  "version": "4",
+  "authored": "tools/pbr_author/extrude.py and specs/mineclonia/, 1070 of the 1071 stems (stems/mineclonia.txt); the dragon head strip stays baked",
+  "classification_review": "pbr_packs/classification_reviews/mineclonia-v1.json",
+  "manifest": "pbr_packs/manifests/mineclonia-terrain-v1.json",
+  "quality_gate": "tools/check-pbr-quality.py",
+  "note": "Texel extrusion rule reviewed by the owner on the close-up ramp, 2026-09-25 and 26. Built from pbr_packs/mineclonia/textures at c421af0."
+ },
+ "release": {
+  "texture_pairs": 1071,
+  "rejected": [],
+  "known_failures": [],
+  "known_failures_note": "None: the release gate, run with the manifest classes, the classification review and the source art, passes all 1071 pairs.",
+  "archive": "org.goanna.mineclonia.pack-1.2.0.zip",
+  "bytes": 21788555,
+  "sha256": "5d4f2f5f13d30dc6850515a96e72423cb9304cbd846e60b89cb64183f129677c"
+ }
+}
