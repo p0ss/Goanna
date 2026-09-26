@@ -202,7 +202,14 @@ func _add_spawner(ev: Dictionary) -> void:
 	if jmax.length() > 0.001 or jmin.length() > 0.001:
 		mat.spread = maxf(mat.spread, 15.0)
 		mat.initial_velocity_max += maxf(jmin.length(), jmax.length())
-	if bool(ev.get("collision", false)):
+	# Godot's particle collision only meets GPUParticlesCollision nodes, and
+	# the world has none, so it cannot stand in for Luanti's collision with
+	# nodes. Worse, a spawner asking for collision_removal came out as
+	# HIDE_ON_CONTACT, which removed every raindrop where it was spawned:
+	# measured on a live client, Mineclonia's rain occupied only its spawn box,
+	# 13 nodes above the ground, and never fell. GOANNA_PARTICLE_COLLISION=1
+	# keeps the old mapping for when colliders exist.
+	if bool(ev.get("collision", false)) and OS.get_environment("GOANNA_PARTICLE_COLLISION") != "":
 		mat.collision_mode = ParticleProcessMaterial.COLLISION_RIGID
 		mat.collision_bounce = clampf(float(ev.get("bounce_max", 0.0)), 0.0, 1.0)
 		if bool(ev.get("collision_removal", false)):
