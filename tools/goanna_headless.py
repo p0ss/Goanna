@@ -323,6 +323,28 @@ def gpu_clients():
         base = os.path.basename(name.strip().split()[0]) if name.strip() else ""
         if any(word in base.lower() for word in GPU_GAME_CLIENTS + GPU_COMPUTE_JOBS):
             found.append((int(pid), base))
+    # A game client does not always appear in nvidia-smi's compute list: the
+    # owner's own Goanna, open 20 minutes, was missing from it on 2026-09-27
+    # while a ramp render started beside it. So also look for the processes
+    # themselves. Zombies hold no GPU and are skipped.
+    seen = {pid for pid, _ in found}
+    try:
+        ps = subprocess.run(["ps", "-eo", "pid=,stat=,comm=,args="], capture_output=True,
+                            text=True, timeout=10).stdout
+    except (OSError, subprocess.SubprocessError):
+        ps = ""
+    for line in ps.splitlines():
+        parts = line.split(None, 3)
+        if len(parts) < 3 or parts[1].startswith("Z"):
+            continue
+        comm = parts[2].lower()
+        args = parts[3] if len(parts) > 3 else ""
+        # A Luanti server is luanti.bin too, and draws nothing.
+        if "--server" in args.split():
+            continue
+        if any(word in comm for word in ("godot", "gamescope", "luanti.bin")) \
+                and "reaper" not in comm and int(parts[0]) not in seen:
+            found.append((int(parts[0]), parts[2]))
     return found
 
 
