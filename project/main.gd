@@ -69,6 +69,9 @@ var speed := 12.0
 var mouse_sensitivity := 0.15
 var invert_mouse := false
 var view_bobbing := 1.0        # walk-cycle camera bob, 0 = off
+# The Gamepad autoload (gamepad.gd), or null where it is not loaded. Its
+# settings live there, since the main menu uses it too.
+var gamepad: Node
 # Test mode, for a client that something other than a person is driving. It
 # never takes the pointer and asks for no focus, so a test run cannot take the
 # desktop away from whoever is sitting at it: test clients grabbing the mouse
@@ -316,6 +319,11 @@ func _ready() -> void:
 		get_window().set_flag(Window.FLAG_NO_FOCUS, true)
 	showcase_mode = OS.get_environment("GOANNA_SHOWCASE") != ""
 	add_to_group("goanna_main")  # game_ui updates look controls through this group
+	# The showcase behind the menu is not played, so it leaves the controller
+	# driving the menu's cursor.
+	gamepad = get_node_or_null("/root/Gamepad")
+	if gamepad != null and not showcase_mode:
+		gamepad.play_owner = gamepad_owns_play
 	var cfg := ConfigFile.new()
 	if cfg.load("user://goanna.cfg") == OK:
 		mouse_sensitivity = float(cfg.get_value("settings", "mouse_sensitivity", mouse_sensitivity))
@@ -799,6 +807,12 @@ func pointer_captured(event: InputEvent = null) -> bool:
 		return _virtual_capture and (event == null or event.device == CONTROL_DEVICE)
 	return Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED
 
+# Whether a controller should steer the game rather than a cursor: the same
+# test as for the mouse, so a window, chat or a released pointer hands the
+# controller to the menus exactly when it hands them the mouse.
+func gamepad_owns_play() -> bool:
+	return pointer_captured() and not (ui != null and ui.blocks_input())
+
 # Take the pointer for play, or give it back. Every capture in the game goes
 # through here (game_ui.gd included), so test mode is kept in one place.
 func set_pointer_captured(on: bool) -> void:
@@ -1064,6 +1078,10 @@ func _process(delta: float) -> void:
 			"jump": Input.is_key_pressed(KEY_SPACE), "sneak": Input.is_key_pressed(KEY_SHIFT),
 			"aux1": Input.is_key_pressed(KEY_E),
 		}
+		var pad_play: bool = gamepad != null and gamepad.in_play()
+		if pad_play:
+			gamepad.merge_keys(keys)
+			_gamepad_look(delta)
 		if OS.get_environment("GOANNA_WALKTEST") != "":
 			keys = _walktest_keys()
 		if bench != null and bench.owns_input():
@@ -1094,9 +1112,28 @@ func _process(delta: float) -> void:
 			cam.position = r["eye_pos"]
 			cam.rotation_degrees = Vector3(pitch, yaw, 0)
 			_apply_view_bob(r, delta)
-		var dig := (dig_down or test_dig) and not ui_blocks
-		var plc := place_down and not ui_blocks
-		var plc_pressed := (place_pressed or test_plc_pressed) and not ui_blocks
+		# The triggers join the mouse buttons, and the shoulder and D-pad
+		# buttons do what the wheel and Luanti's drop key do.
+		var pad_dig := false
+		var pad_place := false
+		var pad_place_pressed := false
+		if pad_play:
+			# Taken every frame, so presses made while a benchmark held the
+			# camera do not all land at once when it lets go.
+			var place_taps: int = gamepad.take("place")
+			var steps: int = gamepad.take("hotbar")
+			var drops: int = gamepad.take("drop")
+			if not (bench != null and bench.owns_input()):
+				pad_dig = gamepad.dig_held()
+				pad_place = gamepad.place_held()
+				pad_place_pressed = place_taps > 0
+				if steps != 0:
+					_set_wield(posmod(wield + steps, _hotbar_count()))
+				if drops > 0:
+					_drop_wielded(bool(keys["sneak"]))
+		var dig := (dig_down or test_dig or pad_dig) and not ui_blocks
+		var plc := (place_down or pad_place) and not ui_blocks
+		var plc_pressed := (place_pressed or test_plc_pressed or pad_place_pressed) and not ui_blocks
 		if OS.get_environment("GOANNA_DIGTEST") != "":
 			# look down at the ground in front (hand-diggable, timed) and use slot 4 (light14) to place
 			pitch = -55.0
@@ -1185,6 +1222,11 @@ func _process(delta: float) -> void:
 			if Input.is_key_pressed(KEY_D): dir += basis.x
 			if Input.is_key_pressed(KEY_SPACE): dir += Vector3.UP
 			if Input.is_key_pressed(KEY_SHIFT): dir -= Vector3.UP
+			if gamepad != null and gamepad.in_play():
+				_gamepad_look(delta)
+				dir += basis.x * gamepad.move.x + basis.z * gamepad.move.y
+				if gamepad.held("goanna_jump"): dir += Vector3.UP
+				if gamepad.held("goanna_sneak"): dir -= Vector3.UP
 			var sp := speed * (3.0 if Input.is_key_pressed(KEY_CTRL) else 1.0)
 			cam.position += dir.normalized() * sp * delta if dir.length() > 0 else Vector3.ZERO
 		cam.rotation_degrees = Vector3(pitch, yaw, 0)
@@ -3045,6 +3087,22 @@ func _hotbar_count() -> int:
 func _set_wield(i: int) -> void:
 	wield = i
 	client.set_wield_index(i)
+
+# The right stick turns the view as the mouse does, but at a rate over time
+# rather than by distance moved.
+func _gamepad_look(delta: float) -> void:
+	if bench != null and bench.owns_input():
+		return
+	var d: Vector2 = gamepad.look_step(delta, cam.fov if cam != null else 70.0)
+	yaw += d.x
+	pitch = clamp(pitch + d.y, -89, 89)
+
+# Luanti's drop key (Game::dropSelectedItem): the wielded stack, or one item
+# of it while sneaking, as the same inventory action the vanilla client
+# sends. Only the controller calls this; the keyboard has no drop key yet.
+func _drop_wielded(single: bool) -> void:
+	if client.has_method("inventory_action"):
+		client.inventory_action("Drop %d current_player main %d" % [1 if single else 0, wield])
 
 func _update_selection_box() -> void:
 	if selection_box == null:
