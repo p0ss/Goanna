@@ -83,6 +83,7 @@ var show_position := false     # player's server/world coordinates
 var render_stats_cache: Dictionary = {}
 var render_stats_next_at := 0.0 # render_stats walks retained terrain; sample, do not poll every frame
 var player_effect_particles := false
+var shader_weather := true     # draw rain and snow by shader (ui/weather.gd)
 var flash_rect: ColorRect
 var cursor_ctl: Control      # dragged stack, drawn above the formspec
 var audio: Node              # ui/audio.gd, sound
@@ -167,6 +168,7 @@ func _ready() -> void:
 	var particles = preload("res://ui/particles.gd").new()
 	particles.client = client
 	particles.player_effect_particles = player_effect_particles
+	particles.shader_weather = shader_weather
 	var phost := _main_node()
 	if phost != null:
 		phost.add_child.call_deferred(particles)
@@ -796,6 +798,7 @@ const SETTINGS := [
 	["Video", "lod_distance", "slider", "Detail distance", "Blocks beyond this are drawn as simplified shapes, which costs less, and distant terrain beyond the server's range is drawn only when this is on. 0 turns both off.", 0.0, 48.0, 1.0],
 	["Video", "far_distance", "slider", "Far draw distance", "How far past the live range the far tiers draw, in nodes. Capped by what the server actually granted (docs/far-rendering.md); raising this past the grant changes nothing. Defaults to the grant itself, so this only needs touching to draw less than the server allows. A local single player server grants this same setting, so on your own worlds this is the one knob.", 0.0, 8192.0, 32.0],
 	["Video", "terrain_occlusion", "toggle", "Terrain occlusion", "Use opaque nearby terrain to avoid drawing regions completely hidden behind it. Most useful in caves, buildings and deep valleys."],
+	["Video", "shader_weather", "toggle", "Shader weather", "Draw the game's rain and snow with shaders instead of its particles, kept out from under roofs and trees, with splashes on open ground and rings on water. Off draws the game's own particles. The server sees no difference either way."],
 	["Video", "player_effect_particles", "toggle", "Player effect particles", "Show server particle spawners attached to your character. Turn this off to hide persistent status sparkles; weather and block-breaking pieces remain visible."],
 	["Material", "mat_stale", "slider", "Remembered terrain tint", "How far terrain drawn from what you saw earlier, rather than what the server is sending now, is pulled toward grey. 0 shows it at full colour, indistinguishable from live.", 0.0, 1.0, 0.05],
 	["Video", "damage_flash", "toggle", "Damage flash", "Flash the screen red when you take damage."],
@@ -842,7 +845,7 @@ const GraphicsProfiles := preload("res://graphics_profiles.gd")
 # the settings a profile is about (project/graphics_profiles.gd).
 const SIMPLE_KEYS := ["procedural_grass", "texture_pack", "view_range", "far_distance",
 	"damage_flash", "show_body", "show_fps", "show_position",
-	"player_effect_particles"]
+	"player_effect_particles", "shader_weather"]
 
 # Tabs that are entirely player preference rather than graphics quality, so
 # they are shown whole and have no Advanced half.
@@ -854,7 +857,7 @@ const LOCAL_KEYS := ["procedural_grass", "mouse_sensitivity", "invert_mouse", "v
 	"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao",
 	"light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality",
 	"light_ssil", "screen_space_detail", "shadow_detail", "asset_updates",
-	"look_strength", "night_visibility", "bloom_strength"]
+	"look_strength", "night_visibility", "bloom_strength", "shader_weather"]
 var settings_menu: Control
 var advanced_open := false      # Advanced graphics settings, kept across reopens
 
@@ -904,6 +907,11 @@ func _apply_local(key: String, value: float, on: bool) -> void:
 			var pn := get_tree().get_first_node_in_group("goanna_particles")
 			if pn != null and pn.has_method("set_player_effect_particles"):
 				pn.set_player_effect_particles(on)
+		"shader_weather":
+			shader_weather = on
+			var pw := get_tree().get_first_node_in_group("goanna_particles")
+			if pw != null and pw.has_method("set_shader_weather"):
+				pw.set_shader_weather(on)
 		"show_position":
 			show_position = on
 			hud.queue_redraw()
@@ -933,6 +941,7 @@ func _local_value(key: String) -> float:
 		"show_fps": return 1.0 if show_fps else 0.0
 		"terrain_occlusion": return 1.0 if get_tree().root.use_occlusion_culling else 0.0
 		"player_effect_particles": return 1.0 if player_effect_particles else 0.0
+		"shader_weather": return 1.0 if shader_weather else 0.0
 		"show_position": return 1.0 if show_position else 0.0
 		"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao", "light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality", "light_ssil", "screen_space_detail", "shadow_detail", "look_strength", "night_visibility", "bloom_strength":
 			return float(m.get(key)) if m != null else 1.0

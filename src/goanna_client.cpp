@@ -2059,6 +2059,83 @@ float GoannaClient::ground_height(const Vector3 &center) {
     return n >= 20 ? sum / (float)n : -1e9f;
 }
 
+// The top face of the highest node that would stop rain, per column, for a
+// band of `rows` rows of `width` columns starting at Godot (x0, z0), row
+// major along x. Each column is scanned from y_top down to y_bottom; one
+// with nothing in the way answers y_bottom - 0.5, which reads as open sky
+// all the way down to the scan's floor. Unloaded blocks are skipped rather
+// than treated as solid, so an edge of the loaded world never shelters
+// anything. project/ui/rain_cover.gd calls this a band at a time, so one
+// call holds the map lock for a few hundred columns and no more.
+//
+// What stops rain is what a player would see stop it: anything walkable
+// (roofs, glass, leaves in every game checked) and liquids, whose surface is
+// where rain lands. Plants, torches and other see-through, walk-through
+// nodes do not, so rain reaches the ground in a meadow. Presentation only:
+// it reads the map the client already holds and asks the server nothing.
+PackedFloat32Array GoannaClient::rain_cover_rows(int x0, int z0, int width, int rows,
+        int y_top, int y_bottom) {
+    PackedFloat32Array out;
+    if (width <= 0 || rows <= 0 || y_top < y_bottom)
+        return out;
+    out.resize(width * rows);
+    const float open = (float)y_bottom - 0.5f;
+    float *dst = out.ptrw();
+    for (int i = 0; i < width * rows; ++i)
+        dst[i] = open;
+    if (!m_session)
+        return out;
+    const NodeDefManager *ndef = m_session->nodeDefs();
+    // Per content answer, filled as contents turn up: 0 unknown, 1 open,
+    // 2 blocks. A band meets a handful of contents, so this is a few lookups.
+    std::vector<u8> blocks;
+    auto stops_rain = [&](content_t c) -> bool {
+        if (c >= blocks.size())
+            blocks.resize((size_t)c + 1, 0);
+        if (blocks[c] == 0) {
+            const ContentFeatures &f = ndef->get(c);
+            const bool stop = c != CONTENT_AIR && c != CONTENT_IGNORE
+                    && (f.walkable || f.isLiquid()
+                        || f.drawtype == NDT_ALLFACES_OPTIONAL);
+            blocks[c] = stop ? 2 : 1;
+        }
+        return blocks[c] == 2;
+    };
+    std::lock_guard<std::mutex> lk(m_session->mapLock());
+    for (int j = 0; j < rows; ++j) {
+        // Godot z runs the other way to Luanti's.
+        const s16 lz = (s16)(-(z0 + j));
+        for (int i = 0; i < width; ++i) {
+            const s16 lx = (s16)(x0 + i);
+            int y = y_top;
+            while (y >= y_bottom) {
+                const v3s16 np(lx, (s16)y, lz);
+                const v3s16 bp = getNodeBlockPos(np);
+                const v3s16 rel = np - bp * MAP_BLOCKSIZE;
+                MapBlock *block = m_session->map().getBlockNoCreateNoEx(bp);
+                // Walk down to the bottom of this block, or the scan's floor.
+                const int stop_y = std::max(y_bottom, (int)bp.Y * MAP_BLOCKSIZE);
+                if (!block) {
+                    y = stop_y - 1;
+                    continue;
+                }
+                bool found = false;
+                for (int ry = rel.Y; y >= stop_y; --ry, --y) {
+                    if (stops_rain(block->getNodeNoCheck(rel.X, ry, rel.Z).getContent())) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (found) {
+                    dst[j * width + i] = (float)y + 0.5f;
+                    break;
+                }
+            }
+        }
+    }
+    return out;
+}
+
 Color GoannaClient::ground_albedo(const Vector3 &center) {
     if (!m_session)
         return Color(0.5f, 0.5f, 0.5f, 0.0f);
@@ -7782,6 +7859,8 @@ void GoannaClient::_bind_methods() {
             &GoannaClient::resolve_nodemeta_text);
     ClassDB::bind_method(D_METHOD("ground_albedo", "center"), &GoannaClient::ground_albedo);
     ClassDB::bind_method(D_METHOD("ground_height", "center"), &GoannaClient::ground_height);
+    ClassDB::bind_method(D_METHOD("rain_cover_rows", "x0", "z0", "width", "rows", "y_top", "y_bottom"),
+            &GoannaClient::rain_cover_rows);
     ClassDB::bind_method(D_METHOD("node_sound", "node_name", "kind"), &GoannaClient::node_sound);
     ClassDB::bind_method(D_METHOD("sky_state"), &GoannaClient::sky_state);
     ClassDB::bind_method(D_METHOD("horizon_bake_request", "origin", "r0", "r1"),
