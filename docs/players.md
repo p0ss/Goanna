@@ -97,6 +97,11 @@ it instead, the same as a right click. `T` opens chat, `F` toggles the free
 camera, and Escape opens the pause menu. The exact bindings and camera
 options can be changed in Settings.
 
+A game controller follows upstream Luanti's layout, and outside play its
+left stick moves a cursor for menus and forms. It has not been tried with a
+real controller yet, including on a Steam Deck. See
+[controller.md](controller.md).
+
 The performance overlay can show FPS, draw calls, object and triangle counts,
 terrain queues, occlusion and world position. It is useful when reporting a
 performance or streaming problem.
@@ -159,7 +164,7 @@ The project is alpha quality. Known gaps include some dropped-item models,
 animated inventory icons, parts of particle behaviour, connected textures
 and the long tail of game-specific formspec and drawtype behaviour. Shader-pack
 support currently covers the screen-space composite/final path, not the full
-world gbuffers pipeline.
+world gbuffers pipeline. Controller support is untested on real hardware.
 
 When reporting a problem, include the game and server, whether it is a new or
 existing world, your view/far distances, the performance overlay and a
