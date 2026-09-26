@@ -320,7 +320,7 @@ void fragment() {
 		if (splash > 0.001)
 			splash *= goanna_rain_open(v_world, smoothstep(0.85, 0.95, v_nodelight.g));
 		if (splash > 0.001) {
-			vec3 rings = goanna_rain_rings(v_world.xz, TIME, 0.45, 0.6,
+			vec3 rings = goanna_rain_rings(v_world.xz, TIME, 0.7, 0.6,
 					clamp(0.3 * goanna_rain, 0.0, 0.8));
 			ALBEDO = mix(ALBEDO, vec3(0.7), rings.z * 0.45 * splash);
 			ROUGHNESS = mix(ROUGHNESS, 0.1, rings.z * splash);
