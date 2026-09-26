@@ -303,6 +303,80 @@ func _test_open_beach() -> void:
 const MIN_NEAR_ALPHA := 0.5
 const MIN_FAR_ALPHA := 0.25
 
+# The second live check: rain in one narrow band ahead, the sky speckled
+# with sub pixel dots, and bright arcs, all turning with yaw. All three were
+# the column coordinate: it carried dot(camera.xz, tangent), whose change
+# round the turn is the camera's distance from world zero, so the columns
+# were squeezed, spread and smeared by direction. What is checked here is
+# the column coordinate as the shader now computes it, copied below and tied
+# to the source by text: that it advances round every layer at a steady
+# rate, never runs backwards under the wind's shear anywhere a layer is
+# drawn, and that the first version's formula fails the same check (so the
+# check can fail at all).
+const PRECIP := "res://shaders/precipitation.gdshader"
+const SPACING := 0.16
+
+func _shader_const(src: String, pattern: String) -> float:
+	var re := RegEx.new()
+	re.compile(pattern)
+	var m := re.search(src)
+	check(m != null, "precipitation.gdshader no longer matches " + pattern)
+	return float(m.get_string(1)) if m != null else NAN
+
+
+# du/dtheta of the column coordinate in columns per radian, by central
+# difference, as the shader's `along + y_eye * lean` over `spacing`.
+func _columns_rate(r: float, theta: float, y_eye: float, wind: Vector2, speed: float,
+		max_lean: float, cam := Vector2.ZERO) -> float:
+	var e := 1e-3
+	var u := func(t: float) -> float:
+		var tangent := Vector2(-sin(t), cos(t))
+		var w := wind / maxf(speed, 0.1)
+		if w.length() > max_lean:
+			w *= max_lean / w.length()
+		return (t * r + cam.dot(tangent) + y_eye * w.dot(tangent)) / SPACING
+	return (u.call(theta + e) - u.call(theta - e)) / (2.0 * e)
+
+
+func _test_columns() -> void:
+	var src := FileAccess.get_file_as_string(PRECIP)
+	check(src.contains("float along = theta * radius;"), "the column coordinate is arc length alone")
+	check(not src.contains("+ dot(cam"), "no camera position term in the column coordinate")
+	var max_lean := _shader_const(src, "const float MAX_LEAN = ([0-9.]+);")
+	var fade_end := _shader_const(src, "grazing = 1\\.0 - smoothstep\\([0-9.]+, ([0-9.]+),")
+	# Highest point a layer is drawn, in radii: where the edge on fade ends.
+	var top := tan(asin(fade_end))
+	check(max_lean * top < 1.0, "the wind's shear (%.2f of a radius) can fold the columns" % [max_lean * top])
+	var worst := INF
+	var winds := [Vector2.ZERO, Vector2(7, 0), Vector2(-5, 5), Vector2(0, 14)]
+	for r in Weather.LAYER_RADII:
+		for speed in [0.8, 2.5, 17.5]:
+			for wind in winds:
+				for i in 72:
+					var theta := -PI + TAU * (float(i) + 0.5) / 72.0
+					for y in [-top, 0.0, top]:
+						var rate := _columns_rate(float(r), theta, y * float(r), wind, speed, max_lean)
+						worst = minf(worst, rate / (float(r) / SPACING))
+	print("weather: slowest column rate, as a share of the calm rate: %.2f" % worst)
+	check(worst > 0.3, "the column coordinate nearly stops or runs backwards (%.2f)" % worst)
+	# Calm and level, the rate is the same all round: no band, no specks.
+	var rates := []
+	for i in 72:
+		rates.append(_columns_rate(3.0, -PI + TAU * (float(i) + 0.5) / 72.0, 0.0, Vector2.ZERO, 17.5, max_lean))
+	check(is_equal_approx(rates.min(), rates.max()), "columns are evenly spaced round the turn")
+	# The first version, at the beach: the camera's world position in the
+	# coordinate. Its rate swings by hundreds and through zero.
+	var old_min := INF
+	var old_max := -INF
+	for i in 72:
+		var rate := _columns_rate(3.0, -PI + TAU * (float(i) + 0.5) / 72.0, 0.0, Vector2.ZERO,
+				17.5, max_lean, Vector2(515, -447))
+		old_min = minf(old_min, rate)
+		old_max = maxf(old_max, rate)
+	check(old_min < 0.0 and old_max > 100.0 * 3.0 / SPACING,
+			"the check would have caught the first version (%.0f to %.0f)" % [old_min, old_max])
+
+
 func _test_visibility() -> void:
 	var near := Weather.streak_alpha(0, Weather.pixel_at(0, 1080.0, 70.0))
 	var last := Weather.LAYER_RADII.size() - 1
@@ -310,6 +384,11 @@ func _test_visibility() -> void:
 	print("weather: peak streak opacity at intensity 1, 1080 lines, 70 degrees: nearest %.2f, farthest %.2f" % [near, far])
 	check(near >= MIN_NEAR_ALPHA, "nearest streak opacity %.2f is under %.2f" % [near, MIN_NEAR_ALPHA])
 	check(far >= MIN_FAR_ALPHA, "farthest streak opacity %.2f is under %.2f" % [far, MIN_FAR_ALPHA])
+	# The shader fades columns under 5 pixels apart (minify). At 1080 lines
+	# the farthest layer's must be clear of that, or the far rain is gone.
+	var col_px := SPACING / Weather.pixel_at(last, 1080.0, 70.0)
+	print("weather: farthest layer's columns are %.1f pixels apart at 1080 lines" % col_px)
+	check(col_px >= 5.0, "the farthest layer's columns are minified away at 1080 lines")
 	# Opacity does not fall with intensity (density does), so the lightest
 	# rain any spawner can ask for still draws streaks this strong; and at
 	# Mineclonia's ordinary rain, a column carries a drop more often than not
@@ -350,5 +429,6 @@ func _initialize() -> void:
 	_test_open_beach()
 	await _test_routing()
 	await _test_visibility()
+	_test_columns()
 	print("weather: ", "ok" if failures == 0 else "%d failure(s)" % failures)
 	quit(1 if failures else 0)

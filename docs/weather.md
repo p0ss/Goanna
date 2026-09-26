@@ -5,12 +5,13 @@ with splashes on open ground and rings on open water. Presentation only: the
 spawners arrive exactly as before, nothing sent to the server changes, and
 everything here is built from data the client already holds.
 
-**Status: seen once, and it did not work.** The first live check (Godot
-4.5.1, Mineclonia, the warm beach at Godot (515, 4, 447), noon, `/weather
-rain`) showed no rain at all at the defaults, and bright curved arcs once
-the opacity was raised tenfold by hand. "First live check" below says what
-was changed for it. The changed version has been tested headless only;
-nothing else in this file has been observed.
+**Status: seen twice, not right yet.** Both live checks were Godot 4.5.1,
+Mineclonia, the warm beach at Godot (515, 4, 447), noon, `/weather rain`.
+The first showed no rain at the defaults; the second showed streaks at the
+defaults, but gathered in one narrow band, with the sky speckled and bright
+arcs, all turning with yaw. "Live checks" below says what was changed after
+each. The version after the second has been tested headless only; nothing
+else in this file has been observed.
 
 ## Where weather comes from
 
@@ -43,12 +44,17 @@ cylinder is laid out in world units, so a far layer packs more and thinner
 streaks into the same angle than a near one, and the nesting is what gives
 depth. Layers are drawn outermost first and fade with distance.
 
+- The pattern is fixed to the layer, which turns with the camera: walking
+  sideways takes the rain with you rather than past you (see "Live checks"
+  for why nothing tries to hold it still).
 - Rain: thin streaks in columns about 0.16 nodes apart, each column with at
   most one drop per 1.8 nodes of height (0.55 of the cells carry one at
   intensity 1), a random length of 0.45 to 0.85,
   falling at the spawners' own speed (Mineclonia's is 17.5 nodes a second)
   with a per column variation. Lines thinner than a pixel are drawn a pixel
-  wide at their true coverage, so far layers do not sparkle.
+  wide at their true coverage, and columns under 5 pixels apart or streaks
+  under 8 pixels long fade out, so far layers thin out rather than
+  sparkle. At 1080 lines the farthest layer's columns are 5.6 pixels apart.
 - Snow: round flakes in cells about 0.55 nodes across, falling at the snow
   spawners' speed (2.5 for Mineclonia) with a slow sideways sway.
 - Both lean with the wind. There is no wind in the protocol either; main.gd
@@ -56,7 +62,10 @@ depth. Layers are drawn outermost first and fade with distance.
   (`grass_wind`, strength 0.25 to 1), and the weather uses the same air,
   scaled so 1 is 7 nodes a second. On a main.gd without `grass_wind` the
   same rule is worked out in weather.gd from `cloud_speed` and
-  `storm_cover`.
+  `storm_cover`. The lean, drift per node of fall, is held to 0.35 so the
+  shear it puts on the pattern can never fold it (`lean_along` in the
+  shader); rain in the strongest wind would lean 0.41, and snow in any real
+  wind is held well short of its true drift.
 - Lit by the scene's own lights, with a light grey albedo and a share of
   the terrain's sky fill as emission, so a drop is as bright as its
   surroundings by day and dark at night, whatever the exposure. The light
@@ -66,8 +75,8 @@ depth. Layers are drawn outermost first and fade with distance.
 - Peak streak opacity, before the taper, at 1080 lines and 70 degrees: 0.68
   on the nearest layer and 0.34 on the farthest. Opacity does not fall with
   intensity; density does. The layers fade out over their last 6 nodes top
-  and bottom, and where the wall is seen edge on (looking steeply up or
-  down).
+  and bottom, and between 45 and 60 degrees above or below the eye, where
+  the wall is seen edge on.
 - Nothing is drawn while the eye is underwater.
 
 Intensity comes from the spawners' rate (amount a second for an endless
@@ -176,7 +185,9 @@ Not measured. What the code does:
 - Against that, the particle path it replaces was up to 1500 GPU particles
   per spawner.
 
-## First live check
+## Live checks
+
+### First
 
 Godot 4.5.1, Mineclonia, the warm beach at Godot (515, 4, 447), noon,
 `/weather rain`. The weather node's state was right (intensity 0.5, the mesh
@@ -197,9 +208,8 @@ of the frame. What was changed, headless:
   but could grow past their cell, so each was cut off by a straight line;
   with the sun in the water those cut rings are bright partial circles.
   Rings now stay inside their cells, and water rings stop at 22 nodes rather
-  than 30. This is the likeliest source; it has not been confirmed on
-  screen. The cylinders also fade out toward their rims and where seen edge
-  on, in case an edge was the cause instead.
+  than 30. That was a real fault, but not the arcs: the second check found
+  them in open air (below).
 - The cover map. No fault was found in the lookup on reading, and a test now
   reads the uploaded texture back the way the shader does over an open beach
   and finds every point a layer draws at open, while an empty or part
@@ -207,23 +217,51 @@ of the frame. What was changed, headless:
   The C++ scan against a real map is still untested; `open_share` in the
   status is the way to check it live.
 
+### Second
+
+Same place and time. Status: rain 1.0, `eye_open` true, `open_share` 0.87,
+cover over the eye 2.5, so the map was not hiding anything. Streaks were
+visible at the defaults, over sky and sand, but three faults remained, all
+turning with yaw: the rain gathered into one narrow bright band (straight
+ahead at yaw 60), the rest of the sky was speckled with sub pixel white
+dots like stars, and bright curved arcs hung in open air (upper right at
+yaw 0, which is the same direction as the band).
+
+All three were one fault. To keep the rain still in the world when the
+player walked sideways, the column coordinate carried the camera's world
+position along each layer's tangent. That term changes round the turn at a
+rate of the camera's distance from world zero, about 680 nodes at the
+beach, against layer radii of 3 to 22. In most directions it squeezed a
+layer's columns far below a pixel (the stars); in the two directions square
+to the camera's position it spread them back to their proper size (the
+band); and between, where it cancelled the arc length exactly, one column
+was smeared across the view (the arcs). The wind's shear had the same
+fault, smaller, measured from world zero instead of the eye. What changed:
+
+- The column coordinate is arc length alone. No shift keeps the pattern
+  still in every direction at once on a cylinder round a moving camera, so
+  there is none, and the rain moves with you sideways.
+- The shear is measured from the eye, the lean is held to 0.35, and the
+  edge on fade now ends at 60 degrees, so the column coordinate advances at
+  no less than 0.39 of its calm rate anywhere a layer is drawn.
+- Minification, for the specks the far layers could still make at low
+  resolution: columns under 5 pixels apart fade, and so do streaks under 8
+  pixels long (flakes likewise by their cell size).
+
 ## What is untested
 
 Everything visual. In particular, the owner's visual check should look at:
 
-- Whether rain can now be seen at all at the defaults, at noon on the beach,
-  and whether it is too strong at night or in thunder. The constants are
-  still guesses, now with a floor.
-- Whether the arcs are gone, and if not, whether they move with the water
-  (rings) or with the camera (cylinders).
-- `open_share` in the status at the beach.
-- Whether the layers read as depth or as sheets, and whether the pattern
-  sliding with the player when walking forward is noticeable (only sideways
-  motion is compensated).
+- Whether rain now fills the view evenly at every yaw, with no band, no
+  specks in the sky and no arcs.
+- Whether it is too strong at night or in thunder. The constants are still
+  guesses, with a floor.
+- Whether the layers read as depth or as sheets, and whether rain moving
+  with the player, sideways and forwards, is noticeable. For snow it may be.
 - A roof edge from inside and outside, a doorway, a window, and tree canopy:
   rain should stop at the node boundary above, not at the camera.
-- Looking straight up (the cylinders are edge on, so rain thins overhead) and
-  straight down from a height (the layers end 26 nodes below the eye).
+- Looking up or down past 45 degrees (the rain fades out by 60) and straight
+  down from a height (the layers end 26 nodes below the eye).
 - The wind lean direction against the grass and clouds: the sign of the wind
   vector in world space has not been checked against a real frame.
 - Snow: flake size, sway and drift.
@@ -233,7 +271,8 @@ Everything visual. In particular, the owner's visual check should look at:
 - Frame time with and without shader weather.
 
 Not done: a settling snow look on the ground, splashes on leaves and plants,
-drops sliding down walls, and a lamp lighting nearby rain.
+drops sliding down walls, and holding the pattern still as the player walks.
+Lamps do light nearby rain now that it is lit, which is also untested.
 
 ## Tests
 
@@ -255,4 +294,10 @@ reads the cover texture back the way the shader does over an open beach and
 checks no rain layer is covered there, that an empty or part scanned map
 hides nothing, and that a roof does cover; and it prints the peak streak
 opacity and fails if it is under 0.5 on the nearest layer or 0.25 on the
-farthest, checking the material carries those constants. It renders nothing.
+farthest, checking the material carries those constants. It checks the
+column coordinate, copied from the shader and tied to it by text: evenly
+spaced round the turn in calm air, never slower than 0.3 of that rate
+under any wind, speed and height a layer is drawn at, with the shader's
+lean bound and fade end read from its source; and that the first version's
+formula fails the same check at the beach. It checks the farthest layer's
+columns are not minified away at 1080 lines. It renders nothing.
