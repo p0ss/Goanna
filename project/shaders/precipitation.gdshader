@@ -1,6 +1,6 @@
 // Goanna: rain and snow, drawn rather than simulated. docs/weather.md.
 //
-// The mesh is a few open cylinders nested around the camera (built in
+// The mesh is open cylinders nested around the camera (built in
 // project/ui/weather.gd, which moves it with the camera every frame), all
 // in one surface, so the whole of the weather is one draw call. Each
 // cylinder is a layer at one distance: the pattern on it is laid out in
@@ -24,10 +24,11 @@
 //
 // What is not done: nothing splashes where a streak meets the ground (the
 // ground shaders do their own splashes from the same map); looking more
-// than 60 degrees up or down the cylinders are edge on, so the rain fades
-// out there rather than drawing a dense tangle; and the pattern turns with
-// the camera rather than staying put in the world as you walk sideways
-// (see `along` in fragment() for why).
+// than 60 degrees up the cylinders are edge on, so the rain fades out there
+// rather than drawing a dense tangle (looking down, the two low layers carry
+// it to 80 degrees); and the pattern moves with the camera rather than
+// staying put in the world as you walk sideways (see `along` in fragment()
+// for why).
 shader_type spatial;
 render_mode blend_mix, cull_disabled, depth_draw_never, shadows_disabled;
 
@@ -42,17 +43,26 @@ uniform float snow_speed = 2.2;
 // Horizontal wind, nodes a second, in world xz.
 uniform vec2 wind = vec2(0.0);
 // The look, owned by weather.gd's constants (which a headless test checks
-// for visibility); these defaults only matter to a material nobody set.
-// Radius of each layer, which the vertex colour names by index.
-uniform vec4 layer_radius = vec4(3.0, 6.5, 12.0, 22.0);
+// for visibility); these defaults only matter to a material nobody set, and
+// the per layer arrays have none, since weather.gd always sets them.
+// Radius of each layer, which the vertex colour names by index, nearest
+// first. LAYERS must match weather.gd's LAYER_RADII.
+const int LAYERS = 6;
+uniform float layer_radius[LAYERS];
 // How strongly each layer draws. The far ones are the haze of the storm and
-// carry least; the nearest carries the individual streak.
-uniform vec4 layer_alpha = vec4(0.8, 0.65, 0.5, 0.4);
+// carry least; the first full layer carries the individual streak, and the
+// two low ones inside it are fainter.
+uniform float layer_alpha[LAYERS];
+// Where each layer is drawn, in sines of the view's elevation: fading in
+// with depression from x to y (a full layer has both below -1), and out as
+// |elevation| goes from z to w, where the wall is seen edge on. weather.gd's
+// LAYER_FADE has the values and the reasons.
+uniform vec4 layer_fade[LAYERS];
 uniform float rain_alpha = 0.85;
 uniform float snow_alpha = 0.9;
 // Streak half width in nodes: a base, and a growth with layer radius so a
 // far streak keeps about a pixel rather than vanishing to a thread.
-uniform vec2 streak_half_width = vec2(0.003, 0.0006);
+uniform vec2 streak_half_width = vec2(0.0015, 0.00075);
 // Share of rain columns carrying a drop per period, per unit of intensity.
 uniform float rain_density = 0.55;
 uniform float snow_density = 0.5;
@@ -76,7 +86,7 @@ varying float v_layer;
 void vertex() {
 	v_local = VERTEX;
 	v_world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
-	v_layer = COLOR.r * 3.0;
+	v_layer = COLOR.r * float(LAYERS - 1);
 }
 
 // Coverage of a line of half width `half_w` at signed offset `x`, both in
@@ -96,14 +106,17 @@ float line_cover(float x, float half_w, float fw) {
 // the height from the eye. Measured from world zero, as the first version
 // did, that height is the camera's altitude, and the columns fold over a few
 // tens of nodes up: the same squeeze, spread and smear as the camera term
-// described in fragment(). From the eye, and with the lean held to
-// MAX_LEAN, the change stays under the radius wherever a layer is not faded
-// as edge on (up to 60 degrees above or below the eye, 1.73 radii, where
-// the shear is 0.61 of a radius), so the column coordinate always runs
-// forwards, at no less than 0.39 of its calm rate. That holds rain in the
-// strongest wind main.gd derives (0.41) a little off its true lean; snow in
-// a gale leans less than it should.
+// described in fragment(). From the eye, with the lean held to MAX_LEAN and
+// the height the shear is taken at held to SHEAR_REACH radii (60 degrees
+// above or below the eye), the change stays at 0.61 of a radius, so the
+// column coordinate always runs forwards, at no less than 0.39 of its calm
+// rate. The hold matters for the low layers, drawn to 88 degrees down,
+// where the unclamped shear would fold them; past it a streak in wind turns
+// upright, which on those layers is at or below the ground. The lean holds
+// rain in the strongest wind main.gd derives (0.41) a little off its true
+// lean; snow in a gale leans less than it should.
 const float MAX_LEAN = 0.35;
+const float SHEAR_REACH = 1.73;
 float lean_along(vec2 tangent, float speed) {
 	vec2 w = wind / max(speed, 0.1);
 	float l = length(w);
@@ -119,9 +132,10 @@ float minify(float cell_px) {
 }
 
 void fragment() {
-	int layer = clamp(int(round(v_layer)), 0, 3);
+	int layer = clamp(int(round(v_layer)), 0, LAYERS - 1);
 	float radius = layer_radius[layer];
 	float strength = layer_alpha[layer];
+	vec4 fade = layer_fade[layer];
 	// The angle round the camera, and the tangent there. Derivatives of the
 	// angle are taken by hand from those of the position, because atan jumps
 	// by a full turn behind the camera and fwidth of it would draw a wide
@@ -152,15 +166,19 @@ void fragment() {
 	// Heights: from world zero for the fall, so a drop does not ride up and
 	// down with the camera, and from the eye for the wind's shear below.
 	float y = v_world.y;
-	float y_eye = v_local.y;
+	float y_eye = clamp(v_local.y, -SHEAR_REACH * radius, SHEAR_REACH * radius);
 
-	// Fade toward the rims, and where the wall is seen edge on: from 45 to
-	// 60 degrees above or below the eye (the sine of the elevation is
-	// normalize(v_local).y), past which the pattern crowds into a tangle and
-	// the wind's shear could fold it (lean_along).
-	float span = smoothstep(mesh_span.x, mesh_span.x + 6.0, v_local.y)
-			* (1.0 - smoothstep(mesh_span.y - 6.0, mesh_span.y, v_local.y));
-	float grazing = 1.0 - smoothstep(0.707, 0.866, abs(normalize(v_local).y));
+	// Where the layer is drawn (layer_fade): a low layer fades in going down
+	// and has no rims of its own to hide, since its mesh ends where the fade
+	// does; a full layer fades toward its rims. Every layer fades where its
+	// wall is seen edge on, past which the columns crowd into a tangle (the
+	// sine of the elevation is normalize(v_local).y).
+	float s = normalize(v_local).y;
+	float span = fade.x < -1.0
+			? smoothstep(mesh_span.x, mesh_span.x + 6.0, v_local.y)
+				* (1.0 - smoothstep(mesh_span.y - 6.0, mesh_span.y, v_local.y))
+			: smoothstep(fade.x, fade.y, -s);
+	float grazing = 1.0 - smoothstep(fade.z, fade.w, abs(s));
 
 	float open = goanna_rain_open(v_world, 1.0);
 	float seen = 0.0;

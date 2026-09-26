@@ -242,6 +242,7 @@ var bench: Node = null
 var hardware_profile := "high"
 const GraphicsProfiles := preload("res://graphics_profiles.gd")
 const SkyDirector := preload("res://sky_director.gd")
+const Lightning := preload("res://ui/lightning.gd")
 
 # Named live-server fixtures bind the whole visual-test state together. These
 # coordinates match goanna_visual_test_mod. Add a new site there and here as
@@ -2277,6 +2278,41 @@ func _envf(name: String, dflt: float) -> float:
 var sky_smoothed := {}
 var clouds_smoothed := {}
 
+# Lightning. Mineclonia flashes the sky by sending a white sky colour set
+# (and a day night ratio of 1) for about a tenth of a second at each strike.
+# Fed through the easing above, a tenth of a second moved the dome about 2
+# per cent of the way to white and the flash never showed; worse, the white
+# then took seconds to ease back out. So a sky set that is white all through
+# is held out of the easing and becomes a flash instead: lightning_flash
+# jumps to 1 and dies away in a few hundredths of a second after the server
+# lifts it, and lights the dome, the horizon and fog, the clouds and the
+# sky fill on open ground. A white sky that lasts longer than
+# FLASH_SKY_LONGEST is taken as the game's real sky and eased in as usual.
+# The bolt itself, and the flash of a strike whose game does not whiten the
+# sky, are particles.gd's (lightning.gd), read through lightning_flash().
+const FLASH_SKY_LONGEST := 0.6
+var lightning_flash := 0.0
+var _white_sky_for := 0.0
+var _server_flash := 0.0
+
+# Advances the flash by dt from this frame's server sky, and returns the sky
+# set the easing should head for: the held one while the server flashes.
+func _take_lightning(sky: Dictionary, dt: float) -> Dictionary:
+	_white_sky_for = _white_sky_for + dt if Lightning.is_flash_sky(sky) else 0.0
+	var flashing := _white_sky_for > 0.0 and _white_sky_for < FLASH_SKY_LONGEST
+	_server_flash = 1.0 if flashing else _server_flash * exp(-dt / 0.06)
+	var bolt := 0.0
+	var pnode := get_tree().get_first_node_in_group("goanna_particles") if is_inside_tree() else null
+	if pnode != null and pnode.has_method("lightning_flash"):
+		bolt = float(pnode.lightning_flash())
+	lightning_flash = clampf(maxf(_server_flash, bolt), 0.0, 1.0)
+	if not flashing or sky_smoothed.is_empty():
+		return sky
+	var held := sky.duplicate()
+	for key in sky_smoothed:
+		held[key] = sky_smoothed[key]
+	return held
+
 # Ease each colour or number in `target` toward its value from previous
 # frames, held in `held`. Returns a copy of `target` with the eased
 # values; unlisted keys pass through untouched.
@@ -2358,7 +2394,9 @@ func _apply_sky() -> void:
 	# border is a change of weather, short enough that the destination
 	# biome's sky has arrived before its terrain fills the view.
 	var kcol := 1.0 - exp(-maxf(get_process_delta_time(), 0.001) / 4.0)
-	var sky: Dictionary = _smooth_colour_set(st["sky"], sky_smoothed,
+	var sky_target := _take_lightning(st["sky"], maxf(get_process_delta_time(), 0.001))
+	var flash := lightning_flash
+	var sky: Dictionary = _smooth_colour_set(sky_target, sky_smoothed,
 			["day_sky", "day_horizon", "dawn_sky", "dawn_horizon",
 			"night_sky", "night_horizon", "bgcolor",
 			"fog_sun_tint", "fog_moon_tint", "fog_color"], kcol)
@@ -2441,6 +2479,12 @@ func _apply_sky() -> void:
 		var night_air := Color(0.10, 0.20, 0.42) * (look_weights.y * night_visibility)
 		zenith = (zenith.srgb_to_linear() + night_air).linear_to_srgb()
 		zenith.a = 1.0
+	# The lightning flash, after the zenith is deepened, which would turn
+	# white pink (a white has hue 0, and its saturation was raised to 0.42).
+	# Everything below that follows the horizon, the fog first, follows it.
+	if flash > 0.001:
+		zenith = zenith.lerp(Color(0.92, 0.95, 1.0), flash * 0.9)
+		hor = hor.lerp(Color(0.92, 0.95, 1.0), flash * 0.9)
 	sky_mat.set_shader_parameter("sky_top", zenith)
 	sky_mat.set_shader_parameter("sky_horizon", hor)
 	# The water surface reflects the sky wherever its screen space ray runs off
@@ -2577,6 +2621,11 @@ func _apply_sky() -> void:
 			+ hor.lerp(tw_col, 0.6 * tw_k) \
 			* (light_fill * 0.9 * maxf(land["dawn"], 0.45 * tw_k) * (1.0 - day)) \
 			+ night_col.lerp(tw_col, 0.35 * tw_k) * (0.10 * light_fill * land["night"])
+	# A flash lights whatever is open to the sky and nothing under a roof,
+	# which is exactly what the fill is (the shaders scale it by the sky
+	# light channel). At night the other terms are near zero, so this is
+	# most of what the flash does to the land.
+	fill += Color(0.8, 0.86, 1.0) * (0.9 * light_fill * flash)
 	RenderingServer.global_shader_parameter_set("goanna_sky_fill", Vector3(fill.r, fill.g, fill.b))
 	# The lower hemisphere of the same fill: what the ground throws back,
 	# dimmer and pulled toward earth. The node shaders blend by the world
@@ -2688,6 +2737,10 @@ func _apply_sky() -> void:
 	var cloud_night: float = smoothstep(-0.22, -0.40, e_cloud)
 	var cdim: float = lerp(1.0, 0.16, cloud_night)
 	ccol = Color(ccol.r * cdim, ccol.g * cdim, ccol.b * cdim, ccol.a)
+	# The deck lit from within by the flash, whatever the hour.
+	if flash > 0.001:
+		ccol = Color(lerpf(ccol.r, 0.95, flash), lerpf(ccol.g, 0.97, flash),
+				lerpf(ccol.b, 1.0, flash), ccol.a)
 	sky_mat.set_shader_parameter("cloud_color", ccol)
 	# The packet carries an ambient cloud colour for exactly the face seen
 	# from beneath. Feed it to the march as retained/multiple-scattered light,
@@ -2698,6 +2751,8 @@ func _apply_sky() -> void:
 	camb_server = Color(camb_server.r * cdim, camb_server.g * cdim,
 			camb_server.b * cdim, 1.0)
 	var camb_floor := Color(ccol.r * 0.22, ccol.g * 0.22, ccol.b * 0.22, 1.0)
+	if flash > 0.001:
+		camb_server = camb_server.lerp(Color(0.8, 0.85, 0.95), flash)
 	var camb_cloud := Color(maxf(camb_server.r, camb_floor.r),
 			maxf(camb_server.g, camb_floor.g), maxf(camb_server.b, camb_floor.b), 1.0)
 	sky_mat.set_shader_parameter("cloud_ambient_color",
@@ -2910,6 +2965,10 @@ func _apply_sky() -> void:
 				* (1.0 - 0.6 * alt_clear)
 	# --- ambient / grade from day-night ratio and server lighting ---
 	var ratio: float = st["day_night_ratio"]
+	# The flash raises the sky's brightness as a light source and as a
+	# backdrop, and the haze with it, as Mineclonia's own ratio of 1 does
+	# for the frames it lasts.
+	ratio = lerpf(ratio, 1.0, flash)
 	# Kept wired and kept honest: this line is inert while SDFGI is on, for
 	# the reason measured in _apply_lighting, and it is the sdfgi off path
 	# that it is here for. Day and night differ through the sky itself and
