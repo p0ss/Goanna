@@ -288,6 +288,9 @@ bool GoannaClient::nearCanBatch(const MaterialKey &key) const {
     // Lava carries its continuous flow field and a subdivided surface.
     if (m_lava_tex.count(key.texture_id))
         return false;
+    // The dig crack is alpha blended over its block's own surface.
+    if (key.crack_overlay)
+        return false;
     if (key.array_texture)
         return true;
     // Region-sized transparent objects sort as a unit, which is visibly
@@ -2492,48 +2495,33 @@ Ref<Material> GoannaClient::materialForIrr(const video::SMaterial &m, u16 layer)
     return materialFor(keyForIrr(m, layer));
 }
 
-MaterialKey GoannaClient::keyForIrr(const video::SMaterial &m, u16 layer, u16 *layer_base) {
+MaterialKey GoannaClient::keyForIrr(const video::SMaterial &m, u16 layer, u16 *layer_base,
+        MaterialKey *crack_overlay) {
     if (layer_base)
         *layer_base = 0;
     MaterialKey key;
     GoannaTexture *gt = dynamic_cast<GoannaTexture *>(m.getTexture(0));
     key.texture_id = gt ? gt->id() : 0;
     // Mining crack: crack tiles carry crack_anylength.png at the crack layer
-    // and their level in MaterialTypeParam (packed by MapBlockMesh::animate).
-    // Composite the crack frame over the base through the texture-modifier
-    // DSL; the distinct texture id keys a distinct cached material per level.
-    if (gt && m.getTexture(MapBlockMesh::TEXTURE_LAYER_CRACK)) {
-        auto pr = MapBlockMesh::unpackCrackMaterialParam(m.MaterialTypeParam);
-        if (pr.first >= 0) {
-            // [crack:<tiles>:<frame_count>:<progression>. frame_count is the
-            // number of ANIMATION frames in the destination texture, not the
-            // number of crack stages: the crack is scaled to one frame's
-            // height and blitted into each. Passing the stage count squashed
-            // the crack to a fraction of the node's height and repeated it,
-            // which read as thin lines and made the early stages invisible.
-            // Our per-level composite is a single-frame texture, so pass 1.
-            std::string cracked = m_session->tsrc()->imageName(gt->id(), layer) +
-                    "^[crack:" + std::to_string((int)pr.second) + ":1:" +
-                    std::to_string(pr.first);
-            if (getenv("GOANNA_DEBUG_CRACK"))
-                UtilityFunctions::print("crack: level ", pr.first, "/",
-                        m_session->crackAnimationLength(), " tiles ", (int)pr.second,
-                        " -> ", String(cracked.c_str()));
-            u32 cid = m_session->tsrc()->getTextureId(cracked);
-            if (cid != 0) {
-                key.texture_id = cid;
-                key.composited = true; // already a real image; do not resolve again
-            }
-        }
-    }
+    // and their stage and tile scale in MaterialTypeParam (packed by
+    // MapBlockMesh::animate for the live dig, or baked at mesh time for a
+    // stored carve). A stage below zero has not been stamped yet and draws
+    // no crack, as in upstream's shader.
+    const bool cracked = m.getTexture(MapBlockMesh::TEXTURE_LAYER_CRACK) != nullptr;
+    std::pair<int, u8> crack{-1, 1};
+    if (gt && cracked)
+        crack = MapBlockMesh::unpackCrackMaterialParam(m.MaterialTypeParam);
     key.shader_id = GoannaShaderSource::isShaderMaterial(m.MaterialType)
             ? GoannaShaderSource::shaderIdFromMaterial(m.MaterialType) : 0;
     key.backface_culling = m.BackfaceCulling;
-    // The array path covers the common case: an opaque, culled tile with no
-    // crack overlay. Anything else (a special shader, a double-sided plant, a
-    // tile being dug) resolves back to its own single image, so it is never
-    // sampled as if it were an array.
-    const bool cracked = m.getTexture(MapBlockMesh::TEXTURE_LAYER_CRACK) != nullptr;
+    // The array path covers the common case: an opaque or alpha tested,
+    // culled tile. Anything else (a special shader, a double-sided plant)
+    // resolves back to its own single image, so it is never sampled as if it
+    // were an array. A tile being dug stays on it when the caller can draw
+    // the crack as a pass of its own: nothing about the surface under the
+    // crack has changed, so it keeps the material its neighbours have, pack
+    // companions and all.
+    const bool overlay_ok = crack_overlay != nullptr;
     // Waving leaves are backface-culled (they are cube-shaped, unlike waving
     // plants), so culling alone does not rule them out, but
     // nodes_array.gdshader has no wind logic at all: routing them through it
@@ -2547,12 +2535,12 @@ MaterialKey GoannaClient::keyForIrr(const video::SMaterial &m, u16 layer, u16 *l
         // Only commit to the array path if the Godot array actually built:
         // otherwise the key would name a texture with no 2D image behind it
         // and the tile would render untextured white.
-        bool array_ready = array_tile && !cracked &&
+        bool array_ready = array_tile && (!cracked || overlay_ok) &&
                 m_session->shsrc().usesArrayTexture(key.shader_id) &&
                 gt->godotArray().is_valid();
         if (array_ready) {
             key.array_texture = true;
-        } else if (!key.composited) {
+        } else {
             if (getenv("GOANNA_DEBUG_ARRAY") && m.BackfaceCulling && !cracked)
                 UtilityFunctions::print("array fallback: id=", gt->id(),
                         " layers=", (int)gt->layerNames().size(),
@@ -2567,7 +2555,7 @@ MaterialKey GoannaClient::keyForIrr(const video::SMaterial &m, u16 layer, u16 *l
                 key.texture_id = m_session->tsrc()->getTextureId(names[idx]);
             }
         }
-    } else if (gt && layer_base && !key.composited && !cracked && array_tile) {
+    } else if (gt && layer_base && (!cracked || overlay_ok) && array_tile) {
         // An animated tile. Its buffers carry the first frame, a single
         // image, because upstream keeps animated tiles out of its arrays and
         // swaps the texture per frame. Draw it from the animation array
@@ -2584,11 +2572,58 @@ MaterialKey GoannaClient::keyForIrr(const video::SMaterial &m, u16 layer, u16 *l
             *layer_base = anim->base_layer;
         }
     }
-    if (getenv("GOANNA_DEBUG_CRACK") && m.getTexture(MapBlockMesh::TEXTURE_LAYER_CRACK)) {
+    if (crack.first >= 0 && key.array_texture) {
+        // The crack as a second pass over the same triangles, drawn by
+        // crack_overlay.gdshader. One material per stage and scale, shared
+        // by every cracked tile, except that an alpha tested array's holes
+        // have to be cut out of the crack too, which needs that array bound,
+        // so those take one per array as well.
+        MaterialKey ov;
+        ov.crack_overlay = true;
+        ov.crack_level = (u8)std::min(crack.first, 255);
+        ov.crack_scale = std::max<u8>(crack.second, 1);
+        ov.backface_culling = key.backface_culling;
+        GoannaTexture *agt = m_session->tsrc()->goannaTexture(key.texture_id);
+        ov.texture_id = agt && agt->hasAlpha() ? key.texture_id : 0;
+        *crack_overlay = ov;
+    } else if (crack.first >= 0) {
+        // The fallback, for a cracked tile the array path cannot take: a
+        // special shader tile (glass, ice, leaves, plants, liquids), a double
+        // sided one, one whose array did not build, or a caller with no
+        // second pass. The crack frame is composited over the base through
+        // the texture-modifier DSL and the tile takes the single image
+        // material, so it loses any pack companions for the dig. An overlay
+        // cannot replace this for the special shaders: it knows nothing of
+        // a leaf's sway, a pane's refraction or a liquid's surface, so it
+        // would not stay on them. The distinct texture id keys a distinct
+        // cached material per level.
+        //
+        // [crack:<tiles>:<frame_count>:<progression>. frame_count is the
+        // number of ANIMATION frames in the destination texture, not the
+        // number of crack stages: the crack is scaled to one frame's
+        // height and blitted into each. Passing the stage count squashed
+        // the crack to a fraction of the node's height and repeated it,
+        // which read as thin lines and made the early stages invisible.
+        // Our per-level composite is a single-frame texture, so pass 1.
+        std::string composite = m_session->tsrc()->imageName(gt->id(), layer) +
+                "^[crack:" + std::to_string((int)crack.second) + ":1:" +
+                std::to_string(crack.first);
+        if (getenv("GOANNA_DEBUG_CRACK"))
+            UtilityFunctions::print("crack: level ", crack.first, "/",
+                    m_session->crackAnimationLength(), " tiles ", (int)crack.second,
+                    " -> ", String(composite.c_str()));
+        u32 cid = m_session->tsrc()->getTextureId(composite);
+        if (cid != 0) {
+            key.texture_id = cid;
+            key.composited = true; // already a real image; do not resolve again
+        }
+    }
+    if (getenv("GOANNA_DEBUG_CRACK") && cracked) {
         // the FINAL texture this material will use, after every fallback
         UtilityFunctions::print("crack final: ",
                 String(m_session->tsrc()->getTextureName(key.texture_id).c_str()),
-                " array=", key.array_texture);
+                " array=", key.array_texture,
+                " overlay=", crack.first >= 0 && key.array_texture);
     }
     return key;
 }
@@ -2692,7 +2727,10 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
         m_sh_ice = rl->load("res://shaders/ice.gdshader");
         m_sh_array = rl->load("res://shaders/nodes_array.gdshader");
         m_sh_array_scissor = rl->load("res://shaders/nodes_array_scissor.gdshader");
+        m_sh_crack = rl->load("res://shaders/crack_overlay.gdshader");
     }
+    if (key.crack_overlay)
+        return crackOverlayMaterial(key);
     GoannaTexture *gt = m_session->tsrc()->goannaTexture(key.texture_id);
     Ref<ImageTexture> tex = gt ? gt->godotTexture() : Ref<ImageTexture>();
     MaterialType mtype = m_session->shsrc().materialType(key.shader_id);
@@ -3075,6 +3113,50 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
     if (tex.is_valid())
         noteAnimatedMaterial(key, mat);
     return mat;
+}
+
+Ref<Material> GoannaClient::crackOverlayMaterial(const MaterialKey &key) {
+    Ref<ShaderMaterial> sm;
+    sm.instantiate();
+    sm->set_shader(m_sh_crack);
+    // The strip upstream's own shader reads: one square frame per stage,
+    // stacked down the image, frame count from its proportions.
+    GoannaTextureSource *tsrc = m_session->tsrc();
+    GoannaTexture *cgt = tsrc->goannaTexture(tsrc->getTextureId("crack_anylength.png"));
+    if (cgt && cgt->godotTexture().is_valid())
+        sm->set_shader_parameter("crack_tex", cgt->godotTexture());
+    const int frames = std::max(1, m_session->crackAnimationLength());
+    // Upstream clamps a stage past the strip to its last frame.
+    sm->set_shader_parameter("crack_frames", frames);
+    sm->set_shader_parameter("crack_frame", std::min((int)key.crack_level, frames - 1));
+    sm->set_shader_parameter("crack_scale", (float)key.crack_scale);
+    // An alpha tested array: the crack is cut to the same holes the tile is.
+    // Opaque tiles leave it unbound and share one material per stage.
+    GoannaTexture *agt = key.texture_id ? tsrc->goannaTexture(key.texture_id) : nullptr;
+    if (agt && agt->godotArray().is_valid()) {
+        sm->set_shader_parameter("base_alpha_test", true);
+        sm->set_shader_parameter("albedo_array", agt->godotArray());
+        const auto &lanim = agt->layerAnim();
+        if (!lanim.empty()) {
+            PackedInt32Array anim;
+            anim.resize((int)lanim.size() * 2);
+            for (size_t i = 0; i < lanim.size(); ++i) {
+                anim[(int)i * 2] = lanim[i].frames;
+                anim[(int)i * 2 + 1] = lanim[i].frame_ms;
+            }
+            sm->set_shader_parameter("layer_anim", anim);
+        }
+    }
+    // The same light channel strengths the surface under it has, so the
+    // settings sliders move both (set_material_strength walks m_materials).
+    for (const auto &d : kMatStrengthDefaults)
+        sm->set_shader_parameter(String(d.first.c_str()) + String("_strength"),
+                material_strength(String(d.first.c_str())));
+    if (getenv("GOANNA_DEBUG_CRACK"))
+        UtilityFunctions::print("crack overlay material: frame ", (int)key.crack_level, "/",
+                frames, " scale ", (int)key.crack_scale, " alpha array ", (int)key.texture_id);
+    m_materials[key.hash()] = sm;
+    return sm;
 }
 
 // The texture of the frame a vanilla client draws for this tile at clock
@@ -7436,6 +7518,9 @@ int GoannaClient::poll_blocks(int max_blocks) {
         // glowing blocks, which is what you want: a glowstone wall should still
         // have a shadow side in daylight.
         std::map<uint64_t, SurfAccum> glow_groups;
+        // The dig crack's second pass, by crack stage (crack_overlay.gdshader).
+        // Only ever the one block being dug, or one holding a stored carve.
+        std::map<uint64_t, SurfAccum> crack_groups;
         static const bool glow_casts = getenv("GOANNA_GLOW_CASTS_SHADOW") != nullptr;
         const NodeDefManager *gnd = m_session->nodeDefs();
         for (int layer = 0; layer < MAX_TILE_LAYERS && bm; ++layer) {
@@ -7459,8 +7544,9 @@ int GoannaClient::poll_blocks(int max_blocks) {
                         vl_tab = &vlit->second;
                 }
                 u16 layer_base = 0;
+                MaterialKey crack_key;
                 MaterialKey key = keyForIrr(buf->getMaterial(),
-                        v[0].Aux & GOANNA_VERTEX_TEXTURE_MASK, &layer_base);
+                        v[0].Aux & GOANNA_VERTEX_TEXTURE_MASK, &layer_base, &crack_key);
                 // Approximate ownership for the semantic ID in UV2.y. Light
                 // source ownership is explicit mesh metadata instead: this
                 // half-node step can leave a thin torch/lantern's own cell.
@@ -7554,6 +7640,39 @@ int GoannaClient::poll_blocks(int max_blocks) {
                         }
                         remap[g][sv] = di;
                         tacc.idx.push_back(di);
+                    }
+                }
+                // A tile being dug: the same triangles again, for the crack
+                // pass over them. Copied from what was just accumulated, so
+                // the crack has exactly the positions, layer, tint and node
+                // light of the surface it sits on.
+                if (crack_key.crack_overlay) {
+                    SurfAccum &cacc = crack_groups[crack_key.hash()];
+                    cacc.key = crack_key;
+                    cacc.is_array = true;
+                    std::map<u32, int> crack_remap;
+                    for (u32 t = 0; t + 2 < ni; t += 3) {
+                        const u16 tri[3] = { idx16[t], idx16[t + 1], idx16[t + 2] };
+                        const int g = !glow_casts && (v[tri[0]].Aux & GOANNA_VERTEX_GLOWS) ? 1 : 0;
+                        const SurfAccum &src = g ? glow_groups[key.hash()] : groups[key.hash()];
+                        for (int k = 0; k < 3; ++k) {
+                            auto found = crack_remap.find(tri[k]);
+                            if (found != crack_remap.end()) {
+                                cacc.idx.push_back(found->second);
+                                continue;
+                            }
+                            const int from = remap[g].at(tri[k]);
+                            const int di = cacc.verts.size();
+                            cacc.verts.push_back(src.verts[from]);
+                            cacc.norms.push_back(src.norms[from]);
+                            cacc.uvs.push_back(src.uvs[from]);
+                            cacc.uv2s.push_back(src.uv2s[from]);
+                            cacc.cols.push_back(src.cols[from]);
+                            for (int c = 0; c < 4; ++c)
+                                cacc.custom0.push_back(src.custom0[from * 4 + c]);
+                            crack_remap[tri[k]] = di;
+                            cacc.idx.push_back(di);
+                        }
                     }
                 }
                 // GOANNA_DEBUG_VCOL=1: the spread of per vertex colour inside
@@ -7673,10 +7792,35 @@ int GoannaClient::poll_blocks(int max_blocks) {
                     Dictionary(), surface_flags);
             gmesh->surface_set_material(gsi++, materialFor(acc.key));
         }
+        // The crack pass. Drawn per block, never region batched, because it
+        // is alpha blended and changes with every crack stage; the tile
+        // under it stays in its regional batch with its neighbours. No
+        // tangents: the crack takes the face's own normal, not the relief
+        // under it.
+        Ref<ArrayMesh> cmesh;
+        cmesh.instantiate();
+        int csi = 0;
+        for (auto &kv : crack_groups) {
+            SurfAccum &acc = kv.second;
+            if (acc.verts.is_empty() || acc.idx.is_empty())
+                continue;
+            Array arrays;
+            arrays.resize(Mesh::ARRAY_MAX);
+            arrays[Mesh::ARRAY_VERTEX] = acc.verts;
+            arrays[Mesh::ARRAY_NORMAL] = acc.norms;
+            arrays[Mesh::ARRAY_TEX_UV] = acc.uvs;
+            arrays[Mesh::ARRAY_COLOR] = acc.cols;
+            arrays[Mesh::ARRAY_TEX_UV2] = acc.uv2s;
+            arrays[Mesh::ARRAY_CUSTOM0] = acc.custom0;
+            arrays[Mesh::ARRAY_INDEX] = acc.idx;
+            cmesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays, TypedArray<Array>(),
+                    Dictionary(), kNodeSurfaceFlags);
+            cmesh->surface_set_material(csi++, materialFor(acc.key));
+        }
         // A block of nothing but region-batched or glowing surfaces still
         // has geometry, so all destinations have to be empty before it
         // is thrown away.
-        if (near_block.surfaces.empty() && si == 0 && gsi == 0 && ice_si == 0) {
+        if (near_block.surfaces.empty() && si == 0 && gsi == 0 && ice_si == 0 && csi == 0) {
             if (getenv("GOANNA_DEBUG_BLOCKS") && m_near_blocks.count(bp))
                 UtilityFunctions::print("block FREED (empty mesh): ", bp.X, ",", bp.Y, ",", bp.Z);
             nearDrop(bp);
@@ -7698,7 +7842,7 @@ int GoannaClient::poll_blocks(int max_blocks) {
         }
         nearDrop(bp);
         MeshInstance3D *mi = nullptr;
-        if (si > 0 || gsi > 0 || ice_si > 0) {
+        if (si > 0 || gsi > 0 || ice_si > 0 || csi > 0) {
             mi = memnew(MeshInstance3D);
             mi->set_extra_cull_margin(0.2f);
             add_child(mi);
@@ -7723,6 +7867,16 @@ int GoannaClient::poll_blocks(int max_blocks) {
             gmi->set_layer_mask(GLOW_LAYER);
             mi->add_child(gmi);
             gmi->set_mesh(gmesh);
+        }
+        // Hung off the block mesh like the glow mesh, for the same reason.
+        // It casts no shadow: it is a mark on a surface that already does.
+        if (csi > 0) {
+            MeshInstance3D *cmi = memnew(MeshInstance3D);
+            cmi->set_name("crack");
+            cmi->set_extra_cull_margin(0.2f);
+            cmi->set_cast_shadows_setting(GeometryInstance3D::SHADOW_CASTING_SETTING_OFF);
+            mi->add_child(cmi);
+            cmi->set_mesh(cmesh);
         }
         m_near_blocks[bp] = std::move(near_block);
         nearAssign(bp);
