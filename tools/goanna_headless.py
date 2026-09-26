@@ -290,10 +290,17 @@ def list_records():
 # desktop's own clients (the compositor, browsers) are not on the list: every
 # recorded fault came from a game client beside a headless gamescope.
 GPU_GAME_CLIENTS = ("godot", "gamescope", "luanti", "minetest")
+# Compute jobs the owner runs on the same card (model training, ComfyUI),
+# listed by nvidia-smi as python and the like. A driver reset would kill
+# them, so they count as busy too. Desktop programs do not.
+GPU_COMPUTE_JOBS = ("python", "comfy", "torch")
 
 
 def gpu_clients():
-    """Game clients the NVIDIA driver lists on the GPU, as (pid, name) pairs.
+    """Game clients and compute jobs the NVIDIA driver lists on the GPU, as
+    (pid, name) pairs. A compute job (a training run) is included since
+    2026-09-26: the check reported the GPU free beside one, and a driver
+    reset would have taken the run with it.
 
     Twice a headless gamescope started beside another game client has put the
     NVIDIA driver into a reset-required state (Xid 51 then 154) that lasts
@@ -314,7 +321,7 @@ def gpu_clients():
     for line in out.splitlines():
         pid, _, name = line.partition(",")
         base = os.path.basename(name.strip().split()[0]) if name.strip() else ""
-        if any(word in base.lower() for word in GPU_GAME_CLIENTS):
+        if any(word in base.lower() for word in GPU_GAME_CLIENTS + GPU_COMPUTE_JOBS):
             found.append((int(pid), base))
     return found
 
@@ -327,7 +334,7 @@ def _spawn(rec, timeout=60.0):
         busy = gpu_clients()
         if busy:
             raise LaunchError(
-                "another game client is on the GPU (%s); starting a GPU instance beside "
+                "another game client or compute job is on the GPU (%s); starting a GPU instance beside "
                 "one has twice left the NVIDIA driver needing a reboot. Wait for it to "
                 "finish, use --software, or set GOANNA_SHARED_GPU=1 to accept the risk"
                 % ", ".join("%s pid %d" % (name, pid) for pid, name in busy))
