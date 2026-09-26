@@ -12,7 +12,13 @@
 #   - particles.gd hands a player attached rain or snow spawner to the shader
 #     path and builds no emitter for it, keeps precipitation() reporting it,
 #     leaves everything else on the particle path, and rebuilds a running
-#     storm the other way when the setting changes.
+#     storm the other way when the setting changes;
+#   - on an open beach the cover map, read back from its texture the way the
+#     shader reads it, leaves every rain layer open, and an empty or part
+#     scanned map hides nothing;
+#   - the peak opacity of a rain streak at the constants weather.gd pushes
+#     to the material is at least MIN_NEAR_ALPHA on the nearest layer and
+#     MIN_FAR_ALPHA on the farthest, at 1080 lines and 70 degrees.
 # It renders nothing: how any of it looks is not tested here.
 extends SceneTree
 
@@ -77,7 +83,9 @@ func _shader_uniforms(path: String) -> Dictionary:
 
 func _test_shaders() -> void:
 	var p := _shader_uniforms("res://shaders/precipitation.gdshader")
-	for n in ["rain_amount", "snow_amount", "rain_speed", "snow_speed", "wind"]:
+	for n in ["rain_amount", "snow_amount", "rain_speed", "snow_speed", "wind", "layer_radius",
+			"layer_alpha", "rain_alpha", "snow_alpha", "streak_half_width", "rain_density",
+			"snow_density", "rain_period", "mesh_span"]:
 		check(p.has(n), "precipitation.gdshader has no uniform " + n)
 	# Both surfaces that react to rain must still compile with the include.
 	_shader_uniforms("res://shaders/water.gdshader")
@@ -162,16 +170,16 @@ func _test_routing() -> void:
 	root.add_child(p)
 	await process_frame
 	check(p.weather != null, "particles builds a weather node")
+	# Mineclonia runs one rain spawner at a time (weather.gd, RAIN_REFERENCE).
 	p._add_spawner(_spawner(1, "weather_pack_rain_raindrop_1.png", 500))
-	p._add_spawner(_spawner(2, "weather_pack_rain_raindrop_2.png", 500))
 	check(_emitters(p) == 0, "shader weather builds no emitter for rain")
 	check(p.precipitation() == 1.0, "shader rain still reports precipitation")
 	var t: Dictionary = p.weather.targets()
 	check(is_equal_approx(t["rain"], 1.0), "Mineclonia's rain is intensity 1, got %s" % t["rain"])
 	check(is_equal_approx(t["rain_speed"], 17.5), "the fall speed is the spawners' own")
 	check(t["snow"] == 0.0, "no snow in rain")
-	# Thunder: Mineclonia replaces both with 900 each.
-	p._add_spawner(_spawner(1, "weather_pack_rain_raindrop_1.png", 900))
+	# Thunder: Mineclonia deletes it and adds one of 900 under a new id.
+	p._remove_spawner(1)
 	p._add_spawner(_spawner(2, "weather_pack_rain_raindrop_2.png", 900))
 	check(is_equal_approx(p.weather.targets()["rain"], 1.8), "a thunderstorm is heavier")
 	# Something else entirely stays on the particle path: smoke from a
@@ -191,13 +199,12 @@ func _test_routing() -> void:
 	check(not p.weather.has_spawner(4), "and is not drawn by shader")
 	# Turning the setting off mid storm rebuilds the storm as particles.
 	p.set_shader_weather(false)
-	check(_emitters(p) == 4, "shader weather off: the storm becomes emitters")
+	check(_emitters(p) == 3, "shader weather off: the storm becomes emitters")
 	check(p.weather.targets()["rain"] == 0.0, "and the shader stops drawing it")
 	check(p.precipitation() == 1.0, "precipitation is unchanged by the setting")
 	p.set_shader_weather(true)
 	check(_emitters(p) == 2, "and back on: the emitters go again")
 	# Cancellation, as the server sends it.
-	p._remove_spawner(1)
 	p._remove_spawner(2)
 	check(p.weather.targets()["rain"] == 0.0 and p.precipitation() == 0.0, "cancelled rain stops")
 	# Snow, with Mineclonia's rates.
@@ -206,7 +213,7 @@ func _test_routing() -> void:
 	snow["vel_max"] = Vector3(0.2, -4, 0.2)
 	p._add_spawner(snow)
 	var st: Dictionary = p.weather.targets()
-	check(is_equal_approx(st["snow"], 0.5) and st["rain"] == 0.0, "one snow spawner is half of Mineclonia's snow")
+	check(is_equal_approx(st["snow"], 1.0) and st["rain"] == 0.0, "Mineclonia's snow is intensity 1")
 	check(is_equal_approx(st["snow_speed"], 2.5), "snow falls at its own speed")
 	p.client.free()
 	p.queue_free()
@@ -228,6 +235,102 @@ func _test_client_binding() -> void:
 	c.free()
 
 
+# The shader's lookup, done on the texture as uploaded: goanna_rain_open in
+# weather_common.gdshaderinc, with the same area, uv, nearest texel and
+# 0.55 margin. `fallback` is what the shader passes for off the map.
+func _shader_open(cover: RefCounted, p: Vector3, fallback: float) -> float:
+	var area: Vector4 = cover.area
+	if area.w < 0.5:
+		return fallback
+	var uv := (Vector2(p.x, p.z) - Vector2(area.x, area.y)) / area.z
+	if uv.x < 0.0 or uv.y < 0.0 or uv.x > 1.0 or uv.y > 1.0:
+		return fallback
+	var img: Image = cover.texture.get_image()
+	var texel := Vector2i(mini(floori(uv.x * img.get_width()), img.get_width() - 1),
+			mini(floori(uv.y * img.get_height()), img.get_height() - 1))
+	var h := img.get_pixel(texel.x, texel.y).r
+	return 1.0 if p.y >= h - 0.55 else 0.0
+
+
+# The live report was an open beach with no rain to be seen. The eye at
+# Godot (515, 4, 447), sand at y 2 (its top at 2.5), sea at y 0 to the
+# east: nothing overhead. Every point a rain layer draws at, all round
+# the eye and from the ground up to well overhead, must read open.
+class Beach:
+	extends RefCounted
+	func rain_cover_rows(x0: int, z0: int, width: int, rows: int, y_top: int, y_bottom: int) -> PackedFloat32Array:
+		var out := PackedFloat32Array()
+		out.resize(width * rows)
+		for j in rows:
+			for i in width:
+				out[j * width + i] = 0.5 if x0 + i > 520 else 2.5
+		return out
+
+
+func _test_open_beach() -> void:
+	var cover := RainCover.new(Beach.new())
+	var eye := Vector3(515.3, 4.0, 447.6)
+	# An empty map hides nothing: before the first map is whole the area
+	# is withdrawn and the shader answers its fallback, open.
+	check(cover.area.w == 0.0, "an empty map has no area")
+	cover.step(eye, 0.016)
+	check(not cover.ready and cover.area.w == 0.0, "a part scanned map has no area either")
+	while not cover.step(eye, 0.016):
+		pass
+	check(is_equal_approx(cover.open_share(eye.y), 1.0), "the whole beach is open at eye height")
+	var hidden := 0
+	var tried := 0
+	for r in Weather.LAYER_RADII:
+		for s in 64:
+			var a := TAU * float(s) / 64.0
+			for y in [2.6, 4.0, 10.0, 30.0]:
+				var p := eye + Vector3(cos(a) * float(r), 0.0, sin(a) * float(r))
+				p.y = y
+				tried += 1
+				if _shader_open(cover, p, 1.0) < 0.5:
+					hidden += 1
+	check(hidden == 0, "rain over an open beach is never covered: %d of %d points hidden" % [hidden, tried])
+	# And the other way round, so the check can fail: under a roof it is.
+	var roofed := RainCover.new(FakeMap.new())
+	while not roofed.step(Vector3(3, 1, -1), 0.016):
+		pass
+	check(_shader_open(roofed, Vector3(3.0, 2.0, -2.0), 1.0) == 0.0, "under a roof the shader lookup is covered")
+
+
+# How visible a streak is at the look weather.gd draws with. The floor is
+# a judgement: a quarter opacity is where a thin light streak over a bright
+# ground stops being lost, and the first version's 0.17 was not seen.
+const MIN_NEAR_ALPHA := 0.5
+const MIN_FAR_ALPHA := 0.25
+
+func _test_visibility() -> void:
+	var near := Weather.streak_alpha(0, Weather.pixel_at(0, 1080.0, 70.0))
+	var last := Weather.LAYER_RADII.size() - 1
+	var far := Weather.streak_alpha(last, Weather.pixel_at(last, 1080.0, 70.0))
+	print("weather: peak streak opacity at intensity 1, 1080 lines, 70 degrees: nearest %.2f, farthest %.2f" % [near, far])
+	check(near >= MIN_NEAR_ALPHA, "nearest streak opacity %.2f is under %.2f" % [near, MIN_NEAR_ALPHA])
+	check(far >= MIN_FAR_ALPHA, "farthest streak opacity %.2f is under %.2f" % [far, MIN_FAR_ALPHA])
+	# Opacity does not fall with intensity (density does), so the lightest
+	# rain any spawner can ask for still draws streaks this strong; and at
+	# Mineclonia's ordinary rain, a column carries a drop more often than not
+	# once in two periods.
+	check(Weather.RAIN_DENSITY * 1.0 >= 0.5, "ordinary rain puts a drop in at least half the cells")
+	# The material draws with these, not with the shader's own defaults.
+	var w: Node3D = Weather.new()
+	root.add_child(w)
+	await process_frame
+	var m: ShaderMaterial = w._material
+	check(m != null, "the weather node builds its material")
+	if m == null:
+		return
+	check(is_equal_approx(float(m.get_shader_parameter("rain_alpha")), Weather.RAIN_ALPHA), "rain_alpha reaches the material")
+	var la: Vector4 = m.get_shader_parameter("layer_alpha")
+	check(is_equal_approx(la.x, Weather.LAYER_ALPHA[0]) and is_equal_approx(la.w, Weather.LAYER_ALPHA[3]), "layer_alpha reaches the material")
+	var hw: Vector2 = m.get_shader_parameter("streak_half_width")
+	check(hw.is_equal_approx(Weather.STREAK_HALF_WIDTH), "streak width reaches the material")
+	w.queue_free()
+
+
 func _test_mesh() -> void:
 	var mesh := Weather.build_mesh()
 	check(mesh.get_surface_count() == 1, "the weather is one surface, one draw")
@@ -244,6 +347,8 @@ func _initialize() -> void:
 	_test_cover()
 	_test_mesh()
 	_test_client_binding()
+	_test_open_beach()
 	await _test_routing()
+	await _test_visibility()
 	print("weather: ", "ok" if failures == 0 else "%d failure(s)" % failures)
 	quit(1 if failures else 0)

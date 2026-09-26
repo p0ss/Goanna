@@ -14,11 +14,20 @@
 // past the window of a house you stand in. The depth buffer does the rest:
 // a layer behind a wall is behind the wall.
 //
+// Lit, not unshaded. The first version was unshaded and coloured with the
+// sky gradient, which is a small number beside the sunlit ground once the
+// exposure has been applied: grey streaks at a sixth opacity over bright
+// sand, which on a live client at noon could not be seen at all. Lit by the
+// same sun and sky as everything else, a drop is as bright as the scene
+// around it by day and as dark by night, whatever the exposure. It receives
+// no shadows, which would cost a shadow map read per streak pixel.
+//
 // What is not done: nothing splashes where a streak meets the ground (the
 // ground shaders do their own splashes from the same map), and looking
-// straight up the cylinders are edge on, so the rain thins out overhead.
+// straight up or down the cylinders are edge on, so the rain fades out
+// there rather than drawing a dense tangle.
 shader_type spatial;
-render_mode unshaded, blend_mix, cull_disabled, depth_draw_never, shadows_disabled;
+render_mode blend_mix, cull_disabled, depth_draw_never, shadows_disabled;
 
 #include "res://shaders/weather_common.gdshaderinc"
 
@@ -30,19 +39,32 @@ uniform float rain_speed = 17.0;
 uniform float snow_speed = 2.2;
 // Horizontal wind, nodes a second, in world xz.
 uniform vec2 wind = vec2(0.0);
+// The look, owned by weather.gd's constants (which a headless test checks
+// for visibility); these defaults only matter to a material nobody set.
 // Radius of each layer, which the vertex colour names by index.
 uniform vec4 layer_radius = vec4(3.0, 6.5, 12.0, 22.0);
-// How strongly each layer draws. The far ones are the fog of the storm and
+// How strongly each layer draws. The far ones are the haze of the storm and
 // carry least; the nearest carries the individual streak.
-uniform vec4 layer_alpha = vec4(0.55, 0.45, 0.38, 0.30);
-uniform float rain_alpha = 0.30;
-uniform float snow_alpha = 0.85;
+uniform vec4 layer_alpha = vec4(0.8, 0.65, 0.5, 0.4);
+uniform float rain_alpha = 0.85;
+uniform float snow_alpha = 0.9;
+// Streak half width in nodes: a base, and a growth with layer radius so a
+// far streak keeps about a pixel rather than vanishing to a thread.
+uniform vec2 streak_half_width = vec2(0.003, 0.0006);
+// Share of rain columns carrying a drop per period, per unit of intensity.
+uniform float rain_density = 0.55;
+uniform float snow_density = 0.5;
+// Height of one rain cell along a column, in nodes.
+uniform float rain_period = 1.8;
+// Where the mesh ends above and below the eye; the layers fade out before
+// their rims so a rim is never seen as an edge.
+uniform vec2 mesh_span = vec2(-26.0, 34.0);
 
-// The sky colour main.gd hands the sky and water shaders: rain is lit by the
-// sky it falls through, so a storm at night is dark rather than a curtain
-// of white lines.
-global uniform vec3 goanna_sky_top;
-global uniform vec3 goanna_sky_horizon;
+// The fill the terrain takes from the sky light channel (nodes_array's
+// emission), so a drop in a storm's dim daylight is not lit by the
+// environment's ambient alone.
+global uniform vec3 goanna_sky_fill;
+global uniform vec3 goanna_ground_fill;
 global uniform float goanna_eye_underwater;
 
 varying vec3 v_world;
@@ -90,10 +112,15 @@ void fragment() {
 	float wind_t = dot(wind, tangent);
 	float y = v_world.y;
 
+	// Fade toward the rims, and where the wall is seen edge on (looking
+	// steeply up or down), where the pattern crowds into a dense tangle.
+	float span = smoothstep(mesh_span.x, mesh_span.x + 6.0, v_local.y)
+			* (1.0 - smoothstep(mesh_span.y - 6.0, mesh_span.y, v_local.y));
+	float grazing = 1.0 - smoothstep(0.85, 0.97, abs(normalize(v_local).y));
+
 	float open = goanna_rain_open(v_world, 1.0);
 	float seen = 0.0;
 	vec3 col = vec3(0.0);
-	vec3 sky = mix(goanna_sky_horizon, goanna_sky_top, 0.35);
 
 	if (rain_amount > 0.001) {
 		// Columns a whole number to the turn, so the pattern closes on
@@ -108,25 +135,25 @@ void fragment() {
 		float cid = mod(c, cols);
 		vec3 h = goanna_weather_hash3(vec2(cid, float(layer) * 131.0));
 		float speed = rain_speed * (0.85 + 0.3 * h.x);
-		float period = 2.4;
-		float v = (y + TIME * speed) / period + h.y;
+		float v = (y + TIME * speed) / rain_period + h.y;
 		float cell = floor(v);
 		vec3 k = goanna_weather_hash3(vec2(cid * 3.7 + cell, float(layer) * 17.0 + 5.0));
-		float density = clamp(0.35 * rain_amount, 0.0, 0.9);
+		float density = clamp(rain_density * rain_amount, 0.0, 0.95);
 		if (k.x < density) {
-			float len = (0.45 + 0.4 * k.y) / period;
+			float len = (0.45 + 0.4 * k.y) / rain_period;
 			float at = fract(v) - k.z * (1.0 - len);
 			float along_streak = at / len;
 			if (along_streak > 0.0 && along_streak < 1.0) {
 				float taper = smoothstep(0.0, 0.25, along_streak) * (1.0 - smoothstep(0.6, 1.0, along_streak));
 				float fw = radius * dtheta / spacing;
 				float x = fract(u) - (0.3 + 0.4 * k.y);
-				float cover = line_cover(x, 0.006 / spacing, fw);
+				float half_w = streak_half_width.x + streak_half_width.y * radius;
+				float cover = line_cover(x, half_w / spacing, fw);
 				// A streak shorter than a pixel is a dot; fade those out
 				// rather than letting them fizz.
-				cover *= smoothstep(0.0, 1.0, (len * period) / max(dheight, 1e-4) * 0.25);
+				cover *= smoothstep(0.0, 1.0, (len * rain_period) / max(dheight, 1e-4) * 0.25);
 				float a = cover * taper * rain_alpha * strength;
-				col += sky * 1.15 * a;
+				col += vec3(0.82, 0.86, 0.92) * a;
 				seen += a;
 			}
 		}
@@ -141,7 +168,7 @@ void fragment() {
 		float v = (y + TIME * snow_speed) / cell_w;
 		vec2 id = vec2(mod(floor(u), cols), floor(v));
 		vec3 k = goanna_weather_hash3(id + vec2(float(layer) * 57.0, 11.0));
-		float density = clamp(0.45 * snow_amount, 0.0, 0.95);
+		float density = clamp(snow_density * snow_amount, 0.0, 0.95);
 		if (k.x < density) {
 			// Flakes flutter: a slow sideways sway of their own on top of
 			// the wind's drift.
@@ -154,15 +181,26 @@ void fragment() {
 			float fw = max(radius * dtheta, dheight) / spacing;
 			float cover = line_cover(r, size, fw);
 			float a = cover * snow_alpha * strength;
-			col += (sky * 1.4 + vec3(0.04)) * a;
+			col += vec3(0.95) * a;
 			seen += a;
 		}
 	}
 
 	// Underwater there is no rain to see; above, only where it falls.
-	float keep = open * (1.0 - step(0.5, goanna_eye_underwater));
+	float keep = open * span * grazing * (1.0 - step(0.5, goanna_eye_underwater));
 	ALPHA = clamp(seen * keep, 0.0, 1.0);
-	ALBEDO = seen > 1e-4 ? col / seen : sky;
 	if (ALPHA < 0.002)
 		discard;
+	ALBEDO = col / max(seen, 1e-4);
+	ROUGHNESS = 1.0;
+	SPECULAR = 0.0;
+	EMISSION = ALBEDO * mix(goanna_ground_fill, goanna_sky_fill, 0.6) * 0.5;
+}
+
+// A drop has no facing that matters: it is lit from whichever side the light
+// is on, and more with the light behind it, which is the silver rain shows
+// against a low sun. Lambert's 1 / PI, as in direct_light.gdshaderinc.
+void light() {
+	float behind = max(dot(-LIGHT, VIEW), 0.0);
+	DIFFUSE_LIGHT += LIGHT_COLOR * ATTENUATION * (0.45 + 0.55 * behind * behind) / PI;
 }

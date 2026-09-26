@@ -45,10 +45,17 @@ vec3 goanna_weather_hash3(vec2 p) {
 // Rain rings on a flat surface: the slope of the ripple height field at p
 // (xz, world), and in z how much of a fresh splash crown is at p, 0 to 1.
 // Each cell of `cell` nodes holds at most one drop per `period` seconds,
-// landing at a random place and time, and its ring grows to `reach` of the
-// cell and dies away. Two grids offset by half a cell, so a ring is never
-// clipped at a cell edge without another nearby to hide it; `density` is the
-// share of cells that get a drop each period.
+// landing at a random place and time, and its ring grows and dies away.
+// Two grids offset by half a cell double the drops without a 3 by 3
+// neighbour search; `density` is the share of cells that get a drop each
+// period.
+//
+// Each cell is evaluated alone, so a ring must never reach its cell's edge:
+// one that did was cut off by a straight line, and seen at a low angle with
+// the sun in the water the cut rings read as bright arcs. So a ring's
+// largest radius is the distance from its drop to the nearest edge, less
+// the ring's own width, and anything left of the envelope is faded to zero
+// before the edge as well.
 vec3 goanna_rain_rings(vec2 p, float t, float cell, float period, float density) {
 	vec3 acc = vec3(0.0);
 	for (int g = 0; g < 2; g++) {
@@ -61,14 +68,18 @@ vec3 goanna_rain_rings(vec2 p, float t, float cell, float period, float density)
 		vec3 h = goanna_weather_hash3(seed + cycle * 7.13);
 		if (h.z > density)
 			continue;
-		// The drop lands in the middle of its cell, so its ring stays inside.
-		vec2 centre = id + 0.3 + h.xy * 0.4;
+		vec2 centre = id + 0.35 + h.xy * 0.3;
 		vec2 d = q - centre;
 		float r = length(d);
-		float radius = age * 0.45;
-		float x = (r - radius) * 18.0;
+		// Distance from the drop to the nearest edge of its cell.
+		vec2 f = centre - id;
+		float edge = min(min(f.x, f.y), min(1.0 - f.x, 1.0 - f.y));
+		// The envelope below is under 5 per cent past 0.11 of a cell.
+		float radius = age * max(edge - 0.11, 0.05);
+		float x = (r - radius) * 28.0;
 		// One crest and a trough behind it, fading as the ring grows.
-		float env = exp(-x * x * 0.35) * (1.0 - age) * (1.0 - age);
+		float env = exp(-x * x * 0.35) * (1.0 - age) * (1.0 - age)
+				* (1.0 - smoothstep(edge - 0.08, edge - 0.01, r));
 		float slope = (cos(x) - 0.7 * x * sin(x)) * env;
 		acc.xy += (r > 1e-4 ? d / r : vec2(0.0)) * slope;
 		// The crown: the moment of impact, a point of broken water.

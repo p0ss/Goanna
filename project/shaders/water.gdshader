@@ -201,13 +201,16 @@ void fragment() {
 	// bridge or a roof, by the same cover map the falling rain is drawn
 	// against. Normal only, like the waves, and only near the eye, where a
 	// ring is more than a pixel; they ride on top of the waves rather than
-	// replacing them. They are gone by 30 nodes, inside the cover map's
-	// 32 node reach, so its edge never shows as a line of rings.
-	if (goanna_rain > 0.001 && FRONT_FACING && here < 30.0) {
+	// replacing them. They are gone by 22 nodes, inside the cover map's
+	// 32 node reach, so its edge never shows as a line of rings; further
+	// out a ring is a pixel or two and only glitters in the sun.
+	if (goanna_rain > 0.001 && FRONT_FACING && here < 22.0) {
 		float open = goanna_rain_open(world_pos, 1.0);
-		float k = open * min(goanna_rain, 1.5) * (1.0 - smoothstep(16.0, 30.0, here));
+		float k = open * min(goanna_rain, 1.5) * (1.0 - smoothstep(10.0, 22.0, here));
 		if (k > 0.001) {
-			float cell = 0.6;
+			// A ring now stays inside its cell (weather_common), so the
+			// cell is sized for rings of up to about a quarter node.
+			float cell = 1.0;
 			vec3 rings = goanna_rain_rings(world_pos.xz, TIME, cell, 0.9,
 					clamp(0.45 * goanna_rain, 0.0, 0.9));
 			vec3 nw = (INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz;

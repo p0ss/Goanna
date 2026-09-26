@@ -17,13 +17,30 @@ extends Node3D
 const RainCover := preload("res://ui/rain_cover.gd")
 const SHADER := preload("res://shaders/precipitation.gdshader")
 
-# Mineclonia's own rates, as the unit of intensity: two rain spawners of 500
-# a second each (900 each in a thunderstorm), and two snow spawners of 100.
-# Other games' weather lands wherever its amount puts it, within the clamp.
-const RAIN_REFERENCE := 1000.0
-const SNOW_REFERENCE := 200.0
+# Mineclonia's own rates, as the unit of intensity. Its rain.lua loops over
+# two raindrop textures and its snow.lua over two flake textures, but
+# mcl_weather.add_spawner_player drops every spawner the player has before
+# adding one under a new id, so only one is ever running: 500 a second for
+# rain, 900 in a thunderstorm, 100 for snow. The first version assumed two
+# and drew ordinary rain at half strength; a live client showed one rain
+# spawner of 500. Other games' weather lands wherever its amount puts it,
+# within the clamp.
+const RAIN_REFERENCE := 500.0
+const SNOW_REFERENCE := 100.0
 const MAX_INTENSITY := 2.0
 const LAYER_RADII := [3.0, 6.5, 12.0, 22.0]
+# The look. Pushed to the material in _ready, so these are the values drawn,
+# and project/tests/weather.gd holds them to a floor of visibility (see
+# streak_alpha). The first version peaked at 0.17 opacity on the nearest
+# layer, unshaded, and a live client at noon showed nothing.
+const LAYER_ALPHA := [0.8, 0.65, 0.5, 0.4]
+const RAIN_ALPHA := 0.85
+const SNOW_ALPHA := 0.9
+# Streak half width in nodes: a base, plus a growth per node of layer radius.
+const STREAK_HALF_WIDTH := Vector2(0.003, 0.0006)
+const RAIN_DENSITY := 0.55
+const SNOW_DENSITY := 0.5
+const RAIN_PERIOD := 1.8
 const SEGMENTS := 32
 # Each layer reaches this far below and above the camera. Deep enough to
 # look down a cliff into rain, high enough that a layer's top edge is off
@@ -50,6 +67,17 @@ func _ready() -> void:
 	cover = RainCover.new(client)
 	_material = ShaderMaterial.new()
 	_material.shader = SHADER
+	_material.set_shader_parameter("layer_radius", Vector4(LAYER_RADII[0], LAYER_RADII[1],
+			LAYER_RADII[2], LAYER_RADII[3]))
+	_material.set_shader_parameter("layer_alpha", Vector4(LAYER_ALPHA[0], LAYER_ALPHA[1],
+			LAYER_ALPHA[2], LAYER_ALPHA[3]))
+	_material.set_shader_parameter("rain_alpha", RAIN_ALPHA)
+	_material.set_shader_parameter("snow_alpha", SNOW_ALPHA)
+	_material.set_shader_parameter("streak_half_width", STREAK_HALF_WIDTH)
+	_material.set_shader_parameter("rain_density", RAIN_DENSITY)
+	_material.set_shader_parameter("snow_density", SNOW_DENSITY)
+	_material.set_shader_parameter("rain_period", RAIN_PERIOD)
+	_material.set_shader_parameter("mesh_span", Vector2(-BELOW, ABOVE))
 	_mesh = MeshInstance3D.new()
 	_mesh.mesh = build_mesh()
 	_mesh.material_override = _material
@@ -69,6 +97,42 @@ func _ready() -> void:
 func _exit_tree() -> void:
 	RenderingServer.global_shader_parameter_set("goanna_rain", 0.0)
 	RenderingServer.global_shader_parameter_set("goanna_rain_cover_area", Vector4.ZERO)
+
+
+# Peak opacity of a rain streak on a layer: the chain the shader runs at a
+# streak's centre (rain_alpha, the layer's alpha, and the coverage of a line
+# of the streak's width on a pixel `pixel` nodes across), before the taper
+# and any fade. A streak thinner than a pixel is drawn a pixel wide at the
+# coverage it has, so its opacity falls in proportion.
+static func streak_alpha(layer: int, pixel: float) -> float:
+	var r: float = LAYER_RADII[layer]
+	var half_w := STREAK_HALF_WIDTH.x + STREAK_HALF_WIDTH.y * r
+	var cover := minf(1.0, half_w / maxf(pixel * 0.5, 1e-6))
+	return RAIN_ALPHA * float(LAYER_ALPHA[layer]) * cover
+
+
+# One pixel, in nodes, at a layer's distance, on a screen `height` pixels
+# tall with a vertical field of view of `fov` degrees.
+static func pixel_at(layer: int, height: float, fov: float) -> float:
+	return float(LAYER_RADII[layer]) * 2.0 * tan(deg_to_rad(fov) * 0.5) / height
+
+
+# What a live check needs to tell "not raining" from "raining but hidden":
+# the eased intensities, whether a cover map is up, and over the eye the
+# cover height, whether the eye is open to the sky as the shaders see it,
+# and the share of the map's columns open at eye height. Read by the
+# control channel's status.
+func debug_state() -> Dictionary:
+	var eye := _mesh.global_position if _mesh != null and _mesh.is_inside_tree() else Vector3.ZERO
+	var out := {"rain": _rain, "snow": _snow, "spawners": _spawners.size(),
+		"mesh_visible": _mesh != null and _mesh.visible,
+		"cover_ready": cover != null and cover.ready,
+		"cover_area": cover.area if cover != null else Vector4.ZERO}
+	if cover != null and cover.ready:
+		out["cover_over_eye"] = cover.height_at(eye.x, eye.z)
+		out["eye_open"] = cover.exposed(eye)
+		out["open_share"] = cover.open_share(eye.y)
+	return out
 
 
 # The nested cylinders, one surface, one draw. Vertex colour red carries the

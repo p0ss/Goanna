@@ -254,6 +254,11 @@ func _dispatch(cmd: String, a: Dictionary) -> Variant:
 			st["time_of_day"] = _client().sky_state().get("time_of_day", -1.0)
 			st["time_of_day_override"] = _tod
 			st["precipitation"] = _precipitation()
+			# Shader weather's own view (docs/weather.md): intensities, and
+			# whether the rain cover map says the eye is under open sky.
+			var pw := _particles()
+			if pw != null and pw.get("weather") != null and pw.weather.has_method("debug_state"):
+				st["weather"] = pw.weather.debug_state()
 			return st
 		"inspect":
 			return _inspect(a)

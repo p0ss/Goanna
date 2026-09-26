@@ -132,6 +132,19 @@ func exposed(p: Vector3) -> bool:
 	return p.y >= height_at(p.x, p.z, -INF) - 0.55
 
 
+# Share of the map's columns open to the sky at height y, 0 to 1. Standing
+# on an open beach this is near 1; if it is near 0 there, the map is hiding
+# the rain, which is the first thing to rule out when rain cannot be seen.
+func open_share(y: float) -> float:
+	if not ready or _live.is_empty():
+		return 0.0
+	var open := 0
+	for h in _live:
+		if y >= h - 0.55:
+			open += 1
+	return float(open) / float(_live.size())
+
+
 func clear() -> void:
 	ready = false
 	_row = -1
