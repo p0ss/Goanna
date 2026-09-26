@@ -242,6 +242,13 @@ func _add_spawner(ev: Dictionary) -> void:
 	# facing you. Luanti's rain and snow both ask for it.
 	smat.billboard_mode = BaseMaterial3D.BILLBOARD_FIXED_Y if bool(ev.get("vertical", false)) \
 			else BaseMaterial3D.BILLBOARD_PARTICLES
+	# BILLBOARD_FIXED_Y rebuilds the particle's basis and throws its scale
+	# away unless told to keep it, so every rain streak was drawn at the
+	# quad's 0.1 node instead of Mineclonia's size 4 to 8. Its raindrop is a
+	# one texel streak, which at that size was a few millimetres wide:
+	# measured on a live client, a size 6 particle drew 104 pixels without
+	# this and 4080 with it. That was the rain nobody could see.
+	smat.billboard_keep_scale = true
 	smat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
 	# A spawner may carry a pool of textures and pick one per particle. Godot
 	# draws one pass with one material, so the first is used and the rest are
