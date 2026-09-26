@@ -931,6 +931,15 @@ void GoannaSession::takeBlockCarves(v3s16 blockpos, MapBlock *block) {
     if (!block)
         return;
     const v3s16 corner = blockpos * MAP_BLOCKSIZE;
+    // A carve ends with its node: the server drops the node's metadata when
+    // it is dug or replaced, and a node with no metadata is not visited by
+    // the loop below, so without this a stale carve outlived its node and
+    // the next block placed or fallen there arrived damaged.
+    goanna::carveStoreClearBlock(corner.X, corner.Y, corner.Z,
+            [&](int x, int y, int z) {
+                NodeMetadata *m = block->m_node_metadata.get(v3s16(x, y, z) - corner);
+                return m && !m->getString("goanna_carve").empty();
+            });
     for (const v3s16 &rel : block->m_node_metadata.getAllKeys()) {
         NodeMetadata *meta = block->m_node_metadata.get(rel);
         if (!meta)
@@ -2866,6 +2875,12 @@ void GoannaSession::onAddNode(NetworkPacket &pkt) {
     bool keep_metadata = false;
     if (pkt.getRemainingBytes() >= 1)
         pkt >> keep_metadata;
+    // A node placed over one that was carved is whole: the carve belonged to
+    // what stood there before (a placed block, or sand landing, arrived
+    // pre damaged and drawn with the old node's tiles). A swap that keeps
+    // metadata, such as a furnace lighting, keeps its carve.
+    if (!keep_metadata)
+        goanna::carveStoreClear(p.X, p.Y, p.Z);
     std::lock_guard<std::mutex> lk(m_map_mutex);
     std::map<v3s16, MapBlock *> modified;
     try {
@@ -2883,6 +2898,8 @@ void GoannaSession::onAddNode(NetworkPacket &pkt) {
 void GoannaSession::onRemoveNode(NetworkPacket &pkt) {
     v3s16 p;
     pkt >> p;
+    // The carve ends with the node (see onAddNode).
+    goanna::carveStoreClear(p.X, p.Y, p.Z);
     std::lock_guard<std::mutex> lk(m_map_mutex);
     std::map<v3s16, MapBlock *> modified;
     try {

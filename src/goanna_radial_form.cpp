@@ -10,6 +10,7 @@
 #include <cmath>
 #include <cstring>
 #include <map>
+#include <functional>
 #include <mutex>
 #include <tuple>
 
@@ -709,6 +710,24 @@ bool carveStoreGet(int x, int y, int z, FormDamage &out) {
 bool carveStoreEmpty() {
     std::lock_guard<std::mutex> lock(g_carve_store_lock);
     return g_carve_store.empty();
+}
+
+void carveStoreClearBlock(int block_x, int block_y, int block_z,
+        const std::function<bool(int, int, int)> &keep) {
+    std::lock_guard<std::mutex> lock(g_carve_store_lock);
+    const auto lo = g_carve_store.lower_bound(std::make_tuple(block_x, block_y, block_z));
+    const auto hi = g_carve_store.upper_bound(std::make_tuple(block_x + 15, block_y + 15, block_z + 15));
+    for (auto it = lo; it != hi;) {
+        const int x = std::get<0>(it->first);
+        const int y = std::get<1>(it->first);
+        const int z = std::get<2>(it->first);
+        const bool inside = x <= block_x + 15 && y >= block_y && y <= block_y + 15 &&
+                z >= block_z && z <= block_z + 15;
+        if (inside && !keep(x, y, z))
+            it = g_carve_store.erase(it);
+        else
+            ++it;
+    }
 }
 
 void carveSnapshot(int block_x, int block_y, int block_z, CarveSnapshot &out) {

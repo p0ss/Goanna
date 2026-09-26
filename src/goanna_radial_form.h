@@ -302,6 +302,10 @@ FormDamage decodeForm(const std::string &bytes);
 
 void carveStoreSet(int x, int y, int z, const FormDamage &damage);
 void carveStoreClear(int x, int y, int z);
+// Drop every stored carve inside the 16 node block at this corner for which
+// keep returns false.
+void carveStoreClearBlock(int block_x, int block_y, int block_z,
+        const std::function<bool(int, int, int)> &keep);
 bool carveStoreGet(int x, int y, int z, FormDamage &out);
 bool carveStoreEmpty();
 
