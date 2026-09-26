@@ -53,6 +53,7 @@ shade, lighter texels brighter).
 """
 import json
 import sys
+import zlib
 from pathlib import Path
 
 import numpy as np
@@ -336,11 +337,278 @@ def build(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, preview=True):
         glow[sel] = g * pos[sel] ** 2 if m.get("emission_shade") else g
     sm[joints] -= spread
     emission = up(glow) if glow.max() > 0 else None
+    # Micro surface: spec "micro" names the kind ("concrete", "none", ...);
+    # otherwise the class decides. A stem's own seed, so blocks differ.
+    kind = spec.get("micro", CLASS_MICRO.get(cls))
+    if kind is None and "concrete" in stem and "powder" not in stem:
+        kind = "concrete"
+    # Names say more than the class does: a log's side is bark, not planks,
+    # and a tool block or anvil is worn metal, not a brushed plate.
+    if "micro" not in spec:
+        name = stem.lower()
+        if kind == "wood" and not name.endswith("_top") and (
+                name.endswith("tree") or name.endswith("_log") or "log_" in name
+                or "hyphae" in name or "_stem" in name):
+            kind = "bark"
+        if kind == "metal" and any(w in name for w in ("anvil", "hopper", "cauldron", "rail",
+                                                        "chain", "bars", "door", "trapdoor")):
+            kind = "metal_worn"
+    detail = None
+    smooth_hi = np.clip(up(sm), 0.0, lib.SMOOTH_CEILING)
+    if kind in MICRO_KINDS:
+        amp, swing = MICRO_KINDS[kind]
+        amp *= float(spec.get("micro_strength", 1.0))
+        d, dsm = micro_field(kind, zlib.crc32(stem.encode()) & 0xffff,
+                             direction=spec.get("micro_dir", "h"))
+        detail = amp * _fit(d, hi.shape)
+        smooth_hi = np.clip(smooth_hi + swing * _fit(dsm, hi.shape), 0.0, lib.SMOOTH_CEILING)
     albedo = np.kron(src, np.ones((n, n, 1), dtype=src.dtype))
-    return lib.pack(stem, out_dir, albedo, hi, np.clip(up(sm), 0.0, lib.SMOOTH_CEILING), cls,
+    return lib.pack(stem, out_dir, albedo, hi, smooth_hi, cls,
                     normal_strength=strength, metal_mask=up(metal), keep_mean=False,
                     emission=emission, f0=up(f0), fine_detail=1.0,
-                    art_texels=src.shape[1])
+                    art_texels=src.shape[1], normal_detail=detail)
+
+
+# --- micro surface ------------------------------------------------------------
+# The extrusion gives every texel a flat top, and on its own a world of flat
+# tops read as plastic (owner, 2026-09-26): the bake's blur had carried pores,
+# grain and wear, badly, and the extrusion dropped them with the blur. This
+# puts material character back at the map's own resolution, but only into
+# the normal and the smoothness: the height the shader's parallax marches
+# stays the crisp texel grid, so none of this can soften a step.
+
+def _aniso_noise(size, cells_x, cells_y, seed):
+    """Tileable value noise with separate lattice counts per axis, -1..1:
+    few cells along x and many along y gives streaks running along x."""
+    rng = np.random.default_rng(seed)
+    lat = rng.uniform(-1.0, 1.0, (cells_y, cells_x))
+    def axis(cells):
+        t = (np.arange(size) / size) * cells
+        i0 = np.floor(t).astype(int) % cells
+        f = t - np.floor(t)
+        return i0, (i0 + 1) % cells, f * f * (3 - 2 * f)
+    y0, y1, fy = axis(cells_y)
+    x0, x1, fx = axis(cells_x)
+    fy, fx = fy[:, None], fx[None, :]
+    a, b = lat[y0][:, x0], lat[y0][:, x1]
+    c, d = lat[y1][:, x0], lat[y1][:, x1]
+    return ((a * (1 - fx) + b * fx) * (1 - fy) + (c * (1 - fx) + d * fx) * fy).astype(np.float32)
+
+
+def _pits(size, density, radius, seed):
+    """Sparse round dents, 0 flat to -1 at a pit's centre, wrapped."""
+    rng = np.random.default_rng(seed)
+    out = np.zeros((size, size), np.float32)
+    n = int(size * size * density)
+    ys, xs = rng.integers(0, size, n), rng.integers(0, size, n)
+    rs = rng.uniform(0.6, 1.0, n) * radius
+    r = int(np.ceil(radius))
+    for dy in range(-r, r + 1):
+        for dx in range(-r, r + 1):
+            d = np.sqrt(dx * dx + dy * dy)
+            depth = np.clip(1.0 - d / rs, 0.0, 1.0)
+            np.minimum.at(out, ((ys + dy) % size, (xs + dx) % size), -depth)
+    return out
+
+
+def _scratches(size, count, length, seed, angle=None):
+    """Thin straight grooves, 0 flat to -1 in a groove, wrapped."""
+    rng = np.random.default_rng(seed)
+    out = np.zeros((size, size), np.float32)
+    for _ in range(count):
+        a = rng.uniform(0, np.pi) if angle is None else angle + rng.normal(0, 0.15)
+        y, x = rng.uniform(0, size, 2)
+        L = rng.uniform(0.4, 1.0) * length
+        t = np.linspace(0, L, int(L * 2) + 2)
+        yy = (np.round(y + np.sin(a) * t) % size).astype(int)
+        xx = (np.round(x + np.cos(a) * t) % size).astype(int)
+        out[yy, xx] = -rng.uniform(0.4, 1.0)
+    return out
+
+
+def _bumps(size, density, radius, seed, flat=0.0):
+    """Sparse round rises, 0 flat to 1 at a bump's centre, wrapped. flat
+    above 0 gives each a plateau (an aggregate fleck rather than a dome)."""
+    return -_pits(size, density, radius, seed) if flat <= 0 else np.clip(
+        -_pits(size, density, radius, seed) / max(1e-3, 1.0 - flat), 0.0, 1.0)
+
+
+def _cracks(size, count, length, seed):
+    """Hairline cracks that wander, 0 flat to -1 in a crack, wrapped."""
+    rng = np.random.default_rng(seed)
+    out = np.zeros((size, size), np.float32)
+    for _ in range(count):
+        y, x = rng.uniform(0, size, 2)
+        a = rng.uniform(0, 2 * np.pi)
+        for _ in range(int(length)):
+            a += rng.normal(0, 0.35)
+            y, x = y + np.sin(a), x + np.cos(a)
+            out[int(y) % size, int(x) % size] = -rng.uniform(0.6, 1.0)
+    return out
+
+
+def _sample(field, ys, xs):
+    """Bilinear, wrapped lookup of field at fractional coordinates."""
+    h, w = field.shape
+    y0, x0 = np.floor(ys).astype(int), np.floor(xs).astype(int)
+    fy, fx = ys - y0, xs - x0
+    y0, x0 = y0 % h, x0 % w
+    y1, x1 = (y0 + 1) % h, (x0 + 1) % w
+    return ((field[y0, x0] * (1 - fx) + field[y0, x1] * fx) * (1 - fy)
+            + (field[y1, x0] * (1 - fx) + field[y1, x1] * fx) * fy)
+
+
+def _wood_grain(size, seed):
+    """Grain across a board: thin lines that wave and bunch, a knot or two
+    the lines bend round, and pores stretched along the grain. Returns
+    (grooves, pores), grooves 0 to -1, pores 0 to -1."""
+    rng = np.random.default_rng(seed)
+    yy, xx = np.mgrid[0:size, 0:size].astype(np.float32)
+    # Where each row sits in the grain: a slow wave along the board plus a
+    # slower drift, so lines bunch and spread instead of running ruled.
+    wave = 6.0 * lib.fbm(size, 3, 2, seed) + 3.0 * _aniso_noise(size, 2, 6, seed + 1)
+    v = yy + wave
+    # Knots: the grain bends round a small dark eye.
+    knot = np.zeros_like(v)
+    eye = np.zeros_like(v)
+    for _ in range(rng.integers(1, 3)):
+        ky, kx = rng.uniform(0, size, 2)
+        dy = (yy - ky + size / 2) % size - size / 2
+        dx = (xx - kx + size / 2) % size - size / 2
+        r2 = (dy / 1.0) ** 2 + (dx / 3.0) ** 2
+        knot += 9.0 * np.exp(-r2 / 90.0) * np.sign(dy + 1e-3)
+        eye = np.minimum(eye, -np.exp(-((dy / 2.2) ** 2 + (dx / 5.0) ** 2)))
+    v = v + knot
+    # Line spacing varies board to board and across the grain.
+    spacing = 3.2 + 1.2 * _aniso_noise(size, 1, 4, seed + 2)
+    ph = (v / spacing) % 1.0
+    grooves = -np.clip(1.0 - np.abs(ph - 0.5) / 0.14, 0.0, 1.0) ** 1.5
+    grooves = np.minimum(grooves * (0.6 + 0.4 * (lib.fbm(size, 4, 2, seed + 3) > -0.2)), eye)
+    # Pores: short dashes along the grain.
+    dash = _aniso_noise(size, 48, 128, seed + 4)
+    pores = -np.clip((dash - 0.62) * 4.0, 0.0, 1.0)
+    return grooves.astype(np.float32), pores.astype(np.float32)
+
+
+# Per material: (normal detail amplitude in height units, smoothness swing).
+# Micro surface is mostly smooth with distinct features on it (pores, chips,
+# cracks, grain lines, grains), not a noise all over: noise at this
+# resolution read as fuzz or sand on everything (owner, 2026-09-26).
+MICRO_KINDS = {
+    "stone":    (0.045, 0.10),
+    "concrete": (0.040, 0.10),
+    "soil":     (0.040, 0.05),
+    "sand":     (0.035, 0.04),
+    "snow":     (0.030, 0.12),
+    "wood":     (0.040, 0.08),
+    "metal":    (0.010, 0.16),
+    "metal_worn": (0.014, 0.18),
+    "leaves":   (0.022, 0.10),
+    "bark":     (0.045, 0.06),
+    "glass":    (0.004, 0.10),
+    "cloth":    (0.012, 0.03),
+    "ice":      (0.012, 0.10),
+}
+CLASS_MICRO = {"stone": "stone", "cobble": "stone", "gravel": "soil", "dirt": "soil",
+               "soil": "soil", "sand": "sand", "snow": "snow", "wood": "wood",
+               "planks": "wood", "metal": "metal", "cloth": "cloth", "ice": "ice",
+               "leaves": "leaves", "glass": "glass"}
+
+
+def micro_field(kind, seed, size=lib.SIZE, direction="h"):
+    """(detail, smooth) for one material, each roughly -1..1 at size x size:
+    detail goes to the normal, smooth to the smoothness."""
+    broad = lambda cells, k: lib.fbm(size, cells, 2, seed + k)  # noqa: E731
+    if kind == "stone":
+        chips = _pits(size, 0.0009, 2.6, seed + 1)
+        marks = _pits(size, 0.0025, 1.2, seed + 2)
+        cracks = _cracks(size, 4, 50, seed + 3)
+        d = 0.9 * chips + 0.6 * marks + 0.8 * cracks + 0.12 * broad(6, 4)
+        sm = 0.7 * broad(5, 5) - 0.6 * (d < -0.3)
+    elif kind == "concrete":
+        pores = _pits(size, 0.0022, 1.5, seed + 1)
+        flecks = _bumps(size, 0.0012, 1.6, seed + 2, flat=0.5)
+        d = 1.0 * pores + 0.35 * flecks + 0.08 * broad(4, 3)
+        sm = 0.8 * broad(3, 4) - 0.7 * (pores < -0.3)
+    elif kind == "soil":
+        clods = _bumps(size, 0.006, 2.2, seed + 1)
+        d = 0.7 * clods + 0.7 * _pits(size, 0.004, 1.4, seed + 2) + 0.1 * broad(8, 3)
+        sm = 0.4 * broad(6, 4) - 0.3 * clods
+    elif kind == "sand":
+        d = 0.9 * _bumps(size, 0.07, 1.1, seed + 1) + 0.15 * broad(4, 2)
+        sm = 0.4 * broad(8, 4)
+    elif kind == "snow":
+        d = 0.9 * lib.fbm(size, 4, 2, seed)
+        glint = (lib.white_noise(size, seed + 6) > 0.992).astype(np.float32)
+        sm = 0.4 * broad(4, 4) + 2.0 * glint
+    elif kind == "wood":
+        grooves, pores = _wood_grain(size, seed)
+        d = 1.0 * grooves + 0.5 * pores
+        if direction == "v":
+            d, grooves = d.T.copy(), grooves.T.copy()
+        sm = 0.7 * grooves + 0.3 * broad(3, 5)
+    elif kind == "metal":
+        # Brushed plate: fine grain in one direction, a few long scratches
+        # across it, and smoothness that follows the brushing.
+        brush = _aniso_noise(size, 2, 160, seed) + 0.5 * _aniso_noise(size, 4, 96, seed + 1)
+        scr = _scratches(size, 6, 70, seed + 3, angle=0.25)
+        d = 0.35 * brush + 0.9 * scr
+        sm = 0.6 * brush + 1.0 * scr + 0.2 * broad(3, 4)
+    elif kind == "metal_worn":
+        # Tools, anvils, iron in use: short scratches in every direction,
+        # small dents, and rubbed patches that are smoother than the rest.
+        scr = _scratches(size, 26, 22, seed + 3)
+        dents = _pits(size, 0.0012, 2.2, seed + 5)
+        rubbed = np.clip(lib.fbm(size, 3, 2, seed + 7), 0.0, 1.0)
+        d = 1.0 * scr + 0.7 * dents + 0.1 * broad(4, 4)
+        sm = 1.2 * scr - 0.5 * dents + 0.9 * rubbed
+    elif kind == "leaves":
+        # Leaf texels are small leaves already, so no drawn vein pattern
+        # (a regular one read as fabric). A soft waxy sheen that varies leaf
+        # to leaf, a few fine creases in random directions, and small bites.
+        creases = _scratches(size, 30, 10, seed + 3)
+        bites = _pits(size, 0.0015, 1.4, seed + 5)
+        d = 0.6 * creases + 0.6 * bites + 0.15 * broad(10, 2)
+        sm = 1.0 * broad(6, 4) + 0.4 * creases
+    elif kind == "bark":
+        # Bark: many narrow fissures along the log that wander, merge and
+        # break, with ridges between; rough in the fissures.
+        yy, xx = np.mgrid[0:size, 0:size].astype(np.float32)
+        # The wander changes along the log (y) and hardly across it, or the
+        # fissures swirl like contour lines.
+        wander = 3.0 * _aniso_noise(size, 2, 8, seed) + 1.5 * _aniso_noise(size, 3, 16, seed + 1)
+        u = xx + wander
+        # Fixed spacing with a small phase wobble: dividing by a spacing that
+        # varies across the tile warps the lines further the further out.
+        ph = (u / 9.0 + 0.25 * _aniso_noise(size, 3, 6, seed + 2)) % 1.0
+        grooves = -np.clip(1.0 - np.abs(ph - 0.5) / 0.16, 0.0, 1.0) ** 1.3
+        breaks = lib.fbm(size, 4, 2, seed + 3) > -0.35
+        grooves = grooves * breaks
+        d = 1.0 * grooves + 0.3 * _pits(size, 0.002, 1.3, seed + 4) + 0.08 * broad(6, 3)
+        sm = 0.3 * broad(4, 4) + 0.6 * grooves
+    elif kind == "glass":
+        # Faint smudges and the odd hairline scratch on a clean pane.
+        d = 0.2 * lib.fbm(size, 3, 2, seed) + 0.6 * _scratches(size, 4, 50, seed + 3)
+        sm = 0.8 * lib.fbm(size, 4, 2, seed + 4) - 0.4 * (d < -0.3)
+    elif kind == "cloth":
+        weave = np.sign(np.sin(np.arange(size)[:, None] * np.pi / 2.0)
+                        * np.sin(np.arange(size)[None, :] * np.pi / 2.0))
+        d = 0.5 * weave.astype(np.float32) + 0.2 * broad(8, 2)
+        sm = 0.2 * broad(6, 5)
+    elif kind == "ice":
+        d = 0.5 * lib.fbm(size, 3, 2, seed) + 0.8 * _cracks(size, 5, 70, seed + 3)
+        sm = 0.5 * broad(4, 4) - 0.5 * (d < -0.3)
+    else:
+        return None, None
+    return np.clip(d, -1.5, 1.5).astype(np.float32), np.clip(sm, -1.5, 2.0).astype(np.float32)
+
+
+def _fit(field, shape):
+    """Tile or crop a square micro field to a map's shape (a tall animation
+    strip, a wide atlas)."""
+    h, w = shape
+    reps = (-(-h // field.shape[0]), -(-w // field.shape[1]))
+    return np.tile(field, reps)[:h, :w]
 
 
 # --- judging ----------------------------------------------------------------

@@ -447,7 +447,7 @@ def _clipped_offset(deviation, level):
 
 def pack(stem, out_dir, albedo, height, smoothness, cls, normal_strength,
         metal_mask=None, ao_radius=6, keep_mean=True, emission=None, f0=None,
-        fine_detail=0.35, art_texels=16, alpha=None):
+        fine_detail=0.35, art_texels=16, alpha=None, normal_detail=None):
     """Write <stem>.png, <stem>_n.png and <stem>_s.png. albedo is RGB or
     RGBA float at SIZE; height and smoothness are SIZE x SIZE floats.
     The smoothness mean, over the ordinary texels the art draws, is moved
@@ -462,7 +462,9 @@ def pack(stem, out_dir, albedo, height, smoothness, cls, normal_strength,
     emerald 0.16), written to the _s green byte as LabPBR's linear F0 up
     to 229; metal texels keep their metal byte. alpha, when given, is the
     source's alpha at SIZE for a cut-out whose albedo is RGB; a script
-    that upscales the art as RGBA need not pass it. See cutout_mask."""
+    that upscales the art as RGBA need not pass it. See cutout_mask.
+    normal_detail, when given, is a height field added for the normal only
+    (see the note where it is used)."""
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     # Texels the art does not draw are neutralised in both maps after
@@ -485,7 +487,12 @@ def pack(stem, out_dir, albedo, height, smoothness, cls, normal_strength,
     if fine_detail < 0.999:
         fine = height - blur(height, 1)
         height = np.clip(height - (1.0 - fine_detail) * fine, 0.0, 1.0)
-    xy = normal_from_height(height, normal_strength)
+    # normal_detail is surface character finer than the relief (pores,
+    # grain, scratches), in the same units as height. It reaches the normal
+    # only: the stored height, which the shader's parallax marches, and the
+    # occlusion stay the macro field, so fine detail never blurs a step.
+    xy = normal_from_height(height if normal_detail is None else height + normal_detail,
+                            normal_strength)
     ao = ao_from_height(height, ao_radius)
     n = np.zeros(shape + (4,), dtype=np.float32)
     n[..., :2] = xy * 0.5 + 0.5
