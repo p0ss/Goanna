@@ -8,18 +8,28 @@
 # spawners attached to the player.
 #
 # Each spawner becomes one GPUParticles3D with a box emission shape, which is
-# what Godot is good at, rather than one node per particle.
+# what Godot is good at, rather than one node per particle. The exception is
+# weather: with shader weather on (the default), a rain or snow spawner that
+# follows the player is handed to weather.gd, which draws it by shader and
+# builds no emitter at all. docs/weather.md.
 extends Node3D
+
+const Weather := preload("res://ui/weather.gd")
 
 const MAX_SPAWNERS := 24
 
 var client: Node
 var follow: Node3D            # the player/camera, for spawners attached to us
 var player_effect_particles := false
+var shader_weather := true
+var weather: Node3D           # weather.gd, drawing the spawners it was handed
 
 var _spawners := {}           # server id -> GPUParticles3D
 var _attached := {}           # server id -> offset, for spawners that follow us
 var _weather := {}            # server id -> true, for rain and snow spawners
+# server id -> the spawner as it arrived, for weather only, so switching
+# shader weather on or off mid storm can rebuild it the other way.
+var _weather_ev := {}
 var _tex_cache := {}
 # One shot break bursts, capped so a fast dig cannot pile up emitters.
 const MAX_PIECES := 32
@@ -27,6 +37,21 @@ var _pieces := {}
 
 func _ready() -> void:
 	add_to_group("goanna_particles")  # main reads precipitation() through this group
+	weather = Weather.new()
+	weather.client = client
+	add_child(weather)
+
+# Shader weather on or off. The storm already running is rebuilt the other
+# way at once, from the spawners as they arrived.
+func set_shader_weather(on: bool) -> void:
+	if on == shader_weather:
+		return
+	shader_weather = on
+	var running := _weather_ev.duplicate()
+	for id in running:
+		_remove_spawner(int(id))
+	for id in running:
+		_add_spawner(running[id])
 
 # Luanti has no weather in the protocol; a game that rains does it with a
 # particle spawner attached to the player (Mineclonia's mcl_weather sends
@@ -143,8 +168,6 @@ func _add_spawner(ev: Dictionary) -> void:
 			str(ev.get("texture")), str(ev.get("pos_min")), str(ev.get("pos_max")), str(ev.get("exp_max"))])
 		print("   attached_id=%s size=%s..%s" % [str(ev.get("attached_id")), str(ev.get("size_min")), str(ev.get("size_max"))])
 	_remove_spawner(id)
-	if _spawners.size() >= MAX_SPAWNERS:
-		return
 	var amount := int(ev.get("amount", 0))
 	if amount <= 0:
 		return
@@ -158,6 +181,22 @@ func _add_spawner(ev: Dictionary) -> void:
 	var is_weather := tex_name.contains("rain") or tex_name.contains("snow")
 	var is_attached := int(ev.get("attached_id", 0)) != 0 or pmin.length() + pmax.length() < 200.0
 	if is_attached and not is_weather and not player_effect_particles:
+		return
+	if is_weather and is_attached:
+		_weather_ev[id] = ev
+		# Only weather that follows the player: the shader draws round the
+		# camera, so a rain spawner fixed somewhere in the world (a fountain
+		# that happens to use a rain texture) keeps its particles.
+		if shader_weather and weather != null:
+			weather.add_spawner(id, ev, tex_name)
+			_weather[id] = true
+			var timed := float(ev.get("time", 0.0))
+			if timed > 0.0:
+				get_tree().create_timer(timed).timeout.connect(func() -> void:
+					if weather.has_spawner(id): _remove_spawner(id))
+			return
+	# The cap is on emitters; shader weather above builds none.
+	if _spawners.size() >= MAX_SPAWNERS:
 		return
 	var vmin: Vector3 = ev.get("vel_min", Vector3.ZERO)
 	var vmax: Vector3 = ev.get("vel_max", Vector3.ZERO)
@@ -407,6 +446,9 @@ func _remove_spawner(id: int) -> void:
 	_spawners.erase(id)
 	_attached.erase(id)
 	_weather.erase(id)
+	_weather_ev.erase(id)
+	if weather != null:
+		weather.remove_spawner(id)
 
 # A single particle: cheap enough to draw as a one-shot emitter.
 func _one_shot(ev: Dictionary) -> void:

@@ -27,6 +27,10 @@ render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 // highlight from frame to frame and reads as shimmer.
 #include "res://shaders/nodes_array_common.gdshaderinc"
 #include "res://shaders/direct_light.gdshaderinc"
+// goanna_rain and the rain cover map, for splashes; only this variant draws
+// them, since the scissor tiles are leaves and plants, which rain does not
+// splash on in any way worth a texture read.
+#include "res://shaders/weather_common.gdshaderinc"
 
 void vertex() {
 	// CUSTOM0 arrives as four bytes scaled to 0 to 1: block light, sky light,
@@ -300,6 +304,31 @@ void fragment() {
 		ALBEDO *= 1.0 - wet * (0.10 + 0.18 * porosity);
 		ROUGHNESS = mix(ROUGHNESS, 0.13, wet * (0.85 - 0.45 * porosity));
 		SPECULAR = mix(SPECULAR, 0.5, wet * 0.6);
+	}
+
+	// Splashes, while rain is actually falling and only where it lands:
+	// open, up facing ground near the eye. The cover map says what is open
+	// (the same map the falling rain is drawn against, so the two agree at a
+	// roof's edge); off it, or before its first scan, the sky light channel
+	// answers instead. Each landing drop is a pale fleck for a moment, and
+	// where the ground is wet enough to hold water it throws a ring, carried
+	// in the normal so it shows only in the sheen, as a real one does.
+	if (goanna_rain > 0.001 && v_wnormal.y > 0.7) {
+		float eye_d = length(v_world - CAMERA_POSITION_WORLD);
+		float splash = min(goanna_rain, 1.5) * (1.0 - smoothstep(10.0, 22.0, eye_d))
+				* (1.0 - flatten);
+		if (splash > 0.001)
+			splash *= goanna_rain_open(v_world, smoothstep(0.85, 0.95, v_nodelight.g));
+		if (splash > 0.001) {
+			vec3 rings = goanna_rain_rings(v_world.xz, TIME, 0.45, 0.6,
+					clamp(0.3 * goanna_rain, 0.0, 0.8));
+			ALBEDO = mix(ALBEDO, vec3(0.7), rings.z * 0.45 * splash);
+			ROUGHNESS = mix(ROUGHNESS, 0.1, rings.z * splash);
+			vec3 slope = -vec3(rings.x, 0.0, rings.y) * 0.3 * splash * goanna_wetness;
+			vec2 xy = relief_normal.xy + vec2(dot(slope, v_wtangent), dot(slope, v_wbinormal));
+			float z = sqrt(clamp(1.0 - dot(xy, xy), 0.0, 1.0));
+			NORMAL_MAP = vec3(xy * 0.5 + 0.5, z * 0.5 + 0.5);
+		}
 	}
 
 	// Node light and occlusion. Occlusion multiplies ambient and, by default,

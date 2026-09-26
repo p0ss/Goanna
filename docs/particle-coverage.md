@@ -58,6 +58,13 @@ particles suddenly appear or disappear, which is precisely the symptom. It is
 now derived from the emission box plus how far a particle can travel in its
 lifetime.
 
+## Weather
+
+With the **Shader weather** setting on (the default), a rain or snow spawner
+that follows the player is drawn by shader and gets no emitter, and the
+notes above about pool size and the culling box apply only with it off. See
+[weather.md](weather.md).
+
 ## Two that are deliberate
 
 **Glow is read and not drawn.** Particles are drawn unshaded, so they are at

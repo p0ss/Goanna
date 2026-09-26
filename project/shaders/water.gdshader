@@ -90,6 +90,8 @@ global uniform vec3 goanna_sky_horizon;
 // a weather sky hides the disc). Set beside the gradient in _apply_sky.
 global uniform vec3 goanna_sun_dir;
 global uniform vec3 goanna_sun_glow;
+// goanna_rain and the rain cover map, for the rings rain draws on the water.
+#include "res://shaders/weather_common.gdshaderinc"
 
 // Far tiers use the same near sample at the hand-off, then converge on the
 // tile average only in the deep far field. Switching immediately to the last
@@ -193,6 +195,24 @@ void fragment() {
 			vec3 n = wave_normal(world_pos.xz, TIME * wave_speed, octaves,
 					TAU / max(wave_length, 0.5), wave_relief);
 			NORMAL = normalize(mix(NORMAL, (VIEW_MATRIX * vec4(n, 0.0)).xyz, detail));
+		}
+	}
+	// Rain rings, where rain is really landing on this water: not under a
+	// bridge or a roof, by the same cover map the falling rain is drawn
+	// against. Normal only, like the waves, and only near the eye, where a
+	// ring is more than a pixel; they ride on top of the waves rather than
+	// replacing them. They are gone by 30 nodes, inside the cover map's
+	// 32 node reach, so its edge never shows as a line of rings.
+	if (goanna_rain > 0.001 && FRONT_FACING && here < 30.0) {
+		float open = goanna_rain_open(world_pos, 1.0);
+		float k = open * min(goanna_rain, 1.5) * (1.0 - smoothstep(16.0, 30.0, here));
+		if (k > 0.001) {
+			float cell = 0.6;
+			vec3 rings = goanna_rain_rings(world_pos.xz, TIME, cell, 0.9,
+					clamp(0.45 * goanna_rain, 0.0, 0.9));
+			vec3 nw = (INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz;
+			nw = normalize(nw - vec3(rings.x, 0.0, rings.y) * 0.35 * k);
+			NORMAL = normalize((VIEW_MATRIX * vec4(nw, 0.0)).xyz);
 		}
 	}
 	if (!FRONT_FACING)

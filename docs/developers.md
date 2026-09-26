@@ -175,6 +175,8 @@ fixtures and deterministic capture conventions are described in
 - [Materials](materials.md) and [PBR plan](pbr-plan.md): material inputs,
   shader attributes, authored maps and remaining work.
 - [Mesh attributes](mesh-attributes.md): the vertex data contract.
+- [Shader weather](weather.md): rain and snow drawn by shader, the rain
+  cover map, splashes and ripples.
 - [Control channel](control-channel.md) and [capabilities](capabilities.md):
   optional server-authorised features.
 - [Interface style](interface-style.md): the dark glass style, the rule for
