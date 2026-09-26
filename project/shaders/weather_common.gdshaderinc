@@ -42,6 +42,36 @@ vec3 goanna_weather_hash3(vec2 p) {
 	return fract((p3.xxy + p3.yzz) * p3.zyx);
 }
 
+// Smooth noise on the world's own grid, 0 to 1: a hash at each whole
+// coordinate, eased between. A function of the position alone, so what it
+// shapes stays put in the world.
+float goanna_weather_noise(vec2 p) {
+	vec2 i = floor(p);
+	vec2 f = fract(p);
+	vec2 u = f * f * (3.0 - 2.0 * f);
+	float a = goanna_weather_hash(i);
+	float b = goanna_weather_hash(i + vec2(1.0, 0.0));
+	float c = goanna_weather_hash(i + vec2(0.0, 1.0));
+	float d = goanna_weather_hash(i + vec2(1.0, 1.0));
+	return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+}
+
+// Shallow puddles: 0 to 1, how much of a point on flat ground stands under
+// water. Patches a node or three across, where a broad noise and a finer one
+// together pass a threshold that falls as the ground gets wetter, so they
+// appear in the hollows first and spread as the rain goes on, and shrink
+// again as goanna_wetness dries after it. The caller keeps them to flat,
+// open, up facing ground. At full wetness about a fifth of such ground is
+// under water; below a wetness of about 0.4 none of it is.
+const float GOANNA_PUDDLE_DRY = 0.98;
+const float GOANNA_PUDDLE_SOAKED = 0.6;
+float goanna_puddle(vec2 p, float wet) {
+	float n = 0.7 * goanna_weather_noise(p / 3.1)
+			+ 0.3 * goanna_weather_noise(p / 1.13 + vec2(17.0, 5.0));
+	float t = mix(GOANNA_PUDDLE_DRY, GOANNA_PUDDLE_SOAKED, clamp(wet, 0.0, 1.0));
+	return smoothstep(t, t + 0.08, n);
+}
+
 // Rain rings on a flat surface: the slope of the ripple height field at p
 // (xz, world), and in z how much of a fresh splash crown is at p, 0 to 1.
 // Each cell of `cell` nodes holds at most one drop per `period` seconds,
@@ -82,8 +112,12 @@ vec3 goanna_rain_rings(vec2 p, float t, float cell, float period, float density)
 				* (1.0 - smoothstep(edge - 0.08, edge - 0.01, r));
 		float slope = (cos(x) - 0.7 * x * sin(x)) * env;
 		acc.xy += (r > 1e-4 ? d / r : vec2(0.0)) * slope;
-		// The crown: the moment of impact, a point of broken water.
-		acc.z += (1.0 - smoothstep(0.0, 0.12, age)) * (1.0 - smoothstep(0.02, 0.1, r));
+		// The crown: the moment of impact, a point of broken water. It was
+		// a tenth of a cell for the first eighth of the period, which on a
+		// live client showed nothing at all; a fifth of a cell for a fifth
+		// of the period is a fleck about a fifth of a node across for a tenth
+		// of a second on the ground.
+		acc.z += (1.0 - smoothstep(0.05, 0.2, age)) * (1.0 - smoothstep(0.08, 0.2, r));
 	}
 	return vec3(acc.xy, min(acc.z, 1.0));
 }

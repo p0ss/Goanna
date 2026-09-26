@@ -306,29 +306,60 @@ void fragment() {
 		SPECULAR = mix(SPECULAR, 0.5, wet * 0.6);
 	}
 
-	// Splashes, while rain is actually falling and only where it lands:
-	// open, up facing ground near the eye. The cover map says what is open
-	// (the same map the falling rain is drawn against, so the two agree at a
-	// roof's edge); off it, or before its first scan, the sky light channel
-	// answers instead. Each landing drop is a pale fleck for a moment, and
-	// where the ground is wet enough to hold water it throws a ring, carried
-	// in the normal so it shows only in the sheen, as a real one does.
-	if (goanna_rain > 0.001 && v_wnormal.y > 0.7) {
+	// Splashes and puddles, only where rain lands: open, up facing ground.
+	// The cover map says what is open (the same map the falling rain is
+	// drawn against, so the two agree at a roof's edge); off it, or before
+	// its first scan, or in fair weather once it is withdrawn, the sky light
+	// channel answers instead.
+	//
+	// Puddles follow goanna_wetness, how rained on the world is, so they
+	// spread through a long shower and linger after it: darker, near mirror
+	// smooth, the texture's relief drowned. Flat tops only, since water
+	// does not stand on a slope, and the near mesh only (flatten).
+	//
+	// Splashes follow goanna_rain, what is falling this moment, near the
+	// eye: each landing drop is a bright fleck for a moment, and where the
+	// ground is wet it throws a ring, carried in the normal so it shows in
+	// the sheen, as a real one does; in a puddle the ring is at full
+	// strength. The first version drew a fleck a fifteenth of a node across
+	// at a pale grey albedo, which on wet sand at night nobody could see:
+	// the fleck now carries a share of the sky fill as its own light, as
+	// the falling streaks do, so it is as visible as the rain above it.
+	float puddle = 0.0;
+	float splash = 0.0;
+	vec3 rings = vec3(0.0);
+	if ((goanna_rain > 0.001 || goanna_wetness > 0.35) && v_wnormal.y > 0.7) {
+		float open_sky = goanna_rain_open(v_world, smoothstep(0.85, 0.95, v_nodelight.g));
+		if (goanna_wetness > 0.35 && v_wnormal.y > 0.95)
+			puddle = goanna_puddle(v_world.xz, goanna_wetness) * open_sky * (1.0 - flatten);
 		float eye_d = length(v_world - CAMERA_POSITION_WORLD);
-		float splash = min(goanna_rain, 1.5) * (1.0 - smoothstep(10.0, 22.0, eye_d))
-				* (1.0 - flatten);
-		if (splash > 0.001)
-			splash *= goanna_rain_open(v_world, smoothstep(0.85, 0.95, v_nodelight.g));
-		if (splash > 0.001) {
-			vec3 rings = goanna_rain_rings(v_world.xz, TIME, 0.7, 0.6,
-					clamp(0.3 * goanna_rain, 0.0, 0.8));
-			ALBEDO = mix(ALBEDO, vec3(0.7), rings.z * 0.45 * splash);
-			ROUGHNESS = mix(ROUGHNESS, 0.1, rings.z * splash);
-			vec3 slope = -vec3(rings.x, 0.0, rings.y) * 0.3 * splash * goanna_wetness;
-			vec2 xy = relief_normal.xy + vec2(dot(slope, v_wtangent), dot(slope, v_wbinormal));
-			float z = sqrt(clamp(1.0 - dot(xy, xy), 0.0, 1.0));
-			NORMAL_MAP = vec3(xy * 0.5 + 0.5, z * 0.5 + 0.5);
-		}
+		splash = min(goanna_rain, 1.5) * (1.0 - smoothstep(10.0, 22.0, eye_d))
+				* (1.0 - flatten) * open_sky;
+	}
+	if (puddle > 0.001) {
+		ALBEDO *= 1.0 - 0.4 * puddle;
+		ROUGHNESS = mix(ROUGHNESS, 0.03, puddle);
+		SPECULAR = mix(SPECULAR, 0.5, puddle);
+		METALLIC = mix(METALLIC, 0.0, puddle);
+	}
+	if (splash > 0.001) {
+		rings = goanna_rain_rings(v_world.xz, TIME, 0.7, 0.5,
+				clamp(0.5 * goanna_rain, 0.0, 0.9));
+		float fleck = rings.z * min(splash, 1.0);
+		ALBEDO = mix(ALBEDO, vec3(0.85), fleck * 0.7);
+		ROUGHNESS = mix(ROUGHNESS, 0.08, fleck);
+		EMISSION += vec3(0.9) * fleck * mix(goanna_ground_fill, goanna_sky_fill, 0.6);
+	}
+	if (puddle > 0.001 || splash > 0.001) {
+		// Standing water drowns the relief; rings ride on what is left.
+		float ring_k = splash * mix(0.3 * goanna_wetness, 0.7, puddle);
+		vec3 slope = -vec3(rings.x, 0.0, rings.y) * ring_k;
+		vec2 xy = relief_normal.xy * (1.0 - 0.9 * puddle)
+				+ vec2(dot(slope, v_wtangent), dot(slope, v_wbinormal));
+		float z = sqrt(clamp(1.0 - dot(xy, xy), 0.0, 1.0));
+		relief_normal = vec3(xy, z);
+		NORMAL_MAP = vec3(xy * 0.5 + 0.5, z * 0.5 + 0.5);
+		NORMAL_MAP_DEPTH = 1.0;
 	}
 
 	// Node light and occlusion. Occlusion multiplies ambient and, by default,

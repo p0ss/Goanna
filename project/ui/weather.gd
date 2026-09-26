@@ -28,16 +28,48 @@ const SHADER := preload("res://shaders/precipitation.gdshader")
 const RAIN_REFERENCE := 500.0
 const SNOW_REFERENCE := 100.0
 const MAX_INTENSITY := 2.0
-const LAYER_RADII := [3.0, 6.5, 12.0, 22.0]
+# The layers, nearest first. The four from 3 nodes out are the rain seen
+# ahead and round about, and are what the second live check found good at a
+# distance. The two inside them are the rain close by when looking down:
+# with the nearest layer at 3 nodes, a ray pitched more than 28 degrees down
+# met the ground before it met any rain, and the owner saw a clear circle a
+# couple of nodes across round the player, "like an umbrella". They are
+# drawn only below the eye (LAYER_FADE), so level and upward views keep 3
+# nodes of clear air in front of the face and nothing is ever painted on the
+# lens: where the 0.45 layer is drawn it is about 0.6 nodes from the eye.
+const LAYER_RADII := [0.45, 1.0, 3.0, 6.5, 12.0, 22.0]
+# Per layer, in sines of the view's elevation (s, negative below the eye):
+# x and y, the depression over which a low layer fades in going down (s
+# from -x to -y), and z and w, the |s| over which the layer fades out where
+# the wall is seen edge on. A full layer has x and y below -1, so it is on
+# at every depression; the low ones fade out toward the nadir, where the
+# columns converge on a point, the full ones from 45 to 60 degrees as
+# before. Checked by project/tests/weather.gd against the ground at
+# standing and crouching eye heights.
+const LAYER_FADE := [
+	Vector4(0.643, 0.766, 0.985, 0.999),   # 40 to 50 degrees down; out 80 to 88
+	Vector4(0.276, 0.407, 0.985, 0.999),   # 16 to 24 degrees down
+	Vector4(-2.0, -1.5, 0.707, 0.866),
+	Vector4(-2.0, -1.5, 0.707, 0.866),
+	Vector4(-2.0, -1.5, 0.707, 0.866),
+	Vector4(-2.0, -1.5, 0.707, 0.866),
+]
 # The look. Pushed to the material in _ready, so these are the values drawn,
 # and project/tests/weather.gd holds them to a floor of visibility (see
 # streak_alpha). The first version peaked at 0.17 opacity on the nearest
-# layer, unshaded, and a live client at noon showed nothing.
-const LAYER_ALPHA := [0.8, 0.65, 0.5, 0.4]
+# layer, unshaded, and a live client at noon showed nothing. The two low
+# layers are lighter: a drop that close is a faint blur, not a bright line,
+# and a heavy streak half a node away reads as a scratch on the screen.
+const LAYER_ALPHA := [0.4, 0.5, 0.8, 0.65, 0.5, 0.4]
+# The first layer drawn at every elevation, which the visibility floor in the
+# test is held against.
+const FIRST_FULL_LAYER := 2
 const RAIN_ALPHA := 0.85
 const SNOW_ALPHA := 0.9
 # Streak half width in nodes: a base, plus a growth per node of layer radius.
-const STREAK_HALF_WIDTH := Vector2(0.003, 0.0006)
+# The base was 0.003 when the nearest layer was 3 nodes out; at half a node
+# that is a line six pixels wide, which is a smear rather than a drop.
+const STREAK_HALF_WIDTH := Vector2(0.0015, 0.00075)
 const RAIN_DENSITY := 0.55
 const SNOW_DENSITY := 0.5
 const RAIN_PERIOD := 1.8
@@ -67,10 +99,9 @@ func _ready() -> void:
 	cover = RainCover.new(client)
 	_material = ShaderMaterial.new()
 	_material.shader = SHADER
-	_material.set_shader_parameter("layer_radius", Vector4(LAYER_RADII[0], LAYER_RADII[1],
-			LAYER_RADII[2], LAYER_RADII[3]))
-	_material.set_shader_parameter("layer_alpha", Vector4(LAYER_ALPHA[0], LAYER_ALPHA[1],
-			LAYER_ALPHA[2], LAYER_ALPHA[3]))
+	_material.set_shader_parameter("layer_radius", PackedFloat32Array(LAYER_RADII))
+	_material.set_shader_parameter("layer_alpha", PackedFloat32Array(LAYER_ALPHA))
+	_material.set_shader_parameter("layer_fade", PackedVector4Array(LAYER_FADE))
 	_material.set_shader_parameter("rain_alpha", RAIN_ALPHA)
 	_material.set_shader_parameter("snow_alpha", SNOW_ALPHA)
 	_material.set_shader_parameter("streak_half_width", STREAK_HALF_WIDTH)
@@ -136,7 +167,10 @@ func debug_state() -> Dictionary:
 
 
 # The nested cylinders, one surface, one draw. Vertex colour red carries the
-# layer index as a fraction of the last, which the shader rounds back.
+# layer index as a fraction of the last, which the shader rounds back. A
+# full layer runs from BELOW to ABOVE the eye; a low one only over the
+# depressions its LAYER_FADE draws it at, so the fragments it costs are the
+# ones it can colour.
 static func build_mesh() -> ArrayMesh:
 	var verts := PackedVector3Array()
 	var colours := PackedColorArray()
@@ -145,14 +179,15 @@ static func build_mesh() -> ArrayMesh:
 	# camera is at the centre, so the index order is the depth order.
 	for li in range(LAYER_RADII.size() - 1, -1, -1):
 		var r: float = LAYER_RADII[li]
+		var span := layer_span(li)
 		var tag := Color(float(li) / float(LAYER_RADII.size() - 1), 0.0, 0.0, 1.0)
 		var base := verts.size()
 		for s in SEGMENTS + 1:
 			var a := TAU * float(s) / float(SEGMENTS)
 			var x := cos(a) * r
 			var z := sin(a) * r
-			verts.append(Vector3(x, -BELOW, z))
-			verts.append(Vector3(x, ABOVE, z))
+			verts.append(Vector3(x, span.x, z))
+			verts.append(Vector3(x, span.y, z))
 			colours.append(tag)
 			colours.append(tag)
 		for s in SEGMENTS:
@@ -166,6 +201,16 @@ static func build_mesh() -> ArrayMesh:
 	var mesh := ArrayMesh.new()
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 	return mesh
+
+
+# Bottom and top of a layer's wall, relative to the eye.
+static func layer_span(layer: int) -> Vector2:
+	var fade: Vector4 = LAYER_FADE[layer]
+	if fade.x < -1.0:
+		return Vector2(-BELOW, ABOVE)
+	var r: float = LAYER_RADII[layer]
+	# From where it starts to fade in, down to where it has faded out.
+	return Vector2(maxf(-BELOW, -r * tan(asin(minf(fade.w, 0.9995)))), -r * tan(asin(fade.x)))
 
 
 # The spawner as particles.gd received it. Its texture has already said it is

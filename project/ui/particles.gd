@@ -11,10 +11,12 @@
 # what Godot is good at, rather than one node per particle. The exception is
 # weather: with shader weather on (the default), a rain or snow spawner that
 # follows the player is handed to weather.gd, which draws it by shader and
-# builds no emitter at all. docs/weather.md.
+# builds no emitter at all. Lightning is recognised the same way, by its
+# texture, and handed to lightning.gd. docs/weather.md.
 extends Node3D
 
 const Weather := preload("res://ui/weather.gd")
+const Lightning := preload("res://ui/lightning.gd")
 
 const MAX_SPAWNERS := 24
 
@@ -23,6 +25,7 @@ var follow: Node3D            # the player/camera, for spawners attached to us
 var player_effect_particles := false
 var shader_weather := true
 var weather: Node3D           # weather.gd, drawing the spawners it was handed
+var lightning: Node3D         # lightning.gd, drawing the strikes it was handed
 
 var _spawners := {}           # server id -> GPUParticles3D
 var _attached := {}           # server id -> offset, for spawners that follow us
@@ -40,6 +43,12 @@ func _ready() -> void:
 	weather = Weather.new()
 	weather.client = client
 	add_child(weather)
+	lightning = Lightning.new()
+	add_child(lightning)
+
+# How bright the lightning drawn now makes the sky, 0 to 1, for main.gd.
+func lightning_flash() -> float:
+	return lightning.flash_strength() if lightning != null else 0.0
 
 # Shader weather on or off. The storm already running is rebuilt the other
 # way at once, from the spawners as they arrived.
@@ -178,8 +187,19 @@ func _add_spawner(ev: Dictionary) -> void:
 	if tex_path == "" and pool.size() > 0:
 		tex_path = str(pool[0])
 	var tex_name := tex_path.to_lower()
-	var is_weather := tex_name.contains("rain") or tex_name.contains("snow")
-	var is_attached := int(ev.get("attached_id", 0)) != 0 or pmin.length() + pmax.length() < 200.0
+	# A strike, with shader weather on: lightning.gd draws the bolt, its
+	# light and its flash, from this one spawner, and it needs no emitter.
+	# It runs for its own time and removes itself; the server's delete for
+	# it, when it comes, finds nothing to remove.
+	var is_bolt := Lightning.is_bolt(ev, tex_name)
+	if is_bolt and shader_weather and lightning != null:
+		lightning.strike(ev, _texture_for(tex_path))
+		return
+	var is_weather := not is_bolt and (tex_name.contains("rain") or tex_name.contains("snow"))
+	# A bolt is fixed in the world, never the player's own effect, even one
+	# struck near the world's origin.
+	var is_attached := not is_bolt and (int(ev.get("attached_id", 0)) != 0
+			or pmin.length() + pmax.length() < 200.0)
 	if is_attached and not is_weather and not player_effect_particles:
 		return
 	if is_weather and is_attached:
@@ -347,7 +367,12 @@ func _add_spawner(ev: Dictionary) -> void:
 	# and the entire snowfall blinks out as soon as that small box leaves the
 	# screen. The engine's own note on the property is that you grow it when
 	# particles suddenly appear or disappear, which is exactly the symptom.
+	# The quad's own half size counts too. A lightning particle is 100 nodes
+	# tall and does not move, and the box was a node round its centre, 50
+	# nodes up: with the centre off the top of the screen the whole bolt was
+	# culled while its lower half was in view.
 	var reach := mat.initial_velocity_max * life + 0.5 * mat.gravity.length() * life * life
+	reach += maxf(mat.scale_min, mat.scale_max) * quad.size.x * 0.5
 	reach = clampf(reach, 1.0, 256.0)
 	var ext := mat.emission_box_extents
 	var corner := Vector3(ext.x + reach, ext.y + reach, ext.z + reach)

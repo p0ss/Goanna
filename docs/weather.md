@@ -1,17 +1,21 @@
 # Shader weather
 
 Rain and snow drawn by shader instead of by the server's particle spawners,
-with splashes on open ground and rings on open water. Presentation only: the
-spawners arrive exactly as before, nothing sent to the server changes, and
+with splashes and puddles on open ground, rings on open water, and
+lightning drawn from the server's strike. Presentation only: the spawners
+arrive exactly as before, nothing sent to the server changes, and
 everything here is built from data the client already holds.
 
-**Status: seen twice, not right yet.** Both live checks were Godot 4.5.1,
-Mineclonia, the warm beach at Godot (515, 4, 447), noon, `/weather rain`.
-The first showed no rain at the defaults; the second showed streaks at the
-defaults, but gathered in one narrow band, with the sky speckled and bright
-arcs, all turning with yaw. "Live checks" below says what was changed after
-each. The version after the second has been tested headless only; nothing
-else in this file has been observed.
+**Status: seen three times, not right yet.** The first two live checks
+were Godot 4.5.1, Mineclonia, the warm beach at Godot (515, 4, 447), noon,
+`/weather rain`. The first showed no rain at the defaults; the second showed
+streaks at the defaults, but gathered in one narrow band, with the sky
+speckled and bright arcs, all turning with yaw. The third, by the owner in
+play at night on sand, found the rain good at a distance, leaning and
+dense, with a clear circle round the player looking down, no splashes or
+puddles to be seen, and lightning drawn poorly. "Live checks" below says
+what was changed after each. The version after the third has been tested
+headless only; nothing added since has been observed.
 
 ## Where weather comes from
 
@@ -36,13 +40,26 @@ same either way, so wetness and the sky do not change with the setting.
 
 ## What it draws
 
-**Falling rain and snow** (`project/shaders/precipitation.gdshader`). Four
-open cylinders nested round the camera, radii 3, 6.5, 12 and 22 nodes, from
-26 below to 34 above the eye, in one mesh surface: one draw call for all of
-the weather. The mesh moves with the camera each frame. The pattern on each
-cylinder is laid out in world units, so a far layer packs more and thinner
-streaks into the same angle than a near one, and the nesting is what gives
-depth. Layers are drawn outermost first and fade with distance.
+**Falling rain and snow** (`project/shaders/precipitation.gdshader`). Six
+open cylinders nested round the camera, in one mesh surface: one draw call
+for all of the weather. The mesh moves with the camera each frame. The
+pattern on each cylinder is laid out in world units, so a far layer packs
+more and thinner streaks into the same angle than a near one, and the
+nesting is what gives depth. Layers are drawn outermost first and fade with
+distance.
+
+- Four full layers, radii 3, 6.5, 12 and 22 nodes, from 26 below to 34
+  above the eye. These are the rain seen ahead and round about.
+- Two low layers, radii 0.45 and 1 node, which exist only below the eye:
+  the 1 node layer fades in from 16 to 24 degrees below level, the 0.45
+  layer from 40 to 50, and both fade out from 80 to 88 degrees down, where
+  their columns converge on the nadir. Their meshes run only over that
+  band, so they cost fragments only where they draw. They are the rain
+  close by when looking down, which the full layers cannot be: with the
+  nearest wall at 3 nodes, a ray more than 28 degrees down meets the
+  ground before any rain (the third live check's clear circle). Being low
+  only, they are never in front of a level or raised view, and where they
+  are drawn they are about 0.6 nodes or more from the eye along the ray.
 
 - The pattern is fixed to the layer, which turns with the camera: walking
   sideways takes the rain with you rather than past you (see "Live checks"
@@ -73,10 +90,18 @@ depth. Layers are drawn outermost first and fade with distance.
   to all of it with the light behind it. Fogged, receiving and casting no
   shadow, outside global illumination.
 - Peak streak opacity, before the taper, at 1080 lines and 70 degrees: 0.68
-  on the nearest layer and 0.34 on the farthest. Opacity does not fall with
-  intensity; density does. The layers fade out over their last 6 nodes top
-  and bottom, and between 45 and 60 degrees above or below the eye, where
-  the wall is seen edge on.
+  on the 3 node layer and 0.34 on the farthest, and fainter on the low
+  layers, 0.34 at 0.45 nodes and 0.42 at 1 node, since a drop that close is
+  a faint blur and a heavy line there reads as a mark on the screen. Streak
+  half width is 0.0015 nodes plus 0.00075 per node of radius (it was 0.003
+  plus 0.0006, which is six pixels wide half a node away). Opacity does not
+  fall with intensity; density does. The full layers fade out over their
+  last 6 nodes top and bottom, and between 45 and 60 degrees above or below
+  the eye, where the wall is seen edge on.
+- The wind's shear is taken at a height held to 1.73 radii either side of
+  the eye (60 degrees), so the low layers, drawn to 88 degrees down, cannot
+  fold. Below that height a streak in wind is upright, which on the low
+  layers is at or under the ground.
 - Nothing is drawn while the eye is underwater.
 
 Intensity comes from the spawners' rate (amount a second for an endless
@@ -89,10 +114,25 @@ not pop.
 
 **Splashes** (`project/shaders/nodes_array.gdshader`, after the wetness
 block). On up facing, open ground within about 22 nodes of the eye, while
-rain is falling: each drop is a pale fleck for a moment, and where the ground
-is wet (`goanna_wetness`) it throws a small ring carried only in the normal,
-so it shows in the sheen. The scissor variant (leaves and plants) does not
-splash.
+rain is falling: each drop is a bright fleck for a moment, and where the
+ground is wet (`goanna_wetness`) it throws a small ring carried only in the
+normal, so it shows in the sheen. At intensity 1 there are about four drops
+a square node a second, each fleck about a fifth of a node across for about
+a tenth of a second, and a fleck carries a share of the sky fill as its own
+light, as the falling streaks do, so it can be seen at night. The first
+version's fleck was a twelfth of a node across for a few hundredths of a
+second at a pale grey albedo, and on wet sand at night was not seen at all.
+The scissor variant (leaves and plants) does not splash.
+
+**Puddles** (the same block). On flat, open, up facing ground, patches a
+node or three across where standing water collects: darker, near mirror
+smooth, the texture's relief drowned, and the rain's rings at full strength
+in them. Where they are is a smooth noise on the world grid
+(`goanna_puddle` in `weather_common.gdshaderinc`), so a puddle stays put.
+How much of the ground they cover follows `goanna_wetness`, not
+`goanna_rain`: none below a wetness of about 0.4, a few per cent at 0.6 and
+about a fifth at 1, so they spread through a long shower and shrink as the
+world dries after it. The near mesh only; the far tiers do not puddle.
 
 **Rings on water** (`project/shaders/water.gdshader`). Expanding rings in the
 water normal on open water within 22 nodes, on top of the waves.
@@ -154,24 +194,79 @@ the eye is open, and `open_share`, the share of the map's columns open at
 eye height. On an open beach that share should be near 1; if it is near 0
 there, the map is what is hiding the rain.
 
+## Lightning
+
+Luanti has no lightning in the protocol either. Mineclonia's
+`mcl_lightning.strike_func` sends, per strike: one particle spawner
+(texture `lightning_lightning_N.png`, N 1 to 3, amount 1, time 0.2,
+vertical, glow `LIGHT_MAX`, size 1000, which is 100 nodes, centred 50.5
+nodes over the struck node so that the quad's bottom edge meets its top
+face); a white sky colour layer through `mcl_weather.skycolor` with the
+day night ratio overridden to 1, removed about a tenth of a second later;
+and a thunder sound.
+
+**The bolt** (`project/ui/lightning.gd`, `project/shaders/lightning.gdshader`).
+With shader weather on, particles.gd recognises the spawner by its texture
+name, as it does rain (the name contains `lightning` and the amount is 4 or
+less), and hands it to lightning.gd instead of building an emitter. That
+draws the server's own texture on a quad of the spawner's size, turned
+about its upright axis to face the camera as a vertical particle is,
+additive, unshaded and six times white so it blooms; with no texture, a
+jagged line with one branch is drawn instead, meeting the ground at the
+same point. It flickers through a first stroke and up to two weaker return
+strokes over the spawner's time, then dies away over a quarter second.
+
+**The light.** An OmniLight3D a few nodes over the strike point, range 48,
+energy 16 at the stroke's peak, following the same flicker. No shadow: an
+omni shadow is six more passes over everything in range for a light that
+lives a fifth of a second, so a strike beside a house lights its inside.
+
+**The flash** (`main.gd`, `_take_lightning`). The server's white sky could
+not reach the screen: `_apply_sky` eases every sky colour set over four
+seconds so a biome border does not flip the dome, and a tenth of a second
+of white moved it about 2 per cent of the way, then took seconds to ease
+back. A sky set white through day, dawn and night is now held out of the
+easing and becomes a flash: 1 while the server's white lasts, dying away
+over a few hundredths of a second after it. A white sky that lasts longer
+than 0.6 seconds is taken as the game's real sky. lightning.gd's own flash
+(each strike's flicker, weighed by distance: full within 50 nodes, down to
+0.3 of it at 225 and beyond) covers a game that strikes without whitening
+the sky; the two together are one flash, not two. The flash whitens the
+dome and horizon, and so the fog, lights the cloud deck and its undersides,
+raises the day night ratio the ambient, background and haze follow, and
+adds to the sky fill, which lights whatever is open to the sky and nothing
+under a roof.
+
+With shader weather off, the strike keeps the particle path, as before, and
+the server's flash still reaches the sky. The particle path's culling box
+now includes the particle's own size: it was a node round the emitter, 50
+nodes up the bolt, so the bolt vanished whenever its middle left the view.
+
 ## The setting
 
 **Shader weather** in the Video tab (`shader_weather`, on by default, shown
 without opening Advanced), declared in `game_ui.gd` beside **Player effect
 particles** and listed in `LOCAL_KEYS`. Off, weather spawners get their
 particle emitters as before and the shader draws nothing, so there are no
-splashes or rings either. Changing it mid storm rebuilds the running storm
+splashes or rings either, and a lightning strike is a textured particle
+with no light. Puddles follow the wetness, which does not depend on the
+setting. Changing it mid storm rebuilds the running storm
 the other way at once, from the spawners as they arrived.
 
 ## Expected cost
 
 Not measured. What the code does:
 
-- One extra draw call while weather is falling: 256 triangles, a
+- One extra draw call while weather is falling: 384 triangles, a
   transparent pass over whatever part of the screen the cylinders cover,
   with a handful of hashes per pixel and one texture read of the cover map.
-  The overdraw is four layers deep across most of the view, which is the
+  The overdraw is four layers deep across most of the view, and up to six
+  deep below about 16 degrees down, where the low layers are, which is the
   part to watch on a weak GPU.
+- Puddles: on flat up facing pixels once the world is wet, four hashes and
+  a cover map read, in and for minutes after rain.
+- A lightning strike: one quad and one unshadowed omni light for under half
+  a second.
 - The occlusion scan: at most 512 columns a frame for 8 frames each second,
   each column read block by block under the map lock until it hits something.
   Open ground stops a few nodes down; the worst case is flying high over
@@ -248,9 +343,46 @@ fault, smaller, measured from world zero instead of the eye. What changed:
   resolution: columns under 5 pixels apart fade, and so do streaks under 8
   pixels long (flakes likewise by their cell size).
 
+### Third
+
+The owner, in play, at night on sand (the screenshot is sand lit by a
+torch, wet and glossy). Rain looked good at a distance, leaning and dense.
+Three faults:
+
+- "Like I have an umbrella": no rain within a node or two of the player,
+  plain looking down at about 30 degrees. The nearest layer was 3 nodes
+  out, so a ray more than 28 degrees down met the ground first, and the
+  edge on fade removed everything past 45 degrees anyway. The two low
+  layers above are the fix; the test finds 178 of 359 quarter degree steps
+  of depression clear under the old layout and none under the new, down to
+  a clear circle of half a node.
+- No splashes or puddles visible. The flecks were too small, too brief and
+  too grey (above), and there were no puddles.
+- Lightning. The strike went down the particle path as a flat unshaded
+  quad, culled whenever the middle of the bolt left the view, and the
+  server's white sky was eased away before it could be seen (above).
+
 ## What is untested
 
 Everything visual. In particular, the owner's visual check should look at:
+
+- Looking down at 30 to 60 degrees in rain: rain should fall right round
+  the player and in front of the camera, with a clear patch at the feet no
+  wider than half a node. Whether the close streaks read as rain or as
+  marks on the screen, and whether 0.34 and 0.42 are the right strength
+  for them. Walking forwards, the close rain moves with the player.
+- Standing under a roof edge or in a doorway looking down and out: the low
+  layers must stop at the roof line like the others.
+- Splash flecks on open ground at intensity 1, by day and by night, and
+  none under a roof. Puddles after a minute of rain on flat ground: where
+  they are, how many, whether they read as water (darker, mirror, rings),
+  and that they stay put as the player moves and shrink after the rain.
+- Lightning, by `/lightning` (needs maphack) near and far, by day and by
+  night: the bolt (the server's texture, bright, blooming, flickering), the
+  light on the ground round the strike, and the flash across sky, clouds,
+  fog and open ground, gone within about a third of a second, with nothing
+  left white after it. A strike beside a house will light its inside
+  briefly (no shadow).
 
 - Whether rain now fills the view evenly at every yaw, with no band, no
   specks in the sky and no arcs.
@@ -300,4 +432,32 @@ spaced round the turn in calm air, never slower than 0.3 of that rate
 under any wind, speed and height a layer is drawn at, with the shader's
 lean bound and fade end read from its source; and that the first version's
 formula fails the same check at the beach. It checks the farthest layer's
-columns are not minified away at 1080 lines. It renders nothing.
+columns are not minified away at 1080 lines.
+
+It checks the near field: for eye heights of 1.3, 1.5, 1.625 and 2.1 over
+level ground, at every depression from a quarter degree to 90 in quarter
+degrees (which covers a camera pitched 30 to 60 degrees down with a 70
+degree field), a ray that meets the ground more than half a node out
+horizontally must first cross a layer drawn at half strength or more, by
+each layer's fades and mesh span as the shader has them; the layout the
+owner saw fails this at 178 of 359 depressions. Nothing is drawn nearer the
+eye than 0.55 nodes along the ray, no low layer is drawn at or above eye
+level, and the low layers' peak opacity is no more than 0.45. The column
+rate check covers every height each layer's mesh reaches, with the shear
+held as the shader holds it.
+
+It checks the ground terms, as nodes_array computes them and tied to its
+source by text, with the puddle noise mirrored: splash and puddle are both
+over 0.5 on an open, flat, up facing point at intensity 1 and full wetness,
+both zero on a wall and under the roof of the stand in map; puddles cover
+under 1 per cent of open ground at wetness 0.3, 3 per cent at 0.6 and 21
+per cent at 1 (a tenth to two fifths required); and there are at least
+three splashes a square node a second.
+
+It checks lightning: a synthetic spawner as Mineclonia sends it, with
+`lightning_lightning_2.png`, builds no emitter, one bolt 100 nodes tall and
+one light a few nodes over the strike point, lit, flashes the sky, and all
+of it is gone after the spawner's time and the tail; with shader weather
+off it is an emitter whose culling box holds the whole quad; a stream of 40
+is not a strike; and the flash sky test tells Mineclonia's white layer from
+a storm sky. It renders nothing.
