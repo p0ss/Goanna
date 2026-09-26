@@ -159,6 +159,11 @@ const PROFILES := {
 	"low": {
 		"light_sdfgi": 0.0,
 		"mat_parallax": 0.0,
+		# Procedural grass forces 4x MSAA and FXAA while it is on
+		# (docs/procedural-grass.md), which the owner has seen cost more than
+		# either pass above. It is off by default, so only Low names it: the
+		# other tiers leave a player's own choice alone.
+		"procedural_grass": 0.0,
 		"view_range": 6,
 		"lod_distance": 8,
 		"far_distance": 128,
@@ -183,7 +188,7 @@ const LABELS := {
 }
 
 const BLURBS := {
-	"low": "Turns off bounced light and surface depth, and draws the least world. For handhelds such as the Steam Deck and other integrated graphics. Untested on real hardware.",
+	"low": "Turns off procedural grass, bounced light and surface depth, and draws the least world. For handhelds such as the Steam Deck and other integrated graphics. Untested on real hardware.",
 	"medium": "Draws less world and lights fewer lamps. For integrated graphics, or when a bigger view costs more than it is worth.",
 	"high": "Most of the view distance and half the lamp shadows. The middle of the range, and the one to try first if Ultra will not hold a frame rate.",
 	"ultra": "As much world as the server will send and every lamp shadow the pool allows. What a discrete card with cores to spare should run.",

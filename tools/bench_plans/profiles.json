@@ -94,7 +94,9 @@
         "terrain_occlusion": 1,
         "screen_space_detail": 3,
         "shadow_detail": 2,
-        "light_ssil": 1.4
+        "light_ssil": 1.4,
+        "light_sdfgi": 1.4,
+        "mat_parallax": 1
       }
     },
     {
@@ -108,7 +110,9 @@
         "terrain_occlusion": 1,
         "screen_space_detail": 2,
         "shadow_detail": 1,
-        "light_ssil": 1.4
+        "light_ssil": 1.4,
+        "light_sdfgi": 1.4,
+        "mat_parallax": 1
       }
     },
     {
@@ -122,6 +126,25 @@
         "terrain_occlusion": 1,
         "screen_space_detail": 1,
         "shadow_detail": 1,
+        "light_ssil": 0,
+        "light_sdfgi": 1.4,
+        "mat_parallax": 1
+      }
+    },
+    {
+      "name": "low",
+      "set": {
+        "light_sdfgi": 0,
+        "mat_parallax": 0,
+        "procedural_grass": 0,
+        "view_range": 6,
+        "lod_distance": 8,
+        "far_distance": 128,
+        "shadow_lamps": 0,
+        "light_pool": 32,
+        "terrain_occlusion": 1,
+        "screen_space_detail": 0,
+        "shadow_detail": 0,
         "light_ssil": 0
       }
     }
