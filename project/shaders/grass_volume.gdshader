@@ -463,6 +463,31 @@ void fragment() {
     ALBEDO *= 1.0-goanna_wetness*goanna_render_wet_surfaces*0.14;
     ROUGHNESS = 0.9-goanna_wetness*goanna_render_wet_surfaces*0.15;
     SPECULAR = 0.25;
+    // Wet blades glisten. Every blade shades with one up facing normal, so
+    // a smoother surface alone is one sheen across the lawn. What catches
+    // the eye in wet grass is droplets: a few tiny mirrors per blade, each
+    // tilted its own way, so each throws back the sun, the sky or a lamp
+    // at its own angle and they twinkle as the view moves. A hashed cell of
+    // about 1.5 cm on the blade's surface holds a droplet or not; a droplet
+    // is near mirror smooth with a random tilt. Only where the sky reaches
+    // (the root's sky light), and faded out once a droplet is smaller than
+    // a pixel, where it would only shimmer, and on the far canopy.
+    float wet_sky = goanna_wetness * goanna_render_wet_surfaces
+            * smoothstep(0.55, 0.9, root_light.y);
+    if (wet_sky > 0.001) {
+        ROUGHNESS = 0.9 - wet_sky * 0.3;
+        SPECULAR = 0.25 + wet_sky * 0.15;
+        ivec2 dcell = ivec2(floor(p.xz * 64.0 + vec2(p.y * 41.0, p.y * 29.0)));
+        vec4 dr = grass_random(dcell);
+        float drop = step(1.0 - 0.07 * wet_sky, dr.x)
+                * (1.0 - far_mix) * (1.0 - smoothstep(0.008, 0.02, footprint));
+        if (drop > 0.0) {
+            vec3 tilt = normalize(vec3(dr.y - 0.5, 0.8, dr.z - 0.5));
+            NORMAL = normalize((VIEW_MATRIX * vec4(tilt, 0.0)).xyz);
+            ROUGHNESS = 0.05;
+            SPECULAR = 0.5;
+        }
+    }
     BACKLIGHT = ALBEDO*0.3;
     RIM = 0.18;
     RIM_TINT = 0.5;
