@@ -209,7 +209,7 @@ static func _centred_on_player(ev: Dictionary, feet: Vector3) -> bool:
 
 # Falls like rain, whatever its texture is called: short lived, facing the
 # viewer on a vertical axis, removed where it lands, and falling at least
-# 6 nodes a second, far more steeply than it drifts. A game's own name for
+# 6 nodes a second, well more steeply than it drifts. A game's own name for
 # its drops (kythen_water.png) says nothing a rule can read.
 static func rain_burst(ev: Dictionary) -> bool:
 	if not bool(ev.get("vertical", false)) or not bool(ev.get("collision_removal", false)):
@@ -220,7 +220,8 @@ static func rain_burst(ev: Dictionary) -> bool:
 	var vmin: Vector3 = ev.get("vel_min", Vector3.ZERO)
 	var vmax: Vector3 = ev.get("vel_max", Vector3.ZERO)
 	var v := (vmin + vmax) * 0.5
-	return -v.y >= 6.0 and Vector2(v.x, v.z).length() <= -v.y * 0.3
+	# Climate API adds the wind to its drops, so rain may lean a good way.
+	return -v.y >= 6.0 and Vector2(v.x, v.z).length() <= -v.y * 0.6
 
 
 # Spawners sent relative to the player are relative to the player, whose
@@ -289,7 +290,7 @@ func _add_spawner(ev: Dictionary) -> void:
 	if not is_bolt and not is_attached:
 		var m_here := PlayerContext.find(self, "goanna_main")
 		if m_here != null and _centred_on_player(ev, _player_feet(m_here)):
-			if is_weather or rain_burst(ev):
+			if (is_weather or rain_burst(ev)) and not tex_name.contains("hail"):
 				is_attached = true
 				is_weather = true
 	if is_weather and is_attached:
@@ -302,9 +303,11 @@ func _add_spawner(ev: Dictionary) -> void:
 			_weather[id] = true
 			var timed := float(ev.get("time", 0.0))
 			if timed > 0.0:
-				# Past its time by the drops' own life, so a game's bursts
-				# overlap into steady weather rather than flickering.
-				timed += float(ev.get("exp_max", 0.5))
+				# Counted only while it spawns. Bursts that follow one another
+				# are steady weather because weather.gd eases over seconds;
+				# held past their time as well, Climate API's, which start a
+				# new half second burst every server step, piled up 85 deep
+				# and drew five times the rain they make.
 				get_tree().create_timer(timed).timeout.connect(func() -> void:
 					if weather.has_spawner(id): _remove_spawner(id))
 			return

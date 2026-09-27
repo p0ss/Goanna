@@ -179,9 +179,54 @@ func _test_other_games() -> void:
 	spark["vel_min"] = Vector3(-3, 2, -3)
 	spark["vel_max"] = Vector3(3, 5, 3)
 	check(not P.rain_burst(spark), "sparks thrown upward are not rain")
+	_test_regional_weather()
 	print("weather: aom light rain %.2f, heavy %.2f; Kythen burst %.2f"
 			% [float(light["rate"]) / 500.0, (float(medium["rate"]) + float(curtain["rate"])) / 500.0,
 			float(W.describe(kythen, "kythen_water.png")["rate"]) / 500.0])
+
+
+# Regional Weather (TestificateMods), through Climate API's particle effect
+# as parse_config builds each spawner: a 0.5 second burst every short cycle
+# at world coordinates, the box centred on the player and raised by
+# v_offset, the fall along -y with the wind added. The player stands at
+# (0, 10, 0) with a wind of 3 along x. Values from ca_weathers/*.lua.
+func _rw(box: Vector3, v_offset: float, amount: float, velocity: float, size: float) -> Dictionary:
+	var feet := Vector3(0, 10, 0)
+	var lo := feet + Vector3(-box.x / 2, v_offset, -box.z / 2)
+	var hi := feet + Vector3(box.x / 2, v_offset + box.y, box.z / 2)
+	return {"amount": amount, "time": 0.5, "vertical": true, "collision_removal": true,
+		"pos_min": lo, "pos_max": hi, "size_min": size, "size_max": size,
+		"vel_min": Vector3(3, -velocity, 0), "vel_max": Vector3(3, -velocity, 0)}
+
+
+func _test_regional_weather() -> void:
+	var W = load("res://ui/weather.gd")
+	var P = load("res://ui/particles.gd")
+	var feet := Vector3(0, 10, 0)
+	var rain := _rw(Vector3(18, 2, 18), 6, 15, 6, 2)
+	var heavy := _rw(Vector3(18, 0, 18), 7, 17, 7, 30)
+	var snow := _rw(Vector3(24, 6, 24), 2, 4, 0.85, 1)
+	var snow_heavy := _rw(Vector3(14, 3, 14), 3, 6, 0.75, 15)
+	var hail := _rw(Vector3(18, 0, 18), 7, 6, 20, 1)
+	var sand := _rw(Vector3(8, 4.5, 8), 0, 12, 0.6, 25)
+	for d in [rain, heavy, snow, snow_heavy]:
+		check(P._centred_on_player(d, feet), "Regional Weather's box is round the player")
+	check(P.rain_burst(rain) and P.rain_burst(heavy), "Regional Weather's rain falls like rain in a wind")
+	check(P.rain_burst(hail), "its hail falls like rain too, so hail is excluded by name")
+	check(not P.rain_burst(sand), "its sandstorm does not fall like rain")
+	check(not P.rain_burst(snow), "nor does its snow; snow is known by name")
+	var r := float(W.describe(rain, "weather_raindrop.png")["rate"]) / 500.0
+	var h := float(W.describe(heavy, "weather_rain.png")["rate"]) / 500.0
+	var s := float(W.describe(snow, "weather_snowflake1.png")["rate"]) / 100.0
+	var sh := float(W.describe(snow_heavy, "weather_snow.png")["rate"]) / 100.0
+	check(h > r * 3.0, "Regional Weather's heavy rain draws far heavier than its rain")
+	check(sh > s, "and its heavy snow than its snow")
+	check(W.describe(snow, "weather_snowflake1.png")["kind"] == "snow", "its flakes are snow")
+	# Per burst. Climate API runs about a dozen at once (a new one every
+	# server step), and a live server showed its snow and heavy snow both
+	# reaching the cap of 2 before the storm field scales them.
+	print("weather: Regional Weather per burst, rain %.2f, heavy rain %.2f, snow %.2f, heavy snow %.2f"
+			% [r, h, s, sh])
 
 
 func _spawner(id: int, tex: String, amount: int, attached := 1) -> Dictionary:

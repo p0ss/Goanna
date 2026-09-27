@@ -42,6 +42,13 @@ const SNOW_REFERENCE_AREA := 2500.0    # 50 x 50, snow.lua
 # 260 across, far off, as a curtain of rain on the horizon. It is left out
 # of the density, which is about drops round the viewer.
 const CURTAIN_SIZE := 40.0
+# A drop counts by its size against Mineclonia's (4 to 8): Regional
+# Weather's heavy rain is 17 sprites a burst, each 25 to 35 across and
+# drawn as a sheet of streaks, and its light rain drops of size 2. Counted
+# one each, its heavy rain came out a fifth of Mineclonia's.
+const DROP_SIZE_REFERENCE := 6.0
+const DROP_WEIGHT_MIN := 0.5
+const DROP_WEIGHT_MAX := 6.0
 const MAX_INTENSITY := 2.0
 # The falling drops: a box of them round the eye, and a smaller, denser box
 # inside it (precipitation.gdshader has the design). Sizes in nodes, and how
@@ -568,7 +575,11 @@ static func describe(ev: Dictionary, tex_name: String) -> Dictionary:
 	var ref_area := SNOW_REFERENCE_AREA if snow else RAIN_REFERENCE_AREA
 	if area < 1.0:
 		area = ref_area   # a point spawner: take the reference box
-	var density := rate / area * ref_area
+	var size := (float(ev.get("size_min", 1.0)) + float(ev.get("size_max", ev.get("size_min", 1.0)))) * 0.5
+	# Rain only: a big rain sprite is a sheet of streaks, a big flake is
+	# still one flake, and Mineclonia's own flakes (2 to 5) are its unit.
+	var weight := 1.0 if snow else clampf(size / DROP_SIZE_REFERENCE, DROP_WEIGHT_MIN, DROP_WEIGHT_MAX)
+	var density := rate / area * ref_area * weight
 	if float(ev.get("size_min", 1.0)) >= CURTAIN_SIZE:
 		density = 0.0
 	return {"kind": "snow" if snow else "rain", "rate": density,

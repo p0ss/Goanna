@@ -57,6 +57,7 @@ shapes seen in the games installed here, 2026-09-27:
 | pmb_core (`aom_weather`), backroomtest (`br_weather`) | attached spawners, `aom_weather_rain*.png`, `aom_weather_snow_*.png`; heavy rain adds sheets 260 across on the horizon | name, attached |
 | Kythen | a 0.55 second burst every half second while outdoors, at world coordinates round the player, textured `kythen_water.png` | falls like rain, round the player |
 | Minetest Game, Asuna | no weather | nothing to draw |
+| Regional Weather (Climate API), on any game | a new half second burst round the player on every server step, `weather_raindrop.png`, `weather_rain*.png`, `weather_snowflake*.png`, `weather_snow.png`, `weather_hail*.png`; lightning through the `lightning` mod | name, round the player; hail keeps its particles |
 
 Three rules make that general:
 
@@ -70,9 +71,10 @@ Three rules make that general:
 - **Following the player.** Either rule counts only for a spawner that is
   attached to the player, given in coordinates relative to them, or whose
   box is centred within 12 nodes of them, at least 6 nodes across, with
-  its middle above their head (`_centred_on_player`). A game's bursts
-  overlap into steady weather because each is held for its time plus its
-  drops' life.
+  its middle above their head (`_centred_on_player`). A burst counts only
+  while it spawns; weather.gd's easing makes a run of bursts steady.
+  Climate API starts a new half second burst on every server step, about
+  five running at once, and that overlap is its real rate.
 
 Intensity is drops a second over each square node of the spawner's box,
 scaled so Mineclonia's boxes (30 by 30 for rain, 50 by 50 for snow) draw as
@@ -81,6 +83,20 @@ Mineclonia's ordinary rain and barely heavier than its own light rain; by
 density its light rain is 0.50 and its heavy rain 0.67 of Mineclonia's,
 before its third spawner. Sheets 40 across or more are a curtain on the
 horizon, not drops, and are left out.
+
+Regional Weather was run live on 2026-09-27: Minetest Game with Climate
+API, Regional Weather, `lightning`, `lighting_monoid` and
+`player_monoids` as world mods, and a headless client on the software
+renderer. Each preset forced with `/set_weather`: rain, heavy rain, snow
+and heavy snow were all taken as weather (about a dozen bursts at once)
+and drew 0.52, 0.93, 0.78 and 0.70, scaled by a storm field of 0.1 to 0.2
+at the spot; hail was left to its particles. Its snow and heavy snow both
+reach the cap of 2 before the storm field, so the two look alike. Two
+traps for anyone repeating it: Climate API skips a dead player, and a
+client that spawned underground dies there; respawn and fly up before
+forcing a preset. Nothing was looked at on a GPU, and the `lightning`
+mod's strike (one spawner of one sprite, `lightning_lightning_N.png`, the
+sky set plain white for a moment) has not been seen.
 
 **For a game author** who wants Goanna to draw their weather: attach the
 spawner to the player (`attached = player`), or keep spawning it round the
