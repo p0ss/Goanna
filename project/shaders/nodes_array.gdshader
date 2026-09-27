@@ -320,8 +320,11 @@ void fragment() {
 	// authored relief drain first and stay drier.
 	float wet_film = 0.0;
 	if (goanna_wetness > 0.001) {
+		// Wet only where rain reaches: the cover map where there is one,
+		// sky light beyond it. Sky light alone wet the floor several nodes
+		// in from a doorway, where the light still reaches.
 		wet_film = goanna_wetness * clamp(v_wnormal.y, 0.0, 1.0)
-				* smoothstep(0.55, 0.9, v_nodelight.g);
+				* goanna_rain_open(v_world, smoothstep(0.55, 0.9, v_nodelight.g));
 		if (relief_known)
 			wet_film *= 1.0 - 0.5 * smoothstep(0.75, 1.0, relief_h) * (1.0 - flatten);
 		ALBEDO *= 1.0 - wet_film * (0.10 + 0.18 * porosity);

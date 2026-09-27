@@ -155,7 +155,9 @@ void vertex() {
 	// Covered, fallen below the ground, or not part of this intensity: the
 	// quad collapses to a point and draws nothing. Cover is asked at the
 	// tail, the streak's top; the fragment asks again, pixel by pixel.
-	float open = goanna_rain_open(tail, 1.0);
+	// With no map yet (the first scan of a storm) nothing falls, rather
+	// than rain falling through every roof until the scan is whole.
+	float open = goanna_rain_open(tail, 0.0);
 	bool shown = pick * max_amount < amount && edge > 0.001 && nearest > NEAR_CLIP
 			&& open > 0.5 && goanna_eye_underwater < 0.5;
 
@@ -209,7 +211,7 @@ void fragment() {
 	// the pixel: a streak that crosses a roof's edge stops at the edge.
 	float d = length(v_world - CAMERA_POSITION_WORLD);
 	float lens = smoothstep(NEAR_CLIP, NEAR_FADE, d);
-	float open = goanna_rain_open(v_world, 1.0);
+	float open = goanna_rain_open(v_world, 0.0);
 	ALPHA = clamp(a * drop_alpha * v_weight * lens * open, 0.0, 1.0);
 	if (ALPHA < 0.002)
 		discard;

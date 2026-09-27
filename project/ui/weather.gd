@@ -555,16 +555,22 @@ func _process(delta: float) -> void:
 	var m := get_tree().get_first_node_in_group("goanna_main")
 	if m != null and m.get("cam") != null:
 		_eye = (m.cam as Node3D).global_position
-	if active:
-		_update_wind(m, delta)
-		# The map is needed only while something is falling; in fair
-		# weather this whole node costs a dictionary walk a frame.
+	# The map is needed while anything falls and while the ground is still
+	# wet, which the ground shaders dry by it; in fair, dry weather this
+	# whole node costs a dictionary walk a frame. It is kept, not cleared,
+	# through a lull: Mineclonia deletes its rain spawner wherever the
+	# player cannot see the sky and sends it again a step later, and a map
+	# rebuilt from nothing each time left the drops and the wet film
+	# without cover for the frames the scan took, so it rained indoors for
+	# a moment by a doorway and the floor inside went wet.
+	var wet := float(m.get("wetness")) if m != null and m.get("wetness") != null else 0.0
+	if active or wet > 0.001:
 		if cover.step(_eye, delta):
 			RenderingServer.global_shader_parameter_set("goanna_rain_cover", cover.texture)
+	if active:
+		_update_wind(m, delta)
 		_feed(_rain_mesh, _rain_material, _rain, _rain_speed)
 		_feed(_snow_mesh, _snow_material, _snow, _snow_speed)
-	elif cover.ready:
-		cover.clear()
 	_publish_globals()
 
 

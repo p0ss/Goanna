@@ -129,13 +129,15 @@ colour of its own: whatever shows is the ground's own albedo, darkened, in
 the scene's own light, with a smoother surface and a bent normal to catch
 the sky or a lamp.
 
-- **The damp film.** Everything up facing with strong sky light, from
+- **The damp film.** Everything up facing that rain reaches, by the cover
+  map where there is one and by strong sky light beyond it, from
   `goanna_wetness`: darker by the porosity (soil soaks, stone sheens),
   roughness pulled toward 0.32, the normal map's relief softened by up to
   30 per cent, as a film of water fills the fine texture. It was a
   roughness of 0.13 over everything open with the relief left whole, which
   read as wet plastic. On an authored relief the crests (height over 0.75)
-  drain first and take up to half as much.
+  drain first and take up to half as much. Sky light alone wet floors
+  several nodes in from a doorway, where the light still reaches.
 - **Standing water in the relief** (`goanna_water_level`, `goanna_pool`).
   The owner's idea: the soft wet look is the dips between ridges filled
   with water. A LabPBR `_n` map carries the surface's height in its alpha,
@@ -259,12 +261,18 @@ pending buffer that replaces the live map only when it is whole, so a half
 old, half new map never draws a line of rain through a roof. A full map takes
 8 frames. It rescans once a second while weather is falling, and at once
 when the player has moved 6 nodes sideways or 10 up or down from the map's
-centre. In fair weather nothing is scanned and the map is withdrawn.
+centre. It keeps scanning while the ground is still wet, since the damp
+film dries by it, and is kept, not withdrawn, when the rain stops.
+Mineclonia deletes its rain spawner wherever the player cannot see the sky
+and sends it again a step later; a map rebuilt from nothing each time left
+the drops without cover for the 8 frames of the scan, so by a doorway it
+rained indoors for a moment. In fair, dry weather nothing is scanned.
 
 The map reaches the shaders as three global uniforms, registered in
 `project.godot`: `goanna_rain_cover` (the RF texture), `goanna_rain_cover_area`
 (its world corner, size, and 1 once published) and `goanna_rain`. Off the
-map, the precipitation shader and the water treat a point as open, and the
+map, and before the first map of a session is whole, the precipitation
+shader draws no drops; the water treats a point as open, and the
 ground splash falls back to the sky light channel; both splashes and rings
 fade out before the map's edge. The falling drops read the map in the
 vertex stage too, so the lookup names its level of detail.

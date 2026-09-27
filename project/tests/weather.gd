@@ -358,10 +358,10 @@ func _test_drop_source() -> void:
 			"* smoothstep(0.0, EDGE_FADE, min(lo.y, hi.y));",
 			"float len = snow ? 0.0 : fall * streak_time * (0.8 + 0.4 * seed.x);",
 			"vec3 tail = p - dir * len;",
-			"float open = goanna_rain_open(tail, 1.0);",
+			"float open = goanna_rain_open(tail, 0.0);",
 			"bool shown = pick * max_amount < amount && edge > 0.001 && nearest > NEAR_CLIP",
 			"float lens = smoothstep(NEAR_CLIP, NEAR_FADE, d);",
-			"float open = goanna_rain_open(v_world, 1.0);",
+			"float open = goanna_rain_open(v_world, 0.0);",
 			"float half_w = max(drop_half_width, pixel * 0.75);"]:
 		check(src.contains(text), "precipitation.gdshader no longer matches weather.gd's copy: " + text)
 	check(is_equal_approx(_shader_const(src, "const float NEAR_CLIP = ([0-9.]+);"), Weather.NEAR_CLIP)
