@@ -248,10 +248,11 @@ static func drop_peak_alpha(snow: bool, dist: float, height: float, fov: float) 
 	return (SNOW_ALPHA if snow else RAIN_ALPHA) * cov * smoothstep(NEAR_CLIP, NEAR_FADE, dist)
 
 
-# goanna_ground_rain in weather_common.gdshaderinc, and the puddle noise
-# under it, mirrored for the status trace and the test. The shader's floats
-# are single and these are double, so a puddle's edge can land a hair
-# elsewhere; the gating is the same.
+# goanna_ground_rain in weather_common.gdshaderinc, the water level, the
+# pool, the darkening and a splash ring, mirrored for the status trace and
+# the test, which ties each to its source by text. The shader's floats are
+# single and these are double, so a basin's edge can land a hair elsewhere;
+# the gating is the same.
 static func _fract(x: float) -> float:
 	return x - floorf(x)
 
@@ -277,24 +278,81 @@ static func weather_noise(p: Vector2) -> float:
 # GOANNA_PUDDLE_DRY and GOANNA_PUDDLE_SOAKED; the test reads the shader's.
 const PUDDLE_DRY := 0.98
 const PUDDLE_SOAKED := 0.55
+# GOANNA_POOL_FILL and GOANNA_BASIN_RISE, likewise.
+const POOL_FILL := 0.45
+const BASIN_RISE := 1.2
 
 
+# The basins, goanna_puddle.
 static func puddle(p: Vector2, wet: float) -> float:
 	var n := 0.7 * weather_noise(p / 3.1) + 0.3 * weather_noise(p / 1.13 + Vector2(17, 5))
 	var t := lerpf(PUDDLE_DRY, PUDDLE_SOAKED, clampf(wet, 0.0, 1.0))
-	return smoothstep(t, t + 0.08, n)
+	return smoothstep(t - 0.06, t + 0.1, n)
 
 
-# (puddle, splash) at a point, as goanna_ground_rain gives them. `open` is
-# the cover map's answer there (or the sky light fallback), 0 or 1.
+# goanna_water_level: how high water stands, on the relief's own height.
+static func water_level(p: Vector2, wet: float) -> float:
+	return POOL_FILL * smoothstep(0.35, 1.0, wet) + BASIN_RISE * puddle(p, wet)
+
+
+# goanna_pool: (water, wet margin, depth) at a relief height h.
+static func pool(level: float, weight: float, h: float) -> Vector3:
+	var water := (1.0 - smoothstep(level - 0.04, level, h)) * weight
+	var shore := (1.0 - smoothstep(level, level + 0.25, h)) * weight * (1.0 - water)
+	var depth := clampf((level - h) * 4.0, 0.0, 1.0) * water
+	return Vector3(water, shore, depth)
+
+
+# GOANNA_SPLASH_PX_FULL and GOANNA_SPLASH_PX_GONE.
+const SPLASH_PX_FULL := 0.012
+const SPLASH_PX_GONE := 0.03
+
+
+# (water level, how much of it the ground holds, splash) at a point, as
+# goanna_ground_rain gives them. `open` is the cover map's answer there (or
+# the sky light fallback), 0 or 1; `px` the world size of a pixel.
 static func ground_terms(p: Vector3, normal_y: float, rain: float, wet: float, open: float,
-		flatten: float, eye_d: float) -> Vector2:
-	var t := Vector2.ZERO
+		flatten: float, eye_d: float, px: float) -> Vector3:
+	var t := Vector3.ZERO
 	if (rain > 0.001 or wet > 0.35) and normal_y > 0.7:
 		if wet > 0.35 and normal_y > 0.95:
-			t.x = puddle(Vector2(p.x, p.z), wet) * open * (1.0 - flatten)
-		t.y = minf(rain, 1.5) * (1.0 - smoothstep(10.0, 22.0, eye_d)) * (1.0 - flatten) * open
+			t.x = water_level(Vector2(p.x, p.z), wet)
+			t.y = smoothstep(0.35, 0.45, wet) * open * (1.0 - flatten)
+		t.z = minf(rain, 1.5) * (1.0 - smoothstep(10.0, 22.0, eye_d)) \
+				* (1.0 - smoothstep(SPLASH_PX_FULL, SPLASH_PX_GONE, px)) * (1.0 - flatten) * open
 	return t
+
+
+# The world size of a pixel at a distance, looking square on at 1080 lines
+# and a 70 degree view: what the status trace takes for `px`, since it has
+# no screen to measure.
+static func pixel_at(dist: float) -> float:
+	return dist * 2.0 * tan(deg_to_rad(35.0)) / 1080.0
+
+
+# goanna_wet_darken: the factor rain puts on the ground's own colour.
+static func wet_darken(pool_v: Vector3, mark: float, porosity: float) -> float:
+	var soak := maxf(pool_v.y, mark) * (1.0 - pool_v.x)
+	return (1.0 - pool_v.x * (0.28 + 0.12 * porosity + 0.2 * pool_v.z)) \
+			* (1.0 - soak * (0.08 + 0.17 * porosity))
+
+
+# GOANNA_SPLASH_CELL, _PERIOD, _LIFE and _WIDTH.
+const SPLASH_CELL := 0.22
+const SPLASH_PERIOD := 0.6
+const SPLASH_LIFE := 0.6
+const SPLASH_WIDTH := 0.06
+
+
+# goanna_splash_ring: (slope, wet mark) at r cells from a drop, k of the way
+# through its life, growing to rmax, half width w.
+static func splash_ring(r: float, k: float, rmax: float, w: float) -> Vector2:
+	var radius := rmax * (1.0 - (1.0 - k) * (1.0 - k))
+	var x := (r - radius) / w
+	var fade := (1.0 - k) * (1.0 - k) * (SPLASH_WIDTH / w)
+	var slope := -1.2 * x * exp(-x * x) * fade
+	var mark := (1.0 - smoothstep(radius, radius + 2.0 * w, r)) * (1.0 - k)
+	return Vector2(slope, mark)
 
 
 # What a live check needs to tell "not raining" from "raining but hidden":
@@ -369,17 +427,20 @@ func ground_trace(eye: Vector3, rain: float, wet: float) -> Dictionary:
 	g["near_mesh"] = true
 	g["eye_distance"] = eye_d
 	g["splash_range"] = 1.0 - smoothstep(10.0, 22.0, eye_d)
-	var t := ground_terms(p, normal_y, rain, wet, open, 0.0, eye_d)
-	g["puddle_noise"] = puddle(Vector2(p.x, p.z), wet)
-	g["puddle"] = t.x
-	g["splash"] = t.y
+	g["pixel"] = pixel_at(eye_d)
+	var t := ground_terms(p, normal_y, rain, wet, open, 0.0, eye_d, g["pixel"])
+	g["basin"] = puddle(Vector2(p.x, p.z), wet)
+	g["water_level"] = t.x
+	g["pool"] = t.y
+	g["splash"] = t.z
 	g["failing"] = first_shut_gate(g)
 	return g
 
 
-# The first gate in `g` (a ground_trace) that is shut, or "" if none is. A
-# puddle at this exact point depends on where the noise puts puddles, so a
-# zero puddle term is reported but is not a failure.
+# The first gate in `g` (a ground_trace) that is shut, or "" if none is.
+# Whether water stands at this exact point depends on the tile's relief and
+# on where the noise puts basins, neither of which the trace knows, so the
+# level is reported but is not a gate.
 static func first_shut_gate(g: Dictionary) -> String:
 	if not bool(g.get("shader_has_terms", false)):
 		return "the ground's shader (%s) has no splash or puddle terms" % g.get("shader", "?")

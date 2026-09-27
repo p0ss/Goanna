@@ -22,10 +22,12 @@
 #     is drawn on the lens, and nothing under a roof;
 #   - the peak opacity of a drop at the constants weather.gd pushes to the
 #     material;
-#   - both node array shaders draw the splash and puddle terms, which are
-#     there on open, flat, up facing ground after a minute of rain and not
-#     under a roof, and the status trace of every gate reads them open on
-#     open sand;
+#   - both node array shaders draw the ground's rain from the shared terms:
+#     standing water fills a relief's hollows at wetness 0.6 while its crests
+#     are only damp, basins flood after a minute of rain, nothing under a
+#     roof; a splash ring grows over its life and its colour is a factor on
+#     the ground's own; and the status trace of every gate reads them open
+#     on open sand;
 #   - a lightning spawner becomes a bolt and a light, not an emitter, and
 #     both are gone after its time; main.gd tells the server's white flash
 #     sky from a real one.
@@ -597,80 +599,199 @@ const WET_AFTER_A_MINUTE := 0.8647
 
 func _test_ground_terms() -> void:
 	var common := FileAccess.get_file_as_string(COMMON)
-	check(is_equal_approx(_shader_const(common, "const float GOANNA_PUDDLE_DRY = ([0-9.]+);"), Weather.PUDDLE_DRY)
-			and is_equal_approx(_shader_const(common, "const float GOANNA_PUDDLE_SOAKED = ([0-9.]+);"), Weather.PUDDLE_SOAKED),
-			"weather.gd's puddle thresholds are the shader's")
+	for pair in [["GOANNA_PUDDLE_DRY", Weather.PUDDLE_DRY], ["GOANNA_PUDDLE_SOAKED", Weather.PUDDLE_SOAKED],
+			["GOANNA_POOL_FILL", Weather.POOL_FILL], ["GOANNA_BASIN_RISE", Weather.BASIN_RISE],
+			["GOANNA_SPLASH_PX_FULL", Weather.SPLASH_PX_FULL], ["GOANNA_SPLASH_PX_GONE", Weather.SPLASH_PX_GONE],
+			["GOANNA_SPLASH_CELL", Weather.SPLASH_CELL], ["GOANNA_SPLASH_PERIOD", Weather.SPLASH_PERIOD],
+			["GOANNA_SPLASH_LIFE", Weather.SPLASH_LIFE], ["GOANNA_SPLASH_WIDTH", Weather.SPLASH_WIDTH]]:
+		check(is_equal_approx(_shader_const(common, "const float %s = ([0-9.]+);" % pair[0]), pair[1]),
+				"weather.gd's %s is not the shader's" % pair[0])
+	# Each GDScript copy in weather.gd, line by line against the source, so
+	# the checks below are checks of the shader.
 	for text in ["float n = 0.7 * goanna_weather_noise(p / 3.1)",
 			"+ 0.3 * goanna_weather_noise(p / 1.13 + vec2(17.0, 5.0));",
-			"return smoothstep(t, t + 0.08, n);",
+			"return smoothstep(t - 0.06, t + 0.1, n);",
+			"return GOANNA_POOL_FILL * smoothstep(0.35, 1.0, wet)",
+			"+ GOANNA_BASIN_RISE * goanna_puddle(p, wet);",
+			"float water = (1.0 - smoothstep(level - 0.04, level, h)) * weight;",
+			"float shore = (1.0 - smoothstep(level, level + 0.25, h)) * weight * (1.0 - water);",
+			"float depth = clamp((level - h) * 4.0, 0.0, 1.0) * water;",
 			"if ((goanna_rain > 0.001 || wet > 0.35) && n.y > 0.7) {",
 			"float open_sky = goanna_rain_open(p, smoothstep(0.85, 0.95, sky));",
-			"if (wet > 0.35 && n.y > 0.95)",
-			"t.x = goanna_puddle(p.xz, wet) * open_sky * (1.0 - flatten);",
-			"t.y = min(goanna_rain, 1.5) * (1.0 - smoothstep(10.0, 22.0, eye_d))",
-			"* (1.0 - flatten) * open_sky;"]:
-		check(common.contains(text), "goanna_ground_rain no longer matches weather.gd's copy: " + text)
-	# Both array shaders draw the terms. In play the ground was once drawn by
-	# the scissor one (docs/weather.md), which had none, and nobody ever saw
-	# a splash or a puddle. The near mesh now picks by the tile's own layer,
-	# but the far tiers and every cut-out still take the scissor one.
+			"if (wet > 0.35 && n.y > 0.95) {",
+			"t.x = goanna_water_level(p.xz, wet);",
+			"t.y = smoothstep(0.35, 0.45, wet) * open_sky * (1.0 - flatten);",
+			"t.z = min(goanna_rain, 1.5) * (1.0 - smoothstep(10.0, 22.0, eye_d))",
+			"* (1.0 - smoothstep(GOANNA_SPLASH_PX_FULL, GOANNA_SPLASH_PX_GONE, px))",
+			"* (1.0 - flatten) * open_sky;",
+			"float soak = max(pool.y, mark) * (1.0 - pool.x);",
+			"return (1.0 - pool.x * (0.28 + 0.12 * porosity + 0.2 * pool.z))",
+			"* (1.0 - soak * (0.08 + 0.17 * porosity));",
+			"float radius = rmax * (1.0 - (1.0 - k) * (1.0 - k));",
+			"float x = (r - radius) / w;",
+			"float fade = (1.0 - k) * (1.0 - k) * (GOANNA_SPLASH_WIDTH / w);",
+			"float slope = -1.2 * x * exp(-x * x) * fade;",
+			"float mark = (1.0 - smoothstep(radius, radius + 2.0 * w, r)) * (1.0 - k);",
+			"float density = clamp(0.45 * rain, 0.0, 0.9);",
+			"vec2 ring = goanna_splash_ring(r, age / GOANNA_SPLASH_LIFE, max(edge - 2.5 * w, 0.0), w);"]:
+		check(common.contains(text), "weather_common.gdshaderinc no longer matches weather.gd's copy: " + text)
+	# Both array shaders draw the terms, from the one shared set. In play the
+	# ground was once drawn by the scissor one (docs/weather.md), which had
+	# none, and nobody ever saw a splash or a puddle. The near mesh now picks
+	# by the tile's own layer, but the far tiers and every cut-out still take
+	# the scissor one.
 	for path in [NODES, SCISSOR]:
 		var src := FileAccess.get_file_as_string(path)
-		check(src.contains("vec2 ground_rain = goanna_ground_rain(v_world, v_wnormal, v_nodelight.g, flatten,")
-				and src.contains("rings = goanna_rain_rings(v_world.xz, TIME, 0.7, 0.5,")
-				and src.contains("ALBEDO *= 1.0 - 0.5 * puddle;"),
-				path + " does not draw splashes and puddles")
+		for text in ["vec3 ground_rain = goanna_ground_rain(v_world, v_wnormal, v_nodelight.g, flatten,",
+				"vec3 pool = goanna_pool(ground_rain.x, ground_rain.y, relief_h);",
+				"splash = goanna_rain_splash(v_world.xz, TIME, px, goanna_rain) * min(ground_rain.z, 1.0);",
+				"ALBEDO *= goanna_wet_darken(pool, splash.z, porosity);",
+				"float px = max(length(",
+				"relief_h = n.a;"]:
+			check(src.contains(text), path + " does not draw the ground's rain: " + text)
+		# Nothing in the rain block adds light or mixes toward a colour of
+		# its own: a splash is the surface's own shading.
+		var from := src.find("vec3 ground_rain = goanna_ground_rain(")
+		var to := src.find("// Node light and occlusion.")
+		var block := src.substr(from, to - from) if from >= 0 and to > from else ""
+		check(block != "" and not block.contains("EMISSION") and not block.contains("ALBEDO = mix("),
+				path + ": the rain block adds light or paints a colour of its own")
+		# The height is taken only from a layer whose map has one.
+		check(src.contains("if (layer_depth[layer] > 0.0) {\n\t\t\trelief_h = n.a;"),
+				path + " takes a height from a layer with no authored height")
+	# In nodes_array.gdshader the height is the one the march landed on: it
+	# is read from the fetch at the moved coordinate, after the move.
+	var nsrc := FileAccess.get_file_as_string(NODES)
+	var moved := nsrc.find("tile_uv = tile_uv - slope * d_hit;")
+	var fetch := nsrc.find("vec4 n = textureGrad(normal_array, vec3(tile_uv, float(layer)), uv_dx, uv_dy);")
+	var height := nsrc.find("relief_h = n.a;")
+	check(moved > 0 and fetch > moved and height > fetch,
+			"nodes_array.gdshader's water does not read the height the march landed on")
+
 	var cover := RainCover.new(FakeMap.new())
 	while not cover.step(Vector3(3, 1, -1), 0.016):
 		pass
 	var eye := Vector3(8.0, 2.1, 4.0)
-	# Puddle share of open flat ground by wetness: none when damp, some
-	# after a minute, more when soaked.
+	var px_near := Weather.pixel_at(3.0)
+	# Basins, where the level passes every crest: none on merely damp
+	# ground, some after a minute, more when soaked.
 	var shares := {}
 	for wet in [0.3, 0.6, WET_AFTER_A_MINUTE, 1.0]:
 		var n := 0
-		var wet_n := 0
+		var flooded := 0
 		for x in 80:
 			for z in 80:
 				n += 1
-				if Weather.puddle(Vector2(100.0 + x * 0.5, 100.0 + z * 0.5), wet) > 0.5:
-					wet_n += 1
-		shares[wet] = float(wet_n) / float(n)
-	print("weather: puddle share of open flat ground at wetness 0.3, 0.6, %.2f (a minute), 1: %.2f, %.2f, %.2f, %.2f"
+				var t := Weather.ground_terms(Vector3(100.0 + x * 0.5, 0.5, 100.0 + z * 0.5),
+						1.0, 1.0, wet, 1.0, 0.0, 3.0, px_near)
+				if Weather.pool(t.x, t.y, 1.0).x > 0.5:
+					flooded += 1
+		shares[wet] = float(flooded) / float(n)
+	print("weather: flooded share of open flat ground at wetness 0.3, 0.6, %.2f (a minute), 1: %.2f, %.2f, %.2f, %.2f"
 			% [WET_AFTER_A_MINUTE, shares[0.3], shares[0.6], shares[WET_AFTER_A_MINUTE], shares[1.0]])
-	check(shares[0.3] < 0.01, "no puddles on merely damp ground")
-	check(shares[WET_AFTER_A_MINUTE] >= 0.1, "after a minute of rain puddles cover a tenth of open flat ground or more")
-	check(shares[1.0] < 0.4 and shares[0.6] < shares[1.0], "puddles grow with wetness, to under two fifths")
-	# An open point with a puddle near the eye, and the same terms on a
-	# wall and under the roof.
-	var found := _find_puddle(Vector3(6.0, 0.5, 2.0), WET_AFTER_A_MINUTE)
-	check(found != Vector3.INF, "no puddle anywhere near the eye after a minute of rain")
-	if found != Vector3.INF:
-		var open := _shader_open(cover, found, 1.0)
-		var t := Weather.ground_terms(found, 1.0, 1.0, WET_AFTER_A_MINUTE, open, 0.0, eye.distance_to(found))
-		check(open == 1.0 and t.x > 0.5 and t.y > 0.5,
-				"open flat ground at intensity 1 after a minute splashes and puddles: %s" % str(t))
-		var side := Weather.ground_terms(found, 0.0, 1.0, 1.0, open, 0.0, eye.distance_to(found))
-		check(side == Vector2.ZERO, "a wall does not splash or puddle")
+	check(shares[0.3] < 0.01, "no basin floods on merely damp ground")
+	check(shares[WET_AFTER_A_MINUTE] >= 0.1, "after a minute of rain basins flood a tenth of open flat ground or more")
+	check(shares[1.0] < 0.4 and shares[0.6] < shares[1.0], "basins grow with wetness, to under two fifths")
+	# The relief fills: on open flat ground clear of any basin, at wetness
+	# 0.6, a hollow of the relief is water and a crest is not, nor its wet
+	# margin, so the crest is left to the damp film.
+	var dry := _find_basin(Vector3(6.0, 0.5, 2.0), 0.6, false)
+	check(dry != Vector3.INF, "no ground clear of a basin near the eye")
+	if dry != Vector3.INF:
+		var open := _shader_open(cover, dry, 1.0)
+		var t := Weather.ground_terms(dry, 1.0, 1.0, 0.6, open, 0.0, eye.distance_to(dry), px_near)
+		var low := Weather.pool(t.x, t.y, 0.05)
+		var crest := Weather.pool(t.x, t.y, 0.95)
+		print("weather: at wetness 0.6 the level is %.2f; a hollow at 0.05 is water %.2f, a crest at 0.95 water %.2f, margin %.2f"
+				% [t.x, low.x, crest.x, crest.y])
+		check(open == 1.0 and low.x > 0.9, "a hollow of the relief stands under water at wetness 0.6")
+		check(crest.x == 0.0 and crest.y == 0.0, "a crest is only damp at wetness 0.6")
+		var margin := Weather.pool(t.x, t.y, t.x + 0.1)
+		check(margin.x == 0.0 and margin.y > 0.3, "just above the waterline is a wet margin")
+		var damp := Weather.ground_terms(dry, 1.0, 1.0, 0.3, open, 0.0, 2.0, px_near)
+		check(Weather.pool(damp.x, damp.y, 0.0).x == 0.0, "no water stands at wetness 0.3, even in the deepest hollow")
+		var side := Weather.ground_terms(dry, 0.0, 1.0, 1.0, open, 0.0, 2.0, px_near)
+		check(side == Vector3.ZERO, "a wall does not splash or hold water")
+	# A basin floods crests too, and a tile with no authored height (1).
+	var basin := _find_basin(Vector3(6.0, 0.5, 2.0), WET_AFTER_A_MINUTE, true)
+	check(basin != Vector3.INF, "no basin anywhere near the eye after a minute of rain")
+	if basin != Vector3.INF:
+		var t := Weather.ground_terms(basin, 1.0, 1.0, WET_AFTER_A_MINUTE, _shader_open(cover, basin, 1.0),
+				0.0, eye.distance_to(basin), px_near)
+		check(Weather.pool(t.x, t.y, 1.0).x > 0.9 and t.z > 0.5,
+				"in a basin after a minute of rain a crest is under water, and splashes: %s" % str(t))
+	# Nothing under cover: no water held, no splash, at any height.
 	var under := Vector3(3.0, 1.5, -2.0)
 	var covered := _shader_open(cover, under, 1.0)
-	var tu := Weather.ground_terms(under, 1.0, 1.0, 1.0, covered, 0.0, 2.0)
-	check(covered == 0.0 and tu == Vector2.ZERO, "under a roof nothing splashes or puddles: %s" % str(tu))
-	# The splash crown, from goanna_rain_rings at the ground's cell, period
-	# and density: at ordinary rain the ground near the eye has flecks on it
-	# at any moment.
-	check(common.contains("acc.z += (1.0 - smoothstep(0.05, 0.2, age)) * (1.0 - smoothstep(0.08, 0.2, r));"),
-			"the splash crown no longer matches the test's reading of it")
-	var per_second := 2.0 / (0.7 * 0.7) * 0.5 / 0.5
-	print("weather: splash flecks: %.1f a square node a second" % per_second)
-	check(per_second >= 3.0, "fewer than three splashes a square node a second at intensity 1")
+	var tu := Weather.ground_terms(under, 1.0, 1.0, 1.0, covered, 0.0, 2.0, px_near)
+	check(covered == 0.0 and tu.y == 0.0 and tu.z == 0.0 and Weather.pool(tu.x, tu.y, 0.0) == Vector3.ZERO,
+			"under a roof nothing splashes or stands in water: %s" % str(tu))
+	# Splashes fade where a pixel is too wide for a ring.
+	var wide := Weather.ground_terms(Vector3(6.0, 0.5, 2.0), 1.0, 1.0, 0.0, 1.0, 0.0, 8.0, 0.05)
+	check(wide.z == 0.0, "splashes are gone where a pixel is 5 cm")
+
+	# A splash ring grows over its life and dies away, and its mark goes.
+	# Where the ring is, by its leading edge: the steepest fall outward.
+	var radii := []
+	var peaks := []
+	var prev_r := -1.0
+	var grows := true
+	for i in 9:
+		var k := 0.05 + 0.1 * i
+		var best_r := 0.0
+		var best := 0.0
+		for j in 500:
+			var r := j * 0.001
+			var v := -Weather.splash_ring(r, k, 0.3, Weather.SPLASH_WIDTH).x
+			if v > best:
+				best = v
+				best_r = r
+		radii.append(snappedf(best_r * Weather.SPLASH_CELL, 0.001))
+		peaks.append(snappedf(best, 0.01))
+		grows = grows and best_r > prev_r
+		prev_r = best_r
+	print("weather: splash ring radius (nodes) over its life: %s, peak slope %s" % [str(radii), str(peaks)])
+	check(grows, "a splash ring grows over its life")
+	check(peaks[8] < peaks[0] * 0.1, "a splash ring dies away over its life")
+	check(Weather.splash_ring(0.0, 0.05, 0.3, Weather.SPLASH_WIDTH).y > 0.9
+			and Weather.splash_ring(0.0, 0.99, 0.3, Weather.SPLASH_WIDTH).y < 0.02,
+			"a splash's wet mark is there at impact and gone at the end of its life")
+	# Its size, from the smallest cell margin to the largest.
+	var smallest := 2.0 * (0.3 - 2.5 * Weather.SPLASH_WIDTH) * Weather.SPLASH_CELL
+	var largest := 2.0 * (0.5 - 2.5 * Weather.SPLASH_WIDTH) * Weather.SPLASH_CELL
+	print("weather: splash rings grow to %.3f to %.3f nodes across" % [smallest, largest])
+	check(smallest >= 0.04 and largest <= 0.2, "a splash is a few centimetres to a tenth or two of a node")
+	var per_second := 2.0 / (Weather.SPLASH_CELL * Weather.SPLASH_CELL) * 0.45 / Weather.SPLASH_PERIOD
+	print("weather: splashes: %.1f a square node a second, each ring %.2f s"
+			% [per_second, Weather.SPLASH_PERIOD * Weather.SPLASH_LIFE])
+	check(per_second >= 20.0, "fewer than twenty splashes a square node a second at intensity 1")
+
+	# The colour: a function of the ground's own albedo, a factor on it and
+	# never above it, so nothing white is painted or added.
+	var worst_add := 0.0
+	var worst_factor := 1.0
+	for albedo in [Color(0, 0, 0), Color(0.9, 0.88, 0.85), Color(0.55, 0.32, 0.12), Color(0.2, 0.5, 0.1)]:
+		for water in [0.0, 0.5, 1.0]:
+			for shore in [0.0, 0.5, 1.0]:
+				for mark in [0.0, 0.5, 1.0]:
+					for porosity in [0.0, 0.35, 1.0]:
+						var f := Weather.wet_darken(Vector3(water, shore, water), mark, porosity)
+						worst_factor = minf(worst_factor, f)
+						for c in 3:
+							worst_add = maxf(worst_add, albedo[c] * f - albedo[c])
+	print("weather: rain on the ground scales albedo by %.2f to 1; largest addition %.3f" % [worst_factor, worst_add])
+	check(worst_add <= 0.01, "rain adds colour to the ground: %.3f" % worst_add)
+	check(worst_factor >= 0.35, "rain darkens the ground past recognition: %.2f" % worst_factor)
 
 
-func _find_puddle(from: Vector3, wet: float) -> Vector3:
+# A point on open flat ground in a basin (`inside`) or clear of any, at
+# wetness `wet`.
+func _find_basin(from: Vector3, wet: float, inside: bool) -> Vector3:
 	for x in 80:
 		for z in 80:
 			var p := from + Vector3(x * 0.25, 0.0, z * 0.25)
-			if Weather.puddle(Vector2(p.x, p.z), wet) > 0.9:
+			var b := Weather.puddle(Vector2(p.x, p.z), wet)
+			if (inside and b > 0.95) or (not inside and b == 0.0):
 				return p
 	return Vector3.INF
 
@@ -706,20 +827,23 @@ func _test_gate_trace() -> void:
 	await process_frame
 	while not w.cover.step(Vector3(515, 2, 447), 0.016):
 		pass
-	var spot := _find_puddle(Vector3(510.0, 0.5, 440.0), WET_AFTER_A_MINUTE)
-	check(spot != Vector3.INF, "no puddle near the beach to stand in")
+	var spot := _find_basin(Vector3(510.0, 0.5, 440.0), WET_AFTER_A_MINUTE, true)
+	check(spot != Vector3.INF, "no basin near the beach to stand in")
 	var eye := Vector3(spot.x, 0.5 + EYE_H, spot.z)
 	var g: Dictionary = w.ground_trace(eye, 1.0, WET_AFTER_A_MINUTE)
-	print("weather: ground trace on open sand: shader %s, open %s, splash %.2f, puddle %.2f, failing \"%s\""
-			% [g.get("shader"), g.get("open"), g.get("splash", -1.0), g.get("puddle", -1.0), g.get("failing")])
+	print("weather: ground trace on open sand: shader %s, open %s, splash %.2f, water level %.2f, held %.2f, failing \"%s\""
+			% [g.get("shader"), g.get("open"), g.get("splash", -1.0), g.get("water_level", -1.0),
+			g.get("pool", -1.0), g.get("failing")])
 	check(g.get("node") == "mcl_core:sand" and is_equal_approx((g["point"] as Vector3).y, 0.5),
 			"the trace finds the sand's top face under the eye")
 	check(g.get("failing") == "", "a gate is shut on open sand: %s" % g.get("failing"))
 	for k in ["shader_has_terms", "weather_on", "up_facing", "flat", "wet_enough_to_puddle", "near_mesh"]:
 		check(bool(g.get(k, false)), "gate %s is shut on open sand" % k)
 	check(float(g.get("open", 0.0)) == 1.0, "open sand is open by the cover map")
-	check(float(g.get("splash", 0.0)) > 0.5 and float(g.get("puddle", 0.0)) > 0.5,
-			"splash and puddle on open sand: %.2f, %.2f" % [g.get("splash", 0.0), g.get("puddle", 0.0)])
+	check(float(g.get("splash", 0.0)) > 0.5 and float(g.get("pool", 0.0)) > 0.5
+			and float(g.get("water_level", 0.0)) > 1.0,
+			"splash and standing water in a basin on open sand: %.2f, %.2f, %.2f"
+			% [g.get("splash", 0.0), g.get("pool", 0.0), g.get("water_level", 0.0)])
 	check(not bool(g.get("layer_alpha", true)), "the trace reports sand's own layer as opaque")
 	# The scissor shader as it was, with no terms, drawing the sand as it
 	# once did: the trace names it.

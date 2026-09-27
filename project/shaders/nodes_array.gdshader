@@ -109,6 +109,9 @@ void fragment() {
 	// inside flow that not every pixel of the quad takes is undefined.
 	vec3 dpx = dFdx(v_world);
 	vec3 dpy = dFdy(v_world);
+	// The world size of a pixel, which sizes and fades the rain splashes
+	// (weather_common.gdshaderinc).
+	float px = max(length(dpx), length(dpy));
 	float self_shadow = 1.0;
 	float pom = 0.0;
 	if (has_normal && parallax_strength > 0.001 && flatten < 0.999) {
@@ -204,6 +207,13 @@ void fragment() {
 	SPECULAR = 0.2;
 	float pack_ao = 1.0;
 	vec3 relief_normal = vec3(0.0, 0.0, 1.0);
+	// The relief height at the texel drawn, for the rain's standing water.
+	// 1, a crest everywhere, unless the layer's own map carries a height:
+	// a layer with no _n gets a filler whose alpha is 0, and one inferred
+	// from the colour has 255, neither of them a height. layer_depth is
+	// measured only from an authored height, so it says which is which.
+	float relief_h = 1.0;
+	bool relief_known = false;
 
 	if (has_normal) {
 		vec4 n = textureGrad(normal_array, vec3(tile_uv, float(layer)), uv_dx, uv_dy);
@@ -224,6 +234,12 @@ void fragment() {
 		// the shape of the room, and they multiply. Flattened the same way
 		// as the relief above, for the same reason.
 		pack_ao = mix(1.0, n.b, ao_strength * (1.0 - flatten));
+		// The height at the coordinate the march moved to, from this same
+		// fetch, so the water costs no read of its own.
+		if (layer_depth[layer] > 0.0) {
+			relief_h = n.a;
+			relief_known = true;
+		}
 	}
 	// A middling default for tiles without an _s: soil-like, takes rain
 	// without turning to glass.
@@ -293,54 +309,62 @@ void fragment() {
 	ROUGHNESS = max(ROUGHNESS, layer_roughness_floor[layer]);
 
 	// Rain wets what the sky can reach: up facing surfaces with strong sky
-	// light darken and go glossy, so a shower leaves the ground gleaming,
-	// while anything under a roof keeps its dry look; the sky light channel
-	// is the roof test the mesh already carries. Porosity (the _s blue
-	// channel) decides the split the way LabPBR intends: soil soaks and
-	// darkens, stone sheens.
+	// light darken and grow smoother, while anything under a roof keeps its
+	// dry look; the sky light channel is the roof test the mesh already
+	// carries. Porosity (the _s blue channel) decides the split the way
+	// LabPBR intends: soil soaks and darkens, stone sheens. Damp, not
+	// glazed: this took everything open to a roughness of 0.13 with the
+	// relief left whole under it, and the ground read as wet plastic. A film
+	// of water softens the fine relief (below) and smooths the surface only
+	// so far; the mirror is kept for water that stands. The crests of an
+	// authored relief drain first and stay drier.
+	float wet_film = 0.0;
 	if (goanna_wetness > 0.001) {
-		float wet = goanna_wetness * clamp(v_wnormal.y, 0.0, 1.0)
+		wet_film = goanna_wetness * clamp(v_wnormal.y, 0.0, 1.0)
 				* smoothstep(0.55, 0.9, v_nodelight.g);
-		ALBEDO *= 1.0 - wet * (0.10 + 0.18 * porosity);
-		ROUGHNESS = mix(ROUGHNESS, 0.13, wet * (0.85 - 0.45 * porosity));
-		SPECULAR = mix(SPECULAR, 0.5, wet * 0.6);
+		if (relief_known)
+			wet_film *= 1.0 - 0.5 * smoothstep(0.75, 1.0, relief_h) * (1.0 - flatten);
+		ALBEDO *= 1.0 - wet_film * (0.10 + 0.18 * porosity);
+		ROUGHNESS = mix(ROUGHNESS, 0.32, wet_film * (0.8 - 0.4 * porosity));
+		SPECULAR = mix(SPECULAR, 0.4, wet_film * 0.5);
 	}
 
-	// Splashes and puddles, only where rain lands: open, up facing ground
-	// (goanna_ground_rain in weather_common.gdshaderinc has the gating).
-	// A puddle is darker, near mirror smooth, the texture's relief drowned.
-	// A splash is a bright fleck for a moment where each drop lands, and
-	// where the ground is wet it throws a ring, carried in the normal so it
-	// shows in the sheen, as a real one does; in a puddle the ring is at
-	// full strength. The fleck carries a share of the sky fill as its own
-	// light, as the falling drops do, so it can be seen at night. The same
-	// block is in nodes_array_scissor.gdshader, which draws cut-outs near
-	// and every array with one in it on the far tiers: change one, change
-	// the other.
-	vec2 ground_rain = goanna_ground_rain(v_world, v_wnormal, v_nodelight.g, flatten,
-			goanna_wetness, length(v_world - CAMERA_POSITION_WORLD));
-	float puddle = ground_rain.x;
-	float splash = ground_rain.y;
-	vec3 rings = vec3(0.0);
-	if (puddle > 0.001) {
-		ALBEDO *= 1.0 - 0.5 * puddle;
-		ROUGHNESS = mix(ROUGHNESS, 0.03, puddle);
-		SPECULAR = mix(SPECULAR, 0.5, puddle);
-		METALLIC = mix(METALLIC, 0.0, puddle);
-	}
-	if (splash > 0.001) {
-		rings = goanna_rain_rings(v_world.xz, TIME, 0.7, 0.5,
-				clamp(0.5 * goanna_rain, 0.0, 0.9));
-		float fleck = rings.z * min(splash, 1.0);
-		ALBEDO = mix(ALBEDO, vec3(0.9), fleck * 0.8);
-		ROUGHNESS = mix(ROUGHNESS, 0.08, fleck);
-		EMISSION += vec3(1.2) * fleck * mix(goanna_ground_fill, goanna_sky_fill, 0.6);
-	}
-	if (puddle > 0.001 || splash > 0.001) {
-		// Standing water drowns the relief; rings ride on what is left.
-		float ring_k = splash * mix(0.3 * goanna_wetness, 0.7, puddle);
-		vec3 slope = -vec3(rings.x, 0.0, rings.y) * ring_k;
-		vec2 xy = relief_normal.xy * (1.0 - 0.9 * puddle)
+	// Rain on open, up facing ground (goanna_ground_rain and the functions
+	// round it in weather_common.gdshaderinc have the gating and the
+	// numbers). Standing water fills the relief: where the height at the
+	// texel drawn, after the parallax march, lies under the water level,
+	// the surface is water, flat, darker and near mirror smooth, with a wet
+	// margin just above it; the level rises with the wetness, and over every
+	// crest in a basin. A splash is a small ring spreading from where a drop
+	// lands, carried in the normal, over a wet mark that darkens and smooths
+	// the ground's own colour for a moment. Nothing here adds light: a
+	// splash shows the surface's own shading and whatever sky or lamp its
+	// tilted, smoother patch reflects. The same block is in
+	// nodes_array_scissor.gdshader, which draws cut-outs near and every
+	// array with one in it on the far tiers: change one, change the other.
+	vec3 ground_rain = goanna_ground_rain(v_world, v_wnormal, v_nodelight.g, flatten,
+			goanna_wetness, length(v_world - CAMERA_POSITION_WORLD), px);
+	vec3 pool = goanna_pool(ground_rain.x, ground_rain.y, relief_h);
+	float water = pool.x;
+	vec3 splash = vec3(0.0);
+	if (ground_rain.z > 0.001)
+		splash = goanna_rain_splash(v_world.xz, TIME, px, goanna_rain) * min(ground_rain.z, 1.0);
+	if (max(max(wet_film, water), max(pool.y, ground_rain.z)) > 0.001) {
+		ALBEDO *= goanna_wet_darken(pool, splash.z, porosity);
+		// The margin and a splash's mark: smoother, still not glass.
+		ROUGHNESS = mix(ROUGHNESS, 0.22, max(pool.y * 0.6, splash.z * 0.8));
+		ROUGHNESS = mix(ROUGHNESS, 0.06, water);
+		// Water's own F0 of 0.02, which is SPECULAR 0.25: what reflects is
+		// the water over the tile, whatever the tile would.
+		SPECULAR = mix(SPECULAR, 0.25, water);
+		METALLIC = mix(METALLIC, 0.0, water);
+		// Standing water is level, so under it the relief is drowned and the
+		// normal is the face's own; the film and the margin soften the
+		// relief rather than drown it. The rings ride on what is left, at
+		// full strength in water and a third of it on damp ground.
+		vec3 slope = -vec3(splash.x, 0.0, splash.y) * mix(0.35, 1.0, water);
+		vec2 xy = relief_normal.xy * (1.0 - water) * (1.0 - 0.3 * wet_film)
+				* (1.0 - 0.4 * max(pool.y, splash.z))
 				+ vec2(dot(slope, v_wtangent), dot(slope, v_wbinormal));
 		float z = sqrt(clamp(1.0 - dot(xy, xy), 0.0, 1.0));
 		relief_normal = vec3(xy, z);
