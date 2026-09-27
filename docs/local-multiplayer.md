@@ -128,7 +128,8 @@ These are scheduling allowances, not hard frame-time limits: completing
 one mesh can exceed a time slice. Each connection retains its own received
 map and visibility decisions. Experimental process caches now reuse:
 
-- Prepared near-block geometry when the server, definitions, media, texture layout,
+- Prepared near-block geometry when the server, definitions, media, texture
+  layout,
   palette, meshing settings and all 27 block inputs match. Unknown neighbours
   have a separate identity. Active cracks and persisted carves bypass reuse.
 - Immutable LOD hierarchies built from matching received node data or a
@@ -156,8 +157,8 @@ The local benchmark exposes this as `--no-shared-terrain`. Render statistics
 report per-view `shared_near_hits`, `shared_near_builds` and
 `shared_upload_hits`; `shared_lod_hits_process` is process-wide and must not
 be summed across players. A hit count is evidence of reuse, not a frame-time
-saving. Validation and timings are being collected in the
-[tier cycle](perf/tier-cycle-2026-09-27/plan.md).
+saving. Validation and timings are recorded in the
+[tier cycle](perf/tier-cycle-2026-09-27/report.md).
 
 Every player's viewport listens to its own world. Sound gain is reduced as
 players are added. Duplicate world sounds and music are not yet deduplicated;
@@ -169,7 +170,8 @@ belong to the first slot; the control channel does not yet select players.
 
 On 2026-09-27, Godot 4.5.1 with its dummy headless renderer connected four
 and then six players to an unmodified Luanti 5.17.0 server running devtest
-with a small test fixture mod. Each player received a distinct inventory. An ordinary
+with a small test fixture mod. Each player received a distinct inventory.
+An ordinary
 inventory action changed only its owner's inventory, and the remaining
 connections stayed ready when one player left. This was a protocol and
 lifetime check, not a rendered playtest.
@@ -285,3 +287,8 @@ that cancelled work has been resubmitted. `--wall-check --scene occlusion
 --phases together` checks closed, open and restored geometry and lamp
 visibility after recording, retaining each view's shared mesh and material
 identities.
+
+Cloud sampling sweeps hold the sky's cloud offset at the fixture's
+`sky_cloud_offset`, so different sample counts see the same moving-cloud
+position. This is a development recorder override, recorded in scene
+evidence; ordinary gameplay clouds keep their server-driven movement.

@@ -32,6 +32,12 @@ func start(args: Dictionary) -> Dictionary:
 	return super.start(args)
 
 func _process(delta: float) -> void:
+	# Hold the sky workload constant across sampling variants. The game still
+	# updates normally; this development recorder overrides only the sky input.
+	if scene.has("sky_cloud_offset"):
+		var offset: Array = scene.sky_cloud_offset
+		for game in games:
+			game.sky_mat.set_shader_parameter("cloud_offset", Vector2(offset[0], offset[1]))
 	if moving:
 		var distance := float(Time.get_ticks_usec() - _travel_start) / 1000000.0 * travel_speed
 		for i in games.size():
@@ -100,6 +106,9 @@ func scene_evidence() -> Array:
 			"grass_material": game.client.has_meta("goanna_grass_material"),
 			"cloud_height": game.cloud_height,
 			"cloud_style": game.sky_mat.get_shader_parameter("cloud_style"),
+			# Control requests can run before this recorder's final override.
+			"cloud_offset": game.sky_mat.get_shader_parameter("cloud_offset"),
+			"sky_cloud_offset_override": scene.get("sky_cloud_offset", []),
 			"cloud_volume_allocated": game.cloud_body_texture != null,
 			"grass_parameters": game.client.get_meta("goanna_grass_parameters", {})}
 		var sun_dir: Vector3 = game.sky_mat.get_shader_parameter("sun_dir")

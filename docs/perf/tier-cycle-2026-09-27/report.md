@@ -1,10 +1,11 @@
 <!-- SPDX-License-Identifier: LGPL-2.1-or-later -->
 # Tier cycle: terrain sharing and lamp visibility
 
-Status: revised measurements and tuning are still in progress. The original
-40-workload screening is complete. Its differences from the revised client
-are not isolated cache speedups: the revised client also repairs cancelled
-terrain work, and parts of the original run overlapped builds.
+Status: the desktop comparison cycle is complete, including the original
+and revised 40-workload matrices and the controlled follow-ups. Differences
+between the matrices are not isolated cache speedups: the revised client
+also repairs cancelled terrain work, and parts of the original run
+overlapped builds.
 
 ## Method
 
@@ -84,10 +85,10 @@ mesh assembly and drawing remain per player. A cache hit proves reuse,
 not a frame-time saving.
 
 The first GPU-cache prototype hashed complete vertex arrays during
-publication on the main thread. Single-player streaming p99 regressed from about 9.6 ms
-to 38.2 ms. Compact worker-input identities and bypassing single-view near
-caches removed most of that regression in subsequent diagnostic runs.
-Prototype results are not final tier results.
+publication on the main thread. Single-player streaming p99 regressed from
+about 9.6 ms to 38.2 ms. Compact worker-input identities and bypassing
+single-view near caches removed most of that regression in subsequent
+diagnostic runs. Prototype results are not final tier results.
 
 Wall checks exposed large missing terrain sections in both the original
 client and the cache-bypassed prototype. Disabling terrain culling did not
@@ -102,17 +103,19 @@ received and displayed closed, open and restored wall edits. This diagnostic
 run also logged a separate character basis error during startup; it is not
 labelled a clean performance run.
 
-The native suite, profile-transition checks and benchmark settling tests
-pass. A dummy-renderer server test checked four independent inventories,
-ordinary actions affecting only their owner, and remaining connections
-staying ready when another player leaves.
+A subsequent clean GPU run passed the permanent worker-reset check and all
+five wall states, with no client errors. Its raw evidence is retained with
+the controlled comparisons. The native suite, profile-transition checks and
+benchmark settling tests pass. A dummy-renderer server test checked four
+independent inventories, ordinary actions affecting only their owner, and
+remaining connections staying ready when another player leaves.
 
 ## Lamp visibility prototype
 
 The experimental `lamp_occlusion` switch reduces direct light leaking
 through received full cubes. Static 64-node grids avoid repeated uploads;
-changes refresh at most ten times per second. It is currently off in all
-presets pending the dense-light comparison. Partial nodes, carved openings,
+changes refresh at most ten times per second. It remains off in all presets
+after the dense-light comparison below. Partial nodes, carved openings,
 carried lights, water, ice and volumetric fog retain their existing paths.
 Unknown cells and unmatched sources fail open. Exactly collinear lamps
 cannot always be distinguished from a light direction alone. Emission and
@@ -174,6 +177,127 @@ the noted startup animation error. The
 
 ## Controlled comparisons and tuning
 
-Still in progress. The matrix used [revised-source.json](revised-source.json).
-The older `after-source.json` describes the superseded full-array-hashing
-prototype, not this client.
+The implementation control uses [control-source.json](control-source.json).
+It excludes empty GPU meshes from cache-hit counts and skips cache-key
+construction when sharing is disabled. There were no concurrent builds or
+test suites. The older `after-source.json` describes the superseded
+full-array-hashing prototype.
+
+### Shared terrain, overlapping travel
+
+Four players start eight nodes from the centre, retain their own viewing
+angles and move together along +Z. Each tier runs with sharing disabled,
+enabled and disabled again. All six trials started settled and drained at
+the endpoint. Values are median / p99 frame time in milliseconds.
+
+| Tier | Phase | Off before | On | Off after |
+| --- | --- | ---: | ---: | ---: |
+| Low | Stationary | 10.96 / 14.27 | 10.86 / 15.11 | 11.03 / 15.24 |
+| Low | Streaming | 14.88 / 28.56 | 14.92 / 28.87 | 15.24 / 31.59 |
+| Medium | Stationary | 15.61 / 21.79 | 15.29 / 24.36 | 14.66 / 19.95 |
+| Medium | Streaming | 40.97 / 59.51 | 40.93 / 66.05 | 37.84 / 63.47 |
+
+Neither tier shows a clear frame-time saving beyond control drift. The
+sampled moving intervals contained 21 near-cache hits at Low and 27 at
+Medium, against 2,143 and 1,487 near-cache builds respectively. Nonempty GPU
+mesh hits were zero and one. Process-wide LOD hits increased by 6,670 and
+3,929; these include identical empty blocks and within-player reuse, so they
+are not counts of cross-player meshes saved.
+
+Matching the full received neighbourhood is deliberately conservative.
+Different views, arrival order, edits and cache eviction can reduce reuse;
+these trials do not isolate their individual contributions. Near first
+misses can still build concurrently. Far-region capture, assembly and
+publication remain per player. This is a foundation for sharing, not the
+large general splitscreen saving originally hoped for.
+
+The first Medium disabled control sampled 25.30 ms of summed main-thread
+work across players, including 15.13 ms in LOD and 5.26 ms in terrain
+polling. These one-second observations are diagnostic, not a complete CPU
+profile. They point towards the remaining per-view region work.
+
+Rare stalls persisted in enabled and disabled runs. Streaming maxima were
+508, 509 and 193 ms for Low, and 102, 108 and 549 ms for Medium. The cache
+comparison does not establish their cause or repair them.
+
+### Lamp visibility in the night fixture
+
+The Low night fixture uses 32 active lamps per player and no shadow maps.
+Occlusion is bracketed by disabled controls. Values are median / p99 frame
+time, followed by the summed viewport GPU diagnostic, all in milliseconds.
+
+| Players | Off before | On | Off after | GPU off / on / off |
+| --- | ---: | ---: | ---: | ---: |
+| 1 | 2.57 / 3.49 | 3.28 / 4.46 | 2.65 / 3.47 | 2.23 / 3.19 / 2.37 |
+| 4 | 10.31 / 15.70 | 9.78 / 13.45 | 9.75 / 13.66 | 6.73 / 8.09 / 6.67 |
+
+Single-player frame time increases by about 24-28%. Four-player frame time
+is within the control range, but its GPU diagnostic rises by about 20-21%.
+This is not a free fallback. Static grid refresh averaged roughly 0.05 ms
+in the single-player samples; that does not price rebuilding a moving grid.
+The feature remains experimental and off in every preset.
+
+The clean [closed wall without occlusion](wall-clean-off.png),
+[closed wall with occlusion](wall-clean-on.png) and
+[open wall](wall-clean-open.png) document the permanent correctness check.
+All four players received every edit, and all five states settled. The
+worker reset interrupted six building regions, changed the worker count,
+restored it and drained. These runs logged no client errors. Small residual
+visual gaps remain visible; this test does not certify every terrain edge.
+
+### Cloud sampling
+
+Low uses 16 view samples and three sun samples for its fluffy block clouds.
+The candidate uses 12 and two. The first sweep let cloud position advance,
+so its changing screen coverage makes it diagnostic only. The final sweep
+holds the sky shader offset at `(0, 0)` for each variant, retaining ordinary
+game updates. Its scene controls record the override. A control request can
+read the game's temporary offset before the recorder applies the override;
+that intermediate value is not the offset used for the rendered frame.
+
+Values are median / p99 frame time, followed by the summed viewport GPU
+diagnostic, in milliseconds.
+
+| Players | 16/3 before | 12/2 | 16/3 after | GPU before / candidate / after |
+| --- | ---: | ---: | ---: | ---: |
+| 1 | 2.08 / 2.73 | 2.09 / 2.75 | 2.12 / 5.22 | 1.71 / 1.60 / 1.71 |
+| 4 | 9.28 / 12.44 | 9.29 / 13.59 | 9.36 / 13.00 | 5.83 / 5.36 / 5.86 |
+
+The candidate reduces the GPU diagnostic by about 7% for one player and 8%
+for four, but median frame times remain within the controls. The restored
+single-player control has a noisier tail; it does not establish a p99 win.
+The [16/3 image](cloud-16-3.png) and [12/2 image](cloud-12-2.png) retain the
+same rounded silhouette, with subtle shading differences. Static images do
+not establish equal quality during movement or inside clouds.
+
+Keep Low at 16/3 for now. The 12/2 option remains available for a GPU-limited
+machine to evaluate, without changing the cloud style. There is no measured
+whole-frame improvement here that warrants spending its visual margin.
+
+## Decisions and remaining limits
+
+Keep the five preset budgets unchanged. The new baseline does not provide
+clear shared-terrain headroom to raise view distances. Keep lamp occlusion
+off by default, and retain Low's approved cloud sampling. These are tuning
+decisions from this desktop cycle, not completed hardware calibration.
+
+The next substantial terrain optimisation should address duplicated region
+capture, assembly and publication, while retaining per-connection knowledge
+and per-view materials. Near cache misses still duplicate work; persisted
+carves conservatively bypass near sharing for the whole connection. Rare
+long stalls and small visual gaps remain open findings.
+
+Lowest and Low remain candidates for four-player and single-player Steam
+Deck use respectively. Medium and High retain their provisional laptop and
+desktop roles. Validate their 33.3 ms or chosen frame budgets on the actual
+machines, including motion and adverse scenes, before promising them. This
+cycle provides no automatic per-machine recommendation and no evidence
+that memory capacity is the limiting factor.
+
+[controls.csv](controls.csv) contains all 31 follow-up rows, including the
+six diagnostic moving-cloud rows. The [raw archive](controls-raw.tar.gz)
+retains their logs, frames, samples, settings, screenshots and correctness
+checks, plus the native, profile and real-server validation logs. The
+control-source manifest identifies the binary and frozen recorder versions.
+Source and prose pass the style and whitespace checks; historical raw log
+and patch snapshots retain their original whitespace.

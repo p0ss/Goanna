@@ -1,18 +1,18 @@
 <!-- SPDX-License-Identifier: LGPL-2.1-or-later -->
 # Tier baseline, terrain sharing and lamp occlusion
 
-Work in progress. Measurements and conclusions belong in the completed
-report; this file records the comparison design.
+This file records the comparison design. Measurements, limitations and
+tuning decisions belong in the [report](report.md).
 
-1. Capture the five existing tiers before implementation changes, with one
+0. Capture the five existing tiers before implementation changes, with one
    and four players at 1280x800. Record nearby and separated views, radial
    streaming and a night fixture. Use a frozen client and world copy.
-2. Share immutable terrain preparation and eligible GPU buffers. Validate
+1. Share immutable terrain preparation and eligible GPU buffers. Validate
    content changes, missing neighbours, per-view materials and resource
    lifetime. Count actual reuse independently from frame time.
-3. Prototype nearby full-block lamp visibility independently of shadow
+2. Prototype nearby full-block lamp visibility independently of shadow
    maps. Check a wall, an opening and edits, with a restored control.
-4. Repeat the tier runs with unchanged preset values, then measure candidate
+3. Repeat the tier runs with unchanged preset values, then measure candidate
    adjustments. Add grouped movement to exercise overlapping terrain work.
 
 Each client gets four total mesh workers and a total 4 ms poll budget,

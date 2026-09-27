@@ -152,8 +152,10 @@ control, not an established percentage saving.
 The first three implementation steps are now present: cloud alternatives,
 independent lamp shadows and graded grass. Remaining work is visual review
 across weather and motion, tuning the preset values, and calibration on the
-actual target hardware. A better occlusion-aware cheap lamp fallback remains
-a possible follow-up.
+actual target hardware. A full-block lamp visibility prototype is available
+behind `lamp_occlusion`; it remains off in the presets while its visual
+limits and performance are evaluated. See the
+[tier cycle](perf/tier-cycle-2026-09-27/report.md).
 
 World demand and presentation quality still need separate internal budgets.
 View range, terrain sharing and streaming scheduling address CPU work;
