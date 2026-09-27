@@ -17,6 +17,7 @@ extends Node3D
 
 const Weather := preload("res://ui/weather.gd")
 const Lightning := preload("res://ui/lightning.gd")
+const Wake := preload("res://ui/wake.gd")
 
 const MAX_SPAWNERS := 24
 
@@ -26,6 +27,7 @@ var player_effect_particles := false
 var shader_weather := true
 var weather: Node3D           # weather.gd, drawing the spawners it was handed
 var lightning: Node3D         # lightning.gd, drawing the strikes it was handed
+var wake: Node                # wake.gd, the rings round bodies in water
 
 var _spawners := {}           # server id -> GPUParticles3D
 var _attached := {}           # server id -> offset, for spawners that follow us
@@ -45,6 +47,12 @@ func _ready() -> void:
 	add_child(weather)
 	lightning = Lightning.new()
 	add_child(lightning)
+	# Not weather, and not gated by the shader weather setting: rings round
+	# a swimmer are wanted in fair weather most of all. Here only because
+	# this node already holds the client and lives as long as the game.
+	wake = Wake.new()
+	wake.client = client
+	add_child(wake)
 
 # How bright the lightning drawn now makes the sky, 0 to 1, for main.gd.
 func lightning_flash() -> float:

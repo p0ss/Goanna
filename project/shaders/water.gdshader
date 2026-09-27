@@ -92,6 +92,8 @@ global uniform vec3 goanna_sun_dir;
 global uniform vec3 goanna_sun_glow;
 // goanna_rain and the rain cover map, for the rings rain draws on the water.
 #include "res://shaders/weather_common.gdshaderinc"
+// The rings round swimmers and animals moving through the water.
+#include "res://shaders/wake.gdshaderinc"
 
 // Far tiers use the same near sample at the hand-off, then converge on the
 // tile average only in the deep far field. Switching immediately to the last
@@ -99,6 +101,12 @@ global uniform vec3 goanna_sun_glow;
 uniform bool lod_flatten = false;
 uniform float lod_flatten_near : hint_range(0.0, 2048.0) = 384.0;
 uniform float lod_flatten_far : hint_range(0.0, 4096.0) = 1024.0;
+
+// How hard a wake bends the normal (its slope is about 1 at full strength),
+// and how much of the surface its crest turns white. Constants, not
+// uniforms: every water material is built in C++ and nothing sets them.
+const float WAKE_RELIEF = 0.6;
+const float WAKE_FOAM = 0.18;
 
 varying vec3 world_pos;
 
@@ -216,6 +224,22 @@ void fragment() {
 			vec3 nw = (INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz;
 			nw = normalize(nw - vec3(rings.x, 0.0, rings.y) * 0.35 * k);
 			NORMAL = normalize((VIEW_MATRIX * vec4(nw, 0.0)).xyz);
+		}
+	}
+	// Wakes, round the player and animals moving through the water. Normal
+	// only, like the rain rings, and summed on top of the waves and the rain
+	// so a swimmer in a storm still leaves a trail. From below too: the
+	// surface seen from under it is the same water. The crest also whitens
+	// the water a little where a body is moving hard, which is what reads
+	// when the sky in the water is too dark for the normal alone to show.
+	float wake_foam = 0.0;
+	{
+		vec3 wake = goanna_wake(world_pos.xz, here);
+		if (dot(wake, wake) > 1e-8) {
+			vec3 nw = (INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz;
+			nw = normalize(nw - vec3(wake.x, 0.0, wake.y) * WAKE_RELIEF);
+			NORMAL = normalize((VIEW_MATRIX * vec4(nw, 0.0)).xyz);
+			wake_foam = wake.z * WAKE_FOAM;
 		}
 	}
 	if (!FRONT_FACING)
@@ -362,10 +386,13 @@ void fragment() {
 	// view when you are under it.
 	float refl_mix = do_reflect ? refl_amount : 0.0;
 	ALBEDO = scatter * (1.0 - refl_mix);
+	// Broken water at a wake's crest: a little white the lamp lights, taken
+	// out of what comes up through the surface.
+	ALBEDO = mix(ALBEDO, vec3(0.8), wake_foam);
 	// Reflected light is light that never entered the water, and the bed's
 	// light has already been through the lamp once, so neither is shaded
 	// again here.
-	EMISSION = transmitted * (1.0 - refl_mix) + reflected * refl_mix;
+	EMISSION = (transmitted * (1.0 - refl_mix) + reflected * refl_mix) * (1.0 - wake_foam);
 	ALPHA = clamp(0.9 + 0.1 * fres, 0.0, 1.0);
 	METALLIC = 0.0;
 	SPECULAR = 0.4 + 0.6 * fres;

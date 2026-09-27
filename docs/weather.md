@@ -277,6 +277,67 @@ the server's flash still reaches the sky. The particle path's culling box
 now includes the particle's own size: it was a node round the emitter, 50
 nodes up the bolt, so the bolt vanished whenever its middle left the view.
 
+## Wakes
+
+Rings on the water round the player and the animals moving through it.
+Not weather, but drawn by the same water shader beside the rain rings, so
+it is described here. Presentation only: the positions are the ones the
+client already draws, the water is looked up in the map it already holds,
+and nothing is asked of the server. Tested headless only; nothing of it has
+been observed.
+
+**Sources** (`project/ui/wake.gd`, a child of the particles node). Ten times
+a second: the local player (its walking position from `step_player`, or
+1.6 nodes under the eye with the free camera) and the entities in
+`GoannaClient::entity_list`, the nearest 15 of them within 32 nodes of the
+eye. An entity within 0.4 nodes of the local player is taken to be its own
+object and skipped. The entity list carries no collision box, so a body is
+taken to span from half a node under its position to 1.7 over it, and it
+touches the water when the top of a water node with no water over it lies
+in that span. Water is recognised by name (`node_name_at`, the name
+contains `water`), which covers Mineclonia's and Minetest Game's water and
+river water, source and flowing; a game naming its water otherwise gets no
+wake. Lava is left out on purpose: its own shader draws no wake.
+
+**Points.** Each source that touches the water lays points on its path
+since the last sample, each at its own place and at the time the body
+passed it, into a ring buffer of 64 (x, z, birth, strength):
+
+- Moving (0.3 nodes a second or more across): a point every 0.25 nodes, or
+  every 0.12 seconds of travel at speed, whichever is further, so a boat
+  or a sprint drops about eight a second and one body cannot fill the
+  buffer. Strength 0.35 plus 0.2 a node a second, up to 1.
+- Standing still in the water: one point of strength 0.3 every 1.2
+  seconds (the bob), the first after a jittered delay so a herd in a pond
+  does not pulse in step.
+- Coming into the water from out of it: one point of strength 1.
+- Out of the water, wholly under it, or after a jump of more than 4 nodes
+  between samples (a teleport): nothing.
+
+**Rings** (`goanna_wake` in `project/shaders/wake.gdshaderinc`). The live
+points (under 2 seconds old) go to the water shader as a 64 by 1 float
+texture, one texel a point, with a count, wake.gd's own clock (not `TIME`,
+which rolls over) and the xz box the rings can reach. Each point grows a
+ring from 0.15 nodes across, spreading at 0.6 nodes a second: a short wave
+packet (wavelength 0.24 nodes, half width 0.12) whose slope is summed into
+the water normal on top of the waves and the rain rings. It eases in over
+a tenth of a second, fades linearly to nothing at 2 seconds, and weakens as
+it spreads. A swimmer faster than 0.6 nodes a second leaves its rings on two
+lines behind it, the V of a wake (half angle about 17 degrees at 2 nodes a
+second); a still body bobs small rings. The crest also whitens the water a
+little (up to 18 per cent, a lit albedo taken out of what comes up through
+the surface), which is what is left to read at night when the sky in the
+water is too dark for the bent normal to show. Drawn from below the surface
+too. Faded out from 19 to 32 nodes from the eye.
+
+**No setting.** The wake is always on, and not tied to shader weather:
+rings round a swimmer are wanted in fair weather most of all. With no point
+live the shader's whole term is one uniform branch, and wake.gd samples ten
+times a second whatever happens.
+
+The control channel's `status` carries `wake`: the bodies followed, how
+many of them touch water, and the points live.
+
 ## The setting
 
 **Shader weather** in the Video tab (`shader_weather`, on by default, shown
@@ -316,6 +377,12 @@ Not measured. What the code does:
   within about 22 nodes, and the same per water pixel within 22.
 - Against that, the particle path it replaces was up to 1500 GPU particles
   per spawner.
+- Wakes: ten times a second, `entity_list` and up to four node name
+  lookups per body for 16 bodies, and a 64 texel upload while any point is
+  live. On water within 32 nodes and inside the box the live rings reach,
+  one texture read and a few dozen operations per live point, up to 64
+  points, per water pixel; at most one exponential, a cosine and a sine for
+  a point whose ring is near the pixel. Nothing when no point is live.
 
 ## Live checks
 
@@ -461,6 +528,15 @@ Everything visual. In particular, the owner's visual check should look at:
 - Toggling the setting mid storm, and a thunderstorm starting.
 - Frame time with and without shader weather.
 
+- Wakes, on calm water by day and by night, in first person (look down
+  while swimming, then turn round) and watching an animal swim: whether
+  the rings read, whether a swimmer's V is visible behind it and at what
+  angle, whether the bob of a body standing in shallow water is too busy
+  or too faint, the whitening at the crests, and that a boat's wake does
+  not fill the view. Whether bodies are found at all: `status` then
+  `wake`, `in_water` should count the player while swimming and any
+  animal in the water. The rings with rain falling on them too.
+
 Not done: a settling snow look on the ground, splashes on leaves and plants,
 drops sliding down walls, and splashes thrown up from the ground by the
 falling drops themselves (the flecks are the ground's own, not the drops').
@@ -518,3 +594,29 @@ of it is gone after the spawner's time and the tail; with shader weather
 off it is an emitter whose culling box holds the whole quad; a stream of 40
 is not a strike; and the flash sky test tells Mineclonia's white layer from
 a storm sky. It renders nothing.
+
+`project/tests/wake.gd`, headless, the wakes:
+
+```sh
+godot --headless --path project --script res://tests/wake.gd
+```
+
+It checks that the water shader compiles with the wake include and the
+globals are registered, and ties wake.gd's copy of the ring (`ring`) and
+its constants to the include by text. With a fake body across a fake lake
+(water at and below y 0 for x 0 to 40): at 1, 2 and 4 nodes a second the
+points are `spacing_for` apart, about as many as the path over the
+spacing, each born when the body passed it and stronger the faster it
+goes; a body standing in the water for six seconds bobs four or five times,
+BOB_PERIOD apart, where it stands, and one drifting slower than STILL_SPEED
+lays no trail; walking on land, deep under the water, or standing on a bank
+over it lays nothing; walking in from the bank makes one splash, a
+teleport lays nothing across the gap, and a source that leaves is
+forgotten; published points are the live ones, the area holds them, and
+none outlives MAX_AGE; the ring buffer overwrites its oldest; the nearest
+sources within range are taken up to the cap. The ring: a fresh full
+strength ring bends the normal (its peak slope is printed), nothing before
+a point's birth, past its age or off its packet; and across a line two
+nodes behind a body swimming at 2 nodes a second the slope is on both
+sides of the path, more than twice what it is on the path, and none 1.6
+nodes to the side (the profile is printed), and nothing beyond range.
