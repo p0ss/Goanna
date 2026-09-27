@@ -230,6 +230,29 @@ Splashes and rings follow `goanna_rain` (what is falling now), not
 `goanna_wetness` (which lingers for minutes after rain), so they stop with
 the rain.
 
+### Storm cells
+
+The server says only that it rains: Mineclonia sends one spawner at 500
+drops a second, 900 in a thunderstorm, the same everywhere and for as long
+as the weather lasts, so drawn as sent it pelted down at one strength. The
+storm is given a structure here. `weather.gd` keeps a field over the world
+(`storm_severity_at`, simplex fbm, cells about 600 nodes across) that
+drifts with the wind at 0.3 of its speed and changes slowly on its own. The
+viewer's place in it, 0 at a cell's edge to 1 at its heart and eased over 8
+seconds, scales what falls from a quarter of the server's intensity (a
+drizzle) to 1.35 times it (a downpour), and `main.gd` scales the storm deck
+and the wetness the same way: at the edge a thinner, lighter deck and
+damp ground, at the heart full overcast and standing water. A thunderstorm
+widens the hearts. Sampled over a grid, about a third of the world sits at
+the edge and a fifth at the heart; standing still in a moderate wind a cell
+takes about three minutes to come over, rains hard for a few, and tails off
+into a drizzle.
+
+Lightning is still the server's: Mineclonia strikes where it likes, and a
+strike at a cell's edge is drawn at full strength. Presentation only, and a
+function of the viewer's position, so each view of a split screen has its
+own.
+
 ### Settled snow
 
 Snow falling is not rain falling: `particles.gd` reports `rainfall()` and

@@ -70,6 +70,21 @@ const EDGE_FADE := 1.5
 # Seconds to ease in and out, so a storm starting or a spawner being
 # replaced (Mineclonia swaps them when a storm turns to thunder) never pops.
 const EASE_SECONDS := 2.5
+# Storm structure. The server says only that it rains (Mineclonia: 500 drops
+# a second, 900 in a thunderstorm), the same everywhere and all the time, so
+# rain pelted down at one strength whatever the sky did. A storm here is a
+# field over the world instead: cells a few hundred nodes across that drift
+# with the wind and grow and fade, heavy at a cell's heart and a drizzle at
+# its edge. The server's intensity is the storm's strength; this field is
+# where in it the viewer stands. Presentation only, and a function of the
+# viewer's position, so each view of a split screen has its own.
+const STORM_SCALE := 600.0         # nodes across a typical cell
+const STORM_EVOLVE := 0.0015       # how fast cells change, per second
+const STORM_DRIFT := 0.3           # of the wind speed
+const STORM_EASE_SECONDS := 8.0
+# Intensity as a share of the server's, from a cell's edge to its heart.
+const STORM_EDGE := 0.25
+const STORM_HEART := 1.35
 
 var client: Object
 var cover: RefCounted
@@ -83,11 +98,20 @@ var _snow := 0.0
 var _rain_speed := 17.0
 var _snow_speed := 2.2
 var _wind := Vector2.ZERO
+var _storm_noise := FastNoiseLite.new()
+var _storm_drift := Vector2.ZERO
+var _storm_time := 0.0
+var _severity := 0.5
 var _eye := Vector3.ZERO
 var _shader_text := {}       # path -> source, for ground_trace
 
 
 func _ready() -> void:
+	_storm_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	_storm_noise.frequency = 1.0 / STORM_SCALE
+	_storm_noise.fractal_type = FastNoiseLite.FRACTAL_FBM
+	_storm_noise.fractal_octaves = 2
+	_storm_noise.seed = 1729
 	cover = RainCover.new(client)
 	_rain_material = make_material(false)
 	_snow_material = make_material(true)
@@ -371,6 +395,7 @@ static func splash_ring(r: float, k: float, rmax: float, w: float) -> Vector2:
 func debug_state() -> Dictionary:
 	var eye := _eye
 	var out := {"rain": _rain, "snow": _snow, "spawners": _spawners.size(),
+		"storm_severity": _severity,
 		"drops_visible": (_rain_mesh != null and _rain_mesh.visible)
 				or (_snow_mesh != null and _snow_mesh.visible),
 		"rain_drops": int(round((RAIN_FAR + RAIN_NEAR) * _rain)),
@@ -548,6 +573,10 @@ func targets() -> Dictionary:
 
 func _process(delta: float) -> void:
 	var t := targets()
+	_update_severity(delta)
+	var share := storm_share(_severity)
+	t["rain"] = minf(float(t["rain"]) * share, MAX_INTENSITY)
+	t["snow"] = minf(float(t["snow"]) * share, MAX_INTENSITY)
 	var k := clampf(delta / EASE_SECONDS, 0.0, 1.0)
 	_rain = move_toward(_rain, float(t["rain"]), k * MAX_INTENSITY)
 	_snow = move_toward(_snow, float(t["snow"]), k * MAX_INTENSITY)
@@ -609,6 +638,35 @@ func _update_wind(m: Node, delta: float) -> void:
 	# Strength 1 is a gale; call it 7 nodes a second, which leans heavy rain
 	# about 20 degrees and blows snow well off the vertical.
 	_wind = _wind.lerp(w * 7.0, 1.0 - exp(-delta / 2.0))
+
+
+# 0 at a storm cell's edge to 1 at its heart, where `xz` is at time `time`
+# with the cells blown `drift` nodes. Thunder (the server's heavier rate)
+# widens the hearts.
+func storm_severity_at(xz: Vector2, time: float, drift: Vector2, thunder: bool) -> float:
+	var p := xz - drift
+	var n := _storm_noise.get_noise_3d(p.x, p.y, time * STORM_EVOLVE * STORM_SCALE)
+	# FBM of two octaves spans about -0.7..0.7; most of the world is between.
+	var s := smoothstep(-0.35, 0.45, n)
+	return clampf(s + (0.2 if thunder else 0.0), 0.0, 1.0)
+
+
+static func storm_share(severity: float) -> float:
+	return lerpf(STORM_EDGE, STORM_HEART, severity)
+
+
+# Where the viewer stands in the storm, eased so walking or the cells drifting
+# never steps it. Read by main.gd for the cloud and the light.
+func storm_severity() -> float:
+	return _severity
+
+
+func _update_severity(delta: float) -> void:
+	_storm_time += delta
+	_storm_drift += _wind * STORM_DRIFT * delta
+	var thunder := float(targets()["rain"]) > 1.3
+	var target := storm_severity_at(Vector2(_eye.x, _eye.z), _storm_time, _storm_drift, thunder)
+	_severity = lerpf(_severity, target, 1.0 - exp(-delta / STORM_EASE_SECONDS))
 
 
 func _publish_globals() -> void:

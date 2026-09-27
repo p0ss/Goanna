@@ -3439,7 +3439,14 @@ func _apply_sky() -> void:
 	# ground shadows so all three agree.
 	var pnode_sky := PlayerContext.find(self, "goanna_particles")
 	var precip_now: float = float(pnode_sky.precipitation()) if pnode_sky != null else 0.0
-	storm_cover = lerpf(storm_cover, 0.80 * precip_now,
+	# Where in the storm the viewer stands (weather.gd's storm field): a
+	# cell's edge has a thinner, lighter deck and a drizzle, its heart the
+	# full overcast and the downpour.
+	var severity := 1.0
+	var wnode = pnode_sky.get("weather") if pnode_sky != null else null
+	if wnode != null and wnode.has_method("storm_severity"):
+		severity = float(wnode.storm_severity())
+	storm_cover = lerpf(storm_cover, lerpf(0.45, 0.95, severity) * precip_now,
 			1.0 - exp(-get_process_delta_time() / 6.0))
 	# Wet ground: rain soaks in over half a minute and dries off over a few
 	# minutes after it stops, so a passing shower leaves the world gleaming
@@ -3452,7 +3459,7 @@ func _apply_sky() -> void:
 			if pnode_sky != null and pnode_sky.has_method("rainfall") else precip_now
 	var snow_now: float = float(pnode_sky.snowfall()) \
 			if pnode_sky != null and pnode_sky.has_method("snowfall") else 0.0
-	var wet_target: float = smoothstep(0.15, 0.6, rain_now)
+	var wet_target: float = smoothstep(0.15, 0.6, rain_now) * lerpf(0.55, 1.0, severity)
 	var wet_rate: float = 30.0 if wet_target > wetness else 150.0
 	wetness = lerpf(wetness, wet_target,
 			1.0 - exp(-get_process_delta_time() / wet_rate))
