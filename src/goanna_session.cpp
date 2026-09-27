@@ -2157,6 +2157,7 @@ void GoannaSession::handle(NetworkPacket &pkt) {
     case TOCLIENT_ADD_PARTICLESPAWNER: onAddParticleSpawner(pkt); break;
     case TOCLIENT_DELETE_PARTICLESPAWNER: onDeleteParticleSpawner(pkt); break;
     case TOCLIENT_SPAWN_PARTICLE: onSpawnParticle(pkt); break;
+    case TOCLIENT_SPAWN_PARTICLE_BATCH: onSpawnParticleBatch(pkt); break;
     case TOCLIENT_MODCHANNEL_MSG: onModChannelMsg(pkt); break;
     case TOCLIENT_MODCHANNEL_SIGNAL: onModChannelSignal(pkt); break;
     case TOCLIENT_STOP_SOUND: onStopSound(pkt); break;
@@ -2613,6 +2614,29 @@ void GoannaSession::onSpawnParticle(NetworkPacket &pkt) {
     std::istringstream is(datastring, std::ios_base::binary);
     ParticleParameters p;
     p.deSerialize(is, stats().proto_ver);
+    queueParticle(p);
+}
+
+// TOCLIENT_SPAWN_PARTICLE_BATCH: the particles a server step made for this
+// player, zstd compressed, each a length prefixed ParticleParameters, as
+// Client::handleCommand_SpawnParticleBatch reads them. It was not handled,
+// so every add_particle a mod made in a step with more than one reached
+// nobody: Snowdrift's rain and snow, one particle a drop, never arrived.
+void GoannaSession::onSpawnParticleBatch(NetworkPacket &pkt) {
+    std::stringstream batch(std::ios::binary | std::ios::in | std::ios::out);
+    {
+        std::istringstream compressed(pkt.readLongString(), std::ios::binary);
+        decompressZstd(compressed, batch);
+    }
+    while (canRead(batch)) {
+        ParticleParameters p;
+        std::istringstream one(deSerializeString32(batch), std::ios::binary);
+        p.deSerialize(one, stats().proto_ver);
+        queueParticle(p);
+    }
+}
+
+void GoannaSession::queueParticle(const ParticleParameters &p) {
     ParticleEvent ev;
     ev.pos = toGodotVec(p.pos);
     ev.vel = toGodotVec(p.vel);

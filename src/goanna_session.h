@@ -28,6 +28,8 @@
 #include "goanna_map.h"
 #include "goanna_textures.h"
 #include "goanna_materials.h"
+
+struct ParticleParameters;
 #include "goanna_store.h"
 #include "goanna_sky.h"
 #include "transplant/client/content_cao.h"
@@ -424,6 +426,8 @@ private:
     void onAddParticleSpawner(NetworkPacket &pkt);
     void onDeleteParticleSpawner(NetworkPacket &pkt);
     void onSpawnParticle(NetworkPacket &pkt);
+    void onSpawnParticleBatch(NetworkPacket &pkt);
+    void queueParticle(const ParticleParameters &p);
     void joinGoannaChannel();
     void onModChannelMsg(NetworkPacket &pkt);
     void onModChannelSignal(NetworkPacket &pkt);
