@@ -384,7 +384,34 @@ struct FormSurface {
     int face;
     int backing = -1;
 };
+
+// The node on the far side of one boundary, when it is itself drawn carved:
+// its own occupancy grid (as `formGridDamaged` returns it) at its own
+// resolution. A null grid means the boundary follows the two masks instead.
+struct FormNeighbour {
+    const std::vector<bool> *grid = nullptr;
+    int n = 0;
+};
+
+// Is any subcube of `neighbour` (resolution `nn`) that touches this node's
+// boundary cell (i, j) on `face` empty? (i, j) are the cell's indices along
+// that face's two in plane axes, u = (axis + 1) % 3 and v = (axis + 2) % 3,
+// exactly as `formSurfaces` walks them, at this node's own resolution `n`.
+// The two resolutions need not match: a coarse cell is open if any finer
+// cell it overlaps is.
+bool formBoundaryOpen(const std::vector<bool> &neighbour, int nn, int face,
+        int n, int i, int j);
+
+// `neighbours`, when given, is six entries in face order. A boundary with a
+// carved neighbour is closed cell by cell rather than by the masks: this
+// node draws its own face wherever it is solid and `formBoundaryOpen` says
+// the neighbour is not, and nothing else. Run for both nodes, that leaves
+// exactly one face wherever one side has material and the other does not,
+// and none where both are solid or both are empty. Masks were not enough:
+// a whole face drawn or omitted against a neighbour that is itself carved
+// either stands a sheet in its holes or leaves its material open to the void.
 std::vector<FormSurface> formSurfaces(const std::vector<bool> &grid, int n,
-        uint8_t visible_boundary = 63, uint8_t backing_boundary = 0);
+        uint8_t visible_boundary = 63, uint8_t backing_boundary = 0,
+        const FormNeighbour *neighbours = nullptr);
 
 } // namespace goanna
