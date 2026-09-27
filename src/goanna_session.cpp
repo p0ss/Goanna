@@ -965,6 +965,17 @@ void GoannaSession::takeCarveMetadata(v3s16 pos, NodeMetadata *meta) {
         goanna::carveStoreSet(pos.X, pos.Y, pos.Z, goanna::decodeForm(bytes));
     }
     invalidateBlock(getNodeBlockPos(pos));
+    // Its neighbours decide their own faces against it (a carved neighbour
+    // is closed cell by cell, an uncarved one by backing), so a carve on a
+    // block's edge re-meshes the block across that edge as well. Left stale,
+    // that block kept faces for the node as it was, and the two meshes
+    // disagreed about who closes the boundary.
+    static const v3s16 dirs[6] = {{1,0,0},{-1,0,0},{0,1,0},{0,-1,0},{0,0,1},{0,0,-1}};
+    for (const v3s16 &d : dirs) {
+        const v3s16 bp = getNodeBlockPos(pos + d);
+        if (bp != getNodeBlockPos(pos) && m_map->getBlockNoCreateNoEx(bp))
+            invalidateBlock(bp);
+    }
 }
 
 Inventory *GoannaSession::inventoryAt(const std::string &location) {
