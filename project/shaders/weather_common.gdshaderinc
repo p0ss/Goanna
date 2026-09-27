@@ -112,6 +112,15 @@ vec3 goanna_pool(float level, float weight, float h) {
 	return vec3(water, shore, depth);
 }
 
+// The meniscus (owner, 2026-09-27): where standing water meets a ridge its
+// surface curls up against the solid and catches the light as a thin bright
+// line. How much of that band a pixel is in: a narrow strip either side of
+// the waterline, only where there is water to have an edge at all.
+float goanna_meniscus(float level, float weight, float h) {
+	return (1.0 - smoothstep(0.0, 0.035, abs(h - level))) * weight
+			* step(0.02, level);
+}
+
 // Splashes are faded out where a pixel is wider than this many nodes: a
 // ring a few centimetres across drawn over fewer pixels than it has parts
 // only shimmers. 0.012 is about 9 nodes away square on at 1080 lines and 70

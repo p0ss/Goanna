@@ -346,6 +346,7 @@ void fragment() {
 			goanna_wetness, length(v_world - CAMERA_POSITION_WORLD), px);
 	vec3 pool = goanna_pool(ground_rain.x, ground_rain.y, relief_h);
 	float water = pool.x;
+	float meniscus = goanna_meniscus(ground_rain.x, ground_rain.y, relief_h);
 	vec3 splash = vec3(0.0);
 	if (ground_rain.z > 0.001)
 		splash = goanna_rain_splash(v_world.xz, TIME, px, goanna_rain) * min(ground_rain.z, 1.0);
@@ -354,6 +355,7 @@ void fragment() {
 		// The margin and a splash's mark: smoother, still not glass.
 		ROUGHNESS = mix(ROUGHNESS, 0.22, max(pool.y * 0.6, splash.z * 0.8));
 		ROUGHNESS = mix(ROUGHNESS, 0.06, water);
+		ROUGHNESS = mix(ROUGHNESS, 0.03, meniscus);
 		// Water's own F0 of 0.02, which is SPECULAR 0.25: what reflects is
 		// the water over the tile, whatever the tile would.
 		SPECULAR = mix(SPECULAR, 0.25, water);
@@ -366,6 +368,11 @@ void fragment() {
 		vec2 xy = relief_normal.xy * (1.0 - water) * (1.0 - 0.3 * wet_film)
 				* (1.0 - 0.4 * max(pool.y, splash.z))
 				+ vec2(dot(slope, v_wtangent), dot(slope, v_wbinormal));
+		// The meniscus tilts the water up against the ridge beside it, the
+		// way the relief itself rises there, so the rim catches the light.
+		float rise = length(relief_normal.xy);
+		if (meniscus > 0.001 && rise > 0.001)
+			xy += relief_normal.xy / rise * 0.45 * meniscus;
 		float z = sqrt(clamp(1.0 - dot(xy, xy), 0.0, 1.0));
 		relief_normal = vec3(xy, z);
 		NORMAL_MAP = vec3(xy * 0.5 + 0.5, z * 0.5 + 0.5);
