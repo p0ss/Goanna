@@ -17,7 +17,7 @@
   "classification_review": "pbr_packs/classification_reviews/mineclonia-v1.json",
   "manifest": "pbr_packs/manifests/mineclonia-terrain-v1.json",
   "quality_gate": "tools/check-pbr-quality.py",
-  "note": "Texel extrusion rule reviewed by the owner on the close-up ramp, 2026-09-25 and 26. Built from pbr_packs/mineclonia/textures at c421af0."
+  "note": "Texel extrusion rule reviewed by the owner on the close-up ramp, 2026-09-25 and 26, micro surface reviewed 2026-09-27. Built from pbr_packs/mineclonia/textures at ac701acc."
  },
  "release": {
   "texture_pairs": 1071,
@@ -25,7 +25,7 @@
   "known_failures": [],
   "known_failures_note": "None: the release gate, run with the manifest classes, the classification review and the source art, passes all 1071 pairs.",
   "archive": "org.goanna.mineclonia.pack-1.2.0.zip",
-  "bytes": 21788555,
-  "sha256": "5d4f2f5f13d30dc6850515a96e72423cb9304cbd846e60b89cb64183f129677c"
+  "bytes": 59189715,
+  "sha256": "6b993953a134be5515c218b49452bc4318b6eec3ac8ff45397ec472af8e6abfd"
  }
 }
