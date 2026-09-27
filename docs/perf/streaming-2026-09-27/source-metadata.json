@@ -1,0 +1,17 @@
+{
+  "git_base": "83c52a9a461c4047fae3e7e67ef2cd5c1923863e",
+  "working_tree": true,
+  "before_client_sha256": "acb613d6de17350cc36358e0108e132eac3e2cecf9d45722d83aba8f1e91b933",
+  "before_binary_sha256": "bf32ab652205d5ae23af427bc76c6e744a909fcd8d1ffc37dd5f47a38f51e9dd",
+  "after_sha256": {
+    "src/goanna_client.cpp": "62b555839eafcae253a67c23eea54f8d2ac8c43288d4b7e06842d60dd900c48b",
+    "project/main.gd": "91c3863003504a899334e723a0c3113503dbd01ea7caf15d328503448f6a6081",
+    "project/local_bench.gd": "ef61a4f9d62e9a680176d6d56239fcb4866ad400311081d1243556ac309aaade",
+    "project/local_play.gd": "87e9d51950320b3fa0b37bb675838e6ab9946071ec9022e6eaed3ac4a9ccb4b0",
+    "tools/bench-local-play.py": "a95ba83e8210c2e1e9cce3279f145e969be3c9ef06aa841f4506698d1054ea3d",
+    "tools/local-feature-scenes.json": "cfe5a9a160c659ade4468db9cc2e2e39aed49a98643e2b889172ba2464be0113",
+    "tools/local-feature-fixture.lua": "97c813772af348ebb8cf0e5a68be55b35a5131feb894d69e859746402157663f",
+    "project/bin/libgoanna.linux.template_debug.x86_64.so": "0a1a62817b941d8fdac00e788e4885b32468f2bc1b07aaa7532b07c42c23b66c"
+  },
+  "note": "The final harness additionally checks pending block and storage queues. The running trials used the earlier settle predicate; all added counters were verified zero in the saved settled snapshots."
+}

@@ -1,0 +1,4 @@
+{
+  "purpose": "Controlled comparisons: skip key construction with cache bypass; exclude empty GPU meshes from cache and upload-hit counts. Other rendering and preset values match after3.",
+  "binary_sha256": "3eced45b528e0bc097ccebe4cd1ac8edbf297f043f4d8671df5cf2dd1b6659bc"
+}

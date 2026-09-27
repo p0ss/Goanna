@@ -1,0 +1,15 @@
+Godot Engine v4.5.1.stable.official.f62fdbde1 - https://godotengine.org
+
+hardware: 16 cores,  (shared), profile low
+goanna: extension loaded
+luanti core 5.17.0-goanna-c0e6812b1
+no texture pack set (settings panel, or GOANNA_PACK)
+connecting to 127.0.0.1:39997 as feature_0
+hardware: 16 cores,  (shared), profile low
+goanna: extension loaded
+luanti core 5.17.0-goanna-c0e6812b1
+no texture pack set (settings panel, or GOANNA_PACK)
+connecting to 127.0.0.1:39997 as feature_1
+[  0.1s] none | <null> | media 0/0 | blocks recv 0 meshed 0 | mats 0 | res 0 | lights 0
+[  0.1s] none | <null> | media 0/0 | blocks recv 0 meshed 0 | mats 0 | res 0 | lights 0
+render features: 0 failures

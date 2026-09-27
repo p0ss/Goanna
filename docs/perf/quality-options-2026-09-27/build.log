@@ -1,0 +1,7 @@
+[0/2] Re-checking globbed directories...
+[1/7] Building CXX object CMakeFiles/goanna.dir/src/register_types.cpp.o
+[2/7] Building CXX object CMakeFiles/goanna.dir/src/goanna_client_fine.cpp.o
+[3/7] Building CXX object CMakeFiles/goanna.dir/src/goanna_grass.cpp.o
+[4/7] Building CXX object CMakeFiles/goanna.dir/src/goanna_client_surface.cpp.o
+[5/7] Building CXX object CMakeFiles/goanna.dir/src/goanna_client.cpp.o
+[6/7] Linking CXX shared library /home/poss/Documents/Code/Godot/goanna/project/bin/libgoanna.linux.template_debug.x86_64.so

@@ -1,0 +1,129 @@
+--- a/src/goanna_client.cpp
++++ b/src/goanna_client.cpp
+@@ -86,15 +86,22 @@
+         const PackedVector3Array &norms, const PackedVector2Array &uvs,
+         const PackedInt32Array &indices) {
+     const int nv = verts.size();
++    const int ni = indices.size();
++    // Packed-array indexing crosses the extension boundary on each access.
++    // Resolve immutable spans once; no input array is resized or written here.
++    const Vector3 *positions = verts.ptr();
++    const Vector3 *normals = norms.ptr();
++    const Vector2 *texcoords = uvs.ptr();
++    const int32_t *triangles = indices.ptr();
+     std::vector<Vector3> tan((size_t)nv), bitan((size_t)nv);
+-    for (int i = 0; i + 2 < indices.size(); i += 3) {
+-        const int ia = indices[i], ib = indices[i + 1], ic = indices[i + 2];
++    for (int i = 0; i + 2 < ni; i += 3) {
++        const int ia = triangles[i], ib = triangles[i + 1], ic = triangles[i + 2];
+         if (ia < 0 || ib < 0 || ic < 0 || ia >= nv || ib >= nv || ic >= nv)
+             continue;
+-        const Vector3 e1 = verts[ib] - verts[ia];
+-        const Vector3 e2 = verts[ic] - verts[ia];
+-        const Vector2 d1 = uvs[ib] - uvs[ia];
+-        const Vector2 d2 = uvs[ic] - uvs[ia];
++        const Vector3 e1 = positions[ib] - positions[ia];
++        const Vector3 e2 = positions[ic] - positions[ia];
++        const Vector2 d1 = texcoords[ib] - texcoords[ia];
++        const Vector2 d2 = texcoords[ic] - texcoords[ia];
+         const float det = d1.x * d2.y - d1.y * d2.x;
+         if (Math::abs(det) < 1e-8f)
+             continue;
+@@ -108,8 +115,9 @@
+     }
+     PackedFloat32Array out;
+     out.resize(nv * 4);
++    float *tangents = out.ptrw();
+     for (int i = 0; i < nv; ++i) {
+-        const Vector3 n = norms[i].normalized();
++        const Vector3 n = normals[i].normalized();
+         Vector3 t = tan[(size_t)i] - n * n.dot(tan[(size_t)i]);
+         if (t.length_squared() < 1e-8f) {
+             const Vector3 axis = Math::abs(n.y) < 0.9f ? Vector3(0, 1, 0) : Vector3(1, 0, 0);
+@@ -124,10 +132,10 @@
+         // them right. The probe in material_ramp.gd (probe_bump) tells the
+         // two apart.
+         const float handedness = n.cross(t).dot(bitan[(size_t)i]) < 0.0f ? 1.0f : -1.0f;
+-        out[i * 4] = t.x;
+-        out[i * 4 + 1] = t.y;
+-        out[i * 4 + 2] = t.z;
+-        out[i * 4 + 3] = handedness;
++        tangents[i * 4] = t.x;
++        tangents[i * 4 + 1] = t.y;
++        tangents[i * 4 + 2] = t.z;
++        tangents[i * 4 + 3] = handedness;
+     }
+     return out;
+ }
+@@ -6833,9 +6841,18 @@
+ // describes terrain that has already changed. Dropping it leaves the last
+ // good mesh on screen and the newer capture is already queued behind it.
+ void GoannaClient::lodCollectMeshes() {
++    const auto started = clock_t_::now();
++    // Publication has its own soft slice so a busy capture queue cannot
++    // starve finished geometry. A single upload is indivisible and may
++    // exceed it; stop before starting another. Retain the count cap too.
++    const double budget_ms = m_poll_budget_ms > 0 ? m_poll_budget_ms : 6.0;
+     int published = 0;
+     MeshPool::Done done;
+     while (m_mesh_pool.next(done)) {
++        if (published > 0 && ms_since(started) >= budget_ms) {
++            m_mesh_pool.requeueReady(std::move(done));
++            break;
++        }
+         if (done.key.kind == MeshJobKey::kNearBlock) {
+             // Meshed, not yet drawn: poll_blocks turns it into Godot arrays
+             // on its own budget, and the block stays in its far region until
+@@ -7044,20 +7061,27 @@
+         uv2s.resize(nv);
+         cols.resize(nv);
+         custom0.resize(nv * 4);
++        Vector3 *positions = verts.ptrw();
++        Vector3 *normals = norms.ptrw();
++        Vector2 *texcoords = uvs.ptrw();
++        Vector2 *layers = uv2s.ptrw();
++        Color *colours = cols.ptrw();
++        uint8_t *light = custom0.ptrw();
+         for (int i = 0; i < nv; ++i) {
+-            verts[i] = Vector3(sf.pos[i].X, sf.pos[i].Y, sf.pos[i].Z);
+-            norms[i] = Vector3(sf.nrm[i].X, sf.nrm[i].Y, sf.nrm[i].Z);
+-            uvs[i] = Vector2(sf.uv[i].X, sf.uv[i].Y);
+-            uv2s[i] = Vector2(sf.uv2[i].X, sf.uv2[i].Y);
++            positions[i] = Vector3(sf.pos[i].X, sf.pos[i].Y, sf.pos[i].Z);
++            normals[i] = Vector3(sf.nrm[i].X, sf.nrm[i].Y, sf.nrm[i].Z);
++            texcoords[i] = Vector2(sf.uv[i].X, sf.uv[i].Y);
++            layers[i] = Vector2(sf.uv2[i].X, sf.uv2[i].Y);
+             const u32 c = sf.col[i];
+-            cols[i] = Color(((c >> 16) & 0xff) / 255.0f, ((c >> 8) & 0xff) / 255.0f,
++            colours[i] = Color(((c >> 16) & 0xff) / 255.0f, ((c >> 8) & 0xff) / 255.0f,
+                     (c & 0xff) / 255.0f, 1.0f);
+             for (int k = 0; k < 4; ++k)
+-                custom0[i * 4 + k] = sf.custom0[i * 4 + k];
++                light[i * 4 + k] = sf.custom0[i * 4 + k];
+         }
+         idx.resize((int)sf.idx.size());
++        int32_t *indices = idx.ptrw();
+         for (size_t i = 0; i < sf.idx.size(); ++i)
+-            idx[i] = (int)sf.idx[i];
++            indices[i] = (int)sf.idx[i];
+         Array arrays;
+         arrays.resize(Mesh::ARRAY_MAX);
+         arrays[Mesh::ARRAY_VERTEX] = verts;
+@@ -7590,11 +7614,16 @@
+         UtilityFunctions::print("block queue: cancelled ", (int64_t)(fresh_raw.size() - fresh.size()),
+                 " outside current range, retained ", (int64_t)fresh.size());
+     }
++    int visited = 0;
+     for (const v3s16 &bp : fresh) {
+-        if (done >= max_blocks || (done > 0 && ms_since(t_poll) > poll_budget_ms)) {
++        // Capturing and submitting worker input is main-thread work too.
++        // Counting only published meshes let an arrival flood submit every
++        // block before the first result, bypassing both limits entirely.
++        if (visited >= max_blocks || (visited > 0 && ms_since(t_poll) > poll_budget_ms)) {
+             m_session->requeueBlock(bp);
+             continue;
+         }
++        ++visited;
+         MapBlock *block = m_session->getBlock(bp);
+         if (!block) {
+             m_near_ready.erase(bp); // a finished job can outlive residency

@@ -1,0 +1,1415 @@
+[
+  {
+    "players": 1,
+    "variant": "together-control-before",
+    "settled": true,
+    "stats": {
+      "bound": "gpu",
+      "bound_share": 0.999234742682227,
+      "cpu_ms_median": 0.554000020027161,
+      "distance_m": 0.0,
+      "fps_mean": 340.286984253964,
+      "frames": 5227,
+      "gpu_ms_median": 2.41000008583069,
+      "hitches": 0,
+      "hitches_per_min": 0.0,
+      "low01_ms": 4.55500001907349,
+      "low1_ms": 4.00494230252046,
+      "max_ms": 4.69999980926514,
+      "median_ms": 2.86199998855591,
+      "p999_ms": 4.24900007247925,
+      "p99_ms": 3.78200006484985,
+      "seconds": 15.360564,
+      "stability": 1.39935091493178
+    },
+    "features": [
+      {
+        "active": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "requested": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": true,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "underwater": false
+      }
+    ]
+  },
+  {
+    "players": 1,
+    "variant": "together-without-render_sky_clouds",
+    "settled": true,
+    "stats": {
+      "bound": "main-thread",
+      "bound_share": 0.636660268714011,
+      "cpu_ms_median": 0.561999976634979,
+      "distance_m": 0.0,
+      "fps_mean": 339.346319984561,
+      "frames": 5210,
+      "gpu_ms_median": 1.692999958992,
+      "hitches": 1,
+      "hitches_per_min": 3.9080190401293,
+      "low01_ms": 6.64899988174438,
+      "low1_ms": 4.1223076902903,
+      "max_ms": 12.4010000228882,
+      "median_ms": 2.88899993896484,
+      "p999_ms": 4.42600011825562,
+      "p99_ms": 3.62100005149841,
+      "seconds": 15.353047,
+      "stability": 1.42689781148537
+    },
+    "features": [
+      {
+        "active": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": false,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "requested": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": true,
+          "render_sky_clouds": false,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "underwater": false
+      }
+    ]
+  },
+  {
+    "players": 1,
+    "variant": "together-without-render_cloud_shadows",
+    "settled": true,
+    "stats": {
+      "bound": "gpu",
+      "bound_share": 0.993900039354585,
+      "cpu_ms_median": 0.571999967098236,
+      "distance_m": 0.0,
+      "fps_mean": 330.764409437134,
+      "frames": 5082,
+      "gpu_ms_median": 2.40799999237061,
+      "hitches": 0,
+      "hitches_per_min": 0.0,
+      "low01_ms": 5.08920001983643,
+      "low1_ms": 4.29705998420715,
+      "max_ms": 5.6230001449585,
+      "median_ms": 2.94899988174438,
+      "p999_ms": 4.6560001373291,
+      "p99_ms": 3.97099995613098,
+      "seconds": 15.36441,
+      "stability": 1.45712450204147
+    },
+    "features": [
+      {
+        "active": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": false,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "requested": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": false,
+          "render_shafts": true,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "underwater": false
+      }
+    ]
+  },
+  {
+    "players": 1,
+    "variant": "together-without-render_atmosphere",
+    "settled": true,
+    "stats": {
+      "bound": "gpu",
+      "bound_share": 0.965156794425087,
+      "cpu_ms_median": 0.569000005722046,
+      "distance_m": 0.0,
+      "fps_mean": 336.194610213392,
+      "frames": 5166,
+      "gpu_ms_median": 2.03900003433228,
+      "hitches": 1,
+      "hitches_per_min": 3.90469930561431,
+      "low01_ms": 6.16559991836548,
+      "low1_ms": 4.17599998268427,
+      "max_ms": 11.0869998931885,
+      "median_ms": 2.90899991989136,
+      "p999_ms": 4.41599988937378,
+      "p99_ms": 3.72399997711182,
+      "seconds": 15.3661,
+      "stability": 1.43554489435676
+    },
+    "features": [
+      {
+        "active": {
+          "render_atmosphere": false,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "requested": {
+          "render_atmosphere": false,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": true,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "underwater": false
+      }
+    ]
+  },
+  {
+    "players": 1,
+    "variant": "together-without-render_ssao",
+    "settled": true,
+    "stats": {
+      "bound": "gpu",
+      "bound_share": 0.994263105835806,
+      "cpu_ms_median": 0.565999984741211,
+      "distance_m": 0.0,
+      "fps_mean": 328.731589649071,
+      "frames": 5055,
+      "gpu_ms_median": 2.36100006103516,
+      "hitches": 0,
+      "hitches_per_min": 0.0,
+      "low01_ms": 4.65520000457764,
+      "low1_ms": 4.27907997131348,
+      "max_ms": 4.88299989700317,
+      "median_ms": 2.95799994468689,
+      "p999_ms": 4.48299980163574,
+      "p99_ms": 4.03399991989136,
+      "seconds": 15.377287,
+      "stability": 1.44661259341789
+    },
+    "features": [
+      {
+        "active": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": false,
+          "render_sun_shadows": true
+        },
+        "requested": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": true,
+          "render_sky_clouds": true,
+          "render_ssao": false,
+          "render_sun_shadows": true
+        },
+        "underwater": false
+      }
+    ]
+  },
+  {
+    "players": 1,
+    "variant": "together-without-render_bloom",
+    "settled": true,
+    "stats": {
+      "bound": "gpu",
+      "bound_share": 0.994846382556987,
+      "cpu_ms_median": 0.574000000953674,
+      "distance_m": 0.0,
+      "fps_mean": 328.293256394495,
+      "frames": 5045,
+      "gpu_ms_median": 2.31599998474121,
+      "hitches": 0,
+      "hitches_per_min": 0.0,
+      "low01_ms": 4.86160001754761,
+      "low1_ms": 4.28278002262115,
+      "max_ms": 5.24100017547607,
+      "median_ms": 2.96799993515015,
+      "p999_ms": 4.71000003814697,
+      "p99_ms": 3.9449999332428,
+      "seconds": 15.367358,
+      "stability": 1.44298521435261
+    },
+    "features": [
+      {
+        "active": {
+          "render_atmosphere": true,
+          "render_bloom": false,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "requested": {
+          "render_atmosphere": true,
+          "render_bloom": false,
+          "render_cloud_shadows": true,
+          "render_shafts": true,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "underwater": false
+      }
+    ]
+  },
+  {
+    "players": 1,
+    "variant": "together-without-render_shafts",
+    "settled": true,
+    "stats": {
+      "bound": "gpu",
+      "bound_share": 0.998028391167192,
+      "cpu_ms_median": 0.560999989509583,
+      "distance_m": 0.0,
+      "fps_mean": 329.977821482779,
+      "frames": 5072,
+      "gpu_ms_median": 2.42199993133545,
+      "hitches": 0,
+      "hitches_per_min": 0.0,
+      "low01_ms": 4.63200006484985,
+      "low1_ms": 4.24005998134613,
+      "max_ms": 4.8769998550415,
+      "median_ms": 2.94300007820129,
+      "p999_ms": 4.50699996948242,
+      "p99_ms": 3.98799991607666,
+      "seconds": 15.37073,
+      "stability": 1.44072710454618
+    },
+    "features": [
+      {
+        "active": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "requested": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "underwater": false
+      }
+    ]
+  },
+  {
+    "players": 1,
+    "variant": "together-without-render_sun_shadows",
+    "settled": true,
+    "stats": {
+      "bound": "gpu",
+      "bound_share": 0.996271439224459,
+      "cpu_ms_median": 0.458000004291534,
+      "distance_m": 0.0,
+      "fps_mean": 349.000102344735,
+      "frames": 5364,
+      "gpu_ms_median": 2.26099991798401,
+      "hitches": 0,
+      "hitches_per_min": 0.0,
+      "low01_ms": 5.25539999008179,
+      "low1_ms": 4.15688681602478,
+      "max_ms": 5.91900014877319,
+      "median_ms": 2.77900004386902,
+      "p999_ms": 4.72800016403198,
+      "p99_ms": 3.81599998474121,
+      "seconds": 15.369623,
+      "stability": 1.49582106887534
+    },
+    "features": [
+      {
+        "active": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": false
+        },
+        "requested": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": true,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": false
+        },
+        "underwater": false
+      }
+    ]
+  },
+  {
+    "players": 1,
+    "variant": "together-control-after",
+    "settled": true,
+    "stats": {
+      "bound": "gpu",
+      "bound_share": 0.997552019583843,
+      "cpu_ms_median": 0.573000013828278,
+      "distance_m": 0.0,
+      "fps_mean": 318.957618913055,
+      "frames": 4902,
+      "gpu_ms_median": 2.49600005149841,
+      "hitches": 1,
+      "hitches_per_min": 3.9040100234156,
+      "low01_ms": 9.19449996948242,
+      "low1_ms": 4.98604081601513,
+      "max_ms": 12.1909999847412,
+      "median_ms": 3.03200006484985,
+      "p999_ms": 5.38500022888184,
+      "p99_ms": 4.25400018692017,
+      "seconds": 15.368813,
+      "stability": 1.64447252947603
+    },
+    "features": [
+      {
+        "active": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "requested": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": true,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "underwater": false
+      }
+    ]
+  },
+  {
+    "players": 4,
+    "variant": "together-control-before",
+    "settled": true,
+    "stats": {
+      "bound": "main-thread",
+      "bound_share": 0.992163009404389,
+      "cpu_ms_median": 2.59800004959106,
+      "distance_m": 0.0,
+      "fps_mean": 81.4375592831606,
+      "frames": 1276,
+      "gpu_ms_median": 5.71099996566772,
+      "hitches": 1,
+      "hitches_per_min": 3.82935231738999,
+      "low01_ms": 31.2339992523193,
+      "low1_ms": 19.1819165547689,
+      "max_ms": 31.2339992523193,
+      "median_ms": 11.9870004653931,
+      "p999_ms": 21.6919994354248,
+      "p99_ms": 16.2880001068115,
+      "seconds": 15.668446,
+      "stability": 1.60022656294607
+    },
+    "features": [
+      {
+        "active": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "requested": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": true,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "underwater": false
+      },
+      {
+        "active": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "requested": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": true,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "underwater": false
+      },
+      {
+        "active": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "requested": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": true,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "underwater": false
+      },
+      {
+        "active": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "requested": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": true,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "underwater": false
+      }
+    ]
+  },
+  {
+    "players": 4,
+    "variant": "together-without-render_sky_clouds",
+    "settled": true,
+    "stats": {
+      "bound": "main-thread",
+      "bound_share": 1.0,
+      "cpu_ms_median": 2.65199995040894,
+      "distance_m": 0.0,
+      "fps_mean": 79.5892258072038,
+      "frames": 1222,
+      "gpu_ms_median": 4.69700002670288,
+      "hitches": 0,
+      "hitches_per_min": 0.0,
+      "low01_ms": 20.5919990539551,
+      "low1_ms": 17.4129166603088,
+      "max_ms": 20.5919990539551,
+      "median_ms": 12.3400001525879,
+      "p999_ms": 18.2549991607666,
+      "p99_ms": 16.181999206543,
+      "seconds": 15.353837,
+      "stability": 1.41109533589893
+    },
+    "features": [
+      {
+        "active": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": false,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "requested": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": true,
+          "render_sky_clouds": false,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "underwater": false
+      },
+      {
+        "active": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": false,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "requested": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": true,
+          "render_sky_clouds": false,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "underwater": false
+      },
+      {
+        "active": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": false,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "requested": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": true,
+          "render_sky_clouds": false,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "underwater": false
+      },
+      {
+        "active": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": false,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "requested": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": true,
+          "render_sky_clouds": false,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "underwater": false
+      }
+    ]
+  },
+  {
+    "players": 4,
+    "variant": "together-without-render_cloud_shadows",
+    "settled": true,
+    "stats": {
+      "bound": "main-thread",
+      "bound_share": 0.995633187772926,
+      "cpu_ms_median": 2.79399991035461,
+      "distance_m": 0.0,
+      "fps_mean": 74.4730753490608,
+      "frames": 1145,
+      "gpu_ms_median": 5.99399995803833,
+      "hitches": 0,
+      "hitches_per_min": 0.0,
+      "low01_ms": 24.2169990539551,
+      "low1_ms": 20.6282728368586,
+      "max_ms": 24.2169990539551,
+      "median_ms": 13.1339998245239,
+      "p999_ms": 21.875,
+      "p99_ms": 18.5620002746582,
+      "seconds": 15.374684,
+      "stability": 1.57060096790479
+    },
+    "features": [
+      {
+        "active": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": false,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "requested": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": false,
+          "render_shafts": true,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "underwater": false
+      },
+      {
+        "active": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": false,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "requested": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": false,
+          "render_shafts": true,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "underwater": false
+      },
+      {
+        "active": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": false,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "requested": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": false,
+          "render_shafts": true,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "underwater": false
+      },
+      {
+        "active": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": false,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "requested": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": false,
+          "render_shafts": true,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "underwater": false
+      }
+    ]
+  },
+  {
+    "players": 4,
+    "variant": "together-without-render_atmosphere",
+    "settled": true,
+    "stats": {
+      "bound": "main-thread",
+      "bound_share": 1.0,
+      "cpu_ms_median": 2.80900001525879,
+      "distance_m": 0.0,
+      "fps_mean": 74.1127342530123,
+      "frames": 1139,
+      "gpu_ms_median": 4.37099981307983,
+      "hitches": 1,
+      "hitches_per_min": 3.90409486846421,
+      "low01_ms": 26.5219993591309,
+      "low1_ms": 20.8484545621005,
+      "max_ms": 26.5219993591309,
+      "median_ms": 13.173999786377,
+      "p999_ms": 21.6660003662109,
+      "p99_ms": 18.9950008392334,
+      "seconds": 15.368479,
+      "stability": 1.58254553667593
+    },
+    "features": [
+      {
+        "active": {
+          "render_atmosphere": false,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "requested": {
+          "render_atmosphere": false,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": true,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "underwater": false
+      },
+      {
+        "active": {
+          "render_atmosphere": false,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "requested": {
+          "render_atmosphere": false,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": true,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "underwater": false
+      },
+      {
+        "active": {
+          "render_atmosphere": false,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "requested": {
+          "render_atmosphere": false,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": true,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "underwater": false
+      },
+      {
+        "active": {
+          "render_atmosphere": false,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "requested": {
+          "render_atmosphere": false,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": true,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "underwater": false
+      }
+    ]
+  },
+  {
+    "players": 4,
+    "variant": "together-without-render_ssao",
+    "settled": true,
+    "stats": {
+      "bound": "main-thread",
+      "bound_share": 0.999116607773852,
+      "cpu_ms_median": 2.78500008583069,
+      "distance_m": 0.0,
+      "fps_mean": 73.7517996546696,
+      "frames": 1132,
+      "gpu_ms_median": 5.89200019836426,
+      "hitches": 0,
+      "hitches_per_min": 0.0,
+      "low01_ms": 22.8680000305176,
+      "low1_ms": 21.0383637168191,
+      "max_ms": 22.8680000305176,
+      "median_ms": 13.1510000228882,
+      "p999_ms": 22.1189994812012,
+      "p99_ms": 19.5310001373291,
+      "seconds": 15.348778,
+      "stability": 1.5997539107447
+    },
+    "features": [
+      {
+        "active": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": false,
+          "render_sun_shadows": true
+        },
+        "requested": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": true,
+          "render_sky_clouds": true,
+          "render_ssao": false,
+          "render_sun_shadows": true
+        },
+        "underwater": false
+      },
+      {
+        "active": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": false,
+          "render_sun_shadows": true
+        },
+        "requested": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": true,
+          "render_sky_clouds": true,
+          "render_ssao": false,
+          "render_sun_shadows": true
+        },
+        "underwater": false
+      },
+      {
+        "active": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": false,
+          "render_sun_shadows": true
+        },
+        "requested": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": true,
+          "render_sky_clouds": true,
+          "render_ssao": false,
+          "render_sun_shadows": true
+        },
+        "underwater": false
+      },
+      {
+        "active": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": false,
+          "render_sun_shadows": true
+        },
+        "requested": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": true,
+          "render_sky_clouds": true,
+          "render_ssao": false,
+          "render_sun_shadows": true
+        },
+        "underwater": false
+      }
+    ]
+  },
+  {
+    "players": 4,
+    "variant": "together-without-render_bloom",
+    "settled": true,
+    "stats": {
+      "bound": "main-thread",
+      "bound_share": 0.998376623376623,
+      "cpu_ms_median": 2.58800005912781,
+      "distance_m": 0.0,
+      "fps_mean": 80.2658101331807,
+      "frames": 1232,
+      "gpu_ms_median": 5.38199996948242,
+      "hitches": 0,
+      "hitches_per_min": 0.0,
+      "low01_ms": 23.1569995880127,
+      "low1_ms": 18.6249163945516,
+      "max_ms": 23.1569995880127,
+      "median_ms": 12.1859998703003,
+      "p999_ms": 19.6240005493164,
+      "p99_ms": 17.0909996032715,
+      "seconds": 15.349001,
+      "stability": 1.52838639363063
+    },
+    "features": [
+      {
+        "active": {
+          "render_atmosphere": true,
+          "render_bloom": false,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "requested": {
+          "render_atmosphere": true,
+          "render_bloom": false,
+          "render_cloud_shadows": true,
+          "render_shafts": true,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "underwater": false
+      },
+      {
+        "active": {
+          "render_atmosphere": true,
+          "render_bloom": false,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "requested": {
+          "render_atmosphere": true,
+          "render_bloom": false,
+          "render_cloud_shadows": true,
+          "render_shafts": true,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "underwater": false
+      },
+      {
+        "active": {
+          "render_atmosphere": true,
+          "render_bloom": false,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "requested": {
+          "render_atmosphere": true,
+          "render_bloom": false,
+          "render_cloud_shadows": true,
+          "render_shafts": true,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "underwater": false
+      },
+      {
+        "active": {
+          "render_atmosphere": true,
+          "render_bloom": false,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "requested": {
+          "render_atmosphere": true,
+          "render_bloom": false,
+          "render_cloud_shadows": true,
+          "render_shafts": true,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "underwater": false
+      }
+    ]
+  },
+  {
+    "players": 4,
+    "variant": "together-without-render_shafts",
+    "settled": true,
+    "stats": {
+      "bound": "main-thread",
+      "bound_share": 0.99673735725938,
+      "cpu_ms_median": 2.61899995803833,
+      "distance_m": 0.0,
+      "fps_mean": 79.8102676885853,
+      "frames": 1226,
+      "gpu_ms_median": 5.52299976348877,
+      "hitches": 0,
+      "hitches_per_min": 0.0,
+      "low01_ms": 17.0620002746582,
+      "low1_ms": 16.355916817983,
+      "max_ms": 17.0620002746582,
+      "median_ms": 12.3039999008179,
+      "p999_ms": 16.9720001220703,
+      "p99_ms": 15.9739999771118,
+      "seconds": 15.361432,
+      "stability": 1.32931704728767
+    },
+    "features": [
+      {
+        "active": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "requested": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "underwater": false
+      },
+      {
+        "active": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "requested": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "underwater": false
+      },
+      {
+        "active": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "requested": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "underwater": false
+      },
+      {
+        "active": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "requested": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "underwater": false
+      }
+    ]
+  },
+  {
+    "players": 4,
+    "variant": "together-without-render_sun_shadows",
+    "settled": true,
+    "stats": {
+      "bound": "main-thread",
+      "bound_share": 0.998413957176844,
+      "cpu_ms_median": 2.34800004959106,
+      "distance_m": 0.0,
+      "fps_mean": 82.0059447481533,
+      "frames": 1261,
+      "gpu_ms_median": 5.14300012588501,
+      "hitches": 0,
+      "hitches_per_min": 0.0,
+      "low01_ms": 19.5769996643066,
+      "low1_ms": 17.873416741689,
+      "max_ms": 19.5769996643066,
+      "median_ms": 11.8249998092651,
+      "p999_ms": 18.3159999847412,
+      "p99_ms": 17.0990009307861,
+      "seconds": 15.376934,
+      "stability": 1.51149404059058
+    },
+    "features": [
+      {
+        "active": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": false
+        },
+        "requested": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": true,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": false
+        },
+        "underwater": false
+      },
+      {
+        "active": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": false
+        },
+        "requested": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": true,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": false
+        },
+        "underwater": false
+      },
+      {
+        "active": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": false
+        },
+        "requested": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": true,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": false
+        },
+        "underwater": false
+      },
+      {
+        "active": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": false
+        },
+        "requested": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": true,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": false
+        },
+        "underwater": false
+      }
+    ]
+  },
+  {
+    "players": 4,
+    "variant": "together-control-after",
+    "settled": true,
+    "stats": {
+      "bound": "main-thread",
+      "bound_share": 0.997526793075021,
+      "cpu_ms_median": 2.6029999256134,
+      "distance_m": 0.0,
+      "fps_mean": 79.0165983712679,
+      "frames": 1213,
+      "gpu_ms_median": 5.67999982833862,
+      "hitches": 0,
+      "hitches_per_min": 0.0,
+      "low01_ms": 19.9099998474121,
+      "low1_ms": 17.8403333028158,
+      "max_ms": 19.9099998474121,
+      "median_ms": 12.3760004043579,
+      "p999_ms": 19.7250003814697,
+      "p99_ms": 16.4650001525879,
+      "seconds": 15.351205,
+      "stability": 1.44152656107976
+    },
+    "features": [
+      {
+        "active": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "requested": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": true,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "underwater": false
+      },
+      {
+        "active": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "requested": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": true,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "underwater": false
+      },
+      {
+        "active": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "requested": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": true,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "underwater": false
+      },
+      {
+        "active": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": false,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "requested": {
+          "render_atmosphere": true,
+          "render_bloom": true,
+          "render_cloud_shadows": true,
+          "render_shafts": true,
+          "render_sky_clouds": true,
+          "render_ssao": true,
+          "render_sun_shadows": true
+        },
+        "underwater": false
+      }
+    ]
+  }
+]

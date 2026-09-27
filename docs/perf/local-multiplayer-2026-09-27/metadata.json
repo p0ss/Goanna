@@ -1,0 +1,19 @@
+{
+  "cpu": "AMD Ryzen 7 7800X3D",
+  "gpu": "NVIDIA GeForce RTX 3090 24 GiB",
+  "godot": "4.5.1.stable.official.f62fdbde1",
+  "luanti": "5.17.0",
+  "mineclonia_contentdb_release": 38561,
+  "git_head": "83c52a9a461c4047fae3e7e67ef2cd5c1923863e",
+  "working_tree": "uncommitted local multiplayer and benchmark changes",
+  "source_sha256": {
+    "project/local_bench.gd": "ef9acc48956622a261ce9312d89f43be01e802f3fae5446021aa9c365ec29d61",
+    "project/bench.gd": "8c195c5143e92baf8314adb9d75f7710db199c4fa066ad92ce9f0678d75f301e",
+    "project/local_play.gd": "87e9d51950320b3fa0b37bb675838e6ab9946071ec9022e6eaed3ac4a9ccb4b0",
+    "project/player_slot.gd": "4ee865065f40e62e59b4f5186a8533b2af064506cf10bd38179c5f62f2a05d18",
+    "project/main.gd": "2dc24b13d30f4454962541a0c0724c23964ed90002aa60c67c584d176da8a858",
+    "project/graphics_profiles.gd": "f8c9e603d3b2b8dc2c3310412af3ad8f890985fe7f589c0d144bfb93d51affe1",
+    "tools/bench-local-play.py": "9be7827e4e4be2c486414f42b546cff4fc049359355bc0878f2ca04e0d7d24c1",
+    "project/bin/libgoanna.linux.template_debug.x86_64.so": "613b9388abfae5f655e32b3c1e14adf0432733ef58c73112faddcace478487b8"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "world": "/var/home/poss/.var/app/org.luanti.luanti/.minetest/worlds/test_world",
+  "game": "/var/home/poss/.var/app/org.luanti.luanti/.minetest/games/mineclonia",
+  "output": "/tmp/goanna-tier-work/visual-final",
+  "server": "/var/lib/flatpak/app/org.luanti.luanti/x86_64/stable/c4cf75ca3f44a3743c6f7908913059e3cb9dbd12184810950f8222e838973e3c/files/bin/luanti.bin",
+  "players": [
+    4
+  ],
+  "seconds": 3.0,
+  "settle_timeout": 180.0,
+  "check_stream_drain": false,
+  "width": 1280,
+  "height": 800,
+  "dummy": false,
+  "profile": "lowest",
+  "phases": [
+    "together"
+  ],
+  "feature_sweep": null,
+  "poll_budget_ms": null,
+  "mesh_workers": null,
+  "travel_speed": 8,
+  "spread_radius": 192,
+  "scene": "circle",
+  "settings": {},
+  "msaa": null,
+  "screen_aa": null,
+  "warmup": 5
+}

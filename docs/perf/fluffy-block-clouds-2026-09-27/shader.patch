@@ -1,0 +1,139 @@
+--- a/project/shaders/sky.gdshader
++++ b/project/shaders/sky.gdshader
+@@ -147,10 +147,68 @@
+ 	return fbm(wxz * 0.0009 + cloud_offset * 0.4);
+ }
+ 
+-// A single layer of solid cloud cells, traversed in grid order. This path
+-// needs no 3D noise texture or density/light march. Shape follows the same
+-// drifting weather envelope; server coverage and colours apply to all styles.
+-vec4 block_clouds(vec3 eye, vec3 dir) {
++// A rounded box supplies the broad shape, while noise erodes its surface
++// and varies the interior density. Fade within the bounds, so neighbouring
++// grid traversal never clips a wisp at a cell boundary.
++float block_cloud_density(vec3 p, vec3 midpoint, vec3 half_size) {
++	float radius = min(half_size.y, half_size.x) * 0.7;
++	vec3 q = abs(p - midpoint) - (half_size - vec3(radius));
++	float sdf = length(max(q, vec3(0.0)))
++		+ min(max(q.x, max(q.y, q.z)), 0.0) - radius;
++	if (sdf >= 0.0) return 0.0;
++	float body = texture(cloud_body_tex, p / 96.0).r;
++	float detail = texture(cloud_body_tex, p / 31.0 + vec3(0.37)).r;
++	float erosion = (1.0 - body) * radius * 0.65
++		+ (0.5 - detail) * radius * 0.3;
++	float shell = 1.0 - smoothstep(-radius * 0.8, 0.0, sdf + erosion);
++	return shell * mix(0.45, 1.0, body);
++}
++
++// Integrate a soft body inside one occupied cell. Return premultiplied
++// radiance and opacity so a thin edge reveals clouds farther along the ray.
++vec4 fluffy_block_cell(vec3 ro, vec3 dir, vec3 lo, vec3 hi,
++		float entry, float leave, bool cubemap) {
++	vec3 midpoint = (lo + hi) * 0.5;
++	vec3 half_size = (hi - lo) * 0.5;
++	int samples = cubemap ? 8 : 16;
++	float stride = (leave - entry) / float(samples);
++	float light_stride = half_size.y * 0.65;
++	float sigma = 4.0 / max(hi.y - lo.y, 1.0);
++	float mu = dot(dir, sun_dir);
++	float phase = mix(1.0, 0.75 / pow(1.25 - mu, 1.5), 0.35);
++	float transmittance = 1.0;
++	vec3 accumulated = vec3(0.0);
++	for (int j = 0; j < 16; j++) {
++		if (j >= samples || transmittance < 0.015) break;
++		float t = entry + (float(j) + 0.5) * stride;
++		vec3 p = ro + dir * t;
++		float density = block_cloud_density(p, midpoint, half_size);
++		if (density < 0.001) continue;
++		float od = 0.0;
++		for (int k = 0; k < 3; k++) {
++			vec3 toward_light = p + sun_dir * (float(k) + 0.5) * light_stride;
++			od += block_cloud_density(toward_light, midpoint, half_size) * light_stride;
++		}
++		float light = exp(-od * sigma);
++		float hf = clamp((p.y - lo.y) / (hi.y - lo.y), 0.0, 1.0);
++		vec3 ambient = mix(sky_horizon.rgb, sky_top.rgb, 0.6)
++			* mix(0.28, 0.55, hf);
++		ambient = mix(ambient, haze_color.rgb * 0.65, haze_twilight * 0.6);
++		vec3 lit = cloud_color.rgb * (cloud_beam * light * phase * 1.5
++			+ goanna_sun_glow * (1.0 - hf) * 0.22)
++			+ ambient + cloud_ambient_color;
++		float fade = 1.0 - smoothstep(1800.0, 2800.0, t);
++		float alpha = 1.0 - exp(-density * sigma * stride * fade);
++		accumulated += transmittance * alpha * lit;
++		transmittance *= 1.0 - alpha;
++	}
++	return vec4(accumulated, 1.0 - transmittance);
++}
++
++// A single layer of cloud cells traversed in grid order. Plain blocks use
++// an analytic solid surface; fluffy blocks integrate density inside rounded
++// bounds. Both follow the drifting weather envelope and server colours.
++vec4 block_clouds(vec3 eye, vec3 dir, bool cubemap) {
+ 	float base = eye.y + cloud_plane_h;
+ 	float height = max(12.0, cloud_thickness * 2.0);
+ 	vec3 ray = mix(vec3(0.000001), dir, greaterThan(abs(dir), vec3(0.000001)));
+@@ -165,6 +223,7 @@
+ 	vec2 drift = cloud_offset * (0.4 / 0.0009);
+ 	vec3 ro = eye + vec3(drift.x, 0.0, drift.y);
+ 	float t = start + 0.001;
++	vec4 accumulated = vec4(0.0);
+ 	for (int i = 0; i < 64; i++) {
+ 		if (t > end) break;
+ 		vec3 p = ro + dir * t;
+@@ -187,31 +246,13 @@
+ 					? vec3(-sign(ray.x), 0.0, 0.0)
+ 					: near_t.y >= near_t.z ? vec3(0.0, -sign(ray.y), 0.0)
+ 					: vec3(0.0, 0.0, -sign(ray.z));
+-				bool surface_hit = true;
+ 				if (cloud_style == 1) {
+-					// Intersect a rounded box inside the cell's bounds. The flat
+-					// faces remain, but edges and corners change the silhouette.
+-					vec3 midpoint = (lo + hi) * 0.5;
+-					float radius = min(crown, cell_size) * 0.35;
+-					vec3 core = (hi - lo) * 0.5 - vec3(radius);
+-					surface_hit = false;
+-					for (int j = 0; j < 32; j++) {
+-						if (hit > min(exit_t, end)) break;
+-						vec3 local = ro + dir * hit - midpoint;
+-						vec3 q = abs(local) - core;
+-						vec3 outside = max(q, vec3(0.0));
+-						float distance = length(outside)
+-							+ min(max(q.x, max(q.y, q.z)), 0.0) - radius;
+-						if (distance < 0.02) {
+-							surface_hit = true;
+-							if (dot(outside, outside) > 0.000001)
+-								normal = normalize(sign(local) * outside);
+-							break;
+-						}
+-						hit += distance;
+-					}
+-				}
+-				if (surface_hit) {
++					vec4 body = fluffy_block_cell(ro, dir, lo, hi, hit,
++						min(exit_t, end), cubemap);
++					accumulated.rgb += (1.0 - accumulated.a) * body.rgb;
++					accumulated.a += (1.0 - accumulated.a) * body.a;
++					if (accumulated.a > 0.985) break;
++				} else {
+ 					float diffuse = 0.25 + 0.75 * max(dot(normal, sun_dir), 0.0);
+ 					float under = max(-normal.y, 0.0);
+ 					vec3 ambient = mix(sky_horizon.rgb, haze_color.rgb, haze_twilight * 0.6);
+@@ -228,7 +269,7 @@
+ 		crossing = mix(vec2(1e20), crossing, greaterThan(abs(dir.xz), vec2(0.000001)));
+ 		t = min(crossing.x, crossing.y) + 0.001;
+ 	}
+-	return vec4(0.0);
++	return vec4(accumulated.rgb / max(accumulated.a, 0.00001), accumulated.a);
+ }
+ 
+ // Density at a world point. base_w and deck are the slab; weather is
+@@ -420,7 +461,7 @@
+ 	// occludes the sun disc and the stars behind it through T, which a
+ 	// blended sheet never did.
+ 	if (clouds_enabled && cloud_coverage > 0.01 && cloud_style < 2) {
+-		vec4 clouds = block_clouds(POSITION, dir);
++		vec4 clouds = block_clouds(POSITION, dir, AT_CUBEMAP_PASS);
+ 		col = mix(col, clouds.rgb, clouds.a);
+ 	}
+ 	if (clouds_enabled && cloud_coverage > 0.01 && cloud_style == 2) {

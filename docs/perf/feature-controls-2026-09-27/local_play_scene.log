@@ -1,0 +1,32 @@
+Godot Engine v4.5.1.stable.official.f62fdbde1 - https://godotengine.org
+
+hardware: 16 cores,  (shared), profile low
+goanna: extension loaded
+luanti core 5.17.0-goanna-c0e6812b1
+no texture pack set (settings panel, or GOANNA_PACK)
+connecting to 127.0.0.1:39997 as scene_0
+hardware: 16 cores,  (shared), profile low
+goanna: extension loaded
+luanti core 5.17.0-goanna-c0e6812b1
+no texture pack set (settings panel, or GOANNA_PACK)
+connecting to 127.0.0.1:39997 as scene_1
+hardware: 16 cores,  (shared), profile low
+goanna: extension loaded
+luanti core 5.17.0-goanna-c0e6812b1
+no texture pack set (settings panel, or GOANNA_PACK)
+connecting to 127.0.0.1:39997 as scene_2
+hardware: 16 cores,  (shared), profile low
+goanna: extension loaded
+luanti core 5.17.0-goanna-c0e6812b1
+no texture pack set (settings panel, or GOANNA_PACK)
+connecting to 127.0.0.1:39997 as scene_3
+[  0.1s] none | <null> | media 0/0 | blocks recv 0 meshed 0 | mats 0 | res 0 | lights 0
+[  0.1s] none | <null> | media 0/0 | blocks recv 0 meshed 0 | mats 0 | res 0 | lights 0
+[  0.1s] none | <null> | media 0/0 | blocks recv 0 meshed 0 | mats 0 | res 0 | lights 0
+[  0.1s] none | <null> | media 0/0 | blocks recv 0 meshed 0 | mats 0 | res 0 | lights 0
+WARNING: Nodes with non-equal opposite anchors will have their size overridden after _ready(). 
+If you want to set size, change the anchors or consider using set_deferred().
+     at: _set_size (scene/gui/control.cpp:1476)
+     GDScript backtrace (most recent call first):
+         [0] <anonymous lambda> (res://ui/glass_style.gd:218)
+local play scenes: 0 failures

@@ -1,0 +1,725 @@
+--- a/src/goanna_client.cpp
++++ b/src/goanna_client.cpp
+@@ -3648,7 +3648,8 @@
+     m_session->stepObjects((float)dt);
+     m_entities->sync(*m_session, (float)dt, Vector3());
+     if (procedural_grass() && has_meta("goanna_grass_material") &&
+-            (bool)get_meta("goanna_grass_interaction", true))
++            (bool)get_meta("goanna_grass_interaction", true) &&
++            (int)get_meta("goanna_grass_interactors", 8) > 0)
+         goanna::update_grass_interactors(this,m_entities->grass_interactors(*m_session));
+     ema(m_ms_entities, ms_since(t0));
+ }
+@@ -3806,6 +3807,14 @@
+     d["resident_blocks"] = m_session ? m_session->residentBlocks() : 0;
+     d["light_pool"] = (int)m_light_pool.size();
+     d["lights_in_range"] = m_lights_in_range;
++    int active_lights = 0, shadow_lights = 0;
++    for (const auto *light : m_light_pool) {
++        if (!light->is_visible()) continue;
++        ++active_lights;
++        if (light->has_shadow()) ++shadow_lights;
++    }
++    d["active_lights"] = active_lights;
++    d["shadow_lights"] = shadow_lights;
+     d["light_churn"] = m_light_churn;
+     d["mote_pool"] = (int)m_mote_pool.size();
+     // Far tiers: how many blocks each tier draws, how many region meshes,
+@@ -4063,13 +4072,8 @@
+     }
+     static const bool no_light_shadows = getenv("GOANNA_NO_LIGHT_SHADOWS") != nullptr;
+     const bool shadowed_pool = !no_light_shadows && m_shadow_lamps > 0;
+-    // An unshadowed point light passes through walls. Strong normal maps then
+-    // turn that leaked diffuse light into bright grooves on the inside face,
+-    // even with specular disabled. Share admission and shadows: every active
+-    // direct lamp gets a map, including while it fades out. Outside this pool,
+-    // the existing propagated node-light fallback supplies distant lighting.
+-    if (shadowed_pool)
+-        max_lights = std::min(max_lights, m_shadow_lamps);
++    // Light admission is independent of shadow maps. Unselected lamps remain
++    // lit; propagated node light supplies the world beyond the direct pool.
+ 
+     // A lamp's identity is where it is. Node aligned positions make the
+     // rounding exact, so this key is stable for as long as the lamp exists and
+@@ -4317,6 +4321,34 @@
+         }
+     }
+ 
++    // Rank shadow candidates separately, retaining current owners with a
++    // two-node advantage. Distance and emitter reach determine importance;
++    // the stable key breaks ties. Fading lights also consume their map slot.
++    struct ShadowCandidate { size_t slot; float score; int64_t key; };
++    std::vector<ShadowCandidate> shadow_candidates;
++    if (shadowed_pool) {
++        for (size_t s = 0; s < slots; ++s) {
++            const auto *c = holder[s];
++            const LightSlot &old = m_light_slot[s];
++            if (!c && (!old.key || old.fade <= 0.15f)) continue;
++            const Vector3 pos = c ? c->l->pos : old.pos;
++            const int64_t key = c ? c->key : old.key;
++            const bool retained = m_light_pool[s]->has_shadow() && key == old.key;
++            const float distance = pos.distance_to(around);
++            if (distance > m_lamp_shadow_distance + (retained ? 2.0f : 0.0f)) continue;
++            const float level = c ? c->l->level : old.level;
++            shadow_candidates.push_back({s, distance - range_of(level) -
++                    (retained ? 2.0f : 0.0f), key});
++        }
++        std::sort(shadow_candidates.begin(), shadow_candidates.end(),
++                [](const ShadowCandidate &a, const ShadowCandidate &b) {
++                    return a.score != b.score ? a.score < b.score : a.key < b.key;
++                });
++    }
++    std::vector<bool> selected_shadow(slots, false);
++    for (size_t i = 0; i < shadow_candidates.size() && i < (size_t)m_shadow_lamps; ++i)
++        selected_shadow[shadow_candidates[i].slot] = true;
++
+     // Admission and eviction ramp rather than step. Even a perfectly stable
+     // pool has to drop a lamp eventually, and a lamp that vanishes between one
+     // frame and the next is visible as a jump in the lighting of everything it
+@@ -4408,7 +4440,7 @@
+             ol->set_param(Light3D::PARAM_ATTENUATION, 1.5f);
+         if (!ol->is_visible())
+             ol->set_visible(true);
+-        const bool want_shadow = shadowed_pool;
++        const bool want_shadow = selected_shadow[s];
+         if (ol->has_shadow() != want_shadow)
+             ol->set_shadow(want_shadow);
+     }
+@@ -8234,6 +8266,8 @@
+     ClassDB::bind_method(D_METHOD("update_lights", "around", "max_lights"), &GoannaClient::update_lights);
+     ClassDB::bind_method(D_METHOD("set_shadow_lamps", "n"), &GoannaClient::set_shadow_lamps);
+     ClassDB::bind_method(D_METHOD("shadow_lamps"), &GoannaClient::shadow_lamps);
++    ClassDB::bind_method(D_METHOD("set_lamp_shadow_distance", "distance"), &GoannaClient::set_lamp_shadow_distance);
++    ClassDB::bind_method(D_METHOD("lamp_shadow_distance"), &GoannaClient::lamp_shadow_distance);
+     ClassDB::bind_method(D_METHOD("set_light_flicker", "on"), &GoannaClient::set_light_flicker);
+     ClassDB::bind_method(D_METHOD("light_flicker"), &GoannaClient::light_flicker);
+     ClassDB::bind_method(D_METHOD("set_motes", "density"), &GoannaClient::set_motes);
+--- a/src/goanna_client.h
++++ b/src/goanna_client.h
+@@ -173,6 +173,8 @@
+     // set_solid_ice in the implementation for the trade it makes.
+     void set_shadow_lamps(int n);
+     int shadow_lamps() const { return m_shadow_lamps; }
++    void set_lamp_shadow_distance(float distance) { m_lamp_shadow_distance = std::clamp(distance, 4.0f, 96.0f); }
++    float lamp_shadow_distance() const { return m_lamp_shadow_distance; }
+     // Subtle brightness variance on node lights, like a living flame. Off
+     // for anyone the movement bothers, on by default because it is gentle
+     // rather than a strobe: see update_lights() for the actual waveform.
+@@ -1199,10 +1201,9 @@
+         float flicker_phase = 0.0f;
+     };
+     std::vector<LightSlot> m_light_slot;
+-    // Shared budget for direct node lights and their shadow maps. A low
+-    // budget can drop visible room lighting as the camera moves; see the
+-    // lantern-room review. Zero explicitly enables unshadowed lamp lighting.
++    // Shadow selection is independent of direct light admission.
+     int m_shadow_lamps = 16;
++    float m_lamp_shadow_distance = 64.0f;
+     bool m_light_flicker = true;
+     int m_lights_in_range = 0;
+     // Slots whose lamp changed on the last update: the churn that makes
+--- a/src/goanna_grass.cpp
++++ b/src/goanna_grass.cpp
+@@ -161,6 +161,10 @@
+                 : Ref<Shader>(ResourceLoader::get_singleton()->load("res://shaders/grass_volume.gdshader"));
+         material->set_shader(shader);
+         material->set_meta("goanna_grass_volume", true);
++        const Dictionary parameters = owner->get_meta("goanna_grass_parameters", Dictionary());
++        const Array keys = parameters.keys();
++        for (int i = 0; i < keys.size(); ++i)
++            material->set_shader_parameter(keys[i], parameters[keys[i]]);
+         owner->set_meta("goanna_grass_material",material);
+     }
+     mesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, a, TypedArray<Array>(), Dictionary(), flags);
+@@ -170,7 +174,7 @@
+ void goanna::update_grass_interactors(Node *owner, const PackedVector4Array &actors) {
+     if (!owner->has_meta("goanna_grass_material")) return;
+     Ref<ShaderMaterial> material=owner->get_meta("goanna_grass_material");
+-    material->set_shader_parameter("interaction_count",std::min(8,(int)actors.size()));
++    material->set_shader_parameter("interaction_count",std::min(std::clamp((int)owner->get_meta("goanna_grass_interactors", 8), 0, 8),(int)actors.size()));
+     PackedVector4Array padded=actors;
+     padded.resize(8);
+     material->set_shader_parameter("interaction_centres",padded);
+--- a/project/main.gd
++++ b/project/main.gd
+@@ -4,6 +4,8 @@
+ const RenderFeatures := preload("res://render_features.gd")
+ var render_features: Dictionary = RenderFeatures.DEFAULTS.duplicate()
+ var cloud_body_texture: NoiseTexture3D
++# Defer expensive allocation until saved settings and the local preset agree.
++var quality_settings_ready := false
+ var ice_capture: Node
+ var shaft_glow_luminance := 0.0
+ # Opt-in stage timings for benchmarks. Last-frame and interval maxima only.
+@@ -165,6 +167,14 @@
+ var atmosphere_quality := 1.0
+ # Sky cloud sampling: 0 compact, 1 balanced, 2 full.
+ var cloud_quality := 2.0
++# 0 block, 1 rounded block, 2 volume. Independent of lighting samples.
++var cloud_style := 2.0
++var grass_density := 1.0
++var grass_draw_distance := 80.0
++var grass_interaction_distance := 16.0
++var grass_interactors := 8.0
++# 0 unchanged, 1 FXAA, 2 2x MSAA + FXAA, 3 4x MSAA + FXAA.
++var grass_antialiasing := 3.0
+ # The background layer's shape (docs/far-rendering.md, "Background, overlay,
+ # foreground"), swept with GOANNA_FOG_CLEAR and GOANNA_FOG_CURVE. The fraction
+ # of the drawn distance that stays clear of haze, and the exponent on the ramp
+@@ -313,18 +323,40 @@
+ 
+ func set_procedural_grass(on: bool) -> void:
+ 	var viewport := get_viewport()
+-	var want_aa: bool = on and render_features["render_grass_aa"]
++	var want_aa: bool = on and render_features["render_grass_aa"] and grass_antialiasing > 0.0
+ 	if want_aa and not grass_aa_active:
+ 		grass_previous_msaa = viewport.msaa_3d
+ 		grass_previous_screen_aa = viewport.screen_space_aa
+-		viewport.msaa_3d = maxi(viewport.msaa_3d, Viewport.MSAA_4X) as Viewport.MSAA
++	if want_aa:
++		var samples := Viewport.MSAA_4X if grass_antialiasing >= 3.0 else Viewport.MSAA_2X if grass_antialiasing >= 2.0 else Viewport.MSAA_DISABLED
++		viewport.msaa_3d = maxi(grass_previous_msaa, samples) as Viewport.MSAA
+ 		if viewport.screen_space_aa == Viewport.SCREEN_SPACE_AA_DISABLED:
+ 			viewport.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA
+-	elif not want_aa and grass_aa_active:
++	elif grass_aa_active:
+ 		viewport.msaa_3d = grass_previous_msaa
+ 		viewport.screen_space_aa = grass_previous_screen_aa
+ 	grass_aa_active = want_aa
++	_apply_grass_quality()
+ 	client.set_procedural_grass(on)
++
++func _apply_grass_quality() -> void:
++	if client == null:
++		return
++	var parameters := {
++		"density": clampf(grass_density, 0.1, 1.0),
++		"draw_distance": clampf(grass_draw_distance, 4.0, 128.0),
++		"interaction_distance": clampf(grass_interaction_distance, 0.0, 32.0),
++		"interaction_enabled": grass_interactors > 0.0 and grass_interaction_distance > 0.0,
++		"detail_near": minf(25.0, grass_draw_distance * 0.3),
++		"detail_far": minf(65.0, grass_draw_distance * 0.8),
++	}
++	client.set_meta("goanna_grass_parameters", parameters)
++	client.set_meta("goanna_grass_interactors", clampi(int(grass_interactors), 0, 8))
++	client.set_meta("goanna_grass_interaction", render_features["render_grass_interaction"] and grass_interaction_distance > 0.0)
++	if client.has_meta("goanna_grass_material"):
++		var material: ShaderMaterial = client.get_meta("goanna_grass_material")
++		for key in parameters:
++			material.set_shader_parameter(key, parameters[key])
+ 
+ func _exit_tree() -> void:
+ 	# The window survives scene changes. Release the AA owned by this game
+@@ -377,6 +409,7 @@
+ 	if cfg.load("user://goanna.cfg") == OK:
+ 		atmosphere_quality = float(cfg.get_value("settings", "atmosphere_quality", atmosphere_quality))
+ 		cloud_quality = float(cfg.get_value("settings", "cloud_quality", cloud_quality))
++		cloud_style = float(cfg.get_value("settings", "cloud_style", cloud_style))
+ 		for k in ["sun", "ambient", "sdfgi", "sdfgi_cell", "ssao", "white", "exposure", "fill", "shafts"]:
+ 			if cfg.has_section_key("settings", "light_" + k):
+ 				set("light_" + k, float(cfg.get_value("settings", "light_" + k)))
+@@ -2298,7 +2331,7 @@
+ 	var enabled: bool = render_features["render_sky_clouds"]
+ 	# Keep an existing volume for instant restoration, but do not generate
+ 	# one at startup when the feature is disabled in the saved settings.
+-	if enabled and cloud_body_texture == null:
++	if quality_settings_ready and enabled and int(cloud_style) == 2 and cloud_body_texture == null:
+ 		var noise := FastNoiseLite.new()
+ 		noise.noise_type = FastNoiseLite.TYPE_PERLIN
+ 		noise.fractal_type = FastNoiseLite.FRACTAL_FBM
+@@ -2313,6 +2346,7 @@
+ 		cloud_body_texture.noise = noise
+ 		sky_mat.set_shader_parameter("cloud_body_tex", cloud_body_texture)
+ 	sky_mat.set_shader_parameter("clouds_enabled", enabled)
++	sky_mat.set_shader_parameter("cloud_style", clampi(int(cloud_style), 0, 2))
+ 	sky_mat.set_shader_parameter("cloud_quality", clampi(int(cloud_quality), 0, 2))
+ 
+ func _apply_render_features() -> void:
+--- a/project/ui/game_ui.gd
++++ b/project/ui/game_ui.gd
+@@ -788,6 +788,11 @@
+ 	["Controls", "pad_deadzone", "slider", "Controller deadzone", "How far a stick must move before it counts. Raise this if the view or the cursor drifts with the sticks at rest.", 0.05, 0.6, 0.05],
+ 	["Controls", "view_bobbing", "slider", "View bobbing", "How much the camera bobs as you walk.", 0.0, 1.5, 0.1],
+ 	["Video", "procedural_grass", "toggle", "Procedural grass", "Dense, wind-swept grass that bends around players and animals. Improves edge smoothing and increases graphics cost."],
++	["Video", "grass_density", "slider", "Grass density", "Amount of procedural grass. Fewer blades reduce graphics cost; ground textures and game plants remain.", 0.1, 1.0, 0.1],
++	["Video", "grass_draw_distance", "slider", "Grass distance", "Distance in nodes before procedural grass fades back to the underlying terrain.", 4.0, 128.0, 4.0],
++	["Video", "grass_interaction_distance", "slider", "Grass bending distance", "Only nearby blades bend around players and animals. Zero disables bending.", 0.0, 32.0, 2.0],
++	["Video", "grass_interactors", "slider", "Grass interactions", "Maximum nearby players and animals that bend grass in this view. Zero disables bending.", 0.0, 8.0, 1.0],
++	["Video", "grass_antialiasing", "slider", "Grass edge smoothing", "0 keeps existing AA, 1 adds FXAA, 2 adds 2x MSAA, 3 adds 4x MSAA. Stronger existing AA is preserved.", 0.0, 3.0, 1.0],
+ 	["Video", "solid_ice", "toggle", "Solid ice", "Remove transparency from frosted ice to reduce graphics cost. Both modes keep submerged faces and surface lighting."],
+ 	["Video", "auto_bump", "slider", "Auto bump", "Fake surface relief from texture brightness.", 0.0, 1.0, 0.05],
+ 	["Material", "mat_normal", "slider", "Normal strength", "How much of the pack's surface relief to apply. Packs are authored for other art at other resolutions, and a normal map meant for 64 pixel textures reads as smeared blotches on 16 pixel ones. Lower this first if a pack looks muddy.", 0.0, 2.0, 0.05],
+@@ -821,8 +826,9 @@
+ 	["Lighting", "light_ambient", "slider", "Ambient light", "Sky light filling shadowed surfaces.", 0.0, 3.0, 0.05],
+ 	["Lighting", "light_sdfgi", "slider", "Bounced light", "Strength of global illumination bouncing off surfaces.", 0.0, 4.0, 0.1],
+ 	["Lighting", "light_sdfgi_cell", "slider", "Bounced light grain", "How fine the bounced light grid is. Finer looks better standing still but the grid re-centres on you as you walk, which shows as shading popping in and out a few steps apart. Raise this if shadows change when you move.", 0.25, 8.0, 0.25],
+-	["Lighting", "light_pool", "slider", "Lamp count", "Maximum direct lamp lights. When lamp shadows are enabled, Shadow casting lamps also limits this count so lights cannot shine through walls. Distant lighting uses propagated block light.", 16.0, 256.0, 8.0],
+-	["Lighting", "shadow_lamps", "slider", "Shadow casting lamps", "Budget for direct lamps with shadows. Every admitted lamp keeps its shadow; raising this preserves direct lighting across more lit areas at a higher graphics cost. Zero disables lamp shadows.", 0.0, 48.0, 1.0],
++	["Lighting", "light_pool", "slider", "Lamp count", "Maximum direct lamp lights, independent of the shadow budget. Lamps outside the pool use propagated block light. Unshadowed direct lights can shine through walls.", 16.0, 256.0, 8.0],
++	["Lighting", "shadow_lamps", "slider", "Shadow casting lamps", "Maximum nearby lamps with shadows. Other admitted lamps keep lighting without a shadow map. Zero disables lamp shadows.", 0.0, 48.0, 1.0],
++	["Lighting", "lamp_shadow_distance", "slider", "Lamp shadow distance", "Reach of lamp shadows in nodes, with a small margin to avoid switching at the boundary. Direct lighting continues beyond it.", 4.0, 96.0, 4.0],
+ 	["Lighting", "light_flicker", "toggle", "Flame flicker", "A subtle, steady brightness variance on torches, lanterns and other node lights, like a living flame rather than a fixed bulb. Turn off if moving light bothers you."],
+ 	["Lighting", "light_ssao", "slider", "Corner shading", "Darkening where surfaces meet (ambient occlusion). This is the strength only; what it costs is the screen space detail setting below.", 0.0, 8.0, 0.25],
+ 	["Lighting", "light_ssil", "slider", "Screen space bounce", "Colour bounced between nearby surfaces (SSIL). Costs about a sixth of the frame on its own; 0 turns the pass off rather than just hiding it.", 0.0, 4.0, 0.1],
+@@ -831,7 +837,8 @@
+ 	["Lighting", "light_white", "slider", "White point", "Where highlights clip to white. If bright surfaces look flat and detailless, lower Exposure first: this alone will not recover them.", 0.5, 6.0, 0.1],
+ 	["Lighting", "light_exposure", "slider", "Exposure", "Overall brightness before the tonemap. The default puts a sunlit surface at about 1.3 times its texture's brightness.", 0.1, 2.0, 0.02],
+ 	["Lighting", "light_shafts", "slider", "Light shafts", "Sun and moon light scattering out of the air, so a gap in a canopy or a hillside throws a visible shaft. Strongest near dawn and dusk, and in rain. 0 leaves the air clear.", 0.0, 3.0, 0.1],
+-	["Lighting", "cloud_quality", "slider", "Sky cloud quality", "Cloud lighting samples: 0 compact, 1 balanced, 2 full. All retain full silhouette sampling.", 0.0, 2.0, 1.0],
++	["Lighting", "cloud_style", "slider", "Cloud style", "0 block clouds, 1 rounded block clouds, 2 volumetric clouds. All follow the server weather and sun.", 0.0, 2.0, 1.0],
++	["Lighting", "cloud_quality", "slider", "Sky cloud quality", "Volumetric cloud lighting samples: 0 compact, 1 balanced, 2 full. All retain full silhouette sampling.", 0.0, 2.0, 1.0],
+ 	["Lighting", "atmosphere_quality", "slider", "Volumetric atmosphere", "Quality and reach of valley fog and thick clouds. 0 uses only the inexpensive horizon fade; lower this first if clouds cost too much frame rate.", 0.0, 1.0, 0.1],
+ 	["Lighting", "light_fill", "slider", "Sky fill", "How much the sky lights walls and other shaded surfaces, following the light Luanti says reaches them. 0 leaves them to bounced light alone, which is dark.", 0.0, 1.5, 0.05],
+ 	["Audio", "volume", "slider", "Volume", "Overall sound level.", 0.0, 1.0, 0.05],
+@@ -884,7 +891,7 @@
+ 	"pad_enabled", "pad_look_speed", "pad_invert_y", "pad_deadzone",
+ 	"gui_scale", "max_fps", "vsync", "fullscreen", "damage_flash", "show_fps", "show_position", "terrain_occlusion", "player_effect_particles", "volume", "muted",
+ 	"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao",
+-	"light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality", "cloud_quality",
++	"light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality", "cloud_quality", "cloud_style", "grass_density", "grass_draw_distance", "grass_interaction_distance", "grass_interactors", "grass_antialiasing",
+ 	"light_ssil", "screen_space_detail", "shadow_detail", "asset_updates",
+ 	"look_strength", "night_visibility", "bloom_strength", "shader_weather"]
+ var settings_menu: Control
+@@ -959,7 +966,7 @@
+ 		"show_position":
+ 			show_position = on
+ 			hud.queue_redraw()
+-		"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao", "light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality", "cloud_quality", "light_ssil", "screen_space_detail", "shadow_detail", "look_strength", "night_visibility", "bloom_strength":
++		"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao", "light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality", "cloud_quality", "cloud_style", "grass_density", "grass_draw_distance", "grass_interaction_distance", "grass_interactors", "grass_antialiasing", "light_ssil", "screen_space_detail", "shadow_detail", "look_strength", "night_visibility", "bloom_strength":
+ 			var ml := _main_node()
+ 			if ml != null:
+ 				ml.set(key, value)
+@@ -991,7 +998,7 @@
+ 		"player_effect_particles": return 1.0 if player_effect_particles else 0.0
+ 		"shader_weather": return 1.0 if shader_weather else 0.0
+ 		"show_position": return 1.0 if show_position else 0.0
+-		"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao", "light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality", "cloud_quality", "light_ssil", "screen_space_detail", "shadow_detail", "look_strength", "night_visibility", "bloom_strength":
++		"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao", "light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality", "cloud_quality", "cloud_style", "grass_density", "grass_draw_distance", "grass_interaction_distance", "grass_interactors", "grass_antialiasing", "light_ssil", "screen_space_detail", "shadow_detail", "look_strength", "night_visibility", "bloom_strength":
+ 			return float(m.get(key)) if m != null else 1.0
+ 		"volume": return audio.volume if audio != null else 0.8
+ 		"muted": return 1.0 if (audio != null and audio.muted) else 0.0
+@@ -1028,6 +1035,7 @@
+ 		"repeat_place": if client.has_method("set_repeat_place_interval"): client.set_repeat_place_interval(value)
+ 		"auto_bump": if client.has_method("set_auto_bump"): client.set_auto_bump(value)
+ 		"solid_ice": if client.has_method("set_solid_ice"): client.set_solid_ice(on)
++		"lamp_shadow_distance": client.set_lamp_shadow_distance(value)
+ 		"shadow_lamps": if client.has_method("set_shadow_lamps"): client.set_shadow_lamps(int(value))
+ 		"light_flicker": if client.has_method("set_light_flicker"): client.set_light_flicker(on)
+ 		"bevel": if client.has_method("set_bevel"): client.set_bevel(value)
+@@ -1060,6 +1068,7 @@
+ 		"repeat_place": if client.has_method("repeat_place_interval"): return client.repeat_place_interval()
+ 		"auto_bump": if client.has_method("auto_bump"): return client.auto_bump()
+ 		"solid_ice": if client.has_method("solid_ice"): return 1.0 if client.solid_ice() else 0.0
++		"lamp_shadow_distance": return client.lamp_shadow_distance()
+ 		"shadow_lamps": if client.has_method("shadow_lamps"): return float(client.shadow_lamps())
+ 		"light_flicker": if client.has_method("light_flicker"): return 1.0 if client.light_flicker() else 0.0
+ 		"bevel": if client.has_method("bevel"): return client.bevel()
+@@ -1117,6 +1126,10 @@
+ 		var profile: String = m.player_slot.shell.graphics_profile
+ 		for key in GraphicsProfiles.PROFILES.get(profile, GraphicsProfiles.PROFILES["low"]):
+ 			_apply_setting(key, float(GraphicsProfiles.PROFILES.get(profile, GraphicsProfiles.PROFILES["low"])[key]))
++
++	if m != null:
++		m.quality_settings_ready = true
++		m._apply_cloud_feature()
+ 
+ func _save_setting(key: String, value: float) -> void:
+ 	var cfg := ConfigFile.new()
+--- a/project/shaders/sky.gdshader
++++ b/project/shaders/sky.gdshader
+@@ -63,6 +63,7 @@
+ global uniform vec3 goanna_sun_glow;
+ uniform float cloud_coverage = 0.4;
+ uniform bool clouds_enabled = true;
++uniform int cloud_style : hint_range(0, 2) = 2;
+ uniform int cloud_quality : hint_range(0, 2) = 2;
+ uniform float cloud_plane_h = 90.0;
+ uniform float cloud_thickness = 16.0;
+@@ -146,6 +147,90 @@
+ 	return fbm(wxz * 0.0009 + cloud_offset * 0.4);
+ }
+ 
++// A single layer of solid cloud cells, traversed in grid order. This path
++// needs no 3D noise texture or density/light march. Shape follows the same
++// drifting weather envelope; server coverage and colours apply to all styles.
++vec4 block_clouds(vec3 eye, vec3 dir) {
++	float base = eye.y + cloud_plane_h;
++	float height = max(12.0, cloud_thickness * 2.0);
++	vec3 ray = mix(vec3(0.000001), dir, greaterThan(abs(dir), vec3(0.000001)));
++	float enter = (base - eye.y) / ray.y;
++	float leave = (base + height - eye.y) / ray.y;
++	float start = max(0.0, min(enter, leave));
++	float end = min(2800.0, max(enter, leave));
++	if (end <= start) return vec4(0.0);
++	const float cell_size = 64.0;
++	// Advancing noise coordinates makes the visible cloud mass move opposite
++	// the offset, just like the volume. Grid boundaries drift continuously.
++	vec2 drift = cloud_offset * (0.4 / 0.0009);
++	vec3 ro = eye + vec3(drift.x, 0.0, drift.y);
++	float t = start + 0.001;
++	for (int i = 0; i < 64; i++) {
++		if (t > end) break;
++		vec3 p = ro + dir * t;
++		vec2 cell = floor(p.xz / cell_size);
++		vec2 centre = (cell + 0.5) * cell_size;
++		float weather = fbm(centre * 0.0009);
++		float occupancy = cloud_coverage * mix(0.25, 1.0, smoothstep(0.25, 0.65, weather));
++		if (hash12(cell + vec2(37.1, 91.7)) < occupancy) {
++			float crown = height * mix(0.55, 1.0, hash12(cell));
++			vec3 lo = vec3(cell.x * cell_size, base, cell.y * cell_size);
++			vec3 hi = lo + vec3(cell_size, crown, cell_size);
++			vec3 a = (lo - ro) / ray;
++			vec3 b = (hi - ro) / ray;
++			vec3 near_t = min(a, b), far_t = max(a, b);
++			float hit = max(max(near_t.x, near_t.y), near_t.z);
++			float exit_t = min(min(far_t.x, far_t.y), far_t.z);
++			if (exit_t >= max(hit, start) && hit <= end) {
++				hit = max(hit, start);
++				vec3 normal = near_t.x >= near_t.y && near_t.x >= near_t.z
++					? vec3(-sign(ray.x), 0.0, 0.0)
++					: near_t.y >= near_t.z ? vec3(0.0, -sign(ray.y), 0.0)
++					: vec3(0.0, 0.0, -sign(ray.z));
++				bool surface_hit = true;
++				if (cloud_style == 1) {
++					// Intersect a rounded box inside the cell's bounds. The flat
++					// faces remain, but edges and corners change the silhouette.
++					vec3 midpoint = (lo + hi) * 0.5;
++					float radius = min(crown, cell_size) * 0.35;
++					vec3 core = (hi - lo) * 0.5 - vec3(radius);
++					surface_hit = false;
++					for (int j = 0; j < 32; j++) {
++						if (hit > min(exit_t, end)) break;
++						vec3 local = ro + dir * hit - midpoint;
++						vec3 q = abs(local) - core;
++						vec3 outside = max(q, vec3(0.0));
++						float distance = length(outside)
++							+ min(max(q.x, max(q.y, q.z)), 0.0) - radius;
++						if (distance < 0.02) {
++							surface_hit = true;
++							if (dot(outside, outside) > 0.000001)
++								normal = normalize(sign(local) * outside);
++							break;
++						}
++						hit += distance;
++					}
++				}
++				if (surface_hit) {
++					float diffuse = 0.25 + 0.75 * max(dot(normal, sun_dir), 0.0);
++					float under = max(-normal.y, 0.0);
++					vec3 ambient = mix(sky_horizon.rgb, haze_color.rgb, haze_twilight * 0.6);
++					vec3 lit = cloud_color.rgb * (cloud_beam * diffuse * 1.4
++						+ goanna_sun_glow * under * 0.6)
++						+ cloud_ambient_color + ambient * 0.08;
++					float alpha = 1.0 - smoothstep(1800.0, 2800.0, hit);
++					return vec4(lit, alpha);
++				}
++			}
++		}
++		vec2 boundary = (cell + step(vec2(0.0), dir.xz)) * cell_size;
++		vec2 crossing = (boundary - ro.xz) / ray.xz;
++		crossing = mix(vec2(1e20), crossing, greaterThan(abs(dir.xz), vec2(0.000001)));
++		t = min(crossing.x, crossing.y) + 0.001;
++	}
++	return vec4(0.0);
++}
++
+ // Density at a world point. base_w and deck are the slab; weather is
+ // cloud_weather at the sample's column, passed in because the light march
+ // reuses its own.
+@@ -334,7 +419,11 @@
+ 	// froxel volume's nearby bodies sit under the same weather. The result
+ 	// occludes the sun disc and the stars behind it through T, which a
+ 	// blended sheet never did.
+-	if (clouds_enabled && cloud_coverage > 0.01) {
++	if (clouds_enabled && cloud_coverage > 0.01 && cloud_style < 2) {
++		vec4 clouds = block_clouds(POSITION, dir);
++		col = mix(col, clouds.rgb, clouds.a);
++	}
++	if (clouds_enabled && cloud_coverage > 0.01 && cloud_style == 2) {
+ 		float base_w = POSITION.y + cloud_plane_h;
+ 		float deck = max(cloud_thickness * 3.0, 170.0);
+ 		float top_w = base_w + deck;
+--- a/project/shaders/grass_volume.gdshader
++++ b/project/shaders/grass_volume.gdshader
+@@ -10,6 +10,9 @@
+ global uniform vec3 goanna_ground_fill;
+ global uniform float goanna_wetness;
+ uniform bool enabled = true;
++uniform float density : hint_range(0.1, 1.0) = 1.0;
++uniform float draw_distance = 80.0;
++uniform float interaction_distance = 16.0;
+ uniform float wind_strength : hint_range(0.0, 1.0) = 0.35;
+ uniform vec2 wind_direction = vec2(1.0, 0.0);
+ uniform int march_steps : hint_range(16, 128) = 64;
+@@ -26,11 +29,21 @@
+ uniform bool interaction_enabled = true;
+ uniform float interaction_angle : hint_range(0.0, 0.8) = 0.8;
+ 
++varying flat vec3 grass_camera;
+ varying flat vec4 patch;
+ varying flat vec3 root_light;
+ varying flat float shadow_pass;
+ varying flat float patch_margin;
+ varying vec3 world_exit;
++
++float blade_spacing() {
++    return 0.12 / sqrt(clamp(density, 0.1, 1.0));
++}
++float interaction_weight(vec2 anchor) {
++    if (interaction_distance <= 0.0) return 0.0;
++    return 1.0-smoothstep(interaction_distance*0.75,interaction_distance,
++        distance(anchor,grass_camera.xz));
++}
+ 
+ // Integer hashing retains deterministic cells on either side of the origin.
+ uint grass_hash(ivec2 cell) {
+@@ -76,6 +89,7 @@
+ }
+ 
+ void vertex() {
++    grass_camera = MAIN_CAM_INV_VIEW_MATRIX[3].xyz;
+     // Terrain tiers translate their meshes by half a node. Transform both
+     // the root bounds and the proxy, so the hash field never restarts at LOD.
+     vec3 lower = (MODEL_MATRIX * vec4(CUSTOM0.x, CUSTOM1.x, CUSTOM0.y, 1.0)).xyz;
+@@ -89,10 +103,11 @@
+     // the camera entered the grass. Only enlarge the volume where a nearby
+     // actor can actually push a blade beyond its normal wind envelope.
+     patch_margin=grass_wind_reach();
+-    if (interaction_enabled && goanna_render_grass_interaction > 0.5) {
++    if (interaction_enabled && goanna_render_grass_interaction > 0.5 && interaction_distance > 0.0) {
+         for (int i=0;i<8;i++) {
+             if (i>=interaction_count) break;
+             vec4 actor=interaction_centres[i];
++            if (distance(actor.xz,grass_camera.xz)>interaction_distance+actor.w+1.1) continue;
+             float separation=distance(actor.xz,clamp(actor.xz,patch.xy,patch.zw));
+             float weight=(1.0-smoothstep(0.0,actor.w,separation))*
+                 (1.0-smoothstep(0.25,0.9,abs(lower.y-actor.y)));
+@@ -105,19 +120,25 @@
+         VERTEX.z > middle.z ? patch.w+patch_margin : patch.y-patch_margin);
+     // Terrain meshes are world-axis aligned and only translated by tier.
+     VERTEX = world_exit-MODEL_MATRIX[3].xyz;
++    vec3 nearest = vec3(clamp(MAIN_CAM_INV_VIEW_MATRIX[3].x,patch.x,patch.z),
++        clamp(MAIN_CAM_INV_VIEW_MATRIX[3].y,lower.y,lower.y+1.24),
++        clamp(MAIN_CAM_INV_VIEW_MATRIX[3].z,patch.y,patch.w));
++    if (distance(nearest,MAIN_CAM_INV_VIEW_MATRIX[3].xyz) > draw_distance+patch_margin)
++        VERTEX = vec3(0.0);
+     shadow_pass = length(INV_VIEW_MATRIX[3].xyz - MAIN_CAM_INV_VIEW_MATRIX[3].xyz);
+ }
+ 
+ vec3 grass_interaction(vec2 anchor) {
+     vec3 result=vec3(0.0);
+-    if (!interaction_enabled || goanna_render_grass_interaction < 0.5) return result;
++    if (!interaction_enabled || goanna_render_grass_interaction < 0.5 || interaction_weight(anchor) <= 0.0) return result;
+     for (int i=0;i<8;i++) {
+         if (i>=interaction_count) break;
+         vec4 actor=interaction_centres[i];
++            if (distance(actor.xz,grass_camera.xz)>interaction_distance+actor.w+1.1) continue;
+         vec2 delta=anchor-actor.xz;
+         float distance=length(delta);
+         float weight=(1.0-smoothstep(0.0,actor.w,distance))*
+-            (1.0-smoothstep(0.25,0.9,abs(root_light.x-actor.y)));
++            (1.0-smoothstep(0.25,0.9,abs(root_light.x-actor.y)))*interaction_weight(anchor);
+         if (weight>result.z) result=vec3(delta/max(distance,0.05),weight);
+     }
+     return result;
+@@ -138,11 +159,12 @@
+ }
+ 
+ int grass_neighbourhood(vec3 p) {
+-    int radius=int(ceil(grass_wind_reach()/0.12));
++    int radius=int(ceil(grass_wind_reach()/blade_spacing()));
+     if (!interaction_enabled || goanna_render_grass_interaction < 0.5) return radius;
+     for (int i=0;i<8;i++) {
+         if (i>=interaction_count) break;
+         vec4 actor=interaction_centres[i];
++            if (distance(actor.xz,grass_camera.xz)>interaction_distance+actor.w+1.1) continue;
+         float weight=1.0-smoothstep(0.25,0.9,abs(root_light.x-actor.y));
+         float angle=clamp(interaction_angle,0.0,0.8)*weight;
+         // A bent tip can reach far from its root, but the lower blade cannot.
+@@ -151,13 +173,13 @@
+         float reach=min(grass_wind_reach()+1.1*sin(angle),
+             max(p.y-root_light.x,0.0)*tan(angle)+grass_wind_reach()/cos(angle));
+         if (weight>0.0001 && distance(p.xz,actor.xz)<actor.w+reach)
+-            radius=max(radius,int(ceil(reach/0.12)));
++            radius=max(radius,int(ceil(reach/blade_spacing())));
+     }
+     return radius;
+ }
+ 
+ float grass_distance(vec3 p, float tm) {
+-    const float spacing = 0.12;
++    float spacing = blade_spacing();
+     float y = p.y-root_light.x;
+     if (y > 1.12) return (y-1.1)*0.55;
+     ivec2 cell = ivec2(floor(p.xz / spacing));
+@@ -229,10 +251,11 @@
+     vec2 segment_hi=max(origin.xz,segment_end.xz);
+     float wind_reach=grass_wind_reach()+0.5*footprint/0.15;
+     float reach=wind_reach;
+-    if (interaction_enabled && goanna_render_grass_interaction > 0.5) {
++    if (interaction_enabled && goanna_render_grass_interaction > 0.5 && interaction_distance > 0.0) {
+         for (int i=0;i<8;i++) {
+             if (i>=interaction_count) break;
+             vec4 actor=interaction_centres[i];
++            if (distance(actor.xz,grass_camera.xz)>interaction_distance+actor.w+1.1) continue;
+             float weight=1.0-smoothstep(0.25,0.9,abs(root_light.x-actor.y));
+             float angle=clamp(interaction_angle,0.0,0.8)*weight;
+             float actor_reach=min(wind_reach+1.1*sin(angle),
+@@ -243,13 +266,13 @@
+     }
+     // Traverse longer intervals and test each possible root once. Bent blades
+     // otherwise repeat the same large square search every twelve centimetres.
+-    ivec2 lower=ivec2(floor(max(segment_lo-vec2(reach),patch.xy)/0.12))-cell;
+-    ivec2 upper=ivec2(floor(min(segment_hi+vec2(reach),patch.zw)/0.12))-cell;
++    ivec2 lower=ivec2(floor(max(segment_lo-vec2(reach),patch.xy)/blade_spacing()))-cell;
++    ivec2 upper=ivec2(floor(min(segment_hi+vec2(reach),patch.zw)/blade_spacing()))-cell;
+     for (int z=lower.y;z<=upper.y;z++) {
+         for (int x=lower.x;x<=upper.x;x++) {
+             ivec2 id=cell+ivec2(x,z);
+             vec4 rnd=grass_random(id);
+-            vec2 anchor=(vec2(id)+vec2(0.15)+rnd.xy*0.7)*0.12;
++            vec2 anchor=(vec2(id)+vec2(0.15)+rnd.xy*0.7)*blade_spacing();
+             if (any(lessThan(anchor,patch.xy)) || any(greaterThanEqual(anchor,patch.zw))) continue;
+             vec3 pressure=grass_interaction(anchor);
+             vec3 centre=vec3(anchor.x,root_light.x,anchor.y);
+@@ -315,7 +338,8 @@
+     vec3 b = (hi-ro)/safe_rd;
+     vec3 entry = min(a,b), leave = max(a,b);
+     float start = max(max(entry.x,entry.y),max(entry.z,0.0));
+-    float end = min(min(leave.x,leave.y),leave.z);
++    float end = min(min(min(leave.x,leave.y),leave.z),draw_distance);
++    if (start >= end) discard;
+     // Stop at opaque geometry. Integrating the blades behind a creature
+     // would otherwise paint their coverage over its body.
+     float opaque_depth=textureLod(scene_depth,SCREEN_UV,0.0).r;
+@@ -358,14 +382,14 @@
+             // The local neighbourhood changes at cell boundaries. An empty
+             // margin must not return a long step that jumps over the first
+             // rows of blades at a block edge.
+-            float trace_cell=analytic_blades ? 0.96 : 0.12;
++            float trace_cell=analytic_blades ? 0.96 : blade_spacing();
+             vec2 cell_edge = (floor(p.xz/trace_cell)+step(vec2(0.0),rd.xz))*trace_cell;
+             vec2 crossing = (cell_edge-p.xz)/safe_rd.xz;
+             crossing=mix(vec2(1e20),crossing,greaterThan(abs(rd.xz),vec2(0.000001)));
+             footprint=max(0.0006,2.0*t/(VIEWPORT_SIZE.y*PROJECTION_MATRIX[1][1]));
+             float cell_step = max(0.0015,min(crossing.x,crossing.y)+0.0002);
+             if (analytic_blades) {
+-                vec3 blade_t=cell_intersection(p,rd,ivec2(floor(p.xz/0.12)),min(cell_step,end-t),footprint,tm);
++                vec3 blade_t=cell_intersection(p,rd,ivec2(floor(p.xz/blade_spacing())),min(cell_step,end-t),footprint,tm);
+                 if (blade_t.x<1e19) {
+                     t+=blade_t.x;
+                     if (!composite_edges) { coverage=blade_t.y; hit=true; break; }
+@@ -424,7 +448,7 @@
+     vec3 view_hit = (VIEW_MATRIX*vec4(p,1.0)).xyz;
+     vec4 clip = PROJECTION_MATRIX*vec4(view_hit,1.0);
+     DEPTH = clip.z/clip.w;
+-    ALPHA = coverage;
++    ALPHA = coverage*(1.0-smoothstep(draw_distance*0.8,draw_distance,t));
+     LIGHT_VERTEX = view_hit;
+     NORMAL = normalize((VIEW_MATRIX*vec4(0.0,1.0,0.0,0.0)).xyz);
+     float broad = grass_noise(p.xz*0.055)*0.7 + grass_noise(p.xz*0.23)*0.3;
+--- a/project/graphics_profiles.gd
++++ b/project/graphics_profiles.gd
+@@ -47,6 +47,13 @@
+ 		"render_ice_detail": 1,
+ 		"render_ice_transmission": 1,
+ 		"render_lava_detail": 1,
++		"cloud_style": 0,
++		"grass_density": 0.2,
++		"grass_draw_distance": 12,
++		"grass_interaction_distance": 0,
++		"grass_interactors": 0,
++		"grass_antialiasing": 0,
++		"lamp_shadow_distance": 16,
+ 	},
+ 	"low": {
+ 		"light_sdfgi": 0,
+@@ -83,11 +90,18 @@
+ 		"render_ice_detail": 1,
+ 		"render_ice_transmission": 1,
+ 		"render_lava_detail": 1,
++		"cloud_style": 1,
++		"grass_density": 0.3,
++		"grass_draw_distance": 20,
++		"grass_interaction_distance": 4,
++		"grass_interactors": 1,
++		"grass_antialiasing": 1,
++		"lamp_shadow_distance": 24,
+ 	},
+ 	"medium": {
+ 		"light_sdfgi": 1.4,
+ 		"mat_parallax": 1,
+-		"procedural_grass": 0,
++		"procedural_grass": 1,
+ 		"solid_ice": 0,
+ 		"view_range": 8,
+ 		"lod_distance": 12,
+@@ -119,11 +133,18 @@
+ 		"render_ice_detail": 1,
+ 		"render_ice_transmission": 1,
+ 		"render_lava_detail": 1,
++		"cloud_style": 2,
++		"grass_density": 0.4,
++		"grass_draw_distance": 32,
++		"grass_interaction_distance": 6,
++		"grass_interactors": 2,
++		"grass_antialiasing": 2,
++		"lamp_shadow_distance": 32,
+ 	},
+ 	"high": {
+ 		"light_sdfgi": 1.4,
+ 		"mat_parallax": 1,
+-		"procedural_grass": 0,
++		"procedural_grass": 1,
+ 		"solid_ice": 0,
+ 		"view_range": 12,
+ 		"lod_distance": 20,
+@@ -155,11 +176,18 @@
+ 		"render_ice_detail": 1,
+ 		"render_ice_transmission": 1,
+ 		"render_lava_detail": 1,
++		"cloud_style": 2,
++		"grass_density": 0.7,
++		"grass_draw_distance": 48,
++		"grass_interaction_distance": 10,
++		"grass_interactors": 4,
++		"grass_antialiasing": 2,
++		"lamp_shadow_distance": 48,
+ 	},
+ 	"ultra": {
+ 		"light_sdfgi": 1.4,
+ 		"mat_parallax": 1,
+-		"procedural_grass": 0,
++		"procedural_grass": 1,
+ 		"solid_ice": 0,
+ 		"view_range": 16,
+ 		"lod_distance": 32,
+@@ -191,6 +219,13 @@
+ 		"render_ice_detail": 1,
+ 		"render_ice_transmission": 1,
+ 		"render_lava_detail": 1,
++		"cloud_style": 2,
++		"grass_density": 1,
++		"grass_draw_distance": 80,
++		"grass_interaction_distance": 16,
++		"grass_interactors": 8,
++		"grass_antialiasing": 3,
++		"lamp_shadow_distance": 64,
+ 	},
+ }
+ 
+@@ -206,10 +241,10 @@
+ }
+ 
+ const BLURBS := {
+-	"lowest": "Compact views with clouds, sun shadows, surface detail and local lights. The starting candidate for handheld local multiplayer; hardware target not yet validated.",
+-	"low": "A wider view with finer cloud sampling and some volumetric atmosphere. The starting candidate for solo handheld play; hardware target not yet validated.",
+-	"medium": "More distance, bounced light and surface depth. A candidate for modest gaming laptops; tune against the frame budget.",
+-	"high": "Long views, richer indirect lighting and nearby lamp shadows. A candidate for midrange desktops.",
++	"lowest": "Compact views with block clouds, sun shadows, surface detail and local lights. The starting candidate for handheld local multiplayer; hardware target not yet validated.",
++	"low": "A wider view with rounded block clouds and some volumetric atmosphere. The starting candidate for solo handheld play; hardware target not yet validated.",
++	"medium": "More distance, volumetric clouds, sparse grass, bounced light and surface depth. A candidate for modest gaming laptops; tune against the frame budget.",
++	"high": "Long views, denser grass, richer indirect lighting and nearby lamp shadows. A candidate for midrange desktops.",
+ 	"ultra": "The longest views, full cloud sampling and the largest lamp shadow budget. For spare performance after reaching your frame target.",
+ 	"custom": "Advanced quality settings differ from the named presets."
+ }

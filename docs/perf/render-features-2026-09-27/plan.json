@@ -1,0 +1,29 @@
+{
+  "world": "/var/home/poss/.var/app/org.luanti.luanti/.minetest/worlds/test_world",
+  "game": "/var/home/poss/.var/app/org.luanti.luanti/.minetest/games/mineclonia",
+  "output": "/tmp/goanna-feature-sweep-20260927",
+  "server": "/var/lib/flatpak/app/org.luanti.luanti/x86_64/stable/c4cf75ca3f44a3743c6f7908913059e3cb9dbd12184810950f8222e838973e3c/files/bin/luanti.bin",
+  "players": [
+    1,
+    4
+  ],
+  "seconds": 15.0,
+  "settle_timeout": 180.0,
+  "width": 1920,
+  "height": 1080,
+  "dummy": false,
+  "profile": "low",
+  "phases": [
+    "together"
+  ],
+  "feature_sweep": [
+    "render_sky_clouds",
+    "render_cloud_shadows",
+    "render_atmosphere",
+    "render_ssao",
+    "render_bloom",
+    "render_shafts",
+    "render_sun_shadows"
+  ],
+  "warmup": 5.0
+}

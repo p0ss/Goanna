@@ -1,0 +1,34 @@
+{
+  "disturbed_deg": 0.0,
+  "disturbed_m": 0.0,
+  "frames": 16494,
+  "label": "apart",
+  "overflowed": false,
+  "phases": {
+    "steady": {
+      "bound": "gpu",
+      "bound_share": 0.996665251925059,
+      "cpu_ms_median": 0.46399998664856,
+      "distance_m": 0.0,
+      "fps_mean": 366.124556804037,
+      "frames": 16493,
+      "gpu_ms_median": 2.46399998664856,
+      "hitches": 19,
+      "hitches_per_min": 25.3066146096285,
+      "low01_ms": 24.9873124361038,
+      "low1_ms": 7.05739022464287,
+      "max_ms": 52.476001739502,
+      "median_ms": 2.56200003623962,
+      "p999_ms": 11.1499996185303,
+      "p99_ms": 4.49200010299683,
+      "seconds": 45.047511,
+      "stability": 2.75464095426062
+    }
+  },
+  "stamps": {
+    "boot_s": 1.934,
+    "connect_blocks": 0,
+    "connect_far_reach": 0,
+    "connect_s": 6.432
+  }
+}

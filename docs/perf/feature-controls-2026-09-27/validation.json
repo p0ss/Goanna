@@ -1,0 +1,95 @@
+{
+  "circle": {
+    "players": 4,
+    "variants": [
+      "apart",
+      "streaming"
+    ],
+    "settled": true,
+    "passed": true
+  },
+  "dusk": {
+    "players": 1,
+    "variants": [
+      "together-control-before",
+      "together-without-render_shafts",
+      "together-control-after"
+    ],
+    "settled": true,
+    "passed": true
+  },
+  "underwater": {
+    "players": 1,
+    "variants": [
+      "together-control-before",
+      "together-without-render_underwater_volume",
+      "together-control-after"
+    ],
+    "settled": true,
+    "passed": true
+  },
+  "wet": {
+    "players": 1,
+    "variants": [
+      "together-control-before",
+      "together-without-render_wet_surfaces",
+      "together-without-render_water_reflections",
+      "together-without-render_water_waves",
+      "together-control-after"
+    ],
+    "settled": true,
+    "passed": true
+  },
+  "night": {
+    "players": 4,
+    "variants": [
+      "together-control-before",
+      "together-without-render_dynamic_lights",
+      "together-without-render_carried_light",
+      "together-control-after"
+    ],
+    "settled": true,
+    "passed": true
+  },
+  "foliage": {
+    "players": 1,
+    "variants": [
+      "together-control-before",
+      "together-without-render_foliage_wind",
+      "together-control-after"
+    ],
+    "settled": true,
+    "passed": true
+  },
+  "grass": {
+    "players": 4,
+    "variants": [
+      "together-control-before",
+      "together-without-render_grass_interaction",
+      "together-control-after"
+    ],
+    "settled": true,
+    "passed": true
+  },
+  "ice": {
+    "players": 1,
+    "variants": [
+      "together-control-before",
+      "together-without-render_ice_detail",
+      "together-without-render_ice_transmission",
+      "together-control-after"
+    ],
+    "settled": true,
+    "passed": true
+  },
+  "magma": {
+    "players": 1,
+    "variants": [
+      "together-control-before",
+      "together-without-render_lava_detail",
+      "together-control-after"
+    ],
+    "settled": true,
+    "passed": true
+  }
+}

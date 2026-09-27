@@ -1,0 +1,14 @@
+{
+  "git_base": "83c52a9a461c4047fae3e7e67ef2cd5c1923863e",
+  "working_tree": true,
+  "sha256": {
+    "project/main.gd": "f2975bf09cb5fd1d345ae8e012a52d3fa6d58fa1fe4c2884d31915f8dacf7069",
+    "project/ui/game_ui.gd": "1a8f35788bf95436004f4f53d5a2725dc3246f921717a5d3b9d9f0e09c104174",
+    "project/render_features.gd": "387525b72ab5864ee8641bded38d190e91f5a22816ebe06fb4815427c8482b1a",
+    "project/shaders/sky.gdshader": "a7ed7aee8d90a694c6f2b1b42821bfc5dc7cf583b416c7cfc44dbac6b16d6401",
+    "project/local_bench.gd": "216f11bf080748f6133a4c0329cb61b4f3eab8f5f2f33beb805a6c321e8c3e14",
+    "project/graphics_profiles.gd": "f8c9e603d3b2b8dc2c3310412af3ad8f890985fe7f589c0d144bfb93d51affe1",
+    "tools/bench-local-play.py": "b8c158654f9f113b0d3578469024b5cc925af7c565986b04f1691a4e19e21993",
+    "project/bin/libgoanna.linux.template_debug.x86_64.so": "613b9388abfae5f655e32b3c1e14adf0432733ef58c73112faddcace478487b8"
+  }
+}
