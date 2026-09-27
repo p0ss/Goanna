@@ -70,10 +70,10 @@ same space the shaders write, so the two must be changed together.
 | --- | --- |
 | Normal X and Y | Decoded as stored. No green flip, see above |
 | Material AO | Decoded, at 0.4 light affect |
-| Height | **Not decoded.** Wanted for parallax and for terrain blending |
+| Height | Decoded for the parallax march, in `nodes_array.gdshader` only; see below |
 | Smoothness | Decoded as roughness |
 | F0 and metalness | Decoded, but metals are binary rather than the metal table |
-| Porosity | **Not decoded.** Nothing to show until weather can wet a surface |
+| Porosity | Decoded, read by the rain wetness term |
 | Subsurface scattering | Decoded as backlight |
 | Emission | Decoded, honouring 255 as none |
 
@@ -86,6 +86,66 @@ or a pane of ice wants, and it costs one term instead of a screen space pass.
 Normal maps are tangent space, so the block mesher gives every surface a
 tangent frame derived from its UV layout. Without one the maps are silently
 inert, whatever else is correct.
+
+## Which shader draws a tile
+
+Two shaders draw node arrays, and they differ by more than the alpha
+test. `nodes_array.gdshader` has the parallax occlusion march and its sun
+self shadow (`parallax_strength`, `parallax_depth`, `parallax_range`,
+`parallax_shadow_strength`, `parallax_silhouette`, the per layer
+`layer_depth` and the class table `goanna_class_depth`), and folds that
+shadow into `AO` and `AO_LIGHT_AFFECT`. `nodes_array_scissor.gdshader` has
+none of it and writes `ALPHA` and `ALPHA_SCISSOR_THRESHOLD`. Everything
+else (the LabPBR decode, per class tiling, far flattening, rain, fill,
+lamp bake) is the same code in both. The uniforms all live in
+`nodes_array_common.gdshaderinc`, so both declare every one of them, and
+a slider such as `mat_parallax` reaches both but only moves the first.
+
+That a cut-out has no march is deliberate: a march would have to alpha
+test at the offset coordinate, so a leaf's holes would move with the view,
+and nobody has judged whether that reads better. What was not deliberate,
+until 2026-09-27, was which tiles counted as cut-outs.
+`GoannaClient::materialFor` chose by the array: any layer with alpha sent
+the whole array to the scissor shader. Upstream's
+`NodeVisuals::fillNodeVisuals` bunches tiles by size alone, 256 to an
+array, and 1160 of Mineclonia's 1841 16 pixel textures have some alpha, so
+every array had a cut-out in it and all the ground, sand, stone and planks
+included, was drawn by the scissor shader. The authored pack's depth, which
+was judged on the close-up ramp through `nodes_array.gdshader`, had never
+drawn in play.
+
+Now the near mesh chooses per face, by the face's own layer
+(`arrayTileKey`, and `GoannaTexture::tileHasAlpha`, which for an animated
+tile looks at every frame). An opaque face in an array with alpha gets a
+material key with `opaque_tile` set: the same arrays and uniforms, drawn
+by `nodes_array.gdshader`, with no alpha test at all. An array with no
+alpha anywhere is not split and keeps its one key. The cost is one extra
+material per array that has alpha, and one extra surface in a near region
+wherever that region holds both opaque and cut-out faces of the same
+array (a grass side's overlay beside dirt, say); nothing else changes
+about the batching.
+
+That grass side is the one hazard in the split. An overlay tile is the
+same quad as its base at the same depth, so whichever is drawn last is
+what shows. In one surface the base came first; in two, Godot orders
+opaque draws by shader id unless told otherwise. Scissor array materials
+therefore carry `render_priority` 1: Godot 4.5's opaque sort key has the
+priority in its top bits (`render_forward_clustered.h`), so every cut-out
+draws after every opaque tile. Read from the engine source, not seen in a
+frame. Two cut-outs on one quad from different arrays are still ordered
+by material, as they always were.
+
+The far tiers still choose by the array, because they merge a whole array
+into one surface per tier. That costs an alpha test there and nothing
+visible: the march ends at `parallax_range` (40 nodes), and the far tiers
+start past the detail distance, 128 nodes even on Low.
+
+`GoannaClient::top_surface_at` reports the shader the near mesh gives a
+node's top face, with `layer_alpha` for its own layer and `array_alpha`
+for the array. The checks are `goanna_array_route_test` (native) and
+`project/tests/node_array_shaders.gd` (headless: both shaders compile and
+declare every uniform the client sets). Neither renders; whether the
+relief now shows on sand, stone and planks in play has not been seen.
 
 ## How LabPBR maps onto glTF 2.0
 

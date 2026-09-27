@@ -1,23 +1,30 @@
 // Goanna: alpha tested node tiles drawn from an array texture.
 //
-// Same as nodes_array.gdshader, for the tiles Luanti flags as needing alpha
-// testing rather than opaque draws (cutout foliage and the like). Kept as a
-// separate shader, not a runtime toggle on the opaque one, because Godot
-// decides whether a material needs the alpha scissor pipeline by scanning the
-// shader source for a write to ALPHA_SCISSOR_THRESHOLD, not by whether a
-// uniform enables it at draw time: godotengine/godot#60388. The LabPBR decode
-// below is duplicated from nodes_array.gdshader rather than shared; see
+// Same as nodes_array.gdshader, less its parallax march and self shadow,
+// for tiles whose own layer has alpha (cut-out foliage, grass side
+// overlays and the like). The near mesh picks per tile (arrayTileKey in
+// goanna_client.cpp), so an opaque tile in an array that also holds a
+// cut-out is drawn by nodes_array.gdshader. The far tiers merge a whole
+// array into one surface and so still pick by the array; the march ends
+// at parallax_range (40 nodes), and the far tiers normally start beyond
+// it, so there only the alpha test's cost differs. Cut-outs stay flat: a
+// march here would have to alpha test at the offset coordinate, moving a
+// leaf's holes with the view, and whether that reads better is untried.
+// Kept as a separate shader, not a runtime toggle on the opaque one,
+// because Godot decides whether a material needs the alpha scissor
+// pipeline by scanning the shader source for a write to
+// ALPHA_SCISSOR_THRESHOLD, not by whether a uniform enables it at draw
+// time: godotengine/godot#60388. The LabPBR decode below is duplicated
+// from nodes_array.gdshader rather than shared; see
 // nodes_array_common.gdshaderinc for why.
 shader_type spatial;
 render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 
 #include "res://shaders/nodes_array_common.gdshaderinc"
 #include "res://shaders/direct_light.gdshaderinc"
-// goanna_rain and the rain cover map, for splashes and puddles. Despite the
-// name, this is not only cut-outs: an array goes here if any of its layers
-// has alpha, and upstream bunches tiles by size alone, so in Mineclonia this
-// shader draws nearly all the ground (docs/weather.md, "Splashes and
-// puddles in play").
+// goanna_rain and the rain cover map, for splashes and puddles. Cut-outs
+// on open ground take rain too, and the far tiers draw ground with this
+// shader (above; docs/weather.md, "Splashes and puddles in play").
 #include "res://shaders/weather_common.gdshaderinc"
 
 void vertex() {

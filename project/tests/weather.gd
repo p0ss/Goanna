@@ -610,9 +610,10 @@ func _test_ground_terms() -> void:
 			"t.y = min(goanna_rain, 1.5) * (1.0 - smoothstep(10.0, 22.0, eye_d))",
 			"* (1.0 - flatten) * open_sky;"]:
 		check(common.contains(text), "goanna_ground_rain no longer matches weather.gd's copy: " + text)
-	# Both array shaders draw the terms. In play the ground is drawn by the
-	# scissor one (docs/weather.md), which had none, and nobody ever saw a
-	# splash or a puddle.
+	# Both array shaders draw the terms. In play the ground was once drawn by
+	# the scissor one (docs/weather.md), which had none, and nobody ever saw
+	# a splash or a puddle. The near mesh now picks by the tile's own layer,
+	# but the far tiers and every cut-out still take the scissor one.
 	for path in [NODES, SCISSOR]:
 		var src := FileAccess.get_file_as_string(path)
 		check(src.contains("vec2 ground_rain = goanna_ground_rain(v_world, v_wnormal, v_nodelight.g, flatten,")
@@ -675,15 +676,18 @@ func _find_puddle(from: Vector3, wet: float) -> Vector3:
 
 
 # A client with a world: sand whose top face is at 0.5 everywhere, drawn by
-# the shader the owner's ground is drawn by, and open sky over it.
+# the shader the owner's ground is drawn by, and open sky over it. Sand's
+# own layer is opaque, in an array that holds cut-outs too, as every
+# Mineclonia array does, so the near mesh draws it with nodes_array.
 class SandClient:
 	extends RefCounted
-	var shader := "nodes_array_scissor"
+	var shader := "nodes_array"
 	func top_surface_at(pos: Vector3) -> Dictionary:
 		if floori(pos.y + 0.5) > 0:
 			return {"node": "air", "shader": "none"}
 		return {"node": "mcl_core:sand", "texture": "default_sand.png", "array": true,
-			"array_path": true, "array_alpha": shader == "nodes_array_scissor", "shader": shader}
+			"array_path": true, "array_alpha": true,
+			"layer_alpha": shader == "nodes_array_scissor", "shader": shader}
 	func rain_cover_rows(_x0: int, _z0: int, width: int, rows: int, _y_top: int, _y_bottom: int) -> PackedFloat32Array:
 		var out := PackedFloat32Array()
 		out.resize(width * rows)
@@ -691,10 +695,10 @@ class SandClient:
 		return out
 
 
-# The status trace, on the owner's case: open flat sand, drawn by the
-# scissor shader, intensity 1, a minute into the rain. Every gate open, both
-# terms non-zero; and the same trace against the scissor shader as it was
-# names the shader as the gate that was shut.
+# The status trace, on the owner's case: open flat sand, intensity 1, a
+# minute into the rain. Every gate open, both terms non-zero; and the same
+# trace against a shader with no terms names the shader as the gate that
+# was shut.
 func _test_gate_trace() -> void:
 	var w: Node3D = Weather.new()
 	w.client = SandClient.new()
@@ -716,12 +720,16 @@ func _test_gate_trace() -> void:
 	check(float(g.get("open", 0.0)) == 1.0, "open sand is open by the cover map")
 	check(float(g.get("splash", 0.0)) > 0.5 and float(g.get("puddle", 0.0)) > 0.5,
 			"splash and puddle on open sand: %.2f, %.2f" % [g.get("splash", 0.0), g.get("puddle", 0.0)])
-	# The scissor shader as it was, with no terms: the trace names it.
+	check(not bool(g.get("layer_alpha", true)), "the trace reports sand's own layer as opaque")
+	# The scissor shader as it was, with no terms, drawing the sand as it
+	# once did: the trace names it.
+	w.client.shader = "nodes_array_scissor"
 	w._shader_text["res://shaders/nodes_array_scissor.gdshader"] = "// no rain terms"
 	var old: Dictionary = w.ground_trace(eye, 1.0, WET_AFTER_A_MINUTE)
 	check(String(old.get("failing")).contains("nodes_array_scissor"),
 			"the trace names a shader without terms: %s" % old.get("failing"))
 	w._shader_text.clear()
+	w.client.shader = "nodes_array"
 	# Under the roof of the stand in map it is the cover that is shut.
 	w.client = null
 	w.cover = RainCover.new(FakeMap.new())

@@ -345,6 +345,9 @@ func ground_trace(eye: Vector3, rain: float, wet: float) -> Dictionary:
 	var shader := String(surf.get("shader", "unknown"))
 	g["shader"] = shader
 	g["array_alpha"] = surf.get("array_alpha", false)
+	# The face's own layer, which is what picks the shader on the near mesh;
+	# array_alpha only says whether the far tiers use the scissor one.
+	g["layer_alpha"] = surf.get("layer_alpha", false)
 	g["shader_has_terms"] = shader_has_ground_terms(shader)
 	# The top face of a node: its world normal is straight up.
 	var normal_y := 1.0

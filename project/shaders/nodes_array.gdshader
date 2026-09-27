@@ -10,8 +10,10 @@
 // the alpha scissor pipeline by scanning the shader source for that write, not
 // by the value the toggle holds at draw time, and that pipeline mishandles
 // mipmaps on the array texture: godotengine/godot#60388. Tiles that actually
-// need alpha testing use nodes_array_scissor.gdshader instead, chosen in
-// GoannaClient::materialFor rather than by a uniform. The LabPBR decode below
+// need alpha testing use nodes_array_scissor.gdshader instead, chosen per
+// tile by its own layer (arrayTileKey in goanna_client.cpp) rather than by a
+// uniform or by the array: upstream's arrays mix opaque and cut-out tiles,
+// and both shaders sample the same arrays. The LabPBR decode below
 // is duplicated there rather than shared; see nodes_array_common.gdshaderinc
 // for why.
 shader_type spatial;
@@ -312,8 +314,9 @@ void fragment() {
 	// shows in the sheen, as a real one does; in a puddle the ring is at
 	// full strength. The fleck carries a share of the sky fill as its own
 	// light, as the falling drops do, so it can be seen at night. The same
-	// block is in nodes_array_scissor.gdshader, which is what draws most of
-	// the ground in play: change one, change the other.
+	// block is in nodes_array_scissor.gdshader, which draws cut-outs near
+	// and every array with one in it on the far tiers: change one, change
+	// the other.
 	vec2 ground_rain = goanna_ground_rain(v_world, v_wnormal, v_nodelight.g, flatten,
 			goanna_wetness, length(v_world - CAMERA_POSITION_WORLD));
 	float puddle = ground_rain.x;

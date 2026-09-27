@@ -2029,14 +2029,16 @@ String GoannaClient::node_name_at(const Vector3 &pos) {
     return String::utf8(m_session->nodeDefs()->get(n).name.c_str());
 }
 
-// The shader materialFor would give the node's top face, by the same tests
-// keyForIrr applies (arrayPathTile, the array having built) and the one
-// materialFor makes between the two array shaders: an array holding any
-// alpha layer at all goes to nodes_array_scissor. Upstream bunches tiles
-// into arrays by size alone, 256 at a time, so on a game with many cut-out
-// textures (63 per cent of Mineclonia's 16 pixel ones) every bunch has
-// one, and the ground is drawn by the scissor shader. A live weather check
-// reads this to know which shader's rain terms it is looking at.
+// The shader the near mesh would give the node's top face, by the same
+// tests keyForIrr applies (arrayPathTile, the array having built) and the
+// one arrayTileKey and materialFor make between the two array shaders: the
+// face's own layer decides, not the array. Upstream bunches tiles into
+// arrays by size alone, 256 at a time, so on a game with many cut-out
+// textures (63 per cent of Mineclonia's 16 pixel ones) every bunch has one,
+// and choosing by the array drew all the ground with the scissor shader,
+// which has no parallax march. A live check reads this to know which
+// shader it is looking at; array_alpha is still reported, because the far
+// tiers do choose by the array.
 Dictionary GoannaClient::top_surface_at(const Vector3 &pos) {
     Dictionary out;
     if (!m_session)
@@ -2062,10 +2064,15 @@ Dictionary GoannaClient::top_surface_at(const Vector3 &pos) {
     out["array"] = is_array;
     out["array_path"] = array_path;
     out["array_alpha"] = is_array && gt->hasAlpha();
+    out["layer_alpha"] = is_array && gt->tileHasAlpha(l.texture_layer_idx);
     if (is_array && array_path && m_session->shsrc().usesArrayTexture(l.shader_id)
-            && gt->godotArray().is_valid())
-        out["shader"] = gt->hasAlpha() ? "nodes_array_scissor" : "nodes_array";
-    else
+            && gt->godotArray().is_valid()) {
+        MaterialKey k;
+        k.texture_id = l.texture_id;
+        k.array_texture = true;
+        k = arrayTileKey(k, gt, l.texture_layer_idx);
+        out["shader"] = gt->hasAlpha() && !k.opaque_tile ? "nodes_array_scissor" : "nodes_array";
+    } else
         out["shader"] = "other";
     return out;
 }
@@ -2609,6 +2616,13 @@ Dictionary GoannaClient::step_player(double dt, const Dictionary &keys, float pi
     return out;
 }
 
+MaterialKey arrayTileKey(const MaterialKey &key, const GoannaTexture *array, u16 layer) {
+    MaterialKey out = key;
+    out.opaque_tile = key.array_texture && !key.crack_overlay && array && array->isArray()
+            && array->hasAlpha() && !array->tileHasAlpha(layer);
+    return out;
+}
+
 Ref<Material> GoannaClient::materialForIrr(const video::SMaterial &m, u16 layer) {
     return materialFor(keyForIrr(m, layer));
 }
@@ -2878,8 +2892,23 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
             Ref<ShaderMaterial> sm;
             sm.instantiate();
             // Two shaders, not one with a scissor toggle: godotengine/godot#60388,
-            // see nodes_array.gdshader.
-            sm->set_shader(agt->hasAlpha() ? m_sh_array_scissor : m_sh_array);
+            // see nodes_array.gdshader. Chosen per tile where the mesh can
+            // say (opaque_tile, from arrayTileKey), so sand and stone in an
+            // array that also holds a leaf take the opaque shader and its
+            // parallax. Where it cannot, the far tiers' merged surfaces and
+            // materialForIrr, any alpha in the array means the scissor one.
+            const bool scissor = agt->hasAlpha() && !key.opaque_tile;
+            sm->set_shader(scissor ? m_sh_array_scissor : m_sh_array);
+            // An overlay tile (Mineclonia's grass side over dirt) is the
+            // same quad as its base, at the same depth, so whichever draws
+            // last is what shows. While both came from one array they were
+            // one surface, base first; split by shader they are two, and
+            // Godot orders opaque draws by shader id unless told. Its
+            // opaque pass sorts by render priority first (the top bits of
+            // the Forward+ sort key), so every cut-out goes after every
+            // opaque tile and an overlay lands on its base.
+            if (scissor)
+                sm->set_render_priority(1);
             sm->set_shader_parameter("albedo_array", arr);
             // Authored PBR from the server's own media, if a pack ships it:
             // this is what a resource pack buys over inferring relief from
@@ -7688,22 +7717,39 @@ int GoannaClient::poll_blocks(int max_blocks) {
                     return block->getNodeNoCheck(ix, iy, iz).getContent();
                 };
                 const MaterialTable &mtable = m_session->materialTable();
+                // One buffer is one upstream material, a whole array, but its
+                // faces pick their shader by their own layer (arrayTileKey):
+                // an array holding any cut-out would otherwise draw all its
+                // opaque tiles through the scissor shader, which has no
+                // parallax. Only an array with alpha somewhere splits.
+                GoannaTexture *key_tex = key.array_texture
+                        ? m_session->tsrc()->goannaTexture(key.texture_id) : nullptr;
+                const bool split_tiles = key_tex && key_tex->hasAlpha();
+                auto tile_key = [&](const u16 *tri) -> MaterialKey {
+                    if (!split_tiles)
+                        return key;
+                    return arrayTileKey(key, key_tex,
+                            (u16)((v[tri[0]].Aux & GOANNA_VERTEX_TEXTURE_MASK) + layer_base));
+                };
                 // Vertices are shared within a buffer, so each destination keeps
                 // its own remap rather than duplicating every triangle's three.
-                std::map<u32, int> remap[2];
+                // Four destinations: glowing or not, by opaque tile or not.
+                std::map<u32, int> remap[4];
                 for (u32 t = 0; t + 2 < ni; t += 3) {
                     const u16 tri[3] = { idx16[t], idx16[t + 1], idx16[t + 2] };
                     const content_t owner = owner_content(tri);
                     const bool glows = !glow_casts && (v[tri[0]].Aux & GOANNA_VERTEX_GLOWS);
+                    const MaterialKey tkey = tile_key(tri);
                     const int g = glows ? 1 : 0;
+                    const int slot = g * 2 + (tkey.opaque_tile ? 1 : 0);
                     const float block_id = owner == CONTENT_IGNORE ? 0.0f : (float)mtable.blockOf(owner);
-                    SurfAccum &tacc = g ? glow_groups[key.hash()] : groups[key.hash()];
-                    tacc.key = key;
+                    SurfAccum &tacc = g ? glow_groups[tkey.hash()] : groups[tkey.hash()];
+                    tacc.key = tkey;
                     tacc.is_array = key.array_texture;
                     for (int k = 0; k < 3; ++k) {
                         const u32 sv = tri[k];
-                        auto found = remap[g].find(sv);
-                        if (found != remap[g].end()) {
+                        auto found = remap[slot].find(sv);
+                        if (found != remap[slot].end()) {
                             tacc.idx.push_back(found->second);
                             continue;
                         }
@@ -7756,7 +7802,7 @@ int GoannaClient::poll_blocks(int max_blocks) {
                             else if (vl.sky == 0)
                                 ++dl_sky_dark;
                         }
-                        remap[g][sv] = di;
+                        remap[slot][sv] = di;
                         tacc.idx.push_back(di);
                     }
                 }
@@ -7772,14 +7818,16 @@ int GoannaClient::poll_blocks(int max_blocks) {
                     for (u32 t = 0; t + 2 < ni; t += 3) {
                         const u16 tri[3] = { idx16[t], idx16[t + 1], idx16[t + 2] };
                         const int g = !glow_casts && (v[tri[0]].Aux & GOANNA_VERTEX_GLOWS) ? 1 : 0;
-                        const SurfAccum &src = g ? glow_groups[key.hash()] : groups[key.hash()];
+                        const MaterialKey tkey = tile_key(tri);
+                        const int slot = g * 2 + (tkey.opaque_tile ? 1 : 0);
+                        const SurfAccum &src = g ? glow_groups[tkey.hash()] : groups[tkey.hash()];
                         for (int k = 0; k < 3; ++k) {
                             auto found = crack_remap.find(tri[k]);
                             if (found != crack_remap.end()) {
                                 cacc.idx.push_back(found->second);
                                 continue;
                             }
-                            const int from = remap[g].at(tri[k]);
+                            const int from = remap[slot].at(tri[k]);
                             const int di = cacc.verts.size();
                             cacc.verts.push_back(src.verts[from]);
                             cacc.norms.push_back(src.norms[from]);

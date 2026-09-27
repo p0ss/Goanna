@@ -184,6 +184,12 @@ and 8 for the shadow per fragment; not measured against the benchmark
 yet. The scissor variant (leaves, plants) is untouched, and the moon and
 lamps cast no self shadow.
 
+None of this drew in play until 2026-09-27: every Mineclonia array holds a
+cut-out, and the shader was chosen per array, so the ground went through
+the scissor variant. It is now chosen per tile (`docs/materials.md`,
+"Which shader draws a tile"). What is written here was judged on the
+ramp, which always used the opaque shader for opaque stems.
+
 On the close-up the bake with parallax is the embossing with depth, which
 is worse; the authored sets with parallax are surfaces. Sand is sand and
 snow is snow at any angle, planks are boards, and the stony three show
