@@ -38,6 +38,15 @@
 # view and detail distances need somewhere with distance in it. The two
 # scenes agreeing to within a few points is the main reason to believe them.
 #
+# Ultra's lamps were 16 shadow casting lamps in a pool of 96 when those
+# sweeps ran. With lamp shadows on, the shadow budget also caps how many
+# lamps light at all, and a village has four to eight lamps a building, so
+# in play Ultra's lamps went out a few buildings away (owner, 2026-09-27).
+# Ultra is now the sliders' maximum, 48 in a pool of 256, which is what the
+# owner had set by hand. The table above is for the old Ultra; after dark
+# in a village the new one costs more than it says, and has not been
+# measured yet (profiles-night.json).
+#
 # Those are the numbers after the screen space settings above existed. Before
 # them the same day sweep gave High -10 and Medium -23, so exposing that
 # group roughly doubled what a tier is worth, and the tiers moved only
@@ -114,8 +123,8 @@ const PROFILES := {
 		"view_range": 16,
 		"lod_distance": 32,
 		"far_distance": -1,
-		"shadow_lamps": 16,
-		"light_pool": 96,
+		"shadow_lamps": 48,
+		"light_pool": 256,
 		"terrain_occlusion": 1,
 		"screen_space_detail": 3,
 		"shadow_detail": 2,
@@ -190,7 +199,7 @@ const LABELS := {
 const BLURBS := {
 	"low": "Turns off procedural grass, bounced light and surface depth, and draws the least world. For handhelds such as the Steam Deck and other integrated graphics. Untested on real hardware.",
 	"medium": "Draws less world and lights fewer lamps. For integrated graphics, or when a bigger view costs more than it is worth.",
-	"high": "Most of the view distance and half the lamp shadows. The middle of the range, and the one to try first if Ultra will not hold a frame rate.",
+	"high": "Most of the view distance and fewer lamp shadows. The middle of the range, and the one to try first if Ultra will not hold a frame rate.",
 	"ultra": "As much world as the server will send and every lamp shadow the pool allows. What a discrete card with cores to spare should run.",
 	"custom": "Settings that do not match any profile, because something in Advanced has been moved.",
 }

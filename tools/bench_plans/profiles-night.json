@@ -1,8 +1,8 @@
 {
   "label": "the shipped graphics profiles, steady state, night in the village",
   "comment": [
-    "The other half of profiles.json. The tiers differ on shadow_lamps (16,",
-    "8, 0) and light_pool (96, 64, 48), and both are free at noon in a",
+    "The other half of profiles.json. The tiers differ on shadow_lamps (48,",
+    "8, 0) and light_pool (256, 64, 48), and both are free at noon in a",
     "scene with nothing lit in it: measured at the vista they read as no",
     "difference, which is true of that scene and false of the client.",
     "",
@@ -61,8 +61,8 @@
         "view_range": 16,
         "lod_distance": 32,
         "far_distance": -1,
-        "shadow_lamps": 16,
-        "light_pool": 96,
+        "shadow_lamps": 48,
+        "light_pool": 256,
         "terrain_occlusion": 1,
         "screen_space_detail": 3,
         "shadow_detail": 2,
