@@ -1,38 +1,54 @@
 # Goanna
 
-Goanna is a Godot renderer and client for [Luanti](https://www.luanti.org/)
-worlds. It connects to ordinary Luanti servers and uses the same protocol,
-games, worlds and gameplay rules, while replacing the traditional client
-renderer with Godot.
+Goanna is a game client for [Luanti](https://www.luanti.org/), the voxel
+game engine formerly called Minetest. It is a standalone program built on
+the Godot engine, not a plugin for either: it speaks Luanti's own network
+protocol to unmodified servers and plays the same games, worlds and rules,
+and draws them with a renderer of its own.
 
-Goanna is an alpha-quality project. The Luanti client remains the reference
-client for compatibility and reliability.
+It is alpha quality. The Luanti client remains the reference for
+compatibility and reliability.
 
 ![A forested valley rendered in Goanna](docs/forest.png)
-
-Goanna is first and foremost a graphics project: these screenshots show the
-intended direction: large views, dynamic lighting and detailed materials while
-remaining connected to an ordinary Luanti world.
 
 | Landscapes | Lighting and materials |
 | --- | --- |
 | ![Village and surrounding terrain](docs/village.png) | ![Dynamic lighting](docs/light.png) |
 | ![Underwater terrain](docs/underwater.png) | ![Lava falling into a cave](docs/lava.png) |
 
-## Highlights
+## What it draws
 
-- Modern Godot lighting, shadows, materials and sky rendering.
-- Luanti-compatible movement, interaction, inventory, formspecs, entities,
-  sounds and particles.
-- Menus and game forms on dark translucent glass by default, or in each
-  game's own form art (Settings, Appearance, Interface style).
-- Multi-tier distant terrain with local persistence, server summaries and
-  occlusion-aware rendering.
-- Optional Terrain Diffusion worlds with a downloadable 1 m-per-node default
-  bake.
-- LabPBR material maps, with optional hash-verified material bundles, and
-  an experimental Iris screen-space shader pipeline.
-- Local-game hosting through an ordinary Luanti server on localhost.
+- **Distant terrain.** Several tiers of simplified terrain beyond the live
+  view, built from server summaries and a local store of every block
+  received, with occlusion culling, so the view runs on to the horizon well
+  past the range the server streams in full.
+- **Dynamic lighting.** Sun and moon with cascaded shadows, lamps that cast
+  their own shadows, bounced light (SDFGI) and screen space indirect light
+  and occlusion, a sky and clouds that follow the time of day.
+- **PBR materials.** LabPBR normal and material maps for any game, and a
+  hand authored set for Mineclonia's 1071 textures that keeps the pixel art's
+  grid: each texel a crisp raised or sunken plate with its own material, and
+  fine surface character (pores, grain, scratches) below it.
+- **Parallax occlusion.** Terrain surfaces march their height map, with self
+  shadowing, so joints and relief have depth rather than painted shading.
+- **Sub-block destruction.** Digging carves a block's own shape, a slab or
+  a stair as well as a cube, and a carve can be stored and seen by every
+  player.
+- **Shaders.** Water with refraction and wakes round swimmers, lava, ice,
+  glass, a ray marched grass volume, and weather drawn by shader: rain and
+  snow kept out from under roofs, splashes, puddles that fill the relief and
+  lightning.
+- **Terrain Diffusion.** Optional worlds shaped by a terrain diffusion
+  model, with a downloadable default bake at one metre per node.
+- **Controllers.** Gamepad play and menus, written and tested with
+  synthetic input only; it has not yet been played on a controller or a
+  Steam Deck.
+
+Beyond the renderer it is a full client: movement, interaction, inventory,
+formspecs, entities, sounds and particles as the server sends them, menus
+on translucent glass or in each game's own form art, local games hosted
+through an ordinary Luanti server, optional hash verified material bundles,
+and an experimental Iris screen space shader pack pipeline.
 
 ## Try it
 
