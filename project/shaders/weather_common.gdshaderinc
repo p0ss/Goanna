@@ -40,6 +40,25 @@ float goanna_weather_hash(vec2 p) {
 	return fract((p3.x + p3.y) * p3.z);
 }
 
+// Settled snow, 0 to 1 at a point on an up facing surface. main.gd builds
+// goanna_snow_cover while snow falls and melts it after; where the sky
+// reaches (the cover map, or strong sky light beyond it) it settles texel
+// by texel on the art's own grid, sixteen to a node, so the dusting keeps
+// the blocky look: first scattered texels, then most, then all. On an
+// authored relief the hollows fill before the crests, as with the pools.
+global uniform float goanna_snow_cover;
+
+float goanna_snow(vec3 p, vec3 n, float sky, float h, bool relief_known) {
+	if (goanna_snow_cover < 0.001 || n.y < 0.3)
+		return 0.0;
+	float up = smoothstep(0.3, 0.8, n.y);
+	float open = goanna_rain_open(p, smoothstep(0.85, 0.95, sky));
+	float grain = goanna_weather_hash(floor((p.xz + 0.5) * 16.0 + 1e-3));
+	float rank = relief_known ? mix(h, grain, 0.35) : grain;
+	float level = goanna_snow_cover * 1.25 - 0.1;
+	return up * open * smoothstep(rank - 0.03, rank + 0.03, level);
+}
+
 vec3 goanna_weather_hash3(vec2 p) {
 	vec3 p3 = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973));
 	p3 += dot(p3, p3.yxz + 33.33);

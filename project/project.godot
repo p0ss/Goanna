@@ -152,6 +152,10 @@ goanna_wetness={
 "type": "float",
 "value": 0.0
 }
+goanna_snow_cover={
+"type": "float",
+"value": 0.0
+}
 goanna_rain={
 "type": "float",
 "value": 0.0

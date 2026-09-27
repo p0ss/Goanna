@@ -75,6 +75,9 @@ var ground_tint_timer := 0.0
 # How rained-on the world is, 0 to 1, fed to the goanna_wetness shader
 # global: rises during rain and drains slowly after, see _apply_sky.
 var wetness := 0.0
+# How much snow has settled, 0 to 1, fed to goanna_snow_cover: builds while
+# snow falls and melts after, faster in rain.
+var snow_cover := 0.0
 # The terrain height under the camera, from client.ground_height, sampled on
 # the ground tint's clock and held at its last answer while flying too high
 # for the scan to reach. The haze layer is anchored to it, so the depth fog
@@ -3443,13 +3446,29 @@ func _apply_sky() -> void:
 	# for a while. The shaders decide what wet means per surface (up facing,
 	# sky lit, porosity from the pack's _s); this is only how rained-on the
 	# world currently is.
-	var wet_target: float = smoothstep(0.15, 0.6, precip_now)
+	# Only rain wets it: snow settles instead (below), and counted as rain
+	# it left puddles under a snowfall.
+	var rain_now: float = float(pnode_sky.rainfall()) \
+			if pnode_sky != null and pnode_sky.has_method("rainfall") else precip_now
+	var snow_now: float = float(pnode_sky.snowfall()) \
+			if pnode_sky != null and pnode_sky.has_method("snowfall") else 0.0
+	var wet_target: float = smoothstep(0.15, 0.6, rain_now)
 	var wet_rate: float = 30.0 if wet_target > wetness else 150.0
 	wetness = lerpf(wetness, wet_target,
 			1.0 - exp(-get_process_delta_time() / wet_rate))
 	if has_meta("benchmark_wetness"):
 		wetness = float(get_meta("benchmark_wetness"))
 	client.set_view_shader_parameter("goanna_wetness", wetness)
+	# Snow settles over a few minutes of snowfall and melts over a few more
+	# after it, in about a minute under rain. The server's own snow layers
+	# are nodes and stay; this is the dusting on everything else, which the
+	# game has no node for outside its cold biomes.
+	var snow_rate: float = 80.0 if snow_now > snow_cover else (40.0 if rain_now > 0.5 else 200.0)
+	snow_cover = lerpf(snow_cover, snow_now,
+			1.0 - exp(-get_process_delta_time() / snow_rate))
+	if snow_cover < 0.002 and snow_now <= 0.0:
+		snow_cover = 0.0
+	client.set_view_shader_parameter("goanna_snow_cover", snow_cover)
 	var cdens: float = float(clouds_now.get("density", 0.0))
 	cdens = maxf(cdens, storm_cover)
 	cloud_cov = clamp(cdens, 0.0, 0.95) if bool(sky.get("clouds", true)) else 0.0

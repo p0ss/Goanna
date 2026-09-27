@@ -34,10 +34,13 @@ uniform float sss_strength : hint_range(0.0, 1.0) = 1.0;
 uniform float emission_strength : hint_range(0.0, 8.0) = 4.0;
 // How rained-on the world is, the same global the terrain reads.
 global uniform float goanna_wetness;
+// Settled snow, the same global the terrain reads (weather_common).
+global uniform float goanna_snow_cover;
 
 varying float v_skylight;
 varying float v_blocklight;
 varying float v_wnormal_y;
+varying vec3 v_wpos;
 
 #define GOANNA_MICRO_SHADOW
 #include "res://shaders/direct_light.gdshaderinc"
@@ -47,6 +50,7 @@ void vertex() {
 	v_skylight = CUSTOM0.g;
 	v_blocklight = CUSTOM0.r;
 	v_wnormal_y = (MODEL_MATRIX * vec4(NORMAL, 0.0)).y;
+	v_wpos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	if (waving && goanna_render_foliage_wind > 0.5) {
 		float ph = TIME * speed + VERTEX.x * 0.35 + VERTEX.z * 0.25 + VERTEX.y * 0.15;
 		VERTEX.x += sin(ph) * sway;
@@ -119,6 +123,18 @@ void fragment() {
 		ALBEDO *= 1.0 - wet * (0.10 + 0.18 * porosity);
 		ROUGHNESS = mix(ROUGHNESS, 0.13, wet * (0.85 - 0.45 * porosity));
 		SPECULAR = mix(SPECULAR, 0.5, wet * 0.6);
+	}
+	// Snow settles on the upper faces of a canopy the sky reaches, texel by
+	// texel as on the ground (goanna_snow in weather_common.gdshaderinc,
+	// without the cover map: a canopy is its own cover).
+	if (goanna_snow_cover > 0.001 && v_wnormal_y > 0.3) {
+		vec2 cell = floor((v_wpos.xz + 0.5) * 16.0 + 1e-3);
+		float grain = fract(sin(dot(cell, vec2(12.9898, 78.233))) * 43758.5453);
+		float snow = smoothstep(0.3, 0.8, v_wnormal_y) * smoothstep(0.85, 0.95, v_skylight)
+				* smoothstep(grain - 0.03, grain + 0.03, goanna_snow_cover * 1.25 - 0.1);
+		ALBEDO = mix(ALBEDO, vec3(0.80, 0.82, 0.86), snow);
+		ROUGHNESS = mix(ROUGHNESS, 0.72, snow);
+		SPECULAR = mix(SPECULAR, 0.35, snow);
 	}
 	EMISSION += ALBEDO * mix(goanna_ground_fill, goanna_sky_fill,
 			clamp(0.5 + 0.5 * v_wnormal_y, 0.0, 1.0)) * v_skylight * sky_fill_strength;

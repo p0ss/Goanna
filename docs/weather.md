@@ -230,6 +230,32 @@ Splashes and rings follow `goanna_rain` (what is falling now), not
 `goanna_wetness` (which lingers for minutes after rain), so they stop with
 the rain.
 
+### Settled snow
+
+Snow falling is not rain falling: `particles.gd` reports `rainfall()` and
+`snowfall()` apart, and only rain drives `goanna_wetness`. Counted
+together, a snowfall left puddles.
+
+While snow falls, `main.gd` builds `goanna_snow_cover` toward 1 (a time
+constant of 80 seconds, so most of the way in about three minutes), and
+after it melts it back (200 seconds, 40 under rain). `goanna_snow` in
+`weather_common.gdshaderinc` turns that into cover per texel on up facing
+surfaces the sky reaches, by the cover map where there is one and by sky
+light beyond it. It settles on the art's own grid, sixteen texels to a
+node, each texel at its own threshold, so a dusting is scattered white
+texels that fill in rather than a smooth fade; on an authored relief the
+hollows fill first. Covered, the surface is pale (0.80 linear), matt
+(roughness 0.72), non metal, and its relief is flattened by up to 70 per
+cent. Rain after it pools on it as slush. The leaves shader takes the same
+texel dusting on the tops of a canopy, gated by sky light alone.
+
+The server's own snow layers (Mineclonia's ABM piling `mcl_core:snow` in
+cold places) are nodes and stay. This is the dusting everywhere else a
+snowfall passes, which the game has no node for. Mineclonia chooses snow
+or rain by the temperature where the player stands, altitude and noise
+included, so near a snowline it swaps one spawner for the other a step at
+a time and both show, eased over 2.5 seconds each.
+
 ## Occlusion: the rain cover map
 
 `project/ui/rain_cover.gd` keeps a 64 by 64 map, one texel per node column,
@@ -773,6 +799,10 @@ in by water." What was changed, headless:
 ## What is untested
 
 Everything visual. In particular, the owner's visual check should look at:
+
+- Settled snow: whether the texel dusting reads as snow on stone, grass,
+  sand and leaves, whether it builds and melts at a sensible pace, and
+  whether it stays out from under roofs.
 
 - Looking straight down and at 30 to 60 degrees down in rain: drops should
   be seen falling past the face and down to the ground all round the feet,

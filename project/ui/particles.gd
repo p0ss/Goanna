@@ -81,6 +81,30 @@ func set_shader_weather(on: bool) -> void:
 func precipitation() -> float:
 	return 1.0 if not _weather.is_empty() else 0.0
 
+
+# Which of the two is falling, each 1.0 or 0.0, from the weather spawners
+# as they arrived (shader weather on or off). Rain wets the ground and snow
+# settles on it; a player at a snowline, where Mineclonia swaps one spawner
+# for the other a step at a time, gets some of both.
+func rainfall() -> float:
+	return 1.0 if _weather_kind("rain") else 0.0
+
+
+func snowfall() -> float:
+	return 1.0 if _weather_kind("snow") else 0.0
+
+
+func _weather_kind(kind: String) -> bool:
+	for ev in _weather_ev.values():
+		var tex := str(ev.get("texture", ""))
+		var pool: Array = ev.get("texpool", [])
+		if tex == "" and pool.size() > 0:
+			tex = str(pool[0])
+		if tex.to_lower().contains(kind):
+			return true
+	return false
+
+
 const TEST_SPAWNER_ID := 999999
 
 # A synthetic precipitation spawner, for exercising the Godot side without a

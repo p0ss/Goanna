@@ -415,6 +415,22 @@ void fragment() {
 		SPECULAR = mix(SPECULAR, 0.4, wet_film * 0.5);
 	}
 
+	// Settled snow (goanna_snow in weather_common.gdshaderinc): pale, matt,
+	// lying level over the relief. Rain after it pools on it as slush.
+	float snow = goanna_snow(v_world, v_wnormal, v_nodelight.g, relief_h,
+			relief_known && flatten < 0.999);
+	if (snow > 0.001) {
+		ALBEDO = mix(ALBEDO, vec3(0.80, 0.82, 0.86), snow);
+		ROUGHNESS = mix(ROUGHNESS, 0.72, snow);
+		SPECULAR = mix(SPECULAR, 0.35, snow);
+		METALLIC = mix(METALLIC, 0.0, snow);
+		vec2 sxy = relief_normal.xy * (1.0 - 0.7 * snow);
+		float sz = sqrt(clamp(1.0 - dot(sxy, sxy), 0.0, 1.0));
+		relief_normal = vec3(sxy, sz);
+		NORMAL_MAP = vec3(sxy * 0.5 + 0.5, sz * 0.5 + 0.5);
+		NORMAL_MAP_DEPTH = 1.0;
+	}
+
 	// Rain on open, up facing ground (goanna_ground_rain and the functions
 	// round it in weather_common.gdshaderinc have the gating and the
 	// numbers). Standing water fills the relief: where the height at the
