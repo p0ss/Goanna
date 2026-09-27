@@ -153,9 +153,12 @@ none is nil: every array is a scissor array, and sand, grass and stone are
 all drawn by the scissor shader, which had the wetness block and nothing
 after it. The terms now live in one function both shaders call, and the status
 trace below names the shader of the ground under the eye. The same cause
-means anything else only in `nodes_array.gdshader` (its parallax march, for
-one) is not what the ground in Mineclonia is drawn with either; that is
-outside weather and has not been changed.
+kept the parallax march, which is only in `nodes_array.gdshader`, off the
+ground too. That was fixed on 2026-09-27 by choosing the shader per tile,
+by its own layer (`docs/materials.md`, "Which shader draws a tile"): sand,
+grass tops and stone now go to `nodes_array.gdshader` on the near mesh,
+while cut-outs and the far tiers stay on the scissor shader. Both still
+carry the rain terms.
 
 **Rings on water** (`project/shaders/water.gdshader`). Expanding rings in the
 water normal on open water within 22 nodes, on top of the waves.
@@ -437,7 +440,8 @@ Everything visual. In particular, the owner's visual check should look at:
 - The distance. Rain now ends about 12 nodes out; whether the storm still
   reads as heavy at the horizon, or whether a far layer is wanted back.
 - The status trace, `status` then `weather.ground`, on open sand in rain:
-  `shader` should be `nodes_array_scissor`, `shader_has_terms` true and
+  `shader` should be `nodes_array` (it was `nodes_array_scissor` before
+  the per tile choice), `layer_alpha` false, `shader_has_terms` true and
   `failing` empty. If it is not empty, it names the gate.
 - Splash flecks on open ground at intensity 1, by day and by night, and
   none under a roof. Puddles after a minute of rain on flat ground: where

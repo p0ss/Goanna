@@ -27,6 +27,12 @@ meshers, both node array shaders and the LOD material in the same commit.
 | `ARRAY_CUSTOM1` | near lava only: `RGB_FLOAT` world displacement direction | absent on ordinary node meshes |
 | `ARRAY_INDEX` | triangles, Godot winding | |
 
+The array layer in `UV2.x` also decides, on the near mesh, which of the
+two node array shaders draws the face: a face whose own layer has no alpha
+goes to `nodes_array.gdshader` even when its array holds cut-outs, so one
+upstream mesh buffer can become two surfaces. See `docs/materials.md`,
+"Which shader draws a tile".
+
 `ARRAY_CUSTOM0` is declared with
 `Mesh::ARRAY_CUSTOM_RGBA8_UNORM << Mesh::ARRAY_FORMAT_CUSTOM0_SHIFT` in the
 flags argument of `add_surface_from_arrays`, and its data is a

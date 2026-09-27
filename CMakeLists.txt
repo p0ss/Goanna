@@ -107,6 +107,13 @@ target_include_directories(goanna_item_icon_test PRIVATE src)
 # test calls into Godot, and the extension's own copy stays private to it.
 target_link_libraries(goanna_item_icon_test PRIVATE goanna luanti_core godot::cpp)
 
+# Which array shader a tile is drawn with: by the tile's own layer, not by
+# whether its array holds a cut-out anywhere. Links godot-cpp for the same
+# reason as the icon test; nothing in it calls into Godot.
+add_executable(goanna_array_route_test EXCLUDE_FROM_ALL src/goanna_array_route_test.cpp)
+target_include_directories(goanna_array_route_test PRIVATE src)
+target_link_libraries(goanna_array_route_test PRIVATE goanna luanti_core godot::cpp)
+
 # The one scheduling rule every queue shares: the Z mirror crossing into
 # Godot space, class bands, and a view cone that weights rather than filters.
 add_executable(goanna_horizon_test EXCLUDE_FROM_ALL
@@ -191,6 +198,7 @@ target_link_libraries(goanna_surface_test PRIVATE goanna luanti_core)
 # what is stale, rather than a person remembering to rebuild by name.
 set(GOANNA_NATIVE_TESTS
     goanna_animation_test
+    goanna_array_route_test
     goanna_horizon_test
     goanna_item_icon_test
     goanna_light_test

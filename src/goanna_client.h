@@ -76,6 +76,12 @@ struct MaterialKey {
     // with block light added as emission because the node lights do not
     // reach that far. See docs/far-rendering.md.
     bool lod = false;
+    // An array tile whose own layer has no alpha, in an array that has
+    // some: drawn by nodes_array.gdshader, not the scissor variant, so it
+    // gets the parallax march and skips the alpha test. Only ever set when
+    // the array has alpha (arrayTileKey), so an all opaque array keeps one
+    // material rather than two equal ones under different keys.
+    bool opaque_tile = false;
     uint64_t hash() const {
         // composited is in here because it changes which material is built,
         // and leaving it out put a crack composite and the plain layer in the
@@ -91,9 +97,21 @@ struct MaterialKey {
         return ((uint64_t)texture_id << 24) | (shader_bits << 2) |
                 (composited ? (uint64_t)1 << 18 : 0) | (lod ? (uint64_t)1 << 19 : 0) |
                 (crack_overlay ? (uint64_t)1 << 20 : 0) |
+                (opaque_tile ? (uint64_t)1 << 21 : 0) |
                 (backface_culling ? 2 : 0) | (array_texture ? 1 : 0);
     }
 };
+
+class GoannaTexture;
+
+// The key one tile of an array buffer is drawn with. A mesh buffer is one
+// upstream material, which names a whole array, and its faces name many of
+// its layers; this picks, per face, between the two array shaders by the
+// face's own layer rather than by the array as a whole. key is the buffer's
+// key from keyForIrr, array its texture, layer the face's array layer (the
+// first frame's, for an animated tile). Anything not on the array path, or
+// an array with no alpha anywhere, comes back unchanged.
+MaterialKey arrayTileKey(const MaterialKey &key, const GoannaTexture *array, u16 layer);
 
 class GoannaClient : public godot::Node3D {
     GDCLASS(GoannaClient, godot::Node3D)

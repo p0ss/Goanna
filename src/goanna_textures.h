@@ -163,6 +163,22 @@ public:
     bool layerHasAlpha(u16 layer) const {
         return layer >= m_layer_alpha.size() || m_layer_alpha[layer];
     }
+    // Whether the tile that names this layer needs alpha testing: its own
+    // layer, and in an animation array every frame the shader may step on
+    // to from it. This, not hasAlpha(), decides which array shader draws a
+    // tile. Upstream bunches tiles into arrays by size alone, so nearly
+    // every array holds a cut-out somewhere, and choosing per array put
+    // all the ground on the scissor shader, which has no parallax march.
+    // A layer past the end counts as alpha, the safe side.
+    bool tileHasAlpha(u16 layer) const {
+        u32 frames = layer < m_layer_anim.size() ? m_layer_anim[layer].frames : 0;
+        if (frames < 1)
+            frames = 1;
+        for (u32 f = 0; f < frames; ++f)
+            if (layerHasAlpha((u16)(layer + f)))
+                return true;
+        return false;
+    }
     // Animation arrays only: for the first layer of each tile, how many
     // frames follow from it and how long each lasts, which the array shader
     // reads as layer_anim to pick the frame for the clock. Every other layer,
