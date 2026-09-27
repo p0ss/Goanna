@@ -78,6 +78,9 @@ var wetness := 0.0
 # How much snow has settled, 0 to 1, fed to goanna_snow_cover: builds while
 # snow falls and melts after, faster in rain.
 var snow_cover := 0.0
+# How far falling snow has become a whiteout, 0 to 1 (weather.gd): pulls the
+# fog in and toward the snow's grey, and settles snow faster.
+var whiteout := 0.0
 # The terrain height under the camera, from client.ground_height, sampled on
 # the ground tint's clock and held at its last answer while flying too high
 # for the scan to reach. The haze layer is anchored to it, so the depth fog
@@ -3446,6 +3449,7 @@ func _apply_sky() -> void:
 	var wnode = pnode_sky.get("weather") if pnode_sky != null else null
 	if wnode != null and wnode.has_method("storm_severity"):
 		severity = float(wnode.storm_severity())
+	whiteout = float(wnode.whiteout()) if wnode != null and wnode.has_method("whiteout") else 0.0
 	storm_cover = lerpf(storm_cover, lerpf(0.45, 0.95, severity) * precip_now,
 			1.0 - exp(-get_process_delta_time() / 6.0))
 	# Wet ground: rain soaks in over half a minute and dries off over a few
@@ -3470,7 +3474,8 @@ func _apply_sky() -> void:
 	# after it, in about a minute under rain. The server's own snow layers
 	# are nodes and stay; this is the dusting on everything else, which the
 	# game has no node for outside its cold biomes.
-	var snow_rate: float = 80.0 if snow_now > snow_cover else (40.0 if rain_now > 0.5 else 200.0)
+	var snow_rate: float = 80.0 / (1.0 + 2.0 * whiteout) if snow_now > snow_cover \
+			else (40.0 if rain_now > 0.5 else 200.0)
 	snow_cover = lerpf(snow_cover, snow_now,
 			1.0 - exp(-get_process_delta_time() / snow_rate))
 	if snow_cover < 0.002 and snow_now <= 0.0:
@@ -3750,6 +3755,17 @@ func _apply_sky() -> void:
 				- terrain_ref if get_viewport().get_camera_3d() else 0.0
 		var alt_clear: float = smoothstep(90.0, 360.0, alt_above)
 		e.fog_density = fog_max * (1.0 - 0.85 * alt_clear)
+		# A whiteout: the world closes in to a few dozen nodes and goes the
+		# grey of driven snow, at any height, since the snow is all round.
+		if whiteout > 0.001:
+			e.fog_depth_begin = lerpf(e.fog_depth_begin, 4.0, whiteout)
+			e.fog_depth_end = lerpf(e.fog_depth_end, 50.0, whiteout)
+			e.fog_density = lerpf(e.fog_density, 0.97, whiteout)
+			e.fog_light_color = e.fog_light_color.lerp(Color(0.74, 0.77, 0.82), whiteout * 0.8)
+			# A linear ramp, or the haze curve holds the fog back until
+			# nearly its end and the hill thirty nodes off stays clear. The
+			# sky takes it too, below, where its haze is set.
+			e.fog_depth_curve = lerpf(e.fog_depth_curve, 1.0, whiteout)
 		# Aerial perspective blends distant geometry toward the sky, which is
 		# what actually sells a vista; it wants to be stronger the further we
 		# draw, so a 512 node horizon reads as haze rather than a hard edge.
@@ -3770,6 +3786,8 @@ func _apply_sky() -> void:
 		# one hard edge left in the sky's response to draw distance.
 		e.fog_sky_affect = lerpf(0.1, 0.5, smoothstep(220.0, 340.0, draw_nodes)) \
 				* (1.0 - 0.6 * alt_clear)
+		# In driven snow the sky is the same grey as the air.
+		e.fog_sky_affect = lerpf(e.fog_sky_affect, 0.85, whiteout)
 	# --- ambient / grade from day-night ratio and server lighting ---
 	var ratio: float = st["day_night_ratio"]
 	# The flash raises the sky's brightness as a light source and as a

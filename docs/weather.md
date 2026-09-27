@@ -312,6 +312,31 @@ strike at a cell's edge is drawn at full strength. Presentation only, and a
 function of the viewer's position, so each view of a split screen has its
 own.
 
+### Snowstorms
+
+Snow goes further than rain. It has its own ceiling, 4 against rain's 2,
+with the flakes built for it, and at a storm cell's heart it rises to 2.6
+times the server's intensity against rain's 1.35, late and hard
+(severity to the power 1.6), so most of a cell is flurries and its middle
+a blizzard. Past 1.4 the snow becomes a whiteout (`weather.whiteout()`,
+0 to 1 by 3.2): the flakes take up to three times the wind and may be
+blown five times as far as they fall; `main.gd` pulls the fog in to end at
+50 nodes on a linear ramp, turns it toward the grey of driven snow and
+lays it over the sky; and settled snow builds up to three times faster.
+
+A flake is not a disc of one size any more. Its own hash sets its size,
+from 0.45 to 1.2 of the radius, with one in twenty five a clump half as
+big again, and its spin. Close enough to be more than a couple of pixels
+across it is a six armed crystal turning as it falls; driven by the wind
+it smears along its path, up to three and a half times its length and
+thinner as it lengthens, so a blizzard is streaks rather than dots. The
+game's own flake textures (Mineclonia's are 3 to 12 pixels) are not used:
+at a flake's size they would only show within a metre or two.
+
+Seen on 2026-09-27 only on the software renderer, in a disposable
+Minetest Game world with a faked snowfall: driven streaks, the far hill
+greying, snow settling on sand. Not yet seen on a GPU.
+
 ### Settled snow
 
 Snow falling is not rain falling: `particles.gd` reports `rainfall()` and

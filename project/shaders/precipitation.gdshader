@@ -68,6 +68,9 @@ uniform float drop_half_width = 0.002;
 uniform float streak_time = 0.035;
 // Rain leans with the wind by no more than this much drift per node of fall.
 uniform float max_lean = 0.6;
+// How far snow may be blown, as a multiple of its fall: 2 in a flurry, up
+// to 5 in a whiteout, when the wind lays the flakes over (weather.gd).
+uniform float snow_lean = 2.0;
 
 // Nothing is drawn nearer the eye than NEAR_CLIP nodes, and a drop fades in
 // from there to NEAR_FADE: a drop that close is out of focus, and drawn hard
@@ -88,6 +91,12 @@ global uniform float goanna_eye_underwater;
 varying vec3 v_world;
 varying vec2 v_quad;
 varying float v_weight;
+// Snow only: the flake's turn about the view axis, how much of its shape a
+// pixel can show (0 a dot, 1 the whole crystal) and how far the wind has
+// smeared it (0 still, 1 a streak).
+varying float v_spin;
+varying float v_detail;
+varying float v_blur;
 
 // PCG hash (Jarzynski and Olano, "Hash functions for GPU rendering", 2020):
 // a drop's seed from its instance number. weather.gd mirrors it exactly, in
@@ -112,16 +121,19 @@ void vertex() {
 	vec3 seed = vec3(goanna_unit(h0), goanna_unit(h1), goanna_unit(h2));
 	float pick = goanna_unit(h3);
 	float vary = goanna_unit(h4);
+	// A flake's form, from a hash of its own: size and spin. Kept apart
+	// from the five above, which weather.gd mirrors to place drops.
+	float form = goanna_unit(goanna_pcg(h4));
 
 	bool near = INSTANCE_ID < near_instances;
 	vec3 box = near ? near_box : far_box;
 	vec3 corner = eye - vec3(box.x * 0.5, near ? near_below : far_below, box.z * 0.5);
 
 	// Velocity. Rain leans with the wind, held to max_lean; snow drifts
-	// with it, up to twice its fall speed.
+	// with it, up to snow_lean times its fall speed.
 	float fall = speed * (snow ? 0.75 + 0.5 * vary : 0.85 + 0.3 * vary);
 	vec2 w = wind;
-	float cap = snow ? 2.0 * fall : max_lean * fall;
+	float cap = snow ? snow_lean * fall : max_lean * fall;
 	if (length(w) > cap)
 		w *= cap / length(w);
 	vec3 vel = vec3(w.x, -fall, w.y);
@@ -166,17 +178,33 @@ void vertex() {
 	vec3 mid = mix(p, tail, 0.5);
 	float dist = max(length(mid - cam), 0.01);
 	float pixel = dist * 2.0 / (PROJECTION_MATRIX[1][1] * VIEWPORT_SIZE.y);
-	float half_w = max(drop_half_width, pixel * 0.75);
-	float cover = drop_half_width / half_w;
+	// Flakes are not all one size: most are small, a few are clumps of
+	// several stuck together, which is most of what reads as snow rather
+	// than as a field of identical dots.
+	float flake = snow ? mix(0.45, 1.2, form * form) * (form > 0.96 ? 1.5 : 1.0) : 1.0;
+	float half_w = max(drop_half_width * flake, pixel * 0.75);
+	float cover = drop_half_width * flake / half_w;
+	v_detail = clamp((drop_half_width * flake / pixel - 1.0) / 3.0, 0.0, 1.0);
+	v_spin = form * 6.2832 + TIME * (0.4 + 1.2 * form) * (form > 0.5 ? 1.0 : -1.0);
+	v_blur = 0.0;
 
 	vec3 to_eye = normalize(cam - mid);
 	vec3 world;
 	if (snow) {
-		// A flake faces the camera.
-		vec3 right = INV_VIEW_MATRIX[0].xyz;
-		vec3 up = INV_VIEW_MATRIX[1].xyz;
-		world = p + (right * VERTEX.x + up * VERTEX.y) * 2.0 * half_w;
+		// A flake faces the camera. Driven hard, it smears along its path,
+		// as a flake does to the eye in a gale: the quad stretches along the
+		// velocity seen across the view, up to three and a half times, and
+		// its light spreads over the length.
+		float lean = length(vel.xz) / max(fall, 0.01);
+		float stretch = 1.0 + clamp((lean - 1.5) * 0.6, 0.0, 2.5);
+		vec3 across_view = vel - dot(vel, to_eye) * to_eye;
+		vec3 axis = length(across_view) > 1e-3 ? normalize(across_view) : INV_VIEW_MATRIX[1].xyz;
+		vec3 side = normalize(cross(axis, to_eye));
+		// Thinner as it lengthens, so a driven flake is a streak, not an oval.
+		world = p + (side * VERTEX.x / sqrt(stretch) + axis * VERTEX.y * stretch) * 2.0 * half_w;
 		cover *= cover;   // a flake's coverage is an area
+		cover /= sqrt(stretch);
+		v_blur = clamp(stretch - 1.0, 0.0, 1.0);
 	} else {
 		// A streak turns round its own axis to face the camera. Seen end on
 		// the axis and the view agree and there is no side to take; the
@@ -197,8 +225,15 @@ void vertex() {
 void fragment() {
 	float a;
 	if (snow) {
+		// Close enough to have a shape, a flake is a small six armed
+		// crystal turning as it falls; a pixel or two across, or smeared by
+		// the wind, it is the soft dot it always was.
 		float r = length(v_quad);
-		a = 1.0 - smoothstep(0.5, 1.0, r);
+		float disc = 1.0 - smoothstep(0.5, 1.0, r);
+		float th = atan(v_quad.y, v_quad.x) + v_spin;
+		float arm = 1.0 - smoothstep(0.07, 0.2, abs(sin(3.0 * th)) * r);
+		float star = max(1.0 - smoothstep(0.16, 0.3, r), arm * (1.0 - smoothstep(0.7, 1.0, r)));
+		a = mix(disc, star, v_detail * (1.0 - v_blur));
 	} else {
 		// Across: brightest on the axis. Along: v_quad.y runs from the tail
 		// (-1) to the head (1); a streak is a blur of one drop, so it is

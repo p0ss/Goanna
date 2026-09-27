@@ -50,6 +50,12 @@ const DROP_SIZE_REFERENCE := 6.0
 const DROP_WEIGHT_MIN := 0.5
 const DROP_WEIGHT_MAX := 6.0
 const MAX_INTENSITY := 2.0
+# Snow goes further. A snowstorm is the weather people remember: at a
+# storm cell's heart snow is driven up to twice rain's ceiling, the wind
+# lays the flakes over, and past about 1.4 it turns to a whiteout (see
+# whiteout()). The flakes are built for this ceiling.
+const SNOW_MAX_INTENSITY := 4.0
+const SNOW_STORM_HEART := 2.6
 # The falling drops: a box of them round the eye, and a smaller, denser box
 # inside it (precipitation.gdshader has the design). Sizes in nodes, and how
 # far the eye is above each box's bottom: most of the far box is below the
@@ -148,7 +154,7 @@ static func make_material(snow: bool) -> ShaderMaterial:
 	var m := ShaderMaterial.new()
 	m.shader = SHADER
 	m.set_shader_parameter("snow", snow)
-	m.set_shader_parameter("max_amount", MAX_INTENSITY)
+	m.set_shader_parameter("max_amount", max_for(snow))
 	m.set_shader_parameter("far_box", FAR_BOX)
 	m.set_shader_parameter("far_below", FAR_BELOW)
 	m.set_shader_parameter("near_box", NEAR_BOX)
@@ -163,17 +169,22 @@ static func make_material(snow: bool) -> ShaderMaterial:
 
 # Instances numbered below this fall in the near box.
 static func near_instances(snow: bool) -> int:
-	return int((SNOW_NEAR if snow else RAIN_NEAR) * MAX_INTENSITY)
+	return int((SNOW_NEAR if snow else RAIN_NEAR) * max_for(snow))
 
 
 static func instance_count(snow: bool) -> int:
-	return int(((SNOW_FAR + SNOW_NEAR) if snow else (RAIN_FAR + RAIN_NEAR)) * MAX_INTENSITY)
+	return int(((SNOW_FAR + SNOW_NEAR) if snow else (RAIN_FAR + RAIN_NEAR)) * max_for(snow))
+
+
+# The most of a kind that can fall: the drops built for it.
+static func max_for(snow: bool) -> float:
+	return SNOW_MAX_INTENSITY if snow else MAX_INTENSITY
 
 
 # One MultiMesh, one draw call, for a kind of weather.
 func _make_drops(per_unit: int, material: ShaderMaterial) -> MultiMeshInstance3D:
 	var mmi := MultiMeshInstance3D.new()
-	mmi.multimesh = build_multimesh(int(per_unit * MAX_INTENSITY))
+	mmi.multimesh = build_multimesh(int(per_unit * max_for(material.get_shader_parameter("snow"))))
 	mmi.material_override = material
 	# Weather casts no shadow and should not feed global illumination; a
 	# screen of rain lighting the ground would be a bright sheet round the
@@ -416,6 +427,7 @@ func debug_state() -> Dictionary:
 	var eye := _eye
 	var out := {"rain": _rain, "snow": _snow, "spawners": _spawners.size(),
 		"storm_severity": _severity,
+		"whiteout": whiteout(),
 		"drops_visible": (_rain_mesh != null and _rain_mesh.visible)
 				or (_snow_mesh != null and _snow_mesh.visible),
 		"rain_drops": int(round((RAIN_FAR + RAIN_NEAR) * _rain)),
@@ -609,12 +621,11 @@ func targets() -> Dictionary:
 func _process(delta: float) -> void:
 	var t := targets()
 	_update_severity(delta)
-	var share := storm_share(_severity)
-	t["rain"] = minf(float(t["rain"]) * share, MAX_INTENSITY)
-	t["snow"] = minf(float(t["snow"]) * share, MAX_INTENSITY)
+	t["rain"] = minf(float(t["rain"]) * storm_share(_severity), MAX_INTENSITY)
+	t["snow"] = minf(float(t["snow"]) * storm_share(_severity, true), SNOW_MAX_INTENSITY)
 	var k := clampf(delta / EASE_SECONDS, 0.0, 1.0)
 	_rain = move_toward(_rain, float(t["rain"]), k * MAX_INTENSITY)
-	_snow = move_toward(_snow, float(t["snow"]), k * MAX_INTENSITY)
+	_snow = move_toward(_snow, float(t["snow"]), k * SNOW_MAX_INTENSITY)
 	if float(t["rain_speed"]) > 0.0:
 		_rain_speed = float(t["rain_speed"])
 	if float(t["snow_speed"]) > 0.0:
@@ -651,7 +662,10 @@ func _feed(mmi: MultiMeshInstance3D, mat: ShaderMaterial, amount: float, speed: 
 	mmi.global_position = _eye
 	mat.set_shader_parameter("amount", amount)
 	mat.set_shader_parameter("speed", speed)
-	mat.set_shader_parameter("wind", _wind)
+	var wo := whiteout() if mat == _snow_material else 0.0
+	mat.set_shader_parameter("wind", _wind * (1.0 + 2.0 * wo))
+	if mat == _snow_material:
+		mat.set_shader_parameter("snow_lean", lerpf(2.0, 5.0, wo))
 	mat.set_shader_parameter("eye", _eye)
 
 
@@ -686,8 +700,19 @@ func storm_severity_at(xz: Vector2, time: float, drift: Vector2, thunder: bool) 
 	return clampf(s + (0.2 if thunder else 0.0), 0.0, 1.0)
 
 
-static func storm_share(severity: float) -> float:
+static func storm_share(severity: float, snow := false) -> float:
+	# Snow's heart rises late and hard: flurries over most of a cell, a
+	# blizzard at its middle.
+	if snow:
+		return lerpf(STORM_EDGE, SNOW_STORM_HEART, pow(severity, 1.6))
 	return lerpf(STORM_EDGE, STORM_HEART, severity)
+
+
+# 0 to 1, how far falling snow has become a whiteout: nothing below 1.4
+# (Mineclonia's own snow is 1), all of it by 3.2. Drives the flakes' wind
+# and lean here, and main.gd's fog and how fast snow settles.
+func whiteout() -> float:
+	return smoothstep(1.4, 3.2, _snow)
 
 
 # Where the viewer stands in the storm, eased so walking or the cells drifting

@@ -437,7 +437,7 @@ func _test_drop_source() -> void:
 			"bool near = INSTANCE_ID < near_instances;",
 			"vec3 corner = eye - vec3(box.x * 0.5, near ? near_below : far_below, box.z * 0.5);",
 			"float fall = speed * (snow ? 0.75 + 0.5 * vary : 0.85 + 0.3 * vary);",
-			"float cap = snow ? 2.0 * fall : max_lean * fall;",
+			"float cap = snow ? snow_lean * fall : max_lean * fall;",
 			"vec3 vel = vec3(w.x, -fall, w.y);",
 			"vec3 p = corner + mod(seed * box + vel * TIME - corner, box);",
 			"float edge = smoothstep(0.0, EDGE_FADE, min(min(lo.x, hi.x), min(lo.z, hi.z)))",
@@ -448,7 +448,7 @@ func _test_drop_source() -> void:
 			"bool shown = pick * max_amount < amount && edge > 0.001 && nearest > NEAR_CLIP",
 			"float lens = smoothstep(NEAR_CLIP, NEAR_FADE, d);",
 			"float open = goanna_rain_open(v_world, 0.0);",
-			"float half_w = max(drop_half_width, pixel * 0.75);"]:
+			"float half_w = max(drop_half_width * flake, pixel * 0.75);"]:
 		check(src.contains(text), "precipitation.gdshader no longer matches weather.gd's copy: " + text)
 	check(is_equal_approx(_shader_const(src, "const float NEAR_CLIP = ([0-9.]+);"), Weather.NEAR_CLIP)
 			and is_equal_approx(_shader_const(src, "const float NEAR_FADE = ([0-9.]+);"), Weather.NEAR_FADE)
