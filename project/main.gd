@@ -81,6 +81,8 @@ var snow_cover := 0.0
 # How far falling snow has become a whiteout, 0 to 1 (weather.gd): pulls the
 # fog in and toward the snow's grey, and settles snow faster.
 var whiteout := 0.0
+# How far blowing sand or dust has closed the view, 0 to 1 (weather.gd).
+var dust_haze := 0.0
 # The terrain height under the camera, from client.ground_height, sampled on
 # the ground tint's clock and held at its last answer while flying too high
 # for the scan to reach. The haze layer is anchored to it, so the depth fog
@@ -3450,6 +3452,7 @@ func _apply_sky() -> void:
 	if wnode != null and wnode.has_method("storm_severity"):
 		severity = float(wnode.storm_severity())
 	whiteout = float(wnode.whiteout()) if wnode != null and wnode.has_method("whiteout") else 0.0
+	dust_haze = float(wnode.dust_haze()) if wnode != null and wnode.has_method("dust_haze") else 0.0
 	storm_cover = lerpf(storm_cover, lerpf(0.45, 0.95, severity) * precip_now,
 			1.0 - exp(-get_process_delta_time() / 6.0))
 	# Wet ground: rain soaks in over half a minute and dries off over a few
@@ -3766,6 +3769,13 @@ func _apply_sky() -> void:
 			# nearly its end and the hill thirty nodes off stays clear. The
 			# sky takes it too, below, where its haze is set.
 			e.fog_depth_curve = lerpf(e.fog_depth_curve, 1.0, whiteout)
+		# Blowing sand: the same closing in, to 70 nodes, in its colour.
+		if dust_haze > 0.001:
+			e.fog_depth_begin = lerpf(e.fog_depth_begin, 4.0, dust_haze)
+			e.fog_depth_end = lerpf(e.fog_depth_end, 70.0, dust_haze)
+			e.fog_density = lerpf(e.fog_density, 0.95, dust_haze)
+			e.fog_depth_curve = lerpf(e.fog_depth_curve, 1.0, dust_haze)
+			e.fog_light_color = e.fog_light_color.lerp(Color(0.74, 0.6, 0.42), dust_haze * 0.8)
 		# Aerial perspective blends distant geometry toward the sky, which is
 		# what actually sells a vista; it wants to be stronger the further we
 		# draw, so a 512 node horizon reads as haze rather than a hard edge.
@@ -3787,7 +3797,7 @@ func _apply_sky() -> void:
 		e.fog_sky_affect = lerpf(0.1, 0.5, smoothstep(220.0, 340.0, draw_nodes)) \
 				* (1.0 - 0.6 * alt_clear)
 		# In driven snow the sky is the same grey as the air.
-		e.fog_sky_affect = lerpf(e.fog_sky_affect, 0.85, whiteout)
+		e.fog_sky_affect = lerpf(e.fog_sky_affect, 0.85, maxf(whiteout, dust_haze))
 	# --- ambient / grade from day-night ratio and server lighting ---
 	var ratio: float = st["day_night_ratio"]
 	# The flash raises the sky's brightness as a light source and as a

@@ -71,6 +71,11 @@ uniform float max_lean = 0.6;
 // How far snow may be blown, as a multiple of its fall: 2 in a flurry, up
 // to 5 in a whiteout, when the wind lays the flakes over (weather.gd).
 uniform float snow_lean = 2.0;
+// The drop's colour, and for a flake whether it has the crystal's shape
+// (1) or stays a soft grain (0, blowing sand and dust). weather.gd sets
+// both per kind.
+uniform vec3 tint = vec3(0.82, 0.86, 0.92);
+uniform float crystal = 1.0;
 
 // Nothing is drawn nearer the eye than NEAR_CLIP nodes, and a drop fades in
 // from there to NEAR_FADE: a drop that close is out of focus, and drawn hard
@@ -233,7 +238,7 @@ void fragment() {
 		float th = atan(v_quad.y, v_quad.x) + v_spin;
 		float arm = 1.0 - smoothstep(0.07, 0.2, abs(sin(3.0 * th)) * r);
 		float star = max(1.0 - smoothstep(0.16, 0.3, r), arm * (1.0 - smoothstep(0.7, 1.0, r)));
-		a = mix(disc, star, v_detail * (1.0 - v_blur));
+		a = mix(disc, star, v_detail * (1.0 - v_blur) * crystal);
 	} else {
 		// Across: brightest on the axis. Along: v_quad.y runs from the tail
 		// (-1) to the head (1); a streak is a blur of one drop, so it is
@@ -250,7 +255,7 @@ void fragment() {
 	ALPHA = clamp(a * drop_alpha * v_weight * lens * open, 0.0, 1.0);
 	if (ALPHA < 0.002)
 		discard;
-	ALBEDO = snow ? vec3(0.95) : vec3(0.82, 0.86, 0.92);
+	ALBEDO = tint;
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;
 	EMISSION = ALBEDO * mix(goanna_ground_fill, goanna_sky_fill, 0.6) * 0.5;

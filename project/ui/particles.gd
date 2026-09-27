@@ -100,7 +100,9 @@ func _weather_kind(kind: String) -> bool:
 		var pool: Array = ev.get("texpool", [])
 		if tex == "" and pool.size() > 0:
 			tex = str(pool[0])
-		if Weather.is_snow_name(tex) == (kind == "snow"):
+		# Wetness counts rain and hail (it melts); snow settles; dust neither.
+		var k := Weather.kind_of(tex)
+		if k == kind or (kind == "rain" and k == "hail"):
 			return true
 	return false
 
@@ -158,6 +160,8 @@ func _process(_delta: float) -> void:
 		_add_spawner(ev)
 	for id in client.take_deleted_spawners():
 		_remove_spawner(int(id))
+	if weather != null:
+		weather.cover_wanted = not _covered_ids.is_empty()
 	for p in client.take_particles():
 		if not _weather_particle(p):
 			_one_shot(p)
@@ -336,7 +340,8 @@ func _add_spawner(ev: Dictionary) -> void:
 		lightning.strike(ev, _texture_for(tex_path))
 		return
 	var is_weather := not is_bolt and (tex_name.contains("rain") or tex_name.contains("snow")
-			or tex_name.contains("flake"))
+			or tex_name.contains("flake") or tex_name.contains("hail") or tex_name.contains("sand")
+			or tex_name.contains("dust"))
 	# A bolt is fixed in the world, never the player's own effect, even one
 	# struck near the world's origin.
 	# Attached only when the server says so, as in the vanilla client. This
@@ -354,8 +359,12 @@ func _add_spawner(ev: Dictionary) -> void:
 	# called (rain_burst).
 	if not is_bolt and not is_attached:
 		var m_here := PlayerContext.find(self, "goanna_main")
-		if m_here != null and _centred_on_player(ev, _player_feet(m_here)):
-			if (is_weather or rain_burst(ev)) and not tex_name.contains("hail"):
+		# Blowing sand hangs round the player rather than falling from above
+		# (theFox's sandstorm is a box 8 high about the feet, rising a
+		# little), so for dust the box may be as low as the feet.
+		var low := 2.0 if Weather.kind_of(tex_name) == "dust" else 0.0
+		if m_here != null and _centred_on_player(ev, _player_feet(m_here) - Vector3(0, low, 0)):
+			if is_weather or rain_burst(ev):
 				is_attached = true
 				is_weather = true
 	if is_weather and is_attached:
@@ -520,6 +529,18 @@ func _add_spawner(ev: Dictionary) -> void:
 			mat.anim_speed_min = runs
 			mat.anim_speed_max = runs
 	quad.material = smat
+	# Weather this client does not draw by shader (pollen, and everything
+	# with shader weather off) still falls round the player, and Goanna's
+	# particles do not collide, so it fell through every roof. Such a
+	# spawner draws with its material's own shader plus one test: nothing
+	# under the rain cover map's roof (weather.gd keeps the map while any
+	# is running).
+	# GOANNA_PARTICLE_UNCOVERED=1 keeps the plain material, to compare.
+	if not is_bolt and _falls_round_player(ev) and OS.get_environment("GOANNA_PARTICLE_UNCOVERED") == "":
+		var covered := _covered(smat)
+		if covered != null:
+			quad.material = covered
+			_covered_ids[id] = true
 	p.draw_pass_1 = quad
 	p.position = (pmin + pmax) * 0.5
 	# Godot culls the whole system by this box, and its default is eight units
@@ -625,6 +646,56 @@ func _node_pieces(ev: Dictionary) -> void:
 			p.queue_free())
 
 
+var _covered_ids := {}
+var _covered_shaders := {}
+
+
+# Falling, from a box round the player and above their head: weather rather
+# than an effect at their hands. A spawner attached to the player gives its
+# box relative to them.
+func _falls_round_player(ev: Dictionary) -> bool:
+	var vmin: Vector3 = ev.get("vel_min", Vector3.ZERO)
+	var vmax: Vector3 = ev.get("vel_max", Vector3.ZERO)
+	if (vmin.y + vmax.y) * 0.5 > -0.05:
+		return false
+	if int(ev.get("attached_id", 0)) != 0:
+		return _centred_on_player(ev, Vector3.ZERO)
+	var m := PlayerContext.find(self, "goanna_main")
+	return m != null and _centred_on_player(ev, _player_feet(m))
+
+
+# The spawner's StandardMaterial3D redone as particle_covered.gdshaderinc:
+# the same texture, colour, billboard, animation and blend, and nothing
+# drawn under cover. One shader per blend; Godot does not hand a script the
+# shader it generates for a StandardMaterial3D, or this would add one line
+# to that instead.
+func _covered(smat: StandardMaterial3D) -> ShaderMaterial:
+	var blend := "blend_mix"
+	match smat.blend_mode:
+		BaseMaterial3D.BLEND_MODE_ADD: blend = "blend_add"
+		BaseMaterial3D.BLEND_MODE_SUB: blend = "blend_sub"
+	var sh: Shader = _covered_shaders.get(blend)
+	if sh == null:
+		# One file per blend, since the blend is a render_mode. Loaded
+		# through the view's scope where there is one, so each local
+		# player's particles read that player's cover map.
+		var path := "res://shaders/particle_covered_%s.gdshader" % blend.trim_prefix("blend_")
+		sh = client.load_view_shader(path) if client != null and client.has_method("load_view_shader") \
+				else load(path)
+		_covered_shaders[blend] = sh
+	var sm := ShaderMaterial.new()
+	sm.shader = sh
+	sm.set_shader_parameter("albedo_tex", smat.albedo_texture)
+	sm.set_shader_parameter("albedo_color", smat.albedo_color)
+	sm.set_shader_parameter("fixed_y", smat.billboard_mode == BaseMaterial3D.BILLBOARD_FIXED_Y)
+	sm.set_shader_parameter("anim_h_frames", smat.particles_anim_h_frames)
+	sm.set_shader_parameter("anim_v_frames", smat.particles_anim_v_frames)
+	sm.set_shader_parameter("anim_loop", smat.particles_anim_loop)
+	sm.set_shader_parameter("scissor", smat.alpha_scissor_threshold
+			if smat.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR else 0.0)
+	return sm
+
+
 func _remove_spawner(id: int) -> void:
 	var p = _spawners.get(id)
 	if p != null and is_instance_valid(p):
@@ -634,6 +705,7 @@ func _remove_spawner(id: int) -> void:
 	_paused.erase(id)
 	_weather.erase(id)
 	_weather_ev.erase(id)
+	_covered_ids.erase(id)
 	if weather != null:
 		weather.remove_spawner(id)
 

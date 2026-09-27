@@ -55,6 +55,28 @@ const MAX_INTENSITY := 2.0
 # lays the flakes over, and past about 1.4 it turns to a whiteout (see
 # whiteout()). The flakes are built for this ceiling.
 const SNOW_MAX_INTENSITY := 4.0
+# Hail and blowing sand or dust, the other weathers games send (Regional
+# Weather, theFox's weather, Mymonths). Hail is rain's streak made short and
+# thick and white, pellets rather than lines; dust is snow's flake without
+# the crystal, sand coloured, small, and always driven hard. Their units
+# were set from live runs, 2026-09-27, before the storm field: hail from
+# Regional Weather, theFox's weather and Mymonths came to 6.7, 6.0 and 23.6
+# times 100 a second over 30 by 30, blowing sand from Regional Weather and
+# Mymonths to 64 and 23.6 (Regional Weather's box is 8 by 8, which makes
+# its density high). These put the first two hails and Mymonths' sand
+# near 0.6 and Regional Weather's sand at 1.6.
+const HAIL_REFERENCE := 1000.0
+const DUST_REFERENCE := 4000.0
+const HAIL_FAR := 1200
+const HAIL_NEAR := 500
+const DUST_FAR := 1600
+const DUST_NEAR := 600
+const HAIL_HALF_WIDTH := 0.006
+const HAIL_STREAK_TIME := 0.008
+const DUST_RADIUS := 0.012
+const DUST_ALPHA := 0.5
+const HAIL_TINT := Color(0.9, 0.93, 0.97)
+const DUST_TINT := Color(0.72, 0.6, 0.42)
 const SNOW_STORM_HEART := 2.6
 # The falling drops: a box of them round the eye, and a smaller, denser box
 # inside it (precipitation.gdshader has the design). Sizes in nodes, and how
@@ -117,13 +139,22 @@ var cover: RefCounted
 var _spawners := {}          # server id -> {kind, rate, speed}
 var _rain_mesh: MultiMeshInstance3D
 var _snow_mesh: MultiMeshInstance3D
+var _hail_mesh: MultiMeshInstance3D
+var _dust_mesh: MultiMeshInstance3D
 var _rain_material: ShaderMaterial
 var _snow_material: ShaderMaterial
+var _hail_material: ShaderMaterial
+var _dust_material: ShaderMaterial
 var _rain := 0.0
 var _snow := 0.0
+var _hail := 0.0
+var _dust := 0.0
+var _hail_speed := 20.0
+var _dust_speed := 1.0
 var _rain_speed := 17.0
 var _snow_speed := 2.2
 var _wind := Vector2.ZERO
+var cover_wanted := false
 var _storm_noise := FastNoiseLite.new()
 var _storm_drift := Vector2.ZERO
 var _storm_time := 0.0
@@ -141,12 +172,29 @@ func _ready() -> void:
 	cover = RainCover.new(client)
 	_rain_material = make_material(false)
 	_snow_material = make_material(true)
+	_hail_material = make_material(false)
+	_hail_material.set_shader_parameter("drop_half_width", HAIL_HALF_WIDTH)
+	_hail_material.set_shader_parameter("streak_time", HAIL_STREAK_TIME)
+	_hail_material.set_shader_parameter("max_lean", 0.3)
+	_hail_material.set_shader_parameter("tint", Vector3(HAIL_TINT.r, HAIL_TINT.g, HAIL_TINT.b))
+	_hail_material.set_shader_parameter("near_instances", int(HAIL_NEAR * MAX_INTENSITY))
+	_dust_material = make_material(true)
+	_dust_material.set_shader_parameter("drop_half_width", DUST_RADIUS)
+	_dust_material.set_shader_parameter("drop_alpha", DUST_ALPHA)
+	_dust_material.set_shader_parameter("crystal", 0.0)
+	_dust_material.set_shader_parameter("tint", Vector3(DUST_TINT.r, DUST_TINT.g, DUST_TINT.b))
+	_dust_material.set_shader_parameter("max_amount", MAX_INTENSITY)
+	_dust_material.set_shader_parameter("near_instances", int(DUST_NEAR * MAX_INTENSITY))
 	if client != null and client.has_method("load_view_shader"):
 		var shader: Shader = client.load_view_shader("res://shaders/precipitation.gdshader")
 		_rain_material.shader = shader
 		_snow_material.shader = shader
+		_hail_material.shader = shader
+		_dust_material.shader = shader
 	_rain_mesh = _make_drops(RAIN_FAR + RAIN_NEAR, _rain_material)
 	_snow_mesh = _make_drops(SNOW_FAR + SNOW_NEAR, _snow_material)
+	_hail_mesh = _make_drops(HAIL_FAR + HAIL_NEAR, _hail_material, MAX_INTENSITY)
+	_dust_mesh = _make_drops(DUST_FAR + DUST_NEAR, _dust_material, MAX_INTENSITY)
 	_publish_globals()
 
 
@@ -154,6 +202,7 @@ static func make_material(snow: bool) -> ShaderMaterial:
 	var m := ShaderMaterial.new()
 	m.shader = SHADER
 	m.set_shader_parameter("snow", snow)
+	m.set_shader_parameter("tint", Vector3(0.95, 0.95, 0.95) if snow else Vector3(0.82, 0.86, 0.92))
 	m.set_shader_parameter("max_amount", max_for(snow))
 	m.set_shader_parameter("far_box", FAR_BOX)
 	m.set_shader_parameter("far_below", FAR_BELOW)
@@ -182,9 +231,11 @@ static func max_for(snow: bool) -> float:
 
 
 # One MultiMesh, one draw call, for a kind of weather.
-func _make_drops(per_unit: int, material: ShaderMaterial) -> MultiMeshInstance3D:
+func _make_drops(per_unit: int, material: ShaderMaterial, most := -1.0) -> MultiMeshInstance3D:
 	var mmi := MultiMeshInstance3D.new()
-	mmi.multimesh = build_multimesh(int(per_unit * max_for(material.get_shader_parameter("snow"))))
+	if most < 0.0:
+		most = max_for(material.get_shader_parameter("snow"))
+	mmi.multimesh = build_multimesh(int(per_unit * most))
 	mmi.material_override = material
 	# Weather casts no shadow and should not feed global illumination; a
 	# screen of rain lighting the ground would be a bright sheet round the
@@ -427,6 +478,7 @@ func debug_state() -> Dictionary:
 	var eye := _eye
 	var out := {"rain": _rain, "snow": _snow, "spawners": _spawners.size(),
 		"storm_severity": _severity,
+		"hail": _hail, "dust": _dust,
 		"whiteout": whiteout(),
 		"drops_visible": (_rain_mesh != null and _rain_mesh.visible)
 				or (_snow_mesh != null and _snow_mesh.visible),
@@ -585,6 +637,17 @@ static func is_snow_name(tex_name: String) -> bool:
 	return n.contains("snow")
 
 
+# Which weather a texture's name says: hail, dust (sand or dust), snow or
+# rain. Hail first, since a hail texture may sit beside rain in a mod.
+static func kind_of(tex_name: String) -> String:
+	var n := tex_name.to_lower()
+	if n.contains("hail"):
+		return "hail"
+	if n.contains("sand") or n.contains("dust"):
+		return "dust"
+	return "snow" if is_snow_name(n) else "rain"
+
+
 static func describe(ev: Dictionary, tex_name: String) -> Dictionary:
 	var amount := float(ev.get("amount", 0))
 	var time := float(ev.get("time", 0.0))
@@ -592,7 +655,8 @@ static func describe(ev: Dictionary, tex_name: String) -> Dictionary:
 	var vmin: Vector3 = ev.get("vel_min", Vector3.ZERO)
 	var vmax: Vector3 = ev.get("vel_max", Vector3.ZERO)
 	var fall := absf((vmin.y + vmax.y) * 0.5)
-	var snow := is_snow_name(tex_name)
+	var kind := kind_of(tex_name)
+	var snow := kind == "snow"
 	var pmin: Vector3 = ev.get("pos_min", Vector3.ZERO)
 	var pmax: Vector3 = ev.get("pos_max", Vector3.ZERO)
 	var area := absf(pmax.x - pmin.x) * absf(pmax.z - pmin.z)
@@ -602,24 +666,32 @@ static func describe(ev: Dictionary, tex_name: String) -> Dictionary:
 	var size := (float(ev.get("size_min", 1.0)) + float(ev.get("size_max", ev.get("size_min", 1.0)))) * 0.5
 	# Rain only: a big rain sprite is a sheet of streaks, a big flake is
 	# still one flake, and Mineclonia's own flakes (2 to 5) are its unit.
-	var weight := 1.0 if snow else clampf(size / DROP_SIZE_REFERENCE, DROP_WEIGHT_MIN, DROP_WEIGHT_MAX)
+	var weight := clampf(size / DROP_SIZE_REFERENCE, DROP_WEIGHT_MIN, DROP_WEIGHT_MAX) \
+			if kind == "rain" else 1.0
 	var density := rate / area * ref_area * weight
 	if float(ev.get("size_min", 1.0)) >= CURTAIN_SIZE:
 		density = 0.0
-	return {"kind": "snow" if snow else "rain", "rate": density,
-		"speed": clampf(fall, 0.8, 5.0) if snow else clampf(fall, 6.0, 30.0)}
+	var speed := clampf(fall, 6.0, 30.0)
+	if snow:
+		speed = clampf(fall, 0.8, 5.0)
+	elif kind == "dust":
+		speed = clampf(fall, 0.3, 3.0)
+	elif kind == "hail":
+		speed = clampf(fall, 10.0, 35.0)
+	return {"kind": kind, "rate": density, "speed": speed}
 
 
 # Target intensity of each kind before the storm field, and its speed.
 func targets() -> Dictionary:
-	var rate := {"rain": 0.0, "snow": 0.0}
-	var speed := {"rain": 0.0, "snow": 0.0}
+	var rate := {"rain": 0.0, "snow": 0.0, "hail": 0.0, "dust": 0.0}
+	var speed := {"rain": 0.0, "snow": 0.0, "hail": 0.0, "dust": 0.0}
 	for s in _spawners.values():
 		rate[s["kind"]] += float(s["rate"])
 		speed[s["kind"]] += float(s["speed"]) * float(s["rate"])
 	var out := {}
-	for kind in ["rain", "snow"]:
-		var ref := RAIN_REFERENCE if kind == "rain" else SNOW_REFERENCE
+	for kind in ["rain", "snow", "hail", "dust"]:
+		var ref: float = {"rain": RAIN_REFERENCE, "snow": SNOW_REFERENCE,
+				"hail": HAIL_REFERENCE, "dust": DUST_REFERENCE}[kind]
 		var r: float = rate[kind]
 		# A spawner that is running at all is weather worth seeing, however
 		# small its amount, so the floor is well above zero. "rate" is the
@@ -641,13 +713,22 @@ func _process(delta: float) -> void:
 	var k := clampf(delta / EASE_SECONDS, 0.0, 1.0)
 	_rain = move_toward(_rain, float(t["rain"]), k * MAX_INTENSITY)
 	_snow = move_toward(_snow, float(t["snow"]), k * SNOW_MAX_INTENSITY)
+	# Hail and dust take the storm field as rain does, not snow's late surge.
+	_hail = move_toward(_hail, minf(float(t["hail"]) * storm_share(_severity), MAX_INTENSITY), k * MAX_INTENSITY)
+	_dust = move_toward(_dust, minf(float(t["dust"]) * storm_share(_severity), MAX_INTENSITY), k * MAX_INTENSITY)
+	if float(t["hail_speed"]) > 0.0:
+		_hail_speed = float(t["hail_speed"])
+	if float(t["dust_speed"]) > 0.0:
+		_dust_speed = float(t["dust_speed"])
 	if float(t["rain_speed"]) > 0.0:
 		_rain_speed = float(t["rain_speed"])
 	if float(t["snow_speed"]) > 0.0:
 		_snow_speed = float(t["snow_speed"])
-	var active := _rain > 0.001 or _snow > 0.001
+	var active := _rain > 0.001 or _snow > 0.001 or _hail > 0.001 or _dust > 0.001
 	_rain_mesh.visible = _rain > 0.001
 	_snow_mesh.visible = _snow > 0.001
+	_hail_mesh.visible = _hail > 0.001
+	_dust_mesh.visible = _dust > 0.001
 	var m := PlayerContext.find(self, "goanna_main")
 	if m != null and m.get("cam") != null:
 		_eye = (m.cam as Node3D).global_position
@@ -661,13 +742,17 @@ func _process(delta: float) -> void:
 	# a moment by a doorway and the floor inside went wet.
 	var wet := float(m.get("wetness")) if m != null and m.get("wetness") != null else 0.0
 	var snowed := float(m.get("snow_cover")) if m != null and m.get("snow_cover") != null else 0.0
-	if active or wet > 0.001 or snowed > 0.001:
+	# particles.gd sets cover_wanted while any particle weather it draws
+	# itself (pollen, or everything with shader weather off) is running.
+	if active or wet > 0.001 or snowed > 0.001 or cover_wanted:
 		if cover.step(_eye, delta):
 			PlayerContext.shader_parameter(client, "goanna_rain_cover", cover.texture)
 	if active:
 		_update_wind(m, delta)
 		_feed(_rain_mesh, _rain_material, _rain, _rain_speed)
 		_feed(_snow_mesh, _snow_material, _snow, _snow_speed)
+		_feed(_hail_mesh, _hail_material, _hail, _hail_speed)
+		_feed(_dust_mesh, _dust_material, _dust, _dust_speed)
 	_publish_globals()
 
 
@@ -678,9 +763,12 @@ func _feed(mmi: MultiMeshInstance3D, mat: ShaderMaterial, amount: float, speed: 
 	mat.set_shader_parameter("amount", amount)
 	mat.set_shader_parameter("speed", speed)
 	var wo := whiteout() if mat == _snow_material else 0.0
+	if mat == _dust_material:
+		# Blowing sand is carried by the wind more than it falls.
+		wo = 1.0
 	mat.set_shader_parameter("wind", _wind * (1.0 + 2.0 * wo))
-	if mat == _snow_material:
-		mat.set_shader_parameter("snow_lean", lerpf(2.0, 5.0, wo))
+	if mat == _snow_material or mat == _dust_material:
+		mat.set_shader_parameter("snow_lean", lerpf(2.0, 5.0, wo) if mat == _snow_material else 8.0)
 	mat.set_shader_parameter("eye", _eye)
 
 
@@ -736,6 +824,12 @@ func storm_severity() -> float:
 	return _severity
 
 
+# 0 to 1, how far blowing sand or dust has closed the view in: main.gd
+# browns and pulls in its fog by it, as it greys it for a whiteout.
+func dust_haze() -> float:
+	return smoothstep(0.3, 1.4, _dust)
+
+
 func _update_severity(delta: float) -> void:
 	_storm_time += delta
 	_storm_drift += _wind * STORM_DRIFT * delta
@@ -745,6 +839,7 @@ func _update_severity(delta: float) -> void:
 
 
 func _publish_globals() -> void:
-	PlayerContext.shader_parameter(client, "goanna_rain", _rain)
+	# Hail lands and splashes as rain does, if less of it.
+	PlayerContext.shader_parameter(client, "goanna_rain", maxf(_rain, _hail * 0.6))
 	PlayerContext.shader_parameter(client, "goanna_rain_cover_area",
 			cover.area if cover != null else Vector4.ZERO)

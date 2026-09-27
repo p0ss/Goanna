@@ -339,6 +339,42 @@ strike at a cell's edge is drawn at full strength. Presentation only, and a
 function of the viewer's position, so each view of a split screen has its
 own.
 
+### Hail, blowing sand and the rest
+
+`weather.kind_of` sorts a weather texture into rain, snow, hail (`hail`)
+or dust (`sand`, `dust`). Hail is rain's streak made short (8 ms of fall)
+and thick (6 mm) and ice white, and it feeds the splashes and the wet
+ground at 0.6 of its strength; dust is snow's flake without the crystal,
+1.2 cm, sand coloured, half as opaque, and driven by the wind at three
+times its strength and up to eight times its fall, and `main.gd` closes
+the fog in to 70 nodes and browns it and the sky by `weather.dust_haze()`,
+as it greys them for a whiteout. Both take the storm field as rain does.
+Their units were set from live runs (see the constants in `weather.gd`):
+Regional Weather's and theFox's hail draw near 0.6 of full, Mymonths'
+hail at the cap; Regional Weather's sandstorm about 1.6, Mymonths' 0.6,
+theFox's 0.2 (its box is 40 by 40, and it blows at head height, rising a
+little, so a dust box counts from just below the head).
+
+Particle weather this client does not draw by shader, and all of it with
+shader weather off, is drawn with `particle_covered.gdshaderinc` in place
+of its StandardMaterial3D when it falls from a box round the player and
+above their head: the same texture, colour, billboard, kept scale,
+animation and blend, and nothing under the cover map's roof, since
+Goanna's particles do not collide and such weather fell through every
+roof. `weather.gd` keeps the cover map while any is running
+(`cover_wanted`). Godot does not give a script the shader it generates for
+a StandardMaterial3D, so this is a small shader of its own rather than
+one line added to that. `GOANNA_PARTICLE_UNCOVERED=1` keeps the plain
+material, to compare. Pollen (Regional Weather) rises from below the
+head, so it is neither weather nor covered, and keeps its particles.
+
+Seen on 2026-09-27 on the software renderer: Regional Weather's sandstorm
+browned the distance and the sky with blowing grains, its hail drew as
+short white streaks. With shader weather off, 24 rain spawners took the
+covered material without a shader error, but particle rain did not show
+on the software renderer with the covered material or the plain one, so
+whether the cover test hides the right particles has not been seen.
+
 ### Snowstorms
 
 Snow goes further than rain. It has its own ceiling, 4 against rain's 2,
