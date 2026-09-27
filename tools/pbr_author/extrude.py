@@ -274,11 +274,28 @@ def heights(src, spec, cls):
     return np.clip(hgt, 0.0, 1.0), pos, joints, mat
 
 
+_frozen = {}
+
+
+def stem_class(stem, game):
+    """The class a stem was authored under, from stems/<game>.classes.json.
+    lib.class_of infers it from the installed pack's _s bytes, and once the
+    pack is the authored one that reads back this tool's own smoothness:
+    stone came back as gravel and rebuilt differently. The file freezes the
+    classes the reviewed pack was built with; a stem missing from it falls
+    back to the inference."""
+    if game not in _frozen:
+        p = HERE_STEMS / (game + ".classes.json")
+        _frozen[game] = json.loads(p.read_text()) if p.exists() else {}
+    return _frozen[game].get(stem) or lib.class_of(stem, game)
+
+
 def chamfer_px(spec, cell):
     """The bevel width in map pixels: the spec's (default 1), but never
     more than a quarter of a texel, so a 128 px atlas (the lectern, texels
-    two pixels wide) keeps flat tops at all."""
-    return min(int(spec.get("chamfer", 1)), cell // 4)
+    two pixels wide) keeps flat tops at all. A spec's width is in 256 px
+    map pixels and scales with the map."""
+    return min(int(round(float(spec.get("chamfer", 1)) * lib.PX)), cell // 4)
 
 
 def chamfer(h, px=1):
@@ -296,9 +313,11 @@ def chamfer(h, px=1):
 def build(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, preview=True):
     """Write the stem's three maps to out_dir and return lib's metrics."""
     spec = load_spec(stem, game) if spec is None else spec
-    cls = spec.get("class") or lib.class_of(stem, game)
+    cls = spec.get("class") or stem_class(stem, game)
     _, _, strength, spread = CLASS_STYLE.get(cls, DEFAULT_STYLE)
-    strength = float(spec.get("strength", strength))
+    # Strength is in 256 px map pixels; the same slope at 512 is twice
+    # as many pixels of rise.
+    strength = float(spec.get("strength", strength)) * lib.PX
     src = lib.load_source(stem, game)
     # The map is SIZE wide with square texels, so a vertical animation strip
     # (16 x 64, four frames) comes out 256 x 1024 and the client cuts the
@@ -396,10 +415,13 @@ def _aniso_noise(size, cells_x, cells_y, seed):
 
 
 def _pits(size, density, radius, seed):
-    """Sparse round dents, 0 flat to -1 at a pit's centre, wrapped."""
+    """Sparse round dents, 0 flat to -1 at a pit's centre, wrapped. radius
+    is in 256 px map pixels and density per 256 px map pixel, so a larger
+    map gets the same pits."""
     rng = np.random.default_rng(seed)
     out = np.zeros((size, size), np.float32)
-    n = int(size * size * density)
+    radius = radius * size / 256.0
+    n = int(size * size * density * (256.0 / size) ** 2)
     ys, xs = rng.integers(0, size, n), rng.integers(0, size, n)
     rs = rng.uniform(0.6, 1.0, n) * radius
     r = int(np.ceil(radius))
@@ -412,8 +434,11 @@ def _pits(size, density, radius, seed):
 
 
 def _scratches(size, count, length, seed, angle=None):
-    """Thin straight grooves, 0 flat to -1 in a groove, wrapped."""
+    """Thin straight grooves, 0 flat to -1 in a groove, wrapped. length is
+    in 256 px map pixels; a groove stays one pixel wide, so it is finer on
+    a larger map."""
     rng = np.random.default_rng(seed)
+    length = length * size / 256.0
     out = np.zeros((size, size), np.float32)
     for _ in range(count):
         a = rng.uniform(0, np.pi) if angle is None else angle + rng.normal(0, 0.15)
@@ -434,8 +459,10 @@ def _bumps(size, density, radius, seed, flat=0.0):
 
 
 def _cracks(size, count, length, seed):
-    """Hairline cracks that wander, 0 flat to -1 in a crack, wrapped."""
+    """Hairline cracks that wander, 0 flat to -1 in a crack, wrapped.
+    length is in 256 px map pixels."""
     rng = np.random.default_rng(seed)
+    length = length * size / 256.0
     out = np.zeros((size, size), np.float32)
     for _ in range(count):
         y, x = rng.uniform(0, size, 2)
@@ -463,7 +490,9 @@ def _wood_grain(size, seed):
     the lines bend round, and pores stretched along the grain. Returns
     (grooves, pores), grooves 0 to -1, pores 0 to -1."""
     rng = np.random.default_rng(seed)
-    yy, xx = np.mgrid[0:size, 0:size].astype(np.float32)
+    # Coordinates in 256 px map pixels, so a larger map draws the same grain.
+    k = 256.0 / size
+    yy, xx = np.mgrid[0:size, 0:size].astype(np.float32) * k
     # Where each row sits in the grain: a slow wave along the board plus a
     # slower drift, so lines bunch and spread instead of running ruled.
     wave = 6.0 * lib.fbm(size, 3, 2, seed) + 3.0 * _aniso_noise(size, 2, 6, seed + 1)
@@ -472,9 +501,9 @@ def _wood_grain(size, seed):
     knot = np.zeros_like(v)
     eye = np.zeros_like(v)
     for _ in range(rng.integers(1, 3)):
-        ky, kx = rng.uniform(0, size, 2)
-        dy = (yy - ky + size / 2) % size - size / 2
-        dx = (xx - kx + size / 2) % size - size / 2
+        ky, kx = rng.uniform(0, 256.0, 2)
+        dy = (yy - ky + 128.0) % 256.0 - 128.0
+        dx = (xx - kx + 128.0) % 256.0 - 128.0
         r2 = (dy / 1.0) ** 2 + (dx / 3.0) ** 2
         knot += 9.0 * np.exp(-r2 / 90.0) * np.sign(dy + 1e-3)
         eye = np.minimum(eye, -np.exp(-((dy / 2.2) ** 2 + (dx / 5.0) ** 2)))
@@ -573,7 +602,7 @@ def micro_field(kind, seed, size=lib.SIZE, direction="h"):
     elif kind == "bark":
         # Bark: many narrow fissures along the log that wander, merge and
         # break, with ridges between; rough in the fissures.
-        yy, xx = np.mgrid[0:size, 0:size].astype(np.float32)
+        yy, xx = np.mgrid[0:size, 0:size].astype(np.float32) * (256.0 / size)
         # The wander changes along the log (y) and hardly across it, or the
         # fissures swirl like contour lines.
         wander = 3.0 * _aniso_noise(size, 2, 8, seed) + 1.5 * _aniso_noise(size, 3, 16, seed + 1)
@@ -591,8 +620,8 @@ def micro_field(kind, seed, size=lib.SIZE, direction="h"):
         d = 0.2 * lib.fbm(size, 3, 2, seed) + 0.6 * _scratches(size, 4, 50, seed + 3)
         sm = 0.8 * lib.fbm(size, 4, 2, seed + 4) - 0.4 * (d < -0.3)
     elif kind == "cloth":
-        weave = np.sign(np.sin(np.arange(size)[:, None] * np.pi / 2.0)
-                        * np.sin(np.arange(size)[None, :] * np.pi / 2.0))
+        t = np.arange(size) * (256.0 / size)
+        weave = np.sign(np.sin(t[:, None] * np.pi / 2.0) * np.sin(t[None, :] * np.pi / 2.0))
         d = 0.5 * weave.astype(np.float32) + 0.2 * broad(8, 2)
         sm = 0.2 * broad(6, 5)
     elif kind == "ice":
@@ -688,7 +717,7 @@ def check(stem, out_dir, game=lib.DEFAULT_GAME, spec=None):
     """Pass or fail lines for an extruded stem."""
     from PIL import Image
     spec = load_spec(stem, game) if spec is None else spec
-    cls = spec.get("class") or lib.class_of(stem, game)
+    cls = spec.get("class") or stem_class(stem, game)
     out_dir = Path(out_dir)
     n = np.asarray(Image.open(out_dir / (stem + "_n.png")).convert("RGBA")).astype(np.float32) / 255.0
     s = np.asarray(Image.open(out_dir / (stem + "_s.png")).convert("RGBA")).astype(np.float32) / 255.0

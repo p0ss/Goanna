@@ -54,7 +54,11 @@ from PIL import Image, PngImagePlugin
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import pbr_bake  # noqa: E402
 
-SIZE = 256
+# The map size. 256 is the release pack; GOANNA_PBR_SIZE=512 builds the
+# optional high resolution one. Pixel measures written for 256 scale by
+# PX, so a 512 map has the same features at twice the resolution.
+SIZE = int(os.environ.get("GOANNA_PBR_SIZE", "256"))
+PX = SIZE / 256.0
 # Every map this module writes carries a PNG text chunk naming the pipeline
 # that made it, because the two pipelines encode the _n alpha differently and
 # a reader cannot tell them apart from the bytes without guessing.
@@ -446,7 +450,7 @@ def _clipped_offset(deviation, level):
 
 
 def pack(stem, out_dir, albedo, height, smoothness, cls, normal_strength,
-        metal_mask=None, ao_radius=6, keep_mean=True, emission=None, f0=None,
+        metal_mask=None, ao_radius=None, keep_mean=True, emission=None, f0=None,
         fine_detail=0.35, art_texels=16, alpha=None, normal_detail=None):
     """Write <stem>.png, <stem>_n.png and <stem>_s.png. albedo is RGB or
     RGBA float at SIZE; height and smoothness are SIZE x SIZE floats.
@@ -485,7 +489,7 @@ def pack(stem, out_dir, albedo, height, smoothness, cls, normal_strength,
     # keeps this share of its depth, anything broader is untouched. Pass
     # fine_detail=1.0 for a surface whose texel scale detail is the point.
     if fine_detail < 0.999:
-        fine = height - blur(height, 1)
+        fine = height - blur(height, max(1, round(PX)))
         height = np.clip(height - (1.0 - fine_detail) * fine, 0.0, 1.0)
     # normal_detail is surface character finer than the relief (pores,
     # grain, scratches), in the same units as height. It reaches the normal
@@ -493,7 +497,7 @@ def pack(stem, out_dir, albedo, height, smoothness, cls, normal_strength,
     # occlusion stay the macro field, so fine detail never blurs a step.
     xy = normal_from_height(height if normal_detail is None else height + normal_detail,
                             normal_strength)
-    ao = ao_from_height(height, ao_radius)
+    ao = ao_from_height(height, round(6 * PX) if ao_radius is None else ao_radius)
     n = np.zeros(shape + (4,), dtype=np.float32)
     n[..., :2] = xy * 0.5 + 0.5
     n[..., 2] = ao

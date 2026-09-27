@@ -34,6 +34,31 @@ inside each texel, several heights, the parallax depth the client derives
 between 0.02 and its 0.10 cap, and the release gate on the same files.
 Judge a change on the close-up ramp under afternoon, low sun and lamp.
 
+A stem without a class in its spec takes the one frozen in
+`stems/mineclonia.classes.json`. `lib.class_of` reads the class back from
+the installed pack's `_s` bytes, which are this tool's own output once the
+pack is authored: stone read back as gravel and four stems rebuilt
+differently from the reviewed pack. A new stem missing from the file falls
+back to the inference; add it to the file once it is reviewed.
+
+### The 512 px pack
+
+`GOANNA_PBR_SIZE=512` builds every map at 512 px. Pixel measures (the
+chamfer, the normal strength, occlusion radius, micro feature sizes and
+densities, grain spacing) are written for 256 and scale by `lib.PX`, so a
+512 map has the same heights, depths and features at twice the
+resolution; scratches and cracks stay one pixel wide and so are finer.
+The albedo is written at 512 too, because the client sizes each texture
+array by the albedo and resizes companions to it.
+
+```sh
+GOANNA_PBR_SIZE=512 python3 tools/pbr_author/extrude.py <out dir> <stem>...
+```
+
+The 256 pack is the default. The 512 one is an optional texture pack for
+close-ups and screenshots: about 2.5 times the download and four times
+the texture memory.
+
 Everything below describes the per stem scripts Kythen still uses.
 
 ## The per stem scripts (Kythen)
