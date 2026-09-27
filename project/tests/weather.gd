@@ -222,6 +222,9 @@ func _test_regional_weather() -> void:
 	check(h > r * 3.0, "Regional Weather's heavy rain draws far heavier than its rain")
 	check(sh > s, "and its heavy snow than its snow")
 	check(W.describe(snow, "weather_snowflake1.png")["kind"] == "snow", "its flakes are snow")
+	check(not W.is_snow_name("snowdrift_raindrop.png"), "Snowdrift's raindrop is rain, whatever the mod is called")
+	check(W.is_snow_name("snowdrift_snowflake3.png") and W.is_snow_name("weather_snow.png"),
+			"flakes and plain snow are snow")
 	# Per burst. Climate API runs about a dozen at once (a new one every
 	# server step), and a live server showed its snow and heavy snow both
 	# reaching the cap of 2 before the storm field scales them.

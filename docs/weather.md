@@ -58,6 +58,9 @@ shapes seen in the games installed here, 2026-09-27:
 | Kythen | a 0.55 second burst every half second while outdoors, at world coordinates round the player, textured `kythen_water.png` | falls like rain, round the player |
 | Minetest Game, Asuna | no weather | nothing to draw |
 | Regional Weather (Climate API), on any game | a new half second burst round the player on every server step, `weather_raindrop.png`, `weather_rain*.png`, `weather_snowflake*.png`, `weather_snow.png`, `weather_hail*.png`; lightning through the `lightning` mod | name, round the player; hail keeps its particles |
+| theFox's `weather` | a half second burst round the player every step, 30 by 30 and 10 up, shifted upwind by as much as 14; `weather_rain.png`, `weather_rain_dark.png` (storm), `weather_snow.png`, `weather_hail.png`, `weather_sand.png` | name, round the player; hail and sand keep their particles |
+| Mymonths | half second bursts, 20 by 20 and 7 up, the kind chosen by the nodes within 5 of the player (rain turns to snow among snow, to sand by sand); `weather_rain*.png`, `weather_snow.png` | name, round the player; hail and sandstorm keep their particles |
+| Snowdrift | no spawner: one `add_particle` a drop every half second, 128 drops or 32 flakes, `snowdrift_raindrop.png`, `snowdrift_snowflake*.png` | counted one by one (below) |
 
 Three rules make that general:
 
@@ -70,7 +73,8 @@ Three rules make that general:
   or ash to be told by its fall, so snow needs its name.
 - **Following the player.** Either rule counts only for a spawner that is
   attached to the player, given in coordinates relative to them, or whose
-  box is centred within 12 nodes of them, at least 6 nodes across, with
+  box is centred within 20 nodes of them (theFox's weather shifts its box
+  upwind by as much as 14), at least 6 nodes across, with
   its middle above their head (`_centred_on_player`). A burst counts only
   while it spawns; weather.gd's easing makes a run of bursts steady.
   Climate API starts a new half second burst on every server step, about
@@ -98,12 +102,35 @@ forcing a preset. Nothing was looked at on a GPU, and the `lightning`
 mod's strike (one spawner of one sprite, `lightning_lightning_N.png`, the
 sky set plain white for a moment) has not been seen.
 
+Weather sent one particle at a time, as Snowdrift sends it, is counted
+instead of drawn: a rain or snow named particle falling within 40 nodes of
+the player and above their head is added to a count per kind, and the
+count over the last second, with the box the drops fell in, their mean
+velocity and size, stands in for a spawner (`_weather_particle`,
+`_update_single_weather`). A texture says snow by `flake` first, then not
+if it says `rain` or `drop`, then by `snow`: Snowdrift's rain is
+`snowdrift_raindrop.png` (`weather.is_snow_name`). Snowdrift's particles
+never reached the client before 2026-09-27, when the batched particle
+packet was first read (`docs/protocol-coverage.md`).
+
+The other three were run live the same day, each alone on Minetest Game
+with a headless client on the software renderer. theFox's `weather`: rain
+1.18 and storm 1.13 under a weak storm field, snow 0.90, hail and sand as
+particles; standing flown up at y 45 nothing came, since the mod only
+rains where it finds sky light in the air above, which was not generated
+yet. Mymonths: rain 1.2, storm 1.14, snow 0.88 where the ground was snowy,
+hail and sandstorm as particles; its weather follows the nodes round the
+player, so a spot by sand or snow changes it. Snowdrift, a test copy with
+its precipitation forced on and its freeze read from a setting: rain 0.27
+and snow 0.21 under a weak storm field. theFox's rain uses sprites 25
+across and runs about five bursts at once, so by the drop count it is
+already heavy; at a storm cell's heart its rain and its storm both reach
+the cap and look alike.
+
 **For a game author** who wants Goanna to draw their weather: attach the
-spawner to the player (`attached = player`), or keep spawning it round the
-player, and put `rain` or `snow` in the texture's name. Nothing else is
-needed, and nothing changes for any other client. Snowdrift style weather
-made of single `add_particle` calls, one drop at a time, is not recognised
-and keeps drawing as particles.
+spawner to the player (`attached = player`), or keep spawning it, or its
+particles, round the player, and put `rain` or `snow` in the texture's
+name. Nothing else is needed, and nothing changes for any other client.
 
 ## What it draws
 

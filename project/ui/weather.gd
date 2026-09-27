@@ -573,6 +573,18 @@ func clear() -> void:
 # kind, rate (spawned a second) and fall speed, from a spawner definition.
 # Luanti's amount is a rate for an endless spawner and a total over `time`
 # for a timed one.
+# Whether a weather texture's name says snow. The specific words first:
+# Snowdrift's rain is snowdrift_raindrop.png, which says snow only because
+# the mod is called that.
+static func is_snow_name(tex_name: String) -> bool:
+	var n := tex_name.to_lower()
+	if n.contains("flake"):
+		return true
+	if n.contains("rain") or n.contains("drop"):
+		return false
+	return n.contains("snow")
+
+
 static func describe(ev: Dictionary, tex_name: String) -> Dictionary:
 	var amount := float(ev.get("amount", 0))
 	var time := float(ev.get("time", 0.0))
@@ -580,7 +592,7 @@ static func describe(ev: Dictionary, tex_name: String) -> Dictionary:
 	var vmin: Vector3 = ev.get("vel_min", Vector3.ZERO)
 	var vmax: Vector3 = ev.get("vel_max", Vector3.ZERO)
 	var fall := absf((vmin.y + vmax.y) * 0.5)
-	var snow := tex_name.contains("snow") or tex_name.contains("flake")
+	var snow := is_snow_name(tex_name)
 	var pmin: Vector3 = ev.get("pos_min", Vector3.ZERO)
 	var pmax: Vector3 = ev.get("pos_max", Vector3.ZERO)
 	var area := absf(pmax.x - pmin.x) * absf(pmax.z - pmin.z)
@@ -598,7 +610,7 @@ static func describe(ev: Dictionary, tex_name: String) -> Dictionary:
 		"speed": clampf(fall, 0.8, 5.0) if snow else clampf(fall, 6.0, 30.0)}
 
 
-# Target intensity of each kind, 0 to MAX_INTENSITY, and its speed.
+# Target intensity of each kind before the storm field, and its speed.
 func targets() -> Dictionary:
 	var rate := {"rain": 0.0, "snow": 0.0}
 	var speed := {"rain": 0.0, "snow": 0.0}
@@ -613,7 +625,10 @@ func targets() -> Dictionary:
 		# small its amount, so the floor is well above zero. "rate" is the
 		# density scaled to the reference box (describe), so the reference
 		# rates still divide it.
-		out[kind] = clampf(r / ref, 0.3, MAX_INTENSITY) if r > 0.0 else 0.0
+		# Not capped here: the storm field scales it first and _process
+		# caps what is left, or a mod's rain and its storm, both past the
+		# cap before scaling, drew the same (theFox's weather, Mymonths).
+		out[kind] = maxf(r / ref, 0.3) if r > 0.0 else 0.0
 		out[kind + "_speed"] = float(speed[kind]) / r if r > 0.0 else 0.0
 	return out
 

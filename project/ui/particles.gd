@@ -100,7 +100,7 @@ func _weather_kind(kind: String) -> bool:
 		var pool: Array = ev.get("texpool", [])
 		if tex == "" and pool.size() > 0:
 			tex = str(pool[0])
-		if tex.to_lower().contains(kind):
+		if Weather.is_snow_name(tex) == (kind == "snow"):
 			return true
 	return false
 
@@ -159,7 +159,9 @@ func _process(_delta: float) -> void:
 	for id in client.take_deleted_spawners():
 		_remove_spawner(int(id))
 	for p in client.take_particles():
-		_one_shot(p)
+		if not _weather_particle(p):
+			_one_shot(p)
+	_update_single_weather()
 	if client.has_method("take_dug_nodes"):
 		for ev in client.take_dug_nodes():
 			_node_pieces(ev)
@@ -194,7 +196,70 @@ func _resume(id: int, node: GPUParticles3D) -> void:
 	if _paused.erase(id):
 		node.emitting = true
 
-# A spawner box round the player, from above: centred within 12 nodes of
+# Weather sent one particle at a time rather than by a spawner (Snowdrift:
+# every step, one add_particle per drop, snowdrift_raindrop and
+# snowdrift_snowflake, in boxes round the player). Each such particle is
+# counted instead of drawn, and the count over the last second stands in
+# for a spawner: its rate, the box the drops fell in, their mean velocity
+# and size. It is handed to weather.gd under an id no server spawner uses.
+const SINGLE_WINDOW := 1.0
+const SINGLE_IDS := {"rain": -1001, "snow": -1002}
+var _single := {"rain": [], "snow": []}
+
+
+func _weather_particle(ev: Dictionary) -> bool:
+	if not shader_weather or weather == null or not is_inside_tree():
+		return false
+	var tex := str(ev.get("texture", "")).to_lower()
+	var kind := ""
+	if tex.contains("hail") or not (tex.contains("rain") or tex.contains("snow") or tex.contains("flake")):
+		return false
+	kind = "snow" if Weather.is_snow_name(tex) else "rain"
+	var m := PlayerContext.find(self, "goanna_main")
+	if m == null:
+		return false
+	var feet := _player_feet(m)
+	var pos: Vector3 = ev.get("position", Vector3.ZERO)
+	var vel: Vector3 = ev.get("velocity", Vector3.ZERO)
+	if Vector2(pos.x - feet.x, pos.z - feet.z).length() > 40.0 or pos.y < feet.y + 2.0 or vel.y > -0.2:
+		return false
+	_single[kind].append([Time.get_ticks_msec() / 1000.0, pos, vel, float(ev.get("size", 1.0))])
+	return true
+
+
+func _update_single_weather() -> void:
+	if weather == null:
+		return
+	var now := Time.get_ticks_msec() / 1000.0
+	for kind in _single:
+		var recent: Array = _single[kind].filter(func(e): return now - float(e[0]) <= SINGLE_WINDOW)
+		_single[kind] = recent
+		var id: int = SINGLE_IDS[kind]
+		if recent.is_empty():
+			if _weather.has(id):
+				_remove_spawner(id)
+			continue
+		var lo: Vector3 = recent[0][1]
+		var hi: Vector3 = recent[0][1]
+		var vel := Vector3.ZERO
+		var size := 0.0
+		for e in recent:
+			lo = lo.min(e[1])
+			hi = hi.max(e[1])
+			vel += e[2]
+			size += float(e[3])
+		vel /= recent.size()
+		size /= recent.size()
+		var tex := "snowflake_single.png" if kind == "snow" else "raindrop_single.png"
+		var ev := {"id": id, "amount": float(recent.size()) / SINGLE_WINDOW, "time": 0.0,
+			"pos_min": lo, "pos_max": hi, "vel_min": vel, "vel_max": vel,
+			"size_min": size, "size_max": size, "texture": tex}
+		weather.add_spawner(id, ev, tex)
+		_weather[id] = true
+		_weather_ev[id] = ev
+
+
+# A spawner box round the player, from above: centred within 20 nodes of
 # the feet horizontally, at least 6 nodes across, and its middle above the
 # head. A burst of weather, not an effect at the player's hand or a
 # fountain beside them.
@@ -203,7 +268,7 @@ static func _centred_on_player(ev: Dictionary, feet: Vector3) -> bool:
 	var pmax: Vector3 = ev.get("pos_max", Vector3.ZERO)
 	var c := (pmin + pmax) * 0.5
 	var span := Vector2(absf(pmax.x - pmin.x), absf(pmax.z - pmin.z))
-	return Vector2(c.x - feet.x, c.z - feet.z).length() <= 12.0 \
+	return Vector2(c.x - feet.x, c.z - feet.z).length() <= 20.0 \
 			and minf(span.x, span.y) >= 6.0 and c.y >= feet.y + 2.0
 
 
