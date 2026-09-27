@@ -28,7 +28,11 @@
 // not solid, for the face mask and for the backing faces alike, on the solid
 // path (nodeboxes do not reveal a neighbour's own face through a hole; see
 // drawNodeboxNode's own comment), because solidness is a property of the node
-// DEFINITION and a damaged neighbour has holes of its own. The cut faces
+// DEFINITION and a damaged neighbour has holes of its own. A carved node
+// beside a carved neighbour (the live dig or a stored carve, same content or
+// not) closes the boundary between them cell by cell against the
+// neighbour's own grid (formSurfaces' FormNeighbour) instead of by the face
+// mask, which skips a same content face outright. The cut faces
 // clear MATERIAL_FLAG_CRACK so they keep the tile's own material instead of a
 // composited crack tile; markCrackStage instead SETS it, with
 // GOANNA_PERSISTENT_CRACK, on a stored (not currently being dug) carve's own
@@ -884,6 +888,8 @@ void MapblockMeshGenerator::drawSolidNode()
 		TileSpec backing_tiles[6];
 		u16 backing_lights[6] = {};
 		u8 backing = 0;
+		std::vector<bool> neighbour_grids[6];
+		goanna::FormNeighbour neighbours[6];
 		for (int face = 0; face < 6; ++face) {
 			const MapNode nb = data->m_vmanip.getNodeNoEx(
 					blockpos_nodes + saved_p + tile_dirs[face]);
@@ -912,10 +918,24 @@ void MapblockMeshGenerator::drawSolidNode()
 			// full face for it invents material it no longer has. Two carved
 			// blocks side by side each did that for the other, leaving a sheet
 			// standing in the gap between them.
-			if (goanna::g_goanna_carve_block) {
+			// Nor is the face mask right for it: same content skips the face
+			// outright, and then neither carve closed the other's holes. The
+			// boundary is closed cell by cell against its grid instead
+			// (formSurfaces), found the same way this node's own carve is.
+			{
 				const v3s16 np = saved_p + tile_dirs[face];
-				if (goanna::g_goanna_carve_block->find(np.X, np.Y, np.Z))
+				const goanna::FormDamage *nform = nullptr;
+				if (np == data->m_crack_pos_relative && g_goanna_carve_depth > 0)
+					nform = g_goanna_carve;
+				if (!nform && goanna::g_goanna_carve_block)
+					nform = goanna::g_goanna_carve_block->find(np.X, np.Y, np.Z);
+				if (nform) {
+					neighbour_grids[face] = goanna::formGridDamaged(
+							[](float, float, float) { return true; },
+							goanna::formBaselineForCube(), *nform, nform->resolution);
+					neighbours[face] = {&neighbour_grids[face], nform->resolution};
 					continue;
+				}
 			}
 			backing |= 1 << face;
 			cur_node.p = saved_p + tile_dirs[face];
@@ -933,7 +953,7 @@ void MapblockMeshGenerator::drawSolidNode()
 		const auto surface = goanna::formSurfaces(
 				goanna::formGridDamaged([](float, float, float) { return true; },
 						goanna::formBaselineForCube(), *form, n),
-				n, faces, backing);
+				n, faces, backing, neighbours);
 		for (const auto &quad : surface) {
 			const auto &b = quad.box;
 			aabb3f box(b.x1*BS, b.y1*BS, b.z1*BS, b.x2*BS, b.y2*BS, b.z2*BS);

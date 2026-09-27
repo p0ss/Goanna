@@ -446,6 +446,116 @@ void testSurfaceCoverageOnADamagedCube() {
     }
 }
 
+// Two carved cubes side by side along X: A below, B above. Each is meshed
+// the way drawSolidNode meshes it, with the other as its carved neighbour,
+// and the faces both emit on the shared plane are rasterised onto a lattice
+// fine enough for both resolutions. Where one side has material and the other
+// has none there must be a face (the black gap between two half mined blocks
+// was exactly this missing); where both have material there must be none.
+void checkCarvedPair(int na, int nb, const FormDamage &da, const FormDamage &db,
+        const std::string &label) {
+    const auto baseSolid = [](float, float, float) { return true; };
+    const FormBaseline baseline = formBaselineForCube();
+    const std::vector<bool> ga = formGridDamaged(baseSolid, baseline, da, na);
+    const std::vector<bool> gb = formGridDamaged(baseSolid, baseline, db, nb);
+    FormNeighbour for_a[6], for_b[6];
+    for_a[2] = {&gb, nb}; // A's +X boundary faces B
+    for_b[3] = {&ga, na}; // B's -X boundary faces A
+    // No other boundary of either is visible, so only the shared plane emits
+    // boundary faces.
+    const auto qa = formSurfaces(ga, na, 0, 0, for_a);
+    const auto qb = formSurfaces(gb, nb, 0, 0, for_b);
+
+    const int l = na * nb; // a common multiple of both resolutions
+    std::vector<int> from_a(l * l, 0), from_b(l * l, 0);
+    auto raster = [&](const std::vector<FormSurface> &qs, int face, float plane,
+            std::vector<int> &out) {
+        for (const auto &q : qs) {
+            if (q.face != face || q.box.x1 != plane) { continue; }
+            check(q.backing < 0, label + ": a carved neighbour is never backed");
+            for (int z = std::lround((q.box.z1 + 0.5f) * l); z < std::lround((q.box.z2 + 0.5f) * l); ++z) {
+                for (int y = std::lround((q.box.y1 + 0.5f) * l); y < std::lround((q.box.y2 + 0.5f) * l); ++y) {
+                    ++out[z * l + y];
+                }
+            }
+        }
+    };
+    raster(qa, 2, 0.5f, from_a);
+    raster(qb, 3, -0.5f, from_b);
+
+    int only_a = 0, only_b = 0, both = 0;
+    for (int z = 0; z < l; ++z) {
+        for (int y = 0; y < l; ++y) {
+            const int ay = y * na / l, az = z * na / l, by = y * nb / l, bz = z * nb / l;
+            const bool a = ga[az * na * na + ay * na + (na - 1)];
+            const bool b = gb[bz * nb * nb + by * nb + 0];
+            const int fa = from_a[z * l + y], fb = from_b[z * l + y];
+            check(fa <= 1 && fb <= 1, label + ": no face drawn twice");
+            check(fb == 0 || b, label + ": B draws only its own material");
+            check(fa == 0 || a, label + ": A draws only its own material");
+            if (a && !b) { ++only_a; check(fa == 1, label + ": A's material closed against B's hole"); }
+            if (b && !a) { ++only_b; check(fb == 1, label + ": B's material closed against A's hole"); }
+            if (!a && !b) { check(fa + fb == 0, label + ": nothing drawn where both are open"); }
+            if (a && b) {
+                ++both;
+                // Exact at a shared resolution. At mixed resolution the
+                // coarse side draws its whole cell when any finer cell it
+                // meets is open, which puts a face against material the
+                // other side still has, but never a gap.
+                if (na == nb) { check(fa + fb == 0, label + ": no internal face where both are solid"); }
+            }
+        }
+    }
+    check(only_a > 0 && only_b > 0 && both > 0,
+            label + ": the pair exercises every kind of boundary cell");
+}
+
+void testCarvedNeighbourBoundary() {
+    const FormBaseline baseline = formBaselineForCube();
+    auto struck = [&](int n, float y, float z, float depth, float nx) {
+        FormDamage d;
+        d.resolution = n;
+        d.metric = FormMetric::Sphere;
+        // Struck on the shared face, off centre, so each carve opens part of
+        // the boundary and leaves the rest standing.
+        return formStrike(baseline, d, nx * 0.5f, y, z, depth, nx, 0.0f, 0.0f);
+    };
+    // A is struck on its +X face low, B on its -X face high: their holes
+    // overlap on the shared plane only partly.
+    checkCarvedPair(8, 8, struck(8, -0.3f, 0.2f, 0.45f, 1.0f),
+            struck(8, 0.3f, -0.2f, 0.45f, -1.0f), "8 beside 8");
+    checkCarvedPair(16, 16, struck(16, -0.3f, 0.2f, 0.45f, 1.0f),
+            struck(16, 0.3f, -0.2f, 0.45f, -1.0f), "16 beside 16");
+    checkCarvedPair(8, 16, struck(8, -0.3f, 0.2f, 0.45f, 1.0f),
+            struck(16, 0.3f, -0.2f, 0.45f, -1.0f), "8 beside 16");
+
+    // A carve beside an uncarved solid neighbour still hides the shared face
+    // where it is solid: the mask path, with the face bit clear, and a
+    // pristine neighbour grid both leave nothing on that plane.
+    const int n = 8;
+    const std::vector<bool> ga = formGridDamaged([](float, float, float) { return true; },
+            baseline, struck(n, -0.2f, 0.1f, 0.4f, 1.0f), n);
+    const std::vector<bool> whole(n * n * n, true);
+    FormNeighbour pristine[6];
+    pristine[2] = {&whole, n};
+    for (const auto &q : formSurfaces(ga, n, static_cast<uint8_t>(63 ^ (1 << 2)), 0)) {
+        check(!(q.face == 2 && q.box.x1 == 0.5f), "uncarved neighbour (mask): shared face hidden");
+    }
+    for (const auto &q : formSurfaces(ga, n, 63, 0, pristine)) {
+        check(!(q.face == 2 && q.box.x1 == 0.5f), "pristine neighbour grid: shared face hidden");
+    }
+
+    // formBoundaryOpen across resolutions: one empty fine cell opens the
+    // coarse cell over it and no other.
+    std::vector<bool> fine(16 * 16 * 16, true);
+    fine[5 * 16 * 16 + 3 * 16 + 0] = false; // x 0, y 3, z 5: on a -X face's far side
+    // For face 2 (+X) u is Y and v is Z; at resolution 8, (y 3, z 5) of 16
+    // lies in cell (1, 2).
+    check(formBoundaryOpen(fine, 16, 2, 8, 1, 2), "coarse cell over an open fine cell is open");
+    check(!formBoundaryOpen(fine, 16, 2, 8, 2, 2), "coarse cell over solid fine cells is closed");
+    check(!formBoundaryOpen(fine, 16, 3, 8, 1, 2), "the far layer is the one that faces back");
+}
+
 } // namespace
 
 int main(int argc, char **argv) {
@@ -455,6 +565,7 @@ int main(int argc, char **argv) {
     testCubeBaselineMatchesBoxesBaseline();
     testCodecPristineAndRoundTrip();
     testSurfaceCoverageOnADamagedCube();
+    testCarvedNeighbourBoundary();
 
     std::printf("%d checks, %d failure(s)\n", g_checks, g_failures);
     if (g_failures != 0) { return 1; }

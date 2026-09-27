@@ -825,8 +825,28 @@ bool FormDig::advance(float progress, float px, float py, float pz,
     return true;
 }
 
+bool formBoundaryOpen(const std::vector<bool> &neighbour, int nn, int face,
+        int n, int i, int j) {
+    if (nn <= 0 || n <= 0 || neighbour.size() != static_cast<size_t>(nn) * nn * nn) { return true; }
+    const int axes[6] = {1, 1, 0, 0, 2, 2};
+    const int axis = axes[face], u = (axis + 1) % 3, v = (axis + 2) % 3;
+    // The neighbour's layer that touches this boundary: its low layer for a
+    // positive face, its high one for a negative face.
+    const int layer = (face & 1) ? nn - 1 : 0;
+    const int u_lo = i * nn / n, u_hi = ((i + 1) * nn + n - 1) / n;
+    const int v_lo = j * nn / n, v_hi = ((j + 1) * nn + n - 1) / n;
+    for (int b = v_lo; b < v_hi; ++b) {
+        for (int a = u_lo; a < u_hi; ++a) {
+            int p[3]; p[axis] = layer; p[u] = a; p[v] = b;
+            if (!neighbour[p[2] * nn * nn + p[1] * nn + p[0]]) { return true; }
+        }
+    }
+    return false;
+}
+
 std::vector<FormSurface> formSurfaces(const std::vector<bool> &grid, int n,
-        uint8_t visible_boundary, uint8_t backing_boundary) {
+        uint8_t visible_boundary, uint8_t backing_boundary,
+        const FormNeighbour *neighbours) {
     std::vector<FormSurface> out;
     if (n <= 0 || grid.size() != static_cast<size_t>(n) * n * n) { return out; }
     auto solid = [&](const int p[3]) {
@@ -843,7 +863,10 @@ std::vector<FormSurface> formSurfaces(const std::vector<bool> &grid, int n,
                 for (int i = 0; i < n; ++i) {
                     int p[3]; p[axis] = layer; p[u] = i; p[v] = j;
                     const bool here = solid(p);
-                    if (boundary) {
+                    if (boundary && neighbours && neighbours[face].grid) {
+                        if (here && formBoundaryOpen(*neighbours[face].grid,
+                                neighbours[face].n, face, n, i, j)) { mask[j * n + i] = 1; }
+                    } else if (boundary) {
                         if (here && (visible_boundary & (1 << face))) { mask[j * n + i] = 1; }
                         if (!here && (backing_boundary & (1 << face))) { mask[j * n + i] = 2; }
                     } else if (here) {
