@@ -46,6 +46,49 @@ path, including a spawner with a rain texture fixed somewhere in the world,
 since the shader only draws round the camera. `precipitation()` reports the
 same either way, so wetness and the sky do not change with the setting.
 
+### Other games
+
+Games do weather their own ways, so the recognition is written to the
+shapes seen in the games installed here, 2026-09-27:
+
+| Game | Its weather | Recognised by |
+| --- | --- | --- |
+| Mineclonia, VoxelLibre (`mcl_weather`) | one attached spawner, `weather_pack_rain_raindrop_*`, `weather_pack_snow_snowflake*` | name, attached |
+| pmb_core (`aom_weather`), backroomtest (`br_weather`) | attached spawners, `aom_weather_rain*.png`, `aom_weather_snow_*.png`; heavy rain adds sheets 260 across on the horizon | name, attached |
+| Kythen | a 0.55 second burst every half second while outdoors, at world coordinates round the player, textured `kythen_water.png` | falls like rain, round the player |
+| Minetest Game, Asuna | no weather | nothing to draw |
+
+Three rules make that general:
+
+- **Weather by name.** A spawner is weather if its texture names `rain`,
+  `snow` or `flake`.
+- **Weather by fall.** A spawner is rain whatever it is called if it is
+  short lived (`time` up to 3 seconds), `vertical`, removed on collision,
+  and falls at least 6 nodes a second, more than three times faster than
+  it drifts (`particles.gd`, `rain_burst`). Snow is too like falling leaves
+  or ash to be told by its fall, so snow needs its name.
+- **Following the player.** Either rule counts only for a spawner that is
+  attached to the player, given in coordinates relative to them, or whose
+  box is centred within 12 nodes of them, at least 6 nodes across, with
+  its middle above their head (`_centred_on_player`). A game's bursts
+  overlap into steady weather because each is held for its time plus its
+  drops' life.
+
+Intensity is drops a second over each square node of the spawner's box,
+scaled so Mineclonia's boxes (30 by 30 for rain, 50 by 50 for snow) draw as
+before. Counted by raw rate, pmb_core's heavy rain came out lighter than
+Mineclonia's ordinary rain and barely heavier than its own light rain; by
+density its light rain is 0.50 and its heavy rain 0.67 of Mineclonia's,
+before its third spawner. Sheets 40 across or more are a curtain on the
+horizon, not drops, and are left out.
+
+**For a game author** who wants Goanna to draw their weather: attach the
+spawner to the player (`attached = player`), or keep spawning it round the
+player, and put `rain` or `snow` in the texture's name. Nothing else is
+needed, and nothing changes for any other client. Snowdrift style weather
+made of single `add_particle` calls, one drop at a time, is not recognised
+and keeps drawing as particles.
+
 ## What it draws
 
 **Falling rain and snow** (`project/shaders/precipitation.gdshader`, placed

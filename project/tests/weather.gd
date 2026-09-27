@@ -147,6 +147,43 @@ func _test_cover() -> void:
 	check(not cover.ready and cover.area.w == 0.0, "clear withdraws the map")
 
 
+# Other games' weather, as their mods define it. pmb_core's aom_weather:
+# light rain one spawner of 300 over 30 by 36; heavy rain 200 medium drops
+# over 30 by 18 beside 50 sheets 260 across on the horizon. Kythen: a 0.55
+# second burst of 60 at world coordinates round the player, called water.
+func _test_other_games() -> void:
+	var W = load("res://ui/weather.gd")
+	var light: Dictionary = W.describe({"amount": 300, "time": 0.0,
+		"pos_min": Vector3(-15, 30, -15), "pos_max": Vector3(15, 30, 21),
+		"vel_min": Vector3(-1, -30, -1), "vel_max": Vector3(1, -20, 1), "size_min": 10.0},
+		"aom_weather_rain.png")
+	var medium: Dictionary = W.describe({"amount": 200, "time": 0.0,
+		"pos_min": Vector3(-15, 30, -3), "pos_max": Vector3(15, 30, 15),
+		"vel_min": Vector3(-1, -30, -1), "vel_max": Vector3(1, -20, 1), "size_min": 10.0},
+		"aom_weather_rain_medium.png")
+	var curtain: Dictionary = W.describe({"amount": 50, "time": 0.0,
+		"pos_min": Vector3(-81, 60, 24), "pos_max": Vector3(81, 60, 51),
+		"vel_min": Vector3(-1, -60, -1), "vel_max": Vector3(1, -60, 1), "size_min": 260.0},
+		"aom_weather_rain_heavy.png")
+	check(float(medium["rate"]) + float(curtain["rate"]) > float(light["rate"]) * 1.3,
+			"pmb_core's heavy rain draws heavier than its light rain")
+	check(float(curtain["rate"]) == 0.0, "a rain curtain sprite is not counted as drops")
+	var kythen := {"amount": 60, "time": 0.55, "vertical": true, "collision_removal": true,
+		"pos_min": Vector3(92, 17, -208), "pos_max": Vector3(108, 20, -192),
+		"vel_min": Vector3(0, -14, 0), "vel_max": Vector3(0.3, -11, 0.3)}
+	var P = load("res://ui/particles.gd")
+	check(P.rain_burst(kythen), "Kythen's burst falls like rain")
+	check(P._centred_on_player(kythen, Vector3(100, 10, -200)), "Kythen's burst is round the player")
+	check(not P._centred_on_player(kythen, Vector3(140, 10, -200)), "a burst 40 nodes off is not")
+	var spark := kythen.duplicate()
+	spark["vel_min"] = Vector3(-3, 2, -3)
+	spark["vel_max"] = Vector3(3, 5, 3)
+	check(not P.rain_burst(spark), "sparks thrown upward are not rain")
+	print("weather: aom light rain %.2f, heavy %.2f; Kythen burst %.2f"
+			% [float(light["rate"]) / 500.0, (float(medium["rate"]) + float(curtain["rate"])) / 500.0,
+			float(W.describe(kythen, "kythen_water.png")["rate"]) / 500.0])
+
+
 func _spawner(id: int, tex: String, amount: int, attached := 1) -> Dictionary:
 	return {"id": id, "amount": amount, "time": 0.0,
 		"pos_min": Vector3(-15, 20, -15), "pos_max": Vector3(15, 25, 15),
@@ -210,6 +247,9 @@ func _test_routing() -> void:
 	var snow := _spawner(5, "weather_pack_snow_snowflake1.png", 100)
 	snow["vel_min"] = Vector3(-0.2, -1, -0.2)
 	snow["vel_max"] = Vector3(0.2, -4, 0.2)
+	# Mineclonia's own snow box, snow.lua: 50 by 50, twice the rain's.
+	snow["pos_min"] = Vector3(-25, 20, -25)
+	snow["pos_max"] = Vector3(25, 25, 25)
 	p._add_spawner(snow)
 	var st: Dictionary = p.weather.targets()
 	check(is_equal_approx(st["snow"], 1.0) and st["rain"] == 0.0, "Mineclonia's snow is intensity 1")
@@ -302,6 +342,7 @@ func _initialize() -> void:
 	_test_client_binding()
 	_test_open_beach()
 	await _test_routing()
+	_test_other_games()
 	_test_drop_source()
 	_test_box_wrap()
 	_test_rays()

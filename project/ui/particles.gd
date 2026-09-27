@@ -194,6 +194,35 @@ func _resume(id: int, node: GPUParticles3D) -> void:
 	if _paused.erase(id):
 		node.emitting = true
 
+# A spawner box round the player, from above: centred within 12 nodes of
+# the feet horizontally, at least 6 nodes across, and its middle above the
+# head. A burst of weather, not an effect at the player's hand or a
+# fountain beside them.
+static func _centred_on_player(ev: Dictionary, feet: Vector3) -> bool:
+	var pmin: Vector3 = ev.get("pos_min", Vector3.ZERO)
+	var pmax: Vector3 = ev.get("pos_max", Vector3.ZERO)
+	var c := (pmin + pmax) * 0.5
+	var span := Vector2(absf(pmax.x - pmin.x), absf(pmax.z - pmin.z))
+	return Vector2(c.x - feet.x, c.z - feet.z).length() <= 12.0 \
+			and minf(span.x, span.y) >= 6.0 and c.y >= feet.y + 2.0
+
+
+# Falls like rain, whatever its texture is called: short lived, facing the
+# viewer on a vertical axis, removed where it lands, and falling at least
+# 6 nodes a second, far more steeply than it drifts. A game's own name for
+# its drops (kythen_water.png) says nothing a rule can read.
+static func rain_burst(ev: Dictionary) -> bool:
+	if not bool(ev.get("vertical", false)) or not bool(ev.get("collision_removal", false)):
+		return false
+	var time := float(ev.get("time", 0.0))
+	if time <= 0.0 or time > 3.0:
+		return false
+	var vmin: Vector3 = ev.get("vel_min", Vector3.ZERO)
+	var vmax: Vector3 = ev.get("vel_max", Vector3.ZERO)
+	var v := (vmin + vmax) * 0.5
+	return -v.y >= 6.0 and Vector2(v.x, v.z).length() <= -v.y * 0.3
+
+
 # Spawners sent relative to the player are relative to the player, whose
 # origin is at the feet; the camera sits at eye height, so anchoring to it
 # put ground effects (snow and dust steps) around the head.
@@ -240,7 +269,8 @@ func _add_spawner(ev: Dictionary) -> void:
 	if is_bolt and shader_weather and lightning != null:
 		lightning.strike(ev, _texture_for(tex_path))
 		return
-	var is_weather := not is_bolt and (tex_name.contains("rain") or tex_name.contains("snow"))
+	var is_weather := not is_bolt and (tex_name.contains("rain") or tex_name.contains("snow")
+			or tex_name.contains("flake"))
 	# A bolt is fixed in the world, never the player's own effect, even one
 	# struck near the world's origin.
 	# Attached only when the server says so, as in the vanilla client. This
@@ -250,6 +280,18 @@ func _add_spawner(ev: Dictionary) -> void:
 	# Removing that setting on 2026-10-01 put such spawners on every player
 	# near spawn, so the guess went too.
 	var is_attached := not is_bolt and int(ev.get("attached_id", 0)) != 0
+	# Weather a game spawns in short bursts round the player rather than on
+	# one attached spawner (Kythen: a 0.55 s burst every half second while
+	# the player is outdoors, at world coordinates, textured as water). It
+	# follows the player as surely as an attached spawner does, so it is
+	# weather if its name says so, or if it falls like rain whatever it is
+	# called (rain_burst).
+	if not is_bolt and not is_attached:
+		var m_here := PlayerContext.find(self, "goanna_main")
+		if m_here != null and _centred_on_player(ev, _player_feet(m_here)):
+			if is_weather or rain_burst(ev):
+				is_attached = true
+				is_weather = true
 	if is_weather and is_attached:
 		_weather_ev[id] = ev
 		# Only weather that follows the player: the shader draws round the
@@ -260,6 +302,9 @@ func _add_spawner(ev: Dictionary) -> void:
 			_weather[id] = true
 			var timed := float(ev.get("time", 0.0))
 			if timed > 0.0:
+				# Past its time by the drops' own life, so a game's bursts
+				# overlap into steady weather rather than flickering.
+				timed += float(ev.get("exp_max", 0.5))
 				get_tree().create_timer(timed).timeout.connect(func() -> void:
 					if weather.has_spawner(id): _remove_spawner(id))
 			return

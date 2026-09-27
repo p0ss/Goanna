@@ -29,6 +29,19 @@ const SHADER := preload("res://shaders/precipitation.gdshader")
 # within the clamp.
 const RAIN_REFERENCE := 500.0
 const SNOW_REFERENCE := 100.0
+# Intensity is measured as drops a second over each square node of the
+# spawner's box, not as its raw rate, because games choose very different
+# boxes: Mineclonia spreads its 500 over 30 by 30 nodes, aom_weather its
+# light rain's 300 over 30 by 36 and its heavy rain's medium drops over 30
+# by 18. Counted by rate, pmb_core's heavy rain came out lighter than
+# Mineclonia's ordinary rain and barely heavier than its own light rain.
+# Mineclonia's boxes are the unit, so its weather draws exactly as before.
+const RAIN_REFERENCE_AREA := 900.0     # 30 x 30, rain.lua
+const SNOW_REFERENCE_AREA := 2500.0    # 50 x 50, snow.lua
+# A particle this large is not a drop: aom_weather's heavy rain adds sheets
+# 260 across, far off, as a curtain of rain on the horizon. It is left out
+# of the density, which is about drops round the viewer.
+const CURTAIN_SIZE := 40.0
 const MAX_INTENSITY := 2.0
 # The falling drops: a box of them round the eye, and a smaller, denser box
 # inside it (precipitation.gdshader has the design). Sizes in nodes, and how
@@ -548,8 +561,17 @@ static func describe(ev: Dictionary, tex_name: String) -> Dictionary:
 	var vmin: Vector3 = ev.get("vel_min", Vector3.ZERO)
 	var vmax: Vector3 = ev.get("vel_max", Vector3.ZERO)
 	var fall := absf((vmin.y + vmax.y) * 0.5)
-	var snow := tex_name.contains("snow")
-	return {"kind": "snow" if snow else "rain", "rate": rate,
+	var snow := tex_name.contains("snow") or tex_name.contains("flake")
+	var pmin: Vector3 = ev.get("pos_min", Vector3.ZERO)
+	var pmax: Vector3 = ev.get("pos_max", Vector3.ZERO)
+	var area := absf(pmax.x - pmin.x) * absf(pmax.z - pmin.z)
+	var ref_area := SNOW_REFERENCE_AREA if snow else RAIN_REFERENCE_AREA
+	if area < 1.0:
+		area = ref_area   # a point spawner: take the reference box
+	var density := rate / area * ref_area
+	if float(ev.get("size_min", 1.0)) >= CURTAIN_SIZE:
+		density = 0.0
+	return {"kind": "snow" if snow else "rain", "rate": density,
 		"speed": clampf(fall, 0.8, 5.0) if snow else clampf(fall, 6.0, 30.0)}
 
 
@@ -565,7 +587,9 @@ func targets() -> Dictionary:
 		var ref := RAIN_REFERENCE if kind == "rain" else SNOW_REFERENCE
 		var r: float = rate[kind]
 		# A spawner that is running at all is weather worth seeing, however
-		# small its amount, so the floor is well above zero.
+		# small its amount, so the floor is well above zero. "rate" is the
+		# density scaled to the reference box (describe), so the reference
+		# rates still divide it.
 		out[kind] = clampf(r / ref, 0.3, MAX_INTENSITY) if r > 0.0 else 0.0
 		out[kind + "_speed"] = float(speed[kind]) / r if r > 0.0 else 0.0
 	return out
