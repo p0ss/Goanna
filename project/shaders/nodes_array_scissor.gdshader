@@ -13,6 +13,12 @@ render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 
 #include "res://shaders/nodes_array_common.gdshaderinc"
 #include "res://shaders/direct_light.gdshaderinc"
+// goanna_rain and the rain cover map, for splashes and puddles. Despite the
+// name, this is not only cut-outs: an array goes here if any of its layers
+// has alpha, and upstream bunches tiles by size alone, so in Mineclonia this
+// shader draws nearly all the ground (docs/weather.md, "Splashes and
+// puddles in play").
+#include "res://shaders/weather_common.gdshaderinc"
 
 void vertex() {
 	// CUSTOM0 arrives as four bytes scaled to 0 to 1: block light, sky light,
@@ -156,6 +162,46 @@ void fragment() {
 		ALBEDO *= 1.0 - wet * (0.10 + 0.18 * porosity);
 		ROUGHNESS = mix(ROUGHNESS, 0.13, wet * (0.85 - 0.45 * porosity));
 		SPECULAR = mix(SPECULAR, 0.5, wet * 0.6);
+	}
+
+	// Splashes and puddles, only where rain lands: open, up facing ground
+	// (goanna_ground_rain in weather_common.gdshaderinc has the gating).
+	// A puddle is darker, near mirror smooth, the texture's relief drowned.
+	// A splash is a bright fleck for a moment where each drop lands, and
+	// where the ground is wet it throws a ring, carried in the normal so it
+	// shows in the sheen, as a real one does; in a puddle the ring is at
+	// full strength. The fleck carries a share of the sky fill as its own
+	// light, as the falling drops do, so it can be seen at night. The same
+	// block is in nodes_array.gdshader: change one, change the other.
+	vec2 ground_rain = goanna_ground_rain(v_world, v_wnormal, v_nodelight.g, flatten,
+			goanna_wetness, length(v_world - CAMERA_POSITION_WORLD));
+	float puddle = ground_rain.x;
+	float splash = ground_rain.y;
+	vec3 rings = vec3(0.0);
+	if (puddle > 0.001) {
+		ALBEDO *= 1.0 - 0.5 * puddle;
+		ROUGHNESS = mix(ROUGHNESS, 0.03, puddle);
+		SPECULAR = mix(SPECULAR, 0.5, puddle);
+		METALLIC = mix(METALLIC, 0.0, puddle);
+	}
+	if (splash > 0.001) {
+		rings = goanna_rain_rings(v_world.xz, TIME, 0.7, 0.5,
+				clamp(0.5 * goanna_rain, 0.0, 0.9));
+		float fleck = rings.z * min(splash, 1.0);
+		ALBEDO = mix(ALBEDO, vec3(0.9), fleck * 0.8);
+		ROUGHNESS = mix(ROUGHNESS, 0.08, fleck);
+		EMISSION += vec3(1.2) * fleck * mix(goanna_ground_fill, goanna_sky_fill, 0.6);
+	}
+	if (puddle > 0.001 || splash > 0.001) {
+		// Standing water drowns the relief; rings ride on what is left.
+		float ring_k = splash * mix(0.3 * goanna_wetness, 0.7, puddle);
+		vec3 slope = -vec3(rings.x, 0.0, rings.y) * ring_k;
+		vec2 xy = relief_normal.xy * (1.0 - 0.9 * puddle)
+				+ vec2(dot(slope, v_wtangent), dot(slope, v_wbinormal));
+		float z = sqrt(clamp(1.0 - dot(xy, xy), 0.0, 1.0));
+		relief_normal = vec3(xy, z);
+		NORMAL_MAP = vec3(xy * 0.5 + 0.5, z * 0.5 + 0.5);
+		NORMAL_MAP_DEPTH = 1.0;
 	}
 
 	// Node light and occlusion. Occlusion multiplies ambient and, by default,

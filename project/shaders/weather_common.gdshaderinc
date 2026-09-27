@@ -19,14 +19,17 @@ global uniform vec4 goanna_rain_cover_area;
 
 // 1 where rain reaches a point, 0 where something above shelters it, and
 // `fallback` off the map. The margin lets a liquid surface, which sits a
-// little below the top of its own node, count as open.
+// little below the top of its own node, count as open. An explicit level of
+// detail, since the falling drops ask it in the vertex stage, where there
+// are no derivatives to pick one; the map has no mipmaps, so it is the same
+// read in the fragment stage.
 float goanna_rain_open(vec3 p, float fallback) {
 	if (goanna_rain_cover_area.w < 0.5)
 		return fallback;
 	vec2 uv = (p.xz - goanna_rain_cover_area.xy) / goanna_rain_cover_area.z;
 	if (uv != clamp(uv, vec2(0.0), vec2(1.0)))
 		return fallback;
-	float cover = texture(goanna_rain_cover, uv).r;
+	float cover = textureLod(goanna_rain_cover, uv, 0.0).r;
 	return step(cover - 0.55, p.y);
 }
 
@@ -61,15 +64,46 @@ float goanna_weather_noise(vec2 p) {
 // together pass a threshold that falls as the ground gets wetter, so they
 // appear in the hollows first and spread as the rain goes on, and shrink
 // again as goanna_wetness dries after it. The caller keeps them to flat,
-// open, up facing ground. At full wetness about a fifth of such ground is
-// under water; below a wetness of about 0.4 none of it is.
+// open, up facing ground. After a minute of rain from dry (wetness 0.86) a
+// fifth of such ground is under water, at full wetness 29 per cent, and
+// below a wetness of about 0.4 none of it.
 const float GOANNA_PUDDLE_DRY = 0.98;
-const float GOANNA_PUDDLE_SOAKED = 0.6;
+const float GOANNA_PUDDLE_SOAKED = 0.55;
 float goanna_puddle(vec2 p, float wet) {
 	float n = 0.7 * goanna_weather_noise(p / 3.1)
 			+ 0.3 * goanna_weather_noise(p / 1.13 + vec2(17.0, 5.0));
 	float t = mix(GOANNA_PUDDLE_DRY, GOANNA_PUDDLE_SOAKED, clamp(wet, 0.0, 1.0));
 	return smoothstep(t, t + 0.08, n);
+}
+
+// Where rain lands on the ground, for the two node array shaders: x how much
+// of a point stands under a puddle, y how strongly it splashes, both 0 to
+// about 1. `n` is the world normal, `sky` the vertex sky light (the roof test
+// off the cover map), `flatten` the far tiers' distance flatten (0 on the
+// near mesh), `wet` goanna_wetness, `eye_d` the distance from the eye.
+//
+// Puddles follow the wetness, how rained on the world is, so they spread
+// through a long shower and linger after it; flat tops only, since water
+// does not stand on a slope. Splashes follow goanna_rain, what is falling
+// this moment, near the eye. Both only where the cover map says the sky
+// reaches.
+//
+// Shared, not written out in each shader, because it was written out in one:
+// the splashes and puddles were in nodes_array.gdshader alone, and in play
+// the ground is drawn by nodes_array_scissor.gdshader (an array holding any
+// alpha layer goes there, and upstream bunches tiles by size alone), so the
+// owner saw the ground go wet and never a splash or a puddle. The writes to
+// ALBEDO and the rest stay in each shader, which Godot requires.
+vec2 goanna_ground_rain(vec3 p, vec3 n, float sky, float flatten, float wet, float eye_d) {
+	vec2 t = vec2(0.0);
+	if ((goanna_rain > 0.001 || wet > 0.35) && n.y > 0.7) {
+		float open_sky = goanna_rain_open(p, smoothstep(0.85, 0.95, sky));
+		if (wet > 0.35 && n.y > 0.95)
+			t.x = goanna_puddle(p.xz, wet) * open_sky * (1.0 - flatten);
+		t.y = min(goanna_rain, 1.5) * (1.0 - smoothstep(10.0, 22.0, eye_d))
+				* (1.0 - flatten) * open_sky;
+	}
+	return t;
 }
 
 // Rain rings on a flat surface: the slope of the ripple height field at p
