@@ -60,7 +60,7 @@ public:
     // ArrayMesh; null if the item has no mesh. out_scale receives the wield
     // scale in Godot units. Caller holds session.mapLock(); main thread.
     godot::Ref<godot::ArrayMesh> buildItemMesh(GoannaSession &session, const ItemStack &item,
-            bool check_wield_image, v3f *out_scale);
+            bool check_wield_image, v3f *out_scale, bool relit = false);
     // First-person body: render the local player's model (mesh visuals only),
     // pinned to the predicted player with its head shrunk out of the camera.
     // The head stays in the shadow pass through a second, shadow-only copy of

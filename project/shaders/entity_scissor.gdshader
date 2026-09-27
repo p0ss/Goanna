@@ -47,6 +47,10 @@ uniform float sss_strength : hint_range(0.0, 1.0) = 1.0;
 // share of the node light at all, where the nodes around it do.
 global uniform vec3 goanna_sky_fill;
 instance uniform vec2 node_light = vec2(0.0, 1.0);
+// Item meshes (a held tool, a dropped item) carry the item's colour in
+// their vertices, Luanti's wield mesh baking it there: a dyed piece of
+// leather, a tinted grass block. Mob meshes carry none.
+uniform bool vertex_tint = false;
 uniform float block_fill : hint_range(0.0, 2.0) = 0.6;
 uniform float sky_light_strength : hint_range(0.0, 1.0) = 1.0;
 // Goanna: what this surface is made of, from the classifier
@@ -66,6 +70,8 @@ uniform float class_sss : hint_range(0.0, 1.0) = 0.0;
 void fragment() {
 	vec4 tex = texture(albedo, UV);
 	ALBEDO = tex.rgb;
+	if (vertex_tint)
+		ALBEDO *= COLOR.rgb;
 	ALPHA = tex.a;
 	ALPHA_SCISSOR_THRESHOLD = 0.5;
 	ROUGHNESS = 1.0;

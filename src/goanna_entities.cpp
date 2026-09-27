@@ -401,7 +401,7 @@ void EntityRenderer::stepModelPreviews(float dt) {
 // carry the item/tile colour (setColor bakes them), so the material reads
 // albedo from vertex colour.
 Ref<ArrayMesh> EntityRenderer::buildItemMesh(GoannaSession &session, const ItemStack &item,
-        bool check_wield_image, v3f *out_scale) {
+        bool check_wield_image, v3f *out_scale, bool relit) {
     WieldMesh wm;
     wm.setItem(item, session.meshClient(), check_wield_image);
     scene::IMesh *mesh = wm.getMesh();
@@ -457,6 +457,21 @@ Ref<ArrayMesh> EntityRenderer::buildItemMesh(GoannaSession &session, const ItemS
         } else if (gt) {
             tname = session.tsrc()->getTextureName(gt->id());
         }
+        // An item in the world (held in a hand, dropped on the ground) is
+        // lit as a mob is: the entity shader, with the pack's _n and _s and
+        // the node light where it stands. The plain material had neither,
+        // so a held tool or block ignored the pack its placed twin used.
+        // Inventory icons keep the plain one; they are drawn in their own
+        // small scene, not the world's light.
+        if (relit) {
+            Ref<ShaderMaterial> sm = materialForMeshTexture(session, tname, false, false);
+            if (sm.is_valid()) {
+                Ref<ShaderMaterial> s2 = sm->duplicate();
+                s2->set_shader_parameter("vertex_tint", true);
+                am->surface_set_material(am->get_surface_count() - 1, s2);
+                continue;
+            }
+        }
         Ref<StandardMaterial3D> mat = materialForTexture(session, tname, false, true);
         Ref<StandardMaterial3D> m2 = mat->duplicate();
         m2->set_flag(BaseMaterial3D::FLAG_ALBEDO_FROM_VERTEX_COLOR, true);
@@ -478,7 +493,8 @@ bool EntityRenderer::buildItemVisual(GoannaSession &session, GoannaActiveObject 
         item.deSerialize(p.wield_item, idef);
     }
     v3f wield_scale(1, 1, 1);
-    Ref<ArrayMesh> am = buildItemMesh(session, item, p.visual == OBJECTVISUAL_WIELDITEM, &wield_scale);
+    Ref<ArrayMesh> am = buildItemMesh(session, item, p.visual == OBJECTVISUAL_WIELDITEM, &wield_scale,
+            true);
     if (am.is_null())
         return false;
     MeshInstance3D *mi = memnew(MeshInstance3D);
@@ -904,7 +920,9 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
         // The node light where the entity stands, for entity.gdshader's
         // node_light: read once per node the entity is in, at about eye
         // height so a mob standing in a lit doorway takes the doorway's light.
-        if (en.visual && obj.props().visual == OBJECTVISUAL_MESH) {
+        const int vis = obj.props().visual;
+        if (en.visual && (vis == OBJECTVISUAL_MESH || vis == OBJECTVISUAL_ITEM
+                || vis == OBJECTVISUAL_WIELDITEM)) {
             const v3s16 np((s16)std::floor(pos.X / BS + 0.5f), (s16)std::floor(pos.Y / BS + 1.0f),
                     (s16)std::floor(pos.Z / BS + 0.5f));
             if (np != en.light_pos || !en.light_known) {
@@ -920,7 +938,11 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
                         en.light_known = true;
                     }
                 }
-                if (MeshInstance3D *lmi = Object::cast_to<MeshInstance3D>(en.visual))
+                // An item's mesh sits under a holder that carries its scale.
+                MeshInstance3D *lmi = Object::cast_to<MeshInstance3D>(en.visual);
+                if (!lmi && en.visual->get_child_count() > 0)
+                    lmi = Object::cast_to<MeshInstance3D>(en.visual->get_child(0));
+                if (lmi)
                     lmi->set_instance_shader_parameter("node_light", Vector2(en.light_block, en.light_sky));
             }
         }
