@@ -259,6 +259,10 @@ func _dispatch(cmd: String, a: Dictionary) -> Variant:
 			var pw := _particles()
 			if pw != null and pw.get("weather") != null and pw.weather.has_method("debug_state"):
 				st["weather"] = pw.weather.debug_state()
+			# The wake rings on water: bodies followed, how many touch the
+			# water, and the points live (docs/weather.md, "Wakes").
+			if pw != null and pw.get("wake") != null and pw.wake.has_method("debug_state"):
+				st["wake"] = pw.wake.debug_state()
 			return st
 		"inspect":
 			return _inspect(a)
