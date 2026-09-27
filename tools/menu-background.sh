@@ -15,35 +15,40 @@
 # places it, and its "close" scene is this camera), because that is the one
 # scene in the repository whose look is checked regularly.
 #
-# Needs a display, project/bin built, and the world named below present in the
-# detected Luanti install. GODOT_BIN overrides the Godot binary.
+# The client runs in headless gamescope through tools/goanna-headless, never as
+# a window on the desktop, at 2560x1440 on the Ultra profile, dressed in the
+# pack named by GOANNA_BACKGROUND_PACK: by default the 512 px authored
+# Mineclonia pack (tools/pbr_author/README.md, "The 512 px pack"), which is
+# the one worth a still this close. The GPU must be free first
+# (tools/goanna-headless gpu-free); this refuses otherwise.
+#
+# Needs project/bin built and the world named below present in the detected
+# Luanti install.
 set -euo pipefail
 
 repo_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
-godot_bin=${GODOT_BIN:-godot}
 data_dir=${GOANNA_DATA_DIR:-$HOME/.var/app/org.luanti.luanti/.minetest}
 world=${GOANNA_BACKGROUND_WORLD:-test_world}
 port=${GOANNA_BACKGROUND_PORT:-30530}
-control=${GOANNA_BACKGROUND_CONTROL:-30801}
+pack=${GOANNA_BACKGROUND_PACK:-$repo_dir/baked/authored-mineclonia-512/textures}
+profile=${GOANNA_BACKGROUND_PROFILE:-ultra}
+size=${GOANNA_BACKGROUND_SIZE:-2560x1440}
 out="$repo_dir/project/menu_background.png"
+headless="$repo_dir/tools/goanna-headless"
 
-# The bench plan's "close" scene, converted to main.gd's yaw convention
-# (main.gd, yaw = atan2(-d.x, -d.z) in degrees).
-#
-# 0.245 is the minute the sun comes up behind this view, and it is a narrow
-# window worth naming: swept in steps of 0.005, the sky's mean red minus blue
-# over the top third jumps from -62 at 0.240 to -31 at 0.245, so a coarser
-# sweep steps straight over the warm phase and concludes there is not one.
-# Sampled either side it is blue before and washed out after. Here the horizon
-# glow, the stars, the purple in the clouds and the lit lanterns and bell are
-# all in frame at once, which no other time of day manages.
-#
-# The sun sets behind the camera, so the sunset side has no warm phase in this
-# composition at all; do not go looking for one there.
 pos_x=-100; pos_y=31; pos_z=340; yaw=-116.6; pitch=-8; tod=0.245
 
 if [ ! -d "$data_dir/worlds/$world" ]; then
 	printf 'menu-background: no world %s under %s\n' "$world" "$data_dir/worlds" >&2
+	exit 1
+fi
+
+if [ ! -d "$pack" ]; then
+	printf 'menu-background: no pack at %s (GOANNA_BACKGROUND_PACK)\n' "$pack" >&2
+	exit 1
+fi
+if ! "$headless" gpu-free | grep -q '"free": true'; then
+	printf 'menu-background: the GPU is in use; see %s gpu-free\n' "$headless" >&2
 	exit 1
 fi
 
@@ -68,31 +73,21 @@ if ! grep -q 'listening on' "$log" 2>/dev/null; then
 	exit 1
 fi
 
-client_log=$(mktemp)
-# x11 (through XWayland) and fullscreen, because the project's viewport is
-# 1600x900 and Wayland does not let a client size its own window: under Wayland
-# the still came out at 1600x900 however it was asked for, and this is what
-# gets it to the display's own resolution.
-GOANNA_HOST=127.0.0.1 GOANNA_PORT="$port" GOANNA_NAME=menubg \
-	GOANNA_CONTROL="$control" \
-	"$godot_bin" --path "$repo_dir/project" --display-driver x11 --fullscreen \
-	>"$client_log" 2>&1 &
-client_pid=$!
+started=$("$headless" start --server "127.0.0.1:$port" --name menubg --size "$size" \
+	--label "menu background" --env "GOANNA_PACK=$pack" --env GOANNA_PACK_SET=1)
+client_id=$(printf '%s' "$started" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')
+control=$(printf '%s' "$started" | python3 -c 'import json,sys; print(json.load(sys.stdin)["control_port"])')
 cleanup() {
-	kill "$client_pid" 2>/dev/null || true
+	"$headless" stop "$client_id" >/dev/null 2>&1 || true
 	kill "$server_pid" 2>/dev/null || true
 }
-for _ in $(seq 1 120); do
-	grep -q 'TOSERVER_CLIENT_READY sent' "$client_log" 2>/dev/null && break
-	sleep 1
-done
 
 # settle true is the whole point: it waits for the near mesh rather than
 # capturing the far tier the menu used to show.
-python3 - "$control" "$out" "$pos_x" "$pos_y" "$pos_z" "$pitch" "$yaw" "$tod" <<'PY'
+python3 - "$control" "$out" "$profile" "$pos_x" "$pos_y" "$pos_z" "$pitch" "$yaw" "$tod" <<'PY'
 import json, socket, sys, time
-control, out = int(sys.argv[1]), sys.argv[2]
-x, y, z, pitch, yaw, tod = (float(v) for v in sys.argv[3:9])
+control, out, profile = int(sys.argv[1]), sys.argv[2], sys.argv[3]
+x, y, z, pitch, yaw, tod = (float(v) for v in sys.argv[4:10])
 s = socket.create_connection(("127.0.0.1", control), timeout=300)
 f = s.makefile("rwb")
 
@@ -103,7 +98,14 @@ def cmd(name, **args):
     return json.loads(f.readline().decode().strip())
 
 
-cmd("run", src="DisplayServer.window_set_size(Vector2i(2560, 1440))\nreturn true")
+# Every setting the profile names, as the settings panel's picker applies it.
+values = cmd("eval", expr='GraphicsProfiles.PROFILES["%s"]' % profile).get("result")
+if not isinstance(values, dict) or not values:
+    sys.exit("menu-background: no profile %s: %s" % (profile, values))
+for key, value in values.items():
+    reply = cmd("set", key=key, value=value)
+    if not reply.get("ok"):
+        sys.exit("menu-background: could not set %s: %s" % (key, reply))
 cmd("wait", frames=20)
 cmd("weather", kind="clear")
 cmd("time", tod=tod, server=True)
@@ -116,7 +118,6 @@ result = reply.get("result", {})
 print("menu-background: %s %s, %s blocks meshed"
       % ("captured" if reply.get("ok") else "FAILED",
          result.get("size"), result.get("blocks_meshed")))
-cmd("quit")
 sys.exit(0 if reply.get("ok") else 1)
 PY
 
