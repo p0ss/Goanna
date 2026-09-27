@@ -1,0 +1,10 @@
+{
+ "class": "wood",
+ "materials": {
+  "wood": {
+   "mode": "shade",
+   "base": 0.5,
+   "span": 0.4
+  }
+ }
+}

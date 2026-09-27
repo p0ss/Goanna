@@ -13,19 +13,19 @@
  },
  "pipeline": {
   "version": "4",
-  "authored": "tools/pbr_author/extrude.py and specs/mineclonia/, 1070 of the 1071 stems (stems/mineclonia.txt); the dragon head strip stays baked",
+  "authored": "tools/pbr_author/extrude.py and specs/mineclonia/, 1096 of the 1097 stems (stems/mineclonia.txt), including the hand tools; the dragon head strip stays baked",
   "classification_review": "pbr_packs/classification_reviews/mineclonia-v1.json",
   "manifest": "pbr_packs/manifests/mineclonia-terrain-v1.json",
   "quality_gate": "tools/check-pbr-quality.py",
-  "note": "Texel extrusion rule reviewed by the owner on the close-up ramp, 2026-09-25 and 26, micro surface reviewed 2026-09-27. Built from pbr_packs/mineclonia/textures at ac701acc."
+  "note": "Texel extrusion rule reviewed by the owner on the close-up ramp, 2026-09-25 and 26, micro surface reviewed 2026-09-27; the hand tools added 2026-09-27 from palette generated specs, not yet reviewed. Built from pbr_packs/mineclonia/textures."
  },
  "release": {
-  "texture_pairs": 1071,
+  "texture_pairs": 1097,
   "rejected": [],
   "known_failures": [],
-  "known_failures_note": "None: the release gate, run with the manifest classes, the classification review and the source art, passes all 1071 pairs.",
+  "known_failures_note": "None: the release gate, run with the manifest classes, the classification review and the source art, passes all 1097 pairs.",
   "archive": "org.goanna.mineclonia.pack-1.2.0.zip",
-  "bytes": 59189715,
-  "sha256": "6b993953a134be5515c218b49452bc4318b6eec3ac8ff45397ec472af8e6abfd"
+  "bytes": 59733466,
+  "sha256": "36d38097d04ad1afd0ef9cc5917d16e32b4f0ae8e8ff5abfba411539b174165b"
  }
 }

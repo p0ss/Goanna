@@ -1,0 +1,24 @@
+{
+ "class": "metal",
+ "materials": {
+  "metal": {
+   "mode": "shade",
+   "base": 0.6,
+   "span": 0.35,
+   "metal": true,
+   "smooth": 0.78
+  },
+  "handle": {
+   "mode": "shade",
+   "base": 0.5,
+   "span": 0.35
+  }
+ },
+ "palette": {
+  "#41352b": "handle",
+  "#514035": "handle",
+  "#5d493c": "handle",
+  "#675244": "handle",
+  "#715a47": "handle"
+ }
+}
