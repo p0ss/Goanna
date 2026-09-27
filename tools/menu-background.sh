@@ -73,7 +73,7 @@ if ! grep -q 'listening on' "$log" 2>/dev/null; then
 	exit 1
 fi
 
-started=$("$headless" start --server "127.0.0.1:$port" --name menubg --size "$size" \
+started=$("$headless" start --cpu-compositor --server "127.0.0.1:$port" --name menubg --size "$size" \
 	--label "menu background" --env "GOANNA_PACK=$pack" --env GOANNA_PACK_SET=1)
 client_id=$(printf '%s' "$started" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')
 control=$(printf '%s' "$started" | python3 -c 'import json,sys; print(json.load(sys.stdin)["control_port"])')
@@ -100,6 +100,8 @@ def cmd(name, **args):
 
 # Every setting the profile names, as the settings panel's picker applies it.
 values = cmd("eval", expr='GraphicsProfiles.PROFILES["%s"]' % profile).get("result")
+if isinstance(values, dict) and "value" in values:
+    values = values["value"]
 if not isinstance(values, dict) or not values:
     sys.exit("menu-background: no profile %s: %s" % (profile, values))
 for key, value in values.items():

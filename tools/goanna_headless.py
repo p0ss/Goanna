@@ -428,7 +428,7 @@ def _base_record(ident, kind, width, height, software):
 
 def start_goanna(project, control_port=None, host="127.0.0.1", port=30000, name="dev",
                  password="", width=1280, height=720, software=False, env=None, label="",
-                 ready_timeout=120.0, meta=None):
+                 ready_timeout=120.0, meta=None, cpu_compositor=False):
     """Start Goanna from project (a checkout, a worktree or its project
     directory) in headless gamescope, with its control channel on
     control_port, and return once that channel answers."""
@@ -444,6 +444,12 @@ def start_goanna(project, control_port=None, host="127.0.0.1", port=30000, name=
         raise LaunchError("control port %d is already in use; pick another, or leave it "
                           "out and one is chosen" % control_port)
     rec = _base_record("goanna-%d" % control_port, "goanna", width, height, software)
+    # gamescope composites on lavapipe while the client still renders on the
+    # GPU. On 2026-09-27, after the driver ran out of memory, a Vulkan app
+    # inside gamescope crashed or failed vkCreateDevice whenever gamescope
+    # held the NVIDIA device too, while the desktop and this arrangement
+    # both worked. The client's frames and shots are its own either way.
+    rec["cpu_compositor"] = bool(cpu_compositor)
     child_env = {
         "GOANNA_CONTROL": str(control_port),
         "GOANNA_NO_POINTER_CAPTURE": "1",
@@ -624,11 +630,11 @@ def supervise(ident):
         stale.unlink(missing_ok=True)
     w, h = str(rec["width"]), str(rec["height"])
     argv = ["gamescope"]
-    if rec.get("software"):
+    if rec.get("software") or rec.get("cpu_compositor"):
         argv += ["--prefer-vk-device", LAVAPIPE_DEVICE]
     argv += ["--backend", "headless", "-W", w, "-H", h, "-w", w, "-h", h, "--",
              "sh", "-c", WRAPPER, str(envfile), str(pidfile)]
-    if rec.get("software"):
+    if rec.get("software") or rec.get("cpu_compositor"):
         # gamescope sets ENABLE_GAMESCOPE_WSI=1 for its child, and its WSI layer
         # cannot present from lavapipe: the client loops on swapchain errors.
         # env execs the client, so the PID the wrapper wrote stays the client's.
@@ -826,6 +832,7 @@ def describe(rec):
 USAGE = """usage:
   goanna-headless start [--project PATH] [--control-port N] [--server HOST:PORT]
                         [--name NAME] [--password PW] [--size WxH] [--software]
+                        [--cpu-compositor]
                         [--label TEXT] [--env KEY=VALUE ...]
   goanna-headless vanilla [--server HOST:PORT] [--name NAME] [--password PW]
                         [--size WxH] [--software] [--set KEY=VALUE ...]
@@ -841,7 +848,7 @@ def _parse(argv):
     opts, pos, i = {"env": {}, "set": {}}, [], 0
     while i < len(argv):
         arg = argv[i]
-        if arg in ("--software", "--all"):
+        if arg in ("--software", "--all", "--cpu-compositor"):
             opts[arg[2:]] = True
         elif arg in ("--env", "--set"):
             key, _, value = argv[i + 1].partition("=")
@@ -883,7 +890,8 @@ def main(argv):
                                control_port=opts.get("control_port"), host=host, port=port,
                                name=opts.get("name", "dev"), password=opts.get("password", ""),
                                width=w, height=h, software=opts.get("software", False),
-                               env=opts["env"], label=opts.get("label", ""))
+                               env=opts["env"], label=opts.get("label", ""),
+                               cpu_compositor=opts.get("cpu-compositor", False))
             out = describe(rec)
         elif cmd == "vanilla":
             host, port = _server(opts)
