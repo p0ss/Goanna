@@ -219,7 +219,7 @@ void fragment() {
 			// A ring now stays inside its cell (weather_common), so the
 			// cell is sized for rings of up to about a quarter node.
 			float cell = 1.0;
-			vec3 rings = goanna_rain_rings(world_pos.xz, TIME, cell, 0.9,
+			vec2 rings = goanna_rain_rings(world_pos.xz, TIME, cell, 0.9,
 					clamp(0.45 * goanna_rain, 0.0, 0.9));
 			vec3 nw = (INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz;
 			nw = normalize(nw - vec3(rings.x, 0.0, rings.y) * 0.35 * k);

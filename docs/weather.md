@@ -6,7 +6,7 @@ lightning drawn from the server's strike. Presentation only: the spawners
 arrive exactly as before, nothing sent to the server changes, and
 everything here is built from data the client already holds.
 
-**Status: seen three times, not right yet, and rebuilt since.** The first
+**Status: seen five times, not right yet, and rebuilt since.** The first
 two live checks were Godot 4.5.1, Mineclonia, the warm beach at Godot (515,
 4, 447), noon, `/weather rain`. The first showed no rain at the defaults; the
 second showed streaks at the defaults, but gathered in one narrow band, with
@@ -19,8 +19,11 @@ rushing in underneath, radial lines round a clear circle looking up, and
 still no splash or puddle on the ground, though rain rings did show on
 water. "Live checks" below says what was changed after each. The falling
 rain has since been rebuilt as a box of drops, and splashes and puddles now
-reach the shader that draws the ground; all of that has been tested
-headless only, and nothing of it has been observed.
+reach the shader that draws the ground. The owner then saw the splashes, as
+big bright white spots with no ring, their colour not the ground's (the
+fifth check); they have been rebuilt as small rings in the ground's own
+shading, and the puddles as water filling the relief. All of that has been
+tested headless only, and nothing of it has been observed.
 
 ## Where weather comes from
 
@@ -119,26 +122,77 @@ is heavier than rain (1). It eases over 2.5 seconds, so a storm starting,
 stopping or turning to thunder (Mineclonia replaces its spawners then) does
 not pop.
 
-**Splashes** (`goanna_ground_rain` in `weather_common.gdshaderinc`, drawn by
-both `nodes_array.gdshader` and `nodes_array_scissor.gdshader`, after the
-wetness block). On up facing, open ground within about 22 nodes of the eye,
-while rain is falling: each drop is a bright fleck for a moment, and where
-the ground is wet (`goanna_wetness`) it throws a small ring carried only in
-the normal, so it shows in the sheen. At intensity 1 there are about four
-drops a square node a second, each fleck about a fifth of a node across for
-about a tenth of a second, and a fleck carries a share of the sky fill as
-its own light, as the falling drops do, so it can be seen at night.
+**The ground in rain** (`weather_common.gdshaderinc`, drawn by both
+`nodes_array.gdshader` and `nodes_array_scissor.gdshader`, one block in each
+after the material decode). Four parts, none of which adds light or paints a
+colour of its own: whatever shows is the ground's own albedo, darkened, in
+the scene's own light, with a smoother surface and a bent normal to catch
+the sky or a lamp.
 
-**Puddles** (the same function). On flat, open, up facing ground, patches a
-node or three across where standing water collects: darker (half the
-albedo), near mirror smooth, the texture's relief drowned, and the rain's
-rings at full strength in them. Where they are is a smooth noise on the
-world grid (`goanna_puddle`), so a puddle stays put. How much of the ground
-they cover follows `goanna_wetness`, not `goanna_rain`: none below a
-wetness of about 0.4, 6 per cent at 0.6, a fifth after a minute of rain
-from dry (wetness 0.86) and 29 per cent at 1, so they spread through a
-shower and shrink as the world dries after it. The near mesh only; the far
-tiers do not puddle.
+- **The damp film.** Everything up facing with strong sky light, from
+  `goanna_wetness`: darker by the porosity (soil soaks, stone sheens),
+  roughness pulled toward 0.32, the normal map's relief softened by up to
+  30 per cent, as a film of water fills the fine texture. It was a
+  roughness of 0.13 over everything open with the relief left whole, which
+  read as wet plastic. On an authored relief the crests (height over 0.75)
+  drain first and take up to half as much.
+- **Standing water in the relief** (`goanna_water_level`, `goanna_pool`).
+  The owner's idea: the soft wet look is the dips between ridges filled
+  with water. A LabPBR `_n` map carries the surface's height in its alpha,
+  which the parallax march already reads; the water stands at a level on
+  that height, rising with the wetness to 0.45 (none below a wetness of
+  0.35, 0.15 at 0.6, 0.40 after a minute of rain from dry). Where the
+  height at the texel drawn is under the level the pixel is water: the
+  normal map's relief drowned, so the normal is the face's own, roughness
+  0.06, SPECULAR 0.25 (water's F0 of 0.02), and the albedo darkened by 28
+  to 40 per cent by porosity and up to 20 more where it is deepest. Just
+  above the waterline, a quarter of the height, is a wet margin: darker,
+  roughness toward 0.22, relief softened. Above that the film alone.
+  After the march the texel drawn is the one the eye ray met, so the test
+  is exact: a ray that met the relief under the level crossed the water's
+  surface first. The height comes from the fetch the shader makes anyway,
+  so it costs no read. Measured on the Mineclonia packs here, 0.45 is over
+  the lowest tenth to quarter of the authored pack's dirt, sand, gravel
+  and stone tops, and more of the Material Maker pack's, whose heights sit
+  lower.
+- **Basins** (`goanna_puddle`). The level is lifted by up to 1.2 in
+  patches a node or three across, where a smooth noise on the world grid
+  passes a threshold that falls with the wetness, so the patches stay put
+  and spread through a shower. The lift ramps up toward a patch's middle,
+  so at its rim only the hollows fill and the edge follows the texture;
+  in the middle every crest is under and the tile is a puddle. None at a
+  wetness of 0.3, 5 per cent of open flat ground at 0.6, 23 after a
+  minute of rain and 34 at 1.
+- **Splashes** (`goanna_rain_splash`, `goanna_splash_ring`). From
+  `goanna_rain`, what is falling now. A cell of 0.22 nodes holds at most
+  one drop each 0.6 seconds, on two grids offset by half a cell: about 31
+  drops a square node a second at intensity 1. Each throws a ring for 0.36
+  seconds, growing fast and then slower to between 7 and 15 centimetres
+  across, its crest (1.3 centimetres half width) carried only in the
+  normal and dying away as it spreads, over a wet mark that darkens and
+  smooths the ground under it and fades over the same time. The ring is a
+  third as strong on damp ground as in standing water. Rings are widened
+  to the pixel and lowered in proportion, and faded out where a pixel is
+  wider than 1.2 to 3 centimetres (about 9 to 23 nodes away at 1080 lines,
+  nearer at a low angle) and past 10 to 22 nodes.
+
+Water and its margin are drawn only on flat (normal y over 0.95), open, up
+facing ground, fading out as the far tiers flatten (from `lod_flatten_near`).
+Splashes need up facing (over 0.7) and open. "Open" is the rain cover map,
+or the sky light where there is no map. A layer with no authored height
+passes a height of 1, a crest everywhere, and so holds water only in a
+basin: a missing `_n` gets a filler layer whose alpha is 0, and one
+inferred from the colour has 255, neither a height, and `layer_depth` is
+measured only from an authored height, so it tells them apart.
+
+What these replaced, after the fifth check: a splash was a fleck a fifth of
+a node across for a tenth of a second, its albedo mixed 80 per cent toward
+white with a share of the sky fill added as light "so it can be seen at
+night", with a ring 0.7 nodes across in the normal that the fleck drowned
+out. In play it was a field of big white spots coming and going with no
+ring, their colour nothing to do with the ground. A puddle was a patch of
+the same noise with a hard edge, half the albedo and a mirror, drawn over
+the relief whatever its shape.
 
 **Splashes and puddles in play.** Neither was ever seen, through two live
 checks, while the ground did go wet and rings did show on water. The terms
@@ -163,11 +217,12 @@ carry the rain terms.
 **Rings on water** (`project/shaders/water.gdshader`). Expanding rings in the
 water normal on open water within 22 nodes, on top of the waves.
 
-Rings for both come from `goanna_rain_rings` in
-`project/shaders/weather_common.gdshaderinc`, which evaluates each cell alone,
-so a ring is kept inside its cell: its largest radius is the distance from
-its drop to the nearest cell edge, less the ring's width, and what is left of
-its envelope fades out before the edge.
+The water's rings come from `goanna_rain_rings`, the ground's splashes from
+`goanna_rain_splash`, both in `project/shaders/weather_common.gdshaderinc`.
+Each evaluates each cell alone, so a ring is kept inside its cell: its
+largest radius is the distance from its drop to the nearest cell edge, less
+the ring's width, and what is left of its envelope fades out before the
+edge.
 
 Splashes and rings follow `goanna_rain` (what is falling now), not
 `goanna_wetness` (which lingers for minutes after rain), so they stop with
@@ -227,10 +282,13 @@ shader's maths (`ground_trace`): the node and the shader that draws its top
 face (from `GoannaClient::top_surface_at`, by the tests `materialFor`
 makes), whether that shader has the terms, `goanna_rain` and
 `goanna_wetness`, the facing, whether the cover map has the point open,
-the distance, the puddle noise, and the splash and puddle terms; and
-`failing`, the first gate that is shut, empty when all are open. A puddle
-at the exact point under the eye depends on the noise, so a zero puddle
-term alone is not a failure.
+the distance and the pixel size taken for it (`pixel`, estimated for 1080
+lines and 70 degrees), the basin noise (`basin`), the water level
+(`water_level`), how much of it the ground holds (`pool`) and the splash
+term (`splash`); and `failing`, the first gate that is shut, empty when all
+are open. Whether water stands at the exact point under the eye depends on
+the tile's relief, which the trace does not read, and on the basin noise,
+so the level is reported but is not a gate.
 
 ## Lightning
 
@@ -366,9 +424,11 @@ Not measured. What the code does:
   of them in view; the far ones are a pixel and a half wide. Against the
   six cylinders this replaced, which were four to six layers of overdraw
   across the whole view, most pixels now carry no rain at all.
-- Puddles: on flat up facing pixels once the world is wet, four hashes and
-  a cover map read, in and for minutes after rain, now in both array
-  shaders.
+- Standing water: on flat up facing pixels once the world is wet, the
+  basin noise (eight hashes) and a cover map read, in and for minutes
+  after rain, in both array shaders. The height it fills is the alpha of
+  the normal map fetch the shader makes anyway: no texture read of its
+  own.
 - A lightning strike: one quad and one unshadowed omni light for under half
   a second.
 - The occlusion scan: at most 512 columns a frame for 8 frames each second,
@@ -376,8 +436,10 @@ Not measured. What the code does:
   Open ground stops a few nodes down; the worst case is flying high over
   empty air, 80 nodes a column.
 - On terrain and water: a uniform branch that costs nothing in fair weather;
-  in rain, one texture read and two ring evaluations per up facing pixel
-  within about 22 nodes, and the same per water pixel within 22.
+  in rain, one texture read and two splash cells (three hashes and at most
+  one exponential each) per up facing pixel where a pixel is under 3
+  centimetres and within 22 nodes, and two ring evaluations per water
+  pixel within 22.
 - Against that, the particle path it replaces was up to 1500 GPU particles
   per spawner.
 - Wakes: ten times a second, `entity_list` and up to four node name
@@ -490,6 +552,31 @@ puddle", while rain rings did show on water. What was changed, headless:
   little more widespread (a fifth of open flat ground after a minute of
   rain), and flecks are brighter.
 
+### Fifth
+
+The owner, in play at night against Mineclonia, in rain on open ground lit
+by a torch (the Godot version was not recorded). The splashes were seen at
+last: "bright white giant spots ... in game it just looks like hundreds of
+big spots appearing and disappearing without any kind of concentric ring
+effect, and their colour doesn't seem well matched to the surface". The
+brightened flecks of the fourth round were the whole of what showed: a
+fifth of a node of near white albedo with light of its own, over a ring
+too faint beside it to read. And for puddles, the owner's idea: "it may be
+possible to get the soft wet puddle look by softening the reflectivity
+and normals, like those dips in between ridges are what would get filled
+in by water." What was changed, headless:
+
+- Splashes are small rings, 7 to 15 centimetres across, about 31 a square
+  node a second at intensity 1, each spreading over a third of a second,
+  in the normal only, over a brief wet mark that darkens and smooths the
+  ground's own colour. Nothing white is mixed in and no light is added;
+  the test holds rain's effect on the albedo to a factor of at most 1.
+- Standing water fills the relief's hollows, by the height in the `_n`
+  map's alpha, rising with the wetness; the noise puddles are kept as
+  basins that raise the level until the crests drown too.
+- The damp film is softer: roughness toward 0.32 rather than 0.13, and
+  the relief softened rather than left whole under a gloss.
+
 ## What is untested
 
 Everything visual. In particular, the owner's visual check should look at:
@@ -510,11 +597,27 @@ Everything visual. In particular, the owner's visual check should look at:
   `shader` should be `nodes_array` (it was `nodes_array_scissor` before
   the per tile choice), `layer_alpha` false, `shader_has_terms` true and
   `failing` empty. If it is not empty, it names the gate.
-- Splash flecks on open ground at intensity 1, by day and by night, and
-  none under a roof. Puddles after a minute of rain on flat ground: where
-  they are, how many, whether they read as water (darker, mirror, rings),
-  that they stay put as the player moves, and that they shrink after the
-  rain.
+- Splashes on open ground at intensity 1, by day and by night, within a
+  few nodes: whether each reads as a small ring spreading and fading
+  rather than a spot, whether it takes the ground's colour (a darker,
+  glossier patch of the same sand or dirt, lit as the ground round it
+  is), whether there are too many or too few, and that they fade out
+  further off without a visible edge or shimmer. None under a roof. At
+  night by a torch in particular, where the old flecks were brightest.
+- Water in the relief as a shower goes on: first the joints and dips of
+  an authored tile (the dirt, gravel and cobble tops show it best) going
+  dark and mirror smooth with the crests damp between, then basins where
+  whole tiles drown. Whether it reads as soft wet ground or as wet
+  plastic; whether the water level against the pack's heights is right
+  (0.45 at full wetness may be too much for the Material Maker pack,
+  whose heights sit lower, or too little for the authored one); whether
+  a basin's rim follows the texture; whether the water flickers or swims
+  with the parallax as the view moves (it should not); and that it drains
+  after the rain. A tile with no authored height (the filler, or an
+  inferred normal) holds water only in basins.
+- The distance: the normal map's mipmaps average the height, so far off
+  the hollows blur toward the tile's mean and the relief's water thins
+  out; whether that shows as a band where the near ground looks wetter.
 - Standing under a roof edge or in a doorway looking out: drops should
   stop at the roof line, and none should fall indoors.
 - Lightning, by `/lightning` (needs maphack) near and far, by day and by
@@ -543,7 +646,8 @@ Everything visual. In particular, the owner's visual check should look at:
 
 Not done: a settling snow look on the ground, splashes on leaves and plants,
 drops sliding down walls, and splashes thrown up from the ground by the
-falling drops themselves (the flecks are the ground's own, not the drops').
+falling drops themselves (the splashes are the ground's own, not the
+drops').
 Lamps light nearby rain now that it is lit, which is also untested.
 
 ## Tests
@@ -580,16 +684,32 @@ many are. It prints and floors the peak opacity of a streak at 3 and 10
 nodes, caps it at 0.45 for a drop 0.6 nodes away, and checks the
 materials carry the constants.
 
-The ground terms, through a copy of `goanna_ground_rain` tied to its source:
-both array shaders call it; splash and puddle are both over 0.5 on an
-open, flat, up facing point at intensity 1 after a minute of rain, both
-zero on a wall and under the roof of the stand in map; puddles cover none of
-open ground at wetness 0.3, less at 0.6 than at 1, a tenth or more after a
-minute of rain and under two fifths at 1; and there are at least three
-splashes a square node a second. The status trace, on open sand drawn by
-the scissor shader, reports every gate open and both terms over 0.5; with
-the scissor shader's text as it was, without the terms, it names that
-shader as the failing gate; under a roof it names the cover.
+The ground terms, through copies in `weather.gd` of `goanna_ground_rain`,
+`goanna_water_level`, `goanna_pool`, `goanna_wet_darken` and
+`goanna_splash_ring`, each tied to its source line by line and its
+constants read from the shader. Both array shaders call the shared
+functions, take the height only from a layer with an authored one, and
+have no `EMISSION` and no mix toward a colour in their rain block;
+`nodes_array.gdshader` reads the height from the fetch at the coordinate
+the march moved to. On open flat ground clear of any basin at wetness
+0.6, a hollow at height 0.05 is under water and a crest at 0.95 is
+neither water nor margin, just above the waterline is a margin, and at
+0.3 nothing stands even at height 0; a wall holds nothing; in a basin
+after a minute of rain a crest is under water and splashes; under the
+roof of the stand in map there is no water and no splash; and splashes
+are gone where a pixel is 5 centimetres. Basins flood none of open ground
+at wetness 0.3, less at 0.6 than at 1, a tenth or more after a minute and
+under two fifths at 1. A splash ring's leading edge moves outward at every
+tenth of its life while its slope dies to under a tenth, its mark is there
+at impact and gone at the end; rings grow to between 4 and 20 centimetres
+across; there are at least 20 splashes a square node a second; and over
+four albedos, black to near white, and every mix of water, margin, mark
+and porosity, rain scales the albedo by a factor between 0.35 and 1 and
+never adds to it. The status trace, on open sand drawn by `nodes_array`,
+reports every gate open, the splash term and the water held over 0.5 and
+the level over 1 in a basin; with the scissor shader's text as it was,
+without the terms, it names that shader as the failing gate; under a
+roof it names the cover.
 
 It checks lightning: a synthetic spawner as Mineclonia sends it, with
 `lightning_lightning_2.png`, builds no emitter, one bolt 100 nodes tall and

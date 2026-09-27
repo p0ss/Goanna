@@ -45,7 +45,8 @@ What it settled, patch means in sRGB, the sun at 1.0:
   standard deviation of 0.01 to 0.04 up to 0.04 to 0.10, no patch moved by
   more than one count at noon or afternoon, top or front. The spread only
   matters where the lobe is narrow: wet surfaces (`goanna_wetness` pulls
-  roughness to 0.13) and grazing low sun. The tool is kept for those; it
+  roughness toward 0.32, and standing water in a relief's hollows to 0.06,
+  `docs/weather.md`) and grazing low sun. The tool is kept for those; it
   is not a fix for the daylight look.
 - **Metals reflect only the sky.** There is no screen space reflection and
   SDFGI carries no specular, so a metal at smoothness 255 is albedo times
