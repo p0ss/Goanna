@@ -60,8 +60,16 @@ setsid flatpak run --command=luanti org.luanti.luanti --server \
 	--world "$data_dir/worlds/$world" --gameid mineclonia --port "$port" \
 	--config "$data_dir/goanna_local_server.conf" --logfile "$log" \
 	>/dev/null 2>&1 </dev/null &
-server_pid=$!
-cleanup() { kill "$server_pid" 2>/dev/null || true; }
+launcher_pid=$!
+# The server runs inside the flatpak sandbox, so killing the launcher left
+# it running: one started on 2026-09-27 was found ten hours later. It is
+# found by its own log file, which nothing else is started with.
+stop_server() {
+	kill "$launcher_pid" 2>/dev/null || true
+	ps -eo pid=,args= | awk -v log="--logfile $log" 'index($0, "luanti.bin") && index($0, log) {print $1}' |
+		while read -r pid; do kill "$pid" 2>/dev/null || true; done
+}
+cleanup() { stop_server; }
 trap cleanup EXIT INT TERM
 
 for _ in $(seq 1 60); do
@@ -79,7 +87,7 @@ client_id=$(printf '%s' "$started" | python3 -c 'import json,sys; print(json.loa
 control=$(printf '%s' "$started" | python3 -c 'import json,sys; print(json.load(sys.stdin)["control_port"])')
 cleanup() {
 	"$headless" stop "$client_id" >/dev/null 2>&1 || true
-	kill "$server_pid" 2>/dev/null || true
+	stop_server
 }
 
 # settle true is the whole point: it waits for the near mesh rather than
