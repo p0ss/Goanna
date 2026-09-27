@@ -296,6 +296,22 @@ GPU_GAME_CLIENTS = ("godot", "gamescope", "luanti", "minetest")
 GPU_COMPUTE_JOBS = ("python", "comfy", "torch")
 
 
+def driver_errors(minutes=30):
+    """Kernel lines from the NVIDIA driver in the last `minutes`. On
+    2026-09-27 the driver logged out of memory and then refused every new
+    Vulkan device (NV_ERR_STATE_IN_USE) with nothing else on the GPU: a
+    client started into that crashes at once, and retrying risks the reset
+    that has needed a reboot. None of this is visible from the process
+    list."""
+    try:
+        out = subprocess.run(["journalctl", "-k", "--since", "-%d min" % minutes,
+                              "--no-pager", "-o", "short-iso"],
+                             capture_output=True, text=True, timeout=10).stdout
+    except (OSError, subprocess.SubprocessError):
+        return []
+    return [l for l in out.splitlines() if "NVRM" in l or "Xid" in l]
+
+
 def gpu_clients():
     """Game clients and compute jobs the NVIDIA driver lists on the GPU, as
     (pid, name) pairs. A compute job (a training run) is included since
@@ -360,6 +376,12 @@ def _spawn(rec, timeout=60.0):
                 "one has twice left the NVIDIA driver needing a reboot. Wait for it to "
                 "finish, use --software, or set GOANNA_SHARED_GPU=1 to accept the risk"
                 % ", ".join("%s pid %d" % (name, pid) for pid, name in busy))
+        errors = driver_errors()
+        if errors:
+            raise LaunchError(
+                "the NVIDIA driver has logged %d errors in the last 30 minutes (last: %s); a "
+                "client started now is likely to fail to create its device, and retrying risks "
+                "a reset that needs a reboot" % (len(errors), errors[-1]))
     existing = None
     try:
         existing = load(rec["id"])
@@ -881,9 +903,13 @@ def main(argv):
             out = {"port": int(pos[0]), "free": port_free(int(pos[0]))}
         elif cmd == "gpu-free":
             busy = gpu_clients()
-            print(json.dumps({"free": not busy,
-                              "clients": [{"pid": p, "name": n} for p, n in busy]}, indent=2))
-            return 0 if not busy else 1
+            errors = driver_errors()
+            ok = not busy and not errors
+            print(json.dumps({"free": ok,
+                              "clients": [{"pid": p, "name": n} for p, n in busy],
+                              "driver_errors": len(errors),
+                              "last_driver_error": errors[-1] if errors else ""}, indent=2))
+            return 0 if ok else 1
         else:
             print(USAGE, file=sys.stderr)
             return 2

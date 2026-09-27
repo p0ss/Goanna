@@ -59,7 +59,11 @@ move a client's pointer with xdotool. So:
   client then fails with `vkCreateDevice` until the reboot. Before any GPU
   render run `tools/goanna-headless gpu-free`, which exits 1 and names the
   client while a Godot, gamescope or Luanti is on the GPU, and wait or use
-  `--software`. The launcher makes the same check itself and refuses; do
+  `--software`. It also reads the kernel log and reports not free while the
+  NVIDIA driver has logged errors in the last 30 minutes: on 2026-09-27 it
+  ran out of memory and then refused every new Vulkan device
+  (`NV_ERR_STATE_IN_USE`) with nothing else on the GPU, and a client
+  started into that crashes at once. Do not retry into it. The launcher makes the same check itself and refuses; do
   not set `GOANNA_SHARED_GPU=1` to get past it.
 
 The launcher and the MCP server are described in `docs/control-channel.md`,
