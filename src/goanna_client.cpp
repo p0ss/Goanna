@@ -3094,6 +3094,16 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
         sh = m_sh_leaves; break;
     case TILE_MATERIAL_WAVING_PLANTS:
         sh = m_sh_plants; break;
+    case TILE_MATERIAL_BASIC:
+    case TILE_MATERIAL_PLAIN:
+        // Double sided and not waving: sugar cane, saplings, crops,
+        // mushrooms, ladders, rails. They took the standard material,
+        // which has no sky fill, and the fill is most of the light at dusk
+        // and all of it at night, so they drew black beside lit ground.
+        // The plants shader with waving off lights them as the ground is.
+        if (!key.backface_culling)
+            sh = m_sh_plants;
+        break;
     case TILE_MATERIAL_ALPHA:
     case TILE_MATERIAL_PLAIN_ALPHA:
         // Refraction glass is only right for solid, backface-culled nodes
