@@ -16,6 +16,7 @@ class_name GoannaLocalServer
 
 const AssetStore := preload("res://asset_store.gd")
 
+var owned_process := preload("res://owned_process.gd").new()
 var pid := -1
 var port := 0
 var gameid := "" # the game start() was asked for, for per game client defaults
@@ -1383,6 +1384,7 @@ func start_config(options: Dictionary) -> String:
 	var exe: String = argv[0]
 	var args := argv.slice(1)
 	pid = OS.create_process(exe, PackedStringArray(args))
+	owned_process.adopt(pid)
 	if pid <= 0:
 		return "Could not launch the server (%s)." % exe
 	return ""
@@ -1405,12 +1407,5 @@ func poll_ready() -> String:
 	return "starting"
 
 func stop() -> void:
-	# The pid is the flatpak/launcher wrapper; the actual server runs in a
-	# sandbox under a different pid, so killing by the unique world path is
-	# what reliably stops it (and works for a native server too).
-	# Windows has no pkill and no wrapper: the pid is the server itself.
-	if world_path != "" and OS.get_name() != "Windows":
-		OS.execute("pkill", ["-f", world_path])
-	if pid > 0:
-		OS.kill(pid)
-		pid = -1
+	owned_process.stop()
+	pid = -1

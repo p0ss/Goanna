@@ -1,0 +1,101 @@
+{
+  "SPDX-License-Identifier": "LGPL-2.1-or-later",
+  "scenes": {
+    "circle": {
+      "eye_y": 64,
+      "target_y": 64,
+      "radius": 8,
+      "time": 0.5
+    },
+    "dusk": {
+      "eye_y": 64,
+      "target_y": 64,
+      "radius": 8,
+      "time": 0.77,
+      "face_sun": true
+    },
+    "underwater": {
+      "fixture": true,
+      "eye_y": 64,
+      "target_y": 64,
+      "radius": 8,
+      "time": 0.5
+    },
+    "wet": {
+      "fixture": true,
+      "eye_y": 63,
+      "target_y": 61,
+      "radius": 8,
+      "time": 0.5,
+      "wetness": 0.8,
+      "rain": true
+    },
+    "night": {
+      "fixture": true,
+      "eye_y": 63,
+      "target_y": 62,
+      "radius": 8,
+      "time": 0.0,
+      "settings": {
+        "light_pool": 16,
+        "shadow_lamps": 16
+      }
+    },
+    "foliage": {
+      "fixture": true,
+      "eye_y": 63,
+      "target_y": 62,
+      "radius": 8,
+      "time": 0.5
+    },
+    "grass": {
+      "fixture": true,
+      "eye_y": 61.5,
+      "target_y": 60.5,
+      "radius": 8,
+      "time": 0.5,
+      "settings": {
+        "render_grass_aa": 0,
+        "procedural_grass": 1
+      },
+      "msaa": 2,
+      "screen_aa": 1,
+      "probe_y": 60
+    },
+    "ice": {
+      "fixture": true,
+      "eye_y": 63,
+      "target_y": 62,
+      "radius": 8,
+      "time": 0.5,
+      "angle_degrees": 45
+    },
+    "magma": {
+      "fixture": true,
+      "eye_y": 62,
+      "target_y": 60.5,
+      "radius": 8,
+      "time": 0.5,
+      "probe_y": 60
+    },
+    "clouds": {
+      "eye_y": 64,
+      "target_y": 72,
+      "radius": 8,
+      "time": 0.5
+    },
+    "occlusion": {
+      "fixture": true,
+      "eye_y": 63,
+      "target_y": 62,
+      "radius": 8,
+      "time": 0.0,
+      "settings": {
+        "render_carried_light": 0,
+        "light_pool": 24,
+        "shadow_lamps": 0
+      },
+      "angle_degrees": 45
+    }
+  }
+}

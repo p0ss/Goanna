@@ -2,6 +2,7 @@
 // Copyright (C) 2026 the Goanna contributors
 
 #include "goanna_client.h"
+#include "util/hashing.h"
 #include "goanna_grass.h"
 #include "goanna_lava.h"
 #include <sstream>
@@ -86,15 +87,22 @@ PackedFloat32Array node_tangents(const PackedVector3Array &verts,
         const PackedVector3Array &norms, const PackedVector2Array &uvs,
         const PackedInt32Array &indices) {
     const int nv = verts.size();
+    const int ni = indices.size();
+    // Packed-array indexing crosses the extension boundary on each access.
+    // Resolve immutable spans once; no input array is resized or written here.
+    const Vector3 *positions = verts.ptr();
+    const Vector3 *normals = norms.ptr();
+    const Vector2 *texcoords = uvs.ptr();
+    const int32_t *triangles = indices.ptr();
     std::vector<Vector3> tan((size_t)nv), bitan((size_t)nv);
-    for (int i = 0; i + 2 < indices.size(); i += 3) {
-        const int ia = indices[i], ib = indices[i + 1], ic = indices[i + 2];
+    for (int i = 0; i + 2 < ni; i += 3) {
+        const int ia = triangles[i], ib = triangles[i + 1], ic = triangles[i + 2];
         if (ia < 0 || ib < 0 || ic < 0 || ia >= nv || ib >= nv || ic >= nv)
             continue;
-        const Vector3 e1 = verts[ib] - verts[ia];
-        const Vector3 e2 = verts[ic] - verts[ia];
-        const Vector2 d1 = uvs[ib] - uvs[ia];
-        const Vector2 d2 = uvs[ic] - uvs[ia];
+        const Vector3 e1 = positions[ib] - positions[ia];
+        const Vector3 e2 = positions[ic] - positions[ia];
+        const Vector2 d1 = texcoords[ib] - texcoords[ia];
+        const Vector2 d2 = texcoords[ic] - texcoords[ia];
         const float det = d1.x * d2.y - d1.y * d2.x;
         if (Math::abs(det) < 1e-8f)
             continue;
@@ -108,8 +116,9 @@ PackedFloat32Array node_tangents(const PackedVector3Array &verts,
     }
     PackedFloat32Array out;
     out.resize(nv * 4);
+    float *tangents = out.ptrw();
     for (int i = 0; i < nv; ++i) {
-        const Vector3 n = norms[i].normalized();
+        const Vector3 n = normals[i].normalized();
         Vector3 t = tan[(size_t)i] - n * n.dot(tan[(size_t)i]);
         if (t.length_squared() < 1e-8f) {
             const Vector3 axis = Math::abs(n.y) < 0.9f ? Vector3(0, 1, 0) : Vector3(1, 0, 0);
@@ -124,10 +133,10 @@ PackedFloat32Array node_tangents(const PackedVector3Array &verts,
         // them right. The probe in material_ramp.gd (probe_bump) tells the
         // two apart.
         const float handedness = n.cross(t).dot(bitan[(size_t)i]) < 0.0f ? 1.0f : -1.0f;
-        out[i * 4] = t.x;
-        out[i * 4 + 1] = t.y;
-        out[i * 4 + 2] = t.z;
-        out[i * 4 + 3] = handedness;
+        tangents[i * 4] = t.x;
+        tangents[i * 4 + 1] = t.y;
+        tangents[i * 4 + 2] = t.z;
+        tangents[i * 4 + 3] = handedness;
     }
     return out;
 }
@@ -174,6 +183,20 @@ void appendLodMesh(goanna::LodRegionMesh &dst, goanna::LodRegionMesh &&src) {
 namespace goanna {
 
 GoannaClient::GoannaClient() {
+    // Only live clients own the cache. Packed arrays are released before
+    // Godot shuts down, including when the last player disconnects.
+    static std::weak_ptr<SharedMeshCache> shared_meshes;
+    m_shared_meshes = shared_meshes.lock();
+    if (!m_shared_meshes) {
+        m_shared_meshes = std::make_shared<SharedMeshCache>(128ull << 20);
+        shared_meshes = m_shared_meshes;
+    }
+    static std::weak_ptr<SharedNearCache> shared;
+    m_shared_near = shared.lock();
+    if (!m_shared_near) {
+        m_shared_near = std::make_shared<SharedNearCache>(128ull << 20);
+        shared = m_shared_near;
+    }
     const char *grass = std::getenv("GOANNA_GRASS");
     set_meta("goanna_grass_enabled", grass && std::string(grass) == "1");
     const char *ab = std::getenv("GOANNA_AUTO_BUMP");
@@ -247,7 +270,11 @@ void GoannaClient::set_procedural_grass(bool enabled) {
         auto *instance = Object::cast_to<MeshInstance3D>(get_child(i));
         if (!instance) continue;
         Ref<ArrayMesh> mesh = instance->get_mesh();
-        if (mesh.is_null() || !mesh->has_meta("goanna_grass_lod")) continue;
+        if (mesh.is_null()) continue;
+        // A shared buffer is immutable. A tier change rebuilds this view's
+        // region with its grass instead of changing another player's mesh.
+        if (mesh->has_meta("goanna_shared_terrain")) continue;
+        if (!mesh->has_meta("goanna_grass_lod")) continue;
         for (int s = mesh->get_surface_count() - 1; s >= 0; --s) {
             Ref<Material> material = mesh->surface_get_material(s);
             if (material.is_valid() && material->has_meta("goanna_grass_volume"))
@@ -260,6 +287,9 @@ void GoannaClient::set_procedural_grass(bool enabled) {
             });
         }
     }
+    for (auto &entry : m_near_regions)
+        nearMarkDirty(entry.second);
+
 }
 
 void GoannaClient::set_bevel(float width) {
@@ -415,6 +445,7 @@ struct NearBatchJob : goanna::MeshJob {
     };
     std::vector<Surface> surfaces;
     std::vector<v3s16> members;
+    std::string share_key;
     bool build_occluder = false; // mesh-cut mode; boxes are built at publish
     // Outputs.
     std::vector<goanna::GoannaClient::NearBatchGroup> groups_out;
@@ -588,11 +619,30 @@ void GoannaClient::nearBoxOccluder(const v3s16 &key, PackedVector3Array &occ_ver
 
 void GoannaClient::nearPublishBatch(const v3s16 &key, NearRegion &region,
         std::vector<NearBatchGroup> &groups, PackedVector3Array &occ_verts,
-        PackedInt32Array &occ_idx, const std::vector<v3s16> &members) {
+        PackedInt32Array &occ_idx, const std::vector<v3s16> &members,
+        const std::string &share_key) {
     auto t0 = clock_t_::now();
     ++m_surface_source_revision;
     region.published_members = std::set<v3s16>(members.begin(), members.end());
     auto build_mesh = [&](bool glow) -> Ref<ArrayMesh> {
+        const bool share = !share_key.empty() && m_shared_meshes.use_count() > 1 &&
+                !getenv("GOANNA_NO_SHARED_TERRAIN") && (glow || !procedural_grass());
+        const std::string mesh_key = share_key + (glow ? "glow" : "normal");
+        size_t bytes = 0;
+        if (share) {
+            // The worker's snapshot carries the identities of its immutable
+            // block inputs. Hashing megabytes of finished arrays here made
+            // the cache more expensive than an upload during streaming.
+            auto cached = m_shared_meshes->find(mesh_key);
+            if (cached) { ++m_shared_upload_hits; return *cached; }
+            for (const auto &group : groups) {
+                if (group.glow != glow) continue;
+                bytes += group.verts.size() * sizeof(Vector3) + group.norms.size() * sizeof(Vector3) +
+                        group.uvs.size() * sizeof(Vector2) + group.uv2s.size() * sizeof(Vector2) +
+                        group.cols.size() * sizeof(Color) + group.custom0.size() +
+                        group.idx.size() * sizeof(int32_t);
+            }
+        }
         Ref<ArrayMesh> mesh;
         mesh.instantiate();
         int si = 0;
@@ -611,9 +661,10 @@ void GoannaClient::nearPublishBatch(const v3s16 &key, NearRegion &region,
             arrays[Mesh::ARRAY_INDEX] = acc.idx;
             mesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays, TypedArray<Array>(),
                     Dictionary(), kNodeSurfaceFlags);
-            mesh->surface_set_material(si++, materialFor(acc.key));
+            if (!share) mesh->surface_set_material(si, materialFor(acc.key));
+            ++si;
         }
-        if (!glow) {
+        if (!glow && !share) {
             // Nonempty batches publish worker output outside the map lock.
             // Empty inline retirements can already hold it and need no reads.
             std::unique_lock<std::mutex> map_lock;
@@ -622,6 +673,11 @@ void GoannaClient::nearPublishBatch(const v3s16 &key, NearRegion &region,
             goanna::append_grass(mesh, false, this, [this](int x, float y, int z) {
                 return grassSubmerged(x, y, z, true);
             });
+        }
+        // Empty glow batches have no GPU upload to save or count.
+        if (share && si > 0) {
+            mesh->set_meta("goanna_shared_terrain", true);
+            m_shared_meshes->put(mesh_key, std::make_shared<Ref<ArrayMesh>>(mesh), bytes);
         }
         return mesh;
     };
@@ -659,6 +715,14 @@ void GoannaClient::nearPublishBatch(const v3s16 &key, NearRegion &region,
         // disappear as the camera turns.
         node->set_custom_aabb(region_bounds);
         node->set_mesh(next);
+        for (int i = 0; i < next->get_surface_count(); ++i)
+            node->set_surface_override_material(i, Ref<Material>());
+        if (next->has_meta("goanna_shared_terrain")) {
+            int surface = 0;
+            for (const auto &group : groups)
+                if (group.glow == glow && !group.verts.is_empty() && !group.idx.is_empty())
+                    node->set_surface_override_material(surface++, materialFor(group.key));
+        }
     };
     apply(region.node, mesh, false);
     apply(region.glow_node, glow_mesh, true);
@@ -793,10 +857,14 @@ void GoannaClient::nearRebuild(double budget_ms) {
         auto job = std::make_unique<NearBatchJob>();
         job->members.assign(region.members.begin(), region.members.end());
         job->build_occluder = !m_occluder_boxes;
+        bool shareable = true;
+        std::string input_keys;
         for (const v3s16 &bp : job->members) {
             auto block = m_near_blocks.find(bp);
             if (block == m_near_blocks.end())
                 continue;
+            if (block->second.share_key.empty()) shareable = false;
+            else input_keys += block->second.share_key;
             for (const NearSurface &surface : block->second.surfaces) {
                 NearBatchJob::Surface js;
                 js.key = surface.key;
@@ -816,6 +884,7 @@ void GoannaClient::nearRebuild(double budget_ms) {
                 job->surfaces.push_back(std::move(js));
             }
         }
+        if (shareable && !input_keys.empty()) job->share_key = hashing::sha256(input_keys);
         goanna::MeshJobKey jk;
         jk.kind = goanna::MeshJobKey::kNearBatch;
         jk.pos = entry.second;
@@ -1028,12 +1097,33 @@ void GoannaClient::set_solid_ice(bool on) {
 bool GoannaClient::solid_ice() const { return m_solid_ice; }
 
 GoannaClient::~GoannaClient() {
-    if (g_goanna_carve == &m_carve.damage) g_goanna_carve = nullptr;
+    m_carve_active = false;
     // Before the session and the tile cache go.
     m_lod_storage.stop();
     m_mesh_pool.stop();
     if (m_horizon_thread.joinable())
         m_horizon_thread.join();
+}
+
+void GoannaClient::enable_render_scope() {
+    if (!m_render_scope && !m_session)
+        m_render_scope = std::make_unique<RenderScope>(get_instance_id());
+}
+
+Ref<Shader> GoannaClient::load_view_shader(const String &path) {
+    return m_render_scope ? m_render_scope->load(path)
+            : Ref<Shader>(ResourceLoader::get_singleton()->load(path));
+}
+
+void GoannaClient::set_view_shader_parameter(const StringName &name, const Variant &value) {
+    if (m_render_scope)
+        m_render_scope->set(name, value);
+    else
+        RenderingServer::get_singleton()->global_shader_parameter_set(name, value);
+}
+
+String GoannaClient::view_shader_parameter_name(const String &name) const {
+    return m_render_scope ? m_render_scope->name(name) : name;
 }
 
 String GoannaClient::hello() const {
@@ -1193,6 +1283,7 @@ Dictionary GoannaClient::material_diagnostics(const String &texture_name) const 
 
 void GoannaClient::connect_to(const String &host, int port, const String &player_name,
         const String &password) {
+    m_shared_identity.clear();
     m_lod_storage.stop();
     m_lod_loads.clear();
     fineClear();
@@ -1214,6 +1305,7 @@ void GoannaClient::connect_to(const String &host, int port, const String &player
     m_fake_liquid_built = false;
     // Icon jobs point into the outgoing session's meshes and images.
     m_item_icons.clear();
+    m_shared_identity.clear();
     m_session = std::make_unique<GoannaSession>();
     // The camera is created before connect_to(), so _report_fov() normally
     // arrives before the session. Apply the retained cone before the first
@@ -1280,14 +1372,14 @@ void GoannaClient::connect_to(const String &host, int port, const String &player
     // every mesh on the main thread, which is the comparison to make when a
     // far field fault looks like a threading one, and 0 lets the pool choose.
     // The video settings panel moves the same value.
-    if (const char *env = getenv("GOANNA_MESH_THREADS"))
+    if (const char *env = getenv("GOANNA_MESH_THREADS"); env && m_poll_budget_ms <= 0)
         m_mesh_threads = std::clamp(atoi(env), -1, 16);
     if (m_mesh_threads >= 0)
         m_mesh_pool.start(m_mesh_threads);
 }
 
 void GoannaClient::disconnect_from_server() {
-    if (g_goanna_carve == &m_carve.damage) g_goanna_carve = nullptr;
+    m_carve_active = false;
     m_carve = goanna::FormDig();
     m_carve_pos = v3s16(-32768, -32768, -32768);
     m_lod_storage.stop();
@@ -1304,6 +1396,9 @@ void GoannaClient::disconnect_from_server() {
     m_block_queued_at.clear();
     nearClear();
     m_item_icons.clear();
+    // Animated materials retain raw frame pointers owned by the texture
+    // source. The control channel can leave frames running after disconnect.
+    clearMaterials();
     m_session.reset();
 }
 
@@ -1753,7 +1848,7 @@ Dictionary GoannaClient::step_interact(double dt, bool dig, bool place, bool pla
             // left half mined went visibly whole again as soon as it was
             // struck, and only the blows from this dig showed. The stored
             // carve is the truth about the node; this dig continues it.
-            goanna::carveStoreGet(m_carve_pos.X, m_carve_pos.Y, m_carve_pos.Z, m_carve.damage);
+            m_session->carves().get(m_carve_pos.X, m_carve_pos.Y, m_carve_pos.Z, m_carve.damage);
             // The base shape this dig carves from: a plain cube for an
             // ordinary solid node, or the target's own resolved boxes for a
             // nodebox one. Live neighbour connections are NOT replicated
@@ -1784,8 +1879,8 @@ Dictionary GoannaClient::step_interact(double dt, bool dig, bool place, bool pla
         if (st.dig_impact && m_carve.advance(progress, hit.X, hit.Y, hit.Z,
                 normal.X, normal.Y, normal.Z))
             m_session->invalidateBlock(getNodeBlockPos(m_carve_pos));
-        g_goanna_carve = &m_carve.damage;
-    } else if (g_goanna_carve) {
+        m_carve_active = true;
+    } else if (m_carve_active) {
         // The dig is over, by breaking through or by letting go. Tell the
         // server what was carved before dropping it, so the other players keep
         // seeing it; a server without goanna_shared_dig_damage discards this
@@ -1799,7 +1894,7 @@ Dictionary GoannaClient::step_interact(double dt, bool dig, bool place, bool pla
             m_session->reportCarve(m_carve_pos, bytes);
         // The same replacement removes both cut geometry and neighbour reveals.
         m_session->invalidateBlock(getNodeBlockPos(m_carve_pos));
-        g_goanna_carve = nullptr;
+        m_carve_active = false;
         m_carve = goanna::FormDig();
         m_carve_pos = v3s16(-32768, -32768, -32768);
     }
@@ -1819,7 +1914,7 @@ Dictionary GoannaClient::step_interact(double dt, bool dig, bool place, bool pla
     d["digging"] = st.digging;
     d["dig_impact"] = st.dig_impact;
     d["impact_progress"] = st.impact_progress;
-    d["carve_volume"] = g_goanna_carve ? m_carve.remaining_volume :
+    d["carve_volume"] = m_carve_active ? m_carve.remaining_volume :
             (st.dig_impact && st.impact_progress >= 1 ? 0.0f : 1.0f);
     d["mining_swing"] = (st.digging && st.dig_time_complete < 100000) || st.dig_impact;
     d["swing"] = st.swing;
@@ -1833,13 +1928,7 @@ bool GoannaClient::is_underwater(const Vector3 &eye) {
     const bool under = isUnderwaterAt(eye);
     // The water shader drops back faces unless the eye is in the water, and
     // learns where the eye is from this global; main.gd asks every frame.
-    static bool last = false;
-    static bool first = true;
-    if (first || under != last) {
-        RenderingServer::get_singleton()->global_shader_parameter_set("goanna_eye_underwater", under ? 1.0f : 0.0f);
-        last = under;
-        first = false;
-    }
+    set_view_shader_parameter("goanna_eye_underwater", under ? 1.0f : 0.0f);
     return under;
 }
 
@@ -2850,16 +2939,15 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
         return it->second;
     if (!m_shaders_loaded) {
         m_shaders_loaded = true;
-        ResourceLoader *rl = ResourceLoader::get_singleton();
-        m_sh_water = rl->load("res://shaders/water.gdshader");
-        m_sh_lava = rl->load("res://shaders/lava.gdshader");
-        m_sh_leaves = rl->load("res://shaders/waving_leaves.gdshader");
-        m_sh_plants = rl->load("res://shaders/waving_plants.gdshader");
-        m_sh_glass = rl->load("res://shaders/glass.gdshader");
-        m_sh_ice = rl->load("res://shaders/ice.gdshader");
-        m_sh_array = rl->load("res://shaders/nodes_array.gdshader");
-        m_sh_array_scissor = rl->load("res://shaders/nodes_array_scissor.gdshader");
-        m_sh_crack = rl->load("res://shaders/crack_overlay.gdshader");
+        m_sh_water = load_view_shader("res://shaders/water.gdshader");
+        m_sh_lava = load_view_shader("res://shaders/lava.gdshader");
+        m_sh_leaves = load_view_shader("res://shaders/waving_leaves.gdshader");
+        m_sh_plants = load_view_shader("res://shaders/waving_plants.gdshader");
+        m_sh_glass = load_view_shader("res://shaders/glass.gdshader");
+        m_sh_ice = load_view_shader("res://shaders/ice.gdshader");
+        m_sh_array = load_view_shader("res://shaders/nodes_array.gdshader");
+        m_sh_array_scissor = load_view_shader("res://shaders/nodes_array_scissor.gdshader");
+        m_sh_crack = load_view_shader("res://shaders/crack_overlay.gdshader");
     }
     if (key.crack_overlay)
         return crackOverlayMaterial(key);
@@ -3417,8 +3505,12 @@ void GoannaClient::step_node_animation(double dt) {
         dt = 0.0;
     m_node_anim_time = m_node_anim_pinned >= 0.0f ? m_node_anim_pinned
             : fmodf(m_node_anim_time + (float)dt, 60.0f);
-    RenderingServer::get_singleton()->global_shader_parameter_set(
+    set_view_shader_parameter(
             "goanna_node_anim_time", m_node_anim_time);
+    // Keep the standalone shader clock usable by renderer fixtures, but
+    // never dereference session-owned animation frames after disconnect.
+    if (!m_session)
+        return;
     for (AnimatedMaterial &am : m_anim_materials) {
         const u32 now = animationFrameAt(*am.anim, m_node_anim_time);
         if (now && now != am.shown)
@@ -3427,6 +3519,7 @@ void GoannaClient::step_node_animation(double dt) {
 }
 
 void GoannaClient::set_node_animation_enabled(bool on) {
+    m_shared_identity.clear();
     if (!m_session || !m_session->tsrc() || m_session->tsrc()->nodeAnimationEnabled() == on)
         return;
     m_session->tsrc()->setNodeAnimationEnabled(on);
@@ -3618,7 +3711,9 @@ void GoannaClient::sync_entities(double dt) {
     if (dt > 0.1) dt = 0.1;
     m_session->stepObjects((float)dt);
     m_entities->sync(*m_session, (float)dt, Vector3());
-    if (procedural_grass() && has_meta("goanna_grass_material"))
+    if (procedural_grass() && has_meta("goanna_grass_material") &&
+            (bool)get_meta("goanna_grass_interaction", true) &&
+            (int)get_meta("goanna_grass_interactors", 8) > 0)
         goanna::update_grass_interactors(this,m_entities->grass_interactors(*m_session));
     ema(m_ms_entities, ms_since(t0));
 }
@@ -3740,9 +3835,12 @@ Dictionary GoannaClient::render_stats() {
     d["blocks_queued"] = m_last_queue;
     d["block_meshes"] = (int)m_near_blocks.size();
     int near_surfaces = 0, near_regions = 0, near_source_surfaces = 0;
+    int near_dirty = 0, near_building = 0;
     int occluder_regions = 0, occluder_triangles = 0;
     for (const auto &kv : m_near_regions) {
         near_surfaces += kv.second.surfaces;
+        near_dirty += kv.second.dirty;
+        near_building += kv.second.building;
         if (kv.second.node || kv.second.glow_node)
             ++near_regions;
         if (kv.second.occluder_node) {
@@ -3765,6 +3863,8 @@ Dictionary GoannaClient::render_stats() {
     d["near_surfaces"] = near_surfaces;
     d["near_source_surfaces"] = near_source_surfaces;
     d["near_regions"] = near_regions;
+    d["near_regions_dirty"] = near_dirty;
+    d["near_regions_building"] = near_building;
     d["occluder_regions"] = occluder_regions;
     d["occluder_triangles"] = occluder_triangles;
     d["occluder_swap_ms"] = m_ms_occluder_swap;
@@ -3776,6 +3876,14 @@ Dictionary GoannaClient::render_stats() {
     d["resident_blocks"] = m_session ? m_session->residentBlocks() : 0;
     d["light_pool"] = (int)m_light_pool.size();
     d["lights_in_range"] = m_lights_in_range;
+    int active_lights = 0, shadow_lights = 0;
+    for (const auto *light : m_light_pool) {
+        if (!light->is_visible()) continue;
+        ++active_lights;
+        if (light->has_shadow()) ++shadow_lights;
+    }
+    d["active_lights"] = active_lights;
+    d["shadow_lights"] = shadow_lights;
     d["light_churn"] = m_light_churn;
     d["mote_pool"] = (int)m_mote_pool.size();
     // Far tiers: how many blocks each tier draws, how many region meshes,
@@ -3831,6 +3939,11 @@ Dictionary GoannaClient::render_stats() {
     // The mesh workers. A queue that only grows means capture is outrunning
     // the pool; `ready` growing means publication is the bottleneck, not
     // meshing, and the budget per poll is what to raise.
+    d["shared_lod_hits_process"] = (int64_t)sharedLodHits();
+    d["lamp_occlusion_ms"] = m_ms_lamp_occlusion;
+    d["shared_upload_hits"] = (int64_t)m_shared_upload_hits;
+    d["shared_near_hits"] = (int64_t)m_shared_near_hits;
+    d["shared_near_builds"] = (int64_t)m_shared_near_misses;
     const MeshPool::Stats mp = m_mesh_pool.stats();
     d["mesh_threads"] = mp.threads;
     d["mesh_queued"] = mp.queued;
@@ -4014,17 +4127,140 @@ Dictionary GoannaClient::entity_animation(int id) {
     return m_entities->animation(*m_session, (u16)id);
 }
 
+void GoannaClient::updateLampOcclusion(const Vector3 &around) {
+    const auto started = clock_t_::now();
+    if (!m_lamp_occlusion || !m_session ||
+            std::none_of(m_light_slot.begin(), m_light_slot.end(),
+                    [](const auto &slot) { return slot.key != 0; })) {
+        set_view_shader_parameter("goanna_lamp_occlusion_box", Vector4());
+        return;
+    }
+    // Changes are refreshed at most ten times a second, independently of
+    // the player's frame rate. Static frames do not rebuild or upload data.
+    if (m_lamp_occlusion_grid.is_valid() && ms_since(m_lamp_occlusion_updated) < 100.0) return;
+    m_lamp_occlusion_updated = started;
+    constexpr int edge = 64;
+    const int ox = (int)std::floor(around.x / 16.0f) * 16 - edge / 2;
+    const int oy = (int)std::floor(around.y / 16.0f) * 16 - edge / 2;
+    const int oz = (int)std::floor(around.z / 16.0f) * 16 - edge / 2;
+    const v3s16 low = getNodeBlockPos(v3s16(ox, oy, -(oz + edge - 1)));
+    const v3s16 high = getNodeBlockPos(v3s16(ox + edge - 1, oy + edge - 1, -oz));
+    std::unique_lock<std::mutex> lock(m_session->mapLock());
+    std::string signature = m_session->terrainPeer() + ":" + std::to_string(m_session->terrainDefinitions()) + ":" +
+            std::to_string(ox) + ":" + std::to_string(oy) + ":" + std::to_string(oz);
+    // Include all boundary blocks, including absent ones. An arrival or edit
+    // refreshes the grid even when neither the camera nor lamps moved.
+    for (int z = low.Z; z <= high.Z; ++z)
+        for (int y = low.Y; y <= high.Y; ++y)
+            for (int x = low.X; x <= high.X; ++x)
+                signature += m_session->blockContentDigest(v3s16(x, y, z)) + ":" +
+                        std::to_string(m_session->blockRevision(v3s16(x, y, z)));
+    PackedByteArray sources;
+    sources.resize(std::max(1, (int)m_light_slot.size()) * 16);
+    float *source = reinterpret_cast<float *>(sources.ptrw());
+    for (size_t i = 0; i < m_light_slot.size(); ++i) {
+        const auto &slot = m_light_slot[i];
+        const Vector3 p = slot.pos;
+        source[i * 4] = p.x; source[i * 4 + 1] = p.y; source[i * 4 + 2] = p.z;
+        source[i * 4 + 3] = slot.key ? 1.0f : 0.0f;
+    }
+    signature.append((const char *)sources.ptr(), sources.size());
+    signature = hashing::sha256(signature);
+    if (signature == m_lamp_occlusion_signature) {
+        set_view_shader_parameter("goanna_lamp_occlusion_box", Vector4(ox - 0.5f, oy - 0.5f, oz - 0.5f, edge));
+        ema(m_ms_lamp_occlusion, ms_since(started));
+        return;
+    }
+    std::vector<float> cells(edge * edge * edge, 0.0f);
+    // Full opaque cubes only. Partial nodes retain their shadow-map path;
+    // treating a door or stair as a whole cube would close visible openings.
+    MapBlock *last = nullptr;
+    v3s16 last_bp(-32768, -32768, -32768);
+    for (int z = 0; z < edge; ++z)
+        for (int y = 0; y < edge; ++y)
+            for (int x = 0; x < edge; ++x) {
+                const v3s16 np(ox + x, oy + y, -(oz + z));
+                const v3s16 bp = getNodeBlockPos(np);
+                if (bp != last_bp) { last = m_session->getBlock(bp); last_bp = bp; }
+                if (!last) continue;
+                const MapNode node = last->getNodeNoCheck(np - bp * MAP_BLOCKSIZE);
+                if (node.getContent() == CONTENT_IGNORE) continue;
+                const auto &f = m_session->nodeDefs()->get(node);
+                if (f.drawtype == NDT_NORMAL && !f.light_propagates && f.light_source == 0)
+                    cells[(z * edge + y) * edge + x] = -1.0f;
+            }
+    if (!m_session->carves().empty()) {
+        for (int z = low.Z; z <= high.Z; ++z)
+            for (int y = low.Y; y <= high.Y; ++y)
+                for (int x = low.X; x <= high.X; ++x) {
+                    CarveSnapshot carves;
+                    m_session->carves().snapshot(x * 16, y * 16, z * 16, carves);
+                    for (const auto &entry : carves.entries) {
+                        const int gx = x * 16 + entry.x - ox, gy = y * 16 + entry.y - oy, gz = -(z * 16 + entry.z) - oz;
+                        if (gx >= 0 && gx < edge && gy >= 0 && gy < edge && gz >= 0 && gz < edge)
+                            cells[(gz * edge + gy) * edge + gx] = 0;
+                    }
+                }
+    }
+    for (size_t i = 0; i < m_light_slot.size(); ++i) {
+        if (!m_light_slot[i].key) continue;
+        const Vector3 p = m_light_slot[i].pos;
+        const int x = (int)std::floor(p.x + 0.5f) - ox;
+        const int y = (int)std::floor(p.y + 0.5f) - oy;
+        const int z = (int)std::floor(p.z + 0.5f) - oz;
+        if (x >= 0 && x < edge && y >= 0 && y < edge && z >= 0 && z < edge)
+            cells[(z * edge + y) * edge + x] = (float)(i + 1);
+    }
+    lock.unlock();
+    TypedArray<Ref<Image>> slices;
+    for (int z = 0; z < edge; ++z) {
+        PackedByteArray bytes;
+        bytes.resize(edge * edge * sizeof(float));
+        std::memcpy(bytes.ptrw(), cells.data() + z * edge * edge, bytes.size());
+        slices.push_back(Image::create_from_data(edge, edge, false, Image::FORMAT_RF, bytes));
+    }
+    if (m_lamp_occlusion_grid.is_null()) {
+        m_lamp_occlusion_grid.instantiate();
+        if (m_lamp_occlusion_grid->create(Image::FORMAT_RF, edge, edge, edge, false, slices) != OK) {
+            m_lamp_occlusion_grid.unref();
+            set_view_shader_parameter("goanna_lamp_occlusion_box", Vector4());
+            return;
+        }
+    } else m_lamp_occlusion_grid->update(slices);
+    const auto source_image = Image::create_from_data(std::max(1, (int)m_light_slot.size()), 1,
+            false, Image::FORMAT_RGBAF, sources);
+    // Pool size can change with the tier; set_image permits a new width.
+    if (m_lamp_occlusion_sources.is_null()) m_lamp_occlusion_sources.instantiate();
+    m_lamp_occlusion_sources->set_image(source_image);
+    m_lamp_occlusion_signature = signature;
+    set_view_shader_parameter("goanna_lamp_occlusion_grid", m_lamp_occlusion_grid);
+    set_view_shader_parameter("goanna_lamp_occlusion_sources", m_lamp_occlusion_sources);
+    set_view_shader_parameter("goanna_lamp_occlusion_box", Vector4(ox - 0.5f, oy - 0.5f, oz - 0.5f, edge));
+    ema(m_ms_lamp_occlusion, ms_since(started));
+}
+
 void GoannaClient::update_lights(const Vector3 &around, int max_lights) {
     auto t0 = clock_t_::now();
+    if (max_lights <= 0) {
+        // No candidate traversal or ranking for the fallback path. Negative
+        // reach makes the existing baked-light blend complete even nearby.
+        for (auto *light : m_light_pool) {
+            light->set_visible(false);
+            light->queue_free();
+        }
+        m_light_pool.clear();
+        m_light_slot.clear();
+        set_view_shader_parameter("goanna_lamp_occlusion_box", Vector4());
+        m_lights_in_range = 0;
+        m_light_churn = 0;
+        set_view_shader_parameter("goanna_lamp_reach", -64.0f);
+        ema(m_ms_lights, ms_since(t0));
+        return;
+    }
     static const bool no_light_shadows = getenv("GOANNA_NO_LIGHT_SHADOWS") != nullptr;
     const bool shadowed_pool = !no_light_shadows && m_shadow_lamps > 0;
-    // An unshadowed point light passes through walls. Strong normal maps then
-    // turn that leaked diffuse light into bright grooves on the inside face,
-    // even with specular disabled. Share admission and shadows: every active
-    // direct lamp gets a map, including while it fades out. Outside this pool,
-    // the existing propagated node-light fallback supplies distant lighting.
-    if (shadowed_pool)
-        max_lights = std::min(max_lights, m_shadow_lamps);
+    // Light admission is independent of shadow maps. Unselected lamps remain
+    // lit; propagated node light supplies the world beyond the direct pool.
 
     // A lamp's identity is where it is. Node aligned positions make the
     // rounding exact, so this key is stable for as long as the lamp exists and
@@ -4175,7 +4411,7 @@ void GoannaClient::update_lights(const Vector3 &around, int max_lights) {
     float unlit_from = 64.0f;
     if (all.size() > admit_limit)
         unlit_from = std::min(unlit_from, std::max(0.0f, all[admit_limit].score));
-    RenderingServer::get_singleton()->global_shader_parameter_set(
+    set_view_shader_parameter(
             "goanna_lamp_reach", unlit_from);
 
     std::map<int64_t, size_t> rank_of;
@@ -4272,6 +4508,34 @@ void GoannaClient::update_lights(const Vector3 &around, int max_lights) {
         }
     }
 
+    // Rank shadow candidates separately, retaining current owners with a
+    // two-node advantage. Distance and emitter reach determine importance;
+    // the stable key breaks ties. Fading lights also consume their map slot.
+    struct ShadowCandidate { size_t slot; float score; int64_t key; };
+    std::vector<ShadowCandidate> shadow_candidates;
+    if (shadowed_pool) {
+        for (size_t s = 0; s < slots; ++s) {
+            const auto *c = holder[s];
+            const LightSlot &old = m_light_slot[s];
+            if (!c && (!old.key || old.fade <= 0.15f)) continue;
+            const Vector3 pos = c ? c->l->pos : old.pos;
+            const int64_t key = c ? c->key : old.key;
+            const bool retained = m_light_pool[s]->has_shadow() && key == old.key;
+            const float distance = pos.distance_to(around);
+            if (distance > m_lamp_shadow_distance + (retained ? 2.0f : 0.0f)) continue;
+            const float level = c ? c->l->level : old.level;
+            shadow_candidates.push_back({s, distance - range_of(level) -
+                    (retained ? 2.0f : 0.0f), key});
+        }
+        std::sort(shadow_candidates.begin(), shadow_candidates.end(),
+                [](const ShadowCandidate &a, const ShadowCandidate &b) {
+                    return a.score != b.score ? a.score < b.score : a.key < b.key;
+                });
+    }
+    std::vector<bool> selected_shadow(slots, false);
+    for (size_t i = 0; i < shadow_candidates.size() && i < (size_t)m_shadow_lamps; ++i)
+        selected_shadow[shadow_candidates[i].slot] = true;
+
     // Admission and eviction ramp rather than step. Even a perfectly stable
     // pool has to drop a lamp eventually, and a lamp that vanishes between one
     // frame and the next is visible as a jump in the lighting of everything it
@@ -4363,10 +4627,11 @@ void GoannaClient::update_lights(const Vector3 &around, int max_lights) {
             ol->set_param(Light3D::PARAM_ATTENUATION, 1.5f);
         if (!ol->is_visible())
             ol->set_visible(true);
-        const bool want_shadow = shadowed_pool;
+        const bool want_shadow = selected_shadow[s];
         if (ol->has_shadow() != want_shadow)
             ol->set_shadow(want_shadow);
     }
+    updateLampOcclusion(around);
     ema(m_ms_lights, ms_since(t0));
 }
 
@@ -4628,6 +4893,14 @@ void GoannaClient::set_mesh_threads(int threads) {
     // in flight, or poll_blocks skips them for ever waiting on a result that
     // is never coming.
     m_near_inflight.clear();
+    // Stopping the pool also discards regional batch jobs. A region left
+    // marked building would wait forever for its cancelled result, leaving
+    // holes when split-screen changes the worker allocation during loading.
+    for (auto &entry : m_near_regions) {
+        if (!entry.second.building) continue;
+        entry.second.building = false;
+        nearMarkDirty(entry.second);
+    }
     if (m_mesh_threads >= 0)
         m_mesh_pool.start(m_mesh_threads);
     // takeNewBlocks already handed these positions to the old pool. Put them
@@ -4765,7 +5038,7 @@ void GoannaClient::lodStartStorage() {
     GoannaSession *session = m_session.get();
     BlockStore *store = session->store();
     const std::string directory = store ? store->directory() + "/lod-v1" : "";
-    m_lod_storage.start(directory, session->terrainDefinitions(),
+    m_lod_storage.start(directory, session->terrainVisualDefinitions(),
             [store](v3s16 bp, std::string &source) {
                 uint8_t version = 0;
                 if (!store || !store->get(bp, version, source)) return false;
@@ -4804,7 +5077,11 @@ bool GoannaClient::lodRequestChain(v3s16 bp, bool replace_summary) {
                 for (int x = 0; x < 16; ++x)
                     nodes->push_back(block->getNodeNoCheck(x, y, z));
         const NodeDefManager *ndef = m_session->nodeDefs();
-        live = [nodes, ndef, bp] {
+        const std::string shared_key = getenv("GOANNA_NO_SHARED_TERRAIN") ? "" :
+                "live:" + m_session->terrainPeer() + ":" +
+                std::to_string(m_session->terrainVisualDefinitions()) + ":" + m_session->blockContentDigest(bp);
+        live = [nodes, ndef, bp, shared_key] {
+            return sharedLodChain(shared_key, [nodes, ndef, bp] {
             MapBlock copy(bp, nullptr);
             size_t i = 0;
             for (int z = 0; z < 16; ++z)
@@ -4814,6 +5091,7 @@ bool GoannaClient::lodRequestChain(v3s16 bp, bool replace_summary) {
             auto chain = std::make_shared<BlockLodChain>();
             buildLodChain(ndef, &copy, *chain);
             return chain;
+            });
         };
     } else if (m_session->farRenderingGrant() <= 0) {
         m_lod_chain_missing.insert(bp);
@@ -6726,6 +7004,36 @@ void GoannaClient::lodCaptureRegion(const LodRegionKey &key, const LodRegionSpec
     });
 }
 
+std::string GoannaClient::nearShareKey(v3s16 bp) {
+    if (getenv("GOANNA_NO_SHARED_TERRAIN") || m_shared_near.use_count() < 2 ||
+            !m_session->contentPrepared() ||
+            g_goanna_carve_demo || !m_session->carves().empty()) return {};
+    const auto &interaction = m_session->interactState();
+    // A live carve can also change a neighbouring block's boundary faces.
+    if (interaction.crack_level >= 0) return {};
+    if (m_shared_identity.empty()) {
+        const auto &table = m_session->materialTable();
+        std::string identity = m_session->terrainPeer() + ":" +
+                std::to_string(m_session->terrainDefinitions()) + ":" +
+                m_session->terrainMediaIdentity() + m_session->tsrc()->geometryIdentity();
+        identity.append((const char *)table.node_block.data(), table.node_block.size() * sizeof(uint16_t));
+        m_shared_identity = hashing::sha256(identity);
+    }
+    std::string key = m_shared_identity + ":" + std::to_string(bp.X) + ":" +
+            std::to_string(bp.Y) + ":" + std::to_string(bp.Z) + ":" +
+            std::to_string(occlusionRays()) + ":" + std::to_string(occlusionSteps());
+    const float shape[] = {bevel(), occlusionRadius()};
+    key.append((const char *)shape, sizeof(shape));
+    key.push_back(m_session->tsrc()->nodeAnimationEnabled() ? 1 : 0);
+    // Missing neighbours have their own digest: a donor's extra knowledge
+    // can never fill a receiving player's unknown boundary.
+    for (int z = -1; z <= 1; ++z)
+        for (int y = -1; y <= 1; ++y)
+            for (int x = -1; x <= 1; ++x)
+                key += m_session->blockContentDigest(bp + v3s16(x, y, z));
+    return key;
+}
+
 // Gather one block's meshing input and queue it, main thread, map lock held.
 bool GoannaClient::nearSubmit(v3s16 bp, MapBlock *block) {
     if (!m_session || !block)
@@ -6796,9 +7104,18 @@ bool GoannaClient::nearSubmit(v3s16 bp, MapBlock *block) {
 // describes terrain that has already changed. Dropping it leaves the last
 // good mesh on screen and the newer capture is already queued behind it.
 void GoannaClient::lodCollectMeshes() {
+    const auto started = clock_t_::now();
+    // Publication has its own soft slice so a busy capture queue cannot
+    // starve finished geometry. A single upload is indivisible and may
+    // exceed it; stop before starting another. Retain the count cap too.
+    const double budget_ms = m_poll_budget_ms > 0 ? m_poll_budget_ms : 6.0;
     int published = 0;
     MeshPool::Done done;
     while (m_mesh_pool.next(done)) {
+        if (published > 0 && ms_since(started) >= budget_ms) {
+            m_mesh_pool.requeueReady(std::move(done));
+            break;
+        }
         if (done.key.kind == MeshJobKey::kNearBlock) {
             // Meshed, not yet drawn: poll_blocks turns it into Godot arrays
             // on its own budget, and the block stays in its far region until
@@ -6839,7 +7156,7 @@ void GoannaClient::lodCollectMeshes() {
             if (done.generation != region.generation)
                 continue;
             nearPublishBatch(done.key.pos, region, job->groups_out, job->occ_verts,
-                    job->occ_idx, job->members);
+                    job->occ_idx, job->members, job->share_key);
             ++published;
             if (region.members.empty() && !region.dirty)
                 m_near_regions.erase(it);
@@ -7007,20 +7324,27 @@ void GoannaClient::lodPublishRegion(const LodRegionKey &key, LodRegion &r, const
         uv2s.resize(nv);
         cols.resize(nv);
         custom0.resize(nv * 4);
+        Vector3 *positions = verts.ptrw();
+        Vector3 *normals = norms.ptrw();
+        Vector2 *texcoords = uvs.ptrw();
+        Vector2 *layers = uv2s.ptrw();
+        Color *colours = cols.ptrw();
+        uint8_t *light = custom0.ptrw();
         for (int i = 0; i < nv; ++i) {
-            verts[i] = Vector3(sf.pos[i].X, sf.pos[i].Y, sf.pos[i].Z);
-            norms[i] = Vector3(sf.nrm[i].X, sf.nrm[i].Y, sf.nrm[i].Z);
-            uvs[i] = Vector2(sf.uv[i].X, sf.uv[i].Y);
-            uv2s[i] = Vector2(sf.uv2[i].X, sf.uv2[i].Y);
+            positions[i] = Vector3(sf.pos[i].X, sf.pos[i].Y, sf.pos[i].Z);
+            normals[i] = Vector3(sf.nrm[i].X, sf.nrm[i].Y, sf.nrm[i].Z);
+            texcoords[i] = Vector2(sf.uv[i].X, sf.uv[i].Y);
+            layers[i] = Vector2(sf.uv2[i].X, sf.uv2[i].Y);
             const u32 c = sf.col[i];
-            cols[i] = Color(((c >> 16) & 0xff) / 255.0f, ((c >> 8) & 0xff) / 255.0f,
+            colours[i] = Color(((c >> 16) & 0xff) / 255.0f, ((c >> 8) & 0xff) / 255.0f,
                     (c & 0xff) / 255.0f, 1.0f);
             for (int k = 0; k < 4; ++k)
-                custom0[i * 4 + k] = sf.custom0[i * 4 + k];
+                light[i * 4 + k] = sf.custom0[i * 4 + k];
         }
         idx.resize((int)sf.idx.size());
+        int32_t *indices = idx.ptrw();
         for (size_t i = 0; i < sf.idx.size(); ++i)
-            idx[i] = (int)sf.idx[i];
+            indices[i] = (int)sf.idx[i];
         Array arrays;
         arrays.resize(Mesh::ARRAY_MAX);
         arrays[Mesh::ARRAY_VERTEX] = verts;
@@ -7412,6 +7736,11 @@ int GoannaClient::update_lod(const Vector3 &around, int max_rebuild) {
 }
 
 int GoannaClient::poll_blocks(int max_blocks) {
+    struct LiveCarveScope {
+        const FormDamage *previous = g_goanna_carve;
+        ~LiveCarveScope() { g_goanna_carve = previous; }
+    } live_carve;
+    g_goanna_carve = m_carve_active ? &m_carve.damage : nullptr;
     if (!m_session)
         return 0;
     if (m_session->prepareContentIfReady())
@@ -7424,10 +7753,11 @@ int GoannaClient::poll_blocks(int max_blocks) {
     // to mesh and upload, so 24 of them in one poll was a 120 ms frame, which
     // is what the arrival of a new area felt like. What does not fit is
     // requeued and comes next frame. GOANNA_POLL_MS overrides the budget.
-    static const double poll_budget_ms = [] {
+    static const double default_poll_budget_ms = [] {
         const char *v = getenv("GOANNA_POLL_MS");
         return v ? std::max(1.0, atof(v)) : 6.0;
     }();
+    const double poll_budget_ms = m_poll_budget_ms > 0 ? m_poll_budget_ms : default_poll_budget_ms;
     const auto t_lock = clock_t_::now();
     std::unique_lock<std::mutex> lk(m_session->mapLock());
     ema(m_ms_poll_lock, ms_since(t_lock));
@@ -7547,11 +7877,16 @@ int GoannaClient::poll_blocks(int max_blocks) {
         UtilityFunctions::print("block queue: cancelled ", (int64_t)(fresh_raw.size() - fresh.size()),
                 " outside current range, retained ", (int64_t)fresh.size());
     }
+    int visited = 0;
     for (const v3s16 &bp : fresh) {
-        if (done >= max_blocks || (done > 0 && ms_since(t_poll) > poll_budget_ms)) {
+        // Capturing and submitting worker input is main-thread work too.
+        // Counting only published meshes let an arrival flood submit every
+        // block before the first result, bypassing both limits entirely.
+        if (visited >= max_blocks || (visited > 0 && ms_since(t_poll) > poll_budget_ms)) {
             m_session->requeueBlock(bp);
             continue;
         }
+        ++visited;
         MapBlock *block = m_session->getBlock(bp);
         if (!block) {
             m_near_ready.erase(bp); // a finished job can outlive residency
@@ -7596,6 +7931,9 @@ int GoannaClient::poll_blocks(int max_blocks) {
             ++done;
             continue;
         }
+        const std::string share_key = nearShareKey(bp);
+        const auto shared_geometry = share_key.empty() ? nullptr : m_shared_near->find(share_key);
+        if (shared_geometry) ++m_shared_near_hits;
         auto t_mesh = clock_t_::now();
         // Luanti's own light never reaches the vertices (g_goanna_no_light,
         // see goanna_mesh_flags.h), so it is read here instead, from the same
@@ -7604,16 +7942,21 @@ int GoannaClient::poll_blocks(int max_blocks) {
         BlockLightField lightfield;
         std::map<uint32_t, std::vector<VertexLight>> vertex_light;
         auto ready = m_near_ready.find(bp);
-        if (ready != m_near_ready.end()) {
+        if (!shared_geometry && ready != m_near_ready.end()) {
             auto wanted = m_near_generation.find(bp);
-            if (wanted == m_near_generation.end() || ready->second.generation != wanted->second) {
+            if (wanted == m_near_generation.end() || ready->second.generation != wanted->second ||
+                    ready->second.generation != m_session->blockRevision(bp)) {
                 m_near_ready.erase(ready);
                 if (m_mesh_pool.running() && nearSubmit(bp, block))
                     continue;
                 ready = m_near_ready.end();
             }
         }
-        if (ready != m_near_ready.end()) {
+        if (shared_geometry) {
+            m_near_ready.erase(bp);
+            m_near_generation.erase(bp);
+            m_near_inflight.erase(bp);
+        } else if (ready != m_near_ready.end()) {
             bm = std::move(ready->second.mesh);
             lightfield = std::move(ready->second.light);
             vertex_light = std::move(ready->second.vertex_light);
@@ -7642,6 +7985,7 @@ int GoannaClient::poll_blocks(int max_blocks) {
         harvestLights(bp, block);
         harvestMotes(bp, block);
         NearBlock near_block;
+        if (!share_key.empty()) near_block.share_key = hashing::sha256(share_key);
         Ref<ArrayMesh> mesh;
         mesh.instantiate();
         int si = 0;
@@ -7651,15 +7995,7 @@ int GoannaClient::poll_blocks(int max_blocks) {
         // into a single surface. This is where the draw-call saving is: the
         // array texture only makes the materials equal, merging is what turns
         // that into fewer draws.
-        struct SurfAccum {
-            MaterialKey key;
-            PackedVector3Array verts, norms;
-            PackedVector2Array uvs, uv2s;
-            PackedColorArray cols;
-            PackedByteArray custom0; // block light, sky light, occlusion, spare
-            PackedInt32Array idx;
-            bool is_array = false;
-        };
+        using SurfAccum = NearSurface;
         std::map<uint64_t, SurfAccum> groups;
         // Faces belonging to a light emitting node are collected separately and
         // drawn from a second mesh on its own render layer, which node lights
@@ -7678,6 +8014,10 @@ int GoannaClient::poll_blocks(int max_blocks) {
         // The dig crack's second pass, by crack stage (crack_overlay.gdshader).
         // Only ever the one block being dug, or one holding a stored carve.
         std::map<uint64_t, SurfAccum> crack_groups;
+        if (shared_geometry) {
+            groups = shared_geometry->groups;
+            glow_groups = shared_geometry->glow_groups;
+        }
         static const bool glow_casts = getenv("GOANNA_GLOW_CASTS_SHADOW") != nullptr;
         const NodeDefManager *gnd = m_session->nodeDefs();
         for (int layer = 0; layer < MAX_TILE_LAYERS && bm; ++layer) {
@@ -7876,6 +8216,22 @@ int GoannaClient::poll_blocks(int max_blocks) {
                 // front-face winding, so the index order is kept as is.
                 // indices were emitted per triangle above
             }
+        }
+        if (!shared_geometry && bm && !share_key.empty() && crack_groups.empty()) {
+            auto geometry = std::make_shared<SharedNearGeometry>();
+            geometry->groups = groups;
+            geometry->glow_groups = glow_groups;
+            size_t bytes = sizeof(SharedNearGeometry);
+            for (const auto *surfaces : {&groups, &glow_groups})
+                for (const auto &entry : *surfaces) {
+                    const auto &surface = entry.second;
+                    bytes += sizeof(NearSurface) + surface.verts.size() * sizeof(Vector3) +
+                            surface.norms.size() * sizeof(Vector3) + surface.uvs.size() * sizeof(Vector2) +
+                            surface.uv2s.size() * sizeof(Vector2) + surface.cols.size() * sizeof(Color) +
+                            surface.custom0.size() + surface.idx.size() * sizeof(int32_t);
+                }
+            m_shared_near->put(share_key, geometry, bytes);
+            ++m_shared_near_misses;
         }
         Ref<ArrayMesh> ice_mesh;
         ice_mesh.instantiate();
@@ -8091,10 +8447,10 @@ int GoannaClient::poll_blocks(int max_blocks) {
     // regions then use what remains, with a small floor so a quiet frame
     // advances both queues.
     const auto t_near = clock_t_::now();
-    nearRebuild(std::max(2.0, poll_budget_ms - ms_since(t_poll)));
+    nearRebuild(std::max(m_poll_budget_ms > 0 ? 0.25 : 2.0, poll_budget_ms - ms_since(t_poll)));
     ema(m_ms_poll_near, ms_since(t_near));
     const auto t_lod = clock_t_::now();
-    lodRebuild(std::max(2.0, poll_budget_ms - ms_since(t_poll)));
+    lodRebuild(std::max(m_poll_budget_ms > 0 ? 0.25 : 2.0, poll_budget_ms - ms_since(t_poll)));
     ema(m_ms_poll_lod, ms_since(t_lod));
     // The worst poll in the last second, which is the frame stall figure.
     const double took = ms_since(t_poll);
@@ -8108,6 +8464,11 @@ int GoannaClient::poll_blocks(int max_blocks) {
 }
 
 void GoannaClient::_bind_methods() {
+    ClassDB::bind_method(D_METHOD("enable_render_scope"), &GoannaClient::enable_render_scope);
+    ClassDB::bind_method(D_METHOD("load_view_shader", "path"), &GoannaClient::load_view_shader);
+    ClassDB::bind_method(D_METHOD("set_view_shader_parameter", "name", "value"), &GoannaClient::set_view_shader_parameter);
+    ClassDB::bind_method(D_METHOD("view_shader_parameter_name", "name"), &GoannaClient::view_shader_parameter_name);
+    ClassDB::bind_method(D_METHOD("set_poll_budget_ms", "budget"), &GoannaClient::set_poll_budget_ms);
     ClassDB::bind_method(D_METHOD("hello"), &GoannaClient::hello);
     ClassDB::bind_method(D_METHOD("luanti_version"), &GoannaClient::luanti_version);
     ClassDB::bind_method(D_METHOD("set_material_strength", "channel", "value"), &GoannaClient::set_material_strength);
@@ -8155,8 +8516,12 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("horizon_bake_poll"), &GoannaClient::horizon_bake_poll);
     ClassDB::bind_method(D_METHOD("perf_worst_take"), &GoannaClient::perf_worst_take);
     ClassDB::bind_method(D_METHOD("update_lights", "around", "max_lights"), &GoannaClient::update_lights);
+    ClassDB::bind_method(D_METHOD("set_lamp_occlusion", "enabled"), &GoannaClient::set_lamp_occlusion);
+    ClassDB::bind_method(D_METHOD("lamp_occlusion"), &GoannaClient::lamp_occlusion);
     ClassDB::bind_method(D_METHOD("set_shadow_lamps", "n"), &GoannaClient::set_shadow_lamps);
     ClassDB::bind_method(D_METHOD("shadow_lamps"), &GoannaClient::shadow_lamps);
+    ClassDB::bind_method(D_METHOD("set_lamp_shadow_distance", "distance"), &GoannaClient::set_lamp_shadow_distance);
+    ClassDB::bind_method(D_METHOD("lamp_shadow_distance"), &GoannaClient::lamp_shadow_distance);
     ClassDB::bind_method(D_METHOD("set_light_flicker", "on"), &GoannaClient::set_light_flicker);
     ClassDB::bind_method(D_METHOD("light_flicker"), &GoannaClient::light_flicker);
     ClassDB::bind_method(D_METHOD("set_motes", "density"), &GoannaClient::set_motes);

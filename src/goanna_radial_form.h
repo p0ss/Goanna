@@ -2,6 +2,9 @@
 // Copyright (C) 2026 the Goanna contributors
 
 #pragma once
+#include <map>
+#include <mutex>
+#include <tuple>
 
 // Sub node shape and per node damage, v3. Ported from Kythen's
 // mods/kythen/core/radial_form.lua at commit 809475f (branch form/damage);
@@ -300,15 +303,6 @@ FormDamage decodeForm(const std::string &bytes);
 // at once and must never touch the shared store directly.
 // --------------------------------------------------------------------------
 
-void carveStoreSet(int x, int y, int z, const FormDamage &damage);
-void carveStoreClear(int x, int y, int z);
-// Drop every stored carve inside the 16 node block at this corner for which
-// keep returns false.
-void carveStoreClearBlock(int block_x, int block_y, int block_z,
-        const std::function<bool(int, int, int)> &keep);
-bool carveStoreGet(int x, int y, int z, FormDamage &out);
-bool carveStoreEmpty();
-
 // One block's carves, snapshotted for meshing. Positions are node coordinates
 // relative to the block, so a lookup is a comparison and not arithmetic.
 struct CarveSnapshot {
@@ -322,9 +316,21 @@ struct CarveSnapshot {
     }
 };
 
-// Fill `out` with the carves inside the block whose low corner is the given
-// node position. Takes the store's lock once.
-void carveSnapshot(int block_x, int block_y, int block_z, CarveSnapshot &out);
+// Each connection owns what that server has sent that player. Coordinates
+// alone cannot identify knowledge shared between local players or servers.
+class CarveStore {
+public:
+    void set(int x, int y, int z, const FormDamage &damage);
+    void clear(int x, int y, int z);
+    // Clear a replaced block while retaining metadata the server still sends.
+    void clearBlock(int x, int y, int z, const std::function<bool(int, int, int)> &keep);
+    bool get(int x, int y, int z, FormDamage &out);
+    bool empty();
+    void snapshot(int x, int y, int z, CarveSnapshot &out);
+private:
+    std::mutex m_lock;
+    std::map<std::tuple<int, int, int>, FormDamage> m_entries;
+};
 
 // The snapshot the current thread is meshing against, or null. Thread local
 // because several mesh workers run at once and each is on a different block.

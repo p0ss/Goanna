@@ -14,6 +14,8 @@
 # "Wakes", has the design and what is untested.
 extends Node
 
+const PlayerContext := preload("res://player_context.gd")
+
 # The shader's constants, repeated for the copy of its maths below
 # (ring()); project/tests/wake.gd checks them against the source by text.
 const MAX_POINTS := 64
@@ -81,12 +83,12 @@ var _texture: ImageTexture
 func _ready() -> void:
 	_image = Image.create_empty(MAX_POINTS, 1, false, Image.FORMAT_RGBAF)
 	_texture = ImageTexture.create_from_image(_image)
-	RenderingServer.global_shader_parameter_set("goanna_wake_points", _texture)
+	PlayerContext.shader_parameter(client, "goanna_wake_points", _texture)
 	_publish_state(0.0)
 
 
 func _exit_tree() -> void:
-	RenderingServer.global_shader_parameter_set("goanna_wake_state", Vector4.ZERO)
+	PlayerContext.shader_parameter(client, "goanna_wake_state", Vector4.ZERO)
 
 
 # Seconds on the wake clock. Its own, from when this node started, rather
@@ -104,7 +106,7 @@ func _process(delta: float) -> void:
 	_since_sample += delta
 	if _since_sample >= SAMPLE_INTERVAL:
 		_since_sample = 0.0
-		var m: Node = get_tree().get_first_node_in_group("goanna_main")
+		var m: Node = PlayerContext.find(self, "goanna_main")
 		if m != null and m.get("cam") != null:
 			var eye: Vector3 = (m.cam as Node3D).global_position
 			step(gather_sources(m, eye), t)
@@ -293,12 +295,12 @@ func publish(t: float) -> void:
 			_image.set_pixel(i, 0, Color(p.x, p.y, p.z, p.w))
 		_texture.update(_image)
 	_live = live.size()
-	RenderingServer.global_shader_parameter_set("goanna_wake_area", area_of(live))
+	PlayerContext.shader_parameter(client, "goanna_wake_area", area_of(live))
 	_publish_state(t)
 
 
 func _publish_state(t: float) -> void:
-	RenderingServer.global_shader_parameter_set("goanna_wake_state", Vector4(_live, t, 0.0, 0.0))
+	PlayerContext.shader_parameter(client, "goanna_wake_state", Vector4(_live, t, 0.0, 0.0))
 
 
 # goanna_wake_ring in wake.gdshaderinc, mirrored so a test can check the

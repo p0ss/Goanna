@@ -18,11 +18,15 @@ std::string encodeLodRecord(const BlockLodChain &chain, uint64_t definitions, ui
 std::shared_ptr<BlockLodChain> decodeLodRecord(
         const std::string &bytes, uint64_t definitions, uint64_t source);
 
+std::shared_ptr<const BlockLodChain> sharedLodChain(const std::string &key,
+        const std::function<std::shared_ptr<const BlockLodChain>()> &build);
+uint64_t sharedLodHits();
+
 class LodStorage {
 public:
     using Load = std::function<bool(v3s16, std::string &)>;
     using Build = std::function<std::shared_ptr<BlockLodChain>(v3s16, const std::string &)>;
-    using LiveBuild = std::function<std::shared_ptr<BlockLodChain>()>;
+    using LiveBuild = std::function<std::shared_ptr<const BlockLodChain>()>;
     using Prime = std::function<void(v3s16)>;
     struct Result {
         v3s16 pos;

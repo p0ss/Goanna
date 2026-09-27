@@ -13,6 +13,7 @@
 // its definition.
 
 #include "goanna_session.h"
+#include "util/hashing.h"
 
 #include "goanna_radial_form.h"
 #include "goanna_lod_storage.h"
@@ -318,6 +319,30 @@ void GoannaSession::queueBlockUpdate(v3s16 pos) {
 uint64_t GoannaSession::blockRevision(v3s16 pos) const {
     auto it = m_block_revisions.find(pos);
     return it == m_block_revisions.end() ? 0 : it->second;
+}
+
+std::string GoannaSession::blockContentDigest(v3s16 pos) {
+    MapBlock *block = getBlock(pos);
+    if (!block) return std::string(32, '\0');
+    const uint64_t revision = blockRevision(pos);
+    auto it = m_block_digests.find(pos);
+    if (it != m_block_digests.end() && it->second.first == revision)
+        return it->second.second;
+    std::string bytes;
+    bytes.reserve(16384);
+    for (int z = 0; z < 16; ++z)
+        for (int y = 0; y < 16; ++y)
+            for (int x = 0; x < 16; ++x) {
+                const MapNode node = block->getNodeNoCheck(x, y, z);
+                bytes.push_back((char)node.getContent());
+                bytes.push_back((char)(node.getContent() >> 8));
+                bytes.push_back((char)node.param1);
+                bytes.push_back((char)node.param2);
+            }
+    if (m_block_digests.size() >= 8192) m_block_digests.clear();
+    std::string digest = hashing::sha256(bytes);
+    m_block_digests[pos] = {revision, digest};
+    return digest;
 }
 
 void GoannaSession::invalidateBlock(v3s16 pos) {
@@ -935,7 +960,7 @@ void GoannaSession::takeBlockCarves(v3s16 blockpos, MapBlock *block) {
     // it is dug or replaced, and a node with no metadata is not visited by
     // the loop below, so without this a stale carve outlived its node and
     // the next block placed or fallen there arrived damaged.
-    goanna::carveStoreClearBlock(corner.X, corner.Y, corner.Z,
+    m_carves.clearBlock(corner.X, corner.Y, corner.Z,
             [&](int x, int y, int z) {
                 NodeMetadata *m = block->m_node_metadata.get(v3s16(x, y, z) - corner);
                 return m && !m->getString("goanna_carve").empty();
@@ -947,9 +972,9 @@ void GoannaSession::takeBlockCarves(v3s16 blockpos, MapBlock *block) {
         const std::string bytes = meta->getString("goanna_carve");
         const v3s16 at = corner + rel;
         if (bytes.empty())
-            goanna::carveStoreClear(at.X, at.Y, at.Z);
+            m_carves.clear(at.X, at.Y, at.Z);
         else
-            goanna::carveStoreSet(at.X, at.Y, at.Z, goanna::decodeForm(bytes));
+            m_carves.set(at.X, at.Y, at.Z, goanna::decodeForm(bytes));
     }
 }
 
@@ -960,9 +985,9 @@ void GoannaSession::takeCarveMetadata(v3s16 pos, NodeMetadata *meta) {
         return;
     const std::string bytes = meta->getString("goanna_carve");
     if (bytes.empty()) {
-        goanna::carveStoreClear(pos.X, pos.Y, pos.Z);
+        m_carves.clear(pos.X, pos.Y, pos.Z);
     } else {
-        goanna::carveStoreSet(pos.X, pos.Y, pos.Z, goanna::decodeForm(bytes));
+        m_carves.set(pos.X, pos.Y, pos.Z, goanna::decodeForm(bytes));
     }
     invalidateBlock(getNodeBlockPos(pos));
     // Its neighbours decide their own faces against it (a carved neighbour
@@ -1321,8 +1346,8 @@ void GoannaSession::stepInteract(float dtime, const InteractInput &in) {
     m_pointed_old = pointed;
     m_dig_was_down = in.dig;
     // crack overlay: re-mesh the block when the crack level or position changes
-    static int last_level = -1;
-    static v3s16 last_pos;
+    int &last_level = m_last_crack_level;
+    v3s16 &last_pos = m_last_crack_pos;
     if (m_interact.crack_level != last_level || (m_interact.crack_level >= 0 && m_interact.crack_pos != last_pos)) {
         if (last_level >= 0)
             queueBlockUpdate(getNodeBlockPos(last_pos));
@@ -2004,10 +2029,16 @@ bool GoannaSession::prepareContentIfReady() {
     size_t n_img = 0;
     {
         std::lock_guard<std::mutex> lk(m_media_mutex);
+        std::string media_identity;
         for (auto &kv : m_media) {
+            // Node meshes can change without their definition's filename
+            // changing. Bind shared geometry to the actual received media.
+            media_identity += std::to_string(kv.first.size()) + ":" + kv.first;
+            media_identity += hashing::sha256(kv.second);
             if (isImageName(kv.first) && m_tsrc->insertMediaImage(kv.first, kv.second))
                 ++n_img;
         }
+        m_terrain_media_identity = hashing::sha256(media_identity);
     }
     // 1b. The player's pack, after media so it wins. Native Luanti packs are
     // indexed by their flat media names; Minecraft packs use the game map.
@@ -2078,6 +2109,14 @@ bool GoannaSession::prepareContentIfReady() {
         // textures no pack covers carry the class rather than nothing.
         buildMaterialTable(m_nodedef, readTextureMap(m_texture_map), m_material_table);
         m_tsrc->setMaterialTable(&m_material_table);
+        // Freeze the prepared node layout before avatars and item icons
+        // append unrelated, per-player textures to the same source.
+        m_tsrc->freezeGeometryIdentity();
+        // LOD occupancy reads prepared solidness as well as node definitions.
+        // A pack/media change can alter that without changing node IDs.
+        m_terrain_visual_definitions = terrainFingerprint(
+                std::to_string(m_terrain_definitions) + m_terrain_media_identity +
+                m_tsrc->geometryIdentity());
         if (std::getenv("GOANNA_DEBUG_PBR")) {
             const MaterialTable &t = m_material_table;
             fprintf(stderr, "goanna classes: %d nodes, by footstep %d, group %d, drawtype %d, name %d,"
@@ -2915,7 +2954,7 @@ void GoannaSession::onAddNode(NetworkPacket &pkt) {
     // pre damaged and drawn with the old node's tiles). A swap that keeps
     // metadata, such as a furnace lighting, keeps its carve.
     if (!keep_metadata)
-        goanna::carveStoreClear(p.X, p.Y, p.Z);
+        m_carves.clear(p.X, p.Y, p.Z);
     std::lock_guard<std::mutex> lk(m_map_mutex);
     std::map<v3s16, MapBlock *> modified;
     try {
@@ -2934,7 +2973,7 @@ void GoannaSession::onRemoveNode(NetworkPacket &pkt) {
     v3s16 p;
     pkt >> p;
     // The carve ends with the node (see onAddNode).
-    goanna::carveStoreClear(p.X, p.Y, p.Z);
+    m_carves.clear(p.X, p.Y, p.Z);
     std::lock_guard<std::mutex> lk(m_map_mutex);
     std::map<v3s16, MapBlock *> modified;
     try {

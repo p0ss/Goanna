@@ -29,17 +29,12 @@ void MeshPool::start(int threads) {
 }
 
 void MeshPool::stop() {
-    if (!m_running.exchange(false, std::memory_order_acq_rel)) {
-        // Not running, but a previous stop may have left threads to join.
-        for (auto &t : m_threads)
-            if (t.joinable())
-                t.join();
-        m_threads.clear();
+    {
+        // Change the wait predicate under the worker's mutex. An atomic
+        // alone permits a worker to read true, miss notify_all(), then
+        // sleep indefinitely while stop() waits to join it.
         std::lock_guard<std::mutex> lock(m_mutex);
-        m_queue.clear();
-        m_ready.clear();
-        m_inflight.clear();
-        return;
+        m_running.store(false, std::memory_order_release);
     }
     m_wake.notify_all();
     for (auto &t : m_threads)

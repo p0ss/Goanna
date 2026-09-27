@@ -93,6 +93,38 @@ const UI_KEYS := {"goanna_pause": KEY_ESCAPE, "goanna_ui_back": KEY_ESCAPE,
 	"goanna_inventory": KEY_I}
 
 # Settings, from goanna.cfg and the settings panel.
+# A local player consumes only events forwarded into their viewport. Global
+# Input state still serves the single-player game and the main menu.
+var local_input := false
+var device_id := -1
+var _strengths := {}
+
+func reset_input() -> void:
+	_leave_pointer()
+	_strengths.clear()
+	_prev.clear()
+	_repeat.clear()
+	_stale.clear()
+	_pending = {"hotbar": 0, "drop": 0, "place": 0}
+	move = Vector2.ZERO
+	look = Vector2.ZERO
+	_was_play = false
+
+func _strength(action: String) -> float:
+	return float(_strengths.get(action, 0.0)) if local_input else Input.get_action_raw_strength(action)
+
+func _pressed(action: String) -> bool:
+	if not local_input:
+		return Input.is_action_pressed(action)
+	var threshold := TRIGGER_THRESHOLD if action in TRIGGERS else 0.5
+	return _strength(action) > threshold
+
+func _push_event(event: InputEvent) -> void:
+	if local_input:
+		get_viewport().push_input(event, true)
+	else:
+		Input.parse_input_event(event)
+
 var enabled := true
 var look_speed := DEFAULT_LOOK_SPEED
 var invert_y := false
@@ -172,6 +204,15 @@ func ensure_actions() -> void:
 			ev = b
 		ev.device = -1  # any controller
 		InputMap.action_add_event(action, ev)
+	# Godot's built-in direction bindings default to controller 0. Events
+	# have already been assigned to a player before reaching a local viewport.
+	for action in ["ui_up", "ui_down", "ui_left", "ui_right"]:
+		for event in InputMap.action_get_events(action):
+			if (event is InputEventJoypadButton or event is InputEventJoypadMotion) and event.device != -1:
+				InputMap.action_erase_event(action, event)
+				var any_pad := event.duplicate() as InputEvent
+				any_pad.device = -1
+				InputMap.action_add_event(action, any_pad)
 	# Godot's ui_accept has no controller button, so A would move focus with
 	# the D-pad and then press nothing.
 	var has_a := false
@@ -229,10 +270,10 @@ static func cursor_step(v: Vector2, held: float, delta: float, px_per_sec: float
 	return v.normalized() * px_per_sec * mag * mag * accel * delta
 
 func _raw(neg: String, pos: String) -> float:
-	return Input.get_action_raw_strength(pos) - Input.get_action_raw_strength(neg)
+	return _strength(pos) - _strength(neg)
 
 func held(action: String) -> bool:
-	return enabled and Input.is_action_pressed(action) and not _stale.has(action)
+	return enabled and _pressed(action) and not _stale.has(action)
 
 # --- what main.gd reads in play ----------------------------------------------
 
@@ -286,10 +327,10 @@ func step(delta: float) -> void:
 	var play := in_play()
 	if play and not _was_play:
 		for action in HELD_IN_PLAY:
-			if Input.is_action_pressed(action):
+			if _pressed(action):
 				_stale[action] = true
 	for action in _stale.keys():
-		if not Input.is_action_pressed(action):
+		if not _pressed(action):
 			_stale.erase(action)
 	if play:
 		_leave_pointer()
@@ -358,7 +399,7 @@ func _show_pointer() -> void:
 	pointer_shown = true
 	if pointer_pos.x < 0.0:
 		pointer_pos = _screen() * 0.5
-	if Input.mouse_mode == Input.MOUSE_MODE_VISIBLE:
+	if not local_input and Input.mouse_mode == Input.MOUSE_MODE_VISIBLE:
 		Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
 		_hid_os_pointer = true
 	_cursor.queue_redraw()
@@ -388,7 +429,7 @@ func _push_motion() -> void:
 	ev.global_position = pointer_pos
 	ev.button_mask = _mask
 	ev.shift_pressed = held("goanna_ui_shift")
-	Input.parse_input_event(ev)
+	_push_event(ev)
 	_cursor.queue_redraw()
 
 func _push_button(button: int, pressed: bool) -> void:
@@ -415,7 +456,7 @@ func _push_button(button: int, pressed: bool) -> void:
 				and pointer_pos.distance_to(_last_click_pos) < 6.0
 		_last_click_time = -10.0 if ev.double_click else _clock
 		_last_click_pos = pointer_pos
-	Input.parse_input_event(ev)
+	_push_event(ev)
 
 func _tap_key(keycode: int) -> void:
 	for pressed in [true, false]:
@@ -424,7 +465,7 @@ func _tap_key(keycode: int) -> void:
 		ev.physical_keycode = keycode
 		ev.key_label = keycode
 		ev.pressed = pressed
-		Input.parse_input_event(ev)
+		_push_event(ev)
 
 func _draw_cursor() -> void:
 	if not pointer_shown:
@@ -448,6 +489,16 @@ func _input(event: InputEvent) -> void:
 		return
 	if not (event is InputEventJoypadButton or event is InputEventJoypadMotion):
 		return
+	if local_input:
+		if event.device != device_id:
+			get_viewport().set_input_as_handled()
+			return
+		for action in ACTIONS:
+			var binding: Variant = ACTIONS[action]
+			if event is InputEventJoypadButton and binding is int and event.button_index == binding:
+				_strengths[action] = 1.0 if event.pressed else 0.0
+			elif event is InputEventJoypadMotion and binding is Array and event.axis == binding[0]:
+				_strengths[action] = maxf(0.0, event.axis_value * binding[1])
 	if not enabled:
 		get_viewport().set_input_as_handled()
 		return
@@ -471,7 +522,7 @@ func _menu_button(event: InputEventJoypadButton) -> bool:
 			_hide_pointer()
 			_focus_nav = true
 			if get_viewport().gui_get_focus_owner() == null:
-				var first := _first_focusable(get_tree().root)
+				var first := _first_focusable(get_viewport() if local_input else get_tree().root)
 				if first != null:
 					first.grab_focus()
 					return false

@@ -1,5 +1,18 @@
 extends Node3D
 
+const PlayerContext := preload("res://player_context.gd")
+const RenderFeatures := preload("res://render_features.gd")
+var render_features: Dictionary = RenderFeatures.DEFAULTS.duplicate()
+var cloud_body_texture: NoiseTexture3D
+# Defer expensive allocation until saved settings and the local preset agree.
+var quality_settings_ready := false
+var ice_capture: Node
+var shaft_glow_luminance := 0.0
+# Opt-in stage timings for benchmarks. Last-frame and interval maxima only.
+var profile_frame_work := false
+var frame_work_usec := {}
+var frame_work_worst_usec := {}
+
 const AssetUpdater := preload("res://asset_updater.gd")
 const LookGrade := preload("res://look_grade.gd")
 var look_grade := LookGrade.new()
@@ -7,6 +20,15 @@ var look_grade := LookGrade.new()
 var grass_aa_active := false
 var grass_previous_msaa := Viewport.MSAA_DISABLED
 var grass_previous_screen_aa := Viewport.SCREEN_SPACE_AA_DISABLED
+
+# Set before entering the tree by local_play.gd. No process-wide identity
+# changes are needed to create or remove a player.
+var player_slot: Node
+var connection_options: Dictionary = {}
+var connect_automatically := true
+
+func _key_pressed(key: Key) -> bool:
+	return player_slot.key_pressed(key) if player_slot != null else Input.is_key_pressed(key)
 
 var client: GoannaClient
 var ui: CanvasLayer
@@ -143,6 +165,16 @@ var shaft_mat: ShaderMaterial
 # Cost and reach of the shared atmospheric froxel volume. Zero leaves only
 # the inexpensive sky and horizon fade.
 var atmosphere_quality := 1.0
+# Sky cloud sampling: 0 compact, 1 balanced, 2 full.
+var cloud_quality := 2.0
+# 0 block, 1 fluffy rounded block, 2 volume. Independent of lighting samples.
+var cloud_style := 2.0
+var grass_density := 1.0
+var grass_draw_distance := 80.0
+var grass_interaction_distance := 16.0
+var grass_interactors := 8.0
+# 0 unchanged, 1 FXAA, 2 2x MSAA + FXAA, 3 4x MSAA + FXAA.
+var grass_antialiasing := 3.0
 # The background layer's shape (docs/far-rendering.md, "Background, overlay,
 # foreground"), swept with GOANNA_FOG_CLEAR and GOANNA_FOG_CURVE. The fraction
 # of the drawn distance that stays clear of haze, and the exponent on the ramp
@@ -291,17 +323,40 @@ const VISUAL_TESTS := {
 
 func set_procedural_grass(on: bool) -> void:
 	var viewport := get_viewport()
-	if on and not grass_aa_active:
+	var want_aa: bool = on and render_features["render_grass_aa"] and grass_antialiasing > 0.0
+	if want_aa and not grass_aa_active:
 		grass_previous_msaa = viewport.msaa_3d
 		grass_previous_screen_aa = viewport.screen_space_aa
-		viewport.msaa_3d = maxi(viewport.msaa_3d, Viewport.MSAA_4X) as Viewport.MSAA
+	if want_aa:
+		var samples := Viewport.MSAA_4X if grass_antialiasing >= 3.0 else Viewport.MSAA_2X if grass_antialiasing >= 2.0 else Viewport.MSAA_DISABLED
+		viewport.msaa_3d = maxi(grass_previous_msaa, samples) as Viewport.MSAA
 		if viewport.screen_space_aa == Viewport.SCREEN_SPACE_AA_DISABLED:
 			viewport.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA
-	elif not on and grass_aa_active:
+	elif grass_aa_active:
 		viewport.msaa_3d = grass_previous_msaa
 		viewport.screen_space_aa = grass_previous_screen_aa
-	grass_aa_active = on
+	grass_aa_active = want_aa
+	_apply_grass_quality()
 	client.set_procedural_grass(on)
+
+func _apply_grass_quality() -> void:
+	if client == null:
+		return
+	var parameters := {
+		"density": clampf(grass_density, 0.1, 1.0),
+		"draw_distance": clampf(grass_draw_distance, 4.0, 128.0),
+		"interaction_distance": clampf(grass_interaction_distance, 0.0, 32.0),
+		"interaction_enabled": grass_interactors > 0.0 and grass_interaction_distance > 0.0,
+		"detail_near": minf(25.0, grass_draw_distance * 0.3),
+		"detail_far": minf(65.0, grass_draw_distance * 0.8),
+	}
+	client.set_meta("goanna_grass_parameters", parameters)
+	client.set_meta("goanna_grass_interactors", clampi(int(grass_interactors), 0, 8))
+	client.set_meta("goanna_grass_interaction", render_features["render_grass_interaction"] and grass_interaction_distance > 0.0)
+	if client.has_meta("goanna_grass_material"):
+		var material: ShaderMaterial = client.get_meta("goanna_grass_material")
+		for key in parameters:
+			material.set_shader_parameter(key, parameters[key])
 
 func _exit_tree() -> void:
 	# The window survives scene changes. Release the AA owned by this game
@@ -323,11 +378,13 @@ func _ready() -> void:
 	add_to_group("goanna_main")  # game_ui updates look controls through this group
 	# The showcase behind the menu is not played, so it leaves the controller
 	# driving the menu's cursor.
-	gamepad = get_node_or_null("/root/Gamepad")
+	gamepad = player_slot.gamepad if player_slot != null else get_node_or_null("/root/Gamepad")
 	if gamepad != null and not showcase_mode:
 		gamepad.play_owner = gamepad_owns_play
 	var cfg := ConfigFile.new()
 	if cfg.load("user://goanna.cfg") == OK:
+		for key in RenderFeatures.DEFAULTS:
+			render_features[key] = bool(cfg.get_value("settings", key, true))
 		mouse_sensitivity = float(cfg.get_value("settings", "mouse_sensitivity", mouse_sensitivity))
 		invert_mouse = bool(cfg.get_value("settings", "invert_mouse", invert_mouse))
 		view_bobbing = float(cfg.get_value("settings", "view_bobbing", view_bobbing))
@@ -351,10 +408,14 @@ func _ready() -> void:
 	sky_ground_curve = _envf("GOANNA_GROUND_CURVE", sky_ground_curve)
 	if cfg.load("user://goanna.cfg") == OK:
 		atmosphere_quality = float(cfg.get_value("settings", "atmosphere_quality", atmosphere_quality))
+		cloud_quality = float(cfg.get_value("settings", "cloud_quality", cloud_quality))
+		cloud_style = float(cfg.get_value("settings", "cloud_style", cloud_style))
 		for k in ["sun", "ambient", "sdfgi", "sdfgi_cell", "ssao", "white", "exposure", "fill", "shafts"]:
 			if cfg.has_section_key("settings", "light_" + k):
 				set("light_" + k, float(cfg.get_value("settings", "light_" + k)))
 	client = GoannaClient.new()
+	if player_slot != null:
+		client.enable_render_scope()
 	if OS.get_environment("GOANNA_SHADOW_LAMPS") != "":
 		client.set_shadow_lamps(int(OS.get_environment("GOANNA_SHADOW_LAMPS")))
 	add_child(client)
@@ -369,6 +430,7 @@ func _ready() -> void:
 	ui = preload("res://ui/game_ui.tscn").instantiate()
 	if "client" in ui:
 		ui.client = client
+		ui.main = self
 	else:
 		push_error("game_ui failed to load its script; running without a UI")
 		ui = null
@@ -409,7 +471,7 @@ func _ready() -> void:
 	shaft_mesh.size = Vector2(2, 2)
 	shaft_quad.mesh = shaft_mesh
 	shaft_mat = ShaderMaterial.new()
-	shaft_mat.shader = load("res://shaders/light_shafts.gdshader")
+	shaft_mat.shader = client.load_view_shader("res://shaders/light_shafts.gdshader")
 	shaft_mat.render_priority = 100
 	shaft_quad.material_override = shaft_mat
 	shaft_quad.custom_aabb = AABB(Vector3(-5e8, -5e8, -5e8), Vector3(1e9, 1e9, 1e9))
@@ -466,26 +528,14 @@ func _ready() -> void:
 	var e := Environment.new()
 	var sky := Sky.new()
 	var sm := ShaderMaterial.new()
-	sm.shader = load("res://shaders/sky.gdshader")
+	sm.shader = client.load_view_shader("res://shaders/sky.gdshader")
 	sky_mat = sm
 	# The 3D body the volumetric cumulus march samples (sky.gdshader,
 	# cloud_density). A texture fetch is what makes 24 steps a pixel
 	# affordable; seamless so the slab tiles, with the weather field breaking
 	# the repetition. Generation is threaded and the march just sees no
 	# density until it lands.
-	var cloud_noise := FastNoiseLite.new()
-	cloud_noise.noise_type = FastNoiseLite.TYPE_PERLIN
-	cloud_noise.fractal_type = FastNoiseLite.FRACTAL_FBM
-	cloud_noise.fractal_octaves = 5
-	cloud_noise.frequency = 0.02
-	var cloud_tex := NoiseTexture3D.new()
-	cloud_tex.width = 128
-	cloud_tex.height = 96
-	cloud_tex.depth = 128
-	cloud_tex.seamless = true
-	cloud_tex.normalize = true
-	cloud_tex.noise = cloud_noise
-	sm.set_shader_parameter("cloud_body_tex", cloud_tex)
+	_apply_cloud_feature()
 	sky.sky_material = sm
 	e.background_mode = Environment.BG_SKY
 	e.sky = sky
@@ -588,9 +638,9 @@ func _ready() -> void:
 	e.fog_aerial_perspective = 0.12
 	env.environment = e
 	add_child(env)
-	var ice_transmission := preload("res://ice_transmission.gd").new()
-	add_child(ice_transmission)
-	ice_transmission.initialise(cam, e, client)
+	ice_capture = preload("res://ice_transmission.gd").new()
+	add_child(ice_capture)
+	ice_capture.initialise(cam, e, client)
 	_apply_screen_space()
 	# One world-sized fog volume supplies spatial density to the environment's
 	# froxel grid. It adds no scene geometry or per-cloud objects: valleys and
@@ -598,9 +648,10 @@ func _ready() -> void:
 	atmosphere_volume = FogVolume.new()
 	atmosphere_volume.shape = RenderingServer.FOG_VOLUME_SHAPE_WORLD
 	atmosphere_mat = ShaderMaterial.new()
-	atmosphere_mat.shader = load("res://shaders/atmosphere_volume.gdshader")
+	atmosphere_mat.shader = client.load_view_shader("res://shaders/atmosphere_volume.gdshader")
 	atmosphere_volume.material = atmosphere_mat
 	add_child(atmosphere_volume)
+	_apply_render_features()
 	# Subtle head-light so caves are navigable rather than pitch black. Short
 	# range and low energy, so it is negligible against daylight but lets you
 	# see a few nodes underground. (A proper fix would feed Luanti's baked node
@@ -610,6 +661,7 @@ func _ready() -> void:
 	headlight.omni_range = 9.0
 	headlight.light_color = Color(1.0, 0.96, 0.9)
 	headlight.shadow_enabled = false
+	headlight.visible = render_features["render_carried_light"]
 	add_child(headlight)
 
 	# GOANNA_SHADERPACK=/path/to/pack: run an Iris or OptiFine shader pack's
@@ -658,6 +710,9 @@ func _ready() -> void:
 	var pname := OS.get_environment("GOANNA_NAME")
 	if pname == "":
 		pname = "goanna"
+	host = str(connection_options.get("host", host))
+	port = int(connection_options.get("port", port))
+	pname = str(connection_options.get("name", pname))
 	# A directory searched by filename before the server's own media, LabPBR
 	# _n and _s companions included. This is Luanti's own texture_path
 	# override, exposed by set_texture_path. Settings panel writes
@@ -721,6 +776,9 @@ func _ready() -> void:
 		var sp_world := OS.get_environment("GOANNA_SP_MATCH")
 		if sp_world != "":
 			store_root = store_root.path_join("world_" + sp_world.get_file())
+		if player_slot != null:
+			# Separate writers and separate knowledge, even on the same server.
+			store_root = store_root.path_join("players").path_join(pname.sha256_text())
 		client.set_store_path(store_root)
 		if OS.get_environment("GOANNA_FAR_DISTANCE") != "":
 			client.set_far_distance(int(OS.get_environment("GOANNA_FAR_DISTANCE")))
@@ -746,7 +804,10 @@ func _ready() -> void:
 		_build_connect_overlay()
 		connect_title.text = "Connecting"
 		connect_detail.text = "%s:%d as %s" % [host, port, pname]
-	client.connect_to(host, port, pname, OS.get_environment("GOANNA_PASS"))
+	if player_slot != null:
+		player_slot.configure_client(client)
+	if connect_automatically:
+		client.connect_to(host, port, pname, str(connection_options.get("password", OS.get_environment("GOANNA_PASS"))))
 	var asset_updater := AssetUpdater.new()
 	asset_updater.client = client
 	asset_updater.server_address = "%s:%d" % [host, port]
@@ -756,13 +817,16 @@ func _ready() -> void:
 	asset_updater.bundle_installed.connect(func(_id: String) -> void:
 		if ui != null and ui.has_method("_add_chat_line"):
 			ui._add_chat_line("Enhanced materials for this game were installed. They apply from your next connection."))
-	add_child(asset_updater)
+	if player_slot == null or player_slot.slot_index == 0:
+		add_child(asset_updater)
+	else:
+		asset_updater.free()
 	if OS.get_environment("GOANNA_TOD") != "":
 		client.set_time_of_day_override(float(OS.get_environment("GOANNA_TOD")))
 	# GOANNA_CONTROL=<port>: open the loopback command channel, so the client
 	# can be driven and questioned while it runs instead of being relaunched
 	# for each question. Development only; see docs/control-channel.md.
-	if OS.get_environment("GOANNA_CONTROL") != "":
+	if OS.get_environment("GOANNA_CONTROL") != "" and (player_slot == null or player_slot.slot_index == 0):
 		if ResourceLoader.exists("res://control_channel.gd"):
 			var cc: Node = (load("res://control_channel.gd") as GDScript).new()
 			cc.main = self
@@ -771,7 +835,7 @@ func _ready() -> void:
 			push_error("GOANNA_CONTROL is set but control_channel.gd is not in this build")
 	# Experimental player-agent protocol. This is a distinct, read-only
 	# endpoint: it deliberately cannot reach the privileged control dispatcher.
-	if OS.get_environment("GOANNA_PLAYER_AGENT") != "":
+	if OS.get_environment("GOANNA_PLAYER_AGENT") != "" and (player_slot == null or player_slot.slot_index == 0):
 		if ResourceLoader.exists("res://player_agent_channel.gd"):
 			var pa: Node = (load("res://player_agent_channel.gd") as GDScript).new()
 			pa.main = self
@@ -783,7 +847,7 @@ func _ready() -> void:
 	# start and a driver cannot connect that early. It is added after the
 	# control channel so its _process runs after this node has moved the
 	# camera, and the frame it records is the one that was just drawn.
-	if OS.get_environment("GOANNA_BENCH") != "":
+	if OS.get_environment("GOANNA_BENCH") != "" and (player_slot == null or player_slot.slot_index == 0):
 		if ResourceLoader.exists("res://bench.gd"):
 			bench = (load("res://bench.gd") as GDScript).new()
 			bench.main = self
@@ -805,6 +869,8 @@ func _ready() -> void:
 # OS pointer being captured. In test mode it is the recorded capture, and only
 # for input the control channel pushed in (see test_mode).
 func pointer_captured(event: InputEvent = null) -> bool:
+	if player_slot != null:
+		return _virtual_capture
 	if test_mode:
 		return _virtual_capture and (event == null or event.device == CONTROL_DEVICE)
 	return Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED
@@ -818,6 +884,10 @@ func gamepad_owns_play() -> bool:
 # Take the pointer for play, or give it back. Every capture in the game goes
 # through here (game_ui.gd included), so test mode is kept in one place.
 func set_pointer_captured(on: bool) -> void:
+	if player_slot != null:
+		_virtual_capture = on
+		player_slot.update_pointer_capture()
+		return
 	if test_mode:
 		_virtual_capture = on
 		return
@@ -1030,12 +1100,27 @@ func _apply_hardware_defaults() -> void:
 		cores, RenderingServer.get_video_adapter_name(),
 		"discrete" if discrete else "shared", hardware_profile])
 
+func _work_mark(stage: String, start: int) -> int:
+	var now := Time.get_ticks_usec()
+	var elapsed := now - start
+	frame_work_usec[stage] = elapsed
+	frame_work_worst_usec[stage] = maxi(elapsed, int(frame_work_worst_usec.get(stage, 0)))
+	return now
+
+func take_work_worst() -> Dictionary:
+	var result := frame_work_worst_usec.duplicate()
+	frame_work_worst_usec.clear()
+	return result
+
 func _process(delta: float) -> void:
+	var work_clock := Time.get_ticks_usec() if profile_frame_work else 0
+	var frame_start := work_clock
 	t += delta
 	# Animated node tiles run on their own clock, as Luanti's Client::step
 	# keeps one, advanced here once per rendered frame.
 	client.step_node_animation(delta)
 	_apply_sky()
+	if profile_frame_work: work_clock = _work_mark("sky", work_clock)
 	var s: Dictionary = client.status()
 	_update_connect_overlay(s)
 	if showcase_mode and not showcase_placed and s.get("state") == "ready":
@@ -1075,10 +1160,10 @@ func _process(delta: float) -> void:
 		print("camera placed at ", cam.position)
 	if placed and not fly_mode and not showcase_mode:
 		var keys := {
-			"up": Input.is_key_pressed(KEY_W), "down": Input.is_key_pressed(KEY_S),
-			"left": Input.is_key_pressed(KEY_A), "right": Input.is_key_pressed(KEY_D),
-			"jump": Input.is_key_pressed(KEY_SPACE), "sneak": Input.is_key_pressed(KEY_SHIFT),
-			"aux1": Input.is_key_pressed(KEY_E),
+			"up": _key_pressed(KEY_W), "down": _key_pressed(KEY_S),
+			"left": _key_pressed(KEY_A), "right": _key_pressed(KEY_D),
+			"jump": _key_pressed(KEY_SPACE), "sneak": _key_pressed(KEY_SHIFT),
+			"aux1": _key_pressed(KEY_E),
 		}
 		var pad_play: bool = gamepad != null and gamepad.in_play()
 		if pad_play:
@@ -1218,18 +1303,18 @@ func _process(delta: float) -> void:
 		else:
 			var dir := Vector3.ZERO
 			var basis := Basis.from_euler(Vector3(deg_to_rad(pitch), deg_to_rad(yaw), 0))
-			if Input.is_key_pressed(KEY_W): dir -= basis.z
-			if Input.is_key_pressed(KEY_S): dir += basis.z
-			if Input.is_key_pressed(KEY_A): dir -= basis.x
-			if Input.is_key_pressed(KEY_D): dir += basis.x
-			if Input.is_key_pressed(KEY_SPACE): dir += Vector3.UP
-			if Input.is_key_pressed(KEY_SHIFT): dir -= Vector3.UP
+			if _key_pressed(KEY_W): dir -= basis.z
+			if _key_pressed(KEY_S): dir += basis.z
+			if _key_pressed(KEY_A): dir -= basis.x
+			if _key_pressed(KEY_D): dir += basis.x
+			if _key_pressed(KEY_SPACE): dir += Vector3.UP
+			if _key_pressed(KEY_SHIFT): dir -= Vector3.UP
 			if gamepad != null and gamepad.in_play():
 				_gamepad_look(delta)
 				dir += basis.x * gamepad.move.x + basis.z * gamepad.move.y
 				if gamepad.held("goanna_jump"): dir += Vector3.UP
 				if gamepad.held("goanna_sneak"): dir -= Vector3.UP
-			var sp := speed * (3.0 if Input.is_key_pressed(KEY_CTRL) else 1.0)
+			var sp := speed * (3.0 if _key_pressed(KEY_CTRL) else 1.0)
 			cam.position += dir.normalized() * sp * delta if dir.length() > 0 else Vector3.ZERO
 		cam.rotation_degrees = Vector3(pitch, yaw, 0)
 		# Tell the server where the camera is, or it keeps streaming around
@@ -1237,7 +1322,9 @@ func _process(delta: float) -> void:
 		# the movement as too fast without the fly privilege; that only resets
 		# the walking position, which fly mode is not using anyway.
 		client.set_player_pose(cam.position, pitch, yaw)
+	if profile_frame_work: work_clock = _work_mark("input_and_simulation", work_clock)
 	client.poll_blocks(24)
+	if profile_frame_work: work_clock = _work_mark("poll_blocks", work_clock)
 	# Bounded residency: keep a margin beyond what we ask the server for, so
 	# blocks just behind us survive a turn but a long session stays bounded.
 	_prune_timer -= delta
@@ -1252,12 +1339,19 @@ func _process(delta: float) -> void:
 		if OS.get_environment("GOANNA_KEEP") != "":
 			keep = int(OS.get_environment("GOANNA_KEEP"))
 		client.prune_blocks(keep)
-	client.update_lights(cam.position, 0 if OS.get_environment("GOANNA_NO_LIGHTS") != "" else int(light_pool))
+	if profile_frame_work: work_clock = _work_mark("prune", work_clock)
+	client.update_lights(cam.position, _lamp_budget())
+	if profile_frame_work: work_clock = _work_mark("lights", work_clock)
 	client.update_motes(cam.position, 32)
+	if profile_frame_work: work_clock = _work_mark("motes", work_clock)
 	client.update_lod(cam.position, 8)
+	if profile_frame_work: work_clock = _work_mark("lod", work_clock)
 	client.sync_entities(delta)
+	if profile_frame_work: work_clock = _work_mark("entities", work_clock)
 	_update_environment_extras()
+	if profile_frame_work: work_clock = _work_mark("environment", work_clock)
 	_update_wield(delta)
+	if profile_frame_work: work_clock = _work_mark("wield", work_clock)
 	if t - last_print >= 1.0:
 		last_print = t
 		# GOANNA_DUMPTEX="dir=name1,name2": save generated textures (including
@@ -1416,6 +1510,10 @@ func _process(delta: float) -> void:
 	if limit > 0.0 and t > limit:
 		client.disconnect_from_server()
 		get_tree().quit()
+
+	if profile_frame_work:
+		_work_mark("other", work_clock)
+		_work_mark("main_total", frame_start)
 
 # GOANNA_MANTLETEST=1: build a one-block step in front (needs give/place), walk
 # into it, and report whether the player rose a block. Simpler: teleport to a
@@ -1831,7 +1929,7 @@ func _fixture_shots(dir: String, name: String) -> bool:
 			# LOD and every measurement is of the wrong mesh. That silently
 			# invalidated a shadow measurement before it was noticed.
 			client.update_lod(cam.position, 64)
-			client.update_lights(cam.position, 0 if OS.get_environment("GOANNA_NO_LIGHTS") != "" else int(light_pool))
+			client.update_lights(cam.position, _lamp_budget())
 			var st: Dictionary = client.render_stats()
 			churn += int(st.get("light_churn", 0))
 			in_range = maxi(in_range, int(st.get("lights_in_range", 0)))
@@ -2032,7 +2130,7 @@ func _update_wield(delta: float) -> void:
 	client.set_arm_swing(sin(swing_t * PI))
 
 func _update_environment_extras() -> void:
-	if headlight:
+	if headlight and render_features["render_carried_light"]:
 		headlight.global_position = cam.global_position
 		# The carried light: whatever is in the hand lights the world with
 		# the light it would cast placed, on top of the faint cave aid. A
@@ -2059,14 +2157,15 @@ func _update_environment_extras() -> void:
 	sky_mat.set_shader_parameter("cloud_plane_h", cloud_height - cam.position.y)
 	# The node shaders' cloud shadows read the same deck: scroll, coverage,
 	# strength, and where the deck is so the shadow is cast along the sun.
-	RenderingServer.global_shader_parameter_set("goanna_cloud_shadow",
-			Vector4(cloud_off.x, cloud_off.y, cloud_cov, cloud_shadow_k))
+	client.set_view_shader_parameter("goanna_cloud_shadow",
+			Vector4(cloud_off.x, cloud_off.y, cloud_cov,
+			cloud_shadow_k if render_features["render_cloud_shadows"] else 0.0))
 	# The x component is the scale of the weather envelope the sky's
 	# volumetric clouds are placed by (cloud_weather in sky.gdshader), so the
 	# ground shadows fall roughly under the masses that cast them.
-	RenderingServer.global_shader_parameter_set("goanna_cloud_geom",
+	client.set_view_shader_parameter("goanna_cloud_geom",
 			Vector4(0.0009, maxf(cloud_height, cam.position.y + 10.0), sun_par.x, sun_par.y))
-	if atmosphere_mat:
+	if atmosphere_mat and render_features["render_atmosphere"] and atmosphere_quality > 0.01:
 		atmosphere_mat.set_shader_parameter("weather_offset", cloud_off)
 		atmosphere_mat.set_shader_parameter("cloud_level", cloud_height)
 		# Luanti's decorative sheet is commonly only 8--16 nodes thick. A real
@@ -2117,7 +2216,7 @@ func _update_environment_extras() -> void:
 			sky_mat.set_shader_parameter("horizon_on", 1.0)
 	var under: bool = client.is_underwater(cam.position)
 	if atmosphere_volume:
-		atmosphere_volume.visible = not under and atmosphere_quality > 0.01
+		atmosphere_volume.visible = not under and _atmosphere_enabled()
 	if under == underwater:
 		return
 	underwater = under
@@ -2139,7 +2238,7 @@ func _update_environment_extras() -> void:
 		# Light shafts: sun scattering through the participating water volume.
 		# Moderate anisotropy and density: pushing either too hard shows the
 		# fog volume's depth slices as bands.
-		e.volumetric_fog_enabled = true
+		e.volumetric_fog_enabled = _underwater_volume_enabled()
 		e.volumetric_fog_density = 0.09
 		e.volumetric_fog_albedo = Color(0.25, 0.55, 0.62)
 		e.volumetric_fog_anisotropy = 0.72
@@ -2185,7 +2284,7 @@ func _cloud_noise3(p: Vector3) -> float:
 	return lerpf(lerpf(x00, x10, f.y), lerpf(x01, x11, f.y), f.z)
 
 func _local_cloud_density(world: Vector3) -> float:
-	if cloud_cov <= 0.01 or atmosphere_quality <= 0.01:
+	if cloud_cov <= 0.01 or not _atmosphere_enabled():
 		return 0.0
 	var thick := maxf(cloud_thickness, 48.0)
 	var half_cloud := maxf(thick * 0.5, 4.0)
@@ -2210,7 +2309,108 @@ func _local_cloud_density(world: Vector3) -> float:
 	return 0.026 * atmosphere_quality * profile \
 			* smoothstep(threshold, threshold + 0.18, shape)
 
+func _lamp_budget() -> int:
+	return maxi(0, int(light_pool)) if render_features["render_dynamic_lights"] and OS.get_environment("GOANNA_NO_LIGHTS") == "" else 0
+
+func _underwater_volume_enabled() -> bool:
+	return _atmosphere_enabled() and render_features["render_underwater_volume"]
+
+func _atmosphere_enabled() -> bool:
+	return render_features["render_atmosphere"] and atmosphere_quality > 0.01
+
+func set_render_feature(key: String, enabled: bool) -> bool:
+	if not RenderFeatures.DEFAULTS.has(key):
+		return false
+	render_features[key] = enabled
+	apply_lighting()
+	return true
+
+func _apply_cloud_feature() -> void:
+	if sky_mat == null:
+		return
+	var enabled: bool = render_features["render_sky_clouds"]
+	# Keep an existing volume for instant restoration, but do not generate
+	# one at startup when the feature is disabled in the saved settings.
+	if quality_settings_ready and enabled and int(cloud_style) >= 1 and cloud_body_texture == null:
+		var noise := FastNoiseLite.new()
+		noise.noise_type = FastNoiseLite.TYPE_PERLIN
+		noise.fractal_type = FastNoiseLite.FRACTAL_FBM
+		noise.fractal_octaves = 5
+		noise.frequency = 0.02
+		cloud_body_texture = NoiseTexture3D.new()
+		cloud_body_texture.width = 128
+		cloud_body_texture.height = 96
+		cloud_body_texture.depth = 128
+		cloud_body_texture.seamless = true
+		cloud_body_texture.normalize = true
+		cloud_body_texture.noise = noise
+		sky_mat.set_shader_parameter("cloud_body_tex", cloud_body_texture)
+	sky_mat.set_shader_parameter("clouds_enabled", enabled)
+	sky_mat.set_shader_parameter("cloud_style", clampi(int(cloud_style), 0, 2))
+	sky_mat.set_shader_parameter("cloud_quality", clampi(int(cloud_quality), 0, 2))
+
+func _apply_render_features() -> void:
+	_apply_cloud_feature()
+	if headlight != null:
+		headlight.visible = render_features["render_carried_light"]
+	if ice_capture != null:
+		ice_capture.set_transmission_enabled(render_features["render_ice_transmission"])
+	if client != null:
+		for key in RenderFeatures.SHADER_FLAGS:
+			client.set_view_shader_parameter(RenderFeatures.SHADER_FLAGS[key], float(render_features[key]))
+		client.set_meta("goanna_grass_interaction", render_features["render_grass_interaction"])
+		set_procedural_grass(client.procedural_grass())
+		if cam != null and _lamp_budget() == 0:
+			client.update_lights(cam.position, 0)
+	if sun != null:
+		sun.shadow_enabled = render_features["render_sun_shadows"]
+	if moon != null:
+		moon.shadow_enabled = render_features["render_sun_shadows"]
+	if shaft_quad != null:
+		shaft_quad.visible = render_features["render_shafts"] and light_shafts > 0.001 and not underwater
+	if atmosphere_volume != null:
+		atmosphere_volume.visible = _atmosphere_enabled() and not underwater
+	if env != null and env.environment != null:
+		var e := env.environment
+		e.ssao_enabled = render_features["render_ssao"] and OS.get_environment("GOANNA_NO_SSAO") == ""
+		e.glow_enabled = render_features["render_bloom"] and bloom_strength > 0.001
+		if underwater or not _atmosphere_enabled():
+			e.volumetric_fog_enabled = _underwater_volume_enabled() if underwater else false
+	if client != null:
+		client.set_view_shader_parameter("goanna_cloud_shadow",
+				Vector4(cloud_off.x, cloud_off.y, cloud_cov,
+				cloud_shadow_k if render_features["render_cloud_shadows"] else 0.0))
+
+# Cheap actual-state telemetry for feature comparisons. No terrain traversal.
+func render_feature_state() -> Dictionary:
+	var result := {"requested": render_features.duplicate(), "underwater": underwater}
+	if env == null or env.environment == null:
+		return result
+	var e := env.environment
+	result["active"] = render_features.duplicate()
+	result["active"].merge({
+		"render_sky_clouds": bool(sky_mat.get_shader_parameter("clouds_enabled")),
+		"render_cloud_shadows": render_features["render_cloud_shadows"] and cloud_shadow_k > 0.002,
+		"render_atmosphere": e.volumetric_fog_enabled,
+		"render_ssao": e.ssao_enabled,
+		"render_bloom": e.glow_enabled,
+		"render_shafts": shaft_quad.visible and shaft_glow_luminance > 0.0001 and float(shaft_mat.get_shader_parameter("shaft_strength")) > 0.0001,
+		"render_sun_shadows": sun.shadow_enabled or moon.shadow_enabled,
+		"render_dynamic_lights": _lamp_budget() > 0,
+		"render_carried_light": headlight.visible if headlight != null else false,
+		"render_underwater_volume": underwater and e.volumetric_fog_enabled,
+		"render_ice_transmission": ice_capture.visible_ice if ice_capture != null else false,
+		"render_grass_aa": grass_aa_active,
+	}, true)
+	result["lamp_budget"] = _lamp_budget()
+	result["ice_capture"] = ice_capture.visible_ice if ice_capture != null else false
+	result["shaft_strength"] = shaft_mat.get_shader_parameter("shaft_strength")
+	result["shaft_glow_luminance"] = shaft_glow_luminance
+	result["sky_cloud_coverage"] = sky_mat.get_shader_parameter("cloud_coverage")
+	return result
+
 func apply_lighting() -> void:
+	_apply_render_features()
 	if env == null or env.environment == null:
 		return
 	var e := env.environment
@@ -2302,7 +2502,7 @@ func _take_lightning(sky: Dictionary, dt: float) -> Dictionary:
 	var flashing := _white_sky_for > 0.0 and _white_sky_for < FLASH_SKY_LONGEST
 	_server_flash = 1.0 if flashing else _server_flash * exp(-dt / 0.06)
 	var bolt := 0.0
-	var pnode := get_tree().get_first_node_in_group("goanna_particles") if is_inside_tree() else null
+	var pnode := PlayerContext.find(self, "goanna_particles") if is_inside_tree() else null
 	if pnode != null and pnode.has_method("lightning_flash"):
 		bolt = float(pnode.lightning_flash())
 	lightning_flash = clampf(maxf(_server_flash, bolt), 0.0, 1.0)
@@ -2493,8 +2693,8 @@ func _apply_sky() -> void:
 	# plain vec3 one is not.
 	var zl := zenith.srgb_to_linear()
 	var hl := hor.srgb_to_linear()
-	RenderingServer.global_shader_parameter_set("goanna_sky_top", Vector3(zl.r, zl.g, zl.b))
-	RenderingServer.global_shader_parameter_set("goanna_sky_horizon", Vector3(hl.r, hl.g, hl.b))
+	client.set_view_shader_parameter("goanna_sky_top", Vector3(zl.r, zl.g, zl.b))
+	client.set_view_shader_parameter("goanna_sky_horizon", Vector3(hl.r, hl.g, hl.b))
 	# The sun in that same fallback: the water shader draws the disc and its
 	# halo itself, because a ray reflected off water near the horizon almost
 	# always leaves the screen, and without this the sunrise and sunset never
@@ -2505,9 +2705,10 @@ func _apply_sky() -> void:
 	# with it.
 	var sun_glow: Color = sun.light_color.srgb_to_linear() \
 			* (bs_ground if bool(st["sun"]["visible"]) else 0.0)
-	RenderingServer.global_shader_parameter_set("goanna_sun_dir",
+	shaft_glow_luminance = sun_glow.r * 0.2126 + sun_glow.g * 0.7152 + sun_glow.b * 0.0722
+	client.set_view_shader_parameter("goanna_sun_dir",
 			sun_dir.normalized() if sun_dir.length() > 0.001 else Vector3.UP)
-	RenderingServer.global_shader_parameter_set("goanna_sun_glow",
+	client.set_view_shader_parameter("goanna_sun_glow",
 			Vector3(sun_glow.r, sun_glow.g, sun_glow.b))
 	# ground_color is fed in the fog block below, from the fog colour: the
 	# lower hemisphere is the fog wall, not unlit ground. This early set is
@@ -2626,7 +2827,7 @@ func _apply_sky() -> void:
 	# light channel). At night the other terms are near zero, so this is
 	# most of what the flash does to the land.
 	fill += Color(0.8, 0.86, 1.0) * (0.9 * light_fill * flash)
-	RenderingServer.global_shader_parameter_set("goanna_sky_fill", Vector3(fill.r, fill.g, fill.b))
+	client.set_view_shader_parameter("goanna_sky_fill", Vector3(fill.r, fill.g, fill.b))
 	# The lower hemisphere of the same fill: what the ground throws back,
 	# dimmer and pulled toward earth. The node shaders blend by the world
 	# normal. "Earth" used to be a constant (1.0, 0.9, 0.72); it is now the
@@ -2649,7 +2850,7 @@ func _apply_sky() -> void:
 	var glum: float = maxf(galb.get_luminance(), 0.05)
 	var gw: Color = galb * (0.92 / glum)
 	var gfill := fill * 0.6
-	RenderingServer.global_shader_parameter_set("goanna_ground_fill",
+	client.set_view_shader_parameter("goanna_ground_fill",
 			Vector3(gfill.r * minf(gw.r, 1.4), gfill.g * minf(gw.g, 1.4),
 					gfill.b * minf(gw.b, 1.4)))
 	# Cloud shadow strength: by day only, and by how much cloud there is to
@@ -2661,7 +2862,7 @@ func _apply_sky() -> void:
 	# precipitation eases coverage toward overcast and back out again after,
 	# and the same figure feeds the sky march, the froxel bodies and the
 	# ground shadows so all three agree.
-	var pnode_sky := get_tree().get_first_node_in_group("goanna_particles")
+	var pnode_sky := PlayerContext.find(self, "goanna_particles")
 	var precip_now: float = float(pnode_sky.precipitation()) if pnode_sky != null else 0.0
 	storm_cover = lerpf(storm_cover, 0.80 * precip_now,
 			1.0 - exp(-get_process_delta_time() / 6.0))
@@ -2674,7 +2875,9 @@ func _apply_sky() -> void:
 	var wet_rate: float = 30.0 if wet_target > wetness else 150.0
 	wetness = lerpf(wetness, wet_target,
 			1.0 - exp(-get_process_delta_time() / wet_rate))
-	RenderingServer.global_shader_parameter_set("goanna_wetness", wetness)
+	if has_meta("benchmark_wetness"):
+		wetness = float(get_meta("benchmark_wetness"))
+	client.set_view_shader_parameter("goanna_wetness", wetness)
 	var cdens: float = float(clouds_now.get("density", 0.0))
 	cdens = maxf(cdens, storm_cover)
 	cloud_cov = clamp(cdens, 0.0, 0.95) if bool(sky.get("clouds", true)) else 0.0
@@ -3019,6 +3222,7 @@ func _apply_sky() -> void:
 	e.adjustment_color_correction = look_grade.correction(look_weights.x)
 	e.tonemap_exposure = clamp(light_exposure * (1.0 + float(lighting["exposure_correction"]) * 0.25), 0.1, 3.0)
 	e.glow_intensity = clamp(0.3 + float(lighting["bloom_intensity"]) * 2.0, 0.0, 2.0) * bloom_strength
+	e.glow_enabled = render_features["render_bloom"] and bloom_strength > 0.001
 	# A pack with a final stage owns its exposure and grade.
 	if iris and iris.has_final() and iris.get_bridge_colour():
 		e.adjustment_color_correction = null
@@ -3041,11 +3245,11 @@ func _apply_sky() -> void:
 		var air: float = (0.0007 + 0.0023 * low) * (0.25 + 0.75 * day)
 		# Rain and snow are the air made visible, so the shafts thicken with
 		# them. The particle side is what knows, the sky packet does not.
-		var pnode := get_tree().get_first_node_in_group("goanna_particles")
+		var pnode := PlayerContext.find(self, "goanna_particles")
 		if pnode != null:
 			air += 0.010 * float(pnode.precipitation())
 		air *= (0.6 + 1.4 * vol) * light_shafts
-		e.volumetric_fog_enabled = atmosphere_quality > 0.01 and (atmosphere_mat != null or air > 0.0004)
+		e.volumetric_fog_enabled = _atmosphere_enabled() and (atmosphere_mat != null or air > 0.0004)
 		if e.volumetric_fog_enabled:
 			# One medium must composite equally over terrain and empty sky.
 			# Bound clear air by height in the volume, rather than weakening
@@ -3117,6 +3321,8 @@ func _apply_sky() -> void:
 		# Underwater the murk owns the light; rays through the surface are
 		# a different effect and this one only ever read as glare.
 		shaft_mat.set_shader_parameter("shaft_strength", 0.0)
+	if shaft_quad != null:
+		shaft_quad.visible = render_features["render_shafts"] and light_shafts > 0.001 and not underwater
 	# --- shader pack world state ---
 	# What a pack's uniforms can honestly be told: the sky zenith as the
 	# server blended it (before the look tweak above), the fog colour as the
@@ -3124,7 +3330,7 @@ func _apply_sky() -> void:
 	# precipitation from the particle side, and "in water" for any liquid,
 	# since the node definition does not say which liquids are lava.
 	if iris:
-		var pn := get_tree().get_first_node_in_group("goanna_particles")
+		var pn := PlayerContext.find(self, "goanna_particles")
 		var rain: float = pn.precipitation() if pn != null else 0.0
 		iris.set_world_state({"sun_direction": sun_dir, "moon_direction": moon_dir,
 			"time_of_day": st["time_of_day"], "in_water": 1 if underwater else 0,

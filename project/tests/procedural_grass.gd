@@ -71,6 +71,28 @@ func run() -> void:
 			"Toggling grass must preserve the terrain vertices")
 		check(root.msaa_3d==Viewport.MSAA_2X and root.screen_space_aa==Viewport.SCREEN_SPACE_AA_DISABLED,
 			"Disabling grass must restore the preceding AA settings")
+	# New budgets reach an existing material without rebuilding terrain and
+	# changing AA quality must not recapture an already raised baseline.
+	main.grass_density = 0.25
+	main.grass_draw_distance = 16.0
+	main.grass_interaction_distance = 0.0
+	main.grass_interactors = 0.0
+	main.grass_antialiasing = 1.0
+	main.set_procedural_grass(true)
+	var grass: ShaderMaterial = main.client.get_meta("goanna_grass_material")
+	check(grass.get_shader_parameter("density") == 0.25, "Density reaches an existing grass material")
+	check(grass.get_shader_parameter("draw_distance") == 16.0, "Grass distance reaches the shader")
+	check(not grass.get_shader_parameter("interaction_enabled"), "Zero actors disables interaction")
+	check(root.msaa_3d == Viewport.MSAA_2X, "FXAA quality preserves the user's existing MSAA")
+	main.grass_antialiasing = 3.0
+	main.set_procedural_grass(true)
+	check(root.msaa_3d == Viewport.MSAA_4X, "Live quality increase applies")
+	main.grass_antialiasing = 1.0
+	main.set_procedural_grass(true)
+	check(root.msaa_3d == Viewport.MSAA_2X, "Live quality reduction restores the original MSAA baseline")
+	main.set_procedural_grass(false)
+	check(root.screen_space_aa == Viewport.SCREEN_SPACE_AA_DISABLED, "FXAA ownership also restores")
+	main.grass_antialiasing = 3.0
 	root.msaa_3d = Viewport.MSAA_8X
 	main.set_procedural_grass(true)
 	check(root.msaa_3d==Viewport.MSAA_8X, "Enabling grass must preserve stronger existing AA")

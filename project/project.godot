@@ -40,6 +40,35 @@ occlusion_culling/use_occlusion_culling=true
 
 [shader_globals]
 
+goanna_render_water_waves={
+"type": "float",
+"value": 1.0
+}
+goanna_render_water_reflections={
+"type": "float",
+"value": 1.0
+}
+goanna_render_wet_surfaces={
+"type": "float",
+"value": 1.0
+}
+goanna_render_foliage_wind={
+"type": "float",
+"value": 1.0
+}
+goanna_render_grass_interaction={
+"type": "float",
+"value": 1.0
+}
+goanna_render_ice_detail={
+"type": "float",
+"value": 1.0
+}
+goanna_render_lava_detail={
+"type": "float",
+"value": 1.0
+}
+
 ; Keep ice bindings registered across world changes, like the other globals.
 goanna_ice_background={
 "type": "sampler2D",
@@ -85,6 +114,18 @@ goanna_cloud_geom={
 goanna_ground_fill={
 "type": "vec3",
 "value": Vector3(0, 0, 0)
+}
+goanna_lamp_occlusion_grid={
+"type": "sampler3D",
+"value": ""
+}
+goanna_lamp_occlusion_sources={
+"type": "sampler2D",
+"value": ""
+}
+goanna_lamp_occlusion_box={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
 }
 goanna_lamp_reach={
 "type": "float",

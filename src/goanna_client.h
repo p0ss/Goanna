@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <chrono>
 #include <deque>
 #include <map>
@@ -32,6 +33,7 @@
 #include <godot_cpp/variant/packed_vector3_array.hpp>
 
 #include "goanna_entities.h"
+#include "goanna_render_scope.h"
 #include "goanna_radial_form.h"
 #include "goanna_horizon.h"
 #include "goanna_item_icons.h"
@@ -41,6 +43,9 @@
 #include "goanna_lod.h"
 #include "goanna_lod_storage.h"
 #include "goanna_mesh_pool.h"
+#include "goanna_shared_cache.h"
+#include <godot_cpp/classes/image_texture3d.hpp>
+#include <godot_cpp/classes/image_texture.hpp>
 #include "goanna_schedule.h"
 #include "irrlichttypes_bloated.h"
 #include <SMaterial.h>
@@ -136,6 +141,13 @@ public:
     GoannaClient();
     ~GoannaClient() override;
 
+    // Enable before creating materials. The default keeps offline studies
+    // using the original project shader globals.
+    void enable_render_scope();
+    godot::Ref<godot::Shader> load_view_shader(const godot::String &path);
+    void set_view_shader_parameter(const godot::StringName &name, const godot::Variant &value);
+    godot::String view_shader_parameter_name(const godot::String &name) const;
+    void set_poll_budget_ms(double budget) { m_poll_budget_ms = std::max(0.25, budget); }
     godot::String hello() const;
     godot::String luanti_version() const;
 
@@ -162,8 +174,12 @@ public:
     godot::Dictionary server_options() const;
     // Draw nodes that use a liquid drawtype without being one as opaque. See
     // set_solid_ice in the implementation for the trade it makes.
+    void set_lamp_occlusion(bool enabled) { m_lamp_occlusion = enabled; }
+    bool lamp_occlusion() const { return m_lamp_occlusion; }
     void set_shadow_lamps(int n);
     int shadow_lamps() const { return m_shadow_lamps; }
+    void set_lamp_shadow_distance(float distance) { m_lamp_shadow_distance = std::clamp(distance, 4.0f, 96.0f); }
+    float lamp_shadow_distance() const { return m_lamp_shadow_distance; }
     // Subtle brightness variance on node lights, like a living flame. Off
     // for anyone the movement bothers, on by default because it is gentle
     // rather than a strobe: see update_lights() for the actual waveform.
@@ -500,6 +516,16 @@ protected:
     void _notification(int p_what);
 
 private:
+    bool m_lamp_occlusion = false;
+    godot::Ref<godot::ImageTexture3D> m_lamp_occlusion_grid;
+    godot::Ref<godot::ImageTexture> m_lamp_occlusion_sources;
+    std::string m_lamp_occlusion_signature;
+    double m_ms_lamp_occlusion = 0;
+    std::chrono::steady_clock::time_point m_lamp_occlusion_updated{};
+    void updateLampOcclusion(const godot::Vector3 &around);
+    std::unique_ptr<goanna::RenderScope> m_render_scope;
+    double m_poll_budget_ms = 0.0;
+    bool m_carve_active = false;
     // Live callers hold the session map lock; cached LOD callers use chains only.
     bool grassSubmerged(int x, float root_boundary, int z, bool live) const;
     void harvestLights(v3s16 bp, MapBlock *block);
@@ -525,9 +551,22 @@ private:
         godot::PackedByteArray custom0;
         godot::PackedInt32Array idx;
         bool glow = false;
+        bool is_array = false;
     };
+    struct SharedNearGeometry {
+        std::map<uint64_t, NearSurface> groups, glow_groups;
+    };
+    using SharedNearCache = SharedCache<SharedNearGeometry>;
+    std::shared_ptr<SharedNearCache> m_shared_near;
+    using SharedMeshCache = SharedCache<godot::Ref<godot::ArrayMesh>>;
+    std::shared_ptr<SharedMeshCache> m_shared_meshes;
+    uint64_t m_shared_upload_hits = 0;
+    std::string m_shared_identity;
+    uint64_t m_shared_near_hits = 0, m_shared_near_misses = 0;
+    std::string nearShareKey(v3s16 bp);
     struct NearBlock {
         std::vector<NearSurface> surfaces;
+        std::string share_key;
         godot::MeshInstance3D *special_node = nullptr;
         int source_surfaces = 0;
     };
@@ -577,7 +616,8 @@ private:
     void nearRebuild(double budget_ms);
     void nearPublishBatch(const v3s16 &key, NearRegion &region,
             std::vector<NearBatchGroup> &groups, godot::PackedVector3Array &occ_verts,
-            godot::PackedInt32Array &occ_idx, const std::vector<v3s16> &members);
+            godot::PackedInt32Array &occ_idx, const std::vector<v3s16> &members,
+            const std::string &share_key = {});
     void nearBoxOccluder(const v3s16 &key, godot::PackedVector3Array &occ_verts,
             godot::PackedInt32Array &occ_idx);
     void nearClear();
@@ -1187,10 +1227,9 @@ private:
         float flicker_phase = 0.0f;
     };
     std::vector<LightSlot> m_light_slot;
-    // Shared budget for direct node lights and their shadow maps. A low
-    // budget can drop visible room lighting as the camera moves; see the
-    // lantern-room review. Zero explicitly enables unshadowed lamp lighting.
+    // Shadow selection is independent of direct light admission.
     int m_shadow_lamps = 16;
+    float m_lamp_shadow_distance = 64.0f;
     bool m_light_flicker = true;
     int m_lights_in_range = 0;
     // Slots whose lamp changed on the last update: the churn that makes

@@ -15,6 +15,8 @@
 # texture, and handed to lightning.gd. docs/weather.md.
 extends Node3D
 
+const PlayerContext := preload("res://player_context.gd")
+
 const Weather := preload("res://ui/weather.gd")
 const Lightning := preload("res://ui/lightning.gd")
 const Wake := preload("res://ui/wake.gd")
@@ -120,7 +122,7 @@ func _process(_delta: float) -> void:
 		_dbg -= _delta
 		if _dbg <= 0.0:
 			_dbg = 1.0
-			var m := get_tree().get_first_node_in_group("goanna_main")
+			var m := PlayerContext.find(self, "goanna_main")
 			var here: Vector3 = _player_feet(m) if m != null else Vector3.ZERO
 			var lines := []
 			for id in _spawners:
@@ -133,7 +135,7 @@ func _process(_delta: float) -> void:
 	# GOANNA_TEST_PARTICLES=1 injects a synthetic rain-like spawner, to test
 	# the Godot side without needing a server storm.
 	if not _test_done and OS.get_environment("GOANNA_TEST_PARTICLES") != "":
-		var m0 := get_tree().get_first_node_in_group("goanna_main")
+		var m0 := PlayerContext.find(self, "goanna_main")
 		if m0 != null and m0.get("cam") != null and m0.cam.position != Vector3.ZERO:
 			_test_done = true
 			inject_test_spawner("rain")
@@ -149,7 +151,7 @@ func _process(_delta: float) -> void:
 	# Weather and other attached spawners are sent in coordinates relative
 	# to the player, so keep their emitters on the player.
 	if not _attached.is_empty():
-		var m := get_tree().get_first_node_in_group("goanna_main")
+		var m := PlayerContext.find(self, "goanna_main")
 		if m != null:
 			var here: Vector3 = _player_feet(m)
 			for id in _attached:

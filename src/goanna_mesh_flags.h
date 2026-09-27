@@ -42,7 +42,7 @@ extern bool g_goanna_no_light;
 // replacing or cancelling it closes the geometry atomically across mapblock
 // boundaries.
 namespace goanna { struct FormDamage; }
-extern const goanna::FormDamage *g_goanna_carve;
+extern thread_local const goanna::FormDamage *g_goanna_carve;
 
 // Legacy GOANNA_CARVE switch: positive enables health-based cuts; zero disables.
 extern float g_goanna_carve_depth;

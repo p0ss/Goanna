@@ -5,7 +5,8 @@ played Goanna with a controller yet, on a Steam Deck or anywhere else. What
 is described here is what the committed code does and what the headless
 tests check, not what has been seen to work in a hand. Reports are welcome.
 
-Written against Godot 4.5.1.
+Written against Godot 4.5.1. For separate controllers, cursors and menus in
+experimental splitscreen, see [local multiplayer](local-multiplayer.md).
 
 ## Layout
 

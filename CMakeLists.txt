@@ -38,6 +38,7 @@ include(cmake/luanti_core.cmake)
 add_library(goanna SHARED
     src/register_types.cpp
     src/goanna_client.cpp
+    src/goanna_render_scope.cpp
     src/goanna_lava.cpp
     src/goanna_session.cpp
     src/goanna_mesher.cpp
@@ -127,6 +128,10 @@ target_link_libraries(goanna_schedule_test PRIVATE luanti_core)
 
 # The mesh worker pool's contract: no job lost, none run twice, resubmission
 # replaces, cancel drops, priority orders.
+add_executable(goanna_shared_cache_test EXCLUDE_FROM_ALL src/goanna_shared_cache_test.cpp)
+target_include_directories(goanna_shared_cache_test PRIVATE src)
+target_link_libraries(goanna_shared_cache_test PRIVATE Threads::Threads)
+
 add_executable(goanna_mesh_pool_test EXCLUDE_FROM_ALL
     src/goanna_mesh_pool_test.cpp
     src/goanna_mesh_pool.cpp
@@ -205,6 +210,7 @@ set(GOANNA_NATIVE_TESTS
     goanna_lod_storage_test
     goanna_lod_test
     goanna_mesh_pool_test
+    goanna_shared_cache_test
     goanna_mining_cycle_test
     goanna_radial_form_test
     goanna_schedule_test

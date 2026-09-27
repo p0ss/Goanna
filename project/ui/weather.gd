@@ -14,6 +14,8 @@
 # client already holds. docs/weather.md has the design and what is untested.
 extends Node3D
 
+const PlayerContext := preload("res://player_context.gd")
+
 const RainCover := preload("res://ui/rain_cover.gd")
 const SHADER := preload("res://shaders/precipitation.gdshader")
 
@@ -89,6 +91,10 @@ func _ready() -> void:
 	cover = RainCover.new(client)
 	_rain_material = make_material(false)
 	_snow_material = make_material(true)
+	if client != null and client.has_method("load_view_shader"):
+		var shader: Shader = client.load_view_shader("res://shaders/precipitation.gdshader")
+		_rain_material.shader = shader
+		_snow_material.shader = shader
 	_rain_mesh = _make_drops(RAIN_FAR + RAIN_NEAR, _rain_material)
 	_snow_mesh = _make_drops(SNOW_FAR + SNOW_NEAR, _snow_material)
 	_publish_globals()
@@ -159,8 +165,8 @@ static func build_multimesh(count: int) -> MultiMesh:
 
 
 func _exit_tree() -> void:
-	RenderingServer.global_shader_parameter_set("goanna_rain", 0.0)
-	RenderingServer.global_shader_parameter_set("goanna_rain_cover_area", Vector4.ZERO)
+	PlayerContext.shader_parameter(client, "goanna_rain", 0.0)
+	PlayerContext.shader_parameter(client, "goanna_rain_cover_area", Vector4.ZERO)
 
 
 # The shader's placing of drops, mirrored so a test can check where the
@@ -375,7 +381,7 @@ func debug_state() -> Dictionary:
 		out["cover_over_eye"] = cover.height_at(eye.x, eye.z)
 		out["eye_open"] = cover.exposed(eye)
 		out["open_share"] = cover.open_share(eye.y)
-	var m: Node = get_tree().get_first_node_in_group("goanna_main") if is_inside_tree() else null
+	var m: Node = PlayerContext.find(self, "goanna_main") if is_inside_tree() else null
 	var wet := 0.0
 	if m != null and m.get("wetness") != null:
 		wet = float(m.get("wetness"))
@@ -552,7 +558,7 @@ func _process(delta: float) -> void:
 	var active := _rain > 0.001 or _snow > 0.001
 	_rain_mesh.visible = _rain > 0.001
 	_snow_mesh.visible = _snow > 0.001
-	var m := get_tree().get_first_node_in_group("goanna_main")
+	var m := PlayerContext.find(self, "goanna_main")
 	if m != null and m.get("cam") != null:
 		_eye = (m.cam as Node3D).global_position
 	# The map is needed while anything falls and while the ground is still
@@ -566,7 +572,7 @@ func _process(delta: float) -> void:
 	var wet := float(m.get("wetness")) if m != null and m.get("wetness") != null else 0.0
 	if active or wet > 0.001:
 		if cover.step(_eye, delta):
-			RenderingServer.global_shader_parameter_set("goanna_rain_cover", cover.texture)
+			PlayerContext.shader_parameter(client, "goanna_rain_cover", cover.texture)
 	if active:
 		_update_wind(m, delta)
 		_feed(_rain_mesh, _rain_material, _rain, _rain_speed)
@@ -605,6 +611,6 @@ func _update_wind(m: Node, delta: float) -> void:
 
 
 func _publish_globals() -> void:
-	RenderingServer.global_shader_parameter_set("goanna_rain", _rain)
-	RenderingServer.global_shader_parameter_set("goanna_rain_cover_area",
+	PlayerContext.shader_parameter(client, "goanna_rain", _rain)
+	PlayerContext.shader_parameter(client, "goanna_rain_cover_area",
 			cover.area if cover != null else Vector4.ZERO)

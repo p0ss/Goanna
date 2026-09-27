@@ -232,6 +232,8 @@ private:
 class GoannaTextureSource final : public IWritableTextureSource {
 public:
     GoannaTextureSource();
+    std::string geometryIdentity() const;
+    void freezeGeometryIdentity() { m_geometry_identity = geometryIdentity(); }
     ~GoannaTextureSource() override;
 
     // ISimpleTextureSource / ITextureSource
@@ -339,6 +341,7 @@ private:
     video::IImage *getOrGenerateImage(const std::string &name);
     std::map<std::string, float> m_coarseness;
     std::map<std::string, float> m_coverage_cache;
+    std::string m_geometry_identity;
     ImageSource m_imagesource;
     std::vector<std::unique_ptr<GoannaTexture>> m_textures; // index = id
     std::map<std::string, u32> m_name_to_id;

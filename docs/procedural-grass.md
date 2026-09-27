@@ -2,16 +2,25 @@
 
 Enable **Settings → Graphics → Procedural grass** from the main menu or in a
 running game. It is off by default and saved as `settings.procedural_grass` in
-`user://goanna.cfg`. Graphics profiles leave this preference alone.
+`user://goanna.cfg`. Lowest and Low disable it; Medium, High and Ultra
+enable it with graded
+budgets. See [graphics tiers](graphics-tiers.md).
 
 Changing the option in a game adds or removes the grass surface on existing
 near and distant terrain meshes. New terrain uploads use the same setting.
 Turning it off removes those surfaces, including their draw cost. The setting
 does not alter server nodes or the existing grass plants supplied by a game.
 
-While enabled, grass uses at least 4× MSAA plus FXAA for smooth procedural
-edges. Disabling it restores the antialiasing settings that were active before
-it was enabled; an existing 8× MSAA setting is preserved.
+Density, draw distance, bending distance and actor count have independent
+settings. Lower density widens the blade grid and shortens candidate
+searches. Grass fades back to the original ground over the final fifth of
+its draw range; fully distant proxies collapse before rasterisation. Zero
+bending distance or actors disables interaction work.
+
+Grass edge smoothing can keep existing AA, add FXAA, or add 2x/4x MSAA and
+FXAA. Changing quality or disabling grass restores its original AA
+baseline. A stronger existing MSAA setting is preserved. The diagnostic
+`render_grass_aa` gate can suppress grass-owned AA independently.
 
 `GOANNA_GRASS=1` remains a development startup default. A saved choice takes
 precedence. The isolated review launcher can test ordinary settings behaviour
@@ -34,11 +43,14 @@ it does not change the game's underwater plants or the general transparent pass.
 
 Close-up tracing searches longer ray intervals, bounds candidate roots by
 wind/actor reach, and rejects empty space before evaluating individual blades.
-Height varies both within and across clumps, continuously across block boundaries.
+Height varies both within and across clumps, continuously across block
+boundaries.
 Travelling wind fronts follow cloud motion and strengthen with precipitation.
 The player's collision footprint parts the grass even with the first-person
-body hidden. Distant blades blend to a canopy over 25–65 nodes.
-See [measurements and validation limits](perf/procedural-grass-wind-2026-09-25.md).
+body hidden. Distant blades blend to a canopy before the configured
+distance cutoff.
+See the earlier
+[measurements and validation limits](perf/procedural-grass-wind-2026-09-25.md).
 
 The live feature regression checks first-person interaction, body visibility,
 movement and rain-driven wind:

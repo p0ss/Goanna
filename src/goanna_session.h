@@ -2,6 +2,7 @@
 // Copyright (C) 2026 the Goanna contributors
 
 #pragma once
+#include "goanna_radial_form.h"
 
 // A Luanti client session, built on Luanti's own network layer, node/item
 // definition managers and MapBlock code. No Irrlicht, no rendering: it
@@ -84,6 +85,7 @@ struct SessionStats {
 
 class GoannaSession final : public IGameDef, public con::PeerHandler {
 public:
+    CarveStore &carves() { return m_carves; }
     GoannaSession();
     ~GoannaSession() override;
 
@@ -157,6 +159,11 @@ public:
     void setStoreRoot(const std::string &root) { m_store_root = root; }
     BlockStore *store() { return m_store.get(); }
     uint64_t terrainDefinitions() const { return m_terrain_definitions; }
+    uint64_t terrainVisualDefinitions() const { return m_terrain_visual_definitions; }
+    const std::string &terrainMediaIdentity() const { return m_terrain_media_identity; }
+    // Digest only data this connection has received. Caller holds mapLock().
+    std::string blockContentDigest(v3s16 pos);
+    std::string terrainPeer() const { return m_host + ":" + std::to_string(m_port); }
     // A block from the store, deserialised into a block of its own that is
     // not in the map, or nullptr. Caller holds mapLock(); content must be
     // prepared, because the node names resolve through the nodedef.
@@ -479,7 +486,10 @@ private:
     std::string m_store_root;
     std::string m_store_directory;
     std::unique_ptr<BlockStore> m_store;
+    std::map<v3s16, std::pair<uint64_t, std::string>> m_block_digests;
     uint64_t m_terrain_definitions = 0; // published before contentPrepared()
+    uint64_t m_terrain_visual_definitions = 0;
+    std::string m_terrain_media_identity;
     // Blocks edited since they were stored (ADDNODE, REMOVENODE); written
     // back when they are pruned or the session stops, so an edit survives
     // in the store rather than the block as first received.
@@ -503,7 +513,10 @@ private:
     std::unique_ptr<GoannaMap> m_map;
     std::unique_ptr<LocalPlayer> m_player;
     std::map<u16, std::unique_ptr<GoannaActiveObject>> m_objects;
+    CarveStore m_carves;
     InteractState m_interact;
+    int m_last_crack_level = -1;
+    v3s16 m_last_crack_pos;
     goanna::MiningCycle m_mining_cycle;
     PointedThing m_pointed_old;
     float m_nodig_delay_timer = 0, m_repeat_place_timer = 0;

@@ -556,10 +556,32 @@ void testCarvedNeighbourBoundary() {
     check(!formBoundaryOpen(fine, 16, 3, 8, 1, 2), "the far layer is the one that faces back");
 }
 
+void testPlayerStores() {
+    CarveStore a, b;
+    FormDamage damage;
+    damage.resolution = 8;
+    a.set(3, 4, 5, damage);
+    FormDamage received;
+    check(a.get(3, 4, 5, received), "owner receives its stored damage");
+    check(!b.get(3, 4, 5, received), "another player has not received that damage");
+    CarveSnapshot first, second;
+    a.snapshot(0, 0, 0, first);
+    b.snapshot(0, 0, 0, second);
+    check(first.find(3, 4, 5) != nullptr, "owner's mesher sees its damage");
+    check(second.entries.empty(), "another player's mesh snapshot stays empty");
+    b.set(3, 4, 5, damage);
+    a.clearBlock(0, 0, 0, [](int, int, int) { return false; });
+    check(a.empty(), "block replacement clears only its owner");
+    check(!b.empty(), "other player's state survives a block replacement");
+    b.clear(3, 4, 5);
+    check(b.empty(), "each player can clear its own damage");
+}
+
 } // namespace
 
 int main(int argc, char **argv) {
     const std::string path = argc >= 2 ? argv[1] : "tools/dig-review/reference_v3.json";
+    testPlayerStores();
     testAgainstReference(path);
     testBoxesBaseline();
     testCubeBaselineMatchesBoxesBaseline();

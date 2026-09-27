@@ -65,7 +65,7 @@ std::unique_ptr<MapBlockMesh> meshGathered(GoannaSession &session, MeshMakeData 
     // runs on a mesh worker and several of them are live at once.
     CarveSnapshot carves;
     const v3s16 corner = data.m_blockpos * MAP_BLOCKSIZE;
-    carveSnapshot(corner.X, corner.Y, corner.Z, carves);
+    session.carves().snapshot(corner.X, corner.Y, corner.Z, carves);
     goanna::g_goanna_carve_block = carves.entries.empty() ? nullptr : &carves;
     struct Clear {
         ~Clear() { goanna::g_goanna_carve_block = nullptr; }

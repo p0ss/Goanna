@@ -36,6 +36,7 @@
 // pixel came from. That is the whole hand-off strategy: two materials that
 // agree at every distance cannot draw a seam, wherever the near mesh ends.
 shader_type spatial;
+#include "feature_flags.gdshaderinc"
 render_mode blend_mix, cull_disabled, diffuse_burley, specular_schlick_ggx;
 
 uniform sampler2D albedo_tex : source_color, filter_nearest_mipmap, repeat_enable;
@@ -184,7 +185,7 @@ void fragment() {
 			textureLod(albedo_tex, vec2(0.5), 24.0), flatten) * COLOR;
 	float here = -VERTEX.z;
 
-	if (waving) {
+	if (waving && goanna_render_water_waves > 0.5) {
 		// Drop octaves with distance. The fine ones are below a pixel long
 		// out there and only alias; dropping them is also most of the cost
 		// back on a screen that is all ocean.
@@ -212,7 +213,7 @@ void fragment() {
 	// replacing them. They are gone by 22 nodes, inside the cover map's
 	// 32 node reach, so its edge never shows as a line of rings; further
 	// out a ring is a pixel or two and only glitters in the sun.
-	if (goanna_rain > 0.001 && FRONT_FACING && here < 22.0) {
+	if (goanna_render_wet_surfaces > 0.5 && goanna_rain > 0.001 && FRONT_FACING && here < 22.0) {
 		float open = goanna_rain_open(world_pos, 1.0);
 		float k = open * min(goanna_rain, 1.5) * (1.0 - smoothstep(10.0, 22.0, here));
 		if (k > 0.001) {
@@ -336,7 +337,7 @@ void fragment() {
 		// true of the sky and a double image on near geometry, whose parallax
 		// the march below handles properly. The wave normal is already in the
 		// direction, so the reflection ripples for free.
-		if (dir.z < 0.0) {
+		if (goanna_render_water_reflections > 0.5 && dir.z < 0.0) {
 			vec4 sclip = PROJECTION_MATRIX * vec4(dir, 1.0);
 			vec2 suv = (sclip.xy / sclip.w) * 0.5 + 0.5;
 			if (suv == clamp(suv, vec2(0.0), vec2(1.0))
@@ -350,7 +351,7 @@ void fragment() {
 
 		// March the reflected ray against the depth buffer. Steps grow, so a
 		// near bank is found precisely and a far one is still reached.
-		if (waving && march_keep > 0.001) {
+		if (goanna_render_water_reflections > 0.5 && waving && march_keep > 0.001) {
 			float step_len = 0.3;
 			vec3 p = VERTEX;
 			for (int i = 0; i < 24; i++) {

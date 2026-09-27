@@ -15,6 +15,15 @@ var check_time := 0.0
 var visible_ice := false
 var fracture_texture: NoiseTexture3D
 var cloud_texture: NoiseTexture3D
+var transmission_enabled := true
+
+func set_transmission_enabled(enabled: bool) -> void:
+	transmission_enabled = enabled
+	check_time = 0.0
+	if not enabled and background != null:
+		visible_ice = false
+		background.render_target_update_mode = SubViewport.UPDATE_DISABLED
+		client.set_view_shader_parameter("goanna_ice_transmission_ready", 0.0)
 
 # Shared, deterministic volumes. Ice samples these in world space, including
 # below its surface, so adjoining nodes share fractures and moving views see
@@ -43,8 +52,8 @@ func initialise(view_camera: Camera3D, environment: Environment, game_client: No
 	client = game_client
 	fracture_texture = _make_volume(true)
 	cloud_texture = _make_volume(false)
-	RenderingServer.global_shader_parameter_set("goanna_ice_fractures", fracture_texture)
-	RenderingServer.global_shader_parameter_set("goanna_ice_clouds", cloud_texture)
+	client.set_view_shader_parameter("goanna_ice_fractures", fracture_texture)
+	client.set_view_shader_parameter("goanna_ice_clouds", cloud_texture)
 	background = SubViewport.new()
 	background.name = "IceBackground"
 	background.use_hdr_2d = true
@@ -58,12 +67,12 @@ func initialise(view_camera: Camera3D, environment: Environment, game_client: No
 	camera.current = true
 	capture_environment = source_environment.duplicate()
 	camera.environment = capture_environment
-	RenderingServer.global_shader_parameter_set("goanna_ice_background", background.get_texture())
-	RenderingServer.global_shader_parameter_set("goanna_ice_transmission_ready", 0.0)
+	client.set_view_shader_parameter("goanna_ice_background", background.get_texture())
+	client.set_view_shader_parameter("goanna_ice_transmission_ready", 0.0)
 	process_priority = 100
 
 func _process(delta: float) -> void:
-	if not is_instance_valid(source_camera):
+	if not transmission_enabled or not is_instance_valid(source_camera):
 		return
 	check_time -= delta
 	if check_time <= 0.0:
@@ -72,7 +81,7 @@ func _process(delta: float) -> void:
 		if not client.solid_ice():
 			var planes := source_camera.get_frustum()
 			for ice in get_tree().get_nodes_in_group("goanna_ice"):
-				if not ice.is_visible_in_tree() or not ice.mesh:
+				if ice.get_world_3d() != source_camera.get_world_3d() or not ice.is_visible_in_tree() or not ice.mesh:
 					continue
 				var box: AABB = ice.global_transform * ice.get_aabb()
 				var outside := false
@@ -89,7 +98,7 @@ func _process(delta: float) -> void:
 					visible_ice = true
 					break
 	background.render_target_update_mode = SubViewport.UPDATE_ALWAYS if visible_ice else SubViewport.UPDATE_DISABLED
-	RenderingServer.global_shader_parameter_set("goanna_ice_transmission_ready", 1.0 if visible_ice else 0.0)
+	client.set_view_shader_parameter("goanna_ice_transmission_ready", 1.0 if visible_ice else 0.0)
 	if not visible_ice:
 		return
 	var size := source_camera.get_viewport().get_visible_rect().size
@@ -119,7 +128,7 @@ func _exit_tree() -> void:
 	# Definitions belong to the application (project.godot); values belong to
 	# this world. Unbind before freeing the viewport/volumes, but keep the
 	# globals registered for shaders and materials retained across scene loads.
-	RenderingServer.global_shader_parameter_set("goanna_ice_transmission_ready", 0.0)
-	RenderingServer.global_shader_parameter_set("goanna_ice_background", null)
-	RenderingServer.global_shader_parameter_set("goanna_ice_fractures", null)
-	RenderingServer.global_shader_parameter_set("goanna_ice_clouds", null)
+	client.set_view_shader_parameter("goanna_ice_transmission_ready", 0.0)
+	client.set_view_shader_parameter("goanna_ice_background", null)
+	client.set_view_shader_parameter("goanna_ice_fractures", null)
+	client.set_view_shader_parameter("goanna_ice_clouds", null)

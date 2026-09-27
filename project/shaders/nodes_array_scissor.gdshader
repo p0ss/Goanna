@@ -42,6 +42,7 @@ void vertex() {
 }
 
 void fragment() {
+	v_lamp_world = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	// Derivatives before any branching: a fragment quad can straddle two
 	// array layers, and dFdx inside that is not defined.
 	vec2 uv_dx = dFdx(UV);
@@ -176,7 +177,7 @@ void fragment() {
 	// Rain wets what the sky can reach, damp rather than glazed; the full
 	// account is in nodes_array.gdshader beside the same block.
 	float wet_film = 0.0;
-	if (goanna_wetness > 0.001) {
+	if (goanna_render_wet_surfaces > 0.5 && goanna_wetness > 0.001) {
 		// Wet only where rain reaches: the cover map where there is one,
 		// sky light beyond it. Sky light alone wet the floor several nodes
 		// in from a doorway, where the light still reaches.

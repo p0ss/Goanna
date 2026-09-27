@@ -8,6 +8,12 @@ renderer change can be shown not to have made things worse.
 question and its rules still hold. This is that discipline automated, with
 per frame data instead of one telemetry line a second.
 
+The [performance inventory](performance-inventory.md) audits current feature
+controls and local-player scaling, separates measured costs from estimates,
+and proposes the next profile sweep and a true Lowest baseline.
+The [render feature switches](render-feature-switches.md) document the first
+independent pass gates and how to compare them with one or several players.
+
 ## What it measures
 
 Four runs, in the order they are taken.

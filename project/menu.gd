@@ -11,10 +11,15 @@
 extends Control
 
 const CFG_PATH := "user://goanna.cfg"
+const LocalLaunch := preload("res://local_launch.gd")
+var local_roster: Array = []
+var local_layout := "grid"
+var local_graphics_profile := "low"
+
 const LocalServer := preload("res://local_server.gd")
 const AssetUpdater := preload("res://asset_updater.gd")
 const GlassStyle := preload("res://ui/glass_style.gd")
-const SKIP_VARS := ["GOANNA_HOST", "GOANNA_NAME", "GOANNA_SHOT", "GOANNA_SMOKE",
+const SKIP_VARS := ["GOANNA_LOCAL_PLAY", "GOANNA_HOST", "GOANNA_NAME", "GOANNA_SHOT", "GOANNA_SMOKE",
 	"GOANNA_WALKTEST", "GOANNA_TOGGLETEST", "GOANNA_ANIMPROBE", "GOANNA_MOBTEST",
 	"GOANNA_USETEST", "GOANNA_MINETEST", "GOANNA_DIGDOWNTEST", "GOANNA_MANTLETEST"]
 
@@ -81,6 +86,11 @@ const SHOWCASE_YAW := -116.6
 
 func _ready() -> void:
 	AssetUpdater.install_bootstrap()
+	var local_cfg := ConfigFile.new()
+	if local_cfg.load(CFG_PATH) == OK:
+		local_roster = local_cfg.get_value("local_play", "players", [])
+		local_layout = str(local_cfg.get_value("local_play", "layout", "grid"))
+		local_graphics_profile = str(local_cfg.get_value("local_play", "graphics_profile", "low"))
 	set_process(false)
 	# The real-world backdrop is the normal menu. Keep screenshot automation
 	# and recovery on machines without Luanti deterministic, and allow an
@@ -365,6 +375,7 @@ func _show_main() -> void:
 	_new_screen("", "A Godot client for Luanti worlds.")
 	screen.add_child(_button("Start Game", _show_new_game))
 	screen.add_child(_button("Join Game", _show_join))
+	screen.add_child(_button("Local players", _show_local_players))
 	screen.add_child(_button("Content", _show_content))
 	screen.add_child(_button("Settings", _show_settings))
 	screen.add_child(_button("About", _show_about))
@@ -1519,7 +1530,7 @@ func _on_start_local() -> void:
 		"host": host_check.button_pressed, "server_name": server_name_edit.text.strip_edges(),
 		"server_description": server_description_edit.text.strip_edges(),
 		"password": server_password_edit.text, "announce": public_announce,
-		"max_users": int(max_players_spin.value)}
+		"max_users": maxi(int(max_players_spin.value), local_roster.size())}
 	if host_check.button_pressed:
 		launch["port"] = int(server_port_edit.text)
 	# The player's Far draw distance setting travels to the server as the
@@ -1909,4 +1920,130 @@ func _now() -> float:
 	return Time.get_ticks_msec() / 1000.0
 
 func _go_to_game() -> void:
-	get_tree().change_scene_to_file.call_deferred("res://main.tscn")
+	var roster := LocalLaunch.from_environment() if OS.get_environment("GOANNA_LOCAL_PLAY") != "" else local_roster.duplicate(true)
+	if roster.is_empty() and OS.get_environment("GOANNA_LOCAL_PLAY") != "":
+		push_error("GOANNA_LOCAL_PLAY needs a positive count or a player array")
+		get_tree().quit(1)
+		return
+	if roster.size() > 1:
+		# The existing launch form supplies the first player's identity.
+		if not OS.get_environment("GOANNA_NAME").is_empty():
+			roster[0]["name"] = OS.get_environment("GOANNA_NAME")
+		roster[0]["password"] = OS.get_environment("GOANNA_PASS")
+		var error := LocalLaunch.validate(roster)
+		if error != "":
+			if server != null:
+				server.stop()
+				server = null
+				OS.set_environment("GOANNA_SP_PID", "")
+				OS.set_environment("GOANNA_SP_MATCH", "")
+			if is_instance_valid(start_button): start_button.disabled = false
+			if is_instance_valid(connect_button): connect_button.disabled = false
+			if status_label != null:
+				_fail(error)
+			else:
+				push_error(error)
+				get_tree().quit(1)
+			return
+		if server != null:
+			for player in roster:
+				if str(player.get("password", "")).is_empty():
+					player["password"] = _local_join_password
+		LocalLaunch.players = roster
+		LocalLaunch.layout = local_layout
+		LocalLaunch.graphics_profile = local_graphics_profile
+		LocalLaunch.server = server
+		server = null
+		get_tree().change_scene_to_file.call_deferred("res://local_play.tscn")
+	else:
+		LocalLaunch.server = server
+		server = null
+		get_tree().change_scene_to_file.call_deferred("res://main.tscn")
+
+# Local player slots are configured once, then used by Start Game or Join Game.
+# Each extra player authenticates normally, including on remote servers.
+func _show_local_players() -> void:
+	_new_screen("Local players", "Experimental splitscreen. Player 1 uses the name and password on Start Game or Join Game.")
+	var roster := local_roster.duplicate(true)
+	if roster.is_empty():
+		roster.append({"name": _local_player_name(), "device": -1})
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(580, 260)
+	screen.add_child(scroll)
+	var rows := VBoxContainer.new()
+	rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(rows)
+	var controls: Array = []
+	for i in roster.size():
+		var row := HBoxContainer.new()
+		rows.add_child(row)
+		var label := Label.new()
+		label.text = "Player %d" % (i + 1)
+		row.add_child(label)
+		var player_name := LineEdit.new()
+		player_name.text = str(roster[i].get("name", "player_%d" % (i + 1)))
+		player_name.editable = i != 0
+		player_name.custom_minimum_size.x = 150
+		row.add_child(player_name)
+		var device := OptionButton.new()
+		device.add_item("Press Start to join")
+		device.set_item_metadata(0, -2)
+		device.add_item("Keyboard and mouse")
+		device.set_item_metadata(1, -1)
+		for id in Input.get_connected_joypads():
+			device.add_item("%d: %s" % [id, Input.get_joy_name(id)])
+			device.set_item_metadata(device.item_count - 1, id)
+		var wanted := int(roster[i].get("device", -2))
+		for j in device.item_count:
+			if int(device.get_item_metadata(j)) == wanted: device.select(j)
+		row.add_child(device)
+		var password := LineEdit.new()
+		password.secret = true
+		password.placeholder_text = "Server password"
+		password.text = str(roster[i].get("password", ""))
+		password.editable = i != 0
+		row.add_child(password)
+		controls.append([player_name, device, password])
+	var collect := func() -> Array:
+		var result: Array = []
+		for c in controls:
+			result.append({"name": c[0].text.strip_edges(), "device": c[1].get_item_metadata(c[1].selected), "password": c[2].text})
+		return result
+	var split := OptionButton.new()
+	split.add_item("Two players: side by side")
+	split.add_item("Two players: top and bottom")
+	split.select(1 if local_layout == "horizontal" else 0)
+	split.item_selected.connect(func(index: int) -> void: local_layout = "horizontal" if index == 1 else "grid")
+	screen.add_child(split)
+	var quality := OptionButton.new()
+	var profiles := GraphicsProfiles.ORDER
+	for profile in profiles:
+		quality.add_item("Local graphics: " + profile.capitalize())
+	quality.select(maxi(0, profiles.find(local_graphics_profile)))
+	quality.item_selected.connect(func(index: int) -> void: local_graphics_profile = profiles[index])
+	screen.add_child(quality)
+	screen.add_child(_button("Add player", func() -> void:
+		local_roster = collect.call()
+		local_roster.append({"name": "player_%d" % (local_roster.size() + 1), "device": -2})
+		_show_local_players()))
+	if roster.size() > 1:
+		screen.add_child(_button("Remove last player", func() -> void:
+			local_roster = collect.call()
+			local_roster.pop_back()
+			_show_local_players()))
+	screen.add_child(_button("Save and back", func() -> void:
+		var result: Array = collect.call()
+		var error := LocalLaunch.validate(result)
+		if error != "":
+			_fail(error)
+			return
+		local_roster = result
+		var saved := result.duplicate(true)
+		for player in saved: player.erase("password")
+		var cfg := ConfigFile.new()
+		cfg.load(CFG_PATH)
+		cfg.set_value("local_play", "players", saved)
+		cfg.set_value("local_play", "layout", local_layout)
+		cfg.set_value("local_play", "graphics_profile", local_graphics_profile)
+		cfg.save(CFG_PATH)
+		_show_main()))

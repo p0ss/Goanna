@@ -57,6 +57,7 @@ void vertex() {
 }
 
 void fragment() {
+	v_lamp_world = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	if (base_alpha_test) {
 		int layer = goanna_anim_layer(int(round(UV2.x)));
 		if (texture(albedo_array, vec3(UV, float(layer))).a < 0.5)

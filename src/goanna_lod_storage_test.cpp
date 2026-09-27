@@ -198,6 +198,9 @@ void summaries(const std::string &dir) {
 }
 
 int main() {
+    // These cases exercise disk corruption and disk reuse specifically.
+    // The shared-memory cache has independent concurrency/eviction tests.
+    setenv("GOANNA_NO_SHARED_TERRAIN", "1", 1);
     auto root = std::filesystem::temp_directory_path() / ("goanna-lod-storage-test-" +
             std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
     records();

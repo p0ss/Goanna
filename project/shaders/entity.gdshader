@@ -65,6 +65,7 @@ uniform float class_sss : hint_range(0.0, 1.0) = 0.0;
 #include "res://shaders/direct_light.gdshaderinc"
 
 void fragment() {
+	v_lamp_world = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	ALBEDO = texture(albedo, UV).rgb;
 	if (vertex_tint)
 		ALBEDO *= COLOR.rgb;

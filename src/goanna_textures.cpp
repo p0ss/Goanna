@@ -10,6 +10,7 @@
 // adapted from client/shader.cpp. Each is marked at its definition.
 
 #include "goanna_textures.h"
+#include "util/hashing.h"
 
 #include "client/texturepaths.h"
 
@@ -622,6 +623,32 @@ Ref<ImageTexture> GoannaTexture::godotEmissionMask() {
 
 // ---------------------------------------------------------------------------
 // GoannaTextureSource
+
+std::string GoannaTextureSource::geometryIdentity() const {
+    if (!m_geometry_identity.empty()) return m_geometry_identity;
+    std::string bytes;
+    for (const auto &texture : m_textures) {
+        if (!texture) { bytes += "null;"; continue; }
+        bytes += std::to_string(texture->id()) + ":" + texture->getName().getPath().c_str();
+        bytes.push_back('\0');
+        const auto size = texture->getSize();
+        bytes += std::to_string(size.Width) + ":" + std::to_string(size.Height);
+        bytes.push_back(texture->hasAlpha() ? 1 : 0);
+        for (u32 layer = 0; layer < texture->layerCount(); ++layer)
+            bytes.push_back(texture->tileHasAlpha((u16)layer) ? 1 : 0);
+        for (const auto &name : texture->layerNames()) {
+            bytes += name; bytes.push_back('\0');
+        }
+    }
+    // Palettes are baked into mesh vertex colours, not sampled by the
+    // receiving view's material. Different artwork must not reuse them.
+    for (const auto &palette : m_palettes) {
+        bytes += palette.first; bytes.push_back('\0');
+        for (const auto &colour : palette.second)
+            bytes += std::to_string(colour.color) + ":";
+    }
+    return hashing::sha256(bytes);
+}
 
 GoannaTextureSource::GoannaTextureSource() {
     // id 0 is "no texture" like Luanti's TextureSource

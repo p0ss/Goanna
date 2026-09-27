@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 #include "goanna_lod_storage.h"
+#include "goanna_shared_cache.h"
+#include <atomic>
+#include <cstdlib>
 
 #include <algorithm>
 #include <cstring>
@@ -8,6 +11,25 @@
 #include <zstd.h>
 
 namespace goanna {
+
+namespace {
+SharedCache<BlockLodChain> shared_chains(64ull << 20);
+std::atomic<uint64_t> shared_chain_hits{0};
+}
+uint64_t sharedLodHits() { return shared_chain_hits.load(); }
+std::shared_ptr<const BlockLodChain> sharedLodChain(const std::string &key,
+        const std::function<std::shared_ptr<const BlockLodChain>()> &build) {
+    if (getenv("GOANNA_NO_SHARED_TERRAIN")) return build();
+    bool reused = false;
+    auto result = shared_chains.get(key, build, [](const BlockLodChain &chain) {
+        size_t bytes = sizeof(chain) + chain.fine_records.size() * sizeof(BlockLodChain::FineRecord);
+        for (const auto &level : chain.level)
+            bytes += level.cells.size() * sizeof(LodLevel::Cell) + level.terrain.size();
+        return bytes;
+    }, reused);
+    if (reused) ++shared_chain_hits;
+    return result;
+}
 
 uint64_t terrainFingerprint(const std::string &bytes) {
     uint64_t h = 14695981039346656037ull;
@@ -344,6 +366,9 @@ void LodStorage::work(std::string directory, uint64_t definitions, Load load, Bu
             } else {
                 std::string source;
                 if (load && load(job.pos, source)) {
+                    const std::string key = getenv("GOANNA_NO_SHARED_TERRAIN") ? "" :
+                            "stored:" + std::to_string(definitions) + ":" + source;
+                    result.chain = sharedLodChain(key, [&]() -> std::shared_ptr<const BlockLodChain> {
                     const uint64_t revision = terrainFingerprint(source);
                     uint8_t version = 0;
                     std::string record;
@@ -363,6 +388,11 @@ void LodStorage::work(std::string directory, uint64_t definitions, Load load, Bu
                             built = true;
                         }
                     }
+                        return result.chain;
+                    });
+                    // A process-cache result is also a prepared hierarchy
+                    // hit, even though this worker did not touch its disk.
+                    if (result.chain && !miss && !built) hit = true;
                 }
             }
         } catch (const std::exception &) { error = true; }

@@ -3,12 +3,16 @@
 // (shadertoy dd2cWh, supplied by the user); independently implemented tapered
 // blade distance estimator, per-surface bounds, depth and Godot lighting.
 shader_type spatial;
+#include "feature_flags.gdshaderinc"
 render_mode cull_front, diffuse_burley, specular_schlick_ggx, alpha_to_coverage, depth_draw_always;
 
 global uniform vec3 goanna_sky_fill;
 global uniform vec3 goanna_ground_fill;
 global uniform float goanna_wetness;
 uniform bool enabled = true;
+uniform float density : hint_range(0.1, 1.0) = 1.0;
+uniform float draw_distance = 80.0;
+uniform float interaction_distance = 16.0;
 uniform float wind_strength : hint_range(0.0, 1.0) = 0.35;
 uniform vec2 wind_direction = vec2(1.0, 0.0);
 uniform int march_steps : hint_range(16, 128) = 64;
@@ -25,11 +29,21 @@ uniform vec4 interaction_centres[8];
 uniform bool interaction_enabled = true;
 uniform float interaction_angle : hint_range(0.0, 0.8) = 0.8;
 
+varying flat vec3 grass_camera;
 varying flat vec4 patch;
 varying flat vec3 root_light;
 varying flat float shadow_pass;
 varying flat float patch_margin;
 varying vec3 world_exit;
+
+float blade_spacing() {
+    return 0.12 / sqrt(clamp(density, 0.1, 1.0));
+}
+float interaction_weight(vec2 anchor) {
+    if (interaction_distance <= 0.0) return 0.0;
+    return 1.0-smoothstep(interaction_distance*0.75,interaction_distance,
+        distance(anchor,grass_camera.xz));
+}
 
 // Integer hashing retains deterministic cells on either side of the origin.
 uint grass_hash(ivec2 cell) {
@@ -75,6 +89,7 @@ vec2 grass_wind(vec2 anchor, float tm) {
 }
 
 void vertex() {
+    grass_camera = MAIN_CAM_INV_VIEW_MATRIX[3].xyz;
     // Terrain tiers translate their meshes by half a node. Transform both
     // the root bounds and the proxy, so the hash field never restarts at LOD.
     vec3 lower = (MODEL_MATRIX * vec4(CUSTOM0.x, CUSTOM1.x, CUSTOM0.y, 1.0)).xyz;
@@ -88,10 +103,11 @@ void vertex() {
     // the camera entered the grass. Only enlarge the volume where a nearby
     // actor can actually push a blade beyond its normal wind envelope.
     patch_margin=grass_wind_reach();
-    if (interaction_enabled) {
+    if (interaction_enabled && goanna_render_grass_interaction > 0.5 && interaction_distance > 0.0) {
         for (int i=0;i<8;i++) {
             if (i>=interaction_count) break;
             vec4 actor=interaction_centres[i];
+            if (distance(actor.xz,grass_camera.xz)>interaction_distance+actor.w+1.1) continue;
             float separation=distance(actor.xz,clamp(actor.xz,patch.xy,patch.zw));
             float weight=(1.0-smoothstep(0.0,actor.w,separation))*
                 (1.0-smoothstep(0.25,0.9,abs(lower.y-actor.y)));
@@ -104,19 +120,25 @@ void vertex() {
         VERTEX.z > middle.z ? patch.w+patch_margin : patch.y-patch_margin);
     // Terrain meshes are world-axis aligned and only translated by tier.
     VERTEX = world_exit-MODEL_MATRIX[3].xyz;
+    vec3 nearest = vec3(clamp(MAIN_CAM_INV_VIEW_MATRIX[3].x,patch.x,patch.z),
+        clamp(MAIN_CAM_INV_VIEW_MATRIX[3].y,lower.y,lower.y+1.24),
+        clamp(MAIN_CAM_INV_VIEW_MATRIX[3].z,patch.y,patch.w));
+    if (distance(nearest,MAIN_CAM_INV_VIEW_MATRIX[3].xyz) > draw_distance+patch_margin)
+        VERTEX = vec3(0.0);
     shadow_pass = length(INV_VIEW_MATRIX[3].xyz - MAIN_CAM_INV_VIEW_MATRIX[3].xyz);
 }
 
 vec3 grass_interaction(vec2 anchor) {
     vec3 result=vec3(0.0);
-    if (!interaction_enabled) return result;
+    if (!interaction_enabled || goanna_render_grass_interaction < 0.5 || interaction_weight(anchor) <= 0.0) return result;
     for (int i=0;i<8;i++) {
         if (i>=interaction_count) break;
         vec4 actor=interaction_centres[i];
+            if (distance(actor.xz,grass_camera.xz)>interaction_distance+actor.w+1.1) continue;
         vec2 delta=anchor-actor.xz;
         float distance=length(delta);
         float weight=(1.0-smoothstep(0.0,actor.w,distance))*
-            (1.0-smoothstep(0.25,0.9,abs(root_light.x-actor.y)));
+            (1.0-smoothstep(0.25,0.9,abs(root_light.x-actor.y)))*interaction_weight(anchor);
         if (weight>result.z) result=vec3(delta/max(distance,0.05),weight);
     }
     return result;
@@ -137,11 +159,12 @@ mat3 grass_unbend(vec3 pressure) {
 }
 
 int grass_neighbourhood(vec3 p) {
-    int radius=int(ceil(grass_wind_reach()/0.12));
-    if (!interaction_enabled) return radius;
+    int radius=int(ceil(grass_wind_reach()/blade_spacing()));
+    if (!interaction_enabled || goanna_render_grass_interaction < 0.5) return radius;
     for (int i=0;i<8;i++) {
         if (i>=interaction_count) break;
         vec4 actor=interaction_centres[i];
+            if (distance(actor.xz,grass_camera.xz)>interaction_distance+actor.w+1.1) continue;
         float weight=1.0-smoothstep(0.25,0.9,abs(root_light.x-actor.y));
         float angle=clamp(interaction_angle,0.0,0.8)*weight;
         // A bent tip can reach far from its root, but the lower blade cannot.
@@ -150,13 +173,13 @@ int grass_neighbourhood(vec3 p) {
         float reach=min(grass_wind_reach()+1.1*sin(angle),
             max(p.y-root_light.x,0.0)*tan(angle)+grass_wind_reach()/cos(angle));
         if (weight>0.0001 && distance(p.xz,actor.xz)<actor.w+reach)
-            radius=max(radius,int(ceil(reach/0.12)));
+            radius=max(radius,int(ceil(reach/blade_spacing())));
     }
     return radius;
 }
 
 float grass_distance(vec3 p, float tm) {
-    const float spacing = 0.12;
+    float spacing = blade_spacing();
     float y = p.y-root_light.x;
     if (y > 1.12) return (y-1.1)*0.55;
     ivec2 cell = ivec2(floor(p.xz / spacing));
@@ -228,10 +251,11 @@ vec3 cell_intersection(vec3 origin, vec3 rd, ivec2 cell, float max_t, float foot
     vec2 segment_hi=max(origin.xz,segment_end.xz);
     float wind_reach=grass_wind_reach()+0.5*footprint/0.15;
     float reach=wind_reach;
-    if (interaction_enabled) {
+    if (interaction_enabled && goanna_render_grass_interaction > 0.5 && interaction_distance > 0.0) {
         for (int i=0;i<8;i++) {
             if (i>=interaction_count) break;
             vec4 actor=interaction_centres[i];
+            if (distance(actor.xz,grass_camera.xz)>interaction_distance+actor.w+1.1) continue;
             float weight=1.0-smoothstep(0.25,0.9,abs(root_light.x-actor.y));
             float angle=clamp(interaction_angle,0.0,0.8)*weight;
             float actor_reach=min(wind_reach+1.1*sin(angle),
@@ -242,13 +266,13 @@ vec3 cell_intersection(vec3 origin, vec3 rd, ivec2 cell, float max_t, float foot
     }
     // Traverse longer intervals and test each possible root once. Bent blades
     // otherwise repeat the same large square search every twelve centimetres.
-    ivec2 lower=ivec2(floor(max(segment_lo-vec2(reach),patch.xy)/0.12))-cell;
-    ivec2 upper=ivec2(floor(min(segment_hi+vec2(reach),patch.zw)/0.12))-cell;
+    ivec2 lower=ivec2(floor(max(segment_lo-vec2(reach),patch.xy)/blade_spacing()))-cell;
+    ivec2 upper=ivec2(floor(min(segment_hi+vec2(reach),patch.zw)/blade_spacing()))-cell;
     for (int z=lower.y;z<=upper.y;z++) {
         for (int x=lower.x;x<=upper.x;x++) {
             ivec2 id=cell+ivec2(x,z);
             vec4 rnd=grass_random(id);
-            vec2 anchor=(vec2(id)+vec2(0.15)+rnd.xy*0.7)*0.12;
+            vec2 anchor=(vec2(id)+vec2(0.15)+rnd.xy*0.7)*blade_spacing();
             if (any(lessThan(anchor,patch.xy)) || any(greaterThanEqual(anchor,patch.zw))) continue;
             vec3 pressure=grass_interaction(anchor);
             vec3 centre=vec3(anchor.x,root_light.x,anchor.y);
@@ -314,7 +338,8 @@ void fragment() {
     vec3 b = (hi-ro)/safe_rd;
     vec3 entry = min(a,b), leave = max(a,b);
     float start = max(max(entry.x,entry.y),max(entry.z,0.0));
-    float end = min(min(leave.x,leave.y),leave.z);
+    float end = min(min(min(leave.x,leave.y),leave.z),draw_distance);
+    if (start >= end) discard;
     // Stop at opaque geometry. Integrating the blades behind a creature
     // would otherwise paint their coverage over its body.
     float opaque_depth=textureLod(scene_depth,SCREEN_UV,0.0).r;
@@ -357,14 +382,14 @@ void fragment() {
             // The local neighbourhood changes at cell boundaries. An empty
             // margin must not return a long step that jumps over the first
             // rows of blades at a block edge.
-            float trace_cell=analytic_blades ? 0.96 : 0.12;
+            float trace_cell=analytic_blades ? 0.96 : blade_spacing();
             vec2 cell_edge = (floor(p.xz/trace_cell)+step(vec2(0.0),rd.xz))*trace_cell;
             vec2 crossing = (cell_edge-p.xz)/safe_rd.xz;
             crossing=mix(vec2(1e20),crossing,greaterThan(abs(rd.xz),vec2(0.000001)));
             footprint=max(0.0006,2.0*t/(VIEWPORT_SIZE.y*PROJECTION_MATRIX[1][1]));
             float cell_step = max(0.0015,min(crossing.x,crossing.y)+0.0002);
             if (analytic_blades) {
-                vec3 blade_t=cell_intersection(p,rd,ivec2(floor(p.xz/0.12)),min(cell_step,end-t),footprint,tm);
+                vec3 blade_t=cell_intersection(p,rd,ivec2(floor(p.xz/blade_spacing())),min(cell_step,end-t),footprint,tm);
                 if (blade_t.x<1e19) {
                     t+=blade_t.x;
                     if (!composite_edges) { coverage=blade_t.y; hit=true; break; }
@@ -423,7 +448,7 @@ void fragment() {
     vec3 view_hit = (VIEW_MATRIX*vec4(p,1.0)).xyz;
     vec4 clip = PROJECTION_MATRIX*vec4(view_hit,1.0);
     DEPTH = clip.z/clip.w;
-    ALPHA = coverage;
+    ALPHA = coverage*(1.0-smoothstep(draw_distance*0.8,draw_distance,t));
     LIGHT_VERTEX = view_hit;
     NORMAL = normalize((VIEW_MATRIX*vec4(0.0,1.0,0.0,0.0)).xyz);
     float broad = grass_noise(p.xz*0.055)*0.7 + grass_noise(p.xz*0.23)*0.3;
@@ -434,8 +459,8 @@ void fragment() {
     vec3 base = mix(COLOR.rgb/12.92,pow((COLOR.rgb+0.055)/1.055,vec3(2.4)),
         greaterThan(COLOR.rgb,vec3(0.04045)));
     ALBEDO = base * mix(0.77,1.2,broad) * height_shade;
-    ALBEDO *= 1.0-goanna_wetness*0.14;
-    ROUGHNESS = 0.9-goanna_wetness*0.15;
+    ALBEDO *= 1.0-goanna_wetness*goanna_render_wet_surfaces*0.14;
+    ROUGHNESS = 0.9-goanna_wetness*goanna_render_wet_surfaces*0.15;
     SPECULAR = 0.25;
     BACKLIGHT = ALBEDO*0.3;
     RIM = 0.18;

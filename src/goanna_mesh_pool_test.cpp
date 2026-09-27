@@ -289,6 +289,19 @@ void testStopWithoutStart() {
     check(true, "stop on a pool that never started is safe");
 }
 
+void testRepeatedIdleResize() {
+    MeshPool pool;
+    // Local slots repeatedly resize idle pools as players join or leave.
+    // Exercise shutdown racing workers entering their condition wait.
+    for (int i = 0; i < 1000; ++i) {
+        pool.start(1 + i % 4);
+        std::this_thread::yield();
+        pool.stop();
+    }
+    check(!pool.running() && pool.stats().threads == 0,
+            "repeated idle worker resizing stops every thread");
+}
+
 } // namespace
 
 int main() {
@@ -303,6 +316,7 @@ int main() {
     testCoverageCannotFillRepairReserveFirst();
     testReadyBackpressure();
     testStopWithoutStart();
+    testRepeatedIdleResize();
 
     if (g_failures) {
         std::printf("goanna_mesh_pool_test: %d failure(s)\n", g_failures);

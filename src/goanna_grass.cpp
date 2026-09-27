@@ -156,8 +156,15 @@ void goanna::append_grass(const Ref<ArrayMesh> &mesh, bool lod, Node *owner,
     if (owner->has_meta("goanna_grass_material")) material=owner->get_meta("goanna_grass_material");
     if (material.is_null()) {
         material.instantiate();
-        material->set_shader(ResourceLoader::get_singleton()->load("res://shaders/grass_volume.gdshader"));
+        Ref<Shader> shader = owner->has_method("load_view_shader")
+                ? Ref<Shader>(owner->call("load_view_shader", "res://shaders/grass_volume.gdshader"))
+                : Ref<Shader>(ResourceLoader::get_singleton()->load("res://shaders/grass_volume.gdshader"));
+        material->set_shader(shader);
         material->set_meta("goanna_grass_volume", true);
+        const Dictionary parameters = owner->get_meta("goanna_grass_parameters", Dictionary());
+        const Array keys = parameters.keys();
+        for (int i = 0; i < keys.size(); ++i)
+            material->set_shader_parameter(keys[i], parameters[keys[i]]);
         owner->set_meta("goanna_grass_material",material);
     }
     mesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, a, TypedArray<Array>(), Dictionary(), flags);
@@ -167,7 +174,7 @@ void goanna::append_grass(const Ref<ArrayMesh> &mesh, bool lod, Node *owner,
 void goanna::update_grass_interactors(Node *owner, const PackedVector4Array &actors) {
     if (!owner->has_meta("goanna_grass_material")) return;
     Ref<ShaderMaterial> material=owner->get_meta("goanna_grass_material");
-    material->set_shader_parameter("interaction_count",std::min(8,(int)actors.size()));
+    material->set_shader_parameter("interaction_count",std::min(std::clamp((int)owner->get_meta("goanna_grass_interactors", 8), 0, 8),(int)actors.size()));
     PackedVector4Array padded=actors;
     padded.resize(8);
     material->set_shader_parameter("interaction_centres",padded);

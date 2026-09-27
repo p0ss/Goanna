@@ -11,6 +11,8 @@
 # offset and scale rules); formspecs are rendered by ui/formspec.gd.
 extends CanvasLayer
 
+const PlayerContext := preload("res://player_context.gd")
+
 const FormspecScript := preload("res://ui/formspec.gd")
 const GlassStyle := preload("res://ui/glass_style.gd")
 # Only to list the texture packs the detected Luanti install already carries,
@@ -43,6 +45,7 @@ const HOTBAR_IMAGE_SIZE := 48
 const CHAT_LINES := 12
 const CHAT_FADE_SECONDS := 10.0
 
+var main: Node                         # the owning player scene
 var client: Node                       # GoannaClient, set by main.gd
 
 var hud: Control
@@ -207,16 +210,13 @@ func _on_resize() -> void:
 # Stop the local singleplayer server (if we started one) when the game scene
 # goes away, whether that is a disconnect back to the menu or the app quitting.
 func _exit_tree() -> void:
-	# The flatpak/launcher pid is not the sandboxed server, so kill by the
-	# unique world path (works for a native server too); the pid is a fallback.
-	# Windows has no pkill, and no wrapper either, so there the pid is enough.
-	var match_path := OS.get_environment("GOANNA_SP_MATCH")
-	if match_path != "" and OS.get_name() != "Windows":
-		OS.execute("pkill", ["-f", match_path])
+	if main != null and main.player_slot != null:
+		return  # the shared shell owns the local server
+	var launch := preload("res://local_launch.gd")
+	if launch.server != null:
+		launch.server.stop()
+		launch.server = null
 		OS.set_environment("GOANNA_SP_MATCH", "")
-	var pid := OS.get_environment("GOANNA_SP_PID")
-	if pid.is_valid_int() and int(pid) > 0:
-		OS.kill(int(pid))
 		OS.set_environment("GOANNA_SP_PID", "")
 
 func blocks_input() -> bool:
@@ -752,12 +752,14 @@ func _on_outside_click(event: InputEvent) -> void:
 
 func _open_pause_menu() -> void:
 	if pause_menu == null:
-		pause_menu = _build_menu("Goanna", [
+		var entries := [
 			["Continue", func() -> void: _close_window()],
 			["Settings", func() -> void: _open_settings()],
-			["Disconnect", func() -> void: _disconnect()],
-			["Quit", func() -> void: get_tree().quit()],
-		])
+			["Leave game" if main != null and main.player_slot != null else "Disconnect", func() -> void: _disconnect()],
+		]
+		if main == null or main.player_slot == null:
+			entries.append(["Quit", func() -> void: get_tree().quit()])
+		pause_menu = _build_menu("Goanna", entries)
 	_open_window(pause_menu)
 
 # Live video settings, backed by GoannaClient's setters. Each takes effect
@@ -767,6 +769,7 @@ const SETTINGS_CFG := "user://goanna.cfg"
 # Setting kinds whose value is text rather than a number. They are
 # saved and read as strings and never go through _apply_setting.
 const TEXT_SETTING_KINDS := ["path", "pack", "choice"]
+const RenderFeatures := preload("res://render_features.gd")
 # [tab, key, type, label, description, (min, max, step) for sliders,
 # ([[stored value, name shown], ...]) for a choice]
 const SETTINGS := [
@@ -785,6 +788,11 @@ const SETTINGS := [
 	["Controls", "pad_deadzone", "slider", "Controller deadzone", "How far a stick must move before it counts. Raise this if the view or the cursor drifts with the sticks at rest.", 0.05, 0.6, 0.05],
 	["Controls", "view_bobbing", "slider", "View bobbing", "How much the camera bobs as you walk.", 0.0, 1.5, 0.1],
 	["Video", "procedural_grass", "toggle", "Procedural grass", "Dense, wind-swept grass that bends around players and animals. Improves edge smoothing and increases graphics cost."],
+	["Video", "grass_density", "slider", "Grass density", "Amount of procedural grass. Fewer blades reduce graphics cost; ground textures and game plants remain.", 0.1, 1.0, 0.1],
+	["Video", "grass_draw_distance", "slider", "Grass distance", "Distance in nodes before procedural grass fades back to the underlying terrain.", 4.0, 128.0, 4.0],
+	["Video", "grass_interaction_distance", "slider", "Grass bending distance", "Only nearby blades bend around players and animals. Zero disables bending.", 0.0, 32.0, 2.0],
+	["Video", "grass_interactors", "slider", "Grass interactions", "Maximum nearby players and animals that bend grass in this view. Zero disables bending.", 0.0, 8.0, 1.0],
+	["Video", "grass_antialiasing", "slider", "Grass edge smoothing", "0 keeps existing AA, 1 adds FXAA, 2 adds 2x MSAA, 3 adds 4x MSAA. Stronger existing AA is preserved.", 0.0, 3.0, 1.0],
 	["Video", "solid_ice", "toggle", "Solid ice", "Remove transparency from frosted ice to reduce graphics cost. Both modes keep submerged faces and surface lighting."],
 	["Video", "auto_bump", "slider", "Auto bump", "Fake surface relief from texture brightness.", 0.0, 1.0, 0.05],
 	["Material", "mat_normal", "slider", "Normal strength", "How much of the pack's surface relief to apply. Packs are authored for other art at other resolutions, and a normal map meant for 64 pixel textures reads as smeared blotches on 16 pixel ones. Lower this first if a pack looks muddy.", 0.0, 2.0, 0.05],
@@ -818,8 +826,10 @@ const SETTINGS := [
 	["Lighting", "light_ambient", "slider", "Ambient light", "Sky light filling shadowed surfaces.", 0.0, 3.0, 0.05],
 	["Lighting", "light_sdfgi", "slider", "Bounced light", "Strength of global illumination bouncing off surfaces.", 0.0, 4.0, 0.1],
 	["Lighting", "light_sdfgi_cell", "slider", "Bounced light grain", "How fine the bounced light grid is. Finer looks better standing still but the grid re-centres on you as you walk, which shows as shading popping in and out a few steps apart. Raise this if shadows change when you move.", 0.25, 8.0, 0.25],
-	["Lighting", "light_pool", "slider", "Lamp count", "Maximum direct lamp lights. When lamp shadows are enabled, Shadow casting lamps also limits this count so lights cannot shine through walls. Distant lighting uses propagated block light.", 16.0, 256.0, 8.0],
-	["Lighting", "shadow_lamps", "slider", "Shadow casting lamps", "Budget for direct lamps with shadows. Every admitted lamp keeps its shadow; raising this preserves direct lighting across more lit areas at a higher graphics cost. Zero disables lamp shadows.", 0.0, 48.0, 1.0],
+	["Lighting", "light_pool", "slider", "Lamp count", "Maximum direct lamp lights, independent of the shadow budget. Lamps outside the pool use propagated block light. Unshadowed direct lights can shine through walls.", 16.0, 256.0, 8.0],
+	["Lighting", "lamp_occlusion", "toggle", "Block lamp occlusion", "Trace received full blocks to nearby lamps. Partial nodes and carried lights still need shadow maps for occlusion."],
+	["Lighting", "shadow_lamps", "slider", "Shadow casting lamps", "Maximum nearby lamps with shadows. Other admitted lamps keep lighting without a shadow map. Zero disables lamp shadows.", 0.0, 48.0, 1.0],
+	["Lighting", "lamp_shadow_distance", "slider", "Lamp shadow distance", "Reach of lamp shadows in nodes, with a small margin to avoid switching at the boundary. Direct lighting continues beyond it.", 4.0, 96.0, 4.0],
 	["Lighting", "light_flicker", "toggle", "Flame flicker", "A subtle, steady brightness variance on torches, lanterns and other node lights, like a living flame rather than a fixed bulb. Turn off if moving light bothers you."],
 	["Lighting", "light_ssao", "slider", "Corner shading", "Darkening where surfaces meet (ambient occlusion). This is the strength only; what it costs is the screen space detail setting below.", 0.0, 8.0, 0.25],
 	["Lighting", "light_ssil", "slider", "Screen space bounce", "Colour bounced between nearby surfaces (SSIL). Costs about a sixth of the frame on its own; 0 turns the pass off rather than just hiding it.", 0.0, 4.0, 0.1],
@@ -828,6 +838,8 @@ const SETTINGS := [
 	["Lighting", "light_white", "slider", "White point", "Where highlights clip to white. If bright surfaces look flat and detailless, lower Exposure first: this alone will not recover them.", 0.5, 6.0, 0.1],
 	["Lighting", "light_exposure", "slider", "Exposure", "Overall brightness before the tonemap. The default puts a sunlit surface at about 1.3 times its texture's brightness.", 0.1, 2.0, 0.02],
 	["Lighting", "light_shafts", "slider", "Light shafts", "Sun and moon light scattering out of the air, so a gap in a canopy or a hillside throws a visible shaft. Strongest near dawn and dusk, and in rain. 0 leaves the air clear.", 0.0, 3.0, 0.1],
+	["Lighting", "cloud_style", "slider", "Cloud style", "0 block clouds, 1 fluffy rounded block clouds, 2 volumetric clouds. All follow the server weather and sun.", 0.0, 2.0, 1.0],
+	["Lighting", "cloud_quality", "slider", "Sky cloud quality", "Volumetric cloud lighting samples: 0 compact, 1 balanced, 2 full. All retain full silhouette sampling.", 0.0, 2.0, 1.0],
 	["Lighting", "atmosphere_quality", "slider", "Volumetric atmosphere", "Quality and reach of valley fog and thick clouds. 0 uses only the inexpensive horizon fade; lower this first if clouds cost too much frame rate.", 0.0, 1.0, 0.1],
 	["Lighting", "light_fill", "slider", "Sky fill", "How much the sky lights walls and other shaded surfaces, following the light Luanti says reaches them. 0 leaves them to bounced light alone, which is dark.", 0.0, 1.5, 0.05],
 	["Audio", "volume", "slider", "Volume", "Overall sound level.", 0.0, 1.0, 0.05],
@@ -837,6 +849,25 @@ const SETTINGS := [
 	["Display", "max_fps", "slider", "Max FPS", "Frame rate cap (240 means uncapped).", 30.0, 240.0, 10.0],
 	["Display", "vsync", "toggle", "VSync", "Sync frames to the display's refresh rate."],
 	["Display", "fullscreen", "toggle", "Fullscreen", "Run the window in fullscreen."],
+	["Lighting", "render_underwater_volume", "toggle", "Underwater volumetrics", "Draw volumetric scattering underwater. Off keeps ordinary underwater murk."],
+	["Lighting", "render_dynamic_lights", "toggle", "Dynamic node lights", "Add direct lighting from nearby lamps and lava. Off uses propagated block light."],
+	["Lighting", "render_carried_light", "toggle", "Carried light", "Add the camera-following light from held items and the cave fill."],
+	["Lighting", "render_water_waves", "toggle", "Water waves", "Generate detailed wave normals on water."],
+	["Lighting", "render_water_reflections", "toggle", "Water screen reflections", "Reflect visible scenery in water. Off keeps the inexpensive sky reflection."],
+	["Lighting", "render_wet_surfaces", "toggle", "Wet surfaces", "Draw wet gloss, puddles and rain ripples. Falling rain remains visible."],
+	["Lighting", "render_foliage_wind", "toggle", "Foliage wind", "Animate ordinary leaves and plants without removing their geometry."],
+	["Lighting", "render_grass_interaction", "toggle", "Grass interaction", "Bend procedural grass around players and animals."],
+	["Lighting", "render_grass_aa", "toggle", "Grass edge smoothing", "Enable extra antialiasing with procedural grass. Off preserves the viewport baseline."],
+	["Lighting", "render_ice_detail", "toggle", "Ice volume detail", "Draw internal frost and fractures. Off uses a simple textured ice surface."],
+	["Lighting", "render_ice_transmission", "toggle", "Ice transmission", "Render the scene behind ice. Off makes ice opaque without removing it."],
+	["Lighting", "render_lava_detail", "toggle", "Lava surface detail", "Draw raised crust and detailed flowing normals. Off keeps a simple glowing surface."],
+	["Lighting", "render_sky_clouds", "toggle", "Sky clouds", "Draw volumetric clouds in the sky. Local cloud fog and ground shadows have separate switches."],
+	["Lighting", "render_cloud_shadows", "toggle", "Cloud shadows", "Shade terrain beneath clouds."],
+	["Lighting", "render_atmosphere", "toggle", "Volumetric fog", "Draw local cloud and valley fog volumes. Off keeps ordinary distance fog and underwater murk."],
+	["Lighting", "render_ssao", "toggle", "Screen space corner shading", "Enable ambient occlusion where surfaces meet. Off stops this effect while preserving its strength setting."],
+	["Lighting", "render_bloom", "toggle", "Bloom effect", "Enable glow around bright surfaces. Keeps the Bloom strength setting when turned off."],
+	["Lighting", "render_shafts", "toggle", "Screen space light shafts", "Draw rays from the sun across distant ridges. Volumetric fog is controlled separately."],
+	["Lighting", "render_sun_shadows", "toggle", "Sun and moon shadows", "Cast directional shadows from terrain and objects. Lamp shadows are controlled separately."],
 ]
 const GraphicsProfiles := preload("res://graphics_profiles.gd")
 
@@ -861,19 +892,20 @@ const LOCAL_KEYS := ["procedural_grass", "mouse_sensitivity", "invert_mouse", "v
 	"pad_enabled", "pad_look_speed", "pad_invert_y", "pad_deadzone",
 	"gui_scale", "max_fps", "vsync", "fullscreen", "damage_flash", "show_fps", "show_position", "terrain_occlusion", "player_effect_particles", "volume", "muted",
 	"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao",
-	"light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality",
+	"light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality", "cloud_quality", "cloud_style", "grass_density", "grass_draw_distance", "grass_interaction_distance", "grass_interactors", "grass_antialiasing",
 	"light_ssil", "screen_space_detail", "shadow_detail", "asset_updates",
 	"look_strength", "night_visibility", "bloom_strength", "shader_weather"]
 var settings_menu: Control
 var advanced_open := false      # Advanced graphics settings, kept across reopens
 
 func _main_node() -> Node:
-	return get_tree().get_first_node_in_group("goanna_main")
+	return main if is_instance_valid(main) else PlayerContext.find(self, "goanna_main")
 
 # The Gamepad autoload (gamepad.gd), which keeps the controller settings
 # because the main menu uses the controller too.
 func _gamepad() -> Node:
-	return get_node_or_null("/root/Gamepad") if is_inside_tree() else null
+	var m := _main_node()
+	return m.gamepad if m != null else get_node_or_null("/root/Gamepad") if is_inside_tree() else null
 
 # Window/camera/UI settings that Goanna applies directly, not via the client.
 func _apply_local(key: String, value: float, on: bool) -> void:
@@ -921,21 +953,21 @@ func _apply_local(key: String, value: float, on: bool) -> void:
 			RenderingServer.viewport_set_measure_render_time(get_viewport().get_viewport_rid(), on)
 			hud.queue_redraw()
 		"terrain_occlusion":
-			get_tree().root.use_occlusion_culling = on
+			get_viewport().use_occlusion_culling = on
 		"player_effect_particles":
 			player_effect_particles = on
-			var pn := get_tree().get_first_node_in_group("goanna_particles")
+			var pn := PlayerContext.find(self, "goanna_particles")
 			if pn != null and pn.has_method("set_player_effect_particles"):
 				pn.set_player_effect_particles(on)
 		"shader_weather":
 			shader_weather = on
-			var pw := get_tree().get_first_node_in_group("goanna_particles")
+			var pw := PlayerContext.find(self, "goanna_particles")
 			if pw != null and pw.has_method("set_shader_weather"):
 				pw.set_shader_weather(on)
 		"show_position":
 			show_position = on
 			hud.queue_redraw()
-		"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao", "light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality", "light_ssil", "screen_space_detail", "shadow_detail", "look_strength", "night_visibility", "bloom_strength":
+		"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao", "light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality", "cloud_quality", "cloud_style", "grass_density", "grass_draw_distance", "grass_interaction_distance", "grass_interactors", "grass_antialiasing", "light_ssil", "screen_space_detail", "shadow_detail", "look_strength", "night_visibility", "bloom_strength":
 			var ml := _main_node()
 			if ml != null:
 				ml.set(key, value)
@@ -963,11 +995,11 @@ func _local_value(key: String) -> float:
 		"fullscreen": return 1.0 if DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN else 0.0
 		"damage_flash": return 1.0 if damage_flash else 0.0
 		"show_fps": return 1.0 if show_fps else 0.0
-		"terrain_occlusion": return 1.0 if get_tree().root.use_occlusion_culling else 0.0
+		"terrain_occlusion": return 1.0 if get_viewport().use_occlusion_culling else 0.0
 		"player_effect_particles": return 1.0 if player_effect_particles else 0.0
 		"shader_weather": return 1.0 if shader_weather else 0.0
 		"show_position": return 1.0 if show_position else 0.0
-		"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao", "light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality", "light_ssil", "screen_space_detail", "shadow_detail", "look_strength", "night_visibility", "bloom_strength":
+		"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao", "light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality", "cloud_quality", "cloud_style", "grass_density", "grass_draw_distance", "grass_interaction_distance", "grass_interactors", "grass_antialiasing", "light_ssil", "screen_space_detail", "shadow_detail", "look_strength", "night_visibility", "bloom_strength":
 			return float(m.get(key)) if m != null else 1.0
 		"volume": return audio.volume if audio != null else 0.8
 		"muted": return 1.0 if (audio != null and audio.muted) else 0.0
@@ -976,6 +1008,11 @@ func _local_value(key: String) -> float:
 
 func _apply_setting(key: String, value: float) -> void:
 	var on := value > 0.5
+	if RenderFeatures.DEFAULTS.has(key):
+		var m := _main_node()
+		if m != null:
+			m.set_render_feature(key, on)
+		return
 	if key == GlassStyle.KEY:
 		# Text in goanna.cfg; as a number, for the control channel's set, 1 is
 		# dark glass and 0 the game theme.
@@ -999,6 +1036,8 @@ func _apply_setting(key: String, value: float) -> void:
 		"repeat_place": if client.has_method("set_repeat_place_interval"): client.set_repeat_place_interval(value)
 		"auto_bump": if client.has_method("set_auto_bump"): client.set_auto_bump(value)
 		"solid_ice": if client.has_method("set_solid_ice"): client.set_solid_ice(on)
+		"lamp_occlusion": client.set_lamp_occlusion(value > 0.5)
+		"lamp_shadow_distance": client.set_lamp_shadow_distance(value)
 		"shadow_lamps": if client.has_method("set_shadow_lamps"): client.set_shadow_lamps(int(value))
 		"light_flicker": if client.has_method("set_light_flicker"): client.set_light_flicker(on)
 		"bevel": if client.has_method("set_bevel"): client.set_bevel(value)
@@ -1009,6 +1048,9 @@ func _apply_setting(key: String, value: float) -> void:
 				client.set_material_strength(key.substr(4), value)
 
 func _setting_value(key: String, fallback: float) -> float:
+	if RenderFeatures.DEFAULTS.has(key):
+		var m := _main_node()
+		return float(m.render_features[key]) if m != null else float(RenderFeatures.DEFAULTS[key])
 	if key == GlassStyle.KEY:
 		return 1.0 if GlassStyle.is_glass() else 0.0
 	if key in LOCAL_KEYS:
@@ -1028,6 +1070,8 @@ func _setting_value(key: String, fallback: float) -> float:
 		"repeat_place": if client.has_method("repeat_place_interval"): return client.repeat_place_interval()
 		"auto_bump": if client.has_method("auto_bump"): return client.auto_bump()
 		"solid_ice": if client.has_method("solid_ice"): return 1.0 if client.solid_ice() else 0.0
+		"lamp_occlusion": return 1.0 if client.lamp_occlusion() else 0.0
+		"lamp_shadow_distance": return client.lamp_shadow_distance()
 		"shadow_lamps": if client.has_method("shadow_lamps"): return float(client.shadow_lamps())
 		"light_flicker": if client.has_method("light_flicker"): return 1.0 if client.light_flicker() else 0.0
 		"bevel": if client.has_method("bevel"): return client.bevel()
@@ -1081,6 +1125,14 @@ func _load_apply_settings() -> void:
 			seeded = true
 	if seeded:
 		cfg.save(SETTINGS_CFG)
+	if m != null and m.get("player_slot") != null:
+		var profile: String = m.player_slot.shell.graphics_profile
+		for key in GraphicsProfiles.PROFILES.get(profile, GraphicsProfiles.PROFILES["low"]):
+			_apply_setting(key, float(GraphicsProfiles.PROFILES.get(profile, GraphicsProfiles.PROFILES["low"])[key]))
+
+	if m != null:
+		m.quality_settings_ready = true
+		m._apply_cloud_feature()
 
 func _save_setting(key: String, value: float) -> void:
 	var cfg := ConfigFile.new()
@@ -1089,6 +1141,12 @@ func _save_setting(key: String, value: float) -> void:
 	cfg.save(SETTINGS_CFG)
 
 func _open_settings() -> void:
+	if main != null and main.player_slot != null:
+		_open_window(_build_menu("Shared settings", [
+			["Change graphics and controls from the main menu", func() -> void: _close_window()],
+			["Back", func() -> void: _close_window()],
+		]))
+		return
 	# Rebuilt each time so it fits the current window size.
 	if settings_menu != null and is_instance_valid(settings_menu):
 		settings_menu.queue_free()
@@ -1240,11 +1298,8 @@ func _build_graphics_page(page: VBoxContainer) -> void:
 	page.add_child(picker)
 	page.add_child(blurb)
 	show_current.call()
-	# The stale seed. goanna.cfg is written on the first run with whatever the
-	# hardware default picked then, and from that point the stored value
-	# always wins, so a config first written by an older build or on a run
-	# that read the adapter as shared pins a capable machine to the low tier
-	# for ever with nothing on screen to say so.
+	# Explain saved values relative to the initial preset without claiming
+	# that adapter type and core count establish the machine's capability.
 	var m := _main_node()
 	if m != null and m.get("hardware_profile") != null:
 		var want: String = str(m.hardware_profile)
@@ -1257,12 +1312,10 @@ func _build_graphics_page(page: VBoxContainer) -> void:
 			note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			note.add_theme_font_size_override("font_size", 13)
 			GlassStyle.tint_text(note, Color(1, 0.85, 0.55))
-			note.text = ("This machine is a %s one, and %d of these settings are "
-					+ "below what that profile would give it. Settings are saved "
-					+ "on the first run and never raised again afterwards, so an "
-					+ "older launch can leave them low. Picking %s above sets them.") \
-					% [GraphicsProfiles.LABELS[want], short.size(),
-					GraphicsProfiles.LABELS[want]]
+			note.text = ("%d settings are below the initial %s preset. "
+					+ "That preset is an unmeasured starting point; keep lower "
+					+ "settings if they suit your frame target.") \
+					% [short.size(), GraphicsProfiles.LABELS[want]]
 			page.add_child(note)
 	var adv := CheckButton.new()
 	adv.text = "Advanced graphics settings"
@@ -1449,6 +1502,9 @@ func _respawn() -> void:
 	_hide_window()
 
 func _disconnect() -> void:
+	if main != null and main.player_slot != null:
+		main.player_slot.leave()
+		return
 	client.disconnect_from_server()
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	OS.set_environment("GOANNA_MENU", "1")

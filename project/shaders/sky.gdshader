@@ -62,6 +62,9 @@ uniform vec3 horizon_light = vec3(0.5);
 // march.
 global uniform vec3 goanna_sun_glow;
 uniform float cloud_coverage = 0.4;
+uniform bool clouds_enabled = true;
+uniform int cloud_style : hint_range(0, 2) = 2;
+uniform int cloud_quality : hint_range(0, 2) = 2;
 uniform float cloud_plane_h = 90.0;
 uniform float cloud_thickness = 16.0;
 uniform vec2 cloud_offset = vec2(0.0);
@@ -144,6 +147,133 @@ float cloud_weather(vec2 wxz) {
 	return fbm(wxz * 0.0009 + cloud_offset * 0.4);
 }
 
+// A rounded box supplies the broad shape, while noise erodes its surface
+// and varies the interior density. Fade within the bounds, so neighbouring
+// grid traversal never clips a wisp at a cell boundary.
+float block_cloud_density(vec3 p, vec3 midpoint, vec3 half_size) {
+	float radius = min(half_size.y, half_size.x) * 0.7;
+	vec3 q = abs(p - midpoint) - (half_size - vec3(radius));
+	float sdf = length(max(q, vec3(0.0)))
+		+ min(max(q.x, max(q.y, q.z)), 0.0) - radius;
+	if (sdf >= 0.0) return 0.0;
+	float body = texture(cloud_body_tex, p / 96.0).r;
+	float detail = texture(cloud_body_tex, p / 31.0 + vec3(0.37)).r;
+	float erosion = (1.0 - body) * radius * 0.65
+		+ (0.5 - detail) * radius * 0.3;
+	float shell = 1.0 - smoothstep(-radius * 0.8, 0.0, sdf + erosion);
+	return shell * mix(0.45, 1.0, body);
+}
+
+// Integrate a soft body inside one occupied cell. Return premultiplied
+// radiance and opacity so a thin edge reveals clouds farther along the ray.
+vec4 fluffy_block_cell(vec3 ro, vec3 dir, vec3 lo, vec3 hi,
+		float entry, float leave, bool cubemap) {
+	vec3 midpoint = (lo + hi) * 0.5;
+	vec3 half_size = (hi - lo) * 0.5;
+	int samples = cubemap ? 8 : (cloud_quality == 0 ? 12 : (cloud_quality == 1 ? 16 : 24));
+	int sun_samples = cloud_quality == 0 ? 2 : (cloud_quality == 1 ? 3 : 4);
+	float stride = (leave - entry) / float(samples);
+	float light_stride = half_size.y * 1.95 / float(sun_samples);
+	float sigma = 4.0 / max(hi.y - lo.y, 1.0);
+	float mu = dot(dir, sun_dir);
+	float phase = mix(1.0, 0.75 / pow(1.25 - mu, 1.5), 0.35);
+	float transmittance = 1.0;
+	vec3 accumulated = vec3(0.0);
+	for (int j = 0; j < 24; j++) {
+		if (j >= samples || transmittance < 0.015) break;
+		float t = entry + (float(j) + 0.5) * stride;
+		vec3 p = ro + dir * t;
+		float density = block_cloud_density(p, midpoint, half_size);
+		if (density < 0.001) continue;
+		float od = 0.0;
+		for (int k = 0; k < 4; k++) {
+			if (k >= sun_samples) break;
+			vec3 toward_light = p + sun_dir * (float(k) + 0.5) * light_stride;
+			od += block_cloud_density(toward_light, midpoint, half_size) * light_stride;
+		}
+		float light = exp(-od * sigma);
+		float hf = clamp((p.y - lo.y) / (hi.y - lo.y), 0.0, 1.0);
+		vec3 ambient = mix(sky_horizon.rgb, sky_top.rgb, 0.6)
+			* mix(0.28, 0.55, hf);
+		ambient = mix(ambient, haze_color.rgb * 0.65, haze_twilight * 0.6);
+		vec3 lit = cloud_color.rgb * (cloud_beam * light * phase * 1.5
+			+ goanna_sun_glow * (1.0 - hf) * 0.22)
+			+ ambient + cloud_ambient_color;
+		float fade = 1.0 - smoothstep(1800.0, 2800.0, t);
+		float alpha = 1.0 - exp(-density * sigma * stride * fade);
+		accumulated += transmittance * alpha * lit;
+		transmittance *= 1.0 - alpha;
+	}
+	return vec4(accumulated, 1.0 - transmittance);
+}
+
+// A single layer of cloud cells traversed in grid order. Plain blocks use
+// an analytic solid surface; fluffy blocks integrate density inside rounded
+// bounds. Both follow the drifting weather envelope and server colours.
+vec4 block_clouds(vec3 eye, vec3 dir, bool cubemap) {
+	float base = eye.y + cloud_plane_h;
+	float height = max(12.0, cloud_thickness * 2.0);
+	vec3 ray = mix(vec3(0.000001), dir, greaterThan(abs(dir), vec3(0.000001)));
+	float enter = (base - eye.y) / ray.y;
+	float leave = (base + height - eye.y) / ray.y;
+	float start = max(0.0, min(enter, leave));
+	float end = min(2800.0, max(enter, leave));
+	if (end <= start) return vec4(0.0);
+	const float cell_size = 64.0;
+	// Advancing noise coordinates makes the visible cloud mass move opposite
+	// the offset, just like the volume. Grid boundaries drift continuously.
+	vec2 drift = cloud_offset * (0.4 / 0.0009);
+	vec3 ro = eye + vec3(drift.x, 0.0, drift.y);
+	float t = start + 0.001;
+	vec4 accumulated = vec4(0.0);
+	for (int i = 0; i < 64; i++) {
+		if (t > end) break;
+		vec3 p = ro + dir * t;
+		vec2 cell = floor(p.xz / cell_size);
+		vec2 centre = (cell + 0.5) * cell_size;
+		float weather = fbm(centre * 0.0009);
+		float occupancy = cloud_coverage * mix(0.25, 1.0, smoothstep(0.25, 0.65, weather));
+		if (hash12(cell + vec2(37.1, 91.7)) < occupancy) {
+			float crown = height * mix(0.55, 1.0, hash12(cell));
+			vec3 lo = vec3(cell.x * cell_size, base, cell.y * cell_size);
+			vec3 hi = lo + vec3(cell_size, crown, cell_size);
+			vec3 a = (lo - ro) / ray;
+			vec3 b = (hi - ro) / ray;
+			vec3 near_t = min(a, b), far_t = max(a, b);
+			float hit = max(max(near_t.x, near_t.y), near_t.z);
+			float exit_t = min(min(far_t.x, far_t.y), far_t.z);
+			if (exit_t >= max(hit, start) && hit <= end) {
+				hit = max(hit, start);
+				vec3 normal = near_t.x >= near_t.y && near_t.x >= near_t.z
+					? vec3(-sign(ray.x), 0.0, 0.0)
+					: near_t.y >= near_t.z ? vec3(0.0, -sign(ray.y), 0.0)
+					: vec3(0.0, 0.0, -sign(ray.z));
+				if (cloud_style == 1) {
+					vec4 body = fluffy_block_cell(ro, dir, lo, hi, hit,
+						min(exit_t, end), cubemap);
+					accumulated.rgb += (1.0 - accumulated.a) * body.rgb;
+					accumulated.a += (1.0 - accumulated.a) * body.a;
+					if (accumulated.a > 0.985) break;
+				} else {
+					float diffuse = 0.25 + 0.75 * max(dot(normal, sun_dir), 0.0);
+					float under = max(-normal.y, 0.0);
+					vec3 ambient = mix(sky_horizon.rgb, haze_color.rgb, haze_twilight * 0.6);
+					vec3 lit = cloud_color.rgb * (cloud_beam * diffuse * 1.4
+						+ goanna_sun_glow * under * 0.6)
+						+ cloud_ambient_color + ambient * 0.08;
+					float alpha = 1.0 - smoothstep(1800.0, 2800.0, hit);
+					return vec4(lit, alpha);
+				}
+			}
+		}
+		vec2 boundary = (cell + step(vec2(0.0), dir.xz)) * cell_size;
+		vec2 crossing = (boundary - ro.xz) / ray.xz;
+		crossing = mix(vec2(1e20), crossing, greaterThan(abs(dir.xz), vec2(0.000001)));
+		t = min(crossing.x, crossing.y) + 0.001;
+	}
+	return vec4(accumulated.rgb / max(accumulated.a, 0.00001), accumulated.a);
+}
+
 // Density at a world point. base_w and deck are the slab; weather is
 // cloud_weather at the sample's column, passed in because the light march
 // reuses its own.
@@ -167,13 +297,17 @@ float cloud_density(vec3 wp, float base_w, float deck, float weather) {
 	return smoothstep(1.0 - cover, 1.0 - cover + 0.16, body * grad * 1.25);
 }
 
-// Optical depth toward the sun: four short steps of the same density. This
+// Optical depth toward the sun over the same distance at every quality. This
 // is what buries a core in its own shadow and leaves the sunward flank lit.
 float cloud_light_od(vec3 wp, vec3 toward_sun, float base_w, float deck, float weather) {
 	float od = 0.0;
-	for (int j = 1; j <= 4; j++)
-		od += cloud_density(wp + toward_sun * (22.0 * float(j)), base_w, deck, weather);
-	return od * 22.0;
+	int samples = cloud_quality == 0 ? 2 : (cloud_quality == 1 ? 3 : 4);
+	float stride = 88.0 / float(samples);
+	for (int j = 1; j <= 4; j++) {
+		if (j > samples) break;
+		od += cloud_density(wp + toward_sun * (stride * float(j)), base_w, deck, weather);
+	}
+	return od * stride;
 }
 
 // Billboard uv of `dir` on a disc of angular half-size `size` around `center`.
@@ -328,7 +462,11 @@ void sky() {
 	// froxel volume's nearby bodies sit under the same weather. The result
 	// occludes the sun disc and the stars behind it through T, which a
 	// blended sheet never did.
-	if (cloud_coverage > 0.01) {
+	if (clouds_enabled && cloud_coverage > 0.01 && cloud_style < 2) {
+		vec4 clouds = block_clouds(POSITION, dir, AT_CUBEMAP_PASS);
+		col = mix(col, clouds.rgb, clouds.a);
+	}
+	if (clouds_enabled && cloud_coverage > 0.01 && cloud_style == 2) {
 		float base_w = POSITION.y + cloud_plane_h;
 		float deck = max(cloud_thickness * 3.0, 170.0);
 		float top_w = base_w + deck;
@@ -347,6 +485,8 @@ void sky() {
 		// anyway, and a grazing ray otherwise marches tens of kilometres.
 		t1 = min(t1, 9000.0);
 		if (t1 > t0 + 1.0) {
+			// Coarser view sampling visibly grains the cloud edges at 800p.
+			// Keep silhouettes intact; quality budgets the sun march instead.
 			int steps = AT_CUBEMAP_PASS ? 8 : 24;
 			// Capped step: a grazing ray's slab crossing is kilometres, and
 			// (t1 - t0) / steps then puts hundreds of nodes in one step, so

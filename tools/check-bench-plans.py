@@ -25,6 +25,7 @@ PLANS = [
     REPO / "tools" / "bench_plans" / "profiles.json",
     REPO / "tools" / "bench_plans" / "profiles-night.json",
     REPO / "tools" / "bench_plans" / "profiles-move.json",
+    REPO / "tools" / "bench_plans" / "deck.json",
 ]
 
 
@@ -47,6 +48,11 @@ def shipped_profiles():
 def main():
     profiles = shipped_profiles()
     bad = 0
+    keys = set(next(iter(profiles.values())))
+    for name, profile in profiles.items():
+        if set(profile) != keys:
+            print("incomplete controlled key set: " + name)
+            bad += 1
     for path in PLANS:
         if not path.exists():
             print("missing plan: %s" % path.name)

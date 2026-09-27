@@ -2,6 +2,7 @@
 // One world-space material across sources, sloping tops and vertical falls.
 // Near lava's UV contains a continuous projected velocity, not per-face tiles.
 shader_type spatial;
+#include "feature_flags.gdshaderinc"
 render_mode cull_disabled, diffuse_burley, specular_schlick_ggx;
 
 uniform sampler2D albedo_tex : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
@@ -30,6 +31,8 @@ vec2 project_surface(vec3 p) {
 
 vec3 lava_colour(vec3 p, vec2 velocity, float t, float lod) {
 	vec2 uv = project_surface(p);
+	if (goanna_render_lava_detail < 0.5)
+		return textureLod(albedo_tex, uv - vec2(0.009, 0.006) * t, lod).rgb;
 	vec2 eddy = vec2(sin(p.x * 0.83 + p.z * 0.67 - t * 0.18),
 			cos(p.z * 0.79 - p.x * 0.53 + t * 0.16)) * 0.035;
 	// Two overlapping advection cycles prevent unbounded stretching as time
@@ -63,9 +66,9 @@ void vertex() {
 	// Sampling full-resolution artwork on a coarse mesh aliases peaks into
 	// valleys. Carry this exact mask into the colour pass as well.
 	float geometry_lod = max(0.0, log2(float(textureSize(albedo_tex, 0).x) * texture_scale / 8.0));
-	geometric_crust = crust_at(surface_pos, flow, t, geometry_lod);
+	geometric_crust = goanna_render_lava_detail > 0.5 ? crust_at(surface_pos, flow, t, geometry_lod) : 0.0;
 	displaced_pos = surface_pos;
-	if (surface_geometry) {
+	if (surface_geometry && goanna_render_lava_detail > 0.5) {
 		float fade = 1.0 - smoothstep(32.0, 80.0, length(surface_pos - CAMERA_POSITION_WORLD));
 		float height = crust_height * geometric_crust * fade * crust_weight;
 		displaced_pos += displacement_direction * height;
@@ -83,7 +86,7 @@ void fragment() {
 	float lod = max(0.0, log2(max(footprint, 1.0)));
 	vec3 tile = lava_colour(surface_pos, flow, t, lod);
 	vec3 n = normalize(world_normal);
-	if (surface_geometry) {
+	if (surface_geometry && goanna_render_lava_detail > 0.5) {
 		// Smooth the normals using the SAME filtered height field as the
 		// mesh. Raw texel normals invert small details; triangle derivatives
 		// expose the tessellation as glittering facets on a dark cave fall.
@@ -109,7 +112,7 @@ void fragment() {
 	vec3 colour = tile * COLOR.rgb;
 	// Raised material is dark crust even where fine bright texels cross a
 	// coarse triangle. The same interpolated mask drives height and glow.
-	float rock = surface_geometry ? clamp(geometric_crust, 0.0, 1.0) : crust_at(surface_pos, flow, t, lod);
+	float rock = goanna_render_lava_detail < 0.5 ? 0.0 : surface_geometry ? clamp(geometric_crust, 0.0, 1.0) : crust_at(surface_pos, flow, t, lod);
 	float melt = 1.0 - rock;
 	ALBEDO = colour * mix(0.28, 0.12, rock);
 	EMISSION = colour * emission_energy * melt * melt;

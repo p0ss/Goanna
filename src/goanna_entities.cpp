@@ -129,9 +129,9 @@ Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
     // has no way to take.
     if (gt && !alpha && !double_sided) {
         if (!m_sh_entity.is_valid())
-            m_sh_entity = ResourceLoader::get_singleton()->load("res://shaders/entity.gdshader");
+            m_sh_entity = m_root->call("load_view_shader", "res://shaders/entity.gdshader");
         if (!m_sh_entity_scissor.is_valid())
-            m_sh_entity_scissor = ResourceLoader::get_singleton()->load("res://shaders/entity_scissor.gdshader");
+            m_sh_entity_scissor = m_root->call("load_view_shader", "res://shaders/entity_scissor.gdshader");
         Ref<ShaderMaterial> sm;
         sm.instantiate();
         // Most mob skins have transparent texels, so the cut out variant is

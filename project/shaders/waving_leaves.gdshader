@@ -1,5 +1,6 @@
 // Goanna: Luanti TILE_MATERIAL_WAVING_LEAVES. Alpha-clipped, double sided, swaying.
 shader_type spatial;
+#include "feature_flags.gdshaderinc"
 render_mode cull_disabled, depth_prepass_alpha, diffuse_burley, specular_schlick_ggx;
 
 uniform sampler2D albedo_tex : source_color, filter_nearest_mipmap, repeat_enable;
@@ -44,7 +45,7 @@ void vertex() {
 	v_skylight = CUSTOM0.g;
 	v_blocklight = CUSTOM0.r;
 	v_wnormal_y = (MODEL_MATRIX * vec4(NORMAL, 0.0)).y;
-	if (waving) {
+	if (waving && goanna_render_foliage_wind > 0.5) {
 		float ph = TIME * speed + VERTEX.x * 0.35 + VERTEX.z * 0.25 + VERTEX.y * 0.15;
 		VERTEX.x += sin(ph) * sway;
 		VERTEX.z += cos(ph * 0.8 + 0.7) * sway * 0.7;
@@ -52,6 +53,7 @@ void vertex() {
 }
 
 void fragment() {
+	v_lamp_world = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	vec4 tex = texture(albedo_tex, UV) * COLOR;
 	ALBEDO = tex.rgb;
 	ALPHA = tex.a;
@@ -109,7 +111,7 @@ void fragment() {
 	// shower wet. So sky light does the roof test on its own and the facing
 	// only leans it, which is why anything under a canopy or an eave stays
 	// dry. Matches nodes_array.gdshader otherwise, porosity and all.
-	if (goanna_wetness > 0.001) {
+	if (goanna_render_wet_surfaces > 0.5 && goanna_wetness > 0.001) {
 		float wet = goanna_wetness * smoothstep(0.55, 0.9, v_skylight)
 				* mix(0.6, 1.0, clamp(v_wnormal_y, 0.0, 1.0));
 		ALBEDO *= 1.0 - wet * (0.10 + 0.18 * porosity);

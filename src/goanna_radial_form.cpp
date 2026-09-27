@@ -16,7 +16,7 @@
 
 // Defined here rather than in the transplanted mesher, unlike g_goanna_bevel:
 // this is Goanna's own state and there is no reason to put it in upstream code.
-const goanna::FormDamage *g_goanna_carve = nullptr;
+thread_local const goanna::FormDamage *g_goanna_carve = nullptr;
 // Legacy environment value: positive enables carving, zero disables it.
 float g_goanna_carve_depth = 0.12f;
 int g_goanna_carve_demo = 0;
@@ -682,41 +682,36 @@ FormDamage decodeForm(const std::string &bytes) {
     return out;
 }
 
-namespace {
-std::mutex g_carve_store_lock;
-std::map<std::tuple<int, int, int>, FormDamage> g_carve_store;
-} // namespace
-
 thread_local const CarveSnapshot *g_goanna_carve_block = nullptr;
 
-void carveStoreSet(int x, int y, int z, const FormDamage &damage) {
-    std::lock_guard<std::mutex> lock(g_carve_store_lock);
-    g_carve_store[std::make_tuple(x, y, z)] = damage;
+void CarveStore::set(int x, int y, int z, const FormDamage &damage) {
+    std::lock_guard<std::mutex> lock(m_lock);
+    m_entries[std::make_tuple(x, y, z)] = damage;
 }
 
-void carveStoreClear(int x, int y, int z) {
-    std::lock_guard<std::mutex> lock(g_carve_store_lock);
-    g_carve_store.erase(std::make_tuple(x, y, z));
+void CarveStore::clear(int x, int y, int z) {
+    std::lock_guard<std::mutex> lock(m_lock);
+    m_entries.erase(std::make_tuple(x, y, z));
 }
 
-bool carveStoreGet(int x, int y, int z, FormDamage &out) {
-    std::lock_guard<std::mutex> lock(g_carve_store_lock);
-    const auto it = g_carve_store.find(std::make_tuple(x, y, z));
-    if (it == g_carve_store.end()) { return false; }
+bool CarveStore::get(int x, int y, int z, FormDamage &out) {
+    std::lock_guard<std::mutex> lock(m_lock);
+    const auto it = m_entries.find(std::make_tuple(x, y, z));
+    if (it == m_entries.end()) { return false; }
     out = it->second;
     return true;
 }
 
-bool carveStoreEmpty() {
-    std::lock_guard<std::mutex> lock(g_carve_store_lock);
-    return g_carve_store.empty();
+bool CarveStore::empty() {
+    std::lock_guard<std::mutex> lock(m_lock);
+    return m_entries.empty();
 }
 
-void carveStoreClearBlock(int block_x, int block_y, int block_z,
+void CarveStore::clearBlock(int block_x, int block_y, int block_z,
         const std::function<bool(int, int, int)> &keep) {
-    std::lock_guard<std::mutex> lock(g_carve_store_lock);
-    const auto lo = g_carve_store.lower_bound(std::make_tuple(block_x, block_y, block_z));
-    const auto hi = g_carve_store.upper_bound(std::make_tuple(block_x + 15, block_y + 15, block_z + 15));
+    std::lock_guard<std::mutex> lock(m_lock);
+    const auto lo = m_entries.lower_bound(std::make_tuple(block_x, block_y, block_z));
+    const auto hi = m_entries.upper_bound(std::make_tuple(block_x + 15, block_y + 15, block_z + 15));
     for (auto it = lo; it != hi;) {
         const int x = std::get<0>(it->first);
         const int y = std::get<1>(it->first);
@@ -724,22 +719,22 @@ void carveStoreClearBlock(int block_x, int block_y, int block_z,
         const bool inside = x <= block_x + 15 && y >= block_y && y <= block_y + 15 &&
                 z >= block_z && z <= block_z + 15;
         if (inside && !keep(x, y, z))
-            it = g_carve_store.erase(it);
+            it = m_entries.erase(it);
         else
             ++it;
     }
 }
 
-void carveSnapshot(int block_x, int block_y, int block_z, CarveSnapshot &out) {
+void CarveStore::snapshot(int block_x, int block_y, int block_z, CarveSnapshot &out) {
     out.entries.clear();
-    std::lock_guard<std::mutex> lock(g_carve_store_lock);
-    if (g_carve_store.empty()) { return; }
+    std::lock_guard<std::mutex> lock(m_lock);
+    if (m_entries.empty()) { return; }
     // MAP_BLOCKSIZE is 16, and the range reaches one node past the block on
     // every side: a node decides whether to draw its boundary face by asking
     // whether its neighbour is a whole cube, and a neighbour one node outside
     // this block is exactly as able to be carved as one inside it.
-    const auto lo = g_carve_store.lower_bound(std::make_tuple(block_x - 1, block_y - 1, block_z - 1));
-    const auto hi = g_carve_store.upper_bound(std::make_tuple(block_x + 16, block_y + 16, block_z + 16));
+    const auto lo = m_entries.lower_bound(std::make_tuple(block_x - 1, block_y - 1, block_z - 1));
+    const auto hi = m_entries.upper_bound(std::make_tuple(block_x + 16, block_y + 16, block_z + 16));
     for (auto it = lo; it != hi; ++it) {
         const int x = std::get<0>(it->first);
         const int y = std::get<1>(it->first);

@@ -1,3 +1,4 @@
+#include "feature_flags.gdshaderinc"
 // Goanna: what the ground, water and falling rain shaders share about the
 // weather. docs/weather.md has the whole picture.
 //
@@ -149,6 +150,7 @@ const float GOANNA_SPLASH_PX_GONE = 0.03;
 // rest stay in each shader, which Godot requires.
 vec3 goanna_ground_rain(vec3 p, vec3 n, float sky, float flatten, float wet, float eye_d, float px) {
 	vec3 t = vec3(0.0);
+	if (goanna_render_wet_surfaces < 0.5) return t;
 	if ((goanna_rain > 0.001 || wet > 0.35) && n.y > 0.7) {
 		float open_sky = goanna_rain_open(p, smoothstep(0.85, 0.95, sky));
 		if (wet > 0.35 && n.y > 0.95) {

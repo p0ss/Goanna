@@ -19,6 +19,8 @@ const FOOTSTEP_INTERVAL := 0.42
 var client: Node                      # GoannaClient
 var listener: Node3D                  # the camera, for positional sounds
 
+var local_mix_gain := 1.0
+
 var volume := 0.8
 var muted := false
 
@@ -109,7 +111,7 @@ func play(sound_name: String, gain: float, pitch: float, loop: bool,
 		return
 	if stream is AudioStreamOggVorbis:
 		stream.loop = loop
-	var db := linear_to_db(clampf(gain * volume, 0.0001, 4.0))
+	var db := linear_to_db(clampf(gain * volume * local_mix_gain, 0.0001, 4.0))
 	if pos == null:
 		if _players_flat.is_empty():
 			return

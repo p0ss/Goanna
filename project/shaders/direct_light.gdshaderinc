@@ -63,6 +63,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+#include "lamp_occlusion.gdshaderinc"
+
 varying float v_sun_gate;
 varying float v_specular;
 varying vec2 v_rim;
@@ -144,6 +146,11 @@ void light() {
 	// Only the sun, the moon and the bounce are directional; every lamp is an
 	// omni or spot light and keeps its full contribution.
 	float gate = LIGHT_IS_DIRECTIONAL ? v_sun_gate : 1.0;
+	// The carried light sits at the camera and has no node emitter. Keep it
+	// independent, including when a static lamp lies on the same view ray.
+	if (!LIGHT_IS_DIRECTIONAL && ATTENUATION > 0.0001 && dot(LIGHT, VIEW) < 0.999999)
+		gate *= goanna_lamp_visibility(v_lamp_world,
+				normalize((INV_VIEW_MATRIX * vec4(LIGHT, 0.0)).xyz));
 	DIFFUSE_LIGHT += diffuse * gate;
 	SPECULAR_LIGHT += spec * gate;
 }

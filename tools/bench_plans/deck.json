@@ -1,0 +1,328 @@
+{
+  "label": "Steam Deck candidates: the costs Low bets on, at the Deck's resolution",
+  "host": "127.0.0.1",
+  "port": 30000,
+  "name": "bench",
+  "resolution": [
+    1280,
+    800
+  ],
+  "tests": [
+    "steady"
+  ],
+  "seconds": 40,
+  "settle_quiet": 20,
+  "settle_timeout": 900,
+  "time_of_day": 0.5,
+  "weather": "clear",
+  "anchor": {
+    "at": [
+      -72,
+      54,
+      378
+    ],
+    "offset": [
+      0,
+      0,
+      0
+    ]
+  },
+  "actors": [
+    {
+      "name": "mobs_mc:sheep",
+      "at": [
+        -24,
+        -8,
+        -32
+      ],
+      "count": 4
+    },
+    {
+      "name": "mobs_mc:chicken",
+      "at": [
+        -32,
+        -8,
+        -40
+      ],
+      "count": 4
+    },
+    {
+      "name": "mobs_mc:cow",
+      "at": [
+        -20,
+        -8,
+        -44
+      ],
+      "count": 3
+    }
+  ],
+  "base": {
+    "show_body": 0,
+    "texture_pack": "/var/home/poss/Documents/Code/Godot/goanna/pbr_packs/mineclonia/textures",
+    "muted": 1,
+    "vsync": 0,
+    "max_fps": 240
+  },
+  "variants": [
+    {
+      "name": "no-bounced-light",
+      "set": {
+        "light_sdfgi": 0
+      },
+      "scene": "close"
+    },
+    {
+      "name": "no-parallax",
+      "set": {
+        "mat_parallax": 0
+      },
+      "scene": "close"
+    },
+    {
+      "name": "grass-on",
+      "set": {
+        "procedural_grass": 1
+      },
+      "scene": "vista"
+    },
+    {
+      "name": "no-parallax-vista",
+      "set": {
+        "mat_parallax": 0
+      },
+      "scene": "vista"
+    },
+    {
+      "name": "medium",
+      "set": {
+        "light_sdfgi": 1.4,
+        "mat_parallax": 1.0,
+        "view_range": 8.0,
+        "lod_distance": 12.0,
+        "far_distance": 256.0,
+        "shadow_lamps": 0.0,
+        "light_pool": 48.0,
+        "terrain_occlusion": 1.0,
+        "screen_space_detail": 1.0,
+        "shadow_detail": 1.0,
+        "light_ssil": 0.0,
+        "procedural_grass": 1,
+        "cloud_quality": 1.0,
+        "atmosphere_quality": 0.65,
+        "render_sky_clouds": 1.0,
+        "render_cloud_shadows": 1.0,
+        "render_atmosphere": 1.0,
+        "render_ssao": 1.0,
+        "render_bloom": 1.0,
+        "render_shafts": 1.0,
+        "render_sun_shadows": 1.0,
+        "render_underwater_volume": 1.0,
+        "render_dynamic_lights": 1.0,
+        "render_carried_light": 1.0,
+        "render_water_waves": 1.0,
+        "render_water_reflections": 1.0,
+        "render_wet_surfaces": 1.0,
+        "render_foliage_wind": 1.0,
+        "render_grass_interaction": 1.0,
+        "render_grass_aa": 1.0,
+        "render_ice_detail": 1.0,
+        "render_ice_transmission": 1.0,
+        "render_lava_detail": 1.0,
+        "solid_ice": 0.0,
+        "cloud_style": 2,
+        "grass_density": 0.4,
+        "grass_draw_distance": 32,
+        "grass_interaction_distance": 6,
+        "grass_interactors": 2,
+        "grass_antialiasing": 2,
+        "lamp_shadow_distance": 32,
+        "lamp_occlusion": 0
+      },
+      "scene": "vista"
+    },
+    {
+      "name": "low",
+      "set": {
+        "light_sdfgi": 0.0,
+        "mat_parallax": 0.0,
+        "procedural_grass": 0,
+        "view_range": 6.0,
+        "lod_distance": 8.0,
+        "far_distance": 128.0,
+        "shadow_lamps": 0.0,
+        "light_pool": 32.0,
+        "terrain_occlusion": 1.0,
+        "screen_space_detail": 0.0,
+        "shadow_detail": 0.0,
+        "light_ssil": 0.0,
+        "cloud_quality": 1.0,
+        "atmosphere_quality": 0.35,
+        "render_sky_clouds": 1.0,
+        "render_cloud_shadows": 1.0,
+        "render_atmosphere": 1.0,
+        "render_ssao": 1.0,
+        "render_bloom": 1.0,
+        "render_shafts": 1.0,
+        "render_sun_shadows": 1.0,
+        "render_underwater_volume": 1.0,
+        "render_dynamic_lights": 1.0,
+        "render_carried_light": 1.0,
+        "render_water_waves": 1.0,
+        "render_water_reflections": 1.0,
+        "render_wet_surfaces": 1.0,
+        "render_foliage_wind": 1.0,
+        "render_grass_interaction": 1.0,
+        "render_grass_aa": 1.0,
+        "render_ice_detail": 1.0,
+        "render_ice_transmission": 1.0,
+        "render_lava_detail": 1.0,
+        "solid_ice": 0.0,
+        "cloud_style": 1,
+        "grass_density": 0.3,
+        "grass_draw_distance": 20,
+        "grass_interaction_distance": 4,
+        "grass_interactors": 1,
+        "grass_antialiasing": 1,
+        "lamp_shadow_distance": 24,
+        "lamp_occlusion": 0
+      },
+      "scene": "vista"
+    },
+    {
+      "name": "lowest",
+      "set": {
+        "light_sdfgi": 0.0,
+        "mat_parallax": 0.0,
+        "procedural_grass": 0,
+        "view_range": 4.0,
+        "lod_distance": 6.0,
+        "far_distance": 96.0,
+        "shadow_lamps": 0.0,
+        "light_pool": 24.0,
+        "terrain_occlusion": 1.0,
+        "screen_space_detail": 0.0,
+        "shadow_detail": 0.0,
+        "light_ssil": 0.0,
+        "cloud_quality": 0.0,
+        "atmosphere_quality": 0.0,
+        "render_sky_clouds": 1.0,
+        "render_cloud_shadows": 1.0,
+        "render_atmosphere": 0.0,
+        "render_ssao": 0.0,
+        "render_bloom": 1.0,
+        "render_shafts": 0.0,
+        "render_sun_shadows": 1.0,
+        "render_underwater_volume": 0.0,
+        "render_dynamic_lights": 1.0,
+        "render_carried_light": 1.0,
+        "render_water_waves": 1.0,
+        "render_water_reflections": 1.0,
+        "render_wet_surfaces": 1.0,
+        "render_foliage_wind": 1.0,
+        "render_grass_interaction": 1.0,
+        "render_grass_aa": 1.0,
+        "render_ice_detail": 1.0,
+        "render_ice_transmission": 1.0,
+        "render_lava_detail": 1.0,
+        "solid_ice": 0.0,
+        "cloud_style": 0,
+        "grass_density": 0.2,
+        "grass_draw_distance": 12,
+        "grass_interaction_distance": 0,
+        "grass_interactors": 0,
+        "grass_antialiasing": 0,
+        "lamp_shadow_distance": 16,
+        "lamp_occlusion": 0
+      }
+    }
+  ],
+  "control_every": 4,
+  "comment": [
+    "2026-09-27: revised complete tier candidates, including Lowest. Older measurements do not apply to these settings; see docs/graphics-tiers.md.",
+    "What SDFGI, parallax and procedural grass cost, one at a time against the",
+    "client's defaults, and the Medium and Low tiers whole, at 1280x800 (the Deck's",
+    "panel) with the authored Mineclonia pack. Measured on whatever GPU runs it,",
+    "so it gives each effect's share of a frame, not a Deck's frame rate.",
+    "Muted, with vsync off and the frame rate uncapped: in headless gamescope a capped run reports 16.7 ms for everything."
+  ],
+  "aim": [
+    -100,
+    46,
+    342
+  ],
+  "structures": [
+    {
+      "type": "village",
+      "at": [
+        -100,
+        45,
+        340
+      ]
+    }
+  ],
+  "env": {
+    "GOANNA_STORE": "/tmp/claude-1000/-var-home-poss-Documents-Code-Godot-goanna/386a7c19-6e36-4926-b436-f4091fafde94/scratchpad/bench-store"
+  },
+  "scenes": {
+    "vista": {
+      "at": [
+        -72,
+        54,
+        378
+      ],
+      "aim": [
+        -100,
+        46,
+        342
+      ],
+      "time_of_day": 0.5,
+      "weather": "clear"
+    },
+    "close": {
+      "at": [
+        -100,
+        30.6,
+        340
+      ],
+      "aim": [
+        -92,
+        28.5,
+        344
+      ],
+      "time_of_day": 0.5,
+      "weather": "clear"
+    },
+    "dusk": {
+      "at": [
+        -72,
+        54,
+        378
+      ],
+      "aim": [
+        -100,
+        46,
+        342
+      ],
+      "time_of_day": 0.78,
+      "weather": "rain"
+    },
+    "night": {
+      "at": [
+        -100,
+        30.6,
+        340
+      ],
+      "aim": [
+        -92,
+        28.5,
+        344
+      ],
+      "time_of_day": 0.0,
+      "weather": "clear"
+    }
+  },
+  "default_scene": "vista",
+  "resolve_samples": 24,
+  "resolve_gap_s": 3.0,
+  "warmup_seconds": 45
+}
