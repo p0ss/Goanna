@@ -324,6 +324,12 @@ public:
     godot::Array take_particles();
     // Name of the node at a Godot-space position, "" if unknown.
     godot::String node_name_at(const godot::Vector3 &pos);
+    // Which shader draws the top face of the node at a Godot-space
+    // position, and why: the node, its top tile, whether that tile is in
+    // an array and whether the array holds any alpha. Weather diagnostics
+    // (docs/weather.md), since the rain terms differ between the two array
+    // shaders.
+    godot::Dictionary top_surface_at(const godot::Vector3 &pos);
     // "${key}" in a node's own form, resolved from that node's metadata
     // (NodeMetadataFormSource::resolveText). context is "nodemeta:x,y,z".
     godot::String resolve_nodemeta_text(const godot::String &context,

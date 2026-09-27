@@ -5,7 +5,7 @@
 #
 # Shader weather (docs/weather.md), everything about it that can be checked
 # without drawing a frame:
-#   - the three shaders it touches compile and declare what the scripts set;
+#   - the shaders it touches compile and declare what the scripts set;
 #   - the rain cover map, fed by a stand in for GoannaClient::rain_cover_rows,
 #     scans in bands, publishes only whole maps, puts each column where the
 #     shaders will look for it, and recentres when the player walks off;
@@ -14,16 +14,18 @@
 #     leaves everything else on the particle path, and rebuilds a running
 #     storm the other way when the setting changes;
 #   - on an open beach the cover map, read back from its texture the way the
-#     shader reads it, leaves every rain layer open, and an empty or part
-#     scanned map hides nothing;
-#   - the peak opacity of a rain streak at the constants weather.gd pushes
-#     to the material is at least MIN_NEAR_ALPHA on the first full layer and
-#     MIN_FAR_ALPHA on the farthest, at 1080 lines and 70 degrees;
-#   - the layers leave no clear ground round the player looking down (the
-#     "umbrella"), and nothing is drawn close enough to the eye to sit on
-#     the lens;
-#   - the splash and puddle terms are there on open, flat, up facing ground
-#     and not under a roof;
+#     shader reads it, leaves the air round the eye open, and an empty or
+#     part scanned map hides nothing;
+#   - the rain box, by a copy of the shader's drop placing tied to its
+#     source: drops stay in their box and in place in the world as the eye
+#     moves, rays from straight down to straight up all meet rain, nothing
+#     is drawn on the lens, and nothing under a roof;
+#   - the peak opacity of a drop at the constants weather.gd pushes to the
+#     material;
+#   - both node array shaders draw the splash and puddle terms, which are
+#     there on open, flat, up facing ground after a minute of rain and not
+#     under a roof, and the status trace of every gate reads them open on
+#     open sand;
 #   - a lightning spawner becomes a bolt and a light, not an emitter, and
 #     both are gone after its time; main.gd tells the server's white flash
 #     sky from a real one.
@@ -88,27 +90,6 @@ func _shader_uniforms(path: String) -> Dictionary:
 			names[u["name"]] = true
 	check(not names.is_empty(), path + " did not compile")
 	return names
-
-
-func _test_shaders() -> void:
-	var p := _shader_uniforms("res://shaders/precipitation.gdshader")
-	for n in ["rain_amount", "snow_amount", "rain_speed", "snow_speed", "wind", "layer_radius",
-			"layer_alpha", "layer_fade", "rain_alpha", "snow_alpha", "streak_half_width", "rain_density",
-			"snow_density", "rain_period", "mesh_span"]:
-		check(p.has(n), "precipitation.gdshader has no uniform " + n)
-	# Both surfaces that react to rain must still compile with the include.
-	_shader_uniforms("res://shaders/water.gdshader")
-	_shader_uniforms("res://shaders/nodes_array.gdshader")
-	var l := _shader_uniforms("res://shaders/lightning.gdshader")
-	for n in ["bolt_texture", "use_texture", "flash", "seed", "energy"]:
-		check(l.has(n), "lightning.gdshader has no uniform " + n)
-	# The shader's layer count is the script's.
-	var src := FileAccess.get_file_as_string(PRECIP)
-	check(src.contains("const int LAYERS = %d;" % Weather.LAYER_RADII.size()),
-			"precipitation.gdshader's LAYERS is not weather.gd's layer count")
-	for g in ["goanna_rain", "goanna_rain_cover", "goanna_rain_cover_area"]:
-		check(g in RenderingServer.global_shader_parameter_get_list(),
-				"global " + g + " is not registered in project.godot")
 
 
 func _test_cover() -> void:
@@ -296,7 +277,7 @@ func _test_open_beach() -> void:
 	check(is_equal_approx(cover.open_share(eye.y), 1.0), "the whole beach is open at eye height")
 	var hidden := 0
 	var tried := 0
-	for r in Weather.LAYER_RADII:
+	for r in [0.5, 1.0, 3.0, 6.0, 12.0]:
 		for s in 64:
 			var a := TAU * float(s) / 64.0
 			for y in [2.6, 3.0, 4.0, 10.0, 30.0]:
@@ -305,7 +286,7 @@ func _test_open_beach() -> void:
 				tried += 1
 				if _shader_open(cover, p, 1.0) < 0.5:
 					hidden += 1
-	check(hidden == 0, "rain over an open beach is never covered: %d of %d points hidden" % [hidden, tried])
+	check(hidden == 0, "the air over an open beach is never covered: %d of %d points hidden" % [hidden, tried])
 	# And the other way round, so the check can fail: under a roof it is.
 	var roofed := RainCover.new(FakeMap.new())
 	while not roofed.step(Vector3(3, 1, -1), 0.016):
@@ -313,383 +294,450 @@ func _test_open_beach() -> void:
 	check(_shader_open(roofed, Vector3(3.0, 2.0, -2.0), 1.0) == 0.0, "under a roof the shader lookup is covered")
 
 
-# How visible a streak is at the look weather.gd draws with. The floor is
-# a judgement: a quarter opacity is where a thin light streak over a bright
-# ground stops being lost, and the first version's 0.17 was not seen.
-const MIN_NEAR_ALPHA := 0.5
-const MIN_FAR_ALPHA := 0.25
-# And a ceiling for the low layers, which are under a node from the eye.
-const MAX_LOW_ALPHA := 0.45
-
-# The second live check: rain in one narrow band ahead, the sky speckled
-# with sub pixel dots, and bright arcs, all turning with yaw. All three were
-# the column coordinate: it carried dot(camera.xz, tangent), whose change
-# round the turn is the camera's distance from world zero, so the columns
-# were squeezed, spread and smeared by direction. What is checked here is
-# the column coordinate as the shader now computes it, copied below and tied
-# to the source by text: that it advances round every layer at a steady
-# rate, never runs backwards under the wind's shear anywhere a layer is
-# drawn, and that the first version's formula fails the same check (so the
-# check can fail at all).
-const PRECIP := "res://shaders/precipitation.gdshader"
-const SPACING := 0.16
-
-func _shader_const(src: String, pattern: String) -> float:
-	var re := RegEx.new()
-	re.compile(pattern)
-	var m := re.search(src)
-	check(m != null, "precipitation.gdshader no longer matches " + pattern)
-	return float(m.get_string(1)) if m != null else NAN
-
-
-# du/dtheta of the column coordinate in columns per radian, by central
-# difference, as the shader's `along + y_eye * lean` over `spacing`, with
-# y_eye held to `reach` radii either side of the eye.
-func _columns_rate(r: float, theta: float, y_eye: float, wind: Vector2, speed: float,
-		max_lean: float, cam := Vector2.ZERO, reach := INF) -> float:
-	var e := 1e-3
-	var yc := clampf(y_eye, -reach * r, reach * r)
-	var u := func(t: float) -> float:
-		var tangent := Vector2(-sin(t), cos(t))
-		var w := wind / maxf(speed, 0.1)
-		if w.length() > max_lean:
-			w *= max_lean / w.length()
-		return (t * r + cam.dot(tangent) + yc * w.dot(tangent)) / SPACING
-	return (u.call(theta + e) - u.call(theta - e)) / (2.0 * e)
-
-
-func _test_columns() -> void:
-	var src := FileAccess.get_file_as_string(PRECIP)
-	check(src.contains("float along = theta * radius;"), "the column coordinate is arc length alone")
-	check(not src.contains("+ dot(cam"), "no camera position term in the column coordinate")
-	var max_lean := _shader_const(src, "const float MAX_LEAN = ([0-9.]+);")
-	var reach := _shader_const(src, "const float SHEAR_REACH = ([0-9.]+);")
-	check(src.contains("float y_eye = clamp(v_local.y, -SHEAR_REACH * radius, SHEAR_REACH * radius);"),
-			"the shear's height is held to SHEAR_REACH radii")
-	check(max_lean * reach < 1.0, "the wind's shear (%.2f of a radius) can fold the columns" % [max_lean * reach])
-	var worst := INF
-	var winds := [Vector2.ZERO, Vector2(7, 0), Vector2(-5, 5), Vector2(0, 14)]
-	for li in Weather.LAYER_RADII.size():
-		var r: float = Weather.LAYER_RADII[li]
-		var span := Weather.layer_span(li)
-		for speed in [0.8, 2.5, 17.5]:
-			for wind in winds:
-				for i in 72:
-					var theta := -PI + TAU * (float(i) + 0.5) / 72.0
-					# Every height the layer's mesh reaches, top to bottom.
-					for y in [span.x, span.x * 0.5, 0.0, span.y * 0.5, span.y]:
-						var rate := _columns_rate(r, theta, y, wind, speed, max_lean, Vector2.ZERO, reach)
-						worst = minf(worst, rate / (r / SPACING))
-	print("weather: slowest column rate, as a share of the calm rate: %.2f" % worst)
-	check(worst > 0.3, "the column coordinate nearly stops or runs backwards (%.2f)" % worst)
-	# Calm and level, the rate is the same all round: no band, no specks.
-	var rates := []
-	for i in 72:
-		rates.append(_columns_rate(3.0, -PI + TAU * (float(i) + 0.5) / 72.0, 0.0, Vector2.ZERO, 17.5, max_lean))
-	check(is_equal_approx(rates.min(), rates.max()), "columns are evenly spaced round the turn")
-	# The first version, at the beach: the camera's world position in the
-	# coordinate. Its rate swings by hundreds and through zero.
-	var old_min := INF
-	var old_max := -INF
-	for i in 72:
-		var rate := _columns_rate(3.0, -PI + TAU * (float(i) + 0.5) / 72.0, 0.0, Vector2.ZERO,
-				17.5, max_lean, Vector2(515, -447))
-		old_min = minf(old_min, rate)
-		old_max = maxf(old_max, rate)
-	check(old_min < 0.0 and old_max > 100.0 * 3.0 / SPACING,
-			"the check would have caught the first version (%.0f to %.0f)" % [old_min, old_max])
-
-
-func _test_visibility() -> void:
-	var first := Weather.FIRST_FULL_LAYER
-	var near := Weather.streak_alpha(first, Weather.pixel_at(first, 1080.0, 70.0))
-	# The low layers are close enough to be read as marks on the screen if
-	# they are drawn as strongly as the rain beyond them.
-	for li in first:
-		var a := Weather.streak_alpha(li, Weather.pixel_at(li, 1080.0, 70.0))
-		print("weather: low layer %d (%.2f nodes) peak streak opacity %.2f" % [li, Weather.LAYER_RADII[li], a])
-		check(a <= MAX_LOW_ALPHA, "low layer %d streak opacity %.2f is over %.2f" % [li, a, MAX_LOW_ALPHA])
-	var last := Weather.LAYER_RADII.size() - 1
-	var far := Weather.streak_alpha(last, Weather.pixel_at(last, 1080.0, 70.0))
-	print("weather: peak streak opacity at intensity 1, 1080 lines, 70 degrees: first full layer %.2f, farthest %.2f" % [near, far])
-	check(near >= MIN_NEAR_ALPHA, "first full layer's streak opacity %.2f is under %.2f" % [near, MIN_NEAR_ALPHA])
-	check(far >= MIN_FAR_ALPHA, "farthest streak opacity %.2f is under %.2f" % [far, MIN_FAR_ALPHA])
-	# The shader fades columns under 5 pixels apart (minify). At 1080 lines
-	# the farthest layer's must be clear of that, or the far rain is gone.
-	var col_px := SPACING / Weather.pixel_at(last, 1080.0, 70.0)
-	print("weather: farthest layer's columns are %.1f pixels apart at 1080 lines" % col_px)
-	check(col_px >= 5.0, "the farthest layer's columns are minified away at 1080 lines")
-	# Opacity does not fall with intensity (density does), so the lightest
-	# rain any spawner can ask for still draws streaks this strong; and at
-	# Mineclonia's ordinary rain, a column carries a drop more often than not
-	# once in two periods.
-	check(Weather.RAIN_DENSITY * 1.0 >= 0.5, "ordinary rain puts a drop in at least half the cells")
-	# The material draws with these, not with the shader's own defaults.
-	var w: Node3D = Weather.new()
-	root.add_child(w)
-	await process_frame
-	var m: ShaderMaterial = w._material
-	check(m != null, "the weather node builds its material")
-	if m == null:
-		return
-	check(is_equal_approx(float(m.get_shader_parameter("rain_alpha")), Weather.RAIN_ALPHA), "rain_alpha reaches the material")
-	var la: PackedFloat32Array = m.get_shader_parameter("layer_alpha")
-	check(la.size() == Weather.LAYER_ALPHA.size() and is_equal_approx(la[0], Weather.LAYER_ALPHA[0])
-			and is_equal_approx(la[la.size() - 1], Weather.LAYER_ALPHA[Weather.LAYER_ALPHA.size() - 1]),
-			"layer_alpha reaches the material")
-	var lr: PackedFloat32Array = m.get_shader_parameter("layer_radius")
-	check(lr.size() == Weather.LAYER_RADII.size() and is_equal_approx(lr[0], Weather.LAYER_RADII[0]),
-			"layer_radius reaches the material")
-	var lf: PackedVector4Array = m.get_shader_parameter("layer_fade")
-	check(lf.size() == Weather.LAYER_FADE.size() and lf[0].is_equal_approx(Weather.LAYER_FADE[0]),
-			"layer_fade reaches the material")
-	var hw: Vector2 = m.get_shader_parameter("streak_half_width")
-	check(hw.is_equal_approx(Weather.STREAK_HALF_WIDTH), "streak width reaches the material")
-	w.queue_free()
-
-
-func _test_mesh() -> void:
-	var mesh := Weather.build_mesh()
-	check(mesh.get_surface_count() == 1, "the weather is one surface, one draw")
-	var arrays := mesh.surface_get_arrays(0)
-	var colours: PackedColorArray = arrays[Mesh.ARRAY_COLOR]
-	var tags := {}
-	for c in colours:
-		tags[snappedf(c.r * float(Weather.LAYER_RADII.size() - 1), 0.01)] = true
-	check(tags.size() == Weather.LAYER_RADII.size(), "every layer is tagged")
-	# A low layer's wall is where it is drawn: below the eye, from where it
-	# fades in to where it has faded out.
-	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
-	var top := -INF
-	for i in verts.size():
-		if snappedf(colours[i].r * float(Weather.LAYER_RADII.size() - 1), 0.01) == 0.0:
-			top = maxf(top, verts[i].y)
-	check(top < 0.0, "the nearest layer's wall is wholly below the eye (top %.2f)" % top)
-
-
 func _initialize() -> void:
 	_test_shaders()
 	_test_cover()
-	_test_mesh()
 	_test_client_binding()
 	_test_open_beach()
 	await _test_routing()
+	_test_drop_source()
+	_test_box_wrap()
+	_test_rays()
+	_test_lens()
+	_test_box_cover()
 	await _test_visibility()
-	_test_columns()
-	_test_near_field()
 	_test_ground_terms()
+	await _test_gate_trace()
 	await _test_lightning()
 	_test_flash_sky()
 	print("weather: ", "ok" if failures == 0 else "%d failure(s)" % failures)
 	quit(1 if failures else 0)
 
 
-# The umbrella. How much of a layer the shader draws at a view elevation
-# whose sine is `s` (negative below the eye): layer_fade's fade in with
-# depression for a low layer, and the edge on fade for all, as fragment()
-# computes them, and nothing outside the layer's mesh. A full layer's rim
-# fade is 6 nodes from its ends, far from the ground near the player, and
-# is left out.
-func _layer_weight(r: float, fade: Vector4, span: Vector2, s: float) -> float:
-	var c := sqrt(maxf(1.0 - s * s, 1e-9))
-	var y := r * s / c   # height of the wall where this ray meets it
-	if y < span.x or y > span.y:
-		return 0.0
-	var w := 1.0 if fade.x < -1.0 else smoothstep(fade.x, fade.y, -s)
-	return w * (1.0 - smoothstep(fade.z, fade.w, absf(s)))
+func _test_shaders() -> void:
+	var p := _shader_uniforms(PRECIP)
+	for n in ["amount", "max_amount", "snow", "speed", "wind", "eye", "far_box", "far_below",
+			"near_box", "near_below", "near_instances", "drop_alpha", "drop_half_width",
+			"streak_time", "max_lean"]:
+		check(p.has(n), "precipitation.gdshader has no uniform " + n)
+	# Every surface that reacts to rain must still compile with the include.
+	_shader_uniforms("res://shaders/water.gdshader")
+	_shader_uniforms(NODES)
+	_shader_uniforms(SCISSOR)
+	var l := _shader_uniforms("res://shaders/lightning.gdshader")
+	for n in ["bolt_texture", "use_texture", "flash", "seed", "energy"]:
+		check(l.has(n), "lightning.gdshader has no uniform " + n)
+	for g in ["goanna_rain", "goanna_rain_cover", "goanna_rain_cover_area"]:
+		check(g in RenderingServer.global_shader_parameter_get_list(),
+				"global " + g + " is not registered in project.godot")
 
 
-# The depressions, 0 to 90 degrees in quarter degrees, at which a ray meets
-# flat ground `eye_h` below the eye more than `clear` nodes out horizontally
-# without first crossing a layer drawn at half strength or more. None means
-# no clear circle wider than `clear` round the player, at any pitch: a
-# camera pitched 30 to 60 degrees down with a 70 degree field sees
-# depressions from -5 to 95, and a ray's depression is all that decides
-# which cylinders round the eye it crosses and where it meets level ground.
-func _clear_rays(radii: Array, fades: Array, spans: Array, eye_h: float, clear: float) -> Array:
-	var misses := []
-	for i in range(1, 360):
-		var dep := deg_to_rad(float(i) * 0.25)
-		var d := eye_h / tan(dep)
-		if d <= clear:
+# The rain box. The drop placing in weather.gd is a copy of vertex()'s, and
+# these lines tie the copy to the source, so the checks below are checks of
+# the shader.
+const PRECIP := "res://shaders/precipitation.gdshader"
+
+func _test_drop_source() -> void:
+	var src := FileAccess.get_file_as_string(PRECIP)
+	for text in ["uint state = v * 747796405u + 2891336453u;",
+			"uint word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;",
+			"return (word >> 22u) ^ word;",
+			"return float(h >> 8u) / 16777216.0;",
+			"vec3 seed = vec3(goanna_unit(h0), goanna_unit(h1), goanna_unit(h2));",
+			"float pick = goanna_unit(h3);",
+			"float vary = goanna_unit(h4);",
+			"bool near = INSTANCE_ID < near_instances;",
+			"vec3 corner = eye - vec3(box.x * 0.5, near ? near_below : far_below, box.z * 0.5);",
+			"float fall = speed * (snow ? 0.75 + 0.5 * vary : 0.85 + 0.3 * vary);",
+			"float cap = snow ? 2.0 * fall : max_lean * fall;",
+			"vec3 vel = vec3(w.x, -fall, w.y);",
+			"vec3 p = corner + mod(seed * box + vel * TIME - corner, box);",
+			"float edge = smoothstep(0.0, EDGE_FADE, min(min(lo.x, hi.x), min(lo.z, hi.z)))",
+			"* smoothstep(0.0, EDGE_FADE, min(lo.y, hi.y));",
+			"float len = snow ? 0.0 : fall * streak_time * (0.8 + 0.4 * seed.x);",
+			"vec3 tail = p - dir * len;",
+			"float open = goanna_rain_open(tail, 1.0);",
+			"bool shown = pick * max_amount < amount && edge > 0.001 && nearest > NEAR_CLIP",
+			"float lens = smoothstep(NEAR_CLIP, NEAR_FADE, d);",
+			"float open = goanna_rain_open(v_world, 1.0);",
+			"float half_w = max(drop_half_width, pixel * 0.75);"]:
+		check(src.contains(text), "precipitation.gdshader no longer matches weather.gd's copy: " + text)
+	check(is_equal_approx(_shader_const(src, "const float NEAR_CLIP = ([0-9.]+);"), Weather.NEAR_CLIP)
+			and is_equal_approx(_shader_const(src, "const float NEAR_FADE = ([0-9.]+);"), Weather.NEAR_FADE)
+			and is_equal_approx(_shader_const(src, "const float EDGE_FADE = ([0-9.]+);"), Weather.EDGE_FADE),
+			"the shader's lens and edge fades are weather.gd's")
+	# The hash, in 32 bit arithmetic: the reference values are PCG's own.
+	check(Weather.pcg(0) == 129708002 and Weather.pcg(1) == 2831084092,
+			"pcg is not 32 bit PCG: %d, %d" % [Weather.pcg(0), Weather.pcg(1)])
+
+
+func _shader_const(src: String, pattern: String) -> float:
+	var re := RegEx.new()
+	re.compile(pattern)
+	var m := re.search(src)
+	check(m != null, "shader source no longer matches " + pattern)
+	return float(m.get_string(1)) if m != null else NAN
+
+
+const RAIN_SPEED := 17.5
+
+func _open_everywhere(_p: Vector3) -> float:
+	return 1.0
+
+
+# Drops stay inside their box, fall at their speed, and stay where they are
+# in the world while the eye moves: only the box moves round them.
+func _test_box_wrap() -> void:
+	var n := Weather.instance_count(false)
+	var outside := 0
+	var moved := 0
+	var interior := 0
+	var wrong_fall := 0
+	var wind := Vector2(3.0, -1.5)
+	var eye := Vector3(515.3, 4.1, 447.6)
+	for step in 6:
+		var t := 3.0 + float(step) * 41.37
+		var e1 := eye + Vector3(step * 1.7, step * 0.3, -step * 2.2)
+		# Less than a quarter of the near box's fade band, so a drop well
+		# inside its box stays inside after the move.
+		var e2 := e1 + Vector3(0.21, -0.07, 0.13)
+		for id in range(0, n, 3):
+			var d := Weather.drop(id, t, e1, RAIN_SPEED, wind, false)
+			var c: Vector3 = d["corner"]
+			var b: Vector3 = d["box"]
+			var h: Vector3 = d["head"]
+			if h.x < c.x or h.y < c.y or h.z < c.z or h.x > c.x + b.x or h.y > c.y + b.y or h.z > c.z + b.z:
+				outside += 1
+			var d2 := Weather.drop(id, t, e2, RAIN_SPEED, wind, false)
+			if float(d["weight"]) > 0.999 and float(d2["weight"]) > 0.999:
+				interior += 1
+				if (d2["head"] as Vector3).distance_to(h) > 1e-3:
+					moved += 1
+			# A short time later a drop well inside has moved by its
+			# velocity, down and with the wind.
+			var d3 := Weather.drop(id, t + 0.1, e1, RAIN_SPEED, wind, false)
+			if float(d["weight"]) > 0.999 and float(d3["weight"]) > 0.999:
+				var v := ((d3["head"] as Vector3) - h) / 0.1
+				if v.y > -RAIN_SPEED * 0.84 or v.y < -RAIN_SPEED * 1.16 \
+						or absf(v.x - wind.x) > 0.02 or absf(v.z - wind.y) > 0.02:
+					wrong_fall += 1
+	check(outside == 0, "%d drops outside their box" % outside)
+	check(interior > 1000, "too few interior drops to judge world stability (%d)" % interior)
+	check(moved == 0, "%d of %d drops moved in the world when the eye moved" % [moved, interior])
+	check(wrong_fall == 0, "%d drops did not fall at their velocity" % wrong_fall)
+	# Snow keeps to its box too, give or take the sway.
+	var snow_out := 0
+	for id in range(0, Weather.instance_count(true), 5):
+		var d := Weather.drop(id, 77.7, eye, 2.5, wind, true)
+		var c: Vector3 = d["corner"]
+		var b: Vector3 = d["box"]
+		var h: Vector3 = d["head"]
+		if h.y < c.y or h.y > c.y + b.y or h.x < c.x - 0.21 or h.x > c.x + b.x + 0.21 \
+				or h.z < c.z - 0.21 or h.z > c.z + b.z + 0.21:
+			snow_out += 1
+	check(snow_out == 0, "%d flakes outside their box" % snow_out)
+	# The intensity picks a share of the drops, and the same drops always.
+	var drawn := 0
+	for id in n:
+		if Weather.drop(id, 0.0, eye, RAIN_SPEED, wind, false)["pick"] * Weather.MAX_INTENSITY < 1.0:
+			drawn += 1
+	var want := Weather.RAIN_FAR + Weather.RAIN_NEAR
+	print("weather: %d of %d rain drops drawn at intensity 1 (%d wanted)" % [drawn, n, want])
+	check(absi(drawn - want) < want / 20, "intensity 1 draws about %d drops, drew %d" % [want, drawn])
+
+
+# The eye 1.625 over level sand whose top face is at 0.5; the ground is
+# cover (the cover map's own number) and is where a ray stops.
+const GROUND := 0.5
+const EYE_H := 1.625
+# A ray is a cone this many degrees across its half angle: about a sixth of
+# a 70 degree view across, the patch of screen a hole would be seen as.
+const CONE := 12.0
+
+func _ground_open(p: Vector3) -> float:
+	return 1.0 if p.y >= GROUND - 0.55 else 0.0
+
+
+# Drops drawn round a ray from the eye: within `cone` degrees of it, nearer
+# than the ground along it, and weighed by the opacity they are drawn at.
+# The owner's two reports were a clear disc looking down and a clear circle
+# overhead with streaks radiating round it; a volume must have neither.
+func _cone_drops(eye: Vector3, dir: Vector3, t: float, cone: float) -> float:
+	var ground_d := INF
+	if dir.y < -1e-4:
+		ground_d = (GROUND - eye.y) / dir.y
+	var cos_cone := cos(deg_to_rad(cone))
+	var sum := 0.0
+	for id in Weather.instance_count(false):
+		var d := Weather.drop(id, t, eye, RAIN_SPEED, Vector2(2.0, 1.0), false)
+		if not Weather.drop_shown(d, eye, 1.0, _ground_open):
 			continue
-		var covered := false
-		for li in radii.size():
-			var r: float = radii[li]
-			if r < d and _layer_weight(r, fades[li], spans[li], -sin(dep)) >= 0.5:
-				covered = true
-				break
-		if not covered:
-			misses.append(float(i) * 0.25)
-	return misses
+		var mid: Vector3 = ((d["head"] as Vector3) + (d["tail"] as Vector3)) * 0.5
+		var to := mid - eye
+		var dist := to.length()
+		if dist >= ground_d or to.normalized().dot(dir) < cos_cone:
+			continue
+		sum += Weather.drop_peak_alpha(false, dist, 1080.0, 70.0) * float(d["weight"])
+	return sum
 
 
-const LENS := 0.55
-
-func _test_near_field() -> void:
-	var fades := []
-	var spans := []
-	for li in Weather.LAYER_RADII.size():
-		fades.append(Weather.LAYER_FADE[li])
-		spans.append(Weather.layer_span(li))
-	# Standing (Mineclonia's eye is 1.5 to 1.625 over the feet), crouching,
-	# and a step up on a slab.
-	for eye_h in [1.3, 1.5, 1.625, 2.1]:
-		var misses := _clear_rays(Weather.LAYER_RADII, fades, spans, eye_h, 0.5)
-		check(misses.is_empty(), "eye %.2f over the ground: no rain in front of the ground at %d depressions, from %s degrees"
-				% [eye_h, misses.size(), str(misses.front()) if not misses.is_empty() else ""])
-	# The layout the owner saw, so the check can fail: four layers from 3
-	# nodes, all fading from 45 to 60 degrees.
-	var old_fade := Vector4(-2.0, -1.5, 0.707, 0.866)
-	var old_span := Vector2(-26, 34)
-	var old := _clear_rays([3.0, 6.5, 12.0, 22.0], [old_fade, old_fade, old_fade, old_fade],
-			[old_span, old_span, old_span, old_span], 1.625, 0.5)
-	print("weather: the old layers left %d of 359 depressions clear, from %.2f degrees"
-			% [old.size(), old.front() if not old.is_empty() else 0.0])
-	check(old.size() > 100, "the check would have caught the umbrella")
-	# Nothing on the lens: anywhere a layer is drawn at all, its wall is at
-	# least LENS nodes from the eye along the ray, and the low layers are
-	# never drawn at or above eye level.
-	var nearest := INF
-	for li in Weather.LAYER_RADII.size():
-		var r: float = Weather.LAYER_RADII[li]
-		for i in range(-359, 360):
-			var e := deg_to_rad(float(i) * 0.25)
-			if _layer_weight(r, fades[li], spans[li], sin(e)) > 0.02:
-				nearest = minf(nearest, r / cos(e))
-				if li < Weather.FIRST_FULL_LAYER:
-					check(e < 0.0, "low layer %d is drawn at %.2f degrees up" % [li, rad_to_deg(e)])
-	print("weather: nearest drawn rain is %.2f nodes from the eye" % nearest)
-	check(nearest >= LENS, "rain is drawn %.2f nodes from the eye" % nearest)
+func _test_rays() -> void:
+	var eye := Vector3(515.3, GROUND + EYE_H, 447.6)
+	var line := ""
+	var worst := INF
+	for pitch in [-80.0, -45.0, 0.0, 45.0, 80.0]:
+		for yaw in [0.0, 130.0, 250.0]:
+			var pr := deg_to_rad(pitch)
+			var yr := deg_to_rad(yaw)
+			var dir := Vector3(cos(pr) * cos(yr), sin(pr), cos(pr) * sin(yr))
+			var total := 0.0
+			var hit := 0
+			var samples := 8
+			for s in samples:
+				var w := _cone_drops(eye, dir, 11.0 + float(s) * 7.31, CONE)
+				total += w
+				if w > 0.05:
+					hit += 1
+			var mean := total / float(samples)
+			worst = minf(worst, float(hit) / float(samples))
+			if yaw == 0.0:
+				line += " %+.0f: %.2f" % [pitch, mean]
+			check(hit * 4 >= samples * 3,
+					"pitch %.0f yaw %.0f: rain within %.0f degrees of the view in only %d of %d moments"
+					% [pitch, yaw, CONE, hit, samples])
+	print("weather: drawn drop opacity within %.0f degrees of a ray, by pitch:%s" % [CONE, line])
 
 
-# The ground terms, as nodes_array.gdshader computes them, with the pieces
-# of weather_common.gdshaderinc they use mirrored here and tied to the
-# source by text. GDScript's floats are doubles, the shader's are not, so
-# the hash lands its puddles in other places; the shape and the gating are
-# what is checked.
+# Nothing on the lens: no drop drawn with any part of it within NEAR_CLIP of
+# the eye, quad corners included, wherever the eye is and whenever.
+func _test_lens() -> void:
+	var worst := INF
+	var shown := 0
+	for step in 12:
+		var eye := Vector3(515.3 + step * 0.37, 4.1 + step * 0.11, 447.6 - step * 0.53)
+		var t := 5.0 + step * 13.1
+		for id in Weather.instance_count(false):
+			var d := Weather.drop(id, t, eye, RAIN_SPEED, Vector2(4.0, 0.0), false)
+			if not Weather.drop_shown(d, eye, Weather.MAX_INTENSITY, _open_everywhere):
+				continue
+			shown += 1
+			var near := Weather.segment_distance(d["tail"], d["head"], eye)
+			# The quad's side is at most a pixel and a half wide, well
+			# under a hundredth of a node this close.
+			worst = minf(worst, near - 0.01)
+	print("weather: nearest drawn drop, of %d, is %.2f nodes from the eye" % [shown, worst])
+	check(worst >= 0.29, "a drop is drawn %.2f nodes from the eye" % worst)
+	check(smoothstep(Weather.NEAR_CLIP, Weather.NEAR_FADE, 0.29) == 0.0,
+			"the fragment's lens fade is shut inside the clip")
+
+
+# Under a roof no drop is drawn; beside it they are.
+func _test_box_cover() -> void:
+	var cover := RainCover.new(FakeMap.new())
+	while not cover.step(Vector3(3, 1, -1), 0.016):
+		pass
+	var lookup := func(p: Vector3) -> float: return _shader_open(cover, p, 1.0)
+	var eye := Vector3(3.5, 2.1, -1.5)
+	var under := 0
+	var open_drawn := 0
+	for step in 4:
+		var t := 9.0 + step * 3.3
+		for id in Weather.instance_count(false):
+			var d := Weather.drop(id, t, eye, RAIN_SPEED, Vector2.ZERO, false)
+			if not Weather.drop_shown(d, eye, 1.0, lookup):
+				continue
+			var h: Vector3 = d["head"]
+			var roofed := h.x >= 1.5 and h.x < 5.5 and h.z >= -3.5 and h.z < 0.5
+			if roofed and h.y < 10.5 - 0.55:
+				under += 1
+			elif h.y > 0.5:
+				open_drawn += 1
+	check(under == 0, "%d drops drawn under the roof" % under)
+	check(open_drawn > 100, "rain still falls beside the roof (%d drops)" % open_drawn)
+
+
+# How visible a drop is at the look weather.gd draws with. The floors are a
+# judgement: the first version's 0.17 was not seen at noon.
+func _test_visibility() -> void:
+	var near := Weather.drop_peak_alpha(false, 3.0, 1080.0, 70.0)
+	var far := Weather.drop_peak_alpha(false, 10.0, 1080.0, 70.0)
+	var close := Weather.drop_peak_alpha(false, 0.6, 1080.0, 70.0)
+	print("weather: peak streak opacity at 1080 lines, 70 degrees: 0.6 nodes %.2f, 3 nodes %.2f, 10 nodes %.2f"
+			% [close, near, far])
+	check(near >= 0.5, "a streak 3 nodes away peaks at %.2f, under 0.5" % near)
+	check(far >= 0.2, "a streak 10 nodes away peaks at %.2f, under 0.2" % far)
+	check(close <= 0.45, "a streak 0.6 nodes away peaks at %.2f: a scratch on the lens" % close)
+	var flake := Weather.drop_peak_alpha(true, 3.0, 1080.0, 70.0)
+	check(flake >= 0.5, "a flake 3 nodes away peaks at %.2f" % flake)
+	# The materials draw with these, not with the shader's own defaults.
+	var w: Node3D = Weather.new()
+	root.add_child(w)
+	await process_frame
+	var m: ShaderMaterial = w._rain_material
+	check(m != null, "the weather node builds its material")
+	if m != null:
+		check(is_equal_approx(float(m.get_shader_parameter("drop_alpha")), Weather.RAIN_ALPHA), "drop_alpha reaches the material")
+		check(is_equal_approx(float(m.get_shader_parameter("drop_half_width")), Weather.RAIN_HALF_WIDTH), "the streak width reaches the material")
+		check(int(m.get_shader_parameter("near_instances")) == Weather.near_instances(false), "near_instances reaches the material")
+		check((m.get_shader_parameter("far_box") as Vector3).is_equal_approx(Weather.FAR_BOX), "far_box reaches the material")
+		check(bool(w._snow_material.get_shader_parameter("snow")), "the snow material draws snow")
+	var mm: MultiMesh = w._rain_mesh.multimesh
+	check(mm.instance_count == Weather.instance_count(false), "one instance per drop at the most intense")
+	check(mm.get_instance_transform(7).is_equal_approx(Transform3D.IDENTITY), "instance transforms are identity")
+	w.queue_free()
+
+
+# The ground terms, goanna_ground_rain, and where they are used.
 const NODES := "res://shaders/nodes_array.gdshader"
+const SCISSOR := "res://shaders/nodes_array_scissor.gdshader"
 const COMMON := "res://shaders/weather_common.gdshaderinc"
-
-func _fract(x: float) -> float:
-	return x - floorf(x)
-
-
-func _hash(p: Vector2) -> float:
-	var p3 := Vector3(_fract(p.x * 0.1031), _fract(p.y * 0.1031), _fract(p.x * 0.1031))
-	var k := p3.dot(Vector3(p3.y, p3.z, p3.x) + Vector3(33.33, 33.33, 33.33))
-	p3 += Vector3(k, k, k)
-	return _fract((p3.x + p3.y) * p3.z)
-
-
-func _noise(p: Vector2) -> float:
-	var i := p.floor()
-	var f := p - i
-	var u := f * f * (Vector2(3, 3) - 2.0 * f)
-	var a := _hash(i)
-	var b := _hash(i + Vector2(1, 0))
-	var c := _hash(i + Vector2(0, 1))
-	var d := _hash(i + Vector2(1, 1))
-	return lerpf(lerpf(a, b, u.x), lerpf(c, d, u.x), u.y)
-
-
-func _puddle(p: Vector2, wet: float, dry: float, soaked: float) -> float:
-	var n := 0.7 * _noise(p / 3.1) + 0.3 * _noise(p / 1.13 + Vector2(17, 5))
-	var t := lerpf(dry, soaked, clampf(wet, 0.0, 1.0))
-	return smoothstep(t, t + 0.08, n)
-
-
-# nodes_array's gating: (splash, puddle) at a point.
-func _ground_terms(p: Vector3, normal_y: float, rain: float, wet: float, open: float,
-		eye: Vector3, dry: float, soaked: float) -> Vector2:
-	if not ((rain > 0.001 or wet > 0.35) and normal_y > 0.7):
-		return Vector2.ZERO
-	var puddle := 0.0
-	if wet > 0.35 and normal_y > 0.95:
-		puddle = _puddle(Vector2(p.x, p.z), wet, dry, soaked) * open
-	var splash := minf(rain, 1.5) * (1.0 - smoothstep(10.0, 22.0, p.distance_to(eye))) * open
-	return Vector2(splash, puddle)
-
+# main.gd's wetness after a minute of rain from dry: it eases toward 1 with
+# a 30 second time constant.
+const WET_AFTER_A_MINUTE := 0.8647
 
 func _test_ground_terms() -> void:
 	var common := FileAccess.get_file_as_string(COMMON)
-	var nodes := FileAccess.get_file_as_string(NODES)
-	var dry := _shader_const(common, "const float GOANNA_PUDDLE_DRY = ([0-9.]+);")
-	var soaked := _shader_const(common, "const float GOANNA_PUDDLE_SOAKED = ([0-9.]+);")
+	check(is_equal_approx(_shader_const(common, "const float GOANNA_PUDDLE_DRY = ([0-9.]+);"), Weather.PUDDLE_DRY)
+			and is_equal_approx(_shader_const(common, "const float GOANNA_PUDDLE_SOAKED = ([0-9.]+);"), Weather.PUDDLE_SOAKED),
+			"weather.gd's puddle thresholds are the shader's")
 	for text in ["float n = 0.7 * goanna_weather_noise(p / 3.1)",
 			"+ 0.3 * goanna_weather_noise(p / 1.13 + vec2(17.0, 5.0));",
-			"return smoothstep(t, t + 0.08, n);"]:
-		check(common.contains(text), "goanna_puddle no longer matches the test's copy: " + text)
-	for text in ["if ((goanna_rain > 0.001 || goanna_wetness > 0.35) && v_wnormal.y > 0.7) {",
-			"float open_sky = goanna_rain_open(v_world, smoothstep(0.85, 0.95, v_nodelight.g));",
-			"if (goanna_wetness > 0.35 && v_wnormal.y > 0.95)",
-			"puddle = goanna_puddle(v_world.xz, goanna_wetness) * open_sky * (1.0 - flatten);",
-			"splash = min(goanna_rain, 1.5) * (1.0 - smoothstep(10.0, 22.0, eye_d))",
+			"return smoothstep(t, t + 0.08, n);",
+			"if ((goanna_rain > 0.001 || wet > 0.35) && n.y > 0.7) {",
+			"float open_sky = goanna_rain_open(p, smoothstep(0.85, 0.95, sky));",
+			"if (wet > 0.35 && n.y > 0.95)",
+			"t.x = goanna_puddle(p.xz, wet) * open_sky * (1.0 - flatten);",
+			"t.y = min(goanna_rain, 1.5) * (1.0 - smoothstep(10.0, 22.0, eye_d))",
 			"* (1.0 - flatten) * open_sky;"]:
-		check(nodes.contains(text), "nodes_array's rain terms no longer match the test's copy: " + text)
-	# The roofed map from _test_cover: a roof at 10.5 over x 2..5, z -3..0,
-	# open ground at 0.5 everywhere else.
+		check(common.contains(text), "goanna_ground_rain no longer matches weather.gd's copy: " + text)
+	# Both array shaders draw the terms. In play the ground is drawn by the
+	# scissor one (docs/weather.md), which had none, and nobody ever saw a
+	# splash or a puddle.
+	for path in [NODES, SCISSOR]:
+		var src := FileAccess.get_file_as_string(path)
+		check(src.contains("vec2 ground_rain = goanna_ground_rain(v_world, v_wnormal, v_nodelight.g, flatten,")
+				and src.contains("rings = goanna_rain_rings(v_world.xz, TIME, 0.7, 0.5,")
+				and src.contains("ALBEDO *= 1.0 - 0.5 * puddle;"),
+				path + " does not draw splashes and puddles")
 	var cover := RainCover.new(FakeMap.new())
 	while not cover.step(Vector3(3, 1, -1), 0.016):
 		pass
 	var eye := Vector3(8.0, 2.1, 4.0)
-	# Puddle share of open flat ground, over a patch of the world, by
-	# wetness: none when damp, some once soaked.
+	# Puddle share of open flat ground by wetness: none when damp, some
+	# after a minute, more when soaked.
 	var shares := {}
-	for wet in [0.3, 0.6, 1.0]:
+	for wet in [0.3, 0.6, WET_AFTER_A_MINUTE, 1.0]:
 		var n := 0
 		var wet_n := 0
 		for x in 80:
 			for z in 80:
 				n += 1
-				if _puddle(Vector2(100.0 + x * 0.5, 100.0 + z * 0.5), wet, dry, soaked) > 0.5:
+				if Weather.puddle(Vector2(100.0 + x * 0.5, 100.0 + z * 0.5), wet) > 0.5:
 					wet_n += 1
 		shares[wet] = float(wet_n) / float(n)
-	print("weather: puddle share of open flat ground at wetness 0.3, 0.6, 1: %.2f, %.2f, %.2f"
-			% [shares[0.3], shares[0.6], shares[1.0]])
-	check(shares[0.3] < 0.01 and shares[1.0] > 0.08 and shares[1.0] < 0.4 and shares[0.6] < shares[1.0],
-			"puddles grow with wetness to between a tenth and two fifths of the ground")
-	# An open point with a puddle, found near the eye, and the same terms
-	# on a wall and under the roof.
-	var found := Vector3.INF
-	for x in 60:
-		for z in 60:
-			var p := Vector3(6.0 + x * 0.25, 0.5, 2.0 + z * 0.25)
-			if _puddle(Vector2(p.x, p.z), 1.0, dry, soaked) > 0.9:
-				found = p
-				break
-		if found != Vector3.INF:
-			break
-	check(found != Vector3.INF, "no puddle anywhere near the eye at full wetness")
+	print("weather: puddle share of open flat ground at wetness 0.3, 0.6, %.2f (a minute), 1: %.2f, %.2f, %.2f, %.2f"
+			% [WET_AFTER_A_MINUTE, shares[0.3], shares[0.6], shares[WET_AFTER_A_MINUTE], shares[1.0]])
+	check(shares[0.3] < 0.01, "no puddles on merely damp ground")
+	check(shares[WET_AFTER_A_MINUTE] >= 0.1, "after a minute of rain puddles cover a tenth of open flat ground or more")
+	check(shares[1.0] < 0.4 and shares[0.6] < shares[1.0], "puddles grow with wetness, to under two fifths")
+	# An open point with a puddle near the eye, and the same terms on a
+	# wall and under the roof.
+	var found := _find_puddle(Vector3(6.0, 0.5, 2.0), WET_AFTER_A_MINUTE)
+	check(found != Vector3.INF, "no puddle anywhere near the eye after a minute of rain")
 	if found != Vector3.INF:
 		var open := _shader_open(cover, found, 1.0)
-		var t := _ground_terms(found, 1.0, 1.0, 1.0, open, eye, dry, soaked)
+		var t := Weather.ground_terms(found, 1.0, 1.0, WET_AFTER_A_MINUTE, open, 0.0, eye.distance_to(found))
 		check(open == 1.0 and t.x > 0.5 and t.y > 0.5,
-				"open flat ground at intensity 1 splashes and puddles: %s" % str(t))
-		var side := _ground_terms(found, 0.0, 1.0, 1.0, open, eye, dry, soaked)
+				"open flat ground at intensity 1 after a minute splashes and puddles: %s" % str(t))
+		var side := Weather.ground_terms(found, 0.0, 1.0, 1.0, open, 0.0, eye.distance_to(found))
 		check(side == Vector2.ZERO, "a wall does not splash or puddle")
-	# Under the roof, on a floor whose top face is at 1.5, with the puddle
-	# threshold at its lowest: nothing.
 	var under := Vector3(3.0, 1.5, -2.0)
 	var covered := _shader_open(cover, under, 1.0)
-	var tu := _ground_terms(under, 1.0, 1.0, 1.0, covered, Vector3(3.0, 3.1, -1.0), dry, 0.0)
+	var tu := Weather.ground_terms(under, 1.0, 1.0, 1.0, covered, 0.0, 2.0)
 	check(covered == 0.0 and tu == Vector2.ZERO, "under a roof nothing splashes or puddles: %s" % str(tu))
-	# The splash crown, from goanna_rain_rings, at the ground's cell, period
+	# The splash crown, from goanna_rain_rings at the ground's cell, period
 	# and density: at ordinary rain the ground near the eye has flecks on it
 	# at any moment.
 	check(common.contains("acc.z += (1.0 - smoothstep(0.05, 0.2, age)) * (1.0 - smoothstep(0.08, 0.2, r));"),
 			"the splash crown no longer matches the test's reading of it")
-	check(nodes.contains("rings = goanna_rain_rings(v_world.xz, TIME, 0.7, 0.5,")
-			and nodes.contains("clamp(0.5 * goanna_rain, 0.0, 0.9));"),
-			"the ground's ring cell, period and density are not what the fleck count assumes")
-	# Two grids of 0.7 node cells, half of them struck each 0.5 second
-	# period; each crown is over half bright out to about 0.14 of a cell for
-	# about a tenth of the period.
 	var per_second := 2.0 / (0.7 * 0.7) * 0.5 / 0.5
-	var bright_share := per_second * 0.5 * PI * pow(0.14 * 0.7, 2.0) * 0.1
-	print("weather: splash flecks: %.1f a square node a second, %.2f per cent of open ground bright at once"
-			% [per_second, bright_share * 100.0])
+	print("weather: splash flecks: %.1f a square node a second" % per_second)
 	check(per_second >= 3.0, "fewer than three splashes a square node a second at intensity 1")
+
+
+func _find_puddle(from: Vector3, wet: float) -> Vector3:
+	for x in 80:
+		for z in 80:
+			var p := from + Vector3(x * 0.25, 0.0, z * 0.25)
+			if Weather.puddle(Vector2(p.x, p.z), wet) > 0.9:
+				return p
+	return Vector3.INF
+
+
+# A client with a world: sand whose top face is at 0.5 everywhere, drawn by
+# the shader the owner's ground is drawn by, and open sky over it.
+class SandClient:
+	extends RefCounted
+	var shader := "nodes_array_scissor"
+	func top_surface_at(pos: Vector3) -> Dictionary:
+		if floori(pos.y + 0.5) > 0:
+			return {"node": "air", "shader": "none"}
+		return {"node": "mcl_core:sand", "texture": "default_sand.png", "array": true,
+			"array_path": true, "array_alpha": shader == "nodes_array_scissor", "shader": shader}
+	func rain_cover_rows(_x0: int, _z0: int, width: int, rows: int, _y_top: int, _y_bottom: int) -> PackedFloat32Array:
+		var out := PackedFloat32Array()
+		out.resize(width * rows)
+		out.fill(0.5)
+		return out
+
+
+# The status trace, on the owner's case: open flat sand, drawn by the
+# scissor shader, intensity 1, a minute into the rain. Every gate open, both
+# terms non-zero; and the same trace against the scissor shader as it was
+# names the shader as the gate that was shut.
+func _test_gate_trace() -> void:
+	var w: Node3D = Weather.new()
+	w.client = SandClient.new()
+	root.add_child(w)
+	await process_frame
+	while not w.cover.step(Vector3(515, 2, 447), 0.016):
+		pass
+	var spot := _find_puddle(Vector3(510.0, 0.5, 440.0), WET_AFTER_A_MINUTE)
+	check(spot != Vector3.INF, "no puddle near the beach to stand in")
+	var eye := Vector3(spot.x, 0.5 + EYE_H, spot.z)
+	var g: Dictionary = w.ground_trace(eye, 1.0, WET_AFTER_A_MINUTE)
+	print("weather: ground trace on open sand: shader %s, open %s, splash %.2f, puddle %.2f, failing \"%s\""
+			% [g.get("shader"), g.get("open"), g.get("splash", -1.0), g.get("puddle", -1.0), g.get("failing")])
+	check(g.get("node") == "mcl_core:sand" and is_equal_approx((g["point"] as Vector3).y, 0.5),
+			"the trace finds the sand's top face under the eye")
+	check(g.get("failing") == "", "a gate is shut on open sand: %s" % g.get("failing"))
+	for k in ["shader_has_terms", "weather_on", "up_facing", "flat", "wet_enough_to_puddle", "near_mesh"]:
+		check(bool(g.get(k, false)), "gate %s is shut on open sand" % k)
+	check(float(g.get("open", 0.0)) == 1.0, "open sand is open by the cover map")
+	check(float(g.get("splash", 0.0)) > 0.5 and float(g.get("puddle", 0.0)) > 0.5,
+			"splash and puddle on open sand: %.2f, %.2f" % [g.get("splash", 0.0), g.get("puddle", 0.0)])
+	# The scissor shader as it was, with no terms: the trace names it.
+	w._shader_text["res://shaders/nodes_array_scissor.gdshader"] = "// no rain terms"
+	var old: Dictionary = w.ground_trace(eye, 1.0, WET_AFTER_A_MINUTE)
+	check(String(old.get("failing")).contains("nodes_array_scissor"),
+			"the trace names a shader without terms: %s" % old.get("failing"))
+	w._shader_text.clear()
+	# Under the roof of the stand in map it is the cover that is shut.
+	w.client = null
+	w.cover = RainCover.new(FakeMap.new())
+	while not w.cover.step(Vector3(3, 1, -1), 0.016):
+		pass
+	w.client = SandClient.new()
+	var roofed: Dictionary = w.ground_trace(Vector3(3.2, 2.1, -1.7), 1.0, 1.0)
+	check(String(roofed.get("failing")).begins_with("covered"), "under a roof the cover is the gate: %s" % roofed.get("failing"))
+	# And the real binding, with no world loaded: answers, and says nothing.
+	if ClassDB.class_exists("GoannaClient"):
+		check(ClassDB.class_has_method("GoannaClient", "top_surface_at"), "GoannaClient has top_surface_at")
+		var c: Object = ClassDB.instantiate("GoannaClient")
+		var s: Dictionary = c.top_surface_at(Vector3.ZERO)
+		check(s.is_empty(), "no world: top_surface_at is empty")
+		c.free()
+	w.queue_free()
 
 
 func _lights_under(n: Node) -> Array:

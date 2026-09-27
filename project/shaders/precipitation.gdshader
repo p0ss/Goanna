@@ -1,76 +1,82 @@
 // Goanna: rain and snow, drawn rather than simulated. docs/weather.md.
 //
-// The mesh is open cylinders nested around the camera (built in
-// project/ui/weather.gd, which moves it with the camera every frame), all
-// in one surface, so the whole of the weather is one draw call. Each
-// cylinder is a layer at one distance: the pattern on it is laid out in
-// world units, so a far layer packs more, thinner streaks into the same
-// angle than a near one, and the nesting gives the depth a single sheet
-// cannot. Everything here is a function of where the fragment is in the
-// world and the time: no state, nothing to simulate, nothing to cull.
+// Every drop is one instance of a MultiMesh (built in project/ui/weather.gd),
+// so a kind of weather is one draw call. A drop has a place in a box around
+// the eye, hashed from its instance number, and falls through it: its world
+// position is the box's corner plus (seed + velocity * time - corner) wrapped
+// into the box. A drop is therefore fixed in the world, not in the view: as
+// the eye moves, the box moves round the drops, and one that leaves by a face
+// comes back in by the opposite one, where it fades in and out so the wrap is
+// not seen. Nothing is simulated and nothing is kept between frames.
 //
-// A drop is drawn only where the rain cover map says the sky reaches that
-// point, so rain stops at a roof's edge and at a canopy, and still falls
-// past the window of a house you stand in. The depth buffer does the rest:
-// a layer behind a wall is behind the wall.
+// This replaced six cylinders nested round the camera. A cylinder is seen
+// edge on above and below the eye, so looking up the streaks became radial
+// lines round a clear circle, and looking down the nearest wall was a ring
+// of rain rushing in under a dry disc ("a pillbox"). A volume has no angle
+// it looks wrong from.
 //
-// Lit, not unshaded. The first version was unshaded and coloured with the
-// sky gradient, which is a small number beside the sunlit ground once the
-// exposure has been applied: grey streaks at a sixth opacity over bright
-// sand, which on a live client at noon could not be seen at all. Lit by the
-// same sun and sky as everything else, a drop is as bright as the scene
-// around it by day and as dark by night, whatever the exposure. It receives
-// no shadows, which would cost a shadow map read per streak pixel.
+// Two boxes share the instances: a near box of a few nodes round the eye with
+// many drops, and a larger one with fewer, whose drops fade out toward its
+// sides and top. The near box is what is seen falling past the face and
+// between the eye and the ground looking down, where the large box alone
+// leaves a node or two of air with nothing in it.
 //
-// What is not done: nothing splashes where a streak meets the ground (the
-// ground shaders do their own splashes from the same map); looking more
-// than 60 degrees up the cylinders are edge on, so the rain fades out there
-// rather than drawing a dense tangle (looking down, the two low layers carry
-// it to 80 degrees); and the pattern moves with the camera rather than
-// staying put in the world as you walk sideways (see `along` in fragment()
-// for why).
+// A drop is drawn only where the rain cover map says the sky reaches it, so
+// there is no rain indoors or under a canopy, and rain still falls past the
+// window of a house you stand in. The cover map also holds the ground, so a
+// drop that has fallen below the surface of its column is not drawn either.
+//
+// Lit, not unshaded: by the same sun and sky as everything else, so a drop is
+// as bright as the scene around it by day and as dark by night, whatever the
+// exposure. It receives no shadows, which would cost a shadow map read per
+// streak pixel.
 shader_type spatial;
-render_mode blend_mix, cull_disabled, depth_draw_never, shadows_disabled;
+render_mode blend_mix, cull_disabled, depth_draw_never, shadows_disabled, skip_vertex_transform;
 
 #include "res://shaders/weather_common.gdshaderinc"
 
-// 0 to 2 each; weather.gd sets them from the server's spawners.
-uniform float rain_amount = 0.0;
-uniform float snow_amount = 0.0;
+// 0 to max_amount; weather.gd sets it from the server's spawners. A drop is
+// drawn when its own hash is under amount / max_amount, so the number drawn
+// follows the intensity and the ones drawn are always the same ones.
+uniform float amount = 0.0;
+uniform float max_amount = 2.0;
+// Snow instead of rain: round flakes, slow, swaying.
+uniform bool snow = false;
 // Fall speed, nodes a second, from the spawners' own velocities.
-uniform float rain_speed = 17.0;
-uniform float snow_speed = 2.2;
+uniform float speed = 17.0;
 // Horizontal wind, nodes a second, in world xz.
 uniform vec2 wind = vec2(0.0);
-// The look, owned by weather.gd's constants (which a headless test checks
-// for visibility); these defaults only matter to a material nobody set, and
-// the per layer arrays have none, since weather.gd always sets them.
-// Radius of each layer, which the vertex colour names by index, nearest
-// first. LAYERS must match weather.gd's LAYER_RADII.
-const int LAYERS = 6;
-uniform float layer_radius[LAYERS];
-// How strongly each layer draws. The far ones are the haze of the storm and
-// carry least; the first full layer carries the individual streak, and the
-// two low ones inside it are fainter.
-uniform float layer_alpha[LAYERS];
-// Where each layer is drawn, in sines of the view's elevation: fading in
-// with depression from x to y (a full layer has both below -1), and out as
-// |elevation| goes from z to w, where the wall is seen edge on. weather.gd's
-// LAYER_FADE has the values and the reasons.
-uniform vec4 layer_fade[LAYERS];
-uniform float rain_alpha = 0.85;
-uniform float snow_alpha = 0.9;
-// Streak half width in nodes: a base, and a growth with layer radius so a
-// far streak keeps about a pixel rather than vanishing to a thread.
-uniform vec2 streak_half_width = vec2(0.0015, 0.00075);
-// Share of rain columns carrying a drop per period, per unit of intensity.
-uniform float rain_density = 0.55;
-uniform float snow_density = 0.5;
-// Height of one rain cell along a column, in nodes.
-uniform float rain_period = 1.8;
-// Where the mesh ends above and below the eye; the layers fade out before
-// their rims so a rim is never seen as an edge.
-uniform vec2 mesh_span = vec2(-26.0, 34.0);
+// The eye the boxes are placed round, set by weather.gd each frame. Drops do
+// not move with it, only the boxes do, so a frame's lag costs nothing.
+uniform vec3 eye = vec3(0.0);
+// The boxes: size in nodes, and how far the eye is above the bottom. The
+// first near_instances instances fall in the near box, the rest in the far.
+uniform vec3 far_box = vec3(24.0, 16.0, 24.0);
+uniform float far_below = 10.0;
+uniform vec3 near_box = vec3(6.0, 6.0, 6.0);
+uniform float near_below = 3.5;
+uniform int near_instances = 0;
+// The look, owned by weather.gd's constants, which a headless test checks.
+// Peak opacity of a drop drawn at its true width.
+uniform float drop_alpha = 0.85;
+// Half width of a rain streak, or radius of a flake, in nodes. A real drop
+// is a few millimetres across; one narrower than a pixel is drawn a pixel
+// wide at the coverage it really has (drop_cover), so a far drop is a faint
+// line rather than a sparkle.
+uniform float drop_half_width = 0.002;
+// Seconds of fall a streak shows, the motion blur of an eye's exposure.
+uniform float streak_time = 0.035;
+// Rain leans with the wind by no more than this much drift per node of fall.
+uniform float max_lean = 0.6;
+
+// Nothing is drawn nearer the eye than NEAR_CLIP nodes, and a drop fades in
+// from there to NEAR_FADE: a drop that close is out of focus, and drawn hard
+// it reads as a scratch on the screen.
+const float NEAR_CLIP = 0.3;
+const float NEAR_FADE = 1.2;
+// How far in from a box's faces a drop fades, sideways and at the top and
+// bottom, so a drop wrapping from one face to the other is not seen to.
+const float EDGE_FADE = 1.5;
 
 // The fill the terrain takes from the sky light channel (nodes_array's
 // emission), so a drop in a storm's dim daylight is not lit by the
@@ -80,182 +86,134 @@ global uniform vec3 goanna_ground_fill;
 global uniform float goanna_eye_underwater;
 
 varying vec3 v_world;
-varying vec3 v_local;
-varying float v_layer;
+varying vec2 v_quad;
+varying float v_weight;
+
+// PCG hash (Jarzynski and Olano, "Hash functions for GPU rendering", 2020):
+// a drop's seed from its instance number. weather.gd mirrors it exactly, in
+// 32 bit arithmetic, so a test can place the same drops the GPU does.
+uint goanna_pcg(uint v) {
+	uint state = v * 747796405u + 2891336453u;
+	uint word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+	return (word >> 22u) ^ word;
+}
+
+float goanna_unit(uint h) {
+	return float(h >> 8u) / 16777216.0;
+}
 
 void vertex() {
-	v_local = VERTEX;
-	v_world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
-	v_layer = COLOR.r * float(LAYERS - 1);
-}
+	uint id = uint(INSTANCE_ID);
+	uint h0 = goanna_pcg(id);
+	uint h1 = goanna_pcg(h0);
+	uint h2 = goanna_pcg(h1);
+	uint h3 = goanna_pcg(h2);
+	uint h4 = goanna_pcg(h3);
+	vec3 seed = vec3(goanna_unit(h0), goanna_unit(h1), goanna_unit(h2));
+	float pick = goanna_unit(h3);
+	float vary = goanna_unit(h4);
 
-// Coverage of a line of half width `half_w` at signed offset `x`, both in
-// the same units, antialiased over `fw` (that unit's size in pixels, from
-// the derivatives). A line thinner than a pixel is drawn a pixel wide at
-// the coverage it really has, which is what keeps the far layers from
-// sparkling.
-float line_cover(float x, float half_w, float fw) {
-	float w = max(half_w, fw * 0.5);
-	float edge = 1.0 - smoothstep(w - fw * 0.5, w + fw * 0.5, abs(x));
-	return edge * (half_w / w);
-}
+	bool near = INSTANCE_ID < near_instances;
+	vec3 box = near ? near_box : far_box;
+	vec3 corner = eye - vec3(box.x * 0.5, near ? near_below : far_below, box.z * 0.5);
 
-// The streaks' lean along the tangent: horizontal drift per node of fall.
-// The lean shears the column coordinate by height, and the shear changes
-// round the turn with the wind's tangential part, by up to the lean times
-// the height from the eye. Measured from world zero, as the first version
-// did, that height is the camera's altitude, and the columns fold over a few
-// tens of nodes up: the same squeeze, spread and smear as the camera term
-// described in fragment(). From the eye, with the lean held to MAX_LEAN and
-// the height the shear is taken at held to SHEAR_REACH radii (60 degrees
-// above or below the eye), the change stays at 0.61 of a radius, so the
-// column coordinate always runs forwards, at no less than 0.39 of its calm
-// rate. The hold matters for the low layers, drawn to 88 degrees down,
-// where the unclamped shear would fold them; past it a streak in wind turns
-// upright, which on those layers is at or below the ground. The lean holds
-// rain in the strongest wind main.gd derives (0.41) a little off its true
-// lean; snow in a gale leans less than it should.
-const float MAX_LEAN = 0.35;
-const float SHEAR_REACH = 1.73;
-float lean_along(vec2 tangent, float speed) {
-	vec2 w = wind / max(speed, 0.1);
-	float l = length(w);
-	if (l > MAX_LEAN)
-		w *= MAX_LEAN / l;
-	return dot(w, tangent);
-}
+	// Velocity. Rain leans with the wind, held to max_lean; snow drifts
+	// with it, up to twice its fall speed.
+	float fall = speed * (snow ? 0.75 + 0.5 * vary : 0.85 + 0.3 * vary);
+	vec2 w = wind;
+	float cap = snow ? 2.0 * fall : max_lean * fall;
+	if (length(w) > cap)
+		w *= cap / length(w);
+	vec3 vel = vec3(w.x, -fall, w.y);
+	// The wrap. mod() is floored, so this is in [0, box) for any sign.
+	vec3 p = corner + mod(seed * box + vel * TIME - corner, box);
+	if (snow) {
+		// Flakes flutter: a slow sway of their own on top of the drift. It
+		// is added after the wrap, so it can take a flake a little over a
+		// face, where it is already faded out.
+		float ph = vary * 6.2832;
+		p.xz += vec2(sin(TIME * (0.7 + vary) + ph), cos(TIME * (0.6 + 0.8 * vary) + ph * 1.7)) * 0.2;
+	}
 
-// Fade for a pattern whose cells are `cell_px` pixels across: below a few
-// pixels a cell's drop is a speck, and a layer of specks reads as stars.
-float minify(float cell_px) {
-	return smoothstep(2.0, 5.0, cell_px);
+	// Fade toward the box's faces, sideways and at the top and bottom.
+	vec3 lo = p - corner;
+	vec3 hi = corner + box - p;
+	float edge = smoothstep(0.0, EDGE_FADE, min(min(lo.x, hi.x), min(lo.z, hi.z)))
+			* smoothstep(0.0, EDGE_FADE, min(lo.y, hi.y));
+
+	// The drop as a segment: its head at p, its tail up the path it came
+	// down. A flake is a point.
+	vec3 dir = normalize(vel);
+	float len = snow ? 0.0 : fall * streak_time * (0.8 + 0.4 * seed.x);
+	vec3 tail = p - dir * len;
+	vec3 cam = CAMERA_POSITION_WORLD;
+	// Nearest point of the segment to the eye, to keep drops off the lens.
+	vec3 seg = p - tail;
+	float k = len > 0.0 ? clamp(dot(cam - tail, seg) / dot(seg, seg), 0.0, 1.0) : 1.0;
+	float nearest = length(tail + seg * k - cam);
+
+	// Covered, fallen below the ground, or not part of this intensity: the
+	// quad collapses to a point and draws nothing. Cover is asked at the
+	// tail, the streak's top; the fragment asks again, pixel by pixel.
+	float open = goanna_rain_open(tail, 1.0);
+	bool shown = pick * max_amount < amount && edge > 0.001 && nearest > NEAR_CLIP
+			&& open > 0.5 && goanna_eye_underwater < 0.5;
+
+	// Width: the drop's own, or a pixel and a half at its distance,
+	// whichever is wider, with the coverage kept in the weight.
+	vec3 mid = mix(p, tail, 0.5);
+	float dist = max(length(mid - cam), 0.01);
+	float pixel = dist * 2.0 / (PROJECTION_MATRIX[1][1] * VIEWPORT_SIZE.y);
+	float half_w = max(drop_half_width, pixel * 0.75);
+	float cover = drop_half_width / half_w;
+
+	vec3 to_eye = normalize(cam - mid);
+	vec3 world;
+	if (snow) {
+		// A flake faces the camera.
+		vec3 right = INV_VIEW_MATRIX[0].xyz;
+		vec3 up = INV_VIEW_MATRIX[1].xyz;
+		world = p + (right * VERTEX.x + up * VERTEX.y) * 2.0 * half_w;
+		cover *= cover;   // a flake's coverage is an area
+	} else {
+		// A streak turns round its own axis to face the camera. Seen end on
+		// the axis and the view agree and there is no side to take; the
+		// camera's right is as good as any then, since the drop is a dot.
+		vec3 side = cross(dir, to_eye);
+		side = length(side) > 1e-3 ? normalize(side) : INV_VIEW_MATRIX[0].xyz;
+		world = mix(tail, p, VERTEX.y + 0.5) + side * VERTEX.x * 2.0 * half_w;
+	}
+	if (!shown)
+		world = p;
+	v_world = world;
+	v_quad = VERTEX.xy * 2.0;   // -1 to 1 across and along
+	v_weight = shown ? edge * cover : 0.0;
+	VERTEX = (VIEW_MATRIX * vec4(world, 1.0)).xyz;
+	NORMAL = normalize((VIEW_MATRIX * vec4(to_eye, 0.0)).xyz);
 }
 
 void fragment() {
-	int layer = clamp(int(round(v_layer)), 0, LAYERS - 1);
-	float radius = layer_radius[layer];
-	float strength = layer_alpha[layer];
-	vec4 fade = layer_fade[layer];
-	// The angle round the camera, and the tangent there. Derivatives of the
-	// angle are taken by hand from those of the position, because atan jumps
-	// by a full turn behind the camera and fwidth of it would draw a wide
-	// smear down that line.
-	vec2 xz = v_local.xz;
-	float theta = atan(xz.y, xz.x);
-	vec2 tangent = vec2(-sin(theta), cos(theta));
-	vec2 dx = dFdx(xz);
-	vec2 dy = dFdy(xz);
-	float rr = max(dot(xz, xz), 1e-4);
-	float dtheta = (abs(xz.x * dx.y - xz.y * dx.x) + abs(xz.x * dy.y - xz.y * dy.x)) / rr;
-	float dheight = abs(dFdx(v_world.y)) + abs(dFdy(v_world.y));
-	// Arc length along the layer. The pattern turns with the layer and so
-	// moves with the camera sideways; it is anchored to the world only in
-	// height. The first version added the camera's world position along the
-	// tangent, dot(cam.xz, tangent), to anchor sideways motion too. That term
-	// changes with the angle at a rate of the camera's distance from the
-	// world origin, hundreds of nodes, against a radius of a few: the columns
-	// were squeezed below a pixel in most directions (the sky full of white
-	// specks), spread to normal size in the two directions square to the
-	// camera's position (a narrow band of rain ahead at one yaw), and
-	// stretched without limit at the points between (bright arcs, one
-	// column smeared across the view). A shift that keeps every direction
-	// right at once does not exist on a cylinder round a moving camera, so
-	// there is none. Rain falls fast enough that it hardly shows; snow
-	// drifting with the player may.
-	float along = theta * radius;
-	// Heights: from world zero for the fall, so a drop does not ride up and
-	// down with the camera, and from the eye for the wind's shear below.
-	float y = v_world.y;
-	float y_eye = clamp(v_local.y, -SHEAR_REACH * radius, SHEAR_REACH * radius);
-
-	// Where the layer is drawn (layer_fade): a low layer fades in going down
-	// and has no rims of its own to hide, since its mesh ends where the fade
-	// does; a full layer fades toward its rims. Every layer fades where its
-	// wall is seen edge on, past which the columns crowd into a tangle (the
-	// sine of the elevation is normalize(v_local).y).
-	float s = normalize(v_local).y;
-	float span = fade.x < -1.0
-			? smoothstep(mesh_span.x, mesh_span.x + 6.0, v_local.y)
-				* (1.0 - smoothstep(mesh_span.y - 6.0, mesh_span.y, v_local.y))
-			: smoothstep(fade.x, fade.y, -s);
-	float grazing = 1.0 - smoothstep(fade.z, fade.w, abs(s));
-
+	float a;
+	if (snow) {
+		float r = length(v_quad);
+		a = 1.0 - smoothstep(0.5, 1.0, r);
+	} else {
+		// Across: brightest on the axis. Along: v_quad.y runs from the tail
+		// (-1) to the head (1); a streak is a blur of one drop, so it is
+		// even along its length with soft ends.
+		float across = 1.0 - abs(v_quad.x);
+		float along = smoothstep(-1.0, -0.6, v_quad.y) * (1.0 - smoothstep(0.7, 1.0, v_quad.y));
+		a = across * along;
+	}
+	// Off the lens (NEAR_CLIP and NEAR_FADE), and only where rain falls, at
+	// the pixel: a streak that crosses a roof's edge stops at the edge.
+	float d = length(v_world - CAMERA_POSITION_WORLD);
+	float lens = smoothstep(NEAR_CLIP, NEAR_FADE, d);
 	float open = goanna_rain_open(v_world, 1.0);
-	float seen = 0.0;
-	vec3 col = vec3(0.0);
-
-	if (rain_amount > 0.001) {
-		// Columns a whole number to the turn, so the pattern closes on
-		// itself behind the camera with no seam.
-		float cols = max(floor(TAU * radius / 0.16), 8.0);
-		float spacing = TAU * radius / cols;
-		// A drop moves along (wind, -speed), so along + y * lean is the
-		// same all the way down its path: that is what leans the streaks.
-		float lean = lean_along(tangent, rain_speed);
-		float u = (along + y_eye * lean) / spacing;
-		float c = floor(u);
-		float cid = mod(c, cols);
-		vec3 h = goanna_weather_hash3(vec2(cid, float(layer) * 131.0));
-		float speed = rain_speed * (0.85 + 0.3 * h.x);
-		float v = (y + TIME * speed) / rain_period + h.y;
-		float cell = floor(v);
-		vec3 k = goanna_weather_hash3(vec2(cid * 3.7 + cell, float(layer) * 17.0 + 5.0));
-		float density = clamp(rain_density * rain_amount, 0.0, 0.95);
-		if (k.x < density) {
-			float len = (0.45 + 0.4 * k.y) / rain_period;
-			float at = fract(v) - k.z * (1.0 - len);
-			float along_streak = at / len;
-			if (along_streak > 0.0 && along_streak < 1.0) {
-				float taper = smoothstep(0.0, 0.25, along_streak) * (1.0 - smoothstep(0.6, 1.0, along_streak));
-				float fw = radius * dtheta / spacing;
-				float x = fract(u) - (0.3 + 0.4 * k.y);
-				float half_w = streak_half_width.x + streak_half_width.y * radius;
-				float cover = line_cover(x, half_w / spacing, fw);
-				// Minification. Columns closer than a few pixels, or a streak
-				// under about eight pixels long, would draw as specks; fade
-				// them instead, so a far layer thins out rather than fizzing.
-				cover *= minify(1.0 / max(fw, 1e-4));
-				cover *= smoothstep(4.0, 8.0, (len * rain_period) / max(dheight, 1e-4));
-				float a = cover * taper * rain_alpha * strength;
-				col += vec3(0.82, 0.86, 0.92) * a;
-				seen += a;
-			}
-		}
-	}
-
-	if (snow_amount > 0.001) {
-		float cell_w = 0.55;
-		float cols = max(floor(TAU * radius / cell_w), 8.0);
-		float spacing = TAU * radius / cols;
-		float lean = lean_along(tangent, snow_speed);
-		float u = (along + y_eye * lean) / spacing;
-		float v = (y + TIME * snow_speed) / cell_w;
-		vec2 id = vec2(mod(floor(u), cols), floor(v));
-		vec3 k = goanna_weather_hash3(id + vec2(float(layer) * 57.0, 11.0));
-		float density = clamp(snow_density * snow_amount, 0.0, 0.95);
-		if (k.x < density) {
-			// Flakes flutter: a slow sideways sway of their own on top of
-			// the wind's drift.
-			float sway = sin(TIME * (0.8 + k.y) + k.z * TAU) * 0.18;
-			vec2 at = vec2(fract(u) - 0.5 - sway, fract(v) - 0.5) - (k.yz - 0.5) * 0.5;
-			// In the cell's own units: a cell is `spacing` wide and
-			// `cell_w` tall, near enough square.
-			float r = length(at);
-			float size = (0.018 + 0.02 * k.y) / spacing;
-			float fw = max(radius * dtheta, dheight) / spacing;
-			float cover = line_cover(r, size, fw) * minify(1.0 / max(fw, 1e-4));
-			float a = cover * snow_alpha * strength;
-			col += vec3(0.95) * a;
-			seen += a;
-		}
-	}
-
-	// Underwater there is no rain to see; above, only where it falls.
-	float keep = open * span * grazing * (1.0 - step(0.5, goanna_eye_underwater));
-	ALPHA = clamp(seen * keep, 0.0, 1.0);
+	ALPHA = clamp(a * drop_alpha * v_weight * lens * open, 0.0, 1.0);
 	if (ALPHA < 0.002)
 		discard;
-	ALBEDO = col / max(seen, 1e-4);
+	ALBEDO = snow ? vec3(0.95) : vec3(0.82, 0.86, 0.92);
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;
 	EMISSION = ALBEDO * mix(goanna_ground_fill, goanna_sky_fill, 0.6) * 0.5;

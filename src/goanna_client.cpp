@@ -2029,6 +2029,47 @@ String GoannaClient::node_name_at(const Vector3 &pos) {
     return String::utf8(m_session->nodeDefs()->get(n).name.c_str());
 }
 
+// The shader materialFor would give the node's top face, by the same tests
+// keyForIrr applies (arrayPathTile, the array having built) and the one
+// materialFor makes between the two array shaders: an array holding any
+// alpha layer at all goes to nodes_array_scissor. Upstream bunches tiles
+// into arrays by size alone, 256 at a time, so on a game with many cut-out
+// textures (63 per cent of Mineclonia's 16 pixel ones) every bunch has
+// one, and the ground is drawn by the scissor shader. A live weather check
+// reads this to know which shader's rain terms it is looking at.
+Dictionary GoannaClient::top_surface_at(const Vector3 &pos) {
+    Dictionary out;
+    if (!m_session)
+        return out;
+    content_t c;
+    {
+        std::lock_guard<std::mutex> lk(m_session->mapLock());
+        v3s16 np((s16)floorf(pos.x + 0.5f), (s16)floorf(pos.y + 0.5f), (s16)floorf(-pos.z + 0.5f));
+        c = m_session->map().getNode(np).getContent();
+    }
+    const ContentFeatures &f = m_session->nodeDefs()->get(c);
+    out["node"] = String::utf8(f.name.c_str());
+    out["shader"] = "none";
+    if (!f.visuals)
+        return out;
+    // Tile 0 is the top (+Y) face.
+    const TileLayer &l = f.visuals->tiles[0].layers[0];
+    const bool culled = (l.material_flags & MATERIAL_FLAG_BACKFACE_CULLING) != 0;
+    GoannaTexture *gt = m_session->tsrc()->goannaTexture(l.texture_id);
+    const bool is_array = gt && gt->isArray();
+    const bool array_path = arrayPathTile(l.material_type, culled);
+    out["texture"] = String::utf8(m_session->tsrc()->imageName(l.texture_id, l.texture_layer_idx).c_str());
+    out["array"] = is_array;
+    out["array_path"] = array_path;
+    out["array_alpha"] = is_array && gt->hasAlpha();
+    if (is_array && array_path && m_session->shsrc().usesArrayTexture(l.shader_id)
+            && gt->godotArray().is_valid())
+        out["shader"] = gt->hasAlpha() ? "nodes_array_scissor" : "nodes_array";
+    else
+        out["shader"] = "other";
+    return out;
+}
+
 // What colour the ground around the given point would throw back: the tile
 // colour of the surface found under a coarse grid of columns, palette tint
 // included (Mineclonia's grass is a grey texture; the green is param2).
@@ -8042,6 +8083,7 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("take_dug_nodes"), &GoannaClient::take_dug_nodes);
     ClassDB::bind_method(D_METHOD("take_particles"), &GoannaClient::take_particles);
     ClassDB::bind_method(D_METHOD("node_name_at", "pos"), &GoannaClient::node_name_at);
+    ClassDB::bind_method(D_METHOD("top_surface_at", "pos"), &GoannaClient::top_surface_at);
     ClassDB::bind_method(D_METHOD("resolve_nodemeta_text", "context", "text"),
             &GoannaClient::resolve_nodemeta_text);
     ClassDB::bind_method(D_METHOD("ground_albedo", "center"), &GoannaClient::ground_albedo);
