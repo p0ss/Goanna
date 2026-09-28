@@ -58,7 +58,7 @@
   ],
   "base": {
     "show_body": 0,
-    "texture_pack": "/var/home/poss/Documents/Code/Godot/goanna/baked/pack-mineclonia-v2/textures"
+    "texture_pack": "/var/home/poss/Documents/Code/Godot/goanna/baked/authored-mineclonia/textures"
   },
   "variants": [
     {
