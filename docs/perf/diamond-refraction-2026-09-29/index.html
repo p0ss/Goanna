@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Diamond refraction and ore recesses</title>
+<style>
+body{margin:32px auto;padding:0 20px;max-width:1280px;background:#101820;color:#e5edf3;font:17px/1.5 system-ui}h1,h2{font-weight:550}img{width:100%;display:block}button{font:inherit;padding:8px 16px;background:#244352;color:inherit;border:1px solid #628294;cursor:pointer}button[aria-pressed=true]{background:#487084}p{max-width:960px}a{color:#9edcff}label{display:inline-block;padding:12px}
+</style>
+<h1>Refraction and stone behind the ore crystals</h1>
+<h2>Background refraction</h2>
+<p>Production item shaders on offline cubes and cards. The checkerboard
+bends through individual crystal facets. The held block at top right shows
+this most clearly. Wood handles remain solid.</p>
+<p><button id="straight">Straight transmission</button>
+<button id="bent" aria-pressed="true">Refracted transmission</button></p>
+<img id="items" src="refracted.png" alt="Background checkerboard bent through diamond facets">
+<h2>Ore with a stone backing</h2>
+<p>The shader traces a shallow recess under each visible crystal and samples
+reconstructed local stone through it. This is a virtual recess in the
+existing face, without additional mesh geometry or holes into hidden terrain.</p>
+<p><button id="solid">Previous cyan interior</button>
+<button id="recess" aria-pressed="true">Stone-backed crystal</button>
+<label>Angle <input id="angle" type="range" min="0" max="2" value="1" step="1"></label></p>
+<img id="ore" src="ore-recess-1.png" alt="Tinted stone backing visible beneath ore facets">
+<h2>Live Mineclonia</h2>
+<p>Luanti 5.17.0 with Godot 4.5.1. The armour capture uses a detached camera
+and the player's full-body mesh for inspection.</p>
+<img src="live-ore-close.png" alt="Close view of the stone backing below ore crystals">
+<img src="live-wall.png" alt="Live mining wall with diamond ore and an equipped pick">
+<img src="live-armour.png" alt="Refracting diamond armour over the player clothing">
+<p>Item refraction samples the opaque screen image. It cannot see offscreen
+or other transparent objects. Ore backing is inferred from surrounding
+stone art. Geometry would be needed for protruding crystal silhouettes.</p>
+<p><a href="report.md">Validation and limitations</a></p>
+<script>
+let recess=true;
+function ore(){document.querySelector('#ore').src=(recess?'ore-recess-':'ore-solid-')+document.querySelector('#angle').value+'.png';document.querySelector('#solid').setAttribute('aria-pressed',String(!recess));document.querySelector('#recess').setAttribute('aria-pressed',String(recess));}
+function items(bent){document.querySelector('#items').src=bent?'refracted.png':'straight.png';document.querySelector('#straight').setAttribute('aria-pressed',String(!bent));document.querySelector('#bent').setAttribute('aria-pressed',String(bent));}
+document.querySelector('#straight').onclick=()=>items(false);
+document.querySelector('#bent').onclick=()=>items(true);
+document.querySelector('#solid').onclick=()=>{recess=false;ore()};
+document.querySelector('#recess').onclick=()=>{recess=true;ore()};
+document.querySelector('#angle').oninput=ore;
+</script></html>

@@ -276,6 +276,12 @@ func capture_transparency(directory: String) -> Dictionary:
 	for mat in materials:
 		mat.set_shader_parameter("diamond_transparency", 1.0)
 	await shot(directory.path_join("transparent.png"))
+	for mat in materials:
+		mat.set_shader_parameter("diamond_refraction", 0.0)
+	var straight := await shot(directory.path_join("straight.png"))
+	for mat in materials:
+		mat.set_shader_parameter("diamond_refraction", 1.0)
+	var refracted := await shot(directory.path_join("refracted.png"))
 	# Change only the background and sample the middle of source texels on
 	# the pick. The cyan head must transmit; its wooden handle must not.
 	backing.albedo_texture = null
@@ -313,6 +319,7 @@ func capture_transparency(directory: String) -> Dictionary:
 	gem_change /= maxf(gem_samples, 1)
 	handle_change /= maxf(handle_samples, 1)
 	var checks := {"gem_background_change": gem_change,
+		"refraction_changes_frame": straight.get_data() != refracted.get_data(),
 		"handle_background_change": handle_change,
 		"gem_samples": gem_samples, "handle_samples": handle_samples,
 		"gem_transmits": gem_samples > 0 and gem_change > 0.2,
@@ -341,5 +348,25 @@ func capture_transparency(directory: String) -> Dictionary:
 		and covered_on.get_pixelv(gem_pixel) == covered_off.get_pixelv(gem_pixel) \
 		and covered_on.get_pixelv(gem_pixel) != light.get_pixelv(gem_pixel)
 	FileAccess.open(directory.path_join("transparency-checks.json"), FileAccess.WRITE).store_string(
+		JSON.stringify(checks, "\t"))
+	return checks
+
+
+func capture_ore(directory: String) -> Dictionary:
+	DirAccess.make_dir_recursive_absolute(directory)
+	camera.fov = 25.0
+	var target := Vector3(-0.9, 1.25, 0)
+	var checks := {}
+	for angle in [-1, 0, 1]:
+		camera.position = target + Vector3(float(angle) * 1.6, 0.5, 4.5)
+		camera.look_at(target)
+		for mat in materials:
+			mat.set_shader_parameter("diamond_ore_transmission", 0.0)
+		var before := await shot(directory.path_join("ore-solid-%d.png" % (angle + 1)))
+		for mat in materials:
+			mat.set_shader_parameter("diamond_ore_transmission", 1.0)
+		var after := await shot(directory.path_join("ore-recess-%d.png" % (angle + 1)))
+		checks["ore_recess_visible_%d" % angle] = before.get_data() != after.get_data()
+	FileAccess.open(directory.path_join("ore-checks.json"), FileAccess.WRITE).store_string(
 		JSON.stringify(checks, "\t"))
 	return checks

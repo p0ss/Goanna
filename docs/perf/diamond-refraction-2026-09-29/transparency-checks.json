@@ -1,0 +1,12 @@
+{
+	"foreground_occludes": true,
+	"gem_background_change": 1.15836866523909,
+	"gem_samples": 23,
+	"gem_transmits": true,
+	"handle_background_change": 0.0,
+	"handle_opaque": true,
+	"handle_samples": 24,
+	"ore_backed": true,
+	"placed_block_backed": true,
+	"refraction_changes_frame": true
+}

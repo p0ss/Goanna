@@ -49,6 +49,9 @@ uniform float class_sss : hint_range(0.0, 1.0) = 0.0;
 
 #define GOANNA_DIAMOND
 #include "res://shaders/direct_light.gdshaderinc"
+#ifdef GOANNA_DIAMOND_TRANSMISSION
+#include "res://shaders/diamond_refraction.gdshaderinc"
+#endif
 
 void fragment() {
 #ifdef GOANNA_DOUBLE_SIDED
@@ -129,6 +132,7 @@ void fragment() {
 	vec3 gem_normal = has_normal ? NORMAL_MAP : vec3(0.5, 0.5, 1.0);
 	vec2 gem_size = min(vec2(textureSize(albedo, 0)), diamond_texels);
 	vec2 gem_dx = dFdx(UV), gem_dy = dFdy(UV);
+	vec3 gem_position_dx = dFdx(VERTEX), gem_position_dy = dFdy(VERTEX);
 	float gem_px = max(length(gem_dx * gem_size), length(gem_dy * gem_size));
 	v_diamond = goanna_diamond_surface(tex.rgb, gem, gem_px, gem_normal, ROUGHNESS, METALLIC, SPECULAR);
 	NORMAL_MAP = gem_normal;
@@ -180,5 +184,24 @@ void fragment() {
 	float rim = pow(1.0 - clamp(dot(crystal_normal, VIEW), 0.0, 1.0), 5.0);
 	float opacity = mix(diamond_mode == 2 ? 0.32 : 0.24, 0.9, rim);
 	ALPHA = mix(1.0, opacity, gem * diamond_strength * diamond_transparency);
+	if (gem > 0.001 && diamond_refraction > 0.001 && ALPHA < 0.999) {
+		// Derivatives recover the source texel's world size on both item
+		// tiles and armour atlases, including the wield model's scaling.
+		float texel_size = max(length(gem_position_dx), length(gem_position_dy))
+				/ max(gem_px, 0.0001);
+		float depth = clamp(texel_size * (diamond_mode == 2 ? 6.0 : 2.0), 0.005, 0.5);
+		vec2 refracted_uv = goanna_diamond_screen_ray(VERTEX, VIEW, crystal_normal,
+				depth, SCREEN_UV, 1.0 / VIEWPORT_SIZE, PROJECTION_MATRIX, INV_PROJECTION_MATRIX);
+		vec3 behind = textureLod(diamond_scene, refracted_uv, 0.0).rgb;
+		// Compose prelit transmission once, retaining the surface highlights.
+		// At zero strength this is exactly the previous alpha-blended path.
+		float composed_alpha = mix(ALPHA, 1.0, diamond_refraction);
+		float surface = ALPHA / composed_alpha;
+		ALBEDO *= surface;
+		EMISSION = EMISSION * surface + behind * (1.0 - surface);
+		BACKLIGHT *= surface;
+		v_diamond_scatter *= surface;
+		ALPHA = composed_alpha;
+	}
 #endif
 }

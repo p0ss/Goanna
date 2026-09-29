@@ -23,6 +23,7 @@ render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 #include "res://shaders/nodes_array_common.gdshaderinc"
 #define GOANNA_DIAMOND
 #include "res://shaders/direct_light.gdshaderinc"
+#include "res://shaders/diamond_ore.gdshaderinc"
 // goanna_rain and the rain cover map, for splashes and puddles. Cut-outs
 // on open ground take rain too, and the far tiers draw ground with this
 // shader (above; docs/weather.md, "Splashes and puddles in play").
@@ -190,6 +191,12 @@ void fragment() {
 		v_diamond_scatter = scatter;
 		v_diamond_inner_normal = normalize(TANGENT * inner.x + BINORMAL * inner.y + NORMAL * inner.z);
 		v_diamond_interior = v_diamond * diamond_interior_strength * 0.45;
+		if (layer_diamond[layer] == 1 && diamond_ore_transmission > 0.001 && gem_px < 1.5) {
+			vec3 backed = goanna_ore_interior(tile_uv, layer, uv_dx, uv_dy,
+					eye, gem_normal * 2.0 - 1.0, tile.rgb, gem_px);
+			ALBEDO = mix(ALBEDO, backed * COLOR.rgb,
+					gem * diamond_strength * diamond_interior_strength);
+		}
 	}
 
 	ROUGHNESS = mix(ROUGHNESS, mix(1.0, lod_avg_rough[layer], roughness_strength), flatten);

@@ -174,8 +174,13 @@ version. Both node shaders sample from the parallax-displaced coordinate;
 entities use their tile or armour atlas scale.
 
 Placed blocks and ore retain backed interiors, so they cannot reveal hidden
-terrain. The lighter absorption and thinner apparent surface skin expose
-more of the internal planes. The
+terrain. Ore now traces a short refracted ray through a crystal-filled
+recess. The cyan mask defines its side walls, and neighbouring stone texels
+supply a reconstructed rock backing where the combined art painted over
+it. The crystal transmits that local rock with depth-dependent absorption.
+`diamond_ore_transmission = 0` restores the earlier cyan interior;
+`diamond_ore_depth` sets the recess depth in source texels. This adds no mesh
+vertices or silhouette changes, and follows the existing parallax UV. The
 [interior comparison](perf/diamond-interior-2026-09-29/index.html) shows the
 previous backed treatment at three viewing angles.
 
@@ -186,10 +191,19 @@ empty texels are discarded. `diamond_transparency = 0` restores full opacity.
 The [transparency comparison](perf/diamond-transparency-2026-09-29/index.html)
 shows the background through items and clothing through live armour.
 
-This is alpha transmission, without distortion of the background or coloured
-transmission shadows. Blended surfaces have Godot's usual object sorting
-limitations and do not cast the former cut-out shadows. Ordinary opaque
-entities and terrain arrays retain their original render pipelines.
+Items now refract the opaque scene behind them using their facet normal and
+a source-texel-scaled thickness. A depth check rejects foreground samples,
+and the offset fades at screen edges. The prelit transmitted colour is
+composed with the lit crystal surface. `diamond_refraction = 0` restores
+straight alpha transmission. See the
+[refraction comparison](perf/diamond-refraction-2026-09-29/index.html).
+
+This is a screen-space thin-slab approximation, not a trace through the
+object's back-face geometry. Offscreen and other transparent objects are
+absent from the sampled background. Blended surfaces retain Godot's object
+sorting limitations and do not cast the former cut-out shadows or coloured
+transmission shadows. Ordinary opaque entities and terrain arrays retain
+their original render pipelines.
 
 The entity shader body lives in `entity_common.gdshaderinc`, with separate
 opaque, cut-out and double-sided entry points. Diamond armour uses the
