@@ -58,6 +58,14 @@ void vertex() {
 void fragment() {
 	v_lamp_world = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	vec4 tex = texture(albedo_tex, UV) * COLOR;
+	// Lean the shading normal toward up. A plant is two crossed vertical
+	// quads, so at noon the sun barely lit them and, drawn double sided,
+	// half the faces pointed away from it; what light they got was mostly
+	// the blue sky fill, and palette tinted sugar cane read as blue grey
+	// beside green grass (test_world, 2026-09-29). Luanti lights plantlike
+	// nodes without regard to facing. At 0.45 the cane reads its palette
+	// green and grass tufts lighten only a little; 0.7 washed them out.
+	NORMAL = normalize(mix(NORMAL, (VIEW_MATRIX * vec4(0.0, 1.0, 0.0, 0.0)).xyz, 0.45));
 	ALBEDO = tex.rgb;
 	ALPHA = tex.a;
 	ALPHA_SCISSOR_THRESHOLD = 0.5;
