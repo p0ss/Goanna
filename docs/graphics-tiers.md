@@ -51,6 +51,7 @@ be varied independently for controlled tests.
 | LOD distance | 6 | 8 | 12 | 20 | 32 |
 | Far cap, nodes | 96 | 128 | 256 | 1024 | Server grant |
 | Cloud style | Block | Fluffy block | Volume | Volume | Volume |
+| Cloud layers | 1 | 1 | 2 | 3 | 3 |
 | Volume view samples | n/a | n/a | 24 | 24 | 24 |
 | Volume sun samples | n/a | n/a | 3 | 4 | 4 |
 | Volume cubemap samples | n/a | n/a | 8 | 8 | 8 |
@@ -72,7 +73,17 @@ be varied independently for controlled tests.
 | Bending actors | 0 | 1 | 2 | 4 | 8 |
 | Grass AA when enabled | Existing | FXAA | 2x MSAA + FXAA | 2x MSAA + FXAA | 4x MSAA + FXAA |
 
-Cloud style and cloud lighting quality are independent controls. Plain
+Cloud layer count, style and lighting quality are independent controls.
+The Advanced Lighting setting **Cloud layers** saves a count from one to
+three as `cloud_layer_count`. Lowest and Low use one, Medium two, and High
+and Ultra three. Reducing the count skips inactive layers in both the sky
+and local cloud fog. Reduced budgets prioritise layers above the regional
+terrain, so high mountains retain overhead clouds; existing layers keep
+their heights and patterns when the count changes. The separate Sky clouds
+switch still turns sky clouds off. These counts are provisional budgets,
+not measured performance guarantees.
+
+Cloud style and cloud lighting quality retain their existing budgets. Plain
 blocks use solid cells without a 3D noise texture. Fluffy blocks fill rounded
 box envelopes with noisy density, translucent edges and internal sun
 attenuation. Their quality levels now select 12/16/24 view samples per

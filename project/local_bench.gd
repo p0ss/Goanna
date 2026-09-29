@@ -105,6 +105,7 @@ func scene_evidence() -> Array:
 			"sun_in_view": false,
 			"grass_material": game.client.has_meta("goanna_grass_material"),
 			"cloud_height": game.cloud_height,
+			"cloud_layer_count": game.cloud_layer_count,
 			"cloud_style": game.sky_mat.get_shader_parameter("cloud_style"),
 			# Control requests can run before this recorder's final override.
 			"cloud_offset": game.sky_mat.get_shader_parameter("cloud_offset"),

@@ -178,6 +178,9 @@ var atmosphere_quality := 1.0
 var cloud_quality := 2.0
 # 0 block, 1 fluffy rounded block, 2 volume. Independent of lighting samples.
 var cloud_style := 2.0
+var cloud_layer_count := 3.0:
+	set(value):
+		cloud_layer_count = clampf(roundf(value), 1.0, 3.0)
 var grass_density := 1.0
 var grass_draw_distance := 80.0
 var grass_interaction_distance := 16.0
@@ -426,6 +429,7 @@ func _ready() -> void:
 		atmosphere_quality = float(cfg.get_value("settings", "atmosphere_quality", atmosphere_quality))
 		cloud_quality = float(cfg.get_value("settings", "cloud_quality", cloud_quality))
 		cloud_style = float(cfg.get_value("settings", "cloud_style", cloud_style))
+		cloud_layer_count = float(cfg.get_value("settings", "cloud_layer_count", cloud_layer_count))
 		for k in ["sun", "ambient", "sdfgi", "sdfgi_cell", "ssao", "white", "exposure", "fill", "shafts"]:
 			if cfg.has_section_key("settings", "light_" + k):
 				set("light_" + k, float(cfg.get_value("settings", "light_" + k)))
@@ -2248,9 +2252,7 @@ func _update_environment_extras() -> void:
 			headlight.light_color = Color(1.0, 0.96, 0.9).lerp(Color(1.0, 0.72, 0.42), carried)
 	# scroll the cloud layer by the server's cloud speed
 	cloud_off += cloud_speed * get_process_delta_time() * 0.004
-	cloud_layers = CloudLayers.build(cloud_height, cloud_thickness, cloud_cov,
-			storm_cover, atmosphere_ground if atmosphere_ground_set else 0.0, int(cloud_style))
-	sky_mat.set_shader_parameter("cloud_layers", cloud_layers)
+	_update_cloud_layers()
 	var local_cloud := _local_cloud_density(cam.position)
 	var opacity_target := 1.0 - exp(-local_cloud * 70.0)
 	camera_cloud_opacity = lerpf(camera_cloud_opacity, opacity_target,
@@ -2259,8 +2261,6 @@ func _update_environment_extras() -> void:
 	_update_cloud_shadows()
 	if atmosphere_mat and render_features["render_atmosphere"] and atmosphere_quality > 0.01:
 		atmosphere_mat.set_shader_parameter("weather_offset", cloud_off)
-		atmosphere_mat.set_shader_parameter("cloud_layers", cloud_layers)
-		atmosphere_mat.set_shader_parameter("cloud_style", int(cloud_style))
 		# Local volume quality is the first atmospheric detail surrendered under
 		# load; the horizon continuation remains in the much cheaper sky pass.
 		atmosphere_mat.set_shader_parameter("cloud_density", 0.026 * atmosphere_quality)
@@ -2458,6 +2458,16 @@ func set_render_feature(key: String, enabled: bool, apply := true) -> bool:
 		apply_lighting()
 	return true
 
+func _update_cloud_layers() -> void:
+	cloud_layers = CloudLayers.build(cloud_height, cloud_thickness, cloud_cov,
+			storm_cover, atmosphere_ground if atmosphere_ground_set else 0.0,
+			int(cloud_style), int(cloud_layer_count))
+	if sky_mat != null:
+		sky_mat.set_shader_parameter("cloud_layers", cloud_layers)
+	if atmosphere_mat != null:
+		atmosphere_mat.set_shader_parameter("cloud_layers", cloud_layers)
+		atmosphere_mat.set_shader_parameter("cloud_style", int(cloud_style))
+
 func _apply_cloud_feature() -> void:
 	if sky_mat == null:
 		return
@@ -2478,6 +2488,7 @@ func _apply_cloud_feature() -> void:
 		cloud_body_texture.normalize = true
 		cloud_body_texture.noise = noise
 		sky_mat.set_shader_parameter("cloud_body_tex", cloud_body_texture)
+	_update_cloud_layers()
 	sky_mat.set_shader_parameter("clouds_enabled", enabled)
 	sky_mat.set_shader_parameter("cloud_style", clampi(int(cloud_style), 0, 2))
 	sky_mat.set_shader_parameter("cloud_quality", clampi(int(cloud_quality), 0, 2))
@@ -2518,7 +2529,8 @@ func _update_cloud_shadows() -> void:
 	# mountains. The shader rejects surfaces above that deck as well.
 	var layer := 0
 	var ground := atmosphere_ground if atmosphere_ground_set else 0.0
-	while layer < 2 and cloud_layers[layer].x + cloud_layers[layer].y < ground:
+	while layer < 2 and (cloud_layers[layer].z <= 0.01 \
+			or cloud_layers[layer].x + cloud_layers[layer].y < ground):
 		layer += 1
 	var deck := cloud_layers[layer]
 	var offset := cloud_off * (1.0 + layer * 0.17) + Vector2(19.7, 43.1) * layer

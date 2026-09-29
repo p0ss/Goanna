@@ -839,6 +839,7 @@ const SETTINGS := [
 	["Lighting", "light_exposure", "slider", "Exposure", "Overall brightness before the tonemap. The default puts a sunlit surface at about 1.3 times its texture's brightness.", 0.1, 2.0, 0.02],
 	["Lighting", "light_shafts", "slider", "Light shafts", "Sun and moon light scattering out of the air, so a gap in a canopy or a hillside throws a visible shaft. Strongest near dawn and dusk, and in rain. 0 leaves the air clear.", 0.0, 3.0, 0.1],
 	["Lighting", "cloud_style", "slider", "Cloud style", "0 block clouds, 1 fluffy rounded block clouds, 2 volumetric clouds. All follow the server weather and sun.", 0.0, 2.0, 1.0],
+	["Lighting", "cloud_layer_count", "slider", "Cloud layers", "1 to 3 cloud layers. More layers add depth and cost more to render. Fewer layers prioritise clouds above the terrain.", 1.0, 3.0, 1.0],
 	["Lighting", "cloud_quality", "slider", "Sky cloud quality", "Volumetric cloud lighting samples: 0 compact, 1 balanced, 2 full. All retain full silhouette sampling.", 0.0, 2.0, 1.0],
 	["Lighting", "atmosphere_quality", "slider", "Volumetric atmosphere", "Quality and reach of valley fog and thick clouds. 0 uses only the inexpensive horizon fade; lower this first if clouds cost too much frame rate.", 0.0, 1.0, 0.1],
 	["Lighting", "light_fill", "slider", "Sky fill", "How much the sky lights walls and other shaded surfaces, following the light Luanti says reaches them. 0 leaves them to bounced light alone, which is dark.", 0.0, 1.5, 0.05],
@@ -892,7 +893,7 @@ const LOCAL_KEYS := ["procedural_grass", "mouse_sensitivity", "invert_mouse", "v
 	"pad_enabled", "pad_look_speed", "pad_invert_y", "pad_deadzone",
 	"gui_scale", "max_fps", "vsync", "fullscreen", "damage_flash", "show_fps", "show_position", "terrain_occlusion", "player_effect_particles", "volume", "muted",
 	"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao",
-	"light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality", "cloud_quality", "cloud_style", "grass_density", "grass_draw_distance", "grass_interaction_distance", "grass_interactors", "grass_antialiasing",
+	"light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality", "cloud_quality", "cloud_style", "cloud_layer_count", "grass_density", "grass_draw_distance", "grass_interaction_distance", "grass_interactors", "grass_antialiasing",
 	"light_ssil", "screen_space_detail", "shadow_detail", "asset_updates",
 	"look_strength", "night_visibility", "bloom_strength", "shader_weather"]
 var settings_menu: Control
@@ -972,7 +973,7 @@ func _apply_local(key: String, value: float, on: bool) -> void:
 		"show_position":
 			show_position = on
 			hud.queue_redraw()
-		"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao", "light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality", "cloud_quality", "cloud_style", "grass_density", "grass_draw_distance", "grass_interaction_distance", "grass_interactors", "grass_antialiasing", "light_ssil", "screen_space_detail", "shadow_detail", "look_strength", "night_visibility", "bloom_strength":
+		"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao", "light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality", "cloud_quality", "cloud_style", "cloud_layer_count", "grass_density", "grass_draw_distance", "grass_interaction_distance", "grass_interactors", "grass_antialiasing", "light_ssil", "screen_space_detail", "shadow_detail", "look_strength", "night_visibility", "bloom_strength":
 			var ml := _main_node()
 			if ml != null:
 				ml.set(key, value)
@@ -1005,7 +1006,7 @@ func _local_value(key: String) -> float:
 		"player_effect_particles": return 1.0 if player_effect_particles else 0.0
 		"shader_weather": return 1.0 if shader_weather else 0.0
 		"show_position": return 1.0 if show_position else 0.0
-		"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao", "light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality", "cloud_quality", "cloud_style", "grass_density", "grass_draw_distance", "grass_interaction_distance", "grass_interactors", "grass_antialiasing", "light_ssil", "screen_space_detail", "shadow_detail", "look_strength", "night_visibility", "bloom_strength":
+		"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao", "light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality", "cloud_quality", "cloud_style", "cloud_layer_count", "grass_density", "grass_draw_distance", "grass_interaction_distance", "grass_interactors", "grass_antialiasing", "light_ssil", "screen_space_detail", "shadow_detail", "look_strength", "night_visibility", "bloom_strength":
 			return float(m.get(key)) if m != null else 1.0
 		"volume": return audio.volume if audio != null else 0.8
 		"muted": return 1.0 if (audio != null and audio.muted) else 0.0
@@ -1105,6 +1106,13 @@ func _load_apply_settings() -> void:
 			# passed through rather than skipped: passing it clears any
 			# explicit cap a previous profile or session left behind.
 			_apply_setting(key, float(GraphicsProfiles.PROFILES[want][key]))
+	# Older saved presets have no layer budget. Seed this new setting from
+	# their chosen tier before the normal saved-setting pass takes over.
+	if not cfg.has_section_key("settings", "cloud_layer_count") \
+			and not cfg.has_section_key("video", "cloud_layer_count"):
+		var saved_profile := str(cfg.get_value("settings", "graphics_profile", ""))
+		if GraphicsProfiles.PROFILES.has(saved_profile):
+			_apply_setting("cloud_layer_count", GraphicsProfiles.PROFILES[saved_profile].cloud_layer_count)
 	var seeded := false
 	for entry in SETTINGS:
 		var key: String = entry[1]

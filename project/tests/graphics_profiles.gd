@@ -20,6 +20,13 @@ func apply(game: Node, profile: String) -> void:
 	for key in Profiles.PROFILES[profile]:
 		game.ui._apply_setting(key, float(Profiles.PROFILES[profile][key]))
 
+func active_layers(game: Node) -> int:
+	var active := 0
+	for deck: Vector4 in game.sky_mat.get_shader_parameter("cloud_layers"):
+		if deck.z > 0.0:
+			active += 1
+	return active
+
 func _run() -> void:
 	OS.set_environment("GOANNA_NO_POINTER_CAPTURE", "1")
 	OS.set_environment("GOANNA_NO_STORE", "1")
@@ -41,6 +48,9 @@ func _run() -> void:
 	await process_frame
 	var first: Node = shell.slots[0].game
 	var second: Node = shell.slots[1].game
+	first.cloud_cov = 0.55
+	second.cloud_cov = 0.55
+	second._update_cloud_layers()
 	check(first.cloud_body_texture == null and second.cloud_body_texture == null,
 			"Block cloud startup does not allocate a volume")
 	apply(first, "low")
@@ -77,6 +87,10 @@ func _run() -> void:
 					"Cloud budget reaches the shader")
 			check(first.sky_mat.get_shader_parameter("cloud_style") == Profiles.PROFILES[target].cloud_style,
 					"Cloud style reaches the shader")
+			check(active_layers(first) == int(Profiles.PROFILES[target].cloud_layer_count),
+					"Cloud layer budget immediately reaches the sky")
+			check(first.atmosphere_mat.get_shader_parameter("cloud_layers") == first.cloud_layers,
+					"Local fog shares the selected layer budget")
 			var grass: Dictionary = first.client.get_meta("goanna_grass_parameters")
 			check(is_equal_approx(grass.density, float(Profiles.PROFILES[target].grass_density)),
 					"Grass budget persists before terrain arrives")
@@ -84,6 +98,8 @@ func _run() -> void:
 			"Profiles preserve player preferences")
 	check(second.cloud_quality == 0 and not second.env.environment.ssao_enabled,
 			"Other view retains Lowest")
+	check(second.cloud_layer_count == 1.0 and active_layers(second) == 1,
+			"Changing one view's layer budget leaves the other view alone")
 	apply(first, "lowest")
 	check(first.sun.shadow_enabled and first._lamp_budget() > 0 and first.headlight.visible,
 			"Lowest retains readable lighting")
@@ -146,6 +162,26 @@ func _run() -> void:
 	check(saved.get_value("settings", "graphics_profile", "") == "medium"
 			and is_equal_approx(float(saved.get_value("settings", "light_ssil", -1.0)), 0.0),
 			"Staged change saves the preset")
+	# Exercise saved custom counts and migration from a preset saved before
+	# this key existed. Remove only the test slot's shared-preset override.
+	var slot = first.player_slot
+	first.player_slot = null
+	first.ui._apply_setting("cloud_layer_count", 3.0)
+	first.ui._save_setting("cloud_layer_count", 3.0)
+	first.ui._apply_setting("cloud_layer_count", 1.0)
+	first.ui._load_apply_settings()
+	check(first.cloud_layer_count == 3.0 and active_layers(first) == 3,
+			"Custom cloud layer count survives saving and loading")
+	saved.load("user://goanna.cfg")
+	saved.erase_section_key("settings", "cloud_layer_count")
+	saved.set_value("settings", "graphics_profile", "low")
+	saved.save("user://goanna.cfg")
+	first.ui._load_apply_settings()
+	check(first.cloud_layer_count == 1.0 and active_layers(first) == 1,
+			"Old saved Low preset receives its new layer budget")
+	first.player_slot = slot
+	first.ui._apply_setting("cloud_layer_count", 99.0)
+	check(first.cloud_layer_count == 3.0, "Out-of-range counts are clamped")
 	var shader: Shader = load("res://shaders/sky.gdshader")
 	var uniforms: Array = shader.get_shader_uniform_list()
 	check(uniforms.any(func(item: Dictionary) -> bool: return item.name == "cloud_quality"),
