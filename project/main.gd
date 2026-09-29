@@ -72,6 +72,8 @@ var cloud_speed := Vector2(-2.0, 0.0)
 var grass_wind := Vector2(0.35, 0.0)
 var cloud_height := 120.0
 var cloud_thickness := 16.0
+const CloudLayers := preload("res://cloud_layers.gd")
+var cloud_layers := CloudLayers.build(120.0, 16.0, 0.4, 0.0, 0.0, 2)
 # Optical depth around the eye, sampled from the same local fog-volume field.
 # It gates post effects that otherwise draw on top of a cloud they cannot see.
 var camera_cloud_opacity := 0.0
@@ -2159,34 +2161,19 @@ func _update_environment_extras() -> void:
 			headlight.light_color = Color(1.0, 0.96, 0.9).lerp(Color(1.0, 0.72, 0.42), carried)
 	# scroll the cloud layer by the server's cloud speed
 	cloud_off += cloud_speed * get_process_delta_time() * 0.004
+	cloud_layers = CloudLayers.build(cloud_height, cloud_thickness, cloud_cov,
+			storm_cover, atmosphere_ground if atmosphere_ground_set else 0.0, int(cloud_style))
+	sky_mat.set_shader_parameter("cloud_layers", cloud_layers)
 	var local_cloud := _local_cloud_density(cam.position)
 	var opacity_target := 1.0 - exp(-local_cloud * 70.0)
 	camera_cloud_opacity = lerpf(camera_cloud_opacity, opacity_target,
 			1.0 - exp(-get_process_delta_time() / 0.35))
 	sky_mat.set_shader_parameter("cloud_offset", cloud_off)
-	# Signed height relative to the eye. Clamping this above the camera made the
-	# visual deck rise forever as the player flew, so it behaved like a ceiling
-	# that could never be entered or passed. The sky shader now intersects rays
-	# with the slab from either side and while the eye is inside it.
-	sky_mat.set_shader_parameter("cloud_plane_h", cloud_height - cam.position.y)
-	# The node shaders' cloud shadows read the same deck: scroll, coverage,
-	# strength, and where the deck is so the shadow is cast along the sun.
-	client.set_view_shader_parameter("goanna_cloud_shadow",
-			Vector4(cloud_off.x, cloud_off.y, cloud_cov,
-			cloud_shadow_k if render_features["render_cloud_shadows"] else 0.0))
-	# The x component is the scale of the weather envelope the sky's
-	# volumetric clouds are placed by (cloud_weather in sky.gdshader), so the
-	# ground shadows fall roughly under the masses that cast them.
-	client.set_view_shader_parameter("goanna_cloud_geom",
-			Vector4(0.0009, maxf(cloud_height, cam.position.y + 10.0), sun_par.x, sun_par.y))
+	_update_cloud_shadows()
 	if atmosphere_mat and render_features["render_atmosphere"] and atmosphere_quality > 0.01:
 		atmosphere_mat.set_shader_parameter("weather_offset", cloud_off)
-		atmosphere_mat.set_shader_parameter("cloud_level", cloud_height)
-		# Luanti's decorative sheet is commonly only 8--16 nodes thick. A real
-		# cloud body needs enough vertical extent to have a base, interior and
-		# crown at the froxel resolution.
-		atmosphere_mat.set_shader_parameter("cloud_thickness", maxf(cloud_thickness, 48.0))
-		atmosphere_mat.set_shader_parameter("cloud_coverage", cloud_cov)
+		atmosphere_mat.set_shader_parameter("cloud_layers", cloud_layers)
+		atmosphere_mat.set_shader_parameter("cloud_style", int(cloud_style))
 		# Local volume quality is the first atmospheric detail surrendered under
 		# load; the horizon continuation remains in the much cheaper sky pass.
 		atmosphere_mat.set_shader_parameter("cloud_density", 0.026 * atmosphere_quality)
@@ -2301,14 +2288,38 @@ func _cloud_noise3(p: Vector3) -> float:
 func _local_cloud_density(world: Vector3) -> float:
 	if cloud_cov <= 0.01 or not _atmosphere_enabled():
 		return 0.0
-	var thick := maxf(cloud_thickness, 48.0)
-	var half_cloud := maxf(thick * 0.5, 4.0)
-	var ch := 1.0 - absf(world.y - cloud_height) / half_cloud
-	if ch <= 0.0:
+	var density := 0.0
+	for layer in cloud_layers.size():
+		density += _local_cloud_layer(world, layer)
+	return density
+
+func _local_cloud_layer(world: Vector3, layer: int) -> float:
+	var deck := cloud_layers[layer]
+	if deck.z <= 0.01 or deck.y <= 0.0 or world.y < deck.x - deck.y * 0.75 \
+			or world.y > deck.x + deck.y * 1.75:
+		return 0.0
+	var offset := cloud_off * (1.0 + layer * 0.17) + Vector2(19.7, 43.1) * layer
+	var base := deck.x
+	var depth := deck.y
+	if int(cloud_style) < 2:
+		var cell := ((Vector2(world.x, world.z) + offset * (0.4 / 0.0009)) \
+				/ (64.0 * (1.0 + layer * 0.75))).floor()
+		var weather := _cloud_layer_weather((cell + Vector2(0.5, 0.5))
+				* (64.0 * (1.0 + layer * 0.75)) * 0.0009)
+		var occupancy := deck.z * lerpf(0.25, 1.0, smoothstep(0.25, 0.65, weather))
+		if _cloud_cell_hash(cell + Vector2(37.1, 91.7)) >= occupancy:
+			return 0.0
+		depth *= lerpf(0.55, 1.0, _cloud_cell_hash(cell))
+		base += (_cloud_cell_hash(cell + Vector2(11.3, 57.9)) - 0.5) * deck.y * 1.5
+	else:
+		var weather := _cloud_layer_weather(Vector2(world.x, world.z) * 0.0009 + offset * 0.4)
+		base += (weather - 0.5) * depth * 0.65
+	var ch := 1.0 - absf(world.y - (base + depth * 0.5)) / (depth * 0.5)
+	if ch <= 0.0 or deck.z <= 0.01:
 		return 0.0
 	var profile := smoothstep(0.0, 0.22, ch) * smoothstep(0.0, 0.18, ch)
-	var p := Vector3(world.x * 0.006 + cloud_off.x * 0.12, world.y * 0.018,
-			world.z * 0.006 + cloud_off.y * 0.12)
+	var p := Vector3(world.x * 0.006 + offset.x * 0.12, world.y * 0.018,
+			world.z * 0.006 + offset.y * 0.12)
 	var value := _cloud_noise3(p) * 0.55
 	var weight := 0.55
 	if atmosphere_quality > 0.34:
@@ -2320,9 +2331,26 @@ func _local_cloud_density(world: Vector3) -> float:
 		value += _cloud_noise3(p) * 0.127
 		weight += 0.127
 	var shape := value / weight
-	var threshold := lerpf(0.76, 0.32, cloud_cov)
-	return 0.026 * atmosphere_quality * profile \
+	var threshold := lerpf(0.76, 0.32, deck.z)
+	return 0.026 * atmosphere_quality * deck.w * profile \
 			* smoothstep(threshold, threshold + 0.18, shape)
+
+func _cloud_cell_hash(cell: Vector2) -> float:
+	return _cloud_hash31(Vector3(cell.x, cell.y, cell.x))
+
+func _cloud_layer_weather(p: Vector2) -> float:
+	var value := 0.0
+	var weight := 0.5
+	for octave in 4:
+		var i := p.floor()
+		var f := p - i
+		f = f * f * (Vector2(3.0, 3.0) - 2.0 * f)
+		var n := lerpf(lerpf(_cloud_cell_hash(i), _cloud_cell_hash(i + Vector2.RIGHT), f.x),
+				lerpf(_cloud_cell_hash(i + Vector2.DOWN), _cloud_cell_hash(i + Vector2.ONE), f.x), f.y)
+		value += weight * n
+		p = p * 2.03 + Vector2(7.3, 1.7)
+		weight *= 0.5
+	return value / 0.9375
 
 func _lamp_budget() -> int:
 	return maxi(0, int(light_pool)) if render_features["render_dynamic_lights"] and OS.get_environment("GOANNA_NO_LIGHTS") == "" else 0
@@ -2395,9 +2423,23 @@ func _apply_render_features() -> void:
 		if underwater or not _atmosphere_enabled():
 			e.volumetric_fog_enabled = _underwater_volume_enabled() if underwater else false
 	if client != null:
-		client.set_view_shader_parameter("goanna_cloud_shadow",
-				Vector4(cloud_off.x, cloud_off.y, cloud_cov,
-				cloud_shadow_k if render_features["render_cloud_shadows"] else 0.0))
+		_update_cloud_shadows()
+
+func _update_cloud_shadows() -> void:
+	# Keep the cheap terrain-shadow approximation to one deck. Choose the
+	# first above the regional terrain, so a buried low deck cannot shadow
+	# mountains. The shader rejects surfaces above that deck as well.
+	var layer := 0
+	var ground := atmosphere_ground if atmosphere_ground_set else 0.0
+	while layer < 2 and cloud_layers[layer].x + cloud_layers[layer].y < ground:
+		layer += 1
+	var deck := cloud_layers[layer]
+	var offset := cloud_off * (1.0 + layer * 0.17) + Vector2(19.7, 43.1) * layer
+	client.set_view_shader_parameter("goanna_cloud_shadow",
+			Vector4(offset.x * 0.4, offset.y * 0.4, deck.z,
+			cloud_shadow_k * deck.w if render_features["render_cloud_shadows"] else 0.0))
+	client.set_view_shader_parameter("goanna_cloud_geom",
+			Vector4(0.0009, deck.x + deck.y * 0.5, sun_par.x, sun_par.y))
 
 # Cheap actual-state telemetry for feature comparisons. No terrain traversal.
 func render_feature_state() -> Dictionary:
@@ -3021,7 +3063,6 @@ func _apply_sky() -> void:
 		grass_material.set_shader_parameter("wind_strength", grass_wind.length())
 	cloud_height = float(clouds["height"])
 	cloud_thickness = maxf(float(clouds.get("thickness", 16.0)), 8.0)
-	sky_mat.set_shader_parameter("cloud_thickness", cloud_thickness)
 	# --- fog ---
 	# While the eye is underwater, _update_environment_extras owns the fog and
 	# the shaft volume; sky packets must not clobber them.

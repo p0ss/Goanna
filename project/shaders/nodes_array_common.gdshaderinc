@@ -140,7 +140,7 @@ float goanna_cloud_fbm(vec2 p) {
 
 float goanna_cloud_dim(vec3 world) {
 	float strength = goanna_cloud_shadow.w;
-	if (strength <= 0.002)
+	if (strength <= 0.002 || world.y >= goanna_cloud_geom.y)
 		return 1.0;
 	vec2 par = goanna_cloud_geom.zw * max(goanna_cloud_geom.y - world.y, 0.0);
 	vec2 uv = (world.xz + par) * goanna_cloud_geom.x + goanna_cloud_shadow.xy;

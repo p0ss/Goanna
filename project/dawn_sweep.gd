@@ -115,9 +115,8 @@ func _ready() -> void:
 	atmosphere_mat = ShaderMaterial.new()
 	atmosphere_mat.shader = load("res://shaders/atmosphere_volume.gdshader")
 	atmosphere_mat.set_shader_parameter("mist_level", 18.0)
-	atmosphere_mat.set_shader_parameter("cloud_level", CLOUD_H)
-	atmosphere_mat.set_shader_parameter("cloud_thickness", 48.0)
-	atmosphere_mat.set_shader_parameter("cloud_coverage", 0.5)
+	atmosphere_mat.set_shader_parameter("cloud_layers",
+			preload("res://cloud_layers.gd").build(CLOUD_H, 16.0, 0.5, 0.0, 0.0, 2))
 	atmosphere_mat.set_shader_parameter("cloud_density", 0.026)
 	atmosphere_mat.set_shader_parameter("quality", 1.0)
 	vol.material = atmosphere_mat
@@ -251,8 +250,8 @@ func _apply(elev: float, use_ridge: bool) -> void:
 	sky_mat.set_shader_parameter("star_opacity", 0.85 * night)
 	sky_mat.set_shader_parameter("star_density", 0.35)
 	sky_mat.set_shader_parameter("cloud_coverage", 0.5)
-	sky_mat.set_shader_parameter("cloud_plane_h", CLOUD_H - cam.position.y)
-	sky_mat.set_shader_parameter("cloud_thickness", 16.0)
+	sky_mat.set_shader_parameter("cloud_layers",
+			preload("res://cloud_layers.gd").build(CLOUD_H, 16.0, 0.5, 0.0, 0.0, 2))
 	sky_mat.set_shader_parameter("cloud_beam",
 			Vector3(beam_cloud.r, beam_cloud.g, beam_cloud.b))
 	sky_mat.set_shader_parameter("air_beam",

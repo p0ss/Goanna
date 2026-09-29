@@ -65,8 +65,7 @@ uniform float cloud_coverage = 0.4;
 uniform bool clouds_enabled = true;
 uniform int cloud_style : hint_range(0, 2) = 2;
 uniform int cloud_quality : hint_range(0, 2) = 2;
-uniform float cloud_plane_h = 90.0;
-uniform float cloud_thickness = 16.0;
+#include "res://shaders/cloud_layers.gdshaderinc"
 uniform vec2 cloud_offset = vec2(0.0);
 uniform vec4 haze_color : source_color = vec4(0.72, 0.8, 0.9, 1.0);
 uniform float haze_twilight : hint_range(0.0, 1.0) = 0.0;
@@ -143,8 +142,8 @@ uniform sampler3D cloud_body_tex : repeat_enable, filter_linear;
 // Where masses are at all: a slow 2D system hundreds of nodes across. It
 // modulates coverage, breaks the 3D texture's tiling, and is the same
 // envelope the node shaders approximate for their cloud shadows.
-float cloud_weather(vec2 wxz) {
-	return fbm(wxz * 0.0009 + cloud_offset * 0.4);
+float cloud_weather(vec2 wxz, int layer) {
+	return cloud_layer_weather(wxz * 0.0009 + cloud_layer_offset(cloud_offset, layer) * 0.4);
 }
 
 // A rounded box supplies the broad shape, while noise erodes its surface
@@ -167,14 +166,14 @@ float block_cloud_density(vec3 p, vec3 midpoint, vec3 half_size) {
 // Integrate a soft body inside one occupied cell. Return premultiplied
 // radiance and opacity so a thin edge reveals clouds farther along the ray.
 vec4 fluffy_block_cell(vec3 ro, vec3 dir, vec3 lo, vec3 hi,
-		float entry, float leave, bool cubemap) {
+		float entry, float leave, bool cubemap, float strength, float reach) {
 	vec3 midpoint = (lo + hi) * 0.5;
 	vec3 half_size = (hi - lo) * 0.5;
 	int samples = cubemap ? 8 : (cloud_quality == 0 ? 12 : (cloud_quality == 1 ? 16 : 24));
 	int sun_samples = cloud_quality == 0 ? 2 : (cloud_quality == 1 ? 3 : 4);
 	float stride = (leave - entry) / float(samples);
 	float light_stride = half_size.y * 1.95 / float(sun_samples);
-	float sigma = 4.0 / max(hi.y - lo.y, 1.0);
+	float sigma = 4.0 * strength / max(hi.y - lo.y, 1.0);
 	float mu = dot(dir, sun_dir);
 	float phase = mix(1.0, 0.75 / pow(1.25 - mu, 1.5), 0.35);
 	float transmittance = 1.0;
@@ -199,7 +198,7 @@ vec4 fluffy_block_cell(vec3 ro, vec3 dir, vec3 lo, vec3 hi,
 		vec3 lit = cloud_color.rgb * (cloud_beam * light * phase * 1.5
 			+ goanna_sun_glow * (1.0 - hf) * 0.22)
 			+ ambient + cloud_ambient_color;
-		float fade = 1.0 - smoothstep(1800.0, 2800.0, t);
+		float fade = 1.0 - smoothstep(reach * 0.65, reach, t);
 		float alpha = 1.0 - exp(-density * sigma * stride * fade);
 		accumulated += transmittance * alpha * lit;
 		transmittance *= 1.0 - alpha;
@@ -207,22 +206,24 @@ vec4 fluffy_block_cell(vec3 ro, vec3 dir, vec3 lo, vec3 hi,
 	return vec4(accumulated, 1.0 - transmittance);
 }
 
-// A single layer of cloud cells traversed in grid order. Plain blocks use
+// One height-varying layer of cloud cells traversed in grid order. Plain blocks use
 // an analytic solid surface; fluffy blocks integrate density inside rounded
 // bounds. Both follow the drifting weather envelope and server colours.
-vec4 block_clouds(vec3 eye, vec3 dir, bool cubemap) {
-	float base = eye.y + cloud_plane_h;
-	float height = max(12.0, cloud_thickness * 2.0);
+vec4 block_clouds(vec3 eye, vec3 dir, bool cubemap, int layer) {
+	vec4 deck = cloud_layers[layer];
+	float base = deck.x;
+	float height = deck.y;
+	float reach = 2800.0 + float(layer) * 2400.0;
 	vec3 ray = mix(vec3(0.000001), dir, greaterThan(abs(dir), vec3(0.000001)));
-	float enter = (base - eye.y) / ray.y;
-	float leave = (base + height - eye.y) / ray.y;
+	float enter = (base - height * 0.75 - eye.y) / ray.y;
+	float leave = (base + height * 1.75 - eye.y) / ray.y;
 	float start = max(0.0, min(enter, leave));
-	float end = min(2800.0, max(enter, leave));
+	float end = min(reach, max(enter, leave));
 	if (end <= start) return vec4(0.0);
-	const float cell_size = 64.0;
+	float cell_size = cloud_cell_size(layer);
 	// Advancing noise coordinates makes the visible cloud mass move opposite
 	// the offset, just like the volume. Grid boundaries drift continuously.
-	vec2 drift = cloud_offset * (0.4 / 0.0009);
+	vec2 drift = cloud_layer_offset(cloud_offset, layer) * (0.4 / 0.0009);
 	vec3 ro = eye + vec3(drift.x, 0.0, drift.y);
 	float t = start + 0.001;
 	vec4 accumulated = vec4(0.0);
@@ -231,11 +232,11 @@ vec4 block_clouds(vec3 eye, vec3 dir, bool cubemap) {
 		vec3 p = ro + dir * t;
 		vec2 cell = floor(p.xz / cell_size);
 		vec2 centre = (cell + 0.5) * cell_size;
-		float weather = fbm(centre * 0.0009);
-		float occupancy = cloud_coverage * mix(0.25, 1.0, smoothstep(0.25, 0.65, weather));
+		float weather = cloud_layer_weather(centre * 0.0009);
+		float occupancy = deck.z * mix(0.25, 1.0, smoothstep(0.25, 0.65, weather));
 		if (hash12(cell + vec2(37.1, 91.7)) < occupancy) {
 			float crown = height * mix(0.55, 1.0, hash12(cell));
-			vec3 lo = vec3(cell.x * cell_size, base, cell.y * cell_size);
+			vec3 lo = vec3(cell.x * cell_size, cloud_cell_base(cell, deck), cell.y * cell_size);
 			vec3 hi = lo + vec3(cell_size, crown, cell_size);
 			vec3 a = (lo - ro) / ray;
 			vec3 b = (hi - ro) / ray;
@@ -250,7 +251,7 @@ vec4 block_clouds(vec3 eye, vec3 dir, bool cubemap) {
 					: vec3(0.0, 0.0, -sign(ray.z));
 				if (cloud_style == 1) {
 					vec4 body = fluffy_block_cell(ro, dir, lo, hi, hit,
-						min(exit_t, end), cubemap);
+						min(exit_t, end), cubemap, deck.w, reach);
 					accumulated.rgb += (1.0 - accumulated.a) * body.rgb;
 					accumulated.a += (1.0 - accumulated.a) * body.a;
 					if (accumulated.a > 0.985) break;
@@ -261,7 +262,7 @@ vec4 block_clouds(vec3 eye, vec3 dir, bool cubemap) {
 					vec3 lit = cloud_color.rgb * (cloud_beam * diffuse * 1.4
 						+ goanna_sun_glow * under * 0.6)
 						+ cloud_ambient_color + ambient * 0.08;
-					float alpha = 1.0 - smoothstep(1800.0, 2800.0, hit);
+					float alpha = 1.0 - smoothstep(reach * 0.65, reach, hit);
 					return vec4(lit, alpha);
 				}
 			}
@@ -277,8 +278,8 @@ vec4 block_clouds(vec3 eye, vec3 dir, bool cubemap) {
 // Density at a world point. base_w and deck are the slab; weather is
 // cloud_weather at the sample's column, passed in because the light march
 // reuses its own.
-float cloud_density(vec3 wp, float base_w, float deck, float weather) {
-	float hf = (wp.y - base_w) / deck;
+float cloud_density(vec3 wp, float base_w, float deck, float weather, int layer) {
+	float hf = (wp.y - base_w) / deck - (weather - 0.5) * 0.65;
 	if (hf <= 0.0 || hf >= 1.0)
 		return 0.0;
 	// The base ramp spans several march steps on purpose. At 0.08 of the
@@ -291,21 +292,21 @@ float cloud_density(vec3 wp, float base_w, float deck, float weather) {
 	// ones stay shallow.
 	float grad = smoothstep(0.0, 0.22, hf) * (1.0 - smoothstep(mix(0.20, 0.85, weather), 1.0, hf));
 	vec3 uvw = vec3(wp.x, wp.y * 2.4, wp.z) / 680.0;
-	uvw.xz += cloud_offset * 0.05;
+	uvw.xz += cloud_layer_offset(cloud_offset, layer) * 0.05;
 	float body = texture(cloud_body_tex, uvw).r;
-	float cover = cloud_coverage * smoothstep(0.30, 0.62, weather);
+	float cover = cloud_layers[layer].z * smoothstep(0.30, 0.62, weather);
 	return smoothstep(1.0 - cover, 1.0 - cover + 0.16, body * grad * 1.25);
 }
 
 // Optical depth toward the sun over the same distance at every quality. This
 // is what buries a core in its own shadow and leaves the sunward flank lit.
-float cloud_light_od(vec3 wp, vec3 toward_sun, float base_w, float deck, float weather) {
+float cloud_light_od(vec3 wp, vec3 toward_sun, float base_w, float deck, float weather, int layer) {
 	float od = 0.0;
 	int samples = cloud_quality == 0 ? 2 : (cloud_quality == 1 ? 3 : 4);
 	float stride = 88.0 / float(samples);
 	for (int j = 1; j <= 4; j++) {
 		if (j > samples) break;
-		od += cloud_density(wp + toward_sun * (stride * float(j)), base_w, deck, weather);
+		od += cloud_density(wp + toward_sun * (stride * float(j)), base_w, deck, weather, layer);
 	}
 	return od * stride;
 }
@@ -317,6 +318,103 @@ vec2 disc_uv(vec3 dir, vec3 center, float size, out float inside) {
 	float du = dot(dir, u_ax), dv = dot(dir, v_ax), dc = dot(dir, center);
 	inside = (dc > 0.0 && max(abs(du), abs(dv)) < size) ? 1.0 : 0.0;
 	return vec2(du, dv) / (2.0 * size) + 0.5;
+}
+
+vec4 volume_clouds(vec3 eye, vec3 dir, bool cubemap, int layer) {
+	float base_w = cloud_layers[layer].x;
+	float deck = cloud_layers[layer].y;
+	float top_w = base_w + deck * 1.325;
+	float t0 = 0.0;
+	float t1 = -1.0;
+	if (abs(dir.y) > 0.002) {
+		float ta = (base_w - deck * 0.325 - eye.y) / dir.y;
+		float tb = (top_w - eye.y) / dir.y;
+		t0 = max(min(ta, tb), 0.0);
+		t1 = max(ta, tb);
+	} else if (eye.y > base_w - deck * 0.325 && eye.y < top_w) {
+		t0 = 0.0;
+		t1 = 8000.0;
+	}
+	// The horizon cap: past this the deck has melted into the haze band
+	// anyway, and a grazing ray otherwise marches tens of kilometres.
+	t1 = min(t1, 9000.0);
+	if (t1 > t0 + 1.0) {
+		// Coarser view sampling visibly grains the cloud edges at 800p.
+		// Keep silhouettes intact; quality budgets the sun march instead.
+		int steps = cubemap ? 8 : 24;
+		// Capped step: a grazing ray's slab crossing is kilometres, and
+		// (t1 - t0) / steps then puts hundreds of nodes in one step, so
+		// a single sample straddled the whole base transition and the
+		// jitter turned that into speckle. The near stretch gets the
+		// steps; whatever lies past steps * dt is already inside the
+		// distance fade and the horizon haze.
+		float dt = min((t1 - t0) / float(steps), 45.0);
+		// Per-direction start offset: stable (no shimmer), breaks the
+		// slab's stepping into noise the eye ignores. At 0.6 of a step,
+		// not a full one: the soft base ramp already spans several
+		// steps, so full-amplitude white noise was pure grain on the
+		// torn edges with no banding left for it to hide.
+		float jit = hash12(dir.xz * 311.7 + vec2(dir.y * 97.3)) * 0.6 + 0.2;
+		float T = 1.0;
+		vec3 acc = vec3(0.0);
+		float mu = dot(dir, sun_dir);
+		// A forward lobe over an isotropic floor: silver linings toward
+		// the sun without the away side going black.
+		float hg = 0.55;
+		float phase = mix(1.0, (1.0 - hg * hg) / pow(1.0 + hg * hg - 2.0 * hg * mu, 1.5), 0.55);
+		// The sun as the clouds see it: the shared beam at the deck's
+		// own altitude. Its strength already encodes that the deck sees
+		// over the ground's ridge and holds the light past the ground's
+		// sunset, so there is no elevation gate here any more.
+		vec3 csun = cloud_beam * 2.2;
+		float sigma = 0.055 * cloud_layers[layer].w;
+		for (int i = 0; i < 24; i++) {
+			if (i >= steps)
+				break;
+			float t = t0 + (float(i) + jit) * dt;
+			vec3 wp = eye + dir * t;
+			float weather = cloud_weather(wp.xz, layer);
+			float dens = cloud_density(wp, base_w, deck, weather, layer);
+			// Thin out with distance so the far deck dissolves into the
+			// horizon haze instead of stacking into a wall.
+			dens *= 1.0 - smoothstep(5200.0, 8800.0, t);
+			if (dens > 0.004) {
+				float od = cloud_light_od(wp, sun_dir, base_w, deck, weather, layer);
+				float light = exp(-od * sigma);
+				// Powder term: a dense core keeps a bright rim where the
+				// eye and the light are on the same side.
+				light *= 1.0 - 0.5 * exp(-dens * 3.0);
+				float hf = clamp((wp.y - base_w) / deck, 0.0, 1.0);
+				vec3 amb = mix(sky_horizon.rgb, sky_top.rgb, 0.6) * mix(0.35, 0.75, hf);
+				// A shadowed cloud is lit by the air around it, so in
+				// the twilight window it takes the same air colour the
+				// haze band and the depth fog wear.
+				amb = mix(amb, haze_color.rgb * 0.8, haze_twilight * 0.6);
+				// The ground bounce: when the beam reaches the land (the
+				// same gated glow the water and shafts use), the flood
+				// it lays on the ground lights the deck from beneath,
+				// strongest at the base and gone by the crown. Without
+				// it the underside of a sunset deck stood black over a
+				// golden valley, which is the one face of the deck the
+				// player is usually looking at.
+				vec3 under = goanna_sun_glow * (1.2 * exp(-hf * 3.0));
+				// Direct beam and ground bounce take the cloud albedo. The
+				// diffuse term is light already recycled through the cloud and
+				// therefore adds in its own colour. Retain a small share of the
+				// surrounding sky for altitude variation, but never use that
+				// dark sky as a second multiplier on the server's ambient cloud.
+				vec3 diffuse = cloud_ambient_color + amb * 0.18;
+				vec3 s = cloud_color.rgb * (csun * (light * phase) + under) + diffuse;
+				float a = 1.0 - exp(-dens * sigma * dt);
+				acc += T * s * a;
+				T *= 1.0 - a;
+				if (T < 0.015)
+					break;
+			}
+		}
+		return vec4(acc / max(1.0 - T, 0.00001), 1.0 - T);
+	}
+	return vec4(0.0);
 }
 
 void sky() {
@@ -454,112 +552,21 @@ void sky() {
 		}
 	}
 
-	// Volumetric cumulus, raymarched. The ray is intersected with the slab
-	// the clouds live in, then walked with Beer-Lambert transmittance; each
-	// occupied step is lit by a short march toward the sun through the same
-	// density, plus an ambient share of the sky. POSITION anchors everything
-	// to the world, so masses parallax properly as the player moves and the
-	// froxel volume's nearby bodies sit under the same weather. The result
-	// occludes the sun disc and the stars behind it through T, which a
-	// blended sheet never did.
-	if (clouds_enabled && cloud_coverage > 0.01 && cloud_style < 2) {
-		vec4 clouds = block_clouds(POSITION, dir, AT_CUBEMAP_PASS);
-		col = mix(col, clouds.rgb, clouds.a);
-	}
-	if (clouds_enabled && cloud_coverage > 0.01 && cloud_style == 2) {
-		float base_w = POSITION.y + cloud_plane_h;
-		float deck = max(cloud_thickness * 3.0, 170.0);
-		float top_w = base_w + deck;
-		float t0 = 0.0;
-		float t1 = -1.0;
-		if (abs(dir.y) > 0.002) {
-			float ta = (base_w - POSITION.y) / dir.y;
-			float tb = (top_w - POSITION.y) / dir.y;
-			t0 = max(min(ta, tb), 0.0);
-			t1 = max(ta, tb);
-		} else if (POSITION.y > base_w && POSITION.y < top_w) {
-			t0 = 0.0;
-			t1 = 8000.0;
+	// Disjoint slabs composite from near to far, including views from above
+	// or between decks. Opaque near clouds skip the more distant marches.
+	if (clouds_enabled && cloud_coverage > 0.01) {
+		vec4 accumulated = vec4(0.0);
+		for (int pass = 0; pass < 3; pass++) {
+			int layer = dir.y >= 0.0 ? pass : 2 - pass;
+			if (cloud_layers[layer].z <= 0.01) continue;
+			vec4 clouds = cloud_style < 2
+				? block_clouds(POSITION, dir, AT_CUBEMAP_PASS, layer)
+				: volume_clouds(POSITION, dir, AT_CUBEMAP_PASS, layer);
+			accumulated.rgb += (1.0 - accumulated.a) * clouds.rgb * clouds.a;
+			accumulated.a += (1.0 - accumulated.a) * clouds.a;
+			if (accumulated.a > 0.985) break;
 		}
-		// The horizon cap: past this the deck has melted into the haze band
-		// anyway, and a grazing ray otherwise marches tens of kilometres.
-		t1 = min(t1, 9000.0);
-		if (t1 > t0 + 1.0) {
-			// Coarser view sampling visibly grains the cloud edges at 800p.
-			// Keep silhouettes intact; quality budgets the sun march instead.
-			int steps = AT_CUBEMAP_PASS ? 8 : 24;
-			// Capped step: a grazing ray's slab crossing is kilometres, and
-			// (t1 - t0) / steps then puts hundreds of nodes in one step, so
-			// a single sample straddled the whole base transition and the
-			// jitter turned that into speckle. The near stretch gets the
-			// steps; whatever lies past steps * dt is already inside the
-			// distance fade and the horizon haze.
-			float dt = min((t1 - t0) / float(steps), 45.0);
-			// Per-direction start offset: stable (no shimmer), breaks the
-			// slab's stepping into noise the eye ignores. At 0.6 of a step,
-			// not a full one: the soft base ramp already spans several
-			// steps, so full-amplitude white noise was pure grain on the
-			// torn edges with no banding left for it to hide.
-			float jit = hash12(dir.xz * 311.7 + vec2(dir.y * 97.3)) * 0.6 + 0.2;
-			float T = 1.0;
-			vec3 acc = vec3(0.0);
-			float mu = dot(dir, sun_dir);
-			// A forward lobe over an isotropic floor: silver linings toward
-			// the sun without the away side going black.
-			float hg = 0.55;
-			float phase = mix(1.0, (1.0 - hg * hg) / pow(1.0 + hg * hg - 2.0 * hg * mu, 1.5), 0.55);
-			// The sun as the clouds see it: the shared beam at the deck's
-			// own altitude. Its strength already encodes that the deck sees
-			// over the ground's ridge and holds the light past the ground's
-			// sunset, so there is no elevation gate here any more.
-			vec3 csun = cloud_beam * 2.2;
-			float sigma = 0.055;
-			for (int i = 0; i < 24; i++) {
-				if (i >= steps)
-					break;
-				float t = t0 + (float(i) + jit) * dt;
-				vec3 wp = POSITION + dir * t;
-				float weather = cloud_weather(wp.xz);
-				float dens = cloud_density(wp, base_w, deck, weather);
-				// Thin out with distance so the far deck dissolves into the
-				// horizon haze instead of stacking into a wall.
-				dens *= 1.0 - smoothstep(5200.0, 8800.0, t);
-				if (dens > 0.004) {
-					float od = cloud_light_od(wp, sun_dir, base_w, deck, weather);
-					float light = exp(-od * sigma);
-					// Powder term: a dense core keeps a bright rim where the
-					// eye and the light are on the same side.
-					light *= 1.0 - 0.5 * exp(-dens * 3.0);
-					float hf = clamp((wp.y - base_w) / deck, 0.0, 1.0);
-					vec3 amb = mix(sky_horizon.rgb, sky_top.rgb, 0.6) * mix(0.35, 0.75, hf);
-					// A shadowed cloud is lit by the air around it, so in
-					// the twilight window it takes the same air colour the
-					// haze band and the depth fog wear.
-					amb = mix(amb, haze_color.rgb * 0.8, haze_twilight * 0.6);
-					// The ground bounce: when the beam reaches the land (the
-					// same gated glow the water and shafts use), the flood
-					// it lays on the ground lights the deck from beneath,
-					// strongest at the base and gone by the crown. Without
-					// it the underside of a sunset deck stood black over a
-					// golden valley, which is the one face of the deck the
-					// player is usually looking at.
-					vec3 under = goanna_sun_glow * (1.2 * exp(-hf * 3.0));
-					// Direct beam and ground bounce take the cloud albedo. The
-					// diffuse term is light already recycled through the cloud and
-					// therefore adds in its own colour. Retain a small share of the
-					// surrounding sky for altitude variation, but never use that
-					// dark sky as a second multiplier on the server's ambient cloud.
-					vec3 diffuse = cloud_ambient_color + amb * 0.18;
-					vec3 s = cloud_color.rgb * (csun * (light * phase) + under) + diffuse;
-					float a = 1.0 - exp(-dens * sigma * dt);
-					acc += T * s * a;
-					T *= 1.0 - a;
-					if (T < 0.015)
-						break;
-				}
-			}
-			col = acc + col * T;
-		}
+		col = accumulated.rgb + col * (1.0 - accumulated.a);
 	}
 	COLOR = col;
 }

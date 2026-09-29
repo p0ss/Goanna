@@ -24,10 +24,9 @@ uniform float air_density = 0.0;
 uniform vec3 air_albedo : source_color = vec3(1.0, 0.98, 0.95);
 uniform vec2 weather_offset = vec2(0.0);
 uniform float quality : hint_range(0.0, 1.0) = 1.0;
-uniform float cloud_level = 120.0;
-uniform float cloud_thickness = 24.0;
+#include "res://shaders/cloud_layers.gdshaderinc"
+uniform int cloud_style = 2;
 uniform float cloud_density : hint_range(0.0, 0.1) = 0.025;
-uniform float cloud_coverage : hint_range(0.0, 1.0) = 0.4;
 uniform vec3 cloud_albedo : source_color = vec3(0.95, 0.96, 1.0);
 // The mist's own faint light, set from the night radiance floor in
 // main.gd. Fog on the fens exists at night; without this it was invisible
@@ -111,15 +110,37 @@ void fog() {
 	// shader, but within the froxel range this density has thickness, can be
 	// entered from either side, and is lit/shadowed as participating media.
 	float cloud = 0.0;
-	float half_cloud = max(cloud_thickness * 0.5, 4.0);
-	float ch = 1.0 - abs(p.y - cloud_level) / half_cloud;
-	if (ch > 0.0 && cloud_coverage > 0.01) {
-		float profile = smoothstep(0.0, 0.22, ch) * smoothstep(0.0, 0.18, ch);
-		vec3 cp = vec3(p.x * 0.006 + weather_offset.x * 0.12,
-				p.y * 0.018, p.z * 0.006 + weather_offset.y * 0.12);
-		float shape = weather_noise(cp);
-		float threshold = mix(0.76, 0.32, cloud_coverage);
-		cloud = cloud_density * profile * smoothstep(threshold, threshold + 0.18, shape);
+	float cloud_bounce = 0.0;
+	for (int layer = 0; layer < 3; layer++) {
+		vec4 deck = cloud_layers[layer];
+		if (deck.z <= 0.01 || deck.y <= 0.0 || p.y < deck.x - deck.y * 0.75
+				|| p.y > deck.x + deck.y * 1.75) continue;
+		vec2 offset = cloud_layer_offset(weather_offset, layer);
+		float base = deck.x;
+		float depth = deck.y;
+		if (cloud_style < 2) {
+			vec2 cell = floor((p.xz + offset * (0.4 / 0.0009)) / cloud_cell_size(layer));
+			float weather = cloud_layer_weather((cell + 0.5) * cloud_cell_size(layer) * 0.0009);
+			float occupancy = deck.z * mix(0.25, 1.0, smoothstep(0.25, 0.65, weather));
+			if (cloud_cell_hash(cell + vec2(37.1, 91.7)) >= occupancy) continue;
+			base = cloud_cell_base(cell, deck);
+			depth *= mix(0.55, 1.0, cloud_cell_hash(cell));
+		} else {
+			float weather = cloud_layer_weather(p.xz * 0.0009 + offset * 0.4);
+			base += (weather - 0.5) * depth * 0.65;
+		}
+		float ch = 1.0 - abs(p.y - (base + depth * 0.5)) / (depth * 0.5);
+		if (ch > 0.0 && deck.z > 0.01) {
+			float profile = smoothstep(0.0, 0.22, ch) * smoothstep(0.0, 0.18, ch);
+			vec3 cp = vec3(p.x * 0.006 + offset.x * 0.12,
+				p.y * 0.018, p.z * 0.006 + offset.y * 0.12);
+			float shape = weather_noise(cp);
+			float threshold = mix(0.76, 0.32, deck.z);
+			float density = cloud_density * deck.w * profile
+				* smoothstep(threshold, threshold + 0.18, shape);
+			cloud += density;
+			cloud_bounce += density * clamp(1.0 - (p.y - base) / depth, 0.0, 1.0);
+		}
 	}
 
 	float air_height = smoothstep(mist_level - 72.0, mist_level - 32.0, p.y)
@@ -132,10 +153,8 @@ void fog() {
 			/ total : atmosphere_color;
 	// The mist share glows with the night floor; the cloud share takes the
 	// ground bounce on its underside, fading out by the crown.
-	float base_share = clamp(1.0 - (p.y - (cloud_level - half_cloud))
-			/ max(cloud_thickness, 1.0), 0.0, 1.0);
 	EMISSION = total > 0.00001 ?
-			(mist_glow * mist + (cloud_ambient
-					+ cloud_under_glow * base_share) * cloud) / total
+			(mist_glow * mist + cloud_ambient * cloud
+					+ cloud_under_glow * cloud_bounce) / total
 			: vec3(0.0);
 }
