@@ -368,6 +368,11 @@ public:
     godot::Array take_particles();
     // Name of the node at a Godot-space position, "" if unknown.
     godot::String node_name_at(const godot::Vector3 &pos);
+    // A node's colour as its top tile draws it: the tile image's average in
+    // linear light (every frame of an animated tile), times the tile's own
+    // colour. Transparent if the node or its tile is not known. For what a
+    // water column looks like, to the underwater murk (water_optics.gd).
+    godot::Color node_tile_color(const godot::String &node_name);
     // Which shader draws the top face of the node at a Godot-space
     // position, and why: the node, its top tile, whether that tile is in
     // an array and whether the array holds any alpha. Weather diagnostics

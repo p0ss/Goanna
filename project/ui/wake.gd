@@ -8,10 +8,18 @@
 # a ring from each. The points reach the water shader as a small texture,
 # one texel a point, beside a clock and the box the rings can reach.
 #
+# Round the eye the rings give way to ripples: a patch of water 32 nodes
+# across that keeps what is done to it (GoannaRipples, goanna_ripples.h),
+# stepped every frame with the bodies on it pressing and shoving it, so a
+# swimmer pushes a bow wave and leaves a V, and waves meet and reflect off
+# the banks. The patch lies on one water surface, the one the local player
+# is in (or else the nearest wet body's); bodies on that surface and inside
+# the patch are drawn by it, and every other body keeps its rings.
+#
 # Presentation only. Positions come from what the client already draws (the
 # local player and the entities it has been sent), and the water from the
 # map it already holds; nothing is asked of the server. docs/weather.md,
-# "Wakes", has the design and what is untested.
+# "Wakes" and "Ripples", has the design and what is untested.
 extends Node
 
 const PlayerContext := preload("res://player_context.gd")
@@ -62,7 +70,46 @@ const TELEPORT := 4.0
 # this far under the eye.
 const EYE_HEIGHT := 1.6
 
+# The ripple patch. Its side in nodes is GoannaRipples.get_nodes() (32).
+# The patch follows the eye in whole nodes once the eye is this far from
+# its middle, so the waves stay put in the world while it moves.
+const RIPPLE_RECENTRE := 4
+# Bodies within this many nodes of the patch's edge are left to the rings:
+# the sponge round the edge would swallow their waves.
+const RIPPLE_MARGIN := 3
+# A body is on the patch's surface when its own water surface is within
+# this of it.
+const RIPPLE_PLANE := 0.35
+# Seconds between re-reading which nodes of the patch are open water, while
+# it is moving; also re-read whenever the patch moves or changes surface.
+# A read is two map lookups a node, a couple of thousand for the patch, so
+# it is spread over frames, this many rows of nodes a frame; until it is
+# done the patch keeps the mask it had, moved with it.
+const RIPPLE_MASK_REFRESH := 4.0
+const RIPPLE_MASK_ROWS := 4
+# What a body does to the water, the water it shoves aside moving and the
+# water it pushes out sinking into it and lets back rising, is
+# RippleField::swimmer's (goanna_ripples.h), tuned and tested there; a body
+# is handed over as a position, a velocity across, how fast it is sinking
+# into the water (sinking(): nothing while it is in the air over the water,
+# or wholly under it) and a scale. Holding still, it leaves the water
+# still. Animals are smaller than the player, and their positions arrive
+# ten times a second rather than every frame.
+const RIPPLE_ENTITY_SCALE := 0.7
+# Past this, nodes a second, a jump between frames is a teleport.
+const RIPPLE_TOO_FAST := 12.0
+
 var client: Object
+# GoannaRipples, when the extension has it; without it every body keeps the
+# rings.
+var ripples: Object
+var _plane := NAN            # the surface the patch lies on, NAN when none
+var _claimed := {}           # source keys the patch draws, not the rings
+var _mask_at := -INF         # wake clock time the water mask was read
+var _mask_plane := NAN
+var _mask_build := {}        # a read in progress: origin, surface, row, bytes
+var _feet_prev := Vector3(NAN, NAN, NAN)
+var _ripples_shown := false
 # (Vector3) -> bool: whether the node at a world position is water. Left
 # empty, it asks the client's map by node name (is_water_name); the test
 # gives a fake lake.
@@ -85,10 +132,16 @@ func _ready() -> void:
 	_texture = ImageTexture.create_from_image(_image)
 	PlayerContext.shader_parameter(client, "goanna_wake_points", _texture)
 	_publish_state(0.0)
+	if ripples == null and ClassDB.class_exists("GoannaRipples"):
+		ripples = ClassDB.instantiate("GoannaRipples")
+	if ripples != null:
+		PlayerContext.shader_parameter(client, "goanna_ripple_height", ripples.get_texture())
+	_publish_ripples(false)
 
 
 func _exit_tree() -> void:
 	PlayerContext.shader_parameter(client, "goanna_wake_state", Vector4.ZERO)
+	PlayerContext.shader_parameter(client, "goanna_ripple_state", Vector4.ZERO)
 
 
 # Seconds on the wake clock. Its own, from when this node started, rather
@@ -109,8 +162,22 @@ func _process(delta: float) -> void:
 		var m: Node = PlayerContext.find(self, "goanna_main")
 		if m != null and m.get("cam") != null:
 			var eye: Vector3 = (m.cam as Node3D).global_position
-			step(gather_sources(m, eye), t)
+			var sources := gather_sources(m, eye)
+			claim(sources)
+			step(sources, t)
 			publish(t)
+	if ripples != null:
+		var m: Node = PlayerContext.find(self, "goanna_main")
+		if m != null and m.get("cam") != null:
+			var feet := local_feet(m, (m.cam as Node3D).global_position)
+			# The player's own velocity from the movement step, where there is
+			# one; differencing positions instead needs smoothing, and the
+			# smoothing lags.
+			var lm = m.get("last_move")
+			var vel := Vector3(NAN, NAN, NAN)
+			if not bool(m.get("fly_mode")) and lm is Dictionary and lm.has("speed"):
+				vel = lm["speed"]
+			ripple_frame(feet, delta, t, vel)
 	if _live > 0:
 		_publish_state(t)
 
@@ -118,10 +185,7 @@ func _process(delta: float) -> void:
 # The local player and the nearest entities within RANGE of `eye`, as
 # [{key, pos}], pos being the feet.
 func gather_sources(m: Node, eye: Vector3) -> Array:
-	var me := eye - Vector3(0.0, EYE_HEIGHT, 0.0)
-	var lm = m.get("last_move")
-	if not bool(m.get("fly_mode")) and lm is Dictionary and lm.has("pos"):
-		me = lm["pos"]
+	var me := local_feet(m, eye)
 	var others := []
 	if client != null and client.has_method("entity_list"):
 		for e in client.entity_list():
@@ -136,6 +200,15 @@ func gather_sources(m: Node, eye: Vector3) -> Array:
 	return out
 
 
+# The local player's feet: its walking position, or under the eye with the
+# free camera.
+static func local_feet(m: Node, eye: Vector3) -> Vector3:
+	var lm = m.get("last_move")
+	if not bool(m.get("fly_mode")) and lm is Dictionary and lm.has("pos"):
+		return lm["pos"]
+	return eye - Vector3(0.0, EYE_HEIGHT, 0.0)
+
+
 # The `count` of `sources` nearest `eye` and within `reach` of it.
 static func nearest_sources(sources: Array, eye: Vector3, count: int, reach: float) -> Array:
 	var near := sources.filter(func(s): return (s["pos"] as Vector3).distance_to(eye) <= reach)
@@ -148,8 +221,9 @@ static func is_water_name(node_name: String) -> bool:
 	# Every game checked names its water so (Mineclonia's water and river
 	# water, Minetest Game's default:water and default:river_water, source
 	# and flowing). Lava is left out on purpose: it has its own shader,
-	# which draws no wake.
-	return node_name.contains("water")
+	# which draws no wake. Lily pads, named waterlily, float on the water
+	# and are not it.
+	return node_name.contains("water") and not node_name.contains("lily")
 
 
 func _is_water(p: Vector3) -> bool:
@@ -204,12 +278,14 @@ func step(sources: Array, t: float) -> void:
 		var key = s["key"]
 		var pos: Vector3 = s["pos"]
 		seen[key] = true
-		var touching := not is_nan(water_surface(pos))
+		var surface: float = s["surface"] if s.has("surface") else water_surface(pos)
+		var touching := not is_nan(surface)
+		var drawn := _claimed.has(key)
 		if not _sources.has(key):
 			# First sight: no path yet, and no splash either, since it may
 			# have been in the water long before it came into range.
 			_sources[key] = {"pos": pos, "t": t, "travel": 0.0, "in_water": touching,
-				"bob_next": t + BOB_PERIOD * _jitter(key)}
+				"bob_next": t + BOB_PERIOD * _jitter(key), "vel": Vector3.ZERO}
 			continue
 		var st: Dictionary = _sources[key]
 		var prev: Vector3 = st["pos"]
@@ -220,11 +296,19 @@ func step(sources: Array, t: float) -> void:
 			st["pos"] = pos
 			st["t"] = t
 			st["travel"] = 0.0
+			st["vel"] = Vector3.ZERO
 			st["in_water"] = touching
 			continue
 		var speed := dist / dt
+		st["vel"] = (pos - prev) / dt
 		if touching and not bool(st["in_water"]):
-			add_point(pos, t, ENTRY_STRENGTH)
+			# A body the patch draws splashes there by sinking into it.
+			if not drawn:
+				add_point(pos, t, ENTRY_STRENGTH)
+			st["travel"] = 0.0
+			st["bob_next"] = t + BOB_PERIOD
+		elif drawn:
+			# The patch draws this one: its trail and its sway are there.
 			st["travel"] = 0.0
 			st["bob_next"] = t + BOB_PERIOD
 		elif touching and speed >= STILL_SPEED:
@@ -346,4 +430,166 @@ func debug_state() -> Dictionary:
 	for st in _sources.values():
 		if bool(st["in_water"]):
 			wet += 1
-	return {"sources": _sources.size(), "in_water": wet, "live_points": _live}
+	var state := {"sources": _sources.size(), "in_water": wet, "live_points": _live}
+	if ripples != null:
+		state["ripples"] = {"surface": _plane, "bodies": _claimed.size(),
+			"moving": not ripples.is_asleep(), "peak": ripples.peak()}
+	return state
+
+
+# Which sources the ripple patch draws, and the surface it lies on: the local
+# player's (the first source) if it is in the water, or else that of the
+# nearest wet source inside the patch. Each source's water surface is left
+# on it as "surface", so step() need not look it up again.
+func claim(sources: Array) -> void:
+	_claimed.clear()
+	for s in sources:
+		s["surface"] = water_surface(s["pos"])
+	if ripples == null or sources.is_empty():
+		_plane = NAN
+		return
+	var me: Vector3 = sources[0]["pos"]
+	_plane = sources[0]["surface"]
+	if is_nan(_plane):
+		var best := INF
+		for s in sources:
+			if not is_nan(float(s["surface"])) and _inside_patch(s["pos"], me):
+				var d := Vector2(s["pos"].x - me.x, s["pos"].z - me.z).length()
+				if d < best:
+					best = d
+					_plane = s["surface"]
+	if is_nan(_plane):
+		return
+	for s in sources:
+		if not is_nan(float(s["surface"])) and absf(float(s["surface"]) - _plane) < RIPPLE_PLANE \
+				and _inside_patch(s["pos"], me):
+			_claimed[s["key"]] = true
+
+
+# Whether `pos` is well inside a patch centred on `me`: out of reach of the
+# sponge at its edge.
+func _inside_patch(pos: Vector3, me: Vector3) -> bool:
+	var half := float(ripples.get_nodes()) * 0.5 - RIPPLE_MARGIN
+	return absf(pos.x - me.x) < half and absf(pos.z - me.z) < half
+
+
+# One frame of the ripple patch, the local player's feet at `feet` moving at
+# `vel` (NAN: work it out from the last frame): follow the eye, keep the
+# water mask current, hand every claimed body to the patch, step, and give
+# the heights to the water shader.
+func ripple_frame(feet: Vector3, delta: float, t: float, vel := Vector3(NAN, NAN, NAN)) -> void:
+	if is_nan(vel.x):
+		vel = Vector3.ZERO
+		if delta > 0.0 and not is_nan(_feet_prev.x):
+			vel = (feet - _feet_prev) / delta
+	if vel.length() > RIPPLE_TOO_FAST:
+		vel = Vector3.ZERO
+	_feet_prev = feet
+	if is_nan(_plane) and ripples.is_asleep():
+		_publish_ripples(false)
+		return
+	var n: int = ripples.get_nodes()
+	var want := Vector2i(roundi(feet.x), roundi(feet.z)) - Vector2i(n / 2, n / 2)
+	var have: Vector2i = ripples.get_origin()
+	var moved := absi(want.x - have.x) > RIPPLE_RECENTRE or absi(want.y - have.y) > RIPPLE_RECENTRE
+	if moved:
+		ripples.set_origin(want)
+	if not is_nan(_plane) and (moved or t - _mask_at > RIPPLE_MASK_REFRESH
+			or is_nan(_mask_plane) or absf(_mask_plane - _plane) > 0.25):
+		if _mask_build.is_empty() or _mask_build["origin"] != ripples.get_origin() \
+				or absf(float(_mask_build["surface"]) - _plane) > 0.25:
+			var bytes := PackedByteArray()
+			bytes.resize(n * n)
+			_mask_build = {"origin": ripples.get_origin(), "surface": _plane, "row": 0, "bytes": bytes}
+		# The surface the waves are drawn on is the one being read, from the
+		# first row: the patch has changed surface, so the old one is done.
+		_mask_plane = _plane
+	if not _mask_build.is_empty():
+		_continue_mask(n, t)
+	var bodies := PackedFloat32Array()
+	for key in _claimed:
+		if key is String and key == "local":
+			bodies.append_array([feet.x, feet.z, vel.x, vel.z, sinking(feet, vel.y, _mask_plane), 1.0])
+		elif _sources.has(key):
+			var st: Dictionary = _sources[key]
+			var v: Vector3 = st.get("vel", Vector3.ZERO)
+			# Carried on from the last sample along its velocity, so an
+			# animal shoves the water every frame, not ten times a second.
+			var ahead := clampf(t - float(st["t"]), 0.0, SAMPLE_INTERVAL * 2.0)
+			var p: Vector3 = st["pos"]
+			var at := p + v * ahead
+			bodies.append_array([at.x, at.z, v.x, v.z, sinking(at, v.y, _mask_plane),
+				RIPPLE_ENTITY_SCALE])
+	ripples.step(delta, bodies)
+	_publish_ripples(not ripples.is_asleep())
+
+
+# Reads the next RIPPLE_MASK_ROWS rows of the mask in progress, and hands it
+# to the patch once every row is in; a read begun for another place or
+# surface is dropped when the patch has moved on from it.
+func _continue_mask(n: int, t: float) -> void:
+	var b := _mask_build
+	if b["origin"] != ripples.get_origin():
+		_mask_build = {}
+		_mask_at = -INF
+		return
+	var bytes: PackedByteArray = b["bytes"]
+	var row: int = b["row"]
+	var last := mini(row + RIPPLE_MASK_ROWS, n)
+	for j in range(row, last):
+		_mask_row(bytes, b["origin"], n, float(b["surface"]), j)
+	b["bytes"] = bytes
+	b["row"] = last
+	if last >= n:
+		ripples.set_water(bytes)
+		_mask_at = t
+		_mask_build = {}
+
+
+func _mask_row(mask: PackedByteArray, origin: Vector2i, n: int, surface: float, j: int) -> void:
+	for i in n:
+		var x := float(origin.x + i)
+		var z := float(origin.y + j)
+		var open := _is_water(Vector3(x, surface - 0.5, z)) \
+				and not _is_water(Vector3(x, surface + 0.5, z))
+		mask[j * n + i] = 1 if open else 0
+
+
+# How fast a body with its feet at `feet`, moving up at `vy`, is sinking
+# into water whose surface is at `surface`: its submerged depth grows as it
+# goes down, but only while the surface is somewhere up its body. A body
+# jumping in the air over the water, or swimming wholly under it, pushes no
+# water out of the way by going up or down.
+static func sinking(feet: Vector3, vy: float, surface: float) -> float:
+	if is_nan(surface) or feet.y >= surface or feet.y + BODY_ABOVE <= surface:
+		return 0.0
+	return -vy
+
+
+# Which nodes of a patch of `n` by `n` nodes from `origin` are open water at
+# `surface`: water in the node under it, and none in the node over it. One
+# byte a node, x fastest, the layout GoannaRipples.set_water takes.
+func water_mask(origin: Vector2i, n: int, surface: float) -> PackedByteArray:
+	var mask := PackedByteArray()
+	mask.resize(n * n)
+	for j in n:
+		_mask_row(mask, origin, n, surface, j)
+	return mask
+
+
+func _publish_ripples(moving: bool) -> void:
+	if not moving and not _ripples_shown:
+		return
+	_ripples_shown = moving
+	if not moving:
+		PlayerContext.shader_parameter(client, "goanna_ripple_state", Vector4.ZERO)
+		return
+	# get_texture uploads this frame's heights into the same texture the
+	# shader was handed in _ready.
+	ripples.get_texture()
+	var corner: Vector2 = ripples.get_corner()
+	# The surface the mask was read on, which outlives _plane: waves still
+	# settling after the player climbs out stay on the water they were on.
+	PlayerContext.shader_parameter(client, "goanna_ripple_area",
+			Vector4(corner.x, corner.y, float(ripples.get_nodes()), _mask_plane))
+	PlayerContext.shader_parameter(client, "goanna_ripple_state", Vector4(1.0, 0.0, 0.0, 0.0))

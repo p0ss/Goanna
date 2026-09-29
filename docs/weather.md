@@ -407,6 +407,109 @@ times a second whatever happens.
 The control channel's `status` carries `wake`: the bodies followed, how
 many of them touch water, and the points live.
 
+## Ripples
+
+The rings read as pings from first person: each point grew one thin ring on
+its own, nothing came ahead of a swimmer, and a body standing still pinged
+once every 1.2 seconds. Round the eye they give way to a patch of water that
+keeps what is done to it. Presentation only, like the rings, and tested
+headless only; nothing of it has been observed.
+
+**The field** (`src/goanna_ripples.h`, `RippleField`, wrapped for GDScript
+as `GoannaRipples`). A square 32 nodes across, eight cells a node (256 by
+256), holding the surface's height and its rate of change, stepped at a
+fixed 60 Hz as a damped wave equation: waves spread at 1.2 nodes a second,
+a pull back to the flat surface keeps a pressed patch a dimple rather than a
+hole (and makes the waves slightly dispersive), and they halve in about 1.5
+seconds. A sponge two nodes wide round the edge soaks up what reaches it.
+Nodes that are not open water hold still, so waves stop and reflect at the
+banks. The patch follows the eye in whole nodes once it is four from the
+middle, keeping the water already on it, and sleeps, costing nothing, once
+nothing presses on it and it is flat to 5e-4 nodes. A step of the whole
+patch is about 0.2 ms.
+
+**Bodies** (`RippleField::swimmer`). Everything a body does to the water
+comes from how it moves, so a body holding still leaves the water still.
+Moving across, it shoves the water it displaces (over a radius of 0.3
+nodes) ahead of it, raising it in front and lowering it behind, more water
+the slower it goes (up to three times as much at two thirds of a node a
+second), or a wader would barely mark the water. The shove is what stands a
+bow crest up in front of a swimmer: a press alone cannot, once the body
+outruns its own waves. Sinking into the water (its submerged depth growing,
+up to 3 nodes a second counted) it pushes half the water it now displaces
+out from under itself into a ring round it, and rising lets it back: a
+Gaussian of its radius less one twice as wide at a quarter of the height,
+so no water is made or lost and every crest has its trough. That is what
+rings out from a body falling in, bobbing or climbing out; a body in the
+air over the water, or wholly under it, does nothing to the surface by
+going up or down (`wake.gd`'s `sinking`). A swimmer faster than the waves
+leaves them in a V along its path, curving where it turns (about 15
+degrees each side at 3 nodes a second).
+The player's velocity is the movement step's own (`last_move.speed`);
+animals shove at 0.7 of the player and move between the ten-a-second
+samples along their last velocity.
+
+Three tunings came before this one. The first, on a swimmer at 3 nodes a
+second, drew nothing a player could see: wading at 1 node a second left a
+slope of 0.09 against the rings' 0.3. The second pressed down on the water
+under every body all the time and swayed that press at a fixed 1.1 Hz,
+which drew waves out of a player standing still, at a rate that had
+nothing to do with what the player did, and the press, built up over half
+a second, left the middle of the pattern behind a moving player. The third
+lifted the surface with the body's own vertical speed, in the air as well
+as in the water, making water to do it, and a player jumping up and down
+piled up broad mounds with no troughs, drawn as white smoke rings by the
+crest whitening that went with them. Jumping in and out for five seconds
+now peaks at 0.27 and -0.23 with no water made; a gentle bob, a fifth of a
+node up and down, makes faint rings (0.03), as it does in real water, where
+narrowing the push to sharpen them only made them fainter. The test
+now prints and floors the steepest slope 1.5 to 6 nodes from a swimmer:
+nothing holding still, 0.21 to 0.31 moving, 0.07 dropping in and 0.03
+bobbing for a player, 0.01 to 0.25 for an animal; and checks a swimmer's
+crest is ahead of it and its trough behind, centred on it.
+
+**Which bodies** (`project/ui/wake.gd`, `claim` and `ripple_frame`). The
+patch lies on one water surface: the local player's, when it is in the
+water, or else that of the nearest wet body inside the patch. Every body on
+that surface (within 0.35 of it) and at least three nodes inside the patch
+is drawn by the patch and lays no rings; every other body, a duck on a pond
+at another height or out past the patch, keeps its rings. Which nodes are
+open water at that surface (water under it and none over it) is read from
+the map by name, as the rings' water is, whenever the patch moves or changes
+surface and every four seconds while it is moving, four rows of nodes a
+frame so the couple of thousand lookups do not land in one frame.
+
+**Drawing** (`project/shaders/water.gdshader`). The heights reach the water
+shader as a 256 by 256 float texture (`goanna_ripple_height`), with the
+patch's corner, side and surface height (`goanna_ripple_area`) and whether
+it is moving (`goanna_ripple_state`). On the top of the water within 0.4 of
+that surface, from above or below, the slope bends the normal (0.8 of it)
+on top of the waves, rain and rings. Crests are not whitened: they are not
+breaking, and whitening every one over 0.05 nodes made a splash an all
+white ring. Still water or none: one uniform branch. Looked down on, water reflects only a fiftieth of the sky, so in
+the shallows a ripple shows by how it bends the bed seen through it: the
+refraction offset is the tilt the waves give the normal, times the depth
+of water over the bed (only the first 1.5 nodes of it), over the distance
+(`refraction`, 0.12; the physical 0.18, a quarter of the shift over the 1.4
+of the view, over depths to 4 nodes, swung deep pools about queasily),
+capped at 3 per cent of the screen. It was the whole normal times 0.006 times the ray's length through
+the water, which moved a shallow bed by a pixel. That alone was still
+only a subtle distortion looked down on, so in sunlight the patch also
+throws caustics: the light on the bed is scaled by how the surface where
+the sun's refracted ray came in focuses it, 1 / (1 + a quarter of depth
+times curvature), the curvature taken over two cells either side, clamped
+to 0.3 to 2.5 and blended in at 0.7 of full sun. Crests throw bright moving
+lines on the bed and troughs dim it. `goanna_sun_glow` gates it, so there
+are none at night, under a weather sky or in a ridge's shadow; and only the
+ripple patch throws them, not the everyday waves. Round a swimmer at 2
+nodes a second over a bed a node down the bed ranges from 0.54 to 2.5 of
+its light where the wake is, and nearly none of it sits at a clamp
+(goanna_ripples_test prints both).
+
+The control channel's `status` carries it under `wake.ripples`: the surface,
+how many bodies the patch draws, whether it is moving and its highest
+crest.
+
 ## The setting
 
 **Shader weather** in the Video tab (`shader_weather`, on by default, shown
@@ -659,6 +762,26 @@ drops').
 Lamps light nearby rain now that it is lit, which is also untested.
 
 ## Tests
+
+The ripple patch has two of its own. `goanna_ripples_test` (native, in
+`cmake --build build --target check`) steps `RippleField` alone: still water
+sleeps; a standing body makes a dimple that stays one; a body walking at 3
+nodes a second has a crest ahead of it and quiet water further ahead, and
+its waves 3 nodes behind stand out to either side, symmetrically, at a half
+angle between 12 and 45 degrees; a bank stops a wave; a splash settles and
+sleeps within 20 seconds; moving the patch keeps the waves where they were;
+a fast body turning hard stays finite; and a swimmer as wake.gd hands it
+over, a player or an animal, treading water or moving at 1 to 3 nodes a
+second, leaves a slope the eye can pick out 1.5 to 6 nodes away. It prints
+the numbers the constants were tuned on, and the cost of a step. `project/tests/ripples.gd`
+(headless) drives wake.gd over a stand in lake with an island and a higher
+pond: the water shader reads the globals and they are registered; a
+swimmer and a duck in the lake are the patch's and lay no rings, while a
+frog on the pond keeps its rings; the patch pushes a crest ahead of the
+swimmer and is published round it on the lake's surface; the mask marks
+the lake open and the island and the pond not, and is read in; coming into
+the water splashes the patch and lays no ring; and after the swimmer climbs
+out onto the bank the waves settle, the patch sleeps and the shader is told.
 
 `project/tests/weather.gd`, headless:
 

@@ -7,6 +7,20 @@ var cloud_body_texture: NoiseTexture3D
 # Defer expensive allocation until saved settings and the local preset agree.
 var quality_settings_ready := false
 var ice_capture: Node
+# water_optics.gd: what the water round the eye is like, for the water
+# shader and the underwater murk alike.
+var water_optics: Node
+const WaterOptics := preload("res://water_optics.gd")
+# The zenith colour, linear, as _apply_sky last set it: the sky light that
+# falls on the water, for the murk's colour.
+var _sky_top_lin := Color(0.3, 0.45, 0.7)
+# What the water column throws back, as the water shader's body_gain: the
+# murk is that colour, lit as the surface is, and a test ties the two.
+const WATER_BODY_GAIN := 0.35
+# A water tile's colour when the map has not told us which water this is:
+# Mineclonia's water tint, #3F76E4, linear.
+const WATER_TILE_FALLBACK := Color(0.05, 0.18, 0.78)
+var _water_tile_cache := {}
 var shaft_glow_luminance := 0.0
 # Opt-in stage timings for benchmarks. Last-frame and interval maxima only.
 var profile_frame_work := false
@@ -148,13 +162,12 @@ var shadow_detail := 2.0
 var light_white := 4.0
 # Base exposure; the server's exposure_correction multiplies it in _apply_sky.
 var light_exposure := 0.46
-# The underwater murk at noon. The fog colour and densities were tuned on
-# 2026-08-16 under Godot's default exposure of 1.0; light_exposure became
-# 0.46 on 2026-08-21, which halved a colour that does not scale with the
-# light, and the reef two nodes down read as navy murk at noon (mean 31 of
-# 255 against the README image's 78; measured 2026-09-29). This is the old
-# colour over 0.46, with both fogs thinned so the reef shows through.
-const UNDERWATER_FOG := Color(0.217, 0.609, 0.739)
+# The underwater murk is the water's own colour now (_apply_water_murk). The
+# fixed colour it replaced, (0.217, 0.609, 0.739), was the 2026-08-16 tuning
+# over the 0.46 exposure, after a reef two nodes down read as navy murk at
+# noon (mean 31 of 255 against the README image's 78; measured 2026-09-29).
+# What keeps that reef clear now is the murk's thinness near the surface,
+# not a bright colour: 0.012 at the surface on a beach, against 0.05.
 # Appearance controls are independent of the hardware quality profiles.
 var look_strength := 1.0
 var night_visibility := 0.5
@@ -269,6 +282,12 @@ var mob_last_pos := Vector3.ZERO
 var inv_before := {}
 var fall_reported := false
 var underwater := false
+# Frames left with the volumetric fog's temporal reprojection off after the
+# eye crosses the water surface, and whether it was on to begin with. The
+# volume blends each frame with the ones before; left on across the surface
+# it carried the dense water murk into the open air for about a second.
+var _fog_history_hold := 0
+var _fog_history_was := true
 var headlight: OmniLight3D
 # The fixture runner zeroes the head light for determinism; this stops the
 # per frame carried light update from turning it back on.
@@ -661,6 +680,9 @@ func _ready() -> void:
 	ice_capture = preload("res://ice_transmission.gd").new()
 	add_child(ice_capture)
 	ice_capture.initialise(cam, e, client)
+	water_optics = WaterOptics.new()
+	water_optics.client = client
+	add_child(water_optics)
 	_apply_screen_space()
 	# One world-sized fog volume supplies spatial density to the environment's
 	# froxel grid. It adds no scene geometry or per-cloud objects: valleys and
@@ -2335,10 +2357,22 @@ func _update_environment_extras() -> void:
 	var under: bool = client.is_underwater(cam.position)
 	if atmosphere_volume:
 		atmosphere_volume.visible = not under and _atmosphere_enabled()
+	if _fog_history_hold > 0:
+		_fog_history_hold -= 1
+		if _fog_history_hold == 0:
+			env.environment.volumetric_fog_temporal_reprojection_enabled = _fog_history_was
+	if under and underwater:
+		_apply_water_murk()
 	if under == underwater:
 		return
 	underwater = under
 	var e := env.environment
+	# Crossing the surface: the fog volume starts again from this frame
+	# rather than fading out of the last second's.
+	if _fog_history_hold == 0:
+		_fog_history_was = e.volumetric_fog_temporal_reprojection_enabled
+	e.volumetric_fog_temporal_reprojection_enabled = false
+	_fog_history_hold = 3
 	if under:
 		# Murky blue-green underwater fog; you can tell you are submerged and
 		# the view shortens the way it should.
@@ -2349,16 +2383,14 @@ func _update_environment_extras() -> void:
 		# holds off until near that edge. _apply_sky puts the depth curve back
 		# when the eye leaves the water.
 		e.fog_mode = Environment.FOG_MODE_EXPONENTIAL
-		# Scaled by daylight in _apply_sky while the eye stays under.
-		e.fog_light_color = UNDERWATER_FOG
-		e.fog_density = 0.05
+		# Colour and density are the water's own, by region and by how deep
+		# the eye is (_apply_water_murk, every frame while under).
 		e.fog_aerial_perspective = 0.0
 		e.fog_sky_affect = 1.0
 		# Light shafts: sun scattering through the participating water volume.
 		# Moderate anisotropy and density: pushing either too hard shows the
 		# fog volume's depth slices as bands.
 		e.volumetric_fog_enabled = _underwater_volume_enabled()
-		e.volumetric_fog_density = 0.03
 		e.volumetric_fog_albedo = Color(0.25, 0.55, 0.62)
 		e.volumetric_fog_anisotropy = 0.72
 		e.volumetric_fog_length = 48.0
@@ -2368,6 +2400,7 @@ func _update_environment_extras() -> void:
 		# direction of a sun that is not down here, which reads as a glow
 		# with no source. _apply_sky sets it again on the way out.
 		e.fog_sun_scatter = 0.0
+		_apply_water_murk()
 	else:
 		# Restore the surface fog from the current sky state.
 		_apply_sky()
@@ -2495,6 +2528,62 @@ func _cloud_layer_weather(p: Vector2) -> float:
 
 func _lamp_budget() -> int:
 	return maxi(0, int(light_pool)) if render_features["render_dynamic_lights"] and OS.get_environment("GOANNA_NO_LIGHTS") == "" else 0
+
+# The underwater murk, from the water round the eye (water_optics.gd): clear
+# near the surface, the region's murk in the depths. Its colour is the one
+# deep water shows from above: the water tile's colour times the region's
+# tint, times the water shader's 0.5 * body_gain, lit by what lights the
+# surface (the sun and moon by their height, and the sky), and darker down
+# where less of that light reaches. So the far murk under water and a deep
+# pool seen from above are one colour. The scattering volume's albedo takes
+# the same hue. The same colour goes to the water shader, whose underside
+# mirrors it past the critical angle.
+#
+# Before this the murk was one fixed fog: 0.05 dense from the surface down,
+# which the owner found right for a lake or deeper water and too murky just
+# under the surface, and a fixed bright cyan with a cyan
+# scattering volume, tuned by eye, that looked nothing like the same water
+# from above: dark blue over the bed from the bank, bright teal from in it.
+func _apply_water_murk() -> void:
+	if env == null or env.environment == null or water_optics == null:
+		return
+	var e := env.environment
+	var o: Dictionary = water_optics.current
+	var m := WaterOptics.murk(o, water_optics.eye_depth)
+	e.fog_density = m["density"]
+	var body := water_body_colour(_water_tile(water_optics.water_name), o["tint"])
+	var colour := body * _water_light() * float(m["light"])
+	colour.a = 1.0
+	e.fog_light_color = colour
+	if e.volumetric_fog_enabled:
+		e.volumetric_fog_density = m["volume"]
+		var peak := maxf(maxf(body.r, body.g), maxf(body.b, 1e-4))
+		e.volumetric_fog_albedo = Color(body.r / peak, body.g / peak, body.b / peak) * 0.6
+	client.set_view_shader_parameter("goanna_water_fog", Vector3(colour.r, colour.g, colour.b))
+
+# What a water column throws back, unlit: the tile's colour times the
+# region's tint times the shader's 0.5 * body_gain.
+static func water_body_colour(tile: Color, tint: Vector3) -> Color:
+	return Color(tile.r * tint.x, tile.g * tint.y, tile.b * tint.z) * (0.5 * WATER_BODY_GAIN)
+
+func _water_tile(node_name: String) -> Color:
+	if node_name == "" or client == null or not client.has_method("node_tile_color"):
+		return WATER_TILE_FALLBACK
+	if not _water_tile_cache.has(node_name):
+		var c: Color = client.node_tile_color(node_name)
+		_water_tile_cache[node_name] = c if c.a > 0.0 else WATER_TILE_FALLBACK
+	return _water_tile_cache[node_name]
+
+# The light on an upward face at the water: the sun and the moon each by
+# how high it stands, and the sky's, as the ambient energy of its zenith.
+func _water_light() -> Color:
+	var light := _sky_top_lin * env.environment.ambient_light_energy
+	for l in [sun, moon]:
+		if l != null and l.visible:
+			var up := maxf((l as Node3D).global_transform.basis.z.y, 0.0)
+			light += (l as DirectionalLight3D).light_color.srgb_to_linear() * (l as DirectionalLight3D).light_energy * up
+	light.a = 1.0
+	return light
 
 func _underwater_volume_enabled() -> bool:
 	return _atmosphere_enabled() and render_features["render_underwater_volume"]
@@ -2922,6 +3011,7 @@ func _apply_sky() -> void:
 	# Linear, because source_color uniforms are converted on assignment and a
 	# plain vec3 one is not.
 	var zl := zenith.srgb_to_linear()
+	_sky_top_lin = zl
 	var hl := hor.srgb_to_linear()
 	client.set_view_shader_parameter("goanna_sky_top", Vector3(zl.r, zl.g, zl.b))
 	client.set_view_shader_parameter("goanna_sky_horizon", Vector3(hl.r, hl.g, hl.b))
@@ -3446,7 +3536,7 @@ func _apply_sky() -> void:
 		# The murk is sunlight scattered in the water, so it dims with the
 		# day. Set once on the way under, it used to hold its noon colour
 		# through the night.
-		e.fog_light_color = UNDERWATER_FOG * lerpf(0.15, 1.0, float(dome["day"]))
+		_apply_water_murk()
 	var lighting: Dictionary = st["lighting"]
 	# Server saturation on top of our base grade, not instead of it.
 	e.adjustment_saturation = clamp(1.12 * float(lighting["saturation"]), 0.0, 2.0)

@@ -59,12 +59,38 @@ uniform int wave_octaves : hint_range(3, 16) = 9;
 // cost and no picture, and the far tiers would otherwise pay it across the
 // whole sea.
 uniform float reflect_range : hint_range(0.0, 4096.0) = 512.0;
-uniform float refraction = 0.006;
-// Beer-Lambert absorption per node; red dies first, like real water. The
+// How far the bed seen through the water shifts where a wave tilts the
+// surface, as a screen offset per unit of tilt, node of depth and node of
+// distance. Through a surface tilted by s over water d deep the bed seen
+// straight down moves about s d (1 - 1/1.33), a quarter of s d; a quarter
+// over the 1.4 of a 70 degree view is 0.18. This is what shows a ripple
+// from above in the shallows, where the surface reflects only a fiftieth of
+// the sky: real shallow water is clear looking down, and its waves are seen
+// by how they bend the bed. The old offset, the whole view space normal
+// times 0.006 times the ray's length through the water, moved the bed of a
+// shallow pool about a pixel, and a ripple looked down on did not show.
+// The full 0.18 over depths up to 4 nodes then swung the bed of any deep
+// pool about under the background waves until it was queasy to look at, so
+// it is 0.12, and only the first REFRACT_DEPTH nodes of depth count.
+uniform float refraction = 0.12;
+const float REFRACT_DEPTH = 1.5;
+// Beer-Lambert absorption per node, and the body's own tint on the tile's
+// colour: the optics of the water round the eye, which the underwater fog is
+// made from too (project/water_optics.gd, docs/water-optics.md). Red dies
+// first, like real water. A beach's or a reef's is (0.45, 0.11, 0.05),
+// which keeps a bed visible ten or so nodes down through a teal shift; the
 // old (0.55, 0.24, 0.16) went opaque within a few nodes, so every lake read
-// as a bottomless blue void; these keep a bed visible ten or so nodes down
-// through a teal shift, which is roughly what clear real water does.
-uniform vec3 absorption = vec3(0.45, 0.11, 0.05);
+// as a bottomless blue void. A swamp's is far higher, and browner.
+global uniform vec3 goanna_water_absorption;
+global uniform vec3 goanna_water_tint;
+// The underwater murk's colour as main.gd sets the fog now: what the
+// underside of the surface mirrors past the critical angle.
+global uniform vec3 goanna_water_fog;
+// How big the water round the eye is, as scales on the background waves: x
+// their strength, y their length (water_optics.gd, sea_for). A pond lies
+// nearly flat under short ripples, the open sea runs longer and higher; 1
+// is what was drawn everywhere before, a lake's.
+global uniform vec4 goanna_water_sea;
 // How much of the tile's colour the water column itself throws back, as an
 // albedo the sun and sky then light. Water is dark: a clear column returns
 // a few percent of what falls on it, and everything else you see in it is
@@ -95,6 +121,14 @@ global uniform vec3 goanna_sun_glow;
 #include "res://shaders/weather_common.gdshaderinc"
 // The rings round swimmers and animals moving through the water.
 #include "res://shaders/wake.gdshaderinc"
+// The ripple patch round the eye (project/ui/wake.gd, src/goanna_ripples.h):
+// the surface's height, one float a cell, eight cells a node.
+global uniform sampler2D goanna_ripple_height : filter_linear, repeat_disable;
+// x, y the world xz of the patch's corner, z its side in nodes, w the
+// height of the water surface it lies on.
+global uniform vec4 goanna_ripple_area;
+// x 1 while the patch's water is moving, 0 when it is still or there is none.
+global uniform vec4 goanna_ripple_state;
 
 // Far tiers use the same near sample at the hand-off, then converge on the
 // tile average only in the deep far field. Switching immediately to the last
@@ -108,6 +142,22 @@ uniform float lod_flatten_far : hint_range(0.0, 4096.0) = 1024.0;
 // uniforms: every water material is built in C++ and nothing sets them.
 const float WAKE_RELIEF = 0.6;
 const float WAKE_FOAM = 0.18;
+// How hard the ripple patch's slope bends the normal. Its crests are not
+// whitened: they are not breaking, and whitening every crest over a few
+// centimetres drew a jump into the water as a soft white smoke ring, all
+// bright and no dark. A ripple shows the way water shows it, in the bent
+// reflection and refraction and, in sunlight, the caustics below.
+const float RIPPLE_RELIEF = 0.8;
+// Caustics of the ripple patch on the bed: sunlight through a crest is
+// focused, and through a trough spread, by about the surface's curvature
+// times the depth times (1 - 1/1.33), a quarter. The bed's light is scaled
+// by the result, clamped to CAUSTIC_RANGE, and blended in by
+// CAUSTIC_STRENGTH at full sun. The curvature is taken over CAUSTIC_SPAN
+// texels of the patch either side, which smooths the cell grid out of it.
+const float CAUSTIC_FOCUS = 0.25;
+const vec2 CAUSTIC_RANGE = vec2(0.3, 2.5);
+const float CAUSTIC_STRENGTH = 0.7;
+const float CAUSTIC_SPAN = 2.0;
 
 varying vec3 world_pos;
 
@@ -124,6 +174,19 @@ vec3 scene_position(vec2 uv, mat4 inv_proj) {
 	float d = texture(depth_tex, uv).r;
 	vec4 v = inv_proj * vec4(uv * 2.0 - 1.0, d, 1.0);
 	return v.xyz / v.w;
+}
+
+// How much to trust the screen for a reflected ray at screen x: fully on
+// screen, and still fully a little way past either side, where the column
+// at the edge stands in for what is just off it. On water the reflection of
+// a point runs almost straight up the screen from it, so the edge column is
+// nearly always the right neighbourhood. Fading to the sky at the sides
+// instead drew a band of sky down each edge of the screen that turned with
+// the camera, bright at night against a black far bank, where the moonlit
+// horizon glow stood in for trees.
+float edge_keep(float x) {
+	float past = max(-x, x - 1.0);
+	return 1.0 - smoothstep(0.15, 0.6, past);
 }
 
 // One train and its slope. exp(sin(x) - 1) has sharper crests and flatter
@@ -179,6 +242,12 @@ void vertex() {
 void fragment() {
 	if (!FRONT_FACING && goanna_eye_underwater < 0.5)
 		discard;
+	// The face's own up, before any wave bends it: whether this is the top
+	// of the water or the side of a fall (reflect() below needs to know).
+	float face_up = (INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).y;
+	// And the face's normal itself, so the refraction can take only what the
+	// waves, rain, rings and ripples did to it.
+	vec3 flat_normal = NORMAL;
 	float flatten = lod_flatten ? smoothstep(lod_flatten_near, lod_flatten_far,
 			length(world_pos - CAMERA_POSITION_WORLD)) : 0.0;
 	vec4 tex = mix(texture(albedo_tex, UV),
@@ -191,18 +260,27 @@ void fragment() {
 		// back on a screen that is all ocean.
 		float fade = smoothstep(24.0, 200.0, here);
 		int octaves = int(mix(float(wave_octaves), 3.0, fade));
-		// Seen from below the surface is a mirror at grazing angles, where
-		// fine normal detail aliases badly, so soften it there.
-		float detail = FRONT_FACING ? wave_strength : wave_strength * 0.35;
+		// The same waves from below as from above: they are one surface.
+		// Seen from under it they were softened to a third, against
+		// aliasing where the underside is a mirror, and the underside's
+		// pattern stopped matching the top's. The mirror is now the murk's
+		// own colour (total internal reflection, below), not a sharp image.
+		float detail = wave_strength;
 		detail *= mix(1.0, 0.45, fade);
 		// And in the deep far field even the longest train is below a pixel,
 		// so the last octaves hand over to the flat face smoothly; the far
 		// tiers run this same ramp, which is what removes the wave seam at
 		// whatever range the near mesh happens to end.
 		detail *= 1.0 - smoothstep(500.0, 1200.0, here);
+		// The sea state is measured round the eye; far out, where the water
+		// may be another body altogether, it hands back to a lake's.
+		vec2 sea = mix(goanna_water_sea.xy, vec2(1.0), smoothstep(64.0, 160.0, here));
+		detail *= sea.x;
 		if (detail > 0.004) {
-			vec3 n = wave_normal(world_pos.xz, TIME * wave_speed, octaves,
-					TAU / max(wave_length, 0.5), wave_relief);
+			// Longer waves are slower: a water wave's period goes as the
+			// root of its length.
+			vec3 n = wave_normal(world_pos.xz, TIME * wave_speed / sqrt(max(sea.y, 0.1)), octaves,
+					TAU / max(wave_length * sea.y, 0.5), wave_relief);
 			NORMAL = normalize(mix(NORMAL, (VIEW_MATRIX * vec4(n, 0.0)).xyz, detail));
 		}
 	}
@@ -243,8 +321,29 @@ void fragment() {
 			wake_foam = wake.z * WAKE_FOAM;
 		}
 	}
-	if (!FRONT_FACING)
+	// Ripples, on the one surface the patch lies on and only on the top of
+	// the water, from above or below. Where the patch has water the rings
+	// are not drawn (wake.gd hands those bodies to the patch), so the two
+	// add rather than double.
+	if (goanna_ripple_state.x > 0.5 && face_up > 0.7
+			&& abs(world_pos.y - goanna_ripple_area.w) < 0.4) {
+		vec2 ruv = (world_pos.xz - goanna_ripple_area.xy) / goanna_ripple_area.z;
+		if (ruv == clamp(ruv, vec2(0.0), vec2(1.0))) {
+			vec2 texel = 1.0 / vec2(textureSize(goanna_ripple_height, 0));
+			float hl = texture(goanna_ripple_height, ruv - vec2(texel.x, 0.0)).r;
+			float hr = texture(goanna_ripple_height, ruv + vec2(texel.x, 0.0)).r;
+			float hd = texture(goanna_ripple_height, ruv - vec2(0.0, texel.y)).r;
+			float hu = texture(goanna_ripple_height, ruv + vec2(0.0, texel.y)).r;
+			vec2 grad = vec2(hr - hl, hu - hd) / (2.0 * goanna_ripple_area.z * texel);
+			vec3 nw = (INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz;
+			nw = normalize(nw - vec3(grad.x, 0.0, grad.y) * RIPPLE_RELIEF);
+			NORMAL = normalize((VIEW_MATRIX * vec4(nw, 0.0)).xyz);
+		}
+	}
+	if (!FRONT_FACING) {
 		NORMAL = -NORMAL;
+		flat_normal = -flat_normal;
+	}
 
 	// Thickness of water along the view ray, from the opaque depth buffer.
 	float behind = scene_distance(SCREEN_UV, INV_PROJECTION_MATRIX);
@@ -268,8 +367,12 @@ void fragment() {
 
 	// Refraction, validated: if the offset sample is not actually behind the
 	// water surface it would be a halo pulled off unrelated geometry, so fall
-	// back to the straight sample.
-	vec2 ofs = NORMAL.xy * refraction * clamp(thick, 0.0, 3.0);
+	// back to the straight sample. Only the waves' tilt moves the bed, not
+	// the face's own slant to the view, and by the depth of water over it
+	// (seen from below, by the water between the eye and the surface).
+	float refract_depth = clamp(FRONT_FACING ? below : thick, 0.0, REFRACT_DEPTH);
+	vec2 ofs = (NORMAL - flat_normal).xy * refraction * refract_depth / max(here, 0.5);
+	ofs = clamp(ofs, vec2(-0.03), vec2(0.03));
 	vec2 ruv = clamp(SCREEN_UV + ofs, vec2(0.001), vec2(0.999));
 	if (scene_distance(ruv, INV_PROJECTION_MATRIX) < here)
 		ruv = SCREEN_UV;
@@ -282,7 +385,37 @@ void fragment() {
 		seen = vec3(0.0);
 	seen = min(seen, vec3(8.0));
 
-	vec3 trans = exp(-absorption * thick);
+	// Caustics. Looked down on, clear shallow water reflects a fiftieth of
+	// the sky and hides its waves; what shows them is the sunlight they
+	// focus into moving bright lines on the bed. The light reaching the bed
+	// here came in through the surface up the refracted sun ray, so the
+	// patch is read there; only in sunlight (goanna_sun_glow is dark at
+	// night, under a weather sky and in a ridge's shadow), and only for the
+	// ripple patch, whose heights are at hand.
+	if (goanna_ripple_state.x > 0.5 && FRONT_FACING && face_up > 0.7
+			&& abs(world_pos.y - goanna_ripple_area.w) < 0.4 && below < 8.0) {
+		float sun_k = clamp(dot(goanna_sun_glow, vec3(0.2126, 0.7152, 0.0722)), 0.0, 1.0);
+		vec3 into = refract(-normalize(goanna_sun_dir), vec3(0.0, 1.0, 0.0), 1.0 / 1.33);
+		if (sun_k > 0.01 && into.y < -0.2) {
+			vec2 entry = floor_world.xz - into.xz * (below / -into.y);
+			vec2 cuv = (entry - goanna_ripple_area.xy) / goanna_ripple_area.z;
+			if (cuv == clamp(cuv, vec2(0.0), vec2(1.0))) {
+				float texel = CAUSTIC_SPAN / float(textureSize(goanna_ripple_height, 0).x);
+				float c = texture(goanna_ripple_height, cuv).r;
+				float around = texture(goanna_ripple_height, cuv + vec2(texel, 0.0)).r
+						+ texture(goanna_ripple_height, cuv - vec2(texel, 0.0)).r
+						+ texture(goanna_ripple_height, cuv + vec2(0.0, texel)).r
+						+ texture(goanna_ripple_height, cuv - vec2(0.0, texel)).r;
+				float span = texel * goanna_ripple_area.z;
+				float curvature = (around - 4.0 * c) / (span * span);
+				float focus = 1.0 / max(1.0 + CAUSTIC_FOCUS * below * curvature, 0.05);
+				seen *= mix(1.0, clamp(focus, CAUSTIC_RANGE.x, CAUSTIC_RANGE.y),
+						sun_k * CAUSTIC_STRENGTH);
+			}
+		}
+	}
+
+	vec3 trans = exp(-goanna_water_absorption * thick);
 	// Two things come up out of the water and they are lit differently. The
 	// bed, seen through the column, was lit when the opaque pass drew it and
 	// arrives here as radiance: it goes out as emission, attenuated, and is
@@ -290,7 +423,7 @@ void fragment() {
 	// and that is the one part the lamp lights; it is what is left where the
 	// column has absorbed the bed away, so it takes the share the bed lost.
 	vec3 transmitted = seen * trans;
-	vec3 scatter = tex.rgb * 0.5 * body_gain * (1.0 - trans);
+	vec3 scatter = tex.rgb * goanna_water_tint * 0.5 * body_gain * (1.0 - trans);
 
 	// Face on you see into the water, grazing you see the world reflected.
 	float fres = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 5.0);
@@ -312,6 +445,19 @@ void fragment() {
 		// The sky the ray would have reached, on the same curve the sky
 		// shader uses, as both the fallback and what a screen hit fades to.
 		vec3 world_dir = normalize((INV_VIEW_MATRIX * vec4(dir, 0.0)).xyz);
+		// Seen at a grazing angle, a wave's slope is steeper than the view
+		// ray and tips the reflection below the horizon, into the water. The
+		// ray would really meet the back of the next wave and reflect up off
+		// it, so it is folded back above the horizon here. Left pointing
+		// down, it found nothing to march to and took the pale horizon
+		// colour, which lay a white veil over the whole lake whenever the
+		// eye was near the water. Only on the top of the water: the side of
+		// a fall really does reflect the ground in front of it.
+		if (face_up > 0.7 && world_dir.y < 0.02) {
+			world_dir.y = max(-world_dir.y, 0.02);
+			world_dir = normalize(world_dir);
+			dir = normalize((VIEW_MATRIX * vec4(world_dir, 0.0)).xyz);
+		}
 		float up = clamp(world_dir.y, 0.0, 1.0);
 		reflected = mix(goanna_sky_horizon, goanna_sky_top, pow(up, 0.45));
 		// The sun in that sky, disc and halo, the same shape and weights
@@ -337,15 +483,19 @@ void fragment() {
 		// true of the sky and a double image on near geometry, whose parallax
 		// the march below handles properly. The wave normal is already in the
 		// direction, so the reflection ripples for free.
+		// Past a side of the screen the column at the edge stands in (see
+		// edge_keep), so only the top and bottom fade.
 		if (goanna_render_water_reflections > 0.5 && dir.z < 0.0) {
 			vec4 sclip = PROJECTION_MATRIX * vec4(dir, 1.0);
 			vec2 suv = (sclip.xy / sclip.w) * 0.5 + 0.5;
-			if (suv == clamp(suv, vec2(0.0), vec2(1.0))
+			float skeep = edge_keep(suv.x);
+			suv.x = clamp(suv.x, 0.002, 0.998);
+			if (suv.y >= 0.0 && suv.y <= 1.0 && skeep > 0.0
 					&& texture(depth_tex, suv).r < 1e-6) {
-				vec2 sfade = smoothstep(vec2(0.0), vec2(0.08), suv)
-						* (1.0 - smoothstep(vec2(0.92), vec2(1.0), suv));
+				float sfade = smoothstep(0.0, 0.08, suv.y)
+						* (1.0 - smoothstep(0.92, 1.0, suv.y));
 				reflected = mix(reflected, texture(screen_tex, suv).rgb,
-						sfade.x * sfade.y);
+						sfade * skeep);
 			}
 		}
 
@@ -361,20 +511,24 @@ void fragment() {
 				if (clip.w <= 0.0)
 					break;
 				vec2 uv = (clip.xy / clip.w) * 0.5 + 0.5;
-				if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0)
+				if (uv.y < 0.0 || uv.y > 1.0)
 					break;
+				float keep = edge_keep(uv.x);
+				if (keep <= 0.0)
+					break;
+				uv.x = clamp(uv.x, 0.002, 0.998);
 				float scene = scene_distance(uv, INV_PROJECTION_MATRIX);
 				float ray = -p.z;
 				// Behind the depth buffer, but not so far behind that the ray
 				// passed through open space in front of something distant.
 				if (ray > scene && ray - scene < step_len * 4.0) {
-					// A screen hit is only as good as the edge it sits near:
-					// fade it out rather than cutting it off, and let the sky
-					// take over.
-					vec2 fade2 = smoothstep(vec2(0.0), vec2(0.1), uv)
-							* (1.0 - smoothstep(vec2(0.9), vec2(1.0), uv));
+					// A hit near the top or bottom of the screen fades to
+					// the sky rather than cutting off; past a side, the
+					// edge column stands in (edge_keep).
+					float fade_y = smoothstep(0.0, 0.1, uv.y)
+							* (1.0 - smoothstep(0.9, 1.0, uv.y));
 					reflected = mix(reflected, texture(screen_tex, uv).rgb,
-							fade2.x * fade2.y * march_keep);
+							fade_y * keep * march_keep);
 					break;
 				}
 			}
@@ -394,9 +548,27 @@ void fragment() {
 	// light has already been through the lamp once, so neither is shaded
 	// again here.
 	EMISSION = (transmitted * (1.0 - refl_mix) + reflected * refl_mix) * (1.0 - wake_foam);
+	// From under the water, the sky is seen only through a window straight
+	// up: light from above bends down into a cone of about 48.6 degrees
+	// either side of the vertical. Past it the underside is a mirror of the
+	// water below, total internal reflection, which through the murk is the
+	// murk's colour. The waves tilt the surface, so the window's edge
+	// breaks up into their pattern, which is what ties the underside to the
+	// top. Before, the whole underside showed the sky through it.
+	if (!FRONT_FACING) {
+		float cos_i = clamp(dot(NORMAL, VIEW), 0.0, 1.0);
+		float sin_i = sqrt(1.0 - cos_i * cos_i);
+		// sin of the critical angle is 1 / 1.33, 0.752.
+		float tir = smoothstep(0.71, 0.79, sin_i);
+		EMISSION = mix(EMISSION, goanna_water_fog, tir);
+		ALBEDO *= 1.0 - tir;
+	}
 	ALPHA = clamp(0.9 + 0.1 * fres, 0.0, 1.0);
 	METALLIC = 0.0;
-	SPECULAR = 0.4 + 0.6 * fres;
+	// Godot's own specular reflects its sky, which is above the surface.
+	// From under it that lit the underside with the sky at every grazing
+	// angle, brighter than any murk it was meant to be mirroring.
+	SPECULAR = FRONT_FACING ? 0.4 + 0.6 * fres : 0.0;
 	// a touch rougher from below, again to stop the mirror aliasing
 	ROUGHNESS = FRONT_FACING ? 0.04 : 0.13;
 }

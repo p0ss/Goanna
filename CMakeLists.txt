@@ -63,6 +63,7 @@ add_library(goanna SHARED
     src/goanna_entities.cpp
     src/goanna_icon_raster.cpp
     src/goanna_item_icons.cpp
+    src/goanna_ripples.cpp
     src/iris/iris_glsl.cpp
     src/iris/iris_pack.cpp
     src/iris/goanna_iris_effect.cpp
@@ -195,6 +196,12 @@ add_executable(goanna_surface_test EXCLUDE_FROM_ALL src/goanna_surface_test.cpp)
 target_include_directories(goanna_surface_test PRIVATE src)
 target_link_libraries(goanna_surface_test PRIVATE goanna luanti_core)
 
+# The ripple field's physics: still water sleeps, a moving body pushes a
+# crest ahead and leaves a V, banks stop waves, the sponge soaks them up.
+add_executable(goanna_ripples_test EXCLUDE_FROM_ALL src/goanna_ripples_test.cpp)
+target_include_directories(goanna_ripples_test PRIVATE src)
+target_link_libraries(goanna_ripples_test PRIVATE goanna godot::cpp)
+
 # Leaves side by side through the transplanted mesh generator: one face per
 # shared plane. Links godot-cpp for the same reason as the icon test.
 add_executable(goanna_allfaces_test EXCLUDE_FROM_ALL src/goanna_allfaces_test.cpp)
@@ -220,6 +227,7 @@ set(GOANNA_NATIVE_TESTS
     goanna_shared_cache_test
     goanna_mining_cycle_test
     goanna_radial_form_test
+    goanna_ripples_test
     goanna_schedule_test
     goanna_surface_test
 )

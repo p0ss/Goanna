@@ -171,3 +171,31 @@ goanna_wake_area={
 "type": "vec4",
 "value": Vector4(0, 0, 0, 0)
 }
+goanna_ripple_height={
+"type": "sampler2D",
+"value": ""
+}
+goanna_ripple_area={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
+goanna_ripple_state={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
+goanna_water_absorption={
+"type": "vec3",
+"value": Vector3(0.45, 0.11, 0.05)
+}
+goanna_water_tint={
+"type": "vec3",
+"value": Vector3(1, 1, 1)
+}
+goanna_water_fog={
+"type": "vec3",
+"value": Vector3(0.1, 0.3, 0.35)
+}
+goanna_water_sea={
+"type": "vec4",
+"value": Vector4(1, 1, 0, 0)
+}

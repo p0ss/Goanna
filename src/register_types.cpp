@@ -2,6 +2,7 @@
 // Copyright (C) 2026 the Goanna contributors
 
 #include "goanna_client.h"
+#include "goanna_ripples.h"
 #include "iris/goanna_iris_effect.h"
 
 #include <gdextension_interface.h>
@@ -16,6 +17,7 @@ static void initialize_goanna(ModuleInitializationLevel p_level) {
         return;
     GDREGISTER_CLASS(goanna::GoannaClient);
     GDREGISTER_CLASS(goanna::GoannaIrisEffect);
+    GDREGISTER_CLASS(goanna::GoannaRipples);
 }
 
 static void uninitialize_goanna(ModuleInitializationLevel p_level) {

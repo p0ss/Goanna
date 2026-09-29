@@ -2125,6 +2125,47 @@ String GoannaClient::node_name_at(const Vector3 &pos) {
     return String::utf8(m_session->nodeDefs()->get(n).name.c_str());
 }
 
+Color GoannaClient::node_tile_color(const String &node_name) {
+    if (!m_session)
+        return Color(0, 0, 0, 0);
+    const NodeDefManager *ndef = m_session->nodeDefs();
+    content_t id;
+    if (!ndef->getId(node_name.utf8().get_data(), id))
+        return Color(0, 0, 0, 0);
+    const ContentFeatures &f = ndef->get(id);
+    if (!f.visuals)
+        return Color(0, 0, 0, 0);
+    const TileLayer &l = f.visuals->tiles[0].layers[0];
+    GoannaTexture *gt = m_session->tsrc()->goannaTexture(l.texture_id);
+    video::IImage *img = !gt ? nullptr
+            : gt->isArray() ? gt->layerImage(l.texture_layer_idx) : gt->image();
+    if (!img)
+        return Color(0, 0, 0, 0);
+    const auto dim = img->getDimension();
+    double r = 0.0, g = 0.0, b = 0.0, a = 0.0;
+    auto lin = [](u32 c) { return std::pow(c / 255.0, 2.2); };
+    for (u32 y = 0; y < dim.Height; ++y)
+        for (u32 x = 0; x < dim.Width; ++x) {
+            const video::SColor p = img->getPixel(x, y);
+            // Weighted by coverage, so a cut-out's holes do not darken it.
+            const double w = p.getAlpha() / 255.0;
+            r += lin(p.getRed()) * w;
+            g += lin(p.getGreen()) * w;
+            b += lin(p.getBlue()) * w;
+            a += w;
+        }
+    if (a <= 0.0)
+        return Color(0, 0, 0, 0);
+    Color out((float)(r / a), (float)(g / a), (float)(b / a),
+            (float)(a / ((double)dim.Width * dim.Height)));
+    if (l.has_color) {
+        out.r *= (float)lin(l.color.getRed());
+        out.g *= (float)lin(l.color.getGreen());
+        out.b *= (float)lin(l.color.getBlue());
+    }
+    return out;
+}
+
 // The shader the near mesh would give the node's top face, by the same
 // tests keyForIrr applies (arrayPathTile, the array having built) and the
 // one arrayTileKey and materialFor make between the two array shaders: the
@@ -8641,6 +8682,7 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("take_dug_nodes"), &GoannaClient::take_dug_nodes);
     ClassDB::bind_method(D_METHOD("take_particles"), &GoannaClient::take_particles);
     ClassDB::bind_method(D_METHOD("node_name_at", "pos"), &GoannaClient::node_name_at);
+    ClassDB::bind_method(D_METHOD("node_tile_color", "node_name"), &GoannaClient::node_tile_color);
     ClassDB::bind_method(D_METHOD("top_surface_at", "pos"), &GoannaClient::top_surface_at);
     ClassDB::bind_method(D_METHOD("resolve_nodemeta_text", "context", "text"),
             &GoannaClient::resolve_nodemeta_text);
