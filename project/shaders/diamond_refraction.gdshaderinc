@@ -7,8 +7,8 @@ uniform float diamond_refraction : hint_range(0.0, 1.0) = 1.0;
 
 vec2 goanna_diamond_screen_ray(vec3 position, vec3 eye, vec3 normal,
 		float thickness, vec2 screen_uv, vec2 pixel, mat4 projection,
-		mat4 inverse_projection) {
-	vec3 ray = refract(-eye, normal, 1.0 / 2.42);
+		mat4 inverse_projection, float eta) {
+	vec3 ray = refract(-eye, normal, eta);
 	vec3 bent = position + ray * thickness / max(-dot(ray, normal), 0.2);
 	vec3 straight = position - eye * thickness / max(dot(eye, normal), 0.2);
 	vec4 a = projection * vec4(bent, 1.0);

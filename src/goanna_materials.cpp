@@ -227,10 +227,53 @@ bool nameHasWord(const std::string &node_name, const char *word) {
     return false;
 }
 
-int diamondTextureMode(const std::string &texture) {
-    if (texture.find("diamond") == std::string::npos)
-        return 0;
-    return texture.find("diamond_block") != std::string::npos ? 2 : 1;
+int gemTextureCode(const std::string &texture) {
+    // Diamond as it always was: any mention, solid for diamond_block.
+    if (texture.find("diamond") != std::string::npos)
+        return texture.find("diamond_block") != std::string::npos ? 2 : 1;
+    // The rest by word, because Mineclonia names textures after their mod:
+    // mcl_amethyst_calcite_block is calcite, and mesecons is wiring.
+    std::vector<std::string> words;
+    std::string word;
+    for (char c : texture) {
+        if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')) {
+            word += c;
+        } else if (!word.empty()) {
+            words.push_back(word);
+            word.clear();
+        }
+    }
+    if (!word.empty())
+        words.push_back(word);
+    auto has = [&](const char *w) {
+        return std::find(words.begin(), words.end(), w) != words.end();
+    };
+    auto starts = [&](const char *stem, const char *not_stem) {
+        for (const std::string &w : words)
+            if (w.compare(0, std::strlen(stem), stem) == 0 &&
+                    (!not_stem || w.compare(0, std::strlen(not_stem), not_stem) != 0))
+                return true;
+        return false;
+    };
+    // Something else that shares a gem's name: a lamp, glass, ice, a glowing
+    // (emissive) variant, a plant, or another stone in the gem's mod.
+    for (const char *other : {"lamp", "glass", "tinted", "ice", "glow", "post", "calcite",
+                 "bud", "cluster", "torch", "wire"})
+        if (has(other))
+            return 0;
+    const bool block = has("block") || has("budding");
+    if (starts("emerald", nullptr))
+        return (block ? 2 : 1) | (1 << 2);
+    if (starts("amethyst", nullptr))
+        return (block ? 2 : 1) | (2 << 2);
+    if (starts("mese", "mesecon") && !starts("meselamp", nullptr))
+        return (block ? 2 : 1) | (3 << 2);
+    // Quartz is a gem only as ore or the loose item; the blocks, bricks,
+    // pillars and chiseled faces are polished stone.
+    if (has("quartz") && !block && !has("bricks") && !has("chiseled") && !has("pillar") &&
+            !has("smooth"))
+        return 1 | (4 << 2);
+    return 0;
 }
 
 std::map<std::string, std::string> readTextureMap(const std::string &csv_path) {

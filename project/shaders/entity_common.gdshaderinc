@@ -40,6 +40,7 @@ uniform float sky_light_strength : hint_range(0.0, 1.0) = 1.0;
 // arrive here directly. Used only where the pack ships no authored _s, which
 // for Mineclonia's items is always.
 uniform int mat_class = 0;
+// A gem code, mode | kind << 2; see diamond.gdshaderinc.
 uniform int diamond_mode = 0;
 uniform vec2 diamond_texels = vec2(16.0);
 uniform float class_smoothness : hint_range(0.0, 1.0) = 0.0;
@@ -172,7 +173,8 @@ void fragment() {
 				* (1.0 - smoothstep(0.35, 1.25, gem_px));
 		gem_normal = normalize(gem_normal * 2.0 - 1.0 + vec3(slope * 0.45 * cut, 0.0)) * 0.5 + 0.5;
 	}
-	v_diamond = goanna_diamond_surface(tex.rgb, gem, gem_px, gem_normal, ROUGHNESS, METALLIC, SPECULAR);
+	v_gem_optics = goanna_gem_optics(diamond_mode);
+	v_diamond = goanna_diamond_surface(diamond_mode, tex.rgb, gem, gem_px, gem_normal, ROUGHNESS, METALLIC, SPECULAR);
 	NORMAL_MAP = gem_normal;
 	NORMAL_MAP_DEPTH = 1.0;
 	v_diamond_axis = TANGENT;
@@ -188,9 +190,9 @@ void fragment() {
 			vec4 neighbour = textureGrad(albedo, UV + offset * texel, gem_dx, gem_dy);
 			surround += goanna_diamond_mask(neighbour.rgb, diamond_mode) * neighbour.a * 0.25;
 		}
-		float thickness = diamond_mode == 2 ? 3.0 : mix(0.4, 2.5, surround);
+		float thickness = goanna_gem_mode(diamond_mode) == 2 ? 3.0 : mix(0.4, 2.5, surround);
 		vec3 eye = vec3(dot(VIEW, TANGENT), dot(VIEW, BINORMAL), max(dot(VIEW, NORMAL), 0.05));
-		vec2 travel = goanna_diamond_travel(eye, thickness);
+		vec2 travel = goanna_diamond_travel(eye, thickness, diamond_mode);
 		vec4 middle = textureGrad(albedo, UV + travel * texel * 0.45, gem_dx, gem_dy);
 		vec4 rear = textureGrad(albedo, UV + travel * texel, gem_dx, gem_dy);
 		middle.rgb = mix(tex.rgb, middle.rgb, goanna_diamond_mask(middle.rgb, diamond_mode) * middle.a);
@@ -198,7 +200,7 @@ void fragment() {
 		vec3 tint = vertex_tint ? COLOR.rgb : vec3(1.0);
 		vec3 original = ALBEDO;
 		vec3 scatter;
-		vec3 inner = goanna_diamond_interior(tex.rgb * tint, middle.rgb * tint,
+		vec3 inner = goanna_diamond_interior(diamond_mode, tex.rgb * tint, middle.rgb * tint,
 				rear.rgb * tint, thickness, gem, gem_px, travel, ALBEDO, scatter);
 		// The existing node-light fill and any authored emission must follow
 		// the new body colour, not leave an opaque painted layer on top.
@@ -220,16 +222,18 @@ void fragment() {
 			+ BINORMAL * (gem_normal.y * 2.0 - 1.0)
 			+ NORMAL * (gem_normal.z * 2.0 - 1.0));
 	float rim = pow(1.0 - clamp(dot(crystal_normal, VIEW), 0.0, 1.0), 5.0);
-	float opacity = mix(diamond_mode == 2 ? 0.32 : 0.24, 0.9, rim);
-	ALPHA = mix(1.0, opacity, gem * diamond_strength * diamond_transparency);
+	float opacity = mix(goanna_gem_mode(diamond_mode) == 2 ? 0.32 : 0.24, 0.9, rim);
+	ALPHA = mix(1.0, opacity, gem * diamond_strength * diamond_transparency
+			* GEM_CLARITY[goanna_gem_kind(diamond_mode)]);
 	if (gem > 0.001 && diamond_refraction > 0.001 && ALPHA < 0.999) {
 		// Derivatives recover the source texel's world size on both item
 		// tiles and armour atlases, including the wield model's scaling.
 		float texel_size = max(length(gem_position_dx), length(gem_position_dy))
 				/ max(gem_px, 0.0001);
-		float depth = clamp(texel_size * (diamond_mode == 2 ? 6.0 : 3.5), 0.005, 0.5);
+		float depth = clamp(texel_size * (goanna_gem_mode(diamond_mode) == 2 ? 6.0 : 3.5), 0.005, 0.5);
 		vec2 refracted_uv = goanna_diamond_screen_ray(VERTEX, VIEW, crystal_normal,
-				depth, SCREEN_UV, 1.0 / VIEWPORT_SIZE, PROJECTION_MATRIX, INV_PROJECTION_MATRIX);
+				depth, SCREEN_UV, 1.0 / VIEWPORT_SIZE, PROJECTION_MATRIX, INV_PROJECTION_MATRIX,
+				GEM_ETA[goanna_gem_kind(diamond_mode)]);
 		vec3 behind = textureLod(diamond_scene, refracted_uv, 0.0).rgb;
 		// Compose prelit transmission once, retaining the surface highlights.
 		// At zero strength this is exactly the previous alpha-blended path.

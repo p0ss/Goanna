@@ -138,6 +138,37 @@ int main() {
                     && !nameHasWord("farming:rice", "ice") && !nameHasWord("x_farming:icefishing_1", "ice"),
             "iceland, rice and icefishing are not ice");
     check(!nameHasWord("ice:stone", "ice"), "the mod prefix is not part of the name");
+
+    // Gem codes are mode | kind << 2; diamond is kind 0 and unchanged.
+    check(gemTextureCode("default_diamond_block.png") == 2
+                    && gemTextureCode("default_stone.png^default_mineral_diamond.png") == 1
+                    && gemTextureCode("default_tool_diamondpick.png") == 1,
+            "diamond codes are what they were");
+    check(gemTextureCode("mcl_core_emerald_ore.png") == (1 | 1 << 2)
+                    && gemTextureCode("mcl_core_emerald_block.png") == (2 | 1 << 2)
+                    && gemTextureCode("mcl_core_emerald.png") == (1 | 1 << 2),
+            "emerald ore, block and item");
+    check(gemTextureCode("mcl_amethyst_amethyst_block.png") == (2 | 2 << 2)
+                    && gemTextureCode("mcl_amethyst_budding_amethyst.png") == (2 | 2 << 2)
+                    && gemTextureCode("mcl_amethyst_amethyst_shard.png") == (1 | 2 << 2)
+                    && gemTextureCode("amethyst_block.png") == (2 | 2 << 2),
+            "amethyst blocks and shard");
+    check(gemTextureCode("mcl_amethyst_calcite_block.png") == 0
+                    && gemTextureCode("mcl_amethyst_tinted_glass.png") == 0
+                    && gemTextureCode("mcl_amethyst_amethyst_cluster.png") == 0,
+            "calcite, tinted glass and clusters in the amethyst mod are not amethyst");
+    check(gemTextureCode("default_stone.png^default_mineral_mese.png") == (1 | 3 << 2)
+                    && gemTextureCode("default_mese_block.png") == (2 | 3 << 2)
+                    && gemTextureCode("default_tool_mesepick.png") == (1 | 3 << 2),
+            "mese ore, block and tools");
+    check(gemTextureCode("mesecons_wire_on.png") == 0 && gemTextureCode("default_meselamp.png") == 0
+                    && gemTextureCode("everness_ancient_emerald_ice.png") == 0,
+            "mesecons, the mese lamp and emerald ice are not gems");
+    check(gemTextureCode("mcl_nether_quartz_ore.png") == (1 | 4 << 2)
+                    && gemTextureCode("mcl_nether_quartz.png") == (1 | 4 << 2)
+                    && gemTextureCode("mcl_nether_quartz_block_side.png") == 0
+                    && gemTextureCode("mcl_backstone_quartz_bricks.png") == 0,
+            "quartz ore and item, not its polished blocks");
     if (g_failures) {
         std::printf("goanna_array_route_test: %d failure(s)\n", g_failures);
         return 1;

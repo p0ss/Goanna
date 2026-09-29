@@ -111,10 +111,13 @@ MaterialClass classifyName(const std::string &name);
 // iceland_moss and rice do not; pane_flat says pane, panel does not.
 bool nameHasWord(const std::string &node_name, const char *word);
 
-// Diamond treatment is independent of the bulk class: ore is still stone.
-// 0 ordinary texture, 1 cyan gem pixels, 2 solid diamond block. Inspect the
-// whole tile expression so a mineral or armour overlay is included.
-int diamondTextureMode(const std::string &texture);
+// Gem treatment is independent of the bulk class: ore is still stone. The
+// code is mode | kind << 2. Mode 0 is an ordinary texture, 1 gem pixels
+// masked out of a host (ore, tool, armour), 2 a solid gem block. Kind 0 is
+// diamond, then emerald, amethyst, mese and quartz, matching the tables in
+// project/shaders/diamond.gdshaderinc. Inspect the whole tile expression so
+// a mineral or armour overlay is included.
+int gemTextureCode(const std::string &texture);
 
 // game_texture -> pack path, from the CSV tools/mc_texture_map.py writes.
 // Empty if the path does not read.

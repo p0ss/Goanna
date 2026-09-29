@@ -287,7 +287,9 @@ void fragment() {
 	vec3 gem_normal = relief_normal * 0.5 + 0.5;
 	// Authored maps are upscaled; the gem's art remains a 16-texel tile.
 	float gem_px = max(length(uv_dx), length(uv_dy)) * 16.0;
-	v_diamond = goanna_diamond_surface(tile.rgb, gem, gem_px, gem_normal, ROUGHNESS, METALLIC, SPECULAR);
+	int gem_code = layer_diamond[layer];
+	v_gem_optics = goanna_gem_optics(gem_code);
+	v_diamond = goanna_diamond_surface(gem_code, tile.rgb, gem, gem_px, gem_normal, ROUGHNESS, METALLIC, SPECULAR);
 	relief_normal = gem_normal * 2.0 - 1.0;
 	NORMAL_MAP = gem_normal;
 	NORMAL_MAP_DEPTH = 1.0;
@@ -307,9 +309,9 @@ void fragment() {
 		}
 		vec2 edge_dist = min(fract(tile_uv), 1.0 - fract(tile_uv));
 		float block_depth = mix(0.65, 4.0, smoothstep(0.0, 0.22, min(edge_dist.x, edge_dist.y)));
-		float thickness = layer_diamond[layer] == 2 ? block_depth : mix(0.4, 1.8, surround);
+		float thickness = goanna_gem_mode(gem_code) == 2 ? block_depth : mix(0.4, 1.8, surround);
 		vec3 eye = vec3(dot(VIEW, TANGENT), dot(VIEW, BINORMAL), max(dot(VIEW, NORMAL), 0.05));
-		vec2 travel = goanna_diamond_travel(eye, thickness);
+		vec2 travel = goanna_diamond_travel(eye, thickness, gem_code);
 		vec3 middle = textureGrad(albedo_array,
 				vec3(tile_uv + travel * texel * 0.45, float(layer)), uv_dx, uv_dy).rgb;
 		vec3 rear = textureGrad(albedo_array,
@@ -317,13 +319,13 @@ void fragment() {
 		middle = mix(tile.rgb, middle, goanna_diamond_mask(middle, layer_diamond[layer]));
 		rear = mix(tile.rgb, rear, goanna_diamond_mask(rear, layer_diamond[layer]));
 		vec3 scatter;
-		vec3 inner = goanna_diamond_interior(tile.rgb * COLOR.rgb, middle * COLOR.rgb,
+		vec3 inner = goanna_diamond_interior(gem_code, tile.rgb * COLOR.rgb, middle * COLOR.rgb,
 				rear * COLOR.rgb, thickness, gem, gem_px, travel, ALBEDO, scatter);
 		v_diamond_scatter = scatter;
 		v_diamond_inner_normal = normalize(TANGENT * inner.x + BINORMAL * inner.y + NORMAL * inner.z);
 		v_diamond_interior = v_diamond * diamond_interior_strength * 0.45;
-		if (layer_diamond[layer] == 1 && diamond_ore_transmission > 0.001 && gem_px < 1.5) {
-			vec3 backed = goanna_ore_interior(tile_uv, layer, uv_dx, uv_dy,
+		if (goanna_gem_mode(gem_code) == 1 && diamond_ore_transmission > 0.001 && gem_px < 1.5) {
+			vec3 backed = goanna_ore_interior(gem_code, tile_uv, layer, uv_dx, uv_dy,
 					eye, gem_normal * 2.0 - 1.0, tile.rgb, gem_px);
 			ALBEDO = mix(ALBEDO, backed * COLOR.rgb,
 					gem * diamond_strength * diamond_interior_strength);

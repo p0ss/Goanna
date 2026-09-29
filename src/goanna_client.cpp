@@ -3094,7 +3094,7 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
                     if (plain.empty())
                         plain = lnames[i];
                     classes[(int)i] = (int)mtable.textureClass(plain);
-                    diamonds[(int)i] = diamondTextureMode(lnames[i]);
+                    diamonds[(int)i] = gemTextureCode(lnames[i]);
                     roughness_floor[(int)i] = mtable.bark_textures.count(plain) ? 0.82f : 0.0f;
                     coarse[(int)i] = m_session->tsrc()->textureCoarseness(lnames[i]);
                     // Ground top textures identified from normal soil nodes.

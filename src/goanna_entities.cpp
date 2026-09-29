@@ -127,7 +127,7 @@ Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
     // not: it is where the node light reaches an entity (the node_light
     // instance uniform EntityRenderer::sync sets), which StandardMaterial3D
     // has no way to take.
-    const int diamond_mode = diamondTextureMode(texture);
+    const int diamond_mode = gemTextureCode(texture);
     if (gt && !alpha && (!double_sided || diamond_mode != 0)) {
         if (!m_sh_entity.is_valid())
             m_sh_entity = m_root->call("load_view_shader", "res://shaders/entity.gdshader");
@@ -138,7 +138,7 @@ Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
         // Most mob skins have transparent texels, so the cut out variant is
         // the common case; see entity_scissor.gdshader.
         sm->set_shader(gt->hasAlpha() ? m_sh_entity_scissor : m_sh_entity);
-        // Only diamond items enter the blended pipeline. Holes in their
+        // Only gem items enter the blended pipeline. Holes in their
         // art are discarded; wood and armour joins remain fully opaque.
         if (diamond_mode != 0) {
             Ref<Shader> &shader = double_sided ? m_sh_diamond_double : m_sh_diamond;

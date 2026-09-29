@@ -266,6 +266,46 @@ Inventory icons remain the existing CPU-rendered art.
 See [the diamond study](perf/diamond-2026-09-29/report.md) for captures and
 validation, including live Mineclonia armour and ore.
 
+### Other gems, 2026-09-29
+
+The same treatment now covers emerald, amethyst, mese and nether quartz.
+`gemTextureCode` in `src/goanna_materials.cpp` returns mode | kind << 2,
+where the mode is as before (1 masks gem pixels out of a host, 2 is a solid
+gem block) and the kind indexes the tables at the top of
+`diamond.gdshaderinc`. Diamond is kind 0 and keeps every constant it had.
+Other gems are matched by whole word, because Mineclonia names textures
+after their mod: `mcl_amethyst_calcite_block` is calcite, and `mesecons` is
+wiring. Lamps, glass, ice, glowing variants and amethyst buds are never
+gems. Quartz is a gem as ore and as the loose item, not as the polished
+blocks.
+
+| Gem      | Mask                         | Host max | Gem p25 | Index | Clarity |
+|----------|------------------------------|---------:|--------:|------:|--------:|
+| Diamond  | min(g, b) - r (unchanged)    |   -0.019 |    0.19 |  2.42 |    1.0  |
+| Emerald  | chroma along its own colour  |    0.006 |    0.10 |  1.58 |    0.6  |
+| Amethyst | chroma along its own colour  |    0.008 |    0.31 |  1.54 |    0.55 |
+| Mese     | chroma along its own colour  |    0.077 |    0.36 |  1.55 |    0.35 |
+| Quartz   | luminance - 2 x chroma       |   -0.078 |    0.16 |  1.54 |    0.25 |
+
+The masks were measured on the games' own art in linear colour: gem pixels
+from the ore minus its host stone (or the mineral overlay's alpha), and
+host pixels from stone, deepslate, netherrack and the tool handle's stick.
+The host maximum sits below each mask's lower edge. Quartz is white on red
+netherrack, so a colour direction pointed at the rock; brightness without
+colour separates it instead. Mese is fictional and borrows citrine's
+optics. Specular follows each index, so the lower index gems reflect less
+than diamond.
+
+Clarity scales how much the gem lets through: the ore recess's view of the
+rock, the mix between its inner planes, and an item's transparency. Mese
+and quartz at full clarity turned the colour of the rock behind them.
+
+`project/gem_study.tscn` renders every kind as ore, block and item from
+the games' art, and can render the same scene with an older copy of the
+shaders. See [the gem study](perf/gems-2026-09-29/report.md). Glowing and
+blended gems (caverealms, Everness crystal blocks, `too_many_stones`) take
+the emissive and glass paths and are not covered.
+
 ## How LabPBR maps onto glTF 2.0
 
 Upstream discussion favours taking glTF 2.0 material semantics as the
