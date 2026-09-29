@@ -1,0 +1,8 @@
+GLASS 'default_glass_detail.png' cull=true
+GLASS 'default_glass.png' cull=true
+GLASS 'default_obsidian_glass_detail.png' cull=true
+GLASS 'default_obsidian_glass.png' cull=true
+GLASS 'doors_door_glass.png' cull=false
+GLASS 'doors_door_obsidian_glass.png' cull=false
+GLASS 'xpanes_edge_obsidian.png' cull=true
+GLASS 'xpanes_edge.png' cull=true

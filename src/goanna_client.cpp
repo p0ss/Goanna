@@ -2896,7 +2896,21 @@ void GoannaClient::buildFakeLiquidTextures() {
             continue;
         const bool fake_liquid = (f.drawtype == NDT_LIQUID || f.drawtype == NDT_FLOWINGLIQUID)
                 && f.liquid_type == LIQUID_NONE;
-        const bool ice = itemgroup_get(f.groups, "ice") > 0;
+        // Ice the game draws see-through: the ice group, or else a blended
+        // (or fake liquid) block whose name or footstep says ice, which is
+        // how Asuna's two thin_ice nodes say it. Opaque ice stays opaque and
+        // takes the Ice class on the array path; making it see-through
+        // would show what a vanilla client hides.
+        const std::string &footstep = f.sound_footstep.name;
+        const std::string ice_step = "_ice_footstep";
+        const bool block_shape = f.drawtype == NDT_NORMAL || f.drawtype == NDT_NODEBOX ||
+                f.drawtype == NDT_LIQUID || f.drawtype == NDT_GLASSLIKE ||
+                f.drawtype == NDT_GLASSLIKE_FRAMED || f.drawtype == NDT_GLASSLIKE_FRAMED_OPTIONAL;
+        const bool ice = itemgroup_get(f.groups, "ice") > 0 ||
+                ((f.alpha == ALPHAMODE_BLEND || fake_liquid) && block_shape &&
+                        (nameHasWord(f.name, "ice") || (footstep.size() > ice_step.size() &&
+                                footstep.compare(footstep.size() - ice_step.size(), ice_step.size(),
+                                        ice_step) == 0)));
         // Use the liquid definition and its light, never a texture filename.
         // Resolved visual tiles include pack overrides and extracted animation
         // frames; flowing tops/sides live in special_tiles, not tiledef.
@@ -2938,15 +2952,8 @@ void GoannaClient::buildFakeLiquidTextures() {
         // clouds and spawners use it), and glowing nodes keep the emissive
         // path, so this asks for a glass group or the word in the name.
         if (f.visuals && f.alpha == ALPHAMODE_CLIP && f.light_source < 6 && !ice) {
-            const std::string item = f.name.substr(f.name.find(':') + 1);
-            auto word = [&](const char *w) {
-                for (size_t at = item.find(w); at != std::string::npos; at = item.find(w, at + 1))
-                    if (at == 0 || item[at - 1] == '_')
-                        return true;
-                return false;
-            };
             if (itemgroup_get(f.groups, "glass") > 0 || itemgroup_get(f.groups, "material_glass") > 0 ||
-                    word("glass") || word("pane"))
+                    nameHasWord(f.name, "glass") || nameHasWord(f.name, "pane"))
                 each_texture([&](const TileLayer &, u32 id) { m_clear_glass_tex.insert(id); });
         }
         if (!fake_liquid && !ice)
@@ -2993,6 +3000,7 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
         m_sh_leaves = load_view_shader("res://shaders/waving_leaves.gdshader");
         m_sh_plants = load_view_shader("res://shaders/waving_plants.gdshader");
         m_sh_glass = load_view_shader("res://shaders/glass.gdshader");
+        m_sh_glass_double = load_view_shader("res://shaders/glass_double_sided.gdshader");
         m_sh_ice = load_view_shader("res://shaders/ice.gdshader");
         m_sh_array = load_view_shader("res://shaders/nodes_array.gdshader");
         m_sh_array_scissor = load_view_shader("res://shaders/nodes_array_scissor.gdshader");
@@ -3241,10 +3249,12 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
         // which has no sky fill, and the fill is most of the light at dusk
         // and all of it at night, so they drew black beside lit ground.
         // The plants shader with waving off lights them as the ground is.
-        if (!key.backface_culling)
+        // Clear glass takes the glass shader either way; a door's glass is
+        // one of the double sided tiles.
+        if (m_clear_glass_tex.count(key.texture_id))
+            sh = key.backface_culling ? m_sh_glass : m_sh_glass_double;
+        else if (!key.backface_culling)
             sh = m_sh_plants;
-        else if (m_clear_glass_tex.count(key.texture_id))
-            sh = m_sh_glass;
         break;
     case TILE_MATERIAL_ALPHA:
     case TILE_MATERIAL_PLAIN_ALPHA:
@@ -3268,7 +3278,7 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
     if (liquid_material && m_lava_tex.count(key.texture_id))
         sh = m_sh_lava;
     if (getenv("GOANNA_DEBUG_WHITE") && sh.is_valid())
-        UtilityFunctions::print((sh == m_sh_lava ? "LAVA " : sh == m_sh_ice ? "ICE " : sh == m_sh_glass ? "GLASS " : sh == m_sh_plants ? "PLANTS " : sh == m_sh_leaves ? "LEAVES " : "WATER "),
+        UtilityFunctions::print((sh == m_sh_lava ? "LAVA " : sh == m_sh_ice ? "ICE " : sh == m_sh_glass || sh == m_sh_glass_double ? "GLASS " : sh == m_sh_plants ? "PLANTS " : sh == m_sh_leaves ? "LEAVES " : "WATER "),
                 "'", String(m_session->tsrc()->getTextureName(key.texture_id).c_str()), "' mtype=", (int)mtype,
                 " cull=", key.backface_culling, " texvalid=", tex.is_valid());
     if (sh.is_valid() && tex.is_valid() && (emissive == 0 || sh == m_sh_lava)) {
@@ -3307,7 +3317,8 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
         // mirror. Foliage was left out of this until now, so a pack's maps
         // reached the ground and the walls and stopped at the treeline, and
         // every mat_ slider moved one and not the other.
-        if (sh == m_sh_glass || sh == m_sh_ice || sh == m_sh_leaves || sh == m_sh_plants) {
+        if (sh == m_sh_glass || sh == m_sh_glass_double || sh == m_sh_ice || sh == m_sh_leaves ||
+                sh == m_sh_plants) {
             Ref<Texture2D> nrm_tex;
             Ref<Texture2D> spc_tex;
 			const char *no_pbr_env = getenv("GOANNA_NO_PBR");
@@ -8146,16 +8157,40 @@ int GoannaClient::poll_blocks(int max_blocks) {
                 GoannaTexture *key_tex = key.array_texture
                         ? m_session->tsrc()->goannaTexture(key.texture_id) : nullptr;
                 const bool split_tiles = key_tex && key_tex->hasAlpha();
+                // A buffer that left its array (a double sided tile, or a
+                // special shader's) is still every face upstream merged
+                // under that array, since TileLayer equality ignores the
+                // layer, and keyForIrr could only name its first vertex's
+                // image. Each face takes its own layer's image instead; a
+                // cracked buffer keeps the composited crack image it has.
+                const video::SMaterial &bmat = buf->getMaterial();
+                GoannaTexture *off_array = !key.array_texture && !key.crack_overlay &&
+                        !bmat.getTexture(MapBlockMesh::TEXTURE_LAYER_CRACK)
+                        ? dynamic_cast<GoannaTexture *>(bmat.getTexture(0)) : nullptr;
+                if (off_array && (!off_array->isArray() || off_array->layerNames().size() < 2))
+                    off_array = nullptr;
                 // Clear glass leaves the array for the glass shader, on its
                 // layer's own image; see buildFakeLiquidTextures.
-                std::map<u16, u32> glass_layers;
+                std::map<u16, u32> layer_images;
                 auto tile_key = [&](const u16 *tri) -> MaterialKey {
+                    const u16 tl = (u16)((v[tri[0]].Aux & GOANNA_VERTEX_TEXTURE_MASK) + layer_base);
+                    if (off_array) {
+                        auto im = layer_images.find(tl);
+                        if (im == layer_images.end()) {
+                            const auto &names = off_array->layerNames();
+                            im = layer_images.emplace(tl, tl < names.size()
+                                    ? m_session->tsrc()->getTextureId(names[tl]) : 0).first;
+                        }
+                        MaterialKey own = key;
+                        if (im->second)
+                            own.texture_id = im->second;
+                        return own;
+                    }
                     if (!split_tiles)
                         return key;
-                    const u16 tl = (u16)((v[tri[0]].Aux & GOANNA_VERTEX_TEXTURE_MASK) + layer_base);
-                    auto gl = glass_layers.find(tl);
-                    if (gl == glass_layers.end())
-                        gl = glass_layers.emplace(tl, clearGlassLayer(key_tex, tl)).first;
+                    auto gl = layer_images.find(tl);
+                    if (gl == layer_images.end())
+                        gl = layer_images.emplace(tl, clearGlassLayer(key_tex, tl)).first;
                     if (gl->second) {
                         MaterialKey glass = key;
                         glass.array_texture = false;
@@ -8164,29 +8199,31 @@ int GoannaClient::poll_blocks(int max_blocks) {
                     }
                     return arrayTileKey(key, key_tex, tl);
                 };
+                // Vertices are shared within a buffer, so each destination
+                // keeps its own remap rather than duplicating every
+                // triangle's three. A destination is glowing or not, by
+                // material: the opaque and cut-out halves of an array, clear
+                // glass, or each layer's own image off the array.
+                std::map<std::pair<int, uint64_t>, std::map<u32, int>> remap;
                 auto slot_of = [](int g, const MaterialKey &k) {
-                    return g * 3 + (!k.array_texture ? 2 : k.opaque_tile ? 1 : 0);
+                    return std::make_pair(g, k.hash());
                 };
-                // Vertices are shared within a buffer, so each destination keeps
-                // its own remap rather than duplicating every triangle's three.
-                // Six destinations: glowing or not, by opaque tile, cut-out
-                // tile or clear glass.
-                std::map<u32, int> remap[6];
                 for (u32 t = 0; t + 2 < ni; t += 3) {
                     const u16 tri[3] = { idx16[t], idx16[t + 1], idx16[t + 2] };
                     const content_t owner = owner_content(tri);
                     const bool glows = !glow_casts && (v[tri[0]].Aux & GOANNA_VERTEX_GLOWS);
                     const MaterialKey tkey = tile_key(tri);
                     const int g = glows ? 1 : 0;
-                    const int slot = slot_of(g, tkey);
+                    const auto slot = slot_of(g, tkey);
                     const float block_id = owner == CONTENT_IGNORE ? 0.0f : (float)mtable.blockOf(owner);
                     SurfAccum &tacc = g ? glow_groups[tkey.hash()] : groups[tkey.hash()];
                     tacc.key = tkey;
                     tacc.is_array = key.array_texture;
                     for (int k = 0; k < 3; ++k) {
                         const u32 sv = tri[k];
-                        auto found = remap[slot].find(sv);
-                        if (found != remap[slot].end()) {
+                        std::map<u32, int> &into = remap[slot];
+                        auto found = into.find(sv);
+                        if (found != into.end()) {
                             tacc.idx.push_back(found->second);
                             continue;
                         }
@@ -8239,7 +8276,7 @@ int GoannaClient::poll_blocks(int max_blocks) {
                             else if (vl.sky == 0)
                                 ++dl_sky_dark;
                         }
-                        remap[slot][sv] = di;
+                        into[sv] = di;
                         tacc.idx.push_back(di);
                     }
                 }
@@ -8256,7 +8293,7 @@ int GoannaClient::poll_blocks(int max_blocks) {
                         const u16 tri[3] = { idx16[t], idx16[t + 1], idx16[t + 2] };
                         const int g = !glow_casts && (v[tri[0]].Aux & GOANNA_VERTEX_GLOWS) ? 1 : 0;
                         const MaterialKey tkey = tile_key(tri);
-                        const int slot = slot_of(g, tkey);
+                        const auto slot = slot_of(g, tkey);
                         const SurfAccum &src = g ? glow_groups[tkey.hash()] : groups[tkey.hash()];
                         for (int k = 0; k < 3; ++k) {
                             auto found = crack_remap.find(tri[k]);

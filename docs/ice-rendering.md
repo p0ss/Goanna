@@ -5,7 +5,9 @@ both sides of that interface to hide transparency sorting errors, leaving
 an open block when the camera went underwater. Water still gives up its
 coplanar face; ice owns the boundary.
 
-Transparent ice-group nodes use `ice.gdshader`. The body colour now comes
+Transparent ice uses `ice.gdshader`: the `ice` group, or a blended or fake
+liquid block whose node name or footstep says ice (Asuna's `thin_ice`
+nodes; see `materials.md`). Opaque ice stays opaque. The body colour now comes
 from procedural internal structure. The surface retains the accepted normal
 and roughness maps, tile-derived facets and backlighting. The old tile no
 longer paints the ice's colour or internal inclusions. Relief changes

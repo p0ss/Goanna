@@ -6,6 +6,7 @@
 #include "nodedef.h"
 
 #include <algorithm>
+#include <cstring>
 #include <fstream>
 
 namespace goanna {
@@ -131,6 +132,13 @@ MaterialClass classifyNode(const NodeDefManager *ndef, content_t c, int *signal)
     const ContentFeatures &f = ndef->get(c);
     if (f.name.empty() || f.name == "unknown" || f.name == "air" || f.name == "ignore")
         return MaterialClass::None;
+    // 0. A name that says ice. Ice is the one material a footstep routinely
+    // gets wrong: Kythen gives its glacier, sea and pressure ice
+    // kythen_hard_footstep, which named them stone.
+    if (nameHasWord(f.name, "ice")) {
+        if (signal) *signal = 4;
+        return MaterialClass::Ice;
+    }
     // 1. footstep
     const std::string &fs = f.sound_footstep.name;
     const std::string pre = "default_", post = "_footstep";
@@ -203,6 +211,20 @@ MaterialClass classifyName(const std::string &raw) {
         if (contains(name, nc.token))
             return nc.cls;
     return MaterialClass::None;
+}
+
+bool nameHasWord(const std::string &node_name, const char *word) {
+    const size_t colon = node_name.find(':');
+    const size_t from = colon == std::string::npos ? 0 : colon + 1;
+    const size_t len = std::strlen(word);
+    for (size_t at = node_name.find(word, from); at != std::string::npos;
+            at = node_name.find(word, at + 1)) {
+        const bool starts = at == from || node_name[at - 1] == '_';
+        const bool ends = at + len == node_name.size() || node_name[at + len] == '_';
+        if (starts && ends)
+            return true;
+    }
+    return false;
 }
 
 int diamondTextureMode(const std::string &texture) {

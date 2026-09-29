@@ -16,6 +16,7 @@
 
 #include "goanna_client.h"
 #include "goanna_image_hooks.h"
+#include "goanna_materials.h"
 #include "goanna_textures.h"
 
 using namespace goanna;
@@ -119,6 +120,24 @@ int main() {
     mixed->drop();
     opaque->drop();
     anim->drop();
+
+    // Clear glass and see-through ice leave the array by name, so the name
+    // test must take whole words only. The cases come from the node lists
+    // of minetest_game, Mineclonia, VoxeLibre, Kythen and Asuna.
+    check(nameHasWord("default:glass", "glass") && nameHasWord("doors:door_glass_a", "glass")
+                    && nameHasWord("xpanes:pane_flat", "pane")
+                    && nameHasWord("mcl_panes:pane_natural", "pane"),
+            "glass and panes are recognised by name");
+    check(!nameHasWord("kythen:moana_plaited_panel", "pane")
+                    && !nameHasWord("vessels:glasses", "glass"),
+            "a longer word is not the material");
+    check(nameHasWord("ethereal:thin_ice", "ice") && nameHasWord("kythen:siku_ice_window", "ice")
+                    && nameHasWord("mcl_core:ice", "ice"),
+            "ice is recognised anywhere among the words");
+    check(!nameHasWord("kythen:crop_norse_iceland_moss_1", "ice")
+                    && !nameHasWord("farming:rice", "ice") && !nameHasWord("x_farming:icefishing_1", "ice"),
+            "iceland, rice and icefishing are not ice");
+    check(!nameHasWord("ice:stone", "ice"), "the mod prefix is not part of the name");
     if (g_failures) {
         std::printf("goanna_array_route_test: %d failure(s)\n", g_failures);
         return 1;

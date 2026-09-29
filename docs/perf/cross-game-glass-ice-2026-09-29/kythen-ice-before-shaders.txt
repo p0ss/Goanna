@@ -1,0 +1,3 @@
+GLASS 'kythen_glass_detail.png' cull=true
+GLASS 'kythen_glass.png' cull=true
+GLASS 'kythen_mitteleuropa_forest_glass.png' cull=true

@@ -147,6 +147,37 @@ for the array. The checks are `goanna_array_route_test` (native) and
 declare every uniform the client sets). Neither renders; whether the
 relief now shows on sand, stone and planks in play has not been seen.
 
+### Glass, ice and faces that leave the array, 2026-09-29
+
+Clear glass is cut out rather than blended in every game checked
+(minetest_game, Mineclonia, VoxeLibre, Kythen and Asuna), so it stayed on
+the array path with no reflection. A cut-out tile now takes the glass
+shader when its node is glass: a `glass` or `material_glass` group, or
+`glass` or `pane` as a whole word of the node name (`nameHasWord`). The
+glasslike drawtype is not evidence on its own: Asuna draws quicksand, mud,
+clouds and termite blocks with it, and Mineclonia its spawner. Glowing
+nodes keep the emissive path. Double sided glass, such as a door, takes
+`glass_double_sided.gdshader`, which shares `glass_common.gdshaderinc`.
+
+A face that leaves its array is still in a buffer holding every tile
+upstream merged under that array, because `TileLayer` equality ignores the
+layer. `keyForIrr` only sees the buffer's first vertex, so the choice is
+made per face in the near mesher's `tile_key`: clear glass by
+`clearGlassLayer`, and every face of a buffer that left its array (a double
+sided tile, or a special shader's) by its own layer's image. Before this,
+such a buffer drew all its faces with the first face's image: in
+minetest_game the yellow dandelion drew as a tulip, the jungle sapling as a
+sapling and the viola as a geranium, and in Asuna a tulip as a rose.
+
+See-through ice takes the ice shader by the `ice` group, or when a blended
+or fake liquid block names ice in its node name or footstep, which is how
+Asuna's two `thin_ice` nodes say it. The node classifier now puts `ice` in
+a name ahead of the footstep, because Kythen gives its ice
+`kythen_hard_footstep`, which classed it as stone. `tools/pbr_bake.py` has
+its own classifier and was not changed.
+
+Rendered checks are in `perf/cross-game-glass-ice-2026-09-29/`.
+
 ## Diamond surfaces
 
 Diamond blocks, ore, held tools and worn armour share

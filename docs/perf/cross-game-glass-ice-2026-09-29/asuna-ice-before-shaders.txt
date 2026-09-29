@@ -1,0 +1,7 @@
+GLASS 'default_glass_detail.png' cull=true
+GLASS 'default_glass.png' cull=true
+GLASS 'default_ice.png^[opacity:80' cull=true
+GLASS 'everness_glass_detail.png' cull=true
+GLASS 'everness_glass.png' cull=true
+GLASS 'tms_tourmaline_green.png' cull=true
+ICE 'everness_frosted_ice_translucent.png' cull=true

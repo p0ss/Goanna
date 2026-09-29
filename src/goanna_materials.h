@@ -106,6 +106,11 @@ MaterialClass classifyNode(const NodeDefManager *ndef, content_t c, int *signal 
 // rather than nodes, so the other three signals do not exist for them.
 MaterialClass classifyName(const std::string &name);
 
+// Whether a node name, after its mod prefix, has word as one of its
+// underscore separated words: thin_ice and ice_window say ice,
+// iceland_moss and rice do not; pane_flat says pane, panel does not.
+bool nameHasWord(const std::string &node_name, const char *word);
+
 // Diamond treatment is independent of the bulk class: ore is still stone.
 // 0 ordinary texture, 1 cyan gem pixels, 2 solid diamond block. Inspect the
 // whole tile expression so a mineral or armour overlay is included.
