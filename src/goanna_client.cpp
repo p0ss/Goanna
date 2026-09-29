@@ -1827,7 +1827,9 @@ Dictionary GoannaClient::step_interact(double dt, bool dig, bool place, bool pla
     // which the local player's own dig animation reads.
     p->control.dig = dig;
     p->control.place = place;
-    in.eye_pos_bs = p->getPosition() + p->getEyeOffset();
+    // From the rendered camera (see set_view_offset); Godot Z is Luanti -Z.
+    in.eye_pos_bs = p->getPosition() + p->getEyeOffset()
+            + v3f(m_view_offset.x, m_view_offset.y, -m_view_offset.z) * BS;
     // Luanti camera direction from pitch/yaw (Camera::update)
     float pitch = p->getPitch(), yaw = p->getYaw();
     v3f dir(0, 0, 1);
@@ -3718,6 +3720,7 @@ void GoannaClient::sync_entities(double dt) {
     if (!m_entities) {
         m_entities = std::make_unique<EntityRenderer>(this);
         m_entities->setShowBody(m_show_body);
+        m_entities->setThirdPerson(m_third_person);
         m_entities->setAutoBump(m_auto_bump);
     }
     std::lock_guard<std::mutex> lk(m_session->mapLock());
@@ -3735,6 +3738,22 @@ void GoannaClient::set_arm_swing(float s) {
     m_arm_swing = std::clamp(s, 0.0f, 1.0f);
     if (m_entities)
         m_entities->setArmSwing(m_arm_swing);
+}
+
+void GoannaClient::set_third_person(bool on) {
+    m_third_person = on;
+    if (m_entities)
+        m_entities->setThirdPerson(on);
+}
+
+bool GoannaClient::node_walkable_at(const Vector3 &pos) {
+    if (!m_session)
+        return false;
+    std::lock_guard<std::mutex> lk(m_session->mapLock());
+    const v3s16 p((s16)std::floor(pos.x + 0.5f), (s16)std::floor(pos.y + 0.5f),
+            (s16)std::floor(-pos.z + 0.5f));
+    const MapNode n = m_session->map().getNode(p);
+    return m_session->nodeDefs()->get(n).walkable;
 }
 
 void GoannaClient::set_show_body(bool show) {
@@ -8578,6 +8597,9 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("entity_animation", "id"), &GoannaClient::entity_animation);
     ClassDB::bind_method(D_METHOD("render_stats"), &GoannaClient::render_stats);
     ClassDB::bind_method(D_METHOD("set_show_body", "show"), &GoannaClient::set_show_body);
+    ClassDB::bind_method(D_METHOD("set_view_offset", "offset"), &GoannaClient::set_view_offset);
+    ClassDB::bind_method(D_METHOD("set_third_person", "on"), &GoannaClient::set_third_person);
+    ClassDB::bind_method(D_METHOD("node_walkable_at", "pos"), &GoannaClient::node_walkable_at);
     ClassDB::bind_method(D_METHOD("set_arm_swing", "s"), &GoannaClient::set_arm_swing);
     ClassDB::bind_method(D_METHOD("show_body"), &GoannaClient::show_body);
     ClassDB::bind_method(D_METHOD("wield_item_name"), &GoannaClient::wield_item_name);

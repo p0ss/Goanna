@@ -2282,7 +2282,9 @@ func _draw_hud() -> void:
 	var st: Dictionary = client.hud_state()
 	var flags: int = st.get("flags", 0xffff)
 	# crosshair
-	if flags & HUD_FLAG_CROSSHAIR and window == null:
+	var main_for_hud := _main_node()
+	var crosshair_off: bool = main_for_hud != null and bool(main_for_hud.get("crosshair_hidden"))
+	if flags & HUD_FLAG_CROSSHAIR and window == null and not crosshair_off:
 		var c := vs / 2.0
 		var l := 8.0 * hud_scale
 		hud.draw_line(c - Vector2(l, 0), c + Vector2(l, 0), Color(1, 1, 1, 0.8), 2.0)

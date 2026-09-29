@@ -127,6 +127,8 @@ public:
     // step; used to keep the local player's head out of the first-person
     // camera. No effect if the model has no such joint.
     void setShrinkJoint(const std::string &name);
+    // Off in third person, where the whole head should be seen.
+    void setShrinkEnabled(bool on) { m_shrink_enabled = on; }
     // Turn a named joint each step, in its parent's space, on top of the
     // animation and any server bone override: the first-person arm swing.
     // Relative rather than absolute because the model may bake a half turn
@@ -142,6 +144,7 @@ private:
     OldJointTransforms m_old_transforms;
     std::vector<core::matrix4> m_globals;
     std::optional<u32> m_shrink_joint;
+    bool m_shrink_enabled = true;
     std::optional<u32> m_rot_override_joint;
     std::string m_rot_override_name;
     v3f m_rot_override_euler;

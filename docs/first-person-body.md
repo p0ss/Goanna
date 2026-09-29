@@ -181,10 +181,20 @@ either way, with "Goanna: could not load model" from `ModelLoader::load` or
 
 ## What is still wrong
 
-Looking straight down, your own torso and the top of your arms fill the
-lower half of the frame. That is what a body at the camera looks like and
-every first person body does it, but the neck is an open hole because the
-head is shrunk rather than removed, and you can see into it.
+Looking straight down used to fill the lower half of the frame with the top
+of your own torso and an open neck, because the camera pitched about the
+eye, and Mineclonia's eye height (1.5) is the model's shoulder line. Since
+2026-09-29 the camera leans out over the body as the gaze drops, 0.45 nodes
+forward and a little up when looking straight down (`_body_lean` in
+`main.gd`), so it shows the front of the shirt and an arm rather than the
+inside of the neck. The legs are still mostly hidden by the chest at that
+height. The dig ray follows the camera (`set_view_offset`), as the vanilla
+client's shootline follows its camera, so the crosshair still covers what
+is pointed at.
+
+The third person views (`F7`) draw the whole body, head included, whatever
+"Show own body" says: `EntityRenderer::setThirdPerson` turns the head
+shrink off.
 
 The swing is smaller than a vanilla client's, because a vanilla client also
 gets the server's mining animation from the moment the button goes down,

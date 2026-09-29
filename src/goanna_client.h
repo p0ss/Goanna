@@ -264,6 +264,16 @@ public:
     // First-person arm swing phase (0..1), driven from the input side.
     void set_arm_swing(float s);
     bool show_body() const { return m_show_body; }
+    // Where the rendered camera sits relative to the player's eye, in Godot
+    // units: the view bob and the first person lean (main.gd). The dig and
+    // place ray starts at the camera, as the vanilla client's shootline does,
+    // so what the crosshair covers is what gets pointed at.
+    void set_view_offset(const godot::Vector3 &offset) { m_view_offset = offset; }
+    // Third person camera: draw the whole own body, head included.
+    void set_third_person(bool on);
+    // Whether the node at pos (Godot coordinates) is walkable, for pulling a
+    // third person camera in front of a wall as the vanilla client does.
+    bool node_walkable_at(const godot::Vector3 &pos);
     // Currently wielded item: its name (cheap; poll for changes), and its
     // wield mesh as {name, mesh: ArrayMesh or null, scale: Vector3}.
     godot::String wield_item_name();
@@ -1190,6 +1200,8 @@ private:
     // map stops reading flatter than one beside it that has one.
     float m_auto_bump = 0.95f;
     bool m_show_body = true;
+    bool m_third_person = false;
+    godot::Vector3 m_view_offset;
     // telemetry (EMA in milliseconds, plus last-frame counters)
     double m_ms_mesh = 0, m_ms_upload = 0, m_ms_lights = 0, m_ms_motes = 0, m_ms_entities = 0;
     int m_last_meshed = 0, m_last_queue = 0;

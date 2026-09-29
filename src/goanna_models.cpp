@@ -468,7 +468,7 @@ void ModelAnimator::step(float dt, scene::AnimSpec &anim, std::map<std::string, 
 
     // First-person: collapse the shrink joint so the head (and hat layers
     // attached to it) never block the camera.
-    if (m_shrink_joint && *m_shrink_joint < locals.size()) {
+    if (m_shrink_enabled && m_shrink_joint && *m_shrink_joint < locals.size()) {
         if (auto *t = std::get_if<core::Transform>(&locals[*m_shrink_joint]))
             t->scale *= 0.01f;
     }

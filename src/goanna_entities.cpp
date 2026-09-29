@@ -909,9 +909,9 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
         // entity: the shadow-only copy stays, so a player who does not want
         // to see their own legs still has a shadow to judge the sun by.
         if (is_self && en.skeleton)
-            en.skeleton->set_visible(m_show_body);
+            en.skeleton->set_visible(m_show_body || m_third_person);
         else if (is_self && en.visual)
-            en.visual->set_visible(m_show_body);
+            en.visual->set_visible(m_show_body || m_third_person);
         // pose: Luanti BS units, z mirrored; rotation.Y is yaw about Y
         v3f pos = obj.position();
         v3f rot = obj.rotation();
@@ -1054,6 +1054,8 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
         // skeletal animation: AnimatedMeshSceneNode::OnAnimate on the tracks
         // playing on the object's mesh
         if (en.animator) {
+            if (is_self)
+                en.animator->setShrinkEnabled(!m_third_person);
             scene::AnimSpec none;
             scene::AnimSpec *anim = obj.meshAnimation();
             en.animator->step(dt, anim ? *anim : none, obj.boneOverridesMut(), en.skeleton,

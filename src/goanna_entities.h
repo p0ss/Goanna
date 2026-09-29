@@ -66,6 +66,9 @@ public:
     // The head stays in the shadow pass through a second, shadow-only copy of
     // the mesh, so turning this off is the only thing that removes the shadow.
     void setShowBody(bool show) { m_show_body = show; }
+    // Third person camera (main.gd): the whole body, head and all, is drawn
+    // whatever show_body says, as the vanilla client draws it.
+    void setThirdPerson(bool on) { m_third_person = on; }
     // 0..1 swing phase for the first-person arm (dig chop / place bob).
     void setArmSwing(float s) { m_arm_swing = s; }
     // Diffuse-inferred normal strength for mesh surfaces with no authored
@@ -154,6 +157,7 @@ private:
     godot::Ref<godot::Shader> m_sh_diamond;
     godot::Ref<godot::Shader> m_sh_diamond_double;
     bool m_show_body = true;
+    bool m_third_person = false;
     float m_arm_swing = 0.0f;
     float m_auto_bump = 0.35f;
 };

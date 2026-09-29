@@ -926,6 +926,70 @@ func _apply_view_bob(r: Dictionary, delta: float) -> void:
 	# (both oscillate around the eye, so it reads as a gait, not a tiptoe)
 	cam.position += basis.x * (cos(_bob_phase) * amp) + Vector3.UP * (sin(_bob_phase * 2.0) * amp * 0.5)
 
+# Looking down with your own body drawn, the head tips forward over it
+# rather than turning in place. The camera sat at the eye and pitched about
+# it, so looking down put the lens where the chin had been and showed the
+# inside of the neck, the head being shrunk rather than removed
+# (docs/first-person-body.md). Leaning forward as the gaze drops, and a
+# little down, puts the eye out in front of the chest, where it would be
+# over a real body, so looking down shows the front of the body and the
+# feet. Nothing changes looking level or up, or with the body hidden.
+# Third person, the vanilla client's F7 cycle: first person, behind the
+# player, in front of it looking back. Holding Alt turns the camera around
+# the player instead of turning the player, and Alt with the wheel brings it
+# in. It never goes further out than the vanilla camera's 2.75 nodes, and it
+# stops short of walkable nodes as that camera does (Camera::update), so it
+# reaches nothing a vanilla player's third person view cannot.
+enum { CAMERA_FIRST, CAMERA_BEHIND, CAMERA_FRONT }
+const THIRD_PERSON_MAX := 2.75
+const THIRD_PERSON_MIN := 1.0
+var camera_mode := CAMERA_FIRST
+var orbit_yaw := 0.0
+var orbit_pitch := 0.0
+var orbit_distance := THIRD_PERSON_MAX
+# Read by game_ui.gd: the crosshair marks where the head points, which is
+# only on screen when the camera looks the way the player does.
+var crosshair_hidden := false
+
+func _cycle_camera_mode() -> void:
+	camera_mode = (camera_mode + 1) % 3
+	orbit_yaw = 0.0
+	orbit_pitch = 0.0
+	client.set_third_person(camera_mode != CAMERA_FIRST)
+	crosshair_hidden = camera_mode == CAMERA_FRONT
+
+func _place_third_person(head: Vector3) -> void:
+	var cam_yaw := yaw + orbit_yaw
+	var cam_pitch := clampf(pitch + orbit_pitch, -89.0, 89.0)
+	if camera_mode == CAMERA_FRONT:
+		cam_yaw += 180.0
+		cam_pitch = -cam_pitch
+	var look := Basis.from_euler(Vector3(deg_to_rad(cam_pitch), deg_to_rad(cam_yaw), 0))
+	var back: Vector3 = look.z   # the camera's own backward axis
+	# Walk out from the head a tenth of a node at a time and stop half a node
+	# short of the first walkable node, the vanilla camera's rule.
+	var dist := orbit_distance
+	var d := 0.1
+	while d <= orbit_distance:
+		if client.node_walkable_at(head + back * d):
+			dist = maxf(d - 0.5, 0.0)
+			break
+		d += 0.1
+	cam.position = head + back * dist
+	cam.rotation_degrees = Vector3(cam_pitch, cam_yaw, 0)
+	crosshair_hidden = camera_mode == CAMERA_FRONT \
+			or absf(orbit_yaw) > 0.5 or absf(orbit_pitch) > 0.5
+
+const BODY_LEAN_FORWARD := 0.45   # nodes, looking straight down
+const BODY_LEAN_DOWN := -0.06     # negative lifts the eye
+func _body_lean() -> Vector3:
+	if not client.show_body() or pitch >= 0.0:
+		return Vector3.ZERO
+	var down := deg_to_rad(minf(-pitch, 90.0))
+	var fwd := Vector3(-sin(deg_to_rad(yaw)), 0.0, -cos(deg_to_rad(yaw)))
+	return fwd * (BODY_LEAN_FORWARD * sin(down)) \
+			+ Vector3.DOWN * (BODY_LEAN_DOWN * (1.0 - cos(down)))
+
 func _unhandled_input(event: InputEvent) -> void:
 	# Same reason as the movement keys above: while a benchmark run is
 	# recording, nothing outside the run may turn the camera. Escape is in
@@ -940,6 +1004,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			place_down = event.pressed
 			if event.pressed:
 				place_pressed = true
+		elif event.pressed and camera_mode != CAMERA_FIRST and Input.is_key_pressed(KEY_ALT) \
+				and (event.button_index == MOUSE_BUTTON_WHEEL_UP or event.button_index == MOUSE_BUTTON_WHEEL_DOWN):
+			orbit_distance = clampf(orbit_distance + (-0.25 if event.button_index == MOUSE_BUTTON_WHEEL_UP else 0.25),
+					THIRD_PERSON_MIN, THIRD_PERSON_MAX)
 		elif event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_UP:
 			var n := _hotbar_count()
 			_set_wield((wield + n - 1) % n)
@@ -955,9 +1023,18 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and event.keycode == KEY_0 and _hotbar_count() > 9:
 		_set_wield(9)
 	if event is InputEventMouseMotion and pointer_captured(event):
-		yaw -= event.relative.x * mouse_sensitivity
 		var dy: float = event.relative.y * mouse_sensitivity * (1.0 if invert_mouse else -1.0)
-		pitch = clamp(pitch + dy, -89, 89)
+		if camera_mode != CAMERA_FIRST and Input.is_key_pressed(KEY_ALT):
+			# Alt held in third person turns the camera around the player,
+			# not the player.
+			orbit_yaw -= event.relative.x * mouse_sensitivity
+			orbit_pitch = clamp(orbit_pitch + dy, -80.0, 80.0)
+		else:
+			yaw -= event.relative.x * mouse_sensitivity
+			pitch = clamp(pitch + dy, -89, 89)
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F7 \
+			and not fly_mode:
+		_cycle_camera_mode()
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
 		set_pointer_captured(not pointer_captured())
 	# The free camera is not the game's fly privilege. It stops step_player
@@ -1214,7 +1291,15 @@ func _process(delta: float) -> void:
 		if r.has("eye_pos"):
 			cam.position = r["eye_pos"]
 			cam.rotation_degrees = Vector3(pitch, yaw, 0)
-			_apply_view_bob(r, delta)
+			if camera_mode == CAMERA_FIRST:
+				_apply_view_bob(r, delta)
+				cam.position += _body_lean()
+				# The dig ray follows the camera, bob and lean included.
+				client.set_view_offset(cam.position - r["eye_pos"])
+			else:
+				_place_third_person(r["eye_pos"])
+				# From the head, as the vanilla client shoots in third person.
+				client.set_view_offset(Vector3.ZERO)
 		# The triggers join the mouse buttons, and the shoulder and D-pad
 		# buttons do what the wheel and Luanti's drop key do.
 		var pad_dig := false
@@ -1234,9 +1319,11 @@ func _process(delta: float) -> void:
 					_set_wield(posmod(wield + steps, _hotbar_count()))
 				if drops > 0:
 					_drop_wielded(bool(keys["sneak"]))
-		var dig := (dig_down or test_dig or pad_dig) and not ui_blocks
-		var plc := (place_down or pad_place) and not ui_blocks
-		var plc_pressed := (place_pressed or test_plc_pressed or pad_place_pressed) and not ui_blocks
+		# The vanilla client points at nothing in the front view.
+		var can_point := not ui_blocks and camera_mode != CAMERA_FRONT
+		var dig := (dig_down or test_dig or pad_dig) and can_point
+		var plc := (place_down or pad_place) and can_point
+		var plc_pressed := (place_pressed or test_plc_pressed or pad_place_pressed) and can_point
 		if OS.get_environment("GOANNA_DIGTEST") != "":
 			# look down at the ground in front (hand-diggable, timed) and use slot 4 (light14) to place
 			pitch = -55.0

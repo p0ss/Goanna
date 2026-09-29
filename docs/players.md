@@ -97,6 +97,14 @@ it instead, the same as a right click. `T` opens chat, `F` toggles the free
 camera, and Escape opens the pause menu. The exact bindings and camera
 options can be changed in Settings.
 
+`F7` cycles the camera the way the vanilla client does: first person,
+behind the player, then in front looking back. In either third person view,
+hold `Alt` and move the mouse to turn the camera around the player without
+turning the player, and hold `Alt` with the mouse wheel to bring it closer.
+It goes no further out than the vanilla client's third person camera, 2.75
+nodes, and it stops short of walls. In the front view nothing can be dug or
+placed, as in the vanilla client.
+
 A game controller follows upstream Luanti's layout, and outside play its
 left stick moves a cursor for menus and forms. It has not been tried with a
 real controller yet, including on a Steam Deck. See
