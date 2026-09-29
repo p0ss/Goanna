@@ -1,0 +1,5 @@
+PLANTS 'flowers_waterlily_bottom.png' mtype=7 cull=true
+PLANTS 'flowers_waterlily.png' mtype=7 cull=true
+WATER 'default_water_flowing_animated.png^[verticalframe:16:0' mtype=8 cull=false
+WATER 'default_water_flowing_animated.png^[verticalframe:16:0' mtype=8 cull=true
+WATER 'default_water_source_animated.png^[verticalframe:16:0' mtype=8 cull=false

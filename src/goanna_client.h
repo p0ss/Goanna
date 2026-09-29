@@ -1179,6 +1179,7 @@ private:
     std::set<u32> m_fake_liquid_tex;
     std::set<u32> m_ice_tex;
     std::set<u32> m_clear_glass_tex; // cut-out glass drawn by the glass shader
+    std::set<u32> m_liquid_tex; // tiles of nodes that draw as a liquid
     struct LavaTile { u8 level; u32 surface_texture; };
     std::map<u32, LavaTile> m_lava_tex; // source artwork shared by the liquid family
     bool m_fake_liquid_built = false;

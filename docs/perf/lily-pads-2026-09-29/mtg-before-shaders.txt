@@ -1,0 +1,2 @@
+WATER 'flowers_waterlily_bottom.png' mtype=7 cull=true
+WATER 'flowers_waterlily.png' mtype=7 cull=true

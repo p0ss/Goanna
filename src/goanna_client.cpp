@@ -1303,6 +1303,7 @@ void GoannaClient::connect_to(const String &host, int port, const String &player
     m_fake_liquid_tex.clear();
     m_ice_tex.clear();
     m_clear_glass_tex.clear();
+    m_liquid_tex.clear();
     m_lava_tex.clear();
     m_fake_liquid_built = false;
     // Icon jobs point into the outgoing session's meshes and images.
@@ -2934,6 +2935,11 @@ void GoannaClient::buildFakeLiquidTextures() {
         };
         if (f.isLiquid() && f.visuals && f.light_source < 6)
             each_texture([&](const TileLayer &, u32 id) { calm.insert(id); });
+        // What may take the water shader. waving = 3 gives any node the
+        // waving liquid material, and lily pads and hanging vines use it to
+        // bob with the water; they are not water.
+        if ((f.drawtype == NDT_LIQUID || f.drawtype == NDT_FLOWINGLIQUID) && f.visuals)
+            each_texture([&](const TileLayer &, u32 id) { m_liquid_tex.insert(id); });
         if (f.isLiquid() && f.light_source >= 6 && f.visuals) {
             const auto &source = ndef->get(f.liquid_alternative_source_id);
             const u32 source_texture = source.visuals
@@ -3230,13 +3236,18 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
     case TILE_MATERIAL_WAVING_LIQUID_TRANSPARENT:
     case TILE_MATERIAL_WAVING_LIQUID_BASIC:
         // A solid using the liquid drawtype needs a frozen surface, not
-        // water animation or glass's screen-space refraction.
-        if (!m_fake_liquid_tex.count(key.texture_id))
+        // water animation or glass's screen-space refraction. A node that
+        // only waves like a liquid (a lily pad) is a plant.
+        if (m_fake_liquid_tex.count(key.texture_id)) {
+            if (m_ice_tex.count(key.texture_id))
+                sh = m_sh_ice;
+            else if (!m_solid_ice)
+                sh = m_sh_glass;
+        } else if (m_liquid_tex.count(key.texture_id)) {
             sh = m_sh_water;
-        else if (m_ice_tex.count(key.texture_id))
-            sh = m_sh_ice;
-        else if (!m_solid_ice)
-            sh = m_sh_glass;
+        } else {
+            sh = m_sh_plants;
+        }
         break;
     case TILE_MATERIAL_WAVING_LEAVES:
         sh = m_sh_leaves; break;
@@ -3302,8 +3313,12 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
         bool waving = (mtype == TILE_MATERIAL_WAVING_LIQUID_TRANSPARENT ||
                 mtype == TILE_MATERIAL_WAVING_LIQUID_BASIC || mtype == TILE_MATERIAL_WAVING_LEAVES ||
                 mtype == TILE_MATERIAL_WAVING_PLANTS);
+        // Plant sway is not the bob a liquid-waving node asks for, so a lily
+        // pad on the plants shader keeps still.
+        const bool liquid_waving = mtype == TILE_MATERIAL_WAVING_LIQUID_TRANSPARENT ||
+                mtype == TILE_MATERIAL_WAVING_LIQUID_BASIC;
         if (sh == m_sh_water || sh == m_sh_leaves || sh == m_sh_plants)
-            sm->set_shader_parameter("waving", waving);
+            sm->set_shader_parameter("waving", waving && !(sh == m_sh_plants && liquid_waving));
         // Water shades by distance, not by tier: the near mesh runs the same
         // flatten curve as its far tier material, so wherever the near mesh
         // ends the far tier continues the very same functions of distance
