@@ -1,0 +1,95 @@
+{
+	"diamond_surfaces": [
+		{
+			"diamond_mode": 1.0,
+			"has_normal": true,
+			"mesh_tangents": true,
+			"path": "/root/Main/@GoannaClient@3/@Node3D@165/@Node3D@357/@Skeleton3D@354/@MeshInstance3D@353",
+			"position": "(0.0, 0.88, -1.0)",
+			"shader": "res://shaders/entity_diamond_double_sided.gdshader",
+			"texture_size": "(64.0, 32.0)"
+		},
+		{
+			"diamond_mode": 1.0,
+			"has_normal": true,
+			"mesh_tangents": true,
+			"path": "/root/Main/@GoannaClient@3/@Node3D@165/@Node3D@357/@Skeleton3D@356/@MeshInstance3D@355",
+			"position": "(0.0, 0.88, -1.0)",
+			"shader": "res://shaders/entity_diamond_double_sided.gdshader",
+			"texture_size": "(64.0, 32.0)"
+		},
+		{
+			"diamond_mode": 1.0,
+			"has_normal": true,
+			"mesh_tangents": true,
+			"path": "/root/Main/@GoannaClient@3/@Node3D@183/@Node3D@361/@MeshInstance3D@360",
+			"position": "(-0.328283, 1.795727, -0.576527)",
+			"shader": "res://shaders/entity_diamond.gdshader",
+			"texture_size": "(256.0, 256.0)"
+		},
+		{
+			"diamond_mode": 1.0,
+			"has_normal": true,
+			"mesh_tangents": true,
+			"path": "/root/Main/@GoannaClient@3/@Node3D@395/@Node3D@397/@MeshInstance3D@396",
+			"position": "(-1.649913, 0.701563, -0.39348)",
+			"shader": "res://shaders/entity_diamond.gdshader",
+			"texture_size": "(16.0, 16.0)"
+		},
+		{
+			"diamond_mode": 1.0,
+			"has_normal": true,
+			"mesh_tangents": true,
+			"path": "/root/Main/@GoannaClient@3/@Node3D@398/@Node3D@400/@MeshInstance3D@399",
+			"position": "(1.576641, 0.8, -0.305415)",
+			"shader": "res://shaders/entity_diamond.gdshader",
+			"texture_size": "(256.0, 256.0)"
+		}
+	],
+	"dropped_entities": [
+		{
+			"frame": -1.0,
+			"id": 46.0,
+			"mesh": "",
+			"name": "__builtin:item",
+			"position": "(-1.649913, 0.701563, -0.39348)",
+			"rotation_y": 0.0,
+			"visual": 6.0
+		},
+		{
+			"frame": -1.0,
+			"id": 47.0,
+			"mesh": "",
+			"name": "__builtin:item",
+			"position": "(1.576641, 0.8, -0.305415)",
+			"rotation_y": 0.0,
+			"visual": 6.0
+		},
+		{
+			"frame": -1.0,
+			"id": 152.0,
+			"mesh": "",
+			"name": "__builtin:item",
+			"position": "(-9.2984, -88.50768, 36.2984)",
+			"rotation_y": 0.0,
+			"visual": 6.0
+		},
+		{
+			"frame": -1.0,
+			"id": 153.0,
+			"mesh": "",
+			"name": "__builtin:item",
+			"position": "(-9.2984, -88.54161, 36.2984)",
+			"rotation_y": 0.0,
+			"visual": 6.0
+		}
+	],
+	"loose_diamond_basis": {
+		"fallback_tangent": [
+			-0.0000152592547237873,
+			-1.0,
+			0.0000152592547237873
+		],
+		"texture_u_direction": "(1.0, 0.0, 0.0)"
+	}
+}

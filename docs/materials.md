@@ -211,6 +211,21 @@ double-sided transmission variant when the server's player model requires
 it; entities already marked alpha-blended by the server retain their previous
 material path.
 
+Diamond entities reconstruct their tangent frame from the rendered surface
+and its UVs. Luanti's item and skinned model streams omit tangents, while
+terrain supplies them. Godot fills in a fallback frame which need not match
+the UVs: the inspected loose diamond had a vertical tangent for horizontal
+U. Without this correction the normal map and facet tilt are misaligned.
+The frame follows skin deformation and mirrored UVs, using Godot's -V
+binormal convention. Narrow square bevels follow source-art colour changes
+to give native armour and loose diamonds the edge highlights of the ore
+relief. They fade as texels become unresolved and retain the cyan mask.
+Items also use a deeper refractive path, 3.5 source texels, while held blocks
+retain their previous six-texel path. Held and dropped items share this
+shader through the same item-mesh material binding. See the
+[item and armour comparison](perf/diamond-items-2026-09-29/index.html),
+including real dropped entities.
+
 The mask assumes cyan diamond art and familiar tile/player-atlas scales.
 Unusually recoloured packs, blue non-diamond parts in a combined armour
 texture, and other atlas layouts need an authored semantic mask in future.

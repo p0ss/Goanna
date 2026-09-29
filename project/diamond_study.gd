@@ -10,6 +10,7 @@ var environment: Environment
 var materials: Array[ShaderMaterial] = []
 var pack := "res://../pbr_packs/mineclonia/textures/"
 var armour_dir := ""
+var core_dir := ""
 
 
 func _image(path: String) -> Image:
@@ -166,8 +167,12 @@ func _ready() -> void:
 	if not armour_dir.is_empty():
 		_display(_material("mcl_armor_inv_chestplate_diamond", false, true, 1, armour_dir),
 			Vector3(1.0, -1.15, 0), false, "Diamond chestplate")
-		_display(_material("mcl_armor_inv_helmet_diamond", false, true, 1, armour_dir),
-			Vector3(2.9, -1.15, 0), false, "Diamond helmet")
+		if core_dir.is_empty():
+			_display(_material("mcl_armor_inv_helmet_diamond", false, true, 1, armour_dir),
+				Vector3(2.9, -1.15, 0), false, "Diamond helmet")
+	if not core_dir.is_empty():
+		_display(_material("default_diamond", false, true, 1, core_dir),
+			Vector3(2.9, -1.15, 0), false, "Loose diamond")
 
 
 func shot(path: String) -> Image:
@@ -368,5 +373,37 @@ func capture_ore(directory: String) -> Dictionary:
 		var after := await shot(directory.path_join("ore-recess-%d.png" % (angle + 1)))
 		checks["ore_recess_visible_%d" % angle] = before.get_data() != after.get_data()
 	FileAccess.open(directory.path_join("ore-checks.json"), FileAccess.WRITE).store_string(
+		JSON.stringify(checks, "\t"))
+	return checks
+
+
+func capture_item_basis(directory: String, previous_code: String) -> Dictionary:
+	DirAccess.make_dir_recursive_absolute(directory)
+	var generated := await shot(directory.path_join("generated-tangents.png"))
+	# Match the live item/armour streams, which omit mesh tangents.
+	for mesh in viewport.get_children():
+		if not mesh is MeshInstance3D or not mesh.material_override is ShaderMaterial:
+			continue
+		if not "entity" in mesh.material_override.shader.resource_path:
+			continue
+		var arrays: Array = mesh.mesh.surface_get_arrays(0)
+		arrays[Mesh.ARRAY_TANGENT] = null
+		var without := ArrayMesh.new()
+		without.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+		mesh.mesh = without
+	var repaired := await shot(directory.path_join("repaired.png"))
+	var checks := {"missing_tangents_matches_generated": generated.get_data() == repaired.get_data()}
+	var previous := Shader.new()
+	previous.code = "shader_type spatial;\nrender_mode blend_mix, cull_back, diffuse_burley, specular_schlick_ggx;\nuniform float diamond_transparency = 1.0;\n#define GOANNA_DIAMOND_TRANSMISSION\n" + previous_code
+	var originals := {}
+	for mat in materials:
+		if "entity" in mat.shader.resource_path:
+			originals[mat] = mat.shader
+			mat.shader = previous
+	var before := await shot(directory.path_join("previous.png"))
+	checks["repair_changes_live_mesh_render"] = before.get_data() != repaired.get_data()
+	for mat in originals:
+		mat.shader = originals[mat]
+	FileAccess.open(directory.path_join("basis-checks.json"), FileAccess.WRITE).store_string(
 		JSON.stringify(checks, "\t"))
 	return checks

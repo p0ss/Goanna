@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Diamond tools, armour and dropped items</title>
+<style>
+body{margin:32px auto;padding:0 20px;max-width:1280px;background:#101820;color:#e5edf3;font:17px/1.5 system-ui}h1,h2{font-weight:550}img{width:100%;display:block}button{font:inherit;padding:8px 16px;background:#244352;color:inherit;border:1px solid #628294;cursor:pointer}button[aria-pressed=true]{background:#487084}p{max-width:960px}a{color:#9edcff}
+</style>
+<h1>Diamond tools, armour and dropped items</h1>
+<p>Corrected texture-aligned surface directions, crisp square facet edges
+and deeper refraction on diamond items. The wall material is unchanged.</p>
+<h2>Real dropped diamond</h2>
+<p>The ordinary dropped item entity in Mineclonia, at its normal scale.
+The detached camera is close to it at FOV 30.</p>
+<img src="live-dropped-diamond.png" alt="Loose diamond on the stone floor with bright facets and refracted stone behind it">
+<h2>Dropped diamond pick</h2>
+<img src="live-dropped-pick.png" alt="Dropped diamond pick with a solid wooden handle and translucent faceted head">
+<h2>Equipped armour</h2>
+<img src="live-armour.png" alt="Live diamond armour with crisp facets over the player's clothing">
+<h2>Held pick</h2>
+<img src="live-held-pick.png" alt="Equipped diamond pick beside the ore wall">
+<h2>Offline material comparison</h2>
+<p>Both images use the same camera, lamp and item meshes without supplied
+tangents. Only the entity shader changes. The bottom-right card uses the
+same native loose-diamond texture as the dropped item above.</p>
+<p><button id="before">Previous</button>
+<button id="after" aria-pressed="true">Repaired facets</button></p>
+<img id="comparison" src="repaired.png" alt="Offline comparison of the repaired diamond item materials">
+<h2>Refraction check</h2>
+<img src="refracted.png" alt="Checkerboard background refracted through diamond items while handles stay opaque">
+<p><a href="report.md">Validation and limitations</a></p>
+<script>
+function show(after){document.querySelector('#comparison').src=after?'repaired.png':'previous.png';document.querySelector('#before').setAttribute('aria-pressed',String(!after));document.querySelector('#after').setAttribute('aria-pressed',String(after));}
+document.querySelector('#before').onclick=()=>show(false);
+document.querySelector('#after').onclick=()=>show(true);
+</script></html>

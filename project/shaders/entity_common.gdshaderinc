@@ -60,6 +60,23 @@ void fragment() {
 		BINORMAL = -BINORMAL;
 	}
 #endif
+	// Item and skinned entity meshes arrive without tangents. Reconstruct
+	// the UV frame from the deformed surface so their normal maps and gem
+	// planes work just as they do on terrain, including mirrored armour UVs.
+	vec2 gem_dx = dFdx(UV), gem_dy = dFdy(UV);
+	vec3 gem_position_dx = dFdx(VERTEX), gem_position_dy = dFdy(VERTEX);
+	float gem_det = gem_dx.x * gem_dy.y - gem_dx.y * gem_dy.x;
+	if (diamond_mode != 0 && abs(gem_det) > 1e-12) {
+		vec3 along_u = (gem_position_dx * gem_dy.y - gem_position_dy * gem_dx.y) / gem_det;
+		vec3 along_v = (gem_position_dy * gem_dx.x - gem_position_dx * gem_dy.x) / gem_det;
+		vec3 tangent = along_u - NORMAL * dot(NORMAL, along_u);
+		if (length(tangent) > 1e-6) {
+			TANGENT = normalize(tangent);
+			vec3 across = normalize(cross(NORMAL, TANGENT));
+			// Match Godot's SurfaceTool and the node mesh: binormal is -V.
+			BINORMAL = across * (dot(across, along_v) < 0.0 ? 1.0 : -1.0);
+		}
+	}
 	v_lamp_world = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	vec4 tex = texture(albedo, UV);
 	ALBEDO = tex.rgb;
@@ -131,9 +148,30 @@ void fragment() {
 	}
 	vec3 gem_normal = has_normal ? NORMAL_MAP : vec3(0.5, 0.5, 1.0);
 	vec2 gem_size = min(vec2(textureSize(albedo, 0)), diamond_texels);
-	vec2 gem_dx = dFdx(UV), gem_dy = dFdy(UV);
-	vec3 gem_position_dx = dFdx(VERTEX), gem_position_dy = dFdy(VERTEX);
 	float gem_px = max(length(gem_dx * gem_size), length(gem_dy * gem_size));
+	if (gem > 0.001 && gem_px < 1.25) {
+		// Cut a narrow planar bevel where the source art changes colour.
+		// Native armour and loose gems lack the ore pack's carved relief;
+		// these square edges give their polished planes the same light catch.
+		vec2 cell = fract(UV * gem_size) - 0.5;
+		vec2 centre = (floor(UV * gem_size) + 0.5) / gem_size;
+		vec4 face = textureGrad(albedo, centre, gem_dx, gem_dy);
+		vec2 slope = vec2(0.0);
+		for (int axis = 0; axis < 2; axis++) {
+			vec2 direction = axis == 0 ? vec2(sign(cell.x), 0.0) : vec2(0.0, sign(cell.y));
+			vec4 neighbour = textureGrad(albedo, centre + direction / gem_size, gem_dx, gem_dy);
+			float seam = smoothstep(0.025, 0.12, length(face.rgb - neighbour.rgb) + abs(face.a - neighbour.a));
+			float coordinate = axis == 0 ? abs(cell.x) : abs(cell.y);
+			float width = max(0.025, min(gem_px, 0.18));
+			float bevel = smoothstep(0.38 - width, 0.46 + width, coordinate);
+			slope += direction * seam * bevel;
+		}
+		// Tangent Y points along -V, matching the normal-map convention.
+		slope.y = -slope.y;
+		float cut = gem * diamond_strength * normal_strength
+				* (1.0 - smoothstep(0.35, 1.25, gem_px));
+		gem_normal = normalize(gem_normal * 2.0 - 1.0 + vec3(slope * 0.45 * cut, 0.0)) * 0.5 + 0.5;
+	}
 	v_diamond = goanna_diamond_surface(tex.rgb, gem, gem_px, gem_normal, ROUGHNESS, METALLIC, SPECULAR);
 	NORMAL_MAP = gem_normal;
 	NORMAL_MAP_DEPTH = 1.0;
@@ -150,7 +188,7 @@ void fragment() {
 			vec4 neighbour = textureGrad(albedo, UV + offset * texel, gem_dx, gem_dy);
 			surround += goanna_diamond_mask(neighbour.rgb, diamond_mode) * neighbour.a * 0.25;
 		}
-		float thickness = diamond_mode == 2 ? 3.0 : mix(0.3, 1.5, surround);
+		float thickness = diamond_mode == 2 ? 3.0 : mix(0.4, 2.5, surround);
 		vec3 eye = vec3(dot(VIEW, TANGENT), dot(VIEW, BINORMAL), max(dot(VIEW, NORMAL), 0.05));
 		vec2 travel = goanna_diamond_travel(eye, thickness);
 		vec4 middle = textureGrad(albedo, UV + travel * texel * 0.45, gem_dx, gem_dy);
@@ -189,7 +227,7 @@ void fragment() {
 		// tiles and armour atlases, including the wield model's scaling.
 		float texel_size = max(length(gem_position_dx), length(gem_position_dy))
 				/ max(gem_px, 0.0001);
-		float depth = clamp(texel_size * (diamond_mode == 2 ? 6.0 : 2.0), 0.005, 0.5);
+		float depth = clamp(texel_size * (diamond_mode == 2 ? 6.0 : 3.5), 0.005, 0.5);
 		vec2 refracted_uv = goanna_diamond_screen_ray(VERTEX, VIEW, crystal_normal,
 				depth, SCREEN_UV, 1.0 / VIEWPORT_SIZE, PROJECTION_MATRIX, INV_PROJECTION_MATRIX);
 		vec3 behind = textureLod(diamond_scene, refracted_uv, 0.0).rgb;
