@@ -373,6 +373,13 @@ func _exit_tree() -> void:
 		get_viewport().screen_space_aa = grass_previous_screen_aa
 
 func _ready() -> void:
+	# Put this client first in line for the kernel's OOM killer, so that
+	# Alt+SysRq+F kills the game, and only the game, when a GPU hang has taken
+	# the desktop with it. Raising one's own score needs no privilege. It goes
+	# through sh because Godot writes files via a temporary and a rename,
+	# which /proc does not allow.
+	if OS.get_name() == "Linux":
+		OS.execute("sh", ["-c", "echo 1000 > /proc/%d/oom_score_adj" % OS.get_process_id()])
 	test_mode = OS.get_environment("GOANNA_CONTROL") != "" \
 			or OS.get_environment("GOANNA_NO_POINTER_CAPTURE") not in ["", "0"]
 	if test_mode:
