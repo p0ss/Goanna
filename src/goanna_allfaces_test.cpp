@@ -10,6 +10,14 @@
 // upward one and the pair z-fought through every tree. drawAllfacesNode now
 // keeps one face of each such pair; this checks that no plane is drawn twice
 // and that nothing else is lost.
+//
+// The same test holds water beside a dug block. A block draws its face
+// against a carved neighbour, whose holes must show something behind them;
+// water did too, and its face lay in the plane of the dug block's surface.
+// From above the water that face is only ever seen from behind and the
+// water shader drops it, but under the water it draws back faces (from in
+// there they are the surface), and the two fought: a flashing blue sheet at
+// every dig site, seen only while swimming.
 
 #include <cmath>
 #include <iostream>
@@ -24,6 +32,7 @@
 #include "goanna_image_hooks.h"
 #include "goanna_luanti_client.h"
 #include "goanna_models.h"
+#include "goanna_radial_form.h"
 #include "goanna_session.h"
 #include "goanna_textures.h"
 #include "itemdef.h"
@@ -47,6 +56,7 @@ void expect(bool condition, const std::string &message) {
 struct Quad {
     v3f centre;
     v3f normal;
+    bool liquid = false;
 };
 
 // Every quad the generator drew for the nodes placed, by centre and normal.
@@ -72,6 +82,8 @@ std::vector<Quad> meshQuads(const NodeDefManager *ndef,
                 q.centre = (buffer.vertices[i].Pos + buffer.vertices[i + 1].Pos
                         + buffer.vertices[i + 2].Pos + buffer.vertices[i + 3].Pos) / 4.0f;
                 q.normal = buffer.vertices[i].Normal;
+                q.liquid = buffer.layer.material_type == TILE_MATERIAL_LIQUID_TRANSPARENT
+                        || buffer.layer.material_type == TILE_MATERIAL_WAVING_LIQUID_TRANSPARENT;
                 quads.push_back(q);
             }
     return quads;
@@ -119,6 +131,44 @@ int main() {
     const content_t oak = add("test:oak_leaves", 1.0f);
     const content_t birch = add("test:birch_leaves", 1.0f);
     const content_t big = add("test:big_leaves", 1.3f);
+    tsrc->insertSourceImage("test_stone.png", [] {
+        video::IImage *img = goanna_create_image(video::ECF_A8R8G8B8, {16, 16});
+        img->fill(video::SColor(255, 120, 120, 120));
+        return img;
+    }());
+    tsrc->insertSourceImage("test_water.png", [] {
+        video::IImage *img = goanna_create_image(video::ECF_A8R8G8B8, {16, 16});
+        img->fill(video::SColor(160, 40, 80, 200));
+        return img;
+    }());
+    content_t stone, water;
+    {
+        ContentFeatures f;
+        f.name = "test:stone";
+        f.drawtype = NDT_NORMAL;
+        for (int i = 0; i < 6; ++i)
+            f.tiledef[i].name = "test_stone.png";
+        stone = ndef->set(f.name, std::move(f));
+    }
+    for (const bool source : {true, false}) {
+        // Water as Mineclonia's is: a source and its flowing form, blended.
+        ContentFeatures f;
+        f.name = source ? "test:water" : "test:water_flowing";
+        f.drawtype = source ? NDT_LIQUID : NDT_FLOWINGLIQUID;
+        f.liquid_type = source ? LIQUID_SOURCE : LIQUID_FLOWING;
+        f.liquid_alternative_source = "test:water";
+        f.liquid_alternative_flowing = "test:water_flowing";
+        f.param_type = CPT_LIGHT;
+        f.alpha = ALPHAMODE_BLEND;
+        for (int i = 0; i < 6; ++i) {
+            f.tiledef[i].name = "test_water.png";
+            f.tiledef[i].backface_culling = false;
+            f.tiledef_special[i].name = "test_water.png";
+        }
+        const content_t id = ndef->set(f.name, std::move(f));
+        if (source)
+            water = id;
+    }
     ndef->setNodeRegistrationStatus(true);
     NodeVisuals::fillNodeVisuals(ndef, &client, nullptr);
     expect(ndef->get(oak).drawtype == NDT_ALLFACES, "fancy leaves are not allfaces");
@@ -166,6 +216,37 @@ int main() {
     {
         auto q = meshQuads(ndef, {{v3s16(5, 0, 5), oak}, {v3s16(5, -1, 5), oak}});
         expect(q.size() == 5, "leaf over the block edge has " + std::to_string(q.size()) + " faces, not 5");
+    }
+
+    // 6. Water beside a dug block: no water face against the block, carved
+    // or not; beside open air, the water keeps its face.
+    {
+        auto waterFacing = [&](bool carved, content_t beside) {
+            CarveSnapshot snap;
+            if (carved) {
+                CarveSnapshot::Entry e;
+                e.x = 5;
+                e.y = 5;
+                e.z = 5;
+                e.damage.delta[0] = 0.4f;
+                e.damage.crater[0] = 0.3f;
+                snap.entries.push_back(e);
+            }
+            g_goanna_carve_block = carved ? &snap : nullptr;
+            auto q = meshQuads(ndef, {{v3s16(5, 5, 5), beside}, {v3s16(6, 5, 5), water},
+                    {v3s16(6, 6, 5), stone}});
+            g_goanna_carve_block = nullptr;
+            // The water's face towards -X, in the plane between the two.
+            int n = 0;
+            for (const Quad &f : q)
+                if (f.liquid && std::fabs(f.centre.X - 5.5f * BS) < 0.01f * BS)
+                    ++n;
+            return n;
+        };
+        expect(waterFacing(false, stone) == 0, "water draws a face against a whole block");
+        const int dug = waterFacing(true, stone);
+        expect(dug == 0, "water draws " + std::to_string(dug) + " face(s) against a dug block");
+        expect(waterFacing(false, CONTENT_AIR) == 1, "water beside air lost its face");
     }
 
     std::cout << "goanna_allfaces_test: " << g_checks << " checks, "

@@ -17,6 +17,9 @@
 // including submerged sides: the ice owns the water/ice interface.
 // Likewise two allfaces nodes (fancy leaves) share each face plane between
 // them, and drawAllfacesNode keeps only the upper or +X/+Z node's face.
+// A block draws its face against a carved neighbour, whose holes must show
+// something; water does not, because under the water, where its back faces
+// are drawn, that face fought the dug block's own surface.
 // Tiles also carry explicit light-source ownership
 // through batching, so thin torch meshes cannot shadow their own lights.
 // drawSolidNode and drawNodeboxNode both draw the sub node carve in place of
@@ -803,8 +806,14 @@ void MapblockMeshGenerator::drawSolidNode()
 			// node DEFINITION, so a carved neighbour still claims to be solid
 			// and this node would omit its face against it. It must not: the
 			// neighbour has holes and something has to be seen through them.
-			const bool carved_neighbour = goanna::g_goanna_carve_block &&
-					goanna::g_goanna_carve_block->find(p2.X - blockpos_nodes.X,
+			// But not water. Its face would lie in the plane of the dug
+			// block's surface, and under the water, where the water shader
+			// draws back faces, the two fought: a flashing blue sheet at every
+			// dig site. The dug block draws its own dented surface, and the
+			// water in the dent is the water the eye is already in.
+			const bool carved_neighbour = cur_node.f->drawtype != NDT_LIQUID
+					&& goanna::g_goanna_carve_block
+					&& goanna::g_goanna_carve_block->find(p2.X - blockpos_nodes.X,
 							p2.Y - blockpos_nodes.Y, p2.Z - blockpos_nodes.Z);
 			if (f2.visuals->solidness == 2 && !liquid_needs_top_face && !carved_neighbour)
 				continue;
