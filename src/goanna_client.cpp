@@ -51,6 +51,7 @@
 #include <cstring>
 #include <algorithm>
 #include <map>
+#include <functional>
 #include <set>
 #include <godot_cpp/variant/packed_vector2_array.hpp>
 
@@ -2876,6 +2877,11 @@ void GoannaClient::buildFakeLiquidTextures() {
     if (!ndef)
         return;
     m_fake_liquid_built = true;
+    // Textures a liquid shows without glowing. Light alone does not make
+    // lava: Asuna's wielded_light swaps water for lit copies of itself, with
+    // the same artwork, while a player carries a torch through it. Those
+    // copies must not take every lake with them onto the lava shader.
+    std::set<u32> calm;
     // NodeDefManager exposes no count, but get() is bounds safe and returns
     // the unknown feature past the end, so walk the whole content_t range once.
     for (u32 c = 0; c <= 0xffff; ++c) {
@@ -2888,33 +2894,35 @@ void GoannaClient::buildFakeLiquidTextures() {
         // Use the liquid definition and its light, never a texture filename.
         // Resolved visual tiles include pack overrides and extracted animation
         // frames; flowing tops/sides live in special_tiles, not tiledef.
+        auto resolved_texture = [&](const TileLayer &layer) -> u32 {
+            if (!layer.texture_id)
+                return 0;
+            const std::string name = m_session->tsrc()->imageName(
+                    layer.texture_id, layer.texture_layer_idx);
+            return name.empty() ? 0 : m_session->tsrc()->getTextureId(name);
+        };
+        auto each_texture = [&](const std::function<void(const TileLayer &, u32)> &fn) {
+            for (const auto *tiles : {&f.visuals->tiles, &f.visuals->special_tiles})
+                for (const auto &tile : *tiles)
+                    for (const auto &layer : tile.layers) {
+                        if (const u32 id = resolved_texture(layer))
+                            fn(layer, id);
+                        if (layer.frames)
+                            for (const auto &frame : *layer.frames)
+                                fn(layer, frame.texture_id);
+                    }
+        };
+        if (f.isLiquid() && f.visuals && f.light_source < 6)
+            each_texture([&](const TileLayer &, u32 id) { calm.insert(id); });
         if (f.isLiquid() && f.light_source >= 6 && f.visuals) {
-            auto resolved_texture = [&](const TileLayer &layer) -> u32 {
-                if (!layer.texture_id)
-                    return 0;
-                const std::string name = m_session->tsrc()->imageName(
-                        layer.texture_id, layer.texture_layer_idx);
-                return name.empty() ? 0 : m_session->tsrc()->getTextureId(name);
-            };
             const auto &source = ndef->get(f.liquid_alternative_source_id);
             const u32 source_texture = source.visuals
                     ? resolved_texture(source.visuals->tiles[0].layers[0]) : 0;
-            auto note_lava = [&](const TileSpec &tile) {
-                for (const auto &layer : tile.layers) {
-                    const u32 id = resolved_texture(layer);
-                    const LavaTile lava{f.light_source,
-                            source_texture ? source_texture : id};
-                    if (id)
-                        m_lava_tex[id] = lava;
-                    if (layer.frames)
-                        for (const auto &frame : *layer.frames)
-                            m_lava_tex[frame.texture_id] = lava;
-                }
-            };
-            for (const auto &tile : f.visuals->tiles)
-                note_lava(tile);
-            for (const auto &tile : f.visuals->special_tiles)
-                note_lava(tile);
+            each_texture([&](const TileLayer &layer, u32 id) {
+                const u32 own = resolved_texture(layer);
+                m_lava_tex[id] = LavaTile{f.light_source,
+                        source_texture ? source_texture : own};
+            });
         }
         if (!fake_liquid && !ice)
             continue;
@@ -2928,6 +2936,8 @@ void GoannaClient::buildFakeLiquidTextures() {
                 m_ice_tex.insert(id);
         }
     }
+    for (u32 id : calm)
+        m_lava_tex.erase(id);
     if (getenv("GOANNA_DEBUG_WHITE"))
         UtilityFunctions::print("fake liquids: ", (int)m_fake_liquid_tex.size(),
                 " textures drawn as liquid that are not one");
