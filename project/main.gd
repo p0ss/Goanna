@@ -3242,10 +3242,17 @@ func _apply_sky() -> void:
 	# stars: the server gives colour, count and how much survives daylight
 	var stars: Dictionary = st["stars"]
 	var star_col: Color = stars["color"]
-	var star_vis: float = (1.0 if bool(stars["visible"]) else 0.0) * lerp(1.0, float(stars["day_opacity"]), day)
+	# The sky sees astronomical daylight even while a ridge shades the land.
+	var star_vis: float = (1.0 if bool(stars["visible"]) else 0.0) * lerp(1.0, float(stars["day_opacity"]), float(dome["day"]))
 	sky_mat.set_shader_parameter("star_opacity", star_col.a * star_vis)
 	sky_mat.set_shader_parameter("star_color", star_col)
-	sky_mat.set_shader_parameter("star_density", clamp(float(stars["count"]) / 3000.0, 0.05, 0.6))
+	sky_mat.set_shader_parameter("star_density", clamp(float(stars["count"]) / 3000.0, 0.0, 0.6))
+	sky_mat.set_shader_parameter("star_scale", maxf(float(stars.get("scale", 1.0)), 0.0))
+	sky_mat.set_shader_parameter("celestial_phase", float(st.get("time_of_day", 0.0)) * TAU)
+	# A shared monotonic clock keeps local views in step and avoids TIME's
+	# hourly rollover. Custom skies retain their own palette and backdrop.
+	sky_mat.set_shader_parameter("celestial_time", Time.get_ticks_msec() * 0.001)
+	sky_mat.set_shader_parameter("night_sky_strength", 1.0 if str(sky["type"]) == "regular" else 0.0)
 	# clouds: density/colour here, scroll and height per frame
 	var clouds: Dictionary = clouds_now
 	var ccol: Color = clouds["color_bright"]

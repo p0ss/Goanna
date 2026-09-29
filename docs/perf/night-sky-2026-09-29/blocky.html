@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en-AU">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Galactic texture and star groupings</title>
+<style>
+body { margin: 32px auto; max-width: 1280px; padding: 0 20px; background: #080e1a; color: #d8e2f4; font: 16px/1.5 system-ui, sans-serif; }
+h1 { font-weight: 500; }
+a { color: #a7cafa; }
+img { display: block; width: 100%; }
+.compare { position: relative; }
+.compare .after { position: absolute; inset: 0; clip-path: inset(0 50% 0 0); }
+input { width: 100%; }
+button { margin: 8px 8px 8px 0; padding: 8px 14px; background: #1d304b; color: inherit; border: 1px solid #657b9a; border-radius: 4px; cursor: pointer; }
+button[aria-pressed="true"] { background: #3b557b; border-color: #c2d6f5; }
+.note { color: #b2bfd3; }
+</style>
+<h1>Galactic texture and star groupings</h1>
+<p>This mosaic treatment was rejected for its fish-scale appearance.
+<a href="relief.html">See the replacement relief study</a>.</p>
+<p>The band gains stepped light and dust patches. Four small star groupings
+add landmarks; the chain on the right and kite on the left are visible here.</p>
+<p class="note">Offline renders of the production sky shader. The smooth
+horizon is a test silhouette, not in-game terrain. All variants use identical
+camera, palette, exposure and star opacity.</p>
+<div class="compare">
+  <img src="blocky-smooth.png" alt="Earlier sky with a continuously sampled galactic band and random stars">
+  <img class="after" id="variant" src="blocky-groups.png" alt="Stepped galactic band with two visible star groupings">
+</div>
+<label for="split">Revised sky on the left, earlier smooth sky on the right</label>
+<input id="split" type="range" min="0" max="100" value="50" oninput="splitAt(this.value)">
+<div>
+  <button id="band" aria-pressed="false" onclick="choose(false)">Blocky band only</button>
+  <button id="groups" aria-pressed="true" onclick="choose(true)">Band and star groupings</button>
+  <button onclick="splitAt(100)">Show revised sky</button>
+  <button onclick="splitAt(0)">Show earlier sky</button>
+</div>
+<p><a href="blocky-groups.png">Full revised image</a> |
+<a href="blocky-band.png">Band only</a> |
+<a href="report.md">Checks and limitations</a> |
+<a href="index.html">First sky study</a></p>
+<script>
+function splitAt(value) {
+  document.getElementById('variant').style.clipPath = 'inset(0 ' + (100-value) + '% 0 0)';
+  document.getElementById('split').value = value;
+}
+function choose(groups) {
+  const image = document.getElementById('variant');
+  image.src = groups ? 'blocky-groups.png' : 'blocky-band.png';
+  image.alt = groups ? 'Stepped galactic band with star groupings' : 'Stepped galactic band with random stars';
+  document.getElementById('groups').setAttribute('aria-pressed', String(groups));
+  document.getElementById('band').setAttribute('aria-pressed', String(!groups));
+}
+</script>
+</html>

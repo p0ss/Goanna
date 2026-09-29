@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en-AU">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Galactic relief study</title>
+<style>
+body { margin: 32px auto; max-width: 1280px; padding: 0 20px; background: #080e1a; color: #d8e2f4; font: 16px/1.5 system-ui, sans-serif; }
+h1, h2 { font-weight: 500; }
+a { color: #a7cafa; }
+img { display: block; width: 100%; }
+.compare { position: relative; }
+.compare .after { position: absolute; inset: 0; clip-path: inset(0 50% 0 0); }
+input { width: 100%; }
+button { margin: 8px 8px 8px 0; padding: 8px 14px; background: #1d304b; color: inherit; border: 1px solid #657b9a; border-radius: 4px; cursor: pointer; }
+.note { color: #b2bfd3; }
+</style>
+<h1>Galactic relief study</h1>
+<h2>Square stars</h2>
+<p>The latest version uses square cores for the scattered stars and
+constellations, retaining their colours and gentle twinkling.</p>
+<div class="compare">
+  <img src="relief-full-1080.png" alt="Accepted relief sky with the earlier rounded stars">
+  <img class="after" id="stars" src="square-stars.png" alt="The same relief sky with square star cores">
+</div>
+<label for="stars-split">Square stars on the left, previous stars on the right</label>
+<input id="stars-split" type="range" min="0" max="100" value="50" oninput="splitAt('stars',this.value)">
+<button onclick="splitAt('stars',100)">Show square stars</button>
+<button onclick="splitAt('stars',0)">Show previous stars</button>
+<p>Offline fixture, with a stand-in horizon.
+<a href="square-stars-detail.png">Closer view of the square stars</a>.</p>
+<h2>Accepted relief treatment</h2>
+<p>Connected plateaus, recessed dust and narrow shaded steps. The relief
+follows the band's own cloud shapes, using the material art's extrusion
+principle. The previous curved colour mosaic is removed.</p>
+<p class="note">Offline renders of the production sky shader. The smooth
+horizon is a stand-in, not game terrain. This has not been checked beside
+live night-time terrain. Both sides use the same camera, palette and exposure.</p>
+<div class="compare">
+  <img src="blocky-groups.png" alt="Rejected version with curved mosaic cells">
+  <img class="after" id="full" src="relief-night.png" alt="Revised version with cloud-shaped relief and shaded height steps">
+</div>
+<label for="full-split">Relief on the left, rejected mosaic on the right</label>
+<input id="full-split" type="range" min="0" max="100" value="50" oninput="splitAt('full',this.value)">
+<button onclick="splitAt('full',100)">Show relief</button>
+<button onclick="splitAt('full',0)">Show rejected mosaic</button>
+<p><a href="relief-full-1080.png">Full view at 1920x1080</a></p>
+<h2>Closer view of the height steps</h2>
+<p>The same sky at a 38-degree field of view. Compare the relief against
+the smooth band, with identical star groupings on both sides.</p>
+<div class="compare">
+  <img src="relief-detail-smooth.png" alt="Closer view with relief disabled">
+  <img class="after" id="detail" src="relief-detail.png" alt="Closer view showing connected raised patches and bevelled edges">
+</div>
+<label for="detail-split">Relief on the left, smooth band on the right</label>
+<input id="detail-split" type="range" min="0" max="100" value="50" oninput="splitAt('detail',this.value)">
+<button onclick="splitAt('detail',100)">Show relief</button>
+<button onclick="splitAt('detail',0)">Show smooth band</button>
+<p><a href="report.md">Checks and limitations</a> |
+<a href="index.html">Earlier sky studies</a></p>
+<script>
+function splitAt(id, value) {
+  document.getElementById(id).style.clipPath = 'inset(0 ' + (100-value) + '% 0 0)';
+  document.getElementById(id + '-split').value = value;
+}
+</script>
+</html>

@@ -139,6 +139,69 @@ Environment left at the default `fog_sky_affect` of 1.0 repaints the whole
 dome with fog colour, and the 3D cloud noise texture builds on a thread,
 so early frames have no clouds.
 
+## The night panorama
+
+`shaders/night_sky.gdshaderinc` adds a fictional galactic band with mottled
+stellar clouds, a dark dust lane and subdued emission regions. Two star
+layers vary their size, brightness and temperature. Their filtered cores
+retain energy as resolution changes, and gentle scintillation is stronger
+near the horizon. Three brighter, steady points suggest planets. This is an
+authored procedural sky, not a real star catalogue or orbital simulation.
+
+Random and constellation stars have flat square cores. Their coverage is
+integrated over the pixel footprint, retaining sub-pixel light without
+turning resolved corners into Gaussian dots. The square area matches the
+previous profile's integrated light. Their orientation follows the sky.
+
+Four fixed asterisms add recognisable shapes: a hooked chain, an uneven
+kite, a fork and a compact cluster. Each has six stars with varied colour
+and brightness. The random field thins slightly around them, without
+connecting lines. They rotate in the same celestial frame as the band.
+`constellation_strength` defaults to 1; zero restores the random field.
+
+The band uses a shallow heightfield derived from its own light and dust.
+Like the material recipe in `tools/pbr_author/extrude.py`, neighbouring
+texels merge into flat plateaus with narrow chamfers at exposed steps.
+The sky shader intersects their tops and sides and shades those normals.
+This replaces the rejected angular mosaic, which looked like fish scales.
+`galaxy_relief` defaults to 1; zero restores the smooth band.
+
+The relief follows the cloud artwork, rather than applying an unrelated
+surface pattern over it. Its projection and illustrative light are fixed
+in the celestial frame, keeping the sky at infinity when the player moves.
+This is a stylised heightfield, not a physical model of galactic matter or
+the terrain's lamp-lit PBR material. The scattering, stars and terrain are
+not quantised by this control. The outer glow remains diffuse.
+
+The panorama turns with the server's day clock. Twinkling and meteors use a
+shared monotonic application clock, keeping local player views in step
+without the shader `TIME` rollover. A meteor can occur in each 83-second
+slot, with a variable delay and skipped slots. It lasts at most 1.15
+seconds. Many events happen outside the player's view.
+
+The server's star visibility, alpha, tint, scale, count-derived density and
+day opacity still apply. Zero count or scale now removes the stars rather
+than retaining a minimum population. Star daylight follows the astronomical
+sun, so a ridge cannot reveal stars while shading the ground at noon.
+Galactic detail fades earlier than the stars through twilight, dims near
+the moon and extinguishes near the horizon. Clouds and terrain cover the
+entire panorama, including meteors. Custom sky types omit the added band,
+planets, meteors and twilight scattering.
+
+The visible dome also gains a blue/violet twilight shoulder and a faint
+pink anti-solar arch. The existing beam, fog and cloud lighting remain the
+authorities for the warm horizon. Celestial detail and the new scattering
+are omitted from the radiance cubemap; they do not add ambient light or
+appear in that reflection fallback.
+
+`project/night_sky_study.gd` is an offline fixture with its own viewport.
+Add it to a developer client and await `capture(directory)` to save night,
+twilight, daylight and cloud views. It also compares hidden stars against
+zero count/scale and checks that disabling the additions leaves full
+daylight identical. It does not replace a server or performance test.
+The [night-sky study](perf/night-sky-2026-09-29/report.md) records the first
+render checks and their limits.
+
 ## The baked horizon
 
 `src/goanna_horizon.cpp` bakes a cylindrical panorama of every terrain

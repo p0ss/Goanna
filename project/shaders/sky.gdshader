@@ -131,6 +131,8 @@ float fbm(vec2 p) {
 	return v / 0.9375;
 }
 
+#include "res://shaders/night_sky.gdshaderinc"
+
 // The cumulus body: real 3D noise from a texture (built once in main.gd,
 // far cheaper than ALU noise at march rates), shaped by a height gradient
 // into a flat base and a domed top. Every earlier attempt at clouds here
@@ -484,20 +486,43 @@ void sky() {
 		col = mix(col, air, horizon * (horizon_air_day + 0.48 * haze_twilight));
 	}
 
-	// stars: one jittered point per hashed cell on the dome, faded by daylight.
-	// sin of the angle to the star (via the cross product) keeps the star far
-	// smaller than its cell; a dot-product threshold at this scale would light
-	// whole cells.
-	if (star_opacity > 0.001 && up > 0.0) {
-		float n = 56.0;
-		vec3 cell = floor(dir * n);
-		float h = hash12(cell.xy * 7.13 + vec2(cell.z * 3.7));
-		vec3 jitter = vec3(hash12(cell.xy + cell.z), hash12(cell.yz * 1.7 + cell.x),
-				hash12(cell.zx * 2.3 + cell.y)) - 0.5;
-		vec3 center = normalize((cell + 0.5 + jitter * 0.7) / n);
-		float s = length(cross(dir, center));
-		float star = step(h, star_density) * smoothstep(0.0030, 0.0010, s);
-		col += star_color.rgb * star * star_opacity * (0.6 + 0.4 * hash12(cell.zy + 4.7));
+	// Higher air keeps its blue/violet scattering after the warm horizon
+	// beam fades. The anti-solar arch is the last pink light above the shadow.
+	if (!AT_CUBEMAP_PASS && night_sky_strength > 0.0 && up > 0.0) {
+		float twilight = smoothstep(-0.32, -0.12, sun_dir.y)
+				* (1.0 - smoothstep(0.02, 0.18, sun_dir.y));
+		vec2 solar = sun_dir.xz / max(length(sun_dir.xz), 0.001);
+		float facing = dot(dir.xz, solar);
+		float arch = exp(-pow((up - 0.16) * 8.0, 2.0));
+		vec3 scatter = vec3(0.028, 0.040, 0.10) * exp(-up * 2.8)
+				+ vec3(0.11, 0.036, 0.055) * arch * max(-facing, 0.0);
+		col += scatter * twilight * night_sky_strength * smoothstep(0.0, 0.035, up);
+	}
+
+	// Keep point lights and transient events out of ambient radiance, just
+	// like the sun/moon discs below. Clouds and the horizon occlude them all.
+	float pixel_angle = max(length(dFdx(dir)), length(dFdy(dir)));
+	if (!AT_CUBEMAP_PASS && star_opacity > 0.001 && star_density > 0.0
+			&& star_scale > 0.0 && up > 0.0) {
+		vec3 celestial = celestial_direction(dir);
+		float extinction = smoothstep(0.015, 0.25, up);
+		float dark = 1.0 - smoothstep(-0.30, -0.055, sun_dir.y);
+		float moon_glare = moon_visible ? pow(max(dot(dir, moon_dir), 0.0), 12.0)
+				* smoothstep(-0.02, 0.18, moon_dir.y) : 0.0;
+		vec3 stars = night_stars(celestial, pixel_angle, celestial_time, up);
+		vec3 deep_sky = vec3(0.0);
+		if (night_sky_strength > 0.0) {
+			vec4 groups = night_constellations(celestial, pixel_angle, celestial_time, up);
+			stars *= mix(1.0, groups.a, night_sky_strength);
+			deep_sky += groups.rgb;
+			if (dark > 0.001) {
+				deep_sky += galactic_clouds(celestial, pixel_angle) * dark * (1.0 - moon_glare * 0.85);
+				deep_sky += night_meteor(dir, celestial_time, pixel_angle) * dark;
+			}
+			deep_sky += night_planets(celestial, pixel_angle);
+		}
+		col += (stars + deep_sky * night_sky_strength) * star_color.rgb
+				* star_opacity * extinction;
 	}
 
 	// The discs and their halos are the picture, not the light: the radiance

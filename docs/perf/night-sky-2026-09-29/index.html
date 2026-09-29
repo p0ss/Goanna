@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en-AU">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Night-sky study</title>
+<style>
+body { margin: 32px auto; max-width: 1280px; padding: 0 20px; background: #080e1a; color: #d8e2f4; font: 16px/1.5 system-ui, sans-serif; }
+h1, h2 { font-weight: 500; }
+a { color: #a7cafa; }
+img { display: block; width: 100%; }
+.compare { position: relative; }
+.compare .after { position: absolute; inset: 0; clip-path: inset(0 50% 0 0); }
+input { width: 100%; }
+small { color: #a4b4ce; }
+</style>
+<h1>Night-sky study</h1>
+<p><a href="relief.html">Latest study: relief following the cloud artwork</a></p>
+<p><a href="blocky.html">Follow-up: blockier galactic band and star groupings</a></p>
+<p>A galactic band, dust lanes, varied starlight and occasional meteors.
+These are offline renders of the production shader over a stand-in silhouette.</p>
+<div class="compare">
+  <img src="before.png" alt="Previous sky: scattered white dots">
+  <img class="after" id="after" src="night.png" alt="Revised sky: stellar clouds, dust lanes and varied stars">
+</div>
+<label for="split">New sky on the left, previous sky on the right</label>
+<input id="split" type="range" min="0" max="100" value="50"
+  oninput="document.getElementById('after').style.clipPath='inset(0 '+(100-this.value)+'% 0 0)'">
+<p><a href="night.png">Full night image</a> | <a href="before.png">Previous sky</a></p>
+<h2>Twilight</h2>
+<img src="twilight.png" alt="The galactic band fades into violet twilight above a pink horizon">
+<h2>A passing meteor</h2>
+<img src="meteor.png" alt="A short, tapered meteor trail beside the galactic band">
+<h2>Received server sky over loaded terrain</h2>
+<img src="server-night.png" alt="The revised night sky and clouds above loaded forest terrain">
+<p><small>The server disconnected during this check. This image uses its
+retained sky state and terrain with a client-only midnight override.</small></p>
+<p><a href="report.md">Conditions, checks and limitations</a></p>
+</html>

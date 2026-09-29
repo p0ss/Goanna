@@ -1,0 +1,6 @@
+{
+	"day_unchanged": true,
+	"godot": "4.5.1-stable (official)",
+	"renderer": "llvmpipe (LLVM 22.1.8, 256 bits)",
+	"visibility_gates": true
+}
