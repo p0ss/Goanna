@@ -138,16 +138,15 @@ Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
         // Most mob skins have transparent texels, so the cut out variant is
         // the common case; see entity_scissor.gdshader.
         sm->set_shader(gt->hasAlpha() ? m_sh_entity_scissor : m_sh_entity);
-        // Player armour is often double sided. It must keep that culling
-        // rule while receiving the same gem material as held items.
-        if (double_sided) {
-            if (!m_sh_diamond_double.is_valid())
-                m_sh_diamond_double = m_root->call("load_view_shader",
-                        "res://shaders/entity_double_sided.gdshader");
-            if (!m_sh_diamond_double_scissor.is_valid())
-                m_sh_diamond_double_scissor = m_root->call("load_view_shader",
-                        "res://shaders/entity_double_sided_scissor.gdshader");
-            sm->set_shader(gt->hasAlpha() ? m_sh_diamond_double_scissor : m_sh_diamond_double);
+        // Only diamond items enter the blended pipeline. Holes in their
+        // art are discarded; wood and armour joins remain fully opaque.
+        if (diamond_mode != 0) {
+            Ref<Shader> &shader = double_sided ? m_sh_diamond_double : m_sh_diamond;
+            if (!shader.is_valid())
+                shader = m_root->call("load_view_shader", double_sided ?
+                        "res://shaders/entity_diamond_double_sided.gdshader" :
+                        "res://shaders/entity_diamond.gdshader");
+            sm->set_shader(shader);
         }
         sm->set_shader_parameter("albedo", gt->godotTexture());
         // What this thing is made of. The node path learns that from the

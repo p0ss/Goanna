@@ -173,16 +173,29 @@ no emission. `diamond_interior_strength = 0` restores the surface-only
 version. Both node shaders sample from the parallax-displaced coordinate;
 entities use their tile or armour atlas scale.
 
-These are backed material interiors: neither ore nor a freestanding diamond
-block becomes a window onto the scene. Actual background transmission and
-refraction are not implemented by this treatment. The
+Placed blocks and ore retain backed interiors, so they cannot reveal hidden
+terrain. The lighter absorption and thinner apparent surface skin expose
+more of the internal planes. The
 [interior comparison](perf/diamond-interior-2026-09-29/index.html) shows the
-distinction at three viewing angles.
+previous backed treatment at three viewing angles.
+
+Held and dropped diamond items and worn armour now use dedicated blended
+shaders. Face-on gem pixels have 24% opacity (32% for held blocks), rising
+towards 90% at grazing angles. Wood handles and dark joins remain opaque;
+empty texels are discarded. `diamond_transparency = 0` restores full opacity.
+The [transparency comparison](perf/diamond-transparency-2026-09-29/index.html)
+shows the background through items and clothing through live armour.
+
+This is alpha transmission, without distortion of the background or coloured
+transmission shadows. Blended surfaces have Godot's usual object sorting
+limitations and do not cast the former cut-out shadows. Ordinary opaque
+entities and terrain arrays retain their original render pipelines.
 
 The entity shader body lives in `entity_common.gdshaderinc`, with separate
 opaque, cut-out and double-sided entry points. Diamond armour uses the
-double-sided variants when the server's player model requires it; blended
-entities retain their previous material path.
+double-sided transmission variant when the server's player model requires
+it; entities already marked alpha-blended by the server retain their previous
+material path.
 
 The mask assumes cyan diamond art and familiar tile/player-atlas scales.
 Unusually recoloured packs, blue non-diamond parts in a combined armour

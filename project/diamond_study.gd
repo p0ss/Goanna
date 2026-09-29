@@ -35,6 +35,8 @@ func _material(stem: String, array: bool, cutout: bool, mode: int,
 	var shader_name := "nodes_array" if array else "entity"
 	if cutout:
 		shader_name += "_scissor"
+	if not array and mode != 0:
+		shader_name = "entity_diamond"
 	mat.shader = load("res://shaders/" + shader_name + ".gdshader")
 	mat.set_shader_parameter("albedo_array" if array else "albedo",
 		_texture(_image(dir + stem + ".png"), array))
@@ -193,6 +195,7 @@ func capture(directory: String) -> Dictionary:
 	# including labels, with the treatment enabled and disabled.
 	environment.reflected_light_source = Environment.REFLECTION_SOURCE_DISABLED
 	environment.ambient_light_energy = 0.0
+	environment.background_color = Color.BLACK
 	var dark_on := await shot(directory.path_join("dark-on.png"))
 	for mat in materials:
 		mat.set_shader_parameter("diamond_strength", 0.0)
@@ -244,5 +247,99 @@ func capture_interior(directory: String) -> Dictionary:
 	var scatter_on := await shot(directory.path_join("scatter-on.png"))
 	checks["scattering_visible"] = scatter_on.get_data() != scatter_off.get_data()
 	FileAccess.open(directory.path_join("interior-checks.json"), FileAccess.WRITE).store_string(
+		JSON.stringify(checks, "\t"))
+	return checks
+
+
+func capture_transparency(directory: String) -> Dictionary:
+	DirAccess.make_dir_recursive_absolute(directory)
+	# The contrasting wall makes actual background transmission measurable.
+	var wall := MeshInstance3D.new()
+	var quad := QuadMesh.new()
+	quad.size = Vector2(10, 6)
+	wall.mesh = quad
+	var backing := StandardMaterial3D.new()
+	backing.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	var pattern := Image.create(16, 8, false, Image.FORMAT_RGBA8)
+	for y in 8:
+		for x in 16:
+			pattern.set_pixel(x, y, Color(0.8, 0.35, 0.12) if (x + y) % 2 == 0
+				else Color(0.12, 0.3, 0.55))
+	backing.albedo_texture = ImageTexture.create_from_image(pattern)
+	backing.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	wall.material_override = backing
+	viewport.add_child(wall)
+	wall.position.z = -1.4
+	for mat in materials:
+		mat.set_shader_parameter("diamond_transparency", 0.0)
+	await shot(directory.path_join("opaque.png"))
+	for mat in materials:
+		mat.set_shader_parameter("diamond_transparency", 1.0)
+	await shot(directory.path_join("transparent.png"))
+	# Change only the background and sample the middle of source texels on
+	# the pick. The cyan head must transmit; its wooden handle must not.
+	backing.albedo_texture = null
+	backing.albedo_color = Color(0.05, 0.08, 0.1)
+	var dark := await shot(directory.path_join("background-dark.png"))
+	backing.albedo_color = Color(0.8, 0.8, 0.8)
+	var light := await shot(directory.path_join("background-light.png"))
+	var art := _image(pack + "default_tool_diamondpick.png")
+	var gem_change := 0.0
+	var handle_change := 0.0
+	var gem_samples := 0
+	var handle_samples := 0
+	var gem_pixel := Vector2i.ZERO
+	for y in 16:
+		for x in 16:
+			var texel := art.get_pixel((x * 2 + 1) * art.get_width() / 32,
+				(y * 2 + 1) * art.get_height() / 32)
+			if texel.a < 0.9:
+				continue
+			var linear := texel.srgb_to_linear()
+			var cyan := minf(linear.g, linear.b) - linear.r
+			var point := Vector3(-2.8 + ((x + 0.5) / 16.0 - 0.5) * 1.45,
+				-1.15 - ((y + 0.5) / 16.0 - 0.5) * 1.45, 0.0)
+			var pixel := Vector2i(camera.unproject_position(point))
+			var a := dark.get_pixelv(pixel)
+			var b := light.get_pixelv(pixel)
+			var change := Vector3(a.r - b.r, a.g - b.g, a.b - b.b).length()
+			if cyan > 0.055:
+				gem_pixel = pixel
+				gem_change += change
+				gem_samples += 1
+			elif cyan < 0.0:
+				handle_change += change
+				handle_samples += 1
+	gem_change /= maxf(gem_samples, 1)
+	handle_change /= maxf(handle_samples, 1)
+	var checks := {"gem_background_change": gem_change,
+		"handle_background_change": handle_change,
+		"gem_samples": gem_samples, "handle_samples": handle_samples,
+		"gem_transmits": gem_samples > 0 and gem_change > 0.2,
+		"handle_opaque": handle_samples > 0 and handle_change < 0.01}
+	# The world material must not expose hidden terrain behind its backing.
+	var block_pixel := Vector2i(camera.unproject_position(Vector3(-2.8, 1.25, 0)))
+	checks["placed_block_backed"] = dark.get_pixelv(block_pixel) == light.get_pixelv(block_pixel)
+	var ore_pixel := Vector2i(camera.unproject_position(Vector3(-0.9, 1.25, 0)))
+	checks["ore_backed"] = dark.get_pixelv(ore_pixel) == light.get_pixelv(ore_pixel)
+	# Opaque foreground geometry must continue to win the depth test.
+	var foreground := MeshInstance3D.new()
+	var cover := QuadMesh.new()
+	cover.size = Vector2(1.5, 1.5)
+	foreground.mesh = cover
+	var cover_mat := StandardMaterial3D.new()
+	cover_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	cover_mat.albedo_color = Color(0.3, 0.1, 0.05)
+	foreground.material_override = cover_mat
+	viewport.add_child(foreground)
+	foreground.position = Vector3(-2.8, -1.15, 0.5)
+	var covered_on := await shot(directory.path_join("foreground-on.png"))
+	for mat in materials:
+		mat.set_shader_parameter("diamond_transparency", 0.0)
+	var covered_off := await shot(directory.path_join("foreground-off.png"))
+	checks["foreground_occludes"] = gem_samples > 0 \
+		and covered_on.get_pixelv(gem_pixel) == covered_off.get_pixelv(gem_pixel) \
+		and covered_on.get_pixelv(gem_pixel) != light.get_pixelv(gem_pixel)
+	FileAccess.open(directory.path_join("transparency-checks.json"), FileAccess.WRITE).store_string(
 		JSON.stringify(checks, "\t"))
 	return checks

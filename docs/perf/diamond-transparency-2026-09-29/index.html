@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Diamond transparency</title>
+<style>
+body{margin:32px auto;padding:0 20px;max-width:1280px;background:#101820;color:#e5edf3;font:17px/1.5 system-ui}h1,h2{font-weight:550}img{width:100%;display:block}button{font:inherit;padding:8px 16px;background:#244352;color:inherit;border:1px solid #628294;cursor:pointer}button[aria-pressed=true]{background:#487084}p{max-width:960px}a{color:#9edcff}
+</style>
+<h1>See-through diamond items and armour</h1>
+<p>Diamond tools, held blocks and armour now transmit the background.
+Handles and dark joins remain solid. Placed blocks and ore keep their
+backing so they cannot reveal hidden terrain.</p>
+<p><button id="off" aria-pressed="false">Transmission off</button>
+<button id="on" aria-pressed="true">Transmission on</button></p>
+<h2>Offline background test</h2>
+<p>Production shaders on cubes and flat item cards. Both views use the same
+lighting, materials and internal facets; only transparency changes.</p>
+<img id="study" src="transparent.png" alt="Checkerboard visible through diamond items">
+<h2>Live equipped armour</h2>
+<p>Mineclonia on Luanti 5.17.0, Godot 4.5.1. A detached camera views the
+player's full-body mesh. Clothing shows through the crystal plates.</p>
+<img id="armour" src="live-armour.png" alt="Equipped armour with clothing visible through the plates">
+<p>Background transmission uses alpha blending, without refraction of the
+scenery or coloured transmission shadows. Overlapping transparent surfaces
+retain the renderer's object-sorting limitations.</p>
+<p><a href="report.md">Validation and limitations</a></p>
+<script>
+function show(on){document.querySelector('#study').src=on?'transparent.png':'opaque.png';document.querySelector('#armour').src=on?'live-armour.png':'live-armour-opaque.png';document.querySelector('#on').setAttribute('aria-pressed',String(on));document.querySelector('#off').setAttribute('aria-pressed',String(!on));}
+document.querySelector('#on').onclick=()=>show(true);
+document.querySelector('#off').onclick=()=>show(false);
+</script></html>

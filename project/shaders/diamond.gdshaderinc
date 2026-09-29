@@ -29,11 +29,11 @@ vec3 goanna_diamond_interior(vec3 front, vec3 middle, vec3 rear,
 		inout vec3 colour, out vec3 scatter) {
 	float resolved = 1.0 - smoothstep(0.5, 1.5, footprint);
 	float weight = amount * diamond_strength * diamond_interior_strength * resolved;
-	vec3 absorption = exp(-vec3(0.75, 0.22, 0.10) * thickness);
+	vec3 absorption = exp(-vec3(0.28, 0.07, 0.025) * thickness);
 	// Distinct planes remain crisp. Absorption deepens the rear plane's
 	// turquoise; the pale front contribution keeps a clear surface skin.
 	vec3 inside = mix(middle, rear * absorption, 0.65);
-	colour = mix(colour, mix(front, inside, 0.72), weight);
+	colour = mix(colour, mix(front, inside, 0.92), weight);
 	float shade = dot(rear, vec3(0.2126, 0.7152, 0.0722));
 	float angle = floor(shade * 12.0) * 2.39996 + 1.1;
 	vec2 slope = vec2(cos(angle), sin(angle)) * 0.32;

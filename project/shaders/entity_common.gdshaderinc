@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (C) 2026 the Goanna contributors
-// Shared PBR decoding and lighting for opaque and cut-out entity surfaces.
+// Shared PBR decoding and lighting for entity surface variants.
 uniform sampler2D albedo : source_color, filter_nearest_mipmap, repeat_enable;
 // LabPBR companions, when a resource pack ships them (see docs): _n carries
 // the tangent normal in RG with ambient occlusion in B, _s carries perceptual
@@ -62,9 +62,16 @@ void fragment() {
 	ALBEDO = tex.rgb;
 	if (vertex_tint)
 		ALBEDO *= COLOR.rgb;
+#ifdef GOANNA_DIAMOND_TRANSMISSION
+	// Holes in the art remain holes, while the surviving crystal can blend.
+	// Alpha scissor would threshold the crystal's transmission away too.
+	if (tex.a < 0.5)
+		discard;
+#else
 #ifdef GOANNA_ALPHA_SCISSOR
 	ALPHA = tex.a;
 	ALPHA_SCISSOR_THRESHOLD = 0.5;
+#endif
 #endif
 	ROUGHNESS = 1.0;
 	METALLIC = 0.0;
@@ -164,4 +171,14 @@ void fragment() {
 	// keeps the default (0, 1), full sky, as before.
 	v_sun_gate = goanna_sun_gate(node_light.y, node_light.x);
 	v_specular = SPECULAR;
+#ifdef GOANNA_DIAMOND_TRANSMISSION
+	// Only dedicated item/armour shaders enter the transparent pipeline.
+	// Keep handles and joins solid, with clearer faces and reflective rims.
+	vec3 crystal_normal = normalize(TANGENT * (gem_normal.x * 2.0 - 1.0)
+			+ BINORMAL * (gem_normal.y * 2.0 - 1.0)
+			+ NORMAL * (gem_normal.z * 2.0 - 1.0));
+	float rim = pow(1.0 - clamp(dot(crystal_normal, VIEW), 0.0, 1.0), 5.0);
+	float opacity = mix(diamond_mode == 2 ? 0.32 : 0.24, 0.9, rim);
+	ALPHA = mix(1.0, opacity, gem * diamond_strength * diamond_transparency);
+#endif
 }
