@@ -309,7 +309,12 @@ def driver_errors(minutes=30):
                              capture_output=True, text=True, timeout=10).stdout
     except (OSError, subprocess.SubprocessError):
         return []
-    return [l for l in out.splitlines() if "NVRM" in l or "Xid" in l]
+    # Only fault lines. The driver's own start up message ("NVRM: loading
+    # NVIDIA UNIX Open Kernel Module") is NVRM too, and on 2026-09-29 the
+    # kernel log stamped the boot ten hours ahead of local time, so that one
+    # harmless line counted as recent all day and refused every client.
+    # Every fault seen here so far carried an NV_ERR code or an Xid.
+    return [l for l in out.splitlines() if "Xid" in l or ("NVRM" in l and "NV_ERR" in l)]
 
 
 def gpu_clients():
