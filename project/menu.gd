@@ -79,10 +79,17 @@ var showcase_launch := false
 # which needs most of the scene streamed and meshed before it is anything but
 # fog, and a menu that takes that long to become presentable is worse than a
 # plain one however good the eventual frame is.
-const BACKGROUND_PATH := "res://menu_background.png"
 const SHOWCASE_WORLD := "test_world"
 const SHOWCASE_POS := Vector3(-100, 30.6, 340)
 const SHOWCASE_YAW := -116.6
+# The stills behind the menu, one chosen at random on each launch. Taken by
+# tools/menu-background.sh, which says where each is and why it is framed with
+# its subject to one side: the panel covers the middle of the screen.
+const BACKGROUNDS := [
+	"res://menu_backgrounds/headland.jpg",
+	"res://menu_backgrounds/lantern.jpg",
+	"res://menu_backgrounds/lava.jpg",
+]
 
 func _ready() -> void:
 	AssetUpdater.install_bootstrap()
@@ -96,9 +103,9 @@ func _ready() -> void:
 	# and recovery on machines without Luanti deterministic, and allow an
 	# explicit opt-out for low-power or offline launches.
 	# The menu's backdrop is a still now (see _build_frame), so the live
-	# showcase is off unless it is asked for. It stays in the code because it
-	# is what takes the still: tools/menu-background.sh drives this same path
-	# with GOANNA_SHOWCASE=1 to sit the camera at the village and capture it.
+	# showcase is off unless it is asked for with GOANNA_SHOWCASE_LIVE. The
+	# stills are taken by tools/menu-background.sh, which drives a headless
+	# client through the control channel rather than this path.
 	showcase_launch = OS.get_environment("GOANNA_SHOWCASE_LIVE") != "" \
 			and OS.get_environment("GOANNA_NO_SHOWCASE") == "" \
 			and OS.get_environment("GOANNA_MENU_SHOT") == ""
@@ -195,17 +202,18 @@ func _background_texture() -> Texture2D:
 	# ResourceLoader.exists first: *.import is not committed (see .gitignore),
 	# so on a checkout that has not been imported yet load() would print a "no
 	# loader found" error every launch before the fallback below succeeds.
-	if ResourceLoader.exists(BACKGROUND_PATH):
-		var res := load(BACKGROUND_PATH) as Texture2D
+	var path: String = BACKGROUNDS[randi() % BACKGROUNDS.size()]
+	if ResourceLoader.exists(path):
+		var res := load(path) as Texture2D
 		if res != null:
 			return res
 	var img := Image.new()
-	if img.load(ProjectSettings.globalize_path(BACKGROUND_PATH)) != OK:
+	if img.load(ProjectSettings.globalize_path(path)) != OK:
 		return null
 	return ImageTexture.create_from_image(img)
 
 func _build_frame() -> void:
-	# A still of the benchmark village, captured at full settings by
+	# A still, one of BACKGROUNDS, captured at full settings by
 	# tools/menu-background.sh, rather than a live session behind the menu.
 	#
 	# The live backdrop could not be all three of the things it was for. It
