@@ -2326,11 +2326,14 @@ func _underwater_volume_enabled() -> bool:
 func _atmosphere_enabled() -> bool:
 	return render_features["render_atmosphere"] and atmosphere_quality > 0.01
 
-func set_render_feature(key: String, enabled: bool) -> bool:
+# apply false records the switch for a batch that calls apply_lighting itself
+# once it is complete (game_ui.gd's staged preset change).
+func set_render_feature(key: String, enabled: bool, apply := true) -> bool:
 	if not RenderFeatures.DEFAULTS.has(key):
 		return false
 	render_features[key] = enabled
-	apply_lighting()
+	if apply:
+		apply_lighting()
 	return true
 
 func _apply_cloud_feature() -> void:

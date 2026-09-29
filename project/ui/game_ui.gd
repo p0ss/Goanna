@@ -897,6 +897,11 @@ const LOCAL_KEYS := ["procedural_grass", "mouse_sensitivity", "invert_mouse", "v
 	"look_strength", "night_visibility", "bloom_strength", "shader_weather"]
 var settings_menu: Control
 var advanced_open := false      # Advanced graphics settings, kept across reopens
+# While a staged preset change runs, lighting keys and render switches are
+# recorded without re-running main.apply_lighting for each one; the stage
+# applies them together once it is complete.
+var lighting_batch := false
+var profile_changing := false
 
 func _main_node() -> Node:
 	return main if is_instance_valid(main) else PlayerContext.find(self, "goanna_main")
@@ -971,7 +976,8 @@ func _apply_local(key: String, value: float, on: bool) -> void:
 			var ml := _main_node()
 			if ml != null:
 				ml.set(key, value)
-				ml.apply_lighting()
+				if not lighting_batch:
+					ml.apply_lighting()
 		"volume":
 			if audio != null: audio.volume = value
 		"muted":
@@ -1011,7 +1017,7 @@ func _apply_setting(key: String, value: float) -> void:
 	if RenderFeatures.DEFAULTS.has(key):
 		var m := _main_node()
 		if m != null:
-			m.set_render_feature(key, on)
+			m.set_render_feature(key, on, not lighting_batch)
 		return
 	if key == GlassStyle.KEY:
 		# Text in goanna.cfg; as a number, for the control channel's set, 1 is
@@ -1252,6 +1258,52 @@ func _setting_text(key: String) -> String:
 		return str(cfg.get_value("settings", key, ""))
 	return ""
 
+# Frames drawn between the stages of a preset change, so the renderer has
+# built the new state and released the old before the next group arrives.
+const PROFILE_STAGE_FRAMES := 3
+
+# Moves every setting a preset controls to that preset, in the stages
+# GraphicsProfiles.transition_stages plans (see STAGES there for why), then
+# saves the preset in one write.
+func change_profile(name: String) -> void:
+	if profile_changing or not GraphicsProfiles.PROFILES.has(name):
+		return
+	profile_changing = true
+	var target: Dictionary = GraphicsProfiles.PROFILES[name]
+	var current := {}
+	for key in target:
+		current[key] = _setting_value(key, float(target[key]))
+	var stages: Array = GraphicsProfiles.transition_stages(current, target)
+	# Keys the preset already matches are applied once more at the end, as
+	# the one-frame version always did, in case a getter read them wrong.
+	var rest := {}
+	for key in target:
+		rest[key] = float(target[key])
+	for stage in stages:
+		for key in stage:
+			rest.erase(key)
+	stages.append(rest)
+	for stage in stages:
+		lighting_batch = true
+		for key in stage:
+			_apply_setting(key, float(stage[key]))
+		lighting_batch = false
+		var m := _main_node()
+		if m != null:
+			m.apply_lighting()
+		for f in PROFILE_STAGE_FRAMES:
+			if not is_inside_tree():
+				profile_changing = false
+				return
+			await get_tree().process_frame
+	var cfg := ConfigFile.new()
+	cfg.load(SETTINGS_CFG)
+	for key in target:
+		cfg.set_value("settings", key, float(target[key]))
+	cfg.set_value("settings", "graphics_profile", name)
+	cfg.save(SETTINGS_CFG)
+	profile_changing = false
+
 func _save_setting_text(key: String, value: String) -> void:
 	var cfg := ConfigFile.new()
 	cfg.load("user://goanna.cfg")
@@ -1285,16 +1337,15 @@ func _build_graphics_page(page: VBoxContainer) -> void:
 		blurb.text = GraphicsProfiles.BLURBS[name]
 	picker.item_selected.connect(func(i: int) -> void:
 		var name: String = names[i]
-		if name == "custom":
+		if name == "custom" or profile_changing:
 			show_current.call()
 			return
-		for key in GraphicsProfiles.PROFILES[name]:
-			var v := float(GraphicsProfiles.PROFILES[name][key])
-			_apply_setting(key, v)
-			_save_setting(key, v)
-		_save_setting_text("graphics_profile", name)
-		show_current.call()
-		_open_settings())
+		picker.disabled = true
+		blurb.text = "Applying %s..." % GraphicsProfiles.LABELS[name]
+		await change_profile(name)
+		# Rebuild the panel only if the player is still looking at it.
+		if is_instance_valid(picker) and picker.is_inside_tree():
+			_open_settings())
 	page.add_child(picker)
 	page.add_child(blurb)
 	show_current.call()
@@ -1473,8 +1524,20 @@ func _build_setting_row(page: VBoxContainer, entry: Array) -> void:
 		slider.step = entry[7]
 		slider.value = _setting_value(key, 0.0)
 		value_label.text = "off" if slider.value <= 0.0 else "%.2f" % slider.value
+		# A drag applies once, on release: applied on every step, dragging
+		# SDFGI or the screen space sliders rebuilt their passes dozens of
+		# times a second. Keys, the gamepad and clicks still apply at once.
+		var dragging := [false]
+		slider.drag_started.connect(func() -> void: dragging[0] = true)
+		slider.drag_ended.connect(func(changed: bool) -> void:
+			dragging[0] = false
+			if changed:
+				_apply_setting(key, slider.value)
+				_save_setting(key, slider.value))
 		slider.value_changed.connect(func(v: float) -> void:
 			value_label.text = "off" if v <= 0.0 else "%.2f" % v
+			if dragging[0]:
+				return
 			_apply_setting(key, v)
 			_save_setting(key, v))
 		var srow := HBoxContainer.new()

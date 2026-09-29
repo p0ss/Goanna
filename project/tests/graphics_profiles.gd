@@ -100,6 +100,52 @@ func _run() -> void:
 	check(first.render_features.render_sky_clouds and not first.render_features.render_atmosphere,
 			"Feature control restores the actual preset, including its off settings")
 	bench.free()
+	# A live preset change reaches the renderer in stages, reductions first.
+	var stage_of := func(stages: Array, key: String) -> int:
+		for i in stages.size():
+			if stages[i].has(key):
+				return i
+		return -1
+	var down: Array = Profiles.transition_stages(Profiles.PROFILES.high, Profiles.PROFILES.medium)
+	var changed := 0
+	for key in Profiles.PROFILES.medium:
+		if not is_equal_approx(float(Profiles.PROFILES.high[key]), float(Profiles.PROFILES.medium[key])):
+			changed += 1
+			check(stage_of.call(down, key) >= 0, "Staged change carries " + key)
+	check(down.reduce(func(n: int, s: Dictionary) -> int: return n + s.size(), 0) == changed,
+			"Staged change carries only what differs")
+	check(stage_of.call(down, "light_sdfgi") == -1, "Unchanged SDFGI is not touched")
+	check(stage_of.call(down, "view_range") < stage_of.call(down, "shadow_lamps")
+			and stage_of.call(down, "shadow_lamps") < stage_of.call(down, "light_ssil"),
+			"Distance, then lamps, then screen space")
+	check(down.size() > 1, "High to Medium is more than one stage")
+	var mixed: Dictionary = Profiles.PROFILES.high.duplicate()
+	mixed.grass_density = 0.1
+	var both: Array = Profiles.transition_stages(mixed, Profiles.PROFILES.medium)
+	check(stage_of.call(both, "grass_density") > stage_of.call(both, "light_ssil"),
+			"A raised key waits for every reduction")
+	var up: Array = Profiles.transition_stages(Profiles.PROFILES.high, Profiles.PROFILES.ultra)
+	check(up[stage_of.call(up, "far_distance")].far_distance == -1.0,
+			"The server grant is reached as a raise")
+	apply(first, "high")
+	first.ui.change_profile("medium")
+	check(first.ui.profile_changing and is_equal_approx(first.light_ssil, 1.4),
+			"The screen space stage waits for drawn frames")
+	for i in 60:
+		if not first.ui.profile_changing:
+			break
+		await process_frame
+	check(not first.ui.profile_changing, "Staged change finishes")
+	for key in Profiles.PROFILES.medium:
+		if key in ["far_distance", "view_range"]:
+			continue
+		check(is_equal_approx(first.ui._setting_value(key, -999.0), float(Profiles.PROFILES.medium[key])),
+				"Staged change reaches " + key)
+	var saved := ConfigFile.new()
+	saved.load("user://goanna.cfg")
+	check(saved.get_value("settings", "graphics_profile", "") == "medium"
+			and is_equal_approx(float(saved.get_value("settings", "light_ssil", -1.0)), 0.0),
+			"Staged change saves the preset")
 	var shader: Shader = load("res://shaders/sky.gdshader")
 	var uniforms: Array = shader.get_shader_uniform_list()
 	check(uniforms.any(func(item: Dictionary) -> bool: return item.name == "cloud_quality"),

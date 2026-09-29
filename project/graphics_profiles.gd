@@ -298,3 +298,61 @@ static func below_hardware(values: Dictionary, want: String) -> Array:
 		if float(values[key]) < target - 0.001:
 			short.append(key)
 	return short
+
+# The order a live preset change reaches the renderer in, one group at a
+# time. Applying a whole preset in one frame froze the machine on
+# 2026-09-29 (High to Medium in play, 512 pack, RTX 3090, NVIDIA open module
+# 615): the desktop died four seconds later and nothing reached the kernel
+# log. Which of the forty changes wedged the driver is not known, so the
+# change is spread out instead: geometry and distance first, then lamps and
+# shadow maps, then the screen space passes, then SDFGI, then the sky, with
+# frames drawn between each group. Keys in no group go last.
+const STAGES := [
+	["view_range", "lod_distance", "far_distance", "procedural_grass",
+			"grass_density", "grass_draw_distance", "grass_interaction_distance",
+			"grass_interactors", "grass_antialiasing", "render_grass_aa",
+			"render_grass_interaction", "render_foliage_wind", "solid_ice",
+			"mat_parallax", "terrain_occlusion"],
+	["shadow_lamps", "light_pool", "lamp_shadow_distance", "lamp_occlusion",
+			"render_dynamic_lights", "render_carried_light", "render_sun_shadows",
+			"shadow_detail"],
+	["light_ssil", "screen_space_detail", "render_ssao", "render_bloom",
+			"render_shafts"],
+	["light_sdfgi"],
+	["cloud_quality", "cloud_style", "atmosphere_quality", "render_atmosphere",
+			"render_sky_clouds", "render_cloud_shadows", "render_underwater_volume"],
+]
+
+# Every quality key is cheaper at a lower value, so a lower target releases
+# memory and a higher one claims it. far_distance -1 is the server's whole
+# grant, the most expensive setting that key has.
+static func _cost(key: String, value: float) -> float:
+	if key == "far_distance" and value < 0.0:
+		return INF
+	return value
+
+# The groups of {key: value} that take current to target, reductions first
+# so that what a preset gives up is freed before anything it adds is
+# allocated. Unchanged keys are left out, and so are empty groups.
+static func transition_stages(current: Dictionary, target: Dictionary) -> Array:
+	var group_of := {}
+	for i in STAGES.size():
+		for key in STAGES[i]:
+			group_of[key] = i
+	var stages: Array = []
+	for raising in [false, true]:
+		var groups: Array = []
+		for i in STAGES.size() + 1:
+			groups.append({})
+		for key in target:
+			var want := float(target[key])
+			var have := float(current.get(key, want))
+			if absf(want - have) <= 0.001:
+				continue
+			if (_cost(key, want) > _cost(key, have)) != raising:
+				continue
+			groups[group_of.get(key, STAGES.size())][key] = want
+		for group in groups:
+			if not group.is_empty():
+				stages.append(group)
+	return stages
