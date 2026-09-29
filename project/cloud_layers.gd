@@ -36,3 +36,9 @@ static func build(height: float, thickness: float, coverage: float,
 		if i < first or i >= first + count:
 			layers[i].z = 0.0
 	return layers
+
+
+# Keep upper banks broad enough to read from the ground. Scale by the fixed
+# layer slot, never the eye position or the number of enabled layers.
+static func horizontal_scale(layer: int) -> float:
+	return float((layer + 1) * (layer + 1))

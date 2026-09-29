@@ -30,8 +30,15 @@ float cloud_layer_weather(vec2 p) {
 	return value / 0.9375;
 }
 
+// Match CloudLayers.horizontal_scale: low/middle/high banks grow 1x/4x/9x.
+// Their shape stays fixed while the camera travels through the layers.
+float cloud_horizontal_scale(int layer) {
+	float level = float(layer + 1);
+	return level * level;
+}
+
 float cloud_cell_size(int layer) {
-	return 384.0 * (1.0 + float(layer) * 0.65);
+	return 384.0 * cloud_horizontal_scale(layer);
 }
 
 // Stagger each row independently so gaps cannot form long straight lanes.

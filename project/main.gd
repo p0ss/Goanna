@@ -2416,11 +2416,12 @@ func _local_cloud_layer(world: Vector3, layer: int) -> float:
 			or world.y > deck.x + deck.y * 1.75:
 		return 0.0
 	var offset := cloud_off * (1.0 + layer * 0.17) + Vector2(19.7, 43.1) * layer
+	var scale := CloudLayers.horizontal_scale(layer)
 	var base := deck.x
 	var depth := deck.y
 	var envelope := 1.0
 	if int(cloud_style) < 2:
-		var size := 384.0 * (1.0 + layer * 0.65)
+		var size := 384.0 * scale
 		var position := Vector2(world.x, world.z) + offset * (0.4 / 0.0009)
 		var row := floorf(position.y / size)
 		var shift := _cloud_cell_hash(Vector2(row, 17.7)) - 0.5
@@ -2436,7 +2437,7 @@ func _local_cloud_layer(world: Vector3, layer: int) -> float:
 		var distance := (position - centre).abs()
 		if distance.x >= width.x * 0.5 or distance.y >= width.y * 0.5:
 			return 0.0
-		var weather := _cloud_layer_weather((origin + Vector2(size, size) * 0.5) * 0.0009)
+		var weather := _cloud_layer_weather((origin + Vector2(size, size) * 0.5) * 0.0009 / scale)
 		var occupancy := deck.z * lerpf(0.25, 1.0, smoothstep(0.25, 0.65, weather))
 		if _cloud_cell_hash(cell + Vector2(37.1, 91.7)) >= occupancy:
 			return 0.0
@@ -2450,7 +2451,7 @@ func _local_cloud_layer(world: Vector3, layer: int) -> float:
 					+ minf(maxf(q.x, maxf(q.y, q.z)), 0.0) - 0.58
 			envelope = 1.0 - smoothstep(-0.22, 0.0, sdf + 0.15)
 	else:
-		var weather := _cloud_layer_weather(Vector2(world.x, world.z) * 0.0009 + offset * 0.4)
+		var weather := _cloud_layer_weather((Vector2(world.x, world.z) * 0.0009 + offset * 0.4) / scale)
 		base += (weather - 0.5) * depth * 0.65
 	var ch := 1.0 - absf(world.y - (base + depth * 0.5)) / (depth * 0.5)
 	if ch <= 0.0 or deck.z <= 0.01:
@@ -2458,6 +2459,8 @@ func _local_cloud_layer(world: Vector3, layer: int) -> float:
 	var profile := smoothstep(0.0, 0.22, ch) * smoothstep(0.0, 0.18, ch)
 	var p := Vector3(world.x * 0.006 + offset.x * 0.12, world.y * 0.018,
 			world.z * 0.006 + offset.y * 0.12)
+	p.x /= scale
+	p.z /= scale
 	var value := _cloud_noise3(p) * 0.55
 	var weight := 0.55
 	if atmosphere_quality > 0.34:
@@ -2586,10 +2589,12 @@ func _update_cloud_shadows() -> void:
 	var deck := cloud_layers[layer]
 	var offset := cloud_off * (1.0 + layer * 0.17) + Vector2(19.7, 43.1) * layer
 	client.set_view_shader_parameter("goanna_cloud_shadow",
-			Vector4(offset.x * 0.4, offset.y * 0.4, deck.z,
+			Vector4(offset.x * 0.4 / CloudLayers.horizontal_scale(layer),
+			offset.y * 0.4 / CloudLayers.horizontal_scale(layer), deck.z,
 			cloud_shadow_k * deck.w if render_features["render_cloud_shadows"] else 0.0))
 	client.set_view_shader_parameter("goanna_cloud_geom",
-			Vector4(0.0009, deck.x + deck.y * 0.5, sun_par.x, sun_par.y))
+			Vector4(0.0009 / CloudLayers.horizontal_scale(layer),
+			deck.x + deck.y * 0.5, sun_par.x, sun_par.y))
 
 # Cheap actual-state telemetry for feature comparisons. No terrain traversal.
 func render_feature_state() -> Dictionary:

@@ -56,7 +56,8 @@ func _initialize() -> void:
 			var occupied := false
 			for x in range(-2048, 2048, 128):
 				for z in range(-2048, 2048, 128):
-					var point := Vector3(x, deck.x + deck.y * 0.5, z)
+					var scale := Layers.horizontal_scale(layer)
+					var point := Vector3(x * scale, deck.x + deck.y * 0.5, z * scale)
 					occupied = occupied or game._local_cloud_layer(point, layer) > 0.0
 					point.y = deck.x - deck.y
 					check(game._local_cloud_layer(point, layer) == 0.0,

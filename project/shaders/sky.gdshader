@@ -143,17 +143,19 @@ uniform sampler3D cloud_body_tex : repeat_enable, filter_linear;
 // modulates coverage, breaks the 3D texture's tiling, and is the same
 // envelope the node shaders approximate for their cloud shadows.
 float cloud_weather(vec2 wxz, int layer) {
-	return cloud_layer_weather(wxz * 0.0009 + cloud_layer_offset(cloud_offset, layer) * 0.4);
+	return cloud_layer_weather((wxz * 0.0009 + cloud_layer_offset(cloud_offset, layer) * 0.4)
+		/ cloud_horizontal_scale(layer));
 }
 
 // Normalise each axis before rounding so a broad cloud has soft horizontal
 // edges as well as a soft crown. World-space noise carves uneven bays and
 // lobes into that envelope; the density reaches zero inside its bounds.
-float block_cloud_density(vec3 p, vec3 midpoint, vec3 half_size) {
+float block_cloud_density(vec3 p, vec3 midpoint, vec3 half_size, float scale) {
 	float sdf = cloud_block_distance(p, midpoint, half_size);
 	if (sdf >= 0.0) return 0.0;
-	float body = texture(cloud_body_tex, p / 180.0).r;
-	float detail = texture(cloud_body_tex, p / 55.0 + vec3(0.37)).r;
+	vec3 shape_p = vec3(p.x / scale, p.y, p.z / scale);
+	float body = texture(cloud_body_tex, shape_p / 180.0).r;
+	float detail = texture(cloud_body_tex, shape_p / 55.0 + vec3(0.37)).r;
 	float erosion = (1.0 - body) * 0.48 + (0.5 - detail) * 0.16;
 	float shell = 1.0 - smoothstep(-0.22, 0.0, sdf + erosion);
 	return shell * mix(0.45, 1.0, body);
@@ -162,7 +164,7 @@ float block_cloud_density(vec3 p, vec3 midpoint, vec3 half_size) {
 // Integrate a soft body inside one occupied cell. Return premultiplied
 // radiance and opacity so a thin edge reveals clouds farther along the ray.
 vec4 fluffy_block_cell(vec3 ro, vec3 dir, vec3 lo, vec3 hi,
-		float entry, float leave, bool cubemap, float strength, float reach) {
+		float entry, float leave, bool cubemap, float strength, float reach, float scale) {
 	vec3 midpoint = (lo + hi) * 0.5;
 	vec3 half_size = (hi - lo) * 0.5;
 	int samples = cubemap ? 8 : (cloud_quality == 0 ? 12 : (cloud_quality == 1 ? 16 : 24));
@@ -178,13 +180,13 @@ vec4 fluffy_block_cell(vec3 ro, vec3 dir, vec3 lo, vec3 hi,
 		if (j >= samples || transmittance < 0.015) break;
 		float t = entry + (float(j) + 0.5) * stride;
 		vec3 p = ro + dir * t;
-		float density = block_cloud_density(p, midpoint, half_size);
+		float density = block_cloud_density(p, midpoint, half_size, scale);
 		if (density < 0.001) continue;
 		float od = 0.0;
 		for (int k = 0; k < 4; k++) {
 			if (k >= sun_samples) break;
 			vec3 toward_light = p + sun_dir * (float(k) + 0.5) * light_stride;
-			od += block_cloud_density(toward_light, midpoint, half_size) * light_stride;
+			od += block_cloud_density(toward_light, midpoint, half_size, scale) * light_stride;
 		}
 		float light = exp(-od * sigma);
 		float hf = clamp((p.y - lo.y) / (hi.y - lo.y), 0.0, 1.0);
@@ -232,7 +234,7 @@ vec4 block_clouds(vec3 eye, vec3 dir, bool cubemap, int layer) {
 	for (int i = 0; i < 64; i++) {
 		if (t > end) break;
 		vec2 centre = cloud_cell_origin(cell, cell_size) + cell_size * 0.5;
-		float weather = cloud_layer_weather(centre * 0.0009);
+		float weather = cloud_layer_weather(centre * 0.0009 / cloud_horizontal_scale(layer));
 		float occupancy = deck.z * mix(0.25, 1.0, smoothstep(0.25, 0.65, weather));
 		if (hash12(cell + vec2(37.1, 91.7)) < occupancy) {
 			float crown = height * mix(0.55, 1.0, hash12(cell));
@@ -253,7 +255,7 @@ vec4 block_clouds(vec3 eye, vec3 dir, bool cubemap, int layer) {
 					: vec3(0.0, 0.0, -sign(ray.z));
 				if (cloud_style == 1) {
 					vec4 body = fluffy_block_cell(ro, dir, lo, hi, hit,
-						min(exit_t, end), cubemap, deck.w, reach);
+						min(exit_t, end), cubemap, deck.w, reach, cloud_horizontal_scale(layer));
 					accumulated.rgb += (1.0 - accumulated.a) * body.rgb;
 					accumulated.a += (1.0 - accumulated.a) * body.a;
 					if (accumulated.a > 0.985) break;
@@ -307,7 +309,8 @@ float cloud_density(vec3 wp, float base_w, float deck, float weather, int layer)
 	// ones stay shallow.
 	float grad = smoothstep(0.0, 0.22, hf) * (1.0 - smoothstep(mix(0.20, 0.85, weather), 1.0, hf));
 	vec3 uvw = vec3(wp.x, wp.y * 2.4, wp.z) / 680.0;
-	uvw.xz += cloud_layer_offset(cloud_offset, layer) * 0.05;
+	uvw.xz = (uvw.xz + cloud_layer_offset(cloud_offset, layer) * 0.05)
+		/ cloud_horizontal_scale(layer);
 	float body = texture(cloud_body_tex, uvw).r;
 	float cover = cloud_layers[layer].z * smoothstep(0.30, 0.62, weather);
 	return smoothstep(1.0 - cover, 1.0 - cover + 0.16, body * grad * 1.25);
