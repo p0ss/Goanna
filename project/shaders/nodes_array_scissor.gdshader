@@ -21,6 +21,7 @@ shader_type spatial;
 render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 
 #include "res://shaders/nodes_array_common.gdshaderinc"
+#define GOANNA_DIAMOND
 #include "res://shaders/direct_light.gdshaderinc"
 // goanna_rain and the rain cover map, for splashes and puddles. Cut-outs
 // on open ground take rain too, and the far tiers draw ground with this
@@ -150,6 +151,15 @@ void fragment() {
 	// Keep the complete micro-PBR response on the same distance ramp as the
 	// albedo and normal detail. Otherwise a flat averaged canopy retains the
 	// close tile's sharp highlight and becomes reflective at the LOD handoff.
+	float gem = goanna_diamond_mask(tile.rgb, layer_diamond[layer]) * (1.0 - flatten);
+	vec3 gem_normal = relief_normal * 0.5 + 0.5;
+	// Authored maps are upscaled; the gem's art remains a 16-texel tile.
+	float gem_px = max(length(uv_dx), length(uv_dy)) * 16.0;
+	v_diamond = goanna_diamond_surface(tile.rgb, gem, gem_px, gem_normal, ROUGHNESS, METALLIC, SPECULAR);
+	relief_normal = gem_normal * 2.0 - 1.0;
+	NORMAL_MAP = gem_normal;
+	NORMAL_MAP_DEPTH = 1.0;
+	v_diamond_axis = TANGENT;
 	ROUGHNESS = mix(ROUGHNESS, mix(1.0, lod_avg_rough[layer], roughness_strength), flatten);
 	// The relief that flattening just removed, returned as roughness. Added in
 	// squared roughness, which is where a slope distribution's variance

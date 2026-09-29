@@ -127,7 +127,8 @@ Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
     // not: it is where the node light reaches an entity (the node_light
     // instance uniform EntityRenderer::sync sets), which StandardMaterial3D
     // has no way to take.
-    if (gt && !alpha && !double_sided) {
+    const int diamond_mode = diamondTextureMode(texture);
+    if (gt && !alpha && (!double_sided || diamond_mode != 0)) {
         if (!m_sh_entity.is_valid())
             m_sh_entity = m_root->call("load_view_shader", "res://shaders/entity.gdshader");
         if (!m_sh_entity_scissor.is_valid())
@@ -137,6 +138,17 @@ Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
         // Most mob skins have transparent texels, so the cut out variant is
         // the common case; see entity_scissor.gdshader.
         sm->set_shader(gt->hasAlpha() ? m_sh_entity_scissor : m_sh_entity);
+        // Player armour is often double sided. It must keep that culling
+        // rule while receiving the same gem material as held items.
+        if (double_sided) {
+            if (!m_sh_diamond_double.is_valid())
+                m_sh_diamond_double = m_root->call("load_view_shader",
+                        "res://shaders/entity_double_sided.gdshader");
+            if (!m_sh_diamond_double_scissor.is_valid())
+                m_sh_diamond_double_scissor = m_root->call("load_view_shader",
+                        "res://shaders/entity_double_sided_scissor.gdshader");
+            sm->set_shader(gt->hasAlpha() ? m_sh_diamond_double_scissor : m_sh_diamond_double);
+        }
         sm->set_shader_parameter("albedo", gt->godotTexture());
         // What this thing is made of. The node path learns that from the
         // classifier and carries it in a generated _s (goanna_textures.cpp),
@@ -162,6 +174,13 @@ Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
         sm->set_shader_parameter("class_f0", csp.f0);
         sm->set_shader_parameter("class_metal", csp.metal ? 1.0f : 0.0f);
         sm->set_shader_parameter("class_sss", csp.sss);
+        sm->set_shader_parameter("diamond_mode", diamond_mode);
+        // Wearable armour uses the player atlas; inventory art and tools
+        // use one tile. Companions may upscale either without adding facets.
+        const bool armour_atlas = texture.find("armor") != std::string::npos &&
+                texture.find("_inv_") == std::string::npos;
+        sm->set_shader_parameter("diamond_texels",
+                armour_atlas ? Vector2(64, 32) : Vector2(16, 16));
         if (getenv("GOANNA_DEBUG_ENTITY_PBR"))
             UtilityFunctions::print("entity class: ", String::utf8(cbase.c_str()),
                     " -> ", String(className(cls)));
@@ -173,9 +192,8 @@ Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
             sm->set_shader_parameter("spec_tex", spec_tex);
         result = sm;
     } else {
-        // Alpha blended and double sided surfaces keep the plain material;
-        // the entity shaders are back face culled on purpose (see their
-        // headers).
+        // Blended surfaces and non-diamond double sided surfaces retain
+        // their existing material path.
         result = materialForTexture(session, texture, alpha, double_sided);
     }
     if (getenv("GOANNA_DEBUG_ENTITY_PBR"))

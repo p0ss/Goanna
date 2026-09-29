@@ -28,6 +28,7 @@ render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 // decile, so snapping between neighbouring texels swings the specular
 // highlight from frame to frame and reads as shimmer.
 #include "res://shaders/nodes_array_common.gdshaderinc"
+#define GOANNA_DIAMOND
 #include "res://shaders/direct_light.gdshaderinc"
 // goanna_rain and the rain cover map, for splashes and puddles.
 #include "res://shaders/weather_common.gdshaderinc"
@@ -281,6 +282,15 @@ void fragment() {
 			BACKLIGHT = ALBEDO * sss * sss_strength * (1.0 - flatten);
 		}
 	}
+	float gem = goanna_diamond_mask(tile.rgb, layer_diamond[layer]) * (1.0 - flatten);
+	vec3 gem_normal = relief_normal * 0.5 + 0.5;
+	// Authored maps are upscaled; the gem's art remains a 16-texel tile.
+	float gem_px = max(length(uv_dx), length(uv_dy)) * 16.0;
+	v_diamond = goanna_diamond_surface(tile.rgb, gem, gem_px, gem_normal, ROUGHNESS, METALLIC, SPECULAR);
+	relief_normal = gem_normal * 2.0 - 1.0;
+	NORMAL_MAP = gem_normal;
+	NORMAL_MAP_DEPTH = 1.0;
+	v_diamond_axis = TANGENT;
 	// The albedo, normal relief and material response are one level of
 	// texture-scale detail. Flattening only the first two left the averaged
 	// far tile carrying the close tile's sharp specular lobe, so distant

@@ -106,6 +106,11 @@ MaterialClass classifyNode(const NodeDefManager *ndef, content_t c, int *signal 
 // rather than nodes, so the other three signals do not exist for them.
 MaterialClass classifyName(const std::string &name);
 
+// Diamond treatment is independent of the bulk class: ore is still stone.
+// 0 ordinary texture, 1 cyan gem pixels, 2 solid diamond block. Inspect the
+// whole tile expression so a mineral or armour overlay is included.
+int diamondTextureMode(const std::string &texture);
+
 // game_texture -> pack path, from the CSV tools/mc_texture_map.py writes.
 // Empty if the path does not read.
 std::map<std::string, std::string> readTextureMap(const std::string &csv_path);

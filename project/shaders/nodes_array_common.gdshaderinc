@@ -250,6 +250,8 @@ uniform float lod_flatten_far : hint_range(0.0, 4096.0) = 1024.0;
 // treatment can be chosen by what a surface is rather than by which pack
 // dressed it. Same 256 layer cap as lod_avg_colour.
 uniform int layer_class[256];
+// Independent of the host material: a diamond ore tile is mostly stone.
+uniform int layer_diamond[256];
 // Relief depth per layer as a fraction of a node, measured from the map
 // itself (its normal slope against its height gradient, see
 // goanna_relief_depth in the client); zero or less falls back to the

@@ -147,6 +147,37 @@ for the array. The checks are `goanna_array_route_test` (native) and
 declare every uniform the client sets). Neither renders; whether the
 relief now shows on sand, stone and planks in play has not been seen.
 
+## Diamond surfaces
+
+Diamond blocks, ore, held tools and worn armour share
+`project/shaders/diamond.gdshaderinc`. The texture name opts in, separately
+from the bulk material class, so diamond ore remains stone. Solid diamond
+blocks use the whole surface; ore, tools and armour select cyan pixels from
+the rendered texture. The mask follows the displaced UV on opaque nodes,
+so it stays attached to the gems during parallax and mining.
+
+Small planar tilts follow the art's shade plateaus and retain the authored
+normal relief. The surface is a polished dielectric, with a bounded coloured
+secondary highlight that approximates diamond fire. This is not optical
+refraction. Both highlights receive ordinary light colour, attenuation,
+shadows and the underground sunlight gate. Neither adds emission. Fine
+facets fade as their footprint becomes unresolved. `diamond_strength = 0`
+disables the treatment; normal, roughness and specular strengths still apply.
+
+The entity shader body lives in `entity_common.gdshaderinc`, with separate
+opaque, cut-out and double-sided entry points. Diamond armour uses the
+double-sided variants when the server's player model requires it; blended
+entities retain their previous material path.
+
+The mask assumes cyan diamond art and familiar tile/player-atlas scales.
+Unusually recoloured packs, blue non-diamond parts in a combined armour
+texture, and other atlas layouts need an authored semantic mask in future.
+The texture-name check keeps unrelated blue textures out of the treatment.
+Inventory icons remain the existing CPU-rendered art.
+
+See [the diamond study](perf/diamond-2026-09-29/report.md) for captures and
+validation, including live Mineclonia armour and ore.
+
 ## How LabPBR maps onto glTF 2.0
 
 Upstream discussion favours taking glTF 2.0 material semantics as the

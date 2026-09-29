@@ -3025,17 +3025,19 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
             {
                 const MaterialTable &mtable = m_session->materialTable();
                 const auto &lnames = agt->layerNames();
-                PackedInt32Array classes;
+                PackedInt32Array classes, diamonds;
                 PackedFloat32Array coarse, roughness_floor;
                 Dictionary grass_layers;
                 roughness_floor.resize((int)lnames.size());
                 classes.resize((int)lnames.size());
+                diamonds.resize((int)lnames.size());
                 coarse.resize((int)lnames.size());
                 for (size_t i = 0; i < lnames.size(); ++i) {
                     std::string plain = tileBaseName(lnames[i]);
                     if (plain.empty())
                         plain = lnames[i];
                     classes[(int)i] = (int)mtable.textureClass(plain);
+                    diamonds[(int)i] = diamondTextureMode(lnames[i]);
                     roughness_floor[(int)i] = mtable.bark_textures.count(plain) ? 0.82f : 0.0f;
                     coarse[(int)i] = m_session->tsrc()->textureCoarseness(lnames[i]);
                     // Ground top textures identified from normal soil nodes.
@@ -3047,6 +3049,7 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
                 }
                 sm->set_meta("goanna_grass_layers", grass_layers);
                 sm->set_shader_parameter("layer_class", classes);
+                sm->set_shader_parameter("layer_diamond", diamonds);
                 // An animation array's frame counts and lengths, which the
                 // shader turns into the frame to draw. An ordinary array
                 // leaves the uniform at zero and never animates.

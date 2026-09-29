@@ -65,6 +65,10 @@
 
 #include "lamp_occlusion.gdshaderinc"
 
+#ifdef GOANNA_DIAMOND
+#include "diamond.gdshaderinc"
+#endif
+
 varying float v_sun_gate;
 varying float v_specular;
 varying vec2 v_rim;
@@ -153,4 +157,9 @@ void light() {
 				normalize((INV_VIEW_MATRIX * vec4(LIGHT, 0.0)).xyz));
 	DIFFUSE_LIGHT += diffuse * gate;
 	SPECULAR_LIGHT += spec * gate;
+#ifdef GOANNA_DIAMOND
+	if (v_diamond > 0.001)
+		SPECULAR_LIGHT += goanna_diamond_fire(NORMAL, LIGHT, VIEW, v_diamond_axis)
+				* v_diamond * LIGHT_COLOR * ATTENUATION * SPECULAR_AMOUNT * gate;
+#endif
 }

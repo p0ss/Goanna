@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Diamond materials</title>
+<style>
+body{margin:32px auto;padding:0 20px;max-width:1280px;background:#101820;color:#e5edf3;font:17px/1.5 system-ui}
+h1,h2{font-weight:550}img{width:100%;display:block;border-radius:5px}button{font:inherit;padding:8px 16px;background:#244352;color:inherit;border:1px solid #628294;border-radius:5px;cursor:pointer}button[aria-pressed=true]{background:#487084}p{max-width:900px}a{color:#9edcff}
+</style>
+<h1>Diamond materials</h1>
+<p>Polished facets that follow the pixel art, with small coloured glints from
+real lights. The gem pixels in ore receive the treatment; the stone stays rough.</p>
+<h2>Live ore wall and equipped tool</h2>
+<p>Luanti 5.17.0, Mineclonia release 38561, Godot 4.5.1. The repository's authored
+relief pack is loaded. This is a temporary server display wall.</p>
+<img src="live-wall.png" alt="Diamond ore and a polished diamond block embedded in a stone wall, with a diamond pick equipped">
+<h2>Equipped armour</h2>
+<p>The actual player model, inspected with a detached camera and its full-body
+shadow mesh visible. Armour keeps the model's double-sided rendering.</p>
+<img src="live-armour.png" alt="Mineclonia player wearing diamond armour and carrying a diamond pick">
+<h2>Offline material comparison</h2>
+<p>Production shaders on simple cubes and cards. Switch between the old response,
+new facets and a moved lamp. These are material studies, not gameplay images.</p>
+<p id="choices"><button data-file="before.png">Before</button>
+<button data-file="diamond.png" aria-pressed="true">Diamond facets</button>
+<button data-file="light-moved.png">Moved lamp</button></p>
+<img id="comparison" src="diamond.png" alt="Material comparison of diamond block, stone and deepslate ores, tools and armour">
+<p><a href="report.md">Validation and limitations</a></p>
+<script>
+for(const b of document.querySelectorAll('button')) b.onclick=()=>{
+ document.querySelector('#comparison').src=b.dataset.file;
+ for(const other of document.querySelectorAll('button')) other.setAttribute('aria-pressed',String(other===b));
+};
+</script></html>

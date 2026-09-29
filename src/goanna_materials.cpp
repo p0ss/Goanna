@@ -205,6 +205,12 @@ MaterialClass classifyName(const std::string &raw) {
     return MaterialClass::None;
 }
 
+int diamondTextureMode(const std::string &texture) {
+    if (texture.find("diamond") == std::string::npos)
+        return 0;
+    return texture.find("diamond_block") != std::string::npos ? 2 : 1;
+}
+
 std::map<std::string, std::string> readTextureMap(const std::string &csv_path) {
     std::map<std::string, std::string> out;
     if (csv_path.empty())
