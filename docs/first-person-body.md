@@ -131,9 +131,9 @@ part of `GenericCAO::step` in `src/transplant/client/content_cao.cpp`. The
 dig and place buttons are recorded in the player's controls for it, as the
 vanilla client records them.
 
-This matters because Goanna still reports no movement keys to the server, so
-a game that animates walking from `get_player_control()` never tells the
-body to walk. Minetest Game's `player_api` sets local animations, so on a
+This mattered because Goanna reported no movement keys to the server until
+2026-09-29 (see below), so a game that animates walking from
+`get_player_control()` never told the body to walk. Minetest Game's `player_api` sets local animations, so on a
 fresh Minetest Game world (Luanti 5.17.0 Flatpak, Godot 4.5.1) the body now
 plays its walk range, frames 168 to 187, while W is held, although the
 server's own animation is still standing, and its dig range, 189 to 198,
@@ -202,13 +202,14 @@ while Goanna's own swing only fires when the game leaves the arm bone alone.
 On Mineclonia the game does drive it, so this only shows on games that do
 not.
 
-Goanna still reports no movement or sneak keys, so a game cannot see the
-local player walking or sneaking from the keypress field, and a game that
-animates walking that way and sets no local animations, as Mineclonia does,
-shows a body standing still while you walk. Sneak in
-particular changes eye height and player properties on Mineclonia, so
-sending it is a behaviour change rather than a rendering fix and was left
-out of this work.
+Since 2026-09-29 Goanna reports the whole keypress field, as the vanilla
+client does, from `PlayerControl::getKeysPressed`: movement, jump, aux1,
+sneak, dig and place. Before, it sent dig and place only, and Mineclonia,
+which picks the walk animation from those keys, showed a body standing still
+while it walked. Checked in third person on test_world: the legs and arms
+swing while W is held. Sneak now reaches the server too, which on Mineclonia
+changes the eye height and the model's pose, as it does for a vanilla
+player.
 
 Whether the body should be drawn at all under the free flying debug camera
 is open. You are not in your body in that mode: the camera has detached from

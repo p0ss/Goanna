@@ -1819,15 +1819,17 @@ Dictionary GoannaClient::step_interact(double dt, bool dig, bool place, bool pla
     in.place = place;
     in.place_pressed = place_pressed;
     in.sneak = sneak;
-    // Tell the server which of the two buttons is down. A vanilla client sends
-    // this in every position packet; Goanna sent zero, so no game ever saw the
-    // local player digging and no game ever played its mining animation on the
-    // body, which is most of why the first-person arm looked wrong in a dig.
-    m_session->setPlayerKeys(dig, place);
     // The same two buttons as the vanilla client's PlayerControl holds them,
     // which the local player's own dig animation reads.
     p->control.dig = dig;
     p->control.place = place;
+    // Tell the server what is held, as a vanilla client does in every
+    // position packet: step_player has already put the movement keys, jump,
+    // aux1 and sneak into PlayerControl. Goanna sent dig and place alone
+    // until 2026-09-29, so a game that picks the walk animation from the
+    // keys (Mineclonia's mcl_player does) showed the body standing still
+    // while it walked, which the third person camera made plain.
+    m_session->setPlayerKeys(p->control.getKeysPressed());
     // From the rendered camera (see set_view_offset); Godot Z is Luanti -Z.
     in.eye_pos_bs = p->getPosition() + p->getEyeOffset()
             + v3f(m_view_offset.x, m_view_offset.y, -m_view_offset.z) * BS;

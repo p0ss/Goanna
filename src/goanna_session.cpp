@@ -1437,10 +1437,9 @@ void GoannaSession::setPlayerPose(v3f pos_nodes, float pitch_deg, float yaw_deg,
     m_pose_yaw = yaw_deg;
 }
 
-// PlayerControl::getKeysPressed packs dig at bit 7 and place at bit 8.
-void GoannaSession::setPlayerKeys(bool dig, bool place) {
+void GoannaSession::setPlayerKeys(u32 keypress_bits) {
     std::lock_guard<std::mutex> lk(m_pose_mutex);
-    m_pose_keys = ((u32)dig << 7) | ((u32)place << 8);
+    m_pose_keys = keypress_bits;
 }
 
 // --- IGameDef ---

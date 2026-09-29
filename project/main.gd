@@ -947,6 +947,7 @@ func _apply_view_bob(r: Dictionary, delta: float) -> void:
 enum { CAMERA_FIRST, CAMERA_BEHIND, CAMERA_FRONT }
 const THIRD_PERSON_MAX := 2.75
 const THIRD_PERSON_MIN := 1.0
+const THIRD_PERSON_INSIDE := 0.8
 var camera_mode := CAMERA_FIRST
 var orbit_yaw := 0.0
 var orbit_pitch := 0.0
@@ -954,12 +955,19 @@ var orbit_distance := THIRD_PERSON_MAX
 # Read by game_ui.gd: the crosshair marks where the head points, which is
 # only on screen when the camera looks the way the player does.
 var crosshair_hidden := false
+var _fly_eye := Vector3.ZERO
+var _third_drawn := false
+var _fly_cam_placed := Vector3(INF, INF, INF)
 
 func _cycle_camera_mode() -> void:
-	camera_mode = (camera_mode + 1) % 3
+	_set_camera_mode((camera_mode + 1) % 3)
+
+func _set_camera_mode(mode: int) -> void:
+	camera_mode = mode
 	orbit_yaw = 0.0
 	orbit_pitch = 0.0
-	client.set_third_person(camera_mode != CAMERA_FIRST)
+	_third_drawn = camera_mode != CAMERA_FIRST
+	client.set_third_person(_third_drawn)
 	crosshair_hidden = camera_mode == CAMERA_FRONT
 
 func _place_third_person(head: Vector3) -> void:
@@ -970,16 +978,25 @@ func _place_third_person(head: Vector3) -> void:
 		cam_pitch = -cam_pitch
 	var look := Basis.from_euler(Vector3(deg_to_rad(cam_pitch), deg_to_rad(cam_yaw), 0))
 	var back: Vector3 = look.z   # the camera's own backward axis
-	# Walk out from the head a tenth of a node at a time and stop half a node
-	# short of the first walkable node, the vanilla camera's rule.
+	# Walk out from the head a tenth of a node at a time and stop short of the
+	# first walkable node, as the vanilla camera does (it backs off half a
+	# node; 0.3 keeps more of the view against a wall and still never
+	# reaches through it).
 	var dist := orbit_distance
 	var d := 0.1
 	while d <= orbit_distance:
 		if client.node_walkable_at(head + back * d):
-			dist = maxf(d - 0.5, 0.0)
+			dist = maxf(d - 0.3, 0.0)
 			break
 		d += 0.1
 	cam.position = head + back * dist
+	# Pulled in this close, the camera is inside the head. Draw the body as
+	# first person does, head shrunk, so the view is out of the eyes rather
+	# than the inside of the skull.
+	var whole := dist >= THIRD_PERSON_INSIDE
+	if whole != _third_drawn:
+		_third_drawn = whole
+		client.set_third_person(whole)
 	cam.rotation_degrees = Vector3(cam_pitch, cam_yaw, 0)
 	crosshair_hidden = camera_mode == CAMERA_FRONT \
 			or absf(orbit_yaw) > 0.5 or absf(orbit_pitch) > 0.5
@@ -1028,16 +1045,17 @@ func _unhandled_input(event: InputEvent) -> void:
 		_set_wield(9)
 	if event is InputEventMouseMotion and pointer_captured(event):
 		var dy: float = event.relative.y * mouse_sensitivity * (1.0 if invert_mouse else -1.0)
-		if camera_mode != CAMERA_FIRST and Input.is_key_pressed(KEY_ALT):
-			# Alt held in third person turns the camera around the player,
-			# not the player.
+		if Input.is_key_pressed(KEY_ALT):
+			# Alt held turns the camera around the player, not the player;
+			# in first person it takes the hint and steps out behind first.
+			if camera_mode == CAMERA_FIRST:
+				_set_camera_mode(CAMERA_BEHIND)
 			orbit_yaw -= event.relative.x * mouse_sensitivity
 			orbit_pitch = clamp(orbit_pitch + dy, -80.0, 80.0)
 		else:
 			yaw -= event.relative.x * mouse_sensitivity
 			pitch = clamp(pitch + dy, -89, 89)
-	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F7 \
-			and not fly_mode:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F7:
 		_cycle_camera_mode()
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
 		set_pointer_captured(not pointer_captured())
@@ -1394,6 +1412,11 @@ func _process(delta: float) -> void:
 		place_pressed = false
 		_update_selection_box()
 	elif placed and not showcase_mode:
+		# The free camera's own position is the eye. Where the third person
+		# placement moved the camera last frame, take the eye back; anything
+		# else that moved it since (a control channel pose) is the new eye.
+		if camera_mode != CAMERA_FIRST and cam.position.is_equal_approx(_fly_cam_placed):
+			cam.position = _fly_eye
 		# fly controls
 		if bench != null and bench.route_active() and bench.route_mode == "fly":
 			# A benchmark route flies the camera in place of the keyboard, at a
@@ -1429,6 +1452,13 @@ func _process(delta: float) -> void:
 		# the movement as too fast without the fly privilege; that only resets
 		# the walking position, which fly mode is not using anyway.
 		client.set_player_pose(cam.position, pitch, yaw)
+		# In third person the free camera's position is the player's eye and
+		# the camera is placed off it, or the body is drawn round the lens
+		# and the view is the inside of the head.
+		_fly_eye = cam.position
+		if camera_mode != CAMERA_FIRST:
+			_place_third_person(_fly_eye)
+			_fly_cam_placed = cam.position
 	if profile_frame_work: work_clock = _work_mark("input_and_simulation", work_clock)
 	client.poll_blocks(24)
 	if profile_frame_work: work_clock = _work_mark("poll_blocks", work_clock)

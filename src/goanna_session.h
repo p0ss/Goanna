@@ -375,11 +375,11 @@ public:
     // validation and animation see a moving player.
     void setPlayerPose(v3f pos_nodes, float pitch_deg, float yaw_deg,
             v3f speed_nodes = v3f(0, 0, 0), float move_speed = 0, float move_dir = 0);
-    // Dig and place, in the same TOSERVER_PLAYERPOS keypress field a vanilla
-    // client fills from PlayerControl::getKeysPressed. Games read them through
-    // player:get_player_control(), which is how the server knows to play a
-    // mining animation on the body. Movement and sneak are not reported yet.
-    void setPlayerKeys(bool dig, bool place);
+    // The TOSERVER_PLAYERPOS keypress field, as a vanilla client fills it
+    // from PlayerControl::getKeysPressed: movement, jump, aux1, sneak, dig and
+    // place. Games read it through player:get_player_control(), which is how
+    // the server knows to play the walk and mining animations on the body.
+    void setPlayerKeys(u32 keypress_bits);
 
     // Media (textures, models, sounds) received from the server, by name.
     // Returns nullptr if unknown/not yet received. Thread-safe copy.
