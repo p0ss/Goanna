@@ -4,8 +4,44 @@
 // noise: a glint moves because the eye or a real light moves. Keep the
 // authored relief and add a small, constant tilt to each coloured plane.
 uniform float diamond_strength : hint_range(0.0, 1.0) = 1.0;
+uniform float diamond_interior_strength : hint_range(0.0, 1.0) = 1.0;
 varying float v_diamond;
 varying vec3 v_diamond_axis;
+varying vec3 v_diamond_inner_normal;
+varying vec3 v_diamond_scatter;
+varying float v_diamond_interior;
+
+// Refracted travel through a bounded crystal, measured in source texels.
+// This is an apparent interior: its rear plane is material, not a hole in
+// the world. In particular an ore never samples scenery behind its stone.
+vec2 goanna_diamond_travel(vec3 eye, float thickness) {
+	vec3 ray = refract(-normalize(eye), vec3(0.0, 0.0, 1.0), 1.0 / 2.42);
+	return ray.xy * thickness / max(-ray.z, 0.25);
+}
+
+// Shared optical response; the caller samples two internal planes using
+// the same texture and mask as its outer surface. Missing gem samples are
+// backed with the original colour so a ray cannot drag wood or stone in.
+// Returns the inner plane's tangent normal; all light still comes through
+// light(), including the small scattering term.
+vec3 goanna_diamond_interior(vec3 front, vec3 middle, vec3 rear,
+		float thickness, float amount, float footprint, vec2 travel,
+		inout vec3 colour, out vec3 scatter) {
+	float resolved = 1.0 - smoothstep(0.5, 1.5, footprint);
+	float weight = amount * diamond_strength * diamond_interior_strength * resolved;
+	vec3 absorption = exp(-vec3(0.75, 0.22, 0.10) * thickness);
+	// Distinct planes remain crisp. Absorption deepens the rear plane's
+	// turquoise; the pale front contribution keeps a clear surface skin.
+	vec3 inside = mix(middle, rear * absorption, 0.65);
+	colour = mix(colour, mix(front, inside, 0.72), weight);
+	float shade = dot(rear, vec3(0.2126, 0.7152, 0.0722));
+	float angle = floor(shade * 12.0) * 2.39996 + 1.1;
+	vec2 slope = vec2(cos(angle), sin(angle)) * 0.32;
+	// Thickness controls transmitted light, independently of the surface
+	// normal. Thin rims let more through than the darker crystal centres.
+	scatter = absorption * vec3(0.24, 0.62, 0.70) * weight * sss_strength;
+	return normalize(vec3((slope + travel * 0.04) * normal_strength, 1.0));
+}
 
 float goanna_diamond_mask(vec3 colour, int mode) {
 	if (mode == 0)

@@ -161,5 +161,17 @@ void light() {
 	if (v_diamond > 0.001)
 		SPECULAR_LIGHT += goanna_diamond_fire(NORMAL, LIGHT, VIEW, v_diamond_axis)
 				* v_diamond * LIGHT_COLOR * ATTENUATION * SPECULAR_AMOUNT * gate;
+	if (v_diamond_interior > 0.001) {
+		// Light refracted into the crystal catches a different plane from
+		// its polished skin. Both layers obey the same shadow and sun gate.
+		vec3 inner = goanna_diamond_fire(normalize(v_diamond_inner_normal),
+				LIGHT, VIEW, v_diamond_axis);
+		SPECULAR_LIGHT += inner * v_diamond_interior * vec3(0.45, 0.8, 1.0)
+				* LIGHT_COLOR * ATTENUATION * SPECULAR_AMOUNT * gate;
+		float wrapped = clamp((dot(NORMAL, LIGHT) + 0.45) / 1.45, 0.0, 1.0);
+		float forward = pow(max(dot(-LIGHT, VIEW), 0.0), 4.0);
+		DIFFUSE_LIGHT += v_diamond_scatter * (wrapped * 0.18 + forward * 0.35)
+				* LIGHT_COLOR * ATTENUATION * gate / PI;
+	}
 #endif
 }

@@ -215,3 +215,34 @@ func capture(directory: String) -> Dictionary:
 	FileAccess.open(directory.path_join("checks.json"), FileAccess.WRITE).store_string(
 		JSON.stringify(checks, "\t"))
 	return checks
+
+
+func capture_interior(directory: String) -> Dictionary:
+	DirAccess.make_dir_recursive_absolute(directory)
+	lamp.visible = true
+	lamp.position = Vector3(-1.4, 1.8, 4.0)
+	camera.fov = 28.0
+	var target := Vector3(-1.8, 1.25, 0)
+	var checks := {}
+	for angle in [-1, 0, 1]:
+		camera.position = target + Vector3(float(angle) * 1.4, 0.7, 5.5)
+		camera.look_at(target)
+		for mat in materials:
+			mat.set_shader_parameter("diamond_interior_strength", 0.0)
+		var before := await shot(directory.path_join("surface-%d.png" % (angle + 1)))
+		for mat in materials:
+			mat.set_shader_parameter("diamond_interior_strength", 1.0)
+		var after := await shot(directory.path_join("interior-%d.png" % (angle + 1)))
+		checks["interior_visible_%d" % angle] = before.get_data() != after.get_data()
+	# Distinguish subsurface light from the surface and inner specular lobes.
+	lamp.position = Vector3(-3.0, 2.2, 1.0)
+	for mat in materials:
+		mat.set_shader_parameter("sss_strength", 0.0)
+	var scatter_off := await shot(directory.path_join("scatter-off.png"))
+	for mat in materials:
+		mat.set_shader_parameter("sss_strength", 1.0)
+	var scatter_on := await shot(directory.path_join("scatter-on.png"))
+	checks["scattering_visible"] = scatter_on.get_data() != scatter_off.get_data()
+	FileAccess.open(directory.path_join("interior-checks.json"), FileAccess.WRITE).store_string(
+		JSON.stringify(checks, "\t"))
+	return checks

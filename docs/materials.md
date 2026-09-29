@@ -164,6 +164,21 @@ shadows and the underground sunlight gate. Neither adds emission. Fine
 facets fade as their footprint becomes unresolved. `diamond_strength = 0`
 disables the treatment; normal, roughness and specular strengths still apply.
 
+A shallow apparent interior now sits behind the polished skin. Two internal
+planes are sampled along a refracted ray, bounded by the same gem mask.
+Thicker paths absorb more red light, while thin edges transmit more of the
+internal light. An inner facet highlight and a wrapped scattering term use
+the existing light colours, shadows and sunlight gate. The treatment adds
+no emission. `diamond_interior_strength = 0` restores the surface-only
+version. Both node shaders sample from the parallax-displaced coordinate;
+entities use their tile or armour atlas scale.
+
+These are backed material interiors: neither ore nor a freestanding diamond
+block becomes a window onto the scene. Actual background transmission and
+refraction are not implemented by this treatment. The
+[interior comparison](perf/diamond-interior-2026-09-29/index.html) shows the
+distinction at three viewing angles.
+
 The entity shader body lives in `entity_common.gdshaderinc`, with separate
 opaque, cut-out and double-sided entry points. Diamond armour uses the
 double-sided variants when the server's player model requires it; blended

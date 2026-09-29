@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Diamond interiors</title>
+<style>
+body{margin:32px auto;padding:0 20px;max-width:1280px;background:#101820;color:#e5edf3;font:17px/1.5 system-ui}h1,h2{font-weight:550}img{width:100%;display:block;border-radius:5px}button{font:inherit;padding:8px 16px;background:#244352;color:inherit;border:1px solid #628294;border-radius:5px;cursor:pointer}button[aria-pressed=true]{background:#487084}p{max-width:960px}a{color:#9edcff}label{display:inline-block;padding:12px}
+</style>
+<h1>Depth inside the diamonds</h1>
+<p>Refracted inner planes, coloured absorption and a restrained scattering
+response under the existing polished surface. These are apparent translucent
+interiors with solid backing, not windows onto scenery behind a block.</p>
+<h2>Offline angle comparison</h2>
+<p>The same production shaders, camera and lamp in both views. Choose an angle
+and switch the interior off/on to see its movement beneath the surface.</p>
+<p><button id="off">Surface only</button> <button id="on" aria-pressed="true">Crystal interior</button>
+<label>Viewing angle <input id="angle" type="range" min="0" max="2" step="1" value="1"></label></p>
+<img id="compare" src="interior-1.png" alt="Diamond block and stone ore showing refracted internal layers">
+<h2>Live ore wall</h2>
+<img src="live-wall.png" alt="Diamond ore embedded in the Mineclonia stone wall, with an equipped diamond pick">
+<h2>Live armour</h2>
+<img src="live-armour.png" alt="Equipped diamond armour on the actual Mineclonia player model">
+<p><a href="report.md">Validation and limitations</a></p>
+<script>
+let interior=true;
+function update(){document.querySelector('#compare').src=(interior?'interior-':'surface-')+document.querySelector('#angle').value+'.png';document.querySelector('#on').setAttribute('aria-pressed',String(interior));document.querySelector('#off').setAttribute('aria-pressed',String(!interior));}
+document.querySelector('#on').onclick=()=>{interior=true;update()};
+document.querySelector('#off').onclick=()=>{interior=false;update()};
+document.querySelector('#angle').oninput=update;
+</script></html>

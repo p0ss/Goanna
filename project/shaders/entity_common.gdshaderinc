@@ -121,11 +121,44 @@ void fragment() {
 	}
 	vec3 gem_normal = has_normal ? NORMAL_MAP : vec3(0.5, 0.5, 1.0);
 	vec2 gem_size = min(vec2(textureSize(albedo, 0)), diamond_texels);
-	float gem_px = max(length(dFdx(UV) * gem_size), length(dFdy(UV) * gem_size));
+	vec2 gem_dx = dFdx(UV), gem_dy = dFdy(UV);
+	float gem_px = max(length(gem_dx * gem_size), length(gem_dy * gem_size));
 	v_diamond = goanna_diamond_surface(tex.rgb, gem, gem_px, gem_normal, ROUGHNESS, METALLIC, SPECULAR);
 	NORMAL_MAP = gem_normal;
 	NORMAL_MAP_DEPTH = 1.0;
 	v_diamond_axis = TANGENT;
+	v_diamond_interior = 0.0;
+	v_diamond_inner_normal = NORMAL;
+	v_diamond_scatter = vec3(0.0);
+	if (gem > 0.001 && diamond_interior_strength > 0.001) {
+		vec2 texel = 1.0 / gem_size;
+		float surround = 0.0;
+		for (int edge = 0; edge < 4; edge++) {
+			vec2 offset = edge < 2 ? vec2(edge == 0 ? -1.0 : 1.0, 0.0)
+					: vec2(0.0, edge == 2 ? -1.0 : 1.0);
+			vec4 neighbour = textureGrad(albedo, UV + offset * texel, gem_dx, gem_dy);
+			surround += goanna_diamond_mask(neighbour.rgb, diamond_mode) * neighbour.a * 0.25;
+		}
+		float thickness = diamond_mode == 2 ? 3.0 : mix(0.3, 1.5, surround);
+		vec3 eye = vec3(dot(VIEW, TANGENT), dot(VIEW, BINORMAL), max(dot(VIEW, NORMAL), 0.05));
+		vec2 travel = goanna_diamond_travel(eye, thickness);
+		vec4 middle = textureGrad(albedo, UV + travel * texel * 0.45, gem_dx, gem_dy);
+		vec4 rear = textureGrad(albedo, UV + travel * texel, gem_dx, gem_dy);
+		middle.rgb = mix(tex.rgb, middle.rgb, goanna_diamond_mask(middle.rgb, diamond_mode) * middle.a);
+		rear.rgb = mix(tex.rgb, rear.rgb, goanna_diamond_mask(rear.rgb, diamond_mode) * rear.a);
+		vec3 tint = vertex_tint ? COLOR.rgb : vec3(1.0);
+		vec3 original = ALBEDO;
+		vec3 scatter;
+		vec3 inner = goanna_diamond_interior(tex.rgb * tint, middle.rgb * tint,
+				rear.rgb * tint, thickness, gem, gem_px, travel, ALBEDO, scatter);
+		// The existing node-light fill and any authored emission must follow
+		// the new body colour, not leave an opaque painted layer on top.
+		EMISSION *= ALBEDO / max(original, vec3(0.001));
+		v_diamond_scatter = scatter;
+		v_diamond_inner_normal = normalize(TANGENT * inner.x + BINORMAL * inner.y + NORMAL * inner.z);
+		v_diamond_interior = v_diamond * diamond_interior_strength * 0.45;
+	}
+
 	// No sun or moon where Luanti has no sunlight at the entity, and F0 for
 	// light(); see direct_light.gdshaderinc. An entity without node_light
 	// keeps the default (0, 1), full sky, as before.

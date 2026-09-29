@@ -160,6 +160,38 @@ void fragment() {
 	NORMAL_MAP = gem_normal;
 	NORMAL_MAP_DEPTH = 1.0;
 	v_diamond_axis = TANGENT;
+	v_diamond_interior = 0.0;
+	v_diamond_inner_normal = NORMAL;
+	v_diamond_scatter = vec3(0.0);
+	if (gem > 0.001 && diamond_interior_strength > 0.001) {
+		vec2 texel = vec2(1.0 / 16.0);
+		float surround = 0.0;
+		for (int edge = 0; edge < 4; edge++) {
+			vec2 offset = edge < 2 ? vec2(edge == 0 ? -1.0 : 1.0, 0.0)
+					: vec2(0.0, edge == 2 ? -1.0 : 1.0);
+			vec3 neighbour = textureGrad(albedo_array,
+					vec3(tile_uv + offset * texel, float(layer)), uv_dx, uv_dy).rgb;
+			surround += goanna_diamond_mask(neighbour, layer_diamond[layer]) * 0.25;
+		}
+		vec2 edge_dist = min(fract(tile_uv), 1.0 - fract(tile_uv));
+		float block_depth = mix(0.65, 4.0, smoothstep(0.0, 0.22, min(edge_dist.x, edge_dist.y)));
+		float thickness = layer_diamond[layer] == 2 ? block_depth : mix(0.4, 1.8, surround);
+		vec3 eye = vec3(dot(VIEW, TANGENT), dot(VIEW, BINORMAL), max(dot(VIEW, NORMAL), 0.05));
+		vec2 travel = goanna_diamond_travel(eye, thickness);
+		vec3 middle = textureGrad(albedo_array,
+				vec3(tile_uv + travel * texel * 0.45, float(layer)), uv_dx, uv_dy).rgb;
+		vec3 rear = textureGrad(albedo_array,
+				vec3(tile_uv + travel * texel, float(layer)), uv_dx, uv_dy).rgb;
+		middle = mix(tile.rgb, middle, goanna_diamond_mask(middle, layer_diamond[layer]));
+		rear = mix(tile.rgb, rear, goanna_diamond_mask(rear, layer_diamond[layer]));
+		vec3 scatter;
+		vec3 inner = goanna_diamond_interior(tile.rgb * COLOR.rgb, middle * COLOR.rgb,
+				rear * COLOR.rgb, thickness, gem, gem_px, travel, ALBEDO, scatter);
+		v_diamond_scatter = scatter;
+		v_diamond_inner_normal = normalize(TANGENT * inner.x + BINORMAL * inner.y + NORMAL * inner.z);
+		v_diamond_interior = v_diamond * diamond_interior_strength * 0.45;
+	}
+
 	ROUGHNESS = mix(ROUGHNESS, mix(1.0, lod_avg_rough[layer], roughness_strength), flatten);
 	// The relief that flattening just removed, returned as roughness. Added in
 	// squared roughness, which is where a slope distribution's variance
