@@ -146,6 +146,13 @@ var shadow_detail := 2.0
 var light_white := 4.0
 # Base exposure; the server's exposure_correction multiplies it in _apply_sky.
 var light_exposure := 0.46
+# The underwater murk at noon. The fog colour and densities were tuned on
+# 2026-08-16 under Godot's default exposure of 1.0; light_exposure became
+# 0.46 on 2026-08-21, which halved a colour that does not scale with the
+# light, and the reef two nodes down read as navy murk at noon (mean 31 of
+# 255 against the README image's 78; measured 2026-09-29). This is the old
+# colour over 0.46, with both fogs thinned so the reef shows through.
+const UNDERWATER_FOG := Color(0.217, 0.609, 0.739)
 # Appearance controls are independent of the hardware quality profiles.
 var look_strength := 1.0
 var night_visibility := 0.5
@@ -2231,15 +2238,16 @@ func _update_environment_extras() -> void:
 		# holds off until near that edge. _apply_sky puts the depth curve back
 		# when the eye leaves the water.
 		e.fog_mode = Environment.FOG_MODE_EXPONENTIAL
-		e.fog_light_color = Color(0.10, 0.28, 0.34)
-		e.fog_density = 0.12
+		# Scaled by daylight in _apply_sky while the eye stays under.
+		e.fog_light_color = UNDERWATER_FOG
+		e.fog_density = 0.05
 		e.fog_aerial_perspective = 0.0
 		e.fog_sky_affect = 1.0
 		# Light shafts: sun scattering through the participating water volume.
 		# Moderate anisotropy and density: pushing either too hard shows the
 		# fog volume's depth slices as bands.
 		e.volumetric_fog_enabled = _underwater_volume_enabled()
-		e.volumetric_fog_density = 0.09
+		e.volumetric_fog_density = 0.03
 		e.volumetric_fog_albedo = Color(0.25, 0.55, 0.62)
 		e.volumetric_fog_anisotropy = 0.72
 		e.volumetric_fog_length = 48.0
@@ -3228,6 +3236,11 @@ func _apply_sky() -> void:
 	# elevation blend the sky colours use above.
 	if not underwater:
 		e.fog_light_color = e.fog_light_color * e.background_energy_multiplier * lerp(1.0, 0.5, night)
+	else:
+		# The murk is sunlight scattered in the water, so it dims with the
+		# day. Set once on the way under, it used to hold its noon colour
+		# through the night.
+		e.fog_light_color = UNDERWATER_FOG * lerpf(0.15, 1.0, float(dome["day"]))
 	var lighting: Dictionary = st["lighting"]
 	# Server saturation on top of our base grade, not instead of it.
 	e.adjustment_saturation = clamp(1.12 * float(lighting["saturation"]), 0.0, 2.0)
