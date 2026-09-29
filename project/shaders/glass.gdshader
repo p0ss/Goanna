@@ -1,4 +1,7 @@
-// Goanna: alpha-blended non-liquid nodes (glass, ice, stained glass): TILE_MATERIAL_ALPHA.
+// Goanna: alpha-blended non-liquid nodes (glass, ice, stained glass): TILE_MATERIAL_ALPHA,
+// and clear glass that its game cuts out rather than blends (see
+// buildFakeLiquidTextures in goanna_client.cpp). A cut-out texel is
+// transparent, so there it shows only the refracted scene and the reflection.
 //
 // Reflection is the same two-rung sky answer as water.gdshader, plus the
 // same screen space march for what the sky answer cannot give (the bank and

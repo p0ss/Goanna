@@ -1302,6 +1302,7 @@ void GoannaClient::connect_to(const String &host, int port, const String &player
     clearMaterials();
     m_fake_liquid_tex.clear();
     m_ice_tex.clear();
+    m_clear_glass_tex.clear();
     m_lava_tex.clear();
     m_fake_liquid_built = false;
     // Icon jobs point into the outgoing session's meshes and images.
@@ -2151,7 +2152,8 @@ Dictionary GoannaClient::top_surface_at(const Vector3 &pos) {
     const bool culled = (l.material_flags & MATERIAL_FLAG_BACKFACE_CULLING) != 0;
     GoannaTexture *gt = m_session->tsrc()->goannaTexture(l.texture_id);
     const bool is_array = gt && gt->isArray();
-    const bool array_path = arrayPathTile(l.material_type, culled);
+    const bool array_path = arrayPathTile(l.material_type, culled) &&
+            !clearGlassLayer(gt, l.texture_layer_idx);
     out["texture"] = String::utf8(m_session->tsrc()->imageName(l.texture_id, l.texture_layer_idx).c_str());
     out["array"] = is_array;
     out["array_path"] = array_path;
@@ -2926,6 +2928,25 @@ void GoannaClient::buildFakeLiquidTextures() {
                         source_texture ? source_texture : own};
             });
         }
+        // Clear glass, which every game here draws cut out rather than
+        // blended, so it would stay on the array path with no reflection at
+        // all. What is clear stays clear: the glass shader only refracts and
+        // reflects what a vanilla client already shows through the pane. The
+        // glasslike drawtype is no evidence on its own (quicksand, mud,
+        // clouds and spawners use it), and glowing nodes keep the emissive
+        // path, so this asks for a glass group or the word in the name.
+        if (f.visuals && f.alpha == ALPHAMODE_CLIP && f.light_source < 6 && !ice) {
+            const std::string item = f.name.substr(f.name.find(':') + 1);
+            auto word = [&](const char *w) {
+                for (size_t at = item.find(w); at != std::string::npos; at = item.find(w, at + 1))
+                    if (at == 0 || item[at - 1] == '_')
+                        return true;
+                return false;
+            };
+            if (itemgroup_get(f.groups, "glass") > 0 || itemgroup_get(f.groups, "material_glass") > 0 ||
+                    word("glass") || word("pane"))
+                each_texture([&](const TileLayer &, u32 id) { m_clear_glass_tex.insert(id); });
+        }
         if (!fake_liquid && !ice)
             continue;
         for (const auto &tdef : f.tiledef) {
@@ -2943,6 +2964,20 @@ void GoannaClient::buildFakeLiquidTextures() {
     if (getenv("GOANNA_DEBUG_WHITE"))
         UtilityFunctions::print("fake liquids: ", (int)m_fake_liquid_tex.size(),
                 " textures drawn as liquid that are not one");
+}
+
+// The single image of an array layer that is clear glass, or 0. Glass shares
+// its upstream buffer, and its array, with every other cut-out tile, so this
+// is asked per face (the mesh loop's tile_key), never per buffer.
+u32 GoannaClient::clearGlassLayer(GoannaTexture *gt, u16 layer) {
+    if (!gt || !gt->isArray())
+        return 0;
+    buildFakeLiquidTextures();
+    const auto &names = gt->layerNames();
+    if (m_clear_glass_tex.empty() || layer >= names.size())
+        return 0;
+    const u32 id = m_session->tsrc()->getTextureId(names[layer]);
+    return m_clear_glass_tex.count(id) ? id : 0;
 }
 
 Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
@@ -3206,6 +3241,8 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
         // The plants shader with waving off lights them as the ground is.
         if (!key.backface_culling)
             sh = m_sh_plants;
+        else if (m_clear_glass_tex.count(key.texture_id))
+            sh = m_sh_glass;
         break;
     case TILE_MATERIAL_ALPHA:
     case TILE_MATERIAL_PLAIN_ALPHA:
@@ -8107,23 +8144,39 @@ int GoannaClient::poll_blocks(int max_blocks) {
                 GoannaTexture *key_tex = key.array_texture
                         ? m_session->tsrc()->goannaTexture(key.texture_id) : nullptr;
                 const bool split_tiles = key_tex && key_tex->hasAlpha();
+                // Clear glass leaves the array for the glass shader, on its
+                // layer's own image; see buildFakeLiquidTextures.
+                std::map<u16, u32> glass_layers;
                 auto tile_key = [&](const u16 *tri) -> MaterialKey {
                     if (!split_tiles)
                         return key;
-                    return arrayTileKey(key, key_tex,
-                            (u16)((v[tri[0]].Aux & GOANNA_VERTEX_TEXTURE_MASK) + layer_base));
+                    const u16 tl = (u16)((v[tri[0]].Aux & GOANNA_VERTEX_TEXTURE_MASK) + layer_base);
+                    auto gl = glass_layers.find(tl);
+                    if (gl == glass_layers.end())
+                        gl = glass_layers.emplace(tl, clearGlassLayer(key_tex, tl)).first;
+                    if (gl->second) {
+                        MaterialKey glass = key;
+                        glass.array_texture = false;
+                        glass.texture_id = gl->second;
+                        return glass;
+                    }
+                    return arrayTileKey(key, key_tex, tl);
+                };
+                auto slot_of = [](int g, const MaterialKey &k) {
+                    return g * 3 + (!k.array_texture ? 2 : k.opaque_tile ? 1 : 0);
                 };
                 // Vertices are shared within a buffer, so each destination keeps
                 // its own remap rather than duplicating every triangle's three.
-                // Four destinations: glowing or not, by opaque tile or not.
-                std::map<u32, int> remap[4];
+                // Six destinations: glowing or not, by opaque tile, cut-out
+                // tile or clear glass.
+                std::map<u32, int> remap[6];
                 for (u32 t = 0; t + 2 < ni; t += 3) {
                     const u16 tri[3] = { idx16[t], idx16[t + 1], idx16[t + 2] };
                     const content_t owner = owner_content(tri);
                     const bool glows = !glow_casts && (v[tri[0]].Aux & GOANNA_VERTEX_GLOWS);
                     const MaterialKey tkey = tile_key(tri);
                     const int g = glows ? 1 : 0;
-                    const int slot = g * 2 + (tkey.opaque_tile ? 1 : 0);
+                    const int slot = slot_of(g, tkey);
                     const float block_id = owner == CONTENT_IGNORE ? 0.0f : (float)mtable.blockOf(owner);
                     SurfAccum &tacc = g ? glow_groups[tkey.hash()] : groups[tkey.hash()];
                     tacc.key = tkey;
@@ -8201,7 +8254,7 @@ int GoannaClient::poll_blocks(int max_blocks) {
                         const u16 tri[3] = { idx16[t], idx16[t + 1], idx16[t + 2] };
                         const int g = !glow_casts && (v[tri[0]].Aux & GOANNA_VERTEX_GLOWS) ? 1 : 0;
                         const MaterialKey tkey = tile_key(tri);
-                        const int slot = g * 2 + (tkey.opaque_tile ? 1 : 0);
+                        const int slot = slot_of(g, tkey);
                         const SurfAccum &src = g ? glow_groups[tkey.hash()] : groups[tkey.hash()];
                         for (int k = 0; k < 3; ++k) {
                             auto found = crack_remap.find(tri[k]);

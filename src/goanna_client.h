@@ -1178,6 +1178,7 @@ private:
     // buildFakeLiquidTextures.
     std::set<u32> m_fake_liquid_tex;
     std::set<u32> m_ice_tex;
+    std::set<u32> m_clear_glass_tex; // cut-out glass drawn by the glass shader
     struct LavaTile { u8 level; u32 surface_texture; };
     std::map<u32, LavaTile> m_lava_tex; // source artwork shared by the liquid family
     bool m_fake_liquid_built = false;
@@ -1185,6 +1186,7 @@ private:
 	// Solid ice skips that extra view while retaining the frosted material.
 	bool m_solid_ice = false;
     void buildFakeLiquidTextures();
+    u32 clearGlassLayer(GoannaTexture *gt, u16 layer);
 
     godot::Ref<godot::Shader> m_sh_water, m_sh_lava, m_sh_leaves, m_sh_plants, m_sh_glass, m_sh_ice, m_sh_array,
             m_sh_array_scissor, m_sh_crack;
