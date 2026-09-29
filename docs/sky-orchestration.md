@@ -28,6 +28,17 @@ fog's sun scatter, the sun light itself. The hue script is keyed to the
 astronomical elevation, because the colour of twilight is a property of
 the whole air mass; only the strength is per layer.
 
+One exception, the sun light on the land. Its hue follows the land's own
+altitude, the one the ridge probe gives, and its fade and golden hour hold
+follow the astronomical elevation, with the ridge only occluding it
+through `beam_strength` at the crest. Over open ground both keys are the
+same. Behind a ridge the land's last light is then the gold of a setting
+sun, which is what the eye expects of the moment the sun goes behind a
+hill. Before 2026-09-29 the fade followed the ridge and the hue did not,
+and once the far field reached real hills (a 6.5 degree ridge at the
+test_world plains village) the land dimmed from ten degrees above the
+crest while the beam was still white, so golden hour never reached it.
+
 **Per layer horizons.** Each layer hands `beam_strength` its own altitude,
 relative to the horizon that layer actually sees:
 

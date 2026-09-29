@@ -2626,7 +2626,13 @@ func _apply_sky() -> void:
 	# of the sun, day arrives at the crest, not at the astronomical rise.
 	var day: float = land["day"]
 	var look_weights := LookGrade.weights(elev, look_strength)
-	sun.light_color = SkyDirector.beam_tint(elev)
+	# The land's last light is the gold of a sun about to set, and for the
+	# land it sets at the ridge, so its hue follows the ridge relative
+	# altitude as its occlusion does. Over open ground e_ground is elev and
+	# nothing changes; behind a 6.5 degree ridge the astronomical hue was
+	# still pale when the crest took the sun (2026-09-29). The dome and the
+	# clouds keep the astronomical hue through beam_cloud and beam_air.
+	sun.light_color = SkyDirector.beam_tint(e_ground)
 	# Hold the sun through the golden hour. Its energy used to follow `day`
 	# alone, which is near zero exactly when the sky peaks pink, so the
 	# clouds burned and the trees stood in flat grey-green: the water showed
@@ -2635,8 +2641,17 @@ func _apply_sky() -> void:
 	# to `day` above it, to the night lights below minus 0.06, so noon and
 	# night calibration are untouched and the low orange light rakes the
 	# canopy at the moment the sky is worth reflecting.
-	var dusk_hold: float = land["dusk_hold"]
-	sun.light_energy = light_sun * maxf(day, 0.4 * dusk_hold)
+	#
+	# The fade and the hold are the atmosphere's, so they follow the sun's
+	# true elevation; a ridge only occludes, which bs_ground does in a few
+	# degrees at its crest. Both used to follow the ridge relative bands, so
+	# once the far field reached real hills (a 6.5 degree ridge at the
+	# test_world village, 2026-09-29) the land dimmed from ten degrees above
+	# the crest while the beam was still white, and the gold arrived only
+	# after the light carrying it had gone. `day` itself stays on the land's
+	# bands for the fill and fog, which the ridge does darken.
+	var sun_day: float = maxf(dome["day"], 0.4 * dome["dusk_hold"]) * bs_ground
+	sun.light_energy = light_sun * sun_day
 	sun.visible = sun.light_energy > 0.01
 	var moon_up: float = smoothstep(-0.02, 0.15, moon_dir.y) * (1.0 - day)
 	# Scaled by the same slider as the sun, which is what its tooltip has
@@ -2895,7 +2910,7 @@ func _apply_sky() -> void:
 	# The dusk hold reaches the bounce too: golden hour side light deserves
 	# its counter-glow, or the shadow side of a canopy goes black while the
 	# lit side burns.
-	bounce.light_energy = light_sun * 0.16 * maxf(maxf(day, 0.5 * dusk_hold), 0.4 * moon_up) \
+	bounce.light_energy = light_sun * 0.16 * maxf(maxf(day, sun_day), 0.4 * moon_up) \
 			* (0.35 if env.environment.sdfgi_enabled else 1.0)
 	# What the bounce carries is the key light times what the ground
 	# reflects. The ground's share used to be the fixed earthy constant
