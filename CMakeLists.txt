@@ -195,6 +195,12 @@ add_executable(goanna_surface_test EXCLUDE_FROM_ALL src/goanna_surface_test.cpp)
 target_include_directories(goanna_surface_test PRIVATE src)
 target_link_libraries(goanna_surface_test PRIVATE goanna luanti_core)
 
+# Leaves side by side through the transplanted mesh generator: one face per
+# shared plane. Links godot-cpp for the same reason as the icon test.
+add_executable(goanna_allfaces_test EXCLUDE_FROM_ALL src/goanna_allfaces_test.cpp)
+target_include_directories(goanna_allfaces_test PRIVATE src)
+target_link_libraries(goanna_allfaces_test PRIVATE goanna luanti_core godot::cpp)
+
 # Every native test, built and then run by `cmake --build build --target
 # check`. The tests are EXCLUDE_FROM_ALL, so the default build never touches
 # them, and on 2026-09-19 a run of ./build/<test> executed binaries from 16
@@ -202,6 +208,7 @@ target_link_libraries(goanna_surface_test PRIVATE goanna luanti_core)
 # test makes the build system, which knows every test's real inputs, decide
 # what is stale, rather than a person remembering to rebuild by name.
 set(GOANNA_NATIVE_TESTS
+    goanna_allfaces_test
     goanna_animation_test
     goanna_array_route_test
     goanna_horizon_test

@@ -15,6 +15,8 @@
 // node that is drawn as a liquid without being one (isFakeLiquid), which is
 // what keeps ice and the water under it from putting two faces in one plane,
 // including submerged sides: the ice owns the water/ice interface.
+// Likewise two allfaces nodes (fancy leaves) share each face plane between
+// them, and drawAllfacesNode keeps only the upper or +X/+Z node's face.
 // Tiles also carry explicit light-source ownership
 // through batching, so thin torch meshes cannot shadow their own lights.
 // drawSolidNode and drawNodeboxNode both draw the sub node carve in place of
@@ -2188,7 +2190,29 @@ void MapblockMeshGenerator::drawAllfacesNode()
 		getTile(nodebox_tile_dirs[face], &tiles[face]);
 	if (data->m_smooth_lighting)
 		getSmoothLightFrame();
-	drawAutoLightedCuboid(box, tiles, 6);
+	// Goanna: two allfaces nodes side by side put two faces in one plane,
+	// this node's bottom on the top of the leaves below it, and so on for
+	// each axis. Upstream lights both alike, so they fight unseen; Godot
+	// lights the downward one darker and the pair flickered through every
+	// tree. Leaves are drawn double sided and Godot turns a back face's
+	// normal round, so one face lights correctly from either side: this node
+	// leaves its down, -X and -Z faces to the neighbour's up, +X and +Z.
+	// Only between unscaled nodes, whose faces really do share the plane.
+	u8 mask = 0;
+	if (std::fabs(cur_node.f->visual_scale - 1.0f) <= 1e-3f) {
+		static const struct { int face; v3s16 dir; } below[] = {
+			{1, v3s16(0, -1, 0)}, {3, v3s16(-1, 0, 0)}, {5, v3s16(0, 0, -1)},
+		};
+		for (const auto &b : below) {
+			MapNode neighbor = data->m_vmanip.getNodeNoExNoEmerge(
+					blockpos_nodes + cur_node.p + b.dir);
+			const ContentFeatures &nf = nodedef->get(neighbor);
+			if (nf.drawtype == NDT_ALLFACES
+					&& std::fabs(nf.visual_scale - 1.0f) <= 1e-3f)
+				mask |= 1 << b.face;
+		}
+	}
+	drawAutoLightedCuboid(box, tiles, 6, nullptr, mask);
 }
 
 void MapblockMeshGenerator::drawNodeboxNode()
