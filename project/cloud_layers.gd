@@ -11,7 +11,7 @@ static func build(height: float, thickness: float, coverage: float,
 	var cover := clampf(coverage, 0.0, 0.95)
 	var wet := smoothstep(0.35, 0.8, maxf(storm, cover))
 	var depth := maxf(thickness * 3.0, 170.0) if style == 2 \
-			else maxf(thickness * 2.0, 48.0)
+			else maxf(thickness * 2.0, 96.0)
 	# The upper block cells are wider. Retain their rounded proportions;
 	# thinning them like the volume turns the squares into flat roof tiles.
 	var middle_depth := depth * (0.8 if style == 2 else 1.5)

@@ -31,12 +31,45 @@ float cloud_layer_weather(vec2 p) {
 }
 
 float cloud_cell_size(int layer) {
-	return 64.0 * (1.0 + float(layer) * 0.75);
+	return 384.0 * (1.0 + float(layer) * 0.65);
 }
 
-// Different bases break the tiled underside without changing the rounded
-// square footprint. Noise coordinates drift with the cells, never the eye.
+// Stagger each row independently so gaps cannot form long straight lanes.
+float cloud_row_shift(float row) {
+	return cloud_cell_hash(vec2(row, 17.7)) - 0.5;
+}
+
+vec2 cloud_cell_at(vec2 position, float size) {
+	float row = floor(position.y / size);
+	return vec2(floor(position.x / size - cloud_row_shift(row)), row);
+}
+
+vec2 cloud_cell_origin(vec2 cell, float size) {
+	return (cell + vec2(cloud_row_shift(cell.y), 0.0)) * size;
+}
+
+// Bodies have independent widths and off-centre positions inside a coarse
+// traversal cell. The grid bounds are empty space, not cloud surfaces.
+vec4 cloud_cell_footprint(vec2 cell, float size) {
+	vec2 width = size * mix(vec2(0.42), vec2(0.92),
+		vec2(cloud_cell_hash(cell + vec2(5.2, 83.1)),
+			cloud_cell_hash(cell + vec2(73.8, 15.7))));
+	vec2 jitter = vec2(cloud_cell_hash(cell + vec2(29.1, 7.3)),
+		cloud_cell_hash(cell + vec2(61.7, 49.2))) - 0.5;
+	vec2 centre = cloud_cell_origin(cell, size) + size * 0.5 + jitter * (size - width) * 0.95;
+	return vec4(centre, width * 0.5);
+}
+
+// Different bases break the tiled underside. Noise coordinates drift with
+// the cells, never the eye.
 float cloud_cell_base(vec2 cell, vec4 deck) {
 	return deck.x + (cloud_cell_hash(cell + vec2(11.3, 57.9)) - 0.5)
 		* deck.y * 1.5;
+}
+
+// Distance in normalised body coordinates, keeping wide clouds rounded.
+float cloud_block_distance(vec3 p, vec3 midpoint, vec3 half_size) {
+	vec3 q = abs((p - midpoint) / half_size) - vec3(0.42);
+	return length(max(q, vec3(0.0)))
+		+ min(max(q.x, max(q.y, q.z)), 0.0) - 0.58;
 }

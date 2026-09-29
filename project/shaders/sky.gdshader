@@ -146,20 +146,16 @@ float cloud_weather(vec2 wxz, int layer) {
 	return cloud_layer_weather(wxz * 0.0009 + cloud_layer_offset(cloud_offset, layer) * 0.4);
 }
 
-// A rounded box supplies the broad shape, while noise erodes its surface
-// and varies the interior density. Fade within the bounds, so neighbouring
-// grid traversal never clips a wisp at a cell boundary.
+// Normalise each axis before rounding so a broad cloud has soft horizontal
+// edges as well as a soft crown. World-space noise carves uneven bays and
+// lobes into that envelope; the density reaches zero inside its bounds.
 float block_cloud_density(vec3 p, vec3 midpoint, vec3 half_size) {
-	float radius = min(half_size.y, half_size.x) * 0.7;
-	vec3 q = abs(p - midpoint) - (half_size - vec3(radius));
-	float sdf = length(max(q, vec3(0.0)))
-		+ min(max(q.x, max(q.y, q.z)), 0.0) - radius;
+	float sdf = cloud_block_distance(p, midpoint, half_size);
 	if (sdf >= 0.0) return 0.0;
-	float body = texture(cloud_body_tex, p / 96.0).r;
-	float detail = texture(cloud_body_tex, p / 31.0 + vec3(0.37)).r;
-	float erosion = (1.0 - body) * radius * 0.65
-		+ (0.5 - detail) * radius * 0.3;
-	float shell = 1.0 - smoothstep(-radius * 0.8, 0.0, sdf + erosion);
+	float body = texture(cloud_body_tex, p / 180.0).r;
+	float detail = texture(cloud_body_tex, p / 55.0 + vec3(0.37)).r;
+	float erosion = (1.0 - body) * 0.48 + (0.5 - detail) * 0.16;
+	float shell = 1.0 - smoothstep(-0.22, 0.0, sdf + erosion);
 	return shell * mix(0.45, 1.0, body);
 }
 
@@ -225,19 +221,25 @@ vec4 block_clouds(vec3 eye, vec3 dir, bool cubemap, int layer) {
 	// the offset, just like the volume. Grid boundaries drift continuously.
 	vec2 drift = cloud_layer_offset(cloud_offset, layer) * (0.4 / 0.0009);
 	vec3 ro = eye + vec3(drift.x, 0.0, drift.y);
-	float t = start + 0.001;
+	float t = start;
+	vec2 cell = cloud_cell_at(ro.xz + dir.xz * start, cell_size);
+	vec2 direction = sign(dir.xz);
+	vec2 boundary = cloud_cell_origin(cell, cell_size) + step(vec2(0.0), dir.xz) * cell_size;
+	vec2 crossing = (boundary - ro.xz) / ray.xz;
+	crossing = mix(vec2(1e20), crossing, greaterThan(abs(dir.xz), vec2(0.000001)));
+	vec2 crossing_step = cell_size / max(abs(dir.xz), vec2(0.000001));
 	vec4 accumulated = vec4(0.0);
 	for (int i = 0; i < 64; i++) {
 		if (t > end) break;
-		vec3 p = ro + dir * t;
-		vec2 cell = floor(p.xz / cell_size);
-		vec2 centre = (cell + 0.5) * cell_size;
+		vec2 centre = cloud_cell_origin(cell, cell_size) + cell_size * 0.5;
 		float weather = cloud_layer_weather(centre * 0.0009);
 		float occupancy = deck.z * mix(0.25, 1.0, smoothstep(0.25, 0.65, weather));
 		if (hash12(cell + vec2(37.1, 91.7)) < occupancy) {
 			float crown = height * mix(0.55, 1.0, hash12(cell));
-			vec3 lo = vec3(cell.x * cell_size, cloud_cell_base(cell, deck), cell.y * cell_size);
-			vec3 hi = lo + vec3(cell_size, crown, cell_size);
+			vec4 footprint = cloud_cell_footprint(cell, cell_size);
+			vec3 lo = vec3(footprint.x - footprint.z, cloud_cell_base(cell, deck),
+				footprint.y - footprint.w);
+			vec3 hi = lo + vec3(footprint.z * 2.0, crown, footprint.w * 2.0);
 			vec3 a = (lo - ro) / ray;
 			vec3 b = (hi - ro) / ray;
 			vec3 near_t = min(a, b), far_t = max(a, b);
@@ -267,10 +269,23 @@ vec4 block_clouds(vec3 eye, vec3 dir, bool cubemap, int layer) {
 				}
 			}
 		}
-		vec2 boundary = (cell + step(vec2(0.0), dir.xz)) * cell_size;
-		vec2 crossing = (boundary - ro.xz) / ray.xz;
-		crossing = mix(vec2(1e20), crossing, greaterThan(abs(dir.xz), vec2(0.000001)));
-		t = min(crossing.x, crossing.y) + 0.001;
+		// Advance the integer cell, not a rounded world point plus epsilon.
+		// At large drift offsets that epsilon vanished in float precision,
+		// repeatedly integrating one cell and exhausting the traversal budget.
+		bool cross_x = crossing.x <= crossing.y;
+		bool cross_z = crossing.y <= crossing.x;
+		t = min(crossing.x, crossing.y);
+		if (cross_x) { cell.x += direction.x; crossing.x += crossing_step.x; }
+		if (cross_z) {
+			cell.y += direction.y;
+			crossing.y += crossing_step.y;
+			// A new row has its own horizontal origin. Re-enter its x cell
+			// at this same ray distance, without a world-space epsilon.
+			cell.x = floor((ro.x + dir.x * t) / cell_size - cloud_row_shift(cell.y));
+			float next_x = (cell.x + cloud_row_shift(cell.y)
+				+ step(0.0, dir.x)) * cell_size;
+			crossing.x = abs(dir.x) > 0.000001 ? (next_x - ro.x) / ray.x : 1e20;
+		}
 	}
 	return vec4(accumulated.rgb / max(accumulated.a, 0.00001), accumulated.a);
 }

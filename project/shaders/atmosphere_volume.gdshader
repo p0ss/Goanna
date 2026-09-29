@@ -118,13 +118,24 @@ void fog() {
 		vec2 offset = cloud_layer_offset(weather_offset, layer);
 		float base = deck.x;
 		float depth = deck.y;
+		float envelope = 1.0;
 		if (cloud_style < 2) {
-			vec2 cell = floor((p.xz + offset * (0.4 / 0.0009)) / cloud_cell_size(layer));
-			float weather = cloud_layer_weather((cell + 0.5) * cloud_cell_size(layer) * 0.0009);
+			vec2 position = p.xz + offset * (0.4 / 0.0009);
+			vec2 cell = cloud_cell_at(position, cloud_cell_size(layer));
+			vec4 footprint = cloud_cell_footprint(cell, cloud_cell_size(layer));
+			if (any(greaterThanEqual(abs(position - footprint.xy), footprint.zw))) continue;
+			float weather = cloud_layer_weather((cloud_cell_origin(cell, cloud_cell_size(layer))
+				+ cloud_cell_size(layer) * 0.5) * 0.0009);
 			float occupancy = deck.z * mix(0.25, 1.0, smoothstep(0.25, 0.65, weather));
 			if (cloud_cell_hash(cell + vec2(37.1, 91.7)) >= occupancy) continue;
 			base = cloud_cell_base(cell, deck);
 			depth *= mix(0.55, 1.0, cloud_cell_hash(cell));
+			if (cloud_style == 1) {
+				float sdf = cloud_block_distance(vec3(position.x, p.y, position.y),
+					vec3(footprint.x, base + depth * 0.5, footprint.y),
+					vec3(footprint.z, depth * 0.5, footprint.w));
+				envelope = 1.0 - smoothstep(-0.22, 0.0, sdf + 0.15);
+			}
 		} else {
 			float weather = cloud_layer_weather(p.xz * 0.0009 + offset * 0.4);
 			base += (weather - 0.5) * depth * 0.65;
@@ -136,7 +147,7 @@ void fog() {
 				p.y * 0.018, p.z * 0.006 + offset.y * 0.12);
 			float shape = weather_noise(cp);
 			float threshold = mix(0.76, 0.32, deck.z);
-			float density = cloud_density * deck.w * profile
+			float density = cloud_density * deck.w * profile * envelope
 				* smoothstep(threshold, threshold + 0.18, shape);
 			cloud += density;
 			cloud_bounce += density * clamp(1.0 - (p.y - base) / depth, 0.0, 1.0);

@@ -2418,16 +2418,37 @@ func _local_cloud_layer(world: Vector3, layer: int) -> float:
 	var offset := cloud_off * (1.0 + layer * 0.17) + Vector2(19.7, 43.1) * layer
 	var base := deck.x
 	var depth := deck.y
+	var envelope := 1.0
 	if int(cloud_style) < 2:
-		var cell := ((Vector2(world.x, world.z) + offset * (0.4 / 0.0009)) \
-				/ (64.0 * (1.0 + layer * 0.75))).floor()
-		var weather := _cloud_layer_weather((cell + Vector2(0.5, 0.5))
-				* (64.0 * (1.0 + layer * 0.75)) * 0.0009)
+		var size := 384.0 * (1.0 + layer * 0.65)
+		var position := Vector2(world.x, world.z) + offset * (0.4 / 0.0009)
+		var row := floorf(position.y / size)
+		var shift := _cloud_cell_hash(Vector2(row, 17.7)) - 0.5
+		var cell := Vector2(floorf(position.x / size - shift), row)
+		var origin := (cell + Vector2(shift, 0.0)) * size
+		var width := size * Vector2(
+				lerpf(0.42, 0.92, _cloud_cell_hash(cell + Vector2(5.2, 83.1))),
+				lerpf(0.42, 0.92, _cloud_cell_hash(cell + Vector2(73.8, 15.7))))
+		var jitter := Vector2(_cloud_cell_hash(cell + Vector2(29.1, 7.3)),
+				_cloud_cell_hash(cell + Vector2(61.7, 49.2))) - Vector2(0.5, 0.5)
+		var centre := origin + Vector2(size, size) * 0.5 \
+				+ jitter * (Vector2(size, size) - width) * 0.95
+		var distance := (position - centre).abs()
+		if distance.x >= width.x * 0.5 or distance.y >= width.y * 0.5:
+			return 0.0
+		var weather := _cloud_layer_weather((origin + Vector2(size, size) * 0.5) * 0.0009)
 		var occupancy := deck.z * lerpf(0.25, 1.0, smoothstep(0.25, 0.65, weather))
 		if _cloud_cell_hash(cell + Vector2(37.1, 91.7)) >= occupancy:
 			return 0.0
 		depth *= lerpf(0.55, 1.0, _cloud_cell_hash(cell))
 		base += (_cloud_cell_hash(cell + Vector2(11.3, 57.9)) - 0.5) * deck.y * 1.5
+		if int(cloud_style) == 1:
+			var q := Vector3(distance.x / (width.x * 0.5),
+					absf(world.y - base - depth * 0.5) / (depth * 0.5),
+					distance.y / (width.y * 0.5)) - Vector3.ONE * 0.42
+			var sdf := q.max(Vector3.ZERO).length() \
+					+ minf(maxf(q.x, maxf(q.y, q.z)), 0.0) - 0.58
+			envelope = 1.0 - smoothstep(-0.22, 0.0, sdf + 0.15)
 	else:
 		var weather := _cloud_layer_weather(Vector2(world.x, world.z) * 0.0009 + offset * 0.4)
 		base += (weather - 0.5) * depth * 0.65
@@ -2449,7 +2470,7 @@ func _local_cloud_layer(world: Vector3, layer: int) -> float:
 		weight += 0.127
 	var shape := value / weight
 	var threshold := lerpf(0.76, 0.32, deck.z)
-	return 0.026 * atmosphere_quality * deck.w * profile \
+	return 0.026 * atmosphere_quality * deck.w * profile * envelope \
 			* smoothstep(threshold, threshold + 0.18, shape)
 
 func _cloud_cell_hash(cell: Vector2) -> float:

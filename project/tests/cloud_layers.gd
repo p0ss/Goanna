@@ -54,8 +54,8 @@ func _initialize() -> void:
 		for layer in 3:
 			var deck: Vector4 = game.cloud_layers[layer]
 			var occupied := false
-			for x in range(-512, 512, 64):
-				for z in range(-512, 512, 64):
+			for x in range(-2048, 2048, 128):
+				for z in range(-2048, 2048, 128):
 					var point := Vector3(x, deck.x + deck.y * 0.5, z)
 					occupied = occupied or game._local_cloud_layer(point, layer) > 0.0
 					point.y = deck.x - deck.y

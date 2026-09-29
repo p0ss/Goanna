@@ -91,3 +91,33 @@ func capture(directory: String) -> Dictionary:
 	return {"hidden_matches_zero_coverage": hidden.get_data() == empty.get_data(),
 		"renderer": RenderingServer.get_video_adapter_name(),
 		"godot": Engine.get_version_info().string}
+
+
+# Axis-aligned rays and high drifting coordinates exercise traversal without
+# relying on a tiny floating-point nudge to leave a cloud cell.
+func capture_edges(directory: String) -> Dictionary:
+	DirAccess.make_dir_recursive_absolute(directory)
+	if body.get_data().is_empty():
+		await body.changed
+	material.set_shader_parameter("cloud_style", 1)
+	material.set_shader_parameter("cloud_coverage", 0.7)
+	material.set_shader_parameter("cloud_offset", Vector2(83.1, -61.7))
+	material.set_shader_parameter("cloud_layers", Layers.build(128.0, 16.0,
+			0.7, 0.0, 2500.0, 1))
+	var directions := [Vector3(1, 0.1, 0), Vector3(-1, 0.1, 0),
+		Vector3(0, 0.1, 1), Vector3(0, 0.1, -1), Vector3.UP, Vector3.DOWN]
+	var largest_change := 0.0
+	for i in directions.size():
+		camera.position = Vector3(-18000, 3000, 21000)
+		camera.look_at(camera.position + directions[i],
+				Vector3.FORWARD if i >= 4 else Vector3.UP)
+		var first := await shot(directory.path_join("axis-%d.png" % i))
+		camera.position.x += 0.01
+		var second := await shot(directory.path_join("axis-%d-moved.png" % i))
+		var a := first.get_data()
+		var b := second.get_data()
+		var difference := 0.0
+		for j in a.size():
+			difference += abs(int(a[j]) - int(b[j]))
+		largest_change = maxf(largest_change, difference / (255.0 * a.size()))
+	return {"largest_mean_change_after_0_01_node_move": largest_change}
