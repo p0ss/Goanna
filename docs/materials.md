@@ -249,7 +249,9 @@ it; entities already marked alpha-blended by the server retain their previous
 material path.
 
 Diamond entities reconstruct their tangent frame from the rendered surface
-and its UVs. Luanti's item and skinned model streams omit tangents, while
+and its UVs, and since 2026-10-01 so does every entity surface with a normal
+map (see "Mob, player and item companions" below). Luanti's item and skinned
+model streams omit tangents, while
 terrain supplies them. Godot fills in a fallback frame which need not match
 the UVs: the inspected loose diamond had a vertical tangent for horizontal
 U. Without this correction the normal map and facet tilt are misaligned.
@@ -311,6 +313,97 @@ the games' art, and can render the same scene with an older copy of the
 shaders. See [the gem study](perf/gems-2026-09-29/report.md). Glowing and
 blended gems (caverealms, Everness crystal blocks, `too_many_stones`) take
 the emissive and glass paths and are not covered.
+
+## Mob, player and item companions
+
+A mesh entity (a mob, a player, a held or dropped item) takes `_n` and `_s`
+companions by its texture's image name, from the server's media or a
+client side pack, and draws through `entity.gdshader`, or
+`entity_scissor.gdshader` when the skin has cut out texels; both decode
+the companions identically. The code is
+`EntityRenderer::materialForMeshTexture` in `src/goanna_entities.cpp`. The
+record of the 2026-10-01 pass is in
+`docs/perf/entity-pbr-2026-10-01/`.
+
+**Encoding.** The same as a node tile: red above 128 tilts the normal
+toward plus U (right in the image), green above 128 toward the top of the
+image, with no green flip. B is ambient occlusion, A height (unused on
+entities). `_s` is as in the table above. `project/entity_normal_probe.tscn`
+renders a probe dome in that encoding on all six face directions of a mob
+box, plain and mirrored, beside a quad on SurfaceTool's tangents (the frame
+the node mesher matches), and fails unless every quad lights on the side
+the light comes from. Until 2026-10-01 only gem items had a frame rebuilt
+from their UVs; every other entity normal map was decoded against the
+fallback frame Godot derives from the vertex normal alone, which turned or
+mirrored the relief per face and flattened it on faces along Z.
+
+**Overlay stacks.** Many skins are built on the server as overlays. In
+Mineclonia, a villager, a damaged iron golem, a sheep's body and a player:
+
+```
+mobs_mc_villager_base.png^<biome>.png^<profession>.png^<badge>.png
+mobs_mc_iron_golem.png^(mobs_mc_iron_golem_crack_low.png^[opacity:180)
+mobs_mc_sheep.png^(mobs_mc_sheep_sheared.png^[colorize:#rrggbbD0)
+(mcl_skins_base_1_mask.png^[colorize:#rrggbbFF:alpha)^mcl_skins_base_1.png^...
+```
+
+For such a stack Goanna composites the companions the
+way the albedo was composited, bottom layer first, each layer over the ones
+below by its own albedo alpha (times its `[opacity`), sampled nearest at
+the largest size among the inputs, so a map authored at eight texels per
+art texel keeps its resolution over 64 or 128 pixel art
+(`src/goanna_overlay_companions.h`).
+
+- A layer with no companion of its own contributes a neutral one where it
+  covers: a flat normal with no occlusion, and a rough dielectric `_s`
+  (smoothness 0, F0 10, no porosity or scattering, A 255 for no emission).
+  Clothes with nothing authored are flat and rough, not the relief and
+  sheen of the skin under them.
+- `_n` channels mix by the mask. Of `_s`, only smoothness mixes; F0 or
+  metal, porosity or scattering, and emission are categorical and are taken
+  whole from whichever layer covers the texel at 0.5 or more. Mixing them
+  invented materials: a crack's dielectric over the golem's metal at 180/255
+  blended green to about 84, a dielectric with the largest specular the
+  shader gives.
+- A colouring mask takes its own companion name when one exists and the
+  part's otherwise: `mcl_skins_hair_3_mask.png` tries
+  `mcl_skins_hair_3_mask_n.png`, then `mcl_skins_hair_3_n.png`. Colour is
+  not material, and the part's shading layer drawn over the mask takes the
+  part's name too, so author the part's name.
+- What is read: plain image names, a bracketed group of one image with
+  `[opacity` or colour only modifiers, and colour only modifiers anywhere
+  (`[brighten`, `[colorize`, `[multiply`, `[screen`, `[hsl`,
+  `[colorizehsl`, `[contrast`), which is also what keeps a damage tint from
+  dropping the composite. Anything else (`[combine`, `[transform`,
+  `[mask`, `[resize`, a frame cut, `[opacity` over the whole stack, nested
+  groups, escaped characters) is not composited: the texture takes the
+  companions of the image before its first `^`, as every entity texture
+  did before.
+
+**Sampling.** `_n` is linear with mipmaps, like the node path. At a
+companion resolution of four or more map texels per art texel the half
+texel a linear filter reaches across a UV island's edge is an eighth of an
+art texel or less; at the art's own resolution it is half a texel and
+shows as a soft rim along box edges up close. Mipmaps average across
+islands at a distance, where the relief is below a pixel anyway. `_s` is
+nearest with mipmaps, because a linear filter between a metal and a cloth
+texel passes through values that decode as a dielectric at the largest
+specular, a shiny rim round every metal plate.
+
+**Where companions do not reach.** A surface the server marks
+`use_texture_alpha` (a charged creeper's aura, a slime's outer body, a
+spider's eyes) and a double sided surface that is not a gem keep the plain
+`StandardMaterial3D` path, with no companions and no node light.
+`GOANNA_NO_PBR=1` withholds companions (from `main.gd` it needs
+`GOANNA_PBR_SET=1` too, or the launcher clears it). With no `_n` in any
+layer, the relief inferred from the texture's brightness applies, as it
+does to an unauthored node tile; an authored `_n` in any layer turns it off
+for that texture. The inference wraps at the image's edges and reads across
+UV islands, which is right for a tile and wrong at an atlas's island edges.
+It was also upside down along V, on node tiles and entities alike, from
+0e3fa49 (which turned the mesher's binormal to minus V) until 2026-10-01:
+a bright, raised texel lit from below the light. The probe's auto bump
+quads check it.
 
 ## How LabPBR maps onto glTF 2.0
 
