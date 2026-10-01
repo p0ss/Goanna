@@ -1,13 +1,16 @@
-"""Offline front view of Mineclonia's default player with authored maps.
+"""Offline front view of a Mineclonia figure with authored maps.
 
-This is for judging a player skin's maps without a GPU. It does what the
-client does to get the maps onto the model, then lights the front of the
-figure with a few lines of shading:
+This is for judging a skin's maps without a GPU. Two figures are known
+(FIGURES below): the default player ("player", the default) and the plains
+farmer villager ("villager", mobs_mc_villager.b3d with its base, biome,
+profession and badge layers). It does what the client does to get the
+maps onto the model, then lights the front of the figure with a few lines
+of shading:
 
-  albedo   the layer string mcl_skins draws (DEFAULT_SKIN below) evaluated
+  albedo   the layer string the game draws (the figure's "skin") evaluated
            as Luanti evaluates it: [colorize:<colour>:alpha as apply_colorize
            with keep_alpha (the colour, the mask's own alpha) and every ^ as
-           blit_pixel, integer for integer, at the art's 64 x 32.
+           blit_pixel, integer for integer, at the art's size.
   maps     composited the way src/goanna_overlay_companions.h does: each
            layer's companions are its own image's, or for a colouring mask
            the part's (mcl_skins_hair_1_mask takes mcl_skins_hair_1_n.png);
@@ -18,10 +21,12 @@ figure with a few lines of shading:
            from the topmost layer covering a pixel at 0.5 or more. Every
            input is sampled nearest at the largest size.
   geometry the front facing triangles of the model the skin is drawn on
-           (mcl_armor_character.b3d, brush 0), rasterised orthographically
-           from the front, nearest first, a pixel of a layer with albedo
-           alpha under 0.5 letting the one behind show (the hat layer
-           carries the fringe). Each triangle's tangent frame comes from
+           (mcl_armor_character.b3d or mobs_mc_villager.b3d, brush 0), as
+           the file has them (the villager's arms are crossed in the mesh
+           itself), rasterised orthographically from the front, nearest
+           first, a pixel of a layer with albedo alpha under 0.5 letting
+           the one behind show (the player's hat layer carries the fringe,
+           the villager's hat box is drawn only where the straw is). Each triangle's tangent frame comes from
            its own positions and UVs, so a mirrored limb's normal map is
            mirrored as on the model.
   decode   red above 128 tilts the normal toward +U (image right), green
@@ -58,8 +63,13 @@ Writes, at 16 px per art texel unless --texel says otherwise:
                      the head (and the hair's front layer) at 3x, nearest
   compare.png        maps off, maps on, low sun on, low sun off, side by
                      side at the same framing
+  villager only:
+  hat_above.png, hat_above_maps_off.png, hat_above_low_sun.png
+                     the head and hat seen from 40 degrees above the
+                     front, at 3x, for the hat's top and brim, which the
+                     front view sees edge on
 
-    python3 tools/pbr_author/preview_figure.py <maps dir> <out dir>
+    python3 tools/pbr_author/preview_figure.py <maps dir> <out dir> [--figure villager]
 """
 import argparse
 import re
@@ -79,6 +89,22 @@ DEFAULT_SKIN = ("(mcl_skins_base_1_mask.png^[colorize:#EEB592FF:alpha)^mcl_skins
                 "^(mcl_skins_top_1_mask.png^[colorize:#346840FF:alpha)^mcl_skins_top_1.png"
                 "^(mcl_skins_hair_1_mask.png^[colorize:#715D57FF:alpha)^mcl_skins_hair_1.png")
 MODEL = "mcl_armor_character.b3d"
+VILLAGER_FARMER = ("mobs_mc_villager_base.png^mobs_mc_villager_plains.png"
+                   "^mobs_mc_villager_profession_farmer.png^mobs_mc_stone.png")
+# Per figure: the layer string, the model, the head's front face in art
+# texels with the art's size (to check the view is not mirrored), art
+# texels per model unit, and the head crop in model units (x0, x1, y0, y1)
+# after the view's reflection.
+FIGURES = {
+    "player": {"skin": DEFAULT_SKIN, "model": MODEL, "head_front": (8, 8, 16, 16),
+               "art": (64, 32), "texels_per_unit": 2.0, "head": (-2.4, 2.4, 13.1, 17.9),
+               "above": False},
+    # The villager's head is 8 texels over 4.3 units. Its hat box reaches
+    # 2.5 either side and 18.66 up, the nose 12.31 down.
+    "villager": {"skin": VILLAGER_FARMER, "model": "mobs_mc_villager.b3d",
+                 "head_front": (8, 8, 16, 18), "art": (64, 64), "texels_per_unit": 8 / 4.3,
+                 "head": (-2.8, 2.8, 12.0, 18.9), "above": True},
+}
 NEUTRAL_N = (128, 128, 255, 255)
 NEUTRAL_S = (0, 10, 0, 255)
 
@@ -153,35 +179,47 @@ def composite(texture, maps, game, maps_on=True):
     return albedo / 255.0, np.round(N), np.round(S)
 
 
-def front_triangles(game, brush=0):
+def front_triangles(game, brush=0, model=MODEL, pitch=0.0, keep=None):
     """Front facing triangles as (positions, uvs 0..1, outward normal), in
     a right handed view space: x right, y up, z toward the viewer. Luanti's
     model space is left handed (Irrlicht's), so seen from the front, from
     +Z, model +X is on the viewer's left; x is reflected for that. The
     outward normal is taken from the file's winding before the reflection,
-    which turns the winding over."""
+    which turns the winding over. pitch (degrees) looks down from above
+    the front: the model turns about x so its top partly faces the viewer,
+    and every triangle facing the viewer at all is kept. keep, a function
+    of a triangle's model positions, drops the triangles it refuses."""
     out = []
     flip = np.array((-1.0, 1.0, 1.0))
-    for pos, uv, tris in atlas.read_b3d(atlas.model_path(MODEL, game)):
+    a = np.radians(pitch)
+    rot = np.array(((1.0, 0.0, 0.0), (0.0, np.cos(a), -np.sin(a)), (0.0, np.sin(a), np.cos(a))))
+    for pos, uv, tris in atlas.read_b3d(atlas.model_path(model, game)):
         for b, idx in tris:
             if b != brush:
                 continue
             for t in idx:
                 p = pos[t].astype(np.float64)
+                if keep is not None and not keep(p):
+                    continue
                 n = np.cross(p[1] - p[0], p[2] - p[0])
                 n /= np.linalg.norm(n) + 1e-12
-                if n[2] > 0.5:
+                if pitch:
+                    p, n = p @ rot.T, rot @ n
+                if n[2] > (0.05 if pitch else 0.5):
                     out.append((p * flip, uv[t].astype(np.float64), n * flip))
     return out
 
 
-def check_orientation(tris):
+def check_orientation(tris, rect=(8, 8, 16, 16), art=(64, 32)):
     """The view must show the art as drawn: on the head's front face
-    (u 8..16 of 64) u grows to the right of the screen. A model that faces the other way fails here rather than
+    (rect, in texels of an art of size art) u grows to the right of the
+    screen. A model that faces the other way fails here rather than
     previewing a mirror image."""
+    x0, y0, x1, y1 = rect
+    w, h = art
     for p, uv, _ in tris:
-        if uv[:, 0].min() * 64 >= 7.9 and uv[:, 0].max() * 64 <= 16.1 and uv[:, 1].min() * 32 >= 7.9 \
-                and uv[:, 1].max() * 32 <= 16.1:
+        if uv[:, 0].min() * w >= x0 - 0.1 and uv[:, 0].max() * w <= x1 + 0.1 \
+                and uv[:, 1].min() * h >= y0 - 0.1 and uv[:, 1].max() * h <= y1 + 0.1:
             e = np.stack([p[1] - p[0], p[2] - p[0]], 1)
             duv = np.stack([uv[1] - uv[0], uv[2] - uv[0]], 1)
             dpdu = (e @ np.linalg.inv(duv))[:, 0]
@@ -321,20 +359,24 @@ def main():
     ap.add_argument("out")
     ap.add_argument("--game", default=lib.DEFAULT_GAME)
     ap.add_argument("--texel", type=int, default=16, help="screen pixels per art texel")
-    ap.add_argument("--skin", default=DEFAULT_SKIN, help="the layer string")
+    ap.add_argument("--figure", default="player", choices=sorted(FIGURES))
+    ap.add_argument("--skin", default=None, help="the layer string (default the figure's)")
     a = ap.parse_args()
+    fig = FIGURES[a.figure]
+    skin = a.skin or fig["skin"]
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
-    tris = front_triangles(a.game)
-    check_orientation(tris)
-    # The model is two art texels to a unit (the body is 4 units and 8
-    # texels wide).
-    ppu = 2 * a.texel
+    tris = front_triangles(a.game, model=fig["model"])
+    check_orientation(tris, fig["head_front"], fig["art"])
+    # The player's model is two art texels to a unit (the body is 4 units
+    # and 8 texels wide); the villager's a little less.
+    ppu = fig["texels_per_unit"] * a.texel
     margin = a.texel
     views = {}
+    comps = {}
     for on in (True, False):
-        albedo, N, S = composite(a.skin, a.maps, a.game, maps_on=on)
-        views[on] = rasterise(tris, albedo, N, S, ppu, margin)
+        comps[on] = composite(skin, a.maps, a.game, maps_on=on)
+        views[on] = rasterise(tris, *comps[on], ppu, margin)
     shots = {
         "front": shade(views[True], SUN_FRONT),
         "front_maps_off": shade(views[False], SUN_FRONT),
@@ -342,14 +384,16 @@ def main():
         "front_low_sun_maps_off": shade(views[False], SUN_LOW, sun_power=3.2),
     }
     paths = [save(v, out / (k + ".png")) for k, v in shots.items()]
-    # The head: the model's head and hat boxes span y 13.3 to 17.7 and x
-    # -2.2 to 2.2; crop that with a little room and scale it up.
+    # The head: the player's head and hat boxes span y 13.3 to 17.7 and x
+    # -2.2 to 2.2; crop that (the figure's "head") with a little room and
+    # scale it up.
     allp = np.concatenate([t[0] for t in tris])
     x0, y1 = allp[:, 0].min(), allp[:, 1].max()
-    cx0 = int((-2.4 - x0) * ppu) + margin
-    cx1 = int((2.4 - x0) * ppu) + margin
-    cy0 = int((y1 - 17.9) * ppu) + margin
-    cy1 = int((y1 - 13.1) * ppu) + margin
+    hx0, hx1, hy0, hy1 = fig["head"]
+    cx0 = int((hx0 - x0) * ppu) + margin
+    cx1 = int((hx1 - x0) * ppu) + margin
+    cy0 = int((y1 - hy1) * ppu) + margin
+    cy1 = int((y1 - hy0) * ppu) + margin
     for k, src in (("head_3x", "front"), ("head_3x_maps_off", "front_maps_off"),
                    ("head_3x_low_sun", "front_low_sun")):
         paths.append(save(shots[src][max(cy0, 0):cy1, max(cx0, 0):cx1], out / (k + ".png"), 3))
@@ -357,6 +401,16 @@ def main():
     row = np.concatenate([shots["front_maps_off"], gap, shots["front"], gap,
                           shots["front_low_sun"], gap, shots["front_low_sun_maps_off"]], 1)
     paths.append(save(row, out / "compare.png"))
+    if fig["above"]:
+        # The head, hat and brim from 40 degrees above the front: every
+        # triangle wholly above the head crop's lowest point.
+        above = front_triangles(a.game, model=fig["model"], pitch=40.0,
+                                keep=lambda p: p[:, 1].min() >= fig["head"][2])
+        for on, suffix in ((True, ""), (False, "_maps_off")):
+            r = rasterise(above, *comps[on], ppu, margin)
+            paths.append(save(shade(r, SUN_FRONT), out / ("hat_above%s.png" % suffix), 3))
+            if on:
+                paths.append(save(shade(r, SUN_LOW, sun_power=3.2), out / "hat_above_low_sun.png", 3))
     for p in paths:
         print(p)
 
