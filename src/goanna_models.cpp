@@ -233,6 +233,63 @@ static int repairNormals(const PackedVector3Array &verts, PackedVector3Array &no
     return replaced;
 }
 
+// Each vertex's UV rectangle, for CUSTOM0: the UV bounds of the triangles
+// connected to it through shared vertices, as (min u, min v, max u, max v).
+// On a box model that is one box face, which is exactly the region of the
+// atlas the face draws, and the parallax march in entity_common.gdshaderinc
+// clamps to it so it never reads a neighbouring island of the skin. A
+// mirrored limb's face gives the same rectangle as its twin. The cut a
+// limb's knee makes shares its new vertices between both halves, so the
+// face keeps its whole rectangle. Vertices in no triangle get an empty one,
+// which the shader reads as unknown. `faces` receives each distinct
+// rectangle once, for the relief measure (GodotModel::surface_faces).
+static PackedFloat32Array faceRects(const PackedVector2Array &uvs, const PackedInt32Array &indices,
+        std::vector<Rect2> &faces) {
+    const int nv = uvs.size();
+    std::vector<int> parent(nv);
+    for (int i = 0; i < nv; ++i)
+        parent[i] = i;
+    auto find = [&](int v) {
+        while (parent[v] != v)
+            v = parent[v] = parent[parent[v]];
+        return v;
+    };
+    std::vector<char> used(nv, 0);
+    for (int t = 0; t + 2 < indices.size(); t += 3) {
+        const int a = indices[t], b = indices[t + 1], c = indices[t + 2];
+        if (a < 0 || b < 0 || c < 0 || a >= nv || b >= nv || c >= nv)
+            continue;
+        used[a] = used[b] = used[c] = 1;
+        parent[find(b)] = find(a);
+        parent[find(c)] = find(a);
+    }
+    std::vector<Vector4> rect(nv, Vector4(1e30f, 1e30f, -1e30f, -1e30f));
+    for (int i = 0; i < nv; ++i) {
+        if (!used[i])
+            continue;
+        Vector4 &r = rect[find(i)];
+        const Vector2 uv = uvs[i];
+        r = Vector4(std::min(r.x, uv.x), std::min(r.y, uv.y), std::max(r.z, uv.x), std::max(r.w, uv.y));
+    }
+    for (int i = 0; i < nv; ++i) {
+        if (!used[i] || find(i) != i)
+            continue;
+        const Rect2 f(rect[i].x, rect[i].y, rect[i].z - rect[i].x, rect[i].w - rect[i].y);
+        if (std::find(faces.begin(), faces.end(), f) == faces.end())
+            faces.push_back(f);
+    }
+    PackedFloat32Array out;
+    out.resize(nv * 4);
+    for (int i = 0; i < nv; ++i) {
+        const Vector4 r = used[i] ? rect[find(i)] : Vector4();
+        out[i * 4] = r.x;
+        out[i * 4 + 1] = r.y;
+        out[i * 4 + 2] = r.z;
+        out[i * 4 + 3] = r.w;
+    }
+    return out;
+}
+
 std::shared_ptr<GodotModel> buildGodotModel(scene::IAnimatedMesh *mesh) {
     auto model = std::make_shared<GodotModel>();
     model->mesh.instantiate();
@@ -408,7 +465,10 @@ std::shared_ptr<GodotModel> buildGodotModel(scene::IAnimatedMesh *mesh) {
                 arrays[Mesh::ARRAY_WEIGHTS] = weights;
             }
         }
-        model->mesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays);
+        model->surface_faces.emplace_back();
+        arrays[Mesh::ARRAY_CUSTOM0] = faceRects(uvs, indices, model->surface_faces.back());
+        model->mesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays, Array(),
+                Dictionary(), Mesh::ARRAY_CUSTOM_RGBA_FLOAT << Mesh::ARRAY_FORMAT_CUSTOM0_SHIFT);
         model->texture_slots.push_back(mesh->getTextureSlot(bi));
     }
     return model;

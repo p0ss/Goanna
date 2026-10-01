@@ -327,8 +327,8 @@ record of the 2026-10-01 pass is in
 
 **Encoding.** The same as a node tile: red above 128 tilts the normal
 toward plus U (right in the image), green above 128 toward the top of the
-image, with no green flip. B is ambient occlusion, A height (unused on
-entities). `_s` is as in the table above. `project/entity_normal_probe.tscn`
+image, with no green flip. B is ambient occlusion, A height (255 the
+crest), which the parallax march below reads. `_s` is as in the table above. `project/entity_normal_probe.tscn`
 renders a probe dome in that encoding on all six face directions of a mob
 box, plain and mirrored, beside a quad on SurfaceTool's tangents (the frame
 the node mesher matches), and fails unless every quad lights on the side
@@ -389,6 +389,35 @@ islands at a distance, where the relief is below a pixel anyway. `_s` is
 nearest with mipmaps, because a linear filter between a metal and a cloth
 texel passes through values that decode as a dielectric at the largest
 specular, a shiny rim round every metal plate.
+
+**Parallax occlusion.** A mesh entity with an authored `_n` gets the node
+tile's parallax march and self shadow (`entity_common.gdshaderinc`, the
+same steps, chord refinement, shadow and fade as `nodes_array.gdshader`).
+Its depth is measured from the map by the node path's own `reliefDepth`
+(`src/goanna_textures.cpp`), with a node counted as sixteen art texels and
+the same 0.10 node cap, and only inside each face: on an atlas the texel
+beside a face's edge in the image belongs to another face, and counting
+those jumps put the creeper and the cow at a tenth of an art texel. The
+art's texel size is read from the albedo (a pack's skin is its art scaled
+up nearest). The frame is solved per fragment from the UV and position
+derivatives, so a mirrored limb marches the mirrored way by itself.
+Containment, which blocks never needed: `buildGodotModel` writes each
+face's UV rectangle into `CUSTOM0` (the bounds of the triangles joined by
+shared vertices, a box face on a mob) and every sample of the march and
+the shadow is clamped inside it, so the march stops at the face's edge
+texel instead of reading the neighbouring island. A hit on a transparent
+texel inside the rectangle is pulled back toward the drawn point. In the
+scissor variant the cut stays the art's own alpha at the un-marched UV,
+so the silhouette is the vanilla client's. A mesh without `CUSTOM0` (an
+item, a model preview) gets no parallax. It follows the `parallax`
+material strength, which the Low profile's `mat_parallax 0` sets to 0;
+`GOANNA_ENTITY_PARALLAX=0` turns it off for entities alone. Entities
+march at most 32 steps (the nodes 48) plus 8 for the shadow. Gems keep no
+parallax. `project/entity_parallax_probe.tscn` checks containment, the
+mirrored march, the shadow and the silhouette. Not handled: a face whose
+connected UVs are not a rectangle clamps to their bounding box, and a
+skin whose albedo is painted rather than pixel art takes its own pixels
+as art texels. See `docs/perf/entity-parallax-2026-10-02/`.
 
 **Where companions do not reach.** A surface the server marks
 `use_texture_alpha` (a charged creeper's aura, a slime's outer body, a

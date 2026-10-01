@@ -57,6 +57,30 @@ uniform float class_smoothness : hint_range(0.0, 1.0) = 0.0;
 uniform float class_f0 : hint_range(0.0, 1.0) = 0.04;
 uniform float class_metal : hint_range(0.0, 1.0) = 0.0;
 uniform float class_sss : hint_range(0.0, 1.0) = 0.0;
+// Parallax occlusion with self shadow through the authored _n's height, the
+// node path's march (nodes_array.gdshader) on a skin. A is the height, 255
+// the crest. has_height only for an authored _n: the inferred relief has no
+// height. relief_depth is the map's own depth in nodes, measured as a node
+// layer's is (reliefDepth in goanna_textures.cpp, capped alike) with a node
+// counted as sixteen art texels; 0 takes the class table's. art_texels is
+// the art's size in texels, which turns that into a distance on the mesh.
+// parallax_strength is the "parallax" material strength (0 on the Low
+// profile) times GOANNA_ENTITY_PARALLAX; see EntityRenderer::setParallax.
+uniform bool has_height = false;
+uniform float relief_depth = 0.0;
+uniform vec2 art_texels = vec2(64.0, 32.0);
+uniform float parallax_strength : hint_range(0.0, 1.0) = 1.0;
+uniform float parallax_depth : hint_range(0.0, 4.0) = 1.0;
+uniform float parallax_range : hint_range(0.0, 256.0) = 40.0;
+uniform float parallax_shadow_strength : hint_range(0.0, 1.0) = 0.85;
+global uniform vec3 goanna_sun_dir;
+// The UV rectangle of the face this fragment is on, (min, max), from CUSTOM0
+// (faceRects in goanna_models.cpp). A skin is an atlas: the march clamps to
+// this so it never slides into the island beside the face. A mesh without
+// it reads zeros, an empty rectangle, and gets no parallax.
+varying vec4 v_face_rect;
+
+#include "res://shaders/relief_depth.gdshaderinc"
 
 #define GOANNA_DIAMOND
 #include "res://shaders/direct_light.gdshaderinc"
@@ -64,6 +88,10 @@ uniform float class_sss : hint_range(0.0, 1.0) = 0.0;
 #ifdef GOANNA_DIAMOND_TRANSMISSION
 #include "res://shaders/diamond_refraction.gdshaderinc"
 #endif
+
+void vertex() {
+	v_face_rect = CUSTOM0;
+}
 
 void fragment() {
 #ifdef GOANNA_DOUBLE_SIDED
@@ -94,7 +122,110 @@ void fragment() {
 		}
 	}
 	v_lamp_world = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
-	vec4 tex = texture(albedo, UV);
+
+	// Parallax occlusion, as nodes_array.gdshader marches it: the same
+	// steps, the same chord refinement, the same self shadow, the same fade.
+	// The basis is the view space extent of one unit of UV, solved from the
+	// same derivatives as the frame above, so a mirrored face (a limb that
+	// shares its twin's UVs reversed) marches the mirrored way by itself.
+	// What blocks never needed: a skin is an atlas, and the island beside a
+	// face in the image is not its neighbour on the model. Every sample is
+	// clamped to the face's own UV rectangle (v_face_rect), so a march that
+	// runs off the face stops at its edge texel, as a ray would meet the
+	// box's side; and a hit that lands on a transparent texel inside the
+	// rectangle is pulled back toward the drawn point until it is opaque.
+	vec2 puv = UV;
+	float self_shadow = 1.0;
+	float pom = 0.0;
+	vec4 rect = v_face_rect;
+	if (has_normal && has_height && diamond_mode == 0 && parallax_strength > 0.001
+			&& rect.z > rect.x && rect.w > rect.y && abs(gem_det) > 1e-12) {
+		pom = (1.0 - smoothstep(parallax_range * 0.5, parallax_range, length(VERTEX)))
+				* parallax_strength;
+	}
+	if (pom > 0.001) {
+		vec3 d_tu = (gem_position_dx * gem_dy.y - gem_position_dy * gem_dx.y) / gem_det;
+		vec3 d_tv = (gem_position_dy * gem_dx.x - gem_position_dx * gem_dy.x) / gem_det;
+		float lu = max(dot(d_tu, d_tu), 1e-12);
+		float lv = max(dot(d_tv, d_tv), 1e-12);
+		float vn = max(dot(VIEW, NORMAL), 0.08);
+		vec3 vt = VIEW - NORMAL * dot(VIEW, NORMAL);
+		// The depth in nodes, then in view space units through the size an
+		// art texel is drawn at here, a node being sixteen of them.
+		float depth_nodes = (relief_depth > 0.0 ? relief_depth : goanna_class_depth(mat_class))
+				* parallax_depth * pom;
+		float texel = 0.5 * (sqrt(lu) / art_texels.x + sqrt(lv) / art_texels.y);
+		float depth = depth_nodes * 16.0 * texel;
+		vec2 slope = vec2(dot(vt, d_tu) / lu, dot(vt, d_tv) / lv) * (depth / vn);
+		// Half a hundredth of an art texel inside the face, so a clamped
+		// sample never rounds onto the neighbouring island's texel.
+		vec2 inset = 0.005 / art_texels;
+		vec2 lo = rect.xy + inset;
+		vec2 hi = max(rect.zw - inset, lo);
+		// The node march's step count, capped lower: a mob is a few
+		// hundred pixels at most and its authored heights are plateaus
+		// one art texel wide, which the chord refinement below finds.
+		int steps = int(mix(16.0, 6.0, vn) * clamp(depth_nodes / 0.05, 1.0, 2.0));
+		float dd = 1.0 / float(steps);
+		float d = 0.0;
+		float d_prev = 0.0;
+		vec2 uv = clamp(UV, lo, hi);
+		float h = 1.0 - textureGrad(normal_tex, uv, gem_dx, gem_dy).a;
+		float h_prev = h;
+		for (int i = 0; i < 32; i++) {
+			if (i >= steps || d >= h)
+				break;
+			d_prev = d;
+			h_prev = h;
+			d += dd;
+			uv = clamp(UV - slope * d, lo, hi);
+			h = 1.0 - textureGrad(normal_tex, uv, gem_dx, gem_dy).a;
+		}
+		float below = d - h;
+		float above = h_prev - d_prev;
+		float w = below / max(below + above, 1e-5);
+		float d_hit = mix(d, d_prev, w);
+		puv = clamp(UV - slope * d_hit, lo, hi);
+		bool shadow_ok = true;
+		if (textureGrad(albedo, puv, gem_dx, gem_dy).a < 0.5) {
+			// Back toward the drawn point, to the furthest opaque texel.
+			float t_in = 0.0;
+			float t_out = 1.0;
+			for (int i = 0; i < 4; i++) {
+				float t = 0.5 * (t_in + t_out);
+				if (textureGrad(albedo, mix(UV, puv, t), gem_dx, gem_dy).a >= 0.5)
+					t_in = t;
+				else
+					t_out = t;
+			}
+			puv = mix(UV, puv, t_in);
+			shadow_ok = false;
+		}
+
+		// Self shadow: from the hit, climb toward the sun through the same
+		// field, clamped to the same face. Only the sun, as on the nodes.
+		vec3 sun = normalize((VIEW_MATRIX * vec4(goanna_sun_dir, 0.0)).xyz);
+		float sn = dot(sun, NORMAL);
+		if (shadow_ok && parallax_shadow_strength > 0.001 && goanna_sun_dir.y > 0.02 && sn > 0.05) {
+			vec3 st = sun - NORMAL * sn;
+			vec2 sslope = vec2(dot(st, d_tu) / lu, dot(st, d_tv) / lv) * (depth / sn);
+			float blocked = 0.0;
+			float k = 0.0;
+			float dk = d_hit / 8.0;
+			for (int i = 0; i < 8; i++) {
+				k += dk;
+				vec2 suv = clamp(puv + sslope * k, lo, hi);
+				float hs = 1.0 - textureGrad(normal_tex, suv, gem_dx, gem_dy).a;
+				blocked = max(blocked, (d_hit - k) - hs);
+			}
+			self_shadow = 1.0 - clamp(blocked * 6.0, 0.0, 1.0)
+					* parallax_shadow_strength * pom;
+		}
+	}
+
+	// Explicit gradients: puv jumps where the march does, and an implicit
+	// one would pick the smallest mip level along every such edge.
+	vec4 tex = textureGrad(albedo, puv, gem_dx, gem_dy);
 	ALBEDO = tex.rgb;
 	if (vertex_tint)
 		ALBEDO *= COLOR.rgb;
@@ -105,7 +236,10 @@ void fragment() {
 		discard;
 #else
 #ifdef GOANNA_ALPHA_SCISSOR
-	ALPHA = tex.a;
+	// The cut is the art's own at the drawn point, never the marched one:
+	// the march moves what is seen inside the silhouette, not the
+	// silhouette, which stays where the vanilla client draws it.
+	ALPHA = pom > 0.001 ? textureGrad(albedo, UV, gem_dx, gem_dy).a : tex.a;
 	ALPHA_SCISSOR_THRESHOLD = 0.5;
 #endif
 #endif
@@ -116,7 +250,7 @@ void fragment() {
 	EMISSION = ALBEDO * (goanna_sky_fill * node_light.y + vec3(1.0, 0.85, 0.6) * node_light.x * block_fill);
 
 	if (has_normal) {
-		vec4 n = texture(normal_tex, UV);
+		vec4 n = textureGrad(normal_tex, puv, gem_dx, gem_dy);
 		// No green flip; see nodes_array.gdshader for why.
 		vec2 xy = (n.rg * 2.0 - 1.0) * normal_strength;
 		float z = sqrt(clamp(1.0 - dot(xy, xy), 0.0, 1.0));
@@ -143,7 +277,7 @@ void fragment() {
 	// (see direct_light.gdshaderinc).
 	v_rim = mat_class == 11 ? vec2(0.6, 0.35) : vec2(0.0);
 	if (has_spec) {
-		vec4 sp = texture(spec_tex, UV);
+		vec4 sp = textureGrad(spec_tex, puv, gem_dx, gem_dy);
 		float sm = sp.r;
 		ROUGHNESS = mix(1.0, clamp(1.0 - sm, 0.04, 1.0), roughness_strength);
 		METALLIC = sp.g >= 0.898 ? 1.0 : 0.0;
@@ -229,6 +363,15 @@ void fragment() {
 	// light(); see direct_light.gdshaderinc. An entity without node_light
 	// keeps the default (0, 1), full sky, as before.
 	v_sun_gate = goanna_sun_gate(node_light.y, node_light.x);
+	// The parallax self shadow reaches direct light through AO, folded in
+	// exactly as nodes_array.gdshader folds it: direct light is scaled by
+	// mix(1, AO, AO_LIGHT_AFFECT), which this makes the shadow itself.
+	if (self_shadow < 0.999) {
+		AO = clamp(AO * self_shadow, 0.0, 1.0);
+		AO_LIGHT_AFFECT = clamp(max(AO_LIGHT_AFFECT,
+				(1.0 - self_shadow) / max(1.0 - AO, 1e-3)), 0.0, 1.0);
+		SPECULAR *= self_shadow;
+	}
 	v_specular = SPECULAR;
 #ifdef GOANNA_DIAMOND_TRANSMISSION
 	// Only dedicated item/armour shaders enter the transparent pipeline.

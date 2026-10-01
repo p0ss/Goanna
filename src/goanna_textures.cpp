@@ -203,21 +203,44 @@ Ref<Texture2DArray> GoannaTexture::godotArray() {
 // gradient, over the tile width. Capped, because a map whose normals were
 // authored steeper than its height is real (the first fleet's stone reads
 // 16 cm) and the march past a tenth of a node reads the wrapped far side of
-// the tile on every edge.
-static float reliefDepth(const Ref<Image> &img) {
+// the tile on every edge. An entity atlas is measured by the same function
+// over its own node span and inside its faces only (goanna_textures.h).
+float reliefDepth(const Ref<Image> &img, float node_span, const std::vector<int> *islands) {
     const int w = img->get_width(), h = img->get_height();
-    if (w < 8 || h < 8)
+    if (w < 8 || h < 8 || node_span <= 0.0f)
         return 0.0f;
+    if (islands && islands->size() != (size_t)w * h)
+        islands = nullptr;
+    // The height's slope along one axis inside the texel's island, as
+    // tools/pbr_author/lib.py's island_gradient takes it: central where both
+    // neighbours are on the island, one sided where one is, 0 where neither.
+    auto island_slope = [&](int x, int y, int dx, int dy) -> float {
+        const int me = (*islands)[(size_t)y * w + x];
+        float sum = 0.0f;
+        int n = 0;
+        for (int s : {1, -1}) {
+            const int xx = x + dx * s, yy = y + dy * s;
+            if (xx < 0 || yy < 0 || xx >= w || yy >= h || (*islands)[(size_t)yy * w + xx] != me)
+                continue;
+            sum += s * (img->get_pixel(xx, yy).a - img->get_pixel(x, y).a);
+            ++n;
+        }
+        return n == 2 ? sum * 0.5f : sum;
+    };
     std::vector<float> ratios;
     ratios.reserve((size_t)(w * h / 4));
     for (int y = 0; y < h; y += 2)
         for (int x = 0; x < w; x += 2) {
+            if (islands && (*islands)[(size_t)y * w + x] < 0)
+                continue;
             const Color c = img->get_pixel(x, y);
             const float nx = c.r * 2.0f - 1.0f;
             const float ny = c.g * 2.0f - 1.0f;
             const float nz = std::sqrt(std::clamp(1.0f - nx * nx - ny * ny, 1e-4f, 1.0f));
-            const float gx = (img->get_pixel((x + 1) % w, y).a - img->get_pixel((x + w - 1) % w, y).a) * 0.5f;
-            const float gy = (img->get_pixel(x, (y + 1) % h).a - img->get_pixel(x, (y + h - 1) % h).a) * 0.5f;
+            const float gx = islands ? island_slope(x, y, 1, 0)
+                    : (img->get_pixel((x + 1) % w, y).a - img->get_pixel((x + w - 1) % w, y).a) * 0.5f;
+            const float gy = islands ? island_slope(x, y, 0, 1)
+                    : (img->get_pixel(x, (y + 1) % h).a - img->get_pixel(x, (y + h - 1) % h).a) * 0.5f;
             const float g = std::fabs(gx) + std::fabs(gy);
             if (g > 0.01f)
                 ratios.push_back((std::fabs(nx) + std::fabs(ny)) / nz / g);
@@ -225,7 +248,11 @@ static float reliefDepth(const Ref<Image> &img) {
     if (ratios.size() < 100)
         return 0.0f;
     std::nth_element(ratios.begin(), ratios.begin() + (ptrdiff_t)(ratios.size() / 2), ratios.end());
-    return std::min(0.10f, ratios[ratios.size() / 2] / (float)w);
+    return std::min(kReliefDepthCap, ratios[ratios.size() / 2] / node_span);
+}
+
+static float reliefDepth(const Ref<Image> &img) {
+    return reliefDepth(img, (float)img->get_width(), nullptr);
 }
 
 Ref<Texture2DArray> GoannaTexture::godotArraySuffixed(GoannaTextureSource &src, const char *suffix) {

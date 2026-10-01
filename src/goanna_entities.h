@@ -84,6 +84,12 @@ public:
     // Diffuse-inferred normal strength for mesh surfaces with no authored
     // _n/_s companion; 0 disables it. Mirrors GoannaClient::m_auto_bump.
     void setAutoBump(float strength) { m_auto_bump = strength; }
+    // The parallax march through an authored _n's height on mesh entities,
+    // 0 to 1: GoannaClient's "parallax" material strength (the Low graphics
+    // profile's mat_parallax 0), so mobs follow the same setting as the
+    // nodes. Applied to every material already built. GOANNA_ENTITY_PARALLAX
+    // scales it, for an entities only A/B.
+    void setParallax(float strength);
     // The formspec model[] element (upstream's GUIScene): a standalone copy of
     // a media mesh with its textures applied, posed at the first frame of the
     // loop, for the UI to hang under a SubViewport. Unshaded, alpha tested at
@@ -162,9 +168,12 @@ private:
     // not compile, let alone make sense, against a ShaderMaterial.
     // item is whether the texture is an item's (held or dropped) rather than
     // a mob or player skin; only an item takes a material class guessed
-    // from its name.
+    // from its name. faces, from the model the texture is drawn on
+    // (GodotModel::surface_faces), lets the relief be measured face by face;
+    // the material is cached per texture, so the first model to ask decides.
     godot::Ref<godot::Material> materialForMeshTexture(GoannaSession &session,
-            const std::string &texture, bool alpha, bool double_sided, bool item = false);
+            const std::string &texture, bool alpha, bool double_sided, bool item = false,
+            const std::vector<godot::Rect2> *faces = nullptr);
     // The LabPBR companion ("_n" or "_s") a pack or the server supplies for
     // one image, or null.
     godot::Ref<godot::Texture2D> companionTexture(GoannaSession &session,
@@ -206,6 +215,7 @@ private:
     bool m_third_person = false;
     float m_arm_swing = 0.0f;
     float m_auto_bump = 0.35f;
+    float m_parallax = 1.0f;
 };
 
 } // namespace goanna

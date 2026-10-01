@@ -22,6 +22,7 @@
 
 #include <godot_cpp/classes/array_mesh.hpp>
 #include <godot_cpp/classes/skeleton3d.hpp>
+#include <godot_cpp/variant/rect2.hpp>
 #include <godot_cpp/variant/transform3d.hpp>
 
 #include "irrlichttypes_bloated.h"
@@ -76,6 +77,11 @@ private:
 struct GodotModel {
     godot::Ref<godot::ArrayMesh> mesh;
     std::vector<u32> texture_slots; // per surface: index into ObjectProperties::textures
+    // Per surface: the UV rectangle of each face (a set of triangles joined
+    // by shared vertices), each once. The same rectangles go to the mesh in
+    // CUSTOM0 for the parallax march; these tell the relief measure which
+    // texels of a skin are one face (EntityRenderer::materialForMeshTexture).
+    std::vector<std::vector<godot::Rect2>> surface_faces;
     // The Irrlicht mesh this was built from (grabbed), which an active
     // object resolves its animation track names against.
     scene::IAnimatedMesh *source = nullptr;

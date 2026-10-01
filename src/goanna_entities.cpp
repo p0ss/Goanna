@@ -160,8 +160,64 @@ Ref<Texture2D> EntityRenderer::compositeCompanion(GoannaSession &session,
     return result;
 }
 
+// The art's size in texels: the image's size over how many pixels one art
+// texel spans, the largest power of two up to 32 such that every square of
+// that size holds one colour. A pack's skin is
+// its art scaled up nearest to its maps' size (tools/pbr_author/atlas.py),
+// the server's own is 1. Painted detail inside a texel makes it 1 as well,
+// which is the right answer for a skin that is not pixel art.
+static Vector2 artSize(const Ref<Image> &img) {
+    Ref<Image> im = img;
+    if (im->is_compressed() || im->get_format() != Image::FORMAT_RGBA8) {
+        im = im->duplicate();
+        im->decompress();
+        im->convert(Image::FORMAT_RGBA8);
+    }
+    const int w = im->get_width(), h = im->get_height();
+    const PackedByteArray data = im->get_data();
+    const uint8_t *px = data.ptr();
+    auto same = [&](int x, int y, int x0, int y0) {
+        return std::equal(px + ((size_t)y * w + x) * 4, px + ((size_t)y * w + x) * 4 + 4,
+                px + ((size_t)y0 * w + x0) * 4);
+    };
+    int up = 1;
+    for (int k = 2; k <= 32; k *= 2) {
+        if (w % k || h % k || w / k < 4 || h / k < 4)
+            break;
+        bool uniform = true;
+        for (int y = 0; y < h && uniform; ++y)
+            for (int x = 0; x < w; ++x)
+                if (!same(x, y, x - x % k, y - y % k)) {
+                    uniform = false;
+                    break;
+                }
+        if (!uniform)
+            break;
+        up = k;
+    }
+    return Vector2((float)w / up, (float)h / up);
+}
+
+// GOANNA_ENTITY_PARALLAX: a multiplier on the entity parallax alone, so a
+// run with it at 0 and one without differ in nothing but the mobs.
+static float entityParallaxScale() {
+    const char *e = getenv("GOANNA_ENTITY_PARALLAX");
+    return e && *e ? (float)atof(e) : 1.0f;
+}
+
+void EntityRenderer::setParallax(float strength) {
+    m_parallax = strength;
+    const float value = strength * entityParallaxScale();
+    for (auto &kv : m_mesh_materials) {
+        Ref<ShaderMaterial> sm = kv.second;
+        if (sm.is_valid())
+            sm->set_shader_parameter("parallax_strength", value);
+    }
+}
+
 Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
-        const std::string &texture, bool alpha, bool double_sided, bool item) {
+        const std::string &texture, bool alpha, bool double_sided, bool item,
+        const std::vector<Rect2> *faces) {
     std::string key = texture + (alpha ? "|a" : "|o") + (double_sided ? "|d" : "|s") +
             (item ? "|i" : "|m");
     auto it = m_mesh_materials.find(key);
@@ -176,6 +232,7 @@ Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
     // why that means a separate function and cache rather than a mode on it).
     Ref<Texture2D> normal_tex, spec_tex;
     int composite_layers = 0;
+    std::vector<OverlayLayer> art_layers;
     if (gt && !alpha) {
         const char *no_pbr_env = getenv("GOANNA_NO_PBR");
         if (!no_pbr_env || !*no_pbr_env) {
@@ -191,6 +248,7 @@ Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
                 normal_tex = compositeCompanion(session, texture, layers, "_n");
                 spec_tex = compositeCompanion(session, texture, layers, "_s");
                 composite_layers = (int)layers.size();
+                art_layers = layers;
             } else {
                 std::string base = layers.size() == 1 ? layers[0].image
                         : texture.substr(0, texture.find('^'));
@@ -200,6 +258,8 @@ Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
         }
     }
 
+    // Only an authored _n carries a height; the inference below has none.
+    const bool authored_normal = normal_tex.is_valid();
     // No authored relief: the same inference the node array path makes for
     // an unauthored layer, in the convention entity.gdshader decodes.
     if (gt && !alpha && !normal_tex.is_valid() && m_auto_bump > 0.0f)
@@ -276,6 +336,71 @@ Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
             sm->set_shader_parameter("normal_tex", normal_tex);
         if (spec_tex.is_valid())
             sm->set_shader_parameter("spec_tex", spec_tex);
+        // Parallax occlusion through the authored height, as on a node tile
+        // (entity_common.gdshaderinc). The depth is measured from the map
+        // the way a node layer's is, over the map texels one node spans:
+        // sixteen art texels, the scale a mob skin is drawn and authored at
+        // (tools/pbr_author/atlas.py), so a skin and a block with the same
+        // relief get the same depth and the same cap.
+        if (authored_normal && diamond_mode == 0) {
+            Ref<Image> nimg = normal_tex->get_image();
+            Ref<Image> aimg = gt->godotTexture().is_valid() ?
+                    gt->godotTexture()->get_image() : Ref<Image>();
+            if (nimg.is_valid() && aimg.is_valid()) {
+                if (nimg->is_compressed() || nimg->get_format() != Image::FORMAT_RGBA8) {
+                    nimg = nimg->duplicate();
+                    nimg->decompress();
+                    nimg->convert(Image::FORMAT_RGBA8);
+                }
+                // The art's texel grid. A composite's own image is blended
+                // where an overlay was laid over at [opacity or scaled by
+                // Luanti, so it is no longer whole blocks of one colour (the
+                // cracked golem and the player read as 2048 and 1024 texel
+                // art); its layers each still are, and the finest of them
+                // is the grid. Not the coarsest: a sparse layer (the eyes,
+                // a mask of a few texels) is whole blocks at sizes well past
+                // its art's, and read the player as 16 texels wide.
+                Vector2 art = art_layers.empty() ? artSize(aimg) : Vector2();
+                for (const OverlayLayer &l : art_layers) {
+                    auto *lgt = dynamic_cast<GoannaTexture *>(session.tsrc()->getTexture(l.image));
+                    Ref<Image> li = lgt && lgt->godotTexture().is_valid() ?
+                            lgt->godotTexture()->get_image() : Ref<Image>();
+                    if (li.is_valid()) {
+                        const Vector2 a = artSize(li);
+                        if (a.x > art.x)
+                            art = a;
+                    }
+                }
+                if (art.x < 1.0f)
+                    art = artSize(aimg);
+                const float span = 16.0f * (float)nimg->get_width() / art.x;
+                // Which map texels are one face, from the model's UVs; a
+                // texel no face draws is left out.
+                std::vector<int> islands;
+                if (faces && !faces->empty()) {
+                    const int nw = nimg->get_width(), nh = nimg->get_height();
+                    islands.assign((size_t)nw * nh, -1);
+                    for (int f = 0; f < (int)faces->size(); ++f) {
+                        const Rect2 &r = (*faces)[f];
+                        const int x0 = std::max(0, (int)std::ceil(r.position.x * nw - 0.5f));
+                        const int x1 = std::min(nw, (int)std::ceil(r.get_end().x * nw - 0.5f));
+                        const int y0 = std::max(0, (int)std::ceil(r.position.y * nh - 0.5f));
+                        const int y1 = std::min(nh, (int)std::ceil(r.get_end().y * nh - 0.5f));
+                        for (int y = y0; y < y1; ++y)
+                            std::fill(islands.begin() + (size_t)y * nw + x0,
+                                    islands.begin() + (size_t)y * nw + std::max(x0, x1), f);
+                    }
+                }
+                const float depth = reliefDepth(nimg, span, islands.empty() ? nullptr : &islands);
+                sm->set_shader_parameter("has_height", true);
+                sm->set_shader_parameter("relief_depth", depth);
+                sm->set_shader_parameter("art_texels", art);
+                if (getenv("GOANNA_DEBUG_ENTITY_PBR"))
+                    UtilityFunctions::print("entity relief: ", String::utf8(texture.c_str()),
+                            " art=", art, " depth=", depth);
+            }
+        }
+        sm->set_shader_parameter("parallax_strength", m_parallax * entityParallaxScale());
         result = sm;
     } else {
         // Blended surfaces and non-diamond double sided surfaces retain
@@ -370,7 +495,8 @@ bool EntityRenderer::buildMeshVisual(GoannaSession &session, GoannaActiveObject 
                 continue; // upstream: empty string means leave the material alone
             tex += obj.textureModifier();
             m->set_surface_override_material(i,
-                    materialForMeshTexture(session, tex, p.use_texture_alpha, !p.backface_culling));
+                    materialForMeshTexture(session, tex, p.use_texture_alpha, !p.backface_culling,
+                            false, i < (int)model->surface_faces.size() ? &model->surface_faces[i] : nullptr));
         }
         return m;
     };

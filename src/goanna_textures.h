@@ -36,6 +36,23 @@ namespace goanna {
 
 class GoannaTextureSource;
 
+// The relief depth an authored _n implies, as a fraction of a node: the
+// median ratio of its normal's slope to its height's gradient (alpha, 255
+// the crest), which is the depth of the height's full range in map texels,
+// over node_span, the map texels one node spans. A node tile spans one node
+// across its width; an entity atlas one node every sixteen art texels. 0
+// when the map has too little height gradient to measure. Capped at
+// kReliefDepthCap for both; see goanna_textures.cpp for why.
+// islands, when given, labels each map texel with the face it belongs to
+// (-1 for none), and only differences inside one face count: on an atlas the
+// texel beside a face's edge in the image is another face, whose height has
+// nothing to do with it, and those flat normalled jumps were 40% of the
+// samples on Mineclonia's creeper and cow and pulled the median to a tenth
+// of an art texel. A node tile passes none and wraps, as before.
+constexpr float kReliefDepthCap = 0.10f;
+float reliefDepth(const godot::Ref<godot::Image> &img, float node_span,
+        const std::vector<int> *islands);
+
 // Whether a tile of this material type can be drawn from an array texture by
 // nodes_array.gdshader. That shader culls back faces and has no wind, liquid
 // or blending logic, so a double sided tile, a waving one, any liquid and a
