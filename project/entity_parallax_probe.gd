@@ -29,11 +29,13 @@ extends Node3D
 #   - self shadow: the sunk square is darker with parallax than without;
 #   - silhouette: the scissor quad covers the same pixels with and without,
 #     and its hidden magenta never shows;
-#   - a mesh with no CUSTOM0 draws exactly as with parallax off.
+#   - a mesh with no CUSTOM0 draws exactly as with parallax off;
+#   - walls: the raised square's walls draw whole, where the chord alone
+#     (parallax_refine 0) drew them as a staircase of slices.
 #
 # Run, inside headless gamescope (it needs a display):
 #   godot --path project entity_parallax_probe.tscn
-# ENTITY_PROBE_OUT names a directory for on.png and off.png. Exit code 0
+# ENTITY_PROBE_OUT names a directory for on.png, off.png and chord.png. Exit code 0
 # when every check passes, 1 otherwise.
 
 const ART := Vector2i(24, 8)
@@ -205,9 +207,12 @@ func _ready() -> void:
 	if out_dir == "":
 		out_dir = "/tmp"
 	var shots := {}
-	for state in ["off", "on"]:
+	# "chord" is the march with the node path's chord alone, no wall
+	# refinement, to show the staircase the refinement removes.
+	for state in ["off", "on", "chord"]:
 		for m in mats:
-			m.set_shader_parameter("parallax_strength", 1.0 if state == "on" else 0.0)
+			m.set_shader_parameter("parallax_strength", 0.0 if state == "off" else 1.0)
+			m.set_shader_parameter("parallax_refine", 0 if state == "chord" else 5)
 		for i in 8:
 			await get_tree().process_frame
 		await RenderingServer.frame_post_draw
@@ -254,6 +259,14 @@ func _ready() -> void:
 	_check(sc_on.cover == sc_off.cover, "scissor: same silhouette on and off (%d, %d)" % [sc_on.cover, sc_off.cover])
 	_check(sc_on.magenta == 0, "scissor: the hole's hidden colour never shows")
 	_check(_same(shots["on"], shots["off"], cam, spots[3]), "no CUSTOM0: identical to parallax off")
+	# Walls: along every row of the plain quad, how often the colour flips
+	# between the raised red square and anything else. A wall drawn whole
+	# flips twice per row it crosses; a staircase of slices flips at every
+	# slice.
+	var flips_on := _flips(shots["on"], cam, spots[0])
+	var flips_chord := _flips(shots["chord"], cam, spots[0])
+	print("red wall colour flips: refined %d, chord only %d" % [flips_on, flips_chord])
+	_check(flips_on * 2 < flips_chord, "walls: the refinement removes the staircase")
 	print("entity parallax probe: ", "ok" if failures == 0 else "%d failure(s)" % failures)
 	get_tree().quit(0 if failures == 0 else 1)
 
@@ -293,6 +306,20 @@ func _measure(img: Image, cam: Camera3D, at: Vector3) -> Dictionary:
 		res.blue_at = sum / res.blue
 		res.blue_lum = lum / res.blue
 	return res
+
+
+func _flips(img: Image, cam: Camera3D, at: Vector3) -> int:
+	var r := _box(cam, at).intersection(Rect2i(Vector2i.ZERO, img.get_size()))
+	var flips := 0
+	for y in range(r.position.y, r.end.y):
+		var was := false
+		for x in range(r.position.x, r.end.x):
+			var c := img.get_pixel(x, y)
+			var red := c.r > 0.08 and c.r > c.g * 2.0 and c.r > c.b * 2.0
+			if red != was and x > r.position.x:
+				flips += 1
+			was = red
+	return flips
 
 
 func _same(a: Image, b: Image, cam: Camera3D, at: Vector3) -> bool:

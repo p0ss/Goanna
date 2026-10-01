@@ -85,6 +85,9 @@ uniform float parallax_strength : hint_range(0.0, 1.0) = 1.0;
 uniform float parallax_depth : hint_range(0.0, 4.0) = 1.0;
 uniform float parallax_range : hint_range(0.0, 256.0) = 40.0;
 uniform float parallax_shadow_strength : hint_range(0.0, 1.0) = 0.85;
+// Halvings of the last march step before the chord (see the march); 0 is
+// the node path's chord alone. GOANNA_ENTITY_PARALLAX_REFINE sets it.
+uniform int parallax_refine : hint_range(0, 8) = 5;
 global uniform vec3 goanna_sun_dir;
 // The UV rectangle of the face this fragment is on, (min, max), from CUSTOM0
 // (faceRects in goanna_models.cpp). A skin is an atlas: the march clamps to
@@ -195,10 +198,34 @@ void fragment() {
 			uv = clamp(UV - slope * d, lo, hi);
 			h = max(1.0 - lift - textureGrad(normal_tex, uv, gem_dx, gem_dy).a, 0.0);
 		}
+		// The hit lies between the last two samples. The node march takes
+		// the chord between them, which is right on a smooth field; a skin's
+		// heights are plateaus with walls between them, the chord then lands
+		// anywhere inside the step, and a deep wall (the creeper's eye pits
+		// drop 0.76 of the range inside one face) drew as one slice per step,
+		// a vertical staircase. A few halvings find where the ray meets the
+		// wall itself, to a thirty second of a step.
+		for (int i = 0; i < parallax_refine; i++) {
+			float dm = 0.5 * (d_prev + d);
+			float hm = max(1.0 - lift - textureGrad(normal_tex,
+					clamp(UV - slope * dm, lo, hi), gem_dx, gem_dy).a, 0.0);
+			if (dm >= hm) {
+				d = dm;
+				h = hm;
+			} else {
+				d_prev = dm;
+				h_prev = hm;
+			}
+		}
 		float below = d - h;
 		float above = h_prev - d_prev;
 		float w = below / max(below + above, 1e-5);
-		float d_hit = mix(d, d_prev, w);
+		// After the halvings the hit is taken at the end under the surface,
+		// never the chord: on a wall the two ends straddle the step, and the
+		// chord's point fell to one side or the other from pixel to pixel,
+		// so the wall drew in stripes of the rim's texel and the floor's.
+		// The end under the surface is the rim, which is what a wall shows.
+		float d_hit = parallax_refine > 0 ? d : mix(d, d_prev, w);
 		puv = clamp(UV - slope * d_hit, lo, hi);
 		bool shadow_ok = true;
 		if (textureGrad(albedo, puv, gem_dx, gem_dy).a < 0.5) {

@@ -516,6 +516,9 @@ Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
             }
         }
         sm->set_shader_parameter("parallax_strength", m_parallax * entityParallaxScale());
+        // The march's wall refinement, for an A/B (entity_common.gdshaderinc).
+        if (const char *r = getenv("GOANNA_ENTITY_PARALLAX_REFINE"); r && *r)
+            sm->set_shader_parameter("parallax_refine", atoi(r));
         result = sm;
     } else {
         // Blended surfaces, and anything without a texture, retain

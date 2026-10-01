@@ -426,9 +426,18 @@ so the silhouette is the vanilla client's. A mesh without `CUSTOM0` (an
 item, a model preview) gets no parallax. It follows the `parallax`
 material strength, which the Low profile's `mat_parallax 0` sets to 0;
 `GOANNA_ENTITY_PARALLAX=0` turns it off for entities alone. Entities
-march at most 32 steps (the nodes 48) plus 8 for the shadow. Gems keep no
+march at most 32 steps (the nodes 48), then halve the last step five
+times and take the hit at its end under the surface, plus 8 steps for the
+shadow. The node march's chord alone suits a smooth field; on a skin's
+plateaus it landed either side of a wall from pixel to pixel, and the
+creeper's eye pits (a drop of 0.76 of the range inside one face) drew as
+vertical slices of rim and floor
+(`docs/perf/entity-parallax-2026-10-02/creeper-walls-*`).
+`GOANNA_ENTITY_PARALLAX_REFINE=0` restores the chord. The node path keeps
+its chord: its baked and authored fields are smooth enough that the chord
+is better there, and stepped node maps were not tested. Gems keep no
 parallax. `project/entity_parallax_probe.tscn` checks containment, the
-mirrored march, the shadow and the silhouette. Not handled: a face whose
+mirrored march, the shadow, the silhouette and the walls. Not handled: a face whose
 connected UVs are not a rectangle clamps to their bounding box, and a
 skin whose albedo is painted rather than pixel art takes its own pixels
 as art texels. See `docs/perf/entity-parallax-2026-10-02/`.
