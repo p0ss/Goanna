@@ -867,10 +867,13 @@ def previews(stem, out_dir, dest, scale=1):
     return paths
 
 
-def print_faces(stem, game=lib.DEFAULT_GAME):
+def print_faces(stem, game=lib.DEFAULT_GAME, model=None, brush=None):
     """The skin's faces and, per face, its palette as a character map, for
     an author writing a spec."""
-    model, brush = model_of(stem, game)
+    if model is None:
+        model, b = model_of(stem, game)
+        brush = b if brush is None else brush
+    brush = brush or 0
     # A layered part is shown as its art over its tinted mask.
     src = part_source(stem, extrude.load_spec(stem, game), game)
     h, w = src.shape[:2]
@@ -899,14 +902,17 @@ if __name__ == "__main__":
     ap.add_argument("--game", default=lib.DEFAULT_GAME)
     ap.add_argument("--faces", action="store_true", help="print faces and palettes and stop")
     ap.add_argument("--preview", default=None, help="write previews into this directory")
+    ap.add_argument("--model", default=None,
+                    help="the .b3d, for a skin not yet in stems/<game>.mobs.txt")
+    ap.add_argument("--brush", type=int, default=None, help="with --model, the brush (default 0)")
     a = ap.parse_args()
     for s in a.stems:
         if a.faces:
             print("==", s)
-            print_faces(s, a.game)
+            print_faces(s, a.game, a.model, a.brush)
             continue
-        build(s, a.out_dir, a.game)
-        lines = check(s, a.out_dir, a.game)
+        build(s, a.out_dir, a.game, model=a.model, brush=a.brush)
+        lines = check(s, a.out_dir, a.game, model=a.model, brush=a.brush)
         if a.preview:
             previews(s, a.out_dir, a.preview)
         bad = [l for l in lines if l.startswith("FAIL")]
