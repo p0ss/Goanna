@@ -5,7 +5,13 @@ uniform sampler2D albedo : source_color, filter_nearest_mipmap, repeat_enable;
 // LabPBR companions, when a resource pack ships them (see docs): _n carries
 // the tangent normal in RG with ambient occlusion in B, _s carries perceptual
 // smoothness in R, F0/metalness in G and emission in A.
-uniform sampler2D normal_tex : hint_default_black, filter_linear_mipmap, repeat_enable;
+// _n is sampled nearest too, like the albedo. A skin with no _n gets the
+// relief inferred from its own 64 pixel art, and a linear filter spread each
+// texel's tilt across its neighbours: the shading ran in soft bands across
+// the texel grid, the lantern's highlight smeared over a villager's brow,
+// and the mob looked out of focus beside the same mob with maps. An
+// authored map at eight texels per art texel loses nothing by it.
+uniform sampler2D normal_tex : hint_default_black, filter_nearest_mipmap, repeat_enable;
 // _s is sampled nearest: its channels are categorical (LabPBR metals are G
 // 230 and up), and on a skin a metal plate beside cloth interpolated through
 // values that decode as a dielectric with SPECULAR at its maximum, a shiny
