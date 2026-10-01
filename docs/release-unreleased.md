@@ -1,5 +1,29 @@
 # Goanna, unreleased
 
+## Your character
+
+- **More ways to move.** Landing from a fall crouches your character, deeper
+  the harder you land, with the feet staying on the ground; falling puts
+  the arms out; stepping up a block lifts the leading knee; ladders and
+  vines are climbed hand over hand; and in third person your character
+  leans into starts, back on stops and into turns.
+- **Swimming without sprinting.** Moving through deep water upright now
+  swims the breaststroke instead of treading water. Sprinting with your
+  head under still swims the crawl.
+- **Arms in first person.** Your arms no longer swing a held item up into
+  the view as you walk.
+
+## Water
+
+- **Under water looks like water.** The murk is lit cyan near the surface,
+  darker with depth and through the evening, instead of nearly black.
+  Looking up, you see the sky through the window overhead and, beyond it,
+  the water below reflected in the surface.
+- **Third person in water.** With your head under and the camera above the
+  water, the view no longer turns water blue.
+- **No more strobing near the shore.** The sea no longer flickers as if in
+  fast forward when you stand a few blocks from the water's edge.
+
 ## Experimental
 
 - **Let a program play as you.** With `GOANNA_PLAYER_AGENT` set, a local
