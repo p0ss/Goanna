@@ -487,6 +487,22 @@ catalogue. `tools/publish-assets.sh` prints this command, with the one that
 publishes the draft, as its last output. Commit the catalogue only after
 it passes.
 
+**Sign the release, or no client updates to it.** After the GitHub release
+for a tag exists with both zips on it:
+
+```sh
+tools/sign-release.sh v0.11.0-alpha
+```
+
+Writes `dist/manifest.json` (each zip's size and SHA-256) and
+`dist/manifest.json.sig`, signed with the private key in
+`~/.config/goanna-release/update-signing.pem`, checks the signature against
+`project/update_key.pub.pem`, and uploads both to the release. A client
+offers the update only when that signature checks and the version is newer
+than its own (`project/updater.gd`). Keep the private key backed up and out
+of the repository: losing it means players download one release by hand to
+move to a new key.
+
 ## Troubleshooting
 
 **`zstd not found` during CMake configure.** Install the Zstandard

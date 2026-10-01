@@ -114,6 +114,21 @@ companions, so a server's Iron, Stone or other style textures stay visible.
 Hosting starts a normal Luanti server and can expose a name, description,
 password, port, player limit and public-list announcement.
 
+## Updates
+
+A downloaded release keeps itself up to date. When the menu opens it asks
+GitHub for the newest release, and if there is one it offers **Update and
+restart** on the main screen. The update downloads, is checked against the
+maintainer's signature, replaces Goanna's own files and starts the new
+version. Worlds, settings and materials are kept in Goanna's data folder and
+are not touched. **About** shows the version you have, checks on demand and
+can turn the check off. If Goanna is installed somewhere it cannot write to,
+it says so and you download the new release yourself. A source checkout
+never updates itself.
+
+Releases before 0.11.0 do not have this, so moving from 0.10.0 means one
+last download by hand.
+
 ## Controls
 
 WASD moves, the mouse looks, Space jumps, Shift sneaks, and the left and right

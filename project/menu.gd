@@ -181,6 +181,10 @@ func _ready() -> void:
 			_show_luanti()
 		elif want == "setup":
 			_show_setup()
+		elif want == "update-offer":
+			# The main screen as a player sees it when an update is ready.
+			await updater.check(true)
+			_show_main()
 		elif want == "update-run":
 			# Check, install without restarting, and wait for where it lands.
 			_show_main()

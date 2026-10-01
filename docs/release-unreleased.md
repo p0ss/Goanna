@@ -1,5 +1,12 @@
 # Goanna, unreleased
 
+## Updates
+
+- **Goanna updates itself.** When a new release is out, the menu offers
+  Update and restart. It checks the release is signed by Goanna's
+  maintainer before installing it, and keeps your worlds and settings.
+  Coming from 0.10.0 needs one last download by hand.
+
 ## Your character
 
 - **More ways to move.** Landing from a fall crouches your character, deeper
