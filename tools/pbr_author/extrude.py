@@ -7,7 +7,7 @@ reached for high definition surface detail, which reads out of place in a
 blocky world; this keeps the pixel art and makes it crisp.
 
 A texture is one or more materials. Inside a material the height comes
-from one of three modes:
+from one of four modes:
 
   shade  lighter is higher. A coarse level (a few quantised bands, so
          similar neighbours merge into sub-blocks) plus a finer step from
@@ -20,6 +20,12 @@ from one of three modes:
          share keeps a little of each texel's shade inside its piece
          (stone bricks).
   flat   the whole material is one height. A frame's beams.
+  soft   skin. Lighter is a little higher, in proportion to the shade
+         (with a small share of each texel's rank, "detail", default
+         0.25) over a small "span" (default 0.06) centred on "base", no
+         joints. atlas.py adds the rest of the treatment: wider, rounded
+         steps between its own shades and a low dome over each piece
+         (atlas.soft_surface).
 
 Which texel belongs to which material comes from, in order: the spec's
 grid (one character per texel, legend maps each character to a material
@@ -97,6 +103,9 @@ CLASS_STYLE = {
 }
 DEFAULT_STYLE = CLASS_STYLE["stone"]
 DETAIL = 0.35
+# A soft material's height range and its detail harmonic (see heights).
+SOFT_SPAN = 0.06
+SOFT_DETAIL = 0.25
 # Height range of a flat material's per texel micro texture (see heights).
 MICRO = 0.06
 # The material a stem with no spec gets, where the plain shaded rule is
@@ -209,9 +218,10 @@ def assign(src, spec):
     return mat, fixed, part
 
 
-def heights(src, spec, cls):
+def heights(src, spec, cls, soft=True):
     """The 16 px height field (0..1), a 0..1 shade position for the
-    smoothness, the joint mask and the material map."""
+    smoothness, the joint mask and the material map. soft=False stands
+    every soft material flat at its base."""
     levels_c, joint_c, _, _ = CLASS_STYLE.get(cls, DEFAULT_STYLE)
     mats = spec.get("materials") or {"base": CLASS_MATERIAL.get(cls, {"mode": "shade"})}
     alpha = src[..., 3] if src.shape[-1] == 4 else np.ones(src.shape[:2], np.float32)
@@ -264,6 +274,27 @@ def heights(src, spec, cls):
             pd = float(m.get("detail", 0.0))
             if pd > 0:
                 t = (1.0 - pd) * t + pd * _rank01(v)
+        elif mode == "soft":
+            # Skin. Lighter is a little higher, as in shade, but in
+            # proportion to the shade rather than by bands: two near equal
+            # shades of a face stand at near equal heights, so the art's
+            # shading reads as gentle form and never as tiles. The detail
+            # harmonic (each texel's rank) is a small share. No joints.
+            # The range is centred on base, so the skin's mean stays where
+            # a flat piece of it stood and the features keep their places
+            # above and below it. With soft=False (a neighbouring part's
+            # view of this one, atlas.stack_fields) the material is flat at
+            # base: the steps are this part's own surface.
+            span = float(m.get("span", SOFT_SPAN))
+            base -= 0.5 * span
+            lo, hi = np.percentile(v, 5), np.percentile(v, 95)
+            if soft and hi - lo > 1e-4:
+                lin = np.clip((v - lo) / max(hi - lo, 1e-4), 0.0, 1.0)
+                sd = float(m.get("detail", SOFT_DETAIL))
+                t = ((1.0 - sd) * lin + sd * _rank01(v)).astype(np.float32)
+            else:
+                # Flat, or one shade: the middle of the range.
+                t = np.full(v.shape, 0.5, np.float32)
         else:
             detail = float(m.get("detail", DETAIL))
             lv = int(m.get("levels", levels_c))

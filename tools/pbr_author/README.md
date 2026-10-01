@@ -146,11 +146,42 @@ What differs from a tile:
   a black mirror (the hopper). Very dark iron is its own dielectric
   material; `atlas.check` fails a skin whose darkest metal texels are
   under 0.20 luminance.
-- **Faces.** A face reads by its albedo. Skin is one `flat` material,
-  never `shade`: a height per texel turns a face into a checkerboard of
-  coloured squares. Only the features (brow, eyes, mouth, nose) take
-  their own heights, and nothing on a face is metal or polished except
-  the eyes. See the playbook, "Mob skins".
+- **Faces.** A face reads by its albedo. Skin is never `shade`: a
+  height per texel at shade's steps turns a face into a checkerboard of
+  coloured squares. Skin is `"mode": "soft"` (extrude.py; atlas.py's
+  `soft_surface` and `edge_roll` do the rest), keys on the material:
+  - `"span"` (0.16 of the height range) and `"detail"` (0.25): lighter
+    texels higher in proportion to their shade, the top of the span at
+    `"base"` plus half of it, no joints;
+  - `"soft_edge"` (0.3 texels): the skin's steps between its own shades
+    blurred by about that sigma in place of the crisp chamfer, in the
+    stored height as well as the normal, so parallax sees the same soft
+    step; steps to other materials keep the stem's chamfer;
+  - `"round"` (degrees, 15; 12 on the player, 10 on the undead, 4 on the
+    pig): a membrane dome over each piece on each face, with the features
+    it encloses filled in, its edges leaning that much; normal only;
+  - `"edge_roll"` (texels, 2.5) and `"edge_lean"` (degrees, 25; 20 on the
+    undead, 15 on the pig): in place of the bevel, the face falls away
+    over its outer texels toward every box edge like a cushion, across and
+    along added so the corners round without a crease; normal only;
+    `"roll_rough"` (0.2) takes smoothness off toward the edge, where a
+    rolled edge would otherwise catch the sky at a grazing angle;
+  - `"smooth_spread"` 0.1 makes the raised, lighter texels a little
+    smoother; the `skin` micro (pores) is down to `"micro_strength"` 0.3.
+  A material with `"ride": true` (the player's eye layer) takes the same
+  dome over its whole face and the same roll, so the parts laid over skin
+  curve with it. Only the features (brow, eyes, mouth, nose) take their
+  own heights, and nothing on a face is metal or polished except the
+  eyes. A living creature's eyes are flat and glisten: `"micro": "none"`,
+  `"smooth"` 0.9 (no higher, or the highlight falls under a pixel),
+  `"f0"` 0.06; an empty socket stays matte. The undead's eyes and mouth
+  are pits half the height range under their skin. A part that reads a
+  soft part's height through `"stack"` reads it flat at its base.
+- **Heights under 1.** Parallax draws a height under 1 sunk below the
+  box face; the client lifts each face's highest texel to the face
+  (`docs/materials.md`), so a skin need not top out at 1. The zombie,
+  husk, drowned and wandering trader skins are raised by one offset each
+  so their highest part stands at 1 anyway, every relative height kept.
 - **Players.** Mineclonia draws a player as layered parts, each part's
   shading over a mask coloured to the player's choice
   (`(mcl_skins_hair_1_mask.png^[colorize:#715D57FF:alpha)^mcl_skins_hair_1.png`).

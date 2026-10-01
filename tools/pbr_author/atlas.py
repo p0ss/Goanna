@@ -297,7 +297,9 @@ def stack_fields(stem, spec, game=lib.DEFAULT_GAME):
         osp = extrude.load_spec(other, game)
         osrc = part_source(other, osp, game)
         ocls = osp.get("class") or extrude.stem_class(other, game)
-        oh = extrude.heights(osrc, osp, ocls)[0]
+        # A soft material's small steps are that part's own surface, so
+        # this part slopes to and is shaded by its level, not its steps.
+        oh = extrude.heights(osrc, osp, ocls, soft=False)[0]
         od = osrc[..., 3] >= 0.5
         fill = np.where(od, oh, fill)
         if k > me:
@@ -479,10 +481,27 @@ def build(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, model=None, brush=Non
                                        hgt=hgt, extra=extra)
         detail += d2
         smooth_hi = np.clip(smooth_hi + s2, 0.0, lib.SMOOTH_CEILING)
+    roll_w = None
+    if any(m.get("mode") == "soft" or m.get("ride") for m in mats.values()):
+        dh, d3 = soft_surface(spec, mat, drawn, isl, cell, up(hgt),
+                              extrude.chamfer_px(spec, cell), strength)
+        roll, roll_w, roll_sm = edge_roll(spec, mat, drawn, isl, cell, strength)
+        if roll_w is not None:
+            d3 = d3 + roll
+            smooth_hi = np.clip(smooth_hi - roll_sm, 0.0, lib.SMOOTH_CEILING)
+        hi = hi + dh
+        if ao_hi is not None:
+            # Where no later part is drawn the occlusion reads this height.
+            ao_hi = ao_hi + dh * up(np.isnan(above)).astype(np.float32)
+        detail += d3
     if spec.get("face_edge", "flat") == "bevel":
         w = max(1.0, float(spec.get("bevel_px", BEVEL_PX)) * lib.PX)
         ramp = np.clip(1.0 - (border_distance(isl_hi) + 0.5) / w, 0.0, 1.0)
-        detail -= float(spec.get("bevel_depth", BEVEL_DEPTH)) * ramp * (isl_hi >= 0)
+        bevel = float(spec.get("bevel_depth", BEVEL_DEPTH)) * ramp * (isl_hi >= 0)
+        if roll_w is not None:
+            # Skin rolls off to the box edge instead (edge_roll).
+            bevel = bevel * (1.0 - roll_w)
+        detail -= bevel
     albedo = np.kron(art, np.ones((cell, cell, 1), dtype=art.dtype))
     # A part's coverage is its mask and its art together; its art alone is
     # mostly translucent shading.
@@ -494,6 +513,210 @@ def build(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, model=None, brush=Non
                     islands=isl_hi, alpha=alpha, ao_height=ao_hi,
                     sss=None if sss is None else up(sss),
                     normal_slope=extra.get("slope"), occlusion=extra.get("occlusion"))
+
+
+# Skin's treatment (mode "soft", see soft_surface): its own steps rounded
+# by a blur of this sigma in art texels, and a dome over each piece whose
+# edges lean "round" degrees.
+SOFT_EDGE = 0.2
+ROUND = 0.0
+
+
+def _membrane(inside):
+    """A dome over the pixels of inside: the solution of a membrane under
+    even pressure (the discrete Laplacian of u is -1 inside, u is 0 on
+    every pixel outside). Smooth, with no crease on any shape, steepest at
+    the edge and flat at the top, like a cushion."""
+    from scipy import sparse
+    from scipy.sparse.linalg import spsolve
+    h, w = inside.shape
+    idx = -np.ones(inside.shape, np.int64)
+    ys, xs = np.nonzero(inside)
+    n = len(ys)
+    idx[ys, xs] = np.arange(n)
+    rows, cols, vals = [np.arange(n)], [np.arange(n)], [np.full(n, 4.0)]
+    for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+        ny, nx = ys + dy, xs + dx
+        ok = (ny >= 0) & (ny < h) & (nx >= 0) & (nx < w)
+        j = np.full(n, -1, np.int64)
+        j[ok] = idx[ny[ok], nx[ok]]
+        k = j >= 0
+        rows.append(np.arange(n)[k])
+        cols.append(j[k])
+        vals.append(np.full(int(k.sum()), -1.0))
+    A = sparse.csr_matrix((np.concatenate(vals), (np.concatenate(rows), np.concatenate(cols))),
+                          shape=(n, n))
+    u = np.zeros(inside.shape, np.float64)
+    u[ys, xs] = spsolve(A, np.ones(n))
+    return u
+
+
+def soft_surface(spec, mat, drawn, isl, cell, h_up, chamfer, strength):
+    """(height change, normal detail) of every soft material (skin), at
+    the map's size.
+
+      soft_edge  the material's steps between its own shades are rounded
+                 and wide where cloth's are a crisp bevel: inside each
+                 piece of the material (only its own pixels read) the
+                 height is blurred by about a gaussian of "soft_edge"
+                 texels in place of the chamfer. The change goes into the
+                 stored height as well as the normal, so the client's
+                 parallax depth, measured from the ratio of the two, is
+                 not lowered by it. Steps to other materials (cloth, the
+                 eyes, a mouth) keep the stem's crisp chamfer, because only
+                 the material's own pixels are read on both sides of the
+                 difference.
+      round      a low dome over each piece of the material on each face
+                 (a 4 connected run of it, with the features it encloses,
+                 eyes and a mouth, filled in): a membrane stretched over
+                 the filled piece (_membrane), 0 at the piece's edge and
+                 at the box's edge, scaled so that its edges lean "round"
+                 degrees (the 90th percentile of its slope), whatever the
+                 piece's size. Normal only: the stored height keeps the
+                 small steps. The features it encloses ride it, so the
+                 normal has no step round an eye; an eye stays flat
+                 itself, only tilted with the head's curve.
+    """
+    from scipy import ndimage
+    dh = np.zeros(h_up.shape, np.float32)
+    detail = np.zeros(h_up.shape, np.float64)
+    isl_hi = np.kron(isl, np.ones((cell, cell), dtype=isl.dtype))
+    up = lambda a: np.kron(a, np.ones((cell, cell), dtype=a.dtype))  # noqa: E731
+    for name, m in (spec.get("materials") or {}).items():
+        ride = bool(m.get("ride"))
+        if m.get("mode") != "soft" and not ride:
+            continue
+        sel = (mat == name) & drawn
+        if not sel.any():
+            continue
+        mine = up(sel)
+        edge = float(m.get("soft_edge", SOFT_EDGE)) * cell if not ride else 0.0
+        if edge > 0:
+            # Each box blur pass adds a variance of 2/3 of a pixel squared.
+            passes = max(chamfer + 1, int(round(1.5 * edge * edge)))
+            lab = np.where(mine, isl_hi, -1)
+            crisp = chamfer_islands(h_up, lab, chamfer)
+            soft = chamfer_islands(h_up, lab, passes)
+            dh += np.where(mine, soft - crisp, 0.0).astype(np.float32)
+        lean = float(m.get("round", ROUND))
+        if lean <= 0:
+            continue
+        for i in np.unique(isl[sel]):
+            own_lo = isl == i
+            ys, xs = np.nonzero(isl_hi == i)
+            y0, y1, x0, x1 = ys.min(), ys.max() + 1, xs.min(), xs.max() + 1
+            lab, n = ndimage.label(sel & own_lo)
+            for k in range(1, n + 1):
+                # A riding material takes the dome of the whole face.
+                filled = own_lo if ride else ndimage.binary_fill_holes(lab == k) & own_lo
+                f_hi = up(filled)[y0:y1, x0:x1]
+                p_hi = up(lab == k)[y0:y1, x0:x1] if ride else f_hi
+                u = _membrane(f_hi)
+                gy, gx = np.gradient(u)
+                g = np.sqrt(gx * gx + gy * gy)[f_hi]
+                top = float(np.percentile(g, 90)) if g.size else 0.0
+                if top <= 0:
+                    continue
+                # The normal leans atan(strength * slope).
+                scale = np.tan(np.radians(lean)) / (strength * top)
+                sub = detail[y0:y1, x0:x1]
+                sub[p_hi] += scale * u[p_hi]
+    return dh, detail.astype(np.float32)
+
+
+def _run_distance(mask, axis):
+    """Per pixel of mask, the distance in pixels from its centre to the
+    nearest pixel outside mask along one axis (the image edge counting as
+    outside), and the length of the run of mask it lies in."""
+    m = np.moveaxis(mask, axis, 0)
+    n = m.shape[0]
+    fwd = np.zeros(m.shape, np.float32)
+    back = np.zeros(m.shape, np.float32)
+    run = np.zeros(m.shape[1:], np.float32)
+    for k in range(n):
+        run = np.where(m[k], run + 1, 0)
+        fwd[k] = run
+    run = np.zeros(m.shape[1:], np.float32)
+    for k in range(n - 1, -1, -1):
+        run = np.where(m[k], run + 1, 0)
+        back[k] = run
+    d = np.minimum(fwd, back) - 0.5
+    length = fwd + back - 1
+    return (np.moveaxis(np.where(m, d, 0.0), 0, axis),
+            np.moveaxis(np.where(m, length, 0.0), 0, axis))
+
+
+def edge_roll(spec, mat, drawn, isl, cell, strength):
+    """A soft material's box edges, in place of the bevel: (normal detail,
+    the share of each pixel that rolls rather than bevels, the smoothness
+    taken off), or (None, None, None) when no soft material asks for it.
+
+    "edge_roll" is the width in art texels over which the surface falls
+    away toward each box edge, "edge_lean" the angle in degrees it leans
+    at the edge. Across and along each face the fall is (1 - d / width)
+    squared, d the distance to the face's edge on that axis, and the two
+    axes add, so the face is a cushion with rounded edges and rounded
+    corners and no crease on its diagonals. It reaches the normal only.
+    The share is the material's own pixels blurred a little inside each
+    face, so where skin meets cloth near a box edge the roll hands over to
+    the cloth's bevel without a step. "roll_rough" (default 0.15) is the
+    smoothness taken off at the edge, falling to none where the roll ends:
+    a rolled edge faces the sky at a grazing angle, and at the skin's own
+    smoothness its Fresnel reflection washed a pale band along every box
+    edge."""
+    rolls = {k: m for k, m in (spec.get("materials") or {}).items()
+             if (m.get("mode") == "soft" or m.get("ride")) and float(m.get("edge_roll", 0)) > 0}
+    if not rolls:
+        return None, None, None
+    up = lambda a: np.kron(a, np.ones((cell, cell), dtype=a.dtype))  # noqa: E731
+    isl_hi = up(isl)
+    detail = np.zeros(isl_hi.shape, np.float32)
+    share = np.zeros(isl_hi.shape, np.float32)
+    rough = np.zeros(isl_hi.shape, np.float32)
+    for name, m in rolls.items():
+        sel = (mat == name) & drawn
+        if not sel.any():
+            continue
+        width = float(m["edge_roll"]) * cell
+        lean = np.tan(np.radians(float(m.get("edge_lean", 30.0))))
+        mine = up(sel)
+        for i in np.unique(isl[sel]):
+            own = isl_hi == i
+            ys, xs = np.nonzero(own)
+            y0, y1, x0, x1 = ys.min(), ys.max() + 1, xs.min(), xs.max() + 1
+            o = own[y0:y1, x0:x1]
+            fall = np.zeros(o.shape, np.float32)
+            near = np.zeros(o.shape, np.float32)
+            for axis in (0, 1):
+                d, length = _run_distance(o, axis)
+                # On a face narrower than two widths the roll reaches only
+                # half way, so the two sides meet flat, with no ridge.
+                wd = np.maximum(np.minimum(width, 0.5 * length), 1.0)
+                fall -= (lean * wd / (2.0 * strength)) * np.clip(1.0 - d / wd, 0.0, 1.0) ** 2
+                near = np.maximum(near, np.clip(1.0 - d / wd, 0.0, 1.0))
+            if m.get("ride"):
+                # A part laid over skin (the player's eyes) rolls exactly
+                # as the skin under it does.
+                w = mine[y0:y1, x0:x1].astype(np.float64)
+            else:
+                w = _island_blur(mine[y0:y1, x0:x1].astype(np.float64), o, 0.15 * cell)
+            sub = detail[y0:y1, x0:x1]
+            sub[o] += (fall * w)[o]
+            sh = share[y0:y1, x0:x1]
+            sh[o] = np.maximum(sh[o], w[o])
+            ro = rough[y0:y1, x0:x1]
+            ro[o] += (float(m.get("roll_rough", 0.15)) * near * w)[o]
+    return detail, np.clip(share, 0.0, 1.0), rough
+
+
+def _island_blur(field, own, sigma):
+    """field blurred by a gaussian of sigma pixels reading only the pixels
+    own marks (a normalised convolution), at the pixels own marks."""
+    from scipy import ndimage
+    o = own.astype(np.float64)
+    num = ndimage.gaussian_filter(field * o, sigma, mode="constant")
+    den = ndimage.gaussian_filter(o, sigma, mode="constant")
+    return np.where(own, num / np.maximum(den, 1e-9), 0.0)
 
 
 SURFACE_KEYS = ("stitch", "seam", "wear", "texel_edge", "scatter")
@@ -742,8 +965,21 @@ def check(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, model=None, brush=Non
     edge = min(extrude.chamfer_px(spec, cell) + 1, (cell - 1) // 2)
     hmap = n[..., 3].reshape(rows, cell, cols, cell)[:, edge:cell - edge, :, edge:cell - edge]
     spread = hmap.max(axis=(1, 3)) - hmap.min(axis=(1, 3))
-    share = float((spread[drawn] <= 2.5 / 255).mean()) if drawn.any() else 1.0
-    line(share >= 0.98, "on the texel grid %.0f%% of drawn texels (want >= 98)" % (100 * share))
+    # A soft material (skin) rounds its own steps on purpose; it is held to
+    # its span instead.
+    soft_names = [k for k, m in (spec.get("materials") or {}).items() if m.get("mode") == "soft"]
+    soft = np.isin(extrude.assign(src, spec)[0], soft_names) & drawn if soft_names else \
+        np.zeros(drawn.shape, bool)
+    grid = drawn & ~soft
+    share = float((spread[grid] <= 2.5 / 255).mean()) if grid.any() else 1.0
+    line(share >= 0.98, "on the texel grid %.0f%% of drawn texels%s (want >= 98)"
+         % (100 * share, ", soft skin aside" if soft.any() else ""))
+    if soft.any():
+        span = max(float(m.get("span", extrude.SOFT_SPAN)) for k, m in spec["materials"].items()
+                   if k in soft_names)
+        worst = float(spread[soft].max())
+        line(worst <= span + 2.5 / 255, "soft skin varies at most %.3f inside a texel (want <= its"
+             " span %.2f)" % (worst, span))
 
     tex_h = np.round(hmap.mean(axis=(1, 3)) * 255)[drawn]
     levels = len(np.unique(tex_h))
@@ -765,7 +1001,9 @@ def check(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, model=None, brush=Non
     # In node units: the rise of the full range per texel, times 16 texels.
     depth = float(np.median(r)) / cell / 16.0 if r.size >= 100 else 0.0
     # A skin of one flat material (bare skin) has no relief on purpose.
-    flat_only = all(m == "flat" for m in modes)
+    # Soft skin's stored steps are a few hundredths of the range on
+    # purpose, so like flat it is held only to the cap.
+    flat_only = all(m in ("flat", "soft") for m in modes)
     line(spec.get("overlay") or (flat_only and depth <= 0.105) or 0.02 <= depth <= 0.105,
          "relief %.3f node equivalent (want 0.02 to 0.10%s)"
          % (depth, ", or none when all flat" if flat_only else ""))
@@ -784,6 +1022,13 @@ def check(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, model=None, brush=Non
     reach = int(np.ceil(max(1.0, float(spec.get("bevel_px", BEVEL_PX)) * lib.PX))) if bevel else 1
     inner = (bd == reach + 1) & up_drawn
     tilt = np.sqrt((xy ** 2).sum(-1))
+    # Skin that rolls to its box edges (edge_roll) leans outward there too,
+    # but over texels, so it is not steeper at the ring than a few pixels
+    # in; it is held to leaning outward alone.
+    rolled_names = [k for k, m in (spec.get("materials") or {}).items()
+                    if (m.get("mode") == "soft" or m.get("ride")) and float(m.get("edge_roll", 0)) > 0]
+    rolled = np.kron(np.isin(extrude.assign(src, spec)[0], rolled_names) & drawn,
+                     np.ones((cell, cell), bool)) if rolled_names else np.zeros(ring.shape, bool)
     if bevel and ring.any():
         # Outward is down the border distance's gradient; in the normal's
         # frame x is image x and y is image up.
@@ -791,10 +1036,17 @@ def check(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, model=None, brush=Non
         gxb = lib.island_gradient(bdf, isl_hi, 1)
         gyb = lib.island_gradient(bdf, isl_hi, 0)
         out = (xy[..., 0] * -gxb + xy[..., 1] * gyb) > 0.02
-        share = float(out[ring].mean())
-        line(share >= 0.95 and tilt[ring].mean() >= tilt[inner].mean() + 0.05,
-             "bevel leans outward at %.0f%% of face border pixels, tilt %.2f against %.2f"
-             " inside (want >= 95%%, steeper)" % (100 * share, tilt[ring].mean(), tilt[inner].mean()))
+        bring, binner = ring & ~rolled, inner & ~rolled
+        if bring.any():
+            share = float(out[bring].mean())
+            line(share >= 0.95 and tilt[bring].mean() >= tilt[binner].mean() + 0.05,
+                 "bevel leans outward at %.0f%% of face border pixels, tilt %.2f against %.2f"
+                 " inside (want >= 95%%, steeper)" % (100 * share, tilt[bring].mean(),
+                                                      tilt[binner].mean()))
+        if (ring & rolled).any():
+            share = float(out[ring & rolled].mean())
+            line(share >= 0.95, "skin rolls outward at %.0f%% of its face border pixels (want >= 95%%)"
+                 % (100 * share))
     else:
         rmean = float(tilt[ring].mean()) if ring.any() else 0.0
         imean = float(tilt[inner].mean()) if inner.any() else 0.0
