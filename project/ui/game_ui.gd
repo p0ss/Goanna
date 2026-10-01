@@ -15,6 +15,7 @@ const PlayerContext := preload("res://player_context.gd")
 
 const FormspecScript := preload("res://ui/formspec.gd")
 const GlassStyle := preload("res://ui/glass_style.gd")
+const PanelFit := preload("res://ui/panel_fit.gd")
 # Only to list the texture packs the detected Luanti install already carries,
 # for the Texture pack setting. The same read only borrowing the Content
 # screen does: Goanna does not install packs, it offers what is already there.
@@ -1173,11 +1174,20 @@ func _open_settings() -> void:
 		settings_menu.queue_free()
 	settings_menu = _build_settings()
 	_open_window(settings_menu)
+	if not get_viewport().size_changed.is_connected(_refit_settings):
+		get_viewport().size_changed.connect(_refit_settings)
+
+# A resize while the panel is open builds it again at the new size.
+func _refit_settings() -> void:
+	if settings_menu != null and is_instance_valid(settings_menu) and settings_menu.visible:
+		_open_settings()
 
 func _build_settings() -> Control:
+	# The window's size, not a fixed minimum: see ui/panel_fit.gd. The panel
+	# is rebuilt on each open, and on a resize while it is open.
 	var vs := get_viewport().get_visible_rect().size
-	var panel_w := clampf(vs.x * 0.52, 560.0, 780.0)
-	var content_h := clampf(vs.y * 0.6, 380.0, 680.0)
+	var fit := PanelFit.size_for(vs, true)
+	var panel_w := fit.x - 56.0
 	var centre := CenterContainer.new()
 	centre.set_anchors_preset(Control.PRESET_FULL_RECT)
 	centre.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1196,8 +1206,8 @@ func _build_settings() -> Control:
 		panel.add_theme_stylebox_override("panel", sb)
 	centre.add_child(panel)
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 18)
-	box.custom_minimum_size = Vector2(panel_w, 0)
+	box.add_theme_constant_override("separation", 14)
+	box.custom_minimum_size = Vector2(panel_w, fit.y - 56.0)
 	panel.add_child(box)
 	var title := Label.new()
 	title.text = "Settings"
@@ -1205,17 +1215,14 @@ func _build_settings() -> Control:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
 	var tabs := TabContainer.new()
-	tabs.custom_minimum_size = Vector2(panel_w, content_h)
+	tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	box.add_child(tabs)
 	var pages := {}
 	var new_page := func(name: String) -> VBoxContainer:
 		var scroll := ScrollContainer.new()
 		scroll.name = name
 		scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-		var pad := MarginContainer.new()
-		pad.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		for side in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
-			pad.add_theme_constant_override(side, 14)
+		var pad := PanelFit.page_padding()
 		var page := VBoxContainer.new()
 		page.add_theme_constant_override("separation", 20)
 		page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1416,22 +1423,9 @@ func _build_graphics_page(page: VBoxContainer) -> void:
 func _build_setting_row(page: VBoxContainer, entry: Array) -> void:
 	var key: String = entry[1]
 	var kind: String = entry[2]
-	if page.get_child_count() > 0:
-		var sep := HSeparator.new()
-		sep.modulate = Color(1, 1, 1, 0.12)
-		page.add_child(sep)
-	var row := VBoxContainer.new()
-	row.add_theme_constant_override("separation", 5)
-	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	page.add_child(row)
-	var head := HBoxContainer.new()
-	head.add_theme_constant_override("separation", 12)
-	row.add_child(head)
-	var name_label := Label.new()
-	name_label.text = entry[3]
-	name_label.add_theme_font_size_override("font_size", 17)
-	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	head.add_child(name_label)
+	var shell: Array = PanelFit.row(page, entry[3])
+	var row: VBoxContainer = shell[0]
+	var head: HBoxContainer = shell[1]
 	if kind == "pack":
 		# Installed packs by name, because someone who has just installed one
 		# from ContentDB knows what it is called and not the absolute path
@@ -1559,12 +1553,7 @@ func _build_setting_row(page: VBoxContainer, entry: Array) -> void:
 		srow.add_theme_constant_override("separation", 12)
 		srow.add_child(slider)
 		row.add_child(srow)
-	var desc := Label.new()
-	desc.text = entry[4]
-	GlassStyle.tint_text(desc, Color(1, 1, 1, 0.5))
-	desc.add_theme_font_size_override("font_size", 13)
-	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	row.add_child(desc)
+	PanelFit.describe(row, entry[4], 0.5)
 
 func _show_death_screen() -> void:
 	if death_screen == null:

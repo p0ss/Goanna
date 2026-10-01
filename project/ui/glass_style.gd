@@ -456,11 +456,14 @@ static func theme() -> Theme:
 		t.set_icon("grabber_highlight", type, _knob(true))
 		t.set_icon("grabber_disabled", type, _knob(false))
 
-	# Scroll bars: a slim rounded thumb on a faint track.
-	var bar := _box(Color(0, 0, 0, 0.18), 5, Color.TRANSPARENT, 0, Vector4(5, 5, 5, 5))
-	var thumb := _box(Color(1, 1, 1, 0.30), 5, Color.TRANSPARENT, 0, Vector4(5, 5, 5, 5))
-	var thumb_hi := _box(Color(1, 1, 1, 0.45), 5, Color.TRANSPARENT, 0, Vector4(5, 5, 5, 5))
-	var thumb_down := _box(Color(ACCENT, 0.75), 5, Color.TRANSPARENT, 0, Vector4(5, 5, 5, 5))
+	# Scroll bars: a rounded thumb on a faint track. The thumb's content
+	# margins set its least size: 12 wide and never shorter than 48, because
+	# on a long page a thumb sized only by the visible share shrank to a few
+	# pixels and was hard to see or catch (reported 2026-10-01).
+	var bar := _box(Color(0, 0, 0, 0.18), 6, Color.TRANSPARENT, 0, Vector4(6, 6, 6, 6))
+	var thumb := _box(Color(1, 1, 1, 0.34), 6, Color.TRANSPARENT, 0, Vector4(6, 24, 6, 24))
+	var thumb_hi := _box(Color(1, 1, 1, 0.50), 6, Color.TRANSPARENT, 0, Vector4(6, 24, 6, 24))
+	var thumb_down := _box(Color(ACCENT, 0.75), 6, Color.TRANSPARENT, 0, Vector4(6, 24, 6, 24))
 	for type in ["VScrollBar", "HScrollBar"]:
 		t.set_stylebox("scroll", type, bar)
 		t.set_stylebox("scroll_focus", type, bar)

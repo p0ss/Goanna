@@ -19,11 +19,17 @@ var local_graphics_profile := "low"
 const LocalServer := preload("res://local_server.gd")
 const AssetUpdater := preload("res://asset_updater.gd")
 const GlassStyle := preload("res://ui/glass_style.gd")
+const PanelFit := preload("res://ui/panel_fit.gd")
 const SKIP_VARS := ["GOANNA_LOCAL_PLAY", "GOANNA_HOST", "GOANNA_NAME", "GOANNA_SHOT", "GOANNA_SMOKE",
 	"GOANNA_WALKTEST", "GOANNA_TOGGLETEST", "GOANNA_ANIMPROBE", "GOANNA_MOBTEST",
 	"GOANNA_USETEST", "GOANNA_MINETEST", "GOANNA_DIGDOWNTEST", "GOANNA_MANTLETEST"]
 
 var screen: VBoxContainer
+# The screen's buttons (Back, Start, Connect), below the scrolling body so
+# they stay in reach however small the window (ui/panel_fit.gd).
+var _footer: VBoxContainer
+var _panel_margin: MarginContainer
+var _wide := false
 var status_label: RichTextLabel
 # join form
 var host_edit: LineEdit
@@ -180,6 +186,9 @@ func _ready() -> void:
 			_show_content()
 		elif want == "settings":
 			_show_settings()
+		elif want == "settings-advanced":
+			menu_advanced_open = true
+			_show_settings()
 		elif want == "about":
 			_show_about()
 		elif want == "luanti":
@@ -296,14 +305,24 @@ func _build_frame() -> void:
 	centre.add_child(panel)
 	var margin := MarginContainer.new()
 	for side in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
-		margin.add_theme_constant_override(side, 28)
+		margin.add_theme_constant_override(side, 24)
 	panel.add_child(margin)
+	_panel_margin = margin
 	_panel_box = VBoxContainer.new()
 	_panel_box.add_theme_constant_override("separation", 12)
-	_panel_box.custom_minimum_size = Vector2(440, 0)
-	if shot != null:
-		_panel_box.custom_minimum_size = Vector2(360, 0)
 	margin.add_child(_panel_box)
+	if not get_viewport().size_changed.is_connected(_fit_panel):
+		get_viewport().size_changed.connect(_fit_panel)
+	_fit_panel()
+
+# The panel's size for this window: see ui/panel_fit.gd.
+func _fit_panel() -> void:
+	if _panel_box == null or not is_instance_valid(_panel_box):
+		return
+	var size := PanelFit.size_for(get_viewport().get_visible_rect().size, _wide)
+	var inner := 48.0   # the margin above, both sides
+	_panel_box.custom_minimum_size = Vector2(maxf(size.x - inner, 240.0),
+			maxf(size.y - inner, 0.0) if _wide else 0.0)
 
 # The interface style changed (Settings, Appearance): rebuild the frame in the
 # new style and come back to the settings screen, where the change was made.
@@ -366,8 +385,12 @@ func _stop_showcase() -> void:
 		OS.set_environment(k, "")
 	showcase_launch = false
 
-func _new_screen(title: String, subtitle: String) -> void:
+# Every screen but the main menu is wide: it takes most of the window and its
+# body scrolls. A screen with its own scrolling tabs passes fill, and lays
+# them out to fill the body instead.
+func _new_screen(title: String, subtitle: String, fill := false) -> void:
 	_screen_title = title
+	_wide = title != ""
 	for c in _panel_box.get_children():
 		c.queue_free()
 	var t := Label.new()
@@ -388,7 +411,22 @@ func _new_screen(title: String, subtitle: String) -> void:
 		_panel_box.add_child(s)
 	screen = VBoxContainer.new()
 	screen.add_theme_constant_override("separation", 8)
-	_panel_box.add_child(screen)
+	screen.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if not _wide:
+		_panel_box.add_child(screen)
+	elif fill:
+		screen.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		_panel_box.add_child(screen)
+	else:
+		var body := ScrollContainer.new()
+		body.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		var pad := MarginContainer.new()
+		pad.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		pad.add_theme_constant_override("margin_right", 16)
+		pad.add_child(screen)
+		body.add_child(pad)
+		_panel_box.add_child(body)
 	# A RichTextLabel rather than a Label so the text can be SELECTED. This line
 	# is where a failed start reports why, and a message you cannot copy is one
 	# you have to transcribe by hand into a bug report. Label offers no
@@ -405,6 +443,14 @@ func _new_screen(title: String, subtitle: String) -> void:
 	GlassStyle.tint_text(status_label, Color(1, 1, 1, 0.6))
 	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_panel_box.add_child(status_label)
+	_footer = VBoxContainer.new()
+	_footer.add_theme_constant_override("separation", 8)
+	_panel_box.add_child(_footer)
+	_fit_panel()
+
+# Back, in the footer, where it stays in reach.
+func _footer_back(cb: Callable = _show_main) -> void:
+	_footer.add_child(_button("Back", cb))
 
 func _button(text: String, cb: Callable) -> Button:
 	var b := Button.new()
@@ -423,7 +469,6 @@ func _show_main() -> void:
 	if updater != null and updater.state in ["available", "downloading", "installing", "installed"]:
 		var offer := Label.new()
 		offer.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		offer.custom_minimum_size = Vector2(460, 0)
 		offer.text = updater.message
 		var notes := str(updater.available.get("notes", ""))
 		if updater.state == "available" and notes != "":
@@ -434,7 +479,6 @@ func _show_main() -> void:
 	elif updater != null and updater.state == "failed" and updater.available.size() > 0:
 		var why := Label.new()
 		why.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		why.custom_minimum_size = Vector2(460, 0)
 		GlassStyle.tint_text(why, Color(1, 0.7, 0.6))
 		why.text = updater.message
 		screen.add_child(why)
@@ -502,7 +546,7 @@ func _show_content() -> void:
 			GlassStyle.tint_text(l, Color(1, 1, 1, 0.8))
 			box.add_child(l)
 	status_label.text = data_dir
-	screen.add_child(_button("Back", _show_main))
+	_footer_back()
 
 # --- Luanti ------------------------------------------------------------------
 
@@ -538,7 +582,7 @@ func _show_luanti(reason := "", rescan := false) -> void:
 		none.text = "No Luanti install was found on this computer."
 		screen.add_child(none)
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(600, 220)
+	scroll.custom_minimum_size = Vector2(0, 220)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.visible = not all.is_empty()
 	screen.add_child(scroll)
@@ -592,7 +636,7 @@ func _show_luanti(reason := "", rescan := false) -> void:
 	show_places.toggled.connect(func(on: bool) -> void: places.visible = on)
 	screen.add_child(show_places)
 	screen.add_child(places)
-	screen.add_child(_button("Back", _show_main))
+	_footer_back()
 	if reason != "":
 		_fail(reason)
 	elif chosen.is_empty():
@@ -864,7 +908,6 @@ func _show_setup(reason := "") -> void:
 			str(LocalServer.STARTER_GAME["version"]), int(LocalServer.STARTER_GAME["bytes"]) / 1000000.0])
 	var what := Label.new()
 	what.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	what.custom_minimum_size = Vector2(520, 0)
 	what.text = "\n".join(steps)
 	screen.add_child(what)
 	if str(plan["server"]) == "none":
@@ -876,7 +919,7 @@ func _show_setup(reason := "") -> void:
 		go.custom_minimum_size = Vector2(240, 44)
 		screen.add_child(go)
 	screen.add_child(_button("Choose Luanti myself", func() -> void: _show_luanti()))
-	screen.add_child(_button("Back", _show_main))
+	_footer_back()
 	if reason != "":
 		_fail(reason)
 
@@ -977,9 +1020,9 @@ var menu_advanced_open := false   # Advanced graphics, kept across reopens
 const GraphicsProfiles := preload("res://graphics_profiles.gd")
 
 func _show_settings() -> void:
-	_new_screen("Settings", "Applied when you next join a world. The pause menu has the same settings, and changes there take effect immediately.")
+	_new_screen("Settings", "Applied when you next join a world. The pause menu has the same settings, and changes there take effect immediately.", true)
 	var tabs := TabContainer.new()
-	tabs.custom_minimum_size = Vector2(560, 360)
+	tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	screen.add_child(tabs)
 	var cfg := ConfigFile.new()
 	cfg.load(CFG_PATH)
@@ -988,10 +1031,12 @@ func _show_settings() -> void:
 		var scroll := ScrollContainer.new()
 		scroll.name = name
 		scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		var pad := PanelFit.page_padding()
 		var box := VBoxContainer.new()
 		box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		box.add_theme_constant_override("separation", 10)
-		scroll.add_child(box)
+		box.add_theme_constant_override("separation", 14)
+		pad.add_child(box)
+		scroll.add_child(pad)
 		tabs.add_child(scroll)
 		return box
 	# The same shape as the in-game panel (ui/game_ui.gd): one Graphics tab
@@ -1007,7 +1052,7 @@ func _show_settings() -> void:
 		if not pages.has(tab):
 			pages[tab] = new_page.call(tab)
 		_settings_row(pages[tab], row, cfg)
-	screen.add_child(_button("Back", _show_main))
+	_footer_back()
 
 # The menu has no client to ask, so everything here reads and writes
 # goanna.cfg directly and takes effect on the next connect.
@@ -1079,9 +1124,11 @@ func _settings_row(box: VBoxContainer, row: Array, cfg: ConfigFile) -> void:
 	var key := str(row[1])
 	var kind := str(row[2])
 	var known: bool = cfg.has_section_key("settings", key)
-	var label := Label.new()
-	label.text = str(row[3])
-	box.add_child(label)
+	# The same row as the in-game panel (ui/panel_fit.gd): the name, with a
+	# switch or a slider's value beside it, and wider controls below.
+	var shell: Array = PanelFit.row(box, str(row[3]))
+	var head: HBoxContainer = shell[1]
+	box = shell[0]
 	if kind == "choice":
 		# One of a few named values, stored as text. The interface style is the
 		# only one, and it applies straight away, here as in game.
@@ -1099,11 +1146,7 @@ func _settings_row(box: VBoxContainer, row: Array, cfg: ConfigFile) -> void:
 			else:
 				_save_setting_text(key, value))
 		box.add_child(picker)
-		var cd := Label.new()
-		cd.text = str(row[4])
-		cd.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		GlassStyle.tint_text(cd, Color(1, 1, 1, 0.55))
-		box.add_child(cd)
+		PanelFit.describe(box, str(row[4]))
 		return
 	if kind == "pack":
 		# The same dropdown the in-game panel builds (ui/game_ui.gd): the packs
@@ -1149,11 +1192,7 @@ func _settings_row(box: VBoxContainer, row: Array, cfg: ConfigFile) -> void:
 				return
 			pe.text = str(md)
 			_save_setting_text(key, str(md)))
-		var kd := Label.new()
-		kd.text = str(row[4])
-		kd.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		GlassStyle.tint_text(kd, Color(1, 1, 1, 0.55))
-		box.add_child(kd)
+		PanelFit.describe(box, str(row[4]))
 		return
 	if kind == "path":
 		# A folder, not a number: stored as a string, and the only setting in
@@ -1164,19 +1203,14 @@ func _settings_row(box: VBoxContainer, row: Array, cfg: ConfigFile) -> void:
 		pe.placeholder_text = "none: use the server's own textures"
 		pe.text_changed.connect(func(t: String) -> void: _save_setting_text(key, t))
 		box.add_child(pe)
-		var pd := Label.new()
-		pd.text = str(row[4])
-		pd.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		GlassStyle.tint_text(pd, Color(1, 1, 1, 0.55))
-		box.add_child(pd)
+		PanelFit.describe(box, str(row[4]))
 		return
 	var current: float = float(cfg.get_value("settings", key, _settings_default(row)))
 	if kind == "toggle":
-		var cb := CheckBox.new()
-		cb.text = "on"
+		var cb := CheckButton.new()
 		cb.button_pressed = current > 0.5
 		cb.toggled.connect(func(on: bool) -> void: _save_setting(key, 1.0 if on else 0.0))
-		box.add_child(cb)
+		head.add_child(cb)
 	else:
 		var h := HBoxContainer.new()
 		var sl := HSlider.new()
@@ -1188,23 +1222,21 @@ func _settings_row(box: VBoxContainer, row: Array, cfg: ConfigFile) -> void:
 		var val := Label.new()
 		val.text = str(current)
 		val.custom_minimum_size = Vector2(56, 0)
+		val.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		sl.value_changed.connect(func(v: float) -> void:
 			val.text = str(snappedf(v, float(row[7])))
 			_save_setting(key, v))
 		h.add_child(sl)
-		h.add_child(val)
+		head.add_child(val)
 		box.add_child(h)
-	var desc := Label.new()
-	desc.text = str(row[4])
+	var desc_text := str(row[4])
 	if not known:
 		# The client records what it is actually running with the first time a
 		# world is joined (ui/game_ui.gd, _load_apply_settings). Until then the
 		# menu has nothing to read and is showing a placeholder, so say so
 		# rather than presenting a guess as the current state.
-		desc.text += "\n(not recorded yet: join a world once, or set it here)"
-	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	GlassStyle.tint_text(desc, Color(1, 1, 1, 0.55))
-	box.add_child(desc)
+		desc_text += "\n(not recorded yet: join a world once, or set it here)"
+	PanelFit.describe(box, desc_text)
 
 # Placeholder for a setting goanna.cfg has never carried, which happens only
 # before the first world is joined: after that the in-game panel has recorded
@@ -1281,13 +1313,13 @@ Licence: LGPL-2.1-or-later, matching the Luanti client code it carries. godot-cp
 			said.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			said.text = updater.message
 			screen.add_child(said)
-	screen.add_child(_button("Back", _show_main))
+	_footer_back()
 
 # --- new local game ----------------------------------------------------------
 
 func _show_new_game() -> void:
 	_stop_showcase()
-	_new_screen("Start Game", "Choose a world, its game and map generator, or host it for other players.")
+	_new_screen("Start Game", "Choose a world, its game and map generator, or host it for other players.", true)
 	var env := LocalServer.detect()
 	if env.is_empty() or (env["games"] as Array).is_empty():
 		_show_setup()
@@ -1296,7 +1328,7 @@ func _show_new_game() -> void:
 	_luanti_row(env)
 	_local_data_dir = env["data_dir"]
 	var tabs := TabContainer.new()
-	tabs.custom_minimum_size = Vector2(650, 470)
+	tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	screen.add_child(tabs)
 	var world_scroll := ScrollContainer.new()
 	world_scroll.name = "World"
@@ -1305,7 +1337,9 @@ func _show_new_game() -> void:
 	var world_page := VBoxContainer.new()
 	world_page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	world_page.add_theme_constant_override("separation", 8)
-	world_scroll.add_child(world_page)
+	var world_pad := PanelFit.page_padding()
+	world_pad.add_child(world_page)
+	world_scroll.add_child(world_pad)
 	var grid := GridContainer.new()
 	grid.columns = 2
 	grid.add_theme_constant_override("h_separation", 12)
@@ -1400,7 +1434,9 @@ func _show_new_game() -> void:
 	var mods_page := VBoxContainer.new()
 	mods_page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	mods_page.add_theme_constant_override("separation", 5)
-	mods_scroll.add_child(mods_page)
+	var mods_pad := PanelFit.page_padding()
+	mods_pad.add_child(mods_page)
+	mods_scroll.add_child(mods_pad)
 	var mods := LocalServer.list_mods(_local_data_dir)
 	if mods.is_empty():
 		var none := Label.new()
@@ -1421,7 +1457,9 @@ func _show_new_game() -> void:
 	var host_page := VBoxContainer.new()
 	host_page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	host_page.add_theme_constant_override("separation", 8)
-	host_scroll.add_child(host_page)
+	var host_pad := PanelFit.page_padding()
+	host_pad.add_child(host_page)
+	host_scroll.add_child(host_pad)
 	host_check = CheckBox.new()
 	host_check.text = "Host this world for other players"
 	host_page.add_child(host_check)
@@ -1485,7 +1523,7 @@ func _show_new_game() -> void:
 	world_option.item_selected.connect(_on_world_selected)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
-	screen.add_child(row)
+	_footer.add_child(row)
 	# Delete sits at the far end, with the whole row between it and Start.
 	# The two were adjacent, so the button that destroys a world was one
 	# slip away from the button that opens it, and both are pressed from
@@ -1907,6 +1945,7 @@ func _show_join() -> void:
 	_build_server_list()
 	var grid := GridContainer.new()
 	grid.columns = 2
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	grid.add_theme_constant_override("h_separation", 12)
 	grid.add_theme_constant_override("v_separation", 8)
 	screen.add_child(grid)
@@ -1956,7 +1995,7 @@ func _show_join() -> void:
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_END
 	row.add_theme_constant_override("separation", 8)
-	screen.add_child(row)
+	_footer.add_child(row)
 	row.add_child(_button("Back", _show_main))
 	connect_button = _button("Connect", _on_connect)
 	row.add_child(connect_button)
@@ -1983,7 +2022,7 @@ func _build_server_list() -> void:
 	head.text = "Public servers"
 	screen.add_child(head)
 	server_tree = Tree.new()
-	server_tree.custom_minimum_size = Vector2(560, 240)
+	server_tree.custom_minimum_size = Vector2(0, 240)
 	server_tree.columns = 4
 	server_tree.column_titles_visible = true
 	server_tree.set_column_title(0, "Server")
@@ -2143,6 +2182,7 @@ func _labelled_edit(grid: GridContainer, label_text: String, placeholder: String
 	var edit := LineEdit.new()
 	edit.placeholder_text = placeholder
 	edit.custom_minimum_size = Vector2(260, 0)
+	edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	grid.add_child(edit)
 	return edit
 
@@ -2206,7 +2246,7 @@ func _show_local_players() -> void:
 	if roster.is_empty():
 		roster.append({"name": _local_player_name(), "device": -1})
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(580, 260)
+	scroll.custom_minimum_size = Vector2(0, 260)
 	screen.add_child(scroll)
 	var rows := VBoxContainer.new()
 	rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL

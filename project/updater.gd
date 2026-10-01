@@ -48,7 +48,10 @@ static func package_dir() -> String:
 	return OS.get_executable_path().get_base_dir()
 
 static func installed_version() -> String:
-	var info = JSON.parse_string(FileAccess.get_file_as_string(package_dir().path_join("version.json")))
+	var path := package_dir().path_join("version.json")
+	if not FileAccess.file_exists(path):
+		return ""
+	var info = JSON.parse_string(FileAccess.get_file_as_string(path))
 	return str(info.get("version", "")) if info is Dictionary else ""
 
 static func platform() -> String:
