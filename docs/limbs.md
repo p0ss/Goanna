@@ -56,7 +56,10 @@ degrees of give otherwise; an elbow bends as its arm comes forward and
 hangs 8 degrees bent at rest. An arm the game is aiming (a bone override on
 it) or Goanna's first-person swing is moving keeps a nearly straight elbow.
 Bends ease over about 60 ms. On the test character's 40 degree walk the
-knees run 4 to 31 degrees and the elbows 8 to 30.
+knees run 4 to 31 degrees and the elbows 8 to 30. Seen from the eye (the local
+player's body in first person) the elbows keep only a quarter of their
+walking bend, up to 7 degrees: the arms swing in front of the lens, and the
+full bend lifted the hand and whatever it held into the view at every step.
 
 ## In the water
 

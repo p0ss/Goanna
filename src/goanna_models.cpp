@@ -713,6 +713,8 @@ void ModelAnimator::measureLimbs(float dt, const std::vector<core::matrix4> &ski
                 || (m_rot_override_joint && (u32)l.joint == *m_rot_override_joint));
         if (held)
             target = 5.0f;
+        else if (m_first_person && l.kind == LimbKind::Arm)
+            target *= FIRST_PERSON_ELBOW;
         if (w > 1e-3f) {
             const LimbAngles s = strokeAngles(WaterPose::Swim, l.kind, l.right, m_stroke_phase);
             const LimbAngles t = strokeAngles(WaterPose::Tread, l.kind, l.right, m_stroke_phase);

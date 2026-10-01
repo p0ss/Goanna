@@ -378,6 +378,21 @@ int main() {
             expect(hi[k] - lo[k] > 10.0f, "a walking limb does not bend and straighten");
             expect(hi[k] < 80.0f && lo[k] >= 0.0f, "a walking limb bends too far");
         }
+        // The same walk seen from the eye: the elbows keep only a little of
+        // their bend, so a held item stays down out of the view.
+        {
+            ModelAnimator fp(model);
+            fp.setFirstPerson(true);
+            float elbow = 0.0f;
+            for (int i = 0; i < 180; ++i) {
+                fp.step(dt, walk, none, nullptr);
+                for (size_t k = 0; k < fp.limbCount(); ++k)
+                    if (fp.limb(k).kind == LimbKind::Arm)
+                        elbow = std::max(elbow, fp.limbBend(k));
+            }
+            std::printf("walking, first person: elbows bend up to %.0f degrees\n", elbow);
+            expect(elbow < 10.0f, "first person elbows lift the hand into view");
+        }
         // The crawl, standing still in the air: each hand goes round its
         // shoulder backward, both the same way, a turn and more in 2.5 s.
         anim.setWaterPose(WaterPose::Swim, 1.5f);

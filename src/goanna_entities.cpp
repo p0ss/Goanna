@@ -1132,8 +1132,10 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
         // skeletal animation: AnimatedMeshSceneNode::OnAnimate on the tracks
         // playing on the object's mesh
         if (en.animator) {
-            if (is_self)
+            if (is_self) {
                 en.animator->setShrinkEnabled(!m_third_person);
+                en.animator->setFirstPerson(!m_third_person);
+            }
             scene::AnimSpec none;
             scene::AnimSpec *anim = obj.meshAnimation();
             en.animator->step(dt, anim ? *anim : none, obj.boneOverridesMut(), en.skeleton,

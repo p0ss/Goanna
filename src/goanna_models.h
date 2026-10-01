@@ -155,6 +155,12 @@ public:
     size_t limbCount() const { return m_model->limbs.size(); }
     const LimbBend &limb(size_t i) const { return m_model->limbs[i]; }
     bool limbEnd(size_t i, godot::Vector3 &out) const;
+    // The local player's own body seen from its eye: its arms swing in front
+    // of the lens, so their elbows keep only FIRST_PERSON_ELBOW of the
+    // walking bend, or the hand and what it holds rise into the view with
+    // every step. Third person keeps the whole bend.
+    void setFirstPerson(bool on) { m_first_person = on; }
+    static constexpr float FIRST_PERSON_ELBOW = 0.25f;
     // Each limb's bend after the last step, degrees, for tests and status.
     float limbBend(size_t i) const { return i < m_bend.size() ? m_bend[i] : 0.0f; }
 
@@ -186,6 +192,7 @@ private:
     // below that limb's cut, under its joint), or -1.
     std::vector<int> m_lower_limb;
     bool m_have_swing = false;
+    bool m_first_person = false;
     std::optional<u32> m_body_joint;
     bool m_body_lying = false;
     std::vector<core::matrix4> m_skin;
