@@ -1,0 +1,17 @@
+{
+ "class": "cloth",
+ "texel_px": 16,
+ "strength": 12,
+ "chamfer": 2,
+ "face_edge": "bevel",
+ "bevel_px": 3,
+ "micro": "none",
+ "stack": ["mcl_skins_base_1", "mcl_skins_eye_1", "mcl_skins_bottom_1", "mcl_skins_footwear_1", "mcl_skins_top_1", "mcl_skins_hair_1"],
+ "materials": {
+  "blush": {"mode": "flat", "base": 0.4, "span": 0.0, "micro": "skin", "smooth": 0.4, "smooth_spread": 0.0, "scatter": 0.25},
+  "white": {"mode": "flat", "base": 0.34, "span": 0.0, "micro": "none", "smooth": 0.86, "smooth_spread": 0.0, "f0": 0.025},
+  "iris": {"mode": "flat", "base": 0.34, "span": 0.0, "micro": "eye", "micro_strength": 0.6, "smooth": 0.9, "smooth_spread": 0.0, "f0": 0.025},
+  "lash": {"mode": "flat", "base": 0.44, "span": 0.0, "micro": "none", "smooth": 0.22, "smooth_spread": 0.0}
+ },
+ "palette": {"#eaa8b3": "blush", "#c7cfd8": "white", "#dee9ea": "white", "#5b6893": "iris", "#6f7ba5": "iris", "#1e1e21": "lash"}
+}

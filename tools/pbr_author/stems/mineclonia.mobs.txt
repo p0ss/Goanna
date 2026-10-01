@@ -6,3 +6,11 @@ mobs_mc_iron_golem_crack_low mobs_mc_iron_golem.b3d
 mobs_mc_iron_golem_crack_medium mobs_mc_iron_golem.b3d
 mobs_mc_iron_golem_crack_high mobs_mc_iron_golem.b3d
 mobs_mc_villager_base mobs_mc_villager.b3d
+# The default player, mcl_skins' layers drawn on the character model.
+# Masks take the part's companions, so only the part names are listed.
+mcl_skins_base_1 mcl_armor_character.b3d
+mcl_skins_eye_1 mcl_armor_character.b3d
+mcl_skins_bottom_1 mcl_armor_character.b3d
+mcl_skins_footwear_1 mcl_armor_character.b3d
+mcl_skins_top_1 mcl_armor_character.b3d
+mcl_skins_hair_1 mcl_armor_character.b3d

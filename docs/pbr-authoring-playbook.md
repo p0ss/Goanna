@@ -49,6 +49,18 @@ except the eyes; and the face's bevel is the box edge only. A metal face
 (the iron golem's) is the open case: judge it on the GPU before a fleet
 copies it.
 
+The default player (mcl_skins' six parts on `mcl_armor_character.b3d`)
+was authored on 2026-10-01 against the owner's mockups: each art texel's
+colour kept, material inside it. Each material piece is one height and
+pieces stand at different heights (hair proud of the head, belt, cuffs,
+strap and clasps proud of the cloth), except the hair, which keeps a
+height per art shade so its locks stack with dark gaps between. Inside a
+piece the detail is the material's own micro kind (knit shirt, coarse
+weave trousers, leather with stitching inside every edge, strands along
+the hair's fall, near nothing on skin, a small dome on each iris for a
+catch light), in the normal and smoothness only. It has been judged only
+on `tools/pbr_author/preview_figure.py`'s offline figure, not in game.
+
 No GPU for the agents. Judge on the previews and the check, then render
 one client at a time.
 
