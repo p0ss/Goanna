@@ -8743,6 +8743,7 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("entity_count"), &GoannaClient::entity_count);
     ClassDB::bind_method(D_METHOD("entity_positions"), &GoannaClient::entity_positions);
     ClassDB::bind_method(D_METHOD("entity_list"), &GoannaClient::entity_list);
+    ClassDB::bind_method(D_METHOD("take_stroke_events"), &GoannaClient::take_stroke_events);
     ClassDB::bind_method(D_METHOD("entity_animation", "id"), &GoannaClient::entity_animation);
     ClassDB::bind_method(D_METHOD("render_stats"), &GoannaClient::render_stats);
     ClassDB::bind_method(D_METHOD("set_show_body", "show"), &GoannaClient::set_show_body);

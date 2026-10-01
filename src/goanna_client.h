@@ -250,6 +250,9 @@ public:
     godot::Dictionary node_animation();
     int entity_count() const { return m_entities ? m_entities->count() : 0; }
     godot::Array entity_positions() const { return m_entities ? m_entities->positions() : godot::Array(); }
+    // Hands and feet that went into or out of water since the last call
+    // (EntityRenderer::takeStrokeEvents), for wake.gd.
+    godot::Array take_stroke_events() { return m_entities ? m_entities->takeStrokeEvents() : godot::Array(); }
     godot::Array entity_list();
     // Read-only animation diagnostic for one entity: tracks playing and as the
     // server set them, and each joint's pose from them against its rest pose.

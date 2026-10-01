@@ -121,6 +121,19 @@ const SPRAY_LANDINGS := 6.0
 # kick where it lands.
 const STRIKE_REACH := 4.0
 const STRIKE_KICK := 1.2
+# Strokes (goanna_limbs.h): a hand or foot of a body the patch draws going
+# into or out of the water (GoannaClient.take_stroke_events). The kick on
+# the patch and the splash scale with the limb's speed over STROKE_FULL
+# nodes a second; a foot kicks at FOOT_SHARE of a hand. Only within
+# STROKE_NEAR of the patch's surface.
+const STROKE_KICK := 0.5
+const STROKE_FULL := 4.0
+const FOOT_SHARE := 0.6
+const STROKE_NEAR := 0.6
+# Treading water, or swimming, hands and feet sculling just under the
+# surface (down to SCULL_DEPTH) lap small rings out at every sample.
+const SCULL_KICK := 0.08
+const SCULL_DEPTH := 0.5
 
 var client: Object
 # GoannaRipples, when the extension has it; without it every body keeps the
@@ -196,7 +209,10 @@ func _process(delta: float) -> void:
 			var sources := gather_sources(m, eye)
 			claim(sources)
 			step(sources, t)
+			scull(sources)
 			publish(t)
+	if ripples != null and client != null and client.has_method("take_stroke_events"):
+		strokes(client.take_stroke_events(), t)
 	if ripples != null:
 		var m: Node = PlayerContext.find(self, "goanna_main")
 		if m != null and m.get("cam") != null:
@@ -218,15 +234,19 @@ func _process(delta: float) -> void:
 func gather_sources(m: Node, eye: Vector3) -> Array:
 	var me := local_feet(m, eye)
 	var others := []
+	var mine := {}
 	if client != null and client.has_method("entity_list"):
 		for e in client.entity_list():
 			var p: Vector3 = e.get("position", Vector3.ZERO)
 			# The local player's own object, if the list carries it, is the
 			# same body; one wake for it, not two.
-			if Vector2(p.x - me.x, p.z - me.z).length() < 0.4 and absf(p.y - me.y) < 1.0:
+			if bool(e.get("local", false)) or (Vector2(p.x - me.x, p.z - me.z).length() < 0.4 and absf(p.y - me.y) < 1.0):
+				mine = e
 				continue
-			others.append({"key": int(e.get("id", -1)), "pos": p})
-	var out := [{"key": "local", "pos": me}]
+			others.append({"key": int(e.get("id", -1)), "pos": p, "hands": e.get("hands", []),
+				"feet": e.get("feet", []), "water_pose": int(e.get("water_pose", 0))})
+	var out := [{"key": "local", "pos": me, "hands": mine.get("hands", []),
+		"feet": mine.get("feet", []), "water_pose": int(mine.get("water_pose", 0))}]
 	out.append_array(nearest_sources(others, eye, MAX_SOURCES - 1, RANGE))
 	return out
 
@@ -726,3 +746,44 @@ func _publish_ripples(moving: bool) -> void:
 			Vector4(corner.x, corner.y, float(ripples.get_nodes()), _mask_plane))
 	PlayerContext.shader_parameter(client, "goanna_ripple_state", Vector4(1.0, 0.0, 0.0, 0.0))
 
+
+# Hands and feet of bodies the patch draws going through its surface this
+# frame (GoannaClient.take_stroke_events): a hand going in kicks the water
+# and throws a small crown, coming out flicks a few drops; a foot breaking
+# the surface does the same, softer.
+func strokes(events: Array, t: float) -> void:
+	if is_nan(_mask_plane):
+		return
+	for ev in events:
+		var key = "local" if bool(ev.get("local", false)) else int(ev.get("id", -1))
+		if not _claimed.has(key):
+			continue
+		var pos: Vector3 = ev.get("pos", Vector3.ZERO)
+		if absf(pos.y - _mask_plane) > STROKE_NEAR:
+			continue
+		var share := 1.0 if str(ev.get("limb", "hand")) == "hand" else FOOT_SHARE
+		var s := clampf(float(ev.get("speed", 0.0)) / STROKE_FULL, 0.15, 1.0) * share
+		if key is int:
+			s *= RIPPLE_ENTITY_SCALE
+		var at := Vector3(pos.x, _mask_plane, pos.z)
+		var into := bool(ev.get("into", true))
+		ripples.impulse(Vector2(at.x, at.z), STROKE_KICK * s * (1.0 if into else -0.5), 0.12)
+		if splashes != null:
+			splashes.burst("stroke", at, s if into else s * 0.5)
+		_drop(at, s * 0.4, t)
+
+
+# At each sample: hands and feet of treading or swimming bodies the patch
+# draws, sculling just under its surface, lap small rings outward.
+func scull(sources: Array) -> void:
+	if ripples == null or is_nan(_mask_plane):
+		return
+	for s in sources:
+		if not _claimed.has(s["key"]) or int(s.get("water_pose", 0)) == 0:
+			continue
+		var scale := 1.0 if s["key"] is String else RIPPLE_ENTITY_SCALE
+		for end in s.get("hands", []) + s.get("feet", []):
+			var p: Vector3 = end
+			var depth := _mask_plane - p.y
+			if depth > 0.0 and depth < SCULL_DEPTH:
+				ripples.impulse(Vector2(p.x, p.z), SCULL_KICK * scale * (1.0 - depth / SCULL_DEPTH), 0.15)

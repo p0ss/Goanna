@@ -24,6 +24,10 @@
 #     nothing; a blow at the water from the bank splashes it, but not past
 #     the hand's reach nor through a block the blow hit first; and the
 #     droplet emitters scale with strength and keep to their budgets;
+#   - strokes: a hand of a body the patch draws going into the water kicks
+#     it and throws a crown, a slow one smaller than a fast one; hands of
+#     bodies it does not draw, or far from its surface, do nothing; and a
+#     body treading water laps rings from hands sculling under the surface;
 #   - once the player has left the water the patch settles, sleeps and
 #     tells the shader so.
 # The physics itself is goanna_ripples_test's. It renders nothing: how any
@@ -84,7 +88,8 @@ func _initialize() -> void:
 	_test_splash_events()
 	_test_strike()
 	_test_splash_emitters()
-	check(finished == 7, "%d of 7 tests ran to their end" % finished)
+	_test_strokes()
+	check(finished == 8, "%d of 8 tests ran to their end" % finished)
 	print("ripples: ", "ok" if failures == 0 else "%d failure(s)" % failures)
 	quit(1 if failures else 0)
 
@@ -335,3 +340,48 @@ func _test_splash_emitters() -> void:
 	sp.queue_free()
 	finished += 1
 
+
+func _test_strokes() -> void:
+	var w := _new_wake()
+	var rec := Recorder.new()
+	w.splashes = rec
+	# A swimmer in the lake, the patch on it.
+	var float_still := func(_t: float) -> Vector3: return Vector3(20.0, -0.5, 10.0)
+	var t := _run(w, 0.0, 0.5, float_still, [])
+	check(w._claimed.has("local") and w.ripples.is_asleep(), "the swimmer is not the patch's, or the water moves")
+	var hand := {"local": true, "id": 5, "pos": Vector3(20.6, 0.45, 10.0), "limb": "hand", "into": true}
+	var fast := hand.duplicate()
+	fast["speed"] = 5.0
+	w.strokes([fast], t)
+	check(rec.bursts.size() == 1 and rec.bursts[0][0] == "stroke", "a hand going in threw no crown")
+	check(not w.ripples.is_asleep(), "a hand going in left the water still")
+	var slow := hand.duplicate()
+	slow["speed"] = 0.5
+	w.strokes([slow], t)
+	check(rec.bursts.size() == 2 and rec.bursts[1][2] < rec.bursts[0][2], "a slow hand splashed as hard as a fast one")
+	# Someone else's hand, not on the patch; and a hand far over the water.
+	var other := fast.duplicate()
+	other["local"] = false
+	other["id"] = 77
+	var high := fast.duplicate()
+	high["pos"] = Vector3(20.6, 3.0, 10.0)
+	w.strokes([other, high], t)
+	check(rec.bursts.size() == 2, "a stroke off the patch, or far over the water, splashed")
+	w.free()
+	# Treading water: a hand 0.2 under the surface laps rings at a sample.
+	var w2 := _new_wake()
+	_run(w2, 0.0, 0.5, float_still, [])
+	check(w2.ripples.is_asleep(), "floating still moved the water")
+	w2.scull([{"key": "local", "pos": Vector3(20.0, -0.5, 10.0), "water_pose": 2,
+		"hands": [Vector3(20.5, 0.3, 10.0)], "feet": []}])
+	w2.ripples.step(1.0 / 60.0, PackedFloat32Array())
+	check(not w2.ripples.is_asleep(), "sculling hands under the surface left it still")
+	var w3 := _new_wake()
+	_run(w3, 0.0, 0.5, float_still, [])
+	w3.scull([{"key": "local", "pos": Vector3(20.0, -0.5, 10.0), "water_pose": 0,
+		"hands": [Vector3(20.5, 0.3, 10.0)], "feet": []}])
+	w3.ripples.step(1.0 / 60.0, PackedFloat32Array())
+	check(w3.ripples.is_asleep(), "hands out of any stroke sculled the water")
+	w2.free()
+	w3.free()
+	finished += 1

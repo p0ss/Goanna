@@ -674,6 +674,12 @@ PackedVector4Array EntityRenderer::grass_interactors(GoannaSession &session) con
     return result;
 }
 
+Array EntityRenderer::takeStrokeEvents() {
+    Array out = m_stroke_events;
+    m_stroke_events = Array();
+    return out;
+}
+
 Array EntityRenderer::positions() const {
     Array a;
     for (auto &kv : m_nodes)
@@ -706,6 +712,24 @@ Array EntityRenderer::list(GoannaSession &session) const {
                 frame = track->second.cur_frame;
         }
         d["frame"] = frame;
+        d["local"] = obj.isLocalPlayer();
+        // A body with knees and elbows (goanna_limbs.h): its hands and feet
+        // in the world, and what it is doing in the water, for wake.gd's
+        // stroke splashes.
+        const ModelAnimator *an = kv.second.animator.get();
+        if (an && an->limbCount() && kv.second.visual && kv.second.visual->is_inside_tree()) {
+            const Transform3D xf = kv.second.visual->get_global_transform();
+            Array hands, feet;
+            for (size_t i = 0; i < an->limbCount(); ++i) {
+                Vector3 end;
+                if (!an->limbEnd(i, end))
+                    continue;
+                (an->limb(i).kind == LimbKind::Arm ? hands : feet).push_back(xf.xform(end));
+            }
+            d["hands"] = hands;
+            d["feet"] = feet;
+            d["water_pose"] = kv.second.water_pose;
+        }
         a.push_back(d);
     }
     return a;
@@ -1051,6 +1075,60 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
         // vanilla client plays whenever it shows the player's model.
         if (is_self)
             obj.stepLocalPlayerAnimation(session.player());
+        // The water strokes (goanna_limbs.h): swimming while the game has the
+        // body lying in the water, treading water while it is upright in
+        // water with nothing under its feet. The local player from its own
+        // physics, others from the map where they are.
+        if (en.animator && en.animator->limbCount()) {
+            const v3f here = is_self && session.player() ? session.player()->getPosition() : pos;
+            if (en.limb_have_pos && dt > 0.0f) {
+                const float across = std::hypot(here.X - en.limb_last_pos.X, here.Z - en.limb_last_pos.Z) / BS / dt;
+                en.limb_speed += (std::min(across, 12.0f) - en.limb_speed) * (1.0f - std::exp(-dt / 0.2f));
+            }
+            en.limb_last_pos = here;
+            en.limb_have_pos = true;
+            bool in_water = false, grounded = true, alive = true;
+            if (is_self && session.player()) {
+                LocalPlayer *lp = session.player();
+                in_water = lp->in_liquid;
+                grounded = lp->touching_ground;
+                alive = lp->hp > 0;
+            } else if (const NodeDefManager *ndef = session.nodeDefs()) {
+                auto node_at = [&](float up) -> const ContentFeatures & {
+                    return ndef->get(session.map().getNode(v3s16((s16)std::floor(here.X / BS + 0.5f),
+                            (s16)std::floor(here.Y / BS + up + 0.5f), (s16)std::floor(here.Z / BS + 0.5f))));
+                };
+                in_water = node_at(0.9f).isLiquid();
+                grounded = node_at(-0.2f).walkable;
+            }
+            en.in_water = in_water;
+            // Lying in the water is the game's swim pose, but a body lying
+            // still on the bottom is not swimming: Mineclonia's drowned
+            // player lies there in its die animation, and was seen doing
+            // the crawl. So swimming wants the body off the bottom or on
+            // the move, and never a dead local player.
+            WaterPose wp = WaterPose::None;
+            if (in_water && alive) {
+                if (en.animator->bodyLying())
+                    wp = (!grounded || en.limb_speed > 0.3f) ? WaterPose::Swim : WaterPose::None;
+                else if (!grounded)
+                    wp = WaterPose::Tread;
+            }
+            // Holding jump in water bobs a body at the surface, out of the
+            // water for a moment at the top of each bob; seen live, the
+            // pose dropped out every bob and the arms would flap between
+            // the stroke and rest. So a water pose holds 0.8 s past the
+            // last moment it applied, unless the body is dead.
+            if (wp != WaterPose::None) {
+                en.water_pose_age = 0.0f;
+            } else {
+                en.water_pose_age += dt;
+                if (alive && en.water_pose != 0 && en.water_pose_age < 0.8f)
+                    wp = (WaterPose)en.water_pose;
+            }
+            en.water_pose = (int)wp;
+            en.animator->setWaterPose(wp, en.limb_speed);
+        }
         // skeletal animation: AnimatedMeshSceneNode::OnAnimate on the tracks
         // playing on the object's mesh
         if (en.animator) {
@@ -1060,6 +1138,40 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
             scene::AnimSpec *anim = obj.meshAnimation();
             en.animator->step(dt, anim ? *anim : none, obj.boneOverridesMut(), en.skeleton,
                     en.shadow_skeleton);
+            // Hands and feet crossing the water's surface this step: the
+            // splash of a stroke, a kick breaking the surface.
+            const size_t limbs = en.animator->limbCount();
+            if (limbs && en.visual && en.visual->is_inside_tree() && (en.in_water || !en.limb_wet.empty())) {
+                const NodeDefManager *ndef = session.nodeDefs();
+                const Transform3D xf = en.visual->get_global_transform();
+                if (en.limb_wet.size() != limbs) {
+                    en.limb_wet.assign(limbs, -1);
+                    en.limb_last_end.assign(limbs, Vector3());
+                }
+                for (size_t i = 0; i < limbs; ++i) {
+                    Vector3 local_end;
+                    if (!en.animator->limbEnd(i, local_end))
+                        continue;
+                    const Vector3 end = xf.xform(local_end);
+                    const MapNode n = session.map().getNode(v3s16((s16)std::floor(end.x + 0.5f),
+                            (s16)std::floor(end.y + 0.5f), (s16)std::floor(-end.z + 0.5f)));
+                    const char wet = (ndef && n.getContent() != CONTENT_IGNORE && ndef->get(n).isLiquid()) ? 1 : 0;
+                    if (en.limb_wet[i] >= 0 && wet != en.limb_wet[i] && dt > 0.0f && m_stroke_events.size() < 64) {
+                        Dictionary ev;
+                        ev["id"] = (int)kv.first;
+                        ev["local"] = is_self;
+                        ev["pos"] = end;
+                        ev["limb"] = en.animator->limb(i).kind == LimbKind::Arm ? "hand" : "foot";
+                        ev["into"] = wet != 0;
+                        ev["speed"] = end.distance_to(en.limb_last_end[i]) / dt;
+                        m_stroke_events.push_back(ev);
+                    }
+                    en.limb_wet[i] = en.in_water ? wet : -1;
+                    en.limb_last_end[i] = end;
+                }
+                if (!en.in_water)
+                    en.limb_wet.clear();
+            }
         }
         // sprite frame animation
         const ObjectProperties &p = obj.props();

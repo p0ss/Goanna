@@ -5,7 +5,8 @@
 # the ripple patch draws. docs/weather.md, "Splashes", has the whole picture.
 #
 # wake.gd says when (falling or jumping in, climbing or jumping out, moving
-# fast through the surface, striking at the water) and this draws it: a
+# fast through the surface, striking at the water, a hand or a foot going
+# through the surface in a stroke) and this draws it: a
 # crown of droplets thrown up and out from where a body went in, drips off
 # a body coming out, spray fanning off the bow of one running or swimming,
 # and a burst where a blow landed on the water. Each is a GPUParticles3D of
@@ -34,6 +35,10 @@ const KINDS := {
 		"lifetime": 0.6},
 	"strike": {"amount": 22, "floor": 8, "up": Vector2(1.2, 3.0), "out": Vector2(0.4, 1.4),
 		"lifetime": 0.7},
+	# A hand going into the water in a stroke, or a foot breaking the
+	# surface in a kick: a small crown.
+	"stroke": {"amount": 14, "floor": 4, "up": Vector2(1.0, 2.4), "out": Vector2(0.3, 1.0),
+		"lifetime": 0.6},
 }
 
 var _bursts := {}            # GPUParticles3D -> clock time its last drop is down

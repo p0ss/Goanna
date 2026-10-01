@@ -64,6 +64,7 @@ add_library(goanna SHARED
     src/goanna_icon_raster.cpp
     src/goanna_item_icons.cpp
     src/goanna_ripples.cpp
+    src/goanna_limbs.cpp
     src/iris/iris_glsl.cpp
     src/iris/iris_pack.cpp
     src/iris/goanna_iris_effect.cpp
@@ -202,6 +203,11 @@ add_executable(goanna_ripples_test EXCLUDE_FROM_ALL src/goanna_ripples_test.cpp)
 target_include_directories(goanna_ripples_test PRIVATE src)
 target_link_libraries(goanna_ripples_test PRIVATE goanna godot::cpp)
 
+# Player limbs split at the knee and elbow, and the swim and tread poses.
+add_executable(goanna_limbs_test EXCLUDE_FROM_ALL src/goanna_limbs_test.cpp)
+target_include_directories(goanna_limbs_test PRIVATE src)
+target_link_libraries(goanna_limbs_test PRIVATE goanna luanti_core godot::cpp)
+
 # Leaves side by side through the transplanted mesh generator: one face per
 # shared plane. Links godot-cpp for the same reason as the icon test.
 add_executable(goanna_allfaces_test EXCLUDE_FROM_ALL src/goanna_allfaces_test.cpp)
@@ -221,6 +227,7 @@ set(GOANNA_NATIVE_TESTS
     goanna_horizon_test
     goanna_item_icon_test
     goanna_light_test
+    goanna_limbs_test
     goanna_lod_storage_test
     goanna_lod_test
     goanna_mesh_pool_test

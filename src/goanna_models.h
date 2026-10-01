@@ -30,6 +30,7 @@
 #include <SkinnedMesh.h>
 
 #include "goanna_animation.h"
+#include "goanna_limbs.h"
 
 struct BoneOverride;
 namespace scene {
@@ -86,6 +87,9 @@ struct GodotModel {
     int joint_count = 0;
     std::vector<int> attached_bone;
     int identity_bone = -1; // for unweighted, unattached vertices, or -1
+    // Limbs cut at the knee and elbow (goanna_limbs.h), each with two bones
+    // of Goanna's own past the joints and attached bones.
+    std::vector<LimbBend> limbs;
     int bone_count = 0;
     bool animated = false;
     ~GodotModel();
@@ -139,7 +143,29 @@ public:
     void setJointRotationOverride(const std::string &name, const v3f &euler_deg, bool freeze_arm = false);
     bool hasJoint(const std::string &name) const;
 
+    // What the body is doing in the water (goanna_limbs.h), and how fast it
+    // is going, nodes a second: the strokes ease in and out over a quarter
+    // of a second.
+    void setWaterPose(WaterPose pose, float speed);
+    // Whether the last step had the body lying down (the game's swim pose):
+    // its up axis nearer level than upright. False for a model with no Body.
+    bool bodyLying() const { return m_body_lying; }
+    // The limbs that bend, and where each one's far end (hand or foot) is
+    // after the last step, mesh space in Godot's handedness.
+    size_t limbCount() const { return m_model->limbs.size(); }
+    const LimbBend &limb(size_t i) const { return m_model->limbs[i]; }
+    bool limbEnd(size_t i, godot::Vector3 &out) const;
+    // Each limb's bend after the last step, degrees, for tests and status.
+    float limbBend(size_t i) const { return i < m_bend.size() ? m_bend[i] : 0.0f; }
+
 private:
+    void poseLimbs(float dt, JointTransforms &locals, const std::map<std::string, BoneOverride> &overrides);
+    void measureLimbs(float dt, const std::vector<core::matrix4> &skin,
+            const std::map<std::string, BoneOverride> &overrides);
+    void probeLimbSigns();
+    // A joint's global transform with the bend of the limb it hangs below
+    // (a held item's Wield_Item under the forearm), or as it is.
+    godot::Transform3D bentGlobal(size_t joint) const;
     std::shared_ptr<GodotModel> m_model;
     OldJointTransforms m_old_transforms;
     std::vector<core::matrix4> m_globals;
@@ -150,6 +176,23 @@ private:
     v3f m_rot_override_euler;
     bool m_freeze_arm = false;
     JointTransforms m_arm_reference;
+    // Limbs: each one's bend now, its swing last step and how fast it is
+    // changing, eased; which way a turn about the joint's own x and z axes
+    // moves its end (forward and outward); the stroke clock and how much of
+    // each water pose is showing.
+    std::vector<float> m_bend, m_swing, m_swing_rate;
+    std::vector<float> m_pitch_sign, m_spread_sign;
+    // Per joint: the limb whose lower half it hangs from (its rest position
+    // below that limb's cut, under its joint), or -1.
+    std::vector<int> m_lower_limb;
+    bool m_have_swing = false;
+    std::optional<u32> m_body_joint;
+    bool m_body_lying = false;
+    std::vector<core::matrix4> m_skin;
+    WaterPose m_water = WaterPose::None;
+    float m_water_speed = 0.0f;
+    float m_swim_w = 0.0f, m_tread_w = 0.0f;
+    float m_stroke_phase = 0.0f;
 };
 
 // Irrlicht matrix (row vectors, left-handed) to a Godot transform, z mirrored.

@@ -208,6 +208,13 @@ std::shared_ptr<GodotModel> buildGodotModel(scene::IAnimatedMesh *mesh) {
             for (size_t j = 0; j < joints.size(); ++j)
                 if (!joints[j]->AttachedMeshes.empty())
                     model->attached_bone[j] = model->bone_count++;
+            // Knees and elbows: each limb's lower half and its seam get a
+            // bone of their own (goanna_limbs.h).
+            model->limbs = findLimbs(*skinned);
+            for (LimbBend &l : model->limbs) {
+                l.bone = model->bone_count++;
+                l.seam_bone = model->bone_count++;
+            }
         }
     }
     // joint index of a rigidly attached buffer, or -1
@@ -316,6 +323,43 @@ std::shared_ptr<GodotModel> buildGodotModel(scene::IAnimatedMesh *mesh) {
                         }
                     }
                 }
+                if (!model->limbs.empty()) {
+                    LimbMeshData d;
+                    for (int i = 0; i < verts.size(); ++i) {
+                        d.verts.push_back(verts[i]);
+                        d.normals.push_back(normals[i]);
+                        d.uvs.push_back(uvs[i]);
+                    }
+                    for (int i = 0; i < indices.size(); ++i)
+                        d.indices.push_back(indices[i]);
+                    for (int i = 0; i < bones.size(); ++i) {
+                        d.bones.push_back(bones[i]);
+                        d.weights.push_back(weights[i]);
+                    }
+                    splitLimbs(model->limbs, d);
+                    const int n = (int)d.verts.size();
+                    verts.resize(n);
+                    normals.resize(n);
+                    uvs.resize(n);
+                    bones.resize(n * 4);
+                    weights.resize(n * 4);
+                    for (int i = 0; i < n; ++i) {
+                        verts[i] = d.verts[i];
+                        normals[i] = d.normals[i];
+                        uvs[i] = d.uvs[i];
+                    }
+                    for (int i = 0; i < n * 4; ++i) {
+                        bones[i] = d.bones[i];
+                        weights[i] = d.weights[i];
+                    }
+                    indices.resize((int)d.indices.size());
+                    for (int i = 0; i < (int)d.indices.size(); ++i)
+                        indices[i] = d.indices[i];
+                    arrays[Mesh::ARRAY_VERTEX] = verts;
+                    arrays[Mesh::ARRAY_NORMAL] = normals;
+                    arrays[Mesh::ARRAY_TEX_UV] = uvs;
+                    arrays[Mesh::ARRAY_INDEX] = indices;
+                }
                 arrays[Mesh::ARRAY_BONES] = bones;
                 arrays[Mesh::ARRAY_WEIGHTS] = weights;
             }
@@ -341,6 +385,14 @@ ModelAnimator::ModelAnimator(std::shared_ptr<GodotModel> model) : m_model(std::m
     size_t n = m_model->joint_count;
     m_old_transforms.assign(n, std::nullopt);
     m_globals.resize(n);
+    const size_t limbs = m_model->limbs.size();
+    m_bend.assign(limbs, 0.0f);
+    m_swing.assign(limbs, 0.0f);
+    m_swing_rate.assign(limbs, 0.0f);
+    if (limbs && m_model->skinned) {
+        m_body_joint = m_model->skinned->getJointNumber("Body");
+        probeLimbSigns();
+    }
 }
 
 void ModelAnimator::inheritPose(const ModelAnimator &previous) {
@@ -408,6 +460,10 @@ void ModelAnimator::step(float dt, scene::AnimSpec &anim, std::map<std::string, 
         ++it;
     }
 
+    // Goanna's strokes in the water, on the shoulders and hips.
+    if (!m_model->limbs.empty())
+        poseLimbs(dt, locals, overrides);
+
     // First-person arm swing, added to whatever the animation and the server's
     // own bone override left on the joint, in the same euler degrees (and the
     // same inverted storage) a Luanti bone override uses. Added rather than
@@ -452,9 +508,22 @@ void ModelAnimator::step(float dt, scene::AnimSpec &anim, std::map<std::string, 
             set_pose((int)i, toGodotTransform(skin[i]));
             int ab = m_model->attached_bone[i];
             if (ab >= 0)
-                set_pose(ab, toGodotTransform(m_globals[i]));
+                set_pose(ab, bentGlobal(i));
+        }
+        // The limbs' lower halves turned by their bend, the seams by half.
+        for (size_t i = 0; i < m_model->limbs.size(); ++i) {
+            const LimbBend &l = m_model->limbs[i];
+            const Transform3D limb = toGodotTransform(skin[l.joint]);
+            set_pose(l.bone, limb * bendTransform(l, m_bend[i]));
+            set_pose(l.seam_bone, limb * bendTransform(l, 0.5f * m_bend[i]));
         }
     };
+
+    // The bends this step, from the swing the pose now gives each limb.
+    if (!m_model->limbs.empty()) {
+        to_globals();
+        measureLimbs(dt, mesh->calculateSkinMatrices(m_globals), overrides);
+    }
 
     // The unshrunk pose first, for the shadow-only copy of the model: the head
     // has to be in the shadow pass even though the camera must not see it, and
@@ -473,9 +542,192 @@ void ModelAnimator::step(float dt, scene::AnimSpec &anim, std::map<std::string, 
             t->scale *= 0.01f;
     }
     to_globals();
+    if (!m_model->limbs.empty())
+        m_skin = mesh->calculateSkinMatrices(m_globals);
     if (!skeleton)
         return;
-    write_poses(skeleton, mesh->calculateSkinMatrices(m_globals));
+    write_poses(skeleton, m_model->limbs.empty() ? mesh->calculateSkinMatrices(m_globals) : m_skin);
+}
+
+// ---- limbs -------------------------------------------------------------------
+
+namespace {
+
+// Turns a joint's local rotation by `deg` about `axis` in its own frame, in
+// the inverted storage a Luanti bone keeps (BoneSceneNode), as the bone
+// overrides above do.
+void turnLocal(core::Transform &t, const core::vector3df &axis, float deg) {
+    core::quaternion actual = t.rotation;
+    actual.makeInverse();
+    core::quaternion d;
+    d.fromAngleAxis(deg * core::DEGTORAD, axis);
+    actual = d * actual;
+    actual.makeInverse();
+    t.rotation = actual;
+}
+
+} // namespace
+
+void ModelAnimator::setWaterPose(WaterPose pose, float speed) {
+    m_water = pose;
+    m_water_speed = speed;
+}
+
+// Which way a turn about each limb joint's own x axis moves its end (the
+// hand or foot) forward, and a turn about its z axis outward, found by
+// trying a small turn on the rest pose. Models flip their limb joints
+// (Mineclonia's right arm's pitch control carries a scale flip), so the
+// same local turn can swing one arm forward and the other back.
+void ModelAnimator::probeLimbSigns() {
+    scene::SkinnedMesh *mesh = m_model->skinned;
+    const auto &joints = mesh->getAllJoints();
+    JointTransforms rest;
+    for (const auto *j : joints)
+        rest.push_back(j->transform);
+    auto end_after = [&](const LimbBend &l, const core::vector3df *axis, float deg) {
+        JointTransforms locals = rest;
+        if (axis)
+            if (auto *t = std::get_if<core::Transform>(&locals[l.joint]))
+                turnLocal(*t, *axis, deg);
+        std::vector<core::matrix4> globals(joints.size());
+        for (size_t i = 0; i < joints.size(); ++i) {
+            if (auto *m = std::get_if<core::matrix4>(&locals[i]))
+                globals[i] = *m;
+            else
+                globals[i] = std::get<core::Transform>(locals[i]).buildMatrix();
+        }
+        mesh->calculateGlobalMatrices(globals);
+        return toGodotTransform(mesh->calculateSkinMatrices(globals)[l.joint]).xform(l.end);
+    };
+    // Joints hanging from a limb's lower half: under the limb's joint and,
+    // at rest, below its cut. They follow its bend (bentGlobal).
+    {
+        std::vector<core::matrix4> globals(joints.size());
+        for (size_t i = 0; i < joints.size(); ++i) {
+            if (auto *m = std::get_if<core::matrix4>(&rest[i]))
+                globals[i] = *m;
+            else
+                globals[i] = std::get<core::Transform>(rest[i]).buildMatrix();
+        }
+        mesh->calculateGlobalMatrices(globals);
+        m_lower_limb.assign(joints.size(), -1);
+        for (size_t j = 0; j < joints.size(); ++j)
+            for (size_t i = 0; i < m_model->limbs.size(); ++i) {
+                const LimbBend &l = m_model->limbs[i];
+                if ((int)j == l.joint)
+                    continue;
+                std::optional<u16> a = joints[j]->ParentJointID;
+                while (a && (int)*a != l.joint)
+                    a = joints[*a]->ParentJointID;
+                if (a && toGodotTransform(globals[j]).origin.y < l.cut_y)
+                    m_lower_limb[j] = (int)i;
+            }
+    }
+    const core::vector3df x(1, 0, 0), z(0, 0, 1);
+    m_pitch_sign.assign(m_model->limbs.size(), 1.0f);
+    m_spread_sign.assign(m_model->limbs.size(), 1.0f);
+    for (size_t i = 0; i < m_model->limbs.size(); ++i) {
+        const LimbBend &l = m_model->limbs[i];
+        const Vector3 base = end_after(l, nullptr, 0.0f);
+        const Vector3 pitched = end_after(l, &x, 10.0f);
+        const Vector3 spread = end_after(l, &z, 10.0f);
+        // Forward is -z in Godot; outward is away from the middle in x.
+        m_pitch_sign[i] = pitched.z < base.z ? 1.0f : -1.0f;
+        m_spread_sign[i] = std::fabs(spread.x) > std::fabs(base.x) ? 1.0f : -1.0f;
+    }
+}
+
+// The water strokes: while the body is swimming or treading water, the
+// shoulders and hips are turned from their rest by the stroke, blended over
+// what the game's animation had them doing by how far the stroke has eased
+// in. The knees and elbows follow in measureLimbs.
+void ModelAnimator::poseLimbs(float dt, JointTransforms &locals,
+        const std::map<std::string, BoneOverride> &overrides) {
+    const float ease = 1.0f - std::exp(-dt / 0.25f);
+    m_swim_w += ((m_water == WaterPose::Swim ? 1.0f : 0.0f) - m_swim_w) * ease;
+    m_tread_w += ((m_water == WaterPose::Tread ? 1.0f : 0.0f) - m_tread_w) * ease;
+    m_stroke_phase = std::fmod(m_stroke_phase + strokeRate(m_water, m_water_speed) * dt,
+            2.0f * 3.14159265f * 12.0f);
+    const float w = m_swim_w + m_tread_w;
+    if (w < 1e-3f)
+        return;
+    const auto &joints = m_model->skinned->getAllJoints();
+    const core::vector3df x(1, 0, 0), z(0, 0, 1);
+    for (size_t i = 0; i < m_model->limbs.size(); ++i) {
+        const LimbBend &l = m_model->limbs[i];
+        // The game's own bone override on the limb (an aimed bow, a held
+        // map) wins.
+        const auto &name = joints[l.joint]->Name;
+        if (name && overrides.count(*name))
+            continue;
+        auto *t = std::get_if<core::Transform>(&locals[l.joint]);
+        const auto *r = std::get_if<core::Transform>(&joints[l.joint]->transform);
+        if (!t || !r)
+            continue;
+        const LimbAngles s = strokeAngles(WaterPose::Swim, l.kind, l.right, m_stroke_phase);
+        const LimbAngles d = strokeAngles(WaterPose::Tread, l.kind, l.right, m_stroke_phase);
+        const float pitch = (s.pitch * m_swim_w + d.pitch * m_tread_w) / w;
+        const float spread = (s.spread * m_swim_w + d.spread * m_tread_w) / w;
+        core::Transform stroke = *r;
+        turnLocal(stroke, x, pitch * m_pitch_sign[i]);
+        turnLocal(stroke, z, spread * m_spread_sign[i]);
+        t->rotation.slerp(t->rotation, stroke.rotation, std::min(w, 1.0f));
+    }
+}
+
+// Each limb's swing forward of hanging straight, relative to the body, from
+// this step's skin matrices, and how fast it is changing; from those (and
+// the strokes) the knee and elbow bends, eased.
+void ModelAnimator::measureLimbs(float dt, const std::vector<core::matrix4> &skin,
+        const std::map<std::string, BoneOverride> &overrides) {
+    Transform3D body;
+    if (m_body_joint && *m_body_joint < skin.size())
+        body = toGodotTransform(skin[*m_body_joint]);
+    m_body_lying = m_body_joint && std::fabs(body.basis.xform(Vector3(0, 1, 0)).normalized().y) < 0.5f;
+    const Transform3D to_body = body.affine_inverse();
+    const auto &joints = m_model->skinned->getAllJoints();
+    const float w = std::min(m_swim_w + m_tread_w, 1.0f);
+    const float ease_rate = 1.0f - std::exp(-std::max(dt, 0.0f) / 0.05f);
+    const float ease_bend = 1.0f - std::exp(-std::max(dt, 0.0f) / 0.06f);
+    for (size_t i = 0; i < m_model->limbs.size(); ++i) {
+        const LimbBend &l = m_model->limbs[i];
+        const Basis rel = (to_body * toGodotTransform(skin[l.joint])).basis;
+        const Vector3 d = rel.xform(Vector3(0, -1, 0));
+        const float swing = std::atan2(-d.z, -d.y) * 57.29578f;
+        if (m_have_swing && dt > 0.0f) {
+            float delta = swing - m_swing[i];
+            if (delta > 180.0f)
+                delta -= 360.0f;
+            if (delta < -180.0f)
+                delta += 360.0f;
+            m_swing_rate[i] += (delta / dt - m_swing_rate[i]) * ease_rate;
+        }
+        m_swing[i] = swing;
+        float target = walkBend(l.kind, swing, m_swing_rate[i]);
+        // An arm the game is aiming, or Goanna's own first-person swing is
+        // moving, keeps a nearly straight elbow.
+        const auto &name = joints[l.joint]->Name;
+        const bool held = l.kind == LimbKind::Arm && ((name && overrides.count(*name))
+                || (m_rot_override_joint && (u32)l.joint == *m_rot_override_joint));
+        if (held)
+            target = 5.0f;
+        if (w > 1e-3f) {
+            const LimbAngles s = strokeAngles(WaterPose::Swim, l.kind, l.right, m_stroke_phase);
+            const LimbAngles t = strokeAngles(WaterPose::Tread, l.kind, l.right, m_stroke_phase);
+            const float stroke = (s.bend * m_swim_w + t.bend * m_tread_w) / (m_swim_w + m_tread_w);
+            target = target * (1.0f - w) + stroke * w;
+        }
+        m_bend[i] = dt > 0.0f ? m_bend[i] + (target - m_bend[i]) * ease_bend : target;
+    }
+    m_have_swing = true;
+}
+
+bool ModelAnimator::limbEnd(size_t i, Vector3 &out) const {
+    if (i >= m_model->limbs.size() || m_skin.empty())
+        return false;
+    const LimbBend &l = m_model->limbs[i];
+    out = (toGodotTransform(m_skin[l.joint]) * bendTransform(l, m_bend[i])).xform(l.end);
+    return true;
 }
 
 void ModelAnimator::setShrinkJoint(const std::string &name) {
@@ -504,8 +756,20 @@ bool ModelAnimator::jointGlobal(const std::string &name, Transform3D &out) const
     auto jn = m_model->skinned->getJointNumber(name);
     if (!jn || *jn >= m_globals.size())
         return false;
-    out = toGodotTransform(m_globals[*jn]);
+    out = bentGlobal(*jn);
     return true;
+}
+
+Transform3D ModelAnimator::bentGlobal(size_t joint) const {
+    const Transform3D g = toGodotTransform(m_globals[joint]);
+    if (joint >= m_lower_limb.size() || m_lower_limb[joint] < 0 || m_skin.empty())
+        return g;
+    // Carried along with the lower half: from where the limb's skin puts
+    // it, back to rest, bent, and out again.
+    const size_t i = (size_t)m_lower_limb[joint];
+    const LimbBend &l = m_model->limbs[i];
+    const Transform3D limb = toGodotTransform(m_skin[l.joint]);
+    return limb * bendTransform(l, m_bend[i]) * limb.affine_inverse() * g;
 }
 
 } // namespace goanna

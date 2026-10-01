@@ -56,6 +56,10 @@ public:
     // from the last step's tracks next to its rest transform. Empty if the
     // entity is unknown. Caller holds session.mapLock().
     godot::Dictionary animation(GoannaSession &session, u16 id) const;
+    // The hands and feet that went into or came out of water since the last
+    // call, for wake.gd's stroke splashes: {id, local, pos, limb ("hand" or
+    // "foot"), into, speed (nodes a second)}. Emptied by the call.
+    godot::Array takeStrokeEvents();
     // Build an item's wield mesh (Luanti's own wieldmesh code) as an
     // ArrayMesh; null if the item has no mesh. out_scale receives the wield
     // scale in Godot units. Caller holds session.mapLock(); main thread.
@@ -99,6 +103,20 @@ private:
         godot::Skeleton3D *shadow_skeleton = nullptr;
         std::unique_ptr<ModelAnimator> animator;
         std::string arm_bone; // first-person arm, chosen by which side it shows on
+        // For the water strokes (goanna_limbs.h): where the body was last
+        // sync and how fast it is going across, nodes a second, eased.
+        v3f limb_last_pos;
+        bool limb_have_pos = false;
+        float limb_speed = 0.0f;
+        int water_pose = 0;
+        // Seconds since the body last had a water pose: a swimmer bobbing
+        // at the surface leaves the water for a moment each bob.
+        float water_pose_age = 1e9f;
+        bool in_water = false;
+        // Each limb end (hand or foot) last sync: whether it was in water,
+        // and where, for the stroke events.
+        std::vector<char> limb_wet;
+        std::vector<godot::Vector3> limb_last_end;
         uint32_t visual_version = 0;
         std::string textures_key;
         float sprite_time = 0;
@@ -156,6 +174,7 @@ private:
     godot::Ref<godot::Shader> m_sh_entity_scissor; // its alpha scissor variant
     godot::Ref<godot::Shader> m_sh_diamond;
     godot::Ref<godot::Shader> m_sh_diamond_double;
+    godot::Array m_stroke_events;
     bool m_show_body = true;
     bool m_third_person = false;
     float m_arm_swing = 0.0f;
