@@ -1,0 +1,31 @@
+{
+ "class": "cloth",
+ "strength": 12,
+ "micro": "cloth",
+ "micro_materials": ["robe", "legs"],
+ "face_edge": "bevel",
+ "materials": {
+  "skin": {"mode": "shade", "base": 0.35, "span": 0.3, "levels": 2, "detail": 0.4,
+           "joints": false, "smooth": 0.3, "smooth_spread": 0.06},
+  "nose": {"mode": "flat", "base": 0.45, "span": 0.1, "smooth": 0.3},
+  "brow": {"mode": "flat", "base": 0.68, "span": 0.1, "smooth": 0.1},
+  "eye": {"mode": "flat", "base": 0.28, "span": 0.0, "micro": 0, "smooth": 0.8},
+  "mouth": {"mode": "flat", "base": 0.12, "span": 0.0, "micro": 0, "smooth": 0.2},
+  "robe": {"mode": "shade", "base": 0.3, "span": 0.35, "levels": 2, "detail": 0.35,
+           "smooth": 0.1, "smooth_spread": 0.04},
+  "legs": {"mode": "shade", "base": 0.3, "span": 0.3, "levels": 2, "detail": 0.35,
+           "joints": false, "smooth": 0.1, "smooth_spread": 0.04},
+  "shoes": {"mode": "flat", "base": 0.22, "span": 0.08, "smooth": 0.32}
+ },
+ "palette": {
+  "#7e5d3a": "nose",
+  "#373737": "brow",
+  "#b5b5b5": "eye", "#b89509": "eye",
+  "#5b4f43": "mouth",
+  "#323a1a": "robe", "#414b23": "robe", "#434d23": "robe", "#4d5828": "robe",
+  "#4f5b29": "robe", "#54612b": "robe",
+  "#48553f": "legs", "#4b5644": "legs", "#53624a": "legs", "#5e6b53": "legs",
+  "#657658": "legs", "#6a7a5e": "legs", "#6f7f63": "legs",
+  "#394533": "shoes"
+ }
+}

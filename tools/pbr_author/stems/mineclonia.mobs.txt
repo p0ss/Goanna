@@ -1,0 +1,8 @@
+# Mob skins built by atlas.py, not extrude.py: a skin is a UV atlas of box
+# faces read from its model, not a tiling node face. One per line:
+#   <stem> <model.b3d> [brush]
+mobs_mc_iron_golem mobs_mc_iron_golem.b3d
+mobs_mc_iron_golem_crack_low mobs_mc_iron_golem.b3d
+mobs_mc_iron_golem_crack_medium mobs_mc_iron_golem.b3d
+mobs_mc_iron_golem_crack_high mobs_mc_iron_golem.b3d
+mobs_mc_villager_base mobs_mc_villager.b3d

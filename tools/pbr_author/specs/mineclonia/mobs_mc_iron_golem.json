@@ -1,0 +1,27 @@
+{
+ "class": "metal",
+ "micro": "metal_worn",
+ "micro_materials": ["iron"],
+ "face_edge": "bevel",
+ "bevel_depth": 0.08,
+ "materials": {
+  "iron": {"mode": "shade", "base": 0.3, "span": 0.4, "levels": 3, "detail": 0.35,
+           "metal": true, "smooth": 0.62, "smooth_spread": 0.12},
+  "dark_iron": {"mode": "flat", "base": 0.06, "span": 0.04, "metal": false,
+                "smooth": 0.28},
+  "rust": {"mode": "shade", "base": 0.12, "span": 0.12, "levels": 2, "joints": false,
+           "metal": false, "smooth": 0.14, "smooth_spread": 0.04},
+  "vine": {"mode": "shade", "base": 0.74, "span": 0.22, "levels": 2, "detail": 0.4,
+           "joints": false, "metal": false, "smooth": 0.32, "smooth_spread": 0.08},
+  "eye": {"mode": "flat", "base": 0.04, "span": 0.0, "micro": 0, "metal": false,
+          "smooth": 0.8}
+ },
+ "palette": {
+  "#4f4949": "dark_iron", "#4f4d4b": "dark_iron", "#474f57": "dark_iron",
+  "#33414b": "dark_iron",
+  "#7e7272": "rust", "#615744": "rust",
+  "#1c3013": "vine", "#274020": "vine", "#314f2c": "vine", "#386138": "vine",
+  "#4d7e47": "vine",
+  "#220404": "eye", "#6f0909": "eye"
+ }
+}

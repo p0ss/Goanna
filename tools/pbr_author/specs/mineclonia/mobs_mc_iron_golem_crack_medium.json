@@ -1,0 +1,10 @@
+{
+ "class": "metal",
+ "overlay": true,
+ "surface": 0.55,
+ "micro": "none",
+ "materials": {
+  "crack": {"mode": "flat", "base": 0.04, "span": 0.0, "micro": 0, "metal": false,
+            "smooth": 0.1}
+ }
+}
