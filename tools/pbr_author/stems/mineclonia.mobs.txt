@@ -19,3 +19,12 @@ mcl_skins_bottom_1 mcl_armor_character.b3d
 mcl_skins_footwear_1 mcl_armor_character.b3d
 mcl_skins_top_1 mcl_armor_character.b3d
 mcl_skins_hair_1 mcl_armor_character.b3d
+# Undead. The overlays are separate brushes of the model, not ^ layers.
+mobs_mc_zombie mobs_mc_zombie.b3d 1
+mobs_mc_husk mobs_mc_zombie.b3d 1
+mobs_mc_drowned mobs_mc_drowned.b3d 0
+mobs_mc_drowned_overlay mobs_mc_drowned.b3d 1
+mobs_mc_skeleton mobs_mc_skeleton.b3d 2
+mobs_mc_stray mobs_mc_skeleton.b3d 2
+mobs_mc_stray_overlay mobs_mc_skeleton.b3d 1
+mobs_mc_wither_skeleton mobs_mc_witherskeleton.b3d 1
