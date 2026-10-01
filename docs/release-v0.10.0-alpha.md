@@ -1,6 +1,7 @@
-# Goanna next release (unreleased)
+# Goanna v0.10.0-alpha
 
-Sunsets light the land again, water reacts to you, and you can now step
+Getting started is one click, Mineclonia gets hand authored materials,
+sunsets light the land again, water reacts to you, and you can now step
 out into third person and watch your character walk, swim and tread water.
 
 ## Getting started
@@ -51,6 +52,10 @@ out into third person and watch your character walk, swim and tread water.
 
 ## Materials
 
+- **Hand authored materials for Mineclonia.** Every Mineclonia block and
+  tool now has relief, gloss and surface detail drawn by hand to follow
+  its pixel art, replacing the generated set. Goanna downloads them for
+  you the first time you play Mineclonia (60 MB).
 - **Glass reflects** in every game, not only stained glass.
 - **Gems sparkle.** Emerald, amethyst, mese and quartz get the polished,
   glinting look diamond has.

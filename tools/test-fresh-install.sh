@@ -25,10 +25,11 @@ if [ -z "$godot" ] || [ ! -x "$godot" ]; then
 	echo "set GODOT_BIN to a Godot 4.5 binary" >&2
 	exit 2
 fi
-if [ $# -eq 0 ]; then
-	set -- docker.io/library/ubuntu:22.04 docker.io/library/ubuntu:24.04 \
-		docker.io/library/debian:12 registry.fedoraproject.org/fedora:42 \
-		docker.io/library/archlinux:latest
+images=("$@")
+if [ ${#images[@]} -eq 0 ]; then
+	images=(docker.io/library/ubuntu:22.04 docker.io/library/ubuntu:24.04
+		docker.io/library/debian:12 registry.fedoraproject.org/fedora:42
+		docker.io/library/archlinux:latest)
 fi
 bundle=$(ls -d "$repo"/dist/luanti-server/luanti-*-server-linux-x86_64 2>/dev/null | head -1)
 if [ -z "$bundle" ]; then
@@ -39,7 +40,7 @@ work=${GOANNA_FRESH_DIR:-$HOME/.cache/goanna-fresh-install}
 rm -rf "$work"
 status=0
 results=()
-for image in "$@"; do
+for image in "${images[@]}"; do
 	tree="$work/$(printf '%s' "$image" | tr '/:' '__')"
 	mkdir -p "$tree/project/tests" "$tree/dist/luanti-server"
 	cp project/local_server.gd project/asset_store.gd project/owned_process.gd \
