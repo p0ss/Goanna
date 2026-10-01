@@ -271,16 +271,28 @@ Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
     // instance uniform EntityRenderer::sync sets), which StandardMaterial3D
     // has no way to take.
     const int diamond_mode = gemTextureCode(texture);
-    if (gt && !alpha && (!double_sided || diamond_mode != 0)) {
-        if (!m_sh_entity.is_valid())
-            m_sh_entity = m_root->call("load_view_shader", "res://shaders/entity.gdshader");
-        if (!m_sh_entity_scissor.is_valid())
-            m_sh_entity_scissor = m_root->call("load_view_shader", "res://shaders/entity_scissor.gdshader");
+    // Double sided surfaces too, through the cull_disabled variants:
+    // Mineclonia's players (the local player's body and first person arms
+    // among them) are drawn with backface_culling off, and until 2026-10-02
+    // they kept the plain StandardMaterial3D, so the surface nearest the
+    // eye had no companions, no node light and no parallax while a statue
+    // of the same skin had all three.
+    if (gt && !alpha) {
+        const char *plain = double_sided ? "res://shaders/entity_double_sided.gdshader"
+                : "res://shaders/entity.gdshader";
+        const char *cut = double_sided ? "res://shaders/entity_double_sided_scissor.gdshader"
+                : "res://shaders/entity_scissor.gdshader";
+        Ref<Shader> &sh_plain = double_sided ? m_sh_entity_double : m_sh_entity;
+        Ref<Shader> &sh_cut = double_sided ? m_sh_entity_double_scissor : m_sh_entity_scissor;
+        if (!sh_plain.is_valid())
+            sh_plain = m_root->call("load_view_shader", plain);
+        if (!sh_cut.is_valid())
+            sh_cut = m_root->call("load_view_shader", cut);
         Ref<ShaderMaterial> sm;
         sm.instantiate();
         // Most mob skins have transparent texels, so the cut out variant is
         // the common case; see entity_scissor.gdshader.
-        sm->set_shader(gt->hasAlpha() ? m_sh_entity_scissor : m_sh_entity);
+        sm->set_shader(gt->hasAlpha() ? sh_cut : sh_plain);
         // Only gem items enter the blended pipeline. Holes in their
         // art are discarded; wood and armour joins remain fully opaque.
         if (diamond_mode != 0) {
@@ -413,14 +425,15 @@ Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
         sm->set_shader_parameter("parallax_strength", m_parallax * entityParallaxScale());
         result = sm;
     } else {
-        // Blended surfaces and non-diamond double sided surfaces retain
+        // Blended surfaces, and anything without a texture, retain
         // their existing material path.
         result = materialForTexture(session, texture, alpha, double_sided);
     }
     if (getenv("GOANNA_DEBUG_ENTITY_PBR"))
         UtilityFunctions::print("entity pbr: ", String::utf8(texture.c_str()),
                 " normal=", normal_tex.is_valid(), " spec=", spec_tex.is_valid(),
-                " layers=", composite_layers);
+                " layers=", composite_layers, " alpha=", alpha, " double_sided=", double_sided,
+                " gem=", diamond_mode, " shader=", Ref<ShaderMaterial>(result).is_valid());
     m_mesh_materials[key] = result;
     return result;
 }

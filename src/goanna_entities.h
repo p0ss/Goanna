@@ -208,6 +208,8 @@ private:
     std::map<uint64_t, Preview> m_previews;
     godot::Ref<godot::Shader> m_sh_entity; // res://shaders/entity.gdshader, loaded once
     godot::Ref<godot::Shader> m_sh_entity_scissor; // its alpha scissor variant
+    godot::Ref<godot::Shader> m_sh_entity_double; // the cull_disabled variants
+    godot::Ref<godot::Shader> m_sh_entity_double_scissor;
     godot::Ref<godot::Shader> m_sh_diamond;
     godot::Ref<godot::Shader> m_sh_diamond_double;
     godot::Array m_stroke_events;

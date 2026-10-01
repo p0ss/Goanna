@@ -426,8 +426,13 @@ as art texels. See `docs/perf/entity-parallax-2026-10-02/`.
 
 **Where companions do not reach.** A surface the server marks
 `use_texture_alpha` (a charged creeper's aura, a slime's outer body, a
-spider's eyes) and a double sided surface that is not a gem keep the plain
-`StandardMaterial3D` path, with no companions and no node light.
+spider's eyes) keeps the plain `StandardMaterial3D` path, with no
+companions and no node light. A double sided surface draws through
+`entity_double_sided.gdshader` (or its scissor variant) with everything
+above, parallax included. Until 2026-10-02 it kept the plain path too, and
+Mineclonia draws its players double sided, so the local player's body and
+first person arms, the entity nearest the eye, had none of it while a
+statue of the same skin had all of it.
 `GOANNA_NO_PBR=1` withholds companions (from `main.gd` it needs
 `GOANNA_PBR_SET=1` too, or the launcher clears it). With no `_n` in any
 layer, the relief inferred from the texture's brightness applies, as it
