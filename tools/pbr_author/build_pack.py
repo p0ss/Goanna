@@ -9,7 +9,9 @@ extrude.py: every listed stem through the texel extrusion rule and its
 spec, checked by extrude.check. Mineclonia is built this way. Mob skins
 listed in stems/<game>.mobs.txt are built by atlas.py and checked by
 atlas.check in the same run, and their installed sets get a licence note
-naming their mod.
+naming their mod. A mob skin installs only its _n and _s, never the
+albedo atlas.py writes to the stage for previews: the client draws the
+game's own art.
 
 A game without one runs its per stem scripts, as Kythen still does. A script belongs to the game it declares with GAME = "..." at module level;
 one that declares none is Mineclonia's. Each tools/pbr_author/<stem>.py is
@@ -141,8 +143,14 @@ def install(args, done, failed):
         return
     args.install.mkdir(parents=True, exist_ok=True)
     installed = []
+    # A mob skin installs its companions only. The client draws the game's
+    # own art and scales the maps to it; an albedo upscaled to map size
+    # broke mcl_skins, whose bracketed (mask^[colorize) groups Luanti blits
+    # at their own 64 x 32 size into the corner of the 1024 wide part, and
+    # would break any mod that combines or crops a skin by coordinates.
+    atlases = set(getattr(args, "atlases", []))
     for stem in done:
-        for suffix in (".png", "_n.png", "_s.png"):
+        for suffix in (("_n.png", "_s.png") if stem in atlases else (".png", "_n.png", "_s.png")):
             src = args.stage / (stem + suffix)
             if src.exists():
                 (args.install / (stem + suffix)).write_bytes(src.read_bytes())
@@ -175,7 +183,8 @@ def atlas_attribution(game, stems):
     out = ["\nThe sets below are mob skins (model atlases, tools/pbr_author/atlas.py).\n"
            "They are derived from the skin art of the mod named, under that mod's\n"
            "media licence; read its licence files for the terms that apply to each\n"
-           "file. The models are only read for their UV layout and are not copied.\n"]
+           "file. The models are only read for their UV layout and are not copied.\n"
+           "Only their maps are installed; the art itself is not.\n"]
     for mod, names in sorted(by_mod.items()):
         out.append("\n### `%s`\n\n" % mod.relative_to(root))
         for p in sorted(mod.iterdir()):

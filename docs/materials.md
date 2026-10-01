@@ -397,9 +397,14 @@ Its depth is measured from the map by the node path's own `reliefDepth`
 (`src/goanna_textures.cpp`), with a node counted as sixteen art texels and
 the same 0.10 node cap, and only inside each face: on an atlas the texel
 beside a face's edge in the image belongs to another face, and counting
-those jumps put the creeper and the cow at a tenth of an art texel. The
-art's texel size is read from the albedo (a pack's skin is its art scaled
-up nearest). The frame is solved per fragment from the UV and position
+those jumps put the creeper and the cow at a tenth of an art texel. A
+skin's pack set is its `_n` and `_s` only and the albedo is the game's own
+art, so the art's size is the albedo's (or the composite's) wherever the
+map is larger; only an albedo shipped at map size has its texel grid
+measured, from whole blocks of one colour. Shipping skin albedos upscaled
+broke mcl_skins: its `(mask^[colorize:...)` groups are blitted at their
+own 64 x 32 size into the corner of the 1024 wide part, and the player
+drew bare skin colour all over. The frame is solved per fragment from the UV and position
 derivatives, so a mirrored limb marches the mirrored way by itself.
 Containment, which blocks never needed: `buildGodotModel` writes each
 face's UV rectangle into `CUSTOM0` (the bounds of the triangles joined by

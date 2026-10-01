@@ -352,16 +352,26 @@ Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
                     nimg->decompress();
                     nimg->convert(Image::FORMAT_RGBA8);
                 }
-                // The art's texel grid. A composite's own image is blended
-                // where an overlay was laid over at [opacity or scaled by
-                // Luanti, so it is no longer whole blocks of one colour (the
-                // cracked golem and the player read as 2048 and 1024 texel
-                // art); its layers each still are, and the finest of them
-                // is the grid. Not the coarsest: a sparse layer (the eyes,
-                // a mask of a few texels) is whole blocks at sizes well past
-                // its art's, and read the player as 16 texels wide.
-                Vector2 art = art_layers.empty() ? artSize(aimg) : Vector2();
-                for (const OverlayLayer &l : art_layers) {
+                // The art's texel grid. A skin's pack ships its maps only
+                // (tools/pbr_author/build_pack.py) and the albedo is the
+                // game's own art, so where the map is larger than the
+                // albedo (or than the composite, which Luanti builds at its
+                // largest layer's size) the albedo's size is the art's.
+                //
+                // Only a pack that also ships an albedo at map size needs
+                // the grid measured, from whole blocks of one colour. A
+                // composite's own image is blended where an overlay was
+                // laid over at [opacity or scaled by Luanti, so it is not
+                // whole blocks (the cracked golem and the player read as
+                // 2048 and 1024 texel art); its layers each still are, and
+                // the finest of them is the grid. Not the coarsest: a
+                // sparse layer (the eyes, a mask of a few texels) is whole
+                // blocks at sizes well past its art's, and read the player
+                // as 16 texels wide.
+                const bool art_size = nimg->get_width() > aimg->get_width();
+                Vector2 art = art_size ? Vector2(aimg->get_width(), aimg->get_height())
+                        : art_layers.empty() ? artSize(aimg) : Vector2();
+                for (const OverlayLayer &l : art_size ? std::vector<OverlayLayer>() : art_layers) {
                     auto *lgt = dynamic_cast<GoannaTexture *>(session.tsrc()->getTexture(l.image));
                     Ref<Image> li = lgt && lgt->godotTexture().is_valid() ?
                             lgt->godotTexture()->get_image() : Ref<Image>();

@@ -9,8 +9,11 @@ in a row), so three of the tile rule's assumptions are wrong for it:
            2. A mob texel is about a sixteenth of a block, like a node
            texel. Here the map is TEXEL_PX map pixels per art texel at the
            256 pack (16 at the 512 one, via lib.PX) whatever the art's
-           size, and the albedo is written at the same size because the
-           client sizes by the albedo.
+           size. The albedo is written at the same size for previews
+           only: build_pack.py installs just the _n and _s of a skin, and
+           the client draws the game's own art and scales the maps to it.
+           An albedo at map size broke mcl_skins' bracketed mask groups,
+           which Luanti blits at their own size into its corner.
   wrap     the chamfer, the normal and the occlusion wrapped at the
            image's edge. An atlas does not tile.
   islands  two faces side by side in the image are not neighbours on the

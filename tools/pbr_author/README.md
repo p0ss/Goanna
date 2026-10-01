@@ -82,7 +82,14 @@ What differs from a tile:
   64 x 64 one 512 square, the 128 px iron golem 1024 square. A mob texel
   is about a sixteenth of a block, like a node texel; half the node
   density keeps a flat top inside each one pixel chamfer at a quarter of
-  the memory. The albedo is the art upscaled to the same size.
+  the memory. `atlas.py` writes the art upscaled to the same size into
+  the stage for previews, but `build_pack.py` installs only a skin's `_n`
+  and `_s`: the client draws the game's own art at its own size and
+  scales the companions to it. A pack albedo at map size broke
+  mcl_skins, which colours a 64 x 32 mask in a bracketed group, and
+  Luanti blits that group at its own size into the corner of the 1024
+  wide part, so the player drew bare skin colour. Any server mod that
+  combines or crops a skin by coordinates breaks the same way.
   `"texel_px"` in a spec overrides it. The iron golem and its crack
   overlays take 16, so 2048 square, about 16 MiB per map uncompressed
   before mipmaps against 4 MiB at 8, because its plates carry bevels,
@@ -101,8 +108,9 @@ What differs from a tile:
   height stays one value per texel and the occlusion does not darken a
   convex edge.
 - **Strength** is in node units, so a skin and a block with the same
-  number have the same rise per art texel. The entity shader marches no
-  parallax, so a skin's relief is only its normal and occlusion.
+  number have the same rise per art texel. The entity shader marches the
+  height as a block's does, to the depth measured from the map
+  (`docs/materials.md`, "Mob, player and item companions").
 - **Micro surface** goes on the materials `"micro_materials"` names: the
   golem's scratches are on its iron, not its vines. A material can also
   name its own kind, `"micro": "knit"` with `"micro_strength"`,

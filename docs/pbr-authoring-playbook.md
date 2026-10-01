@@ -19,7 +19,9 @@ session running them renders the ramp one client at a time.
 Mob skins are model atlases and are built by `tools/pbr_author/atlas.py`
 from `tools/pbr_author/stems/mineclonia.mobs.txt`, with specs in the same
 directory as the blocks' (`tools/pbr_author/README.md`, "Mob skins").
-The iron golem, its three crack overlays and the bare villager were the
+A skin's pack set is its `_n` and `_s` only, never an albedo: the client
+draws the game's own art, at its own size, which server mods colour, crop
+and combine by coordinates. The iron golem, its three crack overlays and the bare villager were the
 prototypes, on 2026-10-01; none of them has been judged in game yet.
 
 For a fleet doing the rest, an agent per mob family (villagers and their
@@ -202,7 +204,8 @@ before running a fleet for a new game.
 ## What you are making
 
 For each texture stem the game draws, three files at 256 px beside its art:
-the albedo (the game's own art upscaled, never repainted), a `_n` map
+the albedo (the game's own art upscaled, never repainted; a mob skin ships
+none, see "Mob skins"), a `_n` map
 (tangent normal, occlusion, height) and a `_s` map (smoothness, F0 or
 metal, scattering, emission), the LabPBR layout `docs/materials.md`
 describes. The client reads them by name from a pack directory or from
