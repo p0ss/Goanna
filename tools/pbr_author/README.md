@@ -106,9 +106,12 @@ What differs from a tile:
   `"micro_swing"`, `"micro_dir"` and `"micro_params"`, and carry
   `"stitch"`, `"seam"`, `"wear"`, `"texel_edge"` and `"scatter"`; then it
   takes nothing from the stem's `"micro"`. The kinds (knit, wool, weave,
-  linen, canvas, coarse, twill, hair, straw, leather, rope, skin, eye) and
-  the edge features are described in `micro.py`, and
-  `python3 micro.py <sheet.png>` draws a swatch of each. They are
+  linen, canvas, coarse, twill, hair, straw, leather, rope, skin, eye; for
+  animals and monsters fur, hide, feather, scale, bone, rotten, mottle,
+  chitin) and the edge features are described in `micro.py`, and
+  `python3 micro.py <sheet.png> [16|8]` draws a labelled swatch of each
+  at 16 map pixels per texel (the player's parts) or 8 (a mob's). The
+  animal kinds are sized for 8. They are
   evaluated per pixel along a direction per face (model down on a side,
   front to back on a top, read from the `.b3d`), never on a repeat, so a
   feature stops at its face's border. Like the stem's micro they reach
@@ -155,6 +158,14 @@ What differs from a tile:
   layer the farmer draws is right only for the farmer.
   `preview_figure.py <maps> <out> --figure villager` previews it, with a
   view from above for the hat's top and brim.
+- **Any mob, offline.** `preview_mob.py <model.b3d> <maps> <out> <layers
+  per brush>...` rasterises every box of the model in its bind pose from
+  the front three quarters, with each brush's layer string composited as
+  above, a sun, a sky ambient and a crude sky reflection, and writes
+  `compare.png` (maps off, maps on, low sun on, low sun off). Pass
+  `blank.png` for a brush the game leaves empty. Its docstring says what
+  it leaves out: shadows, animation, alpha blending, perspective, the
+  client's post process.
 
 `atlas.check` measures one height per texel, several heights, the relief
 in node units, no slope step at a face border (or, with a bevel, every

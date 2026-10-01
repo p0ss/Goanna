@@ -84,6 +84,95 @@ are stitched. Judged only on the offline figure, not in game.
 No GPU for the agents. Judge on the previews and the check, then render
 one client at a time.
 
+## Family brief: animals and monsters
+
+The owner approved the player on the GPU on 2026-10-01. Animals and
+monsters follow the same look with their own materials:
+
+- the art's colours and texel grid kept exactly;
+- each material piece one flat height (a lock of hair, or a tuft of a
+  long coat drawn as its own shade, is the only exception);
+- all fine detail inside the texels, in the normal and the smoothness
+  only, through a material's `"micro"` kind;
+- faces flat, eyes flat and glossy, with no domed iris and no raised dot;
+- the detail strong enough to read in ordinary front light, not only
+  under a grazing sun.
+
+### Which kind for which part
+
+- `fur`: cow, mooshroom, wolf, fox, cat and rabbit coats. `"length"` 0.8
+  for a short coat (cow), 1.2 to 1.6 for a long one (wolf); polar bear
+  and a sheared sheep longer, with more `"clump"`.
+- `wool`: a sheep's fleece. Try a low `"cols"`; it is fleece, not
+  knitting.
+- `hide`: pig and hoglin skin, bare cow parts (the udder). Slightly waxy,
+  `"smooth"` about 0.35.
+- `feather`: chicken and parrot, about a texel per feather.
+- `scale`: fish, guardians, anything scaled.
+- `bone`: skeleton, stray, wither skeleton. Satin, `"smooth"` about 0.45.
+- `rotten`: zombie, husk and drowned skin. The blotchy smoothness is the
+  point.
+- `mottle`: the creeper. Matte; the art already carries the blotches.
+- `chitin`: spider, cave spider, endermite, silverfish. Glossy,
+  `"smooth"` 0.55 to 0.65.
+- `none`, `leather` or `bone`: a snout, beak, hoof or horn, each its own
+  flat piece.
+- `knit`, `coarse`, `linen`, `leather`: clothes (a zombie's shirt, a
+  villager's robe), as on the player.
+
+`python3 tools/pbr_author/micro.py <sheet.png> 8` draws every kind at a
+mob's map density; each kind's parameters are in its docstring in
+`micro.py`. The animal kinds are sized for 8 map pixels to a texel:
+nothing in them repeats in under about 2 pixels. Keep it that way when
+you change a parameter (fur `"strands"` and feather `"barbs"` alias at 8).
+Raise `"micro_strength"` (the player's cloth took 1.8) rather than
+inventing a new kind; ask for a new kind in your report if none fits.
+
+`"micro_dir"` defaults to `"down"`: model down on a side face and front
+to back on a top face, so fur and feathers lie from head to tail on the
+back and down the flanks with no extra work. A mob whose model is not
+upright in the file needs a check of which way that is on the preview.
+
+### Faces
+
+A face reads by its albedo. An animal's face is one flat skin or fur
+material, never `shade` (a height per texel is a checkerboard). The
+features are their own flat pieces at their own heights: a snout or a
+beak a little proud of the face (`"flat"`, its own `"base"`), nostrils
+sunk, a wattle its own piece. Eyes are flat and glossy: `"micro":
+"none"`, `"smooth"` about 0.85 to 0.9, `"f0"` 0.025, never the `eye`
+kind (its raised catch light was rejected on the player), never metal.
+Only the face's box edge takes the bevel.
+
+### What a family agent writes
+
+Write only `tools/pbr_author/specs/mineclonia/<stem>.json`. Do not edit
+`stems/mineclonia.mobs.txt` or `stems/mineclonia.classes.json`: three
+families run at once and those files are shared. Put `"class"` in the
+spec, build and check without the list by naming the model, and report
+the lines for the merging session to add:
+
+```sh
+cd tools/pbr_author
+python3 atlas.py x mobs_mc_cow --faces --model mobs_mc_cow.b3d
+python3 atlas.py <out> mobs_mc_cow --model mobs_mc_cow.b3d --preview <out>/flat
+python3 preview_mob.py mobs_mc_cow.b3d <out> <out>/view mobs_mc_cow.png blank.png
+```
+
+The texture strings per brush are in the mob's Lua file
+(`mods/ENTITIES/mobs_mc/<mob>.lua`, `textures = {...}`); pass
+`blank.png` for a brush it leaves empty, and the right `--brush` for the
+skin (the zombie's is 1, the skeleton's 2, the spider's model has
+`-1`). Report, per stem:
+
+```
+stems/mineclonia.mobs.txt:     mobs_mc_cow mobs_mc_cow.b3d
+stems/mineclonia.classes.json: "mobs_mc_cow": "cloth",
+```
+
+and the paths of your `compare.png` previews. Never write into
+`pbr_packs/`.
+
 ## Kythen's per stem scripts
 
 The procedure below is the one Kythen's scripts were made with.
