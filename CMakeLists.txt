@@ -61,6 +61,7 @@ add_library(goanna SHARED
     src/goanna_textures.cpp
     src/goanna_sky.cpp
     src/goanna_entities.cpp
+    src/goanna_overlay_companions.cpp
     src/goanna_icon_raster.cpp
     src/goanna_item_icons.cpp
     src/goanna_ripples.cpp
@@ -150,6 +151,13 @@ add_executable(goanna_radial_form_test EXCLUDE_FROM_ALL
     src/goanna_radial_form.cpp
 )
 target_include_directories(goanna_radial_form_test PRIVATE src)
+# Overlay stacks and their composited LabPBR companions, for mob skins drawn
+# as several layers. Pure arithmetic, so it links nothing.
+add_executable(goanna_overlay_companions_test EXCLUDE_FROM_ALL
+    src/goanna_overlay_companions_test.cpp
+    src/goanna_overlay_companions.cpp
+)
+target_include_directories(goanna_overlay_companions_test PRIVATE src)
 add_executable(goanna_mining_cycle_test EXCLUDE_FROM_ALL
     src/goanna_mining_cycle_test.cpp src/goanna_radial_form.cpp)
 target_include_directories(goanna_mining_cycle_test PRIVATE src)
@@ -231,6 +239,7 @@ set(GOANNA_NATIVE_TESTS
     goanna_lod_storage_test
     goanna_lod_test
     goanna_mesh_pool_test
+    goanna_overlay_companions_test
     goanna_shared_cache_test
     goanna_mining_cycle_test
     goanna_radial_form_test

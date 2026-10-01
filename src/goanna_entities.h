@@ -24,10 +24,12 @@
 #include <godot_cpp/classes/skeleton3d.hpp>
 #include <godot_cpp/classes/sprite3d.hpp>
 #include <godot_cpp/classes/standard_material3d.hpp>
+#include <godot_cpp/classes/texture2d.hpp>
 #include <godot_cpp/variant/dictionary.hpp>
 
 #include "irrlichttypes_bloated.h"
 #include "goanna_models.h"
+#include "goanna_overlay_companions.h"
 
 struct ItemStack;
 
@@ -163,6 +165,16 @@ private:
     // from its name.
     godot::Ref<godot::Material> materialForMeshTexture(GoannaSession &session,
             const std::string &texture, bool alpha, bool double_sided, bool item = false);
+    // The LabPBR companion ("_n" or "_s") a pack or the server supplies for
+    // one image, or null.
+    godot::Ref<godot::Texture2D> companionTexture(GoannaSession &session,
+            const std::string &image, const char *suffix);
+    // The companion for an overlay stack, composited layer by layer
+    // (goanna_overlay_companions.h); null when no layer has one. Cached per
+    // texture string, main thread only.
+    godot::Ref<godot::Texture2D> compositeCompanion(GoannaSession &session,
+            const std::string &texture, const std::vector<OverlayLayer> &layers,
+            const char *suffix);
     // Unshaded, alpha tested, double sided material for a model[] preview
     // surface, matching GUIScene::setTexture.
     godot::Ref<godot::StandardMaterial3D> materialForPreviewTexture(GoannaSession &session,
@@ -175,6 +187,7 @@ private:
     std::map<u16, EntityNode> m_nodes;
     std::map<std::string, godot::Ref<godot::StandardMaterial3D>> m_materials;
     std::map<std::string, godot::Ref<godot::Material>> m_mesh_materials;
+    std::map<std::string, godot::Ref<godot::Texture2D>> m_composite_companions;
     std::map<std::string, std::shared_ptr<GodotModel>> m_models;
     // Animated model[] previews, keyed by their skeleton's instance id so a
     // formspec that has been freed can be recognised without a dangling

@@ -15,6 +15,7 @@
 
 #include <godot_cpp/classes/box_mesh.hpp>
 #include <godot_cpp/classes/capsule_mesh.hpp>
+#include <godot_cpp/classes/image.hpp>
 #include <godot_cpp/classes/image_texture.hpp>
 #include <godot_cpp/classes/quad_mesh.hpp>
 #include <godot_cpp/classes/resource_loader.hpp>
@@ -79,6 +80,86 @@ Ref<StandardMaterial3D> EntityRenderer::materialForTexture(GoannaSession &sessio
     return mat;
 }
 
+// `image`'s LabPBR companion, under the first of its names a pack or the
+// server has (companionNames), or null.
+static GoannaTexture *findCompanion(GoannaSession &session, const std::string &image,
+        const char *suffix) {
+    for (const std::string &name : companionNames(image, suffix)) {
+        if (!session.tsrc()->isKnownSourceImage(name))
+            continue;
+        if (auto *cgt = dynamic_cast<GoannaTexture *>(session.tsrc()->getTexture(name)))
+            return cgt;
+    }
+    return nullptr;
+}
+
+static Rgba8 toRgba8(video::IImage *img) {
+    Rgba8 out;
+    if (!img)
+        return out;
+    out.w = (int)img->getDimension().Width;
+    out.h = (int)img->getDimension().Height;
+    out.px.resize((size_t)out.w * out.h * 4);
+    for (int y = 0; y < out.h; ++y)
+        for (int x = 0; x < out.w; ++x) {
+            const video::SColor c = img->getPixel(x, y);
+            uint8_t *d = &out.px[((size_t)y * out.w + x) * 4];
+            d[0] = c.getRed();
+            d[1] = c.getGreen();
+            d[2] = c.getBlue();
+            d[3] = c.getAlpha();
+        }
+    return out;
+}
+
+Ref<Texture2D> EntityRenderer::companionTexture(GoannaSession &session,
+        const std::string &image, const char *suffix) {
+    GoannaTexture *cgt = findCompanion(session, image, suffix);
+    return cgt ? Ref<Texture2D>(cgt->godotTexture()) : Ref<Texture2D>();
+}
+
+Ref<Texture2D> EntityRenderer::compositeCompanion(GoannaSession &session,
+        const std::string &texture, const std::vector<OverlayLayer> &layers, const char *suffix) {
+    const std::string key = texture + "|" + suffix;
+    auto it = m_composite_companions.find(key);
+    if (it != m_composite_companions.end())
+        return it->second;
+    Ref<Texture2D> result;
+    // Kept alive until the composite is built; CompanionLayer points into them.
+    std::vector<Rgba8> albedos(layers.size()), comps(layers.size());
+    std::vector<CompanionLayer> inputs(layers.size());
+    bool any = false;
+    for (size_t i = 0; i < layers.size(); ++i) {
+        GoannaTexture *cgt = findCompanion(session, layers[i].image, suffix);
+        if (cgt && cgt->image()) {
+            comps[i] = toRgba8(cgt->image());
+            any = true;
+        }
+        auto *agt = dynamic_cast<GoannaTexture *>(session.tsrc()->getTexture(layers[i].image));
+        if (agt)
+            albedos[i] = toRgba8(agt->image());
+        inputs[i] = {&albedos[i], &comps[i], layers[i].opacity};
+    }
+    // With nothing authored in any layer there is nothing to composite, and
+    // the caller's fallbacks (inferred relief, the class) apply as before.
+    if (any) {
+        const bool normal = suffix[1] == 'n';
+        Rgba8 out = compositeCompanions(inputs, normal ? kNormalKind : kSpecKind);
+        if (!out.empty()) {
+            PackedByteArray data;
+            data.resize((int64_t)out.px.size());
+            std::copy(out.px.begin(), out.px.end(), data.ptrw());
+            Ref<Image> img = Image::create_from_data(out.w, out.h, false, Image::FORMAT_RGBA8, data);
+            if (img.is_valid()) {
+                img->generate_mipmaps();
+                result = ImageTexture::create_from_image(img);
+            }
+        }
+    }
+    m_composite_companions[key] = result;
+    return result;
+}
+
 Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
         const std::string &texture, bool alpha, bool double_sided, bool item) {
     std::string key = texture + (alpha ? "|a" : "|o") + (double_sided ? "|d" : "|s") +
@@ -94,27 +175,28 @@ Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
     // plain material unchanged (see the declaration in goanna_entities.h for
     // why that means a separate function and cache rather than a mode on it).
     Ref<Texture2D> normal_tex, spec_tex;
+    int composite_layers = 0;
     if (gt && !alpha) {
-        // A texture modifier (colourise, crack overlay, transform) is baked
-        // into the rendered image and has no file of its own to look a
-        // companion up for; only the base name before the first ^ does.
-        std::string base = texture.substr(0, texture.find('^'));
-        size_t dotpos = base.rfind('.');
-        std::string stem = dotpos == std::string::npos ? base : base.substr(0, dotpos);
-        std::string ext = dotpos == std::string::npos ? std::string() : base.substr(dotpos);
-        auto lookup = [&](const char *suffix) -> Ref<Texture2D> {
-            std::string name = stem + suffix + ext;
-            if (!session.tsrc()->isKnownSourceImage(name))
-                return Ref<Texture2D>();
-            GoannaTexture *cgt = dynamic_cast<GoannaTexture *>(session.tsrc()->getTexture(name));
-            if (!cgt)
-                return Ref<Texture2D>();
-            return Ref<Texture2D>(cgt->godotTexture());
-        };
-		const char *no_pbr_env = getenv("GOANNA_NO_PBR");
-		if (!no_pbr_env || !*no_pbr_env) {
-            normal_tex = lookup("_n");
-            spec_tex = lookup("_s");
+        const char *no_pbr_env = getenv("GOANNA_NO_PBR");
+        if (!no_pbr_env || !*no_pbr_env) {
+            // A plain overlay stack (a villager's base, biome, profession and
+            // badge; a golem's crack) gets companions composited the same
+            // way, so each layer's own maps show where it covers
+            // (goanna_overlay_companions.h). Anything else, or a single
+            // image, takes the base image's companions: a texture modifier
+            // (transform, combine, mask) is baked into the rendered image and
+            // has no file of its own to look a companion up for.
+            std::vector<OverlayLayer> layers;
+            if (parseOverlayLayers(texture, layers) && layers.size() > 1) {
+                normal_tex = compositeCompanion(session, texture, layers, "_n");
+                spec_tex = compositeCompanion(session, texture, layers, "_s");
+                composite_layers = (int)layers.size();
+            } else {
+                std::string base = layers.size() == 1 ? layers[0].image
+                        : texture.substr(0, texture.find('^'));
+                normal_tex = companionTexture(session, base, "_n");
+                spec_tex = companionTexture(session, base, "_s");
+            }
         }
     }
 
@@ -202,7 +284,8 @@ Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
     }
     if (getenv("GOANNA_DEBUG_ENTITY_PBR"))
         UtilityFunctions::print("entity pbr: ", String::utf8(texture.c_str()),
-                " normal=", normal_tex.is_valid(), " spec=", spec_tex.is_valid());
+                " normal=", normal_tex.is_valid(), " spec=", spec_tex.is_valid(),
+                " layers=", composite_layers);
     m_mesh_materials[key] = result;
     return result;
 }
