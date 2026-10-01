@@ -8,8 +8,8 @@
  "bevel_px": 3,
  "micro": "none",
  "materials": {
-  "shirt": {"mode": "flat", "base": 0.5, "span": 0.0, "micro": "linen", "micro_strength": 2.2, "micro_params": {"threads": 5.0}, "smooth": 0.2, "smooth_spread": 0.0, "wear": 0.18, "texel_edge": 0.015},
-  "shorts": {"mode": "flat", "base": 0.48, "span": 0.0, "micro": "coarse", "micro_strength": 1.9, "smooth": 0.18, "smooth_spread": 0.0, "wear": 0.16, "texel_edge": 0.015},
+  "shirt": {"mode": "flat", "base": 0.5, "span": 0.0, "micro": "linen", "micro_strength": 1.3, "micro_params": {"threads": 3.5}, "smooth": 0.2, "smooth_spread": 0.0, "wear": 0.18, "texel_edge": 0.015},
+  "shorts": {"mode": "flat", "base": 0.48, "span": 0.0, "micro": "coarse", "micro_strength": 1.3, "smooth": 0.18, "smooth_spread": 0.0, "wear": 0.16, "texel_edge": 0.015},
   "button": {"mode": "flat", "base": 0.58, "span": 0.0, "micro": "none", "smooth": 0.5, "smooth_spread": 0.0}
  },
  "palette": {"#d29827": "button", "#221b18": "shorts", "#2d2522": "shorts", "#3d332f": "shorts", "#4f4340": "shorts"}
