@@ -71,6 +71,24 @@ on one flat panel); knit and weave showed only under a low sun, so their
 strength was raised to read in ordinary light; and a dome over the whole
 iris drew a ring at its edge.
 
+Third round of the hair (2026-10-02): the owner found the rounded
+bundles plastic tree bark, and the first round's straight grain closer.
+A few wide wavy grooves carved into a surface read as bark, and a sheen
+band with a round across each lock read as plastic. The hair now takes
+the `bristle` kind: each lock is about ten fine straight strands to a
+texel, each a thin cylinder whose normal tilts across it and not along
+it, with no groove between them, and the strands end raggedly short of
+a tip that stands over a lower texel. A strand is under two map pixels
+wide, which a central difference of a height cannot draw (a two pixel
+ridge has no difference across it), so the kind gives its normal as
+slopes averaged over sixteen points per pixel, and an occlusion for the
+gaps between strand ends; `atlas.py` and `lib.pack` take both. The lock
+layout and levels are the second round's. Most of the strands are gone
+by the second mip level (four map pixels per art texel), which is about
+a player a dozen nodes away on a 1080 line screen at a 72 degree field
+of view (estimated, not measured in game), so at a distance the hair is
+its lock steps and its smoothness only.
+
 The plains farmer villager was authored on 2026-10-02 after the first
 villager pass looked no different in game with maps on: only the base
 had maps, and the plains and farmer overlays, which cover nearly all of
