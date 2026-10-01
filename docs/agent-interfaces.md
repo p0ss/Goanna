@@ -178,8 +178,9 @@ act.
 An experimental first pass is available with `GOANNA_PLAYER_AGENT=1`, using
 loopback port 30850 (or set the variable to another port). `tools/goanna-player`
 provides `hello` and `observe`, while `tools/goanna-player-mcp` exposes the
-same read-only operations to an agent host. It is independent of
-`GOANNA_CONTROL`; enabling it does not enable the privileged developer API.
+same operations to an agent host. It is independent of `GOANNA_CONTROL`;
+enabling it does not enable the privileged developer API. R2 below extends
+the same endpoint with actions.
 
 ### R2: Embodied actor actions
 
@@ -189,6 +190,10 @@ same read-only operations to an agent host. It is independent of
 
 Deliverable: a scripted policy can play through ordinary mechanics. Planning,
 memory and autonomous goal selection remain external.
+
+Status: a first version is in `project/player_agent_channel.gd`, protocol
+`goanna-player/0.2`, described below under "The player agent protocol". What
+has been seen to work, and what has not, is listed at the end of it.
 
 ### R3: Game extension seam
 
@@ -208,6 +213,159 @@ simulation types.
 
 Deliverable: one settlement priority loop. No general autonomous settlement,
 faction diplomacy, culture generation or multi-agent society.
+
+## The player agent protocol
+
+`goanna-player/0.2`, served by `project/player_agent_channel.gd`. It shares
+no code path with the control channel: no dispatcher, no `eval`, no method
+call by name. `project/tests/player_agent_boundary.gd` fails if the channel,
+`tools/goanna-player` or `tools/goanna-player-mcp` gains any of the control
+channel's verbs (`eval`, `run`, `call`, `tp`, `pose`, `inspect`, `time`,
+`weather`, `set`, `shot`, `reload_shader` and the rest), or if the channel's
+source gains a dynamic call, a pose write or a second shell call.
+
+### Starting it and the token
+
+Start the client with `GOANNA_PLAYER_AGENT=1` (port 30850) or
+`GOANNA_PLAYER_AGENT=<port>`. It listens on 127.0.0.1 only. At launch it
+writes a fresh random token to `user://player_agent_<port>.token`, created
+with mode 0600 before the token goes in, and deletes the file on exit. Every
+request must carry that token, so another program on the computer cannot
+drive the player without being able to read the user's files.
+
+`tools/goanna_player.py` finds the file where Godot puts `user://` for
+Goanna (`$XDG_DATA_HOME/godot/app_userdata/Goanna` on Linux, falling back to
+`~/.local/share`). `GOANNA_PLAYER_AGENT_TOKEN_FILE` or `--token-file`
+points it elsewhere, `GOANNA_PLAYER_AGENT_TOKEN` gives the token directly,
+and `GOANNA_PLAYER_AGENT_PORT` and `GOANNA_PLAYER_AGENT_HOST` say where the
+channel is.
+
+### Requests
+
+One JSON object per line:
+
+```json
+{"id": 7, "token": "...", "cmd": "dig", "args": {"based_on": 41}}
+```
+
+The reply is `{"id": 7, "ok": true, "result": {...}}`. `ok` is false only
+for a malformed request, a wrong token or an unknown command. A refused or
+stale action is a result, not an error.
+
+### Observations
+
+`observe` returns the protocol, session, subject, scope (`actor`), a
+`sequence` that increases with every observation, the frame `tick`, and:
+
+- `body`: feet position, health, breath, grounded, in liquid, climbing,
+  velocity, wielded slot and item, hotbar size;
+- `camera`: eye position, pitch, yaw, look direction, field of view;
+- `pointed`: what the crosshair is on, within the wielded item's reach,
+  exactly as the client's own selection box shows it;
+- `nearby_entities`: objects within 32 nodes that are inside the camera's
+  view and have a clear line from the eye to their body or head, with no
+  walkable node in the way. The client is told about objects behind walls
+  and behind the player; those are left out;
+- `inventory`: the player's own lists, with stripped item descriptions;
+- `window`: the open window, and for a form the slots on screen with their
+  contents and the stack on the cursor;
+- `events`: chat lines and action results since `since_event`;
+- `visible_nodes`, only when asked for (`{"columns", "rows", "range"}`, up
+  to 24 by 16 rays and 32 nodes): the first node each ray through the screen
+  meets, which is the surface the player sees there. Rays stop at unloaded
+  nodes and look through the medium the eye is in (water under water).
+
+Positions use Godot's axes: Luanti's x, y and -z, in nodes. Light and fog
+are not considered, so an object or surface in darkness, or far off under
+water, is still reported; this is the known way an observation can say
+more than a person would make out.
+
+### Actions
+
+Every action except `release` must carry `based_on`, the sequence of the
+observation it was decided on. The last 64 observations are kept.
+
+| Action | Arguments | What it does |
+| --- | --- | --- |
+| `look` | `pitch`, `yaw`, `turn_pitch`, `turn_yaw` | Sets the view, pitch clamped to 89 degrees either way. |
+| `move` | `controls` (forward, backward, left, right, jump, sneak, aux1), `duration_ms` | Holds the controls for up to 30 s, or until `release` when `duration_ms` is left out. |
+| `release` | `control`: all, buttons or one control | Lets go. Ending a move lets go of every control it held. |
+| `dig` | `max_ms` | Holds dig on the pointed node until it breaks, then lets go. |
+| `place` | | One right click on the pointed node. |
+| `use` | | One right click on whatever is pointed at, or on nothing to use the wielded item. |
+| `attack` | `duration_ms` | Holds dig on the pointed entity. |
+| `hotbar` | `slot`, from 1 | Selects a hotbar slot. |
+| `drop` | `single` | Luanti's drop key on the wielded stack. |
+| `inventory_open` | | Opens the player's inventory form. |
+| `inventory_close` | | Closes the open form, as Escape does. |
+| `inventory_click` | `location`, `list`, `index`, `button`, `shift` | Clicks a slot of the open form. |
+| `chat` | `text` | Sends one line of chat. |
+
+`wait` (`ticks`, `ms`, `event` with `since_event`, or `action`, each with
+`timeout_ms`) and `action_status` (`action`) are queries and need no
+`based_on`.
+
+The movement controls join main.gd's key state, and dig and place join the
+mouse buttons, ahead of `step_player` and `step_interact`. So the action
+goes through the same code as a person's input: the same reach, dig times,
+punch interval, window gate (nothing moves while a form is open), and the
+server's own privilege, protection, anticheat and rate checks. Inventory
+clicks go to the open form's slot handlers, the ones a mouse click reaches,
+and only for slots the form shows. Picking a stack up and putting it down
+are two clicks, as with a mouse.
+
+These are refused outright: chat beginning with `/` (a server command),
+more than 20 actions a second, more than 5 chat lines in 10 seconds, body
+actions while a window or chat is open, while dead or with the free camera
+on, and anything while the player is not in a world.
+
+### Results
+
+| Status | Meaning |
+| --- | --- |
+| `accepted` | Under way. A held move, or anything sent with `wait: false`. |
+| `completed` | It happened. `effects` says what was seen to change. |
+| `interrupted` | It started and stopped early: the crosshair left the target, a window opened, the time limit passed, or a release. |
+| `refused` | It cannot be done, or the server undid it (a dig whose node came back). |
+| `stale` | The target is not what `based_on` observed: the pointed node, entity or slot changed, or the observation is too old. Observe again. |
+
+A dig is predicted by the client and undone by a server that refuses it, so
+its result waits 1.5 s after the break. A node that comes back is
+`refused`. `place` and `use` report what changed (a placed node, an opened
+form, inventory counts) and give a reason when nothing visibly did.
+
+### Seen working
+
+On 2026-10-01, Goanna from this branch against a Luanti 5.17.0 server
+running Mineclonia on the same machine, Godot 4.5.1, headless with software
+rendering (`tools/goanna-headless start --software`), driven by
+`tools/goanna-player` and small scripts over `tools/goanna_player.py`:
+
+- `hello`, `observe` with and without the token (refused without);
+- `look`, then `dig` of the pointed dirt: `completed`, the inventory gained
+  the drop;
+- `hotbar`, then `place`: `completed`, the node appeared and the inventory
+  count fell;
+- `dig` by a player without `interact`: the server logged the refusal and
+  put the node back, and the result was `refused`;
+- `dig` with a node on screen but beyond reach: `refused`, nothing pointed;
+- `dig` based on an observation from before the view turned: `stale`;
+- `move` for a time and held until `release`, swimming included;
+- `inventory_open`, two `inventory_click`s moving a stack, a stale click,
+  `inventory_close`, and `look` refused while the form was open;
+- `chat`, its line coming back as a chat event, and `/grant` refused;
+- `drop` of one item, the inventory count falling;
+- `attack` with a node under the crosshair: `refused`;
+- the MCP wrapper listing its tools, answering `hello`, refusing a `/tp`
+  chat line, and not knowing `goanna_player_eval`; developer verbs sent
+  straight to the socket answered as unavailable.
+
+Not verified: `attack` landing on a mob. Every mob the test scripts aimed
+at moved out of reach first (the spawn was beside a lake, and the
+software rendered client ran at about five frames a second). Protection
+was not exercised either: the test world had no protection mod, so only a
+missing privilege was. Not built: clicking form buttons and fields other
+than slots, and the death screen's respawn.
 
 ## Explicit non-goals
 

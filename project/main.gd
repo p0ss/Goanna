@@ -268,6 +268,13 @@ var walk_started := false
 var dig_down := false
 var place_down := false
 var place_pressed := false
+# The player agent's buttons (player_agent_channel.gd, GOANNA_PLAYER_AGENT),
+# held beside the mouse's. They join the same dig and place inputs below, so
+# reach, dig times, the window gate and the server's checks all apply.
+var player_agent: Node
+var agent_dig := false
+var agent_place := false
+var agent_place_pressed := false
 var wield := 0
 var selection_box: MeshInstance3D
 var pointed: Dictionary = {}
@@ -876,12 +883,14 @@ func _ready() -> void:
 			add_child(cc)
 		else:
 			push_error("GOANNA_CONTROL is set but control_channel.gd is not in this build")
-	# Experimental player-agent protocol. This is a distinct, read-only
-	# endpoint: it deliberately cannot reach the privileged control dispatcher.
+	# Experimental player-agent protocol. This is a distinct endpoint with its
+	# own small vocabulary of ordinary player actions: it deliberately cannot
+	# reach the privileged control dispatcher.
 	if OS.get_environment("GOANNA_PLAYER_AGENT") != "" and (player_slot == null or player_slot.slot_index == 0):
 		if ResourceLoader.exists("res://player_agent_channel.gd"):
 			var pa: Node = (load("res://player_agent_channel.gd") as GDScript).new()
 			pa.main = self
+			player_agent = pa
 			add_child(pa)
 		else:
 			push_error("GOANNA_PLAYER_AGENT is set but player_agent_channel.gd is not in this build")
@@ -1309,6 +1318,11 @@ func _process(delta: float) -> void:
 			_gamepad_look(delta)
 		if OS.get_environment("GOANNA_WALKTEST") != "":
 			keys = _walktest_keys()
+		# A player agent's held controls, as a second keyboard would add
+		# them: gated below by an open window and a benchmark run exactly as
+		# the keys are.
+		if player_agent != null:
+			player_agent.merge_controls(keys)
 		if bench != null and bench.owns_input():
 			# A recording run owns the camera. This window can still be
 			# clicked into and typed at, and a stray key in the middle of a
@@ -1366,9 +1380,10 @@ func _process(delta: float) -> void:
 					_drop_wielded(bool(keys["sneak"]))
 		# The vanilla client points at nothing in the front view.
 		var can_point := not ui_blocks and camera_mode != CAMERA_FRONT
-		var dig := (dig_down or test_dig or pad_dig) and can_point
-		var plc := (place_down or pad_place) and can_point
-		var plc_pressed := (place_pressed or test_plc_pressed or pad_place_pressed) and can_point
+		var dig := (dig_down or test_dig or pad_dig or agent_dig) and can_point
+		var plc := (place_down or pad_place or agent_place) and can_point
+		var plc_pressed := (place_pressed or test_plc_pressed or pad_place_pressed \
+				or agent_place_pressed) and can_point
 		if OS.get_environment("GOANNA_DIGTEST") != "":
 			# look down at the ground in front (hand-diggable, timed) and use slot 4 (light14) to place
 			pitch = -55.0
@@ -1436,6 +1451,7 @@ func _process(delta: float) -> void:
 		if plc_pressed:
 			swing_t = 0.0
 		place_pressed = false
+		agent_place_pressed = false
 		_update_selection_box()
 	elif placed and not showcase_mode:
 		# The free camera's own position is the eye. Where the third person

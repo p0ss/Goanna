@@ -1,62 +1,133 @@
 #!/usr/bin/env python3
-"""MCP wrapper for Goanna's experimental read-only player endpoint."""
+# SPDX-License-Identifier: LGPL-2.1-or-later
+# Copyright (C) 2026 the Goanna contributors
+"""MCP server for Goanna's player agent channel (docs/agent-interfaces.md).
+
+One small tool per player action, so an agent host sees exactly what a
+player can do and nothing more: there are no developer commands here, and
+the channel behind it has none. Every action takes based_on, the sequence of
+the observation it was decided on; a target that has changed since answers
+stale. Results are accepted, completed, interrupted, refused or stale.
+
+Register with: claude mcp add goanna-player /path/to/goanna/tools/goanna-player-mcp
+The token and port are found as tools/goanna_player.py describes.
+"""
 import json
-import os
-import socket
+import pathlib
 import sys
 
-TOOLS = [
-    {"name": "goanna_player_hello", "description": "Discover the player protocol, subject and read-only capabilities.",
-     "inputSchema": {"type": "object", "properties": {}}},
-    {"name": "goanna_player_observe", "description": "Observe synchronized local player state. This tool cannot act or invoke developer commands.",
-     "inputSchema": {"type": "object", "properties": {"since_event": {"type": "integer", "minimum": 0}}}},
-]
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
-def query(command, args):
-    host = os.environ.get("GOANNA_PLAYER_AGENT_HOST", "127.0.0.1")
-    port = int(os.environ.get("GOANNA_PLAYER_AGENT_PORT", "30850"))
-    request = json.dumps({"id": 1, "cmd": command, "args": args}) + "\n"
-    with socket.create_connection((host, port), timeout=5) as peer:
-        peer.sendall(request.encode())
-        data = b""
-        while b"\n" not in data:
-            chunk = peer.recv(65536)
-            if not chunk:
-                raise RuntimeError("endpoint closed without replying")
-            data += chunk
-    reply = json.loads(data.split(b"\n", 1)[0])
-    if not reply.get("ok"):
-        raise RuntimeError(reply.get("error", "request failed"))
-    return reply["result"]
+import goanna_player  # noqa: E402
+
+BASED_ON = {"type": "integer", "minimum": 1,
+            "description": "sequence of the observation this action was decided on"}
+WAIT = {"type": "boolean", "description": "false answers accepted at once; poll with goanna_player_action_status"}
+CONTROL = {"type": "string", "enum": ["forward", "backward", "left", "right", "jump", "sneak", "aux1"]}
+
+
+def tool(name, description, properties=None, required=(), action=True):
+    props = dict(properties or {})
+    req = list(required)
+    if action:
+        props["based_on"] = BASED_ON
+        props["wait"] = WAIT
+        req = ["based_on"] + req
+    schema = {"type": "object", "properties": props, "additionalProperties": False}
+    if req:
+        schema["required"] = req
+    return {"name": "goanna_player_" + name, "description": description, "inputSchema": schema}
+
+
+TOOLS = [
+    tool("hello", "Protocol version, subject, and the observations and actions this player has.", action=False),
+    tool("observe", "Observe the player: body, camera, the pointed node or entity, entities in view, "
+         "inventory, open window and events. Its sequence is what actions pass as based_on.",
+         {"since_event": {"type": "integer", "minimum": 0},
+          "visible_nodes": {"type": "object", "description": "sample the nodes on screen on a grid",
+                            "properties": {"columns": {"type": "integer", "minimum": 1, "maximum": 24},
+                                           "rows": {"type": "integer", "minimum": 1, "maximum": 16},
+                                           "range": {"type": "number", "minimum": 1, "maximum": 32}},
+                            "additionalProperties": False}}, action=False),
+    tool("look", "Set the view (pitch -89 to 89, yaw in degrees) or turn it by turn_pitch and turn_yaw.",
+         {"pitch": {"type": "number"}, "yaw": {"type": "number"},
+          "turn_pitch": {"type": "number"}, "turn_yaw": {"type": "number"}}),
+    tool("move", "Hold movement controls for duration_ms, or until goanna_player_release when it is left out.",
+         {"controls": {"type": "array", "items": CONTROL, "minItems": 1},
+          "duration_ms": {"type": "integer", "minimum": 1, "maximum": 30000}}, ["controls"]),
+    tool("release", "Let go of a held control, of the dig and place buttons (buttons), or of everything (all).",
+         {"control": {"type": "string", "enum": ["all", "buttons", "forward", "backward", "left",
+                                                 "right", "jump", "sneak", "aux1"]}}, action=False),
+    tool("dig", "Hold dig on the node under the crosshair until it breaks. Reach, dig time and the "
+         "server's checks apply; refused if the server puts the node back.",
+         {"max_ms": {"type": "integer", "minimum": 100, "maximum": 30000}}),
+    tool("place", "Right click the node under the crosshair: place the wielded item against it, or use it."),
+    tool("use", "Right click whatever is under the crosshair, or use the wielded item when nothing is."),
+    tool("attack", "Punch the entity under the crosshair, holding the button for duration_ms.",
+         {"duration_ms": {"type": "integer", "minimum": 1, "maximum": 30000}}),
+    tool("hotbar", "Select a hotbar slot, counting from 1.", {"slot": {"type": "integer", "minimum": 1}}, ["slot"]),
+    tool("drop", "Drop the wielded stack, or one item of it.", {"single": {"type": "boolean"}}),
+    tool("inventory_open", "Open the player's inventory form."),
+    tool("inventory_close", "Close the open form, as Escape does."),
+    tool("inventory_click", "Click a slot of the open form, as observed in window.lists. "
+         "Picking up and putting down are two clicks.",
+         {"location": {"type": "string"}, "list": {"type": "string"},
+          "index": {"type": "integer", "minimum": 0},
+          "button": {"type": "string", "enum": ["left", "right", "middle"]},
+          "shift": {"type": "boolean"}}, ["location", "list", "index"]),
+    tool("chat", "Say one line in chat. Server commands (a leading slash) are refused.",
+         {"text": {"type": "string", "minLength": 1, "maxLength": 500}}, ["text"]),
+    tool("wait", "Wait for ticks (frames), ms, an event after since_event, or an action to end.",
+         {"ticks": {"type": "integer", "minimum": 1, "maximum": 600},
+          "ms": {"type": "integer", "minimum": 0, "maximum": 30000},
+          "event": {"type": "string", "enum": ["chat", "action", "any"]},
+          "since_event": {"type": "integer", "minimum": 0},
+          "action": {"type": "integer", "minimum": 1},
+          "timeout_ms": {"type": "integer", "minimum": 0, "maximum": 30000}}, action=False),
+    tool("action_status", "The current result of an earlier action.",
+         {"action": {"type": "integer", "minimum": 1}}, ["action"], action=False),
+]
+COMMANDS = {t["name"]: t["name"][len("goanna_player_"):] for t in TOOLS}
+
 
 def respond(identifier, result=None, error=None):
     message = {"jsonrpc": "2.0", "id": identifier}
     message["error" if error else "result"] = error or result
     print(json.dumps(message), flush=True)
 
-for line in sys.stdin:
-    try:
-        message = json.loads(line)
-        method = message.get("method")
-        if method == "initialize":
-            result = {"protocolVersion": "2025-06-18", "capabilities": {"tools": {}},
-                      "serverInfo": {"name": "goanna-player", "version": "0.1.0"}}
-        elif method == "tools/list":
-            result = {"tools": TOOLS}
-        elif method == "tools/call":
-            name = message.get("params", {}).get("name")
-            arguments = message.get("params", {}).get("arguments", {})
-            commands = {"goanna_player_hello": "hello", "goanna_player_observe": "observe"}
-            if name not in commands:
-                raise RuntimeError("unknown tool %s" % name)
-            value = query(commands[name], arguments)
-            result = {"content": [{"type": "text", "text": json.dumps(value)}]}
-        else:
-            if "id" not in message:
-                continue
-            raise RuntimeError("unknown method %s" % method)
-        if "id" in message:
-            respond(message["id"], result=result)
-    except Exception as error:
-        if 'message' in locals() and "id" in message:
-            respond(message["id"], error={"code": -32000, "message": str(error)})
+
+def main():
+    for line in sys.stdin:
+        message = None
+        try:
+            message = json.loads(line)
+            method = message.get("method")
+            if method == "initialize":
+                result = {"protocolVersion": "2025-06-18", "capabilities": {"tools": {}},
+                          "serverInfo": {"name": "goanna-player", "version": "0.2.0"}}
+            elif method == "tools/list":
+                result = {"tools": TOOLS}
+            elif method == "tools/call":
+                params = message.get("params", {})
+                name = params.get("name")
+                if name not in COMMANDS:
+                    raise RuntimeError("unknown tool %s" % name)
+                value = goanna_player.query(COMMANDS[name], params.get("arguments") or {})
+                result = {"content": [{"type": "text", "text": json.dumps(value)}]}
+            else:
+                if "id" not in message:
+                    continue
+                raise RuntimeError("unknown method %s" % method)
+            if "id" in message:
+                respond(message["id"], result=result)
+        except Exception as error:
+            if isinstance(message, dict) and "id" in message:
+                if message.get("method") == "tools/call":
+                    respond(message["id"], result={"content": [{"type": "text", "text": str(error)}],
+                                                   "isError": True})
+                else:
+                    respond(message["id"], error={"code": -32000, "message": str(error)})
+
+
+if __name__ == "__main__":
+    main()

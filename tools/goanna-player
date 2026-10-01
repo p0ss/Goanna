@@ -1,35 +1,132 @@
 #!/usr/bin/env python3
-"""Query Goanna's experimental read-only player-agent endpoint."""
+# SPDX-License-Identifier: LGPL-2.1-or-later
+# Copyright (C) 2026 the Goanna contributors
+"""Observe and act as the player of a Goanna client started with
+GOANNA_PLAYER_AGENT (docs/agent-interfaces.md). Every action takes
+--based-on, the sequence of the observation it was decided on, except
+release. Prints the JSON result; exits 0 unless the request itself failed."""
 import argparse
 import json
-import socket
+import pathlib
 import sys
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+
+import goanna_player  # noqa: E402
+
+CONTROLS = ("forward", "backward", "left", "right", "jump", "sneak", "aux1")
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("hello", "observe"))
-    parser.add_argument("--host", default="127.0.0.1")
-    parser.add_argument("--port", type=int, default=30850)
-    parser.add_argument("--since-event", type=int, default=0)
+    parser.add_argument("--host", default=None)
+    parser.add_argument("--port", type=int, default=None)
+    parser.add_argument("--token-file", default=None,
+                        help="the client's player_agent_<port>.token (found in Godot's user data by default)")
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    def action(name, **kw):
+        p = sub.add_parser(name, **kw)
+        p.add_argument("--based-on", type=int, required=True,
+                       help="the observation sequence this action was decided on")
+        p.add_argument("--no-wait", action="store_true", help="answer accepted at once")
+        return p
+
+    sub.add_parser("hello", help="protocol, subject and capabilities")
+    p = sub.add_parser("observe", help="one synchronised observation")
+    p.add_argument("--since-event", type=int, default=0)
+    p.add_argument("--nodes", default=None, metavar="COLSxROWS",
+                   help="also sample the nodes on screen on a grid, for example 9x7")
+    p.add_argument("--range", type=float, default=16.0)
+    p = action("look", help="set or turn the view, in degrees")
+    p.add_argument("--pitch", type=float)
+    p.add_argument("--yaw", type=float)
+    p.add_argument("--turn-pitch", type=float)
+    p.add_argument("--turn-yaw", type=float)
+    p = action("move", help="hold movement controls for a time, or until release")
+    p.add_argument("controls", nargs="+", choices=CONTROLS)
+    p.add_argument("--duration-ms", type=int)
+    p = sub.add_parser("release", help="let go of held controls and buttons")
+    p.add_argument("control", nargs="?", default="all", choices=("all", "buttons") + CONTROLS)
+    p = action("dig", help="hold dig on the pointed node until it breaks")
+    p.add_argument("--max-ms", type=int, default=15000)
+    action("place", help="right click the pointed node: place or use it")
+    action("use", help="right click whatever is pointed at, or use the wielded item")
+    p = action("attack", help="punch the pointed entity")
+    p.add_argument("--duration-ms", type=int, default=100)
+    p = action("hotbar", help="select a hotbar slot, from 1")
+    p.add_argument("slot", type=int)
+    p = action("drop", help="drop the wielded stack")
+    p.add_argument("--single", action="store_true", help="only one item")
+    action("inventory-open", help="open the player's inventory")
+    action("inventory-close", help="close the open form, as Escape does")
+    p = action("inventory-click", help="click a slot of the open form")
+    p.add_argument("location", help="current_player, context or nodemeta:x,y,z as observed")
+    p.add_argument("list")
+    p.add_argument("index", type=int)
+    p.add_argument("--button", default="left", choices=("left", "right", "middle"))
+    p.add_argument("--shift", action="store_true")
+    p = action("chat", help="say a line in chat (no server commands)")
+    p.add_argument("text")
+    p = sub.add_parser("wait", help="wait for ticks, time, an event or an action")
+    p.add_argument("--ticks", type=int)
+    p.add_argument("--ms", type=int)
+    p.add_argument("--event", choices=("chat", "action", "any"))
+    p.add_argument("--since-event", type=int)
+    p.add_argument("--action", type=int)
+    p.add_argument("--timeout-ms", type=int)
+    p = sub.add_parser("action-status", help="the result of an earlier action")
+    p.add_argument("action", type=int)
     args = parser.parse_args()
-    request = {"id": 1, "cmd": args.command, "args": {}}
-    if args.command == "observe":
-        request["args"]["since_event"] = args.since_event
+
+    command = args.command.replace("-", "_")
+    request = {}
+    if hasattr(args, "based_on"):
+        request["based_on"] = args.based_on
+        if args.no_wait:
+            request["wait"] = False
+    if command == "observe":
+        request["since_event"] = args.since_event
+        if args.nodes:
+            cols, _, rows = args.nodes.partition("x")
+            request["visible_nodes"] = {"columns": int(cols), "rows": int(rows or cols),
+                                        "range": args.range}
+    elif command == "look":
+        for key in ("pitch", "yaw", "turn_pitch", "turn_yaw"):
+            if getattr(args, key) is not None:
+                request[key] = getattr(args, key)
+    elif command == "move":
+        request["controls"] = args.controls
+        if args.duration_ms is not None:
+            request["duration_ms"] = args.duration_ms
+    elif command == "release":
+        request["control"] = args.control
+    elif command == "dig":
+        request["max_ms"] = args.max_ms
+    elif command == "attack":
+        request["duration_ms"] = args.duration_ms
+    elif command == "hotbar":
+        request["slot"] = args.slot
+    elif command == "drop":
+        request["single"] = args.single
+    elif command == "inventory_click":
+        request.update(location=args.location, list=args.list, index=args.index,
+                       button=args.button, shift=args.shift)
+    elif command == "chat":
+        request["text"] = args.text
+    elif command == "wait":
+        for key in ("ticks", "ms", "event", "since_event", "action", "timeout_ms"):
+            if getattr(args, key) is not None:
+                request[key] = getattr(args, key)
+    elif command == "action_status":
+        request["action"] = args.action
     try:
-        with socket.create_connection((args.host, args.port), timeout=5) as peer:
-            peer.sendall((json.dumps(request) + "\n").encode())
-            data = b""
-            while b"\n" not in data:
-                chunk = peer.recv(65536)
-                if not chunk:
-                    raise RuntimeError("endpoint closed without replying")
-                data += chunk
-    except (OSError, RuntimeError) as error:
+        result = goanna_player.query(command, request, host=args.host, port=args.port,
+                                     token_file=args.token_file)
+    except RuntimeError as error:
         sys.exit(str(error))
-    reply = json.loads(data.split(b"\n", 1)[0])
-    if not reply.get("ok"):
-        sys.exit(reply.get("error", "request failed"))
-    print(json.dumps(reply["result"], indent=2))
+    print(json.dumps(result, indent=2))
+
 
 if __name__ == "__main__":
     main()
