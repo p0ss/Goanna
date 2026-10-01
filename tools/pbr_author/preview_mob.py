@@ -78,6 +78,14 @@ chain averages sub-texel detail further than this does, and the sky here
 is a gradient, so glare off a smooth face is under-reported too. --crop
 writes crop.png, one face three times enlarged.
 
+--legibility, with --parallax, prints per visible face how much of the
+art survives the march: the share of art texels that keep at least half
+the pixels they cover on the flat face, and the distinct colours shown.
+A raised texel sliding over a lower neighbour at an angle hides it; the
+GPU review of 2026-10-02 saw the creeper's darker greens vanish that way.
+Heights are marched lifted per face, as the client does since it lifts
+each face's highest texel onto the face.
+
 Writes into <out dir>:
   maps_on.png           sun high, from the front and the visible side
   maps_off.png          the same with every map neutral (flat, rough)
@@ -396,6 +404,23 @@ def _lookup(img, uv):
                np.clip(np.floor(uv[..., 0] * w).astype(int), 0, w - 1)]
 
 
+def face_lift(N, albedo, rects):
+    """Per pixel, 1 minus the highest stored height over the drawn texels
+    of its face, which the client adds to every height it marches so a
+    face's highest texel sits on the face (lift_tex in
+    entity_common.gdshaderinc, built in src/goanna_entities.cpp)."""
+    mh, mw = N.shape[:2]
+    a = nearest(albedo[..., 3], mh, mw) >= 0.5
+    keys, inv = np.unique(np.round(rects, 6), axis=0, return_inverse=True)
+    out = np.zeros(len(keys))
+    for i, (u0, v0, u1, v1) in enumerate(keys):
+        x0, x1 = int(round(u0 * mw)), max(int(round(u1 * mw)), int(round(u0 * mw)) + 1)
+        y0, y1 = int(round(v0 * mh)), max(int(round(v1 * mh)), int(round(v0 * mh)) + 1)
+        hh = N[y0:y1, x0:x1, 3][a[y0:y1, x0:x1]]
+        out[i] = 1.0 - hh.max() / 255.0 if hh.size else 0.0
+    return out[inv.ravel()]
+
+
 def march(r, layers, depths, steps=32):
     """A crude parallax occlusion march, the entity shader's
     (project/shaders/entity_common.gdshaderinc): from each pixel's UV,
@@ -403,7 +428,8 @@ def march(r, layers, depths, steps=32):
     depths[brush] nodes, clamped inside the face's own UV rectangle, with
     the same chord refinement and the same pull back from a transparent
     hit. Then albedo, _n and _s are read again at the marched UV. Nearest
-    sampling, a fixed step count, no fade with distance. Returns a copy of
+    sampling, a fixed step count, no fade with distance. Heights are read
+    lifted per face as the client lifts them (face_lift). Returns a copy of
     r with the march's state kept for shadow()."""
     r = {k: (v.copy() if isinstance(v, np.ndarray) else v) for k, v in r.items()}
     r["d_hit"] = np.zeros(r["hit"].shape)
@@ -428,7 +454,8 @@ def march(r, layers, depths, steps=32):
         inset = 0.005 / np.array((aw, ah))
         lo = rect[:, :2] + inset
         hi = np.maximum(rect[:, 2:] - inset, lo)
-        height = lambda q: 1.0 - _lookup(N, q)[..., 3] / 255.0  # noqa: E731
+        lift = face_lift(N, albedo, rect)
+        height = lambda q: np.maximum(1.0 - lift - _lookup(N, q)[..., 3] / 255.0, 0.0)  # noqa: E731
         d = np.zeros(len(uv0))
         d_prev = d.copy()
         uv = np.clip(uv0, lo, hi)
@@ -471,6 +498,7 @@ def march(r, layers, depths, steps=32):
         r.setdefault("lo", np.zeros(r["hit"].shape + (2,)))[sel] = lo
         r.setdefault("hi", np.zeros(r["hit"].shape + (2,)))[sel] = hi
         r.setdefault("_N", {})[b] = N
+        r.setdefault("lift", np.zeros(r["hit"].shape))[sel] = lift
     return r
 
 
@@ -506,7 +534,8 @@ def shadow(r, sun_view, up_view, strength=0.85):
         dk = d_hit / 8.0
         for _ in range(8):
             k = k + dk
-            hs = 1.0 - _lookup(N, np.clip(puv + sslope * k[:, None], lo, hi))[..., 3] / 255.0
+            hs = np.maximum(1.0 - r["lift"][Y, X]
+                            - _lookup(N, np.clip(puv + sslope * k[:, None], lo, hi))[..., 3] / 255.0, 0.0)
             blocked = np.maximum(blocked, (d_hit - k) - hs)
         out[Y, X] = 1.0 - np.clip(blocked * 6.0, 0.0, 1.0) * strength
     return out
@@ -536,6 +565,39 @@ def face_contrast(img, r, texel, min_texels=6):
             continue
         v = (num / np.maximum(den, 1e-6))[core]
         out[int(f)] = float(v.std() / max(v.mean(), 1e-6))
+    return out
+
+
+def legibility(flat, marched, layers, min_px=4):
+    """Per visible face, how much of the art survives the march: for each
+    art texel, the pixels showing it after the march over the pixels
+    showing it on the flat face (capped at 1), counted over texels the
+    flat view shows at least min_px pixels of. {face id: (share of those
+    texels keeping at least half their area, mean kept area, distinct
+    art colours shown flat, distinct colours shown marched)}."""
+    out = {}
+    hit = flat["hit"] & marched["hit"]
+    for f in np.unique(flat["face"][hit]):
+        m = hit & (flat["face"] == f)
+        b = int(flat["brush"][m][0])
+        albedo = layers[b][0]
+        ah, aw = albedo.shape[:2]
+
+        def ids(r):
+            uv = r["uv"][m]
+            return (np.clip(np.floor(uv[:, 1] * ah).astype(int), 0, ah - 1) * aw
+                    + np.clip(np.floor(uv[:, 0] * aw).astype(int), 0, aw - 1))
+        a, c = ids(flat), ids(marched)
+        ta, na = np.unique(a, return_counts=True)
+        tc, nc = np.unique(c, return_counts=True)
+        on = dict(zip(tc, nc))
+        keep = na >= min_px
+        if keep.sum() < 4:
+            continue
+        share = np.array([min(on.get(t, 0) / n, 1.0) for t, n in zip(ta[keep], na[keep])])
+        rgb = (albedo.reshape(-1, 4)[:, :3] * 255).round().astype(int)
+        col = lambda t: len({tuple(rgb[i]) for i in t})  # noqa: E731
+        out[int(f)] = (float((share >= 0.5).mean()), float(share.mean()), col(ta[keep]), col(tc))
     return out
 
 
@@ -656,6 +718,9 @@ def main():
                     help="march the stored height as the entity shader does, with its self shadow")
     ap.add_argument("--contrast", action="store_true",
                     help="print each visible face's contrast with maps on over maps off")
+    ap.add_argument("--legibility", action="store_true",
+                    help="with --parallax, print per face the share of art texels keeping half "
+                    "their area through the march")
     ap.add_argument("--crop", default=None, metavar="X0,Y0,X1,Y1",
                     help="also write crop.png: the face with this art texel rectangle, "
                     "maps off, maps on, low sun on, three times enlarged")
@@ -688,7 +753,23 @@ def main():
         for b, d in depths.items():
             print("brush %d relief %.3f node (%.2f art texels for the full height range)"
                   % (b, d, 16 * d))
+        flat_on = views[True]
         views[True] = march(views[True], layers_on, depths)
+        if a.legibility:
+            leg = legibility(flat_on, views[True], layers_on)
+            worst = None
+            for f, (kept, area, c0, c1) in sorted(leg.items()):
+                m = flat_on["face"] == f
+                b = int(flat_on["brush"][m][0])
+                ah, aw = layers_on[b][0].shape[:2]
+                rect = np.round(flat_on["rect"][m][0] * (aw, ah, aw, ah)).astype(int).tolist()
+                print("    legibility brush %d face %s: %.0f%% of texels keep half their area, "
+                      "mean area %.0f%%, colours %d of %d" % (b, rect, 100 * kept, 100 * area, c1, c0))
+                if worst is None or kept < worst[0]:
+                    worst = (kept, b, rect)
+            if worst:
+                print("legibility worst face brush %d %s: %.0f%% of texels keep half their area"
+                      % (worst[1], worst[2], 100 * worst[0]))
         ss_hi, ss_lo = shadow(views[True], hi, upv), shadow(views[True], lo, upv)
     shots = {
         "maps_on": shade(views[True], hi, upv, self_shadow=ss_hi),
