@@ -459,26 +459,25 @@ The player's velocity is the movement step's own (`last_move.speed`);
 animals shove at 0.7 of the player and move between the ten-a-second
 samples along their last velocity.
 
-Three tunings came before this one. The first, on a swimmer at 3 nodes a
-second, drew nothing a player could see: wading at 1 node a second left a
-slope of 0.09 against the rings' 0.3. The second pressed down on the water
-under every body all the time and swayed that press at a fixed 1.1 Hz,
-which drew waves out of a player standing still, at a rate that had
-nothing to do with what the player did, and the press, built up over half
-a second, left the middle of the pattern behind a moving player. The third
-lifted the surface with the body's own vertical speed, in the air as well
-as in the water, making water to do it, and a player jumping up and down
-piled up broad mounds with no troughs, drawn as white smoke rings by the
-crest whitening that went with them. Jumping in and out for five seconds
-peaked at 0.27 and -0.23 with no water made under that tuning; a gentle bob, a fifth of a
-node up and down, makes faint rings (0.03), as it does in real water, where
-narrowing the push to sharpen them only made them fainter. The test
-prints and floors the steepest slope 0.4 to 1.5 and 1.5 to 6 nodes from a
-swimmer. Now, for a player: nothing holding still; moving, 0.35 to 1.2 near
+Three tunings came before this one. The first, on a swimmer at 3 nodes a second,
+drew nothing a player could see: wading at 1 node a second left a slope of 0.09
+against the rings' 0.3. The second pressed down on the water under every body
+all the time and swayed that press at a fixed 1.1 Hz, which drew waves out of a
+player standing still, at a rate that had nothing to do with what the player
+did, and the press, built up over half a second, left the middle of the pattern
+behind a moving player. The third lifted the surface with the body's own
+vertical speed, in the air as well as in the water, making water to do it, and a
+player jumping up and down piled up broad mounds with no troughs, drawn as white
+smoke rings by the crest whitening that went with them. Jumping in and out for
+five seconds peaked at 0.27 and -0.23 with no water made under that tuning; a
+gentle bob, a fifth of a node up and down, makes faint rings (0.03), as it does
+in real water, where narrowing the push to sharpen them only made them fainter.
+The test prints and floors the steepest slope 0.4 to 1.5 and 1.5 to 6 nodes from
+a swimmer. Now, for a player: nothing holding still; moving, 0.35 to 1.2 near
 and 0.22 to 0.30 further out; bobbing 0.11 near and 0.024 out; 0.09 out two
-seconds after dropping in. Jumping in and out for five seconds peaks at
-0.08 round the body. It also checks a swimmer's crest is ahead of it and
-its trough behind, centred on it.
+seconds after dropping in. Jumping in and out for five seconds peaks at 0.08
+round the body. It also checks a swimmer's crest is ahead of it and its trough
+behind, centred on it.
 
 **Which bodies** (`project/ui/wake.gd`, `claim` and `ripple_frame`). The
 patch lies on one water surface: the local player's, when it is in the
@@ -578,20 +577,20 @@ yet on a GPU.
 - **Moving through the surface** faster than 2.2 nodes a second across,
   with the surface somewhere up its body: spray fanned up and forward off
   its bow, harder the faster it goes, for as long as it keeps moving.
-- **A blow at the water.** A dig or punch pressed (`main.gd`,
-  `_strike_water`) looks along the view ray, within the hand's 4 nodes and
-  short of any node the blow hit, for the first open water surface; there
-  it kicks the ripple patch and throws a burst and a crown. It works from the bank, with
-  nobody in the water: the patch then lies on the struck surface. A blow at
-  a mob is the mob's.
+- **A blow at the water.** A dig or punch pressed (`main.gd`, `_strike_water`)
+  looks along the view ray, within the hand's 4 nodes and short of any node the
+  blow hit, for the first open water surface; there it kicks the ripple patch
+  and throws a burst and a crown. It works from the bank, with nobody in the
+  water: the patch then lies on the struck surface. A blow at a mob is the
+  mob's.
 
-At most one crown or drip a body every 0.3 seconds. The droplets come back
-down as small kicks on the ripple patch, round where they were thrown, 0.3
-to 0.8 seconds later; spray lands beside the bow. Each droplet is a short
-lit streak along its flight, about 0.02 by 0.09 nodes, turned about that
-line to face the eye (`shaders/droplet.gdshader`), fading over the last
-third of its flight. Round billboards 0.07 across, the first version, read
-as white bubbles coming out of the chest and hands. At most 16 bursts and 6 sprays at once.
+At most one crown or drip a body every 0.3 seconds. The droplets come back down
+as small kicks on the ripple patch, round where they were thrown, 0.3 to 0.8
+seconds later; spray lands beside the bow. Each droplet is a short lit streak
+along its flight, about 0.02 by 0.09 nodes, turned about that line to face the
+eye (`shaders/droplet.gdshader`), fading over the last third of its flight.
+Round billboards 0.07 across, the first version, read as white bubbles coming
+out of the chest and hands. At most 16 bursts and 6 sprays at once.
 
 ## The setting
 
