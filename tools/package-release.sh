@@ -80,6 +80,17 @@ mkdir -p "$PKG/assets"
 cp "$CORE_ASSET" "$PKG/assets/"
 chmod +x "$PKG/Goanna/$EXE" 2>/dev/null || true
 
+# The Luanti server Get ready to play sets up on a Linux machine with no
+# Luanti (tools/build-luanti-server.sh; menu.gd, local_server.gd
+# bundled_server). Beside the program, where bundled_server looks. Required:
+# without it a Linux player with no Luanti and no Flatpak cannot start a world.
+if [ "$PLATFORM" = "linux" ]; then
+    SERVER_BUNDLE=$(ls -d dist/luanti-server/luanti-*-server-linux-x86_64 2>/dev/null | head -1)
+    test -n "$SERVER_BUNDLE" || { echo "no Luanti server in dist/luanti-server: run tools/build-luanti-server.sh" >&2; exit 1; }
+    mkdir -p "$PKG/Goanna/luanti-server"
+    cp -r "$SERVER_BUNDLE" "$PKG/Goanna/luanti-server/"
+fi
+
 # Godot's exporter copies the GDExtension shared library itself (declared in
 # goanna.gdextension) but knows nothing about ITS dependencies. On Windows
 # libgoanna...dll dynamically links zlib1.dll and zstd.dll (vcpkg's

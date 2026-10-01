@@ -92,6 +92,25 @@ session's `PATH`) can be checked with:
 godot --headless --path project --script res://tests/local_server_discovery.gd
 ```
 
+The Luanti server the Linux release carries is built in a container from
+the pinned `luanti/` submodule, into `dist/luanti-server/`, which
+`tools/package-release.sh linux` requires:
+
+```sh
+tools/build-luanti-server.sh
+```
+
+Get ready to play from nothing (no Luanti, no Flatpak) to a server
+listening on a new Mineclonia world is checked in clean Ubuntu, Debian,
+Fedora and Arch containers, with network access for the game download:
+
+```sh
+GODOT_BIN=/path/to/godot tools/test-fresh-install.sh
+```
+
+On a machine whose default podman storage is broken, set `PODMAN` to the
+command with `--root` and `--runroot` (both scripts say how).
+
 The Appearance grade's twilight and night bypass, its curve endpoints and
 monotonicity, and its texture cache are checked with:
 

@@ -18,6 +18,8 @@ func _initialize() -> void:
 	_windows()
 	_located()
 	_portable_archive()
+	_game_archive()
+	_copied_server()
 	_titles()
 	LocalServer._remove_tree(base)
 	if failures == 0:
@@ -214,6 +216,48 @@ func _portable_archive() -> void:
 		_zip(path, bad)
 		_assert(LocalServer.install_portable_archive(path, FileAccess.get_sha256(path),
 			dir.path_join("bad")) != "", "a malformed archive was accepted: %s" % str(bad))
+
+
+# The game Get ready to play downloads: unpacked into games/<id> only when its
+# hash matches, never over a game already there, and never out of its folder.
+func _game_archive() -> void:
+	var dir := base.path_join("game-archive")
+	var games := dir.path_join("games")
+	DirAccess.make_dir_recursive_absolute(dir)
+	var good := dir.path_join("good.zip")
+	_zip(good, ["somegame/game.conf", "somegame/mods/a/init.lua"])
+	_assert(LocalServer.install_game_archive(good, "0".repeat(64), games, "somegame") != "",
+		"a game archive with the wrong hash was unpacked")
+	_assert(not DirAccess.dir_exists_absolute(games.path_join("somegame")),
+		"a game archive with the wrong hash left files behind")
+	var sha := FileAccess.get_sha256(good)
+	_assert(LocalServer.install_game_archive(good, sha, games, "somegame") == "",
+		"a good game archive was refused")
+	_assert(FileAccess.file_exists(games.path_join("somegame/mods/a/init.lua")),
+		"a good game archive was not unpacked into games/<id>")
+	_file(games.path_join("somegame/kept.txt"), "mine")
+	_assert(LocalServer.install_game_archive(good, sha, games, "somegame") == "" \
+			and FileAccess.file_exists(games.path_join("somegame/kept.txt")),
+		"installing a game twice replaced the one already there")
+	for bad in [["../escape/game.conf"], ["a/game.conf", "b/init.lua"], ["nogame/init.lua"]]:
+		var path := dir.path_join("bad.zip")
+		_zip(path, bad)
+		_assert(LocalServer.install_game_archive(path, FileAccess.get_sha256(path),
+			dir.path_join("bad"), "bad") != "", "a malformed game archive was accepted: %s" % str(bad))
+
+
+# The bundled Linux server is copied whole into Goanna's own folder.
+func _copied_server() -> void:
+	var source := base.path_join("bundle/luanti-9.9.9-server-linux-x86_64")
+	_file(source.path_join("bin/luantiserver"), "#!/bin/sh\n")
+	_file(source.path_join("builtin/init.lua"))
+	_dir(source.path_join("worlds"))
+	var copy := base.path_join("own/luanti-9.9.9-server-linux-x86_64")
+	_assert(LocalServer._copy_tree(source, copy) == "", "the server folder was not copied")
+	_assert(FileAccess.file_exists(copy.path_join("bin/luantiserver")) \
+			and FileAccess.file_exists(copy.path_join("builtin/init.lua")) \
+			and DirAccess.dir_exists_absolute(copy.path_join("worlds")),
+		"the copied server folder is missing files")
 
 
 func _titles() -> void:

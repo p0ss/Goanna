@@ -51,6 +51,25 @@ MapBlock and Map, inventory and metadata, the SRP authentication stack, and
 the CPU-only Irrlicht image classes. No renderer, no GUI, no scripting, no
 server.
 
+## The Luanti server in the Linux release
+
+The Linux release carries a Luanti server, in `Goanna/luanti-server/`, which
+Get ready to play copies into Goanna's own data folder on a computer with no
+Luanti. It is upstream Luanti, built unmodified from the pinned `luanti/`
+submodule by `tools/build-luanti-server.sh`; Goanna changes none of it. Its
+folder carries Luanti's `LICENSE.txt`, the LGPL text, LuaJIT's copyright
+notice and a `NOTICE.txt` naming the exact commits it was built from, so
+its source can be had from this repository's submodule or from upstream.
+
+| Component | Source | Linkage | Licence |
+| --- | --- | --- | --- |
+| Luanti server | `luanti/`, submodule at 5.17.0 | the program | LGPL-2.1-or-later; media CC BY-SA 3.0 (none of it is in the server) |
+| LuaJIT | upstream, a pinned commit of its v2.1 branch | static | MIT, Copyright (C) 2005-2026 Mike Pall |
+| mini-gmp, sha256, JsonCpp, bitop, lstrpack | `luanti/lib` | static | as in the summary above; bitop and lstrpack MIT |
+| SQLite | Ubuntu 22.04's package | static | public domain |
+| Zstandard, zlib | Ubuntu 22.04's packages | static | as in the summary above |
+| libstdc++, libgcc | GCC 11 | static | GPL-3.0 with the GCC Runtime Library Exception |
+
 ## What this means for the built binary
 
 The extension combines LGPL-2.1-or-later code (Goanna, Luanti) with

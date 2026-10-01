@@ -171,6 +171,16 @@ func _ready() -> void:
 			_show_about()
 		elif want == "luanti":
 			_show_luanti()
+		elif want == "setup":
+			_show_setup()
+		elif want == "setup-run":
+			# Press Set it up and wait for where it lands: Start Game, or
+			# the setup screen again with what went wrong.
+			_show_setup()
+			_run_setup()
+			var deadline := Time.get_ticks_msec() + 180000
+			while _setup_running and Time.get_ticks_msec() < deadline:
+				await get_tree().create_timer(0.5).timeout
 		await RenderingServer.frame_post_draw
 		await RenderingServer.frame_post_draw
 		if want == "join":
@@ -500,6 +510,8 @@ func _show_luanti(reason := "", rescan := false) -> void:
 	actions.add_theme_constant_override("h_separation", 8)
 	actions.add_theme_constant_override("v_separation", 8)
 	screen.add_child(actions)
+	if chosen.is_empty() or (chosen["games"] as Array).is_empty():
+		actions.add_child(_button("Get ready to play", _show_setup))
 	actions.add_child(_button("Locate Luanti ...", _locate_luanti))
 	var install_text := _install_luanti_text(all)
 	if install_text != "":
@@ -670,7 +682,7 @@ func _start_flatpak_install(plan: Dictionary) -> void:
 # while it still is. Progress is shown on the Luanti screen only, so it does
 # not talk over a world the player went on to start meanwhile.
 func _poll_luanti_install() -> bool:
-	var here := _screen_title == "Luanti"
+	var here := _screen_title == "Luanti" or _screen_title == SETUP_TITLE
 	if _luanti_install_pid > 0:
 		if FileAccess.file_exists(_luanti_install_status):
 			_finish_flatpak_install()
@@ -691,6 +703,9 @@ func _poll_luanti_install() -> bool:
 # The result is shown on the Luanti screen, unless the player has meanwhile
 # started a world, which is not interrupted for it.
 func _show_luanti_result(reason := "", rescan := false) -> void:
+	if _setup_running:
+		_setup_after_server(reason)
+		return
 	if server == null:
 		_show_luanti(reason, rescan)
 	elif rescan:
@@ -748,6 +763,151 @@ func _on_luanti_downloaded(result: int, code: int, _headers: PackedStringArray,
 	if not inst.is_empty():
 		LocalServer.choose(inst)
 	_show_luanti_result("", true)
+
+# --- get ready to play ------------------------------------------------------
+
+# One button between a fresh computer and a world, for a child who should not
+# have to meet Luanti's content tab, a package manager or a password prompt:
+# a Luanti server (one already installed, else the server the Linux release
+# carries, else the official Windows build, else Flathub), then a game
+# (Mineclonia, when the chosen Luanti has none), then Start Game.
+const SETUP_TITLE := "Get ready to play"
+var _setup_running := false
+var game_http: HTTPRequest
+var _game_archive_path := ""
+
+func _setup_plan() -> Dictionary:
+	var chosen := LocalServer.detect()
+	var how := "have"
+	if chosen.is_empty():
+		if LocalServer.bundled_server() != "":
+			how = "bundled"
+		elif OS.get_name() == "Windows":
+			how = "windows"
+		elif LocalServer.flatpak_available():
+			how = "flatpak"
+		else:
+			how = "none"
+	var need_game := chosen.is_empty() or (chosen["games"] as Array).is_empty()
+	return {"server": how, "game": need_game}
+
+func _show_setup(reason := "") -> void:
+	_stop_showcase()
+	var plan := _setup_plan()
+	_new_screen(SETUP_TITLE, "To start a world on this computer, Goanna needs Luanti and a game. It can set both up for you.")
+	var steps: PackedStringArray = []
+	match str(plan["server"]):
+		"bundled":
+			steps.append("Set up the Luanti server that came with Goanna. Nothing to download.")
+		"windows":
+			steps.append("Download Luanti %s for Windows (%.0f MB)." % [str(LocalServer.LUANTI_WINDOWS["version"]),
+				int(LocalServer.LUANTI_WINDOWS["bytes"]) / 1000000.0])
+		"flatpak":
+			steps.append("Install Luanti from Flathub. The first Flatpak install also downloads the runtime it needs, a few hundred MB, and may ask for a password.")
+	if bool(plan["game"]):
+		steps.append("Download the game %s %s (%.0f MB)." % [str(LocalServer.STARTER_GAME["title"]),
+			str(LocalServer.STARTER_GAME["version"]), int(LocalServer.STARTER_GAME["bytes"]) / 1000000.0])
+	var what := Label.new()
+	what.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	what.custom_minimum_size = Vector2(520, 0)
+	what.text = "\n".join(steps)
+	screen.add_child(what)
+	if str(plan["server"]) == "none":
+		what.text = "Goanna cannot install Luanti on this computer by itself. Install Luanti from its download page, then come back and press Start Game."
+		screen.add_child(_button("Open the download page",
+			func() -> void: OS.shell_open(LocalServer.DOWNLOAD_PAGE)))
+	else:
+		var go := _button("Set it up", _run_setup)
+		go.custom_minimum_size = Vector2(240, 44)
+		screen.add_child(go)
+	screen.add_child(_button("Choose Luanti myself", func() -> void: _show_luanti()))
+	screen.add_child(_button("Back", _show_main))
+	if reason != "":
+		_fail(reason)
+
+func _run_setup() -> void:
+	if _setup_running:
+		return
+	_setup_running = true
+	GlassStyle.tint_text(status_label, Color(1, 1, 1, 0.7))
+	match str(_setup_plan()["server"]):
+		"bundled":
+			status_label.text = "Setting up the Luanti server ..."
+			var inst := LocalServer.install_bundled_server(LocalServer.bundled_server())
+			if inst.has("error"):
+				_setup_failed(str(inst["error"]))
+				return
+			LocalServer.choose(inst)
+			LocalServer.installs(true)
+		"windows":
+			_start_luanti_download()   # continues in _setup_after_server
+			return
+		"flatpak":
+			var plan := LocalServer.flatpak_install_plan()
+			if plan.is_empty():
+				_setup_failed("The flatpak command was not found.")
+				return
+			_start_flatpak_install(plan)   # continues in _setup_after_server
+			return
+	_setup_game()
+
+func _setup_after_server(reason: String) -> void:
+	if reason != "":
+		_setup_failed(reason)
+		return
+	LocalServer.installs(true)
+	_setup_game()
+
+func _setup_game() -> void:
+	var chosen := LocalServer.detect()
+	if chosen.is_empty():
+		_setup_failed("Luanti was installed, but Goanna cannot find it. Choose it yourself under Choose Luanti myself.")
+		return
+	if not (chosen["games"] as Array).is_empty():
+		_setup_done()
+		return
+	var games_dir := str(chosen["data_dir"]).path_join("games")
+	DirAccess.make_dir_recursive_absolute(games_dir)
+	_game_archive_path = games_dir.path_join(".%s.zip.part" % str(LocalServer.STARTER_GAME["id"]))
+	DirAccess.remove_absolute(_game_archive_path)
+	game_http = HTTPRequest.new()
+	game_http.download_file = _game_archive_path
+	add_child(game_http)
+	game_http.request_completed.connect(_on_game_downloaded.bind(games_dir))
+	if game_http.request(str(LocalServer.STARTER_GAME["url"])) != OK:
+		game_http.queue_free()
+		game_http = null
+		_setup_failed("Could not start the game download.")
+		return
+	set_process(true)
+
+func _on_game_downloaded(result: int, code: int, _headers: PackedStringArray,
+		_body: PackedByteArray, games_dir: String) -> void:
+	var request := game_http
+	game_http = null
+	if is_instance_valid(request):
+		request.queue_free()
+	if result != HTTPRequest.RESULT_SUCCESS or code != 200:
+		DirAccess.remove_absolute(_game_archive_path)
+		_setup_failed("The game download failed (HTTP %d). Check your connection and try again." % code)
+		return
+	status_label.text = "Unpacking %s ..." % str(LocalServer.STARTER_GAME["title"])
+	var error := LocalServer.install_game_archive(_game_archive_path,
+		str(LocalServer.STARTER_GAME["sha256"]), games_dir, str(LocalServer.STARTER_GAME["id"]))
+	DirAccess.remove_absolute(_game_archive_path)
+	if error != "":
+		_setup_failed(error)
+		return
+	LocalServer.installs(true)
+	_setup_done()
+
+func _setup_done() -> void:
+	_setup_running = false
+	_show_new_game()
+
+func _setup_failed(reason: String) -> void:
+	_setup_running = false
+	_show_setup(reason)
 
 # --- settings ----------------------------------------------------------------
 
@@ -1061,13 +1221,10 @@ func _show_new_game() -> void:
 	_stop_showcase()
 	_new_screen("Start Game", "Choose a world, its game and map generator, or host it for other players.")
 	var env := LocalServer.detect()
-	if env.is_empty():
-		_show_luanti("No Luanti install was found. Start Game needs one: choose, locate or install it here.")
+	if env.is_empty() or (env["games"] as Array).is_empty():
+		_show_setup()
 		return
 	var games: Array = env["games"]
-	if games.is_empty():
-		_show_luanti("%s has no games, so there is nothing to start. Open Luanti, install a game from its Content tab, then Rescan, or choose another install." % _install_name(env))
-		return
 	_luanti_row(env)
 	_local_data_dir = env["data_dir"]
 	var tabs := TabContainer.new()
@@ -1560,6 +1717,11 @@ func _on_start_local() -> void:
 
 func _process(_delta: float) -> void:
 	var installing := _poll_luanti_install()
+	if game_http != null:
+		GlassStyle.tint_text(status_label, Color(1, 1, 1, 0.7))
+		status_label.text = "Downloading %s: %.1f / %.1f MB" % [str(LocalServer.STARTER_GAME["title"]),
+			game_http.get_downloaded_bytes() / 1000000.0, int(LocalServer.STARTER_GAME["bytes"]) / 1000000.0]
+		return
 	if terrain_http != null:
 		var downloaded := terrain_http.get_downloaded_bytes()
 		var total := terrain_http.get_body_size()

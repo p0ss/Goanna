@@ -130,6 +130,24 @@ const LUANTI_WINDOWS := {
 	"bytes": 17539019,
 }
 const _EXECUTABLE_NAMES := ["luantiserver", "minetestserver", "luanti", "minetest"]
+# The Luanti server the Linux release carries, in a folder of this name beside
+# the Goanna program (tools/build-luanti-server.sh, package-release.sh).
+# Upstream publishes no Linux build, so without it a Linux player with no
+# Flatpak had no way to start a world without a package manager and a
+# password.
+const BUNDLED_SERVER_FOLDER := "luanti-server"
+# The game Get ready to play installs when the chosen Luanti has none: the
+# Mineclonia release Goanna's materials are made for (the authored pack's
+# recipe names the same archive). Pinned with its hash, because it is code
+# the server will run; Luanti's own content manager can update it later.
+const STARTER_GAME := {
+	"id": "mineclonia",
+	"title": "Mineclonia",
+	"version": "0.123.1",
+	"url": "https://content.luanti.org/uploads/0e17a07e64.zip",
+	"sha256": "abeacf4e202d6e01a63119a36b46751eb6abfd42948a0b06e1ba8f63fb849e59",
+	"bytes": 29204259,
+}
 
 static var _installs: Array = []
 static var _scanned := false
@@ -707,19 +725,83 @@ static func run_steps_in_background(steps: Array, log_path: String, status_path:
 static func _shell_quote(word: String) -> String:
 	return "'" + word.replace("'", "'\\''") + "'"
 
-# Unpacks the official Windows build, already downloaded to `archive_path`,
-# into `parent`. Checked against `expected_sha256` first, because it is going
-# to be run. An earlier install of the same version is kept rather than
-# replaced, since a portable build's worlds are inside it. Returns "" or an
-# error for the player.
-static func install_portable_archive(archive_path: String, expected_sha256: String,
-		parent: String) -> String:
+# The bundled Linux server's folder (the one holding bin/luantiserver), beside
+# the program in a release or in dist/ in a source checkout, or "" when there
+# is none.
+static func bundled_server() -> String:
+	if OS.get_name() == "Windows" or OS.get_name() == "macOS":
+		return ""
+	for base in [OS.get_executable_path().get_base_dir().path_join(BUNDLED_SERVER_FOLDER),
+			ProjectSettings.globalize_path("res://").path_join("../dist").path_join(BUNDLED_SERVER_FOLDER).simplify_path()]:
+		for folder in _subdirs(str(base)):
+			if FileAccess.file_exists(str(folder).path_join("bin/luantiserver")):
+				return str(folder)
+	return ""
+
+# Copies the bundled server into Goanna's own folder, where it can write its
+# worlds (the release folder may not be writable), and returns the install,
+# or {} with "error" set. A copy already there is kept, worlds and all.
+static func install_bundled_server(source: String) -> Dictionary:
+	var destination := ProjectSettings.globalize_path(OWN_LUANTI_DIR).path_join(source.get_file())
+	var exe := destination.path_join("bin/luantiserver")
+	if not FileAccess.file_exists(exe):
+		var error := _copy_tree(source, destination)
+		if error != "":
+			return {"error": error}
+		# rwxr-xr-x: a copy does not keep the bit that lets it run.
+		FileAccess.set_unix_permissions(exe, 493)
+	var inst := install_at(exe)
+	if inst.is_empty():
+		return {"error": "The copied Luanti server at %s was not recognised." % destination}
+	return inst
+
+static func _copy_tree(source: String, destination: String) -> String:
+	if DirAccess.make_dir_recursive_absolute(destination) != OK:
+		return "Could not create %s." % destination
+	var d := DirAccess.open(source)
+	if d == null:
+		return "Could not read %s." % source
+	for name in d.get_files():
+		if DirAccess.copy_absolute(source.path_join(name), destination.path_join(name)) != OK:
+			return "Could not copy %s." % source.path_join(name)
+	for name in d.get_directories():
+		var error := _copy_tree(source.path_join(name), destination.path_join(name))
+		if error != "":
+			return error
+	return ""
+
+# Unpacks a game archive, already downloaded to `archive_path`, into
+# `games_dir` as `game_id`. Checked against `expected_sha256` first. A game
+# already there is kept rather than replaced. Returns "" or an error for the
+# player.
+static func install_game_archive(archive_path: String, expected_sha256: String,
+		games_dir: String, game_id: String) -> String:
 	if expected_sha256.length() != 64 \
 			or FileAccess.get_sha256(archive_path).to_lower() != expected_sha256.to_lower():
-		return "The Luanti download failed its integrity check and was discarded."
+		return "The game download failed its integrity check and was discarded."
+	var destination := games_dir.path_join(game_id)
+	if FileAccess.file_exists(destination.path_join("game.conf")):
+		return ""
+	var unpacked := _unpack_one_folder(archive_path, games_dir)
+	if unpacked.has("error"):
+		return str(unpacked["error"])
+	var folder := str(unpacked["folder"])
+	if not FileAccess.file_exists(folder.path_join("game.conf")):
+		_remove_tree(str(unpacked["staging"]))
+		return "The game download has no game.conf."
+	if DirAccess.rename_absolute(folder, destination) != OK:
+		_remove_tree(str(unpacked["staging"]))
+		return "Could not move the game into %s." % destination
+	_remove_tree(str(unpacked["staging"]))
+	return ""
+
+# Unpacks a ZIP whose entries all sit in one top folder into a staging
+# directory under `parent`, refusing absolute paths and anything that climbs
+# out. Returns {"folder", "staging"} or {"error"}.
+static func _unpack_one_folder(archive_path: String, parent: String) -> Dictionary:
 	var zip := ZIPReader.new()
 	if zip.open(archive_path) != OK:
-		return "The Luanti download is not a readable ZIP archive."
+		return {"error": "The download is not a readable ZIP archive."}
 	DirAccess.make_dir_recursive_absolute(parent)
 	var staging := parent.path_join(".unpack-%d" % OS.get_process_id())
 	_remove_tree(staging)
@@ -731,26 +813,46 @@ static func install_portable_archive(archive_path: String, expected_sha256: Stri
 				or clean.contains(":") or (top != "" and first != top):
 			zip.close()
 			_remove_tree(staging)
-			return "The Luanti download is not laid out as expected, so it was not unpacked."
+			return {"error": "The download is not laid out as expected, so it was not unpacked."}
 		top = first
-		var destination := staging.path_join(clean)
+		var target := staging.path_join(clean)
 		if entry.ends_with("/"):
-			DirAccess.make_dir_recursive_absolute(destination)
+			DirAccess.make_dir_recursive_absolute(target)
 			continue
-		DirAccess.make_dir_recursive_absolute(destination.get_base_dir())
-		var output := FileAccess.open(destination, FileAccess.WRITE)
+		DirAccess.make_dir_recursive_absolute(target.get_base_dir())
+		var output := FileAccess.open(target, FileAccess.WRITE)
 		if output == null:
 			zip.close()
 			_remove_tree(staging)
-			return "Could not write %s." % destination
+			return {"error": "Could not write %s." % target}
 		output.store_buffer(zip.read_file(entry))
 	zip.close()
-	if top == "" or not FileAccess.file_exists(staging.path_join(top).path_join("bin/luanti.exe")):
+	if top == "":
+		_remove_tree(staging)
+		return {"error": "The download is empty."}
+	return {"folder": staging.path_join(top), "staging": staging}
+
+# Unpacks the official Windows build, already downloaded to `archive_path`,
+# into `parent`. Checked against `expected_sha256` first, because it is going
+# to be run. An earlier install of the same version is kept rather than
+# replaced, since a portable build's worlds are inside it. Returns "" or an
+# error for the player.
+static func install_portable_archive(archive_path: String, expected_sha256: String,
+		parent: String) -> String:
+	if expected_sha256.length() != 64 \
+			or FileAccess.get_sha256(archive_path).to_lower() != expected_sha256.to_lower():
+		return "The Luanti download failed its integrity check and was discarded."
+	var unpacked := _unpack_one_folder(archive_path, parent)
+	if unpacked.has("error"):
+		return str(unpacked["error"])
+	var folder := str(unpacked["folder"])
+	var staging := str(unpacked["staging"])
+	if not FileAccess.file_exists(folder.path_join("bin/luanti.exe")):
 		_remove_tree(staging)
 		return "The Luanti download has no bin/luanti.exe."
-	var destination := parent.path_join(top)
+	var destination := parent.path_join(folder.get_file())
 	if not DirAccess.dir_exists_absolute(destination) \
-			and DirAccess.rename_absolute(staging.path_join(top), destination) != OK:
+			and DirAccess.rename_absolute(folder, destination) != OK:
 		_remove_tree(staging)
 		return "Could not move Luanti into %s." % destination
 	_remove_tree(staging)

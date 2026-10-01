@@ -3,6 +3,14 @@
 Sunsets light the land again, water reacts to you, and you can now step
 out into third person and watch your character walk, swim and tread water.
 
+## Getting started
+
+- **One click to play.** On a computer without Luanti, Start Game now offers
+  Get ready to play, which sets up a Luanti server and the Mineclonia game
+  for you, with no password and no package manager. The Linux release now
+  includes its own Luanti server, so it works on any recent Linux, with or
+  without Flatpak.
+
 ## Sky and light
 
 - **Golden hour is back.** Sunsets light the land in gold again. Behind
@@ -70,6 +78,8 @@ out into third person and watch your character walk, swim and tread water.
 
 ## Known issues
 
+- Get ready to play has not yet been tried on Windows itself.
+- The included Linux server needs Ubuntu 22.04, Debian 12 or newer.
 - A distant swamp looks like the water you are standing in until you get
   close to it.
 - Texture packs that recolour gems lose the gem effect on them.
