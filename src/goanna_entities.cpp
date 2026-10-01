@@ -80,8 +80,9 @@ Ref<StandardMaterial3D> EntityRenderer::materialForTexture(GoannaSession &sessio
 }
 
 Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
-        const std::string &texture, bool alpha, bool double_sided) {
-    std::string key = texture + (alpha ? "|a" : "|o") + (double_sided ? "|d" : "|s");
+        const std::string &texture, bool alpha, bool double_sided, bool item) {
+    std::string key = texture + (alpha ? "|a" : "|o") + (double_sided ? "|d" : "|s") +
+            (item ? "|i" : "|m");
     auto it = m_mesh_materials.find(key);
     if (it != m_mesh_materials.end())
         return it->second;
@@ -164,7 +165,11 @@ Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
         MaterialClass cls = MaterialClass::None;
         if (!getenv("GOANNA_NO_CLASS")) {
             cls = session.materialTable().textureClass(tileBaseName(cbase));
-            if (cls == MaterialClass::None)
+            // The name is a fair guess for an item ("iron" in a pickaxe's)
+            // and a poor one for a skin: Mineclonia's iron golem became
+            // wholly metallic, which has no diffuse, so where only the moon
+            // and sky fill reached it, it drew black.
+            if (cls == MaterialClass::None && item)
                 cls = classifyName(cbase);
         }
         const ClassSpec &csp = classSpec(cls);
@@ -481,7 +486,7 @@ Ref<ArrayMesh> EntityRenderer::buildItemMesh(GoannaSession &session, const ItemS
         // Inventory icons keep the plain one; they are drawn in their own
         // small scene, not the world's light.
         if (relit) {
-            Ref<ShaderMaterial> sm = materialForMeshTexture(session, tname, false, false);
+            Ref<ShaderMaterial> sm = materialForMeshTexture(session, tname, false, false, true);
             if (sm.is_valid()) {
                 Ref<ShaderMaterial> s2 = sm->duplicate();
                 s2->set_shader_parameter("vertex_tint", true);

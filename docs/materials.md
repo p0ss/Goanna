@@ -156,8 +156,14 @@ shader when its node is glass: a `glass` or `material_glass` group, or
 `glass` or `pane` as a whole word of the node name (`nameHasWord`). The
 glasslike drawtype is not evidence on its own: Asuna draws quicksand, mud,
 clouds and termite blocks with it, and Mineclonia its spawner. Glowing
-nodes keep the emissive path. Double sided glass, such as a door, takes
-`glass_double_sided.gdshader`, which shares `glass_common.gdshaderinc`.
+nodes keep the emissive path. Culled clear glass takes
+`glass_clear.gdshader` and double sided clear glass, such as a door,
+`glass_double_sided.gdshader`; both share `glass_common.gdshaderinc` with
+the stained glass shader and write no depth. With `depth_draw_always`, as
+stained glass has, a clear texel hid whatever glass drew after it, so the
+back edges of a window two blocks thick came and went as surfaces were
+sorted. `depth_prepass_alpha` kept the edges but put the glass in the
+shadow pass, and the floor under a glass block went dark.
 
 A face that leaves its array is still in a buffer holding every tile
 upstream merged under that array, because `TileLayer` equality ignores the

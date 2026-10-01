@@ -3006,6 +3006,7 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
         m_sh_leaves = load_view_shader("res://shaders/waving_leaves.gdshader");
         m_sh_plants = load_view_shader("res://shaders/waving_plants.gdshader");
         m_sh_glass = load_view_shader("res://shaders/glass.gdshader");
+        m_sh_glass_clear = load_view_shader("res://shaders/glass_clear.gdshader");
         m_sh_glass_double = load_view_shader("res://shaders/glass_double_sided.gdshader");
         m_sh_ice = load_view_shader("res://shaders/ice.gdshader");
         m_sh_array = load_view_shader("res://shaders/nodes_array.gdshader");
@@ -3263,7 +3264,7 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
         // Clear glass takes the glass shader either way; a door's glass is
         // one of the double sided tiles.
         if (m_clear_glass_tex.count(key.texture_id))
-            sh = key.backface_culling ? m_sh_glass : m_sh_glass_double;
+            sh = key.backface_culling ? m_sh_glass_clear : m_sh_glass_double;
         else if (!key.backface_culling)
             sh = m_sh_plants;
         break;
@@ -3289,7 +3290,7 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
     if (liquid_material && m_lava_tex.count(key.texture_id))
         sh = m_sh_lava;
     if (getenv("GOANNA_DEBUG_WHITE") && sh.is_valid())
-        UtilityFunctions::print((sh == m_sh_lava ? "LAVA " : sh == m_sh_ice ? "ICE " : sh == m_sh_glass || sh == m_sh_glass_double ? "GLASS " : sh == m_sh_plants ? "PLANTS " : sh == m_sh_leaves ? "LEAVES " : "WATER "),
+        UtilityFunctions::print((sh == m_sh_lava ? "LAVA " : sh == m_sh_ice ? "ICE " : sh == m_sh_glass || sh == m_sh_glass_clear || sh == m_sh_glass_double ? "GLASS " : sh == m_sh_plants ? "PLANTS " : sh == m_sh_leaves ? "LEAVES " : "WATER "),
                 "'", String(m_session->tsrc()->getTextureName(key.texture_id).c_str()), "' mtype=", (int)mtype,
                 " cull=", key.backface_culling, " texvalid=", tex.is_valid());
     if (sh.is_valid() && tex.is_valid() && (emissive == 0 || sh == m_sh_lava)) {
@@ -3332,7 +3333,8 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
         // mirror. Foliage was left out of this until now, so a pack's maps
         // reached the ground and the walls and stopped at the treeline, and
         // every mat_ slider moved one and not the other.
-        if (sh == m_sh_glass || sh == m_sh_glass_double || sh == m_sh_ice || sh == m_sh_leaves ||
+        if (sh == m_sh_glass || sh == m_sh_glass_clear || sh == m_sh_glass_double || sh == m_sh_ice ||
+                sh == m_sh_leaves ||
                 sh == m_sh_plants) {
             Ref<Texture2D> nrm_tex;
             Ref<Texture2D> spc_tex;

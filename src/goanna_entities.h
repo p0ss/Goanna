@@ -158,8 +158,11 @@ private:
     // because its other callers (sprites, wielditem-as-node) duplicate() the
     // result and call StandardMaterial3D-specific setters on it, which would
     // not compile, let alone make sense, against a ShaderMaterial.
+    // item is whether the texture is an item's (held or dropped) rather than
+    // a mob or player skin; only an item takes a material class guessed
+    // from its name.
     godot::Ref<godot::Material> materialForMeshTexture(GoannaSession &session,
-            const std::string &texture, bool alpha, bool double_sided);
+            const std::string &texture, bool alpha, bool double_sided, bool item = false);
     // Unshaded, alpha tested, double sided material for a model[] preview
     // surface, matching GUIScene::setTexture.
     godot::Ref<godot::StandardMaterial3D> materialForPreviewTexture(GoannaSession &session,

@@ -1193,7 +1193,7 @@ private:
     void buildFakeLiquidTextures();
     u32 clearGlassLayer(GoannaTexture *gt, u16 layer);
 
-    godot::Ref<godot::Shader> m_sh_water, m_sh_lava, m_sh_leaves, m_sh_plants, m_sh_glass, m_sh_glass_double, m_sh_ice, m_sh_array,
+    godot::Ref<godot::Shader> m_sh_water, m_sh_lava, m_sh_leaves, m_sh_plants, m_sh_glass, m_sh_glass_clear, m_sh_glass_double, m_sh_ice, m_sh_array,
             m_sh_array_scissor, m_sh_crack;
     bool m_shaders_loaded = false;
     // Relief inferred from a texture's own brightness, for every texture a
