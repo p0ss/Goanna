@@ -8,7 +8,7 @@
  "bevel_depth": 0.14,
  "micro": "none",
  "materials": {
-  "hide": {"mode": "flat", "base": 0.45, "span": 0.0, "micro": "hide", "smooth": 0.35, "smooth_spread": 0.0, "micro_params": {"cell": 1.2, "wrinkles": 0.6}, "micro_strength": 0.6, "scatter": 0.3, "wear": 0.05},
+  "hide": {"mode": "soft", "base": 0.45, "span": 0.16, "detail": 0.25, "micro": "hide", "smooth": 0.2, "smooth_spread": 0.04, "micro_params": {"cell": 1.2, "wrinkles": 0.6}, "micro_strength": 0.6, "scatter": 0.3, "wear": 0.05, "soft_edge": 0.3, "round": 4, "micro_swing": 0.5, "edge_roll": 2, "edge_lean": 15, "roll_rough": 0.3},
   "snout": {"mode": "flat", "base": 0.62, "span": 0.0, "micro": "hide", "smooth": 0.6, "smooth_spread": 0.0, "micro_params": {"cell": 0.35, "wrinkles": 1.2}, "micro_strength": 0.6, "scatter": 0.25, "wear": 0.06},
   "nostril": {"mode": "flat", "base": 0.2, "span": 0.0, "micro": "none", "smooth": 0.66, "smooth_spread": 0.0},
   "eye": {"mode": "flat", "base": 0.36, "span": 0.0, "micro": "none", "smooth": 0.9, "smooth_spread": 0.0, "f0": 0.06},

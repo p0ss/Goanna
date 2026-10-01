@@ -44,12 +44,33 @@ A face reads by its albedo, not its relief. The renderer's probe of
 2026-10-01 put a bevel on every texel and polished metal on a villager's
 skin, and the owner read the result as "a checkerboard with different
 coloured squares", not a face with a nose and eyes. So on a face: the skin
-is one `flat` material, never `shade` (a height per texel is the same
-checkerboard, softer); only the features (brow, eyes, mouth, a nose box)
-take their own heights; nothing on a face is metal or highly polished
-except the eyes; and the face's bevel is the box edge only. A metal face
-(the iron golem's) is the open case: judge it on the GPU before a fleet
-copies it.
+is never `shade` (a height per texel is the same checkerboard, softer);
+only the features (brow, eyes, mouth, a nose box) take their own heights;
+nothing on a face is metal or highly polished except the eyes; and the
+face's bevel is the box edge only. A metal face (the iron golem's) is the
+open case: judge it on the GPU before a fleet copies it.
+
+Skin was one `flat` material until 2026-10-02, when the owner, after GPU
+frames, found it "the least well handled, as it's just left flat": it
+should look softer and slightly rounded, with some subtle texel
+extrusion. A first pass (a span of 0.08, a 0.2 texel blur, a dome leaning
+8 degrees) was invisible in the previews, and the owner asked for softer,
+smoother, rounded edges in place of the box bevel. Skin is now `"mode":
+"soft"` (`tools/pbr_author/README.md`, "Faces"): lighter texels higher
+over 0.16 of the range with rounded steps, a dome over each piece, the
+face rolling off over its outer 2.5 texels to every box edge instead of
+the bevel, the pores nearly gone and a little more sheen on the raised
+texels. The fine micro surface falls under a pixel at normal viewing
+distance, so the texel steps, the dome and the roll carry the look. The
+zombie, husk and drowned have their eyes and mouth sunk as flat bottomed
+pits half the height range under the skin, now that the entity parallax
+shows the stored height as depth, and those three skins and the trader's
+were raised so their top part stands at 1. Judged on the offline previews
+(`preview_mob.py --parallax --contrast`, `preview_figure.py`), not yet in
+game. The roll and the dome add shading across a face, so on faces the
+art draws in one or two near shades the contrast with maps on rises to
+about twice the art's (the pig's body, the zombie's hat layer), and on
+one of the player's arm faces it falls to half the art's.
 
 The default player (mcl_skins' six parts on `mcl_armor_character.b3d`)
 was authored on 2026-10-01 against the owner's mockups: each art texel's
@@ -129,7 +150,8 @@ monsters follow the same look with their own materials:
   long coat drawn as its own shade, is the only exception);
 - all fine detail inside the texels, in the normal and the smoothness
   only, through a material's `"micro"` kind;
-- faces flat, eyes flat and glossy, with no domed iris and no raised dot;
+- faces soft (skin) or flat (fur), eyes flat and glossy, with no domed
+  iris and no raised dot;
 - the detail strong enough to read in ordinary front light, not only
   under a grazing sun.
 
@@ -170,14 +192,19 @@ upright in the file needs a check of which way that is on the preview.
 
 ### Faces
 
-A face reads by its albedo. An animal's face is one flat skin or fur
-material, never `shade` (a height per texel is a checkerboard). The
+A face reads by its albedo. An animal's face is one `soft` skin (see
+"Mob skins" above) or flat fur material, never `shade` (a height per
+texel is a checkerboard). The
 features are their own flat pieces at their own heights: a snout or a
 beak a little proud of the face (`"flat"`, its own `"base"`), nostrils
-sunk, a wattle its own piece. Eyes are flat and glossy: `"micro":
-"none"`, `"smooth"` about 0.85 to 0.9, `"f0"` 0.025, never the `eye`
-kind (its raised catch light was rejected on the player), never metal.
-Only the face's box edge takes the bevel.
+sunk, a wattle its own piece. A living creature's eyes glisten (owner,
+2026-10-02): flat, `"micro": "none"`, `"smooth"` 0.9 and no higher
+(above about 0.9 a dielectric's highlight is narrower than a pixel and
+vanishes, `docs/material-calibration.md`), `"f0"` 0.06, a stylised wet
+surface, so the sun, a lamp or the sky leaves a small glint. Never the
+`eye` kind (its raised catch light was rejected on the player), never
+metal. An empty socket (a skeleton's) stays matte. Only the face's box
+edge takes the bevel.
 
 ### What a family agent writes
 
