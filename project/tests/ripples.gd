@@ -26,8 +26,7 @@
 #     droplet emitters scale with strength and keep to their budgets;
 #   - strokes: a hand of a body the patch draws going into the water kicks
 #     it and throws a crown, a slow one smaller than a fast one; hands of
-#     bodies it does not draw, or far from its surface, do nothing; and a
-#     body treading water laps rings from hands sculling under the surface;
+#     bodies it does not draw, or far from its surface, do nothing;
 #   - once the player has left the water the patch settles, sleeps and
 #     tells the shader so.
 # The physics itself is goanna_ripples_test's. It renders nothing: how any
@@ -368,20 +367,4 @@ func _test_strokes() -> void:
 	w.strokes([other, high], t)
 	check(rec.bursts.size() == 2, "a stroke off the patch, or far over the water, splashed")
 	w.free()
-	# Treading water: a hand 0.2 under the surface laps rings at a sample.
-	var w2 := _new_wake()
-	_run(w2, 0.0, 0.5, float_still, [])
-	check(w2.ripples.is_asleep(), "floating still moved the water")
-	w2.scull([{"key": "local", "pos": Vector3(20.0, -0.5, 10.0), "water_pose": 2,
-		"hands": [Vector3(20.5, 0.3, 10.0)], "feet": []}])
-	w2.ripples.step(1.0 / 60.0, PackedFloat32Array())
-	check(not w2.ripples.is_asleep(), "sculling hands under the surface left it still")
-	var w3 := _new_wake()
-	_run(w3, 0.0, 0.5, float_still, [])
-	w3.scull([{"key": "local", "pos": Vector3(20.0, -0.5, 10.0), "water_pose": 0,
-		"hands": [Vector3(20.5, 0.3, 10.0)], "feet": []}])
-	w3.ripples.step(1.0 / 60.0, PackedFloat32Array())
-	check(w3.ripples.is_asleep(), "hands out of any stroke sculled the water")
-	w2.free()
-	w3.free()
 	finished += 1

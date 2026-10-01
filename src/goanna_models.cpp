@@ -646,9 +646,10 @@ void ModelAnimator::poseLimbs(float dt, JointTransforms &locals,
     const float ease = 1.0f - std::exp(-dt / 0.25f);
     m_swim_w += ((m_water == WaterPose::Swim ? 1.0f : 0.0f) - m_swim_w) * ease;
     m_tread_w += ((m_water == WaterPose::Tread ? 1.0f : 0.0f) - m_tread_w) * ease;
+    m_paddle_w += ((m_water == WaterPose::Paddle ? 1.0f : 0.0f) - m_paddle_w) * ease;
     m_stroke_phase = std::fmod(m_stroke_phase + strokeRate(m_water, m_water_speed) * dt,
             2.0f * 3.14159265f * 12.0f);
-    const float w = m_swim_w + m_tread_w;
+    const float w = m_swim_w + m_tread_w + m_paddle_w;
     if (w < 1e-3f)
         return;
     const auto &joints = m_model->skinned->getAllJoints();
@@ -666,8 +667,9 @@ void ModelAnimator::poseLimbs(float dt, JointTransforms &locals,
             continue;
         const LimbAngles s = strokeAngles(WaterPose::Swim, l.kind, l.right, m_stroke_phase);
         const LimbAngles d = strokeAngles(WaterPose::Tread, l.kind, l.right, m_stroke_phase);
-        const float pitch = (s.pitch * m_swim_w + d.pitch * m_tread_w) / w;
-        const float spread = (s.spread * m_swim_w + d.spread * m_tread_w) / w;
+        const LimbAngles b = strokeAngles(WaterPose::Paddle, l.kind, l.right, m_stroke_phase);
+        const float pitch = (s.pitch * m_swim_w + d.pitch * m_tread_w + b.pitch * m_paddle_w) / w;
+        const float spread = (s.spread * m_swim_w + d.spread * m_tread_w + b.spread * m_paddle_w) / w;
         core::Transform stroke = *r;
         turnLocal(stroke, x, pitch * m_pitch_sign[i]);
         turnLocal(stroke, z, spread * m_spread_sign[i]);
@@ -686,7 +688,7 @@ void ModelAnimator::measureLimbs(float dt, const std::vector<core::matrix4> &ski
     m_body_lying = m_body_joint && std::fabs(body.basis.xform(Vector3(0, 1, 0)).normalized().y) < 0.5f;
     const Transform3D to_body = body.affine_inverse();
     const auto &joints = m_model->skinned->getAllJoints();
-    const float w = std::min(m_swim_w + m_tread_w, 1.0f);
+    const float w = std::min(m_swim_w + m_tread_w + m_paddle_w, 1.0f);
     const float ease_rate = 1.0f - std::exp(-std::max(dt, 0.0f) / 0.05f);
     const float ease_bend = 1.0f - std::exp(-std::max(dt, 0.0f) / 0.06f);
     for (size_t i = 0; i < m_model->limbs.size(); ++i) {
@@ -714,7 +716,9 @@ void ModelAnimator::measureLimbs(float dt, const std::vector<core::matrix4> &ski
         if (w > 1e-3f) {
             const LimbAngles s = strokeAngles(WaterPose::Swim, l.kind, l.right, m_stroke_phase);
             const LimbAngles t = strokeAngles(WaterPose::Tread, l.kind, l.right, m_stroke_phase);
-            const float stroke = (s.bend * m_swim_w + t.bend * m_tread_w) / (m_swim_w + m_tread_w);
+            const LimbAngles b = strokeAngles(WaterPose::Paddle, l.kind, l.right, m_stroke_phase);
+            const float stroke = (s.bend * m_swim_w + t.bend * m_tread_w + b.bend * m_paddle_w)
+                    / (m_swim_w + m_tread_w + m_paddle_w);
             target = target * (1.0f - w) + stroke * w;
         }
         m_bend[i] = dt > 0.0f ? m_bend[i] + (target - m_bend[i]) * ease_bend : target;

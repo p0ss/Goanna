@@ -191,7 +191,7 @@ private:
     std::vector<core::matrix4> m_skin;
     WaterPose m_water = WaterPose::None;
     float m_water_speed = 0.0f;
-    float m_swim_w = 0.0f, m_tread_w = 0.0f;
+    float m_swim_w = 0.0f, m_tread_w = 0.0f, m_paddle_w = 0.0f;
     float m_stroke_phase = 0.0f;
 };
 

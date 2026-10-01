@@ -83,13 +83,18 @@ const float REFRACT_DEPTH = 1.5;
 // as a bottomless blue void. A swamp's is far higher, and browner.
 global uniform vec3 goanna_water_absorption;
 global uniform vec3 goanna_water_tint;
-// The underwater murk's colour as main.gd sets the fog now: what the
-// underside of the surface mirrors past the critical angle.
-global uniform vec3 goanna_water_fog;
-// How big the water round the eye is, as scales on the background waves: x
-// their strength, y their length (water_optics.gd, sea_for). A pond lies
-// nearly flat under short ripples, the open sea runs longer and higher; 1
-// is what was drawn everywhere before, a lake's.
+// The underwater murk as main.gd sets the fog now: its colour, and in w its
+// density, for the underside of the surface's mirror past the critical
+// angle to fade into.
+global uniform vec4 goanna_water_fog;
+// How big the water round the eye is, as a scale on the background waves'
+// strength in x (water_optics.gd, sea_for): a pond lies nearly flat, the
+// open sea runs higher; 1 is what was drawn everywhere before, a lake's.
+// Only the strength: scaling their length and speed too multiplied the
+// world position and TIME, both large, so every small change in the
+// measured size of the water (which there is near a shore, as the eye
+// moves) swept the whole pattern's phase, and the sea strobed as if in fast
+// forward.
 global uniform vec4 goanna_water_sea;
 // How much of the tile's colour the water column itself throws back, as an
 // albedo the sun and sky then light. Water is dark: a clear column returns
@@ -274,13 +279,10 @@ void fragment() {
 		detail *= 1.0 - smoothstep(500.0, 1200.0, here);
 		// The sea state is measured round the eye; far out, where the water
 		// may be another body altogether, it hands back to a lake's.
-		vec2 sea = mix(goanna_water_sea.xy, vec2(1.0), smoothstep(64.0, 160.0, here));
-		detail *= sea.x;
+		detail *= mix(goanna_water_sea.x, 1.0, smoothstep(64.0, 160.0, here));
 		if (detail > 0.004) {
-			// Longer waves are slower: a water wave's period goes as the
-			// root of its length.
-			vec3 n = wave_normal(world_pos.xz, TIME * wave_speed / sqrt(max(sea.y, 0.1)), octaves,
-					TAU / max(wave_length * sea.y, 0.5), wave_relief);
+			vec3 n = wave_normal(world_pos.xz, TIME * wave_speed, octaves,
+					TAU / max(wave_length, 0.5), wave_relief);
 			NORMAL = normalize(mix(NORMAL, (VIEW_MATRIX * vec4(n, 0.0)).xyz, detail));
 		}
 	}
@@ -551,16 +553,69 @@ void fragment() {
 	// From under the water, the sky is seen only through a window straight
 	// up: light from above bends down into a cone of about 48.6 degrees
 	// either side of the vertical. Past it the underside is a mirror of the
-	// water below, total internal reflection, which through the murk is the
-	// murk's colour. The waves tilt the surface, so the window's edge
-	// breaks up into their pattern, which is what ties the underside to the
-	// top. Before, the whole underside showed the sky through it.
+	// water below (total internal reflection): the bed and whatever is in
+	// the water, marched for in screen space down the reflected ray, faded
+	// into the murk by the length of that ray, and the murk itself where the
+	// ray finds nothing. The waves tilt the surface, so they bend the
+	// mirrored bed and break the window's edge up into their pattern, which
+	// is how the underside of real water shows its waves. Before, the whole
+	// underside showed the sky, and then a flat murk colour that read as a
+	// black void.
 	if (!FRONT_FACING) {
 		float cos_i = clamp(dot(NORMAL, VIEW), 0.0, 1.0);
 		float sin_i = sqrt(1.0 - cos_i * cos_i);
 		// sin of the critical angle is 1 / 1.33, 0.752.
 		float tir = smoothstep(0.71, 0.79, sin_i);
-		EMISSION = mix(EMISSION, goanna_water_fog, tir);
+		vec3 mirror = goanna_water_fog.rgb;
+		if (tir > 0.01 && goanna_render_water_reflections > 0.5) {
+			vec3 rdir = reflect(normalize(VERTEX), NORMAL);
+			float step_len = 0.25;
+			vec3 p = VERTEX;
+			for (int i = 0; i < 20; i++) {
+				p += rdir * step_len;
+				step_len *= 1.35;
+				vec4 clip = PROJECTION_MATRIX * vec4(p, 1.0);
+				if (clip.w <= 0.0)
+					break;
+				vec2 uv = (clip.xy / clip.w) * 0.5 + 0.5;
+				if (uv.y < 0.0 || uv.y > 1.0)
+					break;
+				float keep = edge_keep(uv.x);
+				if (keep <= 0.0)
+					break;
+				uv.x = clamp(uv.x, 0.002, 0.998);
+				float scene = scene_distance(uv, INV_PROJECTION_MATRIX);
+				float ray = -p.z;
+				if (ray > scene && ray - scene < step_len * 4.0) {
+					// The opaque pass fogged the bed by its distance from
+					// the eye; the mirror's light also came up the ray.
+					float murk = 1.0 - exp(-goanna_water_fog.w * length(p - VERTEX));
+					vec3 bed = texture(screen_tex, uv).rgb;
+					if (!(any(isnan(bed)) || any(isinf(bed))))
+						mirror = mix(mirror, mix(min(bed, vec3(8.0)), goanna_water_fog.rgb, murk), keep);
+					break;
+				}
+			}
+		}
+		// Inside the window, the sky. The opaque pass drew the sky behind the
+		// surface already fogged into the murk (the underwater fog covers the
+		// sky, so nothing past the water's reach shows as open sky), and the
+		// window came out the murk's own colour, flat, with nothing for the
+		// waves to break up. Where the screen behind the surface is sky, it
+		// is drawn here instead, for the ray the surface refracts up into
+		// the air, from the same gradient and sun the reflections use.
+		vec3 window = EMISSION;
+		vec3 up = refract(normalize(VERTEX), NORMAL, 1.33);
+		if (dot(up, up) > 1e-6 && texture(depth_tex, ruv).r < 1e-6) {
+			vec3 world_up = normalize((INV_VIEW_MATRIX * vec4(up, 0.0)).xyz);
+			vec3 sky = mix(goanna_sky_horizon, goanna_sky_top, pow(clamp(world_up.y, 0.0, 1.0), 0.45));
+			float sun_d = max(dot(world_up, goanna_sun_dir), 0.0);
+			sky += goanna_sun_glow * (pow(sun_d, 1500.0) * 3.0 + pow(sun_d, 350.0) * 0.8);
+			// The water between the eye and the surface dims it as the fog
+			// Godot lays over this fragment.
+			window = sky;
+		}
+		EMISSION = mix(window, mirror, tir);
 		ALBEDO *= 1.0 - tir;
 	}
 	ALPHA = clamp(0.9 + 0.1 * fres, 0.0, 1.0);

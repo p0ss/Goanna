@@ -292,6 +292,22 @@ LimbAngles strokeAngles(WaterPose pose, LimbKind kind, bool right, float phase) 
             a.pitch = 18.0f * std::sin(k);
             a.bend = 12.0f + 18.0f * std::max(0.0f, std::sin(k + 0.5f * kPi));
         }
+    } else if (pose == WaterPose::Paddle) {
+        // The breaststroke, upright: both arms together reach forward and
+        // sweep out and back, elbows bending as they pull, then come in
+        // under the chin and reach again; the legs, half a stroke later,
+        // draw the knees up and out and kick back straight.
+        const float u = 0.5f - 0.5f * std::cos(phase);
+        const float v = 0.5f - 0.5f * std::cos(phase + kPi);
+        if (kind == LimbKind::Arm) {
+            a.pitch = 95.0f - 45.0f * u;
+            a.spread = 10.0f + 45.0f * u;
+            a.bend = 15.0f + 75.0f * u;
+        } else {
+            a.pitch = 15.0f + 45.0f * v;
+            a.spread = 5.0f + 25.0f * v;
+            a.bend = 10.0f + 90.0f * v;
+        }
     } else if (pose == WaterPose::Tread) {
         if (kind == LimbKind::Arm) {
             // Sculling: arms out and forward, forearms sweeping in and out
@@ -317,6 +333,8 @@ float strokeRate(WaterPose pose, float speed) {
         return 2.0f * kPi * (0.45f + 0.2f * std::clamp(speed, 0.0f, 4.0f));
     case WaterPose::Tread:
         return 2.0f * kPi * 0.8f;
+    case WaterPose::Paddle:
+        return 2.0f * kPi * (0.55f + 0.15f * std::clamp(speed, 0.0f, 4.0f));
     default:
         return 0.0f;
     }

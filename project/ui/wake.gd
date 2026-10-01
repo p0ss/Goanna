@@ -130,10 +130,6 @@ const STROKE_KICK := 0.5
 const STROKE_FULL := 4.0
 const FOOT_SHARE := 0.6
 const STROKE_NEAR := 0.6
-# Treading water, or swimming, hands and feet sculling just under the
-# surface (down to SCULL_DEPTH) lap small rings out at every sample.
-const SCULL_KICK := 0.08
-const SCULL_DEPTH := 0.5
 
 var client: Object
 # GoannaRipples, when the extension has it; without it every body keeps the
@@ -209,7 +205,6 @@ func _process(delta: float) -> void:
 			var sources := gather_sources(m, eye)
 			claim(sources)
 			step(sources, t)
-			scull(sources)
 			publish(t)
 	if ripples != null and client != null and client.has_method("take_stroke_events"):
 		strokes(client.take_stroke_events(), t)
@@ -772,18 +767,3 @@ func strokes(events: Array, t: float) -> void:
 			splashes.burst("stroke", at, s if into else s * 0.5)
 		_drop(at, s * 0.4, t)
 
-
-# At each sample: hands and feet of treading or swimming bodies the patch
-# draws, sculling just under its surface, lap small rings outward.
-func scull(sources: Array) -> void:
-	if ripples == null or is_nan(_mask_plane):
-		return
-	for s in sources:
-		if not _claimed.has(s["key"]) or int(s.get("water_pose", 0)) == 0:
-			continue
-		var scale := 1.0 if s["key"] is String else RIPPLE_ENTITY_SCALE
-		for end in s.get("hands", []) + s.get("feet", []):
-			var p: Vector3 = end
-			var depth := _mask_plane - p.y
-			if depth > 0.0 and depth < SCULL_DEPTH:
-				ripples.impulse(Vector2(p.x, p.z), SCULL_KICK * scale * (1.0 - depth / SCULL_DEPTH), 0.15)

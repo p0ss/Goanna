@@ -57,15 +57,17 @@ The background waves were one pattern at one strength and length on every
 water, which made a five node pond as busy as the sea. `water_optics.gd`
 also looks out along 16 directions from the eye, 4 nodes a step to 64, for
 where the open water at its surface ends (8 samples a frame); the mean is
-the fetch, the stretch wind has to raise waves on. `sea_for` turns it into
-scales on the shader's wave strength and length, from a pond's (0.25 as
-strong, 0.4 as long, at 6 nodes or less) to the open sea's (1.6 and 1.5, at
-48 or more), 1 being what was drawn everywhere before; `goanna_water_sea`
-carries them (a vec4, since the per view globals take no vec2). Longer
-waves are slower, their time scaled by the root of the length. Past 64
-nodes from the eye the scales hand back to a lake's, since the water out
-there may be another body. The test measures a 6 node pond at 5 nodes
-(waves 0.26 strong) and the open sea at the full 64 (1.59).
+the fetch, the stretch wind has to raise waves on. `sea_for` turns it into a
+scale on the shader's wave strength, from a pond's (0.25 at 6 nodes or
+less) to the open sea's (1.6 at 48 or more), 1 being what was drawn
+everywhere before; `goanna_water_sea` carries it in x. Past 64 nodes from
+the eye it hands back to a lake's, since the water out there may be another
+body. The test measures a 6 node pond at 5 nodes (0.26) and the open sea at
+the full 64 (1.59). The first version scaled the waves' length and speed
+too, which multiplied the world position and the shader's clock, both
+large: near a shore, where the measured size wavers as the eye moves, every
+small change swept the whole pattern's phase and the sea strobed as if in
+fast forward. Only the strength is scaled now.
 
 ## From above
 
@@ -86,31 +88,43 @@ the surface to 0.45 far down, for the daylight that reaches that deep.
 `eye_depth` is measured up from the eye through the water to the first node
 that is not.
 
-The colour is the one deep water shows from above, so the two views agree:
-the water tile's average colour (`GoannaClient.node_tile_color`, the tile
-image averaged in linear light times the tile's colour) times the region's
-tint times the water shader's `0.5 * body_gain` (`WATER_BODY_GAIN`, tied to
-the shader by the test), lit by what lights an upward face at the water:
-the sun and the moon each by its height, and the sky's zenith colour at the
-ambient energy. The scattering volume's albedo takes the same hue at 0.6.
-The fixed bright cyan fog and cyan volume it replaces were tuned by eye and
-drew the same pool dark blue from the bank and bright teal from in it.
+The colour is the region's `murk_hue`: daylight after 3 nodes through the
+water (the region's absorption, so red goes first, as it does to the bed
+seen from above), times the region's tint, scaled so a beach's is (0.22,
+0.62, 0.74) at its brightest, within a hundredth of the fixed cyan the owner
+found right for a lake or deeper. A swamp's is a dark green. It is lit by
+the light falling on the water (the sun and moon by their height and the
+sky at the ambient energy) against a clear noon's, so it dims through the
+evening, and darkens with depth. The scattering volume's albedo takes the
+same hue. An earlier version used deep water's colour seen from above (the
+tile's colour times the column's small body share, lit), which is right for
+a pool seen from the bank and nearly black as the glow of daylit water all
+round the eye: it drew the underside of the surface, and the sky beyond it,
+as a void.
 
-The underside of the surface now draws the same waves as the top (it had
-them at a third of the strength, against aliasing), and past the critical
-angle it is a mirror: from under water the sky is seen only through a
-window about 48.6 degrees either side of straight up, and outside it the
-underside reflects the water below, which through the murk is the murk's own
-colour (`goanna_water_fog`, set with the fog). The waves tilt the surface,
-so the window's edge breaks up into their pattern. Before, the whole
-underside showed the sky. Godot's own specular is off on the underside: it
-reflects Godot's sky, which is above the surface, and lit the mirror far
-brighter than the murk it stands for.
+The underside of the surface draws the same waves as the top. Inside the
+window straight up (about 48.6 degrees either side of the vertical) it
+shows the sky the refracted ray reaches, from the sky gradient and the sun:
+the sky the opaque pass drew behind the surface is fogged into the murk, so
+the window had come out the murk's own flat colour. Past the critical angle
+it is a mirror of the water below, total internal reflection: the bed and
+whatever is in the water, marched for down the reflected ray in screen
+space and faded into the murk by that ray's length (`goanna_water_fog`
+carries the murk's colour and density), and the murk where the ray finds
+nothing. Over deep water that mirror is the murk; over shallows it is the
+lit bed, bent by the waves. Godot's own specular is off on the underside:
+it reflects Godot's sky, which is above the surface.
 
-The bed's refraction by the waves is capped too: only the first 1.5 nodes
-of depth count, at 0.12 rather than 0.18 (see `water.gdshader`'s
-`refraction`). At the full depth, deep pools swung about under the
-background waves enough to be queasy to look at.
+## The game's water sky
+
+Mineclonia, while the node at the player's head is water, sets every sky
+and horizon colour and the fog tint to the water's colour and turns the
+clouds off, standing in for underwater rendering a vanilla client lacks. In
+third person, head in the water and camera above it, that drew the whole
+open view water blue and dark; under the water it turned the sky seen up
+through the surface water blue. While the head is in water, a sky of one
+colour throughout with no clouds is taken to be that one, and the last
+ordinary sky stands in for it (`main.gd`, `dry_sky`).
 
 ## Crossing the surface
 

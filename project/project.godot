@@ -192,8 +192,8 @@ goanna_water_tint={
 "value": Vector3(1, 1, 1)
 }
 goanna_water_fog={
-"type": "vec3",
-"value": Vector3(0.1, 0.3, 0.35)
+"type": "vec4",
+"value": Vector4(0.22, 0.62, 0.74, 0.02)
 }
 goanna_water_sea={
 "type": "vec4",

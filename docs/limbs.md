@@ -67,7 +67,11 @@ knees run 4 to 31 degrees and the elbows 8 to 30.
   upright), provided it is off the bottom or moving. A drowned player lies
   on the bottom in the die animation, and was seen doing the crawl there.
 - **Treading water** while it is in water, upright, with nothing under its
-  feet.
+  feet, and holding its place.
+- **The breaststroke** while it is upright in water with nothing under its
+  feet and moving faster than 0.6 nodes a second: how Mineclonia has a
+  player go through deep water when not sprinting. Mineclonia's swim pose
+  (frames 368 to 434 lay the body flat) comes only with sprinting.
 - The local player from its own physics (`in_liquid`, `touching_ground`,
   health), others from the map at their chest and under their feet.
 - A pose holds 0.8 seconds past the last moment it applied: holding jump in
@@ -86,6 +90,9 @@ rotation as the pose eases in over a quarter of a second (`strokeAngles`):
 - **Treading water.** Arms out and forward, sculling in and out together with
   the elbows bent; the egg-beater with the legs, thighs forward and apart,
   each knee circling, half a cycle apart.
+- **The breaststroke.** Both arms together reach forward, sweep out and back
+  with the elbows bending, and come in to reach again; half a stroke later
+  the legs draw the knees up and out and kick back straight.
 
 Which way a turn about a limb joint's own axes swings its end is found by
 trying one on the rest pose (`probeLimbSigns`): Mineclonia's right arm's
@@ -100,8 +107,10 @@ in water that goes into or out of it, with its speed
 (`GoannaClient.take_stroke_events`). `wake.gd`, for bodies on the ripple
 patch: a hand going in kicks the patch and throws a small crown, coming out
 flicks a few drops, a foot breaking the surface does the same softer, all
-by the limb's speed; and hands and feet of a treading or swimming body
-sculling just under the surface lap small rings out at every sample.
+by the limb's speed. (Hands sculling just under the surface also kicked the
+patch at every sample for a while; in step ten times a second, the kicks
+set up a standing wave against a nearby shore, and they were taken out:
+treading water makes its rings by the body's own rise and fall.)
 
 ## Tests
 

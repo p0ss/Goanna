@@ -1112,7 +1112,7 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
                 if (en.animator->bodyLying())
                     wp = (!grounded || en.limb_speed > 0.3f) ? WaterPose::Swim : WaterPose::None;
                 else if (!grounded)
-                    wp = WaterPose::Tread;
+                    wp = en.limb_speed > 0.6f ? WaterPose::Paddle : WaterPose::Tread;
             }
             // Holding jump in water bobs a body at the surface, out of the
             // water for a moment at the top of each bob; seen live, the

@@ -325,6 +325,24 @@ int main() {
         expect(over_back == 32 && under_chest == 32,
                 "the crawl does not recover over the back and pull under the chest");
         expect(apart == 64, "the arms are not half a stroke apart");
+        // The breaststroke: both arms together, reaching forward and
+        // sweeping out; the knees drawn up half a stroke after the pull.
+        int together = 0;
+        float reach = 0.0f, sweep = 0.0f, knee = 0.0f;
+        for (int i = 0; i < 64; ++i) {
+            const float phase = i / 64.0f * 2.0f * 3.14159265f;
+            const LimbAngles r = strokeAngles(WaterPose::Paddle, LimbKind::Arm, true, phase);
+            const LimbAngles l = strokeAngles(WaterPose::Paddle, LimbKind::Arm, false, phase);
+            together += std::fabs(r.pitch - l.pitch) < 1e-4f && std::fabs(r.spread - l.spread) < 1e-4f;
+            reach = std::max(reach, r.pitch);
+            sweep = std::max(sweep, r.spread);
+            knee = std::max(knee, strokeAngles(WaterPose::Paddle, LimbKind::Leg, true, phase).bend);
+        }
+        expect(together == 64, "the breaststroke's arms are not together");
+        expect(reach > 80.0f && sweep > 40.0f && knee > 80.0f,
+                "the breaststroke does not reach forward, sweep out and draw the knees up");
+        expect(strokeRate(WaterPose::Paddle, 2.0f) > strokeRate(WaterPose::Paddle, 0.5f),
+                "a faster breaststroke is no quicker");
         const LimbAngles tl = strokeAngles(WaterPose::Tread, LimbKind::Leg, true, 1.0f);
         const LimbAngles ta = strokeAngles(WaterPose::Tread, LimbKind::Arm, true, 1.0f);
         expect(ta.spread > 25.0f && tl.bend > 45.0f, "treading water does not spread the arms and bend the knees");
@@ -412,6 +430,23 @@ int main() {
             expect(anim.limbBend(left) > 20.0f, "the elbow is not bent enough to test the held item");
             expect(std::fabs(wield.origin.distance_to(hand) - rest_gap) < 0.05f, "the held item left the hand");
         }
+        // The breaststroke: at some point in a stroke both hands are out in
+        // front of the body together (Godot's forward is -z).
+        anim.setWaterPose(WaterPose::Paddle, 1.5f);
+        float front = 1e9f;
+        for (int i = 0; i < 150; ++i) {
+            anim.step(dt, still, none, nullptr);
+            float worst = -1e9f;
+            for (size_t k = 0; k < anim.limbCount(); ++k)
+                if (anim.limb(k).kind == LimbKind::Arm) {
+                    Vector3 hand;
+                    anim.limbEnd(k, hand);
+                    worst = std::max(worst, hand.z);
+                }
+            front = std::min(front, worst);
+        }
+        std::printf("breaststroke: both hands reach %.2f in front of the body\n", -front);
+        expect(front < -3.0f, "the breaststroke does not reach both hands forward");
         // Treading water: the hands out to the sides.
         anim.setWaterPose(WaterPose::Tread, 0.0f);
         for (int i = 0; i < 90; ++i)

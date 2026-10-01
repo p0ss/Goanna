@@ -28,9 +28,12 @@
 // comes forward, both from the swing the game's own animation gives the
 // limb. In the water Goanna also drives the shoulders and hips, which the
 // game's swim animation holds nearly still: a crawl stroke (arms over the
-// back, a flutter kick) while the game has the body lying in the water, and
+// back, a flutter kick) while the game has the body lying in the water;
 // treading water (sculling arms, egg-beater legs) while a body upright in
-// deep water has nothing under its feet.
+// deep water has nothing under its feet and is holding its place; and the
+// breaststroke (arms together, reaching and sweeping out, a frog kick) while
+// it is upright in deep water and moving, which is how Mineclonia has a
+// player go through water when not sprinting.
 #pragma once
 
 #include <vector>
@@ -91,7 +94,7 @@ void splitLimbs(const std::vector<LimbBend> &limbs, LimbMeshData &mesh);
 godot::Transform3D bendTransform(const LimbBend &limb, float degrees);
 
 // What a body is doing in the water, for the strokes.
-enum class WaterPose { None = 0, Swim = 1, Tread = 2 };
+enum class WaterPose { None = 0, Swim = 1, Tread = 2, Paddle = 3 };
 
 // Degrees for one limb this frame, relative to its rest: the shoulder or hip
 // turned forward (pitch) and outward (spread), and the knee or elbow bend.

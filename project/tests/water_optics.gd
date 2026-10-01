@@ -16,6 +16,9 @@
 #     was too murky there), keeps that old fog for a beach's depths, and
 #     reaches a swamp's murk far sooner than a beach's;
 #   - the eye's depth under the surface is measured;
+#   - with the head in water, camera in it or out of it (third person), the
+#     game's one-colour water sky gives way to the last ordinary sky; with
+#     the head out, the game's sky stands;
 #   - the size of the water sets the background waves: a small pond lies
 #     nearly flat under short ripples, the open sea runs longer and higher;
 #   - wading from a beach into a swamp finds the swamp and eases the optics
@@ -52,7 +55,8 @@ func _initialize() -> void:
 	_test_murk()
 	_test_wading()
 	_test_sea()
-	check(finished == 5, "%d of 5 tests ran to their end" % finished)
+	_test_dry_sky()
+	check(finished == 6, "%d of 6 tests ran to their end" % finished)
 	print("water optics: ", "ok" if failures == 0 else "%d failure(s)" % failures)
 	quit(1 if failures else 0)
 
@@ -83,21 +87,22 @@ func _test_shader() -> void:
 	var registered: Dictionary = ProjectSettings.get_setting("shader_globals/goanna_water_absorption")
 	check(registered["value"] == Optics.REGIONS["clear"]["absorption"],
 			"the water shader does not start at a beach's absorption")
-	# The murk is the colour the water shader gives deep water: main.gd's
-	# body gain is the shader's, and the client can say what colour a water
-	# tile is.
+	# The murk's colour is daylight through the water, by the region: a
+	# beach's the old cyan the owner found right, a swamp's a dark green;
+	# main.gd lights it by the light on the water. The underside mirrors
+	# the water below past the critical angle, fading into the murk.
+	var beach: Color = Optics.murk_hue(Optics.REGIONS["clear"])
+	check(beach.is_equal_approx(Color(0.217, 0.609, 0.739)) or
+			Vector3(beach.r - 0.217, beach.g - 0.609, beach.b - 0.739).length() < 0.02,
+			"a beach's murk is not the cyan the owner liked: %s" % beach)
+	var swamp_hue: Color = Optics.murk_hue(Optics.REGIONS["swamp"])
+	check(swamp_hue.g > swamp_hue.r and swamp_hue.g > swamp_hue.b and swamp_hue.g < 0.3,
+			"a swamp's murk is not a dark green: %s" % swamp_hue)
 	var main_src := FileAccess.get_file_as_string("res://main.gd")
-	var gain := RegEx.create_from_string("const WATER_BODY_GAIN := ([0-9.]+)").search(main_src)
-	var shader_gain := RegEx.create_from_string("uniform float body_gain[^=]*= ([0-9.]+);").search(src)
-	check(gain != null and shader_gain != null and gain.get_string(1) == shader_gain.get_string(1),
-			"main.gd's WATER_BODY_GAIN is not the water shader's body_gain")
-	check(not main_src.contains("UNDERWATER_FOG *") and not main_src.contains("= UNDERWATER_FOG"),
-			"main.gd still draws the fixed underwater fog")
-	check(ClassDB.class_has_method("GoannaClient", "node_tile_color"),
-			"the client cannot say what colour a water tile is")
-	var body: Color = load("res://main.gd").water_body_colour(Color(0.2, 0.4, 0.8), Vector3(1.0, 0.5, 1.0))
-	check(body.is_equal_approx(Color(0.2, 0.2, 0.8) * (0.5 * 0.35)),
-			"deep water's colour is not the tile's times the tint times 0.5 body_gain: %s" % body)
+	check(main_src.contains("WaterOptics.murk_hue(o)") and main_src.contains("WATER_NOON_LIGHT"),
+			"main.gd does not light the murk's hue")
+	check(src.contains("vec3 rdir = reflect(normalize(VERTEX), NORMAL);"),
+			"the underside does not mirror the water below")
 	check(src.contains("SPECULAR = FRONT_FACING ?"), "the underside still reflects the sky above it")
 	# The per view globals take float, vec3, vec4 and samplers only.
 	for key in ProjectSettings.get_property_list():
@@ -212,15 +217,20 @@ func _pond(p: Vector3) -> String:
 
 
 func _test_sea() -> void:
-	check(Optics.sea_for(2.0).is_equal_approx(Optics.SEA_POND), "a puddle is not a pond's calm")
-	check(Optics.sea_for(200.0).is_equal_approx(Optics.SEA_OPEN), "the open sea is not the open sea's")
-	var last := Vector2.ZERO
+	check(is_equal_approx(Optics.sea_for(2.0), Optics.SEA_POND), "a puddle is not a pond's calm")
+	check(is_equal_approx(Optics.sea_for(200.0), Optics.SEA_OPEN), "the open sea is not the open sea's")
+	var last := 0.0
 	for r in range(0, 70, 4):
 		var v := Optics.sea_for(r)
-		check(v.x >= last.x and v.y >= last.y, "the waves shrink as the water grows, at %d" % r)
+		check(v >= last, "the waves shrink as the water grows, at %d" % r)
 		last = v
-	check(Optics.SEA_POND.x < 0.5 and Optics.SEA_OPEN.x > 1.0 and Optics.SEA_OPEN.y > 1.0,
-			"a pond is not calmer and the sea not bigger than a lake")
+	check(Optics.SEA_POND < 0.5 and Optics.SEA_OPEN > 1.0, "a pond is not calmer and the sea not bigger than a lake")
+	# The size of the water scales the waves' strength only. Scaling their
+	# length or speed multiplies the world position and TIME in the shader,
+	# and near a shore, where the measured size wavers, the sea strobed.
+	var shader_src := FileAccess.get_file_as_string(WATER)
+	check(shader_src.contains("TIME * wave_speed, octaves") and shader_src.contains("TAU / max(wave_length, 0.5)"),
+			"the size of the water scales the waves' length or speed")
 	for world in [[_world, "sea"], [_pond, "pond"]]:
 		var o: Node = Optics.new()
 		o.node_at = world[0]
@@ -228,15 +238,37 @@ func _test_sea() -> void:
 		var eye := Vector3(0.0, 1.6, 0.0)
 		for i in 600:
 			o.step(eye, 1.0 / 60.0)
-		print("water optics: the %s reaches %.1f nodes, waves %.2f strong and %.2f long"
-				% [world[1], o.fetch, o.sea.x, o.sea.y])
+		print("water optics: the %s reaches %.1f nodes, waves %.2f as strong as a lake's"
+				% [world[1], o.fetch, o.sea])
 		if world[1] == "sea":
 			check(o.fetch >= Optics.FETCH_REACH - 0.01, "the open sea is %.1f nodes across" % o.fetch)
-			check(o.sea.x > 1.2, "the open sea's waves are not bigger than a lake's")
+			check(o.sea > 1.2, "the open sea's waves are not bigger than a lake's")
 		else:
 			check(o.fetch < 8.0, "a 6 node pond reaches %.1f nodes" % o.fetch)
-			check(o.sea.x < 0.4, "the pond's waves are not calm: %.2f" % o.sea.x)
+			check(o.sea < 0.4, "the pond's waves are not calm: %.2f" % o.sea)
 		var published: Vector4 = o.client.values.get(&"goanna_water_sea", Vector4.ZERO)
-		check(is_equal_approx(published.x, o.sea.x), "the water shader is not handed the waves")
+		check(is_equal_approx(published.x, o.sea), "the water shader is not handed the waves")
 		o.free()
+	finished += 1
+
+
+func _test_dry_sky() -> void:
+	var main_script: GDScript = load("res://main.gd")
+	var colours := ["day_sky", "day_horizon", "dawn_sky", "dawn_horizon", "night_sky", "night_horizon"]
+	var make := func(base: Color, top: Color, clouds: bool) -> Dictionary:
+		var sky := {"type": "regular", "clouds": clouds}
+		for k in colours:
+			sky[k] = top if k.ends_with("sky") else base
+		return {"sky": sky, "clouds": {"density": 0.4}}
+	var ordinary: Dictionary = make.call(Color(0.6, 0.7, 0.9), Color(0.3, 0.5, 0.9), true)
+	var wet: Dictionary = make.call(Color(0.25, 0.46, 0.89), Color(0.25, 0.46, 0.89), false)
+	var kept := {}
+	main_script.dry_sky(ordinary, kept, false, false)
+	var seen: Dictionary = main_script.dry_sky(wet, kept, true, false)
+	check(seen["sky"]["day_horizon"] == ordinary["sky"]["day_horizon"] and bool(seen["sky"]["clouds"]),
+			"a camera above the water draws the water sky the head is in")
+	check(main_script.dry_sky(wet, kept, true, true)["sky"]["day_horizon"] == ordinary["sky"]["day_horizon"],
+			"a camera in the water draws the game's water sky through the surface")
+	check(main_script.dry_sky(wet, kept, false, false)["sky"]["day_horizon"] == wet["sky"]["day_horizon"],
+			"a one-colour sky with the head dry was replaced")
 	finished += 1

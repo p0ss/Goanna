@@ -30,9 +30,7 @@ const PlayerContext := preload("res://player_context.gd")
 #               red, green, blue; "clear" is what the water shader always
 #               had, which reads right on a beach or a reef.
 #   tint        the body's own colour, on the water tile's, for the little
-#               light the column throws back; the underwater murk is the
-#               same colour, lit the same way (main.gd, _apply_water_murk),
-#               so deep water is one colour from above and from below.
+#               light the column throws back, and on the murk's (murk_hue).
 #   shallow     the underwater fog's density with the eye at the surface,
 #   deep        and far down;
 #   depth       the depth, in nodes, over which it goes most of the way from
@@ -78,12 +76,13 @@ const FETCH_RAYS := 16
 const FETCH_STEP := 4
 const FETCH_REACH := 64
 const FETCH_SAMPLES_PER_FRAME := 8
-# The background waves for a fetch: their strength and their length, as
-# scales on the water shader's own (1 is what it always drew everywhere,
-# which is a lake's). A pond almost flat and short, the open sea half again
-# as strong and longer.
-const SEA_POND := Vector2(0.25, 0.4)
-const SEA_OPEN := Vector2(1.6, 1.5)
+# The background waves for a fetch: their strength, as a scale on the water
+# shader's own (1 is what it always drew everywhere, which is a lake's). A
+# pond almost flat, the open sea half again as strong. Their length is left
+# alone: scaled with the fetch, the shader's phase swept with every change
+# in it, and near a shore the whole sea strobed (water.gdshader).
+const SEA_POND := 0.25
+const SEA_OPEN := 1.6
 const FETCH_POND := 6.0
 const FETCH_OPEN := 48.0
 # How far up from the eye to look for the surface, nodes.
@@ -107,9 +106,9 @@ var water_name := ""
 # that found water; NAN before any has.
 var surface_y := NAN
 # How far the open water reaches round the eye, nodes (FETCH_*), and the
-# background waves' strength and length scales for it, eased.
+# background waves' strength scale for it, eased.
 var fetch := 24.0
-var sea := Vector2.ONE
+var sea := 1.0
 var _fetch_ray := 0
 var _fetch_dist := 0
 var _fetch_reach := PackedFloat32Array()
@@ -121,9 +120,35 @@ var _column := 0
 var _published := {}
 
 
-# The background waves' strength and length scales for a fetch in nodes.
-static func sea_for(reach: float) -> Vector2:
-	return SEA_POND.lerp(SEA_OPEN, smoothstep(FETCH_POND, FETCH_OPEN, reach))
+# The underwater murk's colour at full daylight: daylight after MURK_PATH
+# nodes through the water (the region's absorption, so red goes first, as it
+# does to the bed seen from above), times the region's tint, scaled so a
+# beach's is MURK_PEAK at its brightest. That puts a beach's murk at (0.22,
+# 0.62, 0.74), within a hundredth of the fixed cyan the owner found right
+# for a lake or deeper; a swamp's comes out a dark green. main.gd lights it
+# by the light actually falling on the water and darkens it with depth.
+#
+# The fixed cyan this stands in for was replaced once already, by deep
+# water's colour seen from above (the tile times the column's small body
+# share, lit): right for a pool seen from the bank, and nearly black as the
+# glow of daylit water all round the eye, which drew the underside of the
+# surface and the sky beyond it as a void.
+const MURK_PATH := 3.0
+const MURK_PEAK := 0.74
+
+static func murk_hue(o: Dictionary) -> Color:
+	var a: Vector3 = o["absorption"]
+	var t: Vector3 = o["tint"]
+	var clear: Vector3 = REGIONS["clear"]["absorption"]
+	var top := maxf(exp(-clear.x * MURK_PATH), maxf(exp(-clear.y * MURK_PATH), exp(-clear.z * MURK_PATH)))
+	var k := MURK_PEAK / top
+	return Color(exp(-a.x * MURK_PATH) * t.x * k, exp(-a.y * MURK_PATH) * t.y * k,
+			exp(-a.z * MURK_PATH) * t.z * k)
+
+
+# The background waves' strength scale for a fetch in nodes.
+static func sea_for(reach: float) -> float:
+	return lerpf(SEA_POND, SEA_OPEN, smoothstep(FETCH_POND, FETCH_OPEN, reach))
 
 
 static func is_water_name(node_name: String) -> bool:
@@ -237,7 +262,7 @@ func step(eye: Vector3, delta: float) -> void:
 	_measure_fetch(eye)
 	var f := 1.0 - exp(-delta / EASE)
 	current = ease_to(current, _target, f)
-	sea = sea.lerp(sea_for(fetch), f)
+	sea = lerpf(sea, sea_for(fetch), f)
 	_publish()
 
 
@@ -316,7 +341,7 @@ func _publish() -> void:
 	if _published.get("s") != sea:
 		_published["s"] = sea
 		# A vec4: the per view globals (goanna_render_scope.cpp) take no vec2.
-		PlayerContext.shader_parameter(client, "goanna_water_sea", Vector4(sea.x, sea.y, 0.0, 0.0))
+		PlayerContext.shader_parameter(client, "goanna_water_sea", Vector4(sea, 1.0, 0.0, 0.0))
 
 
 # For the control channel's status.

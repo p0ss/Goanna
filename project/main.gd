@@ -12,15 +12,11 @@ var ice_capture: Node
 var water_optics: Node
 const WaterOptics := preload("res://water_optics.gd")
 # The zenith colour, linear, as _apply_sky last set it: the sky light that
-# falls on the water, for the murk's colour.
+# falls on the water, for the murk's brightness.
 var _sky_top_lin := Color(0.3, 0.45, 0.7)
-# What the water column throws back, as the water shader's body_gain: the
-# murk is that colour, lit as the surface is, and a test ties the two.
-const WATER_BODY_GAIN := 0.35
-# A water tile's colour when the map has not told us which water this is:
-# Mineclonia's water tint, #3F76E4, linear.
-const WATER_TILE_FALLBACK := Color(0.05, 0.18, 0.78)
-var _water_tile_cache := {}
+# The light on the water at noon on a clear day (_water_light's luminance),
+# at which the murk is WaterOptics.murk_hue at full strength.
+const WATER_NOON_LIGHT := 1.2
 var shaft_glow_luminance := 0.0
 # Opt-in stage timings for benchmarks. Last-frame and interval maxima only.
 var profile_frame_work := false
@@ -2588,21 +2584,51 @@ func _strike_water() -> void:
 		blocked = eye.distance_to(pointed.get("point", eye))
 	pn.wake.strike(eye, dir, blocked)
 
+# The sky a game sends while the player's head is under water stands in for
+# underwater rendering a vanilla client does not have. Mineclonia, with the
+# node at the head being water, paints every sky and horizon colour and the
+# fog tint the water's colour and turns the clouds off. In third person,
+# with the camera above the water and the head in it, that drew the whole
+# open view water blue and dark; under the water, where Goanna draws its own
+# murk (_apply_water_murk), it made the sky seen up through the surface's
+# window water blue too. So while the head is in water, a sky of one colour
+# throughout with no clouds is taken to be that one, and the last ordinary
+# sky stands in for it.
+var _dry_sky_state := {}
+
+# `st` with that sky taken out when the head is in water (`head_wet`);
+# `kept` holds the last ordinary sky, and is updated from `st` whenever it
+# is one. (`camera_wet` is no longer consulted: the camera under the water
+# wants the real sky through the surface as much as one above it.)
+static func dry_sky(st: Dictionary, kept: Dictionary, head_wet: bool, camera_wet: bool) -> Dictionary:
+	var sky: Dictionary = st["sky"]
+	var one_colour := str(sky.get("type", "")) == "regular" and not bool(sky.get("clouds", true))
+	for k in ["day_horizon", "dawn_sky", "dawn_horizon", "night_sky", "night_horizon"]:
+		one_colour = one_colour and (sky[k] as Color).is_equal_approx(sky["day_sky"])
+	if not one_colour:
+		kept["sky"] = sky
+		kept["clouds"] = st["clouds"]
+		return st
+	if not head_wet or kept.is_empty():
+		return st
+	var out := st.duplicate()
+	out["sky"] = kept["sky"]
+	out["clouds"] = kept["clouds"]
+	return out
+
 # The underwater murk, from the water round the eye (water_optics.gd): clear
-# near the surface, the region's murk in the depths. Its colour is the one
-# deep water shows from above: the water tile's colour times the region's
-# tint, times the water shader's 0.5 * body_gain, lit by what lights the
-# surface (the sun and moon by their height, and the sky), and darker down
-# where less of that light reaches. So the far murk under water and a deep
-# pool seen from above are one colour. The scattering volume's albedo takes
-# the same hue. The same colour goes to the water shader, whose underside
-# mirrors it past the critical angle.
+# near the surface, the region's murk in the depths. Its colour is the
+# region's murk_hue, daylight tinted by the water it has come through, lit
+# by the light actually falling on the water against a clear noon's and
+# darker down where less of it reaches. The scattering volume's albedo takes
+# the same hue. The same colour, with the fog's density, goes to the water
+# shader, whose underside fades its mirror into it.
 #
-# Before this the murk was one fixed fog: 0.05 dense from the surface down,
+# Before this the murk was one fixed fog, 0.05 dense from the surface down,
 # which the owner found right for a lake or deeper water and too murky just
-# under the surface, and a fixed bright cyan with a cyan
-# scattering volume, tuned by eye, that looked nothing like the same water
-# from above: dark blue over the bed from the bank, bright teal from in it.
+# under the surface, and a fixed cyan that did not dim with the light or
+# change with the water. Its first replacement used deep water's colour
+# seen from above, which was nearly black all round the eye.
 func _apply_water_murk() -> void:
 	if env == null or env.environment == null or water_optics == null:
 		return
@@ -2610,28 +2636,18 @@ func _apply_water_murk() -> void:
 	var o: Dictionary = water_optics.current
 	var m := WaterOptics.murk(o, water_optics.eye_depth)
 	e.fog_density = m["density"]
-	var body := water_body_colour(_water_tile(water_optics.water_name), o["tint"])
-	var colour := body * _water_light() * float(m["light"])
+	var hue := WaterOptics.murk_hue(o)
+	var light := _water_light()
+	var lum := light.r * 0.2126 + light.g * 0.7152 + light.b * 0.0722
+	var colour := hue * float(m["light"]) * clampf(lum / WATER_NOON_LIGHT, 0.03, 1.5)
 	colour.a = 1.0
 	e.fog_light_color = colour
 	if e.volumetric_fog_enabled:
 		e.volumetric_fog_density = m["volume"]
-		var peak := maxf(maxf(body.r, body.g), maxf(body.b, 1e-4))
-		e.volumetric_fog_albedo = Color(body.r / peak, body.g / peak, body.b / peak) * 0.6
-	client.set_view_shader_parameter("goanna_water_fog", Vector3(colour.r, colour.g, colour.b))
-
-# What a water column throws back, unlit: the tile's colour times the
-# region's tint times the shader's 0.5 * body_gain.
-static func water_body_colour(tile: Color, tint: Vector3) -> Color:
-	return Color(tile.r * tint.x, tile.g * tint.y, tile.b * tint.z) * (0.5 * WATER_BODY_GAIN)
-
-func _water_tile(node_name: String) -> Color:
-	if node_name == "" or client == null or not client.has_method("node_tile_color"):
-		return WATER_TILE_FALLBACK
-	if not _water_tile_cache.has(node_name):
-		var c: Color = client.node_tile_color(node_name)
-		_water_tile_cache[node_name] = c if c.a > 0.0 else WATER_TILE_FALLBACK
-	return _water_tile_cache[node_name]
+		var peak := maxf(maxf(hue.r, hue.g), maxf(hue.b, 1e-4))
+		e.volumetric_fog_albedo = Color(hue.r / peak, hue.g / peak, hue.b / peak) * 0.6
+	client.set_view_shader_parameter("goanna_water_fog",
+			Vector4(colour.r, colour.g, colour.b, float(m["density"])))
 
 # The light on an upward face at the water: the sun and the moon each by
 # how high it stands, and the sky's, as the ambient energy of its zenith.
@@ -2949,6 +2965,11 @@ func _apply_sky() -> void:
 	var st: Dictionary = client.sky_state()
 	if st.is_empty() or not st.has("sun_direction"):
 		return
+	var head_wet := false
+	if last_move.has("pos"):
+		head_wet = WaterOptics.is_water_name(String(client.node_name_at(
+				(last_move["pos"] as Vector3) + Vector3(0.0, 1.5, 0.0))))
+	st = dry_sky(st, _dry_sky_state, head_wet, underwater)
 	var sun_dir: Vector3 = st["sun_direction"]
 	var moon_dir: Vector3 = st["moon_direction"]
 	_update_horizons(st)
