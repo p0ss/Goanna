@@ -485,7 +485,8 @@ def build(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, model=None, brush=Non
     if any(m.get("mode") == "soft" or m.get("ride") for m in mats.values()):
         dh, d3 = soft_surface(spec, mat, drawn, isl, cell, up(hgt),
                               extrude.chamfer_px(spec, cell), strength)
-        roll, roll_w, roll_sm = edge_roll(spec, mat, drawn, isl, cell, strength)
+        roll, roll_w, roll_sm = edge_roll(spec, mat, drawn, isl, cell, strength,
+                                          lum=lib.luminance(src[..., :3]))
         if roll_w is not None:
             d3 = d3 + roll
             smooth_hi = np.clip(smooth_hi - roll_sm, 0.0, lib.SMOOTH_CEILING)
@@ -625,9 +626,10 @@ def soft_surface(spec, mat, drawn, isl, cell, h_up, chamfer, strength):
 
 
 def _run_distance(mask, axis):
-    """Per pixel of mask, the distance in pixels from its centre to the
-    nearest pixel outside mask along one axis (the image edge counting as
-    outside), and the length of the run of mask it lies in."""
+    """Per pixel of mask, the distances in pixels from its centre to the
+    first pixel outside mask before it and after it along one axis (the
+    image edge counting as outside), and the length of the run of mask it
+    lies in."""
     m = np.moveaxis(mask, axis, 0)
     n = m.shape[0]
     fwd = np.zeros(m.shape, np.float32)
@@ -640,13 +642,34 @@ def _run_distance(mask, axis):
     for k in range(n - 1, -1, -1):
         run = np.where(m[k], run + 1, 0)
         back[k] = run
-    d = np.minimum(fwd, back) - 0.5
     length = fwd + back - 1
-    return (np.moveaxis(np.where(m, d, 0.0), 0, axis),
-            np.moveaxis(np.where(m, length, 0.0), 0, axis))
+    put = lambda a: np.moveaxis(np.where(m, a, 0.0), 0, axis)  # noqa: E731
+    return put(fwd - 0.5), put(back - 0.5), put(length)
 
 
-def edge_roll(spec, mat, drawn, isl, cell, strength):
+# A face whose art darkens toward an edge by this much luminance (its outer
+# texel line against the next one in) draws its own edge shading there.
+ART_BAND = 0.03
+
+
+def _art_bands(lum, own_lo):
+    """For one face at the art's size: how much its art darkens toward each
+    edge, 0..1 of ART_BAND, as ((before, after) along y, (before, after)
+    along x), from the mean of the outer texel line against the next."""
+    ys, xs = np.nonzero(own_lo)
+    f = np.where(own_lo, lum, np.nan)[ys.min():ys.max() + 1, xs.min():xs.max() + 1]
+    out = []
+    for axis in (0, 1):
+        line = np.nanmean(f, axis=1 - axis)
+        if len(line) < 3:
+            out.append((0.0, 0.0))
+            continue
+        out.append(tuple(float(np.clip((line[a] - line[b]) / ART_BAND, 0.0, 1.0))
+                         for b, a in ((0, 1), (-1, -2))))
+    return out
+
+
+def edge_roll(spec, mat, drawn, isl, cell, strength, lum=None):
     """A soft material's box edges, in place of the bevel: (normal detail,
     the share of each pixel that rolls rather than bevels, the smoothness
     taken off), or (None, None, None) when no soft material asks for it.
@@ -663,7 +686,10 @@ def edge_roll(spec, mat, drawn, isl, cell, strength):
     smoothness taken off at the edge, falling to none where the roll ends:
     a rolled edge faces the sky at a grazing angle, and at the skin's own
     smoothness its Fresnel reflection washed a pale band along every box
-    edge."""
+    edge. Where the art already darkens toward an edge (_art_bands, the
+    arm's shaded sides) the roll there keeps only "roll_art" (default
+    0.25) of its lean: leaning that edge toward the light lit away the
+    art's own shading band, and the arm read flat and pale."""
     rolls = {k: m for k, m in (spec.get("materials") or {}).items()
              if (m.get("mode") == "soft" or m.get("ride")) and float(m.get("edge_roll", 0)) > 0}
     if not rolls:
@@ -687,13 +713,18 @@ def edge_roll(spec, mat, drawn, isl, cell, strength):
             o = own[y0:y1, x0:x1]
             fall = np.zeros(o.shape, np.float32)
             near = np.zeros(o.shape, np.float32)
+            keep = float(m.get("roll_art", 0.25))
+            bands = _art_bands(lum, isl == i) if lum is not None else ((0.0, 0.0), (0.0, 0.0))
             for axis in (0, 1):
-                d, length = _run_distance(o, axis)
+                d0, d1, length = _run_distance(o, axis)
                 # On a face narrower than two widths the roll reaches only
                 # half way, so the two sides meet flat, with no ridge.
                 wd = np.maximum(np.minimum(width, 0.5 * length), 1.0)
-                fall -= (lean * wd / (2.0 * strength)) * np.clip(1.0 - d / wd, 0.0, 1.0) ** 2
-                near = np.maximum(near, np.clip(1.0 - d / wd, 0.0, 1.0))
+                for d, band in zip((d0, d1), bands[axis]):
+                    t = np.clip(1.0 - d / wd, 0.0, 1.0)
+                    k = 1.0 - band * (1.0 - keep)
+                    fall -= k * (lean * wd / (2.0 * strength)) * t ** 2
+                    near = np.maximum(near, t)
             if m.get("ride"):
                 # A part laid over skin (the player's eyes) rolls exactly
                 # as the skin under it does.

@@ -150,9 +150,13 @@ What differs from a tile:
   height per texel at shade's steps turns a face into a checkerboard of
   coloured squares. Skin is `"mode": "soft"` (extrude.py; atlas.py's
   `soft_surface` and `edge_roll` do the rest), keys on the material:
-  - `"span"` (0.16 of the height range) and `"detail"` (0.25): lighter
+  - `"span"` (0.08 of the height range) and `"detail"` (0.25): lighter
     texels higher in proportion to their shade, the top of the span at
-    `"base"` plus half of it, no joints;
+    `"base"` plus half of it, no joints. Keep it small: blurred, a span
+    of 0.08 stays under the client's depth measure, so it does not lift
+    the march, while at 0.16 the dome and roll (normal only) raised the
+    bare arm's measured depth to the cap and the march slid lighter
+    texels over darker ones at a grazing view;
   - `"soft_edge"` (0.3 texels): the skin's steps between its own shades
     blurred by about that sigma in place of the crisp chamfer, in the
     stored height as well as the normal, so parallax sees the same soft
@@ -165,7 +169,10 @@ What differs from a tile:
     over its outer texels toward every box edge like a cushion, across and
     along added so the corners round without a crease; normal only;
     `"roll_rough"` (0.2) takes smoothness off toward the edge, where a
-    rolled edge would otherwise catch the sky at a grazing angle;
+    rolled edge would otherwise catch the sky at a grazing angle; where
+    the art darkens toward an edge (an arm's shaded sides) the roll
+    keeps `"roll_art"` (0.25) of its lean there, so it does not light
+    the art's own band away;
   - `"smooth_spread"` 0.1 makes the raised, lighter texels a little
     smoother; the `skin` micro (pores) is down to `"micro_strength"` 0.3.
   A material with `"ride": true` (the player's eye layer) takes the same

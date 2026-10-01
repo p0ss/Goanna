@@ -7,7 +7,7 @@
  "bevel_px": 3,
  "micro": "none",
  "materials": {
-  "skin": {"mode": "soft", "base": 0.92, "span": 0.16, "detail": 0.25, "micro": "rotten", "micro_strength": 1.3, "micro_swing": 0.8, "smooth": 0.44, "smooth_spread": 0.1, "scatter": 0.2, "f0": 0.03, "soft_edge": 0.3, "edge_roll": 2.5, "edge_lean": 20, "round": 10, "roll_rough": 0.2},
+  "skin": {"mode": "soft", "base": 0.92, "span": 0.08, "detail": 0.25, "micro": "rotten", "micro_strength": 0.7, "micro_swing": 0.8, "smooth": 0.44, "smooth_spread": 0.1, "scatter": 0.2, "f0": 0.03, "soft_edge": 0.3, "edge_roll": 2.5, "edge_lean": 20, "round": 10, "roll_rough": 0.2},
   "eye": {"mode": "flat", "base": 0.54, "span": 0.0, "micro": "none", "smooth": 0.9, "smooth_spread": 0.0, "f0": 0.06},
   "mouth": {"mode": "flat", "base": 0.44, "span": 0.0, "micro": "none", "smooth": 0.62, "smooth_spread": 0.0},
   "shorts": {"mode": "flat", "base": 0.88, "span": 0.0, "micro": "coarse", "micro_strength": 1.3, "smooth": 0.16, "smooth_spread": 0.0, "wear": 0.16, "texel_edge": 0.015},

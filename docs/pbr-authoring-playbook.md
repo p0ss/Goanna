@@ -57,7 +57,7 @@ extrusion. A first pass (a span of 0.08, a 0.2 texel blur, a dome leaning
 8 degrees) was invisible in the previews, and the owner asked for softer,
 smoother, rounded edges in place of the box bevel. Skin is now `"mode":
 "soft"` (`tools/pbr_author/README.md`, "Faces"): lighter texels higher
-over 0.16 of the range with rounded steps, a dome over each piece, the
+over 0.08 of the range with rounded steps, a dome over each piece, the
 face rolling off over its outer 2.5 texels to every box edge instead of
 the bevel, the pores nearly gone and a little more sheen on the raised
 texels. The fine micro surface falls under a pixel at normal viewing
