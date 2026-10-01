@@ -1,6 +1,7 @@
 // Goanna: Luanti TILE_MATERIAL_WAVING_PLANTS. Sway grows with height above the node base.
 shader_type spatial;
 #include "feature_flags.gdshaderinc"
+#include "res://shaders/underwater.gdshaderinc"
 render_mode cull_disabled, depth_prepass_alpha, diffuse_burley, specular_schlick_ggx;
 
 uniform sampler2D albedo_tex : source_color, filter_nearest_mipmap, repeat_enable;
@@ -135,4 +136,8 @@ void fragment() {
 	v_sun_gate = goanna_sun_gate(v_skylight, v_blocklight);
 	v_specular = SPECULAR;
 	v_rim = vec2(0.0);
+	// The water between the eye and this surface, per colour (underwater.gdshaderinc).
+	vec3 goanna_uw = goanna_underwater_keep(VERTEX, INV_VIEW_MATRIX, CAMERA_POSITION_WORLD);
+	ALBEDO *= goanna_uw;
+	EMISSION *= goanna_uw;
 }

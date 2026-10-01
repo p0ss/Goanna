@@ -2648,6 +2648,11 @@ func _apply_water_murk() -> void:
 		e.volumetric_fog_albedo = Color(hue.r / peak, hue.g / peak, hue.b / peak) * 0.6
 	client.set_view_shader_parameter("goanna_water_fog",
 			Vector4(colour.r, colour.g, colour.b, float(m["density"])))
+	# Where the surface is over the eye, for the opaque shaders' absorption
+	# (underwater.gdshaderinc): a surface above the water seen up through it
+	# loses only what the water under the surface takes.
+	client.set_view_shader_parameter("goanna_water_surface",
+			Vector4(cam.global_position.y + water_optics.eye_depth, 1.0, 0.0, 0.0))
 
 # The light on an upward face at the water: the sun and the moon each by
 # how high it stands, and the sky's, as the ambient energy of its zenith.

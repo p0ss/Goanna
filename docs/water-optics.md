@@ -115,6 +115,27 @@ nothing. Over deep water that mirror is the murk; over shallows it is the
 lit bed, bent by the waves. Godot's own specular is off on the underside:
 it reflects Godot's sky, which is above the surface.
 
+Some details of the underside:
+
+- Total internal reflection is only on the top of the water. On the sides of
+  a water column seen from inside, it laid flat teal sheets across the view.
+- Where the march leaves the screen without a hit, the mirror keeps the last
+  sample it found on screen, fogged by the ray's length so far. Falling back
+  to the flat murk colour there drew horizontal teal bands wherever the
+  reflected ray ran off the top of the screen.
+- Seen from below, the surface absorbs only the water between the eye and
+  it. Measured by the depth behind it, as from above, it took up to 64
+  nodes of air for water and came out nearly black.
+
+Every opaque surface also loses each colour by the water between it and the
+eye (`shaders/underwater.gdshaderinc`, included by the node, plant, leaf,
+grass and entity shaders): `exp(-absorption * path)`, the same absorption as
+the bed seen from above. For something above the water seen up through it,
+`path` is only the part under the surface, whose height `main.gd` passes in
+`goanna_water_surface`. Before this the only loss was Godot's fog, one
+channel at a few hundredths a node near the surface, and a bed three nodes
+away was clearly brighter seen from in the water than from above it.
+
 ## The game's water sky
 
 Mineclonia, while the node at the player's head is water, sets every sky

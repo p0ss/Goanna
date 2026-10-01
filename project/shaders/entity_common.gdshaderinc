@@ -50,6 +50,7 @@ uniform float class_sss : hint_range(0.0, 1.0) = 0.0;
 
 #define GOANNA_DIAMOND
 #include "res://shaders/direct_light.gdshaderinc"
+#include "res://shaders/underwater.gdshaderinc"
 #ifdef GOANNA_DIAMOND_TRANSMISSION
 #include "res://shaders/diamond_refraction.gdshaderinc"
 #endif
@@ -246,4 +247,8 @@ void fragment() {
 		ALPHA = composed_alpha;
 	}
 #endif
+	// The water between the eye and this surface, per colour (underwater.gdshaderinc).
+	vec3 goanna_uw = goanna_underwater_keep(VERTEX, INV_VIEW_MATRIX, CAMERA_POSITION_WORLD);
+	ALBEDO *= goanna_uw;
+	EMISSION *= goanna_uw;
 }

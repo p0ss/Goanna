@@ -28,6 +28,7 @@ render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 // decile, so snapping between neighbouring texels swings the specular
 // highlight from frame to frame and reads as shimmer.
 #include "res://shaders/nodes_array_common.gdshaderinc"
+#include "res://shaders/underwater.gdshaderinc"
 #define GOANNA_DIAMOND
 #include "res://shaders/direct_light.gdshaderinc"
 #include "res://shaders/diamond_ore.gdshaderinc"
@@ -488,4 +489,8 @@ void fragment() {
 	// light() needs the final SPECULAR to build F0: direct_light.gdshaderinc.
 	v_sun_gate = goanna_sun_gate(v_nodelight.g, v_nodelight.r);
 	v_specular = SPECULAR;
+	// The water between the eye and this surface, per colour (underwater.gdshaderinc).
+	vec3 goanna_uw = goanna_underwater_keep(VERTEX, INV_VIEW_MATRIX, CAMERA_POSITION_WORLD);
+	ALBEDO *= goanna_uw;
+	EMISSION *= goanna_uw;
 }

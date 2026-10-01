@@ -103,6 +103,16 @@ func _test_shader() -> void:
 			"main.gd does not light the murk's hue")
 	check(src.contains("vec3 rdir = reflect(normalize(VERTEX), NORMAL);"),
 			"the underside does not mirror the water below")
+	check(src.contains("!FRONT_FACING && face_up > 0.7") and src.contains("vec3 last = goanna_water_fog.rgb;"),
+			"the underside's mirror is not the top's only, or falls back to flat murk")
+	# Every opaque surface seen from under the water loses its light to the
+	# water per colour, as the bed seen from above does.
+	for f in ["nodes_array.gdshader", "nodes_array_scissor.gdshader", "waving_plants.gdshader",
+			"waving_leaves.gdshader", "entity_common.gdshaderinc", "grass_volume.gdshader"]:
+		var text := FileAccess.get_file_as_string("res://shaders/" + f)
+		check(text.contains("underwater.gdshaderinc") and text.contains("ALBEDO *= goanna_uw;"),
+				f + " is not absorbed under the water")
+	check(globals.has(&"goanna_water_surface"), "goanna_water_surface is not registered")
 	check(src.contains("SPECULAR = FRONT_FACING ?"), "the underside still reflects the sky above it")
 	# The per view globals take float, vec3, vec4 and samplers only.
 	for key in ProjectSettings.get_property_list():

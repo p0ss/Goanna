@@ -350,6 +350,13 @@ void fragment() {
 	// Thickness of water along the view ray, from the opaque depth buffer.
 	float behind = scene_distance(SCREEN_UV, INV_PROJECTION_MATRIX);
 	float thick = clamp(behind - here, 0.0, 64.0);
+	// From under the surface what lies behind it is air, not water: the
+	// water this light crosses is the stretch from the surface to the eye.
+	// Taking the depth behind the surface instead (as much as 64 nodes to
+	// the trees or the sky) absorbed everything seen up through the surface
+	// to near black.
+	if (!FRONT_FACING)
+		thick = clamp(here, 0.0, 64.0);
 	// Past a few hundred nodes every water body reads as deep: at eye height
 	// the view ray through a surface out there is always near grazing, so the
 	// near mesh is fully absorbed anyway. The far tiers need the same answer
@@ -561,7 +568,10 @@ void fragment() {
 	// is how the underside of real water shows its waves. Before, the whole
 	// underside showed the sky, and then a flat murk colour that read as a
 	// black void.
-	if (!FRONT_FACING) {
+	// Only the top of the water: a side of water seen from inside it (the
+	// edge of a flowing step, water beside an air pocket) shows what is
+	// behind it, and taking the mirror there drew flat teal sheets.
+	if (!FRONT_FACING && face_up > 0.7) {
 		float cos_i = clamp(dot(NORMAL, VIEW), 0.0, 1.0);
 		float sin_i = sqrt(1.0 - cos_i * cos_i);
 		// sin of the critical angle is 1 / 1.33, 0.752.
@@ -571,6 +581,14 @@ void fragment() {
 			vec3 rdir = reflect(normalize(VERTEX), NORMAL);
 			float step_len = 0.25;
 			vec3 p = VERTEX;
+			// The last thing on screen along the ray, for a ray that finds
+			// no surface: what lies that way, faded by how far the ray went.
+			// Falling back to the bare murk instead, rays that hit and rays
+			// that missed alternated under the waves into bands of mirrored
+			// bed and flat teal.
+			vec3 last = goanna_water_fog.rgb;
+			float last_len = 0.0;
+			bool hit = false;
 			for (int i = 0; i < 20; i++) {
 				p += rdir * step_len;
 				step_len *= 1.35;
@@ -584,18 +602,24 @@ void fragment() {
 				if (keep <= 0.0)
 					break;
 				uv.x = clamp(uv.x, 0.002, 0.998);
+				vec3 seen_here = texture(screen_tex, uv).rgb;
+				if (!(any(isnan(seen_here)) || any(isinf(seen_here)))) {
+					last = mix(goanna_water_fog.rgb, min(seen_here, vec3(8.0)), keep);
+					last_len = length(p - VERTEX);
+				}
 				float scene = scene_distance(uv, INV_PROJECTION_MATRIX);
 				float ray = -p.z;
 				if (ray > scene && ray - scene < step_len * 4.0) {
-					// The opaque pass fogged the bed by its distance from
+					// The opaque pass absorbed the bed by its distance from
 					// the eye; the mirror's light also came up the ray.
 					float murk = 1.0 - exp(-goanna_water_fog.w * length(p - VERTEX));
-					vec3 bed = texture(screen_tex, uv).rgb;
-					if (!(any(isnan(bed)) || any(isinf(bed))))
-						mirror = mix(mirror, mix(min(bed, vec3(8.0)), goanna_water_fog.rgb, murk), keep);
+					mirror = mix(last, goanna_water_fog.rgb, murk);
+					hit = true;
 					break;
 				}
 			}
+			if (!hit)
+				mirror = mix(last, goanna_water_fog.rgb, 1.0 - exp(-goanna_water_fog.w * (last_len + 8.0)));
 		}
 		// Inside the window, the sky. The opaque pass drew the sky behind the
 		// surface already fogged into the murk (the underwater fog covers the

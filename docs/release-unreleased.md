@@ -25,7 +25,9 @@
 - **Under water looks like water.** The murk is lit cyan near the surface,
   darker with depth and through the evening, instead of nearly black.
   Looking up, you see the sky through the window overhead and, beyond it,
-  the water below reflected in the surface.
+  the water below reflected in the surface. The bed loses its colour to the
+  water the same way seen from in it as from above, and no longer looks
+  brighter once you dive in.
 - **Third person in water.** With your head under and the camera above the
   water, the view no longer turns water blue.
 - **No more strobing near the shore.** The sea no longer flickers as if in

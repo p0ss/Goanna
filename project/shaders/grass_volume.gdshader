@@ -4,6 +4,7 @@
 // blade distance estimator, per-surface bounds, depth and Godot lighting.
 shader_type spatial;
 #include "feature_flags.gdshaderinc"
+#include "res://shaders/underwater.gdshaderinc"
 render_mode cull_front, diffuse_burley, specular_schlick_ggx, alpha_to_coverage, depth_draw_always;
 
 global uniform vec3 goanna_sky_fill;
@@ -472,4 +473,8 @@ void fragment() {
         ALBEDO = vec3(0.0);
         EMISSION = vec3(float(count)/float(march_steps),far_mix,0.0);
     }
+    // The water between the eye and this surface, per colour (underwater.gdshaderinc).
+    vec3 goanna_uw = goanna_underwater_keep(VERTEX, INV_VIEW_MATRIX, CAMERA_POSITION_WORLD);
+    ALBEDO *= goanna_uw;
+    EMISSION *= goanna_uw;
 }

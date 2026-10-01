@@ -21,6 +21,7 @@ shader_type spatial;
 render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 
 #include "res://shaders/nodes_array_common.gdshaderinc"
+#include "res://shaders/underwater.gdshaderinc"
 #define GOANNA_DIAMOND
 #include "res://shaders/direct_light.gdshaderinc"
 #include "res://shaders/diamond_ore.gdshaderinc"
@@ -316,4 +317,8 @@ void fragment() {
 	// Sun gate and F0 for light(), as in nodes_array.gdshader.
 	v_sun_gate = goanna_sun_gate(v_nodelight.g, v_nodelight.r);
 	v_specular = SPECULAR;
+	// The water between the eye and this surface, per colour (underwater.gdshaderinc).
+	vec3 goanna_uw = goanna_underwater_keep(VERTEX, INV_VIEW_MATRIX, CAMERA_POSITION_WORLD);
+	ALBEDO *= goanna_uw;
+	EMISSION *= goanna_uw;
 }
