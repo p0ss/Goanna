@@ -387,6 +387,7 @@ ModelAnimator::ModelAnimator(std::shared_ptr<GodotModel> model) : m_model(std::m
     m_globals.resize(n);
     const size_t limbs = m_model->limbs.size();
     m_bend.assign(limbs, 0.0f);
+    m_eased_bend.assign(limbs, 0.0f);
     m_swing.assign(limbs, 0.0f);
     m_swing_rate.assign(limbs, 0.0f);
     if (limbs && m_model->skinned) {
@@ -622,8 +623,45 @@ void ModelAnimator::probeLimbSigns() {
                 if (a && toGodotTransform(globals[j]).origin.y < l.cut_y)
                     m_lower_limb[j] = (int)i;
             }
+        // A leg's thigh, from its joint down to the knee, and its shin, from
+        // the knee to the foot: how far a crouch lowers the body.
+        for (const LimbBend &l : m_model->limbs)
+            if (l.kind == LimbKind::Leg) {
+                m_leg_upper = std::max(0.0f, toGodotTransform(globals[l.joint]).origin.y - l.cut_y);
+                m_leg_lower = std::max(0.0f, l.cut_y - l.end.y);
+                break;
+            }
     }
     const core::vector3df x(1, 0, 0), z(0, 0, 1);
+    // The root, which the whole body leans and drops by: which way a turn
+    // about its x axis takes the hips forward, and about its z axis to the
+    // left (Godot's forward is -z, its left -x).
+    for (const auto *j : joints)
+        if (!j->ParentJointID) {
+            m_root_joint = j->JointID;
+            break;
+        }
+    auto marker_after = [&](const core::vector3df *axis, float deg) {
+        JointTransforms locals = rest;
+        if (axis && m_root_joint)
+            if (auto *t = std::get_if<core::Transform>(&locals[*m_root_joint]))
+                turnLocal(*t, *axis, deg);
+        std::vector<core::matrix4> globals(joints.size());
+        for (size_t i = 0; i < joints.size(); ++i) {
+            if (auto *m = std::get_if<core::matrix4>(&locals[i]))
+                globals[i] = *m;
+            else
+                globals[i] = std::get<core::Transform>(locals[i]).buildMatrix();
+        }
+        mesh->calculateGlobalMatrices(globals);
+        const LimbBend &l = m_model->limbs[0];
+        return toGodotTransform(mesh->calculateSkinMatrices(globals)[l.joint]).xform(l.pivot + Vector3(0, 6.0f, 0));
+    };
+    if (m_root_joint) {
+        const Vector3 base = marker_after(nullptr, 0.0f);
+        m_lean_sign = marker_after(&x, 10.0f).z < base.z ? 1.0f : -1.0f;
+        m_bank_sign = marker_after(&z, 10.0f).x < base.x ? 1.0f : -1.0f;
+    }
     m_pitch_sign.assign(m_model->limbs.size(), 1.0f);
     m_spread_sign.assign(m_model->limbs.size(), 1.0f);
     for (size_t i = 0; i < m_model->limbs.size(); ++i) {
@@ -637,21 +675,24 @@ void ModelAnimator::probeLimbSigns() {
     }
 }
 
-// The water strokes: while the body is swimming or treading water, the
-// shoulders and hips are turned from their rest by the stroke, blended over
-// what the game's animation had them doing by how far the stroke has eased
-// in. The knees and elbows follow in measureLimbs.
+// The whole-limb poses: while the body is swimming, treading water or
+// climbing, the shoulders and hips are turned from their rest by the
+// stroke, blended over what the game's animation had them doing by how far
+// the stroke has eased in. Then, on top, the movement poses (a landing's
+// crouch, a fall's flailing, a leg lifting onto a step), and the whole body
+// leaned into starts, stops and turns and lowered for a crouch, at the root.
+// The knees and elbows follow in measureLimbs.
 void ModelAnimator::poseLimbs(float dt, JointTransforms &locals,
         const std::map<std::string, BoneOverride> &overrides) {
     const float ease = 1.0f - std::exp(-dt / 0.25f);
-    m_swim_w += ((m_water == WaterPose::Swim ? 1.0f : 0.0f) - m_swim_w) * ease;
-    m_tread_w += ((m_water == WaterPose::Tread ? 1.0f : 0.0f) - m_tread_w) * ease;
-    m_paddle_w += ((m_water == WaterPose::Paddle ? 1.0f : 0.0f) - m_paddle_w) * ease;
+    for (int p = 1; p < kPoseCount; ++p)
+        m_pose_w[p] += (((int)m_water == p ? 1.0f : 0.0f) - m_pose_w[p]) * ease;
     m_stroke_phase = std::fmod(m_stroke_phase + strokeRate(m_water, m_water_speed) * dt,
             2.0f * 3.14159265f * 12.0f);
-    const float w = m_swim_w + m_tread_w + m_paddle_w;
-    if (w < 1e-3f)
-        return;
+    updateMotion(dt);
+    float w = 0.0f;
+    for (int p = 1; p < kPoseCount; ++p)
+        w += m_pose_w[p];
     const auto &joints = m_model->skinned->getAllJoints();
     const core::vector3df x(1, 0, 0), z(0, 0, 1);
     for (size_t i = 0; i < m_model->limbs.size(); ++i) {
@@ -665,16 +706,123 @@ void ModelAnimator::poseLimbs(float dt, JointTransforms &locals,
         const auto *r = std::get_if<core::Transform>(&joints[l.joint]->transform);
         if (!t || !r)
             continue;
-        const LimbAngles s = strokeAngles(WaterPose::Swim, l.kind, l.right, m_stroke_phase);
-        const LimbAngles d = strokeAngles(WaterPose::Tread, l.kind, l.right, m_stroke_phase);
-        const LimbAngles b = strokeAngles(WaterPose::Paddle, l.kind, l.right, m_stroke_phase);
-        const float pitch = (s.pitch * m_swim_w + d.pitch * m_tread_w + b.pitch * m_paddle_w) / w;
-        const float spread = (s.spread * m_swim_w + d.spread * m_tread_w + b.spread * m_paddle_w) / w;
-        core::Transform stroke = *r;
-        turnLocal(stroke, x, pitch * m_pitch_sign[i]);
-        turnLocal(stroke, z, spread * m_spread_sign[i]);
-        t->rotation.slerp(t->rotation, stroke.rotation, std::min(w, 1.0f));
+        if (w > 1e-3f) {
+            float pitch = 0.0f, spread = 0.0f;
+            for (int p = 1; p < kPoseCount; ++p) {
+                if (m_pose_w[p] < 1e-4f)
+                    continue;
+                const LimbAngles s = strokeAngles((WaterPose)p, l.kind, l.right, m_stroke_phase);
+                pitch += s.pitch * m_pose_w[p];
+                spread += s.spread * m_pose_w[p];
+            }
+            core::Transform stroke = *r;
+            turnLocal(stroke, x, pitch / w * m_pitch_sign[i]);
+            turnLocal(stroke, z, spread / w * m_spread_sign[i]);
+            t->rotation.slerp(t->rotation, stroke.rotation, std::min(w, 1.0f));
+        }
+        const LimbAngles m = motionAngles(i);
+        if (m.pitch != 0.0f)
+            turnLocal(*t, x, m.pitch * m_pitch_sign[i]);
+        if (m.spread != 0.0f)
+            turnLocal(*t, z, m.spread * m_spread_sign[i]);
     }
+    if (m_root_joint && *m_root_joint < locals.size())
+        if (auto *t = std::get_if<core::Transform>(&locals[*m_root_joint])) {
+            if (m_lean != 0.0f)
+                turnLocal(*t, x, m_lean * m_lean_sign);
+            if (m_bank != 0.0f)
+                turnLocal(*t, z, m_bank * m_bank_sign);
+            t->translation.Y -= m_drop;
+        }
+}
+
+// What the body's movement does this step: a landing (the crouch comes in
+// fast and eases out over half a second, deeper the harder the landing), a
+// fall (the arms go out after a fifth of a second falling fast, flailing
+// more the longer it lasts), a step up (a quick rise while on the ground
+// lifts the forward leg), and the lean into a start or a stop and the bank
+// into a turn, on the ground and out of the water. The lean and bank are
+// for others to see: seen from the eye they would only move the body
+// under the camera.
+void ModelAnimator::updateMotion(float dt) {
+    m_clock += dt;
+    const BodyMotion &mo = m_motion;
+    if (mo.known) {
+        if (!mo.grounded) {
+            m_air_time += dt;
+            m_fall_peak = std::max(m_fall_peak, -mo.vy);
+        } else {
+            if (!m_prev_grounded && m_have_y) {
+                m_land = std::max(m_land, landDepth(m_fall_peak));
+                // Down: the flailing stops at once, and the crouch takes
+                // the legs (its drop allows for its own bend, not the
+                // fall's, and eased out the feet went through the ground).
+                m_fall_w = 0.0f;
+            }
+            if (m_have_y && m_prev_grounded && mo.y - m_prev_y > 0.25f && mo.y - m_prev_y < 1.2f) {
+                // The leg further forward takes the step.
+                float best = -1e9f;
+                for (size_t i = 0; i < m_model->limbs.size(); ++i)
+                    if (m_model->limbs[i].kind == LimbKind::Leg && m_swing[i] > best) {
+                        best = m_swing[i];
+                        m_step_leg = (int)i;
+                    }
+                m_step = 1.0f;
+            }
+            m_air_time = 0.0f;
+            m_fall_peak = 0.0f;
+        }
+        m_prev_grounded = mo.grounded;
+        m_prev_y = mo.y;
+        m_have_y = true;
+    }
+    const float k = [&](float tau) { return 1.0f - std::exp(-std::max(dt, 0.0f) / tau); }(0.04f);
+    m_land_amt += (m_land - m_land_amt) * k;
+    m_land *= std::exp(-std::max(dt, 0.0f) / 0.18f);
+    m_step *= std::exp(-std::max(dt, 0.0f) / 0.12f);
+    const bool falling = mo.known && !mo.grounded && mo.vy < -5.0f && m_air_time > 0.2f;
+    m_fall_w += ((falling ? 1.0f : 0.0f) - m_fall_w) * (1.0f - std::exp(-std::max(dt, 0.0f) / 0.25f));
+    float water = 0.0f;
+    for (int p = 1; p < kPoseCount; ++p)
+        water += m_pose_w[p];
+    float lean = 0.0f, bank = 0.0f;
+    if (mo.known && mo.grounded && water < 0.5f && !m_first_person) {
+        lean = std::clamp(mo.accel * 1.6f, -9.0f, 9.0f)
+                + 6.0f * std::clamp((mo.speed - 4.0f) / 2.5f, 0.0f, 1.0f);
+        bank = std::clamp(mo.speed * mo.yaw_rate * 0.0174533f * 3.0f, -12.0f, 12.0f);
+    }
+    const float lb = 1.0f - std::exp(-std::max(dt, 0.0f) / 0.15f);
+    m_lean += (lean - m_lean) * lb;
+    m_bank += (bank - m_bank) * lb;
+    const LimbAngles crouch = landAngles(LimbKind::Leg, m_land_amt);
+    m_drop = legShortening(m_leg_upper, m_leg_lower, crouch.pitch, crouch.bend);
+}
+
+// One limb's share of the movement poses, degrees on top of everything
+// else: the landing's crouch, the fall's flailing, the step's lifted leg.
+LimbAngles ModelAnimator::motionAngles(size_t i) const {
+    const LimbBend &l = m_model->limbs[i];
+    const bool arm = l.kind == LimbKind::Arm;
+    LimbAngles a = landAngles(l.kind, m_land_amt);
+    if (m_fall_w > 1e-3f) {
+        const float f = m_fall_w;
+        const float wob = std::sin(m_clock * 7.0f + (l.right ? 0.0f : 3.14159f) + (arm ? 1.5708f : 0.0f))
+                * std::min(1.0f, m_air_time);
+        if (arm) {
+            a.spread += 55.0f * f;
+            a.pitch += (25.0f + 20.0f * wob) * f;
+            a.bend += 20.0f * f;
+        } else {
+            a.pitch += (15.0f + 15.0f * wob) * f;
+            a.spread += 8.0f * f;
+            a.bend += (25.0f + 15.0f * std::max(0.0f, wob)) * f;
+        }
+    }
+    if (!arm && (int)i == m_step_leg && m_step > 1e-3f) {
+        a.pitch += 50.0f * m_step;
+        a.bend += 75.0f * m_step;
+    }
+    return a;
 }
 
 // Each limb's swing forward of hanging straight, relative to the body, from
@@ -688,14 +836,20 @@ void ModelAnimator::measureLimbs(float dt, const std::vector<core::matrix4> &ski
     m_body_lying = m_body_joint && std::fabs(body.basis.xform(Vector3(0, 1, 0)).normalized().y) < 0.5f;
     const Transform3D to_body = body.affine_inverse();
     const auto &joints = m_model->skinned->getAllJoints();
-    const float w = std::min(m_swim_w + m_tread_w + m_paddle_w, 1.0f);
+    float pose_total = 0.0f;
+    for (int p = 1; p < kPoseCount; ++p)
+        pose_total += m_pose_w[p];
+    const float w = std::min(pose_total, 1.0f);
     const float ease_rate = 1.0f - std::exp(-std::max(dt, 0.0f) / 0.05f);
     const float ease_bend = 1.0f - std::exp(-std::max(dt, 0.0f) / 0.06f);
     for (size_t i = 0; i < m_model->limbs.size(); ++i) {
         const LimbBend &l = m_model->limbs[i];
         const Basis rel = (to_body * toGodotTransform(skin[l.joint])).basis;
         const Vector3 d = rel.xform(Vector3(0, -1, 0));
-        const float swing = std::atan2(-d.z, -d.y) * 57.29578f;
+        // The game's own swing: what the pose shows less what Goanna's
+        // movement poses turned the limb, which otherwise fed back as a
+        // swing of their own (a landing's hip flex bent the knee again).
+        const float swing = std::atan2(-d.z, -d.y) * 57.29578f - motionAngles(i).pitch;
         if (m_have_swing && dt > 0.0f) {
             float delta = swing - m_swing[i];
             if (delta > 180.0f)
@@ -716,14 +870,18 @@ void ModelAnimator::measureLimbs(float dt, const std::vector<core::matrix4> &ski
         else if (m_first_person && l.kind == LimbKind::Arm)
             target *= FIRST_PERSON_ELBOW;
         if (w > 1e-3f) {
-            const LimbAngles s = strokeAngles(WaterPose::Swim, l.kind, l.right, m_stroke_phase);
-            const LimbAngles t = strokeAngles(WaterPose::Tread, l.kind, l.right, m_stroke_phase);
-            const LimbAngles b = strokeAngles(WaterPose::Paddle, l.kind, l.right, m_stroke_phase);
-            const float stroke = (s.bend * m_swim_w + t.bend * m_tread_w + b.bend * m_paddle_w)
-                    / (m_swim_w + m_tread_w + m_paddle_w);
-            target = target * (1.0f - w) + stroke * w;
+            float stroke = 0.0f;
+            for (int p = 1; p < kPoseCount; ++p)
+                if (m_pose_w[p] > 1e-4f)
+                    stroke += strokeAngles((WaterPose)p, l.kind, l.right, m_stroke_phase).bend * m_pose_w[p];
+            target = target * (1.0f - w) + stroke / pose_total * w;
         }
-        m_bend[i] = dt > 0.0f ? m_bend[i] + (target - m_bend[i]) * ease_bend : target;
+        // The walk and the strokes ease; the movement poses are smooth of
+        // themselves and go straight on top, so a landing's knee is exactly
+        // what lowered the body (updateMotion): eased with the rest, it bent
+        // behind the drop and the feet sank through the ground.
+        m_eased_bend[i] = dt > 0.0f ? m_eased_bend[i] + (target - m_eased_bend[i]) * ease_bend : target;
+        m_bend[i] = m_eased_bend[i] + motionAngles(i).bend;
     }
     m_have_swing = true;
 }

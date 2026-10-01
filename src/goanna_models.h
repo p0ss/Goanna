@@ -147,6 +147,16 @@ public:
     // is going, nodes a second: the strokes ease in and out over a quarter
     // of a second.
     void setWaterPose(WaterPose pose, float speed);
+    // How the body is moving this frame (goanna_limbs.h, BodyMotion), for
+    // landing, falling, stepping up and leaning into starts, stops and
+    // turns.
+    void setMotion(const BodyMotion &motion) { m_motion = motion; }
+    // The landing crouch now, 0 to 1, and how far the body is lowered for
+    // it, mesh units; the lean forward and the bank left now, degrees.
+    float landing() const { return m_land_amt; }
+    float drop() const { return m_drop; }
+    float lean() const { return m_lean; }
+    float bank() const { return m_bank; }
     // Whether the last step had the body lying down (the game's swim pose):
     // its up axis nearer level than upright. False for a model with no Body.
     bool bodyLying() const { return m_body_lying; }
@@ -166,6 +176,8 @@ public:
 
 private:
     void poseLimbs(float dt, JointTransforms &locals, const std::map<std::string, BoneOverride> &overrides);
+    void updateMotion(float dt);
+    LimbAngles motionAngles(size_t limb) const;
     void measureLimbs(float dt, const std::vector<core::matrix4> &skin,
             const std::map<std::string, BoneOverride> &overrides);
     void probeLimbSigns();
@@ -186,7 +198,7 @@ private:
     // changing, eased; which way a turn about the joint's own x and z axes
     // moves its end (forward and outward); the stroke clock and how much of
     // each water pose is showing.
-    std::vector<float> m_bend, m_swing, m_swing_rate;
+    std::vector<float> m_bend, m_eased_bend, m_swing, m_swing_rate;
     std::vector<float> m_pitch_sign, m_spread_sign;
     // Per joint: the limb whose lower half it hangs from (its rest position
     // below that limb's cut, under its joint), or -1.
@@ -198,7 +210,23 @@ private:
     std::vector<core::matrix4> m_skin;
     WaterPose m_water = WaterPose::None;
     float m_water_speed = 0.0f;
-    float m_swim_w = 0.0f, m_tread_w = 0.0f, m_paddle_w = 0.0f;
+    float m_pose_w[kPoseCount] = {};
+    // Movement: what the renderer last said, and what follows from it.
+    BodyMotion m_motion;
+    float m_clock = 0.0f;
+    float m_air_time = 0.0f, m_fall_peak = 0.0f, m_fall_w = 0.0f;
+    float m_land = 0.0f, m_land_amt = 0.0f, m_drop = 0.0f;
+    float m_step = 0.0f;
+    int m_step_leg = -1;
+    float m_prev_y = 0.0f;
+    bool m_prev_grounded = true, m_have_y = false;
+    float m_lean = 0.0f, m_bank = 0.0f;
+    // The root joint, which the whole body leans and drops by, and which way
+    // a turn about its x and z axes leans the body forward and left; a
+    // leg's thigh and shin, for how far a crouch lowers the body.
+    std::optional<u32> m_root_joint;
+    float m_lean_sign = 1.0f, m_bank_sign = 1.0f;
+    float m_leg_upper = 0.0f, m_leg_lower = 0.0f;
     float m_stroke_phase = 0.0f;
 };
 

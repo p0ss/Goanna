@@ -292,6 +292,20 @@ LimbAngles strokeAngles(WaterPose pose, LimbKind kind, bool right, float phase) 
             a.pitch = 18.0f * std::sin(k);
             a.bend = 12.0f + 18.0f * std::max(0.0f, std::sin(k + 0.5f * kPi));
         }
+    } else if (pose == WaterPose::Climb) {
+        // Climbing hand over hand: each arm reaches up overhead in turn and
+        // pulls down, elbow bending as it pulls; each knee comes up in turn
+        // for the next rung, the leg opposite the reaching arm.
+        const float p = phase + (right ? 0.0f : kPi);
+        if (kind == LimbKind::Arm) {
+            a.pitch = 150.0f + 25.0f * std::sin(p);
+            a.spread = 10.0f;
+            a.bend = 30.0f + 50.0f * std::max(0.0f, -std::sin(p));
+        } else {
+            const float lift = std::max(0.0f, std::sin(p + kPi));
+            a.pitch = 15.0f + 40.0f * lift;
+            a.bend = 15.0f + 75.0f * lift;
+        }
     } else if (pose == WaterPose::Paddle) {
         // The breaststroke, upright: both arms together reach forward and
         // sweep out and back, elbows bending as they pull, then come in
@@ -335,9 +349,45 @@ float strokeRate(WaterPose pose, float speed) {
         return 2.0f * kPi * 0.8f;
     case WaterPose::Paddle:
         return 2.0f * kPi * (0.55f + 0.15f * std::clamp(speed, 0.0f, 4.0f));
+    case WaterPose::Climb:
+        // One reach of each hand for every 0.9 nodes climbed, up or down,
+        // and still while the body holds on in place.
+        return 2.0f * kPi * std::fabs(speed) / 0.9f;
     default:
         return 0.0f;
     }
+}
+
+float landDepth(float fall_speed) {
+    // A step down (about 4.4 nodes a second off one node) is a small give,
+    // a drop of several nodes the full crouch.
+    if (fall_speed < 1.5f)
+        return 0.0f;
+    return std::clamp((fall_speed - 1.5f) / (kLandHard - 1.5f), 0.1f, 1.0f);
+}
+
+LimbAngles landAngles(LimbKind kind, float d) {
+    LimbAngles a;
+    if (d <= 0.0f)
+        return a;
+    if (kind == LimbKind::Leg) {
+        // Hips forward and knees bent: a crouch.
+        a.pitch = 50.0f * d;
+        a.bend = 85.0f * d;
+    } else {
+        // Arms forward and a little bent, for balance.
+        a.pitch = 30.0f * d;
+        a.bend = 35.0f * d;
+    }
+    return a;
+}
+
+float legShortening(float upper, float lower, float hip, float knee) {
+    // The thigh hangs `hip` degrees forward of straight down; the shin
+    // turns back from the thigh by `knee`, so it hangs `hip - knee` from
+    // straight down. Their heights together, against the straight leg's.
+    const float a = hip / kDeg, b = (hip - knee) / kDeg;
+    return upper * (1.0f - std::cos(a)) + lower * (1.0f - std::cos(b));
 }
 
 } // namespace goanna

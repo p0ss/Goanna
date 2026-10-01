@@ -113,6 +113,13 @@ private:
         // at the surface leaves the water for a moment each bob.
         float water_pose_age = 1e9f;
         bool in_water = false;
+        // How the body is moving, for the movement poses: its velocity
+        // across and up (eased, nodes a second), speed last sync, and the
+        // facing last sync and how fast it is turning.
+        v3f motion_vel;
+        float motion_speed = 0.0f, motion_accel = 0.0f;
+        float motion_yaw = 0.0f, motion_yaw_rate = 0.0f;
+        bool motion_have = false;
         // Each limb end (hand or foot) last sync: whether it was in water,
         // and where, for the stroke events.
         std::vector<char> limb_wet;

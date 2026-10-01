@@ -1085,21 +1085,37 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
                 const float across = std::hypot(here.X - en.limb_last_pos.X, here.Z - en.limb_last_pos.Z) / BS / dt;
                 en.limb_speed += (std::min(across, 12.0f) - en.limb_speed) * (1.0f - std::exp(-dt / 0.2f));
             }
+            const v3f prev_pos = en.limb_last_pos;
+            const bool had_pos = en.limb_have_pos;
             en.limb_last_pos = here;
             en.limb_have_pos = true;
-            bool in_water = false, grounded = true, alive = true;
+            bool in_water = false, grounded = true, alive = true, climbing = false;
+            v3f vel;
+            float yaw = obj.rotation().Y;
             if (is_self && session.player()) {
                 LocalPlayer *lp = session.player();
                 in_water = lp->in_liquid;
                 grounded = lp->touching_ground;
                 alive = lp->hp > 0;
+                climbing = lp->is_climbing;
+                vel = lp->getSpeed() / BS;
+                yaw = lp->getYaw();
             } else if (const NodeDefManager *ndef = session.nodeDefs()) {
                 auto node_at = [&](float up) -> const ContentFeatures & {
                     return ndef->get(session.map().getNode(v3s16((s16)std::floor(here.X / BS + 0.5f),
                             (s16)std::floor(here.Y / BS + up + 0.5f), (s16)std::floor(here.Z / BS + 0.5f))));
                 };
                 in_water = node_at(0.9f).isLiquid();
-                grounded = node_at(-0.2f).walkable;
+                climbing = node_at(0.5f).climbable;
+                // Others' velocity from where they were last sync, eased:
+                // their positions arrive in steps.
+                if (had_pos && dt > 0.0f) {
+                    const v3f raw = (here - prev_pos) / BS / dt;
+                    if (raw.getLength() < 30.0f)
+                        en.motion_vel += (raw - en.motion_vel) * (1.0f - std::exp(-dt / 0.1f));
+                }
+                vel = en.motion_vel;
+                grounded = node_at(-0.2f).walkable && std::fabs(vel.Y) < 1.0f;
             }
             en.in_water = in_water;
             // Lying in the water is the game's swim pose, but a body lying
@@ -1123,11 +1139,44 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
                 en.water_pose_age = 0.0f;
             } else {
                 en.water_pose_age += dt;
-                if (alive && en.water_pose != 0 && en.water_pose_age < 0.8f)
+                if (alive && en.water_pose != 0 && en.water_pose != (int)WaterPose::Climb
+                        && en.water_pose_age < 0.8f)
                     wp = (WaterPose)en.water_pose;
             }
+            // Climbing a ladder or vine, out of the water: hand over hand,
+            // paced by how fast the body goes up or down.
+            float pose_speed = en.limb_speed;
+            if (wp == WaterPose::None && climbing && alive && (!grounded || std::fabs(vel.Y) > 0.3f)) {
+                wp = WaterPose::Climb;
+                pose_speed = vel.Y;
+            }
             en.water_pose = (int)wp;
-            en.animator->setWaterPose(wp, en.limb_speed);
+            en.animator->setWaterPose(wp, pose_speed);
+            // How the body moves, for landing, falling, stepping up and
+            // leaning into starts, stops and turns.
+            BodyMotion mo;
+            mo.known = true;
+            mo.y = here.Y / BS;
+            mo.vy = vel.Y;
+            mo.grounded = grounded;
+            const float speed = std::hypot(vel.X, vel.Z);
+            mo.speed = speed;
+            if (en.motion_have && dt > 0.0f) {
+                const float ease = 1.0f - std::exp(-dt / 0.1f);
+                en.motion_accel += ((speed - en.motion_speed) / dt - en.motion_accel) * ease;
+                float dyaw = yaw - en.motion_yaw;
+                while (dyaw > 180.0f)
+                    dyaw -= 360.0f;
+                while (dyaw < -180.0f)
+                    dyaw += 360.0f;
+                en.motion_yaw_rate += (dyaw / dt - en.motion_yaw_rate) * ease;
+            }
+            en.motion_speed = speed;
+            en.motion_yaw = yaw;
+            en.motion_have = true;
+            mo.accel = std::clamp(en.motion_accel, -30.0f, 30.0f);
+            mo.yaw_rate = std::clamp(en.motion_yaw_rate, -720.0f, 720.0f);
+            en.animator->setMotion(mo);
         }
         // skeletal animation: AnimatedMeshSceneNode::OnAnimate on the tracks
         // playing on the object's mesh

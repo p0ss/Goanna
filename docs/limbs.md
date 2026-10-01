@@ -61,6 +61,44 @@ player's body in first person) the elbows keep only a quarter of their
 walking bend, up to 7 degrees: the arms swing in front of the lens, and the
 full bend lifted the hand and whatever it held into the view at every step.
 
+## Moving
+
+Each sync the renderer tells the animator how the body is moving
+(`BodyMotion`): its height, speed across, speed up, acceleration and turning
+rate, and whether it is on the ground. The local player from its own
+physics; others from how their positions change, eased, with the map saying
+whether there is ground under them. On top of the game's animation:
+
+- **Landing.** Touching down after falling at more than 1.5 nodes a second
+  crouches the body, hips forward and knees bent, deeper the harder the
+  landing (`landDepth`, the full crouch from 11 nodes a second: 50 degrees
+  at the hip, 85 at the knee), coming in over about 40 ms and gone in half a
+  second. The arms come forward for balance. The whole body is lowered by
+  exactly what the bent legs lose in height (`legShortening`), so the feet
+  stay on the ground: in the test a hard landing bends the knees 62 degrees
+  and lowers the body 0.81 units while the feet stay within 0.09 of where
+  they stood. A step down off one node is a small one, 21 degrees. The
+  movement bends go on top of the eased walk bend, not through it, and the
+  game's swing is measured without them: eased, the knee bent behind the
+  drop and the feet sank; measured with them, the crouch's own hip flex
+  bent the knee again.
+- **Falling.** Falling faster than 5 nodes a second for a fifth of a second
+  puts the arms out to the sides and loosens the legs, flailing more the
+  longer the fall. Landing ends it at once.
+- **Stepping up.** A quick rise of a quarter to a whole node while staying
+  on the ground lifts the leg further forward, hip and knee, for about a
+  third of a second.
+- **Climbing.** On a ladder or vine (the local player's `is_climbing`, or a
+  climbable node at the body's middle), out of the water: hand over hand,
+  each arm reaching overhead in turn, the knee opposite coming up for the
+  next rung, one reach of each hand for every 0.9 nodes climbed, and still
+  while the body holds on in place.
+- **Leaning.** On the ground and out of the water, the whole body pivots at
+  the feet: forward into a start and back into a stop (1.6 degrees for each
+  node a second squared, to 9), forward when running, and banked into a turn
+  by how hard it is turning at its speed (to 12). Not seen from the eye,
+  where it would only move the body under the camera.
+
 ## In the water
 
 `EntityRenderer` gives each body with limbs a water pose each sync:

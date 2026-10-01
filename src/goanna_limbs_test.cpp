@@ -21,6 +21,8 @@
 // the knees; and the strokes ease in and out.
 
 #include <cmath>
+#include <map>
+#include <utility>
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
@@ -485,7 +487,192 @@ int main() {
         }
     }
 
-    // 5. The games' own player models, where they are installed.
+    // 5. Movement: landing, falling, stepping up, climbing, leaning.
+    {
+        std::map<std::string, BoneOverride> none;
+        scene::AnimSpec still;
+        const float dt = 1.0f / 60.0f;
+        auto foot_y = [](ModelAnimator &a) {
+            float lo = 1e9f;
+            for (size_t k = 0; k < a.limbCount(); ++k)
+                if (a.limb(k).kind == LimbKind::Leg) {
+                    Vector3 f;
+                    a.limbEnd(k, f);
+                    lo = std::min(lo, f.y);
+                }
+            return lo;
+        };
+        auto knees = [](ModelAnimator &a) {
+            float hi = 0.0f;
+            for (size_t k = 0; k < a.limbCount(); ++k)
+                if (a.limb(k).kind == LimbKind::Leg)
+                    hi = std::max(hi, a.limbBend(k));
+            return hi;
+        };
+        // A fall from a height: on the ground, then 0.9 s falling to 10
+        // nodes a second, then down. Returns the deepest knee bend, the
+        // lowest the body went and how far the feet strayed from the ground
+        // at the deepest of it.
+        auto land = [&](float fall_time, float &knee, float &drop, float &stray) {
+            ModelAnimator a(model);
+            BodyMotion m;
+            m.known = true;
+            float y = 10.0f;
+            for (int i = 0; i < 30; ++i) {
+                m.y = y;
+                a.setMotion(m);
+                a.step(dt, still, none, nullptr);
+            }
+            const float rest_foot = foot_y(a);
+            m.grounded = false;
+            for (float t = 0.0f; t < fall_time; t += dt) {
+                m.vy = -std::min(11.0f, 9.81f * t);
+                y += m.vy * dt;
+                m.y = y;
+                a.setMotion(m);
+                a.step(dt, still, none, nullptr);
+            }
+            m.grounded = true;
+            m.vy = 0.0f;
+            knee = 0.0f;
+            drop = 0.0f;
+            stray = 0.0f;
+            for (int i = 0; i < 60; ++i) {
+                a.setMotion(m);
+                a.step(dt, still, none, nullptr);
+                if (a.drop() > drop) {
+                    drop = a.drop();
+                    stray = std::fabs(foot_y(a) - rest_foot);
+                }
+                knee = std::max(knee, knees(a));
+            }
+            return a.landing();
+        };
+        float knee = 0, drop = 0, stray = 0;
+        const float after = land(1.2f, knee, drop, stray);
+        std::printf("landing from a fall: knees bend %.0f degrees, the body drops %.2f, the feet stray %.2f, %.2f of the crouch left after a second\n",
+                knee, drop, stray, after);
+        expect(knee > 45.0f && drop > 0.5f, "a hard landing does not crouch");
+        expect(stray < 0.35f, "the feet leave the ground in a landing's crouch");
+        expect(after < 0.1f, "a landing's crouch does not recover");
+        float step_knee = 0, step_drop = 0, s2 = 0;
+        land(0.45f, step_knee, step_drop, s2);
+        std::printf("stepping down a node: knees bend %.0f degrees\n", step_knee);
+        expect(step_knee > 5.0f && step_knee < knee, "a step down is not a smaller landing");
+        // Falling: the arms go out.
+        {
+            ModelAnimator a(model);
+            BodyMotion m;
+            m.known = true;
+            m.grounded = false;
+            m.vy = -9.0f;
+            float wide = 0.0f, rest = 0.0f;
+            for (size_t k = 0; k < a.limbCount(); ++k)
+                if (a.limb(k).kind == LimbKind::Arm)
+                    rest = std::max(rest, std::fabs(a.limb(k).end.x));
+            for (int i = 0; i < 90; ++i) {
+                a.setMotion(m);
+                a.step(dt, still, none, nullptr);
+                for (size_t k = 0; k < a.limbCount(); ++k)
+                    if (a.limb(k).kind == LimbKind::Arm) {
+                        Vector3 h;
+                        a.limbEnd(k, h);
+                        wide = std::max(wide, std::fabs(h.x));
+                    }
+            }
+            std::printf("falling: hands out to %.2f from the middle (%.2f at rest)\n", wide, rest);
+            expect(wide > rest + 2.0f, "falling does not spread the arms");
+        }
+        // Stepping up a node: one knee lifts, the other does not.
+        {
+            ModelAnimator a(model);
+            BodyMotion m;
+            m.known = true;
+            m.y = 5.0f;
+            for (int i = 0; i < 10; ++i) {
+                a.setMotion(m);
+                a.step(dt, still, none, nullptr);
+            }
+            m.y = 5.55f;
+            float hi = 0.0f, lo = 1e9f;
+            for (int i = 0; i < 12; ++i) {
+                a.setMotion(m);
+                a.step(dt, still, none, nullptr);
+                float a0 = -1, a1 = -1;
+                for (size_t k = 0; k < a.limbCount(); ++k)
+                    if (a.limb(k).kind == LimbKind::Leg)
+                        (a0 < 0 ? a0 : a1) = a.limbBend(k);
+                hi = std::max(hi, std::max(a0, a1));
+                lo = std::min(lo, std::min(a0, a1) > 0 ? std::min(a0, a1) : lo);
+            }
+            std::printf("stepping up: the lifted knee bends %.0f degrees, the other %.0f\n", hi, lo);
+            expect(hi > 40.0f && lo < 15.0f, "stepping up does not lift one knee");
+        }
+        // Climbing: each hand reaches above the shoulders in turn, and the
+        // limbs hold still while the climber does.
+        {
+            ModelAnimator a(model);
+            a.setWaterPose(WaterPose::Climb, 2.0f);
+            float above[2] = {0, 0};
+            for (int i = 0; i < 120; ++i) {
+                a.step(dt, still, none, nullptr);
+                int n = 0;
+                for (size_t k = 0; k < a.limbCount(); ++k)
+                    if (a.limb(k).kind == LimbKind::Arm) {
+                        Vector3 h;
+                        a.limbEnd(k, h);
+                        above[n++] = std::max(above[n], h.y);
+                    }
+            }
+            std::printf("climbing: hands reach %.1f and %.1f (shoulders at %.1f)\n", above[0], above[1], 11.55f);
+            expect(above[0] > 13.0f && above[1] > 13.0f, "climbing does not reach the hands up");
+            a.setWaterPose(WaterPose::Climb, 0.0f);
+            for (int i = 0; i < 30; ++i)
+                a.step(dt, still, none, nullptr);
+            Vector3 h0, h1;
+            a.limbEnd(0, h0);
+            for (int i = 0; i < 30; ++i)
+                a.step(dt, still, none, nullptr);
+            a.limbEnd(0, h1);
+            expect(h0.distance_to(h1) < 0.05f, "a climber holding still keeps climbing");
+        }
+        // Leaning: into a start, back on a stop, into a turn; not seen
+        // from the eye.
+        {
+            auto lean_for = [&](float accel, float speed, float yaw_rate, bool first, float &bank) {
+                ModelAnimator a(model);
+                a.setFirstPerson(first);
+                BodyMotion m;
+                m.known = true;
+                m.accel = accel;
+                m.speed = speed;
+                m.yaw_rate = yaw_rate;
+                for (int i = 0; i < 40; ++i) {
+                    a.setMotion(m);
+                    a.step(dt, still, none, nullptr);
+                }
+                bank = a.bank();
+                Vector3 hand;
+                a.limbEnd(0, hand);
+                return std::make_pair(a.lean(), hand);
+            };
+            float b0 = 0, b1 = 0, b2 = 0, b3 = 0;
+            auto rest = lean_for(0, 0, 0, false, b0);
+            auto start = lean_for(8.0f, 2.0f, 0, false, b1);
+            auto stop = lean_for(-8.0f, 2.0f, 0, false, b2);
+            auto turn = lean_for(0, 5.0f, 90.0f, false, b3);
+            float bf = 0;
+            auto fp = lean_for(8.0f, 2.0f, 90.0f, true, bf);
+            std::printf("leaning: %.1f degrees into a start, %.1f on a stop, banking %.1f into a left turn\n",
+                    start.first, stop.first, b3);
+            expect(start.first > 5.0f && start.second.z < rest.second.z - 0.3f, "a start does not lean the body forward");
+            expect(stop.first < -5.0f && stop.second.z > rest.second.z + 0.3f, "a stop does not lean the body back");
+            expect(b3 > 5.0f && turn.second.x < rest.second.x - 0.3f, "a left turn does not bank the body left");
+            expect(fp.first == 0.0f && bf == 0.0f, "the body leans seen from its own eye");
+        }
+    }
+
+    // 6. The games' own player models, where they are installed.
     const char *home = std::getenv("HOME");
     const std::string games = std::string(home ? home : "") + "/.var/app/org.luanti.luanti/.minetest/games/";
     const std::string real[] = {

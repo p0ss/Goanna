@@ -94,8 +94,6 @@ void splitLimbs(const std::vector<LimbBend> &limbs, LimbMeshData &mesh);
 godot::Transform3D bendTransform(const LimbBend &limb, float degrees);
 
 // What a body is doing in the water, for the strokes.
-enum class WaterPose { None = 0, Swim = 1, Tread = 2, Paddle = 3 };
-
 // Degrees for one limb this frame, relative to its rest: the shoulder or hip
 // turned forward (pitch) and outward (spread), and the knee or elbow bend.
 struct LimbAngles {
@@ -103,6 +101,40 @@ struct LimbAngles {
     float spread = 0.0f;
     float bend = 0.0f;
 };
+
+// What a body is doing that has a whole-limb pose of Goanna's: the water
+// strokes, and climbing a ladder or vine (hand over hand, alternate knees).
+enum class WaterPose { None = 0, Swim = 1, Tread = 2, Paddle = 3, Climb = 4 };
+constexpr int kPoseCount = 5;
+
+// How a body is moving this frame, for the poses that follow movement
+// rather than a stroke: landing, falling, stepping up, leaning into a start
+// or a stop, banking into a turn. Nodes and seconds, Godot's axes.
+struct BodyMotion {
+    float y = 0.0f;              // feet height
+    float speed = 0.0f;          // across the ground
+    float vy = 0.0f;             // up
+    float accel = 0.0f;          // along the way it faces, positive speeding up
+    float yaw_rate = 0.0f;       // degrees a second, positive turning left
+    bool grounded = true;
+    bool known = false;          // false until the renderer has sent one
+};
+
+// Landing: how far the knees and hips give for a landing that came down at
+// `fall_speed` nodes a second, 0 to 1. Below LAND_SOFT it is a step down,
+// barely felt; from LAND_HARD it is the deepest crouch.
+constexpr float kLandSoft = 2.5f;
+constexpr float kLandHard = 11.0f;
+float landDepth(float fall_speed);
+
+// The crouch of a landing at depth `d`: hip and knee degrees.
+LimbAngles landAngles(LimbKind kind, float d);
+
+// How far a hip at `hip` degrees forward and a knee at `knee` degrees bent
+// bring the foot up towards the hip, for a thigh `upper` and a shin
+// `lower` long: the whole body drops by this so the feet stay on the ground.
+float legShortening(float upper, float lower, float hip, float knee);
+
 
 // A walking or running limb's bend from its swing (degrees forward of
 // hanging straight, relative to the body) and how fast that swing is
@@ -115,7 +147,7 @@ float walkBend(LimbKind kind, float swing, float swing_rate);
 LimbAngles strokeAngles(WaterPose pose, LimbKind kind, bool right, float phase);
 
 // How fast the stroke clock runs, radians a second, for a body moving at
-// `speed` nodes a second.
+// `speed` nodes a second (climbing: up or down).
 float strokeRate(WaterPose pose, float speed);
 
 } // namespace goanna
