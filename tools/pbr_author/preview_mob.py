@@ -57,6 +57,27 @@ filtering (nearest at the map's resolution, as close up), the client's
 tone mapping, exposure, fog and post process, perspective, and the entity
 shader itself. It judges what the maps contain, not how the game looks.
 
+--parallax marches the stored height (the _n alpha) the way the entity
+shader does (project/shaders/entity_common.gdshaderinc): the depth in
+nodes measured from each brush's composited _n as the client measures it
+(reliefDepth in src/goanna_textures.cpp, over the model's faces), the
+march along the view clamped inside each face's UV rectangle, the chord
+refinement, the pull back from a transparent hit, and the self shadow
+toward the sun folded into the occlusion. It is crude: nearest sampling,
+32 fixed steps, no fade with distance and no mipmaps, so it shows the
+march at its closest. A height below the top of the range is seen sunk
+below the box's face, and where the march reaches a face's edge the edge
+texel is drawn stretched, as in the game; a material that should sit on
+the surface belongs near 1.
+
+--contrast prints, per visible face, the luminance's relative contrast
+(std over mean, after a box blur one art texel wide, inside the face away
+from its bevel) with maps on over maps off, for the high and the low sun.
+The blur stands in for viewing distance only roughly: the client's mip
+chain averages sub-texel detail further than this does, and the sky here
+is a gradient, so glare off a smooth face is under-reported too. --crop
+writes crop.png, one face three times enlarged.
+
 Writes into <out dir>:
   maps_on.png           sun high, from the front and the visible side
   maps_off.png          the same with every map neutral (flat, rough)
@@ -65,6 +86,7 @@ Writes into <out dir>:
   low_sun_maps_off.png
   compare.png           maps off, maps on, low sun on, low sun off, side
                         by side, the order preview_figure.py uses
+  crop.png              with --crop: maps off, maps on, low sun on
 
     python3 tools/pbr_author/preview_mob.py <model.b3d> <maps dir> <out dir> \\
         <layers for brush 0> [<layers for brush 1> ...]
@@ -262,7 +284,13 @@ def rasterise(tris_by_brush, layers, basis, ppu, margin):
     depth = np.full((H, W), -np.inf)
     out = {"a": np.zeros((H, W, 3)), "n": np.zeros((H, W, 4)), "s": np.zeros((H, W, 4)),
            "T": np.zeros((H, W, 3)), "B": np.zeros((H, W, 3)), "F": np.zeros((H, W, 3)),
-           "hit": np.zeros((H, W), bool)}
+           "hit": np.zeros((H, W), bool),
+           # What march() and the contrast measure need: the UV, dP/du and
+           # dP/dv in view space, the face's UV rectangle, its brush and
+           # an id per face.
+           "uv": np.zeros((H, W, 2)), "dpdu": np.zeros((H, W, 3)), "dpdv": np.zeros((H, W, 3)),
+           "rect": np.zeros((H, W, 4)), "brush": np.full((H, W), -1), "face": np.full((H, W), -1)}
+    face_ids = {}
     for b, tris in tris_by_brush.items():
         albedo, N, S = layers[b]
         ah, aw = albedo.shape[:2]
@@ -313,14 +341,201 @@ def rasterise(tris_by_brush, layers, basis, ppu, margin):
                 T = np.cross((0.0, 1.0, 0.0), fn)
                 T = T / (np.linalg.norm(T) + 1e-9)
                 Bv = np.cross(fn, T)
+                dpdu = dpdv = np.zeros(3)
             else:
                 dpdu, dpdv = (e @ np.linalg.inv(duv)).T
                 T = dpdu / np.linalg.norm(dpdu)
                 Bv = dpdv / np.linalg.norm(dpdv)
+            rect = (uv[:, 0].min(), uv[:, 1].min(), uv[:, 0].max(), uv[:, 1].max())
+            key = (b,) + tuple(np.round(rect, 6)) + tuple(np.round(fn, 3))
+            out["uv"][Y, X, 0] = u[ys, xs]
+            out["uv"][Y, X, 1] = v[ys, xs]
+            out["dpdu"][Y, X] = dpdu
+            out["dpdv"][Y, X] = dpdv
+            out["rect"][Y, X] = rect
+            out["brush"][Y, X] = b
+            out["face"][Y, X] = face_ids.setdefault(key, len(face_ids))
             out["T"][Y, X] = T
             out["B"][Y, X] = Bv
             out["F"][Y, X] = fn
             out["hit"][Y, X] = True
+    return out
+
+
+# --- parallax ------------------------------------------------------------------
+
+def relief_depth(N, tris, art_w):
+    """The client's measure of a skin's depth in nodes (reliefDepth in
+    src/goanna_textures.cpp): the median ratio of the normal's slope to the
+    height's gradient inside each face, every second pixel, over the map
+    pixels a node spans (sixteen art texels), capped at 0.10."""
+    mh, mw = N.shape[:2]
+    isl = -np.ones((mh, mw), int)
+    for i, (_, uv, _) in enumerate(tris):
+        x0 = max(0, int(np.ceil(uv[:, 0].min() * mw - 0.5)))
+        x1 = min(mw, int(np.ceil(uv[:, 0].max() * mw - 0.5)))
+        y0 = max(0, int(np.ceil(uv[:, 1].min() * mh - 0.5)))
+        y1 = min(mh, int(np.ceil(uv[:, 1].max() * mh - 0.5)))
+        isl[y0:y1, x0:x1] = i
+    n = N / 255.0
+    nx, ny = n[..., 0] * 2 - 1, n[..., 1] * 2 - 1
+    nz = np.sqrt(np.clip(1 - nx * nx - ny * ny, 1e-4, 1))
+    gx = lib.island_gradient(n[..., 3].astype(np.float32), isl, 1)
+    gy = lib.island_gradient(n[..., 3].astype(np.float32), isl, 0)
+    g = (np.abs(gx) + np.abs(gy))[::2, ::2]
+    keep = (g > 0.01) & (isl[::2, ::2] >= 0)
+    r = ((np.abs(nx) + np.abs(ny)) / nz)[::2, ::2][keep] / g[keep]
+    if r.size < 100:
+        return 0.0
+    return float(min(0.10, np.median(r) / (16.0 * mw / art_w)))
+
+
+def _lookup(img, uv):
+    h, w = img.shape[:2]
+    return img[np.clip(np.floor(uv[..., 1] * h).astype(int), 0, h - 1),
+               np.clip(np.floor(uv[..., 0] * w).astype(int), 0, w - 1)]
+
+
+def march(r, layers, depths, steps=32):
+    """A crude parallax occlusion march, the entity shader's
+    (project/shaders/entity_common.gdshaderinc): from each pixel's UV,
+    along the view's slope through the height (1 - the _n alpha) at
+    depths[brush] nodes, clamped inside the face's own UV rectangle, with
+    the same chord refinement and the same pull back from a transparent
+    hit. Then albedo, _n and _s are read again at the marched UV. Nearest
+    sampling, a fixed step count, no fade with distance. Returns a copy of
+    r with the march's state kept for shadow()."""
+    r = {k: (v.copy() if isinstance(v, np.ndarray) else v) for k, v in r.items()}
+    r["d_hit"] = np.zeros(r["hit"].shape)
+    r["depth"] = np.zeros(r["hit"].shape)
+    r["shadow_ok"] = r["hit"].copy()
+    for b, (albedo, N, S) in layers.items():
+        sel = r["hit"] & (r["brush"] == b) & (depths.get(b, 0.0) > 0)
+        if not sel.any():
+            continue
+        ah, aw = albedo.shape[:2]
+        F, du, dv = r["F"][sel], r["dpdu"][sel], r["dpdv"][sel]
+        uv0 = r["uv"][sel]
+        rect = r["rect"][sel]
+        lu = np.maximum((du * du).sum(-1), 1e-12)
+        lv = np.maximum((dv * dv).sum(-1), 1e-12)
+        vn_raw = F[:, 2]
+        vn = np.maximum(vn_raw, 0.08)
+        vt = np.array((0.0, 0.0, 1.0)) - F * vn_raw[:, None]
+        texel = 0.5 * (np.sqrt(lu) / aw + np.sqrt(lv) / ah)
+        depth = depths[b] * 16.0 * texel
+        slope = np.stack([(vt * du).sum(-1) / lu, (vt * dv).sum(-1) / lv], -1) * (depth / vn)[:, None]
+        inset = 0.005 / np.array((aw, ah))
+        lo = rect[:, :2] + inset
+        hi = np.maximum(rect[:, 2:] - inset, lo)
+        height = lambda q: 1.0 - _lookup(N, q)[..., 3] / 255.0  # noqa: E731
+        d = np.zeros(len(uv0))
+        d_prev = d.copy()
+        uv = np.clip(uv0, lo, hi)
+        h = height(uv)
+        h_prev = h.copy()
+        dd = 1.0 / steps
+        for _ in range(steps):
+            go = d < h
+            if not go.any():
+                break
+            d_prev = np.where(go, d, d_prev)
+            h_prev = np.where(go, h, h_prev)
+            d = np.where(go, d + dd, d)
+            uv = np.where(go[:, None], np.clip(uv0 - slope * d[:, None], lo, hi), uv)
+            h = np.where(go, height(uv), h)
+        below = d - h
+        above = h_prev - d_prev
+        w = below / np.maximum(below + above, 1e-5)
+        d_hit = d + (d_prev - d) * w
+        puv = np.clip(uv0 - slope * d_hit[:, None], lo, hi)
+        ok = np.ones(len(uv0), bool)
+        holes = _lookup(albedo, puv)[..., 3] < 0.5
+        if holes.any():
+            t_in, t_out = np.zeros(holes.sum()), np.ones(holes.sum())
+            a0, a1 = uv0[holes], puv[holes]
+            for _ in range(4):
+                t = 0.5 * (t_in + t_out)
+                inside = _lookup(albedo, a0 + (a1 - a0) * t[:, None])[..., 3] >= 0.5
+                t_in = np.where(inside, t, t_in)
+                t_out = np.where(inside, t_out, t)
+            puv[holes] = a0 + (a1 - a0) * t_in[:, None]
+            ok[holes] = False
+        r["uv"][sel] = puv
+        r["a"][sel] = _lookup(albedo, puv)[..., :3]
+        r["n"][sel] = _lookup(N, puv)
+        r["s"][sel] = _lookup(S, puv)
+        r["d_hit"][sel] = d_hit
+        r["depth"][sel] = depth
+        r["shadow_ok"][sel] = ok
+        r.setdefault("lo", np.zeros(r["hit"].shape + (2,)))[sel] = lo
+        r.setdefault("hi", np.zeros(r["hit"].shape + (2,)))[sel] = hi
+        r.setdefault("_N", {})[b] = N
+    return r
+
+
+def shadow(r, sun_view, up_view, strength=0.85):
+    """The march's self shadow toward the sun, as the shader climbs it:
+    eight steps from the hit, clamped to the face, 1 lit to 0.15 shadowed."""
+    out = np.ones(r["hit"].shape)
+    if "_N" not in r:
+        return out
+    L = np.asarray(sun_view, np.float64)
+    L = L / np.linalg.norm(L)
+    if float(np.dot(L, up_view)) <= 0.02:
+        return out
+    for b, N in r["_N"].items():
+        sel = r["hit"] & (r["brush"] == b) & r["shadow_ok"] & (r["depth"] > 0)
+        F = r["F"][sel]
+        sn = F @ L
+        sel_idx = np.nonzero(sel)
+        keep = sn > 0.05
+        if not keep.any():
+            continue
+        Y, X = sel_idx[0][keep], sel_idx[1][keep]
+        F, sn = F[keep], sn[keep]
+        du, dv = r["dpdu"][Y, X], r["dpdv"][Y, X]
+        lu = np.maximum((du * du).sum(-1), 1e-12)
+        lv = np.maximum((dv * dv).sum(-1), 1e-12)
+        st = L - F * sn[:, None]
+        sslope = np.stack([(st * du).sum(-1) / lu, (st * dv).sum(-1) / lv], -1) * (r["depth"][Y, X] / sn)[:, None]
+        d_hit = r["d_hit"][Y, X]
+        puv, lo, hi = r["uv"][Y, X], r["lo"][Y, X], r["hi"][Y, X]
+        blocked = np.zeros(len(Y))
+        k = np.zeros(len(Y))
+        dk = d_hit / 8.0
+        for _ in range(8):
+            k = k + dk
+            hs = 1.0 - _lookup(N, np.clip(puv + sslope * k[:, None], lo, hi))[..., 3] / 255.0
+            blocked = np.maximum(blocked, (d_hit - k) - hs)
+        out[Y, X] = 1.0 - np.clip(blocked * 6.0, 0.0, 1.0) * strength
+    return out
+
+
+# --- contrast -------------------------------------------------------------------
+
+def face_contrast(img, r, texel, min_texels=6):
+    """Per visible face: the relative contrast of its luminance (std over
+    mean) after a box blur one art texel wide, reading only the face's own
+    pixels, over the pixels far enough inside its border that the blur
+    does not reach a box edge's bevel (atlas.py's, a fifth of a texel at
+    most). {face id: contrast}, for faces showing at least min_texels
+    texels."""
+    from scipy import ndimage
+    lum = lib.luminance(np.clip(img, 0, 1))
+    k = max(1, int(round(texel)))
+    out = {}
+    for f in np.unique(r["face"][r["hit"]]):
+        m = (r["face"] == f) & r["hit"]
+        if m.sum() < min_texels * texel * texel:
+            continue
+        num = ndimage.uniform_filter(np.where(m, lum, 0.0), k)
+        den = ndimage.uniform_filter(m.astype(np.float64), k)
+        core = ndimage.binary_erosion(m, iterations=k // 2 + int(np.ceil(0.2 * k)))
+        if core.sum() < texel * texel:
+            continue
+        v = (num / np.maximum(den, 1e-6))[core]
+        out[int(f)] = float(v.std() / max(v.mean(), 1e-6))
     return out
 
 
@@ -346,9 +561,11 @@ def sky(dy):
 SKY_AVG = 0.5 * (sky(0.5) + sky(-0.3))
 
 
-def shade(r, sun_view, up_view, sun_power=2.8, sky_power=0.9):
+def shade(r, sun_view, up_view, sun_power=2.8, sky_power=0.9, self_shadow=None):
     """Shade a rasterised view. sun_view and up_view are the sun's
-    direction and world up, in view space."""
+    direction and world up, in view space. self_shadow (shadow()) scales
+    the material occlusion and the sun's specular, as the shader folds it
+    in."""
     hit = r["hit"]
     nxy = r["n"][..., :2] / 127.5 - 1.0
     nz = np.sqrt(np.clip(1 - (nxy ** 2).sum(-1), 0, 1))
@@ -357,6 +574,8 @@ def shade(r, sun_view, up_view, sun_power=2.8, sky_power=0.9):
     n = nxy[..., :1] * r["T"] - nxy[..., 1:2] * r["B"] + nz[..., None] * r["F"]
     n /= np.linalg.norm(n, axis=-1, keepdims=True) + 1e-9
     ao = r["n"][..., 2] / 255.0
+    ss = np.ones(hit.shape) if self_shadow is None else self_shadow
+    ao = ao * ss
     sm = r["s"][..., 0] / 255.0
     g = r["s"][..., 1]
     metal = g >= 230
@@ -383,7 +602,9 @@ def shade(r, sun_view, up_view, sun_power=2.8, sky_power=0.9):
     sss = r["s"][..., 2]
     wrap = np.where(sss >= 65, 0.5 * (sss - 65) / 190.0, 0.0)
     diff_ndl = np.clip((ndl + wrap) / (1 + wrap), 0, 1)
-    direct_ao = 1 - 0.4 * (1 - ao)
+    # The shader raises the occlusion's effect on direct light so the self
+    # shadow reaches it in full.
+    direct_ao = (1 - 0.4 * (1 - ao / np.maximum(ss, 1e-3))) * ss
     # Sky: irradiance by the normal's height, and a reflection by the
     # reflected view direction's, blurred toward the average with
     # roughness.
@@ -431,6 +652,13 @@ def main():
     ap.add_argument("--pitch", type=float, default=20.0, help="degrees looking down")
     ap.add_argument("--turn", type=float, default=0.0,
                     help="degrees to turn the model about up first, for a model not facing +Z")
+    ap.add_argument("--parallax", action="store_true",
+                    help="march the stored height as the entity shader does, with its self shadow")
+    ap.add_argument("--contrast", action="store_true",
+                    help="print each visible face's contrast with maps on over maps off")
+    ap.add_argument("--crop", default=None, metavar="X0,Y0,X1,Y1",
+                    help="also write crop.png: the face with this art texel rectangle, "
+                    "maps off, maps on, low sun on, three times enlarged")
     a = ap.parse_args()
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -447,17 +675,67 @@ def main():
     for on in (True, False):
         layers = {b: composite(s, a.maps, a.game, maps_on=on) for b, s in strings.items()}
         if on:
+            layers_on = layers
             upt = units_per_texel(tris, {b: layers[b][0].shape[:2] for b in layers})
             ppu = a.texel / upt
         views[on] = rasterise(tris, layers, basis, ppu, int(a.texel * 2))
     upv = M @ np.array((0.0, 1.0, 0.0))
     hi, lo = to_view(SUN_HIGH), to_view(SUN_LOW)
+    ss_hi = ss_lo = None
+    if a.parallax:
+        depths = {b: relief_depth(layers_on[b][1], tris[b], layers_on[b][0].shape[1])
+                  for b in layers_on}
+        for b, d in depths.items():
+            print("brush %d relief %.3f node (%.2f art texels for the full height range)"
+                  % (b, d, 16 * d))
+        views[True] = march(views[True], layers_on, depths)
+        ss_hi, ss_lo = shadow(views[True], hi, upv), shadow(views[True], lo, upv)
     shots = {
-        "maps_on": shade(views[True], hi, upv),
+        "maps_on": shade(views[True], hi, upv, self_shadow=ss_hi),
         "maps_off": shade(views[False], hi, upv),
-        "low_sun": shade(views[True], lo, upv, sun_power=3.2),
+        "low_sun": shade(views[True], lo, upv, sun_power=3.2, self_shadow=ss_lo),
         "low_sun_maps_off": shade(views[False], lo, upv, sun_power=3.2),
     }
+    if a.contrast:
+        # A face the art draws in one or two near shades has almost no
+        # contrast to keep, and any relief at all multiplies it; those are
+        # listed apart, by how much contrast the maps add.
+        flat_art = 0.05
+        r0 = views[False]
+        for on, off in (("maps_on", "maps_off"), ("low_sun", "low_sun_maps_off")):
+            c_on = face_contrast(shots[on], views[True], a.texel)
+            c_off = face_contrast(shots[off], views[False], a.texel)
+            ratios = {f: c_on[f] / c_off[f] for f in c_on if f in c_off and c_off[f] >= flat_art}
+            plain = {f: c_on[f] - c_off[f] for f in c_on if f in c_off and c_off[f] < flat_art}
+            if ratios:
+                v = np.array(list(ratios.values()))
+                print("%s over %s: contrast ratio per face min %.2f median %.2f max %.2f (%d faces)"
+                      % (on, off, v.min(), np.median(v), v.max(), len(v)))
+            if plain:
+                print("  %d near uniform faces (art contrast under %.2f): maps add %.3f at most"
+                      % (len(plain), flat_art, max(plain.values())))
+            for f in sorted(set(c_on) & set(c_off)):
+                m = (r0["face"] == f) & r0["hit"]
+                b = int(r0["brush"][m][0])
+                ah, aw = layers_on[b][0].shape[:2]
+                rect = np.round(r0["rect"][m][0] * (aw, ah, aw, ah)).astype(int)
+                print("    brush %d face %s off %.3f on %.3f ratio %.2f"
+                      % (b, rect.tolist(), c_off[f], c_on[f], c_on[f] / max(c_off[f], 1e-6)))
+    if a.crop:
+        x0, y0, x1, y1 = (float(t) for t in a.crop.split(","))
+        r = views[False]
+        tiles = []
+        for k in ("maps_off", "maps_on", "low_sun"):
+            b0 = next(iter(strings))
+            aw, ah = layers_on[b0][0].shape[1], layers_on[b0][0].shape[0]
+            rect = r["rect"] * np.array((aw, ah, aw, ah))
+            m = r["hit"] & np.all(np.abs(rect - (x0, y0, x1, y1)) < 0.5, -1)
+            if not m.any():
+                raise SystemExit("no visible face with the rectangle %s" % a.crop)
+            ys, xs = np.nonzero(m)
+            tiles.append(shots[k][ys.min():ys.max() + 1, xs.min():xs.max() + 1])
+        gap = np.full((tiles[0].shape[0], 6, 3), 0.1)
+        save(np.concatenate([tiles[0], gap, tiles[1], gap, tiles[2]], 1), out / "crop.png", 3)
     paths = [save(v, out / (k + ".png")) for k, v in shots.items()]
     gap = np.full((shots["maps_on"].shape[0], 12, 3), 0.1)
     row = np.concatenate([shots["maps_off"], gap, shots["maps_on"], gap,
