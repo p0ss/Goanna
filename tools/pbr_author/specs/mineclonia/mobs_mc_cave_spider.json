@@ -8,9 +8,9 @@
  "bevel_depth": 0.07,
  "micro": "none",
  "materials": {
-  "shell": {"mode": "shade", "base": 0.6, "span": 0.4, "levels": 3, "detail": 0.25, "joints": false, "micro": "none", "smooth": 0.2, "smooth_spread": 0.03, "scatter": 0},
-  "leg": {"mode": "shade", "base": 0.8, "span": 0.16, "levels": 2, "detail": 0.25, "joints": false, "micro": "none", "smooth": 0.36, "smooth_spread": 0.0, "scatter": 0},
-  "joint": {"mode": "flat", "base": 0.62, "span": 0.0, "micro": "none", "smooth": 0.24, "smooth_spread": 0.0, "scatter": 0},
+  "shell": {"mode": "shade", "base": 0.73, "span": 0.14, "levels": 3, "detail": 0.25, "joints": false, "micro": "none", "smooth": 0.2, "smooth_spread": 0.03, "scatter": 0},
+  "leg": {"mode": "flat", "base": 0.88, "span": 0.0, "micro": "none", "smooth": 0.36, "smooth_spread": 0.0, "scatter": 0},
+  "joint": {"mode": "flat", "base": 0.82, "span": 0.0, "micro": "none", "smooth": 0.24, "smooth_spread": 0.0, "scatter": 0},
   "plate": {"mode": "flat", "base": 0.92, "span": 0.0, "micro": "none", "smooth": 0.34, "smooth_spread": 0.0, "scatter": 0},
   "fang": {"mode": "flat", "base": 1.0, "span": 0.0, "micro": "none", "smooth": 0.62, "smooth_spread": 0.0, "scatter": 0},
   "eye": {"mode": "flat", "base": 0.86, "span": 0.0, "micro": "none", "smooth": 0.9, "smooth_spread": 0.0, "f0": 0.06, "scatter": 0}

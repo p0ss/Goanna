@@ -8,7 +8,7 @@
  "bevel_depth": 0.093,
  "micro": "none",
  "materials": {
-  "skin": {"mode": "shade", "base": 0.6, "span": 0.4, "levels": 4, "detail": 0.35, "joints": false, "smooth": 0.16, "smooth_spread": 0.06, "micro": "mottle", "micro_strength": 0.36, "micro_params": {"cell": 0.6}, "scatter": 0.2},
+  "skin": {"mode": "shade", "base": 0.71, "span": 0.18, "levels": 4, "detail": 0.35, "joints": false, "smooth": 0.16, "smooth_spread": 0.06, "micro": "mottle", "micro_strength": 0.36, "micro_params": {"cell": 0.6}, "scatter": 0.2},
   "eye": {"mode": "flat", "base": 0.06, "span": 0.0, "micro": "none", "smooth": 0.35, "smooth_spread": 0.0, "scatter": 0},
   "mouth": {"mode": "flat", "base": 0.06, "span": 0.0, "micro": "none", "smooth": 0.22, "smooth_spread": 0.0, "scatter": 0}
  },

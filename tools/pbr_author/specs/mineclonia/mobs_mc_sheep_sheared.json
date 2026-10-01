@@ -10,10 +10,10 @@
  "overlay": true,
  "stack": ["mobs_mc_sheep", "mobs_mc_sheep_sheared"],
  "materials": {
-  "wool": {"mode": "shade", "base": 0.76, "span": 0.24, "levels": 3, "detail": 0.15, "joints": false, "smooth": 0.1, "smooth_spread": 0.03, "micro": "mottle", "micro_params": {"cell": 0.4}, "micro_strength": 0.227, "scatter": 0.3},
-  "stubble": {"mode": "shade", "base": 0.8, "span": 0.2, "levels": 2, "detail": 0.3, "joints": false, "smooth": 0.14, "smooth_spread": 0.02, "micro": "mottle", "micro_params": {"cell": 0.3}, "micro_strength": 0.175, "scatter": 0.25},
-  "belly": {"mode": "shade", "base": 0.76, "span": 0.2, "levels": 2, "detail": 0.3, "joints": false, "smooth": 0.14, "smooth_spread": 0.02, "micro": "mottle", "micro_params": {"cell": 0.3}, "micro_strength": 0.175, "scatter": 0.25},
-  "cuff": {"mode": "shade", "base": 0.78, "span": 0.22, "levels": 3, "detail": 0.15, "joints": false, "smooth": 0.1, "smooth_spread": 0.03, "micro": "mottle", "micro_params": {"cell": 0.4}, "micro_strength": 0.227, "scatter": 0.3}
+  "wool": {"mode": "shade", "base": 0.81, "span": 0.14, "levels": 3, "detail": 0.15, "joints": false, "smooth": 0.1, "smooth_spread": 0.03, "micro": "mottle", "micro_params": {"cell": 0.4}, "micro_strength": 0.227, "scatter": 0.3},
+  "stubble": {"mode": "shade", "base": 0.84, "span": 0.12, "levels": 2, "detail": 0.3, "joints": false, "smooth": 0.14, "smooth_spread": 0.02, "micro": "mottle", "micro_params": {"cell": 0.3}, "micro_strength": 0.175, "scatter": 0.25},
+  "belly": {"mode": "shade", "base": 0.8, "span": 0.12, "levels": 2, "detail": 0.3, "joints": false, "smooth": 0.14, "smooth_spread": 0.02, "micro": "mottle", "micro_params": {"cell": 0.3}, "micro_strength": 0.175, "scatter": 0.25},
+  "cuff": {"mode": "shade", "base": 0.86, "span": 0.1, "levels": 3, "detail": 0.15, "joints": false, "smooth": 0.1, "smooth_spread": 0.03, "micro": "mottle", "micro_params": {"cell": 0.4}, "micro_strength": 0.227, "scatter": 0.3}
  },
  "grid": [
   "wwwwwwwwwwwwwwwwwwwwwwwwwwww....................................",
