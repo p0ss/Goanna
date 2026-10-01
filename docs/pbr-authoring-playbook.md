@@ -69,6 +69,18 @@ on one flat panel); knit and weave showed only under a low sun, so their
 strength was raised to read in ordinary light; and a dome over the whole
 iris drew a ring at its edge.
 
+The plains farmer villager was authored on 2026-10-02 after the first
+villager pass looked no different in game with maps on: only the base
+had maps, and the plains and farmer overlays, which cover nearly all of
+it, composite flat and rough when they have none. Its biome clothes,
+profession and stone badge are now overlay stems with the base, all at
+16 map pixels per art texel like the player. The face is the player's
+rule (flat skin, a flat dark brow, flat glossy eyes, a sunk mouth, a
+nose box with a little sheen); the hat is plaited straw, each texel a
+tile at a slightly different height; the cloth is linen, wool, coarse
+weave and canvas with a very shallow outline per texel; belt and shoes
+are stitched. Judged only on the offline figure, not in game.
+
 No GPU for the agents. Judge on the previews and the check, then render
 one client at a time.
 

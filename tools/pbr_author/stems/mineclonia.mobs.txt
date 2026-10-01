@@ -6,6 +6,11 @@ mobs_mc_iron_golem_crack_low mobs_mc_iron_golem.b3d
 mobs_mc_iron_golem_crack_medium mobs_mc_iron_golem.b3d
 mobs_mc_iron_golem_crack_high mobs_mc_iron_golem.b3d
 mobs_mc_villager_base mobs_mc_villager.b3d
+# The plains farmer: biome clothes, profession and tier badge, each drawn
+# over the base with ^ and composited over its maps by the client.
+mobs_mc_villager_plains mobs_mc_villager.b3d
+mobs_mc_villager_profession_farmer mobs_mc_villager.b3d
+mobs_mc_stone mobs_mc_villager.b3d
 # The default player, mcl_skins' layers drawn on the character model.
 # Masks take the part's companions, so only the part names are listed.
 mcl_skins_base_1 mcl_armor_character.b3d

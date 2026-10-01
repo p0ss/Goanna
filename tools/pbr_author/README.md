@@ -145,6 +145,16 @@ What differs from a tile:
   `preview_figure.py <maps> <out>` composites the six parts the way
   Luanti and the client do and lights the model's front faces offline;
   its docstring says what it leaves out.
+- **The plains farmer villager** is four layers,
+  `mobs_mc_villager_base^mobs_mc_villager_plains^mobs_mc_villager_profession_farmer^mobs_mc_stone`,
+  each its own stem at `"texel_px": 16` with the same `"stack"`, so it
+  matches the player beside it. That is 1024 x 1024 maps for the 64 x 64
+  art, four times the memory of 8 per texel. The overlays carry
+  `"overlay": true`. The base is drawn under every biome and profession,
+  but its stack names the farmer's layers, so its occlusion next to a
+  layer the farmer draws is right only for the farmer.
+  `preview_figure.py <maps> <out> --figure villager` previews it, with a
+  view from above for the hat's top and brim.
 
 `atlas.check` measures one height per texel, several heights, the relief
 in node units, no slope step at a face border (or, with a bevel, every
