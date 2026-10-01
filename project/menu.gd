@@ -91,8 +91,16 @@ const BACKGROUNDS := [
 	"res://menu_backgrounds/lava.jpg",
 ]
 
+const Updater := preload("res://updater.gd")
+var updater: Node
+
 func _ready() -> void:
 	AssetUpdater.install_bootstrap()
+	# Goanna's own updates (updater.gd). Only a packaged release checks, and
+	# the offer appears on the main screen when one is ready.
+	updater = Updater.new()
+	add_child(updater)
+	updater.state_changed.connect(_on_update_state)
 	var local_cfg := ConfigFile.new()
 	if local_cfg.load(CFG_PATH) == OK:
 		local_roster = local_cfg.get_value("local_play", "players", [])
@@ -173,6 +181,18 @@ func _ready() -> void:
 			_show_luanti()
 		elif want == "setup":
 			_show_setup()
+		elif want == "update-run":
+			# Check, install without restarting, and wait for where it lands.
+			_show_main()
+			await updater.check(true)
+			if updater.state == "available":
+				updater.install(false)
+			var until := Time.get_ticks_msec() + 300000
+			while updater.state in ["checking", "available", "downloading", "installing"] \
+					and Time.get_ticks_msec() < until:
+				await get_tree().create_timer(0.5).timeout
+			print("updater: ", updater.state, ": ", updater.message)
+			_show_main()
 		elif want == "setup-run":
 			# Press Set it up and wait for where it lands: Start Game, or
 			# the setup screen again with what went wrong.
@@ -391,6 +411,24 @@ func _fail(msg: String) -> void:
 
 func _show_main() -> void:
 	_new_screen("", "A Godot client for Luanti worlds.")
+	if updater != null and updater.state in ["available", "downloading", "installing", "installed"]:
+		var offer := Label.new()
+		offer.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		offer.custom_minimum_size = Vector2(460, 0)
+		offer.text = updater.message
+		var notes := str(updater.available.get("notes", ""))
+		if updater.state == "available" and notes != "":
+			offer.text += " " + notes
+		screen.add_child(offer)
+		if updater.state == "available":
+			screen.add_child(_button("Update and restart", func() -> void: updater.install()))
+	elif updater != null and updater.state == "failed" and updater.available.size() > 0:
+		var why := Label.new()
+		why.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		why.custom_minimum_size = Vector2(460, 0)
+		GlassStyle.tint_text(why, Color(1, 0.7, 0.6))
+		why.text = updater.message
+		screen.add_child(why)
 	screen.add_child(_button("Start Game", _show_new_game))
 	screen.add_child(_button("Join Game", _show_join))
 	screen.add_child(_button("Local players", _show_local_players))
@@ -398,6 +436,14 @@ func _show_main() -> void:
 	screen.add_child(_button("Settings", _show_settings))
 	screen.add_child(_button("About", _show_about))
 	screen.add_child(_button("Quit", func() -> void: get_tree().quit()))
+	if updater != null and updater.state == "idle":
+		updater.check.call_deferred()
+
+func _on_update_state() -> void:
+	if _screen_title == "":
+		_show_main()
+	elif _screen_title == "About":
+		_show_about()
 
 # --- content -----------------------------------------------------------------
 
@@ -1201,7 +1247,9 @@ Licence: LGPL-2.1-or-later, matching the Luanti client code it carries. godot-cp
 	screen.add_child(grid)
 	var luanti := LocalServer.detect()
 	var data_dir := str(luanti.get("data_dir", ""))
-	for row in [["Godot", Engine.get_version_info().get("string", "unknown")],
+	var own := Updater.installed_version()
+	for row in [["Goanna", own if own != "" else "source checkout"],
+			["Godot", Engine.get_version_info().get("string", "unknown")],
 			["Luanti core", "5.17.0"],
 			["Settings", CFG_PATH],
 			["Luanti", _install_title(luanti) if not luanti.is_empty() else "not found"],
@@ -1213,6 +1261,27 @@ Licence: LGPL-2.1-or-later, matching the Luanti client code it carries. godot-cp
 		var v := Label.new()
 		v.text = str(row[1])
 		grid.add_child(v)
+	if own != "":
+		var auto := CheckBox.new()
+		auto.text = "Check for Goanna updates when it starts"
+		var cfg := ConfigFile.new()
+		cfg.load(CFG_PATH)
+		auto.button_pressed = bool(cfg.get_value("updates", "check", true))
+		auto.toggled.connect(func(on: bool) -> void:
+			var c := ConfigFile.new()
+			c.load(CFG_PATH)
+			c.set_value("updates", "check", on)
+			c.save(CFG_PATH))
+		screen.add_child(auto)
+		if updater.state == "available":
+			screen.add_child(_button("Update and restart", func() -> void: updater.install()))
+		else:
+			screen.add_child(_button("Check for updates now", func() -> void: updater.check(true)))
+		if updater.message != "":
+			var said := Label.new()
+			said.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			said.text = updater.message
+			screen.add_child(said)
 	screen.add_child(_button("Back", _show_main))
 
 # --- new local game ----------------------------------------------------------

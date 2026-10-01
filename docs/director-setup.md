@@ -73,8 +73,8 @@ for the Flatpak.
 The simplest route, and the one used to build it.
 
 ```sh
-claude mcp add goanna-director -- /path/to/Goanna/tools/goanna-director-mcp \
-    --world /path/to/worlds/<world>
+claude mcp add goanna-director \
+    -- /path/to/Goanna/tools/goanna-director-mcp --world /path/to/worlds/<world>
 ```
 
 The `--` keeps `--world` for the director service rather than for
