@@ -18,6 +18,12 @@
 #     it, does nothing to the surface by going up or down;
 #   - a player floating still in the water leaves it still: no waves come
 #     from nothing the player did;
+#   - splashes: falling in throws one crown, not one a frame, whose drops
+#     come down as rings on the patch; climbing out fast drips; swimming
+#     fast sprays off the bow and wading slowly or floating still throws
+#     nothing; a blow at the water from the bank splashes it, but not past
+#     the hand's reach nor through a block the blow hit first; and the
+#     droplet emitters scale with strength and keep to their budgets;
 #   - once the player has left the water the patch settles, sleeps and
 #     tells the shader so.
 # The physics itself is goanna_ripples_test's. It renders nothing: how any
@@ -37,6 +43,21 @@ var finished := 0
 # Stands in for GoannaClient where wake.gd hands the shader its globals
 # (PlayerContext.shader_parameter), and keeps them: the headless renderer
 # stores none, so they cannot be read back from the RenderingServer.
+# Stands in for splashes.gd and keeps what it was asked to draw.
+class Recorder:
+	extends RefCounted
+	var bursts: Array = []
+	var sprays: Array = []
+
+	func burst(kind: String, pos: Vector3, strength: float) -> int:
+		bursts.append([kind, pos, strength])
+		return 1
+
+	func spray(key, pos: Vector3, dir: Vector3, speed: float) -> bool:
+		sprays.append([key, pos, dir, speed])
+		return true
+
+
 class Globals:
 	extends RefCounted
 	var values := {}
@@ -60,7 +81,10 @@ func _initialize() -> void:
 	_test_swim()
 	_test_entry()
 	_test_still()
-	check(finished == 4, "%d of 4 tests ran to their end" % finished)
+	_test_splash_events()
+	_test_strike()
+	_test_splash_emitters()
+	check(finished == 7, "%d of 7 tests ran to their end" % finished)
 	print("ripples: ", "ok" if failures == 0 else "%d failure(s)" % failures)
 	quit(1 if failures else 0)
 
@@ -212,3 +236,102 @@ func _test_still() -> void:
 			"a player floating still makes waves: peak %.4f" % w.ripples.peak())
 	w.free()
 	finished += 1
+
+
+func _test_splash_events() -> void:
+	# Falling in from the bank's height into the lake, then floating.
+	var w := _new_wake()
+	var rec := Recorder.new()
+	w.splashes = rec
+	var fall := func(t: float) -> Vector3:
+		var f := clampf((t - 0.5) / 0.4, 0.0, 1.0)
+		return Vector3(20.0, lerpf(1.5, -0.5, f), 10.0)
+	var t := _run(w, 0.0, 0.5, fall, [])
+	check(rec.bursts.is_empty(), "a splash before anything went in")
+	t = _run(w, t, 0.6, fall, [])
+	var crowns: Array = rec.bursts.filter(func(b): return b[0] == "entry")
+	check(crowns.size() == 1, "falling in threw %d crowns, not one" % crowns.size())
+	if crowns.size() == 1:
+		check(is_equal_approx((crowns[0][1] as Vector3).y, 0.5), "the crown is not on the surface")
+		check(crowns[0][2] > 0.5, "a fall at 5 nodes a second threw a weak crown: %.2f" % crowns[0][2])
+	var queued: int = w._landings.size()
+	t = _run(w, t, 1.0, fall, [])
+	check(queued > 0 and w._landings.is_empty(), "the crown's drops never came down")
+	check(not w.ripples.is_asleep(), "the drops left no rings")
+	# Floating still: nothing more.
+	var before := rec.bursts.size()
+	t = _run(w, t, 2.0, fall, [])
+	check(rec.bursts.size() == before and rec.sprays.is_empty(), "floating still threw up water")
+	# Climbing out fast: drips.
+	var climb := func(tt: float) -> Vector3:
+		var f := clampf((tt - t) / 0.4, 0.0, 1.0)
+		return Vector3(20.0, lerpf(-0.5, 1.5, f), 10.0)
+	_run(w, t, 0.6, climb, [])
+	check(rec.bursts.any(func(b): return b[0] == "drip"), "climbing out fast did not drip")
+	w.free()
+	# Swimming at 3 nodes a second sprays; wading at 1 does not.
+	for speed in [3.0, 1.0]:
+		var w2 := _new_wake()
+		var rec2 := Recorder.new()
+		w2.splashes = rec2
+		var swim := func(tt: float) -> Vector3: return Vector3(10.0 + speed * tt, -0.5, 10.0)
+		_run(w2, 0.0, 2.0, swim, [])
+		if speed > 2.0:
+			check(not rec2.sprays.is_empty(), "swimming at 3 nodes a second threw no spray")
+			if not rec2.sprays.is_empty():
+				var last: Array = rec2.sprays[-1]
+				check((last[2] as Vector3).dot(Vector3.RIGHT) > 0.9, "the spray is not off the bow")
+		else:
+			check(rec2.sprays.is_empty(), "wading at 1 node a second sprayed")
+		w2.free()
+	finished += 1
+
+
+func _test_strike() -> void:
+	var w := _new_wake()
+	var rec := Recorder.new()
+	w.splashes = rec
+	# On the bank at x -2, eye 1.6 over the ground (y 0.5), looking down at
+	# the lake 2.5 nodes out.
+	var eye := Vector3(-2.0, 2.1, 10.0)
+	var at := Vector3(0.5, 0.5, 10.0)
+	check(w.strike(eye, (at - eye).normalized()), "a blow at the lake from the bank missed it")
+	check(rec.bursts.size() == 1 and rec.bursts[0][0] == "strike", "a blow at the water threw no splash")
+	check(not w.ripples.is_asleep(), "a blow at the water left it still")
+	check(not w.strike(eye, (at - eye).normalized(), 1.0), "a blow reached the water through a block")
+	var far := Vector3(6.0, 0.5, 10.0)
+	check(not w.strike(eye, (far - eye).normalized()), "a blow reached water past the hand's reach")
+	check(not w.strike(eye, Vector3(1.0, 0.0, 0.0)), "a level blow hit the water")
+	# The patch settles on the struck water and draws it.
+	var bank := func(_t: float) -> Vector3: return Vector3(-2.0, 0.5, 10.0)
+	_run(w, 0.0, 1.0, bank, [])
+	check(is_equal_approx(w._mask_plane, 0.5), "the patch is not on the struck water")
+	var published: Dictionary = w.client.values
+	check((published.get(&"goanna_ripple_state", Vector4.ZERO) as Vector4).x == 1.0,
+			"the struck water's ripples are not drawn")
+	w.free()
+	finished += 1
+
+
+func _test_splash_emitters() -> void:
+	var sp: Node3D = load("res://ui/splashes.gd").new()
+	root.add_child(sp)
+	var small: int = sp.burst("entry", Vector3.ZERO, 0.1)
+	var big: int = sp.burst("entry", Vector3.ZERO, 1.0)
+	check(big > small and small >= int(sp.KINDS["entry"]["floor"]), "a harder fall threw no more drops")
+	check(sp.burst("nonsense", Vector3.ZERO, 1.0) == 0, "an unknown splash was drawn")
+	for i in 40:
+		sp.burst("strike", Vector3.ZERO, 1.0)
+	check(sp.counts()["bursts"] == sp.MAX_BURSTS, "the bursts overran their budget: %d" % sp.counts()["bursts"])
+	for i in 10:
+		sp.spray(i, Vector3.ZERO, Vector3.RIGHT, 4.0)
+	check(sp.counts()["sprays"] == sp.MAX_SPRAYS, "the sprays overran their budget")
+	# Stopped a moment after nobody asks, freed once their drops are down.
+	sp.tick(2.0)
+	check(sp.counts()["sprays"] == sp.MAX_SPRAYS, "sprays were freed with drops still in the air")
+	sp.tick(1.5)
+	check(sp.counts()["sprays"] == 0, "sprays nobody asked for kept going")
+	check(sp.counts()["bursts"] == 0, "bursts outlived their drops")
+	sp.queue_free()
+	finished += 1
+

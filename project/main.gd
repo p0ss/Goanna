@@ -286,6 +286,7 @@ var underwater := false
 # eye crosses the water surface, and whether it was on to begin with. The
 # volume blends each frame with the ones before; left on across the surface
 # it carried the dense water murk into the open air for about a second.
+var _dig_was := false        # dig held last frame, for the press that strikes water
 var _fog_history_hold := 0
 var _fog_history_was := true
 var headlight: OmniLight3D
@@ -1429,6 +1430,9 @@ func _process(delta: float) -> void:
 				get_tree().quit()
 		pointed = client.step_interact(delta, dig, plc, plc_pressed, keys["sneak"])
 		wield_dig_active = dig and str(pointed.get("type", "nothing")) != "nothing"
+		if dig and not _dig_was:
+			_strike_water()
+		_dig_was = dig
 		if plc_pressed:
 			swing_t = 0.0
 		place_pressed = false
@@ -2528,6 +2532,23 @@ func _cloud_layer_weather(p: Vector2) -> float:
 
 func _lamp_budget() -> int:
 	return maxi(0, int(light_pool)) if render_features["render_dynamic_lights"] and OS.get_environment("GOANNA_NO_LIGHTS") == "" else 0
+
+# A dig or punch pressed at the water: wake.gd finds open water along the
+# view ray within reach, short of whatever node the blow hit, and splashes
+# it (ui/splashes.gd). Not a blow at a mob, which lands on the mob.
+func _strike_water() -> void:
+	var pn := PlayerContext.find(self, "goanna_particles")
+	if pn == null or pn.get("wake") == null or not pn.wake.has_method("strike"):
+		return
+	var kind := str(pointed.get("type", "nothing"))
+	if kind == "object":
+		return
+	var eye: Vector3 = last_move.get("eye_pos", cam.global_position)
+	var dir := -Basis.from_euler(Vector3(deg_to_rad(pitch), deg_to_rad(yaw), 0.0)).z
+	var blocked := INF
+	if kind == "node":
+		blocked = eye.distance_to(pointed.get("point", eye))
+	pn.wake.strike(eye, dir, blocked)
 
 # The underwater murk, from the water round the eye (water_optics.gd): clear
 # near the surface, the region's murk in the depths. Its colour is the one

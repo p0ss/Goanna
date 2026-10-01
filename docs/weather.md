@@ -510,6 +510,35 @@ The control channel's `status` carries it under `wake.ripples`: the surface,
 how many bodies the patch draws, whether it is moving and its highest
 crest.
 
+## Splashes
+
+The droplets a body throws out of the water, beside the waves the ripple
+patch draws (`project/ui/splashes.gd`, driven by `wake.gd`). Only the bodies
+the patch draws splash. Presentation only; tested headless only, and not
+yet observed.
+
+- **Going in.** A body whose submerged depth grows faster than 1.2 nodes a
+  second (a fall or a jump into the water) throws a crown: droplets from a
+  ring round where it went in, up at 1.8 to 3.8 nodes a second and out at
+  0.8 to 2.2, 10 to 48 of them by how fast it went in (full at 3 nodes a
+  second).
+- **Coming out** as fast: drips off the whole body, falling back.
+- **Moving through the surface** faster than 2.2 nodes a second across,
+  with the surface somewhere up its body: spray fanned up and forward off
+  its bow, harder the faster it goes, for as long as it keeps moving.
+- **A blow at the water.** A dig or punch pressed (`main.gd`,
+  `_strike_water`) looks along the view ray, within the hand's 4 nodes and
+  short of any node the blow hit, for the first open water surface; there
+  it kicks the ripple patch and throws a burst. It works from the bank, with
+  nobody in the water: the patch then lies on the struck surface. A blow at
+  a mob is the mob's.
+
+At most one crown or drip a body every 0.3 seconds. The droplets come back
+down as small kicks on the ripple patch, round where they were thrown, 0.3
+to 0.8 seconds later; spray lands beside the bow. Droplets are small lit
+round billboards with a little shine, fading over the last third of their
+flight. At most 16 bursts and 6 sprays at once.
+
 ## The setting
 
 **Shader weather** in the Video tab (`shader_weather`, on by default, shown
@@ -763,7 +792,12 @@ Lamps light nearby rain now that it is lit, which is also untested.
 
 ## Tests
 
-The ripple patch has two of its own. `goanna_ripples_test` (native, in
+The ripple patch has two of its own, and `project/tests/ripples.gd` covers
+the splashes too: one crown for a fall, not one a frame, whose drops come
+down as rings; drips climbing out; spray off the bow swimming at 3 nodes a
+second and none wading at 1 or floating still; a blow from the bank that
+hits the lake, and none past the hand's reach, through a nearer block or
+level; and the emitters' scaling and budgets. `goanna_ripples_test` (native, in
 `cmake --build build --target check`) steps `RippleField` alone: still water
 sleeps; a standing body makes a dimple that stays one; a body walking at 3
 nodes a second has a crest ahead of it and quiet water further ahead, and

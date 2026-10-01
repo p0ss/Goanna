@@ -23,6 +23,7 @@
 extends Node
 
 const PlayerContext := preload("res://player_context.gd")
+const Splashes := preload("res://ui/splashes.gd")
 
 # The shader's constants, repeated for the copy of its maths below
 # (ring()); project/tests/wake.gd checks them against the source by text.
@@ -99,6 +100,28 @@ const RIPPLE_ENTITY_SCALE := 0.7
 # Past this, nodes a second, a jump between frames is a teleport.
 const RIPPLE_TOO_FAST := 12.0
 
+# Splashes (splashes.gd), from the bodies the patch draws. A body throws up
+# a crown going in faster than SPLASH_SINK nodes a second, and drips coming
+# out as fast; one of each at most every SPLASH_COOLDOWN. Moving through the
+# surface faster than SPRAY_SPEED across, it sprays off its bow. Burst
+# strength is the speed over SPLASH_FULL.
+const SPLASH_SINK := 1.2
+const SPLASH_COOLDOWN := 0.3
+const SPLASH_FULL := 3.0
+const SPRAY_SPEED := 2.2
+# Where the droplets come down, small kicks on the patch: how hard, how
+# many a burst throws at full strength, and how far out and how late they
+# land. Spray lands beside the bow, SPRAY_LANDINGS a second.
+const DROP_KICK := 0.25
+const DROP_LANDINGS := 8
+const DROP_REACH := Vector2(0.5, 1.5)
+const DROP_DELAY := Vector2(0.3, 0.8)
+const SPRAY_LANDINGS := 6.0
+# A blow at the water: how far the view ray reaches, like the hand, and the
+# kick where it lands.
+const STRIKE_REACH := 4.0
+const STRIKE_KICK := 1.2
+
 var client: Object
 # GoannaRipples, when the extension has it; without it every body keeps the
 # rings.
@@ -110,6 +133,11 @@ var _mask_plane := NAN
 var _mask_build := {}        # a read in progress: origin, surface, row, bytes
 var _feet_prev := Vector3(NAN, NAN, NAN)
 var _ripples_shown := false
+# splashes.gd, drawing the droplets; null leaves the waves alone.
+var splashes: Object
+var _splash := {}            # key -> {"sink": last sinking, "next": cooldown end}
+var _landings := []          # [time, Vector2 where, kick], droplets on their way down
+var _last_t := 0.0           # the wake clock at the last ripple frame
 # (Vector3) -> bool: whether the node at a world position is water. Left
 # empty, it asks the client's map by node name (is_water_name); the test
 # gives a fake lake.
@@ -136,6 +164,9 @@ func _ready() -> void:
 		ripples = ClassDB.instantiate("GoannaRipples")
 	if ripples != null:
 		PlayerContext.shader_parameter(client, "goanna_ripple_height", ripples.get_texture())
+		if splashes == null:
+			splashes = Splashes.new()
+			add_child(splashes)
 	_publish_ripples(false)
 
 
@@ -432,8 +463,11 @@ func debug_state() -> Dictionary:
 			wet += 1
 	var state := {"sources": _sources.size(), "in_water": wet, "live_points": _live}
 	if ripples != null:
-		state["ripples"] = {"surface": _plane, "bodies": _claimed.size(),
+		# JSON has no NaN; no surface is null.
+		state["ripples"] = {"surface": null if is_nan(_plane) else _plane, "bodies": _claimed.size(),
 			"moving": not ripples.is_asleep(), "peak": ripples.peak()}
+	if splashes != null:
+		state["splashes"] = splashes.counts()
 	return state
 
 
@@ -478,6 +512,7 @@ func _inside_patch(pos: Vector3, me: Vector3) -> bool:
 # water mask current, hand every claimed body to the patch, step, and give
 # the heights to the water shader.
 func ripple_frame(feet: Vector3, delta: float, t: float, vel := Vector3(NAN, NAN, NAN)) -> void:
+	_last_t = t
 	if is_nan(vel.x):
 		vel = Vector3.ZERO
 		if delta > 0.0 and not is_nan(_feet_prev.x):
@@ -485,7 +520,7 @@ func ripple_frame(feet: Vector3, delta: float, t: float, vel := Vector3(NAN, NAN
 	if vel.length() > RIPPLE_TOO_FAST:
 		vel = Vector3.ZERO
 	_feet_prev = feet
-	if is_nan(_plane) and ripples.is_asleep():
+	if is_nan(_plane) and ripples.is_asleep() and _landings.is_empty():
 		_publish_ripples(false)
 		return
 	var n: int = ripples.get_nodes()
@@ -494,22 +529,27 @@ func ripple_frame(feet: Vector3, delta: float, t: float, vel := Vector3(NAN, NAN
 	var moved := absi(want.x - have.x) > RIPPLE_RECENTRE or absi(want.y - have.y) > RIPPLE_RECENTRE
 	if moved:
 		ripples.set_origin(want)
-	if not is_nan(_plane) and (moved or t - _mask_at > RIPPLE_MASK_REFRESH
-			or is_nan(_mask_plane) or absf(_mask_plane - _plane) > 0.25):
+	# The surface to read: the one the bodies are on, or, with none in the
+	# water, the one last struck or last drawn.
+	var surface := _plane if not is_nan(_plane) else _mask_plane
+	if not is_nan(surface) and (moved or t - _mask_at > RIPPLE_MASK_REFRESH
+			or is_nan(_mask_plane) or absf(_mask_plane - surface) > 0.25):
 		if _mask_build.is_empty() or _mask_build["origin"] != ripples.get_origin() \
-				or absf(float(_mask_build["surface"]) - _plane) > 0.25:
+				or absf(float(_mask_build["surface"]) - surface) > 0.25:
 			var bytes := PackedByteArray()
 			bytes.resize(n * n)
-			_mask_build = {"origin": ripples.get_origin(), "surface": _plane, "row": 0, "bytes": bytes}
+			_mask_build = {"origin": ripples.get_origin(), "surface": surface, "row": 0, "bytes": bytes}
 		# The surface the waves are drawn on is the one being read, from the
 		# first row: the patch has changed surface, so the old one is done.
-		_mask_plane = _plane
+		_mask_plane = surface
 	if not _mask_build.is_empty():
 		_continue_mask(n, t)
 	var bodies := PackedFloat32Array()
 	for key in _claimed:
 		if key is String and key == "local":
-			bodies.append_array([feet.x, feet.z, vel.x, vel.z, sinking(feet, vel.y, _mask_plane), 1.0])
+			var sink := sinking(feet, vel.y, _mask_plane)
+			bodies.append_array([feet.x, feet.z, vel.x, vel.z, sink, 1.0])
+			_splash_body(key, feet, vel, sink, 1.0, delta, t)
 		elif _sources.has(key):
 			var st: Dictionary = _sources[key]
 			var v: Vector3 = st.get("vel", Vector3.ZERO)
@@ -518,10 +558,102 @@ func ripple_frame(feet: Vector3, delta: float, t: float, vel := Vector3(NAN, NAN
 			var ahead := clampf(t - float(st["t"]), 0.0, SAMPLE_INTERVAL * 2.0)
 			var p: Vector3 = st["pos"]
 			var at := p + v * ahead
-			bodies.append_array([at.x, at.z, v.x, v.z, sinking(at, v.y, _mask_plane),
-				RIPPLE_ENTITY_SCALE])
+			var sink := sinking(at, v.y, _mask_plane)
+			bodies.append_array([at.x, at.z, v.x, v.z, sink, RIPPLE_ENTITY_SCALE])
+			_splash_body(key, at, v, sink, RIPPLE_ENTITY_SCALE, delta, t)
+	_land_droplets(t)
 	ripples.step(delta, bodies)
 	_publish_ripples(not ripples.is_asleep())
+
+
+# What body `key` at `pos` (feet), moving at `vel` and sinking into the
+# water at `sink` nodes a second, throws up this frame: a crown going in, drips
+# coming out, spray moving fast through the surface.
+func _splash_body(key, pos: Vector3, vel: Vector3, sink: float, scale: float,
+		delta: float, t: float) -> void:
+	if splashes == null or is_nan(_mask_plane):
+		return
+	var st: Dictionary = _splash.get(key, {"sink": 0.0, "next": -INF})
+	var surface := Vector3(pos.x, _mask_plane, pos.z)
+	if t >= float(st["next"]):
+		if sink > SPLASH_SINK and float(st["sink"]) <= SPLASH_SINK:
+			var s := clampf(sink / SPLASH_FULL, 0.2, 1.0) * scale
+			splashes.burst("entry", surface, s)
+			_drop(surface, s, t)
+			st["next"] = t + SPLASH_COOLDOWN
+		elif sink < -SPLASH_SINK and float(st["sink"]) >= -SPLASH_SINK:
+			var s := clampf(-sink / SPLASH_FULL, 0.2, 1.0) * scale
+			splashes.burst("drip", pos, s)
+			_drop(surface, s * 0.5, t)
+			st["next"] = t + SPLASH_COOLDOWN
+	var across := Vector2(vel.x, vel.z)
+	var straddling := pos.y < _mask_plane and pos.y + BODY_ABOVE > _mask_plane
+	if straddling and across.length() > SPRAY_SPEED:
+		var fwd := Vector3(across.x, 0.0, across.y).normalized()
+		splashes.spray(key, surface + fwd * 0.35 * scale, fwd, across.length() * scale)
+		if randf() < SPRAY_LANDINGS * delta:
+			var side := Vector3(-fwd.z, 0.0, fwd.x) * (1.0 if randf() < 0.5 else -1.0)
+			var at := surface + fwd * randf_range(0.2, 0.8) + side * randf_range(0.4, 1.0)
+			_landings.append([t + randf_range(DROP_DELAY.x, DROP_DELAY.y), Vector2(at.x, at.z),
+				DROP_KICK * 0.6 * scale])
+	st["sink"] = sink
+	_splash[key] = st
+
+
+# Droplets thrown from `at` at strength `s` coming down round it later.
+func _drop(at: Vector3, s: float, t: float) -> void:
+	for i in maxi(1, int(round(DROP_LANDINGS * s))):
+		var a := randf() * TAU
+		var r := randf_range(DROP_REACH.x, DROP_REACH.y)
+		_landings.append([t + randf_range(DROP_DELAY.x, DROP_DELAY.y),
+			Vector2(at.x + cos(a) * r, at.z + sin(a) * r), DROP_KICK * clampf(s, 0.3, 1.0)])
+
+
+# Kicks the patch where droplets have come down by now.
+func _land_droplets(t: float) -> void:
+	var still := []
+	for d in _landings:
+		if float(d[0]) <= t:
+			ripples.impulse(d[1], float(d[2]), 0.12)
+		else:
+			still.append(d)
+	_landings = still
+
+
+# A blow at the water: along the view ray from `origin` in `dir`, within
+# STRIKE_REACH and short of `blocked_at` (what the blow hit, if anything),
+# the first open water surface. There it kicks the patch and throws up a
+# burst. From the bank too: with no body in the water the patch moves to
+# the eye and lies on the struck surface. Returns whether it hit water.
+func strike(origin: Vector3, dir: Vector3, blocked_at := INF) -> bool:
+	if ripples == null or dir.y >= -0.01:
+		return false
+	var d := 0.25
+	var reach := minf(STRIKE_REACH, blocked_at)
+	while d <= reach:
+		var p := origin + dir * d
+		var ny := roundi(p.y)
+		if _is_water(Vector3(p.x, ny, p.z)) and not _is_water(Vector3(p.x, ny + 1, p.z)):
+			var surface := ny + 0.5
+			# Back along the ray to where it meets that surface.
+			var hit := origin + dir * ((surface - origin.y) / dir.y)
+			if hit.distance_to(origin) > reach:
+				return false
+			if is_nan(_plane):
+				var n: int = ripples.get_nodes()
+				var want := Vector2i(roundi(origin.x), roundi(origin.z)) - Vector2i(n / 2, n / 2)
+				if want != ripples.get_origin() and ripples.is_asleep():
+					ripples.set_origin(want)
+				if is_nan(_mask_plane) or absf(_mask_plane - surface) > 0.25:
+					_mask_plane = surface
+					_mask_at = -INF
+			ripples.impulse(Vector2(hit.x, hit.z), STRIKE_KICK, 0.2)
+			if splashes != null:
+				splashes.burst("strike", hit, 0.8)
+			_drop(hit, 0.5, _last_t)
+			return true
+		d += 0.25
+	return false
 
 
 # Reads the next RIPPLE_MASK_ROWS rows of the mask in progress, and hands it
@@ -593,3 +725,4 @@ func _publish_ripples(moving: bool) -> void:
 	PlayerContext.shader_parameter(client, "goanna_ripple_area",
 			Vector4(corner.x, corner.y, float(ripples.get_nodes()), _mask_plane))
 	PlayerContext.shader_parameter(client, "goanna_ripple_state", Vector4(1.0, 0.0, 0.0, 0.0))
+
