@@ -18,7 +18,7 @@ server mod validates before anything happens.
 It speaks MCP over stdin and stdout, as newline delimited JSON-RPC, with no
 dependencies beyond the standard library. Register it with:
 
-    claude mcp add goanna-director /path/to/goanna/tools/goanna-director-mcp \\
+    claude mcp add goanna-director -- /path/to/goanna/tools/goanna-director-mcp \\
         --world ~/.var/app/org.luanti.luanti/.minetest/worlds/<world>
 
 Options: --world PATH (or GOANNA_DIRECTOR_WORLD), --port N to override the

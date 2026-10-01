@@ -270,6 +270,7 @@ Luanti's HTTP API, as the client, to a director process on this machine:
   start. Neither is a `goanna_*` setting, because those are broadcast.
 - `tools/goanna-director-mcp --world <world>` in the Goanna repository is the
   process at the other end, an MCP server a model connects to.
+  `docs/director-setup.md` there says how to connect a model.
 
 Players are told. A player joining while a director is connected, or online
 when one connects, gets one chat line saying it is active, what it sees and

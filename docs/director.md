@@ -8,7 +8,8 @@ what exists and what the test showed. The throwaway probe in
 depends on, and [What was verified](#what-was-verified) at the end says what
 ran, on which server and game, and what did not. [Decisions](#decisions)
 records what the maintainer has settled since, including the scope of the
-first playtest.
+first playtest. [Setting up a director](director-setup.md) is the guide for
+server owners.
 
 The director lets a language model run a Luanti world the way a game master runs
 a table. It watches what players do, stages encounters, offers quests whose
