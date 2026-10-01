@@ -14,7 +14,7 @@
   "collar": {"mode": "flat", "base": 0.54, "span": 0.0, "micro": "wool", "micro_strength": 2.0, "smooth": 0.1, "smooth_spread": 0.0, "texel_edge": 0.015},
   "robe": {"mode": "flat", "base": 0.48, "span": 0.0, "micro": "coarse", "micro_strength": 1.8, "smooth": 0.12, "smooth_spread": 0.0, "wear": 0.06, "texel_edge": 0.015},
   "panel": {"mode": "flat", "base": 0.52, "span": 0.0, "micro": "coarse", "micro_strength": 1.8, "smooth": 0.12, "smooth_spread": 0.0, "seam": {"inset": 0.12, "width": 0.05, "depth": 0.05}, "wear": 0.06, "texel_edge": 0.015},
-  "pouch": {"mode": "flat", "base": 0.6, "span": 0.0, "micro": "leather", "smooth": 0.42, "smooth_spread": 0.0, "stitch": {"inset": 0.22, "length": 0.36, "gap": 0.18, "width": 0.07, "groove": 0.05, "depth": 0.06}, "wear": 0.12},
+  "pouch": {"mode": "soft", "base": 0.68, "span": 0.0, "soft_edge": 0.0, "round": 30, "micro": "leather", "smooth": 0.3, "smooth_spread": 0.0, "stitch": {"inset": 0.3, "length": 0.36, "gap": 0.18, "width": 0.07, "groove": 0.04, "depth": 0.04}, "wear": 0.12},
   "belt": {"mode": "flat", "base": 0.6, "span": 0.0, "micro": "canvas", "micro_strength": 1.8, "smooth": 0.2, "smooth_spread": 0.0, "stitch": {"inset": 0.22, "length": 0.36, "gap": 0.18, "width": 0.07, "groove": 0.05, "depth": 0.06}, "wear": 0.08},
   "stone": {"mode": "flat", "base": 0.68, "span": 0.0, "micro": "none", "smooth": 0.4, "smooth_spread": 0.0, "wear": 0.06},
   "trousers": {"mode": "flat", "base": 0.46, "span": 0.0, "micro": "canvas", "micro_strength": 1.8, "smooth": 0.14, "smooth_spread": 0.0, "wear": 0.06, "texel_edge": 0.015},

@@ -13,7 +13,7 @@
   "brow": {"mode": "flat", "base": 0.47, "span": 0.0, "micro": "none", "smooth": 0.2, "smooth_spread": 0.0},
   "white": {"mode": "flat", "base": 0.34, "span": 0.0, "micro": "none", "smooth": 0.9, "smooth_spread": 0.0, "f0": 0.06},
   "iris": {"mode": "flat", "base": 0.34, "span": 0.0, "micro": "none", "smooth": 0.9, "smooth_spread": 0.0, "f0": 0.06},
-  "mouth": {"mode": "flat", "base": 0.32, "span": 0.0, "micro": "none", "smooth": 0.2, "smooth_spread": 0.0},
+  "mouth": {"mode": "flat", "base": 0.37, "span": 0.0, "micro": "none", "smooth": 0.2, "smooth_spread": 0.0, "ride": true, "round": 15, "edge_roll": 2.5, "edge_lean": 25, "roll_rough": 0.03},
   "robe": {"mode": "flat", "base": 0.44, "span": 0.0, "micro": "coarse", "micro_strength": 1.8, "smooth": 0.12, "smooth_spread": 0.0, "wear": 0.06, "texel_edge": 0.015},
   "legs": {"mode": "flat", "base": 0.44, "span": 0.0, "micro": "canvas", "micro_strength": 1.8, "smooth": 0.14, "smooth_spread": 0.0, "wear": 0.06, "texel_edge": 0.015},
   "shoes": {"mode": "flat", "base": 0.52, "span": 0.0, "micro": "leather", "smooth": 0.4, "smooth_spread": 0.0, "stitch": {"inset": 0.22, "length": 0.36, "gap": 0.18, "width": 0.07, "groove": 0.05, "depth": 0.06}, "wear": 0.15}
