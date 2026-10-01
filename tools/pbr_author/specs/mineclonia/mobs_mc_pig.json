@@ -5,11 +5,11 @@
  "chamfer": 2,
  "face_edge": "bevel",
  "bevel_px": 3,
- "bevel_depth": 0.26,
+ "bevel_depth": 0.14,
  "micro": "none",
  "materials": {
-  "hide": {"mode": "flat", "base": 0.45, "span": 0.0, "micro": "hide", "smooth": 0.35, "smooth_spread": 0.0, "micro_params": {"cell": 0.8, "wrinkles": 1.2}, "micro_strength": 1.0, "scatter": 0.3, "wear": 0.05},
-  "snout": {"mode": "flat", "base": 0.45, "span": 0.0, "micro": "hide", "smooth": 0.55, "smooth_spread": 0.0, "micro_params": {"cell": 0.35, "wrinkles": 2.6}, "micro_strength": 1.4, "scatter": 0.25, "wear": 0.08},
+  "hide": {"mode": "flat", "base": 0.45, "span": 0.0, "micro": "hide", "smooth": 0.35, "smooth_spread": 0.0, "micro_params": {"cell": 1.2, "wrinkles": 0.6}, "micro_strength": 0.6, "scatter": 0.3, "wear": 0.05},
+  "snout": {"mode": "flat", "base": 0.45, "span": 0.0, "micro": "hide", "smooth": 0.55, "smooth_spread": 0.0, "micro_params": {"cell": 0.35, "wrinkles": 2.6}, "micro_strength": 1.0, "scatter": 0.25, "wear": 0.08},
   "nostril": {"mode": "flat", "base": 0.38, "span": 0.0, "micro": "none", "smooth": 0.6, "smooth_spread": 0.0},
   "eye": {"mode": "flat", "base": 0.4, "span": 0.0, "micro": "none", "smooth": 0.88, "smooth_spread": 0.0, "f0": 0.025},
   "trotter": {"mode": "flat", "base": 0.42, "span": 0.0, "micro": "bone", "smooth": 0.42, "smooth_spread": 0.0, "micro_strength": 1.5, "micro_params": {"cracks": 0.8}}

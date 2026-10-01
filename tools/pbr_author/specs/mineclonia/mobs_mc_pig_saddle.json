@@ -5,7 +5,7 @@
  "chamfer": 2,
  "face_edge": "bevel",
  "bevel_px": 3,
- "bevel_depth": 0.26,
+ "bevel_depth": 0.14,
  "micro": "none",
  "overlay": true,
  "surface": 0.4,
