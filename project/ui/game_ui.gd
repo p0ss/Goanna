@@ -86,7 +86,6 @@ var show_fps := false          # compact renderer/performance overlay
 var show_position := false     # player's server/world coordinates
 var render_stats_cache: Dictionary = {}
 var render_stats_next_at := 0.0 # render_stats walks retained terrain; sample, do not poll every frame
-var player_effect_particles := false
 var shader_weather := true     # draw rain and snow by shader (ui/weather.gd)
 var flash_rect: ColorRect
 var cursor_ctl: Control      # dragged stack, drawn above the formspec
@@ -171,7 +170,6 @@ func _ready() -> void:
 
 	var particles = preload("res://ui/particles.gd").new()
 	particles.client = client
-	particles.player_effect_particles = player_effect_particles
 	particles.shader_weather = shader_weather
 	var phost := _main_node()
 	if phost != null:
@@ -774,103 +772,102 @@ const RenderFeatures := preload("res://render_features.gd")
 # [tab, key, type, label, description, (min, max, step) for sliders,
 # ([[stored value, name shown], ...]) for a choice]
 const SETTINGS := [
-	["Controls", "mantle", "toggle", "Mantle single blocks", "Step up onto single-block ledges automatically, like autojump."],
-	["Controls", "aux1_descends", "toggle", "Aux1 descends", "Use the Aux1 key to go down while flying or climbing."],
-	["Controls", "pitch_move", "toggle", "Pitch move", "Fly and swim in the direction you look, including up and down."],
-	["Controls", "always_fly_fast", "toggle", "Always fly fast", "Fly at the fast speed without holding the fast key."],
-	["Controls", "safe_dig", "toggle", "Safe digging and placing", "Release the button between each dig or place."],
-	["Controls", "repeat_dig", "slider", "Dig repeat delay", "Seconds a held dig waits before the next node.", 0.0, 1.0, 0.05],
-	["Controls", "repeat_place", "slider", "Place repeat delay", "Seconds a held place waits before repeating.", 0.0, 1.0, 0.05],
-	["Controls", "mouse_sensitivity", "slider", "Mouse sensitivity", "How far the view turns per mouse movement.", 0.02, 0.5, 0.01],
-	["Controls", "invert_mouse", "toggle", "Invert mouse", "Push the mouse forward to look up instead of down."],
-	["Controls", "pad_enabled", "toggle", "Game controller", "Play with a connected game controller, and move a cursor with it in menus and forms. Turn off if a controller you are not using sends stray input."],
-	["Controls", "pad_look_speed", "slider", "Controller look speed", "Degrees the view turns each second with the right stick pushed all the way.", 30.0, 400.0, 10.0],
-	["Controls", "pad_invert_y", "toggle", "Invert controller look", "Push the right stick forward to look down instead of up."],
-	["Controls", "pad_deadzone", "slider", "Controller deadzone", "How far a stick must move before it counts. Raise this if the view or the cursor drifts with the sticks at rest.", 0.05, 0.6, 0.05],
-	["Controls", "view_bobbing", "slider", "View bobbing", "How much the camera bobs as you walk.", 0.0, 1.5, 0.1],
-	["Video", "procedural_grass", "toggle", "Procedural grass", "Dense, wind-swept grass that bends around players and animals. Improves edge smoothing and increases graphics cost."],
-	["Video", "grass_density", "slider", "Grass density", "Amount of procedural grass. Fewer blades reduce graphics cost; ground textures and game plants remain.", 0.1, 1.0, 0.1],
-	["Video", "grass_draw_distance", "slider", "Grass distance", "Distance in nodes before procedural grass fades back to the underlying terrain.", 4.0, 128.0, 4.0],
-	["Video", "grass_interaction_distance", "slider", "Grass bending distance", "Only nearby blades bend around players and animals. Zero disables bending.", 0.0, 32.0, 2.0],
-	["Video", "grass_interactors", "slider", "Grass interactions", "Maximum nearby players and animals that bend grass in this view. Zero disables bending.", 0.0, 8.0, 1.0],
-	["Video", "grass_antialiasing", "slider", "Grass edge smoothing", "0 keeps existing AA, 1 adds FXAA, 2 adds 2x MSAA, 3 adds 4x MSAA. Stronger existing AA is preserved.", 0.0, 3.0, 1.0],
-	["Video", "solid_ice", "toggle", "Solid ice", "Remove transparency from frosted ice to reduce graphics cost. Both modes keep submerged faces and surface lighting."],
-	["Video", "auto_bump", "slider", "Auto bump", "Fake surface relief from texture brightness.", 0.0, 1.0, 0.05],
-	["Material", "mat_normal", "slider", "Normal strength", "How much of the pack's surface relief to apply. Packs are authored for other art at other resolutions, and a normal map meant for 64 pixel textures reads as smeared blotches on 16 pixel ones. Lower this first if a pack looks muddy.", 0.0, 2.0, 0.05],
-	["Material", "mat_ao", "slider", "Occlusion strength", "How much of the pack's baked in shading to apply. 0 leaves Godot's own corner shading to do it alone.", 0.0, 1.0, 0.05],
-	["Material", "mat_roughness", "slider", "Roughness strength", "How far to follow the pack's gloss. 0 makes every surface fully matte, as it is without a pack.", 0.0, 1.0, 0.05],
-	["Material", "mat_specular", "slider", "Specular strength", "Strength of reflections off non-metals. Above 1 exaggerates them.", 0.0, 2.0, 0.05],
-	["Material", "mat_emission", "slider", "Emission strength", "How brightly the pack's glowing surfaces glow.", 0.0, 8.0, 0.25],
-	["Material", "mat_detail", "slider", "Surface detail", "Breaks up the repeat on natural surfaces: sand, gravel, soil and snow are drawn from a grid of randomly shifted copies of their own tile rather than the same one every node. 0 is the plain tile and costs nothing; 1 is one extra texture read along cell borders only. Man made surfaces are left alone, and the far tiers never pay for it.", 0.0, 2.0, 0.25],
-	["Material", "mat_parallax", "slider", "Surface depth", "How deep a pack's relief looks as you move, from its height map (parallax). The cheapest place to save frames on integrated graphics: 0 skips the pass and leaves the relief as shading only.", 0.0, 1.0, 0.05],
-	["Material", "mat_sss", "slider", "Leaf translucency", "Light coming through leaves and ice from behind.", 0.0, 1.0, 0.05],
-	["Updates", "update_check", "toggle", "Check for Goanna updates", "When the menu opens, ask GitHub whether a newer Goanna is out, and offer to update. Only releases signed by Goanna's maintainer are offered. A copy run from source never updates itself."],
-	["Updates", "asset_updates", "toggle", "Download material updates", "Fetch new versions of Goanna's enhanced materials (the surface detail, gloss and relief) when the menu opens, and the materials a server you join uses. Only bundles checked against Goanna's catalogue are installed, and they apply to the next game you start or join."],
-	["Video", "bevel", "slider", "Edge bevel", "Chamfer the exposed edges of solid nodes.", 0.0, 0.15, 0.01],
-	["Video", "motes", "slider", "Ambient motes", "Drifting specks over leaves, flowers and sand.", 0.0, 4.0, 0.25],
-	["Video", "view_range", "slider", "View distance", "How much world to ask the server for, in blocks of 16 nodes. Most servers cap this near 12, so higher values may change nothing.", 4.0, 40.0, 1.0],
-	["Video", "mesh_threads", "slider", "Terrain mesh threads", "How many background threads build near and distant terrain. 0 picks a number from your processor, leaving a core for the game and one for the network. -1 builds on the main thread instead, which is slower and is useful for diagnosing terrain faults.", -1.0, 16.0, 1.0],
-	["Video", "lod_distance", "slider", "Detail distance", "Blocks beyond this are drawn as simplified shapes, which costs less, and distant terrain beyond the server's range is drawn only when this is on. 0 turns both off.", 0.0, 48.0, 1.0],
-	["Video", "far_distance", "slider", "Far draw distance", "How far past the live range the far tiers draw, in nodes. Capped by what the server actually granted (docs/far-rendering.md); raising this past the grant changes nothing. Defaults to the grant itself, so this only needs touching to draw less than the server allows. A local single player server grants this same setting, so on your own worlds this is the one knob.", 0.0, 8192.0, 32.0],
-	["Video", "terrain_occlusion", "toggle", "Terrain occlusion", "Use opaque nearby terrain to avoid drawing regions completely hidden behind it. Most useful in caves, buildings and deep valleys."],
-	["Video", "shader_weather", "toggle", "Shader weather", "Draw the game's rain and snow with shaders instead of its particles, kept out from under roofs and trees, with splashes on open ground and rings on water. Off draws the game's own particles. The server sees no difference either way."],
-	["Video", "player_effect_particles", "toggle", "Player effect particles", "Show server particle spawners attached to your character. Turn this off to hide persistent status sparkles; weather and block-breaking pieces remain visible."],
-	["Material", "mat_stale", "slider", "Remembered terrain tint", "How far terrain drawn from what you saw earlier, rather than what the server is sending now, is pulled toward grey. 0 shows it at full colour, indistinguishable from live.", 0.0, 1.0, 0.05],
-	["Video", "damage_flash", "toggle", "Damage flash", "Flash the screen red when you take damage."],
-	["Video", "show_body", "toggle", "Show own body", "See your own body and held item when you look down."],
-	["Video", "show_fps", "toggle", "Performance counter", "Show FPS and the renderer counts that help distinguish graphics load from terrain streaming."],
-	["Video", "show_position", "toggle", "World position", "Show your current world coordinates."],
-	["Appearance", "interface_style", "choice", "Interface style", "Dark glass draws Goanna's menus and every game form on dark translucent panels that blur the world behind them. The game's own pictures, item art and books are kept. Game theme draws forms in the game's own window art, as its authors made them, and Goanna's menus as they were before. Changes apply at once.", [["glass", "Dark glass"], ["game", "Game theme"]]],
+	["Graphics", "view_range", "slider", "View distance", "How much world to ask the server for, in blocks of 16 nodes. Most servers cap this near 12, so higher values may change nothing.", 4.0, 40.0, 1.0],
+	["Graphics", "far_distance", "slider", "Far draw distance", "How far past the live range the far tiers draw, in nodes. Capped by what the server actually granted (docs/far-rendering.md); raising this past the grant changes nothing. Defaults to the grant itself, so this only needs touching to draw less than the server allows. A local single player server grants this same setting, so on your own worlds this is the one knob.", 0.0, 8192.0, 32.0],
+	["Graphics", "procedural_grass", "toggle", "Procedural grass", "Dense, wind-swept grass that bends around players and animals. Improves edge smoothing and increases graphics cost."],
+	["Graphics", "shader_weather", "toggle", "Shader weather", "Draw the game's rain and snow with shaders instead of its particles, kept out from under roofs and trees, with splashes on open ground and rings on water. Off draws the game's own particles. The server sees no difference either way."],
+	["Graphics/Camera", "fov", "slider", "Field of view", "The camera's field of view, in degrees.", 60.0, 110.0, 1.0],
+	["Graphics/Camera", "view_bobbing", "slider", "View bobbing", "How much the camera bobs as you walk.", 0.0, 1.5, 0.1],
+	["Graphics/Camera", "show_body", "toggle", "Show own body", "See your own body and held item when you look down."],
+	["Graphics/Distance and terrain", "lod_distance", "slider", "Detail distance", "Blocks beyond this are drawn as simplified shapes, which costs less, and distant terrain beyond the server's range is drawn only when this is on. 0 turns both off.", 0.0, 48.0, 1.0],
+	["Graphics/Distance and terrain", "mesh_threads", "slider", "Terrain mesh threads", "How many background threads build near and distant terrain. 0 picks a number from your processor, leaving a core for the game and one for the network. -1 builds on the main thread instead, which is slower and is useful for diagnosing terrain faults.", -1.0, 16.0, 1.0],
+	["Graphics/Distance and terrain", "terrain_occlusion", "toggle", "Terrain occlusion", "Use opaque nearby terrain to avoid drawing regions completely hidden behind it. Most useful in caves, buildings and deep valleys."],
+	["Graphics/Distance and terrain", "mat_stale", "slider", "Remembered terrain tint", "How far terrain drawn from what you saw earlier, rather than what the server is sending now, is pulled toward grey. 0 shows it at full colour, indistinguishable from live.", 0.0, 1.0, 0.05],
+	["Graphics/Grass and foliage", "grass_density", "slider", "Grass density", "Amount of procedural grass. Fewer blades reduce graphics cost; ground textures and game plants remain.", 0.1, 1.0, 0.1],
+	["Graphics/Grass and foliage", "grass_draw_distance", "slider", "Grass distance", "Distance in nodes before procedural grass fades back to the underlying terrain.", 4.0, 128.0, 4.0],
+	["Graphics/Grass and foliage", "grass_interaction_distance", "slider", "Grass bending distance", "Only nearby blades bend around players and animals. Zero disables bending.", 0.0, 32.0, 2.0],
+	["Graphics/Grass and foliage", "grass_interactors", "slider", "Grass interactions", "Maximum nearby players and animals that bend grass in this view. Zero disables bending.", 0.0, 8.0, 1.0],
+	["Graphics/Grass and foliage", "grass_antialiasing", "slider", "Grass edge smoothing", "0 keeps existing AA, 1 adds FXAA, 2 adds 2x MSAA, 3 adds 4x MSAA. Stronger existing AA is preserved.", 0.0, 3.0, 1.0],
+	["Graphics/Grass and foliage", "render_grass_aa", "toggle", "Grass edge smoothing", "Enable extra antialiasing with procedural grass. Off preserves the viewport baseline."],
+	["Graphics/Grass and foliage", "render_grass_interaction", "toggle", "Grass interaction", "Bend procedural grass around players and animals."],
+	["Graphics/Grass and foliage", "render_foliage_wind", "toggle", "Foliage wind", "Animate ordinary leaves and plants without removing their geometry."],
+	["Graphics/Grass and foliage", "mat_sss", "slider", "Leaf translucency", "Light coming through leaves and ice from behind.", 0.0, 1.0, 0.05],
+	["Graphics/Materials", "auto_bump", "slider", "Auto bump", "Fake surface relief from texture brightness.", 0.0, 1.0, 0.05],
+	["Graphics/Materials", "bevel", "slider", "Edge bevel", "Chamfer the exposed edges of solid nodes.", 0.0, 0.15, 0.01],
+	["Graphics/Materials", "mat_normal", "slider", "Normal strength", "How much of the pack's surface relief to apply. Packs are authored for other art at other resolutions, and a normal map meant for 64 pixel textures reads as smeared blotches on 16 pixel ones. Lower this first if a pack looks muddy.", 0.0, 2.0, 0.05],
+	["Graphics/Materials", "mat_ao", "slider", "Occlusion strength", "How much of the pack's baked in shading to apply. 0 leaves Godot's own corner shading to do it alone.", 0.0, 1.0, 0.05],
+	["Graphics/Materials", "mat_roughness", "slider", "Roughness strength", "How far to follow the pack's gloss. 0 makes every surface fully matte, as it is without a pack.", 0.0, 1.0, 0.05],
+	["Graphics/Materials", "mat_specular", "slider", "Specular strength", "Strength of reflections off non-metals. Above 1 exaggerates them.", 0.0, 2.0, 0.05],
+	["Graphics/Materials", "mat_emission", "slider", "Emission strength", "How brightly the pack's glowing surfaces glow.", 0.0, 8.0, 0.25],
+	["Graphics/Materials", "mat_detail", "slider", "Surface detail", "Breaks up the repeat on natural surfaces: sand, gravel, soil and snow are drawn from a grid of randomly shifted copies of their own tile rather than the same one every node. 0 is the plain tile and costs nothing; 1 is one extra texture read along cell borders only. Man made surfaces are left alone, and the far tiers never pay for it.", 0.0, 2.0, 0.25],
+	["Graphics/Materials", "mat_parallax", "slider", "Surface depth", "How deep a pack's relief looks as you move, from its height map (parallax). The cheapest place to save frames on integrated graphics: 0 skips the pass and leaves the relief as shading only.", 0.0, 1.0, 0.05],
+	["Graphics/Light", "light_sun", "slider", "Sunlight", "Strength of direct sun and moon light.", 0.0, 4.0, 0.1],
+	["Graphics/Light", "light_ambient", "slider", "Ambient light", "Sky light filling shadowed surfaces.", 0.0, 3.0, 0.05],
+	["Graphics/Light", "light_fill", "slider", "Sky fill", "How much the sky lights walls and other shaded surfaces, following the light Luanti says reaches them. 0 leaves them to bounced light alone, which is dark.", 0.0, 1.5, 0.05],
+	["Graphics/Light", "light_sdfgi", "slider", "Bounced light", "Strength of global illumination bouncing off surfaces.", 0.0, 4.0, 0.1],
+	["Graphics/Light", "light_sdfgi_cell", "slider", "Bounced light grain", "How fine the bounced light grid is. Finer looks better standing still but the grid re-centres on you as you walk, which shows as shading popping in and out a few steps apart. Raise this if shadows change when you move.", 0.25, 8.0, 0.25],
+	["Graphics/Light", "light_ssao", "slider", "Corner shading", "Darkening where surfaces meet (ambient occlusion). This is the strength only; what it costs is the screen space detail setting below.", 0.0, 8.0, 0.25],
+	["Graphics/Light", "render_ssao", "toggle", "Screen space corner shading", "Enable ambient occlusion where surfaces meet. Off stops this effect while preserving its strength setting."],
+	["Graphics/Light", "light_ssil", "slider", "Screen space bounce", "Colour bounced between nearby surfaces (SSIL). Costs about a sixth of the frame on its own; 0 turns the pass off rather than just hiding it.", 0.0, 4.0, 0.1],
+	["Graphics/Light", "screen_space_detail", "slider", "Screen space detail", "Resolution and quality of corner shading and screen space bounce. 3 runs them at full resolution, which is about a fifth of the frame; below that they run at half resolution, which is Godot's own default and hard to tell apart. Lower this before turning either effect off.", 0.0, 3.0, 1.0],
+	["Graphics/Light", "light_white", "slider", "White point", "Where highlights clip to white. If bright surfaces look flat and detailless, lower Exposure first: this alone will not recover them.", 0.5, 6.0, 0.1],
+	["Graphics/Light", "light_exposure", "slider", "Exposure", "Overall brightness before the tonemap. The default puts a sunlit surface at about 1.3 times its texture's brightness.", 0.1, 2.0, 0.02],
+	["Graphics/Light", "render_bloom", "toggle", "Bloom effect", "Enable glow around bright surfaces. Keeps the Bloom strength setting when turned off."],
+	["Graphics/Lamps", "light_pool", "slider", "Lamp count", "Maximum direct lamp lights, independent of the shadow budget. Lamps outside the pool use propagated block light. Unshadowed direct lights can shine through walls.", 16.0, 256.0, 8.0],
+	["Graphics/Lamps", "render_dynamic_lights", "toggle", "Dynamic node lights", "Add direct lighting from nearby lamps and lava. Off uses propagated block light."],
+	["Graphics/Lamps", "lamp_occlusion", "toggle", "Block lamp occlusion", "Trace received full blocks to nearby lamps. Partial nodes and carried lights still need shadow maps for occlusion."],
+	["Graphics/Lamps", "light_flicker", "toggle", "Flame flicker", "A subtle, steady brightness variance on torches, lanterns and other node lights, like a living flame rather than a fixed bulb. Turn off if moving light bothers you."],
+	["Graphics/Lamps", "render_carried_light", "toggle", "Carried light", "Add the camera-following light from held items and the cave fill."],
+	["Graphics/Shadows", "shadow_detail", "slider", "Shadow detail", "Size of the sun's shadow map: 2048, 4096 or 8192. Most of the cost is the step from 8192 to 4096, and 4096 is Godot's own default.", 0.0, 2.0, 1.0],
+	["Graphics/Shadows", "render_sun_shadows", "toggle", "Sun and moon shadows", "Cast directional shadows from terrain and objects. Lamp shadows are controlled separately."],
+	["Graphics/Shadows", "shadow_lamps", "slider", "Shadow casting lamps", "Maximum nearby lamps with shadows. Other admitted lamps keep lighting without a shadow map. Zero disables lamp shadows.", 0.0, 48.0, 1.0],
+	["Graphics/Shadows", "lamp_shadow_distance", "slider", "Lamp shadow distance", "Reach of lamp shadows in nodes, with a small margin to avoid switching at the boundary. Direct lighting continues beyond it.", 4.0, 96.0, 4.0],
+	["Graphics/Shadows", "render_cloud_shadows", "toggle", "Cloud shadows", "Shade terrain beneath clouds."],
+	["Graphics/Sky and clouds", "cloud_style", "slider", "Cloud style", "0 block clouds, 1 fluffy rounded block clouds, 2 volumetric clouds. All follow the server weather and sun.", 0.0, 2.0, 1.0],
+	["Graphics/Sky and clouds", "cloud_layer_count", "slider", "Cloud layers", "1 to 3 cloud layers. More layers add depth and cost more to render. Fewer layers prioritise clouds above the terrain.", 1.0, 3.0, 1.0],
+	["Graphics/Sky and clouds", "cloud_quality", "slider", "Sky cloud quality", "Volumetric cloud lighting samples: 0 compact, 1 balanced, 2 full. All retain full silhouette sampling.", 0.0, 2.0, 1.0],
+	["Graphics/Sky and clouds", "render_sky_clouds", "toggle", "Sky clouds", "Draw volumetric clouds in the sky. Local cloud fog and ground shadows have separate switches."],
+	["Graphics/Sky and clouds", "atmosphere_quality", "slider", "Volumetric atmosphere", "Quality and reach of valley fog and thick clouds. 0 uses only the inexpensive horizon fade; lower this first if clouds cost too much frame rate.", 0.0, 1.0, 0.1],
+	["Graphics/Sky and clouds", "render_atmosphere", "toggle", "Volumetric fog", "Draw local cloud and valley fog volumes. Off keeps ordinary distance fog and underwater murk."],
+	["Graphics/Sky and clouds", "light_shafts", "slider", "Light shafts", "Sun and moon light scattering out of the air, so a gap in a canopy or a hillside throws a visible shaft. Strongest near dawn and dusk, and in rain. 0 leaves the air clear.", 0.0, 3.0, 0.1],
+	["Graphics/Sky and clouds", "render_shafts", "toggle", "Screen space light shafts", "Draw rays from the sun across distant ridges. Volumetric fog is controlled separately."],
+	["Graphics/Sky and clouds", "motes", "slider", "Ambient motes", "Drifting specks over leaves, flowers and sand.", 0.0, 4.0, 0.25],
+	["Graphics/Water, ice and lava", "render_water_waves", "toggle", "Water waves", "Generate detailed wave normals on water."],
+	["Graphics/Water, ice and lava", "render_water_reflections", "toggle", "Water screen reflections", "Reflect visible scenery in water. Off keeps the inexpensive sky reflection."],
+	["Graphics/Water, ice and lava", "render_underwater_volume", "toggle", "Underwater volumetrics", "Draw volumetric scattering underwater. Off keeps ordinary underwater murk."],
+	["Graphics/Water, ice and lava", "render_wet_surfaces", "toggle", "Wet surfaces", "Draw wet gloss, puddles and rain ripples. Falling rain remains visible."],
+	["Graphics/Water, ice and lava", "solid_ice", "toggle", "Solid ice", "Remove transparency from frosted ice to reduce graphics cost. Both modes keep submerged faces and surface lighting."],
+	["Graphics/Water, ice and lava", "render_ice_detail", "toggle", "Ice volume detail", "Draw internal frost and fractures. Off uses a simple textured ice surface."],
+	["Graphics/Water, ice and lava", "render_ice_transmission", "toggle", "Ice transmission", "Render the scene behind ice. Off makes ice opaque without removing it."],
+	["Graphics/Water, ice and lava", "render_lava_detail", "toggle", "Lava surface detail", "Draw raised crust and detailed flowing normals. Off keeps a simple glowing surface."],
 	["Appearance", "look_strength", "slider", "Natural look", "Adds depth to high daylight and enables the night sky lighting control. Dawn and sunset keep their existing colour treatment. 0 restores the original grade and sky lighting.", 0.0, 1.0, 0.05],
 	["Appearance", "night_visibility", "slider", "Night visibility", "A faint blue upper sky provides cool ambient and bounced light in exposed areas. Keeps the existing night grading and horizon colour. 0 restores the original sky. Works with Natural look.", 0.0, 1.0, 0.05],
 	["Appearance", "bloom_strength", "slider", "Bloom", "Glow around bright light sources, relative to the world's lighting. 0 removes the glow.", 0.0, 2.0, 0.05],
-	["Lighting", "light_sun", "slider", "Sunlight", "Strength of direct sun and moon light.", 0.0, 4.0, 0.1],
-	["Lighting", "light_ambient", "slider", "Ambient light", "Sky light filling shadowed surfaces.", 0.0, 3.0, 0.05],
-	["Lighting", "light_sdfgi", "slider", "Bounced light", "Strength of global illumination bouncing off surfaces.", 0.0, 4.0, 0.1],
-	["Lighting", "light_sdfgi_cell", "slider", "Bounced light grain", "How fine the bounced light grid is. Finer looks better standing still but the grid re-centres on you as you walk, which shows as shading popping in and out a few steps apart. Raise this if shadows change when you move.", 0.25, 8.0, 0.25],
-	["Lighting", "light_pool", "slider", "Lamp count", "Maximum direct lamp lights, independent of the shadow budget. Lamps outside the pool use propagated block light. Unshadowed direct lights can shine through walls.", 16.0, 256.0, 8.0],
-	["Lighting", "lamp_occlusion", "toggle", "Block lamp occlusion", "Trace received full blocks to nearby lamps. Partial nodes and carried lights still need shadow maps for occlusion."],
-	["Lighting", "shadow_lamps", "slider", "Shadow casting lamps", "Maximum nearby lamps with shadows. Other admitted lamps keep lighting without a shadow map. Zero disables lamp shadows.", 0.0, 48.0, 1.0],
-	["Lighting", "lamp_shadow_distance", "slider", "Lamp shadow distance", "Reach of lamp shadows in nodes, with a small margin to avoid switching at the boundary. Direct lighting continues beyond it.", 4.0, 96.0, 4.0],
-	["Lighting", "light_flicker", "toggle", "Flame flicker", "A subtle, steady brightness variance on torches, lanterns and other node lights, like a living flame rather than a fixed bulb. Turn off if moving light bothers you."],
-	["Lighting", "light_ssao", "slider", "Corner shading", "Darkening where surfaces meet (ambient occlusion). This is the strength only; what it costs is the screen space detail setting below.", 0.0, 8.0, 0.25],
-	["Lighting", "light_ssil", "slider", "Screen space bounce", "Colour bounced between nearby surfaces (SSIL). Costs about a sixth of the frame on its own; 0 turns the pass off rather than just hiding it.", 0.0, 4.0, 0.1],
-	["Lighting", "screen_space_detail", "slider", "Screen space detail", "Resolution and quality of corner shading and screen space bounce. 3 runs them at full resolution, which is about a fifth of the frame; below that they run at half resolution, which is Godot's own default and hard to tell apart. Lower this before turning either effect off.", 0.0, 3.0, 1.0],
-	["Lighting", "shadow_detail", "slider", "Shadow detail", "Size of the sun's shadow map: 2048, 4096 or 8192. Most of the cost is the step from 8192 to 4096, and 4096 is Godot's own default.", 0.0, 2.0, 1.0],
-	["Lighting", "light_white", "slider", "White point", "Where highlights clip to white. If bright surfaces look flat and detailless, lower Exposure first: this alone will not recover them.", 0.5, 6.0, 0.1],
-	["Lighting", "light_exposure", "slider", "Exposure", "Overall brightness before the tonemap. The default puts a sunlit surface at about 1.3 times its texture's brightness.", 0.1, 2.0, 0.02],
-	["Lighting", "light_shafts", "slider", "Light shafts", "Sun and moon light scattering out of the air, so a gap in a canopy or a hillside throws a visible shaft. Strongest near dawn and dusk, and in rain. 0 leaves the air clear.", 0.0, 3.0, 0.1],
-	["Lighting", "cloud_style", "slider", "Cloud style", "0 block clouds, 1 fluffy rounded block clouds, 2 volumetric clouds. All follow the server weather and sun.", 0.0, 2.0, 1.0],
-	["Lighting", "cloud_layer_count", "slider", "Cloud layers", "1 to 3 cloud layers. More layers add depth and cost more to render. Fewer layers prioritise clouds above the terrain.", 1.0, 3.0, 1.0],
-	["Lighting", "cloud_quality", "slider", "Sky cloud quality", "Volumetric cloud lighting samples: 0 compact, 1 balanced, 2 full. All retain full silhouette sampling.", 0.0, 2.0, 1.0],
-	["Lighting", "atmosphere_quality", "slider", "Volumetric atmosphere", "Quality and reach of valley fog and thick clouds. 0 uses only the inexpensive horizon fade; lower this first if clouds cost too much frame rate.", 0.0, 1.0, 0.1],
-	["Lighting", "light_fill", "slider", "Sky fill", "How much the sky lights walls and other shaded surfaces, following the light Luanti says reaches them. 0 leaves them to bounced light alone, which is dark.", 0.0, 1.5, 0.05],
+	["Controls/Mouse", "mouse_sensitivity", "slider", "Mouse sensitivity", "How far the view turns per mouse movement.", 0.02, 0.5, 0.01],
+	["Controls/Mouse", "invert_mouse", "toggle", "Invert mouse", "Push the mouse forward to look up instead of down."],
+	["Controls/Game controller", "pad_enabled", "toggle", "Game controller", "Play with a connected game controller, and move a cursor with it in menus and forms. Turn off if a controller you are not using sends stray input."],
+	["Controls/Game controller", "pad_look_speed", "slider", "Controller look speed", "Degrees the view turns each second with the right stick pushed all the way.", 30.0, 400.0, 10.0],
+	["Controls/Game controller", "pad_invert_y", "toggle", "Invert controller look", "Push the right stick forward to look down instead of up."],
+	["Controls/Game controller", "pad_deadzone", "slider", "Controller deadzone", "How far a stick must move before it counts. Raise this if the view or the cursor drifts with the sticks at rest.", 0.05, 0.6, 0.05],
+	["Controls/Movement", "always_fly_fast", "toggle", "Always fly fast", "Fly at the fast speed without holding the fast key."],
+	["Controls/Movement", "aux1_descends", "toggle", "Aux1 descends", "Use the Aux1 key to go down while flying or climbing."],
+	["Controls/Movement", "pitch_move", "toggle", "Pitch move", "Fly and swim in the direction you look, including up and down."],
+	["Controls/Movement", "mantle", "toggle", "Mantle single blocks", "Step up onto single-block ledges automatically, like autojump."],
+	["Controls/Digging and placing", "safe_dig", "toggle", "Safe digging and placing", "Release the button between each dig or place."],
+	["Controls/Digging and placing", "repeat_dig", "slider", "Dig repeat delay", "Seconds a held dig waits before the next node.", 0.0, 1.0, 0.05],
+	["Controls/Digging and placing", "repeat_place", "slider", "Place repeat delay", "Seconds a held place waits before repeating.", 0.0, 1.0, 0.05],
+	["Display", "interface_style", "choice", "Interface style", "Dark glass draws Goanna's menus and every game form on dark translucent panels that blur the world behind them. The game's own pictures, item art and books are kept. Game theme draws forms in the game's own window art, as its authors made them, and Goanna's menus as they were before. Changes apply at once.", [["glass", "Dark glass"], ["game", "Game theme"]]],
+	["Display", "gui_scale", "slider", "Interface scale", "Size of the HUD and menus.", 0.5, 2.0, 0.1],
+	["Display", "fullscreen", "toggle", "Fullscreen", "Run the window in fullscreen."],
+	["Display", "vsync", "toggle", "VSync", "Sync frames to the display's refresh rate."],
+	["Display", "max_fps", "slider", "Max FPS", "Frame rate cap (240 means uncapped).", 30.0, 240.0, 10.0],
+	["Display", "show_fps", "toggle", "Performance counter", "Show FPS and the renderer counts that help distinguish graphics load from terrain streaming."],
+	["Display", "show_position", "toggle", "World position", "Show your current world coordinates."],
+	["Display", "damage_flash", "toggle", "Damage flash", "Flash the screen red when you take damage."],
 	["Audio", "volume", "slider", "Volume", "Overall sound level.", 0.0, 1.0, 0.05],
 	["Audio", "muted", "toggle", "Mute", "Silence all sound."],
-	["Display", "fov", "slider", "Field of view", "The camera's field of view, in degrees.", 60.0, 110.0, 1.0],
-	["Display", "gui_scale", "slider", "Interface scale", "Size of the HUD and menus.", 0.5, 2.0, 0.1],
-	["Display", "max_fps", "slider", "Max FPS", "Frame rate cap (240 means uncapped).", 30.0, 240.0, 10.0],
-	["Display", "vsync", "toggle", "VSync", "Sync frames to the display's refresh rate."],
-	["Display", "fullscreen", "toggle", "Fullscreen", "Run the window in fullscreen."],
-	["Lighting", "render_underwater_volume", "toggle", "Underwater volumetrics", "Draw volumetric scattering underwater. Off keeps ordinary underwater murk."],
-	["Lighting", "render_dynamic_lights", "toggle", "Dynamic node lights", "Add direct lighting from nearby lamps and lava. Off uses propagated block light."],
-	["Lighting", "render_carried_light", "toggle", "Carried light", "Add the camera-following light from held items and the cave fill."],
-	["Lighting", "render_water_waves", "toggle", "Water waves", "Generate detailed wave normals on water."],
-	["Lighting", "render_water_reflections", "toggle", "Water screen reflections", "Reflect visible scenery in water. Off keeps the inexpensive sky reflection."],
-	["Lighting", "render_wet_surfaces", "toggle", "Wet surfaces", "Draw wet gloss, puddles and rain ripples. Falling rain remains visible."],
-	["Lighting", "render_foliage_wind", "toggle", "Foliage wind", "Animate ordinary leaves and plants without removing their geometry."],
-	["Lighting", "render_grass_interaction", "toggle", "Grass interaction", "Bend procedural grass around players and animals."],
-	["Lighting", "render_grass_aa", "toggle", "Grass edge smoothing", "Enable extra antialiasing with procedural grass. Off preserves the viewport baseline."],
-	["Lighting", "render_ice_detail", "toggle", "Ice volume detail", "Draw internal frost and fractures. Off uses a simple textured ice surface."],
-	["Lighting", "render_ice_transmission", "toggle", "Ice transmission", "Render the scene behind ice. Off makes ice opaque without removing it."],
-	["Lighting", "render_lava_detail", "toggle", "Lava surface detail", "Draw raised crust and detailed flowing normals. Off keeps a simple glowing surface."],
-	["Lighting", "render_sky_clouds", "toggle", "Sky clouds", "Draw volumetric clouds in the sky. Local cloud fog and ground shadows have separate switches."],
-	["Lighting", "render_cloud_shadows", "toggle", "Cloud shadows", "Shade terrain beneath clouds."],
-	["Lighting", "render_atmosphere", "toggle", "Volumetric fog", "Draw local cloud and valley fog volumes. Off keeps ordinary distance fog and underwater murk."],
-	["Lighting", "render_ssao", "toggle", "Screen space corner shading", "Enable ambient occlusion where surfaces meet. Off stops this effect while preserving its strength setting."],
-	["Lighting", "render_bloom", "toggle", "Bloom effect", "Enable glow around bright surfaces. Keeps the Bloom strength setting when turned off."],
-	["Lighting", "render_shafts", "toggle", "Screen space light shafts", "Draw rays from the sun across distant ridges. Volumetric fog is controlled separately."],
-	["Lighting", "render_sun_shadows", "toggle", "Sun and moon shadows", "Cast directional shadows from terrain and objects. Lamp shadows are controlled separately."],
+	["Updates", "update_check", "toggle", "Check for Goanna updates", "When the menu opens, ask GitHub whether a newer Goanna is out, and offer to update. Only releases signed by Goanna's maintainer are offered. A copy run from source never updates itself."],
+	["Updates", "asset_updates", "toggle", "Download material updates", "Fetch new versions of Goanna's enhanced materials (the surface detail, gloss and relief) when the menu opens, and the materials a server you join uses. Only bundles checked against Goanna's catalogue are installed, and they apply to the next game you start or join."],
 ]
 const GraphicsProfiles := preload("res://graphics_profiles.gd")
 
@@ -882,10 +879,6 @@ const GraphicsProfiles := preload("res://graphics_profiles.gd")
 #
 # The Video tab also carries the profile picker, which is what actually moves
 # the settings a profile is about (project/graphics_profiles.gd).
-const SIMPLE_KEYS := ["procedural_grass", "texture_pack", "view_range", "far_distance",
-	"damage_flash", "show_body", "show_fps", "show_position",
-	"player_effect_particles", "shader_weather"]
-
 # Tabs that are entirely player preference rather than graphics quality, so
 # they are shown whole and have no Advanced half.
 const PLAIN_TABS := ["Controls", "Appearance", "Audio", "Display", "Updates"]
@@ -893,13 +886,13 @@ const PLAIN_TABS := ["Controls", "Appearance", "Audio", "Display", "Updates"]
 # Settings handled here rather than through the client (window, camera, UI).
 const LOCAL_KEYS := ["procedural_grass", "mouse_sensitivity", "invert_mouse", "view_bobbing", "fov",
 	"pad_enabled", "pad_look_speed", "pad_invert_y", "pad_deadzone",
-	"gui_scale", "max_fps", "vsync", "fullscreen", "damage_flash", "show_fps", "show_position", "terrain_occlusion", "player_effect_particles", "volume", "muted",
+	"gui_scale", "max_fps", "vsync", "fullscreen", "damage_flash", "show_fps", "show_position", "terrain_occlusion", "volume", "muted",
 	"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao",
 	"light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality", "cloud_quality", "cloud_style", "cloud_layer_count", "grass_density", "grass_draw_distance", "grass_interaction_distance", "grass_interactors", "grass_antialiasing",
 	"light_ssil", "screen_space_detail", "shadow_detail", "asset_updates", "update_check",
 	"look_strength", "night_visibility", "bloom_strength", "shader_weather"]
 var settings_menu: Control
-var advanced_open := false      # Advanced graphics settings, kept across reopens
+var graphics_groups_open := {}  # which Graphics groups are open, kept across reopens
 # While a staged preset change runs, lighting keys and render switches are
 # recorded without re-running main.apply_lighting for each one; the stage
 # applies them together once it is complete.
@@ -962,11 +955,6 @@ func _apply_local(key: String, value: float, on: bool) -> void:
 			hud.queue_redraw()
 		"terrain_occlusion":
 			get_viewport().use_occlusion_culling = on
-		"player_effect_particles":
-			player_effect_particles = on
-			var pn := PlayerContext.find(self, "goanna_particles")
-			if pn != null and pn.has_method("set_player_effect_particles"):
-				pn.set_player_effect_particles(on)
 		"shader_weather":
 			shader_weather = on
 			var pw := PlayerContext.find(self, "goanna_particles")
@@ -1005,7 +993,6 @@ func _local_value(key: String) -> float:
 		"damage_flash": return 1.0 if damage_flash else 0.0
 		"show_fps": return 1.0 if show_fps else 0.0
 		"terrain_occlusion": return 1.0 if get_viewport().use_occlusion_culling else 0.0
-		"player_effect_particles": return 1.0 if player_effect_particles else 0.0
 		"shader_weather": return 1.0 if shader_weather else 0.0
 		"show_position": return 1.0 if show_position else 0.0
 		"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao", "light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality", "cloud_quality", "cloud_style", "cloud_layer_count", "grass_density", "grass_draw_distance", "grass_interaction_distance", "grass_interactors", "grass_antialiasing", "light_ssil", "screen_space_detail", "shadow_detail", "look_strength", "night_visibility", "bloom_strength":
@@ -1236,12 +1223,17 @@ func _build_settings() -> Control:
 	# the headings they used to be tabs for.
 	pages["Graphics"] = new_page.call("Graphics")
 	_build_graphics_page(pages["Graphics"])
+	var last_group := {}
 	for entry in SETTINGS:
-		var tab: String = entry[0]
+		var tab := PanelFit.tab_of(entry)
 		if not PLAIN_TABS.has(tab):
 			continue
 		if not pages.has(tab):
 			pages[tab] = new_page.call(tab)
+		var group := PanelFit.group_of(entry)
+		if group != "" and last_group.get(tab, "") != group:
+			last_group[tab] = group
+			PanelFit.heading(pages[tab], group)
 		_build_setting_row(pages[tab], entry)
 	var back := Button.new()
 	back.text = "Back"
@@ -1390,35 +1382,29 @@ func _build_graphics_page(page: VBoxContainer) -> void:
 					+ "settings if they suit your frame target.") \
 					% [short.size(), GraphicsProfiles.LABELS[want]]
 			page.add_child(note)
-	var adv := CheckButton.new()
-	adv.text = "Advanced graphics settings"
-	adv.button_pressed = advanced_open
-	page.add_child(adv)
-	var rest := VBoxContainer.new()
-	rest.add_theme_constant_override("separation", 20)
-	rest.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	rest.visible = advanced_open
-	page.add_child(rest)
-	adv.toggled.connect(func(on: bool) -> void:
-		advanced_open = on
-		rest.visible = on)
-	var group := ""
+	# The few settings worth an opinion, then every other one in a group that
+	# opens on its own (Light, Shadows, Grass and foliage, ...), which
+	# replaced one switch that opened all eighty at once.
+	var groups := {}
+	var order: Array = []
 	for entry in SETTINGS:
-		var tab: String = entry[0]
-		if PLAIN_TABS.has(tab):
+		if PanelFit.tab_of(entry) != "Graphics":
 			continue
-		var key: String = entry[1]
-		if SIMPLE_KEYS.has(key):
+		var group := PanelFit.group_of(entry)
+		if group == "":
 			_build_setting_row(page, entry)
 			continue
-		if tab != group:
-			group = tab
-			var sub := Label.new()
-			sub.text = tab
-			sub.add_theme_font_size_override("font_size", 15)
-			GlassStyle.tint_text(sub, Color(1, 1, 1, 0.6))
-			rest.add_child(sub)
-		_build_setting_row(rest, entry)
+		if not groups.has(group):
+			groups[group] = []
+			order.append(group)
+		groups[group].append(entry)
+	var gap := Control.new()
+	gap.custom_minimum_size = Vector2(0, 6)
+	page.add_child(gap)
+	for group in order:
+		var body := PanelFit.accordion(page, group, (groups[group] as Array).size(), graphics_groups_open)
+		for entry in groups[group]:
+			_build_setting_row(body, entry)
 
 func _build_setting_row(page: VBoxContainer, entry: Array) -> void:
 	var key: String = entry[1]

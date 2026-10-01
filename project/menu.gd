@@ -187,8 +187,23 @@ func _ready() -> void:
 		elif want == "settings":
 			_show_settings()
 		elif want == "settings-advanced":
-			menu_advanced_open = true
+			# Two groups open, scrolled to the groups, for a screenshot.
+			menu_groups_open = {"Shadows": true}
 			_show_settings()
+			await get_tree().process_frame
+			await get_tree().process_frame
+			var g := _find_tabs(screen)
+			if g != null and g.get_child(0) is ScrollContainer:
+				(g.get_child(0) as ScrollContainer).scroll_vertical = 420
+		elif want.begins_with("settings-tab-"):
+			# settings-tab-Controls and the like: that tab, for a screenshot.
+			_show_settings()
+			await get_tree().process_frame
+			var tabs := _find_tabs(screen)
+			if tabs != null:
+				for i in tabs.get_tab_count():
+					if tabs.get_tab_title(i) == want.trim_prefix("settings-tab-"):
+						tabs.current_tab = i
 		elif want == "about":
 			_show_about()
 		elif want == "luanti":
@@ -1016,7 +1031,7 @@ func _setup_failed(reason: String) -> void:
 # the same section it writes to itself.
 const GameUI := preload("res://ui/game_ui.gd")
 
-var menu_advanced_open := false   # Advanced graphics, kept across reopens
+var menu_groups_open := {}   # which Graphics groups are open, kept across reopens
 const GraphicsProfiles := preload("res://graphics_profiles.gd")
 
 func _show_settings() -> void:
@@ -1041,16 +1056,22 @@ func _show_settings() -> void:
 		return box
 	# The same shape as the in-game panel (ui/game_ui.gd): one Graphics tab
 	# holding a profile and the few settings worth an opinion, with the rest
-	# behind Advanced. The two screens claim to be the same settings, so they
-	# had better be arranged the same way.
+	# in groups that open one at a time; other tabs grouped under headings.
+	# The two screens claim to be the same settings, so they had better be
+	# arranged the same way.
 	pages["Graphics"] = new_page.call("Graphics")
 	_menu_graphics_page(pages["Graphics"], cfg)
+	var last_group := {}
 	for row in GameUI.SETTINGS:
-		var tab := str(row[0])
+		var tab := PanelFit.tab_of(row)
 		if not GameUI.PLAIN_TABS.has(tab):
 			continue
 		if not pages.has(tab):
 			pages[tab] = new_page.call(tab)
+		var group := PanelFit.group_of(row)
+		if group != "" and last_group.get(tab, "") != group:
+			last_group[tab] = group
+			PanelFit.heading(pages[tab], group)
 		_settings_row(pages[tab], row, cfg)
 	_footer_back()
 
@@ -1092,33 +1113,35 @@ func _menu_graphics_page(box: VBoxContainer, cfg: ConfigFile) -> void:
 	box.add_child(picker)
 	box.add_child(blurb)
 	show_current.call()
-	var adv := CheckButton.new()
-	adv.text = "Advanced graphics settings"
-	adv.button_pressed = menu_advanced_open
-	box.add_child(adv)
-	var rest := VBoxContainer.new()
-	rest.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	rest.add_theme_constant_override("separation", 10)
-	rest.visible = menu_advanced_open
-	box.add_child(rest)
-	adv.toggled.connect(func(on: bool) -> void:
-		menu_advanced_open = on
-		rest.visible = on)
-	var group := ""
+	var groups := {}
+	var order: Array = []
 	for row in GameUI.SETTINGS:
-		var tab := str(row[0])
-		if GameUI.PLAIN_TABS.has(tab):
+		if PanelFit.tab_of(row) != "Graphics":
 			continue
-		if GameUI.SIMPLE_KEYS.has(str(row[1])):
+		var group := PanelFit.group_of(row)
+		if group == "":
 			_settings_row(box, row, cfg)
 			continue
-		if tab != group:
-			group = tab
-			var sub := Label.new()
-			sub.text = tab
-			GlassStyle.tint_text(sub, Color(1, 1, 1, 0.6))
-			rest.add_child(sub)
-		_settings_row(rest, row, cfg)
+		if not groups.has(group):
+			groups[group] = []
+			order.append(group)
+		groups[group].append(row)
+	var gap := Control.new()
+	gap.custom_minimum_size = Vector2(0, 6)
+	box.add_child(gap)
+	for group in order:
+		var body := PanelFit.accordion(box, group, (groups[group] as Array).size(), menu_groups_open)
+		for row in groups[group]:
+			_settings_row(body, row, cfg)
+
+func _find_tabs(node: Node) -> TabContainer:
+	for c in node.get_children():
+		if c is TabContainer:
+			return c
+		var found := _find_tabs(c)
+		if found != null:
+			return found
+	return null
 
 func _settings_row(box: VBoxContainer, row: Array, cfg: ConfigFile) -> void:
 	var key := str(row[1])

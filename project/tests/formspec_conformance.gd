@@ -2028,7 +2028,7 @@ func _test_glass_legibility() -> void:
 	_check(red.r > red.g and red.r > red.b, "a lifted colour keeps its hue")
 	_check(GlassStyle.PANEL_WORST < 0.1, "the glass is never brighter than a dark grey")
 
-# The player setting: two named choices in the Appearance tab, stored as text.
+# The player setting: two named choices in the Display tab, stored as text.
 func _test_glass_setting() -> void:
 	var row: Array = []
 	for entry in GameUi.SETTINGS:
@@ -2036,7 +2036,7 @@ func _test_glass_setting() -> void:
 			row = entry
 	_check(not row.is_empty(), "the interface style is a setting")
 	if not row.is_empty():
-		_equal(row[0], "Appearance", "in the Appearance tab")
+		_equal(row[0], "Display", "in the Display tab")
 		_equal(row[2], "choice", "as a choice")
 		var values: Array = []
 		for choice in row[5]:

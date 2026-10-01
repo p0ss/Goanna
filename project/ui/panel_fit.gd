@@ -47,7 +47,8 @@ static func page_padding() -> MarginContainer:
 # slider, a picker, a path) below it in the returned row. Returns
 # [row, head]. Rows after the first are separated by a faint rule.
 static func row(page: VBoxContainer, title: String) -> Array:
-	if page.get_child_count() > 0:
+	var n := page.get_child_count()
+	if n > 0 and not page.get_child(n - 1).has_meta("heading"):
 		var sep := HSeparator.new()
 		sep.modulate = Color(1, 1, 1, 0.12)
 		page.add_child(sep)
@@ -75,3 +76,55 @@ static func describe(r: VBoxContainer, text: String, alpha := 0.55) -> Label:
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	r.add_child(desc)
 	return desc
+
+# A heading over a group of rows within a tab (Controls: Mouse, Movement).
+static func heading(page: VBoxContainer, text: String) -> void:
+	var h := Label.new()
+	h.text = text
+	h.add_theme_font_size_override("font_size", 19)
+	h.set_meta("heading", true)
+	if page.get_child_count() > 0:
+		var gap := Control.new()
+		gap.custom_minimum_size = Vector2(0, 8)
+		page.add_child(gap)
+	page.add_child(h)
+
+# A collapsible group of rows (Graphics: Grass and foliage, Light, Shadows).
+# `open` holds which groups are open, by title, and is updated as they are
+# toggled, so a panel rebuilt after a change opens on the same groups.
+# Returns the VBoxContainer the group's rows go in.
+static func accordion(page: VBoxContainer, title: String, count: int, open: Dictionary) -> VBoxContainer:
+	var header := Button.new()
+	header.toggle_mode = true
+	header.button_pressed = bool(open.get(title, false))
+	header.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	header.custom_minimum_size = Vector2(0, 40)
+	var label := func(on: bool) -> String:
+		return "%s  %s   (%d)" % ["\u25BE" if on else "\u25B8", title, count]
+	header.text = label.call(header.button_pressed)
+	page.add_child(header)
+	var pad := MarginContainer.new()
+	pad.add_theme_constant_override("margin_left", 12)
+	pad.add_theme_constant_override("margin_top", 6)
+	pad.add_theme_constant_override("margin_bottom", 10)
+	pad.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	pad.visible = header.button_pressed
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 14)
+	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	pad.add_child(body)
+	page.add_child(pad)
+	header.toggled.connect(func(on: bool) -> void:
+		open[title] = on
+		pad.visible = on
+		header.text = label.call(on))
+	return body
+
+# The tab and the group of a settings row: "Graphics/Light" is tab Graphics,
+# group Light; "Display" has no group.
+static func tab_of(row: Array) -> String:
+	return str(row[0]).get_slice("/", 0)
+
+static func group_of(row: Array) -> String:
+	var t := str(row[0])
+	return t.get_slice("/", 1) if t.contains("/") else ""

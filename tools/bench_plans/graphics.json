@@ -202,13 +202,6 @@
       "scene": "close"
     },
     {
-      "name": "no-effect-particles",
-      "set": {
-        "player_effect_particles": 0
-      },
-      "scene": "close"
-    },
-    {
       "name": "no-occlusion",
       "set": {
         "terrain_occlusion": 0

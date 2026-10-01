@@ -25,7 +25,6 @@ const MAX_SPAWNERS := 24
 
 var client: Node
 var follow: Node3D            # the player/camera, for spawners attached to us
-var player_effect_particles := false
 var shader_weather := true
 var weather: Node3D           # weather.gd, drawing the spawners it was handed
 var lightning: Node3D         # lightning.gd, drawing the strikes it was handed
@@ -79,16 +78,6 @@ func set_shader_weather(on: bool) -> void:
 # no strength in between. Shader packs read it as rainStrength.
 func precipitation() -> float:
 	return 1.0 if not _weather.is_empty() else 0.0
-
-func set_player_effect_particles(on: bool) -> void:
-	player_effect_particles = on
-	if on:
-		return
-	# Weather is also attached to the player, but is an environment input and
-	# remains visible. Remove only character/status spawners already running.
-	for id in _attached.keys():
-		if not _weather.has(id):
-			_remove_spawner(int(id))
 
 const TEST_SPAWNER_ID := 999999
 
@@ -210,8 +199,11 @@ func _add_spawner(ev: Dictionary) -> void:
 	# struck near the world's origin.
 	var is_attached := not is_bolt and (int(ev.get("attached_id", 0)) != 0
 			or pmin.length() + pmax.length() < 200.0)
-	if is_attached and not is_weather and not player_effect_particles:
-		return
+	# Particles a game attaches to the player (status effects and the like)
+	# are drawn, as the vanilla client draws them. A setting once hid them by
+	# default, and with them every spawner within about 100 nodes of the
+	# world's origin, which its test for "attached" also matched; it was
+	# removed on 2026-10-01.
 	if is_weather and is_attached:
 		_weather_ev[id] = ev
 		# Only weather that follows the player: the shader draws round the

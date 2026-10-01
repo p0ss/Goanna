@@ -199,8 +199,6 @@ Goanna's important visual systems are adjustable while connected:
   to disable that froxel cost on slower hardware. The raymarched cumulus
   stay in the sky pass and share the terrain's sun, twilight and
   horizon-haze colours.
-- Player effect particles can be disabled independently of weather and block
-  particles.
 
 Terrain that has not arrived from the server cannot be reconstructed by a
 normal client. Goanna can display remembered blocks and server-provided coarse
