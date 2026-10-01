@@ -114,7 +114,7 @@ func check(force := false) -> void:
 		return
 	var cfg := ConfigFile.new()
 	cfg.load(CFG_PATH)
-	if not bool(cfg.get_value("updates", "check", true)) and not force:
+	if not bool(cfg.get_value("settings", "update_check", true)) and not force:
 		return
 	var last := int(cfg.get_value("updates", "last_check", 0))
 	if not force and str(cfg.get_value("updates", "last_result", "")) == "none:" + current_version \

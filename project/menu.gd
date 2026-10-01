@@ -1271,17 +1271,7 @@ Licence: LGPL-2.1-or-later, matching the Luanti client code it carries. godot-cp
 		v.text = str(row[1])
 		grid.add_child(v)
 	if own != "":
-		var auto := CheckBox.new()
-		auto.text = "Check for Goanna updates when it starts"
-		var cfg := ConfigFile.new()
-		cfg.load(CFG_PATH)
-		auto.button_pressed = bool(cfg.get_value("updates", "check", true))
-		auto.toggled.connect(func(on: bool) -> void:
-			var c := ConfigFile.new()
-			c.load(CFG_PATH)
-			c.set_value("updates", "check", on)
-			c.save(CFG_PATH))
-		screen.add_child(auto)
+		# Whether it checks by itself is under Settings, Updates.
 		if updater.state == "available":
 			screen.add_child(_button("Update and restart", func() -> void: updater.install()))
 		else:

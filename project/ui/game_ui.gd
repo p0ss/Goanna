@@ -803,7 +803,8 @@ const SETTINGS := [
 	["Material", "mat_detail", "slider", "Surface detail", "Breaks up the repeat on natural surfaces: sand, gravel, soil and snow are drawn from a grid of randomly shifted copies of their own tile rather than the same one every node. 0 is the plain tile and costs nothing; 1 is one extra texture read along cell borders only. Man made surfaces are left alone, and the far tiers never pay for it.", 0.0, 2.0, 0.25],
 	["Material", "mat_parallax", "slider", "Surface depth", "How deep a pack's relief looks as you move, from its height map (parallax). The cheapest place to save frames on integrated graphics: 0 skips the pass and leaves the relief as shading only.", 0.0, 1.0, 0.05],
 	["Material", "mat_sss", "slider", "Leaf translucency", "Light coming through leaves and ice from behind.", 0.0, 1.0, 0.05],
-	["Material", "asset_updates", "toggle", "Automatic enhanced materials", "Download verified material bundles used by servers you join. New assets activate the next time you connect."],
+	["Updates", "update_check", "toggle", "Check for Goanna updates", "When the menu opens, ask GitHub whether a newer Goanna is out, and offer to update. Only releases signed by Goanna's maintainer are offered. A copy run from source never updates itself."],
+	["Updates", "asset_updates", "toggle", "Download material updates", "Fetch new versions of Goanna's enhanced materials (the surface detail, gloss and relief) when the menu opens, and the materials a server you join uses. Only bundles checked against Goanna's catalogue are installed, and they apply to the next game you start or join."],
 	["Video", "bevel", "slider", "Edge bevel", "Chamfer the exposed edges of solid nodes.", 0.0, 0.15, 0.01],
 	["Video", "motes", "slider", "Ambient motes", "Drifting specks over leaves, flowers and sand.", 0.0, 4.0, 0.25],
 	["Video", "view_range", "slider", "View distance", "How much world to ask the server for, in blocks of 16 nodes. Most servers cap this near 12, so higher values may change nothing.", 4.0, 40.0, 1.0],
@@ -886,7 +887,7 @@ const SIMPLE_KEYS := ["procedural_grass", "texture_pack", "view_range", "far_dis
 
 # Tabs that are entirely player preference rather than graphics quality, so
 # they are shown whole and have no Advanced half.
-const PLAIN_TABS := ["Controls", "Appearance", "Audio", "Display"]
+const PLAIN_TABS := ["Controls", "Appearance", "Audio", "Display", "Updates"]
 
 # Settings handled here rather than through the client (window, camera, UI).
 const LOCAL_KEYS := ["procedural_grass", "mouse_sensitivity", "invert_mouse", "view_bobbing", "fov",
@@ -894,7 +895,7 @@ const LOCAL_KEYS := ["procedural_grass", "mouse_sensitivity", "invert_mouse", "v
 	"gui_scale", "max_fps", "vsync", "fullscreen", "damage_flash", "show_fps", "show_position", "terrain_occlusion", "player_effect_particles", "volume", "muted",
 	"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao",
 	"light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality", "cloud_quality", "cloud_style", "cloud_layer_count", "grass_density", "grass_draw_distance", "grass_interaction_distance", "grass_interactors", "grass_antialiasing",
-	"light_ssil", "screen_space_detail", "shadow_detail", "asset_updates",
+	"light_ssil", "screen_space_detail", "shadow_detail", "asset_updates", "update_check",
 	"look_strength", "night_visibility", "bloom_strength", "shader_weather"]
 var settings_menu: Control
 var advanced_open := false      # Advanced graphics settings, kept across reopens
@@ -1010,12 +1011,13 @@ func _local_value(key: String) -> float:
 			return float(m.get(key)) if m != null else 1.0
 		"volume": return audio.volume if audio != null else 0.8
 		"muted": return 1.0 if (audio != null and audio.muted) else 0.0
-		"asset_updates":
-			# What is saved, which asset_updater.gd obeys. This used to show
-			# on whatever was saved, so a profile with it off looked on.
+		"asset_updates", "update_check":
+			# What is saved, which asset_updater.gd and updater.gd obey. This
+			# used to show on whatever was saved, so a profile with material
+			# updates off looked on.
 			var saved := ConfigFile.new()
 			saved.load("user://goanna.cfg")
-			return 1.0 if bool(saved.get_value("settings", "asset_updates", true)) else 0.0
+			return 1.0 if bool(saved.get_value("settings", key, true)) else 0.0
 	return 0.0
 
 func _apply_setting(key: String, value: float) -> void:
