@@ -36,3 +36,14 @@ mobs_mc_cave_spider mobs_mc_spider.b3d -1
 mobs_mc_spider_eyes mobs_mc_spider.b3d -1
 mobs_mc_enderman mobs_mc_enderman.b3d
 mobs_mc_enderman_eyes mobs_mc_enderman.b3d
+# Farm animals. The saddle and the sheep's fleece are separate meshes or
+# brushes of their models; the mooshrooms' mushrooms are not authored yet.
+mobs_mc_cow mobs_mc_cow.b3d
+mobs_mc_mooshroom mobs_mc_cow.b3d
+mobs_mc_mooshroom_brown mobs_mc_cow.b3d
+mobs_mc_pig mobs_mc_pig.b3d
+mobs_mc_pig_saddle mobs_mc_pig.b3d 1
+mobs_mc_chicken mobs_mc_chicken.b3d
+mobs_mc_sheep mobs_mc_sheepfur.b3d 1
+mobs_mc_sheep_sheared mobs_mc_sheepfur.b3d 1
+mobs_mc_sheep_fur mobs_mc_sheepfur.b3d
