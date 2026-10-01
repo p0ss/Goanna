@@ -95,6 +95,9 @@ Writes into <out dir>:
   compare.png           maps off, maps on, low sun on, low sun off, side
                         by side, the order preview_figure.py uses
   crop.png              with --crop: maps off, maps on, low sun on
+  night.png             with --night: the lamp lit view, and
+  night_maps_off.png    the same with maps neutral; crop_night.png with
+                        --crop, maps off then on
 
     python3 tools/pbr_author/preview_mob.py <model.b3d> <maps dir> <out dir> \\
         <layers for brush 0> [<layers for brush 1> ...]
@@ -699,6 +702,8 @@ def save(img, path, scale=1):
 # from the hidden side, a little in front, grazing the front face.
 SUN_HIGH = (0.30, 0.65, 0.70)
 SUN_LOW = (-0.92, 0.22, 0.32)
+# --night's lamp, in view space (x right, y up, z toward the viewer).
+LAMP = (0.25, 0.35, 1.0)
 
 
 def main():
@@ -721,6 +726,9 @@ def main():
     ap.add_argument("--legibility", action="store_true",
                     help="with --parallax, print per face the share of art texels keeping half "
                     "their area through the march")
+    ap.add_argument("--night", action="store_true",
+                    help="also write night.png and night_maps_off.png: a lamp close in front, "
+                    "a little above the view, and almost no sky")
     ap.add_argument("--crop", default=None, metavar="X0,Y0,X1,Y1",
                     help="also write crop.png: the face with this art texel rectangle, "
                     "maps off, maps on, low sun on, three times enlarged")
@@ -777,6 +785,16 @@ def main():
         "low_sun": shade(views[True], lo, upv, sun_power=3.2, self_shadow=ss_lo),
         "low_sun_maps_off": shade(views[False], lo, upv, sun_power=3.2),
     }
+    if a.night:
+        # A lantern beside the viewer: light from nearly the view direction,
+        # so a glossy face throws its highlight straight back, as the
+        # owner's night frame by a lantern did. Directional, not a point
+        # light: no falloff across the model.
+        lamp = np.array(LAMP) / np.linalg.norm(LAMP)
+        ss_lamp = shadow(views[True], lamp, upv) if a.parallax else None
+        shots["night"] = shade(views[True], lamp, upv, sun_power=1.6, sky_power=0.06,
+                               self_shadow=ss_lamp)
+        shots["night_maps_off"] = shade(views[False], lamp, upv, sun_power=1.6, sky_power=0.06)
     if a.contrast:
         # A face the art draws in one or two near shades has almost no
         # contrast to keep, and any relief at all multiplies it; those are
@@ -817,6 +835,10 @@ def main():
             tiles.append(shots[k][ys.min():ys.max() + 1, xs.min():xs.max() + 1])
         gap = np.full((tiles[0].shape[0], 6, 3), 0.1)
         save(np.concatenate([tiles[0], gap, tiles[1], gap, tiles[2]], 1), out / "crop.png", 3)
+        if a.night:
+            cut = lambda k: shots[k][ys.min():ys.max() + 1, xs.min():xs.max() + 1]  # noqa: E731
+            save(np.concatenate([cut("night_maps_off"), gap, cut("night")], 1),
+                 out / "crop_night.png", 3)
     paths = [save(v, out / (k + ".png")) for k, v in shots.items()]
     gap = np.full((shots["maps_on"].shape[0], 12, 3), 0.1)
     row = np.concatenate([shots["maps_off"], gap, shots["maps_on"], gap,
