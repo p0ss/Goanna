@@ -1,19 +1,19 @@
 {
  "class": "cloth",
  "texel_px": 16,
- "strength": 12,
+ "strength": 24.0,
  "chamfer": 2,
  "face_edge": "bevel",
  "bevel_px": 3,
- "bevel_depth": 0.14,
+ "bevel_depth": 0.07,
  "micro": "none",
  "overlay": true,
- "surface": 0.4,
+ "surface": 0.6,
  "materials": {
-  "leather": {"mode": "flat", "base": 0.56, "span": 0.0, "micro": "leather", "smooth": 0.38, "smooth_spread": 0.0, "micro_strength": 1.6, "stitch": {"inset": 0.22, "length": 0.36, "gap": 0.18, "width": 0.07, "groove": 0.05, "depth": 0.06}, "wear": 0.15},
-  "roll": {"mode": "flat", "base": 0.64, "span": 0.0, "micro": "leather", "smooth": 0.42, "smooth_spread": 0.0, "micro_strength": 1.4, "wear": 0.12},
-  "seat": {"mode": "flat", "base": 0.6, "span": 0.0, "micro": "leather", "smooth": 0.5, "smooth_spread": 0.0, "micro_strength": 1.2, "wear": 0.2},
-  "buckle": {"mode": "flat", "base": 0.62, "span": 0.0, "micro": "none", "smooth": 0.55, "smooth_spread": 0.0, "f0": 0.04, "wear": 0.1}
+  "leather": {"mode": "flat", "base": 0.8, "span": 0.0, "micro": "leather", "smooth": 0.36, "smooth_spread": 0.0, "micro_strength": 0.4, "stitch": {"inset": 0.22, "length": 0.36, "gap": 0.18, "width": 0.07, "groove": 0.05, "depth": 0.03}, "wear": 0.15},
+  "roll": {"mode": "flat", "base": 0.96, "span": 0.0, "micro": "leather", "smooth": 0.44, "smooth_spread": 0.0, "micro_strength": 0.35, "wear": 0.12},
+  "seat": {"mode": "flat", "base": 0.88, "span": 0.0, "micro": "leather", "smooth": 0.52, "smooth_spread": 0.0, "micro_strength": 0.3, "wear": 0.2},
+  "buckle": {"mode": "flat", "base": 1.0, "span": 0.0, "micro": "none", "smooth": 0.58, "smooth_spread": 0.0, "f0": 0.04, "wear": 0.1}
  },
  "grid": [
   "................................................................",
