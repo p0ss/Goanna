@@ -1010,7 +1010,12 @@ func _local_value(key: String) -> float:
 			return float(m.get(key)) if m != null else 1.0
 		"volume": return audio.volume if audio != null else 0.8
 		"muted": return 1.0 if (audio != null and audio.muted) else 0.0
-		"asset_updates": return 1.0
+		"asset_updates":
+			# What is saved, which asset_updater.gd obeys. This used to show
+			# on whatever was saved, so a profile with it off looked on.
+			var saved := ConfigFile.new()
+			saved.load("user://goanna.cfg")
+			return 1.0 if bool(saved.get_value("settings", "asset_updates", true)) else 0.0
 	return 0.0
 
 func _apply_setting(key: String, value: float) -> void:

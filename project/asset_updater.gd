@@ -18,6 +18,14 @@ var _http: HTTPRequest
 var _queue: Array = []
 var _current := {}
 var _observed := false
+# The menu's instance: upgrade every bundle already installed to the
+# catalogue's version as soon as the catalogue arrives, without waiting for a
+# server to announce its media. In a session, a newer bundle was only fetched
+# once a server asked for its textures and only applied at the next connect,
+# so a player who had pack 1.1.0 played on it for one more session after
+# 1.2.0 was published, and a player who only plays from the menu could stay
+# on it (reported 2026-10-01).
+var upgrade_installed := false
 
 func _ready() -> void:
 	var cfg := ConfigFile.new()
@@ -189,6 +197,15 @@ static func unreachable_bundles(bundles: Array, ambiguous: Dictionary) -> Array:
 			result.append(str(bundle.get("id", "")))
 	return result
 
+# Whether some version of this bundle is installed: only those are upgraded
+# from the menu, since a bundle a player never used may be for another game.
+static func _has_any_version(id: String) -> bool:
+	var dir := AssetStore.root().path_join(id)
+	for version in DirAccess.get_directories_at(dir):
+		if FileAccess.file_exists(dir.path_join(version).path_join("manifest.json")):
+			return true
+	return false
+
 func _installed(bundle: Dictionary) -> bool:
 	return FileAccess.file_exists(AssetStore.root().path_join(str(bundle.id)).path_join(
 		str(bundle.version)).path_join("manifest.json"))
@@ -201,6 +218,12 @@ func _on_catalogue(result: int, code: int, _headers: PackedStringArray,
 	catalogue = AssetStore.parse_catalogue(body.get_string_from_utf8())
 	if catalogue.is_empty():
 		push_warning("Enhanced-material catalogue is invalid; continuing without updates.")
+		return
+	if upgrade_installed:
+		for bundle in catalogue.bundles:
+			if _has_any_version(str(bundle.id)) and not _installed(bundle):
+				_queue.append(bundle)
+		_download_next()
 
 func _download_next() -> void:
 	if _queue.is_empty() or _http == null:

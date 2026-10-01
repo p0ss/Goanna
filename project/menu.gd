@@ -101,6 +101,11 @@ func _ready() -> void:
 	updater = Updater.new()
 	add_child(updater)
 	updater.state_changed.connect(_on_update_state)
+	# Newer versions of the material bundles already installed, fetched now
+	# so the next game started uses them (asset_updater.gd).
+	var materials := AssetUpdater.new()
+	materials.upgrade_installed = true
+	add_child(materials)
 	var local_cfg := ConfigFile.new()
 	if local_cfg.load(CFG_PATH) == OK:
 		local_roster = local_cfg.get_value("local_play", "players", [])
