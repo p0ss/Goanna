@@ -8,11 +8,11 @@
  "bevel_depth": 0.07,
  "micro": "none",
  "materials": {
-  "feather": {"mode": "shade", "base": 0.82, "span": 0.12, "levels": 3, "detail": 0.3, "joints": false, "smooth": 0.2, "smooth_spread": 0.04, "micro": "feather", "micro_strength": 0.3, "micro_params": {"length": 1.4, "width": 1.0, "barbs": 2.0}},
-  "head": {"mode": "shade", "base": 0.84, "span": 0.1, "levels": 2, "detail": 0.3, "joints": false, "smooth": 0.22, "smooth_spread": 0.04, "micro": "feather", "micro_strength": 0.225, "micro_params": {"length": 0.9, "width": 0.7, "barbs": 2.0}},
-  "beak": {"mode": "flat", "base": 1.0, "span": 0.0, "micro": "bone", "smooth": 0.66, "smooth_spread": 0.0, "micro_strength": 0.24, "micro_params": {"cracks": 0.2}},
-  "nostril": {"mode": "flat", "base": 0.9, "span": 0.0, "micro": "none", "smooth": 0.5, "smooth_spread": 0.0},
-  "wattle": {"mode": "flat", "base": 0.94, "span": 0.0, "micro": "hide", "smooth": 0.52, "smooth_spread": 0.0, "micro_params": {"cell": 0.35}, "micro_strength": 0.312, "scatter": 0.35},
+  "feather": {"mode": "soft", "base": 0.88, "span": 0.08, "detail": 0.25, "soft_edge": 0.4, "round": 1, "edge_roll": 1, "edge_lean": 15, "roll_rough": 0.05, "smooth": 0.2, "smooth_spread": 0.02, "micro": "feather", "micro_strength": 0.4, "micro_params": {"length": 1.4, "width": 1.0, "barbs": 2.0}},
+  "head": {"mode": "soft", "base": 0.89, "span": 0.06, "detail": 0.25, "soft_edge": 0.4, "round": 1, "edge_roll": 1, "edge_lean": 15, "roll_rough": 0.05, "smooth": 0.22, "smooth_spread": 0.02, "micro": "feather", "micro_strength": 0.35, "micro_params": {"length": 0.9, "width": 0.7, "barbs": 2.0}},
+  "beak": {"mode": "soft", "base": 0.99, "span": 0.02, "detail": 0.25, "soft_edge": 0.3, "round": 4, "edge_roll": 1, "edge_lean": 15, "roll_rough": 0.05, "smooth": 0.38, "smooth_spread": 0.0, "micro": "straw", "micro_strength": 0.1, "micro_swing": 0.2, "micro_params": {"strands": 3.0, "breaks": 0.0}},
+  "nostril": {"mode": "flat", "base": 0.9, "span": 0.0, "micro": "none", "smooth": 0.3, "smooth_spread": 0.0},
+  "wattle": {"mode": "soft", "base": 0.93, "span": 0.04, "detail": 0.25, "soft_edge": 0.4, "round": 10, "edge_roll": 1.5, "edge_lean": 20, "roll_rough": 0.05, "smooth": 0.3, "smooth_spread": 0.02, "micro": "hide", "micro_params": {"cell": 0.35}, "micro_strength": 0.3, "scatter": 0.45},
   "eye": {"mode": "flat", "base": 0.78, "span": 0.0, "micro": "none", "smooth": 0.9, "smooth_spread": 0.0, "f0": 0.06},
   "leg": {"mode": "shade", "base": 0.84, "span": 0.12, "levels": 2, "detail": 0.3, "joints": false, "smooth": 0.5, "smooth_spread": 0.0, "micro": "scale", "micro_strength": 0.32, "micro_params": {"length": 0.5, "width": 0.6}}
  },
