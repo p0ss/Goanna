@@ -168,13 +168,15 @@ What differs from a tile:
     undead, 15 on the pig): in place of the bevel, the face falls away
     over its outer texels toward every box edge like a cushion, across and
     along added so the corners round without a crease; normal only;
-    `"roll_rough"` (0.2) takes smoothness off toward the edge, where a
-    rolled edge would otherwise catch the sky at a grazing angle; where
-    the art darkens toward an edge (an arm's shaded sides) the roll
-    keeps `"roll_art"` (0.25) of its lean there, so it does not light
-    the art's own band away;
-  - `"smooth_spread"` 0.1 makes the raised, lighter texels a little
-    smoother; the `skin` micro (pores) is down to `"micro_strength"` 0.3.
+    `"roll_rough"` takes smoothness off toward the edge, where a rolled
+    edge can catch the sky at a grazing angle: 0.3 on the pig, 0.03
+    elsewhere, because on an arm's four texel faces it left a smooth bar
+    down the middle of each face, which the sun drew as stripes along
+    the first person arm;
+  - `"smooth_spread"` 0.02 (0.04 on the pig): barely smoother on the
+    raised, lighter texels, since the arm's art runs in columns and more
+    turned them into grain; the `skin` micro (pores) is down to
+    `"micro_strength"` 0.3.
   A material with `"ride": true` (the player's eye layer) takes the same
   dome over its whole face and the same roll, so the parts laid over skin
   curve with it. Only the features (brow, eyes, mouth, nose) take their
