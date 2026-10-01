@@ -227,8 +227,23 @@ def free_control_port(start=DEFAULT_CONTROL_PORT + 1, span=100):
 
 # --- finding things ----------------------------------------------------------
 
+def exported_build(path):
+    """The program of an unpacked release (a Goanna/ folder holding
+    Goanna.x86_64 and Goanna.pck, or the package folder above it), or None.
+    It is run as it is, without --path, as a player would run it."""
+    p = pathlib.Path(path).expanduser().resolve()
+    for folder in (p, p / "Goanna"):
+        if (folder / "Goanna.x86_64").exists() and (folder / "Goanna.pck").exists():
+            return folder / "Goanna.x86_64"
+    return None
+
+
 def resolve_project(path):
-    """A Goanna checkout or worktree, or its project directory."""
+    """A Goanna checkout or worktree, or its project directory, or an
+    unpacked release (see exported_build)."""
+    exported = exported_build(path)
+    if exported:
+        return exported.parent
     p = pathlib.Path(path).expanduser().resolve()
     if (p / "project" / "project.godot").exists():
         return p / "project"
@@ -438,7 +453,8 @@ def start_goanna(project, control_port=None, host="127.0.0.1", port=30000, name=
     directory) in headless gamescope, with its control channel on
     control_port, and return once that channel answers."""
     project = resolve_project(project)
-    godot = find_godot(project)
+    exported = exported_build(project)
+    godot = str(exported) if exported else find_godot(project)
     if control_port is None:
         control_port = free_control_port()
     control_port = int(control_port)
@@ -470,7 +486,8 @@ def start_goanna(project, control_port=None, host="127.0.0.1", port=30000, name=
     rec.update(project=str(project), control_port=control_port, server="%s:%d" % (host, int(port)),
                name=str(name), env=child_env, meta=meta or {},
                argv=[godot, "--display-driver", "x11", "--resolution",
-                     "%dx%d" % (int(width), int(height)), "--path", str(project)],
+                     "%dx%d" % (int(width), int(height))]
+                    + ([] if exported else ["--path", str(project)]),
                client_log=str(pathlib.Path(rec["log_dir"]) / "output.log"))
     rec = _spawn(rec)
     deadline = time.time() + ready_timeout
