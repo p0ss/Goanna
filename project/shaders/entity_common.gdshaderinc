@@ -97,7 +97,15 @@ varying vec4 v_face_rect;
 
 #include "res://shaders/relief_depth.gdshaderinc"
 
+// Hair's along the strand highlight (direct_light.gdshaderinc), on texels
+// whose _s green byte is 12 (atlas.HAIR_F0_BYTE in tools/pbr_author): F0
+// 0.047, which no other map writes, so the byte marks hair. 0 draws them
+// with the isotropic lobe. Set by EntityRenderer::setHair from the "hair"
+// material strength times GOANNA_HAIR_ANISO.
+uniform float hair_strength : hint_range(0.0, 1.0) = 1.0;
+
 #define GOANNA_DIAMOND
+#define GOANNA_HAIR
 #include "res://shaders/direct_light.gdshaderinc"
 #include "res://shaders/underwater.gdshaderinc"
 #ifdef GOANNA_DIAMOND_TRANSMISSION
@@ -125,9 +133,12 @@ void fragment() {
 	vec2 gem_dx = dFdx(UV), gem_dy = dFdy(UV);
 	vec3 gem_position_dx = dFdx(VERTEX), gem_position_dy = dFdy(VERTEX);
 	float gem_det = gem_dx.x * gem_dy.y - gem_dx.y * gem_dy.x;
+	// The image's down on this face, for hair's strand direction below.
+	vec3 image_down = vec3(0.0);
 	if ((diamond_mode != 0 || has_normal) && abs(gem_det) > 1e-12) {
 		vec3 along_u = (gem_position_dx * gem_dy.y - gem_position_dy * gem_dx.y) / gem_det;
 		vec3 along_v = (gem_position_dy * gem_dx.x - gem_position_dx * gem_dy.x) / gem_det;
+		image_down = along_v;
 		vec3 tangent = along_u - NORMAL * dot(NORMAL, along_u);
 		if (length(tangent) > 1e-6) {
 			TANGENT = normalize(tangent);
@@ -317,9 +328,39 @@ void fragment() {
 	// of the world is lit by, carried to light() as RIM and RIM_TINT would be
 	// (see direct_light.gdshaderinc).
 	v_rim = mat_class == 11 ? vec2(0.6, 0.35) : vec2(0.0);
+	v_hair = 0.0;
+	v_hair_strand = vec4(0.0);
 	if (has_spec) {
 		vec4 sp = textureGrad(spec_tex, puv, gem_dx, gem_dy);
 		float sm = sp.r;
+		// Hair, by its exact F0 byte: _s is nearest and the overlay
+		// composite takes F0 whole from the covering layer, so the byte
+		// arrives as written, and a mip that averages hair with anything
+		// else is not 12 and drops out, which is harmless.
+		vec3 down_t = image_down - NORMAL * dot(NORMAL, image_down);
+		if (hair_strength > 0.001 && abs(sp.g * 255.0 - 12.0) < 0.5 && dot(down_t, down_t) > 1e-12) {
+			// The strand runs along the image's vertical on every face of
+			// these atlases: image down is model down on a side face, and
+			// on a top or bottom face image up is the model's front to back
+			// (atlas.face_frames). So down on a side, front to back on a
+			// top, which is the way the authored tresses run. A mirrored
+			// face reverses U, never V, and the frame is solved from the
+			// derivatives, so it needs nothing.
+			vec3 up_v = (VIEW_MATRIX * vec4(0.0, 1.0, 0.0, 0.0)).xyz;
+			bool cap = abs(dot(NORMAL, up_v)) > 0.7;
+			vec3 strand = normalize(down_t) * (cap ? -1.0 : 1.0);
+			// Where along the strand this is on its face, 0 at the root's
+			// edge and 1 at the tip's, as the rounding: -45 degrees
+			// (toward the root) to +45 across the face, so two faces
+			// meet at the same normal on the edge between them.
+			float arc = 0.0;
+			if (rect.w > rect.y) {
+				float s = clamp((UV.y - rect.y) / (rect.w - rect.y), 0.0, 1.0);
+				arc = ((cap ? 1.0 - s : s) - 0.5) * (0.5 * PI);
+			}
+			v_hair = hair_strength;
+			v_hair_strand = vec4(strand, arc);
+		}
 		ROUGHNESS = mix(1.0, clamp(1.0 - sm, 0.04, 1.0), roughness_strength);
 		METALLIC = sp.g >= 0.898 ? 1.0 : 0.0;
 		SPECULAR = clamp((sp.g >= 0.898 ? 0.5 : sp.g / 0.08) * specular_strength, 0.0, 1.0);

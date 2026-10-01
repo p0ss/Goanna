@@ -241,6 +241,23 @@ void EntityRenderer::setParallax(float strength) {
     }
 }
 
+// GOANNA_HAIR_ANISO: a multiplier on the hair highlight alone, so a run with
+// it at 0 and one without differ in nothing but the hair's specular.
+static float hairAnisoScale() {
+    const char *e = getenv("GOANNA_HAIR_ANISO");
+    return e && *e ? (float)atof(e) : 1.0f;
+}
+
+void EntityRenderer::setHair(float strength) {
+    m_hair = strength;
+    const float value = strength * hairAnisoScale();
+    for (auto &kv : m_mesh_materials) {
+        Ref<ShaderMaterial> sm = kv.second;
+        if (sm.is_valid())
+            sm->set_shader_parameter("hair_strength", value);
+    }
+}
+
 Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
         const std::string &texture, bool alpha, bool double_sided, bool item,
         const std::vector<Rect2> *faces) {
@@ -516,6 +533,7 @@ Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
             }
         }
         sm->set_shader_parameter("parallax_strength", m_parallax * entityParallaxScale());
+        sm->set_shader_parameter("hair_strength", m_hair * hairAnisoScale());
         // The march's wall refinement, for an A/B (entity_common.gdshaderinc).
         if (const char *r = getenv("GOANNA_ENTITY_PARALLAX_REFINE"); r && *r)
             sm->set_shader_parameter("parallax_refine", atoi(r));

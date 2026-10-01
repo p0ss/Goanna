@@ -442,6 +442,51 @@ connected UVs are not a rectangle clamps to their bounding box, and a
 skin whose albedo is painted rather than pixel art takes its own pixels
 as art texels. See `docs/perf/entity-parallax-2026-10-02/`.
 
+**Hair's highlight.** Hair reads as hair mostly by its highlight, a
+narrow band lying across the strands, and an authored map cannot draw one
+at sixteen map pixels per art texel: the band comes from orientations far
+finer than a texel, and mipmaps average away what relief there is. So a
+hair texel takes a different specular lobe in `light()`
+(`direct_light.gdshaderinc`, `GOANNA_HAIR`, which only the entity shaders
+define). A texel is hair when its `_s` green byte is exactly 12 (F0 0.047,
+`atlas.HAIR_F0_BYTE`, written only by a material with `"hair_mark"`, or
+for any material naming it when the pack is built with
+`GOANNA_PBR_HAIR_MARK=1`). `_s` is sampled nearest and the overlay
+composite takes F0 whole from the covering layer, so the byte arrives as
+written; a mip level that averages hair with anything else is not 12 and
+gets the isotropic lobe.
+
+- The strand direction is the image's vertical, from the UV frame the
+  entity shader already solves: on these atlases image down is model down
+  on a side face, and on a top or bottom face image up runs from the
+  model's front to its back (`atlas.face_frames`). A face whose normal is
+  within 45 degrees of world up or down counts as a top. It is
+  orthogonalised against the mapped normal in `light()`, so the normal
+  map's tilt turns it. A mirrored face reverses U, never V, and needs
+  nothing. A head pitched beyond 45 degrees would swap the rule.
+- The lobe is Godot's anisotropic GGX (`D_GGX_anisotropic`,
+  `V_GGX_anisotropic`), smooth along the strand and rough across it,
+  `alpha * hair_aspect` and `alpha / hair_aspect` (0.35), so the product
+  and the peak stay the isotropic lobe's. A second lobe, half again as
+  rough along the strand and tinted by the albedo (`hair_secondary` 0.6),
+  is Marschner's TRT; the first is tilted toward the root by
+  `hair_shift_root` (0.08 rad), the second toward the tip by
+  `hair_shift_tip` (0.14 rad). Fresnel and the multiscatter term are the
+  isotropic lobe's. Integrated over the hemisphere at hair's roughness
+  (0.58) the primary returns 0.54 of light where the isotropic lobe
+  returns 0.68 to 0.82, so with the tinted lobe on top the hair gives back
+  a little less than before, not more.
+- A box has no curvature along a strand for a band to travel over, so for
+  the specular only the normal is turned along the strand from -45 degrees
+  at a face's root edge to +45 at its tip edge, as if the box were
+  rounded; two faces meet at the same normal on their shared edge. The
+  diffuse keeps the box. The box's own normal still gates the light.
+- The diffuse is untouched, and a texel that is not hair runs exactly the
+  code it ran before.
+- The `hair` material strength (`mat_hair`, 1 by default) scales it, and
+  `GOANNA_HAIR_ANISO` multiplies that for entities alone; 0 is the old
+  isotropic lobe on hair too. See `docs/perf/hair-aniso-2026-10-02/`.
+
 **Where companions do not reach.** A surface the server marks
 `use_texture_alpha` (a charged creeper's aura, a slime's outer body, a
 spider's eyes) keeps the plain `StandardMaterial3D` path, with no

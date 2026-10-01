@@ -90,6 +90,10 @@ public:
     // nodes. Applied to every material already built. GOANNA_ENTITY_PARALLAX
     // scales it, for an entities only A/B.
     void setParallax(float strength);
+    // The anisotropic highlight on hair texels (_s green byte 12, see
+    // direct_light.gdshaderinc), 0 to 1: GoannaClient's "hair" material
+    // strength. GOANNA_HAIR_ANISO scales it, 0 for an entities only A/B.
+    void setHair(float strength);
     // The formspec model[] element (upstream's GUIScene): a standalone copy of
     // a media mesh with its textures applied, posed at the first frame of the
     // loop, for the UI to hang under a SubViewport. Unshaded, alpha tested at
@@ -218,6 +222,7 @@ private:
     float m_arm_swing = 0.0f;
     float m_auto_bump = 0.35f;
     float m_parallax = 1.0f;
+    float m_hair = 1.0f;
 };
 
 } // namespace goanna

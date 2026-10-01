@@ -1162,6 +1162,10 @@ static const std::map<std::string, float> kMatStrengthDefaults = {
     // costs frames: the Low graphics profile turns it off for integrated
     // graphics such as the Steam Deck's.
     {"parallax", 1.0f},
+    // The along the strand highlight on hair texels of a mob or player skin
+    // (direct_light.gdshaderinc, EntityRenderer::setHair). 0 draws hair with
+    // the isotropic lobe every other texel takes.
+    {"hair", 1.0f},
 };
 
 float GoannaClient::material_strength(const String &channel) const {
@@ -1192,6 +1196,8 @@ void GoannaClient::set_material_strength(const String &channel, float value) {
     // Mobs march the same height fields, so they follow the same switch.
     if (k == "parallax" && m_entities)
         m_entities->setParallax(value);
+    if (k == "hair" && m_entities)
+        m_entities->setHair(value);
 }
 
 Dictionary GoannaClient::server_options() const {
@@ -3791,6 +3797,7 @@ void GoannaClient::sync_entities(double dt) {
     if (!m_entities) {
         m_entities = std::make_unique<EntityRenderer>(this);
         m_entities->setParallax(material_strength("parallax"));
+        m_entities->setHair(material_strength("hair"));
         m_entities->setShowBody(m_show_body);
         m_entities->setThirdPerson(m_third_person);
         m_entities->setAutoBump(m_auto_bump);
@@ -3860,6 +3867,7 @@ Dictionary GoannaClient::wield_info() {
     if (!m_entities) {
         m_entities = std::make_unique<EntityRenderer>(this);
         m_entities->setParallax(material_strength("parallax"));
+        m_entities->setHair(material_strength("hair"));
     }
     ItemStack item = goanna_wielded_item(m_session.get());
     d["name"] = String::utf8(item.name.c_str());
@@ -3898,6 +3906,7 @@ Dictionary GoannaClient::item_mesh(const String &item_name) {
     if (!m_entities) {
         m_entities = std::make_unique<EntityRenderer>(this);
         m_entities->setParallax(material_strength("parallax"));
+        m_entities->setHair(material_strength("hair"));
     }
     ItemStack item(item_name.utf8().get_data(), 1, 0, m_session->getItemDefManager());
     d["name"] = item_name;
@@ -3917,6 +3926,7 @@ Dictionary GoannaClient::model_preview(const String &mesh_name, const PackedStri
     if (!m_entities) {
         m_entities = std::make_unique<EntityRenderer>(this);
         m_entities->setParallax(material_strength("parallax"));
+        m_entities->setHair(material_strength("hair"));
     }
     std::vector<std::string> texs;
     texs.reserve(textures.size());
