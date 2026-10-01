@@ -647,14 +647,16 @@ def _scratches(c, p):
 
 def _dents(c, p):
     """Soft round hammer dents: a plate has one with probability
-    "density" and a second, smaller one with half of it, each a shallow
-    dish of "radius" texels (0.6 to 1 times it), kept inside the plate."""
+    "density" and a second, smaller one with "second" times that (0.5;
+    0 for at most one), each a shallow dish of "radius" texels (0.6 to 1
+    times it), kept inside the plate."""
     sd = c["seed"]
     tx, ty, fx, fy = _cell(c)
     dens = p.get("density", 0.45)
     r0 = p.get("radius", 0.3)
     out = np.zeros(np.shape(c["x"]))
-    for k, (share, size) in enumerate(((1.0, 1.0), (0.5, 0.6))):
+    second = p.get("second", 0.5)
+    for k, (share, size) in enumerate(((1.0, 1.0), (second, 0.6))):
         on = _hash(tx, ty, sd + 50 + 5 * k) < dens * share
         r = r0 * size * (0.6 + 0.4 * _hash(tx, ty, sd + 51 + 5 * k))
         m = np.minimum(r + 0.08, 0.5)
@@ -674,7 +676,8 @@ def _rivets(c, p):
     nearest edge, on pieces at least "min_size" texels both ways; the
     outer corner is the one toward the piece's nearest edges, so a
     symmetric piece is riveted symmetrically. "at" adds rivets at listed
-    [x, y] centres in art texels. A little smoother on the head."""
+    [x, y] centres in art texels. "seat" is the seat ring's width as a
+    share of the radius. A little smoother on the head."""
     radius = p.get("radius", 0.15)
     inset = p.get("inset", 0.27)
     every = max(1, int(p.get("every", 3)))
@@ -705,7 +708,8 @@ def _rivets(c, p):
         best = np.minimum(best, np.hypot(x - at[0], y - at[1]))
     q = best / radius
     head = np.sqrt(np.clip(1.0 - q * q, 0.0, 1.0))
-    seat = np.clip(1.0 - np.abs(q - 1.15) / 0.25, 0.0, 1.0)
+    sw = p.get("seat", 0.25)
+    seat = np.clip(1.0 - np.abs(q - 1.0 - sw * 0.6) / sw, 0.0, 1.0)
     d = head - 0.25 * seat
     s = 0.6 * head - 0.4 * seat
     return d, s
