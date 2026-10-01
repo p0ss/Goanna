@@ -116,6 +116,33 @@ border:
            times strength and swing. A material takes one "micro", so a
            plate with scratches, dents and rivets is a mix.
 
+The block kinds, for a piece of a skin made of what a block is made of (a
+tool's handle, a lens, a buckle). Each samples extrude.micro_field, the
+block's own field, so a change to the block kind changes these too:
+
+  wood       planks' grain, running along the direction.
+  bark       a log's fissures, running along the direction.
+  glass      a pane's faint smudges and the odd hairline scratch.
+  metal      a brushed plate, brushed along the direction.
+  metal_worn tool iron: short scratches every way, dents, rubbed patches.
+
+A block texel and a skin texel are both a sixteenth of a node, so the
+field is laid on the skin at one block texel per art texel: it is built
+cell * 16 pixels wide (16 texels, one block face) and read at the pixel's
+u and v times cell, bilinear. The block field repeats over its 16 texels,
+which is harmless here: every pixel reads it at its own face's u and v,
+and atlas.py derives the normal per island, so nothing of one face reaches
+another; a face more than 16 texels long would see the repeat, and no
+villager face is. Amplitude and swing are the block's (extrude.MICRO_KINDS)
+and the amplitude is scaled by the block class's normal strength over the
+skin's ("strength" in the context, which atlas.py passes), so a skin's
+grain rises as far per texel as the planks' does whatever the skin's own
+strength.
+
+  paper    very fine fibre, almost flat, matte: short fibres lying mostly
+           along the direction with a few across, and a faint cockle.
+           For book pages and maps. Not a block kind (no block is paper).
+
 Edge features, which need the piece's shape, are separate material keys:
 
   "stitch": {...}   a dashed line of thread a fixed inset inside the edge
@@ -772,6 +799,69 @@ def _leaf(c, p):
     return d, s
 
 
+# --- block kinds --------------------------------------------------------------
+
+# Per block kind: the block class whose normal strength the block kind is
+# seen at, and whether the field's features run along its x (wood's grain,
+# the brushing) or its y (bark's fissures, which follow the log).
+BLOCK_KINDS = {
+    "wood": ("planks", "x"),
+    "bark": ("wood", "y"),
+    "glass": ("glass", "x"),
+    "metal": ("metal", "x"),
+    "metal_worn": ("metal", "x"),
+}
+_block_fields = {}
+
+
+def _block_field(kind, seed, size):
+    key = (kind, seed, size)
+    if key not in _block_fields:
+        import extrude
+        _block_fields[key] = extrude.micro_field(kind, seed, size=size)
+    return _block_fields[key]
+
+
+def _block(kind):
+    def fn(c, p):
+        import extrude
+        cls, axis = BLOCK_KINDS[kind]
+        cell = float(c.get("cell", 16.0))
+        size = int(round(cell * 16))
+        d, s = _block_field(kind, int(c["seed"]) & 0xffff, size)
+        # Field pixel centres sit at whole coordinates; a pixel's u and v
+        # are at texel centres, (i + 0.5) / cell.
+        along = np.asarray(c["u"], np.float64) * cell - 0.5
+        across = np.asarray(c["v"], np.float64) * cell - 0.5
+        ys, xs = (across, along) if axis == "x" else (along, across)
+        block_strength = extrude.CLASS_STYLE[cls][2]
+        k = block_strength / float(c.get("strength", block_strength))
+        return (k * extrude._sample(d, ys, xs).astype(np.float64),
+                extrude._sample(s, ys, xs).astype(np.float64))
+    fn.__doc__ = "extrude's %s field, read per pixel along the direction." % kind
+    return fn
+
+
+def _paper(c, p):
+    """Paper: fine fibres, a few texel fractions long, lying mostly along
+    the direction ("along", their count per texel along it, "across" per
+    texel across) with a sparser set crossing them, and a faint cockle (a
+    soft swell over several texels). Almost flat and matte: the smoothness
+    barely moves."""
+    sd = c["seed"]
+    u, v = c["u"], c["v"]
+    fa, fc = p.get("along", 1.5), p.get("across", 6.0)
+    fibre = vnoise(u * fa, v * fc, sd)
+    # A second set at about 60 degrees, so the fibres are a felt, not ruled.
+    ru = 0.5 * u + 0.866 * v
+    rv = -0.866 * u + 0.5 * v
+    cross = vnoise(ru * fa, rv * fc, sd + 1)
+    cockle = fbm(u * 0.35, v * 0.35, sd + 2, 2)
+    d = 0.5 * fibre + 0.3 * cross + p.get("cockle", 0.3) * cockle
+    s = 0.3 * fibre + 0.2 * cross
+    return d, s
+
+
 def _mix(c, p):
     """Several kinds summed (see the module docstring)."""
     d = np.zeros(np.shape(c["x"]))
@@ -814,7 +904,18 @@ KINDS = {
     "rust": (_rust, 0.050, 0.20),
     "leaf": (_leaf, 0.070, 0.12),
     "mix": (_mix, 1.0, 1.0),
+    "paper": (_paper, 0.008, 0.04),
 }
+
+
+def _add_block_kinds():
+    import extrude
+    for k in BLOCK_KINDS:
+        amp, swing = extrude.MICRO_KINDS[k]
+        KINDS[k] = (_block(k), amp, swing)
+
+
+_add_block_kinds()
 
 
 def kind_names():
@@ -999,13 +1100,26 @@ def swatches(path, cell=16, texels=6, light=(-0.5, 0.45, 0.75)):
         return np.clip(0.55 * np.clip((n * L).sum(-1), 0, 1) + 0.25 + 0.15 * s, 0, 1)
 
     # The eye kind wants piece offsets: a dome per two texels.
+    # The block kinds see a skin of strength 12, the rise lit() draws at.
     ctx = {"x": x.ravel(), "y": y.ravel(), "u": y.ravel(), "v": x.ravel(), "seed": 11,
-           "px": (x.ravel() % 2) - 1.0, "py": (y.ravel() % 2) - 1.0}
-    names = kind_names()
+           "px": (x.ravel() % 2) - 1.0, "py": (y.ravel() % 2) - 1.0,
+           "cell": cell, "strength": 12.0}
+    import extrude
     tiles = []
-    for k in names:
+    labels = []
+    for k in kind_names():
         d, s, amp, swing = evaluate(k, ctx)
         tiles.append(lit((amp * d).reshape(size, size), (swing * s).reshape(size, size)))
+        labels.append(k)
+        if k in BLOCK_KINDS:
+            # The block's own field as a block face shows it (grain across
+            # a plank, fissures down a log), at the block's rise per texel.
+            bd, bs = extrude.micro_field(k, 11, size=cell * 16)
+            bamp, bswing = extrude.MICRO_KINDS[k]
+            rise = extrude.CLASS_STYLE[BLOCK_KINDS[k][0]][2] / 12.0
+            tiles.append(lit(bamp * rise * bd[:size, :size], bswing * bs[:size, :size]))
+            labels.append(k + " block")
+    names = labels
     mask = np.zeros((size, size), bool)
     mask[cell:size - cell, cell:size - cell] = True
     dist = edge_distance(mask, np.zeros((size, size), int))

@@ -112,8 +112,11 @@ What differs from a tile:
   linen, canvas, coarse, twill, hair, straw, leather, rope, skin, eye; for
   animals and monsters fur, hide, feather, scale, bone, rotten, mottle,
   chitin; for riveted iron, a plate per texel, plate, scratches, dents,
-  rivets, rust and leaf, with mix to sum several on one material) and the
-  edge features are described in `micro.py`, and
+  rivets, rust and leaf, with mix to sum several on one material; paper;
+  and wood, bark, glass, metal and metal_worn, which read the block
+  kinds' own fields from `extrude.micro_field` at one block texel per art
+  texel and at the blocks' rise) and the edge features are described in
+  `micro.py`, and
   `python3 micro.py <sheet.png> [16|8]` draws a labelled swatch of each
   at 16 map pixels per texel (the player's parts) or 8 (a mob's). The
   animal kinds are sized for 8. They are

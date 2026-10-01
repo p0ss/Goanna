@@ -622,6 +622,11 @@ def material_surface(stem, spec, game, mat, drawn, isl, cell, model, brush, cls,
             ctx["px"] = (ctx["x"] - up(cx)[iy, ix]) / up(hx)[iy, ix]
             ctx["py"] = (ctx["y"] - up(cy)[iy, ix]) / up(hy)[iy, ix]
             ctx["hx"], ctx["hy"] = up(hx)[iy, ix], up(hy)[iy, ix]
+            # The block kinds (micro.BLOCK_KINDS) lay the block's field at
+            # one block texel per art texel and match the block's rise.
+            ctx["cell"] = cell
+            ctx["strength"] = float(spec.get("strength", extrude.CLASS_STYLE.get(
+                cls, extrude.DEFAULT_STYLE)[2]))
             if kind in micro.LOCK_KINDS and hgt is not None:
                 ctx["la"], ctx["lt"], ctx["lw"], ctx["lid"] = _lock_frames(
                     sel, isl, hgt, ctx["u"], ctx["v"], iy, ix, cell)
