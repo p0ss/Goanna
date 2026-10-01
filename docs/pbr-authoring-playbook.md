@@ -14,6 +14,35 @@ reads each stem's palette map and preview, writes a spec where the rule
 fails, and checks each with `extrude.check`. No GPU for the agents; the
 session running them renders the ramp one client at a time.
 
+## Mob skins
+
+Mob skins are model atlases and are built by `tools/pbr_author/atlas.py`
+from `tools/pbr_author/stems/mineclonia.mobs.txt`, with specs in the same
+directory as the blocks' (`tools/pbr_author/README.md`, "Mob skins").
+The iron golem, its three crack overlays and the bare villager were the
+prototypes, on 2026-10-01; none of them has been judged in game yet.
+
+For a fleet doing the rest, an agent per mob family (villagers and their
+profession overlays; cow, pig, sheep; zombie, skeleton, creeper; chicken)
+works like a block agent with two extra steps:
+
+1. Add the skin to `stems/mineclonia.mobs.txt` with the model it is drawn
+   on (`grep mesh mods/ENTITIES/mobs_mc/<mob>.lua`) and, when the model
+   draws several textures, the brush. Freeze its class in
+   `stems/mineclonia.classes.json`.
+2. Read `atlas.py x <stem> --faces`: the palette and every face's texels.
+   Assign colours to materials face by face, because one colour can be
+   skin on a head and cloth on a sleeve. A grid in the spec settles that.
+
+Overlays drawn with `^` (villager professions, the golem's cracks) are
+their own stems with `"overlay": true`. The client composites their maps
+over the base skin's; how is the client's business, not the spec's.
+
+No GPU for the agents. Judge on the previews and the check, then render
+one client at a time.
+
+## Kythen's per stem scripts
+
 The procedure below is the one Kythen's scripts were made with.
 
 How to give a Luanti game hand authored material maps with a fleet of

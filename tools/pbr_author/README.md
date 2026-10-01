@@ -59,6 +59,68 @@ The 256 pack is the default. The 512 one is an optional texture pack for
 close-ups and screenshots: about 2.5 times the download and four times
 the texture memory.
 
+### Mob skins (model atlases)
+
+A mob skin is not a tile. It is a UV atlas of box faces, top and bottom
+then the four sides of each box, and `atlas.py` builds it instead of
+`extrude.py`, with the same rule and the same spec format. Skins are
+listed in `stems/mineclonia.mobs.txt` as `<stem> <model.b3d> [brush]`,
+never in `stems/mineclonia.txt`, and `build_pack.py` builds both lists.
+Their classes are frozen in `stems/mineclonia.classes.json` like the
+rest.
+
+```sh
+python3 tools/pbr_author/atlas.py x <stem> --faces            # faces and palette
+python3 tools/pbr_author/atlas.py <out dir> <stem>... --preview <dir>
+```
+
+What differs from a tile:
+
+- **Size.** The map is 8 map pixels per art texel at the 256 pack and 16
+  at the 512 one, whatever the art's size, where a tile is always 256
+  wide (16 per texel for 16 px art). A 64 x 32 skin is 512 x 256, a
+  64 x 64 one 512 square, the 128 px iron golem 1024 square. A mob texel
+  is about a sixteenth of a block, like a node texel; half the node
+  density keeps a flat top inside each one pixel chamfer at a quarter of
+  the memory. The albedo is the art upscaled to the same size.
+  `"texel_px"` in a spec overrides it.
+- **Islands.** The faces come from the model's own UVs, read from the
+  `.b3d` the game draws the skin on. The chamfer, the normal and the
+  occlusion never read across a face border or the image edge, so two
+  faces packed side by side do not bevel into each other and nothing
+  wraps. Drawn texels no face uses (a palette swatch, an unused limb
+  layout) are islands of their own.
+- **Face edges.** `"face_edge": "flat"` runs the relief flat to every
+  face border. `"bevel"` slopes every border down (`bevel_depth`, a share
+  of the height range, over `bevel_px` pixels at 256), which rounds the
+  box's edges; every box edge is convex, so it is right without knowing
+  which faces meet. The bevel goes to the normal only, so the stored
+  height stays one value per texel and the occlusion does not darken a
+  convex edge.
+- **Strength** is in node units, so a skin and a block with the same
+  number have the same rise per art texel. The entity shader marches no
+  parallax, so a skin's relief is only its normal and occlusion.
+- **Micro surface** goes on the materials `"micro_materials"` names: the
+  golem's scratches are on its iron, not its vines.
+- **Mirrored limbs** share one UV rectangle. The client builds the
+  tangent frame per fragment from the UVs, so a mirrored limb's normal
+  is mirrored with it. Author nothing that must lean one way in model
+  space.
+- **Overlays** drawn with `^` (the golem's cracks) take `"overlay": true`:
+  their texels sink as joints into a surface at `"surface"` height, and
+  everything they do not draw is the neutral fill, so the client can lay
+  their maps over the skin's.
+- **Metal.** Metal albedo is reflectance, so a near black metal texel is
+  a black mirror (the hopper). Very dark iron is its own dielectric
+  material; `atlas.check` fails a skin whose darkest metal texels are
+  under 0.20 luminance.
+
+`atlas.check` measures one height per texel, several heights, the relief
+in node units, no slope step at a face border (or, with a bevel, every
+border pixel leaning outward), no extra occlusion at a border, the
+smoothness range, transparent texels neutral in both maps, and the
+release gate, whose wrap seam warning does not apply to an atlas.
+
 Everything below describes the per stem scripts Kythen still uses.
 
 ## The per stem scripts (Kythen)

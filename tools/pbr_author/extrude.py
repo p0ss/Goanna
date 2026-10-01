@@ -50,6 +50,9 @@ joint sinks under the material's base, as a share of it), smooth
 f0 (dielectric reflectance, diamond 0.17), metal (true for metal
 texels), emission (0..1 glow), emission_shade (glow follows the
 shade, lighter texels brighter).
+
+Mob skins are model atlases, not tiles, and atlas.py builds them with
+this rule and these specs (stems/<game>.mobs.txt).
 """
 import json
 import sys
@@ -310,6 +313,54 @@ def chamfer(h, px=1):
     return out
 
 
+def surface(spec, cls, mat, pos, joints):
+    """Per texel smoothness, F0, metal flag and glow at the art's size,
+    from each material's keys and the class defaults."""
+    _, _, _, spread = CLASS_STYLE.get(cls, DEFAULT_STYLE)
+    level, _, is_metal = lib.class_spec(cls)
+    mats = spec.get("materials") or {"base": CLASS_MATERIAL.get(cls, {})}
+    sm = np.zeros(mat.shape, np.float32)
+    f0 = np.full(mat.shape, lib.DIELECTRIC_F0 / 255.0, np.float32)
+    metal = np.full(mat.shape, bool(is_metal))
+    glow = np.zeros(mat.shape, np.float32)
+    for name, m in mats.items():
+        sel = mat == name
+        s0 = float(m.get("smooth", CLASS_SMOOTH.get(cls, level)))
+        sp = float(m.get("smooth_spread", spread))
+        # Raised faces a touch smoother (worn), no noise.
+        sm[sel] = s0 + sp * (pos[sel] - 0.5)
+        if "f0" in m:
+            f0[sel] = float(m["f0"])
+        if "metal" in m:
+            metal[sel] = bool(m["metal"])
+        g = float(m.get("emission", 0.0))
+        # emission_shade: the lighter texels glow and the darker ones less,
+        # so a glowing block keeps its pattern instead of washing to flat.
+        glow[sel] = g * pos[sel] ** 2 if m.get("emission_shade") else g
+    sm[joints] -= spread
+    return sm, f0, metal, glow
+
+
+def micro_kind(stem, spec, cls):
+    """Which micro surface a stem gets: spec "micro" names the kind
+    ("concrete", "none", ...); otherwise the class decides."""
+    kind = spec.get("micro", CLASS_MICRO.get(cls))
+    if kind is None and "concrete" in stem and "powder" not in stem:
+        kind = "concrete"
+    # Names say more than the class does: a log's side is bark, not planks,
+    # and a tool block or anvil is worn metal, not a brushed plate.
+    if "micro" not in spec:
+        name = stem.lower()
+        if kind == "wood" and not name.endswith("_top") and (
+                name.endswith("tree") or name.endswith("_log") or "log_" in name
+                or "hyphae" in name or "_stem" in name):
+            kind = "bark"
+        if kind == "metal" and any(w in name for w in ("anvil", "hopper", "cauldron", "rail",
+                                                        "chain", "bars", "door", "trapdoor")):
+            kind = "metal_worn"
+    return kind
+
+
 def build(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, preview=True):
     """Write the stem's three maps to out_dir and return lib's metrics."""
     spec = load_spec(stem, game) if spec is None else spec
@@ -334,44 +385,9 @@ def build(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, preview=True):
     # so its edges catch the light; parallax cannot lift a cut-out's edge.
     hi = chamfer(up(hgt), chamfer_px(spec, n))
 
-    level, _, is_metal = lib.class_spec(cls)
-    mats = spec.get("materials") or {"base": CLASS_MATERIAL.get(cls, {})}
-    sm = np.zeros(hgt.shape, np.float32)
-    f0 = np.full(hgt.shape, lib.DIELECTRIC_F0 / 255.0, np.float32)
-    metal = np.full(hgt.shape, bool(is_metal))
-    glow = np.zeros(hgt.shape, np.float32)
-    for name, m in mats.items():
-        sel = mat == name
-        s0 = float(m.get("smooth", CLASS_SMOOTH.get(cls, level)))
-        sp = float(m.get("smooth_spread", spread))
-        # Raised faces a touch smoother (worn), no noise.
-        sm[sel] = s0 + sp * (pos[sel] - 0.5)
-        if "f0" in m:
-            f0[sel] = float(m["f0"])
-        if "metal" in m:
-            metal[sel] = bool(m["metal"])
-        g = float(m.get("emission", 0.0))
-        # emission_shade: the lighter texels glow and the darker ones less,
-        # so a glowing block keeps its pattern instead of washing to flat.
-        glow[sel] = g * pos[sel] ** 2 if m.get("emission_shade") else g
-    sm[joints] -= spread
+    sm, f0, metal, glow = surface(spec, cls, mat, pos, joints)
     emission = up(glow) if glow.max() > 0 else None
-    # Micro surface: spec "micro" names the kind ("concrete", "none", ...);
-    # otherwise the class decides. A stem's own seed, so blocks differ.
-    kind = spec.get("micro", CLASS_MICRO.get(cls))
-    if kind is None and "concrete" in stem and "powder" not in stem:
-        kind = "concrete"
-    # Names say more than the class does: a log's side is bark, not planks,
-    # and a tool block or anvil is worn metal, not a brushed plate.
-    if "micro" not in spec:
-        name = stem.lower()
-        if kind == "wood" and not name.endswith("_top") and (
-                name.endswith("tree") or name.endswith("_log") or "log_" in name
-                or "hyphae" in name or "_stem" in name):
-            kind = "bark"
-        if kind == "metal" and any(w in name for w in ("anvil", "hopper", "cauldron", "rail",
-                                                        "chain", "bars", "door", "trapdoor")):
-            kind = "metal_worn"
+    kind = micro_kind(stem, spec, cls)
     detail = None
     smooth_hi = np.clip(up(sm), 0.0, lib.SMOOTH_CEILING)
     if kind in MICRO_KINDS:

@@ -350,6 +350,73 @@ def ao_from_height(height, radius_px=6):
     return np.clip(pbr_bake.ao_from_height(img, radius_px=radius_px, wrap=True), 0.0, 1.0).astype(np.float32)
 
 
+# --- atlases ----------------------------------------------------------------
+# A model atlas (a mob skin) does not tile and is cut into UV islands: two
+# faces packed side by side in the image are not neighbours on the model,
+# and the image's left edge is not next to its right. These variants of the
+# two derivations above take an island map (one id per map pixel, -1 for
+# none) and never read a neighbour across an island border or the image
+# edge; a missing neighbour stands in as the pixel's own value, so a face
+# runs flat to its edge.
+
+def _island_same(islands, dy, dx):
+    """Whether the pixel (dy, dx) away is in the same island and inside
+    the image."""
+    h, w = islands.shape
+    pad = np.pad(islands, ((abs(dy), abs(dy)), (abs(dx), abs(dx))), constant_values=-2)
+    ys, xs = abs(dy) + dy, abs(dx) + dx
+    return pad[ys:ys + h, xs:xs + w] == islands
+
+
+def _island_shift(field, islands, dy, dx):
+    """field shifted by (dy, dx) without wrapping, with every sample that
+    would come from another island or from outside the image replaced by
+    the pixel's own value."""
+    h, w = field.shape
+    pad_f = np.pad(field, ((abs(dy), abs(dy)), (abs(dx), abs(dx))), mode="edge")
+    ys, xs = abs(dy) + dy, abs(dx) + dx
+    return np.where(_island_same(islands, dy, dx), pad_f[ys:ys + h, xs:xs + w], field)
+
+
+def island_gradient(field, islands, axis):
+    """Central difference inside an island, one sided at its border (a
+    border pixel's slope is the slope to its one neighbour, not half of
+    it), 0 where the pixel has no neighbour on that axis."""
+    dy, dx = (1, 0) if axis == 0 else (0, 1)
+    fwd = _island_same(islands, dy, dx)
+    back = _island_same(islands, -dy, -dx)
+    n = fwd.astype(np.float32) + back
+    diff = _island_shift(field, islands, dy, dx) - _island_shift(field, islands, -dy, -dx)
+    return np.where(n > 0, diff / np.maximum(n, 1.0), 0.0).astype(np.float32)
+
+
+def normal_from_height_islands(height, strength, islands):
+    """normal_from_height without wrapping or crossing an island border."""
+    h = height.astype(np.float32) * strength
+    dx = island_gradient(h, islands, 1)
+    dy = island_gradient(h, islands, 0)
+    n = np.stack([-dx, dy, np.ones_like(h)], axis=-1)
+    n /= np.linalg.norm(n, axis=-1, keepdims=True)
+    return n[..., :2]
+
+
+def ao_from_height_islands(height, islands, radius_px=6, directions=8):
+    """pbr_bake.ao_from_height's horizon test, the same constants, reading
+    only the pixel's own island."""
+    h = (np.clip(height, 0, 1) * 255.0 + 0.5).astype(np.uint8).astype(np.float32) / 255.0
+    occ = np.zeros_like(h)
+    for d in range(directions):
+        ang = 2.0 * np.pi * d / directions
+        cx, cy = np.cos(ang), np.sin(ang)
+        horizon = np.zeros_like(h)
+        for r in range(1, radius_px + 1):
+            sx, sy = int(round(cx * r)), int(round(cy * r))
+            horizon = np.maximum(horizon, (_island_shift(h, islands, sy, sx) - h) / float(r))
+        occ += np.clip(horizon, 0.0, None)
+    occ = occ / float(directions)
+    return np.clip(1.0 - occ * 4.0, 0.0, 1.0).astype(np.float32)
+
+
 def class_of(stem, game=DEFAULT_GAME):
     """The bake's class for a stem, read back from its packed _s bytes and
     its name, the way tools/pbr_spec_variance.py infers it. The class
@@ -451,7 +518,8 @@ def _clipped_offset(deviation, level):
 
 def pack(stem, out_dir, albedo, height, smoothness, cls, normal_strength,
         metal_mask=None, ao_radius=None, keep_mean=True, emission=None, f0=None,
-        fine_detail=0.35, art_texels=16, alpha=None, normal_detail=None):
+        fine_detail=0.35, art_texels=16, alpha=None, normal_detail=None,
+        islands=None):
     """Write <stem>.png, <stem>_n.png and <stem>_s.png. albedo is RGB or
     RGBA float at SIZE; height and smoothness are SIZE x SIZE floats.
     The smoothness mean, over the ordinary texels the art draws, is moved
@@ -468,7 +536,10 @@ def pack(stem, out_dir, albedo, height, smoothness, cls, normal_strength,
     source's alpha at SIZE for a cut-out whose albedo is RGB; a script
     that upscales the art as RGBA need not pass it. See cutout_mask.
     normal_detail, when given, is a height field added for the normal only
-    (see the note where it is used)."""
+    (see the note where it is used). islands, when given, is a model
+    atlas's island map at the map's size (tools/pbr_author/atlas.py): the
+    normal and the occlusion are then derived without wrapping and without
+    reading across an island border."""
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     # Texels the art does not draw are neutralised in both maps after
@@ -495,9 +566,14 @@ def pack(stem, out_dir, albedo, height, smoothness, cls, normal_strength,
     # grain, scratches), in the same units as height. It reaches the normal
     # only: the stored height, which the shader's parallax marches, and the
     # occlusion stay the macro field, so fine detail never blurs a step.
-    xy = normal_from_height(height if normal_detail is None else height + normal_detail,
-                            normal_strength)
-    ao = ao_from_height(height, round(6 * PX) if ao_radius is None else ao_radius)
+    nh = height if normal_detail is None else height + normal_detail
+    radius = round(6 * PX) if ao_radius is None else ao_radius
+    if islands is None:
+        xy = normal_from_height(nh, normal_strength)
+        ao = ao_from_height(height, radius)
+    else:
+        xy = normal_from_height_islands(nh, normal_strength, islands)
+        ao = ao_from_height_islands(height, islands, radius)
     n = np.zeros(shape + (4,), dtype=np.float32)
     n[..., :2] = xy * 0.5 + 0.5
     n[..., 2] = ao

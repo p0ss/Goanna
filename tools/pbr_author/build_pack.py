@@ -6,7 +6,10 @@
 
 A game with a stem list, tools/pbr_author/stems/<game>.txt, is built by
 extrude.py: every listed stem through the texel extrusion rule and its
-spec, checked by extrude.check. Mineclonia is built this way.
+spec, checked by extrude.check. Mineclonia is built this way. Mob skins
+listed in stems/<game>.mobs.txt are built by atlas.py and checked by
+atlas.check in the same run, and their installed sets get a licence note
+naming their mod.
 
 A game without one runs its per stem scripts, as Kythen still does. A script belongs to the game it declares with GAME = "..." at module level;
 one that declares none is Mineclonia's. Each tools/pbr_author/<stem>.py is
@@ -83,16 +86,24 @@ def main():
     failed = []
     stem_list = HERE / "stems" / (args.game + ".txt")
     if stem_list.exists():
+        import atlas
         import extrude
-        for stem in stems or stem_list.read_text().split():
+        # Mob skins are model atlases, listed apart in stems/<game>.mobs.txt
+        # and built by atlas.py: extrude.py would tile them, wrap them and
+        # bevel across their UV islands.
+        mobs = {s for s, _, _ in atlas.mobs_list(args.game)}
+        listed = stem_list.read_text().split() + sorted(mobs)
+        for stem in stems or listed:
+            tool = atlas if stem in mobs else extrude
             try:
-                extrude.build(stem, args.stage, args.game)
-                bad = [l[5:] for l in extrude.check(stem, args.stage, args.game)
+                tool.build(stem, args.stage, args.game)
+                bad = [l[5:] for l in tool.check(stem, args.stage, args.game)
                        if l.startswith("FAIL")]
             except Exception as e:  # noqa: BLE001 - reported per stem
                 bad = ["error: %s" % e]
             print("%-44s %s" % (stem, "ok" if not bad else "FAIL " + "; ".join(bad)))
             (failed if bad and (args.strict or bad[0].startswith("error")) else done).append(stem)
+        args.atlases = sorted(mobs & set(done))
         return install(args, done, failed)
     for script in scripts(stems, args.game):
         stem = script.stem
@@ -146,7 +157,32 @@ def install(args, done, failed):
                     "height and smoothness fields authored on it. Same licence, same\n"
                     "attribution as the bake above.\n\n")
             f.write("- textures: " + ", ".join(sorted(installed)) + "\n")
+            atlases = [s for s in getattr(args, "atlases", []) if s in installed]
+            if atlases:
+                f.write(atlas_attribution(args.game, atlases))
     print("installed %d sets into %s" % (len(installed), args.install))
+
+
+def atlas_attribution(game, stems):
+    """The licence note for mob skins. The bake never read them, so the
+    per mod list above does not name their mod; this does, with the mod's
+    own licence files, which can differ per file."""
+    root = lib.GAMES[game]["art"]
+    by_mod = {}
+    for stem in stems:
+        mod = lib.source_path(stem, game).parent.parent
+        by_mod.setdefault(mod, []).append(stem)
+    out = ["\nThe sets below are mob skins (model atlases, tools/pbr_author/atlas.py).\n"
+           "They are derived from the skin art of the mod named, under that mod's\n"
+           "media licence; read its licence files for the terms that apply to each\n"
+           "file. The models are only read for their UV layout and are not copied.\n"]
+    for mod, names in sorted(by_mod.items()):
+        out.append("\n### `%s`\n\n" % mod.relative_to(root))
+        for p in sorted(mod.iterdir()):
+            if p.is_file() and p.name.upper().startswith(("LICENSE", "CREDITS", "COPYING")):
+                out.append("- licence file: `%s`\n" % p.relative_to(root))
+        out.append("- textures: " + ", ".join(sorted(names)) + "\n")
+    return "".join(out)
 
 
 if __name__ == "__main__":
