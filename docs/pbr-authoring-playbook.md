@@ -38,6 +38,17 @@ Overlays drawn with `^` (villager professions, the golem's cracks) are
 their own stems with `"overlay": true`. The client composites their maps
 over the base skin's; how is the client's business, not the spec's.
 
+A face reads by its albedo, not its relief. The renderer's probe of
+2026-10-01 put a bevel on every texel and polished metal on a villager's
+skin, and the owner read the result as "a checkerboard with different
+coloured squares", not a face with a nose and eyes. So on a face: the skin
+is one `flat` material, never `shade` (a height per texel is the same
+checkerboard, softer); only the features (brow, eyes, mouth, a nose box)
+take their own heights; nothing on a face is metal or highly polished
+except the eyes; and the face's bevel is the box edge only. A metal face
+(the iron golem's) is the open case: judge it on the GPU before a fleet
+copies it.
+
 No GPU for the agents. Judge on the previews and the check, then render
 one client at a time.
 

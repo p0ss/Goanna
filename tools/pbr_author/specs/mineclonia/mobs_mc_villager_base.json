@@ -5,8 +5,8 @@
  "micro_materials": ["robe", "legs"],
  "face_edge": "bevel",
  "materials": {
-  "skin": {"mode": "shade", "base": 0.35, "span": 0.3, "levels": 2, "detail": 0.4,
-           "joints": false, "smooth": 0.3, "smooth_spread": 0.06},
+  "skin": {"mode": "flat", "base": 0.4, "span": 0.0, "joints": false,
+           "smooth": 0.3, "smooth_spread": 0.0},
   "nose": {"mode": "flat", "base": 0.45, "span": 0.1, "smooth": 0.3},
   "brow": {"mode": "flat", "base": 0.68, "span": 0.1, "smooth": 0.1},
   "eye": {"mode": "flat", "base": 0.28, "span": 0.0, "micro": 0, "smooth": 0.8},

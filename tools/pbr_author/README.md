@@ -114,6 +114,11 @@ What differs from a tile:
   a black mirror (the hopper). Very dark iron is its own dielectric
   material; `atlas.check` fails a skin whose darkest metal texels are
   under 0.20 luminance.
+- **Faces.** A face reads by its albedo. Skin is one `flat` material,
+  never `shade`: a height per texel turns a face into a checkerboard of
+  coloured squares. Only the features (brow, eyes, mouth, nose) take
+  their own heights, and nothing on a face is metal or polished except
+  the eyes. See the playbook, "Mob skins".
 
 `atlas.check` measures one height per texel, several heights, the relief
 in node units, no slope step at a face border (or, with a bevel, every
