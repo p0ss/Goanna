@@ -248,8 +248,8 @@ return function(D)
 
 	-- Chat. builtin's handler returns true for every "/" command before any
 	-- mod's callback runs, so /msg never arrives here (docs/director.md,
-	-- "Public chat only"). By default only lines addressed to a cast
-	-- character within earshot are read at all.
+	-- "Public chat only"). By default every public line is read, as the
+	-- operator can read it; goanna_director_chat narrows that.
 	core.register_on_chat_message(function(name, message)
 		if D.cfg.chat == "none" or D.opted_out(name) or not D.players[name] then
 			return false

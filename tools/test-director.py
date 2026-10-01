@@ -536,8 +536,16 @@ def main(argv):
             check(sum((region.get("kills") or {}).values()) >= 1, "the region counts the kill",
                   region)
 
-        chatter, _ = events_of(mcp, "player_chat", 3)
-        check(chatter is None, "ordinary chat is not read (chat mode addressed)")
+        # Chat mode all, the default since 2026-10-01: every public line
+        # reaches the model, and a direct message never does.
+        say(CONTROL["alice"], "anyone seen the swamp witch lately")
+        chatter, _ = events_of(mcp, "player_chat", 10,
+                               lambda e: "swamp witch" in json.dumps(e))
+        check(chatter is not None, "an ordinary public line reaches the model", chatter)
+        say(CONTROL["alice"], "/msg alice secret plans for the tower")
+        private, _ = events_of(mcp, "player_chat", 4,
+                               lambda e: "secret plans" in json.dumps(e))
+        check(private is None, "a direct message never reaches the model", private)
 
         # A second player, who opts out.
         bob = gh.start_goanna(REPO, control_port=CONTROL["bob"], host="127.0.0.1",

@@ -74,7 +74,7 @@ return function(http)
 			"mobs_mc:creeper,mobs_mc:enderman,mobs_mc:wither,mobs_mc:enderdragon," ..
 			"mobs_mc:ghast,mobs_mc:ravager,mobs_mc:evoker")),
 		sees = setting("goanna_director_sees", "exact"),
-		chat = setting("goanna_director_chat", "addressed"),
+		chat = setting("goanna_director_chat", "all"),
 		memory_text = setting("goanna_director_memory_text", true),
 		memory_lines = setting("goanna_director_memory_lines", 8),
 		memory_chars = setting("goanna_director_memory_chars", 120),

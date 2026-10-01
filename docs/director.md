@@ -1255,10 +1255,16 @@ answers:
 - **What it sees (4):** exact positions, health and gear, which the operator
   sees anyway (`goanna_director_sees = exact`; `coarse` gives the region and
   a gear score). The notice every joiner gets says which.
-- **Public chat (5):** only lines addressed to a character, meaning lines
-  that start with its name, from a player within its earshot
-  (`goanna_director_chat = addressed`; `all` and `none` exist). Private
-  messages never reach a mod either way.
+- **Public chat (5), decided 2026-10-01:** the director reads all public
+  chat, as the operator can, and never direct messages or group chats
+  (`goanna_director_chat = all`; `addressed`, only lines that start with a
+  character's name from a player within its earshot, and `none` remain).
+  Direct messages (`/msg`) and every other chat command never reach a mod,
+  because builtin's command handler runs first and stops them. A game or
+  mod that runs its own team or group chat without a chat command, by
+  intercepting ordinary lines in its own `register_on_chat_message`, is
+  only kept private if that mod registers before this one and returns
+  true; none of the games tried here does that.
 - **Memory text (9):** structured facts from events plus short model written
   lines, at most 8 per character and player and 120 characters each, every
   one in the audit log (`goanna_director_memory_text`,
@@ -1472,8 +1478,8 @@ death.
    host first?
 4. **What the game master sees.** Exact positions and full inventories of every
    player (the operator can see them anyway), or coarser views by default?
-5. **Public chat.** Should the director read it by default, or only lines
-   addressed to an NPC?
+5. **Public chat.** Decided 2026-10-01: all public chat, never direct
+   messages or group chats.
 6. **Rewards.** An allow list per game, a value heuristic, or the game's own
    numbers where they exist?
 7. **Model cadence and cost.** How often a model is called, which model for a

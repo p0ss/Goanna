@@ -169,10 +169,11 @@ goanna_director_deny (Director deny list) string mobs_mc:creeper,mobs_mc:enderma
 #    Players are told which in the notice on joining.
 goanna_director_sees (Director sees) enum exact exact,coarse
 
-#    Which public chat the director reads. addressed: only lines that start
-#    with a character's name, from players within earshot of it. all: every
-#    public line. none: nothing. Private messages never reach any mod.
-goanna_director_chat (Director reads chat) enum addressed addressed,all,none
+#    Which public chat the director reads. all: every public line, as the
+#    operator can. addressed: only lines that start with a character's name,
+#    from players within earshot of it. none: nothing. Private messages and
+#    chat commands never reach any mod.
+goanna_director_chat (Director reads chat) enum all addressed,all,none
 
 #    Whether characters may remember short lines the model writes, as well as
 #    facts recorded from events, and how many and how long. Every one is in
