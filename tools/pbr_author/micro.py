@@ -56,7 +56,7 @@ before the material's strength:
            normal tilts across it, flat along it) with its own width,
            place, tilt and smoothness, a few lying over the others; the
            strands end raggedly short of a tip that stands proud, thinning
-           and rolling over, with the gaps between their ends occluded.
+           and rolling over, the tips keeping the art's colour.
            Too fine to differentiate, so it gives its normal as slopes,
            box filtered per pixel, and an occlusion (SLOPE_KINDS).
   straw   stiff fibres along the direction with the odd node across;
@@ -365,7 +365,7 @@ def _bristle_at(a, e, lt, lid, proud, sd, p):
     top_share = p.get("top", 0.35)
     jitter = p.get("jitter", 0.35)
     w0, w1 = p.get("width", (0.9, 1.4))
-    rag, taper = p.get("rag", 0.4), p.get("taper", 0.35)
+    rag, taper = p.get("rag", 0.2), p.get("taper", 0.25)
     rnd = p.get("round", 0.55)
     roll = p.get("roll", 2.0)
     tilt = p.get("tilt", 0.12)
@@ -375,6 +375,7 @@ def _bristle_at(a, e, lt, lid, proud, sd, p):
     sv = np.zeros(shape)
     sm = np.zeros(shape)
     cyl_top = np.zeros(shape)
+    t_top = np.ones(shape)
     for L in range(layers):
         # Upper layers a little sparser, finer and each at its own offset,
         # so a strand of one lies across the meeting of two below it.
@@ -398,7 +399,7 @@ def _bristle_at(a, e, lt, lid, proud, sd, p):
             if L == 0:
                 end = 0.7 * end
             end = end * proud
-            t =np.clip((e - end) / taper, 0.0, 1.0)
+            t = np.clip((e - end) / taper, 0.0, 1.0)
             wt = w * (0.35 + 0.65 * np.sqrt(t))
             r = (q - cen) / wt
             inside = keep & (e > end) & (np.abs(r) < 1.0)
@@ -414,19 +415,25 @@ def _bristle_at(a, e, lt, lid, proud, sd, p):
             g_v = -rnd * rc / cyl + tilt * (2.0 * h(27) - 1.0)
             dfall = np.where((t > 0.0) & (t < 1.0), 2.0 * (1.0 - t) / taper, 0.0)
             g_u = -roll * rnd * wt * per * cyl * dfall + 0.5 * tilt * (2.0 * h(28) - 1.0)
-            s_ = 0.6 * (h(29) - 0.5) + 0.5 * (cyl - 0.7) - 0.4 * (1.0 - t)
+            # A strand's end keeps the strand's own smoothness, nearly: a
+            # rough tip read grey (GPU review, 2026-10-02).
+            s_ = 0.6 * (h(29) - 0.5) + 0.5 * (cyl - 0.7) - 0.1 * (1.0 - t)
             best = np.where(hit, z, best)
             su = np.where(hit, g_u, su)
             sv = np.where(hit, g_v, sv)
             sm = np.where(hit, s_, sm)
             cyl_top = np.where(hit, cyl, cyl_top)
+            t_top = np.where(hit, t, t_top)
     covered = np.isfinite(best)
     crease = p.get("crease", 0.3)
     # Nothing on top: deeper hair inside the lock, a gap at its ragged tip.
+    # The tip keeps the art's colour: the crease fades out along a strand's
+    # taper and the gap between ends is barely occluded, since a dark or
+    # rough tip read as grubby grey on the GPU.
     tip = (e < rag + taper) & (proud > 0.5)
-    occ = np.where(covered, 1.0 - crease * (1.0 - cyl_top) ** 2,
-                   np.where(tip, 1.0 - p.get("gap", 0.35), 1.0 - crease))
-    sm = np.where(covered, sm, np.where(tip, -0.6, -0.3))
+    occ = np.where(covered, 1.0 - crease * t_top * (1.0 - cyl_top) ** 2,
+                   np.where(tip, 1.0 - p.get("gap", 0.08), 1.0 - crease))
+    sm = np.where(covered, sm, np.where(tip, -0.1, -0.3))
     sm = sm + p.get("crown", 0.25) * (0.5 - lt)
     return su, sv, sm, occ
 
@@ -447,8 +454,9 @@ def _bristle(c, p):
     into streaks along the hair. Strands end short of the lock's tip by up
     to "rag" texels, a few reaching it, thinning over the last "taper"
     texels and rolling over the end ("roll"); where every layer has ended
-    the tip is ragged and the gap between ends is occluded ("gap"), as is
-    the crease where two strands meet ("crease"). The lock is a touch
+    the tip is ragged and the gap between ends faintly occluded ("gap"),
+    as is the crease where two strands meet ("crease"), fading out along
+    a strand's taper so its end keeps the art's colour. The lock is a touch
     smoother at its root than at its tip ("crown"). There is no sheen band
     and no round across the lock.
 
