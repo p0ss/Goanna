@@ -81,6 +81,21 @@ tile at a slightly different height; the cloth is linen, wool, coarse
 weave and canvas with a very shallow outline per texel; belt and shoes
 are stitched. Judged only on the offline figure, not in game.
 
+The iron golem was re-authored on 2026-10-02 against the owner's riveted
+plate mockups, at 16 map pixels per art texel. It is armour, so unlike a
+face every iron texel is its own plate: a crisp shallow bevel, a small
+tilt and step per plate, scratches, hammer dents and its shine varying a
+little (micro kinds `plate`, `scratches`, `dents`, summed with `mix`),
+and rivet heads in the outer corners of plates along each piece's border
+rows and columns (`rivets`). Its face is distinct pieces: the brow band
+one flat dark dielectric piece standing proud, the nose box one smooth
+metal plate, the eyes deep sockets with the red flat and glossy near
+their floor. The art's dark iron and grime texels are rust (`rust`:
+flaky, pitted, very rough, non metallic); the albedo is not repainted.
+Vines stand proud with small overlapping leaves in the normal (`leaf`),
+since they cannot change the silhouette. The crack overlays sink as
+rough rust grooves. Judged only on `preview_mob.py`, not in game.
+
 No GPU for the agents. Judge on the previews and the check, then render
 one client at a time.
 

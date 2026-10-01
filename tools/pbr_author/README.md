@@ -83,7 +83,10 @@ What differs from a tile:
   is about a sixteenth of a block, like a node texel; half the node
   density keeps a flat top inside each one pixel chamfer at a quarter of
   the memory. The albedo is the art upscaled to the same size.
-  `"texel_px"` in a spec overrides it.
+  `"texel_px"` in a spec overrides it. The iron golem and its crack
+  overlays take 16, so 2048 square, about 16 MiB per map uncompressed
+  before mipmaps against 4 MiB at 8, because its plates carry bevels,
+  scratches and rivets a few map pixels across.
 - **Islands.** The faces come from the model's own UVs, read from the
   `.b3d` the game draws the skin on. The chamfer, the normal and the
   occlusion never read across a face border or the image edge, so two
@@ -108,7 +111,9 @@ What differs from a tile:
   takes nothing from the stem's `"micro"`. The kinds (knit, wool, weave,
   linen, canvas, coarse, twill, hair, straw, leather, rope, skin, eye; for
   animals and monsters fur, hide, feather, scale, bone, rotten, mottle,
-  chitin) and the edge features are described in `micro.py`, and
+  chitin; for riveted iron, a plate per texel, plate, scratches, dents,
+  rivets, rust and leaf, with mix to sum several on one material) and the
+  edge features are described in `micro.py`, and
   `python3 micro.py <sheet.png> [16|8]` draws a labelled swatch of each
   at 16 map pixels per texel (the player's parts) or 8 (a mob's). The
   animal kinds are sized for 8. They are
