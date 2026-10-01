@@ -448,6 +448,7 @@ def build(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, model=None, brush=Non
     hi = chamfer_islands(up(hgt), isl_hi, extrude.chamfer_px(spec, cell))
 
     sm, f0, metal, glow = extrude.surface(spec, cls, mat, pos, joints)
+    f0 = hair_mark(spec, mat, f0)
     emission = up(glow) if glow.max() > 0 else None
     smooth_hi = np.clip(up(sm), 0.0, lib.SMOOTH_CEILING)
     detail = np.zeros(hi.shape, np.float32)
@@ -482,7 +483,7 @@ def build(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, model=None, brush=Non
         detail += d2
         smooth_hi = np.clip(smooth_hi + s2, 0.0, lib.SMOOTH_CEILING)
     roll_w = None
-    if any(m.get("mode") == "soft" or m.get("ride") for m in mats.values()):
+    if any(m.get("mode") == "soft" or m.get("ride") or _rounds(m) for m in mats.values()):
         dh, d3 = soft_surface(spec, mat, drawn, isl, cell, up(hgt),
                               extrude.chamfer_px(spec, cell), strength)
         roll, roll_w, roll_sm = edge_roll(spec, mat, drawn, isl, cell, strength)
@@ -513,6 +514,36 @@ def build(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, model=None, brush=Non
                     islands=isl_hi, alpha=alpha, ao_height=ao_hi,
                     sss=None if sss is None else up(sss),
                     normal_slope=extra.get("slope"), occlusion=extra.get("occlusion"))
+
+
+# The _s green byte (dielectric F0, linear, byte / 255) that marks hair for
+# a renderer's along the strand highlight. No other map in the pack writes
+# 12 (2026-10-02: the installed pack and every authored stem use 6, 8, 10,
+# 20, 26 and the gems' and glasses' higher values), and 12 / 255 = 0.047 is
+# hair's own reflectance (keratin, n about 1.55), so a renderer that does
+# not know the mark draws the hair correctly. F0 is categorical in the
+# client's overlay composite and _s is sampled nearest, so the byte
+# reaches the shader whole.
+HAIR_F0_BYTE = 12
+
+
+def hair_mark(spec, mat, f0):
+    """f0 with every material that has "hair_mark": true at HAIR_F0_BYTE.
+    The key is off by default; GOANNA_PBR_HAIR_MARK=1 in the environment
+    turns it on for every material that names it at all (the hair's spec
+    carries "hair_mark": false), for a renderer to test with."""
+    import os
+    force = os.environ.get("GOANNA_PBR_HAIR_MARK") == "1"
+    for name, m in (spec.get("materials") or {}).items():
+        if "hair_mark" in m and (m["hair_mark"] or force):
+            f0 = np.where(mat == name, HAIR_F0_BYTE / 255.0, f0).astype(f0.dtype)
+    return f0
+
+
+def _rounds(m):
+    """Whether a material rounds every step it stands over (hair's locks,
+    "lock_round", see soft_surface)."""
+    return float(m.get("lock_round", 0) or 0) > 0
 
 
 # Skin's treatment (mode "soft", see soft_surface): its own steps rounded
@@ -584,12 +615,26 @@ def soft_surface(spec, mat, drawn, isl, cell, h_up, chamfer, strength):
     up = lambda a: np.kron(a, np.ones((cell, cell), dtype=a.dtype))  # noqa: E731
     for name, m in (spec.get("materials") or {}).items():
         ride = bool(m.get("ride"))
-        if m.get("mode") != "soft" and not ride:
+        if m.get("mode") != "soft" and not ride and not _rounds(m):
             continue
         sel = (mat == name) & drawn
         if not sel.any():
             continue
         mine = up(sel)
+        if _rounds(m):
+            # Every step the material stands over, to its own other levels
+            # and to whatever is beside it, rolls off over about
+            # "lock_round" texels (a gaussian's sigma) in place of the
+            # crisp chamfer: the whole face is read, the material's own
+            # pixels changed. Stored height and normal alike, so parallax
+            # marches the rounded lock; a one texel gap keeps most of its
+            # depth at its middle (about 90% at a sigma of 0.3).
+            sig = float(m["lock_round"]) * cell
+            passes = max(chamfer + 1, int(round(1.5 * sig * sig)))
+            crisp = chamfer_islands(h_up, isl_hi, chamfer)
+            soft = chamfer_islands(h_up, isl_hi, passes)
+            dh += np.where(mine, soft - crisp, 0.0).astype(np.float32)
+            continue
         edge = float(m.get("soft_edge", SOFT_EDGE)) * cell if not ride else 0.0
         if edge > 0:
             # Each box blur pass adds a variance of 2/3 of a pixel squared.
@@ -665,7 +710,8 @@ def edge_roll(spec, mat, drawn, isl, cell, strength):
     smoothness its Fresnel reflection washed a pale band along every box
     edge."""
     rolls = {k: m for k, m in (spec.get("materials") or {}).items()
-             if (m.get("mode") == "soft" or m.get("ride")) and float(m.get("edge_roll", 0)) > 0}
+             if (m.get("mode") == "soft" or m.get("ride") or _rounds(m))
+             and float(m.get("edge_roll", 0)) > 0}
     if not rolls:
         return None, None, None
     up = lambda a: np.kron(a, np.ones((cell, cell), dtype=a.dtype))  # noqa: E731
@@ -970,7 +1016,21 @@ def check(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, model=None, brush=Non
     soft_names = [k for k, m in (spec.get("materials") or {}).items() if m.get("mode") == "soft"]
     soft = np.isin(extrude.assign(src, spec)[0], soft_names) & drawn if soft_names else \
         np.zeros(drawn.shape, bool)
-    grid = drawn & ~soft
+    # A material that rounds its locks (lock_round) is held instead to
+    # keeping each texel's level at its middle, so parallax keeps the
+    # locks and the gaps between them.
+    round_names = [k for k, m in (spec.get("materials") or {}).items() if _rounds(m)]
+    rounded = np.isin(extrude.assign(src, spec)[0], round_names) & drawn if round_names else \
+        np.zeros(drawn.shape, bool)
+    if rounded.any():
+        crisp = extrude.heights(src, spec, cls)[0]
+        mid_h = n[cell // 2::cell, cell // 2::cell, 3]
+        off = np.abs(mid_h - crisp)[rounded]
+        line(float(np.median(off)) <= 0.02 and float(np.percentile(off, 90)) <= 0.08,
+             "rounded locks keep their level at the texel middle: off by %.3f median, %.3f at"
+             " the 90th percentile (want <= 0.02 and <= 0.08)"
+             % (float(np.median(off)), float(np.percentile(off, 90))))
+    grid = drawn & ~soft & ~rounded
     share = float((spread[grid] <= 2.5 / 255).mean()) if grid.any() else 1.0
     line(share >= 0.98, "on the texel grid %.0f%% of drawn texels%s (want >= 98)"
          % (100 * share, ", soft skin aside" if soft.any() else ""))
@@ -1026,7 +1086,8 @@ def check(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, model=None, brush=Non
     # but over texels, so it is not steeper at the ring than a few pixels
     # in; it is held to leaning outward alone.
     rolled_names = [k for k, m in (spec.get("materials") or {}).items()
-                    if (m.get("mode") == "soft" or m.get("ride")) and float(m.get("edge_roll", 0)) > 0]
+                    if (m.get("mode") == "soft" or m.get("ride") or _rounds(m))
+                    and float(m.get("edge_roll", 0)) > 0]
     rolled = np.kron(np.isin(extrude.assign(src, spec)[0], rolled_names) & drawn,
                      np.ones((cell, cell), bool)) if rolled_names else np.zeros(ring.shape, bool)
     if bevel and ring.any():

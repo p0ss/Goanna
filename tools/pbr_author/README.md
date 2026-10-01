@@ -117,9 +117,8 @@ What differs from a tile:
   `"micro_swing"`, `"micro_dir"` and `"micro_params"`, and carry
   `"stitch"`, `"seam"`, `"wear"`, `"texel_edge"` and `"scatter"`; then it
   takes nothing from the stem's `"micro"`. The kinds (knit, wool, weave,
-  linen, canvas, coarse, twill, hair, bristle, straw, leather, rope, skin,
-  eye; for
-  animals and monsters fur, hide, feather, scale, bone, rotten, mottle,
+  linen, canvas, coarse, twill, hair, bristle, tress, straw, leather,
+  rope, skin, eye; for animals and monsters fur, hide, feather, scale, bone, rotten, mottle,
   chitin; for riveted iron, a plate per texel, plate, scratches, dents,
   rivets, rust and leaf, with mix to sum several on one material; paper;
   and wood, bark, glass, metal and metal_worn, which read the block
@@ -205,6 +204,18 @@ What differs from a tile:
   `preview_figure.py <maps> <out>` composites the six parts the way
   Luanti and the client do and lights the model's front faces offline;
   its docstring says what it leaves out.
+- **Hair.** The player's hair takes `"lock_round"` (a gaussian's sigma in
+  texels): every step the hair stands over, to its own other levels and
+  to whatever is beside it, rolls off over about that width in place of
+  the crisp chamfer, in the stored height and the normal alike, and
+  `"edge_roll"` rolls its box edges instead of the bevel, as skin's do.
+  `atlas.check` holds a rounded material to keeping each texel's level at
+  its middle rather than to the flat texel grid. `"hair_mark"` (off by
+  default; `GOANNA_PBR_HAIR_MARK=1` turns it on for any material that
+  names it) writes the `_s` green byte as 12, an F0 of 0.047 that no
+  other map in the pack uses and that is hair's own reflectance, so a
+  renderer can tell hair texels apart for an along the strand highlight
+  (`atlas.HAIR_F0_BYTE`).
 - **The plains farmer villager** is four layers,
   `mobs_mc_villager_base^mobs_mc_villager_plains^mobs_mc_villager_profession_farmer^mobs_mc_stone`,
   each its own stem at `"texel_px": 16` with the same `"stack"`, so it

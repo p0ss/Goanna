@@ -11,7 +11,7 @@
  "stack": ["mcl_skins_base_1", "mcl_skins_eye_1", "mcl_skins_bottom_1", "mcl_skins_footwear_1", "mcl_skins_top_1", "mcl_skins_hair_1"],
  "bevel_depth": 0.16,
  "materials": {
-  "hair": {"mode": "shade", "base": 0.6, "span": 0.3, "levels": 3, "detail": 0.3, "joint": 0.38, "micro": "bristle", "micro_dir": "down", "micro_strength": 1.0, "smooth": 0.42, "smooth_spread": 0.08},
+  "hair": {"mode": "shade", "base": 0.6, "span": 0.3, "levels": 3, "detail": 0.3, "joint": 0.38, "micro": "tress", "micro_dir": "down", "micro_strength": 1.0, "smooth": 0.42, "smooth_spread": 0.08, "lock_round": 0.3, "edge_roll": 0.6, "edge_lean": 25, "roll_rough": 0.03, "hair_mark": false},
   "clasp": {"mode": "flat", "base": 0.95, "span": 0.0, "micro": "none", "smooth": 0.62, "smooth_spread": 0.0}
  },
  "grid": [

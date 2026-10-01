@@ -59,7 +59,16 @@ before the material's strength:
            and rolling over, the tips keeping the art's colour.
            Too fine to differentiate, so it gives its normal as slopes,
            box filtered per pixel, and an occlusion (SLOPE_KINDS).
-  straw   stiff fibres along the direction with the odd node across;
+           Rounds 3 and 4 of the player's hair; the owner found it grooved
+           decking on the GPU (2026-10-02), so the player now takes tress.
+  tress    hair as clumped tresses: each lock split across into bundles of
+           irregular width, each with its own strand count, a few degrees
+           of its own direction, its own shine and a faint round; strands
+           drawing together toward a proud tip, so bundles part there; an
+           upper layer of strands starting part way down the lock; loose
+           slanted fibres over the seams; per strand shine far larger than
+           per strand tilt. A slope kind like bristle.
+  straw    stiff fibres along the direction with the odd node across;
            "plait": true turns the direction a quarter per texel, like a
            plaited hat.
   leather  pebble grain (cells with creases between) and fine pores; the
@@ -494,6 +503,182 @@ def _bristle(c, p):
             du = ox * ux + oy * uy
             dv = -ox * uy + oy * ux
             for acc, val in zip(out, _bristle_at(a0 + dv, e0 - du, lt, lid, proud, sd, p)):
+                acc += val
+    su, sv, sm, occ = (o / (k * k) for o in out)
+    return np.zeros(n_px), sm, su, sv, occ
+
+
+def _tress_at(a, e, ll, lt, lid, proud, sd, p):
+    """One sample of tress at a (across the lock from its middle) and e
+    (along it, to its tip), texels: (slope along, slope across,
+    smoothness, occlusion)."""
+    shape = np.shape(a)
+    bw = p.get("bundle", 0.34)
+    clump = p.get("clump", 0.35)
+    veer = p.get("veer", 0.05)
+    n0 = p.get("strands", 11.0)
+    rnd = p.get("round", 0.35)
+    tilt = p.get("tilt", 0.04)
+    shine = p.get("shine", 0.8)
+    bshine = p.get("bundle_shine", 0.6)
+    bround = p.get("bundle_round", 0.12)
+    rag, taper = p.get("rag", 0.2), p.get("taper", 0.25)
+    roll = p.get("roll", 2.0)
+    s0 = ll - e  # along the lock from its root
+    # Bundles: a one dimensional Voronoi across the lock, centres jittered
+    # by most of a bundle so widths range about threefold.
+    off = 5.0 * _hash(lid, 40, sd)
+    kb = np.floor((a + off) / bw).astype(np.int64)
+    ks = [kb + j for j in range(-3, 4)]
+    cs = [(k + 0.5 + 0.9 * (_hash(k, lid, sd + 41) - 0.5)) * bw - off for k in ks]
+    dist = np.stack([np.abs(a - cc) for cc in cs[1:6]])
+    pick = np.argmin(dist, 0) + 1
+    cstack = np.stack(cs)
+    kstack = np.stack(ks)
+    sel = lambda arr, d: np.take_along_axis(arr, (pick + d)[None], 0)[0]  # noqa: E731
+    ck, kk = sel(cstack, 0), sel(kstack, 0)
+    left = 0.5 * (ck - sel(cstack, -1))
+    right = 0.5 * (sel(cstack, 1) - ck)
+    hb = lambda k: _hash(kk, lid * 13 + 1, sd + k)  # noqa: E731
+    # Toward the tip the strands of a bundle draw together, so bundles
+    # part with a narrow gap between them where the tips stand proud;
+    # each bundle runs a few degrees off the lock's direction.
+    tipness = np.clip(1.0 - e / 0.6, 0.0, 1.0) * proud
+    squeeze = 1.0 - clump * tipness * (0.5 + 0.5 * hb(2))
+    b = (a - ck - veer * (2.0 * hb(3) - 1.0) * e) / squeeze
+    half = np.where(b < 0, left, right)
+    in_bundle = np.abs(b) < half
+    nb = n0 * (0.75 + 0.55 * hb(4))
+    best = np.full(shape, -np.inf)
+    su = np.zeros(shape)
+    sv = np.zeros(shape)
+    sm = np.zeros(shape)
+    cyl_top = np.zeros(shape)
+    t_top = np.ones(shape)
+
+    def lay(q, key, keep, w, end, start, z0, extra_v, s_off):
+        nonlocal best, su, sv, sm, cyl_top, t_top
+        i0 = np.floor(q).astype(np.int64)
+        for di in (-1, 0, 1):
+            i = i0 + di
+
+            def h(k):
+                return _hash(i, key, sd + k)
+            kp = keep(h)
+            cen = i + 0.5 + 0.35 * (h(22) - 0.5)
+            ww = w(h)
+            en = end(h)
+            st = start(h)
+            t = np.clip((e - en) / taper, 0.0, 1.0)
+            wt = ww * (0.35 + 0.65 * np.sqrt(t))
+            r = (q - cen) / wt
+            inside = kp & (e > en) & (s0 > st) & (np.abs(r) < 1.0)
+            rc = np.clip(r, -0.95, 0.95)
+            cyl = np.sqrt(1.0 - rc * rc)
+            # A strand that starts inside the lock rises out from under
+            # the others over a tenth of a texel.
+            rise = np.clip((s0 - st) / 0.1, 0.0, 1.0)
+            z = z0 + 0.15 * h(26) + 0.1 * cyl * (1.0 - (1.0 - t) ** 2) * rise
+            hit = inside & (z > best)
+            g_v = -rnd * rc / cyl + tilt * (2.0 * h(27) - 1.0) + extra_v(h)
+            dfall = np.where((t > 0.0) & (t < 1.0), 2.0 * (1.0 - t) / taper, 0.0)
+            g_u = (-roll * rnd * 0.05 * cyl * dfall + 0.5 * tilt * (2.0 * h(28) - 1.0)
+                   + np.where((rise > 0) & (rise < 1), 0.3, 0.0))
+            s_ = shine * (h(29) - 0.5) + 0.3 * (cyl - 0.7) - 0.1 * (1.0 - t) + s_off
+            best = np.where(hit, z, best)
+            su = np.where(hit, g_u, su)
+            sv = np.where(hit, g_v, sv)
+            sm = np.where(hit, s_, sm)
+            cyl_top = np.where(hit, cyl, cyl_top)
+            t_top = np.where(hit, t, t_top)
+
+    bkey = kk * 31 + lid * 977
+    bundle_v = bround * np.clip(b / np.maximum(half, 1e-3), -1.0, 1.0)
+    bundle_s = bshine * (hb(5) - 0.5)
+    q_b = (b + 3.0 * hb(6)) * nb
+    for L in range(2):
+        # The bundle's strands: a full bottom layer, and a sparser one over
+        # it whose strands start part way down the lock, so not every
+        # strand runs the lock's full length.
+        top = p.get("top", 0.3)
+        rag_l = rag * (0.7 if L == 0 else 1.0)
+        lay(q_b + 0.37 * L, bkey * 3 + L,
+            (lambda h: np.ones(shape, bool) & in_bundle) if L == 0
+            else (lambda h: (h(21) < top) & in_bundle),
+            lambda h, L=L: 0.5 * (0.9 + 0.5 * h(23)) * (1.0 if L == 0 else 0.8),
+            lambda h, r=rag_l: proud * r * np.where(h(24) < 0.2, 0.05 * h(25), 0.25 + 0.75 * h(25)),
+            (lambda h: np.full(shape, -1.0)) if L == 0 else (lambda h: ll * 0.7 * h(30)),
+            0.3 * L, lambda h: bundle_v, bundle_s)
+    # Loose fibres over everything, across bundles: fine, sparse, short,
+    # each at its own slant of several degrees.
+    nf = p.get("fibres", 16.0)
+    slant = p.get("slant", 0.12)
+    fkey = lid * 7 + 5
+    for F in range(2):
+        sl = slant * (2.0 * _hash(F, lid, sd + 50) - 1.0)
+        qf = (a + sl * e + 2.0 * _hash(lid, 51 + F, sd)) * nf
+        flen = p.get("fibre_len", 0.6)
+        lay(qf, fkey * 2 + F,
+            lambda h: h(21) < p.get("fibre_share", 0.1),
+            lambda h: 0.5 * (0.5 + 0.4 * h(23)),
+            lambda h: ll * h(31) * 0.8,
+            lambda h: np.maximum(ll - ll * h(31) * 0.8 - flen * (0.5 + h(32)), -1.0),
+            0.7, lambda h: np.zeros(shape), 0.0)
+    covered = np.isfinite(best)
+    crease = p.get("crease", 0.2)
+    tip = (e < rag + taper) & (proud > 0.5)
+    seam = ~in_bundle
+    occ = np.where(covered, 1.0 - crease * t_top * (1.0 - cyl_top) ** 2,
+                   np.where(tip, 1.0 - p.get("gap", 0.08),
+                            1.0 - np.where(seam, p.get("seam", 0.15), crease)))
+    sm = np.where(covered, sm, np.where(tip, -0.1, -0.3))
+    sm = sm + p.get("crown", 0.25) * (0.5 - lt)
+    return su, sv, sm, occ
+
+
+def _tress(c, p):
+    """Hair as clumped tresses, the bristles' successor after the owner
+    found them grooved decking (2026-10-02): parallel strands of near equal
+    width and spacing are a repeating ridge. Each lock (atlas.py's frame)
+    is split across into bundles of irregular width ("bundle", the mean
+    in texels; a one dimensional Voronoi, so widths range about threefold),
+    each with its own strand count ("strands" per texel, 0.75 to 1.3 times
+    it), its own few degrees off the lock's direction ("veer", rise over
+    run), its own shine ("bundle_shine") and a faint round across it
+    ("bundle_round"). Toward a proud tip a bundle's strands draw together
+    ("clump"), so bundles part at their ends. Inside a bundle the strands
+    are thin cylinders as in bristle, flatter ("round"), the per strand
+    shine ("shine") far larger than the per strand tilt ("tilt"), and an
+    upper layer of them ("top", the share present) starts part way down
+    the lock, so not every strand runs its full length. Loose fibres
+    ("fibres" per texel, "fibre_share" of them present, "fibre_len",
+    "slant") lie over everything at a slant, crossing the seams between
+    bundles. The tips are bristle's cleaned ones ("rag", "taper", "gap");
+    a seam between bundles is a little occluded ("seam"). Like bristle a
+    slope kind: (detail, smooth, slope u, slope v, occlusion), averaged
+    over "samples" squared points per pixel."""
+    n_px = np.shape(c["x"])
+    la = c.get("la", np.zeros(n_px))
+    lt = c.get("lt", np.full(n_px, 0.5))
+    lw = c.get("lw", np.full(n_px, 0.5))
+    ll = c.get("ll", np.ones(n_px))
+    lid = c.get("lid", np.zeros(n_px, np.int64))
+    ux = c.get("dx", np.zeros(n_px))
+    uy = c.get("dy", np.ones(n_px))
+    cell = float(c.get("cell", 16.0))
+    sd = c["seed"]
+    a0 = la * lw
+    e0 = (1.0 - lt) * ll
+    proud = np.clip(c.get("drop", np.full(n_px, 1.0)) / p.get("proud", 0.08), 0.0, 1.0)
+    k = max(1, int(p.get("samples", 4)))
+    out = [np.zeros(n_px) for _ in range(4)]
+    for i in range(k):
+        for j in range(k):
+            ox = ((i + 0.5) / k - 0.5) / cell
+            oy = ((j + 0.5) / k - 0.5) / cell
+            du = ox * ux + oy * uy
+            dv = -ox * uy + oy * ux
+            for acc, val in zip(out, _tress_at(a0 + dv, e0 - du, ll, lt, lid, proud, sd, p)):
                 acc += val
     su, sv, sm, occ = (o / (k * k) for o in out)
     return np.zeros(n_px), sm, su, sv, occ
@@ -1029,13 +1214,13 @@ def _mix(c, p):
 
 # Kinds that want each lock's frame (atlas.py: la across -1..1, lt along
 # 0..1, lw half width in texels, lid an id).
-LOCK_KINDS = {"hair", "bristle"}
+LOCK_KINDS = {"hair", "bristle", "tress"}
 
 # Kinds that give their normal as slopes and an occlusion factor besides
 # (detail, smooth); see _bristle. atlas.py passes them the direction in the
 # image ("dx", "dy", the way u runs) and each lock's length ("ll", texels),
 # and evaluate_slope returns the extra fields.
-SLOPE_KINDS = {"bristle"}
+SLOPE_KINDS = {"bristle", "tress"}
 
 # (function, default amplitude in height units, default smoothness swing)
 KINDS = {
@@ -1045,6 +1230,7 @@ KINDS = {
     "twill": (_twill, 0.035, 0.06),
     "hair": (_hair, 0.060, 0.22),
     "bristle": (_bristle, 1.0, 0.28),
+    "tress": (_tress, 1.0, 0.30),
     "straw": (_straw, 0.050, 0.15),
     "leather": (_leather, 0.030, 0.14),
     "rope": (_rope, 0.050, 0.08),

@@ -110,6 +110,21 @@ a player a dozen nodes away on a 1080 line screen at a 72 degree field
 of view (estimated, not measured in game), so at a distance the hair is
 its lock steps and its smoothness only.
 
+Fifth round of the hair (2026-10-02), from the owner on GPU frames with
+parallax: still wood, grooved decking with 45 degree bevelled edging.
+Two causes. Every lock edge and box edge had the crisp two pixel chamfer
+and the face bevel, a hard bright or dark line in the light; the hair now
+rounds every step it stands over across about a third of a texel
+(`"lock_round"`, stored height and normal) and rolls its box edges, and
+the lock levels stay at each texel's middle for parallax. And parallel
+cylinders of near equal width and spacing are a repeating ridge: the
+`tress` kind clumps strands into irregular bundles with their own
+density, direction, shine and tip clumping, lets some strands start part
+way down a lock, lays loose slanted fibres across the seams, and puts
+the variation in each strand's shine rather than its tilt. Judged
+offline only (`preview_figure.py`, and `preview_mob.py --parallax` at 0,
+35 and 60 degrees).
+
 The plains farmer villager was authored on 2026-10-02 after the first
 villager pass looked no different in game with maps on: only the base
 had maps, and the plains and farmer overlays, which cover nearly all of
