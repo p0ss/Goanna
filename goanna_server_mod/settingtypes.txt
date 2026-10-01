@@ -108,3 +108,86 @@ goanna_source_movement_max_air_speed (Max air speed) float 3.0 0.1 100.0
 #    Reasonable for a world you host for yourself and people you know; not for
 #    a public server, which is why it is off.
 goanna_shared_dig_damage (Shared dig damage) bool false
+
+[Director]
+
+#    The director: a language model acting as game master, connected by the
+#    operator (docs/director.md in the Goanna repository). Enabling this only
+#    makes it available. Nothing happens until a director process answers at
+#    the url in <world>/goanna_director.conf, which also holds the token; that
+#    file is created on first start and is never broadcast. Needs this mod in
+#    secure.http_mods. Players are told on joining that a director is active
+#    and can opt out with /director optout.
+goanna_director (Director) bool false
+
+#    Encounter points the director may spend per hour, across all players. A
+#    mob costs its maximum health over 10 plus its damage: a Mineclonia
+#    zombie 5, a skeleton 4.
+goanna_director_points_per_hour (Director encounter points per hour) int 40 0 10000
+
+#    Creatures the director may have alive at once, in all and per player.
+goanna_director_max_entities (Director creatures in all) int 24 0 256
+goanna_director_max_entities_per_player (Director creatures per player) int 8 0 64
+
+#    Lines a minute a director character (or the narrator) may say, and lines
+#    a minute any one player may be sent. The longest line, in characters.
+goanna_director_speech_per_minute (Director lines per speaker per minute) int 6 0 120
+goanna_director_listener_per_minute (Director lines per listener per minute) int 12 0 240
+goanna_director_speech_chars (Director line length) int 280 20 1000
+
+#    How far a character's voice carries, in nodes. A character speaks only to
+#    players this close, and hears lines addressed to it only from them.
+goanna_director_earshot (Director earshot) float 24 4 128
+
+#    Encounters are sized to each player's gear: the largest is this base
+#    plus the player's gear score (0 to 1, armour and best hotbar weapon
+#    against the game's best) times the second number.
+goanna_director_encounter_base (Director encounter base) float 4 0 100
+goanna_director_encounter_per_gear (Director encounter per gear) float 16 0 200
+
+#    Seconds before a staged encounter's remaining mobs are removed.
+goanna_director_leash (Director encounter leash) int 180 10 600
+
+#    Seconds an encounter queued for the next build up may wait.
+goanna_director_queue_s (Director queue time) int 300 10 3600
+
+#    Where staged mobs may stand. standable: loaded, clear, on walkable ground,
+#    unprotected. natural: also the mob framework's own spawn rules (light,
+#    for one), which refuse most monsters in daylight.
+goanna_director_spawn_rules (Director spawn rules) enum standable standable,natural
+
+#    No director mob is placed within this many nodes of static spawn, nor
+#    within this (or 32, the larger) of a player who opted out.
+goanna_director_exclusion_radius (Director exclusion radius) int 24 0 256
+
+#    Mobs the director may never create. Creepers and endermen change the
+#    world, which the director may not.
+goanna_director_deny (Director deny list) string mobs_mc:creeper,mobs_mc:enderman,mobs_mc:wither,mobs_mc:enderdragon,mobs_mc:ghast,mobs_mc:ravager,mobs_mc:evoker
+
+#    What the director sees of players. exact: positions, health and gear,
+#    which the operator can see anyway. coarse: the region and a gear score.
+#    Players are told which in the notice on joining.
+goanna_director_sees (Director sees) enum exact exact,coarse
+
+#    Which public chat the director reads. addressed: only lines that start
+#    with a character's name, from players within earshot of it. all: every
+#    public line. none: nothing. Private messages never reach any mod.
+goanna_director_chat (Director reads chat) enum addressed addressed,all,none
+
+#    Whether characters may remember short lines the model writes, as well as
+#    facts recorded from events, and how many and how long. Every one is in
+#    the audit log. Memory lasts for the server session.
+goanna_director_memory_text (Director memory lines) bool true
+goanna_director_memory_lines (Director memory lines per pair) int 8 0 32
+goanna_director_memory_chars (Director memory line length) int 120 10 200
+
+#    Pacing: the intensity that ends a build up, the seconds of relax after a
+#    fade and after a death, and the relax a player gets on joining.
+goanna_director_peak (Director peak intensity) float 0.7 0.1 1.0
+goanna_director_relax (Director relax) float 45 0 600
+goanna_director_relax_after_death (Director relax after death) float 120 0 1200
+goanna_director_join_grace (Director join grace) float 30 0 600
+
+#    Where players can read more about this server's director, named in the
+#    notice on joining. Optional.
+goanna_director_info (Director information) string

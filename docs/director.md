@@ -1,11 +1,14 @@
 # The director layer
 
-Status: a design, written on 19 September 2026. Nothing in it is built. The only
-code is the throwaway probe in `tools/director-probe/`, which exists to check
-the engine and framework calls the design depends on. [What was
-verified](#what-was-verified) at the end says what ran, on which server and
-game, and what did not. [Decisions](#decisions) records what the maintainer
-has settled since, including the scope of the first playtest.
+Status: a design, written on 19 September 2026. Phase 1, scoped to the first
+playtest, was built on 1 October 2026 and has been tested by a script, not
+yet by a model or by players: [Phase 1 as built](#phase-1-as-built) says
+what exists and what the test showed. The throwaway probe in
+`tools/director-probe/` checked the engine and framework calls the design
+depends on, and [What was verified](#what-was-verified) at the end says what
+ran, on which server and game, and what did not. [Decisions](#decisions)
+records what the maintainer has settled since, including the scope of the
+first playtest.
 
 The director lets a language model run a Luanti world the way a game master runs
 a table. It watches what players do, stages encounters, offers quests whose
@@ -27,8 +30,9 @@ loop, and the game never waits for it.
 
 - **Server half:** a new capability of `goanna_server_mod`, off unless the
   operator enables it, and on for worlds Goanna launches.
-- **MCP half:** `director_*` tools in `tools/goanna-mcp`, built on the
-  multi-instance rewrite.
+- **MCP half:** `tools/goanna-director-mcp`, an MCP server with only
+  `director_*` tools. The design put them in `tools/goanna-mcp`; see [MCP
+  half](#mcp-half) for why they are separate.
 - **Transports:** a seat (a headless Goanna client on its own account) relaying
   over a private mod channel, or the server mod calling the MCP service over
   Luanti's HTTP API. The same messages travel on both. The decided transport
@@ -127,13 +131,20 @@ read them.
 
 ### MCP half
 
-`director_*` tools in `tools/goanna-mcp`, on top of the multi-instance rewrite
-on branch `worktree-agent-a26bf3c56cac7885b`, which was reviewed but not merged
-when this was written. That rewrite gives each headless client an instance id
-and its own control port, which is what the seat transport drives. The director
-tools are not the game development interface. They carry no `run`, no `eval` and
-no camera. They speak for the server, with the authority the operator gave the
-director.
+The design put `director_*` tools in `tools/goanna-mcp`, on top of its
+multi-instance rewrite, because that rewrite gives each headless client an
+instance id and its own control port, which is what the seat transport
+drives. Phase 1 departs from that: the tools are a separate executable,
+`tools/goanna-director-mcp`. `tools/goanna-mcp` is the developer interface
+and holds `goanna_run`, `goanna_command`, teleport and camera tools; a
+process that holds those can do anything to a client, so a model registered
+as a game master must not be given that process at all, not merely asked to
+leave its tools alone. The director's process has only the director's
+tools, and it is also the HTTP endpoint the server mod talks to. They speak
+for the server, with the authority the operator gave the director. When the
+seat transport comes, the seat's client can be driven by the director
+process through the control channel without that process exposing the
+developer tools to the model.
 
 ## Boundaries and fairness
 
@@ -937,11 +948,13 @@ also take the seat's `instance`.
 | `director_status` | Budgets, live entities, queued intents, phases, stop state |
 | `director_undo` | Reverse an action or an encounter |
 
-The spike exposes five narrower tools instead, because a model uses a small,
+The spike exposes narrower tools instead, because a model uses a small,
 specific schema better than a general one: `director_events`, `director_player`
 (the player summary), `director_stage_encounter`, `director_speak` and
 `director_offer_quest`, with `director_connect` implied by arguments. They are
-thin wrappers over the same messages.
+thin wrappers over the same messages. Phase 1 has no quests, so no
+`director_offer_quest`, and adds the tools it needed to run safely; the list
+is in [Phase 1 as built](#mcp-tools-1).
 
 ## Lua hook API
 
@@ -1235,10 +1248,216 @@ model and number of testers, and nothing moves in `README.md` before then.
 
 Still open and needed before testers join: what the game master sees of
 other people's players (4), whether it reads public chat (5), and whether
-NPC memory may hold model written text (9). Proposed defaults: exact
-positions and gear, which the operator sees anyway, with testers told so;
-only lines addressed to an NPC; structured facts from events plus short
-model written lines under a length cap, in the audit log.
+NPC memory may hold model written text (9). Phase 1 implements the proposed
+defaults, each as a setting the operator can change, until the maintainer
+answers:
+
+- **What it sees (4):** exact positions, health and gear, which the operator
+  sees anyway (`goanna_director_sees = exact`; `coarse` gives the region and
+  a gear score). The notice every joiner gets says which.
+- **Public chat (5):** only lines addressed to a character, meaning lines
+  that start with its name, from a player within its earshot
+  (`goanna_director_chat = addressed`; `all` and `none` exist). Private
+  messages never reach a mod either way.
+- **Memory text (9):** structured facts from events plus short model written
+  lines, at most 8 per character and player and 120 characters each, every
+  one in the audit log (`goanna_director_memory_text`,
+  `goanna_director_memory_lines`, `goanna_director_memory_chars`). Memory
+  lasts for the server session only.
+
+## Phase 1 as built
+
+Built on 1 October 2026 for the first playtest, and tested by a script that
+plays the model's part (below). No language model has driven it yet, and no
+tester has played it. Nothing has moved in `README.md`.
+
+### Files
+
+```
+goanna_server_mod/init.lua            requests the HTTP API at load, when
+                                      goanna_director is true, and hands it on
+goanna_server_mod/director/
+    init.lua        settings, conf file and token, session, the hook table
+    logic.lua       ring buffer, budgets, rate limits, pacing, composition,
+                    gear score, memory; no engine calls (unit tested)
+    events.lua      engine callbacks, per player state, the one second tick
+    summaries.lua   player and region summaries, status, capabilities
+    intents.lua     the intent pipeline, queries, stop and undo
+    commands.lua    the joiner notice, /director, the opt out
+    audit.lua       the audit log
+    http.lua        the HTTP transport
+    adapters/mcl_mobs.lua   Mineclonia's mcl_mobs and mcl_armor
+tools/goanna-director-mcp             the MCP service and HTTP endpoint
+tools/test-director-logic.lua         unit tests for logic.lua (LuaJIT)
+tools/test-director.py                the end to end test
+```
+
+The layout differs from the proposal in [Server half](#server-half): pacing
+and memory are small enough to live in `logic.lua` and `intents.lua`, there
+are no quests, and there is no channel transport. `project/local_server.gd`
+lists the director's files in `GOANNA_SERVER_MOD_FILES` (creating the
+subdirectories as it copies), writes `goanna_director = true` and
+`secure.http_mods = goanna_server_mod` for every world it launches, and the
+vendored copy in `project/vendor/goanna_server_mod` is kept identical, which
+`project/tests/local_server_terrain_diffusion.gd` checks.
+
+### Transport
+
+The server mod is the HTTP client, as [HTTP](#http) proposed.
+
+- `POST <url>/v1/push`, body `{"v": 1, "session": "...", "batch": [...]}`,
+  where each element is an envelope (`v`, `kind`, `scope`, `session`, `t`,
+  `body`). Kinds sent: `hello` (session, `last_seq`, capabilities, open
+  encounters, cast characters, stop state), `events` (with `seq` and
+  `body.events`, `body.gap`), `result` and `reply`. The endpoint answers
+  `{"known_session": bool}`; false makes the server say hello again, which is
+  how a restarted MCP service picks the session up.
+- `GET <url>/v1/pull?scope=gm&after=N&wait=20&session=S&instance=I`, a long
+  poll. The answer is `{"v": 1, "messages": [...], "auth": A, "instance": I}`
+  where each message is `{"id", "req", "kind": "act" | "query", "type",
+  "args", "based_on", "reason", "scope"}`, and `A` is the hex SHA-256 of
+  `token:session:after`. The server ignores an answer whose proof is wrong,
+  so a process that happens to hold the port cannot drive it. Message ids
+  belong to one endpoint process (`instance`); a new instance starts them
+  again.
+- Both directions carry `Authorization: Bearer <token>`. The endpoint binds
+  127.0.0.1 only.
+- A result body is `{"id", "type", "status", "reason", ...}` with the
+  statuses of [Envelope](#envelope). Reasons used so far: `schema`,
+  `not_online`, `opted_out`, `stale`, `budget`, `entity_cap`, `no_fauna`,
+  `unknown_mob`, `denied`, `budget_too_small`, `pacing`, `no_place`,
+  `no_adapter`, `name_taken`, `name_in_use`, `hostile_npc`,
+  `unknown_speaker`, `speaker_gone`, `out_of_earshot`, `no_listeners`,
+  `rate`, `too_long`, `memory_text_off`, `unknown_action`, `stopped`.
+
+The director counts as connected only once a pull answer carries a valid
+proof. Players are told it is active from then, not before.
+
+### MCP tools
+
+`tools/goanna-director-mcp --world <world>` reads the url and token from the
+world's `goanna_director.conf` and serves:
+
+| Tool | Message |
+| --- | --- |
+| `director_status` | `status` query, plus the connection and the hello |
+| `director_events` | the events buffered since the model last asked, waiting up to `wait_s`, with results of queued intents that landed later |
+| `director_player` | `player` query: the summary, with its region summary |
+| `director_stage_encounter` | `stage_encounter` |
+| `director_cast_npc` | `cast_npc` (new, below) |
+| `director_speak` | `speak` |
+| `director_remember` | `remember` |
+| `director_memory` | `memory` query |
+| `director_undo` | `undo` |
+| `director_stop` | `stop` |
+
+An act carries `based_on`, the last event sequence returned to the model.
+
+### What it does
+
+- **Encounters.** `stage_encounter` takes `near`, `budget`, `theme` (a mob
+  category, default `monster`) or `mobs` (names), `when`, `distance`,
+  `hidden`, `leash_s` and `valid_for_s`. The budget is capped at the player's
+  encounter ceiling, `goanna_director_encounter_base` plus the gear score
+  times `goanna_director_encounter_per_gear`, and must fit what is left of
+  the hourly points. Mobs come from the player's biome's fauna or the named
+  list, minus the deny list, drawn by weight with a `PcgRandom` seeded from
+  the world seed and session. Each is placed on loaded, clear, walkable,
+  unprotected ground, out of the player's sight unless `hidden` is false,
+  away from static spawn and from every opted out player; made persistent;
+  given the director's targeting rule; and removed when the leash runs out,
+  the player leaves, dies or opts out, or the encounter is undone. Outside a
+  build up, `when: "now"` is refused and `next_build_up` is queued.
+- **Characters.** `cast_npc` was not in the design. A character needs a body
+  to speak from, and a fresh world has no villagers near the player, so the
+  director may spawn a peaceful mob (default `mobs_mc:villager`) a few nodes
+  from a player, named, and held in place, or name an existing mob by GUID.
+  Monsters are refused, and so is a name any player account has.
+- **Speech.** `speak` sends one chat line. A character's line reads
+  `Grimbold (NPC): text` and goes only to players within
+  `goanna_director_earshot` of its body; narration reads `[Narrator] text`
+  and goes to one player or all. Escape sequences and newlines are stripped,
+  so a line cannot recolour itself or pose as another speaker.
+- **Memory.** Per character and player, for the session only: when they
+  met, lines spoken, times addressed, a disposition, and facts. Facts come
+  from events (`saw alice kill a zombie`, `was killed by alice`) or from
+  `remember`, capped by `goanna_director_memory_lines` and
+  `goanna_director_memory_chars`, oldest first out, each in the audit log.
+  An `npc_addressed` event carries the character's memory of the speaker.
+- **Pacing** is the layer in [Pacing](#pacing), per player, with the
+  thresholds as settings and a short relax on joining
+  (`goanna_director_join_grace`).
+- **Holding a mob.** The probe froze a mob by shadowing `on_step`. That
+  turned out to be unsafe: a villager killed while held that way crashed
+  the server, because its murder report reads a cache only `on_step`
+  creates. A held character now uses mcl_mobs' own `stupefied` state, which
+  keeps physics, damage and death running and only stops the AI.
+
+### What the first test showed
+
+`tools/test-director.py` on 1 October 2026: the Luanti 5.17.0 Flatpak
+server, Mineclonia release 38561, mapgen v7, a fresh world; two Goanna
+clients (Godot 4.5.1 stable, the client library built from the main
+checkout at 01:18 that day) running headless in gamescope with software
+rendering (lavapipe), as the players alice and bob; the MCP service driven
+over stdio JSON-RPC by the script, as a model would. 61 checks passed:
+
+- The mod created a 64 hex digit token, and the endpoint answered only with
+  it. With no director connected a joining player was told nothing; when the
+  MCP service started, the server reached it, alice got the notice, and her
+  earlier join was in the event stream.
+- `director_player` gave position, biome, gear and a ceiling of 5 bare
+  handed, 10 with a diamond sword in the hotbar.
+- Alice's biome (PaleGarden) has no monster fauna, so the theme was refused
+  as `no_fauna`, and a named list was accepted: asked for 100, clamped to 10,
+  two skeletons out of sight for 8 points. mcl_mobs took alice as their
+  target and they closed from 10 to about 5 nodes.
+- A second encounter past the hourly budget was refused as `budget`. With
+  alice past the peak, `when: "now"` was refused as `pacing`, a small
+  encounter was queued, and it landed, as a late result, at her next build
+  up. Undo removed each encounter.
+- A villager cast as Grimbold spoke to alice, and narration reached her;
+  both read in her client as attributed. Her line `Grimbold, where is the
+  old tower?` reached the model with his memory of her; a remembered line
+  and disposition came back on her next address and through
+  `director_memory`; a line over the cap was refused; ordinary chat was not
+  read. A character named `alice` was refused.
+- Alice killed Grimbold with her own client's punches. The model got
+  `entity_died` with her as the killer, his memory kept `was killed by
+  alice`, he could no longer speak, and the region counted the kill.
+- Bob joined, was told, and opted out. His summary said only that;
+  narration to him, an encounter near him and a memory of him were refused;
+  narration to all reached alice and not his client; and his leaving was not
+  reported.
+- A restarted MCP service got a fresh hello and could query again.
+- `director_stop` removed the character and refused everything until alice,
+  the server's admin, typed `/director start`. `/director` and
+  `/director log` answered in game. The audit log held every intent, and the
+  server log had no director warnings or errors.
+
+`tools/test-director-logic.lua` covers the ring, budgets, rate limits,
+pacing cycle, composition, gear score, memory caps and text cleaning.
+
+Seen in passing: a fresh player in that world sometimes took damage at
+spawn (`set_hp`) and died before anything else happened. That is not the
+director's, but it shows why an intent carries `based_on`: one run's first
+encounter was refused as `stale` because the model had not yet read the
+death.
+
+### Not verified
+
+- Any language model driving it, and any playtest with people.
+- Armour in the gear score: only the weapon half was exercised.
+- `goanna_director_spawn_rules = natural`, `goanna_director_sees = coarse`,
+  `goanna_director_chat = all`, and the exclusion zone around a player who
+  opted out (the refusal for the opted out player was tested, the zone for
+  others near them was not).
+- A world launched from Goanna's menu with the director on. The deployment
+  of the files is covered by the existing headless test; the two settings
+  `local_server.gd` writes were read, not run.
+- A server restart mid session, `stale` from a leave, and encounters ending
+  by leash.
+- Mobs other than skeletons and villagers, and any game but Mineclonia.
 
 ## Open questions
 
@@ -1310,7 +1529,10 @@ counting players, creatura, 3d_armor, mcl_armor, VoxeLibre.
 
 Not verified at all: any player callback, player inventory or HUD, chat
 delivery, the seat transport, Goanna under Godot's `--headless`, any quest, the
-pacing layer, and any language model driving any of it.
+pacing layer, and any language model driving any of it. Phase 1's test on 1
+October 2026 has since covered player callbacks, inventory reads, chat
+delivery and the pacing layer, with connected players; see [What the first
+test showed](#what-the-first-test-showed).
 
 To run the probe again, copy it into a fresh world's `worldmods` and start a
 server with a config file inside the world, so the sandbox can see it and the

@@ -242,3 +242,44 @@ tiles. The client fills the coarse horizon before refining local shape,
 without expanding the bake into mapblock summaries. See
 `docs/baked-terrain.md` in the Goanna repository for the protocol, cache
 identity, publication rules and current limits.
+
+## The director
+
+`director/` is a submod that lets a language model act as game master on
+this server: it watches what players do, stages encounters sized to their
+gear, and speaks as characters and as a narrator. `docs/director.md` in the
+Goanna repository is the design and records what has been built and tested.
+It is off unless `goanna_director` is true, and it is a submod rather than a
+setting because the server has to act.
+
+The model proposes and the game decides. Every action arrives as an intent
+that `director/intents.lua` checks against the budgets, the player's opt out,
+the pacing layer, the mob framework's rules and the world before anything
+happens, and records in an audit log, one line of JSON per intent in
+`<world>/goanna_director/audit-<date>.jsonl`.
+
+It reaches players only through what any client renders: creatures, their
+nametags and chat. Nothing goes over `goanna:v1`. It talks to the model over
+Luanti's HTTP API, as the client, to a director process on this machine:
+
+- Add `goanna_server_mod` to `secure.http_mods`, or it cannot connect.
+  `core.request_http_api()` is called in `init.lua` and the table is handed
+  to the director, never made global.
+- `<world>/goanna_director.conf` holds `url` (default
+  `http://127.0.0.1:30570`) and `token`, created with `SecureRandom` on first
+  start. Neither is a `goanna_*` setting, because those are broadcast.
+- `tools/goanna-director-mcp --world <world>` in the Goanna repository is the
+  process at the other end, an MCP server a model connects to.
+
+Players are told. A player joining while a director is connected, or online
+when one connects, gets one chat line saying it is active, what it sees and
+how to opt out. `/director` says what it is, its budgets and what it did near
+you; `/director optout` and `/director optin` set the opt out, which lasts
+across sessions; `/director stop`, `/director start` and `/director log` need
+the `server` or `goanna_director` privilege. A player who opted out is never
+targeted, spoken to, placed near or remembered, and nothing about them
+reaches the model.
+
+Only Mineclonia's `mcl_mobs` has an adapter so far (`director/adapters/`).
+On any other game the director starts, reports no adapter, and refuses
+encounters and characters.

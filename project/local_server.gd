@@ -38,7 +38,10 @@ const TERRAIN_DIFFUSION_FILES := [
 	"tdl_terrain.lua", "tdl_decorate.lua", "tdl_forest.lua", "tdl_column.lua", "tdl_mapgen.lua",
 	"settingtypes.txt", "mod.conf", "LICENSE",
 ]
-const GOANNA_SERVER_MOD_FILES := ["init.lua", "surface.lua", "fine.lua", "surface_material.lua", "damage.lua", "mod.conf", "settingtypes.txt", "README.md"]
+const GOANNA_SERVER_MOD_FILES := ["init.lua", "surface.lua", "fine.lua", "surface_material.lua", "damage.lua", "mod.conf", "settingtypes.txt", "README.md",
+	"director/init.lua", "director/logic.lua", "director/audit.lua", "director/events.lua",
+	"director/summaries.lua", "director/intents.lua", "director/commands.lua", "director/http.lua",
+	"director/adapters/mcl_mobs.lua"]
 const PBR_GAME_DIRS := {
 	"minetest": "minetest_game",
 	"minetest_game": "minetest_game",
@@ -1254,6 +1257,7 @@ func _install_server_mod(world: String) -> String:
 	var dst := world.path_join("worldmods").path_join("goanna_server_mod")
 	DirAccess.make_dir_recursive_absolute(dst)
 	for filename in GOANNA_SERVER_MOD_FILES:
+		DirAccess.make_dir_recursive_absolute(dst.path_join(filename).get_base_dir())
 		if not _copy_resource_file(src.path_join(filename), dst.path_join(filename)):
 			return "The bundled Goanna server mod is missing %s." % filename
 	return ""
@@ -1376,6 +1380,15 @@ func start_config(options: Dictionary) -> String:
 		# Off remains the default for a server someone else is running, where
 		# that is a real question. goanna_server_mod/damage.lua has the trade.
 		cf.store_string("goanna_shared_dig_damage = true\n")
+		# The director (docs/director.md), available for the same reason: the
+		# player who launched this server is its operator. Enabling it only
+		# makes it available; nothing happens until a director process
+		# connects at the url in <world>/goanna_director.conf, and anyone
+		# joining is told and can opt out. It talks to that process over
+		# Luanti's HTTP API, which a mod gets only when the operator lists it
+		# in secure.http_mods.
+		cf.store_string("goanna_director = true\n")
+		cf.store_string("secure.http_mods = goanna_server_mod\n")
 		# The player's own Far draw distance setting is the grant, floored at
 		# the old conservative bound. It is their machine paying for the
 		# mapgen and the drawing, so how vast the vista gets is their call;
