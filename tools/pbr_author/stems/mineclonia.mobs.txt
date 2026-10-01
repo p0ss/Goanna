@@ -28,3 +28,11 @@ mobs_mc_skeleton mobs_mc_skeleton.b3d 2
 mobs_mc_stray mobs_mc_skeleton.b3d 2
 mobs_mc_stray_overlay mobs_mc_skeleton.b3d 1
 mobs_mc_wither_skeleton mobs_mc_witherskeleton.b3d 1
+# Creeper, spiders and enderman. The enderman's nine meshes all use brush 0,
+# so its specs list the body's faces by hand.
+mobs_mc_creeper mobs_mc_creeper.b3d
+mobs_mc_spider mobs_mc_spider.b3d -1
+mobs_mc_cave_spider mobs_mc_spider.b3d -1
+mobs_mc_spider_eyes mobs_mc_spider.b3d -1
+mobs_mc_enderman mobs_mc_enderman.b3d
+mobs_mc_enderman_eyes mobs_mc_enderman.b3d
