@@ -49,7 +49,17 @@ before the material's strength:
   hair     locks: each run of texels at one height a rounded bundle with
            a few soft strand grooves of varied width, a slight wave,
            drawn together toward the tip, and a sheen band across it.
-  straw    stiff fibres along the direction with the odd node across;
+           Round 2 of the player's hair; the owner found it plastic tree
+           bark (2026-10-02), so the player now takes bristle.
+  bristle  hair as paintbrush bristles: each lock a bundle of about ten
+           fine straight strands to a texel, each a thin cylinder (the
+           normal tilts across it, flat along it) with its own width,
+           place, tilt and smoothness, a few lying over the others; the
+           strands end raggedly short of a tip that stands proud, thinning
+           and rolling over, with the gaps between their ends occluded.
+           Too fine to differentiate, so it gives its normal as slopes,
+           box filtered per pixel, and an occlusion (SLOPE_KINDS).
+  straw   stiff fibres along the direction with the odd node across;
            "plait": true turns the direction a quarter per texel, like a
            plaited hat.
   leather  pebble grain (cells with creases between) and fine pores; the
@@ -343,6 +353,142 @@ def _hair(c, p):
     d = 0.8 * (rnd - 0.6) - 0.35 * groove + 0.3 * band
     s = 1.4 * (band - 0.3) + 0.3 * (rnd - 0.7) - 0.4 * groove
     return d, s
+
+
+def _bristle_at(a, e, lt, lid, proud, sd, p):
+    """One sample of bristle at a (across the lock from its middle) and e
+    (along it, to its tip), both in texels, proud 0..1 how far the tip
+    stands over what follows it: (slope along, slope across, smoothness,
+    occlusion)."""
+    n0 = p.get("strands", 10.0)
+    layers = int(p.get("layers", 3))
+    top_share = p.get("top", 0.35)
+    jitter = p.get("jitter", 0.35)
+    w0, w1 = p.get("width", (0.9, 1.4))
+    rag, taper = p.get("rag", 0.4), p.get("taper", 0.35)
+    rnd = p.get("round", 0.55)
+    roll = p.get("roll", 2.0)
+    tilt = p.get("tilt", 0.12)
+    shape = np.shape(a)
+    best = np.full(shape, -np.inf)
+    su = np.zeros(shape)
+    sv = np.zeros(shape)
+    sm = np.zeros(shape)
+    cyl_top = np.zeros(shape)
+    for L in range(layers):
+        # Upper layers a little sparser, finer and each at its own offset,
+        # so a strand of one lies across the meeting of two below it.
+        n = n0 * (1.0 if L == 0 else 0.85)
+        per = 1.0 / n
+        q = (a + 7.0 * _hash(lid, 10 + L, sd)) * n
+        i0 = np.floor(q).astype(np.int64)
+        key = lid * 7 + L
+        for di in (-1, 0, 1):
+            i = i0 + di
+
+            def h(k):
+                return _hash(i, key, sd + k)
+            keep = (h(21) < top_share) if L > 0 else np.ones(shape, bool)
+            cen = i + 0.5 + jitter * (h(22) - 0.5)
+            w = 0.5 * (w0 + (w1 - w0) * h(23)) * (1.0 if L == 0 else 0.8)
+            # Where the strand ends, in texels short of the lock's tip:
+            # most a little short, a few right to it, the bottom layer
+            # nearer the tip than the ones over it.
+            end = rag * np.where(h(24) < 0.2, 0.05 * h(25), 0.25 + 0.75 * h(25))
+            if L == 0:
+                end = 0.7 * end
+            end = end * proud
+            t =np.clip((e - end) / taper, 0.0, 1.0)
+            wt = w * (0.35 + 0.65 * np.sqrt(t))
+            r = (q - cen) / wt
+            inside = keep & (e > end) & (np.abs(r) < 1.0)
+            rc = np.clip(r, -0.95, 0.95)
+            cyl = np.sqrt(1.0 - rc * rc)
+            fall = 1.0 - (1.0 - t) ** 2
+            # Stacking: an upper layer lies over a lower one, and inside a
+            # layer the strand standing higher where two overlap wins.
+            z = 0.3 * L + 0.15 * h(26) + 0.5 * wt * per * cyl * fall
+            hit = inside & (z > best)
+            # Rise over run: across a cylinder, flattened by "round", and
+            # down over its end where it tapers; and the strand's own tilt.
+            g_v = -rnd * rc / cyl + tilt * (2.0 * h(27) - 1.0)
+            dfall = np.where((t > 0.0) & (t < 1.0), 2.0 * (1.0 - t) / taper, 0.0)
+            g_u = -roll * rnd * wt * per * cyl * dfall + 0.5 * tilt * (2.0 * h(28) - 1.0)
+            s_ = 0.6 * (h(29) - 0.5) + 0.5 * (cyl - 0.7) - 0.4 * (1.0 - t)
+            best = np.where(hit, z, best)
+            su = np.where(hit, g_u, su)
+            sv = np.where(hit, g_v, sv)
+            sm = np.where(hit, s_, sm)
+            cyl_top = np.where(hit, cyl, cyl_top)
+    covered = np.isfinite(best)
+    crease = p.get("crease", 0.3)
+    # Nothing on top: deeper hair inside the lock, a gap at its ragged tip.
+    tip = (e < rag + taper) & (proud > 0.5)
+    occ = np.where(covered, 1.0 - crease * (1.0 - cyl_top) ** 2,
+                   np.where(tip, 1.0 - p.get("gap", 0.35), 1.0 - crease))
+    sm = np.where(covered, sm, np.where(tip, -0.6, -0.3))
+    sm = sm + p.get("crown", 0.25) * (0.5 - lt)
+    return su, sv, sm, occ
+
+
+def _bristle(c, p):
+    """Hair as paintbrush bristles: every lock (a run of texels at one
+    height, atlas.py passes its frame) is a bundle of fine straight
+    strands lying along the direction, "strands" to a texel across (about
+    1.6 map pixels each at 16 pixels to a texel). Each strand is a thin
+    cylinder: its normal tilts across its width, left half one way, right
+    half the other, flattened by "round", and is flat along it; strands
+    meet with no groove carved between them. Spacing ("jitter") and width
+    ("width", the range of a strand's width in strand spacings) vary per
+    strand, so no ruled pattern beats with the map's pixels, and "layers"
+    of strands lie one over another, the upper ones sparser ("top", the
+    share of their places taken). Each strand has its own small tilt
+    ("tilt", rise over run) and its own smoothness, so the light breaks
+    into streaks along the hair. Strands end short of the lock's tip by up
+    to "rag" texels, a few reaching it, thinning over the last "taper"
+    texels and rolling over the end ("roll"); where every layer has ended
+    the tip is ragged and the gap between ends is occluded ("gap"), as is
+    the crease where two strands meet ("crease"). The lock is a touch
+    smoother at its root than at its tip ("crown"). There is no sheen band
+    and no round across the lock.
+
+    The strands are finer than a central difference can resolve (a two
+    pixel ridge has none), so this kind gives its normal as slopes, rise
+    over run along u and across v, instead of a height to differentiate,
+    averaged over "samples" squared points inside each map pixel: the box
+    filtered normal of the strands, not an alias of them. Only atlas.py's
+    material surface reads the slopes and the occlusion (SLOPE_KINDS), so
+    it is not for "mix". Returns (detail, smooth, slope u, slope v,
+    occlusion), the detail zero: the lock's stored height stays the
+    relief, one level per texel, as for every kind."""
+    n_px = np.shape(c["x"])
+    la = c.get("la", np.zeros(n_px))
+    lt = c.get("lt", np.full(n_px, 0.5))
+    lw = c.get("lw", np.full(n_px, 0.5))
+    ll = c.get("ll", np.ones(n_px))
+    lid = c.get("lid", np.zeros(n_px, np.int64))
+    ux = c.get("dx", np.zeros(n_px))
+    uy = c.get("dy", np.ones(n_px))
+    cell = float(c.get("cell", 16.0))
+    sd = c["seed"]
+    a0 = la * lw
+    e0 = (1.0 - lt) * ll
+    # A tip tucked under a higher lock, or at a box edge, is not ragged:
+    # its strands run to the end. "proud" is the drop, in height units,
+    # at which a tip is fully ragged.
+    proud = np.clip(c.get("drop", np.full(n_px, 1.0)) / p.get("proud", 0.08), 0.0, 1.0)
+    k = max(1, int(p.get("samples", 4)))
+    out = [np.zeros(n_px) for _ in range(4)]
+    for i in range(k):
+        for j in range(k):
+            ox = ((i + 0.5) / k - 0.5) / cell
+            oy = ((j + 0.5) / k - 0.5) / cell
+            du = ox * ux + oy * uy
+            dv = -ox * uy + oy * ux
+            for acc, val in zip(out, _bristle_at(a0 + dv, e0 - du, lt, lid, proud, sd, p)):
+                acc += val
+    su, sv, sm, occ = (o / (k * k) for o in out)
+    return np.zeros(n_px), sm, su, sv, occ
 
 
 def _straw(c, p):
@@ -875,7 +1021,13 @@ def _mix(c, p):
 
 # Kinds that want each lock's frame (atlas.py: la across -1..1, lt along
 # 0..1, lw half width in texels, lid an id).
-LOCK_KINDS = {"hair"}
+LOCK_KINDS = {"hair", "bristle"}
+
+# Kinds that give their normal as slopes and an occlusion factor besides
+# (detail, smooth); see _bristle. atlas.py passes them the direction in the
+# image ("dx", "dy", the way u runs) and each lock's length ("ll", texels),
+# and evaluate_slope returns the extra fields.
+SLOPE_KINDS = {"bristle"}
 
 # (function, default amplitude in height units, default smoothness swing)
 KINDS = {
@@ -884,6 +1036,7 @@ KINDS = {
     "weave": (_weave, 0.050, 0.06),
     "twill": (_twill, 0.035, 0.06),
     "hair": (_hair, 0.060, 0.22),
+    "bristle": (_bristle, 1.0, 0.28),
     "straw": (_straw, 0.050, 0.15),
     "leather": (_leather, 0.030, 0.14),
     "rope": (_rope, 0.050, 0.08),
@@ -931,8 +1084,19 @@ def evaluate(kind, ctx, params=None):
         pre.update(params)
         kind, params = base, pre
     fn, amp, swing = KINDS[kind]
-    d, s = fn(ctx, params)
+    d, s = fn(ctx, params)[:2]
     return d.astype(np.float32), s.astype(np.float32), amp, swing
+
+
+def evaluate_slope(kind, ctx, params=None):
+    """For a kind in SLOPE_KINDS: (detail, smooth, slope u, slope v,
+    occlusion, amp, swing). The slopes are rise over run along u and
+    across v, to be scaled by amp like the detail; the occlusion a factor
+    0..1 on the map's."""
+    fn, amp, swing = KINDS[kind]
+    d, s, su, sv, occ = fn(ctx, dict(params or {}))
+    f = np.float32
+    return d.astype(f), s.astype(f), su.astype(f), sv.astype(f), occ.astype(f), amp, swing
 
 
 # --- pieces and edges --------------------------------------------------------
@@ -1092,12 +1256,14 @@ def swatches(path, cell=16, texels=6, light=(-0.5, 0.45, 0.75)):
     L = np.asarray(light, np.float64)
     L /= np.linalg.norm(L)
 
-    def lit(d, s):
-        # The same rise per texel whatever the map's density.
+    def lit(d, s, gx=0.0, gy=0.0, occ=1.0):
+        # The same rise per texel whatever the map's density. gx and gy
+        # are a slope kind's rise over run, image right and down.
         h = d * 12.0 * cell / 16.0
-        n = np.stack([-np.gradient(h, axis=1), np.gradient(h, axis=0), np.ones_like(h)], -1)
+        n = np.stack([-(np.gradient(h, axis=1) + gx), np.gradient(h, axis=0) + gy,
+                      np.ones_like(h)], -1)
         n /= np.linalg.norm(n, axis=-1, keepdims=True)
-        return np.clip(0.55 * np.clip((n * L).sum(-1), 0, 1) + 0.25 + 0.15 * s, 0, 1)
+        return np.clip((0.55 * np.clip((n * L).sum(-1), 0, 1) + 0.25) * occ + 0.15 * s, 0, 1)
 
     # The eye kind wants piece offsets: a dome per two texels.
     # The block kinds see a skin of strength 12, the rise lit() draws at.
@@ -1108,6 +1274,19 @@ def swatches(path, cell=16, texels=6, light=(-0.5, 0.45, 0.75)):
     tiles = []
     labels = []
     for k in kind_names():
+        if k in SLOPE_KINDS:
+            # One lock over the whole square, its tip at the bottom edge,
+            # running image down, standing proud.
+            half = texels / 2.0
+            lctx = dict(ctx, la=(x.ravel() - half) / half, lw=np.full(size * size, half),
+                        lt=y.ravel() / texels, ll=np.full(size * size, float(texels)),
+                        lid=np.zeros(size * size, np.int64), dx=np.zeros(size * size),
+                        dy=np.ones(size * size))
+            d, s, su, sv, occ, amp, swing = evaluate_slope(k, lctx)
+            r = lambda a: a.reshape(size, size)  # noqa: E731
+            tiles.append(lit(r(amp * d), r(swing * s), r(amp * sv), r(amp * su), r(occ)))
+            labels.append(k)
+            continue
         d, s, amp, swing = evaluate(k, ctx)
         tiles.append(lit((amp * d).reshape(size, size), (swing * s).reshape(size, size)))
         labels.append(k)

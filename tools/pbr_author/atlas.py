@@ -473,9 +473,10 @@ def build(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, model=None, brush=Non
         smooth_hi = np.clip(smooth_hi + swing * extrude._fit(dsm, hi.shape) * mask, 0.0,
                             lib.SMOOTH_CEILING)
     sss = None
+    extra = {}
     if any(_has_material_surface(m) for m in mats.values()):
         d2, s2, sss = material_surface(stem, spec, game, mat, drawn, isl, cell, model, brush, cls,
-                                       hgt=hgt)
+                                       hgt=hgt, extra=extra)
         detail += d2
         smooth_hi = np.clip(smooth_hi + s2, 0.0, lib.SMOOTH_CEILING)
     if spec.get("face_edge", "flat") == "bevel":
@@ -491,7 +492,8 @@ def build(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, model=None, brush=Non
                     emission=emission, f0=up(f0), fine_detail=1.0,
                     art_texels=src.shape[1], normal_detail=detail if detail.any() else None,
                     islands=isl_hi, alpha=alpha, ao_height=ao_hi,
-                    sss=None if sss is None else up(sss))
+                    sss=None if sss is None else up(sss),
+                    normal_slope=extra.get("slope"), occlusion=extra.get("occlusion"))
 
 
 SURFACE_KEYS = ("stitch", "seam", "wear", "texel_edge", "scatter")
@@ -534,11 +536,12 @@ def _piece_frames(sel, isl, rects_dirs):
     return cx, cy, hx, hy, ax
 
 
-def _lock_frames(sel, isl, hgt, u, v, iy, ix, cell):
+def _lock_frames(sel, isl, hgt, u, v, iy, ix, cell, length=False):
     """For a kind in micro.LOCK_KINDS: each lock is a 4 connected run of
     sel at one height inside one island. Per pixel: across the lock
     (-1..1), along it (0 at its start, 1 at its end, following u), its
-    half width in texels and its id."""
+    half width in texels and its id; with length, also its length along u
+    in texels."""
     from scipy import ndimage
     lid = -np.ones(sel.shape, np.int64)
     n = 0
@@ -561,14 +564,21 @@ def _lock_frames(sel, isl, hgt, u, v, iy, ix, cell):
     lw = (vmax - vmin) / 2.0 + half
     lt = (u - umin[ids] + half) / (umax[ids] - umin[ids] + 2 * half)
     la = (v - (vmin[ids] + vmax[ids]) / 2.0) / lw[ids]
+    if length:
+        return (np.clip(la, -1, 1), np.clip(lt, 0, 1), lw[ids], ids,
+                (umax - umin + 2 * half)[ids])
     return np.clip(la, -1, 1), np.clip(lt, 0, 1), lw[ids], ids
 
 
-def material_surface(stem, spec, game, mat, drawn, isl, cell, model, brush, cls, hgt=None):
+def material_surface(stem, spec, game, mat, drawn, isl, cell, model, brush, cls, hgt=None,
+                     extra=None):
     """The per material micro surface, edges, wear and scattering of a
     skin (micro.py): (detail, smooth swing, scattering byte per texel or
-    None), the first two at the map's size."""
+    None), the first two at the map's size. A kind in micro.SLOPE_KINDS
+    also puts "slope" (x, y rise over run per pixel) and "occlusion" (a
+    factor) into extra, a dict, for lib.pack."""
     import micro
+    extra = {} if extra is None else extra
     src_shape = mat.shape
     H, W = src_shape[0] * cell, src_shape[1] * cell
     up = lambda a: np.kron(a, np.ones((cell, cell), dtype=a.dtype))  # noqa: E731
@@ -630,10 +640,44 @@ def material_surface(stem, spec, game, mat, drawn, isl, cell, model, brush, cls,
             ctx["cell"] = cell
             ctx["strength"] = float(spec.get("strength", extrude.CLASS_STYLE.get(
                 cls, extrude.DEFAULT_STYLE)[2]))
-            if kind in micro.LOCK_KINDS and hgt is not None:
-                ctx["la"], ctx["lt"], ctx["lw"], ctx["lid"] = _lock_frames(
-                    sel, isl, hgt, ctx["u"], ctx["v"], iy, ix, cell)
-            d, s, amp, swing = micro.evaluate(kind, ctx, m.get("micro_params"))
+            if kind in micro.SLOPE_KINDS:
+                ctx["dx"], ctx["dy"] = dx, dy
+                if hgt is not None:
+                    # How far the texel after this one along u lies below
+                    # it ("drop", height units): a lock's tip stands proud
+                    # only where it is positive. Another island or none
+                    # counts as level, since that is a box edge.
+                    tx0 = np.floor(ctx["x"]).astype(np.int64)
+                    ty0 = np.floor(ctx["y"]).astype(np.int64)
+                    tx1 = tx0 + np.round(dx).astype(np.int64)
+                    ty1 = ty0 + np.round(dy).astype(np.int64)
+                    ok = (tx1 >= 0) & (tx1 < src_shape[1]) & (ty1 >= 0) & (ty1 < src_shape[0])
+                    tx1c = np.clip(tx1, 0, src_shape[1] - 1)
+                    ty1c = np.clip(ty1, 0, src_shape[0] - 1)
+                    ok &= isl[ty1c, tx1c] == isl[ty0, tx0]
+                    ctx["drop"] = np.where(ok, hgt[ty0, tx0] - hgt[ty1c, tx1c], 0.0)
+                    ctx["la"], ctx["lt"], ctx["lw"], ctx["lid"], ctx["ll"] = _lock_frames(
+                        sel, isl, hgt, ctx["u"], ctx["v"], iy, ix, cell, length=True)
+                d, s, su, sv, occ, amp, swing = micro.evaluate_slope(
+                    kind, ctx, m.get("micro_params"))
+                # Rise over run along u and across v, turned into the image.
+                k = amp * float(m.get("micro_strength", 1.0))
+                if "slope" not in extra:
+                    extra["slope"] = (np.zeros((H, W), np.float32), np.zeros((H, W), np.float32))
+                    extra["occlusion"] = np.ones((H, W), np.float32)
+                extra["slope"][0][iy, ix] += k * (su * dx - sv * dy)
+                extra["slope"][1][iy, ix] += k * (su * dy + sv * dx)
+                # None of it at a face border, which is a convex box edge:
+                # a lock's ragged tip there has nothing behind it to shade.
+                if "border" not in extra:
+                    extra["border"] = border_distance(isl_hi)
+                fade = np.clip(extra["border"][iy, ix] / 4.0, 0.0, 1.0)
+                extra["occlusion"][iy, ix] *= 1.0 - (1.0 - occ) * fade
+            else:
+                if kind in micro.LOCK_KINDS and hgt is not None:
+                    ctx["la"], ctx["lt"], ctx["lw"], ctx["lid"] = _lock_frames(
+                        sel, isl, hgt, ctx["u"], ctx["v"], iy, ix, cell)
+                d, s, amp, swing = micro.evaluate(kind, ctx, m.get("micro_params"))
             detail[iy, ix] += amp * float(m.get("micro_strength", 1.0)) * d
             swing_out[iy, ix] += swing * float(m.get("micro_swing", 1.0)) * s
         for key in ("stitch", "seam"):

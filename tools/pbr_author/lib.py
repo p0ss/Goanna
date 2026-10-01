@@ -390,11 +390,16 @@ def island_gradient(field, islands, axis):
     return np.where(n > 0, diff / np.maximum(n, 1.0), 0.0).astype(np.float32)
 
 
-def normal_from_height_islands(height, strength, islands):
-    """normal_from_height without wrapping or crossing an island border."""
+def normal_from_height_islands(height, strength, islands, slope=None):
+    """normal_from_height without wrapping or crossing an island border.
+    slope, when given, is (x, y) rise over run per pixel, image right and
+    down, added to the height's own: detail too fine to differentiate."""
     h = height.astype(np.float32) * strength
     dx = island_gradient(h, islands, 1)
     dy = island_gradient(h, islands, 0)
+    if slope is not None:
+        dx = dx + slope[0]
+        dy = dy + slope[1]
     n = np.stack([-dx, dy, np.ones_like(h)], axis=-1)
     n /= np.linalg.norm(n, axis=-1, keepdims=True)
     return n[..., :2]
@@ -519,7 +524,7 @@ def _clipped_offset(deviation, level):
 def pack(stem, out_dir, albedo, height, smoothness, cls, normal_strength,
         metal_mask=None, ao_radius=None, keep_mean=True, emission=None, f0=None,
         fine_detail=0.35, art_texels=16, alpha=None, normal_detail=None,
-        islands=None, ao_height=None, sss=None):
+        islands=None, ao_height=None, sss=None, normal_slope=None, occlusion=None):
     """Write <stem>.png, <stem>_n.png and <stem>_s.png. albedo is RGB or
     RGBA float at SIZE; height and smoothness are SIZE x SIZE floats.
     The smoothness mean, over the ordinary texels the art draws, is moved
@@ -544,7 +549,11 @@ def pack(stem, out_dir, albedo, height, smoothness, cls, normal_strength,
     height where nothing is drawn over it and the height of what is drawn
     over it elsewhere, so a lock of hair shades the shirt beside it. sss,
     when given, is the _s blue byte per pixel (0 to 255) in place of the
-    class's one value: skin scatters, the shirt over it does not."""
+    class's one value: skin scatters, the shirt over it does not.
+    normal_slope and occlusion, with islands only, are a micro kind's
+    normal given as slopes, (x, y) rise over run per map pixel added to the
+    height's, and a factor 0..1 the occlusion is multiplied by (micro.py,
+    SLOPE_KINDS)."""
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     # Texels the art does not draw are neutralised in both maps after
@@ -577,9 +586,11 @@ def pack(stem, out_dir, albedo, height, smoothness, cls, normal_strength,
         xy = normal_from_height(nh, normal_strength)
         ao = ao_from_height(height, radius)
     else:
-        xy = normal_from_height_islands(nh, normal_strength, islands)
+        xy = normal_from_height_islands(nh, normal_strength, islands, normal_slope)
         ah = height if ao_height is None else np.clip(ao_height, 0.0, 1.0).astype(np.float32)
         ao = ao_from_height_islands(ah, islands, radius)
+        if occlusion is not None:
+            ao = (ao * np.clip(occlusion, 0.0, 1.0)).astype(np.float32)
     n = np.zeros(shape + (4,), dtype=np.float32)
     n[..., :2] = xy * 0.5 + 0.5
     n[..., 2] = ao

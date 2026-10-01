@@ -117,7 +117,8 @@ What differs from a tile:
   `"micro_swing"`, `"micro_dir"` and `"micro_params"`, and carry
   `"stitch"`, `"seam"`, `"wear"`, `"texel_edge"` and `"scatter"`; then it
   takes nothing from the stem's `"micro"`. The kinds (knit, wool, weave,
-  linen, canvas, coarse, twill, hair, straw, leather, rope, skin, eye; for
+  linen, canvas, coarse, twill, hair, bristle, straw, leather, rope, skin,
+  eye; for
   animals and monsters fur, hide, feather, scale, bone, rotten, mottle,
   chitin; for riveted iron, a plate per texel, plate, scratches, dents,
   rivets, rust and leaf, with mix to sum several on one material; paper;
