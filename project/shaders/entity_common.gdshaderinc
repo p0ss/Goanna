@@ -6,7 +6,11 @@ uniform sampler2D albedo : source_color, filter_nearest_mipmap, repeat_enable;
 // the tangent normal in RG with ambient occlusion in B, _s carries perceptual
 // smoothness in R, F0/metalness in G and emission in A.
 uniform sampler2D normal_tex : hint_default_black, filter_linear_mipmap, repeat_enable;
-uniform sampler2D spec_tex : hint_default_black, filter_linear_mipmap, repeat_enable;
+// _s is sampled nearest: its channels are categorical (LabPBR metals are G
+// 230 and up), and on a skin a metal plate beside cloth interpolated through
+// values that decode as a dielectric with SPECULAR at its maximum, a shiny
+// rim half a companion texel wide round every plate.
+uniform sampler2D spec_tex : hint_default_black, filter_nearest_mipmap, repeat_enable;
 uniform bool has_normal = false;
 uniform bool has_spec = false;
 // Per channel strengths, matching nodes_array_common.gdshaderinc; see its
