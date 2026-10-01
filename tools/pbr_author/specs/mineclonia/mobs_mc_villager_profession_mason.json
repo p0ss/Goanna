@@ -12,7 +12,7 @@
   "cap": {"mode": "flat", "base": 0.52, "span": 0.0, "micro": "canvas", "micro_strength": 1.8, "smooth": 0.16, "smooth_spread": 0.0, "wear": 0.06, "texel_edge": 0.015},
   "band": {"mode": "flat", "base": 0.58, "span": 0.0, "micro": "leather", "smooth": 0.42, "smooth_spread": 0.0, "wear": 0.12},
   "ring": {"mode": "flat", "base": 0.62, "span": 0.0, "micro": "none", "smooth": 0.4, "smooth_spread": 0.0, "wear": 0.06},
-  "lamp": {"mode": "flat", "base": 0.66, "span": 0.0, "micro": "none", "smooth": 0.85, "smooth_spread": 0.0, "f0": 0.04}
+  "lamp": {"mode": "flat", "base": 0.66, "span": 0.0, "micro": "glass", "smooth": 0.85, "smooth_spread": 0.0, "f0": 0.04}
  },
  "grid": [
   "........aaaaaaaa................................................",

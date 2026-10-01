@@ -15,7 +15,7 @@
   "shirt": {"mode": "flat", "base": 0.46, "span": 0.0, "micro": "linen", "micro_strength": 1.5, "micro_params": {"threads": 5.0}, "smooth": 0.12, "smooth_spread": 0.0, "wear": 0.07, "texel_edge": 0.015},
   "button": {"mode": "flat", "base": 0.54, "span": 0.0, "micro": "none", "smooth": 0.45, "smooth_spread": 0.0},
   "belt": {"mode": "flat", "base": 0.6, "span": 0.0, "micro": "leather", "smooth": 0.42, "smooth_spread": 0.0, "stitch": {"inset": 0.22, "length": 0.36, "gap": 0.18, "width": 0.07, "groove": 0.05, "depth": 0.06}, "wear": 0.12},
-  "buckle": {"mode": "flat", "base": 0.68, "span": 0.0, "micro": "none", "smooth": 0.6, "smooth_spread": 0.0, "metal": true, "wear": 0.08},
+  "buckle": {"mode": "flat", "base": 0.68, "span": 0.0, "micro": "metal", "smooth": 0.6, "smooth_spread": 0.0, "metal": true, "wear": 0.08},
   "stole": {"mode": "flat", "base": 0.54, "span": 0.0, "micro": "weave", "micro_strength": 1.4, "micro_params": {"threads": 6.0, "slub": 0.1}, "smooth": 0.2, "smooth_spread": 0.0, "texel_edge": 0.015}
  },
  "grid": [

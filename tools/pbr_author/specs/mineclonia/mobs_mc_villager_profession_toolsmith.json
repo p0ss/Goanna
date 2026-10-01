@@ -10,7 +10,7 @@
  "stack": ["mobs_mc_villager_base", "mobs_mc_villager_plains", "mobs_mc_villager_profession_toolsmith", "mobs_mc_stone"],
  "materials": {
   "head": {"mode": "flat", "base": 0.68, "span": 0.0, "micro": "none", "smooth": 0.55, "smooth_spread": 0.0, "metal": true, "wear": 0.1},
-  "handle": {"mode": "flat", "base": 0.62, "span": 0.0, "micro": "straw", "micro_strength": 1.2, "smooth": 0.32, "smooth_spread": 0.0}
+  "handle": {"mode": "flat", "base": 0.62, "span": 0.0, "micro": "wood", "micro_dir": "along", "smooth": 0.32, "smooth_spread": 0.0}
  },
  "grid": [
   "................................................................",

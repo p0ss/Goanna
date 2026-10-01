@@ -9,8 +9,8 @@
  "micro": "none",
  "stack": ["mobs_mc_villager_base", "mobs_mc_villager_plains", "mobs_mc_villager_profession_cartographer", "mobs_mc_stone"],
  "materials": {
-  "frame": {"mode": "flat", "base": 0.64, "span": 0.0, "micro": "none", "smooth": 0.72, "smooth_spread": 0.0, "metal": true, "wear": 0.06},
-  "lens": {"mode": "flat", "base": 0.58, "span": 0.0, "micro": "none", "smooth": 0.92, "smooth_spread": 0.0, "f0": 0.04}
+  "frame": {"mode": "flat", "base": 0.64, "span": 0.0, "micro": "metal", "smooth": 0.72, "smooth_spread": 0.0, "metal": true, "wear": 0.06},
+  "lens": {"mode": "flat", "base": 0.58, "span": 0.0, "micro": "glass", "smooth": 0.92, "smooth_spread": 0.0, "f0": 0.04}
  },
  "grid": [
   "................................................................",
