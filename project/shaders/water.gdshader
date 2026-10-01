@@ -153,6 +153,12 @@ const float WAKE_FOAM = 0.18;
 // bright and no dark. A ripple shows the way water shows it, in the bent
 // reflection and refraction and, in sunlight, the caustics below.
 const float RIPPLE_RELIEF = 0.8;
+// Looked down on: how much a ripple's slope towards the sun brightens the
+// water (and away from it darkens it); where the patch churns into foam,
+// from slope x to y; and the most of the surface the foam covers.
+const float RIPPLE_SHADE = 0.6;
+const vec2 FOAM_SLOPE = vec2(0.35, 1.0);
+const float FOAM_COVER = 0.85;
 // Caustics of the ripple patch on the bed: sunlight through a crest is
 // focused, and through a trough spread, by about the surface's curvature
 // times the depth times (1 - 1/1.33), a quarter. The bed's light is scaled
@@ -189,6 +195,50 @@ vec3 scene_position(vec2 uv, mat4 inv_proj) {
 // instead drew a band of sky down each edge of the screen that turned with
 // the camera, bright at night against a black far bank, where the moonlit
 // horizon glow stood in for trees.
+float foam_hash(vec2 p) {
+	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+
+vec2 foam_hash2(vec2 p) {
+	return fract(sin(vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3))))
+			* 43758.5453);
+}
+
+float foam_value(vec2 p) {
+	vec2 i = floor(p);
+	vec2 f = fract(p);
+	f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(foam_hash(i), foam_hash(i + vec2(1.0, 0.0)), f.x),
+			mix(foam_hash(i + vec2(0.0, 1.0)), foam_hash(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+
+// Bubbles on a grid of `cell` nodes at world `p`: each cell may hold one,
+// of its own size and place, there with chance `fill`. A bubble is a bright
+// rim round a clearer middle. Each lives a second or so, at its own phase,
+// then pops and the cell draws again, so froth seethes rather than sits.
+float foam_bubbles(vec2 p, float cell, float fill, float t) {
+	vec2 g = p / cell;
+	vec2 i = floor(g);
+	vec2 f = fract(g);
+	float best = 0.0;
+	for (int y = -1; y <= 1; y++) {
+		for (int x = -1; x <= 1; x++) {
+			vec2 o = vec2(float(x), float(y));
+			vec2 c = i + o;
+			float era = floor(t * 0.8 + foam_hash(c + 7.1));
+			if (foam_hash(c + era * 3.1) > fill)
+				continue;
+			vec2 h = foam_hash2(c + era * 5.3);
+			vec2 centre = o + 0.2 + 0.6 * h;
+			float d = length(f - centre) / mix(0.3, 0.6, h.y);
+			float rim = (1.0 - smoothstep(0.75, 1.0, d))
+					* mix(0.45, 1.0, smoothstep(0.3, 0.85, d));
+			best = max(best, rim);
+		}
+	}
+	return best;
+}
+
 float edge_keep(float x) {
 	float past = max(-x, x - 1.0);
 	return 1.0 - smoothstep(0.15, 0.6, past);
@@ -336,6 +386,7 @@ void fragment() {
 	// the water, from above or below. Where the patch has water the rings
 	// are not drawn (wake.gd hands those bodies to the patch), so the two
 	// add rather than double.
+	vec2 ripple_grad = vec2(0.0);
 	if (goanna_ripple_state.x > 0.5 && face_up > 0.7
 			&& abs(world_pos.y - goanna_ripple_area.w) < 0.4) {
 		vec2 ruv = (world_pos.xz - goanna_ripple_area.xy) / goanna_ripple_area.z;
@@ -346,6 +397,7 @@ void fragment() {
 			float hd = texture(goanna_ripple_height, ruv - vec2(0.0, texel.y)).r;
 			float hu = texture(goanna_ripple_height, ruv + vec2(0.0, texel.y)).r;
 			vec2 grad = vec2(hr - hl, hu - hd) / (2.0 * goanna_ripple_area.z * texel);
+			ripple_grad = grad;
 			vec3 nw = (INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz;
 			nw = normalize(nw - vec3(grad.x, 0.0, grad.y) * RIPPLE_RELIEF);
 			NORMAL = normalize((VIEW_MATRIX * vec4(nw, 0.0)).xyz);
@@ -569,6 +621,35 @@ void fragment() {
 	// light has already been through the lamp once, so neither is shaded
 	// again here.
 	EMISSION = (transmitted * (1.0 - refl_mix) + reflected * refl_mix) * (1.0 - wake_foam);
+	// The ripple patch looked down on. Clear water reflects a fiftieth of
+	// the sky straight down and the bent normal only shifts the bed a
+	// little, so from any height the rings round a body did not show. The
+	// faces of a ripple turned towards the sun are lit and those turned
+	// away shaded, as a slope of ground is; and where the patch is steep,
+	// at the bow of a body pushing through and hard round one going in, the
+	// water churns into froth: bubbles, more of them the steeper it is, in
+	// uneven clumps, popping and coming back. An even white wash, what the
+	// whitening of the earlier rings did, read as smoke rings.
+	float ripple_steep = length(ripple_grad);
+	if (FRONT_FACING && ripple_steep > 1e-4) {
+		// Lit from the sun's side however high it stands, or, with it
+		// straight overhead, from across the view.
+		vec2 key = goanna_sun_dir.xz;
+		if (dot(key, key) < 0.0025)
+			key = (INV_VIEW_MATRIX * vec4(1.0, 0.0, 0.0, 0.0)).xz;
+		float towards = dot(-ripple_grad, normalize(key));
+		EMISSION *= 1.0 + RIPPLE_SHADE * clamp(towards, -1.0, 1.0);
+		float churn = smoothstep(FOAM_SLOPE.x, FOAM_SLOPE.y, ripple_steep)
+				* mix(0.4, 1.4, foam_value(world_pos.xz * 2.3 + TIME * 0.2));
+		churn = clamp(churn, 0.0, 1.0) * (1.0 - smoothstep(16.0, 28.0, here));
+		if (churn > 0.01) {
+			float froth = max(foam_bubbles(world_pos.xz, 0.07, churn, TIME),
+					0.8 * foam_bubbles(world_pos.xz + 3.7, 0.16, churn * 0.7, TIME * 0.8));
+			float cover = froth * min(churn * 1.6, 1.0) * FOAM_COVER;
+			ALBEDO = mix(ALBEDO, vec3(0.9), cover);
+			EMISSION *= 1.0 - cover;
+		}
+	}
 	// From under the water, the sky is seen only through a window straight
 	// up: light from above bends down into a cone of about 48.6 degrees
 	// either side of the vertical. Past it the underside is a mirror of the

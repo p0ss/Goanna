@@ -35,7 +35,9 @@
   water, the view no longer turns water blue.
 - **Waves round your body.** Wading, swimming or jumping in, the water
   rises and rings right at your body's edge instead of a node away, and
-  splashes are thrown as streaks of water rather than white blobs.
+  splashes are thrown as streaks of water rather than white blobs. Seen
+  from above, ripples are lit on the sun's side, and the water froths into
+  bubbles where you push through it or jump in.
 - **No more strobing near the shore.** The sea no longer flickers as if in
   fast forward when you stand a few blocks from the water's edge.
 

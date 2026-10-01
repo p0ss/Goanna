@@ -518,6 +518,29 @@ nodes a second over a bed a node down the bed ranges from 0.54 to 2.5 of
 its light where the wake is, and nearly none of it sits at a clamp
 (goanna_ripples_test prints both).
 
+Seen from high up even that was not enough, and the rings round a body did
+not show at all. Two things were added on the top of the water:
+
+- **Shading.** A ripple's faces turned towards the sun are brightened and
+  those turned away darkened, by 0.6 of the slope along the sun's
+  direction (`RIPPLE_SHADE`), as a slope of ground is lit. With the sun
+  straight overhead the light comes from across the view.
+- **Froth.** Where the patch's slope runs from 0.35 to 1 (`FOAM_SLOPE`),
+  at the bow of a body pushing through and in the ring hard round one going
+  in, the water churns: bubbles on two world grids (0.07 and 0.16 nodes),
+  each cell holding one of its own size and place with a chance that grows
+  with the slope, drawn as a bright rim round a clearer middle. Each lives
+  a second or so and pops, and the cell draws again; a slow noise makes the
+  churn uneven, so it comes in clumps. Covering up to 0.85 of the surface,
+  within 28 nodes. This is the crest whitening above done differently: an
+  even white over every crest read as smoke rings, and a plain white edge
+  was what the owner asked not to have.
+
+Seen headless on software rendering, a hard kick beside a standing player
+froths as clumps of rimmed bubbles of mixed sizes; the shading did not show
+in those captures, where the patch steps slower than real time and the
+light was dim, and neither has been looked at on a GPU.
+
 The control channel's `status` carries it under `wake.ripples`: the surface,
 how many bodies the patch draws, whether it is moving and its highest
 crest.
