@@ -65,10 +65,14 @@ void fragment() {
 	// Item and skinned entity meshes arrive without tangents. Reconstruct
 	// the UV frame from the deformed surface so their normal maps and gem
 	// planes work just as they do on terrain, including mirrored armour UVs.
+	// Every surface with a normal map needs it, not only gems: Godot's
+	// fallback frame comes from the vertex normal alone, so on a mob skin
+	// it turned or mirrored the relief on every face and flattened it on
+	// the faces along Z (project/entity_normal_probe.tscn shows both).
 	vec2 gem_dx = dFdx(UV), gem_dy = dFdy(UV);
 	vec3 gem_position_dx = dFdx(VERTEX), gem_position_dy = dFdy(VERTEX);
 	float gem_det = gem_dx.x * gem_dy.y - gem_dx.y * gem_dy.x;
-	if (diamond_mode != 0 && abs(gem_det) > 1e-12) {
+	if ((diamond_mode != 0 || has_normal) && abs(gem_det) > 1e-12) {
 		vec3 along_u = (gem_position_dx * gem_dy.y - gem_position_dy * gem_dx.y) / gem_det;
 		vec3 along_v = (gem_position_dy * gem_dx.x - gem_position_dx * gem_dy.x) / gem_det;
 		vec3 tangent = along_u - NORMAL * dot(NORMAL, along_u);

@@ -488,11 +488,12 @@ Ref<ImageTexture> GoannaTexture::godotTexture() {
 
 // Relief inferred from a texture's own brightness: height from luminance,
 // then a Sobel gradient to a tangent space normal. Textures tile, so
-// neighbours wrap. Two conventions leave here: Godot's own normal map (+Y up,
-// B is the normal's z) for StandardMaterial3D, and a LabPBR _n layer (Y down
-// like the tile's V, B is ambient occlusion, here none) for the array shader,
-// which reconstructs z itself. They differ only in the sign of green and in
-// what blue holds.
+// neighbours wrap. Two layouts leave here: Godot's own normal map (B is the
+// normal's z) for StandardMaterial3D, and a LabPBR _n layer (B is ambient
+// occlusion, here none) for the array and entity shaders, which reconstruct
+// z themselves. They differ only in what blue holds. Green is the same in
+// both: the shaders decode an _n against Godot's binormal, which points
+// along minus V, so green above 128 tilts toward the top of the image.
 static Ref<Image> inferNormalImage(video::IImage *image, float strength, bool labpbr) {
     if (!image || strength <= 0.0f)
         return Ref<Image>();
@@ -526,11 +527,14 @@ static Ref<Image> inferNormalImage(video::IImage *image, float strength, bool la
             float inv = 1.0f / std::sqrt(nx * nx + ny * ny + nz * nz);
             nx *= inv; ny *= inv; nz *= inv;
             size_t i = (y * w + x) * 4;
-            // Godot uses OpenGL-style tangent normals (+Y up); the mesh UV V
-            // runs downward, so flip Y. LabPBR stores Y down, which is the
-            // image's own row order, so there it stays.
+            // ny is in the image's own row order (down); the binormal points
+            // up the image, so flip it. The _n layer kept ny unflipped until
+            // October 2026, which was right while the mesher's binormal ran
+            // along plus V and wrong from 0e3fa49 on: inferred relief was
+            // upside down along V, a raised texel lit from below the light
+            // (project/entity_normal_probe.tscn, the auto bump quads).
             dst[i + 0] = (uint8_t)std::clamp((nx * 0.5f + 0.5f) * 255.0f, 0.0f, 255.0f);
-            dst[i + 1] = (uint8_t)std::clamp(((labpbr ? ny : -ny) * 0.5f + 0.5f) * 255.0f, 0.0f, 255.0f);
+            dst[i + 1] = (uint8_t)std::clamp((-ny * 0.5f + 0.5f) * 255.0f, 0.0f, 255.0f);
             dst[i + 2] = labpbr ? 255 : (uint8_t)std::clamp((nz * 0.5f + 0.5f) * 255.0f, 0.0f, 255.0f);
             dst[i + 3] = 255;
         }
