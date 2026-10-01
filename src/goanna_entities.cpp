@@ -198,6 +198,32 @@ static Vector2 artSize(const Ref<Image> &img) {
     return Vector2((float)w / up, (float)h / up);
 }
 
+// The highest height (_n alpha) over the texels the albedo draws (alpha 0.5
+// or more, sampled at the map's position), inside a face when islands
+// labels them; every other map texel, for speed. 0 when nothing is drawn.
+static float drawnHeightMax(Ref<Image> n, Ref<Image> albedo, const std::vector<int> &islands) {
+    if (n.is_null() || albedo.is_null())
+        return 0.0f;
+    for (Ref<Image> *im : {&n, &albedo})
+        if ((*im)->is_compressed()) {
+            *im = (*im)->duplicate();
+            (*im)->decompress();
+        }
+    const int nw = n->get_width(), nh = n->get_height();
+    const int aw = albedo->get_width(), ah = albedo->get_height();
+    const bool use_islands = islands.size() == (size_t)nw * nh;
+    float hmax = 0.0f;
+    for (int y = 0; y < nh; y += 2)
+        for (int x = 0; x < nw; x += 2) {
+            if (use_islands && islands[(size_t)y * nw + x] < 0)
+                continue;
+            if (albedo->get_pixel(x * aw / nw, y * ah / nh).a < 0.5f)
+                continue;
+            hmax = std::max(hmax, n->get_pixel(x, y).a);
+        }
+    return hmax;
+}
+
 // GOANNA_ENTITY_PARALLAX: a multiplier on the entity parallax alone, so a
 // run with it at 0 and one without differ in nothing but the mobs.
 static float entityParallaxScale() {
@@ -414,12 +440,79 @@ Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
                     }
                 }
                 const float depth = reliefDepth(nimg, span, islands.empty() ? nullptr : &islands);
+                // The highest stored height over drawn texels, which the
+                // shader lifts to the face: a skin's surface is its highest
+                // texel, wherever its spec put it (entity_common.gdshaderinc,
+                // height_lift). For a stack, over each layer's own map where
+                // its own art is drawn: the composite fills a layer with no
+                // map with the neutral height 255, and the player's headwear
+                // read the whole stack's highest texel as 1 by it.
+                float hmax = 0.0f;
+                bool layered = false;
+                for (const OverlayLayer &l : art_layers) {
+                    GoannaTexture *lc = findCompanion(session, l.image, "_n");
+                    auto *la = dynamic_cast<GoannaTexture *>(session.tsrc()->getTexture(l.image));
+                    if (!lc || !la || lc->godotTexture().is_null() || la->godotTexture().is_null())
+                        continue;
+                    Ref<Image> ln = lc->godotTexture()->get_image();
+                    if (ln.is_valid() && ln->get_size() == nimg->get_size())
+                        hmax = std::max(hmax, drawnHeightMax(ln, la->godotTexture()->get_image(), islands));
+                    else if (ln.is_valid())
+                        hmax = std::max(hmax, drawnHeightMax(ln, la->godotTexture()->get_image(), {}));
+                    layered = true;
+                }
+                if (!layered)
+                    hmax = drawnHeightMax(nimg, aimg, islands);
+                const float lift = hmax > 0.0f ? 1.0f - hmax : 0.0f;
+                // And per face, where the model gave its faces: one lift for
+                // the whole skin left most of it sunk, because one part
+                // stands far above the rest (the player's hair at 0.95 over
+                // clothes at 0.60, 3% of the golem at 0.96 over plates at
+                // 0.60), and the sunk faces still smeared their edge texel.
+                // Each face's highest drawn texel sits on that face. Stored
+                // at the art's resolution, one byte a texel, read once per
+                // fragment at the drawn point.
+                int lifted_faces = 0;
+                if (!islands.empty() && faces) {
+                    const int nw = nimg->get_width(), nh = nimg->get_height();
+                    const int aw = aimg->get_width(), ah = aimg->get_height();
+                    std::vector<float> face_max(faces->size(), 0.0f);
+                    for (int y = 0; y < nh; y += 2)
+                        for (int x = 0; x < nw; x += 2) {
+                            const int f = islands[(size_t)y * nw + x];
+                            if (f < 0 || aimg->get_pixel(x * aw / nw, y * ah / nh).a < 0.5f)
+                                continue;
+                            face_max[f] = std::max(face_max[f], nimg->get_pixel(x, y).a);
+                        }
+                    const int lw = std::max(1, (int)art.x), lh = std::max(1, (int)art.y);
+                    PackedByteArray bytes;
+                    bytes.resize((int64_t)lw * lh);
+                    uint8_t *b = bytes.ptrw();
+                    for (int y = 0; y < lh; ++y)
+                        for (int x = 0; x < lw; ++x) {
+                            const int mx = std::min(nw - 1, (int)((x + 0.5f) * nw / lw));
+                            const int my = std::min(nh - 1, (int)((y + 0.5f) * nh / lh));
+                            const int f = islands[(size_t)my * nw + mx];
+                            const float m = f >= 0 && face_max[f] > 0.0f ? face_max[f] : hmax;
+                            b[(size_t)y * lw + x] = (uint8_t)std::lround(
+                                    std::clamp(m > 0.0f ? 1.0f - m : 0.0f, 0.0f, 1.0f) * 255.0f);
+                        }
+                    for (float m : face_max)
+                        lifted_faces += m > 0.0f && m < hmax;
+                    Ref<Image> limg = Image::create_from_data(lw, lh, false, Image::FORMAT_R8, bytes);
+                    if (limg.is_valid()) {
+                        sm->set_shader_parameter("lift_tex", ImageTexture::create_from_image(limg));
+                        sm->set_shader_parameter("has_lift_tex", true);
+                    }
+                }
                 sm->set_shader_parameter("has_height", true);
                 sm->set_shader_parameter("relief_depth", depth);
+                sm->set_shader_parameter("height_lift", lift);
                 sm->set_shader_parameter("art_texels", art);
                 if (getenv("GOANNA_DEBUG_ENTITY_PBR"))
                     UtilityFunctions::print("entity relief: ", String::utf8(texture.c_str()),
-                            " art=", art, " depth=", depth);
+                            " art=", art, " depth=", depth, " hmax=", hmax,
+                            " faces lifted further=", lifted_faces);
             }
         }
         sm->set_shader_parameter("parallax_strength", m_parallax * entityParallaxScale());

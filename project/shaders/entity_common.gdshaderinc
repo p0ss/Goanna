@@ -68,6 +68,18 @@ uniform float class_sss : hint_range(0.0, 1.0) = 0.0;
 // profile) times GOANNA_ENTITY_PARALLAX; see EntityRenderer::setParallax.
 uniform bool has_height = false;
 uniform float relief_depth = 0.0;
+// 1 minus the highest height stored over the skin's drawn texels, added to
+// every height read, so the highest texel sits on the face. Skins authored
+// before parallax keep their main surfaces at 0.4 to 0.7; marched as
+// stored they drew sunk into the box, and the march ran off every face
+// edge onto the clamped edge texel, smeared. A node tile's crest is its
+// byte's top, so the node path has no such lift.
+uniform float height_lift : hint_range(0.0, 1.0) = 0.0;
+// The same per face, at the art's resolution, where the model gave its
+// faces: one part standing far above the rest (the player's hair, a few
+// golem rivets) otherwise left every other face sunk.
+uniform sampler2D lift_tex : hint_default_black, filter_nearest, repeat_enable;
+uniform bool has_lift_tex = false;
 uniform vec2 art_texels = vec2(64.0, 32.0);
 uniform float parallax_strength : hint_range(0.0, 1.0) = 1.0;
 uniform float parallax_depth : hint_range(0.0, 4.0) = 1.0;
@@ -162,6 +174,8 @@ void fragment() {
 		vec2 inset = 0.005 / art_texels;
 		vec2 lo = rect.xy + inset;
 		vec2 hi = max(rect.zw - inset, lo);
+		// This face's lift, so its own highest texel sits on it.
+		float lift = has_lift_tex ? textureLod(lift_tex, clamp(UV, lo, hi), 0.0).r : height_lift;
 		// The node march's step count, capped lower: a mob is a few
 		// hundred pixels at most and its authored heights are plateaus
 		// one art texel wide, which the chord refinement below finds.
@@ -170,7 +184,7 @@ void fragment() {
 		float d = 0.0;
 		float d_prev = 0.0;
 		vec2 uv = clamp(UV, lo, hi);
-		float h = 1.0 - textureGrad(normal_tex, uv, gem_dx, gem_dy).a;
+		float h = max(1.0 - lift - textureGrad(normal_tex, uv, gem_dx, gem_dy).a, 0.0);
 		float h_prev = h;
 		for (int i = 0; i < 32; i++) {
 			if (i >= steps || d >= h)
@@ -179,7 +193,7 @@ void fragment() {
 			h_prev = h;
 			d += dd;
 			uv = clamp(UV - slope * d, lo, hi);
-			h = 1.0 - textureGrad(normal_tex, uv, gem_dx, gem_dy).a;
+			h = max(1.0 - lift - textureGrad(normal_tex, uv, gem_dx, gem_dy).a, 0.0);
 		}
 		float below = d - h;
 		float above = h_prev - d_prev;
@@ -215,7 +229,7 @@ void fragment() {
 			for (int i = 0; i < 8; i++) {
 				k += dk;
 				vec2 suv = clamp(puv + sslope * k, lo, hi);
-				float hs = 1.0 - textureGrad(normal_tex, suv, gem_dx, gem_dy).a;
+				float hs = max(1.0 - lift - textureGrad(normal_tex, suv, gem_dx, gem_dy).a, 0.0);
 				blocked = max(blocked, (d_hit - k) - hs);
 			}
 			self_shadow = 1.0 - clamp(blocked * 6.0, 0.0, 1.0)

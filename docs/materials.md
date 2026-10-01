@@ -406,6 +406,15 @@ broke mcl_skins: its `(mask^[colorize:...)` groups are blitted at their
 own 64 x 32 size into the corner of the 1024 wide part, and the player
 drew bare skin colour all over. The frame is solved per fragment from the UV and position
 derivatives, so a mirrored limb marches the mirrored way by itself.
+Heights are marched relative to each face's highest drawn texel, which
+is lifted to sit on the face (`height_lift`, and per face `lift_tex` at
+the art's resolution): skins authored before parallax keep their main
+surfaces at 0.4 to 0.7 and drew sunk into the box with their edge texel
+smeared, and one lift for the whole skin was not enough, because one
+part stands well above the rest (the player's hair at 0.95 over clothes
+at 0.60). For a stack the whole-skin value comes from each layer's own
+map, since the composite fills a layer without one at 255. Node layers
+are unchanged.
 Containment, which blocks never needed: `buildGodotModel` writes each
 face's UV rectangle into `CUSTOM0` (the bounds of the triangles joined by
 shared vertices, a box face on a mob) and every sample of the march and
