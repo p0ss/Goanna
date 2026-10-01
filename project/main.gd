@@ -1150,7 +1150,12 @@ var connect_title: Label
 var connect_detail: Label
 var connect_bar: ProgressBar
 
+# When the connection screen went up, for the no answer timeout below.
+var _connect_started_ms := 0
+const CONNECT_NO_ANSWER_MS := 20000
+
 func _build_connect_overlay() -> void:
+	_connect_started_ms = Time.get_ticks_msec()
 	connect_overlay = ColorRect.new()
 	(connect_overlay as ColorRect).color = Color(0.06, 0.07, 0.09)
 	connect_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -1188,6 +1193,23 @@ func _update_connect_overlay(s: Dictionary) -> void:
 	var got := int(s.get("media_received", 0))
 	var want := int(s.get("media_announced", 0))
 	var msg := str(s.get("message", ""))
+	# A local server Goanna started that has since stopped, or a server that
+	# has not answered at all: say so rather than leave "Connecting" up over
+	# nothing, which read as a blank screen (2026-10-01).
+	var sp_pid := int(OS.get_environment("GOANNA_SP_PID"))
+	var stopped := sp_pid > 0 and not OS.is_process_running(sp_pid)
+	var silent := want == 0 and got == 0 and state != "ready" \
+			and Time.get_ticks_msec() - _connect_started_ms > CONNECT_NO_ANSWER_MS
+	if stopped or (silent and not (state == "denied" or state == "error")):
+		connect_title.text = "The local server stopped" if stopped else "The server is not answering"
+		connect_bar.visible = false
+		connect_detail.text = ("The Luanti server this game started has stopped. " \
+				if stopped else "Nothing has come back from %s in %d seconds. " % [
+					OS.get_environment("GOANNA_HOST") + ":" + OS.get_environment("GOANNA_PORT"),
+					CONNECT_NO_ANSWER_MS / 1000]) \
+				+ "\n\nPress Escape to go back to the menu."
+		connect_detail.modulate = Color(1, 0.65, 0.55)
+		return
 	if state == "denied" or state == "error" or msg.begins_with("access denied"):
 		# The server has refused and is not going to change its mind. Say what
 		# it said, rather than leaving the player watching a blank screen.

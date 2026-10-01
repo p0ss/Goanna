@@ -1131,6 +1131,14 @@ func _write_world_options(world: String, options: Dictionary) -> String:
 		"enable_damage": "true" if bool(options.get("damage", true)) else "false",
 		"server_announce": "true" if bool(options.get("announce", false)) else "false",
 	}
+	# A new world gets SQLite for everything, as Luanti's own client gives
+	# one. With no backend lines Luanti falls back to its deprecated file
+	# backends and warns about each of them at every start, and the file map
+	# backend is slow. An existing world keeps whatever it has: changing a
+	# backend would leave its data behind.
+	if not FileAccess.file_exists(path):
+		for key in ["backend", "player_backend", "auth_backend", "mod_storage_backend"]:
+			values[key] = "sqlite3"
 	var mods: Array = options.get("mods", [])
 	for mod in mods:
 		values["load_mod_" + str(mod)] = "true"
@@ -1330,10 +1338,20 @@ func start_config(options: Dictionary) -> String:
 	if world_options_error != "":
 		return world_options_error
 	log_path = _data_dir.path_join("goanna_singleplayer.log")
-	# a fixed local port; if it is busy the log tells us and start() is retried
+	# A port nobody holds. It used to be a fixed one per world name, and when
+	# something already held it (often a server left behind by an earlier
+	# run) the new server died a moment after start up, after Goanna had
+	# already called it ready: a grey screen, reported 2026-10-01. A port the
+	# player chose for hosting is checked but not moved.
 	port = int(options.get("port", 0))
+	var bind_on := "0.0.0.0" if bool(options.get("host", false)) else "127.0.0.1"
 	if port == 0:
-		port = 30800 + (hash(worldname) % 150)
+		port = free_udp_port(30800 + (hash(worldname) % 150), bind_on)
+		if port == 0:
+			return "No free network port was found for the server between 30800 and 30999."
+	elif not udp_port_free(port, bind_on):
+		return "Port %d is already in use by another program, perhaps another Luanti server. Choose another port under Hosting, or close that program." % port
+	_ready_seen_ms = 0
 	# How far the server will send blocks at all. Luanti defaults
 	# max_block_send_distance to 12 mapblocks, 192 nodes, and that is a hard
 	# ceiling on what any client can draw however much it asks for: see
@@ -1504,16 +1522,49 @@ func start_config(options: Dictionary) -> String:
 		return "Could not launch the server (%s)." % exe
 	return ""
 
+# Whether a UDP port can be bound on `address`, tested by binding it.
+static func udp_port_free(p: int, address: String) -> bool:
+	var probe := PacketPeerUDP.new()
+	var ok := probe.bind(p, address) == OK
+	probe.close()
+	return ok
+
+# The first free UDP port from `start`, wrapping within 30800 to 30999, or 0.
+static func free_udp_port(start: int, address: String) -> int:
+	for i in 200:
+		var p := 30800 + ((start - 30800 + i) % 200)
+		if udp_port_free(p, address):
+			return p
+	return 0
+
+# Luanti prints its "listening on" line as soon as it has queued the socket
+# bind on its network thread, before the bind has happened
+# (Server::start, luanti/src/server.cpp). A bind that then fails ends the
+# server a moment later with "Failed to bind socket". So the line starts a
+# short wait, and ready means the line was seen, this long has passed, the
+# process is still running and no bind failure was logged.
+const READY_SETTLE_MS := 1500
+var _ready_seen_ms := 0
+
 # Poll the log for the "listening" line. Returns "starting", "ready" or an
 # error string.
 func poll_ready() -> String:
 	if not FileAccess.file_exists(log_path):
 		return "starting"
 	var text := FileAccess.get_file_as_string(log_path)
+	if text.find("already in use") >= 0 or text.find("Failed to bind") >= 0:
+		return "The server could not use port %d, which another program holds. Try again; Goanna picks another port each time." % port
+	if pid > 0 and not OS.is_process_running(pid):
+		for line in text.split("\n"):
+			if line.find("ERROR[Main]") >= 0:
+				return line.strip_edges()
+		return "The server stopped while starting. Its log is %s." % log_path
 	if text.find("listening on") >= 0 or text.find("Server for gameid") >= 0:
-		return "ready"
-	if text.find("already in use") >= 0:
-		return "Port %d is already in use." % port
+		if _ready_seen_ms == 0:
+			_ready_seen_ms = Time.get_ticks_msec()
+		if Time.get_ticks_msec() - _ready_seen_ms >= READY_SETTLE_MS:
+			return "ready"
+		return "starting"
 	if text.findn("error") >= 0 and text.findn("ERROR[Main]") >= 0:
 		# surface the first hard error line
 		for line in text.split("\n"):
