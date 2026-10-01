@@ -46,9 +46,9 @@ before the material's strength:
   canvas   plain weave, 4.5 threads, even.
   coarse   plain weave, 3 threads (trousers).
   twill    diagonal ribs. Leans one way, so not for mirrored limbs.
-  hair     strands along the direction, ten to a texel, drifting a
-           little, each with its own thickness, some breaking off; the
-           strand crests are smoother, so a sheen runs along them.
+  hair     locks: each run of texels at one height a rounded bundle with
+           a few soft strand grooves of varied width, a slight wave,
+           drawn together toward the tip, and a sheen band across it.
   straw    stiff fibres along the direction with the odd node across;
            "plait": true turns the direction a quarter per texel, like a
            plaited hat.
@@ -56,8 +56,8 @@ before the material's strength:
            pebbles a little smoother than the creases.
   rope     twisted plies: ridges across the rope at a slant, with fibres.
   skin     nearly nothing: sparse faint pores and a soft variation.
-  eye      a shallow dome over each piece (a cornea), so a glossy eye
-           catches the light in one small spot instead of all over.
+  eye      flat, with one small soft rise high on each piece, so a glossy
+           iris catches the sun in one spot (a catch light), with no rim.
 
 Edge features, which need the piece's shape, are separate material keys:
 
@@ -230,11 +230,34 @@ def _strands(c, p, seed_off=0):
 
 
 def _hair(c, p):
-    prof, tone = _strands(c, p)
-    d = prof - 0.45
-    # Sheen: the crest of a strand is smoother than the gap beside it, so
-    # a highlight runs along the strands rather than sitting in a spot.
-    s = 0.9 * (prof - 0.45) + 0.25 * (tone - 0.5)
+    """Hair in locks: each lock (a run of texels at one height, atlas.py
+    passes its frame) is a rounded bundle, not a board. A few soft strand
+    grooves of varied width and spacing, a slight wave, drawn together
+    toward the lock's tip; and a sheen band across the lock, as hair's
+    anisotropic highlight runs across the strands, in the smoothness with
+    a slight swell in the normal. Without a lock frame it is one lock."""
+    n_px = np.shape(c["x"])
+    la = c.get("la", np.zeros(n_px))
+    lt = c.get("lt", np.full(n_px, 0.5))
+    lw = c.get("lw", np.full(n_px, 0.5))
+    lid = c.get("lid", np.zeros(n_px, np.int64))
+    sd = c["seed"]
+    rnd = np.sqrt(np.clip(1.0 - la * la, 0.0, 1.0))
+    # Across the lock in texels, drawn in toward the tip.
+    v = la * lw * (1.0 - p.get("converge", 0.35) * lt) + _hash(lid, 1, sd)
+    u = c["u"]
+    v = v + p.get("wave", 0.025) * np.sin(2 * np.pi * (u * 0.8 + _hash(lid, 2, sd)))
+    v = v + p.get("spacing", 0.12) * vnoise(v * 2.0, u * 0.3, sd + 3)
+    n = p.get("strands", 2.5)
+    ids = np.floor(v * n).astype(np.int64)
+    f = _frac(v * n)
+    w = 0.10 + 0.10 * _hash(ids, lid, sd + 4)
+    edge = np.minimum(f, 1.0 - f)
+    groove = np.exp(-(edge / w) ** 2) * (0.5 + 0.5 * _hash(ids, lid, sd + 5))
+    centre = 0.3 + 0.2 * _hash(lid, 3, sd)
+    band = np.exp(-((lt - centre + 0.04 * vnoise(v * 3.0, u, sd + 6)) / 0.13) ** 2)
+    d = 0.8 * (rnd - 0.6) - 0.35 * groove + 0.3 * band
+    s = 1.4 * (band - 0.3) + 0.3 * (rnd - 0.7) - 0.4 * groove
     return d, s
 
 
@@ -282,13 +305,23 @@ def _skin(c, p):
 
 
 def _eye(c, p):
+    """A flat eye with one small soft rise for a catch light: a gaussian
+    spot, so it has no rim, at "spot" (x, y and radius in texels from the
+    piece's centre, y down), high on the piece by default. A sun anywhere
+    in front finds a point of it facing halfway to the viewer."""
     px, py = c.get("px"), c.get("py")
     if px is None:
         return np.zeros_like(c["x"]), np.zeros_like(c["x"])
-    r2 = px * px + py * py
-    d = np.sqrt(np.clip(1.0 - r2, 0.0, 1.0)) - 0.5
-    return d, np.zeros_like(d)
+    dx = px * c.get("hx", 1.0)
+    dy = py * c.get("hy", 1.0)
+    sx, sy, r = p.get("spot", (0.0, -0.4, 0.16))
+    g = np.exp(-((dx - sx) ** 2 + (dy - sy) ** 2) / (r * r))
+    return g, np.zeros_like(g)
 
+
+# Kinds that want each lock's frame (atlas.py: la across -1..1, lt along
+# 0..1, lw half width in texels, lid an id).
+LOCK_KINDS = {"hair"}
 
 # (function, default amplitude in height units, default smoothness swing)
 KINDS = {

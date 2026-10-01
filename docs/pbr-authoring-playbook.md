@@ -56,10 +56,18 @@ pieces stand at different heights (hair proud of the head, belt, cuffs,
 strap and clasps proud of the cloth), except the hair, which keeps a
 height per art shade so its locks stack with dark gaps between. Inside a
 piece the detail is the material's own micro kind (knit shirt, coarse
-weave trousers, leather with stitching inside every edge, strands along
-the hair's fall, near nothing on skin, a small dome on each iris for a
+weave trousers, leather with stitching inside every edge, each hair lock
+a rounded bundle with a few soft strand grooves and a sheen band across
+it, near nothing on skin, one small soft rise on each flat iris for a
 catch light), in the normal and smoothness only. It has been judged only
 on `tools/pbr_author/preview_figure.py`'s offline figure, not in game.
+
+Second round, from the owner's review of the first: parallel straight
+strands at one spacing on a flat lock read as wood planks; sunk seam
+texels on the trousers read as plaid (the darker lines are now shading
+on one flat panel); knit and weave showed only under a low sun, so their
+strength was raised to read in ordinary light; and a dome over the whole
+iris drew a ring at its edge.
 
 No GPU for the agents. Judge on the previews and the check, then render
 one client at a time.

@@ -471,7 +471,8 @@ def build(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, model=None, brush=Non
                             lib.SMOOTH_CEILING)
     sss = None
     if any(_has_material_surface(m) for m in mats.values()):
-        d2, s2, sss = material_surface(stem, spec, game, mat, drawn, isl, cell, model, brush, cls)
+        d2, s2, sss = material_surface(stem, spec, game, mat, drawn, isl, cell, model, brush, cls,
+                                       hgt=hgt)
         detail += d2
         smooth_hi = np.clip(smooth_hi + s2, 0.0, lib.SMOOTH_CEILING)
     if spec.get("face_edge", "flat") == "bevel":
@@ -530,7 +531,37 @@ def _piece_frames(sel, isl, rects_dirs):
     return cx, cy, hx, hy, ax
 
 
-def material_surface(stem, spec, game, mat, drawn, isl, cell, model, brush, cls):
+def _lock_frames(sel, isl, hgt, u, v, iy, ix, cell):
+    """For a kind in micro.LOCK_KINDS: each lock is a 4 connected run of
+    sel at one height inside one island. Per pixel: across the lock
+    (-1..1), along it (0 at its start, 1 at its end, following u), its
+    half width in texels and its id."""
+    from scipy import ndimage
+    lid = -np.ones(sel.shape, np.int64)
+    n = 0
+    level = np.round(hgt, 4)
+    for i in np.unique(isl[sel]):
+        for lv in np.unique(level[sel & (isl == i)]):
+            lab, k = ndimage.label(sel & (isl == i) & (level == lv))
+            lid = np.where(lab > 0, lab - 1 + n, lid)
+            n += k
+    ids = np.kron(lid, np.ones((cell, cell), np.int64))[iy, ix]
+    half = 0.5 / cell
+    umin = np.full(n, np.inf)
+    umax = np.full(n, -np.inf)
+    vmin = np.full(n, np.inf)
+    vmax = np.full(n, -np.inf)
+    np.minimum.at(umin, ids, u)
+    np.maximum.at(umax, ids, u)
+    np.minimum.at(vmin, ids, v)
+    np.maximum.at(vmax, ids, v)
+    lw = (vmax - vmin) / 2.0 + half
+    lt = (u - umin[ids] + half) / (umax[ids] - umin[ids] + 2 * half)
+    la = (v - (vmin[ids] + vmax[ids]) / 2.0) / lw[ids]
+    return np.clip(la, -1, 1), np.clip(lt, 0, 1), lw[ids], ids
+
+
+def material_surface(stem, spec, game, mat, drawn, isl, cell, model, brush, cls, hgt=None):
     """The per material micro surface, edges, wear and scattering of a
     skin (micro.py): (detail, smooth swing, scattering byte per texel or
     None), the first two at the map's size."""
@@ -590,6 +621,10 @@ def material_surface(stem, spec, game, mat, drawn, isl, cell, model, brush, cls)
             ctx["v"] = -ctx["x"] * dy + ctx["y"] * dx
             ctx["px"] = (ctx["x"] - up(cx)[iy, ix]) / up(hx)[iy, ix]
             ctx["py"] = (ctx["y"] - up(cy)[iy, ix]) / up(hy)[iy, ix]
+            ctx["hx"], ctx["hy"] = up(hx)[iy, ix], up(hy)[iy, ix]
+            if kind in micro.LOCK_KINDS and hgt is not None:
+                ctx["la"], ctx["lt"], ctx["lw"], ctx["lid"] = _lock_frames(
+                    sel, isl, hgt, ctx["u"], ctx["v"], iy, ix, cell)
             d, s, amp, swing = micro.evaluate(kind, ctx, m.get("micro_params"))
             detail[iy, ix] += amp * float(m.get("micro_strength", 1.0)) * d
             swing_out[iy, ix] += swing * float(m.get("micro_swing", 1.0)) * s

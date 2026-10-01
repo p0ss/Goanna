@@ -10,9 +10,8 @@
  "tint": "#383532",
  "stack": ["mcl_skins_base_1", "mcl_skins_eye_1", "mcl_skins_bottom_1", "mcl_skins_footwear_1", "mcl_skins_top_1", "mcl_skins_hair_1"],
  "materials": {
-  "trouser": {"mode": "flat", "base": 0.46, "span": 0.0, "micro": "coarse", "smooth": 0.12, "smooth_spread": 0.0, "wear": 0.06},
-  "seam": {"mode": "flat", "base": 0.41, "span": 0.0, "micro": "coarse", "smooth": 0.1, "smooth_spread": 0.0},
-  "patch": {"mode": "flat", "base": 0.52, "span": 0.0, "micro": "coarse", "smooth": 0.12, "smooth_spread": 0.0, "seam": {"inset": 0.12, "width": 0.05, "depth": 0.05}, "wear": 0.06},
+  "trouser": {"mode": "flat", "base": 0.46, "span": 0.0, "micro": "coarse", "micro_strength": 1.8, "smooth": 0.12, "smooth_spread": 0.0, "wear": 0.06},
+  "patch": {"mode": "flat", "base": 0.52, "span": 0.0, "micro": "coarse", "micro_strength": 1.8, "smooth": 0.12, "smooth_spread": 0.0, "seam": {"inset": 0.12, "width": 0.05, "depth": 0.05}, "wear": 0.06},
   "belt": {"mode": "flat", "base": 0.6, "span": 0.0, "micro": "leather", "smooth": 0.45, "smooth_spread": 0.0, "stitch": {"inset": 0.22, "length": 0.36, "gap": 0.18, "width": 0.07, "groove": 0.05, "depth": 0.06}, "wear": 0.12}
  },
  "grid": [
@@ -49,5 +48,5 @@
   "................ttttttBtBttttttttttttttt........................",
   "................ttttttBttttttttttttttttt........................"
  ],
- "legend": {"t": "trouser", "j": "seam", "P": "patch", "B": "belt"}
+ "legend": {"t": "trouser", "j": "trouser", "P": "patch", "B": "belt"}
 }
