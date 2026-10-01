@@ -729,6 +729,10 @@ Array EntityRenderer::list(GoannaSession &session) const {
             d["hands"] = hands;
             d["feet"] = feet;
             d["water_pose"] = kv.second.water_pose;
+            // The movement poses now, for status and live checks.
+            d["landing"] = an->landing();
+            d["lean"] = an->lean();
+            d["bank"] = an->bank();
         }
         a.push_back(d);
     }
