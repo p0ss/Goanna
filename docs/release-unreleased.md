@@ -38,6 +38,10 @@
   splashes are thrown as streaks of water rather than white blobs. Seen
   from above, ripples are lit on the sun's side, and the water froths into
   bubbles where you push through it or jump in.
+- **Crown splashes.** Jumping or falling into the water hard throws up a
+  crown of water round you, its rim breaking into fingers and drops,
+  higher on the side you were moving towards; punching the water throws a
+  small one the way you hit.
 - **No more strobing near the shore.** The sea no longer flickers as if in
   fast forward when you stand a few blocks from the water's edge.
 

@@ -109,6 +109,15 @@ const SPLASH_SINK := 1.2
 const SPLASH_COOLDOWN := 0.3
 const SPLASH_FULL := 3.0
 const SPRAY_SPEED := 2.2
+# Crowns (splashes.crown): going in at CROWN_MIN of a full splash or more
+# throws up a sheet of water round the body, CROWN_BODY across its foot and
+# up; leaning towards how the body was moving across, fully lopsided at
+# CROWN_LEAN nodes a second. A blow throws a smaller one, CROWN_STRIKE,
+# leaning the way the blow went.
+const CROWN_MIN := 0.5
+const CROWN_BODY := Vector2(0.55, 0.9)
+const CROWN_LEAN := 4.0
+const CROWN_STRIKE := Vector2(0.22, 0.45)
 # Where the droplets come down, small kicks on the patch: how hard, how
 # many a burst throws at full strength, and how far out and how late they
 # land. Spray lands beside the bow, SPRAY_LANDINGS a second.
@@ -594,6 +603,9 @@ func _splash_body(key, pos: Vector3, vel: Vector3, sink: float, scale: float,
 		if sink > SPLASH_SINK and float(st["sink"]) <= SPLASH_SINK:
 			var s := clampf(sink / SPLASH_FULL, 0.2, 1.0) * scale
 			splashes.burst("entry", surface, s)
+			if s >= CROWN_MIN * scale:
+				splashes.crown(surface, s / scale, Vector2(vel.x, vel.z) / CROWN_LEAN,
+						CROWN_BODY * scale)
 			_drop(surface, s, t)
 			st["next"] = t + SPLASH_COOLDOWN
 		elif sink < -SPLASH_SINK and float(st["sink"]) >= -SPLASH_SINK:
@@ -665,6 +677,7 @@ func strike(origin: Vector3, dir: Vector3, blocked_at := INF) -> bool:
 			ripples.impulse(Vector2(hit.x, hit.z), STRIKE_KICK, 0.2)
 			if splashes != null:
 				splashes.burst("strike", hit, 0.8)
+				splashes.crown(hit, 0.8, Vector2(dir.x, dir.z), CROWN_STRIKE)
 			_drop(hit, 0.5, _last_t)
 			return true
 		d += 0.25

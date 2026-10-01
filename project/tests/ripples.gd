@@ -60,6 +60,12 @@ class Recorder:
 		sprays.append([key, pos, dir, speed])
 		return true
 
+	var crowns: Array = []
+
+	func crown(pos: Vector3, strength: float, push: Vector2, size: Vector2) -> bool:
+		crowns.append([pos, strength, push, size])
+		return true
+
 
 class Globals:
 	extends RefCounted
@@ -258,6 +264,10 @@ func _test_splash_events() -> void:
 	if crowns.size() == 1:
 		check(is_equal_approx((crowns[0][1] as Vector3).y, 0.5), "the crown is not on the surface")
 		check(crowns[0][2] > 0.5, "a fall at 5 nodes a second threw a weak crown: %.2f" % crowns[0][2])
+	check(rec.crowns.size() == 1, "falling in threw up %d sheets of water, not one" % rec.crowns.size())
+	if rec.crowns.size() == 1:
+		check(is_equal_approx((rec.crowns[0][0] as Vector3).y, 0.5), "the sheet is not on the surface")
+		check((rec.crowns[0][2] as Vector2).length() < 0.05, "a straight fall threw a lopsided sheet")
 	var queued: int = w._landings.size()
 	t = _run(w, t, 1.0, fall, [])
 	check(queued > 0 and w._landings.is_empty(), "the crown's drops never came down")
@@ -265,7 +275,8 @@ func _test_splash_events() -> void:
 	# Floating still: nothing more.
 	var before := rec.bursts.size()
 	t = _run(w, t, 2.0, fall, [])
-	check(rec.bursts.size() == before and rec.sprays.is_empty(), "floating still threw up water")
+	check(rec.bursts.size() == before and rec.sprays.is_empty() and rec.crowns.size() == 1,
+			"floating still threw up water")
 	# Climbing out fast: drips.
 	var climb := func(tt: float) -> Vector3:
 		var f := clampf((tt - t) / 0.4, 0.0, 1.0)
@@ -288,6 +299,24 @@ func _test_splash_events() -> void:
 		else:
 			check(rec2.sprays.is_empty(), "wading at 1 node a second sprayed")
 		w2.free()
+	# Diving in at a run: the sheet leans the way the body was going. Easing
+	# in slowly: drops at most, no sheet.
+	for dive in [true, false]:
+		var w3 := _new_wake()
+		var rec3 := Recorder.new()
+		w3.splashes = rec3
+		var path := func(tt: float) -> Vector3:
+			var f := clampf((tt - 0.5) / (0.4 if dive else 1.6), 0.0, 1.0)
+			return Vector3(20.0 + (3.0 * tt if dive else 0.0), lerpf(1.5, -0.5, f), 10.0)
+		_run(w3, 0.0, 2.5, path, [])
+		if dive:
+			check(rec3.crowns.size() == 1, "diving in threw up %d sheets, not one" % rec3.crowns.size())
+			if rec3.crowns.size() == 1:
+				var push: Vector2 = rec3.crowns[0][2]
+				check(push.x > 0.5 and absf(push.y) < 0.1, "the sheet does not lean the way the dive went: %s" % push)
+		else:
+			check(rec3.crowns.is_empty(), "easing into the water threw up a sheet")
+		w3.free()
 	finished += 1
 
 
@@ -301,6 +330,8 @@ func _test_strike() -> void:
 	var at := Vector3(0.5, 0.5, 10.0)
 	check(w.strike(eye, (at - eye).normalized()), "a blow at the lake from the bank missed it")
 	check(rec.bursts.size() == 1 and rec.bursts[0][0] == "strike", "a blow at the water threw no splash")
+	check(rec.crowns.size() == 1 and (rec.crowns[0][2] as Vector2).x > 0.5,
+			"a blow at the water threw up no sheet, or not leaning the way it went")
 	check(not w.ripples.is_asleep(), "a blow at the water left it still")
 	check(not w.strike(eye, (at - eye).normalized(), 1.0), "a blow reached the water through a block")
 	var far := Vector3(6.0, 0.5, 10.0)
@@ -336,6 +367,14 @@ func _test_splash_emitters() -> void:
 	sp.tick(1.5)
 	check(sp.counts()["sprays"] == 0, "sprays nobody asked for kept going")
 	check(sp.counts()["bursts"] == 0, "bursts outlived their drops")
+	# Crowns: bounded, and gone once they have fallen back.
+	for i in 12:
+		sp.crown(Vector3.ZERO, 1.0, Vector2(0.5, 0.0), Vector2(0.55, 0.9))
+	check(sp.counts()["crowns"] == sp.MAX_CROWNS, "the crowns overran their budget: %d" % sp.counts()["crowns"])
+	sp.tick(0.3)
+	check(sp.counts()["crowns"] == sp.MAX_CROWNS, "a crown fell back before it stood")
+	sp.tick(1.0)
+	check(sp.counts()["crowns"] == 0, "crowns outlived their fall")
 	sp.queue_free()
 	finished += 1
 

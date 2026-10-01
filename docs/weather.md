@@ -549,14 +549,29 @@ crest.
 
 The droplets a body throws out of the water, beside the waves the ripple
 patch draws (`project/ui/splashes.gd`, driven by `wake.gd`). Only the bodies
-the patch draws splash. Presentation only; tested headless only, and not
-yet observed.
+the patch draws splash. Presentation only; seen headless on software
+rendering (a fall into the water, a blow at it, crowns at fixed ages), not
+yet on a GPU.
 
 - **Going in.** A body whose submerged depth grows faster than 1.2 nodes a
   second (a fall or a jump into the water) throws a crown: droplets from a
-  ring round where it went in, up at 1.8 to 3.8 nodes a second and out at
-  0.8 to 2.2, 20 to 96 of them by how fast it went in (full at 3 nodes a
-  second).
+  ring round where it went in (the crown's foot), up at 1.8 to 3.8 nodes a
+  second and out at 0.8 to 2.2, 20 to 96 of them by how fast it went in
+  (full at 3 nodes a second).
+- **The crown.** Going in at half a full splash or more (sinking at 1.5
+  nodes a second), a sheet of water stands up in a ring round the body
+  (`splashes.crown`, `shaders/splash_crown.gdshader`): its foot spreads to
+  0.55 nodes round and it rises to 0.9, flaring out towards the lip like a
+  tulip, then leans out and falls back, all in about three quarters of a
+  second. The sheet is a clear streaky film with a thick white lip drawn up
+  into 18 uneven fingers, rounded and beaded at their tips; partway through
+  (`CROWN_SHED`) the lip between them goes, the fingers stand alone and
+  shed a ring of drops (`rim`), and the sheet thins away. It stands taller,
+  and is thrown further, on the side the body was moving across, wholly
+  lopsided at 4 nodes a second, so diving in at a run throws a wall of
+  water ahead. A blow at the water throws a smaller one (0.22 round, 0.45
+  up) leaning the way the blow went. The mesh is a plain 144 by 8 ring the
+  shader shapes from the crown's age; at most 8 at once.
 - **Coming out** as fast: drips off the sides of the body, below the eye,
   falling back. They came out of a box through the whole body, which in
   first person put them in front of the lens.
@@ -566,7 +581,7 @@ yet observed.
 - **A blow at the water.** A dig or punch pressed (`main.gd`,
   `_strike_water`) looks along the view ray, within the hand's 4 nodes and
   short of any node the blow hit, for the first open water surface; there
-  it kicks the ripple patch and throws a burst. It works from the bank, with
+  it kicks the ripple patch and throws a burst and a crown. It works from the bank, with
   nobody in the water: the patch then lies on the struck surface. A blow at
   a mob is the mob's.
 
