@@ -58,6 +58,33 @@ before the material's strength:
   skin     nearly nothing: sparse faint pores and a soft variation.
   eye      flat, with one small soft rise high on each piece, so a glossy
            iris catches the sun in one spot (a catch light), with no rim.
+           The owner rejected the rise on the player (2026-10-01): eyes
+           now take "none", flat and glossy; this kind is kept for
+           reference.
+
+For animals and monsters, sized for a mob's 8 pixels to a texel (each
+says its parameters in its docstring):
+
+  fur      tufts in staggered rows lying along the direction, each rising
+           from under the one before to a pointed tip; clumped, matte, a
+           slight sheen near the tips. "length" 0.8 (a cow), 1.2 to 1.6
+           (a wolf); "width", "clump", "strands", "fuzz".
+  hide     a cow's or pig's skin: a net of fine creases, wrinkles across
+           the direction in places, sparse pores, slightly waxy swells.
+           "cell", "wrinkles".
+  feather  overlapping rounded feathers in staggered rows along the
+           direction, a shaft line down each, barbs, a step at each tip.
+           "length", "width" (about a texel on a chicken), "barbs".
+  scale    overlapping rounded scales with a faint keel; feather's
+           cheaper relative. "length", "width".
+  bone     smooth and satin with sparse pores and a few hairline cracks.
+           "cracks".
+  rotten   decaying skin: lumps, blotches that differ strongly in
+           roughness, pits in the dry blotches, a few sores.
+  mottle   soft rounded lumps of mixed size with hollows between, matte
+           (a creeper: leafy, mossy). "cell".
+  chitin   hard and glossy: fine wavy ridges across the direction, plates
+           with a suture between. "ridges", "plates".
 
 Edge features, which need the piece's shape, are separate material keys:
 
@@ -319,6 +346,215 @@ def _eye(c, p):
     return g, np.zeros_like(g)
 
 
+# --- animal and monster kinds -------------------------------------------------
+# For mob skins. Like the kinds above they run along the face's direction
+# (u along, v across, in art texels), so on a side face "down" lays fur and
+# feathers down the body and on a top face it runs front to back, head to
+# tail. Their defaults are sized for a mob's map, 8 pixels to an art texel
+# (atlas.TEXEL_PX): nothing repeats in under about 2 map pixels, which
+# would only alias. On a 16 pixel map (the player's parts) the finer
+# parameters (fur "strands", feather "barbs") have room to rise.
+
+def _shingle(c, p, length, width, overlap, point=False):
+    """Overlapping shingles in rows along u, like feathers or scales: row r
+    starts at u = r * length and its shingles reach overlap * length beyond
+    it, each row staggered across by half a width and jittered. The
+    shingle nearer the start of u lies on top, as feathers lie from head
+    to tail. point narrows each to a point instead of a rounded tip. Per
+    pixel: along its shingle (t, 0 at its root, 1 at its tip), across it
+    (s, -1..1 of its half width there), and its id."""
+    sd = c["seed"]
+    # A slow warp so the rows are not ruled lines.
+    u = c["u"] + 0.12 * length * vnoise(c["u"] * 0.7, c["v"] * 0.7, sd + 21)
+    v = c["v"] + 0.15 * width * vnoise(c["u"] * 0.6, c["v"] * 0.6, sd + 22)
+    span = length * (1.0 + overlap)
+    r0 = np.floor(u / length).astype(np.int64)
+    t_out = np.zeros(np.shape(u))
+    s_out = np.zeros(np.shape(u))
+    id_out = np.zeros(np.shape(u), np.int64)
+    done = np.zeros(np.shape(u), bool)
+    # Rows that can reach this pixel, nearest the start first (on top).
+    back = int(np.ceil(overlap)) + 1
+    for k in range(back, -1, -1):
+        r = r0 - k
+        off = 0.5 * (r % 2) + 0.3 * (_hash(r, 5, sd) - 0.5)
+        a = v / width - off
+        ci = np.round(a).astype(np.int64)
+        ln = span * (0.85 + 0.3 * _hash(r, ci, sd + 1))
+        t = (u - r * length) / ln
+        if point:
+            # Full width at the root, narrowing to a point (a tuft).
+            hw = 0.54 * np.clip(1.0 - np.clip((t - 0.25) / 0.75, 0.0, 1.0) ** 1.3, 0.0, 1.0)
+        else:
+            # Full width at the root, a rounded tip.
+            hw = 0.54 * np.sqrt(np.clip(1.0 - np.clip((t - 0.45) / 0.55, 0.0, 1.0) ** 2, 0.0, 1.0))
+        s = (a - ci) / np.maximum(hw, 1e-3)
+        hit = ~done & (t >= 0.0) & (t <= 1.0) & (np.abs(s) <= 1.0)
+        t_out = np.where(hit, t, t_out)
+        s_out = np.where(hit, s, s_out)
+        id_out = np.where(hit, r * 7919 + ci, id_out)
+        done |= hit
+    return np.clip(t_out, 0.0, 1.0), np.clip(s_out, -1.0, 1.0), id_out
+
+
+def _fur(c, p):
+    """Short soft fur lying along the direction: tufts (clumps of hairs)
+    in loose staggered rows, each rising from its root, where the tuft
+    before it covers it, toward its tip, narrowing to a point. Tufts
+    differ in height (clumping). Matte, with a slight sheen near the
+    tips. "length" is a tuft's length in texels (0.8 a cow's short coat,
+    1.2 to 1.6 a wolf's), "width" its width, "clump" how much tufts
+    differ, "strands" grooves along each tuft (0, none, at 8 pixels to a
+    texel; 2 or 3 on a 16 pixel map), "fuzz" a soft noise over all."""
+    length = p.get("length", 0.8)
+    width = p.get("width", 0.36)
+    t, s, tid = _shingle(c, p, length, width, p.get("overlap", 0.7), point=True)
+    sd = c["seed"]
+    clump = 1.0 + p.get("clump", 0.35) * (_hash(tid, 3, sd + 4) - 0.5) * 2.0
+    body = np.sqrt(np.clip(1.0 - s * s, 0.0, 1.0))
+    rise = np.sin(0.5 * np.pi * np.clip(t * 1.25, 0.0, 1.0))
+    n = p.get("strands", 0.0)
+    if n > 0:
+        sa = (s * 0.5 + 0.5) * n + 0.3 * _hash(tid, 6, sd)
+        strand = np.sin(np.pi * _frac(sa)) ** 0.6 - 0.7
+    else:
+        strand = np.zeros(np.shape(t))
+    fuzz = vnoise(c["x"] * 6.0, c["y"] * 6.0, sd + 7)
+    d = (0.8 * rise * body * clump - 0.4 + 0.3 * strand * (0.4 + 0.6 * body)
+         + p.get("fuzz", 0.08) * fuzz)
+    tip = np.exp(-((t - 0.7) / 0.18) ** 2) * body
+    s_ = 0.7 * tip - 0.3 * (1.0 - body) - 0.2 + 0.2 * strand
+    return d, s_
+
+
+def _hide(c, p):
+    """A cow's or pig's skin: fine creases (a net of thin grooves, and
+    longer wrinkles across the direction, in places), sparse pores, a soft
+    swell between creases, and a slightly waxy surface, smoother on the
+    swells than in the creases. "cell" is the crease net's size in
+    texels, "wrinkles" wrinkles per texel along the direction."""
+    sd = c["seed"]
+    cell = p.get("cell", 0.55)
+    f1, f2, idv = worley(c["x"] / cell, c["y"] / cell, sd)
+    crease = np.clip(1.0 - (f2 - f1) / 0.16, 0.0, 1.0) ** 1.5
+    wr = c["u"] * p.get("wrinkles", 1.8) + 0.6 * fbm(c["u"] * 0.8, c["v"] * 1.6, sd + 3, 2)
+    gate = np.clip(vnoise(c["v"] * 1.2, c["u"] * 0.4, sd + 4) * 1.5 + 0.2, 0.0, 1.0)
+    wrinkle = np.exp(-((_frac(wr) - 0.5) / 0.12) ** 2) * gate
+    pf1, _, pid = worley(c["x"] / 0.25, c["y"] / 0.25, sd + 5)
+    pore = np.clip(1.0 - pf1 / 0.3, 0.0, 1.0) * (pid > 0.75)
+    swell = 0.5 * np.clip(f2 - f1, 0.0, 0.6) + 0.15 * fbm(c["x"] * 2.0, c["y"] * 2.0, sd + 6, 2)
+    d = swell - 0.6 * crease - 0.45 * wrinkle - 0.4 * pore + 0.05 * (idv - 0.5)
+    s = 0.6 * swell - 0.5 * crease - 0.3 * wrinkle - 0.2 * pore
+    return d, s
+
+
+def _feather(c, p):
+    """Overlapping feathers in staggered rows along the direction, each
+    with a rounded tip, a central shaft (a slight ridge, a little
+    glossier), barbs slanting off it, and a step down at its tip onto the
+    feather behind. "length" and "width" are a feather's size in texels
+    (about one texel on a chicken); "barbs" per texel along the shaft (3
+    at 8 pixels to a texel)."""
+    length = p.get("length", 1.0)
+    width = p.get("width", 0.8)
+    t, s, fid = _shingle(c, p, length, width, p.get("overlap", 0.7))
+    sd = c["seed"]
+    body = np.sqrt(np.clip(1.0 - s * s, 0.0, 1.0))
+    shaft = np.exp(-(s / 0.14) ** 2) * (1.0 - 0.6 * t)
+    nb = p.get("barbs", 3.0)
+    barb = np.sin(2 * np.pi * (t * length * nb - np.abs(s) * width * nb * 0.6))
+    tone = _hash(fid, 2, sd) - 0.5
+    d = (0.8 * (0.25 + 0.75 * t) * body - 0.4 + 0.3 * shaft + 0.06 * barb * body
+         + 0.08 * tone)
+    s_ = 0.5 * shaft + 0.2 * (body - 0.6) + 0.1 * barb * body
+    return d, s_
+
+
+def _scale(c, p):
+    """Overlapping rounded scales in staggered rows along the direction,
+    each a shallow dome with a faint keel, steeper at its free edge. A
+    cheap relative of feather. "length" and "width" in texels."""
+    length = p.get("length", 0.7)
+    width = p.get("width", 0.7)
+    t, s, sid = _shingle(c, p, length, width, p.get("overlap", 0.5))
+    body = np.sqrt(np.clip(1.0 - s * s, 0.0, 1.0))
+    keel = np.exp(-(s / 0.25) ** 2) * t
+    tone = _hash(sid, 2, c["seed"]) - 0.5
+    d = 0.7 * np.sqrt(t) * body - 0.35 + 0.15 * keel + 0.06 * tone
+    s_ = 0.4 * body * t + 0.2 * keel - 0.3
+    return d, s_
+
+
+def _bone(c, p):
+    """Bone: smooth, a little satin, with sparse small pores and a few
+    hairline cracks (thin grooves along cell borders, only in places).
+    "cracks" scales how much of the surface has them."""
+    sd = c["seed"]
+    f1, f2, _ = worley(c["x"] / 0.8, c["y"] / 0.8, sd)
+    line = np.exp(-((f2 - f1) / 0.07) ** 2)
+    gate = np.clip(vnoise(c["x"] * 0.9, c["y"] * 0.9, sd + 2) * 2.0 - 0.6 + p.get("cracks", 0.5),
+                   0.0, 1.0)
+    crack = line * gate
+    pf1, _, pid = worley(c["x"] / 0.3, c["y"] / 0.3, sd + 3)
+    pore = np.clip(1.0 - pf1 / 0.3, 0.0, 1.0) * (pid > 0.65)
+    soft = fbm(c["x"] * 1.5, c["y"] * 1.5, sd + 4, 2)
+    d = 0.25 * soft - 0.6 * pore - 0.8 * crack
+    s = 0.2 * soft - 0.5 * pore - 0.6 * crack
+    return d, s
+
+
+def _rotten(c, p):
+    """Decaying skin: lumpy, with blotches that differ strongly in
+    roughness (wet and dry), small pits clustered in the dry blotches,
+    and a few shallow sores."""
+    sd = c["seed"]
+    blotch = fbm(c["x"] * 1.1, c["y"] * 1.1, sd, 3)
+    lump = fbm(c["x"] * 2.5, c["y"] * 2.5, sd + 1, 2)
+    pf1, _, pid = worley(c["x"] / 0.28, c["y"] / 0.28, sd + 2)
+    dense = np.clip(0.5 - blotch, 0.0, 1.0)
+    pit = np.clip(1.0 - pf1 / 0.35, 0.0, 1.0) ** 1.5 * (pid < 0.25 + 0.6 * dense)
+    sf1, _, sid = worley(c["x"] / 1.0, c["y"] / 1.0, sd + 3)
+    sore = np.clip(1.0 - sf1 / 0.3, 0.0, 1.0) * (sid > 0.8)
+    d = 0.35 * lump + 0.15 * blotch - 0.6 * pit - 0.5 * sore
+    s = 1.1 * blotch - 0.3 * pit + 0.4 * sore
+    return d, s
+
+
+def _mottle(c, p):
+    """Soft lumpy blotches, like a creeper's skin: overlapping rounded
+    lumps of mixed size (leafy, mossy) with soft hollows between. Matte.
+    "cell" is the lumps' size in texels."""
+    sd = c["seed"]
+    cell = p.get("cell", 0.6)
+    f1, f2, idv = worley(c["x"] / cell, c["y"] / cell, sd)
+    lump = np.clip(1.0 - f1 * 1.1, 0.0, 1.0) ** 0.8 * (0.7 + 0.6 * idv)
+    g1, _, _ = worley(c["x"] / (cell * 0.5), c["y"] / (cell * 0.5), sd + 1)
+    small = np.clip(1.0 - g1 * 1.2, 0.0, 1.0)
+    hollow = np.clip(1.0 - (f2 - f1) / 0.25, 0.0, 1.0)
+    grain = vnoise(c["x"] * 6.0, c["y"] * 6.0, sd + 2)
+    d = 0.55 * lump + 0.25 * small - 0.3 * hollow - 0.4 + 0.05 * grain
+    s = 0.2 * lump - 0.4 * hollow + 0.1 * grain - 0.1
+    return d, s
+
+
+def _chitin(c, p):
+    """Hard glossy shell: fine parallel ridges across the direction (the
+    growth lines of a plate), each slightly wavy, with a deeper suture
+    between plates and each plate a little domed. Glossy on the ridges.
+    "ridges" per texel, "plates" a plate's length in texels."""
+    sd = c["seed"]
+    n = p.get("ridges", 2.5)
+    w = c["u"] + 0.05 * fbm(c["v"] * 1.5, c["u"] * 0.5, sd, 2)
+    ridge = np.sin(np.pi * _frac(w * n)) ** 1.5
+    plates = p.get("plates", 1.5)
+    pa = w / plates + 0.2 * vnoise(c["v"] * 0.8, np.zeros(np.shape(c["v"])), sd + 1)
+    suture = np.exp(-((_frac(pa) - 0.03) / 0.05) ** 2)
+    dome = 0.3 * np.sin(np.pi * _frac(pa))
+    d = 0.45 * ridge + dome - 0.4 - 0.8 * suture
+    s = 0.4 * ridge - 0.7 * suture - 0.1
+    return d, s
+
+
 # Kinds that want each lock's frame (atlas.py: la across -1..1, lt along
 # 0..1, lw half width in texels, lid an id).
 LOCK_KINDS = {"hair"}
@@ -335,6 +571,14 @@ KINDS = {
     "rope": (_rope, 0.050, 0.08),
     "skin": (_skin, 0.006, 0.03),
     "eye": (_eye, 0.400, 0.0),
+    "fur": (_fur, 0.100, 0.16),
+    "hide": (_hide, 0.035, 0.12),
+    "feather": (_feather, 0.120, 0.14),
+    "scale": (_scale, 0.070, 0.14),
+    "bone": (_bone, 0.030, 0.12),
+    "rotten": (_rotten, 0.045, 0.25),
+    "mottle": (_mottle, 0.065, 0.08),
+    "chitin": (_chitin, 0.050, 0.14),
 }
 
 
@@ -499,9 +743,12 @@ def texel_edge(cell, shape):
 def swatches(path, cell=16, texels=6, light=(-0.5, 0.45, 0.75)):
     """A sheet of every kind on a flat square of texels x texels art
     texels, lit by one light, then stitching and a seam on an inset square,
-    the wear smudges and a texel edge, for a person to judge a kind by.
-    Kinds run along image down. The light's x is image right, y image up."""
-    from PIL import Image
+    the wear smudges and a texel edge, each labelled, for a person to judge
+    a kind by. Kinds run along image down. The light's x is image right, y
+    image up. cell is map pixels per art texel: 16 for the player's parts,
+    8 for a mob's (atlas.TEXEL_PX), where a finer map is drawn enlarged to
+    the same size so the two compare."""
+    from PIL import Image, ImageDraw
     size = cell * texels
     yy, xx = np.mgrid[0:size, 0:size]
     x = (xx + 0.5) / cell
@@ -510,7 +757,8 @@ def swatches(path, cell=16, texels=6, light=(-0.5, 0.45, 0.75)):
     L /= np.linalg.norm(L)
 
     def lit(d, s):
-        h = d * 12.0
+        # The same rise per texel whatever the map's density.
+        h = d * 12.0 * cell / 16.0
         n = np.stack([-np.gradient(h, axis=1), np.gradient(h, axis=0), np.ones_like(h)], -1)
         n /= np.linalg.norm(n, axis=-1, keepdims=True)
         return np.clip(0.55 * np.clip((n * L).sum(-1), 0, 1) + 0.25 + 0.15 * s, 0, 1)
@@ -532,19 +780,27 @@ def swatches(path, cell=16, texels=6, light=(-0.5, 0.45, 0.75)):
     tiles.append(np.clip(0.5 + 0.4 * wear(x, y, 3), 0, 1))
     tiles.append(lit(-0.02 * texel_edge(cell, (size, size)), np.zeros((size, size))))
     names = names + ["stitch", "seam", "wear", "texel_edge"]
-    cols, gap = 5, 6
+    zoom = max(1, 16 // cell)
+    tiles = [np.kron(t, np.ones((zoom, zoom))) for t in tiles]
+    size *= zoom
+    cols, gap, top = 5, 6, 14
     rows = -(-len(tiles) // cols)
-    sheet = np.full((rows * (size + gap) + gap, cols * (size + gap) + gap), 0.1)
+    sheet = np.full((rows * (size + gap + top) + gap, cols * (size + gap) + gap), 0.1)
     for i, t in enumerate(tiles):
         r, c = divmod(i, cols)
-        y0, x0 = gap + r * (size + gap), gap + c * (size + gap)
+        y0, x0 = gap + top + r * (size + gap + top), gap + c * (size + gap)
         sheet[y0:y0 + size, x0:x0 + size] = t
-    Image.fromarray((sheet * 255 + 0.5).astype(np.uint8), "L").save(path)
+    im = Image.fromarray((sheet * 255 + 0.5).astype(np.uint8), "L")
+    draw = ImageDraw.Draw(im)
+    for i, n in enumerate(names):
+        r, c = divmod(i, cols)
+        draw.text((gap + c * (size + gap), gap + r * (size + gap + top) - 2), n, fill=220)
+    im.save(path)
     return names
 
 
 if __name__ == "__main__":
     import sys
-    if len(sys.argv) != 2:
-        raise SystemExit("usage: micro.py <swatch sheet.png>")
-    print(" ".join(swatches(sys.argv[1])))
+    if len(sys.argv) not in (2, 3):
+        raise SystemExit("usage: micro.py <swatch sheet.png> [map pixels per texel, 16 or 8]")
+    print(" ".join(swatches(sys.argv[1], cell=int(sys.argv[2]) if len(sys.argv) == 3 else 16)))
