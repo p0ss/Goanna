@@ -57,6 +57,34 @@ drawn on, default all) and "texel_px" to override the map density.
 "strength" is in node units as in extrude.py (the full height range's
 rise in texels of a 256 px node map, sixteen to an art texel), so a skin
 and a block with the same strength have the same rise per art texel.
+
+A material can name its own micro surface ("micro": "knit" and its
+"micro_strength", "micro_swing", "micro_dir", "micro_params"), stitching
+or a seam inside its edges ("stitch", "seam"), smudges of wear in its
+smoothness ("wear"), a very shallow outline per texel ("texel_edge") and
+a scattering share for the _s blue byte ("scatter", 0..1). micro.py
+describes them. A material with its own micro takes nothing from the
+stem's "micro".
+
+Layered parts. A player skin is several images, each drawn over the ones
+before it, and some are a part's shading laid over a mask coloured to the
+player's choice:
+
+    (mcl_skins_hair_1_mask.png^[colorize:#715D57FF:alpha)^mcl_skins_hair_1.png
+
+The client gives the mask the part's companions, so the part is authored
+once, by its own name. "mask" names the mask image and "tint" the colour
+to judge it in: the materials, the palette and the shade are read from the
+art laid over the tinted mask the way Luanti lays it (luanti/src/client/
+imagesource.cpp, apply_colorize and blit_pixel), and the part covers the
+union of the mask and the art. The albedo written is still the art itself,
+upscaled, never the tinted composite, so a player's own colour still
+reaches it. "stack" lists every part of the figure in drawing order: where
+this part draws nothing its relief and occlusion read the height of
+whichever other part is drawn there, so a part's edge slopes to what is
+really beside it, and where a later part is drawn over this one its
+occlusion reads that part's height, so a lock of hair darkens the shirt
+beside it.
 """
 import struct
 import sys
@@ -164,6 +192,114 @@ def faces(model, brush, w, h, game=lib.DEFAULT_GAME):
                 if r[2] > r[0] and r[3] > r[1]:
                     rects[r] = rects.get(r, 0) + 1
     return sorted(rects.items(), key=lambda kv: (kv[0][1], kv[0][0]))
+
+
+def face_frames(model, brush, w, h, game=lib.DEFAULT_GAME, front=(0.0, 0.0, 1.0)):
+    """Per face rectangle (as faces() gives it), the image direction (x
+    right, y down, in texels, unit length) of model down on that face. On
+    a face that down does not cross (a box's top or bottom) it is the
+    direction from the model's front to its back instead. front is the
+    way the model faces; the character model faces +Z (its +Z faces carry
+    the body's and the head's front art)."""
+    out = {}
+    down = np.array((0.0, -1.0, 0.0))
+    back = -np.asarray(front, np.float64)
+    for pos, uv, tris in read_b3d(model_path(model, game)):
+        for b, idx in tris:
+            if b != brush:
+                continue
+            for t in idx:
+                u, v = uv[t, 0] * w, uv[t, 1] * h
+                r = (int(round(u.min())), int(round(v.min())),
+                     int(round(u.max())), int(round(v.max())))
+                if r in out or not (r[2] > r[0] and r[3] > r[1]):
+                    continue
+                p = pos[t].astype(np.float64)
+                e = np.stack([p[1] - p[0], p[2] - p[0]], 1)
+                dt = np.stack([[u[1] - u[0], v[1] - v[0]], [u[2] - u[0], v[2] - v[0]]], 0)
+                vec = None
+                for d in (down, back):
+                    c = np.linalg.lstsq(e, d, rcond=None)[0]
+                    if np.linalg.norm(e @ c) < 0.3:
+                        continue
+                    img = c @ dt
+                    n = np.linalg.norm(img)
+                    if n > 1e-6:
+                        vec = img / n
+                        break
+                out[r] = vec if vec is not None else np.array((0.0, 1.0))
+    return out
+
+
+def face_rects(src, model=None, brush=0, game=lib.DEFAULT_GAME, spec=None):
+    """The face rectangles face_map numbers its islands by, in its order."""
+    spec = spec or {}
+    rects = [tuple(r) for r in spec.get("faces", [])]
+    if model and not rects:
+        h, w = src.shape[:2]
+        rects = [r for r, _ in faces(model, brush, w, h, game)]
+    return rects
+
+
+# --- layered parts -------------------------------------------------------------
+
+def _colorize_alpha(img8, tint):
+    """Luanti's [colorize:<tint>FF:alpha: every texel with any alpha takes
+    the colour and keeps its alpha."""
+    out = img8.copy()
+    c = [int(tint[i:i + 2], 16) for i in (1, 3, 5)]
+    m = img8[..., 3] > 0
+    for k in range(3):
+        out[..., k] = np.where(m, c[k], out[..., k])
+    return out
+
+
+def _blit(src8, dst8):
+    """Luanti's blit_pixel (not the overlay variant), integer for integer."""
+    src8, dst = src8.astype(np.int64), dst8.astype(np.int64).copy()
+    sa, da = src8[..., 3], dst[..., 3].copy()
+    rep = (sa > 0) & ((sa == 255) | (da == 0))
+    mix = (sa > 0) & ~rep
+    for k in range(3):
+        v = (dst[..., k] * (255 - sa) + src8[..., k] * sa) // 255
+        dst[..., k] = np.where(rep, src8[..., k], np.where(mix, v, dst[..., k]))
+    na = np.where(da == 255, 255, da + (255 - da) * sa * sa // (255 * 255))
+    dst[..., 3] = np.where(rep, sa, np.where(mix, na, da))
+    return dst
+
+
+def part_source(stem, spec, game=lib.DEFAULT_GAME):
+    """The image a part is judged by, RGBA 0..1: its art, or with "mask"
+    in the spec the art laid over the mask coloured with "tint"."""
+    art = lib.load_source(stem, game)
+    if not spec.get("mask"):
+        return art
+    to8 = lambda a: np.round(a * 255.0).astype(np.int64)  # noqa: E731
+    m = _colorize_alpha(to8(lib.load_source(spec["mask"], game)), spec.get("tint", "#808080"))
+    return (_blit(to8(art), m) / 255.0).astype(np.float32)
+
+
+def stack_fields(stem, spec, game=lib.DEFAULT_GAME):
+    """For a part in a "stack": per texel the height of the topmost other
+    part drawn there (nan where none), and the same for the parts drawn
+    after this one only."""
+    names = spec["stack"]
+    me = names.index(stem)
+    shape = lib.load_source(stem, game).shape[:2]
+    fill = np.full(shape, np.nan, np.float32)
+    above = np.full(shape, np.nan, np.float32)
+    for k, other in enumerate(names):
+        if other == stem:
+            continue
+        osp = extrude.load_spec(other, game)
+        osrc = part_source(other, osp, game)
+        ocls = osp.get("class") or extrude.stem_class(other, game)
+        oh = extrude.heights(osrc, osp, ocls)[0]
+        od = osrc[..., 3] >= 0.5
+        fill = np.where(od, oh, fill)
+        if k > me:
+            above = np.where(od, oh, above)
+    return fill, above
 
 
 def _components(mask):
@@ -282,7 +418,10 @@ def build(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, model=None, brush=Non
     brush = brush or 0
     cls = spec.get("class") or extrude.stem_class(stem, game)
     _, _, strength, _ = extrude.CLASS_STYLE.get(cls, extrude.DEFAULT_STYLE)
-    src = lib.load_source(stem, game)
+    # A layered part is judged by its art over its tinted mask, but the
+    # albedo it writes is its own art.
+    src = part_source(stem, spec, game)
+    art = lib.load_source(stem, game) if spec.get("mask") else src
     cell = texel_px(spec)
     # Strength is in 256 px node map pixels, where a texel is 16 of them;
     # here a texel is cell pixels, so the same rise per texel is this many.
@@ -294,12 +433,21 @@ def build(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, model=None, brush=Non
     isl = face_map(src, model, brush, game, spec)
     up = lambda a: np.kron(a, np.ones((cell, cell), dtype=a.dtype))  # noqa: E731
     isl_hi = up(isl)
+    drawn = src[..., 3] >= 0.5
+    ao_hi = None
+    if spec.get("stack"):
+        fill, above = stack_fields(stem, spec, game)
+        hgt = np.where(drawn, hgt, np.nan_to_num(fill, nan=0.0)).astype(np.float32)
+        ao_lo = np.where(np.isnan(above), hgt, above).astype(np.float32)
+        ao_hi = chamfer_islands(up(ao_lo), isl_hi, extrude.chamfer_px(spec, cell))
     hi = chamfer_islands(up(hgt), isl_hi, extrude.chamfer_px(spec, cell))
 
     sm, f0, metal, glow = extrude.surface(spec, cls, mat, pos, joints)
     emission = up(glow) if glow.max() > 0 else None
     smooth_hi = np.clip(up(sm), 0.0, lib.SMOOTH_CEILING)
     detail = np.zeros(hi.shape, np.float32)
+    mats = spec.get("materials") or {}
+    own = [k for k, m in mats.items() if isinstance(m.get("micro"), str)]
     kind = extrude.micro_kind(stem, spec, cls)
     if kind in extrude.MICRO_KINDS:
         amp, swing = extrude.MICRO_KINDS[kind]
@@ -315,19 +463,158 @@ def build(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, model=None, brush=Non
         # scratches belong on the golem's iron, not on its vines.
         only = spec.get("micro_materials")
         mask = up(np.isin(mat, only).astype(np.float32)) if only else 1.0
+        if own:
+            # A material with its own kind takes none of the stem's.
+            mask = mask * up((~np.isin(mat, own)).astype(np.float32))
         detail += amp * extrude._fit(d, hi.shape) * mask
         smooth_hi = np.clip(smooth_hi + swing * extrude._fit(dsm, hi.shape) * mask, 0.0,
                             lib.SMOOTH_CEILING)
+    sss = None
+    if any(_has_material_surface(m) for m in mats.values()):
+        d2, s2, sss = material_surface(stem, spec, game, mat, drawn, isl, cell, model, brush, cls)
+        detail += d2
+        smooth_hi = np.clip(smooth_hi + s2, 0.0, lib.SMOOTH_CEILING)
     if spec.get("face_edge", "flat") == "bevel":
         w = max(1.0, float(spec.get("bevel_px", BEVEL_PX)) * lib.PX)
         ramp = np.clip(1.0 - (border_distance(isl_hi) + 0.5) / w, 0.0, 1.0)
         detail -= float(spec.get("bevel_depth", BEVEL_DEPTH)) * ramp * (isl_hi >= 0)
-    albedo = np.kron(src, np.ones((cell, cell, 1), dtype=src.dtype))
+    albedo = np.kron(art, np.ones((cell, cell, 1), dtype=art.dtype))
+    # A part's coverage is its mask and its art together; its art alone is
+    # mostly translucent shading.
+    alpha = up(src[..., 3]) if spec.get("mask") else None
     return lib.pack(stem, out_dir, albedo, hi, smooth_hi, cls,
                     normal_strength=strength, metal_mask=up(metal), keep_mean=False,
                     emission=emission, f0=up(f0), fine_detail=1.0,
                     art_texels=src.shape[1], normal_detail=detail if detail.any() else None,
-                    islands=isl_hi)
+                    islands=isl_hi, alpha=alpha, ao_height=ao_hi,
+                    sss=None if sss is None else up(sss))
+
+
+SURFACE_KEYS = ("stitch", "seam", "wear", "texel_edge", "scatter")
+
+
+def _has_material_surface(m):
+    return isinstance(m.get("micro"), str) or any(k in m for k in SURFACE_KEYS)
+
+
+def _piece_frames(sel, isl, rects_dirs):
+    """Per texel of sel: the piece's centre and half size in texels and
+    the piece's long axis, a piece being a 4 connected run of sel inside
+    one island."""
+    from scipy import ndimage
+    h, w = sel.shape
+    cx = np.zeros((h, w), np.float32)
+    cy = np.zeros((h, w), np.float32)
+    hx = np.ones((h, w), np.float32)
+    hy = np.ones((h, w), np.float32)
+    ax = np.zeros((h, w, 2), np.float32)
+    for i in np.unique(isl[sel]):
+        lab, n = ndimage.label(sel & (isl == i))
+        for k in range(1, n + 1):
+            ys, xs = np.nonzero(lab == k)
+            p = lab == k
+            cx[p] = (xs.min() + xs.max() + 1) / 2.0
+            cy[p] = (ys.min() + ys.max() + 1) / 2.0
+            hx[p] = (xs.max() + 1 - xs.min()) / 2.0
+            hy[p] = (ys.max() + 1 - ys.min()) / 2.0
+            d = rects_dirs(i)
+            if len(xs) >= 3:
+                cov = np.cov(np.stack([xs + 0.5, ys + 0.5]))
+                if np.all(np.isfinite(cov)):
+                    val, vec = np.linalg.eigh(cov)
+                    if val[1] > 1.5 * max(val[0], 1e-6):
+                        d = vec[:, 1]
+                        # Keep it pointing down the image, for a stable sign.
+                        d = d if d[1] >= 0 else -d
+            ax[p] = d
+    return cx, cy, hx, hy, ax
+
+
+def material_surface(stem, spec, game, mat, drawn, isl, cell, model, brush, cls):
+    """The per material micro surface, edges, wear and scattering of a
+    skin (micro.py): (detail, smooth swing, scattering byte per texel or
+    None), the first two at the map's size."""
+    import micro
+    src_shape = mat.shape
+    H, W = src_shape[0] * cell, src_shape[1] * cell
+    up = lambda a: np.kron(a, np.ones((cell, cell), dtype=a.dtype))  # noqa: E731
+    isl_hi = up(isl)
+    rects = face_rects(np.zeros(src_shape + (4,)), model, brush, game, spec)
+    frames = face_frames(model, brush, src_shape[1], src_shape[0], game,
+                         spec.get("model_front", (0.0, 0.0, 1.0))) if model and not spec.get("faces") else {}
+    face_down = {i: frames.get(r, np.array((0.0, 1.0))) for i, r in enumerate(rects)}
+    down_of = lambda i: face_down.get(int(i), np.array((0.0, 1.0)))  # noqa: E731
+    xs = ((np.arange(W) + 0.5) / cell).astype(np.float64)
+    ys = ((np.arange(H) + 0.5) / cell).astype(np.float64)
+    detail = np.zeros((H, W), np.float32)
+    swing_out = np.zeros((H, W), np.float32)
+    sss = None
+    edge_map = None
+    for name, m in (spec.get("materials") or {}).items():
+        if not _has_material_surface(m):
+            continue
+        sel = (mat == name) & drawn
+        if not sel.any():
+            continue
+        if "scatter" in m:
+            if sss is None:
+                sss = np.full(src_shape, float(lib.sss_byte(cls)), np.float32)
+            s = float(m["scatter"])
+            sss[sel] = round(65 + s * 190) if s > 0 else 0
+        sel_hi = up(sel)
+        iy, ix = np.nonzero(sel_hi)
+        seed = zlib.crc32((stem + "/" + name).encode()) & 0xffff
+        ctx = {"x": xs[ix], "y": ys[iy], "seed": seed}
+        kind = m.get("micro")
+        if isinstance(kind, str) and kind != "none":
+            how = m.get("micro_dir", "down")
+            cx, cy, hx, hy, ax = _piece_frames(sel, isl, down_of)
+            if how == "along":
+                dvec = up(ax[..., 0])[iy, ix], up(ax[..., 1])[iy, ix]
+            elif how == "h":
+                dvec = np.ones(len(ix)), np.zeros(len(ix))
+            elif how == "v":
+                dvec = np.zeros(len(ix)), np.ones(len(ix))
+            elif isinstance(how, (int, float)):
+                a = np.radians(float(how))
+                dvec = np.full(len(ix), np.cos(a)), np.full(len(ix), np.sin(a))
+            else:
+                # Per face down; a loose island (no face) takes image down.
+                dd = np.array([down_of(i) for i in range(len(rects))] + [(0.0, 1.0)])
+                ii = isl_hi[iy, ix]
+                ii = np.where((ii >= 0) & (ii < len(rects)), ii, len(rects))
+                dvec = dd[ii, 0], dd[ii, 1]
+            dx, dy = dvec
+            # u runs along the direction, v across it.
+            ctx["u"] = ctx["x"] * dx + ctx["y"] * dy
+            ctx["v"] = -ctx["x"] * dy + ctx["y"] * dx
+            ctx["px"] = (ctx["x"] - up(cx)[iy, ix]) / up(hx)[iy, ix]
+            ctx["py"] = (ctx["y"] - up(cy)[iy, ix]) / up(hy)[iy, ix]
+            d, s, amp, swing = micro.evaluate(kind, ctx, m.get("micro_params"))
+            detail[iy, ix] += amp * float(m.get("micro_strength", 1.0)) * d
+            swing_out[iy, ix] += swing * float(m.get("micro_swing", 1.0)) * s
+        for key in ("stitch", "seam"):
+            if key not in m:
+                continue
+            p = m[key] if isinstance(m[key], dict) else {}
+            tangent = None
+            if p.get("follow") == "axis":
+                dist, tx, ty = micro.axis_distance(sel_hi, isl_hi, cell)
+                tangent = (tx, ty)
+            else:
+                dist = micro.edge_distance(sel_hi, isl_hi, float(p.get("smooth", 0.0)) * cell)
+            d, s = micro.stitch(dist, sel_hi, cell, xs[None, :].repeat(H, 0), ys[:, None].repeat(W, 1),
+                                p, seam=key == "seam", tangent=tangent)
+            depth = float(p.get("depth", 0.05 if key == "stitch" else 0.04))
+            detail += np.where(sel_hi, depth * d, 0.0).astype(np.float32)
+            swing_out += np.where(sel_hi, float(p.get("swing", 0.25)) * s, 0.0).astype(np.float32)
+        if m.get("wear"):
+            swing_out[iy, ix] += float(m["wear"]) * micro.wear(ctx["x"], ctx["y"], seed)
+        if m.get("texel_edge"):
+            if edge_map is None:
+                edge_map = micro.texel_edge(cell, (H, W))
+            detail -= float(m["texel_edge"]) * edge_map * sel_hi
+    return detail, swing_out, sss
 
 
 # --- judging -----------------------------------------------------------------
@@ -345,7 +632,8 @@ def check(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, model=None, brush=Non
         model, b = model_of(stem, game)
         brush = b if brush is None else brush
     cls = spec.get("class") or extrude.stem_class(stem, game)
-    src = lib.load_source(stem, game)
+    # A layered part covers its mask and its art together.
+    src = part_source(stem, spec, game)
     rows, cols = src.shape[:2]
     cell = texel_px(spec)
     n = _load(out_dir, stem, "_n.png")
@@ -389,8 +677,11 @@ def check(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, model=None, brush=Non
     r = ((np.abs(xy[..., 0]) + np.abs(xy[..., 1])) / nz / np.maximum(g, 1e-6))[g > 0.01]
     # In node units: the rise of the full range per texel, times 16 texels.
     depth = float(np.median(r)) / cell / 16.0 if r.size >= 100 else 0.0
-    line(spec.get("overlay") or 0.02 <= depth <= 0.105,
-         "relief %.3f node equivalent (want 0.02 to 0.10)" % depth)
+    # A skin of one flat material (bare skin) has no relief on purpose.
+    flat_only = all(m == "flat" for m in modes)
+    line(spec.get("overlay") or (flat_only and depth <= 0.105) or 0.02 <= depth <= 0.105,
+         "relief %.3f node equivalent (want 0.02 to 0.10%s)"
+         % (depth, ", or none when all flat" if flat_only else ""))
 
     # No step at an island border: the height on either side of a border
     # differs only as the art says, so the normal at a border pixel must
@@ -449,8 +740,26 @@ def check(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, model=None, brush=Non
     # The release gate, on the same files. Its wrap seam warning measures a
     # tile's repeat, which an atlas never does.
     g = extrude._gate()
-    rep = g.inspect(stem, Path(out_dir) / (stem + "_n.png"), Path(out_dir) / (stem + "_s.png"),
-                    cls, lib.source_path(stem, game), Path(out_dir) / (stem + ".png"), None)
+    source = lib.source_path(stem, game)
+    tmp = None
+    if spec.get("mask"):
+        # The gate reads coverage from its source's alpha. A part's art is
+        # mostly translucent shading, so it is given the art's colour with
+        # the part's coverage as its alpha.
+        import tempfile
+        from PIL import Image
+        art = np.round(lib.load_source(stem, game) * 255.0).astype(np.uint8)
+        art[..., 3] = np.where(drawn, 255, 0)
+        tmp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+        tmp.close()
+        Image.fromarray(art, "RGBA").save(tmp.name)
+        source = tmp.name
+    try:
+        rep = g.inspect(stem, Path(out_dir) / (stem + "_n.png"), Path(out_dir) / (stem + "_s.png"),
+                        cls, source, Path(out_dir) / (stem + ".png"), None)
+    finally:
+        if tmp is not None:
+            Path(tmp.name).unlink()
     for f in rep["failures"]:
         line(False, "gate: " + f)
     for w in rep["warnings"]:
@@ -527,7 +836,8 @@ def print_faces(stem, game=lib.DEFAULT_GAME):
     """The skin's faces and, per face, its palette as a character map, for
     an author writing a spec."""
     model, brush = model_of(stem, game)
-    src = lib.load_source(stem, game)
+    # A layered part is shown as its art over its tinted mask.
+    src = part_source(stem, extrude.load_spec(stem, game), game)
     h, w = src.shape[:2]
     rgb = np.clip(np.round(src[..., :3] * 255.0), 0, 255).astype(int)
     drawn = src[..., 3] >= 0.5

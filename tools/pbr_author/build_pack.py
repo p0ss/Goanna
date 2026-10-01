@@ -179,10 +179,21 @@ def atlas_attribution(game, stems):
     for mod, names in sorted(by_mod.items()):
         out.append("\n### `%s`\n\n" % mod.relative_to(root))
         for p in sorted(mod.iterdir()):
-            if p.is_file() and p.name.upper().startswith(("LICENSE", "CREDITS", "COPYING")):
+            # mcl_skins keeps the per file authors and licences of its art
+            # in media_credits.txt.
+            if p.is_file() and p.name.upper().startswith(("LICENSE", "CREDITS", "COPYING",
+                                                            "MEDIA_CREDITS")):
                 out.append("- licence file: `%s`\n" % p.relative_to(root))
         out.append("- textures: " + ", ".join(sorted(names)) + "\n")
+        masks = sorted({atlas_spec_mask(s, game) for s in names} - {None})
+        if masks:
+            out.append("- also read (colouring masks, not copied): " + ", ".join(masks) + "\n")
     return "".join(out)
+
+
+def atlas_spec_mask(stem, game):
+    import extrude
+    return extrude.load_spec(stem, game).get("mask")
 
 
 if __name__ == "__main__":

@@ -105,6 +105,21 @@ def authored_smoothness_declared(stem):
     return False
 
 
+def authored_all_flat(stem):
+    """True when a tools/pbr_author/specs/<game>/<stem>.json declares
+    materials and every one of them is flat: one height per material, with
+    any relief put into the normal alone (a box's bevel, a fabric's weave).
+    Bare skin on a player is one such map."""
+    for spec in AUTHOR_SPECS.glob("*/%s.json" % stem):
+        try:
+            materials = json.loads(spec.read_text()).get("materials", {})
+        except (OSError, ValueError):
+            continue
+        if materials and all(m.get("mode") == "flat" for m in materials.values()):
+            return True
+    return False
+
+
 def inspect(stem, normal_path, spec_path, material, source=None, albedo=None,
             review=None, pipeline=None):
     failures, warnings = [], []
@@ -180,7 +195,10 @@ def inspect(stem, normal_path, spec_path, material, source=None, albedo=None,
     # packing fault. With no envelope to scale against, the floor is just
     # more than rounding.
     flat_floor = 4.0
-    if slope_v.std() > 0.02 and height_span < flat_floor:
+    # An authored map whose spec makes every material flat has no height
+    # to say anything on purpose: its relief is normal only.
+    flat_on_purpose = pipeline == AUTHORED and authored_all_flat(stem)
+    if slope_v.std() > 0.02 and height_span < flat_floor and not flat_on_purpose:
         failures.append("height is effectively flat despite normal relief")
     max_smooth = review.get("smoothness_max", {"stone": 0.25, "soil": 0.18, "sand": 0.20,
                   "gravel": 0.22, "wood": 0.36, "cloth": 0.22,

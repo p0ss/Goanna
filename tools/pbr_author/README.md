@@ -101,7 +101,19 @@ What differs from a tile:
   number have the same rise per art texel. The entity shader marches no
   parallax, so a skin's relief is only its normal and occlusion.
 - **Micro surface** goes on the materials `"micro_materials"` names: the
-  golem's scratches are on its iron, not its vines.
+  golem's scratches are on its iron, not its vines. A material can also
+  name its own kind, `"micro": "knit"` with `"micro_strength"`,
+  `"micro_swing"`, `"micro_dir"` and `"micro_params"`, and carry
+  `"stitch"`, `"seam"`, `"wear"`, `"texel_edge"` and `"scatter"`; then it
+  takes nothing from the stem's `"micro"`. The kinds (knit, wool, weave,
+  linen, canvas, coarse, twill, hair, straw, leather, rope, skin, eye) and
+  the edge features are described in `micro.py`, and
+  `python3 micro.py <sheet.png>` draws a swatch of each. They are
+  evaluated per pixel along a direction per face (model down on a side,
+  front to back on a top, read from the `.b3d`), never on a repeat, so a
+  feature stops at its face's border. Like the stem's micro they reach
+  the normal and the smoothness only. On a flat material a string
+  `"micro"` turns the per texel step off; `"step"` puts one back.
 - **Mirrored limbs** share one UV rectangle. The client builds the
   tangent frame per fragment from the UVs, so a mirrored limb's normal
   is mirrored with it. Author nothing that must lean one way in model
@@ -119,6 +131,20 @@ What differs from a tile:
   coloured squares. Only the features (brow, eyes, mouth, nose) take
   their own heights, and nothing on a face is metal or polished except
   the eyes. See the playbook, "Mob skins".
+- **Players.** Mineclonia draws a player as layered parts, each part's
+  shading over a mask coloured to the player's choice
+  (`(mcl_skins_hair_1_mask.png^[colorize:#715D57FF:alpha)^mcl_skins_hair_1.png`).
+  The client gives a mask the part's companions, so a part is authored
+  once by its own name, with `"mask"` and `"tint"` in its spec: the
+  materials are read from the art over the tinted mask, the part covers
+  both, and the albedo written is still the art alone, so a player's own
+  colour reaches it. `"stack"` lists every part in drawing order, so a
+  part's edges slope to whatever is drawn beside it and its occlusion
+  reads the parts drawn over it. The default player's parts take
+  `"texel_px": 16` (1024 x 512 maps for the 64 x 32 art); mobs stay at 8.
+  `preview_figure.py <maps> <out>` composites the six parts the way
+  Luanti and the client do and lights the model's front faces offline;
+  its docstring says what it leaves out.
 
 `atlas.check` measures one height per texel, several heights, the relief
 in node units, no slope step at a face border (or, with a bevel, every

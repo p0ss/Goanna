@@ -49,7 +49,9 @@ joint sinks under the material's base, as a share of it), smooth
 (absolute smoothness 0..1, default the class level), smooth_spread,
 f0 (dielectric reflectance, diamond 0.17), metal (true for metal
 texels), emission (0..1 glow), emission_shade (glow follows the
-shade, lighter texels brighter).
+shade, lighter texels brighter), micro (on a flat material, the per
+texel step, default 0.06; as a string, a micro surface kind for
+atlas.py, see micro.py).
 
 Mob skins are model atlases, not tiles, and atlas.py builds them with
 this rule and these specs (stems/<game>.mobs.txt).
@@ -234,7 +236,11 @@ def heights(src, spec, cls):
             # a little per texel: by its own shades where it has several,
             # by a fixed per texel pattern where the art is one colour. On
             # the texel grid, never inside a texel. "micro": 0 turns it off.
-            micro = float(m.get("micro", MICRO))
+            # A string "micro" names the material's micro surface kind
+            # (atlas.py, micro.py) instead; the per texel step is then
+            # "step", default none, so a piece stays one height.
+            micro = m.get("micro", MICRO)
+            micro = float(m.get("step", 0.0)) if isinstance(micro, str) else float(micro)
             centre = base + 0.5 * span
             if micro > 0:
                 t = _micro(v, sel)

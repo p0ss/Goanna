@@ -519,7 +519,7 @@ def _clipped_offset(deviation, level):
 def pack(stem, out_dir, albedo, height, smoothness, cls, normal_strength,
         metal_mask=None, ao_radius=None, keep_mean=True, emission=None, f0=None,
         fine_detail=0.35, art_texels=16, alpha=None, normal_detail=None,
-        islands=None):
+        islands=None, ao_height=None, sss=None):
     """Write <stem>.png, <stem>_n.png and <stem>_s.png. albedo is RGB or
     RGBA float at SIZE; height and smoothness are SIZE x SIZE floats.
     The smoothness mean, over the ordinary texels the art draws, is moved
@@ -539,7 +539,12 @@ def pack(stem, out_dir, albedo, height, smoothness, cls, normal_strength,
     (see the note where it is used). islands, when given, is a model
     atlas's island map at the map's size (tools/pbr_author/atlas.py): the
     normal and the occlusion are then derived without wrapping and without
-    reading across an island border."""
+    reading across an island border. ao_height, when given, is the field
+    the occlusion is derived from instead of height: a skin part's own
+    height where nothing is drawn over it and the height of what is drawn
+    over it elsewhere, so a lock of hair shades the shirt beside it. sss,
+    when given, is the _s blue byte per pixel (0 to 255) in place of the
+    class's one value: skin scatters, the shirt over it does not."""
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     # Texels the art does not draw are neutralised in both maps after
@@ -573,7 +578,8 @@ def pack(stem, out_dir, albedo, height, smoothness, cls, normal_strength,
         ao = ao_from_height(height, radius)
     else:
         xy = normal_from_height_islands(nh, normal_strength, islands)
-        ao = ao_from_height_islands(height, islands, radius)
+        ah = height if ao_height is None else np.clip(ao_height, 0.0, 1.0).astype(np.float32)
+        ao = ao_from_height_islands(ah, islands, radius)
     n = np.zeros(shape + (4,), dtype=np.float32)
     n[..., :2] = xy * 0.5 + 0.5
     n[..., 2] = ao
@@ -624,7 +630,7 @@ def pack(stem, out_dir, albedo, height, smoothness, cls, normal_strength,
     if f0 is not None:
         diel = np.clip(np.asarray(f0, dtype=np.float32) * 255.0, 0.0, 229.0)
     s[..., 1] = np.where(metal_mask, 255.0, diel) / 255.0
-    s[..., 2] = sss_byte(cls) / 255.0
+    s[..., 2] = (sss_byte(cls) if sss is None else np.asarray(sss, np.float32)) / 255.0
     if emission is None:
         s[..., 3] = 1.0
     else:
