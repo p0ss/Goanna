@@ -1,0 +1,502 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: LGPL-2.1-or-later
+# Copyright (C) 2026 the Goanna contributors
+"""The director's MCP service (docs/director.md, "MCP half").
+
+A language model connects to this over MCP, as a game master. The Luanti
+server's goanna_server_mod connects to it over HTTP: this process runs the
+loopback endpoint the mod's director talks to, at the url in
+<world>/goanna_director.conf, and checks the bearer token from the same
+file on every request.
+
+It is deliberately separate from tools/goanna-mcp, the developer interface.
+A director process never holds eval, run, teleport or camera tools: it
+speaks for the server, with the authority the operator gave the director,
+and every tool here is a thin wrapper over one intent or query that the
+server mod validates before anything happens.
+
+It speaks MCP over stdin and stdout, as newline delimited JSON-RPC, with no
+dependencies beyond the standard library. Register it with:
+
+    claude mcp add goanna-director /path/to/goanna/tools/goanna-director-mcp \\
+        --world ~/.var/app/org.luanti.luanti/.minetest/worlds/<world>
+
+Options: --world PATH (or GOANNA_DIRECTOR_WORLD), --port N to override the
+port in the conf file. It binds to 127.0.0.1 only. Nothing may print to
+stdout except protocol messages; diagnostics go to stderr.
+"""
+
+import collections
+import hashlib
+import secrets
+import hmac
+import http.server
+import json
+import os
+import pathlib
+import sys
+import threading
+import time
+import urllib.parse
+
+PROTOCOL = "2025-06-18"
+KNOWN_PROTOCOLS = {"2024-11-05", "2025-03-26", PROTOCOL}
+DEFAULT_PORT = 30570
+EVENTS_KEPT = 4096
+ACT_TIMEOUT = 15.0
+CONNECTED_WITHIN = 30.0
+
+
+def log(*parts):
+    print("goanna-director-mcp:", *parts, file=sys.stderr, flush=True)
+
+
+def read_conf(path):
+    """The Settings file the mod writes: key = value lines."""
+    out = {}
+    try:
+        text = pathlib.Path(path).read_text()
+    except OSError:
+        return out
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        out[key.strip()] = value.strip()
+    return out
+
+
+class Director:
+    """Everything shared between the HTTP endpoint and the MCP tools."""
+
+    def __init__(self, conf_path, port_override=None):
+        self.conf_path = conf_path
+        self.port_override = port_override
+        self.lock = threading.Condition()
+        self.token = ""
+        self.session = None
+        self.known_session = None
+        self.hello = None
+        self.events = collections.deque(maxlen=EVENTS_KEPT)
+        self.last_seq = 0
+        self.model_seq = 0
+        self.outbox = []
+        self.next_id = 1
+        self.results = {}
+        self.late = []
+        self.waiting = set()
+        self.last_contact = 0.0
+        # Message ids are this process's own. A server that last pulled
+        # from another instance has acknowledged nothing of ours.
+        self.instance = secrets.token_hex(8)
+        self.reload()
+
+    def reload(self):
+        conf = read_conf(self.conf_path) if self.conf_path else {}
+        self.token = conf.get("token", "") or os.environ.get("GOANNA_DIRECTOR_TOKEN", "")
+        url = conf.get("url", "")
+        port = DEFAULT_PORT
+        if url:
+            parsed = urllib.parse.urlparse(url)
+            port = parsed.port or DEFAULT_PORT
+        if self.port_override:
+            port = int(self.port_override)
+        return port
+
+    def authorised(self, header):
+        if not self.token:
+            self.reload()
+        if not self.token or not header:
+            return False
+        return hmac.compare_digest(header, "Bearer " + self.token)
+
+    def connected(self):
+        return time.time() - self.last_contact < CONNECTED_WITHIN
+
+    # --- from the server -----------------------------------------------
+
+    def on_push(self, envelope):
+        with self.lock:
+            self.last_contact = time.time()
+            session = envelope.get("session")
+            for env in envelope.get("batch") or []:
+                kind = env.get("kind")
+                body = env.get("body") or {}
+                if kind == "hello":
+                    self.on_hello(body)
+                elif kind == "events":
+                    for ev in body.get("events") or []:
+                        ev["session"] = env.get("session")
+                        self.events.append(ev)
+                        self.last_seq = max(self.last_seq, int(ev.get("seq", 0)))
+                elif kind in ("result", "reply"):
+                    req = str(body.get("id"))
+                    self.results[req] = body
+                    if req not in self.waiting:
+                        self.late.append(body)
+            self.lock.notify_all()
+            return {"known_session": session is not None and session == self.known_session}
+
+    def on_hello(self, body):
+        session = body.get("session")
+        if self.known_session and session != self.known_session:
+            # The server restarted. What it had not taken is void, and its
+            # event sequence starts again.
+            for msg in self.outbox:
+                self.results[msg["req"]] = {"id": msg["req"], "type": msg["type"],
+                                            "status": "interrupted",
+                                            "reason": "server_restarted"}
+            self.outbox = []
+            self.model_seq = 0
+            self.last_seq = 0
+            self.events.clear()
+            log("the server started a new session", session)
+        if not self.events or self.known_session != session:
+            # A fresh director reads summaries rather than replaying what it
+            # never saw: it starts from what the server last delivered.
+            delivered = int(body.get("last_seq") or 0)
+            self.model_seq = max(self.model_seq, delivered)
+            self.last_seq = max(self.last_seq, delivered)
+        self.known_session = session
+        self.hello = body
+
+    def take(self, after, session, wait, instance=""):
+        deadline = time.time() + max(0.0, min(wait, 25.0))
+        with self.lock:
+            self.last_contact = time.time()
+            if session and session != self.session:
+                # A server's first pull of a session is answered at once:
+                # the proof in the answer is what tells it a director is
+                # really here, and it tells its players so.
+                self.session = session
+                deadline = 0
+            if instance != self.instance:
+                after = 0
+                deadline = 0
+            self.outbox = [m for m in self.outbox if m["id"] > after]
+            while not self.outbox and time.time() < deadline:
+                self.lock.wait(timeout=deadline - time.time())
+                self.last_contact = time.time()
+            return list(self.outbox)
+
+    # --- from the model --------------------------------------------------
+
+    def request(self, kind, mtype, args, reason=None, timeout=ACT_TIMEOUT):
+        if not self.connected():
+            raise ToolError("no Luanti server has contacted this director in the last %d s. "
+                            "Is the world running with goanna_director = true, "
+                            "goanna_server_mod in secure.http_mods, and this url in "
+                            "goanna_director.conf?" % CONNECTED_WITHIN)
+        with self.lock:
+            msg_id = self.next_id
+            self.next_id += 1
+            req = ("a%d" if kind == "act" else "q%d") % msg_id
+            msg = {"id": msg_id, "req": req, "kind": kind, "type": mtype, "args": args,
+                   "scope": "gm"}
+            if kind == "act":
+                msg["based_on"] = self.model_seq
+                if reason:
+                    msg["reason"] = str(reason)[:500]
+            self.waiting.add(req)
+            self.outbox.append(msg)
+            self.lock.notify_all()
+            deadline = time.time() + timeout
+            try:
+                while req not in self.results and time.time() < deadline:
+                    self.lock.wait(timeout=deadline - time.time())
+                body = self.results.get(req)
+            finally:
+                self.waiting.discard(req)
+        if body is None:
+            raise ToolError("the server did not answer %s within %d s; it may still apply it. "
+                            "Check director_events for a late result." % (req, timeout))
+        return body
+
+    def take_events(self, after, wait, limit):
+        deadline = time.time() + max(0.0, min(wait, 30.0))
+        with self.lock:
+            if after is None:
+                after = self.model_seq
+            while time.time() < deadline and not any(
+                    int(e.get("seq", 0)) > after for e in self.events) and not self.late:
+                self.lock.wait(timeout=deadline - time.time())
+            evs = [e for e in self.events if int(e.get("seq", 0)) > after][:limit]
+            oldest = self.events[0]["seq"] if self.events else None
+            gap = oldest is not None and after < oldest - 1
+            if evs:
+                self.model_seq = max(self.model_seq, int(evs[-1]["seq"]))
+            late, self.late = self.late, []
+            return {"session": self.known_session, "events": evs, "last_seq": self.model_seq,
+                    "server_last_seq": self.last_seq, "gap": gap, "late_results": late}
+
+
+class ToolError(RuntimeError):
+    pass
+
+
+def make_handler(director):
+    class Handler(http.server.BaseHTTPRequestHandler):
+        protocol_version = "HTTP/1.1"
+
+        def log_message(self, fmt, *args):
+            pass
+
+        def send_json(self, code, value):
+            data = json.dumps(value).encode()
+            self.send_response(code)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+
+        def refuse(self, code):
+            self.send_response(code)
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+
+        def do_POST(self):
+            if not director.authorised(self.headers.get("Authorization")):
+                return self.refuse(401)
+            url = urllib.parse.urlparse(self.path)
+            length = int(self.headers.get("Content-Length") or 0)
+            raw = self.rfile.read(length) if length else b""
+            if url.path != "/v1/push":
+                return self.refuse(404)
+            try:
+                envelope = json.loads(raw or b"{}")
+            except ValueError:
+                return self.refuse(400)
+            if envelope.get("v") != 1:
+                log("a push at protocol version", envelope.get("v"), "refused")
+                return self.refuse(400)
+            self.send_json(200, director.on_push(envelope))
+
+        def do_GET(self):
+            if not director.authorised(self.headers.get("Authorization")):
+                return self.refuse(401)
+            url = urllib.parse.urlparse(self.path)
+            if url.path != "/v1/pull":
+                return self.refuse(404)
+            q = urllib.parse.parse_qs(url.query)
+            try:
+                after = int(q.get("after", ["0"])[0])
+                wait = float(q.get("wait", ["20"])[0])
+            except ValueError:
+                return self.refuse(400)
+            session = q.get("session", [""])[0]
+            instance = q.get("instance", [""])[0]
+            messages = director.take(after, session, wait, instance)
+            proof = hashlib.sha256(("%s:%s:%d" % (director.token, session, after))
+                                   .encode()).hexdigest()
+            self.send_json(200, {"v": 1, "messages": messages, "auth": proof,
+                                 "instance": director.instance})
+
+    return Handler
+
+
+# --- the tools ---------------------------------------------------------------
+
+def schema(props, required=()):
+    return {"type": "object", "properties": props, "required": list(required)}
+
+
+S = {"type": "string"}
+N = {"type": "number"}
+B = {"type": "boolean"}
+REASON = {"type": "string", "description": "Why, in a sentence. Stored in the audit log, never executed."}
+
+TOOLS = [
+    {"name": "director_status",
+     "description": "Whether a server is connected, its session and capabilities, and its live "
+                    "status: budgets left, stop state, pacing phase per player, queued intents, "
+                    "live encounters and cast characters.",
+     "inputSchema": schema({})},
+    {"name": "director_events",
+     "description": "What happened since you last asked: player joins, hurts, deaths, kills, "
+                    "pacing phase changes, encounters starting and ending, and lines players "
+                    "addressed to your characters (npc_addressed, with that character's memory "
+                    "of the player). Waits up to wait_s for something new. Results of queued "
+                    "intents that landed later come back in late_results.",
+     "inputSchema": schema({"after": {"type": "integer", "description": "Sequence to read after; "
+                                      "default is the last one returned to you."},
+                            "wait_s": N, "limit": {"type": "integer"}})},
+    {"name": "director_player",
+     "description": "A player's summary: position, biome, health, gear and gear score, the "
+                    "largest encounter their gear allows (encounter_ceiling), the last ten "
+                    "minutes, pacing phase and intensity, and their region. A player who opted "
+                    "out shows only that.",
+     "inputSchema": schema({"name": S}, ["name"])},
+    {"name": "director_stage_encounter",
+     "description": "Stage hostile mobs near a player, sized to their gear: budget is capped at "
+                    "the player's encounter_ceiling and comes out of the hourly points budget "
+                    "(a zombie costs 5, a skeleton 4). Mobs come from the player's biome's "
+                    "fauna for theme (a mob category, default monster) or from an explicit mobs "
+                    "list. when: next_build_up (default, queued until the pacing layer's build "
+                    "up) or now (refused outside a build up). Placed out of sight by default, "
+                    "persistent, targeted at the player, and removed after leash_s.",
+     "inputSchema": schema({"near": S, "budget": N, "theme": S,
+                            "mobs": {"type": "array", "items": S},
+                            "when": {"type": "string", "enum": ["now", "next_build_up"]},
+                            "distance": {"type": "array", "items": N},
+                            "hidden": B, "leash_s": N, "valid_for_s": N, "reason": REASON},
+                           ["near", "reason"])},
+    {"name": "director_cast_npc",
+     "description": "Give a character a body so it can speak: either spawn a peaceful mob "
+                    "(default mobs_mc:villager) a few nodes from a player, named and held in "
+                    "place facing them, or name an existing mob by guid. The name may not be a "
+                    "player's.",
+     "inputSchema": schema({"near": S, "name": S, "mob": S, "guid": S, "hold": B,
+                            "distance": N, "reason": REASON}, ["near", "name", "reason"])},
+    {"name": "director_speak",
+     "description": "Say a line in chat, always attributed: as a cast character (to a player "
+                    "within earshot, or \"near\" for everyone within earshot), or as "
+                    "\"narrator\" (to a player, or \"all\"). At most 280 characters, rate "
+                    "limited per speaker and per listener. Players who opted out never hear it.",
+     "inputSchema": schema({"as": S, "to": S, "text": S, "reason": REASON}, ["as", "to", "text"])},
+    {"name": "director_remember",
+     "description": "Add a short line to what a character remembers of a player, or set its "
+                    "disposition (-100 to 100). Lasts for the server session. Lines are capped "
+                    "in length and number, and every one goes in the audit log.",
+     "inputSchema": schema({"npc": S, "player": S, "fact": S, "disposition": N, "reason": REASON},
+                           ["npc", "player"])},
+    {"name": "director_memory",
+     "description": "What a character remembers of a player (or of every player): when they "
+                    "met, how often it spoke and was addressed, its disposition, and its facts, "
+                    "both from events and from director_remember.",
+     "inputSchema": schema({"npc": S, "player": S}, ["npc"])},
+    {"name": "director_undo",
+     "description": "Reverse one of your actions by its id (a1, a2, ...): an encounter's "
+                    "remaining mobs are removed, a cast character is removed or unnamed, a "
+                    "remembered line is forgotten. Speech cannot be unsaid.",
+     "inputSchema": schema({"id": S, "reason": REASON}, ["id"])},
+    {"name": "director_stop",
+     "description": "Stop the director: every creature it placed is removed, every queued "
+                    "intent cancelled, and everything refused until the operator types "
+                    "/director start in game.",
+     "inputSchema": schema({"reason": REASON}, ["reason"])},
+]
+
+ACTS = {
+    "director_stage_encounter": ("stage_encounter",
+                                 ["near", "budget", "theme", "mobs", "when", "distance", "hidden",
+                                  "leash_s", "valid_for_s"]),
+    "director_cast_npc": ("cast_npc", ["near", "name", "mob", "guid", "hold", "distance"]),
+    "director_speak": ("speak", ["as", "to", "text"]),
+    "director_remember": ("remember", ["npc", "player", "fact", "disposition"]),
+    "director_undo": ("undo", ["id"]),
+    "director_stop": ("stop", []),
+}
+
+
+def call_tool(director, name, args):
+    if name == "director_status":
+        out = {"connected": director.connected(), "session": director.known_session,
+               "capabilities": (director.hello or {}).get("capabilities"),
+               "events_buffered": len(director.events), "last_seq": director.last_seq}
+        if director.connected():
+            out["server"] = director.request("query", "status", {}).get("body")
+        return out
+    if name == "director_events":
+        return director.take_events(args.get("after"), float(args.get("wait_s", 0)),
+                                    max(1, min(int(args.get("limit", 200)), 1000)))
+    if name == "director_player":
+        return director.request("query", "player", {"name": args.get("name", "")}).get("body")
+    if name == "director_memory":
+        q = {"npc": args.get("npc", "")}
+        if args.get("player"):
+            q["player"] = args["player"]
+        return director.request("query", "memory", q).get("body")
+    if name in ACTS:
+        mtype, keys = ACTS[name]
+        payload = {k: args[k] for k in keys if k in args}
+        return director.request("act", mtype, payload, reason=args.get("reason"))
+    raise ToolError("no such tool '%s'" % name)
+
+
+def reply(msg_id, result=None, error=None):
+    msg = {"jsonrpc": "2.0", "id": msg_id}
+    if error is not None:
+        msg["error"] = error
+    else:
+        msg["result"] = result
+    sys.stdout.write(json.dumps(msg) + "\n")
+    sys.stdout.flush()
+
+
+def parse_args(argv):
+    world = os.environ.get("GOANNA_DIRECTOR_WORLD", "")
+    port = None
+    i = 1
+    while i < len(argv):
+        if argv[i] == "--world" and i + 1 < len(argv):
+            world = argv[i + 1]
+            i += 2
+        elif argv[i] == "--port" and i + 1 < len(argv):
+            port = int(argv[i + 1])
+            i += 2
+        else:
+            log("unknown argument", argv[i])
+            i += 1
+    return world, port
+
+
+def main(argv):
+    world, port_override = parse_args(argv)
+    conf = os.path.join(os.path.expanduser(world), "goanna_director.conf") if world else ""
+    director = Director(conf, port_override)
+    port = director.reload()
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", port), make_handler(director))
+    server.daemon_threads = True
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    log("listening on 127.0.0.1:%d for %s" % (port, conf or "(no world given)"))
+
+    for line in sys.stdin:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            msg = json.loads(line)
+        except ValueError:
+            log("ignoring a line that is not JSON")
+            continue
+        method = msg.get("method")
+        msg_id = msg.get("id")
+        params = msg.get("params") or {}
+        if method == "initialize":
+            asked = params.get("protocolVersion")
+            reply(msg_id, {
+                "protocolVersion": asked if asked in KNOWN_PROTOCOLS else PROTOCOL,
+                "capabilities": {"tools": {}},
+                "serverInfo": {"name": "goanna-director", "version": "0.1.0"},
+            })
+        elif method == "tools/list":
+            reply(msg_id, {"tools": TOOLS})
+        elif method == "tools/call":
+            name = params.get("name", "")
+            args = params.get("arguments") or {}
+            try:
+                result = call_tool(director, name, args)
+                reply(msg_id, {"content": [{"type": "text",
+                                            "text": json.dumps(result, indent=2, default=str)}]})
+            except ToolError as exc:
+                reply(msg_id, {"content": [{"type": "text", "text": str(exc)}], "isError": True})
+            except Exception as exc:                      # noqa: BLE001
+                log("%s failed: %r" % (name, exc))
+                reply(msg_id, {"content": [{"type": "text",
+                                            "text": "%s: %s" % (type(exc).__name__, exc)}],
+                               "isError": True})
+        elif method == "ping":
+            reply(msg_id, {})
+        elif method == "resources/list":
+            reply(msg_id, {"resources": []})
+        elif method == "prompts/list":
+            reply(msg_id, {"prompts": []})
+        elif msg_id is not None:
+            reply(msg_id, error={"code": -32601, "message": "no method '%s'" % method})
+    server.shutdown()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
