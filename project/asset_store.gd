@@ -237,4 +237,31 @@ static func rebuild_profile(game: String, store_root := "") -> String:
 			return "Could not replace the old asset profile."
 	if DirAccess.rename_absolute(staging, profile) != OK:
 		return "Could not activate the composed asset profile."
+	_prune(game, bundles, base)
 	return ""
+
+# What the new profile has replaced: the profiles renamed aside, and each
+# bundle's older versions, which no profile reads once a newer one is
+# installed. Without this every update kept the last one beside it, and a
+# store that had seen three Mineclonia packs held 300 MB it never read. A
+# version is kept while it supports a game the newest one does not. Removal
+# is best effort: a file still open on Windows stays until the next rebuild.
+static func _prune(game: String, bundles: Array, base: String) -> void:
+	var profiles := base.path_join("profiles")
+	for name in _directories(profiles):
+		if name.begins_with(game + ".old-"):
+			_remove_tree(profiles.path_join(name))
+	for newest in bundles:
+		var bundle_dir := base.path_join(str(newest.id))
+		for version in _directories(bundle_dir):
+			if version == str(newest.version):
+				continue
+			var manifest := _manifest(bundle_dir.path_join(version).path_join("manifest.json"))
+			if manifest.is_empty() or not _newer(str(newest.version), str(manifest.version)):
+				continue
+			var needed := false
+			for g in manifest.get("games", []):
+				if not g in newest.get("games", []):
+					needed = true
+			if not needed:
+				_remove_tree(bundle_dir.path_join(version))

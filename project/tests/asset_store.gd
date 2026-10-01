@@ -49,6 +49,10 @@ func _init() -> void:
 	if error != "":
 		_fail(error)
 		return
+	error = _prune(root)
+	if error != "":
+		_fail(error)
+		return
 	print("asset store: PASS")
 	quit()
 
@@ -147,4 +151,42 @@ func _prefix_stems(root: String) -> String:
 	if not FileAccess.file_exists(
 			root.path_join("org.goanna.test.prefix/1.0.0/textures/bamboo_n.png")):
 		return "the prefix bundle installed without its textures"
+	return ""
+
+
+# A rebuild removes what the new profile replaced: the profile renamed aside
+# and the bundle's older versions, but not an older version that still
+# supports a game the newest one does not.
+func _bundle(root: String, id: String, version: String, games: Array) -> void:
+	var dir := root.path_join(id).path_join(version)
+	DirAccess.make_dir_recursive_absolute(dir.path_join("textures"))
+	var file := FileAccess.open(dir.path_join("manifest.json"), FileAccess.WRITE)
+	file.store_string(JSON.stringify({"schema": AssetStore.SCHEMA, "id": id,
+		"version": version, "games": games, "texture_pairs": 1}))
+	file = null
+	for name in ["moss_n.png", "moss_s.png"]:
+		var texture := FileAccess.open(dir.path_join("textures").path_join(name), FileAccess.WRITE)
+		texture.store_8(1)
+		texture = null
+
+func _prune(root: String) -> String:
+	_bundle(root, "org.goanna.test.prune", "1.0.0", ["prune"])
+	_bundle(root, "org.goanna.test.prune", "1.1.0", ["prune", "other"])
+	var error := AssetStore.rebuild_profile("prune", root)
+	if error != "":
+		return error
+	_bundle(root, "org.goanna.test.prune", "1.2.0", ["prune"])
+	error = AssetStore.rebuild_profile("prune", root)
+	if error != "":
+		return error
+	var bundle := root.path_join("org.goanna.test.prune")
+	if not DirAccess.dir_exists_absolute(bundle.path_join("1.2.0")):
+		return "the newest version was removed"
+	if DirAccess.dir_exists_absolute(bundle.path_join("1.0.0")):
+		return "a superseded version was kept"
+	if not DirAccess.dir_exists_absolute(bundle.path_join("1.1.0")):
+		return "a version still serving another game was removed"
+	for name in DirAccess.get_directories_at(root.path_join("profiles")):
+		if name.begins_with("prune.old-"):
+			return "the replaced profile %s was kept" % name
 	return ""

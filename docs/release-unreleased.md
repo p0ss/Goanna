@@ -41,6 +41,16 @@
 - **No more strobing near the shore.** The sea no longer flickers as if in
   fast forward when you stand a few blocks from the water's edge.
 
+## Fixes
+
+- **Missing particles are back.** Effects a game attaches to a creature,
+  such as a glow squid's glints, were not shown at all, and nor were most
+  effects within about 100 blocks of the world's centre. They now show,
+  each on the creature or place it belongs to.
+- **Old materials are cleared away.** Installing a newer materials pack
+  now removes the version it replaces, which was kept beside it before.
+  On a long running install that frees a few hundred megabytes.
+
 ## Experimental
 
 - **Let a program play as you.** With `GOANNA_PLAYER_AGENT` set, a local

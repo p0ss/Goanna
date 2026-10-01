@@ -255,7 +255,7 @@ func _box(size: Vector3, pos: Vector3, mat: Material) -> MeshInstance3D:
 func _ready() -> void:
 	baked_dir = OS.get_environment("GOANNA_BAKED_DIR")
 	if baked_dir == "":
-		baked_dir = ProjectSettings.globalize_path("res://../baked/pack-mineclonia-v2/textures")
+		baked_dir = ProjectSettings.globalize_path("res://../pbr_packs/mineclonia/textures")
 	light_sun = _envf("GOANNA_SUN", light_sun)
 	light_ambient = _envf("GOANNA_AMBIENT", light_ambient)
 	rad_ground = _envf("GOANNA_RAD_GROUND", rad_ground)

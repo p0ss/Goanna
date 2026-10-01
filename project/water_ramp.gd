@@ -104,7 +104,7 @@ func _sheet(x0: float, x1: float, z0: float, z1: float, y: float) -> ArrayMesh:
 func _ready() -> void:
 	var baked := OS.get_environment("GOANNA_BAKED_DIR")
 	if baked == "":
-		baked = ProjectSettings.globalize_path("res://../baked/pack-mineclonia-v2/textures")
+		baked = ProjectSettings.globalize_path("res://../pbr_packs/mineclonia/textures")
 
 	env = Environment.new()
 	var sky := Sky.new()

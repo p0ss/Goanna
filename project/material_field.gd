@@ -14,7 +14,7 @@ extends Node3D
 # repeating once per node exactly as the mesher makes it repeat. The camera
 # looks along the strips, because a repeat is loudest in perspective.
 #
-#   GOANNA_PACK_DIR=<dir>   textures, default baked/pack-mineclonia-v2
+#   GOANNA_PACK_DIR=<dir>   textures, default pbr_packs/mineclonia
 #   GOANNA_SHOT=<dir>       write detail_off.png and detail_on.png, then quit
 #   GOANNA_FIELD_LEN=<n>    strip length in nodes, default 120
 #   GOANNA_FIELD_PLAIN=1    do not bind the pack's _n and _s companions
@@ -193,7 +193,7 @@ func _environment() -> void:
 func _ready() -> void:
 	var dir := OS.get_environment("GOANNA_PACK_DIR")
 	if dir == "":
-		dir = ProjectSettings.globalize_path("res://../baked/pack-mineclonia-v2/textures")
+		dir = ProjectSettings.globalize_path("res://../pbr_packs/mineclonia/textures")
 	shot_dir = OS.get_environment("GOANNA_SHOT")
 	lod_dir = OS.get_environment("GOANNA_FIELD_LOD")
 	if OS.get_environment("GOANNA_FIELD_LAYER") != "":

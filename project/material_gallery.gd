@@ -15,12 +15,12 @@ extends Node3D
 # reflection, and against a plain blue dome a grey iron texture comes out
 # blue: a whole finding was withdrawn over that.
 #
-#   GOANNA_PACK_DIR=<dir>   textures, default baked/pack-mineclonia-v2
+#   GOANNA_PACK_DIR=<dir>   textures, default pbr_packs/mineclonia, the
+#                           authored pack
 #   GOANNA_SHOT=<dir>       write gallery_off.png and gallery_on.png and quit
 #   GOANNA_ITEM_DIR=<dir>   a copy of the game, for the tool and armour set:
-#                           the baked pack has 1023 textures and not one
-#                           pickaxe, because tools and armour come from the
-#                           game the server is running
+#                           the pack has no armour icons, because those come
+#                           from the game the server is running
 #   GOANNA_GALLERY_SET=items  show tools and armour rather than materials
 #
 # Run: godot --path project material_gallery.tscn
@@ -85,8 +85,8 @@ var block_mats: Array[ShaderMaterial] = []
 var card_mats: Array[ShaderMaterial] = []
 
 
-# Tools and armour are not in the baked pack: it has 1023 textures and not
-# one pickaxe. They come from the game the server is running, so the scene is
+# Armour icons are not in the pack (the baked one it replaced had no tools
+# either). They come from the game the server is running, so the scene is
 # pointed at a copy of it and walks it once. GOANNA_ITEM_DIR names the game's
 # directory; without it the item set has nothing to show and says so.
 func _index_textures(root: String) -> Dictionary:
@@ -249,7 +249,7 @@ func _label(text: String, at: Vector3) -> void:
 func _ready() -> void:
 	var dir := OS.get_environment("GOANNA_PACK_DIR")
 	if dir == "":
-		dir = ProjectSettings.globalize_path("res://../baked/pack-mineclonia-v2/textures")
+		dir = ProjectSettings.globalize_path("res://../pbr_packs/mineclonia/textures")
 	shot_dir = OS.get_environment("GOANNA_SHOT")
 
 	_environment()

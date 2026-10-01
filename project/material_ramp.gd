@@ -402,7 +402,7 @@ func _place(mesh: Mesh, mat: Material, pos: Vector3) -> MeshInstance3D:
 func _ready() -> void:
 	baked_dir = OS.get_environment("GOANNA_BAKED_DIR")
 	if baked_dir == "":
-		baked_dir = ProjectSettings.globalize_path("res://../baked/pack-mineclonia-v2/textures")
+		baked_dir = ProjectSettings.globalize_path("res://../pbr_packs/mineclonia/textures")
 	varied_dir = OS.get_environment("GOANNA_VARIED_DIR")
 	if OS.get_environment("GOANNA_RAMP_STEMS") != "":
 		materials = []
