@@ -785,6 +785,17 @@ static bool sameTransform(const core::Transform &a, const core::Transform &b) {
             std::fabs(std::fabs(a.rotation.dotProduct(b.rotation)) - 1.0f) < eps;
 }
 
+Dictionary EntityRenderer::anchor(GoannaSession &session, u16 id) const {
+    Dictionary d;
+    auto it = m_nodes.find(id);
+    auto oit = session.objects().find(id);
+    if (it == m_nodes.end() || !it->second.root || oit == session.objects().end())
+        return d;
+    d["transform"] = it->second.root->get_transform();
+    d["local"] = oit->second->isLocalPlayer();
+    return d;
+}
+
 Dictionary EntityRenderer::animation(GoannaSession &session, u16 id) const {
     Dictionary d;
     auto oit = session.objects().find(id);

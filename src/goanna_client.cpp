@@ -4217,6 +4217,13 @@ Array GoannaClient::entity_list() {
     return m_entities->list(*m_session);
 }
 
+Dictionary GoannaClient::entity_anchor(int id) {
+    if (!m_session || !m_entities || id <= 0 || id > 65535)
+        return Dictionary();
+    std::lock_guard<std::mutex> lk(m_session->mapLock());
+    return m_entities->anchor(*m_session, (u16)id);
+}
+
 Dictionary GoannaClient::entity_animation(int id) {
     if (!m_session || !m_entities || id < 0 || id > 65535)
         return Dictionary();
@@ -8703,6 +8710,7 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("entity_list"), &GoannaClient::entity_list);
     ClassDB::bind_method(D_METHOD("take_stroke_events"), &GoannaClient::take_stroke_events);
     ClassDB::bind_method(D_METHOD("entity_animation", "id"), &GoannaClient::entity_animation);
+    ClassDB::bind_method(D_METHOD("entity_anchor", "id"), &GoannaClient::entity_anchor);
     ClassDB::bind_method(D_METHOD("render_stats"), &GoannaClient::render_stats);
     ClassDB::bind_method(D_METHOD("set_show_body", "show"), &GoannaClient::set_show_body);
     ClassDB::bind_method(D_METHOD("set_view_offset", "offset"), &GoannaClient::set_view_offset);

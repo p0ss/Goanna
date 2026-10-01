@@ -56,6 +56,10 @@ public:
     // from the last step's tracks next to its rest transform. Empty if the
     // entity is unknown. Caller holds session.mapLock().
     godot::Dictionary animation(GoannaSession &session, u16 id) const;
+    // Where an object stands and which way it faces, for a particle spawner
+    // attached to it: {"transform": Transform3D, "local": bool}, or empty
+    // when the object is not known or not drawn.
+    godot::Dictionary anchor(GoannaSession &session, u16 id) const;
     // The hands and feet that went into or came out of water since the last
     // call, for wake.gd's stroke splashes: {id, local, pos, limb ("hand" or
     // "foot"), into, speed (nodes a second)}. Emptied by the call.

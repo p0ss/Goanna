@@ -31,7 +31,9 @@ var lightning: Node3D         # lightning.gd, drawing the strikes it was handed
 var wake: Node                # wake.gd, the rings round bodies in water
 
 var _spawners := {}           # server id -> GPUParticles3D
-var _attached := {}           # server id -> offset, for spawners that follow us
+var _paused := {}             # attached spawners whose object is not known
+const PLAYER_OBJECT := -1     # the synthetic test spawner's stand in for the player
+var _attached := {}           # server id -> [object id, offset], for spawners that follow an object
 var _weather := {}            # server id -> true, for rain and snow spawners
 # server id -> the spawner as it arrived, for weather only, so switching
 # shader weather on or off mid storm can rebuild it the other way.
@@ -96,7 +98,7 @@ func inject_test_spawner(kind: String) -> void:
 		"exp_min": 6.0 if snow else 2.0, "exp_max": 8.0 if snow else 3.0,
 		"size_min": 1.0, "size_max": 2.0,
 		"texture": "weather_pack_snow_snowflake_1.png" if snow else "weather_pack_rain_raindrop_1.png",
-		"vertical": not snow, "collision": false, "attached_id": 1})
+		"vertical": not snow, "collision": false, "attached_id": PLAYER_OBJECT})
 	print("particles: injected synthetic %s spawner at player" % kind)
 
 func clear_test_spawner() -> void:
@@ -137,16 +139,36 @@ func _process(_delta: float) -> void:
 	if client.has_method("take_dug_nodes"):
 		for ev in client.take_dug_nodes():
 			_node_pieces(ev)
-	# Weather and other attached spawners are sent in coordinates relative
-	# to the player, so keep their emitters on the player.
+	# An attached spawner's positions are relative to the object it is
+	# attached to, and turn with it, as in the vanilla client. Weather is
+	# attached to the player; a glow squid's glints to the squid. Following
+	# the player whatever the object was put every squid's glints on the
+	# player (reported 2026-10-01). While the object is not known, the
+	# spawner pauses, as upstream's skips its step.
 	if not _attached.is_empty():
 		var m := PlayerContext.find(self, "goanna_main")
-		if m != null:
-			var here: Vector3 = _player_feet(m)
-			for id in _attached:
-				var node = _spawners.get(id)
-				if node != null and is_instance_valid(node):
-					node.position = here + _attached[id]
+		for id in _attached:
+			var node = _spawners.get(id)
+			if node == null or not is_instance_valid(node):
+				continue
+			var object: int = _attached[id][0]
+			var offset: Vector3 = _attached[id][1]
+			var anchor: Dictionary = {} if object == PLAYER_OBJECT else client.entity_anchor(object)
+			if object == PLAYER_OBJECT or bool(anchor.get("local", false)):
+				# The predicted feet, which the camera follows, not the body.
+				if m != null:
+					node.transform = Transform3D(Basis(), _player_feet(m) + offset)
+					_resume(id, node)
+			elif anchor.has("transform"):
+				node.transform = (anchor["transform"] as Transform3D) * Transform3D(Basis(), offset)
+				_resume(id, node)
+			elif not _paused.has(id):
+				_paused[id] = true
+				node.emitting = false
+
+func _resume(id: int, node: GPUParticles3D) -> void:
+	if _paused.erase(id):
+		node.emitting = true
 
 # Spawners sent relative to the player are relative to the player, whose
 # origin is at the feet; the camera sits at eye height, so anchoring to it
@@ -197,13 +219,13 @@ func _add_spawner(ev: Dictionary) -> void:
 	var is_weather := not is_bolt and (tex_name.contains("rain") or tex_name.contains("snow"))
 	# A bolt is fixed in the world, never the player's own effect, even one
 	# struck near the world's origin.
-	var is_attached := not is_bolt and (int(ev.get("attached_id", 0)) != 0
-			or pmin.length() + pmax.length() < 200.0)
-	# Particles a game attaches to the player (status effects and the like)
-	# are drawn, as the vanilla client draws them. A setting once hid them by
-	# default, and with them every spawner within about 100 nodes of the
-	# world's origin, which its test for "attached" also matched; it was
-	# removed on 2026-10-01.
+	# Attached only when the server says so, as in the vanilla client. This
+	# once also guessed that any spawner within about 100 nodes of the world's
+	# origin was the player's own and carried it about at the player's feet,
+	# a leftover from the first particle work that a setting hid by default.
+	# Removing that setting on 2026-10-01 put such spawners on every player
+	# near spawn, so the guess went too.
+	var is_attached := not is_bolt and int(ev.get("attached_id", 0)) != 0
 	if is_weather and is_attached:
 		_weather_ev[id] = ev
 		# Only weather that follows the player: the shader draws round the
@@ -386,8 +408,8 @@ func _add_spawner(ev: Dictionary) -> void:
 	add_child(p)
 	_spawners[id] = p
 	if is_attached:
-		# centred on the origin means player-relative, as weather is
-		_attached[id] = (pmin + pmax) * 0.5
+		# an attached spawner's positions are relative to what it follows
+		_attached[id] = [int(ev.get("attached_id", 0)), (pmin + pmax) * 0.5]
 		if is_weather:
 			_weather[id] = true
 	# a finite spawner cleans itself up
@@ -472,6 +494,7 @@ func _remove_spawner(id: int) -> void:
 		p.queue_free()
 	_spawners.erase(id)
 	_attached.erase(id)
+	_paused.erase(id)
 	_weather.erase(id)
 	_weather_ev.erase(id)
 	if weather != null:

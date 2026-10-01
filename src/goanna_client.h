@@ -258,6 +258,7 @@ public:
     // server set them, and each joint's pose from them against its rest pose.
     // A development aid for the control channel, not for the player agent.
     godot::Dictionary entity_animation(int id);
+    godot::Dictionary entity_anchor(int id);
     // Frame-time telemetry: where the client's own time goes, and what the
     // renderer is being asked to draw. Milliseconds are exponential moving
     // averages so the numbers are readable rather than jittering per frame.
