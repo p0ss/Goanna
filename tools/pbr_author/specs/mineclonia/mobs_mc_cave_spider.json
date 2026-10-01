@@ -7,10 +7,10 @@
  "bevel_px": 3,
  "micro": "none",
  "materials": {
-  "shell": {"mode": "flat", "base": 0.42, "span": 0.0, "micro": "chitin", "micro_strength": 1.1, "micro_params": {"ridges": 5.0, "plates": 2.5}, "smooth": 0.6, "smooth_spread": 0.0, "scatter": 0},
+  "shell": {"mode": "flat", "base": 0.42, "span": 0.0, "micro": "chitin", "micro_strength": 0.45, "micro_params": {"ridges": 1.2, "plates": 3.0}, "smooth": 0.15, "smooth_spread": 0.0, "scatter": 0},
   "leg": {"mode": "flat", "base": 0.46, "span": 0.0, "micro": "chitin", "micro_strength": 1.6, "micro_dir": "h", "micro_params": {"ridges": 2.0, "plates": 3.0}, "smooth": 0.62, "smooth_spread": 0.0, "scatter": 0},
   "joint": {"mode": "flat", "base": 0.34, "span": 0.0, "micro": "none", "smooth": 0.47, "smooth_spread": 0.0, "scatter": 0},
-  "plate": {"mode": "flat", "base": 0.42, "span": 0.0, "micro": "chitin", "micro_strength": 1.0, "micro_params": {"ridges": 1.5, "plates": 2.0}, "smooth": 0.62, "smooth_spread": 0.0, "scatter": 0},
+  "plate": {"mode": "flat", "base": 0.42, "span": 0.0, "micro": "chitin", "micro_strength": 1.0, "micro_params": {"ridges": 1.5, "plates": 2.0}, "smooth": 0.42, "smooth_spread": 0.0, "scatter": 0},
   "fang": {"mode": "flat", "base": 0.5, "span": 0.0, "micro": "none", "smooth": 0.7, "smooth_spread": 0.0, "scatter": 0},
   "eye": {"mode": "flat", "base": 0.45, "span": 0.0, "micro": "none", "smooth": 0.88, "smooth_spread": 0.0, "f0": 0.025, "scatter": 0}
  },
