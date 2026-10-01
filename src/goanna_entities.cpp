@@ -621,6 +621,8 @@ void EntityRenderer::rebuildVisual(GoannaSession &session, GoannaActiveObject &o
     }
     en.skeleton = nullptr;
     en.shadow_skeleton = nullptr;
+    // The new meshes start at node_light's default; sync sets it again.
+    en.light_known = false;
     std::unique_ptr<ModelAnimator> previous = std::move(en.animator);
     scene::IAnimatedMesh *source = nullptr;
     const ObjectProperties &p = obj.props();
@@ -1062,32 +1064,52 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
         // movement and put every east/west-facing mob backwards.
         en.root->set_rotation_degrees(Vector3(rot.X, rot.Y, -rot.Z));
         // The node light where the entity stands, for entity.gdshader's
-        // node_light: read once per node the entity is in, at about eye
-        // height so a mob standing in a lit doorway takes the doorway's light.
+        // node_light, read at about eye height so a mob standing in a lit
+        // doorway takes the doorway's light. Read every sync rather than
+        // only when the entity enters another node: a mob standing still
+        // kept whatever light its node had when it first arrived, so a
+        // lantern placed beside it, or a block whose light came after the
+        // mob, never reached it.
         const int vis = obj.props().visual;
         if (en.visual && (vis == OBJECTVISUAL_MESH || vis == OBJECTVISUAL_ITEM
                 || vis == OBJECTVISUAL_WIELDITEM)) {
             const v3s16 np((s16)std::floor(pos.X / BS + 0.5f), (s16)std::floor(pos.Y / BS + 1.0f),
                     (s16)std::floor(pos.Z / BS + 0.5f));
-            if (np != en.light_pos || !en.light_known) {
-                en.light_pos = np;
-                const NodeDefManager *ndef = session.nodeDefs();
-                MapNode n = session.map().getNode(np);
-                if (ndef && n.getContent() != CONTENT_IGNORE) {
-                    const ContentFeatures &f = ndef->get(n);
-                    if (f.param_type == CPT_LIGHT) {
-                        ContentLightingFlags lf = f.getLightingFlags();
-                        en.light_sky = decode_light(n.getLight(LIGHTBANK_DAY, lf)) / 255.0f;
-                        en.light_block = decode_light(n.getLight(LIGHTBANK_NIGHT, lf)) / 255.0f;
-                        en.light_known = true;
-                    }
+            float sky = en.light_sky, block = en.light_block;
+            bool known = false;
+            const NodeDefManager *ndef = session.nodeDefs();
+            MapNode n = session.map().getNode(np);
+            if (ndef && n.getContent() != CONTENT_IGNORE) {
+                const ContentFeatures &f = ndef->get(n);
+                if (f.param_type == CPT_LIGHT) {
+                    ContentLightingFlags lf = f.getLightingFlags();
+                    sky = decode_light(n.getLight(LIGHTBANK_DAY, lf)) / 255.0f;
+                    block = decode_light(n.getLight(LIGHTBANK_NIGHT, lf)) / 255.0f;
+                    known = true;
                 }
-                // An item's mesh sits under a holder that carries its scale.
-                MeshInstance3D *lmi = Object::cast_to<MeshInstance3D>(en.visual);
-                if (!lmi && en.visual->get_child_count() > 0)
-                    lmi = Object::cast_to<MeshInstance3D>(en.visual->get_child(0));
-                if (lmi)
-                    lmi->set_instance_shader_parameter("node_light", Vector2(en.light_block, en.light_sky));
+            }
+            if (known && (!en.light_known || np != en.light_pos ||
+                    sky != en.light_sky || block != en.light_block)) {
+                en.light_pos = np;
+                en.light_sky = sky;
+                en.light_block = block;
+                en.light_known = true;
+                // Every mesh drawn for the entity. A skinned model's mesh
+                // sits under a Skeleton3D under the holder, and an item's
+                // under the holder that carries its scale; looking only at
+                // the visual and its first child found no mesh for any
+                // animated mob, so node_light stayed at its default, full
+                // sky and no block light, for every one of them.
+                std::vector<Node *> todo{en.visual};
+                const Vector2 nl(en.light_block, en.light_sky);
+                while (!todo.empty()) {
+                    Node *cur = todo.back();
+                    todo.pop_back();
+                    if (auto *gi = Object::cast_to<GeometryInstance3D>(cur))
+                        gi->set_instance_shader_parameter("node_light", nl);
+                    for (int c = 0; c < cur->get_child_count(); ++c)
+                        todo.push_back(cur->get_child(c));
+                }
             }
         }
         // attached at a bone: follow the parent's joint from its last step
