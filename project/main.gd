@@ -998,6 +998,22 @@ func _set_camera_mode(mode: int) -> void:
 	client.set_third_person(_third_drawn)
 	crosshair_hidden = camera_mode == CAMERA_FRONT
 
+# Alt with the wheel: in brings the camera closer and, past the closest,
+# back into the eyes; out from first person steps out behind, close. Alt
+# with the mouse steps out too, and there was no way back in but F7.
+func _alt_wheel(towards: bool) -> void:
+	if camera_mode == CAMERA_FIRST:
+		if not towards:
+			_set_camera_mode(CAMERA_BEHIND)
+			orbit_distance = THIRD_PERSON_MIN
+		return
+	if towards and orbit_distance <= THIRD_PERSON_MIN + 0.01:
+		_set_camera_mode(CAMERA_FIRST)
+		orbit_distance = THIRD_PERSON_MAX
+		return
+	orbit_distance = clampf(orbit_distance + (-0.25 if towards else 0.25),
+			THIRD_PERSON_MIN, THIRD_PERSON_MAX)
+
 func _place_third_person(head: Vector3) -> void:
 	var cam_yaw := yaw + orbit_yaw
 	var cam_pitch := clampf(pitch + orbit_pitch, -89.0, 89.0)
@@ -1053,10 +1069,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			place_down = event.pressed
 			if event.pressed:
 				place_pressed = true
-		elif event.pressed and camera_mode != CAMERA_FIRST and Input.is_key_pressed(KEY_ALT) \
+		elif event.pressed and Input.is_key_pressed(KEY_ALT) \
 				and (event.button_index == MOUSE_BUTTON_WHEEL_UP or event.button_index == MOUSE_BUTTON_WHEEL_DOWN):
-			orbit_distance = clampf(orbit_distance + (-0.25 if event.button_index == MOUSE_BUTTON_WHEEL_UP else 0.25),
-					THIRD_PERSON_MIN, THIRD_PERSON_MAX)
+			_alt_wheel(event.button_index == MOUSE_BUTTON_WHEEL_UP)
 		elif event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_UP:
 			var n := _hotbar_count()
 			_set_wield((wield + n - 1) % n)
@@ -2650,9 +2665,13 @@ func _apply_water_murk() -> void:
 			Vector4(colour.r, colour.g, colour.b, float(m["density"])))
 	# Where the surface is over the eye, for the opaque shaders' absorption
 	# (underwater.gdshaderinc): a surface above the water seen up through it
-	# loses only what the water under the surface takes.
+	# loses only what the water under the surface takes. And how dense the
+	# fog and the volume are, whose own dimming the shaders give back.
+	var fogs := float(m["density"])
+	if e.volumetric_fog_enabled:
+		fogs += float(m["volume"])
 	client.set_view_shader_parameter("goanna_water_surface",
-			Vector4(cam.global_position.y + water_optics.eye_depth, 1.0, 0.0, 0.0))
+			Vector4(cam.global_position.y + water_optics.eye_depth, fogs, 0.0, 0.0))
 
 # The light on an upward face at the water: the sun and the moon each by
 # how high it stands, and the sky's, as the ambient energy of its zenith.

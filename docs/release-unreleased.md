@@ -17,6 +17,9 @@
 - **Swimming without sprinting.** Moving through deep water upright now
   swims the breaststroke instead of treading water. Sprinting with your
   head under still swims the crawl.
+- **Back into first person with the wheel.** Alt with the wheel brings the
+  third person camera in and, past the closest, back into first person;
+  out from first person steps behind.
 - **Arms in first person.** Your arms no longer swing a held item up into
   the view as you walk.
 
@@ -26,10 +29,13 @@
   darker with depth and through the evening, instead of nearly black.
   Looking up, you see the sky through the window overhead and, beyond it,
   the water below reflected in the surface. The bed loses its colour to the
-  water the same way seen from in it as from above, and no longer looks
-  brighter once you dive in.
+  water the same way seen from in it as from above, neither brighter nor
+  murkier once you dive in, and the waves show on the underside again.
 - **Third person in water.** With your head under and the camera above the
   water, the view no longer turns water blue.
+- **Waves round your body.** Wading, swimming or jumping in, the water
+  rises and rings right at your body's edge instead of a node away, and
+  splashes are thrown as streaks of water rather than white blobs.
 - **No more strobing near the shore.** The sea no longer flickers as if in
   fast forward when you stand a few blocks from the water's edge.
 

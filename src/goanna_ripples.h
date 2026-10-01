@@ -103,12 +103,17 @@ public:
     // How much of the water a body sinks into it pushes out into the ring,
     // and the fastest sinking or rising counted, nodes a second: a jump
     // into the water is a splash, not a detonation.
-    static constexpr float kSwimSink = 0.5f;
+    static constexpr float kSwimSink = 0.3f;
     static constexpr float kSwimMaxSinking = 3.0f;
-    // The lift's inner Gaussian, as a share of the body's radius. Narrower
-    // was tried: a push that conserves water and is narrow barely stirs the
-    // longer waves a slow bob makes, and the rings came out fainter still.
-    static constexpr float kLiftNarrow = 1.0f;
+    // A body's footprint is a disc of its radius whose edge softens over
+    // kEdge either side, nodes; the water it pushes out sinking goes into a
+    // ring just outside it, kRingWidth wide (a Gaussian's sigma), and comes
+    // back from there rising. The shove moving is the footprint's change,
+    // times kShoveScale to keep the old Gaussian's strength.
+    static constexpr float kEdge = 0.12f;
+    static constexpr float kRingShare = 0.5f;
+    static constexpr float kRingWidth = 0.15f;
+    static constexpr float kShoveScale = 0.3f;
     // The water shoved aside moving. The shove per step grows with speed,
     // so a slow body is given more water to shove, up to kSwimSlowGain
     // times as much at kSwimSlowSpeed and below, or a wader barely marks
@@ -161,6 +166,8 @@ private:
     // Visits the cells within reach of (x, z) for a body of radius r, with
     // the Gaussian weight of each.
     template <typename Fn> void around(float x, float z, float r, Fn &&fn);
+    // Visits the cells within `reach` of (x, z), with each one's distance.
+    template <typename Fn> void edge(float x, float z, float reach, Fn &&fn);
     bool water(int i, int j) const;
 
     int m_nodes;

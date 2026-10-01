@@ -123,9 +123,19 @@ Some details of the underside:
   sample it found on screen, fogged by the ray's length so far. Falling back
   to the flat murk colour there drew horizontal teal bands wherever the
   reflected ray ran off the top of the screen.
-- Seen from below, the surface absorbs only the water between the eye and
-  it. Measured by the depth behind it, as from above, it took up to 64
-  nodes of air for water and came out nearly black.
+- Seen from below, the surface absorbs nothing more of what is behind it:
+  the opaque pass already took the water between the eye and what it drew
+  (below), and the sky in the window is absorbed over the distance to the
+  surface. Measured by the depth behind it, as from above, it took up to
+  64 nodes of air for water and came out nearly black.
+- Godot gives a back face its normal already turned to the eye. The shader
+  turns it back first, bends the surface's own normal and turns it to the
+  eye at the end. Taken as it came, the check that a face is the top of the
+  water failed from below, and the underside lost its ripples and mirror.
+- Godot fogs the underside again over the distance to it, on top of the
+  fog already over what it shows, which made looking up murkier than
+  looking down. The shader sets its emission to what, once fogged, comes
+  out as itself.
 
 Every opaque surface also loses each colour by the water between it and the
 eye (`shaders/underwater.gdshaderinc`, included by the node, plant, leaf,
@@ -134,7 +144,12 @@ the bed seen from above. For something above the water seen up through it,
 `path` is only the part under the surface, whose height `main.gd` passes in
 `goanna_water_surface`. Before this the only loss was Godot's fog, one
 channel at a few hundredths a node near the surface, and a bed three nodes
-away was clearly brighter seen from in the water than from above it.
+away was clearly brighter seen from in the water than from above it. The
+fog and the scattering volume still lay the murk's glow over it, and in
+doing so take their own `exp(-density * distance)` of its light; that share
+is given back (`goanna_water_surface.y` carries the two densities), so a
+surface loses only the absorption, as from above. With both, the water had
+come out murkier from inside than from above.
 
 ## The game's water sky
 

@@ -430,16 +430,26 @@ patch is about 0.2 ms.
 
 **Bodies** (`RippleField::swimmer`). Everything a body does to the water
 comes from how it moves, so a body holding still leaves the water still.
-Moving across, it shoves the water it displaces (over a radius of 0.3
-nodes) ahead of it, raising it in front and lowering it behind, more water
+Moving across, it shoves the water it displaces ahead of it, raising it
+along the leading edge of its footprint and lowering it along the trailing
+edge, more water
 the slower it goes (up to three times as much at two thirds of a node a
 second), or a wader would barely mark the water. The shove is what stands a
 bow crest up in front of a swimmer: a press alone cannot, once the body
 outruns its own waves. Sinking into the water (its submerged depth growing,
-up to 3 nodes a second counted) it pushes half the water it now displaces
-out from under itself into a ring round it, and rising lets it back: a
-Gaussian of its radius less one twice as wide at a quarter of the height,
-so no water is made or lost and every crest has its trough. That is what
+up to 3 nodes a second counted) it pushes three tenths of the water it now
+displaces out from under itself, and rising lets it back: half into a ring
+hugging the edge of its footprint and half spread out to twice its radius,
+summed over the cells so no water is made or lost and every crest has its
+trough.
+
+The footprint is a disc whose soft edge (`kEdge`) is centred 0.42 nodes
+out, just outside a player's 0.3. The first versions centred both the
+shove and the push on a Gaussian under the body: the crest it shoved up
+stood a fifth of a node ahead, inside the body, and the ring it pushed out
+was a node across before it was steep enough to see, so the water hard by a
+body lay flat whatever it did, a dead zone round the player seen looking
+down. That is what
 rings out from a body falling in, bobbing or climbing out; a body in the
 air over the water, or wholly under it, does nothing to the surface by
 going up or down (`wake.gd`'s `sinking`). A swimmer faster than the waves
@@ -460,13 +470,15 @@ lifted the surface with the body's own vertical speed, in the air as well
 as in the water, making water to do it, and a player jumping up and down
 piled up broad mounds with no troughs, drawn as white smoke rings by the
 crest whitening that went with them. Jumping in and out for five seconds
-now peaks at 0.27 and -0.23 with no water made; a gentle bob, a fifth of a
+peaked at 0.27 and -0.23 with no water made under that tuning; a gentle bob, a fifth of a
 node up and down, makes faint rings (0.03), as it does in real water, where
 narrowing the push to sharpen them only made them fainter. The test
-now prints and floors the steepest slope 1.5 to 6 nodes from a swimmer:
-nothing holding still, 0.21 to 0.31 moving, 0.07 dropping in and 0.03
-bobbing for a player, 0.01 to 0.25 for an animal; and checks a swimmer's
-crest is ahead of it and its trough behind, centred on it.
+prints and floors the steepest slope 0.4 to 1.5 and 1.5 to 6 nodes from a
+swimmer. Now, for a player: nothing holding still; moving, 0.35 to 1.2 near
+and 0.22 to 0.30 further out; bobbing 0.11 near and 0.024 out; 0.09 out two
+seconds after dropping in. Jumping in and out for five seconds peaks at
+0.08 round the body. It also checks a swimmer's crest is ahead of it and
+its trough behind, centred on it.
 
 **Which bodies** (`project/ui/wake.gd`, `claim` and `ripple_frame`). The
 patch lies on one water surface: the local player's, when it is in the
@@ -520,9 +532,11 @@ yet observed.
 - **Going in.** A body whose submerged depth grows faster than 1.2 nodes a
   second (a fall or a jump into the water) throws a crown: droplets from a
   ring round where it went in, up at 1.8 to 3.8 nodes a second and out at
-  0.8 to 2.2, 10 to 48 of them by how fast it went in (full at 3 nodes a
+  0.8 to 2.2, 20 to 96 of them by how fast it went in (full at 3 nodes a
   second).
-- **Coming out** as fast: drips off the whole body, falling back.
+- **Coming out** as fast: drips off the sides of the body, below the eye,
+  falling back. They came out of a box through the whole body, which in
+  first person put them in front of the lens.
 - **Moving through the surface** faster than 2.2 nodes a second across,
   with the surface somewhere up its body: spray fanned up and forward off
   its bow, harder the faster it goes, for as long as it keeps moving.
@@ -535,9 +549,11 @@ yet observed.
 
 At most one crown or drip a body every 0.3 seconds. The droplets come back
 down as small kicks on the ripple patch, round where they were thrown, 0.3
-to 0.8 seconds later; spray lands beside the bow. Droplets are small lit
-round billboards with a little shine, fading over the last third of their
-flight. At most 16 bursts and 6 sprays at once.
+to 0.8 seconds later; spray lands beside the bow. Each droplet is a short
+lit streak along its flight, about 0.02 by 0.09 nodes, turned about that
+line to face the eye (`shaders/droplet.gdshader`), fading over the last
+third of its flight. Round billboards 0.07 across, the first version, read
+as white bubbles coming out of the chest and hands. At most 16 bursts and 6 sprays at once.
 
 ## The setting
 

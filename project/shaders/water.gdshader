@@ -247,6 +247,15 @@ void vertex() {
 void fragment() {
 	if (!FRONT_FACING && goanna_eye_underwater < 0.5)
 		discard;
+	// Godot hands a back face its normal already turned to face the eye
+	// (DO_SIDE_CHECK in its scene shader). Everything below bends the
+	// surface's own normal, the one pointing out of the water, and turns it
+	// to the eye at the end. Taken as it came, the underside's normal
+	// pointed down: the waves were mixed into the opposite of their own
+	// normal, and the check below that this is the top of the water failed
+	// for the underside, which lost its ripples and its mirror.
+	if (!FRONT_FACING)
+		NORMAL = -NORMAL;
 	// The face's own up, before any wave bends it: whether this is the top
 	// of the water or the side of a fall (reflect() below needs to know).
 	float face_up = (INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).y;
@@ -355,8 +364,11 @@ void fragment() {
 	// Taking the depth behind the surface instead (as much as 64 nodes to
 	// the trees or the sky) absorbed everything seen up through the surface
 	// to near black.
+	// And that stretch has been taken already: the opaque pass absorbed
+	// whatever it drew under the water's reach by the water between it and
+	// the eye (underwater.gdshaderinc), and the sky is put in below.
 	if (!FRONT_FACING)
-		thick = clamp(here, 0.0, 64.0);
+		thick = 0.0;
 	// Past a few hundred nodes every water body reads as deep: at eye height
 	// the view ray through a surface out there is always near grazing, so the
 	// near mesh is fully absorbed anyway. The far tiers need the same answer
@@ -635,12 +647,24 @@ void fragment() {
 			vec3 sky = mix(goanna_sky_horizon, goanna_sky_top, pow(clamp(world_up.y, 0.0, 1.0), 0.45));
 			float sun_d = max(dot(world_up, goanna_sun_dir), 0.0);
 			sky += goanna_sun_glow * (pow(sun_d, 1500.0) * 3.0 + pow(sun_d, 350.0) * 0.8);
-			// The water between the eye and the surface dims it as the fog
-			// Godot lays over this fragment.
-			window = sky;
+			// Through the water between the surface and the eye, per
+			// colour, as the opaque pass absorbs what it draws.
+			window = sky * exp(-goanna_water_absorption * min(here, 64.0));
 		}
 		EMISSION = mix(window, mirror, tir);
 		ALBEDO *= 1.0 - tir;
+	}
+	// What arrives at the underside has already come through the water to
+	// the eye, absorbed and with the murk's glow over it (the opaque pass
+	// fogged it over its whole distance). Godot then fogs this fragment
+	// again over the distance to the surface, which made the water twice
+	// as murky looked through from inside as from above. That fog is taken
+	// back out here: the emission is set to what, fogged, comes out as
+	// itself.
+	if (!FRONT_FACING) {
+		float fogged = 1.0 - exp(-goanna_water_fog.w * here);
+		EMISSION = max((EMISSION - goanna_water_fog.rgb * fogged)
+				/ max(1.0 - fogged, 0.05), vec3(0.0));
 	}
 	ALPHA = clamp(0.9 + 0.1 * fres, 0.0, 1.0);
 	METALLIC = 0.0;

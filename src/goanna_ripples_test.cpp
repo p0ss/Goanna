@@ -219,8 +219,8 @@ int main() {
         expect(finite(f) && f.peak() < 1.0f, "hard use made the field blow up");
     }
 
-    // 9. What first person sees: the steepest slope 1.5 to 6 nodes from a
-    // swimmer (nearer is under the camera), as RippleField::swimmer sets
+    // 9. What first person sees: the steepest slope 0.4 to 1.5 and 1.5 to 6
+    // nodes from a swimmer (nearer is the body itself), as RippleField::swimmer sets
     // it up for wake.gd, doing what a body really does in water. The rings'
     // trail was about 0.3. Moving across the water must show plainly (over
     // a tenth for a player); dropping in must leave a ring that can be seen
@@ -258,17 +258,22 @@ int main() {
                     sinking += m.drop;
                 f.step(1.0f / 60.0f, {RippleField::swimmer(x, 16.0f, m.speed, 0.0f, sinking, scale)});
             }
-            float seen = 0.0f;
+            float seen = 0.0f, near = 0.0f;
             for (float px = x - 6.0f; px <= x + 6.0f; px += 0.0625f)
                 for (float pz = 10.0f; pz <= 22.0f; pz += 0.0625f) {
-                    if (std::hypot(px - x, pz - 16.0f) < 1.5f)
+                    const float r = std::hypot(px - x, pz - 16.0f);
+                    if (r < 0.4f)
                         continue;
                     const float gx = (f.height(px + 0.0625f, pz) - f.height(px - 0.0625f, pz)) / 0.125f;
                     const float gz = (f.height(px, pz + 0.0625f) - f.height(px, pz - 0.0625f)) / 0.125f;
-                    seen = std::max(seen, std::sqrt(gx * gx + gz * gz));
+                    const float g = std::sqrt(gx * gx + gz * gz);
+                    if (r < 1.5f)
+                        near = std::max(near, g);
+                    else
+                        seen = std::max(seen, g);
                 }
-            std::printf("seen from a swimmer at scale %.1f %s: steepest slope 1.5 to 6 nodes out %.3f\n",
-                    scale, m.what, seen);
+            std::printf("seen from a swimmer at scale %.1f %s: steepest slope 0.4 to 1.5 nodes out %.3f, "
+                    "1.5 to 6 %.3f\n", scale, m.what, near, seen);
             const std::string what = std::string(scale == 1.0f ? "a player " : "an animal ") + m.what;
             if (m.speed == 0.0f && m.bob == 0.0f && m.drop == 0.0f) {
                 expect(seen == 0.0f && f.asleep(), what + " disturbs the water: " + std::to_string(seen));
@@ -280,6 +285,12 @@ int main() {
             if (m.bob > 0.0f)
                 floor = scale == 1.0f ? 0.02f : 0.008f;
             expect(seen > floor, what + " barely marks the water: " + std::to_string(seen));
+            // And hard by the body, the first node round it, which the
+            // first tuning left out as under the camera: it is in plain
+            // view looking down, and lay flat. (Not two seconds after
+            // dropping in: that ring has spread past it by then.)
+            if (m.drop == 0.0f)
+                expect(near > 1.5f * floor, what + " leaves the water flat round itself: " + std::to_string(near));
             expect(seen < 0.7f, what + " churns the water: " + std::to_string(seen));
             expect(finite(f), what + " made the field blow up");
         }
@@ -296,15 +307,25 @@ int main() {
             // In and out every 0.6 s, as fast as the swimmer counts.
             const float sinking = std::fmod(t, 0.6f) < 0.3f ? 3.0f : -3.0f;
             f.step(1.0f / 60.0f, {RippleField::swimmer(16.0f, 16.0f, 0.0f, 0.0f, sinking, 1.0f)});
+            // Under the body, which hides it, the water is pushed down and
+            // let back by the whole depth the body goes in; what shows is
+            // round it, from its edge out.
             float sum = 0.0f;
-            for (float h : f.heights()) {
-                sum += h;
-                hi = std::max(hi, h);
-                lo = std::min(lo, h);
-            }
+            const std::vector<float> &hs = f.heights();
+            for (int j = 0; j < f.cells(); ++j)
+                for (int i = 0; i < f.cells(); ++i) {
+                    const float h = hs[(size_t)j * f.cells() + i];
+                    sum += h;
+                    const float cx = f.cornerX() + (i + 0.5f) * f.cellSize() - 16.0f;
+                    const float cz = f.cornerZ() + (j + 0.5f) * f.cellSize() - 16.0f;
+                    if (std::hypot(cx, cz) < RippleField::kSwimRadius + 2.0f * RippleField::kEdge)
+                        continue;
+                    hi = std::max(hi, h);
+                    lo = std::min(lo, h);
+                }
             sum_worst = std::max(sum_worst, std::fabs(sum) * f.cellSize() * f.cellSize());
         }
-        std::printf("jumping in and out for 5 s: highest crest %.3f, deepest trough %.3f, "
+        std::printf("jumping in and out for 5 s, round the body: highest crest %.3f, deepest trough %.3f, "
                 "water made at worst %.5f node^3\n", hi, lo, sum_worst);
         expect(hi < 0.3f && lo > -0.3f, "jumping in and out piles the water up");
         expect(-lo > 0.5f * hi && hi > 0.5f * -lo, "jumping in and out makes crests without troughs or troughs without crests");

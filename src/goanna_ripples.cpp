@@ -104,14 +104,63 @@ void RippleField::around(float x, float z, float radius, Fn &&fn) {
     }
 }
 
-// Raises the surface over a body by `amount` and lowers a ring round it by
-// the same volume: a Gaussian of the body's radius less one twice as wide at
-// a quarter of the height, whose integrals match. A negative amount is a
-// body sinking, pushing the water out from under it into the ring.
+// The body's footprint on the surface: 1 inside it, falling to 0 over
+// kEdge either side of its radius. The water it moves is taken from and
+// put back at its edge, where the eye sees it: a Gaussian centred under the
+// body put the crest it shoved up a fifth of a node ahead, inside a body
+// three tenths across, and the ring sinking into the water made spread a
+// node out before it was steep enough to see, so the water hard by a body
+// lay flat whatever it did.
+static float footprint(float d, float r) {
+    const float u = std::clamp((d - (r - RippleField::kEdge)) / (2.0f * RippleField::kEdge), 0.0f, 1.0f);
+    return 1.0f - u * u * (3.0f - 2.0f * u);
+}
+
+template <typename Fn>
+void RippleField::edge(float x, float z, float reach, Fn &&fn) {
+    const float cs = cellSize();
+    const int i0 = std::max(0, (int)std::floor((x - reach - cornerX()) / cs));
+    const int i1 = std::min(m_cells - 1, (int)std::ceil((x + reach - cornerX()) / cs));
+    const int j0 = std::max(0, (int)std::floor((z - reach - cornerZ()) / cs));
+    const int j1 = std::min(m_cells - 1, (int)std::ceil((z + reach - cornerZ()) / cs));
+    for (int j = j0; j <= j1; ++j) {
+        const float cz = cornerZ() + (j + 0.5f) * cs - z;
+        for (int i = i0; i <= i1; ++i) {
+            const float cx = cornerX() + (i + 0.5f) * cs - x;
+            const float d = std::sqrt(cx * cx + cz * cz);
+            if (d <= reach)
+                fn((size_t)j * m_cells + i, d);
+        }
+    }
+}
+
+// Raises the surface over a body by `amount` and lowers the water round it
+// by the same volume, summed over the cells so none is made or lost: a
+// share kRingShare in a ring hugging its edge, which is what shows close
+// to, and the rest spread twice the body's radius out, whose longer waves
+// carry the rings a bob or a jump makes further. A negative amount is a
+// body sinking, pushing the water out from under it.
 void RippleField::lift(const RippleBody &b, float x, float z, float amount) {
-    const float r = std::max(kLiftNarrow * b.radius, cellSize());
-    around(x, z, r, [&](size_t c, float g) { m_h[c] += amount * g; });
-    around(x, z, 2.0f * r, [&](size_t c, float g) { m_h[c] -= 0.25f * amount * g; });
+    const float r = std::max(b.radius, cellSize()) + kEdge;
+    const float ring_at = r + kEdge;
+    const float wide = 2.0f * r;
+    const float reach = std::max(ring_at + 3.0f * kRingWidth, 2.5f * wide);
+    float inner = 0.0f, ring = 0.0f, spread = 0.0f;
+    edge(x, z, reach, [&](size_t, float d) {
+        inner += footprint(d, r);
+        const float u = (d - ring_at) / kRingWidth;
+        ring += std::exp(-0.5f * u * u);
+        spread += std::exp(-0.5f * d * d / (wide * wide));
+    });
+    if (inner <= 0.0f || ring <= 0.0f || spread <= 0.0f)
+        return;
+    const float to_ring = amount * inner * kRingShare / ring;
+    const float to_spread = amount * inner * (1.0f - kRingShare) / spread;
+    edge(x, z, reach, [&](size_t c, float d) {
+        const float u = (d - ring_at) / kRingWidth;
+        m_h[c] += amount * footprint(d, r) - to_ring * std::exp(-0.5f * u * u)
+                - to_spread * std::exp(-0.5f * d * d / (wide * wide));
+    });
 }
 
 // Pushes the surface's velocity down by a Gaussian of `amount` round (x, z).
@@ -119,13 +168,15 @@ void RippleField::press(const RippleBody &b, float x, float z, float amount) {
     around(x, z, b.radius, [&](size_t c, float g) { m_v[c] -= amount * g; });
 }
 
-// The body moved from (x0, z0) to (x1, z1). Where it arrives the surface
-// rises, the water shoved ahead of it, and where it has left the surface
-// falls back, each by the change in its footprint. The two cancel, so no
-// water is made or lost.
+// The body moved from (x0, z0) to (x1, z1). Where its footprint arrives the
+// surface rises, the water shoved ahead of it, and where it has left the
+// surface falls back: a crest along its leading edge and a trough along its
+// trailing one. The two cancel, so no water is made or lost.
 void RippleField::shove(const RippleBody &b, float x0, float z0, float x1, float z1) {
-    around(x1, z1, b.radius, [&](size_t c, float g) { m_h[c] += b.displace * g; });
-    around(x0, z0, b.radius, [&](size_t c, float g) { m_h[c] -= b.displace * g; });
+    const float r = std::max(b.radius, cellSize()) + kEdge;
+    const float reach = r + kEdge;
+    edge(x1, z1, reach, [&](size_t c, float d) { m_h[c] += b.displace * footprint(d, r) * kShoveScale; });
+    edge(x0, z0, reach, [&](size_t c, float d) { m_h[c] -= b.displace * footprint(d, r) * kShoveScale; });
 }
 
 void RippleField::impulse(float x, float z, float amount, float radius) {

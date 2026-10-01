@@ -21,23 +21,27 @@ const MAX_BURSTS := 16
 const MAX_SPRAYS := 6
 # Seconds a spray keeps going after its body last asked for it.
 const SPRAY_LINGER := 0.25
-# Droplets: nodes across, and the colour of a drop of water catching light.
-const DROP_SIZE := 0.07
-const DROP_COLOUR := Color(0.86, 0.93, 1.0, 0.8)
+# Droplets: a streak along the way each flies (shaders/droplet.gdshader),
+# nodes across and along, and the colour of water catching light. Round
+# billboards 0.07 across, the first version, read as white bubbles coming
+# out of the body, from a chest and hands a hand's breadth from the eye.
+const DROP_SIZE := Vector2(0.022, 0.09)
+const DROP_COLOUR := Color(0.86, 0.93, 1.0, 0.75)
+const DROPLET_SHADER := preload("res://shaders/droplet.gdshader")
 
 # What each kind of burst throws: droplets at full strength (they scale
 # down with it, to a floor), how fast up and outward, nodes a second, and
 # how long they fly.
 const KINDS := {
-	"entry": {"amount": 48, "floor": 10, "up": Vector2(1.8, 3.8), "out": Vector2(0.8, 2.2),
+	"entry": {"amount": 96, "floor": 20, "up": Vector2(1.8, 3.8), "out": Vector2(0.8, 2.2),
 		"lifetime": 0.9},
-	"drip": {"amount": 20, "floor": 6, "up": Vector2(0.0, 0.4), "out": Vector2(0.0, 0.3),
+	"drip": {"amount": 28, "floor": 8, "up": Vector2(0.0, 0.4), "out": Vector2(0.0, 0.3),
 		"lifetime": 0.6},
-	"strike": {"amount": 22, "floor": 8, "up": Vector2(1.2, 3.0), "out": Vector2(0.4, 1.4),
+	"strike": {"amount": 36, "floor": 12, "up": Vector2(1.2, 3.0), "out": Vector2(0.4, 1.4),
 		"lifetime": 0.7},
 	# A hand going into the water in a stroke, or a foot breaking the
 	# surface in a kick: a small crown.
-	"stroke": {"amount": 14, "floor": 4, "up": Vector2(1.0, 2.4), "out": Vector2(0.3, 1.0),
+	"stroke": {"amount": 24, "floor": 8, "up": Vector2(1.0, 2.4), "out": Vector2(0.3, 1.0),
 		"lifetime": 0.6},
 }
 
@@ -74,10 +78,15 @@ func burst(kind: String, pos: Vector3, strength: float) -> int:
 			mat.emission_ring_inner_radius = 0.25
 			mat.emission_ring_height = 0.05
 		"drip":
-			# Off the whole body, falling back.
-			mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
-			mat.emission_box_extents = Vector3(0.25, 0.7, 0.25)
-			pos += Vector3.UP * 0.9
+			# Off the sides of the body, below the eye, falling back. A box
+			# through the whole body threw them out of the chest, which in
+			# first person is in front of the lens.
+			mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_RING
+			mat.emission_ring_axis = Vector3.UP
+			mat.emission_ring_radius = 0.36
+			mat.emission_ring_inner_radius = 0.3
+			mat.emission_ring_height = 0.6
+			pos += Vector3.UP * 0.6
 		_:
 			mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
 			mat.emission_sphere_radius = 0.12
@@ -162,6 +171,8 @@ func counts() -> Dictionary:
 func _droplet_process() -> ParticleProcessMaterial:
 	var mat := ParticleProcessMaterial.new()
 	mat.gravity = Vector3(0.0, -9.81, 0.0)
+	# The particle's y axis along its flight, which the streak lies on.
+	mat.particle_flag_align_y = true
 	mat.scale_min = 0.6
 	mat.scale_max = 1.4
 	# Full while they fly, fading over the last third as they come down.
@@ -194,31 +205,16 @@ func _emitter(mat: ParticleProcessMaterial, amount: int, lifetime: float) -> GPU
 	return p
 
 
-# One droplet: a small round billboard, lit so it reads by day and catches a
-# lamp at night, with a little shine.
+# One droplet: a streak along its flight, turned to face the eye
+# (shaders/droplet.gdshader), lit, with a little shine.
 func _drop_mesh() -> QuadMesh:
 	if _draw_pass != null:
 		return _draw_pass
-	var dot := GradientTexture2D.new()
-	dot.width = 16
-	dot.height = 16
-	dot.fill = GradientTexture2D.FILL_RADIAL
-	dot.fill_from = Vector2(0.5, 0.5)
-	dot.fill_to = Vector2(1.0, 0.5)
-	var g := Gradient.new()
-	g.set_color(0, Color(1, 1, 1, 1))
-	g.set_color(1, Color(1, 1, 1, 0))
-	g.add_point(0.55, Color(1, 1, 1, 0.9))
-	dot.gradient = g
-	var smat := StandardMaterial3D.new()
-	smat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	smat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
-	smat.vertex_color_use_as_albedo = true
-	smat.albedo_color = DROP_COLOUR
-	smat.albedo_texture = dot
-	smat.roughness = 0.08
-	smat.metallic_specular = 0.9
+	var smat := ShaderMaterial.new()
+	smat.shader = DROPLET_SHADER
+	smat.set_shader_parameter("colour", DROP_COLOUR)
+	smat.set_shader_parameter("size", DROP_SIZE)
 	_draw_pass = QuadMesh.new()
-	_draw_pass.size = Vector2(DROP_SIZE, DROP_SIZE)
+	_draw_pass.size = Vector2(1.0, 1.0)
 	_draw_pass.material = smat
 	return _draw_pass
