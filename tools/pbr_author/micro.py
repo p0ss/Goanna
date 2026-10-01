@@ -86,6 +86,36 @@ says its parameters in its docstring):
   chitin   hard and glossy: fine wavy ridges across the direction, plates
            with a suture between. "ridges", "plates".
 
+For riveted iron (the iron golem), each art texel one plate. Everything a
+plate carries stays inside its texel, so nothing crosses a texel or a face
+border:
+
+  plate    the plate itself: a crisp shallow bevel at the texel's edge, a
+           small tilt and offset per plate so neighbours meet with a small
+           step, the shine varying per plate (uniform -1..1 in the
+           smoothness, so a swing of 0.06 is plus or minus 0.06) and faint
+           rust specks in the smoothness only. "bevel", "tilt", "step",
+           "specks".
+  scratches fine straight scratches, a few per plate at random angles.
+           "count", "width", "length".
+  dents    soft round hammer dents, sparse, at most one or two per plate.
+           "density", "radius".
+  rivets   a rivet head (a small dome in a shallow seat) in the outer
+           corner of chosen plates. By rule, along the border rows and
+           columns of each piece of the material, every "every" plates
+           counted from the piece's nearest edge, so a symmetric piece
+           gets symmetric rivets; or at the "at" list of [x, y] centres in
+           art texels. "radius", "inset", "every", "ring", "min_size".
+  rust     flaky, pitted rust: flakes at different heights with lifted
+           edges, pits, very rough. "flake", "pits".
+  leaf     small overlapping leaves at random angles, each domed with a
+           midrib, a dark gap where none covers, the later leaf on top.
+           "size".
+  mix      several kinds summed: "layers", a list of {"kind", "strength",
+           "swing", "params"}, each kind at its own amplitude and swing
+           times strength and swing. A material takes one "micro", so a
+           plate with scratches, dents and rivets is a mix.
+
 Edge features, which need the piece's shape, are separate material keys:
 
   "stitch": {...}   a dashed line of thread a fixed inset inside the edge
@@ -555,6 +585,200 @@ def _chitin(c, p):
     return d, s
 
 
+# --- riveted iron ------------------------------------------------------------
+# One plate per art texel. Each kind works in the pixel's own texel (its
+# integer cell and the position inside it), so a feature never leaves its
+# plate and never reaches another face.
+
+def _cell(c):
+    tx, ty = np.floor(c["x"]), np.floor(c["y"])
+    return tx.astype(np.int64), ty.astype(np.int64), c["x"] - tx, c["y"] - ty
+
+
+def _plate(c, p):
+    """A plate per texel: a crisp shallow bevel at its edge ("bevel", its
+    width in texels), a small tilt ("tilt") and offset ("step") per plate,
+    so neighbours at one height still meet with a small step and catch the
+    light a little differently; in the smoothness the shine per plate,
+    uniform -1..1, and faint rust specks ("specks", their share of plates,
+    each pulling the smoothness down by up to 3)."""
+    sd = c["seed"]
+    tx, ty, fx, fy = _cell(c)
+    bw = p.get("bevel", 0.09)
+    e = np.minimum(np.minimum(fx, 1.0 - fx), np.minimum(fy, 1.0 - fy))
+    bevel = np.clip(1.0 - e / bw, 0.0, 1.0)
+    tilt = p.get("tilt", 0.25)
+    ax = 2.0 * _hash(tx, ty, sd + 31) - 1.0
+    ay = 2.0 * _hash(tx, ty, sd + 32) - 1.0
+    off = p.get("step", 0.15) * (2.0 * _hash(tx, ty, sd + 33) - 1.0)
+    d = -bevel + tilt * (ax * (fx - 0.5) + ay * (fy - 0.5)) + off
+    shine = 2.0 * _hash(tx, ty, sd + 34) - 1.0
+    f1, _, sid = worley(c["x"] / 0.13, c["y"] / 0.13, sd + 35)
+    speck = np.clip(1.0 - f1 / 0.35, 0.0, 1.0) * (sid < p.get("specks", 0.06))
+    speck = speck * (_hash(tx, ty, sd + 36) < 0.5)
+    return d, shine - 3.0 * speck
+
+
+def _scratches(c, p):
+    """Fine straight scratches, about "count" per plate (0 to 2 times it),
+    each a groove "width" texels wide and up to "length" texels long at a
+    random angle, centred inside the plate and cut at its edge. A little
+    rougher in the groove."""
+    sd = c["seed"]
+    tx, ty, fx, fy = _cell(c)
+    count = p.get("count", 1.5)
+    w = p.get("width", 0.045)
+    ln = p.get("length", 0.7)
+    out = np.zeros(np.shape(c["x"]))
+    for k in range(int(np.ceil(2 * count))):
+        on = _hash(tx, ty, sd + 40 + 7 * k) < count / np.ceil(2 * count)
+        cx = 0.2 + 0.6 * _hash(tx, ty, sd + 41 + 7 * k)
+        cy = 0.2 + 0.6 * _hash(tx, ty, sd + 42 + 7 * k)
+        a = np.pi * _hash(tx, ty, sd + 43 + 7 * k)
+        hl = 0.5 * ln * (0.4 + 0.6 * _hash(tx, ty, sd + 44 + 7 * k))
+        dx, dy = np.cos(a), np.sin(a)
+        rx, ry = fx - cx, fy - cy
+        t = np.clip(rx * dx + ry * dy, -hl, hl)
+        dist = np.hypot(rx - t * dx, ry - t * dy)
+        g = np.exp(-(dist / w) ** 2) * (0.5 + 0.5 * _hash(tx, ty, sd + 45 + 7 * k))
+        out = np.maximum(out, g * on)
+    return -out, -out
+
+
+def _dents(c, p):
+    """Soft round hammer dents: a plate has one with probability
+    "density" and a second, smaller one with half of it, each a shallow
+    dish of "radius" texels (0.6 to 1 times it), kept inside the plate."""
+    sd = c["seed"]
+    tx, ty, fx, fy = _cell(c)
+    dens = p.get("density", 0.45)
+    r0 = p.get("radius", 0.3)
+    out = np.zeros(np.shape(c["x"]))
+    for k, (share, size) in enumerate(((1.0, 1.0), (0.5, 0.6))):
+        on = _hash(tx, ty, sd + 50 + 5 * k) < dens * share
+        r = r0 * size * (0.6 + 0.4 * _hash(tx, ty, sd + 51 + 5 * k))
+        m = np.minimum(r + 0.08, 0.5)
+        cx = m + (1.0 - 2.0 * m) * _hash(tx, ty, sd + 52 + 5 * k)
+        cy = m + (1.0 - 2.0 * m) * _hash(tx, ty, sd + 53 + 5 * k)
+        q = ((fx - cx) ** 2 + (fy - cy) ** 2) / (r * r)
+        dish = np.clip(1.0 - q, 0.0, 1.0) ** 2 * (0.6 + 0.4 * _hash(tx, ty, sd + 54 + 5 * k))
+        out = np.maximum(out, dish * on)
+    return -out, -0.3 * out
+
+
+def _rivets(c, p):
+    """Rivet heads: a dome of "radius" texels in a shallow seat, centred
+    "inset" texels in from the outer corner of a plate. Which plates: those
+    in the outer "ring" rows and columns of each piece of the material
+    (atlas.py's piece frame), every "every" plates counted from the piece's
+    nearest edge, on pieces at least "min_size" texels both ways; the
+    outer corner is the one toward the piece's nearest edges, so a
+    symmetric piece is riveted symmetrically. "at" adds rivets at listed
+    [x, y] centres in art texels. A little smoother on the head."""
+    radius = p.get("radius", 0.15)
+    inset = p.get("inset", 0.27)
+    every = max(1, int(p.get("every", 3)))
+    ring = int(p.get("ring", 1))
+    x, y = c["x"], c["y"]
+    tx, ty, fx, fy = _cell(c)
+    best = np.full(np.shape(x), np.inf)
+    px, py = c.get("px"), c.get("py")
+    if px is not None and ring > 0:
+        hx = c.get("hx", np.ones(np.shape(x)))
+        hy = c.get("hy", np.ones(np.shape(x)))
+        cx, cy = x - px * hx, y - py * hy
+        x0, x1 = np.round(cx - hx), np.round(cx + hx)
+        y0, y1 = np.round(cy - hy), np.round(cy + hy)
+        ex = np.minimum(tx - x0, x1 - 1 - tx)
+        ey = np.minimum(ty - y0, y1 - 1 - ty)
+        big = (2 * hx >= p.get("min_size", 3)) & (2 * hy >= p.get("min_size", 3))
+        row = (ey < ring) & (ex % every == 0)
+        col = (ex < ring) & (ey % every == 0)
+        pick = big & (row | col)
+        mx = tx + 0.5 - cx
+        my = ty + 0.5 - cy
+        rx = np.where(mx < -0.25, inset, np.where(mx > 0.25, 1.0 - inset, 0.5))
+        ry = np.where(my < -0.25, inset, np.where(my > 0.25, 1.0 - inset, 0.5))
+        dist = np.hypot(fx - rx, fy - ry)
+        best = np.where(pick, dist, best)
+    for at in p.get("at", []):
+        best = np.minimum(best, np.hypot(x - at[0], y - at[1]))
+    q = best / radius
+    head = np.sqrt(np.clip(1.0 - q * q, 0.0, 1.0))
+    seat = np.clip(1.0 - np.abs(q - 1.15) / 0.25, 0.0, 1.0)
+    d = head - 0.25 * seat
+    s = 0.6 * head - 0.4 * seat
+    return d, s
+
+
+def _rust(c, p):
+    """Flaky, pitted rust: flakes ("flake" texels across) each at its own
+    height with its edge lifted a little, small pits ("pits" their share),
+    and a fine grit, all very rough."""
+    sd = c["seed"]
+    fl = p.get("flake", 0.3)
+    f1, f2, idv = worley(c["x"] / fl, c["y"] / fl, sd + 60)
+    edge = np.clip(1.0 - (f2 - f1) / 0.12, 0.0, 1.0)
+    lift = np.clip(1.0 - (f2 - f1) / 0.3, 0.0, 1.0) * (idv > 0.5)
+    pf1, _, pid = worley(c["x"] / 0.12, c["y"] / 0.12, sd + 61)
+    pit = np.clip(1.0 - pf1 / 0.3, 0.0, 1.0) ** 1.5 * (pid < p.get("pits", 0.35))
+    grit = vnoise(c["x"] * 14.0, c["y"] * 14.0, sd + 62)
+    d = 0.6 * (idv - 0.5) + 0.3 * lift - 0.5 * edge - 0.6 * pit + 0.1 * grit
+    s = -0.6 - 0.4 * pit - 0.3 * edge + 0.15 * grit
+    return d, s
+
+
+def _leaf(c, p):
+    """Small overlapping leaves, two to a cell of "size" texels, each at a
+    random angle, pointed at both ends, domed across with a midrib groove
+    and its tip lifted. Where several cover a pixel the one with the
+    higher order lies on top and stands a step higher; a pixel no leaf
+    covers is a gap between them, low and rough."""
+    sd = c["seed"]
+    size = p.get("size", 0.45)
+    x, y = c["x"] / size, c["y"] / size
+    ix, iy = np.floor(x).astype(np.int64), np.floor(y).astype(np.int64)
+    top = np.full(np.shape(x), -1.0)
+    d = np.full(np.shape(x), -0.6)
+    s = np.full(np.shape(x), -0.3)
+    for k in range(2):
+        for dy in (-1, 0, 1):
+            for dx in (-1, 0, 1):
+                gx, gy = ix + dx, iy + dy
+                h = sd + 70 + 11 * k
+                lx = gx + _hash(gx, gy, h)
+                ly = gy + _hash(gx, gy, h + 1)
+                a = 2 * np.pi * _hash(gx, gy, h + 2)
+                L = 0.62 + 0.25 * _hash(gx, gy, h + 3)
+                W = 0.42 * L
+                order = _hash(gx, gy, h + 4)
+                rx, ry = x - lx, y - ly
+                al = (rx * np.cos(a) + ry * np.sin(a)) / L
+                ac = (-rx * np.sin(a) + ry * np.cos(a)) / W
+                half = np.clip(1.0 - al * al, 0.0, 1.0) ** 0.8
+                inside = (np.abs(al) <= 1.0) & (np.abs(ac) <= half)
+                b = np.where(inside, ac / np.maximum(half, 1e-3), 1.0)
+                body = np.sqrt(np.clip(1.0 - b * b, 0.0, 1.0))
+                rib = np.exp(-(b / 0.18) ** 2) * (1.0 - al * al)
+                lift = 0.25 * np.clip(al, 0.0, 1.0)
+                hit = inside & (order > top)
+                d = np.where(hit, 0.5 * body - 0.35 * rib + lift + 0.4 * order - 0.2, d)
+                s = np.where(hit, 0.4 * body - 0.4 * rib - 0.1, s)
+                top = np.where(hit, order, top)
+    return d, s
+
+
+def _mix(c, p):
+    """Several kinds summed (see the module docstring)."""
+    d = np.zeros(np.shape(c["x"]))
+    s = np.zeros(np.shape(c["x"]))
+    for layer in p.get("layers", []):
+        dk, sk, amp, swing = evaluate(layer["kind"], c, layer.get("params"))
+        d = d + amp * float(layer.get("strength", 1.0)) * dk
+        s = s + swing * float(layer.get("swing", 1.0)) * sk
+    return d, s
+
+
 # Kinds that want each lock's frame (atlas.py: la across -1..1, lt along
 # 0..1, lw half width in texels, lid an id).
 LOCK_KINDS = {"hair"}
@@ -579,6 +803,13 @@ KINDS = {
     "rotten": (_rotten, 0.045, 0.25),
     "mottle": (_mottle, 0.065, 0.08),
     "chitin": (_chitin, 0.050, 0.14),
+    "plate": (_plate, 0.030, 0.06),
+    "scratches": (_scratches, 0.020, 0.10),
+    "dents": (_dents, 0.035, 0.06),
+    "rivets": (_rivets, 0.060, 0.15),
+    "rust": (_rust, 0.050, 0.20),
+    "leaf": (_leaf, 0.070, 0.12),
+    "mix": (_mix, 1.0, 1.0),
 }
 
 
