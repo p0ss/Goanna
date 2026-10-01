@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cmath>
 #include <optional>
+#include <vector>
 
 #include <godot_cpp/variant/packed_float32_array.hpp>
 #include <godot_cpp/variant/packed_int32_array.hpp>
@@ -190,6 +191,48 @@ GodotModel::~GodotModel() {
         source->drop();
 }
 
+// Vertex normals that face away from the surface they belong to, replaced
+// by the surface's own. Mineclonia's villager and iron golem carry normals
+// in their B3D files, and as the loader hands them over most point into the
+// body: 120 of the villager's 172 triangles and 64 of the golem's 96 have
+// normals opposite to their faces (the player and the cow have none, so
+// Irrlicht recalculates theirs, and those are right). Luanti shades an
+// entity by its normal only mildly; Goanna lights it as a surface, so the
+// faces turned to a lantern drew black at night while the undersides of the
+// arms caught its light, and a metal golem read dark in full sun. Each
+// vertex is compared with the area weighted normal of the triangles that
+// use it, and one more than 60 degrees off takes that instead. Smooth
+// normals on a curved model stay within that of their faces and are kept.
+// The outward side is the minus cross product of the edges in this (z
+// mirrored) space: it is what the recalculated normals come out as, and the
+// winding Godot already draws as front facing.
+static int repairNormals(const PackedVector3Array &verts, PackedVector3Array &normals,
+        const PackedInt32Array &indices) {
+    const int nv = verts.size();
+    std::vector<Vector3> face(nv);
+    for (int t = 0; t + 2 < indices.size(); t += 3) {
+        const int a = indices[t], b = indices[t + 1], c = indices[t + 2];
+        if (a < 0 || b < 0 || c < 0 || a >= nv || b >= nv || c >= nv)
+            continue;
+        const Vector3 n = -(verts[b] - verts[a]).cross(verts[c] - verts[a]);
+        face[a] += n;
+        face[b] += n;
+        face[c] += n;
+    }
+    int replaced = 0;
+    for (int i = 0; i < nv; ++i) {
+        if (face[i].length_squared() < 1e-20f)
+            continue;
+        const Vector3 geo = face[i].normalized();
+        const Vector3 cur = normals[i];
+        if (cur.length_squared() < 1e-12f || cur.normalized().dot(geo) < 0.5f) {
+            normals.set(i, geo);
+            ++replaced;
+        }
+    }
+    return replaced;
+}
+
 std::shared_ptr<GodotModel> buildGodotModel(scene::IAnimatedMesh *mesh) {
     auto model = std::make_shared<GodotModel>();
     model->mesh.instantiate();
@@ -272,6 +315,7 @@ std::shared_ptr<GodotModel> buildGodotModel(scene::IAnimatedMesh *mesh) {
             for (u32 i = 0; i < icount; ++i)
                 indices[i] = (int32_t)src[i];
         }
+        repairNormals(verts, normals, indices);
         Array arrays;
         arrays.resize(Mesh::ARRAY_MAX);
         arrays[Mesh::ARRAY_VERTEX] = verts;
