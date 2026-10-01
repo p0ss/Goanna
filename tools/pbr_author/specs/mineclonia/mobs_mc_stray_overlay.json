@@ -1,0 +1,13 @@
+{
+ "class": "cloth",
+ "overlay": true,
+ "texel_px": 16,
+ "strength": 12,
+ "chamfer": 2,
+ "face_edge": "bevel",
+ "bevel_px": 3,
+ "micro": "none",
+ "materials": {
+  "rag": {"mode": "flat", "base": 0.5, "span": 0.0, "micro": "coarse", "micro_strength": 2.0, "smooth": 0.1, "smooth_spread": 0.0, "wear": 0.18, "texel_edge": 0.015}
+ }
+}
