@@ -6,7 +6,9 @@
    "base": 0.5,
    "span": 0.12,
    "metal": true,
-   "smooth": 0.8
+   "smooth": 0.8,
+   "micro": 0
   }
- }
+ },
+ "micro": "none"
 }

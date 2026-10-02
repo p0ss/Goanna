@@ -17,7 +17,7 @@
   "authored": "tools/pbr_author/extrude.py for the 243 stems in stems/minetest_game.txt (every texture a Minetest Game node draws as the base of a tile, less the water and lava strips its shaders own and the five 38 px door atlases), specs in specs/minetest_game/, classes frozen in stems/minetest_game.classes.json",
   "classification_review": "pbr_packs/classification_reviews/minetest-game-v1.json",
   "quality_gate": "tools/check-pbr-quality.py --sources <minetest_game 38214> --classification-review pbr_packs/classification_reviews/minetest-game-v1.json",
-  "note": "Replaces 1.1.0's 85 baked maps with the texel extrusion rule the Mineclonia pack uses. Specs were written on 2026-10-02 by seven Sonnet agents, one per material family, with every class checked against the art; the sandstones, cobble, furnace casing, planks and bookshelf were sent back once on review of their sheets. 1.1.0 provided 17 stems this does not: the ore, snow, litter, stones and wet soil side overlays, which Minetest Game draws only after a caret, where the client names the companion after the base image and never reads the overlay's maps, so nothing that reached the screen is lost. Judged on offline contact sheets; not yet on GPU frames or in play. Built from pbr_packs/minetest_game/textures as installed by build_pack.py --game minetest_game --install."
+  "note": "Replaces 1.1.0's 85 baked maps with the texel extrusion rule the Mineclonia pack uses. Specs were written on 2026-10-02 by seven Sonnet agents, one per material family, with every class checked against the art; the sandstones, cobble, furnace casing, planks and bookshelf were sent back once on review of their sheets. 1.1.0 provided 17 stems this does not: the ore, snow, litter, stones and wet soil side overlays, which Minetest Game draws only after a caret, where the client names the companion after the base image and never reads the overlay's maps, so nothing that reached the screen is lost. Judged on GPU frames against 1.1.0 on 2026-10-02 (material_ramp close-up, afternoon and lamp): the owner found it a significant improvement on everything but the steel block, whose brushed metal micro surface read as mistaken lines; steel is now a smooth plate with no micro surface. Not yet seen in play. Built from pbr_packs/minetest_game/textures as installed by build_pack.py --game minetest_game --install."
  },
  "release": {
   "texture_pairs": 243,
@@ -29,7 +29,7 @@
   ],
   "known_warnings_note": "Dark art carries reviewed metalness: the visible art is two rows of light steel (luminance 0.59 to 0.81) and the dark the gate measures is the 192 transparent texels, so these stay metal.",
   "archive": "org.goanna.minetest-game.terrain-2.0.0.zip",
-  "bytes": 11445750,
-  "sha256": "1e8b19faaf45501a96cf85865e06fb9d6e45cbb6eba31c28e59e47db4a222a25"
+  "bytes": 11408132,
+  "sha256": "38fbf2493c19c3419c02c6016369e60ef247d86399b3e9368b2539c8ebfb690a"
  }
 }
