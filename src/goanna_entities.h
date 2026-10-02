@@ -222,7 +222,7 @@ private:
     float m_arm_swing = 0.0f;
     float m_auto_bump = 0.35f;
     float m_parallax = 1.0f;
-    float m_hair = 1.0f;
+    float m_hair = 0.0f;
 };
 
 } // namespace goanna

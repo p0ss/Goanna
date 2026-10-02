@@ -483,9 +483,12 @@ gets the isotropic lobe.
   diffuse keeps the box. The box's own normal still gates the light.
 - The diffuse is untouched, and a texel that is not hair runs exactly the
   code it ran before.
-- The `hair` material strength (`mat_hair`, 1 by default) scales it, and
+- The `hair` material strength (`mat_hair`) scales it, and
   `GOANNA_HAIR_ANISO` multiplies that for entities alone; 0 is the old
-  isotropic lobe on hair too. See `docs/perf/hair-aniso-2026-10-02/`.
+  isotropic lobe on hair too. It is 0 by default: the frames so far are
+  from lavapipe, and it stays off until it has been judged on the GPU.
+  `GOANNA_MAT=hair=1` or `set mat_hair 1` turns it on. See
+  `docs/perf/hair-aniso-2026-10-02/`.
 
 **Where companions do not reach.** A surface the server marks
 `use_texture_alpha` (a charged creeper's aura, a slime's outer body, a

@@ -1164,8 +1164,9 @@ static const std::map<std::string, float> kMatStrengthDefaults = {
     {"parallax", 1.0f},
     // The along the strand highlight on hair texels of a mob or player skin
     // (direct_light.gdshaderinc, EntityRenderer::setHair). 0 draws hair with
-    // the isotropic lobe every other texel takes.
-    {"hair", 1.0f},
+    // the isotropic lobe every other texel takes. Off by default until it
+    // has been judged on the GPU (docs/perf/hair-aniso-2026-10-02).
+    {"hair", 0.0f},
 };
 
 float GoannaClient::material_strength(const String &channel) const {

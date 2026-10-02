@@ -100,9 +100,10 @@ varying vec4 v_face_rect;
 // Hair's along the strand highlight (direct_light.gdshaderinc), on texels
 // whose _s green byte is 12 (atlas.HAIR_F0_BYTE in tools/pbr_author): F0
 // 0.047, which no other map writes, so the byte marks hair. 0 draws them
-// with the isotropic lobe. Set by EntityRenderer::setHair from the "hair"
-// material strength times GOANNA_HAIR_ANISO.
-uniform float hair_strength : hint_range(0.0, 1.0) = 1.0;
+// with the isotropic lobe, the default until it is judged on the GPU. Set
+// by EntityRenderer::setHair from the "hair" material strength times
+// GOANNA_HAIR_ANISO.
+uniform float hair_strength : hint_range(0.0, 1.0) = 0.0;
 
 #define GOANNA_DIAMOND
 #define GOANNA_HAIR
