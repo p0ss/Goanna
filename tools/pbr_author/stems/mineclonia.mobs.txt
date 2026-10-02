@@ -183,3 +183,27 @@ mcl_skins_headwear_5 mcl_armor_character.b3d
 mcl_skins_headwear_6 mcl_armor_character.b3d
 mcl_skins_headwear_7 mcl_armor_character.b3d
 mcl_skins_character_1 mcl_armor_character_female.b3d
+# The outfit editor's other eyes, mouths and hair styles.
+mcl_skins_eye_2 mcl_armor_character.b3d
+mcl_skins_eye_3 mcl_armor_character.b3d
+mcl_skins_eye_4 mcl_armor_character.b3d
+mcl_skins_eye_5 mcl_armor_character.b3d
+mcl_skins_eye_6 mcl_armor_character.b3d
+mcl_skins_eye_7 mcl_armor_character.b3d
+mcl_skins_mouth_1 mcl_armor_character.b3d
+mcl_skins_mouth_2 mcl_armor_character.b3d
+mcl_skins_mouth_3 mcl_armor_character.b3d
+mcl_skins_mouth_4 mcl_armor_character.b3d
+mcl_skins_mouth_5 mcl_armor_character.b3d
+mcl_skins_mouth_6 mcl_armor_character.b3d
+mcl_skins_mouth_7 mcl_armor_character.b3d
+mcl_skins_hair_2 mcl_armor_character.b3d
+mcl_skins_hair_3 mcl_armor_character.b3d
+mcl_skins_hair_4 mcl_armor_character.b3d
+mcl_skins_hair_5 mcl_armor_character.b3d
+mcl_skins_hair_6 mcl_armor_character.b3d
+mcl_skins_hair_7 mcl_armor_character.b3d
+mcl_skins_hair_8 mcl_armor_character.b3d
+mcl_skins_hair_9 mcl_armor_character.b3d
+mcl_skins_hair_10 mcl_armor_character.b3d
+mcl_skins_hair_11 mcl_armor_character.b3d
