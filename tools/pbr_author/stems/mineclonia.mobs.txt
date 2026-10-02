@@ -287,3 +287,41 @@ extra_mobs_tropical_fish_pattern_b_3 extra_mobs_tropical_fish_b.b3d
 extra_mobs_tropical_fish_pattern_b_4 extra_mobs_tropical_fish_b.b3d
 extra_mobs_tropical_fish_pattern_b_5 extra_mobs_tropical_fish_b.b3d
 extra_mobs_tropical_fish_pattern_b_6 extra_mobs_tropical_fish_b.b3d
+# Nether, End, bosses and shulkers (moved here from mineclonia.txt: they are model
+# atlases, not tiles). Specs are written by tools/pbr_author/nether_end_mobs.py.
+extra_mobs_piglin mobs_mc_piglin.b3d
+extra_mobs_piglin_brute mobs_mc_piglin.b3d
+extra_mobs_zombified_piglin mobs_mc_piglin.b3d
+extra_mobs_hoglin extra_mobs_hoglin.b3d
+extra_mobs_zoglin extra_mobs_hoglin.b3d
+extra_mobs_strider extra_mobs_strider.b3d
+extra_mobs_strider_cold extra_mobs_strider.b3d
+mobs_mc_blaze mobs_mc_blaze.b3d -1
+mobs_mc_ghast mobs_mc_ghast.b3d -1
+mobs_mc_ghast_firing mobs_mc_ghast.b3d -1
+mobs_mc_magmacube mobs_mc_magmacube.b3d
+mobs_mc_dragon mobs_mc_dragon.b3d -1
+mobs_mc_wither mobs_mc_wither.b3d
+mobs_mc_wither_invulnerable mobs_mc_wither.b3d
+mobs_mc_wither_armor mobs_mc_wither.b3d 1
+mobs_mc_endermite mobs_mc_endermite.b3d
+mobs_mc_silverfish mobs_mc_silverfish.b3d
+mobs_mc_guardian mobs_mc_guardian.b3d -1
+mobs_mc_guardian_elder mobs_mc_guardian.b3d -1
+mobs_mc_endergolem mobs_mc_shulker.b3d
+mobs_mc_shulker_black mobs_mc_shulker.b3d
+mobs_mc_shulker_blue mobs_mc_shulker.b3d
+mobs_mc_shulker_brown mobs_mc_shulker.b3d
+mobs_mc_shulker_cyan mobs_mc_shulker.b3d
+mobs_mc_shulker_gray mobs_mc_shulker.b3d
+mobs_mc_shulker_green mobs_mc_shulker.b3d
+mobs_mc_shulker_light_blue mobs_mc_shulker.b3d
+mobs_mc_shulker_lime mobs_mc_shulker.b3d
+mobs_mc_shulker_magenta mobs_mc_shulker.b3d
+mobs_mc_shulker_orange mobs_mc_shulker.b3d
+mobs_mc_shulker_pink mobs_mc_shulker.b3d
+mobs_mc_shulker_purple mobs_mc_shulker.b3d
+mobs_mc_shulker_red mobs_mc_shulker.b3d
+mobs_mc_shulker_silver mobs_mc_shulker.b3d
+mobs_mc_shulker_white mobs_mc_shulker.b3d
+mobs_mc_shulker_yellow mobs_mc_shulker.b3d
