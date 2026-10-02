@@ -65,6 +65,14 @@ move a client's pointer with xdotool. So:
   (`NV_ERR_STATE_IN_USE`) with nothing else on the GPU, and a client
   started into that crashes at once. Do not retry into it. The launcher makes the same check itself and refuses; do
   not set `GOANNA_SHARED_GPU=1` to get past it.
+- Offline fixtures (the material ramp, the plant ramp, probes) run through
+  `tools/goanna-headless fixture SCENE --env KEY=VALUE ...`, which makes
+  the same check, keeps gamescope itself on lavapipe and waits for the
+  scene to quit. Never build a gamescope command line by hand. On
+  2026-10-02 one set `VK_ICD_FILENAMES` to lavapipe and was run beside the
+  owner's game in the belief that it kept off the card. Those variables
+  steer only the child: gamescope chose the NVIDIA device itself, and the
+  driver needed a reboot. When `gpu-free` says busy, do not render at all.
 
 The launcher and the MCP server are described in `docs/control-channel.md`,
 under "Starting it" and "Driving it from an agent".

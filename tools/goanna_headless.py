@@ -504,6 +504,42 @@ def start_goanna(project, control_port=None, host="127.0.0.1", port=30000, name=
                       % (control_port, rec["client_log"], tail(rec["client_log"])))
 
 
+def run_fixture(project, scene, width=1600, height=900, software=False, env=None,
+                timeout=600.0):
+    """Run one offline fixture scene (a ramp, a probe) to completion in
+    headless gamescope and return when it quits. Fixtures must come through
+    here, not a gamescope command line built by hand: on 2026-10-02 one such
+    command set the Vulkan driver variables to lavapipe, which steer only the
+    child, so gamescope itself took the NVIDIA card beside the owner's game
+    and the driver needed a reboot. This keeps gamescope on lavapipe with
+    --prefer-vk-device and refuses while anything else is on the GPU."""
+    project = resolve_project(project)
+    godot = find_godot(project)
+    ident = "fixture-%s" % "".join(c if c.isalnum() else "_" for c in pathlib.Path(scene).stem)
+    rec = _base_record(ident, "fixture", width, height, software)
+    rec["cpu_compositor"] = True
+    child_env = {}
+    if software:
+        child_env.update({"VK_DRIVER_FILES": LAVAPIPE_ICD, "VK_ICD_FILENAMES": LAVAPIPE_ICD})
+    child_env.update({str(k): str(v) for k, v in (env or {}).items()})
+    rec.update(project=str(project), env=child_env, meta={"scene": str(scene)},
+               argv=[godot, "--display-driver", "x11", "--audio-driver", "Dummy",
+                     "--resolution", "%dx%d" % (int(width), int(height)),
+                     "--path", str(project), str(scene)],
+               client_log=str(pathlib.Path(rec["log_dir"]) / "output.log"))
+    rec = _spawn(rec)
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        cur = load(rec["id"])
+        if cur.get("status") in ("stopped", "failed"):
+            return {"id": cur["id"], "status": cur["status"], "reason": cur.get("reason"),
+                    "log": rec["client_log"]}
+        time.sleep(0.5)
+    out = stop(rec["id"])
+    out.update(reason="timed out after %gs" % timeout, log=rec["client_log"])
+    return out
+
+
 def start_vanilla(host="127.0.0.1", port=30000, name="vanilla", password="", width=1280,
                   height=720, software=False, settings=None, app=FLATPAK_APP, meta=None):
     """Start the vanilla Luanti client (the Flatpak) in headless gamescope,
@@ -863,6 +899,8 @@ USAGE = """usage:
   goanna-headless list [--all]
   goanna-headless port-free N
   goanna-headless gpu-free
+  goanna-headless fixture SCENE [--project PATH] [--size WxH] [--software]
+                        [--timeout SECONDS] [--env KEY=VALUE ...]
 """
 
 
@@ -922,6 +960,11 @@ def main(argv):
                                          password=opts.get("password", ""), width=w, height=h,
                                          software=opts.get("software", False),
                                          settings=opts["set"]))
+        elif cmd == "fixture":
+            w, h = _size(opts) if "size" in opts else (1600, 900)
+            out = run_fixture(opts.get("project", pathlib.Path(__file__).resolve().parent.parent),
+                              pos[0], width=w, height=h, software=opts.get("software", False),
+                              env=opts["env"], timeout=float(opts.get("timeout", 600)))
         elif cmd == "shot":
             out = screenshot(pos[0], pos[1], method=opts.get("method", "auto"))
         elif cmd == "stop":

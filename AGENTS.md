@@ -21,8 +21,10 @@ desktop while they do.
   beside another game client has twice put the NVIDIA driver into a state
   that needs a reboot, which stops every agent's rendering and the owner's
   games. Run `tools/goanna-headless gpu-free` before any GPU render; it
-  exits 1 and names the client while one is running. Wait for it, or render
-  with `--software`.
+  exits 1 and names the client while one is running. Wait for it. Run
+  fixtures with `tools/goanna-headless fixture SCENE`, never a gamescope
+  command line built by hand: lavapipe environment variables do not keep
+  gamescope itself off the card (it wedged the driver on 2026-10-02).
 - **Stop processes only by the PIDs you started.** Never `pkill`,
   `killall` or `pgrep -f` by name: those hit other agents' clients and the
   owner's own game.
