@@ -265,6 +265,72 @@ class PbrQualityTest(unittest.TestCase):
                 (self.root / ("opaque" + suffix)).read_bytes(),
                 (self.root / ("three" + suffix)).read_bytes())
 
+    def masked_part(self):
+        """A part drawn the way mcl_skins draws one: a mask covering the
+        left nine columns, and art that is translucent shading (alpha 60)
+        over it. Its maps carry relief under the mask and the neutral fill
+        outside it, which is right for what the game draws."""
+        art = np.zeros((16, 16, 4), dtype=np.uint8)
+        art[..., :3] = 90
+        art[:, :9, 3] = 60
+        source = self.root / "part.png"
+        Image.fromarray(art, "RGBA").save(source)
+        mask = np.zeros((16, 16, 4), dtype=np.uint8)
+        mask[:, :9] = (255, 255, 255, 255)
+        Image.fromarray(mask, "RGBA").save(self.root / "part_mask.png")
+        normal = np.zeros((16, 16, 4), dtype=np.uint8)
+        normal[...] = bake.NEUTRAL_N
+        normal[:, :9, 0] = np.linspace(100, 156, 9, dtype=np.uint8)[None, :]
+        normal[:, :9, 3] = np.linspace(100, 140, 9, dtype=np.uint8)[None, :]
+        spec_map = np.zeros((16, 16, 4), dtype=np.uint8)
+        spec_map[...] = (40, 10, 0, 255)
+        npath, spath = self.root / "part_n.png", self.root / "part_s.png"
+        Image.fromarray(normal, "RGBA").save(npath)
+        Image.fromarray(spec_map, "RGBA").save(spath)
+        return npath, spath, source
+
+    def test_masked_part_is_judged_on_its_mask_and_art(self):
+        npath, spath, source = self.masked_part()
+        # Against its art's alpha alone nothing is drawn, so the relief
+        # under the mask sits in a hole, and the gate falls back to the
+        # whole image, where the neutral fill reads as a crushed height.
+        alone = quality.inspect("part", npath, spath, "cloth", str(source))
+        self.assertIn("transparent pixels are not neutral in the normal map",
+                      alone["failures"])
+        self.assertIn("height is crushed against the byte rails",
+                      alone["failures"])
+        mask = quality.mask_source("part", source, {})
+        self.assertEqual(mask, self.root / "part_mask.png")
+        report = quality.inspect("part", npath, spath, "cloth", str(source),
+                                 mask=mask)
+        self.assertEqual(report["failures"], [])
+        self.assertEqual(report["metrics"]["height_rail_fraction"], 0.0)
+
+    def test_masked_part_still_needs_a_neutral_hole(self):
+        # Coverage is the union of the mask and the art; a texel neither
+        # draws is still a hole and must still be neutral.
+        npath, spath, source = self.masked_part()
+        normal = np.asarray(Image.open(npath)).copy()
+        normal[0, 12] = (20, 20, 20, 20)
+        Image.fromarray(normal, "RGBA").save(npath)
+        report = quality.inspect("part", npath, spath, "cloth", str(source),
+                                 mask=quality.mask_source("part", source, {}))
+        self.assertIn("transparent pixels are not neutral in the normal map",
+                      report["failures"])
+
+    def test_coverage_is_the_union_of_mask_and_art(self):
+        art = np.zeros((1, 4, 4), dtype=np.uint8)
+        art[0, :, 3] = (0, 60, 255, 0)
+        mask = np.zeros((1, 4, 4), dtype=np.uint8)
+        mask[0, :, 3] = (255, 255, 0, 0)
+        Image.fromarray(art, "RGBA").save(self.root / "u.png")
+        Image.fromarray(mask, "RGBA").save(self.root / "u_mask.png")
+        self.assertEqual(list(quality.coverage_alpha(self.root / "u.png", None)[0]),
+                         [0, 60, 255, 0])
+        self.assertEqual(list(quality.coverage_alpha(self.root / "u.png",
+                                                     self.root / "u_mask.png")[0]),
+                         [255, 255, 255, 0])
+
     def test_review_rules_are_ordered_and_exact_entries_win(self):
         path = self.root / "review.json"
         path.write_text(json.dumps({

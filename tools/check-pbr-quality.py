@@ -120,8 +120,61 @@ def authored_all_flat(stem):
     return False
 
 
+def spec_mask(stem):
+    """The mask a tools/pbr_author/specs/<game>/<stem>.json names, or None."""
+    for spec in sorted(AUTHOR_SPECS.glob("*/%s.json" % stem)):
+        try:
+            mask = json.loads(spec.read_text()).get("mask")
+        except (OSError, ValueError):
+            continue
+        if mask:
+            return mask
+    return None
+
+
+def mask_source(stem, source, sources):
+    """The mask image a layered part is drawn over, or None.
+
+    mcl_skins draws an outfit part as (part_mask^[colorize:...:alpha)^part:
+    the mask is the part's coverage and the part's own art is translucent
+    shading laid over it. A spec names that mask as "mask"
+    (tools/pbr_author/atlas.py), and a game that keeps <stem>_mask.png
+    beside <stem>.png is drawing it the same way.
+    """
+    name = spec_mask(stem)
+    if name:
+        return sources.get(name)
+    if source:
+        beside = Path(source).with_name(stem + "_mask.png")
+        if beside.is_file():
+            return beside
+    return None
+
+
+def coverage_alpha(source, mask):
+    """The alpha the game draws a source with, uint8.
+
+    With no mask, the art's own alpha. With one, the alpha of the art laid
+    over the mask by Luanti's blit_pixel (luanti/src/client/imagesource.cpp),
+    which tools/pbr_author/atlas.py _blit copies integer for integer:
+    [colorize keeps the mask's alpha, and the art only ever adds to it. That
+    is the union of the two, so a part whose art is all translucent shading
+    still covers what its mask covers.
+    """
+    art = np.asarray(Image.open(source).convert("RGBA"))[..., 3].astype(np.int64)
+    if mask is None:
+        return art.astype(np.uint8)
+    da = np.asarray(Image.open(mask).convert("RGBA").resize(
+        (art.shape[1], art.shape[0]), Image.Resampling.NEAREST))[..., 3].astype(np.int64)
+    sa = art
+    rep = (sa > 0) & ((sa == 255) | (da == 0))
+    mix = (sa > 0) & ~rep
+    blend = np.where(da == 255, 255, da + (255 - da) * sa * sa // (255 * 255))
+    return np.where(rep, sa, np.where(mix, blend, da)).astype(np.uint8)
+
+
 def inspect(stem, normal_path, spec_path, material, source=None, albedo=None,
-            review=None, pipeline=None):
+            review=None, pipeline=None, mask=None):
     failures, warnings = [], []
     pipeline = pipeline or pipeline_of(normal_path)
     normal = np.asarray(Image.open(normal_path).convert("RGBA"))
@@ -147,11 +200,18 @@ def inspect(stem, normal_path, spec_path, material, source=None, albedo=None,
     # is inside its band everywhere it exists. The colour drift check below
     # has always sampled only the visible texels; these statistics now do the
     # same. Fully opaque terrain art is unaffected.
+    #
+    # A layered part (see mask_source) is judged on the coverage the game
+    # draws, its mask and its art together. Its art alone is mostly
+    # translucent shading: judged on that, its maps' deliberate relief under
+    # the mask read as relief in a hole, and a part whose art never reaches
+    # half alpha fell back to the whole image, neutral fill and all.
     src_alpha = None
+    coverage = None
     if source:
-        alpha = np.asarray(Image.open(source).convert("RGBA"))[..., 3]
-        if (alpha < 128).any():
-            src_alpha = alpha
+        coverage = coverage_alpha(source, mask)
+        if (coverage < 128).any():
+            src_alpha = coverage
     # The normal map and the spec map need their own masks: a flat class spec
     # is FLAT_SPEC_SIZE whatever the normal's resolution is.
     visible_n = visible_mask(src_alpha, normal.shape[:2])
@@ -248,8 +308,9 @@ def inspect(stem, normal_path, spec_path, material, source=None, albedo=None,
                 else:
                     failures.append(
                         "dark diffuse-authored art was marked metallic")
-        if (~opaque).any():
-            alpha = Image.fromarray(src[..., 3]).resize(
+        covered = coverage >= 128
+        if (~covered).any():
+            alpha = Image.fromarray(coverage).resize(
                 (normal.shape[1], normal.shape[0]), Image.Resampling.NEAREST)
             transparent = np.asarray(alpha) < 128
             neutral = np.array((128, 128, 255, 255), dtype=np.uint8)
@@ -301,9 +362,11 @@ def main():
                             "warnings": []})
             continue
         albedo = baked / (stem + "_albedo.png")
+        source = sources.get(stem)
         reports.append(inspect(stem, normal, spec, classes.get(stem),
-                               sources.get(stem), albedo if albedo.exists() else None,
-                               reviews.get(stem)))
+                               source, albedo if albedo.exists() else None,
+                               reviews.get(stem),
+                               mask=mask_source(stem, source, sources)))
     failures = sum(bool(item["failures"]) for item in reports)
     warnings = sum(bool(item["warnings"]) for item in reports)
     authored = sum(item["pipeline"] == AUTHORED for item in reports)
