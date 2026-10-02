@@ -73,3 +73,89 @@ mobs_mc_gold mobs_mc_villager.b3d
 mobs_mc_emerald mobs_mc_villager.b3d
 mobs_mc_diamond mobs_mc_villager.b3d
 mobs_mc_villager_wandering_trader mobs_mc_villager.b3d
+# Horses, donkey, mule, llamas and their carpets, wolves, cats and collars.
+# Specs are written by tools/pbr_author/mob_families.py.
+mobs_mc_horse_black mobs_mc_horse.b3d
+mobs_mc_horse_brown mobs_mc_horse.b3d
+mobs_mc_horse_chestnut mobs_mc_horse.b3d
+mobs_mc_horse_creamy mobs_mc_horse.b3d
+mobs_mc_horse_darkbrown mobs_mc_horse.b3d
+mobs_mc_horse_gray mobs_mc_horse.b3d
+mobs_mc_horse_white mobs_mc_horse.b3d
+mobs_mc_horse_markings_blackdots mobs_mc_horse.b3d
+mobs_mc_horse_markings_white mobs_mc_horse.b3d
+mobs_mc_horse_markings_whitedots mobs_mc_horse.b3d
+mobs_mc_horse_markings_whitefield mobs_mc_horse.b3d
+mobs_mc_horse_skeleton mobs_mc_horse.b3d
+mobs_mc_horse_zombie mobs_mc_horse.b3d
+mobs_mc_donkey mobs_mc_horse.b3d
+mobs_mc_mule mobs_mc_horse.b3d
+mcl_mobitems_horse_armor_leather mobs_mc_horse.b3d
+mcl_mobitems_horse_armor_leather_desat mobs_mc_horse.b3d
+mcl_mobitems_horse_armor_copper mobs_mc_horse.b3d
+mcl_mobitems_horse_armor_iron mobs_mc_horse.b3d
+mcl_mobitems_horse_armor_gold mobs_mc_horse.b3d
+mcl_mobitems_horse_armor_diamond mobs_mc_horse.b3d
+mobs_mc_llama mobs_mc_llama.b3d 2
+mobs_mc_llama_brown mobs_mc_llama.b3d 2
+mobs_mc_llama_creamy mobs_mc_llama.b3d 2
+mobs_mc_llama_gray mobs_mc_llama.b3d 2
+mobs_mc_llama_white mobs_mc_llama.b3d 2
+mobs_mc_llama_decor_black mobs_mc_llama.b3d 1
+mobs_mc_llama_decor_blue mobs_mc_llama.b3d 1
+mobs_mc_llama_decor_brown mobs_mc_llama.b3d 1
+mobs_mc_llama_decor_cyan mobs_mc_llama.b3d 1
+mobs_mc_llama_decor_gray mobs_mc_llama.b3d 1
+mobs_mc_llama_decor_green mobs_mc_llama.b3d 1
+mobs_mc_llama_decor_light_blue mobs_mc_llama.b3d 1
+mobs_mc_llama_decor_light_gray mobs_mc_llama.b3d 1
+mobs_mc_llama_decor_lime mobs_mc_llama.b3d 1
+mobs_mc_llama_decor_magenta mobs_mc_llama.b3d 1
+mobs_mc_llama_decor_orange mobs_mc_llama.b3d 1
+mobs_mc_llama_decor_pink mobs_mc_llama.b3d 1
+mobs_mc_llama_decor_purple mobs_mc_llama.b3d 1
+mobs_mc_llama_decor_red mobs_mc_llama.b3d 1
+mobs_mc_llama_decor_wandering_trader mobs_mc_llama.b3d 1
+mobs_mc_llama_decor_white mobs_mc_llama.b3d 1
+mobs_mc_llama_decor_yellow mobs_mc_llama.b3d 1
+mobs_mc_wolf mobs_mc_wolf.b3d
+mobs_mc_wolf_angry mobs_mc_wolf.b3d
+mobs_mc_wolf_tame mobs_mc_wolf.b3d
+mobs_mc_wolf_ashen mobs_mc_wolf.b3d
+mobs_mc_wolf_ashen_angry mobs_mc_wolf.b3d
+mobs_mc_wolf_ashen_tame mobs_mc_wolf.b3d
+mobs_mc_wolf_black mobs_mc_wolf.b3d
+mobs_mc_wolf_black_angry mobs_mc_wolf.b3d
+mobs_mc_wolf_black_tame mobs_mc_wolf.b3d
+mobs_mc_wolf_chestnut mobs_mc_wolf.b3d
+mobs_mc_wolf_chestnut_angry mobs_mc_wolf.b3d
+mobs_mc_wolf_chestnut_tame mobs_mc_wolf.b3d
+mobs_mc_wolf_rusty mobs_mc_wolf.b3d
+mobs_mc_wolf_rusty_angry mobs_mc_wolf.b3d
+mobs_mc_wolf_rusty_tame mobs_mc_wolf.b3d
+mobs_mc_wolf_snowy mobs_mc_wolf.b3d
+mobs_mc_wolf_snowy_angry mobs_mc_wolf.b3d
+mobs_mc_wolf_snowy_tame mobs_mc_wolf.b3d
+mobs_mc_wolf_spotted mobs_mc_wolf.b3d
+mobs_mc_wolf_spotted_angry mobs_mc_wolf.b3d
+mobs_mc_wolf_spotted_tame mobs_mc_wolf.b3d
+mobs_mc_wolf_striped mobs_mc_wolf.b3d
+mobs_mc_wolf_striped_angry mobs_mc_wolf.b3d
+mobs_mc_wolf_striped_tame mobs_mc_wolf.b3d
+mobs_mc_wolf_woods mobs_mc_wolf.b3d
+mobs_mc_wolf_woods_angry mobs_mc_wolf.b3d
+mobs_mc_wolf_woods_tame mobs_mc_wolf.b3d
+mobs_mc_wolf_collar mobs_mc_wolf.b3d
+mobs_mc_cat_all_black mobs_mc_cat.b3d
+mobs_mc_cat_black mobs_mc_cat.b3d
+mobs_mc_cat_british_shorthair mobs_mc_cat.b3d
+mobs_mc_cat_calico mobs_mc_cat.b3d
+mobs_mc_cat_jellie mobs_mc_cat.b3d
+mobs_mc_cat_ocelot mobs_mc_cat.b3d
+mobs_mc_cat_persian mobs_mc_cat.b3d
+mobs_mc_cat_ragdoll mobs_mc_cat.b3d
+mobs_mc_cat_red mobs_mc_cat.b3d
+mobs_mc_cat_siamese mobs_mc_cat.b3d
+mobs_mc_cat_tabby mobs_mc_cat.b3d
+mobs_mc_cat_white mobs_mc_cat.b3d
+mobs_mc_cat_collar mobs_mc_cat.b3d
