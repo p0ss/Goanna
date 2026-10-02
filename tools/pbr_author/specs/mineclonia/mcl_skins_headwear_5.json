@@ -9,8 +9,8 @@
  "stack": ["mcl_skins_base_1", "mcl_skins_eye_1", "mcl_skins_bottom_1", "mcl_skins_footwear_1", "mcl_skins_top_1", "mcl_skins_hair_1", "mcl_skins_headwear_5"],
  "bevel_depth": 0.16,
  "materials": {
-  "frame": {"mode": "flat", "base": 0.97, "span": 0.0, "micro": "none", "smooth": 0.62, "smooth_spread": 0.0},
-  "lens": {"mode": "flat", "base": 0.95, "span": 0.0, "micro": "none", "smooth": 0.9, "smooth_spread": 0.0, "f0": 0.04}
+  "frame": {"mode": "flat", "base": 0.97, "span": 0.0, "micro": "none", "smooth": 0.4, "smooth_spread": 0.0},
+  "lens": {"mode": "flat", "base": 0.9, "span": 0.0, "micro": "none", "smooth": 0.86, "smooth_spread": 0.0, "f0": 0.04}
  },
  "grid": [
   "................................................................",

@@ -902,8 +902,11 @@ def _bone(c, p):
 def _rotten(c, p):
     """Decaying skin: lumpy, with blotches that differ strongly in
     roughness (wet and dry), small pits clustered in the dry blotches,
-    and a few shallow sores."""
+    and a few shallow sores. "pits" (default 1) scales the pits, the
+    kind's pores, in the relief and the smoothness alike; 0 leaves the
+    lumps, blotches and sores (the undead faces since 2026-10-03)."""
     sd = c["seed"]
+    pits = float(p.get("pits", 1.0))
     blotch = fbm(c["x"] * 1.1, c["y"] * 1.1, sd, 3)
     lump = fbm(c["x"] * 2.5, c["y"] * 2.5, sd + 1, 2)
     pf1, _, pid = worley(c["x"] / 0.28, c["y"] / 0.28, sd + 2)
@@ -911,6 +914,8 @@ def _rotten(c, p):
     pit = np.clip(1.0 - pf1 / 0.35, 0.0, 1.0) ** 1.5 * (pid < 0.25 + 0.6 * dense)
     sf1, _, sid = worley(c["x"] / 1.0, c["y"] / 1.0, sd + 3)
     sore = np.clip(1.0 - sf1 / 0.3, 0.0, 1.0) * (sid > 0.8)
+    if pits != 1.0:
+        pit = pit * pits
     d = 0.35 * lump + 0.15 * blotch - 0.6 * pit - 0.5 * sore
     s = 1.1 * blotch - 0.3 * pit + 0.4 * sore
     return d, s

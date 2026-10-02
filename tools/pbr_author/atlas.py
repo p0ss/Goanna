@@ -273,13 +273,29 @@ def _blit(src8, dst8):
 
 def part_source(stem, spec, game=lib.DEFAULT_GAME):
     """The image a part is judged by, RGBA 0..1: its art, or with "mask"
-    in the spec the art laid over the mask coloured with "tint"."""
+    in the spec the art laid over the mask coloured with "tint". With
+    "cover" (an alpha, 0..1) every texel at that alpha or more counts as
+    fully drawn: the client lays a part's maps over the ones under it by
+    the part's albedo alpha, so a faint shadow texel (a mouth's corner, a
+    closed eye's lid, a fringe's shadow on the face) left neutral mixes a
+    neutral map's full height and no smoothness into the skin under it.
+    Covered, it carries the maps of the material it is assigned."""
     art = lib.load_source(stem, game)
-    if not spec.get("mask"):
-        return art
-    to8 = lambda a: np.round(a * 255.0).astype(np.int64)  # noqa: E731
-    m = _colorize_alpha(to8(lib.load_source(spec["mask"], game)), spec.get("tint", "#808080"))
-    return (_blit(to8(art), m) / 255.0).astype(np.float32)
+    if spec.get("mask"):
+        to8 = lambda a: np.round(a * 255.0).astype(np.int64)  # noqa: E731
+        m = _colorize_alpha(to8(lib.load_source(spec["mask"], game)), spec.get("tint", "#808080"))
+        art = (_blit(to8(art), m) / 255.0).astype(np.float32)
+    if spec.get("cover") is not None:
+        art = art.copy()
+        a = art[..., 3]
+        art[..., 3] = np.where((a > 0) & (a >= float(spec["cover"])), 1.0, a)
+    return art
+
+
+def _own_coverage(spec):
+    """Whether a part's coverage differs from its art's alpha (a mask, or
+    "cover"), so the albedo written and the cut-out are taken apart."""
+    return bool(spec.get("mask")) or spec.get("cover") is not None
 
 
 def stack_fields(stem, spec, game=lib.DEFAULT_GAME):
@@ -426,7 +442,7 @@ def build(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, model=None, brush=Non
     # A layered part is judged by its art over its tinted mask, but the
     # albedo it writes is its own art.
     src = part_source(stem, spec, game)
-    art = lib.load_source(stem, game) if spec.get("mask") else src
+    art = lib.load_source(stem, game) if _own_coverage(spec) else src
     cell = texel_px(spec)
     # Strength is in 256 px node map pixels, where a texel is 16 of them;
     # here a texel is cell pixels, so the same rise per texel is this many.
@@ -510,7 +526,7 @@ def build(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, model=None, brush=Non
     albedo = np.kron(art, np.ones((cell, cell, 1), dtype=art.dtype))
     # A part's coverage is its mask and its art together; its art alone is
     # mostly translucent shading.
-    alpha = up(src[..., 3]) if spec.get("mask") else None
+    alpha = up(src[..., 3]) if _own_coverage(spec) else None
     return lib.pack(stem, out_dir, albedo, hi, smooth_hi, cls,
                     normal_strength=strength, metal_mask=up(metal), keep_mean=False,
                     emission=emission, f0=up(f0), fine_detail=1.0,
@@ -1185,7 +1201,7 @@ def check(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, model=None, brush=Non
     g = extrude._gate()
     source = lib.source_path(stem, game)
     tmp = None
-    if spec.get("mask"):
+    if _own_coverage(spec):
         # The gate reads coverage from its source's alpha. A part's art is
         # mostly translucent shading, so it is given the art's colour with
         # the part's coverage as its alpha.
