@@ -66,6 +66,27 @@ def main():
     p.add_argument("index", type=int)
     p.add_argument("--button", default="left", choices=("left", "right", "middle"))
     p.add_argument("--shift", action="store_true")
+    p = action("form-button", help="press a button of the open form")
+    p.add_argument("name")
+    p = action("form-field", help="replace a field's text, as typing does")
+    p.add_argument("name")
+    p.add_argument("text")
+    p.add_argument("--enter", action="store_true", help="press Enter afterwards")
+    p = action("form-select", help="choose a dropdown, textlist or table entry, or a tab")
+    p.add_argument("name")
+    p.add_argument("choice", help="an index from 1 (a table's row number) or the entry's text")
+    p.add_argument("--double", action="store_true", help="double click")
+    p = action("form-check", help="tick or clear a checkbox")
+    p.add_argument("name")
+    p.add_argument("checked", choices=("true", "false"))
+    p = action("form-scroll", help="move a scrollbar")
+    p.add_argument("name")
+    p.add_argument("--value", type=int)
+    p.add_argument("--by", type=int)
+    p = action("form-action", help="follow a hypertext action link")
+    p.add_argument("name")
+    p.add_argument("action_name", metavar="action", help="the name the action sends")
+    action("respawn", help="press Respawn on the death screen")
     p = action("chat", help="say a line in chat (no server commands)")
     p.add_argument("text")
     p = sub.add_parser("wait", help="wait for ticks, time, an event or an action")
@@ -112,6 +133,27 @@ def main():
     elif command == "inventory_click":
         request.update(location=args.location, list=args.list, index=args.index,
                        button=args.button, shift=args.shift)
+    elif command == "form_button":
+        request["name"] = args.name
+    elif command == "form_field":
+        request.update(name=args.name, text=args.text, enter=args.enter)
+    elif command == "form_select":
+        request["name"] = args.name
+        if args.choice.isdigit():
+            request["index"] = int(args.choice)
+        else:
+            request["text"] = args.choice
+        request["double"] = args.double
+    elif command == "form_check":
+        request.update(name=args.name, checked=args.checked == "true")
+    elif command == "form_scroll":
+        request["name"] = args.name
+        for key in ("value", "by"):
+            if getattr(args, key) is not None:
+                request[key] = getattr(args, key)
+    elif command == "form_action":
+        request["name"] = args.name
+        request["action"] = args.action_name
     elif command == "chat":
         request["text"] = args.text
     elif command == "wait":

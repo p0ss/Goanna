@@ -75,6 +75,23 @@ TOOLS = [
           "index": {"type": "integer", "minimum": 0},
           "button": {"type": "string", "enum": ["left", "right", "middle"]},
           "shift": {"type": "boolean"}}, ["location", "list", "index"]),
+    tool("form_button", "Press a button of the open form, by the name in window.elements.",
+         {"name": {"type": "string"}}, ["name"]),
+    tool("form_field", "Replace the text of a field or textarea, as typing does. It is sent with the "
+         "next button or other event; enter (fields only) presses Enter, which sends at once.",
+         {"name": {"type": "string"}, "text": {"type": "string", "maxLength": 16384},
+          "enter": {"type": "boolean"}}, ["name", "text"]),
+    tool("form_select", "Choose an entry of a dropdown, textlist or table, or a tab, by index "
+         "(counted from 1; a table's row number) or by its text. double is a double click.",
+         {"name": {"type": "string"}, "index": {"type": "integer", "minimum": 1},
+          "text": {"type": "string"}, "double": {"type": "boolean"}}, ["name"]),
+    tool("form_check", "Tick or clear a checkbox.",
+         {"name": {"type": "string"}, "checked": {"type": "boolean"}}, ["name", "checked"]),
+    tool("form_scroll", "Move a scrollbar to value, or by an amount.",
+         {"name": {"type": "string"}, "value": {"type": "integer"}, "by": {"type": "integer"}}, ["name"]),
+    tool("form_action", "Follow an action link of a hypertext element, by its action name or its text.",
+         {"name": {"type": "string"}, "action": {"type": "string"}, "text": {"type": "string"}}, ["name"]),
+    tool("respawn", "Press Respawn on the death screen."),
     tool("chat", "Say one line in chat. Server commands (a leading slash) are refused.",
          {"text": {"type": "string", "minLength": 1, "maxLength": 500}}, ["text"]),
     tool("wait", "Wait for ticks (frames), ms, an event after since_event, or an action to end.",
@@ -104,7 +121,7 @@ def main():
             method = message.get("method")
             if method == "initialize":
                 result = {"protocolVersion": "2025-06-18", "capabilities": {"tools": {}},
-                          "serverInfo": {"name": "goanna-player", "version": "0.2.0"}}
+                          "serverInfo": {"name": "goanna-player", "version": "0.3.0"}}
             elif method == "tools/list":
                 result = {"tools": TOOLS}
             elif method == "tools/call":

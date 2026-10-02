@@ -200,7 +200,7 @@ Deliverable: a scripted policy can play through ordinary mechanics. Planning,
 memory and autonomous goal selection remain external.
 
 Status: a first version is in `project/player_agent_channel.gd`, protocol
-`goanna-player/0.2`, described below under "The player agent protocol". What
+`goanna-player/0.3`, described below under "The player agent protocol". What
 has been seen to work, and what has not, is listed at the end of it.
 
 ### R3: Game extension seam
@@ -224,7 +224,7 @@ faction diplomacy, culture generation or multi-agent society.
 
 ## The player agent protocol
 
-`goanna-player/0.2`, served by `project/player_agent_channel.gd`. It shares
+`goanna-player/0.3`, served by `project/player_agent_channel.gd`. It shares
 no code path with the control channel: no dispatcher, no `eval`, no method
 call by name. `project/tests/player_agent_boundary.gd` fails if the channel,
 `tools/goanna-player` or `tools/goanna-player-mcp` gains any of the control
@@ -276,12 +276,25 @@ stale action is a result, not an error.
   and behind the player; those are left out;
 - `inventory`: the player's own lists, with stripped item descriptions;
 - `window`: the open window, and for a form the slots on screen with their
-  contents and the stack on the cursor;
+  contents, the stack on the cursor, whether it may be closed, its named
+  elements (below) and its `labels`, the text on it that belongs to no
+  element;
 - `events`: chat lines and action results since `since_event`;
 - `visible_nodes`, only when asked for (`{"columns", "rows", "range"}`, up
   to 24 by 16 rays and 32 nodes): the first node each ray through the screen
   meets, which is the surface the player sees there. Rays stop at unloaded
   nodes and look through the medium the eye is in (water under water).
+
+A form's `elements` are the named ones on screen. Each has its `name` and
+formspec `type`, and as fits the type: `text` (a caption, a field's text, a
+hypertext's text as read), `disabled`, `editable`, `checked`, `items` and
+`selected` (a dropdown or text list, counted from 1), `tabs` and `selected`,
+`rows` (a table's, each with the `row` number it sends and its `cells`),
+`value`, `min` and `max` (a scrollbar), `actions` (a hypertext's links,
+each with the `action` it sends and the `text` it shows) and `tooltip`.
+Elements hidden or scrolled out of a scroll container are left out, as they
+are from the player's view; scroll to reach them. A password field reports
+its length and never its text.
 
 Positions use Godot's axes: Luanti's x, y and -z, in nodes. Light and fog
 are not considered, so an object or surface in darkness, or far off under
@@ -307,6 +320,13 @@ observation it was decided on. The last 64 observations are kept.
 | `inventory_open` | | Opens the player's inventory form. |
 | `inventory_close` | | Closes the open form, as Escape does. |
 | `inventory_click` | `location`, `list`, `index`, `button`, `shift` | Clicks a slot of the open form. |
+| `form_button` | `name` | Presses a button, image button or item image button. |
+| `form_field` | `name`, `text`, `enter` | Replaces a field's or textarea's text, as typing does. It goes with the next event that sends fields; `enter` (fields only) presses Enter, which sends at once. |
+| `form_select` | `name`, `index` or `text`, `double` | Chooses a dropdown or text list entry, a table row (by its row number or a cell's text) or a tab. `double` is a double click. |
+| `form_check` | `name`, `checked` | Ticks or clears a checkbox. |
+| `form_scroll` | `name`, `value` or `by` | Moves a scrollbar, which also scrolls its scroll container. |
+| `form_action` | `name`, `action` or `text` | Follows an action link of a hypertext element. |
+| `respawn` | | Presses Respawn on the death screen. |
 | `chat` | `text` | Sends one line of chat. |
 
 `wait` (`ticks`, `ms`, `event` with `since_event`, or `action`, each with
@@ -322,10 +342,25 @@ clicks go to the open form's slot handlers, the ones a mouse click reaches,
 and only for slots the form shows. Picking a stack up and putting it down
 are two clicks, as with a mouse.
 
+The `form_` actions work an element through its own signal, the one a click,
+a keypress or a wheel turn on it emits, so `ui/formspec.gd` sends what
+Luanti sends for the same event: a button its name and caption with the
+fields, a checkbox only its own state, a dropdown its text or index, a list
+or table `CHG:` or `DCL:` with the row, a tab its number, a scrollbar
+`CHG:` with its value, a link `action:` and its name. Only elements on
+screen can be worked; a disabled button or a read only field is refused, a
+type the action does not fit is refused, and an element that changed since
+`based_on`, or a different form, is `stale`. A form action's `effects` give
+the `fields_sent`, the window and form afterwards and the element as it now
+is. A `button_url` or a link with a url still offers the address in a
+dialogue, as for a person; the agent cannot answer it and it does no harm left
+open.
+
 These are refused outright: chat beginning with `/` (a server command),
 more than 20 actions a second, more than 5 chat lines in 10 seconds, body
 actions while a window or chat is open, while dead or with the free camera
-on, and anything while the player is not in a world.
+on, `respawn` when the death screen is not up, and anything while the player
+is not in a world. Goanna's own menus (pause, settings) are not driven.
 
 ### Results
 
@@ -368,12 +403,36 @@ rendering (`tools/goanna-headless start --software`), driven by
   chat line, and not knowing `goanna_player_eval`; developer verbs sent
   straight to the socket answered as unavailable.
 
+On 2026-10-02, the same set up against a Luanti 5.17.0 server running Kythen
+0.1.0-b1 in a fresh world (mapgen v7, no baked terrain), Godot 4.5.1,
+headless with software rendering:
+
+- `use` with the spawn kit's journal wielded opened `kythen:interface_journal`;
+  `observe` reported its four buttons and its text as labels;
+- `form_button` through journal, dictionary, journal again and
+  `kythen:dashboard`, each sending the button's name and caption, and the
+  dashboard's History view swapping the text shown;
+- `form_button` on a name the open form did not show: `refused`;
+- the dashboard's `button_exit` Close sending `quit` and closing the window;
+- `inventory_open` and `inventory_close` again, with no elements reported on
+  Kythen's plain inventory.
+
+Fields, checkboxes, dropdowns, text lists, tables, tabs, scrollbars,
+hypertext links and `respawn` were checked only offline, by
+`project/tests/player_agent_forms.gd`, which builds a real form with
+`ui/formspec.gd` and works it through the channel with no server. A fresh
+Kythen world has no village, so none of its forms with those elements could
+be reached. Kythen's map did not open at all: it waits for an image sent
+with `dynamic_add_media`, and Goanna's session does not handle
+`TOCLIENT_MEDIA_PUSH`, so the image never arrives and the server never
+shows the form. That is a client defect, not an agent one, and a person
+playing Goanna meets it too.
+
 Not verified: `attack` landing on a mob. Every mob the test scripts aimed
 at moved out of reach first (the spawn was beside a lake, and the
 software rendered client ran at about five frames a second). Protection
 was not exercised either: the test world had no protection mod, so only a
-missing privilege was. Not built: clicking form buttons and fields other
-than slots, and the death screen's respawn.
+missing privilege was. `respawn` has not been seen against a server.
 
 ## Explicit non-goals
 

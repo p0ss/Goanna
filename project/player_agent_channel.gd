@@ -21,21 +21,35 @@
 # user://player_agent_<port>.token, readable only by the user.
 extends Node
 
-const PROTOCOL := "goanna-player/0.2"
+const PROTOCOL := "goanna-player/0.3"
 const DEFAULT_PORT := 30850
 const MAX_LINE := 1 << 20
 const QUERIES := ["hello", "observe", "wait", "action_status"]
 const ACTIONS := ["look", "move", "release", "dig", "place", "use", "attack",
-	"hotbar", "drop", "inventory_open", "inventory_close", "inventory_click", "chat"]
+	"hotbar", "drop", "inventory_open", "inventory_close", "inventory_click",
+	"form_button", "form_field", "form_select", "form_check", "form_scroll",
+	"form_action", "respawn", "chat"]
 const COMMANDS := ["hello", "observe", "wait", "action_status", "look", "move",
 	"release", "dig", "place", "use", "attack", "hotbar", "drop", "inventory_open",
-	"inventory_close", "inventory_click", "chat"]
+	"inventory_close", "inventory_click", "form_button", "form_field", "form_select",
+	"form_check", "form_scroll", "form_action", "respawn", "chat"]
 const RESULTS := ["accepted", "completed", "interrupted", "refused", "stale"]
 # The movement controls, by the name an agent uses, as main.gd's key names.
 const CONTROLS := {"forward": "up", "backward": "down", "left": "left",
 	"right": "right", "jump": "jump", "sneak": "sneak", "aux1": "aux1"}
 # Body actions need the player in the world, alive and with no window open.
 const BODY := ["look", "move", "dig", "place", "use", "attack", "hotbar", "drop"]
+# Form actions, by the element types each one works: the formspec type
+# names an element was built from (ui/formspec.gd, describe()).
+const FORM_TYPES := {
+	"form_button": ["button", "button_exit", "image_button", "image_button_exit",
+		"item_image_button", "button_url", "button_url_exit"],
+	"form_field": ["field", "pwdfield", "textarea"],
+	"form_select": ["dropdown", "textlist", "table", "tabheader"],
+	"form_check": ["checkbox"],
+	"form_scroll": ["scrollbar"],
+	"form_action": ["hypertext"],
+}
 const BUTTONS := {"left": MOUSE_BUTTON_LEFT, "right": MOUSE_BUTTON_RIGHT,
 	"middle": MOUSE_BUTTON_MIDDLE}
 const EVENT_LIMIT := 128
@@ -54,6 +68,11 @@ const CHATS_PER_10_SECONDS := 5
 const CHAT_MAX := 500
 const ENTITY_RADIUS := 32.0
 const SAMPLE_RANGE_MAX := 32.0
+# Bounds on what a form observation carries.
+const MAX_ROWS := 500
+const MAX_LABELS := 200
+const MAX_TEXT := 4000
+const FIELD_MAX := 16384
 
 var main: Node
 var _server := TCPServer.new()
@@ -200,7 +219,7 @@ func _hello() -> Dictionary:
 		"sequence": _sequence, "tick": Engine.get_process_frames(), "read_only": false,
 		"capabilities": {"scope": ["actor"],
 			"observations": ["body", "camera", "pointed", "visible_nodes",
-				"nearby_entities", "inventory", "window", "environment", "events",
+				"nearby_entities", "inventory", "window", "form_elements", "environment", "events",
 				"spatial_memory"],
 			"actions": ACTIONS, "queries": QUERIES, "results": RESULTS,
 			"controls": CONTROLS.keys(),
@@ -400,6 +419,110 @@ func _window_state() -> Dictionary:
 		(lists[key]["slots"] as Array).append(entry)
 	out["lists"] = lists.values()
 	out["cursor"] = _cursor()
+	out["allow_close"] = bool(ui.form.allow_close)
+	out["elements"] = _form_elements()
+	out["labels"] = _form_labels()
+	return out
+
+# The named elements on screen, each as the player sees it: its formspec
+# type, its caption or text, and what can be done with it. Hidden ones and
+# ones scrolled out of view are left out, as with slots.
+func _form_elements() -> Array:
+	var form = main.ui.form
+	var out := []
+	for e in form.describe()["elements"]:
+		if not e["visible"]:
+			continue
+		var c: Control = e["control"]
+		var entry := {"name": String(e["name"]), "type": String(e["type"])}
+		if String(e["tooltip"]) != "":
+			entry["tooltip"] = _plain_text(form.strip_enriched(String(e["tooltip"])))
+		if c is BaseButton:
+			entry["disabled"] = (c as BaseButton).disabled
+		if c is CheckBox:
+			entry["text"] = (c as CheckBox).text
+			entry["checked"] = (c as CheckBox).button_pressed
+		elif c is OptionButton:
+			var ob := c as OptionButton
+			entry["items"] = range(ob.item_count).map(func(i: int) -> String: return ob.get_item_text(i))
+			entry["selected"] = ob.selected + 1
+		elif c is Button:
+			entry["text"] = _plain_text(String(c.get_meta("label", (c as Button).text)))
+		elif c is LineEdit:
+			var le := c as LineEdit
+			# The player's own typing, but not a password echoed back.
+			entry["text"] = "" if le.secret else le.text
+			entry["editable"] = le.editable
+			if le.secret:
+				entry["secret"] = true
+				entry["length"] = le.text.length()
+		elif c is TextEdit:
+			entry["text"] = (c as TextEdit).text
+			entry["editable"] = (c as TextEdit).editable
+		elif c is TabBar:
+			var tb := c as TabBar
+			entry["tabs"] = range(tb.tab_count).map(func(i: int) -> String: return tb.get_tab_title(i))
+			entry["selected"] = tb.current_tab + 1
+		elif c is ItemList:
+			var il := c as ItemList
+			entry["items"] = range(il.item_count).map(func(i: int) -> String: return il.get_item_text(i))
+			var picked: Array = Array(il.get_selected_items())
+			entry["selected"] = int(picked[0]) + 1 if not picked.is_empty() else 0
+		elif c is Tree:
+			entry["rows"] = _table_rows(c as Tree)
+			var item := (c as Tree).get_selected()
+			entry["selected"] = int(item.get_meta("row", 0)) if item != null else 0
+		elif c is ScrollBar:
+			var bar := c as ScrollBar
+			entry["value"] = int(bar.value)
+			entry["min"] = int(bar.min_value)
+			entry["max"] = int(bar.max_value)
+		elif c is RichTextLabel:
+			entry["text"] = (c as RichTextLabel).get_parsed_text()
+			if c.has_meta("markup"):
+				entry["actions"] = form.hypertext_actions(c).map(func(a: Dictionary) -> Dictionary:
+					var link := {"action": a["name"], "text": a["text"]}
+					if String(a["url"]) != "":
+						link["url"] = a["url"]
+					return link)
+		elif c is Label:
+			entry["text"] = (c as Label).text
+		out.append(entry)
+	return out
+
+# A table's rows as the player sees them: the row number it sends, and the
+# text of each column. Rows inside a collapsed tree row are not on screen.
+func _table_rows(t: Tree) -> Array:
+	var rows := []
+	var item := t.get_root()
+	while item != null and rows.size() < MAX_ROWS:
+		if item != t.get_root() or not t.hide_root:
+			var cells := []
+			for column in t.columns:
+				cells.append(item.get_text(column))
+			rows.append({"row": int(item.get_meta("row", 0)), "cells": cells})
+		item = item.get_next_visible()
+	return rows
+
+# Text on the form that belongs to no named element: label[], vertlabel[],
+# unnamed textareas. Captions are reported with their buttons.
+func _form_labels() -> Array:
+	var form = main.ui.form
+	var out := []
+	var stack: Array = [form.root] if form.root != null else []
+	while not stack.is_empty() and out.size() < MAX_LABELS:
+		var n: Node = stack.pop_back()
+		var children := n.get_children()
+		children.reverse()
+		for child in children:
+			if child is BaseButton or child.has_meta("formspec_name"):
+				continue
+			stack.append(child)
+		if n == form.root or not (n is Label or n is RichTextLabel):
+			continue
+		var text: String = (n as Label).text if n is Label else (n as RichTextLabel).get_parsed_text()
+		if text.strip_edges() != "" and form.shown_rect(n).has_area():
+			out.append(_plain_text(text).left(MAX_TEXT))
 	return out
 
 func _cursor() -> Dictionary:
@@ -541,6 +664,13 @@ func _check(kind: String, args: Dictionary) -> Dictionary:
 			return {"status": "refused", "reason": "a window or chat is open (%s); close it first" % _window_kind()}
 		if main.fly_mode:
 			return {"status": "refused", "reason": "the free camera is on"}
+	if kind == "respawn" and (main.ui == null or main.ui.window == null
+			or main.ui.window != main.ui.death_screen):
+		return {"status": "refused", "reason": "the death screen is not showing"}
+	if FORM_TYPES.has(kind):
+		var problem := _check_form(kind, args, based_on)
+		if not problem.is_empty():
+			return problem
 	var observed: Dictionary = _snapshots[based_on]
 	var then: Dictionary = observed.pointed
 	var now_pointed := _pointed_summary(main.pointed)
@@ -566,6 +696,38 @@ func _check(kind: String, args: Dictionary) -> Dictionary:
 		return {"status": "refused", "reason": "action %d is still using the buttons; wait for it or release" % _interaction}
 	return {}
 
+# A form action is tried only on an element the player can see and use now,
+# and only if it is as the observation showed it.
+func _check_form(kind: String, a: Dictionary, based_on: int) -> Dictionary:
+	if main.ui == null or main.ui.window != main.ui.form:
+		return {"status": "refused", "reason": "no form is open (%s)" % _window_kind()}
+	var name := String(a.get("name", ""))
+	var now := _element(_window_state(), name)
+	if now.is_empty():
+		return {"status": "refused", "reason": "the open form shows no element named '%s'; it may be hidden or scrolled out of view" % name}
+	if String(now.type) not in FORM_TYPES[kind]:
+		return {"status": "refused", "reason": "'%s' is a %s; %s works %s" % [name, now.type, kind,
+			", ".join(FORM_TYPES[kind])]}
+	if bool(now.get("disabled", false)):
+		return {"status": "refused", "reason": "'%s' is disabled" % name}
+	if not bool(now.get("editable", true)):
+		return {"status": "refused", "reason": "'%s' is read only" % name}
+	var observed: Dictionary = _snapshots[based_on].window
+	if String(observed.get("formname", "")) != String(main.ui.form.formname):
+		return {"status": "stale", "reason": "a different form is open than the one observed",
+			"effects": {"observed": observed.get("formname", null), "now": main.ui.form.formname}}
+	var then := _element(observed, name)
+	if then != now:
+		return {"status": "stale", "reason": "'%s' changed since the observation" % name,
+			"effects": {"observed": then, "now": now}}
+	return {}
+
+func _element(window: Dictionary, name: String) -> Dictionary:
+	for e in window.get("elements", []):
+		if e.name == name:
+			return e
+	return {}
+
 func _same_node(a: Dictionary, b: Dictionary, face: bool) -> bool:
 	if a.type != "node" or b.type != "node":
 		return false
@@ -586,6 +748,10 @@ func _run(rec: Dictionary, kind: String, args: Dictionary) -> void:
 		"inventory_open": await _inventory_open(rec)
 		"inventory_close": await _inventory_close(rec)
 		"inventory_click": await _inventory_click(rec, args)
+		"form_button", "form_field", "form_select", "form_check", "form_scroll", \
+				"form_action":
+			await _form(rec, kind, args)
+		"respawn": await _respawn(rec)
 		"chat": _chat(rec, args)
 
 func _finish(rec: Dictionary, status: String, reason := "", effects := {}) -> void:
@@ -953,6 +1119,151 @@ func _slots(window: Dictionary) -> Dictionary:
 			out["%s|%s|%d" % [list.location, list.list, int(slot.index)]] = \
 				{"item": slot.get("item", ""), "count": int(slot.get("count", 0))}
 	return out
+
+# A form element worked as a person works it, through the element's own
+# signal, the one a click, a keypress or a wheel turn on it emits. formspec.gd
+# answers that by sending the fields upstream sends for the same event, so the
+# server sees what it would see from a mouse. Text typed into a field goes
+# with the next event that sends fields, as typing does; enter sends at once,
+# as Enter does.
+func _form(rec: Dictionary, kind: String, a: Dictionary) -> void:
+	var form = main.ui.form
+	var name := String(a.get("name", ""))
+	var c: Control = form.named_controls[name]
+	var sent := []
+	var watch := func(fields: Dictionary, quit: bool) -> void:
+		sent.append({"fields": fields.duplicate(), "quit": quit})
+	form.fields_submitted.connect(watch)
+	var before: int = form.root.get_instance_id() if form.root != null else 0
+	var refused := ""
+	match kind:
+		"form_button":
+			c.pressed.emit()
+		"form_field":
+			var text := String(a.get("text", ""))
+			if text.length() > FIELD_MAX:
+				refused = "text is at most %d characters" % FIELD_MAX
+			elif c is LineEdit:
+				if text.contains("\n"):
+					refused = "'%s' is one line" % name
+				else:
+					(c as LineEdit).text = text
+					if bool(a.get("enter", false)):
+						(c as LineEdit).text_submitted.emit(text)
+			else:
+				(c as TextEdit).text = text
+				if bool(a.get("enter", false)):
+					refused = "Enter in a textarea is a new line, not a submit"
+		"form_select":
+			refused = _form_select(c, a)
+		"form_check":
+			if not a.has("checked"):
+				refused = "form_check wants checked: true or false"
+			else:
+				(c as CheckBox).button_pressed = bool(a.checked)
+		"form_scroll":
+			var bar := c as ScrollBar
+			var value := _int(a.get("value", bar.value))
+			if a.has("by"):
+				value = int(bar.value) + _int(a.by)
+			bar.value = clampi(value, int(bar.min_value), int(bar.max_value))
+		"form_action":
+			refused = _form_action(c as RichTextLabel, a)
+	form.fields_submitted.disconnect(watch)
+	if refused != "":
+		_finish(rec, "refused", refused)
+		return
+	await _settle(500)
+	var effects := {"element": name, "fields_sent": sent, "window": _window_kind()}
+	if main.ui.window == form:
+		effects["formname"] = String(form.formname)
+		effects["form_rebuilt"] = (form.root.get_instance_id() if form.root != null else 0) != before
+		effects["now"] = _element(_window_state(), name)
+	var reason := "" if not sent.is_empty() or kind == "form_field" else \
+			"nothing was sent: it was already in that state"
+	_finish(rec, "completed", reason, effects)
+
+# Pick an entry of a dropdown, text list or table, or a tab, counted from 1
+# as the form counts them, or by its text. double is a double click, which a
+# text list and a table send as their own event.
+func _form_select(c: Control, a: Dictionary) -> String:
+	var choices := []
+	if c is OptionButton:
+		for i in (c as OptionButton).item_count:
+			choices.append((c as OptionButton).get_item_text(i))
+	elif c is ItemList:
+		for i in (c as ItemList).item_count:
+			choices.append((c as ItemList).get_item_text(i))
+	elif c is TabBar:
+		for i in (c as TabBar).tab_count:
+			choices.append((c as TabBar).get_tab_title(i))
+	var index := _int(a.get("index", 0))
+	if c is Tree:
+		var rows := _table_rows(c as Tree)
+		if a.has("text"):
+			for r in rows:
+				if String(a.text) in r.cells:
+					index = int(r.row)
+					break
+		var item: TreeItem = null
+		var at := (c as Tree).get_root()
+		while at != null:
+			if int(at.get_meta("row", 0)) == index and (at != (c as Tree).get_root() or not (c as Tree).hide_root):
+				item = at
+				break
+			at = at.get_next_visible()
+		if item == null:
+			return "the table shows no row %s" % (str(a.text) if a.has("text") else str(index))
+		var double := bool(a.get("double", false))
+		if not double and item == (c as Tree).get_selected():
+			return ""
+		item.select(0)
+		if double:
+			(c as Tree).item_activated.emit()
+		return ""
+	if a.has("text"):
+		index = choices.find(String(a.text)) + 1
+	if index < 1 or index > choices.size():
+		return "choose index 1 to %d, or text, one of: %s" % [choices.size(), ", ".join(choices)]
+	if c is OptionButton:
+		if (c as OptionButton).selected != index - 1:
+			(c as OptionButton).select(index - 1)
+			(c as OptionButton).item_selected.emit(index - 1)
+	elif c is ItemList:
+		var il := c as ItemList
+		if bool(a.get("double", false)):
+			il.select(index - 1)
+			il.item_activated.emit(index - 1)
+		elif not il.is_selected(index - 1):
+			il.select(index - 1)
+			il.item_selected.emit(index - 1)
+	elif c is TabBar:
+		(c as TabBar).current_tab = index - 1
+	return ""
+
+# Follow one <action> link of a hypertext element, by the name it sends or
+# the text it shows.
+func _form_action(rt: RichTextLabel, a: Dictionary) -> String:
+	var links: Array = main.ui.form.hypertext_actions(rt)
+	for i in links.size():
+		var link: Dictionary = links[i]
+		if (a.has("action") and link.name == String(a.action)) \
+				or (a.has("text") and link.text == String(a.text)):
+			rt.meta_clicked.emit({"index": i, "name": link.name, "url": link.url})
+			return ""
+	return "no action link %s; it has: %s" % [str(a.get("action", a.get("text", ""))),
+		", ".join(links.map(func(l: Dictionary) -> String: return "%s (%s)" % [l.name, l.text]))]
+
+# The death screen's Respawn button.
+func _respawn(rec: Dictionary) -> void:
+	main.ui._respawn()
+	var until := Time.get_ticks_msec() + SETTLE_MS
+	while main.client.hp() <= 0 and Time.get_ticks_msec() < until:
+		await get_tree().process_frame
+	await _settle(0, 2)
+	_finish(rec, "completed" if main.client.hp() > 0 else "interrupted",
+		"" if main.client.hp() > 0 else "the server has not brought the player back yet",
+		{"health": main.client.hp(), "position": _body_position(), "window": _window_kind()})
 
 # Chat, as typed into the chat box. A leading slash would make it a server
 # command, which the player interface does not carry.

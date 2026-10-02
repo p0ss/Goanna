@@ -288,6 +288,21 @@ func describe() -> Dictionary:
 		"allow_close": allow_close, "rect": root.get_global_rect() if root else Rect2(),
 		"elements": elements, "slots": list_slots, "tooltip": tip, "hovered": hover_name}
 
+# The <action> links of a hypertext element, in order, each with the name it
+# sends and the text it shows, as the player reads them. Nothing here changes
+# the form.
+static var _action_tags := RegEx.create_from_string("(?s)<action(\\s[^>]*)?>(.*?)</action>")
+static var _any_tag := RegEx.create_from_string("<[^>]*>")
+static var _markup_escape := RegEx.create_from_string("\\\\(.)")
+func hypertext_actions(rt: Control) -> Array:
+	var out: Array = []
+	for m in _action_tags.search_all(String(rt.get_meta("markup", ""))):
+		var attrs := _markup_attrs(m.get_string(1).strip_edges())
+		var shown := _markup_escape.sub(_any_tag.sub(m.get_string(2), "", true), "$1", true)
+		out.append({"name": String(attrs.get("name", "")),
+			"url": String(attrs.get("url", "")), "text": strip_enriched(shown).strip_edges()})
+	return out
+
 # The part of a control the player can see: its rectangle cut by every
 # clipping ancestor, such as a scroll_container's clipper, or an empty one
 # when it is hidden.
@@ -2174,6 +2189,7 @@ func _hypertext(parts: PackedStringArray) -> void:
 	_register_named_control(hname, rt)
 	var text := fs_unescape(_resolve(parts[3]))
 	rt.set_meta("hovered_action", -1)
+	rt.set_meta("markup", text)   # for hypertext_actions()
 	# <action> sends "action:<name>" under the element's own field name, and
 	# may carry a url, which is offered rather than opened (see _offer_url).
 	var sound := _style_sound(hname)
