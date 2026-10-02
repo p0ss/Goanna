@@ -1,0 +1,11 @@
+{
+ "materials": {
+  "plate": {
+   "mode": "shade",
+   "base": 0.5,
+   "span": 0.1,
+   "levels": 2,
+   "detail": 0.2
+  }
+ }
+}

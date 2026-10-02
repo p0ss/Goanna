@@ -1,0 +1,22 @@
+{
+ "class": "stone",
+ "materials": {
+  "stone": {
+   "mode": "parts",
+   "base": 0.55,
+   "span": 0.1,
+   "detail": 0.3
+  },
+  "mortar": {
+   "mode": "flat",
+   "base": 0.08,
+   "span": 0
+  }
+ },
+ "palette": {
+  "#949494": "mortar",
+  "#9f9f9f": "mortar",
+  "#acacac": "mortar",
+  "#bfbfbf": "mortar"
+ }
+}

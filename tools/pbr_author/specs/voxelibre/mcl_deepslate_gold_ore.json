@@ -1,0 +1,16 @@
+{
+ "class": "stone",
+ "materials": {
+  "stone": {"mode": "shade", "base": 0.25, "span": 0.5, "joints": false},
+  "gold": {"mode": "shade", "base": 0.78, "span": 0.2, "detail": 0.3, "smooth": 0.75, "metal": true}
+ },
+ "palette": {
+  "#8e5829": "gold",
+  "#a0672b": "gold",
+  "#af742b": "gold",
+  "#bc822b": "gold",
+  "#ce9627": "gold",
+  "#e5b530": "gold",
+  "#f7cf4c": "gold"
+ }
+}

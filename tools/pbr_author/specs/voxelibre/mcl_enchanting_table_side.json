@@ -1,0 +1,33 @@
+{
+ "class": "stone",
+ "materials": {
+  "obsidian": {
+   "mode": "shade",
+   "base": 0.3,
+   "span": 0.35,
+   "joints": false,
+   "smooth": 0.7,
+   "smooth_spread": 0.1
+  },
+  "trim": {
+   "mode": "shade",
+   "base": 0.7,
+   "span": 0.3,
+   "joints": false,
+   "smooth": 0.15
+  }
+ },
+ "palette": {
+  "#000000": "obsidian",
+  "#2b2324": "obsidian",
+  "#3a3333": "obsidian",
+  "#443f3f": "obsidian",
+  "#595554": "obsidian",
+  "#4c3c34": "trim",
+  "#56463d": "trim",
+  "#635546": "trim",
+  "#70675c": "trim",
+  "#7f7868": "trim",
+  "#898272": "trim"
+ }
+}

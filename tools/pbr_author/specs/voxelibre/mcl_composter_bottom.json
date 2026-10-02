@@ -1,0 +1,36 @@
+{
+ "class": "wood",
+ "materials": {
+  "wood": {
+   "mode": "parts",
+   "base": 0.45,
+   "span": 0.2,
+   "smooth": 0.3
+  },
+  "gap": {
+   "mode": "flat",
+   "base": 0.12,
+   "span": 0,
+   "smooth": 0.2,
+   "micro": 0
+  },
+  "beam": {
+   "mode": "flat",
+   "base": 0.8,
+   "span": 0,
+   "smooth": 0.35
+  }
+ },
+ "palette": {
+  "#5e4b41": "gap",
+  "#665045": "gap",
+  "#6f5446": "gap",
+  "#785a48": "wood",
+  "#85634c": "wood",
+  "#8e694d": "wood",
+  "#937964": "beam",
+  "#997252": "wood",
+  "#a08368": "beam",
+  "#ad8f6e": "beam"
+ }
+}

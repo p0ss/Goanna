@@ -1,0 +1,38 @@
+{
+ "class": "stone",
+ "materials": {
+  "block": {
+   "mode": "parts",
+   "base": 0.55,
+   "span": 0.3,
+   "detail": 0.6
+  },
+  "joint": {
+   "mode": "flat",
+   "base": 0.08,
+   "span": 0
+  }
+ },
+ "grid": [
+  "BBBBBBBBBBJJBBBB",
+  "BBBBBBBBBBJJBBBB",
+  "BBBBBBBBBBJJBBBB",
+  "BBBBBBBBBBJJBBBB",
+  "BBBBBBBBBBJJBBBB",
+  "BBBBBBBBBBJJBBBB",
+  "BBBBBBBBBBJJBBBB",
+  "JJJJJJJJJJJJJJJJ",
+  "BBBBBBBJBBBBBBBB",
+  "BBBBBBBJBBBBBBBB",
+  "BBBBBBBJBBBBBBBB",
+  "BBBBBBBJBBBBBBBB",
+  "BBBBBBBJBBBBBBBB",
+  "BBBBBBBJBBBBBBBB",
+  "BBBBBBBJBBBBBBBB",
+  "JJJJJJJJJJJJJJJJ"
+ ],
+ "legend": {
+  "B": "block",
+  "J": "joint"
+ }
+}

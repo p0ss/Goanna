@@ -1,0 +1,11 @@
+{
+ "class": "dirt",
+ "materials": {
+  "dirt": {"mode": "shade", "base": 0.15, "span": 0.35},
+  "mycelium": {"mode": "shade", "base": 0.55, "span": 0.45}
+ },
+ "palette": {
+  "#4d4a5b": "mycelium", "#5b5267": "mycelium", "#65576f": "mycelium", "#6b5a76": "mycelium",
+  "#755f80": "mycelium", "#806085": "mycelium", "#8e638f": "mycelium"
+ }
+}

@@ -1,0 +1,15 @@
+{
+ "class": "metal",
+ "materials": {
+  "bar": {"mode": "shade", "base": 0.35, "span": 0.35, "joints": false, "metal": false, "smooth": 0.4},
+  "trim": {"mode": "shade", "base": 0.75, "span": 0.15, "joints": false, "metal": false, "smooth": 0.45}
+ },
+ "palette": {
+  "#191919": "bar",
+  "#232323": "bar",
+  "#2c2c2c": "bar",
+  "#3d3d3d": "bar",
+  "#60487c": "trim",
+  "#ffffff": "trim"
+ }
+}

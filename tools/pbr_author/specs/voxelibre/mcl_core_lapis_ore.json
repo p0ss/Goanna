@@ -1,0 +1,28 @@
+{
+ "class": "stone",
+ "materials": {
+  "stone": {
+   "mode": "shade",
+   "base": 0.25,
+   "span": 0.5,
+   "joints": false
+  },
+  "lapis": {
+   "mode": "shade",
+   "base": 0.75,
+   "span": 0.2,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.55,
+   "smooth_spread": 0.05
+  }
+ },
+ "palette": {
+  "#1c3c89": "lapis",
+  "#20459b": "lapis",
+  "#2759a5": "lapis",
+  "#3b6bb4": "lapis",
+  "#5882c0": "lapis",
+  "#84a4d3": "lapis"
+ }
+}

@@ -1,0 +1,28 @@
+{
+ "class": "metal",
+ "materials": {
+  "frame": {
+   "mode": "shade",
+   "base": 0.15,
+   "span": 0.15,
+   "metal": false,
+   "smooth": 0.4
+  },
+  "bulb": {
+   "mode": "shade",
+   "base": 0.3,
+   "span": 0.15,
+   "joints": false
+  }
+ },
+ "palette": {
+  "#191919": "frame",
+  "#232323": "frame",
+  "#2c2c2c": "frame",
+  "#353535": "frame",
+  "#3d3d3d": "frame",
+  "#5b352e": "bulb",
+  "#704733": "bulb",
+  "#7f5d3f": "bulb"
+ }
+}

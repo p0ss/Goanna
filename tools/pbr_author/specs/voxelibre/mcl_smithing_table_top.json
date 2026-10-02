@@ -1,0 +1,26 @@
+{
+ "class": "wood",
+ "materials": {
+  "iron": {
+   "mode": "shade",
+   "base": 0.45,
+   "span": 0.5,
+   "joints": false,
+   "metal": false,
+   "smooth": 0.42
+  },
+  "wood": {
+   "mode": "shade",
+   "base": 0.35,
+   "span": 0.65
+  }
+ },
+ "palette": {
+  "#403832": "wood",
+  "#423b33": "wood",
+  "#463d35": "wood",
+  "#5b4c40": "wood",
+  "#605141": "wood",
+  "#675546": "wood"
+ }
+}

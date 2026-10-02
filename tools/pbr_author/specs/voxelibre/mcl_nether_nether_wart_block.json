@@ -1,0 +1,9 @@
+{
+ "class": "leaves",
+ "materials": {
+  "base": {
+   "mode": "shade",
+   "smooth": 0.3
+  }
+ }
+}

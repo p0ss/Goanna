@@ -1,0 +1,31 @@
+{
+ "class": "stone",
+ "materials": {
+  "stone": {
+   "mode": "shade",
+   "base": 0.35,
+   "span": 0.5
+  },
+  "wood": {
+   "mode": "shade",
+   "base": 0.2,
+   "span": 0.3,
+   "smooth": 0.2
+  },
+  "glow": {
+   "mode": "shade",
+   "base": 0.4,
+   "span": 0.15,
+   "joints": false
+  }
+ },
+ "palette": {
+  "#514035": "wood",
+  "#78604a": "wood",
+  "#5d493c": "wood",
+  "#675244": "wood",
+  "#381212": "glow",
+  "#260c0c": "glow",
+  "#4c1c1c": "glow"
+ }
+}

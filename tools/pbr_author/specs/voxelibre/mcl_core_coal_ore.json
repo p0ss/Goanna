@@ -1,0 +1,25 @@
+{
+ "class": "stone",
+ "materials": {
+  "stone": {
+   "mode": "shade",
+   "base": 0.25,
+   "span": 0.5,
+   "joints": false
+  },
+  "coal": {
+   "mode": "shade",
+   "base": 0.85,
+   "span": 0.15,
+   "detail": 0.2,
+   "smooth": 0.3
+  }
+ },
+ "palette": {
+  "#090808": "coal",
+  "#262523": "coal",
+  "#3a383d": "coal",
+  "#514b51": "coal",
+  "#594e47": "coal"
+ }
+}

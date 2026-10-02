@@ -1,0 +1,26 @@
+{
+ "materials": {
+  "bark": {
+   "mode": "flat",
+   "base": 0.55,
+   "span": 0
+  },
+  "face": {
+   "mode": "shade",
+   "base": 0.55,
+   "span": 0.2,
+   "joints": false
+  }
+ },
+ "palette": {
+  "#112a0e": "bark",
+  "#183b14": "bark",
+  "#1a3f15": "bark",
+  "#453f5b": "face",
+  "#524670": "face",
+  "#5d4d7c": "face",
+  "#6c5491": "face",
+  "#7e5dae": "face"
+ },
+ "class": "wood"
+}

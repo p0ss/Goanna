@@ -1,0 +1,31 @@
+{
+ "class": "cobble",
+ "materials": {
+  "stone": {
+   "mode": "shade",
+   "base": 0.25,
+   "span": 0.6
+  },
+  "moss": {
+   "mode": "shade",
+   "base": 0.72,
+   "span": 0.25,
+   "joints": false,
+   "smooth": 0.05
+  }
+ },
+ "palette": {
+  "#276734": "moss",
+  "#297436": "moss",
+  "#265b34": "moss",
+  "#23462e": "moss",
+  "#278233": "moss",
+  "#6c6360": "stone",
+  "#585352": "stone",
+  "#7c7572": "stone",
+  "#494545": "stone",
+  "#85807d": "stone",
+  "#8f8b88": "stone",
+  "#6b6461": "stone"
+ }
+}

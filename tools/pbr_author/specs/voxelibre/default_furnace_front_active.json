@@ -1,0 +1,33 @@
+{
+ "class": "stone",
+ "materials": {
+  "stone": {
+   "mode": "shade",
+   "base": 0.35,
+   "span": 0.65
+  },
+  "opening": {
+   "mode": "flat",
+   "base": 0.08,
+   "span": 0
+  },
+  "fire": {
+   "mode": "shade",
+   "base": 0.1,
+   "span": 0.15,
+   "joints": false,
+   "emission": 0.8
+  }
+ },
+ "palette": {
+  "#5e1009": "fire",
+  "#84280e": "fire",
+  "#b21908": "fire",
+  "#d6411b": "fire",
+  "#ff4530": "fire",
+  "#ff6a30": "fire",
+  "#ffc03a": "fire",
+  "#1f1518": "opening",
+  "#332222": "opening"
+ }
+}

@@ -1,0 +1,11 @@
+{
+ "class": "stone",
+ "materials": {
+  "stone": {"mode": "shade", "base": 0.25, "span": 0.5, "joints": false},
+  "iron": {"mode": "shade", "base": 0.7, "span": 0.25, "detail": 0.3, "metal": true, "smooth": 0.45}
+ },
+ "palette": {
+  "#7c584f": "iron", "#a3776b": "iron", "#aa8b79": "iron", "#bca08f": "iron",
+  "#d3c4af": "iron", "#e5dbce": "iron", "#f2ece1": "iron"
+ }
+}

@@ -1,0 +1,6 @@
+{
+ "class": "wood",
+ "materials": {
+  "wood": {"mode": "flat", "base": 0.5, "span": 0}
+ }
+}

@@ -1,0 +1,6 @@
+{
+ "class": "metal",
+ "materials": {
+  "plate": {"mode": "flat", "base": 0.5, "span": 0, "micro": 0.0}
+ }
+}

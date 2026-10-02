@@ -1,0 +1,8 @@
+{
+ "class": "cloth",
+ "materials": {
+  "web": {"mode": "shade", "base": 0.35, "span": 0.55}
+ },
+ "strength": 18,
+ "chamfer": 3
+}

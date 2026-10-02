@@ -1,0 +1,28 @@
+{
+ "materials": {
+  "casing": {
+   "mode": "shade",
+   "base": 0.3,
+   "span": 0.45
+  },
+  "label": {
+   "mode": "shade",
+   "base": 0.55,
+   "span": 0.35
+  }
+ },
+ "palette": {
+  "#7f2f39": "casing",
+  "#91343c": "casing",
+  "#a33539": "casing",
+  "#b73838": "casing",
+  "#c93f3a": "casing",
+  "#d8423a": "casing",
+  "#3d3634": "label",
+  "#594e4a": "label",
+  "#bdaa98": "label",
+  "#d0bca4": "label",
+  "#e0ceb5": "label",
+  "#e6d8bf": "label"
+ }
+}

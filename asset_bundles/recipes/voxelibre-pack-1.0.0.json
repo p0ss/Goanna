@@ -1,0 +1,31 @@
+{
+ "schema": "org.goanna.asset-recipe/v1",
+ "id": "org.goanna.voxelibre.pack",
+ "version": "1.0.0",
+ "tranche": "pack",
+ "games": [
+  "mineclone2",
+  "voxelibre"
+ ],
+ "source": {
+  "package": "Wuzzy/mineclone2",
+  "release": "38585",
+  "archive_sha256": "51ea9242aabb1f29575abbfb599c79bcde9435616ea097c0582e11ac1b2b279d"
+ },
+ "pipeline": {
+  "version": "5",
+  "authored": "tools/pbr_author/extrude.py for the 902 stems in stems/voxelibre.txt (every texture a VoxeLibre node draws as the base of a tile, from a node dump of release 38585, less liquids, animated strips, 22 atlases whose width does not divide 256 (hollow logs, chains), the character and skin sheets and two fully transparent pane tops), specs in specs/voxelibre/, classes in stems/voxelibre.classes.json",
+  "classification_review": "pbr_packs/classification_reviews/voxelibre-v1.json",
+  "quality_gate": "tools/check-pbr-quality.py --sources <mineclone2 38585> --classification-review pbr_packs/classification_reviews/voxelibre-v1.json",
+  "note": "629 stems are byte identical to Mineclonia pack 1.3.0's: the same art, built from Mineclonia's spec and class. 17 more are Mineclonia art under another name, identical in height and class, with micro noise seeded from the new name. The other 256 (123 whose art changed under a Mineclonia name, 133 new to VoxeLibre) were specced on 2026-10-02 by four Sonnet agents; 16 flower and the composter palettes copied from Mineclonia had gone stale against VoxeLibre's colours and were redone. Judged on offline contact sheets only; not yet on GPU frames or in play. Not publishable until VoxeLibre's per file media audit (docs/pbr-community-review.md) is done."
+ },
+ "release": {
+  "texture_pairs": 902,
+  "rejected": [],
+  "known_failures": [],
+  "known_warnings_note": "69 warnings, 0 failures. 59 are on stems shared byte for byte with Mineclonia pack 1.3.0. The rest are rail junctions and deepslate ores reading as dark metal, as their Mineclonia twins do, and a bell, the brewing stand top and a skylight sensor side that are pictures rather than tiles.",
+  "archive": "org.goanna.voxelibre.pack-1.0.0.zip",
+  "bytes": 49093664,
+  "sha256": "b3c146c844203ffcf8a424123a0631fab412f36021487b6fc7268ac71b246a6b"
+ }
+}

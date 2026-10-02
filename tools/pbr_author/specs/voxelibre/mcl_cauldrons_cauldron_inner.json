@@ -1,0 +1,6 @@
+{
+ "class": "metal",
+ "materials": {
+  "iron": {"mode": "shade", "base": 0.15, "span": 0.2, "joints": false, "metal": false, "smooth": 0.4}
+ }
+}

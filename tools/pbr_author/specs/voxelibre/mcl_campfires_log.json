@@ -1,0 +1,35 @@
+{
+ "class": "wood",
+ "materials": {
+  "wood": {
+   "mode": "parts",
+   "base": 0.5,
+   "span": 0.2,
+   "smooth": 0.3
+  },
+  "gap": {
+   "mode": "flat",
+   "base": 0.12,
+   "span": 0,
+   "smooth": 0.2,
+   "micro": 0
+  }
+ },
+ "palette": {
+  "#432f2a": "gap",
+  "#4e3e30": "wood",
+  "#4f362f": "gap",
+  "#594637": "wood",
+  "#624b3b": "wood",
+  "#6b4d3b": "wood",
+  "#715644": "wood",
+  "#79533c": "wood",
+  "#7c5f4c": "wood",
+  "#8a5e44": "wood",
+  "#917052": "wood",
+  "#9d784d": "wood",
+  "#ae8864": "wood",
+  "#be9a72": "wood",
+  "#c5a26e": "wood"
+ }
+}

@@ -1,0 +1,41 @@
+{
+ "class": "stone",
+ "materials": {
+  "obsidian": {
+   "mode": "shade",
+   "base": 0.3,
+   "span": 0.3,
+   "joints": false,
+   "smooth": 0.7,
+   "smooth_spread": 0.1
+  },
+  "trim": {
+   "mode": "shade",
+   "base": 0.7,
+   "span": 0.3,
+   "joints": false,
+   "smooth": 0.15
+  },
+  "diamond": {
+   "mode": "shade",
+   "base": 0.7,
+   "span": 0.2,
+   "joints": false,
+   "smooth": 0.85,
+   "smooth_spread": 0.05,
+   "f0": 0.17
+  }
+ },
+ "palette": {
+  "#2b2324": "obsidian",
+  "#3a3333": "obsidian",
+  "#443f3f": "obsidian",
+  "#4b749a": "diamond",
+  "#5380a9": "diamond",
+  "#67a2d2": "diamond",
+  "#a4ccf4": "diamond",
+  "#70675c": "trim",
+  "#7f7868": "trim",
+  "#898272": "trim"
+ }
+}

@@ -1,0 +1,12 @@
+{
+ "class": "sand",
+ "materials": {
+  "block": {"mode": "shade", "base": 0.55, "span": 0.4},
+  "joint": {"mode": "flat", "base": 0.15, "span": 0}
+ },
+ "palette": {
+  "#955d56": "joint", "#a2655c": "joint",
+  "#b46f64": "block", "#c2786b": "block", "#d67d6d": "block",
+  "#e4896e": "block", "#ec926f": "block", "#f7a37c": "block"
+ }
+}

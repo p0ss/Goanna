@@ -1,0 +1,48 @@
+{
+ "class": "wood",
+ "materials": {
+  "bamboo": {
+   "mode": "parts",
+   "base": 0.7,
+   "span": 0.0,
+   "smooth": 0.35
+  }
+ },
+ "palette": {
+  "#a68f4e": "bamboo",
+  "#a68f4f": "bamboo",
+  "#a79050": "bamboo",
+  "#a79051": "bamboo",
+  "#af9961": "bamboo",
+  "#b09a61": "bamboo",
+  "#b09a62": "bamboo",
+  "#bd9f64": "bamboo",
+  "#be9f65": "bamboo",
+  "#bea066": "bamboo",
+  "#bea068": "bamboo",
+  "#bea168": "bamboo",
+  "#bfa461": "bamboo",
+  "#c0ac83": "bamboo",
+  "#c0ad84": "bamboo",
+  "#c1a563": "bamboo",
+  "#c4a874": "bamboo",
+  "#c4aa75": "bamboo",
+  "#c5ab76": "bamboo",
+  "#d2bc8d": "bamboo",
+  "#d2bc8f": "bamboo",
+  "#d2bd90": "bamboo",
+  "#d8b978": "bamboo",
+  "#daba7b": "bamboo",
+  "#dac8a3": "bamboo",
+  "#ddc375": "bamboo",
+  "#dec476": "bamboo",
+  "#e2cb96": "bamboo",
+  "#e6ce9a": "bamboo",
+  "#e6cf9e": "bamboo",
+  "#f1d8a4": "bamboo",
+  "#f2d482": "bamboo",
+  "#f2d483": "bamboo",
+  "#f3d9a4": "bamboo",
+  "#f5daa5": "bamboo"
+ }
+}

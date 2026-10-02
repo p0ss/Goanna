@@ -1,0 +1,27 @@
+{
+ "class": "leaves",
+ "materials": {
+  "leaf": {
+   "mode": "shade",
+   "base": 0.25,
+   "span": 0.4
+  },
+  "berry": {
+   "mode": "shade",
+   "base": 0.72,
+   "span": 0.2,
+   "joints": false
+  }
+ },
+ "palette": {
+  "#224620": "leaf",
+  "#284e23": "leaf",
+  "#35662f": "leaf",
+  "#397034": "leaf",
+  "#3a8133": "leaf",
+  "#8f0707": "berry",
+  "#bb0909": "berry",
+  "#e29393": "leaf",
+  "#e70b0b": "berry"
+ }
+}

@@ -1,0 +1,11 @@
+{
+ "materials": {
+  "wood": {
+   "mode": "flat",
+   "base": 0.9,
+   "span": 0
+  }
+ },
+ "strength": 25,
+ "chamfer": 3
+}

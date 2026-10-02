@@ -1,0 +1,8 @@
+{
+ "class": "leaves",
+ "materials": {
+  "sprout": {"mode": "shade", "base": 0.3, "span": 0.5, "joints": false}
+ },
+ "strength": 20,
+ "chamfer": 3
+}

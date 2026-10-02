@@ -1,0 +1,26 @@
+{
+ "materials": {
+  "stone": {
+   "mode": "shade",
+   "base": 0.25,
+   "span": 0.5,
+   "joints": false
+  },
+  "redstone": {
+   "mode": "shade",
+   "base": 0.8,
+   "span": 0.15,
+   "detail": 0.2,
+   "joints": false,
+   "smooth": 0.35
+  }
+ },
+ "palette": {
+  "#601f2b": "redstone",
+  "#70212a": "redstone",
+  "#7f2325": "redstone",
+  "#932b26": "redstone",
+  "#af2c23": "redstone",
+  "#d13a30": "redstone"
+ }
+}

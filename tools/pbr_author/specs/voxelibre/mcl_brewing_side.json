@@ -1,0 +1,76 @@
+{
+ "class": "metal",
+ "materials": {
+  "iron": {
+   "mode": "flat",
+   "base": 0.8,
+   "span": 0,
+   "metal": true,
+   "smooth": 0.6
+  },
+  "stone": {
+   "mode": "flat",
+   "base": 0.5,
+   "span": 0,
+   "smooth": 0.35
+  },
+  "rod": {
+   "mode": "flat",
+   "base": 0.85,
+   "span": 0,
+   "smooth": 0.4,
+   "emission": 0.3
+  },
+  "glass": {
+   "mode": "flat",
+   "base": 0.62,
+   "span": 0,
+   "smooth": 0.9,
+   "f0": 0.04
+  }
+ },
+ "palette": {
+  "#6b6161": "stone",
+  "#706c66": "stone",
+  "#778eb5": "glass",
+  "#7e7471": "iron",
+  "#87807c": "iron",
+  "#938983": "iron",
+  "#a27631": "rod",
+  "#a59790": "iron",
+  "#ad7fa8": "glass",
+  "#c0c0c0": "iron",
+  "#c1d7fe": "glass",
+  "#cc6666": "iron",
+  "#cc66ff": "glass",
+  "#ff6600": "rod",
+  "#ff9933": "rod",
+  "#ffb366": "rod",
+  "#ffcc99": "iron",
+  "#ffdca8": "iron"
+ },
+ "grid": [
+  "................",
+  "................",
+  "................",
+  "................",
+  "................",
+  "................",
+  "................",
+  "................",
+  "................",
+  "................",
+  "................",
+  "................",
+  "................",
+  "................",
+  "SSSSSSSSSSSSSSSS",
+  "SSSSSSSSSSSSSSSS"
+ ],
+ "legend": {
+  "S": {
+   "material": "stone",
+   "h": 0.5
+  }
+ }
+}

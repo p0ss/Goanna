@@ -1,0 +1,13 @@
+{
+ "class": "stone",
+ "materials": {
+  "obsidian": {
+   "mode": "shade",
+   "base": 0.25,
+   "span": 0.45,
+   "joints": false,
+   "smooth": 0.7,
+   "smooth_spread": 0.1
+  }
+ }
+}

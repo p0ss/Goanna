@@ -1,0 +1,30 @@
+{
+ "class": "stone",
+ "materials": {
+  "stone": {
+   "mode": "shade",
+   "base": 0.25,
+   "span": 0.6
+  },
+  "moss": {
+   "mode": "shade",
+   "base": 0.72,
+   "span": 0.25,
+   "joints": false,
+   "smooth": 0.05
+  }
+ },
+ "palette": {
+  "#23462e": "moss",
+  "#265b34": "moss",
+  "#276734": "moss",
+  "#297436": "moss",
+  "#494545": "stone",
+  "#585352": "stone",
+  "#6c6360": "stone",
+  "#736c69": "stone",
+  "#7c7572": "stone",
+  "#85807d": "stone",
+  "#8f8b88": "stone"
+ }
+}

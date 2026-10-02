@@ -1,0 +1,13 @@
+{
+ "class": "stone",
+ "materials": {
+  "stone": {
+   "mode": "shade",
+   "base": 0.55,
+   "span": 0.25,
+   "levels": 3,
+   "detail": 0.3,
+   "joint": 0.45
+  }
+ }
+}

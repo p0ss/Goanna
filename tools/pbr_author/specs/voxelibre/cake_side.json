@@ -1,0 +1,12 @@
+{
+ "class": "dirt",
+ "materials": {
+  "crust": {"mode": "shade", "base": 0.3, "span": 0.35},
+  "icing": {"mode": "shade", "base": 0.75, "span": 0.2, "smooth": 0.5, "joints": false}
+ },
+ "palette": {
+  "#803921": "crust", "#964a2b": "crust", "#a75d37": "crust", "#b86e42": "crust",
+  "#c4c0bc": "icing", "#d5d2cf": "icing", "#e5e2df": "icing", "#f1f0ed": "icing",
+  "#fbfaf9": "icing", "#ffffff": "icing"
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "class": "soil",
+ "materials": {
+  "dirt": {
+   "mode": "shade",
+   "base": 0.3,
+   "span": 0.55
+  },
+  "grass": {
+   "mode": "shade",
+   "base": 0.55,
+   "span": 0.35,
+   "joints": false
+  }
+ },
+ "palette": {
+  "#705734": "grass",
+  "#775f33": "grass",
+  "#826a32": "grass",
+  "#8e7631": "grass"
+ }
+}

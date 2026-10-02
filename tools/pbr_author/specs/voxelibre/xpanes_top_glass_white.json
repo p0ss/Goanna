@@ -1,0 +1,10 @@
+{
+ "class": "glass",
+ "materials": {
+  "frame": {
+   "mode": "flat",
+   "base": 0.5,
+   "span": 0
+  }
+ }
+}

@@ -1,0 +1,29 @@
+{
+ "class": "stone",
+ "materials": {
+  "frame": {
+   "mode": "parts",
+   "base": 0.75,
+   "span": 0.0,
+   "smooth": 0.35
+  },
+  "glow": {
+   "mode": "shade",
+   "base": 0.3,
+   "span": 0.3,
+   "joints": false,
+   "emission": 0.6,
+   "emission_shade": true,
+   "smooth": 0.5
+  }
+ },
+ "palette": {
+  "#3003af": "glow",
+  "#4f1caf": "glow",
+  "#6d5d99": "glow",
+  "#6d6052": "frame",
+  "#7a6d59": "frame",
+  "#7f3da0": "glow",
+  "#8c7d62": "frame"
+ }
+}

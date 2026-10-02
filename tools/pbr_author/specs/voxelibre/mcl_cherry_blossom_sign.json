@@ -1,0 +1,75 @@
+{
+ "class": "wood",
+ "materials": {
+  "board": {
+   "mode": "flat",
+   "base": 0.6,
+   "span": 0,
+   "smooth": 0.3
+  },
+  "post": {
+   "mode": "flat",
+   "base": 0.78,
+   "span": 0,
+   "smooth": 0.3
+  }
+ },
+ "palette": {
+  "#302225": "board",
+  "#39282b": "board",
+  "#432e2f": "board",
+  "#4f3434": "board",
+  "#5f3d3b": "board",
+  "#9f6a67": "board",
+  "#a86f6c": "board",
+  "#ba7b76": "board",
+  "#d08681": "board",
+  "#e68f83": "board",
+  "#f79787": "board",
+  "#ffa692": "board"
+ },
+ "grid": [
+  "..BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB..............",
+  "..BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB..............",
+  "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB............",
+  "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB............",
+  "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB............",
+  "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB............",
+  "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB............",
+  "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB............",
+  "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB............",
+  "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB............",
+  "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB............",
+  "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB............",
+  "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB............",
+  "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB............",
+  "..PPPP..............PPPP........................................",
+  "..PPPP..............PPPP........................................",
+  "PPPPPPPP............PPPP........................................",
+  "PPPPPPPP............PPPP........................................",
+  "PPPPPPPP............PPPP........................................",
+  "PPPPPPPP............PPPP........................................",
+  "PPPPPPPP............PPPP........................................",
+  "PPPPPPPP............PPPP........................................",
+  "PPPPPPPP............PPPP........................................",
+  "PPPPPPPP............PPPP........................................",
+  "PPPPPPPP............PPPP........................................",
+  "PPPPPPPP............PPPP........................................",
+  "PPPPPPPPPPPPPPPPPPPP..PPPPPPPPPPPPPPPP..........................",
+  "PPPPPPPPPPPPPPPPPPPP..PPPPPPPPPPPPPPPP..........................",
+  "PPPPPPPP........................................................",
+  "PPPPPPPP........................................................",
+  "................................................................",
+  "................................................................"
+ ],
+ "legend": {
+  "B": {
+   "material": "board",
+   "h": 0.6
+  },
+  "P": {
+   "material": "post",
+   "h": 0.78
+  }
+ }
+}

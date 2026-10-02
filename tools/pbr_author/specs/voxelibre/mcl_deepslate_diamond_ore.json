@@ -1,0 +1,11 @@
+{
+ "class": "stone",
+ "materials": {
+  "stone": {"mode": "shade", "base": 0.25, "span": 0.5, "joints": false},
+  "diamond": {"mode": "shade", "base": 0.8, "span": 0.2, "detail": 0.3, "smooth": 0.85, "smooth_spread": 0.05, "f0": 0.17}
+ },
+ "palette": {
+  "#476c91": "diamond", "#4f81ad": "diamond", "#54c1e5": "diamond", "#5698c4": "diamond",
+  "#57acd6": "diamond", "#5ed7f2": "diamond", "#8af1fc": "diamond"
+ }
+}

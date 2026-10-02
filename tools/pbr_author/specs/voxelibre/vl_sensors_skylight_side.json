@@ -1,0 +1,49 @@
+{
+ "class": "wood",
+ "materials": {
+  "base": {
+   "mode": "flat",
+   "base": 0.4,
+   "span": 0,
+   "smooth": 0.3,
+   "micro": 0.03
+  },
+  "rib": {
+   "mode": "flat",
+   "base": 0.7,
+   "span": 0,
+   "smooth": 0.35
+  }
+ },
+ "palette": {
+  "#0d0a08": "base",
+  "#0e0a08": "base",
+  "#0f0a08": "base",
+  "#100b09": "base",
+  "#100c09": "base",
+  "#110c0a": "base",
+  "#120c0a": "base",
+  "#120d0a": "base",
+  "#120d0b": "base",
+  "#130e0b": "base",
+  "#140e0b": "base",
+  "#140e0c": "base",
+  "#150f0c": "base",
+  "#160f0c": "base",
+  "#16100d": "base",
+  "#17100d": "base",
+  "#17110d": "base",
+  "#18110d": "base",
+  "#18110e": "base",
+  "#18120e": "base",
+  "#19120f": "base",
+  "#1a120f": "base",
+  "#1d1411": "base",
+  "#211713": "base",
+  "#231814": "base",
+  "#251915": "rib",
+  "#271b16": "rib",
+  "#271b17": "rib",
+  "#2b1e19": "rib"
+ }
+}

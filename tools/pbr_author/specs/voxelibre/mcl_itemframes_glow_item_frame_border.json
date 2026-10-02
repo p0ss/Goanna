@@ -1,0 +1,33 @@
+{
+ "class": "wood",
+ "materials": {
+  "wood": {
+   "mode": "parts",
+   "base": 0.6,
+   "span": 0.0,
+   "smooth": 0.35
+  },
+  "glow": {
+   "mode": "shade",
+   "base": 0.35,
+   "span": 0.3,
+   "joints": false,
+   "smooth": 0.6,
+   "emission": 0.8,
+   "emission_shade": true
+  }
+ },
+ "palette": {
+  "#8d6e54": "wood",
+  "#92735b": "wood",
+  "#9b7d5e": "wood",
+  "#aa8668": "wood",
+  "#b18f6e": "wood",
+  "#b55b2b": "glow",
+  "#c47035": "glow",
+  "#d3873b": "glow",
+  "#e09e47": "glow",
+  "#e5b960": "glow",
+  "#f2d07b": "glow"
+ }
+}

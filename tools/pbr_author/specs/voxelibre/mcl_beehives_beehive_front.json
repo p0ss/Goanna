@@ -1,0 +1,106 @@
+{
+ "class": "wood",
+ "materials": {
+  "plank": {
+   "mode": "shade",
+   "base": 0.5,
+   "span": 0.1,
+   "joints": false,
+   "smooth": 0.3
+  },
+  "beam": {
+   "mode": "flat",
+   "base": 0.82,
+   "span": 0,
+   "smooth": 0.35,
+   "micro": 0
+  },
+  "gap": {
+   "mode": "flat",
+   "base": 0.18,
+   "span": 0,
+   "smooth": 0.2,
+   "micro": 0
+  },
+  "nail": {
+   "mode": "flat",
+   "base": 0.8,
+   "span": 0,
+   "metal": true,
+   "smooth": 0.55,
+   "micro": 0
+  },
+  "honey": {
+   "mode": "shade",
+   "base": 0.68,
+   "span": 0.12,
+   "joints": false,
+   "smooth": 0.8,
+   "sss": 40
+  }
+ },
+ "palette": {
+  "#4f5a5c": "nail",
+  "#54342c": "plank",
+  "#613d32": "plank",
+  "#6a4335": "plank",
+  "#744a3a": "plank",
+  "#7b513d": "plank",
+  "#7e5440": "plank",
+  "#855c47": "plank",
+  "#8c644b": "plank",
+  "#90694f": "plank",
+  "#967255": "plank",
+  "#997555": "plank",
+  "#a17e57": "plank",
+  "#a88559": "plank"
+ },
+ "grid": [
+  "FFFFFFFFFFFFFFFF",
+  "FFFFFFFFFFFFFFFF",
+  "FGGGGGGGGGGGGGGF",
+  "FaaaaaaaaaaaaaaF",
+  "FaaaaaaaaaaaaaaF",
+  "F.aaaaaaaaaaaa.F",
+  "FGGGGGGGGGGGGGGF",
+  "FbbbbbbbbbbbbbbF",
+  "FbbbbbbbbbbbbbbF",
+  "FGGGGGGGGGGGGGGF",
+  "FccccccccccccccF",
+  "FccccccccccccccF",
+  "FGGGGGGGGGGGGGGF",
+  "F.dddddddddddd.F",
+  "FddddddddddddddF",
+  "FFFFFFFFFFFFFFFF"
+ ],
+ "legend": {
+  "F": {
+   "material": "beam",
+   "h": 0.82
+  },
+  "G": {
+   "material": "gap",
+   "h": 0.12
+  },
+  "a": {
+   "material": "plank",
+   "h": 0.5
+  },
+  "b": {
+   "material": "plank",
+   "h": 0.54
+  },
+  "c": {
+   "material": "plank",
+   "h": 0.5
+  },
+  "d": {
+   "material": "plank",
+   "h": 0.54
+  },
+  "e": {
+   "material": "plank",
+   "h": 0.5
+  }
+ }
+}

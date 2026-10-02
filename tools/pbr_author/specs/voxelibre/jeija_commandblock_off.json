@@ -1,0 +1,38 @@
+{
+ "class": "metal",
+ "materials": {
+  "shell": {
+   "mode": "flat",
+   "base": 0.7,
+   "span": 0,
+   "smooth": 0.35
+  },
+  "panel": {
+   "mode": "flat",
+   "base": 0.28,
+   "span": 0,
+   "smooth": 0.3,
+   "micro": 0.03
+  },
+  "gold": {
+   "mode": "flat",
+   "base": 0.9,
+   "span": 0,
+   "metal": true,
+   "smooth": 0.72
+  }
+ },
+ "palette": {
+  "#292b3a": "panel",
+  "#333144": "panel",
+  "#6b6161": "shell",
+  "#706c66": "shell",
+  "#7e7471": "shell",
+  "#87807c": "shell",
+  "#a59790": "shell",
+  "#baaba5": "shell",
+  "#c9bcb9": "shell",
+  "#cc873f": "gold",
+  "#d6a64c": "gold"
+ }
+}

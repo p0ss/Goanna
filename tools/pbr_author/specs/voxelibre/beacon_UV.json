@@ -1,0 +1,21 @@
+{
+ "class": "glass",
+ "materials": {
+  "frame": {"mode": "flat", "base": 0.15, "span": 0},
+  "glass": {"mode": "shade", "base": 0.5, "span": 0.4, "joints": false, "smooth": 0.85}
+ },
+ "palette": {
+  "#231933": "frame",
+  "#2f2441": "frame",
+  "#5fafd8": "glass",
+  "#60c7f8": "glass",
+  "#72d2ff": "glass",
+  "#80d7ff": "glass",
+  "#98deff": "glass",
+  "#a7d9ed": "glass",
+  "#abe4ff": "glass",
+  "#c5edff": "glass",
+  "#e4f7ff": "glass",
+  "#ffffff": "glass"
+ }
+}

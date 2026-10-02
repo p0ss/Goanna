@@ -1,0 +1,22 @@
+{
+ "class": "stone",
+ "materials": {
+  "stone": {
+   "mode": "shade",
+   "base": 0.35,
+   "span": 0.5
+  },
+  "indicator": {
+   "mode": "flat",
+   "base": 0.85,
+   "span": 0,
+   "smooth": 0.3,
+   "emission": 0.8,
+   "emission_shade": false
+  }
+ },
+ "palette": {
+  "#661616": "indicator",
+  "#8e2525": "indicator"
+ }
+}

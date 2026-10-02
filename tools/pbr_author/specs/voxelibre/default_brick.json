@@ -1,0 +1,11 @@
+{
+ "class": "stone",
+ "materials": {
+  "brick": {"mode": "shade", "base": 0.55, "span": 0.4},
+  "mortar": {"mode": "flat", "base": 0.15, "span": 0}
+ },
+ "palette": {
+  "#6d3631": "brick", "#7f3f35": "brick", "#914738": "brick", "#a04d3d": "brick",
+  "#856f65": "mortar", "#978376": "mortar", "#a28f82": "mortar"
+ }
+}

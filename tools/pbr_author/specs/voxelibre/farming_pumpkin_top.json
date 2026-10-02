@@ -1,0 +1,20 @@
+{
+ "materials": {
+  "rind": {
+   "mode": "shade",
+   "base": 0.35,
+   "span": 0.5
+  },
+  "stem": {
+   "mode": "shade",
+   "base": 0.75,
+   "span": 0.2,
+   "joints": false
+  }
+ },
+ "palette": {
+  "#443222": "stem",
+  "#5b442c": "stem",
+  "#7a5b3b": "stem"
+ }
+}

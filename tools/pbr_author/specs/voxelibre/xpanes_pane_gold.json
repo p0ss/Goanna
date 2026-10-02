@@ -1,0 +1,19 @@
+{
+ "class": "metal",
+ "materials": {
+  "gold": {
+   "mode": "flat",
+   "base": 0.85,
+   "span": 0,
+   "metal": true,
+   "smooth": 0.72
+  }
+ },
+ "palette": {
+  "#875612": "gold",
+  "#ba8c2a": "gold",
+  "#d4a735": "gold",
+  "#eac162": "gold",
+  "#ffd884": "gold"
+ }
+}

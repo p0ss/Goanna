@@ -1,0 +1,11 @@
+{
+ "class": "stone",
+ "materials": {
+  "stone": {"mode": "shade", "base": 0.35, "span": 0.55},
+  "wood": {"mode": "shade", "base": 0.3, "span": 0.5}
+ },
+ "palette": {
+  "#352a21": "wood",
+  "#46372b": "wood"
+ }
+}

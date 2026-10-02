@@ -1,0 +1,10 @@
+{
+ "materials": {
+  "face": {
+   "mode": "shade",
+   "base": 0.55,
+   "span": 0.25,
+   "joints": false
+  }
+ }
+}

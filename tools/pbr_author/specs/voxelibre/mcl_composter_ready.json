@@ -1,0 +1,49 @@
+{
+ "class": "soil",
+ "materials": {
+  "compost": {
+   "mode": "shade",
+   "base": 0.3,
+   "span": 0.3
+  },
+  "bonemeal": {
+   "mode": "shade",
+   "base": 0.62,
+   "span": 0.35,
+   "joints": false
+  }
+ },
+ "palette": {
+  "#4e3c15": "compost",
+  "#4f3c16": "compost",
+  "#4f3d16": "compost",
+  "#503d16": "compost",
+  "#513c16": "compost",
+  "#513d16": "compost",
+  "#513f16": "compost",
+  "#523f18": "compost",
+  "#533f19": "compost",
+  "#544019": "compost",
+  "#55441a": "compost",
+  "#563f19": "compost",
+  "#56451a": "compost",
+  "#57431b": "compost",
+  "#57451b": "compost",
+  "#58441c": "compost",
+  "#5a481d": "compost",
+  "#5b481e": "compost",
+  "#5c481e": "compost",
+  "#5e431d": "compost",
+  "#5e441e": "compost",
+  "#654c22": "compost",
+  "#664d23": "compost",
+  "#786947": "bonemeal",
+  "#7c6b4a": "bonemeal",
+  "#7d6c4a": "bonemeal",
+  "#7f6e4b": "bonemeal",
+  "#846e4c": "bonemeal",
+  "#e8d4c0": "bonemeal",
+  "#ebdbc6": "bonemeal",
+  "#efe5d2": "bonemeal"
+ }
+}

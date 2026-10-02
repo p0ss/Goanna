@@ -1,0 +1,29 @@
+{
+ "class": "cloth",
+ "materials": {
+  "skin": {
+   "mode": "soft",
+   "base": 0.5
+  },
+  "glow": {
+   "mode": "flat",
+   "base": 0.6,
+   "span": 0,
+   "smooth": 0.4,
+   "emission": 0.8,
+   "micro": 0
+  }
+ },
+ "palette": {
+  "#7e9e95": "skin",
+  "#9fc8c8": "skin",
+  "#a3ccc1": "skin",
+  "#b8c8c4": "skin",
+  "#b8e7da": "skin",
+  "#ff5d00": "glow",
+  "#ff8700": "glow",
+  "#ffbb00": "glow",
+  "#ffdf7f": "glow",
+  "#ffe5b8": "glow"
+ }
+}

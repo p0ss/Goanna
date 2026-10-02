@@ -1,0 +1,14 @@
+{
+ "class": "stone",
+ "materials": {
+  "glaze": {
+   "mode": "shade",
+   "base": 0.5,
+   "span": 0.16,
+   "levels": 2,
+   "detail": 0.2,
+   "joints": false,
+   "smooth": 0.65
+  }
+ }
+}

@@ -1,0 +1,33 @@
+{
+ "materials": {
+  "bark": {
+   "mode": "shade",
+   "base": 0.3,
+   "span": 0.45,
+   "joints": false
+  },
+  "growth": {
+   "mode": "shade",
+   "base": 0.78,
+   "span": 0.15,
+   "smooth": 0.35
+  }
+ },
+ "palette": {
+  "#362e27": "bark",
+  "#3e362f": "bark",
+  "#494038": "bark",
+  "#53463b": "bark",
+  "#5e5044": "bark",
+  "#651c32": "growth",
+  "#671c32": "growth",
+  "#691c31": "growth",
+  "#6b5b4f": "bark",
+  "#726052": "bark",
+  "#9c2235": "growth",
+  "#9d2235": "growth",
+  "#9e2435": "growth",
+  "#9e2636": "growth"
+ },
+ "class": "wood"
+}

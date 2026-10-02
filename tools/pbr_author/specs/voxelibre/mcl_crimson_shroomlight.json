@@ -1,0 +1,5 @@
+{
+ "materials": {
+  "glow": {"mode": "shade", "base": 0.35, "span": 0.65, "emission": 0.75, "emission_shade": true}
+ }
+}

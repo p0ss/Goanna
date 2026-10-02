@@ -1,0 +1,45 @@
+{
+ "class": "cobble",
+ "materials": {
+  "cobble": {
+   "mode": "parts",
+   "base": 0.45,
+   "span": 0.2,
+   "detail": 0.3,
+   "smooth": 0.3
+  },
+  "gap": {
+   "mode": "flat",
+   "base": 0.12,
+   "span": 0,
+   "smooth": 0.2,
+   "micro": 0
+  },
+  "stick": {
+   "mode": "flat",
+   "base": 0.8,
+   "span": 0,
+   "smooth": 0.3
+  }
+ },
+ "palette": {
+  "#3c3b3b": "gap",
+  "#4a3c31": "stick",
+  "#4d413a": "stick",
+  "#514035": "stick",
+  "#575757": "cobble",
+  "#594e47": "cobble",
+  "#5d493c": "stick",
+  "#626262": "cobble",
+  "#675244": "stick",
+  "#6b6161": "cobble",
+  "#706c66": "cobble",
+  "#715a47": "stick",
+  "#78604a": "stick",
+  "#7d7d7d": "cobble",
+  "#7e7471": "cobble",
+  "#87807c": "cobble",
+  "#888888": "cobble",
+  "#938983": "cobble"
+ }
+}

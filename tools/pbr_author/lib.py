@@ -96,6 +96,14 @@ GAMES = {
         "pack": REPO / "pbr_packs/minetest_game/textures",
         "install": REPO / "pbr_packs/minetest_game/textures",
     },
+    # VoxeLibre installs as gameid mineclone2. Most of its art is
+    # Mineclonia's, byte for byte, so its specs and classes start as
+    # Mineclonia's and the frozen classes file is what class lookups read.
+    "voxelibre": {
+        "art": GAMES_DIR / "mineclone2",
+        "pack": REPO / "pbr_packs/voxelibre/textures",
+        "install": REPO / "pbr_packs/voxelibre/textures",
+    },
 }
 DEFAULT_GAME = "mineclonia"
 GAME_TEXTURES = GAMES[DEFAULT_GAME]["art"]

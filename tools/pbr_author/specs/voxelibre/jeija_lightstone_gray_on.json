@@ -1,0 +1,34 @@
+{
+ "class": "metal",
+ "materials": {
+  "frame": {
+   "mode": "shade",
+   "base": 0.15,
+   "span": 0.15,
+   "metal": false,
+   "smooth": 0.4
+  },
+  "bulb": {
+   "mode": "shade",
+   "base": 0.5,
+   "span": 0.3,
+   "joints": false,
+   "emission": 0.75,
+   "emission_shade": true
+  }
+ },
+ "palette": {
+  "#191919": "frame",
+  "#232323": "frame",
+  "#2c2c2c": "frame",
+  "#353535": "frame",
+  "#3d3d3d": "frame",
+  "#892c17": "bulb",
+  "#a83a1c": "bulb",
+  "#c15320": "bulb",
+  "#d86c2d": "bulb",
+  "#ef8437": "bulb",
+  "#f7ac42": "bulb",
+  "#ffe8bc": "bulb"
+ }
+}

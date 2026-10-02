@@ -1,0 +1,26 @@
+{
+ "materials": {
+  "bark": {
+   "mode": "flat",
+   "base": 0.55,
+   "span": 0
+  },
+  "face": {
+   "mode": "shade",
+   "base": 0.55,
+   "span": 0.2,
+   "joints": false
+  }
+ },
+ "palette": {
+  "#302225": "bark",
+  "#39282b": "bark",
+  "#432e2f": "bark",
+  "#a86f6c": "face",
+  "#ba7b76": "face",
+  "#d08681": "face",
+  "#e68f83": "face",
+  "#ffa692": "face",
+  "#ffb5a4": "face"
+ }
+}

@@ -1,0 +1,42 @@
+{
+ "class": "stone",
+ "materials": {
+  "wood": {
+   "mode": "shade",
+   "base": 0.25,
+   "span": 0.35,
+   "smooth": 0.25
+  },
+  "wheel": {
+   "mode": "shade",
+   "base": 0.5,
+   "span": 0.35
+  },
+  "frame": {
+   "mode": "flat",
+   "base": 0.55,
+   "span": 0
+  }
+ },
+ "palette": {
+  "#ffffff": "frame",
+  "#c3c3c3": "wheel",
+  "#b2b2b2": "wheel",
+  "#a6a6a6": "wheel",
+  "#adadad": "wheel",
+  "#9e9e9e": "wheel",
+  "#594b3f": "wood",
+  "#d0d0d0": "wheel",
+  "#6e6051": "wood",
+  "#645648": "wood",
+  "#4e4236": "wood",
+  "#493f35": "wood",
+  "#41372e": "wood",
+  "#504439": "wood",
+  "#463c31": "wood",
+  "#483d33": "wood",
+  "#594e42": "wood",
+  "#635749": "wood",
+  "#5a4e41": "wood"
+ }
+}

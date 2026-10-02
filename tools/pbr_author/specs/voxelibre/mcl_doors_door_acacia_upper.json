@@ -1,0 +1,9 @@
+{
+ "class": "wood",
+ "materials": {
+  "rail": {"mode": "flat", "base": 0.8, "span": 0, "micro": 0.04},
+  "wood": {"mode": "shade", "base": 0.45, "span": 0.35, "levels": 3, "detail": 0.5}
+ },
+ "palette": {"#b78661": "rail", "#a57552": "rail", "#996746": "wood",
+             "#965b3d": "wood", "#844c32": "wood", "#75422b": "wood", "#617000": "wood"}
+}

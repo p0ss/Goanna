@@ -1,0 +1,35 @@
+{
+ "materials": {
+  "rind": {
+   "mode": "shade",
+   "base": 0.35,
+   "span": 0.5
+  },
+  "glow": {
+   "mode": "shade",
+   "base": 0.55,
+   "span": 0.4,
+   "detail": 0.3,
+   "joints": false,
+   "emission": 0.8,
+   "emission_shade": true
+  }
+ },
+ "palette": {
+  "#903e28": "rind",
+  "#a34828": "rind",
+  "#b35526": "rind",
+  "#b9602c": "rind",
+  "#c66d24": "rind",
+  "#d27f2d": "rind",
+  "#d69037": "rind",
+  "#962215": "glow",
+  "#bc321a": "glow",
+  "#c1420f": "glow",
+  "#d8550f": "glow",
+  "#d85711": "glow",
+  "#f29f46": "glow",
+  "#f3c15b": "glow",
+  "#ffdc84": "glow"
+ }
+}
