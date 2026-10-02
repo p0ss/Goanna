@@ -936,6 +936,25 @@ minutes after the tag, so the whole run sits in this section.
   verified: any real controller, a Steam Deck, or a server seeing analogue
   movement. `docs/controller.md`.
 
+- Authored mob and player skins, 2026-10-01 to 2026-10-02. 61 Mineclonia
+  skins (farm animals, undead, creeper, spiders, enderman, iron golem and
+  its cracks, every villager layer and badge, the wandering trader, the
+  default player's parts) get hand authored `_n` and `_s` maps built by
+  `tools/pbr_author/atlas.py`, installed as maps only (f2038b00). The
+  client gained what they needed: a UV frame for entity normal maps,
+  overlay stacks composited layer by layer, inward vertex normals
+  replaced, node light on every entity mesh, double sided players through
+  the entity shader, and parallax occlusion on entities with a per face
+  height lift and a wall refinement (`docs/materials.md`). Seen in play by
+  the owner on a local Start Game Mineclonia world, Godot 4.5.1, the
+  bundled server core 5.17.0-goanna-c0e6812b1, RTX 3090, medium profile:
+  a cow read as authored (proud muzzle, sunk nostrils, bone horns). The
+  maps reached the client through the local world's `goanna_pbr` worldmod
+  from a development profile; the launcher's `mineclonia_authored` texture
+  pack carries no mob maps. Not verified in play: the other mobs, players,
+  a remote server, the hair highlight (`mat_hair`, off), and the Low
+  profile, where entity parallax is off.
+
 ## Log since v0.6.1-alpha (2026-09-02), covering v0.7.0-alpha and v0.8.0-alpha
 
 The 0.5 and 0.6 series were released without a section here. What they
