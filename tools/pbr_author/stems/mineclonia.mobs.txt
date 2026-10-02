@@ -37,7 +37,7 @@ mobs_mc_spider_eyes mobs_mc_spider.b3d -1
 mobs_mc_enderman mobs_mc_enderman.b3d
 mobs_mc_enderman_eyes mobs_mc_enderman.b3d
 # Farm animals. The saddle and the sheep's fleece are separate meshes or
-# brushes of their models; the mooshrooms' mushrooms are not authored yet.
+# brushes of their models.
 mobs_mc_cow mobs_mc_cow.b3d
 mobs_mc_mooshroom mobs_mc_cow.b3d
 mobs_mc_mooshroom_brown mobs_mc_cow.b3d
@@ -240,3 +240,50 @@ mobs_mc_witch mobs_mc_witch.b3d
 mobs_mc_ravager mobs_mc_ravager.b3d
 mobs_mc_vex mobs_mc_vex.b3d -1
 mobs_mc_vex_charging mobs_mc_vex.b3d -1
+# Wild and water mobs. Specs are written by tools/pbr_author/mob_families_wild.py.
+mobs_mc_rabbit_brown mobs_mc_rabbit.b3d
+mobs_mc_rabbit_gold mobs_mc_rabbit.b3d
+mobs_mc_rabbit_white mobs_mc_rabbit.b3d
+mobs_mc_rabbit_white_splotched mobs_mc_rabbit.b3d
+mobs_mc_rabbit_salt mobs_mc_rabbit.b3d
+mobs_mc_rabbit_black mobs_mc_rabbit.b3d
+mobs_mc_rabbit_toast mobs_mc_rabbit.b3d
+mobs_mc_rabbit_caerbannog mobs_mc_rabbit.b3d
+mobs_mc_parrot_blue mobs_mc_parrot.b3d -1
+mobs_mc_parrot_green mobs_mc_parrot.b3d -1
+mobs_mc_parrot_grey mobs_mc_parrot.b3d -1
+mobs_mc_parrot_red_blue mobs_mc_parrot.b3d -1
+mobs_mc_parrot_yellow_blue mobs_mc_parrot.b3d -1
+mobs_mc_polarbear mobs_mc_polarbear.b3d -1
+mobs_mc_bat mobs_mc_bat.b3d
+mobs_mc_slime mobs_mc_slime.b3d
+mobs_mc_snowman mobs_mc_snowman.b3d
+mobs_mc_mushroom_red mobs_mc_cow.b3d 1
+mobs_mc_mushroom_brown mobs_mc_cow.b3d 1
+mobs_mc_squid mobs_mc_squid.b3d -1
+extra_mobs_glow_squid mobs_mc_squid.b3d -1
+mobs_mc_axolotl_brown mobs_mc_axolotl.b3d
+mobs_mc_axolotl_yellow mobs_mc_axolotl.b3d
+mobs_mc_axolotl_green mobs_mc_axolotl.b3d
+mobs_mc_axolotl_pink mobs_mc_axolotl.b3d
+mobs_mc_axolotl_black mobs_mc_axolotl.b3d
+mobs_mc_axolotl_purple mobs_mc_axolotl.b3d
+mobs_mc_axolotl_white mobs_mc_axolotl.b3d
+extra_mobs_dolphin extra_mobs_dolphin.b3d -1
+extra_mobs_cod extra_mobs_cod.b3d -1
+extra_mobs_salmon extra_mobs_salmon.b3d
+mobs_mc_pufferfish mobs_mc_pufferfish_big.b3d
+extra_mobs_tropical_fish_a extra_mobs_tropical_fish_a.b3d
+extra_mobs_tropical_fish_pattern_a_1 extra_mobs_tropical_fish_a.b3d
+extra_mobs_tropical_fish_pattern_a_2 extra_mobs_tropical_fish_a.b3d
+extra_mobs_tropical_fish_pattern_a_3 extra_mobs_tropical_fish_a.b3d
+extra_mobs_tropical_fish_pattern_a_4 extra_mobs_tropical_fish_a.b3d
+extra_mobs_tropical_fish_pattern_a_5 extra_mobs_tropical_fish_a.b3d
+extra_mobs_tropical_fish_pattern_a_6 extra_mobs_tropical_fish_a.b3d
+extra_mobs_tropical_fish_b extra_mobs_tropical_fish_b.b3d
+extra_mobs_tropical_fish_pattern_b_1 extra_mobs_tropical_fish_b.b3d
+extra_mobs_tropical_fish_pattern_b_2 extra_mobs_tropical_fish_b.b3d
+extra_mobs_tropical_fish_pattern_b_3 extra_mobs_tropical_fish_b.b3d
+extra_mobs_tropical_fish_pattern_b_4 extra_mobs_tropical_fish_b.b3d
+extra_mobs_tropical_fish_pattern_b_5 extra_mobs_tropical_fish_b.b3d
+extra_mobs_tropical_fish_pattern_b_6 extra_mobs_tropical_fish_b.b3d
