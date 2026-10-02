@@ -83,6 +83,31 @@ chmod +x "$PKG/Goanna/$EXE" 2>/dev/null || true
 # (project/updater.gd). A source checkout has none and never updates itself.
 printf '{"version": "%s", "platform": "%s"}\n' "$VERSION" "$PLATFORM" > "$PKG/Goanna/version.json"
 
+# The launcher. Godot's own wrapper only runs the binary, so its log went to
+# ~/.local/share/godot/app_userdata/Goanna, hidden on a Steam Deck or a
+# child's account (owner, 2026-10-03). This one writes the client's and the
+# local server's logs to a logs folder beside the package whenever that is
+# writable (a USB drive, an unzipped folder in Downloads), keeps the last
+# run's beside them, and falls back to Godot's default otherwise.
+if [ "$PLATFORM" = "linux" ]; then
+    cat > "$PKG/Goanna/Goanna.sh" <<'LAUNCHER'
+#!/bin/sh
+printf '\033c\033]0;%s\a' Goanna
+base_path="$(dirname "$(realpath "$0")")"
+logs="$(dirname "$base_path")/logs"
+if mkdir -p "$logs" 2>/dev/null && [ -w "$logs" ]; then
+    logs="$(realpath "$logs")"
+    for f in goanna.log goanna_singleplayer.log; do
+        [ -f "$logs/$f" ] && mv -f "$logs/$f" "$logs/previous-$f"
+    done
+    export GOANNA_LOG_DIR="$logs"
+    exec "$base_path/Goanna.x86_64" --log-file "$logs/goanna.log" "$@"
+fi
+exec "$base_path/Goanna.x86_64" "$@"
+LAUNCHER
+    chmod +x "$PKG/Goanna/Goanna.sh"
+fi
+
 # The Luanti server Get ready to play sets up on a Linux machine with no
 # Luanti (tools/build-luanti-server.sh; menu.gd, local_server.gd
 # bundled_server). Beside the program, where bundled_server looks. Required:

@@ -1338,6 +1338,13 @@ func start_config(options: Dictionary) -> String:
 	if world_options_error != "":
 		return world_options_error
 	log_path = _data_dir.path_join("goanna_singleplayer.log")
+	# A portable copy (the launcher sets GOANNA_LOG_DIR when the folder beside
+	# the program is writable, a USB drive for instance) keeps the server's
+	# log there, next to the client's, where a parent can find it without a
+	# terminal. The data folder is hidden on a Steam Deck or a child's account.
+	var visible_logs := OS.get_environment("GOANNA_LOG_DIR")
+	if visible_logs != "" and DirAccess.dir_exists_absolute(visible_logs):
+		log_path = visible_logs.path_join("goanna_singleplayer.log")
 	# A port nobody holds. It used to be a fixed one per world name, and when
 	# something already held it (often a server left behind by an earlier
 	# run) the new server died a moment after start up, after Goanna had
