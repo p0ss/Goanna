@@ -1,0 +1,12 @@
+{
+ "materials": {
+  "twig": {
+   "mode": "parts",
+   "base": 0.3,
+   "span": 0.5,
+   "detail": 0.5
+  }
+ },
+ "sss": 25,
+ "class": "leaves"
+}

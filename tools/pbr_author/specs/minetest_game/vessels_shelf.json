@@ -1,0 +1,67 @@
+{
+ "class": "planks",
+ "materials": {
+  "frame": {
+   "mode": "flat",
+   "base": 0.9,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.3
+  },
+  "gap": {
+   "mode": "flat",
+   "base": 0.05,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.2
+  },
+  "vessel": {
+   "mode": "parts",
+   "base": 0.45,
+   "span": 0.2,
+   "smooth": 0.6
+  }
+ },
+ "palette": {
+  "#7d6136": "frame",
+  "#735a34": "frame",
+  "#6e542b": "frame",
+  "#85673a": "frame",
+  "#896a3c": "frame",
+  "#533f23": "frame",
+  "#170f08": "gap",
+  "#150e09": "gap",
+  "#1b120c": "gap",
+  "#110b06": "gap",
+  "#a1a1bd": "vessel",
+  "#afafc6": "vessel",
+  "#c4c4d6": "vessel",
+  "#625e68": "vessel",
+  "#5a5864": "vessel",
+  "#654d29": "frame",
+  "#0a0703": "gap",
+  "#1e140c": "gap",
+  "#6d542f": "frame",
+  "#7b7378": "vessel",
+  "#705e55": "vessel",
+  "#817679": "vessel",
+  "#442d1e": "gap",
+  "#b0afc7": "vessel",
+  "#857a7c": "vessel",
+  "#9b96a4": "vessel",
+  "#938c93": "vessel",
+  "#64534c": "vessel",
+  "#75696f": "vessel",
+  "#2d1d12": "gap",
+  "#5e4828": "frame",
+  "#584324": "frame",
+  "#75592d": "frame",
+  "#6e6a71": "vessel",
+  "#454040": "vessel",
+  "#b1b1c8": "vessel",
+  "#8f8282": "vessel",
+  "#5a4d48": "vessel",
+  "#3e2819": "gap",
+  "#5f422c": "frame"
+ }
+}

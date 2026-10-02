@@ -1,0 +1,41 @@
+{
+ "class": "leaves",
+ "materials": {
+  "leaf": {
+   "mode": "shade",
+   "base": 0.62,
+   "span": 0.3
+  },
+  "twig": {
+   "mode": "flat",
+   "base": 0.3,
+   "sss": 0
+  }
+ },
+ "palette": {
+  "#163800": "leaf",
+  "#223c00": "leaf",
+  "#286400": "leaf",
+  "#296400": "leaf",
+  "#296500": "leaf",
+  "#296600": "leaf",
+  "#32581d": "leaf",
+  "#335c00": "leaf",
+  "#34661e": "leaf",
+  "#3c6a02": "leaf",
+  "#3d6a02": "leaf",
+  "#3d6b02": "leaf",
+  "#3d6c02": "leaf",
+  "#504132": "twig",
+  "#599b34": "leaf",
+  "#599c35": "leaf",
+  "#5a9c35": "leaf",
+  "#5b9e35": "leaf",
+  "#5cb537": "leaf",
+  "#5db537": "leaf",
+  "#5eb737": "leaf",
+  "#7c7470": "twig",
+  "#91765b": "twig",
+  "#ded1c9": "twig"
+ }
+}

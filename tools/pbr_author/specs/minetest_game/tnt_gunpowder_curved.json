@@ -1,0 +1,12 @@
+{
+ "class": "sand",
+ "materials": {
+  "powder": {
+   "mode": "flat",
+   "base": 0.5,
+   "span": 0,
+   "micro": 0.06,
+   "smooth": 0.2
+  }
+ }
+}

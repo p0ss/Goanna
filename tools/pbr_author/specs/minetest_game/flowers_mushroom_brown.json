@@ -1,0 +1,32 @@
+{
+ "materials": {
+  "stalk": {
+   "mode": "shade",
+   "base": 0.25,
+   "span": 0.12,
+   "detail": 0.35,
+   "joints": false
+  },
+  "cap": {
+   "mode": "shade",
+   "base": 0.5,
+   "span": 0.3,
+   "detail": 0.35,
+   "joints": false
+  }
+ },
+ "palette": {
+  "#705650": "cap",
+  "#755b54": "cap",
+  "#6c5048": "cap",
+  "#60423a": "cap",
+  "#5c3f37": "cap",
+  "#533730": "cap",
+  "#a99996": "stalk",
+  "#8b7771": "stalk",
+  "#c2b6b3": "stalk",
+  "#a08e88": "stalk"
+ },
+ "class": "leaves",
+ "sss": 40
+}

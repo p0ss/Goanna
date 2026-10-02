@@ -1,0 +1,62 @@
+{
+ "class": "leaves",
+ "materials": {
+  "leaf": {
+   "mode": "shade",
+   "base": 0.65,
+   "span": 0.2,
+   "joints": false
+  },
+  "stem": {
+   "mode": "flat",
+   "base": 0.35,
+   "micro": 0.04,
+   "sss": 0
+  }
+ },
+ "palette": {
+  "#22180f": "stem",
+  "#281d13": "stem",
+  "#2c1f16": "stem",
+  "#33251a": "stem",
+  "#34261c": "stem",
+  "#37281f": "stem",
+  "#382c21": "stem",
+  "#3a2c21": "stem",
+  "#3e3023": "stem",
+  "#3f3322": "stem",
+  "#403523": "stem",
+  "#423723": "stem",
+  "#423724": "stem",
+  "#433625": "stem",
+  "#453926": "stem",
+  "#4a3e2b": "stem",
+  "#4b3f2c": "stem",
+  "#4e9426": "leaf",
+  "#51482d": "stem",
+  "#519024": "leaf",
+  "#54902b": "leaf",
+  "#55872b": "leaf",
+  "#55902c": "leaf",
+  "#559e2d": "leaf",
+  "#57912e": "leaf",
+  "#58892d": "leaf",
+  "#59902b": "leaf",
+  "#599f30": "leaf",
+  "#5d9431": "leaf",
+  "#5da035": "leaf",
+  "#5e5635": "stem",
+  "#659c3a": "leaf",
+  "#669838": "leaf",
+  "#69a73a": "leaf",
+  "#6aa73a": "leaf",
+  "#6ba337": "leaf",
+  "#6da538": "leaf",
+  "#6ea737": "leaf",
+  "#6fa739": "leaf",
+  "#70a73b": "leaf",
+  "#71a93b": "leaf",
+  "#74a93d": "leaf",
+  "#75aa3f": "leaf"
+ }
+}

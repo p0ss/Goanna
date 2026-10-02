@@ -1,0 +1,12 @@
+{
+  "materials": {
+    "ground": {
+      "mode": "shade",
+      "base": 0.4,
+      "span": 0.35,
+      "joints": true,
+      "joint": 0.2
+    }
+  },
+  "class": "sand"
+}

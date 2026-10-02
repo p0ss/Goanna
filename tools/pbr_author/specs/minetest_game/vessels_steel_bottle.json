@@ -1,0 +1,25 @@
+{
+ "class": "metal",
+ "materials": {
+  "steel": {
+   "mode": "flat",
+   "base": 0.5,
+   "span": 0,
+   "micro": 0,
+   "metal": true,
+   "smooth": 0.78
+  },
+  "cork": {
+   "mode": "flat",
+   "base": 0.65,
+   "span": 0,
+   "micro": 0,
+   "metal": false,
+   "smooth": 0.2
+  }
+ },
+ "palette": {
+  "#9b7559": "cork",
+  "#806249": "cork"
+ }
+}

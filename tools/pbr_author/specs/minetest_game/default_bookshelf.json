@@ -1,0 +1,149 @@
+{
+ "class": "planks",
+ "materials": {
+  "frame": {
+   "mode": "flat",
+   "base": 0.95,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.3
+  },
+  "interior": {
+   "mode": "flat",
+   "base": 0.05,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.2
+  },
+  "book_red": {
+   "mode": "parts",
+   "base": 0.5,
+   "span": 0.3,
+   "smooth": 0.3
+  },
+  "book_orange": {
+   "mode": "parts",
+   "base": 0.51,
+   "span": 0.3,
+   "smooth": 0.3
+  },
+  "book_yellow": {
+   "mode": "parts",
+   "base": 0.52,
+   "span": 0.3,
+   "smooth": 0.3
+  },
+  "book_green": {
+   "mode": "parts",
+   "base": 0.53,
+   "span": 0.3,
+   "smooth": 0.3
+  },
+  "book_blue": {
+   "mode": "parts",
+   "base": 0.54,
+   "span": 0.3,
+   "smooth": 0.3
+  },
+  "book_purple": {
+   "mode": "parts",
+   "base": 0.55,
+   "span": 0.3,
+   "smooth": 0.3
+  },
+  "book_grey": {
+   "mode": "parts",
+   "base": 0.56,
+   "span": 0.3,
+   "smooth": 0.3
+  }
+ },
+ "palette": {
+  "#7d6136": "book_orange",
+  "#735a34": "book_orange",
+  "#6e542b": "book_orange",
+  "#85673a": "book_orange",
+  "#896a3c": "book_orange",
+  "#523f23": "book_orange",
+  "#1f1e1a": "interior",
+  "#22201b": "interior",
+  "#5c3566": "book_purple",
+  "#351f3b": "book_purple",
+  "#30291c": "interior",
+  "#825203": "book_orange",
+  "#2a251a": "interior",
+  "#6e4b77": "book_purple",
+  "#3a2241": "book_purple",
+  "#322b1f": "interior",
+  "#362e20": "interior",
+  "#3b3222": "interior",
+  "#68502a": "book_orange",
+  "#5f0000": "book_red",
+  "#8f1717": "book_red",
+  "#9b6c1f": "book_orange",
+  "#132c4f": "book_blue",
+  "#4e9a06": "book_green",
+  "#61a521": "book_green",
+  "#355b12": "book_green",
+  "#6d542f": "book_orange",
+  "#680000": "book_red",
+  "#870000": "book_red",
+  "#2f486c": "book_blue",
+  "#2f5c04": "book_green",
+  "#336404": "book_green",
+  "#264b03": "book_green",
+  "#8f5a03": "book_orange",
+  "#153057": "book_blue",
+  "#efd300": "book_yellow",
+  "#c2c4be": "book_grey",
+  "#ddbe00": "book_yellow",
+  "#998c25": "book_yellow",
+  "#470000": "book_red",
+  "#5b0000": "book_red",
+  "#583701": "book_orange",
+  "#0c1d35": "book_blue",
+  "#7d7f79": "book_grey",
+  "#978725": "book_yellow",
+  "#7e731e": "book_yellow",
+  "#624b28": "book_orange",
+  "#5e4828": "book_orange",
+  "#584324": "book_orange",
+  "#75592d": "book_orange",
+  "#705730": "book_orange",
+  "#babdb6": "book_grey",
+  "#959892": "book_grey",
+  "#554123": "book_orange",
+  "#c4ad00": "book_yellow",
+  "#385e94": "book_blue",
+  "#9da09a": "book_grey",
+  "#ae1c1c": "book_red",
+  "#45711c": "book_green",
+  "#755a33": "book_orange",
+  "#b69c00": "book_yellow",
+  "#204a87": "book_blue",
+  "#7a6900": "book_yellow",
+  "#193201": "book_green",
+  "#375811": "book_green"
+ },
+ "grid": [
+  "FFFFFFFFFFFFFFFF",
+  "F..............F",
+  "F..............F",
+  "F..............F",
+  "F..............F",
+  "F..............F",
+  "F..............F",
+  "FFFFFFFFFFFFFFFF",
+  "FFFFFFFFFFFFFFFF",
+  "F..............F",
+  "F..............F",
+  "F..............F",
+  "F..............F",
+  "F..............F",
+  "F..............F",
+  "FFFFFFFFFFFFFFFF"
+ ],
+ "legend": {
+  "F": "frame"
+ }
+}

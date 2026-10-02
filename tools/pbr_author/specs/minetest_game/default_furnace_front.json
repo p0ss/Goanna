@@ -1,0 +1,27 @@
+{
+  "class": "stone",
+  "materials": {
+    "stone": {
+      "mode": "shade",
+      "base": 0.55,
+      "span": 0.25,
+      "levels": 3,
+      "detail": 0.3,
+      "joint": 0.45
+    },
+    "opening": {
+      "mode": "flat",
+      "base": 0.08,
+      "span": 0,
+      "micro": 0,
+      "smooth": 0.2
+    }
+  },
+  "palette": {
+    "#060302": "opening",
+    "#201e1d": "opening",
+    "#141211": "opening",
+    "#000000": "opening",
+    "#0d0b09": "opening"
+  }
+}

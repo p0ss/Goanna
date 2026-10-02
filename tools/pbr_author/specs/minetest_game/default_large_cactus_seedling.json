@@ -1,0 +1,36 @@
+{
+ "class": "leaves",
+ "materials": {
+  "flesh": {
+   "mode": "shade",
+   "base": 0.45,
+   "span": 0.3,
+   "smooth": 0.5
+  },
+  "spine": {
+   "mode": "flat",
+   "base": 0.85,
+   "sss": 0,
+   "smooth": 0.3
+  }
+ },
+ "palette": {
+  "#0e4000": "flesh",
+  "#104600": "flesh",
+  "#145200": "flesh",
+  "#154e00": "flesh",
+  "#155700": "flesh",
+  "#1a5800": "flesh",
+  "#1e5d00": "flesh",
+  "#206200": "flesh",
+  "#236800": "flesh",
+  "#266c00": "flesh",
+  "#277100": "flesh",
+  "#297300": "flesh",
+  "#2b7500": "flesh",
+  "#2c7800": "flesh",
+  "#2c7900": "flesh",
+  "#2e7c00": "flesh",
+  "#c7bcae": "spine"
+ }
+}

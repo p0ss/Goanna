@@ -1,0 +1,80 @@
+{
+ "class": "planks",
+ "materials": {
+  "wood": {
+   "mode": "flat",
+   "base": 0.72,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.3
+  },
+  "gap": {
+   "mode": "flat",
+   "base": 0.42,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.25
+  },
+  "cloth": {
+   "mode": "soft",
+   "base": 0.5,
+   "span": 0.1,
+   "smooth": 0.12
+  },
+  "pillow": {
+   "mode": "soft",
+   "base": 0.62,
+   "span": 0.08,
+   "smooth": 0.12
+  }
+ },
+ "palette": {
+  "#523f23": "gap",
+  "#564225": "gap",
+  "#574325": "gap",
+  "#a6814a": "wood",
+  "#a17d47": "wood",
+  "#806131": "wood",
+  "#7e6030": "wood",
+  "#84683c": "wood",
+  "#85693d": "wood",
+  "#84683b": "wood",
+  "#a37f49": "wood",
+  "#9e7a46": "wood",
+  "#644d2c": "wood",
+  "#806539": "wood",
+  "#d1d1d1": "pillow",
+  "#d8d8d8": "pillow",
+  "#c8c8c8": "pillow",
+  "#cfcfcf": "pillow",
+  "#e0e0e0": "pillow",
+  "#e2e2e2": "pillow",
+  "#cdcdcd": "pillow",
+  "#b2b2b2": "pillow",
+  "#d6d6d6": "pillow",
+  "#bfbfbf": "pillow",
+  "#c1c1c1": "pillow",
+  "#896b3d": "wood",
+  "#9f7d48": "wood",
+  "#a17e48": "wood",
+  "#a27f49": "wood",
+  "#85683c": "wood",
+  "#9f7e48": "wood",
+  "#83673b": "wood",
+  "#5f4828": "gap",
+  "#9f7b46": "wood",
+  "#a27e48": "wood",
+  "#806130": "wood",
+  "#816231": "wood",
+  "#9f7d47": "wood",
+  "#9b7844": "wood",
+  "#664e2c": "wood",
+  "#9b7845": "wood",
+  "#9f7d46": "wood",
+  "#816332": "wood",
+  "#a27f48": "wood",
+  "#876b3d": "wood",
+  "#7e6031": "wood"
+ },
+ "strength": 14
+}

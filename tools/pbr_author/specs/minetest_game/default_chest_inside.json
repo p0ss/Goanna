@@ -1,0 +1,23 @@
+{
+ "class": "planks",
+ "materials": {
+  "rim": {
+   "mode": "flat",
+   "base": 0.6,
+   "span": 0,
+   "micro": 0.06,
+   "smooth": 0.25
+  },
+  "hollow": {
+   "mode": "flat",
+   "base": 0.08,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.2
+  }
+ },
+ "palette": {
+  "#3f2f20": "rim",
+  "#000000": "hollow"
+ }
+}

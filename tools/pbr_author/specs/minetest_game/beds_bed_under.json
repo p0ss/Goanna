@@ -1,0 +1,53 @@
+{
+ "class": "planks",
+ "materials": {
+  "wood": {
+   "mode": "flat",
+   "base": 0.72,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.3
+  },
+  "gap": {
+   "mode": "flat",
+   "base": 0.42,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.25
+  },
+  "cloth": {
+   "mode": "soft",
+   "base": 0.5,
+   "span": 0.1,
+   "smooth": 0.12
+  },
+  "pillow": {
+   "mode": "soft",
+   "base": 0.62,
+   "span": 0.08,
+   "smooth": 0.12
+  }
+ },
+ "palette": {
+  "#85693d": "wood",
+  "#85693c": "wood",
+  "#816333": "wood",
+  "#a17e48": "wood",
+  "#a6814a": "wood",
+  "#876b3d": "wood",
+  "#574325": "gap",
+  "#523f23": "gap",
+  "#7e6030": "wood",
+  "#9d7945": "wood",
+  "#896b3d": "wood",
+  "#9f7d47": "wood",
+  "#816332": "wood",
+  "#7e6031": "wood",
+  "#84683b": "wood",
+  "#634b2a": "wood",
+  "#816232": "wood",
+  "#a27f48": "wood",
+  "#84683c": "wood"
+ },
+ "strength": 14
+}

@@ -1,0 +1,49 @@
+{
+ "class": "stone",
+ "materials": {
+  "brick": {
+   "mode": "shade",
+   "base": 0.55,
+   "span": 0.4
+  },
+  "mortar": {
+   "mode": "flat",
+   "base": 0.12,
+   "span": 0
+  }
+ },
+ "palette": {
+  "#450f0f": "brick",
+  "#471010": "brick",
+  "#4c1111": "brick",
+  "#4e1111": "brick",
+  "#531212": "brick",
+  "#591616": "brick",
+  "#601515": "brick",
+  "#601919": "brick",
+  "#641818": "brick",
+  "#681717": "brick",
+  "#691a1a": "brick",
+  "#6c1919": "brick",
+  "#701a1a": "brick",
+  "#731a1a": "brick",
+  "#742121": "brick",
+  "#791c1c": "brick",
+  "#7b1e1e": "brick",
+  "#832020": "brick",
+  "#8f938c": "mortar",
+  "#949790": "mortar",
+  "#979a94": "mortar",
+  "#9b9e97": "mortar",
+  "#9fa29c": "mortar",
+  "#a1a69e": "mortar",
+  "#a3a8a0": "mortar",
+  "#a6a9a1": "mortar",
+  "#a8aba3": "mortar",
+  "#aaada7": "mortar",
+  "#adb1aa": "mortar",
+  "#b1b4ad": "mortar",
+  "#b5bab2": "mortar",
+  "#bcc0b8": "mortar"
+ }
+}

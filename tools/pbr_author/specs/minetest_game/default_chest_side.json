@@ -1,0 +1,82 @@
+{
+ "class": "planks",
+ "materials": {
+  "plank": {
+   "mode": "shade",
+   "base": 0.45,
+   "span": 0.2,
+   "levels": 2,
+   "joints": false,
+   "smooth": 0.3
+  },
+  "outline": {
+   "mode": "flat",
+   "base": 0.25,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.25
+  },
+  "latch_light": {
+   "mode": "flat",
+   "base": 0.9,
+   "span": 0,
+   "micro": 0,
+   "metal": true,
+   "smooth": 0.72
+  },
+  "latch_dark": {
+   "mode": "flat",
+   "base": 0.85,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.5
+  }
+ },
+ "palette": {
+  "#3f2f20": "outline",
+  "#6e5836": "plank",
+  "#7d633d": "plank",
+  "#755a33": "plank",
+  "#7c6039": "plank",
+  "#775e37": "plank",
+  "#82663f": "plank",
+  "#856a43": "plank",
+  "#886e4b": "plank",
+  "#a37c45": "plank",
+  "#aa834c": "plank",
+  "#b89158": "plank",
+  "#b18b53": "plank",
+  "#ae8650": "plank",
+  "#b58e55": "plank",
+  "#bf975e": "plank",
+  "#c49b63": "plank",
+  "#c79f67": "plank",
+  "#c59c65": "plank",
+  "#91754d": "plank",
+  "#bc945b": "plank",
+  "#c9a068": "plank",
+  "#d2a870": "plank",
+  "#d8af77": "plank",
+  "#e0b37a": "plank",
+  "#ebb77e": "plank",
+  "#a17a43": "plank",
+  "#a68049": "plank",
+  "#a57f48": "plank",
+  "#967039": "plank",
+  "#6a502a": "plank",
+  "#70552f": "plank",
+  "#6d542f": "plank",
+  "#644b25": "plank",
+  "#c39a60": "plank",
+  "#9c763f": "plank",
+  "#a08158": "plank",
+  "#ac854d": "plank",
+  "#cda36a": "plank",
+  "#a47e47": "plank",
+  "#98723b": "plank",
+  "#8c6630": "plank",
+  "#916a34": "plank",
+  "#7e5725": "plank",
+  "#865f2c": "plank"
+ }
+}

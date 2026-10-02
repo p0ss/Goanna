@@ -1,0 +1,23 @@
+{
+ "class": "glass",
+ "materials": {
+  "glass": {
+   "mode": "flat",
+   "base": 0.5,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.9
+  },
+  "cork": {
+   "mode": "flat",
+   "base": 0.65,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.2
+  }
+ },
+ "palette": {
+  "#99816d": "cork",
+  "#886d5d": "cork"
+ }
+}

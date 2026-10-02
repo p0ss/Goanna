@@ -1,0 +1,30 @@
+{
+ "class": "leaves",
+ "materials": {
+  "reed": {
+   "mode": "shade",
+   "base": 0.5,
+   "span": 0.3,
+   "joints": false
+  },
+  "node": {
+   "mode": "flat",
+   "base": 0.8
+  }
+ },
+ "palette": {
+  "#32480e": "reed",
+  "#39520f": "reed",
+  "#457013": "reed",
+  "#527a15": "reed",
+  "#577e19": "reed",
+  "#5a821c": "reed",
+  "#5d851e": "reed",
+  "#648e25": "reed",
+  "#689327": "reed",
+  "#6a9528": "reed",
+  "#6b972a": "reed",
+  "#988d60": "node",
+  "#aea569": "node"
+ }
+}

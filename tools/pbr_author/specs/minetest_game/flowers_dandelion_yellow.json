@@ -1,0 +1,26 @@
+{
+ "materials": {
+  "stem": {
+   "mode": "shade",
+   "base": 0.25,
+   "span": 0.2,
+   "detail": 0.35,
+   "joints": false
+  },
+  "bloom": {
+   "mode": "shade",
+   "base": 0.55,
+   "span": 0.3,
+   "detail": 0.35,
+   "joints": false
+  }
+ },
+ "palette": {
+  "#ffcc00": "bloom",
+  "#ff9900": "bloom",
+  "#546f3a": "stem",
+  "#49603a": "stem",
+  "#384d29": "stem"
+ },
+ "class": "leaves"
+}

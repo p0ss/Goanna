@@ -1,0 +1,27 @@
+{
+ "materials": {
+  "green": {
+   "mode": "shade",
+   "base": 0.25,
+   "span": 0.3,
+   "detail": 0.35,
+   "joints": false
+  },
+  "straw": {
+   "mode": "shade",
+   "base": 0.3,
+   "span": 0.35,
+   "detail": 0.35,
+   "joints": false
+  }
+ },
+ "palette": {
+  "#7ba92c": "green",
+  "#588c15": "green",
+  "#91b93a": "green",
+  "#8ab535": "green",
+  "#b3d04e": "green",
+  "#73a327": "green"
+ },
+ "class": "leaves"
+}

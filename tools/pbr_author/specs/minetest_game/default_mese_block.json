@@ -1,0 +1,14 @@
+{
+ "class": "glass",
+ "materials": {
+  "gem": {
+   "mode": "shade",
+   "base": 0.5,
+   "span": 0.3,
+   "levels": 3,
+   "joints": false,
+   "f0": 0.15,
+   "smooth": 0.85
+  }
+ }
+}

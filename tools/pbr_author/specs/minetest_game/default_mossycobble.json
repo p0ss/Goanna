@@ -1,0 +1,43 @@
+{
+  "class": "stone",
+  "materials": {
+    "stone": {
+      "mode": "shade",
+      "base": 0.25,
+      "span": 0.6
+    },
+    "moss": {
+      "mode": "shade",
+      "base": 0.72,
+      "span": 0.25,
+      "joints": false,
+      "smooth": 0.05
+    }
+  },
+  "palette": {
+    "#433f3d": "stone",
+    "#455a12": "moss",
+    "#464341": "stone",
+    "#484442": "stone",
+    "#4b4845": "stone",
+    "#4b5f17": "moss",
+    "#4f631b": "moss",
+    "#514e4c": "stone",
+    "#52504e": "stone",
+    "#52661e": "moss",
+    "#53504e": "stone",
+    "#566a22": "moss",
+    "#595553": "stone",
+    "#596d25": "moss",
+    "#5c5956": "stone",
+    "#5c7028": "moss",
+    "#5f5c5a": "stone",
+    "#61752e": "moss",
+    "#635f5d": "stone",
+    "#65625f": "stone",
+    "#696664": "stone",
+    "#726e6c": "stone",
+    "#817d7b": "stone",
+    "#878380": "stone"
+  }
+}

@@ -1,0 +1,66 @@
+{
+ "class": "planks",
+ "materials": {
+  "wood": {
+   "mode": "flat",
+   "base": 0.72,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.3
+  },
+  "gap": {
+   "mode": "flat",
+   "base": 0.42,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.25
+  },
+  "cloth": {
+   "mode": "soft",
+   "base": 0.5,
+   "span": 0.1,
+   "smooth": 0.12
+  },
+  "pillow": {
+   "mode": "soft",
+   "base": 0.62,
+   "span": 0.08,
+   "smooth": 0.12
+  }
+ },
+ "palette": {
+  "#7e6030": "wood",
+  "#523f23": "gap",
+  "#750404": "cloth",
+  "#740404": "cloth",
+  "#7c0505": "cloth",
+  "#710303": "cloth",
+  "#7a0404": "cloth",
+  "#770303": "cloth",
+  "#7e0505": "cloth",
+  "#740202": "cloth",
+  "#7b0404": "cloth",
+  "#780303": "cloth",
+  "#800505": "cloth",
+  "#6b0000": "cloth",
+  "#750303": "cloth",
+  "#84683c": "wood",
+  "#85693d": "wood",
+  "#896b3d": "wood",
+  "#9f7d48": "wood",
+  "#a6814a": "wood",
+  "#a37f49": "wood",
+  "#a17e48": "wood",
+  "#a27f49": "wood",
+  "#85683c": "wood",
+  "#9f7e48": "wood",
+  "#83673b": "wood",
+  "#5f4828": "gap",
+  "#9f7b46": "wood",
+  "#a27e48": "wood",
+  "#806130": "wood",
+  "#574325": "gap",
+  "#564225": "gap"
+ },
+ "strength": 14
+}

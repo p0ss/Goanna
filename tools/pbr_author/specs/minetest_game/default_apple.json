@@ -1,0 +1,47 @@
+{
+ "class": "leaves",
+ "materials": {
+  "fruit": {
+   "mode": "shade",
+   "base": 0.62,
+   "span": 0.3,
+   "joints": false,
+   "smooth": 0.6,
+   "sss": 20
+  },
+  "leaf": {
+   "mode": "flat",
+   "base": 0.4
+  }
+ },
+ "palette": {
+  "#154e00": "leaf",
+  "#175700": "leaf",
+  "#1b6200": "leaf",
+  "#290000": "fruit",
+  "#330000": "fruit",
+  "#3f0000": "fruit",
+  "#4a0000": "fruit",
+  "#560000": "fruit",
+  "#610100": "fruit",
+  "#660100": "fruit",
+  "#740100": "fruit",
+  "#890300": "fruit",
+  "#930300": "fruit",
+  "#97100d": "fruit",
+  "#a00400": "fruit",
+  "#a70400": "fruit",
+  "#a73533": "fruit",
+  "#ab0400": "fruit",
+  "#bf2c28": "fruit",
+  "#c00500": "fruit",
+  "#c0120d": "fruit",
+  "#cc2d28": "fruit",
+  "#dd2e28": "fruit",
+  "#df0700": "fruit",
+  "#e0140d": "fruit",
+  "#e2211c": "fruit",
+  "#e4423c": "fruit",
+  "#e53934": "fruit"
+ }
+}

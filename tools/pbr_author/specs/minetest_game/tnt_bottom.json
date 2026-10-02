@@ -1,0 +1,24 @@
+{
+ "class": "wood",
+ "materials": {
+  "wrap": {
+   "mode": "flat",
+   "base": 0.45,
+   "span": 0,
+   "micro": 0.06,
+   "smooth": 0.3
+  },
+  "label": {
+   "mode": "flat",
+   "base": 0.62,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.3
+  }
+ },
+ "palette": {
+  "#ea0000": "wrap",
+  "#d00000": "wrap",
+  "#ba0000": "wrap"
+ }
+}

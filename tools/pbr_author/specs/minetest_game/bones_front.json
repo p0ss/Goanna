@@ -1,0 +1,48 @@
+{
+ "class": "stone",
+ "materials": {
+  "mottle": {
+   "mode": "shade",
+   "base": 0.12,
+   "span": 0.2,
+   "joints": false,
+   "levels": 2
+  },
+  "bone": {
+   "mode": "flat",
+   "base": 0.78,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.35
+  },
+  "socket": {
+   "mode": "flat",
+   "base": 0.5,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.3
+  }
+ },
+ "palette": {
+  "#4c4c4c": "mottle",
+  "#3d3d3d": "mottle",
+  "#1f1f1f": "mottle",
+  "#242424": "mottle",
+  "#616161": "mottle",
+  "#303030": "mottle",
+  "#0c0c0c": "mottle",
+  "#4a4a4a": "mottle",
+  "#2c2c2c": "mottle",
+  "#434343": "mottle",
+  "#151515": "mottle",
+  "#191919": "mottle",
+  "#373737": "mottle",
+  "#000000": "mottle",
+  "#080808": "mottle",
+  "#dcdcdc": "bone",
+  "#595959": "socket",
+  "#131313": "mottle",
+  "#5e5e5e": "socket",
+  "#bfbfbf": "bone"
+ }
+}

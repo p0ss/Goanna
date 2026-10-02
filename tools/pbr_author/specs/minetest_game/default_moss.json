@@ -1,0 +1,11 @@
+{
+  "materials": {
+    "ground": {
+      "mode": "shade",
+      "base": 0.4,
+      "span": 0.3,
+      "joints": false
+    }
+  },
+  "class": "soil"
+}

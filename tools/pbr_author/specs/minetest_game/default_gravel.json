@@ -1,0 +1,13 @@
+{
+  "materials": {
+    "ground": {
+      "mode": "shade",
+      "base": 0.5,
+      "span": 0.6,
+      "joints": true,
+      "levels": 4,
+      "joint": 0.4
+    }
+  },
+  "class": "gravel"
+}

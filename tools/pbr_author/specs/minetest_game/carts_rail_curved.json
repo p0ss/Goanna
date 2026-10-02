@@ -1,0 +1,42 @@
+{
+ "class": "wood",
+ "materials": {
+  "tie": {
+   "mode": "flat",
+   "base": 0.35,
+   "span": 0,
+   "smooth": 0.25
+  },
+  "mark": {
+   "mode": "flat",
+   "base": 0.95,
+   "span": 0,
+   "smooth": 0.5
+  },
+  "rail": {
+   "mode": "flat",
+   "base": 0.95,
+   "span": 0,
+   "metal": true,
+   "smooth": 0.75
+  }
+ },
+ "palette": {
+  "#856027": "tie",
+  "#a07634": "tie",
+  "#71501d": "tie",
+  "#aaaaaa": "rail",
+  "#c9c9c9": "rail",
+  "#898989": "rail",
+  "#7e7e7e": "rail",
+  "#916b2f": "tie",
+  "#7d5a23": "tie",
+  "#6c4c1c": "tie",
+  "#76541f": "tie",
+  "#ab7e37": "tie",
+  "#987131": "tie",
+  "#8d682a": "tie"
+ },
+ "strength": 25,
+ "chamfer": 3
+}

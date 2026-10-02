@@ -1,0 +1,33 @@
+{
+ "materials": {
+  "green": {
+   "mode": "shade",
+   "base": 0.25,
+   "span": 0.3,
+   "detail": 0.35,
+   "joints": false
+  },
+  "straw": {
+   "mode": "shade",
+   "base": 0.3,
+   "span": 0.35,
+   "detail": 0.35,
+   "joints": false
+  }
+ },
+ "palette": {
+  "#8b943e": "green",
+  "#a7af5b": "green",
+  "#909841": "green",
+  "#b9bf6e": "green",
+  "#b4bb69": "green",
+  "#cccf7b": "straw",
+  "#a2ab57": "green",
+  "#cad088": "green",
+  "#97a74a": "green",
+  "#83943a": "green",
+  "#9dac4f": "green",
+  "#87993d": "green"
+ },
+ "class": "leaves"
+}

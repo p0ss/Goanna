@@ -1,0 +1,13 @@
+{
+  "materials": {
+    "ground": {
+      "mode": "shade",
+      "base": 0.4,
+      "span": 0.1,
+      "joints": false,
+      "levels": 2
+    }
+  },
+  "class": "snow",
+  "strength": 6
+}

@@ -1,0 +1,40 @@
+{
+ "class": "planks",
+ "materials": {
+  "rim": {
+   "mode": "flat",
+   "base": 0.4,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.3
+  },
+  "board": {
+   "mode": "flat",
+   "base": 0.65,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.3
+  }
+ },
+ "grid": [
+  "................",
+  "................",
+  "................",
+  "................",
+  "..BBBBBBBBBBBB..",
+  "..BBBBBBBBBBBB..",
+  "..BBBBBBBBBBBB..",
+  "..BBBBBBBBBBBB..",
+  "..BBBBBBBBBBBB..",
+  "..BBBBBBBBBBBB..",
+  "..BBBBBBBBBBBB..",
+  "................",
+  "................",
+  "................",
+  "................",
+  "................"
+ ],
+ "legend": {
+  "B": "board"
+ }
+}

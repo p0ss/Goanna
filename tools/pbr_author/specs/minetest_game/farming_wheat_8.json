@@ -1,0 +1,49 @@
+{
+ "materials": {
+  "green": {
+   "mode": "shade",
+   "base": 0.25,
+   "span": 0.3,
+   "detail": 0.35,
+   "joints": false
+  },
+  "straw": {
+   "mode": "shade",
+   "base": 0.3,
+   "span": 0.35,
+   "detail": 0.35,
+   "joints": false
+  }
+ },
+ "palette": {
+  "#b0980e": "straw",
+  "#c4b028": "straw",
+  "#bea724": "straw",
+  "#ad910d": "straw",
+  "#d6c132": "straw",
+  "#cfba2f": "straw",
+  "#a5920f": "straw",
+  "#e4d04c": "straw",
+  "#b9a745": "straw",
+  "#a6972e": "straw",
+  "#ccb224": "straw",
+  "#e0c333": "straw",
+  "#b19b33": "straw",
+  "#c6ad4b": "straw",
+  "#cbb629": "straw",
+  "#ccb846": "straw",
+  "#918111": "straw",
+  "#c7b54d": "straw",
+  "#c8a20a": "straw",
+  "#c19d2f": "straw",
+  "#a5860b": "straw",
+  "#b89d1e": "straw",
+  "#bca124": "straw",
+  "#c7b047": "straw",
+  "#aa8e0e": "straw",
+  "#dcb21e": "straw",
+  "#c0a136": "straw"
+ },
+ "class": "leaves",
+ "sss": 25
+}

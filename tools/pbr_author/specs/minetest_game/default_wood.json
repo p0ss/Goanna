@@ -1,0 +1,38 @@
+{
+ "class": "planks",
+ "materials": {
+  "plank": {
+   "mode": "parts",
+   "base": 0.7,
+   "span": 0.2,
+   "detail": 0.35
+  },
+  "joint": {
+   "mode": "flat",
+   "base": 0.15,
+   "span": 0
+  }
+ },
+ "grid": [
+  "PPPPPPPPPPPPPPPP",
+  "jjjjjjjjjjjjjjjj",
+  "PPPPPPPPPPPPPPPP",
+  "PPPPPPPPPPPPPPPP",
+  "PPPPPPPPPPPPPPPP",
+  "jjjjjjjjjjjjjjjj",
+  "PPPPPPPPPPPPPPPP",
+  "PPPPPPPPPPPPPPPP",
+  "PPPPPPPPPPPPPPPP",
+  "jjjjjjjjjjjjjjjj",
+  "PPPPPPPPPPPPPPPP",
+  "PPPPPPPPPPPPPPPP",
+  "PPPPPPPPPPPPPPPP",
+  "jjjjjjjjjjjjjjjj",
+  "PPPPPPPPPPPPPPPP",
+  "PPPPPPPPPPPPPPPP"
+ ],
+ "legend": {
+  "P": "plank",
+  "j": "joint"
+ }
+}
