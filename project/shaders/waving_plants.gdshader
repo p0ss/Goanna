@@ -28,6 +28,11 @@ uniform sampler2D spec_tex : filter_nearest_mipmap, repeat_enable;
 uniform bool has_normal = false;
 uniform bool has_spec = false;
 uniform float normal_strength : hint_range(0.0, 2.0) = 1.0;
+// Off for a game whose non-waving allfaces leaves land here: two stacked
+// blocks draw coincident interior faces, and per face normals make that
+// z-fight flicker (measured 0.8% to 1.7% unstable pixels in a canopy).
+uniform bool relief = true;
+uniform float relief_strength : hint_range(0.0, 2.0) = 1.0;
 uniform float ao_strength : hint_range(0.0, 1.0) = 1.0;
 uniform float roughness_strength : hint_range(0.0, 1.0) = 1.0;
 uniform float specular_strength : hint_range(0.0, 2.0) = 1.0;
@@ -59,6 +64,34 @@ void vertex() {
 void fragment() {
 	v_lamp_world = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	vec4 tex = texture(albedo_tex, UV) * COLOR;
+	// The pack's authored relief. The mesher writes no tangents, so the UV
+	// frame is rebuilt from screen derivatives, as entity_common.gdshaderinc
+	// does for item and mob meshes, and it follows a back face's mirrored
+	// image by itself. Plants went without this until 2026-10-02 on account
+	// of a z-fight between coincident allfaces leaves, but leaves that wave
+	// take waving_leaves.gdshader, and a crossed quad has no coincident
+	// twin, so the plants paid for a fault that was not theirs: a mushroom
+	// on a log drew as flat paper among extruded bark.
+	vec4 nrm = has_normal ? texture(normal_tex, UV) : vec4(0.5, 0.5, 1.0, 1.0);
+	if (has_normal && relief) {
+		vec2 duv_x = dFdx(UV), duv_y = dFdy(UV);
+		vec3 dp_x = dFdx(VERTEX), dp_y = dFdy(VERTEX);
+		float det = duv_x.x * duv_y.y - duv_x.y * duv_y.x;
+		if (abs(det) > 1e-12) {
+			vec3 along_u = (dp_x * duv_y.y - dp_y * duv_x.y) / det;
+			vec3 along_v = (dp_y * duv_x.x - dp_x * duv_y.x) / det;
+			vec3 t = along_u - NORMAL * dot(NORMAL, along_u);
+			if (length(t) > 1e-6) {
+				t = normalize(t);
+				vec3 across = normalize(cross(NORMAL, t));
+				// Binormal is -V, the node mesh's convention; no green flip.
+				vec3 b = across * (dot(across, along_v) < 0.0 ? 1.0 : -1.0);
+				vec2 xy = (nrm.rg * 2.0 - 1.0) * normal_strength * relief_strength;
+				float z = sqrt(clamp(1.0 - dot(xy, xy), 0.0, 1.0));
+				NORMAL = normalize(t * xy.x + b * xy.y + NORMAL * z);
+			}
+		}
+	}
 	// Lean the shading normal toward up. A plant is two crossed vertical
 	// quads, so at noon the sun barely lit them and, drawn double sided,
 	// half the faces pointed away from it; what light they got was mostly
@@ -73,22 +106,11 @@ void fragment() {
 	ROUGHNESS = 0.85;
 	SPECULAR = 0.2;
 	METALLIC = 0.0;
-	// The pack's occlusion, but deliberately not its relief. Plants are an
-	// allfaces drawtype, so two stacked blocks draw a pair of coincident
-	// interior faces at the same plane. That z-fight was always there and
-	// was invisible while both faces shaded identically at a fixed
-	// roughness; giving them per-face normals made the two sides shade
-	// differently and the fight started to flicker. Measured nose-first in
-	// a canopy, the relief took the share of temporally unstable pixels
-	// from 0.8% to 1.7%.
-	//
-	// It was buying nothing anyway. The node mesher writes no ARRAY_TANGENT
-	// (src/goanna_client.cpp), so a tangent space normal map here has no
-	// basis to be expressed in and degenerates to the geometric normal.
-	// Occlusion is a scalar and needs no tangents, so that part stays.
+	// The pack's occlusion. Godot's AO only reaches ambient light, so it
+	// darkens the hollows without fighting the relief above.
 	float pack_ao = 1.0;
 	if (has_normal)
-		pack_ao = mix(1.0, texture(normal_tex, UV).b, ao_strength);
+		pack_ao = mix(1.0, nrm.b, ao_strength);
 	AO = pack_ao;
 	AO_LIGHT_AFFECT = 0.0;
 	// Soil-like, for a tile with no _s: takes rain without turning to glass.
