@@ -1,0 +1,36 @@
+{
+ "schema": "org.goanna.asset-recipe/v1",
+ "id": "org.goanna.mineclonia.pack",
+ "version": "1.3.0",
+ "tranche": "pack",
+ "games": [
+  "mineclonia"
+ ],
+ "source": {
+  "package": "ryvnf/mineclonia",
+  "release": "38561",
+  "archive_sha256": "abeacf4e202d6e01a63119a36b46751eb6abfd42948a0b06e1ba8f63fb849e59"
+ },
+ "pipeline": {
+  "version": "5",
+  "authored": "tools/pbr_author/extrude.py for the 1096 block, tool and item stems (stems/mineclonia.txt), tools/pbr_author/atlas.py for the 61 mob and player skins (stems/mineclonia.mobs.txt), specs in specs/mineclonia/; the dragon head strip stays baked",
+  "classification_review": "pbr_packs/classification_reviews/mineclonia-v1.json",
+  "manifest": "pbr_packs/manifests/mineclonia-terrain-v1.json",
+  "quality_gate": "tools/check-pbr-quality.py",
+  "note": "1.2.0 plus the mob skins, shipped as _n and _s only so the game's own art stays the albedo. The skins were reviewed on GPU frames and offline previews from 2026-10-01 to 02, and the owner saw them in play on a local Start Game world on 2026-10-02 (PLAN.md). Built from pbr_packs/mineclonia/textures at f2038b00, whose block sets are byte identical to 1.2.0's."
+ },
+ "release": {
+  "texture_pairs": 1154,
+  "rejected": [
+   "mcl_skins_base_1",
+   "mcl_skins_bottom_1",
+   "mcl_skins_hair_1",
+   "mcl_skins_top_1"
+  ],
+  "known_failures": [],
+  "known_failures_note": "The four default player parts were left out by the release gate: it judges a part against its own art's alpha, but mcl_skins draws each part over a coloured mask, so their maps deliberately carry relief where the part's art is transparent and the mask covers it (and the soft skin sits near the top of the height byte). atlas.check, which reads the masks, passes them. The player's eye and footwear layers pass and ship. The gate needs to read the masks before the parts can ship.",
+  "archive": "org.goanna.mineclonia.pack-1.3.0.zip",
+  "bytes": 84473358,
+  "sha256": "b588da9c6a2d153680734e8919f088d77a457de0220b7f07185600f4bd0e941b"
+ }
+}
