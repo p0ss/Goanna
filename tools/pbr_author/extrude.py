@@ -128,27 +128,34 @@ CLASS_SMOOTH = {"metal": 0.78}
 def load_spec(stem, game=lib.DEFAULT_GAME):
     p = SPECS / game / (stem + ".json")
     spec = json.loads(p.read_text()) if p.exists() else {}
-    if os.environ.get("GOANNA_PBR_HAIR_SHADER") == "1":
-        spec = hair_shader_spec(spec)
-    return spec
+    return variant_spec(spec, os.environ.get("GOANNA_PBR_VARIANT", ""))
 
 
-def hair_shader_spec(spec):
-    """spec with each material's "shader_strands" keys laid over it and its
-    hair mark on, for a client that draws the strands itself
-    (project/shaders/hair_strands.gdshaderinc): the map then carries the
-    lock heights, soft rounded lock edges and nothing finer."""
-    mats = spec.get("materials") or {}
-    if not any("shader_strands" in m for m in mats.values()):
+def variant_spec(spec, name):
+    """spec with its "variants"[name] laid over it, or spec as it is when
+    it has no such variant. A variant's own keys replace the spec's, except
+    "materials", whose entries are laid over the spec's material of the
+    same name key by key, a null value removing that key. This keeps an
+    earlier treatment reachable for comparison: the player's hair keeps
+    "old", the authored strand maps from before the client drew hair's
+    strands, and "round1", the first maps made for the shader
+    (GOANNA_PBR_VARIANT=old, docs/materials.md)."""
+    var = (spec.get("variants") or {}).get(name) if name else None
+    spec = {k: v for k, v in spec.items() if k != "variants"}
+    if not var:
         return spec
-    spec = dict(spec, materials=dict(mats))
-    for name, m in mats.items():
-        if "shader_strands" in m:
-            over = dict(m)
-            over.update(m["shader_strands"])
-            over["hair_mark"] = True
-            del over["shader_strands"]
-            spec["materials"][name] = over
+    mats = {k: dict(m) for k, m in (spec.get("materials") or {}).items()}
+    for k, v in var.items():
+        if k != "materials":
+            spec[k] = v
+    for mname, over in (var.get("materials") or {}).items():
+        m = mats.setdefault(mname, {})
+        for k, v in over.items():
+            if v is None:
+                m.pop(k, None)
+            else:
+                m[k] = v
+    spec["materials"] = mats
     return spec
 
 

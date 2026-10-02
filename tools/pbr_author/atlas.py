@@ -503,6 +503,10 @@ def build(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, model=None, brush=Non
             # Skin rolls off to the box edge instead (edge_roll).
             bevel = bevel * (1.0 - roll_w)
         detail -= bevel
+    lock_occ = lock_occlusion(spec, mat, hi, isl_hi, cell)
+    if lock_occ is not None:
+        prev = extra.get("occlusion")
+        extra["occlusion"] = lock_occ if prev is None else (prev * lock_occ).astype(np.float32)
     albedo = np.kron(art, np.ones((cell, cell, 1), dtype=art.dtype))
     # A part's coverage is its mask and its art together; its art alone is
     # mostly translucent shading.
@@ -538,6 +542,45 @@ def hair_mark(spec, mat, f0):
         if "hair_mark" in m and (m["hair_mark"] or force):
             f0 = np.where(mat == name, HAIR_F0_BYTE / 255.0, f0).astype(f0.dtype)
     return f0
+
+
+def lock_occlusion(spec, mat, hi, isl_hi, cell):
+    """A factor 0..1 on the stored occlusion for materials with
+    "lock_occlusion" (hair's locks), or None. The horizon test in
+    lib.pack sees a step of a lock over the next as a gentle rise and
+    darkens its foot by a few per cent; a lock overhanging another throws
+    a real contact shadow, as the block and cloth sets' joints do. So
+    beside every higher pixel of the same island, within
+    "lock_occlusion_px" map pixels (default a quarter of a texel), a
+    pixel darkens in proportion to the rise (a full rise being 0.15 of the
+    height range) and to its nearness, by up to "lock_occlusion"; from
+    the image's up, the root side of a side face's lock, the reach is
+    doubled, so the shadow hangs under each lock's tip. "gap_occlusion"
+    [h, strength] darkens every pixel of the material standing below h by
+    strength, the gaps between locks, which a narrow pit's horizon test
+    reaches only at its walls."""
+    mats = {k: m for k, m in (spec.get("materials") or {}).items()
+            if float(m.get("lock_occlusion", 0) or 0) > 0 or m.get("gap_occlusion")}
+    if not mats:
+        return None
+    occ = np.ones(hi.shape, np.float32)
+    for name, m in mats.items():
+        sel = np.kron((mat == name).astype(np.float32), np.ones((cell, cell), np.float32)) > 0.5
+        strength = float(m.get("lock_occlusion", 0) or 0)
+        if strength > 0:
+            reach = int(m.get("lock_occlusion_px", max(1, cell // 4)))
+            contact = np.zeros(hi.shape, np.float32)
+            for dy, dx, k in ((-1, 0, 2), (1, 0, 1), (0, -1, 1), (0, 1, 1)):
+                rr = reach * k
+                for r in range(1, rr + 1):
+                    nb = lib._island_shift(hi, isl_hi, dy * r, dx * r)
+                    rise = np.clip((nb - hi - 0.02) / 0.15, 0.0, 1.0)
+                    contact = np.maximum(contact, rise * (1.0 - (r - 1) / float(rr)))
+            occ = np.where(sel, occ * (1.0 - strength * contact), occ)
+        gap = m.get("gap_occlusion")
+        if gap:
+            occ = np.where(sel & (hi < float(gap[0])), occ * (1.0 - float(gap[1])), occ)
+    return occ.astype(np.float32)
 
 
 def _rounds(m):

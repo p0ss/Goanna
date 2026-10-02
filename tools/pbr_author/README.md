@@ -204,26 +204,40 @@ What differs from a tile:
   `preview_figure.py <maps> <out>` composites the six parts the way
   Luanti and the client do and lights the model's front faces offline;
   its docstring says what it leaves out.
-- **Hair.** The player's hair takes `"lock_round"` (a gaussian's sigma in
+- **Hair.** A material can take `"lock_round"` (a gaussian's sigma in
   texels): every step the hair stands over, to its own other levels and
   to whatever is beside it, rolls off over about that width in place of
   the crisp chamfer, in the stored height and the normal alike, and
   `"edge_roll"` rolls its box edges instead of the bevel, as skin's do.
+  The player's hair took it until 2026-10-03 (variant `round1`).
   `atlas.check` holds a rounded material to keeping each texel's level at
   its middle rather than to the flat texel grid. `"hair_mark"` (off by
   default; `GOANNA_PBR_HAIR_MARK=1` turns it on for any material that
   names it) writes the `_s` green byte as 12, an F0 of 0.047 that no
   other map in the pack uses and that is hair's own reflectance, so a
   renderer can tell hair texels apart for an along the strand highlight
-  (`atlas.HAIR_F0_BYTE`). A material's `"shader_strands"` holds the keys
-  for a client that draws the strands itself
-  (`project/shaders/hair_strands.gdshaderinc`): with
-  `GOANNA_PBR_HAIR_SHADER=1` they are laid over the material and its
-  hair mark is turned on (`extrude.hair_shader_spec`). The player's hair
-  takes `"micro": "none"`, `"detail": 0`, `"joints": false` and no
-  smoothness spread, so its `_n` is the lock heights and their rounded
-  edges and nothing finer. Its `"lock_round"` stays 0.3: at 0.35 and 0.45
-  `atlas.check` fails it for moving a texel's level off its middle.
+  (`atlas.HAIR_F0_BYTE`).
+- **Hair drawn by the client.** Since 2026-10-03 the player's hair is
+  built for a client that draws the strands itself
+  (`project/shaders/hair_strands.gdshaderinc`): hair mark on, no micro,
+  no detail, no rounding; each lock a flat plateau at its legend level
+  with a one pixel chamfer and a two pixel box bevel, the dark gap texels
+  sunk as joints. `"lock_occlusion"` (0.55) darkens the stored
+  occlusion beside every higher pixel of the same island within
+  `"lock_occlusion_px"` (6) map pixels, twice that reach from the
+  image's up, in proportion to the rise; `"gap_occlusion"` [0.5, 0.25]
+  darkens every pixel below height 0.5 by a quarter (`atlas.lock_occlusion`).
+  Offline parallax keeps the art: `preview_mob.py --parallax
+  --legibility` puts the worst face, the head's top, at 91 per cent of
+  texels keeping half their area.
+- **Variants.** A spec's `"variants"` holds named alternatives;
+  `GOANNA_PBR_VARIANT=<name>` lays one over the spec, its top level keys
+  replacing the spec's and its `"materials"` entries laid over each
+  material key by key, a null removing a key (`extrude.variant_spec`).
+  The player's hair keeps `old` (the authored strand maps, rebuilt byte
+  for byte with `GOANNA_PBR_HAIR_MARK=1`), `round1` (the first rounded
+  maps for the shader) and `no_contact` (the crisp locks without the
+  contact occlusion).
 - **The plains farmer villager** is four layers,
   `mobs_mc_villager_base^mobs_mc_villager_plains^mobs_mc_villager_profession_farmer^mobs_mc_stone`,
   each its own stem at `"texel_px": 16` with the same `"stack"`, so it

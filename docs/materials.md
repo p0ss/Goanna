@@ -526,7 +526,9 @@ can draw the strands itself (`hair_strands.gdshaderinc`, called from
   its shine scaled 0.3 to 1.7, so the band breaks up; and a wrapped
   diffuse (`hair_wrap` 0.3) in place of Burley for hair, so the hair has
   no hard terminator. The wrapped term drops the rim and backlight terms
-  for hair texels.
+  for hair texels. The owner read the first frames' highlight as too
+  shiny, so the lobes are shaped with `hair_shader_rough` (0.15) added to
+  the roughness and weighted by `hair_shader_sheen` (0.5).
 - Every term is a multiplier on the art's colour with a mean near 1 that
   fades to exactly 1, so the art's texel colours stay the base. The lock
   heights, the parallax and its self shadow are the map's.
@@ -536,21 +538,26 @@ can draw the strands itself (`hair_strands.gdshaderinc`, called from
 - The `hair_shader` material strength (`mat_hair_shader`) scales it, and
   `GOANNA_HAIR_SHADER` multiplies that for entities alone. With no profile
   it is 0; the Lowest and Low profiles set it to 0 and the others to 1.
-  It needs the hair mark, which the shipped pack does not carry, so as
-  shipped it draws nothing on any profile.
+  It needs the hair mark, which pack 1.3.0 does not carry; the hair spec
+  writes it from 2026-10-03, so the next pack built from it does.
 - A texel that is not hair runs the code it ran before. The live frames
   in `docs/perf/hair-shader-2026-10-03/` show changes beyond the repeat
   noise only on the hair, but the sky and the lantern flames move between
   repeats, so they are not a pixel exact proof.
-- It does not yet look as intended: close up the strands are fine and
-  the tips ragged, but it still reads as wood grain, the dark tips are
-  heavy by lamplight, and the highlight band is weaker than without it.
+- How it looks is in `docs/perf/hair-shader-2026-10-03/`. The owner
+  judged the shader over the simplified maps best of the first round, and
+  every column blobby; the second round's crisp locks step with walls.
 
 The maps for it are simpler: the shader replaces the fine strand normals,
-so the hair's `_n` needs only its lock heights and soft rounded lock edges.
-A hair material's `"shader_strands"` keys in its spec are laid over it
-when the pack is built with `GOANNA_PBR_HAIR_SHADER=1`, which also turns
-its hair mark on (`tools/pbr_author/README.md`).
+so the hair's `_n` carries only its locks, each a flat plateau at its
+level with a one pixel chamfer, the dark gap texels sunk, and an
+occlusion with contact darkness under every lock step and in the gaps
+(`"lock_occlusion"`, `"gap_occlusion"`, see `tools/pbr_author/README.md`).
+The first round's locks were rounded by a gaussian over every step and
+read as melted. The earlier specs stay reachable as variants:
+`GOANNA_PBR_VARIANT=old` builds the authored strand maps from before the
+shader, `round1` the rounded maps of the first round, `no_contact` the
+crisp locks without the contact occlusion.
 
 **Where companions do not reach.** A surface the server marks
 `use_texture_alpha` (a charged creeper's aura, a slime's outer body, a

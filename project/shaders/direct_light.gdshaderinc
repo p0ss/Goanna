@@ -171,6 +171,12 @@ varying vec2 v_hair_fx;
 // cosine it adds: light passes into and out of a mass of strands, so hair
 // has no hard terminator.
 uniform float hair_wrap : hint_range(0.0, 1.0) = 0.3;
+// The shader drawn hair's highlight, softer than the lobes alone: its
+// weight, and the roughness added before the lobes are shaped. With the
+// lobes at full weight and the maps' own roughness the owner read the
+// hair as too shiny (docs/perf/hair-shader-2026-10-03).
+uniform float hair_shader_sheen : hint_range(0.0, 1.0) = 0.5;
+uniform float hair_shader_rough : hint_range(0.0, 0.5) = 0.15;
 // Along roughness over across, as alpha_along = alpha * hair_aspect and
 // alpha_across = alpha / hair_aspect.
 uniform float hair_aspect : hint_range(0.05, 1.0) = 0.35;
@@ -241,9 +247,10 @@ void light() {
 #ifdef GOANNA_HAIR
 	if (v_hair > 0.0)
 		spec = mix(spec, goanna_hair_specular(NORMAL, LIGHT, VIEW, LIGHT_COLOR, ATTENUATION,
-				ALBEDO, ROUGHNESS, v_specular, SPECULAR_AMOUNT), v_hair);
+				ALBEDO, min(ROUGHNESS + hair_shader_rough * v_hair_fx.x, 1.0), v_specular,
+				SPECULAR_AMOUNT), v_hair);
 	if (v_hair_fx.x > 0.0) {
-		spec *= mix(1.0, v_hair_fx.y, v_hair_fx.x);
+		spec *= mix(1.0, v_hair_fx.y * hair_shader_sheen, v_hair_fx.x);
 		float wrapped = max((dot(NORMAL, LIGHT) + hair_wrap) / (1.0 + hair_wrap), 0.0);
 		diffuse = mix(diffuse, LIGHT_COLOR * ATTENUATION * wrapped * (1.0 / PI), v_hair_fx.x);
 	}
