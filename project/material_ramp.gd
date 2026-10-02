@@ -439,6 +439,14 @@ func _ready() -> void:
 	env.sdfgi_energy = _envf("GOANNA_SDFGI", 1.4)
 	env.sdfgi_read_sky_light = true
 	env.ssao_enabled = true
+	# GOANNA_SSR=1: screen space reflections as main.gd sets them for the
+	# High and Ultra profiles, for judging polished metal.
+	if OS.get_environment("GOANNA_SSR") == "1":
+		env.ssr_enabled = true
+		env.ssr_max_steps = 64
+		env.ssr_fade_in = 0.15
+		env.ssr_fade_out = 2.0
+		env.ssr_depth_tolerance = 0.2
 	env.ssao_intensity = _envf("GOANNA_SSAO", 4.0)
 	env.ssao_radius = 2.2
 	env.ssao_power = 1.6

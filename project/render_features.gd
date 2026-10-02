@@ -9,6 +9,9 @@ const DEFAULTS := {
 	"render_cloud_shadows": true,
 	"render_atmosphere": true,
 	"render_ssao": true,
+	# Off unless a profile or the player turns it on: it costs frame time,
+	# and before 2026-10-02 nothing drew it.
+	"render_ssr": false,
 	"render_bloom": true,
 	"render_shafts": true,
 	"render_sun_shadows": true,

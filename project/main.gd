@@ -426,7 +426,7 @@ func _ready() -> void:
 	var cfg := ConfigFile.new()
 	if cfg.load("user://goanna.cfg") == OK:
 		for key in RenderFeatures.DEFAULTS:
-			render_features[key] = bool(cfg.get_value("settings", key, true))
+			render_features[key] = bool(cfg.get_value("settings", key, RenderFeatures.DEFAULTS[key]))
 		mouse_sensitivity = float(cfg.get_value("settings", "mouse_sensitivity", mouse_sensitivity))
 		invert_mouse = bool(cfg.get_value("settings", "invert_mouse", invert_mouse))
 		view_bobbing = float(cfg.get_value("settings", "view_bobbing", view_bobbing))
@@ -2760,6 +2760,15 @@ func _apply_render_features() -> void:
 		var e := env.environment
 		e.ssao_enabled = render_features["render_ssao"] and OS.get_environment("GOANNA_NO_SSAO") == ""
 		e.glow_enabled = render_features["render_bloom"] and bloom_strength > 0.001
+		# Screen space reflections, for polished surfaces: metal blocks
+		# reflected only the sky, so a steel block read as grey paint. Water
+		# marches its own and is transparent, so this never touches it.
+		# Off under water, where the volume fog stands in for distance.
+		e.ssr_enabled = render_features["render_ssr"] and not underwater
+		e.ssr_max_steps = 64
+		e.ssr_fade_in = 0.15
+		e.ssr_fade_out = 2.0
+		e.ssr_depth_tolerance = 0.2
 		if underwater or not _atmosphere_enabled():
 			e.volumetric_fog_enabled = _underwater_volume_enabled() if underwater else false
 	if client != null:
@@ -2796,6 +2805,7 @@ func render_feature_state() -> Dictionary:
 		"render_cloud_shadows": render_features["render_cloud_shadows"] and cloud_shadow_k > 0.002,
 		"render_atmosphere": e.volumetric_fog_enabled,
 		"render_ssao": e.ssao_enabled,
+		"render_ssr": e.ssr_enabled,
 		"render_bloom": e.glow_enabled,
 		"render_shafts": shaft_quad.visible and shaft_glow_luminance > 0.0001 and float(shaft_mat.get_shader_parameter("shaft_strength")) > 0.0001,
 		"render_sun_shadows": sun.shadow_enabled or moon.shadow_enabled,
