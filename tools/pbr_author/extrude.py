@@ -57,7 +57,8 @@ f0 (dielectric reflectance, diamond 0.17), metal (true for metal
 texels), emission (0..1 glow), emission_shade (glow follows the
 shade, lighter texels brighter), micro (on a flat material, the per
 texel step, default 0.06; as a string, a micro surface kind for
-atlas.py, see micro.py).
+atlas.py, see micro.py), sss (the _s blue byte for the material in
+place of the class's; a top level "sss" sets it for the whole stem).
 
 Mob skins are model atlases, not tiles, and atlas.py builds them with
 this rule and these specs (stems/<game>.mobs.txt).
@@ -434,11 +435,28 @@ def build(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, preview=True):
                              direction=spec.get("micro_dir", "h"))
         detail = amp * _fit(d, hi.shape)
         smooth_hi = np.clip(smooth_hi + swing * _fit(dsm, hi.shape), 0.0, lib.SMOOTH_CEILING)
+    sss = sss_map(spec, cls, mat, n)
     albedo = np.kron(src, np.ones((n, n, 1), dtype=src.dtype))
     return lib.pack(stem, out_dir, albedo, hi, smooth_hi, cls,
                     normal_strength=strength, metal_mask=up(metal), keep_mean=False,
                     emission=emission, f0=up(f0), fine_detail=1.0,
-                    art_texels=src.shape[1], normal_detail=detail)
+                    art_texels=src.shape[1], normal_detail=detail, sss=sss)
+
+
+def sss_map(spec, cls, mat, n):
+    """The _s blue byte per pixel where the spec or a material sets "sss"
+    (0 to 255, LabPBR: porosity up to 64, subsurface scattering above),
+    else None and the class's one value. Every plant took class leaves'
+    160, so a mushroom glowed through like a thin leaf when lit from
+    behind (2026-10-02)."""
+    mats = spec.get("materials") or {}
+    if "sss" not in spec and not any("sss" in m for m in mats.values()):
+        return None
+    out = np.full(mat.shape, float(spec.get("sss", lib.sss_byte(cls))), np.float32)
+    for name, m in mats.items():
+        if "sss" in m:
+            out[mat == name] = float(m["sss"])
+    return np.kron(out, np.ones((n, n), np.float32))
 
 
 # --- micro surface ------------------------------------------------------------
