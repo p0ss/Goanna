@@ -104,10 +104,17 @@ varying vec4 v_face_rect;
 // by EntityRenderer::setHair from the "hair" material strength times
 // GOANNA_HAIR_ANISO.
 uniform float hair_strength : hint_range(0.0, 1.0) = 0.0;
+// Hair drawn by the shader on the same texels (hair_strands.gdshaderinc):
+// strands, tips, lock shadows, a wrapped diffuse and the highlight above,
+// at full weight whatever hair_strength is. 0 leaves hair as the maps and
+// hair_strength draw it. Set by EntityRenderer::setHairShader from the
+// "hair_shader" material strength times GOANNA_HAIR_SHADER.
+uniform float hair_shader_strength : hint_range(0.0, 1.0) = 0.0;
 
 #define GOANNA_DIAMOND
 #define GOANNA_HAIR
 #include "res://shaders/direct_light.gdshaderinc"
+#include "res://shaders/hair_strands.gdshaderinc"
 #include "res://shaders/underwater.gdshaderinc"
 #ifdef GOANNA_DIAMOND_TRANSMISSION
 #include "res://shaders/diamond_refraction.gdshaderinc"
@@ -331,6 +338,7 @@ void fragment() {
 	v_rim = mat_class == 11 ? vec2(0.6, 0.35) : vec2(0.0);
 	v_hair = 0.0;
 	v_hair_strand = vec4(0.0);
+	v_hair_fx = vec2(0.0);
 	if (has_spec) {
 		vec4 sp = textureGrad(spec_tex, puv, gem_dx, gem_dy);
 		float sm = sp.r;
@@ -339,7 +347,8 @@ void fragment() {
 		// arrives as written, and a mip that averages hair with anything
 		// else is not 12 and drops out, which is harmless.
 		vec3 down_t = image_down - NORMAL * dot(NORMAL, image_down);
-		if (hair_strength > 0.001 && abs(sp.g * 255.0 - 12.0) < 0.5 && dot(down_t, down_t) > 1e-12) {
+		if ((hair_strength > 0.001 || hair_shader_strength > 0.001)
+				&& abs(sp.g * 255.0 - 12.0) < 0.5 && dot(down_t, down_t) > 1e-12) {
 			// The strand runs along the image's vertical on every face of
 			// these atlases: image down is model down on a side face, and
 			// on a top or bottom face image up is the model's front to back
@@ -360,6 +369,21 @@ void fragment() {
 				arc = ((cap ? 1.0 - s : s) - 0.5) * (0.5 * PI);
 			}
 			v_hair = hair_strength;
+			if (hair_shader_strength > 0.001) {
+				float k = hair_shader_strength;
+				float shade, tilt, shift, shine;
+				goanna_hair_strands(puv, gem_dx, gem_dy, rect, cap, shade, tilt, shift, shine);
+				ALBEDO *= mix(1.0, shade, k);
+				EMISSION *= mix(1.0, shade, k);
+				// The strands' own normals replace the map's fine ones as
+				// far as a tilt across can: the lock's slopes stay the map's.
+				vec3 nm = NORMAL_MAP * 2.0 - 1.0;
+				nm.x += tilt * k;
+				NORMAL_MAP = normalize(nm) * 0.5 + 0.5;
+				arc += shift * k;
+				v_hair = max(v_hair, k);
+				v_hair_fx = vec2(k, mix(1.0, shine, k));
+			}
 			v_hair_strand = vec4(strand, arc);
 		}
 		ROUGHNESS = mix(1.0, clamp(1.0 - sm, 0.04, 1.0), roughness_strength);

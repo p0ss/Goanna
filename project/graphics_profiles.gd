@@ -15,6 +15,7 @@ const PROFILES := {
 	"lowest": {
 		"light_sdfgi": 0,
 		"mat_parallax": 0,
+		"mat_hair_shader": 0,
 		"procedural_grass": 0,
 		"solid_ice": 0,
 		"view_range": 4,
@@ -60,6 +61,7 @@ const PROFILES := {
 	"low": {
 		"light_sdfgi": 0,
 		"mat_parallax": 0,
+		"mat_hair_shader": 0,
 		"procedural_grass": 0,
 		"solid_ice": 0,
 		"view_range": 6,
@@ -105,6 +107,7 @@ const PROFILES := {
 	"medium": {
 		"light_sdfgi": 1.4,
 		"mat_parallax": 1,
+		"mat_hair_shader": 1,
 		"procedural_grass": 1,
 		"solid_ice": 0,
 		"view_range": 8,
@@ -150,6 +153,7 @@ const PROFILES := {
 	"high": {
 		"light_sdfgi": 1.4,
 		"mat_parallax": 1,
+		"mat_hair_shader": 1,
 		"procedural_grass": 1,
 		"solid_ice": 0,
 		"view_range": 12,
@@ -195,6 +199,7 @@ const PROFILES := {
 	"ultra": {
 		"light_sdfgi": 1.4,
 		"mat_parallax": 1,
+		"mat_hair_shader": 1,
 		"procedural_grass": 1,
 		"solid_ice": 0,
 		"view_range": 16,
@@ -317,7 +322,7 @@ const STAGES := [
 			"grass_density", "grass_draw_distance", "grass_interaction_distance",
 			"grass_interactors", "grass_antialiasing", "render_grass_aa",
 			"render_grass_interaction", "render_foliage_wind", "solid_ice",
-			"mat_parallax", "terrain_occlusion"],
+			"mat_parallax", "mat_hair_shader", "terrain_occlusion"],
 	["shadow_lamps", "light_pool", "lamp_shadow_distance", "lamp_occlusion",
 			"render_dynamic_lights", "render_carried_light", "render_sun_shadows",
 			"shadow_detail"],

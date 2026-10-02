@@ -490,6 +490,68 @@ gets the isotropic lobe.
   `GOANNA_MAT=hair=1` or `set mat_hair 1` turns it on. See
   `docs/perf/hair-aniso-2026-10-02/`.
 
+**Hair drawn by the shader.** Six rounds of authored maps for the
+player's hair read as wood, decking, bevels, grubby fibre or plastic. A
+strand at sixteen map pixels per art texel is two map pixels wide, and
+what survives the mipmaps is grain. So on the same hair texels the shader
+can draw the strands itself (`hair_strands.gdshaderinc`, called from
+`entity_common.gdshaderinc`), at the screen's own frequency:
+
+- Strands, `hair_strand_density` (10) across an art texel, each a small
+  cylinder whose normal tilts across it, with its own brightness, its own
+  shine and a darker gap beside it, brightness also wandering along its
+  length. Clumps (two to a texel) and faint fibres (2.3 times the strand
+  density) over and under them. A column of art texels is a lock: its
+  strands bend together along a slow wave (`hair_strand_wave`, 0.01 of a
+  texel) and are seeded by the column. At 0.07 of a texel the bend read
+  as wood grain, and at 18 strands to a texel they fade out at a 1.25
+  node view and leave a smooth, plastic face.
+- Each layer fades out by the UV derivatives as its period nears two
+  pixels, so nothing finer than a pixel is drawn and a distant head is the
+  plain texel with the anisotropic sheen. Tips and lock shadows fade by
+  the pixel's size along the strand, a little later.
+- Ragged tips: where the texel next along the strand (down on a side face,
+  toward the back on a top) is not hair, or is hair standing more than `hair_tip_step` (0.1) lower in
+  the stored height, each strand stops at its own length, up to
+  `hair_tip_depth` (0.45) of a texel short of the edge, thinning as it
+  goes, and past its end is darker hair beneath (`hair_tip_shadow` 0.3).
+  With every step a tip, the player's hair ended each texel in a dark
+  ragged band and read as bark. A side face's bottom
+  edge counts as a tip; a top's edge does not.
+- The shadow under a lock: where the texel toward the root is hair
+  standing higher, a ragged shadow (`hair_lock_shadow` 0.3) falls from
+  that edge, a quarter to a half of a texel.
+- Shading: the highlight's two lobes above, at full weight whatever
+  `mat_hair` says, with each strand's shift jittered by up to 0.17 rad and
+  its shine scaled 0.3 to 1.7, so the band breaks up; and a wrapped
+  diffuse (`hair_wrap` 0.3) in place of Burley for hair, so the hair has
+  no hard terminator. The wrapped term drops the rim and backlight terms
+  for hair texels.
+- Every term is a multiplier on the art's colour with a mean near 1 that
+  fades to exactly 1, so the art's texel colours stay the base. The lock
+  heights, the parallax and its self shadow are the map's.
+- Its cost on a hair fragment is four `textureLod` reads (the `_s` and
+  `_n` of the texels either side along the strand) and about forty hash and
+  noise operations; see `docs/perf/hair-shader-2026-10-03/`.
+- The `hair_shader` material strength (`mat_hair_shader`) scales it, and
+  `GOANNA_HAIR_SHADER` multiplies that for entities alone. With no profile
+  it is 0; the Lowest and Low profiles set it to 0 and the others to 1.
+  It needs the hair mark, which the shipped pack does not carry, so as
+  shipped it draws nothing on any profile.
+- A texel that is not hair runs the code it ran before. The live frames
+  in `docs/perf/hair-shader-2026-10-03/` show changes beyond the repeat
+  noise only on the hair, but the sky and the lantern flames move between
+  repeats, so they are not a pixel exact proof.
+- It does not yet look as intended: close up the strands are fine and
+  the tips ragged, but it still reads as wood grain, the dark tips are
+  heavy by lamplight, and the highlight band is weaker than without it.
+
+The maps for it are simpler: the shader replaces the fine strand normals,
+so the hair's `_n` needs only its lock heights and soft rounded lock edges.
+A hair material's `"shader_strands"` keys in its spec are laid over it
+when the pack is built with `GOANNA_PBR_HAIR_SHADER=1`, which also turns
+its hair mark on (`tools/pbr_author/README.md`).
+
 **Where companions do not reach.** A surface the server marks
 `use_texture_alpha` (a charged creeper's aura, a slime's outer body, a
 spider's eyes) keeps the plain `StandardMaterial3D` path, with no

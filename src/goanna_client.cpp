@@ -1167,6 +1167,13 @@ static const std::map<std::string, float> kMatStrengthDefaults = {
     // the isotropic lobe every other texel takes. Off by default until it
     // has been judged on the GPU (docs/perf/hair-aniso-2026-10-02).
     {"hair", 0.0f},
+    // Hair drawn by the shader (hair_strands.gdshaderinc,
+    // EntityRenderer::setHairShader): strands, ragged lock tips, the shadow
+    // under a lock, per strand shine, a wrapped diffuse and the highlight
+    // above, on the same hair texels. Off with no profile; the Low profiles
+    // keep it off and the others turn it on (graphics_profiles.gd). A pack
+    // without the hair mark draws no different either way.
+    {"hair_shader", 0.0f},
 };
 
 float GoannaClient::material_strength(const String &channel) const {
@@ -1199,6 +1206,8 @@ void GoannaClient::set_material_strength(const String &channel, float value) {
         m_entities->setParallax(value);
     if (k == "hair" && m_entities)
         m_entities->setHair(value);
+    if (k == "hair_shader" && m_entities)
+        m_entities->setHairShader(value);
 }
 
 Dictionary GoannaClient::server_options() const {
@@ -3799,6 +3808,7 @@ void GoannaClient::sync_entities(double dt) {
         m_entities = std::make_unique<EntityRenderer>(this);
         m_entities->setParallax(material_strength("parallax"));
         m_entities->setHair(material_strength("hair"));
+        m_entities->setHairShader(material_strength("hair_shader"));
         m_entities->setShowBody(m_show_body);
         m_entities->setThirdPerson(m_third_person);
         m_entities->setAutoBump(m_auto_bump);
@@ -3869,6 +3879,7 @@ Dictionary GoannaClient::wield_info() {
         m_entities = std::make_unique<EntityRenderer>(this);
         m_entities->setParallax(material_strength("parallax"));
         m_entities->setHair(material_strength("hair"));
+        m_entities->setHairShader(material_strength("hair_shader"));
     }
     ItemStack item = goanna_wielded_item(m_session.get());
     d["name"] = String::utf8(item.name.c_str());
@@ -3908,6 +3919,7 @@ Dictionary GoannaClient::item_mesh(const String &item_name) {
         m_entities = std::make_unique<EntityRenderer>(this);
         m_entities->setParallax(material_strength("parallax"));
         m_entities->setHair(material_strength("hair"));
+        m_entities->setHairShader(material_strength("hair_shader"));
     }
     ItemStack item(item_name.utf8().get_data(), 1, 0, m_session->getItemDefManager());
     d["name"] = item_name;
@@ -3928,6 +3940,7 @@ Dictionary GoannaClient::model_preview(const String &mesh_name, const PackedStri
         m_entities = std::make_unique<EntityRenderer>(this);
         m_entities->setParallax(material_strength("parallax"));
         m_entities->setHair(material_strength("hair"));
+        m_entities->setHairShader(material_strength("hair_shader"));
     }
     std::vector<std::string> texs;
     texs.reserve(textures.size());

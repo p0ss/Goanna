@@ -59,6 +59,7 @@ terrain detail, not pixel quality.
 | `light_sdfgi` | 0 | 1.4 | 1.4 | 1.4 |
 | `light_ssil` | 0 | 0 | 1.4 | 1.4 |
 | `mat_parallax` | 0 | 1 | 1 | 1 |
+| `mat_hair_shader` | 0 | 1 | 1 | 1 |
 | `screen_space_detail` | 0 | 1 | 2 | 3 |
 | `shadow_detail` | 0 | 1 | 1 | 2 |
 | `terrain_occlusion` | On | On | On | On |

@@ -163,6 +163,14 @@ void goanna_direct_light(vec3 n, vec3 l, vec3 v, vec3 light_color, float attenua
 // diffuse keeps the box.
 varying float v_hair;
 varying vec4 v_hair_strand;
+// Hair drawn by the shader (hair_strands.gdshaderinc): x its weight, which
+// swaps the diffuse for a wrapped one, y the strand's shine on the
+// highlight. Zero on everything else.
+varying vec2 v_hair_fx;
+// How far round the terminator the hair's wrapped diffuse reaches, as the
+// cosine it adds: light passes into and out of a mass of strands, so hair
+// has no hard terminator.
+uniform float hair_wrap : hint_range(0.0, 1.0) = 0.3;
 // Along roughness over across, as alpha_along = alpha * hair_aspect and
 // alpha_across = alpha / hair_aspect.
 uniform float hair_aspect : hint_range(0.05, 1.0) = 0.35;
@@ -234,6 +242,11 @@ void light() {
 	if (v_hair > 0.0)
 		spec = mix(spec, goanna_hair_specular(NORMAL, LIGHT, VIEW, LIGHT_COLOR, ATTENUATION,
 				ALBEDO, ROUGHNESS, v_specular, SPECULAR_AMOUNT), v_hair);
+	if (v_hair_fx.x > 0.0) {
+		spec *= mix(1.0, v_hair_fx.y, v_hair_fx.x);
+		float wrapped = max((dot(NORMAL, LIGHT) + hair_wrap) / (1.0 + hair_wrap), 0.0);
+		diffuse = mix(diffuse, LIGHT_COLOR * ATTENUATION * wrapped * (1.0 / PI), v_hair_fx.x);
+	}
 #endif
 	// Only the sun, the moon and the bounce are directional; every lamp is an
 	// omni or spot light and keeps its full contribution.

@@ -1,0 +1,38 @@
+{
+ "afternoon_aniso": {
+  "on_vs_off_px": 434946,
+  "off_vs_off_px": 497677,
+  "changed_only_with_shader_px": 10149,
+  "changed_only_with_shader_outside_player_px": 1578,
+  "changed_only_with_shader_outside_player_max": 8,
+  "villager_box_on_px": 282,
+  "villager_box_off_repeat_px": 286
+ },
+ "night_aniso": {
+  "on_vs_off_px": 202905,
+  "off_vs_off_px": 277841,
+  "changed_only_with_shader_px": 19182,
+  "changed_only_with_shader_outside_player_px": 10750,
+  "changed_only_with_shader_outside_player_max": 104,
+  "villager_box_on_px": 12,
+  "villager_box_off_repeat_px": 0
+ },
+ "afternoon": {
+  "on_vs_off_px": 1128200,
+  "off_vs_off_px": 1189874,
+  "changed_only_with_shader_px": 17495,
+  "changed_only_with_shader_outside_player_px": 15867,
+  "changed_only_with_shader_outside_player_max": 53,
+  "villager_box_on_px": 54589,
+  "villager_box_off_repeat_px": 59391
+ },
+ "night": {
+  "on_vs_off_px": 197254,
+  "off_vs_off_px": 284047,
+  "changed_only_with_shader_px": 11667,
+  "changed_only_with_shader_outside_player_px": 3120,
+  "changed_only_with_shader_outside_player_max": 51,
+  "villager_box_on_px": 7,
+  "villager_box_off_repeat_px": 5
+ }
+}

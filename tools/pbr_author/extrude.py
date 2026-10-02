@@ -64,6 +64,7 @@ Mob skins are model atlases, not tiles, and atlas.py builds them with
 this rule and these specs (stems/<game>.mobs.txt).
 """
 import json
+import os
 import sys
 import zlib
 from pathlib import Path
@@ -126,7 +127,29 @@ CLASS_SMOOTH = {"metal": 0.78}
 
 def load_spec(stem, game=lib.DEFAULT_GAME):
     p = SPECS / game / (stem + ".json")
-    return json.loads(p.read_text()) if p.exists() else {}
+    spec = json.loads(p.read_text()) if p.exists() else {}
+    if os.environ.get("GOANNA_PBR_HAIR_SHADER") == "1":
+        spec = hair_shader_spec(spec)
+    return spec
+
+
+def hair_shader_spec(spec):
+    """spec with each material's "shader_strands" keys laid over it and its
+    hair mark on, for a client that draws the strands itself
+    (project/shaders/hair_strands.gdshaderinc): the map then carries the
+    lock heights, soft rounded lock edges and nothing finer."""
+    mats = spec.get("materials") or {}
+    if not any("shader_strands" in m for m in mats.values()):
+        return spec
+    spec = dict(spec, materials=dict(mats))
+    for name, m in mats.items():
+        if "shader_strands" in m:
+            over = dict(m)
+            over.update(m["shader_strands"])
+            over["hair_mark"] = True
+            del over["shader_strands"]
+            spec["materials"][name] = over
+    return spec
 
 
 def _rank01(v):

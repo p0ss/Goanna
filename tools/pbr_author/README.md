@@ -215,7 +215,15 @@ What differs from a tile:
   names it) writes the `_s` green byte as 12, an F0 of 0.047 that no
   other map in the pack uses and that is hair's own reflectance, so a
   renderer can tell hair texels apart for an along the strand highlight
-  (`atlas.HAIR_F0_BYTE`).
+  (`atlas.HAIR_F0_BYTE`). A material's `"shader_strands"` holds the keys
+  for a client that draws the strands itself
+  (`project/shaders/hair_strands.gdshaderinc`): with
+  `GOANNA_PBR_HAIR_SHADER=1` they are laid over the material and its
+  hair mark is turned on (`extrude.hair_shader_spec`). The player's hair
+  takes `"micro": "none"`, `"detail": 0`, `"joints": false` and no
+  smoothness spread, so its `_n` is the lock heights and their rounded
+  edges and nothing finer. Its `"lock_round"` stays 0.3: at 0.35 and 0.45
+  `atlas.check` fails it for moving a texel's level off its middle.
 - **The plains farmer villager** is four layers,
   `mobs_mc_villager_base^mobs_mc_villager_plains^mobs_mc_villager_profession_farmer^mobs_mc_stone`,
   each its own stem at `"texel_px": 16` with the same `"stack"`, so it

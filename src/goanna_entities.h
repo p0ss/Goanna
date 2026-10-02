@@ -94,6 +94,10 @@ public:
     // direct_light.gdshaderinc), 0 to 1: GoannaClient's "hair" material
     // strength. GOANNA_HAIR_ANISO scales it, 0 for an entities only A/B.
     void setHair(float strength);
+    // Hair drawn by the shader on the same texels (hair_strands.gdshaderinc),
+    // 0 to 1: GoannaClient's "hair_shader" material strength.
+    // GOANNA_HAIR_SHADER scales it, 0 for an entities only A/B.
+    void setHairShader(float strength);
     // The formspec model[] element (upstream's GUIScene): a standalone copy of
     // a media mesh with its textures applied, posed at the first frame of the
     // loop, for the UI to hang under a SubViewport. Unshaded, alpha tested at
@@ -223,6 +227,7 @@ private:
     float m_auto_bump = 0.35f;
     float m_parallax = 1.0f;
     float m_hair = 0.0f;
+    float m_hair_shader = 0.0f;
 };
 
 } // namespace goanna
