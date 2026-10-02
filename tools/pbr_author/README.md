@@ -271,15 +271,28 @@ What differs from a tile:
   --legibility` puts the worst face, the head's top, at 91 per cent of
   texels keeping half their area.
   The other hair styles (hair_2 to hair_11) are hair_1's spec with their
-  own grid, made as hair_1's was: the part's shades over its tinted mask
-  split, whole shades together, into three runs as near thirds of the
-  texels as can be (lightest `L` 0.88, `m` 0.74, darkest `g` 0.46), the
-  darkest shades up to 3% of the texels `G` 0.42, opaque colours that are
-  not shading (hair_9's gold beads) the clasp, and a fringe's faint
-  shadow on the face outside the mask covered as skin. That rule gives
-  hair_1's grid back texel for texel. At `--yaw 35 --pitch 10` the head's
-  top keeps half the area of 75 to 89% of its texels across the faces
-  study's heads (hair_1 75%).
+  own grid. A texel's shade is its luminance over the tinted mask
+  averaged over a dark (#151515), a mid (#715D57) and a light (#EBE8E4)
+  tint, since the player picks the colour. Inside each face, neighbouring
+  runs of close shades merge into one lock, closest first, while the
+  lock's shades span at most 0.45 of the style's own shade range, so a
+  dark or low contrast style does not split on small differences and a
+  smooth gradient does not chain into one lock. The locks, whole, then
+  split into three runs as near thirds of the texels as can be (lightest
+  `L` 0.88, `m` 0.74, darkest `g` 0.46), the darkest locks up to 3% of the
+  texels `G` 0.42; opaque colours that are not shading (hair_9's gold
+  beads) are the clasp, and a fringe's faint shadow on the face outside
+  the mask is covered as skin. With no merging the rule gives every
+  committed grid back texel for texel. Until 2026-10-03 the styles took
+  one lock per run of a whole shade, and on dark, near uniform art
+  (hair_2's beard and fringe at #151515) that made a bevelled square
+  tile of almost every texel. Merging took the locks from 75 to 206 per
+  style to 18 to 93 (hair_11's three shades are far apart and it keeps
+  its 116). hair_1 keeps its grid: its strand columns are white
+  highlights that show at every tint, and merging would join them into
+  blobs. At `--yaw 35 --pitch 10` over base_1 and eye_1 the head's top
+  keeps half the area of 60 to 100% of its texels (hair_5 60%, 69%
+  before; hair_1 and hair_11 75%). Judged offline only.
 - **Variants.** A spec's `"variants"` holds named alternatives;
   `GOANNA_PBR_VARIANT=<name>` lays one over the spec, its top level keys
   replacing the spec's and its `"materials"` entries laid over each
