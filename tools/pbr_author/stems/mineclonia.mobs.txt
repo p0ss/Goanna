@@ -159,3 +159,27 @@ mobs_mc_cat_siamese mobs_mc_cat.b3d
 mobs_mc_cat_tabby mobs_mc_cat.b3d
 mobs_mc_cat_white mobs_mc_cat.b3d
 mobs_mc_cat_collar mobs_mc_cat.b3d
+# The rest of the outfit editor's clothes, and the ready made character_1 skin.
+mcl_skins_top_2 mcl_armor_character.b3d
+mcl_skins_top_3 mcl_armor_character.b3d
+mcl_skins_top_4 mcl_armor_character.b3d
+mcl_skins_top_5 mcl_armor_character.b3d
+mcl_skins_top_6 mcl_armor_character.b3d
+mcl_skins_top_7 mcl_armor_character.b3d
+mcl_skins_top_8 mcl_armor_character.b3d
+mcl_skins_top_9 mcl_armor_character.b3d
+mcl_skins_top_10 mcl_armor_character.b3d
+mcl_skins_bottom_2 mcl_armor_character.b3d
+mcl_skins_bottom_3 mcl_armor_character.b3d
+mcl_skins_bottom_4 mcl_armor_character.b3d
+mcl_skins_bottom_5 mcl_armor_character.b3d
+mcl_skins_footwear_2 mcl_armor_character.b3d
+mcl_skins_footwear_3 mcl_armor_character.b3d
+mcl_skins_headwear_1 mcl_armor_character.b3d
+mcl_skins_headwear_2 mcl_armor_character.b3d
+mcl_skins_headwear_3 mcl_armor_character.b3d
+mcl_skins_headwear_4 mcl_armor_character.b3d
+mcl_skins_headwear_5 mcl_armor_character.b3d
+mcl_skins_headwear_6 mcl_armor_character.b3d
+mcl_skins_headwear_7 mcl_armor_character.b3d
+mcl_skins_character_1 mcl_armor_character_female.b3d
