@@ -140,7 +140,7 @@ void fragment() {
 		// exactly what a node with no companion gets.
 		ROUGHNESS = mix(1.0, clamp(1.0 - sm, 0.04, 1.0), roughness_strength);
 		METALLIC = sp.g >= 0.898 ? 1.0 : 0.0;
-		SPECULAR = clamp((sp.g >= 0.898 ? 0.5 : sp.g / 0.08) * specular_strength, 0.0, 1.0);
+		SPECULAR = clamp((sp.g >= 0.898 ? 0.5 : sqrt(sp.g / 0.16)) * specular_strength, 0.0, 1.0);
 		if (sp.a < 0.999)
 			EMISSION = ALBEDO * sp.a * emission_strength;
 		if (sp.b <= 0.2549)
@@ -260,9 +260,9 @@ void fragment() {
 		ROUGHNESS = mix(ROUGHNESS, 0.22, max(pool.y * 0.6, splash.z * 0.8));
 		ROUGHNESS = mix(ROUGHNESS, 0.06, water);
 		ROUGHNESS = mix(ROUGHNESS, 0.03, meniscus);
-		// Water's own F0 of 0.02, which is SPECULAR 0.25: what reflects is
-		// the water over the tile, whatever the tile would.
-		SPECULAR = mix(SPECULAR, 0.25, water);
+		// Water's own F0 of 0.02, which is SPECULAR sqrt(0.02 / 0.16): what
+		// reflects is the water over the tile, whatever the tile would.
+		SPECULAR = mix(SPECULAR, 0.354, water);
 		METALLIC = mix(METALLIC, 0.0, water);
 		// Standing water is level, so under it the relief is drowned and the
 		// normal is the face's own; the film and the margin soften the

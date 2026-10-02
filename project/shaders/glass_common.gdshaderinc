@@ -169,5 +169,5 @@ void fragment() {
 	// The _s answers for the light pass too: frost scatters the sun where a
 	// slick keeps its highlight tight.
 	ROUGHNESS = has_spec ? clamp(1.0 - sm, 0.04, 1.0) : roughness;
-	SPECULAR = has_spec ? clamp(texture(spec_tex, UV).g / 0.08, 0.0, 1.0) : 0.6;
+	SPECULAR = has_spec ? clamp(sqrt(texture(spec_tex, UV).g / 0.16), 0.0, 1.0) : 0.6;
 }

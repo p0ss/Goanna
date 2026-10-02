@@ -258,13 +258,15 @@ void fragment() {
 		ROUGHNESS = mix(1.0, clamp(1.0 - sm, 0.04, 1.0), roughness_strength);
 		// G below 229/255 is dielectric F0, at or above it is a metal index
 		METALLIC = sp.g >= 0.898 ? 1.0 : 0.0;
-		// Godot's SPECULAR is not F0: it defines F0 = 0.08 * SPECULAR, so the
-		// ordinary dielectric F0 of 0.04 is SPECULAR 0.5. LabPBR stores F0
-		// directly, and we were passing it straight through doubled, which
-		// turned the standard dielectric byte of 10 into an F0 of 0.006,
-		// roughly six times too dark. Dielectrics had almost no specular at
-		// all, which is a large part of why none of this read as PBR.
-		SPECULAR = clamp((sp.g >= 0.898 ? 0.5 : sp.g / 0.08) * specular_strength, 0.0, 1.0);
+		// Godot's SPECULAR is not F0: its BRDF takes F0 = 0.16 * SPECULAR
+		// squared (direct_light.gdshaderinc does the same), so the ordinary
+		// dielectric F0 of 0.04 is SPECULAR 0.5 and F0 is decoded through a
+		// square root. LabPBR stores F0 directly. Passed straight through it
+		// turned the standard byte of 10 into an F0 of 0.006; the linear
+		// F0 / 0.08 that replaced it was right only at 0.04, and rendered
+		// 0.06 as 0.086 and amethyst's 0.078 as 0.15. specular_strength
+		// scales SPECULAR, so F0 by its square, as it does on every path.
+		SPECULAR = clamp((sp.g >= 0.898 ? 0.5 : sqrt(sp.g / 0.16)) * specular_strength, 0.0, 1.0);
 		// A is emission strength, with 1.0 meaning none
 		if (sp.a < 0.999)
 			EMISSION = ALBEDO * sp.a * emission_strength;
@@ -412,9 +414,9 @@ void fragment() {
 		ROUGHNESS = mix(ROUGHNESS, 0.22, max(pool.y * 0.6, splash.z * 0.8));
 		ROUGHNESS = mix(ROUGHNESS, 0.06, water);
 		ROUGHNESS = mix(ROUGHNESS, 0.03, meniscus);
-		// Water's own F0 of 0.02, which is SPECULAR 0.25: what reflects is
-		// the water over the tile, whatever the tile would.
-		SPECULAR = mix(SPECULAR, 0.25, water);
+		// Water's own F0 of 0.02, which is SPECULAR sqrt(0.02 / 0.16): what
+		// reflects is the water over the tile, whatever the tile would.
+		SPECULAR = mix(SPECULAR, 0.354, water);
 		METALLIC = mix(METALLIC, 0.0, water);
 		// Standing water is level, so under it the relief is drowned and the
 		// normal is the face's own; the film and the margin soften the

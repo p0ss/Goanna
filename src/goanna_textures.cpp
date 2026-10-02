@@ -408,7 +408,7 @@ Ref<Texture2DArray> GoannaTexture::godotArraySuffixed(GoannaTextureSource &src, 
                         rough += std::clamp(1.0f - sm, 0.04f, 1.0f);
                         const bool is_metal = c.g >= 0.898f;
                         metal += is_metal ? 1.0 : 0.0;
-                        spec += is_metal ? 0.5f : std::min(c.g / 0.08f, 1.0f);
+                        spec += is_metal ? 0.5f : std::min(std::sqrt(c.g / 0.16f), 1.0f);
                     }
                 ls.rough = (float)(rough / n);
                 ls.metal = (float)(metal / n);

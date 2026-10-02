@@ -56,9 +56,18 @@ func _quad() -> ArrayMesh:
 		Vector2(0, 0), Vector2(0, 0), Vector2(0, 0), Vector2(0, 0)])
 	arrays[Mesh.ARRAY_COLOR] = PackedColorArray([
 		Color.WHITE, Color.WHITE, Color.WHITE, Color.WHITE])
+	# CUSTOM0 is the mesher's night light in R, day light in G and vertex
+	# occlusion in B. Full day, no night and no occlusion: without the day
+	# light the sun gate in direct_light.gdshaderinc shuts the sun out of
+	# nodes_array.gdshader altogether.
+	var light := PackedFloat32Array()
+	for v in 4:
+		light.append_array([0.0, 1.0, 1.0, 0.0])
+	arrays[Mesh.ARRAY_CUSTOM0] = light
 	arrays[Mesh.ARRAY_INDEX] = PackedInt32Array([0, 2, 1, 0, 3, 2])
 	var m := ArrayMesh.new()
-	m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays, [], {},
+		Mesh.ARRAY_CUSTOM_RGBA_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM0_SHIFT)
 	return m
 
 
@@ -67,20 +76,34 @@ func _u(b: int) -> float:
 	return float(b) / 255.0
 
 
+# The SPECULAR that makes Godot's dielectric F0, 0.16 * SPECULAR squared,
+# equal the LabPBR F0 byte, clamped where F0 passes Godot's 0.16 ceiling.
+func _spec(f0_byte: int) -> float:
+	return minf(sqrt(_u(f0_byte) / 0.16), 1.0)
+
+
 # Each case: a name, the LabPBR _s bytes, and the StandardMaterial3D setup
-# that our shader claims those bytes mean.
+# that our shader claims those bytes mean. Roughness is 1 - smoothness,
+# unsquared, clamped at 0.04, because Godot squares it itself.
 func _cases() -> Array:
 	var out := []
-	# smoothness 0: roughness (1-0)^2 = 1.0, dielectric F0 10 -> specular 0.078
-	out.append(["rough (sm 0)", Color8(0, 10, 0, 255), 1.0, 0.0, _u(10) / 0.08, 0.0])
-	# smoothness 128: roughness (1-0.502)^2 = 0.248
-	out.append(["mid (sm 128)", Color8(128, 10, 0, 255), pow(1.0 - _u(128), 2.0), 0.0, _u(10) / 0.08, 0.0, false])
-	# smoothness 230: roughness 0.0096, clamped by the shader to 0.04
-	out.append(["smooth (sm 230)", Color8(230, 10, 0, 255), 0.04, 0.0, _u(10) / 0.08, 0.0, false])
+	# smoothness 0: roughness 1.0, dielectric F0 10 -> F0 0.039, specular 0.494
+	out.append(["rough (sm 0)", Color8(0, 10, 0, 255), 1.0, 0.0, _spec(10), 0.0])
+	# smoothness 128: roughness 1 - 0.502 = 0.498
+	out.append(["mid (sm 128)", Color8(128, 10, 0, 255), 1.0 - _u(128), 0.0, _spec(10), 0.0, false])
+	# smoothness 230: roughness 0.098
+	out.append(["smooth (sm 230)", Color8(230, 10, 0, 255), 1.0 - _u(230), 0.0, _spec(10), 0.0, false])
+	# F0 bytes other than 10, as the authored packs write them, beside the
+	# plain 10, on quads turned to the half vector so the lobe's peak is what
+	# the camera sees and F0 is what separates them: 6 (enderman eyes), 15
+	# (player and mob eyes), 20 (amethyst), 26 (end portal frame eye). Until
+	# 2026-10-03 the shaders wrote F0 / 0.08, which is right only at 0.04.
+	for b in [10, 6, 15, 20, 26]:
+		out.append(["f0 %d (sm 120)" % b, Color8(120, b, 0, 255), 1.0 - _u(120), 0.0, _spec(b), 0.0, false, true])
 	# G at 230 is the first metal index: metallic 1, specular 0.5
-	out.append(["metal (g 230)", Color8(128, 230, 0, 255), pow(1.0 - _u(128), 2.0), 1.0, 0.5, 0.0, false])
+	out.append(["metal (g 230)", Color8(128, 230, 0, 255), 1.0 - _u(128), 1.0, 0.5, 0.0, false])
 	# A below 255 is emission, at ALBEDO * a * 4
-	out.append(["emissive (a 16)", Color8(0, 10, 0, 16), 1.0, 0.0, _u(10) / 0.08, _u(16) * 4.0, true])
+	out.append(["emissive (a 16)", Color8(0, 10, 0, 16), 1.0, 0.0, _spec(10), _u(16) * 4.0, true])
 	return out
 
 
@@ -106,12 +129,18 @@ func _ready() -> void:
 	add_child(we)
 
 	var albedo := Color8(128, 128, 128, 255)
-	var flat_n := Color8(128, 128, 255, 0) # flat normal, AO 1.0, height 0
+	# Flat normal, AO 1.0, and height 255, the crest: LabPBR's 0 is the
+	# deepest point, which the parallax self shadow darkens.
+	var flat_n := Color8(128, 128, 255, 255)
 	var cases := _cases()
+	# The light's rotation, set below; known here so the F0 cases can face
+	# the half vector between it and the camera.
+	var to_light := Basis.from_euler(Vector3(deg_to_rad(-38), deg_to_rad(-52), 0)).z
+	var cam_pos := Vector3(0, 0, 9)
 
 	for i in cases.size():
 		var c: Array = cases[i]
-		var x := (i - (cases.size() - 1) / 2.0) * 2.6
+		var x := (i - (cases.size() - 1) / 2.0) * 2.3
 
 		var sm := ShaderMaterial.new()
 		sm.shader = load("res://shaders/nodes_array.gdshader")
@@ -125,6 +154,7 @@ func _ready() -> void:
 		ours.mesh = _quad()
 		ours.material_override = sm
 		ours.position = Vector3(x, 1.1, 0)
+		_face(ours, c, to_light, cam_pos)
 		add_child(ours)
 
 		# entity.gdshader only ever runs for the opaque case (see
@@ -142,6 +172,7 @@ func _ready() -> void:
 			entity_mi.mesh = _quad()
 			entity_mi.material_override = esm
 			entity_mi.position = Vector3(x, 3.3, 0)
+			_face(entity_mi, c, to_light, cam_pos)
 			add_child(entity_mi)
 
 		if c.size() > 6 and c[6]:
@@ -157,6 +188,7 @@ func _ready() -> void:
 			offi.mesh = _quad()
 			offi.material_override = off
 			offi.position = Vector3(x, -1.1, 0)
+			_face(offi, c, to_light, cam_pos)
 			add_child(offi)
 			continue
 		var ref := StandardMaterial3D.new()
@@ -175,6 +207,7 @@ func _ready() -> void:
 		refi.mesh = _quad()
 		refi.material_override = ref
 		refi.position = Vector3(x, -1.1, 0)
+		_face(refi, c, to_light, cam_pos)
 		add_child(refi)
 
 	var light := DirectionalLight3D.new()
@@ -187,7 +220,7 @@ func _ready() -> void:
 	add_child(light)
 
 	var cam := Camera3D.new()
-	cam.position = Vector3(0, 0, 9)
+	cam.position = cam_pos
 	cam.current = true
 	add_child(cam)
 
@@ -203,7 +236,7 @@ func _ready() -> void:
 	var worst := 0.0
 	for i in cases.size():
 		var c: Array = cases[i]
-		var x := (i - (cases.size() - 1) / 2.0) * 2.6
+		var x := (i - (cases.size() - 1) / 2.0) * 2.3
 		var a := _sample(img, cam, Vector3(x, 1.1, 0))
 		var b := _sample(img, cam, Vector3(x, -1.1, 0))
 		var d: float = maxf(maxf(absf(a.x - b.x), absf(a.y - b.y)), absf(a.z - b.z))
@@ -226,6 +259,15 @@ func _ready() -> void:
 			"   MISMATCH" if maxf(d, ed) > 3.0 else ""])
 	print("worst channel delta: %.1f (8 bit)" % worst)
 	get_tree().quit()
+
+
+# Turn a case's quad, whose normal is +Z, to the half vector between the
+# light and the camera, when the case asks for it.
+func _face(mi: MeshInstance3D, c: Array, to_light: Vector3, cam_pos: Vector3) -> void:
+	if not (c.size() > 7 and c[7]):
+		return
+	var half := (to_light.normalized() + (cam_pos - mi.position).normalized()).normalized()
+	mi.basis = Basis.looking_at(-half)
 
 
 func _fmt(v: Vector3) -> String:

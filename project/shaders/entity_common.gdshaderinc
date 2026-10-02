@@ -326,7 +326,7 @@ void fragment() {
 		ROUGHNESS = mix(1.0, clamp(1.0 - class_smoothness, 0.04, 1.0),
 				roughness_strength);
 		METALLIC = class_metal;
-		SPECULAR = clamp((class_metal > 0.5 ? 0.5 : class_f0 / 0.08) * specular_strength, 0.0, 1.0);
+		SPECULAR = clamp((class_metal > 0.5 ? 0.5 : sqrt(class_f0 / 0.16)) * specular_strength, 0.0, 1.0);
 		if (class_sss > 0.0)
 			BACKLIGHT = ALBEDO * class_sss * sss_strength;
 	}
@@ -388,7 +388,7 @@ void fragment() {
 		}
 		ROUGHNESS = mix(1.0, clamp(1.0 - sm, 0.04, 1.0), roughness_strength);
 		METALLIC = sp.g >= 0.898 ? 1.0 : 0.0;
-		SPECULAR = clamp((sp.g >= 0.898 ? 0.5 : sp.g / 0.08) * specular_strength, 0.0, 1.0);
+		SPECULAR = clamp((sp.g >= 0.898 ? 0.5 : sqrt(sp.g / 0.16)) * specular_strength, 0.0, 1.0);
 		if (sp.a < 0.999)
 			EMISSION += ALBEDO * sp.a * emission_strength;
 		if (sp.b > 0.2549) {

@@ -87,11 +87,11 @@ void fragment() {
 		// LabPBR: R perceptual smoothness, G dielectric F0 or a metal index
 		// at or above 229/255, A emission with 1.0 meaning none, B porosity
 		// up to 64/255 and subsurface scattering above it. Godot's SPECULAR
-		// defines F0 = 0.08 * SPECULAR, hence the divide.
+		// defines F0 = 0.16 * SPECULAR squared, hence the square root.
 		float sm = sp.r;
 		ROUGHNESS = mix(0.9, clamp(1.0 - sm, 0.04, 1.0), roughness_strength);
 		METALLIC = sp.g >= 0.898 ? 1.0 : 0.0;
-		SPECULAR = clamp((sp.g >= 0.898 ? 0.5 : sp.g / 0.08) * specular_strength, 0.0, 1.0);
+		SPECULAR = clamp((sp.g >= 0.898 ? 0.5 : sqrt(sp.g / 0.16)) * specular_strength, 0.0, 1.0);
 		if (sp.a < 0.999)
 			EMISSION += ALBEDO * sp.a * emission_strength;
 		if (sp.b <= 0.2549)

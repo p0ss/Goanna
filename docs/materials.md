@@ -64,6 +64,22 @@ polished; Goanna did exactly that until September 2026. The distant
 material averages in `GoannaTexture::layerSpecMeans` are averaged in the
 same space the shaders write, so the two must be changed together.
 
+The green channel is linear F0, and Godot's `SPECULAR` is not. Godot's
+dielectric reflectance is `0.16 * SPECULAR * SPECULAR` (as is
+`direct_light.gdshaderinc`, which copies it), so the decoders write
+`SPECULAR = sqrt(F0 / 0.16)`, clamped to 1, which caps a dielectric at
+Godot's ceiling of F0 0.16. Until October 2026 they wrote `F0 / 0.08`,
+which is right only at F0 0.04: amethyst's byte 20 (F0 0.078) rendered at
+0.154, the eye byte 15 (0.059) at 0.087, hair's 12 (0.047) at 0.055, and
+the enderman's eye byte 6 (0.024) at 0.014. The plain byte 10 moved from
+0.038 to 0.039. `specular_strength` multiplies `SPECULAR` after the decode,
+as it always has and as the far averages, the gem path and ice do, so it
+scales F0 by its square and its default of 1 changes nothing. The metal
+branch is unchanged: a metal's F0 is its albedo whatever `SPECULAR` says.
+`project/material_probe.tscn` checks the decode against
+`StandardMaterial3D` at F0 bytes 6, 10, 15, 20 and 26. The record is
+`docs/perf/specular-mapping-2026-10-03/`.
+
 ## What Goanna decodes today
 
 | Channel | Status |
