@@ -160,11 +160,14 @@ What differs from a tile:
     blurred by about that sigma in place of the crisp chamfer, in the
     stored height as well as the normal, so parallax sees the same soft
     step; steps to other materials keep the stem's chamfer;
-  - `"round"` (degrees, 15; 12 on the player, 10 on the undead, 4 on the
-    pig): a membrane dome over each piece on each face, with the features
-    it encloses filled in, its edges leaning that much; normal only;
-  - `"edge_roll"` (texels, 2.5) and `"edge_lean"` (degrees, 25; 20 on the
-    undead, 15 on the pig): in place of the bevel, the face falls away
+  - `"round"` (degrees, 15; 6 on the player, 7.5 on the villagers, 5 on
+    the undead, 4 on the pig, each half what it was before the owner's
+    face rules of 2026-10-03): a membrane dome over each piece on each
+    face, with the features it encloses filled in, its edges leaning that
+    much; normal only;
+  - `"edge_roll"` (texels, 2.5) and `"edge_lean"` (degrees, 25; 10 on the
+    player's parts, 15 on the villagers, the trader, character_1 and the
+    pig, 12 on the undead): in place of the bevel, the face falls away
     over its outer texels toward every box edge like a cushion, across and
     along added so the corners round without a crease; normal only;
     `"roll_rough"` takes smoothness off toward the edge, where a rolled
@@ -174,17 +177,42 @@ What differs from a tile:
     the first person arm;
   - `"smooth_spread"` 0.02 (0.04 on the pig): barely smoother on the
     raised, lighter texels, since the arm's art runs in columns and more
-    turned them into grain; the `skin` micro (pores) is down to
-    `"micro_strength"` 0.3.
-  A material with `"ride": true` (the player's eye layer) takes the same
-  dome over its whole face and the same roll, so the parts laid over skin
-  curve with it. Only the features (brow, eyes, mouth, nose) take their
-  own heights, and nothing on a face is metal or polished except the
-  eyes. A living creature's eyes are flat and glisten: `"micro": "none"`,
-  `"smooth"` 0.9 (no higher, or the highlight falls under a pixel),
-  `"f0"` 0.06; an empty socket stays matte. The undead's eyes and mouth
-  are pits half the height range under their skin. A part that reads a
-  soft part's height through `"stack"` reads it flat at its base.
+    turned them into grain. No pores: `"micro": "none"` on human skin
+    (the `skin` kind is off since 2026-10-03), and the undead's `rotten`
+    takes `"micro_params": {"pits": 0}`, keeping its lumps and its wet and
+    dry blotches. Skin smoothness is 0.25 (the husk's dry skin 0.2), with
+    no sheen on the nose or the cheekbones.
+  The roll's darkening at the face's edge is measured against the art's
+  own: under a lamp from the view (`preview_mob.py`'s night light), the
+  outermost skin texels of the head's front, against those two texels
+  in, were 13 to 17% darker with maps on than with maps off at an
+  `edge_lean` of 25 and a `"round"` of 12 (five of the faces study's
+  seven heads), 7 to 8% at 15, about 6% at 12 and 5 to 6% at 10, so the
+  player's parts take 10; the villager's head comes to 5% and the
+  trader's 3% at 15. The art's own edge on those heads is between 10%
+  lighter and 5% darker than its middle. A high sun from one side
+  darkens the far edges more (7 to 15% at 10), as any rounding does.
+  A material with `"ride": true` (the player's eye, mouth and hair
+  shadow layers) takes the same dome over its whole face and the same
+  roll, so the parts laid over skin curve with it; give it the skin's
+  `"round"`, `"edge_roll"` and `"edge_lean"`. Only the features (brow,
+  lashes, a nose box) take their own heights, and nothing on a face is
+  metal or polished. The owner's face rules (2026-10-03, from the faces
+  study's variant D):
+  - eyes flush with the skin: the white at the skin's `"base"`, the iris
+    at most 0.01 below it, never sunk; lashes and brows may stand proud;
+  - no reflectance boost on eyes (no `"f0"`), the iris at smoothness
+    0.8, the white at 0.6, `"micro": "none"`; a closed eye is a matte
+    lash;
+  - a mouth is a flat piece riding the skin at its base height, lips as
+    skin, teeth at 0.35;
+  - glasses lenses are their own material, dark glass set a little behind
+    the frame (0.9 against 0.97), smoothness 0.86, F0 0.04, and the frame
+    is not glossy (0.4);
+  - the undead keep their eye and mouth pits half the height range under
+    the skin: those are empty sockets, not eyes.
+  A part that reads a soft part's height through `"stack"` reads it flat
+  at its base.
 - **Heights under 1.** Parallax draws a height under 1 sunk below the
   box face; the client lifts each face's highest texel to the face
   (`docs/materials.md`), so a skin need not top out at 1. The zombie,
@@ -199,7 +227,19 @@ What differs from a tile:
   both, and the albedo written is still the art alone, so a player's own
   colour reaches it. `"stack"` lists every part in drawing order, so a
   part's edges slope to whatever is drawn beside it and its occlusion
-  reads the parts drawn over it. The default player's parts take
+  reads the parts drawn over it. List only parts that are always drawn
+  there: the occlusion is baked into this part's maps and shows under
+  whatever the player picks instead. mcl_skins_base_1 had eye_1 and
+  hair_1 in its stack until 2026-10-03, and eye_1's lash row and
+  hair_1's fringe showed in the base's occlusion under every other eye
+  and hair; the base now has no stack, the eyes, mouths and hair 2 to
+  11 stack only on the base, and hair_1 no longer lists eye_1. `"cover"` (an alpha) counts every art texel at
+  that alpha or more as drawn: the client lays a part's maps over the
+  base's by the part's albedo alpha, so a faint shading texel left
+  neutral (a mouth's corner, a closed eye's lid, a fringe's shadow on the
+  face) mixed a neutral map's full height and no smoothness into the
+  skin; covered, it takes the maps of its material, skin like. The
+  default player's parts take
   `"texel_px": 16` (1024 x 512 maps for the 64 x 32 art); mobs stay at 8.
   `preview_figure.py <maps> <out>` composites the six parts the way
   Luanti and the client do and lights the model's front faces offline;
@@ -230,6 +270,16 @@ What differs from a tile:
   Offline parallax keeps the art: `preview_mob.py --parallax
   --legibility` puts the worst face, the head's top, at 91 per cent of
   texels keeping half their area.
+  The other hair styles (hair_2 to hair_11) are hair_1's spec with their
+  own grid, made as hair_1's was: the part's shades over its tinted mask
+  split, whole shades together, into three runs as near thirds of the
+  texels as can be (lightest `L` 0.88, `m` 0.74, darkest `g` 0.46), the
+  darkest shades up to 3% of the texels `G` 0.42, opaque colours that are
+  not shading (hair_9's gold beads) the clasp, and a fringe's faint
+  shadow on the face outside the mask covered as skin. That rule gives
+  hair_1's grid back texel for texel. At `--yaw 35 --pitch 10` the head's
+  top keeps half the area of 75 to 89% of its texels across the faces
+  study's heads (hair_1 75%).
 - **Variants.** A spec's `"variants"` holds named alternatives;
   `GOANNA_PBR_VARIANT=<name>` lays one over the spec, its top level keys
   replacing the spec's and its `"materials"` entries laid over each

@@ -165,8 +165,9 @@ monsters follow the same look with their own materials:
   long coat drawn as its own shade, is the only exception);
 - all fine detail inside the texels, in the normal and the smoothness
   only, through a material's `"micro"` kind;
-- faces soft (skin) or flat (fur), eyes flat and glossy, with no domed
-  iris and no raised dot;
+- faces soft (skin) or flat (fur), eyes flush with the face and a
+  little smoother than it, with no domed iris, no raised dot and no
+  reflectance boost;
 - the detail strong enough to read in ordinary front light, not only
   under a grazing sun.
 
@@ -212,14 +213,33 @@ A face reads by its albedo. An animal's face is one `soft` skin (see
 texel is a checkerboard). The
 features are their own flat pieces at their own heights: a snout or a
 beak a little proud of the face (`"flat"`, its own `"base"`), nostrils
-sunk, a wattle its own piece. A living creature's eyes glisten (owner,
-2026-10-02): flat, `"micro": "none"`, `"smooth"` 0.9 and no higher
-(above about 0.9 a dielectric's highlight is narrower than a pixel and
-vanishes, `docs/material-calibration.md`), `"f0"` 0.06, a stylised wet
-surface, so the sun, a lamp or the sky leaves a small glint. Never the
-`eye` kind (its raised catch light was rejected on the player), never
-metal. An empty socket (a skeleton's) stays matte. Only the face's box
-edge takes the bevel.
+sunk, a wattle its own piece. The owner's face rules of 2026-10-03,
+chosen from the faces study's variant D on GPU frames of seven player
+heads (`docs/perf/faces-study-2026-10-03/`), replace the glossy eyes of
+2026-10-02:
+
+- eyes flush with the skin: the white at the skin's `"base"`, the iris
+  at most 0.01 below it. The sunk eyes (0.06 under the skin) read as
+  holes;
+- no `"f0"` on eyes (the shader's F0 mapping is being fixed apart), the
+  iris at `"smooth"` 0.8, the white at 0.6, `"micro": "none"`; a closed
+  eye is a matte lash. Never the `eye` kind, never metal;
+- skin at `"smooth"` 0.25 with no sheen on a nose or the cheekbones, no
+  pores (`"micro": "none"`, or `rotten` with `"pits": 0`), half the dome
+  it had (`"round"` 6 on the player) and a softer roll (`"edge_lean"` 10
+  to 15, measured so the lamp lit edge is no more than about 6% darker
+  than the art draws it);
+- a mouth a flat piece riding the skin at its base, lips as skin, teeth
+  a little smoother;
+- glasses lenses their own dark glass material behind the frame;
+- a `"stack"` lists only parts always drawn in that place, since the
+  occlusion it bakes shows under whatever else a player picks.
+
+An empty socket (a skeleton's, the undead's sunk pits) stays a pit, and
+the owner wants the undead's faces sunken. Only the face's box edge takes
+the bevel. The animal specs written before 2026-10-03, and the floors of
+the zombie, husk and drowned sockets, still have glossy eyes with
+`"f0"` 0.06; they have not been brought under these rules.
 
 ### What a family agent writes
 
