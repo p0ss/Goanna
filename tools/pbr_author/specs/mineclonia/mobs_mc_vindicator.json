@@ -85,5 +85,8 @@
   "........................................hhhhhhhhh..h.h..h..hhhhh",
   "........................................hhhhhhhhh..h.h..h..hhhhh"
  ],
- "legend": {"a": "nose", "b": "brow", "c": "white", "d": "iris", "e": "mouth", "f": "jacket", "g": "collar", "h": "coat", "i": "trousers", "j": "boot"}
+ "legend": {"a": "nose", "b": "brow", "c": "white", "d": "iris", "e": "mouth", "f": "jacket", "g": "collar", "h": "coat", "i": "trousers", "j": "boot"},
+ "variants": {
+  "sculpt": {"materials": {"skin": {"span": 0.22, "round": 4}, "nose": {"span": 0.22, "round": 4}, "brow": {"flush": {"to": ["skin", "nose"], "offset": 0.06}}, "white": {"flush": {"to": ["skin", "nose"], "group": "eye"}}, "iris": {"flush": {"to": ["skin", "nose"], "group": "eye", "offset": -0.01}}, "mouth": {"flush": {"to": ["skin", "nose"], "offset": -0.04}}}}
+ }
 }

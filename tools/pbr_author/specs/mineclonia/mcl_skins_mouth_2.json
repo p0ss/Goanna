@@ -12,5 +12,8 @@
   "lips": {"mode": "flat", "base": 0.4, "span": 0.0, "micro": "none", "smooth": 0.25, "smooth_spread": 0.0, "scatter": 0.25, "ride": true, "round": 6, "edge_roll": 2.5, "edge_lean": 10, "roll_rough": 0.03},
   "teeth": {"mode": "flat", "base": 0.4, "span": 0.0, "micro": "none", "smooth": 0.35, "smooth_spread": 0.0, "ride": true, "round": 6, "edge_roll": 2.5, "edge_lean": 10, "roll_rough": 0.03}
  },
- "palette": {"#a95a50": "lips", "#9c544a": "lips"}
+ "palette": {"#a95a50": "lips", "#9c544a": "lips"},
+ "variants": {
+  "sculpt": {"materials": {"lips": {"base": 0.335}, "teeth": {"base": 0.335}}}
+ }
 }

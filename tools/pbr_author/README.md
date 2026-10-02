@@ -302,6 +302,44 @@ What differs from a tile:
   for byte with `GOANNA_PBR_HAIR_MARK=1`), `round1` (the first rounded
   maps for the shader) and `no_contact` (the crisp locks without the
   contact occlusion).
+- **Sculpted faces (variant `sculpt`, not shipped).** The owner's
+  suggestion of 2026-10-03: read the pixel artist's shading as form, lit
+  from one side, so the light bits of a face and hands stand out and the
+  dark bits go in. The illagers, the villager, the zombie, the zombie
+  villager, the piglin, the player's base and character_1 carry it, with
+  the seven mouths. `GOANNA_PBR_VARIANT=sculpt` builds it; the default
+  build of every mob stem is byte for byte what it was. The variant sets:
+  - skin `"span"` 0.22 (from 0.08), the soft step blur kept at 0.3 texels,
+    the dome `"round"` down to 4 (the piglin keeps 3);
+  - `"flush"` on the features (extrude.flush_features): each piece stands
+    at the mean height of the skin 4 adjacent to it plus an offset, so
+    eyes stay flush with the skin round them (the iris 0.01 under the
+    white), brows 0.06 proud, the illagers' and villager's mouths 0.04
+    in; the undead keep their sockets;
+  - on the player, `"anchor": "top"` (the lightest skin at `"base"`, where
+    the eye parts lie), `"stack_soft"` (the parts laid over the base read
+    its sculpted heights, not its flat base, through `"stack"`), each
+    mouth 0.025 under the skin it covers, and a nose `"ridge"`
+    (atlas.nose_ridge): the light and dark pair either side of the head
+    front's middle, two rows between the eyes, becomes a ridge a quarter
+    of the span above the cheek, the light texel sloping up to it and the
+    dark one falling away, where the shade alone read it as a dent.
+  Spans of 0.15, 0.22, 0.3 and 0.45 were compared offline
+  (`preview_mob.py --parallax --legibility --contrast --night`, front and
+  35 degrees, the head front three times enlarged). The head fronts keep
+  half the area of 94 to 100% of their texels at every span, as shipped.
+  The relief reads only under a low sun or a lamp: the client measures
+  about 0.05 nodes for the full range at strength 12, so 0.22 of it is a
+  sixth of a texel. At 0.3 and over a lit rim showed along the villager's
+  eye row, where the darker lower face drops below the eyes. On the GPU
+  (2026-10-03, w_epbr_mcl's statues, parallax 1.0, SDFGI 1.4) the close
+  head crops of shipped and sculpt differ by 1 to 2 levels in 255 on
+  average, 6 to 27 at the 99th percentile: at 0.22 the sculpt barely
+  shows in the game. Deeper relief needs a larger "strength" on the
+  skin, which this variant does not try. The release
+  gate warns on mcl_skins_mouth_6 (two texels on the head's bottom edge,
+  a mean normal leaning off the rolled edge), as a whole tile measure on
+  a two texel part.
 - **The plains farmer villager** is four layers,
   `mobs_mc_villager_base^mobs_mc_villager_plains^mobs_mc_villager_profession_farmer^mobs_mc_stone`,
   each its own stem at `"texel_px": 16` with the same `"stack"`, so it

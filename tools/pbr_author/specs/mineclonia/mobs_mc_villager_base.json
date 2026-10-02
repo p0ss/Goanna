@@ -18,5 +18,8 @@
   "legs": {"mode": "flat", "base": 0.44, "span": 0.0, "micro": "canvas", "micro_strength": 1.8, "smooth": 0.14, "smooth_spread": 0.0, "wear": 0.06, "texel_edge": 0.015},
   "shoes": {"mode": "flat", "base": 0.52, "span": 0.0, "micro": "leather", "smooth": 0.4, "smooth_spread": 0.0, "stitch": {"inset": 0.22, "length": 0.36, "gap": 0.18, "width": 0.07, "groove": 0.05, "depth": 0.06}, "wear": 0.15}
  },
- "palette": {"#7e5d3a": "nose", "#373737": "brow", "#b5b5b5": "white", "#b89509": "iris", "#5b4f43": "mouth", "#323a1a": "robe", "#414b23": "robe", "#434d23": "robe", "#4d5828": "robe", "#4f5b29": "robe", "#54612b": "robe", "#48553f": "legs", "#4b5644": "legs", "#53624a": "legs", "#5e6b53": "legs", "#657658": "legs", "#6a7a5e": "legs", "#6f7f63": "legs", "#394533": "shoes"}
+ "palette": {"#7e5d3a": "nose", "#373737": "brow", "#b5b5b5": "white", "#b89509": "iris", "#5b4f43": "mouth", "#323a1a": "robe", "#414b23": "robe", "#434d23": "robe", "#4d5828": "robe", "#4f5b29": "robe", "#54612b": "robe", "#48553f": "legs", "#4b5644": "legs", "#53624a": "legs", "#5e6b53": "legs", "#657658": "legs", "#6a7a5e": "legs", "#6f7f63": "legs", "#394533": "shoes"},
+ "variants": {
+  "sculpt": {"materials": {"skin": {"span": 0.22, "round": 4}, "nose": {"span": 0.22, "round": 4}, "brow": {"flush": {"to": ["skin", "nose"], "offset": 0.06}}, "white": {"flush": {"to": ["skin", "nose"], "group": "eye"}}, "iris": {"flush": {"to": ["skin", "nose"], "group": "eye", "offset": -0.01}}, "mouth": {"flush": {"to": ["skin", "nose"], "offset": -0.04}}}}
+ }
 }

@@ -82,5 +82,8 @@
   "................................................................",
   "................................................................"
  ],
- "legend": {"a": "nose", "b": "brow", "c": "socket", "d": "robe", "e": "legs", "f": "shoes"}
+ "legend": {"a": "nose", "b": "brow", "c": "socket", "d": "robe", "e": "legs", "f": "shoes"},
+ "variants": {
+  "sculpt": {"materials": {"skin": {"span": 0.22, "round": 4}, "nose": {"span": 0.22, "round": 4}, "brow": {"flush": {"to": ["skin", "nose"], "offset": 0.06}}}}
+ }
 }

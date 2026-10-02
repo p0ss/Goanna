@@ -83,5 +83,8 @@
   "....................g.g.........................................",
   "....................g.g........................................."
  ],
- "legend": {"a": "snout", "b": "nostril", "c": "tusk", "d": "gold", "e": "eye", "f": "strap", "g": "leather"}
+ "legend": {"a": "snout", "b": "nostril", "c": "tusk", "d": "gold", "e": "eye", "f": "strap", "g": "leather"},
+ "variants": {
+  "sculpt": {"materials": {"skin": {"span": 0.22}, "eye": {"flush": {"to": ["skin"]}}}}
+ }
 }

@@ -61,5 +61,8 @@
   "llllllllllllllllkkkkkkvkvkkkkkkkkkkkkkkkdddddddddddddddd........",
   "llllllllllllllllkkkkkkvkkkkkkkkkkkkkkkkkdddddddddddddddd........"
  ],
- "legend": {"a": {"material": "hair", "h": 0.46}, "b": {"material": "hair", "h": 0.74}, "c": {"material": "hair", "h": 0.88}, "d": "skin", "e": "blush", "f": "clip", "g": "lash", "h": {"material": "hair", "h": 0.42}, "i": "white", "j": "iris", "k": "trouser", "l": "shoe", "m": "shirt", "n": "panel", "o": "collar", "p": "strap", "q": "patch", "r": "hem", "s": "clasp", "t": "cuff", "u": "band", "v": "belt"}
+ "legend": {"a": {"material": "hair", "h": 0.46}, "b": {"material": "hair", "h": 0.74}, "c": {"material": "hair", "h": 0.88}, "d": "skin", "e": "blush", "f": "clip", "g": "lash", "h": {"material": "hair", "h": 0.42}, "i": "white", "j": "iris", "k": "trouser", "l": "shoe", "m": "shirt", "n": "panel", "o": "collar", "p": "strap", "q": "patch", "r": "hem", "s": "clasp", "t": "cuff", "u": "band", "v": "belt"},
+ "variants": {
+  "sculpt": {"materials": {"skin": {"span": 0.22, "anchor": "top", "round": 4}, "white": {"flush": {"to": ["skin"], "group": "eye"}}, "iris": {"flush": {"to": ["skin"], "group": "eye", "offset": -0.01}}, "lash": {"flush": {"to": ["skin"], "offset": 0.04}}, "blush": {"flush": {"to": ["skin"]}}}}
+ }
 }

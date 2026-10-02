@@ -14,5 +14,8 @@
   "trousers": {"mode": "flat", "base": 0.88, "span": 0.0, "micro": "canvas", "micro_strength": 1.3, "smooth": 0.14, "smooth_spread": 0.0, "wear": 0.12, "texel_edge": 0.015},
   "shoes": {"mode": "flat", "base": 0.94, "span": 0.0, "micro": "leather", "smooth": 0.36, "smooth_spread": 0.0, "stitch": {"inset": 0.22, "length": 0.36, "gap": 0.18, "width": 0.07, "groove": 0.05, "depth": 0.06}, "wear": 0.15}
  },
- "palette": {"#1c271d": "eye", "#4b4934": "mouth", "#454b34": "mouth", "#263b83": "trousers", "#2d469a": "trousers", "#324eab": "trousers", "#3553b8": "trousers", "#3a5ab8": "trousers", "#3f5ec6": "trousers", "#627cd1": "trousers", "#492f24": "trousers", "#5b4131": "trousers", "#6b4e3d": "trousers", "#315e5d": "shirt", "#3e7574": "shirt", "#3f7574": "shirt", "#478483": "shirt", "#478685": "shirt", "#4f9493": "shirt", "#4f9695": "shirt", "#58a3a2": "shirt", "#58a5a4": "shirt", "#65acab": "shirt", "#66adac": "shirt", "#383838": "shoes", "#484848": "shoes", "#6f6f6f": "shoes"}
+ "palette": {"#1c271d": "eye", "#4b4934": "mouth", "#454b34": "mouth", "#263b83": "trousers", "#2d469a": "trousers", "#324eab": "trousers", "#3553b8": "trousers", "#3a5ab8": "trousers", "#3f5ec6": "trousers", "#627cd1": "trousers", "#492f24": "trousers", "#5b4131": "trousers", "#6b4e3d": "trousers", "#315e5d": "shirt", "#3e7574": "shirt", "#3f7574": "shirt", "#478483": "shirt", "#478685": "shirt", "#4f9493": "shirt", "#4f9695": "shirt", "#58a3a2": "shirt", "#58a5a4": "shirt", "#65acab": "shirt", "#66adac": "shirt", "#383838": "shoes", "#484848": "shoes", "#6f6f6f": "shoes"},
+ "variants": {
+  "sculpt": {"materials": {"skin": {"span": 0.22, "round": 4}}}
+ }
 }

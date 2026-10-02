@@ -315,7 +315,10 @@ def stack_fields(stem, spec, game=lib.DEFAULT_GAME):
         ocls = osp.get("class") or extrude.stem_class(other, game)
         # A soft material's small steps are that part's own surface, so
         # this part slopes to and is shaded by its level, not its steps.
-        oh = extrude.heights(osrc, osp, ocls, soft=False)[0]
+        # A part whose spec says "stack_soft" (a sculpted skin, whose
+        # steps are a large share of the range) is read with its steps,
+        # so a face laid over it meets the skin where the skin really is.
+        oh = extrude.heights(osrc, osp, ocls, soft=bool(osp.get("stack_soft")))[0]
         od = osrc[..., 3] >= 0.5
         fill = np.where(od, oh, fill)
         if k > me:
@@ -461,7 +464,11 @@ def build(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, model=None, brush=Non
         hgt = np.where(drawn, hgt, np.nan_to_num(fill, nan=0.0)).astype(np.float32)
         ao_lo = np.where(np.isnan(above), hgt, above).astype(np.float32)
         ao_hi = chamfer_islands(up(ao_lo), isl_hi, extrude.chamfer_px(spec, cell))
-    hi = chamfer_islands(up(hgt), isl_hi, extrude.chamfer_px(spec, cell))
+    hgt_up = up(hgt)
+    ridged = nose_ridge(spec, src, mat, drawn, hgt, cell)
+    if ridged is not None:
+        hgt_up = ridged
+    hi = chamfer_islands(hgt_up, isl_hi, extrude.chamfer_px(spec, cell))
 
     sm, f0, metal, glow = extrude.surface(spec, cls, mat, pos, joints)
     f0 = hair_mark(spec, mat, f0)
@@ -500,7 +507,7 @@ def build(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, model=None, brush=Non
         smooth_hi = np.clip(smooth_hi + s2, 0.0, lib.SMOOTH_CEILING)
     roll_w = None
     if any(m.get("mode") == "soft" or m.get("ride") or _rounds(m) for m in mats.values()):
-        dh, d3 = soft_surface(spec, mat, drawn, isl, cell, up(hgt),
+        dh, d3 = soft_surface(spec, mat, drawn, isl, cell, hgt_up,
                               extrude.chamfer_px(spec, cell), strength)
         roll, roll_w, roll_sm = edge_roll(spec, mat, drawn, isl, cell, strength)
         if roll_w is not None:
@@ -726,6 +733,78 @@ def soft_surface(spec, mat, drawn, isl, cell, h_up, chamfer, strength):
                 sub = detail[y0:y1, x0:x1]
                 sub[p_hi] += scale * u[p_hi]
     return dh, detail.astype(np.float32)
+
+
+def nose_ridge(spec, src, mat, drawn, hgt, cell):
+    """The art's height at the map's size with a nose's ridge sculpted in,
+    or None when no soft material asks for one.
+
+    A player's face draws its nose as a vertical pair of texels between
+    the eyes, one darker than the other, as if lit from one side. Read as
+    shade alone the pair is a dent (both are darker than the cheeks
+    round them), so a soft material's "ridge" finds the pair and sculpts
+    it as a ridge instead:
+
+      "ridge": {"rects": [[x0, y0, x1, y1]], "min_step": 0.02,
+                "min_rows": 2, "rise": 0.25}
+
+    In each rect (a face, in art texels) the two columns either side of
+    its middle are read row by row; a row is part of the nose where both
+    texels are this material and their luminance differs by "min_step"
+    or more, and the nose is the longest run of at least "min_rows" such
+    rows with the darker texel on the same side. On those rows the light
+    texel slopes up from the height of the texel beyond it (the cheek)
+    to a ridge line on the pair's middle, "rise" of the material's span
+    above the higher of the two, and the dark texel falls away from the
+    ridge to its own shade's height at its far edge. The soft blur
+    (soft_surface) rounds the ridge and its ends afterwards, like every
+    other step of the skin."""
+    rid = {k: m for k, m in (spec.get("materials") or {}).items()
+           if m.get("mode") == "soft" and m.get("ridge")}
+    if not rid:
+        return None
+    lum = lib.luminance(src[..., :3])
+    out = np.kron(hgt, np.ones((cell, cell), dtype=hgt.dtype))
+    u = (np.arange(cell, dtype=np.float32) + 0.5) / cell
+    for name, m in rid.items():
+        r = m["ridge"]
+        span = float(m.get("span", extrude.SOFT_SPAN))
+        step = float(r.get("min_step", 0.02))
+        rise = float(r.get("rise", 0.25)) * span
+        for x0, y0, x1, y1 in r.get("rects", []):
+            a, b = (x0 + x1) // 2 - 1, (x0 + x1) // 2
+            sides = []
+            for y in range(y0, y1):
+                ok = drawn[y, a] and drawn[y, b] and mat[y, a] == name and mat[y, b] == name
+                d = float(lum[y, b] - lum[y, a]) if ok else 0.0
+                sides.append(0 if abs(d) < step else (1 if d > 0 else -1))
+            best, run = None, None
+            for i, s in enumerate(sides + [0]):
+                if run and (s == 0 or s != sides[run[0]]):
+                    if run[1] - run[0] >= int(r.get("min_rows", 2)) and (
+                            best is None or run[1] - run[0] > best[1] - best[0]):
+                        best = run
+                    run = None
+                if s != 0 and run is None:
+                    run = [i, i + 1]
+                elif s != 0:
+                    run[1] = i + 1
+            if best is None:
+                continue
+            for y in range(y0 + best[0], y0 + best[1]):
+                light, dark = (b, a) if sides[y - y0] > 0 else (a, b)
+                out_l = light + (light - dark)
+                cheek = hgt[y, out_l] if x0 <= out_l < x1 and drawn[y, out_l] and \
+                    mat[y, out_l] == name else hgt[y, light]
+                peak = max(hgt[y, light], hgt[y, dark], cheek) + rise
+                # u runs left to right across a texel; the ridge is at the
+                # pair's middle, the right edge of a and the left of b.
+                lp = cheek + (peak - cheek) * (u if light == a else 1.0 - u)
+                dp = peak + (hgt[y, dark] - peak) * (u if dark == b else 1.0 - u)
+                ys = slice(y * cell, (y + 1) * cell)
+                out[ys, light * cell:(light + 1) * cell] = lp[None, :]
+                out[ys, dark * cell:(dark + 1) * cell] = dp[None, :]
+    return out
 
 
 def _run_distance(mask, axis):

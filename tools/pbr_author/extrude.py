@@ -22,8 +22,8 @@ from one of four modes:
   flat   the whole material is one height. A frame's beams.
   soft   skin. Lighter is a little higher, in proportion to the shade
          (with a small share of each texel's rank, "detail", default
-         0.25) over a small "span" (default 0.06) centred on "base", no
-         joints. atlas.py adds the rest of the treatment: wider, rounded
+         0.25) over a small "span" (default 0.06) centred on "base" (or,
+         with "anchor": "top", topped at it), no joints. atlas.py adds the rest of the treatment: wider, rounded
          steps between its own shades and a low dome over each piece
          (atlas.soft_surface).
 
@@ -58,7 +58,9 @@ texels), emission (0..1 glow), emission_shade (glow follows the
 shade, lighter texels brighter), micro (on a flat material, the per
 texel step, default 0.06; as a string, a micro surface kind for
 atlas.py, see micro.py), sss (the _s blue byte for the material in
-place of the class's; a top level "sss" sets it for the whole stem).
+place of the class's; a top level "sss" sets it for the whole stem),
+flush (stand each piece at the height of the material round it, see
+flush_features).
 
 Mob skins are model atlases, not tiles, and atlas.py builds them with
 this rule and these specs (stems/<game>.mobs.txt).
@@ -316,16 +318,22 @@ def heights(src, spec, cls, soft=True):
             # above and below it. With soft=False (a neighbouring part's
             # view of this one, atlas.stack_fields) the material is flat at
             # base: the steps are this part's own surface.
+            # "anchor": "top" puts the lightest shade at base and the rest
+            # below it, so parts laid over the skin at base (a player's
+            # eyes) stay flush with the light skin round them however
+            # wide the span, and soft=False reads the skin at that height.
             span = float(m.get("span", SOFT_SPAN))
-            base -= 0.5 * span
+            anchor = 1.0 if m.get("anchor") == "top" else 0.5
+            base -= anchor * span
             lo, hi = np.percentile(v, 5), np.percentile(v, 95)
             if soft and hi - lo > 1e-4:
                 lin = np.clip((v - lo) / max(hi - lo, 1e-4), 0.0, 1.0)
                 sd = float(m.get("detail", SOFT_DETAIL))
                 t = ((1.0 - sd) * lin + sd * _rank01(v)).astype(np.float32)
             else:
-                # Flat, or one shade: the middle of the range.
-                t = np.full(v.shape, 0.5, np.float32)
+                # Flat, or one shade: the middle of the range (its top
+                # when anchored there).
+                t = np.full(v.shape, anchor, np.float32)
         else:
             detail = float(m.get("detail", DETAIL))
             lv = int(m.get("levels", levels_c))
@@ -339,10 +347,53 @@ def heights(src, spec, cls, soft=True):
             jm[sel] = d
             joints |= jm
         hgt[sel] = hv
+    if any(m.get("flush") for m in mats.values()):
+        hgt = flush_features(hgt, mat, drawn, mats)
     f = ~np.isnan(fixed) & drawn
     hgt[f] = fixed[f]
     hgt[~drawn] = 0.0
     return np.clip(hgt, 0.0, 1.0), pos, joints, mat
+
+
+def flush_features(hgt, mat, drawn, mats):
+    """hgt with every material that names "flush" set to the height of
+    the material it sits in, plus an offset: a face's eyes, brows and
+    mouth stand relative to the skin round them rather than at a fixed
+    height, so a sculpted skin (a wide "span") does not leave an eye
+    proud of a sunk socket or sunk under a raised cheek.
+
+      "flush": {"to": ["skin"], "offset": 0.0, "group": "eye"}
+
+    Each 4 connected piece of the group (every material naming the same
+    "group", by default the material alone, so an eye's white and iris
+    are one piece) takes the mean height of the "to" texels 4 adjacent to
+    it, each of its materials adding its own "offset" (a share of the
+    height range). A piece with no such neighbour keeps its base. Pieces
+    are found without wrapping: on a skin atlas a wrap would join faces
+    that are not neighbours on the model."""
+    from scipy import ndimage
+    groups = {}
+    for name, m in mats.items():
+        fl = m.get("flush")
+        if fl:
+            groups.setdefault(fl.get("group", name), []).append((name, fl))
+    out = hgt.copy()
+    for members in groups.values():
+        names = [n for n, _ in members]
+        to = sorted({t for _, fl in members for t in fl.get("to", [])})
+        sel = drawn & np.isin(mat, names)
+        lab, n = ndimage.label(sel)
+        ref = drawn & np.isin(mat, to)
+        for k in range(1, n + 1):
+            piece = lab == k
+            ring = ndimage.binary_dilation(piece) & ~piece & ref
+            if not ring.any():
+                continue
+            level = float(hgt[ring].mean())
+            for name, fl in members:
+                own = piece & (mat == name)
+                out[own] = level + float(fl.get("offset", 0.0))
+    return out
 
 
 _frozen = {}
