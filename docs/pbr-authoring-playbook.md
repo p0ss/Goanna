@@ -237,9 +237,10 @@ heads (`docs/perf/faces-study-2026-10-03/`), replace the glossy eyes of
 
 An empty socket (a skeleton's, the undead's sunk pits) stays a pit, and
 the owner wants the undead's faces sunken. Only the face's box edge takes
-the bevel. The animal specs written before 2026-10-03, and the floors of
-the zombie, husk and drowned sockets, still have glossy eyes with
-`"f0"` 0.06; they have not been brought under these rules.
+the bevel. Its floor is matte: the zombie, husk and drowned socket floors
+are at smoothness 0.3 with no `"f0"` since 2026-10-03. The animal specs
+written before 2026-10-03 still have glossy eyes with `"f0"` 0.06; they
+have not been brought under these rules.
 
 ### What a family agent writes
 

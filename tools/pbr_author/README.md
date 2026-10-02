@@ -210,7 +210,8 @@ What differs from a tile:
     the frame (0.9 against 0.97), smoothness 0.86, F0 0.04, and the frame
     is not glossy (0.4);
   - the undead keep their eye and mouth pits half the height range under
-    the skin: those are empty sockets, not eyes.
+    the skin: those are empty sockets, not eyes, and their floors are
+    matte (smoothness 0.3, no `"f0"`).
   A part that reads a soft part's height through `"stack"` reads it flat
   at its base.
 - **Heights under 1.** Parallax draws a height under 1 sunk below the
