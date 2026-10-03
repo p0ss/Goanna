@@ -2221,6 +2221,19 @@ func _now() -> float:
 	return Time.get_ticks_msec() / 1000.0
 
 func _go_to_game() -> void:
+	# Without the GDExtension the world scene cannot even parse (main.gd
+	# names GoannaClient), and the player got a grey screen with nothing to
+	# go on: on a Steam Deck on 2026-10-03 the library asked for a newer glibc
+	# than SteamOS has. Say so here, where there is a menu to say it in.
+	if not ClassDB.class_exists("GoannaClient"):
+		if server != null:
+			server.stop()
+			server = null
+		if is_instance_valid(start_button): start_button.disabled = false
+		if is_instance_valid(connect_button): connect_button.disabled = false
+		var logs := OS.get_environment("GOANNA_LOG_DIR")
+		_fail("Goanna's game engine library did not load on this system, so no world can open. This is a fault in this build, not your setup. Its log is in %s." % (logs if logs != "" else OS.get_user_data_dir().path_join("logs")))
+		return
 	var roster := LocalLaunch.from_environment() if OS.get_environment("GOANNA_LOCAL_PLAY") != "" else local_roster.duplicate(true)
 	if roster.is_empty() and OS.get_environment("GOANNA_LOCAL_PLAY") != "":
 		push_error("GOANNA_LOCAL_PLAY needs a positive count or a player array")

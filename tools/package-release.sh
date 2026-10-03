@@ -45,6 +45,33 @@ mkdir -p "$STAGE"
 "$GODOT_BIN" --headless --path project --export-debug "$PRESET"
 test -f "$STAGE/$EXE" || { echo "export did not produce $STAGE/$EXE" >&2; exit 1; }
 
+# The extension the export copied is whatever is in project/bin, which for
+# Linux is built on the development machine against its own glibc. A release
+# must carry the one tools/build-goanna-extension.sh builds in Ubuntu 22.04
+# (GOANNA_EXTENSION), and the check below refuses anything newer than glibc
+# 2.35: a library asking for GLIBC_2.43 does not load on SteamOS, Ubuntu LTS
+# or Mint, and Godot then shows a grey screen (Steam Deck, 2026-10-03).
+if [ -n "${GOANNA_EXTENSION:-}" ]; then
+    test -f "$GOANNA_EXTENSION" || { echo "GOANNA_EXTENSION $GOANNA_EXTENSION not found" >&2; exit 1; }
+    cp "$GOANNA_EXTENSION" "$STAGE/$(basename "$GOANNA_EXTENSION")"
+fi
+if [ "$PLATFORM" = "linux" ]; then
+    GLIBC_MAX="${GOANNA_GLIBC_MAX:-2.35}"
+    for so in "$STAGE"/libgoanna.linux.*.so; do
+        newest=$(objdump -T "$so" | grep -o 'GLIBC_[0-9.]*' | sed 's/GLIBC_//' | sort -V | uniq | tail -1)
+        if [ "$(printf '%s\n%s\n' "$newest" "$GLIBC_MAX" | sort -V | tail -1)" != "$GLIBC_MAX" ]; then
+            echo "$(basename "$so") needs glibc $newest, newer than $GLIBC_MAX: it will not load on" >&2
+            echo "SteamOS, Ubuntu LTS or Mint. Build it with tools/build-goanna-extension.sh and" >&2
+            echo "pass GOANNA_EXTENSION=dist/extension-linux/$(basename "$so")." >&2
+            exit 1
+        fi
+        if ldd "$so" | grep -q 'libstdc++'; then
+            echo "$(basename "$so") links libstdc++ dynamically; build it with tools/build-goanna-extension.sh" >&2
+            exit 1
+        fi
+    done
+fi
+
 # The presets export all_resources, so anything left lying about under
 # project/ goes into the pack. 0.9.0 nearly shipped 77 MB of test
 # screenshots out of project/shots, which is gitignored and so invisible in
