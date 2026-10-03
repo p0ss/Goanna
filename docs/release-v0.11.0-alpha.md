@@ -1,4 +1,45 @@
-# Goanna, unreleased
+# Goanna v0.11.0-alpha
+
+Goanna's Linux build now starts on systems back to Ubuntu 22.04 rather
+than only the newest, which should take in the Steam Deck. It updates
+itself, and brings Mineclonia's authored materials in the box. Plants show their texture relief, metal blocks shine, and
+Minetest Game gets the same hand authored treatment Mineclonia has.
+
+## Running on more Linux systems
+
+- **Linux builds start on older systems.** Every Linux release until now
+  was built against a very new system library and only started on the
+  newest distributions. Anywhere else, including a Steam Deck, Ubuntu LTS
+  and Mint, Start Game opened a grey screen. This build is made for
+  systems from Ubuntu 22.04 onwards and was checked on Ubuntu 22.04; it
+  has not yet been played on a Steam Deck.
+- **Logs you can find.** Run from a folder Goanna can write to, such as a
+  USB drive or an unzipped download, it keeps its logs in a `logs` folder
+  beside the game, the local server's log included, with the previous
+  run's kept too. No terminal needed.
+- **No more silent grey screen.** If Goanna's engine library cannot load,
+  the menu now says so and where the log is, instead of opening an empty
+  window.
+
+## Materials
+
+- **Mineclonia's materials come in the box.** The download carries the
+  authored Mineclonia pack, mob skins included, and installs it on first
+  start, so Mineclonia looks right even offline. The download is larger
+  for it.
+- **Minetest Game gets authored materials.** Its 243 block, plant and
+  furniture textures are rebuilt with the crisp texel relief Mineclonia
+  uses, replacing the old blurry maps. They download when you join a
+  Minetest Game server.
+- **Plants have relief.** Flowers, saplings, crops, mushrooms and grass
+  now draw their material maps, so they sit among extruded blocks instead
+  of looking like flat paper. Mushrooms and fungi no longer glow through
+  like leaves when lit from behind.
+- **Shiny metal.** Minetest Game's steel, gold, copper, tin and bronze
+  blocks are polished plates that reflect, and screen space reflections
+  are on in the High and Ultra graphics settings (Graphics, Light), so
+  polished surfaces mirror what is around them.
+
 
 ## Updates
 
