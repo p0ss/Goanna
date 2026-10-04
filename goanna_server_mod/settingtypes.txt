@@ -109,6 +109,16 @@ goanna_source_movement_max_air_speed (Max air speed) float 3.0 0.1 100.0
 #    a public server, which is why it is off.
 goanna_shared_dig_damage (Shared dig damage) bool false
 
+#    Remember how far each block has been dug. A block a player digs part of
+#    the way and leaves keeps its progress, so coming back to it takes only
+#    the rest of its dig time, for any player. The server measures this
+#    itself from the player holding dig and pointing at the block, against
+#    the block's own dig time for the tool held, and finishes the dig through
+#    the block's own dig rules; nothing a client reports is trusted. A dig
+#    done in one go is unchanged. Progress is kept until the block changes or
+#    the server stops. Worlds started from Goanna turn it on.
+goanna_dig_progress (Remember dig progress) bool false
+
 [Director]
 
 #    The director: a language model acting as game master, connected by the

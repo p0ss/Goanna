@@ -38,7 +38,7 @@ const TERRAIN_DIFFUSION_FILES := [
 	"tdl_terrain.lua", "tdl_decorate.lua", "tdl_forest.lua", "tdl_column.lua", "tdl_mapgen.lua",
 	"settingtypes.txt", "mod.conf", "LICENSE",
 ]
-const GOANNA_SERVER_MOD_FILES := ["init.lua", "surface.lua", "fine.lua", "surface_material.lua", "damage.lua", "mod.conf", "settingtypes.txt", "README.md",
+const GOANNA_SERVER_MOD_FILES := ["init.lua", "surface.lua", "fine.lua", "surface_material.lua", "damage.lua", "dig_progress.lua", "mod.conf", "settingtypes.txt", "README.md",
 	"director/init.lua", "director/logic.lua", "director/audit.lua", "director/events.lua",
 	"director/summaries.lua", "director/intents.lua", "director/commands.lua", "director/http.lua",
 	"director/adapters/mcl_mobs.lua"]
