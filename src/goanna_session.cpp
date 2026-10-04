@@ -2167,6 +2167,7 @@ void GoannaSession::handle(NetworkPacket &pkt) {
     case TOCLIENT_ITEMDEF: onItemDef(pkt); break;
     case TOCLIENT_ANNOUNCE_MEDIA: onAnnounceMedia(pkt); break;
     case TOCLIENT_MEDIA: onMedia(pkt); break;
+    case TOCLIENT_MEDIA_PUSH: onMediaPush(pkt); break;
     case TOCLIENT_BLOCKDATA: onBlockData(pkt); break;
     case TOCLIENT_MOVE_PLAYER: onMovePlayer(pkt); break;
     case TOCLIENT_MOVEMENT: onMovement(pkt); break;
@@ -2447,6 +2448,14 @@ void GoannaSession::onMedia(NetworkPacket &pkt) {
                 decompressZstd(iss, oss);
                 data = oss.str();
             }
+            auto pushed = m_media_pushed.find(name);
+            if (pushed != m_media_pushed.end()) {
+                if (hashing::sha1(data) == pushed->second.sha1)
+                    m_media_pushed_arrived.emplace_back(name, std::move(pushed->second));
+                else
+                    warningstream << "goanna: pushed media " << name << " does not match its hash" << std::endl;
+                m_media_pushed.erase(pushed);
+            }
             m_media[name] = std::move(data);
             m_media_last_arrival = std::chrono::steady_clock::now();
         }
@@ -2467,6 +2476,85 @@ void GoannaSession::onMedia(NetworkPacket &pkt) {
         infostream << "goanna: all media received (" << have << " files)" << std::endl;
         maybeReady();
     }
+}
+
+// TOCLIENT_MEDIA_PUSH (Client::handleCommand_MediaPush): a file the server
+// adds after joining, with core.dynamic_add_media. From protocol 40 it carries
+// only the hash and a token, and the file is fetched like any other; upstream
+// tries the remote media servers first and falls back to TOSERVER_REQUEST_MEDIA,
+// and Goanna, which ignores remote servers, always asks. Before 40 the bytes
+// come inline. Either way the server waits for TOSERVER_HAVE_MEDIA with the
+// token before it calls the mod back, so a mod that shows a form with the new
+// image (Kythen's map) shows nothing until the client says it has it.
+void GoannaSession::onMediaPush(NetworkPacket &pkt) {
+    std::string raw_hash, filename, filedata;
+    bool cached;
+    u32 token = 0;
+    pkt >> raw_hash >> filename >> cached;
+    const bool inline_data = stats().proto_ver < 40;
+    if (inline_data)
+        filedata = pkt.readLongString();
+    else
+        pkt >> token;
+    if (raw_hash.size() != 20 || filename.empty() || filename.find_first_of("/\\") != std::string::npos
+            || filename.find("..") != std::string::npos) {
+        warningstream << "goanna: ignoring pushed media with a bad name or hash" << std::endl;
+        return;
+    }
+    std::lock_guard<std::mutex> lk(m_media_mutex);
+    if (inline_data) {
+        if (hashing::sha1(filedata) != raw_hash)
+            return;
+        m_media[filename] = filedata;
+        m_media_pushed_arrived.push_back({filename, PushedMedia{raw_hash, {}}});
+        return;
+    }
+    auto have = m_media.find(filename);
+    if (have != m_media.end() && hashing::sha1(have->second) == raw_hash) {
+        m_media_pushed_arrived.push_back({filename, PushedMedia{raw_hash, {token}}});
+        return;
+    }
+    auto pending = m_media_pushed.find(filename);
+    if (pending != m_media_pushed.end() && pending->second.sha1 == raw_hash) {
+        pending->second.tokens.push_back(token);   // merged with the request under way
+        return;
+    }
+    m_media_pushed[filename] = PushedMedia{raw_hash, {token}};
+    requestMedia({filename});
+}
+
+size_t GoannaSession::loadPushedMedia() {
+    std::vector<std::pair<std::string, PushedMedia>> arrived;
+    std::vector<std::pair<std::string, std::string>> files;
+    {
+        std::lock_guard<std::mutex> lk(m_media_mutex);
+        if (m_media_pushed_arrived.empty())
+            return 0;
+        arrived.swap(m_media_pushed_arrived);
+        for (const auto &a : arrived) {
+            auto it = m_media.find(a.first);
+            if (it != m_media.end())
+                files.emplace_back(a.first, it->second);
+        }
+    }
+    for (const auto &f : files)
+        if (isImageName(f.first))
+            m_tsrc->insertMediaImage(f.first, f.second);
+    std::vector<u32> tokens;
+    for (const auto &a : arrived)
+        tokens.insert(tokens.end(), a.second.tokens.begin(), a.second.tokens.end());
+    // Client::sendHaveMedia: a u8 count, so at most 255 tokens a packet.
+    for (size_t i = 0; i < tokens.size(); i += 255) {
+        const size_t n = std::min<size_t>(255, tokens.size() - i);
+        NetworkPacket pkt(TOSERVER_HAVE_MEDIA, 1 + n * 4);
+        pkt << (u8)n;
+        for (size_t k = 0; k < n; ++k)
+            pkt << tokens[i + k];
+        send(pkt);
+    }
+    infostream << "goanna: loaded " << files.size() << " pushed media file(s), acknowledged "
+            << tokens.size() << std::endl;
+    return files.size();
 }
 
 // Hash a block's node content (id + param2; param1 is light, which Goanna's

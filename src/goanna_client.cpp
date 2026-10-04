@@ -1931,12 +1931,19 @@ Dictionary GoannaClient::step_interact(double dt, bool dig, bool place, bool pla
         d["above"] = Vector3(pt.node_abovesurface.X, pt.node_abovesurface.Y, -pt.node_abovesurface.Z);
         d["point"] = Vector3(pt.intersection_point.X / BS, pt.intersection_point.Y / BS, -pt.intersection_point.Z / BS);
         d["node_name"] = String::utf8(m_session->nodeDefs()->get(m_session->map().getNode(pt.node_undersurface)).name.c_str());
+        // Game::handlePointingAtNode shows the node's "infotext" metadata in
+        // the top left corner, raw, escapes and all, for the HUD to colour.
+        if (NodeMetadata *meta = m_session->map().getNodeMetadata(pt.node_undersurface))
+            d["infotext"] = String::utf8(meta->getString("infotext").c_str());
     } else if (pt.type == POINTEDTHING_OBJECT) {
         d["type"] = "object";
         d["object_id"] = (int)pt.object_id;
         auto it = m_session->objects().find(pt.object_id);
-        if (it != m_session->objects().end())
+        if (it != m_session->objects().end()) {
             d["object_name"] = String::utf8(it->second->name().c_str());
+            // Game::handlePointingAtObject: the object's own infotext.
+            d["infotext"] = String::utf8(it->second->props().infotext.c_str());
+        }
     }
     d["digging"] = st.digging;
     d["dig_impact"] = st.dig_impact;
@@ -7886,6 +7893,8 @@ int GoannaClient::poll_blocks(int max_blocks) {
         return 0;
     if (m_session->prepareContentIfReady())
         return 0;
+    if (m_session->contentPrepared())
+        m_session->loadPushedMedia();
     std::vector<v3s16> fresh_raw = m_session->takeNewBlocks();
     std::vector<v3s16> fresh;
     int done = 0;

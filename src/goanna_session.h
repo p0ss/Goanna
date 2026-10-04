@@ -290,6 +290,11 @@ public:
     std::vector<std::string> announcedMediaNames() const;
     // Raw bytes of a received media file (sounds are .ogg), empty if absent.
     bool mediaBytes(const std::string &name, std::string &out) const { return getMedia(name, out); }
+    // Main thread: media the server pushed after joining (core.dynamic_add_media)
+    // that has arrived, loaded into the texture source, and acknowledged with
+    // TOSERVER_HAVE_MEDIA, which is what lets the server run the mod's
+    // callback. Returns how many files it loaded.
+    size_t loadPushedMedia();
     // A node's own sound: kind is "footstep", "dig" or "dug".
     bool nodeSound(const std::string &node_name, const std::string &kind,
             std::string &sound_name, float &gain, float &pitch) const;
@@ -427,6 +432,7 @@ private:
     void onItemDef(NetworkPacket &pkt);
     void onAnnounceMedia(NetworkPacket &pkt);
     void onMedia(NetworkPacket &pkt);
+    void onMediaPush(NetworkPacket &pkt);
     void requestMedia(const std::vector<std::string> &names);
     void onBlockData(NetworkPacket &pkt);
     void onPlaySound(NetworkPacket &pkt);
@@ -601,6 +607,11 @@ private:
     mutable std::mutex m_media_mutex;
     std::map<std::string, std::string> m_media_wanted; // name -> sha1 raw
     std::map<std::string, std::string> m_media;        // name -> bytes
+    // Pushed media: waiting for its bytes (name -> sha1 raw and the tokens to
+    // acknowledge), and arrived, waiting for the main thread to load it.
+    struct PushedMedia { std::string sha1; std::vector<u32> tokens; };
+    std::map<std::string, PushedMedia> m_media_pushed;
+    std::vector<std::pair<std::string, PushedMedia>> m_media_pushed_arrived;
     std::string m_texture_map;                         // see setTextureMap
 
     std::mutex m_pose_mutex;

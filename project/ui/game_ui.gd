@@ -2291,6 +2291,8 @@ func _draw_hud() -> void:
 				var r := 16.0 * hud_scale
 				hud.draw_arc(c, r, 0, TAU, 40, Color(0, 0, 0, 0.4), 3.0)
 				hud.draw_arc(c, r, -PI / 2.0, -PI / 2.0 + prog * TAU, 40, Color(1, 1, 1, 0.95), 3.0)
+	if window == null and main_for_hud != null and main_for_hud.get("pointed") is Dictionary:
+		_draw_infotext(String((main_for_hud.pointed as Dictionary).get("infotext", "")))
 	var elems: Array = st.get("elements", [])
 	elems.sort_custom(func(a, b) -> bool: return int(a.get("z_index", 0)) < int(b.get("z_index", 0)))
 	var hotbar_drawn := false
@@ -2477,6 +2479,24 @@ func _draw_hud_image(pos: Vector2, e: Dictionary) -> void:
 	var off := Vector2((align.x - 1.0) * dst.x / 2.0, (align.y - 1.0) * dst.y / 2.0)
 	var r := Rect2(pos + off + (e["offset"] as Vector2) * hud_scale, dst)
 	hud.draw_texture_rect(tex, r, false)
+
+# The pointed node's or object's infotext, where GameUI puts m_guitext_info:
+# a box from (100, 200), up to five lines, in the colours its escapes give.
+func _draw_infotext(text: String) -> void:
+	if text.strip_edges() == "":
+		return
+	var f := hud.get_theme_default_font()
+	var fs := int(16 * hud_scale)
+	var line_h := f.get_height(fs)
+	var y := 200.0 * hud_scale + f.get_ascent(fs)
+	var lines := text.split("\n")
+	for line in lines.slice(0, 5):
+		var x := 100.0 * hud_scale
+		for run in FormspecScript.parse_enriched_runs(line, Color.WHITE):
+			hud.draw_string_outline(f, Vector2(x, y), run["text"], HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 3, Color(0, 0, 0, 0.7))
+			hud.draw_string(f, Vector2(x, y), run["text"], HORIZONTAL_ALIGNMENT_LEFT, -1, fs, run["color"])
+			x += f.get_string_size(run["text"], HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		y += line_h
 
 func _draw_hud_text(pos: Vector2, e: Dictionary) -> void:
 	var text: String = e["text"]

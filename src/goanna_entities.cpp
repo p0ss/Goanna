@@ -1083,6 +1083,10 @@ Array EntityRenderer::list(GoannaSession &session) const {
         }
         d["frame"] = frame;
         d["local"] = obj.isLocalPlayer();
+        // What a player reads off it: the nametag over it (drawn as a Label3D
+        // above) and its infotext, shown when it is pointed at.
+        d["nametag"] = String::utf8(obj.props().nametag.c_str());
+        d["infotext"] = String::utf8(obj.props().infotext.c_str());
         // A body with knees and elbows (goanna_limbs.h): its hands and feet
         // in the world, and what it is doing in the water, for wake.gd's
         // stroke splashes.
