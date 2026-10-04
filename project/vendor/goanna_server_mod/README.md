@@ -235,6 +235,19 @@ teleports and flight. Until that exists, treat this setting as suitable only
 for a server whose operator has decided movement validation does not matter to
 them, and say so plainly rather than presenting it as a feature toggle.
 
+## Remembered dig progress
+
+`goanna_dig_progress` keeps how far each block has been dug, so a block a
+player leaves half dug takes only the rest of its time when anyone comes back
+to it. It is `dig_progress.lua`, and it trusts no client: the server reads
+each player's own dig control and aim, times the block against its own dig
+parameters for the tool held, and finishes the dig through the node's own
+`on_dig`, so drops, wear and protection behave as for any dig. A dig done in
+one go is left to the engine. Worlds started from Goanna turn it on.
+
+Tested 2026-10-04 on Luanti 5.17 with Minetest Game: a tree block (3.5 s by
+hand) dug for 2 s, left, then dug again broke 1.58 s into the second go.
+
 ## Direct baked terrain
 
 TDL providers with a revision identity can also serve compact 2D surface

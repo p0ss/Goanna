@@ -575,6 +575,12 @@ dofile(core.get_modpath(core.get_current_modname()) .. "/fine.lua")(channel, far
 -- for. Off unless the operator says otherwise. See damage.lua.
 dofile(core.get_modpath(core.get_current_modname()) .. "/damage.lua")(
 		channel, conf_bool("goanna_shared_dig_damage", false))
+-- Remembered dig progress: a block left half dug stays half dug. The server
+-- measures it from each player's own controls and finishes the dig through
+-- the block's own rules; no client report is involved. Off unless the
+-- operator says otherwise. See dig_progress.lua.
+dofile(core.get_modpath(core.get_current_modname()) .. "/dig_progress.lua")(
+		conf_bool("goanna_dig_progress", false))
 -- The director: a game master run by a language model the operator connects
 -- (docs/director.md). Off unless goanna_director is true. It talks to its
 -- model over HTTP only, never over this mod's channel. request_http_api only

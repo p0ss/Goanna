@@ -1479,6 +1479,12 @@ func start_config(options: Dictionary) -> String:
 		# Off remains the default for a server someone else is running, where
 		# that is a real question. goanna_server_mod/damage.lua has the trade.
 		cf.store_string("goanna_shared_dig_damage = true\n")
+		# Remembered dig progress (goanna_server_mod/dig_progress.lua): a block
+		# left half dug keeps its progress. Players found re-digging from
+		# nothing annoying (owner, 2026-10-04). The server measures it from the
+		# player's own controls, so it trusts no client, and it applies to
+		# everyone on the world, Goanna or not.
+		cf.store_string("goanna_dig_progress = true\n")
 		# The director (docs/director.md), available for the same reason: the
 		# player who launched this server is its operator. Enabling it only
 		# makes it available; nothing happens until a director process
