@@ -678,6 +678,8 @@ func _install_title(inst: Dictionary) -> String:
 
 func _install_detail(inst: Dictionary) -> String:
 	var lines: PackedStringArray = [str(inst["location"]), "Worlds and data: " + str(inst["data_dir"])]
+	if LocalServer.too_old(inst):
+		lines.append("Too old: this is %s %s, and Goanna needs %s or newer. Goanna will not use it." % [str(inst["product"]), str(inst["version"]), LocalServer.MIN_LUANTI])
 	var games: Array = inst["games"]
 	if not games.is_empty():
 		lines.append("Games: " + ", ".join(PackedStringArray(games)))

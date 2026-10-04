@@ -179,13 +179,16 @@ static func detect() -> Dictionary:
 	return _chosen
 
 static func preferred(all: Array, wanted: String) -> Dictionary:
-	var saved := _find_key(all, wanted) if wanted != "" else {}
+	# Too old is never chosen, not even when it was chosen before: an earlier
+	# Goanna had no check and may have saved one.
+	var usable := all.filter(func(inst: Dictionary) -> bool: return not too_old(inst))
+	var saved := _find_key(usable, wanted) if wanted != "" else {}
 	if not saved.is_empty():
 		return saved
-	for inst in all:
+	for inst in usable:
 		if not (inst["games"] as Array).is_empty():
 			return inst
-	return all[0] if not all.is_empty() else {}
+	return usable[0] if not usable.is_empty() else {}
 
 # Every install found, most preferred first. Scanned once per run, because the
 # menu asks often; pass rescan after the player installs or moves one.
@@ -468,6 +471,8 @@ static func _make_install(kind: String, key: String, product: String, version: S
 	_append_unique(game_dirs, data_dir.path_join("games"))
 	for dir in extra_game_dirs:
 		_append_unique(game_dirs, str(dir))
+	if version == "" and kind != "flatpak":
+		version = _probe_version(location)
 	return {"kind": kind, "key": key, "product": product, "version": version,
 		"location": location, "argv": argv, "client_argv": client_argv,
 		"data_dir": data_dir, "share_dir": share_dir, "game_dirs": game_dirs,
@@ -594,6 +599,72 @@ static func _subdirs(path: String) -> Array:
 
 static func _product(name: String) -> String:
 	return "Minetest" if name.to_lower().contains("minetest") else "Luanti"
+
+# The oldest Luanti Goanna will start a world with. Goanna's starter game,
+# Mineclonia, declares min_minetest_version 5.10, and a distribution's
+# package can be far older: on Pop!_OS (Ubuntu's archive) the system Minetest
+# was found, chosen and started, could not load the game, and Start Game
+# went nowhere (2026-10-04). Older installs are still listed, marked too old,
+# and never chosen; on Linux Goanna's own server is set up instead.
+const MIN_LUANTI := "5.10.0"
+
+static var _probed_versions := {}
+
+# What a program says its version is, for an install whose path does not say
+# (a distribution package). "Luanti 5.17.0 (Linux)" or "Minetest 5.6.1", on
+# the first line of --version, which prints and exits without opening a
+# window. "" when it will not say.
+static func _probe_version(program: String) -> String:
+	if program == "" or not FileAccess.file_exists(program):
+		return ""
+	if _probed_versions.has(program):
+		return _probed_versions[program]
+	var output: Array = []
+	var version := ""
+	if OS.execute(program, PackedStringArray(["--version"]), output, true) == 0 and not output.is_empty():
+		var pattern := RegEx.new()
+		pattern.compile("(?:Luanti|Minetest)[^0-9\\n]*(\\d+\\.\\d+\\.\\d+)")
+		var found := pattern.search(str(output[0]))
+		if found != null:
+			version = found.get_string(1)
+	_probed_versions[program] = version
+	return version
+
+# a < b for dotted versions, numerically ("5.9.1" < "5.10.0").
+static func version_less(a: String, b: String) -> bool:
+	var x := a.split(".")
+	var y := b.split(".")
+	for i in maxi(x.size(), y.size()):
+		var p := int(x[i]) if i < x.size() else 0
+		var q := int(y[i]) if i < y.size() else 0
+		if p != q:
+			return p < q
+	return false
+
+# Whether an install is known to be older than Goanna can use. One whose
+# version could not be read is given the benefit of the doubt.
+static func too_old(inst: Dictionary) -> bool:
+	var version := str(inst.get("version", ""))
+	return version != "" and version_less(version, MIN_LUANTI)
+
+# The game's own floor, from its game.conf, when this install has the game:
+# "" when it is new enough or the game names none, else what it needs.
+static func game_needs_newer(inst: Dictionary, game: String) -> String:
+	var version := str(inst.get("version", ""))
+	if version == "":
+		return ""
+	for dir in inst.get("game_dirs", []):
+		var conf := str(dir).path_join(game).path_join("game.conf")
+		if not FileAccess.file_exists(conf):
+			continue
+		for line in FileAccess.get_file_as_string(conf).split("\n"):
+			var kv := line.split("=", true, 1)
+			if kv.size() == 2 and kv[0].strip_edges() in ["min_minetest_version", "min_luanti_version"]:
+				var need := kv[1].strip_edges()
+				if version_less(version, need):
+					return need
+		return ""
+	return ""
 
 # A version written into the path, as the Windows zip, the Windows .exe's
 # unpack directory and AppImages have. A distribution package has none.
@@ -1314,6 +1385,9 @@ func start_config(options: Dictionary) -> String:
 	var env := detect()
 	if env.is_empty():
 		return "No Luanti install found. Choose, locate or install one from Start Game, or set GOANNA_SERVER_CMD."
+	var needs := game_needs_newer(env, gameid)
+	if needs != "":
+		return "%s needs Luanti %s or newer, and the Luanti in use is %s. Update Luanti, or choose a newer one from Start Game." % [gameid, needs, str(env["version"])]
 	_argv = env["argv"]
 	_data_dir = env["data_dir"]
 	world_path = _data_dir.path_join("worlds").path_join(worldname)
