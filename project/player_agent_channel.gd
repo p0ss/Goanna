@@ -21,7 +21,9 @@
 # user://player_agent_<port>.token, readable only by the user.
 extends Node
 
-const PROTOCOL := "goanna-player/0.3"
+const Formspec := preload("res://ui/formspec.gd")
+
+const PROTOCOL := "goanna-player/0.4"
 const DEFAULT_PORT := 30850
 const MAX_LINE := 1 << 20
 const QUERIES := ["hello", "observe", "wait", "action_status"]
@@ -73,6 +75,16 @@ const MAX_ROWS := 500
 const MAX_LABELS := 200
 const MAX_TEXT := 4000
 const FIELD_MAX := 16384
+# Luanti's HUD element types and flags (hud.h), as game_ui.gd draws them.
+const HUD_IMAGE := 0
+const HUD_TEXT := 1
+const HUD_STATBAR := 2
+const HUD_INVENTORY := 3
+const HUD_WAYPOINT := 4
+const HUD_IMAGE_WAYPOINT := 5
+const HUD_FLAG_HEALTHBAR := 1 << 1
+const HUD_FLAG_BREATHBAR := 1 << 4
+const FRAME_WIDTH_MAX := 1280
 
 var main: Node
 var _server := TCPServer.new()
@@ -219,7 +231,7 @@ func _hello() -> Dictionary:
 		"sequence": _sequence, "tick": Engine.get_process_frames(), "read_only": false,
 		"capabilities": {"scope": ["actor"],
 			"observations": ["body", "camera", "pointed", "visible_nodes",
-				"nearby_entities", "inventory", "window", "form_elements", "environment", "events",
+				"nearby_entities", "inventory", "window", "form_elements", "hud", "frame", "environment", "events",
 				"spatial_memory"],
 			"actions": ACTIONS, "queries": QUERIES, "results": RESULTS,
 			"controls": CONTROLS.keys(),
@@ -264,7 +276,7 @@ func _observe(args: Dictionary) -> Dictionary:
 		"pointed": pointed,
 		"nearby_entities": {"radius": ENTITY_RADIUS, "rule": "in view and in line of sight",
 			"seen": _visible_entities(position)},
-		"inventory": inventory, "window": window,
+		"inventory": inventory, "window": window, "hud": _hud(),
 		"environment": {"sky": main.client.sky_state(),
 			"underwater": main.client.is_underwater(main.cam.position)},
 		"held_controls": _held.keys(), "active_actions": _active_actions(),
@@ -275,7 +287,32 @@ func _observe(args: Dictionary) -> Dictionary:
 	var sample = args.get("visible_nodes", null)
 	if sample is Dictionary or sample == true:
 		out["visible_nodes"] = _visible_nodes(sample if sample is Dictionary else {})
+	var frame = args.get("frame", null)
+	if frame is Dictionary or frame == true:
+		out["frame"] = _frame(frame if frame is Dictionary else {})
 	return _plain(out)
+
+# The screen as the player sees it, HUD and open forms included, scaled to
+# width pixels (640 by default) and sent as base64 JPEG or PNG. Nothing is
+# drawn that the screen does not show. A client with no renderer (--headless)
+# has no picture to give.
+func _frame(a: Dictionary) -> Dictionary:
+	if DisplayServer.get_name() == "headless":
+		return {"error": "this client draws no picture (no renderer)"}
+	var texture := main.get_viewport().get_texture()
+	var image: Image = texture.get_image() if texture != null else null
+	if image == null or image.is_empty():
+		return {"error": "this client draws no picture (no renderer)"}
+	var width := clampi(_int(a.get("width", 640)), 64, FRAME_WIDTH_MAX)
+	if image.get_width() > width:
+		image.resize(width, maxi(1, roundi(float(image.get_height()) * width / image.get_width())),
+			Image.INTERPOLATE_BILINEAR)
+	var png := String(a.get("format", "jpeg")) == "png"
+	if image.get_format() != Image.FORMAT_RGB8:
+		image.convert(Image.FORMAT_RGB8)
+	var bytes := image.save_png_to_buffer() if png else image.save_jpg_to_buffer(0.85)
+	return {"width": image.get_width(), "height": image.get_height(),
+		"mime": "image/png" if png else "image/jpeg", "data": Marshalls.raw_to_base64(bytes)}
 
 # Where the player's feet are, as the local player last stepped. The
 # client's server_player_position is only the last position the server
@@ -295,6 +332,9 @@ func _pointed_summary(p: Dictionary) -> Dictionary:
 	elif out.type == "object":
 		out["object_id"] = int(p.get("object_id", -1))
 		out["object_name"] = String(p.get("object_name", ""))
+	# The infotext shown in the corner while it is pointed at.
+	if String(p.get("infotext", "")).strip_edges() != "":
+		out["infotext"] = _styled(String(p.infotext))
 	return out
 
 # What the player could see of each object: in the camera's view and with a
@@ -318,9 +358,14 @@ func _visible_entities(_position: Vector3) -> Array:
 				visible = true
 				break
 		if visible:
-			seen.append({"id": entity.get("id", -1), "name": entity.get("name", ""),
+			var one := {"id": entity.get("id", -1), "name": entity.get("name", ""),
 				"position": at, "rotation_y": entity.get("rotation_y", 0.0),
-				"distance": eye.distance_to(at)})
+				"distance": eye.distance_to(at)}
+			# The tag drawn over it. Its infotext shows only when pointed at,
+			# so it is in pointed, not here.
+			if String(entity.get("nametag", "")).strip_edges() != "":
+				one["nametag"] = _styled(String(entity.nametag))
+			seen.append(one)
 	return seen
 
 func _line_clear(from: Vector3, to: Vector3) -> bool:
@@ -447,7 +492,10 @@ func _form_elements() -> Array:
 			entry["items"] = range(ob.item_count).map(func(i: int) -> String: return ob.get_item_text(i))
 			entry["selected"] = ob.selected + 1
 		elif c is Button:
-			entry["text"] = _plain_text(String(c.get_meta("label", (c as Button).text)))
+			var caption := _styled(String(c.get_meta("label", (c as Button).text)))
+			entry["text"] = caption.text
+			if caption.has("spans"):
+				entry["spans"] = caption.spans
 		elif c is LineEdit:
 			var le := c as LineEdit
 			# The player's own typing, but not a password echoed back.
@@ -480,6 +528,7 @@ func _form_elements() -> Array:
 		elif c is RichTextLabel:
 			entry["text"] = (c as RichTextLabel).get_parsed_text()
 			if c.has_meta("markup"):
+				entry["spans"] = Formspec.markup_spans(c)
 				entry["actions"] = form.hypertext_actions(c).map(func(a: Dictionary) -> Dictionary:
 					var link := {"action": a["name"], "text": a["text"]}
 					if String(a["url"]) != "":
@@ -522,7 +571,98 @@ func _form_labels() -> Array:
 			continue
 		var text: String = (n as Label).text if n is Label else (n as RichTextLabel).get_parsed_text()
 		if text.strip_edges() != "" and form.shown_rect(n).has_area():
-			out.append(_plain_text(text).left(MAX_TEXT))
+			var label := _styled(String(n.get_meta("enriched", text)).left(MAX_TEXT))
+			if n.has_meta("markup"):
+				label["spans"] = Formspec.markup_spans(n)
+			out.append(label)
+	return out
+
+# Text as {text}, and with spans, each a run of text with its colour, when
+# escapes colour any of it, as core.colorize does: the colours are what the
+# player is shown.
+func _styled(raw: String) -> Dictionary:
+	var runs: Array = Formspec.parse_enriched_runs(raw, Color.WHITE)
+	var out := {"text": "".join(runs.map(func(r: Dictionary) -> String: return r.text))}
+	if raw.contains("\u001b(c@"):
+		out["spans"] = runs.map(func(r: Dictionary) -> Dictionary:
+			return {"text": r.text, "color": "#" + (r.color as Color).to_html(false)})
+	return out
+
+# The HUD as game_ui.gd draws it: the server's text, images, status bars,
+# inventory strips and the waypoints in front of the camera. Hidden bars are
+# left out, as are a compass and a minimap, which Goanna does not draw. The
+# hotbar is in body and inventory.
+func _hud() -> Array:
+	var st: Dictionary = main.client.hud_state()
+	var flags := int(st.get("flags", 0xffff))
+	var out := []
+	for e in st.get("elements", []):
+		var type := int(e.get("type", -1))
+		var one := {"id": int(e.get("id", 0)), "position": e.get("pos", Vector2()),
+			"offset": e.get("offset", Vector2()), "z_index": int(e.get("z_index", 0))}
+		match type:
+			HUD_TEXT:
+				if String(e.get("text", "")).strip_edges() == "":
+					continue
+				var n := int(e.get("number", 0xffffff))
+				var colour := Color8(n >> 16 & 0xff, n >> 8 & 0xff, n & 0xff)
+				var runs: Array = Formspec.parse_enriched_runs(String(e.text), colour)
+				one["type"] = "text"
+				one["text"] = "".join(runs.map(func(r: Dictionary) -> String: return r.text))
+				one["spans"] = runs.map(func(r: Dictionary) -> Dictionary:
+					return {"text": r.text, "color": "#" + (r.color as Color).to_html(false)})
+			HUD_IMAGE:
+				if String(e.get("text", "")) == "":
+					continue
+				one["type"] = "image"
+				one["image"] = String(e.text)
+				one["scale"] = e.get("scale", Vector2.ONE)
+			HUD_STATBAR:
+				var bar := String(e.get("name", ""))
+				if (bar == "health" and not flags & HUD_FLAG_HEALTHBAR) \
+						or (bar == "breath" and not flags & HUD_FLAG_BREATHBAR):
+					continue
+				one["type"] = "statbar"
+				one["name"] = bar
+				one["image"] = String(e.get("text", ""))
+				one["value"] = int(e.get("number", 0))
+				one["max"] = int(e.get("item", 0))
+			HUD_INVENTORY:
+				one["type"] = "inventory"
+				one["list"] = String(e.get("text", ""))
+				one["count"] = int(e.get("number", 0))
+			HUD_WAYPOINT, HUD_IMAGE_WAYPOINT:
+				var wp = _waypoint(e)
+				if wp == null:
+					continue
+				one.merge(wp)
+			_:
+				continue
+		out.append(one)
+	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a.z_index < b.z_index)
+	return out
+
+# A waypoint as the screen shows it: only while in front of the camera, at
+# its place on the screen (0 to 1 across and down), with the distance as
+# drawn and the look that would centre it. Its exact coordinates are not
+# shown to a person, so they are not given here.
+func _waypoint(e: Dictionary) -> Variant:
+	var at: Vector3 = e.get("world_pos", Vector3())
+	if main.cam.is_position_behind(at):
+		return null
+	var size: Vector2 = main.get_viewport().get_visible_rect().size
+	var screen: Vector2 = main.cam.unproject_position(at) / size
+	var d: Vector3 = at - main.cam.global_position
+	var out := {"type": "waypoint" if int(e.type) == HUD_WAYPOINT else "image_waypoint",
+		"name": String(e.get("name", "")), "screen": screen,
+		"on_screen": Rect2(0, 0, 1, 1).has_point(screen),
+		"look": {"yaw": rad_to_deg(atan2(-d.x, -d.z)),
+			"pitch": rad_to_deg(atan2(d.y, Vector2(d.x, d.z).length()))}}
+	if int(e.type) == HUD_IMAGE_WAYPOINT:
+		out["image"] = String(e.get("text", ""))
+	elif String(e.get("text", "")) != "-":
+		out["distance"] = int(d.length())
+		out["unit"] = String(e.text) if String(e.text) != "" else "m"
 	return out
 
 func _cursor() -> Dictionary:
@@ -1356,6 +1496,8 @@ func _send(connection: Dictionary, message: Dictionary) -> void:
 func _plain(value: Variant) -> Variant:
 	if value is Vector3 or value is Vector3i:
 		return [value.x, value.y, value.z]
+	if value is Vector2 or value is Vector2i:
+		return [value.x, value.y]
 	if value is Color:
 		return [value.r, value.g, value.b, value.a]
 	if value is Dictionary:

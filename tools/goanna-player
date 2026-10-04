@@ -6,6 +6,7 @@ GOANNA_PLAYER_AGENT (docs/agent-interfaces.md). Every action takes
 --based-on, the sequence of the observation it was decided on, except
 release. Prints the JSON result; exits 0 unless the request itself failed."""
 import argparse
+import base64
 import json
 import pathlib
 import sys
@@ -38,7 +39,10 @@ def main():
     p.add_argument("--nodes", default=None, metavar="COLSxROWS",
                    help="also sample the nodes on screen on a grid, for example 9x7")
     p.add_argument("--range", type=float, default=16.0)
-    p = action("look", help="set or turn the view, in degrees")
+    p.add_argument("--frame", default=None, metavar="PATH",
+                   help="also save a picture of the screen to PATH (.jpg or .png)")
+    p.add_argument("--frame-width", type=int, default=640)
+    p = action("look", help="set or turn the view, in degrees; positive pitch looks up")
     p.add_argument("--pitch", type=float)
     p.add_argument("--yaw", type=float)
     p.add_argument("--turn-pitch", type=float)
@@ -112,6 +116,9 @@ def main():
             cols, _, rows = args.nodes.partition("x")
             request["visible_nodes"] = {"columns": int(cols), "rows": int(rows or cols),
                                         "range": args.range}
+        if args.frame:
+            request["frame"] = {"width": args.frame_width,
+                                "format": "png" if args.frame.lower().endswith(".png") else "jpeg"}
     elif command == "look":
         for key in ("pitch", "yaw", "turn_pitch", "turn_yaw"):
             if getattr(args, key) is not None:
@@ -167,6 +174,10 @@ def main():
                                      token_file=args.token_file)
     except RuntimeError as error:
         sys.exit(str(error))
+    frame = result.get("frame") if command == "observe" and isinstance(result, dict) else None
+    if isinstance(frame, dict) and frame.get("data"):
+        pathlib.Path(args.frame).write_bytes(base64.b64decode(frame.pop("data")))
+        frame["path"] = args.frame
     print(json.dumps(result, indent=2))
 
 

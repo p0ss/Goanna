@@ -41,15 +41,22 @@ def tool(name, description, properties=None, required=(), action=True):
 
 TOOLS = [
     tool("hello", "Protocol version, subject, and the observations and actions this player has.", action=False),
-    tool("observe", "Observe the player: body, camera, the pointed node or entity, entities in view, "
-         "inventory, open window and events. Its sequence is what actions pass as based_on.",
+    tool("observe", "Observe the player: body, camera, the pointed node or entity and its infotext, "
+         "entities in view with nametags, inventory, the open window and form, the HUD (text with "
+         "its colours, waypoints in view) and events. frame adds a picture of the screen. Its "
+         "sequence is what actions pass as based_on.",
          {"since_event": {"type": "integer", "minimum": 0},
           "visible_nodes": {"type": "object", "description": "sample the nodes on screen on a grid",
                             "properties": {"columns": {"type": "integer", "minimum": 1, "maximum": 24},
                                            "rows": {"type": "integer", "minimum": 1, "maximum": 16},
                                            "range": {"type": "number", "minimum": 1, "maximum": 32}},
-                            "additionalProperties": False}}, action=False),
-    tool("look", "Set the view (pitch -89 to 89, yaw in degrees) or turn it by turn_pitch and turn_yaw.",
+                            "additionalProperties": False},
+          "frame": {"type": "object", "description": "a picture of the screen as the player sees it",
+                    "properties": {"width": {"type": "integer", "minimum": 64, "maximum": 1280},
+                                   "format": {"type": "string", "enum": ["jpeg", "png"]}},
+                    "additionalProperties": False}}, action=False),
+    tool("look", "Set the view (pitch -89 to 89, positive looks up; yaw in degrees) or turn it by "
+         "turn_pitch and turn_yaw. A waypoint's look gives the pitch and yaw that centre it.",
          {"pitch": {"type": "number"}, "yaw": {"type": "number"},
           "turn_pitch": {"type": "number"}, "turn_yaw": {"type": "number"}}),
     tool("move", "Hold movement controls for duration_ms, or until goanna_player_release when it is left out.",
@@ -121,7 +128,7 @@ def main():
             method = message.get("method")
             if method == "initialize":
                 result = {"protocolVersion": "2025-06-18", "capabilities": {"tools": {}},
-                          "serverInfo": {"name": "goanna-player", "version": "0.3.0"}}
+                          "serverInfo": {"name": "goanna-player", "version": "0.4.0"}}
             elif method == "tools/list":
                 result = {"tools": TOOLS}
             elif method == "tools/call":
@@ -130,7 +137,15 @@ def main():
                 if name not in COMMANDS:
                     raise RuntimeError("unknown tool %s" % name)
                 value = goanna_player.query(COMMANDS[name], params.get("arguments") or {})
-                result = {"content": [{"type": "text", "text": json.dumps(value)}]}
+                content = []
+                frame = value.get("frame") if isinstance(value, dict) else None
+                if isinstance(frame, dict) and frame.get("data"):
+                    # The picture goes as an image the host can see, not as
+                    # base64 inside the JSON.
+                    content.append({"type": "image", "data": frame.pop("data"),
+                                    "mimeType": frame.get("mime", "image/jpeg")})
+                content.insert(0, {"type": "text", "text": json.dumps(value)})
+                result = {"content": content}
             else:
                 if "id" not in message:
                     continue

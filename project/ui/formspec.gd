@@ -2074,6 +2074,7 @@ func _rich_text(text: String, colour: Color, size: int, st: Dictionary) -> RichT
 	for _i in pushes:
 		rt.pop()
 	rt.set_meta("plain", strip_enriched(text))
+	rt.set_meta("enriched", text)
 	return rt
 
 # The font style property as a Font for Godot's own controls: the form's
@@ -2223,6 +2224,8 @@ func _render_markup(rt: RichTextLabel, text: String, hover := -1) -> void:
 	rt.clear()
 	# The colour each action was drawn in, in order, for the suite to read.
 	rt.set_meta("action_colours", [])
+	# The text as drawn, in runs of one style, for markup_spans().
+	rt.set_meta("spans", [])
 	var tags := {}
 	for k in MARKUP_TAGS:
 		tags[k] = (MARKUP_TAGS[k] as Dictionary).duplicate()
@@ -2251,15 +2254,46 @@ func _render_markup(rt: RichTextLabel, text: String, hover := -1) -> void:
 			i += 1
 			continue
 		if run != "":
-			rt.add_text(run)
+			_markup_text(rt, run, stack)
 			run = ""
 		_markup_tag(rt, text.substr(i + 1, close - i - 1), tags, stack, state)
 		i = close + 1
 	if run != "":
-		rt.add_text(run)
+		_markup_text(rt, run, stack)
 	while stack.size() > 0:
 		for _p in int(stack.pop_back()["pops"]):
 			rt.pop()
+
+# Adds a run of text in the style in force, and notes it with that style,
+# leaving out the hover colour, which only lasts while the pointer is there.
+func _markup_text(rt: RichTextLabel, run: String, stack: Array) -> void:
+	rt.add_text(run)
+	var style: Dictionary = stack.back()["style"]
+	var span := {"text": run}
+	var colour := String(style.get("color", ""))
+	span["color"] = "#" + parse_color(colour, Color.WHITE).to_html(false) if _is_colour(colour) else "#ffffff"
+	for k in ["bold", "italic", "underline"]:
+		if _is_yes(String(style.get(k, ""))):
+			span[k] = true
+	if style.has("action"):
+		span["action"] = style["action"]
+	var spans: Array = rt.get_meta("spans")
+	if not spans.is_empty():
+		var last: Dictionary = spans.back()
+		var same := true
+		for k in ["color", "bold", "italic", "underline", "action"]:
+			if last.get(k) != span.get(k):
+				same = false
+		if same:
+			last["text"] = String(last["text"]) + run
+			return
+	spans.append(span)
+
+# The text of a hypertext element in runs of one style, each with its colour
+# as #rrggbb, bold, italic and underline when set, and the action it belongs
+# to. Read only.
+static func markup_spans(rt: Control) -> Array:
+	return (rt.get_meta("spans", []) as Array).duplicate(true)
 
 # The page settings <global> carries (ParsedText::globalTag), gathered from
 # the whole text wherever the tag stands, since upstream lays the page out
@@ -2418,6 +2452,7 @@ func _markup_tag(rt: RichTextLabel, body: String, tags: Dictionary, stack: Array
 		pushes += 1
 	var colour := String(style.get("color", ""))
 	if name == "action":
+		inner["action"] = String(attrs.get("name", ""))
 		var index: int = state["actions"]
 		state["actions"] = index + 1
 		rt.push_meta({"index": index, "name": String(attrs.get("name", "")),

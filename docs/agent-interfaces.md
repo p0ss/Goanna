@@ -200,7 +200,7 @@ Deliverable: a scripted policy can play through ordinary mechanics. Planning,
 memory and autonomous goal selection remain external.
 
 Status: a first version is in `project/player_agent_channel.gd`, protocol
-`goanna-player/0.3`, described below under "The player agent protocol". What
+`goanna-player/0.4`, described below under "The player agent protocol". What
 has been seen to work, and what has not, is listed at the end of it.
 
 ### R3: Game extension seam
@@ -224,7 +224,7 @@ faction diplomacy, culture generation or multi-agent society.
 
 ## The player agent protocol
 
-`goanna-player/0.3`, served by `project/player_agent_channel.gd`. It shares
+`goanna-player/0.4`, served by `project/player_agent_channel.gd`. It shares
 no code path with the control channel: no dispatcher, no `eval`, no method
 call by name. `project/tests/player_agent_boundary.gd` fails if the channel,
 `tools/goanna-player` or `tools/goanna-player-mcp` gains any of the control
@@ -267,23 +267,49 @@ stale action is a result, not an error.
 
 - `body`: feet position, health, breath, grounded, in liquid, climbing,
   velocity, wielded slot and item, hotbar size;
-- `camera`: eye position, pitch, yaw, look direction, field of view;
+- `camera`: eye position, pitch, yaw, look direction, field of view. Pitch
+  is positive looking up; yaw 0 looks along -z and 90 along -x;
 - `pointed`: what the crosshair is on, within the wielded item's reach,
-  exactly as the client's own selection box shows it;
+  exactly as the client's own selection box shows it, with its `infotext`
+  when it has one, the text shown in the corner while it is pointed at;
 - `nearby_entities`: objects within 32 nodes that are inside the camera's
   view and have a clear line from the eye to their body or head, with no
-  walkable node in the way. The client is told about objects behind walls
-  and behind the player; those are left out;
+  walkable node in the way, each with the `nametag` drawn over it. The
+  client is told about objects behind walls and behind the player; those
+  are left out;
 - `inventory`: the player's own lists, with stripped item descriptions;
 - `window`: the open window, and for a form the slots on screen with their
   contents, the stack on the cursor, whether it may be closed, its named
   elements (below) and its `labels`, the text on it that belongs to no
   element;
+- `hud`: what the server has put on the screen, as Goanna draws it. Text
+  elements with their `text` and `spans`; images with the texture string
+  they show; status bars with `value` and `max`; inventory strips; and
+  waypoints, only while they are in front of the camera, with their `name`,
+  where on the `screen` they are (0 to 1 across and down), the `distance`
+  as drawn and the `look` (pitch and yaw) that would centre one. A
+  waypoint's exact coordinates are not drawn and are not given. Bars the
+  server has hidden, empty text, a compass and a minimap (which Goanna does
+  not draw) are left out; the hotbar is in `body` and `inventory`;
 - `events`: chat lines and action results since `since_event`;
 - `visible_nodes`, only when asked for (`{"columns", "rows", "range"}`, up
   to 24 by 16 rays and 32 nodes): the first node each ray through the screen
   meets, which is the surface the player sees there. Rays stop at unloaded
-  nodes and look through the medium the eye is in (water under water).
+  nodes and look through the medium the eye is in (water under water);
+- `frame`, only when asked for (`{"width", "format"}`, up to 1280 pixels
+  wide, `jpeg` or `png`): a picture of the screen as the player sees it,
+  world, HUD and open form together, base64 in `data`. A client started
+  with `--headless` has no picture and says so. `tools/goanna-player-mcp`
+  hands it to the host as an image, and `tools/goanna-player observe
+  --frame PATH` saves it.
+
+Text a game colours, with `core.colorize` or hypertext styles, comes as
+`text` and `spans`, each span a run of one look: its `text`, its `color`
+as `#rrggbb`, and in hypertext `bold`, `italic`, `underline` and the
+`action` it belongs to. The colour is the one the game asked for; a game
+that tells the player something by colour (Kythen marks the words a player
+knows that way) tells the agent too. `labels` on a form are objects of
+this kind. Chat comes without colour, because Goanna's chat shows none.
 
 A form's `elements` are the named ones on screen. Each has its `name` and
 formspec `type`, and as fits the type: `text` (a caption, a field's text, a
@@ -423,10 +449,30 @@ hypertext links and `respawn` were checked only offline, by
 `ui/formspec.gd` and works it through the channel with no server. A fresh
 Kythen world has no village, so none of its forms with those elements could
 be reached. Kythen's map did not open at all: it waits for an image sent
-with `dynamic_add_media`, and Goanna's session does not handle
-`TOCLIENT_MEDIA_PUSH`, so the image never arrives and the server never
-shows the form. That is a client defect, not an agent one, and a person
-playing Goanna meets it too.
+with `dynamic_add_media`, and Goanna's session did not then handle
+`TOCLIENT_MEDIA_PUSH`, so the image never arrived and the server never
+showed the form. A person playing Goanna met that too.
+
+On 2026-10-04, against a Luanti 5.17.0 server running Kythen 0.1.0-b1 in a
+fresh world, with Goanna started with Godot 4.5.1's own `--headless` (no
+renderer, so nothing on the GPU), `goanna-player/0.4`:
+
+- `hud` reported Kythen's ground overlay: its two text lines, the second
+  in the overlay's own colour, and the two filled images of its bar;
+- `use` with the map wielded opened `kythen:mapview`, which needs the
+  pushed map image fetched and acknowledged: Goanna now handles
+  `TOCLIENT_MEDIA_PUSH`, asks for the file, loads it and sends
+  `TOSERVER_HAVE_MEDIA`;
+- `form_button` on the map's Zoom to my region, a second pushed image and
+  the region view;
+- the map's Close button sent `close` and left the map open: Kythen's
+  handler returns without closing the form, which a person meets too.
+  `inventory_close` closed it.
+
+Not seen live: HUD speech from a villager, waypoints, infotext, nametags
+(a fresh world has no village and no creature came near) and frames (a
+`--headless` client has no picture). They are covered offline by
+`project/tests/player_agent_forms.gd`.
 
 Not verified: `attack` landing on a mob. Every mob the test scripts aimed
 at moved out of reach first (the spawn was beside a lake, and the
