@@ -469,10 +469,23 @@ renderer, so nothing on the GPU), `goanna-player/0.4`:
   handler returns without closing the form, which a person meets too.
   `inventory_close` closed it.
 
-Not seen live: HUD speech from a villager, waypoints, infotext, nametags
-(a fresh world has no village and no creature came near) and frames (a
-`--headless` client has no picture). They are covered offline by
-`project/tests/player_agent_forms.gd`.
+Later the same day, the same server with Goanna rendering on the CPU
+(`tools/goanna-headless start --software`): `observe` with `frame` returned
+pictures of the world with the HUD over it, and of the open map form, as
+JPEG and PNG.
+
+That picture showed the map as a flat placeholder. The client had joined
+under a name that had opened the map before, in an earlier connection, and
+Kythen keeps a per player note of the last map file sent
+(`engine/interface/map.lua`) that it never clears when a player leaves.
+On the next open it skipped `dynamic_add_media` for a file the new
+connection did not have, as it would for a vanilla client, which keeps no
+ephemeral media across connections either. Under a fresh name the file was
+pushed, fetched and loaded at its real 128 by 128, and the form showed it.
+
+Not seen live: HUD speech from a villager, waypoints, infotext and nametags
+(a fresh world has no village and no creature came near). They are covered
+offline by `project/tests/player_agent_forms.gd`.
 
 Not verified: `attack` landing on a mob. Every mob the test scripts aimed
 at moved out of reach first (the spawn was beside a lake, and the
