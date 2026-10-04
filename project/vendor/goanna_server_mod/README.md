@@ -243,7 +243,10 @@ to it. It is `dig_progress.lua`, and it trusts no client: the server reads
 each player's own dig control and aim, times the block against its own dig
 parameters for the tool held, and finishes the dig through the node's own
 `on_dig`, so drops, wear and protection behave as for any dig. A dig done in
-one go is left to the engine. Worlds started from Goanna turn it on.
+one go is left to the engine. Worlds started from Goanna turn it on, except
+for a game that keeps its own dig damage (Kythen), and it stays off whenever
+`goanna_carve_authority = game`: two systems crediting the same digging made
+a Kythen block come back to break in about half the time that remained.
 
 Tested 2026-10-04 on Luanti 5.17 with Minetest Game: a tree block (3.5 s by
 hand) dug for 2 s, left, then dug again broke 1.58 s into the second go.

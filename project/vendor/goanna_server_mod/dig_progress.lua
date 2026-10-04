@@ -28,6 +28,15 @@ return function(enabled)
 	if not enabled then
 		return
 	end
+	-- A game that computes block damage itself owns progress too (see
+	-- damage.lua's CARVE AUTHORITY). Kythen keeps it per blow, and this on
+	-- top credited the same digging twice: a block came back to broke in
+	-- about half the time that remained.
+	if core.settings:get("goanna_carve_authority") == "game" then
+		core.log("action", "[goanna] remembered dig progress is off: "
+				.. "goanna_carve_authority=game, the game keeps its own")
+		return
+	end
 
 	local STEP = 0.1
 	local MAX_ENTRIES = 4096

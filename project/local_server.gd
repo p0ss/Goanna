@@ -42,6 +42,9 @@ const GOANNA_SERVER_MOD_FILES := ["init.lua", "surface.lua", "fine.lua", "surfac
 	"director/init.lua", "director/logic.lua", "director/audit.lua", "director/events.lua",
 	"director/summaries.lua", "director/intents.lua", "director/commands.lua", "director/http.lua",
 	"director/adapters/mcl_mobs.lua"]
+# Games that keep a block's dig progress themselves, so the server mod's
+# remembered dig progress is left off for them (goanna_server_mod/dig_progress.lua).
+const GAMES_WITH_OWN_DIG_DAMAGE := ["kythen"]
 const PBR_GAME_DIRS := {
 	"minetest": "minetest_game",
 	"minetest_game": "minetest_game",
@@ -1484,7 +1487,13 @@ func start_config(options: Dictionary) -> String:
 		# nothing annoying (owner, 2026-10-04). The server measures it from the
 		# player's own controls, so it trusts no client, and it applies to
 		# everyone on the world, Goanna or not.
-		cf.store_string("goanna_dig_progress = true\n")
+		# Not for a game that keeps its own dig damage: Kythen already carries
+		# progress from earlier blows (form_damage.lua), and both together
+		# credited the same digging twice, so a block came back to broke in
+		# about half the time left (measured 2026-10-05: 0.57 s where 1.2 s
+		# remained).
+		if not GAMES_WITH_OWN_DIG_DAMAGE.has(gameid):
+			cf.store_string("goanna_dig_progress = true\n")
 		# The director (docs/director.md), available for the same reason: the
 		# player who launched this server is its operator. Enabling it only
 		# makes it available; nothing happens until a director process
