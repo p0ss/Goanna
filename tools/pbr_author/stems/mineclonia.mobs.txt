@@ -477,3 +477,8 @@ mcl_banners_triangle_bottom amc_banner.b3d
 mcl_banners_triangle_top amc_banner.b3d
 mcl_banners_triangles_bottom amc_banner.b3d
 mcl_banners_triangles_top amc_banner.b3d
+# The End crystal, conduit and enchanting table book. Specs are written by
+# tools/pbr_author/end_objects.py.
+mcl_end_crystal mcl_end_crystal.b3d
+mcl_conduit_conduit mcl_end_crystal.b3d
+mcl_enchanting_book_entity mcl_enchanting_book.b3d
