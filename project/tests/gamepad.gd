@@ -81,6 +81,62 @@ func _test_talk() -> void:
 	check(keys.call() == [[KEY_ENTER, true], [KEY_ENTER, false]], "A in the chat box is Enter: %s" % [keys.call()])
 	chat.queue_free()
 
+# Prompts name the controls of what the player is using, and a text box
+# reached with the D-pad takes typing: on a Steam Deck the on-screen
+# keyboard's characters were dropped, because focus by navigation does not
+# start editing and A does not either.
+func _test_device_and_text() -> void:
+	check(Pad.family_of("Steam Deck") == "steam", "the Deck is steam")
+	check(Pad.family_of("PS5 Controller") == "playstation", "a PS5 pad is playstation")
+	check(Pad.family_of("DualSense Wireless Controller") == "playstation", "a DualSense is playstation")
+	check(Pad.family_of("Nintendo Switch Pro Controller") == "nintendo", "a Switch Pro pad is nintendo")
+	check(Pad.family_of("Xbox Series Controller") == "xbox", "an Xbox pad is xbox")
+	check(Pad.label("back", "keyboard", "xbox") == "Escape", "back on a keyboard is Escape")
+	check(Pad.label("back", "controller", "playstation") == "Circle", "back on a PlayStation pad is Circle")
+	check(Pad.label("confirm", "controller", "xbox") == "A", "confirm on an Xbox pad is A")
+	check(Pad.label("menu", "controller", "steam") == "Menu", "the pause menu on a Deck is Menu")
+	check(Pad.label("talk", "controller", "nintendo") == "D-pad up", "talk on a pad is D-pad up")
+	var k := InputEventKey.new()
+	k.keycode = KEY_Q
+	k.pressed = true
+	pad._note_device(k)
+	check(pad.last_device == "keyboard" and pad.prompt("back") == "Escape", "a key press is the keyboard")
+	var j := InputEventJoypadButton.new()
+	j.button_index = JOY_BUTTON_B
+	j.pressed = true
+	pad._note_device(j)
+	check(pad.last_device == "controller" and pad.prompt("back") != "Escape",
+		"a button press is a controller: back is %s" % pad.prompt("back"))
+	var pushed := InputEventKey.new()
+	pushed.keycode = KEY_ESCAPE
+	pushed.set_meta(Pad.PUSHED, true)
+	pad._note_device(pushed)
+	check(pad.last_device == "controller", "a key the controller pushed does not count as the keyboard")
+
+	play = false
+	var box := VBoxContainer.new()
+	var first := Button.new()
+	first.text = "first"
+	var field := LineEdit.new()
+	box.add_child(first)
+	box.add_child(field)
+	root.add_child(box)
+	await process_frame
+	first.grab_focus()
+	tap(JOY_BUTTON_DPAD_DOWN)
+	await process_frame
+	check(root.gui_get_focus_owner() == field, "the D-pad reaches the text box")
+	check(field.is_editing(), "a text box reached by the D-pad is editing")
+	var a := InputEventKey.new()
+	a.keycode = KEY_A
+	a.unicode = 97
+	a.pressed = true
+	Input.parse_input_event(a)
+	Input.flush_buffered_events()
+	await process_frame
+	check(field.text == "a", "typing reaches it, as the Deck's keyboard types: '%s'" % field.text)
+	box.queue_free()
+
 func tap(b: int) -> void:
 	button(b, true)
 	button(b, false)
@@ -126,9 +182,10 @@ func _run() -> void:
 	_test_cursor()
 	_test_menu_buttons()
 	_test_talk()
+	await _test_device_and_text()
 
 	if failures == 0:
-		print("gamepad: actions, deadzone, play keys, look, edges, off switch, cursor, menu buttons and talk passed")
+		print("gamepad: actions, deadzone, play keys, look, edges, off switch, cursor, menu buttons, talk, prompts and text entry passed")
 	quit(1 if failures > 0 else 0)
 
 func _bound(action: String, want: int) -> bool:

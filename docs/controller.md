@@ -84,6 +84,19 @@ would release the mouse pointer (a window, the inventory, chat, Escape), the
 controller becomes a cursor, and whenever it takes the pointer back, the
 controller plays.
 
+
+## Typing and prompts
+
+A text box, such as Join Game's address, starts taking typing as soon as it
+has the focus, however it got it. On a Steam Deck, move to the box with the
+D-pad and press Steam and X for the on-screen keyboard. Before, a box
+reached by the D-pad had the focus but ignored typing, and A did not start
+it either, so the Deck's keyboard typed into nothing.
+
+Where Goanna names a control, it names the one on what you last used: B,
+Circle or Escape to go back, A, Cross or Enter to confirm, D-pad up or T
+to talk. Errors while connecting offer a Back to the menu button instead of
+naming a key, so a click, Enter or A all work.
 ## Settings
 
 The Controls tab has four settings, stored in `goanna.cfg` with the rest:

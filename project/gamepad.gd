@@ -30,6 +30,10 @@ const CFG_PATH := "user://goanna.cfg"
 # through _input can be told from a real mouse. main.gd's CONTROL_DEVICE,
 # for the control channel, is 0x60A7.
 const POINTER_DEVICE := 0x60A8
+# Key events pushed for a button (Start as Escape, D-pad up as T) are tagged
+# with this, so they do not count as the keyboard being used. They keep
+# device 0: built in actions such as submitting a text field match only it.
+const PUSHED := "goanna_pushed"
 
 # Upstream's joystick_frustum_sensitivity: degrees a second at full
 # deflection, before the field of view scale.
@@ -176,6 +180,66 @@ func _ready() -> void:
 	add_child(_cursor)
 	load_settings()
 	ensure_actions()
+	get_viewport().gui_focus_changed.connect(_on_focus_changed)
+
+# A text box reached by the D-pad (or Tab) is focused but not editing: Godot
+# starts editing on a click or the keyboard's Enter, never on a controller's
+# A, so every character typed into it, the Steam Deck's on-screen keyboard
+# included, was dropped, and a Deck could not type a server's address. A
+# text box that takes the focus now starts editing, however it got it.
+func _on_focus_changed(c: Control) -> void:
+	if (c is LineEdit or c is TextEdit) and c.editable and c.has_method("is_editing") \
+			and not c.is_editing():
+		c.edit()
+
+# --- the device in use, and naming its controls ---------------------------------
+
+# Which the player last used, "keyboard" (with the mouse) or "controller",
+# and for a controller its family, for prompts: "xbox", "playstation",
+# "nintendo" or "steam" (the Steam Deck's own controls and Steam Controller).
+var last_device := "keyboard"
+var controller_family := "xbox"
+
+func _note_device(event: InputEvent) -> void:
+	if event is InputEventKey:
+		if not event.has_meta(PUSHED):
+			last_device = "keyboard"
+	elif event is InputEventMouseButton or event is InputEventMouseMotion:
+		if event.device != POINTER_DEVICE and event.device != 0x60A7:
+			last_device = "keyboard"
+	elif event is InputEventJoypadButton or (event is InputEventJoypadMotion
+			and absf((event as InputEventJoypadMotion).axis_value) > 0.5):
+		last_device = "controller"
+		controller_family = family_of(Input.get_joy_name(event.device))
+
+static func family_of(joy_name: String) -> String:
+	var n := joy_name.to_lower()
+	if n.contains("steam") or n.contains("valve"):
+		return "steam"
+	for word in ["playstation", "dualsense", "dualshock", "ps3", "ps4", "ps5", "sony"]:
+		if n.contains(word):
+			return "playstation"
+	for word in ["nintendo", "switch", "joy-con", "pro controller"]:
+		if n.contains(word):
+			return "nintendo"
+	return "xbox"
+
+# A control's name on a device, for prompts: "back" (leave, cancel), "confirm"
+# (press, send), "menu" (the pause menu), "talk" (voice typing).
+const LABELS := {
+	"back": {"keyboard": "Escape", "xbox": "B", "steam": "B", "playstation": "Circle", "nintendo": "B"},
+	"confirm": {"keyboard": "Enter", "xbox": "A", "steam": "A", "playstation": "Cross", "nintendo": "A"},
+	"menu": {"keyboard": "Escape", "xbox": "Start", "steam": "Menu", "playstation": "Options", "nintendo": "+"},
+	"talk": {"keyboard": "T", "xbox": "D-pad up", "steam": "D-pad up", "playstation": "D-pad up", "nintendo": "D-pad up"},
+}
+
+static func label(control: String, device: String, family: String) -> String:
+	var names: Dictionary = LABELS.get(control, {})
+	return str(names.get("keyboard" if device == "keyboard" else family, control))
+
+# The name of a control on what the player is using now.
+func prompt(control: String) -> String:
+	return label(control, last_device, controller_family)
 
 # Read at startup, and again by the main menu when its settings screen saves,
 # since the menu has no game panel to apply them live.
@@ -467,6 +531,7 @@ func _push_button(button: int, pressed: bool) -> void:
 func _tap_key(keycode: int) -> void:
 	for pressed in [true, false]:
 		var ev := InputEventKey.new()
+		ev.set_meta(PUSHED, true)
 		ev.keycode = keycode
 		ev.physical_keycode = keycode
 		ev.key_label = keycode
@@ -487,6 +552,7 @@ func _draw_cursor() -> void:
 # --- events ------------------------------------------------------------------
 
 func _input(event: InputEvent) -> void:
+	_note_device(event)
 	if event is InputEventMouseMotion:
 		if event.device != POINTER_DEVICE:
 			# A real mouse took over; the cursor starts from it next time.
@@ -581,6 +647,7 @@ func _release_held(event: InputEvent) -> bool:
 
 func _push_key(keycode: int, pressed: bool) -> void:
 	var ev := InputEventKey.new()
+	ev.set_meta(PUSHED, true)
 	ev.keycode = keycode
 	ev.physical_keycode = keycode
 	ev.key_label = keycode

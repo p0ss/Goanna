@@ -945,6 +945,9 @@ func pointer_captured(event: InputEvent = null) -> bool:
 # test as for the mouse, so a window, chat or a released pointer hands the
 # controller to the menus exactly when it hands them the mouse.
 func gamepad_owns_play() -> bool:
+	# The connecting screen is a menu: its buttons take A, not jump.
+	if connect_overlay != null:
+		return false
 	return pointer_captured() and not (ui != null and ui.blocks_input())
 
 # Take the pointer for play, or give it back. Every capture in the game goes
@@ -1181,6 +1184,8 @@ var _materials: Node
 var _materials_held := false
 var _materials_announced := false
 var _skip_button: Button
+var _back_button: Button
+var _connect_error_said := ""
 var connect_title: Label
 var connect_detail: Label
 var connect_bar: ProgressBar
@@ -1248,6 +1253,16 @@ func _build_connect_overlay() -> void:
 	_skip_button.visible = false
 	_skip_button.pressed.connect(_release_materials.bind(true))
 	box.add_child(_skip_button)
+	# On an error, a button rather than a key to name: a click, Enter and a
+	# controller's A all press it, so the screen never tells a player to
+	# press a key their device does not have.
+	_back_button = Button.new()
+	_back_button.text = "Back to the menu"
+	_back_button.visible = false
+	_back_button.pressed.connect(func() -> void:
+		if ui != null:
+			ui._disconnect())
+	box.add_child(_back_button)
 	add_child(connect_overlay)
 
 func _update_connect_overlay(s: Dictionary) -> void:
@@ -1276,20 +1291,27 @@ func _update_connect_overlay(s: Dictionary) -> void:
 				if stopped else "Nothing has come back from %s in %d seconds. " % [
 					OS.get_environment("GOANNA_HOST") + ":" + OS.get_environment("GOANNA_PORT"),
 					CONNECT_NO_ANSWER_MS / 1000]) \
-				+ "\n\nPress Escape to go back to the menu."
+				.strip_edges()
 		connect_detail.modulate = Color(1, 0.65, 0.55)
+		_show_connect_error()
 		return
 	if state == "denied" or state == "error" or msg.begins_with("access denied"):
 		# The server has refused and is not going to change its mind. Say what
 		# it said, rather than leaving the player watching a blank screen.
-		connect_title.text = "The server refused the connection"
+		# A timeout is the session giving up on a server that never
+		# answered, not a refusal.
+		connect_title.text = "The server is not answering" if msg.contains("timed out") \
+				else "The server refused the connection"
 		connect_bar.visible = false
-		connect_detail.text = msg + "\n\nPress Escape to go back to the menu."
+		connect_detail.text = msg
 		connect_detail.modulate = Color(1, 0.65, 0.55)
+		_show_connect_error()
 		return
 	connect_bar.visible = true
 	connect_detail.modulate = Color(1, 1, 1, 0.7)
-	if _materials_held and bool(s.get("content_held", false)):
+	# Only once the server's media is in: the hold is set from the start of
+	# the join, and before then the screen is still connecting.
+	if _materials_held and bool(s.get("content_held", false)) and state == "content-ready":
 		_show_material_wait()
 		return
 	if want > 0:
@@ -1300,6 +1322,18 @@ func _update_connect_overlay(s: Dictionary) -> void:
 		connect_title.text = "Connecting"
 		connect_bar.value = 0.0
 		connect_detail.text = msg if msg != "" else state
+
+# A failed connection: the way back, focused, and the reason read aloud.
+func _show_connect_error() -> void:
+	_skip_button.visible = false
+	if not _back_button.visible:
+		_back_button.visible = true
+		_back_button.grab_focus()
+	var said := connect_title.text + ". " + connect_detail.text
+	if said != _connect_error_said:
+		_connect_error_said = said
+		if ui != null and ui.get("narrator") != null and ui.narrator.enabled:
+			ui.narrator.say(said + " Back to the menu, button.", true)
 
 # The server's media is in and the join is waiting for material bundles: how
 # far they have got, and a way not to wait.
@@ -1323,7 +1357,7 @@ func _show_material_wait() -> void:
 	if not _materials_announced:
 		_materials_announced = true
 		if ui != null and ui.get("narrator") != null and ui.narrator.enabled:
-			ui.narrator.say("Downloading enhanced materials. Press Enter to skip and play now.", true)
+			ui.narrator.say("Downloading enhanced materials. Skip and play now, button.", true)
 
 # Start from what the machine says it is, rather than from one number chosen
 # on the author's desktop.

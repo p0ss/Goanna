@@ -171,14 +171,14 @@ func _on_downloaded(result: int, code: int, _headers: PackedStringArray, _body: 
 	_hide()
 	if result != HTTPRequest.RESULT_SUCCESS or code != 200:
 		DirAccess.remove_absolute(part)
-		_say("Voice typing could not download its speech model. Check the connection and hold T to try again.")
+		_say("Voice typing could not download its speech model. Check the connection and hold %s to try again." % _key("talk"))
 		return
 	if FileAccess.get_sha256(part) != str(MODELS[_download_size].sha256):
 		DirAccess.remove_absolute(part)
-		_say("Voice typing's download was damaged and has been thrown away. Hold T to try again.")
+		_say("Voice typing's download was damaged and has been thrown away. Hold %s to try again." % _key("talk"))
 		return
 	DirAccess.rename_absolute(part, final)
-	_say("Voice typing is ready. Hold T and speak.")
+	_say("Voice typing is ready. Hold %s and speak." % _key("talk"))
 
 # --- listening --------------------------------------------------------------------
 
@@ -190,7 +190,7 @@ func _start_listening() -> void:
 	_capture.clear_buffer()
 	_mic.play()
 	state = "listening"
-	_show("Listening... let go of T when you are done")
+	_show("Listening... let go of %s when you are done" % _key("talk"))
 
 # A muted bus with a capture on it, so what the microphone hears is read
 # but never played back. Godot opens the input device only while the
@@ -287,20 +287,28 @@ static func clean(text: String) -> String:
 
 func _on_result(result: Dictionary) -> void:
 	if result.has("error"):
-		_say("Voice typing did not work that time. Hold T and try again.")
+		_say("Voice typing did not work that time. Hold %s and try again." % _key("talk"))
 		return
 	var text := clean(str(result.get("text", "")))
 	if text == "":
-		_say("I did not catch that. Hold T and try again.")
+		_say("I did not catch that. Hold %s and try again." % _key("talk"))
 		return
 	if ui != null and ui.has_method("_open_chat"):
 		ui._open_chat(text)
 	var narrator = ui.get("narrator") if ui != null else null
 	if narrator != null and narrator.enabled:
 		var stop := "" if text.right(1) in [".", "?", "!"] else "."
-		narrator.say("Heard: %s%s Press Enter to send." % [text, stop], true)
+		narrator.say("Heard: %s%s Press %s to send." % [text, stop, _key("confirm")], true)
 
 # --- telling the player -------------------------------------------------------------
+
+# A control's name on what the player is using (gamepad.gd's prompt): T or
+# D-pad up, Enter or A. The keyboard's without the Gamepad autoload.
+func _key(control: String) -> String:
+	var pad := get_node_or_null("/root/Gamepad")
+	if pad != null and pad.has_method("prompt"):
+		return pad.prompt(control)
+	return {"talk": "T", "confirm": "Enter", "back": "Escape"}.get(control, control)
 
 func _show(text: String) -> void:
 	_indicator.text = text
