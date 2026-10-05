@@ -24,11 +24,17 @@ path, author, media licence and required attribution. An archive-wide licence
 is sufficient only when it unambiguously covers all media. A mixed notice
 requires a per-file mapping. A ContentDB label is corroborating metadata, not
 a substitute for the notice inside the pinned archive. Ambiguous files are
-excluded rather than assigned the most convenient nearby licence. Goanna's
-policy is deliberately narrower than general legal redistributability:
-GPL-, LGPL- and AGPL-licensed **media** are rejected. A package's software may
-use one of those licences only when a separate notice unambiguously places the
-selected image under an accepted media licence. `pbr_packs/MEDIA_POLICY.json`
+excluded, or recorded under the strictest licence they could be under,
+rather than assigned the most convenient nearby licence.
+
+GPL-3.0 media is accepted, for texture packs only. Goanna's code is
+LGPL-2.1-or-later and the packs are separate works shipped beside it, each
+under its own source's terms as noted in its `ATTRIBUTION.md`, so a GPL
+texture makes only the maps derived from it GPL-3.0. Their source, in the
+GPL's sense, is the spec each was authored from under `tools/pbr_author/`,
+and the pack's attribution says where that is. AGPL media is still
+rejected. A package's software licence never qualifies its media: that takes
+a notice about the media. `pbr_packs/MEDIA_POLICY.json`
 is the machine-readable allow/deny list and `tools/check-pbr-licenses.py`
 enforces it against both the source lock and reviewed per-file ledgers.
 
@@ -55,7 +61,7 @@ The current audit groups are:
 | Animalia, Dungeons Plus, Natural Biomes | single-project terms found | The included notice covers the project; Dungeons Plus has no qualifying node textures. |
 | Cottages, Ebiomes, Ethereal, Everness, Fachwerk, Goblins, `mcl_decor`, Techage, X-Decor | per-file audit required | Their notices identify multiple authors, licences, imported works or submods. |
 | Darkage | excluded | ContentDB declares CC0 media while the archive contains an MIT notice without a clear media scope; it is absent from every intake manifest. |
-| VoxeLibre | per-file mapping recorded | Release 38585's `LEGAL.md` is mixed and mods carry their own notices. `tools/pbr_audit_voxelibre.py` records the most specific notice for each of the 902 authored stems in `pbr_packs/manifests/voxelibre-pack-v1.sources.json`: 864 admitted, 38 excluded. `mcl_fences` places its textures under GPLv3 and `mcl_flowers` has an unscoped GPLv3 line; Mineclonia's copies of both notices say WTFPL. |
+| VoxeLibre | per-file mapping recorded | Release 38585's `LEGAL.md` is mixed and mods carry their own notices. `tools/pbr_audit_voxelibre.py` records the most specific notice for each of the 902 authored stems in `pbr_packs/manifests/voxelibre-pack-v1.sources.json`. 38 are GPL-3.0: `mcl_fences` places its textures under GPLv3 and `mcl_flowers` has an unscoped GPLv3 line, read as covering them. Mineclonia's copies of both notices say WTFPL. |
 | Asuna | excluded | Its own LICENSE opens "this game as a whole is released under GPLv3", because it aggregates GPL works. ContentDB's CC BY-SA 4.0 label is the corroborating metadata that cannot stand in for that. It does enumerate every included work with its licence file, so a work may still be admitted through its own upstream package. |
 | Minetest Game | archive-wide plus per-mod attribution | Release 38214 is pinned; its LGPL code is irrelevant to the separately CC BY-SA 3.0 media. Its terrain tranche contains 87 solid-node surfaces. |
 | Less Dirt | per-file mapping recorded | Release 13232 carries per-family CC BY-SA notices, so the archive-wide string is a summary. Its 42 selected files are each recorded CC BY-SA 3.0 at intake. |

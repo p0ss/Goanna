@@ -34,7 +34,9 @@ Goanna is a client for the existing ecosystem, and takes that seriously:
 ## Licensing and provenance
 
 - Goanna is LGPL-2.1-or-later, matching Luanti's client code, which it
-  carries. New files get an SPDX tag.
+  carries. New files get an SPDX tag. The one exception is texture packs:
+  maps under `pbr_packs/` are derived from game media and carry its licence,
+  noted per file in the pack's `ATTRIBUTION.md`.
 - godot-cpp is MIT and is used as a submodule, unmodified.
 - Code copied from Luanti keeps its upstream copyright and SPDX header,
   gains a note saying what was changed, and is listed in the inventory in

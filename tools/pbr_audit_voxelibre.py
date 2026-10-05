@@ -13,9 +13,10 @@ notice that covers it decides: a notice naming the file, then the mod's own
 media notice, then its modpack's, then LEGAL.md. Where two notices that
 both cover a file give different accepted licences, the share-alike one is
 recorded, since that is the more restrictive and the one the bundle carries
-anyway. GPL family media is rejected and an unscoped licence line is
-treated as ambiguous; both are written to the exclusion list, never to the
-ledger.
+anyway. An unscoped licence line over a mod is read as covering its
+textures, the stricter reading. GPL-3.0 media is accepted for texture
+packs, and the maps derived from it are GPL-3.0; media the policy rejects
+goes to the exclusion list, never to the ledger.
 
 The rules below were read from release 38585 on 2026-10-05. A new release
 must be read again before this is rerun against it.
@@ -129,6 +130,16 @@ MOD_RULES = {
                     None),
     "mcl_blackstone": ("CC-BY-SA-4.0", "debian044 and VoxeLibre contributors",
                        "mods/ITEMS/mcl_blackstone/README.md", None),
+    "mcl_fences": ("GPL-3.0", "BlockMen and VoxeLibre contributors",
+                   "mods/ITEMS/mcl_fences/README.txt",
+                   "the notice reads \"License of source code and textures:"
+                   " GNU GPLv3\"; Mineclonia's copy says WTFPL"),
+    "mcl_flowers": ("GPL-3.0", "Ironzorg, VanessaE, jojoa1997 and VoxeLibre"
+                    " contributors", "mods/ITEMS/mcl_flowers/README.txt",
+                    "the notice has a bare \"GNU GPLv3\" line over the mod"
+                    " and no media notice, so it may or may not cover the"
+                    " textures; GPL-3.0 is the stricter reading and is"
+                    " recorded. Without it LEGAL.md's CC BY-SA 4.0 applies"),
     "mobs_mc": ("CC-BY-SA-4.0", PP, "mods/ENTITIES/mobs_mc/LICENSE-media.md", None),
 }
 
@@ -138,18 +149,9 @@ REDSTONE = ("CC-BY-SA-3.0", "Mesecons authors (Jeija, VanessaE, sfan5,"
             "mods/ITEMS/REDSTONE/README", None)
 SENSORS = ("CC-BY-SA-3.0", "Lifora", "mods/ITEMS/REDSTONE/README", None)
 
-# Notices that leave GPL media or an unscoped GPL line over the mod.
-EXCLUDED_MODS = {
-    "mcl_fences": ("GPL-3.0", "mods/ITEMS/mcl_fences/README.txt",
-                   "the line \"License of source code and textures: GNU"
-                   " GPLv3\", and GPL family media is rejected. Mineclonia's"
-                   " copy of the same notice says WTFPL."),
-    "mcl_flowers": ("GPL-3.0 (unscoped)", "mods/ITEMS/mcl_flowers/README.txt",
-                    "a bare \"GNU GPLv3\" line above \"License of source"
-                    " code\", with no separate media notice, so it may cover"
-                    " the textures. Ambiguous files are excluded. Mineclonia's"
-                    " copy says WTFPL for source code only."),
-}
+# Notices whose media fails pbr_packs/MEDIA_POLICY.json: (licence, notice,
+# reason). None in release 38585.
+EXCLUDED_MODS = {}
 
 
 def mod_index(root):
@@ -226,6 +228,7 @@ Licence texts:
 - CC BY-SA 4.0: <https://creativecommons.org/licenses/by-sa/4.0/>
 - CC BY-SA 3.0: <https://creativecommons.org/licenses/by-sa/3.0/>
 - CC0 1.0: <https://creativecommons.org/publicdomain/zero/1.0/>
+- GPL-3.0: <https://www.gnu.org/licenses/gpl-3.0.html>
 """
 
 ATTRIBUTION_EXCLUDED = """
@@ -237,7 +240,18 @@ notice covering them does not meet Goanna's media policy
 """
 
 LICENCE_NAMES = {"CC-BY-SA-4.0": "CC BY-SA 4.0", "CC-BY-SA-3.0": "CC BY-SA 3.0",
-                 "CC0-1.0": "CC0 1.0"}
+                 "CC0-1.0": "CC0 1.0", "GPL-3.0": "GPL-3.0"}
+
+LICENCE_NOTES = {"GPL-3.0": """
+The maps for these textures are offered under the GNU General Public
+License, version 3. Their source, the form they are modified in, is in
+the Goanna repository <https://github.com/p0ss/Goanna>: each stem's spec,
+tools/pbr_author/specs/voxelibre/<stem>.json where it has one, and its
+class in tools/pbr_author/stems/voxelibre.classes.json, built by
+`tools/pbr_author/build_pack.py --game voxelibre`. Goanna's own code is
+LGPL-2.1-or-later and is not affected; the pack is a separate work shipped
+beside it.
+"""}
 
 
 def wrapped(words, width=80):
@@ -264,6 +278,7 @@ def attribution(ledger, excluded):
         groups.setdefault(key, []).append(stem)
     for licence in sorted({key[0] for key in groups}):
         text.append("\n## %s\n" % LICENCE_NAMES.get(licence, licence))
+        text.append(LICENCE_NOTES.get(licence, ""))
         for key in sorted(k for k in groups if k[0] == licence):
             stems = sorted(groups[key])
             text.append("\n### %s under `%s`\n" % (counted(stems), key[1]))

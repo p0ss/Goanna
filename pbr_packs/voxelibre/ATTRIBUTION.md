@@ -29,6 +29,7 @@ Licence texts:
 - CC BY-SA 4.0: <https://creativecommons.org/licenses/by-sa/4.0/>
 - CC BY-SA 3.0: <https://creativecommons.org/licenses/by-sa/3.0/>
 - CC0 1.0: <https://creativecommons.org/publicdomain/zero/1.0/>
+- GPL-3.0: <https://www.gnu.org/licenses/gpl-3.0.html>
 
 ## CC BY-SA 3.0
 
@@ -556,16 +557,22 @@ mcl_mud, mcl_mud_bricks, mcl_mud_packed_mud
 mcl_stonecutter_bottom, mcl_stonecutter_saw, mcl_stonecutter_side,
 mcl_stonecutter_top
 
-## Left out
+## GPL-3.0
 
-These textures were authored but are not in the bundle, because the
-notice covering them does not meet Goanna's media policy
-(pbr_packs/MEDIA_POLICY.json). Players see the game's own art for them.
+The maps for these textures are offered under the GNU General Public
+License, version 3. Their source, the form they are modified in, is in
+the Goanna repository <https://github.com/p0ss/Goanna>: each stem's spec,
+tools/pbr_author/specs/voxelibre/<stem>.json where it has one, and its
+class in tools/pbr_author/stems/voxelibre.classes.json, built by
+`tools/pbr_author/build_pack.py --game voxelibre`. Goanna's own code is
+LGPL-2.1-or-later and is not affected; the pack is a separate work shipped
+beside it.
 
 ### 7 textures under `mods/ITEMS/mcl_fences/README.txt`
 
-The notice has the line "License of source code and textures: GNU GPLv3", and
-GPL family media is rejected. Mineclonia's copy of the same notice says WTFPL.
+- author: BlockMen and VoxeLibre contributors
+- note: the notice reads "License of source code and textures: GNU GPLv3";
+  Mineclonia's copy says WTFPL
 
 mcl_fences_fence_acacia, mcl_fences_fence_big_oak, mcl_fences_fence_birch,
 mcl_fences_fence_jungle, mcl_fences_fence_nether_brick, mcl_fences_fence_oak,
@@ -573,9 +580,10 @@ mcl_fences_fence_spruce
 
 ### 31 textures under `mods/ITEMS/mcl_flowers/README.txt`
 
-The notice has a bare "GNU GPLv3" line above "License of source code", with no
-separate media notice, so it may cover the textures. Ambiguous files are
-excluded. Mineclonia's copy says WTFPL for source code only.
+- author: Ironzorg, VanessaE, jojoa1997 and VoxeLibre contributors
+- note: the notice has a bare "GNU GPLv3" line over the mod and no media notice,
+  so it may or may not cover the textures; GPL-3.0 is the stricter reading and
+  is recorded. Without it LEGAL.md's CC BY-SA 4.0 applies
 
 flowers_dandelion_yellow, flowers_tulip, flowers_waterlily, mcl_flowers_allium,
 mcl_flowers_azure_bluet, mcl_flowers_blue_orchid, mcl_flowers_clover,

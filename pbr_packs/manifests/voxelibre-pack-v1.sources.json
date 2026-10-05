@@ -766,6 +766,36 @@
     "release": 38585,
     "source": "textures/fletching_table_top.png"
   },
+  "flowers_dandelion_yellow": {
+    "author": "Ironzorg, VanessaE, jojoa1997 and VoxeLibre contributors",
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "note": "the notice has a bare \"GNU GPLv3\" line over the mod and no media notice, so it may or may not cover the textures; GPL-3.0 is the stricter reading and is recorded. Without it LEGAL.md's CC BY-SA 4.0 applies",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "package": "voxelibre",
+    "release": 38585,
+    "source": "textures/flowers_dandelion_yellow.png"
+  },
+  "flowers_tulip": {
+    "author": "Ironzorg, VanessaE, jojoa1997 and VoxeLibre contributors",
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "note": "the notice has a bare \"GNU GPLv3\" line over the mod and no media notice, so it may or may not cover the textures; GPL-3.0 is the stricter reading and is recorded. Without it LEGAL.md's CC BY-SA 4.0 applies",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "package": "voxelibre",
+    "release": 38585,
+    "source": "textures/flowers_tulip.png"
+  },
+  "flowers_waterlily": {
+    "author": "Ironzorg, VanessaE, jojoa1997 and VoxeLibre contributors",
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "note": "the notice has a bare \"GNU GPLv3\" line over the mod and no media notice, so it may or may not cover the textures; GPL-3.0 is the stricter reading and is recorded. Without it LEGAL.md's CC BY-SA 4.0 applies",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "package": "voxelibre",
+    "release": 38585,
+    "source": "textures/flowers_waterlily.png"
+  },
   "grindstone_front": {
     "author": "Pixel Perfection by XSSheep, with changes by VoxeLibre contributors",
     "media_license": "CC-BY-SA-4.0",
@@ -5625,6 +5655,36 @@
     "release": 38585,
     "source": "textures/mcl_farming_wheat_stage_7.png"
   },
+  "mcl_fences_fence_acacia": {
+    "author": "BlockMen and VoxeLibre contributors",
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_fences",
+    "note": "the notice reads \"License of source code and textures: GNU GPLv3\"; Mineclonia's copy says WTFPL",
+    "notice": "mods/ITEMS/mcl_fences/README.txt",
+    "package": "voxelibre",
+    "release": 38585,
+    "source": "textures/mcl_fences_fence_acacia.png"
+  },
+  "mcl_fences_fence_big_oak": {
+    "author": "BlockMen and VoxeLibre contributors",
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_fences",
+    "note": "the notice reads \"License of source code and textures: GNU GPLv3\"; Mineclonia's copy says WTFPL",
+    "notice": "mods/ITEMS/mcl_fences/README.txt",
+    "package": "voxelibre",
+    "release": 38585,
+    "source": "textures/mcl_fences_fence_big_oak.png"
+  },
+  "mcl_fences_fence_birch": {
+    "author": "BlockMen and VoxeLibre contributors",
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_fences",
+    "note": "the notice reads \"License of source code and textures: GNU GPLv3\"; Mineclonia's copy says WTFPL",
+    "notice": "mods/ITEMS/mcl_fences/README.txt",
+    "package": "voxelibre",
+    "release": 38585,
+    "source": "textures/mcl_fences_fence_birch.png"
+  },
   "mcl_fences_fence_gate_nether_brick": {
     "author": "Pixel Perfection by XSSheep, with changes by VoxeLibre contributors",
     "media_license": "CC-BY-SA-4.0",
@@ -5645,6 +5705,36 @@
     "release": 38585,
     "source": "textures/mcl_fences_fence_gate_red_nether_brick.png"
   },
+  "mcl_fences_fence_jungle": {
+    "author": "BlockMen and VoxeLibre contributors",
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_fences",
+    "note": "the notice reads \"License of source code and textures: GNU GPLv3\"; Mineclonia's copy says WTFPL",
+    "notice": "mods/ITEMS/mcl_fences/README.txt",
+    "package": "voxelibre",
+    "release": 38585,
+    "source": "textures/mcl_fences_fence_jungle.png"
+  },
+  "mcl_fences_fence_nether_brick": {
+    "author": "BlockMen and VoxeLibre contributors",
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_fences",
+    "note": "the notice reads \"License of source code and textures: GNU GPLv3\"; Mineclonia's copy says WTFPL",
+    "notice": "mods/ITEMS/mcl_fences/README.txt",
+    "package": "voxelibre",
+    "release": 38585,
+    "source": "textures/mcl_fences_fence_nether_brick.png"
+  },
+  "mcl_fences_fence_oak": {
+    "author": "BlockMen and VoxeLibre contributors",
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_fences",
+    "note": "the notice reads \"License of source code and textures: GNU GPLv3\"; Mineclonia's copy says WTFPL",
+    "notice": "mods/ITEMS/mcl_fences/README.txt",
+    "package": "voxelibre",
+    "release": 38585,
+    "source": "textures/mcl_fences_fence_oak.png"
+  },
   "mcl_fences_fence_red_nether_brick": {
     "author": "Pixel Perfection by XSSheep, with changes by VoxeLibre contributors",
     "media_license": "CC-BY-SA-4.0",
@@ -5654,6 +5744,16 @@
     "package": "voxelibre",
     "release": 38585,
     "source": "textures/mcl_fences_fence_red_nether_brick.png"
+  },
+  "mcl_fences_fence_spruce": {
+    "author": "BlockMen and VoxeLibre contributors",
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_fences",
+    "note": "the notice reads \"License of source code and textures: GNU GPLv3\"; Mineclonia's copy says WTFPL",
+    "notice": "mods/ITEMS/mcl_fences/README.txt",
+    "package": "voxelibre",
+    "release": 38585,
+    "source": "textures/mcl_fences_fence_spruce.png"
   },
   "mcl_flowerpots_cactus": {
     "author": "Pixel Perfection by XSSheep, with changes by VoxeLibre contributors",
@@ -5674,6 +5774,286 @@
     "package": "voxelibre",
     "release": 38585,
     "source": "textures/mcl_flowerpots_flowerpot.png"
+  },
+  "mcl_flowers_allium": {
+    "author": "Ironzorg, VanessaE, jojoa1997 and VoxeLibre contributors",
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "note": "the notice has a bare \"GNU GPLv3\" line over the mod and no media notice, so it may or may not cover the textures; GPL-3.0 is the stricter reading and is recorded. Without it LEGAL.md's CC BY-SA 4.0 applies",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "package": "voxelibre",
+    "release": 38585,
+    "source": "textures/mcl_flowers_allium.png"
+  },
+  "mcl_flowers_azure_bluet": {
+    "author": "Ironzorg, VanessaE, jojoa1997 and VoxeLibre contributors",
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "note": "the notice has a bare \"GNU GPLv3\" line over the mod and no media notice, so it may or may not cover the textures; GPL-3.0 is the stricter reading and is recorded. Without it LEGAL.md's CC BY-SA 4.0 applies",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "package": "voxelibre",
+    "release": 38585,
+    "source": "textures/mcl_flowers_azure_bluet.png"
+  },
+  "mcl_flowers_blue_orchid": {
+    "author": "Ironzorg, VanessaE, jojoa1997 and VoxeLibre contributors",
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "note": "the notice has a bare \"GNU GPLv3\" line over the mod and no media notice, so it may or may not cover the textures; GPL-3.0 is the stricter reading and is recorded. Without it LEGAL.md's CC BY-SA 4.0 applies",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "package": "voxelibre",
+    "release": 38585,
+    "source": "textures/mcl_flowers_blue_orchid.png"
+  },
+  "mcl_flowers_clover": {
+    "author": "Ironzorg, VanessaE, jojoa1997 and VoxeLibre contributors",
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "note": "the notice has a bare \"GNU GPLv3\" line over the mod and no media notice, so it may or may not cover the textures; GPL-3.0 is the stricter reading and is recorded. Without it LEGAL.md's CC BY-SA 4.0 applies",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "package": "voxelibre",
+    "release": 38585,
+    "source": "textures/mcl_flowers_clover.png"
+  },
+  "mcl_flowers_cornflower": {
+    "author": "Ironzorg, VanessaE, jojoa1997 and VoxeLibre contributors",
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "note": "the notice has a bare \"GNU GPLv3\" line over the mod and no media notice, so it may or may not cover the textures; GPL-3.0 is the stricter reading and is recorded. Without it LEGAL.md's CC BY-SA 4.0 applies",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "package": "voxelibre",
+    "release": 38585,
+    "source": "textures/mcl_flowers_cornflower.png"
+  },
+  "mcl_flowers_double_plant_fern_bottom": {
+    "author": "Ironzorg, VanessaE, jojoa1997 and VoxeLibre contributors",
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "note": "the notice has a bare \"GNU GPLv3\" line over the mod and no media notice, so it may or may not cover the textures; GPL-3.0 is the stricter reading and is recorded. Without it LEGAL.md's CC BY-SA 4.0 applies",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "package": "voxelibre",
+    "release": 38585,
+    "source": "textures/mcl_flowers_double_plant_fern_bottom.png"
+  },
+  "mcl_flowers_double_plant_fern_top": {
+    "author": "Ironzorg, VanessaE, jojoa1997 and VoxeLibre contributors",
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "note": "the notice has a bare \"GNU GPLv3\" line over the mod and no media notice, so it may or may not cover the textures; GPL-3.0 is the stricter reading and is recorded. Without it LEGAL.md's CC BY-SA 4.0 applies",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "package": "voxelibre",
+    "release": 38585,
+    "source": "textures/mcl_flowers_double_plant_fern_top.png"
+  },
+  "mcl_flowers_double_plant_grass_bottom": {
+    "author": "Ironzorg, VanessaE, jojoa1997 and VoxeLibre contributors",
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "note": "the notice has a bare \"GNU GPLv3\" line over the mod and no media notice, so it may or may not cover the textures; GPL-3.0 is the stricter reading and is recorded. Without it LEGAL.md's CC BY-SA 4.0 applies",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "package": "voxelibre",
+    "release": 38585,
+    "source": "textures/mcl_flowers_double_plant_grass_bottom.png"
+  },
+  "mcl_flowers_double_plant_grass_top": {
+    "author": "Ironzorg, VanessaE, jojoa1997 and VoxeLibre contributors",
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "note": "the notice has a bare \"GNU GPLv3\" line over the mod and no media notice, so it may or may not cover the textures; GPL-3.0 is the stricter reading and is recorded. Without it LEGAL.md's CC BY-SA 4.0 applies",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "package": "voxelibre",
+    "release": 38585,
+    "source": "textures/mcl_flowers_double_plant_grass_top.png"
+  },
+  "mcl_flowers_double_plant_paeonia_bottom": {
+    "author": "Ironzorg, VanessaE, jojoa1997 and VoxeLibre contributors",
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "note": "the notice has a bare \"GNU GPLv3\" line over the mod and no media notice, so it may or may not cover the textures; GPL-3.0 is the stricter reading and is recorded. Without it LEGAL.md's CC BY-SA 4.0 applies",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "package": "voxelibre",
+    "release": 38585,
+    "source": "textures/mcl_flowers_double_plant_paeonia_bottom.png"
+  },
+  "mcl_flowers_double_plant_paeonia_top": {
+    "author": "Ironzorg, VanessaE, jojoa1997 and VoxeLibre contributors",
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "note": "the notice has a bare \"GNU GPLv3\" line over the mod and no media notice, so it may or may not cover the textures; GPL-3.0 is the stricter reading and is recorded. Without it LEGAL.md's CC BY-SA 4.0 applies",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "package": "voxelibre",
+    "release": 38585,
+    "source": "textures/mcl_flowers_double_plant_paeonia_top.png"
+  },
+  "mcl_flowers_double_plant_rose_bottom": {
+    "author": "Ironzorg, VanessaE, jojoa1997 and VoxeLibre contributors",
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "note": "the notice has a bare \"GNU GPLv3\" line over the mod and no media notice, so it may or may not cover the textures; GPL-3.0 is the stricter reading and is recorded. Without it LEGAL.md's CC BY-SA 4.0 applies",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "package": "voxelibre",
+    "release": 38585,
+    "source": "textures/mcl_flowers_double_plant_rose_bottom.png"
+  },
+  "mcl_flowers_double_plant_rose_top": {
+    "author": "Ironzorg, VanessaE, jojoa1997 and VoxeLibre contributors",
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "note": "the notice has a bare \"GNU GPLv3\" line over the mod and no media notice, so it may or may not cover the textures; GPL-3.0 is the stricter reading and is recorded. Without it LEGAL.md's CC BY-SA 4.0 applies",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "package": "voxelibre",
+    "release": 38585,
+    "source": "textures/mcl_flowers_double_plant_rose_top.png"
+  },
+  "mcl_flowers_double_plant_sunflower_back": {
+    "author": "Ironzorg, VanessaE, jojoa1997 and VoxeLibre contributors",
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "note": "the notice has a bare \"GNU GPLv3\" line over the mod and no media notice, so it may or may not cover the textures; GPL-3.0 is the stricter reading and is recorded. Without it LEGAL.md's CC BY-SA 4.0 applies",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "package": "voxelibre",
+    "release": 38585,
+    "source": "textures/mcl_flowers_double_plant_sunflower_back.png"
+  },
+  "mcl_flowers_double_plant_sunflower_bottom": {
+    "author": "Ironzorg, VanessaE, jojoa1997 and VoxeLibre contributors",
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "note": "the notice has a bare \"GNU GPLv3\" line over the mod and no media notice, so it may or may not cover the textures; GPL-3.0 is the stricter reading and is recorded. Without it LEGAL.md's CC BY-SA 4.0 applies",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "package": "voxelibre",
+    "release": 38585,
+    "source": "textures/mcl_flowers_double_plant_sunflower_bottom.png"
+  },
+  "mcl_flowers_double_plant_sunflower_front": {
+    "author": "Ironzorg, VanessaE, jojoa1997 and VoxeLibre contributors",
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "note": "the notice has a bare \"GNU GPLv3\" line over the mod and no media notice, so it may or may not cover the textures; GPL-3.0 is the stricter reading and is recorded. Without it LEGAL.md's CC BY-SA 4.0 applies",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "package": "voxelibre",
+    "release": 38585,
+    "source": "textures/mcl_flowers_double_plant_sunflower_front.png"
+  },
+  "mcl_flowers_double_plant_syringa_bottom": {
+    "author": "Ironzorg, VanessaE, jojoa1997 and VoxeLibre contributors",
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "note": "the notice has a bare \"GNU GPLv3\" line over the mod and no media notice, so it may or may not cover the textures; GPL-3.0 is the stricter reading and is recorded. Without it LEGAL.md's CC BY-SA 4.0 applies",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "package": "voxelibre",
+    "release": 38585,
+    "source": "textures/mcl_flowers_double_plant_syringa_bottom.png"
+  },
+  "mcl_flowers_double_plant_syringa_top": {
+    "author": "Ironzorg, VanessaE, jojoa1997 and VoxeLibre contributors",
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "note": "the notice has a bare \"GNU GPLv3\" line over the mod and no media notice, so it may or may not cover the textures; GPL-3.0 is the stricter reading and is recorded. Without it LEGAL.md's CC BY-SA 4.0 applies",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "package": "voxelibre",
+    "release": 38585,
+    "source": "textures/mcl_flowers_double_plant_syringa_top.png"
+  },
+  "mcl_flowers_fern": {
+    "author": "Ironzorg, VanessaE, jojoa1997 and VoxeLibre contributors",
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "note": "the notice has a bare \"GNU GPLv3\" line over the mod and no media notice, so it may or may not cover the textures; GPL-3.0 is the stricter reading and is recorded. Without it LEGAL.md's CC BY-SA 4.0 applies",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "package": "voxelibre",
+    "release": 38585,
+    "source": "textures/mcl_flowers_fern.png"
+  },
+  "mcl_flowers_fourleaf_clover": {
+    "author": "Ironzorg, VanessaE, jojoa1997 and VoxeLibre contributors",
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "note": "the notice has a bare \"GNU GPLv3\" line over the mod and no media notice, so it may or may not cover the textures; GPL-3.0 is the stricter reading and is recorded. Without it LEGAL.md's CC BY-SA 4.0 applies",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "package": "voxelibre",
+    "release": 38585,
+    "source": "textures/mcl_flowers_fourleaf_clover.png"
+  },
+  "mcl_flowers_lily_of_the_valley": {
+    "author": "Ironzorg, VanessaE, jojoa1997 and VoxeLibre contributors",
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "note": "the notice has a bare \"GNU GPLv3\" line over the mod and no media notice, so it may or may not cover the textures; GPL-3.0 is the stricter reading and is recorded. Without it LEGAL.md's CC BY-SA 4.0 applies",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "package": "voxelibre",
+    "release": 38585,
+    "source": "textures/mcl_flowers_lily_of_the_valley.png"
+  },
+  "mcl_flowers_oxeye_daisy": {
+    "author": "Ironzorg, VanessaE, jojoa1997 and VoxeLibre contributors",
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "note": "the notice has a bare \"GNU GPLv3\" line over the mod and no media notice, so it may or may not cover the textures; GPL-3.0 is the stricter reading and is recorded. Without it LEGAL.md's CC BY-SA 4.0 applies",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "package": "voxelibre",
+    "release": 38585,
+    "source": "textures/mcl_flowers_oxeye_daisy.png"
+  },
+  "mcl_flowers_poppy": {
+    "author": "Ironzorg, VanessaE, jojoa1997 and VoxeLibre contributors",
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "note": "the notice has a bare \"GNU GPLv3\" line over the mod and no media notice, so it may or may not cover the textures; GPL-3.0 is the stricter reading and is recorded. Without it LEGAL.md's CC BY-SA 4.0 applies",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "package": "voxelibre",
+    "release": 38585,
+    "source": "textures/mcl_flowers_poppy.png"
+  },
+  "mcl_flowers_tallgrass": {
+    "author": "Ironzorg, VanessaE, jojoa1997 and VoxeLibre contributors",
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "note": "the notice has a bare \"GNU GPLv3\" line over the mod and no media notice, so it may or may not cover the textures; GPL-3.0 is the stricter reading and is recorded. Without it LEGAL.md's CC BY-SA 4.0 applies",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "package": "voxelibre",
+    "release": 38585,
+    "source": "textures/mcl_flowers_tallgrass.png"
+  },
+  "mcl_flowers_tulip_pink": {
+    "author": "Ironzorg, VanessaE, jojoa1997 and VoxeLibre contributors",
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "note": "the notice has a bare \"GNU GPLv3\" line over the mod and no media notice, so it may or may not cover the textures; GPL-3.0 is the stricter reading and is recorded. Without it LEGAL.md's CC BY-SA 4.0 applies",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "package": "voxelibre",
+    "release": 38585,
+    "source": "textures/mcl_flowers_tulip_pink.png"
+  },
+  "mcl_flowers_tulip_red": {
+    "author": "Ironzorg, VanessaE, jojoa1997 and VoxeLibre contributors",
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "note": "the notice has a bare \"GNU GPLv3\" line over the mod and no media notice, so it may or may not cover the textures; GPL-3.0 is the stricter reading and is recorded. Without it LEGAL.md's CC BY-SA 4.0 applies",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "package": "voxelibre",
+    "release": 38585,
+    "source": "textures/mcl_flowers_tulip_red.png"
+  },
+  "mcl_flowers_tulip_white": {
+    "author": "Ironzorg, VanessaE, jojoa1997 and VoxeLibre contributors",
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "note": "the notice has a bare \"GNU GPLv3\" line over the mod and no media notice, so it may or may not cover the textures; GPL-3.0 is the stricter reading and is recorded. Without it LEGAL.md's CC BY-SA 4.0 applies",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "package": "voxelibre",
+    "release": 38585,
+    "source": "textures/mcl_flowers_tulip_white.png"
+  },
+  "mcl_flowers_wither_rose": {
+    "author": "Ironzorg, VanessaE, jojoa1997 and VoxeLibre contributors",
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "note": "the notice has a bare \"GNU GPLv3\" line over the mod and no media notice, so it may or may not cover the textures; GPL-3.0 is the stricter reading and is recorded. Without it LEGAL.md's CC BY-SA 4.0 applies",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "package": "voxelibre",
+    "release": 38585,
+    "source": "textures/mcl_flowers_wither_rose.png"
   },
   "mcl_gold_block_polished": {
     "author": "Pixel Perfection by XSSheep, with changes by VoxeLibre contributors",

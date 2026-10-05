@@ -29,6 +29,7 @@ small vendored worldmod and is called out separately below.
 | Terrain Diffusion default output | optional [versioned download](https://github.com/p0ss/terrain-diffusion-luanti/releases/tag/default-1m-v3) | copied from the shared cache into new local worlds | generated data from MIT-licensed generator and model |
 | Goanna Minetest Game PBR materials | `pbr_packs/minetest_game/` | served by default in local Minetest Game worlds | derivative material maps; per-mod source terms and attribution are recorded in the pack |
 | Goanna Mineclonia PBR materials | `pbr_packs/mineclonia/` | served by default in local Mineclonia worlds | derivative textures and material maps; Mineclonia media terms and per-mod attribution are recorded in the pack |
+| Goanna VoxeLibre PBR materials | `pbr_packs/voxelibre/` | downloaded as an asset bundle for VoxeLibre servers | derivative textures and material maps; CC BY-SA 4.0, CC BY-SA 3.0, CC0 and, for 38 fence and flower textures, GPL-3.0, per file in `pbr_packs/manifests/voxelibre-pack-v1.sources.json` and the pack's `ATTRIBUTION.md` |
 
 ## Optional Terrain Diffusion runtime
 

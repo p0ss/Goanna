@@ -109,5 +109,8 @@ Build reports from machines other than the author's, compatibility reports,
 focused tests and reviews of the Luanti transplant boundaries are especially
 useful. See [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/style.md](docs/style.md).
 
-Goanna is LGPL-2.1-or-later. The complete dependency and media accounting is
-in [THIRD-PARTY.md](THIRD-PARTY.md).
+Goanna is LGPL-2.1-or-later, except where a texture pack notes otherwise:
+the packs under `pbr_packs/` and the asset bundles built from them are
+derivative works of game media and carry that media's licence (CC BY-SA, CC0
+or GPL-3.0, per file), recorded in each pack's `ATTRIBUTION.md`. The complete
+dependency and media accounting is in [THIRD-PARTY.md](THIRD-PARTY.md).
