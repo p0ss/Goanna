@@ -1193,15 +1193,17 @@ private:
     std::set<u32> m_liquid_tex; // tiles of nodes that draw as a liquid
     struct LavaTile { u8 level; u32 surface_texture; };
     std::map<u32, LavaTile> m_lava_tex; // source artwork shared by the liquid family
+    std::map<u32, int> m_portal_tex; // 1 Nether, 2 End; visible faces only
+    std::set<u32> m_portal_arrays; // arrays with a portal face to split out
     bool m_fake_liquid_built = false;
 	// A separate background view supplies transmission while ice writes depth.
 	// Solid ice skips that extra view while retaining the frosted material.
 	bool m_solid_ice = false;
     void buildFakeLiquidTextures();
-    u32 clearGlassLayer(GoannaTexture *gt, u16 layer);
+    u32 specialLayer(GoannaTexture *gt, u16 layer);
 
     godot::Ref<godot::Shader> m_sh_water, m_sh_lava, m_sh_leaves, m_sh_plants, m_sh_glass, m_sh_glass_clear, m_sh_glass_double, m_sh_ice, m_sh_array,
-            m_sh_array_scissor, m_sh_crack;
+            m_sh_array_scissor, m_sh_crack, m_sh_portal_nether, m_sh_portal_end;
     bool m_shaders_loaded = false;
     // Relief inferred from a texture's own brightness, for every texture a
     // pack does not supply a normal map for. Only ever used where nothing is

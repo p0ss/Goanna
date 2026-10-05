@@ -55,6 +55,20 @@ the ordinary tile UV contract. Near lava additionally carries `CUSTOM1`,
 a world-space direction from the gradient of liquid occupancy. Both faces
 at a corner receive the same direction, so raised falling crust stays joined.
 
+### Dedicated portal surfaces
+
+Near Nether portal faces use a single image rather than an array. Their
+otherwise unused `UV2.x` carries four frame-contact bits: positive and
+negative U, then positive and negative V. U is world X on a Z-facing sheet
+or world Z on an X-facing sheet; V is world Y. A contact uses the lamp
+occlusion grid's full opaque cube rule. The shader reads the mask flat,
+so internal node boundaries do not become glowing seams. The mask keeps
+the rim available when lamp occlusion is off or outside its grid.
+
+End portal faces also leave their animation array, but use ordinary UV
+for the server texture's coverage. Both shaders anchor their procedural
+fields in world space. Neither changes the geometry or its depth.
+
 ## Why light is not in ARRAY_COLOR
 
 Luanti's own mesher multiplies the baked light into the vertex colour and

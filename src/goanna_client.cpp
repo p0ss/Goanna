@@ -1360,6 +1360,8 @@ void GoannaClient::connect_to(const String &host, int port, const String &player
     m_clear_glass_tex.clear();
     m_liquid_tex.clear();
     m_lava_tex.clear();
+    m_portal_tex.clear();
+    m_portal_arrays.clear();
     m_fake_liquid_built = false;
     // Icon jobs point into the outgoing session's meshes and images.
     m_item_icons.clear();
@@ -2221,7 +2223,7 @@ Dictionary GoannaClient::top_surface_at(const Vector3 &pos) {
     GoannaTexture *gt = m_session->tsrc()->goannaTexture(l.texture_id);
     const bool is_array = gt && gt->isArray();
     const bool array_path = arrayPathTile(l.material_type, culled) &&
-            !clearGlassLayer(gt, l.texture_layer_idx);
+            !specialLayer(gt, l.texture_layer_idx);
     out["texture"] = String::utf8(m_session->tsrc()->imageName(l.texture_id, l.texture_layer_idx).c_str());
     out["array"] = is_array;
     out["array_path"] = array_path;
@@ -2824,7 +2826,9 @@ MaterialKey GoannaClient::keyForIrr(const video::SMaterial &m, u16 layer, u16 *l
     // plants, glass, water) whenever it is not an array, so arrayPathTile
     // keeps those material types off the array path too.
     const MaterialType mtype = m_session->shsrc().materialType(key.shader_id);
-    const bool array_tile = arrayPathTile(mtype, m.BackfaceCulling);
+    buildFakeLiquidTextures();
+    const bool array_tile = arrayPathTile(mtype, m.BackfaceCulling) &&
+            !m_portal_tex.count(key.texture_id);
     if (gt && gt->isArray()) {
         // Only commit to the array path if the Godot array actually built:
         // otherwise the key would name a texture with no 2D image behind it
@@ -2998,6 +3002,26 @@ void GoannaClient::buildFakeLiquidTextures() {
                                 fn(layer, frame.texture_id);
                     }
         };
+        // Only the two known portal definitions, and only their visible
+        // faces. The remaining tiles are blank.png, shared by many nodes.
+        // Identify by node, not artwork, so texture packs keep this routing.
+        const int portal = f.name == "mcl_portals:portal" && f.alpha == ALPHAMODE_BLEND ? 1
+                : f.name == "mcl_portals:portal_end" && f.alpha == ALPHAMODE_CLIP ? 2 : 0;
+        if (portal && f.visuals && f.drawtype == NDT_NODEBOX) {
+            const int first = portal == 1 ? 4 : 0;
+            for (int face = first; face < first + 2; ++face) {
+                for (const auto &layer : f.visuals->tiles[face].layers) {
+                    GoannaTexture *texture = m_session->tsrc()->goannaTexture(layer.texture_id);
+                    if (texture && texture->isArray())
+                        m_portal_arrays.insert(layer.texture_id);
+                    if (const u32 id = resolved_texture(layer))
+                        m_portal_tex[id] = portal;
+                    if (layer.frames)
+                        for (const auto &frame : *layer.frames)
+                            m_portal_tex[frame.texture_id] = portal;
+                }
+            }
+        }
         if (f.isLiquid() && f.visuals && f.light_source < 6)
             each_texture([&](const TileLayer &, u32 id) { calm.insert(id); });
         // What may take the water shader. waving = 3 gives any node the
@@ -3046,18 +3070,18 @@ void GoannaClient::buildFakeLiquidTextures() {
                 " textures drawn as liquid that are not one");
 }
 
-// The single image of an array layer that is clear glass, or 0. Glass shares
+// The single image of a glass or portal array layer, or 0. Each shares
 // its upstream buffer, and its array, with every other cut-out tile, so this
 // is asked per face (the mesh loop's tile_key), never per buffer.
-u32 GoannaClient::clearGlassLayer(GoannaTexture *gt, u16 layer) {
+u32 GoannaClient::specialLayer(GoannaTexture *gt, u16 layer) {
     if (!gt || !gt->isArray())
         return 0;
     buildFakeLiquidTextures();
     const auto &names = gt->layerNames();
-    if (m_clear_glass_tex.empty() || layer >= names.size())
+    if (layer >= names.size())
         return 0;
     const u32 id = m_session->tsrc()->getTextureId(names[layer]);
-    return m_clear_glass_tex.count(id) ? id : 0;
+    return m_clear_glass_tex.count(id) || m_portal_tex.count(id) ? id : 0;
 }
 
 Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
@@ -3068,6 +3092,8 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
         m_shaders_loaded = true;
         m_sh_water = load_view_shader("res://shaders/water.gdshader");
         m_sh_lava = load_view_shader("res://shaders/lava.gdshader");
+        m_sh_portal_nether = load_view_shader("res://shaders/portal_nether.gdshader");
+        m_sh_portal_end = load_view_shader("res://shaders/portal_end.gdshader");
         m_sh_leaves = load_view_shader("res://shaders/waving_leaves.gdshader");
         m_sh_plants = load_view_shader("res://shaders/waving_plants.gdshader");
         m_sh_glass = load_view_shader("res://shaders/glass.gdshader");
@@ -3099,6 +3125,18 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
                 String(m_session->tsrc()->getTextureName(key.texture_id).c_str()),
                 "' shader=", key.shader_id, " mtype=", (int)mtype, " base=", (int)base,
                 " emissive=", (int)emissive, " cull=", key.backface_culling);
+    }
+
+    buildFakeLiquidTextures();
+    const auto portal = m_portal_tex.find(key.texture_id);
+    if (!key.array_texture && !key.composited && portal != m_portal_tex.end() && tex.is_valid()) {
+        Ref<ShaderMaterial> sm;
+        sm.instantiate();
+        sm->set_shader(portal->second == 1 ? m_sh_portal_nether : m_sh_portal_end);
+        sm->set_shader_parameter("albedo_tex", tex);
+        m_materials[key.hash()] = sm;
+        noteAnimatedMaterial(key, sm);
+        return sm;
     }
 
     // --- array texture: one material for a whole bunch of tiles ---
@@ -8251,10 +8289,10 @@ int GoannaClient::poll_blocks(int max_blocks) {
                 // faces pick their shader by their own layer (arrayTileKey):
                 // an array holding any cut-out would otherwise draw all its
                 // opaque tiles through the scissor shader, which has no
-                // parallax. Only an array with alpha somewhere splits.
+                // parallax. Portal faces also leave an otherwise opaque array.
                 GoannaTexture *key_tex = key.array_texture
                         ? m_session->tsrc()->goannaTexture(key.texture_id) : nullptr;
-                const bool split_tiles = key_tex && key_tex->hasAlpha();
+                const bool split_tiles = key_tex && (key_tex->hasAlpha() || m_portal_arrays.count(key.texture_id));
                 // A buffer that left its array (a double sided tile, or a
                 // special shader's) is still every face upstream merged
                 // under that array, since TileLayer equality ignores the
@@ -8267,8 +8305,8 @@ int GoannaClient::poll_blocks(int max_blocks) {
                         ? dynamic_cast<GoannaTexture *>(bmat.getTexture(0)) : nullptr;
                 if (off_array && (!off_array->isArray() || off_array->layerNames().size() < 2))
                     off_array = nullptr;
-                // Clear glass leaves the array for the glass shader, on its
-                // layer's own image; see buildFakeLiquidTextures.
+                // Glass and portal faces leave the array for their own shader,
+                // on their layer's image; see buildFakeLiquidTextures.
                 std::map<u16, u32> layer_images;
                 auto tile_key = [&](const u16 *tri) -> MaterialKey {
                     const u16 tl = (u16)((v[tri[0]].Aux & GOANNA_VERTEX_TEXTURE_MASK) + layer_base);
@@ -8288,12 +8326,12 @@ int GoannaClient::poll_blocks(int max_blocks) {
                         return key;
                     auto gl = layer_images.find(tl);
                     if (gl == layer_images.end())
-                        gl = layer_images.emplace(tl, clearGlassLayer(key_tex, tl)).first;
+                        gl = layer_images.emplace(tl, specialLayer(key_tex, tl)).first;
                     if (gl->second) {
-                        MaterialKey glass = key;
-                        glass.array_texture = false;
-                        glass.texture_id = gl->second;
-                        return glass;
+                        MaterialKey special = key;
+                        special.array_texture = false;
+                        special.texture_id = gl->second;
+                        return special;
                     }
                     return arrayTileKey(key, key_tex, tl);
                 };
@@ -8311,12 +8349,37 @@ int GoannaClient::poll_blocks(int max_blocks) {
                     const content_t owner = owner_content(tri);
                     const bool glows = !glow_casts && (v[tri[0]].Aux & GOANNA_VERTEX_GLOWS);
                     const MaterialKey tkey = tile_key(tri);
+                    // Nether frame contacts, using the occlusion grid's
+                    // full-cube rule. Carry four edge bits in the unused
+                    // single-image UV2.x so the rim also works with lamp
+                    // occlusion disabled or outside its camera-local grid.
+                    int portal_edges = 0;
+                    const auto portal = m_portal_tex.find(tkey.texture_id);
+                    if (portal != m_portal_tex.end() && portal->second == 1 && gnd) {
+                        const v3f centre = (v[tri[0]].Pos + v[tri[1]].Pos + v[tri[2]].Pos)
+                                / (3.0f * BS) - v[tri[0]].Normal * 0.001f;
+                        const v3s16 cell((s16)floorf(centre.X + 0.5f),
+                                (s16)floorf(centre.Y + 0.5f), (s16)floorf(centre.Z + 0.5f));
+                        const v3f normal = v[tri[0]].Normal;
+                        // Shader axes are in Godot space, hence Luanti -Z.
+                        const v3s16 u = fabsf(normal.X) > fabsf(normal.Z)
+                                ? v3s16(0, 0, -1) : v3s16(1, 0, 0);
+                        const v3s16 directions[] = {u, -u, v3s16(0, 1, 0), v3s16(0, -1, 0)};
+                        for (int edge = 0; edge < 4; ++edge) {
+                            const MapNode neighbour = m_session->map().getNode(
+                                    bp * MAP_BLOCKSIZE + cell + directions[edge]);
+                            const ContentFeatures &nf = gnd->get(neighbour);
+                            if (neighbour.getContent() != CONTENT_IGNORE && nf.drawtype == NDT_NORMAL
+                                    && !nf.light_propagates && nf.light_source == 0)
+                                portal_edges |= 1 << edge;
+                        }
+                    }
                     const int g = glows ? 1 : 0;
                     const auto slot = slot_of(g, tkey);
                     const float block_id = owner == CONTENT_IGNORE ? 0.0f : (float)mtable.blockOf(owner);
                     SurfAccum &tacc = g ? glow_groups[tkey.hash()] : groups[tkey.hash()];
                     tacc.key = tkey;
-                    tacc.is_array = key.array_texture;
+                    tacc.is_array = tkey.array_texture;
                     for (int k = 0; k < 3; ++k) {
                         const u32 sv = tri[k];
                         std::map<u32, int> &into = remap[slot];
@@ -8343,7 +8406,7 @@ int GoannaClient::poll_blocks(int max_blocks) {
                         // array; the shader adds the frame.
                         tacc.uv2s.push_back(Vector2(tacc.is_array ?
                                 (float)((v[sv].Aux & GOANNA_VERTEX_TEXTURE_MASK) + layer_base)
-                                : 0.0f, block_id));
+                                : (float)portal_edges, block_id));
                         // Luanti node coordinates, which is what the field
                         // wants: the mirrored z above is Godot's convention.
                         // GOANNA_NO_VERTEX_LIGHT=1 skips the sample and writes
