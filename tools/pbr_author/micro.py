@@ -72,7 +72,9 @@ before the material's strength:
            "plait": true turns the direction a quarter per texel, like a
            plaited hat.
   leather  pebble grain (cells with creases between) and fine pores; the
-           pebbles a little smoother than the creases.
+           pebbles a little smoother than the creases. "cell" (texels),
+           "crease", "pores" and "sheen" (the pebble tops' smoothness)
+           set the mix.
   rope     twisted plies: ridges across the rope at a slant, with fibres.
   skin     nearly nothing: sparse faint pores and a soft variation.
   eye      flat, with one small soft rise high on each piece, so a glossy
@@ -136,7 +138,10 @@ border:
            and under two; the gaps between low and rough, the wire
            smoother. Symmetric about the
            direction, so right on mirrored limbs. Sized for 16 map pixels
-           to a texel (the player's armour layers).
+           to a texel (the player's armour layers). "grid": true is one
+           ring per texel, centred in it, for art that draws mail as a
+           checker of ring and gap texels ("radius", "wire", "lean",
+           "gap").
   mix      several kinds summed: "layers", a list of {"kind", "strength",
            "swing", "params"}, each kind at its own amplitude and swing
            times strength and swing. A material takes one "micro", so a
@@ -712,8 +717,9 @@ def _leather(c, p):
     crease = np.clip(1.0 - (f2 - f1) / 0.3, 0.0, 1.0) ** 2
     dome = np.clip(1.0 - f1 * 0.9, 0.0, 1.0)
     pores = vnoise(c["x"] * 45.0, c["y"] * 45.0, c["seed"] + 4)
-    d = 0.45 * dome - 0.8 * crease + 0.08 * pores + 0.1 * (idv - 0.5)
-    s = 0.6 * (dome - 0.5) - 0.6 * crease
+    d = 0.45 * dome - p.get("crease", 0.8) * crease + p.get("pores", 0.08) * pores \
+        + 0.1 * (idv - 0.5)
+    s = p.get("sheen", 0.6) * (dome - 0.5) - 0.6 * crease
     return d, s
 
 
@@ -1181,7 +1187,10 @@ def _chain(c, p):
     way and the next row's the other way ("lean"), so where two rings cross
     the leaning one is on top and each ring passes over two neighbours and
     under two. A pixel no wire covers is a gap, low and rough. The wire's
-    top is smoother than its sides."""
+    top is smoother than its sides. "grid": true draws one ring per texel
+    instead (_chain_grid)."""
+    if p.get("grid"):
+        return _chain_grid(c, p)
     n = float(p.get("rings", 1.0))
     rad = float(p.get("radius", 0.4))
     wire = float(p.get("wire", 0.13))
@@ -1209,6 +1218,30 @@ def _chain(c, p):
             d = np.where(hit, h, d)
             s = np.where(hit, 0.6 * prof - 0.2, s)
             top = np.where(hit, h, top)
+    return d, s
+
+
+def _chain_grid(c, p):
+    """Mail where the art draws it as a checker of ring texels and gap
+    texels (the armour's mail): one ring of round wire per texel, centred
+    in it, "radius" and "wire" (half width) in texels, every other row of
+    texels leaning the other way along image down ("lean"), so the rows
+    read as interlinked. Nothing crosses the texel, and no jitter, so at a
+    viewing distance a ring texel is a ring and not speckle. Inside the
+    ring and in the texel's corners is gap, low ("gap") and rough; the
+    wire's top is smoother than its sides. The gap texels between are a
+    material of their own."""
+    rad = float(p.get("radius", 0.31))
+    wire = float(p.get("wire", 0.14))
+    lean = float(p.get("lean", 0.25))
+    tx, ty, fx, fy = _cell(c)
+    du, dv = fx - 0.5, fy - 0.5
+    q = (np.hypot(du, dv) - rad) / wire
+    on = np.abs(q) < 1.0
+    prof = np.sqrt(np.clip(1.0 - q * q, 0.0, 1.0))
+    sign = np.where(np.mod(ty, 2) == 0, 1.0, -1.0)
+    d = np.where(on, 0.6 * prof + lean * sign * dv, -float(p.get("gap", 0.15)))
+    s = np.where(on, 0.6 * prof - 0.2, -0.5)
     return d, s
 
 
