@@ -83,7 +83,15 @@ public:
     void setArmSwing(float s) { m_arm_swing = s; }
     // Diffuse-inferred normal strength for mesh surfaces with no authored
     // _n/_s companion; 0 disables it. Mirrors GoannaClient::m_auto_bump.
-    void setAutoBump(float strength) { m_auto_bump = strength; }
+    // A change drops the cached mesh materials, which carry the inference
+    // they were built with, so entities built from then on take the new
+    // strength.
+    void setAutoBump(float strength) {
+        if (strength == m_auto_bump)
+            return;
+        m_auto_bump = strength;
+        m_mesh_materials.clear();
+    }
     // The parallax march through an authored _n's height on mesh entities,
     // 0 to 1: GoannaClient's "parallax" material strength (the Low graphics
     // profile's mat_parallax 0), so mobs follow the same setting as the

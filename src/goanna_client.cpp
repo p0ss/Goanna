@@ -1068,6 +1068,11 @@ void GoannaClient::set_auto_bump(float strength) {
         return;
     m_auto_bump = strength;
     clearMaterials();
+    // Mobs and players infer the same relief; without this the setting only
+    // reached an EntityRenderer created after it, so a profile or slider
+    // change never reached entities once any had been drawn.
+    if (m_entities)
+        m_entities->setAutoBump(strength);
     // The array path infers the same relief for layers with no authored _n
     // (docs/pbr-plan.md step 2), and its companions are cached per texture.
     if (m_session && m_session->tsrc())
