@@ -106,6 +106,11 @@ public:
     // 0 to 1: GoannaClient's "hair_shader" material strength.
     // GOANNA_HAIR_SHADER scales it, 0 for an entities only A/B.
     void setHairShader(float strength);
+    // A material strength the entity shaders share with the nodes by name,
+    // with no scaling of its own: "micro_shadow" (direct_light.gdshaderinc)
+    // and "parallax_short" (entity_common.gdshaderinc). Applied to every
+    // material already built and to those built later, as <name>_strength.
+    void setChannel(const std::string &name, float strength);
     // The formspec model[] element (upstream's GUIScene): a standalone copy of
     // a media mesh with its textures applied, posed at the first frame of the
     // loop, for the UI to hang under a SubViewport. Unshaded, alpha tested at
@@ -236,6 +241,7 @@ private:
     float m_parallax = 1.0f;
     float m_hair = 0.0f;
     float m_hair_shader = 0.0f;
+    std::map<std::string, float> m_channels; // see setChannel
 };
 
 } // namespace goanna

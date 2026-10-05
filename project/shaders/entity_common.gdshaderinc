@@ -88,6 +88,12 @@ uniform float parallax_shadow_strength : hint_range(0.0, 1.0) = 0.85;
 // Halvings of the last march step before the chord (see the march); 0 is
 // the node path's chord alone. GOANNA_ENTITY_PARALLAX_REFINE sets it.
 uniform int parallax_refine : hint_range(0, 8) = 5;
+// The short march, as on the nodes (nodes_array_common.gdshaderinc): the
+// "parallax_short" material strength, set by EntityRenderer like the march's
+// own strength. Four steps, at most two halvings, four self shadow steps,
+// within parallax_short_range of the eye.
+uniform float parallax_short_strength : hint_range(0.0, 1.0) = 0.0;
+uniform float parallax_short_range : hint_range(0.0, 64.0) = 8.0;
 global uniform vec3 goanna_sun_dir;
 // The UV rectangle of the face this fragment is on, (min, max), from CUSTOM0
 // (faceRects in goanna_models.cpp). A skin is an atlas: the march clamps to
@@ -113,6 +119,7 @@ uniform float hair_shader_strength : hint_range(0.0, 1.0) = 0.0;
 
 #define GOANNA_DIAMOND
 #define GOANNA_HAIR
+#define GOANNA_MICRO_SHADOW
 #include "res://shaders/direct_light.gdshaderinc"
 #include "res://shaders/hair_strands.gdshaderinc"
 #include "res://shaders/underwater.gdshaderinc"
@@ -171,10 +178,14 @@ void fragment() {
 	vec2 puv = UV;
 	float self_shadow = 1.0;
 	float pom = 0.0;
+	// The sun's share the march's self shadow decided; see nodes_array.gdshader.
+	float march_shadow = 0.0;
+	bool short_march = parallax_short_strength > 0.5;
 	vec4 rect = v_face_rect;
 	if (has_normal && has_height && diamond_mode == 0 && parallax_strength > 0.001
 			&& rect.z > rect.x && rect.w > rect.y && abs(gem_det) > 1e-12) {
-		pom = (1.0 - smoothstep(parallax_range * 0.5, parallax_range, length(VERTEX)))
+		float range = short_march ? min(parallax_range, parallax_short_range) : parallax_range;
+		pom = (1.0 - smoothstep(range * 0.5, range, length(VERTEX)))
 				* parallax_strength;
 	}
 	if (pom > 0.001) {
@@ -201,7 +212,9 @@ void fragment() {
 		// The node march's step count, capped lower: a mob is a few
 		// hundred pixels at most and its authored heights are plateaus
 		// one art texel wide, which the chord refinement below finds.
-		int steps = int(mix(16.0, 6.0, vn) * clamp(depth_nodes / 0.05, 1.0, 2.0));
+		int steps = short_march ? 4
+				: int(mix(16.0, 6.0, vn) * clamp(depth_nodes / 0.05, 1.0, 2.0));
+		int refine = short_march ? min(parallax_refine, 2) : parallax_refine;
 		float dd = 1.0 / float(steps);
 		float d = 0.0;
 		float d_prev = 0.0;
@@ -224,7 +237,7 @@ void fragment() {
 		// drop 0.76 of the range inside one face) drew as one slice per step,
 		// a vertical staircase. A few halvings find where the ray meets the
 		// wall itself, to a thirty second of a step.
-		for (int i = 0; i < parallax_refine; i++) {
+		for (int i = 0; i < refine; i++) {
 			float dm = 0.5 * (d_prev + d);
 			float hm = max(1.0 - lift - textureGrad(normal_tex,
 					clamp(UV - slope * dm, lo, hi), gem_dx, gem_dy).a, 0.0);
@@ -244,7 +257,7 @@ void fragment() {
 		// chord's point fell to one side or the other from pixel to pixel,
 		// so the wall drew in stripes of the rim's texel and the floor's.
 		// The end under the surface is the rim, which is what a wall shows.
-		float d_hit = parallax_refine > 0 ? d : mix(d, d_prev, w);
+		float d_hit = refine > 0 ? d : mix(d, d_prev, w);
 		puv = clamp(UV - slope * d_hit, lo, hi);
 		bool shadow_ok = true;
 		if (textureGrad(albedo, puv, gem_dx, gem_dy).a < 0.5) {
@@ -271,8 +284,9 @@ void fragment() {
 			vec2 sslope = vec2(dot(st, d_tu) / lu, dot(st, d_tv) / lv) * (depth / sn);
 			float blocked = 0.0;
 			float k = 0.0;
-			float dk = d_hit / 8.0;
-			for (int i = 0; i < 8; i++) {
+			int shadow_steps = short_march ? 4 : 8;
+			float dk = d_hit / float(shadow_steps);
+			for (int i = 0; i < shadow_steps; i++) {
 				k += dk;
 				vec2 suv = clamp(puv + sslope * k, lo, hi);
 				float hs = max(1.0 - lift - textureGrad(normal_tex, suv, gem_dx, gem_dy).a, 0.0);
@@ -280,6 +294,7 @@ void fragment() {
 			}
 			self_shadow = 1.0 - clamp(blocked * 6.0, 0.0, 1.0)
 					* parallax_shadow_strength * pom;
+			march_shadow = pom;
 		}
 	}
 
@@ -307,6 +322,7 @@ void fragment() {
 	METALLIC = 0.0;
 	SPECULAR = 0.2;
 	AO = mix(1.0, node_light.y, sky_light_strength);
+	float pack_ao = 1.0;
 	EMISSION = ALBEDO * (goanna_sky_fill * node_light.y + vec3(1.0, 0.85, 0.6) * node_light.x * block_fill);
 
 	if (has_normal) {
@@ -316,7 +332,8 @@ void fragment() {
 		float z = sqrt(clamp(1.0 - dot(xy, xy), 0.0, 1.0));
 		NORMAL_MAP = vec3(xy * 0.5 + 0.5, z * 0.5 + 0.5);
 		NORMAL_MAP_DEPTH = 1.0;
-		AO *= mix(1.0, n.b, ao_strength);
+		pack_ao = mix(1.0, n.b, ao_strength);
+		AO *= pack_ao;
 		AO_LIGHT_AFFECT = 0.4 * ao_strength;
 	}
 	if (!has_spec && (class_smoothness > 0.0 || class_metal > 0.0)) {
@@ -480,6 +497,10 @@ void fragment() {
 		SPECULAR *= self_shadow;
 	}
 	v_specular = SPECULAR;
+	// The micro shadow (direct_light.gdshaderinc), less the sun's share the
+	// march's self shadow already traced.
+	v_micro = vec2(pack_ao, 1.0 - clamp(march_shadow, 0.0, 1.0));
+	v_sun_view = (VIEW_MATRIX * vec4(goanna_sun_dir, 0.0)).xyz;
 #ifdef GOANNA_DIAMOND_TRANSMISSION
 	// Only dedicated item/armour shaders enter the transparent pipeline.
 	// Keep handles and joins solid, with clearer faces and reflective rims.

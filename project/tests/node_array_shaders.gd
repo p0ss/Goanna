@@ -30,7 +30,7 @@ const SET_BY_CLIENT := ["albedo_array", "normal_array", "spec_array", "has_norma
 # set_material_strength.
 const CHANNELS := ["normal", "ao", "roughness", "specular", "emission", "sss",
 		"sky_light", "vertex_ao", "vertex_ao_light", "sky_fill", "stale",
-		"debug_nodelight", "detail", "parallax"]
+		"debug_nodelight", "detail", "parallax", "parallax_short", "micro_shadow"]
 # The march's own knobs, besides parallax_strength.
 const PARALLAX := ["parallax_depth", "parallax_range", "parallax_shadow_strength",
 		"parallax_silhouette", "layer_depth"]

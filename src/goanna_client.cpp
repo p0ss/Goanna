@@ -1167,6 +1167,14 @@ static const std::map<std::string, float> kMatStrengthDefaults = {
     // costs frames: the Low graphics profile turns it off for integrated
     // graphics such as the Steam Deck's.
     {"parallax", 1.0f},
+    // Which march: 0 the full one, 1 the short one for the handheld tiers
+    // (nodes_array_common.gdshaderinc, entity_common.gdshaderinc).
+    {"parallax_short", 0.0f},
+    // Micro shadowing from the pack's occlusion in light()
+    // (direct_light.gdshaderinc), on nodes, foliage and mobs. Off until its
+    // cost and look have been measured on the GPU
+    // (docs/perf/low-tier-occlusion-2026-10-05).
+    {"micro_shadow", 0.0f},
     // The along the strand highlight on hair texels of a mob or player skin
     // (direct_light.gdshaderinc, EntityRenderer::setHair). 0 draws hair with
     // the isotropic lobe every other texel takes. Off by default until it
@@ -1213,6 +1221,8 @@ void GoannaClient::set_material_strength(const String &channel, float value) {
         m_entities->setHair(value);
     if (k == "hair_shader" && m_entities)
         m_entities->setHairShader(value);
+    if ((k == "micro_shadow" || k == "parallax_short") && m_entities)
+        m_entities->setChannel(k, value);
 }
 
 Dictionary GoannaClient::server_options() const {
@@ -3395,7 +3405,7 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
             // and is left alone.
             if (sh == m_sh_ice || sh == m_sh_leaves || sh == m_sh_plants) {
                 for (const char *ch : {"normal", "ao", "roughness", "specular",
-                                       "sss", "emission"})
+                                       "sss", "emission", "micro_shadow"})
                     sm->set_shader_parameter(String(ch) + String("_strength"),
                             material_strength(String(ch)));
             }
@@ -3827,6 +3837,8 @@ void GoannaClient::sync_entities(double dt) {
         m_entities->setParallax(material_strength("parallax"));
         m_entities->setHair(material_strength("hair"));
         m_entities->setHairShader(material_strength("hair_shader"));
+        m_entities->setChannel("micro_shadow", material_strength("micro_shadow"));
+        m_entities->setChannel("parallax_short", material_strength("parallax_short"));
         m_entities->setShowBody(m_show_body);
         m_entities->setThirdPerson(m_third_person);
         m_entities->setAutoBump(m_auto_bump);
@@ -3898,6 +3910,8 @@ Dictionary GoannaClient::wield_info() {
         m_entities->setParallax(material_strength("parallax"));
         m_entities->setHair(material_strength("hair"));
         m_entities->setHairShader(material_strength("hair_shader"));
+        m_entities->setChannel("micro_shadow", material_strength("micro_shadow"));
+        m_entities->setChannel("parallax_short", material_strength("parallax_short"));
     }
     ItemStack item = goanna_wielded_item(m_session.get());
     d["name"] = String::utf8(item.name.c_str());
@@ -3938,6 +3952,8 @@ Dictionary GoannaClient::item_mesh(const String &item_name) {
         m_entities->setParallax(material_strength("parallax"));
         m_entities->setHair(material_strength("hair"));
         m_entities->setHairShader(material_strength("hair_shader"));
+        m_entities->setChannel("micro_shadow", material_strength("micro_shadow"));
+        m_entities->setChannel("parallax_short", material_strength("parallax_short"));
     }
     ItemStack item(item_name.utf8().get_data(), 1, 0, m_session->getItemDefManager());
     d["name"] = item_name;
@@ -3959,6 +3975,8 @@ Dictionary GoannaClient::model_preview(const String &mesh_name, const PackedStri
         m_entities->setParallax(material_strength("parallax"));
         m_entities->setHair(material_strength("hair"));
         m_entities->setHairShader(material_strength("hair_shader"));
+        m_entities->setChannel("micro_shadow", material_strength("micro_shadow"));
+        m_entities->setChannel("parallax_short", material_strength("parallax_short"));
     }
     std::vector<std::string> texs;
     texs.reserve(textures.size());

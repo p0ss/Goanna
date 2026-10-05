@@ -74,6 +74,45 @@ varying float v_sun_gate;
 varying float v_specular;
 varying vec2 v_rim;
 
+#ifdef GOANNA_MICRO_SHADOW
+// Micro-shadowing: a recess in the baked texture occlusion (the _n blue
+// channel) stops direct light from the side, because the walls of the
+// recess are in its way, and lets it in when the light comes from straight
+// above. The occlusion alone multiplies ambient and so darkens a mortar
+// joint the same at noon as at sunset; with this, the joint closes when the
+// light rakes across the wall and opens when it faces it. It is what the
+// parallax self shadow does, without a march: no texture read of its own,
+// a handful of ALU per light.
+//
+// The published form is Naughty Dog's BRDF micro shadowing (Waylon Brinck
+// and Andrew Maximov, "The Technical Art of Uncharted 4", SIGGRAPH 2016,
+// advances.realtimerendering.com/other/2016/naughty_dog), also Unity HDRP's
+// "Micro Shadows": treat the occlusion as a cone of visible sky whose
+// aperture is 2 * ao * ao, and shadow light outside it,
+// saturate(abs(N.L) + 2 * ao * ao - 1). ao 1 changes nothing; ao 0.5 takes
+// off light arriving more than 60 degrees from the normal.
+//
+// A shader that defines GOANNA_MICRO_SHADOW writes v_micro in fragment(): x
+// the texture scale occlusion (the pack's, not the vertex corner term, which
+// is the room's shape and not a texel's), y how much of the effect the sun
+// takes. The sun's share is below one where the parallax march's
+// self shadow already traced the height field toward the sun: that is the
+// real occlusion this approximates, and both together darkened the same
+// joint twice. Every other light (moon, bounce, lamps) is never traced by
+// the march and takes the full effect. v_sun_view is the sun's direction in
+// view space, so light() can tell the sun from the other directional lights.
+varying vec2 v_micro;
+varying vec3 v_sun_view;
+// The "micro_shadow" material strength (GoannaClient::set_material_strength,
+// the mat_micro_shadow setting): 0 is off, 1 the published form. Off by
+// default until it has been measured on the GPU.
+uniform float micro_shadow_strength : hint_range(0.0, 1.0) = 0.0;
+
+float goanna_micro_shadow(float ao, float ndotl) {
+	return clamp(abs(ndotl) + 2.0 * ao * ao - 1.0, 0.0, 1.0);
+}
+#endif
+
 // How far the day bank must stand above the night bank before the sun is let
 // in fully. 0.05 lies between Luanti's levels 1 and 2 on the default light
 // curve (0.024 and 0.059), and open sky beside a level 14 lamp, the brightest
@@ -253,6 +292,16 @@ void light() {
 		spec *= mix(1.0, v_hair_fx.y * hair_shader_sheen, v_hair_fx.x);
 		float wrapped = max((dot(NORMAL, LIGHT) + hair_wrap) / (1.0 + hair_wrap), 0.0);
 		diffuse = mix(diffuse, LIGHT_COLOR * ATTENUATION * wrapped * (1.0 / PI), v_hair_fx.x);
+	}
+#endif
+#ifdef GOANNA_MICRO_SHADOW
+	if (micro_shadow_strength > 0.001 && v_micro.x < 0.999) {
+		float share = micro_shadow_strength;
+		if (LIGHT_IS_DIRECTIONAL && dot(LIGHT, v_sun_view) > 0.999)
+			share *= v_micro.y;
+		float micro = mix(1.0, goanna_micro_shadow(v_micro.x, dot(NORMAL, LIGHT)), share);
+		diffuse *= micro;
+		spec *= micro;
 	}
 #endif
 	// Only the sun, the moon and the bounce are directional; every lamp is an

@@ -39,6 +39,7 @@ varying float v_skylight;
 varying float v_blocklight;
 varying float v_wnormal_y;
 
+#define GOANNA_MICRO_SHADOW
 #include "res://shaders/direct_light.gdshaderinc"
 
 void vertex() {
@@ -125,6 +126,10 @@ void fragment() {
 	// direct_light.gdshaderinc.
 	v_sun_gate = goanna_sun_gate(v_skylight, v_blocklight);
 	v_specular = SPECULAR;
+	// The micro shadow (direct_light.gdshaderinc) from the pack's occlusion,
+	// in full for every light: foliage has no parallax march.
+	v_micro = vec2(pack_ao, 1.0);
+	v_sun_view = vec3(0.0);
 	v_rim = vec2(0.0);
 	// The water between the eye and this surface, per colour (underwater.gdshaderinc).
 	vec3 goanna_uw = goanna_underwater_keep(VERTEX, INV_VIEW_MATRIX, CAMERA_POSITION_WORLD);

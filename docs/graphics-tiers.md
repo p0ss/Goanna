@@ -60,6 +60,8 @@ be varied independently for controlled tests.
 | Light shafts | Off | On | On | On | On |
 | SDFGI strength | Off | Off | 1.4 | 1.4 | 1.4 |
 | Parallax | Off | Off | On | On | On |
+| Parallax march | n/a | n/a | Full | Full | Full |
+| Micro shadows | Off | Off | Off | Off | Off |
 | SSIL strength | Off | Off | Off | 1.4 | 1.4 |
 | Screen-space detail | 0 | 0 | 1 | 2 | 3 |
 | Directional shadow detail | 0 | 0 | 1 | 1 | 2 |
@@ -72,6 +74,16 @@ be varied independently for controlled tests.
 | Bending distance, nodes | 0 | 4 | 6 | 10 | 16 |
 | Bending actors | 0 | 1 | 2 | 4 | 8 |
 | Grass AA when enabled | Existing | FXAA | 2x MSAA + FXAA | 2x MSAA + FXAA | 4x MSAA + FXAA |
+
+Parallax march and micro shadows are candidates for giving the low tiers
+back the recess shading that parallax's self shadow provides. The short
+march (`mat_parallax_short`) runs four steps plus two refinements, and
+only within eight nodes of the eye. Micro shadows (`mat_micro_shadow`)
+darken baked occlusion when light rakes across it, in `light()`, with no
+texture reads. Both are off in every preset until their GPU cost and
+look are measured; see [materials](materials.md), "Micro shadows and the
+short march", and the
+[measurement driver](perf/low-tier-occlusion-2026-10-05/run.py).
 
 Cloud layer count, style and lighting quality are independent controls.
 The Advanced Lighting setting **Cloud layers** saves a count from one to

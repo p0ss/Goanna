@@ -861,6 +861,48 @@ before it is trusted, but the frame still reads as terrain under haze.
 SSAO still cannot reach the fill; the traced term is the stable one and
 is now the one doing the visible work.
 
+### Micro shadows and the short march, 2026-10-05
+
+Lowest and Low turn parallax off, and with it the self shadow that makes
+mortar, lock gaps and sunk features read when the sun rakes across them.
+Two cheaper ways back are in the shaders, both off in every profile until
+they have been measured on the GPU (see
+`docs/perf/low-tier-occlusion-2026-10-05/`).
+
+**Micro shadows** (`mat_micro_shadow`, the `micro_shadow` material
+strength, 0 or 1). Naughty Dog's BRDF micro shadowing (Brinck and
+Maximov, "The Technical Art of Uncharted 4", SIGGRAPH 2016), the same form
+Unity HDRP ships as Micro Shadows: direct light is multiplied by
+`clamp(abs(N.L) + 2 * ao * ao - 1, 0, 1)`, where `ao` is the pack's `_n`
+blue after `mat_ao` and N.L uses the mapped normal. A texel with no
+occlusion is untouched; one at 0.5 loses light arriving more than 60
+degrees from its normal. It runs in `light()` (`direct_light.gdshaderinc`)
+on both node array shaders, waving plants and leaves, and every mesh
+entity shader, from a varying the fragment already had the value for: no
+texture read. It is not applied to the vertex corner term, which is the
+shape of the room rather than of a texel.
+
+Where the parallax march's self shadow ran, the sun takes the micro
+shadow only in proportion to how far the march has faded (`1 - pom`):
+the march traces the real height field toward the sun, which is what
+micro shadowing approximates from occlusion, and both together darken the
+same joint twice. The moon, the bounce and every lamp are never traced by
+the march, so they take the micro shadow in full at every tier. Beyond
+`parallax_range`, and everywhere on a tier with parallax off, the sun
+takes it in full too.
+
+**The short march** (`mat_parallax_short`, the `parallax_short` material
+strength, 0 or 1, read only where `mat_parallax` is on). Four steps, two
+halvings of the step that crossed the surface, then the chord; four self
+shadow steps instead of eight; and only within `parallax_short_range`
+(8 nodes) of the eye, fading to the plain normal map over its outer half.
+Mobs take the same: four steps and at most two halvings.
+
+Neither has been seen on the GPU or timed yet. Headless, the node, foliage
+and entity shaders compile and declare the new uniforms
+(`project/tests/node_array_shaders.gd` checks the node pair); that is all
+that is known.
+
 Worth stating plainly, because the obvious assumption is wrong and this
 repository has got licences wrong before.
 

@@ -50,6 +50,16 @@ uniform float parallax_strength : hint_range(0.0, 1.0) = 1.0;
 uniform float parallax_depth : hint_range(0.0, 4.0) = 1.0;
 uniform float parallax_range : hint_range(0.0, 256.0) = 40.0;
 uniform float parallax_shadow_strength : hint_range(0.0, 1.0) = 0.85;
+// The march's quality, the "parallax_short" material strength (the
+// mat_parallax_short setting). 0 is the march above. 1 is the short march
+// meant for the handheld tiers: four steps, two halvings of the last one to
+// find the wall, four self shadow steps, and only within
+// parallax_short_range nodes of the eye, fading to the plain normal map
+// over the outer half of that. A joint's wall and shadow are worth the
+// march only close up, where a texel is many pixels; further out the micro
+// shadow in light() (direct_light.gdshaderinc) carries the recesses.
+uniform float parallax_short_strength : hint_range(0.0, 1.0) = 0.0;
+uniform float parallax_short_range : hint_range(0.0, 64.0) = 8.0;
 // Experimental: a march that leaves the node's tile through a face edge
 // discards the fragment, so joints and pits cut the block's silhouette.
 // Only right on a single node quad; a merged quad's inner boundaries are

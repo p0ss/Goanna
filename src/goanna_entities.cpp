@@ -258,6 +258,16 @@ void EntityRenderer::setHair(float strength) {
     }
 }
 
+void EntityRenderer::setChannel(const std::string &name, float strength) {
+    m_channels[name] = strength;
+    const String uniform = String::utf8((name + "_strength").c_str());
+    for (auto &kv : m_mesh_materials) {
+        Ref<ShaderMaterial> sm = kv.second;
+        if (sm.is_valid())
+            sm->set_shader_parameter(uniform, strength);
+    }
+}
+
 // GOANNA_HAIR_SHADER: the same for the shader drawn hair.
 static float hairShaderScale() {
     const char *e = getenv("GOANNA_HAIR_SHADER");
@@ -570,6 +580,8 @@ Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
         sm->set_shader_parameter("parallax_strength", m_parallax * entityParallaxScale());
         sm->set_shader_parameter("hair_strength", m_hair * hairAnisoScale());
         sm->set_shader_parameter("hair_shader_strength", m_hair_shader * hairShaderScale());
+        for (const auto &ch : m_channels)
+            sm->set_shader_parameter(String::utf8((ch.first + "_strength").c_str()), ch.second);
         // The march's wall refinement, for an A/B (entity_common.gdshaderinc).
         if (const char *r = getenv("GOANNA_ENTITY_PARALLAX_REFINE"); r && *r)
             sm->set_shader_parameter("parallax_refine", atoi(r));

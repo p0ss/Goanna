@@ -30,6 +30,7 @@ render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 #include "res://shaders/nodes_array_common.gdshaderinc"
 #include "res://shaders/underwater.gdshaderinc"
 #define GOANNA_DIAMOND
+#define GOANNA_MICRO_SHADOW
 #include "res://shaders/direct_light.gdshaderinc"
 #include "res://shaders/diamond_ore.gdshaderinc"
 // goanna_rain and the rain cover map, for splashes and puddles.
@@ -118,9 +119,14 @@ void fragment() {
 	float px = max(length(dpx), length(dpy));
 	float self_shadow = 1.0;
 	float pom = 0.0;
+	// How much of the sun's light the march's self shadow decided, which the
+	// micro shadow in light() then leaves alone (direct_light.gdshaderinc).
+	float march_shadow = 0.0;
+	bool short_march = parallax_short_strength > 0.5;
 	if (has_normal && parallax_strength > 0.001 && flatten < 0.999) {
 		float eye_dist = length(v_world - CAMERA_POSITION_WORLD);
-		pom = (1.0 - smoothstep(parallax_range * 0.5, parallax_range, eye_dist))
+		float range = short_march ? min(parallax_range, parallax_short_range) : parallax_range;
+		pom = (1.0 - smoothstep(range * 0.5, range, eye_dist))
 				* (1.0 - flatten) * parallax_strength;
 	}
 	if (pom > 0.001) {
@@ -144,7 +150,8 @@ void fragment() {
 			// across the tile before it lands.
 			// A deeper march runs further across the tile and needs more
 			// samples to keep a joint's wall from tearing.
-			int steps = int(mix(22.0, 8.0, vn) * clamp(depth / 0.05, 1.0, 2.0));
+			int steps = short_march ? 4
+					: int(mix(22.0, 8.0, vn) * clamp(depth / 0.05, 1.0, 2.0));
 			float dd = 1.0 / float(steps);
 			float d = 0.0;
 			float d_prev = 0.0;
@@ -159,6 +166,25 @@ void fragment() {
 				d += dd;
 				uv = tile_uv - slope * d;
 				h = 1.0 - textureGrad(normal_array, vec3(uv, float(layer)), uv_dx, uv_dy).a;
+			}
+			// The short march's four steps are a quarter of the depth each,
+			// coarser than a joint's wall: two halvings of the step that
+			// crossed the surface put the hit within a sixteenth of the
+			// depth before the chord below. Skipped when the ray never got
+			// under the surface, where there is nothing to bracket.
+			if (short_march && d >= h) {
+				for (int i = 0; i < 2; i++) {
+					float dm = 0.5 * (d_prev + d);
+					float hm = 1.0 - textureGrad(normal_array,
+							vec3(tile_uv - slope * dm, float(layer)), uv_dx, uv_dy).a;
+					if (dm >= hm) {
+						d = dm;
+						h = hm;
+					} else {
+						d_prev = dm;
+						h_prev = hm;
+					}
+				}
 			}
 			// The hit lies between the last two samples: intersect the ray
 			// with the chord between them.
@@ -181,8 +207,9 @@ void fragment() {
 				vec2 sslope = vec2(dot(st, d_tu) / lu, dot(st, d_tv) / lv) * (depth / sn);
 				float blocked = 0.0;
 				float k = 0.0;
-				float dk = d_hit / 8.0;
-				for (int i = 0; i < 8; i++) {
+				int shadow_steps = short_march ? 4 : 8;
+				float dk = d_hit / float(shadow_steps);
+				for (int i = 0; i < shadow_steps; i++) {
 					k += dk;
 					vec2 suv = tile_uv + sslope * k;
 					float hs = 1.0 - textureGrad(normal_array, vec3(suv, float(layer)), uv_dx, uv_dy).a;
@@ -191,6 +218,7 @@ void fragment() {
 				}
 				self_shadow = 1.0 - clamp(blocked * 6.0, 0.0, 1.0)
 						* parallax_shadow_strength * pom;
+				march_shadow = pom;
 			}
 		}
 	}
@@ -491,6 +519,10 @@ void fragment() {
 	// light() needs the final SPECULAR to build F0: direct_light.gdshaderinc.
 	v_sun_gate = goanna_sun_gate(v_nodelight.g, v_nodelight.r);
 	v_specular = SPECULAR;
+	// The pack's occlusion for the micro shadow, and how much of it the
+	// sun takes: none where the march's self shadow already traced it.
+	v_micro = vec2(pack_ao, 1.0 - clamp(march_shadow, 0.0, 1.0));
+	v_sun_view = (VIEW_MATRIX * vec4(goanna_sun_dir, 0.0)).xyz;
 	// The water between the eye and this surface, per colour (underwater.gdshaderinc).
 	vec3 goanna_uw = goanna_underwater_keep(VERTEX, INV_VIEW_MATRIX, CAMERA_POSITION_WORLD);
 	ALBEDO *= goanna_uw;
