@@ -12,7 +12,9 @@
    "mode": "shade",
    "base": 0.5,
    "span": 0.35,
-   "metal": false
+   "metal": false,
+   "smooth": 0.3,
+   "smooth_spread": 0.06
   }
  },
  "palette": {
