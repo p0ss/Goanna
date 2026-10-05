@@ -20,9 +20,22 @@
 // [colorize, [multiply, [screen, [hsl, [colorizehsl, [contrast), which leave
 // every layer's shape and coverage alone. Anything else ([combine,
 // [transform, [mask, [resize, a frame cut, nested groups, escapes) is not a
-// stack this can composite, and the caller keeps its single image lookup.
+// stack parseOverlayLayers reads.
+//
+// composeCompanion reads more: the texture modifier language as Luanti's
+// ImageSource::generateImage evaluates it (overlays, parenthesised groups,
+// [combine with escaped and nested parts, [transform, [resize, [opacity,
+// [noalpha and the colour-only modifiers), and builds the companion the
+// same way the albedo is built: each part's companion placed where the part
+// is placed, transformed as it is transformed. The node path uses it for
+// a tile string such as "mcl_nether_netherrack.png^crimson_nylium_side.png"
+// or a chiseled bookshelf's "[combine:16x16:...", an item for
+// "screwdriver.png^[transformFX". Anything else (a frame cut, [mask, a
+// crack, [fill, [inventorycube) is not read, and the caller keeps its
+// single image lookup.
 
 #include <cstdint>
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -74,12 +87,16 @@ struct Rgba8 {
 // (a dielectric _s at 180/255 opacity) over its metal blended green to about
 // 84, which the shader reads as a dielectric with the largest specular it
 // has. So _s mixes smoothness only; _n mixes everything.
+//
+// tangent says R and G hold a tangent space vector, which a rotation or a
+// flip of the image has to turn with it (transformCompanion).
 struct CompanionKind {
     uint8_t neutral[4];
     bool blend[4];
+    bool tangent = false;
 };
-constexpr CompanionKind kNormalKind{{128, 128, 255, 255}, {true, true, true, true}};
-constexpr CompanionKind kSpecKind{{0, 10, 0, 255}, {true, false, false, false}};
+constexpr CompanionKind kNormalKind{{128, 128, 255, 255}, {true, true, true, true}, true};
+constexpr CompanionKind kSpecKind{{0, 10, 0, 255}, {true, false, false, false}, false};
 
 // One layer's inputs: its albedo (whose alpha, times opacity, is the mask)
 // and its companion, either of which may be empty. A layer whose albedo is
@@ -98,5 +115,55 @@ struct CompanionLayer {
 // larger, so a companion authored at eight map texels per art texel keeps
 // its resolution. Empty if `layers` is.
 Rgba8 compositeCompanions(const std::vector<CompanionLayer> &layers, const CompanionKind &kind);
+
+// Luanti's [transform argument (a digit 0 to 7 or names such as "FXR90",
+// concatenated names multiplied in order) as the transform number 0 to 7:
+// 0 identity, 1 R90, 2 R180, 3 R270 (rotations counter-clockwise), 4 FX,
+// 5 FXR90, 6 FY, 7 FYR90. The same reading as imagesource.cpp's
+// parseImageTransform.
+int parseImageTransform(const std::string &s);
+
+// `img` transformed as [transform<t> transforms an image: texel (dx, dy) of
+// the result is the source texel imagesource.cpp's imageTransform picks.
+// With `tangent`, R and G are a tangent vector (R toward +x of the image, G
+// toward its top, the way the shaders decode _n against Godot's binormal)
+// and turn with the image. 255 - v negates a channel exactly about the
+// 127.5 the decode v / 255 * 2 - 1 treats as zero (so a flat 128 comes
+// back 127, a lean of 1/255), and:
+//   FX (4)     R = 255 - R
+//   FY (6)     G = 255 - G
+//   R180 (2)   both negated
+//   R90 (1)    R = 255 - G, G = R    (counter-clockwise: right turns to up)
+//   R270 (3)   R = G, G = 255 - R
+//   FXR90 (5)  R = 255 - G, G = 255 - R
+//   FYR90 (7)  R = G, G = R          (a reflection in the diagonal)
+// B (occlusion) and A (height) are scalars and only move.
+Rgba8 transformCompanion(const Rgba8 &img, int transform, bool tangent);
+
+// Where composeCompanion reads a plain image ("x.png", never a modifier).
+// Either may return an empty image: an unknown albedo makes the texture
+// unreadable, a missing companion makes that part neutral.
+struct CompanionSources {
+    std::function<Rgba8(const std::string &)> albedo;
+    std::function<Rgba8(const std::string &)> companion;
+};
+
+enum class Composed {
+    Unsupported, // uses something this does not read; keep the plain lookup
+    NoCompanion, // read, but no part has a companion of this kind
+    Done,        // `out` holds the composed companion
+};
+
+// The companion of kind `kind` for `texture`, built the way Luanti builds
+// the texture itself (see the top of this file). Resolution: every value
+// carries its companion at its own scale over its art, and placing one in
+// another takes the finer of the two, so an eight times map stays eight
+// times when it is laid into a sixteen texel [combine canvas. Where a part
+// covers (its albedo alpha, the mask), its companion mixes over what is
+// under it as compositeCompanions mixes a layer; a part with no companion
+// of its own is the kind's neutral there, and canvas nothing covers is
+// neutral too.
+Composed composeCompanion(const std::string &texture, const CompanionKind &kind,
+        const CompanionSources &src, Rgba8 &out);
 
 } // namespace goanna

@@ -1171,7 +1171,8 @@ private:
     void showAnimationFrame(AnimatedMaterial &am, u32 frame_texture);
     // The textures a glass, ice, leaves or plants material reads for a tile:
     // its LabPBR companion by stem, cut to the same frame for an animation
-    // frame (GoannaTextureSource::companionImage).
+    // frame (GoannaTextureSource::companionImage), or composed for an
+    // authored overlay, a [combine or a [transform (tileCompanion).
     godot::Ref<godot::Texture2D> companionTexture(u32 texture_id, const char *suffix);
     void clearMaterials() {
         m_materials.clear();

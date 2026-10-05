@@ -22,6 +22,13 @@ companions. Textures that only reach the screen through those routes were not
 authored, since their maps would never be read or would sit rotated against the
 art.
 
+Later the same day the client learnt to compose companions for texture
+expressions (docs/materials.md, "Companions of texture expressions"): an
+overlay with its own maps on a node face, `[combine` parts and `[transform`
+on node tiles and items alike. The three groups below that said otherwise
+are marked as resolved; their textures can now be authored. Sprites still
+take no companions.
+
 Game: the Mineclonia installed in the Luanti flatpak on 2026-10-05, Luanti
 5.17.0 server for the dump.
 
@@ -799,6 +806,12 @@ Colour mask, takes the companions of the layer it masks.
 Drawn only after a ^ on a node face, where the client reads the base image's
 companions.
 
+Resolved 2026-10-05: an overlay with its own `_n` or `_s` now gets them where
+it is drawn, composed over the base image's (GoannaTextureSource::
+tileCompanion), and the redstone cross's line rotated by `[transformR90` gets
+its maps turned with it. Author these by their own names, at the art's grid
+(the composite takes the finer of the base's and the overlay's scales).
+
 - `crimson_nylium_side` (mcl_crimson): node tile (normal).
 - `mcl_comparators_comp` (mcl_comparators): node tile (nodebox).
 - `mcl_comparators_ends_sub` (mcl_comparators): node tile (nodebox).
@@ -825,6 +838,10 @@ Flame, emissive cut-out animation.
 
 Held through [transform, which the client does not apply to companions.
 
+Resolved 2026-10-05: the client transforms the companions as the art is
+transformed, and turns the `_n` tangent with it (the table is in
+docs/materials.md). Author these unrotated, as the inventory image draws them.
+
 - `mcl_mobitems_carrot_on_a_stick` (mcl_mobitems): held/dropped item.
 - `mcl_mobitems_warped_fungus_on_a_stick` (mcl_mobitems): held/dropped item.
 - `screwdriver` (screwdriver): held/dropped item.
@@ -833,6 +850,12 @@ Held through [transform, which the client does not apply to companions.
 
 Laid into the chiseled bookshelf by [combine, which the client does not
 composite.
+
+Resolved 2026-10-05: each part's companions are placed at its offset in the
+`[combine` canvas. Ship only the `_n` and `_s` of these and of
+`mcl_books_chiseled_bookshelf_empty`: Luanti blits a `[combine` part at its
+own size, so an albedo at map size shows only its top left corner in the 16
+texel canvas (the pack as shipped does this to the empty shelf).
 
 - `mcl_books_book_0` (mcl_books): node tile (normal).
 - `mcl_books_book_1` (mcl_books): node tile (normal).

@@ -298,16 +298,35 @@ Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
             // A plain overlay stack (a villager's base, biome, profession and
             // badge; a golem's crack) gets companions composited the same
             // way, so each layer's own maps show where it covers
-            // (goanna_overlay_companions.h). Anything else, or a single
-            // image, takes the base image's companions: a texture modifier
-            // (transform, combine, mask) is baked into the rendered image and
-            // has no file of its own to look a companion up for.
+            // (goanna_overlay_companions.h). A texture built with [combine
+            // or [transform (a shield or a banner as an item, the trident's
+            // held image, a carrot on a stick or a screwdriver held turned)
+            // gets its companions composed the way the texture is built
+            // (composeCompanion), each part's maps placed and turned with
+            // the part. Anything neither reads ([mask, a frame cut), or a
+            // single image, takes the base image's companions.
             std::vector<OverlayLayer> layers;
+            bool composed = false;
             if (parseOverlayLayers(texture, layers) && layers.size() > 1) {
                 normal_tex = compositeCompanion(session, texture, layers, "_n");
                 spec_tex = compositeCompanion(session, texture, layers, "_s");
                 composite_layers = (int)layers.size();
                 art_layers = layers;
+            } else if (layers.empty() && (texture.find('^') != std::string::npos ||
+                               (!texture.empty() && texture[0] == '['))) {
+                bool supported = false;
+                GoannaTexture *cn = session.tsrc()->composedCompanion(texture, "_n", &supported);
+                if (supported) {
+                    GoannaTexture *cs = session.tsrc()->composedCompanion(texture, "_s", nullptr);
+                    if (cn)
+                        normal_tex = cn->godotTexture();
+                    if (cs)
+                        spec_tex = cs->godotTexture();
+                    composed = true;
+                }
+            }
+            if (composite_layers || composed) {
+                // Composed above.
             } else {
                 std::string base = layers.size() == 1 ? layers[0].image
                         : texture.substr(0, texture.find('^'));

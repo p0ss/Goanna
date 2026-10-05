@@ -30,6 +30,7 @@
 #include "client/imagefilters.h"
 #include "client/node_visuals.h"
 #include "goanna_image_hooks.h"
+#include "goanna_overlay_companions.h"
 #include "log.h"
 #include "nodedef.h"
 
@@ -290,16 +291,19 @@ Ref<Texture2DArray> GoannaTexture::godotArraySuffixed(GoannaTextureSource &src, 
         // beside plain dirt. The companion belongs to the base image, the
         // part before the first modifier, the same normalisation
         // GoannaClient::tileBaseName applies for the material class.
+        // An overlay the pack has authored, a [combine or a [transform is
+        // the exception, and gets a companion composed the way the tile is
+        // (GoannaTextureSource::tileCompanion). A composite tile string is
+        // its own layer here, so its composed companion is too.
         const std::string &full = m_layer_names[li];
         const size_t caret = full.find('^');
         const std::string base = caret == std::string::npos ? full : full.substr(0, caret);
         // An animation frame takes the same frame of the companion strip, so
         // the relief and the material move with the colour.
-        const std::string name = src.companionImage(full, suffix);
         Ref<Image> img;
         bool was_authored = false;
-        if (!name.empty()) {
-            GoannaTexture *gt = dynamic_cast<GoannaTexture *>(src.getTexture(name));
+        {
+            GoannaTexture *gt = src.tileCompanion(full, suffix);
             if (gt && gt->image()) {
                 img = goanna_image_to_godot(gt->image());
                 if (img.is_valid()) {
@@ -831,6 +835,134 @@ std::string GoannaTextureSource::companionImage(const std::string &tile, const c
     if ((u64)comp.Width * strip.Height != (u64)comp.Height * strip.Width)
         return name;
     return name + tile.substr(pos);
+}
+
+static Rgba8 imageToRgba8(video::IImage *img) {
+    Rgba8 out;
+    if (!img)
+        return out;
+    out.w = (int)img->getDimension().Width;
+    out.h = (int)img->getDimension().Height;
+    out.px.resize((size_t)out.w * out.h * 4);
+    for (int y = 0; y < out.h; ++y)
+        for (int x = 0; x < out.w; ++x) {
+            const video::SColor c = img->getPixel(x, y);
+            uint8_t *d = &out.px[((size_t)y * out.w + x) * 4];
+            d[0] = c.getRed();
+            d[1] = c.getGreen();
+            d[2] = c.getBlue();
+            d[3] = c.getAlpha();
+        }
+    return out;
+}
+
+GoannaTexture *GoannaTextureSource::composedCompanion(const std::string &texture,
+        const char *suffix, bool *supported) {
+    const std::string key = texture + '\x1f' + suffix;
+    auto it = m_composed.find(key);
+    if (it == m_composed.end()) {
+        // A leaf is a plain file name: its albedo is the image as Luanti
+        // loads it, its companion the first of companionNames a pack or the
+        // server has. Kept for the one composition, which may ask twice.
+        std::map<std::string, Rgba8> albedos, comps;
+        CompanionSources sources{
+            [&](const std::string &name) {
+                auto a = albedos.find(name);
+                if (a != albedos.end())
+                    return a->second;
+                video::IImage *img = getOrGenerateImage(name);
+                Rgba8 r = imageToRgba8(img);
+                if (img)
+                    img->drop();
+                return albedos[name] = r;
+            },
+            [&](const std::string &name) {
+                auto c = comps.find(name);
+                if (c != comps.end())
+                    return c->second;
+                Rgba8 r;
+                for (const std::string &cn : companionNames(name, suffix)) {
+                    if (!isKnownSourceImage(cn))
+                        continue;
+                    video::IImage *img = getOrGenerateImage(cn);
+                    r = imageToRgba8(img);
+                    if (img)
+                        img->drop();
+                    if (!r.empty())
+                        break;
+                }
+                return comps[name] = r;
+            },
+        };
+        Rgba8 out;
+        const bool normal = suffix[1] == 'n';
+        const Composed result = composeCompanion(texture, normal ? kNormalKind : kSpecKind,
+                sources, out);
+        u32 id = result == Composed::Unsupported ? kComposedUnread : 0;
+        if (result == Composed::Done) {
+            video::IImage *img = goanna_create_image(video::ECF_A8R8G8B8,
+                    core::dimension2du((u32)out.w, (u32)out.h));
+            for (int y = 0; y < out.h; ++y)
+                for (int x = 0; x < out.w; ++x) {
+                    const uint8_t *p = &out.px[((size_t)y * out.w + x) * 4];
+                    img->setPixel(x, y, video::SColor(p[3], p[0], p[1], p[2]));
+                }
+            // Named so no texture string can collide with it: the name
+            // never reaches ImageSource, only m_name_to_id.
+            const std::string name = std::string("[goanna_composed") + suffix + ":" + texture;
+            id = (u32)m_textures.size();
+            m_textures.push_back(std::make_unique<GoannaTexture>(name, img, id));
+            img->drop();
+            m_name_to_id[name] = id;
+            if (getenv("GOANNA_DEBUG_PBR"))
+                UtilityFunctions::print("pbr composed ", suffix, " ", out.w, "x", out.h, " for ",
+                        String::utf8(texture.c_str()));
+            // GOANNA_DUMP_COMPOSED=<dir>: each composed companion as a PNG,
+            // named by its id, with the texture string in the log line.
+            const char *dump = getenv("GOANNA_DUMP_COMPOSED");
+            if (dump && *dump) {
+                Ref<Image> png = goanna_image_to_godot(m_textures[id]->image());
+                const String path = String::utf8(dump).path_join(
+                        String::num_int64(id) + String(suffix) + ".png");
+                if (png.is_valid() && png->save_png(path) == OK)
+                    UtilityFunctions::print("pbr composed dump ", path, " = ",
+                            String::utf8(texture.c_str()));
+            }
+        }
+        it = m_composed.emplace(key, id).first;
+    }
+    if (supported)
+        *supported = it->second != kComposedUnread;
+    return it->second == kComposedUnread ? nullptr : goannaTexture(it->second);
+}
+
+GoannaTexture *GoannaTextureSource::tileCompanion(const std::string &tile, const char *suffix) {
+    auto plain = [&]() -> GoannaTexture * {
+        const std::string name = companionImage(tile, suffix);
+        return name.empty() ? nullptr : dynamic_cast<GoannaTexture *>(getTexture(name));
+    };
+    if (tile.find('^') == std::string::npos && (tile.empty() || tile[0] != '['))
+        return plain();
+    // A plain stack whose overlays have nothing authored keeps the base
+    // image's maps everywhere, as it always has: Mineclonia's grass side is
+    // dirt under a translucent shading overlay, and composing that would
+    // flatten the dirt under the shade to neutral for no authored gain. The
+    // composite is for overlays a pack has authored.
+    std::vector<OverlayLayer> layers;
+    if (parseOverlayLayers(tile, layers)) {
+        bool above = false;
+        for (size_t i = 1; i < layers.size() && !above; ++i)
+            for (const std::string &cn : companionNames(layers[i].image, suffix))
+                if (isKnownSourceImage(cn)) {
+                    above = true;
+                    break;
+                }
+        if (!above)
+            return plain();
+    }
+    bool supported = false;
+    GoannaTexture *composed = composedCompanion(tile, suffix, &supported);
+    return supported ? composed : plain();
 }
 
 void GoannaTextureSource::buildNodeAnimations(const NodeDefManager *ndef) {

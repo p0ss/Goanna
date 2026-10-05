@@ -390,11 +390,12 @@ art texel keeps its resolution over 64 or 128 pixel art
   `[opacity` or colour only modifiers, and colour only modifiers anywhere
   (`[brighten`, `[colorize`, `[multiply`, `[screen`, `[hsl`,
   `[colorizehsl`, `[contrast`), which is also what keeps a damage tint from
-  dropping the composite. Anything else (`[combine`, `[transform`,
-  `[mask`, `[resize`, a frame cut, `[opacity` over the whole stack, nested
-  groups, escaped characters) is not composited: the texture takes the
-  companions of the image before its first `^`, as every entity texture
-  did before.
+  dropping the composite. A texture built any other way that the texture
+  language reader can follow (`[combine`, `[transform`, `[resize`, nested
+  groups, escaped parts) is composed by it instead; see "Companions of
+  texture expressions" below. What neither reads (`[mask`, a frame cut, a
+  crack) takes the companions of the image before its first `^`, as every
+  entity texture did before.
 
 **Sampling.** `_n` is linear with mipmaps, like the node path. At a
 companion resolution of four or more map texels per art texel the half
@@ -594,6 +595,129 @@ It was also upside down along V, on node tiles and entities alike, from
 0e3fa49 (which turned the mesher's binormal to minus V) until 2026-10-01:
 a bright, raised texel lit from below the light. The probe's auto bump
 quads check it.
+
+## Companions of texture expressions
+
+A Luanti texture is an expression, not a file name, and until 2026-10-05
+the client looked a companion up for one image of it only: the image
+before the first `^` on a node face, and the same for an item or entity
+unless the whole texture was a plain overlay stack. So Crimson nylium's
+side (`mcl_nether_netherrack.png^crimson_nylium_side.png`) drew with
+netherrack's maps under its nylium, the chiseled bookshelf's
+`[combine:16x16:...` front had no maps at all, and a carrot on a stick
+held as `mcl_mobitems_carrot_on_a_stick.png^[transformFY^[transformR90`
+would have had its maps lying across the art at right angles.
+
+`composeCompanion` (`src/goanna_overlay_companions.h`) now builds the
+companion of an expression the way `ImageSource::generateImage` builds the
+texture: the same split at the last `^` outside brackets, the same escape
+rule, and per part the same operation applied to the part's companion.
+Every intermediate carries its companion at its own scale over its art,
+and putting one into another keeps the finer scale, so a 256 pixel map on
+a 16 texel part stays 256 pixels per 16 texels inside a composite.
+
+| In the expression | What the companion gets |
+| --- | --- |
+| `a.png^b.png` | as the albedo: the smaller scaled up to the larger by area, then `b`'s companion mixed over `a`'s by `b`'s albedo alpha, by the channel rules of "Overlay stacks" above |
+| `(...)` | composed on its own, then laid into the corner at its own size, unscaled, as Luanti blits a group |
+| `[combine:WxH:x,y=part:...` | a transparent canvas, neutral companion; each part composed (escaped `\^` and `\:` included, nested combines included) and placed at its offset times the scale, clipped; laid onto the image before it instead when there is one |
+| `[transformN` | moved as the texels move (`imageTransform`), and for `_n` the tangent turned with them; see below |
+| `[resize:WxH` | scaled nearest, keeping its scale over the art |
+| `[opacity:R`, `[noalpha` | the albedo's alpha changes, which is the mask when this part lies over another |
+| colour only modifiers | nothing |
+| anything else (`[mask`, `[verticalframe`, `[sheet`, `[crack`, `[fill`, `[inventorycube`, `[lowpart`, `[invert`, `[overlay`, `[png`) | not read: the old lookup, the image before the first `^` |
+
+A part with no companion of its own is neutral where it covers, and canvas
+nothing covers is neutral, as for an overlay stack. With no companion in any
+part there is no companion, so the inferred relief and the classified `_s`
+still apply as before.
+
+**Rotating a normal map.** `_n` red tilts toward plus x of the image and
+green toward its top. A transform moves each texel as `imageTransform`
+does, and turns the vector at it by the same map's linear part, which is a
+signed permutation. Negating a byte is `255 - v`, exact about the 127.5
+the decode treats as zero, so a flat 128 comes back 127, a lean of 1/255.
+Blue (occlusion) and alpha (height) only move.
+
+| Transform | Red | Green |
+| --- | --- | --- |
+| `FX` (4) | 255 - R | G |
+| `FY` (6) | R | 255 - G |
+| `R180` (2) | 255 - R | 255 - G |
+| `R90` (1), counter-clockwise | 255 - G | R |
+| `R270` (3) | G | 255 - R |
+| `FXR90` (5) | 255 - G | 255 - R |
+| `FYR90` (7) | G | R |
+
+Two transforms in a row are applied in turn, which gives their product:
+the carrot's `FY` then `R90` is `FYR90`, a reflection in the diagonal that
+swaps red and green. `goanna_overlay_companions_test` checks the table for
+all eight against a height field: the normals of the transformed height
+equal the transformed normals.
+
+**Where it is used.**
+
+- Node tiles: `GoannaTextureSource::tileCompanion`, for the array layers
+  (`godotArraySuffixed`) and for the glass, ice, leaves and plants
+  materials. A tile string with modifiers is already its own array layer, so
+  its composed companion goes into that layer's slot and nothing about the
+  batching changes. A plain stack whose overlays have no companion of their
+  own keeps the base image's maps everywhere, as before: Mineclonia's grass
+  side is dirt under a translucent shading overlay, and composing it would
+  flatten the dirt under the shade for no authored gain. An overlay with
+  its own maps composes: the nylium sides once their overlays are authored,
+  and with the pack as shipped the comparator's sides and ends in compare
+  mode (`mcl_comparators_sides_comp` and `_ends_comp` have maps) and the
+  redstone cross, whose first line takes its own maps where it is drawn
+  (`redstone_redstone_dust_line0`) and whose rotated second line is neutral
+  until `redstone_redstone_dust_line1` is authored. An animation frame
+  (`^[verticalframe`) is not read and keeps the frame cut of its strip's
+  companion.
+- `overlay_tiles`, Luanti's separate overlay layer, needs none of this: it
+  is a second `TileLayer` drawn as its own quad over the base, with its own
+  texture, so its array layer is named by the overlay image and takes that
+  image's own companions by the ordinary lookup. Its maps and the base's
+  never mix; each draws where its own layer is drawn. This was already so.
+- Items and entities: `EntityRenderer::materialForMeshTexture`. A plain
+  stack keeps the compositing above; any other expression the reader
+  follows is composed: a shield or banner as an item, the trident's held
+  image (`blank.png^[resize:5x32^[combine:5x32:-19,0=...`), a carrot or
+  warped fungus on a stick, the screwdriver (`^[transformFX`).
+- Each composed companion is built once per texture string and suffix, on
+  the main thread, and kept as a texture of its own
+  (`GoannaTextureSource::composedCompanion`). `GOANNA_DEBUG_PBR=1` logs each
+  one; `GOANNA_DUMP_COMPOSED=<dir>` also writes it as a PNG.
+
+**A trap for packs.** Luanti blits a `[combine` part at its own size into a
+canvas of the declared size. A pack that ships a part's albedo at map size
+(the Mineclonia pack ships `mcl_books_chiseled_bookshelf_empty.png` at 256
+pixels) makes the chiseled bookshelf's 16 texel canvas show the top left
+16 pixels of it, one art texel's flat colour, in the vanilla client too
+(checked through the transplanted `imagesource.cpp` with a synthetic 256
+pixel part, not seen in a frame). The composed companion follows
+the albedo exactly, crop and all, so it cannot hide this; the fix is to
+ship only the `_n` and `_s` of a texture that is used as a `[combine`
+part, as the skins already do.
+
+**Sprites.** A sprite or upright sprite draws through a plain
+`StandardMaterial3D` with no companions. A camera facing sprite could take
+a `_n`, but its tangent frame turns with the camera, so the relief would
+swing as the player walks round it. An upright sprite is a different case:
+in Luanti it is a fixed pair of quads turned only by the object's yaw
+(`GenericCAO::addToScene`), which could take the entity shader and its
+companions like any mesh. Goanna draws it as a billboard locked to the Y
+axis instead, which is itself a divergence from the vanilla client, and the
+decorated pot faces and the fishing bobber wait on that being drawn as
+Luanti draws it.
+
+Tests: `goanna_overlay_companions_test` (the reader and the arithmetic,
+with the strings Mineclonia sends for the nylium, the bookshelf, the
+trident, the shield, the screwdriver, the carrot and a redstone cross) and
+`goanna_tile_companion_test` (the choice between the base image's
+companion and a composed one through the extension's texture source, the
+cache, and the fallbacks). Neither renders. None of this has been seen in
+a frame yet: the one client run made for it failed at join on a fault in
+its own test world, and the GPU was taken when it could have been repeated.
 
 ## How LabPBR maps onto glTF 2.0
 

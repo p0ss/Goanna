@@ -307,6 +307,22 @@ public:
     // and the whole companion otherwise, which is what a pack with one still
     // map for an animated tile means.
     std::string companionImage(const std::string &tile, const char *suffix);
+    // The companion a node tile draws with, or nullptr. A tile that is one
+    // image, colour modifiers or a frame cut on one image, or a plain "^"
+    // stack whose overlays have no companion of their own, takes
+    // companionImage's, the base image's, as before. Anything else
+    // composeCompanion can read (an overlay with its own maps, as Crimson
+    // nylium's side or a comparator's top has; [combine, as the chiseled
+    // bookshelf's front; [transform, as a redstone cross's rotated line)
+    // takes the composed companion, and a tile it cannot read falls back to
+    // the base image's.
+    GoannaTexture *tileCompanion(const std::string &tile, const char *suffix);
+    // The companion composeCompanion builds for `texture`, as a texture of
+    // its own, built once and kept; nullptr when no part of it has one.
+    // *supported is false when the texture uses something composeCompanion
+    // does not read, and the caller keeps its own lookup. Main thread.
+    GoannaTexture *composedCompanion(const std::string &texture, const char *suffix,
+            bool *supported);
 
     // Animated node tiles (docs/node-animation.md). Built once node visuals
     // are filled, on the thread that filled them, before anything is meshed
@@ -358,6 +374,10 @@ private:
     video::IImage *getOrGenerateImage(const std::string &name);
     std::map<std::string, float> m_coarseness;
     std::map<std::string, float> m_coverage_cache;
+    // composedCompanion's results by texture and suffix: the texture id,
+    // 0 for none, kComposedUnread for a texture it cannot read.
+    static constexpr u32 kComposedUnread = 0xffffffffu;
+    std::map<std::string, u32> m_composed;
     std::string m_geometry_identity;
     ImageSource m_imagesource;
     std::vector<std::unique_ptr<GoannaTexture>> m_textures; // index = id

@@ -185,6 +185,12 @@ add_executable(goanna_overlay_companions_test EXCLUDE_FROM_ALL
     src/goanna_overlay_companions.cpp
 )
 target_include_directories(goanna_overlay_companions_test PRIVATE src)
+# Which companion a node tile string draws with: the base image's, or one
+# composed for an authored overlay, a [combine or a [transform, through the
+# extension's texture source with no Godot runtime.
+add_executable(goanna_tile_companion_test EXCLUDE_FROM_ALL src/goanna_tile_companion_test.cpp)
+target_include_directories(goanna_tile_companion_test PRIVATE src)
+target_link_libraries(goanna_tile_companion_test PRIVATE goanna luanti_core godot::cpp)
 add_executable(goanna_mining_cycle_test EXCLUDE_FROM_ALL
     src/goanna_mining_cycle_test.cpp src/goanna_radial_form.cpp)
 target_include_directories(goanna_mining_cycle_test PRIVATE src)
@@ -268,6 +274,7 @@ set(GOANNA_NATIVE_TESTS
     goanna_mesh_pool_test
     goanna_overlay_companions_test
     goanna_shared_cache_test
+    goanna_tile_companion_test
     goanna_mining_cycle_test
     goanna_radial_form_test
     goanna_ripples_test

@@ -3539,10 +3539,7 @@ static u32 animationFrameAt(const NodeAnimation &anim, float t) {
 
 Ref<Texture2D> GoannaClient::companionTexture(u32 texture_id, const char *suffix) {
     GoannaTextureSource *tsrc = m_session->tsrc();
-    const std::string name = tsrc->companionImage(tsrc->getTextureName(texture_id), suffix);
-    if (name.empty())
-        return Ref<Texture2D>();
-    GoannaTexture *cgt = dynamic_cast<GoannaTexture *>(tsrc->getTexture(name));
+    GoannaTexture *cgt = tsrc->tileCompanion(tsrc->getTextureName(texture_id), suffix);
     return cgt ? Ref<Texture2D>(cgt->godotTexture()) : Ref<Texture2D>();
 }
 
