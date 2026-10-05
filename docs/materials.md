@@ -848,6 +848,67 @@ texel is a k by k block and the companion resize does nothing.
   It only runs on granular classes, which none of these tiles are. Inferred
   relief for a layer with an `_s` but no `_n` is now read from the enlarged
   albedo. Not yet seen in a frame: the GPU was taken when the check was due.
+- The texture resolution tier caps the enlargement: k never passes the
+  tier's pixels per art texel (8 at 128), so the bookshelf's fronts are
+  128 pixel layers at 128. Its companions were already reduced when they
+  were loaded (below), so the cap only matters for a companion whose art
+  the reduction could not count.
+
+**Texture resolution.** Since 2026-10-05 the client holds every albedo and
+companion to the tier's `texture_size` (128, 256 or 512 map pixels per 16
+art texels; [graphics tiers](graphics-tiers.md), "Texture resolution").
+`GoannaTextureSource::capImage` (`src/goanna_textures.cpp`, with the
+arithmetic in `src/goanna_texture_size.{h,cpp}`) does it as each image is
+inserted, so every consumer starts from the reduced image: node arrays,
+animation strips, entity companions, overlay composites and composed
+companions alike.
+
+- The art an image is counted against is the server's own image of the
+  same name, recorded the first time a name is inserted as media, before
+  a pack replaces it. A companion counts against the image it belongs to:
+  `x_n.png` and `x_s.png` against the server's `x.png`, a mask's against
+  the mask. Pixels per texel are the larger of the two axes' ratios, so a
+  still map for an animation strip is held by its width. A companion
+  inserted before its art (server media in name order) is reduced once
+  the media and the pack are all in (`finishTextureCap`). An image whose
+  art never arrives, a pack file the server has no image for, is left as
+  it is; the join's log line counts them (`art_unknown`).
+- The reduction is by area, each output pixel the weighted mean of the
+  source pixels it covers, which is an exact box for the usual whole
+  factor. The albedo's colour is weighted by its alpha, so a cut-out's
+  hidden colour does not bleed into its edge. `_n` is averaged as unit
+  vectors and renormalised, occlusion and height averaged. `_s` smoothness
+  is averaged; F0 or metal, porosity or scattering, and emission are
+  categorical, so each output pixel takes the value covering most of it.
+  A block of one value comes through exactly. Mipmaps are built from the
+  result as before.
+- A layer's companion that is larger than the layer (rare once the cap
+  has run) is reduced the same way in `godotArraySuffixed`, which before
+  shrank `_n` bilinearly and `_s` by nearest, skipping texels and leaving
+  the normals short.
+- Parallax depth. The relief depth the client measures from a `_n`
+  (`reliefDepth`, the normal's slope over the height's) is not the same on
+  a reduced map: averaging puts a one pixel chamfer's slope into pixels
+  twice as wide. Over Mineclonia's tiles brought from 256 to 128 it moved
+  by 0.0075 node at the median and 0.047 at the 90th percentile, against a
+  mean of 0.065. So a reduced `_n` keeps the depth it had before
+  (`reducedReliefDepth`, the same measure), and a node array layer whose
+  `_n` is a reduced plain image uses it. A composed companion, a frame
+  cut and an entity skin are measured on the reduced map as before. On
+  skins the measure moved by 0.005 node at the median and 0.026 at the
+  90th percentile (gold armour 0.09 to 0.02, the dolphin 0 to 0.10); a
+  correction from the tile measure did not restore it, because a skin is
+  measured inside its faces. A pack built at 128 (`tools/pbr_author`)
+  keeps it much closer: 0.0014 at the median, 0.012 at the 90th.
+- The cap does nothing without a pack over it: a server's own 16 pixel
+  art is 1 pixel to a texel. Raising the setting cannot bring back what
+  a reduction threw away, which is why it applies at the next join.
+
+Tests: `goanna_texture_size_test` checks the sizes, each filter against
+hand worked pixels, the depth measure, and the cap through the texture
+source with server media and a pack inserted as a join inserts them,
+including a companion ahead of its art, one with no art, a skin part and
+a node layer enlarged to the cap and no further.
 
 **Sprites.** A sprite or upright sprite draws through a plain
 `StandardMaterial3D` with no companions. A camera facing sprite could take

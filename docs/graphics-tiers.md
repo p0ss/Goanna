@@ -37,7 +37,7 @@ streaming, weather transitions or small split-screen readability.
 
 [graphics_profiles.gd](../project/graphics_profiles.gd) is the source of
 truth. Every preset names the same controlled keys, including all 19
-feature gates. Applying Ultra after Lowest restores its effects; applying
+feature gates and the texture resolution. Applying Ultra after Lowest restores its effects; applying
 Lowest after an experiment restores its intended features. Quality edits
 outside those values show Custom. Player preferences remain separate.
 Renderer-wide screen-space quality and directional shadow atlas size still
@@ -59,6 +59,7 @@ be varied independently for controlled tests.
 | SSAO | Off | On | On | On | On |
 | Light shafts | Off | On | On | On | On |
 | SDFGI strength | Off | Off | 1.4 | 1.4 | 1.4 |
+| Texture resolution, pixels per 16 art texels | 128 | 128 | 256 | 256 | 512 |
 | Parallax | Off | On | On | On | On |
 | Parallax march | n/a | Short | Full | Full | Full |
 | Micro shadows | On | On | On | On | On |
@@ -167,6 +168,80 @@ and Low for shared graphics. This is deliberately only a starting choice.
 Core count cannot establish GPU capability. Existing saved settings still
 win; opening the client does not overwrite a user's chosen configuration.
 Local play retains its existing Low default until Lowest is calibrated.
+
+### Texture resolution
+
+`texture_size` (Advanced, Materials, **Texture resolution**) is 128, 256
+or 512: the most map pixels an enhanced texture may have across 16 texels
+of the game's art, so 8, 16 or 32 to an art texel. It applies evenly to
+everything: block albedo and companions, animation strips, mob and player
+skin companions, every chiseled bookshelf front. A texture over it is
+reduced when a world's textures are loaded, before anything is drawn from
+it; one under it is left alone, never enlarged. The art each image is
+counted against is the server's own image of that name, before a pack
+replaces it. How the reduction filters each map, and what it does to node
+layers sized from their companions, is in [materials](materials.md),
+"Texture resolution".
+
+The setting takes effect at the next join, not live. The server's media
+exists only in the source image cache, the reduced images replace the
+pack's there, and every array, material and mesh of the session is built
+from them; raising it would need the pack read again and every texture
+rebuilt, which is what a rejoin does. The menu row says so when it is
+changed in game. `GOANNA_TEXTURE_SIZE=128` (or 256, 512) pins it for a
+scripted run, over any profile. A bench plan's tier variants carry it so
+`tools/check-bench-plans.py` stays in step, but a live sweep cannot vary
+it; measure it a session per value
+([driver](perf/texture-size-2026-10-05/run.py)).
+
+The pack itself is built at 256 and shipped at 256 for now. With it, Low
+and Lowest reduce on load and Ultra draws the 256 maps as they are. A pack
+built at 128 or 512 (`GOANNA_PBR_SIZE`, `tools/pbr_author/README.md`) is
+what each tier should download; the bundles and the catalogue gain them
+with the next release.
+
+Measured 2026-10-05 on the RTX 3090 (NVIDIA open module 615), Godot
+4.5.1, test_world (Mineclonia) through the occlusion fixture's copy,
+Medium profile at 1920x1080 with only `texture_size` and the pack changed,
+a session per configuration, two rounds in rotation, four bursts of 400
+back to back draws at each place
+([driver](perf/texture-size-2026-10-05/run.py),
+[summary](perf/texture-size-2026-10-05/analyse.py)). Texture memory is
+Godot's `RENDER_TEXTURE_MEM_USED` at the benchmark vista, after the
+platform for the wall:
+
+| Configuration | Texture memory, MiB | Vista GPU ms, median (bursts) | Wall GPU ms, median (bursts) |
+| --- | ---: | ---: | ---: |
+| 256 pack reduced to 128 | 1282 to 1295 | 4.65 (4.34 to 5.02) | 2.88 (2.65 to 3.53) |
+| 128 pack | 1279 to 1281 | 4.29 (4.21 to 4.32) | 2.84 (2.68 to 2.96) |
+| 256 pack | 2522 to 2561 | 4.11 (3.89 to 4.29) | 2.76 (2.72 to 2.84) |
+
+Texture memory falls by about 1,240 MiB at 128, to half. The join's log
+line counts the images the cap reduced: 4,067 MiB of RGBA8 source images
+brought to 1,016, before mipmaps and before only the arrays drawn reach
+the card; the server's own copies of the companions, which this test
+world's server mod sends at 256, are counted there too. What is left at
+128 includes the renderer's own targets, shadow maps and SDFGI, which no
+texture setting moves. A reduced 256 pack and a pack built at 128 cost
+the same. GPU time does not follow: the sessions of
+one configuration differ by more (4.35 against 4.81 ms at the vista, 128
+reduced) than the configurations do, and 256 was not slower than 128. On
+this card at this scene the texture resolution is a memory setting, not a
+frame time one; a handheld with shared memory has not been measured. The
+512 pack was built but not measured on the GPU: other clients held the
+card for the two and a half hours it was waited for.
+
+Frames at a low sun, centre crops of the fixture's walls:
+[stone](perf/texture-size-2026-10-05/stone_wall.png) and
+[stone brick](perf/texture-size-2026-10-05/stonebrick_wall.png), each the
+128 pack, the 256 pack reduced to 128, and the 256 pack, left to right.
+The reduced 256 reads as the 256 one, a little softer. The 128 pack in
+them is the build before its occlusion fix (`tools/pbr_author/README.md`,
+"The baked occlusion"), with its joints near black; that frame is why the
+fix was made, and the fixed pack has not been seen on the GPU. The
+zombie frame of that run showed open sky (the platform's western map
+block lost its near mesh, as in the occlusion review), so no mob close
+up was taken at any size.
 
 ## Evidence and next implementation work
 

@@ -1,0 +1,437 @@
+{
+  "256to128": [
+    {
+      "vista_memory": {
+        "texture_mib": 1281.6552734375,
+        "video_mib": 1450.9121704101562,
+        "buffer_mib": 150.47799110412598,
+        "texture_size": 128,
+        "applied": 128
+      },
+      "vista": [
+        {
+          "median": 4.337,
+          "p95": 6.276,
+          "frames": 400
+        },
+        {
+          "median": 4.3365,
+          "p95": 5.92,
+          "frames": 400
+        },
+        {
+          "median": 4.352,
+          "p95": 5.845,
+          "frames": 400
+        },
+        {
+          "median": 4.5175,
+          "p95": 5.991,
+          "frames": 400
+        }
+      ],
+      "wall": [
+        {
+          "median": 3.0915,
+          "p95": 3.909,
+          "frames": 400
+        },
+        {
+          "median": 3.123,
+          "p95": 4.004,
+          "frames": 400
+        },
+        {
+          "median": 3.0955,
+          "p95": 4.079,
+          "frames": 400
+        },
+        {
+          "median": 3.532,
+          "p95": 4.292,
+          "frames": 400
+        }
+      ],
+      "wall_memory": {
+        "texture_mib": 1294.701171875,
+        "video_mib": 1477.3459167480469,
+        "buffer_mib": 163.86842155456543,
+        "texture_size": 128,
+        "applied": 128
+      },
+      "after_frames_memory": {
+        "texture_mib": 1294.701171875,
+        "video_mib": 1535.5865478515625,
+        "buffer_mib": 222.1085720062256,
+        "texture_size": 128,
+        "applied": 128
+      },
+      "config": {
+        "pack": "/var/home/poss/Documents/Code/Godot/goanna/.claude/worktrees/agent-a4e4283996a2ac7ac/build/texsize/pack256/textures",
+        "texture_size": 128,
+        "round": 0
+      },
+      "pack_line": [
+        "Goanna texture pack: path='/var/home/poss/Documents/Code/Godot/goanna/.claude/worktrees/agent-a4e4283996a2ac7ac/build/texsize/pack256/textures' native=3859 mapped=0 default_cobble=128x128 texture_size=128 reduced=5789 (4067 MiB to 1016 MiB) art_unknown=4"
+      ]
+    },
+    {
+      "vista_memory": {
+        "texture_mib": 1293.02392578125,
+        "video_mib": 1493.0543212890625,
+        "buffer_mib": 181.25046920776367,
+        "texture_size": 128,
+        "applied": 128
+      },
+      "vista": [
+        {
+          "median": 5.0184999999999995,
+          "p95": 5.641,
+          "frames": 400
+        },
+        {
+          "median": 4.772,
+          "p95": 5.623,
+          "frames": 400
+        },
+        {
+          "median": 4.81,
+          "p95": 5.543,
+          "frames": 400
+        },
+        {
+          "median": 4.8,
+          "p95": 5.388,
+          "frames": 400
+        }
+      ],
+      "wall": [
+        {
+          "median": 2.649,
+          "p95": 2.806,
+          "frames": 400
+        },
+        {
+          "median": 2.652,
+          "p95": 2.696,
+          "frames": 400
+        },
+        {
+          "median": 2.658,
+          "p95": 2.685,
+          "frames": 400
+        },
+        {
+          "median": 2.667,
+          "p95": 2.866,
+          "frames": 400
+        }
+      ],
+      "wall_memory": {
+        "texture_mib": 1294.92919921875,
+        "video_mib": 1464.5680847167969,
+        "buffer_mib": 150.8620891571045,
+        "texture_size": 128,
+        "applied": 128
+      },
+      "config": {
+        "pack": "/var/home/poss/Documents/Code/Godot/goanna/.claude/worktrees/agent-a4e4283996a2ac7ac/build/texsize/pack256/textures",
+        "texture_size": 128,
+        "round": 1
+      },
+      "pack_line": [
+        "Goanna texture pack: path='/var/home/poss/Documents/Code/Godot/goanna/.claude/worktrees/agent-a4e4283996a2ac7ac/build/texsize/pack256/textures' native=3859 mapped=0 default_cobble=128x128 texture_size=128 reduced=5789 (4067 MiB to 1016 MiB) art_unknown=4"
+      ]
+    }
+  ],
+  "native128": [
+    {
+      "vista_memory": {
+        "texture_mib": 1278.62109375,
+        "video_mib": 1434.3735809326172,
+        "buffer_mib": 136.49057006835938,
+        "texture_size": 128,
+        "applied": 128
+      },
+      "vista": [
+        {
+          "median": 4.213,
+          "p95": 5.583,
+          "frames": 400
+        },
+        {
+          "median": 4.224,
+          "p95": 5.573,
+          "frames": 400
+        },
+        {
+          "median": 4.281499999999999,
+          "p95": 5.683,
+          "frames": 400
+        },
+        {
+          "median": 4.246,
+          "p95": 5.563,
+          "frames": 400
+        }
+      ],
+      "wall": [
+        {
+          "median": 2.696,
+          "p95": 3.931,
+          "frames": 400
+        },
+        {
+          "median": 2.677,
+          "p95": 4.255,
+          "frames": 400
+        },
+        {
+          "median": 2.677,
+          "p95": 3.062,
+          "frames": 400
+        },
+        {
+          "median": 2.925,
+          "p95": 4.142,
+          "frames": 400
+        }
+      ],
+      "wall_memory": {
+        "texture_mib": 1280.24951171875,
+        "video_mib": 1448.786849975586,
+        "buffer_mib": 149.25849533081055,
+        "texture_size": 128,
+        "applied": 128
+      },
+      "after_frames_memory": {
+        "texture_mib": 1281.61279296875,
+        "video_mib": 1509.4935302734375,
+        "buffer_mib": 208.60135078430176,
+        "texture_size": 128,
+        "applied": 128
+      },
+      "config": {
+        "pack": "/var/home/poss/Documents/Code/Godot/goanna/.claude/worktrees/agent-a4e4283996a2ac7ac/build/texsize/pack128/textures",
+        "texture_size": 128,
+        "round": 0
+      },
+      "pack_line": [
+        "Goanna texture pack: path='/var/home/poss/Documents/Code/Godot/goanna/.claude/worktrees/agent-a4e4283996a2ac7ac/build/texsize/pack128/textures' native=3859 mapped=0 default_cobble=128x128 texture_size=128 reduced=2068 (551 MiB to 137 MiB) art_unknown=4"
+      ]
+    },
+    {
+      "vista_memory": {
+        "texture_mib": 1278.8974609375,
+        "video_mib": 1437.616455078125,
+        "buffer_mib": 139.19062614440918,
+        "texture_size": 128,
+        "applied": 128
+      },
+      "vista": [
+        {
+          "median": 4.314500000000001,
+          "p95": 5.833,
+          "frames": 400
+        },
+        {
+          "median": 4.296,
+          "p95": 5.732,
+          "frames": 400
+        },
+        {
+          "median": 4.3225,
+          "p95": 5.813,
+          "frames": 400
+        },
+        {
+          "median": 4.314,
+          "p95": 5.723,
+          "frames": 400
+        }
+      ],
+      "wall": [
+        {
+          "median": 2.871,
+          "p95": 3.938,
+          "frames": 400
+        },
+        {
+          "median": 2.9575,
+          "p95": 3.878,
+          "frames": 400
+        },
+        {
+          "median": 2.8405,
+          "p95": 3.858,
+          "frames": 400
+        },
+        {
+          "median": 2.8335,
+          "p95": 3.972,
+          "frames": 400
+        }
+      ],
+      "wall_memory": {
+        "texture_mib": 1280.9541015625,
+        "video_mib": 1451.6337127685547,
+        "buffer_mib": 151.15227699279785,
+        "texture_size": 128,
+        "applied": 128
+      },
+      "config": {
+        "pack": "/var/home/poss/Documents/Code/Godot/goanna/.claude/worktrees/agent-a4e4283996a2ac7ac/build/texsize/pack128/textures",
+        "texture_size": 128,
+        "round": 1
+      },
+      "pack_line": [
+        "Goanna texture pack: path='/var/home/poss/Documents/Code/Godot/goanna/.claude/worktrees/agent-a4e4283996a2ac7ac/build/texsize/pack128/textures' native=3859 mapped=0 default_cobble=128x128 texture_size=128 reduced=2068 (551 MiB to 137 MiB) art_unknown=4"
+      ]
+    }
+  ],
+  "256": [
+    {
+      "vista_memory": {
+        "texture_mib": 2521.90576171875,
+        "video_mib": 2664.8726654052734,
+        "buffer_mib": 100.45823287963867,
+        "texture_size": 256,
+        "applied": 256
+      },
+      "vista": [
+        {
+          "median": 3.89,
+          "p95": 5.171,
+          "frames": 400
+        },
+        {
+          "median": 3.928,
+          "p95": 5.25,
+          "frames": 400
+        },
+        {
+          "median": 3.9715,
+          "p95": 5.261,
+          "frames": 400
+        },
+        {
+          "median": 3.951,
+          "p95": 5.178,
+          "frames": 400
+        }
+      ],
+      "wall": [
+        {
+          "median": 2.7190000000000003,
+          "p95": 3.895,
+          "frames": 400
+        },
+        {
+          "median": 2.8419999999999996,
+          "p95": 3.818,
+          "frames": 400
+        },
+        {
+          "median": 2.7295,
+          "p95": 3.788,
+          "frames": 400
+        },
+        {
+          "median": 2.7385,
+          "p95": 3.823,
+          "frames": 400
+        }
+      ],
+      "wall_memory": {
+        "texture_mib": 2544.01318359375,
+        "video_mib": 2743.2799377441406,
+        "buffer_mib": 156.7369613647461,
+        "texture_size": 256,
+        "applied": 256
+      },
+      "after_frames_memory": {
+        "texture_mib": 2552.68359375,
+        "video_mib": 2811.719009399414,
+        "buffer_mib": 216.505859375,
+        "texture_size": 256,
+        "applied": 256
+      },
+      "config": {
+        "pack": "/var/home/poss/Documents/Code/Godot/goanna/.claude/worktrees/agent-a4e4283996a2ac7ac/build/texsize/pack256/textures",
+        "texture_size": 256,
+        "round": 0
+      },
+      "pack_line": [
+        "Goanna texture pack: path='/var/home/poss/Documents/Code/Godot/goanna/.claude/worktrees/agent-a4e4283996a2ac7ac/build/texsize/pack256/textures' native=3859 mapped=0 default_cobble=256x256 texture_size=256 reduced=0 (0 MiB to 0 MiB) art_unknown=4"
+      ]
+    },
+    {
+      "vista_memory": {
+        "texture_mib": 2558.00244140625,
+        "video_mib": 2742.321014404297,
+        "buffer_mib": 139.7903118133545,
+        "texture_size": 256,
+        "applied": 256
+      },
+      "vista": [
+        {
+          "median": 4.25,
+          "p95": 5.575,
+          "frames": 400
+        },
+        {
+          "median": 4.272,
+          "p95": 5.593,
+          "frames": 400
+        },
+        {
+          "median": 4.2855,
+          "p95": 5.611,
+          "frames": 400
+        },
+        {
+          "median": 4.294499999999999,
+          "p95": 5.633,
+          "frames": 400
+        }
+      ],
+      "wall": [
+        {
+          "median": 2.764,
+          "p95": 3.917,
+          "frames": 400
+        },
+        {
+          "median": 2.762,
+          "p95": 3.917,
+          "frames": 400
+        },
+        {
+          "median": 2.769,
+          "p95": 3.946,
+          "frames": 400
+        },
+        {
+          "median": 2.765,
+          "p95": 3.968,
+          "frames": 400
+        }
+      ],
+      "wall_memory": {
+        "texture_mib": 2561.02294921875,
+        "video_mib": 2774.639419555664,
+        "buffer_mib": 169.0905532836914,
+        "texture_size": 256,
+        "applied": 256
+      },
+      "config": {
+        "pack": "/var/home/poss/Documents/Code/Godot/goanna/.claude/worktrees/agent-a4e4283996a2ac7ac/build/texsize/pack256/textures",
+        "texture_size": 256,
+        "round": 1
+      },
+      "pack_line": [
+        "Goanna texture pack: path='/var/home/poss/Documents/Code/Godot/goanna/.claude/worktrees/agent-a4e4283996a2ac7ac/build/texsize/pack256/textures' native=3859 mapped=0 default_cobble=256x256 texture_size=256 reduced=0 (0 MiB to 0 MiB) art_unknown=4"
+      ]
+    }
+  ]
+}

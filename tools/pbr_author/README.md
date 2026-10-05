@@ -53,23 +53,97 @@ pack is authored: stone read back as gravel and four stems rebuilt
 differently from the reviewed pack. A new stem missing from the file falls
 back to the inference; add it to the file once it is reviewed.
 
-### The 512 px pack
+### The 128, 256 and 512 px packs
 
-`GOANNA_PBR_SIZE=512` builds every map at 512 px. Pixel measures (the
-chamfer, the normal strength, occlusion radius, micro feature sizes and
-densities, grain spacing) are written for 256 and scale by `lib.PX`, so a
-512 map has the same heights, depths and features at twice the
-resolution; scratches and cracks stay one pixel wide and so are finer.
-The albedo is written at 512 too, because the client sizes each texture
-array by the albedo and resizes companions to it.
+Texture resolution is a graphics tier (`docs/graphics-tiers.md`): 128 on
+Lowest and Low, 256 on Medium and High, 512 on Ultra, the same for every
+texture. `GOANNA_PBR_SIZE=128` or `512` builds every map at that size; 256
+is the default, and nothing else is accepted. Pixel measures (the chamfer,
+the normal strength, occlusion radius, bevels, the hair's contact
+occlusion reach, micro feature sizes and densities, grain spacing) are
+written for 256 and scale by `lib.PX`, so a 512 map has the same heights,
+depths and features at twice the resolution and a 128 map at half. The
+albedo is written at the map's size too, because the client sizes each
+texture array by the albedo and resizes companions to it.
 
 ```sh
+GOANNA_PBR_SIZE=128 python3 tools/pbr_author/build_pack.py --check --stage <dir>
 GOANNA_PBR_SIZE=512 python3 tools/pbr_author/extrude.py <out dir> <stem>...
 ```
 
-The 256 pack is the default. The 512 one is an optional texture pack for
-close-ups and screenshots: about 2.5 times the download and four times
-the texture memory.
+What changes at 128, where a measure would otherwise fall under a pixel:
+
+- **Chamfers and bevels stay at least one pixel** (`lib.px`). Rounded,
+  the default chamfer of 1 became 0 and every step a cliff. A one pixel
+  chamfer at 128 is twice as wide on the block as at 256, so a step is
+  half as steep; the heights and the depth the client measures are the
+  256 build's.
+- **The micro surface is drawn at 256 and averaged down** (`lib.SUPERSAMPLE`,
+  `extrude.micro_field_px`, `atlas.material_surface_px`): the block
+  kinds' pores, scratches, cracks and grain, and on skins every material
+  kind, stitch, seam, rivet, strand and weave thread. A feature finer than
+  a pixel fades instead of aliasing into stripes and dots: wood grain
+  three pixels apart at 256 would be one and a half at 128, a cloth weave
+  four pixels a period is two, and the player's bristle strands ten to a
+  texel are over one to a pixel at eight pixels a texel.
+- **The micro surface's slopes are faded by half** (`lib.MICRO_FADE`):
+  since a step is half as steep at 128 and a pore is not, unfaded the
+  micro surface stood twice as strong against the steps as in the
+  reviewed look, and the client's depth measure read up to twice the
+  relief on skins whose steps carry it (the chain mail leggings 0.12 node
+  against 0.058). The smoothness swing is not faded.
+- **The baked occlusion reads a rise per 256 px pixel** (`lib.AO_SCALE`):
+  the horizon test took the rise per map pixel, so at 128 a step read
+  twice as steep and stone's joints came out near black on the GPU against
+  grey at 256. Over 150 tiles the 128 occlusion at half strength is within
+  0.004 on average of the 256 occlusion averaged down (0.015 mean absolute
+  difference), against 0.029 too dark at full strength. The 512 build keeps
+  its reading as it was, which by the same arithmetic is lighter than
+  256's; that has not been measured or changed.
+
+Mob and player skins follow the size: `"texel_px"` is map pixels per art
+texel at 256 and scales by the same factor, so the player's parts and
+almost every mob (468 of 470 Mineclonia skins set 16) take 8 at 128 and 32
+at 512, and the default of 8 takes 4 and 16.
+
+The 256 build is byte for byte what it was before 128 existed: every
+change above is behind `lib.PX < 1`. Checked 2026-10-05 over all 2,090
+Mineclonia stems (`stems/mineclonia.txt` and `stems/mineclonia.mobs.txt`):
+the same 6,270 files, by SHA-256.
+
+`atlas.check` changed in two places for 128, neither failing a 256 skin
+that passed before. A bevel's ring pixel counts as leaning out of its face
+over any side that is off the face or undrawn, and a corner pixel (off the
+face on two sides at right angles, flat at every size) is left out: at 256
+corners were 2% of a ring and at 128 twice that share of a ring half as
+long, which failed the tropical fish on their corners alone. And at 128 a
+relief measure over the 0.10 cap passes when the authored depth (strength
+over 256) is within it: the dolphin (0 at 256, too few steps to measure;
+0.126 at 128) and the chain leggings (0.058 at 256, 0.109 at 128), both
+authored at strength 24, 0.094 node, which the client's clip to 0.10
+keeps within a few per cent.
+
+Built 2026-10-05 and 06 at each size into scratch stages with
+`build_pack.py --check`, over the 2,090 listed stems:
+
+| Size | Stems passing | Pack files (the 3,859 the shipped pack holds) | Bundle archive (1,385 `_n`/`_s` pairs) |
+| ---: | ---: | ---: | ---: |
+| 128 | 2,090 | 58.7 MiB | 60.0 MB |
+| 256 | 2,090 | 214.0 MiB | 219.4 MB |
+| 512 | 2,083 | 660.1 MiB | 675.2 MB |
+
+The archive is `tools/pbr_bundle.py build` on the scratch pack, so 128
+is 27% of today's download and 512 is 3.1 times it. Seven skins fail at
+512, every one of them the same way with the code before 128 existed
+(rebuilt with main's `tools/` to check): the banner, the bamboo boat, the
+piglin and its brute, the leatherworker zombie villager and the medium
+cracked iron golem on their face border measures, and `mcl_skins_mouth_6`
+on the release gate's directional bias, which it passes at 256.
+On the banner the micro surface alone is the cause (with it off the bevel
+leans out at every border pixel): at 512 a one pixel feature such as a
+groove of the pole's grain is half as wide on the block and twice as
+steep, the converse of the 128 case above, and it is not faded there.
+Not fixed here; the 512 pack is not shipped.
 
 ### Mob skins (model atlases)
 
@@ -93,8 +167,9 @@ python3 tools/pbr_author/atlas.py <out dir> <stem>... --preview <dir>
 
 What differs from a tile:
 
-- **Size.** The map is 8 map pixels per art texel at the 256 pack and 16
-  at the 512 one, whatever the art's size, where a tile is always 256
+- **Size.** The map is 8 map pixels per art texel at the 256 pack, 4 at
+  the 128 one and 16 at the 512 one (a spec's `"texel_px"` scales the
+  same way), whatever the art's size, where a tile is always 256
   wide (16 per texel for 16 px art). A 64 x 32 skin is 512 x 256, a
   64 x 64 one 512 square, the 128 px iron golem 1024 square. A mob texel
   is about a sixteenth of a block, like a node texel; half the node
