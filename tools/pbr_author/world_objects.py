@@ -515,7 +515,7 @@ SHIELD_IRON = {"mode": "shade", "base": 0.75, "span": 0.15, "levels": 2, "joints
 # The trident: polished pale metal prongs, a sea-green gem, a shaft.
 TRIDENT_METAL = {"mode": "shade", "base": 0.65, "span": 0.3, "metal": True, "smooth": 0.8,
                  "joints": False}
-TRIDENT_GEM = {"mode": "flat", "base": 0.85, "span": 0.0, "smooth": 0.9, "f0": 0.17,
+TRIDENT_GEM = {"mode": "flat", "base": 0.85, "span": 0.0, "smooth": 0.9, "f0": 0.17, "metal": False,
                "emission": 0.2}
 # The campfire's logs: bark by shade (fissures sunk), the cut ends'
 # rings, and on the lit logs the embers glowing by shade.
