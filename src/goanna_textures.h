@@ -262,7 +262,18 @@ public:
     bool needFilterForMesh() const override { return false; }
     Palette *getPalette(const std::string &image) override;
     bool isKnownSourceImage(const std::string &name) override;
+    // The size an image is, except while node_visuals is grouping its tiles
+    // into arrays (see setImageCaching), when a node tile reports the size
+    // its array layer will have: nodeLayerScale times its own.
     core::dimension2du getTextureDimensions(const std::string &image) override;
+    // node_visuals turns image caching on before it pools and groups the node
+    // tiles and off when it is done. Goanna has no image cache to switch; it
+    // takes the call as the start of the grouping, during which
+    // getTextureDimensions answers with layer sizes. The grouping ends at the
+    // first addArrayTexture, at the first name asked twice (fillTileAttribs
+    // asking again for its autoscale) or at the call turning caching off, so
+    // nothing after it, autoscale included, sees anything but real sizes.
+    void setImageCaching(bool enabled) override;
     video::SColor getTextureAverageColor(const std::string &image) override;
     // How much of a tile's variance sits in features larger than a texel or
     // two: near 0 for an even grain like sand or stone, high for a tile whose
@@ -372,6 +383,22 @@ private:
     const MaterialTable *m_material_table = nullptr;
     float m_relief_strength = 0.35f;
     video::IImage *getOrGenerateImage(const std::string &name);
+    core::dimension2du realTextureDimensions(const std::string &image);
+    // How many times a node tile's array layer is enlarged (nearest) so it
+    // matches its companion: k when the tile's companion (tileCompanion, _n
+    // else _s, composed ones included) is exactly k times the generated image
+    // in both axes, 1 < k <= kMaxLayerScale, and 1 otherwise. Stems whose art
+    // is also cut by pixel offsets or laid into a [combine ship maps but no
+    // map sized albedo (tools/pbr_author/stems/mineclonia.maps_only.txt), and
+    // without this their node layers were the art's size and the maps were
+    // shrunk to it. Only array layers are enlarged: the image itself, and so
+    // items, the HUD, entities and every [combine that uses it as a part,
+    // keep the game's size. Cached per tile name.
+    u32 nodeLayerScale(const std::string &image);
+    static constexpr u32 kMaxLayerScale = 32;
+    std::map<std::string, u32> m_layer_scale;
+    bool m_node_layer_sizing = false;
+    std::set<std::string> m_node_layer_asked;
     std::map<std::string, float> m_coarseness;
     std::map<std::string, float> m_coverage_cache;
     // composedCompanion's results by texture and suffix: the texture id,

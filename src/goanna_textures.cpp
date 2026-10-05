@@ -757,16 +757,77 @@ video::ITexture *GoannaTextureSource::getTexture(const std::string &name, u32 *i
     return getTexture(i);
 }
 
+// A copy of img, each texel a k by k block: the art's pixels stay pixels.
+static video::IImage *enlargeNearest(video::IImage *img, u32 k) {
+    const core::dimension2du d = img->getDimension();
+    video::IImage *out = goanna_create_image(video::ECF_A8R8G8B8,
+            core::dimension2du(d.Width * k, d.Height * k));
+    for (u32 y = 0; y < d.Height; ++y)
+        for (u32 x = 0; x < d.Width; ++x) {
+            const video::SColor c = img->getPixel(x, y);
+            for (u32 dy = 0; dy < k; ++dy)
+                for (u32 dx = 0; dx < k; ++dx)
+                    out->setPixel(x * k + dx, y * k + dy, c);
+        }
+    return out;
+}
+
+u32 GoannaTextureSource::nodeLayerScale(const std::string &image) {
+    auto it = m_layer_scale.find(image);
+    if (it != m_layer_scale.end())
+        return it->second;
+    // tileCompanion asks for dimensions itself (companionImage's frame cut),
+    // and those must be real ones.
+    const bool sizing = m_node_layer_sizing;
+    m_node_layer_sizing = false;
+    u32 k = 1;
+    const core::dimension2du dim = realTextureDimensions(image);
+    if (dim.Width && dim.Height) {
+        GoannaTexture *comp = tileCompanion(image, "_n");
+        if (!comp || !comp->image())
+            comp = tileCompanion(image, "_s");
+        if (comp && comp->image()) {
+            const core::dimension2du c = comp->image()->getDimension();
+            if (c.Width % dim.Width == 0 && c.Height % dim.Height == 0 &&
+                    c.Width / dim.Width == c.Height / dim.Height) {
+                const u32 m = c.Width / dim.Width;
+                if (m > 1 && m <= kMaxLayerScale)
+                    k = m;
+            }
+        }
+    }
+    m_node_layer_sizing = sizing;
+    m_layer_scale[image] = k;
+    return k;
+}
+
+void GoannaTextureSource::setImageCaching(bool enabled) {
+    m_node_layer_sizing = enabled;
+    m_node_layer_asked.clear();
+}
+
 video::ITexture *GoannaTextureSource::addArrayTexture(const std::vector<std::string> &images, u32 *id) {
+    // node_visuals' grouping is over once it makes its first array.
+    m_node_layer_sizing = false;
+    m_node_layer_asked.clear();
     // node_visuals has already grouped these by size, but a generated image can
     // still come back a different size or fail, and every layer of a Godot
     // Texture2DArray must match, so verify before committing to the bunch.
+    // Every caller is a node array (node_visuals' bunches and
+    // buildNodeAnimations), so each layer is enlarged to its companion's size
+    // here, the size getTextureDimensions reported for the grouping.
     std::vector<video::IImage *> layers;
     core::dimension2du dim;
     for (const std::string &name : images) {
         video::IImage *img = getOrGenerateImage(name);
         if (!img)
             break;
+        const u32 k = nodeLayerScale(name);
+        if (k > 1) {
+            video::IImage *big = enlargeNearest(img, k);
+            img->drop();
+            img = big;
+        }
         if (layers.empty())
             dim = img->getDimension();
         else if (img->getDimension() != dim) {
@@ -828,8 +889,8 @@ std::string GoannaTextureSource::companionImage(const std::string &tile, const c
     // Cut the frame only from a companion shaped like the strip it belongs
     // to, at whatever resolution. A single still map, the usual thing for a
     // pack to ship for an animated tile, is used whole for every frame.
-    const core::dimension2du strip = getTextureDimensions(tile.substr(0, pos));
-    const core::dimension2du comp = getTextureDimensions(name);
+    const core::dimension2du strip = realTextureDimensions(tile.substr(0, pos));
+    const core::dimension2du comp = realTextureDimensions(name);
     if (!strip.Width || !strip.Height || !comp.Width || !comp.Height)
         return name;
     if ((u64)comp.Width * strip.Height != (u64)comp.Height * strip.Width)
@@ -1017,12 +1078,19 @@ void GoannaTextureSource::buildNodeAnimations(const NodeDefManager *ndef) {
             GoannaTexture *gt = goannaTexture(fr.texture_id);
             if (!gt || gt->isArray() || !gt->image())
                 return; // leave it on the single image path
+            // Grouped by the size addArrayTexture will give each frame,
+            // enlarged to its companion's (nodeLayerScale), or a bunch
+            // could mix sizes and be lost whole.
+            const std::string fname = getTextureName(fr.texture_id);
+            const u32 k = nodeLayerScale(fname);
+            const core::dimension2du fd = gt->image()->getDimension();
+            const core::dimension2du sized(fd.Width * k, fd.Height * k);
             if (c.names.empty())
-                dim = gt->image()->getDimension();
-            else if (gt->image()->getDimension() != dim)
+                dim = sized;
+            else if (sized != dim)
                 return;
             alpha = alpha || gt->hasAlpha();
-            c.names.push_back(getTextureName(fr.texture_id));
+            c.names.push_back(fname);
         }
         groups[std::make_tuple(dim.Width, dim.Height, alpha)].push_back(std::move(c));
     };
@@ -1153,6 +1221,22 @@ bool GoannaTextureSource::isKnownSourceImage(const std::string &name) {
 }
 
 core::dimension2du GoannaTextureSource::getTextureDimensions(const std::string &image) {
+    if (m_node_layer_sizing) {
+        // node_visuals pools each tile once, so a name asked again is
+        // fillTileAttribs after the grouping: the grouping is over.
+        if (!m_node_layer_asked.insert(image).second) {
+            m_node_layer_sizing = false;
+            m_node_layer_asked.clear();
+        } else {
+            const core::dimension2du d = realTextureDimensions(image);
+            const u32 k = nodeLayerScale(image);
+            return core::dimension2du(d.Width * k, d.Height * k);
+        }
+    }
+    return realTextureDimensions(image);
+}
+
+core::dimension2du GoannaTextureSource::realTextureDimensions(const std::string &image) {
     u32 id = getTextureId(image);
     if (id == 0)
         return core::dimension2du(0, 0);

@@ -771,6 +771,65 @@ sides, the bobber in water, before and after) was set up on 2026-10-05 and
 not run, because another client held the GPU for the whole of the time
 it was waited for.
 
+**Node layers sized from their companions.** Shipping maps only costs the
+node forms of those stems their relief resolution, unless the client makes
+up for it: a texture array layer is the size of the generated albedo, and
+`godotArraySuffixed` resizes every companion down to the layer, so a mob
+head, a disconnected melon or pumpkin stem or the chiseled bookshelf's
+front drew a 16 pixel layer with 16 pixel maps. Since 2026-10-05
+`GoannaTextureSource::nodeLayerScale` enlarges such a layer instead. When
+a node tile's companion (`tileCompanion`, the `_n`, else the `_s`, composed
+ones included) is exactly k times the generated albedo in both axes, with
+1 < k <= 32, the layer is the albedo enlarged nearest by k, so each art
+texel is a k by k block and the companion resize does nothing.
+
+- It applies to array layers only. `addArrayTexture` enlarges, and it is
+  called only for node arrays (node_visuals' bunches and
+  `buildNodeAnimations`, which groups frames by the enlarged size so a
+  bunch never mixes sizes). The image itself is never changed, so items,
+  the HUD, entities and every `[combine` that uses it as a part still see
+  the game's size.
+- node_visuals groups its tiles by `getTextureDimensions`, which is
+  transplanted code calling an upstream interface. Goanna takes upstream's
+  `setImageCaching(true)`, which fillNodeVisuals calls just before pooling,
+  as the start of the grouping, and reports enlarged sizes only until the
+  first `addArrayTexture`, the first name asked twice or
+  `setImageCaching(false)`. Autoscale, the wield mesh, the crack and
+  everything else keep real sizes.
+- A tile with a map sized albedo (k = 1), with no companion, with a
+  companion that is not a whole multiple, or past the cap keeps exactly the
+  layer it had. `goanna_tile_companion_test` checks a maps only tile, a
+  `[combine` front whose composed `_s` is eight times it, and those
+  unchanged cases through the real texture source.
+- Memory: an enlarged layer joins the array of its companion's size, and
+  its maps keep their full size rather than being shrunk. Mineclonia's
+  heads are 64 by 32 skins with 256 by 128 maps, so each head face becomes
+  a 64 pixel layer (k = 4), which is small. The two stems become 256 pixel
+  layers (k = 16). The chiseled bookshelf is the large one: Mineclonia
+  registers 64 nodes, one per fill state, each with its own `[combine`
+  front, so up to 64 layers of 256 pixels, 16 MiB of albedo and 16 MiB
+  for each of `_n` and `_s`, about 64 MiB with mipmaps, where the 16 pixel
+  layers cost under 1 MiB. An array goes to the GPU whole the first time
+  any of its layers is drawn, so these layers cost that whenever the 256
+  pixel array they share with the pack's other tiles is in use, bookshelf
+  in view or not.
+- Not yet checked: the per node detail shift (`goanna_node_uv`) snaps to
+  the layer's texel, which on an enlarged layer is finer than the art's.
+  It only runs on granular classes, which none of these tiles are. Inferred
+  relief for a layer with an `_s` but no `_n` is now read from the enlarged
+  albedo. Not yet seen in a frame: the GPU was taken when the check was due.
+
+**Sprites.** A sprite or upright sprite draws through a plain
+`StandardMaterial3D` with no companions. A camera facing sprite could take
+a `_n`, but its tangent frame turns with the camera, so the relief would
+swing as the player walks round it. An upright sprite is a different case:
+in Luanti it is a fixed pair of quads turned only by the object's yaw
+(`GenericCAO::addToScene`), which could take the entity shader and its
+companions like any mesh. Goanna draws it as a billboard locked to the Y
+axis instead, which is itself a divergence from the vanilla client, and the
+decorated pot faces and the fishing bobber wait on that being drawn as
+Luanti draws it.
+
 Tests: `goanna_overlay_companions_test` (the reader and the arithmetic,
 with the strings Mineclonia sends for the nylium, the bookshelf, the
 trident, the shield, the screwdriver, the carrot and a redstone cross) and

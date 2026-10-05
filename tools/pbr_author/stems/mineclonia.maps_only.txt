@@ -11,8 +11,9 @@ mcl_books_chiseled_bookshelf_empty
 # client as much as in Goanna, since both blit the part at its own size.
 mcl_tridents_trident_entity
 # Heads and stems are also cut by pixel offsets (wall and worn heads, stem
-# growth stages), which a map sized albedo breaks; their node forms keep the
-# art's size maps until the client sizes array layers from companions.
+# growth stages), which a map sized albedo breaks. Their node forms keep
+# full size maps because the client enlarges a node array layer to its
+# companion's size (nodeLayerScale, docs/materials.md, 2026-10-05).
 mcl_heads_zombie
 mcl_heads_creeper
 mcl_heads_steve

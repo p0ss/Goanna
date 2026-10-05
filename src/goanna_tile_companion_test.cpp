@@ -154,6 +154,79 @@ int main() {
                 "the trident's wield image is the shaft column on transparency");
     }
 
+    // Node array layers sized from their companions. A head that ships maps
+    // only (eight times its art), a tile with a map sized albedo, one with no
+    // companion, one whose map is not a whole multiple, one past the cap, and
+    // the bookshelf front above, whose composed _s is eight times it.
+    {
+        video::IImage *head = solid(16, 16, video::SColor(255, 40, 120, 40));
+        head->setPixel(3, 5, video::SColor(255, 250, 10, 10));
+        insert(tsrc, "head.png", head);
+        insert(tsrc, "head_n.png", solid(128, 128, video::SColor(255, 128, 128, 255)));
+        video::IImage *same = solid(16, 16, video::SColor(255, 70, 70, 70));
+        same->setPixel(9, 2, video::SColor(255, 1, 2, 3));
+        insert(tsrc, "same.png", same);
+        insert(tsrc, "same_n.png", solid(16, 16, video::SColor(255, 128, 128, 255)));
+        insert(tsrc, "bare.png", solid(16, 16, video::SColor(255, 9, 9, 9)));
+        insert(tsrc, "odd.png", solid(16, 16, video::SColor(255, 9, 9, 9)));
+        insert(tsrc, "odd_n.png", solid(24, 24, video::SColor(255, 128, 128, 255)));
+        insert(tsrc, "tiny.png", solid(2, 2, video::SColor(255, 9, 9, 9)));
+        insert(tsrc, "tiny_s.png", solid(128, 128, video::SColor(255, 9, 9, 9)));
+
+        auto dims = [&](const std::string &n) {
+            const core::dimension2du d = tsrc->getTextureDimensions(n);
+            return std::to_string(d.Width) + "x" + std::to_string(d.Height);
+        };
+        expect(dims("head.png") == "16x16", "outside node grouping a size is the image's");
+        tsrc->setImageCaching(true); // node_visuals starting its grouping
+        const std::string grouped = dims("head.png");
+        expect(grouped == "128x128", "a maps only tile groups at its map's size, got " + grouped);
+        expect(dims(front) == "128x128", "a [combine groups at its composed companion's size");
+        expect(dims("same.png") == "16x16", "a map sized albedo is unchanged");
+        expect(dims("bare.png") == "16x16", "no companion, unchanged");
+        expect(dims("odd.png") == "16x16", "a map not a whole multiple, unchanged");
+        expect(dims("tiny.png") == "2x2", "past the cap of 32, unchanged");
+        expect(dims("head.png") == "16x16", "a name asked twice ends the grouping");
+
+        u32 big_id = 0;
+        tsrc->setImageCaching(true);
+        tsrc->addArrayTexture({"head.png", front}, &big_id);
+        GoannaTexture *big = tsrc->goannaTexture(big_id);
+        const bool big_ok = big && big->isArray() && big->getSize().Width == 128 &&
+                big->getSize().Height == 128;
+        expect(big_ok, "the maps only head and the [combine share a 128 px array");
+        if (big_ok) {
+            video::IImage *l = big->layerImage(0);
+            expect(l->getPixel(3 * 8, 5 * 8) == video::SColor(255, 250, 10, 10) &&
+                    l->getPixel(3 * 8 + 7, 5 * 8 + 7) == video::SColor(255, 250, 10, 10) &&
+                    l->getPixel(3 * 8 + 8, 5 * 8) == video::SColor(255, 40, 120, 40) &&
+                    l->getPixel(3 * 8 - 1, 5 * 8) == video::SColor(255, 40, 120, 40),
+                    "the head's texel is an 8 x 8 block, nearest, not filtered");
+        }
+        expect(dims("head.png") == "16x16", "making an array ends the grouping");
+        GoannaTexture *own = dynamic_cast<GoannaTexture *>(tsrc->getTexture("head.png"));
+        expect(own && own->image() && own->image()->getDimension().Width == 16,
+                "the image itself keeps the game's size, for items and entities");
+        GoannaTexture *part = dynamic_cast<GoannaTexture *>(
+                tsrc->getTexture("[combine:32x16:16,0=head.png"));
+        expect(part && part->image() && rgba(at(part, 16 + 3, 5), 250, 10, 10, 255) &&
+                rgba(at(part, 16 + 4, 5), 40, 120, 40, 255),
+                "a [combine part is laid at the game's size");
+
+        u32 small_id = 0;
+        tsrc->addArrayTexture({"same.png", "bare.png"}, &small_id);
+        GoannaTexture *small = tsrc->goannaTexture(small_id);
+        const bool small_ok = small && small->isArray() && small->getSize().Width == 16;
+        expect(small_ok, "tiles with no larger companion keep a 16 px array");
+        if (small_ok)
+            expect(small->layerImage(0)->getPixel(9, 2) == video::SColor(255, 1, 2, 3) &&
+                    small->layerImage(0)->getPixel(8, 2) == video::SColor(255, 70, 70, 70),
+                    "and their layers are the images as they were");
+        u32 mixed_id = 0;
+        expect(tsrc->addArrayTexture({"head.png", "same.png"}, &mixed_id) == nullptr,
+                "a bunch mixing a sized head with a 16 px tile is refused, as any size mix is");
+    }
+
     std::cout << "tile companions: " << g_checks << " checks, " << g_failures << " failure(s)\n";
     return g_failures == 0 ? 0 : 1;
 }
