@@ -201,8 +201,10 @@ GoannaClient::GoannaClient() {
     const char *grass = std::getenv("GOANNA_GRASS");
     set_meta("goanna_grass_enabled", grass && std::string(grass) == "1");
     const char *ab = std::getenv("GOANNA_AUTO_BUMP");
-    if (ab)
-        m_auto_bump = (float)atof(ab);
+    if (ab && *ab) {
+        m_auto_bump = std::max(0.0f, (float)atof(ab));
+        m_auto_bump_pinned = true;
+    }
     const char *bv = std::getenv("GOANNA_BEVEL");
     if (bv)
         g_goanna_bevel = (float)atof(bv);
@@ -1062,6 +1064,11 @@ void GoannaClient::set_repeat_place_interval(float s) { if (m_session) m_session
 float GoannaClient::repeat_place_interval() const { return m_session ? m_session->repeatPlaceInterval : 0.25f; }
 
 void GoannaClient::set_auto_bump(float strength) {
+    // The environment wins over a saved profile: a run with
+    // GOANNA_AUTO_BUMP=0 had the profile's 0.95 put back at start, so an
+    // A/B of entities with and without inferred relief compared nothing.
+    if (m_auto_bump_pinned)
+        return;
     if (strength < 0.0f)
         strength = 0.0f;
     if (strength == m_auto_bump)
@@ -3828,21 +3835,29 @@ void GoannaClient::harvestLights(v3s16 bp, MapBlock *block) {
         m_block_lights[bp] = std::move(lights);
 }
 
+// The entity renderer, made on first use with every setting it mirrors. The
+// held item, item previews and model previews can make it before the first
+// entity sync, and those three set only parallax and hair, so a held item
+// drawn first took EntityRenderer's own auto bump default, not the client's.
+void GoannaClient::ensureEntityRenderer() {
+    if (m_entities)
+        return;
+    m_entities = std::make_unique<EntityRenderer>(this);
+    m_entities->setParallax(material_strength("parallax"));
+    m_entities->setHair(material_strength("hair"));
+    m_entities->setHairShader(material_strength("hair_shader"));
+    m_entities->setChannel("micro_shadow", material_strength("micro_shadow"));
+    m_entities->setChannel("parallax_short", material_strength("parallax_short"));
+    m_entities->setShowBody(m_show_body);
+    m_entities->setThirdPerson(m_third_person);
+    m_entities->setAutoBump(m_auto_bump);
+}
+
 void GoannaClient::sync_entities(double dt) {
     if (!m_session)
         return;
     auto t0 = clock_t_::now();
-    if (!m_entities) {
-        m_entities = std::make_unique<EntityRenderer>(this);
-        m_entities->setParallax(material_strength("parallax"));
-        m_entities->setHair(material_strength("hair"));
-        m_entities->setHairShader(material_strength("hair_shader"));
-        m_entities->setChannel("micro_shadow", material_strength("micro_shadow"));
-        m_entities->setChannel("parallax_short", material_strength("parallax_short"));
-        m_entities->setShowBody(m_show_body);
-        m_entities->setThirdPerson(m_third_person);
-        m_entities->setAutoBump(m_auto_bump);
-    }
+    ensureEntityRenderer();
     std::lock_guard<std::mutex> lk(m_session->mapLock());
     if (dt > 0.1) dt = 0.1;
     m_session->stepObjects((float)dt);
@@ -3905,14 +3920,7 @@ Dictionary GoannaClient::wield_info() {
     if (!m_session)
         return d;
     std::lock_guard<std::mutex> lk(m_session->mapLock());
-    if (!m_entities) {
-        m_entities = std::make_unique<EntityRenderer>(this);
-        m_entities->setParallax(material_strength("parallax"));
-        m_entities->setHair(material_strength("hair"));
-        m_entities->setHairShader(material_strength("hair_shader"));
-        m_entities->setChannel("micro_shadow", material_strength("micro_shadow"));
-        m_entities->setChannel("parallax_short", material_strength("parallax_short"));
-    }
+    ensureEntityRenderer();
     ItemStack item = goanna_wielded_item(m_session.get());
     d["name"] = String::utf8(item.name.c_str());
     v3f sc(1, 1, 1);
@@ -3947,14 +3955,7 @@ Dictionary GoannaClient::item_mesh(const String &item_name) {
     if (!m_session)
         return d;
     std::lock_guard<std::mutex> lk(m_session->mapLock());
-    if (!m_entities) {
-        m_entities = std::make_unique<EntityRenderer>(this);
-        m_entities->setParallax(material_strength("parallax"));
-        m_entities->setHair(material_strength("hair"));
-        m_entities->setHairShader(material_strength("hair_shader"));
-        m_entities->setChannel("micro_shadow", material_strength("micro_shadow"));
-        m_entities->setChannel("parallax_short", material_strength("parallax_short"));
-    }
+    ensureEntityRenderer();
     ItemStack item(item_name.utf8().get_data(), 1, 0, m_session->getItemDefManager());
     d["name"] = item_name;
     v3f sc(1, 1, 1);
@@ -3970,14 +3971,7 @@ Dictionary GoannaClient::model_preview(const String &mesh_name, const PackedStri
     if (!m_session)
         return d;
     std::lock_guard<std::mutex> lk(m_session->mapLock());
-    if (!m_entities) {
-        m_entities = std::make_unique<EntityRenderer>(this);
-        m_entities->setParallax(material_strength("parallax"));
-        m_entities->setHair(material_strength("hair"));
-        m_entities->setHairShader(material_strength("hair_shader"));
-        m_entities->setChannel("micro_shadow", material_strength("micro_shadow"));
-        m_entities->setChannel("parallax_short", material_strength("parallax_short"));
-    }
+    ensureEntityRenderer();
     std::vector<std::string> texs;
     texs.reserve(textures.size());
     for (int i = 0; i < textures.size(); ++i)

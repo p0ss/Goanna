@@ -533,6 +533,8 @@ protected:
     void _notification(int p_what);
 
 private:
+    // m_entities, made with every setting it mirrors (goanna_client.cpp).
+    void ensureEntityRenderer();
     bool m_lamp_occlusion = false;
     godot::Ref<godot::ImageTexture3D> m_lamp_occlusion_grid;
     godot::Ref<godot::ImageTexture> m_lamp_occlusion_sources;
@@ -1211,6 +1213,10 @@ private:
     // 0.95 puts the inference in the same range, so a texture without a normal
     // map stops reading flatter than one beside it that has one.
     float m_auto_bump = 0.95f;
+    // GOANNA_AUTO_BUMP was set at start: its value holds for the run, and
+    // set_auto_bump (a saved profile, the slider) leaves it alone, as the
+    // other GOANNA_ material switches are read at use and never overridden.
+    bool m_auto_bump_pinned = false;
     bool m_show_body = true;
     bool m_third_person = false;
     godot::Vector3 m_view_offset;

@@ -589,8 +589,14 @@ statue of the same skin had all of it.
 `GOANNA_PBR_SET=1` too, or the launcher clears it). With no `_n` in any
 layer, the relief inferred from the texture's brightness applies, as it
 does to an unauthored node tile; an authored `_n` in any layer turns it off
-for that texture. The inference wraps at the image's edges and reads across
-UV islands, which is right for a tile and wrong at an atlas's island edges.
+for that texture. `GOANNA_AUTO_BUMP=<strength>` sets the inference's
+strength for nodes and entities alike, 0 turning it off, and holds for the
+whole run: a saved profile and the settings slider leave it alone, as they
+leave the other `GOANNA_` material switches alone. Until 2026-10-05 the
+profile's 0.95 was put back at start, so an A/B run with
+`GOANNA_AUTO_BUMP=0` still inferred relief on every mob. The inference
+wraps at the image's edges and reads across UV islands, which is right for
+a tile and wrong at an atlas's island edges.
 It was also upside down along V, on node tiles and entities alike, from
 0e3fa49 (which turned the mesher's binormal to minus V) until 2026-10-01:
 a bright, raised texel lit from below the light. The probe's auto bump
