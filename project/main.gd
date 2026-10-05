@@ -1499,6 +1499,12 @@ func _process(delta: float) -> void:
 			place_down = false
 		var r: Dictionary = client.step_player(delta, keys, pitch, yaw)
 		last_move = r
+		# The server set the player's look (set_look_horizontal or
+		# set_look_vertical, or a teleport that carries one): turn to it, as
+		# the vanilla client does.
+		if r.has("server_look"):
+			pitch = clamp(r["server_look"].x, -89.0, 89.0)
+			yaw = r["server_look"].y
 		if r.has("eye_pos"):
 			cam.position = r["eye_pos"]
 			cam.rotation_degrees = Vector3(pitch, yaw, 0)
@@ -1796,6 +1802,9 @@ func _process(delta: float) -> void:
 		var extra := ""
 		if placed and not fly_mode:
 			var r: Dictionary = client.step_player(0.0, {}, pitch, yaw)
+			if r.has("server_look"):
+				pitch = clamp(r["server_look"].x, -89.0, 89.0)
+				yaw = r["server_look"].y
 			extra = " | player %s ground=%s | pointed %s %s dig=%s prog=%.2f crack=%d" % [str(r.get("pos", Vector3())), str(r.get("on_ground", false)), str(pointed.get("type", "?")), str(pointed.get("node_name", pointed.get("object_name", ""))), str(pointed.get("digging", false)), float(pointed.get("progress", 0.0)), int(pointed.get("crack_level", -1))]
 		print("[%5.1fs] %s | %s | media %d/%d | blocks recv %d meshed %d | mats %d | res %d | lights %d%s" % [
 			t, s.get("state"), s.get("message"), s.get("media_received", 0), s.get("media_announced", 0),

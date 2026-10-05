@@ -2744,6 +2744,16 @@ Dictionary GoannaClient::step_player(double dt, const Dictionary &keys, float pi
     if (m_session->takeServerMove(spos, spitch, syaw)) {
         p->setPosition(spos);
         p->setSpeed(v3f(0, 0, 0));
+        // TOCLIENT_MOVE_PLAYER carries the look as well as the position, and
+        // the vanilla client turns to it (Client::handleCommand_MovePlayer
+        // hands it to the camera). set_look_horizontal and
+        // set_look_vertical send nothing else. Until 2026-10-06 Goanna moved
+        // and kept the caller's look, so a mod framing a view for the player
+        // (DorfCraft's engraving scene) was ignored. The caller takes the
+        // new look from "server_look" and keeps it from then on.
+        pitch_deg = -spitch;
+        yaw_deg = syaw;
+        out["server_look"] = Vector2(pitch_deg, yaw_deg);
     }
     // Luanti: pitch positive = looking down; yaw matches Godot after z-mirror.
     PlayerControl &c = p->control;
