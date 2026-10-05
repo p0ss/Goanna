@@ -64,7 +64,7 @@ uniform float class_sss : hint_range(0.0, 1.0) = 0.0;
 // layer's is (reliefDepth in goanna_textures.cpp, capped alike) with a node
 // counted as sixteen art texels; 0 takes the class table's. art_texels is
 // the art's size in texels, which turns that into a distance on the mesh.
-// parallax_strength is the "parallax" material strength (0 on the Low
+// parallax_strength is the "parallax" material strength (0 on the Lowest
 // profile) times GOANNA_ENTITY_PARALLAX; see EntityRenderer::setParallax.
 uniform bool has_height = false;
 uniform float relief_depth = 0.0;

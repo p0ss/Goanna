@@ -104,9 +104,9 @@ varying vec2 v_rim;
 varying vec2 v_micro;
 varying vec3 v_sun_view;
 // The "micro_shadow" material strength (GoannaClient::set_material_strength,
-// the mat_micro_shadow setting): 0 is off, 1 the published form. Off by
-// default until it has been measured on the GPU.
-uniform float micro_shadow_strength : hint_range(0.0, 1.0) = 0.0;
+// the mat_micro_shadow setting): 0 is off, 1 the published form, which
+// every graphics profile uses.
+uniform float micro_shadow_strength : hint_range(0.0, 1.0) = 1.0;
 
 float goanna_micro_shadow(float ao, float ndotl) {
 	return clamp(abs(ndotl) + 2.0 * ao * ao - 1.0, 0.0, 1.0);

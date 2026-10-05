@@ -140,7 +140,7 @@
         "lamp_occlusion": 0,
         "mat_hair_shader": 1,
         "mat_parallax_short": 0,
-        "mat_micro_shadow": 0,
+        "mat_micro_shadow": 1,
         "render_ssr": 0
       },
       "scene": "vista"
@@ -149,7 +149,7 @@
       "name": "low",
       "set": {
         "light_sdfgi": 0.0,
-        "mat_parallax": 0.0,
+        "mat_parallax": 1,
         "procedural_grass": 0,
         "view_range": 6.0,
         "lod_distance": 8.0,
@@ -192,8 +192,8 @@
         "lamp_shadow_distance": 24,
         "lamp_occlusion": 0,
         "mat_hair_shader": 0,
-        "mat_parallax_short": 0,
-        "mat_micro_shadow": 0,
+        "mat_parallax_short": 1,
+        "mat_micro_shadow": 1,
         "render_ssr": 0
       },
       "scene": "vista"
@@ -246,7 +246,7 @@
         "lamp_occlusion": 0,
         "mat_hair_shader": 0,
         "mat_parallax_short": 0,
-        "mat_micro_shadow": 0,
+        "mat_micro_shadow": 1,
         "render_ssr": 0
       }
     }

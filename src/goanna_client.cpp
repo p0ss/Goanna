@@ -1172,17 +1172,17 @@ static const std::map<std::string, float> kMatStrengthDefaults = {
     // The parallax march through an authored pack's height
     // (nodes_array.gdshader skips it entirely at 0), and through a mob's
     // (entity_common.gdshaderinc, EntityRenderer::setParallax). The other channel that
-    // costs frames: the Low graphics profile turns it off for integrated
-    // graphics such as the Steam Deck's.
+    // costs frames: the Lowest graphics profile turns it off, and Low runs
+    // the short march (parallax_short below).
     {"parallax", 1.0f},
     // Which march: 0 the full one, 1 the short one for the handheld tiers
     // (nodes_array_common.gdshaderinc, entity_common.gdshaderinc).
     {"parallax_short", 0.0f},
     // Micro shadowing from the pack's occlusion in light()
-    // (direct_light.gdshaderinc), on nodes, foliage and mobs. Off until its
-    // cost and look have been measured on the GPU
-    // (docs/perf/low-tier-occlusion-2026-10-05).
-    {"micro_shadow", 0.0f},
+    // (direct_light.gdshaderinc), on nodes, foliage and mobs. On in every
+    // profile: its cost did not show above the noise on the GPU
+    // (docs/materials.md, "Micro shadows and the short march"). 0 for an A/B.
+    {"micro_shadow", 1.0f},
     // The along the strand highlight on hair texels of a mob or player skin
     // (direct_light.gdshaderinc, EntityRenderer::setHair). 0 draws hair with
     // the isotropic lobe every other texel takes. Off by default until it

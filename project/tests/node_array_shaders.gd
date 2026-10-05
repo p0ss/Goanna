@@ -11,7 +11,7 @@
 # headless renderer runs Godot's shader front end in full (a type error
 # fails the compile and leaves no uniforms), so this checks that both
 # compile and declare everything the client sets, and that the opaque one
-# has the parallax march the Low profile's mat_parallax channel switches.
+# has the parallax march the Lowest profile's mat_parallax channel switches.
 # It renders nothing: how either looks is not tested here.
 extends SceneTree
 
@@ -82,14 +82,27 @@ func _initialize() -> void:
 			NODES + " writes ALPHA_SCISSOR_THRESHOLD, which moves every opaque tile into the scissor pipeline")
 	check(write.search(scissor) != null, SCISSOR + " no longer alpha tests")
 
-	# The Low profile's mat_parallax reaches the shader as parallax_strength
-	# (game_ui.gd strips mat_ and calls set_material_strength), and 0 skips
-	# the march outright rather than running it at no depth.
-	check(float(GraphicsProfiles.PROFILES["low"].get("mat_parallax", -1.0)) == 0.0,
-			"the Low profile no longer turns parallax off")
+	# The Lowest profile's mat_parallax reaches the shader as
+	# parallax_strength (game_ui.gd strips mat_ and calls
+	# set_material_strength), and 0 skips the march outright rather than
+	# running it at no depth. Low runs the short march, the others the
+	# full one; every tier takes the micro shadow
+	# (docs/materials.md, "Micro shadows and the short march").
+	check(float(GraphicsProfiles.PROFILES["lowest"].get("mat_parallax", -1.0)) == 0.0,
+			"the Lowest profile no longer turns parallax off")
+	check(float(GraphicsProfiles.PROFILES["low"].get("mat_parallax", -1.0)) == 1.0
+			and float(GraphicsProfiles.PROFILES["low"].get("mat_parallax_short", -1.0)) == 1.0,
+			"the Low profile no longer runs the short march")
 	for tier in ["medium", "high", "ultra"]:
-		check(float(GraphicsProfiles.PROFILES[tier].get("mat_parallax", -1.0)) == 1.0,
-				"the %s profile does not turn parallax back on" % tier)
+		check(float(GraphicsProfiles.PROFILES[tier].get("mat_parallax", -1.0)) == 1.0
+				and float(GraphicsProfiles.PROFILES[tier].get("mat_parallax_short", -1.0)) == 0.0,
+				"the %s profile does not run the full march" % tier)
+	for tier in GraphicsProfiles.ORDER:
+		check(float(GraphicsProfiles.PROFILES[tier].get("mat_micro_shadow", -1.0)) == 1.0,
+				"the %s profile does not take the micro shadow" % tier)
+	check(uniforms(NODES).has("parallax_short_strength")
+			and uniforms(NODES).has("micro_shadow_strength"),
+			"mat_parallax_short or mat_micro_shadow has no uniform to reach")
 	check(CHANNELS.has("parallax") and uniforms(NODES).has("parallax_strength"),
 			"mat_parallax has no uniform to reach")
 	print("node_array_shaders: ", "ok" if failures == 0 else "%d failure(s)" % failures)

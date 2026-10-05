@@ -59,9 +59,9 @@ be varied independently for controlled tests.
 | SSAO | Off | On | On | On | On |
 | Light shafts | Off | On | On | On | On |
 | SDFGI strength | Off | Off | 1.4 | 1.4 | 1.4 |
-| Parallax | Off | Off | On | On | On |
-| Parallax march | n/a | n/a | Full | Full | Full |
-| Micro shadows | Off | Off | Off | Off | Off |
+| Parallax | Off | On | On | On | On |
+| Parallax march | n/a | Short | Full | Full | Full |
+| Micro shadows | On | On | On | On | On |
 | SSIL strength | Off | Off | Off | 1.4 | 1.4 |
 | Screen-space detail | 0 | 0 | 1 | 2 | 3 |
 | Directional shadow detail | 0 | 0 | 1 | 1 | 2 |
@@ -75,14 +75,19 @@ be varied independently for controlled tests.
 | Bending actors | 0 | 1 | 2 | 4 | 8 |
 | Grass AA when enabled | Existing | FXAA | 2x MSAA + FXAA | 2x MSAA + FXAA | 4x MSAA + FXAA |
 
-Parallax march and micro shadows are candidates for giving the low tiers
-back the recess shading that parallax's self shadow provides. The short
-march (`mat_parallax_short`) runs four steps plus two refinements, and
-only within eight nodes of the eye. Micro shadows (`mat_micro_shadow`)
-darken baked occlusion when light rakes across it, in `light()`, with no
-texture reads. Both are off in every preset until their GPU cost and
-look are measured; see [materials](materials.md), "Micro shadows and the
-short march", and the
+Micro shadows (`mat_micro_shadow`) darken the pack's baked occlusion when
+light rakes across it, in `light()`, with no texture reads. They are on at
+every tier: on 2026-10-05 their GPU cost did not show above the noise at
+Low or Medium. Low now runs the short parallax march
+(`mat_parallax_short`): four steps plus two refinements, only within eight
+nodes of the eye. It cost 0.075 ms per frame (spread 0.047 to 0.106 over
+sixteen alternated rounds) with a near wall filling most of a 1280x800
+frame, and nothing measurable at the benchmark vista. Those are RTX 3090
+numbers, about 6 per cent of that close frame's GPU time; the Steam Deck
+has not been measured. Medium keeps the full march: the short one saved
+0.05 ms there and was not distinguishable at three nodes. Lowest keeps
+parallax off. See [materials](materials.md), "Micro shadows and the short
+march", and the
 [measurement driver](perf/low-tier-occlusion-2026-10-05/run.py).
 
 Cloud layer count, style and lighting quality are independent controls.

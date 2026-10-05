@@ -94,8 +94,8 @@ public:
         m_mesh_materials.clear();
     }
     // The parallax march through an authored _n's height on mesh entities,
-    // 0 to 1: GoannaClient's "parallax" material strength (the Low graphics
-    // profile's mat_parallax 0), so mobs follow the same setting as the
+    // 0 to 1: GoannaClient's "parallax" material strength (the Lowest
+    // graphics profile's mat_parallax 0), so mobs follow the same setting as the
     // nodes. Applied to every material already built. GOANNA_ENTITY_PARALLAX
     // scales it, for an entities only A/B.
     void setParallax(float strength);
