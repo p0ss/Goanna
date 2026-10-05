@@ -14,7 +14,9 @@
    "span": 0.35,
    "metal": false,
    "smooth": 0.3,
-   "smooth_spread": 0.06
+   "smooth_spread": 0.06,
+   "micro": "wood",
+   "micro_dir": "along"
   }
  },
  "palette": {

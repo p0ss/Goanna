@@ -15,7 +15,9 @@
    "smooth": 0.6,
    "emission": 0.8,
    "emission_shade": true,
-   "metal": false
+   "metal": false,
+   "step": 0.06,
+   "micro": "glass"
   }
  },
  "palette": {

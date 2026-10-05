@@ -5,7 +5,10 @@
    "mode": "flat",
    "base": 0.75,
    "span": 0,
-   "smooth": 0.3
+   "smooth": 0.3,
+   "step": 0.06,
+   "micro": "wood",
+   "micro_dir": "along"
   },
   "feather": {
    "mode": "flat",
@@ -18,7 +21,9 @@
    "base": 0.8,
    "span": 0,
    "smooth": 0.72,
-   "metal": true
+   "metal": true,
+   "step": 0.06,
+   "micro": "metal"
   }
  },
  "palette": {

@@ -11,7 +11,9 @@
    "mode": "flat",
    "base": 0.85,
    "span": 0,
-   "smooth": 0.5
+   "smooth": 0.5,
+   "step": 0.06,
+   "micro": "metal_worn"
   }
  },
  "palette": {

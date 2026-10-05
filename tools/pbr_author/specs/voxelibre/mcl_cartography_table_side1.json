@@ -25,7 +25,9 @@
    "base": 0.85,
    "span": 0,
    "metal": true,
-   "smooth": 0.72
+   "smooth": 0.72,
+   "step": 0.06,
+   "micro": "metal"
   }
  },
  "palette": {

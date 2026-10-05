@@ -20,16 +20,16 @@
    "mode": "flat",
    "base": 0.9,
    "span": 0,
-   "micro": 0,
    "metal": true,
-   "smooth": 0.72
+   "smooth": 0.72,
+   "micro": "metal_worn"
   },
   "latch_dark": {
    "mode": "flat",
    "base": 0.85,
    "span": 0,
-   "micro": 0,
-   "smooth": 0.5
+   "smooth": 0.5,
+   "micro": "metal_worn"
   }
  },
  "palette": {

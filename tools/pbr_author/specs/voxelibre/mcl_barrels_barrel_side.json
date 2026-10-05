@@ -1,7 +1,7 @@
 {
  "materials": {
   "wood": {"mode": "shade", "base": 0.35, "span": 0.5},
-  "hoop": {"mode": "flat", "base": 0.8, "span": 0, "metal": true, "smooth": 0.3}
+  "hoop": {"mode": "flat", "base": 0.8, "span": 0, "metal": true, "smooth": 0.3, "step": 0.06, "micro": "metal_worn"}
  },
  "palette": {
   "#232323": "hoop", "#2c2c2c": "hoop", "#353535": "hoop", "#3d3d3d": "hoop", "#494949": "hoop",

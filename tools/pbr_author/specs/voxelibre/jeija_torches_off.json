@@ -3,14 +3,17 @@
   "wood": {
    "mode": "shade",
    "base": 0.35,
-   "span": 0.5
+   "span": 0.5,
+   "micro": "wood",
+   "micro_dir": "along"
   },
   "bracket": {
    "mode": "shade",
    "base": 0.55,
    "span": 0.2,
    "joints": false,
-   "metal": true
+   "metal": true,
+   "micro": "metal_worn"
   },
   "glow": {
    "mode": "shade",

@@ -2,7 +2,7 @@
  "class": "metal",
  "materials": {
   "metal": {"mode": "shade", "base": 0.65, "span": 0.3, "metal": true, "smooth": 0.8, "joints": false},
-  "wood": {"mode": "shade", "base": 0.5, "span": 0.35},
+  "wood": {"mode": "shade", "base": 0.5, "span": 0.35, "micro": "wood", "micro_dir": "v"},
   "gem": {"mode": "flat", "base": 0.85, "span": 0.0, "smooth": 0.9, "f0": 0.17, "metal": false, "emission": 0.2}
  },
  "palette": {"#0bffbd": "gem", "#513d30": "wood", "#6d543e": "wood"}

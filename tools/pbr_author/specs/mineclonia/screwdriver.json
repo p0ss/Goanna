@@ -1,8 +1,8 @@
 {
  "class": "wood",
  "materials": {
-  "wood": {"mode": "shade", "base": 0.5, "span": 0.35},
-  "metal": {"mode": "shade", "base": 0.6, "span": 0.35, "metal": true, "smooth": 0.78}
+  "wood": {"mode": "shade", "base": 0.5, "span": 0.35, "micro": "wood", "micro_dir": "along"},
+  "metal": {"mode": "shade", "base": 0.6, "span": 0.35, "metal": true, "smooth": 0.78, "micro": "metal_worn"}
  },
  "palette": {"#6b635e": "metal", "#847e77": "metal", "#938e88": "metal", "#afaca5": "metal", "#c9c7c1": "metal", "#e5e4e0": "metal"}
 }

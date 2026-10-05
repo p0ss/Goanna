@@ -1,9 +1,9 @@
 {
  "class": "wood",
  "materials": {
-  "wood": {"mode": "shade", "base": 0.5, "span": 0.35},
-  "metal": {"mode": "shade", "base": 0.6, "span": 0.35, "metal": true, "smooth": 0.78},
-  "string": {"mode": "flat", "base": 0.7, "span": 0.0, "smooth": 0.3, "micro": 0.04},
+  "wood": {"mode": "shade", "base": 0.5, "span": 0.35, "micro": "wood", "micro_dir": "along"},
+  "metal": {"mode": "shade", "base": 0.6, "span": 0.35, "metal": true, "smooth": 0.78, "micro": "metal_worn"},
+  "string": {"mode": "flat", "base": 0.7, "span": 0.0, "smooth": 0.3, "step": 0.04, "micro": "none"},
   "fungus": {"mode": "flat", "base": 0.84, "span": 0.0, "smooth": 0.35},
   "stalk": {"mode": "flat", "base": 0.78, "span": 0.0, "smooth": 0.25},
   "fleck": {"mode": "flat", "base": 0.88, "span": 0.0, "smooth": 0.4}

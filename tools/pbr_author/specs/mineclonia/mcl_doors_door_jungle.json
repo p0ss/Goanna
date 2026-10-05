@@ -12,7 +12,9 @@
    "base": 0.85,
    "span": 0,
    "smooth": 0.45,
-   "metal": false
+   "metal": false,
+   "step": 0.06,
+   "micro": "metal_worn"
   }
  },
  "palette": {

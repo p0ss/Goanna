@@ -28,7 +28,7 @@
    "span": 0,
    "metal": true,
    "smooth": 0.55,
-   "micro": 0
+   "micro": "metal_worn"
   },
   "honey": {
    "mode": "shade",

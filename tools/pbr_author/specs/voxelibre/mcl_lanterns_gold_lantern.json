@@ -14,7 +14,8 @@
    "span": 0,
    "smooth": 0.6,
    "emission": 0.85,
-   "micro": 0.04
+   "step": 0.04,
+   "micro": "glass"
   }
  },
  "palette": {

@@ -19,17 +19,17 @@
    "mode": "flat",
    "base": 0.75,
    "span": 0,
-   "micro": 0,
    "smooth": 0.5,
-   "metal": true
+   "metal": true,
+   "micro": "metal_worn"
   },
   "rivet": {
    "mode": "flat",
    "base": 0.92,
    "span": 0,
-   "micro": 0,
    "smooth": 0.6,
-   "metal": true
+   "metal": true,
+   "micro": "metal_worn"
   }
  },
  "legend": {

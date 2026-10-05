@@ -15,7 +15,8 @@
    "joints": false,
    "emission": 0.85,
    "emission_shade": true,
-   "smooth": 0.6
+   "smooth": 0.6,
+   "micro": "glass"
   }
  },
  "palette": {
