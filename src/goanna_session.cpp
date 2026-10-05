@@ -2157,7 +2157,7 @@ static size_t loadMappedPack(const std::string &map_csv, const std::string &pack
 }
 
 bool GoannaSession::prepareContentIfReady() {
-    if (!m_content_ready || m_send_ready)
+    if (!m_content_ready || m_send_ready || m_content_hold)
         return false;
     // 1. media images into the texture source
     size_t n_img = 0;

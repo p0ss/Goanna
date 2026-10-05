@@ -129,6 +129,17 @@ never updates itself.
 Releases before 0.11.0 do not have this, so moving from 0.10.0 means one
 last download by hand.
 
+Enhanced materials (the depth, gloss and relief on a game's surfaces) come
+in bundles, one set for each supported game. The first time you join a
+world whose materials you do not have, Goanna downloads them while you
+join, and the connecting screen shows how far it has got. They are used
+from that first visit. **Skip and play now** joins straight away with the
+server's own art instead; the download carries on, and the materials apply
+from your next connection. A server tells a client nothing about which game
+it runs, so Goanna works it out from the textures the server sends, which
+is why this waits until they have arrived. Settings, Updates, Download
+material updates turns all of it off.
+
 ## Controls
 
 WASD moves, the mouse looks, Space jumps, Shift sneaks, and the left and right

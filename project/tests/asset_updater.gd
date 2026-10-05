@@ -7,9 +7,10 @@ const AssetUpdater := preload("res://asset_updater.gd")
 # the queueing rule with no connection, no server and no client extension.
 class StubClient extends Node:
 	var media := PackedStringArray()
+	var state := "definitions"
 
 	func status() -> Dictionary:
-		return {"media_announced": media.size()}
+		return {"media_announced": media.size(), "state": state}
 
 	func announced_media_names() -> PackedStringArray:
 		return media
@@ -32,7 +33,9 @@ func _init() -> void:
 	for check in [_shared_stems_queue_nothing, _one_game_may_have_tranches,
 			_a_lone_bundle_owns_every_stem, _unreachable_is_reported,
 			_installed_is_skipped, _real_catalogue_separates_its_games,
-			_game_is_inferred, _game_is_remembered_per_server]:
+			_game_is_inferred, _game_is_remembered_per_server, _settles_when_nothing_is_needed,
+			_waits_while_a_bundle_is_due, _settles_without_media, _settles_without_a_catalogue,
+			_borrowed_names_do_not_win]:
 		var error: String = check.call()
 		if error != "":
 			_fail(error)
@@ -71,6 +74,86 @@ func _queued(bundles: Array, media: PackedStringArray) -> Array:
 	stub.free()
 	updater.free()
 	return ids
+
+# Whether an updater settled (the join may go on) after one look at what the
+# stub says the server announced, and what it queued.
+func _settles(bundles: Array, media: PackedStringArray, state := "definitions") -> Array:
+	var updater := AssetUpdater.new()
+	updater.catalogue = _catalogue(bundles)
+	var stub := StubClient.new()
+	stub.media = media
+	stub.state = state
+	updater.client = stub
+	var heard := [false]
+	updater.settled.connect(func() -> void: heard[0] = true)
+	updater._process(0.0)
+	var result := [heard[0], updater.is_settled(), updater._queue.size()]
+	stub.free()
+	updater.free()
+	return result
+
+# The join waits for the materials a server asks for. When it asks for none
+# that are missing, it must not wait at all.
+func _settles_when_nothing_is_needed() -> String:
+	var bundles := [_bundle("test.other", ["mineclonia"], ["mcl_stone"])]
+	var got := _settles(bundles, _media(["default_dirt"]))
+	if got != [true, true, 0]:
+		return "nothing wanted did not settle at once: %s" % [got]
+	return ""
+
+func _waits_while_a_bundle_is_due() -> String:
+	var bundles := [_bundle("test.due", ["minetest_game"], ["default_dirt"])]
+	var got := _settles(bundles, _media(["default_dirt"]))
+	if got != [false, false, 1]:
+		return "a bundle still to fetch settled: %s" % [got]
+	return ""
+
+# A server with no media announces none; past that stage there is nothing
+# to wait for, and waiting would hold the join for ever.
+func _settles_without_media() -> String:
+	var bundles := [_bundle("test.due", ["minetest_game"], ["default_dirt"])]
+	if _settles(bundles, PackedStringArray(), "definitions")[0]:
+		return "settled before the server could have announced its media"
+	if not _settles(bundles, PackedStringArray(), "content-ready")[0]:
+		return "a server with no media held the join"
+	return ""
+
+func _settles_without_a_catalogue() -> String:
+	var updater := AssetUpdater.new()
+	var heard := [false]
+	updater.settled.connect(func() -> void: heard[0] = true)
+	updater._on_catalogue(HTTPRequest.RESULT_CANT_RESOLVE, 0, PackedStringArray(), PackedByteArray())
+	updater.free()
+	if not heard[0]:
+		return "an unreachable catalogue held the join"
+	return ""
+
+# The case that fetched 84 MB of Mineclonia art for every Minetest Game
+# player: a few of the Minetest Game textures a server announces are names
+# only the Mineclonia pack provides. The game with most names wins.
+func _borrowed_names_do_not_win() -> String:
+	var mtg_names := []
+	for i in 30:
+		mtg_names.append("default_thing_%d" % i)
+	var bundles := [
+		_bundle("test.mcl", ["mineclonia"], ["mcl_stone", "default_tool_steelpick", "default_tool_steelaxe"]),
+		_bundle("test.mtg", ["minetest", "minetest_game"], mtg_names),
+	]
+	var queued := _queued(bundles, _media(mtg_names + ["default_tool_steelpick", "default_tool_steelaxe"]))
+	if queued != ["test.mtg"]:
+		return "a Minetest Game announcement with borrowed names queued %s" % [queued]
+	var old := _bundle("test.mtg", ["minetest", "minetest_game"], mtg_names)
+	var newer := old.duplicate()
+	newer["version"] = "2.0.0"
+	var newest := AssetUpdater.newest_only([old, newer])
+	if newest.size() != 1 or newest[0].version != "2.0.0":
+		return "an older version of a bundle was kept beside the newer: %s" % [newest]
+	if AssetUpdater.common_games([bundles[1]]) != ["minetest", "minetest_game"]:
+		return "a game's two names were not both kept"
+	queued = _queued(bundles, _media(["mcl_stone", "default_tool_steelpick", "default_tool_steelaxe"]))
+	if queued != ["test.mcl"]:
+		return "a Mineclonia announcement queued %s" % [queued]
+	return ""
 
 func _games(bundle: Dictionary) -> Dictionary:
 	var result := {}

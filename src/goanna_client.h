@@ -189,6 +189,9 @@ public:
     bool solid_ice() const;
     void set_texture_map(const godot::String &csv);
     void set_texture_path(const godot::String &path);
+    // Holds content preparation (GoannaSession::setContentHold). Before
+    // connect_to it is remembered and applied to the session it builds.
+    void set_content_hold(bool on);
     godot::String texture_path() const;
 
     void connect_to(const godot::String &host, int port, const godot::String &player_name,
@@ -550,6 +553,7 @@ private:
     goanna::FormDig m_carve;
     v3s16 m_carve_pos{-32768, -32768, -32768};
     godot::String m_texture_path; // see set_texture_path
+    bool m_content_hold = false;  // see set_content_hold
     godot::String m_texture_map;  // see set_texture_map
     // Exact tier-0 geometry is cached per block on the CPU, then compatible
     // array-material surfaces are combined into one GPU mesh per 4-cubed

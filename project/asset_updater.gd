@@ -5,6 +5,14 @@ const AssetStore := preload("res://asset_store.gd")
 const CFG_PATH := "user://goanna.cfg"
 
 signal bundle_installed(bundle_id: String)
+# Once a session: nothing more is coming for this connection. The catalogue
+# could not be had or the updates are off, or the server's media asked for
+# nothing new, or every bundle it asked for has been fetched or has failed.
+# main.gd holds the join until then (or until the player skips).
+signal settled()
+
+# Seconds the catalogue may take before the join stops waiting for it.
+const CATALOGUE_TIMEOUT_S := 15.0
 
 var client: Node
 # "host:port" of the server this session joined, set by main.gd. Empty for a
@@ -18,6 +26,15 @@ var _http: HTTPRequest
 var _queue: Array = []
 var _current := {}
 var _observed := false
+var _settled := false
+# What this session learned and fetched, for main.gd: the server's game, and
+# the bundles installed since it joined.
+var game := ""
+# Every game the matched bundles share, in catalogue order: more than one when
+# a game goes by two names (minetest, minetest_game), where game is "".
+var games: Array = []
+var installed_now: Array = []
+var _total := 0
 # The menu's instance: upgrade every bundle already installed to the
 # catalogue's version as soon as the catalogue arrives, without waiting for a
 # server to announce its media. In a session, a newer bundle was only fetched
@@ -31,6 +48,7 @@ func _ready() -> void:
 	var cfg := ConfigFile.new()
 	cfg.load(CFG_PATH)
 	if not bool(cfg.get_value("settings", "asset_updates", true)):
+		_settle.call_deferred()
 		return
 	_catalogue_url = OS.get_environment("GOANNA_ASSET_CATALOGUE_URL")
 	if _catalogue_url == "":
@@ -38,11 +56,30 @@ func _ready() -> void:
 		if bootstrap is Dictionary:
 			_catalogue_url = str(bootstrap.get("catalogue_url", ""))
 	if _catalogue_url == "":
+		_settle.call_deferred()
 		return
 	_http = HTTPRequest.new()
+	_http.timeout = CATALOGUE_TIMEOUT_S
 	add_child(_http)
 	_http.request_completed.connect(_on_catalogue)
-	_http.request(_catalogue_url)
+	if _http.request(_catalogue_url) != OK:
+		_settle.call_deferred()
+
+func _settle() -> void:
+	if not _settled:
+		_settled = true
+		settled.emit()
+
+func is_settled() -> bool:
+	return _settled
+
+# How far the downloads this session started have got: which bundle of how
+# many, and its bytes so far and in all (-1 until the server says).
+func progress() -> Dictionary:
+	if _http == null or _current.is_empty():
+		return {}
+	return {"bundle": _total - _queue.size(), "count": _total,
+		"bytes": _http.get_downloaded_bytes(), "size": _http.get_body_size()}
 
 static func install_bootstrap() -> void:
 	var bootstrap = JSON.parse_string(FileAccess.get_file_as_string("res://bootstrap_assets.json"))
@@ -61,6 +98,11 @@ func _process(_delta: float) -> void:
 	var status: Dictionary = client.status()
 	var announced := int(status.get("media_announced", 0))
 	if announced == 0:
+		# A server with no media at all never announces any: once the session
+		# is past that stage there is nothing to match, so nothing to wait for.
+		if str(status.get("state", "")) in ["content-ready", "ready", "denied", "disconnected", "error"]:
+			_observed = true
+			_settle()
 		return
 	var announced_names: PackedStringArray = client.announced_media_names()
 	if announced_names.size() < announced:
@@ -76,18 +118,88 @@ func _process(_delta: float) -> void:
 	for id in unreachable_bundles(catalogue.bundles, ambiguous):
 		push_warning(("Catalogue bundle %s provides no name that is its own, "
 			+ "so no announcement can ask for it.") % id)
-	var matched := bundles_for_stems(catalogue.bundles, names, ambiguous)
+	var matched := newest_only(one_game(bundles_for_stems(catalogue.bundles, names, ambiguous),
+		names, ambiguous))
 	for bundle in matched:
 		if not _installed(bundle):
 			_queue.append(bundle)
-	var game := game_of(matched)
+	_total = _queue.size()
+	game = game_of(matched)
+	games = common_games(matched)
 	if game != "" and server_address != "":
 		remember_game(server_address, game, cfg_path)
+	if _queue.is_empty():
+		_settle()
 	_download_next()
 
 # The one game every matched bundle is for, or "" when they name none or
 # disagree. The protocol never tells a client the server's game, so this is
 # the only evidence a remote join has: the bundles its media asked for.
+# The newest version of each bundle. The catalogue keeps older versions for
+# the clients that pinned them, and both matched, so a join fetched Minetest
+# Game's terrain 1.1.0 and then 2.0.0 over it.
+static func newest_only(bundles: Array) -> Array:
+	var newest := {}
+	for bundle in bundles:
+		var id := str(bundle.id)
+		if not newest.has(id) or _version_after(str(bundle.version), str(newest[id].version)):
+			newest[id] = bundle
+	return bundles.filter(func(b: Dictionary) -> bool: return newest[str(b.id)] == b)
+
+static func _version_after(a: String, b: String) -> bool:
+	var x := a.split(".")
+	var y := b.split(".")
+	for i in maxi(x.size(), y.size()):
+		var p := int(x[i]) if i < x.size() else 0
+		var q := int(y[i]) if i < y.size() else 0
+		if p != q:
+			return p > q
+	return false
+
+static func common_games(bundles: Array) -> Array:
+	var common: Array = []
+	var first := true
+	for bundle in bundles:
+		var named: Array = bundle.get("games", []).map(func(g) -> String: return str(g))
+		if first:
+			common = named
+			first = false
+		else:
+			common = common.filter(func(g: String) -> bool: return g in named)
+	return common
+
+# A server runs one game, so the matched bundles are cut to the game whose
+# bundles answer most of the announcement. A name only one bundle provides
+# counts for that bundle's game, but games borrow names: Mineclonia's pack
+# carries Minetest Game's default_tool_* textures, so a Minetest Game server
+# matched it on 17 names against its own terrain bundle's 182 and fetched an
+# 84 MB pack it would never use. A tie keeps nothing, since the game is then
+# not known.
+static func one_game(matched: Array, names: Dictionary, ambiguous: Dictionary) -> Array:
+	var score := {}
+	for bundle in matched:
+		var counted := {}
+		for stem in bundle.get("provides", []):
+			var stem_name := str(stem)
+			if names.has(stem_name) and not ambiguous.has(stem_name):
+				counted[stem_name] = true
+		for g in bundle.get("games", []):
+			var per: Dictionary = score.get(str(g), {})
+			per.merge(counted)
+			score[str(g)] = per
+	var best := 0
+	for g in score:
+		best = maxi(best, (score[g] as Dictionary).size())
+	var winners := []
+	for g in score:
+		if (score[g] as Dictionary).size() == best:
+			winners.append(g)
+	# Several winners are one game under several names only if a bundle
+	# carries all of them; otherwise the announcement is evenly split.
+	var kept := matched.filter(func(b: Dictionary) -> bool:
+		return winners.all(func(g: String) -> bool: return str(g) in b.get("games", []).map(func(x) -> String: return str(x))))
+	return kept
+
 static func game_of(bundles: Array) -> String:
 	var common := {}
 	var first := true
@@ -214,13 +326,17 @@ func _on_catalogue(result: int, code: int, _headers: PackedStringArray,
 		body: PackedByteArray) -> void:
 	if result != HTTPRequest.RESULT_SUCCESS or code != 200:
 		push_warning("Enhanced-material catalogue could not be downloaded; continuing without updates.")
+		_settle()
 		return
 	catalogue = AssetStore.parse_catalogue(body.get_string_from_utf8())
 	if catalogue.is_empty():
 		push_warning("Enhanced-material catalogue is invalid; continuing without updates.")
+		_settle()
 		return
+	# Bundles can be large and slow; only the catalogue is held to a timeout.
+	_http.timeout = 0.0
 	if upgrade_installed:
-		for bundle in catalogue.bundles:
+		for bundle in newest_only(catalogue.bundles):
 			if _has_any_version(str(bundle.id)) and not _installed(bundle):
 				_queue.append(bundle)
 		_download_next()
@@ -257,6 +373,7 @@ func _on_bundle(result: int, code: int, _headers: PackedStringArray,
 		if error != "":
 			push_warning(error)
 		else:
+			installed_now.append(str(_current.id))
 			bundle_installed.emit(str(_current.id))
 	else:
 		push_warning("Enhanced-material download failed; it will be retried on a later connection.")
@@ -264,4 +381,6 @@ func _on_bundle(result: int, code: int, _headers: PackedStringArray,
 		DirAccess.remove_absolute(target)
 	_current = {}
 	_http.download_file = ""
+	if _queue.is_empty():
+		_settle()
 	_download_next()

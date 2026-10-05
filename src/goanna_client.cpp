@@ -1230,6 +1230,12 @@ void GoannaClient::set_texture_map(const String &csv) {
         m_session->setTextureMap(std::string(csv.utf8().get_data()));
 }
 
+void GoannaClient::set_content_hold(bool on) {
+    m_content_hold = on;
+    if (m_session)
+        m_session->setContentHold(on);
+}
+
 void GoannaClient::set_texture_path(const String &path) {
     // g_settings only exists once a GoannaSession has been constructed (its
     // constructor creates the SL_GLOBAL layer), which the documented calling
@@ -1385,6 +1391,7 @@ void GoannaClient::connect_to(const String &host, int port, const String &player
     // GoannaSession's constructor is what creates g_settings; set_texture_path
     // could only remember the value, not apply it, if called first as
     // documented. Apply it now, before start() begins requesting textures.
+    m_session->setContentHold(m_content_hold);
     if (!m_texture_path.is_empty() && g_settings) {
         g_settings->set("texture_path", std::string(m_texture_path.utf8().get_data()));
         // A session constructs the Luanti globals before this retained path can
@@ -1436,6 +1443,7 @@ Dictionary GoannaClient::status() const {
         d["state"] = "none";
         return d;
     }
+    d["content_held"] = m_session->contentHeld();
     SessionStats s = m_session->stats();
     d["state"] = session_state_name(s.state);
     d["message"] = String(s.message.c_str());
@@ -8676,6 +8684,7 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("solid_ice"), &GoannaClient::solid_ice);
     ClassDB::bind_method(D_METHOD("set_texture_map", "csv"), &GoannaClient::set_texture_map);
     ClassDB::bind_method(D_METHOD("set_texture_path", "path"), &GoannaClient::set_texture_path);
+    ClassDB::bind_method(D_METHOD("set_content_hold", "on"), &GoannaClient::set_content_hold);
     ClassDB::bind_method(D_METHOD("texture_path"), &GoannaClient::texture_path);
     ClassDB::bind_method(D_METHOD("connect_to", "host", "port", "player_name", "password"),
             &GoannaClient::connect_to);

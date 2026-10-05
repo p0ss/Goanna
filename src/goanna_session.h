@@ -102,6 +102,12 @@ public:
     // Returns true if it did the work this call.
     bool prepareContentIfReady();
     bool contentPrepared() const { return m_content_prepared; }
+    // While held, the content that has arrived is not prepared and READY is
+    // not sent: main.gd holds it while the material bundles a server's media
+    // asked for are downloaded, so they can be used for this connection
+    // rather than the next. The server waits, as it does for slow media.
+    void setContentHold(bool on) { m_content_hold = on; }
+    bool contentHeld() const { return m_content_hold; }
     GoannaTextureSource *tsrc() { return m_tsrc.get(); }
     // The classifier's table, docs/pbr-plan.md step 2: built when content is
     // prepared, empty before. Read only from then on.
@@ -552,6 +558,7 @@ private:
     s32 m_hotbar_itemcount = 8;
     std::string m_hotbar_image, m_hotbar_selected_image;
     std::atomic<u16> m_hp{20};
+    std::atomic<bool> m_content_hold{false};
     std::atomic<u16> m_breath{10};
     std::unique_ptr<Inventory> m_inventory;
     u32 m_inventory_version = 0;

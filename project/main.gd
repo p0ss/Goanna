@@ -24,6 +24,8 @@ var frame_work_usec := {}
 var frame_work_worst_usec := {}
 
 const AssetUpdater := preload("res://asset_updater.gd")
+const AssetStore := preload("res://asset_store.gd")
+const LocalServerScript := preload("res://local_server.gd")
 const LookGrade := preload("res://look_grade.gd")
 var look_grade := LookGrade.new()
 
@@ -861,14 +863,26 @@ func _ready() -> void:
 	# session are not drawn until the next one. Say so rather than leave the
 	# player wondering why a download changed nothing.
 	# Once a session, however many bundles come: one line for each of four
-	# bundles read as four identical lines, and read aloud as four.
+	# bundles read as four identical lines, and read aloud as four. Only for
+	# bundles that arrive after the join stopped waiting for them.
 	var told := [false]
 	asset_updater.bundle_installed.connect(func(_id: String) -> void:
+		if _materials_held:
+			return
 		if not told[0] and ui != null and ui.has_method("_add_chat_line"):
 			told[0] = true
 			ui._add_chat_line("Enhanced materials for this game were installed. They apply from your next connection."))
 	if player_slot == null or player_slot.slot_index == 0:
 		add_child(asset_updater)
+		# The join waits for the bundles this server's media asks for, so they
+		# are used now rather than at the next connection, unless the player
+		# chose a pack of their own or Standard rendering; then there is
+		# nothing for them to change, and nothing to wait for.
+		if _pack_follows_bundles(pack):
+			_materials = asset_updater
+			_materials_held = true
+			client.set_content_hold(true)
+			asset_updater.settled.connect(_release_materials.bind(false))
 	else:
 		asset_updater.free()
 	if OS.get_environment("GOANNA_TOD") != "":
@@ -1161,6 +1175,12 @@ func _report_fov() -> void:
 # looked exactly like a hang. A big public server legitimately takes minutes
 # at the media step, so the two have to be told apart on screen.
 var connect_overlay: Control
+# The material download the join is waiting on (asset_updater.gd), and
+# whether it still is; see _release_materials.
+var _materials: Node
+var _materials_held := false
+var _materials_announced := false
+var _skip_button: Button
 var connect_title: Label
 var connect_detail: Label
 var connect_bar: ProgressBar
@@ -1168,6 +1188,35 @@ var connect_bar: ProgressBar
 # When the connection screen went up, for the no answer timeout below.
 var _connect_started_ms := 0
 const CONNECT_NO_ANSWER_MS := 20000
+
+# The texture pack follows the installed material bundles unless the player
+# picked something else: a pack of their own, or Standard rendering.
+func _pack_follows_bundles(pack: String) -> bool:
+	if OS.get_environment("GOANNA_NO_PBR") == "1":
+		return false
+	return pack == "" or pack.begins_with(AssetStore.root())
+
+# The join stops waiting: the downloads settled, or the player skipped. Newly
+# installed bundles become the texture pack before the content is prepared,
+# which is the last moment a pack can be given. Skipping leaves the downloads
+# running; what they install applies from the next connection, as before.
+func _release_materials(skipped: bool) -> void:
+	if not _materials_held:
+		return
+	_materials_held = false
+	if not skipped and _materials != null and not _materials.installed_now.is_empty():
+		# The game, or failing that each name the matched bundles share (a
+		# game known by two names), until one has installed materials.
+		var names: Array = [str(_materials.game)] if str(_materials.game) != "" else _materials.games
+		for name in names:
+			var path := LocalServerScript.bundled_pbr_texture_path(str(name))
+			if path != "":
+				client.set_texture_path(path)
+				print("texture pack ", path, " (installed for this connection)")
+				break
+	client.set_content_hold(false)
+	if _skip_button != null and is_instance_valid(_skip_button):
+		_skip_button.visible = false
 
 func _build_connect_overlay() -> void:
 	_connect_started_ms = Time.get_ticks_msec()
@@ -1194,6 +1243,11 @@ func _build_connect_overlay() -> void:
 	connect_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	connect_detail.modulate = Color(1, 1, 1, 0.7)
 	box.add_child(connect_detail)
+	_skip_button = Button.new()
+	_skip_button.text = "Skip and play now"
+	_skip_button.visible = false
+	_skip_button.pressed.connect(_release_materials.bind(true))
+	box.add_child(_skip_button)
 	add_child(connect_overlay)
 
 func _update_connect_overlay(s: Dictionary) -> void:
@@ -1235,6 +1289,9 @@ func _update_connect_overlay(s: Dictionary) -> void:
 		return
 	connect_bar.visible = true
 	connect_detail.modulate = Color(1, 1, 1, 0.7)
+	if _materials_held and bool(s.get("content_held", false)):
+		_show_material_wait()
+		return
 	if want > 0:
 		connect_title.text = "Downloading media"
 		connect_bar.value = float(got) / float(want)
@@ -1243,6 +1300,30 @@ func _update_connect_overlay(s: Dictionary) -> void:
 		connect_title.text = "Connecting"
 		connect_bar.value = 0.0
 		connect_detail.text = msg if msg != "" else state
+
+# The server's media is in and the join is waiting for material bundles: how
+# far they have got, and a way not to wait.
+func _show_material_wait() -> void:
+	var p: Dictionary = _materials.progress() if _materials != null else {}
+	if p.is_empty():
+		connect_title.text = "Checking for enhanced materials"
+		connect_bar.value = 0.0
+		connect_detail.text = "Asking which materials this game has."
+	else:
+		connect_title.text = "Downloading enhanced materials"
+		var size := float(p.get("size", -1))
+		var got := float(p.get("bytes", 0))
+		connect_bar.value = got / size if size > 0.0 else 0.0
+		connect_detail.text = "Bundle %d of %d, %.1f%s MB. They give this game's surfaces depth and shine. Skip to play now with the server's own art; they then apply from your next connection." % [
+			int(p.get("bundle", 1)), int(p.get("count", 1)), got / 1048576.0,
+			(" of %.1f" % (size / 1048576.0)) if size > 0.0 else ""]
+	if not _skip_button.visible:
+		_skip_button.visible = true
+		_skip_button.grab_focus()
+	if not _materials_announced:
+		_materials_announced = true
+		if ui != null and ui.get("narrator") != null and ui.narrator.enabled:
+			ui.narrator.say("Downloading enhanced materials. Press Enter to skip and play now.", true)
 
 # Start from what the machine says it is, rather than from one number chosen
 # on the author's desktop.
