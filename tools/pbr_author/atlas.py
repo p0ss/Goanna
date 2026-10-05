@@ -18,10 +18,10 @@ in a row), so three of the tile rule's assumptions are wrong for it:
            image's edge. An atlas does not tile.
   islands  two faces side by side in the image are not neighbours on the
            model. The island map says which face each texel belongs to,
-           read from the model's own UVs (the .b3d the game draws the skin
-           on), so nothing is bevelled, sloped or occluded across a face
-           border. Drawn texels no face uses become islands of their own,
-           by 4 connected component, never wrapped.
+           read from the model's own UVs (the .b3d or .obj the game draws
+           the skin on), so nothing is bevelled, sloped or occluded across
+           a face border. Drawn texels no face uses become islands of their
+           own, by 4 connected component, never wrapped.
 
 What a face edge does is the spec's "face_edge":
 
@@ -51,10 +51,11 @@ overlay's maps over the skin's where the overlay is drawn.
 
 Skins are listed in stems/<game>.mobs.txt, one per line:
 
-    <stem> <model.b3d> [brush]
+    <stem> <model.b3d or model.obj> [brush]
 
 brush is which of the model's materials the skin is drawn on (0 for the
-first). A spec in specs/<game>/<stem>.json works as for extrude.py, plus
+first). For an .obj that is the mesh buffer, which is not the "usemtl"
+name: read_obj says how Luanti splits an .obj into buffers. A spec in specs/<game>/<stem>.json works as for extrude.py, plus
 the keys above, "micro_materials" (the materials the micro surface is
 drawn on, default all) and "texel_px" to override the map density.
 "strength" is in node units as in extrude.py (the full height range's
@@ -171,6 +172,123 @@ def read_b3d(path):
     return out
 
 
+def read_obj(path):
+    """A Wavefront .obj as read_b3d gives a .b3d: one mesh, [(positions,
+    uvs, [(brush, tris)])], where brush is the mesh buffer's index, which is
+    the index into the textures list Luanti draws it with.
+
+    Read the way Luanti's loader reads it (luanti/irr/src/
+    COBJMeshFileLoader.cpp), because the buffers are not split where a
+    reader of the format would expect: a material only ever matches by name,
+    and every buffer's name is the empty one it was copied from, so a
+    "usemtl" with no group before it adds faces to the buffer already in
+    use, and every "g" (followed by a face) starts a new buffer. The dragon
+    head (one "usemtl" per "o", no "g") is one buffer; the armour stand
+    ("g Player_Cube_Stand", "g Player_Cube_Base") is two. A buffer no face
+    reaches is dropped, and later ones move down. "vt" v is flipped (1 - v)
+    as the loader flips it, so the coordinates are image down like a .b3d's.
+    Polygons are fanned from their first corner as the loader fans them, and
+    a corner repeated after merging identical vertices drops the triangle.
+    """
+    pos, nrm, tex = [], [], []
+    # Each buffer: [name, group, vertex list, vertex index by key, tris]
+    mats = [["", "", [], {}, []]]
+    cur = mats[0]
+    grp, mtl, changed = "", "", False
+
+    def find(name, group):
+        partial = None
+        for m in mats:
+            if m[0] == name:
+                if m[1] == group:
+                    return m
+                partial = m
+        if partial is not None:
+            mats.append([partial[0], group, [], {}, []])
+            return mats[-1]
+        if group:
+            mats.append([mats[0][0], group, [], {}, []])
+            return mats[-1]
+        return None
+
+    def index(word, size):
+        # strtoul, then 1 based to 0 based, negative counted from the end.
+        try:
+            i = int(word)
+        except ValueError:
+            i = 0
+        return i + size if i < 0 else i - 1
+
+    for raw in Path(path).read_text(errors="replace").splitlines():
+        line = raw.lstrip()
+        if not line:
+            continue
+        words = line.split()
+        if line[0] == "v":
+            if line[1:2] == " ":
+                pos.append([float(w) for w in words[1:4]])
+            elif line[1:2] == "n":
+                nrm.append([float(w) for w in words[1:4]])
+            elif line[1:2] == "t":
+                tex.append([float(words[1]), 1.0 - float(words[2])])
+        elif line[0] == "g":
+            grp = words[1] if len(words) > 1 else "default"
+            changed = True
+        elif line[0] == "u":
+            mtl = words[1] if len(words) > 1 else ""
+            changed = True
+        elif line[0] == "f":
+            if changed:
+                found = find(mtl, grp)
+                if found is not None:
+                    cur = found
+                changed = False
+            corners = []
+            for w in words[1:]:
+                parts = w.split("/")
+                p = index(parts[0], len(pos))
+                t = index(parts[1], len(tex)) if len(parts) > 1 and parts[1] else -1
+                n = index(parts[2], len(nrm)) if len(parts) > 2 and parts[2] else -1
+                if not 0 <= p < len(pos):
+                    raise ValueError("%s: vertex index out of range in %r" % (path, raw))
+                uv = tuple(tex[t]) if 0 <= t < len(tex) else (0.0, 0.0)
+                nv = tuple(nrm[n]) if 0 <= n < len(nrm) else (0.0, 0.0, 0.0)
+                key = (tuple(pos[p]), nv, uv)
+                if key not in cur[3]:
+                    cur[3][key] = len(cur[2])
+                    cur[2].append((pos[p], uv))
+                corners.append(cur[3][key])
+            if len(corners) < 3:
+                raise ValueError("%s: too few vertices in %r" % (path, raw))
+            c = corners[0]
+            for i in range(1, len(corners) - 1):
+                a, b = corners[i + 1], corners[i]
+                if a != b and a != c and b != c:
+                    cur[4].append((a, b, c))
+    # One mesh whose buffers share nothing: concatenate their vertices and
+    # offset each buffer's triangles, numbering buffers as the loader adds
+    # them (only those with faces).
+    positions, uvs, tris = [], [], []
+    for m in mats:
+        if not m[4]:
+            continue
+        base = len(positions)
+        positions += [v[0] for v in m[2]]
+        uvs += [v[1] for v in m[2]]
+        tris.append((len(tris), np.asarray(m[4], np.int64).reshape(-1, 3) + base))
+    if not tris:
+        return []
+    return [(np.asarray(positions, np.float32).reshape(-1, 3),
+             np.asarray(uvs, np.float32).reshape(-1, 2), tris)]
+
+
+def read_model(path):
+    """read_b3d or read_obj, by the file's extension."""
+    if Path(path).suffix.lower() == ".obj":
+        return read_obj(path)
+    return read_b3d(path)
+
+
 def model_path(model, game):
     root = lib.GAMES[game]["art"]
     hits = sorted(root.rglob(model))
@@ -184,7 +302,7 @@ def faces(model, brush, w, h, game=lib.DEFAULT_GAME):
     texels, end exclusive, with the number of triangles using it (two per
     box face; four when two mirrored limbs share it)."""
     rects = {}
-    for pos, uv, tris in read_b3d(model_path(model, game)):
+    for pos, uv, tris in read_model(model_path(model, game)):
         for b, idx in tris:
             if b != brush:
                 continue
@@ -207,7 +325,7 @@ def face_frames(model, brush, w, h, game=lib.DEFAULT_GAME, front=(0.0, 0.0, 1.0)
     out = {}
     down = np.array((0.0, -1.0, 0.0))
     back = -np.asarray(front, np.float64)
-    for pos, uv, tris in read_b3d(model_path(model, game)):
+    for pos, uv, tris in read_model(model_path(model, game)):
         for b, idx in tris:
             if b != brush:
                 continue
@@ -1406,7 +1524,7 @@ if __name__ == "__main__":
     ap.add_argument("--faces", action="store_true", help="print faces and palettes and stop")
     ap.add_argument("--preview", default=None, help="write previews into this directory")
     ap.add_argument("--model", default=None,
-                    help="the .b3d, for a skin not yet in stems/<game>.mobs.txt")
+                    help="the .b3d or .obj, for a skin not yet in stems/<game>.mobs.txt")
     ap.add_argument("--brush", type=int, default=None, help="with --model, the brush (default 0)")
     a = ap.parse_args()
     for s in a.stems:

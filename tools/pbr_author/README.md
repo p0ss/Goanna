@@ -66,6 +66,11 @@ then the four sides of each box, and `atlas.py` builds it instead of
 `extrude.py`, with the same rule and the same spec format. Skins are
 listed in `stems/mineclonia.mobs.txt` as `<stem> <model.b3d> [brush]`,
 never in `stems/mineclonia.txt`, and `build_pack.py` builds both lists.
+The model may be an `.obj` too (the dragon head on `mcl_heads_dragon_*.obj`,
+the armour stand on `3d_armor_stand.obj`): `atlas.read_obj` reads it into
+mesh buffers the way Luanti's loader does, and brush is the buffer, which
+for an `.obj` is not its `usemtl` name (every `g` starts one; a `usemtl`
+with no `g` does not). `tools/test-pbr-atlas-obj.py` checks the reader.
 Their classes are frozen in `stems/mineclonia.classes.json` like the
 rest.
 
@@ -95,8 +100,8 @@ What differs from a tile:
   before mipmaps against 4 MiB at 8, because its plates carry bevels,
   scratches and rivets a few map pixels across.
 - **Islands.** The faces come from the model's own UVs, read from the
-  `.b3d` the game draws the skin on. The chamfer, the normal and the
-  occlusion never read across a face border or the image edge, so two
+  `.b3d` or `.obj` the game draws the skin on. The chamfer, the normal and
+  the occlusion never read across a face border or the image edge, so two
   faces packed side by side do not bevel into each other and nothing
   wraps. Drawn texels no face uses (a palette swatch, an unused limb
   layout) are islands of their own.
