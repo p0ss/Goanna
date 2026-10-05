@@ -1,0 +1,33 @@
+{
+ "schema": "org.goanna.asset-recipe/v1",
+ "id": "org.goanna.draconis.pack",
+ "version": "1.0.0",
+ "tranche": "pack",
+ "games": [
+  "minetest",
+  "minetest_game",
+  "mineclonia",
+  "mineclone2",
+  "voxelibre"
+ ],
+ "source": {
+  "package": "ElCeejo/draconis",
+  "release": "34129",
+  "archive_sha256": "e4305c5165b9bc862beb33d1976b2bc920ccf7b1720840cbb2fc017986a39f57"
+ },
+ "pipeline": {
+  "version": "5",
+  "authored": "tools/pbr_author/build_pack.py --game draconis, specs in specs/draconis/, classes in stems/draconis.classes.json",
+  "classification_review": "pbr_packs/classification_reviews/draconis-v1.json",
+  "media_ledger": "pbr_packs/manifests/draconis-v1.sources.json",
+  "note": "75 stems: 5 fire and 5 ice dragon skins with their 10 eye overlays, 4 jungle wyverns, 10 egg meshes and 41 blocks. The dragons' 512 px art is mapped at 4 px per art texel (2048 maps). Checked in game on 2026-10-05 (Minetest Game, Goanna on the RTX 3090, Ultra profile, parallax 1.0): the fire and ice dragon materials carry their 2048 maps through Draconis' nested (...)^[multiply texture, and the scales read as raised plates. draconis_baked_in_shading.png has no maps and mutes about a fifth of the relief where it covers; not yet judged."
+ },
+ "release": {
+  "texture_pairs": 75,
+  "rejected": [],
+  "known_failures": [],
+  "archive": "org.goanna.draconis.pack-1.0.0.zip",
+  "bytes": 27664842,
+  "sha256": "a2fe269c2416a9c8898c5f6bfa23b6d588bb766ae82388f8b17ddc81bd860329"
+ }
+}

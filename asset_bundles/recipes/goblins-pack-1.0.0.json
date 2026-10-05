@@ -1,0 +1,36 @@
+{
+ "schema": "org.goanna.asset-recipe/v1",
+ "id": "org.goanna.goblins.pack",
+ "version": "1.0.0",
+ "tranche": "pack",
+ "games": [
+  "minetest",
+  "minetest_game",
+  "mineclonia",
+  "mineclone2",
+  "voxelibre",
+  "asuna",
+  "hades_revisited",
+  "repixture"
+ ],
+ "source": {
+  "package": "FreeLikeGNU/goblins",
+  "release": "32959",
+  "archive_sha256": "7db9f7236cc8b134f56b0438c0f1363e027d7133908c077b6aa42cabe6825b78"
+ },
+ "pipeline": {
+  "version": "5",
+  "authored": "tools/pbr_author/build_pack.py --game goblins, specs in specs/goblins/, classes in stems/goblins.classes.json",
+  "classification_review": "pbr_packs/classification_reviews/goblins-v1.json",
+  "media_ledger": "pbr_packs/manifests/goblins-v1.sources.json",
+  "note": "23 stems: 18 goblin skins, the goblin dog and 4 mushrooms. The molten gold, lightning and icons are excluded on licence. Checked in game on 2026-10-05: the hoarder's material carries its 1024x512 maps."
+ },
+ "release": {
+  "texture_pairs": 23,
+  "rejected": [],
+  "known_failures": [],
+  "archive": "org.goanna.goblins.pack-1.0.0.zip",
+  "bytes": 9833853,
+  "sha256": "2c50a5a4bc768ed571550445cdfbe71a127d1deb44e50a179e9736003712f23b"
+ }
+}
