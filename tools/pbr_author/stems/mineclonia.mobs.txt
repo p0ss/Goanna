@@ -482,3 +482,19 @@ mcl_banners_triangles_top amc_banner.b3d
 mcl_end_crystal mcl_end_crystal.b3d
 mcl_conduit_conduit mcl_end_crystal.b3d
 mcl_enchanting_book_entity mcl_enchanting_book.b3d
+# Drawn only through expressions or small entities: nylium overlays are
+# tiles; the chiseled bookshelf's books have no model (their specs give the
+# face, "-" stands for the model). Specs are written by seen_gaps.py.
+mcl_charges_wind_charge_entity wind_charge.obj
+mcl_farming_pumpkin_face pumpkin_head.obj
+mcl_farming_pumpkin_face_light pumpkin_head.obj
+mobs_mc_evoker_fangs mobs_mc_evoker_fangs.b3d
+mobs_mc_llama_spit mobs_mc_llama_spit.b3d -1
+mobs_mc_villager mobs_mc_villager.b3d
+mcl_heads_dragon mcl_heads_dragon_floor.obj
+mcl_books_book_0 -
+mcl_books_book_1 -
+mcl_books_book_2 -
+mcl_books_book_3 -
+mcl_books_book_4 -
+mcl_books_book_5 -
