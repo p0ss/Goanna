@@ -1,9 +1,9 @@
 # Goanna v0.13.0-alpha
 
-You can say a chat line instead of typing it, textures built from several
-images draw with each part's relief, and the AI game master can now
-give named and enchanted items, put buildings in the world and have its
-characters build them.
+You can say a chat line instead of typing it, and chat from a
+controller. Starting a world with the recommended materials now gets the
+newest ones, and the AI game master can give named and enchanted items,
+put buildings in the world and have its characters build them.
 
 ## Chat
 
@@ -19,21 +19,44 @@ characters build them.
   most PCs from 2013 on and the Steam Deck have. On one without it, holding
   T does nothing more than open chat.
 - **Escape closes chat with one press.** It took two.
+- **Chat from a controller.** D-pad up works like T: hold it to speak a
+  line, tap it to open chat. In the chat box, A sends the line and B
+  closes it. On a Steam Deck, the Steam keyboard (Steam and X) should
+  type into the box. Tried only with simulated button presses, not yet on
+  a real controller or a Deck.
 
 ## Materials
 
+- **Recommended means the newest.** Starting a world with the recommended
+  materials first downloads the newest version of that game's materials
+  if a newer one is out, showing the download; pressing Start Game again
+  plays with the installed ones instead. Before, the world got whatever
+  version happened to be installed, which could be the old blurry baked
+  maps rather than the sharp authored ones. Old maps left in a world by an
+  earlier version are cleared as it starts.
+- **Material updates are on.** The Download material updates switch
+  (Settings, Updates) starts on for everyone with this version, including
+  anyone who had it off. Some had it off without choosing to: one of
+  Goanna's tests could overwrite a player's settings when run on their
+  machine. Turn it off again there if you want it off.
 - **Overlaid and combined textures get their own relief.** A texture made
   by laying images over each other, combining parts or turning one, such
   as Crimson and Warped nylium's sides or the chiseled bookshelf's front,
   now draws each part with that part's authored maps, in the right place
   and the right way round. Before, the whole face took the first image's
   maps, or none.
-- **Not in this release: the newer Mineclonia maps.** Maps authored since
-  0.12.0 (the blocks the first census missed, armour, boats, minecarts,
-  held objects, and metal tools whose wooden handles were drawn as metal)
-  are not yet in a published pack. Mineclonia's pack is still 1.3.1, and
-  the newer maps will arrive later as a pack update, without a new
-  Goanna download.
+- **Paintings show their pictures.** Mineclonia's paintings drew as plain
+  blocks of wood.
+- **Still to come for Mineclonia.** The fix for iron, gold and netherite
+  tools whose wooden handles shine like metal is not yet in a published
+  pack. Mineclonia's pack stays 1.3.1 for now.
+
+## Read aloud
+
+- **Every line is heard.** A line that arrived while another was being
+  read, such as the server's reply to a command, was shown but not
+  spoken; lines now wait their turn. Turning Read chat off and on again
+  no longer reads out what came while it was off.
 
 ## Experimental
 
