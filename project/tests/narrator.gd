@@ -21,7 +21,9 @@ func check(ok: bool, what: String) -> void:
 
 class FakeVoice extends RefCounted:
 	var said: Array = []
+	var busy := false
 	func available() -> bool: return true
+	func speaking() -> bool: return busy
 	func speak(text: String, interrupt: bool) -> void:
 		said.append({"text": text, "interrupt": interrupt})
 	func stop() -> void: pass
@@ -239,6 +241,35 @@ func _run() -> void:
 	check(Narrator.describe(group) == "closed Camera (3), button", "a disclosure arrow is said as a word")
 	group.queue_free()
 	check(Narrator._leaving(group), "a control being freed is not read")
+
+	# Lines wait for the voice to finish, an interruption clears them, and a
+	# backlog keeps only the newest.
+	voice.busy = true
+	voice.said.clear()
+	narrator.say("Time of day changed.")
+	narrator.say("Second line")
+	check(voice.said.is_empty(), "nothing is handed over while the voice is speaking")
+	voice.busy = false
+	for i in 30:
+		narrator._process(1.0 / 60.0)
+	check(voice.said.map(func(u: Dictionary) -> String: return u.text) == ["Time of day changed.", "Second line"],
+		"waiting lines are spoken in order once it is quiet: %s" % [voice.said])
+	voice.busy = true
+	voice.said.clear()
+	narrator.say("stale")
+	narrator.say("Buy bread, button", true)
+	voice.busy = false
+	for i in 30:
+		narrator._process(1.0 / 60.0)
+	check(voice.said.map(func(u: Dictionary) -> String: return u.text) == ["Buy bread, button"],
+		"an interruption drops what was waiting: %s" % [voice.said])
+	voice.busy = true
+	for i in 20:
+		narrator.say("line %d" % i)
+	check(narrator._waiting.size() == Narrator.QUEUE_MAX and narrator._waiting[0] == "line 8",
+		"a backlog keeps the newest lines")
+	narrator._waiting.clear()
+	voice.busy = false
 
 	# Ctrl+B turns it off and saves that.
 	var key := InputEventKey.new()

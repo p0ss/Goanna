@@ -70,6 +70,10 @@ var _clock := 0.0
 # The system's text to speech (speech-dispatcher on Linux), through Godot.
 class SystemVoice extends RefCounted:
 	var narrator
+	var _next_id := 0
+	# Speech starts a moment after it is asked for, so just after a line is
+	# handed over the voice is not taken at its word that it is quiet.
+	var start_s := 0.25
 	func available() -> bool:
 		return not DisplayServer.tts_get_voices().is_empty()
 	func speak(text: String, interrupt: bool) -> void:
@@ -79,8 +83,11 @@ class SystemVoice extends RefCounted:
 			if voices.is_empty():
 				voices = DisplayServer.tts_get_voices_for_language("en")
 			id = voices[0] if not voices.is_empty() else ""
+		_next_id += 1
 		DisplayServer.tts_speak(text, id, int(narrator.speech_volume * 100.0), 1.0,
-			narrator.rate, 0, interrupt)
+			narrator.rate, _next_id, interrupt)
+	func speaking() -> bool:
+		return DisplayServer.tts_is_speaking()
 	func stop() -> void:
 		DisplayServer.tts_stop()
 
@@ -121,13 +128,42 @@ static func voice_choices() -> Array:
 		out.append([str(v.get("id", "")), "%s (%s)" % [name, str(v.get("language", ""))]])
 	return out
 
+# Lines that wait their turn are kept here and handed to the voice one at a
+# time, when it has finished the last, rather than queued in the platform's
+# text to speech: a reply that came while another line was being read (the
+# server's "Time of day changed." just after a command) was lost there, on
+# Linux at least. An interrupting line clears what is waiting. A backlog is
+# cut from the front, so a burst of chat does not keep it reading lines a
+# minute old.
+const QUEUE_MAX := 12
+var _waiting: Array = []
+var _sent_at := -10.0
+
 func say(text: String, interrupt := false) -> void:
 	text = FormspecScript.strip_enriched(text).strip_edges()
 	if text == "" or voice == null:
 		return
 	if OS.get_environment("GOANNA_DEBUG_SPEECH") != "":
 		print("speech%s: %s" % [" (interrupting)" if interrupt else "", text])
-	voice.speak(text, interrupt)
+	if interrupt:
+		_waiting.clear()
+		voice.speak(text, true)
+		_sent_at = _clock
+		return
+	_waiting.append(text)
+	while _waiting.size() > QUEUE_MAX:
+		_waiting.pop_front()
+	_pump()
+
+func _pump() -> void:
+	if _waiting.is_empty() or voice == null:
+		return
+	var start := float(voice.get("start_s")) if voice.get("start_s") != null else 0.0
+	var busy: bool = voice.has_method("speaking") and (voice.speaking() or _clock - _sent_at < start)
+	if busy:
+		return
+	voice.speak(_waiting.pop_front(), false)
+	_sent_at = _clock
 
 # Ctrl+B turns it on and off from anywhere, form or no form, and says which.
 func _input(event: InputEvent) -> void:
@@ -157,7 +193,9 @@ func set_enabled(on: bool) -> void:
 func _process(delta: float) -> void:
 	_clock += delta
 	if not enabled:
+		_waiting.clear()
 		return
+	_pump()
 	if ui == null:
 		if screen_root != null and is_instance_valid(screen_root):
 			_focus_in(screen_root)
@@ -166,6 +204,10 @@ func _process(delta: float) -> void:
 		return
 	if read_chat:
 		_chat()
+	elif not ui.chat_lines.is_empty():
+		# Keep its place, so turning Read chat back on does not read out
+		# what came while it was off.
+		_chat_seen = ui.chat_lines[ui.chat_lines.size() - 1]
 	_window()
 	if ui.window == null:
 		if read_hud:

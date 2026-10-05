@@ -12,5 +12,10 @@
 
 ## Fixes
 
+- **Read aloud no longer loses lines.** A line that arrived while another
+  was being read, such as the reply to a command, could be dropped. Lines
+  now wait their turn. A line that arrives while Read chat is off is no
+  longer read out when it is turned back on.
+
 - **One Escape closes chat.** It took two: the first only stopped the text
   box editing.
