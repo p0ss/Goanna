@@ -26,6 +26,7 @@
 #include "transplant/localplayer.h"
 #include "goanna_session.h"
 #include "goanna_textures.h"
+#include "goanna_upright_sprite.h"
 #include <IMeshManipulator.h>
 #include <godot_cpp/classes/array_mesh.hpp>
 #include <godot_cpp/variant/packed_color_array.hpp>
@@ -939,6 +940,58 @@ bool EntityRenderer::buildItemVisual(GoannaSession &session, GoannaActiveObject 
     return true;
 }
 
+Ref<ArrayMesh> EntityRenderer::buildUprightSpriteMesh(GoannaSession &session,
+        GoannaActiveObject &obj, int col, int row) {
+    const ObjectProperties &p = obj.props();
+    const int div_x = std::max<int>(1, p.spritediv.X), div_y = std::max<int>(1, p.spritediv.Y);
+    const UprightSprite sprite = buildUprightSprite(p.visual_size.X, p.visual_size.Y,
+            obj.isPlayer(), col, row, div_x, div_y);
+    // Every cell of the sheet is a face of its own for the relief measure
+    // (materialForMeshTexture): an animated sheet's frames are drawn one at
+    // a time, each its own island, never the whole sheet at once.
+    std::vector<Rect2> cells;
+    for (int y = 0; y < div_y; ++y)
+        for (int x = 0; x < div_x; ++x)
+            cells.push_back(Rect2((float)x / div_x, (float)y / div_y, 1.0f / div_x, 1.0f / div_y));
+    Ref<ArrayMesh> am;
+    am.instantiate();
+    for (int side = 0; side < 2; ++side) {
+        const UprightSpriteQuad &q = sprite.side[side];
+        PackedVector3Array verts, normals;
+        PackedVector2Array uvs;
+        PackedFloat32Array rects;
+        PackedInt32Array indices;
+        for (const UprightSpriteVertex &v : q.v) {
+            verts.push_back(Vector3(v.pos[0], v.pos[1], v.pos[2]));
+            normals.push_back(Vector3(v.normal[0], v.normal[1], v.normal[2]));
+            uvs.push_back(Vector2(v.uv[0], v.uv[1]));
+            for (float r : q.rect)
+                rects.push_back(r);
+        }
+        for (int i : q.index)
+            indices.push_back(i);
+        Array arrays;
+        arrays.resize(Mesh::ARRAY_MAX);
+        arrays[Mesh::ARRAY_VERTEX] = verts;
+        arrays[Mesh::ARRAY_NORMAL] = normals;
+        arrays[Mesh::ARRAY_TEX_UV] = uvs;
+        arrays[Mesh::ARRAY_CUSTOM0] = rects;
+        arrays[Mesh::ARRAY_INDEX] = indices;
+        am->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays, Array(), Dictionary(),
+                Mesh::ARRAY_CUSTOM_RGBA_FLOAT << Mesh::ARRAY_FORMAT_CUSTOM0_SHIFT);
+        // GenericCAO::updateTextures: the front textures[0], the back
+        // textures[1] or else textures[0]. Each quad is culled from behind,
+        // as Irrlicht's default material culls it, whatever the object's
+        // backface_culling says: upstream never applies it to this visual.
+        std::string t = uprightSpriteTexture(p.textures, side);
+        if (!obj.textureModifier().empty())
+            t += obj.textureModifier();
+        am->surface_set_material(side, materialForMeshTexture(session, t, p.use_texture_alpha,
+                false, false, &cells));
+    }
+    return am;
+}
+
 void EntityRenderer::rebuildVisual(GoannaSession &session, GoannaActiveObject &obj, EntityNode &en) {
     if (en.visual) {
         en.visual->queue_free();
@@ -956,9 +1009,11 @@ void EntityRenderer::rebuildVisual(GoannaSession &session, GoannaActiveObject &o
         tex0 += obj.textureModifier();
     Vector3 vs(p.visual_size.X, p.visual_size.Y, p.visual_size.Z);
     switch (p.visual) {
-    case OBJECTVISUAL_SPRITE:
-    case OBJECTVISUAL_UPRIGHT_SPRITE: {
+    case OBJECTVISUAL_SPRITE: {
         // A billboard quad; textures[0] is a sprite sheet divided by spritediv.
+        // It keeps a StandardMaterial3D with no companions: its tangent
+        // frame turns with the camera, so a normal map's relief would swing
+        // round as the player walked past (docs/materials.md, "Sprites").
         MeshInstance3D *mi = memnew(MeshInstance3D);
         Ref<QuadMesh> qm;
         qm.instantiate();
@@ -966,14 +1021,28 @@ void EntityRenderer::rebuildVisual(GoannaSession &session, GoannaActiveObject &o
         mi->set_mesh(qm);
         Ref<StandardMaterial3D> mat = materialForTexture(session, tex0, p.use_texture_alpha, true);
         Ref<StandardMaterial3D> m2 = mat->duplicate();
-        if (p.visual == OBJECTVISUAL_SPRITE)
-            m2->set_billboard_mode(BaseMaterial3D::BILLBOARD_ENABLED);
-        else
-            m2->set_billboard_mode(BaseMaterial3D::BILLBOARD_FIXED_Y);
+        m2->set_billboard_mode(BaseMaterial3D::BILLBOARD_ENABLED);
         m2->set_shading_mode(BaseMaterial3D::SHADING_MODE_PER_PIXEL);
         // sprite sheet: show frame (0,0) of spritediv; frames step in sync()
         m2->set_uv1_scale(Vector3(1.0f / std::max<int>(1, p.spritediv.X), 1.0f / std::max<int>(1, p.spritediv.Y), 1));
         mi->set_material_override(m2);
+        en.visual = mi;
+        break;
+    }
+    case OBJECTVISUAL_UPRIGHT_SPRITE: {
+        // Two fixed quads turned only by the object's rotation, as
+        // GenericCAO::addToScene builds them, not a billboard. Until
+        // 2026-10-05 Goanna drew this as a quad locked to Y that turned to
+        // face the camera, so a decorated pot's sherd faces swung round with
+        // the player, showed textures[0] from behind as well, and could never
+        // take a pack's maps. The cell follows the animation in sync().
+        const v2s16 base = obj.spriteBasepos();
+        const int sx = std::max<int>(1, p.spritediv.X), sy = std::max<int>(1, p.spritediv.Y);
+        const int col = ((base.X % sx) + sx) % sx;
+        const int row = ((base.Y + en.sprite_frame) % sy + sy) % sy;
+        MeshInstance3D *mi = memnew(MeshInstance3D);
+        mi->set_mesh(buildUprightSpriteMesh(session, obj, col, row));
+        en.sprite_cell = row * sx + col;
         en.visual = mi;
         break;
     }
@@ -1459,14 +1528,54 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
         // mob, never reached it.
         const int vis = obj.props().visual;
         if (en.visual && (vis == OBJECTVISUAL_MESH || vis == OBJECTVISUAL_ITEM
-                || vis == OBJECTVISUAL_WIELDITEM || vis == OBJECTVISUAL_CUBE)) {
-            const v3s16 np((s16)std::floor(pos.X / BS + 0.5f), (s16)std::floor(pos.Y / BS + 1.0f),
+                || vis == OBJECTVISUAL_WIELDITEM || vis == OBJECTVISUAL_CUBE
+                || vis == OBJECTVISUAL_UPRIGHT_SPRITE)) {
+            v3s16 np((s16)std::floor(pos.X / BS + 0.5f), (s16)std::floor(pos.Y / BS + 1.0f),
                     (s16)std::floor(pos.Z / BS + 0.5f));
             float sky = en.light_sky, block = en.light_block;
             bool known = false;
             const NodeDefManager *ndef = session.nodeDefs();
-            MapNode n = session.map().getNode(np);
-            if (ndef && n.getContent() != CONTENT_IGNORE) {
+            if (vis == OBJECTVISUAL_UPRIGHT_SPRITE) {
+                // GenericCAO::updateLight as the vanilla client reads it, not
+                // the eye height rule above: the brightest of the nodes at
+                // the collision box's corners and centre, each with the
+                // object's glow added, full sun where none is loaded, and no
+                // update at all for a negative glow, which leaves the quads
+                // at their initial white. A pot face has a zero box, so this
+                // is the pot's own node, where eye height read the one above.
+                const ObjectProperties &op = obj.props();
+                const aabb3f &box = op.collisionbox;
+                if (op.glow < 0) {
+                    sky = block = 1.0f;
+                    known = true;
+                } else if (ndef) {
+                    v3s16 at[3] = {floatToInt(pos + box.MinEdge * BS, BS),
+                            floatToInt(pos + box.MaxEdge * BS, BS),
+                            floatToInt(pos + box.getCenter() * BS, BS)};
+                    const int count = (box.MaxEdge - box.MinEdge).getLengthSQ() < 3.0f ? 2 : 3;
+                    int day = LIGHT_SUN, night = 0, best = -1;
+                    np = at[0];
+                    for (int i = 0; i < count; ++i) {
+                        MapNode n = session.map().getNode(at[i]);
+                        if (n.getContent() == CONTENT_IGNORE)
+                            continue;
+                        const ContentLightingFlags lf = ndef->getLightingFlags(n);
+                        const int d = std::clamp(n.getLight(LIGHTBANK_DAY, lf) + op.glow, 0, (int)LIGHT_SUN);
+                        const int nn = std::clamp(n.getLight(LIGHTBANK_NIGHT, lf) + op.glow, 0, (int)LIGHT_SUN);
+                        if (std::max(d, nn) > best) {
+                            best = std::max(d, nn);
+                            day = d;
+                            night = nn;
+                            np = at[i];
+                        }
+                    }
+                    // encode_light's emissive boost: the glow again, on the
+                    // night bank, at 2.5 per level out of 255.
+                    sky = decode_light((u8)day) / 255.0f;
+                    block = std::min(255.0f, decode_light((u8)night) + op.glow * 2.5f) / 255.0f;
+                    known = true;
+                }
+            } else if (MapNode n = session.map().getNode(np); ndef && n.getContent() != CONTENT_IGNORE) {
                 const ContentFeatures &f = ndef->get(n);
                 if (f.param_type == CPT_LIGHT) {
                     ContentLightingFlags lf = f.getLightingFlags();
@@ -1746,7 +1855,20 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
                 en.sprite_frame = (en.sprite_frame + 1) % frames;
             }
             MeshInstance3D *mi = Object::cast_to<MeshInstance3D>(en.visual);
-            if (mi) {
+            if (mi && p.visual == OBJECTVISUAL_UPRIGHT_SPRITE) {
+                // updateTexturePos sets both quads' coordinates to the cell;
+                // the mesh carries them, and the cell's rectangle for the
+                // parallax, so a new cell is a new mesh of eight vertices.
+                // The materials are cached, so this costs no shader work.
+                const v2s16 base = obj.spriteBasepos();
+                const int sx = std::max<int>(1, p.spritediv.X), sy = std::max<int>(1, p.spritediv.Y);
+                const int col = ((base.X % sx) + sx) % sx;
+                const int row = ((base.Y + en.sprite_frame) % sy + sy) % sy;
+                if (row * sx + col != en.sprite_cell) {
+                    en.sprite_cell = row * sx + col;
+                    mi->set_mesh(buildUprightSpriteMesh(session, obj, col, row));
+                }
+            } else if (mi) {
                 Ref<StandardMaterial3D> m = mi->get_material_override();
                 if (m.is_valid()) {
                     v2s16 base = obj.spriteBasepos();

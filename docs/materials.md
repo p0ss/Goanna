@@ -721,16 +721,51 @@ part, as the skins already do
 opaque from end to end, and the trident drew as a solid pale slab, in
 maps on and maps off runs alike.
 
-**Sprites.** A sprite or upright sprite draws through a plain
-`StandardMaterial3D` with no companions. A camera facing sprite could take
-a `_n`, but its tangent frame turns with the camera, so the relief would
-swing as the player walks round it. An upright sprite is a different case:
-in Luanti it is a fixed pair of quads turned only by the object's yaw
-(`GenericCAO::addToScene`), which could take the entity shader and its
-companions like any mesh. Goanna draws it as a billboard locked to the Y
-axis instead, which is itself a divergence from the vanilla client, and the
-decorated pot faces and the fishing bobber wait on that being drawn as
-Luanti draws it.
+**Sprites.** A `sprite` visual is a true billboard and draws through a
+plain `StandardMaterial3D` with no companions. It could be given a `_n`,
+but the quad turns to face the camera and its tangent frame turns with it,
+so the relief would be lit from a direction that swings round as the player
+walks past, and the parallax would slide with the view. Nothing in the
+art says which way the surface faces, because it faces wherever the
+player is. It stays as it is. Mineclonia's fishing bobber is one of these:
+its entity names no visual, so it takes Luanti's default, `sprite`.
+
+An `upright_sprite` is not a billboard. The vanilla client
+(`GenericCAO::addToScene`, `updateTextures` and `updateTexturePos` in
+`luanti/src/client/content_cao.cpp`) builds two quads in the object's own
+XY plane, `BS * visual_size` across (Z unused), centred on the object, or
+standing on its feet for a player. The front faces the object's +Z with
+`textures[0]`; the back faces -Z with `textures[1]`, or `textures[0]` when
+there is no second, and is the front's mirror, so the image reads the right
+way round from either side. Each quad is culled from behind, as Irrlicht's
+default material culls it, and the object's `backface_culling` is never
+applied to them. The object's rotation turns them and nothing else does.
+With `spritediv` both quads show the same cell of the sheet. The light is
+the brightest of the nodes at the collision box's corners and centre, with
+`glow` added to both banks and again to the night bank as an emissive
+boost; a negative `glow` leaves the quads at full light.
+
+Goanna draws it that way since 2026-10-05 (`goanna_upright_sprite.h`, with
+`EntityRenderer::buildUprightSpriteMesh`): the same two quads, the same
+textures, the same culling and the same light positions and glow, each
+quad through the entity shader with its texture's companions, the node
+light and parallax, and its sheet cell as its UV rectangle (CUSTOM0) for
+the parallax march. Each cell of a sheet is a face of its own for the
+relief measure. Before that it drew one quad locked to the Y axis that
+turned to face the camera, with `textures[0]` on both sides and a plain
+material, so a decorated pot's sherd faces swung round with the player and
+could take no maps. The selection box was never tied to the visual: it is
+`selectionbox` for every visual, upstream and here, and
+`rotate_selectionbox` is not honoured for any visual yet. What is still
+not like the vanilla client: `glow` above 0 or `shaded = false` makes
+upstream drop the directional shading (`TILE_MATERIAL_PLAIN`), and the
+entity shader keeps it; and `glow` is applied to upright sprites only,
+not yet to the other visuals.
+
+`goanna_upright_sprite_test` checks the quads against upstream's vertex
+table and against a camera on each side: one quad drawn from each side,
+neither mirrored, the right way up, each with its own texture, a player's
+standing on its feet, a sheet cell's coordinates and rectangle.
 
 Tests: `goanna_overlay_companions_test` (the reader and the arithmetic,
 with the strings Mineclonia sends for the nylium, the bookshelf, the

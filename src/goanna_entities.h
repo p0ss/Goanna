@@ -16,6 +16,7 @@
 #include <string>
 #include <vector>
 
+#include <godot_cpp/classes/array_mesh.hpp>
 #include <godot_cpp/classes/label3d.hpp>
 #include <godot_cpp/classes/material.hpp>
 #include <godot_cpp/classes/mesh_instance3d.hpp>
@@ -161,6 +162,9 @@ private:
         std::string textures_key;
         float sprite_time = 0;
         int sprite_frame = 0;
+        // The sheet cell an upright sprite's mesh was last built for, as
+        // row * spritediv.X + column; -1 before the first build.
+        int sprite_cell = -1;
         // node light at the entity, see sync(); light_pos is the node last read
         v3s16 light_pos{32767, 32767, 32767};
         float light_sky = 1.0f, light_block = 0.0f;
@@ -176,6 +180,11 @@ private:
     bool buildMeshVisual(GoannaSession &session, GoannaActiveObject &obj, EntityNode &en,
             scene::IAnimatedMesh **source);
     bool buildItemVisual(GoannaSession &session, GoannaActiveObject &obj, EntityNode &en);
+    // An upright sprite's two quads (goanna_upright_sprite.h) showing one
+    // cell of the sheet, each side through the entity shader with its own
+    // texture.
+    godot::Ref<godot::ArrayMesh> buildUprightSpriteMesh(GoannaSession &session,
+            GoannaActiveObject &obj, int col, int row);
     std::shared_ptr<GodotModel> modelFor(GoannaSession &session, const std::string &name);
     godot::Ref<godot::StandardMaterial3D> materialForTexture(GoannaSession &session,
             const std::string &texture, bool alpha, bool double_sided);

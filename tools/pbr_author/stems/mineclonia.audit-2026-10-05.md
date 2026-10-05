@@ -29,6 +29,11 @@ on node tiles and items alike. The three groups below that said otherwise
 are marked as resolved; their textures can now be authored. Sprites still
 take no companions.
 
+Later again, the client learnt to draw an upright sprite as the vanilla
+client does, two fixed quads through the entity shader, so the "Upright
+sprite" group is marked as resolved too. A billboard `sprite` still takes
+no companions.
+
 Game: the Mineclonia installed in the Luanti flatpak on 2026-10-05, Luanti
 5.17.0 server for the dump.
 
@@ -964,6 +969,15 @@ Tinted shading overlay on grass sides.
 ### Upright sprite (23)
 
 Upright sprite, which the client draws without companions.
+
+Resolved 2026-10-05: the client draws an upright sprite as the vanilla client
+does (docs/materials.md, "Sprites"), two quads fixed to the object and turned
+only by its rotation, each through the entity shader with its texture's `_n`
+and `_s`, the node light and parallax. A pot face is one sherd pattern on the
+front quad and the same on the back, inside the pot. Author these as they
+read from the front, at the art's grid. The fishing bobber is not one of
+these: its entity names no visual, so it is a `sprite`, a billboard, and
+still takes no companions.
 
 - `mcl_pottery_sherds_pattern_angler` (mcl_pottery_sherds): entity (decorated
   pot face, set_properties).

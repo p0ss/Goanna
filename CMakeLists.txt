@@ -88,6 +88,7 @@ add_library(goanna SHARED
     src/goanna_sky.cpp
     src/goanna_entities.cpp
     src/goanna_overlay_companions.cpp
+    src/goanna_upright_sprite.cpp
     src/goanna_icon_raster.cpp
     src/goanna_item_icons.cpp
     src/goanna_ripples.cpp
@@ -185,6 +186,13 @@ add_executable(goanna_overlay_companions_test EXCLUDE_FROM_ALL
     src/goanna_overlay_companions.cpp
 )
 target_include_directories(goanna_overlay_companions_test PRIVATE src)
+# The upright_sprite object visual's two quads against the vanilla client's.
+# Pure arithmetic, so it links nothing.
+add_executable(goanna_upright_sprite_test EXCLUDE_FROM_ALL
+    src/goanna_upright_sprite_test.cpp
+    src/goanna_upright_sprite.cpp
+)
+target_include_directories(goanna_upright_sprite_test PRIVATE src)
 # Which companion a node tile string draws with: the base image's, or one
 # composed for an authored overlay, a [combine or a [transform, through the
 # extension's texture source with no Godot runtime.
@@ -280,6 +288,7 @@ set(GOANNA_NATIVE_TESTS
     goanna_ripples_test
     goanna_schedule_test
     goanna_surface_test
+    goanna_upright_sprite_test
 )
 
 # A test source with no entry above would build by name and never run under
