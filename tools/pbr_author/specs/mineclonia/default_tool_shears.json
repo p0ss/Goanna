@@ -11,7 +11,8 @@
   "handle": {
    "mode": "shade",
    "base": 0.5,
-   "span": 0.35
+   "span": 0.35,
+   "metal": false
   }
  },
  "palette": {
