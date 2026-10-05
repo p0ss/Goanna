@@ -40,8 +40,8 @@ goanna_far_summary_backfill (Far summary backfill) bool true
 #    to mod storage and let go, and come back when next wanted.
 goanna_far_summary_cache_areas (Far summary areas in memory) int 4096 64 65536
 
-#    Stop reading summaries while the server's reported maximum lag is above
-#    this, in seconds, and carry on where the part finished area left off
+#    Stop reading summaries while the server's step length, smoothed over
+#    about a second, is above this, in seconds, and carry on where the part finished area left off
 #    once it drops. The same guard and the same default as pregeneration's,
 #    and the reason the rate above can be raised at all.
 goanna_far_summary_lag (Far summary lag limit) float 0.5 0.0 60.0
@@ -80,9 +80,9 @@ goanna_far_pregenerate_concurrency (Far pregeneration concurrency) int 2 1 8
 goanna_far_log_stats (Log far pipeline statistics) bool false
 
 #    Seconds of server step time above which pregeneration waits for the
-#    server to catch up. get_server_max_lag is a running maximum that halves
-#    every minute, not an average, so a value near the step length reads as
-#    "behind" long after one slow step and stalls pregeneration.
+#    server to catch up, against the step length smoothed over about a
+#    second. A value near the step length would still read as "behind" on a
+#    busy server; half a second means something is really wrong.
 goanna_far_pregenerate_lag (Far pregeneration lag limit) float 0.5 0.0 60.0
 
 #    Source engine style movement: air strafing, bunny hopping, surfing. Needs

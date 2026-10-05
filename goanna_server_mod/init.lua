@@ -148,6 +148,22 @@ local blocks_per_step = conf_num("goanna_far_summary_blocks_per_step", 96)
 -- above goanna_far_pregenerate_lag for why 0.5 rather than something near
 -- the step length.
 local summary_lag_limit = conf_num("goanna_far_summary_lag", 0.5)
+
+-- How far behind the server is now: the step's own length, smoothed over
+-- about a second. core.get_server_max_lag() is a running maximum that
+-- decays by 0.99425 every half second (Luanti 5.17, Server::AsyncRunStep),
+-- a half life of about a minute, so one slow step (a map generating, a
+-- player joining) held summaries and pregeneration back for minutes after
+-- the server had caught up. DorfCraft's labour loop found the same and
+-- moved to this measure. Registered before the passes that read it.
+local step_lag = 0
+core.register_globalstep(function(dtime)
+	local k = math.min(1, dtime)
+	step_lag = step_lag * (1 - k) + dtime * k
+end)
+local function server_lag()
+	return step_lag
+end
 local c_ignore = core.CONTENT_IGNORE
 local c_air = core.CONTENT_AIR
 
@@ -978,7 +994,7 @@ core.register_globalstep(function(dtime)
 	-- A job that is part way through is not abandoned, only paused: the
 	-- records already read are in the store and it carries on when the
 	-- server catches up.
-	if core.get_server_max_lag() > summary_lag_limit then
+	if server_lag() > summary_lag_limit then
 		return
 	end
 	local budget = blocks_per_step
@@ -1153,8 +1169,8 @@ end)
 -- than one area, the player's own requests are never more than a slice
 -- behind, and the horizon still fills at the rate the interval sets, since
 -- the interval now paces areas and the slices within one run back to back.
--- `core.get_server_max_lag` is the other half: a server already behind its
--- step gets left alone until it catches up.
+-- The server's lag (server_lag above) is the other half: a server already
+-- behind its step gets left alone until it catches up.
 local pregen_enabled = far_enabled and conf_bool("goanna_far_pregenerate", false)
 local far_log_stats = conf_bool("goanna_far_log_stats", false)
 local pregen_interval = conf_num("goanna_far_pregenerate_interval", 1)
@@ -1171,14 +1187,13 @@ elseif pregen_slice >= 2 then
 else
 	pregen_slice = 1
 end
--- Seconds of server step time above which pregeneration waits. Read
--- get_server_max_lag before choosing a number: it is a running maximum that
--- halves every minute (`Server::AsyncRunStep`), not an average, so one slow
--- step pins it high for a long time afterwards. A threshold near the step
--- length therefore reads as "behind" almost permanently: at 0.2 this mod's
--- own summary pass tripped it, and pregeneration stalled to a third of its
--- rate on a server that was fine. Half a second is five times the 0.1 s
--- step, high enough to mean something is really wrong.
+-- Seconds of server step time above which pregeneration waits, against the
+-- step length smoothed over about a second (server_lag above). Until
+-- 2026-10-06 it was read against get_server_max_lag, a running maximum that
+-- halves every minute, and at 0.2 this mod's own summary pass tripped it
+-- and pregeneration stalled to a third of its rate on a server that was
+-- fine. Half a second is five times the 0.1 s step, high enough to mean
+-- something is really wrong.
 local pregen_lag_limit = conf_num("goanna_far_pregenerate_lag", 0.5)
 -- Number of independent area streams. emerge_area itself is asynchronous,
 -- but one stream waits for each slice callback before submitting the next;
@@ -1361,7 +1376,7 @@ core.register_globalstep(function(dtime)
 		end
 	end
 	pregen.wait = pregen.wait - dtime
-	if core.get_server_max_lag() > pregen_lag_limit then
+	if server_lag() > pregen_lag_limit then
 		-- Behind already. Look again soon: the check costs nothing and a
 		-- long pause here turns one slow step into a long stall.
 		pregen.wait = 0.5
@@ -1405,10 +1420,10 @@ if far_log_stats then
 		core.log("action", string.format(
 				"[goanna] far stats: areas_started=%d active=%d pending=%d " ..
 				"reply_queue=%d asked=%d generated_queue=%d cache_areas=%d " ..
-				"lua_mb=%.1f max_lag=%.3f",
+				"lua_mb=%.1f lag=%.3f max_lag=%.3f",
 				done, #pregen.active, #pregen.pending, #far_queue, asked,
 				generated, store_count, collectgarbage("count") / 1024,
-				core.get_server_max_lag()))
+				server_lag(), core.get_server_max_lag()))
 	end)
 end
 

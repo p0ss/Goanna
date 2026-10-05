@@ -136,8 +136,8 @@ of the asking player are refused silently, so the grant is the reach. And
 every read of the map is paced by `goanna_far_summary_blocks_per_step`,
 ninety six mapblocks per server step by default, with asked jobs ahead of
 generated blocks, changed blocks and backfill in that order.
-`goanna_far_summary_lag` pauses all of it while the server's reported lag is
-above that many seconds, keeping part finished work rather than abandoning
+`goanna_far_summary_lag` pauses all of it while the server's step length,
+smoothed over about a second, is above that many seconds, keeping part finished work rather than abandoning
 it. `goanna_far_summary_cache_areas` bounds how many areas stay in memory;
 past it, areas untouched for ten minutes are written out and let go.
 
