@@ -886,7 +886,26 @@ and the grid. Seen in a frame on 2026-10-06 on lavapipe only (Godot 4.5.1,
 a Luanti 5.17.0 server on a scratch Mineclonia world, release 38561,
 holding DorfCraft's `dorfcraft_runes` mod and two engravings on a smooth
 stone wall): the plates were found (`wall plate: ... seen quad=1`) and drew
-on the face. Not yet seen on the GPU.
+on the face.
+
+Seen on the GPU on 2026-10-06 through the render service (RTX 3090, Godot
+4.5.1, Luanti 5.17.0, Mineclonia release 38561, DorfCraft's
+`dorfcraft_engrave_test` world, Goanna's Mineclonia pack plus DorfCraft's
+transparent pack glyphs, High tier, noon and a morning sun), against a
+build of ee2e2363:
+
+- Before, the plates stood a hundredth of a node proud of the wall and,
+  with transparent pack glyphs, showed no engraving at all.
+- After, the plates lie on the face, their stone is the wall's own art and
+  relief node for node, and maps off shows the server's baked glyphs.
+- Not solved: from six or seven nodes the cuts read only faintly. A glyph
+  pixel is one stone texel, and the authored smooth stone carries extruded
+  relief of the same size and about the same depth, so the letters are
+  camouflaged in it; close up and under a low sun they read. That is a
+  matter of the engraving's density and of how much relief "smooth" stone
+  should have, not of how the cut is drawn.
+- Not seen: a plate beside a torch, which is what the light per vertex is
+  for. The test world has no lamp near its plates.
 
 **Node layers sized from their companions.** Shipping maps only costs the
 node forms of those stems their relief resolution, unless the client makes
