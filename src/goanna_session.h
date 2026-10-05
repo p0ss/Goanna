@@ -223,6 +223,10 @@ public:
         bool loop = false, positional = false;
         v3f pos;
         u16 object_id = 0;
+        // Empty for a sound the server played. For one the client makes
+        // itself, as Luanti's SoundMaker does: "dig", "place", "use",
+        // "damage" or "footstep" (another object's).
+        std::string kind;
     };
     std::vector<SoundEvent> takeSounds();
     // A node being dug, and the burst when it finally breaks. The client makes
@@ -580,6 +584,20 @@ private:
     // content preparation completes.
     std::vector<v3s16> m_preready_blocks;
     std::vector<SoundEvent> m_sounds;
+    // A sound the client makes itself, local to the listener unless given a
+    // position (Godot axes). Takes m_sound_mutex.
+    void queueClientSound(const SoundSpec &spec, const char *kind, bool positional = false,
+            v3f pos = v3f());
+    void queuePlaceSound(const ItemDefinition &def, const ItemStack &item,
+            const PointedThing &pointed, bool sneak);
+    // GenericCAO::step's footstep counter, per object, in BS: where it was
+    // last frame and how far it has gone since its last footstep. Under the
+    // map lock.
+    struct ObjectSteps { v3f last; float distance = 0.0f; bool seen = false; };
+    std::unordered_map<u16, ObjectSteps> m_object_steps;
+    // Camera::m_digging_anim for the dig button: -1 when still, else the
+    // fraction of the current swing. The punch sound plays 15% in.
+    float m_swing = -1.0f;
     std::vector<NodeDugEvent> m_dug_nodes;
     std::vector<ParticleSpawnerEvent> m_spawners;
     std::vector<u32> m_deleted_spawners;

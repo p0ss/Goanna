@@ -470,6 +470,10 @@ void GoannaSession::applyFallDamage(const std::vector<CollisionInfo> &collisions
     u16 hp = m_hp.load();
     m_hp = hp > total_damage ? hp - total_damage : 0;
     sendDamage(total_damage);
+    // PLAYER_FALLING_DAMAGE, and the CE_PLAYER_DAMAGE that
+    // ClientEnvironment::damageLocalPlayer raises, always with its effect.
+    queueClientSound(SoundSpec("player_falling_damage", 0.5f), "damage");
+    queueClientSound(SoundSpec("player_damage", 0.5f), "damage");
 }
 
 void GoannaSession::sendDamage(u16 damage) {
@@ -769,7 +773,16 @@ void GoannaSession::onChatMessage(NetworkPacket &pkt) {
 void GoannaSession::onHP(NetworkPacket &pkt) {
     u16 hp;
     pkt >> hp;
+    // Client::handleCommand_HP: a drop is a CE_PLAYER_DAMAGE, which
+    // Game::handleClientEvent_PlayerDamage sounds unless the server asked
+    // for no damage effect (from 5.6).
+    bool damage_effect = true;
+    if (pkt.hasRemainingBytes())
+        pkt >> damage_effect;
+    const u16 old_hp = m_hp.load();
     m_hp = hp;
+    if (hp < old_hp && damage_effect)
+        queueClientSound(SoundSpec("player_damage", 0.5f), "damage");
     std::lock_guard<std::mutex> lk(m_map_mutex);
     if (m_player)
         m_player->hp = hp;
@@ -1254,6 +1267,7 @@ void GoannaSession::stepInteract(float dtime, const InteractInput &in) {
                     ev.gain = .5f;
                 }
                 if (!ev.name.empty()) {
+                    ev.kind = "dig";
                     ev.positional = true;
                     const v3f hit = pointed.intersection_point / BS;
                     ev.pos = v3f(hit.X, hit.Y, -hit.Z);
@@ -1301,6 +1315,7 @@ void GoannaSession::stepInteract(float dtime, const InteractInput &in) {
         // placing (Game::nodePlacement without prediction)
         if (place_now) {
             m_repeat_place_timer = 0;
+            queuePlaceSound(selected_def, selected_item, pointed, in.sneak);
             NodeMetadata *meta = m_map->getNodeMetadata(nodepos);
             if (meta && !meta->getString("formspec").empty() && !in.sneak) {
                 // formspec in meta: opened client-side; on_rightclick
@@ -1343,6 +1358,23 @@ void GoannaSession::stepInteract(float dtime, const InteractInput &in) {
             sendInteract(INTERACT_ACTIVATE, fauxPointed);
         }
     }
+    // Camera::step's dig animation and the punch sound it fires 15% into each
+    // swing (CAMERA_PUNCH_LEFT): Game::processPlayerInteraction swings while
+    // the button is held at a node or at nothing and on a press at an object,
+    // and the second punch sound is the item's use sound, or its use-in-air
+    // sound when nothing is pointed at. The dig sound itself is played on the
+    // mining cycle's impacts above.
+    if (in.dig && m_swing < 0.0f && (pointed.type != POINTEDTHING_OBJECT || !m_dig_was_down))
+        m_swing = 0.0f;
+    if (m_swing >= 0.0f) {
+        const float was = m_swing;
+        m_swing += dtime * 3.5f;
+        if (was < 0.15f && m_swing >= 0.15f)
+            queueClientSound(pointed.type != POINTEDTHING_NOTHING
+                    ? selected_def.sound_use : selected_def.sound_use_air, "use");
+        if (m_swing >= 1.0f)
+            m_swing = -1.0f;
+    }
     m_pointed_old = pointed;
     m_dig_was_down = in.dig;
     // crack overlay: re-mesh the block when the crack level or position changes
@@ -1368,7 +1400,109 @@ void GoannaSession::stepObjects(float dtime) {
                 parent = it->second.get();
         }
         obj->step(dtime, m_map.get(), this, parent);
+        // GenericCAO::step's footsteps for an object that is not attached:
+        // one every 1.5 nodes it moves, of the node under its feet, at 60%
+        // gain, at its feet, for anything but the local player that has
+        // makes_footstep_sound. The transplant left this out with the scene
+        // nodes, so it is done here.
+        ObjectSteps &steps = m_object_steps[kv.first];
+        const v3f now = obj->position();
+        if (parent || !steps.seen) {
+            steps.seen = !parent;
+            steps.last = now;
+            continue;
+        }
+        steps.distance += steps.last.getDistanceFrom(now);
+        steps.last = now;
+        if (steps.distance <= 1.5f * BS)
+            continue;
+        steps.distance = 0.0f;
+        if (obj->isLocalPlayer() || !obj->props().makes_footstep_sound)
+            continue;
+        const v3f foot = now * (1.0f / BS) + v3f(0.0f, obj->props().collisionbox.MinEdge.Y, 0.0f);
+        const v3s16 below = floatToInt(foot + v3f(0.0f, -0.5f, 0.0f), 1.0f);
+        SoundSpec spec = m_nodedef->get(m_map->getNode(below)).sound_footstep;
+        spec.gain *= 0.6f;
+        queueClientSound(spec, "footstep", true, v3f(foot.X, foot.Y, -foot.Z));
     }
+}
+
+void GoannaSession::queueClientSound(const SoundSpec &spec, const char *kind, bool positional,
+        v3f pos) {
+    if (spec.name.empty())
+        return;
+    SoundEvent ev;
+    ev.name = spec.name;
+    ev.gain = spec.gain;
+    ev.pitch = spec.pitch;
+    ev.kind = kind;
+    ev.positional = positional;
+    ev.pos = pos;
+    std::lock_guard<std::mutex> sl(m_sound_mutex);
+    m_sounds.push_back(ev);
+}
+
+// The sound Game::nodePlacement leaves for the place button's punch
+// (CAMERA_PUNCH_RIGHT), without its prediction: the item's place sound
+// where upstream would predict a node, its place-failed sound where upstream
+// gives up, and nothing for a form or an on_rightclick, where the server
+// answers. The server plays the place sound to everyone but the placer
+// (core.item_place_node's exclude_player), so without this a player never
+// heard their own building. Upstream's attached_node check works out the
+// supporting node from the predicted node's param2 for wall mounted and
+// facedir nodes; here the node clicked on stands in for it.
+void GoannaSession::queuePlaceSound(const ItemDefinition &def, const ItemStack &item,
+        const PointedThing &pointed, bool sneak) {
+    const v3s16 nodepos = pointed.node_undersurface, neighbor = pointed.node_abovesurface;
+    bool valid = false;
+    const MapNode under = m_map->getNode(nodepos, &valid);
+    if (!valid) {
+        queueClientSound(def.sound_place_failed, "place");
+        return;
+    }
+    NodeMetadata *meta = m_map->getNodeMetadata(nodepos);
+    if (meta && !meta->getString("formspec").empty() && !sneak)
+        return;
+    const std::string &prediction = def.node_placement_prediction;
+    if (prediction.empty() || (m_nodedef->get(under).rightclickable && !sneak))
+        return;
+    v3s16 p = neighbor;
+    if (m_nodedef->get(under).buildable_to) {
+        p = nodepos;
+    } else {
+        const MapNode there = m_map->getNode(p, &valid);
+        if (valid && !m_nodedef->get(there).buildable_to) {
+            queueClientSound(def.sound_place_failed, "place");
+            return;
+        }
+    }
+    content_t id;
+    if (!m_nodedef->getId(prediction, id))
+        return;
+    const ContentFeatures &predicted = m_nodedef->get(id);
+    const int attached = itemgroup_get(predicted.groups, "attached_node");
+    if (attached != 0) {
+        const v3s16 support = attached == 3 ? p + v3s16(0, -1, 0)
+                : attached == 4 ? p + v3s16(0, 1, 0) : nodepos;
+        if (!m_nodedef->get(m_map->getNode(support)).walkable) {
+            queueClientSound(def.sound_place_failed, "place");
+            return;
+        }
+    }
+    // Goanna's settings carry no defaults for upstream's client settings, and
+    // getBool throws on a missing one; upstream's default is false.
+    bool build_where_you_stand = false;
+    if (g_settings && g_settings->exists("enable_build_where_you_stand"))
+        build_where_you_stand = g_settings->getBool("enable_build_where_you_stand");
+    if (predicted.walkable && m_player && !build_where_you_stand) {
+        const v3s16 stand = m_player->getStandingNodePos();
+        if (neighbor == stand + v3s16(0, 1, 0) || neighbor == stand + v3s16(0, 2, 0)) {
+            queueClientSound(def.sound_place_failed, "place");
+            return;
+        }
+    }
+    (void)item;
+    queueClientSound(def.sound_place, "place");
 }
 
 // Client::handleCommand_ActiveObjectRemoveAdd, transplanted.
@@ -1380,6 +1514,7 @@ void GoannaSession::onActiveObjectRemoveAdd(NetworkPacket &pkt) {
     for (u16 i = 0; i < removed_count; i++) {
         pkt >> id;
         m_objects.erase(id);
+        m_object_steps.erase(id);
     }
     pkt >> added_count;
     for (u16 i = 0; i < added_count; i++) {

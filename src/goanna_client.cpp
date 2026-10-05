@@ -1998,6 +1998,7 @@ Array GoannaClient::take_sounds() {
         d["position"] = Vector3(ev.pos.X, ev.pos.Y, ev.pos.Z);
         d["object_id"] = (int)ev.object_id;
         d["start_time"] = ev.start_time;
+        d["kind"] = String::utf8(ev.kind.c_str());
         out.push_back(d);
     }
     return out;

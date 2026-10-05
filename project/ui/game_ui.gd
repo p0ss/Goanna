@@ -286,12 +286,7 @@ func _process(delta: float) -> void:
 		var m := _main_node()
 		if m != null:
 			var mv: Dictionary = m.get("last_move") if m.get("last_move") != null else {}
-			var sp: Vector3 = mv.get("speed", Vector3.ZERO)
-			var stand := ""
-			if client.has_method("node_name_at") and mv.has("pos"):
-				stand = client.node_name_at((mv["pos"] as Vector3) + Vector3(0, -0.5, 0))
-			audio.step_local(delta, Vector2(sp.x, sp.z).length() > 0.5,
-				bool(mv.get("on_ground", false)), stand, m.pointed)
+			audio.step_local(delta, mv)
 	_place_glass()
 	hud.queue_redraw()
 	if cursor_ctl != null:
@@ -1673,7 +1668,7 @@ func resolve_text(text: String) -> String:
 # m_sound_manager->playSound(0, ...) is.
 func play_form_sound(sound_name: String) -> void:
 	if audio != null:
-		audio.play(sound_name, 1.0, 1.0, false, null)
+		audio.play(sound_name, 1.0, 1.0, false, null, 0, "form")
 
 # Whether a stack is on the cursor. The form shows no item tooltips while one
 # is, as GUIInventoryList hides them while an item is selected.
