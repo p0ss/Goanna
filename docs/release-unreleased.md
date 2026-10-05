@@ -1,0 +1,80 @@
+# Goanna, unreleased
+
+## Accessibility
+
+- **Read aloud.** `Ctrl+B`, in the menu or in a world, turns on speech
+  for chat, text the game puts on the screen, what you point at, what you
+  hold, your health, and menus and forms as they open, then each control
+  you move to. It speaks through your system's voice, so a screen reader
+  user keeps their own voice and rate. Settings, Audio chooses the voice,
+  its rate and volume, and which of those things are read. On Linux it
+  needs speech-dispatcher and a voice such as espeak-ng. It has not yet
+  been tried by a blind player; see `docs/accessibility.md`.
+- **Menus and forms from the keyboard.** Tab and the arrow keys move
+  through the main menu, Goanna's menus and every game form, Enter
+  presses. On inventory slots Enter picks up and puts down, Shift+Enter
+  moves the stack, Ctrl+Enter takes half; Left and Right switch tabs; Up,
+  Down and Enter choose the links in a conversation. When the game sends a
+  form again, the focus stays where it was.
+
+## Sound
+
+- **You hear your own building.** Placing a block makes its sound for you
+  now, not only for everyone else. Using an item, taking damage, falling
+  hard, jumping and landing make their sounds too, footsteps quicken as
+  you run and sound in water and on ladders, and other players and
+  creatures make footsteps as they walk.
+- **Sounds come from where they are.** They fade with distance as in the
+  vanilla client and pan fully left and right, and a creature's sounds
+  move with it instead of staying where it started. Sounds cannot yet seem
+  to come from above or behind you on headphones.
+
+## Materials
+
+- **New materials on the first visit.** Joining a world whose materials
+  you do not have, the connecting screen shows them downloading and the
+  world opens with them, instead of with the server's art until next time.
+  **Skip and play now** joins straight away, as before.
+- **Smaller downloads.** Joining a Minetest Game server no longer also
+  downloads Mineclonia's 84 MB pack, and a pack's older versions are no
+  longer downloaded before its newest.
+
+## Starting worlds
+
+- **No more starting with a Luanti too old for the game.** A Luanti whose
+  version cannot be told from where it is installed, such as a
+  distribution's package, is now asked its version. One older than 5.10 is
+  listed as too old and never used, and Start Game installs Goanna's own
+  server instead. Starting a world says which Luanti the game needs rather
+  than starting a server that cannot run it. Not yet tried on Pop!_OS,
+  where it was reported.
+- **Digging picks up where you left off.** On a Minetest Game or Mineclonia
+  world started from Goanna, a block you stopped digging keeps its
+  progress until it changes or the server stops, for everyone playing
+  there, vanilla clients included. Kythen keeps its own.
+
+## Fixes
+
+- **Kythen's map opens.** Images a game sends after you join, such as
+  Kythen's map, never arrived, so the map did nothing.
+- **What you point at is described.** The text a game gives a block or
+  creature, such as a chest's owner, shows in the corner as in the
+  vanilla client.
+- **Inventory tabs switch at once.** Clicking Recipes in Minetest Game's
+  inventory did nothing until it was closed and opened again.
+- **Inferred relief turns off on creatures too.** Turning it off left it on
+  for mobs and players already drawn.
+- **One notice for new materials.** Installing several bundles at once
+  printed the same chat line once for each.
+
+## Experimental
+
+- **A program playing as you sees and hears more.** Besides menus and
+  forms (which 0.11.0 already let it press, fill and choose in, without
+  saying so), it now reads the HUD with its colours, the names over
+  creatures, what the crosshair is on, and the sounds you hear with their
+  direction, and can ask for a picture of the screen. See
+  `docs/agent-interfaces.md`.
+- **The game master from a shell.** `tools/goanna-director-cli` runs the
+  AI game master from a terminal or a script, one command per call, with
+  the same checks as the MCP service. See `docs/director-setup.md`.
