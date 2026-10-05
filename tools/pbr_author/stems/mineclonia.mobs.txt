@@ -325,3 +325,155 @@ mobs_mc_shulker_red mobs_mc_shulker.b3d
 mobs_mc_shulker_silver mobs_mc_shulker.b3d
 mobs_mc_shulker_white mobs_mc_shulker.b3d
 mobs_mc_shulker_yellow mobs_mc_shulker.b3d
+# Boats, the minecart, worn armour and trims, the bell, arrow and banners.
+# Specs are written by tools/pbr_author/world_objects.py.
+mcl_boats_texture_acacia_boat mcl_boats_boat.b3d
+mcl_boats_texture_birch_boat mcl_boats_boat.b3d
+mcl_boats_texture_cherry_blossom_boat mcl_boats_boat.b3d
+mcl_boats_texture_dark_oak_boat mcl_boats_boat.b3d
+mcl_boats_texture_jungle_boat mcl_boats_boat.b3d
+mcl_boats_texture_mangrove_boat mcl_boats_boat.b3d
+mcl_boats_texture_oak_boat mcl_boats_boat.b3d
+mcl_boats_texture_pale_oak_boat mcl_boats_boat.b3d
+mcl_boats_texture_spruce_boat mcl_boats_boat.b3d
+mcl_boats_texture_bamboo_boat mcl_boats_raft.b3d
+mcl_boats_texture_obsidian_boat mcl_boats_boat.b3d
+mcl_minecarts_minecart mcl_minecarts_minecart.b3d
+mcl_armor_helmet_leather mcl_armor_character.b3d 1
+mcl_armor_helmet_leather_desat mcl_armor_character.b3d 1
+mcl_armor_helmet_chain mcl_armor_character.b3d 1
+mcl_armor_helmet_copper mcl_armor_character.b3d 1
+mcl_armor_helmet_iron mcl_armor_character.b3d 1
+mcl_armor_helmet_gold mcl_armor_character.b3d 1
+mcl_armor_helmet_diamond mcl_armor_character.b3d 1
+mcl_armor_helmet_netherite mcl_armor_character.b3d 1
+mcl_armor_chestplate_leather mcl_armor_character.b3d 1
+mcl_armor_chestplate_leather_desat mcl_armor_character.b3d 1
+mcl_armor_chestplate_chain mcl_armor_character.b3d 1
+mcl_armor_chestplate_copper mcl_armor_character.b3d 1
+mcl_armor_chestplate_iron mcl_armor_character.b3d 1
+mcl_armor_chestplate_gold mcl_armor_character.b3d 1
+mcl_armor_chestplate_diamond mcl_armor_character.b3d 1
+mcl_armor_chestplate_netherite mcl_armor_character.b3d 1
+mcl_armor_leggings_leather mcl_armor_character.b3d 1
+mcl_armor_leggings_leather_desat mcl_armor_character.b3d 1
+mcl_armor_leggings_chain mcl_armor_character.b3d 1
+mcl_armor_leggings_copper mcl_armor_character.b3d 1
+mcl_armor_leggings_iron mcl_armor_character.b3d 1
+mcl_armor_leggings_gold mcl_armor_character.b3d 1
+mcl_armor_leggings_diamond mcl_armor_character.b3d 1
+mcl_armor_leggings_netherite mcl_armor_character.b3d 1
+mcl_armor_boots_leather mcl_armor_character.b3d 1
+mcl_armor_boots_leather_desat mcl_armor_character.b3d 1
+mcl_armor_boots_chain mcl_armor_character.b3d 1
+mcl_armor_boots_copper mcl_armor_character.b3d 1
+mcl_armor_boots_iron mcl_armor_character.b3d 1
+mcl_armor_boots_gold mcl_armor_character.b3d 1
+mcl_armor_boots_diamond mcl_armor_character.b3d 1
+mcl_armor_boots_netherite mcl_armor_character.b3d 1
+mcl_armor_elytra mcl_armor_character.b3d 1
+bolt_helmet mcl_armor_character.b3d 1
+bolt_chestplate mcl_armor_character.b3d 1
+bolt_leggings mcl_armor_character.b3d 1
+bolt_boots mcl_armor_character.b3d 1
+coast_helmet mcl_armor_character.b3d 1
+coast_chestplate mcl_armor_character.b3d 1
+coast_leggings mcl_armor_character.b3d 1
+coast_boots mcl_armor_character.b3d 1
+dune_helmet mcl_armor_character.b3d 1
+dune_chestplate mcl_armor_character.b3d 1
+dune_leggings mcl_armor_character.b3d 1
+dune_boots mcl_armor_character.b3d 1
+eye_helmet mcl_armor_character.b3d 1
+eye_chestplate mcl_armor_character.b3d 1
+eye_leggings mcl_armor_character.b3d 1
+eye_boots mcl_armor_character.b3d 1
+flow_helmet mcl_armor_character.b3d 1
+flow_chestplate mcl_armor_character.b3d 1
+flow_leggings mcl_armor_character.b3d 1
+flow_boots mcl_armor_character.b3d 1
+rib_helmet mcl_armor_character.b3d 1
+rib_chestplate mcl_armor_character.b3d 1
+rib_leggings mcl_armor_character.b3d 1
+rib_boots mcl_armor_character.b3d 1
+sentry_helmet mcl_armor_character.b3d 1
+sentry_chestplate mcl_armor_character.b3d 1
+sentry_leggings mcl_armor_character.b3d 1
+sentry_boots mcl_armor_character.b3d 1
+silence_helmet mcl_armor_character.b3d 1
+silence_chestplate mcl_armor_character.b3d 1
+silence_leggings mcl_armor_character.b3d 1
+silence_boots mcl_armor_character.b3d 1
+snout_helmet mcl_armor_character.b3d 1
+snout_chestplate mcl_armor_character.b3d 1
+snout_leggings mcl_armor_character.b3d 1
+snout_boots mcl_armor_character.b3d 1
+spire_helmet mcl_armor_character.b3d 1
+spire_chestplate mcl_armor_character.b3d 1
+spire_leggings mcl_armor_character.b3d 1
+spire_boots mcl_armor_character.b3d 1
+tide_helmet mcl_armor_character.b3d 1
+tide_chestplate mcl_armor_character.b3d 1
+tide_leggings mcl_armor_character.b3d 1
+tide_boots mcl_armor_character.b3d 1
+vex_helmet mcl_armor_character.b3d 1
+vex_chestplate mcl_armor_character.b3d 1
+vex_leggings mcl_armor_character.b3d 1
+vex_boots mcl_armor_character.b3d 1
+ward_helmet mcl_armor_character.b3d 1
+ward_chestplate mcl_armor_character.b3d 1
+ward_leggings mcl_armor_character.b3d 1
+ward_boots mcl_armor_character.b3d 1
+wayfinder_helmet mcl_armor_character.b3d 1
+wayfinder_chestplate mcl_armor_character.b3d 1
+wayfinder_boots mcl_armor_character.b3d 1
+wild_helmet mcl_armor_character.b3d 1
+wild_chestplate mcl_armor_character.b3d 1
+wild_leggings mcl_armor_character.b3d 1
+wild_boots mcl_armor_character.b3d 1
+mcl_bells_bell_uv_bell mcl_bells_bell.b3d
+mcl_bows_arrow mcl_bows_arrow.b3d
+mcl_bows_arrow_overlay mcl_bows_arrow.b3d
+mcl_banners_banner_base amc_banner.b3d
+mcl_banners_border amc_banner.b3d
+mcl_banners_bricks amc_banner.b3d
+mcl_banners_circle amc_banner.b3d
+mcl_banners_creeper amc_banner.b3d
+mcl_banners_cross amc_banner.b3d
+mcl_banners_curly_border amc_banner.b3d
+mcl_banners_diagonal_left amc_banner.b3d
+mcl_banners_diagonal_right amc_banner.b3d
+mcl_banners_diagonal_up_left amc_banner.b3d
+mcl_banners_diagonal_up_right amc_banner.b3d
+mcl_banners_flow amc_banner.b3d
+mcl_banners_flower amc_banner.b3d
+mcl_banners_globe amc_banner.b3d
+mcl_banners_gradient amc_banner.b3d
+mcl_banners_gradient_up amc_banner.b3d
+mcl_banners_guster amc_banner.b3d
+mcl_banners_half_horizontal amc_banner.b3d
+mcl_banners_half_horizontal_bottom amc_banner.b3d
+mcl_banners_half_vertical amc_banner.b3d
+mcl_banners_half_vertical_right amc_banner.b3d
+mcl_banners_piglin amc_banner.b3d
+mcl_banners_rhombus amc_banner.b3d
+mcl_banners_skull amc_banner.b3d
+mcl_banners_small_stripes amc_banner.b3d
+mcl_banners_square_bottom_left amc_banner.b3d
+mcl_banners_square_bottom_right amc_banner.b3d
+mcl_banners_square_top_left amc_banner.b3d
+mcl_banners_square_top_right amc_banner.b3d
+mcl_banners_straight_cross amc_banner.b3d
+mcl_banners_stripe_bottom amc_banner.b3d
+mcl_banners_stripe_center amc_banner.b3d
+mcl_banners_stripe_downleft amc_banner.b3d
+mcl_banners_stripe_downright amc_banner.b3d
+mcl_banners_stripe_left amc_banner.b3d
+mcl_banners_stripe_middle amc_banner.b3d
+mcl_banners_stripe_right amc_banner.b3d
+mcl_banners_stripe_top amc_banner.b3d
+mcl_banners_thing amc_banner.b3d
+mcl_banners_triangle_bottom amc_banner.b3d
+mcl_banners_triangle_top amc_banner.b3d
+mcl_banners_triangles_bottom amc_banner.b3d
+mcl_banners_triangles_top amc_banner.b3d
