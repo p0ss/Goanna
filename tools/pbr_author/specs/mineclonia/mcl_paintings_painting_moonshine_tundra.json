@@ -1,0 +1,8 @@
+{
+ "class": "cloth",
+ "micro": "cloth",
+ "micro_strength": 0.5,
+ "materials": {
+  "canvas": {"mode": "flat", "base": 0.5, "span": 0.0, "micro": 0.0, "smooth": 0.12}
+ }
+}

@@ -1,0 +1,9 @@
+{
+ "class": "wood",
+ "materials": {
+  "wood": {"mode": "shade", "base": 0.5, "span": 0.35},
+  "metal": {"mode": "shade", "base": 0.6, "span": 0.35, "metal": true, "smooth": 0.78},
+  "feather": {"mode": "shade", "base": 0.6, "span": 0.2, "smooth": 0.3, "joints": false}
+ },
+ "palette": {"#6b635e": "metal", "#847e77": "metal", "#938e88": "metal", "#af8b8b": "feather", "#afaca5": "metal", "#c6a7a5": "feather", "#c9c7c1": "metal", "#cebbb9": "feather", "#ddcbc7": "feather", "#e5dddc": "metal", "#e5e4e0": "metal"}
+}

@@ -396,7 +396,253 @@ def armour_specs():
     return out
 
 
-FAMILIES = {"boats": boat_specs, "minecart": minecart_specs, "armour": armour_specs}
+# --- held and placed objects --------------------------------------------------------------
+# Model atlases (atlas.py): the bell's body (mcl_bells_bell.b3d), the arrow in
+# flight (mcl_bows_arrow.b3d, and the tipped arrow's ^ overlay), the banner's
+# cloth and pole (amc_banner.b3d; the wall banner draws the same image) and
+# its pattern overlays. Tiles and flat images (extrude.py, as the hand
+# tools): the chests' double and present images (the entity draws them as
+# the single chests' are drawn), the shield's face (mcl_shield.obj), the
+# trident (mcl_tridents_trident.obj), the bows, crossbows, arrow and fishing
+# rod held in hand (their inventory image extruded as a wield mesh), the
+# paintings' frame and canvases (a cube), the campfire's logs and the item
+# frames held in hand.
+
+# The bell: worked gold, lighter higher by a shallow step, polished; the
+# dark of its mouth a dielectric; its iron yoke worn iron.
+BELL_GOLD = {"mode": "shade", "base": 0.86, "span": 0.12, "levels": 3, "detail": 0.3,
+             "joints": False, "metal": True, "smooth": 0.74, "smooth_spread": 0.03,
+             "micro": "metal_worn", "wear": 0.1}
+BELL_MOUTH = {"mode": "flat", "base": 0.8, "span": 0.0, "metal": False, "smooth": 0.4,
+              "smooth_spread": 0.0, "micro": "none"}
+BELL_IRON = {"mode": "shade", "base": 0.88, "span": 0.08, "levels": 2, "detail": 0.3,
+             "joints": False, "metal": True, "smooth": 0.55, "smooth_spread": 0.03,
+             "micro": "metal_worn", "wear": 0.12}
+# The arrow: a shaft of wood, fletching, an iron head.
+ARROW_SHAFT = dict(NARROW_PLANK, base=0.94)
+ARROW_FLETCH = {"mode": "flat", "base": 0.96, "span": 0.0, "metal": False, "smooth": 0.3,
+                "smooth_spread": 0.0, "micro": "feather", "micro_strength": 0.5,
+                "micro_params": {"length": 0.8, "width": 0.6}}
+ARROW_HEAD = {"mode": "flat", "base": 0.98, "span": 0.0, "metal": True, "smooth": 0.62,
+              "smooth_spread": 0.0, "micro": "metal_worn", "wear": 0.1}
+# The banner: linen cloth, soft, its folds the art's shading; the pole wood
+# with rope bindings.
+BANNER_CLOTH = {"mode": "soft", "base": 0.9, "span": 0.1, "detail": 0.25, "soft_edge": 0.3,
+                "round": 3, "edge_roll": 1.5, "edge_lean": 18, "roll_rough": 0.03,
+                "metal": False, "smooth": 0.14, "smooth_spread": 0.02, "micro": "linen",
+                "micro_strength": 0.8, "wear": 0.08, "scatter": 0.3}
+BANNER_POLE = dict(NARROW_PLANK, base=0.94)
+BANNER_STRENGTH = 14.0
+
+# Held in hand, as the hand tools (default_tool_*): wood by shade, the
+# string flat, iron by shade and polished.
+HELD_WOOD = {"mode": "shade", "base": 0.5, "span": 0.35}
+HELD_STRING = {"mode": "flat", "base": 0.7, "span": 0.0, "smooth": 0.3, "micro": 0.04}
+HELD_METAL = {"mode": "shade", "base": 0.6, "span": 0.35, "metal": True, "smooth": 0.78}
+HELD_FEATHER = {"mode": "shade", "base": 0.6, "span": 0.2, "smooth": 0.3, "joints": False}
+HELD_PAINT = {"mode": "flat", "base": 0.75, "span": 0.0, "smooth": 0.6, "micro": 0.02}
+
+# The shield's face: planks by shade with sunk seams, a dark iron rim and
+# boss, a dielectric (drawn near black).
+SHIELD_WOOD = {"mode": "shade", "base": 0.55, "span": 0.3, "levels": 3, "joint": 0.3}
+SHIELD_IRON = {"mode": "shade", "base": 0.75, "span": 0.15, "levels": 2, "joints": False,
+               "metal": False, "smooth": 0.45}
+# The trident: polished pale metal prongs, a sea-green gem, a shaft.
+TRIDENT_METAL = {"mode": "shade", "base": 0.65, "span": 0.3, "metal": True, "smooth": 0.8,
+                 "joints": False}
+TRIDENT_GEM = {"mode": "flat", "base": 0.85, "span": 0.0, "smooth": 0.9, "f0": 0.17,
+               "emission": 0.2}
+# The campfire's logs: bark by shade (fissures sunk), the cut ends'
+# rings, and on the lit logs the embers glowing by shade.
+LOG_BARK = {"mode": "shade", "base": 0.4, "span": 0.5, "levels": 3}
+LOG_CUT = {"mode": "shade", "base": 0.55, "span": 0.3, "levels": 2, "joints": False}
+LOG_EMBER = {"mode": "shade", "base": 0.35, "span": 0.3, "levels": 2, "joints": False,
+             "smooth": 0.3, "emission": 0.9, "emission_shade": True}
+# A painting's frame: wood by shade. Its canvas: flat, matte, a faint weave
+# from the stem's cloth micro surface and no per texel step, so the picture
+# stays a picture.
+FRAME_WOOD = {"mode": "shade", "base": 0.45, "span": 0.4, "levels": 3}
+CANVAS = {"mode": "flat", "base": 0.5, "span": 0.0, "micro": 0.0, "smooth": 0.12}
+# A present: wrapping paper, nearly flat and a little glossy; the ribbon
+# proud of it; the dark inside of the lid low.
+PRESENT_PAPER = {"mode": "shade", "base": 0.55, "span": 0.12, "levels": 2, "joints": False,
+                 "smooth": 0.5}
+PRESENT_RIBBON = {"mode": "shade", "base": 0.8, "span": 0.12, "levels": 2, "joints": False,
+                  "smooth": 0.62}
+PRESENT_INSIDE = {"mode": "flat", "base": 0.2, "span": 0.0, "smooth": 0.2, "micro": 0.0}
+
+PAINTINGS = ("ancient_octopus", "balding_man", "battle_axe", "blue_banner", "butcher_knives",
+             "cooking_utensils", "decorative_swords", "dense_jungle_forest", "desert_castle",
+             "elf_utopia", "endless_dunes", "froggy_pond", "gloom_mountain", "green_banner",
+             "green_bottles", "moonshine_tundra", "mountain_tower", "notes", "poster",
+             "quest_board", "sarmatian_decoration", "snowy_mountain", "support_truss",
+             "viking_shield", "volendam_costume", "waterfall_bridge")
+BANNER_NOT_PATTERNS = ("banner_base", "base", "base_inverted", "fallback_wood")
+
+
+def hexes(src):
+    q = np.clip(np.round(src[..., :3] * 255.0), 0, 255).astype(int)
+    return ["#%02x%02x%02x" % tuple(c) for c in q.reshape(-1, 3)]
+
+
+def tile_spec(stem, rule, materials, cls, extra=None):
+    """A palette spec for extrude.py: rule(h, s, L) names each drawn
+    colour's material; the first material is the default."""
+    src = lib.load_source(stem, GAME)
+    first = list(materials)[0]
+    pal = {}
+    for x, y, hh, s, L in texels(src):
+        q = tuple(int(v) for v in np.clip(np.round(src[y, x, :3] * 255.0), 0, 255))
+        m = rule(hh, s, L)
+        if m != first:
+            pal["#%02x%02x%02x" % q] = m
+    used = {first} | set(pal.values())
+    spec = {"class": cls}
+    spec.update(extra or {})
+    spec["materials"] = {k: v for k, v in materials.items() if k in used}
+    if pal:
+        spec["palette"] = dict(sorted(pal.items()))
+    return spec
+
+
+def held_rule(hh, s, L):
+    if s > 0.6 and (hh > 0.9 or hh < 0.03):
+        return "paint"
+    if hh < 0.04 and 0.08 <= s <= 0.25 and L > 0.55:
+        return "feather"
+    if s < 0.13 and L > 0.3:
+        return "metal"
+    if s < 0.22 and L > 0.55:
+        return "string"
+    return "wood"
+
+
+def object_specs():
+    out = {}
+    # The bell's body.
+    stem = "mcl_bells_bell_uv_bell"
+    MODELS[stem] = ("mcl_bells_bell.b3d", 0)
+    src = lib.load_source(stem, GAME)
+    mat = np.full(src.shape[:2], "gold", dtype=object)
+    for x, y, hh, s, L in texels(src):
+        if s < 0.35:
+            mat[y, x] = "iron"
+        elif L < 0.25:
+            mat[y, x] = "mouth"
+    out[stem] = spec_of(mat, {"gold": BELL_GOLD, "mouth": BELL_MOUTH, "iron": BELL_IRON}, src,
+                        "metal")
+    # The arrow in flight, and the tipped arrow's tint over its head.
+    for stem in ("mcl_bows_arrow", "mcl_bows_arrow_overlay"):
+        MODELS[stem] = ("mcl_bows_arrow.b3d", 0)
+        src = lib.load_source(stem, GAME)
+        mat = np.full(src.shape[:2], "shaft", dtype=object)
+        for x, y, hh, s, L in texels(src):
+            if hh < 0.04 and 0.08 <= s <= 0.25:
+                mat[y, x] = "fletch"
+            elif s < 0.13 and L > 0.3:
+                mat[y, x] = "head"
+        # The arrow is crossed flat cards, not boxes: no box edge to bevel.
+        extra = {"face_edge": "flat"}
+        if stem.endswith("overlay"):
+            extra.update({"overlay": True, "surface": 0.94})
+        out[stem] = spec_of(mat, {"shaft": ARROW_SHAFT, "fletch": ARROW_FLETCH,
+                                  "head": ARROW_HEAD}, src, "wood", extra)
+    # The banner's cloth and pole, and each pattern laid over the cloth at
+    # the cloth's own height texel for texel, so a pattern changes the
+    # colour and not the folds.
+    stem = "mcl_banners_banner_base"
+    MODELS[stem] = ("amc_banner.b3d", 0)
+    src = lib.load_source(stem, GAME)
+    mat = np.full(src.shape[:2], "cloth", dtype=object)
+    for x, y, hh, s, L in texels(src):
+        if L < 0.45:
+            mat[y, x] = "pole"
+        elif s > 0.1 and L < 0.85:
+            mat[y, x] = "lashing"
+    # The banner is drawn two and a half times a mob's size, so its texels
+    # are larger and the same rise per texel is a deeper march: a lower
+    # strength keeps it under the client's cap.
+    base = spec_of(mat, {"cloth": BANNER_CLOTH, "pole": BANNER_POLE, "lashing": LASHING}, src,
+                   "cloth", {"strength": BANNER_STRENGTH})
+    out[stem] = base
+    import extrude
+    bh = extrude.heights(src, base, "cloth")[0]
+    cloth = mat == "cloth"
+    pats = sorted(p.stem[len("mcl_banners_"):] for p in
+                  lib.GAMES[GAME]["art"].rglob("mcl_banners_*.png"))
+    for name in pats:
+        if name in BANNER_NOT_PATTERNS or name.startswith(("item_", "pattern_")):
+            continue
+        stem = "mcl_banners_" + name
+        MODELS[stem] = ("amc_banner.b3d", 0)
+        psrc = lib.load_source(stem, GAME)
+        rb = np.round(bh.astype(np.float64), 3)
+        levels = sorted(set(rb[cloth].tolist()))
+        chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+        assert len(levels) <= len(chars), len(levels)
+        legend = {chars[i]: {"material": "cloth", "h": lv} for i, lv in enumerate(levels)}
+        sym = {lv: chars[i] for i, lv in enumerate(levels)}
+        drawn = psrc[..., 3] >= 0.5
+        grid = ["".join(sym[float(rb[y, x])] if drawn[y, x] and cloth[y, x] else "."
+                        for x in range(psrc.shape[1])) for y in range(psrc.shape[0])]
+        spec = dict(HEAD)
+        spec.update({"class": "cloth", "strength": BANNER_STRENGTH, "overlay": True, "surface": 0.9,
+                     "materials": {"cloth": dict(BANNER_CLOTH, mode="flat", span=0.0)},
+                     "grid": grid, "legend": legend})
+        out[stem] = spec
+    # Tiles and flat images.
+    held = {"wood": HELD_WOOD, "metal": HELD_METAL, "string": HELD_STRING,
+            "feather": HELD_FEATHER, "paint": HELD_PAINT}
+    for stem in ("mcl_bows_bow", "mcl_bows_bow_0", "mcl_bows_bow_1", "mcl_bows_bow_2",
+                 "mcl_bows_crossbow", "mcl_bows_crossbow_0", "mcl_bows_crossbow_1",
+                 "mcl_bows_crossbow_2", "mcl_bows_crossbow_3", "mcl_bows_arrow_inv",
+                 "mcl_fishing_fishing_rod"):
+        out[stem] = tile_spec(stem, held_rule, held, "wood")
+    for stem in ("mcl_itemframes_item_frame", "mcl_itemframes_glow_item_frame"):
+        out[stem] = tile_spec(stem, lambda hh, s, L: "wood", {"wood": HELD_WOOD}, "wood")
+    out["mcl_shield_base_nopattern"] = tile_spec(
+        "mcl_shield_base_nopattern", lambda hh, s, L: "iron" if s < 0.1 else "wood",
+        {"wood": SHIELD_WOOD, "iron": SHIELD_IRON}, "wood")
+    for stem in ("mcl_tridents_trident_entity", "mcl_tridents_trident_entity_clip"):
+        out[stem] = tile_spec(
+            stem, lambda hh, s, L: ("gem" if s > 0.8 else "metal" if s < 0.2 else "wood"),
+            {"metal": TRIDENT_METAL, "wood": HELD_WOOD, "gem": TRIDENT_GEM}, "metal")
+    for stem in ("mcl_campfires_log", "mcl_campfires_campfire_log_lit",
+                 "mcl_campfires_soul_campfire_log_lit"):
+        out[stem] = tile_spec(
+            stem, lambda hh, s, L: ("ember" if s > 0.45 and not (0.05 <= hh <= 0.09 and L > 0.3)
+                                    and not (0.05 <= hh <= 0.09 and s < 0.5)
+                                    else "cut" if 0.04 <= hh <= 0.1 and s > 0.25 else "bark"),
+            {"bark": LOG_BARK, "cut": LOG_CUT, "ember": LOG_EMBER}, "wood")
+    out["mcl_paintings_frame"] = tile_spec("mcl_paintings_frame", lambda hh, s, L: "wood",
+                                           {"wood": FRAME_WOOD}, "wood")
+    for name in PAINTINGS:
+        stem = "mcl_paintings_painting_" + name
+        out[stem] = tile_spec(stem, lambda hh, s, L: "canvas", {"canvas": CANVAS}, "cloth",
+                              {"micro": "cloth", "micro_strength": 0.5})
+    # The chests the entity draws: doubles as the single chests are built
+    # (no spec, class wood), presents as paper and ribbon.
+    for stem in ("mcl_chests_normal_double", "mcl_chests_trapped_double"):
+        out[stem] = {"class": "wood"}
+    for stem in ("mcl_chests_normal_present", "mcl_chests_trapped_present",
+                 "mcl_chests_ender_present", "mcl_chests_normal_double_present",
+                 "mcl_chests_trapped_double_present"):
+        src = lib.load_source(stem, GAME)
+        hues = [hh for x, y, hh, s, L in texels(src) if s > 0.3 and L > 0.12]
+        paper = float(np.median(hues)) if hues else 0.0
+
+        def rule(hh, s, L, paper=paper):
+            if L < 0.12:
+                return "inside"
+            dh = min(abs(hh - paper), 1.0 - abs(hh - paper))
+            return "ribbon" if dh > 0.06 or (s < 0.15 and L > 0.6) else "paper"
+        out[stem] = tile_spec(stem, rule, {"paper": PRESENT_PAPER, "ribbon": PRESENT_RIBBON,
+                                           "inside": PRESENT_INSIDE}, "cloth")
+    return out
+
+
+FAMILIES = {"boats": boat_specs, "minecart": minecart_specs, "armour": armour_specs,
+            "objects": object_specs}
 
 
 def main():

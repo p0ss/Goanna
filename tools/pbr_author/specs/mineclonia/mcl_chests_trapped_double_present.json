@@ -1,0 +1,9 @@
+{
+ "class": "cloth",
+ "materials": {
+  "paper": {"mode": "shade", "base": 0.55, "span": 0.12, "levels": 2, "joints": false, "smooth": 0.5},
+  "ribbon": {"mode": "shade", "base": 0.8, "span": 0.12, "levels": 2, "joints": false, "smooth": 0.62},
+  "inside": {"mode": "flat", "base": 0.2, "span": 0.0, "smooth": 0.2, "micro": 0.0}
+ },
+ "palette": {"#1f0a00": "inside", "#204a87": "ribbon", "#3465a4": "ribbon", "#401500": "inside"}
+}

@@ -1,0 +1,9 @@
+{
+ "class": "wood",
+ "materials": {
+  "bark": {"mode": "shade", "base": 0.4, "span": 0.5, "levels": 3},
+  "cut": {"mode": "shade", "base": 0.55, "span": 0.3, "levels": 2, "joints": false},
+  "ember": {"mode": "shade", "base": 0.35, "span": 0.3, "levels": 2, "joints": false, "smooth": 0.3, "emission": 0.9, "emission_shade": true}
+ },
+ "palette": {"#01898d": "ember", "#019ba1": "ember", "#01bec4": "ember", "#21dfe5": "ember", "#27464b": "ember", "#4c4037": "cut", "#59473e": "cut", "#664e44": "cut", "#725647": "cut", "#755746": "cut", "#7c5d49": "cut", "#87644d": "cut", "#89654d": "cut", "#936d52": "cut", "#a07755": "cut"}
+}

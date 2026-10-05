@@ -1,0 +1,8 @@
+{
+ "class": "wood",
+ "materials": {
+  "bark": {"mode": "shade", "base": 0.4, "span": 0.5, "levels": 3},
+  "cut": {"mode": "shade", "base": 0.55, "span": 0.3, "levels": 2, "joints": false}
+ },
+ "palette": {"#4c4037": "cut", "#59473e": "cut", "#664e44": "cut", "#725647": "cut", "#755746": "cut", "#7c5d49": "cut", "#87644d": "cut", "#89654d": "cut", "#936d52": "cut", "#a07755": "cut"}
+}
