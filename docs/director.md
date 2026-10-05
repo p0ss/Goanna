@@ -3,7 +3,8 @@
 Status: a design, written on 19 September 2026. Phase 1, scoped to the first
 playtest, was built on 1 October 2026 and has been tested by a script, not
 yet by a model or by players: [Phase 1 as built](#phase-1-as-built) says
-what exists and what the test showed. The throwaway probe in
+what exists and what the test showed. Game rulesets were built on 6 October
+2026 and are in [Rulesets as built](#rulesets-as-built). The throwaway probe in
 `tools/director-probe/` checked the engine and framework calls the design
 depends on, and [What was verified](#what-was-verified) at the end says what
 ran, on which server and game, and what did not. [Decisions](#decisions)
@@ -1006,7 +1007,8 @@ goanna_director.register_adapter(name, {
 -- Shorthand for a mapgen, as goanna_register_far_surface is.
 goanna_director.register_biome_provider(name, function(pos) end)
 
--- Game rulesets.
+-- Game rulesets. Built on 6 October 2026 in a different shape; see
+-- "Rulesets as built" for the API as it stands.
 goanna_director.register_ruleset(name, {
     scopes = function() end,                      -- {"faction:<id>", ...}
     capabilities = {},                            -- advertised to the model
@@ -1361,7 +1363,9 @@ proof. Players are told it is active from then, not before.
 ### MCP tools
 
 `tools/goanna-director-mcp --world <world>` reads the url and token from the
-world's `goanna_director.conf` and serves 17 tools. They were reworked on 5
+world's `goanna_director.conf` and serves 17 tools, and since 6 October 2026
+one more for each intent and query a game's ruleset registers ([Rulesets as
+built](#rulesets-as-built)). They were reworked on 5
 October 2026 for a model's sake: a menu of tools each with an exact schema
 is easier to call correctly than a few tools whose arguments depend on one
 another.
@@ -1745,6 +1749,282 @@ structure is built from its schematic alone, so it has no loot. A character
 builds whatever its body is: a villager is a builder, but nothing here gives
 it an inventory to take the nodes from, so the director's budget is what the
 nodes cost.
+
+## Rulesets as built
+
+Built on 6 October 2026, so that a game or mod can add its own intents,
+queries and characters without editing Goanna. The first consumer is
+DorfCraft's fortress director (its `docs/director-integration.md`, "Proposed
+Goanna changes", items 1 to 4); Kythen is the next. Items 5 to 8 of that list
+(a memory hook, adopting cast characters, `make_item` and a voice scope) are
+not built; see [Not built yet](#not-built-yet).
+
+The code is `goanna_server_mod/director/rulesets.lua`, with the schema check
+and name rules in `logic.lua`, and the tool generation in
+`tools/goanna-director-mcp`.
+
+### Registering a ruleset
+
+A mod declares `optional_depends = goanna_server_mod` and registers at load
+time, only when the table exists, so it loads unchanged on a server without
+Goanna's mod or with the director off (`goanna_director` is then absent):
+
+```lua
+local api = rawget(_G, "goanna_director")
+if api then
+    local ok, why = api.register_ruleset("fortress", {
+        description = "Fortresses: officers, workshops and their books.",
+        capabilities = {},              -- any table, shown to the model as is
+        points_per_hour = 20,           -- optional; caps what costs add up to
+        intents = {
+            work_order = {
+                description = "Put an order in a workshop's queue.",
+                -- The JSON Schema subset below. The same table is checked
+                -- here and given to the model as the tool's input schema.
+                schema = {type = "object", required = {"fortress", "item"},
+                    properties = {fortress = {type = "string"},
+                        item = {type = "string"},
+                        count = {type = "integer", minimum = 1, maximum = 64}}},
+                scope = function(scope, args, ctx) end,   -- ok, rule, detail
+                subjects = function(args, ctx) end,       -- {player names}
+                cost = 1,                    -- or function(args, ctx) -> n
+                rules = function(args, ctx) end,          -- ok, rule, detail
+                places = function(args, ctx) end,         -- {positions}
+                paced = false,
+                follow_up = "work_order_done",            -- an event name
+                -- result table (status "accepted" for something that
+                -- carries on, else "completed"), and an undo record; or
+                -- false, rule, detail to refuse after all.
+                apply = function(args, ctx) end,
+                undo = function(record, ctx) end,         -- fields
+            },
+        },
+        queries = {
+            fortress = {
+                description = "A fortress's summary.",
+                schema = {type = "object", required = {"id"},
+                    properties = {id = {type = "string"}}},
+                answer = function(args, ctx) end,         -- any table
+            },
+        },
+        undo = function(record, ctx) end,     -- for intents without their own
+        on_stop = function(by, reason) end,   -- /director stop or director_stop
+        addressed = function(player, message) end,   -- nil or {npc, data}
+        speaker = function(name) end,   -- nil or {name, label, pos, remote}
+        speak = function(speaker, text, listeners) end,   -- ok, rule, detail
+        spoken = function(speaker, text, delivered) end,
+    })
+end
+```
+
+`register_ruleset` returns true, or false and why, and logs the reason as an
+error. Nothing is registered unless the whole definition is sound. Ruleset,
+intent and query names are 1 to 32 of `a-z`, `0-9` and `_`; a ruleset may not
+be called `director`, and an intent or query may not take a name the director
+or another ruleset already has. Registration after the server's first step
+is refused, so the first hello already lists everything. `ctx` is
+`{ruleset, act, scope, based_on, reason, queued}`; `act` is the id
+`director_undo` takes. Every hook runs under `pcall`: an error refuses that
+intent as `error`, answers that query with an error, or is ignored for chat,
+and is logged as a warning. It never stops the director.
+
+The schema subset: `type` (`object`, `string`, `number`, `integer`,
+`boolean`, `array`), `properties`, `required`, `additionalProperties =
+false`, `enum`, `minimum`, `maximum`, `maxLength`, `items`, `maxItems` and
+`description`. Arguments outside the schema are passed through unless
+`additionalProperties` is false. Luanti writes an empty Lua table as JSON
+`null`, so the MCP service restores empty `properties` and `required`.
+
+### The pipeline
+
+A ruleset's intent runs through the same nine steps as the director's own,
+and the result and audit line have the same shape. What each step asks of
+the ruleset:
+
+1. **Schema.** The director checks the arguments against `schema`; a
+   failure is `schema` with a `detail` naming the argument.
+2. **Scope.** Every scope but `gm` is still refused for every intent, the
+   ruleset's included. `scope(scope, args, ctx)` may then refuse what `gm`
+   asks about this subject, as `not_in_scope` with the ruleset's `rule`.
+   `subjects(args, ctx)` names the players the intent concerns: one who
+   opted out refuses it as `opted_out`, and one who joined, left or died
+   since the model's `based_on` makes it `stale`, as for an encounter.
+3. **Stop.** Everything is refused while the director is stopped.
+4. **Budget.** `cost` (a number, or a function of the arguments) is
+   charged to the ruleset's own hourly points, separate from encounters and
+   rewards, and only when the intent is applied. The operator's
+   `goanna_director_<ruleset>_points_per_hour` overrides the ruleset's
+   `points_per_hour`; with neither, costs are reported and not capped.
+5. **Rules.** `rules(args, ctx)` returns true, or false with the ruleset's
+   own reason, which the model receives as reason `rules` with that `rule`
+   and `detail`.
+6. **Place.** Every position `places(args, ctx)` returns must be loaded,
+   unprotected (`core.is_protected` for nobody), and clear of static spawn
+   and of players who opted out (`not_loaded`, `protected`, `spawn`,
+   `opted_out_player_near`).
+7. **Pacing.** A `paced` intent waits in the director's queue until every
+   online subject is in a build up, and comes back as a late result, or is
+   refused as `pacing` when its arguments say `when = "now"`. It expires
+   after `valid_for_s` (at most `goanna_director_queue_s`), and stop
+   cancels it.
+8. **Apply.** `apply(args, ctx)` does the work through the game's own entry
+   points and returns its result fields and an undo record, which must be
+   plain data, since it goes into the audit log. `director_undo` with the
+   act's id calls the intent's `undo` (or the ruleset's) with that record.
+9. **Audit.** One line per intent, with the arguments, the outcome, the
+   result as effects, the subjects and the undo record.
+
+Queries are checked against their schema and answered by `answer(args,
+ctx)`; whatever they leave out for players who opted out is the ruleset's
+to leave out (`goanna_director.opted_out` below).
+
+`on_stop(by, reason)` is called when the operator or the model stops the
+director, after the director has removed its own creatures, so a ruleset can
+end what it started for the director (DorfCraft's sieges). Each ruleset's
+intents, queries, descriptions, schemas, `capabilities`, points left and
+whether each intent is paced or undoable are in the `capabilities` query and
+in every hello, under `rulesets`.
+
+### Characters the director did not cast
+
+- **Chat addressed to them.** The chat callback asks each ruleset's
+  `addressed(player, message)`, in the order they registered, after the
+  director's cast characters and only for a public line from a player who
+  has not opted out, while `goanna_director_chat` is not `none`. A ruleset
+  claims the line by returning `{npc = "Urist", data = {...}}`, with a valid
+  character name; the director emits `npc_addressed` with the ruleset's
+  data plus `npc`, `ruleset` and the line (at most 280 characters), and the
+  line is not reported again as `player_chat`. The line stays in public chat
+  either way, as on any server.
+- **Speech.** When `speak` names someone who is not the narrator and not a
+  cast character, each ruleset's `speaker(name)` is asked. It returns the
+  speaker's `name`, a `label` (at most 60 characters), the body's `pos` if
+  it has one, and `remote`, the players who may hear it from afar (a set or
+  a list). Players within `goanna_director_earshot` of `pos` read
+  `Urist (NPC): text`; players in `remote` beyond it read
+  `<label> (NPC): text`. The name must be a valid character name and no
+  player's (`name_taken`), so a ruleset's speaker cannot pass for a player,
+  and the `(NPC)` mark stays on both lines for the same reason. The text is
+  cleaned of escapes and newlines and capped as before, and the speaker and
+  listener rate limits apply to it by name. The ruleset's `speak(speaker,
+  text, listeners)` sees the line before it goes out and may refuse it
+  (reason `rules`, with its `rule`, such as DorfCraft's figures check);
+  `spoken(speaker, text, delivered)` is told who received it. The
+  director's own memory is not kept for a ruleset's speakers.
+
+### Small reads
+
+- `goanna_director.connected()`: true while a director is connected and not
+  stopped.
+- `goanna_director.opted_out(name)`: true or false for a player seen since
+  the server started, nil for one who has not been. The director now keeps
+  this for players who have left, too, so an event a ruleset emits about a
+  player who opted out and then left is still dropped.
+- `goanna_director.pacing(name)`: the player's phase and intensity, or nil
+  when they are offline or opted out.
+- `goanna_director.emit(event)` returns the event's sequence number, or nil
+  when it was dropped because it names a player who opted out.
+
+### MCP tools for rulesets
+
+`tools/goanna-director-mcp` turns each ruleset intent and query in the hello
+into a tool named `<ruleset>_<name>` (`fortress_work_order`), with the
+ruleset's description and schema, and `reason` added as a required argument
+of every intent. A game master gets all of them, `--role watcher` only the
+queries, `--role voice` none. The fixed 17 tools are unchanged. A ruleset's
+tools exist only once a server has said hello, which is usually after the
+MCP client has listed the tools, so the service declares `listChanged` and
+sends `notifications/tools/list_changed` when the set changes.
+`tools/goanna-director-cli` calls a ruleset's tool by its own name.
+
+### Where it departs from the design
+
+- Hooks take `(args, ctx)`, with the scope in `ctx`, rather than `(scope,
+  args)`. The design's single `validate` is split into `scope`, `subjects`,
+  `cost`, `rules` and `places`, so that the director runs the opt out,
+  budget, protection and pacing steps itself rather than trusting each
+  ruleset to.
+- The design's `speakers(scope)` list became `speaker(name)`, which can
+  carry a position and players to reach from afar, as DorfCraft asked, and
+  `spoken` was added so a ruleset can keep its own record of what was said.
+- DorfCraft asked for the remote line to read
+  `Urist, quartermaster of Deepdelve: text`. It reads
+  `Urist, quartermaster of Deepdelve (NPC): text`, because without the mark
+  a label could be any text, a player's name among them.
+- A ruleset's refusal arrives as reason `rules` with the ruleset's word in
+  `rule`, not as its own reason, so a model can always tell the game's rules
+  from the director's limits. DorfCraft's `not_known` is `rule`.
+- `addressed(player, message)` and `on_stop` were not in the design; they
+  are as DorfCraft proposed.
+
+### Not built yet
+
+`replaces`, `knowledge`, `value` and the `events` hook of the design (`emit`
+serves for events); `register_condition`; any scope but `gm`; a memory hook
+so `remember` and `memory` reach a ruleset's characters;
+`goanna_director.npc(name)` and `release(name)` for adopting cast
+characters; `goanna_director.make_item(spec)`; and a `voice` scope with
+server side limits. These are DorfCraft's items 5 to 8 and remain future
+work.
+
+### What was tested
+
+`tools/test-director.py --ruleset` on 6 October 2026: the Luanti 5.17.0
+Flatpak server (`org.luanti.luanti`), Mineclonia release 38561, mapgen v7,
+a fresh scratch world with a probe mod written by the test into its
+`worldmods`; the file transport; one Goanna client (Godot 4.5.1 stable,
+the client library as built in `project/bin` at 23:06 on 5 October) as the
+player alice, started with `software` in headless gamescope (which device
+gamescope itself chose was not checked); the MCP service driven over stdio
+JSON-RPC by the script. 44 checks passed:
+
+- With `goanna_director = false`, the probe found no `goanna_director`
+  table and loaded. With it true, a ruleset named `director` and an intent
+  named `speak` were refused, and the probe's ruleset was registered.
+- The service listed `probe_mark`, `probe_ring` and `probe_tally` after the
+  hello, sent `notifications/tools/list_changed`, kept the 17 fixed tools,
+  and gave `probe_mark` the ruleset's schema with `reason` added. The brief
+  named the ruleset.
+- `probe_mark` set a node near alice, cost 3 of the ruleset's 5 points, and
+  returned the sequence number `emit` gave its event, which arrived with
+  that number. A second was refused as `budget`; a forbidden label as
+  `rules` with the ruleset's `bad_label`; a missing or too long argument as
+  `schema`; a point 25000 nodes away as `not_loaded`. A query with a bad
+  argument was refused as `schema`. A paced intent ran at once while alice
+  was in a build up. `director_undo` put the node back.
+- `Warden, open the gate` from alice's client reached the model as
+  `npc_addressed` with the ruleset's data; `wardens are boring` stayed
+  ordinary chat. The model spoke as the Warden, whose body was 1000 nodes
+  away, and alice's client showed `Warden of the Gate (NPC): ...` with the
+  escape sequence in the text stripped; a line with a figure the probe's
+  check refused came back as `rules` / `not_known`; a speaker named after a
+  player was refused as `name_taken`; a burst of the Warden's lines was cut
+  off by the speech rate limit (`rate`).
+- `director_stop` called `on_stop`, `connected()` read false until
+  `/director start`, and a ruleset intent was refused as `stopped` meanwhile.
+  `pacing("alice")` read `build_up`, and `opted_out` read false for alice
+  and nil for a name never seen.
+- The audit log held the ruleset's intents with outcome, refusal and undo
+  record, and the server log had no director warnings or errors beyond the
+  two deliberate refusals.
+
+With no ruleset registered, the Phase 1 test (`tools/test-director.py`, same
+server and game, software rendered clients) passed its first 36 checks, up
+to and including `director_memory`: encounters, the hourly budget, pacing,
+an encounter queued for the next build up and landing there through the
+reworked queue, undo, a cast character's speech, narration, addressed chat
+and memory. It was then stopped on request, to keep a second client off a
+machine where another session held the GPU, so the kill, opt out, service
+restart and stop checks of that test did not run against this change.
+
+Not tried: a paced intent that had to wait in the queue (the player was in
+a build up throughout, so only the path that applies at once ran); `stale`
+and `opted_out` for a ruleset intent's subjects; a ruleset hook that raises
+an error; two rulesets claiming the same chat line; the HTTP transport with
+a ruleset (only the file transport ran); the voice and watcher roles' tool
+lists, which were checked offline only; an MCP client other than the test
+script receiving the list change notice; any language model; and DorfCraft
+or Kythen themselves, neither of which has a ruleset yet.
 
 ## Open questions
 

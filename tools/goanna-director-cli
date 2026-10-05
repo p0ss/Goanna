@@ -18,7 +18,8 @@ This keeps one service running and hands it tool calls from a socket:
     goanna-director-cli --world <world> speak \\
         '{"as": "narrator", "to": "all", "text": "A cold wind rises."}'
 
-A tool name may drop its director_ prefix. --role voice or --role watcher
+A tool name may drop its director_ prefix; a ruleset's tool
+(fortress_designate) is called by its own name. --role voice or --role watcher
 serves a smaller set of tools on a socket of its own (see the service's
 --role). Arguments are one JSON object.
 The answer is printed as JSON; a tool's refusal exits 1, a missing serve 2.
@@ -74,10 +75,15 @@ class Service:
             self.next += 1
             self.proc.stdin.write(json.dumps(msg) + "\n")
             self.proc.stdin.flush()
-            line = self.proc.stdout.readline()
-        if not line:
-            raise RuntimeError("the director service stopped; its log is beside the socket")
-        return json.loads(line)
+            while True:
+                line = self.proc.stdout.readline()
+                if not line:
+                    raise RuntimeError("the director service stopped; its log is beside "
+                                       "the socket")
+                reply = json.loads(line)
+                # Notifications (a ruleset's tools appearing) carry no id.
+                if reply.get("id") == msg["id"]:
+                    return reply
 
 
 def serve(world, role="gm"):
@@ -168,6 +174,28 @@ def call(world, tool, args, role="gm"):
         return 0
 
 
+def tool_offered(world, tool, role):
+    path = socket_path(world, role)
+    conn = socket.socket(socket.AF_UNIX)
+    try:
+        conn.connect(path)
+    except OSError:
+        return False
+    with conn:
+        conn.sendall((json.dumps({"tool": "__list__"}) + "\n").encode())
+        buf = b""
+        while not buf.endswith(b"\n"):
+            chunk = conn.recv(65536)
+            if not chunk:
+                break
+            buf += chunk
+    try:
+        tools = json.loads(buf).get("result", {}).get("tools", [])
+    except ValueError:
+        return False
+    return any(t.get("name") == tool for t in tools)
+
+
 def main(argv):
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--world", default=os.environ.get("GOANNA_DIRECTOR_WORLD"),
@@ -184,7 +212,9 @@ def main(argv):
         return 0
     tool = a.command
     if tool != "tools" and not tool.startswith("director_"):
-        tool = "director_" + tool
+        # A ruleset's tool (fortress_designate) keeps its own name.
+        if not tool_offered(a.world, tool, a.role):
+            tool = "director_" + tool
     return call(a.world, tool, json.loads(a.args), a.role)
 
 

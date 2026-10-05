@@ -9,6 +9,11 @@ goanna_server_mod with the director on, and headless Goanna clients
 (software rendered, inside headless gamescope) are the players.
 
     tools/test-director.py [--keep] [--gpu]
+    tools/test-director.py --ruleset [--keep]
+
+--ruleset runs the ruleset test instead (ruleset_main below): a probe mod
+registers a ruleset, and the test calls its intent and query through the
+tools the MCP service generates from the hello, with one player.
 
 It makes a throwaway world, goanna_director_test, under the Flatpak's
 worlds directory (the only place the sandbox sees), and deletes it at the
@@ -66,6 +71,7 @@ class Mcp:
             stdin=subprocess.PIPE, stdout=subprocess.PIPE,
             stderr=open(str(world) + ".mcp.log", "w"), text=True)
         self.next = 1
+        self.notices = []
         self.rpc("initialize", {"protocolVersion": "2025-06-18", "capabilities": {},
                                 "clientInfo": {"name": "test-director", "version": "1"}})
         self.tools = [t["name"] for t in self.rpc("tools/list")["tools"]]
@@ -75,8 +81,12 @@ class Mcp:
         self.next += 1
         self.proc.stdin.write(json.dumps(msg) + "\n")
         self.proc.stdin.flush()
-        line = self.proc.stdout.readline()
-        reply = json.loads(line)
+        while True:
+            reply = json.loads(self.proc.stdout.readline())
+            if reply.get("id") == msg["id"]:
+                break
+            # A notification: the ruleset tools changed.
+            self.notices.append(reply.get("method"))
         if "error" in reply:
             raise RuntimeError(reply["error"])
         return reply["result"]
@@ -258,10 +268,11 @@ def drain(mcp):
 def main(argv):
     keep = "--keep" in argv
     software = "--gpu" not in argv
-    for port in list(CONTROL.values()):
+    for who, port in list(CONTROL.items()):
         if not gh.port_free(port):
-            print("control port %d is in use" % port)
-            return 1
+            # Another agent's client may hold it; any free port will do.
+            CONTROL[who] = gh.free_control_port()
+            note("control port %d is in use; %s takes %d" % (port, who, CONTROL[who]))
     conf = make_world()
     server, log = start_server(conf)
     clients = []
@@ -291,7 +302,9 @@ def main(argv):
         check(not any(t in mcp.tools for t in ("goanna_run", "goanna_eval", "goanna_view",
                                                "goanna_command")),
               "and none of the developer tools")
-        check(wait_log(log, "a director answered at", 30), "the server reached the MCP endpoint")
+        check(wait_log(log, "a director answered at", 30)
+              or wait_log(log, "a director connected through", 5),
+              "the server reached the MCP endpoint")
         time.sleep(1.5)
         status = mcp.call("director_status", detail=True)
         check(status.get("connected") and (status.get("capabilities") or {}).get("adapters", {})
@@ -661,6 +674,377 @@ def main(argv):
     return failed
 
 
+# --- rulesets -------------------------------------------------------------------
+
+RS_WORLD = WORLDS / "goanna_director_ruleset_test"
+RS_SERVER_PORT = 30921
+RS_CONTROL = 30932
+RS_HTTP_PORT = 30961
+
+# A throwaway mod that registers a ruleset, as a game would: one intent that
+# changes a node and can be undone, one query, a character the director did
+# not cast, chat addressed to it, a speech check and a stop hook. It is
+# written into the test world only.
+PROBE_MOD = r"""
+local api = rawget(_G, "goanna_director")
+core.log("action", "[probe] goanna_director present = " .. tostring(api ~= nil))
+if not api then
+	return
+end
+core.register_node("director_ruleset_probe:marker", {description = "Probe marker",
+	tiles = {"blank.png"}, groups = {not_in_creative_inventory = 1}})
+local state = {marks = 0, stops = 0, spoken = {}, seqs = {}}
+local GATE = {x = 0, y = -1000, z = 0}
+
+local ok, why = api.register_ruleset("director", {})
+core.log("action", "[probe] ruleset named director: " .. tostring(ok) .. " " .. tostring(why))
+ok, why = api.register_ruleset("probe_clash", {intents = {speak = {apply = function() end}}})
+core.log("action", "[probe] intent named speak: " .. tostring(ok) .. " " .. tostring(why))
+
+ok, why = api.register_ruleset("probe", {
+	description = "A test ruleset: markers and a gate warden.",
+	capabilities = {note = "markers are test nodes"},
+	points_per_hour = 5,
+	intents = {
+		mark = {
+			description = "Put a marker node at a point.",
+			schema = {type = "object", required = {"at", "label"}, properties = {
+				at = {type = "array", items = {type = "number"}, maxItems = 3},
+				label = {type = "string", maxLength = 20},
+				big = {type = "boolean"},
+				player = {type = "string"},
+			}},
+			cost = function(args) return args.big and 3 or 1 end,
+			subjects = function(args) return {args.player} end,
+			rules = function(args)
+				if args.label == "forbidden" then
+					return false, "bad_label", {label = args.label}
+				end
+				return true
+			end,
+			places = function(args) return {args.at} end,
+			follow_up = "probe_marked",
+			apply = function(args, ctx)
+				local pos = vector.round(vector.new(args.at[1], args.at[2], args.at[3]))
+				local old = core.get_node(pos)
+				core.set_node(pos, {name = "director_ruleset_probe:marker"})
+				state.marks = state.marks + 1
+				local seq = api.emit({type = "probe_marked", who = {"player:" .. (args.player or "")},
+					data = {act = ctx.act, label = args.label}, pos = pos})
+				state.seqs[#state.seqs + 1] = seq
+				return {marked = core.get_node(pos).name, seq = seq},
+					{pos = pos, old = old.name}
+			end,
+			undo = function(rec)
+				core.set_node(rec.pos, {name = rec.old})
+				state.marks = state.marks - 1
+				return {restored = rec.old}
+			end,
+		},
+		ring = {
+			description = "Ring the gate bell for a player; paced.",
+			schema = {type = "object", required = {"player"},
+				properties = {player = {type = "string"}, when = {type = "string"}}},
+			paced = true,
+			subjects = function(args) return {args.player} end,
+			apply = function(args) return {rang = true, status = "accepted"} end,
+		},
+	},
+	queries = {
+		tally = {
+			description = "How many markers, and what is at a point.",
+			schema = {type = "object", properties = {at = {type = "array", items = {type = "number"}}}},
+			answer = function(args)
+				local out = {marks = state.marks, stops = state.stops, spoken = state.spoken,
+					seqs = state.seqs, connected = api.connected(),
+					opted_out = api.opted_out("alice"), pacing = api.pacing("alice"),
+					nobody = api.opted_out("nobody_seen")}
+				if args.at then
+					out.node = core.get_node(vector.round(vector.new(args.at[1], args.at[2],
+						args.at[3]))).name
+				end
+				return out
+			end,
+		},
+	},
+	on_stop = function(by, why)
+		state.stops = state.stops + 1
+	end,
+	addressed = function(player, message)
+		if message:lower():match("^warden[%s,:!%?%.]") then
+			return {npc = "Warden", data = {post = "gate"}}
+		end
+	end,
+	speaker = function(name)
+		if name == "Warden" then
+			return {pos = GATE, label = "Warden of the Gate", remote = {alice = true}}
+		elseif name == "Mimic" then
+			return {name = "alice"}
+		end
+	end,
+	speak = function(speaker, text, listeners)
+		if text:find("7") then
+			return false, "not_known", {figure = 7}
+		end
+		return true
+	end,
+	spoken = function(speaker, text, delivered)
+		state.spoken[#state.spoken + 1] = text
+	end,
+})
+core.log("action", "[probe] ruleset probe: " .. tostring(ok) .. " " .. tostring(why))
+"""
+
+
+def make_ruleset_world(director_on):
+    if RS_WORLD.exists():
+        shutil.rmtree(RS_WORLD)
+    mods = RS_WORLD / "worldmods"
+    mods.mkdir(parents=True)
+    shutil.copytree(REPO / "goanna_server_mod", mods / "goanna_server_mod")
+    probe = mods / "director_ruleset_probe"
+    probe.mkdir()
+    (probe / "mod.conf").write_text("name = director_ruleset_probe\n"
+                                    "optional_depends = goanna_server_mod\n")
+    (probe / "init.lua").write_text(PROBE_MOD)
+    (RS_WORLD / "world.mt").write_text(
+        "gameid = %s\nworld_name = goanna_director_ruleset_test\nbackend = sqlite3\n"
+        "player_backend = sqlite3\nauth_backend = sqlite3\nmod_storage_backend = sqlite3\n"
+        "creative_mode = false\nenable_damage = false\n" % GAME)
+    (RS_WORLD / "goanna_director.conf").write_text("url = http://127.0.0.1:%d\n" % RS_HTTP_PORT)
+    conf = RS_WORLD / "director_test.conf"
+    conf.write_text("\n".join([
+        "name = alice",
+        "default_privs = interact, shout, give, teleport",
+        "enable_damage = false",
+        "mg_name = v7",
+        "fixed_map_seed = 20261001",
+        "mobs_spawn = false",
+        "time_speed = 0",
+        "world_start_time = 6000",
+        "goanna_director = %s" % ("true" if director_on else "false"),
+        "goanna_director_join_grace = 0",
+        "",
+    ]))
+    return conf
+
+
+def start_ruleset_server(conf):
+    log = RS_WORLD / "server.log"
+    proc = subprocess.Popen(
+        ["flatpak", "run", "--command=luanti", "org.luanti.luanti", "--server",
+         "--world", str(RS_WORLD), "--gameid", GAME, "--port", str(RS_SERVER_PORT),
+         "--config", str(conf), "--logfile", str(log)],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+    return proc, log
+
+
+def ruleset_main(argv):
+    keep = "--keep" in argv
+    software = "--gpu" not in argv
+    if not gh.port_free(RS_CONTROL):
+        print("control port %d is in use" % RS_CONTROL)
+        return 1
+    server = mcp = None
+    alice = None
+    try:
+        # With the director off, the hook table does not exist, and a mod
+        # that checks for it loads unchanged.
+        conf = make_ruleset_world(False)
+        server, log = start_ruleset_server(conf)
+        check(wait_log(log, "[probe] goanna_director present = false", 120),
+              "with the director off, goanna_director is absent")
+        stop_server(server)
+        server = None
+
+        conf = make_ruleset_world(True)
+        server, log = start_ruleset_server(conf)
+        check(wait_log(log, "[goanna director] on, session", 120), "the director starts")
+        text = log.read_text(errors="replace")
+        version = re.search(r"Luanti \S+|Minetest \S+", text)
+        note("server", version.group(0) if version else "?")
+        check("[probe] goanna_director present = true" in text, "with it on, the table exists")
+        check("[probe] ruleset named director: false" in text,
+              "a ruleset named director is refused")
+        check("[probe] intent named speak: false" in text and "already taken" in text,
+              "an intent that takes a built in name is refused")
+        check("[probe] ruleset probe: true" in text
+              and "ruleset probe registered by director_ruleset_probe" in text,
+              "the probe ruleset is registered", text[-2000:])
+
+        mcp = Mcp(RS_WORLD)
+        first = set(mcp.tools)
+        check(wait_log(log, "a director connected through", 30)
+              or wait_log(log, "a director answered at", 5), "the server reaches the service")
+        deadline = time.time() + 30
+        tools = first
+        while time.time() < deadline:
+            tools = {t["name"] for t in mcp.rpc("tools/list")["tools"]}
+            if "probe_mark" in tools:
+                break
+            time.sleep(1)
+        check({"probe_mark", "probe_ring", "probe_tally"} <= tools,
+              "the hello's ruleset becomes tools: probe_mark, probe_ring, probe_tally", tools)
+        check("probe_mark" in first or "notifications/tools/list_changed" in mcp.notices,
+              "the MCP client is told the tool list changed", mcp.notices)
+        listed = {t["name"]: t for t in mcp.rpc("tools/list")["tools"]}
+        schema = listed.get("probe_mark", {}).get("inputSchema", {})
+        check(set(schema.get("required", [])) == {"at", "label", "reason"}
+              and schema.get("properties", {}).get("label", {}).get("maxLength") == 20,
+              "its schema is the ruleset's, with reason added", schema)
+        check(len([n for n in listed if n.startswith("director_")]) == 17,
+              "the 17 fixed tools are still there", sorted(listed))
+        brief = mcp.call("director_status")
+        check((brief.get("rulesets") or {}).get("probe", "").startswith("A test ruleset"),
+              "the brief names the ruleset", brief)
+        r = mcp.call("probe_tally")
+        check(r.get("marks") == 0 and r.get("connected") is True and r.get("stops") == 0,
+              "probe_tally answers through the generated query tool, connected() true", r)
+
+        # A player, for loaded ground, chat and speech.
+        alice = gh.start_goanna(REPO, control_port=RS_CONTROL, host="127.0.0.1",
+                                port=RS_SERVER_PORT, name="alice", software=software,
+                                label="director ruleset test alice")
+        check(wait_log(log, "alice [", 90), "alice joins")
+        time.sleep(4)
+        drain(mcp)
+        summary = mcp.call("director_player", player="alice")
+        pos = summary.get("pos")
+        check(pos is not None, "alice's position", summary)
+        pos = pos or [0, 10, 0]
+        at = [round(pos[0]) + 2, round(pos[1]) + 1, round(pos[2])]
+        before = mcp.call("probe_tally", at=at).get("node")
+        r = mcp.call("probe_tally")
+        check(r.get("pacing") == "build_up" and r.get("opted_out") is False
+              and r.get("nobody") is None,
+              "pacing(alice) and opted_out(alice) read; an unseen player is unknown", r)
+
+        m1 = mcp.call("probe_mark", at=at, label="first", big=True, player="alice",
+                      reason="test: a ruleset intent")
+        check(m1.get("status") == "completed" and m1.get("marked") ==
+              "director_ruleset_probe:marker" and m1.get("cost") == 3
+              and m1.get("points_left") == 2 and m1.get("undoable") and m1.get("ruleset") == "probe",
+              "probe_mark applies, charged 3 of the ruleset's 5 points, undoable", m1)
+        check(isinstance(m1.get("seq"), int) and m1["seq"] > 0, "emit returns the sequence number",
+              m1)
+        ev, _ = events_of(mcp, "probe_marked", 10)
+        check(ev is not None and ev.get("seq") == m1.get("seq"),
+              "the ruleset's event arrives with that sequence", ev)
+        check(mcp.call("probe_tally", at=at).get("node") == "director_ruleset_probe:marker",
+              "the node is in the world")
+        r = mcp.call("probe_mark", at=at, label="again", big=True, reason="test: over budget")
+        check(r.get("status") == "refused" and r.get("reason") == "budget"
+              and r.get("points_left") == 2, "past the ruleset's hourly points: budget", r)
+        r = mcp.call("probe_mark", at=at, label="forbidden", reason="test: rules")
+        check(r.get("status") == "refused" and r.get("reason") == "rules"
+              and r.get("rule") == "bad_label", "the ruleset's rule refuses, in its own words", r)
+        r = mcp.call("probe_mark", at=at, reason="test: schema")
+        check(r.get("status") == "refused" and r.get("reason") == "schema"
+              and "label" in str(r.get("detail")), "a missing argument: schema", r)
+        r = mcp.call("probe_mark", at=at, label="x" * 30, reason="test: schema")
+        check(r.get("reason") == "schema" and "longer than 20" in str(r.get("detail")),
+              "too long an argument: schema", r)
+        r = mcp.call("probe_mark", at=[25000, 10, 25000], label="far", reason="test: place")
+        check(r.get("status") == "refused" and r.get("reason") == "not_loaded",
+              "an unloaded place is refused", r)
+        r = mcp.call("probe_mark", at=at, label="ghost", player="nobody_seen",
+                     reason="test: unknown player")
+        note("mark about an unseen player:", r.get("status"), r.get("reason"))
+        r = mcp.call("probe_tally", at="here")
+        check(r.get("status") == "error" and r.get("reason") == "schema",
+              "a query with a bad argument: schema", r)
+        rung = mcp.call("probe_ring", player="alice", reason="test: paced intent in a build up")
+        check(rung.get("status") == "accepted" and rung.get("rang"),
+              "a paced intent runs at once in a build up", rung)
+        u = mcp.call("director_undo", id=m1.get("id"), reason="test: undo a ruleset act")
+        check(u.get("status") == "undone" and u.get("restored") == before,
+              "director_undo runs the ruleset's undo", u)
+        check(mcp.call("probe_tally", at=at).get("node") == before, "the node is back", before)
+
+        # Chat addressed to the ruleset's own character.
+        say(RS_CONTROL, "Warden, open the gate")
+        ev, _ = events_of(mcp, "npc_addressed", 10)
+        data = (ev or {}).get("data") or {}
+        check(ev is not None and data.get("npc") == "Warden" and data.get("post") == "gate"
+              and data.get("ruleset") == "probe" and "player:alice" in ev.get("who", []),
+              "a line addressed to the Warden reaches the model as npc_addressed", ev)
+        say(RS_CONTROL, "wardens are boring")
+        ev, _ = events_of(mcp, "player_chat", 10, lambda e: "boring" in json.dumps(e))
+        check(ev is not None, "a line that does not address it stays ordinary chat", ev)
+
+        # Speaking for a character the director did not cast.
+        r = mcp.call("director_speak", **{"as": "Warden", "to": "alice",
+                                           "text": "The gate is \x1b(c@#ff0000)shut tonight."})
+        check(r.get("status") == "completed" and r.get("delivered") == ["alice"]
+              and r.get("ruleset") == "probe", "speak as the ruleset's Warden, from afar", r)
+        line = wait_chat(RS_CONTROL, "Warden of the Gate (NPC):", 10)
+        check(line is not None and "shut tonight" in line, "alice reads it, attributed", line)
+        spoken = mcp.call("probe_tally").get("spoken") or []
+        check(spoken and "\x1b" not in spoken[-1] and "shut tonight" in spoken[-1],
+              "the escape is stripped before the ruleset or the player sees it", spoken)
+        r = mcp.call("director_speak", **{"as": "Warden", "to": "alice",
+                                           "text": "We have 7 guards."})
+        check(r.get("reason") == "rules" and r.get("rule") == "not_known",
+              "the ruleset's speech check refuses a line", r)
+        r = mcp.call("director_speak", **{"as": "Mimic", "to": "alice", "text": "Hello."})
+        check(r.get("reason") == "name_taken", "a ruleset speaker may not take a player's name", r)
+        r = mcp.call("director_speak", **{"as": "Nobody", "to": "alice", "text": "Hello."})
+        check(r.get("reason") == "unknown_speaker", "a name no ruleset knows is unknown", r)
+        rated = None
+        for i in range(8):
+            r = mcp.call("director_speak", **{"as": "Warden", "to": "alice",
+                                               "text": "Line %s." % chr(65 + i)})
+            if r.get("status") == "refused":
+                rated = r
+                break
+        check(rated is not None and rated.get("reason") == "rate",
+              "the speech rate limit applies to a ruleset speaker", rated)
+
+        # Stop calls on_stop and refuses ruleset intents; start lifts it.
+        st = mcp.call("director_stop", reason="test: stop")
+        check(st.get("status") == "completed", "director_stop", st)
+        r = mcp.call("probe_tally")
+        check(r.get("stops") == 1 and r.get("connected") is False,
+              "on_stop was called, and connected() is false while stopped", r)
+        r = mcp.call("probe_mark", at=at, label="stopped", reason="test: while stopped")
+        check(r.get("reason") == "stopped", "a ruleset intent is refused while stopped", r)
+        say(RS_CONTROL, "/director start")
+        time.sleep(1)
+        check(mcp.call("probe_tally").get("connected") is True, "/director start")
+
+        time.sleep(2)
+        audit = list((RS_WORLD / "goanna_director").glob("audit-*.jsonl"))
+        lines = [json.loads(l) for l in audit[0].read_text().splitlines()] if audit else []
+        marks = [l for l in lines if l.get("type") == "mark"]
+        check(any(l.get("outcome") == "completed" and l.get("undo") for l in marks)
+              and any(l.get("refusal") == "rules" for l in marks),
+              "the audit log has the ruleset's intents with outcome and undo", marks[:3])
+        log_text = log.read_text(errors="replace")
+        problems = [l for l in log_text.splitlines()
+                    if "goanna director" in l and ("WARNING" in l or "ERROR" in l)
+                    and "refused:" not in l]
+        check(not problems, "no unexpected director warnings or errors", problems[:5])
+    finally:
+        if alice:
+            try:
+                gh.stop(alice["id"])
+            except Exception as exc:                       # noqa: BLE001
+                print("could not stop alice", exc)
+        if server:
+            stop_server(server)
+        if mcp:
+            mcp.close()
+        if not keep:
+            shutil.rmtree(RS_WORLD, ignore_errors=True)
+            try:
+                os.remove(str(RS_WORLD) + ".mcp.log")
+            except OSError:
+                pass
+    failed = sum(1 for ok, _ in results if not ok)
+    print("%d checks, %d failed" % (len(results), failed))
+    return failed
+
+
 def gh_conf(world):
     out = {}
     for line in (world / "goanna_director.conf").read_text().splitlines():
@@ -671,4 +1055,4 @@ def gh_conf(world):
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv))
+    sys.exit(ruleset_main(sys.argv) if "--ruleset" in sys.argv else main(sys.argv))

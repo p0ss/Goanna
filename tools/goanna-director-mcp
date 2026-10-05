@@ -36,6 +36,7 @@ import http.server
 import json
 import os
 import pathlib
+import re
 import sys
 import threading
 import time
@@ -90,6 +91,10 @@ class Director:
         self.waiting = set()
         self.last_contact = 0.0
         self.catalogue_cache = {}
+        # Tools made from the rulesets the hello advertises (ruleset_tools),
+        # and who to tell when that list changes.
+        self.generated = {}
+        self.on_tools_changed = None
         # The file transport, when the server uses it (FileLink below).
         self.link = None
         # Message ids are this process's own. A server that last pulled
@@ -167,6 +172,13 @@ class Director:
             self.last_seq = max(self.last_seq, delivered)
         self.known_session = session
         self.hello = body
+        generated = ruleset_tools(body)
+        changed = sorted(generated) != sorted(self.generated)
+        self.generated = generated
+        if changed:
+            log("ruleset tools:", ", ".join(sorted(generated)) or "none")
+            if self.on_tools_changed:
+                self.on_tools_changed()
 
     def take(self, after, session, wait, instance=""):
         deadline = time.time() + max(0.0, min(wait, 25.0))
@@ -606,9 +618,86 @@ ROLES = {
 }
 
 
-def tools_for(role):
+# A ruleset's tools by role: the game master gets them all, a watcher only
+# a ruleset's queries, a voice none.
+RULESET_KINDS = {"gm": {"act", "query"}, "voice": set(), "watcher": {"query"}}
+TOOL_NAME = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
+FIXED_NAMES = {t["name"] for t in TOOLS}
+
+
+def plain_schema(value):
+    """A ruleset's schema as JSON Schema. Luanti writes an empty Lua table as
+    null, so empty properties, required and enum lists come back here as
+    null and are restored."""
+    if isinstance(value, list):
+        return [plain_schema(v) for v in value]
+    if not isinstance(value, dict):
+        return value
+    out = {}
+    for key, v in value.items():
+        if key == "properties":
+            v = {k: plain_schema(p) for k, p in (v or {}).items()} if isinstance(v, dict) else {}
+        elif key in ("required", "enum"):
+            v = list(v) if isinstance(v, list) else []
+        else:
+            v = plain_schema(v)
+        out[key] = v
+    if out.get("type") == "object":
+        out.setdefault("properties", {})
+    if "required" in out and not out["required"]:
+        del out["required"]
+    return out
+
+
+def ruleset_tools(hello):
+    """One tool per ruleset intent and query in the hello, named
+    <ruleset>_<name>, with the ruleset's own description and schema. The
+    server mod checks every argument against the same schema again."""
+    rulesets = ((hello or {}).get("capabilities") or {}).get("rulesets")
+    out = {}
+    if not isinstance(rulesets, dict):
+        return out
+    for rs_name in sorted(rulesets):
+        rs = rulesets[rs_name] if isinstance(rulesets[rs_name], dict) else {}
+        for kind, key in (("act", "intents"), ("query", "queries")):
+            entries = rs.get(key)
+            if not isinstance(entries, dict):
+                continue
+            for name in sorted(entries):
+                e = entries[name] if isinstance(entries[name], dict) else {}
+                tool = "%s_%s" % (rs_name, name)
+                if not TOOL_NAME.match(tool) or tool in FIXED_NAMES or tool in out:
+                    log("ruleset tool %r skipped: its name is not usable" % tool)
+                    continue
+                schema = plain_schema(e.get("schema") or {})
+                schema["type"] = "object"
+                schema.setdefault("properties", {})
+                desc = (e.get("description") or "").strip()
+                if kind == "act":
+                    schema["properties"]["reason"] = REASON
+                    schema["required"] = sorted(set(schema.get("required") or []) | {"reason"})
+                    desc = ("%s The %s ruleset decides; a refusal names its reason (rules "
+                            "with the ruleset's own rule)." % (desc, rs_name)).strip()
+                    if e.get("paced"):
+                        desc += (" Paced: waits for the build up of every player it concerns "
+                                 "(when: now refuses instead).")
+                    if e.get("undoable"):
+                        desc += " director_undo can reverse it."
+                else:
+                    desc = ("%s A question to the %s ruleset; changes nothing."
+                            % (desc, rs_name)).strip()
+                out[tool] = {"kind": kind, "type": name, "ruleset": rs_name,
+                             "follow_up": e.get("follow_up"),
+                             "tool": {"name": tool, "description": desc, "inputSchema": schema}}
+    return out
+
+
+def tools_for(role, director=None):
     allowed = ROLES[role]
-    return [t for t in TOOLS if allowed is None or t["name"] in allowed]
+    fixed = [t for t in TOOLS if allowed is None or t["name"] in allowed]
+    kinds = RULESET_KINDS[role]
+    generated = (director.generated if director else {}) or {}
+    return fixed + [g["tool"] for _, g in sorted(generated.items()) if g["kind"] in kinds]
 
 
 # tool -> (intent, {tool argument: intent argument}, fixed intent arguments)
@@ -693,6 +782,9 @@ def brief(director):
         "encounters_live": len(s.get("encounters") or []),
         "queued": len(s.get("queued") or []),
         "catalogue": s.get("catalogue"),
+        "rulesets": {name: (rs or {}).get("description")
+                     for name, rs in ((caps.get("rulesets") or {}) if isinstance(
+                         caps.get("rulesets"), dict) else {}).items()},
         "events_waiting": sum(1 for e in director.events
                               if int(e.get("seq", 0)) > director.model_seq),
     })
@@ -701,6 +793,21 @@ def brief(director):
 
 def call_tool(director, name, args, role="gm"):
     allowed = ROLES[role]
+    gen = director.generated.get(name)
+    if gen is not None:
+        if gen["kind"] not in RULESET_KINDS[role]:
+            raise ToolError("'%s' is not a tool of the %s role" % (name, role))
+        if gen["kind"] == "query":
+            body = director.request("query", gen["type"], args)
+            if body.get("status") != "ok":
+                return body
+            return body.get("body")
+        payload = {k: v for k, v in args.items() if k != "reason"}
+        body = director.request("act", gen["type"], payload, reason=args.get("reason"))
+        if isinstance(body, dict) and gen.get("follow_up") and \
+                body.get("status") in ("accepted", "queued"):
+            body = dict(body, follow_up={"event": gen["follow_up"], "act": body.get("id")})
+        return body
     if allowed is not None and name not in allowed:
         raise ToolError("'%s' is not a tool of the %s role" % (name, role))
     if name == "director_status":
@@ -751,7 +858,11 @@ director_undo can reverse.
 
 Words mean the same in every tool: npc is the character who acts, player is whom it
 concerns, target is whom an act is aimed at, at is a point [x, y, z], and near with
-distance means find a place near that player."""
+distance means find a place near that player.
+
+Tools named <ruleset>_<name> belong to the game's own rulesets, listed in the brief: they
+follow that game's rules, which say more than the director's own tools can. The list can
+grow when a server connects; it is announced when it does."""
 
 INSTRUCTIONS = {
     "gm": GM_INSTRUCTIONS,
@@ -766,14 +877,22 @@ player, and director_catalogue to name what you see.""",
 }
 
 
+STDOUT = threading.Lock()
+
+
+def write_message(msg):
+    with STDOUT:
+        sys.stdout.write(json.dumps(msg) + "\n")
+        sys.stdout.flush()
+
+
 def reply(msg_id, result=None, error=None):
     msg = {"jsonrpc": "2.0", "id": msg_id}
     if error is not None:
         msg["error"] = error
     else:
         msg["result"] = result
-    sys.stdout.write(json.dumps(msg) + "\n")
-    sys.stdout.flush()
+    write_message(msg)
 
 
 def parse_args(argv):
@@ -809,6 +928,14 @@ def main(argv):
     # decides which it uses. Files need only the world folder.
     if world:
         director.link = FileLink(director, world)
+    # A ruleset's tools appear with the server's hello, after the MCP client
+    # has listed the tools, so the client is told to list them again.
+    initialised = threading.Event()
+
+    def tools_changed():
+        if initialised.is_set():
+            write_message({"jsonrpc": "2.0", "method": "notifications/tools/list_changed"})
+    director.on_tools_changed = tools_changed
     server = None
     try:
         server = http.server.ThreadingHTTPServer(("127.0.0.1", port), make_handler(director))
@@ -836,12 +963,15 @@ def main(argv):
             asked = params.get("protocolVersion")
             reply(msg_id, {
                 "protocolVersion": asked if asked in KNOWN_PROTOCOLS else PROTOCOL,
-                "capabilities": {"tools": {}},
+                "capabilities": {"tools": {"listChanged": True}},
                 "serverInfo": {"name": "goanna-director", "version": "0.2.0"},
                 "instructions": INSTRUCTIONS[role],
             })
+        elif method == "notifications/initialized":
+            initialised.set()
         elif method == "tools/list":
-            reply(msg_id, {"tools": tools_for(role)})
+            initialised.set()
+            reply(msg_id, {"tools": tools_for(role, director)})
         elif method == "tools/call":
             name = params.get("name", "")
             args = params.get("arguments") or {}
