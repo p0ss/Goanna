@@ -129,7 +129,11 @@
         "grass_interactors": 8,
         "grass_antialiasing": 3,
         "lamp_shadow_distance": 64,
-        "lamp_occlusion": 0
+        "lamp_occlusion": 0,
+        "mat_hair_shader": 1,
+        "mat_parallax_short": 0,
+        "mat_micro_shadow": 0,
+        "render_ssr": 1
       }
     },
     {
@@ -177,7 +181,11 @@
         "grass_interactors": 4,
         "grass_antialiasing": 2,
         "lamp_shadow_distance": 48,
-        "lamp_occlusion": 0
+        "lamp_occlusion": 0,
+        "mat_hair_shader": 1,
+        "mat_parallax_short": 0,
+        "mat_micro_shadow": 0,
+        "render_ssr": 1
       }
     },
     {
@@ -225,7 +233,11 @@
         "grass_interactors": 2,
         "grass_antialiasing": 2,
         "lamp_shadow_distance": 32,
-        "lamp_occlusion": 0
+        "lamp_occlusion": 0,
+        "mat_hair_shader": 1,
+        "mat_parallax_short": 0,
+        "mat_micro_shadow": 0,
+        "render_ssr": 0
       }
     },
     {
@@ -273,7 +285,11 @@
         "grass_interactors": 1,
         "grass_antialiasing": 1,
         "lamp_shadow_distance": 24,
-        "lamp_occlusion": 0
+        "lamp_occlusion": 0,
+        "mat_hair_shader": 0,
+        "mat_parallax_short": 0,
+        "mat_micro_shadow": 0,
+        "render_ssr": 0
       }
     },
     {
@@ -321,7 +337,11 @@
         "grass_interactors": 0,
         "grass_antialiasing": 0,
         "lamp_shadow_distance": 16,
-        "lamp_occlusion": 0
+        "lamp_occlusion": 0,
+        "mat_hair_shader": 0,
+        "mat_parallax_short": 0,
+        "mat_micro_shadow": 0,
+        "render_ssr": 0
       }
     }
   ],
