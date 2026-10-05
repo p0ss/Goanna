@@ -61,3 +61,99 @@ headless and later software rendered clients under gamescope) were on the
 GPU throughout, often two at once. Three starts were refused by the
 launcher when a client arrived during the server's start. The hold was
 then stopped. No frame was taken and nothing was timed.
+
+## First GPU frames and the fix, 2026-10-06
+
+The fixture above was never run. The material was first drawn by the
+render service (`tools/goanna-render`, docs/agent-interfaces.md) on its own
+stage: RTX 3090, NVIDIA driver, Godot 4.5.1, Luanti 5.17.0 server,
+Mineclonia release 38561, tier High, 1280 by 720. That job and the review
+of it are in
+[render-backlog-2026-10-06](../render-backlog-2026-10-06/README.md). It
+showed two defects with the flame material on, by day and at night: a band
+of dark, noisy pixels in the air above a fire on netherrack and above the
+fire in front of water, and cyan and green speckle over the far rows of the
+nine by nine field.
+
+### Cause
+
+Both came from the heat shimmer, then part of `flame_glow.gdshader`. A job
+with `render_fire_shimmer` on and off, on the same unfixed build, showed
+both defects with it on and neither with it off, day and night.
+
+The shimmer adds the difference between the opaque screen at a displaced
+point and at the pixel, `bent - here`, with additive blending. That is right
+once. But every flame quad added its own: Luanti draws a firelike node as
+six quads (four sides and two diagonals), all stretched 0.6 nodes up for
+the shimmer, and the field stacks dozens of quads behind each far pixel.
+With n layers the pixel became `here + n * (bent - here)`, each with its
+own waves. Where the scene behind was bright and the bent read was dark
+(the edges of the wall and the pool), that went below black: the dark band.
+Where only the red channel fell (netherrack against sky and stone), red
+went under while green and blue rose: the cyan and green speckle.
+
+### Fix
+
+The shimmer is its own pass now, `flame_shimmer.gdshader`, the next pass of
+the halo pass. It uses the stencil buffer (`stencil_mode read, write,
+compare_not_equal, 7`): a pixel takes the shimmer of the first layer drawn
+there and no other, and fragments the shimmer does not reach are discarded
+before they claim the stencil. The halo stays in `flame_glow.gdshader`,
+unstretched; it is never negative, so overlapping halos only add. With the
+shimmer off, the shimmer quads collapse to a point in the vertex shader.
+
+### Soul fire and the burning zombie
+
+- **Soul fire** never stayed placed because Mineclonia's own
+  `mcl_blackstone:soul_fire` `on_construct` turns itself into air when the
+  node under it is in group `soul_block`, which soul soil is: a soul fire
+  set on soul soil with `set_node` removes itself. The job places it with
+  `swap: true`, so no constructor runs, and it stayed for the whole job.
+- **The burning zombie** was burning all along. A probe in the job logged
+  the held zombie's `burn_time` at 1000000 and one `mcl_burning:fire`
+  entity attached to it every two seconds. The flame was drawn, but inside
+  the zombie's legs: Goanna did not scale an attached object by its
+  parent's `visual_size`, where upstream parents the child's scene node to
+  the parent's mesh node and so scales both the offset and the child.
+  `mcl_burning` divides the flame's size by the zombie's `visual_size` of 3
+  to allow for that, so in Goanna it was a third of its height. Goanna now
+  scales the offset and the child by a mesh parent's `visual_size` for an
+  attachment without a bone, as upstream does. The flame now stands the
+  zombie's height. It is one plane through the zombie's middle, as upstream
+  draws it, so from the front the body hides most of it and it shows beside
+  the legs and above the head.
+
+### Frames
+
+`fixed-job.json` is the job. Each row of the sheets is one pose; the
+columns are the old flame (`GOANNA_FLAME_MATERIAL=0`), the flame material
+before the fix (the branch's first commit, built in its own worktree) and
+after it. The burning zombie's flame shows only in the old and fixed
+columns, because the entity fix is not in the unfixed build.
+
+- [fixed-day.jpg](fixed-day.jpg), time 0.5
+- [fixed-night.jpg](fixed-night.jpg), time 0.0
+
+Full frames: `~/.local/share/goanna-pbr-audit/fire-fix-2026-10-06/2-fixed/`
+on the owner's machine, and the on and off diagnosis in `1-diag/` beside
+it. Neither job logged a shader error.
+
+### Timing
+
+Back to back `force_draw` bursts of 600 draws, 6 rounds, median of per draw
+GPU time, milliseconds, with the range of the round medians:
+
+| Variant | field | row |
+| --- | --- | --- |
+| old flame, day | 4.89 (4.87 to 5.01) | 4.91 (4.82 to 4.95) |
+| old flame, night | 4.88 (4.87 to 5.02) | 4.85 (4.80 to 4.91) |
+| unfixed, day | 5.56 (5.51 to 5.69) | 4.89 (4.87 to 4.91) |
+| unfixed, night | 5.52 (5.51 to 5.59) | 4.86 (4.85 to 4.89) |
+| fixed, day | 5.54 (5.45 to 5.62) | 4.86 (4.84 to 5.00) |
+| fixed, night | 5.51 (5.44 to 5.58) | 4.84 (4.83 to 5.00) |
+| fixed, day, shimmer off | 5.42 (5.37 to 5.58) | 4.85 (4.81 to 4.92) |
+
+The fix does not change the cost: the field still costs about 0.6 ms more
+than the old flame, fixed or not, and the ranges overlap. Turning the
+shimmer off saves about 0.1 ms of it; the rest is the blended flame and
+halo passes over 81 fires. On the row pose the three are within noise.

@@ -1,0 +1,374 @@
+{
+ "label": "fire fixed: old flame, unfixed and fixed flame material, day and night",
+ "out": "/home/poss/.local/share/goanna-pbr-audit/fire-fix-2026-10-06/2-fixed",
+ "build": "/var/home/poss/Documents/Code/Godot/goanna/.claude/worktrees/agent-aa3cc625b0a2a8e6d",
+ "pack": "/home/poss/.local/share/goanna-pbr-audit/render-backlog-2026-10-06/packs/main/textures",
+ "anchor": [
+  -1,
+  2,
+  -1
+ ],
+ "nodes": [
+  {
+   "pos": [
+    -11,
+    0,
+    4
+   ],
+   "node": "mcl_campfires:campfire_lit"
+  },
+  {
+   "pos": [
+    -8,
+    0,
+    4
+   ],
+   "node": "mcl_nether:netherrack"
+  },
+  {
+   "pos": [
+    -8,
+    1,
+    4
+   ],
+   "node": "mcl_fire:eternal_fire"
+  },
+  {
+   "pos": [
+    -5,
+    0,
+    4
+   ],
+   "node": "mcl_blackstone:soul_soil"
+  },
+  {
+   "pos": [
+    -5,
+    1,
+    4
+   ],
+   "node": "mcl_blackstone:soul_fire",
+   "swap": true
+  },
+  {
+   "pos": [
+    -2,
+    0,
+    4
+   ],
+   "node": "mcl_candles:candle_lit_4"
+  },
+  {
+   "box": [
+    [
+     -12,
+     0,
+     8
+    ],
+    [
+     -6,
+     0,
+     12
+    ]
+   ],
+   "node": "mcl_core:stone"
+  },
+  {
+   "box": [
+    [
+     -11,
+     0,
+     9
+    ],
+    [
+     -7,
+     0,
+     11
+    ]
+   ],
+   "node": "mcl_core:water_source"
+  },
+  {
+   "pos": [
+    -9,
+    0,
+    7
+   ],
+   "node": "mcl_nether:netherrack"
+  },
+  {
+   "pos": [
+    -9,
+    1,
+    7
+   ],
+   "node": "mcl_fire:eternal_fire"
+  },
+  {
+   "box": [
+    [
+     -3,
+     0,
+     8
+    ],
+    [
+     0,
+     2,
+     8
+    ]
+   ],
+   "node": "mcl_core:glass"
+  },
+  {
+   "pos": [
+    -2,
+    0,
+    9
+   ],
+   "node": "mcl_nether:netherrack"
+  },
+  {
+   "pos": [
+    -2,
+    1,
+    9
+   ],
+   "node": "mcl_fire:eternal_fire"
+  },
+  {
+   "pos": [
+    1,
+    0,
+    8
+   ],
+   "node": "mcl_nether:netherrack"
+  },
+  {
+   "pos": [
+    1,
+    1,
+    8
+   ],
+   "node": "mcl_fire:eternal_fire"
+  },
+  {
+   "box": [
+    [
+     7,
+     0,
+     0
+    ],
+    [
+     15,
+     0,
+     8
+    ]
+   ],
+   "node": "mcl_nether:netherrack"
+  },
+  {
+   "box": [
+    [
+     7,
+     1,
+     0
+    ],
+    [
+     15,
+     1,
+     8
+    ]
+   ],
+   "node": "mcl_fire:eternal_fire"
+  }
+ ],
+ "statues": [
+  {
+   "entity": "mobs_mc:zombie",
+   "pos": [
+    1,
+    -0.5,
+    4
+   ],
+   "yaw": 180,
+   "burn": true
+  }
+ ],
+ "poses": [
+  {
+   "name": "row",
+   "pos": [
+    -6.5,
+    1.7999999999999998,
+    -1.5
+   ],
+   "look_at": [
+    -6.5,
+    0.6000000000000001,
+    4
+   ],
+   "fov": 70
+  },
+  {
+   "name": "campfire",
+   "pos": [
+    -11,
+    1.4,
+    2.0
+   ],
+   "look_at": [
+    -11,
+    0.3999999999999999,
+    4
+   ],
+   "fov": 55
+  },
+  {
+   "name": "netherrack_fire",
+   "pos": [
+    -8,
+    1.6,
+    2.0
+   ],
+   "look_at": [
+    -8,
+    1.0,
+    4
+   ],
+   "fov": 55
+  },
+  {
+   "name": "soul_fire",
+   "pos": [
+    -5,
+    1.6,
+    2.0
+   ],
+   "look_at": [
+    -5,
+    1.0,
+    4
+   ],
+   "fov": 55
+  },
+  {
+   "name": "candle",
+   "pos": [
+    -2,
+    0.8999999999999999,
+    2.6
+   ],
+   "look_at": [
+    -2,
+    0.30000000000000004,
+    4
+   ],
+   "fov": 50
+  },
+  {
+   "name": "burning_zombie",
+   "pos": [
+    2.1999999999999993,
+    1.4,
+    1.0
+   ],
+   "look_at": [
+    1.4000000000000004,
+    0.8999999999999999,
+    4
+   ],
+   "fov": 60
+  },
+  {
+   "name": "fire_before_water",
+   "pos": [
+    -9,
+    1.6,
+    4.6
+   ],
+   "look_at": [
+    -9,
+    0.8,
+    9
+   ],
+   "fov": 60
+  },
+  {
+   "name": "fire_and_glass",
+   "pos": [
+    -1,
+    1.6,
+    5.2
+   ],
+   "look_at": [
+    -0.5,
+    1.0,
+    8.5
+   ],
+   "fov": 60
+  },
+  {
+   "name": "field",
+   "pos": [
+    11,
+    1.7999999999999998,
+    -2.2
+   ],
+   "look_at": [
+    11,
+    1.0,
+    3
+   ],
+   "fov": 70
+  }
+ ],
+ "variants": [
+  {
+   "name": "old_day",
+   "env": {
+    "GOANNA_FLAME_MATERIAL": "0"
+   },
+   "time": 0.5
+  },
+  {
+   "name": "old_night",
+   "env": {
+    "GOANNA_FLAME_MATERIAL": "0"
+   },
+   "time": 0.0
+  },
+  {
+   "name": "unfixed_day",
+   "build": "/var/home/poss/Documents/Code/Godot/goanna/.claude/worktrees/agent-ac8b380916d204a08",
+   "time": 0.5
+  },
+  {
+   "name": "unfixed_night",
+   "build": "/var/home/poss/Documents/Code/Godot/goanna/.claude/worktrees/agent-ac8b380916d204a08",
+   "time": 0.0
+  },
+  {
+   "name": "new_day",
+   "time": 0.5
+  },
+  {
+   "name": "new_night",
+   "time": 0.0
+  },
+  {
+   "name": "new_day_noshimmer",
+   "time": 0.5,
+   "profile": {
+    "render_fire_shimmer": 0
+   }
+  }
+ ],
+ "timing": {
+  "rounds": 6,
+  "burst": 600,
+  "poses": [
+   "field",
+   "row"
+  ]
+ }
+}
