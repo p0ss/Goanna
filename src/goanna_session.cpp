@@ -2188,11 +2188,18 @@ bool GoannaSession::prepareContentIfReady() {
     // identifies both whether it was imported and which cobble source won.
     // Craft and Ruin's default_cobble is 16x16; Goanna's bundled Mineclonia
     // material is 256x256, making the result an unambiguous runtime probe.
+    // 1c. The texture resolution tier: anything inserted before its art was
+    // known (a companion ahead of its albedo) is held to the cap now.
+    m_tsrc->finishTextureCap();
     core::dimension2du cobble_dim = m_tsrc->getTextureDimensions("default_cobble.png");
+    const GoannaTextureSource::TextureCapStats &cap = m_tsrc->textureCapStats();
     godot::UtilityFunctions::print("Goanna texture pack: path='",
             godot::String::utf8(pack_dir.c_str()), "' native=", (int64_t)n_native,
             " mapped=", (int64_t)n_map, " default_cobble=",
-            (int64_t)cobble_dim.Width, "x", (int64_t)cobble_dim.Height);
+            (int64_t)cobble_dim.Width, "x", (int64_t)cobble_dim.Height,
+            " texture_size=", (int64_t)m_tsrc->textureSize(), " reduced=", (int64_t)cap.reduced,
+            " (", (int64_t)(cap.bytes_before >> 20), " MiB to ", (int64_t)(cap.bytes_after >> 20),
+            " MiB) art_unknown=", (int64_t)cap.unknown);
     // 2. node definitions: same order as Client::afterContentReceived
     {
         std::lock_guard<std::mutex> lk(m_map_mutex);

@@ -9,10 +9,14 @@
 extends RefCounted
 
 # far_distance -1 requests the server grant rather than an explicit cap.
+# texture_size is the texture resolution tier, map pixels per 16 art texels:
+# every albedo and companion over it is reduced when a world's textures are
+# loaded, so a change applies at the next join (docs/graphics-tiers.md).
 # Ultra retains the owner's 48 shadow lamps / 256 pool: reducing that pool
 # previously made village lamps disappear a few buildings away.
 const PROFILES := {
 	"lowest": {
+		"texture_size": 128,
 		"light_sdfgi": 0,
 		"mat_parallax": 0,
 		"mat_hair_shader": 0,
@@ -62,6 +66,7 @@ const PROFILES := {
 		"lamp_shadow_distance": 16,
 	},
 	"low": {
+		"texture_size": 128,
 		"light_sdfgi": 0,
 		"mat_parallax": 1,
 		"mat_hair_shader": 0,
@@ -111,6 +116,7 @@ const PROFILES := {
 		"lamp_shadow_distance": 24,
 	},
 	"medium": {
+		"texture_size": 256,
 		"light_sdfgi": 1.4,
 		"mat_parallax": 1,
 		"mat_hair_shader": 1,
@@ -160,6 +166,7 @@ const PROFILES := {
 		"lamp_shadow_distance": 32,
 	},
 	"high": {
+		"texture_size": 256,
 		"light_sdfgi": 1.4,
 		"mat_parallax": 1,
 		"mat_hair_shader": 1,
@@ -209,6 +216,7 @@ const PROFILES := {
 		"lamp_shadow_distance": 48,
 	},
 	"ultra": {
+		"texture_size": 512,
 		"light_sdfgi": 1.4,
 		"mat_parallax": 1,
 		"mat_hair_shader": 1,
@@ -338,7 +346,7 @@ const STAGES := [
 			"grass_interactors", "grass_antialiasing", "render_grass_aa",
 			"render_grass_interaction", "render_foliage_wind", "solid_ice",
 			"mat_parallax", "mat_parallax_short", "mat_micro_shadow", "mat_hair_shader",
-			"terrain_occlusion"],
+			"terrain_occlusion", "texture_size"],
 	["shadow_lamps", "light_pool", "lamp_shadow_distance", "lamp_occlusion",
 			"render_dynamic_lights", "render_carried_light", "render_sun_shadows",
 			"shadow_detail"],

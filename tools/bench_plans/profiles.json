@@ -87,6 +87,7 @@
     {
       "name": "ultra",
       "set": {
+        "texture_size": 512,
         "view_range": 16.0,
         "lod_distance": 32.0,
         "far_distance": -1.0,
@@ -139,6 +140,7 @@
     {
       "name": "high",
       "set": {
+        "texture_size": 256,
         "view_range": 12.0,
         "lod_distance": 20.0,
         "far_distance": 1024.0,
@@ -191,6 +193,7 @@
     {
       "name": "medium",
       "set": {
+        "texture_size": 256,
         "view_range": 8.0,
         "lod_distance": 12.0,
         "far_distance": 256.0,
@@ -243,6 +246,7 @@
     {
       "name": "low",
       "set": {
+        "texture_size": 128,
         "light_sdfgi": 0.0,
         "mat_parallax": 1,
         "procedural_grass": 0,
@@ -295,6 +299,7 @@
     {
       "name": "lowest",
       "set": {
+        "texture_size": 128,
         "light_sdfgi": 0.0,
         "mat_parallax": 0.0,
         "procedural_grass": 0,

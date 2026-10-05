@@ -304,6 +304,45 @@ public:
     // its bytes are already the preferred local source and need no second
     // filesystem override lookup.
     bool insertLocalImage(const std::string &name, const std::string &bytes);
+    // The two above with the image already decoded (tests insert these).
+    // The source takes its own reference; the caller keeps theirs.
+    void insertMediaImage(const std::string &name, video::IImage *img);
+    void insertLocalImage(const std::string &name, video::IImage *img);
+
+    // The texture resolution tier (goanna_texture_size.h,
+    // docs/graphics-tiers.md): 128, 256 or 512, or 0 for no cap. An albedo
+    // or companion with more than size / 16 map pixels per art texel is
+    // reduced to that as it is inserted, so node arrays, entities and
+    // composed companions all start from the reduced image. The art is the
+    // server's own image of that name (for a companion, of the image it
+    // belongs to), the first one inserted by insertMediaImage, before any
+    // pack replaces it. Set before content is prepared: images already
+    // inserted are not reduced again, and raising it cannot bring back
+    // what a reduction threw away, so a change applies at the next join.
+    void setTextureSize(u32 size) { m_texel_cap.store(texelCapFor(size)); m_texture_size.store(size); }
+    u32 textureSize() const { return m_texture_size.load(); }
+    // Reduces the images inserted before their art was known (a server's
+    // companion that arrived before its albedo). Called once the media and
+    // the pack are all in. An image whose art never arrives is left alone
+    // and counted as unknown.
+    void finishTextureCap();
+    struct TextureCapStats {
+        u32 reduced = 0;    // images brought down to the cap
+        u32 unknown = 0;    // over nothing known: no art of that name
+        u64 bytes_before = 0, bytes_after = 0; // RGBA8 bytes of the reduced ones
+    };
+    const TextureCapStats &textureCapStats() const { return m_cap_stats; }
+    // The relief depth (reliefDepth, as a node tile) a reduced _n had before
+    // it was reduced, which a node array layer uses in place of measuring
+    // the reduced map (goanna_texture_size.h, tileReliefDepth, says why).
+    // False for an image that was not reduced.
+    bool reducedReliefDepth(const std::string &name, float &depth) const {
+        auto it = m_reduced_depth.find(name);
+        if (it == m_reduced_depth.end())
+            return false;
+        depth = it->second;
+        return true;
+    }
     GoannaTexture *goannaTexture(u32 id);
     // The real image name behind a tile: an array texture's own name is not a
     // loadable image, so anything building a texture-modifier string (crack
@@ -380,6 +419,17 @@ public:
     void dropCompanions();
 
 private:
+    static u32 texelCapFor(u32 size) { return size / 16; }
+    // img held to the cap, as a new image the caller drops, or nullptr when
+    // it is within it. Records its art first if it is the first image of
+    // that name (art), and marks it pending when its art is not known yet.
+    video::IImage *capImage(const std::string &name, video::IImage *img, bool art);
+    std::atomic<u32> m_texel_cap{0};
+    std::atomic<u32> m_texture_size{0};
+    std::map<std::string, core::dimension2du> m_art_dims;
+    std::set<std::string> m_cap_pending;
+    std::map<std::string, float> m_reduced_depth;
+    TextureCapStats m_cap_stats;
     const MaterialTable *m_material_table = nullptr;
     float m_relief_strength = 0.35f;
     video::IImage *getOrGenerateImage(const std::string &name);

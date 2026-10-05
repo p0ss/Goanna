@@ -88,6 +88,7 @@ add_library(goanna SHARED
     src/goanna_sky.cpp
     src/goanna_entities.cpp
     src/goanna_overlay_companions.cpp
+    src/goanna_texture_size.cpp
     src/goanna_upright_sprite.cpp
     src/goanna_icon_raster.cpp
     src/goanna_item_icons.cpp
@@ -186,6 +187,13 @@ add_executable(goanna_overlay_companions_test EXCLUDE_FROM_ALL
     src/goanna_overlay_companions.cpp
 )
 target_include_directories(goanna_overlay_companions_test PRIVATE src)
+# The texture resolution tier's reduction: which maps are over the cap, and
+# the filters that bring them to it. The arithmetic links nothing; the cap
+# through the texture source links the extension, like the tile companion
+# test, with no Godot runtime.
+add_executable(goanna_texture_size_test EXCLUDE_FROM_ALL src/goanna_texture_size_test.cpp)
+target_include_directories(goanna_texture_size_test PRIVATE src)
+target_link_libraries(goanna_texture_size_test PRIVATE goanna luanti_core godot::cpp)
 # The upright_sprite object visual's two quads against the vanilla client's.
 # Pure arithmetic, so it links nothing.
 add_executable(goanna_upright_sprite_test EXCLUDE_FROM_ALL
@@ -282,6 +290,7 @@ set(GOANNA_NATIVE_TESTS
     goanna_mesh_pool_test
     goanna_overlay_companions_test
     goanna_shared_cache_test
+    goanna_texture_size_test
     goanna_tile_companion_test
     goanna_mining_cycle_test
     goanna_radial_form_test

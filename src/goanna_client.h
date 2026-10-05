@@ -189,6 +189,19 @@ public:
     bool solid_ice() const;
     void set_texture_map(const godot::String &csv);
     void set_texture_path(const godot::String &path);
+    // The texture resolution tier: 128, 256 or 512 map pixels per 16 art
+    // texels, 0 for no cap (docs/graphics-tiers.md). Every albedo and
+    // companion over it is reduced as it is loaded
+    // (GoannaTextureSource::setTextureSize). It applies to the session's
+    // content when that is prepared, so a change takes effect at the next
+    // join; set_texture_size before connect_to, or before the media finish
+    // arriving, applies to this one. GOANNA_TEXTURE_SIZE pins it for a
+    // scripted run, as GOANNA_AUTO_BUMP pins auto bump.
+    void set_texture_size(int size);
+    int texture_size() const { return m_texture_size; }
+    // What the session's content was prepared with, 0 before then or with
+    // no cap; differs from texture_size() until the next join after a change.
+    int texture_size_applied() const;
     // Holds content preparation (GoannaSession::setContentHold). Before
     // connect_to it is remembered and applied to the session it builds.
     void set_content_hold(bool on);
@@ -1214,6 +1227,8 @@ private:
     // degrees and 0.6 gave about 31, against the 55 the pack gain now targets.
     // 0.95 puts the inference in the same range, so a texture without a normal
     // map stops reading flatter than one beside it that has one.
+    int m_texture_size = 0;
+    bool m_texture_size_pinned = false;
     float m_auto_bump = 0.95f;
     // GOANNA_AUTO_BUMP was set at start: its value holds for the run, and
     // set_auto_bump (a saved profile, the slider) leaves it alone, as the

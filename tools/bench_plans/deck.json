@@ -95,6 +95,7 @@
     {
       "name": "medium",
       "set": {
+        "texture_size": 256,
         "light_sdfgi": 1.4,
         "mat_parallax": 1.0,
         "view_range": 8.0,
@@ -148,6 +149,7 @@
     {
       "name": "low",
       "set": {
+        "texture_size": 128,
         "light_sdfgi": 0.0,
         "mat_parallax": 1,
         "procedural_grass": 0,
@@ -201,6 +203,7 @@
     {
       "name": "lowest",
       "set": {
+        "texture_size": 128,
         "light_sdfgi": 0.0,
         "mat_parallax": 0.0,
         "procedural_grass": 0,

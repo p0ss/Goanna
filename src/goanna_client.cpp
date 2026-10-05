@@ -206,6 +206,11 @@ GoannaClient::GoannaClient() {
         m_auto_bump = std::max(0.0f, (float)atof(ab));
         m_auto_bump_pinned = true;
     }
+    const char *ts = std::getenv("GOANNA_TEXTURE_SIZE");
+    if (ts && *ts) {
+        m_texture_size = std::max(0, atoi(ts));
+        m_texture_size_pinned = true;
+    }
     const char *bv = std::getenv("GOANNA_BEVEL");
     if (bv)
         g_goanna_bevel = (float)atof(bv);
@@ -1274,6 +1279,27 @@ String GoannaClient::texture_path() const {
     return m_texture_path;
 }
 
+void GoannaClient::set_texture_size(int size) {
+    if (m_texture_size_pinned)
+        return;
+    // The tiers are 128, 256 and 512; anything else snaps to the nearest,
+    // and 0 or less is no cap.
+    if (size > 0)
+        size = size < 192 ? 128 : size < 384 ? 256 : 512;
+    else
+        size = 0;
+    m_texture_size = size;
+    // A session whose content is not prepared yet takes it now; one already
+    // drawing keeps what it loaded until the next join.
+    if (m_session && m_session->tsrc() && !m_session->contentPrepared())
+        m_session->tsrc()->setTextureSize((u32)size);
+}
+
+int GoannaClient::texture_size_applied() const {
+    return m_session && m_session->contentPrepared() && m_session->tsrc()
+            ? (int)m_session->tsrc()->textureSize() : 0;
+}
+
 Dictionary GoannaClient::material_diagnostics(const String &texture_name) const {
     Dictionary out;
     out["texture_path"] = m_texture_path;
@@ -1372,8 +1398,10 @@ void GoannaClient::connect_to(const String &host, int port, const String &player
     // player-position packet or the server streams only its 70 degree
     // default and cuts vertical wedges from a wide viewport.
     m_session->cameraFov = m_view_fov;
-    if (m_session->tsrc())
+    if (m_session->tsrc()) {
         m_session->tsrc()->setInferredReliefStrength(m_auto_bump);
+        m_session->tsrc()->setTextureSize((u32)m_texture_size);
+    }
     if (!m_store_root.is_empty())
         m_session->setStoreRoot(std::string(m_store_root.utf8().get_data()));
     m_mesh_pool.stop(); // the outgoing session owns what any job is reading
@@ -8765,6 +8793,9 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("set_texture_path", "path"), &GoannaClient::set_texture_path);
     ClassDB::bind_method(D_METHOD("set_content_hold", "on"), &GoannaClient::set_content_hold);
     ClassDB::bind_method(D_METHOD("texture_path"), &GoannaClient::texture_path);
+    ClassDB::bind_method(D_METHOD("set_texture_size", "size"), &GoannaClient::set_texture_size);
+    ClassDB::bind_method(D_METHOD("texture_size"), &GoannaClient::texture_size);
+    ClassDB::bind_method(D_METHOD("texture_size_applied"), &GoannaClient::texture_size_applied);
     ClassDB::bind_method(D_METHOD("connect_to", "host", "port", "player_name", "password"),
             &GoannaClient::connect_to);
     ClassDB::bind_method(D_METHOD("disconnect_from_server"), &GoannaClient::disconnect_from_server);

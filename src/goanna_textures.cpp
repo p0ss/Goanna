@@ -10,6 +10,7 @@
 // adapted from client/shader.cpp. Each is marked at its definition.
 
 #include "goanna_textures.h"
+#include "goanna_texture_size.h"
 #include "util/hashing.h"
 
 #include "client/texturepaths.h"
@@ -302,8 +303,16 @@ Ref<Texture2DArray> GoannaTexture::godotArraySuffixed(GoannaTextureSource &src, 
         // the relief and the material move with the colour.
         Ref<Image> img;
         bool was_authored = false;
+        // The depth this layer's _n had before the texture resolution tier
+        // reduced it, when it is a plain image that was reduced.
+        float kept_depth = -1.0f;
         {
             GoannaTexture *gt = src.tileCompanion(full, suffix);
+            if (gt && is_normal) {
+                float d = 0.0f;
+                if (src.reducedReliefDepth(gt->getName().getPath().c_str(), d))
+                    kept_depth = d;
+            }
             if (gt && gt->image()) {
                 img = goanna_image_to_godot(gt->image());
                 if (img.is_valid()) {
@@ -321,8 +330,28 @@ Ref<Texture2DArray> GoannaTexture::godotArraySuffixed(GoannaTextureSource &src, 
                     // metalness is a threshold at 229 and interpolating across
                     // a boundary invents a material that is in neither
                     // neighbour. _n is a vector field, so it filters.
-                    if (img->get_width() != (int)Size.Width ||
-                            img->get_height() != (int)Size.Height)
+                    //
+                    // A larger companion is reduced by area with the texture
+                    // resolution tier's filters (goanna_texture_size.h): the
+                    // normal averaged as vectors and renormalised, the
+                    // smoothness averaged and the categorical _s channels
+                    // by majority. A bilinear shrink skipped texels and left
+                    // the vectors short. A smaller one is enlarged as before.
+                    const int cw = img->get_width(), ch = img->get_height();
+                    if (cw >= (int)Size.Width && ch >= (int)Size.Height &&
+                            (cw != (int)Size.Width || ch != (int)Size.Height)) {
+                        if (img->get_format() != Image::FORMAT_RGBA8)
+                            img->convert(Image::FORMAT_RGBA8);
+                        const PackedByteArray in = img->get_data();
+                        const std::vector<uint8_t> px = downscaleRgba8(in.ptr(), cw, ch,
+                                (int)Size.Width, (int)Size.Height,
+                                is_normal ? MapKind::Normal : MapKind::Spec);
+                        PackedByteArray data;
+                        data.resize((int64_t)px.size());
+                        std::copy(px.begin(), px.end(), data.ptrw());
+                        img = Image::create_from_data((int)Size.Width, (int)Size.Height, false,
+                                Image::FORMAT_RGBA8, data);
+                    } else if (cw != (int)Size.Width || ch != (int)Size.Height)
                         img->resize((int)Size.Width, (int)Size.Height,
                                 is_normal ? Image::INTERPOLATE_BILINEAR
                                           : Image::INTERPOLATE_NEAREST);
@@ -393,7 +422,8 @@ Ref<Texture2DArray> GoannaTexture::godotArraySuffixed(GoannaTextureSource &src, 
             }
             m_layer_normal_var.push_back((float)var);
             (was_authored ? authored_tilt : inferred_tilt).push_back((float)var);
-            m_layer_depth.push_back(was_authored ? reliefDepth(img) : 0.0f);
+            m_layer_depth.push_back(!was_authored ? 0.0f
+                    : kept_depth >= 0.0f ? kept_depth : reliefDepth(img));
         }
         if (!is_normal) {
             // The mean material response of this layer, converted per texel
@@ -790,7 +820,14 @@ u32 GoannaTextureSource::nodeLayerScale(const std::string &image) {
             const core::dimension2du c = comp->image()->getDimension();
             if (c.Width % dim.Width == 0 && c.Height % dim.Height == 0 &&
                     c.Width / dim.Width == c.Height / dim.Height) {
-                const u32 m = c.Width / dim.Width;
+                u32 m = c.Width / dim.Width;
+                // Never past the texture resolution tier. The companion was
+                // held to it when it was inserted, so this only matters for
+                // one the cap could not count (its art unknown), which the
+                // array then reduces to the layer (godotArraySuffixed).
+                const u32 cap = m_texel_cap.load();
+                if (cap && m > cap)
+                    m = cap;
                 if (m > 1 && m <= kMaxLayerScale)
                     k = m;
             }
@@ -1351,6 +1388,97 @@ void GoannaTextureSource::insertSourceImage(const std::string &name, video::IIma
     m_known_source[name] = true;
 }
 
+// The image as a godot-free RGBA8 buffer and back, for the reduction.
+static std::vector<uint8_t> imageBytes(video::IImage *img) {
+    const core::dimension2du d = img->getDimension();
+    std::vector<uint8_t> out((size_t)d.Width * d.Height * 4);
+    for (u32 y = 0; y < d.Height; ++y)
+        for (u32 x = 0; x < d.Width; ++x) {
+            const video::SColor c = img->getPixel(x, y);
+            uint8_t *p = &out[((size_t)y * d.Width + x) * 4];
+            p[0] = c.getRed();
+            p[1] = c.getGreen();
+            p[2] = c.getBlue();
+            p[3] = c.getAlpha();
+        }
+    return out;
+}
+
+video::IImage *GoannaTextureSource::capImage(const std::string &name, video::IImage *img,
+        bool art) {
+    if (art && m_art_dims.find(name) == m_art_dims.end())
+        m_art_dims[name] = img->getDimension();
+    const u32 cap = m_texel_cap.load();
+    if (!cap)
+        return nullptr;
+    auto it = m_art_dims.find(artNameOf(name));
+    if (it == m_art_dims.end()) {
+        m_cap_pending.insert(name);
+        return nullptr;
+    }
+    m_cap_pending.erase(name);
+    const core::dimension2du d = img->getDimension();
+    u32 tw = 0, th = 0;
+    if (!cappedSize(d.Width, d.Height, it->second.Width, it->second.Height, cap, tw, th))
+        return nullptr;
+    const std::vector<uint8_t> full = imageBytes(img);
+    const MapKind kind = mapKindOf(name);
+    if (kind == MapKind::Normal)
+        m_reduced_depth[name] = std::min(kReliefDepthCap,
+                tileReliefDepth(full.data(), (int)d.Width, (int)d.Height));
+    const std::vector<uint8_t> px = downscaleRgba8(full.data(), (int)d.Width,
+            (int)d.Height, (int)tw, (int)th, kind);
+    video::IImage *out = goanna_create_image(video::ECF_A8R8G8B8, core::dimension2du(tw, th));
+    for (u32 y = 0; y < th; ++y)
+        for (u32 x = 0; x < tw; ++x) {
+            const uint8_t *p = &px[((size_t)y * tw + x) * 4];
+            out->setPixel(x, y, video::SColor(p[3], p[0], p[1], p[2]));
+        }
+    ++m_cap_stats.reduced;
+    m_cap_stats.bytes_before += (u64)d.Width * d.Height * 4;
+    m_cap_stats.bytes_after += (u64)tw * th * 4;
+    if (getenv("GOANNA_DEBUG_PBR"))
+        UtilityFunctions::print("texture size ", String::utf8(name.c_str()), " ", d.Width, "x",
+                d.Height, " -> ", tw, "x", th, " (art ", it->second.Width, "x",
+                it->second.Height, ")");
+    return out;
+}
+
+void GoannaTextureSource::finishTextureCap() {
+    const std::set<std::string> pending = m_cap_pending;
+    for (const std::string &name : pending) {
+        if (m_art_dims.find(artNameOf(name)) == m_art_dims.end())
+            continue;
+        // The image as the source holds it now, which may be a pack's.
+        std::set<std::string> used;
+        video::IImage *img = m_imagesource.generateImage(name, used);
+        if (!img)
+            continue;
+        if (video::IImage *small = capImage(name, img, false)) {
+            m_imagesource.insertSourceImage(name, small, false);
+            small->drop();
+        }
+        img->drop();
+    }
+    m_cap_stats.unknown = (u32)m_cap_pending.size();
+}
+
+void GoannaTextureSource::insertMediaImage(const std::string &name, video::IImage *img) {
+    video::IImage *small = capImage(name, img, true);
+    m_imagesource.insertSourceImage(name, small ? small : img, true);
+    if (small)
+        small->drop();
+    m_known_source[name] = true;
+}
+
+void GoannaTextureSource::insertLocalImage(const std::string &name, video::IImage *img) {
+    video::IImage *small = capImage(name, img, false);
+    m_imagesource.insertSourceImage(name, small ? small : img, false);
+    if (small)
+        small->drop();
+    m_known_source[name] = true;
+}
+
 bool GoannaTextureSource::insertMediaImage(const std::string &name, const std::string &bytes) {
     video::IImage *img = goanna_decode_image_memory(bytes, name);
     if (!img)
@@ -1362,9 +1490,10 @@ bool GoannaTextureSource::insertMediaImage(const std::string &name, const std::s
     // so a pack could supply _n and _s companions but never replace a diffuse,
     // which is not what a texture pack is. Costs one getTexturePath lookup per
     // media file at load, the same as vanilla pays.
-    m_imagesource.insertSourceImage(name, img, true);
+    // The first image of a name is the server's art, which the texture
+    // resolution cap counts texels against (capImage).
+    insertMediaImage(name, img);
     img->drop();
-    m_known_source[name] = true;
     return true;
 }
 
@@ -1372,9 +1501,8 @@ bool GoannaTextureSource::insertLocalImage(const std::string &name, const std::s
     video::IImage *img = goanna_decode_image_memory(bytes, name);
     if (!img)
         return false;
-    m_imagesource.insertSourceImage(name, img, false);
+    insertLocalImage(name, img);
     img->drop();
-    m_known_source[name] = true;
     return true;
 }
 

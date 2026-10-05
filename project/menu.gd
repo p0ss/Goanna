@@ -1211,6 +1211,22 @@ func _settings_row(box: VBoxContainer, row: Array, cfg: ConfigFile) -> void:
 		box.add_child(picker)
 		PanelFit.describe(box, str(row[4]))
 		return
+	if kind == "steps":
+		# One of a few numbers (the texture resolution), stored as a number
+		# like a slider's value, which a profile sets.
+		var steps := OptionButton.new()
+		var have := float(cfg.get_value("settings", key, _settings_default(row)))
+		for choice in row[5]:
+			steps.add_item(str(choice[1]))
+			steps.set_item_metadata(steps.item_count - 1, float(choice[0]))
+			if is_equal_approx(float(choice[0]), have):
+				steps.select(steps.item_count - 1)
+		steps.item_selected.connect(func(i: int) -> void:
+			_save_setting(key, float(steps.get_item_metadata(i))))
+		box.add_child(steps)
+		PanelFit.describe(box, str(row[4]) if known else str(row[4])
+				+ "\n(not recorded yet: join a world once, or set it here)")
+		return
 	if kind == "pack":
 		# The same dropdown the in-game panel builds (ui/game_ui.gd): the packs
 		# the detected Luanti install carries, by name, plus Other for a
@@ -1316,6 +1332,9 @@ func _settings_default(row: Array) -> float:
 		return float(SETTING_DEFAULTS[str(row[1])])
 	if str(row[2]) == "toggle":
 		return 1.0
+	if str(row[2]) == "steps":
+		# The middle step, as a slider sits at its midpoint.
+		return float(row[5][(row[5] as Array).size() >> 1][0])
 	return float(row[5]) + (float(row[6]) - float(row[5])) * 0.5
 
 func _save_setting(key: String, value: float) -> void:

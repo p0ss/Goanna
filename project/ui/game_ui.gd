@@ -856,6 +856,7 @@ const SETTINGS := [
 	["Graphics/Grass and foliage", "render_grass_interaction", "toggle", "Grass interaction", "Bend procedural grass around players and animals."],
 	["Graphics/Grass and foliage", "render_foliage_wind", "toggle", "Foliage wind", "Animate ordinary leaves and plants without removing their geometry."],
 	["Graphics/Grass and foliage", "mat_sss", "slider", "Leaf translucency", "Light coming through leaves and ice from behind.", 0.0, 1.0, 0.05],
+	["Graphics/Materials", "texture_size", "steps", "Texture resolution", "How fine the enhanced materials' textures are, in pixels across a block face. Larger textures show more detail up close and use more video memory: each step up takes about four times as much. Textures larger than this are reduced when a world is loaded, so a change applies the next time you join.", [[128.0, "128"], [256.0, "256"], [512.0, "512"]]],
 	["Graphics/Materials", "auto_bump", "slider", "Auto bump", "Fake surface relief from texture brightness.", 0.0, 1.0, 0.05],
 	["Graphics/Materials", "bevel", "slider", "Edge bevel", "Chamfer the exposed edges of solid nodes.", 0.0, 0.15, 0.01],
 	["Graphics/Materials", "mat_normal", "slider", "Normal strength", "How much of the pack's surface relief to apply. Packs are authored for other art at other resolutions, and a normal map meant for 64 pixel textures reads as smeared blotches on 16 pixel ones. Lower this first if a pack looks muddy.", 0.0, 2.0, 0.05],
@@ -1138,6 +1139,7 @@ func _apply_setting(key: String, value: float) -> void:
 		"repeat_dig": if client.has_method("set_repeat_dig_interval"): client.set_repeat_dig_interval(value)
 		"repeat_place": if client.has_method("set_repeat_place_interval"): client.set_repeat_place_interval(value)
 		"auto_bump": if client.has_method("set_auto_bump"): client.set_auto_bump(value)
+		"texture_size": if client.has_method("set_texture_size"): client.set_texture_size(int(value))
 		"solid_ice": if client.has_method("set_solid_ice"): client.set_solid_ice(on)
 		"lamp_occlusion": client.set_lamp_occlusion(value > 0.5)
 		"lamp_shadow_distance": client.set_lamp_shadow_distance(value)
@@ -1172,6 +1174,7 @@ func _setting_value(key: String, fallback: float) -> float:
 		"repeat_dig": if client.has_method("repeat_dig_interval"): return client.repeat_dig_interval()
 		"repeat_place": if client.has_method("repeat_place_interval"): return client.repeat_place_interval()
 		"auto_bump": if client.has_method("auto_bump"): return client.auto_bump()
+		"texture_size": if client.has_method("texture_size"): return float(client.texture_size())
 		"solid_ice": if client.has_method("solid_ice"): return 1.0 if client.solid_ice() else 0.0
 		"lamp_occlusion": return 1.0 if client.lamp_occlusion() else 0.0
 		"lamp_shadow_distance": return client.lamp_shadow_distance()
@@ -1202,13 +1205,15 @@ func _load_apply_settings() -> void:
 			# passed through rather than skipped: passing it clears any
 			# explicit cap a previous profile or session left behind.
 			_apply_setting(key, float(GraphicsProfiles.PROFILES[want][key]))
-	# Older saved presets have no layer budget. Seed this new setting from
-	# their chosen tier before the normal saved-setting pass takes over.
-	if not cfg.has_section_key("settings", "cloud_layer_count") \
-			and not cfg.has_section_key("video", "cloud_layer_count"):
-		var saved_profile := str(cfg.get_value("settings", "graphics_profile", ""))
-		if GraphicsProfiles.PROFILES.has(saved_profile):
-			_apply_setting("cloud_layer_count", GraphicsProfiles.PROFILES[saved_profile].cloud_layer_count)
+	# Older saved presets have no layer budget or texture resolution. Seed
+	# these newer settings from their chosen tier before the normal
+	# saved-setting pass takes over, so a saved Ultra stays Ultra.
+	for newer in ["cloud_layer_count", "texture_size"]:
+		if not cfg.has_section_key("settings", newer) \
+				and not cfg.has_section_key("video", newer):
+			var saved_profile := str(cfg.get_value("settings", "graphics_profile", ""))
+			if GraphicsProfiles.PROFILES.has(saved_profile):
+				_apply_setting(newer, GraphicsProfiles.PROFILES[saved_profile][newer])
 	var seeded := false
 	for entry in SETTINGS:
 		var key: String = entry[1]
@@ -1380,6 +1385,35 @@ func _build_choice_row(row: VBoxContainer, entry: Array) -> void:
 		if key == "voice_language" and voice_input != null:
 			voice_input.language = value)
 	row.add_child(picker)
+
+# One of a few numbers, stored as a number like a slider's value and set by
+# the presets, where a slider would offer values between them that mean
+# nothing: the texture resolution is 128, 256 or 512 and never 384. The
+# value applies at the next join, which the row says once it is changed.
+func _build_steps_row(row: VBoxContainer, entry: Array) -> void:
+	var key: String = entry[1]
+	var picker := OptionButton.new()
+	var current := _setting_value(key, float(entry[5][0][0]))
+	for choice in entry[5]:
+		picker.add_item(str(choice[1]))
+		picker.set_item_metadata(picker.item_count - 1, float(choice[0]))
+		if is_equal_approx(float(choice[0]), current):
+			picker.select(picker.item_count - 1)
+	picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var note := Label.new()
+	note.text = "Saved. Rejoin the world to see it."
+	note.add_theme_font_size_override("font_size", 13)
+	GlassStyle.tint_text(note, Color(1, 0.85, 0.4))
+	note.visible = false
+	picker.item_selected.connect(func(i: int) -> void:
+		var value := float(picker.get_item_metadata(i))
+		_apply_setting(key, value)
+		_save_setting(key, value)
+		note.visible = key == "texture_size" and client != null \
+				and client.has_method("texture_size_applied") \
+				and client.texture_size_applied() != int(value))
+	row.add_child(picker)
+	row.add_child(note)
 
 func _setting_text(key: String) -> String:
 	var cfg := ConfigFile.new()
@@ -1602,6 +1636,8 @@ func _build_setting_row(page: VBoxContainer, entry: Array) -> void:
 			note.visible = true)
 	elif kind == "choice":
 		_build_choice_row(row, entry)
+	elif kind == "steps":
+		_build_steps_row(row, entry)
 	elif kind == "path":
 		# A directory, typed rather than picked: it is set once and it has to
 		# be read before connect_to, so it takes effect on the next connection

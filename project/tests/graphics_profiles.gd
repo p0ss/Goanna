@@ -99,6 +99,16 @@ func _run() -> void:
 					"Grass budget persists before terrain arrives")
 	check(is_equal_approx(first.cam.fov, 83.0) and is_equal_approx(first.night_visibility, 0.7),
 			"Profiles preserve player preferences")
+	# Texture resolution: 128 on Lowest and Low, 256 on Medium and High, 512
+	# on Ultra, reaching the client, which keeps it for the next join.
+	var sizes := {"lowest": 128, "low": 128, "medium": 256, "high": 256, "ultra": 512}
+	for name in sizes:
+		check(int(Profiles.PROFILES[name].texture_size) == sizes[name], "Texture resolution: " + name)
+		apply(first, name)
+		check(first.client.texture_size() == sizes[name], "Texture resolution reaches the client: " + name)
+	check(second.client.texture_size() == 128, "Other view keeps Lowest's texture resolution")
+	first.ui._apply_setting("texture_size", 300.0)
+	check(first.client.texture_size() == 256, "A size between the tiers snaps to the nearest")
 	check(second.cloud_quality == 0 and not second.env.environment.ssao_enabled,
 			"Other view retains Lowest")
 	check(second.cloud_layer_count == 1.0 and active_layers(second) == 1,
@@ -177,11 +187,15 @@ func _run() -> void:
 			"Custom cloud layer count survives saving and loading")
 	saved.load("user://goanna.cfg")
 	saved.erase_section_key("settings", "cloud_layer_count")
+	saved.erase_section_key("settings", "texture_size")
 	saved.set_value("settings", "graphics_profile", "low")
 	saved.save("user://goanna.cfg")
+	first.ui._apply_setting("texture_size", 512.0)
 	first.ui._load_apply_settings()
 	check(first.cloud_layer_count == 1.0 and active_layers(first) == 1,
 			"Old saved Low preset receives its new layer budget")
+	check(first.client.texture_size() == 128,
+			"Old saved Low preset receives its texture resolution")
 	first.player_slot = slot
 	first.ui._apply_setting("cloud_layer_count", 99.0)
 	check(first.cloud_layer_count == 3.0, "Out-of-range counts are clamped")
