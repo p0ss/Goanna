@@ -749,6 +749,28 @@ def _eye(c, p):
     return g, np.zeros_like(g)
 
 
+def _bulge(c, p):
+    """The whole piece gently convex, for an eye: (1 - u^2)^2 across and
+    the same along, u running -1 to 1 over the piece's box, so the slope
+    is zero at its edge (no rim, no crease to the skin round it) and
+    there is no spot or dot inside it. Its height is chosen so the
+    steepest lean, at a third of the way in from the narrower axis's
+    edge, is "lean" degrees (default 6) at the stem's strength."""
+    px, py = c.get("px"), c.get("py")
+    if px is None:
+        return np.zeros_like(c["x"]), np.zeros_like(c["x"])
+    fx = np.clip(1.0 - px * px, 0.0, 1.0) ** 2
+    fy = np.clip(1.0 - py * py, 0.0, 1.0) ** 2
+    # d/du (1 - u^2)^2 peaks at 8 / (3 sqrt 3) per unit u; a unit of u is
+    # a half size of the piece, in texels, and the normal leans
+    # atan(strength / 16 * rise per texel) (atlas.py's strength scaling).
+    half = np.minimum(c.get("hx", 1.0), c.get("hy", 1.0))
+    peak = 8.0 / (3.0 * np.sqrt(3.0))
+    amp = np.tan(np.radians(float(p.get("lean", 6.0)))) * 16.0 * half / (
+        peak * float(c.get("strength", 12.0)))
+    return amp * fx * fy, np.zeros_like(fx)
+
+
 # --- animal and monster kinds -------------------------------------------------
 # For mob skins. Like the kinds above they run along the face's direction
 # (u along, v across, in art texels), so on a side face "down" lays fur and
@@ -1288,6 +1310,7 @@ KINDS = {
     "rope": (_rope, 0.050, 0.08),
     "skin": (_skin, 0.006, 0.03),
     "eye": (_eye, 0.400, 0.0),
+    "bulge": (_bulge, 1.0, 0.0),
     "fur": (_fur, 0.100, 0.16),
     "hide": (_hide, 0.035, 0.12),
     "feather": (_feather, 0.120, 0.14),

@@ -123,7 +123,7 @@ What differs from a tile:
   `"stitch"`, `"seam"`, `"wear"`, `"texel_edge"` and `"scatter"`; then it
   takes nothing from the stem's `"micro"`. The kinds (knit, wool, weave,
   linen, canvas, coarse, twill, hair, bristle, tress, straw, leather,
-  rope, skin, eye; for animals and monsters fur, hide, feather, scale, bone, rotten, mottle,
+  rope, skin, eye, bulge; for animals and monsters fur, hide, feather, scale, bone, rotten, mottle,
   chitin; for riveted iron, a plate per texel, plate, scratches, dents,
   rivets, rust and leaf, with mix to sum several on one material; paper;
   and wood, bark, glass, metal and metal_worn, which read the block
@@ -345,6 +345,52 @@ What differs from a tile:
   gate warns on mcl_skins_mouth_6 (two texels on the head's bottom edge,
   a mean normal leaning off the rolled edge), as a whole tile measure on
   a two texel part.
+- **Crisp sculpted faces (variant `sculpt_crisp`, not shipped).** The
+  same idea as `sculpt` with the animals' treatment in place of soft
+  skin, since a step blurred over 0.3 texel stays too gentle to show at
+  any span. On the illagers, the villager, the zombie, the piglin, the
+  player's base and the player's seven eyes and seven mouths:
+  - skin in `shade` mode: 3 levels, the detail harmonic at 0.25, no
+    joints, the stem's 2 pixel chamfer, a span of 0.3 at strength 12
+    (a rise per texel of 3.6, against the cow's 0.14 at 24, 3.4, and
+    the creeper's 0.18 at 18, 3.2; the piglin, at 24, takes half,
+    and strength 22, because the crisp plateaus lifted the depth its
+    check measures to 0.106 against the 0.10 cap);
+  - `"merge": 0.2` on the skin (extrude.merge_plateaus): neighbouring
+    close shades become one plateau first, closest first, while a
+    plateau's shades span at most a fifth of the skin's range, so steps
+    fall between the art's shading regions (the light face, the cheek
+    shadow columns, the forehead) and not round every texel. Without
+    it, or at the hair styles' 0.45, the illagers' 0.35 to 0.43 shades
+    either tiled or merged into one flat face;
+  - the skin `"ride"`s (the face's dome and edge roll, normal only, at a
+    `"round"` of 4), and so do the brows, eyes, mouths and ear holes, so
+    the face curves as one;
+  - brows 0.08 proud of the skin round them (`flush`); on the player the
+    darker band over the eyes is the brow, 0.04 over the light skin,
+    where its shade alone sank it as a trench; mouths 0.1 under the skin
+    round them (teeth 0.08; mouth_6, two texels on the head's bottom
+    edge, 0.03, since at 0.1 the release gate failed its normal for a
+    directional bias); ear holes, the darkest texels on each side
+    of the head (`"rects"` in the variant), 0.1 under the lowest skin;
+    the undead keep their sockets and the piglin its nostrils;
+  - the player's nose pair kept as a ridge (`atlas.nose_ridge`), on a
+    soft `"nose"` material over the two texels, flush with the skin;
+  - eyes: the white and iris one material (`"mode": "soft"`, so the
+    iris is smoother than the white by its shade, 0.8 against 0.6),
+    flush with the skin under it, and gently convex as a whole through
+    the micro kind `"bulge"` (micro.py): (1 - u^2)^2 across and along
+    the eye's box, steepest lean 6 degrees, zero slope at the edge, so
+    no rim and no dot. Normal only. The player's eye and mouth parts
+    stand at the mean height of the base's skin under them in this
+    variant, as numbers in their specs; change the base and they need
+    recomputing.
+  Judged offline with `preview_mob.py --parallax --legibility --night`,
+  front and 35 degrees, the head front three times enlarged, beside the
+  cow. Every head front keeps half the area of at least 97% of its
+  texels through the march. Under a low sun and a lamp the plateau steps
+  read as crisp edges at the cheek shadows, the brows and the mouth
+  lines; under a high sun the face looks much as shipped.
 - **The plains farmer villager** is four layers,
   `mobs_mc_villager_base^mobs_mc_villager_plains^mobs_mc_villager_profession_farmer^mobs_mc_stone`,
   each its own stem at `"texel_px": 16` with the same `"stack"`, so it

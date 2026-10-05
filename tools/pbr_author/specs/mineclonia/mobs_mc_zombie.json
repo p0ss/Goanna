@@ -16,6 +16,7 @@
  },
  "palette": {"#1c271d": "eye", "#4b4934": "mouth", "#454b34": "mouth", "#263b83": "trousers", "#2d469a": "trousers", "#324eab": "trousers", "#3553b8": "trousers", "#3a5ab8": "trousers", "#3f5ec6": "trousers", "#627cd1": "trousers", "#492f24": "trousers", "#5b4131": "trousers", "#6b4e3d": "trousers", "#315e5d": "shirt", "#3e7574": "shirt", "#3f7574": "shirt", "#478483": "shirt", "#478685": "shirt", "#4f9493": "shirt", "#4f9695": "shirt", "#58a3a2": "shirt", "#58a5a4": "shirt", "#65acab": "shirt", "#66adac": "shirt", "#383838": "shoes", "#484848": "shoes", "#6f6f6f": "shoes"},
  "variants": {
-  "sculpt": {"materials": {"skin": {"span": 0.22, "round": 4}}}
+  "sculpt": {"materials": {"skin": {"span": 0.22, "round": 4}}},
+  "sculpt_crisp": {"materials": {"skin": {"mode": "shade", "base": 0.77, "span": 0.3, "levels": 3, "detail": 0.25, "merge": 0.2, "joints": false, "soft_edge": null, "ride": true, "round": 4, "edge_roll": 2.5, "edge_lean": 12}}}
  }
 }

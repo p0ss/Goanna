@@ -60,7 +60,13 @@ texel step, default 0.06; as a string, a micro surface kind for
 atlas.py, see micro.py), sss (the _s blue byte for the material in
 place of the class's; a top level "sss" sets it for the whole stem),
 flush (stand each piece at the height of the material round it, see
-flush_features).
+flush_features), merge (on a shade material, neighbouring close shades
+become one plateau before the levels are taken, see merge_plateaus).
+
+A spec's "rects", [[material, x0, y0, x1, y1], ...] in texels, end
+exclusive, gives the texels inside each rectangle that material over the
+palette and the grid, so a variant can mark an ear hole or a nose
+without repeating the whole grid.
 
 Mob skins are model atlases, not tiles, and atlas.py builds them with
 this rule and these specs (stems/<game>.mobs.txt).
@@ -245,6 +251,12 @@ def assign(src, spec):
                 if "h" in e:
                     fixed[y, x] = e["h"]
                 part[y, x] = chars.index(c)
+    # "rects": [[material, x0, y0, x1, y1], ...], end exclusive, laid
+    # over the palette and the grid: a few texels a variant gives a
+    # material of their own (an ear hole, a nose) without repeating the
+    # whole grid.
+    for r in spec.get("rects", []):
+        mat[r[2]:r[4], r[1]:r[3]] = r[0]
     unknown = set(mat.ravel()) - set(names)
     if unknown:
         raise ValueError("materials not declared: %s" % sorted(unknown))
@@ -337,6 +349,11 @@ def heights(src, spec, cls, soft=True):
         else:
             detail = float(m.get("detail", DETAIL))
             lv = int(m.get("levels", levels_c))
+            if m.get("merge"):
+                # Plateaus follow the art's shading regions, not its
+                # texels: neighbouring close shades become one piece at
+                # one shade (merge_plateaus) before the levels are taken.
+                v = merge_plateaus(lum, sel, float(m["merge"]))[sel]
             t = (1.0 - detail) * _levels(v, lv) + detail * _rank01(v)
         hv = base + span * t
         pos[sel] = t
@@ -353,6 +370,83 @@ def heights(src, spec, cls, soft=True):
     hgt[f] = fixed[f]
     hgt[~drawn] = 0.0
     return np.clip(hgt, 0.0, 1.0), pos, joints, mat
+
+
+def merge_plateaus(lum, sel, share):
+    """lum with every texel of sel replaced by the mean shade of its
+    plateau: neighbouring runs of close shades merged into one piece, so
+    a shade material's levels step between the art's shading regions (a
+    cheekbone, the shadow under it, a forehead) instead of between single
+    texels, which on a face read as a checkerboard of coloured squares.
+
+    Each 4 connected run of one shade (to a byte) starts as a piece. The
+    two neighbouring pieces whose mean shades are closest merge first, as
+    long as the merged piece's shades span at most share of the shades
+    sel spans, the rule the player's dark hair styles were merged by. It
+    stops when no neighbouring pair is close enough. Not wrapped: on a
+    model atlas a wrap would join faces that are not neighbours. Faces
+    side by side in the atlas can merge, which on the usual layouts joins
+    faces that meet at a box edge on the model too."""
+    from scipy import ndimage
+    v = lum[sel]
+    limit = share * float(v.max() - v.min()) if v.size else 0.0
+    q = np.round(lum * 255.0).astype(np.int64)
+    lab = -np.ones(lum.shape, np.int64)
+    n = 0
+    for val in np.unique(q[sel]):
+        cl, k = ndimage.label(sel & (q == val))
+        lab = np.where(cl > 0, cl - 1 + n, lab)
+        n += k
+    parent = list(range(n))
+    lo = np.full(n, np.inf)
+    hi = np.full(n, -np.inf)
+    tot = np.zeros(n)
+    cnt = np.zeros(n)
+    ys, xs = np.nonzero(sel)
+    ids = lab[ys, xs]
+    np.minimum.at(lo, ids, lum[ys, xs])
+    np.maximum.at(hi, ids, lum[ys, xs])
+    np.add.at(tot, ids, lum[ys, xs])
+    np.add.at(cnt, ids, 1.0)
+    pairs = set()
+    for a, b in ((lab[:, :-1], lab[:, 1:]), (lab[:-1, :], lab[1:, :])):
+        ok = (a >= 0) & (b >= 0) & (a != b)
+        for i, j in zip(a[ok], b[ok]):
+            pairs.add((min(i, j), max(i, j)))
+
+    def root(i):
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
+    while True:
+        best = None
+        live = set()
+        for i, j in pairs:
+            i, j = root(i), root(j)
+            if i == j:
+                continue
+            i, j = min(i, j), max(i, j)
+            live.add((i, j))
+            if max(hi[i], hi[j]) - min(lo[i], lo[j]) > limit + 1e-9:
+                continue
+            d = abs(tot[i] / cnt[i] - tot[j] / cnt[j])
+            if best is None or d < best[0]:
+                best = (d, i, j)
+        pairs = live
+        if best is None:
+            break
+        _, i, j = best
+        parent[j] = i
+        lo[i], hi[i] = min(lo[i], lo[j]), max(hi[i], hi[j])
+        tot[i] += tot[j]
+        cnt[i] += cnt[j]
+    out = lum.copy()
+    roots = np.array([root(i) for i in range(n)], np.int64)
+    r = roots[ids]
+    out[ys, xs] = tot[r] / cnt[r]
+    return out
 
 
 def flush_features(hgt, mat, drawn, mats):

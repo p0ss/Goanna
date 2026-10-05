@@ -12,5 +12,8 @@
   "lash": {"mode": "flat", "base": 0.44, "span": 0.0, "micro": "none", "smooth": 0.22, "smooth_spread": 0.0, "ride": true, "round": 6, "edge_roll": 2.5, "edge_lean": 10, "roll_rough": 0.03},
   "lid": {"mode": "flat", "base": 0.4, "span": 0.0, "micro": "none", "smooth": 0.25, "smooth_spread": 0.0, "scatter": 0.25, "ride": true, "round": 6, "edge_roll": 2.5, "edge_lean": 10, "roll_rough": 0.03}
  },
- "palette": {"#030303": "lash", "#000000": "lid", "#e0e0e0": "lid"}
+ "palette": {"#030303": "lash", "#000000": "lid", "#e0e0e0": "lid"},
+ "variants": {
+  "sculpt_crisp": {"stack_soft": true, "materials": {"lash": {"base": 0.48, "round": 4}, "lid": {"base": 0.44, "round": 4}}}
+ }
 }

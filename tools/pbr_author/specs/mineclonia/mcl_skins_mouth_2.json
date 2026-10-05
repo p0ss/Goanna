@@ -14,6 +14,7 @@
  },
  "palette": {"#a95a50": "lips", "#9c544a": "lips"},
  "variants": {
-  "sculpt": {"materials": {"lips": {"base": 0.335}, "teeth": {"base": 0.335}}}
+  "sculpt": {"materials": {"lips": {"base": 0.335}, "teeth": {"base": 0.335}}},
+  "sculpt_crisp": {"stack_soft": true, "materials": {"lips": {"base": 0.29, "round": 4}}}
  }
 }

@@ -12,6 +12,7 @@
  },
  "palette": {"#ffffff": "teeth"},
  "variants": {
-  "sculpt": {"materials": {"teeth": {"base": 0.34}}}
+  "sculpt": {"materials": {"teeth": {"base": 0.34}}},
+  "sculpt_crisp": {"stack_soft": true, "materials": {"teeth": {"base": 0.31, "round": 4}}}
  }
 }
