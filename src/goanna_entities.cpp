@@ -895,21 +895,55 @@ Ref<ArrayMesh> EntityRenderer::buildItemMesh(GoannaSession &session, const ItemS
             cols[i] = Color(v[i].Color.getRed() / 255.0f, v[i].Color.getGreen() / 255.0f,
                     v[i].Color.getBlue() / 255.0f, v[i].Color.getAlpha() / 255.0f);
         }
-        idx.resize(ni);
-        for (u32 i = 0; i < ni; ++i)
-            idx[i] = idxs[i];
+        // Node tiles may be array textures now; an entity material wants a
+        // plain 2D image, so resolve this buffer's layer back to its own
+        // image or the item renders as an untextured white cube.
+        GoannaTexture *gt = dynamic_cast<GoannaTexture *>(buf->getMaterial().getTexture(0));
+        // An extruded item's edges (wieldmesh.cpp, createExtrusionMesh) are
+        // one quad per pixel row and column of the image, each drawing a
+        // strip narrower than one pixel stretched across the item's
+        // thickness. A normal map read there is the face's own map, taken
+        // from the strip and turned onto the edge: on a pack's tools the
+        // texel chamfers and the brushed grain became stripes and bright
+        // seams down every edge, and with the metal's sky reflection the
+        // iron pickaxe read as glass (render-backlog-2026-10-06). Those
+        // triangles, any whose texture coordinates stay inside one pixel
+        // on an axis, go into a surface of their own drawn without the
+        // normal map; the front and back faces keep it.
+        std::vector<int32_t> mapped, edges;
+        mapped.reserve(ni);
+        const core::dimension2d<u32> isize = gt && !gt->isArray() ? gt->getSize()
+                : core::dimension2d<u32>(0, 0);
+        for (u32 i = 0; i + 2 < ni; i += 3) {
+            bool edge = false;
+            if (relit && isize.Width > 0 && isize.Height > 0) {
+                float u0 = 1e9f, u1 = -1e9f, w0 = 1e9f, w1 = -1e9f;
+                for (u32 k = 0; k < 3; ++k) {
+                    const v2f &t = v[idxs[i + k]].TCoords;
+                    u0 = std::min(u0, t.X); u1 = std::max(u1, t.X);
+                    w0 = std::min(w0, t.Y); w1 = std::max(w1, t.Y);
+                }
+                edge = (u1 - u0) * isize.Width < 1.0f || (w1 - w0) * isize.Height < 1.0f;
+            }
+            std::vector<int32_t> &to = edge ? edges : mapped;
+            to.push_back(idxs[i]);
+            to.push_back(idxs[i + 1]);
+            to.push_back(idxs[i + 2]);
+        }
+        if (mapped.empty()) {
+            mapped.swap(edges);
+        }
         Array arrays;
         arrays.resize(Mesh::ARRAY_MAX);
         arrays[Mesh::ARRAY_VERTEX] = verts;
         arrays[Mesh::ARRAY_NORMAL] = norms;
         arrays[Mesh::ARRAY_TEX_UV] = uvs;
         arrays[Mesh::ARRAY_COLOR] = cols;
+        idx.resize((int64_t)mapped.size());
+        for (size_t i = 0; i < mapped.size(); ++i)
+            idx[(int64_t)i] = mapped[i];
         arrays[Mesh::ARRAY_INDEX] = idx;
         am->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays);
-        // Node tiles may be array textures now; an entity material wants a
-        // plain 2D image, so resolve this buffer's layer back to its own
-        // image or the item renders as an untextured white cube.
-        GoannaTexture *gt = dynamic_cast<GoannaTexture *>(buf->getMaterial().getTexture(0));
         std::string tname;
         if (gt && gt->isArray()) {
             u16 aux = nv ? v[0].Aux : 0;
@@ -931,6 +965,22 @@ Ref<ArrayMesh> EntityRenderer::buildItemMesh(GoannaSession &session, const ItemS
                 Ref<ShaderMaterial> s2 = sm->duplicate();
                 s2->set_shader_parameter("vertex_tint", true);
                 am->surface_set_material(am->get_surface_count() - 1, s2);
+                if (!edges.empty()) {
+                    PackedInt32Array eidx;
+                    eidx.resize((int64_t)edges.size());
+                    for (size_t i = 0; i < edges.size(); ++i)
+                        eidx[(int64_t)i] = edges[i];
+                    arrays[Mesh::ARRAY_INDEX] = eidx;
+                    am->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays);
+                    Ref<ShaderMaterial> s3 = s2->duplicate();
+                    s3->set_shader_parameter("has_normal", false);
+                    s3->set_shader_parameter("has_height", false);
+                    am->surface_set_material(am->get_surface_count() - 1, s3);
+                    if (getenv("GOANNA_DEBUG_ENTITY_PBR"))
+                        UtilityFunctions::print("item edges without normal map: ",
+                                String::utf8(tname.c_str()), " ", (int)edges.size() / 3,
+                                " of ", (int)(edges.size() + mapped.size()) / 3, " triangles");
+                }
                 continue;
             }
         }

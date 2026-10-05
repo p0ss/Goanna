@@ -353,6 +353,15 @@ from their UVs; every other entity normal map was decoded against the
 fallback frame Godot derives from the vertex normal alone, which turned or
 mirrored the relief per face and flattened it on faces along Z.
 
+**Extruded item edges.** A flat item held or dropped is Luanti's extrusion
+mesh: the image on a front and a back face, and one edge quad per pixel
+row and column whose texture coordinates stay inside that one pixel. Since
+2026-10-06 those edge quads are a surface of their own drawn without the
+`_n` (`EntityRenderer::buildItemMesh`); the `_s` still applies. Read there,
+the front face's map was a strip under a pixel wide turned onto the edge,
+and the texel chamfers and brushed grain drew as stripes and bright seams
+down every edge of a pack's tools (`docs/perf/render-backlog-2026-10-06/`).
+
 **Overlay stacks.** Many skins are built on the server as overlays. In
 Mineclonia, a villager, a damaged iron golem, a sheep's body and a player:
 
