@@ -155,6 +155,13 @@ The performance overlay can show FPS, draw calls, object and triangle counts,
 terrain queues, occlusion and world position. It is useful when reporting a
 performance or streaming problem.
 
+## Accessibility
+
+`Ctrl+B` turns on Read aloud, which speaks chat, on screen text, what you
+point at and hold, and forms and menus through your system's voice. What
+it covers and what it does not yet are in
+[accessibility.md](accessibility.md).
+
 ## Interface style
 
 Settings, Appearance, Interface style chooses how menus and game forms look.

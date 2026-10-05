@@ -860,8 +860,12 @@ func _ready() -> void:
 	# A pack is handed over before connecting, so maps that arrive during a
 	# session are not drawn until the next one. Say so rather than leave the
 	# player wondering why a download changed nothing.
+	# Once a session, however many bundles come: one line for each of four
+	# bundles read as four identical lines, and read aloud as four.
+	var told := [false]
 	asset_updater.bundle_installed.connect(func(_id: String) -> void:
-		if ui != null and ui.has_method("_add_chat_line"):
+		if not told[0] and ui != null and ui.has_method("_add_chat_line"):
+			told[0] = true
 			ui._add_chat_line("Enhanced materials for this game were installed. They apply from your next connection."))
 	if player_slot == null or player_slot.slot_index == 0:
 		add_child(asset_updater)

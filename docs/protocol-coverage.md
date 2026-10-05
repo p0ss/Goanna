@@ -10,16 +10,17 @@ transplanted from `Client::handleCommand_*` in
 |---|---|---|
 | HELLO / AUTH_ACCEPT / ACCESS_DENIED / SRP | done (register, login, denial) | `connect_to`, `status()` |
 | NODEDEF / ITEMDEF / ANNOUNCE_MEDIA / MEDIA | done, READY held until media complete | `status()` counters |
+| MEDIA_PUSH (+HAVE_MEDIA) | done: the file is asked for with REQUEST_MEDIA, loaded on the main thread, then acknowledged; remote media servers are not used | automatic; the file then resolves like any other media |
 | BLOCKDATA (+GOTBLOCKS acks and DELETEDBLOCKS on eviction) | done, meshed with Luanti's `content_mapblock`; resident mapblocks are bounded around the player | `poll_blocks(n)`, `resident_blocks()` |
 | ADDNODE / REMOVENODE | done, re-meshes affected blocks | automatic |
 | MOVEMENT / PRIVILEGES / MOVE_PLAYER | done, applied to the transplanted `LocalPlayer` | `step_player(...)` |
 | TIME_OF_DAY (+speed), SET_SKY/SUN/MOON/STARS, CLOUD_PARAMS, SET_LIGHTING, OVERRIDE_DAY_NIGHT_RATIO | done | `sky_state()`, `set_time_of_day_override(t)` |
 | ACTIVE_OBJECT_REMOVE_ADD / ACTIVE_OBJECT_MESSAGES | done (GenericCAO state transplanted); visuals: sprites, cubes, meshes (B3D, X, OBJ, glTF through Luanti's own loaders) with skeletal animation (every animation track 5.17 plays, ordered by priority, addressed by number or by name, each with its own start frame, speed, loop and blend; a stopped track leaves its joints at rest; the pre-5.17 messages play on the first track), bone overrides and bone attachments; item and wielditem entities through the transplanted wield mesh; node entity visuals are still placeholders | `sync_entities(dt)`, `entity_count()`, `entity_positions()`, `entity_list()`, `entity_animation(id)` |
 | LOCAL_PLAYER_ANIMATIONS | done; the first-person body plays the game's idle, walk, dig and walk-while-digging ranges from the local controls, as the vanilla client plays them on a visible local player, and a server animation on the first track with one of those ranges does not interrupt them | automatic in `sync_entities(dt)` |
-| PLAY_SOUND / STOP_SOUND / FADE_SOUND | done; local node sounds are also derived from node definitions; fades currently stop immediately and object-attached sounds do not yet follow their object | `take_sounds()`, `take_stopped_sounds()`, `node_sound(...)` |
+| PLAY_SOUND / STOP_SOUND / FADE_SOUND | done; the client's own sounds (footsteps, landing, jump, digging, placing, item use, damage, other objects' footsteps) are made as upstream's SoundMaker makes them; object-attached sounds follow their object; fades currently stop immediately | `take_sounds()`, `take_stopped_sounds()`, `node_sound(...)` |
 | SPAWN_PARTICLE / SPAWN_PARTICLE_BATCH / ADD_PARTICLESPAWNER / DELETE_PARTICLESPAWNER | fully read, partly drawn (the batch, a step's single particles zstd compressed together, was unread until 2026-09-27, so every mod's `add_particle` in a busy step was lost): every field of the current format is parsed and carried, and `docs/particle-coverage.md` says field by field what is drawn, what is approximated and what is not drawn yet | `take_particles()`, `take_particle_spawners()`, `take_deleted_spawners()` |
 | CHAT_MESSAGE / TOSERVER_CHAT_MESSAGE | done | `take_chat()`, `send_chat(msg)` |
-| HP / BREATH | done | `hp()`, `breath()` (also in `hud_state()`) |
+| HP / BREATH | done; a drop in HP plays the damage sound unless the server asked for no damage effect | `hp()`, `breath()` (also in `hud_state()`) |
 | fall damage (client-computed, ClientEnvironment::step) / TOSERVER_DAMAGE | done, sent when damage is enabled server-side | automatic in `step_player(...)` |
 | PLAYER_SPEED (knockback: server adds velocity to the local player) | done | automatic |
 | HUDADD / HUDCHANGE / HUDRM / HUD_SET_FLAGS / HUD_SET_PARAM | done, kept as Luanti `HudElement`s | `hud_state()` |

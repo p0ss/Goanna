@@ -90,6 +90,7 @@ var shader_weather := true     # draw rain and snow by shader (ui/weather.gd)
 var flash_rect: ColorRect
 var cursor_ctl: Control      # dragged stack, drawn above the formspec
 var audio: Node              # ui/audio.gd, sound
+var narrator: Node           # ui/narrator.gd, read aloud
 var flash_alpha := 0.0
 var t := 0.0
 var last_hp := -1
@@ -183,6 +184,10 @@ func _ready() -> void:
 		host.add_child.call_deferred(audio)
 	else:
 		add_child(audio)
+	narrator = preload("res://ui/narrator.gd").new()
+	narrator.client = client
+	narrator.ui = self
+	add_child(narrator)
 	cursor_ctl = Control.new()
 	cursor_ctl.set_anchors_preset(Control.PRESET_FULL_RECT)
 	cursor_ctl.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -863,6 +868,9 @@ const SETTINGS := [
 	["Display", "damage_flash", "toggle", "Damage flash", "Flash the screen red when you take damage."],
 	["Audio", "volume", "slider", "Volume", "Overall sound level.", 0.0, 1.0, 0.05],
 	["Audio", "muted", "toggle", "Mute", "Silence all sound."],
+	["Audio", "read_aloud", "toggle", "Read aloud", "Speak chat, on screen text, what you point at, what you hold and the menus as they open, through the system's voice. Ctrl+B turns it on and off anywhere. On Linux this needs speech-dispatcher and a voice such as espeak-ng."],
+	["Audio", "speech_rate", "slider", "Speech rate", "How fast read aloud speaks. 1 is the voice's normal rate.", 0.5, 4.0, 0.25],
+	["Audio", "speech_volume", "slider", "Speech volume", "How loud read aloud speaks.", 0.0, 1.0, 0.05],
 	["Updates", "update_check", "toggle", "Check for Goanna updates", "When the menu opens, ask GitHub whether a newer Goanna is out, and offer to update. Only releases signed by Goanna's maintainer are offered. A copy run from source never updates itself."],
 	["Updates", "asset_updates", "toggle", "Download material updates", "Fetch new versions of Goanna's enhanced materials (the surface detail, gloss and relief) when the menu opens, and the materials a server you join uses. Only bundles checked against Goanna's catalogue are installed, and they apply to the next game you start or join."],
 ]
@@ -884,6 +892,7 @@ const PLAIN_TABS := ["Controls", "Appearance", "Audio", "Display", "Updates"]
 const LOCAL_KEYS := ["procedural_grass", "mouse_sensitivity", "invert_mouse", "view_bobbing", "fov",
 	"pad_enabled", "pad_look_speed", "pad_invert_y", "pad_deadzone",
 	"gui_scale", "max_fps", "vsync", "fullscreen", "damage_flash", "show_fps", "show_position", "terrain_occlusion", "volume", "muted",
+	"read_aloud", "speech_rate", "speech_volume",
 	"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao",
 	"light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality", "cloud_quality", "cloud_style", "cloud_layer_count", "grass_density", "grass_draw_distance", "grass_interaction_distance", "grass_interactors", "grass_antialiasing",
 	"light_ssil", "screen_space_detail", "shadow_detail", "asset_updates", "update_check",
@@ -970,6 +979,12 @@ func _apply_local(key: String, value: float, on: bool) -> void:
 			if audio != null: audio.volume = value
 		"muted":
 			if audio != null: audio.muted = on
+		"read_aloud":
+			if narrator != null and narrator.enabled != on: narrator.set_enabled(on)
+		"speech_rate":
+			if narrator != null: narrator.rate = value
+		"speech_volume":
+			if narrator != null: narrator.speech_volume = value
 
 func _local_value(key: String) -> float:
 	var m := _main_node()
@@ -996,6 +1011,9 @@ func _local_value(key: String) -> float:
 			return float(m.get(key)) if m != null else 1.0
 		"volume": return audio.volume if audio != null else 0.8
 		"muted": return 1.0 if (audio != null and audio.muted) else 0.0
+		"read_aloud": return 1.0 if (narrator != null and narrator.enabled) else 0.0
+		"speech_rate": return narrator.rate if narrator != null else 1.0
+		"speech_volume": return narrator.speech_volume if narrator != null else 1.0
 		"asset_updates", "update_check":
 			# What is saved, which asset_updater.gd and updater.gd obey. This
 			# used to show on whatever was saved, so a profile with material
