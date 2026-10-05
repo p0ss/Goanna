@@ -181,7 +181,7 @@ Godot scripts require no GPU:
 
 ```sh
 godot --headless --path project --script res://tests/local_play.gd
-godot --headless --path project --script res://tests/local_play_scene.gd
+XDG_DATA_HOME=$(mktemp -d) godot --headless --path project --script res://tests/local_play_scene.gd
 godot --headless --path project --script res://tests/local_play_menu.gd
 godot --headless --path project --script res://tests/owned_process.gd
 ```

@@ -245,7 +245,7 @@ def trial(args, count, out, baseline):
                 child_env["GOANNA_NO_SHARED_TERRAIN"] = "1"
             profile = out / "data/godot/app_userdata/Goanna/goanna.cfg"
             profile.parent.mkdir(parents=True)
-            profile.write_text("[settings]\nasset_updates=false\n")
+            profile.write_text("[settings]\nmaterial_updates=false\n")
             if args.dummy:
                 control_port = headless.free_control_port()
                 child_env.update(GOANNA_CONTROL=str(control_port), GOANNA_HOST="127.0.0.1",

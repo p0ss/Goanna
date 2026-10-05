@@ -274,7 +274,7 @@ dummy renderer and no server connection. Run it with a disposable
 ```sh
 feature_data=$(mktemp -d)
 XDG_DATA_HOME="$feature_data/data" XDG_CONFIG_HOME="$feature_data/config" \
-  godot --headless --path project --script res://tests/render_features.gd
+  XDG_DATA_HOME=$(mktemp -d) godot --headless --path project --script res://tests/render_features.gd
 ```
 
 It checks saved startup state, lazy cloud-resource creation, per-player

@@ -12,11 +12,14 @@ func check(condition: bool, message: String) -> void:
 		push_error(message)
 
 func _initialize() -> void:
+	if preload("res://tests/scratch_profile.gd").refuse_real_profile():
+		quit(2)
+		return
 	_run.call_deferred()
 
 func _run() -> void:
 	var cfg := ConfigFile.new()
-	cfg.set_value("settings", "asset_updates", false)
+	cfg.set_value("settings", "material_updates", false)
 	cfg.save("user://goanna.cfg")
 	var shell := Shell.new()
 	shell.automatic_launch = false

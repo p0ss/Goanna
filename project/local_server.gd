@@ -1350,6 +1350,9 @@ func _install_pbr_mod(world: String, game: String) -> String:
 	var installed := AssetStore.profile_texture_path(game)
 	if installed != "":
 		var installed_dst := world.path_join("worldmods").path_join("goanna_pbr")
+		# Emptied first: copying over the last launch's maps left any the
+		# new profile no longer carries, so a world kept older maps forever.
+		AssetStore._remove_tree(installed_dst)
 		if not _copy_resource_tree(installed, installed_dst.path_join("textures")):
 			return "The installed PBR asset profile for %s is incomplete." % game
 		var init := FileAccess.open(installed_dst.path_join("init.lua"), FileAccess.WRITE)

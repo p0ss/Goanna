@@ -43,11 +43,28 @@ var _total := 0
 # 1.2.0 was published, and a player who only plays from the menu could stay
 # on it (reported 2026-10-01).
 var upgrade_installed := false
+# Start Game's instance (menu.gd): the newest version of every bundle for
+# this game, installed or not, before the world starts. Choosing the
+# recommended materials is asking for the current ones, so this runs even
+# with material updates switched off. A Mineclonia world started from a
+# store still holding an older pack used to copy that older pack into the
+# world, and the player saw the old baked maps (reported 2026-10-05).
+var for_game := ""
+
+# The material updates switch, on unless the player turned it off. It was
+# saved as settings/asset_updates until 0.13.0. Profiles had it off without
+# their players choosing so (one on the maintainer's machine, after the
+# settings panel showed a saved off as on), so the old key is no longer
+# read and every player starts 0.13.0 with updates on.
+const SETTING := "material_updates"
+
+static func updates_on(path := CFG_PATH) -> bool:
+	var cfg := ConfigFile.new()
+	cfg.load(path)
+	return bool(cfg.get_value("settings", SETTING, true))
 
 func _ready() -> void:
-	var cfg := ConfigFile.new()
-	cfg.load(CFG_PATH)
-	if not bool(cfg.get_value("settings", "asset_updates", true)):
+	if for_game == "" and not updates_on():
 		_settle.call_deferred()
 		return
 	_catalogue_url = OS.get_environment("GOANNA_ASSET_CATALOGUE_URL")
@@ -339,6 +356,20 @@ func _on_catalogue(result: int, code: int, _headers: PackedStringArray,
 		for bundle in newest_only(catalogue.bundles):
 			if _has_any_version(str(bundle.id)) and not _installed(bundle):
 				_queue.append(bundle)
+		_total = _queue.size()
+		# Settled when there is nothing to fetch, as when the last download
+		# lands: Start Game waits on this instance (menu.gd).
+		if _queue.is_empty():
+			_settle()
+		_download_next()
+	elif for_game != "":
+		for bundle in newest_only(catalogue.bundles):
+			var names: Array = bundle.get("games", []).map(func(g) -> String: return str(g))
+			if for_game in names and not _installed(bundle):
+				_queue.append(bundle)
+		_total = _queue.size()
+		if _queue.is_empty():
+			_settle()
 		_download_next()
 
 func _download_next() -> void:

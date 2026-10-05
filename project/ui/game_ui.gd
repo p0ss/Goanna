@@ -948,7 +948,7 @@ const SETTINGS := [
 	["Audio", "read_health", "toggle", "Read health", "Read your health when it changes."],
 	["Audio", "read_menus", "toggle", "Read menus as they open", "Read a form's or menu's text and controls when it opens. The control you move to is always read."],
 	["Updates", "update_check", "toggle", "Check for Goanna updates", "When the menu opens, ask GitHub whether a newer Goanna is out, and offer to update. Only releases signed by Goanna's maintainer are offered. A copy run from source never updates itself."],
-	["Updates", "asset_updates", "toggle", "Download material updates", "Fetch new versions of Goanna's enhanced materials (the surface detail, gloss and relief) when the menu opens, and the materials a server you join uses. Only bundles checked against Goanna's catalogue are installed, and they apply to the next game you start or join."],
+	["Updates", "material_updates", "toggle", "Download material updates", "Fetch new versions of Goanna's enhanced materials (the surface detail, gloss and relief) when the menu opens, and the materials a server you join uses. Only bundles checked against Goanna's catalogue are installed, and they apply to the next game you start or join."],
 ]
 const GraphicsProfiles := preload("res://graphics_profiles.gd")
 
@@ -972,7 +972,7 @@ const LOCAL_KEYS := ["procedural_grass", "mouse_sensitivity", "invert_mouse", "v
 	"read_held", "read_health", "read_menus",
 	"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao",
 	"light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality", "cloud_quality", "cloud_style", "cloud_layer_count", "grass_density", "grass_draw_distance", "grass_interaction_distance", "grass_interactors", "grass_antialiasing",
-	"light_ssil", "screen_space_detail", "shadow_detail", "asset_updates", "update_check",
+	"light_ssil", "screen_space_detail", "shadow_detail", "material_updates", "update_check",
 	"look_strength", "night_visibility", "bloom_strength", "shader_weather"]
 var settings_menu: Control
 var graphics_groups_open := {}  # which Graphics groups are open, kept across reopens
@@ -1100,7 +1100,7 @@ func _local_value(key: String) -> float:
 			if narrator == null:
 				return 1.0
 			return float(narrator.get(narrator.SETTING_PROPERTIES[key]))
-		"asset_updates", "update_check":
+		"material_updates", "update_check":
 			# What is saved, which asset_updater.gd and updater.gd obey. This
 			# used to show on whatever was saved, so a profile with material
 			# updates off looked on.

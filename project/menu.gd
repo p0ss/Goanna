@@ -72,6 +72,13 @@ var _terrain_archive_path := ""
 # while it runs, and the hash must be checked against what was asked for.
 var _terrain_downloading := ""
 var _pending_terrain_start := false
+# The newest materials for the game being started (_fetch_latest_materials):
+# the menu's own background upgrade, the check for one game, and the games
+# already checked this time the menu is open.
+var _background_materials: Node
+var _material_check: Node
+var _material_wait_game := ""
+var _materials_current := {}
 var server  # GoannaLocalServer (local_server.gd)
 var server_deadline := 0.0
 var showcase_launch := false
@@ -119,6 +126,7 @@ func _ready() -> void:
 	var materials := AssetUpdater.new()
 	materials.upgrade_installed = true
 	add_child(materials)
+	_background_materials = materials
 	var local_cfg := ConfigFile.new()
 	if local_cfg.load(CFG_PATH) == OK:
 		local_roster = local_cfg.get_value("local_play", "players", [])
@@ -1753,6 +1761,59 @@ func _on_terrain_download_completed(result: int, code: int,
 		_pending_terrain_start = false
 		call_deferred("_on_start_local")
 
+# Before a world starts with the recommended materials: install the newest
+# version of every material bundle for its game that the catalogue offers,
+# then start it. Pressing Start Game again while this runs starts with what
+# is installed. A failed or slow catalogue starts with what is installed
+# too; the updater gives up on the catalogue after 15 seconds.
+func _fetch_latest_materials(game: String) -> void:
+	if _material_check != null or _material_wait_game != "":
+		_material_check_done(game)
+		return
+	start_button.disabled = false
+	GlassStyle.tint_text(status_label, Color(1, 1, 1, 0.7))
+	status_label.text = "Checking for the latest materials ..."
+	# The menu's background upgrade may be fetching the same bundle; two
+	# downloads of one file would collide, so let it finish first.
+	if is_instance_valid(_background_materials) and not _background_materials.is_settled():
+		_material_wait_game = game
+		_background_materials.settled.connect(func() -> void:
+			if _material_wait_game == game:
+				_material_wait_game = ""
+				_fetch_latest_materials(game), CONNECT_ONE_SHOT)
+		set_process(true)
+		return
+	_material_check = AssetUpdater.new()
+	_material_check.for_game = game
+	_material_check.settled.connect(_material_check_done.bind(game), CONNECT_ONE_SHOT)
+	add_child(_material_check)
+	set_process(true)
+
+func _material_check_done(game: String) -> void:
+	_material_wait_game = ""
+	if is_instance_valid(_material_check):
+		_material_check.queue_free()
+	_material_check = null
+	_materials_current[game] = true
+	status_label.text = ""
+	_on_start_local.call_deferred()
+
+func _material_progress_text() -> String:
+	if _material_wait_game != "":
+		var bg: Dictionary = _background_materials.progress() \
+			if is_instance_valid(_background_materials) else {}
+		if not bg.is_empty() and int(bg.get("size", -1)) > 0:
+			return "Updating materials: %.0f / %.0f MB. Start Game again to play with the installed ones." % [
+				int(bg.bytes) / 1000000.0, int(bg.size) / 1000000.0]
+		return "Checking for the latest materials ..."
+	var p: Dictionary = _material_check.progress()
+	if p.is_empty():
+		return "Checking for the latest materials ..."
+	if int(p.get("size", -1)) > 0:
+		return "Downloading the latest materials: %.0f / %.0f MB. Start Game again to play with the installed ones." % [
+			int(p.bytes) / 1000000.0, int(p.size) / 1000000.0]
+	return "Downloading the latest materials ..."
+
 func _extract_terrain_world(archive_path: String, id: String) -> String:
 	var zip := ZIPReader.new()
 	if zip.open(archive_path) != OK:
@@ -1836,6 +1897,14 @@ func _on_start_local() -> void:
 		_pending_terrain_start = true
 		_start_terrain_download()
 		return
+	# Recommended materials means the newest: the world gets a copy of the
+	# installed pack as it starts, so fetch a newer one first.
+	if _local_pbr_enabled() and str(_local_pbr_selection().get("id", "")) == "bundled" \
+			and not _materials_current.get(game, false) \
+			and (OS.get_environment("GOANNA_LOCAL_TEST") == ""
+				or OS.get_environment("GOANNA_ASSET_CATALOGUE_URL") != ""):
+		_fetch_latest_materials(game)
+		return
 	var enabled_mods: Array = []
 	for mod in mod_checks:
 		if (mod_checks[mod] as CheckBox).button_pressed:
@@ -1902,6 +1971,9 @@ func _process(_delta: float) -> void:
 			status_label.text = "Downloading Terrain Diffusion default world: %.1f / %.1f MB" % [downloaded / 1000000.0, total / 1000000.0]
 		else:
 			status_label.text = "Downloading Terrain Diffusion default world: %.1f MB" % (downloaded / 1000000.0)
+		return
+	if is_instance_valid(_material_check) or _material_wait_game != "":
+		status_label.text = _material_progress_text()
 		return
 	if server == null:
 		if not installing:

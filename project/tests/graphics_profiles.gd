@@ -14,6 +14,9 @@ func check(ok: bool, message: String) -> void:
 		push_error(message)
 
 func _initialize() -> void:
+	if preload("res://tests/scratch_profile.gd").refuse_real_profile():
+		quit(2)
+		return
 	_run.call_deferred()
 
 func apply(game: Node, profile: String) -> void:
@@ -31,7 +34,7 @@ func _run() -> void:
 	OS.set_environment("GOANNA_NO_POINTER_CAPTURE", "1")
 	OS.set_environment("GOANNA_NO_STORE", "1")
 	var cfg := ConfigFile.new()
-	cfg.set_value("settings", "asset_updates", false)
+	cfg.set_value("settings", "material_updates", false)
 	cfg.save("user://goanna.cfg")
 	var shell := Shell.new()
 	shell.automatic_launch = false
