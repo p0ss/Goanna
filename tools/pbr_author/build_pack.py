@@ -150,6 +150,14 @@ def install(args, done, failed):
     # at their own 64 x 32 size into the corner of the 1024 wide part, and
     # would break any mod that combines or crops a skin by coordinates.
     atlases = set(getattr(args, "atlases", []))
+    # Tiles the game only ever draws as a [combine part ship maps only for
+    # the same reason: Luanti blits a part at its own size, so a 256 px
+    # albedo shows its top left 16 texels as one flat colour. The client
+    # places the part's companions at its offset (goanna_overlay_companions).
+    maps_only_path = HERE / "stems" / (args.game + ".maps_only.txt")
+    if maps_only_path.exists():
+        atlases |= {l.split()[0] for l in maps_only_path.read_text().splitlines()
+                    if l.strip() and not l.startswith("#")}
     # Stems a media audit excluded are built for review but never shipped.
     excluded_path = lib.GAMES[args.game].get("excluded")
     excluded = set(json.loads(excluded_path.read_text())) \

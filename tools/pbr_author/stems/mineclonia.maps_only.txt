@@ -1,0 +1,5 @@
+# Tile stems that ship _n and _s only, the game's own art staying the albedo.
+# Each is drawn only as a [combine part (see build_pack.py install). The cake
+# textures are [combine parts in the candle cake too, but also plain node
+# tiles, which need the map sized albedo, so they are not listed.
+mcl_books_chiseled_bookshelf_empty
