@@ -187,6 +187,11 @@ public:
     bool light_flicker() const { return m_light_flicker; }
     void set_solid_ice(bool on);
     bool solid_ice() const;
+    // Flames on their own material (flame.gdshader, docs/fire-material.md),
+    // or, off, the emissive cut-out they were drawn with before. On unless
+    // GOANNA_FLAME_MATERIAL=0; the switch exists for old against new.
+    void set_flame_material(bool on);
+    bool flame_material() const { return m_flame_material; }
     void set_texture_map(const godot::String &csv);
     void set_texture_path(const godot::String &path);
     // The texture resolution tier: 128, 256 or 512 map pixels per 16 art
@@ -1216,6 +1221,17 @@ private:
     std::map<u32, LavaTile> m_lava_tex; // source artwork shared by the liquid family
     std::map<u32, int> m_portal_tex; // 1 Nether, 2 End; visible faces only
     std::set<u32> m_portal_arrays; // arrays with a portal face to split out
+    // Flame tiles, every frame of each (goanna_flame.h, flameTile): the
+    // brightest node light that shows the texture, and whether it is a
+    // firelike node, whose one-node frame may be stretched for the shimmer.
+    struct FlameTex { u8 level = 0; bool firelike = false; };
+    std::map<u32, FlameTex> m_flame_tex;
+    bool m_flame_material = true;
+    bool flameSurface(const MaterialKey &key) const {
+        return m_flame_material && !key.array_texture && !key.crack_overlay &&
+                m_flame_tex.count(key.texture_id);
+    }
+    godot::Ref<godot::Material> flameMaterial(const MaterialKey &key, const FlameTex &flame);
     bool m_fake_liquid_built = false;
 	// A separate background view supplies transmission while ice writes depth.
 	// Solid ice skips that extra view while retaining the frosted material.
@@ -1224,7 +1240,8 @@ private:
     u32 specialLayer(GoannaTexture *gt, u16 layer);
 
     godot::Ref<godot::Shader> m_sh_water, m_sh_lava, m_sh_leaves, m_sh_plants, m_sh_glass, m_sh_glass_clear, m_sh_glass_double, m_sh_ice, m_sh_array,
-            m_sh_array_scissor, m_sh_crack, m_sh_portal_nether, m_sh_portal_end;
+            m_sh_array_scissor, m_sh_crack, m_sh_portal_nether, m_sh_portal_end,
+            m_sh_flame, m_sh_flame_glow;
     bool m_shaders_loaded = false;
     // Relief inferred from a texture's own brightness, for every texture a
     // pack does not supply a normal map for. Only ever used where nothing is

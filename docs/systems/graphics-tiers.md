@@ -36,7 +36,7 @@ streaming, weather transitions or small split-screen readability.
 ## Current implementation
 
 [graphics_profiles.gd](../../project/graphics_profiles.gd) is the source of
-truth. Every preset names the same controlled keys, including all 19
+truth. Every preset names the same controlled keys, including all 20
 feature gates and the texture resolution. Applying Ultra after Lowest restores its effects; applying
 Lowest after an experiment restores its intended features. Quality edits
 outside those values show Custom. Player preferences remain separate.
@@ -122,6 +122,10 @@ See the [fluffy cloud review](../perf/fluffy-block-clouds-2026-09-27/report.md).
 Ordinary sky and distance fog remain when volumetric atmosphere is off;
 underwater murk also remains. Cloud style is a candidate artistic choice,
 not a guarantee of a particular saving in every scene.
+
+The heat shimmer over flames (`render_fire_shimmer`) is off on Lowest
+and Low and on from Medium; the flame material itself is the same at
+every tier. See [fire material](fire-material.md).
 
 All tiers retain bloom, cloud shadows, dynamic and carried lights, water
 waves and reflections, wet surfaces, foliage wind, ice detail and

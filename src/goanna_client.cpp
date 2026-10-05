@@ -5,6 +5,7 @@
 #include "util/hashing.h"
 #include "goanna_grass.h"
 #include "goanna_lava.h"
+#include "goanna_flame.h"
 #include <sstream>
 
 #include <godot_cpp/classes/array_mesh.hpp>
@@ -185,6 +186,8 @@ void appendLodMesh(goanna::LodRegionMesh &dst, goanna::LodRegionMesh &&src) {
 namespace goanna {
 
 GoannaClient::GoannaClient() {
+    if (const char *flame = getenv("GOANNA_FLAME_MATERIAL"))
+        m_flame_material = !(flame[0] == '0' && flame[1] == 0);
     // Only live clients own the cache. Packed arrays are released before
     // Godot shuts down, including when the last player disconnects.
     static std::weak_ptr<SharedMeshCache> shared_meshes;
@@ -329,6 +332,9 @@ bool GoannaClient::nearCanBatch(const MaterialKey &key) const {
         return false;
     // The dig crack is alpha blended over its block's own surface.
     if (key.crack_overlay)
+        return false;
+    // A flame is blended and sorts with its own small instance.
+    if (flameSurface(key))
         return false;
     if (key.array_texture)
         return true;
@@ -1116,6 +1122,20 @@ void GoannaClient::set_solid_ice(bool on) {
 }
 bool GoannaClient::solid_ice() const { return m_solid_ice; }
 
+void GoannaClient::set_flame_material(bool on) {
+    if (on == m_flame_material)
+        return;
+    m_flame_material = on;
+    if (m_entities)
+        m_entities->setFlameMaterial(on);
+    clearMaterials();
+    if (m_session) {
+        std::lock_guard<std::mutex> lk(m_session->mapLock());
+        for (auto &kv : m_near_blocks)
+            m_session->invalidateBlock(kv.first);
+    }
+}
+
 GoannaClient::~GoannaClient() {
     m_carve_active = false;
     // Before the session and the tile cache go.
@@ -1389,6 +1409,7 @@ void GoannaClient::connect_to(const String &host, int port, const String &player
     m_lava_tex.clear();
     m_portal_tex.clear();
     m_portal_arrays.clear();
+    m_flame_tex.clear();
     m_fake_liquid_built = false;
     // Icon jobs point into the outgoing session's meshes and images.
     m_item_icons.clear();
@@ -3124,6 +3145,15 @@ MaterialKey GoannaClient::keyForIrr(const video::SMaterial &m, u16 layer, u16 *l
     buildFakeLiquidTextures();
     const bool array_tile = arrayPathTile(mtype, m.BackfaceCulling) &&
             !m_portal_tex.count(key.texture_id);
+    // A flame keeps its single image, whose frames are swapped, so that it
+    // can take the flame material: Mineclonia's candle and campfire flames
+    // are culled mesh tiles, which would otherwise join an animation array.
+    auto flameImage = [&](u32 id) {
+        if (!m_flame_material)
+            return false;
+        buildFakeLiquidTextures();
+        return m_flame_tex.count(id) > 0;
+    };
     if (gt && gt->isArray()) {
         // Only commit to the array path if the Godot array actually built:
         // otherwise the key would name a texture with no 2D image behind it
@@ -3148,7 +3178,8 @@ MaterialKey GoannaClient::keyForIrr(const video::SMaterial &m, u16 layer, u16 *l
                 key.texture_id = m_session->tsrc()->getTextureId(names[idx]);
             }
         }
-    } else if (gt && layer_base && (!cracked || overlay_ok) && array_tile) {
+    } else if (gt && layer_base && (!cracked || overlay_ok) && array_tile &&
+            !flameImage(gt->id())) {
         // An animated tile. Its buffers carry the first frame, a single
         // image, because upstream keeps animated tiles out of its arrays and
         // swaps the texture per frame. Draw it from the animation array
@@ -3346,6 +3377,29 @@ void GoannaClient::buildFakeLiquidTextures() {
                     nameHasWord(f.name, "glass") || nameHasWord(f.name, "pane"))
                 each_texture([&](const TileLayer &, u32 id) { m_clear_glass_tex.insert(id); });
         }
+        // Flames, tile by tile (goanna_flame.h). Every frame of the tile is
+        // recorded: the buffers carry the first, and the material swaps.
+        if (f.visuals) {
+            for (int i = 0; i < 6; ++i) {
+                const TileDef &tdef = f.tiledef[i];
+                if (!flameTile(f.drawtype, f.light_source, tdef.name,
+                            tdef.animation.type != TAT_NONE))
+                    continue;
+                const TileLayer &layer = f.visuals->tiles[i].layers[0];
+                auto note = [&](u32 id) {
+                    if (!id)
+                        return;
+                    FlameTex &ft = m_flame_tex[id];
+                    ft.level = std::max(ft.level, f.light_source);
+                    ft.firelike = ft.firelike || f.drawtype == NDT_FIRELIKE;
+                };
+                note(layer.texture_id);
+                note(resolved_texture(layer));
+                if (layer.frames)
+                    for (const auto &frame : *layer.frames)
+                        note(frame.texture_id);
+            }
+        }
         if (!fake_liquid && !ice)
             continue;
         for (const auto &tdef : f.tiledef) {
@@ -3398,9 +3452,20 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
         m_sh_array = load_view_shader("res://shaders/nodes_array.gdshader");
         m_sh_array_scissor = load_view_shader("res://shaders/nodes_array_scissor.gdshader");
         m_sh_crack = load_view_shader("res://shaders/crack_overlay.gdshader");
+        m_sh_flame = load_view_shader("res://shaders/flame.gdshader");
+        m_sh_flame_glow = load_view_shader("res://shaders/flame_glow.gdshader");
     }
     if (key.crack_overlay)
         return crackOverlayMaterial(key);
+    if (!key.array_texture && !key.composited && m_flame_material) {
+        buildFakeLiquidTextures();
+        const auto flame = m_flame_tex.find(key.texture_id);
+        if (flame != m_flame_tex.end()) {
+            Ref<Material> fm = flameMaterial(key, flame->second);
+            if (fm.is_valid())
+                return fm;
+        }
+    }
     GoannaTexture *gt = m_session->tsrc()->goannaTexture(key.texture_id);
     Ref<ImageTexture> tex = gt ? gt->godotTexture() : Ref<ImageTexture>();
     MaterialType mtype = m_session->shsrc().materialType(key.shader_id);
@@ -3840,6 +3905,50 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
     return mat;
 }
 
+// A flame: the tile's own frame, measured for its ramp, drawn by
+// flame.gdshader with flame_glow.gdshader as its next pass. Both passes
+// carry albedo_tex, and showAnimationFrame moves both to the frame the
+// clock names. docs/fire-material.md.
+Ref<Material> GoannaClient::flameMaterial(const MaterialKey &key, const FlameTex &flame) {
+    GoannaTextureSource *tsrc = m_session->tsrc();
+    GoannaTexture *gt = tsrc->goannaTexture(key.texture_id);
+    Ref<ImageTexture> tex = gt ? gt->godotTexture() : Ref<ImageTexture>();
+    if (tex.is_null() || m_sh_flame.is_null() || m_sh_flame_glow.is_null())
+        return Ref<Material>();
+    std::vector<video::IImage *> frames;
+    if (const NodeAnimation *anim = tsrc->nodeAnimation(key.texture_id))
+        for (const auto &frame : anim->frames)
+            if (GoannaTexture *fgt = tsrc->goannaTexture(frame.texture_id))
+                frames.push_back(fgt->image());
+    if (frames.empty())
+        frames.push_back(gt->image());
+    const FlameRamp ramp = measureFlameRamp(frames);
+    Ref<ShaderMaterial> glow;
+    glow.instantiate();
+    glow->set_shader(m_sh_flame_glow);
+    Ref<ShaderMaterial> sm;
+    sm.instantiate();
+    sm->set_shader(m_sh_flame);
+    for (const Ref<ShaderMaterial> &m : {sm, glow}) {
+        m->set_shader_parameter("albedo_tex", tex);
+        configureFlameMaterial(m, ramp, (float)flame.level);
+        // A culled mesh tile is drawn from its front only, as upstream does.
+        m->set_shader_parameter("single_sided", key.backface_culling);
+    }
+    // A firelike frame spans its node, so its top edge can rise for the
+    // shimmer above the flame without moving the art.
+    glow->set_shader_parameter("shimmer_rise", flame.firelike ? 0.6f : 0.0f);
+    sm->set_next_pass(glow);
+    if (getenv("GOANNA_DEBUG_FLAME"))
+        UtilityFunctions::print("flame material: '", String(tsrc->getTextureName(key.texture_id).c_str()),
+                "' level ", (int)flame.level, " firelike ", flame.firelike, " heat ",
+                ramp.lum_low, "..", ramp.lum_high, " core ", Color(ramp.core[0], ramp.core[1], ramp.core[2]),
+                " tip ", Color(ramp.tip[0], ramp.tip[1], ramp.tip[2]), " texels ", ramp.texels);
+    m_materials[key.hash()] = sm;
+    noteAnimatedMaterial(key, sm);
+    return sm;
+}
+
 Ref<Material> GoannaClient::crackOverlayMaterial(const MaterialKey &key) {
     Ref<ShaderMaterial> sm;
     sm.instantiate();
@@ -3958,6 +4067,10 @@ void GoannaClient::showAnimationFrame(AnimatedMaterial &am, u32 frame_texture) {
     }
     if (ShaderMaterial *sm = Object::cast_to<ShaderMaterial>(am.material.ptr())) {
         sm->set_shader_parameter("albedo_tex", albedo);
+        // A flame's halo and shimmer pass reads the same frame.
+        Ref<ShaderMaterial> next = sm->get_next_pass();
+        if (next.is_valid())
+            next->set_shader_parameter("albedo_tex", albedo);
         // A companion follows the frame where the pack has one per frame;
         // where it has one still map, companionTexture returns that for
         // every frame and setting it again changes nothing.
@@ -4191,6 +4304,7 @@ void GoannaClient::ensureEntityRenderer() {
     m_entities->setShowBody(m_show_body);
     m_entities->setThirdPerson(m_third_person);
     m_entities->setAutoBump(m_auto_bump);
+    m_entities->setFlameMaterial(m_flame_material);
 }
 
 void GoannaClient::sync_entities(double dt) {
@@ -8817,6 +8931,26 @@ int GoannaClient::poll_blocks(int max_blocks) {
         ice_mesh.instantiate();
         int ice_si = 0;
         buildFakeLiquidTextures();
+        // Flames, blended, on an instance of their own: it sorts by the
+        // flames' own bounds rather than the whole block's water and glass,
+        // and casts no shadow (docs/fire-material.md).
+        Ref<ArrayMesh> fmesh;
+        fmesh.instantiate();
+        int fsi = 0;
+        auto add_flame = [&](SurfAccum &acc) {
+            Array arrays;
+            arrays.resize(Mesh::ARRAY_MAX);
+            arrays[Mesh::ARRAY_VERTEX] = acc.verts;
+            arrays[Mesh::ARRAY_NORMAL] = acc.norms;
+            arrays[Mesh::ARRAY_TEX_UV] = acc.uvs;
+            arrays[Mesh::ARRAY_COLOR] = acc.cols;
+            arrays[Mesh::ARRAY_TEX_UV2] = acc.uv2s;
+            arrays[Mesh::ARRAY_CUSTOM0] = acc.custom0;
+            arrays[Mesh::ARRAY_INDEX] = acc.idx;
+            fmesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays, TypedArray<Array>(),
+                    Dictionary(), kNodeSurfaceFlags);
+            fmesh->surface_set_material(fsi++, materialFor(acc.key));
+        };
         auto keep_regional = [&](SurfAccum &acc, bool glow) {
             NearSurface surface;
             surface.key = acc.key;
@@ -8835,6 +8969,10 @@ int GoannaClient::poll_blocks(int max_blocks) {
             if (acc.verts.is_empty() || acc.idx.is_empty())
                 continue;
             ++near_block.source_surfaces;
+            if (flameSurface(acc.key)) {
+                add_flame(acc);
+                continue;
+            }
             // Group every depth-writing material by its exact key. Water,
             // glass and other alpha-blended surfaces stay per block because
             // Godot sorts transparent MeshInstance3Ds as whole objects.
@@ -8881,6 +9019,10 @@ int GoannaClient::poll_blocks(int max_blocks) {
             if (acc.verts.is_empty() || acc.idx.is_empty())
                 continue;
             ++near_block.source_surfaces;
+            if (flameSurface(acc.key)) {
+                add_flame(acc);
+                continue;
+            }
             if (nearCanBatch(acc.key)) {
                 keep_regional(acc, true);
                 continue;
@@ -8932,7 +9074,8 @@ int GoannaClient::poll_blocks(int max_blocks) {
         // A block of nothing but region-batched or glowing surfaces still
         // has geometry, so all destinations have to be empty before it
         // is thrown away.
-        if (near_block.surfaces.empty() && si == 0 && gsi == 0 && ice_si == 0 && csi == 0) {
+        if (near_block.surfaces.empty() && si == 0 && gsi == 0 && ice_si == 0 && csi == 0 &&
+                fsi == 0) {
             if (getenv("GOANNA_DEBUG_BLOCKS") && m_near_blocks.count(bp))
                 UtilityFunctions::print("block FREED (empty mesh): ", bp.X, ",", bp.Y, ",", bp.Z);
             nearDrop(bp);
@@ -8954,7 +9097,7 @@ int GoannaClient::poll_blocks(int max_blocks) {
         }
         nearDrop(bp);
         MeshInstance3D *mi = nullptr;
-        if (si > 0 || gsi > 0 || ice_si > 0 || csi > 0) {
+        if (si > 0 || gsi > 0 || ice_si > 0 || csi > 0 || fsi > 0) {
             mi = memnew(MeshInstance3D);
             mi->set_extra_cull_margin(0.2f);
             add_child(mi);
@@ -8979,6 +9122,18 @@ int GoannaClient::poll_blocks(int max_blocks) {
             gmi->set_layer_mask(GLOW_LAYER);
             mi->add_child(gmi);
             gmi->set_mesh(gmesh);
+        }
+        // Hung off the block mesh like the glow mesh. The glow layer keeps
+        // node lamps off it, as off every glowing surface; the margin covers
+        // the shimmer pass raising a firelike quad's top edge.
+        if (fsi > 0) {
+            MeshInstance3D *fmi = memnew(MeshInstance3D);
+            fmi->set_name("flames");
+            fmi->set_extra_cull_margin(1.0f);
+            fmi->set_layer_mask(GLOW_LAYER);
+            fmi->set_cast_shadows_setting(GeometryInstance3D::SHADOW_CASTING_SETTING_OFF);
+            mi->add_child(fmi);
+            fmi->set_mesh(fmesh);
         }
         // Hung off the block mesh like the glow mesh, for the same reason.
         // It casts no shadow: it is a mark on a surface that already does.
@@ -9056,6 +9211,8 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("server_options"), &GoannaClient::server_options);
     ClassDB::bind_method(D_METHOD("set_solid_ice", "on"), &GoannaClient::set_solid_ice);
     ClassDB::bind_method(D_METHOD("solid_ice"), &GoannaClient::solid_ice);
+    ClassDB::bind_method(D_METHOD("set_flame_material", "on"), &GoannaClient::set_flame_material);
+    ClassDB::bind_method(D_METHOD("flame_material"), &GoannaClient::flame_material);
     ClassDB::bind_method(D_METHOD("set_texture_map", "csv"), &GoannaClient::set_texture_map);
     ClassDB::bind_method(D_METHOD("set_texture_path", "path"), &GoannaClient::set_texture_path);
     ClassDB::bind_method(D_METHOD("set_content_hold", "on"), &GoannaClient::set_content_hold);

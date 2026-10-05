@@ -113,6 +113,10 @@ public:
     // and "parallax_short" (entity_common.gdshaderinc). Applied to every
     // material already built and to those built later, as <name>_strength.
     void setChannel(const std::string &name, float strength);
+    // A burning entity's flame (an upright sprite named for one) on the
+    // flame material, as GoannaClient::set_flame_material. The sprite's
+    // mesh is rebuilt at its next frame, so the switch takes within one.
+    void setFlameMaterial(bool on) { m_flame_material = on; }
     // The formspec model[] element (upstream's GUIScene): a standalone copy of
     // a media mesh with its textures applied, posed at the first frame of the
     // loop, for the UI to hang under a SubViewport. Unshaded, alpha tested at
@@ -231,6 +235,11 @@ private:
     godot::Ref<godot::Texture2D> compositeCompanion(GoannaSession &session,
             const std::string &texture, const std::vector<OverlayLayer> &layers,
             const char *suffix);
+    // flame.gdshader over a whole sprite sheet, the cell taken from the
+    // mesh's CUSTOM0 rectangle (docs/fire-material.md). Null if the texture
+    // has not arrived.
+    godot::Ref<godot::Material> flameSpriteMaterial(GoannaSession &session,
+            const std::string &texture);
     // Unshaded, alpha tested, double sided material for a model[] preview
     // surface, matching GUIScene::setTexture.
     godot::Ref<godot::StandardMaterial3D> materialForPreviewTexture(GoannaSession &session,
@@ -262,6 +271,9 @@ private:
     godot::Ref<godot::Shader> m_sh_entity_double_scissor;
     godot::Ref<godot::Shader> m_sh_diamond;
     godot::Ref<godot::Shader> m_sh_diamond_double;
+    godot::Ref<godot::Shader> m_sh_flame, m_sh_flame_glow;
+    std::map<std::string, godot::Ref<godot::Material>> m_flame_materials;
+    bool m_flame_material = true;
     godot::Array m_stroke_events;
     bool m_show_body = true;
     bool m_third_person = false;

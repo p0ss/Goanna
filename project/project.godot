@@ -73,6 +73,10 @@ goanna_render_lava_detail={
 "type": "float",
 "value": 1.0
 }
+goanna_render_fire_shimmer={
+"type": "float",
+"value": 1.0
+}
 
 ; Keep ice bindings registered across world changes, like the other globals.
 goanna_ice_background={

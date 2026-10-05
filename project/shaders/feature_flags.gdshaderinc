@@ -9,4 +9,5 @@ global uniform float goanna_render_foliage_wind;
 global uniform float goanna_render_grass_interaction;
 global uniform float goanna_render_ice_detail;
 global uniform float goanna_render_lava_detail;
+global uniform float goanna_render_fire_shimmer;
 #endif

@@ -27,6 +27,8 @@ const DEFAULTS := {
 	"render_ice_detail": true,
 	"render_ice_transmission": true,
 	"render_lava_detail": true,
+	# The heat shimmer over flames (flame_glow.gdshader). Off on Lowest and Low.
+	"render_fire_shimmer": true,
 }
 
 # Float globals are isolated by each player RenderScope.
@@ -38,4 +40,5 @@ const SHADER_FLAGS := {
 	"render_grass_interaction": "goanna_render_grass_interaction",
 	"render_ice_detail": "goanna_render_ice_detail",
 	"render_lava_detail": "goanna_render_lava_detail",
+	"render_fire_shimmer": "goanna_render_fire_shimmer",
 }

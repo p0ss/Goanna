@@ -915,6 +915,7 @@ const SETTINGS := [
 	["Graphics/Water, ice and lava", "render_ice_detail", "toggle", "Ice volume detail", "Draw internal frost and fractures. Off uses a simple textured ice surface."],
 	["Graphics/Water, ice and lava", "render_ice_transmission", "toggle", "Ice transmission", "Render the scene behind ice. Off makes ice opaque without removing it."],
 	["Graphics/Water, ice and lava", "render_lava_detail", "toggle", "Lava surface detail", "Draw raised crust and detailed flowing normals. Off keeps a simple glowing surface."],
+	["Graphics/Water, ice and lava", "render_fire_shimmer", "toggle", "Heat shimmer over fire", "Bend what is seen through and above a flame. Off draws the flame without it."],
 	["Appearance", "look_strength", "slider", "Natural look", "Adds depth to high daylight and enables the night sky lighting control. Dawn and sunset keep their existing colour treatment. 0 restores the original grade and sky lighting.", 0.0, 1.0, 0.05],
 	["Appearance", "night_visibility", "slider", "Night visibility", "A faint blue upper sky provides cool ambient and bounced light in exposed areas. Keeps the existing night grading and horizon colour. 0 restores the original sky. Works with Natural look.", 0.0, 1.0, 0.05],
 	["Appearance", "bloom_strength", "slider", "Bloom", "Glow around bright light sources, relative to the world's lighting. 0 removes the glow.", 0.0, 2.0, 0.05],

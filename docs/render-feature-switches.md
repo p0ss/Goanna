@@ -1,11 +1,12 @@
 <!-- SPDX-License-Identifier: LGPL-2.1-or-later -->
 # Render feature switches
 
-Nineteen independent switches from the [inventory][inventory] are implemented in
-the working tree. They default to on, preserve existing strength settings,
-persist in `goanna.cfg`, and appear in Advanced lighting settings. The [five
-graphics tiers](systems/graphics-tiers.md) now set these gates explicitly and
-add cloud styles, lamp shadow budgets and grass budgets.
+Twenty independent switches are implemented: nineteen from the
+[inventory][inventory], and the fire shimmer added on 2026-10-05. They
+default to on, preserve existing strength settings, persist in
+`goanna.cfg`, and appear in Advanced lighting settings. The [five graphics
+tiers](systems/graphics-tiers.md) now set these gates explicitly and add
+cloud styles, lamp shadow budgets and grass budgets.
 
 | Setting key | Work disabled |
 | --- | --- |
@@ -28,6 +29,7 @@ add cloud styles, lamp shadow budgets and grass budgets.
 | `render_ice_detail` | Ice volume tracing, facets and detailed material evaluation; uses a simple textured surface |
 | `render_ice_transmission` | Ice visibility queries and its extra background render viewport |
 | `render_lava_detail` | Lava crust displacement, normal reconstruction and layered texture advection |
+| `render_fire_shimmer` | The heat shimmer pass's screen reads and the raised tops of firelike quads; keeps the flame and its halo ([fire material](fire-material.md)) |
 
 Sky clouds, terrain cloud shadows and local atmospheric volumes are
 independent for measurement. Turning off sky clouds can therefore leave

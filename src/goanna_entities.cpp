@@ -4,6 +4,7 @@
 #include "goanna_entities.h"
 
 #include "goanna_materials.h"
+#include "goanna_flame.h"
 
 #include <algorithm>
 #include <set>
@@ -286,6 +287,39 @@ void EntityRenderer::setHairShader(float strength) {
         if (sm.is_valid())
             sm->set_shader_parameter("hair_shader_strength", value);
     }
+}
+
+Ref<Material> EntityRenderer::flameSpriteMaterial(GoannaSession &session,
+        const std::string &texture) {
+    auto it = m_flame_materials.find(texture);
+    if (it != m_flame_materials.end())
+        return it->second;
+    GoannaTexture *gt = session.tsrc()->goannaTexture(session.tsrc()->getTextureId(texture));
+    Ref<ImageTexture> tex = gt ? gt->godotTexture() : Ref<ImageTexture>();
+    if (tex.is_null())
+        return Ref<Material>();
+    if (m_sh_flame.is_null())
+        m_sh_flame = m_root->call("load_view_shader", "res://shaders/flame.gdshader");
+    if (m_sh_flame_glow.is_null())
+        m_sh_flame_glow = m_root->call("load_view_shader", "res://shaders/flame_glow.gdshader");
+    // The whole sheet is measured: every frame of it is the flame.
+    const FlameRamp ramp = measureFlameRamp({gt->image()});
+    Ref<ShaderMaterial> sm, glow;
+    sm.instantiate();
+    glow.instantiate();
+    sm->set_shader(m_sh_flame);
+    glow->set_shader(m_sh_flame_glow);
+    for (const Ref<ShaderMaterial> &m : {sm, glow}) {
+        m->set_shader_parameter("albedo_tex", tex);
+        // A burning entity's glow is the brightest a node gives.
+        configureFlameMaterial(m, ramp, 14.0f);
+        m->set_shader_parameter("cell_rect", true);
+        // Each quad of the upright sprite is culled from behind.
+        m->set_shader_parameter("single_sided", true);
+    }
+    sm->set_next_pass(glow);
+    m_flame_materials[texture] = sm;
+    return sm;
 }
 
 Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
@@ -1108,8 +1142,10 @@ Ref<ArrayMesh> EntityRenderer::buildUprightSpriteMesh(GoannaSession &session,
         std::string t = uprightSpriteTexture(p.textures, side);
         if (!obj.textureModifier().empty())
             t += obj.textureModifier();
-        am->surface_set_material(side, materialForMeshTexture(session, t, p.use_texture_alpha,
-                false, false, &cells));
+        Ref<Material> flame = m_flame_material && flameSpriteTexture(t)
+                ? flameSpriteMaterial(session, t) : Ref<Material>();
+        am->surface_set_material(side, flame.is_valid() ? flame
+                : materialForMeshTexture(session, t, p.use_texture_alpha, false, false, &cells));
     }
     return am;
 }

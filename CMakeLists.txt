@@ -66,6 +66,7 @@ add_library(goanna SHARED
     src/goanna_client.cpp
     src/goanna_render_scope.cpp
     src/goanna_lava.cpp
+    src/goanna_flame.cpp
     src/goanna_session.cpp
     src/goanna_mesher.cpp
     src/goanna_radial_form.cpp
@@ -139,6 +140,12 @@ target_include_directories(goanna_item_icon_test PRIVATE src)
 # godot-cpp only for the inline code its headers bring in; nothing in the
 # test calls into Godot, and the extension's own copy stays private to it.
 target_link_libraries(goanna_item_icon_test PRIVATE goanna luanti_core godot::cpp)
+
+# Which tiles and sprites take the flame material. Links godot-cpp for the
+# same reason as the icon test.
+add_executable(goanna_flame_test EXCLUDE_FROM_ALL src/goanna_flame_test.cpp)
+target_include_directories(goanna_flame_test PRIVATE src)
+target_link_libraries(goanna_flame_test PRIVATE goanna luanti_core godot::cpp)
 
 # Which array shader a tile is drawn with: by the tile's own layer, not by
 # whether its array holds a cut-out anywhere. Links godot-cpp for the same
@@ -281,6 +288,7 @@ set(GOANNA_NATIVE_TESTS
     goanna_allfaces_test
     goanna_animation_test
     goanna_array_route_test
+    goanna_flame_test
     goanna_horizon_test
     goanna_item_icon_test
     goanna_light_test
