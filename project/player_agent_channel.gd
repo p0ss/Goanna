@@ -23,7 +23,7 @@ extends Node
 
 const Formspec := preload("res://ui/formspec.gd")
 
-const PROTOCOL := "goanna-player/0.4"
+const PROTOCOL := "goanna-player/0.5"
 const DEFAULT_PORT := 30850
 const MAX_LINE := 1 << 20
 const QUERIES := ["hello", "observe", "wait", "action_status"]
@@ -85,6 +85,9 @@ const HUD_IMAGE_WAYPOINT := 5
 const HUD_FLAG_HEALTHBAR := 1 << 1
 const HUD_FLAG_BREATHBAR := 1 << 4
 const FRAME_WIDTH_MAX := 1280
+# Sounds the client makes for the player's own movement and digging, which
+# say nothing the observation does not, and would crowd out the rest.
+const QUIET_KINDS := ["step", "jump", "dig", "form"]
 
 var main: Node
 var _server := TCPServer.new()
@@ -104,6 +107,7 @@ var _held := {}           # control name -> action id
 var _interaction := 0     # the dig, place, use or attack in progress, or 0
 var _action_times: Array = []
 var _chat_times: Array = []
+var _listening := false
 
 func _ready() -> void:
 	var spec := OS.get_environment("GOANNA_PLAYER_AGENT")
@@ -152,6 +156,7 @@ func _write_token() -> bool:
 
 func _process(_delta: float) -> void:
 	_capture_chat()
+	_listen()
 	_expire_holds()
 	while _server.is_connection_available():
 		var peer := _server.take_connection()
@@ -231,7 +236,7 @@ func _hello() -> Dictionary:
 		"sequence": _sequence, "tick": Engine.get_process_frames(), "read_only": false,
 		"capabilities": {"scope": ["actor"],
 			"observations": ["body", "camera", "pointed", "visible_nodes",
-				"nearby_entities", "inventory", "window", "form_elements", "hud", "frame", "environment", "events",
+				"nearby_entities", "inventory", "window", "form_elements", "hud", "frame", "sounds", "environment", "events",
 				"spatial_memory"],
 			"actions": ACTIONS, "queries": QUERIES, "results": RESULTS,
 			"controls": CONTROLS.keys(),
@@ -754,6 +759,35 @@ func _capture_chat() -> void:
 		_push_event({"kind": "chat", "text": _plain_text(String(lines[i].get("text", "")))})
 	if not lines.is_empty():
 		_last_chat = lines[lines.size() - 1]
+
+# Every sound the client plays reaches ui/audio.gd's played signal, before
+# the player's own volume and mute, as it would reach a person's ears. Each
+# becomes a sound event: what it is, how loud it was played, whether it loops,
+# and for one in the world the look that would face it and its distance in
+# whole nodes. Its exact place is not given; a person hears a direction and
+# roughly how far.
+func _listen() -> void:
+	if _listening or main == null or main.ui == null or main.ui.get("audio") == null:
+		return
+	main.ui.audio.played.connect(_on_sound)
+	_listening = true
+
+func _on_sound(info: Dictionary) -> void:
+	var kind := String(info.get("kind", ""))
+	if kind in QUIET_KINDS:
+		return
+	var event := {"kind": "sound", "sound": String(info.get("name", "")),
+		"source": "server" if kind == "" else kind,
+		"gain": snappedf(float(info.get("gain", 1.0)), 0.01), "loop": bool(info.get("loop", false))}
+	var at = info.get("position", null)
+	if at is Vector3:
+		var d: Vector3 = at - main.cam.global_position
+		event["distance"] = roundi(d.length())
+		event["look"] = {"yaw": roundf(rad_to_deg(atan2(-d.x, -d.z))),
+			"pitch": roundf(rad_to_deg(atan2(d.y, Vector2(d.x, d.z).length())))}
+	else:
+		event["local"] = true
+	_push_event(event)
 
 # --- actions -----------------------------------------------------------------
 

@@ -96,7 +96,7 @@ def main():
     p = sub.add_parser("wait", help="wait for ticks, time, an event or an action")
     p.add_argument("--ticks", type=int)
     p.add_argument("--ms", type=int)
-    p.add_argument("--event", choices=("chat", "action", "any"))
+    p.add_argument("--event", choices=("chat", "action", "sound", "any"))
     p.add_argument("--since-event", type=int)
     p.add_argument("--action", type=int)
     p.add_argument("--timeout-ms", type=int)

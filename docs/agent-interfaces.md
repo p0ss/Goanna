@@ -200,7 +200,7 @@ Deliverable: a scripted policy can play through ordinary mechanics. Planning,
 memory and autonomous goal selection remain external.
 
 Status: a first version is in `project/player_agent_channel.gd`, protocol
-`goanna-player/0.4`, described below under "The player agent protocol". What
+`goanna-player/0.5`, described below under "The player agent protocol". What
 has been seen to work, and what has not, is listed at the end of it.
 
 ### R3: Game extension seam
@@ -224,7 +224,7 @@ faction diplomacy, culture generation or multi-agent society.
 
 ## The player agent protocol
 
-`goanna-player/0.4`, served by `project/player_agent_channel.gd`. It shares
+`goanna-player/0.5`, served by `project/player_agent_channel.gd`. It shares
 no code path with the control channel: no dispatcher, no `eval`, no method
 call by name. `project/tests/player_agent_boundary.gd` fails if the channel,
 `tools/goanna-player` or `tools/goanna-player-mcp` gains any of the control
@@ -291,7 +291,16 @@ stale action is a result, not an error.
   waypoint's exact coordinates are not drawn and are not given. Bars the
   server has hidden, empty text, a compass and a minimap (which Goanna does
   not draw) are left out; the hotbar is in `body` and `inventory`;
-- `events`: chat lines and action results since `since_event`;
+- `events`: chat lines, action results and sounds since `since_event`. A
+  sound event is every sound the client plays, whatever the player's volume
+  or mute: its `sound` name, `gain`, `loop`, its `source` (`server`, or what
+  the client made it for: `place`, `use`, `damage`, or `footstep` for
+  another player's or a mob's), and for a sound in the world its `distance`
+  in whole nodes and the `look` (pitch and yaw) that would face it, or
+  `local` for one heard as if from inside the head. Its exact place is not
+  given, since a person hears a direction and roughly how far. The player's
+  own footsteps, jumps, digging hits and form clicks are left out: they say
+  nothing the observation does not, and would crowd out the rest;
 - `visible_nodes`, only when asked for (`{"columns", "rows", "range"}`, up
   to 24 by 16 rays and 32 nodes): the first node each ray through the screen
   meets, which is the surface the player sees there. Rays stop at unloaded
@@ -482,6 +491,28 @@ On the next open it skipped `dynamic_add_media` for a file the new
 connection did not have, as it would for a vanilla client, which keeps no
 ephemeral media across connections either. Under a fresh name the file was
 pushed, fetched and loaded at its real 128 by 128, and the form showed it.
+
+On 2026-10-05, the same set up against a Luanti 5.17.0 server running
+Minetest Game in a fresh world with damage on, two Goanna clients started
+with Godot's own `--headless` (no renderer), `goanna-player/0.5`:
+
+- the client spawned in the air and fell: `player_falling_damage` (a sound
+  Minetest Game does not ship, so not heard), `player_damage` and a
+  landing step were played, and the damage sound came to the agent as a
+  `local` `damage` event;
+- `place` of dirt played `default_place_node` and the agent heard it;
+  placing into the node the player stood in played the dirt's place-failed
+  sound, which Minetest Game leaves empty;
+- `dig` of that dirt played two `default_dig_crumbly` hits at the node and
+  the dirt's dug sound;
+- the second client walked away along -x: the first heard its footsteps
+  every 1.5 nodes, from 2 to 8 nodes off, at a yaw of 78 to 88 degrees and
+  below eye level.
+
+That run also found that Goanna sends a placement upstream's client refuses
+to send, one that would put a walkable node where the player stands; the
+server placed it. Its sound is right, the placement is not, and it is not
+yet fixed.
 
 Not seen live: HUD speech from a villager, waypoints, infotext and nametags
 (a fresh world has no village and no creature came near). They are covered

@@ -104,7 +104,7 @@ TOOLS = [
     tool("wait", "Wait for ticks (frames), ms, an event after since_event, or an action to end.",
          {"ticks": {"type": "integer", "minimum": 1, "maximum": 600},
           "ms": {"type": "integer", "minimum": 0, "maximum": 30000},
-          "event": {"type": "string", "enum": ["chat", "action", "any"]},
+          "event": {"type": "string", "enum": ["chat", "action", "sound", "any"]},
           "since_event": {"type": "integer", "minimum": 0},
           "action": {"type": "integer", "minimum": 1},
           "timeout_ms": {"type": "integer", "minimum": 0, "maximum": 30000}}, action=False),
@@ -128,7 +128,7 @@ def main():
             method = message.get("method")
             if method == "initialize":
                 result = {"protocolVersion": "2025-06-18", "capabilities": {"tools": {}},
-                          "serverInfo": {"name": "goanna-player", "version": "0.4.0"}}
+                          "serverInfo": {"name": "goanna-player", "version": "0.5.0"}}
             elif method == "tools/list":
                 result = {"tools": TOOLS}
             elif method == "tools/call":
