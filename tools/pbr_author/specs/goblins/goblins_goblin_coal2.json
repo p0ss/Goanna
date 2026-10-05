@@ -7,11 +7,11 @@
  "bevel_px": 3,
  "micro": "none",
  "materials": {
-  "skin": {"mode": "soft", "base": 0.9, "span": 0.08, "detail": 0.25, "micro": "none", "smooth": 0.25, "smooth_spread": 0.02, "scatter": 0.2, "wear": 0.04, "soft_edge": 0.3, "round": 6, "edge_roll": 2.5, "edge_lean": 12, "roll_rough": 0.03},
-  "white": {"mode": "flat", "base": 0.9, "span": 0.0, "micro": "none", "smooth": 0.6, "smooth_spread": 0.0},
-  "iris": {"mode": "flat", "base": 0.89, "span": 0.0, "micro": "none", "smooth": 0.8, "smooth_spread": 0.0},
-  "mouth": {"mode": "flat", "base": 0.9, "span": 0.0, "micro": "none", "smooth": 0.25, "smooth_spread": 0.0, "ride": true, "round": 6, "edge_roll": 2.5, "edge_lean": 12, "roll_rough": 0.03},
-  "teeth": {"mode": "flat", "base": 0.9, "span": 0.0, "micro": "none", "smooth": 0.35, "smooth_spread": 0.0, "ride": true, "round": 6, "edge_roll": 2.5, "edge_lean": 12, "roll_rough": 0.03},
+  "skin": {"mode": "shade", "base": 0.76, "span": 0.18, "levels": 3, "detail": 0.25, "merge": 0.2, "joints": false, "micro": "none", "smooth": 0.25, "smooth_spread": 0.0, "ride": true, "round": 4, "edge_roll": 2.5, "edge_lean": 12, "roll_rough": 0.03},
+  "mouth": {"mode": "flat", "base": 0.7, "span": 0.0, "micro": "none", "smooth": 0.25, "smooth_spread": 0.0, "flush": {"to": ["skin"], "offset": -0.1}, "ride": true, "round": 4, "edge_roll": 2.5, "edge_lean": 12, "roll_rough": 0.03},
+  "teeth": {"mode": "flat", "base": 0.7, "span": 0.0, "micro": "none", "smooth": 0.35, "smooth_spread": 0.0, "flush": {"to": ["skin"], "offset": -0.08}, "ride": true, "round": 4, "edge_roll": 2.5, "edge_lean": 12, "roll_rough": 0.03},
+  "brow": {"mode": "flat", "base": 0.8, "span": 0.0, "micro": "none", "smooth": 0.25, "smooth_spread": 0.0, "flush": {"to": ["skin"], "offset": 0.08}, "ride": true, "round": 4, "edge_roll": 2.5, "edge_lean": 12, "roll_rough": 0.03},
+  "eye": {"mode": "soft", "base": 0.8, "span": 0.0, "detail": 0.0, "soft_edge": 0.0, "micro": "bulge", "micro_params": {"lean": 6.0}, "smooth": 0.7, "smooth_spread": -0.2, "flush": {"to": ["skin"], "group": "eye"}, "ride": true, "round": 4, "edge_roll": 2.5, "edge_lean": 12, "roll_rough": 0.03},
   "wrap": {"mode": "flat", "base": 0.95, "span": 0.0, "micro": "coarse", "micro_strength": 1.8, "smooth": 0.12, "smooth_spread": 0.0, "wear": 0.1, "texel_edge": 0.015},
   "vest": {"mode": "flat", "base": 0.96, "span": 0.0, "micro": "leather", "smooth": 0.3, "smooth_spread": 0.0, "wear": 0.15},
   "boot": {"mode": "flat", "base": 0.98, "span": 0.0, "micro": "leather", "smooth": 0.34, "smooth_spread": 0.0, "stitch": {"inset": 0.22, "length": 0.36, "gap": 0.18, "width": 0.07, "groove": 0.05, "depth": 0.06}, "wear": 0.15},
@@ -28,8 +28,8 @@
   "........aaaaaaaaaaaaaaaa........................................",
   "........aaaaaaaaaaaaaaaa........................................",
   "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaahhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh",
-  "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaahhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh",
-  "aaaiwiaaaaawiaaaaaaaaaaaaaaaaaaa.hh...........hhhhhhh.h......hhh",
+  "aaaeeaaaaaaeeaaaaaaaaaaaaaaaaaaahhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh",
+  "aaajjjaaaaajjaaaaaaaaaaaaaaaaaaa.hh...........hhhhhhh.h......hhh",
   "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.................hhh............",
   "ataaaaaaaaaaatmaaaaaaaaaaaaaaaaa..................h.............",
   "aatmaaaaaaaaataaaaaaaaaaaaaaaaaa................................",
@@ -52,5 +52,5 @@
   "bbbbbbbbbbbbbbbbaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa........",
   "bbbbbbbbbbbbbbbbaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa........"
  ],
- "legend": {"a": "skin", "w": "white", "i": "iris", "m": "mouth", "t": "teeth", "c": "wrap", "v": "vest", "b": "boot", "h": "hair", "o": "coal"}
+ "legend": {"a": "skin", "m": "mouth", "t": "teeth", "e": "brow", "j": "eye", "c": "wrap", "v": "vest", "b": "boot", "h": "hair", "o": "coal"}
 }

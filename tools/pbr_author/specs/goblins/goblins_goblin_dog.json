@@ -5,12 +5,13 @@
  "chamfer": 2,
  "face_edge": "bevel",
  "bevel_px": 3,
+ "bevel_depth": 0.07,
  "micro": "none",
  "materials": {
-  "hide": {"mode": "soft", "base": 0.9, "span": 0.08, "detail": 0.25, "micro": "hide", "smooth": 0.25, "smooth_spread": 0.04, "micro_params": {"cell": 1.2, "wrinkles": 0.6}, "micro_strength": 0.6, "scatter": 0.3, "wear": 0.05, "soft_edge": 0.3, "round": 4, "micro_swing": 0.5, "edge_roll": 2, "edge_lean": 12, "roll_rough": 0.03},
-  "iris": {"mode": "flat", "base": 0.89, "span": 0.0, "micro": "none", "smooth": 0.8, "smooth_spread": 0.0},
-  "mouth": {"mode": "flat", "base": 0.9, "span": 0.0, "micro": "none", "smooth": 0.25, "smooth_spread": 0.0, "ride": true, "round": 4, "edge_roll": 2, "edge_lean": 12, "roll_rough": 0.03},
-  "teeth": {"mode": "flat", "base": 0.9, "span": 0.0, "micro": "none", "smooth": 0.35, "smooth_spread": 0.0, "ride": true, "round": 4, "edge_roll": 2, "edge_lean": 12, "roll_rough": 0.03},
+  "hide": {"mode": "shade", "base": 0.82, "span": 0.14, "levels": 3, "detail": 0.25, "joints": false, "micro": "hide", "smooth": 0.3, "smooth_spread": 0.04, "micro_params": {"cell": 1.2, "wrinkles": 0.6}, "micro_strength": 0.6, "micro_swing": 0.5, "scatter": 0.3, "wear": 0.05, "ride": true, "round": 4, "edge_roll": 2, "edge_lean": 12, "roll_rough": 0.03},
+  "eye": {"mode": "soft", "base": 0.9, "span": 0.0, "detail": 0.0, "soft_edge": 0.0, "micro": "bulge", "micro_params": {"lean": 6.0}, "smooth": 0.7, "smooth_spread": -0.2, "flush": {"to": ["hide"], "group": "eye"}, "ride": true, "round": 4, "edge_roll": 2, "edge_lean": 12, "roll_rough": 0.03},
+  "mouth": {"mode": "flat", "base": 0.8, "span": 0.0, "micro": "none", "smooth": 0.25, "smooth_spread": 0.0, "flush": {"to": ["hide"], "offset": -0.1}, "ride": true, "round": 4, "edge_roll": 2, "edge_lean": 12, "roll_rough": 0.03},
+  "teeth": {"mode": "flat", "base": 0.9, "span": 0.0, "micro": "bone", "smooth": 0.45, "smooth_spread": 0.0, "micro_strength": 0.6, "micro_params": {"cracks": 0.8}},
   "claw": {"mode": "flat", "base": 0.96, "span": 0.0, "micro": "bone", "smooth": 0.45, "smooth_spread": 0.0, "micro_strength": 0.6, "micro_params": {"cracks": 0.8}},
   "sack": {"mode": "flat", "base": 0.96, "span": 0.0, "micro": "canvas", "micro_strength": 1.8, "smooth": 0.12, "smooth_spread": 0.0, "wear": 0.1, "texel_edge": 0.015}
  },
@@ -48,5 +49,5 @@
   "aaaaakakaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaakaaaaaaaassssssss",
   "aaaakkkkaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaakkkkaaaaaaaassssssss"
  ],
- "legend": {"a": "hide", "i": "iris", "m": "mouth", "t": "teeth", "k": "claw", "s": "sack"}
+ "legend": {"a": "hide", "i": "eye", "m": "mouth", "t": "teeth", "k": "claw", "s": "sack"}
 }
