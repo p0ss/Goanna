@@ -801,6 +801,22 @@ sides, the bobber in water, before and after) was set up on 2026-10-05 and
 not run, because another client held the GPU for the whole of the time
 it was waited for.
 
+**Composed upright sprites.** An upright sprite whose texture is an
+expression (DorfCraft's engraving plate, below) takes its material class
+from the first image the expression names, read through brackets and into
+a `[combine`'s first part (`firstImage`, `goanna_overlay_companions.h`):
+the plate `([combine:128x64:0,0=mcl_stairs_stone_slab_top.png\^[resize
+\:16x16:...)^(glyphs)` is stone, where before 2026-10-06 the lookup asked
+for `[combine:128x64:0,0=mcl_stairs_stone_slab_top.png\`, found nothing
+and took class None. When that first image is a node tile (its class is
+in the node table) and has an `_n`, the march's depth is that `_n`'s,
+measured as the node path measures the tile's layer, not the composite's:
+on the composite the glyphs' steep cut walls, laid in at the stone's finer
+map scale, read about twice as deep as they are, every plate hit the 0.10
+cap, and its stone marched deeper and drew darker than the same stone in
+the wall. In the software run below the plate measured 0.10 before and
+0.085 after, the wall's own figure.
+
 **Node layers sized from their companions.** Shipping maps only costs the
 node forms of those stems their relief resolution, unless the client makes
 up for it: a texture array layer is the size of the generated albedo, and

@@ -286,18 +286,6 @@ void EntityRenderer::setHairShader(float strength) {
     }
 }
 
-// The first image a texture expression names: the part before the first
-// '^', without the brackets of a group it opens. A banner's texture starts
-// "(mcl_banners_banner_base.png^[mask:...)", and its class lookup asked for
-// "(mcl_banners_banner_base.png", which no table or file has.
-static std::string firstImage(const std::string &texture) {
-    size_t start = texture.find_first_not_of('(');
-    if (start == std::string::npos)
-        return std::string();
-    const size_t end = texture.find_first_of("^)", start);
-    return texture.substr(start, end == std::string::npos ? std::string::npos : end - start);
-}
-
 Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
         const std::string &texture, bool alpha, bool double_sided, bool item,
         const std::vector<Rect2> *faces) {
@@ -314,6 +302,8 @@ Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
     // plain material unchanged (see the declaration in goanna_entities.h for
     // why that means a separate function and cache rather than a mode on it).
     Ref<Texture2D> normal_tex, spec_tex;
+    // Composed by composeCompanion ([combine, [transform, [mask...).
+    bool composed = false;
     int composite_layers = 0;
     std::vector<OverlayLayer> art_layers;
     if (gt && !alpha) {
@@ -332,7 +322,6 @@ Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
             // (a frame cut), or a single image, takes the first image's
             // companions.
             std::vector<OverlayLayer> layers;
-            bool composed = false;
             if (parseOverlayLayers(texture, layers) && layers.size() > 1) {
                 normal_tex = compositeCompanion(session, texture, layers, "_n");
                 spec_tex = compositeCompanion(session, texture, layers, "_s");
@@ -516,7 +505,28 @@ Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
                                     islands.begin() + (size_t)y * nw + std::max(x0, x1), f);
                     }
                 }
-                const float depth = reliefDepth(nimg, span, islands.empty() ? nullptr : &islands);
+                float depth = reliefDepth(nimg, span, islands.empty() ? nullptr : &islands);
+                // A composed texture built on a node tile (DorfCraft's
+                // engraving plate: the wall's stone with glyphs cut into it)
+                // marches at the tile's own depth, measured as the node path
+                // measures the wall's layer. Measured on the composite, the
+                // glyphs' steep cut walls at the stone's finer map scale read
+                // twice as deep as they are, every plate hit the 0.10 cap,
+                // and the plate's stone drew deeper and darker than the
+                // same stone in the wall beside it.
+                if (composed && cls != MaterialClass::None) {
+                    GoannaTexture *bn = findCompanion(session, cbase, "_n");
+                    Ref<Image> bimg = bn && bn->godotTexture().is_valid() ?
+                            bn->godotTexture()->get_image() : Ref<Image>();
+                    if (bimg.is_valid()) {
+                        if (bimg->is_compressed() || bimg->get_format() != Image::FORMAT_RGBA8) {
+                            bimg = bimg->duplicate();
+                            bimg->decompress();
+                            bimg->convert(Image::FORMAT_RGBA8);
+                        }
+                        depth = reliefDepth(bimg, (float)bimg->get_width(), nullptr);
+                    }
+                }
                 // The highest stored height over drawn texels, which the
                 // shader lifts to the face: a skin's surface is its highest
                 // texel, wherever its spec put it (entity_common.gdshaderinc,

@@ -533,6 +533,18 @@ void testCuts() {
             "an overlay stack cuts the same way");
 }
 
+void testFirstImage() {
+    check(firstImage("mobs_mc_creeper.png^[brighten") == "mobs_mc_creeper.png", "a plain image");
+    check(firstImage("(mcl_banners_banner_base.png^[mask:m.png)^x.png") ==
+            "mcl_banners_banner_base.png", "a group's first image, without its bracket");
+    check(firstImage("([combine:32x16:0,0=mcl_stairs_stone_slab_top.png\\^[resize\\:16x16"
+            ":16,0=mcl_stairs_stone_slab_top.png\\^[resize\\:16x16)^(([combine:32x16"
+            ":0,0=dorfcraft_runes_a.png)^[multiply:#d8d4cc)") == "mcl_stairs_stone_slab_top.png",
+            "an engraving plate is its stone, read through the [combine and its escapes");
+    check(firstImage("[combine:16x16:0,0=a.png:1,1=b.png") == "a.png", "a combine's first part");
+    check(firstImage("[combine:16x16") == "", "a combine with no part names nothing");
+}
+
 } // namespace
 
 int main() {
@@ -543,6 +555,7 @@ int main() {
     testTransformNormals();
     testCompose();
     testCuts();
+    testFirstImage();
     std::printf("overlay companions: %d checks, %d failure(s)\n", g_checks, g_failures);
     return g_failures == 0 ? 0 : 1;
 }

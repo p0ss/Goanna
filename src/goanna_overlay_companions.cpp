@@ -135,6 +135,46 @@ bool parseOverlayLayers(const std::string &texture, std::vector<OverlayLayer> &o
     return !out.empty();
 }
 
+// The first image a texture expression names: the part before the first
+// '^', without the brackets of a group it opens. A banner's texture starts
+// "(mcl_banners_banner_base.png^[mask:...)", and its class lookup asked for
+// "(mcl_banners_banner_base.png", which no table or file has. A [combine is
+// read through to its first part, which is its base: DorfCraft's engraving
+// plate is "([combine:WxH:0,0=stone.png\^[resize\:16x16:...)^(glyphs)",
+// and the class lookup asked for "[combine:WxH:0,0=stone.png\", so the
+// plate took class None and the parallax depth and material constants of
+// no material at all, where the wall beside it is stone.
+std::string firstImage(const std::string &texture) {
+    std::string t = texture;
+    for (int depth = 0; depth < 8; ++depth) {
+        const size_t start = t.find_first_not_of('(');
+        if (start == std::string::npos)
+            return std::string();
+        if (t.compare(start, 9, "[combine:") == 0) {
+            const size_t eq = t.find('=', start);
+            if (eq == std::string::npos)
+                return std::string();
+            // The part runs to the next ':' no escape character precedes.
+            std::string part;
+            for (size_t i = eq + 1; i < t.size(); ++i) {
+                if (t[i] == '\\') {
+                    if (++i < t.size())
+                        part += t[i];
+                    continue;
+                }
+                if (t[i] == ':')
+                    break;
+                part += t[i];
+            }
+            t = part;
+            continue;
+        }
+        const size_t end = t.find_first_of("^)", start);
+        return t.substr(start, end == std::string::npos ? std::string::npos : end - start);
+    }
+    return std::string();
+}
+
 std::vector<std::string> companionNames(const std::string &image, const char *suffix) {
     const size_t dot = image.rfind('.');
     const std::string stem = dot == std::string::npos ? image : image.substr(0, dot);

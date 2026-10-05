@@ -54,6 +54,13 @@ struct OverlayLayer {
 // single image, with or without colour modifiers, is a stack of one.
 bool parseOverlayLayers(const std::string &texture, std::vector<OverlayLayer> &out);
 
+// The image a texture is "made of", for its material class and for the
+// single image companion lookup: the first image the expression names,
+// read through brackets and through a [combine to its first part (escapes
+// undone), so "([combine:32x16:0,0=stone.png\\^[resize\\:16x16:...)^(...)"
+// is "stone.png". Empty if there is none.
+std::string firstImage(const std::string &texture);
+
 // The names `image`'s LabPBR companion may go by, in the order to try them:
 // "x.png" with suffix "_n" is "x_n.png". A colouring mask also tries the
 // part it colours: Mineclonia's player skins draw each part as
