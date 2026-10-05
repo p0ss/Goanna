@@ -9,7 +9,7 @@
  "class": "metal",
  "materials": {
   "plate": {"mode": "shade", "base": 0.86, "span": 0.12, "levels": 3, "detail": 0.3, "joints": true, "joint": 0.12, "metal": true, "smooth": 0.72, "smooth_spread": 0.03, "micro": "metal_worn", "wear": 0.12},
-  "gem": {"mode": "shade", "base": 0.84, "span": 0.12, "levels": 3, "detail": 0.3, "joints": false, "smooth": 0.9, "smooth_spread": 0.02, "f0": 0.17, "micro": "glass", "micro_strength": 0.4, "wear": 0.06},
+  "gem": {"mode": "shade", "base": 0.84, "span": 0.12, "levels": 3, "detail": 0.3, "joints": false, "metal": false, "smooth": 0.9, "smooth_spread": 0.02, "f0": 0.17, "micro": "glass", "micro_strength": 0.4, "wear": 0.06},
   "frame": {"mode": "shade", "base": 0.8, "span": 0.1, "levels": 2, "detail": 0.3, "joints": false, "metal": false, "smooth": 0.5, "smooth_spread": 0.03, "micro": "metal_worn", "wear": 0.1}
  },
  "grid": [

@@ -8,8 +8,8 @@
  "micro": "none",
  "class": "metal",
  "materials": {
-  "plate": {"mode": "shade", "base": 0.86, "span": 0.12, "levels": 3, "detail": 0.3, "joints": true, "joint": 0.12, "metal": true, "smooth": 0.66, "smooth_spread": 0.03, "micro": "metal_worn", "wear": 0.12},
-  "dark": {"mode": "shade", "base": 0.84, "span": 0.12, "levels": 3, "detail": 0.3, "joints": false, "metal": false, "smooth": 0.64, "smooth_spread": 0.03, "micro": "metal_worn", "wear": 0.12}
+  "plate": {"mode": "shade", "base": 0.86, "span": 0.12, "levels": 3, "detail": 0.3, "joints": true, "joint": 0.12, "metal": false, "smooth": 0.46, "smooth_spread": 0.04, "micro": "metal_worn", "wear": 0.12, "merge": 0.5},
+  "dark": {"mode": "shade", "base": 0.84, "span": 0.12, "levels": 3, "detail": 0.3, "joints": false, "metal": false, "smooth": 0.52, "smooth_spread": 0.04, "micro": "metal_worn", "wear": 0.12, "merge": 0.5}
  },
  "grid": [
   "........................................aaa..aaa................",

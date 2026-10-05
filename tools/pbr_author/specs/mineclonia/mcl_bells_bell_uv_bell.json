@@ -8,7 +8,7 @@
  "micro": "none",
  "class": "metal",
  "materials": {
-  "gold": {"mode": "shade", "base": 0.86, "span": 0.12, "levels": 3, "detail": 0.3, "joints": false, "metal": true, "smooth": 0.74, "smooth_spread": 0.03, "micro": "metal_worn", "wear": 0.1},
+  "gold": {"mode": "shade", "base": 0.86, "span": 0.12, "levels": 3, "detail": 0.3, "joints": false, "metal": true, "smooth": 0.64, "smooth_spread": 0.12, "micro": "metal_worn", "wear": 0.1},
   "mouth": {"mode": "flat", "base": 0.8, "span": 0.0, "metal": false, "smooth": 0.4, "smooth_spread": 0.0, "micro": "none"},
   "iron": {"mode": "shade", "base": 0.88, "span": 0.08, "levels": 2, "detail": 0.3, "joints": false, "metal": true, "smooth": 0.55, "smooth_spread": 0.03, "micro": "metal_worn", "wear": 0.12}
  },

@@ -15,9 +15,9 @@ table per family below:
              (the "wood" kind at one block texel per art texel), their dark
              seams sunk a little, the dark iron fittings worn dark iron, the
              pale lashings rope.
-  minecart   the cart body every minecart draws: riveted iron plates in
-             the iron golem's manner around a box of planks. What a cart
-             carries is drawn with the block's own images and maps.
+  minecart   the cart body every minecart draws: a few large worn iron
+             plates around a box of planks. What a cart carries is drawn
+             with the block's own images and maps.
   armour     the worn layers on players and mobs, every kind and piece,
              the elytra and the trims (see "worn armour" below).
   objects    the bell, the arrow, banners and their patterns, the shield,
@@ -168,28 +168,41 @@ def boat_specs():
 # of its model; what it carries is drawn with the block's own images
 # (mcl_chests_normal, default_furnace_*, default_tnt_*, mcl_hoppers_*,
 # jeija_commandblock_off), so their maps are the blocks'. The body is the
-# planks of a box in a frame of riveted iron, every iron texel a plate as on
-# the iron golem: a crisp shallow bevel, a small tilt and step per plate,
-# scratches, a dent here and there, rivet heads along each piece's border.
+# planks of a box in a frame of iron plates.
+#
+# Until 2026-10-05 every iron texel was a plate as on the iron golem (a
+# crisp bevel, a tilt and step per plate, rivets by rule), and on the GPU
+# the cart read as a grid of separate bevelled tiles
+# (evidence/minecart_tiles_on_2x.png): that suits a golem, but a cart is
+# a few large plates. Now neighbouring close shades merge into plates
+# (extrude.merge_plateaus, as the hair styles and sculpt_crisp merge),
+# crisp steps fall only between those, and the plates keep the golem's
+# scratches and dents without the per texel bevel. The art draws no rivet
+# heads, so none are added.
 
-PLATE_MIX = {"layers": [
-    {"kind": "plate", "params": {"step": 0.12, "tilt": 0.2}},
+# Merge share: a plateau's shades span at most this share of the
+# material's shade range.
+PLATE_MERGE = 0.5
+# The cart's near black iron is drawn as a fine checker of close shades
+# (cast iron's mottle), wider apart than half its narrow range: at 0.5 the
+# rim still stood as a texel checker, so its plates merge further.
+CART_MERGE = 0.75
+# The iron golem's wear, which reads well on the GPU: a few fine
+# scratches and the odd soft hammer dent inside each texel.
+WEAR = {"layers": [
     {"kind": "scratches", "strength": 0.3, "swing": 0.6,
      "params": {"count": 0.35, "length": 0.4, "width": 0.03}},
     {"kind": "dents", "strength": 0.6, "params": {"density": 0.25, "second": 0, "radius": 0.42}}]}
-RIVETS = {"kind": "rivets", "strength": 1.8, "swing": 1.5,
-          "params": {"radius": 0.2, "inset": 0.3, "seat": 0.18, "every": 3}}
 # The cart's iron is drawn from near black to dark grey. Metal albedo is
 # reflectance, so the near black plates are a dark iron dielectric (the
 # hopper's lesson); the lighter grey straps and rims, at 0.2 luminance and
 # over, are bare worn iron and reflect as metal.
 CART_DARK = {"mode": "shade", "base": 0.86, "span": 0.12, "levels": 3, "detail": 0.3,
-             "joints": False, "smooth": 0.46, "smooth_spread": 0.03, "micro": "mix",
-             "micro_params": {"layers": PLATE_MIX["layers"] + [RIVETS]}, "wear": 0.1,
-             "metal": False}
+             "joints": False, "merge": CART_MERGE, "smooth": 0.46, "smooth_spread": 0.03,
+             "micro": "mix", "micro_params": WEAR, "wear": 0.1, "metal": False}
 CART_IRON = {"mode": "shade", "base": 0.9, "span": 0.08, "levels": 2, "detail": 0.3,
-             "joints": False, "metal": True, "smooth": 0.62, "smooth_spread": 0.03,
-             "micro": "mix", "micro_params": PLATE_MIX, "wear": 0.1}
+             "joints": False, "merge": PLATE_MERGE, "metal": True, "smooth": 0.62,
+             "smooth_spread": 0.03, "micro": "mix", "micro_params": WEAR, "wear": 0.1}
 CART_PLANK = dict(PLANK, base=0.78, span=0.12, metal=False)
 CART_NARROW = dict(NARROW_PLANK, metal=False)
 
@@ -231,9 +244,27 @@ TRIMS = ("bolt", "coast", "dune", "eye", "flow", "rib", "sentry", "silence", "sn
 ARM_PLATE = {"mode": "shade", "base": 0.86, "span": 0.12, "levels": 3, "detail": 0.3,
              "joints": True, "joint": 0.12, "metal": True, "smooth": 0.72, "smooth_spread": 0.03,
              "micro": "metal_worn", "wear": 0.12}
-# Diamond: gem plate, F0 0.17 and polished only on the gem.
+# A piece of armour is a few large plates, not one per texel: on the GPU
+# (2026-10-05) gold, netherite and iron read as a grid of bevelled tiles,
+# one per art texel. Neighbouring close shades merge into one plateau
+# first, as the cart's (PLATE_MERGE), so the crisp steps fall between the
+# art's plates only.
+# Iron is worn steel, bright but not a mirror. At 0.72 its near white art
+# blew out on the chestplate under an afternoon and a low sun, and by a
+# lantern at night, and the helmet read as glassy chrome; 0.62 with a
+# wider spread (the darker, lower texels rougher) and the golem's wear.
+ARM_IRON = dict(ARM_PLATE, merge=PLATE_MERGE, smooth=0.62, smooth_spread=0.08, micro="mix",
+                micro_params=WEAR)
+# Gold and copper keep their polish, merged into plates.
+ARM_GOLD = dict(ARM_PLATE, merge=PLATE_MERGE)
+ARM_COPPER = dict(ARM_PLATE, merge=PLATE_MERGE)
+# Diamond: gem plate, F0 0.17 and polished only on the gem. A dielectric:
+# without "metal": false the stem's class (metal) set every gem texel's
+# metal flag, which overrides the F0 (the _s green byte was 255), and on
+# the GPU (2026-10-05) a few chestplate texels drew black with maps on.
 ARM_GEM = {"mode": "shade", "base": 0.84, "span": 0.12, "levels": 3, "detail": 0.3,
-           "joints": False, "smooth": 0.9, "smooth_spread": 0.02, "f0": 0.17, "micro": "glass",
+           "joints": False, "metal": False, "smooth": 0.9, "smooth_spread": 0.02, "f0": 0.17,
+           "micro": "glass",
            "micro_strength": 0.4, "wear": 0.06}
 # The dark frame a diamond piece is set in: dark iron, a dielectric.
 ARM_FRAME = {"mode": "shade", "base": 0.8, "span": 0.1, "levels": 2, "detail": 0.3,
@@ -244,20 +275,40 @@ ARM_FRAME = {"mode": "shade", "base": 0.8, "span": 0.1, "levels": 2, "detail": 0
 ARM_DARK = {"mode": "shade", "base": 0.84, "span": 0.12, "levels": 3, "detail": 0.3,
             "joints": False, "metal": False, "smooth": 0.64, "smooth_spread": 0.03,
             "micro": "metal_worn", "wear": 0.12}
-# Mail: one height per shade band, the art's lighter texels the rings and
-# its darkest the gaps between, a ring of round wire per texel in the
-# normal. Rings at 0.2 luminance and over are metal; the gaps a dielectric.
-ARM_CHAIN = {"mode": "flat", "base": 0.9, "span": 0.0, "metal": True, "smooth": 0.66,
-             "smooth_spread": 0.0, "micro": "chain", "micro_strength": 1.0, "wear": 0.1}
-ARM_CHAIN_GAP = dict(ARM_CHAIN, base=0.87, metal=False, smooth=0.4)
+# Netherite: its dark plate is drawn near black and its lighter edging a
+# warm brown. As metal the edging reflected the warm sky through that
+# brown and the piece read as bronze with a hot spot (GPU, 2026-10-05).
+# Both are dielectric: a dark satin plate at moderate smoothness, the
+# edging a little rougher, merged into plates as the other armour.
+NETH_DARK = dict(ARM_DARK, merge=PLATE_MERGE, smooth=0.52, smooth_spread=0.04)
+NETH_EDGE = dict(ARM_PLATE, merge=PLATE_MERGE, metal=False, smooth=0.46, smooth_spread=0.04)
+# Mail: the art draws it as a checker, a lighter texel (a ring, 0.2
+# luminance and over) beside a darker one (the gap). Each ring texel is
+# one ring of round wire a texel across, centred in it (the chain kind's
+# "grid"), metal and smoother on the wire's top; each gap texel dark,
+# rough, flat and a dielectric. Rings laid over both shades regardless of
+# the checker read on the GPU as dark speckled granite with a bronze cast.
+ARM_CHAIN = {"mode": "flat", "base": 0.9, "span": 0.0, "metal": True, "smooth": 0.7,
+             "smooth_spread": 0.0, "micro": "chain", "micro_strength": 1.0,
+             "micro_params": {"grid": True, "radius": 0.31, "wire": 0.14, "lean": 0.25},
+             "wear": 0.06}
+ARM_CHAIN_GAP = {"mode": "flat", "base": 0.86, "span": 0.0, "metal": False, "smooth": 0.28,
+                 "smooth_spread": 0.0, "micro": "none"}
 # Stitched leather, soft: lighter a little higher, steps rounded, the box
 # edges rolled rather than bevelled, stitching inside each piece's edge.
+# On the GPU (2026-10-05) the dyed leather read as felt: the leather
+# kind's fine pores and creases were fuzz at a viewing distance. Now a
+# pebbled grain (cells about a third of a texel, smoother on their tops,
+# no pores), a soft sheen at 0.42, and the stitches wider and deeper so
+# they show.
 ARM_LEATHER = {"mode": "soft", "base": 0.88, "span": 0.1, "detail": 0.25, "soft_edge": 0.3,
                "round": 3, "edge_roll": 1.5, "edge_lean": 18, "roll_rough": 0.03,
-               "metal": False, "smooth": 0.36, "smooth_spread": 0.02, "micro": "leather",
-               "micro_strength": 0.5, "wear": 0.15,
-               "stitch": {"inset": 0.22, "length": 0.36, "gap": 0.18, "width": 0.07,
-                          "groove": 0.05, "depth": 0.03}}
+               "metal": False, "smooth": 0.42, "smooth_spread": 0.03, "micro": "leather",
+               "micro_strength": 0.8,
+               "micro_params": {"cell": 0.32, "pores": 0.0, "crease": 0.5, "sheen": 0.9},
+               "wear": 0.1,
+               "stitch": {"inset": 0.24, "length": 0.4, "gap": 0.2, "width": 0.09,
+                          "groove": 0.06, "depth": 0.07}}
 # Straps and belts under and between plates: leather, one height. Most are
 # a single texel wide, too thin for a rolled edge or a stitched one: a
 # roll there leaned inward at the face borders, and the stitch groove sat
@@ -349,9 +400,14 @@ def armour_specs():
                 mat[y, x] = armour_material(kind, hh, s, L)
             mats = dict(ARMOUR_MATERIALS)
             if kind == "netherite":
-                # Netherite's own dark plate and its edging, a little less
-                # polished than iron's.
-                mats["plate"] = dict(ARM_PLATE, smooth=0.66)
+                mats["plate"] = NETH_EDGE
+                mats["dark"] = NETH_DARK
+            elif kind in ("iron", "chain"):
+                mats["plate"] = ARM_IRON
+            elif kind == "gold":
+                mats["plate"] = ARM_GOLD
+            elif kind == "copper":
+                mats["plate"] = ARM_COPPER
             if kind == "leather":
                 leather = mat
             if kind == "leather_desat" and leather is not None:
@@ -415,9 +471,12 @@ def armour_specs():
 # frames held in hand.
 
 # The bell: worked gold, lighter higher by a shallow step, polished; the
-# dark of its mouth a dielectric; its iron yoke worn iron.
+# dark of its mouth a dielectric; its iron yoke worn iron. At 0.74 the
+# bell read pale and washed out on the GPU (2026-10-05): every shade
+# mirrored the same bright sky. A little less polish, and a wider spread
+# so the art's darker shades are rougher and keep their contrast.
 BELL_GOLD = {"mode": "shade", "base": 0.86, "span": 0.12, "levels": 3, "detail": 0.3,
-             "joints": False, "metal": True, "smooth": 0.74, "smooth_spread": 0.03,
+             "joints": False, "metal": True, "smooth": 0.64, "smooth_spread": 0.12,
              "micro": "metal_worn", "wear": 0.1}
 BELL_MOUTH = {"mode": "flat", "base": 0.8, "span": 0.0, "metal": False, "smooth": 0.4,
               "smooth_spread": 0.0, "micro": "none"}

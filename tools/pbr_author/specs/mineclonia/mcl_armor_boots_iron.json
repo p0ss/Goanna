@@ -8,7 +8,7 @@
  "micro": "none",
  "class": "metal",
  "materials": {
-  "plate": {"mode": "shade", "base": 0.86, "span": 0.12, "levels": 3, "detail": 0.3, "joints": true, "joint": 0.12, "metal": true, "smooth": 0.72, "smooth_spread": 0.03, "micro": "metal_worn", "wear": 0.12}
+  "plate": {"mode": "shade", "base": 0.86, "span": 0.12, "levels": 3, "detail": 0.3, "joints": true, "joint": 0.12, "metal": true, "smooth": 0.62, "smooth_spread": 0.08, "micro": "mix", "wear": 0.12, "merge": 0.5, "micro_params": {"layers": [{"kind": "scratches", "strength": 0.3, "swing": 0.6, "params": {"count": 0.35, "length": 0.4, "width": 0.03}}, {"kind": "dents", "strength": 0.6, "params": {"density": 0.25, "second": 0, "radius": 0.42}}]}}
  },
  "grid": [
   "................................................................",
