@@ -630,8 +630,9 @@ a 16 texel part stays 256 pixels per 16 texels inside a composite.
 | `[transformN` | moved as the texels move (`imageTransform`), and for `_n` the tangent turned with them; see below |
 | `[resize:WxH` | scaled nearest, keeping its scale over the art |
 | `[opacity:R`, `[noalpha` | the albedo's alpha changes, which is the mask when this part lies over another |
+| `[mask:m` | the mask composed, the smaller of the two scaled up to the other by area, and the albedo ANDed with it byte by byte (`imageApplyMask`); the companion is untouched, and shows only where the masked art covers once the part lies over another |
 | colour only modifiers | nothing |
-| anything else (`[mask`, `[verticalframe`, `[sheet`, `[crack`, `[fill`, `[inventorycube`, `[lowpart`, `[invert`, `[overlay`, `[png`) | not read: the old lookup, the image before the first `^` |
+| anything else (`[verticalframe`, `[sheet`, `[crack`, `[fill`, `[inventorycube`, `[lowpart`, `[invert`, `[overlay`, `[png`) | not read: the old lookup, the first image the expression names |
 
 A part with no companion of its own is neutral where it covers, and canvas
 nothing covers is neutral, as for an overlay stack. With no companion in any
@@ -688,7 +689,14 @@ equal the transformed normals.
   stack keeps the compositing above; any other expression the reader
   follows is composed: a shield or banner as an item, the trident's held
   image (`blank.png^[resize:5x32^[combine:5x32:-19,0=...`), a carrot or
-  warped fungus on a stick, the screwdriver (`^[transformFX`).
+  warped fungus on a stick, the screwdriver (`^[transformFX`), and a
+  standing banner, whose pole is `banner_base^[mask:base_inverted`, whose
+  cloth is a recoloured `banner_base^[mask:base` and whose patterns are
+  each cut by their own image. Until 2026-10-05 `[mask` was not read and
+  the fallback asked for `(mcl_banners_banner_base.png`, bracket and all,
+  which no pack has, so the banner drew with the relief inferred from its
+  own brightness: the creeper sunk into the cloth, its outline shaded, the
+  white top border raised.
 - Each composed companion is built once per texture string and suffix, on
   the main thread, and kept as a texture of its own
   (`GoannaTextureSource::composedCompanion`). `GOANNA_DEBUG_PBR=1` logs each
@@ -703,7 +711,12 @@ pixels) makes the chiseled bookshelf's 16 texel canvas show the top left
 pixel part, not seen in a frame). The composed companion follows
 the albedo exactly, crop and all, so it cannot hide this; the fix is to
 ship only the `_n` and `_s` of a texture that is used as a `[combine`
-part, as the skins already do.
+part, as the skins already do
+(`tools/pbr_author/stems/<game>.maps_only.txt`). It was seen in a frame on
+2026-10-05: the review pack shipped `mcl_tridents_trident_entity.png` at
+256 pixels, the held trident's five texel cut took art column 2 of it,
+opaque from end to end, and the trident drew as a solid pale slab, in
+maps on and maps off runs alike.
 
 **Sprites.** A sprite or upright sprite draws through a plain
 `StandardMaterial3D` with no companions. A camera facing sprite could take

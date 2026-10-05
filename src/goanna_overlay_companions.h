@@ -25,14 +25,15 @@
 // composeCompanion reads more: the texture modifier language as Luanti's
 // ImageSource::generateImage evaluates it (overlays, parenthesised groups,
 // [combine with escaped and nested parts, [transform, [resize, [opacity,
-// [noalpha and the colour-only modifiers), and builds the companion the
-// same way the albedo is built: each part's companion placed where the part
-// is placed, transformed as it is transformed. The node path uses it for
-// a tile string such as "mcl_nether_netherrack.png^crimson_nylium_side.png"
-// or a chiseled bookshelf's "[combine:16x16:...", an item for
-// "screwdriver.png^[transformFX". Anything else (a frame cut, [mask, a
-// crack, [fill, [inventorycube) is not read, and the caller keeps its
-// single image lookup.
+// [noalpha, [mask and the colour-only modifiers), and builds the companion
+// the same way the albedo is built: each part's companion placed where the
+// part is placed, transformed as it is transformed, covering what the part
+// covers. The node path uses it for a tile string such as
+// "mcl_nether_netherrack.png^crimson_nylium_side.png" or a chiseled
+// bookshelf's "[combine:16x16:...", an item for
+// "screwdriver.png^[transformFX", an entity for a banner's [mask cut pole
+// and cloth. Anything else (a frame cut, a crack, [fill, [inventorycube) is
+// not read, and the caller keeps its single image lookup.
 
 #include <cstdint>
 #include <functional>

@@ -539,6 +539,34 @@ private:
                 base.albedo.px[i] = (uint8_t)(base.albedo.px[i] * ratio / 255);
             return true;
         }
+        if (startsWith(part, "[mask:")) {
+            // imagesource.cpp: the mask generated, the smaller of the two
+            // scaled up to the other by area, then every byte of the image
+            // ANDed with the mask's (imageApplyMask). Only the albedo
+            // changes: its alpha is what this part covers when it lies over
+            // another, so the companion shows through the mask exactly where
+            // the art does. A Mineclonia banner is built this way, its pole
+            // and its cloth each cut from the one base image by a mask.
+            Fields sf{part};
+            sf.next(":");
+            const std::string file = unescape(sf.nextEsc(":"));
+            Value mask;
+            bool mask_have = false;
+            if (!image(file, mask, mask_have, depth + 1))
+                return false;
+            if (!mask_have)
+                return true; // upstream logs the failure and leaves the image
+            if (base.albedo.w != mask.albedo.w || base.albedo.h != mask.albedo.h) {
+                if ((int64_t)base.albedo.w * base.albedo.h <
+                        (int64_t)mask.albedo.w * mask.albedo.h)
+                    resizeValue(base, mask.albedo.w, mask.albedo.h);
+                else
+                    mask.albedo = scaled(mask.albedo, base.albedo.w, base.albedo.h);
+            }
+            for (size_t i = 0; i < base.albedo.px.size(); ++i)
+                base.albedo.px[i] &= mask.albedo.px[i];
+            return true;
+        }
         if (part == "[noalpha") {
             for (size_t i = 3; i < base.albedo.px.size(); i += 4)
                 base.albedo.px[i] = 255;

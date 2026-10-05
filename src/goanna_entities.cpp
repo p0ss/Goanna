@@ -284,6 +284,18 @@ void EntityRenderer::setHairShader(float strength) {
     }
 }
 
+// The first image a texture expression names: the part before the first
+// '^', without the brackets of a group it opens. A banner's texture starts
+// "(mcl_banners_banner_base.png^[mask:...)", and its class lookup asked for
+// "(mcl_banners_banner_base.png", which no table or file has.
+static std::string firstImage(const std::string &texture) {
+    size_t start = texture.find_first_not_of('(');
+    if (start == std::string::npos)
+        return std::string();
+    const size_t end = texture.find_first_of("^)", start);
+    return texture.substr(start, end == std::string::npos ? std::string::npos : end - start);
+}
+
 Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
         const std::string &texture, bool alpha, bool double_sided, bool item,
         const std::vector<Rect2> *faces) {
@@ -313,8 +325,10 @@ Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
             // held image, a carrot on a stick or a screwdriver held turned)
             // gets its companions composed the way the texture is built
             // (composeCompanion), each part's maps placed and turned with
-            // the part. Anything neither reads ([mask, a frame cut), or a
-            // single image, takes the base image's companions.
+            // the part, and a [mask cut (a standing banner's pole and
+            // cloth) covering what the mask leaves. Anything neither reads
+            // (a frame cut), or a single image, takes the first image's
+            // companions.
             std::vector<OverlayLayer> layers;
             bool composed = false;
             if (parseOverlayLayers(texture, layers) && layers.size() > 1) {
@@ -338,8 +352,7 @@ Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
             if (composite_layers || composed) {
                 // Composed above.
             } else {
-                std::string base = layers.size() == 1 ? layers[0].image
-                        : texture.substr(0, texture.find('^'));
+                std::string base = layers.size() == 1 ? layers[0].image : firstImage(texture);
                 normal_tex = companionTexture(session, base, "_n");
                 spec_tex = companionTexture(session, base, "_s");
             }
@@ -403,7 +416,7 @@ Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
         // GOANNA_NO_CLASS=1 withholds it, the same A/B switch GOANNA_NO_NORMAL
         // gives the node path: two runs of one scene, one variable, rather
         // than an argument about a screenshot.
-        std::string cbase = texture.substr(0, texture.find('^'));
+        std::string cbase = firstImage(texture);
         MaterialClass cls = MaterialClass::None;
         if (!getenv("GOANNA_NO_CLASS")) {
             cls = session.materialTable().textureClass(tileBaseName(cbase));

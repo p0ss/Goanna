@@ -122,7 +122,7 @@ int main() {
     expect(nameOf(frame) == "strip_n.png^[verticalframe:2:1",
             "an animation frame keeps the frame cut of its strip's _n, got '" +
             nameOf(frame) + "'");
-    expect(tsrc->tileCompanion("rack.png^[mask:side.png", "_n") == rack_n,
+    expect(tsrc->tileCompanion("rack.png^[invert:rgb", "_n") == rack_n,
             "a modifier the composer does not read falls back to the base image");
 
     bool supported = false;
@@ -130,8 +130,29 @@ int main() {
     expect(supported && flipped && rgba(at(flipped, 0, 0), 127, 128, 255, 40) &&
             rgba(at(flipped, 1, 0), 55, 100, 255, 255),
             "a flipped tool's _n is flipped and its red negated");
-    tsrc->composedCompanion("tool.png^[mask:tool.png", "_n", &supported);
-    expect(!supported, "[mask is reported as not read");
+    tsrc->composedCompanion("tool.png^[invert:rgb", "_n", &supported);
+    expect(!supported, "[invert is reported as not read");
+
+    // Mineclonia's held trident: a five texel wide cut of its 32 x 32
+    // entity skin, the shaft one column in the middle with transparency
+    // either side. Built as upstream builds it, the cut keeps that
+    // transparency (the 2026-10-05 review's pale slab was a pack's 256 px
+    // albedo in place of the skin, which a pixel offset [combine cannot
+    // take; see tools/pbr_author/stems/mineclonia.maps_only.txt).
+    {
+        insert(tsrc, "blank.png", solid(1, 1, video::SColor(0, 0, 0, 0)));
+        video::IImage *tri = solid(32, 32, video::SColor(0, 0, 0, 0));
+        for (u32 y = 7; y < 32; ++y)
+            tri->setPixel(21, y, video::SColor(255, 109, 84, 62));
+        insert(tsrc, "tri.png", tri);
+        GoannaTexture *t = dynamic_cast<GoannaTexture *>(tsrc->getTexture(
+                "blank.png^[resize:5x32^[combine:5x32:-19,0=tri.png"));
+        const bool sized = t && t->image() && t->image()->getDimension().Width == 5 &&
+                t->image()->getDimension().Height == 32;
+        expect(sized && t->hasAlpha() && rgba(at(t, 2, 10), 109, 84, 62, 255) &&
+                at(t, 0, 10).getAlpha() == 0 && at(t, 4, 10).getAlpha() == 0,
+                "the trident's wield image is the shaft column on transparency");
+    }
 
     std::cout << "tile companions: " << g_checks << " checks, " << g_failures << " failure(s)\n";
     return g_failures == 0 ? 0 : 1;

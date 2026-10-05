@@ -404,6 +404,44 @@ void testCompose() {
     check(px(out, 2, 0)[0] == 127 && px(out, 2, 0)[1] == 255 && px(out, 0, 2)[0] == 128 &&
             px(out, 0, 2)[1] == 128, "the rotated line's _n is turned and placed");
 
+    // A Mineclonia standing banner, as the server sends it: the pole cut
+    // from the base image by the inverted mask, the cloth cut from a
+    // coloured copy by the mask, and a pattern cut by its own shape. Here
+    // a 4 x 1 atlas: x 0 the pole, x 1 to 3 the cloth, the pattern on x 2.
+    Fake m;
+    m.albedo["base.png"] = solid(4, 1, 90, 60, 30, 255);
+    Rgba8 base_n = solid(8, 2, 128, 128, 255, 255);
+    for (int y = 0; y < 2; ++y)
+        for (int x = 0; x < 8; ++x)
+            setPx(base_n, x, y, x < 2 ? 60 : 200, 128, 255, 255); // pole 60, cloth 200
+    m.comp["base.png"] = base_n;
+    Rgba8 cloth_mask = solid(4, 1, 255, 255, 255, 255), pole_mask = solid(4, 1, 0, 0, 0, 0);
+    setPx(cloth_mask, 0, 0, 0, 0, 0, 0);
+    setPx(pole_mask, 0, 0, 255, 255, 255, 255);
+    m.albedo["mask.png"] = cloth_mask;
+    m.albedo["inverted.png"] = pole_mask;
+    Rgba8 creeper = solid(4, 1, 0, 0, 0, 0);
+    setPx(creeper, 2, 0, 255, 255, 255, 255);
+    m.albedo["creeper.png"] = creeper;
+    m.comp["creeper.png"] = solid(4, 1, 128, 20, 255, 255);
+    const std::string banner = "(base.png^[mask:inverted.png)^((base.png^[colorize:#d0d6d7:255)"
+            "^[mask:mask.png)^(creeper.png^[colorize:#080a10:255^[mask:creeper.png)";
+    check(composeCompanion(banner, kNormalKind, m.sources(), out) == Composed::Done &&
+            out.w == 8 && out.h == 2, "a banner's [mask composite composes");
+    check(px(out, 1, 0)[0] == 60 && px(out, 3, 1)[0] == 200 && px(out, 7, 0)[0] == 200,
+            "the pole and the cloth each keep the base's maps where the masks leave them");
+    check(px(out, 4, 0)[1] == 20 && px(out, 5, 1)[1] == 20 && px(out, 3, 0)[1] == 128,
+            "the pattern's maps exactly where its own mask draws it");
+    m.comp.erase("creeper.png");
+    composeCompanion(banner, kNormalKind, m.sources(), out);
+    check(same(px(out, 4, 0), 128, 128, 255, 255) && px(out, 6, 0)[0] == 200,
+            "a pattern with no maps is neutral inside its mask, not across the cloth");
+    // [mask:x where x is larger: the image is scaled up to it, as there.
+    m.albedo["big_mask.png"] = solid(8, 2, 255, 255, 255, 255);
+    check(composeCompanion("base.png^[mask:big_mask.png", kNormalKind, m.sources(), out) ==
+            Composed::Done && out.w == 16 && out.h == 4,
+            "a larger mask scales the image up, keeping the map's scale over it");
+
     // A golem's crack in a group with [opacity, as compositeCompanions
     // composites it (96: 230 to 40 at 180/255).
     Fake o;
@@ -417,7 +455,6 @@ void testCompose() {
 
     const char *unread[] = {
         "a.png^[verticalframe:2:0",
-        "a.png^[mask:b.png",
         "a.png^[crack:1:1",
         "missing.png",
         "a.png^(b.png",
